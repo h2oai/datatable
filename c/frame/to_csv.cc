@@ -42,7 +42,7 @@ static void change_to_lowercase(std::string& str) {
 
 static PKArgs args_to_csv(
     0, 1, 5, false, false,
-    {"path", "quoting", "hex", "compress", "verbose", "_strategy"},
+    {"path", "quoting", "hex", "compression", "verbose", "_strategy"},
     "to_csv",
 
 R"(to_csv(self, path=None, *, quoting=csv.QUOTE_MINIMAL, hex=False,
@@ -78,11 +78,11 @@ hex: bool
     representation, so its use is recommended if you need maximum
     speed.
 
-compress: bool | "infer"
-    If True, then the output file will be compressed into a ".gz"
-    file. The default is "infer", meaning that the option will be
-    deduced from the `path` parameter: compression will be turned on
-    if the file name ends with ".gz".
+compression: None | "gzip" | "infer"
+    Which compression method to use for the output stream. The default
+    is "infer", which tries to guess the compression method from the
+    output file name. The only compression format currently supported
+    is "gzip".
 
 verbose: bool
     If True, some extra information will be printed to the console,
@@ -140,15 +140,18 @@ oobj Frame::to_csv(const PKArgs& args)
   bool hex = args[2].to<bool>(false);
 
   // compress
-  bool compress = false;
-  if (args[3].is_none_or_undefined() ||
-      (args[3].is_string() && args[3].to_string() == "infer")) {
+  auto compress_str = args[3].to<std::string>("infer");
+  bool compress = false;  // eventually this will be an Enum
+  if (compress_str == "infer") {
     size_t n = filename.size();
     compress = (n > 3 && filename[n-3] == '.' &&
                          filename[n-2] == 'g' &&
                          filename[n-1] == 'z');
+  } else if (compress_str == "gzip") {
+    compress = true;
   } else {
-    compress = args[3].to_bool_strict();
+    throw ValueError() << "Unsupported compression method '"
+        << compress_str << "' in Frame.to_csv()";
   }
 
   // verbose

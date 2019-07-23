@@ -103,6 +103,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   are 4 constants from the standard `csv` module: `csv.QUOTE_MINIMAL`
   (default), `csv.QUOTE_ALL`, `csv.QUOTE_NONNUMERIC` and `csv.QUOTE_NONE`.
 
+- Added parameter `compression=` to method `Frame.to_csv()`, with possibility
+  to request gzip compression for the output file. By default the compression
+  method will be inferred from the file name.
+
 
 ### Fixed
 

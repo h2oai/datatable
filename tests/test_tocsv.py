@@ -488,3 +488,39 @@ def test_quoting_invalid():
             DT.to_csv(quoting=q)
         assert ("Invalid value of the `quoting` parameter in Frame.to_csv()"
                 in str(e.value))
+
+
+def test_compress1():
+    DT = dt.Frame(A=range(5))
+    out = DT.to_csv(compression="gzip")
+    assert out == (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x13'
+                   b's\xe4\x02\x00\xa5\x85nH\x02\x00\x00\x00'
+                   b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x13'
+                   b'3\xe02\xe42\xe22\xe62\xe1\x02\x00'
+                   b'\n\x1a\xb4D\n\x00\x00\x00')
+
+
+def test_compress2(tempfile):
+    tempfile += ".gz"
+    DT = dt.Frame(A=range(1000), B=["one", "five", "seven", "t"]*250)
+    out = DT.to_csv()  # uncompressed
+    try:
+        DT.to_csv(tempfile, compression="infer")
+        assert os.path.isfile(tempfile)
+        assert os.stat(tempfile).st_size < len(out)
+        IN = dt.fread(tempfile)
+        assert_equals(DT, IN)
+    finally:
+        os.unlink(tempfile)
+
+
+def test_compress_invalid():
+    DT = dt.Frame()
+    with pytest.raises(TypeError) as e:
+        DT.to_csv(compression=0)
+    assert ("Expected a string, instead got <class 'int'>"
+            in str(e.value))
+    with pytest.raises(ValueError) as e:
+        DT.to_csv(compression="rar")
+    assert ("Unsupported compression method 'rar' in Frame.to_csv()"
+            == str(e.value))
