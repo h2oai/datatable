@@ -547,13 +547,13 @@ def get_extra_link_args():
         if "DTCOVERAGE" in os.environ:
             flags += ["--coverage", "-O0"]
 
-        # link zlib compression library
-        flags += ["-lz"]
-
         libs = sorted(set(os.path.dirname(lib)
                           for lib in find_linked_dynamic_libraries()))
         for lib in libs:
             flags += ["-L%s" % lib]
+
+        # link zlib compression library
+        flags += ["-lz"]
 
         for flag in flags:
             log.info(flag)
@@ -676,9 +676,8 @@ def monkey_patch_compiler():
                     resolved_name = os.path.join("datatable", "lib",
                                                  lib[len("@rpath/"):])
                     if not os.path.isfile(resolved_name):
-                        # raise SystemExit("Dependency %s does not exist"
-                        #                 % resolved_name)
-                        print("Warning: cannot find dependency " + resolved_name)
+                        raise SystemExit("Dependency %s does not exist"
+                                        % resolved_name)
                 else:
                     resolved_name = lib
                 if resolved_name == executable:
@@ -727,7 +726,24 @@ def monkey_patch_compiler():
             return compiler_so
 
 
+        def fixup_linker(self):
+            # Remove duplicate arguments
+            # Remove any explicit library paths -- having a user-defined library
+            # path before -L/usr/lib messes up with dylib resolution, and we end
+            # up creating a wrong .so file.
+            seen_args = set()
+            new_linker = []
+            for arg in self.linker_so:
+                if arg in seen_args: continue
+                if arg.startswith("-L"): continue
+                seen_args.add(arg)
+                new_linker.append(arg)
+            self.linker_so = new_linker
+            self.library_dirs = []
+
+
         def link(self, *args, **kwargs):
+            self.fixup_linker()
             super().link(*args, **kwargs)
             outname = args[2] if len(args) >= 3 else kwargs["output_filename"]
             outdir = args[3] if len(args) >= 4 else kwargs["output_dir"]
