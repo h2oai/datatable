@@ -109,6 +109,9 @@ class TaskContext:
 def dtroot():
     return os.path.abspath(os.path.join(os.path.basename(__file__), ".."))
 
+def dtpath(*args):
+    return os.path.join(dtroot(), *args)
+
 def islinux():
     return sys.platform == "linux"
 
@@ -122,14 +125,24 @@ def iswindows():
 
 
 def get_datatable_version():
+    # According to PEP-440, the canonical version must have the following
+    # general form:
+    #
+    #     [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
+    #
+    # In the version file we allow only `N(.N)*[{a|b|rc}N]`, with "dev" suffix
+    # optionally added afterwards from CI_VERSION_SUFFIX environment variable.
+    #
     with TaskContext("Determine datatable version") as log:
         version = None
-        filename = os.path.join(dtroot(), "datatable", "__version__.py")
+        filename = dtpath("datatable", "__version__.py")
         if not os.path.isfile(filename):
             log.fatal("The version file %s does not exist" % filename)
         log.info("Reading file " + filename)
         with open(filename, encoding="utf-8") as f:
-            rx = re.compile(r"version\s*=\s*['\"]([\d.]*)['\"]\s*")
+            rx = re.compile(r"version\s*=\s*['\"]"
+                            r"(\d+(?:\.\d+)*(?:(?:a|b|rc)\d+)?)"
+                            r"['\"]\s*")
             for line in f:
                 mm = re.match(rx, line)
                 if mm is not None:
@@ -142,14 +155,14 @@ def get_datatable_version():
         # Append build suffix if necessary
         suffix = os.environ.get("CI_VERSION_SUFFIX")
         if suffix:
-            # See https://www.python.org/dev/peps/pep-0440/ for the acceptable
-            # versioning schemes.
-            log.info("... appending version suffix " + suffix)
+            log.info("Appending suffix from CI_VERSION_SUFFIX = " + suffix)
             mm = re.match(r"(?:master|dev)[.+_-]?(\d+)", suffix)
             if mm:
                 suffix = "dev" + str(mm.group(1))
             version += "." + suffix
             log.info("Final version = " + version)
+        else:
+            log.info("Environment variable CI_VERSION_SUUFFIX not present")
         return version
 
 

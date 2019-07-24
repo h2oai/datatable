@@ -29,6 +29,7 @@ Build script for the `datatable` module.
     $ twine upload dist/*
 """
 import os
+import setuptools
 import shutil
 import sys
 if sys.version_info < (3, 5):
@@ -38,7 +39,6 @@ if sys.version_info < (3, 5):
                      "whereas your Python is %s\n\x1B[39m"
                      % ".".join(str(d) for d in sys.version_info))
 
-from setuptools import setup, Extension
 from ci.setup_utils import (get_datatable_version, make_git_version_file,
                             get_compiler, get_extra_compile_flags,
                             get_extra_link_args, find_linked_dynamic_libraries,
@@ -53,6 +53,7 @@ with TaskContext("Start setup.py") as log:
             cmd = arg
             break
     log.info("command = `%s`" % cmd)
+    log.info("setuptools version = %s" % setuptools.__version__)
 
 
 
@@ -164,7 +165,7 @@ if cmd in ("build", "sdist", "bdist_wheel", "install"):
 #-------------------------------------------------------------------------------
 # Main setup
 #-------------------------------------------------------------------------------
-setup(
+setuptools.setup(
     name="datatable",
     version=get_datatable_version(),
 
@@ -220,7 +221,7 @@ setup(
     zip_safe=True,
 
     ext_modules=[
-        Extension(
+        setuptools.Extension(
             "datatable/lib/_datatable",
             include_dirs=["c", "include"],
             sources=cpp_files,
