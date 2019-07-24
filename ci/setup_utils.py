@@ -733,7 +733,11 @@ def monkey_patch_compiler():
             # up creating a wrong .so file.
             seen_args = set()
             new_linker = []
-            delayed_args = self.library_dirs[:]
+            delayed_args = []
+            for arg in self.library_dirs:
+                if not arg.startswith("-L"):
+                    arg = "-L" + arg
+                delayed_args.append(arg)
             for arg in self.linker_so:
                 if arg in seen_args: continue
                 seen_args.add(arg)
