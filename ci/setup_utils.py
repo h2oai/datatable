@@ -733,24 +733,52 @@ def monkey_patch_compiler():
             # up creating a wrong .so file.
             seen_args = set()
             new_linker = []
+            delayed_args = self.library_dirs[:]
             for arg in self.linker_so:
                 if arg in seen_args: continue
-                if arg.startswith("-L"): continue
                 seen_args.add(arg)
-                new_linker.append(arg)
+                if arg.startswith("-L"):
+                    delayed_args.append(arg)
+                else:
+                    new_linker.append(arg)
             self.linker_so = new_linker
             self.library_dirs = []
+            self.delayed_libraries = delayed_args
 
 
-        def link(self, *args, **kwargs):
+        def link(self,
+                 target_desc,
+                 objects,
+                 output_filename,
+                 output_dir=None,
+                 libraries=None,
+                 library_dirs=None,
+                 runtime_library_dirs=None,
+                 export_symbols=None,
+                 debug=0,
+                 extra_preargs=None,
+                 extra_postargs=None,
+                 build_temp=None,
+                 target_lang=None):
             self.fixup_linker()
-            super().link(*args, **kwargs)
-            outname = args[2] if len(args) >= 3 else kwargs["output_filename"]
-            outdir = args[3] if len(args) >= 4 else kwargs["output_dir"]
-            if outdir is not None:
-                outname = os.path.join(outdir, outname)
+            extra_postargs.extend(self.delayed_libraries)
+            super().link(target_desc=target_desc,
+                         objects=objects,
+                         output_filename=output_filename,
+                         output_dir=output_dir,
+                         libraries=libraries,
+                         library_dirs=library_dirs,
+                         runtime_library_dirs=runtime_library_dirs,
+                         export_symbols=export_symbols,
+                         debug=debug,
+                         extra_preargs=extra_preargs,
+                         extra_postargs=extra_postargs,
+                         build_temp=build_temp,
+                         target_lang=target_lang)
+            if output_dir is not None:
+                output_filename = os.path.join(output_dir, output_filename)
             if ismacos():
-                self.postlink(outname)
+                self.postlink(output_filename)
 
 
         def postlink(self, outname):
