@@ -976,8 +976,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
   colname_hashes.reserve(dt->ncols);
   for (size_t i = 0; i < dt->ncols; i++) {
     uint64_t h = hash_murmur2(c_names[i].c_str(),
-                             c_names[i].length() * sizeof(char),
-                             0);
+                             c_names[i].length() * sizeof(char));
     colname_hashes.push_back(h);
   }
 

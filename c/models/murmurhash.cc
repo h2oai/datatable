@@ -10,13 +10,15 @@
 /**
  *  Murmur2 hash function.
  */
-uint64_t hash_murmur2(const void* key, uint64_t len, unsigned int seed /* =0 */)
+uint64_t hash_murmur2(const void* key, uint64_t len)
 {
   if (!key) return 0;
   constexpr uint64_t m = 0xc6a4a7935bd1e995LLU;
   constexpr int r = 47;
 
-  uint64_t h = seed ^ (len * m);
+  // uint64_t h = seed ^ (len * m);
+  // Use zero seed
+  uint64_t h = len * m;
 
   const uint64_t* data = static_cast<const uint64_t*>(key);
   const uint64_t* end = data + (len/8);
@@ -56,15 +58,15 @@ uint64_t hash_murmur2(const void* key, uint64_t len, unsigned int seed /* =0 */)
 /**
  *  Murmur3 hash function.
  */
-void hash_murmur3(const void* key, const uint64_t len, void* out,
-                  unsigned int seed /* = 0 */
-                  )
-{
+void hash_murmur3(const void* key, const uint64_t len, void* out) {
   const uint8_t* data = static_cast<const uint8_t*>(key);
   const uint64_t nblocks = len / 16;
 
-  uint64_t h1 = seed;
-  uint64_t h2 = seed;
+  // uint64_t h1 = seed;
+  // uint64_t h2 = seed;
+  // Use zero seed
+  uint64_t h1 = 0;
+  uint64_t h2 = 0;
 
   constexpr uint64_t c1 = 0x87c37b91114253d5LLU;
   constexpr uint64_t c2 = 0x4cf5ad432745937fLLU;
