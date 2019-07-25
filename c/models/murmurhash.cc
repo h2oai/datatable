@@ -10,7 +10,7 @@
 /**
  *  Murmur2 hash function.
  */
-uint64_t hash_murmur2(const void* key, uint64_t len, unsigned int seed)
+uint64_t hash_murmur2(const void* key, uint64_t len, unsigned int seed /* =0 */)
 {
   if (!key) return 0;
   constexpr uint64_t m = 0xc6a4a7935bd1e995LLU;
@@ -56,8 +56,9 @@ uint64_t hash_murmur2(const void* key, uint64_t len, unsigned int seed)
 /**
  *  Murmur3 hash function.
  */
-void hash_murmur3(const void* key, const uint64_t len, unsigned int seed,
-                  void* out)
+void hash_murmur3(const void* key, const uint64_t len, void* out,
+                  unsigned int seed /* = 0 */
+                  )
 {
   const uint8_t* data = static_cast<const uint8_t*>(key);
   const uint64_t nblocks = len / 16;
