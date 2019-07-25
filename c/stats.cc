@@ -597,7 +597,7 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
 
 struct StrHasher {
   size_t operator()(const CString& s) const {
-    return hash_murmur2(s.ch, static_cast<size_t>(s.size), 0);
+    return hash_murmur2(s.ch, static_cast<size_t>(s.size));
   }
 };
 
