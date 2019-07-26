@@ -45,8 +45,8 @@ static PKArgs args_to_csv(
     {"path", "quoting", "hex", "compression", "verbose", "_strategy"},
     "to_csv",
 
-R"(to_csv(self, path=None, *, quoting=csv.QUOTE_MINIMAL, hex=False,
-       compress=False, verbose=False, _strategy="auto")
+R"(to_csv(self, path=None, *, quoting="minimal", hex=False,
+       compression=None, verbose=False, _strategy="auto")
 --
 
 Write the Frame into the provided file in CSV format.

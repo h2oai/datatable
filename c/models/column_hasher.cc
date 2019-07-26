@@ -108,7 +108,7 @@ uint64_t HasherString<T>::hash(size_t row) const {
     const T strstart = offsets[i - 1] & ~GETNA<T>();
     const char* c_str = strdata + strstart;
     T len = offsets[i] - strstart;
-    return hash_murmur2(c_str, len * sizeof(char), 0);
+    return hash_murmur2(c_str, len * sizeof(char));
   }
 }
 
