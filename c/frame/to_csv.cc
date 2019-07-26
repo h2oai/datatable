@@ -19,14 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/writer.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "write/csv_writer.h"
 #include "options.h"
 namespace py {
 
+static void change_to_lowercase(std::string& str) {
+  for (size_t i = 0; i < str.size(); ++i) {
+    char c = str[i];
+    if (c >= 'A' && c <= 'Z') str[i] = c - 'A' + 'a';
+  }
+}
 
 
 
@@ -36,11 +42,11 @@ namespace py {
 
 static PKArgs args_to_csv(
     0, 1, 4, false, false,
-    {"path", "nthreads", "hex", "verbose", "_strategy"},
+    {"path", "quoting", "hex", "verbose", "_strategy"},
     "to_csv",
 
-R"(to_csv(self, path=None, nthreads=None, hex=False, verbose=False,
-       _strategy="auto")
+R"(to_csv(self, path=None, *, quoting="minimal", hex=False,
+       verbose=False, _strategy="auto")
 --
 
 Write the Frame into the provided file in CSV format.
@@ -53,11 +59,17 @@ path: str
     then the Frame will be serialized into a string, and that string
     will be returned.
 
-nthreads: int
-    How many threads to use for writing. The value of 0 means to use
-    all available threads. Negative values indicate to use that many
-    threads less than the maximum available. If this parameter is
-    omitted then `dt.options.nthreads` will be used.
+quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
+    csv.QUOTE_MINIMAL (0) -- quote the string fields only as
+        necessary, i.e. if the string starts or ends with the
+        whitespace, or contains quote characters, separator, or
+        any of the C0 control characters (including newlines, etc).
+    csv.QUOTE_ALL (1) -- all fields will be quoted, both string and
+        numeric, and even boolean.
+    csv.QUOTE_NONNUMERIC (2) -- all string fields will be quoted.
+    csv.QUOTE_NONE (3) -- none of the fields will be quoted. This
+        option must be used at user's own risk: the file produced
+        may not be valid CSV.
 
 hex: bool
     If True, then all floating-point values will be printed in hex
@@ -88,12 +100,26 @@ oobj Frame::to_csv(const PKArgs& args)
   path = oobj::import("os", "path", "expanduser").call({path});
   std::string filename = path.to_string();
 
-  // nthreads
-  int32_t maxth = static_cast<int32_t>(dt::num_threads_in_pool());
-  int32_t nthreads = args[1].to<int32_t>(maxth);
-  if (nthreads > maxth) nthreads = maxth;
-  if (nthreads <= 0) nthreads += maxth;
-  if (nthreads <= 0) nthreads = 1;
+  // quoting
+  int quoting;
+  if (args[1].is_string()) {
+    auto quoting_str = args[1].to_string();
+    change_to_lowercase(quoting_str);
+    if (quoting_str == "minimal") quoting = 0;
+    else if (quoting_str == "all") quoting = 1;
+    else if (quoting_str == "nonnumeric") quoting = 2;
+    else if (quoting_str == "none") quoting = 3;
+    else {
+      throw ValueError() << "Invalid value of the `quoting` parameter in "
+          "Frame.to_csv(): '" << quoting_str << "'";
+    }
+  } else {
+    quoting = args[1].to<int>(0);
+    if (quoting < 0 || quoting > 3) {
+      throw ValueError() << "Invalid value of the `quoting` parameter in "
+          "Frame.to_csv(): " << quoting;
+    }
+  }
 
   // hex
   bool hex = args[2].to<bool>(false);
@@ -111,27 +137,13 @@ oobj Frame::to_csv(const PKArgs& args)
                                            WritableBuffer::Strategy::Auto;
 
   // Create the CsvWriter object
-  CsvWriter cwriter(dt, filename);
-  cwriter.set_nthreads(static_cast<size_t>(nthreads));
-  cwriter.set_strategy(sstrategy);
-  cwriter.set_usehex(hex);
-  cwriter.set_logger(logger);
-
-  cwriter.write();
-
-  // Post-process the result
-  if (filename.empty()) {
-    WritableBuffer* wb = cwriter.get_output_buffer();
-    MemoryWritableBuffer* mb = dynamic_cast<MemoryWritableBuffer*>(wb);
-    xassert(mb);
-
-    // -1 because the buffer also stores trailing \0
-    size_t len = mb->size() - 1;
-    char* str = static_cast<char*>(mb->get_cptr());
-    return ostring(str, len);
-  }
-
-  return None();
+  dt::write::csv_writer writer(dt, filename);
+  writer.set_strategy(sstrategy);
+  writer.set_usehex(hex);
+  writer.set_logger(logger);
+  writer.set_quoting(quoting);
+  writer.write_main();
+  return writer.get_result();
 }
 
 
@@ -143,8 +155,6 @@ oobj Frame::to_csv(const PKArgs& args)
 
 void Frame::_init_tocsv(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::to_csv, args_to_csv));
-
-  init_csvwrite_constants();
 }
 
 
