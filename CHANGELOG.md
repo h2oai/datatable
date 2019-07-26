@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][]
 
+### Fixed
+
+- Fixed error when displaying `help(dt)` (#1931).
+
+
 ## [0.9.0][] — 2019-06-15
 
 ### Added
