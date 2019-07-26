@@ -156,6 +156,25 @@ def test_dt_version():
     assert len(dt.__git_revision__) == 40
 
 
+def test_dt_help():
+    # Issue #1931: verify that rendering help does not throw an error
+    import pydoc
+    from io import StringIO
+    try:
+        original_pager = pydoc.pager
+        pydoc.pager = pydoc.plainpager
+        buf = sys.stdout = StringIO()
+        help(dt)
+        out = buf.getvalue()
+        assert len(out) > 30000
+        assert "class Frame(" in out
+    finally:
+        # Restore the original stdout / pydoc pager
+        sys.stdout = sys.__stdout__
+        pydoc.pager = original_pager
+
+
+
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.Frame)
     frame_integrity_check(dt0)
