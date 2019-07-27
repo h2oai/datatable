@@ -108,14 +108,14 @@ static void encode_nones(const T* offsets, const RowIndex& ri, colvec& outcols) 
  */
 static void sort_colnames(colvec& outcols, strvec& outnames) {
   size_t ncols = outcols.size();
-  std::vector<std::string> outnames_sorted(ncols);
-  std::vector<Column*> outcols_sorted(ncols);
-  std::vector<size_t> colindex = sort_index<std::string>(outnames);
+  strvec outnames_sorted(ncols);
+  colvec outcols_sorted(ncols);
+  intvec colindex = sort_index<std::string>(outnames);
 
   for (size_t i = 0; i < ncols; ++i) {
     size_t j = colindex[i];
     outnames_sorted[i] = std::move(outnames[j]);
-    outcols_sorted[i] = outcols[j];
+    outcols_sorted[i] = std::move(outcols[j]);
   }
 
   outcols = std::move(outcols_sorted);
@@ -191,7 +191,7 @@ DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
                 int8_t* data = newcol->elements_w();
                 std::memset(data, 0, nrows);
                 data[irow] = 1;
-                outcols.push_back(newcol);
+                outcols.emplace_back(newcol);
                 outdata.push_back(data);
                 outnames.push_back(s);
               } else {

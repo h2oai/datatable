@@ -156,7 +156,7 @@ py::oobj write_manager::get_result() {
 
 void write_manager::create_column_writers() {
   for (size_t i = 0; i < dt->ncols; ++i) {
-    const Column* col = dt->columns[i];
+    const OColumn& col = dt->get_ocolumn(i);
     columns.emplace_back(col, options);
   }
 }

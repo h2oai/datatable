@@ -146,7 +146,7 @@ class HtmlWidget {
           j = ncols - cols1;
           html << "<td></td>";
         }
-        SType stype = dt->columns[j]->stype();
+        SType stype = dt->get_ocolumn(j).stype();
         size_t elemsize = info(stype).elemsize();
         html << "<td class='" << info(stype).ltype_name()
              << "' title='" << info(stype).name() << "'>";
@@ -192,8 +192,8 @@ class HtmlWidget {
           html << "<td class=vellipsis>&hellip;</td>";
         }
         html << "<td>";
-        const Column* col = dt->columns[j];
-        switch (col->stype()) {
+        const OColumn& col = dt->get_ocolumn(j);
+        switch (col.stype()) {
           case SType::BOOL:
           case SType::INT8:    render_fw_value<int8_t>(col, i); break;
           case SType::INT16:   render_fw_value<int16_t>(col, i); break;
@@ -253,11 +253,10 @@ class HtmlWidget {
     }
 
     template <typename T>
-    void render_fw_value(const Column* col, size_t row) {
-      auto scol = static_cast<const FwColumn<T>*>(col);
-      auto irow = scol->rowindex()[row];
+    void render_fw_value(const OColumn& col, size_t row) {
+      auto irow = col->rowindex()[row];
       if (irow == size_t(-1)) return render_na();
-      T val = scol->get_elem(irow);
+      T val = reinterpret_cast<const T*>(col->data())[irow];
       if (ISNA<T>(val)) render_na();
       else {
         if (val < 0) {
@@ -270,8 +269,8 @@ class HtmlWidget {
     }
 
     template <typename T>
-    void render_str_value(const Column* col, size_t row) {
-      auto scol = static_cast<const StringColumn<T>*>(col);
+    void render_str_value(const OColumn& col, size_t row) {
+      auto scol = static_cast<const StringColumn<T>*>(col.get());
       auto irow = scol->rowindex()[row];
       if (irow == size_t(-1)) return render_na();
       const T* offsets = scol->offsets();
@@ -285,8 +284,8 @@ class HtmlWidget {
       }
     }
 
-    void render_obj_value(const Column* col, size_t row) {
-      auto scol = static_cast<const PyObjectColumn*>(col);
+    void render_obj_value(const OColumn& col, size_t row) {
+      auto scol = static_cast<const PyObjectColumn*>(col.get());
       auto irow = scol->rowindex()[row];
       if (irow == size_t(-1)) return render_na();
       PyObject* val = scol->get_elem(irow);

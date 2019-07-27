@@ -93,7 +93,7 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
       sb->commit_and_start_new_chunk(nrows);
     });
 
-  return std::move(output_col).to_column();
+  return std::move(output_col).to_ocolumn().release();
 }
 
 

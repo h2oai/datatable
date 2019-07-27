@@ -34,7 +34,7 @@ template<typename T>
 class ColumnConvertor {
   public:
     const RowIndex& ri;
-    explicit ColumnConvertor(const Column*);
+    explicit ColumnConvertor(const OColumn&);
     virtual ~ColumnConvertor();
     virtual T operator[](size_t) const = 0;
     virtual void get_rows(std::vector<T>&, size_t, size_t, size_t) const = 0;
@@ -54,9 +54,9 @@ class ColumnConvertor {
  *  to be used when the data are accessed.
  */
 template<typename T>
-ColumnConvertor<T>::ColumnConvertor(const Column* col) :
+ColumnConvertor<T>::ColumnConvertor(const OColumn& col) :
   ri(col->rowindex()),
-  nrows(col->nrows)
+  nrows(col.nrows())
 {}
 
 
@@ -97,9 +97,9 @@ template<typename T1, typename T2, typename T3>
 class ColumnConvertorReal : public ColumnConvertor<T2> {
   private:
     const /* T1* */ T2* values;
-    colptr column;
+    OColumn column;
   public:
-    explicit ColumnConvertorReal(const Column*);
+    explicit ColumnConvertorReal(const OColumn&);
     T2 operator[](size_t) const override;
     void get_rows(std::vector<T2>&, size_t, size_t, size_t) const override;
 };
@@ -110,14 +110,14 @@ class ColumnConvertorReal : public ColumnConvertor<T2> {
  *  for the multi-threaded ND aggregator.
  */
 template<typename T1, typename T2, typename T3>
-ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const Column* column_in) :
+ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const OColumn& column_in) :
   ColumnConvertor<T2>(column_in)
 {
   xassert((std::is_same<T2, float>::value || std::is_same<T2, double>::value));
   SType to_stype = (sizeof(T2) == 4)? SType::FLOAT32 : SType::FLOAT64;
 
-  column = colptr(column_in->cast(to_stype));
-  auto column_real = static_cast<RealColumn<T2>*>(column.get());
+  column = OColumn(column_in->cast(to_stype));
+  auto column_real = static_cast<const RealColumn<T2>*>(column.get());
   this->min = column_real->min();
   this->max = column_real->max();
   values = column_real->elements_r();

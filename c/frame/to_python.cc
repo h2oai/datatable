@@ -24,151 +24,7 @@
 #include "python/args.h"
 #include "python/string.h"
 #include "python/tuple.h"
-
 namespace py {
-
-
-//------------------------------------------------------------------------------
-// converters for various stypes
-//------------------------------------------------------------------------------
-
-class converter {
-  public:
-    virtual ~converter();
-    virtual oobj to_oobj(size_t row) const = 0;
-};
-using convptr = std::unique_ptr<converter>;
-
-converter::~converter() {}
-
-
-
-class bool8_converter : public converter {
-  private:
-    const int8_t* values;
-  public:
-    explicit bool8_converter(const Column*);
-    oobj to_oobj(size_t row) const override;
-};
-
-bool8_converter::bool8_converter(const Column* col) {
-  values = dynamic_cast<const BoolColumn*>(col)->elements_r();
-}
-
-oobj bool8_converter::to_oobj(size_t row) const {
-  int8_t x = values[row];
-  return x == 0? py::False() : x == 1? py::True() : py::None();
-}
-
-
-
-template <typename T>
-class int_converter : public converter {
-  private:
-    const T* values;
-  public:
-    explicit int_converter(const Column*);
-    oobj to_oobj(size_t row) const override;
-};
-
-template <typename T>
-int_converter<T>::int_converter(const Column* col) {
-  values = dynamic_cast<const IntColumn<T>*>(col)->elements_r();
-}
-
-template <typename T>
-oobj int_converter<T>::to_oobj(size_t row) const {
-  T x = values[row];
-  return ISNA<T>(x)? py::None() : oint(x);
-} // LCOV_EXCL_LINE
-
-
-
-template <typename T>
-class float_converter : public converter {
-  private:
-    const T* values;
-  public:
-    explicit float_converter(const Column*);
-    oobj to_oobj(size_t row) const override;
-};
-
-template <typename T>
-float_converter<T>::float_converter(const Column* col) {
-  values = dynamic_cast<const RealColumn<T>*>(col)->elements_r();
-}
-
-template <typename T>
-oobj float_converter<T>::to_oobj(size_t row) const {
-  T x = values[row];
-  return ISNA<T>(x)? py::None() : ofloat(x);
-} // LCOV_EXCL_LINE
-
-
-
-template <typename T>
-class string_converter : public converter {
-  private:
-    const char* strdata;
-    const T* offsets;
-  public:
-    explicit string_converter(const Column*);
-    oobj to_oobj(size_t row) const override;
-};
-
-template <typename T>
-string_converter<T>::string_converter(const Column* col) {
-  auto scol = dynamic_cast<const StringColumn<T>*>(col);
-  strdata = scol->strdata();
-  offsets = scol->offsets();
-}
-
-template <typename T>
-oobj string_converter<T>::to_oobj(size_t row) const {
-  T end = offsets[row];
-  if (ISNA<T>(end)) return py::None();
-  T start = offsets[row - 1] & ~GETNA<T>();
-  return ostring(strdata + start, end - start);
-}
-
-
-
-class pyobj_converter : public converter {
-  private:
-    const PyObject* const* values;
-  public:
-    explicit pyobj_converter(const Column*);
-    oobj to_oobj(size_t row) const override;
-};
-
-pyobj_converter::pyobj_converter(const Column* col) {
-  values = dynamic_cast<const PyObjectColumn*>(col)->elements_r();
-}
-
-oobj pyobj_converter::to_oobj(size_t row) const {
-  return oobj(values[row]);
-}
-
-
-
-static convptr make_converter(const Column* col) {
-  SType stype = col->stype();
-  switch (stype) {
-    case SType::BOOL:    return convptr(new bool8_converter(col));
-    case SType::INT8:    return convptr(new int_converter<int8_t>(col));
-    case SType::INT16:   return convptr(new int_converter<int16_t>(col));
-    case SType::INT32:   return convptr(new int_converter<int32_t>(col));
-    case SType::INT64:   return convptr(new int_converter<int64_t>(col));
-    case SType::FLOAT32: return convptr(new float_converter<float>(col));
-    case SType::FLOAT64: return convptr(new float_converter<double>(col));
-    case SType::STR32:   return convptr(new string_converter<uint32_t>(col));
-    case SType::STR64:   return convptr(new string_converter<uint64_t>(col));
-    case SType::OBJ:     return convptr(new pyobj_converter(col));
-    default:
-      throw ValueError()  // LCOV_EXCL_LINE
-          << "Cannot stringify column of type " << stype;
-  }
-}
 
 
 
@@ -202,14 +58,10 @@ oobj Frame::to_tuples(const PKArgs&) {
     list_of_tuples.push_back(py::otuple(dt->ncols));
   }
   for (size_t j = 0; j < dt->ncols; ++j) {
-    const Column* col = dt->columns[j];
-    const RowIndex& ri = col->rowindex();
-    auto conv = make_converter(col);
-    ri.iterate(0, dt->nrows, 1,
-      [&](size_t i, size_t ii) {
-        oobj x = ii == RowIndex::NA? py::None() : conv->to_oobj(ii);
-        list_of_tuples[i].set(j, std::move(x));
-      });
+    const OColumn& col = dt->get_ocolumn(j);
+    for (size_t i = 0; i < dt->nrows; ++i) {
+      list_of_tuples[i].set(j, col.get_element_as_pyobject(i));
+    }
   }
   py::olist res(dt->nrows);
   for (size_t i = 0; i < dt->nrows; ++i) {
@@ -243,14 +95,10 @@ oobj Frame::to_list(const PKArgs&) {
   py::olist res(dt->ncols);
   for (size_t j = 0; j < dt->ncols; ++j) {
     py::olist pycol(dt->nrows);
-    const Column* col = dt->columns[j];
-    const RowIndex& ri = col->rowindex();
-    auto conv = make_converter(col);
-    ri.iterate(0, dt->nrows, 1,
-      [&](size_t i, size_t ii) {
-        oobj x = ii == RowIndex::NA? py::None() : conv->to_oobj(ii);
-        pycol.set(i, std::move(x));
-      });
+    const OColumn& col = dt->get_ocolumn(j);
+    for (size_t i = 0; i < dt->nrows; ++i) {
+      pycol.set(i, col.get_element_as_pyobject(i));
+    }
     res.set(j, std::move(pycol));
   }
   return std::move(res);
@@ -282,14 +130,10 @@ oobj Frame::to_dict(const PKArgs&) {
   py::odict res;
   for (size_t j = 0; j < dt->ncols; ++j) {
     py::olist pycol(dt->nrows);
-    const Column* col = dt->columns[j];
-    const RowIndex& ri = col->rowindex();
-    auto conv = make_converter(col);
-    ri.iterate(0, dt->nrows, 1,
-      [&](size_t i, size_t ii) {
-        oobj x = (ii == RowIndex::NA)? py::None() : conv->to_oobj(ii);
-        pycol.set(i, std::move(x));
-      });
+    const OColumn& col = dt->get_ocolumn(j);
+    for (size_t i = 0; i < dt->nrows; ++i) {
+      pycol.set(i, col.get_element_as_pyobject(i));
+    }
     res.set(names[j], pycol);
   }
   return std::move(res);
@@ -304,4 +148,5 @@ void Frame::_init_topython(XTypeMaker& xt) {
 }
 
 
-};
+
+}  // namespace py

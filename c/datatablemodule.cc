@@ -77,7 +77,7 @@ static py::oobj frame_column_rowindex(const py::PKArgs& args) {
   DataTable* dt = u.first;
   size_t col = u.second;
 
-  RowIndex ri = dt->columns[col]->rowindex();
+  RowIndex ri = dt->get_column(col)->rowindex();
   return ri? py::orowindex(ri) : py::None();
 }
 
@@ -98,7 +98,7 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
   auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
-  size_t iptr = reinterpret_cast<size_t>(dt->columns[col]->data());
+  size_t iptr = reinterpret_cast<size_t>(dt->get_column(col)->data());
   return c_void_p.call({py::oint(iptr)});
 }
 
@@ -243,7 +243,7 @@ static void _column_save_to_disk(const py::PKArgs& args) {
   std::string filename = args[2].to_string();
   std::string strategy = args[3].to_string();
 
-  Column* col = dt->columns[i];
+  Column* col = dt->get_column(i);
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;

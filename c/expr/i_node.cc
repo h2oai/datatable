@@ -281,7 +281,8 @@ void expr_in::execute(workframe& wf) {
         "was of type " << st;
   }
   auto col = expr->evaluate_eager(wf);
-  RowIndex res(col.get());
+  OColumn ocol(col.release());
+  RowIndex res(ocol);
   wf.apply_rowindex(res);
 }
 
@@ -319,7 +320,7 @@ frame_in::frame_in(py::robj src) : dtobj(src) {
     throw ValueError() << "Only a single-column Frame may be used as `i` "
         "selector, instead got a Frame with " << dt->ncols << " columns";
   }
-  SType st = dt->columns[0]->stype();
+  SType st = dt->get_ocolumn(0).stype();
   if (!(st == SType::BOOL || info(st).ltype() == LType::INT)) {
     throw TypeError() << "A Frame which is used as an `i` selector should be "
         "either boolean or integer, instead got `" << st << "`";
@@ -328,17 +329,17 @@ frame_in::frame_in(py::robj src) : dtobj(src) {
 
 
 void frame_in::post_init_check(workframe& wf) {
-  Column* col = dt->columns[0];
+  const OColumn& col = dt->get_ocolumn(0);
   size_t nrows = wf.nrows();
-  if (col->stype() == SType::BOOL) {
-    if (col->nrows != nrows) {
+  if (col.stype() == SType::BOOL) {
+    if (col.nrows() != nrows) {
       throw ValueError() << "A boolean column used as `i` selector has "
-          << col->nrows << " row" << (col->nrows == 1? "" : "s")
+          << col.nrows() << " row" << (col.nrows() == 1? "" : "s")
           << ", but applied to a Frame with "
            << nrows << " row" << (nrows == 1? "" : "s");
     }
   } else {
-    if (col->nrows == 0) return;
+    if (col.nrows() == 0) return;
     int64_t min = col->min_int64();
     int64_t max = col->max_int64();
     if (min < -1) {
@@ -355,7 +356,7 @@ void frame_in::post_init_check(workframe& wf) {
 
 
 void frame_in::execute(workframe& wf) {
-  RowIndex ri { dt->columns[0] };
+  RowIndex ri { dt->get_ocolumn(0) };
   wf.apply_rowindex(ri);
 }
 

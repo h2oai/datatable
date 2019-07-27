@@ -30,23 +30,23 @@ DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& 
                            bool recode)
 {
     size_t ncols = colspec->nrows;
-    std::vector<Column*> columns;
+    colvec columns;
     columns.reserve(ncols);
 
     if (colspec->ncols != 2 && colspec->ncols != 4) {
         throw ValueError() << "colspec table should have had 2 or 4 columns, "
                            << "but " << colspec->ncols << " were passed";
     }
-    SType stypef = colspec->columns[0]->stype();
-    SType stypes = colspec->columns[1]->stype();
+    SType stypef = colspec->get_ocolumn(0).stype();
+    SType stypes = colspec->get_ocolumn(1).stype();
     if (stypef != SType::STR32 || stypes != SType::STR32) {
         throw ValueError() << "String columns are expected in colspec table, "
                            << "instead got " << stypef << " and "
                            << stypes;
     }
 
-    auto colf = static_cast<StringColumn<uint32_t>*>(colspec->columns[0]);
-    auto cols = static_cast<StringColumn<uint32_t>*>(colspec->columns[1]);
+    auto colf = static_cast<const StringColumn<uint32_t>*>(colspec->get_ocolumn(0).get());
+    auto cols = static_cast<const StringColumn<uint32_t>*>(colspec->get_ocolumn(1).get());
 
     const uint32_t* offf = colf->offsets();
     const uint32_t* offs = cols->offsets();
@@ -80,7 +80,7 @@ DataTable* DataTable::load(DataTable* colspec, size_t nrows, const std::string& 
 
         // Load the column
         Column* newcol = Column::open_mmap_column(stype, nrows, filename, recode);
-        columns.push_back(newcol);
+        columns.emplace_back(newcol);
     }
 
     return new DataTable(std::move(columns));

@@ -23,8 +23,6 @@ constexpr T infinity() {
          : std::numeric_limits<T>::max();
 }
 
-using colptr = std::unique_ptr<Column>;
-
 static const char* reducer_names[REDUCER_COUNT] = {
   "mean", "min", "max", "stdev", "first", "sum", "count", "count", "median"
 };
@@ -78,10 +76,10 @@ static ReducerLibrary library;
 // "First" reducer
 //------------------------------------------------------------------------------
 
-static colptr reduce_first(const colptr& col, const Groupby& groupby)
+static OColumn reduce_first(const OColumn& col, const Groupby& groupby)
 {
   if (col->nrows == 0) {
-    return colptr(Column::new_data_column(col->stype(), 0));
+    return OColumn(Column::new_data_column(col->stype(), 0));
   }
   size_t ngrps = groupby.ngroups();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the
@@ -91,7 +89,7 @@ static colptr reduce_first(const colptr& col, const Groupby& groupby)
   arr32_t indices(ngrps, groupby.offsets_r());
   RowIndex ri = RowIndex(std::move(indices), true)
                 * col->rowindex();
-  auto res = colptr(col->shallowcopy(ri));
+  auto res = OColumn(col->shallowcopy(ri));
   if (ngrps == 1) res->materialize();
   return res;
 }
@@ -306,7 +304,7 @@ GroupbyMode expr_reduce1::get_groupby_mode(const workframe&) const {
 }
 
 
-colptr expr_reduce1::evaluate_eager(workframe& wf)
+OColumn expr_reduce1::evaluate_eager(workframe& wf)
 {
   auto input_col = arg->evaluate_eager(wf);
   Groupby gb = wf.get_groupby();
@@ -324,7 +322,7 @@ colptr expr_reduce1::evaluate_eager(workframe& wf)
   xassert(reducer);  // checked in .resolve()
 
   SType out_stype = reducer->output_stype;
-  auto res = colptr(Column::new_data_column(out_stype, out_nrows));
+  auto res = OColumn(Column::new_data_column(out_stype, out_nrows));
 
   RowIndex rowindex = input_col->rowindex();
   if (opcode == Op::MEDIAN && gb) {
@@ -373,7 +371,7 @@ GroupbyMode expr_reduce0::get_groupby_mode(const workframe&) const {
 }
 
 
-colptr expr_reduce0::evaluate_eager(workframe& wf) {
+OColumn expr_reduce0::evaluate_eager(workframe& wf) {
   Column* res = nullptr;
   if (opcode == Op::COUNT0) {  // COUNT
     if (wf.has_groupby()) {
@@ -391,7 +389,7 @@ colptr expr_reduce0::evaluate_eager(workframe& wf) {
       d_res[0] = static_cast<int64_t>(wf.nrows());
     }
   }
-  return colptr(res);
+  return OColumn(res);
 }
 
 

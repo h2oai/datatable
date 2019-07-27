@@ -34,10 +34,10 @@ namespace py {
 
 static bool datatable_has_nas(DataTable* dt, size_t force_col) {
   if (force_col != size_t(-1)) {
-    return dt->columns[force_col]->countna() > 0;
+    return dt->get_ocolumn(force_col).na_count() > 0;
   }
   for (size_t i = 0; i < dt->ncols; ++i) {
-    if (dt->columns[i]->countna() > 0) {
+    if (dt->get_ocolumn(i).na_count() > 0) {
       return true;
     }
   }
@@ -122,14 +122,14 @@ oobj Frame::to_numpy(const PKArgs& args) {
     size_t i0 = one_col? force_col : 0;
 
     size_t dtsize = ncols * dt->nrows;
-    Column* mask_col = Column::new_data_column(SType::BOOL, dtsize);
+    OColumn mask_col(Column::new_data_column(SType::BOOL, dtsize));
     int8_t* mask_data = static_cast<int8_t*>(mask_col->data_w());
 
     size_t n_row_chunks = std::max(dt->nrows / 100, size_t(1));
     size_t rows_per_chunk = dt->nrows / n_row_chunks;
     size_t n_chunks = ncols * n_row_chunks;
     // precompute `countna` for all columns
-    for (size_t j = 0; j < ncols; ++j) dt->columns[j]->countna();
+    for (size_t j = 0; j < ncols; ++j) dt->get_ocolumn(j).na_count();
 
     dt::parallel_for_static(n_chunks,
       [&](size_t j) {
@@ -138,15 +138,16 @@ oobj Frame::to_numpy(const PKArgs& args) {
         size_t row0 = irow * rows_per_chunk;
         size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
         int8_t* mask_ptr = mask_data + icol * dt->nrows;
-        Column* col = dt->columns[icol + i0];
-        if (col->countna()) {
+        OColumn& col = dt->get_ocolumn(icol + i0);
+        if (col.na_count()) {
           col->fill_na_mask(mask_ptr, row0, row1);
         } else {
           std::memset(mask_ptr, 0, row1 - row0);
         }
       });
 
-    DataTable* mask_dt = new DataTable({mask_col});
+    DataTable* mask_dt = new DataTable({std::move(mask_col)},
+                                       DataTable::default_names);
     oobj mask_frame = Frame::oframe(mask_dt);
     oobj mask_array = nparray.call({mask_frame});
 

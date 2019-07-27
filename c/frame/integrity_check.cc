@@ -41,7 +41,7 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols;
     }
     for (size_t i = 0; i < dt->ncols; ++i) {
-      SType col_stype = dt->columns[i]->stype();
+      SType col_stype = dt->get_ocolumn(i).stype();
       auto elem = stypes_tuple[i];
       auto eexp = info(col_stype).py_stype();
       if (elem != eexp) {
@@ -60,7 +60,7 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols;
     }
     for (size_t i = 0; i < dt->ncols; ++i) {
-      SType col_stype = dt->columns[i]->stype();
+      SType col_stype = dt->get_ocolumn(i).stype();
       auto elem = ltypes_tuple[i];
       auto eexp = info(col_stype).py_ltype();
       if (elem != eexp) {
@@ -109,7 +109,7 @@ void DataTable::verify_integrity() const
    */
   for (size_t i = 0; i < ncols; ++i) {
     std::string col_name = std::string("Column ") + std::to_string(i);
-    Column* col = columns[i];
+    const Column* col = columns[i].get();
     if (col == nullptr) {
       throw AssertionError() << col_name << " of Frame is null";
     }

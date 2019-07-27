@@ -823,7 +823,7 @@ dtptr GenericReader::makeDatatable() {
   size_t ncols = columns.size();
   size_t nrows = columns.get_nrows();
   size_t ocols = columns.nColumnsInOutput();
-  std::vector<Column*> ccols;
+  std::vector<OColumn> ccols;
   ccols.reserve(ocols);
   for (size_t i = 0; i < ncols; ++i) {
     dt::read::Column& col = columns[i];
@@ -831,7 +831,7 @@ dtptr GenericReader::makeDatatable() {
     MemoryRange databuf = col.extract_databuf();
     MemoryRange strbuf = col.extract_strbuf();
     SType stype = col.get_stype();
-    ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
+    ccols.emplace_back((stype == SType::STR32 || stype == SType::STR64)
       ? new_string_column(nrows, std::move(databuf), std::move(strbuf))
       : Column::new_mbuf_column(stype, std::move(databuf))
     );

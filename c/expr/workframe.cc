@@ -235,11 +235,13 @@ void workframe::reserve(size_t n) {
 
 
 void workframe::add_column(
-  const Column* col, const RowIndex& ri, std::string&& name)
+  OColumn&& col, const RowIndex& ri, std::string&& name)
 {
-  const RowIndex& ricol = col->rowindex();
-  Column* newcol = col->shallowcopy(_product(ri, ricol));
-  columns.push_back(newcol);
+  if (ri) {
+    const RowIndex& ricol = col->rowindex();
+    col->replace_rowindex(_product(ri, ricol));
+  }
+  columns.push_back(std::move(col));
   colnames.push_back(std::move(name));
 }
 

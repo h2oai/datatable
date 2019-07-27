@@ -182,6 +182,112 @@ size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
 
 
 
+//------------------------------------------------------------------------------
+// OColumn
+//------------------------------------------------------------------------------
+
+void swap(OColumn& lhs, OColumn& rhs) {
+  std::swap(lhs.pcol, rhs.pcol);
+}
+
+OColumn::OColumn() : pcol(nullptr) {}
+
+OColumn::OColumn(Column* col) : pcol(col) {}  // Steal ownership
+
+OColumn::OColumn(const OColumn& other) : pcol(other.pcol->shallowcopy()) {}
+
+OColumn::OColumn(OColumn&& other) : OColumn() {
+  std::swap(pcol, other.pcol);
+}
+
+OColumn& OColumn::operator=(const OColumn& other) {
+  delete pcol;
+  pcol = other.pcol->shallowcopy();
+  return *this;
+}
+
+OColumn& OColumn::operator=(OColumn&& other) {
+  delete pcol;
+  pcol = other.pcol;
+  other.pcol = nullptr;
+  return *this;
+}
+
+OColumn::~OColumn() {
+  delete pcol;
+}
+
+
+
+const Column* OColumn::get() const {
+  return pcol;  // borrowed ref
+}
+
+Column* OColumn::release() {
+  Column* ret = pcol;
+  pcol = nullptr;
+  return ret;
+}
+
+Column* OColumn::operator->() {
+  return pcol;
+}
+
+const Column* OColumn::operator->() const {
+  return pcol;
+}
+
+
+//---- Properties ----------------------
+
+size_t OColumn::nrows() const noexcept {
+  return pcol->nrows;
+}
+
+size_t OColumn::na_count() const {
+  return pcol->countna();
+}
+
+SType OColumn::stype() const noexcept {
+  return pcol->stype();
+}
+
+LType OColumn::ltype() const noexcept {
+  return info(pcol->stype()).ltype();
+}
+
+bool OColumn::is_fixedwidth() const noexcept {
+  return !info(pcol->stype()).is_varwidth();
+}
+
+bool OColumn::is_virtual() const noexcept {
+  return bool(pcol->rowindex());
+}
+
+size_t OColumn::elemsize() const noexcept {
+  return info(pcol->stype()).elemsize();
+}
+
+OColumn::operator bool() const noexcept {
+  return (pcol != nullptr);
+}
+
+
+//---- Data access ---------------------
+
+py::oobj OColumn::get_element_as_pyobject(size_t i) const {
+  return pcol->get_value_at_index(i);
+}
+
+
+void OColumn::rbind(colvec& columns) {
+  pcol = pcol->rbind(columns);
+}
+
+void OColumn::materialize() {
+  pcol->materialize();
+}
+
 
 
 //==============================================================================
@@ -196,7 +302,7 @@ bool VoidColumn::is_fixedwidth() const { return true; }
 size_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
-void VoidColumn::rbind_impl(std::vector<const Column*>&, size_t, bool) {}
+void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const BoolColumn*) {}
 void VoidColumn::replace_values(RowIndex, const Column*) {}
 void VoidColumn::init_data() {}

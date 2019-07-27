@@ -621,10 +621,12 @@ GroupbyMode expr_binaryop::get_groupby_mode(const workframe& wf) const {
 }
 
 
-colptr expr_binaryop::evaluate_eager(workframe& wf) {
+OColumn expr_binaryop::evaluate_eager(workframe& wf) {
   auto lhs_res = lhs->evaluate_eager(wf);
   auto rhs_res = rhs->evaluate_eager(wf);
-  return colptr(expr::binaryop(opcode, lhs_res.get(), rhs_res.get()));
+  return OColumn(expr::binaryop(opcode,
+                               const_cast<Column*>(lhs_res.get()),
+                               const_cast<Column*>(rhs_res.get())));
 }
 
 
@@ -646,7 +648,7 @@ bool expr_binaryop::check_for_operation_with_literal_na(const workframe& wf) {
     auto pliteral = dynamic_cast<expr_literal*>(arg.get());
     if (!pliteral) return false;
     if (pliteral->resolve(wf) != SType::BOOL) return false;
-    colptr pcol = pliteral->evaluate_eager(const_cast<workframe&>(wf));
+    OColumn pcol = pliteral->evaluate_eager(const_cast<workframe&>(wf));
     if (pcol->nrows != 1) return false;
     return ISNA<int8_t>(reinterpret_cast<const int8_t*>(pcol->data())[0]);
   };

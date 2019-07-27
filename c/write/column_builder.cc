@@ -24,9 +24,9 @@ namespace dt {
 namespace write {
 
 
-column_builder::column_builder(const Column* col, const output_options& options)
+column_builder::column_builder(const OColumn& col, const output_options& options)
   : reader(value_reader::create(col)),
-    writer(value_writer::create(col->stype(), options)) {}
+    writer(value_writer::create(col.stype(), options)) {}
 
 
 size_t column_builder::get_static_output_size() const {

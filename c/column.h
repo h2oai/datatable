@@ -40,6 +40,7 @@ template <typename T> class IntColumn;
 template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
+using colvec = std::vector<OColumn>;
 
 /**
  * Helper templates to convert between an stype and a column's type:
@@ -192,7 +193,7 @@ public:
    * column.
    */
   virtual void resize_and_fill(size_t nrows) = 0;
-  Column* repeat(size_t nreps);
+  Column* repeat(size_t nreps) const;
 
   /**
    * Modify the Column, replacing values specified by the provided `mask` with
@@ -255,7 +256,7 @@ public:
    * Individual entries in the `columns` array may be instances of `VoidColumn`,
    * indicating columns that should be replaced with NAs.
    */
-  Column* rbind(std::vector<const Column*>& columns);
+  Column* rbind(colvec& columns);
 
   /**
    * "Materialize" the Column. If the Column has no rowindex, this is a no-op.
@@ -312,8 +313,7 @@ protected:
   virtual void init_mmap(const std::string& filename) = 0;
   virtual void open_mmap(const std::string& filename, bool recode) = 0;
   virtual void init_xbuf(Py_buffer* pybuffer) = 0;
-  virtual void rbind_impl(std::vector<const Column*>& columns,
-                          size_t nrows, bool isempty) = 0;
+  virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty) = 0;
 
   /**
    * Sets every row in the column to an NA value. As of now this method
@@ -330,7 +330,81 @@ private:
 
   // FIXME
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
+  friend class OColumn;
 };
+
+
+
+//------------------------------------------------------------------------------
+// OColumn
+//------------------------------------------------------------------------------
+
+// "owner" of a Column
+// Eventually will be renamed into simple Column
+class OColumn
+{
+  private:
+    // shared pointer; its lifetime is governed by `pcol->refcount`: when the
+    // reference count reaches 0, the object is deleted.
+    // We do not use std::shared_ptr<> here primarily because it makes it much
+    // harder to inspect the object in GDB / LLDB.
+    Column* pcol;
+
+  public:
+    static constexpr size_t MAX_ARR32_SIZE = 0x7FFFFFFF;
+
+  //------------------------------------
+  // Constructors
+  //------------------------------------
+  public:
+    OColumn();
+    explicit OColumn(Column* col);  // Steal ownership
+    OColumn(const OColumn&);
+    OColumn(OColumn&&);
+    OColumn& operator=(const OColumn&);
+    OColumn& operator=(OColumn&&);
+    ~OColumn();
+
+    // TEMP accessors to the underlying implementation
+    const Column* get() const;
+    Column* release();
+
+    Column* operator->();
+    const Column* operator->() const;
+
+  //------------------------------------
+  // Properties
+  //------------------------------------
+  public:
+    size_t nrows() const noexcept;
+    size_t na_count() const;
+    SType stype() const noexcept;
+    LType ltype() const noexcept;
+    bool is_fixedwidth() const noexcept;
+    bool is_virtual() const noexcept;
+    size_t elemsize() const noexcept;
+
+    operator bool() const noexcept;
+
+  //------------------------------------
+  // Data access
+  //------------------------------------
+  public:
+    bool get_element(size_t i, int32_t* out) const;
+    bool get_element(size_t i, int64_t* out) const;
+    bool get_element(size_t i, float* out) const;
+    bool get_element(size_t i, double* out) const;
+    bool get_element(size_t i, CString* out) const;
+    bool get_element(size_t i, py::oobj* out) const;
+    py::oobj get_element_as_pyobject(size_t i) const;
+
+
+    void rbind(colvec& columns);
+    void materialize();
+
+    friend void swap(OColumn& lhs, OColumn& rhs);
+};
+
 
 
 
@@ -363,8 +437,7 @@ protected:
   void open_mmap(const std::string& filename, bool) override;
   void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
-  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
-                  bool isempty) override;
+  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void fill_na() override;
 
   FwColumn();
@@ -509,8 +582,7 @@ protected:
   // TODO: This should be corrected when PyObjectStats is implemented
   void open_mmap(const std::string& filename, bool) override;
 
-  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
-                  bool isempty) override;
+  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
   void resize_and_fill(size_t nrows) override;
   void fill_na() override;
@@ -572,8 +644,7 @@ protected:
   void open_mmap(const std::string& filename, bool recode) override;
   void init_xbuf(Py_buffer* pybuffer) override;
 
-  void rbind_impl(std::vector<const Column*>& columns, size_t nrows,
-                  bool isempty) override;
+  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
   void fill_na() override;
 
@@ -609,7 +680,7 @@ class VoidColumn : public Column {
     size_t data_nrows() const override;
     void materialize() override;
     void resize_and_fill(size_t) override;
-    void rbind_impl(std::vector<const Column*>&, size_t, bool) override;
+    void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;

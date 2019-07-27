@@ -97,7 +97,7 @@ GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
 }
 
 
-colptr expr_string_match_re::evaluate_eager(workframe& wf) {
+OColumn expr_string_match_re::evaluate_eager(workframe& wf) {
   auto arg_res = arg->evaluate_eager(wf);
   SType arg_stype = arg_res->stype();
   xassert(arg_stype == SType::STR32 || arg_stype == SType::STR64);
@@ -107,8 +107,8 @@ colptr expr_string_match_re::evaluate_eager(workframe& wf) {
 
 
 template <typename T>
-colptr expr_string_match_re::_compute(Column* src) {
-  auto ssrc = dynamic_cast<StringColumn<T>*>(src);
+OColumn expr_string_match_re::_compute(const Column* src) {
+  auto ssrc = dynamic_cast<const StringColumn<T>*>(src);
   size_t nrows = ssrc->nrows;
   RowIndex src_rowindex = ssrc->rowindex();
   const char* src_strdata = ssrc->strdata();
@@ -131,7 +131,7 @@ colptr expr_string_match_re::_compute(Column* src) {
                                   regex);
       trg_data[i] = res;
     });
-  return colptr(trg);
+  return OColumn(trg);
 }
 
 

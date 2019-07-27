@@ -63,7 +63,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 
   std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
   for (size_t i = 0; i < ncols; ++i) {
-    Column* col = columns[i];
+    Column* col = get_column(i);
     if (col->stype() == SType::OBJ) {
       DatatableWarning() << "Column `" << names[i]
           << "` of type obj64 was not saved";

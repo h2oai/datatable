@@ -256,20 +256,20 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 // an integer output column because each "element" of the input actually
 // consists of 2 entries: the offsets of the start and the end of a string.
 //
-colptr expr_unaryop::evaluate_eager(workframe& wf) {
-  colptr input_column = arg->evaluate_eager(wf);
+OColumn expr_unaryop::evaluate_eager(workframe& wf) {
+  OColumn input_column = arg->evaluate_eager(wf);
 
-  auto input_stype = input_column->stype();
+  auto input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
   if (ui.cast_stype != SType::VOID) {
-    input_column = colptr(input_column->cast(ui.cast_stype));
+    input_column = OColumn(input_column->cast(ui.cast_stype));
   }
   if (ui.vectorfn == nullptr) {
     return input_column;
   }
-  input_column->materialize();
+  input_column.materialize();
 
-  size_t nrows = input_column->nrows;
+  size_t nrows = input_column.nrows();
   const MemoryRange& input_mbuf = input_column->data_buf();
   const void* inp = input_mbuf.rptr();
 
@@ -277,8 +277,8 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
   void* out = nullptr;
   size_t out_elemsize = info(ui.output_stype).elemsize();
   if (input_mbuf.is_writable() &&
-      input_column->is_fixedwidth() &&
-      input_column->elemsize() == out_elemsize) {
+      input_column.is_fixedwidth() &&
+      input_column.elemsize() == out_elemsize) {
     // The address `out` must be taken *before* `output_mbuf` is initialized,
     // since the `.xptr()` method checks that the reference counter is 1.
     out = input_mbuf.xptr();
@@ -288,7 +288,7 @@ colptr expr_unaryop::evaluate_eager(workframe& wf) {
     output_mbuf = MemoryRange::mem(out_elemsize * nrows);
     out = output_mbuf.xptr();
   }
-  auto output_column = colptr(
+  auto output_column = OColumn(
       Column::new_mbuf_column(ui.output_stype, std::move(output_mbuf)));
 
   ui.vectorfn(nrows, inp, out);

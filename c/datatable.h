@@ -18,6 +18,7 @@
 
 // avoid circular dependency between .h files
 class Column;
+class OColumn;
 class Stats;
 class DataTable;
 class NameProvider;
@@ -41,11 +42,10 @@ struct RowColIndex {
 };
 
 typedef Column* (Column::*colmakerfn)(void) const;
-using colvec = std::vector<Column*>;
+using colvec = std::vector<OColumn>;
 using intvec = std::vector<size_t>;
 using strvec = std::vector<std::string>;
 using dtptr  = std::unique_ptr<DataTable>;
-using colptr  = std::unique_ptr<Column>;
 
 
 //==============================================================================
@@ -68,12 +68,6 @@ using colptr  = std::unique_ptr<Column>;
  *     `column` list. The key values are unique, and the frame is sorted by
  *     these values.
  *
- * rowindex
- *     [DEPRECATED]
- *     If this field is not NULL, then the current datatable is a "view", that
- *     is, all columns should be accessed not directly but via this rowindex.
- *     When this field is set, it must be that `nrows == rowindex->length`.
- *
  * columns
  *     The array of columns within the datatable. This array contains `ncols`
  *     elements, and each column has the same number of rows: `nrows`.
@@ -83,20 +77,22 @@ class DataTable {
     size_t   nrows;
     size_t   ncols;
     Groupby  groupby;
-    colvec   columns;
 
   private:
+    colvec  columns;
     size_t   nkeys;
     strvec   names;
     mutable py::otuple py_names;   // memoized tuple of column names
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
 
   public:
+    static struct DefaultNamesTag {} default_names;
+
     DataTable();
-    DataTable(colvec&& cols);
-    DataTable(colvec&& cols, const py::olist&);
+    DataTable(colvec&& cols, DefaultNamesTag);
     DataTable(colvec&& cols, const strvec&);
     DataTable(colvec&& cols, const DataTable*);
+    DataTable(colvec&& cols, const py::olist&);
     ~DataTable();
 
     void delete_columns(intvec&);
@@ -111,6 +107,19 @@ class DataTable {
     DataTable* copy() const;
     DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
+
+    Column* get_column(size_t i) {
+      return const_cast<Column*>(columns[i].get());
+    }
+    const OColumn& get_ocolumn(size_t i) const {
+      return columns[i];
+    }
+    OColumn& get_ocolumn(size_t i) {
+      return columns[i];
+    }
+    void set_column(size_t i, Column* newcol) {
+      columns[i] = OColumn(newcol);
+    }
 
     /**
      * Sort the DataTable by specified columns, and return the corresponding
@@ -168,6 +177,8 @@ class DataTable {
     void iterate_rows(size_t row0 = 0, size_t row1 = size_t(-1));
 
   private:
+    DataTable(colvec&& cols);
+
     void _init_pynames() const;
     void _set_names_impl(NameProvider*);
     void _integrity_check_names() const;

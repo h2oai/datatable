@@ -87,9 +87,9 @@ void materialize_fw(virtual_column* self, Column* outcol) {
 }
 
 
-colptr virtual_column::materialize() {
+OColumn virtual_column::materialize() {
   Column* out = Column::new_data_column(_stype, _nrows);
-  colptr out_colptr(out);
+  OColumn out_colptr(out);
   switch (_stype) {
     case SType::BOOL:
     case SType::INT8:    materialize_fw<int8_t> (this, out); break;
@@ -113,18 +113,18 @@ colptr virtual_column::materialize() {
 
 class _vcolumn : public virtual_column {
   protected:
-    colptr column;
+    OColumn column;
 
   public:
-    explicit _vcolumn(colptr&& col);
-    colptr materialize() override;
+    explicit _vcolumn(OColumn&& col);
+    OColumn materialize() override;
 };
 
-_vcolumn::_vcolumn(colptr&& col)
+_vcolumn::_vcolumn(OColumn&& col)
   : virtual_column(col->nrows, col->stype()),
     column(std::move(col)) {}
 
-colptr _vcolumn::materialize() {
+OColumn _vcolumn::materialize() {
   return std::move(column);
 }
 
@@ -136,7 +136,7 @@ class fw_vcol : public _vcolumn {
     const T* data;
 
   public:
-    explicit fw_vcol(colptr&& col)
+    explicit fw_vcol(OColumn&& col)
       : _vcolumn(std::move(col)),
         data(static_cast<const T*>(column->data())) {}
 
@@ -152,7 +152,7 @@ class arr_fw_vcol : public fw_vcol<T> {
     const A* index;
 
   public:
-    arr_fw_vcol(colptr&& col, const A* indices)
+    arr_fw_vcol(OColumn&& col, const A* indices)
       : fw_vcol<T>(std::move(col)),
         index(indices) {}
 
@@ -170,7 +170,7 @@ class slice_fw_vcol : public fw_vcol<T> {
     size_t istep;
 
   public:
-    slice_fw_vcol(colptr&& col, size_t start, size_t step)
+    slice_fw_vcol(OColumn&& col, size_t start, size_t step)
       : fw_vcol<T>(std::move(col)),
         istart(start),
         istep(step) {}
@@ -190,10 +190,10 @@ class str_vcol : public _vcolumn {
     const char* strdata;
 
   public:
-    explicit str_vcol(colptr&& col)
+    explicit str_vcol(OColumn&& col)
       : _vcolumn(std::move(col)),
-        offsets(static_cast<StringColumn<T>*>(column.get())->offsets()),
-        strdata(static_cast<StringColumn<T>*>(column.get())->strdata()) {}
+        offsets(static_cast<const StringColumn<T>*>(column.get())->offsets()),
+        strdata(static_cast<const StringColumn<T>*>(column.get())->strdata()) {}
 
     void compute(size_t i, CString* out) override {
       T end = offsets[i];
@@ -210,7 +210,7 @@ class arr_str_vcol : public str_vcol<T> {
     const A* index;
 
   public:
-    arr_str_vcol(colptr&& col, const A* indices)
+    arr_str_vcol(OColumn&& col, const A* indices)
       : str_vcol<T>(std::move(col)),
         index(indices) {}
 
@@ -233,7 +233,7 @@ class slice_str_vcol : public str_vcol<T> {
     size_t istep;
 
   public:
-    slice_str_vcol(colptr&& col, size_t start, size_t step)
+    slice_str_vcol(OColumn&& col, size_t start, size_t step)
       : str_vcol<T>(std::move(col)),
         istart(start),
         istep(step) {}
@@ -246,7 +246,7 @@ class slice_str_vcol : public str_vcol<T> {
 
 
 
-vcolptr virtualize(colptr&& col) {
+vcolptr virtualize(OColumn&& col) {
   SType st = col->stype();
   const RowIndex& ri = col->rowindex();
   switch (ri.type()) {
