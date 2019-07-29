@@ -401,11 +401,16 @@ def get_compile_includes():
             log.info("`%s` added from Llvm package" % dir2)
 
         includes = list(includes)
+        # For zlib.h; this must follow after all other include directories
+        if "/usr/include" not in includes:
+            includes.append("/usr/include")
+            log.info("`%s` added as a fall-back directory")
+
         for i, d in enumerate(includes):
             if not os.path.isdir(d):
                 includes[i] = None
                 log.info("Directory `%s` not found, ignoring" % d)
-    return sorted(i for i in includes if i is not None)
+    return [i for i in includes if i is not None]
 
 
 
