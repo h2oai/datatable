@@ -11,6 +11,7 @@ import datatable as dt
 import pytest
 import random
 import re
+import sys
 from datatable.internal import frame_integrity_check
 from tests import find_file, same_iterables
 
@@ -22,7 +23,10 @@ def test_issue1935():
         dt.fread(cmd="leeroy jenkins")
     assert ("Shell command returned error code" in str(e.value))
     # This may need adjustments for different OSes
-    assert ("leeroy: command not found" in str(e.value))
+    if sys.platform == "darwin":
+        assert ("leeroy: command not found" in str(e.value))
+    else:
+        assert ("leeroy: not found" in str(e.value))
 
 
 
