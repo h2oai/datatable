@@ -15,6 +15,17 @@ from datatable.internal import frame_integrity_check
 from tests import find_file, same_iterables
 
 
+def test_issue1935():
+    # Check that giving wrong command to `cmd=` parameter raises
+    # an error instead of returning an empty Frame silently.
+    with pytest.raises(ValueError) as e:
+        dt.fread(cmd="leeroy jenkins")
+    assert ("Shell command returned error code" in str(e.value))
+    # This may need adjustments for different OSes
+    assert ("leeroy: command not found" in str(e.value))
+
+
+
 #-------------------------------------------------------------------------------
 
 def test_issue_R1113():
