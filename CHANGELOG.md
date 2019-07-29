@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed error when displaying `help(dt)` (#1931).
 
+- `fread(cmd=)` now throws an error if it occurred while running the provided
+  command `cmd` in the shell. Previously the error was silently discarded
+  (#1935).
+
+
 
 ## [0.9.0][] — 2019-06-15
 
