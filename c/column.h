@@ -156,7 +156,7 @@ public:
   Column(Column&&) = delete;
   virtual ~Column();
 
-  virtual size_t elemsize() const = 0;
+  size_t elemsize() const { return info(_stype).elemsize(); }
 
   virtual bool get_element(size_t i, int32_t* out) const;
   virtual bool get_element(size_t i, int64_t* out) const;
@@ -442,7 +442,6 @@ public:
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
-  size_t elemsize() const override;
   virtual void materialize() override;
   virtual void replace_values(RowIndex at, const Column* with) override;
   void replace_values(const RowIndex& at, T with);
@@ -619,8 +618,6 @@ template <typename T> class StringColumn : public Column
 public:
   StringColumn(size_t nrows);
 
-  size_t elemsize() const override;
-
   void materialize() override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
@@ -682,7 +679,6 @@ extern template class StringColumn<uint64_t>;
 class VoidColumn : public Column {
   public:
     VoidColumn(size_t nrows);
-    size_t elemsize() const override;
     size_t data_nrows() const override;
     void materialize() override;
     void resize_and_fill(size_t) override;

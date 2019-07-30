@@ -346,7 +346,6 @@ OColumn OColumn::cast(SType stype, MemoryRange&& mem) const {
 
 VoidColumn::VoidColumn() { _stype = SType::VOID; }
 VoidColumn::VoidColumn(size_t nrows) : Column(nrows) { _stype = SType::VOID; }
-size_t VoidColumn::elemsize() const { return 0; }
 size_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}

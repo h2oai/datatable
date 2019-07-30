@@ -22,12 +22,12 @@ FwColumn<T>::FwColumn() : Column(0) {}
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_) : Column(nrows_) {
-  mbuf.resize(elemsize() * nrows_);
+  mbuf.resize(sizeof(T) * nrows_);
 }
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
-  size_t req_size = elemsize() * nrows_;
+  size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);
   } else {
@@ -44,7 +44,7 @@ FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
 template <typename T>
 void FwColumn<T>::init_data() {
   xassert(!ri);
-  mbuf.resize(nrows * elemsize());
+  mbuf.resize(nrows * sizeof(T));
 }
 
 template <typename T>
@@ -64,12 +64,6 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
 
 
 //==============================================================================
-
-template <typename T>
-size_t FwColumn<T>::elemsize() const {
-  return sizeof(T);
-}
-
 
 template <typename T>
 const T* FwColumn<T>::elements_r() const {

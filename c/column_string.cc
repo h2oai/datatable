@@ -138,14 +138,6 @@ bool StringColumn<T>::get_element(size_t i, CString* out) const {
 
 
 template <typename T>
-size_t StringColumn<T>::elemsize() const {
-  return sizeof(T);
-}
-
-
-
-
-template <typename T>
 size_t StringColumn<T>::datasize() const{
   size_t sz = mbuf.size();
   const T* end = static_cast<const T*>(mbuf.rptr(sz));
