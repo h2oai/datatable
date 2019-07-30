@@ -146,9 +146,6 @@ class DataTable {
 
     void verify_integrity() const;
 
-    static DataTable* load(DataTable* schema, size_t nrows,
-                           const std::string& path, bool recode);
-
     MemoryRange save_jay();
     void save_jay(const std::string& path, WritableBuffer::Strategy);
 

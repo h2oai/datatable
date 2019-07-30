@@ -142,9 +142,6 @@ public:
 
   static Column* new_data_column(SType, size_t nrows);
   static Column* new_na_column(SType, size_t nrows);
-  static Column* new_mmap_column(SType, size_t nrows, const std::string& filename);
-  static Column* open_mmap_column(SType, size_t nrows, const std::string& filename,
-                                  bool recode = false);
   static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
   static Column* from_pylist(const py::olist& list, int stype0 = 0);
@@ -282,8 +279,6 @@ public:
 
   virtual RowIndex join(const Column* keycol) const = 0;
 
-  virtual void save_to_disk(const std::string&, WritableBuffer::Strategy) const;
-
   size_t countna() const;
   size_t nunique() const;
   size_t nmodal() const;
@@ -314,8 +309,6 @@ public:
 protected:
   Column(size_t nrows = 0);
   virtual void init_data() = 0;
-  virtual void init_mmap(const std::string& filename) = 0;
-  virtual void open_mmap(const std::string& filename, bool recode) = 0;
   virtual void init_xbuf(Py_buffer* pybuffer) = 0;
   virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty) = 0;
 
@@ -457,8 +450,6 @@ public:
 
 protected:
   void init_data() override;
-  void init_mmap(const std::string& filename) override;
-  void open_mmap(const std::string& filename, bool) override;
   void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
@@ -604,8 +595,6 @@ public:
 
 protected:
   PyObjectColumn();
-  // TODO: This should be corrected when PyObjectStats is implemented
-  void open_mmap(const std::string& filename, bool) override;
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
@@ -629,8 +618,6 @@ template <typename T> class StringColumn : public Column
 
 public:
   StringColumn(size_t nrows);
-  void save_to_disk(const std::string& filename,
-                    WritableBuffer::Strategy strategy) const override;
 
   SType stype() const noexcept override;
   size_t elemsize() const override;
@@ -664,8 +651,6 @@ protected:
   StringColumn();
   StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void init_data() override;
-  void init_mmap(const std::string& filename) override;
-  void open_mmap(const std::string& filename, bool recode) override;
   void init_xbuf(Py_buffer* pybuffer) override;
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
@@ -712,8 +697,6 @@ class VoidColumn : public Column {
   protected:
     VoidColumn();
     void init_data() override;
-    void init_mmap(const std::string&) override;
-    void open_mmap(const std::string&, bool) override;
     void init_xbuf(Py_buffer*) override;
     void fill_na() override;
 

@@ -230,28 +230,6 @@ static py::oobj regex_supported(const py::PKArgs&) {
 
 
 
-static py::PKArgs args__column_save_to_disk(
-  4, 0, 0, false, false,
-  {"frame", "i", "filename", "strategy"},
-  "_column_save_to_disk",
-  "Save `frame[i]` column's data into the file `filename`,\n"
-  "using the provided writing strategy.\n");
-
-static void _column_save_to_disk(const py::PKArgs& args) {
-  DataTable* dt        = args[0].to_datatable();
-  size_t i             = args[1].to_size_t();
-  std::string filename = args[2].to_string();
-  std::string strategy = args[3].to_string();
-
-  const OColumn& col = dt->get_ocolumn(i);
-  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
-                   (strategy == "write") ? WritableBuffer::Strategy::Write :
-                                           WritableBuffer::Strategy::Auto;
-
-  col->save_to_disk(filename, sstrategy);
-}
-
-
 
 static py::PKArgs args_initialize_options(
   1, 0, 0, false, false, {"options"}, "initialize_options",
@@ -350,7 +328,6 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&in_debug_mode, args_in_debug_mode);
   ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
-  ADD_FN(&_column_save_to_disk, args__column_save_to_disk);
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
@@ -364,7 +341,6 @@ void py::DatatableModule::init_methods() {
   init_methods_jay();
   init_methods_join();
   init_methods_kfold();
-  init_methods_nff();
   init_methods_rbind();
   init_methods_repeat();
   init_methods_sets();

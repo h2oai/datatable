@@ -12,10 +12,6 @@
 #include "utils/misc.h"
 #include "column.h"
 
-// Returns the expected path of the string data file given
-// the path to the offsets
-static std::string path_str(const std::string& path);
-
 
 //------------------------------------------------------------------------------
 // String column construction
@@ -100,36 +96,6 @@ void StringColumn<T>::init_data() {
   mbuf.set_element<T>(0, 0);
 }
 
-template <typename T>
-void StringColumn<T>::init_mmap(const std::string& filename) {
-  xassert(!ri);
-  size_t mbuf_size = (nrows + 1) * sizeof(T);
-  strbuf = MemoryRange::mmap(path_str(filename), 0);
-  mbuf = MemoryRange::mmap(filename, mbuf_size);
-  mbuf.set_element<T>(0, 0);
-}
-
-template <typename T>
-void StringColumn<T>::open_mmap(const std::string& filename, bool recode) {
-  xassert(!ri);
-  std::string filename_str = path_str(filename);
-
-  mbuf = MemoryRange::mmap(filename);
-  strbuf = MemoryRange::mmap(filename_str);
-
-  if (recode) {
-    if (mbuf.get_element<T>(0) != 0) {
-      // Recode old format of string storage
-      T* offsets = static_cast<T*>(mbuf.wptr()) + 1;
-      offsets[-1] = 0;
-      for (size_t i = 0; i < nrows; ++i) {
-        T x = offsets[i];
-        offsets[i] = ISNA<T>(x)? GETNA<T>() - x - 1 : x - 1;
-      }
-    }
-  }
-}
-
 // Not implemented (should it be?) see method signature in `Column` for
 // parameter definitions.
 template <typename T>
@@ -139,14 +105,6 @@ void StringColumn<T>::init_xbuf(Py_buffer*) {
 
 
 //==============================================================================
-
-template <typename T>
-void StringColumn<T>::save_to_disk(const std::string& filename,
-                                   WritableBuffer::Strategy strategy) const {
-  mbuf.save_to_disk(filename, strategy);
-  strbuf.save_to_disk(path_str(filename), strategy);
-}
-
 
 template <typename T>
 Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
@@ -605,20 +563,8 @@ CString StringColumn<T>::mode() const {
 
 
 //------------------------------------------------------------------------------
-// Helpers
+// Explicit instantiation of the template
 //------------------------------------------------------------------------------
 
-static std::string path_str(const std::string& path) {
-  size_t f_s = path.find_last_of("/");
-  size_t f_e = path.find_last_of(".");
-  if (f_s == std::string::npos) f_s = 0;
-  if (f_e == std::string::npos || f_e < f_s) f_e = path.length();
-  std::string res(path);
-  res.insert(f_e, "_str");
-  return res;
-}
-
-
-// Explicit instantiation of the template
 template class StringColumn<uint32_t>;
 template class StringColumn<uint64_t>;
