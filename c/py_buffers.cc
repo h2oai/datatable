@@ -330,16 +330,16 @@ static void getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags)
   bool one_col = (pybuffers::single_col != size_t(-1));
   size_t i0 = one_col? pybuffers::single_col : 0;
   XInfo* xinfo = nullptr;
-  Column* col = self->get_datatable()->get_column(i0);
-  const char* fmt = format_from_stype(col->stype());
+  const OColumn& col = self->get_datatable()->get_ocolumn(i0);
+  const char* fmt = format_from_stype(col.stype());
 
   xinfo = new XInfo();
   xinfo->mbuf = col->data_buf();
-  xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
+  xinfo->shape[0] = static_cast<Py_ssize_t>(col.nrows());
   xinfo->shape[1] = 1;
-  xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
+  xinfo->strides[0] = static_cast<Py_ssize_t>(col.elemsize());
   xinfo->strides[1] = static_cast<Py_ssize_t>(xinfo->mbuf.size());
-  xinfo->stype = col->stype();
+  xinfo->stype = col.stype();
 
   view->buf = const_cast<void*>(xinfo->mbuf.rptr());
   view->obj = py::oobj(self).release();

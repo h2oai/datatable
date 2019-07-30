@@ -443,19 +443,20 @@ void ReplaceAgent::check_uniqueness(std::vector<T>& data) {
 
 void ReplaceAgent::process_bool_column(size_t colidx) {
   if (x_bool.empty()) return;
-  auto col = static_cast<BoolColumn*>(dt->get_column(colidx));
-  int8_t* coldata = col->elements_w();
+  OColumn& col = dt->get_ocolumn(colidx);
+  int8_t* coldata = static_cast<int8_t*>(col->data_w());
   size_t n = x_bool.size();
   xassert(n == y_bool.size());
   if (n == 0) return;
-  replace_fw<int8_t>(x_bool.data(), y_bool.data(), col->nrows, coldata, n);
+  replace_fw<int8_t>(x_bool.data(), y_bool.data(), col.nrows(), coldata, n);
 }
 
 
 template <typename T>
 void ReplaceAgent::process_int_column(size_t colidx) {
   if (x_int.empty()) return;
-  auto col = static_cast<IntColumn<T>*>(dt->get_column(colidx));
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<IntColumn<T>*>(const_cast<Column*>(ocol.get()));
   int64_t col_min = col->min();
   int64_t col_max = col->max();
   bool col_has_nas = (col->countna() > 0);
@@ -511,7 +512,8 @@ template <typename T>
 void ReplaceAgent::process_real_column(size_t colidx) {
   constexpr double MAX_FLOAT = double(std::numeric_limits<float>::max());
   if (x_real.empty()) return;
-  auto col = static_cast<RealColumn<T>*>(dt->get_column(colidx));
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<RealColumn<T>*>(const_cast<Column*>(ocol.get()));
   double col_min = static_cast<double>(col->min());
   double col_max = static_cast<double>(col->max());
   bool col_has_nas = (col->countna() > 0);
@@ -562,7 +564,8 @@ void ReplaceAgent::process_real_column(size_t colidx) {
 template <typename T>
 void ReplaceAgent::process_str_column(size_t colidx) {
   if (x_str.empty()) return;
-  auto col = static_cast<StringColumn<T>*>(dt->get_column(colidx));
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<StringColumn<T>*>(const_cast<Column*>(ocol.get()));
   if (x_str.size() == 1 && x_str[0].isna()) {
     if (col->countna() == 0) return;
   }
