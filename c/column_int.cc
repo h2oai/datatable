@@ -9,15 +9,25 @@
 #include "column.h"
 #include "datatablemodule.h"
 
+template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <> constexpr SType stype_for<int8_t>()  { return SType::INT8; }
+template <> constexpr SType stype_for<int16_t>() { return SType::INT16; }
+template <> constexpr SType stype_for<int32_t>() { return SType::INT32; }
+template <> constexpr SType stype_for<int64_t>() { return SType::INT64; }
 
 
 template <typename T>
-SType IntColumn<T>::stype() const noexcept {
-  return sizeof(T) == 1? SType::INT8 :
-         sizeof(T) == 2? SType::INT16 :
-         sizeof(T) == 4? SType::INT32 :
-         sizeof(T) == 8? SType::INT64 : SType::VOID;
+IntColumn<T>::IntColumn(size_t nrows) : FwColumn<T>(nrows) {
+  this->_stype = stype_for<T>();
 }
+
+template <typename T>
+IntColumn<T>::IntColumn(size_t nrows, MemoryRange&& mem)
+  : FwColumn<T>(nrows, std::move(mem))
+{
+  this->_stype = stype_for<T>();
+}
+
 
 template <typename T>
 bool IntColumn<T>::get_element(size_t i, int32_t* out) const {

@@ -10,13 +10,22 @@
 #include "datatablemodule.h"
 #include "python/float.h"
 
-
+template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <> constexpr SType stype_for<float>()  { return SType::FLOAT32; }
+template <> constexpr SType stype_for<double>() { return SType::FLOAT64; }
 
 template <typename T>
-SType RealColumn<T>::stype() const noexcept {
-  return sizeof(T) == 4? SType::FLOAT32 :
-         sizeof(T) == 8? SType::FLOAT64 : SType::VOID;
+RealColumn<T>::RealColumn(size_t nrows) : FwColumn<T>(nrows) {
+  this->_stype = stype_for<T>();
 }
+
+template <typename T>
+RealColumn<T>::RealColumn(size_t nrows, MemoryRange&& mem)
+  : FwColumn<T>(nrows, std::move(mem))
+{
+  this->_stype = stype_for<T>();
+}
+
 
 template <typename T>
 bool RealColumn<T>::get_element(size_t i, T* out) const {

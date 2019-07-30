@@ -131,6 +131,8 @@ protected:
   MemoryRange mbuf;
   RowIndex ri;
   mutable Stats* stats;
+  SType _stype;
+  size_t : 56;
 
 public:  // TODO: convert this into private
   size_t nrows;
@@ -154,7 +156,7 @@ public:
   Column(Column&&) = delete;
   virtual ~Column();
 
-  virtual SType stype() const noexcept = 0;
+  SType stype() const noexcept { return _stype; }
   virtual size_t elemsize() const = 0;
 
   virtual bool get_element(size_t i, int32_t* out) const;
@@ -476,8 +478,8 @@ extern template class FwColumn<PyObject*>;
 class BoolColumn : public FwColumn<int8_t>
 {
 public:
-  using FwColumn<int8_t>::FwColumn;
-  SType stype() const noexcept override;
+  BoolColumn(size_t nrows = 0);
+  BoolColumn(size_t nrows, MemoryRange&&);
 
   int8_t min() const;
   int8_t max() const;
@@ -504,8 +506,8 @@ public:
 template <typename T> class IntColumn : public FwColumn<T>
 {
 public:
-  using FwColumn<T>::FwColumn;
-  virtual SType stype() const noexcept override;
+  IntColumn(size_t nrows = 0);
+  IntColumn(size_t nrows, MemoryRange&&);
 
   T min() const;
   T max() const;
@@ -540,8 +542,8 @@ extern template class IntColumn<int64_t>;
 template <typename T> class RealColumn : public FwColumn<T>
 {
 public:
-  using FwColumn<T>::FwColumn;
-  virtual SType stype() const noexcept override;
+  RealColumn(size_t nrows = 0);
+  RealColumn(size_t nrows, MemoryRange&&);
 
   T min() const;
   T max() const;
@@ -588,7 +590,6 @@ class PyObjectColumn : public FwColumn<PyObject*>
 public:
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, MemoryRange&&);
-  virtual SType stype() const noexcept override;
   PyObjectStats* get_stats() const override;
 
   bool get_element(size_t i, py::oobj* out) const override;
@@ -619,7 +620,6 @@ template <typename T> class StringColumn : public Column
 public:
   StringColumn(size_t nrows);
 
-  SType stype() const noexcept override;
   size_t elemsize() const override;
 
   void materialize() override;
@@ -683,7 +683,6 @@ extern template class StringColumn<uint64_t>;
 class VoidColumn : public Column {
   public:
     VoidColumn(size_t nrows);
-    SType stype() const noexcept override;
     size_t elemsize() const override;
     size_t data_nrows() const override;
     void materialize() override;

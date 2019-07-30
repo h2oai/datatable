@@ -12,6 +12,10 @@
 #include "utils/misc.h"
 #include "column.h"
 
+template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }
+template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
+
 
 //------------------------------------------------------------------------------
 // String column construction
@@ -22,6 +26,7 @@
 template <typename T>
 StringColumn<T>::StringColumn(size_t n) : Column(n)
 {
+  _stype = stype_for<T>();
   mbuf = MemoryRange::mem(sizeof(T) * (n + 1));
   mbuf.set_element<T>(0, 0);
 }
@@ -29,7 +34,9 @@ StringColumn<T>::StringColumn(size_t n) : Column(n)
 
 // private use only
 template <typename T>
-StringColumn<T>::StringColumn() : Column(0) {}
+StringColumn<T>::StringColumn() : Column(0) {
+  _stype = stype_for<T>();
+}
 
 
 // private: use `new_string_column(n, &&mb, &&sb)` instead
@@ -41,6 +48,7 @@ StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
   xassert(mb.size() == sizeof(T) * (n + 1));
   xassert(mb.get_element<T>(0) == 0);
   xassert(sb.size() == (mb.get_element<T>(n) & ~GETNA<T>()));
+  _stype = stype_for<T>();
   mbuf = std::move(mb);
   strbuf = std::move(sb);
 }
@@ -112,13 +120,6 @@ Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
   StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
   col->strbuf = strbuf;
   return col;
-}
-
-
-template <typename T>
-SType StringColumn<T>::stype() const noexcept {
-  return sizeof(T) == 4? SType::STR32 :
-         sizeof(T) == 8? SType::STR64 : SType::VOID;
 }
 
 

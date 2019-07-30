@@ -245,7 +245,7 @@ size_t OColumn::na_count() const {
 }
 
 SType OColumn::stype() const noexcept {
-  return pcol->stype();
+  return pcol->_stype;
 }
 
 LType OColumn::ltype() const noexcept {
@@ -344,9 +344,8 @@ OColumn OColumn::cast(SType stype, MemoryRange&& mem) const {
 // VoidColumn
 //==============================================================================
 
-VoidColumn::VoidColumn() {}
-VoidColumn::VoidColumn(size_t nrows) : Column(nrows) {}
-SType VoidColumn::stype() const noexcept { return SType::VOID; }
+VoidColumn::VoidColumn() { _stype = SType::VOID; }
+VoidColumn::VoidColumn(size_t nrows) : Column(nrows) { _stype = SType::VOID; }
 size_t VoidColumn::elemsize() const { return 0; }
 size_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::materialize() {}
