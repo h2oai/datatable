@@ -77,8 +77,7 @@ static void tokenize_string(
 /**
  * Encode NA's with NA's
  */
-template<typename T>
-static void encode_nones(const T* offsets, const RowIndex& ri, colvec& outcols) {
+static void encode_nones(const OColumn& col, colvec& outcols) {
   size_t ncols = outcols.size();
   if (ncols == 0) return;
 
@@ -90,14 +89,12 @@ static void encode_nones(const T* offsets, const RowIndex& ri, colvec& outcols) 
 
   dt::parallel_for_dynamic(nrows,
     [&](size_t irow) {
-
-      size_t jrow = ri[irow];
-      if (jrow == RowIndex::NA || ISNA(offsets[jrow])) {
+      CString s;
+      if (col.get_element(irow, &s)) {
         for (size_t i = 0; i < ncols; ++i) {
           coldata[i][irow] = GETNA<int8_t>();
         }
       }
-
     }
   );
 }
@@ -123,30 +120,17 @@ static void sort_colnames(colvec& outcols, strvec& outnames) {
 }
 
 
-DataTable* split_into_nhot(const OColumn& ocol, char sep, bool sort /* = false */) {
-  const Column* col = ocol.get();
-  bool is32 = (col->stype() == SType::STR32);
-  xassert(is32 || (col->stype() == SType::STR64));
-  const uint32_t* offsets32 = nullptr;
-  const uint64_t* offsets64 = nullptr;
-  const char* strdata;
-  if (is32) {
-    auto scol = static_cast<const StringColumn<uint32_t>*>(col);
-    offsets32 = scol->offsets();
-    strdata = scol->strdata();
-  } else {
-    auto scol = static_cast<const StringColumn<uint64_t>*>(col);
-    offsets64 = scol->offsets();
-    strdata = scol->strdata();
-  }
+DataTable* split_into_nhot(const OColumn& col, char sep,
+                           bool sort /* = false */)
+{
+  xassert((col.stype() == SType::STR32) || (col.stype() == SType::STR64));
 
-  size_t nrows = col->nrows;
+  size_t nrows = col.nrows();
   std::unordered_map<std::string, size_t> colsmap;
   strvec outnames;
   colvec outcols;
   std::vector<int8_t*> outdata;
   dt::shared_mutex shmutex;
-  const RowIndex& ri = col->rowindex();
 
   dt::parallel_region(
     /* nthreads = */ nrows,
@@ -155,19 +139,12 @@ DataTable* split_into_nhot(const OColumn& ocol, char sep, bool sort /* = false *
 
       dt::nested_for_static(nrows,
         [&](size_t irow) {
-          const char* strstart, *strend;
-          size_t jrow = ri[irow];
-          if (jrow == RowIndex::NA) return;
-          if (is32) {
-            if (ISNA(offsets32[jrow])) return;
-            strstart = strdata + (offsets32[jrow - 1] & ~GETNA<uint32_t>());
-            strend = strdata + offsets32[jrow];
-          } else {
-            if (ISNA(offsets64[jrow])) return;
-            strstart = strdata + (offsets64[jrow - 1] & ~GETNA<uint64_t>());
-            strend = strdata + offsets64[jrow];
-          }
-          if (strstart == strend) return;
+          CString str;
+          bool r = col.get_element(irow, &str);
+          if (r || str.size == 0) return;
+          const char* strstart = str.ch;
+          const char* strend = strstart + str.size;
+
           char chfirst = *strstart;
           char chlast = strend[-1];
           if ((chfirst == '(' && chlast == ')') ||
@@ -188,7 +165,7 @@ DataTable* split_into_nhot(const OColumn& ocol, char sep, bool sort /* = false *
               lock.exclusive_start();
               if (colsmap.count(s) == 0) {
                 colsmap[s] = outcols.size();
-                BoolColumn* newcol = new BoolColumn(col->nrows);
+                BoolColumn* newcol = new BoolColumn(nrows);
                 int8_t* data = newcol->elements_w();
                 std::memset(data, 0, nrows);
                 data[irow] = 1;
@@ -208,11 +185,7 @@ DataTable* split_into_nhot(const OColumn& ocol, char sep, bool sort /* = false *
     });  // dt::parallel_region()
 
   // At this point NA's are encoded with zeros, here we encode them with NA's.
-  if (is32) {
-    encode_nones<uint32_t>(offsets32, ri, outcols);
-  } else {
-    encode_nones<uint64_t>(offsets64, ri, outcols);
-  }
+  encode_nones(col, outcols);
 
   if (sort) sort_colnames(outcols, outnames);
 
