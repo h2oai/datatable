@@ -58,7 +58,7 @@ static RowIndex _make_repeat_rowindex(size_t nrows, size_t nreps) {
 
 
 Column* Column::repeat(size_t nreps) const {
-  xassert(is_fixedwidth());
+  xassert(!info(stype()).is_varwidth());
   xassert(!ri);
   size_t esize = elemsize();
   size_t new_nrows = nrows * nreps;

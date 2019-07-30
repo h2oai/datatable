@@ -65,45 +65,6 @@ Column* Column::new_na_column(SType stype, size_t nrows) {
 }
 
 
-Column* Column::new_mmap_column(SType stype, size_t nrows,
-                                const std::string& filename) {
-  Column* col = new_column(stype);
-  col->nrows = nrows;
-  col->init_mmap(filename);
-  return col;
-}
-
-
-
-/**
- * Save this column's data buffer into file `filename`. Other information
- * about the column should be stored elsewhere (for example in the _meta.nff
- * file).
- * If a file with the given name already exists, it will be overwritten.
- */
-void Column::save_to_disk(const std::string& filename,
-                          WritableBuffer::Strategy strategy) const {
-  mbuf.save_to_disk(filename, strategy);
-}
-
-
-
-/**
- * Restore a Column previously saved via `column_save_to_disk()`. The column's
- * data buffer is taken from the file `filename`; and the column is assumed to
- * have type `stype`, number of rows `nrows`.
- * This function will not check data validity (i.e. that the buffer contains
- * valid values, and that the extra parameters match the buffer's contents).
- */
-Column* Column::open_mmap_column(SType stype, size_t nrows,
-                                 const std::string& filename, bool recode)
-{
-  Column* col = new_column(stype);
-  col->nrows = nrows;
-  col->open_mmap(filename, recode);
-  return col;
-}
-
 
 /**
  * Construct a column from the externally provided buffer.
@@ -387,7 +348,6 @@ VoidColumn::VoidColumn() {}
 VoidColumn::VoidColumn(size_t nrows) : Column(nrows) {}
 SType VoidColumn::stype() const noexcept { return SType::VOID; }
 size_t VoidColumn::elemsize() const { return 0; }
-bool VoidColumn::is_fixedwidth() const { return true; }
 size_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
@@ -395,8 +355,6 @@ void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const BoolColumn*) {}
 void VoidColumn::replace_values(RowIndex, const Column*) {}
 void VoidColumn::init_data() {}
-void VoidColumn::init_mmap(const std::string&) {}
-void VoidColumn::open_mmap(const std::string&, bool) {}
 void VoidColumn::init_xbuf(Py_buffer*) {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}

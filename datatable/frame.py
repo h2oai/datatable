@@ -66,13 +66,9 @@ class Frame(core.Frame):
             "Method `Frame.save()` is deprecated (will be removed in "
             "0.10.0), please use `Frame.to_jay()` instead",
             category=FutureWarning)
-        if format == "jay":
-            return self.to_jay(path, _strategy=_strategy)
-        elif format == "nff":
-            from datatable.nff import save_nff
-            return save_nff(self, path, _strategy=_strategy)
-        else:
+        if format != "jay":
             raise ValueError("Unknown `format` value: %s" % format)
+        return self.to_jay(path, _strategy=_strategy)
 
 
 

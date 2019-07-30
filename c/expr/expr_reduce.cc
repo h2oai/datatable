@@ -78,8 +78,8 @@ static ReducerLibrary library;
 
 static OColumn reduce_first(const OColumn& col, const Groupby& groupby)
 {
-  if (col->nrows == 0) {
-    return OColumn(Column::new_data_column(col->stype(), 0));
+  if (col.nrows() == 0) {
+    return OColumn(Column::new_data_column(col.stype(), 0));
   }
   size_t ngrps = groupby.ngroups();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the

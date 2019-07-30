@@ -36,6 +36,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   (#1935).
 
 
+### Changed
+
+- Support for NFF format was removed. This was an old datatable's format for
+  storing data frames on disk, and it was deprecated in favor of Jay over a
+  year ago. If you still have any data stored in NFF format, we recommend to
+  re-save in Jay using datatable 0.9.
+
 
 ## [0.9.0][] — 2019-06-15
 

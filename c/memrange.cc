@@ -352,14 +352,6 @@
 
   //---- Utility functions -----------------------
 
-  void MemoryRange::save_to_disk(const std::string& path,
-                                 WritableBuffer::Strategy strategy) const
-  {
-    auto wb = WritableBuffer::create_target(path, o->impl->size(), strategy);
-    wb->write(o->impl->size(), o->impl->ptr());
-  }
-
-
   PyObject* MemoryRange::pyrepr() const {
     return PyUnicode_FromFormat("<MemoryRange:%s %p+%zu (ref=%zu)>",
                                 o->impl->name(), o->impl->ptr(), o->impl->size(),

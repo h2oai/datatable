@@ -42,14 +42,6 @@ bool PyObjectColumn::get_element(size_t i, py::oobj* out) const {
 }
 
 
-// "PyObject" columns cannot be properly saved. So if somehow they were, then
-// when opening, we'll just fill the column with NAs.
-void PyObjectColumn::open_mmap(const std::string&, bool) {
-  xassert(!ri);
-  mbuf = MemoryRange::mem(nrows * sizeof(PyObject*))
-         .set_pyobjects(/*clear_data = */ true);
-}
-
 
 void PyObjectColumn::fill_na() {
   // This is called from `Column::new_na_column()` only; and for a
