@@ -89,11 +89,6 @@ size_t FwColumn<T>::elemsize() const {
   return sizeof(T);
 }
 
-template <typename T>
-bool FwColumn<T>::is_fixedwidth() const {
-  return true;
-}
-
 
 template <typename T>
 const T* FwColumn<T>::elements_r() const {

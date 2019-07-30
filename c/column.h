@@ -159,8 +159,6 @@ public:
 
   virtual SType stype() const noexcept = 0;
   virtual size_t elemsize() const = 0;
-  virtual bool is_fixedwidth() const = 0;
-  LType ltype() const noexcept { return info(stype()).ltype(); }
 
   virtual bool get_element(size_t i, int32_t* out) const;
   virtual bool get_element(size_t i, int64_t* out) const;
@@ -451,7 +449,6 @@ public:
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   size_t elemsize() const override;
-  bool is_fixedwidth() const override;
   virtual void materialize() override;
   virtual void replace_values(RowIndex at, const Column* with) override;
   void replace_values(const RowIndex& at, T with);
@@ -637,7 +634,6 @@ public:
 
   SType stype() const noexcept override;
   size_t elemsize() const override;
-  bool is_fixedwidth() const override;
 
   void materialize() override;
   void resize_and_fill(size_t nrows) override;
@@ -704,7 +700,6 @@ class VoidColumn : public Column {
     VoidColumn(size_t nrows);
     SType stype() const noexcept override;
     size_t elemsize() const override;
-    bool is_fixedwidth() const override;
     size_t data_nrows() const override;
     void materialize() override;
     void resize_and_fill(size_t) override;
