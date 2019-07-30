@@ -331,7 +331,7 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "one column";
     }
 
-    if (dt_y_val->get_column(0)->stype() != dt_y->get_column(0)->stype()) {
+    if (dt_y_val->get_ocolumn(0).stype() != dt_y->get_ocolumn(0).stype()) {
       throw ValueError() << "Validation target frame must have the same "
                             "stype as the target frame";
     }
@@ -533,14 +533,13 @@ void Ftrl::set_model(robj model) {
   }
 
   SType stype = (double_precision)? SType::FLOAT64 : SType::FLOAT32;
-  bool (*has_negatives)(const Column*) = (double_precision)?
-                                         py::Validator::has_negatives<double>:
+  auto has_negatives = double_precision? py::Validator::has_negatives<double>:
                                          py::Validator::has_negatives<float>;
 
   for (size_t i = 0; i < ncols; ++i) {
-    Column* col = dt_model->get_column(i);
-    SType c_stype = col->stype();
-    if (col->stype() != stype) {
+    const OColumn& col = dt_model->get_ocolumn(i);
+    SType c_stype = col.stype();
+    if (col.stype() != stype) {
       throw ValueError() << "Column " << i << " in the model frame should "
                          << "have a type of " << stype << ", whereas it has "
                          << "the following type: "
