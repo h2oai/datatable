@@ -162,6 +162,13 @@ public:
   virtual bool is_fixedwidth() const = 0;
   LType ltype() const noexcept { return info(stype()).ltype(); }
 
+  virtual bool get_element(size_t i, int32_t* out) const;
+  virtual bool get_element(size_t i, int64_t* out) const;
+  virtual bool get_element(size_t i, float* out) const;
+  virtual bool get_element(size_t i, double* out) const;
+  virtual bool get_element(size_t i, CString* out) const;
+  virtual bool get_element(size_t i, py::oobj* out) const;
+
   const RowIndex& rowindex() const noexcept { return ri; }
   RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
@@ -274,11 +281,10 @@ public:
    */
   virtual void materialize() = 0;
 
-  virtual py::oobj get_value_at_index(size_t i) const = 0;
 
   virtual RowIndex join(const Column* keycol) const = 0;
 
-  virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
+  virtual void save_to_disk(const std::string&, WritableBuffer::Strategy) const;
 
   size_t countna() const;
   size_t nunique() const;
@@ -390,17 +396,38 @@ class OColumn
   // Data access
   //------------------------------------
   public:
+    // Each `get_element(i, *out)` function retrieves the column's element
+    // at index `i` and stores it in the variable `out`. The return value
+    // is true if the returned element is NA (missing), or false otherwise.
+    // When `true` is returned, the `out` value may contain garbage data,
+    // and should not be used in any way.
+    //
+    // Multiple overloads of `get_element()` correspond to different stypes
+    // of the underlying column. It is the caller's responsibility to call
+    // the correct function variant; calling a method that doesn't match
+    // this column's SType will likely result in an exception thrown.
+    //
+    // The function expects (but doesn't check) that `i < nrows`. A segfault
+    // may occur if this assumption is violated.
+    //
     bool get_element(size_t i, int32_t* out) const;
     bool get_element(size_t i, int64_t* out) const;
     bool get_element(size_t i, float* out) const;
     bool get_element(size_t i, double* out) const;
     bool get_element(size_t i, CString* out) const;
     bool get_element(size_t i, py::oobj* out) const;
+
+    // `get_element_as_pyobject(i)` returns the i-th element of the column
+    // wrapped into a pyobject of the appropriate type. Use this function
+    // for interoperation with Python.
+    //
     py::oobj get_element_as_pyobject(size_t i) const;
 
 
     void rbind(colvec& columns);
     void materialize();
+    OColumn cast(SType stype) const;
+    OColumn cast(SType stype, MemoryRange&& mr) const;
 
     friend void swap(OColumn& lhs, OColumn& rhs);
 };
@@ -472,7 +499,7 @@ public:
   double sd() const;
   BooleanStats* get_stats() const override;
 
-  py::oobj get_value_at_index(size_t i) const override;
+  bool get_element(size_t i, int32_t* out) const override;
 
   protected:
 
@@ -504,7 +531,8 @@ public:
   int64_t max_int64() const override;
   IntegerStats<T>* get_stats() const override;
 
-  py::oobj get_value_at_index(size_t i) const override;
+  bool get_element(size_t i, int32_t* out) const override;
+  bool get_element(size_t i, int64_t* out) const override;
 
 protected:
   using Column::stats;
@@ -537,7 +565,7 @@ public:
   double kurt() const;
   RealStats<T>* get_stats() const override;
 
-  py::oobj get_value_at_index(size_t i) const override;
+  bool get_element(size_t i, T* out) const override;
 
 protected:
   using Column::stats;
@@ -575,7 +603,7 @@ public:
   virtual SType stype() const noexcept override;
   PyObjectStats* get_stats() const override;
 
-  py::oobj get_value_at_index(size_t i) const override;
+  bool get_element(size_t i, py::oobj* out) const override;
 
 protected:
   PyObjectColumn();
@@ -605,7 +633,7 @@ template <typename T> class StringColumn : public Column
 public:
   StringColumn(size_t nrows);
   void save_to_disk(const std::string& filename,
-                    WritableBuffer::Strategy strategy) override;
+                    WritableBuffer::Strategy strategy) const override;
 
   SType stype() const noexcept override;
   size_t elemsize() const override;
@@ -616,7 +644,7 @@ public:
   void apply_na_mask(const BoolColumn* mask) override;
   RowIndex join(const Column* keycol) const override;
 
-  MemoryRange str_buf() { return strbuf; }
+  MemoryRange str_buf() const { return strbuf; }
   size_t datasize() const;
   size_t data_nrows() const override;
   const char* strdata() const;
@@ -633,7 +661,7 @@ public:
 
   void verify_integrity(const std::string& name) const override;
 
-  py::oobj get_value_at_index(size_t i) const override;
+  bool get_element(size_t i, CString* out) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
@@ -685,7 +713,6 @@ class VoidColumn : public Column {
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;
     Stats* get_stats() const override;
-    py::oobj get_value_at_index(size_t i) const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     VoidColumn();

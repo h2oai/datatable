@@ -244,7 +244,7 @@ class MemoryRange
     void save_to_disk(
       const std::string& file,
       WritableBuffer::Strategy strategy = WritableBuffer::Strategy::Auto
-    );
+    ) const;
 
     // Utility functions
     //

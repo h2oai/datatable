@@ -353,7 +353,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
 
-  auto data_label_ids_in = static_cast<const int32_t*>(dt_labels_in->get_column(1)->data());
+  auto data_label_ids_in = static_cast<const int32_t*>(dt_labels_in->get_ocolumn(1)->data());
   size_t nlabels_in = dt_labels_in->nrows;
 
   // When we only start training, all the incoming labels become the model

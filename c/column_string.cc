@@ -142,7 +142,7 @@ void StringColumn<T>::init_xbuf(Py_buffer*) {
 
 template <typename T>
 void StringColumn<T>::save_to_disk(const std::string& filename,
-                                   WritableBuffer::Strategy strategy) {
+                                   WritableBuffer::Strategy strategy) const {
   mbuf.save_to_disk(filename, strategy);
   strbuf.save_to_disk(path_str(filename), strategy);
 }
@@ -165,15 +165,16 @@ SType StringColumn<T>::stype() const noexcept {
 
 
 template <typename T>
-py::oobj StringColumn<T>::get_value_at_index(size_t i) const {
+bool StringColumn<T>::get_element(size_t i, CString* out) const {
   size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return py::None();
+  if (j == RowIndex::NA) return true;
   const T* offs = this->offsets();
   T off_end = offs[j];
-  if (ISNA<T>(off_end)) return py::None();
+  if (ISNA<T>(off_end)) return true;
   T off_beg = offs[j - 1] & ~GETNA<T>();
-  return py::ostring(this->strdata() + off_beg,
-                     static_cast<size_t>(off_end - off_beg));
+  out->ch = this->strdata() + off_beg,
+  out->size = static_cast<int64_t>(off_end - off_beg);
+  return false;
 }
 
 

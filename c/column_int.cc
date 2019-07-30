@@ -20,11 +20,21 @@ SType IntColumn<T>::stype() const noexcept {
 }
 
 template <typename T>
-py::oobj IntColumn<T>::get_value_at_index(size_t i) const {
+bool IntColumn<T>::get_element(size_t i, int32_t* out) const {
   size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return py::None();
+  if (j == RowIndex::NA) return true;
   T x = this->elements_r()[j];
-  return ISNA<T>(x)? py::None() : py::oint(x);
+  *out = static_cast<int32_t>(x);
+  return ISNA<T>(x);
+}
+
+template <typename T>
+bool IntColumn<T>::get_element(size_t i, int64_t* out) const {
+  size_t j = (this->ri)[i];
+  if (j == RowIndex::NA) return true;
+  T x = this->elements_r()[j];
+  *out = static_cast<int64_t>(x);
+  return ISNA<T>(x);
 }
 
 

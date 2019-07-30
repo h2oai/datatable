@@ -66,9 +66,9 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   size_t lrows = dt0->nrows;
   xassert(rcols == 1 || rcols == lcols);  // enforced in `check_compatibility()`
 
-  Column* col0 = nullptr;
+  OColumn col0;
   if (rcols == 1) {
-    col0 = dtr->get_column(0)->shallowcopy();
+    col0 = dtr->get_ocolumn(0);  // copy
     // Avoid resizing `col0` multiple times in the loop below
     if (rrows == 1) {
       col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
@@ -76,14 +76,12 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   }
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* coli = rcols == 1? col0->shallowcopy()
-                             : dtr->get_column(i)->shallowcopy();
+    OColumn coli = (rcols == 1)? col0 : dtr->get_ocolumn(i);  // copy
     if (coli->nrows == 1) {
       coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
     }
-    dt0->set_column(j, coli);
+    dt0->set_ocolumn(j, std::move(coli));
   }
-  delete col0;
 }
 
 
@@ -99,13 +97,13 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
   xassert(rcols == 1 || rcols == lcols);
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* coli = dtr->get_column(rcols == 1? 0 : i);
-    Column* colj = dt0->get_column(j);
-    if (!colj) {
-      colj = Column::new_na_column(coli->stype(), dt0->nrows);
-      dt0->set_column(j, colj);
+    const OColumn& coli = dtr->get_ocolumn(rcols == 1? 0 : i);
+    if (!dt0->get_ocolumn(j)) {
+      dt0->set_ocolumn(j,
+          OColumn(Column::new_na_column(coli.stype(), dt0->nrows)));
     }
-    colj->replace_values(ri0, coli);
+    OColumn& colj = dt0->get_ocolumn(j);
+    colj->replace_values(ri0, coli.get());
   }
 }
 
@@ -157,12 +155,13 @@ void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   std::unordered_map<SType, OColumn, EnumClassHash> new_columns;
   for (size_t j : indices) {
-    Column* col = dt0->get_column(j);
-    SType st = col? col->stype() : SType::VOID;
-    if (new_columns.count(st) == 0) {
-      new_columns[st] = make_column(st, dt0->nrows);
+    const OColumn& col = dt0->get_ocolumn(j);
+    SType stype = col? col.stype() : SType::VOID;
+    if (new_columns.count(stype) == 0) {
+      new_columns[stype] = make_column(stype, dt0->nrows);
     }
-    dt0->set_column(j, new_columns[st]->shallowcopy());
+    OColumn newcol = new_columns[stype];  // copy
+    dt0->set_ocolumn(j, std::move(newcol));
   }
 }
 
@@ -173,20 +172,18 @@ void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
   check_column_types(dt0, indices);
 
   for (size_t j : indices) {
-    Column* col = dt0->get_column(j);
-    SType st = col? col->stype() : SType::VOID;
-    OColumn replcol = make_column(st, 1);
-    if (col) {
-      SType res_stype = replcol->stype();
-      if (col->stype() != res_stype) {
-        dt0->set_column(j, col->cast(res_stype));
-        col = dt0->get_column(j);
-      }
-    } else {
-      col = Column::new_na_column(replcol->stype(), dt0->nrows);
-      dt0->set_column(j, col);
+    const OColumn& colj = dt0->get_ocolumn(j);
+    SType stype = colj? colj.stype() : SType::VOID;
+    OColumn replcol = make_column(stype, 1);
+    stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
+    if (!colj) {
+      dt0->set_ocolumn(j, OColumn(Column::new_na_column(stype, dt0->nrows)));
     }
-    col->replace_values(ri0, replcol.get());
+    else if (colj.stype() != stype) {
+      dt0->set_ocolumn(j, colj.cast(stype));
+    }
+    OColumn& ocol = dt0->get_ocolumn(j);
+    ocol->replace_values(ri0, replcol.get());
   }
 }
 
@@ -451,10 +448,10 @@ void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* col = i < rcols? exprs[i]->evaluate_eager(wf).release()
-                           : dt0->get_column(indices[0])->shallowcopy();
-    xassert(col->nrows == dt0->nrows);
-    dt0->set_column(j, col);
+    OColumn col = (i < rcols)? exprs[i]->evaluate_eager(wf)
+                             : dt0->get_ocolumn(indices[0]);
+    xassert(col.nrows() == dt0->nrows);
+    dt0->set_ocolumn(j, std::move(col));
   }
 }
 

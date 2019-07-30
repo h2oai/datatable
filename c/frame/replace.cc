@@ -163,8 +163,8 @@ void Frame::replace(const PKArgs& args) {
     // a string column remains a view, however the iterator `dt::map_str2str`
     // takes the rowindex into account when iterating.
     //
-    Column* col = dt->get_column(i);
-    switch (col->stype()) {
+    const OColumn& col = dt->get_ocolumn(i);
+    switch (col.stype()) {
       case SType::BOOL:    ra.process_bool_column(i); break;
       case SType::INT8:    ra.process_int_column<int8_t>(i); break;
       case SType::INT16:   ra.process_int_column<int16_t>(i); break;
@@ -261,7 +261,7 @@ void ReplaceAgent::split_x_y_by_type() {
        done_bool = false,
        done_str = false;
   for (size_t i = 0; i < dt->ncols; ++i) {
-    SType s = dt->get_column(i)->stype();
+    SType s = dt->get_ocolumn(i).stype();
     switch (s) {
       case SType::BOOL: {
         if (done_bool) continue;
@@ -443,19 +443,20 @@ void ReplaceAgent::check_uniqueness(std::vector<T>& data) {
 
 void ReplaceAgent::process_bool_column(size_t colidx) {
   if (x_bool.empty()) return;
-  auto col = static_cast<BoolColumn*>(dt->get_column(colidx));
-  int8_t* coldata = col->elements_w();
+  OColumn& col = dt->get_ocolumn(colidx);
+  int8_t* coldata = static_cast<int8_t*>(col->data_w());
   size_t n = x_bool.size();
   xassert(n == y_bool.size());
   if (n == 0) return;
-  replace_fw<int8_t>(x_bool.data(), y_bool.data(), col->nrows, coldata, n);
+  replace_fw<int8_t>(x_bool.data(), y_bool.data(), col.nrows(), coldata, n);
 }
 
 
 template <typename T>
 void ReplaceAgent::process_int_column(size_t colidx) {
   if (x_int.empty()) return;
-  auto col = static_cast<IntColumn<T>*>(dt->get_column(colidx));
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<IntColumn<T>*>(const_cast<Column*>(ocol.get()));
   int64_t col_min = col->min();
   int64_t col_max = col->max();
   bool col_has_nas = (col->countna() > 0);
@@ -488,8 +489,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   if (maxy) {
     SType new_stype = (maxy > std::numeric_limits<int32_t>::max())
                       ? SType::INT64 : SType::INT32;
-    Column* newcol = col->cast(new_stype);
-    dt->set_column(colidx, newcol);
+    dt->set_ocolumn(colidx, ocol.cast(new_stype));
     columns_cast = true;
     if (new_stype == SType::INT64) {
       process_int_column<int64_t>(colidx);
@@ -511,7 +511,8 @@ template <typename T>
 void ReplaceAgent::process_real_column(size_t colidx) {
   constexpr double MAX_FLOAT = double(std::numeric_limits<float>::max());
   if (x_real.empty()) return;
-  auto col = static_cast<RealColumn<T>*>(dt->get_column(colidx));
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<RealColumn<T>*>(const_cast<Column*>(ocol.get()));
   double col_min = static_cast<double>(col->min());
   double col_max = static_cast<double>(col->max());
   bool col_has_nas = (col->countna() > 0);
@@ -543,8 +544,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     }
   }
   if (std::is_same<T, float>::value && maxy > 0) {
-    Column* newcol = col->cast(SType::FLOAT64);
-    dt->set_column(colidx, newcol);
+    dt->set_ocolumn(colidx, ocol.cast(SType::FLOAT64));
     columns_cast = true;
     process_real_column<double>(colidx);
   } else {
@@ -562,14 +562,15 @@ void ReplaceAgent::process_real_column(size_t colidx) {
 template <typename T>
 void ReplaceAgent::process_str_column(size_t colidx) {
   if (x_str.empty()) return;
-  auto col = static_cast<StringColumn<T>*>(dt->get_column(colidx));
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<StringColumn<T>*>(const_cast<Column*>(ocol.get()));
   if (x_str.size() == 1 && x_str[0].isna()) {
     if (col->countna() == 0) return;
   }
   Column* newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
                                   col);
   columns_cast = (newcol->stype() != col->stype());
-  dt->set_column(colidx, newcol);
+  dt->set_ocolumn(colidx, OColumn(newcol));
 }
 
 

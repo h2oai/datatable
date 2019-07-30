@@ -16,11 +16,12 @@ SType BoolColumn::stype() const noexcept {
   return SType::BOOL;
 }
 
-py::oobj BoolColumn::get_value_at_index(size_t i) const {
+bool BoolColumn::get_element(size_t i, int32_t* x) const {
   size_t j = ri[i];
-  if (j == RowIndex::NA) return py::None();
-  int8_t x = elements_r()[j];
-  return ISNA(x)? py::None() : x? py::True() : py::False();
+  if (j == RowIndex::NA) return true;
+  int8_t value = elements_r()[j];
+  *x = static_cast<int32_t>(value);
+  return ISNA<int8_t>(value);
 }
 
 

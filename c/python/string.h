@@ -19,7 +19,8 @@ namespace py {
 class ostring : public oobj {
   public:
     ostring();
-    ostring(const std::string& s);
+    ostring(const std::string&);
+    ostring(const CString&);
     ostring(const char* str);
     ostring(const char* str, size_t len);
     ostring(const ostring&);

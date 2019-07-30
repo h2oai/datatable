@@ -330,16 +330,16 @@ static void getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags)
   bool one_col = (pybuffers::single_col != size_t(-1));
   size_t i0 = one_col? pybuffers::single_col : 0;
   XInfo* xinfo = nullptr;
-  Column* col = self->get_datatable()->get_column(i0);
-  const char* fmt = format_from_stype(col->stype());
+  const OColumn& col = self->get_datatable()->get_ocolumn(i0);
+  const char* fmt = format_from_stype(col.stype());
 
   xinfo = new XInfo();
   xinfo->mbuf = col->data_buf();
-  xinfo->shape[0] = static_cast<Py_ssize_t>(col->nrows);
+  xinfo->shape[0] = static_cast<Py_ssize_t>(col.nrows());
   xinfo->shape[1] = 1;
-  xinfo->strides[0] = static_cast<Py_ssize_t>(col->elemsize());
+  xinfo->strides[0] = static_cast<Py_ssize_t>(col.elemsize());
   xinfo->strides[1] = static_cast<Py_ssize_t>(xinfo->mbuf.size());
-  xinfo->stype = col->stype();
+  xinfo->stype = col.stype();
 
   view->buf = const_cast<void*>(xinfo->mbuf.rptr());
   view->obj = py::oobj(self).release();
@@ -374,9 +374,9 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   // Check whether we have a single-column DataTable that doesn't need to be
   // copied -- in which case it should be possible to return the buffer
   // by-reference instead of copying the data into an intermediate buffer.
-  if (ncols == 1 && !dt->get_column(i0)->rowindex() && !REQ_WRITABLE(flags) &&
-      dt->get_column(i0)->is_fixedwidth() &&
-      pybuffers::force_stype == SType::VOID)
+  const OColumn& col_i0 = dt->get_ocolumn(i0);
+  if (ncols == 1 && !col_i0.is_virtual() && !REQ_WRITABLE(flags) &&
+      col_i0.is_fixedwidth() && pybuffers::force_stype == SType::VOID)
   {
     return getbuffer_1_col(this, view, flags);
   }
@@ -392,7 +392,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // Auto-detect common stype
     uint64_t stypes_mask = 0;
     for (size_t i = 0; i < ncols; ++i) {
-      SType next_stype = dt->get_column(i + i0)->stype();
+      SType next_stype = dt->get_ocolumn(i + i0).stype();
       uint64_t unstype = static_cast<uint64_t>(next_stype);
       if (stypes_mask & (1 << unstype)) continue;
       stypes_mask |= 1 << unstype;
@@ -423,13 +423,15 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // is possible. The effect of this call is that `newcol` will be
     // created having the converted data; but the side-effect of this is
     // that `mbuf` will have the same data, and in the right place.
-    Column* newcol = dt->get_column(i + i0)->cast(stype, std::move(xmb));
-    xassert(newcol->alloc_size() == colsize);
-    // We can now delete the new column: this will delete `xmb` as well,
-    // however an ExternalMemBuf object does not attempt to free its
-    // memory buffer. The converted data that was written to `mbuf` will
-    // thus remain intact. No need to delete `xmb` either.
-    delete newcol;
+    {
+      OColumn newcol = dt->get_ocolumn(i + i0).cast(stype, std::move(xmb));
+      newcol.materialize();
+      xassert(newcol->alloc_size() == colsize);
+      // We can now delete the new column: this will delete `xmb` as well,
+      // however an ExternalMemBuf object does not attempt to free its
+      // memory buffer. The converted data that was written to `mbuf` will
+      // thus remain intact. No need to delete `xmb` either.
+    }
 
     // Delete the `col` pointer, which was extracted from the i-th column
     // of the DataTable.

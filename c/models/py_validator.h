@@ -93,9 +93,11 @@ void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error
 
 
 template<typename T>
-bool has_negatives(const Column* col) {
+bool has_negatives(const OColumn& col) {
+  // TODO: check if the column has min() value computed, and if it does
+  //       simply check whether the min is negative
   auto d_n = static_cast<const T*>(col->data());
-  for (size_t i = 0; i < col->nrows; ++i) {
+  for (size_t i = 0; i < col.nrows(); ++i) {
     if (d_n[i] < 0) return true;
   }
   return false;

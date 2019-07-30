@@ -108,17 +108,14 @@ class DataTable {
     DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
 
-    Column* get_column(size_t i) {
-      return const_cast<Column*>(columns[i].get());
-    }
     const OColumn& get_ocolumn(size_t i) const {
       return columns[i];
     }
     OColumn& get_ocolumn(size_t i) {
       return columns[i];
     }
-    void set_column(size_t i, Column* newcol) {
-      columns[i] = OColumn(newcol);
+    void set_ocolumn(size_t i, OColumn&& newcol) {
+      columns[i] = std::move(newcol);
     }
 
     /**
