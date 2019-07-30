@@ -346,7 +346,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
   // for the additional N/A bins that may appear during grouping.
   if (gb_members.ngroups() > max_bins + n_na_bins) {
     const int32_t* offsets = gb_members.offsets_r();
-    auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
+    auto d_members = static_cast<int32_t*>(dt_members->get_ocolumn(0)->data_w());
 
     // First, set all `exemplar_id`s to `N/A`.
     for (size_t i = 0; i < dt_members->nrows; ++i) {
@@ -371,7 +371,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
         k++;
       }
     }
-    dt_members->get_column(0)->get_stats()->reset();
+    dt_members->get_ocolumn(0)->get_stats()->reset();
     was_sampled = true;
   }
 
@@ -406,7 +406,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   std::memset(d_counts, 0, n_exemplars * sizeof(int32_t));
 
   // Setting up exemplar indices and counts
-  auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
+  auto d_members = static_cast<int32_t*>(dt_members->get_ocolumn(0)->data_w());
   for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
     size_t i_sampled = i - was_sampled;
     size_t off_i = static_cast<size_t>(offsets[i]);

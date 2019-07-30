@@ -97,13 +97,13 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
   xassert(rcols == 1 || rcols == lcols);
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* coli = dtr->get_column(rcols == 1? 0 : i);
-    Column* colj = dt0->get_column(j);
-    if (!colj) {
-      colj = Column::new_na_column(coli->stype(), dt0->nrows);
-      dt0->set_column(j, colj);
+    const OColumn& coli = dtr->get_ocolumn(rcols == 1? 0 : i);
+    if (!dt0->get_ocolumn(j)) {
+      dt0->set_column(j,
+          OColumn(Column::new_na_column(coli.stype(), dt0->nrows)));
     }
-    colj->replace_values(ri0, coli);
+    OColumn& colj = dt0->get_ocolumn(j);
+    colj->replace_values(ri0, coli.get());
   }
 }
 
@@ -155,12 +155,13 @@ void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   std::unordered_map<SType, OColumn, EnumClassHash> new_columns;
   for (size_t j : indices) {
-    Column* col = dt0->get_column(j);
-    SType st = col? col->stype() : SType::VOID;
-    if (new_columns.count(st) == 0) {
-      new_columns[st] = make_column(st, dt0->nrows);
+    const OColumn& col = dt0->get_ocolumn(j);
+    SType stype = col? col.stype() : SType::VOID;
+    if (new_columns.count(stype) == 0) {
+      new_columns[stype] = make_column(stype, dt0->nrows);
     }
-    dt0->set_column(j, new_columns[st]->shallowcopy());
+    OColumn newcol = new_columns[stype];  // copy
+    dt0->set_column(j, std::move(newcol));
   }
 }
 
@@ -447,10 +448,10 @@ void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* col = i < rcols? exprs[i]->evaluate_eager(wf).release()
-                           : dt0->get_column(indices[0])->shallowcopy();
-    xassert(col->nrows == dt0->nrows);
-    dt0->set_column(j, col);
+    OColumn col = (i < rcols)? exprs[i]->evaluate_eager(wf)
+                             : dt0->get_ocolumn(indices[0]);
+    xassert(col.nrows() == dt0->nrows);
+    dt0->set_column(j, std::move(col));
   }
 }
 
