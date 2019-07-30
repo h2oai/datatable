@@ -45,7 +45,7 @@ static PKArgs args_to_csv(
     {"path", "quoting", "hex", "verbose", "_strategy"},
     "to_csv",
 
-R"(to_csv(self, path=None, *, quoting=csv.QUOTE_MINIMAL, hex=False,
+R"(to_csv(self, path=None, *, quoting='csv.QUOTE_MINIMAL', hex=False,
        verbose=False, _strategy="auto")
 --
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,44 +19,62 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_WRITE_WRITE_CHRONICLER_h
-#define dt_WRITE_WRITE_CHRONICLER_h
-#include <chrono>
+#ifndef dt_UTILS_LOG_MESSAGE_h
+#define dt_UTILS_LOG_MESSAGE_h
+#include <iomanip>
+#include <sstream>
+#include "python/_all.h"
 #include "python/obj.h"
-#include "utils/log_message.h"
-namespace dt {
-namespace write {
+#include "python/string.h"
 
 
-class write_chronicler {
-  private:
-    using ptime_t = std::chrono::steady_clock::time_point;
-
-    py::oobj logger;
-    ptime_t t_last;
-    double t_preamble;
-    double t_writing_rows;
-    double t_epilogue;
-
-  public:
-    write_chronicler();
-    void set_logger(py::oobj logger_);
-
-    void checkpoint_start_writing();
-    void checkpoint_preamble_done();
-    void checkpoint_writing_done();
-    void checkpoint_the_end();
-
-    void report_chunking_strategy(size_t nrows, size_t nchunks, size_t nthreads,
-                                  size_t estimated_output_size);
-    void report_final(size_t actual_output_size);
-
-  private:
-    double duration_from_last();
-    LogMessage msg() const;
+struct ff {
+  int width, precision;
+  double value;
+  ff(int w, int p, double v) : width(w), precision(p), value(v) {}
 };
 
 
+class LogMessage {
+  private:
+    std::ostringstream out;
+    py::oobj logger;
 
-}}  // namespace dt::write
+  public:
+    explicit LogMessage(py::oobj logger_) : logger(logger_) {}
+    LogMessage(const LogMessage&) = delete;
+
+    LogMessage(LogMessage&& other) {
+      #if defined(__GNUC__) && __GNUC__ < 5
+        // In gcc4.8 string stream was not moveable
+        out << other.out.str();
+      #else
+        std::swap(out, other.out);
+      #endif
+      logger = std::move(other.logger);
+    }
+
+    ~LogMessage() {
+      if (!logger) return;
+      try {
+        py::ostring s(out.str());
+        logger.get_attr("debug").call({s});
+      } catch (...) {}
+    }
+
+    template <typename T>
+    LogMessage& operator <<(const T& value) {
+      if (logger) out << value;
+      return *this;
+    }
+
+    LogMessage& operator <<(const ff& f) {
+      out << std::fixed << std::setw(f.width)
+          << std::setprecision(f.precision)
+          << f.value;
+      return *this;
+    }
+};
+
+
 #endif
