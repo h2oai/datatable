@@ -284,7 +284,7 @@ public:
 
   virtual RowIndex join(const Column* keycol) const = 0;
 
-  virtual void save_to_disk(const std::string&, WritableBuffer::Strategy);
+  virtual void save_to_disk(const std::string&, WritableBuffer::Strategy) const;
 
   size_t countna() const;
   size_t nunique() const;
@@ -633,7 +633,7 @@ template <typename T> class StringColumn : public Column
 public:
   StringColumn(size_t nrows);
   void save_to_disk(const std::string& filename,
-                    WritableBuffer::Strategy strategy) override;
+                    WritableBuffer::Strategy strategy) const override;
 
   SType stype() const noexcept override;
   size_t elemsize() const override;

@@ -82,7 +82,7 @@ Column* Column::new_mmap_column(SType stype, size_t nrows,
  * If a file with the given name already exists, it will be overwritten.
  */
 void Column::save_to_disk(const std::string& filename,
-                          WritableBuffer::Strategy strategy) {
+                          WritableBuffer::Strategy strategy) const {
   mbuf.save_to_disk(filename, strategy);
 }
 

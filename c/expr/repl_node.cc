@@ -80,7 +80,7 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
     if (coli->nrows == 1) {
       coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
     }
-    dt0->set_column(j, std::move(coli));
+    dt0->set_ocolumn(j, std::move(coli));
   }
 }
 
@@ -99,7 +99,7 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
     size_t j = indices[i];
     const OColumn& coli = dtr->get_ocolumn(rcols == 1? 0 : i);
     if (!dt0->get_ocolumn(j)) {
-      dt0->set_column(j,
+      dt0->set_ocolumn(j,
           OColumn(Column::new_na_column(coli.stype(), dt0->nrows)));
     }
     OColumn& colj = dt0->get_ocolumn(j);
@@ -161,7 +161,7 @@ void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
       new_columns[stype] = make_column(stype, dt0->nrows);
     }
     OColumn newcol = new_columns[stype];  // copy
-    dt0->set_column(j, std::move(newcol));
+    dt0->set_ocolumn(j, std::move(newcol));
   }
 }
 
@@ -177,10 +177,10 @@ void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
     OColumn replcol = make_column(stype, 1);
     stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
     if (!colj) {
-      dt0->set_column(j, OColumn(Column::new_na_column(stype, dt0->nrows)));
+      dt0->set_ocolumn(j, OColumn(Column::new_na_column(stype, dt0->nrows)));
     }
     else if (colj.stype() != stype) {
-      dt0->set_column(j, colj.cast(stype));
+      dt0->set_ocolumn(j, colj.cast(stype));
     }
     OColumn& ocol = dt0->get_ocolumn(j);
     ocol->replace_values(ri0, replcol.get());
@@ -451,7 +451,7 @@ void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
     OColumn col = (i < rcols)? exprs[i]->evaluate_eager(wf)
                              : dt0->get_ocolumn(indices[0]);
     xassert(col.nrows() == dt0->nrows);
-    dt0->set_column(j, std::move(col));
+    dt0->set_ocolumn(j, std::move(col));
   }
 }
 

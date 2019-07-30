@@ -489,8 +489,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   if (maxy) {
     SType new_stype = (maxy > std::numeric_limits<int32_t>::max())
                       ? SType::INT64 : SType::INT32;
-    Column* newcol = col->cast(new_stype);
-    dt->set_column(colidx, newcol);
+    dt->set_ocolumn(colidx, ocol.cast(new_stype));
     columns_cast = true;
     if (new_stype == SType::INT64) {
       process_int_column<int64_t>(colidx);
@@ -545,8 +544,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     }
   }
   if (std::is_same<T, float>::value && maxy > 0) {
-    Column* newcol = col->cast(SType::FLOAT64);
-    dt->set_column(colidx, newcol);
+    dt->set_ocolumn(colidx, ocol.cast(SType::FLOAT64));
     columns_cast = true;
     process_real_column<double>(colidx);
   } else {
@@ -572,7 +570,7 @@ void ReplaceAgent::process_str_column(size_t colidx) {
   Column* newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
                                   col);
   columns_cast = (newcol->stype() != col->stype());
-  dt->set_column(colidx, newcol);
+  dt->set_ocolumn(colidx, OColumn(newcol));
 }
 
 
