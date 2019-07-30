@@ -171,20 +171,18 @@ void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
   check_column_types(dt0, indices);
 
   for (size_t j : indices) {
-    Column* col = dt0->get_column(j);
-    SType st = col? col->stype() : SType::VOID;
-    OColumn replcol = make_column(st, 1);
-    if (col) {
-      SType res_stype = replcol->stype();
-      if (col->stype() != res_stype) {
-        dt0->set_column(j, col->cast(res_stype));
-        col = dt0->get_column(j);
-      }
-    } else {
-      col = Column::new_na_column(replcol->stype(), dt0->nrows);
-      dt0->set_column(j, col);
+    const OColumn& colj = dt0->get_ocolumn(j);
+    SType stype = colj? colj.stype() : SType::VOID;
+    OColumn replcol = make_column(stype, 1);
+    stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
+    if (!colj) {
+      dt0->set_column(j, OColumn(Column::new_na_column(stype, dt0->nrows)));
     }
-    col->replace_values(ri0, replcol.get());
+    else if (colj.stype() != stype) {
+      dt0->set_column(j, colj.cast(stype));
+    }
+    OColumn& ocol = dt0->get_ocolumn(j);
+    ocol->replace_values(ri0, replcol.get());
   }
 }
 
