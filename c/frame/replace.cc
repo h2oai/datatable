@@ -163,8 +163,8 @@ void Frame::replace(const PKArgs& args) {
     // a string column remains a view, however the iterator `dt::map_str2str`
     // takes the rowindex into account when iterating.
     //
-    Column* col = dt->get_column(i);
-    switch (col->stype()) {
+    const OColumn& col = dt->get_ocolumn(i);
+    switch (col.stype()) {
       case SType::BOOL:    ra.process_bool_column(i); break;
       case SType::INT8:    ra.process_int_column<int8_t>(i); break;
       case SType::INT16:   ra.process_int_column<int16_t>(i); break;
@@ -261,7 +261,7 @@ void ReplaceAgent::split_x_y_by_type() {
        done_bool = false,
        done_str = false;
   for (size_t i = 0; i < dt->ncols; ++i) {
-    SType s = dt->get_column(i)->stype();
+    SType s = dt->get_ocolumn(i).stype();
     switch (s) {
       case SType::BOOL: {
         if (done_bool) continue;

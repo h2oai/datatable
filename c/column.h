@@ -396,12 +396,31 @@ class OColumn
   // Data access
   //------------------------------------
   public:
+    // Each `get_element(i, *out)` function retrieves the column's element
+    // at index `i` and stores it in the variable `out`. The return value
+    // is true if the returned element is NA (missing), or false otherwise.
+    // When `true` is returned, the `out` value may contain garbage data,
+    // and should not be used in any way.
+    //
+    // Multiple overloads of `get_element()` correspond to different stypes
+    // of the underlying column. It is the caller's responsibility to call
+    // the correct function variant; calling a method that doesn't match
+    // this column's SType will likely result in an exception thrown.
+    //
+    // The function expects (but doesn't check) that `i < nrows`. A segfault
+    // may occur if this assumption is violated.
+    //
     bool get_element(size_t i, int32_t* out) const;
     bool get_element(size_t i, int64_t* out) const;
     bool get_element(size_t i, float* out) const;
     bool get_element(size_t i, double* out) const;
     bool get_element(size_t i, CString* out) const;
     bool get_element(size_t i, py::oobj* out) const;
+
+    // `get_element_as_pyobject(i)` returns the i-th element of the column
+    // wrapped into a pyobject of the appropriate type. Use this function
+    // for interoperation with Python.
+    //
     py::oobj get_element_as_pyobject(size_t i) const;
 
 

@@ -123,18 +123,19 @@ static void sort_colnames(colvec& outcols, strvec& outnames) {
 }
 
 
-DataTable* split_into_nhot(Column* col, char sep, bool sort /* = false */) {
+DataTable* split_into_nhot(const OColumn& ocol, char sep, bool sort /* = false */) {
+  const Column* col = ocol.get();
   bool is32 = (col->stype() == SType::STR32);
   xassert(is32 || (col->stype() == SType::STR64));
   const uint32_t* offsets32 = nullptr;
   const uint64_t* offsets64 = nullptr;
   const char* strdata;
   if (is32) {
-    auto scol = static_cast<StringColumn<uint32_t>*>(col);
+    auto scol = static_cast<const StringColumn<uint32_t>*>(col);
     offsets32 = scol->offsets();
     strdata = scol->strdata();
   } else {
-    auto scol = static_cast<StringColumn<uint64_t>*>(col);
+    auto scol = static_cast<const StringColumn<uint64_t>*>(col);
     offsets64 = scol->offsets();
     strdata = scol->strdata();
   }
