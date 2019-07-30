@@ -642,7 +642,7 @@ public:
   void apply_na_mask(const BoolColumn* mask) override;
   RowIndex join(const Column* keycol) const override;
 
-  MemoryRange str_buf() { return strbuf; }
+  MemoryRange str_buf() const { return strbuf; }
   size_t datasize() const;
   size_t data_nrows() const override;
   const char* strdata() const;

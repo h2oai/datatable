@@ -374,9 +374,9 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   // Check whether we have a single-column DataTable that doesn't need to be
   // copied -- in which case it should be possible to return the buffer
   // by-reference instead of copying the data into an intermediate buffer.
-  if (ncols == 1 && !dt->get_column(i0)->rowindex() && !REQ_WRITABLE(flags) &&
-      dt->get_column(i0)->is_fixedwidth() &&
-      pybuffers::force_stype == SType::VOID)
+  const OColumn& col_i0 = dt->get_ocolumn(i0);
+  if (ncols == 1 && !col_i0.is_virtual() && !REQ_WRITABLE(flags) &&
+      col_i0.is_fixedwidth() && pybuffers::force_stype == SType::VOID)
   {
     return getbuffer_1_col(this, view, flags);
   }
@@ -392,7 +392,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // Auto-detect common stype
     uint64_t stypes_mask = 0;
     for (size_t i = 0; i < ncols; ++i) {
-      SType next_stype = dt->get_column(i + i0)->stype();
+      SType next_stype = dt->get_ocolumn(i + i0).stype();
       uint64_t unstype = static_cast<uint64_t>(next_stype);
       if (stypes_mask & (1 << unstype)) continue;
       stypes_mask |= 1 << unstype;
