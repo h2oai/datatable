@@ -995,7 +995,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
 template <typename T>
 hasherptr Ftrl<T>::create_hasher(const OColumn& col) {
   unsigned char shift_nbits = dt::FtrlBase::DOUBLE_MANTISSA_NBITS - mantissa_nbits;
-  SType stype = col->stype();
+  SType stype = col.stype();
   switch (stype) {
     case SType::BOOL:    return hasherptr(new HasherBool(col));
     case SType::INT8:    return hasherptr(new HasherInt<int8_t>(col));

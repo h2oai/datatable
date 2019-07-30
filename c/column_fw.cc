@@ -229,8 +229,8 @@ void FwColumn<T>::replace_values(
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  if (replace_with->stype() != stype()) {
-    replace_with = replace_with->cast(stype());
+  if (replace_with->_stype != _stype) {
+    replace_with = replace_with->cast(_stype);
   }
 
   if (replace_with->nrows == 1) {
@@ -276,7 +276,7 @@ static int32_t binsearch(const T* data, int32_t len, T value) {
 
 template <typename T>
 RowIndex FwColumn<T>::join(const Column* keycol) const {
-  xassert(stype() == keycol->stype());
+  xassert(_stype == keycol->_stype);
 
   auto kcol = static_cast<const FwColumn<T>*>(keycol);
   xassert(!kcol->ri);

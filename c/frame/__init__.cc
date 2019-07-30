@@ -448,7 +448,7 @@ class FrameInitializationManager {
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
           make_column(colsrc, SType::VOID);
           Column* maskcol = Column::from_buffer(masksrc);
-          xassert(maskcol->stype() == SType::BOOL);
+          xassert(maskcol->_stype == SType::BOOL);
           cols.back()->apply_na_mask(static_cast<BoolColumn*>(maskcol));
           delete maskcol;
         }

@@ -99,7 +99,7 @@ GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
 
 OColumn expr_string_match_re::evaluate_eager(workframe& wf) {
   auto arg_res = arg->evaluate_eager(wf);
-  SType arg_stype = arg_res->stype();
+  SType arg_stype = arg_res.stype();
   xassert(arg_stype == SType::STR32 || arg_stype == SType::STR64);
   return arg_stype == SType::STR32? _compute<uint32_t>(arg_res.get())
                                   : _compute<uint64_t>(arg_res.get());

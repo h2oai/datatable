@@ -308,7 +308,7 @@ OColumn expr_reduce1::evaluate_eager(workframe& wf)
 {
   auto input_col = arg->evaluate_eager(wf);
   Groupby gb = wf.get_groupby();
-  if (!gb) gb = Groupby::single_group(input_col->nrows);
+  if (!gb) gb = Groupby::single_group(input_col.nrows());
 
   size_t out_nrows = gb.ngroups();
   if (!out_nrows) out_nrows = 1;  // only when input_col has 0 rows
@@ -317,7 +317,7 @@ OColumn expr_reduce1::evaluate_eager(workframe& wf)
     return reduce_first(input_col, gb);
   }
 
-  SType in_stype = input_col->stype();
+  SType in_stype = input_col.stype();
   auto reducer = library.lookup(opcode, in_stype);
   xassert(reducer);  // checked in .resolve()
 

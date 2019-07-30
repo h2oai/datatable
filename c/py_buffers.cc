@@ -126,7 +126,7 @@ Column* Column::from_buffer(const py::robj& pyobj)
       }
     }
   }
-  if (res->stype() == SType::OBJ) {
+  if (res->_stype == SType::OBJ) {
     res = try_to_resolve_object_column(res);
   }
   return res;

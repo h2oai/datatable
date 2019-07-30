@@ -207,7 +207,7 @@ static Column* cast_to_str(const Column* col, MemoryRange&& out_offsets,
       col->nrows,
       std::move(out_offsets),
       /* force_str64 = */ (target_stype == SType::STR64),
-      /* force_single_threaded = */ (col->stype() == SType::OBJ)
+      /* force_single_threaded = */ (col->_stype == SType::OBJ)
   );
 }
 
@@ -314,10 +314,10 @@ Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
                               SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
-  size_t id = key(src->stype(), target_stype);
+  size_t id = key(src->_stype, target_stype);
   if (all_casts.count(id) == 0) {
     throw NotImplError()
-        << "Unable to cast `" << src->stype() << "` into `"
+        << "Unable to cast `" << src->_stype << "` into `"
         << target_stype << "`";
   }
 

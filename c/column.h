@@ -131,10 +131,10 @@ protected:
   MemoryRange mbuf;
   RowIndex ri;
   mutable Stats* stats;
-  SType _stype;
-  size_t : 56;
 
 public:  // TODO: convert this into private
+  SType _stype;
+  size_t : 56;
   size_t nrows;
 
 public:
@@ -156,7 +156,6 @@ public:
   Column(Column&&) = delete;
   virtual ~Column();
 
-  SType stype() const noexcept { return _stype; }
   virtual size_t elemsize() const = 0;
 
   virtual bool get_element(size_t i, int32_t* out) const;

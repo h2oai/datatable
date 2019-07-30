@@ -288,8 +288,8 @@ void StringColumn<T>::replace_values(
   materialize();
   Column* rescol = nullptr;
 
-  if (replace_with && replace_with->stype() != stype()){
-    replace_with = replace_with->cast(stype());
+  if (replace_with && replace_with->_stype != _stype){
+    replace_with = replace_with->cast(_stype);
   }
   // This could be nullptr too
   auto repl_col = static_cast<const StringColumn<T>*>(replace_with);
@@ -333,7 +333,7 @@ void StringColumn<T>::replace_values(
   }
 
   xassert(rescol);
-  if (rescol->stype() != stype()) {
+  if (rescol->_stype != _stype) {
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
@@ -509,7 +509,7 @@ static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
 
 template <typename T>
 RowIndex StringColumn<T>::join(const Column* keycol) const {
-  xassert(stype() == keycol->stype());
+  xassert(_stype == keycol->_stype);
 
   auto kcol = static_cast<const StringColumn<T>*>(keycol);
   xassert(!kcol->ri);

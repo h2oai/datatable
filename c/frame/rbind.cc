@@ -311,10 +311,10 @@ void DataTable::rbind(
 Column* Column::rbind(colvec& columns)
 {
   // Is the current column "empty" ?
-  bool col_empty = (stype() == SType::VOID);
+  bool col_empty = (_stype == SType::VOID);
   // Compute the final number of rows and stype
   size_t new_nrows = this->nrows;
-  SType new_stype = col_empty? SType::BOOL : stype();
+  SType new_stype = col_empty? SType::BOOL : _stype;
   for (const auto& col : columns) {
     new_nrows += col.nrows();
     new_stype = std::max(new_stype, col.stype());
@@ -326,12 +326,12 @@ Column* Column::rbind(colvec& columns)
   Column* res = nullptr;
   if (col_empty) {
     res = Column::new_na_column(new_stype, this->nrows);
-  } else if (stype() == new_stype) {
+  } else if (_stype == new_stype) {
     res = this;
   } else {
     res = this->cast(new_stype);
   }
-  xassert(res->stype() == new_stype);
+  xassert(res->_stype == new_stype);
 
   // TODO: Temporary Fix. To be resolved in #301
   if (res->stats != nullptr) res->stats->reset();
@@ -365,8 +365,8 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
   for (size_t i = 0; i < columns.size(); ++i) {
     OColumn& col = columns[i];
     if (col.stype() == SType::VOID) continue;
-    if (col.stype() != stype()) {
-      col = OColumn(col->cast(stype()));
+    if (col.stype() != _stype) {
+      col = OColumn(col->cast(_stype));
     }
     // TODO: replace with datasize(). But: what if col is not a string?
     new_strbuf_size += static_cast<const StringColumn<T>*>(col.get())->strbuf.size();
@@ -457,8 +457,8 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
         resptr += rows_to_fill * sizeof(T);
         rows_to_fill = 0;
       }
-      if (col.stype() != stype()) {
-        Column* newcol = col->cast(stype());
+      if (col.stype() != _stype) {
+        Column* newcol = col->cast(_stype);
         col = OColumn(newcol);
       }
       std::memcpy(resptr, col->data(), col->alloc_size());
@@ -501,7 +501,7 @@ void PyObjectColumn::rbind_impl(
       dest_data += col->nrows;
     } else {
       if (col.stype() != SType::OBJ) {
-        Column* newcol = col->cast(stype());
+        Column* newcol = col->cast(_stype);
         col = OColumn(newcol);
       }
       auto src_data = static_cast<PyObject* const*>(col->data());

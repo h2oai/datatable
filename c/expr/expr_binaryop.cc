@@ -560,8 +560,8 @@ static Column* binaryop(Op opcode, Column* lhs, Column* rhs)
     lhs_nrows = rhs_nrows = 0;
   }
   size_t nrows = std::max(lhs_nrows, rhs_nrows);
-  SType lhs_type = lhs->stype();
-  SType rhs_type = rhs->stype();
+  SType lhs_type = lhs->_stype;
+  SType rhs_type = rhs->_stype;
   void* params[3];
   params[0] = lhs;
   params[1] = rhs;

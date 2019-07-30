@@ -95,32 +95,32 @@ Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
 
 bool Column::get_element(size_t, int32_t*) const {
   throw NotImplError()
-    << "Cannot retrieve int32 values from a column of type " << stype();
+    << "Cannot retrieve int32 values from a column of type " << _stype;
 }
 
 bool Column::get_element(size_t, int64_t*) const {
   throw NotImplError()
-    << "Cannot retrieve int64 values from a column of type " << stype();
+    << "Cannot retrieve int64 values from a column of type " << _stype;
 }
 
 bool Column::get_element(size_t, float*) const {
   throw NotImplError()
-    << "Cannot retrieve float values from a column of type " << stype();
+    << "Cannot retrieve float values from a column of type " << _stype;
 }
 
 bool Column::get_element(size_t, double*) const {
   throw NotImplError()
-    << "Cannot retrieve double values from a column of type " << stype();
+    << "Cannot retrieve double values from a column of type " << _stype;
 }
 
 bool Column::get_element(size_t, CString*) const {
   throw NotImplError()
-    << "Cannot retrieve string values from a column of type " << stype();
+    << "Cannot retrieve string values from a column of type " << _stype;
 }
 
 bool Column::get_element(size_t, py::oobj*) const {
   throw NotImplError()
-    << "Cannot retrieve object values from a column of type " << stype();
+    << "Cannot retrieve object values from a column of type " << _stype;
 }
 
 
@@ -130,7 +130,7 @@ bool Column::get_element(size_t, py::oobj*) const {
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
 Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
-  Column* col = new_column(stype());
+  Column* col = new_column(_stype);
   col->nrows = nrows;
   col->mbuf = mbuf;
   // TODO: also copy Stats object
@@ -249,11 +249,11 @@ SType OColumn::stype() const noexcept {
 }
 
 LType OColumn::ltype() const noexcept {
-  return info(pcol->stype()).ltype();
+  return info(pcol->_stype).ltype();
 }
 
 bool OColumn::is_fixedwidth() const noexcept {
-  return !info(pcol->stype()).is_varwidth();
+  return !info(pcol->_stype).is_varwidth();
 }
 
 bool OColumn::is_virtual() const noexcept {
@@ -261,7 +261,7 @@ bool OColumn::is_virtual() const noexcept {
 }
 
 size_t OColumn::elemsize() const noexcept {
-  return info(pcol->stype()).elemsize();
+  return info(pcol->_stype).elemsize();
 }
 
 OColumn::operator bool() const noexcept {
