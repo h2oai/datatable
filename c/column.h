@@ -162,6 +162,13 @@ public:
   virtual bool is_fixedwidth() const = 0;
   LType ltype() const noexcept { return info(stype()).ltype(); }
 
+  virtual bool get_element(size_t i, int32_t* out) const;
+  virtual bool get_element(size_t i, int64_t* out) const;
+  virtual bool get_element(size_t i, float* out) const;
+  virtual bool get_element(size_t i, double* out) const;
+  virtual bool get_element(size_t i, CString* out) const;
+  virtual bool get_element(size_t i, py::oobj* out) const;
+
   const RowIndex& rowindex() const noexcept { return ri; }
   RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
@@ -472,6 +479,7 @@ public:
   double sd() const;
   BooleanStats* get_stats() const override;
 
+  bool get_element(size_t i, int32_t* out) const override;
   py::oobj get_value_at_index(size_t i) const override;
 
   protected:
@@ -504,6 +512,8 @@ public:
   int64_t max_int64() const override;
   IntegerStats<T>* get_stats() const override;
 
+  bool get_element(size_t i, int32_t* out) const override;
+  bool get_element(size_t i, int64_t* out) const override;
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
@@ -537,6 +547,7 @@ public:
   double kurt() const;
   RealStats<T>* get_stats() const override;
 
+  bool get_element(size_t i, T* out) const override;
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
@@ -575,6 +586,7 @@ public:
   virtual SType stype() const noexcept override;
   PyObjectStats* get_stats() const override;
 
+  bool get_element(size_t i, py::oobj* out) const override;
   py::oobj get_value_at_index(size_t i) const override;
 
 protected:
@@ -633,6 +645,7 @@ public:
 
   void verify_integrity(const std::string& name) const override;
 
+  bool get_element(size_t i, CString* out) const override;
   py::oobj get_value_at_index(size_t i) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 

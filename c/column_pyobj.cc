@@ -39,6 +39,14 @@ py::oobj PyObjectColumn::get_value_at_index(size_t i) const {
   return py::oobj(x);
 }
 
+bool PyObjectColumn::get_element(size_t i, py::oobj* out) const {
+  size_t j = (this->ri)[i];
+  if (j == RowIndex::NA) return true;
+  PyObject* x = this->elements_r()[j];
+  *out = x;
+  return (x == Py_None);
+}
+
 
 // "PyObject" columns cannot be properly saved. So if somehow they were, then
 // when opening, we'll just fill the column with NAs.

@@ -26,6 +26,15 @@ py::oobj RealColumn<T>::get_value_at_index(size_t i) const {
   return ISNA<T>(x)? py::None() : py::ofloat(x);
 }
 
+template <typename T>
+bool RealColumn<T>::get_element(size_t i, T* out) const {
+  size_t j = (this->ri)[i];
+  if (j == RowIndex::NA) return true;
+  T x = this->elements_r()[j];
+  *out = x;
+  return ISNA<T>(x);
+}
+
 
 
 //------------------------------------------------------------------------------

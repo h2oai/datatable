@@ -165,6 +165,19 @@ SType StringColumn<T>::stype() const noexcept {
 
 
 template <typename T>
+bool StringColumn<T>::get_element(size_t i, CString* out) const {
+  size_t j = (this->ri)[i];
+  if (j == RowIndex::NA) return true;
+  const T* offs = this->offsets();
+  T off_end = offs[j];
+  if (ISNA<T>(off_end)) return true;
+  T off_beg = offs[j - 1] & ~GETNA<T>();
+  out->ch = this->strdata() + off_beg,
+  out->size = static_cast<int64_t>(off_end - off_beg);
+  return false;
+}
+
+template <typename T>
 py::oobj StringColumn<T>::get_value_at_index(size_t i) const {
   size_t j = (this->ri)[i];
   if (j == RowIndex::NA) return py::None();

@@ -6,13 +6,15 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <cstdlib>     // atoll
+#include "python/_all.h"
+#include "python/string.h"
+#include "utils/assert.h"
+#include "utils/file.h"
+#include "utils/misc.h"
 #include "column.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "sort.h"
-#include "utils/assert.h"
-#include "utils/file.h"
-#include "utils/misc.h"
 
 
 Column::Column(size_t nrows_)
@@ -128,6 +130,39 @@ Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   col->mbuf = std::move(mbuf);
   return col;
 }
+
+
+bool Column::get_element(size_t, int32_t*) const {
+  throw NotImplError()
+    << "Cannot retrieve int32 values from a column of type " << stype();
+}
+
+bool Column::get_element(size_t, int64_t*) const {
+  throw NotImplError()
+    << "Cannot retrieve int64 values from a column of type " << stype();
+}
+
+bool Column::get_element(size_t, float*) const {
+  throw NotImplError()
+    << "Cannot retrieve float values from a column of type " << stype();
+}
+
+bool Column::get_element(size_t, double*) const {
+  throw NotImplError()
+    << "Cannot retrieve double values from a column of type " << stype();
+}
+
+bool Column::get_element(size_t, CString*) const {
+  throw NotImplError()
+    << "Cannot retrieve string values from a column of type " << stype();
+}
+
+bool Column::get_element(size_t, py::oobj*) const {
+  throw NotImplError()
+    << "Cannot retrieve object values from a column of type " << stype();
+}
+
+
 
 
 /**
@@ -273,11 +308,57 @@ OColumn::operator bool() const noexcept {
 }
 
 
-//---- Data access ---------------------
+//------------------------------------------------------------------------------
+// OColumn : data accessors
+//------------------------------------------------------------------------------
+
+bool OColumn::get_element(size_t i, int32_t*  out) const { return pcol->get_element(i, out); }
+bool OColumn::get_element(size_t i, int64_t*  out) const { return pcol->get_element(i, out); }
+bool OColumn::get_element(size_t i, float*    out) const { return pcol->get_element(i, out); }
+bool OColumn::get_element(size_t i, double*   out) const { return pcol->get_element(i, out); }
+bool OColumn::get_element(size_t i, CString*  out) const { return pcol->get_element(i, out); }
+bool OColumn::get_element(size_t i, py::oobj* out) const { return pcol->get_element(i, out); }
+
+
+static inline py::oobj wrap(int32_t x) { return py::oint(x); }
+static inline py::oobj wrap(int64_t x) { return py::oint(x); }
+static inline py::oobj wrap(float x) { return py::ofloat(x); }
+static inline py::oobj wrap(double x) { return py::ofloat(x); }
+static inline py::oobj wrap(const CString& x) { return py::ostring(x); }
+static inline py::oobj wrap(const py::oobj& x) { return x; }
+
+template <typename T>
+static inline py::oobj getelem(const OColumn& col, size_t i) {
+  T x;
+  bool r = col.get_element(i, &x);
+  return r? py::None() : wrap(x);
+}
 
 py::oobj OColumn::get_element_as_pyobject(size_t i) const {
-  return pcol->get_value_at_index(i);
+  // return pcol->get_value_at_index(i);
+  switch (stype()) {
+    case SType::BOOL: {
+      int32_t x;
+      bool r = get_element(i, &x);
+      return r? py::None() : py::obool(x);
+    }
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:   return getelem<int32_t>(*this, i);
+    case SType::INT64:   return getelem<int64_t>(*this, i);
+    case SType::FLOAT32: return getelem<float>(*this, i);
+    case SType::FLOAT64: return getelem<double>(*this, i);
+    case SType::STR32:
+    case SType::STR64:   return getelem<CString>(*this, i);
+    case SType::OBJ:     return getelem<py::oobj>(*this, i);
+    default:
+      throw NotImplError() << "Unable to convert elements of stype "
+          << stype() << " into python objects";
+  }
 }
+
+
+
 
 
 void OColumn::rbind(colvec& columns) {
