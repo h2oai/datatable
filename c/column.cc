@@ -368,6 +368,15 @@ void OColumn::materialize() {
   pcol->materialize();
 }
 
+OColumn OColumn::cast(SType stype) const {
+  return OColumn(pcol->cast(stype));
+}
+
+OColumn OColumn::cast(SType stype, MemoryRange&& mem) const {
+  return OColumn(pcol->cast(stype, std::move(mem)));
+}
+
+
 
 
 //==============================================================================

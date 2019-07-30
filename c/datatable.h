@@ -120,6 +120,9 @@ class DataTable {
     void set_column(size_t i, Column* newcol) {
       columns[i] = OColumn(newcol);
     }
+    void set_column(size_t i, OColumn&& newcol) {
+      columns[i] = std::move(newcol);
+    }
 
     /**
      * Sort the DataTable by specified columns, and return the corresponding

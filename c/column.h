@@ -426,6 +426,8 @@ class OColumn
 
     void rbind(colvec& columns);
     void materialize();
+    OColumn cast(SType stype) const;
+    OColumn cast(SType stype, MemoryRange&& mr) const;
 
     friend void swap(OColumn& lhs, OColumn& rhs);
 };

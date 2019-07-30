@@ -423,13 +423,15 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // is possible. The effect of this call is that `newcol` will be
     // created having the converted data; but the side-effect of this is
     // that `mbuf` will have the same data, and in the right place.
-    Column* newcol = dt->get_column(i + i0)->cast(stype, std::move(xmb));
-    xassert(newcol->alloc_size() == colsize);
-    // We can now delete the new column: this will delete `xmb` as well,
-    // however an ExternalMemBuf object does not attempt to free its
-    // memory buffer. The converted data that was written to `mbuf` will
-    // thus remain intact. No need to delete `xmb` either.
-    delete newcol;
+    {
+      OColumn newcol = dt->get_ocolumn(i + i0).cast(stype, std::move(xmb));
+      newcol.materialize();
+      xassert(newcol->alloc_size() == colsize);
+      // We can now delete the new column: this will delete `xmb` as well,
+      // however an ExternalMemBuf object does not attempt to free its
+      // memory buffer. The converted data that was written to `mbuf` will
+      // thus remain intact. No need to delete `xmb` either.
+    }
 
     // Delete the `col` pointer, which was extracted from the i-th column
     // of the DataTable.

@@ -66,9 +66,9 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   size_t lrows = dt0->nrows;
   xassert(rcols == 1 || rcols == lcols);  // enforced in `check_compatibility()`
 
-  Column* col0 = nullptr;
+  OColumn col0;
   if (rcols == 1) {
-    col0 = dtr->get_column(0)->shallowcopy();
+    col0 = dtr->get_ocolumn(0);  // copy
     // Avoid resizing `col0` multiple times in the loop below
     if (rrows == 1) {
       col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
@@ -76,14 +76,12 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   }
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* coli = rcols == 1? col0->shallowcopy()
-                             : dtr->get_column(i)->shallowcopy();
+    OColumn coli = (rcols == 1)? col0 : dtr->get_ocolumn(i);  // copy
     if (coli->nrows == 1) {
       coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
     }
-    dt0->set_column(j, coli);
+    dt0->set_column(j, std::move(coli));
   }
-  delete col0;
 }
 
 
