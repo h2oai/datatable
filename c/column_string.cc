@@ -177,18 +177,6 @@ bool StringColumn<T>::get_element(size_t i, CString* out) const {
   return false;
 }
 
-template <typename T>
-py::oobj StringColumn<T>::get_value_at_index(size_t i) const {
-  size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return py::None();
-  const T* offs = this->offsets();
-  T off_end = offs[j];
-  if (ISNA<T>(off_end)) return py::None();
-  T off_beg = offs[j - 1] & ~GETNA<T>();
-  return py::ostring(this->strdata() + off_beg,
-                     static_cast<size_t>(off_end - off_beg));
-}
-
 
 template <typename T>
 size_t StringColumn<T>::elemsize() const {

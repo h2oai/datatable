@@ -335,7 +335,6 @@ static inline py::oobj getelem(const OColumn& col, size_t i) {
 }
 
 py::oobj OColumn::get_element_as_pyobject(size_t i) const {
-  // return pcol->get_value_at_index(i);
   switch (stype()) {
     case SType::BOOL: {
       int32_t x;
@@ -393,5 +392,4 @@ void VoidColumn::init_xbuf(Py_buffer*) {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const Column*) const { return RowIndex(); }
-py::oobj VoidColumn::get_value_at_index(size_t) const { return py::oobj(); }
 void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}

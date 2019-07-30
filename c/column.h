@@ -281,7 +281,6 @@ public:
    */
   virtual void materialize() = 0;
 
-  virtual py::oobj get_value_at_index(size_t i) const = 0;
 
   virtual RowIndex join(const Column* keycol) const = 0;
 
@@ -480,7 +479,6 @@ public:
   BooleanStats* get_stats() const override;
 
   bool get_element(size_t i, int32_t* out) const override;
-  py::oobj get_value_at_index(size_t i) const override;
 
   protected:
 
@@ -514,7 +512,6 @@ public:
 
   bool get_element(size_t i, int32_t* out) const override;
   bool get_element(size_t i, int64_t* out) const override;
-  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   using Column::stats;
@@ -548,7 +545,6 @@ public:
   RealStats<T>* get_stats() const override;
 
   bool get_element(size_t i, T* out) const override;
-  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   using Column::stats;
@@ -587,7 +583,6 @@ public:
   PyObjectStats* get_stats() const override;
 
   bool get_element(size_t i, py::oobj* out) const override;
-  py::oobj get_value_at_index(size_t i) const override;
 
 protected:
   PyObjectColumn();
@@ -646,7 +641,6 @@ public:
   void verify_integrity(const std::string& name) const override;
 
   bool get_element(size_t i, CString* out) const override;
-  py::oobj get_value_at_index(size_t i) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
@@ -698,7 +692,6 @@ class VoidColumn : public Column {
     void replace_values(RowIndex, const Column*) override;
     RowIndex join(const Column* keycol) const override;
     Stats* get_stats() const override;
-    py::oobj get_value_at_index(size_t i) const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     VoidColumn();
