@@ -41,7 +41,6 @@ struct RowColIndex {
   std::vector<size_t> colindices;
 };
 
-typedef Column* (Column::*colmakerfn)(void) const;
 using colvec = std::vector<OColumn>;
 using intvec = std::vector<size_t>;
 using strvec = std::vector<std::string>;
@@ -178,7 +177,6 @@ class DataTable {
     void _integrity_check_names() const;
     void _integrity_check_pynames() const;
 
-    DataTable* _statdt(colmakerfn f) const;
     void save_jay_impl(WritableBuffer*);
 
     #ifdef DTTEST

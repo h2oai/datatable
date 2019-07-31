@@ -82,6 +82,21 @@ template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 template <SType s>
 using element_t = typename _elt<s>::t;
 
+template <SType s> struct _gelt {};
+template <> struct _gelt<SType::BOOL>    { using t = int32_t; };
+template <> struct _gelt<SType::INT8>    { using t = int32_t; };
+template <> struct _gelt<SType::INT16>   { using t = int32_t; };
+template <> struct _gelt<SType::INT32>   { using t = int32_t; };
+template <> struct _gelt<SType::INT64>   { using t = int64_t; };
+template <> struct _gelt<SType::FLOAT32> { using t = float; };
+template <> struct _gelt<SType::FLOAT64> { using t = double; };
+template <> struct _gelt<SType::STR32>   { using t = CString; };
+template <> struct _gelt<SType::STR64>   { using t = CString; };
+template <> struct _gelt<SType::OBJ>     { using t = PyObject*; };
+
+template <SType s>
+using getelement_t = typename _gelt<s>::t;
+
 
 
 //==============================================================================
