@@ -31,7 +31,7 @@ Column::~Column() {
 
 
 
-Column* Column::new_column(SType stype) {
+static Column* new_column_impl(SType stype) {
   switch (stype) {
     case SType::VOID:    return new VoidColumn();
     case SType::BOOL:    return new BoolColumn();
@@ -45,13 +45,14 @@ Column* Column::new_column(SType stype) {
     case SType::STR64:   return new StringColumn<uint64_t>();
     case SType::OBJ:     return new PyObjectColumn();
     default:
-      throw ValueError() << "Unable to create a column of SType = " << stype;
+      throw ValueError()
+          << "Unable to create a column of stype `" << stype << "`";
   }
 }
 
 
 OColumn OColumn::new_data_column(SType stype, size_t nrows) {
-  Column* col = Column::new_column(stype);
+  Column* col = new_column_impl(stype);
   col->nrows = nrows;
   col->init_data();
   return OColumn(col);
@@ -66,13 +67,9 @@ OColumn OColumn::new_na_column(SType stype, size_t nrows) {
 }
 
 
-
-/**
- * Construct a column using existing MemoryRanges.
- */
 OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   size_t elemsize = info(stype).elemsize();
-  Column* col = Column::new_column(stype);
+  Column* col = new_column_impl(stype);
   xassert(mbuf.size() % elemsize == 0);
   if (stype == SType::OBJ) {
     xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
@@ -120,7 +117,7 @@ bool Column::get_element(size_t, py::oobj*) const {
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
 Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
-  Column* col = new_column(_stype);
+  Column* col = new_column_impl(_stype);
   col->nrows = nrows;
   col->mbuf = mbuf;
   // TODO: also copy Stats object

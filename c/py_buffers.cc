@@ -415,10 +415,6 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
 
   // Construct the data buffer
   for (size_t i = 0; i < ncols; ++i) {
-    // either a shallow copy, or "materialized" column
-    // Column* col = dt->columns[i + i0]->shallowcopy();
-    // col->materialize();
-
     // xmb becomes a "view" on a portion of the buffer `mbuf`. An
     // ExternalMemBuf object is documented to be readonly; however in
     // practice it can still be written to, just not resized (this is

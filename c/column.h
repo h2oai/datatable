@@ -310,8 +310,6 @@ protected:
   virtual void fill_na() = 0;
 
 private:
-  static Column* new_column(SType);
-
   // FIXME
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
   friend class OColumn;
@@ -430,6 +428,7 @@ class OColumn
 template <typename T> class FwColumn : public Column
 {
 public:
+  FwColumn();
   FwColumn(size_t nrows);
   FwColumn(size_t nrows, MemoryRange&&);
   const T* elements_r() const;
@@ -452,7 +451,6 @@ protected:
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void fill_na() override;
 
-  FwColumn();
   friend Column;
 };
 
@@ -581,6 +579,7 @@ extern template class RealColumn<double>;
 class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:
+  PyObjectColumn();
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, MemoryRange&&);
   PyObjectStats* get_stats() const override;
@@ -588,7 +587,6 @@ public:
   bool get_element(size_t i, py::oobj* out) const override;
 
 protected:
-  PyObjectColumn();
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
@@ -611,6 +609,7 @@ template <typename T> class StringColumn : public Column
   MemoryRange strbuf;
 
 public:
+  StringColumn();
   StringColumn(size_t nrows);
 
   void materialize() override;
@@ -639,7 +638,6 @@ public:
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
-  StringColumn();
   StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void init_data() override;
 
@@ -672,6 +670,7 @@ extern template class StringColumn<uint64_t>;
 // unknown type. This column cannot be put into a DataTable.
 class VoidColumn : public Column {
   public:
+    VoidColumn();
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
     void materialize() override;
@@ -683,7 +682,6 @@ class VoidColumn : public Column {
     Stats* get_stats() const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
-    VoidColumn();
     void init_data() override;
     void fill_na() override;
 
