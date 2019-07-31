@@ -70,14 +70,14 @@ OColumn OColumn::new_na_column(SType stype, size_t nrows) {
 /**
  * Construct a column using existing MemoryRanges.
  */
-Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
+OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   size_t elemsize = info(stype).elemsize();
-  Column* col = new_column(stype);
+  Column* col = Column::new_column(stype);
   xassert(mbuf.size() % elemsize == 0);
   xassert(stype == SType::OBJ? mbuf.is_pyobjects() : true);
   col->nrows = mbuf.size() / elemsize;
   col->mbuf = std::move(mbuf);
-  return col;
+  return OColumn(col);
 }
 
 

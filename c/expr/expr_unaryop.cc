@@ -288,8 +288,8 @@ OColumn expr_unaryop::evaluate_eager(workframe& wf) {
     output_mbuf = MemoryRange::mem(out_elemsize * nrows);
     out = output_mbuf.xptr();
   }
-  auto output_column = OColumn(
-      Column::new_mbuf_column(ui.output_stype, std::move(output_mbuf)));
+  auto output_column =
+      OColumn::new_mbuf_column(ui.output_stype, std::move(output_mbuf));
 
   ui.vectorfn(nrows, inp, out);
 

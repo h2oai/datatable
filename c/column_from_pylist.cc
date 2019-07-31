@@ -547,7 +547,7 @@ static OColumn ocolumn_from_iterable(const iterable* il, int stype0)
     if (stype == SType::OBJ) {
       membuf.set_pyobjects(/* clear_data = */ false);
     }
-    return OColumn(Column::new_mbuf_column(stype, std::move(membuf)));
+    return OColumn::new_mbuf_column(stype, std::move(membuf));
   }
 }
 

@@ -833,7 +833,7 @@ dtptr GenericReader::makeDatatable() {
     SType stype = col.get_stype();
     ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
       ? new_string_column(nrows, std::move(databuf), std::move(strbuf))
-      : OColumn(Column::new_mbuf_column(stype, std::move(databuf)))
+      : OColumn::new_mbuf_column(stype, std::move(databuf))
     );
   }
   py::olist names = freader.get_attr("_colnames").to_pylist();

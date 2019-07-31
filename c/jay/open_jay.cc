@@ -142,7 +142,7 @@ static OColumn column_from_jay(
     MemoryRange strbuf = extract_buffer(jaybuf, jcol->strdata());
     col = new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
-    col = OColumn(Column::new_mbuf_column(stype, std::move(databuf)));
+    col = OColumn::new_mbuf_column(stype, std::move(databuf));
   }
 
   Stats* stats = col->get_stats();
