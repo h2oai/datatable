@@ -243,7 +243,7 @@ public:
    * with NAs.
    */
   virtual void replace_values(
-    RowIndex replace_at, const Column* replace_with) = 0;
+    RowIndex replace_at, const OColumn& replace_with) = 0;
 
   /**
    * Appends the provided columns to the bottom of the current column and
@@ -447,7 +447,7 @@ public:
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
   virtual void materialize() override;
-  virtual void replace_values(RowIndex at, const Column* with) override;
+  void replace_values(RowIndex at, const OColumn& with) override;
   void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const Column* keycol) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
@@ -639,7 +639,7 @@ public:
   CString mode() const;
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
-  void replace_values(RowIndex at, const Column* with) override;
+  void replace_values(RowIndex at, const OColumn& with) override;
   StringStats<T>* get_stats() const override;
 
   void verify_integrity(const std::string& name) const override;
@@ -688,7 +688,7 @@ class VoidColumn : public Column {
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;
-    void replace_values(RowIndex, const Column*) override;
+    void replace_values(RowIndex, const OColumn&) override;
     RowIndex join(const Column* keycol) const override;
     Stats* get_stats() const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;

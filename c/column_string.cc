@@ -275,24 +275,24 @@ void StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    RowIndex replace_at, const Column* replace_with)
+    RowIndex replace_at, const OColumn& replace_with)
 {
   materialize();
   OColumn rescol;
 
-  if (replace_with && replace_with->_stype != _stype){
-    replace_with = replace_with->cast(_stype).release();
+  OColumn with;
+  if (replace_with) {
+    with = replace_with;  // copy
+    if (with.stype() != _stype) with = with->cast(_stype);
   }
   // This could be nullptr too
-  auto repl_col = static_cast<const StringColumn<T>*>(replace_with);
+  auto repl_col = static_cast<const StringColumn<T>*>(with.get());
 
-  if (!replace_with || replace_with->nrows == 1) {
+  if (!with || with.nrows() == 1) {
     CString repl_value;  // Default constructor creates an NA string
-    if (replace_with) {
-      T off0 = repl_col->offsets()[0];
-      if (!ISNA<T>(off0)) {
-        repl_value = CString(repl_col->strdata(), static_cast<int64_t>(off0));
-      }
+    if (with) {
+      bool r = with.get_element(0, &repl_value);
+      if (r) repl_value = CString();
     }
     MemoryRange mask = replace_at.as_boolean_mask(nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());

@@ -345,7 +345,7 @@ void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const BoolColumn*) {}
-void VoidColumn::replace_values(RowIndex, const Column*) {}
+void VoidColumn::replace_values(RowIndex, const OColumn&) {}
 void VoidColumn::init_data() {}
 void VoidColumn::init_xbuf(Py_buffer*) {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
