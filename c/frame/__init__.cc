@@ -447,8 +447,7 @@ class FrameInitializationManager {
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
           make_column(colsrc, SType::VOID);
           OColumn maskcol = OColumn::from_buffer(masksrc);
-          xassert(maskcol.stype() == SType::BOOL);
-          cols.back()->apply_na_mask(static_cast<const BoolColumn*>(maskcol.get()));
+          cols.back()->apply_na_mask(maskcol);
         }
       } else {
         for (size_t i = 0; i < ncols; ++i) {

@@ -322,7 +322,7 @@ size_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
-void VoidColumn::apply_na_mask(const BoolColumn*) {}
+void VoidColumn::apply_na_mask(const OColumn&) {}
 void VoidColumn::replace_values(RowIndex, const OColumn&) {}
 void VoidColumn::init_data() {}
 Stats* VoidColumn::get_stats() const { return nullptr; }

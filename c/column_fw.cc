@@ -167,8 +167,9 @@ size_t FwColumn<T>::data_nrows() const {
 
 
 template <typename T>
-void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
-  const int8_t* maskdata = mask->elements_r();
+void FwColumn<T>::apply_na_mask(const OColumn& mask) {
+  xassert(mask.stype() == SType::BOOL);
+  auto maskdata = static_cast<const int8_t*>(mask->data());
   T* coldata = this->elements_w();
 
   dt::parallel_for_static(nrows,

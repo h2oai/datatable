@@ -388,8 +388,9 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
 
 
 template <typename T>
-void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
-  const int8_t* maskdata = mask->elements_r();
+void StringColumn<T>::apply_na_mask(const OColumn& mask) {
+  xassert(mask.stype() == SType::BOOL);
+  auto maskdata = static_cast<const int8_t*>(mask->data());
   char* strdata = static_cast<char*>(strbuf.wptr());
   T* offsets = this->offsets_w();
 

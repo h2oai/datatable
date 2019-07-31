@@ -191,7 +191,7 @@ public:
    * NAs. The `mask` column must have the same number of rows as the current,
    * and neither of them can have a RowIndex.
    */
-  virtual void apply_na_mask(const BoolColumn* mask) = 0;
+  virtual void apply_na_mask(const OColumn& mask) = 0;
 
   /**
    * Create a shallow copy of this Column, possibly applying the provided
@@ -437,7 +437,7 @@ public:
 
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
-  void apply_na_mask(const BoolColumn* mask) override;
+  void apply_na_mask(const OColumn& mask) override;
   virtual void materialize() override;
   void replace_values(RowIndex at, const OColumn& with) override;
   void replace_values(const RowIndex& at, T with);
@@ -613,7 +613,7 @@ public:
 
   void materialize() override;
   void resize_and_fill(size_t nrows) override;
-  void apply_na_mask(const BoolColumn* mask) override;
+  void apply_na_mask(const OColumn& mask) override;
   RowIndex join(const Column* keycol) const override;
 
   MemoryRange str_buf() const { return strbuf; }
@@ -675,7 +675,7 @@ class VoidColumn : public Column {
     void materialize() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
-    void apply_na_mask(const BoolColumn*) override;
+    void apply_na_mask(const OColumn&) override;
     void replace_values(RowIndex, const OColumn&) override;
     RowIndex join(const Column* keycol) const override;
     Stats* get_stats() const override;
