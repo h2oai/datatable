@@ -523,7 +523,6 @@ public:
 protected:
   using Column::stats;
   using Column::mbuf;
-  using Column::new_data_column;
   friend Column;
 };
 
@@ -555,7 +554,6 @@ public:
 
 protected:
   using Column::stats;
-  using Column::new_data_column;
   friend Column;
 };
 

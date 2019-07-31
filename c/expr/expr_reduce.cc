@@ -372,24 +372,24 @@ GroupbyMode expr_reduce0::get_groupby_mode(const workframe&) const {
 
 
 OColumn expr_reduce0::evaluate_eager(workframe& wf) {
-  Column* res = nullptr;
+  OColumn res;
   if (opcode == Op::COUNT0) {  // COUNT
     if (wf.has_groupby()) {
       const Groupby& grpby = wf.get_groupby();
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
-      res = Column::new_data_column(SType::INT32, ng);
+      res = OColumn(Column::new_data_column(SType::INT32, ng));
       auto d_res = static_cast<int32_t*>(res->data_w());
       for (size_t i = 0; i < ng; ++i) {
         d_res[i] = offsets[i + 1] - offsets[i];
       }
     } else {
-      res = Column::new_data_column(SType::INT64, 1);
+      res = OColumn(Column::new_data_column(SType::INT64, 1));
       auto d_res = static_cast<int64_t*>(res->data_w());
       d_res[0] = static_cast<int64_t>(wf.nrows());
     }
   }
-  return OColumn(res);
+  return res;
 }
 
 
