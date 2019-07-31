@@ -594,6 +594,7 @@ static OColumn _make_range_column(
 }
 
 
+// TODO: create a special "range" column instead
 OColumn OColumn::from_range(
     int64_t start, int64_t stop, int64_t step, SType stype)
 {

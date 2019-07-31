@@ -61,7 +61,7 @@ static OColumn _make_column_str(CString value) {
 }
 
 static OColumn _nacol(Stats*, const OColumn& col) {
-  return OColumn(Column::new_na_column(col.stype(), 1));
+  return OColumn::new_na_column(col.stype(), 1);
 }
 
 static oobj _naval(const OColumn&) {

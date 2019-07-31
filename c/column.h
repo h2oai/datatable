@@ -143,7 +143,6 @@ public:
   static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
 
   static Column* new_data_column(SType, size_t nrows);
-  static Column* new_na_column(SType, size_t nrows);
   static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
 
@@ -354,6 +353,7 @@ class OColumn
     OColumn& operator=(OColumn&&);
     ~OColumn();
 
+    static OColumn new_na_column(SType, size_t nrows);
     static OColumn from_buffer(const py::robj& buffer);
     static OColumn from_pylist(const py::olist& list, int stype0 = 0);
     static OColumn from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);

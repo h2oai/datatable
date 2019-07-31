@@ -323,7 +323,7 @@ void OColumn::rbind(colvec& columns) {
   // filled with NAs; the current column; or a type-cast of the current column.
   OColumn newcol;
   if (col_empty) {
-    newcol = OColumn(Column::new_na_column(new_stype, nrows()));
+    newcol = OColumn::new_na_column(new_stype, nrows());
   } else if (stype() == new_stype) {
     newcol = std::move(*this);
   } else {

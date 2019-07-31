@@ -58,10 +58,11 @@ Column* Column::new_data_column(SType stype, size_t nrows) {
   return col;
 }
 
-Column* Column::new_na_column(SType stype, size_t nrows) {
-  Column* col = new_data_column(stype, nrows);
+// TODO: create a special "NA" column instead
+OColumn OColumn::new_na_column(SType stype, size_t nrows) {
+  Column* col = Column::new_data_column(stype, nrows);
   col->fill_na();
-  return col;
+  return OColumn(col);
 }
 
 
