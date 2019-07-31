@@ -35,8 +35,8 @@ void label_encode(const OColumn&, dtptr&, dtptr&, bool is_binomial = false);
 template <SType stype_from, SType stype_to>
 dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>, element_t<stype_to>>& labels_map) {
   size_t nlabels = labels_map.size();
-  OColumn labels_col = OColumn(Column::new_data_column(stype_from, nlabels));
-  OColumn ids_col = OColumn(Column::new_data_column(stype_to, nlabels));
+  OColumn labels_col = OColumn::new_data_column(stype_from, nlabels);
+  OColumn ids_col = OColumn::new_data_column(stype_to, nlabels);
 
   auto labels_data = static_cast<element_t<stype_from>*>(labels_col->data_w());
   auto ids_data = static_cast<element_t<stype_to>*>(ids_col->data_w());
@@ -57,7 +57,7 @@ dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>, elemen
 template <typename T, SType stype_to>
 dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype_to>>& labels_map) {
   size_t nlabels = labels_map.size();
-  OColumn ids_col = OColumn(Column::new_data_column(stype_to, nlabels));
+  OColumn ids_col = OColumn::new_data_column(stype_to, nlabels);
   auto ids_data = static_cast<element_t<stype_to>*>(ids_col->data_w());
   dt::writable_string_col c_label_names(nlabels);
   dt::writable_string_col::buffer_impl<T> sb(c_label_names);
@@ -102,7 +102,7 @@ void label_encode_fw(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   const size_t nrows = ocol.nrows();
   const RowIndex& ri = col->rowindex();
 
-  OColumn outcol = OColumn(Column::new_data_column(stype_to, nrows));
+  OColumn outcol = OColumn::new_data_column(stype_to, nrows);
   auto outdata = static_cast<T_to*>(outcol->data_w());
   std::unordered_map<T_from, T_to> labels_map;
   dt::shared_mutex shmutex;
@@ -159,7 +159,7 @@ void label_encode_str(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) 
   const Column* col = ocol.get();
   const size_t nrows = ocol.nrows();
   const RowIndex& ri = col->rowindex();
-  OColumn outcol = OColumn(Column::new_data_column(stype_to, nrows));
+  OColumn outcol = OColumn::new_data_column(stype_to, nrows);
   auto outdata = static_cast<T_to*>(outcol->data_w());
   std::unordered_map<std::string, T_to> labels_map;
   dt::shared_mutex shmutex;

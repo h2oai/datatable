@@ -101,7 +101,7 @@ OColumn OColumn::from_buffer(const py::robj& pyobj)
     col->init_xbuf(pview.release());
     res = OColumn(col);
   } else {
-    res = OColumn(Column::new_data_column(stype, nrows));
+    res = OColumn::new_data_column(stype, nrows);
     size_t stride = static_cast<size_t>(view->strides[0] / view->itemsize);
     if (view->itemsize == 8) {
       int64_t* out = static_cast<int64_t*>(res->data_w());

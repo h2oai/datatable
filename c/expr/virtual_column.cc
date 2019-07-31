@@ -88,7 +88,7 @@ void materialize_fw(virtual_column* self, OColumn& outcol) {
 
 
 OColumn virtual_column::materialize() {
-  OColumn out = OColumn(Column::new_data_column(_stype, _nrows));
+  OColumn out = OColumn::new_data_column(_stype, _nrows);
   switch (_stype) {
     case SType::BOOL:
     case SType::INT8:    materialize_fw<int8_t> (this, out); break;

@@ -234,7 +234,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt = dt_in;
   bool was_sampled = false;
 
-  OColumn col0 = OColumn(Column::new_data_column(SType::INT32, dt->nrows));
+  OColumn col0 = OColumn::new_data_column(SType::INT32, dt->nrows);
   dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
 
   if (dt->nrows >= min_rows) {
@@ -401,7 +401,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 
   // Setting up a table for counts
   auto dt_counts = dtptr(new DataTable(
-      {OColumn(Column::new_data_column(SType::INT32, n_exemplars))},
+      {OColumn::new_data_column(SType::INT32, n_exemplars)},
       {"members_count"}
   ));
   auto d_counts = static_cast<int32_t*>(dt_counts->get_ocolumn(0)->data_w());

@@ -142,8 +142,6 @@ public:
   static constexpr size_t MAX_STR32_BUFFER_SIZE = 0x7FFFFFFF;
   static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
 
-  static Column* new_data_column(SType, size_t nrows);
-
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
@@ -351,6 +349,7 @@ class OColumn
     OColumn& operator=(OColumn&&);
     ~OColumn();
 
+    static OColumn new_data_column(SType, size_t nrows);
     static OColumn new_na_column(SType, size_t nrows);
     static OColumn new_mbuf_column(SType, MemoryRange&&);
     static OColumn from_buffer(const py::robj& buffer);
@@ -359,7 +358,7 @@ class OColumn
     static OColumn from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
     static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType);
 
-    // TODO: remove
+    // TODO: make private
     explicit OColumn(Column* col);  // Steal ownership
 
     // TEMP accessors to the underlying implementation

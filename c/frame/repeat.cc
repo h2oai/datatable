@@ -64,7 +64,7 @@ OColumn Column::repeat(size_t nreps) const {
   size_t esize = info(_stype).elemsize();
   size_t new_nrows = nrows * nreps;
 
-  OColumn newcol = OColumn(Column::new_data_column(_stype, new_nrows));
+  OColumn newcol = OColumn::new_data_column(_stype, new_nrows);
   if (!new_nrows) {
     return newcol;
   }

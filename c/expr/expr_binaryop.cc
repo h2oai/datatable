@@ -377,7 +377,7 @@ static mapperfn resolve1(Op opcode, SType stype, OColumn* cols, size_t nrows, Op
   } else if (opcode == Op::DIVIDE && std::is_integral<VT>::value) {
     stype = SType::FLOAT64;
   }
-  cols[2] = OColumn(Column::new_data_column(stype, nrows));
+  cols[2] = OColumn::new_data_column(stype, nrows);
   switch (opcode) {
     case Op::PLUS:      return resolve2<LT, RT, VT, op_add<LT, RT, VT>>(mode);
     case Op::MINUS:     return resolve2<LT, RT, VT, op_sub<LT, RT, VT>>(mode);
@@ -410,7 +410,7 @@ static mapperfn resolve1str(Op opcode, OColumn* cols, size_t nrows, OpMode mode)
     mode = OpMode::N_to_One;
     std::swap(cols[0], cols[1]);
   }
-  cols[2] = OColumn(Column::new_data_column(SType::BOOL, nrows));
+  cols[2] = OColumn::new_data_column(SType::BOOL, nrows);
   switch (opcode) {
     case Op::EQ: return resolve2str<T0, T1, int8_t, strop_eq<T0, T1>>(mode);
     case Op::NE: return resolve2str<T0, T1, int8_t, strop_ne<T0, T1>>(mode);
@@ -425,7 +425,7 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, Op opcode, OColumn* col
   switch (lhs_type) {
     case SType::BOOL:
       if (rhs_type == SType::BOOL && (opcode == Op::AND || opcode == Op::OR)) {
-        cols[2] = OColumn(Column::new_data_column(SType::BOOL, nrows));
+        cols[2] = OColumn::new_data_column(SType::BOOL, nrows);
         if (opcode == Op::AND) return resolve2<int8_t, int8_t, int8_t, op_and>(mode);
         if (opcode == Op::OR)  return resolve2<int8_t, int8_t, int8_t, op_or>(mode);
       }

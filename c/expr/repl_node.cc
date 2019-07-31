@@ -271,7 +271,7 @@ OColumn scalar_int_rn::make_column(SType st, size_t nrows) const {
 
 template <typename T>
 OColumn scalar_int_rn::_make1(SType st) const {
-  OColumn col = OColumn(Column::new_data_column(st, 1));
+  OColumn col = OColumn::new_data_column(st, 1);
   auto tcol = static_cast<FwColumn<T>*>(const_cast<Column*>(col.get()));
   tcol->set_elem(0, static_cast<T>(value));
   return col;
@@ -315,7 +315,7 @@ OColumn scalar_float_rn::make_column(SType st, size_t nrows) const {
   // to value truncation (value does not fit into float32).
   SType rst = st == SType::VOID || std::abs(value) > MAX
               ? SType::FLOAT64 : st;
-  OColumn col = OColumn(Column::new_data_column(rst, 1));
+  OColumn col = OColumn::new_data_column(rst, 1);
   if (rst == SType::FLOAT32) {
     static_cast<FwColumn<float>*>(const_cast<Column*>(col.get()))
         ->set_elem(0, static_cast<float>(value));

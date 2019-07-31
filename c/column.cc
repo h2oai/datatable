@@ -50,17 +50,18 @@ Column* Column::new_column(SType stype) {
 }
 
 
-Column* Column::new_data_column(SType stype, size_t nrows) {
+OColumn OColumn::new_data_column(SType stype, size_t nrows) {
   xassert(stype != SType::VOID);
-  Column* col = new_column(stype);
+  Column* col = Column::new_column(stype);
   col->nrows = nrows;
   col->init_data();
-  return col;
+  return OColumn(col);
 }
+
 
 // TODO: create a special "NA" column instead
 OColumn OColumn::new_na_column(SType stype, size_t nrows) {
-  OColumn col = OColumn(Column::new_data_column(stype, nrows));
+  OColumn col = OColumn::new_data_column(stype, nrows);
   col->fill_na();
   return col;
 }
