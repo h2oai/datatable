@@ -68,20 +68,6 @@ OColumn OColumn::new_na_column(SType stype, size_t nrows) {
 
 
 /**
- * Construct a column from the externally provided buffer.
- */
-Column* Column::new_xbuf_column(SType stype,
-                                size_t nrows,
-                                Py_buffer* pybuffer)
-{
-  Column* col = new_column(stype);
-  col->nrows = nrows;
-  col->init_xbuf(pybuffer);
-  return col;
-}
-
-
-/**
  * Construct a column using existing MemoryRanges.
  */
 Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {

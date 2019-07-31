@@ -143,7 +143,6 @@ public:
   static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
 
   static Column* new_data_column(SType, size_t nrows);
-  static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
 
   Column(const Column&) = delete;
