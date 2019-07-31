@@ -234,8 +234,7 @@ class FrameInitializationManager {
       for (size_t j = 0; j < ncols; ++j) {
         py::robj name = nameslist[j];
         SType s = get_stype_for_column(j, &name);
-        Column* col = Column::from_pylist_of_dicts(srclist, name, int(s));
-        cols.emplace_back(col);
+        cols.push_back(OColumn::from_pylist_of_dicts(srclist, name, int(s)));
       }
       make_datatable(nameslist);
     }
@@ -267,7 +266,7 @@ class FrameInitializationManager {
       // Create the columns
       for (size_t j = 0; j < ncols; ++j) {
         SType s = get_stype_for_column(j);
-        cols.emplace_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
+        cols.push_back(OColumn::from_pylist_of_tuples(srclist, j, int(s)));
       }
       if (names_arg || !item0.has_attr("_fields")) {
         make_datatable(names_arg);
@@ -596,7 +595,7 @@ class FrameInitializationManager {
         col = OColumn::from_buffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
-        col = OColumn(Column::from_pylist(colsrc.to_pylist(), int(s)));
+        col = OColumn::from_pylist(colsrc.to_pylist(), int(s));
       }
       else if (colsrc.is_range()) {
         auto r = colsrc.to_orange();

@@ -146,9 +146,6 @@ public:
   static Column* new_na_column(SType, size_t nrows);
   static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
   static Column* new_mbuf_column(SType, MemoryRange&&);
-  static Column* from_pylist(const py::olist& list, int stype0 = 0);
-  static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
-  static Column* from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
@@ -320,7 +317,6 @@ protected:
 
 private:
   static Column* new_column(SType);
-  static Column* from_py_iterable(const iterable*, int stype0);
 
   // FIXME
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
@@ -359,6 +355,9 @@ class OColumn
     ~OColumn();
 
     static OColumn from_buffer(const py::robj& buffer);
+    static OColumn from_pylist(const py::olist& list, int stype0 = 0);
+    static OColumn from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
+    static OColumn from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
     static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType);
 
     // TODO: remove

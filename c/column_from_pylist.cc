@@ -495,7 +495,7 @@ static SType find_next_stype(SType curr_stype, int stype0) {
 
 
 
-Column* Column::from_py_iterable(const iterable* il, int stype0)
+static OColumn ocolumn_from_iterable(const iterable* il, int stype0)
 {
   MemoryRange membuf;
   MemoryRange strbuf;
@@ -541,36 +541,36 @@ Column* Column::from_py_iterable(const iterable* il, int stype0)
   }
   if (stype == SType::STR32 || stype == SType::STR64) {
     size_t nrows = il->size();
-    return new_string_column(nrows, std::move(membuf), std::move(strbuf));
+    return OColumn(new_string_column(nrows, std::move(membuf), std::move(strbuf)));
   }
   else {
     if (stype == SType::OBJ) {
       membuf.set_pyobjects(/* clear_data = */ false);
     }
-    return Column::new_mbuf_column(stype, std::move(membuf));
+    return OColumn(Column::new_mbuf_column(stype, std::move(membuf)));
   }
 }
 
 
-Column* Column::from_pylist(const py::olist& list, int stype0) {
+OColumn OColumn::from_pylist(const py::olist& list, int stype0) {
   ilist il(list);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
-Column* Column::from_pylist_of_tuples(
+OColumn OColumn::from_pylist_of_tuples(
     const py::olist& list, size_t index, int stype0)
 {
   ituplist il(list, index);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
-Column* Column::from_pylist_of_dicts(
+OColumn OColumn::from_pylist_of_dicts(
     const py::olist& list, py::robj name, int stype0)
 {
   idictlist il(list, name);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
