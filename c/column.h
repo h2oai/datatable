@@ -298,7 +298,6 @@ public:
 protected:
   Column(size_t nrows = 0);
   virtual void init_data() = 0;
-  virtual void init_xbuf(Py_buffer* pybuffer) = 0;
   virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty) = 0;
 
   /**
@@ -449,7 +448,6 @@ public:
 
 protected:
   void init_data() override;
-  void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void fill_na() override;
@@ -644,7 +642,6 @@ protected:
   StringColumn();
   StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void init_data() override;
-  void init_xbuf(Py_buffer* pybuffer) override;
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
@@ -688,7 +685,6 @@ class VoidColumn : public Column {
   protected:
     VoidColumn();
     void init_data() override;
-    void init_xbuf(Py_buffer*) override;
     void fill_na() override;
 
     friend Column;

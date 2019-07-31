@@ -95,12 +95,20 @@ OColumn OColumn::from_buffer(const py::robj& pyobj)
   OColumn res;
   if (stype == SType::STR32) {
     res = convert_fwchararray_to_column(view);
-  } else if (view->strides == nullptr) {
-    Column* col = Column::new_column(stype);
-    col->nrows = nrows;
-    col->init_xbuf(pview.release());
-    res = OColumn(col);
-  } else {
+  }
+  else if (view->strides == nullptr) {
+    size_t expected_buffer_len = nrows * info(stype).elemsize();
+    size_t buffer_len = static_cast<size_t>(pview->len);
+    if (buffer_len != expected_buffer_len) {
+      throw Error() << "PyBuffer cannot be used to create a column of " << nrows
+                    << " rows: buffer length is " << buffer_len
+                    << ", expected " << expected_buffer_len;
+    }
+    const void* ptr = pview->buf;
+    MemoryRange mbuf = MemoryRange::external(ptr, buffer_len, pview.release());
+    res = OColumn::new_mbuf_column(stype, std::move(mbuf));
+  }
+  else {
     res = OColumn::new_data_column(stype, nrows);
     size_t stride = static_cast<size_t>(view->strides[0] / view->itemsize);
     if (view->itemsize == 8) {

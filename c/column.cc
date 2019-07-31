@@ -74,7 +74,9 @@ OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   size_t elemsize = info(stype).elemsize();
   Column* col = Column::new_column(stype);
   xassert(mbuf.size() % elemsize == 0);
-  xassert(stype == SType::OBJ? mbuf.is_pyobjects() : true);
+  if (stype == SType::OBJ) {
+    xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
+  }
   col->nrows = mbuf.size() / elemsize;
   col->mbuf = std::move(mbuf);
   return OColumn(col);
@@ -332,7 +334,6 @@ void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const BoolColumn*) {}
 void VoidColumn::replace_values(RowIndex, const OColumn&) {}
 void VoidColumn::init_data() {}
-void VoidColumn::init_xbuf(Py_buffer*) {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const Column*) const { return RowIndex(); }

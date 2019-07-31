@@ -47,20 +47,6 @@ void FwColumn<T>::init_data() {
   mbuf.resize(nrows * sizeof(T));
 }
 
-template <typename T>
-void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
-  xassert(!ri);
-  size_t exp_buf_len = nrows * sizeof(T);
-  if (static_cast<size_t>(pybuffer->len) != exp_buf_len) {
-    throw Error() << "PyBuffer cannot be used to create a column of " << nrows
-                  << " rows: buffer length is "
-                  << static_cast<size_t>(pybuffer->len)
-                  << ", expected " << exp_buf_len;
-  }
-  const void* ptr = pybuffer->buf;
-  mbuf = MemoryRange::external(ptr, exp_buf_len, pybuffer);
-}
-
 
 
 //==============================================================================
