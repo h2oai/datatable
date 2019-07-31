@@ -365,11 +365,6 @@ class OColumn
 
     // TEMP accessors to the underlying implementation
     const Column* get() const;
-    Column* release() {
-      Column* ret = pcol;
-      pcol = nullptr;
-      return ret;
-    }
 
     Column* operator->();
     const Column* operator->() const;

@@ -319,29 +319,26 @@ void OColumn::rbind(colvec& columns) {
     new_stype = std::max(new_stype, col.stype());
   }
 
-  // Create the resulting Column object. It can be either: an empty column
-  // filled with NAs; the current column (`pcol`); a clone of the current
-  // column (if it has refcount > 1); or a type-cast of the current column.
-  Column* res = nullptr;
+  // Create the resulting OColumn object. It can be either: an empty column
+  // filled with NAs; the current column; or a type-cast of the current column.
+  OColumn newcol;
   if (col_empty) {
-    res = Column::new_na_column(new_stype, nrows());
-  } else if (pcol->_stype == new_stype) {
-    res = pcol;
+    newcol = OColumn(Column::new_na_column(new_stype, nrows()));
+  } else if (stype() == new_stype) {
+    newcol = std::move(*this);
   } else {
-    res = pcol->cast(new_stype).release();
+    newcol = cast(new_stype);
   }
-  xassert(res->_stype == new_stype);
+  xassert(newcol.stype() == new_stype);
 
   // TODO: Temporary Fix. To be resolved in #301
-  if (res->stats != nullptr) res->stats->reset();
+  if (newcol->stats != nullptr) newcol->stats->reset();
 
   // Use the appropriate strategy to continue appending the columns.
-  res->rbind_impl(columns, new_nrows, col_empty);
+  newcol->rbind_impl(columns, new_nrows, col_empty);
 
-  // If everything is fine, then the current column can be safely discarded
-  // -- the upstream caller will replace this column with the `res`.
-  if (res != pcol) delete pcol;
-  pcol = res;
+  // Replace current column's impl with the newcol's
+  std::swap(pcol, newcol.pcol);
 }
 
 
