@@ -10,11 +10,15 @@
 #include "datatablemodule.h"
 
 
-
-
-SType BoolColumn::stype() const noexcept {
-  return SType::BOOL;
+BoolColumn::BoolColumn(size_t nrows) : FwColumn<int8_t>(nrows) {
+  _stype = SType::BOOL;
 }
+
+BoolColumn::BoolColumn(size_t nrows, MemoryRange&& mem)
+  : FwColumn<int8_t>(nrows, std::move(mem)) {
+  _stype = SType::BOOL;
+}
+
 
 bool BoolColumn::get_element(size_t i, int32_t* x) const {
   size_t j = ri[i];

@@ -308,43 +308,38 @@ void DataTable::rbind(
 //  Column::rbind()
 //------------------------------------------------------------------------------
 
-Column* Column::rbind(colvec& columns)
-{
+void OColumn::rbind(colvec& columns) {
   // Is the current column "empty" ?
   bool col_empty = (stype() == SType::VOID);
   // Compute the final number of rows and stype
-  size_t new_nrows = this->nrows;
+  size_t new_nrows = nrows();
   SType new_stype = col_empty? SType::BOOL : stype();
   for (const auto& col : columns) {
     new_nrows += col.nrows();
     new_stype = std::max(new_stype, col.stype());
   }
 
-  // Create the resulting Column object. It can be either: an empty column
-  // filled with NAs; the current column (`this`); a clone of the current
-  // column (if it has refcount > 1); or a type-cast of the current column.
-  Column* res = nullptr;
+  // Create the resulting OColumn object. It can be either: an empty column
+  // filled with NAs; the current column; or a type-cast of the current column.
+  OColumn newcol;
   if (col_empty) {
-    res = Column::new_na_column(new_stype, this->nrows);
+    newcol = OColumn(Column::new_na_column(new_stype, nrows()));
   } else if (stype() == new_stype) {
-    res = this;
+    newcol = std::move(*this);
   } else {
-    res = this->cast(new_stype);
+    newcol = cast(new_stype);
   }
-  xassert(res->stype() == new_stype);
+  xassert(newcol.stype() == new_stype);
 
   // TODO: Temporary Fix. To be resolved in #301
-  if (res->stats != nullptr) res->stats->reset();
+  if (newcol->stats != nullptr) newcol->stats->reset();
 
   // Use the appropriate strategy to continue appending the columns.
-  res->rbind_impl(columns, new_nrows, col_empty);
+  newcol->rbind_impl(columns, new_nrows, col_empty);
 
-  // If everything is fine, then the current column can be safely discarded
-  // -- the upstream caller will replace this column with the `res`.
-  if (res != this) delete this;
-  return res;
+  // Replace current column's impl with the newcol's
+  std::swap(pcol, newcol.pcol);
 }
-
 
 
 
@@ -365,8 +360,8 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
   for (size_t i = 0; i < columns.size(); ++i) {
     OColumn& col = columns[i];
     if (col.stype() == SType::VOID) continue;
-    if (col.stype() != stype()) {
-      col = OColumn(col->cast(stype()));
+    if (col.stype() != _stype) {
+      col = OColumn(col->cast(_stype));
     }
     // TODO: replace with datasize(). But: what if col is not a string?
     new_strbuf_size += static_cast<const StringColumn<T>*>(col.get())->strbuf.size();
@@ -457,9 +452,8 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
         resptr += rows_to_fill * sizeof(T);
         rows_to_fill = 0;
       }
-      if (col.stype() != stype()) {
-        Column* newcol = col->cast(stype());
-        col = OColumn(newcol);
+      if (col.stype() != _stype) {
+        col = col->cast(_stype);
       }
       std::memcpy(resptr, col->data(), col->alloc_size());
       resptr += col->alloc_size();
@@ -501,11 +495,10 @@ void PyObjectColumn::rbind_impl(
       dest_data += col->nrows;
     } else {
       if (col.stype() != SType::OBJ) {
-        Column* newcol = col->cast(stype());
-        col = OColumn(newcol);
+        col = col->cast(_stype);
       }
       auto src_data = static_cast<PyObject* const*>(col->data());
-      for (size_t i = 0; i < col->nrows; ++i) {
+      for (size_t i = 0; i < col.nrows(); ++i) {
         Py_INCREF(src_data[i]);
         Py_DECREF(*dest_data);
         *dest_data = src_data[i];

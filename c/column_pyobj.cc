@@ -13,24 +13,22 @@
 
 
 PyObjectColumn::PyObjectColumn() : FwColumn<PyObject*>() {
+  _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<PyObject*>(nrows_) {
+  _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
     : FwColumn<PyObject*>(nrows_, std::move(mb))
 {
+  _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
-
-
-SType PyObjectColumn::stype() const noexcept {
-  return SType::OBJ;
-}
 
 
 bool PyObjectColumn::get_element(size_t i, py::oobj* out) const {

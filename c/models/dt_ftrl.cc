@@ -832,7 +832,8 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
   size_t nlabels = dt_labels->nrows;
   xassert(nlabels > 0);
 
-  auto scol = static_cast<StringColumn<uint64_t>*>(dt_labels->get_ocolumn(0)->cast(SType::STR64));
+  OColumn col0_str64 = dt_labels->get_ocolumn(0)->cast(SType::STR64);
+  auto scol = static_cast<StringColumn<uint64_t>*>(const_cast<Column*>(col0_str64.get()));
   const uint64_t* offsets = scol->offsets();
   const char* strdata = scol->strdata();
 
@@ -995,7 +996,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
 template <typename T>
 hasherptr Ftrl<T>::create_hasher(const OColumn& col) {
   unsigned char shift_nbits = dt::FtrlBase::DOUBLE_MANTISSA_NBITS - mantissa_nbits;
-  SType stype = col->stype();
+  SType stype = col.stype();
   switch (stype) {
     case SType::BOOL:    return hasherptr(new HasherBool(col));
     case SType::INT8:    return hasherptr(new HasherInt<int8_t>(col));

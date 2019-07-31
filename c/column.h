@@ -133,6 +133,8 @@ protected:
   mutable Stats* stats;
 
 public:  // TODO: convert this into private
+  SType _stype;
+  size_t : 56;
   size_t nrows;
 
 public:
@@ -148,14 +150,13 @@ public:
   static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
   static Column* from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
   static Column* from_buffer(const py::robj& buffer);
-  static Column* from_range(int64_t start, int64_t stop, int64_t step, SType s);
+  static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType s);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
 
-  virtual SType stype() const noexcept = 0;
-  virtual size_t elemsize() const = 0;
+  size_t elemsize() const { return info(_stype).elemsize(); }
 
   virtual bool get_element(size_t i, int32_t* out) const;
   virtual bool get_element(size_t i, int64_t* out) const;
@@ -225,8 +226,8 @@ public:
    * creation of the resulting column (the Column will assume ownership of the
    * provided MemoryRange).
    */
-  Column* cast(SType stype) const;
-  Column* cast(SType stype, MemoryRange&& mr) const;
+  OColumn cast(SType stype) const;
+  OColumn cast(SType stype, MemoryRange&& mr) const;
 
   /**
    * Replace values at positions given by the RowIndex `replace_at` with
@@ -242,7 +243,7 @@ public:
    * with NAs.
    */
   virtual void replace_values(
-    RowIndex replace_at, const Column* replace_with) = 0;
+    RowIndex replace_at, const OColumn& replace_with) = 0;
 
   /**
    * Appends the provided columns to the bottom of the current column and
@@ -258,7 +259,7 @@ public:
    * Individual entries in the `columns` array may be instances of `VoidColumn`,
    * indicating columns that should be replaced with NAs.
    */
-  Column* rbind(colvec& columns);
+  // Column* rbind(colvec& columns);
 
   /**
    * "Materialize" the Column. If the Column has no rowindex, this is a no-op.
@@ -364,7 +365,6 @@ class OColumn
 
     // TEMP accessors to the underlying implementation
     const Column* get() const;
-    Column* release();
 
     Column* operator->();
     const Column* operator->() const;
@@ -441,9 +441,8 @@ public:
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
-  size_t elemsize() const override;
   virtual void materialize() override;
-  virtual void replace_values(RowIndex at, const Column* with) override;
+  void replace_values(RowIndex at, const OColumn& with) override;
   void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const Column* keycol) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
@@ -476,8 +475,8 @@ extern template class FwColumn<PyObject*>;
 class BoolColumn : public FwColumn<int8_t>
 {
 public:
-  using FwColumn<int8_t>::FwColumn;
-  SType stype() const noexcept override;
+  BoolColumn(size_t nrows = 0);
+  BoolColumn(size_t nrows, MemoryRange&&);
 
   int8_t min() const;
   int8_t max() const;
@@ -504,8 +503,8 @@ public:
 template <typename T> class IntColumn : public FwColumn<T>
 {
 public:
-  using FwColumn<T>::FwColumn;
-  virtual SType stype() const noexcept override;
+  IntColumn(size_t nrows = 0);
+  IntColumn(size_t nrows, MemoryRange&&);
 
   T min() const;
   T max() const;
@@ -540,8 +539,8 @@ extern template class IntColumn<int64_t>;
 template <typename T> class RealColumn : public FwColumn<T>
 {
 public:
-  using FwColumn<T>::FwColumn;
-  virtual SType stype() const noexcept override;
+  RealColumn(size_t nrows = 0);
+  RealColumn(size_t nrows, MemoryRange&&);
 
   T min() const;
   T max() const;
@@ -588,7 +587,6 @@ class PyObjectColumn : public FwColumn<PyObject*>
 public:
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, MemoryRange&&);
-  virtual SType stype() const noexcept override;
   PyObjectStats* get_stats() const override;
 
   bool get_element(size_t i, py::oobj* out) const override;
@@ -619,9 +617,6 @@ template <typename T> class StringColumn : public Column
 public:
   StringColumn(size_t nrows);
 
-  SType stype() const noexcept override;
-  size_t elemsize() const override;
-
   void materialize() override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const BoolColumn* mask) override;
@@ -639,7 +634,7 @@ public:
   CString mode() const;
 
   Column* shallowcopy(const RowIndex& new_rowindex) const override;
-  void replace_values(RowIndex at, const Column* with) override;
+  void replace_values(RowIndex at, const OColumn& with) override;
   StringStats<T>* get_stats() const override;
 
   void verify_integrity(const std::string& name) const override;
@@ -683,14 +678,12 @@ extern template class StringColumn<uint64_t>;
 class VoidColumn : public Column {
   public:
     VoidColumn(size_t nrows);
-    SType stype() const noexcept override;
-    size_t elemsize() const override;
     size_t data_nrows() const override;
     void materialize() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const BoolColumn*) override;
-    void replace_values(RowIndex, const Column*) override;
+    void replace_values(RowIndex, const OColumn&) override;
     RowIndex join(const Column* keycol) const override;
     Stats* get_stats() const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;

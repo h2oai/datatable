@@ -281,8 +281,7 @@ void expr_in::execute(workframe& wf) {
         "was of type " << st;
   }
   auto col = expr->evaluate_eager(wf);
-  OColumn ocol(col.release());
-  RowIndex res(ocol);
+  RowIndex res(col);
   wf.apply_rowindex(res);
 }
 

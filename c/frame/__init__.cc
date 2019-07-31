@@ -328,7 +328,7 @@ class FrameInitializationManager {
 
 
     void init_mystery_frame() {
-      cols.emplace_back(Column::from_range(42, 43, 1, SType::VOID));
+      cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
       make_datatable(strvec { "?" });
     }
 
@@ -448,7 +448,7 @@ class FrameInitializationManager {
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
           make_column(colsrc, SType::VOID);
           Column* maskcol = Column::from_buffer(masksrc);
-          xassert(maskcol->stype() == SType::BOOL);
+          xassert(maskcol->_stype == SType::BOOL);
           cols.back()->apply_na_mask(static_cast<BoolColumn*>(maskcol));
           delete maskcol;
         }
@@ -601,7 +601,7 @@ class FrameInitializationManager {
       }
       else if (colsrc.is_range()) {
         auto r = colsrc.to_orange();
-        col = OColumn(Column::from_range(r.start(), r.stop(), r.step(), s));
+        col = Column::from_range(r.start(), r.stop(), r.step(), s);
       }
       else {
         throw TypeError() << "Cannot create a column from " << colsrc.typeobj();

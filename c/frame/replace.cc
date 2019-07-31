@@ -65,10 +65,10 @@ class ReplaceAgent {
     template <typename T> void replace_fw1(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
-    template <typename T> Column* replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_str1(CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_str2(CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_strN(CString* x, CString* y, StringColumn<T>*, size_t n);
+    template <typename T> OColumn replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
+    template <typename T> OColumn replace_str1(CString* x, CString* y, StringColumn<T>*);
+    template <typename T> OColumn replace_str2(CString* x, CString* y, StringColumn<T>*);
+    template <typename T> OColumn replace_strN(CString* x, CString* y, StringColumn<T>*, size_t n);
     bool types_changed() const { return columns_cast; }
 
   private:
@@ -567,10 +567,10 @@ void ReplaceAgent::process_str_column(size_t colidx) {
   if (x_str.size() == 1 && x_str[0].isna()) {
     if (col->countna() == 0) return;
   }
-  Column* newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
+  OColumn newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
                                   col);
-  columns_cast = (newcol->stype() != col->stype());
-  dt->set_ocolumn(colidx, OColumn(newcol));
+  columns_cast = (newcol.stype() != ocol.stype());
+  dt->set_ocolumn(colidx, std::move(newcol));
 }
 
 
@@ -674,7 +674,7 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
 
 
 template <typename T>
-Column* ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
+OColumn ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
                                   StringColumn<T>* col)
 {
   if (n == 1) {
@@ -685,7 +685,7 @@ Column* ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
 }
 
 template <typename T>
-Column* ReplaceAgent::replace_str1(
+OColumn ReplaceAgent::replace_str1(
     CString* x, CString* y, StringColumn<T>* col)
 {
   return dt::map_str2str(col,
@@ -696,7 +696,7 @@ Column* ReplaceAgent::replace_str1(
 
 
 template <typename T>
-Column* ReplaceAgent::replace_strN(CString* x, CString* y,
+OColumn ReplaceAgent::replace_strN(CString* x, CString* y,
                                    StringColumn<T>* col, size_t n)
 {
   return dt::map_str2str(col,

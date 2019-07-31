@@ -22,12 +22,12 @@ FwColumn<T>::FwColumn() : Column(0) {}
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_) : Column(nrows_) {
-  mbuf.resize(elemsize() * nrows_);
+  mbuf.resize(sizeof(T) * nrows_);
 }
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
-  size_t req_size = elemsize() * nrows_;
+  size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);
   } else {
@@ -44,7 +44,7 @@ FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
 template <typename T>
 void FwColumn<T>::init_data() {
   xassert(!ri);
-  mbuf.resize(nrows * elemsize());
+  mbuf.resize(nrows * sizeof(T));
 }
 
 template <typename T>
@@ -64,12 +64,6 @@ void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
 
 
 //==============================================================================
-
-template <typename T>
-size_t FwColumn<T>::elemsize() const {
-  return sizeof(T);
-}
-
 
 template <typename T>
 const T* FwColumn<T>::elements_r() const {
@@ -223,26 +217,26 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    RowIndex replace_at, const Column* replace_with)
+    RowIndex replace_at, const OColumn& replace_with)
 {
   materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  if (replace_with->stype() != stype()) {
-    replace_with = replace_with->cast(stype());
-  }
+  OColumn with = (replace_with.stype() == _stype)
+                    ? replace_with  // copy
+                    : replace_with->cast(_stype);
 
-  if (replace_with->nrows == 1) {
-    auto rcol = dynamic_cast<const FwColumn<T>*>(replace_with);
+  if (with.nrows() == 1) {
+    auto rcol = dynamic_cast<const FwColumn<T>*>(with.get());
     xassert(rcol);
     return replace_values(replace_at, rcol->get_elem(0));
   }
   size_t replace_n = replace_at.size();
-  const T* data_src = static_cast<const T*>(replace_with->data());
-  const RowIndex& rowindex_src = replace_with->rowindex();
+  const T* data_src = static_cast<const T*>(with->data());
+  const RowIndex& rowindex_src = with->rowindex();
   T* data_dest = elements_w();
-  xassert(replace_with->nrows == replace_n);
+  xassert(with.nrows() == replace_n);
   if (rowindex_src) {
     replace_at.iterate(0, replace_n, 1,
       [&](size_t i, size_t j) {
@@ -276,7 +270,7 @@ static int32_t binsearch(const T* data, int32_t len, T value) {
 
 template <typename T>
 RowIndex FwColumn<T>::join(const Column* keycol) const {
-  xassert(stype() == keycol->stype());
+  xassert(_stype == keycol->_stype);
 
   auto kcol = static_cast<const FwColumn<T>*>(keycol);
   xassert(!kcol->ri);

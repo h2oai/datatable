@@ -190,7 +190,7 @@ static void cast_str_to_pyobj(const Column* col, void* out_data)
 
 
 template <typename T, void (*CAST_OP)(T, dt::string_buf*)>
-static Column* cast_to_str(const Column* col, MemoryRange&& out_offsets,
+static OColumn cast_to_str(const Column* col, MemoryRange&& out_offsets,
                            SType target_stype)
 {
   auto inp = static_cast<const T*>(col->data());
@@ -207,13 +207,13 @@ static Column* cast_to_str(const Column* col, MemoryRange&& out_offsets,
       col->nrows,
       std::move(out_offsets),
       /* force_str64 = */ (target_stype == SType::STR64),
-      /* force_single_threaded = */ (col->stype() == SType::OBJ)
+      /* force_single_threaded = */ (col->_stype == SType::OBJ)
   );
 }
 
 
 template <typename T>
-static Column* cast_str_to_str(const Column* col, MemoryRange&& out_offsets,
+static OColumn cast_str_to_str(const Column* col, MemoryRange&& out_offsets,
                                SType target_stype)
 {
   auto scol = static_cast<const StringColumn<T>*>(col);
@@ -258,7 +258,7 @@ class cast_manager {
     using castfn0 = void (*)(const Column*, size_t start, void* out);
     using castfn1 = void (*)(const Column*, const int32_t* indices, void* out);
     using castfn2 = void (*)(const Column*, void* out);
-    using castfnx = Column* (*)(const Column*, MemoryRange&&, SType);
+    using castfnx = OColumn (*)(const Column*, MemoryRange&&, SType);
     struct cast_info {
       castfn0  f0;
       castfn1  f1;
@@ -275,7 +275,7 @@ class cast_manager {
     inline void add(SType st_from, SType st_to, castfn2 f);
     inline void add(SType st_from, SType st_to, castfnx f);
 
-    Column* execute(const Column*, MemoryRange&&, SType);
+    OColumn execute(const Column*, MemoryRange&&, SType);
 
   private:
     static inline constexpr size_t key(SType st1, SType st2) {
@@ -310,14 +310,14 @@ void cast_manager::add(SType st_from, SType st_to, castfnx f) {
 }
 
 
-Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
+OColumn cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
                               SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
-  size_t id = key(src->stype(), target_stype);
+  size_t id = key(src->_stype, target_stype);
   if (all_casts.count(id) == 0) {
     throw NotImplError()
-        << "Unable to cast `" << src->stype() << "` into `"
+        << "Unable to cast `" << src->_stype << "` into `"
         << target_stype << "`";
   }
 
@@ -355,7 +355,7 @@ Column* cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
     target_mbuf.set_pyobjects(/* clear = */ false);
   }
 
-  return Column::new_mbuf_column(target_stype, std::move(target_mbuf));
+  return OColumn(Column::new_mbuf_column(target_stype, std::move(target_mbuf)));
 }
 
 
@@ -558,10 +558,10 @@ void py::DatatableModule::init_casts()
 // Column (base methods)
 //------------------------------------------------------------------------------
 
-Column* Column::cast(SType new_stype) const {
+OColumn Column::cast(SType new_stype) const {
   return cast(new_stype, MemoryRange());
 }
 
-Column* Column::cast(SType new_stype, MemoryRange&& mr) const {
+OColumn Column::cast(SType new_stype, MemoryRange&& mr) const {
   return casts.execute(this, std::move(mr), new_stype);
 }

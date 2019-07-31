@@ -12,6 +12,10 @@
 #include "utils/misc.h"
 #include "column.h"
 
+template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }
+template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
+
 
 //------------------------------------------------------------------------------
 // String column construction
@@ -22,6 +26,7 @@
 template <typename T>
 StringColumn<T>::StringColumn(size_t n) : Column(n)
 {
+  _stype = stype_for<T>();
   mbuf = MemoryRange::mem(sizeof(T) * (n + 1));
   mbuf.set_element<T>(0, 0);
 }
@@ -29,7 +34,9 @@ StringColumn<T>::StringColumn(size_t n) : Column(n)
 
 // private use only
 template <typename T>
-StringColumn<T>::StringColumn() : Column(0) {}
+StringColumn<T>::StringColumn() : Column(0) {
+  _stype = stype_for<T>();
+}
 
 
 // private: use `new_string_column(n, &&mb, &&sb)` instead
@@ -41,6 +48,7 @@ StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
   xassert(mb.size() == sizeof(T) * (n + 1));
   xassert(mb.get_element<T>(0) == 0);
   xassert(sb.size() == (mb.get_element<T>(n) & ~GETNA<T>()));
+  _stype = stype_for<T>();
   mbuf = std::move(mb);
   strbuf = std::move(sb);
 }
@@ -116,13 +124,6 @@ Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
 
 
 template <typename T>
-SType StringColumn<T>::stype() const noexcept {
-  return sizeof(T) == 4? SType::STR32 :
-         sizeof(T) == 8? SType::STR64 : SType::VOID;
-}
-
-
-template <typename T>
 bool StringColumn<T>::get_element(size_t i, CString* out) const {
   size_t j = (this->ri)[i];
   if (j == RowIndex::NA) return true;
@@ -134,14 +135,6 @@ bool StringColumn<T>::get_element(size_t i, CString* out) const {
   out->size = static_cast<int64_t>(off_end - off_beg);
   return false;
 }
-
-
-template <typename T>
-size_t StringColumn<T>::elemsize() const {
-  return sizeof(T);
-}
-
-
 
 
 template <typename T>
@@ -282,24 +275,24 @@ void StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    RowIndex replace_at, const Column* replace_with)
+    RowIndex replace_at, const OColumn& replace_with)
 {
   materialize();
-  Column* rescol = nullptr;
+  OColumn rescol;
 
-  if (replace_with && replace_with->stype() != stype()){
-    replace_with = replace_with->cast(stype());
+  OColumn with;
+  if (replace_with) {
+    with = replace_with;  // copy
+    if (with.stype() != _stype) with = with->cast(_stype);
   }
   // This could be nullptr too
-  auto repl_col = static_cast<const StringColumn<T>*>(replace_with);
+  auto repl_col = static_cast<const StringColumn<T>*>(with.get());
 
-  if (!replace_with || replace_with->nrows == 1) {
+  if (!with || with.nrows() == 1) {
     CString repl_value;  // Default constructor creates an NA string
-    if (replace_with) {
-      T off0 = repl_col->offsets()[0];
-      if (!ISNA<T>(off0)) {
-        repl_value = CString(repl_col->strdata(), static_cast<int64_t>(off0));
-      }
+    if (with) {
+      bool r = with.get_element(0, &repl_value);
+      if (r) repl_value = CString();
     }
     MemoryRange mask = replace_at.as_boolean_mask(nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
@@ -332,14 +325,13 @@ void StringColumn<T>::replace_values(
   }
 
   xassert(rescol);
-  if (rescol->stype() != stype()) {
+  if (rescol.stype() != _stype) {
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
-  StringColumn<T>* scol = static_cast<StringColumn<T>*>(rescol);
+  auto scol = static_cast<StringColumn<T>*>(const_cast<Column*>(rescol.get()));
   std::swap(mbuf, scol->mbuf);
   std::swap(strbuf, scol->strbuf);
-  delete rescol;
   if (stats) stats->reset();
 }
 
@@ -508,7 +500,7 @@ static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
 
 template <typename T>
 RowIndex StringColumn<T>::join(const Column* keycol) const {
-  xassert(stype() == keycol->stype());
+  xassert(_stype == keycol->_stype);
 
   auto kcol = static_cast<const StringColumn<T>*>(keycol);
   xassert(!kcol->ri);

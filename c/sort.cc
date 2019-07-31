@@ -620,7 +620,7 @@ class SortContext {
     strdata = nullptr;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
-    SType stype = col->stype();
+    SType stype = col->_stype;
     switch (stype) {
       case SType::BOOL:    _initB<ASC>(col); break;
       case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(col); break;

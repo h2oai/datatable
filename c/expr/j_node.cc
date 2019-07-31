@@ -196,7 +196,7 @@ void collist_jn::delete_(workframe& wf) {
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
     for (size_t i : indices) {
-      dt0->get_ocolumn(i)->replace_values(ri0, nullptr);
+      dt0->get_ocolumn(i)->replace_values(ri0, OColumn());
     }
   } else {
     dt0->delete_columns(indices);
@@ -297,8 +297,7 @@ void exprlist_jn::select(workframe& wf) {
   RowIndex ri0;  // empty rowindex
   for (size_t i = 0; i < n; ++i) {
     auto col = exprs[i]->evaluate_eager(wf);
-    OColumn newcol(col.release());
-    wf.add_column(std::move(newcol), ri0, std::move(names[i]));
+    wf.add_column(std::move(col), ri0, std::move(names[i]));
   }
 }
 

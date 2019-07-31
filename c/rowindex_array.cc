@@ -305,7 +305,6 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
   col2->materialize();  // noop if col has no rowindex
 
   length = col->nrows;
-  Column* col3 = nullptr;
   if (length <= INT32_MAX && max <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
@@ -315,17 +314,16 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
     // the column is destructed.
     MemoryRange xbuf = MemoryRange::external(data, length * sizeof(int32_t));
     xassert(xbuf.is_writable());
-    col3 = col2->cast(SType::INT32, std::move(xbuf));
+    auto col3 = col2->cast(SType::INT32, std::move(xbuf));
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
     MemoryRange xbuf = MemoryRange::external(data, length * sizeof(int64_t));
     xassert(xbuf.is_writable());
-    col3 = col2->cast(SType::INT64, std::move(xbuf));
+    auto col3 = col2->cast(SType::INT64, std::move(xbuf));
   }
 
   delete col2;
-  delete col3;
 }
 
 

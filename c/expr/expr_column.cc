@@ -95,7 +95,7 @@ OColumn expr_column::evaluate_eager(workframe& wf) {
   if (dt_ri) {
     newcol->replace_rowindex(wf._product(dt_ri, col_ri));
   }
-  return OColumn(newcol.release());
+  return newcol;
 }
 
 

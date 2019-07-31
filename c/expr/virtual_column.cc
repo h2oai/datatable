@@ -121,7 +121,7 @@ class _vcolumn : public virtual_column {
 };
 
 _vcolumn::_vcolumn(OColumn&& col)
-  : virtual_column(col->nrows, col->stype()),
+  : virtual_column(col.nrows(), col.stype()),
     column(std::move(col)) {}
 
 OColumn _vcolumn::materialize() {
@@ -247,7 +247,7 @@ class slice_str_vcol : public str_vcol<T> {
 
 
 vcolptr virtualize(OColumn&& col) {
-  SType st = col->stype();
+  SType st = col.stype();
   const RowIndex& ri = col->rowindex();
   switch (ri.type()) {
     case RowIndexType::UNKNOWN: {

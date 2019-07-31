@@ -32,7 +32,7 @@ expr_literal::expr_literal(py::robj v) {
 
 
 SType expr_literal::resolve(const workframe&) {
-  return col->stype();
+  return col.stype();
 }
 
 
@@ -42,7 +42,7 @@ GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
 
 
 OColumn expr_literal::evaluate_eager(workframe&) {
-  return OColumn(col->shallowcopy());
+  return col;  // copy
 }
 
 
