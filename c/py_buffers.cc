@@ -24,7 +24,7 @@ namespace pybuffers {
 }
 
 // Forward declarations
-static Column* try_to_resolve_object_column(const Column* col);
+static void try_to_resolve_object_column(OColumn& col);
 static SType stype_from_format(const char *format, int64_t itemsize);
 static const char* format_from_stype(SType stype);
 static Column* convert_fwchararray_to_column(Py_buffer* view);
@@ -130,7 +130,7 @@ OColumn OColumn::from_buffer(const py::robj& pyobj)
     }
   }
   if (res.stype() == SType::OBJ) {
-    res = OColumn(try_to_resolve_object_column(res.get()));
+    try_to_resolve_object_column(res);
   }
   return res;
 }
@@ -172,10 +172,10 @@ static Column* convert_fwchararray_to_column(Py_buffer* view)
  * if more appropriate), and return either the original or the new modified
  * column. If a new column is returned, the original one is decrefed.
  */
-static Column* try_to_resolve_object_column(const Column* col)
+static void try_to_resolve_object_column(OColumn& col)
 {
-  PyObject* const* data = static_cast<PyObject* const*>(col->data());
-  size_t nrows = col->nrows;
+  auto data = static_cast<PyObject* const*>(col->data());
+  size_t nrows = col.nrows();
 
   bool all_strings = true;
   bool all_booleans = true;
@@ -210,12 +210,11 @@ static Column* try_to_resolve_object_column(const Column* col)
       PyObject* v = data[i];
       out[i] = v == Py_True? 1 : v == Py_False? 0 : GETNA<int8_t>();
     }
-    // delete col;
-    return new BoolColumn(nrows, std::move(mbuf));
+    col = OColumn(new BoolColumn(nrows, std::move(mbuf)));
   }
 
   // All values were strings
-  if (all_strings) {
+  else if (all_strings) {
     size_t strbuf_size = total_length;
     MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
     MemoryRange strbuf = MemoryRange::mem(strbuf_size);
@@ -247,12 +246,8 @@ static Column* try_to_resolve_object_column(const Column* col)
 
     xassert(offset < strbuf.size());
     strbuf.resize(offset);
-    // delete col;
-    return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
+    col = OColumn(new_string_column(nrows, std::move(offbuf), std::move(strbuf)));
   }
-
-  // Otherwise, return the original object column
-  return const_cast<Column*>(col);
 }
 
 
