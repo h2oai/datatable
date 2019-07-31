@@ -44,7 +44,7 @@ class expr_string_match_re : public base_expr {
 
   private:
     template <typename T>
-    OColumn _compute(const Column* src);
+    OColumn _compute(const OColumn& src);
 };
 
 

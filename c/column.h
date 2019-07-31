@@ -358,14 +358,9 @@ class OColumn
     static OColumn from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
     static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType);
 
-    // TODO: make private
-    explicit OColumn(Column* col);  // Steal ownership
-
-    // TEMP accessors to the underlying implementation
-    const Column* get() const;
-
-    Column* operator->();
-    const Column* operator->() const;
+  private:
+    // Assumes ownership of the `col` object
+    explicit OColumn(Column* col);
 
   //------------------------------------
   // Properties
@@ -380,6 +375,12 @@ class OColumn
     size_t elemsize() const noexcept;
 
     operator bool() const noexcept;
+
+    // TEMP accessors to the underlying implementation
+    const Column* get() const;
+
+    Column* operator->();
+    const Column* operator->() const;
 
   //------------------------------------
   // Data access
@@ -419,6 +420,7 @@ class OColumn
     OColumn cast(SType stype, MemoryRange&& mr) const;
 
     friend void swap(OColumn& lhs, OColumn& rhs);
+    friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
 
 

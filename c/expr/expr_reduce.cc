@@ -89,7 +89,8 @@ static OColumn reduce_first(const OColumn& col, const Groupby& groupby)
   arr32_t indices(ngrps, groupby.offsets_r());
   RowIndex ri = RowIndex(std::move(indices), true)
                 * col->rowindex();
-  auto res = OColumn(col->shallowcopy(ri));
+  OColumn res = col;  // copy
+  res->replace_rowindex(ri);
   if (ngrps == 1) res->materialize();
   return res;
 }

@@ -210,7 +210,7 @@ static void try_to_resolve_object_column(OColumn& col)
       PyObject* v = data[i];
       out[i] = v == Py_True? 1 : v == Py_False? 0 : GETNA<int8_t>();
     }
-    col = OColumn(new BoolColumn(nrows, std::move(mbuf)));
+    col = OColumn::new_mbuf_column(SType::BOOL, std::move(mbuf));
   }
 
   // All values were strings
