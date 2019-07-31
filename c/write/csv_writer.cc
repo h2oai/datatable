@@ -82,7 +82,7 @@ void csv_writer::write_preamble() {
   if (column_names.empty()) return;
 
   auto writer = value_writer::create(SType::STR32, options);
-  writing_context ctx { 3*dt->ncols, 1 };
+  writing_context ctx { 3*dt->ncols, 1, options.compress_zlib };
 
   bool add_quotes = (options.quoting_mode == Quoting::ALL);
   for (const auto& name : column_names) {
@@ -96,6 +96,7 @@ void csv_writer::write_preamble() {
   ctx.ch[-1] = '\n';
 
   // Write this string buffer into the target.
+  ctx.finalize_buffer();
   wb->write(ctx.get_buffer());
 }
 
