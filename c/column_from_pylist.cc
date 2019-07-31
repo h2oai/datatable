@@ -541,7 +541,7 @@ static OColumn ocolumn_from_iterable(const iterable* il, int stype0)
   }
   if (stype == SType::STR32 || stype == SType::STR64) {
     size_t nrows = il->size();
-    return OColumn(new_string_column(nrows, std::move(membuf), std::move(strbuf)));
+    return new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }
   else {
     if (stype == SType::OBJ) {

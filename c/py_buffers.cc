@@ -27,7 +27,7 @@ namespace pybuffers {
 static void try_to_resolve_object_column(OColumn& col);
 static SType stype_from_format(const char *format, int64_t itemsize);
 static const char* format_from_stype(SType stype);
-static Column* convert_fwchararray_to_column(Py_buffer* view);
+static OColumn convert_fwchararray_to_column(Py_buffer* view);
 
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
 #define REQ_FORMAT(flags)   ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
@@ -94,7 +94,7 @@ OColumn OColumn::from_buffer(const py::robj& pyobj)
 
   OColumn res;
   if (stype == SType::STR32) {
-    res = OColumn(convert_fwchararray_to_column(view));
+    res = convert_fwchararray_to_column(view);
   } else if (view->strides == nullptr) {
     Column* col = Column::new_column(stype);
     col->nrows = nrows;
@@ -136,7 +136,7 @@ OColumn OColumn::from_buffer(const py::robj& pyobj)
 }
 
 
-static Column* convert_fwchararray_to_column(Py_buffer* view)
+static OColumn convert_fwchararray_to_column(Py_buffer* view)
 {
   // Number of characters in each element
   size_t k = static_cast<size_t>(view->itemsize / 4);
@@ -246,7 +246,7 @@ static void try_to_resolve_object_column(OColumn& col)
 
     xassert(offset < strbuf.size());
     strbuf.resize(offset);
-    col = OColumn(new_string_column(nrows, std::move(offbuf), std::move(strbuf)));
+    col = new_string_column(nrows, std::move(offbuf), std::move(strbuf));
   }
 }
 

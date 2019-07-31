@@ -75,19 +75,19 @@ static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
 }
 
 
-Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
+OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
   size_t data_size = data.size();
   size_t strb_size = str.size();
 
   if (data_size == sizeof(uint32_t) * (n + 1)) {
     if (strb_size <= Column::MAX_STR32_BUFFER_SIZE &&
         n <= Column::MAX_STR32_NROWS) {
-      return new StringColumn<uint32_t>(n, std::move(data), std::move(str));
+      return OColumn(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
     }
     // Otherwise, offsets need to be recoded into a uint64_t array
     data = _recode_offsets_to_u64(data);
   }
-  return new StringColumn<uint64_t>(n, std::move(data), std::move(str));
+  return OColumn(new StringColumn<uint64_t>(n, std::move(data), std::move(str)));
 }
 
 

@@ -653,7 +653,7 @@ protected:
 
   friend Column;
   friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
-  friend Column* new_string_column(size_t, MemoryRange&&, MemoryRange&&);
+  friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
 
 
@@ -662,7 +662,7 @@ protected:
  * It will create either StringColumn<uint32_t>* or StringColumn<uint64_t>*
  * depending on the size of the data.
  */
-Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
+OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
 
 
 extern template class StringColumn<uint32_t>;
