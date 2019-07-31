@@ -226,8 +226,8 @@ public:
    * creation of the resulting column (the Column will assume ownership of the
    * provided MemoryRange).
    */
-  Column* cast(SType stype) const;
-  Column* cast(SType stype, MemoryRange&& mr) const;
+  OColumn cast(SType stype) const;
+  OColumn cast(SType stype, MemoryRange&& mr) const;
 
   /**
    * Replace values at positions given by the RowIndex `replace_at` with

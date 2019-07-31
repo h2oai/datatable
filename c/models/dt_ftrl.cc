@@ -832,7 +832,8 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
   size_t nlabels = dt_labels->nrows;
   xassert(nlabels > 0);
 
-  auto scol = static_cast<StringColumn<uint64_t>*>(dt_labels->get_ocolumn(0)->cast(SType::STR64));
+  OColumn col0_str64 = dt_labels->get_ocolumn(0)->cast(SType::STR64);
+  auto scol = static_cast<StringColumn<uint64_t>*>(const_cast<Column*>(col0_str64.get()));
   const uint64_t* offsets = scol->offsets();
   const char* strdata = scol->strdata();
 

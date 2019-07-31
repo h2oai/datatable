@@ -610,7 +610,7 @@ Column* Column::from_range(
     case SType::INT64: return _make_range_column<int64_t>(start, length, step, stype);
     default: {
       Column* col = _make_range_column<int64_t>(start, length, step, SType::INT64);
-      Column* res = col->cast(stype);
+      Column* res = col->cast(stype).release();
       delete col;
       return res;
     }

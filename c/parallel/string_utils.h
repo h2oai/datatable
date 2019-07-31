@@ -30,7 +30,7 @@ namespace dt {
 
 using string_buf = writable_string_col::buffer;
 
-Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+OColumn generate_string_column(dt::function<void(size_t, string_buf*)> fn,
                                size_t n,
                                MemoryRange&& offsets_buffer = MemoryRange(),
                                bool force_str64 = false,
@@ -44,7 +44,7 @@ Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
 //------------------------------------------------------------------------------
 
 template <typename T, typename F>
-Column* map_str2str(StringColumn<T>* input_col, F f) {
+OColumn map_str2str(StringColumn<T>* input_col, F f) {
   size_t nrows = input_col->nrows;
   writable_string_col output_col(nrows, /* str64= */ sizeof(T)==8);
 
@@ -93,7 +93,7 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
       sb->commit_and_start_new_chunk(nrows);
     });
 
-  return std::move(output_col).to_ocolumn().release();
+  return std::move(output_col).to_ocolumn();
 }
 
 

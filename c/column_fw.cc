@@ -224,7 +224,7 @@ void FwColumn<T>::replace_values(
     return replace_values(replace_at, GETNA<T>());
   }
   if (replace_with->_stype != _stype) {
-    replace_with = replace_with->cast(_stype);
+    replace_with = replace_with->cast(_stype).release();
   }
 
   if (replace_with->nrows == 1) {

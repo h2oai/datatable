@@ -329,7 +329,7 @@ Column* Column::rbind(colvec& columns)
   } else if (_stype == new_stype) {
     res = this;
   } else {
-    res = this->cast(new_stype);
+    res = this->cast(new_stype).release();
   }
   xassert(res->_stype == new_stype);
 
@@ -458,8 +458,7 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
         rows_to_fill = 0;
       }
       if (col.stype() != _stype) {
-        Column* newcol = col->cast(_stype);
-        col = OColumn(newcol);
+        col = col->cast(_stype);
       }
       std::memcpy(resptr, col->data(), col->alloc_size());
       resptr += col->alloc_size();
@@ -501,8 +500,7 @@ void PyObjectColumn::rbind_impl(
       dest_data += col->nrows;
     } else {
       if (col.stype() != SType::OBJ) {
-        Column* newcol = col->cast(_stype);
-        col = OColumn(newcol);
+        col = col->cast(_stype);
       }
       auto src_data = static_cast<PyObject* const*>(col->data());
       for (size_t i = 0; i < col->nrows; ++i) {

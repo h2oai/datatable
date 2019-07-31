@@ -278,10 +278,10 @@ void StringColumn<T>::replace_values(
     RowIndex replace_at, const Column* replace_with)
 {
   materialize();
-  Column* rescol = nullptr;
+  OColumn rescol;
 
   if (replace_with && replace_with->_stype != _stype){
-    replace_with = replace_with->cast(_stype);
+    replace_with = replace_with->cast(_stype).release();
   }
   // This could be nullptr too
   auto repl_col = static_cast<const StringColumn<T>*>(replace_with);
@@ -325,14 +325,13 @@ void StringColumn<T>::replace_values(
   }
 
   xassert(rescol);
-  if (rescol->_stype != _stype) {
+  if (rescol.stype() != _stype) {
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
-  StringColumn<T>* scol = static_cast<StringColumn<T>*>(rescol);
+  auto scol = static_cast<StringColumn<T>*>(const_cast<Column*>(rescol.get()));
   std::swap(mbuf, scol->mbuf);
   std::swap(strbuf, scol->strbuf);
-  delete rescol;
   if (stats) stats->reset();
 }
 
