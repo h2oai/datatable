@@ -155,8 +155,6 @@ public:
   Column(Column&&) = delete;
   virtual ~Column();
 
-  size_t elemsize() const { return info(_stype).elemsize(); }
-
   virtual bool get_element(size_t i, int32_t* out) const;
   virtual bool get_element(size_t i, int64_t* out) const;
   virtual bool get_element(size_t i, float* out) const;

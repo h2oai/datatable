@@ -50,7 +50,7 @@ void FwColumn<T>::init_data() {
 template <typename T>
 void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
   xassert(!ri);
-  size_t exp_buf_len = nrows * elemsize();
+  size_t exp_buf_len = nrows * sizeof(T);
   if (static_cast<size_t>(pybuffer->len) != exp_buf_len) {
     throw Error() << "PyBuffer cannot be used to create a column of " << nrows
                   << " rows: buffer length is "

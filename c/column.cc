@@ -84,10 +84,11 @@ Column* Column::new_xbuf_column(SType stype,
  * Construct a column using existing MemoryRanges.
  */
 Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
+  size_t elemsize = info(stype).elemsize();
   Column* col = new_column(stype);
-  xassert(mbuf.size() % col->elemsize() == 0);
+  xassert(mbuf.size() % elemsize == 0);
   xassert(stype == SType::OBJ? mbuf.is_pyobjects() : true);
-  col->nrows = mbuf.size() / col->elemsize();
+  col->nrows = mbuf.size() / elemsize;
   col->mbuf = std::move(mbuf);
   return col;
 }
