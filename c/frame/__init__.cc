@@ -328,7 +328,7 @@ class FrameInitializationManager {
 
 
     void init_mystery_frame() {
-      cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
+      cols.push_back(OColumn::from_range(42, 43, 1, SType::VOID));
       make_datatable(strvec { "?" });
     }
 
@@ -601,7 +601,7 @@ class FrameInitializationManager {
       }
       else if (colsrc.is_range()) {
         auto r = colsrc.to_orange();
-        col = Column::from_range(r.start(), r.stop(), r.step(), s);
+        col = OColumn::from_range(r.start(), r.stop(), r.step(), s);
       }
       else {
         throw TypeError() << "Cannot create a column from " << colsrc.typeobj();

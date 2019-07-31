@@ -214,6 +214,19 @@ def test_create_from_range():
     assert d0.to_list() == [list(range(8))]
 
 
+@pytest.mark.parametrize("r", [range(1, 3), range(2, 7, 3), range(-1, 4, 2),
+                               range(5, 2, -1), range(278, -14, -5),
+                               range(2, 2, 2), range(2, 3, 15), range(-3, -1),
+                               range(4, 3, 3), range(2, 3, -2),
+                               range(4, 6, -10), range(4, 8, -2),
+                               range(4, 2, -2)])
+def test_create_from_range2(r):
+    DT = dt.Frame(A=r)
+    frame_integrity_check(DT)
+    assert DT.ncols == 1
+    assert DT.to_list()[0] == list(r)
+
+
 
 #-------------------------------------------------------------------------------
 # Create from a list of lists
