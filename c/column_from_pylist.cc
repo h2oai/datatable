@@ -581,7 +581,7 @@ Column* Column::from_pylist_of_dicts(
 //------------------------------------------------------------------------------
 
 template <typename T>
-static Column* _make_range_column(
+static OColumn _make_range_column(
     int64_t start, int64_t length, int64_t step, SType stype)
 {
   Column* col = Column::new_data_column(stype, static_cast<size_t>(length));
@@ -590,11 +590,11 @@ static Column* _make_range_column(
     elems[i] = static_cast<T>(j);
     j += step;
   }
-  return col;
+  return OColumn(col);
 }
 
 
-Column* Column::from_range(
+OColumn Column::from_range(
     int64_t start, int64_t stop, int64_t step, SType stype)
 {
   int64_t length = (stop - start - (step > 0 ? 1 : -1)) / step + 1;
@@ -609,10 +609,8 @@ Column* Column::from_range(
     case SType::INT32: return _make_range_column<int32_t>(start, length, step, stype);
     case SType::INT64: return _make_range_column<int64_t>(start, length, step, stype);
     default: {
-      Column* col = _make_range_column<int64_t>(start, length, step, SType::INT64);
-      Column* res = col->cast(stype).release();
-      delete col;
-      return res;
+      OColumn col = _make_range_column<int64_t>(start, length, step, SType::INT64);
+      return col->cast(stype);
     }
   }
 }

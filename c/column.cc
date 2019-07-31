@@ -219,12 +219,6 @@ const Column* OColumn::get() const {
   return pcol;  // borrowed ref
 }
 
-Column* OColumn::release() {
-  Column* ret = pcol;
-  pcol = nullptr;
-  return ret;
-}
-
 Column* OColumn::operator->() {
   return pcol;
 }

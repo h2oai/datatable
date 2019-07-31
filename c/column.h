@@ -150,7 +150,7 @@ public:
   static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
   static Column* from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
   static Column* from_buffer(const py::robj& buffer);
-  static Column* from_range(int64_t start, int64_t stop, int64_t step, SType s);
+  static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType s);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
@@ -365,7 +365,11 @@ class OColumn
 
     // TEMP accessors to the underlying implementation
     const Column* get() const;
-    Column* release();
+    Column* release() {
+      Column* ret = pcol;
+      pcol = nullptr;
+      return ret;
+    }
 
     Column* operator->();
     const Column* operator->() const;

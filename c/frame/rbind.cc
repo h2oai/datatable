@@ -503,7 +503,7 @@ void PyObjectColumn::rbind_impl(
         col = col->cast(_stype);
       }
       auto src_data = static_cast<PyObject* const*>(col->data());
-      for (size_t i = 0; i < col->nrows; ++i) {
+      for (size_t i = 0; i < col.nrows(); ++i) {
         Py_INCREF(src_data[i]);
         Py_DECREF(*dest_data);
         *dest_data = src_data[i];
