@@ -259,7 +259,7 @@ public:
    * Individual entries in the `columns` array may be instances of `VoidColumn`,
    * indicating columns that should be replaced with NAs.
    */
-  Column* rbind(colvec& columns);
+  // Column* rbind(colvec& columns);
 
   /**
    * "Materialize" the Column. If the Column has no rowindex, this is a no-op.

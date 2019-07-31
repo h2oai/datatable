@@ -315,9 +315,6 @@ py::oobj OColumn::get_element_as_pyobject(size_t i) const {
 
 
 
-void OColumn::rbind(colvec& columns) {
-  pcol = pcol->rbind(columns);
-}
 
 void OColumn::materialize() {
   pcol->materialize();

@@ -308,28 +308,27 @@ void DataTable::rbind(
 //  Column::rbind()
 //------------------------------------------------------------------------------
 
-Column* Column::rbind(colvec& columns)
-{
+void OColumn::rbind(colvec& columns) {
   // Is the current column "empty" ?
-  bool col_empty = (_stype == SType::VOID);
+  bool col_empty = (stype() == SType::VOID);
   // Compute the final number of rows and stype
-  size_t new_nrows = this->nrows;
-  SType new_stype = col_empty? SType::BOOL : _stype;
+  size_t new_nrows = nrows();
+  SType new_stype = col_empty? SType::BOOL : stype();
   for (const auto& col : columns) {
     new_nrows += col.nrows();
     new_stype = std::max(new_stype, col.stype());
   }
 
   // Create the resulting Column object. It can be either: an empty column
-  // filled with NAs; the current column (`this`); a clone of the current
+  // filled with NAs; the current column (`pcol`); a clone of the current
   // column (if it has refcount > 1); or a type-cast of the current column.
   Column* res = nullptr;
   if (col_empty) {
-    res = Column::new_na_column(new_stype, this->nrows);
-  } else if (_stype == new_stype) {
-    res = this;
+    res = Column::new_na_column(new_stype, nrows());
+  } else if (pcol->_stype == new_stype) {
+    res = pcol;
   } else {
-    res = this->cast(new_stype).release();
+    res = pcol->cast(new_stype).release();
   }
   xassert(res->_stype == new_stype);
 
@@ -341,10 +340,9 @@ Column* Column::rbind(colvec& columns)
 
   // If everything is fine, then the current column can be safely discarded
   // -- the upstream caller will replace this column with the `res`.
-  if (res != this) delete this;
-  return res;
+  if (res != pcol) delete pcol;
+  pcol = res;
 }
-
 
 
 

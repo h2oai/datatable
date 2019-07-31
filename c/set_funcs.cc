@@ -109,8 +109,8 @@ static sort_result sort_columns(ccolvec&& cv) {
     res.column = std::move(cv.columns[0]);
     res.column.materialize();
   } else {
-    // TODO: std::move(cv.columns) here
-    res.column = OColumn((new VoidColumn(0))->rbind(cv.columns));
+    res.column = OColumn(new VoidColumn(0));
+    res.column.rbind(cv.columns);
   }
   res.ri = res.column->sort(&res.gb);
 
