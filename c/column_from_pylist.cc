@@ -594,10 +594,12 @@ static OColumn _make_range_column(
 }
 
 
-OColumn Column::from_range(
+OColumn OColumn::from_range(
     int64_t start, int64_t stop, int64_t step, SType stype)
 {
-  int64_t length = (stop - start - (step > 0 ? 1 : -1)) / step + 1;
+  xassert(step != 0);
+  int64_t length = (step > 0) ? (stop - start + step - 1) / step
+                              : (start - stop - step - 1) / (-step);
   if (length < 0) length = 0;
   if (stype == SType::VOID) {
     stype = (start == static_cast<int32_t>(start) &&

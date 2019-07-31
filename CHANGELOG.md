@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   command `cmd` in the shell. Previously the error was silently discarded
   (#1935).
 
+- datatable now correctly handles the case of a degenerate range, producing
+  an empty Frame instead of a 1-row Frame (#1942).
+
 
 ### Changed
 
