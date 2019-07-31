@@ -447,10 +447,9 @@ class FrameInitializationManager {
           auto colsrc  = npsrc.get_attr("data").get_item(col_key);
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
           make_column(colsrc, SType::VOID);
-          Column* maskcol = Column::from_buffer(masksrc);
-          xassert(maskcol->_stype == SType::BOOL);
-          cols.back()->apply_na_mask(static_cast<BoolColumn*>(maskcol));
-          delete maskcol;
+          OColumn maskcol = OColumn::from_buffer(masksrc);
+          xassert(maskcol.stype() == SType::BOOL);
+          cols.back()->apply_na_mask(static_cast<const BoolColumn*>(maskcol.get()));
         }
       } else {
         for (size_t i = 0; i < ncols; ++i) {
@@ -594,7 +593,7 @@ class FrameInitializationManager {
         col = srcdt->get_ocolumn(0);
       }
       else if (colsrc.is_buffer()) {
-        col = OColumn(Column::from_buffer(colsrc));
+        col = OColumn::from_buffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
         col = OColumn(Column::from_pylist(colsrc.to_pylist(), int(s)));

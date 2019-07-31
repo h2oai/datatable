@@ -149,7 +149,6 @@ public:
   static Column* from_pylist(const py::olist& list, int stype0 = 0);
   static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
   static Column* from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
-  static Column* from_buffer(const py::robj& buffer);
 
   Column(const Column&) = delete;
   Column(Column&&) = delete;
@@ -359,6 +358,7 @@ class OColumn
     OColumn& operator=(OColumn&&);
     ~OColumn();
 
+    static OColumn from_buffer(const py::robj& buffer);
     static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType);
 
     // TODO: remove

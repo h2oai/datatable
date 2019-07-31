@@ -46,7 +46,7 @@ static char strB[] = "B";
 // Construct a Column from a python object implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-Column* Column::from_buffer(const py::robj& pyobj)
+OColumn OColumn::from_buffer(const py::robj& pyobj)
 {
   auto pview = std::unique_ptr<Py_buffer>(new Py_buffer());
   Py_buffer* view = pview.get();
@@ -56,11 +56,11 @@ Column* Column::from_buffer(const py::robj& pyobj)
     auto dtype = pyobj.get_attr("dtype");
     auto kind = dtype.get_attr("kind").to_string();
     if (kind == "M" || kind == "m") {
-      return Column::from_buffer(pyobj.invoke("astype", "(s)", "str"));
+      return from_buffer(pyobj.invoke("astype", "(s)", "str"));
     }
     auto fmt = dtype.get_attr("char").to_string();
     if (kind == "f" && fmt == "e") {  // float16
-      return Column::from_buffer(pyobj.invoke("astype", "(s)", "float32"));
+      return from_buffer(pyobj.invoke("astype", "(s)", "float32"));
     }
   }
 
@@ -129,7 +129,7 @@ Column* Column::from_buffer(const py::robj& pyobj)
   if (res->_stype == SType::OBJ) {
     res = try_to_resolve_object_column(res);
   }
-  return res;
+  return OColumn(res);
 }
 
 
