@@ -116,18 +116,12 @@ bool Column::get_element(size_t, py::oobj*) const {
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
+Column* Column::shallowcopy() const {
   Column* col = new_column_impl(_stype);
   col->nrows = nrows;
   col->mbuf = mbuf;
+  col->ri = ri;
   // TODO: also copy Stats object
-
-  if (new_rowindex) {
-    col->ri = new_rowindex;
-    col->nrows = new_rowindex.size();
-  } else if (ri) {
-    col->ri = ri;
-  }
   return col;
 }
 

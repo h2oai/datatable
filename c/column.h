@@ -201,8 +201,7 @@ public:
    * If you want the rowindices to be merged, you should merge them manually
    * and pass the merged rowindex to this method.
    */
-  virtual Column* shallowcopy(const RowIndex& new_rowindex) const;
-  Column* shallowcopy() const { return shallowcopy(RowIndex()); }
+  virtual Column* shallowcopy() const;
 
   /**
    * Factory method to cast the current column into the given `stype`. If a
@@ -628,7 +627,7 @@ public:
 
   CString mode() const;
 
-  Column* shallowcopy(const RowIndex& new_rowindex) const override;
+  Column* shallowcopy() const override;
   void replace_values(RowIndex at, const OColumn& with) override;
   StringStats<T>* get_stats() const override;
 

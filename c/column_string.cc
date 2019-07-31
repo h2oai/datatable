@@ -109,8 +109,8 @@ void StringColumn<T>::init_data() {
 //==============================================================================
 
 template <typename T>
-Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
-  Column* newcol = Column::shallowcopy(new_rowindex);
+Column* StringColumn<T>::shallowcopy() const {
+  Column* newcol = Column::shallowcopy();
   StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
   col->strbuf = strbuf;
   return col;
