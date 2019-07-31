@@ -265,7 +265,7 @@ OColumn scalar_int_rn::make_column(SType st, size_t nrows) const {
                 rst == SType::FLOAT32? _make1<float>(rst) :
                 rst == SType::FLOAT64? _make1<double>(rst) : OColumn();
   xassert(col1);
-  return OColumn(col1->repeat(nrows));
+  return col1->repeat(nrows);
 }
 
 
@@ -323,7 +323,7 @@ OColumn scalar_float_rn::make_column(SType st, size_t nrows) const {
     static_cast<FwColumn<double>*>(const_cast<Column*>(col.get()))
         ->set_elem(0, value);
   }
-  return OColumn(col->repeat(nrows));
+  return col->repeat(nrows);
 }
 
 
