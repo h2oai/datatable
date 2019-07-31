@@ -256,17 +256,15 @@ static int32_t binsearch(const T* data, int32_t len, T value) {
 
 
 template <typename T>
-RowIndex FwColumn<T>::join(const Column* keycol) const {
-  xassert(_stype == keycol->_stype);
-
-  auto kcol = static_cast<const FwColumn<T>*>(keycol);
-  xassert(!kcol->ri);
+RowIndex FwColumn<T>::join(const OColumn& keycol) const {
+  xassert(_stype == keycol.stype());
+  xassert(!keycol->rowindex());
 
   arr32_t target_indices(nrows);
   int32_t* trg_indices = target_indices.data();
   const T* src_data = elements_r();
-  const T* search_data = kcol->elements_r();
-  int32_t search_n = static_cast<int32_t>(keycol->nrows);
+  const T* search_data = static_cast<const T*>(keycol->data());
+  int32_t search_n = static_cast<int32_t>(keycol.nrows());
 
   ri.iterate(0, nrows, 1,
     [&](size_t i, size_t j) {

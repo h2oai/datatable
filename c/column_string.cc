@@ -494,11 +494,11 @@ static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
 
 
 template <typename T>
-RowIndex StringColumn<T>::join(const Column* keycol) const {
-  xassert(_stype == keycol->_stype);
+RowIndex StringColumn<T>::join(const OColumn& keycol) const {
+  xassert(_stype == keycol.stype());
+  xassert(!keycol->rowindex());
 
-  auto kcol = static_cast<const StringColumn<T>*>(keycol);
-  xassert(!kcol->ri);
+  auto kcol = static_cast<const StringColumn<T>*>(keycol.get());
 
   arr32_t target_indices(nrows);
   int32_t* trg_indices = target_indices.data();

@@ -327,5 +327,5 @@ void VoidColumn::replace_values(RowIndex, const OColumn&) {}
 void VoidColumn::init_data() {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
-RowIndex VoidColumn::join(const Column*) const { return RowIndex(); }
+RowIndex VoidColumn::join(const OColumn&) const { return RowIndex(); }
 void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
