@@ -54,14 +54,14 @@ bool IntColumn<T>::get_element(size_t i, int64_t* out) const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-IntegerStats<T>* IntColumn<T>::get_stats() const {
-  if (stats == nullptr) stats = new IntegerStats<T>();
-  return static_cast<IntegerStats<T>*>(stats);
+IntegerStats<promote<T>>* IntColumn<T>::get_stats() const {
+  if (stats == nullptr) stats = new IntegerStats<promote<T>>();
+  return static_cast<IntegerStats<promote<T>>*>(stats);
 }
 
-template <typename T> T       IntColumn<T>::min() const  { return get_stats()->min(this); }
-template <typename T> T       IntColumn<T>::max() const  { return get_stats()->max(this); }
-template <typename T> T       IntColumn<T>::mode() const { return get_stats()->mode(this); }
+template <typename T> T       IntColumn<T>::min() const  { return downcast<T>(get_stats()->min(this)); }
+template <typename T> T       IntColumn<T>::max() const  { return downcast<T>(get_stats()->max(this)); }
+template <typename T> T       IntColumn<T>::mode() const { return downcast<T>(get_stats()->mode(this)); }
 template <typename T> int64_t IntColumn<T>::sum() const  { return get_stats()->sum(this); }
 template <typename T> double  IntColumn<T>::mean() const { return get_stats()->mean(this); }
 template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->stdev(this); }

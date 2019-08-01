@@ -169,8 +169,6 @@ void Stats::verify_stat(Stat s, T value, F getter) const {
 template <typename T, typename A>
 void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
   size_t nrows = col->nrows;
-  const RowIndex& rowindex = col->rowindex();
-  const T* data = static_cast<const T*>(col->data());
   size_t count_notna = 0;
   double mean = 0;
   double m2 = 0;
@@ -198,10 +196,9 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
 
       dt::nested_for_static(nrows,
         [&](size_t i) {
-          size_t j = rowindex[i];
-          if (j == RowIndex::NA) return;
-          T x = data[j];
-          if (ISNA<T>(x)) return;
+          T x;
+          bool r = col->get_element(i, &x);
+          if (r) return;
           n1 = t_count_notna;
           ++t_count_notna;
           n2 = t_count_notna; // readability
@@ -285,7 +282,6 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
 
 template <typename T, typename A>
 void NumericalStats_<T, A>::compute_sorted_stats(const Column* col) {
-  const T* coldata = static_cast<const T*>(col->data());
   Groupby grpby;
   RowIndex ri = col->sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
@@ -295,8 +291,9 @@ void NumericalStats_<T, A>::compute_sorted_stats(const Column* col) {
   // we did not yet compute the NA count for the column, we can do so now by
   // checking whether the elements in the first group are NA or not.
   if (!is_computed(Stat::NaCount)) {
-    T x0 = coldata[ri[0]];
-    _countna = ISNA<T>(x0)? static_cast<size_t>(groups[1]) : 0;
+    T x0;
+    bool r = col->get_element(ri[0], &x0);
+    _countna = r? static_cast<size_t>(groups[1]) : 0;
     set_computed(Stat::NaCount);
   }
 
@@ -316,7 +313,13 @@ void NumericalStats_<T, A>::compute_sorted_stats(const Column* col) {
 
   _nmodal = max_grpsize;
   size_t ig = static_cast<size_t>(groups[best_igrp]);
-  _mode = max_grpsize ? coldata[ri[ig]] : GETNA<T>();
+  bool r = true;
+  if (max_grpsize) {
+    r = col->get_element(ri[ig], &_mode);
+  }
+  if (r) {
+    _mode = GETNA<T>();
+  }
   set_computed(Stat::NModal);
   set_computed(Stat::Mode);
 }
@@ -401,10 +404,6 @@ void NumericalStats_<T, A>::verify_more(Stats* test, const Column* col) const
   // verify_stat(Stat::Kurt,  _kurt,  [&](){ return ntest->kurt(col); });
 }
 
-
-
-template class NumericalStats_<int8_t, int64_t>;
-template class NumericalStats_<int16_t, int64_t>;
 template class NumericalStats_<int32_t, int64_t>;
 template class NumericalStats_<int64_t, int64_t>;
 template class NumericalStats_<float, double>;
@@ -454,8 +453,6 @@ IntegerStats<T>* IntegerStats<T>::make() const {
 }
 
 
-template class IntegerStats<int8_t>;
-template class IntegerStats<int16_t>;
 template class IntegerStats<int32_t>;
 template class IntegerStats<int64_t>;
 
@@ -473,44 +470,42 @@ template class IntegerStats<int64_t>;
  *      sd = ( ---------------------------------------- )
  *            \ (count0 + count1 - 1)(count0 + count1) /
  */
-void BooleanStats::compute_numerical_stats(const Column *col) {
-  std::atomic<size_t> acount0 { 0 };
+void BooleanStats::compute_numerical_stats(const Column* col) {
+  std::atomic<size_t> acountA { 0 };
   std::atomic<size_t> acount1 { 0 };
   size_t nrows = col->nrows;
-  const int8_t* data = static_cast<const int8_t*>(col->data());
-  const RowIndex& rowindex = col->rowindex();
 
   dt::parallel_region(
     [&] {
-      size_t tcount0 = 0;
+      size_t tcountA = 0;
       size_t tcount1 = 0;
 
       dt::nested_for_static(nrows,
         [&](size_t i) {
-          size_t j = rowindex[i];
-          if (j == RowIndex::NA) return;
-          int8_t x = data[j];
-          tcount0 += (x == 0);
-          tcount1 += (x == 1);
+          int32_t x;
+          bool r = col->get_element(i, &x);
+          if (r) return;
+          tcountA++;
+          tcount1 += static_cast<uint32_t>(x);
         });
 
-      acount0 += tcount0;
+      acountA += tcountA;
       acount1 += tcount1;
     });
-  size_t count0 = acount0.load();
+  size_t t_count = acountA.load();
   size_t count1 = acount1.load();
-  size_t t_count = count0 + count1;
+  size_t count0 = t_count - count1;
   double dcount0 = static_cast<double>(count0);
   double dcount1 = static_cast<double>(count1);
   _mean = t_count > 0 ? dcount1 / t_count : GETNA<double>();
   _sd = t_count > 1 ? std::sqrt(dcount0/t_count * dcount1/(t_count - 1))
                     : t_count == 1 ? 0 : GETNA<double>();
-  _min = count0 ? 0 : count1 ? 1 : GETNA<int8_t>();
-  _max = count1 ? 1 : count0 ? 0 : GETNA<int8_t>();
+  _min = count0 ? 0 : count1 ? 1 : GETNA<int32_t>();
+  _max = count1 ? 1 : count0 ? 0 : GETNA<int32_t>();
   _sum = static_cast<int64_t>(count1);
   _countna = nrows - t_count;
   _nunique = (!!count0) + (!!count1);
-  _mode = _nunique ? (count1 >= count0) : GETNA<int8_t>();
+  _mode = _nunique ? (count1 >= count0) : GETNA<int32_t>();
   _nmodal = _mode == 1 ? count1 : _mode == 0 ? count0 : 0;
   set_computed(Stat::Max);
   set_computed(Stat::Mean);

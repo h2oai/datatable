@@ -108,7 +108,7 @@ static MemoryRange extract_buffer(
 
 template <typename T, typename JStats>
 static void initStats(Stats* stats, const jay::Column* jcol) {
-  auto tstats = static_cast<NumericalStats<T>*>(stats);
+  auto tstats = static_cast<NumericalStats<promote<T>>*>(stats);
   auto jstats = static_cast<const JStats*>(jcol->stats());
   if (jstats) {
     tstats->set_countna(jcol->nullcount());
