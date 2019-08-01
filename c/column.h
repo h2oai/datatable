@@ -647,7 +647,7 @@ public:
 
   Column* shallowcopy() const override;
   void replace_values(RowIndex at, const OColumn& with) override;
-  StringStats<T>* get_stats() const override;
+  StringStats* get_stats() const override;
 
   void verify_integrity(const std::string& name) const override;
 

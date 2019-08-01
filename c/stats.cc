@@ -433,7 +433,7 @@ void RealStats<T>::compute_numerical_stats(const Column *col) {
 
 
 template <typename T>
-RealStats<T>* RealStats<T>::make() const {
+Stats* RealStats<T>::make() const {
   return new RealStats<T>();
 }
 
@@ -448,7 +448,7 @@ template class RealStats<double>;
 //==============================================================================
 
 template <typename T>
-IntegerStats<T>* IntegerStats<T>::make() const {
+Stats* IntegerStats<T>::make() const {
   return new IntegerStats<T>();
 }
 
@@ -524,7 +524,7 @@ void BooleanStats::compute_sorted_stats(const Column *col) {
 }
 
 
-BooleanStats* BooleanStats::make() const {
+Stats* BooleanStats::make() const {
   return new BooleanStats();
 }
 
@@ -534,25 +534,22 @@ BooleanStats* BooleanStats::make() const {
 // StringStats
 //==============================================================================
 
-template <typename T>
-void StringStats<T>::compute_countna(const Column* col) {
+void StringStats::compute_countna(const Column* col) {
   _countna = _count_nas<CString>(col);
   set_computed(Stat::NaCount);
 }
 
 
-template <typename T>
-void StringStats<T>::compute_sorted_stats(const Column* col) {
-  const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
-  const T* offsets = scol->offsets();
+void StringStats::compute_sorted_stats(const Column* col) {
   Groupby grpby;
   RowIndex ri = col->sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
 
   if (!is_computed(Stat::NaCount)) {
-    T off0 = offsets[ri[0]];
-    _countna = ISNA<T>(off0)? static_cast<size_t>(groups[1]) : 0;
+    CString target;
+    bool r = col->get_element(ri[0], &target);
+    _countna = r? static_cast<size_t>(groups[1]) : 0;
     set_computed(Stat::NaCount);
   }
 
@@ -571,17 +568,12 @@ void StringStats<T>::compute_sorted_stats(const Column* col) {
   }
 
   if (max_grpsize) {
-    size_t ig = static_cast<size_t>(groups[best_igrp]);
-    size_t i = ri[ig];
-    T o0 = offsets[i - 1] & ~GETNA<T>();
     _nmodal = max_grpsize;
-    // FIXME: this is dangerous, what if strdata() pointer changes for any reason?
-    _mode.ch = scol->strdata() + o0;
-    _mode.size = static_cast<int64_t>(offsets[i] - o0);
+    size_t ig = static_cast<size_t>(groups[best_igrp]);
+    col->get_element(ri[ig], &_mode);
   } else {
     _nmodal = 0;
-    _mode.ch = nullptr;
-    _mode.size = -1;
+    _mode = CString();
   }
   set_computed(Stat::NModal);
   set_computed(Stat::Mode);
@@ -603,8 +595,7 @@ struct StrEqual {
 };
 
 
-template <typename T>
-void StringStats<T>::compute_nunique(const Column* col) {
+void StringStats::compute_nunique(const Column* col) {
   dt::shared_bmutex rwmutex;
   phmap::parallel_flat_hash_set<CString, StrHasher, StrEqual> values_seen;
 
@@ -635,21 +626,15 @@ void StringStats<T>::compute_nunique(const Column* col) {
 }
 
 
-template <typename T>
-CString StringStats<T>::mode(const Column* col) {
+CString StringStats::mode(const Column* col) {
   if (!is_computed(Stat::Mode)) compute_sorted_stats(col);
   return _mode;
 }
 
 
-template <typename T>
-StringStats<T>* StringStats<T>::make() const {
-  return new StringStats<T>();
+Stats* StringStats::make() const {
+  return new StringStats();
 }
-
-
-template class StringStats<uint32_t>;
-template class StringStats<uint64_t>;
 
 
 
@@ -668,6 +653,6 @@ void PyObjectStats::compute_sorted_stats(const Column*) {
   throw NotImplError();
 }
 
-PyObjectStats* PyObjectStats::make() const {
+Stats* PyObjectStats::make() const {
   return new PyObjectStats();
 }

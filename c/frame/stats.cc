@@ -111,7 +111,7 @@ static OColumn _modecol_num(Stats* stats, const OColumn& col) {
 
 template <typename T>
 static OColumn _modecol_str(Stats* stats, const OColumn& col) {
-  return _make_column_str<T>(static_cast<StringStats<T>*>(stats)->mode(col.get()));
+  return _make_column_str<T>(static_cast<StringStats*>(stats)->mode(col.get()));
 }
 
 static OColumn _countnacol(Stats* stats, const OColumn& col) {
@@ -154,8 +154,7 @@ static inline oobj pyvalue_real(void* ptr) {
 
 static inline oobj pyvalue_str(void* ptr) {
   CString& x = *reinterpret_cast<CString*>(ptr);
-  return x.size >= 0? ostring(x.ch, static_cast<size_t>(x.size))
-                    : None();
+  return x.isna()? None() : ostring(x);
 }
 
 template <SType s> oobj pyvalue(void* ptr);

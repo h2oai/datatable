@@ -536,9 +536,9 @@ void StringColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-StringStats<T>* StringColumn<T>::get_stats() const {
-  if (stats == nullptr) stats = new StringStats<T>();
-  return static_cast<StringStats<T>*>(stats);
+StringStats* StringColumn<T>::get_stats() const {
+  if (stats == nullptr) stats = new StringStats();
+  return static_cast<StringStats*>(stats);
 }
 
 template <typename T>
