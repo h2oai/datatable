@@ -612,11 +612,6 @@ struct StrEqual {
 
 template <typename T>
 void StringStats<T>::compute_nunique(const Column* col) {
-  auto scol = reinterpret_cast<const StringColumn<T>*>(col);
-  const RowIndex& rowindex = scol->rowindex();
-  const char* strdata = scol->strdata();
-  const T* offsets = scol->offsets();
-
   dt::shared_bmutex rwmutex;
   phmap::parallel_flat_hash_set<CString, StrHasher, StrEqual> values_seen;
 
@@ -627,13 +622,10 @@ void StringStats<T>::compute_nunique(const Column* col) {
     [&](size_t i) {
       size_t j0 = i * batch_size;
       size_t j1 = std::min(j0 + batch_size, col->nrows);
+      CString str;
       for (size_t j = j0; j < j1; ++j) {
-        size_t jj = rowindex[j];
-        if (static_cast<int64_t>(jj) < 0) continue;
-        T start = offsets[jj-1] & ~GETNA<T>();
-        T end = offsets[jj];
-        if (ISNA<T>(end)) continue;
-        CString str(strdata+start, static_cast<int64_t>(end - start));
+        bool r = col->get_element(j, &str);
+        if (r) continue;
         {
           dt::shared_lock<dt::shared_bmutex> lock(rwmutex, false);
           if (values_seen.contains(str)) continue;
@@ -674,22 +666,17 @@ template class StringStats<uint64_t>;
 //==============================================================================
 
 void PyObjectStats::compute_countna(const Column* col) {
-  const RowIndex& rowindex = col->rowindex();
   size_t nrows = col->nrows;
   std::atomic<size_t> acountna { 0 };
-  PyObject* const* data = static_cast<PyObject* const*>(col->data());
 
   dt::parallel_region(
     [&] {
       size_t tcountna = 0;
-
+      py::robj target;
       dt::nested_for_static(nrows,
         [&](size_t i) {
-          size_t j = rowindex[i];
-          if (j == RowIndex::NA) return;
-          tcountna += (data[j] == Py_None);
+          tcountna += col->get_element(i, &target);
         });
-
       acountna += tcountna;
     });
 
