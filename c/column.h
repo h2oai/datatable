@@ -166,7 +166,7 @@ public:
   virtual bool get_element(size_t i, float* out) const;
   virtual bool get_element(size_t i, double* out) const;
   virtual bool get_element(size_t i, CString* out) const;
-  virtual bool get_element(size_t i, py::oobj* out) const;
+  virtual bool get_element(size_t i, py::robj* out) const;
 
   const RowIndex& rowindex() const noexcept { return ri; }
   RowIndex remove_rowindex();
@@ -416,7 +416,7 @@ class OColumn
     bool get_element(size_t i, float* out) const;
     bool get_element(size_t i, double* out) const;
     bool get_element(size_t i, CString* out) const;
-    bool get_element(size_t i, py::oobj* out) const;
+    bool get_element(size_t i, py::robj* out) const;
 
     // `get_element_as_pyobject(i)` returns the i-th element of the column
     // wrapped into a pyobject of the appropriate type. Use this function
@@ -601,7 +601,7 @@ public:
   PyObjectColumn(size_t nrows, MemoryRange&&);
   PyObjectStats* get_stats() const override;
 
-  bool get_element(size_t i, py::oobj* out) const override;
+  bool get_element(size_t i, py::robj* out) const override;
 
 protected:
 

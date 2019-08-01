@@ -31,7 +31,7 @@ PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
 
 
 
-bool PyObjectColumn::get_element(size_t i, py::oobj* out) const {
+bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
   size_t j = (this->ri)[i];
   if (j == RowIndex::NA) return true;
   PyObject* x = this->elements_r()[j];

@@ -105,7 +105,7 @@ bool Column::get_element(size_t, CString*) const {
     << "Cannot retrieve string values from a column of type " << _stype;
 }
 
-bool Column::get_element(size_t, py::oobj*) const {
+bool Column::get_element(size_t, py::robj*) const {
   throw NotImplError()
     << "Cannot retrieve object values from a column of type " << _stype;
 }
@@ -232,7 +232,7 @@ bool OColumn::is_fixedwidth() const noexcept {
 }
 
 bool OColumn::is_virtual() const noexcept {
-  return bool(pcol->rowindex());
+  return bool(pcol->ri);
 }
 
 size_t OColumn::elemsize() const noexcept {
@@ -253,7 +253,7 @@ bool OColumn::get_element(size_t i, int64_t*  out) const { return pcol->get_elem
 bool OColumn::get_element(size_t i, float*    out) const { return pcol->get_element(i, out); }
 bool OColumn::get_element(size_t i, double*   out) const { return pcol->get_element(i, out); }
 bool OColumn::get_element(size_t i, CString*  out) const { return pcol->get_element(i, out); }
-bool OColumn::get_element(size_t i, py::oobj* out) const { return pcol->get_element(i, out); }
+bool OColumn::get_element(size_t i, py::robj* out) const { return pcol->get_element(i, out); }
 
 
 static inline py::oobj wrap(int32_t x) { return py::oint(x); }
@@ -261,7 +261,7 @@ static inline py::oobj wrap(int64_t x) { return py::oint(x); }
 static inline py::oobj wrap(float x) { return py::ofloat(x); }
 static inline py::oobj wrap(double x) { return py::ofloat(x); }
 static inline py::oobj wrap(const CString& x) { return py::ostring(x); }
-static inline py::oobj wrap(const py::oobj& x) { return x; }
+static inline py::oobj wrap(const py::robj& x) { return py::oobj(x); }
 
 template <typename T>
 static inline py::oobj getelem(const OColumn& col, size_t i) {
@@ -285,7 +285,7 @@ py::oobj OColumn::get_element_as_pyobject(size_t i) const {
     case SType::FLOAT64: return getelem<double>(*this, i);
     case SType::STR32:
     case SType::STR64:   return getelem<CString>(*this, i);
-    case SType::OBJ:     return getelem<py::oobj>(*this, i);
+    case SType::OBJ:     return getelem<py::robj>(*this, i);
     default:
       throw NotImplError() << "Unable to convert elements of stype "
           << stype() << " into python objects";
