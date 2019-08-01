@@ -26,6 +26,23 @@ constexpr T infinity() {
          : std::numeric_limits<T>::max();
 }
 
+template <typename T>
+static size_t _count_nas(const Column* col) {
+  size_t nrows = col->nrows;
+  std::atomic<size_t> total_countna { 0 };
+  dt::parallel_region(
+    [&] {
+      size_t th_countna = 0;
+      T target;
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          th_countna += col->get_element(i, &target);
+        });
+      total_countna += th_countna;
+    });
+  return total_countna.load();
+}
+
 static const char* stat_name(Stat s) {
   switch (s) {
     case Stat::NaCount: return "NaCount";
@@ -403,14 +420,15 @@ template class NumericalStats_<double, double>;
 template <typename T>
 void RealStats<T>::compute_numerical_stats(const Column *col) {
   NumericalStats_<T, double>::compute_numerical_stats(col);
-  if (std::isinf(this->_min) || std::isinf(this->_max)) {
+  bool min_inf = (this->_min == -std::numeric_limits<T>::infinity());
+  bool max_inf = (this->_max == +std::numeric_limits<T>::infinity());
+  if (min_inf || max_inf) {
     this->_sd = GETNA<double>();
     this->_skew = GETNA<double>();
     this->_kurt = GETNA<double>();
-    this->_mean = std::isinf(this->_min) && this->_min < 0 &&
-                  std::isinf(this->_max) && this->_max > 0
-        ? GETNA<double>()
-        : static_cast<double>(std::isinf(this->_min) ? this->_min : this->_max);
+    this->_mean = (min_inf && max_inf) ? GETNA<double>() :
+                  (min_inf) ? static_cast<double>(this->_min)
+                            : static_cast<double>(this->_max);
   }
 }
 
@@ -523,27 +541,7 @@ BooleanStats* BooleanStats::make() const {
 
 template <typename T>
 void StringStats<T>::compute_countna(const Column* col) {
-  const StringColumn<T>* scol = static_cast<const StringColumn<T>*>(col);
-  const RowIndex& rowindex = col->rowindex();
-  size_t nrows = scol->nrows;
-  std::atomic<size_t> acountna { 0 };
-  const T* data = scol->offsets();
-
-  dt::parallel_region(
-    [&] {
-      size_t tcountna = 0;
-
-      dt::nested_for_static(nrows,
-        [&](size_t i) {
-          size_t j = rowindex[i];
-          if (j == RowIndex::NA) return;
-          tcountna += data[j] >> (sizeof(T)*8 - 1);
-        });
-
-      acountna += tcountna;
-    });
-
-  _countna = acountna.load();
+  _countna = _count_nas<CString>(col);
   set_computed(Stat::NaCount);
 }
 
@@ -666,21 +664,7 @@ template class StringStats<uint64_t>;
 //==============================================================================
 
 void PyObjectStats::compute_countna(const Column* col) {
-  size_t nrows = col->nrows;
-  std::atomic<size_t> acountna { 0 };
-
-  dt::parallel_region(
-    [&] {
-      size_t tcountna = 0;
-      py::robj target;
-      dt::nested_for_static(nrows,
-        [&](size_t i) {
-          tcountna += col->get_element(i, &target);
-        });
-      acountna += tcountna;
-    });
-
-  _countna = acountna.load();
+  _countna = _count_nas<py::robj>(col);
   set_computed(Stat::NaCount);
 }
 
