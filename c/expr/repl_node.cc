@@ -100,7 +100,7 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
     const OColumn& coli = dtr->get_ocolumn(rcols == 1? 0 : i);
     if (!dt0->get_ocolumn(j)) {
       dt0->set_ocolumn(j,
-          OColumn(Column::new_na_column(coli.stype(), dt0->nrows)));
+          OColumn::new_na_column(coli.stype(), dt0->nrows));
     }
     OColumn& colj = dt0->get_ocolumn(j);
     colj->replace_values(ri0, coli);
@@ -177,7 +177,7 @@ void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
     OColumn replcol = make_column(stype, 1);
     stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
     if (!colj) {
-      dt0->set_ocolumn(j, OColumn(Column::new_na_column(stype, dt0->nrows)));
+      dt0->set_ocolumn(j, OColumn::new_na_column(stype, dt0->nrows));
     }
     else if (colj.stype() != stype) {
       dt0->set_ocolumn(j, colj.cast(stype));
@@ -213,7 +213,7 @@ bool scalar_na_rn::valid_ltype(LType) const noexcept {
 
 OColumn scalar_na_rn::make_column(SType st, size_t nrows) const {
   if (st == SType::VOID) st = SType::BOOL;
-  return OColumn(Column::new_na_column(st, nrows));
+  return OColumn::new_na_column(st, nrows);
 }
 
 
@@ -265,16 +265,16 @@ OColumn scalar_int_rn::make_column(SType st, size_t nrows) const {
                 rst == SType::FLOAT32? _make1<float>(rst) :
                 rst == SType::FLOAT64? _make1<double>(rst) : OColumn();
   xassert(col1);
-  return OColumn(col1->repeat(nrows));
+  return col1->repeat(nrows);
 }
 
 
 template <typename T>
 OColumn scalar_int_rn::_make1(SType st) const {
-  Column* col = Column::new_data_column(st, 1);
-  auto tcol = static_cast<FwColumn<T>*>(col);
+  OColumn col = OColumn::new_data_column(st, 1);
+  auto tcol = static_cast<FwColumn<T>*>(const_cast<Column*>(col.get()));
   tcol->set_elem(0, static_cast<T>(value));
-  return OColumn(col);
+  return col;
 }
 
 
@@ -315,13 +315,15 @@ OColumn scalar_float_rn::make_column(SType st, size_t nrows) const {
   // to value truncation (value does not fit into float32).
   SType rst = st == SType::VOID || std::abs(value) > MAX
               ? SType::FLOAT64 : st;
-  Column* col = Column::new_data_column(rst, 1);
+  OColumn col = OColumn::new_data_column(rst, 1);
   if (rst == SType::FLOAT32) {
-    static_cast<FwColumn<float>*>(col)->set_elem(0, static_cast<float>(value));
+    static_cast<FwColumn<float>*>(const_cast<Column*>(col.get()))
+        ->set_elem(0, static_cast<float>(value));
   } else {
-    static_cast<FwColumn<double>*>(col)->set_elem(0, value);
+    static_cast<FwColumn<double>*>(const_cast<Column*>(col.get()))
+        ->set_elem(0, value);
   }
-  return OColumn(col->repeat(nrows));
+  return col->repeat(nrows);
 }
 
 
@@ -353,7 +355,7 @@ bool scalar_string_rn::valid_ltype(LType lt) const noexcept {
 
 OColumn scalar_string_rn::make_column(SType st, size_t nrows) const {
   if (nrows == 0) {
-    return OColumn(new StringColumn<uint32_t>(0));
+    return OColumn::new_data_column(SType::STR32, 0);
   }
   size_t len = value.size();
   SType rst = (st == SType::VOID)? SType::STR32 : st;
@@ -368,11 +370,11 @@ OColumn scalar_string_rn::make_column(SType st, size_t nrows) const {
   }
   MemoryRange strbuf = MemoryRange::mem(len);
   std::memcpy(strbuf.xptr(), value.data(), len);
-  Column* col = new_string_column(1, std::move(offbuf), std::move(strbuf));
+  OColumn col = new_string_column(1, std::move(offbuf), std::move(strbuf));
   if (nrows > 1) {
     col->replace_rowindex(RowIndex(size_t(0), nrows, 0));
   }
-  return OColumn(col);
+  return col;
 }
 
 

@@ -50,7 +50,7 @@ OColumn writable_string_col::to_ocolumn() && {
   } else {
     offdata.set_element<uint32_t>(0, 0);
   }
-  return OColumn(new_string_column(n, std::move(offdata), std::move(strbuf)));
+  return new_string_column(n, std::move(offdata), std::move(strbuf));
 }
 
 

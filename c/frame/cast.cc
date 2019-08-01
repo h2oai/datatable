@@ -355,7 +355,7 @@ OColumn cast_manager::execute(const Column* src, MemoryRange&& target_mbuf,
     target_mbuf.set_pyobjects(/* clear = */ false);
   }
 
-  return OColumn(Column::new_mbuf_column(target_stype, std::move(target_mbuf)));
+  return OColumn::new_mbuf_column(target_stype, std::move(target_mbuf));
 }
 
 

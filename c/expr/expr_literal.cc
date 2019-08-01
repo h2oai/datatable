@@ -27,7 +27,7 @@ namespace expr {
 expr_literal::expr_literal(py::robj v) {
   py::olist lst(1);
   lst.set(0, v);
-  col = OColumn(Column::from_pylist(lst, 0));
+  col = OColumn::from_pylist(lst, 0);
 }
 
 

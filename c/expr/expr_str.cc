@@ -101,20 +101,20 @@ OColumn expr_string_match_re::evaluate_eager(workframe& wf) {
   auto arg_res = arg->evaluate_eager(wf);
   SType arg_stype = arg_res.stype();
   xassert(arg_stype == SType::STR32 || arg_stype == SType::STR64);
-  return arg_stype == SType::STR32? _compute<uint32_t>(arg_res.get())
-                                  : _compute<uint64_t>(arg_res.get());
+  return arg_stype == SType::STR32? _compute<uint32_t>(arg_res)
+                                  : _compute<uint64_t>(arg_res);
 }
 
 
 template <typename T>
-OColumn expr_string_match_re::_compute(const Column* src) {
-  auto ssrc = dynamic_cast<const StringColumn<T>*>(src);
-  size_t nrows = ssrc->nrows;
+OColumn expr_string_match_re::_compute(const OColumn& src) {
+  auto ssrc = dynamic_cast<const StringColumn<T>*>(src.get());
+  size_t nrows = src.nrows();
   RowIndex src_rowindex = ssrc->rowindex();
   const char* src_strdata = ssrc->strdata();
   const T* src_offsets = ssrc->offsets();
 
-  auto trg = new BoolColumn(nrows);
+  OColumn trg = OColumn::new_data_column(SType::BOOL, nrows);
   int8_t* trg_data = static_cast<int8_t*>(trg->data_w());
 
   dt::parallel_for_dynamic(nrows,
@@ -131,7 +131,7 @@ OColumn expr_string_match_re::_compute(const Column* src) {
                                   regex);
       trg_data[i] = res;
     });
-  return OColumn(trg);
+  return trg;
 }
 
 

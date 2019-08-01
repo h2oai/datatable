@@ -75,19 +75,19 @@ static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
 }
 
 
-Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
+OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
   size_t data_size = data.size();
   size_t strb_size = str.size();
 
   if (data_size == sizeof(uint32_t) * (n + 1)) {
     if (strb_size <= Column::MAX_STR32_BUFFER_SIZE &&
         n <= Column::MAX_STR32_NROWS) {
-      return new StringColumn<uint32_t>(n, std::move(data), std::move(str));
+      return OColumn(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
     }
     // Otherwise, offsets need to be recoded into a uint64_t array
     data = _recode_offsets_to_u64(data);
   }
-  return new StringColumn<uint64_t>(n, std::move(data), std::move(str));
+  return OColumn(new StringColumn<uint64_t>(n, std::move(data), std::move(str)));
 }
 
 
@@ -104,19 +104,13 @@ void StringColumn<T>::init_data() {
   mbuf.set_element<T>(0, 0);
 }
 
-// Not implemented (should it be?) see method signature in `Column` for
-// parameter definitions.
-template <typename T>
-void StringColumn<T>::init_xbuf(Py_buffer*) {
-  throw Error() << "String columns are incompatible with external buffers";
-}
 
 
 //==============================================================================
 
 template <typename T>
-Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
-  Column* newcol = Column::shallowcopy(new_rowindex);
+Column* StringColumn<T>::shallowcopy() const {
+  Column* newcol = Column::shallowcopy();
   StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
   col->strbuf = strbuf;
   return col;
@@ -394,8 +388,9 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
 
 
 template <typename T>
-void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
-  const int8_t* maskdata = mask->elements_r();
+void StringColumn<T>::apply_na_mask(const OColumn& mask) {
+  xassert(mask.stype() == SType::BOOL);
+  auto maskdata = static_cast<const int8_t*>(mask->data());
   char* strdata = static_cast<char*>(strbuf.wptr());
   T* offsets = this->offsets_w();
 
@@ -499,11 +494,11 @@ static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
 
 
 template <typename T>
-RowIndex StringColumn<T>::join(const Column* keycol) const {
-  xassert(_stype == keycol->_stype);
+RowIndex StringColumn<T>::join(const OColumn& keycol) const {
+  xassert(_stype == keycol.stype());
+  xassert(!keycol->rowindex());
 
-  auto kcol = static_cast<const StringColumn<T>*>(keycol);
-  xassert(!kcol->ri);
+  auto kcol = static_cast<const StringColumn<T>*>(keycol.get());
 
   arr32_t target_indices(nrows);
   int32_t* trg_indices = target_indices.data();

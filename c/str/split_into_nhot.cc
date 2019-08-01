@@ -165,11 +165,11 @@ DataTable* split_into_nhot(const OColumn& col, char sep,
               lock.exclusive_start();
               if (colsmap.count(s) == 0) {
                 colsmap[s] = outcols.size();
-                BoolColumn* newcol = new BoolColumn(nrows);
-                int8_t* data = newcol->elements_w();
+                auto newcol = OColumn::new_data_column(SType::BOOL, nrows);
+                int8_t* data = static_cast<int8_t*>(newcol->data_w());
                 std::memset(data, 0, nrows);
                 data[irow] = 1;
-                outcols.emplace_back(newcol);
+                outcols.push_back(std::move(newcol));
                 outdata.push_back(data);
                 outnames.push_back(s);
               } else {

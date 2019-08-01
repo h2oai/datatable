@@ -495,7 +495,7 @@ static SType find_next_stype(SType curr_stype, int stype0) {
 
 
 
-Column* Column::from_py_iterable(const iterable* il, int stype0)
+static OColumn ocolumn_from_iterable(const iterable* il, int stype0)
 {
   MemoryRange membuf;
   MemoryRange strbuf;
@@ -547,30 +547,30 @@ Column* Column::from_py_iterable(const iterable* il, int stype0)
     if (stype == SType::OBJ) {
       membuf.set_pyobjects(/* clear_data = */ false);
     }
-    return Column::new_mbuf_column(stype, std::move(membuf));
+    return OColumn::new_mbuf_column(stype, std::move(membuf));
   }
 }
 
 
-Column* Column::from_pylist(const py::olist& list, int stype0) {
+OColumn OColumn::from_pylist(const py::olist& list, int stype0) {
   ilist il(list);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
-Column* Column::from_pylist_of_tuples(
+OColumn OColumn::from_pylist_of_tuples(
     const py::olist& list, size_t index, int stype0)
 {
   ituplist il(list, index);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
-Column* Column::from_pylist_of_dicts(
+OColumn OColumn::from_pylist_of_dicts(
     const py::olist& list, py::robj name, int stype0)
 {
   idictlist il(list, name);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
@@ -584,16 +584,17 @@ template <typename T>
 static OColumn _make_range_column(
     int64_t start, int64_t length, int64_t step, SType stype)
 {
-  Column* col = Column::new_data_column(stype, static_cast<size_t>(length));
+  OColumn col = OColumn::new_data_column(stype, static_cast<size_t>(length));
   T* elems = static_cast<T*>(col->data_w());
   for (int64_t i = 0, j = start; i < length; ++i) {
     elems[i] = static_cast<T>(j);
     j += step;
   }
-  return OColumn(col);
+  return col;
 }
 
 
+// TODO: create a special "range" column instead
 OColumn OColumn::from_range(
     int64_t start, int64_t stop, int64_t step, SType stype)
 {

@@ -80,8 +80,8 @@ static void label_encode_bool(const OColumn& col, dtptr& dt_labels, dtptr& dt_en
   if (col.na_count() == col.nrows()) return;
 
   // Set up boolean labels and their corresponding ids.
-  OColumn ids_col(new BoolColumn(2));
-  OColumn labels_col(new BoolColumn(2));
+  OColumn ids_col = OColumn::new_data_column(SType::BOOL, 2);
+  OColumn labels_col = OColumn::new_data_column(SType::BOOL, 2);
   auto ids_data = static_cast<int8_t*>(ids_col->data_w());
   auto labels_data = static_cast<int8_t*>(labels_col->data_w());
   ids_data[0] = 0;

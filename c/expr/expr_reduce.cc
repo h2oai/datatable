@@ -79,7 +79,7 @@ static ReducerLibrary library;
 static OColumn reduce_first(const OColumn& col, const Groupby& groupby)
 {
   if (col.nrows() == 0) {
-    return OColumn(Column::new_data_column(col.stype(), 0));
+    return OColumn::new_data_column(col.stype(), 0);
   }
   size_t ngrps = groupby.ngroups();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the
@@ -89,7 +89,8 @@ static OColumn reduce_first(const OColumn& col, const Groupby& groupby)
   arr32_t indices(ngrps, groupby.offsets_r());
   RowIndex ri = RowIndex(std::move(indices), true)
                 * col->rowindex();
-  auto res = OColumn(col->shallowcopy(ri));
+  OColumn res = col;  // copy
+  res->replace_rowindex(ri);
   if (ngrps == 1) res->materialize();
   return res;
 }
@@ -322,7 +323,7 @@ OColumn expr_reduce1::evaluate_eager(workframe& wf)
   xassert(reducer);  // checked in .resolve()
 
   SType out_stype = reducer->output_stype;
-  auto res = OColumn(Column::new_data_column(out_stype, out_nrows));
+  auto res = OColumn::new_data_column(out_stype, out_nrows);
 
   RowIndex rowindex = input_col->rowindex();
   if (opcode == Op::MEDIAN && gb) {
@@ -372,24 +373,24 @@ GroupbyMode expr_reduce0::get_groupby_mode(const workframe&) const {
 
 
 OColumn expr_reduce0::evaluate_eager(workframe& wf) {
-  Column* res = nullptr;
+  OColumn res;
   if (opcode == Op::COUNT0) {  // COUNT
     if (wf.has_groupby()) {
       const Groupby& grpby = wf.get_groupby();
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
-      res = Column::new_data_column(SType::INT32, ng);
+      res = OColumn::new_data_column(SType::INT32, ng);
       auto d_res = static_cast<int32_t*>(res->data_w());
       for (size_t i = 0; i < ng; ++i) {
         d_res[i] = offsets[i + 1] - offsets[i];
       }
     } else {
-      res = Column::new_data_column(SType::INT64, 1);
+      res = OColumn::new_data_column(SType::INT64, 1);
       auto d_res = static_cast<int64_t*>(res->data_w());
       d_res[0] = static_cast<int64_t>(wf.nrows());
     }
   }
-  return OColumn(res);
+  return res;
 }
 
 

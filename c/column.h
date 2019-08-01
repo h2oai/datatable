@@ -82,6 +82,21 @@ template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 template <SType s>
 using element_t = typename _elt<s>::t;
 
+template <SType s> struct _gelt {};
+template <> struct _gelt<SType::BOOL>    { using t = int32_t; };
+template <> struct _gelt<SType::INT8>    { using t = int32_t; };
+template <> struct _gelt<SType::INT16>   { using t = int32_t; };
+template <> struct _gelt<SType::INT32>   { using t = int32_t; };
+template <> struct _gelt<SType::INT64>   { using t = int64_t; };
+template <> struct _gelt<SType::FLOAT32> { using t = float; };
+template <> struct _gelt<SType::FLOAT64> { using t = double; };
+template <> struct _gelt<SType::STR32>   { using t = CString; };
+template <> struct _gelt<SType::STR64>   { using t = CString; };
+template <> struct _gelt<SType::OBJ>     { using t = PyObject*; };
+
+template <SType s>
+using getelement_t = typename _gelt<s>::t;
+
 
 
 //==============================================================================
@@ -142,20 +157,9 @@ public:
   static constexpr size_t MAX_STR32_BUFFER_SIZE = 0x7FFFFFFF;
   static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
 
-  static Column* new_data_column(SType, size_t nrows);
-  static Column* new_na_column(SType, size_t nrows);
-  static Column* new_xbuf_column(SType, size_t nrows, Py_buffer* pybuffer);
-  static Column* new_mbuf_column(SType, MemoryRange&&);
-  static Column* from_pylist(const py::olist& list, int stype0 = 0);
-  static Column* from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
-  static Column* from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
-  static Column* from_buffer(const py::robj& buffer);
-
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
-
-  size_t elemsize() const { return info(_stype).elemsize(); }
 
   virtual bool get_element(size_t i, int32_t* out) const;
   virtual bool get_element(size_t i, int64_t* out) const;
@@ -195,14 +199,14 @@ public:
    * column.
    */
   virtual void resize_and_fill(size_t nrows) = 0;
-  Column* repeat(size_t nreps) const;
+  OColumn repeat(size_t nreps) const;
 
   /**
    * Modify the Column, replacing values specified by the provided `mask` with
    * NAs. The `mask` column must have the same number of rows as the current,
    * and neither of them can have a RowIndex.
    */
-  virtual void apply_na_mask(const BoolColumn* mask) = 0;
+  virtual void apply_na_mask(const OColumn& mask) = 0;
 
   /**
    * Create a shallow copy of this Column, possibly applying the provided
@@ -212,8 +216,7 @@ public:
    * If you want the rowindices to be merged, you should merge them manually
    * and pass the merged rowindex to this method.
    */
-  virtual Column* shallowcopy(const RowIndex& new_rowindex) const;
-  Column* shallowcopy() const { return shallowcopy(RowIndex()); }
+  virtual Column* shallowcopy() const;
 
   /**
    * Factory method to cast the current column into the given `stype`. If a
@@ -277,7 +280,7 @@ public:
   virtual void materialize() = 0;
 
 
-  virtual RowIndex join(const Column* keycol) const = 0;
+  virtual RowIndex join(const OColumn& keycol) const = 0;
 
   size_t countna() const;
   size_t nunique() const;
@@ -309,7 +312,6 @@ public:
 protected:
   Column(size_t nrows = 0);
   virtual void init_data() = 0;
-  virtual void init_xbuf(Py_buffer* pybuffer) = 0;
   virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty) = 0;
 
   /**
@@ -322,9 +324,6 @@ protected:
   virtual void fill_na() = 0;
 
 private:
-  static Column* new_column(SType);
-  static Column* from_py_iterable(const iterable*, int stype0);
-
   // FIXME
   friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
   friend class OColumn;
@@ -361,16 +360,18 @@ class OColumn
     OColumn& operator=(OColumn&&);
     ~OColumn();
 
+    static OColumn new_data_column(SType, size_t nrows);
+    static OColumn new_na_column(SType, size_t nrows);
+    static OColumn new_mbuf_column(SType, MemoryRange&&);
+    static OColumn from_buffer(const py::robj& buffer);
+    static OColumn from_pylist(const py::olist& list, int stype0 = 0);
+    static OColumn from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
+    static OColumn from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
     static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType);
 
-    // TODO: remove
-    explicit OColumn(Column* col);  // Steal ownership
-
-    // TEMP accessors to the underlying implementation
-    const Column* get() const;
-
-    Column* operator->();
-    const Column* operator->() const;
+  private:
+    // Assumes ownership of the `col` object
+    explicit OColumn(Column* col);
 
   //------------------------------------
   // Properties
@@ -385,6 +386,12 @@ class OColumn
     size_t elemsize() const noexcept;
 
     operator bool() const noexcept;
+
+    // TEMP accessors to the underlying implementation
+    const Column* get() const;
+
+    Column* operator->();
+    const Column* operator->() const;
 
   //------------------------------------
   // Data access
@@ -424,6 +431,7 @@ class OColumn
     OColumn cast(SType stype, MemoryRange&& mr) const;
 
     friend void swap(OColumn& lhs, OColumn& rhs);
+    friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
 
 
@@ -434,6 +442,7 @@ class OColumn
 template <typename T> class FwColumn : public Column
 {
 public:
+  FwColumn();
   FwColumn(size_t nrows);
   FwColumn(size_t nrows, MemoryRange&&);
   const T* elements_r() const;
@@ -443,21 +452,19 @@ public:
 
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
-  void apply_na_mask(const BoolColumn* mask) override;
+  void apply_na_mask(const OColumn& mask) override;
   virtual void materialize() override;
   void replace_values(RowIndex at, const OColumn& with) override;
   void replace_values(const RowIndex& at, T with);
-  virtual RowIndex join(const Column* keycol) const override;
+  virtual RowIndex join(const OColumn& keycol) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
   void init_data() override;
-  void init_xbuf(Py_buffer* pybuffer) override;
   static constexpr T na_elem = GETNA<T>();
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void fill_na() override;
 
-  FwColumn();
   friend Column;
 };
 
@@ -527,7 +534,6 @@ public:
 protected:
   using Column::stats;
   using Column::mbuf;
-  using Column::new_data_column;
   friend Column;
 };
 
@@ -559,7 +565,6 @@ public:
 
 protected:
   using Column::stats;
-  using Column::new_data_column;
   friend Column;
 };
 
@@ -588,6 +593,7 @@ extern template class RealColumn<double>;
 class PyObjectColumn : public FwColumn<PyObject*>
 {
 public:
+  PyObjectColumn();
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, MemoryRange&&);
   PyObjectStats* get_stats() const override;
@@ -595,7 +601,6 @@ public:
   bool get_element(size_t i, py::oobj* out) const override;
 
 protected:
-  PyObjectColumn();
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
@@ -618,12 +623,13 @@ template <typename T> class StringColumn : public Column
   MemoryRange strbuf;
 
 public:
+  StringColumn();
   StringColumn(size_t nrows);
 
   void materialize() override;
   void resize_and_fill(size_t nrows) override;
-  void apply_na_mask(const BoolColumn* mask) override;
-  RowIndex join(const Column* keycol) const override;
+  void apply_na_mask(const OColumn& mask) override;
+  RowIndex join(const OColumn& keycol) const override;
 
   MemoryRange str_buf() const { return strbuf; }
   size_t datasize() const;
@@ -636,7 +642,7 @@ public:
 
   CString mode() const;
 
-  Column* shallowcopy(const RowIndex& new_rowindex) const override;
+  Column* shallowcopy() const override;
   void replace_values(RowIndex at, const OColumn& with) override;
   StringStats<T>* get_stats() const override;
 
@@ -646,10 +652,8 @@ public:
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
-  StringColumn();
   StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
   void init_data() override;
-  void init_xbuf(Py_buffer* pybuffer) override;
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
@@ -657,7 +661,7 @@ protected:
 
   friend Column;
   friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
-  friend Column* new_string_column(size_t, MemoryRange&&, MemoryRange&&);
+  friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
 
 
@@ -666,7 +670,7 @@ protected:
  * It will create either StringColumn<uint32_t>* or StringColumn<uint64_t>*
  * depending on the size of the data.
  */
-Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
+OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
 
 
 extern template class StringColumn<uint32_t>;
@@ -680,20 +684,19 @@ extern template class StringColumn<uint64_t>;
 // unknown type. This column cannot be put into a DataTable.
 class VoidColumn : public Column {
   public:
+    VoidColumn();
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
     void materialize() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
-    void apply_na_mask(const BoolColumn*) override;
+    void apply_na_mask(const OColumn&) override;
     void replace_values(RowIndex, const OColumn&) override;
-    RowIndex join(const Column* keycol) const override;
+    RowIndex join(const OColumn& keycol) const override;
     Stats* get_stats() const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
-    VoidColumn();
     void init_data() override;
-    void init_xbuf(Py_buffer*) override;
     void fill_na() override;
 
     friend Column;

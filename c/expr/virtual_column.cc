@@ -77,10 +77,10 @@ void virtual_column::compute(size_t, CString*) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void materialize_fw(virtual_column* self, Column* outcol) {
+void materialize_fw(virtual_column* self, OColumn& outcol) {
   T* out_data = static_cast<T*>(outcol->data_w());
   dt::parallel_for_static(
-    outcol->nrows,
+    outcol.nrows(),
     [&](size_t i) {
       self->compute(i, out_data + i);
     });
@@ -88,8 +88,7 @@ void materialize_fw(virtual_column* self, Column* outcol) {
 
 
 OColumn virtual_column::materialize() {
-  Column* out = Column::new_data_column(_stype, _nrows);
-  OColumn out_colptr(out);
+  OColumn out = OColumn::new_data_column(_stype, _nrows);
   switch (_stype) {
     case SType::BOOL:
     case SType::INT8:    materialize_fw<int8_t> (this, out); break;
@@ -102,7 +101,7 @@ OColumn virtual_column::materialize() {
       throw NotImplError() << "virtual_column of stype " << _stype
           << " cannot be materialized";
   }
-  return out_colptr;
+  return out;
 }
 
 

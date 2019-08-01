@@ -277,7 +277,7 @@ void DataTable::rbind(
 
   columns.reserve(new_ncols);
   for (size_t i = ncols; i < new_ncols; ++i) {
-    columns.emplace_back(new VoidColumn(nrows));
+    columns.push_back(OColumn::new_data_column(SType::VOID, nrows));
   }
 
   size_t new_nrows = nrows;
@@ -290,7 +290,7 @@ void DataTable::rbind(
     for (size_t j = 0; j < dts.size(); ++j) {
       size_t k = col_indices[i][j];
       OColumn col = (k == INVALID_INDEX)
-                      ? OColumn(new VoidColumn(dts[j]->nrows))
+                      ? OColumn::new_data_column(SType::VOID, dts[j]->nrows)
                       : dts[j]->get_ocolumn(k);
       col.materialize();
       cols_to_append[j] = std::move(col);
@@ -323,7 +323,7 @@ void OColumn::rbind(colvec& columns) {
   // filled with NAs; the current column; or a type-cast of the current column.
   OColumn newcol;
   if (col_empty) {
-    newcol = OColumn(Column::new_na_column(new_stype, nrows()));
+    newcol = OColumn::new_na_column(new_stype, nrows());
   } else if (stype() == new_stype) {
     newcol = std::move(*this);
   } else {

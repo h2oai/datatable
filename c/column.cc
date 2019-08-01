@@ -31,7 +31,7 @@ Column::~Column() {
 
 
 
-Column* Column::new_column(SType stype) {
+static Column* new_column_impl(SType stype) {
   switch (stype) {
     case SType::VOID:    return new VoidColumn();
     case SType::BOOL:    return new BoolColumn();
@@ -45,51 +45,38 @@ Column* Column::new_column(SType stype) {
     case SType::STR64:   return new StringColumn<uint64_t>();
     case SType::OBJ:     return new PyObjectColumn();
     default:
-      throw ValueError() << "Unable to create a column of SType = " << stype;
+      throw ValueError()
+          << "Unable to create a column of stype `" << stype << "`";
   }
 }
 
 
-Column* Column::new_data_column(SType stype, size_t nrows) {
-  xassert(stype != SType::VOID);
-  Column* col = new_column(stype);
+OColumn OColumn::new_data_column(SType stype, size_t nrows) {
+  Column* col = new_column_impl(stype);
   col->nrows = nrows;
   col->init_data();
-  return col;
+  return OColumn(col);
 }
 
-Column* Column::new_na_column(SType stype, size_t nrows) {
-  Column* col = new_data_column(stype, nrows);
+
+// TODO: create a special "NA" column instead
+OColumn OColumn::new_na_column(SType stype, size_t nrows) {
+  OColumn col = OColumn::new_data_column(stype, nrows);
   col->fill_na();
   return col;
 }
 
 
-
-/**
- * Construct a column from the externally provided buffer.
- */
-Column* Column::new_xbuf_column(SType stype,
-                                size_t nrows,
-                                Py_buffer* pybuffer)
-{
-  Column* col = new_column(stype);
-  col->nrows = nrows;
-  col->init_xbuf(pybuffer);
-  return col;
-}
-
-
-/**
- * Construct a column using existing MemoryRanges.
- */
-Column* Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
-  Column* col = new_column(stype);
-  xassert(mbuf.size() % col->elemsize() == 0);
-  xassert(stype == SType::OBJ? mbuf.is_pyobjects() : true);
-  col->nrows = mbuf.size() / col->elemsize();
+OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
+  size_t elemsize = info(stype).elemsize();
+  Column* col = new_column_impl(stype);
+  xassert(mbuf.size() % elemsize == 0);
+  if (stype == SType::OBJ) {
+    xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
+  }
+  col->nrows = mbuf.size() / elemsize;
   col->mbuf = std::move(mbuf);
-  return col;
+  return OColumn(col);
 }
 
 
@@ -129,18 +116,12 @@ bool Column::get_element(size_t, py::oobj*) const {
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy(const RowIndex& new_rowindex) const {
-  Column* col = new_column(_stype);
+Column* Column::shallowcopy() const {
+  Column* col = new_column_impl(_stype);
   col->nrows = nrows;
   col->mbuf = mbuf;
+  col->ri = ri;
   // TODO: also copy Stats object
-
-  if (new_rowindex) {
-    col->ri = new_rowindex;
-    col->nrows = new_rowindex.size();
-  } else if (ri) {
-    col->ri = ri;
-  }
   return col;
 }
 
@@ -341,11 +322,10 @@ size_t VoidColumn::data_nrows() const { return nrows; }
 void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
-void VoidColumn::apply_na_mask(const BoolColumn*) {}
+void VoidColumn::apply_na_mask(const OColumn&) {}
 void VoidColumn::replace_values(RowIndex, const OColumn&) {}
 void VoidColumn::init_data() {}
-void VoidColumn::init_xbuf(Py_buffer*) {}
 Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
-RowIndex VoidColumn::join(const Column*) const { return RowIndex(); }
+RowIndex VoidColumn::join(const OColumn&) const { return RowIndex(); }
 void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
