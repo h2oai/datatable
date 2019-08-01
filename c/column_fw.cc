@@ -212,7 +212,7 @@ void FwColumn<T>::replace_values(
   }
   OColumn with = (replace_with.stype() == _stype)
                     ? replace_with  // copy
-                    : replace_with->cast(_stype);
+                    : replace_with.cast(_stype);
 
   if (with.nrows() == 1) {
     auto rcol = dynamic_cast<const FwColumn<T>*>(with.get());

@@ -277,7 +277,7 @@ void StringColumn<T>::replace_values(
   OColumn with;
   if (replace_with) {
     with = replace_with;  // copy
-    if (with.stype() != _stype) with = with->cast(_stype);
+    if (with.stype() != _stype) with = with.cast(_stype);
   }
   // This could be nullptr too
   auto repl_col = static_cast<const StringColumn<T>*>(with.get());

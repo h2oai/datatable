@@ -262,7 +262,7 @@ OColumn expr_unaryop::evaluate_eager(workframe& wf) {
   auto input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
   if (ui.cast_stype != SType::VOID) {
-    input_column = OColumn(input_column->cast(ui.cast_stype));
+    input_column = input_column.cast(ui.cast_stype);
   }
   if (ui.vectorfn == nullptr) {
     return input_column;

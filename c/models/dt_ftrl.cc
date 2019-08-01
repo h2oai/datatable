@@ -834,19 +834,15 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
   size_t nlabels = dt_labels->nrows;
   xassert(nlabels > 0);
 
-  OColumn col0_str64 = dt_labels->get_ocolumn(0)->cast(SType::STR64);
-  auto scol = static_cast<StringColumn<uint64_t>*>(const_cast<Column*>(col0_str64.get()));
-  const uint64_t* offsets = scol->offsets();
-  const char* strdata = scol->strdata();
+  OColumn col0_str64 = dt_labels->get_ocolumn(0).cast(SType::STR64);
 
   strvec labels_vec(nlabels);
 
   for (size_t i = 0; i < nlabels; ++i) {
-    const uint64_t strstart = offsets[i - 1] & ~GETNA<uint64_t>();
-    const char* c_str = strdata + strstart;
-    auto len = offsets[i] - strstart;
-    std::string str(c_str, len);
-    labels_vec[i] = std::move(str);
+    CString value;
+    bool isna = col0_str64.get_element(i, &value);
+    labels_vec[i] = isna? std::string()
+                        : std::string(value.ch, static_cast<size_t>(value.size));
   }
 
   colvec cols;

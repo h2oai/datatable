@@ -361,7 +361,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
     OColumn& col = columns[i];
     if (col.stype() == SType::VOID) continue;
     if (col.stype() != _stype) {
-      col = OColumn(col->cast(_stype));
+      col = col.cast(_stype);
     }
     // TODO: replace with datasize(). But: what if col is not a string?
     new_strbuf_size += static_cast<const StringColumn<T>*>(col.get())->strbuf.size();
@@ -453,7 +453,7 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
         rows_to_fill = 0;
       }
       if (col.stype() != _stype) {
-        col = col->cast(_stype);
+        col = col.cast(_stype);
       }
       std::memcpy(resptr, col->data(), col->alloc_size());
       resptr += col->alloc_size();
@@ -492,10 +492,10 @@ void PyObjectColumn::rbind_impl(
   }
   for (auto& col : columns) {
     if (col.stype() == SType::VOID) {
-      dest_data += col->nrows;
+      dest_data += col.nrows();
     } else {
       if (col.stype() != SType::OBJ) {
-        col = col->cast(_stype);
+        col = col.cast(_stype);
       }
       auto src_data = static_cast<PyObject* const*>(col->data());
       for (size_t i = 0; i < col.nrows(); ++i) {

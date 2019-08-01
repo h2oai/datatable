@@ -555,13 +555,13 @@ void py::DatatableModule::init_casts()
 
 
 //------------------------------------------------------------------------------
-// Column (base methods)
+// OColumn (base methods)
 //------------------------------------------------------------------------------
 
-OColumn Column::cast(SType new_stype) const {
-  return cast(new_stype, MemoryRange());
+OColumn OColumn::cast(SType stype) const {
+  return casts.execute(pcol, MemoryRange(), stype);
 }
 
-OColumn Column::cast(SType new_stype, MemoryRange&& mr) const {
-  return casts.execute(this, std::move(mr), new_stype);
+OColumn OColumn::cast(SType stype, MemoryRange&& mem) const {
+  return casts.execute(pcol, std::move(mem), stype);
 }

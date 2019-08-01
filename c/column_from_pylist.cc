@@ -613,7 +613,7 @@ OColumn OColumn::from_range(
     case SType::INT64: return _make_range_column<int64_t>(start, length, step, stype);
     default: {
       OColumn col = _make_range_column<int64_t>(start, length, step, SType::INT64);
-      return col->cast(stype);
+      return col.cast(stype);
     }
   }
 }
