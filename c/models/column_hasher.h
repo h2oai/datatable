@@ -29,11 +29,12 @@
  *  An abstract base class for all the hashers.
  */
 class Hasher {
+  protected:
+    OColumn column;
+
   public:
     explicit Hasher(const OColumn&);
     virtual ~Hasher();
-
-    const RowIndex& ri;
     virtual uint64_t hash(size_t row) const = 0;
 };
 
@@ -42,26 +43,12 @@ using hasherptr = std::unique_ptr<Hasher>;
 
 
 /**
- *  Class to hash booleans.
- */
-class HasherBool : public Hasher {
-  private:
-    const int8_t* values;
-  public:
-    explicit HasherBool(const OColumn&);
-    uint64_t hash(size_t row) const override;
-};
-
-
-/**
- *  Template class to hash integers.
+ *  Template class to hash booleans & integers.
  */
 template <typename T>
 class HasherInt : public Hasher {
-  private:
-    const T* values;
   public:
-    explicit HasherInt(const OColumn&);
+    using Hasher::Hasher;
     uint64_t hash(size_t row) const override;
 };
 
@@ -72,11 +59,10 @@ class HasherInt : public Hasher {
 template <typename T>
 class HasherFloat : public Hasher {
   private:
-    const T* values;
-    const unsigned char shift_nbits;
-    size_t: 56;
+    const int shift_nbits;
+    int : 32;
   public:
-    explicit HasherFloat(const OColumn&, unsigned char);
+    HasherFloat(const OColumn&, int shift);
     uint64_t hash(size_t row) const override;
 };
 
@@ -84,24 +70,18 @@ class HasherFloat : public Hasher {
 /**
  *  Template class to hash strings.
  */
-template <typename T>
 class HasherString : public Hasher {
-  private:
-    const char* strdata;
-    const T* offsets;
   public:
-    explicit HasherString(const OColumn&);
+    using Hasher::Hasher;
     uint64_t hash(size_t row) const override;
 };
 
 
-extern template class HasherInt<int8_t>;
-extern template class HasherInt<int16_t>;
 extern template class HasherInt<int32_t>;
 extern template class HasherInt<int64_t>;
 extern template class HasherFloat<float>;
 extern template class HasherFloat<double>;
-extern template class HasherString<uint32_t>;
-extern template class HasherString<uint64_t>;
+
+
 
 #endif

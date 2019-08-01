@@ -20,46 +20,25 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/column_hasher.h"
+#include "utils/assert.h"
 
 
 /**
  *  Abstract Hasher class constructor and destructor.
  */
-Hasher::Hasher(const OColumn& col) : ri(col->rowindex()) {}
+Hasher::Hasher(const OColumn& col) : column(col) {}
 Hasher::~Hasher() {}
-
-
-/**
- *  Hash booleans by casting them to `uint64_t`.
- */
-HasherBool::HasherBool(const OColumn& col) : Hasher(col) {
-  values = dynamic_cast<const BoolColumn*>(col.get())->elements_r();
-}
-
-
-uint64_t HasherBool::hash(size_t row) const {
-  size_t i = ri[row];
-  int8_t value = (i == RowIndex::NA)? GETNA<int8_t>() : values[i];
-  uint64_t h = static_cast<uint64_t>(value);
-  return h;
-}
 
 
 /**
  *  Hash integers by casting them to `uint64_t`.
  */
 template <typename T>
-HasherInt<T>::HasherInt(const OColumn& col) : Hasher(col) {
-  values = static_cast<const T*>(col->data());
-}
-
-
-template <typename T>
 uint64_t HasherInt<T>::hash(size_t row) const {
-  size_t i = ri[row];
-  T value = (i == RowIndex::NA)? GETNA<T>() : values[i];
-  uint64_t h = static_cast<uint64_t>(value);
-  return h;
+  T value;
+  bool r = column.get_element(row, &value);
+  if (r) value = GETNA<T>();
+  return static_cast<uint64_t>(value);
 }
 
 
@@ -68,17 +47,16 @@ uint64_t HasherInt<T>::hash(size_t row) const {
  *  also do mantissa binning here.
  */
 template <typename T>
-HasherFloat<T>::HasherFloat(const OColumn& col, unsigned char shift_nbits_in) :
-Hasher(col), shift_nbits(shift_nbits_in) {
-  values = static_cast<const T*>(col->data());
-}
+HasherFloat<T>::HasherFloat(const OColumn& col, int shift_nbits_in)
+  : Hasher(col), shift_nbits(shift_nbits_in) {}
 
 
 template <typename T>
 uint64_t HasherFloat<T>::hash(size_t row) const {
-  size_t i = ri[row];
-  T value = (i == RowIndex::NA)? GETNA<T>() : values[i];
+  T value;  // float or double
   uint64_t h;
+  bool r = column.get_element(row, &value);
+  if (r) value = GETNA<T>();
   double x = static_cast<double>(value);
   std::memcpy(&h, &x, sizeof(double));
   return h >> shift_nbits;
@@ -88,35 +66,16 @@ uint64_t HasherFloat<T>::hash(size_t row) const {
 /**
  *  Hash strings using Murmur hash function.
  */
-template <typename T>
-HasherString<T>::HasherString(const OColumn& col) : Hasher(col){
-  auto scol = dynamic_cast<const StringColumn<T>*>(col.get());
-  strdata = scol->strdata();
-  offsets = scol->offsets();
+uint64_t HasherString::hash(size_t row) const {
+  CString value;
+  bool r = column.get_element(row, &value);
+  return r? GETNA<uint64_t>()
+          : hash_murmur2(value.ch, static_cast<size_t>(value.size));
 }
 
 
-template <typename T>
-uint64_t HasherString<T>::hash(size_t row) const {
-  size_t i = ri[row];
-  if (i == RowIndex::NA) {
-    return static_cast<uint64_t>(GETNA<T>());
-  } else {
-    if (ISNA<T>(offsets[i])) {
-      return static_cast<uint64_t>(GETNA<T>());
-    }
-    const T strstart = offsets[i - 1] & ~GETNA<T>();
-    const char* c_str = strdata + strstart;
-    T len = offsets[i] - strstart;
-    return hash_murmur2(c_str, len * sizeof(char));
-  }
-}
 
-template class HasherInt<int8_t>;
-template class HasherInt<int16_t>;
 template class HasherInt<int32_t>;
 template class HasherInt<int64_t>;
 template class HasherFloat<float>;
 template class HasherFloat<double>;
-template class HasherString<uint32_t>;
-template class HasherString<uint64_t>;
