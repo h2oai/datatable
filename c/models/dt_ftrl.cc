@@ -999,20 +999,19 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
  */
 template <typename T>
 hasherptr Ftrl<T>::create_hasher(const OColumn& col) {
-  unsigned char shift_nbits = dt::FtrlBase::DOUBLE_MANTISSA_NBITS - mantissa_nbits;
-  SType stype = col.stype();
-  switch (stype) {
-    case SType::BOOL:    return hasherptr(new HasherBool(col));
-    case SType::INT8:    return hasherptr(new HasherInt<int8_t>(col));
-    case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
+  int shift_nbits = dt::FtrlBase::DOUBLE_MANTISSA_NBITS - mantissa_nbits;
+  switch (col.stype()) {
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
     case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
     case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
     case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, shift_nbits));
     case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, shift_nbits));
-    case SType::STR32:   return hasherptr(new HasherString<uint32_t>(col));
-    case SType::STR64:   return hasherptr(new HasherString<uint64_t>(col));
+    case SType::STR32:
+    case SType::STR64:   return hasherptr(new HasherString(col));
     default:             throw  TypeError() << "Cannot hash a column of type "
-                                            << stype;
+                                            << col.stype();
   }
 }
 

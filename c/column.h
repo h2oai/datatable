@@ -424,6 +424,9 @@ class OColumn
     //
     py::oobj get_element_as_pyobject(size_t i) const;
 
+    const void* data_r() const { return pcol->mbuf.rptr(); }
+    const void* data_with_nas_r() const { return pcol->mbuf.rptr(); }
+
 
     void rbind(colvec& columns);
     void materialize();
