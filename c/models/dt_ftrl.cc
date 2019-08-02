@@ -475,8 +475,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   // will fall back to the possible maximum.
   size_t nthreads = get_nthreads(iteration_nrows);
   size_t iteration_nrows_per_thread = iteration_nrows / nthreads;
+  size_t total_work_amount = total_nrows / nthreads;
 
-  dt::progress::work job(total_nrows / nthreads);
+  dt::progress::work job(total_work_amount);
   job.set_message("Fitting");
 
   dt::parallel_region(nthreads,
@@ -585,6 +586,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
   double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
+  job.set_done_amount(total_work_amount);
   job.done();
 
   return res;
@@ -701,8 +703,9 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   size_t nthreads = get_nthreads(dt_X->nrows);
   nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
   bool k_binomial;
+  size_t total_work_amount = dt_X->nrows / nthreads;
 
-  dt::progress::work job(dt_X->nrows / nthreads);
+  dt::progress::work job(total_work_amount);
   job.set_message("Predicting");
   dt::parallel_region(nthreads, [&]() {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
@@ -724,6 +727,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
       }
     });
   });
+  job.set_done_amount(total_work_amount);
   job.done();
 
   if (model_type == FtrlModelType::BINOMIAL) {
