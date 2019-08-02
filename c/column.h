@@ -451,7 +451,6 @@ public:
   const T* elements_r() const;
   T* elements_w();
   T get_elem(size_t i) const;
-  void set_elem(size_t i, T value);
 
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
@@ -472,7 +471,6 @@ protected:
 };
 
 
-template <> void FwColumn<PyObject*>::set_elem(size_t, PyObject*);
 extern template class FwColumn<int8_t>;
 extern template class FwColumn<int16_t>;
 extern template class FwColumn<int32_t>;

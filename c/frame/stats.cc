@@ -38,9 +38,9 @@ namespace py {
 
 template <typename T>
 static OColumn _make_column(SType stype, T value) {
-  OColumn col = OColumn::new_data_column(stype, 1);
-  static_cast<FwColumn<T>*>(const_cast<Column*>(col.get()))->set_elem(0, value);
-  return col;
+  MemoryRange mbuf = MemoryRange::mem(sizeof(T));
+  mbuf.set_element<T>(0, value);
+  return OColumn::new_mbuf_column(stype, std::move(mbuf));
 }
 
 template <typename T>

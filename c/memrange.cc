@@ -1018,7 +1018,11 @@
   template uint32_t MemoryRange::get_element(size_t) const;
   template uint64_t MemoryRange::get_element(size_t) const;
   template void MemoryRange::set_element(size_t, char);
+  template void MemoryRange::set_element(size_t, int8_t);
+  template void MemoryRange::set_element(size_t, int16_t);
   template void MemoryRange::set_element(size_t, int32_t);
   template void MemoryRange::set_element(size_t, int64_t);
   template void MemoryRange::set_element(size_t, uint32_t);
   template void MemoryRange::set_element(size_t, uint64_t);
+  template void MemoryRange::set_element(size_t, float);
+  template void MemoryRange::set_element(size_t, double);

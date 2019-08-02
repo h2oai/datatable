@@ -258,23 +258,22 @@ OColumn scalar_int_rn::make_column(SType st, size_t nrows) const {
     rst = st;
   }
   OColumn col1 = rst == SType::BOOL? _make1<int8_t>(rst) :
-                rst == SType::INT8? _make1<int8_t>(rst) :
-                rst == SType::INT16? _make1<int16_t>(rst) :
-                rst == SType::INT32? _make1<int32_t>(rst) :
-                rst == SType::INT64? _make1<int64_t>(rst) :
-                rst == SType::FLOAT32? _make1<float>(rst) :
-                rst == SType::FLOAT64? _make1<double>(rst) : OColumn();
+                 rst == SType::INT8? _make1<int8_t>(rst) :
+                 rst == SType::INT16? _make1<int16_t>(rst) :
+                 rst == SType::INT32? _make1<int32_t>(rst) :
+                 rst == SType::INT64? _make1<int64_t>(rst) :
+                 rst == SType::FLOAT32? _make1<float>(rst) :
+                 rst == SType::FLOAT64? _make1<double>(rst) : OColumn();
   xassert(col1);
   return col1->repeat(nrows);
 }
 
 
 template <typename T>
-OColumn scalar_int_rn::_make1(SType st) const {
-  OColumn col = OColumn::new_data_column(st, 1);
-  auto tcol = static_cast<FwColumn<T>*>(const_cast<Column*>(col.get()));
-  tcol->set_elem(0, static_cast<T>(value));
-  return col;
+OColumn scalar_int_rn::_make1(SType stype) const {
+  MemoryRange mbuf = MemoryRange::mem(sizeof(T));
+  mbuf.set_element<T>(0, static_cast<T>(value));
+  return OColumn::new_mbuf_column(stype, std::move(mbuf));
 }
 
 
@@ -313,17 +312,17 @@ OColumn scalar_float_rn::make_column(SType st, size_t nrows) const {
   // VOID we always convert into FLOAT64 so as to avoid loss of precision;
   // otherwise we attempt to keep the old type `st`, unless doing so will lead
   // to value truncation (value does not fit into float32).
-  SType rst = st == SType::VOID || std::abs(value) > MAX
-              ? SType::FLOAT64 : st;
-  OColumn col = OColumn::new_data_column(rst, 1);
-  if (rst == SType::FLOAT32) {
-    static_cast<FwColumn<float>*>(const_cast<Column*>(col.get()))
-        ->set_elem(0, static_cast<float>(value));
+  bool res64 = (st == SType::FLOAT64 || st == SType::VOID ||
+                std::abs(value) > MAX);
+  SType result_stype = res64? SType::FLOAT64 : SType::FLOAT32;
+
+  MemoryRange mbuf = MemoryRange::mem(res64? sizeof(double) : sizeof(float));
+  if (res64) {
+    mbuf.set_element<double>(0, value);
   } else {
-    static_cast<FwColumn<double>*>(const_cast<Column*>(col.get()))
-        ->set_elem(0, value);
+    mbuf.set_element<float>(0, static_cast<float>(value));
   }
-  return col->repeat(nrows);
+  return OColumn::new_mbuf_column(result_stype, std::move(mbuf))->repeat(nrows);
 }
 
 
