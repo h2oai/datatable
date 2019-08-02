@@ -455,11 +455,13 @@ void ReplaceAgent::process_bool_column(size_t colidx) {
 template <typename T>
 void ReplaceAgent::process_int_column(size_t colidx) {
   if (x_int.empty()) return;
-  OColumn& ocol = dt->get_ocolumn(colidx);
-  auto col = static_cast<IntColumn<T>*>(const_cast<Column*>(ocol.get()));
-  int64_t col_min = col->min();
-  int64_t col_max = col->max();
-  bool col_has_nas = (col->countna() > 0);
+  OColumn& col = dt->get_ocolumn(colidx);
+
+  promote<T> col_min, col_max;
+  col.get_stat(Stat::Min, &col_min);
+  col.get_stat(Stat::Max, &col_max);
+
+  bool col_has_nas = (col.na_count() > 0);
   if (xmin_int > xmax_int) {  // iff replace_what = [NA]
     if (!col_has_nas) return;
   } else {
@@ -489,7 +491,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   if (maxy) {
     SType new_stype = (maxy > std::numeric_limits<int32_t>::max())
                       ? SType::INT64 : SType::INT32;
-    dt->set_ocolumn(colidx, ocol.cast(new_stype));
+    dt->set_ocolumn(colidx, col.cast(new_stype));
     columns_cast = true;
     if (new_stype == SType::INT64) {
       process_int_column<int64_t>(colidx);
@@ -500,8 +502,8 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     size_t n = xfilt.size();
     xassert(n == yfilt.size());
     if (n == 0) return;
-    T* coldata = col->elements_w();
-    replace_fw<T>(xfilt.data(), yfilt.data(), col->nrows, coldata, n);
+    T* coldata = static_cast<T*>(col->data_w());
+    replace_fw<T>(xfilt.data(), yfilt.data(), col.nrows(), coldata, n);
     col->get_stats()->reset();
   }
 }
@@ -511,11 +513,14 @@ template <typename T>
 void ReplaceAgent::process_real_column(size_t colidx) {
   constexpr double MAX_FLOAT = double(std::numeric_limits<float>::max());
   if (x_real.empty()) return;
-  OColumn& ocol = dt->get_ocolumn(colidx);
-  auto col = static_cast<RealColumn<T>*>(const_cast<Column*>(ocol.get()));
-  double col_min = static_cast<double>(col->min());
-  double col_max = static_cast<double>(col->max());
-  bool col_has_nas = (col->countna() > 0);
+  OColumn& col = dt->get_ocolumn(colidx);
+  T _min, _max;
+  col.get_stat(Stat::Min, &_min);
+  col.get_stat(Stat::Max, &_max);
+  double col_min = static_cast<double>(_min);
+  double col_max = static_cast<double>(_max);
+
+  bool col_has_nas = (col.na_count() > 0);
   if (xmin_real > xmax_real) {  // only when replace_what is [NA]
     if (!col_has_nas) return;
   } else {
@@ -544,15 +549,15 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     }
   }
   if (std::is_same<T, float>::value && maxy > 0) {
-    dt->set_ocolumn(colidx, ocol.cast(SType::FLOAT64));
+    dt->set_ocolumn(colidx, col.cast(SType::FLOAT64));
     columns_cast = true;
     process_real_column<double>(colidx);
   } else {
     size_t n = xfilt.size();
     xassert(n == yfilt.size());
     if (n == 0) return;
-    T* coldata = col->elements_w();
-    replace_fw<T>(xfilt.data(), yfilt.data(), col->nrows, coldata, n);
+    T* coldata = static_cast<T*>(col->data_w());
+    replace_fw<T>(xfilt.data(), yfilt.data(), col.nrows(), coldata, n);
     col->get_stats()->reset();
   }
 }
@@ -565,7 +570,7 @@ void ReplaceAgent::process_str_column(size_t colidx) {
   OColumn& ocol = dt->get_ocolumn(colidx);
   auto col = static_cast<StringColumn<T>*>(const_cast<Column*>(ocol.get()));
   if (x_str.size() == 1 && x_str[0].isna()) {
-    if (col->countna() == 0) return;
+    if (ocol.na_count() == 0) return;
   }
   OColumn newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
                                   col);

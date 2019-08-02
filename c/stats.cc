@@ -163,7 +163,9 @@ bool Stats::get_stat(const OColumn& col, Stat stat, double* out)   {
 bool Stats::get_stat(const OColumn& col, Stat stat, CString* out)  {
   switch (stat) {
     case Stat::Mode: return get_mode(col, out);
-    default:         throw NotImplError();
+    default:
+      throw RuntimeError() << "Stat `" << stat_name(stat)
+                           << "` cannot be accessed as a string";
   }
 }
 
