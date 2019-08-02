@@ -24,6 +24,7 @@
 #include <memory>
 #include "write/output_options.h"
 #include "write/writing_context.h"
+#include "column.h"
 #include "types.h"
 namespace dt {
 namespace write {
@@ -34,13 +35,14 @@ using value_writer_ptr = std::unique_ptr<value_writer>;
 
 
 class value_writer {
-  private:
+  protected:
+    OColumn column;
     size_t max_output_size;
 
   public:
-    value_writer(size_t n);
+    value_writer(const OColumn& col, size_t n);
     virtual ~value_writer();
-    static value_writer_ptr create(SType, const output_options&);
+    static value_writer_ptr create(const OColumn& col, const output_options&);
 
     // Write value `ctx.value_XX` into the output stream `ctx.ch`.
     // Advance the output pointer `ctx.ch` to the new output position.
@@ -50,7 +52,8 @@ class value_writer {
     // at least `max_output_size` bytes available starting from the
     // current output position.
     //
-    virtual void write(writing_context& ctx) const = 0;
+    virtual void write_normal(size_t row, writing_context& ctx) const = 0;
+    virtual void write_quoted(size_t row, writing_context& ctx) const = 0;
 
     // Values that are written can generally be of two kinds: either
     // they have an upper limit on the number of characters they take
@@ -72,7 +75,7 @@ class value_writer {
     // of the first kind.
     //
     size_t get_static_output_size() const;
-    virtual size_t get_dynamic_output_size() const;
+    size_t get_dynamic_output_size() const;
 };
 
 

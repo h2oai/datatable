@@ -322,3 +322,55 @@ Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const OColumn&) const { return RowIndex(); }
 void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
+
+
+
+
+//==============================================================================
+// StrvecColumn
+//==============================================================================
+
+// Note: this class stores strvec by reference; therefore the lifetime
+// of the column may not exceed the lifetime of the string vector.
+//
+class StrvecColumn : public Column {
+  private:
+    const strvec& vec;
+
+  public:
+    StrvecColumn(const strvec& v);
+    bool get_element(size_t i, CString* out) const override;
+    Column* shallowcopy() const override;
+
+    size_t data_nrows() const override { return nrows; }
+    void materialize() override {}
+    void resize_and_fill(size_t) override {}
+    void rbind_impl(colvec&, size_t, bool) override {}
+    void apply_na_mask(const OColumn&) override {}
+    void replace_values(RowIndex, const OColumn&) override {}
+    void init_data() override {}
+    Stats* get_stats() const override { return nullptr; }
+    void fill_na() override {}
+    RowIndex join(const OColumn&) const override { return RowIndex(); }
+    void fill_na_mask(int8_t*, size_t, size_t) override {}
+};
+
+StrvecColumn::StrvecColumn(const strvec& v)
+  : Column(v.size()), vec(v)
+{
+  _stype = SType::STR32;
+}
+
+bool StrvecColumn::get_element(size_t i, CString* out) const {
+  out->ch = vec[i].c_str();
+  out->size = static_cast<int64_t>(vec[i].size());
+  return false;
+}
+
+Column* StrvecColumn::shallowcopy() const {
+  return new StrvecColumn(vec);
+}
+
+OColumn OColumn::from_strvec(const strvec& vec) {
+  return OColumn(new StrvecColumn(vec));
+}

@@ -24,8 +24,8 @@
 #include <memory>
 #include <vector>
 #include "python/obj.h"
-#include "write/column_builder.h"
 #include "write/output_options.h"
+#include "write/value_writer.h"
 #include "write/write_chronicler.h"
 #include "write/writing_context.h"
 #include "datatable.h"
@@ -48,12 +48,9 @@ namespace write {
  * row iterate over the `columns`, and write the corresponding field
  * into the output using `columns[i].write(ctx, row)`.
  *
- * Each column_builder in the `columns` vector consists of two parts:
- * a value_reader, and a value_writer. Both implement the
- * State/Strategy pattern (see [GoF]). The reader is responsible for
- * retrieving the value at a given row from the underlying column and
- * storing it in the internal buffer; the writer is then responsible
- * for taking that value and serializing it into the output.
+ * Each value_writer in the `columns` implements the Strategy pattern
+ * (see [GoF]). The writers are responsible for retrieving the value
+ * in a given row and then serializing it into the output.
  *
  * The writing_context class acts as an intermediary between the
  * manager, the reader, and the writer. Several instances of this
@@ -82,7 +79,7 @@ class write_manager {
 
     // Runtime parameters
     write_chronicler chronicler;
-    std::vector<column_builder> columns;
+    std::vector<std::unique_ptr<value_writer>> columns;
     std::unique_ptr<WritableBuffer> wb;
     size_t fixed_size_per_row;
     size_t estimated_output_size;
