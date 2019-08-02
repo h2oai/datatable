@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/column_hasher.h"
-#include "utils/assert.h"
 
 
 /**

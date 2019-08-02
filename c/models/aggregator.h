@@ -83,6 +83,7 @@ class Aggregator : public AggregatorBase {
     ccptrvec<T> contconvs;
     dtptr dt_cat;
 
+    // Progress reporting constants
     static constexpr size_t WORK_PREPARE = 1;
     static constexpr size_t WORK_AGGREGATE = 100;
     static constexpr size_t WORK_SAMPLE = 20;

@@ -42,7 +42,7 @@ progress_bar::progress_bar() {
   // Parameters
   bar_width = 50;
   enabled = dt::progress::enabled;
-  clear_on_success = false;
+  clear_on_success = dt::progress::clear_on_success;
   if (enabled) {
     use_colors = dt::get_option("display.use_colors").to_bool_strict();
     use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();

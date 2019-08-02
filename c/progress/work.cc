@@ -46,7 +46,6 @@ void work::init(progress_bar* pb, work* parent) {
 
 void work::done() {
   xassert(done_amount == total_amount);
-  if (message_set) pbar->set_message("");
   dt::progress::manager->finish_work(this, true);
   pbar = nullptr;
 }

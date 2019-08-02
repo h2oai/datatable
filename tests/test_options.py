@@ -46,6 +46,7 @@ def test_options_all():
     }
     assert set(dir(dt.options.progress)) == {
         "callback",
+        "clear_on_success",
         "enabled",
         "min_duration",
         "updates_per_second",
