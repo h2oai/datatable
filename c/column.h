@@ -240,7 +240,9 @@ public:
    * with NAs.
    */
   virtual void replace_values(
-    RowIndex replace_at, const OColumn& replace_with) = 0;
+      OColumn& thiscol,
+      const RowIndex& replace_at,
+      const OColumn& replace_with) = 0;
 
   /**
    * Appends the provided columns to the bottom of the current column and
@@ -449,6 +451,8 @@ class OColumn
     OColumn cast(SType stype) const;
     OColumn cast(SType stype, MemoryRange&& mr) const;
 
+    void replace_values(const RowIndex& replace_at, const OColumn& replace_with);
+
     friend void swap(OColumn& lhs, OColumn& rhs);
     friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
@@ -472,7 +476,7 @@ public:
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const OColumn& mask) override;
   virtual void materialize() override;
-  void replace_values(RowIndex at, const OColumn& with) override;
+  void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
   void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const OColumn& keycol) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
@@ -656,7 +660,7 @@ public:
   CString mode() const;
 
   Column* shallowcopy() const override;
-  void replace_values(RowIndex at, const OColumn& with) override;
+  void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
 
   void verify_integrity(const std::string& name) const override;
 
@@ -703,7 +707,7 @@ class VoidColumn : public Column {
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const OColumn&) override;
-    void replace_values(RowIndex, const OColumn&) override;
+    void replace_values(OColumn&, const RowIndex&, const OColumn&) override;
     RowIndex join(const OColumn& keycol) const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:

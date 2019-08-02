@@ -269,7 +269,7 @@ void StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    RowIndex replace_at, const OColumn& replace_with)
+    OColumn& thiscol, const RowIndex& replace_at, const OColumn& replace_with)
 {
   materialize();
   OColumn rescol;
@@ -290,7 +290,7 @@ void StringColumn<T>::replace_values(
     }
     MemoryRange mask = replace_at.as_boolean_mask(nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
-    rescol = dt::map_str2str(this,
+    rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         sb->write(mask_indices[i]? repl_value : value);
       });
@@ -301,7 +301,7 @@ void StringColumn<T>::replace_values(
 
     MemoryRange mask = replace_at.as_integer_mask(nrows);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
-    rescol = dt::map_str2str(this,
+    rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         int ir = mask_indices[i];
         if (ir == -1) {

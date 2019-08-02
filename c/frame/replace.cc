@@ -60,15 +60,15 @@ class ReplaceAgent {
     void process_bool_column(size_t i);
     template <typename T> void process_int_column(size_t i);
     template <typename T> void process_real_column(size_t i);
-    template <typename T> void process_str_column(size_t i);
     template <typename T> void replace_fw(T* x, T* y, size_t nrows, T* data, size_t n);
     template <typename T> void replace_fw1(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
-    template <typename T> OColumn replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
-    template <typename T> OColumn replace_str1(CString* x, CString* y, StringColumn<T>*);
-    template <typename T> OColumn replace_str2(CString* x, CString* y, StringColumn<T>*);
-    template <typename T> OColumn replace_strN(CString* x, CString* y, StringColumn<T>*, size_t n);
+    void process_str_column(size_t i);
+    OColumn replace_str(size_t n, CString* x, CString* y, const OColumn&);
+    OColumn replace_str1(CString* x, CString* y, const OColumn&);
+    OColumn replace_str2(CString* x, CString* y, const OColumn&);
+    OColumn replace_strN(CString* x, CString* y, const OColumn&, size_t n);
     bool types_changed() const { return columns_cast; }
 
   private:
@@ -172,8 +172,8 @@ void Frame::replace(const PKArgs& args) {
       case SType::INT64:   ra.process_int_column<int64_t>(i); break;
       case SType::FLOAT32: ra.process_real_column<float>(i); break;
       case SType::FLOAT64: ra.process_real_column<double>(i); break;
-      case SType::STR32:   ra.process_str_column<uint32_t>(i); break;
-      case SType::STR64:   ra.process_str_column<uint64_t>(i); break;
+      case SType::STR32:
+      case SType::STR64:   ra.process_str_column(i); break;
       default: break;
     }
   }
@@ -564,17 +564,14 @@ void ReplaceAgent::process_real_column(size_t colidx) {
 
 
 
-template <typename T>
 void ReplaceAgent::process_str_column(size_t colidx) {
   if (x_str.empty()) return;
-  OColumn& ocol = dt->get_ocolumn(colidx);
-  auto col = static_cast<StringColumn<T>*>(const_cast<Column*>(ocol.get()));
+  OColumn& col = dt->get_ocolumn(colidx);
   if (x_str.size() == 1 && x_str[0].isna()) {
-    if (ocol.na_count() == 0) return;
+    if (col.na_count() == 0) return;
   }
-  OColumn newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
-                                  col);
-  columns_cast = (newcol.stype() != ocol.stype());
+  OColumn newcol = replace_str(x_str.size(), x_str.data(), y_str.data(), col);
+  columns_cast = (newcol.stype() != col.stype());
   dt->set_ocolumn(colidx, std::move(newcol));
 }
 
@@ -678,9 +675,8 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
 }
 
 
-template <typename T>
 OColumn ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
-                                  StringColumn<T>* col)
+                                  const OColumn& col)
 {
   if (n == 1) {
     return replace_str1(x, y, col);
@@ -689,9 +685,8 @@ OColumn ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
   }
 }
 
-template <typename T>
 OColumn ReplaceAgent::replace_str1(
-    CString* x, CString* y, StringColumn<T>* col)
+    CString* x, CString* y, const OColumn& col)
 {
   return dt::map_str2str(col,
     [=](size_t, CString& value, dt::string_buf* sb) {
@@ -700,9 +695,8 @@ OColumn ReplaceAgent::replace_str1(
 }
 
 
-template <typename T>
 OColumn ReplaceAgent::replace_strN(CString* x, CString* y,
-                                   StringColumn<T>* col, size_t n)
+                                   const OColumn& col, size_t n)
 {
   return dt::map_str2str(col,
     [=](size_t, CString& value, dt::string_buf* sb) {

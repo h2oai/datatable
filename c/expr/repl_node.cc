@@ -103,7 +103,7 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
           OColumn::new_na_column(coli.stype(), dt0->nrows));
     }
     OColumn& colj = dt0->get_ocolumn(j);
-    colj->replace_values(ri0, coli);
+    colj.replace_values(ri0, coli);
   }
 }
 
@@ -183,7 +183,7 @@ void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
       dt0->set_ocolumn(j, colj.cast(stype));
     }
     OColumn& ocol = dt0->get_ocolumn(j);
-    ocol->replace_values(ri0, replcol);
+    ocol.replace_values(ri0, replcol);
   }
 }
 

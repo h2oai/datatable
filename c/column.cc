@@ -335,7 +335,11 @@ void OColumn::materialize() {
   pcol->materialize();
 }
 
-
+void OColumn::replace_values(const RowIndex& replace_at,
+                             const OColumn& replace_with)
+{
+  pcol->replace_values(*this, replace_at, replace_with);
+}
 
 
 
@@ -350,7 +354,7 @@ void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const OColumn&) {}
-void VoidColumn::replace_values(RowIndex, const OColumn&) {}
+void VoidColumn::replace_values(OColumn&, const RowIndex&, const OColumn&) {}
 void VoidColumn::init_data() {}
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const OColumn&) const { return RowIndex(); }
@@ -380,7 +384,7 @@ class StrvecColumn : public Column {
     void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}
     void apply_na_mask(const OColumn&) override {}
-    void replace_values(RowIndex, const OColumn&) override {}
+    void replace_values(OColumn&, const RowIndex&, const OColumn&) override {}
     void init_data() override {}
     void fill_na() override {}
     RowIndex join(const OColumn&) const override { return RowIndex(); }

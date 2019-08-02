@@ -86,6 +86,8 @@ class writable_string_col {
         void order() override;
         void commit_and_start_new_chunk(size_t i0) override;
     };
+
+    std::unique_ptr<buffer> make_buffer();
 };
 
 

@@ -190,7 +190,7 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    RowIndex replace_at, const OColumn& replace_with)
+    OColumn&, const RowIndex& replace_at, const OColumn& replace_with)
 {
   materialize();
   if (!replace_with) {

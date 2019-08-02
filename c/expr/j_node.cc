@@ -196,7 +196,7 @@ void collist_jn::delete_(workframe& wf) {
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
     for (size_t i : indices) {
-      dt0->get_ocolumn(i)->replace_values(ri0, OColumn());
+      dt0->get_ocolumn(i).replace_values(ri0, OColumn());
     }
   } else {
     dt0->delete_columns(indices);
