@@ -57,13 +57,14 @@ static RowIndex _make_repeat_rowindex(size_t nrows, size_t nreps) {
 }
 
 
-Column* Column::repeat(size_t nreps) {
-  xassert(is_fixedwidth());
+// TODO: we could create a special "repeated" column here
+OColumn Column::repeat(size_t nreps) const {
+  xassert(!info(_stype).is_varwidth());
   xassert(!ri);
-  size_t esize = elemsize();
+  size_t esize = info(_stype).elemsize();
   size_t new_nrows = nrows * nreps;
 
-  Column* newcol = Column::new_data_column(stype(), new_nrows);
+  OColumn newcol = OColumn::new_data_column(_stype, new_nrows);
   if (!new_nrows) {
     return newcol;
   }
@@ -114,13 +115,10 @@ static oobj repeat(const PKArgs& args) {
   }
 
   // Single-colum fixed-width Frame:
-  Column* col0 = dt->columns[0];
-  if (dt->ncols == 1 &&
-      !info(col0->stype()).is_varwidth() &&
-      !col0->rowindex())
-  {
-    Column* newcol = col0->repeat(n);
-    DataTable* newdt = new DataTable({newcol}, dt);  // copy names from dt
+  const OColumn& col0 = dt->get_ocolumn(0);
+  if (dt->ncols == 1 && col0.is_fixedwidth() && !col0.is_virtual()) {
+    auto newcol = col0->repeat(n);
+    DataTable* newdt = new DataTable({std::move(newcol)}, dt);  // copy names from dt
     return Frame::oframe(newdt);
   }
 

@@ -50,7 +50,7 @@ class FrameInitializationManager {
     SType stype0;
     int : 32;
     Frame* frame;
-    std::vector<Column*> cols;
+    colvec cols;
 
     class em : public py::_obj::error_manager {
       Error error_not_stype(PyObject*) const override;
@@ -83,11 +83,6 @@ class FrameInitializationManager {
         throw _error_unknown_kwargs();
       }
     }
-
-    ~FrameInitializationManager() {
-      for (auto col : cols) delete col;
-    }
-
 
     void run()
     {
@@ -239,8 +234,7 @@ class FrameInitializationManager {
       for (size_t j = 0; j < ncols; ++j) {
         py::robj name = nameslist[j];
         SType s = get_stype_for_column(j, &name);
-        Column* col = Column::from_pylist_of_dicts(srclist, name, int(s));
-        cols.push_back(col);
+        cols.push_back(OColumn::from_pylist_of_dicts(srclist, name, int(s)));
       }
       make_datatable(nameslist);
     }
@@ -272,7 +266,7 @@ class FrameInitializationManager {
       // Create the columns
       for (size_t j = 0; j < ncols; ++j) {
         SType s = get_stype_for_column(j);
-        cols.push_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
+        cols.push_back(OColumn::from_pylist_of_tuples(srclist, j, int(s)));
       }
       if (names_arg || !item0.has_attr("_fields")) {
         make_datatable(names_arg);
@@ -333,7 +327,7 @@ class FrameInitializationManager {
 
 
     void init_mystery_frame() {
-      cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
+      cols.push_back(OColumn::from_range(42, 43, 1, SType::VOID));
       make_datatable(strvec { "?" });
     }
 
@@ -348,7 +342,7 @@ class FrameInitializationManager {
             "a copy of a Frame";
       }
       for (size_t i = 0; i < ncols; ++i) {
-        cols.push_back(srcdt->columns[i]->shallowcopy());
+        cols.push_back(srcdt->get_ocolumn(i));
       }
       if (names_arg) {
         make_datatable(names_arg.to_pylist());
@@ -452,10 +446,8 @@ class FrameInitializationManager {
           auto colsrc  = npsrc.get_attr("data").get_item(col_key);
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
           make_column(colsrc, SType::VOID);
-          Column* maskcol = Column::from_buffer(masksrc);
-          xassert(maskcol->stype() == SType::BOOL);
-          cols.back()->apply_na_mask(static_cast<BoolColumn*>(maskcol));
-          delete maskcol;
+          OColumn maskcol = OColumn::from_buffer(masksrc);
+          cols.back()->apply_na_mask(maskcol);
         }
       } else {
         for (size_t i = 0; i < ncols; ++i) {
@@ -589,29 +581,29 @@ class FrameInitializationManager {
 
 
     void make_column(py::robj colsrc, SType s) {
-      Column* col = nullptr;
+      OColumn col;
       if (colsrc.is_frame()) {
         DataTable* srcdt = colsrc.to_datatable();
         if (srcdt->ncols != 1) {
           throw ValueError() << "A column cannot be constructed from a Frame "
               "with " << srcdt->ncols << " columns";
         }
-        col = srcdt->columns[0]->shallowcopy();
+        col = srcdt->get_ocolumn(0);
       }
       else if (colsrc.is_buffer()) {
-        col = Column::from_buffer(colsrc);
+        col = OColumn::from_buffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
-        col = Column::from_pylist(colsrc.to_pylist(), int(s));
+        col = OColumn::from_pylist(colsrc.to_pylist(), int(s));
       }
       else if (colsrc.is_range()) {
         auto r = colsrc.to_orange();
-        col = Column::from_range(r.start(), r.stop(), r.step(), s);
+        col = OColumn::from_range(r.start(), r.stop(), r.step(), s);
       }
       else {
         throw TypeError() << "Cannot create a column from " << colsrc.typeobj();
       }
-      cols.push_back(col);
+      cols.push_back(std::move(col));
       if (cols.size() > 1) {
         size_t nrows0 = cols.front()->nrows;
         size_t nrows1 = cols.back()->nrows;
@@ -626,14 +618,14 @@ class FrameInitializationManager {
 
 
     void make_datatable(std::nullptr_t) {
-      frame->dt = new DataTable(std::move(cols));
+      frame->dt = new DataTable(std::move(cols), DataTable::default_names);
     }
 
     void make_datatable(const Arg& names) {
       if (names) {
         frame->dt = new DataTable(std::move(cols), names.to_pylist());
       } else {
-        frame->dt = new DataTable(std::move(cols));
+        frame->dt = new DataTable(std::move(cols), DataTable::default_names);
       }
     }
 

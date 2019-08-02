@@ -14,7 +14,7 @@
 
 
 // Helper functions
-static Column* column_from_jay(size_t nrows,
+static OColumn column_from_jay(size_t nrows,
                                const jay::Column* jaycol,
                                const MemoryRange& jaybuf);
 
@@ -72,16 +72,16 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   size_t nrows = frame->nrows();
   auto msg_columns = frame->columns();
 
-  std::vector<Column*> columns;
+  colvec columns;
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
-    Column* col = column_from_jay(nrows, jcol, mbuf);
-    if (col->nrows != nrows) {
-      throw IOError() << "Length of column " << i << " is " << col->nrows
+    OColumn col = column_from_jay(nrows, jcol, mbuf);
+    if (col.nrows() != nrows) {
+      throw IOError() << "Length of column " << i << " is " << col.nrows()
           << ", however the Frame contains " << nrows << " rows";
     }
-    columns.push_back(col);
+    columns.push_back(std::move(col));
     colnames.push_back(jcol->name()->str());
     ++i;
   }
@@ -108,7 +108,7 @@ static MemoryRange extract_buffer(
 
 template <typename T, typename JStats>
 static void initStats(Stats* stats, const jay::Column* jcol) {
-  auto tstats = static_cast<NumericalStats<T>*>(stats);
+  auto tstats = static_cast<NumericalStats<promote<T>>*>(stats);
   auto jstats = static_cast<const JStats*>(jcol->stats());
   if (jstats) {
     tstats->set_countna(jcol->nullcount());
@@ -118,7 +118,7 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 }
 
 
-static Column* column_from_jay(
+static OColumn column_from_jay(
     size_t nrows, const jay::Column* jcol, const MemoryRange& jaybuf)
 {
   jay::Type jtype = jcol->type();
@@ -136,13 +136,13 @@ static Column* column_from_jay(
     case jay::Type_Str64:   stype = SType::STR64; break;
   }
 
-  Column* col = nullptr;
+  OColumn col;
   MemoryRange databuf = extract_buffer(jaybuf, jcol->data());
   if (stype == SType::STR32 || stype == SType::STR64) {
     MemoryRange strbuf = extract_buffer(jaybuf, jcol->strdata());
     col = new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
-    col = Column::new_mbuf_column(stype, std::move(databuf));
+    col = OColumn::new_mbuf_column(stype, std::move(databuf));
   }
 
   Stats* stats = col->get_stats();

@@ -34,7 +34,7 @@ class column_builder {
     value_writer_ptr writer;
 
   public:
-    column_builder(const Column*, const output_options&);
+    column_builder(const OColumn&, const output_options&);
 
     size_t get_static_output_size() const;
     size_t get_dynamic_output_size() const;

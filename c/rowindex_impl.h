@@ -138,7 +138,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(arr64_t&& indices, size_t min, size_t max);
     ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
                       const arr64_t& steps);
-    ArrayRowIndexImpl(const Column*);
+    ArrayRowIndexImpl(const OColumn&);
     ~ArrayRowIndexImpl() override;
 
     const int32_t* indices32() const noexcept;
@@ -164,8 +164,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     template <typename T> void _set_min_max();
 
     // Helpers for `ArrayRowIndexImpl(Column*)`
-    void init_from_boolean_column(const BoolColumn* col);
-    void init_from_integer_column(const Column* col);
+    void init_from_boolean_column(const OColumn& col);
+    void init_from_integer_column(const OColumn& col);
     void compactify();
 
     // Helper for `negate()`

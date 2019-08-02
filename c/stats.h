@@ -173,8 +173,6 @@ template <> struct _A_from_T<double> { double value; };
 template <typename T>
 using NumericalStats = NumericalStats_<T, decltype(_A_from_T<T>::value)>;
 
-extern template class NumericalStats_<int8_t, int64_t>;
-extern template class NumericalStats_<int16_t, int64_t>;
 extern template class NumericalStats_<int32_t, int64_t>;
 extern template class NumericalStats_<int64_t, int64_t>;
 extern template class NumericalStats_<float, double>;
@@ -190,9 +188,9 @@ extern template class NumericalStats_<double, double>;
  * Child of NumericalStats that represents real-valued columns.
  */
 template <typename T>
-class RealStats : public NumericalStats<T> {
+class RealStats : public NumericalStats_<T, double> {
   protected:
-    virtual RealStats<T>* make() const override;
+    Stats* make() const override;
     void compute_numerical_stats(const Column*) override;
 };
 
@@ -209,13 +207,11 @@ extern template class RealStats<double>;
  * Child of NumericalStats that represents integer-valued columns.
  */
 template <typename T>
-class IntegerStats : public NumericalStats<T> {
+class IntegerStats : public NumericalStats_<T, int64_t> {
   protected:
-    virtual IntegerStats<T>* make() const override;
+    Stats* make() const override;
 };
 
-extern template class IntegerStats<int8_t>;
-extern template class IntegerStats<int16_t>;
 extern template class IntegerStats<int32_t>;
 extern template class IntegerStats<int64_t>;
 
@@ -230,9 +226,9 @@ extern template class IntegerStats<int64_t>;
  * stype is treated as if it was `int8_t`, some optimizations can be achieved
  * if we know that the set of possible element values is {0, 1, NA}.
  */
-class BooleanStats : public NumericalStats<int8_t> {
+class BooleanStats : public NumericalStats_<int32_t, int64_t> {
   protected:
-    virtual BooleanStats* make() const override;
+    Stats* make() const override;
     void compute_numerical_stats(const Column *col) override;
     void compute_sorted_stats(const Column*) override;
 };
@@ -247,7 +243,6 @@ class BooleanStats : public NumericalStats<int8_t> {
  * Stats for variable string columns. Uses a template type `T` to define the
  * integer type that is used to represent its offsets.
  */
-template <typename T>
 class StringStats : public Stats {
   private:
     CString _mode;
@@ -258,14 +253,12 @@ class StringStats : public Stats {
     CString mode(const Column*);
 
   protected:
-    StringStats<T>* make() const override;
+    Stats* make() const override;
     void compute_countna(const Column*) override;
     void compute_nunique(const Column*) override;
     void compute_sorted_stats(const Column*) override;
 };
 
-extern template class StringStats<uint32_t>;
-extern template class StringStats<uint64_t>;
 
 
 
@@ -278,7 +271,7 @@ class PyObjectStats : public Stats {
     virtual size_t memory_footprint() const override { return sizeof(*this); }
 
   protected:
-    PyObjectStats* make() const override;
+    Stats* make() const override;
     void compute_countna(const Column*) override;
     void compute_sorted_stats(const Column*) override;
 };

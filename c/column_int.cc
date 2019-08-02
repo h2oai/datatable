@@ -5,26 +5,46 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "python/int.h"
 #include "column.h"
 #include "datatablemodule.h"
-#include "python/int.h"
 
+template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <> constexpr SType stype_for<int8_t>()  { return SType::INT8; }
+template <> constexpr SType stype_for<int16_t>() { return SType::INT16; }
+template <> constexpr SType stype_for<int32_t>() { return SType::INT32; }
+template <> constexpr SType stype_for<int64_t>() { return SType::INT64; }
 
 
 template <typename T>
-SType IntColumn<T>::stype() const noexcept {
-  return sizeof(T) == 1? SType::INT8 :
-         sizeof(T) == 2? SType::INT16 :
-         sizeof(T) == 4? SType::INT32 :
-         sizeof(T) == 8? SType::INT64 : SType::VOID;
+IntColumn<T>::IntColumn(size_t nrows) : FwColumn<T>(nrows) {
+  this->_stype = stype_for<T>();
 }
 
 template <typename T>
-py::oobj IntColumn<T>::get_value_at_index(size_t i) const {
+IntColumn<T>::IntColumn(size_t nrows, MemoryRange&& mem)
+  : FwColumn<T>(nrows, std::move(mem))
+{
+  this->_stype = stype_for<T>();
+}
+
+
+template <typename T>
+bool IntColumn<T>::get_element(size_t i, int32_t* out) const {
   size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return py::None();
+  if (j == RowIndex::NA) return true;
   T x = this->elements_r()[j];
-  return ISNA<T>(x)? py::None() : py::oint(x);
+  *out = static_cast<int32_t>(x);
+  return ISNA<T>(x);
+}
+
+template <typename T>
+bool IntColumn<T>::get_element(size_t i, int64_t* out) const {
+  size_t j = (this->ri)[i];
+  if (j == RowIndex::NA) return true;
+  T x = this->elements_r()[j];
+  *out = static_cast<int64_t>(x);
+  return ISNA<T>(x);
 }
 
 
@@ -34,14 +54,14 @@ py::oobj IntColumn<T>::get_value_at_index(size_t i) const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-IntegerStats<T>* IntColumn<T>::get_stats() const {
-  if (stats == nullptr) stats = new IntegerStats<T>();
-  return static_cast<IntegerStats<T>*>(stats);
+IntegerStats<promote<T>>* IntColumn<T>::get_stats() const {
+  if (stats == nullptr) stats = new IntegerStats<promote<T>>();
+  return static_cast<IntegerStats<promote<T>>*>(stats);
 }
 
-template <typename T> T       IntColumn<T>::min() const  { return get_stats()->min(this); }
-template <typename T> T       IntColumn<T>::max() const  { return get_stats()->max(this); }
-template <typename T> T       IntColumn<T>::mode() const { return get_stats()->mode(this); }
+template <typename T> T       IntColumn<T>::min() const  { return downcast<T>(get_stats()->min(this)); }
+template <typename T> T       IntColumn<T>::max() const  { return downcast<T>(get_stats()->max(this)); }
+template <typename T> T       IntColumn<T>::mode() const { return downcast<T>(get_stats()->mode(this)); }
 template <typename T> int64_t IntColumn<T>::sum() const  { return get_stats()->sum(this); }
 template <typename T> double  IntColumn<T>::mean() const { return get_stats()->mean(this); }
 template <typename T> double  IntColumn<T>::sd() const   { return get_stats()->stdev(this); }

@@ -24,6 +24,7 @@
 #include "utils/array.h"
 
 class Column;
+class OColumn;
 class BoolColumn;
 class RowIndexImpl;
 
@@ -91,7 +92,7 @@ class RowIndex {
     /**
      * Create RowIndex from either a boolean or an integer column.
      */
-    RowIndex(const Column* col);
+    RowIndex(const OColumn& col);
 
 
     bool operator==(const RowIndex& other) { return impl == other.impl; }

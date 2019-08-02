@@ -65,10 +65,10 @@ class ReplaceAgent {
     template <typename T> void replace_fw1(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
-    template <typename T> Column* replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_str1(CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_str2(CString* x, CString* y, StringColumn<T>*);
-    template <typename T> Column* replace_strN(CString* x, CString* y, StringColumn<T>*, size_t n);
+    template <typename T> OColumn replace_str(size_t n, CString* x, CString* y, StringColumn<T>*);
+    template <typename T> OColumn replace_str1(CString* x, CString* y, StringColumn<T>*);
+    template <typename T> OColumn replace_str2(CString* x, CString* y, StringColumn<T>*);
+    template <typename T> OColumn replace_strN(CString* x, CString* y, StringColumn<T>*, size_t n);
     bool types_changed() const { return columns_cast; }
 
   private:
@@ -163,8 +163,8 @@ void Frame::replace(const PKArgs& args) {
     // a string column remains a view, however the iterator `dt::map_str2str`
     // takes the rowindex into account when iterating.
     //
-    Column* col = dt->columns[i];
-    switch (col->stype()) {
+    const OColumn& col = dt->get_ocolumn(i);
+    switch (col.stype()) {
       case SType::BOOL:    ra.process_bool_column(i); break;
       case SType::INT8:    ra.process_int_column<int8_t>(i); break;
       case SType::INT16:   ra.process_int_column<int16_t>(i); break;
@@ -261,7 +261,7 @@ void ReplaceAgent::split_x_y_by_type() {
        done_bool = false,
        done_str = false;
   for (size_t i = 0; i < dt->ncols; ++i) {
-    SType s = dt->columns[i]->stype();
+    SType s = dt->get_ocolumn(i).stype();
     switch (s) {
       case SType::BOOL: {
         if (done_bool) continue;
@@ -443,19 +443,20 @@ void ReplaceAgent::check_uniqueness(std::vector<T>& data) {
 
 void ReplaceAgent::process_bool_column(size_t colidx) {
   if (x_bool.empty()) return;
-  auto col = static_cast<BoolColumn*>(dt->columns[colidx]);
-  int8_t* coldata = col->elements_w();
+  OColumn& col = dt->get_ocolumn(colidx);
+  int8_t* coldata = static_cast<int8_t*>(col->data_w());
   size_t n = x_bool.size();
   xassert(n == y_bool.size());
   if (n == 0) return;
-  replace_fw<int8_t>(x_bool.data(), y_bool.data(), col->nrows, coldata, n);
+  replace_fw<int8_t>(x_bool.data(), y_bool.data(), col.nrows(), coldata, n);
 }
 
 
 template <typename T>
 void ReplaceAgent::process_int_column(size_t colidx) {
   if (x_int.empty()) return;
-  auto col = static_cast<IntColumn<T>*>(dt->columns[colidx]);
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<IntColumn<T>*>(const_cast<Column*>(ocol.get()));
   int64_t col_min = col->min();
   int64_t col_max = col->max();
   bool col_has_nas = (col->countna() > 0);
@@ -488,9 +489,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   if (maxy) {
     SType new_stype = (maxy > std::numeric_limits<int32_t>::max())
                       ? SType::INT64 : SType::INT32;
-    Column* newcol = col->cast(new_stype);
-    dt->columns[colidx] = newcol;
-    delete col;
+    dt->set_ocolumn(colidx, ocol.cast(new_stype));
     columns_cast = true;
     if (new_stype == SType::INT64) {
       process_int_column<int64_t>(colidx);
@@ -512,7 +511,8 @@ template <typename T>
 void ReplaceAgent::process_real_column(size_t colidx) {
   constexpr double MAX_FLOAT = double(std::numeric_limits<float>::max());
   if (x_real.empty()) return;
-  auto col = static_cast<RealColumn<T>*>(dt->columns[colidx]);
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<RealColumn<T>*>(const_cast<Column*>(ocol.get()));
   double col_min = static_cast<double>(col->min());
   double col_max = static_cast<double>(col->max());
   bool col_has_nas = (col->countna() > 0);
@@ -544,9 +544,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     }
   }
   if (std::is_same<T, float>::value && maxy > 0) {
-    Column* newcol = col->cast(SType::FLOAT64);
-    dt->columns[colidx] = newcol;
-    delete col;
+    dt->set_ocolumn(colidx, ocol.cast(SType::FLOAT64));
     columns_cast = true;
     process_real_column<double>(colidx);
   } else {
@@ -564,15 +562,15 @@ void ReplaceAgent::process_real_column(size_t colidx) {
 template <typename T>
 void ReplaceAgent::process_str_column(size_t colidx) {
   if (x_str.empty()) return;
-  auto col = static_cast<StringColumn<T>*>(dt->columns[colidx]);
+  OColumn& ocol = dt->get_ocolumn(colidx);
+  auto col = static_cast<StringColumn<T>*>(const_cast<Column*>(ocol.get()));
   if (x_str.size() == 1 && x_str[0].isna()) {
     if (col->countna() == 0) return;
   }
-  Column* newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
+  OColumn newcol = replace_str<T>(x_str.size(), x_str.data(), y_str.data(),
                                   col);
-  columns_cast = (newcol->stype() != col->stype());
-  dt->columns[colidx] = newcol;
-  delete col;
+  columns_cast = (newcol.stype() != ocol.stype());
+  dt->set_ocolumn(colidx, std::move(newcol));
 }
 
 
@@ -676,7 +674,7 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
 
 
 template <typename T>
-Column* ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
+OColumn ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
                                   StringColumn<T>* col)
 {
   if (n == 1) {
@@ -687,7 +685,7 @@ Column* ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
 }
 
 template <typename T>
-Column* ReplaceAgent::replace_str1(
+OColumn ReplaceAgent::replace_str1(
     CString* x, CString* y, StringColumn<T>* col)
 {
   return dt::map_str2str(col,
@@ -698,7 +696,7 @@ Column* ReplaceAgent::replace_str1(
 
 
 template <typename T>
-Column* ReplaceAgent::replace_strN(CString* x, CString* y,
+OColumn ReplaceAgent::replace_strN(CString* x, CString* y,
                                    StringColumn<T>* col, size_t n)
 {
   return dt::map_str2str(col,

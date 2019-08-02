@@ -229,7 +229,7 @@ oobj Frame::get_stypes() const {
   if (stypes == nullptr) {
     py::otuple ostypes(dt->ncols);
     for (size_t i = 0; i < ostypes.size(); ++i) {
-      SType st = dt->columns[i]->stype();
+      SType st = dt->get_ocolumn(i).stype();
       ostypes.set(i, info(st).py_stype());
     }
     stypes = std::move(ostypes).release();
@@ -246,7 +246,7 @@ oobj Frame::get_ltypes() const {
   if (ltypes == nullptr) {
     py::otuple oltypes(dt->ncols);
     for (size_t i = 0; i < oltypes.size(); ++i) {
-      SType st = dt->columns[i]->stype();
+      SType st = dt->get_ocolumn(i).stype();
       oltypes.set(i, info(st).py_ltype());
     }
     ltypes = std::move(oltypes).release();

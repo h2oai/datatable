@@ -140,7 +140,6 @@ class GenericReader
      */
     bool extra_byte_accessible() const;
 
-    const py::oobj& pyreader() const { return freader; }
     bool get_verbose() const { return verbose; }
     void trace(const char* format, ...) const;
     void warn(const char* format, ...) const;

@@ -620,7 +620,7 @@ class SortContext {
     strdata = nullptr;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
-    SType stype = col->stype();
+    SType stype = col->_stype;
     switch (stype) {
       case SType::BOOL:    _initB<ASC>(col); break;
       case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(col); break;
@@ -1366,7 +1366,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   size_t n = spec.size();
   xassert(n > 0);
 
-  Column* col0 = columns[spec[0].col_index];
+  const OColumn& col0 = columns[spec[0].col_index];
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
@@ -1389,13 +1389,13 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   #endif
   if (!as_view) {
     for (auto& s : spec) {
-      columns[s.col_index]->materialize();
+      const_cast<DataTable*>(this)->columns[s.col_index]->materialize();
     }
   }
 
   bool do_groups = n > 1 || !spec[0].sort_only;
   SortContext sc(nrows, col0->rowindex(), do_groups);
-  sc.start_sort(col0, spec[0].descending);
+  sc.start_sort(col0.get(), spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
     if (spec[j].sort_only && !spec[j - 1].sort_only) {
       result.second = sc.copy_groups();
@@ -1403,7 +1403,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     if (j == n - 1 && spec[j].sort_only) {
       do_groups = false;
     }
-    sc.continue_sort(columns[spec[j].col_index],
+    sc.continue_sort(columns[spec[j].col_index].get(),
                      spec[j].descending, do_groups);
   }
   result.first = sc.get_result_rowindex();

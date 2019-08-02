@@ -23,8 +23,6 @@ constexpr T infinity() {
          : std::numeric_limits<T>::max();
 }
 
-using colptr = std::unique_ptr<Column>;
-
 static const char* reducer_names[REDUCER_COUNT] = {
   "mean", "min", "max", "stdev", "first", "sum", "count", "count", "median"
 };
@@ -78,10 +76,10 @@ static ReducerLibrary library;
 // "First" reducer
 //------------------------------------------------------------------------------
 
-static colptr reduce_first(const colptr& col, const Groupby& groupby)
+static OColumn reduce_first(const OColumn& col, const Groupby& groupby)
 {
-  if (col->nrows == 0) {
-    return colptr(Column::new_data_column(col->stype(), 0));
+  if (col.nrows() == 0) {
+    return OColumn::new_data_column(col.stype(), 0);
   }
   size_t ngrps = groupby.ngroups();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the
@@ -91,7 +89,8 @@ static colptr reduce_first(const colptr& col, const Groupby& groupby)
   arr32_t indices(ngrps, groupby.offsets_r());
   RowIndex ri = RowIndex(std::move(indices), true)
                 * col->rowindex();
-  auto res = colptr(col->shallowcopy(ri));
+  OColumn res = col;  // copy
+  res->replace_rowindex(ri);
   if (ngrps == 1) res->materialize();
   return res;
 }
@@ -306,11 +305,11 @@ GroupbyMode expr_reduce1::get_groupby_mode(const workframe&) const {
 }
 
 
-colptr expr_reduce1::evaluate_eager(workframe& wf)
+OColumn expr_reduce1::evaluate_eager(workframe& wf)
 {
   auto input_col = arg->evaluate_eager(wf);
   Groupby gb = wf.get_groupby();
-  if (!gb) gb = Groupby::single_group(input_col->nrows);
+  if (!gb) gb = Groupby::single_group(input_col.nrows());
 
   size_t out_nrows = gb.ngroups();
   if (!out_nrows) out_nrows = 1;  // only when input_col has 0 rows
@@ -319,12 +318,12 @@ colptr expr_reduce1::evaluate_eager(workframe& wf)
     return reduce_first(input_col, gb);
   }
 
-  SType in_stype = input_col->stype();
+  SType in_stype = input_col.stype();
   auto reducer = library.lookup(opcode, in_stype);
   xassert(reducer);  // checked in .resolve()
 
   SType out_stype = reducer->output_stype;
-  auto res = colptr(Column::new_data_column(out_stype, out_nrows));
+  auto res = OColumn::new_data_column(out_stype, out_nrows);
 
   RowIndex rowindex = input_col->rowindex();
   if (opcode == Op::MEDIAN && gb) {
@@ -373,25 +372,25 @@ GroupbyMode expr_reduce0::get_groupby_mode(const workframe&) const {
 }
 
 
-colptr expr_reduce0::evaluate_eager(workframe& wf) {
-  Column* res = nullptr;
+OColumn expr_reduce0::evaluate_eager(workframe& wf) {
+  OColumn res;
   if (opcode == Op::COUNT0) {  // COUNT
     if (wf.has_groupby()) {
       const Groupby& grpby = wf.get_groupby();
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
-      res = Column::new_data_column(SType::INT32, ng);
+      res = OColumn::new_data_column(SType::INT32, ng);
       auto d_res = static_cast<int32_t*>(res->data_w());
       for (size_t i = 0; i < ng; ++i) {
         d_res[i] = offsets[i + 1] - offsets[i];
       }
     } else {
-      res = Column::new_data_column(SType::INT64, 1);
+      res = OColumn::new_data_column(SType::INT64, 1);
       auto d_res = static_cast<int64_t*>(res->data_w());
       d_res[0] = static_cast<int64_t>(wf.nrows());
     }
   }
-  return colptr(res);
+  return res;
 }
 
 

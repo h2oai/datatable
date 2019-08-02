@@ -10,20 +10,30 @@
 #include "datatablemodule.h"
 #include "python/float.h"
 
-
+template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <> constexpr SType stype_for<float>()  { return SType::FLOAT32; }
+template <> constexpr SType stype_for<double>() { return SType::FLOAT64; }
 
 template <typename T>
-SType RealColumn<T>::stype() const noexcept {
-  return sizeof(T) == 4? SType::FLOAT32 :
-         sizeof(T) == 8? SType::FLOAT64 : SType::VOID;
+RealColumn<T>::RealColumn(size_t nrows) : FwColumn<T>(nrows) {
+  this->_stype = stype_for<T>();
 }
 
 template <typename T>
-py::oobj RealColumn<T>::get_value_at_index(size_t i) const {
+RealColumn<T>::RealColumn(size_t nrows, MemoryRange&& mem)
+  : FwColumn<T>(nrows, std::move(mem))
+{
+  this->_stype = stype_for<T>();
+}
+
+
+template <typename T>
+bool RealColumn<T>::get_element(size_t i, T* out) const {
   size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return py::None();
+  if (j == RowIndex::NA) return true;
   T x = this->elements_r()[j];
-  return ISNA<T>(x)? py::None() : py::ofloat(x);
+  *out = x;
+  return ISNA<T>(x);
 }
 
 

@@ -34,7 +34,7 @@ using value_reader_ptr = std::unique_ptr<value_reader>;
 
 class value_reader {
   public:
-    static value_reader_ptr create(const Column* col);
+    static value_reader_ptr create(const OColumn& col);
     virtual ~value_reader();
 
     // Read value `column[row]` and store it in the writing context

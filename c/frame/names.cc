@@ -329,12 +329,14 @@ void DataTable::set_names(const py::olist& names_list) {
   if (!names_list) return set_names_to_default();
   pylistNP np(names_list);
   _set_names_impl(&np);
+  columns.resize(names.size());
 }
 
 
 void DataTable::set_names(const strvec& names_list) {
   strvecNP np(names_list);
   _set_names_impl(&np);
+  columns.resize(names.size());
 }
 
 
@@ -694,8 +696,8 @@ namespace dttest {
 
   void cover_names_integrity_checks() {
     DataTable* dt = new DataTable({
-                        Column::new_data_column(SType::INT32, 1),
-                        Column::new_data_column(SType::FLOAT64, 1)
+                        OColumn::new_data_column(SType::INT32, 1),
+                        OColumn::new_data_column(SType::FLOAT64, 1)
                     });
 
     auto check1 = [dt]() { dt->_integrity_check_names(); };

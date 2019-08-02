@@ -40,13 +40,13 @@ static oobj split_into_nhot(const PKArgs& args) {
   std::string sep = args[1]? args[1].to_string() : ",";
   bool sort = args[2]? args[2].to_bool_strict() : false;
 
-  Column* col0 = dt->ncols == 1? dt->columns[0] : nullptr;
-  if (!col0) {
+  if (dt->ncols != 1) {
     throw ValueError() << "Function split_into_nhot() may only be applied to "
       "a single-column Frame of type string;" << " got frame with "
       << dt->ncols << " columns";
   }
-  SType st = col0->stype();
+  const OColumn& col0 = dt->get_ocolumn(0);
+  SType st = col0.stype();
   if (!(st == SType::STR32 || st == SType::STR64)) {
     throw TypeError() << "Function split_into_nhot() may only be applied to "
       "a single-column Frame of type string;" << " received a column of type "

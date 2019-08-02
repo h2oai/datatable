@@ -12,9 +12,9 @@
 #include "utils/misc.h"
 #include "column.h"
 
-// Returns the expected path of the string data file given
-// the path to the offsets
-static std::string path_str(const std::string& path);
+template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }
+template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 
 
 //------------------------------------------------------------------------------
@@ -26,6 +26,7 @@ static std::string path_str(const std::string& path);
 template <typename T>
 StringColumn<T>::StringColumn(size_t n) : Column(n)
 {
+  _stype = stype_for<T>();
   mbuf = MemoryRange::mem(sizeof(T) * (n + 1));
   mbuf.set_element<T>(0, 0);
 }
@@ -33,7 +34,9 @@ StringColumn<T>::StringColumn(size_t n) : Column(n)
 
 // private use only
 template <typename T>
-StringColumn<T>::StringColumn() : Column(0) {}
+StringColumn<T>::StringColumn() : Column(0) {
+  _stype = stype_for<T>();
+}
 
 
 // private: use `new_string_column(n, &&mb, &&sb)` instead
@@ -45,6 +48,7 @@ StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
   xassert(mb.size() == sizeof(T) * (n + 1));
   xassert(mb.get_element<T>(0) == 0);
   xassert(sb.size() == (mb.get_element<T>(n) & ~GETNA<T>()));
+  _stype = stype_for<T>();
   mbuf = std::move(mb);
   strbuf = std::move(sb);
 }
@@ -71,19 +75,19 @@ static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
 }
 
 
-Column* new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
+OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
   size_t data_size = data.size();
   size_t strb_size = str.size();
 
   if (data_size == sizeof(uint32_t) * (n + 1)) {
     if (strb_size <= Column::MAX_STR32_BUFFER_SIZE &&
         n <= Column::MAX_STR32_NROWS) {
-      return new StringColumn<uint32_t>(n, std::move(data), std::move(str));
+      return OColumn(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
     }
     // Otherwise, offsets need to be recoded into a uint64_t array
     data = _recode_offsets_to_u64(data);
   }
-  return new StringColumn<uint64_t>(n, std::move(data), std::move(str));
+  return OColumn(new StringColumn<uint64_t>(n, std::move(data), std::move(str)));
 }
 
 
@@ -100,57 +104,13 @@ void StringColumn<T>::init_data() {
   mbuf.set_element<T>(0, 0);
 }
 
-template <typename T>
-void StringColumn<T>::init_mmap(const std::string& filename) {
-  xassert(!ri);
-  size_t mbuf_size = (nrows + 1) * sizeof(T);
-  strbuf = MemoryRange::mmap(path_str(filename), 0);
-  mbuf = MemoryRange::mmap(filename, mbuf_size);
-  mbuf.set_element<T>(0, 0);
-}
-
-template <typename T>
-void StringColumn<T>::open_mmap(const std::string& filename, bool recode) {
-  xassert(!ri);
-  std::string filename_str = path_str(filename);
-
-  mbuf = MemoryRange::mmap(filename);
-  strbuf = MemoryRange::mmap(filename_str);
-
-  if (recode) {
-    if (mbuf.get_element<T>(0) != 0) {
-      // Recode old format of string storage
-      T* offsets = static_cast<T*>(mbuf.wptr()) + 1;
-      offsets[-1] = 0;
-      for (size_t i = 0; i < nrows; ++i) {
-        T x = offsets[i];
-        offsets[i] = ISNA<T>(x)? GETNA<T>() - x - 1 : x - 1;
-      }
-    }
-  }
-}
-
-// Not implemented (should it be?) see method signature in `Column` for
-// parameter definitions.
-template <typename T>
-void StringColumn<T>::init_xbuf(Py_buffer*) {
-  throw Error() << "String columns are incompatible with external buffers";
-}
 
 
 //==============================================================================
 
 template <typename T>
-void StringColumn<T>::save_to_disk(const std::string& filename,
-                                   WritableBuffer::Strategy strategy) {
-  mbuf.save_to_disk(filename, strategy);
-  strbuf.save_to_disk(path_str(filename), strategy);
-}
-
-
-template <typename T>
-Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
-  Column* newcol = Column::shallowcopy(new_rowindex);
+Column* StringColumn<T>::shallowcopy() const {
+  Column* newcol = Column::shallowcopy();
   StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
   col->strbuf = strbuf;
   return col;
@@ -158,33 +118,15 @@ Column* StringColumn<T>::shallowcopy(const RowIndex& new_rowindex) const {
 
 
 template <typename T>
-SType StringColumn<T>::stype() const noexcept {
-  return sizeof(T) == 4? SType::STR32 :
-         sizeof(T) == 8? SType::STR64 : SType::VOID;
-}
-
-
-template <typename T>
-py::oobj StringColumn<T>::get_value_at_index(size_t i) const {
+bool StringColumn<T>::get_element(size_t i, CString* out) const {
   size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return py::None();
+  if (j == RowIndex::NA) return true;
   const T* offs = this->offsets();
   T off_end = offs[j];
-  if (ISNA<T>(off_end)) return py::None();
+  if (ISNA<T>(off_end)) return true;
   T off_beg = offs[j - 1] & ~GETNA<T>();
-  return py::ostring(this->strdata() + off_beg,
-                     static_cast<size_t>(off_end - off_beg));
-}
-
-
-template <typename T>
-size_t StringColumn<T>::elemsize() const {
-  return sizeof(T);
-}
-
-
-template <typename T>
-bool StringColumn<T>::is_fixedwidth() const {
+  out->ch = this->strdata() + off_beg,
+  out->size = static_cast<int64_t>(off_end - off_beg);
   return false;
 }
 
@@ -327,24 +269,24 @@ void StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    RowIndex replace_at, const Column* replace_with)
+    RowIndex replace_at, const OColumn& replace_with)
 {
   materialize();
-  Column* rescol = nullptr;
+  OColumn rescol;
 
-  if (replace_with && replace_with->stype() != stype()){
-    replace_with = replace_with->cast(stype());
+  OColumn with;
+  if (replace_with) {
+    with = replace_with;  // copy
+    if (with.stype() != _stype) with = with.cast(_stype);
   }
   // This could be nullptr too
-  auto repl_col = static_cast<const StringColumn<T>*>(replace_with);
+  auto repl_col = static_cast<const StringColumn<T>*>(with.get());
 
-  if (!replace_with || replace_with->nrows == 1) {
+  if (!with || with.nrows() == 1) {
     CString repl_value;  // Default constructor creates an NA string
-    if (replace_with) {
-      T off0 = repl_col->offsets()[0];
-      if (!ISNA<T>(off0)) {
-        repl_value = CString(repl_col->strdata(), static_cast<int64_t>(off0));
-      }
+    if (with) {
+      bool r = with.get_element(0, &repl_value);
+      if (r) repl_value = CString();
     }
     MemoryRange mask = replace_at.as_boolean_mask(nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
@@ -377,14 +319,13 @@ void StringColumn<T>::replace_values(
   }
 
   xassert(rescol);
-  if (rescol->stype() != stype()) {
+  if (rescol.stype() != _stype) {
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
-  StringColumn<T>* scol = static_cast<StringColumn<T>*>(rescol);
+  auto scol = static_cast<StringColumn<T>*>(const_cast<Column*>(rescol.get()));
   std::swap(mbuf, scol->mbuf);
   std::swap(strbuf, scol->strbuf);
-  delete rescol;
   if (stats) stats->reset();
 }
 
@@ -447,8 +388,9 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
 
 
 template <typename T>
-void StringColumn<T>::apply_na_mask(const BoolColumn* mask) {
-  const int8_t* maskdata = mask->elements_r();
+void StringColumn<T>::apply_na_mask(const OColumn& mask) {
+  xassert(mask.stype() == SType::BOOL);
+  auto maskdata = static_cast<const int8_t*>(mask->data());
   char* strdata = static_cast<char*>(strbuf.wptr());
   T* offsets = this->offsets_w();
 
@@ -552,11 +494,11 @@ static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
 
 
 template <typename T>
-RowIndex StringColumn<T>::join(const Column* keycol) const {
-  xassert(stype() == keycol->stype());
+RowIndex StringColumn<T>::join(const OColumn& keycol) const {
+  xassert(_stype == keycol.stype());
+  xassert(!keycol->rowindex());
 
-  auto kcol = static_cast<const StringColumn<T>*>(keycol);
-  xassert(!kcol->ri);
+  auto kcol = static_cast<const StringColumn<T>*>(keycol.get());
 
   arr32_t target_indices(nrows);
   int32_t* trg_indices = target_indices.data();
@@ -594,9 +536,9 @@ void StringColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-StringStats<T>* StringColumn<T>::get_stats() const {
-  if (stats == nullptr) stats = new StringStats<T>();
-  return static_cast<StringStats<T>*>(stats);
+StringStats* StringColumn<T>::get_stats() const {
+  if (stats == nullptr) stats = new StringStats();
+  return static_cast<StringStats*>(stats);
 }
 
 template <typename T>
@@ -608,20 +550,8 @@ CString StringColumn<T>::mode() const {
 
 
 //------------------------------------------------------------------------------
-// Helpers
+// Explicit instantiation of the template
 //------------------------------------------------------------------------------
 
-static std::string path_str(const std::string& path) {
-  size_t f_s = path.find_last_of("/");
-  size_t f_e = path.find_last_of(".");
-  if (f_s == std::string::npos) f_s = 0;
-  if (f_e == std::string::npos || f_e < f_s) f_e = path.length();
-  std::string res(path);
-  res.insert(f_e, "_str");
-  return res;
-}
-
-
-// Explicit instantiation of the template
 template class StringColumn<uint32_t>;
 template class StringColumn<uint64_t>;

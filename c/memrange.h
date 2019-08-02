@@ -234,17 +234,8 @@ class MemoryRange
     //   (default is true) then the implementation *may* replace the current
     //   data with garbage bytes or it may leave them intact.
     //
-    // save_to_disk(file, strategy)
-    //   Write the content of the memory range to `file`. If the file already
-    //   exists, it will be overwritten.
-    //
-    //
     MemoryRange& set_pyobjects(bool clear_data);
     MemoryRange& resize(size_t newsize, bool keep_data = true);
-    void save_to_disk(
-      const std::string& file,
-      WritableBuffer::Strategy strategy = WritableBuffer::Strategy::Auto
-    );
 
     // Utility functions
     //

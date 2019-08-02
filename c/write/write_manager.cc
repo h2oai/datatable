@@ -63,6 +63,10 @@ void write_manager::set_quoting(int q) {
   options.quoting_mode = static_cast<Quoting>(q);
 }
 
+void write_manager::set_compression(bool f) {
+  options.compress_zlib = f;
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -112,7 +116,8 @@ void write_manager::write_rows()
     nchunks,  // number of iterations
     [&](ordered* o) {
       size_t nrows_per_chunk =  dt->nrows / nchunks;
-      writing_context ctx(fixed_size_per_row, nrows_per_chunk);
+      writing_context ctx(fixed_size_per_row, nrows_per_chunk,
+                          options.compress_zlib);
       size_t th_write_at = 0;
       size_t th_write_size = 0;
 
@@ -123,6 +128,7 @@ void write_manager::write_rows()
           for (size_t row = row0; row < row1; ++row) {
             write_row(ctx, row);
           }
+          ctx.finalize_buffer();
         }, // end of pre-ordered
 
         [&](size_t) {  // ordered
@@ -135,7 +141,7 @@ void write_manager::write_rows()
           CString buf = ctx.get_buffer();
           wb->write_at(th_write_at, th_write_size, buf.ch);
           th_write_size = 0;
-          ctx.clear_buffer();
+          ctx.reset_buffer();
         }
       );
     });
@@ -156,7 +162,7 @@ py::oobj write_manager::get_result() {
 
 void write_manager::create_column_writers() {
   for (size_t i = 0; i < dt->ncols; ++i) {
-    const Column* col = dt->columns[i];
+    const OColumn& col = dt->get_ocolumn(i);
     columns.emplace_back(col, options);
   }
 }
@@ -237,7 +243,14 @@ void write_manager::finalize_output()
     MemoryWritableBuffer* mb = dynamic_cast<MemoryWritableBuffer*>(wb.get());
     xassert(mb);
     char* str = static_cast<char*>(mb->get_cptr());
-    result = py::ostring(str, len);
+    if (options.compress_zlib) {
+      auto size = static_cast<Py_ssize_t>(len);
+      PyObject* obj = PyBytes_FromStringAndSize(str, size);
+      if (!obj) throw PyError();
+      result = py::oobj::from_new_reference(obj);
+    } else {
+      result = py::ostring(str, len);
+    }
   }
   else {
     // When writing to a file, all we need is to finalize the buffer

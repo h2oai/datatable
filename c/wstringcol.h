@@ -17,11 +17,11 @@
 #define dt_WSTRINGCOL_h
 #include <memory>           // std::unique_ptr
 #include "memrange.h"       // MemoryRange
+#include "column.h"
 #include "types.h"          // CString
 #include "utils/array.h"    // dt::array
 #include "writebuf.h"       // WritableBuffer
 
-class Column;
 template <typename T> class StringColumn;
 
 namespace dt {
@@ -49,7 +49,7 @@ class writable_string_col {
     writable_string_col(size_t nrows, bool str64_ = false);
     writable_string_col(MemoryRange&& offsets, size_t nrows,
                         bool str64_ = false);
-    Column* to_column() &&;
+    OColumn to_ocolumn() &&;
 
     class buffer {
       public:

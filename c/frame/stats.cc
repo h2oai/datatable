@@ -37,14 +37,14 @@ namespace py {
 //------------------------------------------------------------------------------
 
 template <typename T>
-static Column* _make_column(SType stype, T value) {
-  Column* col = Column::new_data_column(stype, 1);
-  static_cast<FwColumn<T>*>(col)->set_elem(0, value);
+static OColumn _make_column(SType stype, T value) {
+  OColumn col = OColumn::new_data_column(stype, 1);
+  static_cast<FwColumn<T>*>(const_cast<Column*>(col.get()))->set_elem(0, value);
   return col;
 }
 
 template <typename T>
-static Column* _make_column_str(CString value) {
+static OColumn _make_column_str(CString value) {
   MemoryRange mbuf = MemoryRange::mem(sizeof(T) * 2);
   MemoryRange strbuf;
   if (value.size >= 0) {
@@ -60,11 +60,11 @@ static Column* _make_column_str(CString value) {
   return new_string_column(1, std::move(mbuf), std::move(strbuf));
 }
 
-static Column* _nacol(Stats*, const Column* col) {
-  return Column::new_na_column(col->stype(), 1);
+static OColumn _nacol(Stats*, const OColumn& col) {
+  return OColumn::new_na_column(col.stype(), 1);
 }
 
-static oobj _naval(const Column*) {
+static oobj _naval(const OColumn&) {
   return None();
 }
 
@@ -74,59 +74,59 @@ static oobj _naval(const Column*) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-static Column* _mincol_num(Stats* stats, const Column* col) {
-  return _make_column(col->stype(),
-                      static_cast<NumericalStats<T>*>(stats)->min(col));
+static OColumn _mincol_num(Stats* stats, const OColumn& col) {
+  return _make_column(col.stype(),
+                      downcast<T>(static_cast<NumericalStats<promote<T>>*>(stats)->min(col.get())));
 }
 
 template <typename T>
-static Column* _maxcol_num(Stats* stats, const Column* col) {
-  return _make_column(col->stype(),
-                      static_cast<NumericalStats<T>*>(stats)->max(col));
+static OColumn _maxcol_num(Stats* stats, const OColumn& col) {
+  return _make_column(col.stype(),
+                      downcast<T>(static_cast<NumericalStats<promote<T>>*>(stats)->max(col.get())));
 }
 
 template <typename T>
-static Column* _sumcol_num(Stats* stats, const Column* col) {
+static OColumn _sumcol_num(Stats* stats, const OColumn& col) {
   return _make_column(std::is_integral<T>::value? SType::INT64 : SType::FLOAT64,
-                      static_cast<NumericalStats<T>*>(stats)->sum(col));
+                      static_cast<NumericalStats<promote<T>>*>(stats)->sum(col.get()));
 }
 
 template <typename T>
-static Column* _meancol_num(Stats* stats, const Column* col) {
+static OColumn _meancol_num(Stats* stats, const OColumn& col) {
   return _make_column(SType::FLOAT64,
-                      static_cast<NumericalStats<T>*>(stats)->mean(col));
+                      static_cast<NumericalStats<promote<T>>*>(stats)->mean(col.get()));
 }
 
 template <typename T>
-static Column* _sdcol_num(Stats* stats, const Column* col) {
+static OColumn _sdcol_num(Stats* stats, const OColumn& col) {
   return _make_column(SType::FLOAT64,
-                      static_cast<NumericalStats<T>*>(stats)->stdev(col));
+                      static_cast<NumericalStats<promote<T>>*>(stats)->stdev(col.get()));
 }
 
 template <typename T>
-static Column* _modecol_num(Stats* stats, const Column* col) {
-  return _make_column(col->stype(),
-                      static_cast<NumericalStats<T>*>(stats)->mode(col));
+static OColumn _modecol_num(Stats* stats, const OColumn& col) {
+  return _make_column(col.stype(),
+                      downcast<T>(static_cast<NumericalStats<promote<T>>*>(stats)->mode(col.get())));
 }
 
 template <typename T>
-static Column* _modecol_str(Stats* stats, const Column* col) {
-  return _make_column_str<T>(static_cast<StringStats<T>*>(stats)->mode(col));
+static OColumn _modecol_str(Stats* stats, const OColumn& col) {
+  return _make_column_str<T>(static_cast<StringStats*>(stats)->mode(col.get()));
 }
 
-static Column* _countnacol(Stats* stats, const Column* col) {
+static OColumn _countnacol(Stats* stats, const OColumn& col) {
   return _make_column(SType::INT64,
-                      static_cast<int64_t>(stats->countna(col)));
+                      static_cast<int64_t>(stats->countna(col.get())));
 }
 
-static Column* _nuniquecol(Stats* stats, const Column* col) {
+static OColumn _nuniquecol(Stats* stats, const OColumn& col) {
   return _make_column(SType::INT64,
-                      static_cast<int64_t>(stats->nunique(col)));
+                      static_cast<int64_t>(stats->nunique(col.get())));
 }
 
-static Column* _nmodalcol(Stats* stats, const Column* col) {
+static OColumn _nmodalcol(Stats* stats, const OColumn& col) {
   return _make_column(SType::INT64,
-                      static_cast<int64_t>(stats->nmodal(col)));
+                      static_cast<int64_t>(stats->nmodal(col.get())));
 }
 
 
@@ -154,8 +154,7 @@ static inline oobj pyvalue_real(void* ptr) {
 
 static inline oobj pyvalue_str(void* ptr) {
   CString& x = *reinterpret_cast<CString*>(ptr);
-  return x.size >= 0? ostring(x.ch, static_cast<size_t>(x.size))
-                    : None();
+  return x.isna()? None() : ostring(x);
 }
 
 template <SType s> oobj pyvalue(void* ptr);
@@ -175,53 +174,53 @@ template <> oobj pyvalue<SType::STR64>(void* ptr)   { return pyvalue_str(ptr); }
 // Individual stats (as py::oobj's)
 //------------------------------------------------------------------------------
 
-static oobj _countnaval(const Column* col) {
+static oobj _countnaval(const OColumn& col) {
   size_t v = col->countna();
   return pyvalue<SType::INT64>(&v);
 }
 
 template <SType stype, SType res>
-static oobj _sumval(const Column* col) {
-  auto v = static_cast<const column_t<stype>*>(col)->sum();
+static oobj _sumval(const OColumn& col) {
+  auto v = static_cast<const column_t<stype>*>(col.get())->sum();
   return pyvalue<res>(&v);
 }
 
 template <SType stype>
-static oobj _meanval(const Column* col) {
-  auto v = static_cast<const column_t<stype>*>(col)->mean();
+static oobj _meanval(const OColumn& col) {
+  auto v = static_cast<const column_t<stype>*>(col.get())->mean();
   return pyvalue<SType::FLOAT64>(&v);
 }
 
 template <SType stype>
-static oobj _sdval(const Column* col) {
-  auto v = static_cast<const column_t<stype>*>(col)->sd();
+static oobj _sdval(const OColumn& col) {
+  auto v = static_cast<const column_t<stype>*>(col.get())->sd();
   return pyvalue<SType::FLOAT64>(&v);
 }
 
 template <SType stype>
-static oobj _minval(const Column* col) {
-  auto v = static_cast<const column_t<stype>*>(col)->min();
+static oobj _minval(const OColumn& col) {
+  auto v = static_cast<const column_t<stype>*>(col.get())->min();
   return pyvalue<stype>(&v);
 }
 
 template <SType stype>
-static oobj _maxval(const Column* col) {
-  auto v = static_cast<const column_t<stype>*>(col)->max();
+static oobj _maxval(const OColumn& col) {
+  auto v = static_cast<const column_t<stype>*>(col.get())->max();
   return pyvalue<stype>(&v);
 }
 
 template <SType stype>
-static oobj _modeval(const Column* col) {
-  auto v = static_cast<const column_t<stype>*>(col)->mode();
+static oobj _modeval(const OColumn& col) {
+  auto v = static_cast<const column_t<stype>*>(col.get())->mode();
   return pyvalue<stype>(&v);
 }
 
-static oobj _nmodalval(const Column* col) {
+static oobj _nmodalval(const OColumn& col) {
   size_t v = col->nmodal();
   return pyvalue<SType::INT64>(&v);
 }
 
-static oobj _nuniqueval(const Column* col) {
+static oobj _nuniqueval(const OColumn& col) {
   size_t v = col->nunique();
   return pyvalue<SType::INT64>(&v);
 }
@@ -233,8 +232,8 @@ static oobj _nuniqueval(const Column* col) {
 // Frame creation functions
 //------------------------------------------------------------------------------
 
-using colmakerfn = Column* (*)(Stats*, const Column*);
-using colmakerfn1 = oobj (*)(const Column*);
+using colmakerfn = OColumn (*)(Stats*, const OColumn&);
+using colmakerfn1 = oobj (*)(const OColumn&);
 static colmakerfn statfns[DT_STYPES_COUNT * NSTATS];
 static colmakerfn1 statfns1[DT_STYPES_COUNT * NSTATS];
 static std::unordered_map<const PKArgs*, Stat> stat_from_args;
@@ -246,11 +245,12 @@ inline constexpr size_t id(Stat stat, SType stype) {
 static DataTable* _make_frame(DataTable* dt, Stat stat) {
   colvec out_cols;
   out_cols.reserve(dt->ncols);
-  for (Column* dtcol : dt->columns) {
-    SType stype = dtcol->stype();
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    const OColumn& dtcol = dt->get_ocolumn(i);
+    SType stype = dtcol.stype();
     colmakerfn f = statfns[id(stat, stype)];
-    Column* newcol = f(dtcol->get_stats(), dtcol);
-    out_cols.push_back(newcol);
+    OColumn newcol = f(dtcol->get_stats(), dtcol);
+    out_cols.push_back(std::move(newcol));
   }
   return new DataTable(std::move(out_cols), dt);
 }
@@ -292,9 +292,9 @@ oobj Frame::stat1(const PKArgs& args) {
   if (dt->ncols != 1) {
     throw ValueError() << "This method can only be applied to a 1-column Frame";
   }
-  Column* col0 = dt->columns[0];
+  const OColumn& col0 = dt->get_ocolumn(0);
   Stat stat = stat_from_args[&args];
-  SType stype = col0->stype();
+  SType stype = col0.stype();
   colmakerfn1 f = statfns1[id(stat, stype)];
   return f(col0);
 }

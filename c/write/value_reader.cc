@@ -63,7 +63,7 @@ class fwcol_reader : public value_reader {
   const T* data;
 
   public:
-    fwcol_reader(const Column* col) {
+    fwcol_reader(const OColumn& col) {
       data = reinterpret_cast<const T*>(col->data());
     }
 
@@ -100,8 +100,8 @@ class strcol_reader : public value_reader {
   const char* strdata;
 
   public:
-    strcol_reader(const Column* col) {
-      auto scol = reinterpret_cast<const StringColumn<T>*>(col);
+    strcol_reader(const OColumn& col) {
+      auto scol = reinterpret_cast<const StringColumn<T>*>(col.get());
       offsets = scol->offsets();
       strdata = scol->strdata();
     }
@@ -126,10 +126,10 @@ value_reader::~value_reader() {
 }
 
 
-value_reader_ptr value_reader::create(const Column* col) {
+value_reader_ptr value_reader::create(const OColumn& col) {
   using vptr = value_reader_ptr;
   vptr res;
-  switch (col->stype()) {
+  switch (col.stype()) {
     case SType::BOOL:
     case SType::INT8:    res = vptr(new fwcol_reader<int8_t>(col)); break;
     case SType::INT16:   res = vptr(new fwcol_reader<int16_t>(col)); break;
@@ -140,7 +140,7 @@ value_reader_ptr value_reader::create(const Column* col) {
     case SType::STR32:   res = vptr(new strcol_reader<uint32_t>(col)); break;
     case SType::STR64:   res = vptr(new strcol_reader<uint64_t>(col)); break;
     default:
-      throw ValueError() << "Cannot read values of stype " << col->stype();
+      throw ValueError() << "Cannot read values of stype " << col.stype();
   }
 
   const RowIndex& ri = col->rowindex();

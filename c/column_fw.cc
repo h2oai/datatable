@@ -22,12 +22,12 @@ FwColumn<T>::FwColumn() : Column(0) {}
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_) : Column(nrows_) {
-  mbuf.resize(elemsize() * nrows_);
+  mbuf.resize(sizeof(T) * nrows_);
 }
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
-  size_t req_size = elemsize() * nrows_;
+  size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);
   } else {
@@ -44,56 +44,12 @@ FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
 template <typename T>
 void FwColumn<T>::init_data() {
   xassert(!ri);
-  mbuf.resize(nrows * elemsize());
-}
-
-template <typename T>
-void FwColumn<T>::init_mmap(const std::string& filename) {
-  xassert(!ri);
-  mbuf = MemoryRange::mmap(filename, nrows * elemsize());
-}
-
-template <typename T>
-void FwColumn<T>::open_mmap(const std::string& filename, bool) {
-  xassert(!ri);
-  mbuf = MemoryRange::mmap(filename);
-  // size_t exp_size = nrows * sizeof(T);
-  // if (mbuf.size() != exp_size) {
-  //   throw Error() << "File \"" << filename <<
-  //       "\" cannot be used to create a column with " << nrows <<
-  //       " rows. Expected file size of " << exp_size <<
-  //       " bytes, actual size is " << mbuf.size() << " bytes";
-  // }
-}
-
-template <typename T>
-void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
-  xassert(!ri);
-  size_t exp_buf_len = nrows * elemsize();
-  if (static_cast<size_t>(pybuffer->len) != exp_buf_len) {
-    throw Error() << "PyBuffer cannot be used to create a column of " << nrows
-                  << " rows: buffer length is "
-                  << static_cast<size_t>(pybuffer->len)
-                  << ", expected " << exp_buf_len;
-  }
-  const void* ptr = pybuffer->buf;
-  mbuf = MemoryRange::external(ptr, exp_buf_len, pybuffer);
+  mbuf.resize(nrows * sizeof(T));
 }
 
 
 
 //==============================================================================
-
-template <typename T>
-size_t FwColumn<T>::elemsize() const {
-  return sizeof(T);
-}
-
-template <typename T>
-bool FwColumn<T>::is_fixedwidth() const {
-  return true;
-}
-
 
 template <typename T>
 const T* FwColumn<T>::elements_r() const {
@@ -211,8 +167,9 @@ size_t FwColumn<T>::data_nrows() const {
 
 
 template <typename T>
-void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
-  const int8_t* maskdata = mask->elements_r();
+void FwColumn<T>::apply_na_mask(const OColumn& mask) {
+  xassert(mask.stype() == SType::BOOL);
+  auto maskdata = static_cast<const int8_t*>(mask->data());
   T* coldata = this->elements_w();
 
   dt::parallel_for_static(nrows,
@@ -247,26 +204,26 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    RowIndex replace_at, const Column* replace_with)
+    RowIndex replace_at, const OColumn& replace_with)
 {
   materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  if (replace_with->stype() != stype()) {
-    replace_with = replace_with->cast(stype());
-  }
+  OColumn with = (replace_with.stype() == _stype)
+                    ? replace_with  // copy
+                    : replace_with.cast(_stype);
 
-  if (replace_with->nrows == 1) {
-    auto rcol = dynamic_cast<const FwColumn<T>*>(replace_with);
+  if (with.nrows() == 1) {
+    auto rcol = dynamic_cast<const FwColumn<T>*>(with.get());
     xassert(rcol);
     return replace_values(replace_at, rcol->get_elem(0));
   }
   size_t replace_n = replace_at.size();
-  const T* data_src = static_cast<const T*>(replace_with->data());
-  const RowIndex& rowindex_src = replace_with->rowindex();
+  const T* data_src = static_cast<const T*>(with->data());
+  const RowIndex& rowindex_src = with->rowindex();
   T* data_dest = elements_w();
-  xassert(replace_with->nrows == replace_n);
+  xassert(with.nrows() == replace_n);
   if (rowindex_src) {
     replace_at.iterate(0, replace_n, 1,
       [&](size_t i, size_t j) {
@@ -299,17 +256,15 @@ static int32_t binsearch(const T* data, int32_t len, T value) {
 
 
 template <typename T>
-RowIndex FwColumn<T>::join(const Column* keycol) const {
-  xassert(stype() == keycol->stype());
-
-  auto kcol = static_cast<const FwColumn<T>*>(keycol);
-  xassert(!kcol->ri);
+RowIndex FwColumn<T>::join(const OColumn& keycol) const {
+  xassert(_stype == keycol.stype());
+  xassert(!keycol->rowindex());
 
   arr32_t target_indices(nrows);
   int32_t* trg_indices = target_indices.data();
   const T* src_data = elements_r();
-  const T* search_data = kcol->elements_r();
-  int32_t search_n = static_cast<int32_t>(keycol->nrows);
+  const T* search_data = static_cast<const T*>(keycol->data());
+  int32_t search_n = static_cast<int32_t>(keycol.nrows());
 
   ri.iterate(0, nrows, 1,
     [&](size_t i, size_t j) {

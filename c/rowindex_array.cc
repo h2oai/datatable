@@ -163,13 +163,13 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(const Column* col) {
+ArrayRowIndexImpl::ArrayRowIndexImpl(const OColumn& col) {
   data = nullptr;
   owned = true;
   ascending = false;
-  switch (col->stype()) {
+  switch (col.stype()) {
     case SType::BOOL:
-      init_from_boolean_column(static_cast<const BoolColumn*>(col));
+      init_from_boolean_column(col);
       break;
     case SType::INT8:
     case SType::INT16:
@@ -251,46 +251,49 @@ void ArrayRowIndexImpl::_set_min_max() {
 }
 
 
-void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
-  const int8_t* tdata = col->elements_r();
-  length = static_cast<size_t>(col->sum());  // total # of 1s in the column
+void ArrayRowIndexImpl::init_from_boolean_column(const OColumn& col) {
+  xassert(col.stype() == SType::BOOL);
+  length = static_cast<size_t>(reinterpret_cast<const BoolColumn*>(col.get())->sum());  // total # of 1s in the column
 
   if (length == 0) {
     // no need to do anything: the data arrays already have 0 length
     type = RowIndexType::ARR32;
     return;
   }
-  if (length <= INT32_MAX && col->nrows <= INT32_MAX) {
+  int32_t value;
+  if (length <= INT32_MAX && col.nrows() <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
     auto ind32 = static_cast<int32_t*>(data);
     size_t k = 0;
-    col->rowindex().iterate(0, col->nrows, 1,
-      [&](size_t, size_t j) {
-        if (tdata[j] == 1)
-          ind32[k++] = static_cast<int32_t>(j);
-      });
+    for (size_t i = 0; i < col.nrows(); ++i) {
+      bool isna = col.get_element(i, &value);
+      if (value && !isna) {
+        ind32[k++] = static_cast<int32_t>(i);
+      }
+    }
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
     auto ind64 = static_cast<int64_t*>(data);
     size_t k = 0;
-    col->rowindex().iterate(0, col->nrows, 1,
-      [&](size_t, size_t j) {
-        if (tdata[j] == 1)
-          ind64[k++] = static_cast<int64_t>(j);
-      });
+    for (size_t i = 0; i < col.nrows(); ++i) {
+      bool isna = col.get_element(i, &value);
+      if (value && !isna) {
+        ind64[k++] = static_cast<int64_t>(i);
+      }
+    }
   }
   ascending = true;
   set_min_max();
 }
 
 
-void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
-  if (col->countna()) {
+void ArrayRowIndexImpl::init_from_integer_column(const OColumn& col) {
+  if (col.na_count()) {
     throw ValueError() << "RowIndex source column contains NA values.";
   }
-  if (col->nrows == 0) {
+  if (col.nrows() == 0) {
     min = max = RowIndex::NA;
   } else {
     int64_t imin = col->min_int64();
@@ -301,11 +304,10 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
     min = static_cast<size_t>(imin);
     max = static_cast<size_t>(imax);
   }
-  Column* col2 = col->shallowcopy();
-  col2->materialize();  // noop if col has no rowindex
+  OColumn col2 = col;  // copy
+  col2.materialize();
 
-  length = col->nrows;
-  Column* col3 = nullptr;
+  length = col.nrows();
   if (length <= INT32_MAX && max <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
@@ -315,17 +317,14 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
     // the column is destructed.
     MemoryRange xbuf = MemoryRange::external(data, length * sizeof(int32_t));
     xassert(xbuf.is_writable());
-    col3 = col2->cast(SType::INT32, std::move(xbuf));
+    auto col3 = col2.cast(SType::INT32, std::move(xbuf));
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
     MemoryRange xbuf = MemoryRange::external(data, length * sizeof(int64_t));
     xassert(xbuf.is_writable());
-    col3 = col2->cast(SType::INT64, std::move(xbuf));
+    auto col3 = col2.cast(SType::INT64, std::move(xbuf));
   }
-
-  delete col2;
-  delete col3;
 }
 
 

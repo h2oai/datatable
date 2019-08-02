@@ -13,44 +13,36 @@
 
 
 PyObjectColumn::PyObjectColumn() : FwColumn<PyObject*>() {
+  _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<PyObject*>(nrows_) {
+  _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
     : FwColumn<PyObject*>(nrows_, std::move(mb))
 {
+  _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
 
 
-SType PyObjectColumn::stype() const noexcept {
-  return SType::OBJ;
-}
-
-py::oobj PyObjectColumn::get_value_at_index(size_t i) const {
+bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
   size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return py::None();
+  if (j == RowIndex::NA) return true;
   PyObject* x = this->elements_r()[j];
-  return py::oobj(x);
+  *out = x;
+  return (x == Py_None);
 }
 
-
-// "PyObject" columns cannot be properly saved. So if somehow they were, then
-// when opening, we'll just fill the column with NAs.
-void PyObjectColumn::open_mmap(const std::string&, bool) {
-  xassert(!ri);
-  mbuf = MemoryRange::mem(nrows * sizeof(PyObject*))
-         .set_pyobjects(/*clear_data = */ true);
-}
 
 
 void PyObjectColumn::fill_na() {
-  // This is called from `Column::new_na_column()` only; and for a
+  // This is called from `OColumn::new_na_column()` only; and for a
   // PyObjectColumn the buffer is already created containing Py_None values,
   // thus we don't need to do anything extra.
   // Semantics of this function may be clarified in the future (specifically,

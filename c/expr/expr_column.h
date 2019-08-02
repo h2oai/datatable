@@ -41,7 +41,7 @@ class expr_column : public base_expr {
     bool is_column_expr() const override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe&) override;
+    OColumn evaluate_eager(workframe&) override;
 };
 
 

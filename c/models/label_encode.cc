@@ -14,9 +14,10 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "models/label_encode.h"
-
-
 namespace dt {
+
+
+static void label_encode_bool(const OColumn&, dtptr&, dtptr&);
 
 
 /**
@@ -24,12 +25,12 @@ namespace dt {
  *  the function expects two classes at maximum and will emit an error,
  *  if there is more.
  */
-void label_encode(const Column* col, dtptr& dt_labels, dtptr& dt_encoded,
+void label_encode(const OColumn& col, dtptr& dt_labels, dtptr& dt_encoded,
                   bool is_binomial /* = false =*/) {
   xassert(dt_labels == nullptr);
   xassert(dt_encoded == nullptr);
 
-  SType stype = col->stype();
+  SType stype = col.stype();
   if (is_binomial) {
     switch (stype) {
       case SType::BOOL:    label_encode_bool(col, dt_labels, dt_encoded); break;
@@ -73,31 +74,24 @@ void label_encode(const Column* col, dtptr& dt_labels, dtptr& dt_encoded,
  *  false/true. No encoding in this case is necessary, so `dt_encoded`
  *  just uses a shallow copy of `col`.
  */
-void label_encode_bool(const Column* col, dtptr& dt_labels, dtptr& dt_encoded) {
-  auto data = static_cast<const int8_t*>(col->data());
-
+static void label_encode_bool(const OColumn& col, dtptr& dt_labels, dtptr& dt_encoded)
+{
   // If we only got NA's, return
-  bool nas_only = true;
-  for (size_t i = 0; i < col->nrows; ++i) {
-    if (!ISNA<int8_t>(data[i])) {
-      nas_only = false;
-      break;
-    }
-  }
-  if (nas_only) return;
+  if (col.na_count() == col.nrows()) return;
 
   // Set up boolean labels and their corresponding ids.
-  auto ids_col = new BoolColumn(2);
-  auto labels_col = new BoolColumn(2);
-  auto ids_data = ids_col->elements_w();
-  auto labels_data = labels_col->elements_w();
+  OColumn ids_col = OColumn::new_data_column(SType::BOOL, 2);
+  OColumn labels_col = OColumn::new_data_column(SType::BOOL, 2);
+  auto ids_data = static_cast<int8_t*>(ids_col->data_w());
+  auto labels_data = static_cast<int8_t*>(labels_col->data_w());
   ids_data[0] = 0;
   ids_data[1] = 1;
   labels_data[0] = 0;
   labels_data[1] = 1;
 
-  dt_labels = dtptr(new DataTable({labels_col, ids_col}, {"label", "id"}));
-  dt_encoded = dtptr(new DataTable({col->shallowcopy()}));
+  dt_labels = dtptr(new DataTable({std::move(labels_col), std::move(ids_col)},
+                                  {"label", "id"}));
+  dt_encoded = dtptr(new DataTable({OColumn(col)}, DataTable::default_names));
 }
 
 

@@ -255,29 +255,29 @@ void DatatableModule::init_methods_rbind() {
 //------------------------------------------------------------------------------
 
 /**
- * Append to this Frame a list of other Frames `dts`. The `cols` array of
+ * Append to this Frame a list of other Frames `dts`. The `col_indices` array
  * specifies how the columns should be matched.
  *
- * In particular, the Frame `dt` will be expanded to have `cols.size()` columns,
- * and `dt->nrows + sum(dti->nrows for dti in dts)` rows. The `i`th column
- * in the expanded Frame will have the following structure: first comes the
- * data from `i`th column of `dt` (if `i < dt->ncols`, otherwise NAs); after
+ * In particular, the Frame `dt` will be expanded to have `col_indices.size()`
+ * columns, and `dt->nrows + sum(dti->nrows for dti in dts)` rows. The `i`th
+ * column in the expanded Frame will have the following structure: first comes
+ * the data from `i`th column of `dt` (if `i < dt->ncols`, otherwise NAs); after
  * that come `ndts` blocks of rows, each `j`th block having data from column
- * number `cols[i][j]` in Frame `dts[j]` (if `cols[i][j] >= 0`, otherwise
- * NAs).
+ * number `col_indices[i][j]` in Frame `dts[j]` (if `col_indices[i][j] >= 0`,
+ * otherwise NAs).
  */
 void DataTable::rbind(
-    const std::vector<DataTable*>& dts, const std::vector<intvec>& cols)
+    const std::vector<DataTable*>& dts, const std::vector<intvec>& col_indices)
 {
-  size_t new_ncols = cols.size();
+  size_t new_ncols = col_indices.size();
   xassert(new_ncols >= ncols);
 
   // If this is a view Frame, then it must be materialized.
   this->materialize();
 
-  columns.resize(new_ncols, nullptr);
+  columns.reserve(new_ncols);
   for (size_t i = ncols; i < new_ncols; ++i) {
-    columns[i] = new VoidColumn(nrows);
+    columns.push_back(OColumn::new_data_column(SType::VOID, nrows));
   }
 
   size_t new_nrows = nrows;
@@ -285,17 +285,17 @@ void DataTable::rbind(
     new_nrows += dt->nrows;
   }
 
-  std::vector<const Column*> cols_to_append(dts.size(), nullptr);
+  colvec cols_to_append(dts.size());
   for (size_t i = 0; i < new_ncols; ++i) {
     for (size_t j = 0; j < dts.size(); ++j) {
-      size_t k = cols[i][j];
-      Column* col = k == INVALID_INDEX
-                      ? new VoidColumn(dts[j]->nrows)
-                      : dts[j]->columns[k]->shallowcopy();
-      col->materialize();
-      cols_to_append[j] = col;
+      size_t k = col_indices[i][j];
+      OColumn col = (k == INVALID_INDEX)
+                      ? OColumn::new_data_column(SType::VOID, dts[j]->nrows)
+                      : dts[j]->get_ocolumn(k);
+      col.materialize();
+      cols_to_append[j] = std::move(col);
     }
-    columns[i] = columns[i]->rbind(cols_to_append);
+    columns[i].rbind(cols_to_append);
   }
   ncols = new_ncols;
   nrows = new_nrows;
@@ -308,43 +308,38 @@ void DataTable::rbind(
 //  Column::rbind()
 //------------------------------------------------------------------------------
 
-Column* Column::rbind(std::vector<const Column*>& columns)
-{
+void OColumn::rbind(colvec& columns) {
   // Is the current column "empty" ?
   bool col_empty = (stype() == SType::VOID);
   // Compute the final number of rows and stype
-  size_t new_nrows = this->nrows;
+  size_t new_nrows = nrows();
   SType new_stype = col_empty? SType::BOOL : stype();
-  for (const Column* col : columns) {
-    new_nrows += col->nrows;
-    new_stype = std::max(new_stype, col->stype());
+  for (const auto& col : columns) {
+    new_nrows += col.nrows();
+    new_stype = std::max(new_stype, col.stype());
   }
 
-  // Create the resulting Column object. It can be either: an empty column
-  // filled with NAs; the current column (`this`); a clone of the current
-  // column (if it has refcount > 1); or a type-cast of the current column.
-  Column* res = nullptr;
+  // Create the resulting OColumn object. It can be either: an empty column
+  // filled with NAs; the current column; or a type-cast of the current column.
+  OColumn newcol;
   if (col_empty) {
-    res = Column::new_na_column(new_stype, this->nrows);
+    newcol = OColumn::new_na_column(new_stype, nrows());
   } else if (stype() == new_stype) {
-    res = this;
+    newcol = std::move(*this);
   } else {
-    res = this->cast(new_stype);
+    newcol = cast(new_stype);
   }
-  xassert(res->stype() == new_stype);
+  xassert(newcol.stype() == new_stype);
 
   // TODO: Temporary Fix. To be resolved in #301
-  if (res->stats != nullptr) res->stats->reset();
+  if (newcol->stats != nullptr) newcol->stats->reset();
 
   // Use the appropriate strategy to continue appending the columns.
-  res->rbind_impl(columns, new_nrows, col_empty);
+  newcol->rbind_impl(columns, new_nrows, col_empty);
 
-  // If everything is fine, then the current column can be safely discarded
-  // -- the upstream caller will replace this column with the `res`.
-  if (res != this) delete this;
-  return res;
+  // Replace current column's impl with the newcol's
+  std::swap(pcol, newcol.pcol);
 }
-
 
 
 
@@ -353,8 +348,8 @@ Column* Column::rbind(std::vector<const Column*>& columns)
 //------------------------------------------------------------------------------
 
 template <typename T>
-void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
-                                 size_t new_nrows, bool col_empty)
+void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
+                                 bool col_empty)
 {
   // Determine the size of the memory to allocate
   size_t old_nrows = nrows;
@@ -363,15 +358,13 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
     new_strbuf_size += strbuf.size();
   }
   for (size_t i = 0; i < columns.size(); ++i) {
-    const Column* col = columns[i];
-    if (col->stype() == SType::VOID) continue;
-    if (col->stype() != stype()) {
-      columns[i] = col->cast(stype());
-      delete col;
-      col = columns[i];
+    OColumn& col = columns[i];
+    if (col.stype() == SType::VOID) continue;
+    if (col.stype() != _stype) {
+      col = col.cast(_stype);
     }
     // TODO: replace with datasize(). But: what if col is not a string?
-    new_strbuf_size += static_cast<const StringColumn<T>*>(col)->strbuf.size();
+    new_strbuf_size += static_cast<const StringColumn<T>*>(col.get())->strbuf.size();
   }
   size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
 
@@ -391,9 +384,9 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
     curr_offset = offs[old_nrows - 1] & ~GETNA<T>();
     offs += old_nrows;
   }
-  for (const Column* col : columns) {
-    if (col->stype() == SType::VOID) {
-      rows_to_fill += col->nrows;
+  for (const OColumn& col : columns) {
+    if (col.stype() == SType::VOID) {
+      rows_to_fill += col.nrows();
     } else {
       if (rows_to_fill) {
         const T na = curr_offset ^ GETNA<T>();
@@ -401,13 +394,13 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
         offs += rows_to_fill;
         rows_to_fill = 0;
       }
-      const T* col_offsets = static_cast<const StringColumn<T>*>(col)->offsets();
-      size_t col_nrows = col->nrows;
+      const T* col_offsets = static_cast<const StringColumn<T>*>(col.get())->offsets();
+      size_t col_nrows = col.nrows();
       for (size_t j = 0; j < col_nrows; ++j) {
         T off = col_offsets[j];
         *offs++ = off + curr_offset;
       }
-      auto strcol = static_cast<const StringColumn<T>*>(col);
+      auto strcol = static_cast<const StringColumn<T>*>(col.get());
       size_t sz = strcol->strbuf.size();
       if (sz) {
         void* target = strbuf.wptr(static_cast<size_t>(curr_offset));
@@ -415,7 +408,6 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
         curr_offset += sz;
       }
     }
-    delete col;
   }
   if (rows_to_fill) {
     const T na = curr_offset ^ GETNA<T>();
@@ -430,8 +422,7 @@ void StringColumn<T>::rbind_impl(std::vector<const Column*>& columns,
 //------------------------------------------------------------------------------
 
 template <typename T>
-void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
-                             size_t new_nrows, bool col_empty)
+void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 {
   const T na = na_elem;
   const void* naptr = static_cast<const void*>(&na);
@@ -452,24 +443,21 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
   } else {
     resptr += old_alloc_size;
   }
-  for (const Column* col : columns) {
-    if (col->stype() == SType::VOID) {
-      rows_to_fill += col->nrows;
+  for (auto& col : columns) {
+    if (col.stype() == SType::VOID) {
+      rows_to_fill += col.nrows();
     } else {
       if (rows_to_fill) {
         set_value(resptr, naptr, sizeof(T), rows_to_fill);
         resptr += rows_to_fill * sizeof(T);
         rows_to_fill = 0;
       }
-      if (col->stype() != stype()) {
-        Column* newcol = col->cast(stype());
-        delete col;
-        col = newcol;
+      if (col.stype() != _stype) {
+        col = col.cast(_stype);
       }
       std::memcpy(resptr, col->data(), col->alloc_size());
       resptr += col->alloc_size();
     }
-    delete col;
   }
   if (rows_to_fill) {
     set_value(resptr, naptr, sizeof(T), rows_to_fill);
@@ -486,7 +474,7 @@ void FwColumn<T>::rbind_impl(std::vector<const Column*>& columns,
 //------------------------------------------------------------------------------
 
 void PyObjectColumn::rbind_impl(
-  std::vector<const Column*>& columns, size_t nnrows, bool col_empty)
+  colvec& columns, size_t nnrows, bool col_empty)
 {
   size_t old_nrows = nrows;
   size_t new_nrows = nnrows;
@@ -502,24 +490,21 @@ void PyObjectColumn::rbind_impl(
   if (!col_empty) {
     dest_data += old_nrows;
   }
-  for (const Column* col : columns) {
-    if (col->stype() == SType::VOID) {
-      dest_data += col->nrows;
+  for (auto& col : columns) {
+    if (col.stype() == SType::VOID) {
+      dest_data += col.nrows();
     } else {
-      if (col->stype() != SType::OBJ) {
-        Column* newcol = col->cast(stype());
-        delete col;
-        col = newcol;
+      if (col.stype() != SType::OBJ) {
+        col = col.cast(_stype);
       }
       auto src_data = static_cast<PyObject* const*>(col->data());
-      for (size_t i = 0; i < col->nrows; ++i) {
+      for (size_t i = 0; i < col.nrows(); ++i) {
         Py_INCREF(src_data[i]);
         Py_DECREF(*dest_data);
         *dest_data = src_data[i];
         dest_data++;
       }
     }
-    delete col;
   }
   xassert(dest_data == dest_data0 + new_nrows);
   (void)dest_data0;

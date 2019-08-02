@@ -27,6 +27,28 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][]
 
+### Fixed
+
+- Fixed error when displaying `help(dt)` (#1931).
+
+- `fread(cmd=)` now throws an error if it occurred while running the provided
+  command `cmd` in the shell. Previously the error was silently discarded
+  (#1935).
+
+- datatable now correctly handles the case of a degenerate range, producing
+  an empty Frame instead of a 1-row Frame (#1942).
+
+
+### Changed
+
+- Support for NFF format was removed. This was an old datatable's format for
+  storing data frames on disk, and it was deprecated in favor of Jay over a
+  year ago. If you still have any data stored in NFF format, we recommend to
+  re-save in Jay using datatable 0.9.
+
+
+## [0.9.0][] — 2019-06-15
+
 ### Added
 
 - Added function `dt.models.kfold(nrows, nsplits)` to prepare indices for
@@ -102,6 +124,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added parameter `quoting=` to method `Frame.to_csv()`. The accepted values
   are 4 constants from the standard `csv` module: `csv.QUOTE_MINIMAL`
   (default), `csv.QUOTE_ALL`, `csv.QUOTE_NONNUMERIC` and `csv.QUOTE_NONE`.
+
+- Added parameter `compression=` to method `Frame.to_csv()`, with possibility
+  to request gzip compression for the output file. By default the compression
+  method will be inferred from the file name.
 
 
 ### Fixed
@@ -1167,7 +1193,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-[unreleased]: https://github.com/h2oai/datatable/compare/v0.8.0...HEAD
+[unreleased]: https://github.com/h2oai/datatable/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/h2oai/datatable/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/h2oai/datatable/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/h2oai/datatable/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/h2oai/datatable/compare/v0.5.0...v0.6.0

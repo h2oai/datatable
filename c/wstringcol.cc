@@ -42,7 +42,7 @@ writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows,
 }
 
 
-Column* writable_string_col::to_column() && {
+OColumn writable_string_col::to_ocolumn() && {
   strdata.finalize();
   auto strbuf = strdata.get_mbuf();
   if (str64) {
