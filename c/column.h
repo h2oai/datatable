@@ -389,11 +389,12 @@ class OColumn
     Column* operator->();
     const Column* operator->() const;
 
+
   //------------------------------------
   // Data access
   //------------------------------------
   public:
-    // Each `get_element(i, *out)` function retrieves the column's element
+    // Each `get_element(i, &out)` function retrieves the column's element
     // at index `i` and stores it in the variable `out`. The return value
     // is true if the returned element is NA (missing), or false otherwise.
     // When `true` is returned, the `out` value may contain garbage data,
@@ -424,6 +425,25 @@ class OColumn
     const void* data_with_nas_r() const { return pcol->mbuf.rptr(); }
 
 
+  //------------------------------------
+  // Stats
+  //------------------------------------
+  public:
+    bool get_stat(Stat, int32_t* out) const;
+    bool get_stat(Stat, int64_t* out) const;
+    bool get_stat(Stat, float* out) const;
+    bool get_stat(Stat, double* out) const;
+    bool get_stat(Stat, CString* out) const;
+    bool get_stat(Stat, py::robj* out) const;
+
+    py::oobj get_stat_as_pyobject(Stat) const;
+    bool is_stat_computed(Stat) const;
+
+
+  //------------------------------------
+  // Column manipulation
+  //------------------------------------
+  public:
     void rbind(colvec& columns);
     void materialize();
     OColumn cast(SType stype) const;

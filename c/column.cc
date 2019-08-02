@@ -287,6 +287,47 @@ py::oobj OColumn::get_element_as_pyobject(size_t i) const {
 
 
 
+//------------------------------------------------------------------------------
+// OColumn : stats accessors
+//------------------------------------------------------------------------------
+
+bool OColumn::get_stat(Stat s, int32_t* out) const  { return pcol->get_stats()->get_stat(*this, s, out); }
+bool OColumn::get_stat(Stat s, int64_t* out) const  { return pcol->get_stats()->get_stat(*this, s, out); }
+bool OColumn::get_stat(Stat s, float* out) const    { return pcol->get_stats()->get_stat(*this, s, out); }
+bool OColumn::get_stat(Stat s, double* out) const   { return pcol->get_stats()->get_stat(*this, s, out); }
+bool OColumn::get_stat(Stat s, CString* out) const  { return pcol->get_stats()->get_stat(*this, s, out); }
+bool OColumn::get_stat(Stat s, py::robj* out) const { return pcol->get_stats()->get_stat(*this, s, out); }
+
+// template <typename T>
+// static inline py::oobj getpystat(const OColumn& col, Stat s) {
+//   T x;
+//   bool r = col.get_stat(s, &x);
+//   return r? py::None() : wrap(x);
+// }
+
+// TODO: map stat + stype() into proper get_stat() call
+// py::oobj get_stat_as_pyobject(Stat s) const {
+//   switch (stype()) {
+//     case SType::BOOL:
+//     case SType::INT8:
+//     case SType::INT16:
+//     case SType::INT32:   return getpystat<int32_t>(*this, s);
+//     case SType::INT64:   return getpystat<int64_t>(*this, s);
+//     case SType::FLOAT32: return getpystat<float>(*this, s);
+//     case SType::FLOAT64: return getpystat<double>(*this, s);
+//     case SType::STR32:
+//     case SType::STR64:   return getpystat<CString>(*this, s);
+//     case SType::OBJ:     return getpystat<py::robj>(*this, s);
+//     default:
+//       throw NotImplError() << "Unable to convert elements of stype "
+//           << stype() << " into python objects";
+//   }
+// }
+
+bool OColumn::is_stat_computed(Stat s) const {
+  Stats* stats = pcol->get_stats_if_exist();
+  return stats? stats->is_computed(s) : false;
+}
 
 
 

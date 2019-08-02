@@ -91,6 +91,109 @@ Stats* Column::get_stats_if_exist() const {
   return stats.get();
 }
 
+//
+//       |     | MIN |     | MEAN| SKEW| QT* |     | NUNQ|
+// SType |  NA | MAX | SUM |  SD | KURT| MED | MODE| NMOD|
+// ------+-----+-----+-----+-----+-----+-----+-----+-----+
+// BOOL  | i64 | i32 | i64 | f64 | f64 | f64 | i32 | i64 |
+// INT8  | i64 | i32 | i64 | f64 | f64 | f64 | i32 | i64 |
+// INT16 | i64 | i32 | i64 | f64 | f64 | f64 | i32 | i64 |
+// INT32 | i64 | i32 | i64 | f64 | f64 | f64 | i32 | i64 |
+// INT64 | i64 | i64 | i64 | f64 | f64 | f64 | i64 | i64 |
+// FLT32 | i64 | f32 | f64 | f64 | f64 | f64 | f32 | i64 |
+// FLT64 | i64 | f64 | f64 | f64 | f64 | f64 | f64 | i64 |
+// STR32 | i64 |  -- |  -- |  -- |  -- |  -- | str | i64 |
+// STR64 | i64 |  -- |  -- |  -- |  -- |  -- | str | i64 |
+// OBJ   | i64 |  -- |  -- |  -- |  -- |  -- |  -- |  -- |
+//
+
+
+bool Stats::get_stat(const OColumn& col, Stat stat, int32_t* out)  {
+  switch (stat) {
+    case Stat::Min:  return get_min(col, out);
+    case Stat::Max:  return get_max(col, out);
+    case Stat::Mode: return get_mode(col, out);
+    default:
+      throw RuntimeError() << "Stat `" << stat_name(stat)
+                           << "` cannot be accessed as int32";
+  }
+}
+
+bool Stats::get_stat(const OColumn& col, Stat stat, int64_t* out)  {
+  switch (stat) {
+    case Stat::NaCount: return get_nacount(col, out);
+    case Stat::Sum:     return get_sum(col, out);
+    case Stat::Min:     return get_min(col, out);
+    case Stat::Max:     return get_max(col, out);
+    case Stat::Mode:    return get_mode(col, out);
+    case Stat::NUnique: return get_nunique(col, out);
+    case Stat::NModal:  return get_nmodal(col, out);
+    default:
+      throw RuntimeError() << "Stat `" << stat_name(stat)
+                           << "` cannot be accessed as int64";
+  }
+}
+
+bool Stats::get_stat(const OColumn& col, Stat stat, float* out)    {
+  switch (stat) {
+    case Stat::Min:  return get_min(col, out);
+    case Stat::Max:  return get_max(col, out);
+    case Stat::Mode: return get_mode(col, out);
+    default:
+      throw RuntimeError() << "Stat `" << stat_name(stat)
+                           << "` cannot be accessed as float32";
+  }
+}
+
+bool Stats::get_stat(const OColumn& col, Stat stat, double* out)   {
+  switch (stat) {
+    case Stat::Sum:   return get_sum(col, out);
+    case Stat::StDev: return get_stdev(col, out);
+    case Stat::Skew:  return get_skew(col, out);
+    case Stat::Kurt:  return get_kurt(col, out);
+    case Stat::Min:   return get_min(col, out);
+    case Stat::Max:   return get_max(col, out);
+    case Stat::Mode:  return get_mode(col, out);
+    default:
+      throw RuntimeError() << "Stat `" << stat_name(stat)
+                           << "` cannot be accessed as float64";
+  }
+}
+
+bool Stats::get_stat(const OColumn& col, Stat stat, CString* out)  {
+  switch (stat) {
+    case Stat::Mode: return get_mode(col, out);
+    default:         throw NotImplError();
+  }
+}
+
+bool Stats::get_stat(const OColumn&, Stat, py::robj*) {
+ throw NotImplError();
+}
+
+bool Stats::get_nacount(const OColumn&, int64_t*) { throw RuntimeError(); }
+bool Stats::get_sum    (const OColumn&, int64_t*) { throw RuntimeError(); }
+bool Stats::get_sum    (const OColumn&, double*)  { throw RuntimeError(); }
+bool Stats::get_mean   (const OColumn&, double*)  { throw RuntimeError(); }
+bool Stats::get_stdev  (const OColumn&, double*)  { throw RuntimeError(); }
+bool Stats::get_skew   (const OColumn&, double*)  { throw RuntimeError(); }
+bool Stats::get_kurt   (const OColumn&, double*)  { throw RuntimeError(); }
+bool Stats::get_min    (const OColumn&, int32_t*) { throw RuntimeError(); }
+bool Stats::get_min    (const OColumn&, int64_t*) { throw RuntimeError(); }
+bool Stats::get_min    (const OColumn&, float*)   { throw RuntimeError(); }
+bool Stats::get_min    (const OColumn&, double*)  { throw RuntimeError(); }
+bool Stats::get_max    (const OColumn&, int32_t*) { throw RuntimeError(); }
+bool Stats::get_max    (const OColumn&, int64_t*) { throw RuntimeError(); }
+bool Stats::get_max    (const OColumn&, float*)   { throw RuntimeError(); }
+bool Stats::get_max    (const OColumn&, double*)  { throw RuntimeError(); }
+bool Stats::get_mode   (const OColumn&, int32_t*) { throw RuntimeError(); }
+bool Stats::get_mode   (const OColumn&, int64_t*) { throw RuntimeError(); }
+bool Stats::get_mode   (const OColumn&, float*)   { throw RuntimeError(); }
+bool Stats::get_mode   (const OColumn&, double*)  { throw RuntimeError(); }
+bool Stats::get_mode   (const OColumn&, CString*) { throw RuntimeError(); }
+bool Stats::get_nmodal (const OColumn&, int64_t*) { throw RuntimeError(); }
+bool Stats::get_nunique(const OColumn&, int64_t*) { throw RuntimeError(); }
+
 
 
 //==============================================================================
@@ -114,12 +217,20 @@ bool Stats::is_computed(Stat s) const {
   return _computed.test(static_cast<size_t>(s));
 }
 
+bool Stats::is_na(Stat s) const {
+  return _isna.test(static_cast<size_t>(s));
+}
+
 void Stats::set_computed(Stat s) {
   _computed.set(static_cast<size_t>(s));
 }
 
 void Stats::set_computed(Stat s, bool flag) {
   _computed.set(static_cast<size_t>(s), flag);
+}
+
+void Stats::set_isna(Stat s, bool flag) {
+  _isna.set(static_cast<size_t>(s), flag);
 }
 
 void Stats::compute_nunique(const Column* col) {
@@ -341,15 +452,62 @@ void NumericalStats_<T, A>::compute_sorted_stats(const Column* col) {
 
   _nmodal = max_grpsize;
   size_t ig = static_cast<size_t>(groups[best_igrp]);
-  bool r = true;
+  bool isna = true;
   if (max_grpsize) {
-    r = col->get_element(ri[ig], &_mode);
+    isna = col->get_element(ri[ig], &_mode);
   }
-  if (r) {
-    _mode = GETNA<T>();
+  if (isna) {
+    _mode = GETNA<T>();  // TODO: remove
   }
+  set_isna(Stat::Mode, isna);
   set_computed(Stat::NModal);
   set_computed(Stat::Mode);
+}
+
+template <typename T, typename A>
+void NumericalStats_<T, A>::compute_minmax(const OColumn& col) {
+  size_t nrows = col->nrows;
+  size_t count_notna = 0;
+  T min = infinity<T>();
+  T max = -infinity<T>();
+  std::mutex mutex;
+  dt::parallel_region(
+    [&] {
+      size_t t_count_notna = 0;
+      T t_min = infinity<T>();
+      T t_max = -infinity<T>();
+
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          T x;
+          bool isna = col->get_element(i, &x);
+          if (isna) return;
+          ++t_count_notna;
+          if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
+          if (x > t_max) t_max = x;
+        });
+
+      if (t_count_notna) {
+        std::lock_guard<std::mutex> lock(mutex);
+        count_notna += t_count_notna;
+        if (t_min < min) min = t_min;
+        if (t_max > max) max = t_max;
+      }
+    });
+
+  _countna = nrows - count_notna;
+  if (count_notna == 0) {
+    set_isna(Stat::Min, true);
+    set_isna(Stat::Max, true);
+  } else {
+    _min = min;
+    _max = max;
+    set_isna(Stat::Min, false);
+    set_isna(Stat::Max, false);
+  }
+  set_computed(Stat::Min);
+  set_computed(Stat::Max);
+  set_computed(Stat::NaCount);
 }
 
 
@@ -417,6 +575,22 @@ void NumericalStats_<T, A>::set_max(T value) {
   set_computed(Stat::Max, !ISNA<T>(value));
   _max = value;
 }
+
+
+template<typename T, typename A>
+bool NumericalStats_<T, A>::get_min(const OColumn& col, T* out) {
+  if (!is_computed(Stat::Min)) compute_minmax(col);
+  *out = _min;
+  return is_na(Stat::Min);
+}
+
+template<typename T, typename A>
+bool NumericalStats_<T, A>::get_max(const OColumn& col, T* out) {
+  if (!is_computed(Stat::Max)) compute_minmax(col);
+  *out = _max;
+  return is_na(Stat::Max);
+}
+
 
 
 template<typename T, typename A>

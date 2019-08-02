@@ -12,6 +12,7 @@
 #include "types.h"
 
 class Column;
+class OColumn;
 
 
 enum class Stat : uint8_t {
@@ -72,6 +73,7 @@ constexpr uint8_t NSTATS = 14;
 class Stats {
   protected:
     std::bitset<NSTATS> _computed;
+    std::bitset<NSTATS> _isna;
     size_t _countna;
     size_t _nunique;
     size_t _nmodal;
@@ -82,11 +84,42 @@ class Stats {
     Stats(const Stats&) = delete;
     void operator=(const Stats&) = delete;
 
+    bool get_stat(const OColumn&, Stat, int32_t*);
+    bool get_stat(const OColumn&, Stat, int64_t*);
+    bool get_stat(const OColumn&, Stat, float*);
+    bool get_stat(const OColumn&, Stat, double*);
+    bool get_stat(const OColumn&, Stat, CString*);
+    bool get_stat(const OColumn&, Stat, py::robj*);
+
+    virtual bool get_nacount(const OColumn& col, int64_t* out);
+    virtual bool get_sum    (const OColumn& col, int64_t* out);
+    virtual bool get_sum    (const OColumn& col, double* out);
+    virtual bool get_mean   (const OColumn& col, double* out);
+    virtual bool get_stdev  (const OColumn& col, double* out);
+    virtual bool get_skew   (const OColumn& col, double* out);
+    virtual bool get_kurt   (const OColumn& col, double* out);
+    virtual bool get_min    (const OColumn& col, int32_t* out);
+    virtual bool get_min    (const OColumn& col, int64_t* out);
+    virtual bool get_min    (const OColumn& col, float* out);
+    virtual bool get_min    (const OColumn& col, double* out);
+    virtual bool get_max    (const OColumn& col, int32_t* out);
+    virtual bool get_max    (const OColumn& col, int64_t* out);
+    virtual bool get_max    (const OColumn& col, float* out);
+    virtual bool get_max    (const OColumn& col, double* out);
+    virtual bool get_mode   (const OColumn& col, int32_t* out);
+    virtual bool get_mode   (const OColumn& col, int64_t* out);
+    virtual bool get_mode   (const OColumn& col, float* out);
+    virtual bool get_mode   (const OColumn& col, double* out);
+    virtual bool get_mode   (const OColumn& col, CString* out);
+    virtual bool get_nmodal (const OColumn& col, int64_t* out);
+    virtual bool get_nunique(const OColumn& col, int64_t* out);
+
     size_t countna(const Column*);
     size_t nunique(const Column*);
     size_t nmodal(const Column*);
 
     bool is_computed(Stat s) const;
+    bool is_na(Stat s) const;
     void reset();
     void set_countna(size_t n);
     virtual void merge_stats(const Stats*);
@@ -104,6 +137,7 @@ class Stats {
     virtual void compute_sorted_stats(const Column*) = 0;
     void set_computed(Stat s);
     void set_computed(Stat s, bool flag);
+    void set_isna(Stat s, bool flag);
 };
 
 
@@ -138,6 +172,9 @@ class NumericalStats_ : public Stats {
   public:
     size_t memory_footprint() const override { return sizeof(*this); }
 
+    bool get_min(const OColumn& col, T* out) override;
+    bool get_max(const OColumn& col, T* out) override;
+
     double mean(const Column*);
     double stdev(const Column*);
     double skew(const Column*);
@@ -159,6 +196,7 @@ class NumericalStats_ : public Stats {
     virtual void compute_numerical_stats(const Column*);
     virtual void compute_sorted_stats(const Column*) override;
     virtual void compute_countna(const Column*) override;
+    void compute_minmax(const OColumn&);
 };
 
 
