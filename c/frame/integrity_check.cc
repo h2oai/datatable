@@ -99,6 +99,11 @@ void DataTable::verify_integrity() const
         << "DataTable.columns array size is " << columns.size()
         << " whereas ncols = " << ncols;
   }
+  if (names.size() != ncols) {
+    throw AssertionError()
+        << "Number of column names, " << names.size() << ", is not equal "
+           "to the number of columns in the Frame: " << ncols;
+  }
 
   /**
    * Check the structure and contents of the column array.
@@ -108,35 +113,29 @@ void DataTable::verify_integrity() const
    * are equal to those of each column.
    */
   for (size_t i = 0; i < ncols; ++i) {
-    std::string col_name = std::string("Column ") + std::to_string(i);
-    const Column* col = columns[i].get();
-    if (col == nullptr) {
+    const std::string& col_name = names[i];
+    const OColumn& col = columns[i];
+    if (!col) {
       throw AssertionError() << col_name << " of Frame is null";
     }
     // Make sure the column and the datatable have the same value for `nrows`
-    if (nrows != col->nrows) {
+    if (nrows != col.nrows()) {
       throw AssertionError()
-          << "Mismatch in `nrows`: " << col_name << ".nrows = " << col->nrows
+          << "Mismatch in `nrows`: " << col_name << ".nrows = " << col.nrows()
           << ", while the Frame has nrows=" << nrows;
     }
     col->verify_integrity(col_name);
   }
 
-  if (names.size() != ncols) {
-    throw AssertionError()
-        << "Number of column names, " << names.size() << ", is not equal "
-           "to the number of columns in the Frame: " << ncols;
-  }
-  for (size_t i = 0; i < names.size(); ++i) {
-    auto name = names[i];
-    auto data = name.data();
+  for (size_t i = 0; i < ncols; ++i) {
+    const std::string& name = names[i];
     if (name.empty()) {
       throw AssertionError() << "Column " << i << " has empty name";
     }
     for (size_t j = 0; j < name.size(); ++j) {
-      if (data[j] >= '\0' && data[j] < '\x20') {
+      if (name[j] >= '\0' && name[j] < '\x20') {
         throw AssertionError() << "Column " << i << "'s name contains "
-          "unprintable character " << data[j];
+          "unprintable character " << name[j];
       }
     }
   }
