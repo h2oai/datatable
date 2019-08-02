@@ -21,22 +21,60 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_LOGGER_h
 #define dt_UTILS_LOGGER_h
-
-namespace dt {
-namespace logger {
-
-// Called during module initialization
-void init_options();
-
-// options
-extern PyObject* object;
-extern bool anonymize;
+#include <iomanip>
+#include <sstream>
+#include "python/_all.h"
+#include "python/obj.h"
+#include "python/string.h"
 
 
-// class Logger {
+struct ff {
+  int width, precision;
+  double value;
+  ff(int w, int p, double v) : width(w), precision(p), value(v) {}
+};
 
-// };
 
-}} // namespace dt::logger
+class LogMessage {
+  private:
+    std::ostringstream out;
+    py::oobj logger;
+
+  public:
+    explicit LogMessage(py::oobj logger_) : logger(logger_) {}
+    LogMessage(const LogMessage&) = delete;
+
+    LogMessage(LogMessage&& other) {
+      #if defined(__GNUC__) && __GNUC__ < 5
+        // In gcc4.8 string stream was not moveable
+        out << other.out.str();
+      #else
+        std::swap(out, other.out);
+      #endif
+      logger = std::move(other.logger);
+    }
+
+    ~LogMessage() {
+      if (!logger) return;
+      try {
+        py::ostring s(out.str());
+        logger.get_attr("debug").call({s});
+      } catch (...) {}
+    }
+
+    template <typename T>
+    LogMessage& operator <<(const T& value) {
+      if (logger) out << value;
+      return *this;
+    }
+
+    LogMessage& operator <<(const ff& f) {
+      out << std::fixed << std::setw(f.width)
+          << std::setprecision(f.precision)
+          << f.value;
+      return *this;
+    }
+};
+
 
 #endif

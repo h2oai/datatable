@@ -31,7 +31,6 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
-#include "utils/logger.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
@@ -245,7 +244,6 @@ static void initialize_options(const py::PKArgs& args) {
   dt::thread_pool::init_options();
   dt::progress::init_options();
   py::Frame::init_names_options();
-  dt::logger::init_options();
   GenericReader::init_options();
   sort_init_options();
 }
