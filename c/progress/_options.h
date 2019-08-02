@@ -33,6 +33,7 @@ extern double updates_per_second;
 extern double min_duration;
 extern PyObject* progress_fn;
 extern bool enabled;
+extern bool clear_on_success;
 
 
 

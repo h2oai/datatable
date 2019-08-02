@@ -25,6 +25,7 @@
 #include "utils/macros.h"
 #include "wstringcol.h"
 #include "column.h"
+#include "progress/work.h"      // dt::progress::work
 
 
 namespace dt {
@@ -473,6 +474,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   // If we request more threads than is available, `dt::parallel_region()`
   // will fall back to the possible maximum.
   size_t nthreads = get_nthreads(iteration_nrows);
+  size_t iteration_nrows_per_thread = iteration_nrows / nthreads;
+
+  dt::progress::work job(total_nrows / nthreads);
+  job.set_message("Fitting");
+
   dt::parallel_region(nthreads,
     [&]() {
       // Each thread gets a private storage for hashes,
@@ -512,6 +518,12 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
               update(x, w, p, y, k);
             }
           }
+
+          // Report progress
+          if (dt::this_thread_index() == 0) {
+            job.set_done_amount(iter * iteration_nrows_per_thread + i);
+          }
+
         }); // End training.
         barrier();
 
@@ -551,7 +563,12 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           }
           barrier();
 
-          if (std::isnan(loss_old)) break;
+          if (std::isnan(loss_old)) {
+            if (dt::this_thread_index() == 0) {
+              job.set_message("Fitting: early stopping criteria is met");
+            }
+            break;
+          }
         } // End validation
 
         // Update global feature importances with the local data.
@@ -565,8 +582,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
     }
   );
 
+
   double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
+  job.done();
+
   return res;
 }
 
@@ -674,7 +694,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
                                                      linkfn = std::exp;
                                       break;
-    default : throw ValueError() << "Cannot make any predictions, "
+    default : throw ValueError() << "Cannot do any predictions, "
                                  << "the model was trained in an unknown mode";
   }
 
@@ -682,6 +702,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
   bool k_binomial;
 
+  dt::progress::work job(dt_X->nrows / nthreads);
+  job.set_message("Predicting");
   dt::parallel_region(nthreads, [&]() {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
@@ -697,9 +719,12 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
 
         data_p[k][i] = linkfn(predict_row(x, w, label_id, [&](size_t, T){}));
       }
+      if (dt::this_thread_index() == 0) {
+        job.set_done_amount(i);
+      }
     });
   });
-
+  job.done();
 
   if (model_type == FtrlModelType::BINOMIAL) {
     dt::parallel_for_static(dt_X->nrows, [&](size_t i){
