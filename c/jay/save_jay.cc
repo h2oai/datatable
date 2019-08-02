@@ -203,8 +203,9 @@ static flatbuffers::Offset<void> saveStats(
   if (!stats ||
       !(stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
     return 0;
-  auto nstat = static_cast<NumericalStats<T>*>(stats);
-  StatBuilder ss(nstat->min(nullptr), nstat->max(nullptr));
+  auto nstat = static_cast<NumericalStats<promote<T>>*>(stats);
+  StatBuilder ss(downcast<T>(nstat->min(nullptr)),
+                 downcast<T>(nstat->max(nullptr)));
   flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
   return o;
 }

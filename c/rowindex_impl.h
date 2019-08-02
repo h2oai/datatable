@@ -164,8 +164,8 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     template <typename T> void _set_min_max();
 
     // Helpers for `ArrayRowIndexImpl(Column*)`
-    void init_from_boolean_column(const BoolColumn* col);
-    void init_from_integer_column(const Column* col);
+    void init_from_boolean_column(const OColumn& col);
+    void init_from_integer_column(const OColumn& col);
     void compactify();
 
     // Helper for `negate()`

@@ -47,7 +47,7 @@ GroupbyMode expr_cast::get_groupby_mode(const workframe& wf) const {
 
 OColumn expr_cast::evaluate_eager(workframe& wf) {
   auto arg_col = arg->evaluate_eager(wf);
-  return OColumn(arg_col->cast(stype));
+  return arg_col.cast(stype);
 }
 
 

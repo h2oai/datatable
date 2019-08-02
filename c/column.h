@@ -82,20 +82,20 @@ template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 template <SType s>
 using element_t = typename _elt<s>::t;
 
-template <SType s> struct _gelt {};
-template <> struct _gelt<SType::BOOL>    { using t = int32_t; };
-template <> struct _gelt<SType::INT8>    { using t = int32_t; };
-template <> struct _gelt<SType::INT16>   { using t = int32_t; };
-template <> struct _gelt<SType::INT32>   { using t = int32_t; };
-template <> struct _gelt<SType::INT64>   { using t = int64_t; };
-template <> struct _gelt<SType::FLOAT32> { using t = float; };
-template <> struct _gelt<SType::FLOAT64> { using t = double; };
-template <> struct _gelt<SType::STR32>   { using t = CString; };
-template <> struct _gelt<SType::STR64>   { using t = CString; };
-template <> struct _gelt<SType::OBJ>     { using t = PyObject*; };
+template <typename T> struct _promote { using t = T; };
+template <> struct _promote<int8_t>  { using t = int32_t; };
+template <> struct _promote<int16_t> { using t = int32_t; };
+
+template <typename T>
+using promote = typename _promote<T>::t;
 
 template <SType s>
-using getelement_t = typename _gelt<s>::t;
+using getelement_t = promote<element_t<s>>;
+
+template <typename T>
+static inline T downcast(promote<T> v) {
+  return ISNA<promote<T>>(v)? GETNA<T>() : static_cast<T>(v);
+}
 
 
 
@@ -166,7 +166,7 @@ public:
   virtual bool get_element(size_t i, float* out) const;
   virtual bool get_element(size_t i, double* out) const;
   virtual bool get_element(size_t i, CString* out) const;
-  virtual bool get_element(size_t i, py::oobj* out) const;
+  virtual bool get_element(size_t i, py::robj* out) const;
 
   const RowIndex& rowindex() const noexcept { return ri; }
   RowIndex remove_rowindex();
@@ -228,8 +228,6 @@ public:
    * creation of the resulting column (the Column will assume ownership of the
    * provided MemoryRange).
    */
-  OColumn cast(SType stype) const;
-  OColumn cast(SType stype, MemoryRange&& mr) const;
 
   /**
    * Replace values at positions given by the RowIndex `replace_at` with
@@ -416,7 +414,7 @@ class OColumn
     bool get_element(size_t i, float* out) const;
     bool get_element(size_t i, double* out) const;
     bool get_element(size_t i, CString* out) const;
-    bool get_element(size_t i, py::oobj* out) const;
+    bool get_element(size_t i, py::robj* out) const;
 
     // `get_element_as_pyobject(i)` returns the i-th element of the column
     // wrapped into a pyobject of the appropriate type. Use this function
@@ -529,7 +527,7 @@ public:
   double kurt() const;
   int64_t min_int64() const override;
   int64_t max_int64() const override;
-  IntegerStats<T>* get_stats() const override;
+  IntegerStats<promote<T>>* get_stats() const override;
 
   bool get_element(size_t i, int32_t* out) const override;
   bool get_element(size_t i, int64_t* out) const override;
@@ -601,7 +599,7 @@ public:
   PyObjectColumn(size_t nrows, MemoryRange&&);
   PyObjectStats* get_stats() const override;
 
-  bool get_element(size_t i, py::oobj* out) const override;
+  bool get_element(size_t i, py::robj* out) const override;
 
 protected:
 
@@ -647,7 +645,7 @@ public:
 
   Column* shallowcopy() const override;
   void replace_values(RowIndex at, const OColumn& with) override;
-  StringStats<T>* get_stats() const override;
+  StringStats* get_stats() const override;
 
   void verify_integrity(const std::string& name) const override;
 

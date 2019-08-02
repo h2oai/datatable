@@ -277,7 +277,7 @@ void StringColumn<T>::replace_values(
   OColumn with;
   if (replace_with) {
     with = replace_with;  // copy
-    if (with.stype() != _stype) with = with->cast(_stype);
+    if (with.stype() != _stype) with = with.cast(_stype);
   }
   // This could be nullptr too
   auto repl_col = static_cast<const StringColumn<T>*>(with.get());
@@ -536,9 +536,9 @@ void StringColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-StringStats<T>* StringColumn<T>::get_stats() const {
-  if (stats == nullptr) stats = new StringStats<T>();
-  return static_cast<StringStats<T>*>(stats);
+StringStats* StringColumn<T>::get_stats() const {
+  if (stats == nullptr) stats = new StringStats();
+  return static_cast<StringStats*>(stats);
 }
 
 template <typename T>

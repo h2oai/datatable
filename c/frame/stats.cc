@@ -76,42 +76,42 @@ static oobj _naval(const OColumn&) {
 template <typename T>
 static OColumn _mincol_num(Stats* stats, const OColumn& col) {
   return _make_column(col.stype(),
-                      static_cast<NumericalStats<T>*>(stats)->min(col.get()));
+                      downcast<T>(static_cast<NumericalStats<promote<T>>*>(stats)->min(col.get())));
 }
 
 template <typename T>
 static OColumn _maxcol_num(Stats* stats, const OColumn& col) {
   return _make_column(col.stype(),
-                      static_cast<NumericalStats<T>*>(stats)->max(col.get()));
+                      downcast<T>(static_cast<NumericalStats<promote<T>>*>(stats)->max(col.get())));
 }
 
 template <typename T>
 static OColumn _sumcol_num(Stats* stats, const OColumn& col) {
   return _make_column(std::is_integral<T>::value? SType::INT64 : SType::FLOAT64,
-                      static_cast<NumericalStats<T>*>(stats)->sum(col.get()));
+                      static_cast<NumericalStats<promote<T>>*>(stats)->sum(col.get()));
 }
 
 template <typename T>
 static OColumn _meancol_num(Stats* stats, const OColumn& col) {
   return _make_column(SType::FLOAT64,
-                      static_cast<NumericalStats<T>*>(stats)->mean(col.get()));
+                      static_cast<NumericalStats<promote<T>>*>(stats)->mean(col.get()));
 }
 
 template <typename T>
 static OColumn _sdcol_num(Stats* stats, const OColumn& col) {
   return _make_column(SType::FLOAT64,
-                      static_cast<NumericalStats<T>*>(stats)->stdev(col.get()));
+                      static_cast<NumericalStats<promote<T>>*>(stats)->stdev(col.get()));
 }
 
 template <typename T>
 static OColumn _modecol_num(Stats* stats, const OColumn& col) {
   return _make_column(col.stype(),
-                      static_cast<NumericalStats<T>*>(stats)->mode(col.get()));
+                      downcast<T>(static_cast<NumericalStats<promote<T>>*>(stats)->mode(col.get())));
 }
 
 template <typename T>
 static OColumn _modecol_str(Stats* stats, const OColumn& col) {
-  return _make_column_str<T>(static_cast<StringStats<T>*>(stats)->mode(col.get()));
+  return _make_column_str<T>(static_cast<StringStats*>(stats)->mode(col.get()));
 }
 
 static OColumn _countnacol(Stats* stats, const OColumn& col) {
@@ -154,8 +154,7 @@ static inline oobj pyvalue_real(void* ptr) {
 
 static inline oobj pyvalue_str(void* ptr) {
   CString& x = *reinterpret_cast<CString*>(ptr);
-  return x.size >= 0? ostring(x.ch, static_cast<size_t>(x.size))
-                    : None();
+  return x.isna()? None() : ostring(x);
 }
 
 template <SType s> oobj pyvalue(void* ptr);
