@@ -154,10 +154,6 @@ public:  // TODO: convert this into private
   size_t nrows;
 
 public:
-  static constexpr size_t MAX_STRING_SIZE = 0x7FFFFFFF;
-  static constexpr size_t MAX_STR32_BUFFER_SIZE = 0x7FFFFFFF;
-  static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
-
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();

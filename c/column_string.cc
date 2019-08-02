@@ -80,8 +80,8 @@ OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
   size_t strb_size = str.size();
 
   if (data_size == sizeof(uint32_t) * (n + 1)) {
-    if (strb_size <= Column::MAX_STR32_BUFFER_SIZE &&
-        n <= Column::MAX_STR32_NROWS) {
+    if (strb_size <= OColumn::MAX_ARR32_SIZE &&
+        n <= OColumn::MAX_ARR32_SIZE) {
       return OColumn(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
     }
     // Otherwise, offsets need to be recoded into a uint64_t array

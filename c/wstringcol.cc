@@ -102,7 +102,7 @@ writable_string_col::buffer_impl<T>::buffer_impl(writable_string_col& s)
 template <typename T>
 void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
   if (ch) {
-    xassert(sizeof(T) == 4? len <= Column::MAX_STRING_SIZE : true);
+    xassert(sizeof(T) == 4? len <= OColumn::MAX_ARR32_SIZE : true);
     strbuf.ensuresize(strbuf_used + len);
     std::memcpy(strbuf.data() + strbuf_used, ch, len);
     strbuf_used += len;
