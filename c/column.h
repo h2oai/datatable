@@ -41,6 +41,7 @@ template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
 using colvec = std::vector<OColumn>;
+using strvec = std::vector<std::string>;
 
 /**
  * Helper templates to convert between an stype and a column's type:
@@ -368,6 +369,7 @@ class OColumn
     static OColumn from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
     static OColumn from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
     static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType);
+    static OColumn from_strvec(const strvec&);
 
   private:
     // Assumes ownership of the `col` object

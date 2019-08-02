@@ -61,8 +61,8 @@ void csv_writer::estimate_output_size() {
   size_t rowsize_dynamic = 0;
 
   for (size_t i = 0; i < ncols; ++i) {
-    rowsize_fixed += columns[i].get_static_output_size();
-    rowsize_dynamic += columns[i].get_dynamic_output_size();
+    rowsize_fixed += columns[i]->get_static_output_size();
+    rowsize_dynamic += columns[i]->get_dynamic_output_size();
     total_columns_size += column_names[i].size() + 1;
   }
   rowsize_fixed += 1 * ncols;  // separators
@@ -81,16 +81,20 @@ void csv_writer::write_preamble() {
   const strvec& column_names = dt->get_names();
   if (column_names.empty()) return;
 
-  auto writer = value_writer::create(SType::STR32, options);
+  OColumn names_as_col = OColumn::from_strvec(column_names);
+  auto writer = value_writer::create(names_as_col, options);
   writing_context ctx { 3*dt->ncols, 1, options.compress_zlib };
 
-  bool add_quotes = (options.quoting_mode == Quoting::ALL);
-  for (const auto& name : column_names) {
-    if (add_quotes) *ctx.ch++ = '"';
-    ctx.value_str = name;
-    writer->write(ctx);
-    if (add_quotes) *ctx.ch++ = '"';
-    *ctx.ch++ = ',';
+  if (options.quoting_mode == Quoting::ALL) {
+    for (size_t i = 0; i < dt->ncols; ++i) {
+      writer->write_quoted(i, ctx);
+      *ctx.ch++ = ',';
+    }
+  } else {
+    for (size_t i = 0; i < dt->ncols; ++i) {
+      writer->write_normal(i, ctx);
+      *ctx.ch++ = ',';
+    }
   }
   // Replace the last ',' with a newline. This is valid since `ncols > 0`.
   ctx.ch[-1] = '\n';
@@ -104,13 +108,13 @@ void csv_writer::write_preamble() {
 
 void csv_writer::write_row(writing_context& ctx, size_t j) {
   if (options.quoting_mode == Quoting::ALL) {
-    for (auto& column : columns) {
-      column.write_quoted(ctx, j);
+    for (const auto& writer : columns) {
+      writer->write_quoted(j, ctx);
       *ctx.ch++ = ',';
     }
   } else {
-    for (auto& column : columns) {
-      column.write_normal(ctx, j);
+    for (const auto& writer : columns) {
+      writer->write_normal(j, ctx);
       *ctx.ch++ = ',';
     }
   }
