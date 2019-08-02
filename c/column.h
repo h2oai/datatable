@@ -146,7 +146,7 @@ class Column
 protected:
   MemoryRange mbuf;
   RowIndex ri;
-  mutable Stats* stats;
+  mutable std::unique_ptr<Stats> stats;
 
 public:  // TODO: convert this into private
   SType _stype;
@@ -299,8 +299,8 @@ public:
    *   A simpler accessor than get_stats(): this will return either an existing
    *   Stats object, or nullptr if the Stats were not initialized yet.
    */
-  virtual Stats* get_stats() const = 0;
-  Stats* get_stats_if_exist() const { return stats; }
+  Stats* get_stats() const;
+  Stats* get_stats_if_exist() const;
 
   virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) = 0;
 
@@ -491,7 +491,6 @@ public:
   int64_t sum() const;
   double mean() const;
   double sd() const;
-  BooleanStats* get_stats() const override;
 
   bool get_element(size_t i, int32_t* out) const override;
 
@@ -523,7 +522,6 @@ public:
   double kurt() const;
   int64_t min_int64() const override;
   int64_t max_int64() const override;
-  IntegerStats<promote<T>>* get_stats() const override;
 
   bool get_element(size_t i, int32_t* out) const override;
   bool get_element(size_t i, int64_t* out) const override;
@@ -556,7 +554,6 @@ public:
   double sd() const;
   double skew() const;
   double kurt() const;
-  RealStats<T>* get_stats() const override;
 
   bool get_element(size_t i, T* out) const override;
 
@@ -593,7 +590,6 @@ public:
   PyObjectColumn();
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, MemoryRange&&);
-  PyObjectStats* get_stats() const override;
 
   bool get_element(size_t i, py::robj* out) const override;
 
@@ -641,7 +637,6 @@ public:
 
   Column* shallowcopy() const override;
   void replace_values(RowIndex at, const OColumn& with) override;
-  StringStats* get_stats() const override;
 
   void verify_integrity(const std::string& name) const override;
 
@@ -690,7 +685,6 @@ class VoidColumn : public Column {
     void apply_na_mask(const OColumn&) override;
     void replace_values(RowIndex, const OColumn&) override;
     RowIndex join(const OColumn& keycol) const override;
-    Stats* get_stats() const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     void init_data() override;

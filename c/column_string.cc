@@ -536,14 +536,8 @@ void StringColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-StringStats* StringColumn<T>::get_stats() const {
-  if (stats == nullptr) stats = new StringStats();
-  return static_cast<StringStats*>(stats);
-}
-
-template <typename T>
 CString StringColumn<T>::mode() const {
-  return get_stats()->mode(this);
+  return static_cast<StringStats*>(this->get_stats())->mode(this);
 }
 
 

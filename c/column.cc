@@ -18,16 +18,9 @@
 
 
 Column::Column(size_t nrows_)
-    : stats(nullptr),
-      nrows(nrows_)
-{
-  TRACK(this, sizeof(*this), "Column");
-}
+    : nrows(nrows_) {}
 
-Column::~Column() {
-  delete stats;
-  UNTRACK(this);
-}
+Column::~Column() {}
 
 
 
@@ -318,7 +311,6 @@ void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const OColumn&) {}
 void VoidColumn::replace_values(RowIndex, const OColumn&) {}
 void VoidColumn::init_data() {}
-Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const OColumn&) const { return RowIndex(); }
 void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
@@ -349,7 +341,6 @@ class StrvecColumn : public Column {
     void apply_na_mask(const OColumn&) override {}
     void replace_values(RowIndex, const OColumn&) override {}
     void init_data() override {}
-    Stats* get_stats() const override { return nullptr; }
     void fill_na() override {}
     RowIndex join(const OColumn&) const override { return RowIndex(); }
     void fill_na_mask(int8_t*, size_t, size_t) override {}

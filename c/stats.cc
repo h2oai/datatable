@@ -63,6 +63,34 @@ static const char* stat_name(Stat s) {
   throw RuntimeError() << "Unknown stat " << int(s);
 }
 
+static std::unique_ptr<Stats> _make_stats(SType stype) {
+  using pst = std::unique_ptr<Stats>;
+  switch (stype) {
+    case SType::BOOL:    return pst(new BooleanStats());
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:   return pst(new IntegerStats<int32_t>());
+    case SType::INT64:   return pst(new IntegerStats<int64_t>());
+    case SType::FLOAT32: return pst(new RealStats<float>());
+    case SType::FLOAT64: return pst(new RealStats<double>());
+    case SType::STR32:
+    case SType::STR64:   return pst(new StringStats());
+    case SType::OBJ:     return pst(new PyObjectStats());
+    default:
+      throw NotImplError()
+        << "Cannot create Stats object for a column with type `"
+        << stype << '`';
+  }
+}
+
+Stats* Column::get_stats() const {
+  if (!stats) stats = _make_stats(_stype);
+  return stats.get();
+}
+Stats* Column::get_stats_if_exist() const {
+  return stats.get();
+}
+
 
 
 //==============================================================================

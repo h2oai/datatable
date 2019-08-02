@@ -43,19 +43,18 @@ bool RealColumn<T>::get_element(size_t i, T* out) const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-RealStats<T>* RealColumn<T>::get_stats() const {
-  if (stats == nullptr) stats = new RealStats<T>();
-  return static_cast<RealStats<T>*>(stats);
+static inline RealStats<T>* get_real_stats(const RealColumn<T>* col) {
+  return static_cast<RealStats<T>*>(col->get_stats());
 }
 
-template <typename T> T      RealColumn<T>::min() const  { return get_stats()->min(this); }
-template <typename T> T      RealColumn<T>::max() const  { return get_stats()->max(this); }
-template <typename T> T      RealColumn<T>::mode() const { return get_stats()->mode(this); }
-template <typename T> double RealColumn<T>::sum() const  { return get_stats()->sum(this); }
-template <typename T> double RealColumn<T>::mean() const { return get_stats()->mean(this); }
-template <typename T> double RealColumn<T>::sd() const   { return get_stats()->stdev(this); }
-template <typename T> double RealColumn<T>::skew() const { return get_stats()->skew(this); }
-template <typename T> double RealColumn<T>::kurt() const { return get_stats()->kurt(this); }
+template <typename T> T      RealColumn<T>::min() const  { return get_real_stats(this)->min(this); }
+template <typename T> T      RealColumn<T>::max() const  { return get_real_stats(this)->max(this); }
+template <typename T> T      RealColumn<T>::mode() const { return get_real_stats(this)->mode(this); }
+template <typename T> double RealColumn<T>::sum() const  { return get_real_stats(this)->sum(this); }
+template <typename T> double RealColumn<T>::mean() const { return get_real_stats(this)->mean(this); }
+template <typename T> double RealColumn<T>::sd() const   { return get_real_stats(this)->stdev(this); }
+template <typename T> double RealColumn<T>::skew() const { return get_real_stats(this)->skew(this); }
+template <typename T> double RealColumn<T>::kurt() const { return get_real_stats(this)->kurt(this); }
 
 
 
