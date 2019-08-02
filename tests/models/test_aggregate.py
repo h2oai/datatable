@@ -526,7 +526,7 @@ def aggregate_nd(nd):
 
         assert progress_reports[-1].progress == 1.0
         assert progress_reports[-1].status == "finished"
-        assert progress_reports[-1].message == ""
+        assert progress_reports[-1].message == "Finalizing"
 
     a_members = d_members.to_list()[0]
     d = d_exemplars.sort("C0")
