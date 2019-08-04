@@ -449,6 +449,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   size_t niterations = nepochs;
   size_t iteration_nrows = dt_X_train->nrows;
   size_t total_nrows = niterations * iteration_nrows;
+  size_t iteration_end;
 
   // If a validation set is provided, we adjust batch size to `nepochs_val`.
   // After each batch, we calculate loss on the validation dataset,
@@ -468,14 +469,16 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   }
 
 
-  std::mutex m;
-  size_t iteration_end = 0;
-
   // If we request more threads than is available, `dt::parallel_region()`
   // will fall back to the possible maximum.
   size_t nthreads = get_nthreads(iteration_nrows);
-  size_t iteration_nrows_per_thread = iteration_nrows / nthreads;
-  size_t total_work_amount = total_nrows / nthreads;
+  size_t fit_work_amount = iteration_nrows / nthreads;
+  size_t fit_work_amount_last = (total_nrows - iteration_nrows * (niterations - 1)) / nthreads;
+  size_t val_work_amount = (validation)? dt_X_val->nrows / nthreads : 0;
+  size_t total_work_amount = (niterations - 1) * fit_work_amount + fit_work_amount_last + niterations * val_work_amount;
+
+  // Mutex to update global feature importance information
+  std::mutex m;
 
   dt::progress::work job(total_work_amount);
   job.set_message("Fitting");
@@ -522,7 +525,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
           // Report progress
           if (dt::this_thread_index() == 0) {
-            job.set_done_amount(iter * iteration_nrows_per_thread + i);
+            job.add_done_amount(1);
           }
 
         }); // End training.
@@ -532,6 +535,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
         if (validation) {
           dt::atomic<T> loss_global {0.0};
           T loss_local = 0.0;
+
 
           dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
@@ -547,7 +551,14 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
                 loss_local += lossfn(p, y);
               }
             }
+
+            // Report progress
+            if (dt::this_thread_index() == 0) {
+              job.add_done_amount(1);
+            }
+
           });
+
           loss_global.fetch_add(loss_local);
           barrier();
 
@@ -567,6 +578,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
               job.set_message("Fitting: early stopping criteria is met");
+              job.set_done_amount(total_work_amount);
             }
             break;
           }
@@ -582,12 +594,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
     }
   );
+  job.done();
 
 
   double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
-  job.set_done_amount(total_work_amount);
-  job.done();
 
   return res;
 }
@@ -723,11 +734,10 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
         data_p[k][i] = linkfn(predict_row(x, w, label_id, [&](size_t, T){}));
       }
       if (dt::this_thread_index() == 0) {
-        job.set_done_amount(i);
+        job.add_done_amount(1);
       }
     });
   });
-  job.set_done_amount(total_work_amount);
   job.done();
 
   if (model_type == FtrlModelType::BINOMIAL) {
