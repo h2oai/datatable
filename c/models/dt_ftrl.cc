@@ -469,18 +469,21 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   }
 
 
-  // If we request more threads than is available, `dt::parallel_region()`
-  // will fall back to the possible maximum.
-  size_t nthreads = get_nthreads(iteration_nrows);
-  size_t fit_work_amount = iteration_nrows / nthreads;
-  size_t fit_work_amount_last = (total_nrows - iteration_nrows * (niterations - 1)) / nthreads;
-  size_t val_work_amount = (validation)? dt_X_val->nrows / nthreads : 0;
-  size_t total_work_amount = (niterations - 1) * fit_work_amount + fit_work_amount_last + niterations * val_work_amount;
-
   // Mutex to update global feature importance information
   std::mutex m;
+  size_t nthreads = get_nthreads(iteration_nrows);
 
-  dt::progress::work job(total_work_amount);
+  // Fit work amount for all iterations but the last one
+  size_t work_total = (niterations - 1) * iteration_nrows / nthreads;
+  // Fit work amount for the last iteration
+  work_total += (total_nrows - iteration_nrows * (niterations - 1)) / nthreads;
+  // Validate work amount for all iterations
+  work_total += (validation)? niterations * (dt_X_val->nrows / nthreads) : 0;
+
+  // Set work amount to be reported by the zero thread.
+  // NB: each work amount had to be divided by `nthreads` separately,
+  // as integer division was involved above.
+  dt::progress::work job(work_total);
   job.set_message("Fitting");
 
   dt::parallel_region(nthreads,
@@ -578,7 +581,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
               job.set_message("Fitting: early stopping criteria is met");
-              job.set_done_amount(total_work_amount);
+              job.set_done_amount(work_total);
             }
             break;
           }
@@ -714,15 +717,19 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   size_t nthreads = get_nthreads(dt_X->nrows);
   nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
   bool k_binomial;
-  size_t total_work_amount = dt_X->nrows / nthreads;
 
-  dt::progress::work job(total_work_amount);
+  // Set progress reporting
+  size_t work_total = dt_X->nrows / nthreads;
+  dt::progress::work job(work_total);
   job.set_message("Predicting");
+
   dt::parallel_region(nthreads, [&]() {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 
     dt::nested_for_static(dt_X->nrows, [&](size_t i){
+
+      // Predicting for all the `nlabels`
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
         size_t label_id = static_cast<size_t>(data_label_ids[k]);
@@ -733,11 +740,14 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
 
         data_p[k][i] = linkfn(predict_row(x, w, label_id, [&](size_t, T){}));
       }
+
+      // Progress reporting
       if (dt::this_thread_index() == 0) {
         job.add_done_amount(1);
       }
     });
   });
+
   job.done();
 
   if (model_type == FtrlModelType::BINOMIAL) {
