@@ -327,7 +327,7 @@ OColumn expr_reduce1::evaluate_eager(workframe& wf)
 
   RowIndex rowindex = input_col->rowindex();
   if (opcode == Op::MEDIAN && gb) {
-    rowindex = input_col->sort_grouped(rowindex, gb);
+    rowindex = input_col.sort_grouped(rowindex, gb);
   }
 
   const void* input = input_col->data();

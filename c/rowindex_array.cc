@@ -253,7 +253,9 @@ void ArrayRowIndexImpl::_set_min_max() {
 
 void ArrayRowIndexImpl::init_from_boolean_column(const OColumn& col) {
   xassert(col.stype() == SType::BOOL);
-  length = static_cast<size_t>(reinterpret_cast<const BoolColumn*>(col.get())->sum());  // total # of 1s in the column
+  double col_sum;
+  col.get_stat(Stat::Sum, &col_sum);
+  length = static_cast<size_t>(col_sum);  // total # of 1s in the column
 
   if (length == 0) {
     // no need to do anything: the data arrays already have 0 length
@@ -296,8 +298,9 @@ void ArrayRowIndexImpl::init_from_integer_column(const OColumn& col) {
   if (col.nrows() == 0) {
     min = max = RowIndex::NA;
   } else {
-    int64_t imin = col->min_int64();
-    int64_t imax = col->max_int64();
+    int64_t imin, imax;
+    col.get_stat(Stat::Min, &imin);
+    col.get_stat(Stat::Max, &imax);
     if (imin < -1) {
       throw ValueError() << "Row indices in integer column cannot be negative";
     }

@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <atomic>       // std::atomic
 #include <cmath>        // std::isinf, std::sqrt
@@ -12,6 +12,8 @@
 #include "lib/parallel_hashmap/phmap.h"
 #include "models/murmurhash.h"
 #include "parallel/api.h"
+#include "python/_all.h"
+#include "python/string.h"
 #include "utils/misc.h"
 #include "column.h"
 #include "datatablemodule.h"
@@ -26,22 +28,6 @@ constexpr T infinity() {
          : std::numeric_limits<T>::max();
 }
 
-template <typename T>
-static size_t _count_nas(const Column* col) {
-  size_t nrows = col->nrows;
-  std::atomic<size_t> total_countna { 0 };
-  dt::parallel_region(
-    [&] {
-      size_t th_countna = 0;
-      T target;
-      dt::nested_for_static(nrows,
-        [&](size_t i) {
-          th_countna += col->get_element(i, &target);
-        });
-      total_countna += th_countna;
-    });
-  return total_countna.load();
-}
 
 static const char* stat_name(Stat s) {
   switch (s) {
@@ -63,187 +49,189 @@ static const char* stat_name(Stat s) {
   throw RuntimeError() << "Unknown stat " << int(s);
 }
 
-static std::unique_ptr<Stats> _make_stats(SType stype) {
-  using pst = std::unique_ptr<Stats>;
-  switch (stype) {
-    case SType::BOOL:    return pst(new BooleanStats());
-    case SType::INT8:
-    case SType::INT16:
-    case SType::INT32:   return pst(new IntegerStats<int32_t>());
-    case SType::INT64:   return pst(new IntegerStats<int64_t>());
-    case SType::FLOAT32: return pst(new RealStats<float>());
-    case SType::FLOAT64: return pst(new RealStats<double>());
-    case SType::STR32:
-    case SType::STR64:   return pst(new StringStats());
-    case SType::OBJ:     return pst(new PyObjectStats());
-    default:
-      throw NotImplError()
-        << "Cannot create Stats object for a column with type `"
-        << stype << '`';
-  }
-}
-
-Stats* Column::get_stats() const {
-  if (!stats) stats = _make_stats(_stype);
-  return stats.get();
-}
-Stats* Column::get_stats_if_exist() const {
-  return stats.get();
-}
-
-//
-//       |     | MIN |     | MEAN| SKEW| QT* |     | NUNQ|
-// SType |  NA | MAX | SUM |  SD | KURT| MED | MODE| NMOD|
-// ------+-----+-----+-----+-----+-----+-----+-----+-----+
-// BOOL  | i64 | i32 | i64 | f64 | f64 | f64 | i32 | i64 |
-// INT8  | i64 | i32 | i64 | f64 | f64 | f64 | i32 | i64 |
-// INT16 | i64 | i32 | i64 | f64 | f64 | f64 | i32 | i64 |
-// INT32 | i64 | i32 | i64 | f64 | f64 | f64 | i32 | i64 |
-// INT64 | i64 | i64 | i64 | f64 | f64 | f64 | i64 | i64 |
-// FLT32 | i64 | f32 | f64 | f64 | f64 | f64 | f32 | i64 |
-// FLT64 | i64 | f64 | f64 | f64 | f64 | f64 | f64 | i64 |
-// STR32 | i64 |  -- |  -- |  -- |  -- |  -- | str | i64 |
-// STR64 | i64 |  -- |  -- |  -- |  -- |  -- | str | i64 |
-// OBJ   | i64 |  -- |  -- |  -- |  -- |  -- |  -- |  -- |
-//
 
 
-bool Stats::get_stat(const OColumn& col, Stat stat, int32_t* out)  {
-  switch (stat) {
-    case Stat::Min:  return get_min(col, out);
-    case Stat::Max:  return get_max(col, out);
-    case Stat::Mode: return get_mode(col, out);
-    default:
-      throw RuntimeError() << "Stat `" << stat_name(stat)
-                           << "` cannot be accessed as int32";
-  }
-}
+//------------------------------------------------------------------------------
+// main Stats class
+//------------------------------------------------------------------------------
 
-bool Stats::get_stat(const OColumn& col, Stat stat, int64_t* out)  {
-  switch (stat) {
-    case Stat::NaCount: return get_nacount(col, out);
-    case Stat::Sum:     return get_sum(col, out);
-    case Stat::Min:     return get_min(col, out);
-    case Stat::Max:     return get_max(col, out);
-    case Stat::Mode:    return get_mode(col, out);
-    case Stat::NUnique: return get_nunique(col, out);
-    case Stat::NModal:  return get_nmodal(col, out);
-    default:
-      throw RuntimeError() << "Stat `" << stat_name(stat)
-                           << "` cannot be accessed as int64";
-  }
-}
+Stats::Stats(const OColumn& col) : column(col) {}
 
-bool Stats::get_stat(const OColumn& col, Stat stat, float* out)    {
-  switch (stat) {
-    case Stat::Min:  return get_min(col, out);
-    case Stat::Max:  return get_max(col, out);
-    case Stat::Mode: return get_mode(col, out);
-    default:
-      throw RuntimeError() << "Stat `" << stat_name(stat)
-                           << "` cannot be accessed as float32";
-  }
-}
-
-bool Stats::get_stat(const OColumn& col, Stat stat, double* out)   {
-  switch (stat) {
-    case Stat::Sum:   return get_sum(col, out);
-    case Stat::StDev: return get_stdev(col, out);
-    case Stat::Skew:  return get_skew(col, out);
-    case Stat::Kurt:  return get_kurt(col, out);
-    case Stat::Min:   return get_min(col, out);
-    case Stat::Max:   return get_max(col, out);
-    case Stat::Mode:  return get_mode(col, out);
-    default:
-      throw RuntimeError() << "Stat `" << stat_name(stat)
-                           << "` cannot be accessed as float64";
-  }
-}
-
-bool Stats::get_stat(const OColumn& col, Stat stat, CString* out)  {
-  switch (stat) {
-    case Stat::Mode: return get_mode(col, out);
-    default:
-      throw RuntimeError() << "Stat `" << stat_name(stat)
-                           << "` cannot be accessed as a string";
-  }
-}
-
-bool Stats::get_stat(const OColumn&, Stat, py::robj*) {
- throw NotImplError();
-}
-
-bool Stats::get_nacount(const OColumn&, int64_t*) { throw RuntimeError(); }
-bool Stats::get_sum    (const OColumn&, int64_t*) { throw RuntimeError(); }
-bool Stats::get_sum    (const OColumn&, double*)  { throw RuntimeError(); }
-bool Stats::get_mean   (const OColumn&, double*)  { throw RuntimeError(); }
-bool Stats::get_stdev  (const OColumn&, double*)  { throw RuntimeError(); }
-bool Stats::get_skew   (const OColumn&, double*)  { throw RuntimeError(); }
-bool Stats::get_kurt   (const OColumn&, double*)  { throw RuntimeError(); }
-bool Stats::get_min    (const OColumn&, int32_t*) { throw RuntimeError(); }
-bool Stats::get_min    (const OColumn&, int64_t*) { throw RuntimeError(); }
-bool Stats::get_min    (const OColumn&, float*)   { throw RuntimeError(); }
-bool Stats::get_min    (const OColumn&, double*)  { throw RuntimeError(); }
-bool Stats::get_max    (const OColumn&, int32_t*) { throw RuntimeError(); }
-bool Stats::get_max    (const OColumn&, int64_t*) { throw RuntimeError(); }
-bool Stats::get_max    (const OColumn&, float*)   { throw RuntimeError(); }
-bool Stats::get_max    (const OColumn&, double*)  { throw RuntimeError(); }
-bool Stats::get_mode   (const OColumn&, int32_t*) { throw RuntimeError(); }
-bool Stats::get_mode   (const OColumn&, int64_t*) { throw RuntimeError(); }
-bool Stats::get_mode   (const OColumn&, float*)   { throw RuntimeError(); }
-bool Stats::get_mode   (const OColumn&, double*)  { throw RuntimeError(); }
-bool Stats::get_mode   (const OColumn&, CString*) { throw RuntimeError(); }
-bool Stats::get_nmodal (const OColumn&, int64_t*) { throw RuntimeError(); }
-bool Stats::get_nunique(const OColumn&, int64_t*) { throw RuntimeError(); }
-
-
-
-//==============================================================================
-// Base Stats
-//==============================================================================
-
-Stats::Stats() {
-  TRACK(this, sizeof(*this), "Stats");
-}
-
-Stats::~Stats() {
-  UNTRACK(this);
-}
+Stats::~Stats() {}
 
 
 void Stats::reset() {
   _computed.reset();
+  _valid.reset();
 }
 
-bool Stats::is_computed(Stat s) const {
-  return _computed.test(static_cast<size_t>(s));
+bool Stats::is_computed(Stat stat) const {
+  return _computed.test(static_cast<size_t>(stat));
 }
 
-bool Stats::is_na(Stat s) const {
-  return _isna.test(static_cast<size_t>(s));
+bool Stats::is_valid(Stat stat) const {
+  return _valid.test(static_cast<size_t>(stat));
 }
 
-void Stats::set_computed(Stat s) {
-  _computed.set(static_cast<size_t>(s));
+void Stats::set_computed(Stat stat, bool flag) {
+  _computed.set(static_cast<size_t>(stat), flag);
 }
 
-void Stats::set_computed(Stat s, bool flag) {
-  _computed.set(static_cast<size_t>(s), flag);
+void Stats::set_valid(Stat stat, bool flag) {
+  _valid.set(static_cast<size_t>(stat), flag);
 }
 
-void Stats::set_isna(Stat s, bool flag) {
-  _isna.set(static_cast<size_t>(s), flag);
+
+
+
+//------------------------------------------------------------------------------
+// Stats getters (generic)
+//------------------------------------------------------------------------------
+
+static int64_t _wrap_int_stat(size_t value, bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return static_cast<int64_t>(value);
 }
+
+int64_t Stats::get_stat_int(Stat stat, bool* isvalid) {
+  switch (stat) {
+    case Stat::Min:     return min_int(isvalid);
+    case Stat::Max:     return max_int(isvalid);
+    case Stat::Mode:    return mode_int(isvalid);
+    case Stat::NaCount: return _wrap_int_stat(nacount(), isvalid);
+    case Stat::NUnique: return _wrap_int_stat(nunique(), isvalid);
+    case Stat::NModal:  return _wrap_int_stat(nmodal(), isvalid);
+    default:            return false;
+  }
+}
+
+
+double Stats::get_stat_dbl(Stat stat, bool* isvalid) {
+  switch (stat) {
+    case Stat::Sum: {
+      if (isvalid) *isvalid = true;
+      return sum();
+    }
+    case Stat::Mean:  return mean(isvalid);
+    case Stat::StDev: return stdev(isvalid);
+    case Stat::Skew:  return skew(isvalid);
+    case Stat::Kurt:  return jurt(isvalid);
+    case Stat::Min:   return min_dbl(isvalid);
+    case Stat::Max:   return max_dbl(isvalid);
+    case Stat::Mode:  return mode_dbl(isvalid);
+    default:          return false;
+  }
+}
+
+
+CString Stats::get_stat_str(Stat stat, bool* isvalid) {
+  switch (stat) {
+    case Stat::Mode: return mode_str(isvalid);
+    default:         return false;
+  }
+}
+
+
+bool Stats::get_stat(Stat stat, int64_t* out) {
+  bool ret;
+  *out = get_stat_int(stat, &ret);
+  return ret;
+}
+
+bool Stats::get_stat(Stat stat, double* out)   {
+  bool ret;
+  *out = get_stat_dbl(stat, &ret);
+  return ret;
+}
+
+bool Stats::get_stat(Stat stat, CString* out)  {
+  bool ret;
+  *out = get_stat_str(stat, &ret);
+  return ret;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Stats getters (specific)
+//------------------------------------------------------------------------------
+
+size_t Stats::nacount() {
+  if (!is_computed(Stat::NaCount)) compute_countna();
+  return _countna;
+}
+
+
+size_t Stats::nunique() { return 0; }
+size_t Stats::nmodal () { return 0; }
+double Stats::sum(bool* isvalid) { return 0; }
+double Stats::mean(bool* isvalid) { return 0; }
+double Stats::stdev(bool* isvalid) { return 0; }
+double Stats::skew(bool* isvalid) { return 0; }
+double Stats::kurt(bool* isvalid) { return 0; }
+int64_t Stats::min(bool* isvalid) { return 0; }
+double Stats::min(bool* isvalid) { return 0; }
+int64_t Stats::max(bool* isvalid) { return 0; }
+double Stats::max(bool* isvalid) { return 0; }
+int64_t Stats::mode(bool* isvalid) { return 0; }
+double Stats::mode(bool* isvalid) { return 0; }
+CString Stats::mode(bool* isvalid) { return CString(); }
+
+
+
+
+//------------------------------------------------------------------------------
+// Stats computation
+//------------------------------------------------------------------------------
+
+template <typename T>
+static size_t _compute_countna(const OColumn& col) {
+  std::atomic<size_t> total_countna = 0;
+  dt::parallel_region(
+    [&] {
+      T target;
+      size_t thread_countna = 0;
+      dt::nested_for_static(col.nrows(),
+        [&](size_t i) {
+          bool isna = col.get_element(i, &target);
+          thread_countna += isna;
+        });
+      total_countna += thread_countna;
+    });
+  return total_countna.load();
+}
+
+void Stats::compute_countna() {
+  switch (column.stype()) {
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:   _countna = _compute_countna<int32_t>(column); break;
+    case SType::INT64:   _countna = _compute_countna<int64_t>(column); break;
+    case SType::FLOAT32: _countna = _compute_countna<float>(column); break;
+    case SType::FLOAT64: _countna = _compute_countna<double>(column); break;
+    case SType::STR32:
+    case SType::STR64:   _countna = _compute_countna<CString>(column); break;
+    case SType::OBJ:     _countna = _compute_countna<py::robj>(column); break;
+    default: throw NotImplError();
+  }
+  set_computed(Stat::NaCount, true);
+  set_valid(Stat::NaCount, true);
+}
+
+
+
+
+
+
+
 
 void Stats::compute_nunique(const Column* col) {
   compute_sorted_stats(col);
 }
 
 
-size_t Stats::countna(const Column* col) {
-  if (!is_computed(Stat::NaCount)) compute_countna(col);
-  return _countna;
-}
 
 size_t Stats::nunique(const Column* col) {
   if (!is_computed(Stat::NUnique)) compute_nunique(col);
@@ -253,11 +241,6 @@ size_t Stats::nunique(const Column* col) {
 size_t Stats::nmodal(const Column* col) {
   if (!is_computed(Stat::NModal)) compute_sorted_stats(col);
   return _nmodal;
-}
-
-void Stats::set_countna(size_t n) {
-  set_computed(Stat::NaCount, true);
-  _countna = n;
 }
 
 size_t Stats::memory_footprint() const {
@@ -273,28 +256,28 @@ void Stats::merge_stats(const Stats*) {
 /**
  * See DataTable::verify_integrity for method description
  */
-void Stats::verify_integrity(const Column* col) const {
-  auto test = std::unique_ptr<Stats>(make());
-  verify_stat(Stat::NaCount, _countna, [&](){ return test->countna(col); });
-  verify_stat(Stat::NUnique, _nunique, [&](){ return test->nunique(col); });
-  verify_stat(Stat::NModal,  _nmodal,  [&](){ return test->nmodal(col); });
-  verify_more(test.get(), col);
-}
+// void Stats::verify_integrity(const Column* col) const {
+//   auto test = std::unique_ptr<Stats>(make());
+//   verify_stat(Stat::NaCount, _countna, [&](){ return test->countna(col); });
+//   verify_stat(Stat::NUnique, _nunique, [&](){ return test->nunique(col); });
+//   verify_stat(Stat::NModal,  _nmodal,  [&](){ return test->nmodal(col); });
+//   verify_more(test.get(), col);
+// }
 
-void Stats::verify_more(Stats*, const Column*) const {}
+// void Stats::verify_more(Stats*, const Column*) const {}
 
 
-template <typename T, typename F>
-void Stats::verify_stat(Stat s, T value, F getter) const {
-  if (!is_computed(s)) return;
-  T test_value = getter();
-  if (value == test_value) return;
-  if (std::is_floating_point<T>::value && (value != 0) &&
-      std::abs(1.0 - static_cast<double>(test_value/value)) < 1e-12) return;
-  throw AssertionError()
-      << "Stored " << stat_name(s) << " stat is " << value
-      << ", whereas computed " << stat_name(s) << " is " << getter();
-}
+// template <typename T, typename F>
+// void Stats::verify_stat(Stat s, T value, F getter) const {
+//   if (!is_computed(s)) return;
+//   T test_value = getter();
+//   if (value == test_value) return;
+//   if (std::is_floating_point<T>::value && (value != 0) &&
+//       std::abs(1.0 - static_cast<double>(test_value/value)) < 1e-12) return;
+//   throw AssertionError()
+//       << "Stored " << stat_name(s) << " stat is " << value
+//       << ", whereas computed " << stat_name(s) << " is " << getter();
+// }
 
 
 
@@ -307,15 +290,15 @@ void Stats::verify_stat(Stat s, T value, F getter) const {
  * Ditto for skewness and kurtosis computations.
  * (Source: https://www.johndcook.com/blog/standard_deviation)
  */
-template <typename T, typename A>
-void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
+template <typename T>
+void NumericStats<T>::compute_numerical_stats(const Column* col) {
   size_t nrows = col->nrows;
   size_t count_notna = 0;
   double mean = 0;
   double m2 = 0;
   double m3 = 0;
   double m4 = 0;
-  A sum = 0;
+  double sum = 0;
   T min = infinity<T>();
   T max = -infinity<T>();
   std::mutex mutex;
@@ -331,7 +314,7 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
       double t_m4 = 0;
       double t_m2_helper = 0;
 
-      A t_sum = 0;
+      double t_sum = 0;
       T t_min = infinity<T>();
       T t_max = -infinity<T>();
 
@@ -343,7 +326,7 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
           n1 = t_count_notna;
           ++t_count_notna;
           n2 = t_count_notna; // readability
-          t_sum += static_cast<A>(x);
+          t_sum += static_cast<double>(x);
           if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
           if (x > t_max) t_max = x;
           double delta = static_cast<double>(x) - t_mean;
@@ -421,10 +404,10 @@ void NumericalStats_<T, A>::compute_numerical_stats(const Column* col) {
 }
 
 
-template <typename T, typename A>
-void NumericalStats_<T, A>::compute_sorted_stats(const Column* col) {
+template <typename T>
+void NumericStats<T>::compute_sorted_stats(const Column* col) {
   Groupby grpby;
-  RowIndex ri = col->sort(&grpby);
+  RowIndex ri = col->_sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
 
@@ -466,9 +449,9 @@ void NumericalStats_<T, A>::compute_sorted_stats(const Column* col) {
   set_computed(Stat::Mode);
 }
 
-template <typename T, typename A>
-void NumericalStats_<T, A>::compute_minmax(const OColumn& col) {
-  size_t nrows = col->nrows;
+template <typename T>
+void NumericStats<T>::compute_minmax() {
+  size_t nrows = column.nrows();
   size_t count_notna = 0;
   T min = infinity<T>();
   T max = -infinity<T>();
@@ -482,7 +465,7 @@ void NumericalStats_<T, A>::compute_minmax(const OColumn& col) {
       dt::nested_for_static(nrows,
         [&](size_t i) {
           T x;
-          bool isna = col->get_element(i, &x);
+          bool isna = column.get_element(i, &x);
           if (isna) return;
           ++t_count_notna;
           if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
@@ -513,105 +496,122 @@ void NumericalStats_<T, A>::compute_minmax(const OColumn& col) {
 }
 
 
-template <typename T, typename A>
-A NumericalStats_<T, A>::sum(const Column* col) {
-  if (!is_computed(Stat::Sum)) compute_numerical_stats(col);
-  return _sum;
-}
+// template <typename T>
+// double NumericStats<T>::sum(const Column* col) {
+//   if (!is_computed(Stat::Sum)) compute_numerical_stats(col);
+//   return _sum;
+// }
 
-template <typename T, typename A>
-T NumericalStats_<T, A>::min(const Column* col) {
-  if (!is_computed(Stat::Min)) compute_numerical_stats(col);
-  return _min;
-}
+// template <typename T>
+// T NumericStats<T>::min(const Column* col) {
+//   if (!is_computed(Stat::Min)) compute_numerical_stats(col);
+//   return _min;
+// }
 
-template <typename T, typename A>
-T NumericalStats_<T, A>::max(const Column* col) {
-  if (!is_computed(Stat::Max)) compute_numerical_stats(col);
-  return _max;
-}
+// template <typename T>
+// T NumericStats<T>::max(const Column* col) {
+//   if (!is_computed(Stat::Max)) compute_numerical_stats(col);
+//   return _max;
+// }
 
-template <typename T, typename A>
-T NumericalStats_<T, A>::mode(const Column* col) {
-  if (!is_computed(Stat::Mode)) compute_sorted_stats(col);
-  return _mode;
-}
+// template <typename T>
+// T NumericStats<T>::mode(const Column* col) {
+//   if (!is_computed(Stat::Mode)) compute_sorted_stats(col);
+//   return _mode;
+// }
 
-template <typename T, typename A>
-double NumericalStats_<T, A>::mean(const Column* col) {
-  if (!is_computed(Stat::Mean)) compute_numerical_stats(col);
-  return _mean;
-}
+// template <typename T>
+// double NumericStats<T>::mean(const Column* col) {
+//   if (!is_computed(Stat::Mean)) compute_numerical_stats(col);
+//   return _mean;
+// }
 
-template <typename T, typename A>
-double NumericalStats_<T, A>::stdev(const Column* col) {
-  if (!is_computed(Stat::StDev)) compute_numerical_stats(col);
-  return _sd;
-}
+// template <typename T>
+// double NumericStats<T>::stdev(const Column* col) {
+//   if (!is_computed(Stat::StDev)) compute_numerical_stats(col);
+//   return _sd;
+// }
 
-template <typename T, typename A>
-double NumericalStats_<T, A>::skew(const Column* col) {
-  if (!is_computed(Stat::Skew)) compute_numerical_stats(col);
-  return _skew;
-}
+// template <typename T>
+// double NumericStats<T>::skew(const Column* col) {
+//   if (!is_computed(Stat::Skew)) compute_numerical_stats(col);
+//   return _skew;
+// }
 
-template <typename T, typename A>
-double NumericalStats_<T, A>::kurt(const Column* col) {
-  if (!is_computed(Stat::Kurt)) compute_numerical_stats(col);
-  return _kurt;
-}
+// template <typename T>
+// double NumericStats<T>::kurt(const Column* col) {
+//   if (!is_computed(Stat::Kurt)) compute_numerical_stats(col);
+//   return _kurt;
+// }
 
-template<typename T, typename A>
-void NumericalStats_<T, A>::compute_countna(const Column* col) {
+template<typename T>
+void NumericStats<T>::compute_countna(const Column* col) {
   compute_numerical_stats(col);
 }
 
-template<typename T, typename A>
-void NumericalStats_<T, A>::set_min(T value) {
+template<typename T>
+void NumericStats<T>::set_min(T value) {
   set_computed(Stat::Min, !ISNA<T>(value));
   _min = value;
 }
 
-template<typename T, typename A>
-void NumericalStats_<T, A>::set_max(T value) {
+template<typename T>
+void NumericStats<T>::set_max(T value) {
   set_computed(Stat::Max, !ISNA<T>(value));
   _max = value;
 }
 
+//--------------
 
-template<typename T, typename A>
-bool NumericalStats_<T, A>::get_min(const OColumn& col, T* out) {
-  if (!is_computed(Stat::Min)) compute_minmax(col);
-  *out = _min;
+template<typename T>
+bool NumericStats<T>::get_min(int64_t* out) {
+  if (!std::is_integral<T>::value) return true;
+  if (!is_computed(Stat::Min)) compute_minmax();
+  *out = static_cast<int64_t>(_min);
   return is_na(Stat::Min);
 }
 
-template<typename T, typename A>
-bool NumericalStats_<T, A>::get_max(const OColumn& col, T* out) {
-  if (!is_computed(Stat::Max)) compute_minmax(col);
-  *out = _max;
+template<typename T>
+bool NumericStats<T>::get_max(int64_t* out) {
+  if (!std::is_integral<T>::value) return true;
+  if (!is_computed(Stat::Max)) compute_minmax();
+  *out = static_cast<int64_t>(_max);
+  return is_na(Stat::Max);
+}
+
+template<typename T>
+bool NumericStats<T>::get_min(double* out) {
+  if (!std::is_floating_point<T>::value) return true;
+  if (!is_computed(Stat::Min)) compute_minmax();
+  *out = static_cast<double>(_min);
+  return is_na(Stat::Min);
+}
+
+template<typename T>
+bool NumericStats<T>::get_max(double* out) {
+  if (!std::is_floating_point<T>::value) return true;
+  if (!is_computed(Stat::Max)) compute_minmax();
+  *out = static_cast<double>(_max);
   return is_na(Stat::Max);
 }
 
 
 
-template<typename T, typename A>
-void NumericalStats_<T, A>::verify_more(Stats* test, const Column* col) const
-{
-  auto ntest = static_cast<NumericalStats_<T, A>*>(test);
-  verify_stat(Stat::Min,   _min,   [&](){ return ntest->min(col); });
-  verify_stat(Stat::Max,   _max,   [&](){ return ntest->max(col); });
-  verify_stat(Stat::Sum,   _sum,   [&](){ return ntest->sum(col); });
-  verify_stat(Stat::Mean,  _mean,  [&](){ return ntest->mean(col); });
-  // verify_stat(Stat::StDev, _sd,    [&](){ return ntest->stdev(col); });
-  // verify_stat(Stat::Skew,  _skew,  [&](){ return ntest->skew(col); });
-  // verify_stat(Stat::Kurt,  _kurt,  [&](){ return ntest->kurt(col); });
-}
+// template<typename T>
+// void NumericStats<T>::verify_more(Stats* test, const Column* col) const
+// {
+//   auto ntest = static_cast<NumericStats<T>*>(test);
+//   verify_stat(Stat::Min,   _min,   [&](){ return ntest->min(col); });
+//   verify_stat(Stat::Max,   _max,   [&](){ return ntest->max(col); });
+//   verify_stat(Stat::Sum,   _sum,   [&](){ return ntest->sum(col); });
+//   verify_stat(Stat::Mean,  _mean,  [&](){ return ntest->mean(col); });
+//   // verify_stat(Stat::StDev, _sd,    [&](){ return ntest->stdev(col); });
+//   // verify_stat(Stat::Skew,  _skew,  [&](){ return ntest->skew(col); });
+//   // verify_stat(Stat::Kurt,  _kurt,  [&](){ return ntest->kurt(col); });
+// }
 
-template class NumericalStats_<int32_t, int64_t>;
-template class NumericalStats_<int64_t, int64_t>;
-template class NumericalStats_<float, double>;
-template class NumericalStats_<double, double>;
+template class NumericStats<int64_t>;
+template class NumericStats<double>;
 
 
 
@@ -621,10 +621,10 @@ template class NumericalStats_<double, double>;
 
 // Adds a check for infinite/NaN mean and sd.
 template <typename T>
-void RealStats<T>::compute_numerical_stats(const Column *col) {
-  NumericalStats_<T, double>::compute_numerical_stats(col);
-  bool min_inf = (this->_min == -std::numeric_limits<T>::infinity());
-  bool max_inf = (this->_max == +std::numeric_limits<T>::infinity());
+void RealStats<T>::compute_numerical_stats(const Column* col) {
+  NumericStats<double>::compute_numerical_stats(col);
+  bool min_inf = (this->_min == -std::numeric_limits<double>::infinity());
+  bool max_inf = (this->_max == +std::numeric_limits<double>::infinity());
   if (min_inf || max_inf) {
     this->_sd = GETNA<double>();
     this->_skew = GETNA<double>();
@@ -636,27 +636,8 @@ void RealStats<T>::compute_numerical_stats(const Column *col) {
 }
 
 
-template <typename T>
-Stats* RealStats<T>::make() const {
-  return new RealStats<T>();
-}
-
-
 template class RealStats<float>;
 template class RealStats<double>;
-
-
-
-//==============================================================================
-// IntegerStats
-//==============================================================================
-
-template <typename T>
-Stats* IntegerStats<T>::make() const {
-  return new IntegerStats<T>();
-}
-
-
 template class IntegerStats<int32_t>;
 template class IntegerStats<int64_t>;
 
@@ -728,10 +709,6 @@ void BooleanStats::compute_sorted_stats(const Column *col) {
 }
 
 
-Stats* BooleanStats::make() const {
-  return new BooleanStats();
-}
-
 
 
 //==============================================================================
@@ -746,7 +723,7 @@ void StringStats::compute_countna(const Column* col) {
 
 void StringStats::compute_sorted_stats(const Column* col) {
   Groupby grpby;
-  RowIndex ri = col->sort(&grpby);
+  RowIndex ri = col->_sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
 
@@ -836,10 +813,6 @@ CString StringStats::mode(const Column* col) {
 }
 
 
-Stats* StringStats::make() const {
-  return new StringStats();
-}
-
 
 
 
@@ -857,6 +830,177 @@ void PyObjectStats::compute_sorted_stats(const Column*) {
   throw NotImplError();
 }
 
-Stats* PyObjectStats::make() const {
-  return new PyObjectStats();
+
+
+
+//------------------------------------------------------------------------------
+// OColumn's API
+//------------------------------------------------------------------------------
+
+static std::unique_ptr<Stats> _make_stats(const OColumn& col) {
+  using pst = std::unique_ptr<Stats>;
+  switch (col.stype()) {
+    case SType::BOOL:    return pst(new BooleanStats(col));
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:   return pst(new IntegerStats<int32_t>(col));
+    case SType::INT64:   return pst(new IntegerStats<int64_t>(col));
+    case SType::FLOAT32: return pst(new RealStats<float>(col));
+    case SType::FLOAT64: return pst(new RealStats<double>(col));
+    case SType::STR32:
+    case SType::STR64:   return pst(new StringStats(col));
+    case SType::OBJ:     return pst(new PyObjectStats(col));
+    default:
+      throw NotImplError()
+        << "Cannot create Stats object for a column with type `"
+        << col.stype() << '`';
+  }
+}
+
+Stats* OColumn::get_stats() const {
+  if (!pcol->stats) pcol->stats = _make_stats(*this);
+  return pcol->stats.get();
+}
+
+Stats* OColumn::get_stats_if_exist() const {
+  return pcol->stats.get();
+}
+
+void OColumn::reset_stats() {
+  auto stats = get_stats_if_exist();
+  if (stats) stats->reset();
+}
+
+bool OColumn::is_stat_computed(Stat stat) const {
+  auto stats = get_stats_if_exist();
+  return stats? stats->is_computed(stat) : false;
+}
+
+
+bool OColumn::get_stat(Stat stat, int64_t* out) const {
+  return get_stats()->get_stat(stat, out);
+}
+
+bool OColumn::get_stat(Stat stat, double* out) const  {
+  return get_stats()->get_stat(stat, out);
+}
+
+bool OColumn::get_stat(Stat stat, CString* out) const {
+  return get_stats()->get_stat(stat, out);
+}
+
+
+template <typename T>
+static py::oobj pywrap_stat(const OColumn& col, Stat stat) {
+  T value;
+  bool isna = col.get_stat(stat, &value);
+  return isna? py::None() : py::oobj::wrap(value);
+}
+
+py::oobj OColumn::get_stat_as_pyobject(Stat stat) const {
+  switch (stat) {
+    case Stat::NaCount:
+    case Stat::NUnique:
+    case Stat::NModal: {
+      return pywrap_stat<int64_t>(*this, stat);
+    }
+    case Stat::Sum:
+    case Stat::Mean:
+    case Stat::StDev:
+    case Stat::Skew:
+    case Stat::Kurt: {
+      return pywrap_stat<double>(*this, stat);
+    }
+    case Stat::Min:
+    case Stat::Max:
+    case Stat::Mode: {
+      switch (ltype()) {
+        case LType::BOOL:
+        case LType::INT:  return pywrap_stat<int64_t>(*this, stat);
+        case LType::REAL: return pywrap_stat<double>(*this, stat);
+        case LType::STRING: return pywrap_stat<CString>(*this, stat);
+        default: return py::None();
+      }
+    }
+    default:
+      throw NotImplError() << "Cannot handle stat " << stat_name(stat);
+  }
+}
+
+
+
+
+template <typename T>
+static OColumn _make_column(SType stype, T value) {
+  MemoryRange mbuf = MemoryRange::mem(sizeof(T));
+  mbuf.set_element<T>(0, value);
+  return OColumn::new_mbuf_column(stype, std::move(mbuf));
+}
+
+static OColumn _make_nacol(SType stype) {
+  return OColumn::new_na_column(stype, 1);
+}
+
+static OColumn _make_column_str(CString value) {
+  using T = uint32_t;
+  MemoryRange mbuf = MemoryRange::mem(sizeof(T) * 2);
+  MemoryRange strbuf;
+  if (value.size >= 0) {
+    size_t len = static_cast<size_t>(value.size);
+    mbuf.set_element<T>(0, 0);
+    mbuf.set_element<T>(1, static_cast<T>(len));
+    strbuf.resize(len);
+    std::memcpy(strbuf.wptr(), value.ch, len);
+  } else {
+    mbuf.set_element<T>(0, 0);
+    mbuf.set_element<T>(1, GETNA<T>());
+  }
+  return new_string_column(1, std::move(mbuf), std::move(strbuf));
+}
+
+
+template <typename T>
+static OColumn colwrap_stat(const OColumn& col, Stat stat, SType stype) {
+  T value;
+  bool isna = col.get_stat(stat, &value);
+  return isna? _make_nacol(stype)
+             : _make_column<T>(stype, value);
+}
+
+static OColumn strcolwrap_stat(const OColumn& col, Stat stat) {
+  CString value;
+  bool isna = col.get_stat(stat, &value);
+  return isna? _make_nacol(col.stype())
+             : _make_column_str(value);
+}
+
+
+OColumn OColumn::get_stat_as_column(Stat stat) const {
+  switch (stat) {
+    case Stat::NaCount:
+    case Stat::NUnique:
+    case Stat::NModal: {
+      return colwrap_stat<int64_t>(*this, stat, SType::INT64);
+    }
+    case Stat::Sum:
+    case Stat::Mean:
+    case Stat::StDev:
+    case Stat::Skew:
+    case Stat::Kurt: {
+      return colwrap_stat<double>(*this, stat, SType::FLOAT64);
+    }
+    case Stat::Min:
+    case Stat::Max:
+    case Stat::Mode: {
+      switch (ltype()) {
+        case LType::BOOL:
+        case LType::INT:  return colwrap_stat<int64_t>(*this, stat, SType::INT64);
+        case LType::REAL: return colwrap_stat<double>(*this, stat, SType::FLOAT64);
+        case LType::STRING: return strcolwrap_stat(*this, stat);
+        default: return _make_nacol(stype());
+      }
+    }
+    default:
+      throw NotImplError();
+  }
 }

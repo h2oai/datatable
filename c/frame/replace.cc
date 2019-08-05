@@ -457,7 +457,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   if (x_int.empty()) return;
   OColumn& col = dt->get_ocolumn(colidx);
 
-  promote<T> col_min, col_max;
+  int64_t col_min, col_max;
   col.get_stat(Stat::Min, &col_min);
   col.get_stat(Stat::Max, &col_max);
 
@@ -504,7 +504,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     if (n == 0) return;
     T* coldata = static_cast<T*>(col->data_w());
     replace_fw<T>(xfilt.data(), yfilt.data(), col.nrows(), coldata, n);
-    col->get_stats()->reset();
+    col.get_stats()->reset();
   }
 }
 
@@ -514,11 +514,9 @@ void ReplaceAgent::process_real_column(size_t colidx) {
   constexpr double MAX_FLOAT = double(std::numeric_limits<float>::max());
   if (x_real.empty()) return;
   OColumn& col = dt->get_ocolumn(colidx);
-  T _min, _max;
-  col.get_stat(Stat::Min, &_min);
-  col.get_stat(Stat::Max, &_max);
-  double col_min = static_cast<double>(_min);
-  double col_max = static_cast<double>(_max);
+  double col_min, col_max;
+  col.get_stat(Stat::Min, &col_min);
+  col.get_stat(Stat::Max, &col_max);
 
   bool col_has_nas = (col.na_count() > 0);
   if (xmin_real > xmax_real) {  // only when replace_what is [NA]
@@ -558,7 +556,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     if (n == 0) return;
     T* coldata = static_cast<T*>(col->data_w());
     replace_fw<T>(xfilt.data(), yfilt.data(), col.nrows(), coldata, n);
-    col->get_stats()->reset();
+    col.get_stats()->reset();
   }
 }
 

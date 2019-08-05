@@ -91,12 +91,11 @@ size_t ColumnConvertor<T>::get_nrows() {
  *  Template class to convert continuous columns data from type T1 to T2, where
  *  - T1 is a source data type, i.e. int8_t/int16_t/int32_t/int64_t/float/double;
  *  - T2 is a destination type, i.e. float/double;
- *  - T3 is a column type, i.e. BoolColumn/IntColumn<*>/RealColumn<*>.
  */
-template<typename T1, typename T2, typename T3>
+template<typename T1, typename T2>
 class ColumnConvertorReal : public ColumnConvertor<T2> {
   private:
-    const  T1*  /* T2* */ values;
+    const  T1* values;
     OColumn column;
   public:
     explicit ColumnConvertorReal(const OColumn&);
@@ -109,11 +108,13 @@ class ColumnConvertorReal : public ColumnConvertor<T2> {
  *  Constructor for the derived class. Pre-calculate stats, so that it is ready
  *  for the multi-threaded ND aggregator.
  */
-template<typename T1, typename T2, typename T3>
-ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const OColumn& column_in) :
+template<typename T1, typename T2>
+ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const OColumn& column_in) :
   ColumnConvertor<T2>(column_in)
 {
-  xassert((std::is_same<T2, float>::value || std::is_same<T2, double>::value));
+  static_assert(std::is_same<T2, float>::value || std::is_same<T2, double>::value,
+                "Wrong T2 in ColumnConvertorReal");
+  using R = typename std::conditional<std::is_integral<T1>::value, int64_t, double>::type;
   // SType to_stype = (sizeof(T2) == 4)? SType::FLOAT32 : SType::FLOAT64;
 
   // column = OColumn(column_in->cast(to_stype));
@@ -121,9 +122,11 @@ ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const OColumn& column_in) :
   // this->min = column_real->min();
   // this->max = column_real->max();
   // values = column_real->elements_r();
-  auto columnT = static_cast<const T3*>(column_in.get());
-  this->min = static_cast<T2>(columnT->min());
-  this->max = static_cast<T2>(columnT->max());
+  R min, max;
+  column_in.get_stat(Stat::Min, &min);
+  column_in.get_stat(Stat::Max, &max);
+  this->min = static_cast<T2>(min);
+  this->max = static_cast<T2>(max);
   values = static_cast<const T1*>(column_in->data());
 }
 
@@ -134,8 +137,8 @@ ColumnConvertorReal<T1, T2, T3>::ColumnConvertorReal(const OColumn& column_in) :
  *  - applying a rowindex;
  *  - properly handling NA's.
  */
-template<typename T1, typename T2, typename T3>
-T2 ColumnConvertorReal<T1, T2, T3>::operator[](size_t row) const {
+template<typename T1, typename T2>
+T2 ColumnConvertorReal<T1, T2>::operator[](size_t row) const {
   // size_t i = row;
   size_t i = this->ri[row];
   if (i == RowIndex::NA  || ISNA<T1>(values[i]) ) {
@@ -151,8 +154,8 @@ T2 ColumnConvertorReal<T1, T2, T3>::operator[](size_t row) const {
  *  This method does the same as above just for a chunk of data.
  *  No bound checks are performed.
  */
-template<typename T1, typename T2, typename T3>
-void ColumnConvertorReal<T1, T2, T3>::get_rows(std::vector<T2>& buffer,
+template<typename T1, typename T2>
+void ColumnConvertorReal<T1, T2>::get_rows(std::vector<T2>& buffer,
                                                size_t from,
                                                size_t step,
                                                size_t count) const {

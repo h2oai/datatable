@@ -178,8 +178,8 @@ public:
   virtual size_t data_nrows() const = 0;
   virtual size_t memory_footprint() const;
 
-  RowIndex sort(Groupby* out_groups) const;
-  RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
+  RowIndex _sort(Groupby* out_groups) const;
+  RowIndex _sort_grouped(const RowIndex&, const Groupby&) const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
@@ -279,11 +279,11 @@ public:
 
   virtual RowIndex join(const OColumn& keycol) const = 0;
 
-  size_t countna() const;
-  size_t nunique() const;
-  size_t nmodal() const;
-  virtual int64_t min_int64() const { return GETNA<int64_t>(); }
-  virtual int64_t max_int64() const { return GETNA<int64_t>(); }
+  // size_t countna() const;
+  // size_t nunique() const;
+  // size_t nmodal() const;
+  // virtual int64_t min_int64() const { return GETNA<int64_t>(); }
+  // virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
   /**
    * Check that the data in this Column object is correct. `name` is the name of
@@ -301,8 +301,7 @@ public:
    *   A simpler accessor than get_stats(): this will return either an existing
    *   Stats object, or nullptr if the Stats were not initialized yet.
    */
-  Stats* get_stats() const;
-  Stats* get_stats_if_exist() const;
+  Stats* get_stats_if_exist() const { return stats.get(); }  // REMOVE
 
   virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) = 0;
 
@@ -431,16 +430,18 @@ class OColumn
   // Stats
   //------------------------------------
   public:
-    bool get_stat(Stat, int32_t* out) const;
     bool get_stat(Stat, int64_t* out) const;
-    bool get_stat(Stat, float* out) const;
     bool get_stat(Stat, double* out) const;
     bool get_stat(Stat, CString* out) const;
-    bool get_stat(Stat, py::robj* out) const;
+    // bool get_stat(Stat, py::robj* out) const;
 
-    py::oobj get_stat_as_pyobject(Stat) const;
     bool is_stat_computed(Stat) const;
+    py::oobj get_stat_as_pyobject(Stat) const;
+    OColumn get_stat_as_column(Stat) const;
 
+    Stats* get_stats() const;
+    Stats* get_stats_if_exist() const;
+    void reset_stats();
 
   //------------------------------------
   // Column manipulation
@@ -450,6 +451,8 @@ class OColumn
     void materialize();
     OColumn cast(SType stype) const;
     OColumn cast(SType stype, MemoryRange&& mr) const;
+    RowIndex sort(Groupby* out_groups) const;
+    RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
 
     void replace_values(const RowIndex& replace_at, const OColumn& replace_with);
 
@@ -509,12 +512,12 @@ public:
   BoolColumn(size_t nrows = 0);
   BoolColumn(size_t nrows, MemoryRange&&);
 
-  int8_t min() const;
-  int8_t max() const;
-  int8_t mode() const;
-  int64_t sum() const;
-  double mean() const;
-  double sd() const;
+  // int8_t min() const;
+  // int8_t max() const;
+  // int8_t mode() const;
+  // int64_t sum() const;
+  // double mean() const;
+  // double sd() const;
 
   bool get_element(size_t i, int32_t* out) const override;
 
@@ -536,16 +539,16 @@ public:
   IntColumn(size_t nrows = 0);
   IntColumn(size_t nrows, MemoryRange&&);
 
-  T min() const;
-  T max() const;
-  T mode() const;
-  int64_t sum() const;
-  double mean() const;
-  double sd() const;
-  double skew() const;
-  double kurt() const;
-  int64_t min_int64() const override;
-  int64_t max_int64() const override;
+  // T min() const;
+  // T max() const;
+  // T mode() const;
+  // int64_t sum() const;
+  // double mean() const;
+  // double sd() const;
+  // double skew() const;
+  // double kurt() const;
+  // int64_t min_int64() const override;
+  // int64_t max_int64() const override;
 
   bool get_element(size_t i, int32_t* out) const override;
   bool get_element(size_t i, int64_t* out) const override;
@@ -570,14 +573,14 @@ public:
   RealColumn(size_t nrows = 0);
   RealColumn(size_t nrows, MemoryRange&&);
 
-  T min() const;
-  T max() const;
-  T mode() const;
-  double sum() const;
-  double mean() const;
-  double sd() const;
-  double skew() const;
-  double kurt() const;
+  // T min() const;
+  // T max() const;
+  // T mode() const;
+  // double sum() const;
+  // double mean() const;
+  // double sd() const;
+  // double skew() const;
+  // double kurt() const;
 
   bool get_element(size_t i, T* out) const override;
 
@@ -657,7 +660,7 @@ public:
   T* offsets_w();
   size_t memory_footprint() const override;
 
-  CString mode() const;
+  // CString mode() const;
 
   Column* shallowcopy() const override;
   void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;

@@ -535,10 +535,10 @@ void StringColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
 // Stats
 //------------------------------------------------------------------------------
 
-template <typename T>
-CString StringColumn<T>::mode() const {
-  return static_cast<StringStats*>(this->get_stats())->mode(this);
-}
+// template <typename T>
+// CString StringColumn<T>::mode() const {
+//   return static_cast<StringStats*>(this->get_stats())->mode(this);
+// }
 
 
 

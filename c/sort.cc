@@ -681,17 +681,17 @@ class SortContext {
    */
   template <bool ASC, typename T, typename TU>
   void _initI(const Column* col) {
-    auto icol = static_cast<const IntColumn<T>*>(col);
     xassert(sizeof(T) == sizeof(TU));
-    T min = icol->min();
-    T max = icol->max();
+    int64_t min, max;
+    col->get_stats_if_exist()->get_stat(Stat::Min, &min);
+    col->get_stats_if_exist()->get_stat(Stat::Max, &max);
     nsigbits = sizeof(T) * 8;
     nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
-    T edge = ASC? min : max;
-    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(icol, edge);
-    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(icol, edge);
-    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(icol, edge);
-    else                    _initI_impl<ASC, T, TU, uint8_t >(icol, edge);
+    T edge = static_cast<T>(ASC? min : max);
+    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(col, edge);
+    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(col, edge);
+    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(col, edge);
+    else                    _initI_impl<ASC, T, TU, uint8_t >(col, edge);
   }
 
   template <bool ASC, typename T, typename TI, typename TO>
@@ -1430,7 +1430,7 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
 }
 
 
-RowIndex Column::sort(Groupby* out_grps) const {
+RowIndex Column::_sort(Groupby* out_grps) const {
   if (nrows <= 1) {
     return sort_tiny(this, out_grps);
   }
@@ -1446,7 +1446,7 @@ RowIndex Column::sort(Groupby* out_grps) const {
 }
 
 
-RowIndex Column::sort_grouped(const RowIndex& rowindex,
+RowIndex Column::_sort_grouped(const RowIndex& rowindex,
                               const Groupby& grps) const
 {
   SortContext sc(nrows, rowindex, grps, /* make_groups = */ false);

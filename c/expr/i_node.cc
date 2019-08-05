@@ -339,8 +339,9 @@ void frame_in::post_init_check(workframe& wf) {
     }
   } else {
     if (col.nrows() == 0) return;
-    int64_t min = col->min_int64();
-    int64_t max = col->max_int64();
+    int64_t min, max;
+    col.get_stat(Stat::Min, &min);
+    col.get_stat(Stat::Max, &max);
     if (min < -1) {
       throw ValueError() << "An integer column used as an `i` selector "
           "contains an invalid negative index: " << min;

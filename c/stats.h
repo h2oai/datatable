@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_STATS_h
 #define dt_STATS_h
@@ -47,7 +47,7 @@ constexpr uint8_t NSTATS = 14;
  *                 /         +---------+            \
  *                /               |                  \
  *  +---------------+    +--------------------+    +-------------+
- *  | PyObjectStats |    |   NumericalStats   |    | StringStats |
+ *  | PyObjectStats |    |    NumericStats    |    | StringStats |
  *  +---------------+    +--------------------+    +-------------+
  *                      /          |           \
  *       +--------------+   +--------------+   +-----------+
@@ -55,139 +55,197 @@ constexpr uint8_t NSTATS = 14;
  *       +--------------+   +--------------+   +-----------+
  *
  *
- * `NumericalStats` acts as a base class for all numeric STypes.
+ * `NumericStats` acts as a base class for all numeric STypes.
  * `IntegerStats` are used with `IntegerColumn<T>`s.
  * `BooleanStats` are used for `BooleanColumn`.
  * `RealStats` are used for `RealColumn<T>` classes.
  * `StringStats` are used with `StringColumn<T>`s.
  *
- * Each class supports methods to compute/retrieve statistics supported by its
- * corresponding column. To be more specific, every available stat <S> must have
- * public methods
- *   <S>_computed() - check whether the statistic was already computed
- *   <S>_compute(Column*) - force calculation of the statistic base on the data
- *       from the provided column.
- *   <S>_get() - retrieve the value of computed statistic (but the user should
- *       check its availability first).
+ * Each stat can be in one of the 3 states: not computed, computed&invalid,
+ * and computed&valid. When a stat is not computed, its value is not known.
+ * The stored value of the stat in this state can be arbitrary (however, there
+ * are no public methods for retrieving this value without computing it).
+ *
+ * Once a value was computed, it can be either valid or NA (invalid). Some
+ * stats (such as NaCount or Sum) are always valid. In the various stat-getter
+ * functions the validity of a stat is either returned from the function, or
+ * stored in the provided `&isvalid` argument. When a stat is invalid, its
+ * stored value can be arbitrary.
+ *
+ * The type of each stat can be either `int64_t`, or `double`, or `CString`.
+ * More types may be added in the future. The table below shows the type
+ * of each stat depending on the parent column's stype:
+ *
+ *     +-------+-----+-----+-----+-----+-----+-----+-----+-----+
+ *     |       |     | MIN |     | MEAN| SKEW| QT* |     | NUNQ|
+ *     | SType |NACNT| MAX | SUM |  SD | KURT| MED | MODE| NMOD|
+ *     +-------+-----+-----+-----+-----+-----+-----+-----+-----+
+ *     | BOOL  | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
+ *     | INT8  | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
+ *     | INT16 | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
+ *     | INT32 | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
+ *     | INT64 | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
+ *     | FLT32 | i64 | f64 | f64 | f64 | f64 | f64 | f64 | i64 |
+ *     | FLT64 | i64 | f64 | f64 | f64 | f64 | f64 | f64 | i64 |
+ *     | STR32 | i64 |  -- |  -- |  -- |  -- |  -- | str | i64 |
+ *     | STR64 | i64 |  -- |  -- |  -- |  -- |  -- | str | i64 |
+ *     | OBJ   | i64 |  -- |  -- |  -- |  -- |  -- |  -- |  -- |
+ *     +-------+-----+-----+-----+-----+-----+-----+-----+-----+
+ *
+ * There are 3 different ways to access a value of each particular stat. They
+ * are listed below. In each case a stat will be computed if it hasn't been
+ * computed yet:
+ *
+ * bool get_stat(Stat stat, [int64_t|double|CString]* out)
+ *   If the stat is valid, returns true and stores the value of the stat into
+ *   the `&out` variable. If the stat is NA, returns false. The type of the
+ *   `&out` variable must be appropriate for the stat/column. If not, the
+ *   function will return false without raising an error.
+ *
+ * [int64_t|double|CString] get_stat_<R>(Stat stat, bool* isvalid)
+ *   Similar to the previous, but the value of the stat is returned, while its
+ *   validity is stored in the `isvalid` output variable (unless `isvalid` is
+ *   nullptr, in which case the validity flag is not returned).
+ *
+ * size_t nacount()
+ * double sum()
+ * double mean(bool* isvalid)
+ * ...
+ * int64_t min_int(bool* isvalid)
+ * double min_dbl(bool* isvalid)
+ *   Access to each individual stat. If a stat can be NA, the `isvalid` flag
+ *   will be the argument. If a stat is a non-negative integer, it will be
+ *   returned as size_t for convenience.
+ *
  */
-class Stats {
+class Stats
+{
   protected:
+    const OColumn& column;
     std::bitset<NSTATS> _computed;
-    std::bitset<NSTATS> _isna;
+    std::bitset<NSTATS> _valid;
     size_t _countna;
     size_t _nunique;
     size_t _nmodal;
 
+  //---- Generic properties ------------
   public:
-    Stats();
-    virtual ~Stats();
+    explicit Stats(const OColumn& col);
     Stats(const Stats&) = delete;
-    void operator=(const Stats&) = delete;
+    Stats(Stats&&) = delete;
+    virtual ~Stats();
 
-    bool get_stat(const OColumn&, Stat, int32_t*);
-    bool get_stat(const OColumn&, Stat, int64_t*);
-    bool get_stat(const OColumn&, Stat, float*);
-    bool get_stat(const OColumn&, Stat, double*);
-    bool get_stat(const OColumn&, Stat, CString*);
-    bool get_stat(const OColumn&, Stat, py::robj*);
-
-    virtual bool get_nacount(const OColumn& col, int64_t* out);
-    virtual bool get_sum    (const OColumn& col, int64_t* out);
-    virtual bool get_sum    (const OColumn& col, double* out);
-    virtual bool get_mean   (const OColumn& col, double* out);
-    virtual bool get_stdev  (const OColumn& col, double* out);
-    virtual bool get_skew   (const OColumn& col, double* out);
-    virtual bool get_kurt   (const OColumn& col, double* out);
-    virtual bool get_min    (const OColumn& col, int32_t* out);
-    virtual bool get_min    (const OColumn& col, int64_t* out);
-    virtual bool get_min    (const OColumn& col, float* out);
-    virtual bool get_min    (const OColumn& col, double* out);
-    virtual bool get_max    (const OColumn& col, int32_t* out);
-    virtual bool get_max    (const OColumn& col, int64_t* out);
-    virtual bool get_max    (const OColumn& col, float* out);
-    virtual bool get_max    (const OColumn& col, double* out);
-    virtual bool get_mode   (const OColumn& col, int32_t* out);
-    virtual bool get_mode   (const OColumn& col, int64_t* out);
-    virtual bool get_mode   (const OColumn& col, float* out);
-    virtual bool get_mode   (const OColumn& col, double* out);
-    virtual bool get_mode   (const OColumn& col, CString* out);
-    virtual bool get_nmodal (const OColumn& col, int64_t* out);
-    virtual bool get_nunique(const OColumn& col, int64_t* out);
-
-    size_t countna(const Column*);
-    size_t nunique(const Column*);
-    size_t nmodal(const Column*);
-
-    bool is_computed(Stat s) const;
-    bool is_na(Stat s) const;
     void reset();
-    void set_countna(size_t n);
+    bool is_computed(Stat s) const;
+    bool is_valid(Stat s) const;
+
+  protected:
+    void set_computed(Stat, bool flag = true);
+    void set_valid(Stat, bool flag = true);
+
+  //---- Stat getters ------------------
+  public:
+    bool get_stat(Stat, int64_t*);
+    bool get_stat(Stat, double*);
+    bool get_stat(Stat, CString*);
+
+    int64_t get_stat_int(Stat, bool* isvalid);
+    double  get_stat_dbl(Stat, bool* isvalid);
+    CString get_stat_str(Stat, bool* isvalid);
+
+    virtual size_t  nacount ();
+    virtual size_t  nunique ();
+    virtual size_t  nmodal  ();
+    virtual double  sum     ();
+    virtual double  mean    (bool* isvalid);
+    virtual double  stdev   (bool* isvalid);
+    virtual double  skew    (bool* isvalid);
+    virtual double  kurt    (bool* isvalid);
+    virtual int64_t min_int (bool* isvalid);
+    virtual double  min_dbl (bool* isvalid);
+    virtual int64_t max_int (bool* isvalid);
+    virtual double  max_dbl (bool* isvalid);
+    virtual int64_t mode_int(bool* isvalid);
+    virtual double  mode_dbl(bool* isvalid);
+    virtual CString mode_str(bool* isvalid);
+
+  //---- Stat setters ------------------
+  public:
+    void set_stat(Stat, int64_t, bool isvalid = true);
+    void set_stat(Stat, double, bool isvalid = true);
+    void set_stat(Stat, const CString&, bool isvalid = true);
+
+  //---- Computing stats ---------------
+  protected:
+    virtual void compute_countna();
+    virtual void compute_minmax();
+
+
+  //--- Old API ---
+  public:
+
     virtual void merge_stats(const Stats*);
 
     virtual size_t memory_footprint() const = 0;
     virtual void verify_integrity(const Column*) const;
 
   protected:
-    virtual Stats* make() const = 0;
     template <typename T, typename F> void verify_stat(Stat, T, F) const;
     virtual void verify_more(Stats*, const Column*) const;
 
-    virtual void compute_countna(const Column*) = 0;
     virtual void compute_nunique(const Column*);
     virtual void compute_sorted_stats(const Column*) = 0;
-    void set_computed(Stat s);
-    void set_computed(Stat s, bool flag);
     void set_isna(Stat s, bool flag);
 };
 
 
 
 //------------------------------------------------------------------------------
-// NumericalStats class
+// NumericStats class
 //------------------------------------------------------------------------------
 
 /**
- * Base class for all numerical STypes. The class is parametrized by:
- *   T - The type of "min"/"max" statistics. This should be the same as the
- *       type of a column's element.
- *   A - The type of "sum" statistic. This is either `int64_t` for integral
- *       types, or `double` for real-valued columns.
+ * Base class for all numerical STypes. The class is parametrized by T - the
+ * type of "min"/"max"/"mode" statistics, which can be either int64_t or double.
+ * All lower integer or floating-point types should be promoted to these.
  *
  * This class itself is not compatible with any SType; one of its children
  * should be used instead (see the inheritance diagram above).
  */
-template <typename T, typename A>
-class NumericalStats_ : public Stats {
+template <typename T>
+class NumericStats : public Stats {
+  static_assert(std::is_same<T, int64_t>::value ||
+                std::is_same<T, double>::value, "Wrong type in NumericStats");
   protected:
+    double _sum;
     double _mean;
     double _sd;
     double _skew;
     double _kurt;
-    A _sum;
     T _min;
     T _max;
     T _mode;
-    int64_t : (sizeof(A) + sizeof(T) * 3) * 56 % 64;
 
   public:
+    using Stats::Stats;
+
+    bool get_nacount(int64_t* out) override;
+    bool get_nunique(int64_t* out) override;
+    bool get_nmodal (int64_t* out) override;
+    bool get_sum    (double* out) override;
+    bool get_mean   (double* out) override;
+    bool get_stdev  (double* out) override;
+    bool get_skew   (double* out) override;
+    bool get_kurt   (double* out) override;
+    bool get_min    (int64_t* out) override;
+    bool get_min    (double* out) override;
+    bool get_max    (int64_t* out) override;
+    bool get_max    (double* out) override;
+    bool get_mode   (int64_t* out) override;
+    bool get_mode   (double* out) override;
+
+  //---- OLD ---
     size_t memory_footprint() const override { return sizeof(*this); }
-
-    bool get_min(const OColumn& col, T* out) override;
-    bool get_max(const OColumn& col, T* out) override;
-
-    double mean(const Column*);
-    double stdev(const Column*);
-    double skew(const Column*);
-    double kurt(const Column*);
-    T min(const Column*);
-    T max(const Column*);
-    T mode(const Column*);
-    A sum(const Column*);
-
-    void set_min(T value);
-    void set_max(T value);
-
-    // void verify_integrity(const Column*) const override;
 
   protected:
     void verify_more(Stats*, const Column*) const override;
@@ -196,25 +254,12 @@ class NumericalStats_ : public Stats {
     virtual void compute_numerical_stats(const Column*);
     virtual void compute_sorted_stats(const Column*) override;
     virtual void compute_countna(const Column*) override;
-    void compute_minmax(const OColumn&);
+    void compute_minmax();
 };
 
 
-template <typename T> struct _A_from_T {};
-template <> struct _A_from_T<int8_t> { int64_t value; };
-template <> struct _A_from_T<int16_t> { int64_t value; };
-template <> struct _A_from_T<int32_t> { int64_t value; };
-template <> struct _A_from_T<int64_t> { int64_t value; };
-template <> struct _A_from_T<float> { double value; };
-template <> struct _A_from_T<double> { double value; };
-
-template <typename T>
-using NumericalStats = NumericalStats_<T, decltype(_A_from_T<T>::value)>;
-
-extern template class NumericalStats_<int32_t, int64_t>;
-extern template class NumericalStats_<int64_t, int64_t>;
-extern template class NumericalStats_<float, double>;
-extern template class NumericalStats_<double, double>;
+extern template class NumericStats<int64_t>;
+extern template class NumericStats<double>;
 
 
 
@@ -226,9 +271,10 @@ extern template class NumericalStats_<double, double>;
  * Child of NumericalStats that represents real-valued columns.
  */
 template <typename T>
-class RealStats : public NumericalStats_<T, double> {
+class RealStats : public NumericStats<double> {
+  public:
+    using NumericStats<double>::NumericStats;
   protected:
-    Stats* make() const override;
     void compute_numerical_stats(const Column*) override;
 };
 
@@ -245,9 +291,9 @@ extern template class RealStats<double>;
  * Child of NumericalStats that represents integer-valued columns.
  */
 template <typename T>
-class IntegerStats : public NumericalStats_<T, int64_t> {
-  protected:
-    Stats* make() const override;
+class IntegerStats : public NumericStats<int64_t> {
+  public:
+    using NumericStats<int64_t>::NumericStats;
 };
 
 extern template class IntegerStats<int32_t>;
@@ -264,10 +310,11 @@ extern template class IntegerStats<int64_t>;
  * stype is treated as if it was `int8_t`, some optimizations can be achieved
  * if we know that the set of possible element values is {0, 1, NA}.
  */
-class BooleanStats : public NumericalStats_<int32_t, int64_t> {
+class BooleanStats : public NumericStats<int64_t> {
+  public:
+    using NumericStats<int64_t>::NumericStats;
   protected:
-    Stats* make() const override;
-    void compute_numerical_stats(const Column *col) override;
+    void compute_numerical_stats(const Column* col) override;
     void compute_sorted_stats(const Column*) override;
 };
 
@@ -286,12 +333,12 @@ class StringStats : public Stats {
     CString _mode;
 
   public:
+    using Stats::Stats;
     virtual size_t memory_footprint() const override { return sizeof(*this); }
 
     CString mode(const Column*);
 
   protected:
-    Stats* make() const override;
     void compute_countna(const Column*) override;
     void compute_nunique(const Column*) override;
     void compute_sorted_stats(const Column*) override;
@@ -306,10 +353,10 @@ class StringStats : public Stats {
 
 class PyObjectStats : public Stats {
   public:
+    using Stats::Stats;
     virtual size_t memory_footprint() const override { return sizeof(*this); }
 
   protected:
-    Stats* make() const override;
     void compute_countna(const Column*) override;
     void compute_sorted_stats(const Column*) override;
 };
