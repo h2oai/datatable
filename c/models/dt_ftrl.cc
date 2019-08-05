@@ -474,7 +474,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   size_t nthreads = get_nthreads(iteration_nrows);
 
   // Fit work amount for all iterations but the last one
-  size_t work_total = (niterations - 1) * iteration_nrows / nthreads;
+  size_t work_total = (niterations - 1) * (iteration_nrows / nthreads);
   // Fit work amount for the last iteration
   work_total += (total_nrows - iteration_nrows * (niterations - 1)) / nthreads;
   // Validate work amount for all iterations
