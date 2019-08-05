@@ -581,6 +581,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
               job.set_message("Fitting: early stopping criteria is met");
+              // This will cause progress to "jump" to 100%.
               job.set_done_amount(work_total);
             }
             break;
