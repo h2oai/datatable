@@ -61,17 +61,25 @@ void work::add_work_amount(size_t amount) noexcept {
   push_to_progress_bar();
 }
 
+
 void work::set_done_amount(size_t amount) noexcept {
   done_amount = amount;
   done_tentative = amount;
   push_to_progress_bar();
 }
 
+
 void work::add_done_amount(size_t amount) noexcept {
   done_amount += amount;
   done_tentative = done_amount;
   push_to_progress_bar();
 }
+
+
+size_t work::get_done_amount() noexcept {
+  return done_amount;
+}
+
 
 void work::add_tentative_amount(size_t amount) noexcept {
   done_tentative += amount;

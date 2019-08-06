@@ -449,6 +449,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   size_t niterations = nepochs;
   size_t iteration_nrows = dt_X_train->nrows;
   size_t total_nrows = niterations * iteration_nrows;
+  size_t iteration_end;
 
   // If a validation set is provided, we adjust batch size to `nepochs_val`.
   // After each batch, we calculate loss on the validation dataset,
@@ -468,16 +469,21 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
   }
 
 
+  // Mutex to update global feature importance information
   std::mutex m;
-  size_t iteration_end = 0;
-
-  // If we request more threads than is available, `dt::parallel_region()`
-  // will fall back to the possible maximum.
   size_t nthreads = get_nthreads(iteration_nrows);
-  size_t iteration_nrows_per_thread = iteration_nrows / nthreads;
-  size_t total_work_amount = total_nrows / nthreads;
 
-  dt::progress::work job(total_work_amount);
+  // Fit work amount for all iterations but the last one
+  size_t work_total = (niterations - 1) * (iteration_nrows / nthreads);
+  // Fit work amount for the last iteration
+  work_total += (total_nrows - iteration_nrows * (niterations - 1)) / nthreads;
+  // Validate work amount for all iterations
+  work_total += (validation)? niterations * (dt_X_val->nrows / nthreads) : 0;
+
+  // Set work amount to be reported by the zero thread.
+  // NB: each work amount had to be divided by `nthreads` separately,
+  // as integer division was involved above.
+  dt::progress::work job(work_total);
   job.set_message("Fitting");
 
   dt::parallel_region(nthreads,
@@ -522,7 +528,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
           // Report progress
           if (dt::this_thread_index() == 0) {
-            job.set_done_amount(iter * iteration_nrows_per_thread + i);
+            job.add_done_amount(1);
           }
 
         }); // End training.
@@ -532,6 +538,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
         if (validation) {
           dt::atomic<T> loss_global {0.0};
           T loss_local = 0.0;
+
 
           dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
@@ -547,7 +554,14 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
                 loss_local += lossfn(p, y);
               }
             }
+
+            // Report progress
+            if (dt::this_thread_index() == 0) {
+              job.add_done_amount(1);
+            }
+
           });
+
           loss_global.fetch_add(loss_local);
           barrier();
 
@@ -567,6 +581,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
               job.set_message("Fitting: early stopping criteria is met");
+              // This will cause progress to "jump" to 100%.
+              job.set_done_amount(work_total);
             }
             break;
           }
@@ -582,12 +598,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
     }
   );
+  job.done();
 
 
   double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
-  job.set_done_amount(total_work_amount);
-  job.done();
 
   return res;
 }
@@ -703,15 +718,19 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   size_t nthreads = get_nthreads(dt_X->nrows);
   nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
   bool k_binomial;
-  size_t total_work_amount = dt_X->nrows / nthreads;
 
-  dt::progress::work job(total_work_amount);
+  // Set progress reporting
+  size_t work_total = dt_X->nrows / nthreads;
+  dt::progress::work job(work_total);
   job.set_message("Predicting");
+
   dt::parallel_region(nthreads, [&]() {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 
     dt::nested_for_static(dt_X->nrows, [&](size_t i){
+
+      // Predicting for all the `nlabels`
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
         size_t label_id = static_cast<size_t>(data_label_ids[k]);
@@ -722,12 +741,14 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
 
         data_p[k][i] = linkfn(predict_row(x, w, label_id, [&](size_t, T){}));
       }
+
+      // Progress reporting
       if (dt::this_thread_index() == 0) {
-        job.set_done_amount(i);
+        job.add_done_amount(1);
       }
     });
   });
-  job.set_done_amount(total_work_amount);
+
   job.done();
 
   if (model_type == FtrlModelType::BINOMIAL) {
