@@ -80,29 +80,29 @@ constexpr uint8_t NSTATS = 14;
  *     |       |     | MIN |     | MEAN| SKEW| QT* |     | NUNQ|
  *     | SType |NACNT| MAX | SUM |  SD | KURT| MED | MODE| NMOD|
  *     +-------+-----+-----+-----+-----+-----+-----+-----+-----+
- *     | BOOL  | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
- *     | INT8  | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
- *     | INT16 | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
- *     | INT32 | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
- *     | INT64 | i64 | i64 | f64 | f64 | f64 | f64 | i64 | i64 |
- *     | FLT32 | i64 | f64 | f64 | f64 | f64 | f64 | f64 | i64 |
- *     | FLT64 | i64 | f64 | f64 | f64 | f64 | f64 | f64 | i64 |
- *     | STR32 | i64 |  -- |  -- |  -- |  -- |  -- | str | i64 |
- *     | STR64 | i64 |  -- |  -- |  -- |  -- |  -- | str | i64 |
- *     | OBJ   | i64 |  -- |  -- |  -- |  -- |  -- |  -- |  -- |
+ *     | BOOL  | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
+ *     | INT8  | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
+ *     | INT16 | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
+ *     | INT32 | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
+ *     | INT64 | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
+ *     | FLT32 | u64 | f64 | f64 | f64 | f64 | f64 | f64 | u64 |
+ *     | FLT64 | u64 | f64 | f64 | f64 | f64 | f64 | f64 | u64 |
+ *     | STR32 | u64 |  -- |  -- |  -- |  -- |  -- | str | u64 |
+ *     | STR64 | u64 |  -- |  -- |  -- |  -- |  -- | str | u64 |
+ *     | OBJ   | u64 |  -- |  -- |  -- |  -- |  -- |  -- |  -- |
  *     +-------+-----+-----+-----+-----+-----+-----+-----+-----+
  *
  * There are 3 different ways to access a value of each particular stat. They
  * are listed below. In each case a stat will be computed if it hasn't been
  * computed yet:
  *
- * bool get_stat(Stat stat, [int64_t|double|CString]* out)
+ * bool get_stat(Stat stat, [int64_t|size_t|double|CString]* out)
  *   If the stat is valid, returns true and stores the value of the stat into
  *   the `&out` variable. If the stat is NA, returns false. The type of the
  *   `&out` variable must be appropriate for the stat/column. If not, the
  *   function will return false without raising an error.
  *
- * [int64_t|double|CString] get_stat_<R>(Stat stat, bool* isvalid)
+ * [int64_t|size_t|double|CString] get_stat_<R>(Stat stat, bool* isvalid)
  *   Similar to the previous, but the value of the stat is returned, while its
  *   validity is stored in the `isvalid` output variable (unless `isvalid` is
  *   nullptr, in which case the validity flag is not returned).
@@ -112,10 +112,10 @@ constexpr uint8_t NSTATS = 14;
  * double mean(bool* isvalid)
  * ...
  * int64_t min_int(bool* isvalid)
- * double min_dbl(bool* isvalid)
+ * size_t min_uint(bool* isvalid)
+ * double min_double(bool* isvalid)
  *   Access to each individual stat. If a stat can be NA, the `isvalid` flag
- *   will be the argument. If a stat is a non-negative integer, it will be
- *   returned as size_t for convenience.
+ *   will be the argument.
  *
  */
 class Stats
@@ -140,51 +140,72 @@ class Stats
     bool is_valid(Stat s) const;
 
   protected:
-    void set_computed(Stat, bool flag = true);
-    void set_valid(Stat, bool flag = true);
+    // Also sets the `computed` flag
+    void set_valid(Stat, bool isvalid = true);
+
 
   //---- Stat getters ------------------
   public:
     bool get_stat(Stat, int64_t*);
+    bool get_stat(Stat, size_t*);
     bool get_stat(Stat, double*);
     bool get_stat(Stat, CString*);
 
-    int64_t get_stat_int(Stat, bool* isvalid);
-    double  get_stat_dbl(Stat, bool* isvalid);
-    CString get_stat_str(Stat, bool* isvalid);
+    int64_t get_stat_int   (Stat, bool* isvalid);
+    size_t  get_stat_uint  (Stat, bool* isvalid);
+    double  get_stat_double(Stat, bool* isvalid);
+    CString get_stat_string(Stat, bool* isvalid);
 
-    virtual size_t  nacount ();
-    virtual size_t  nunique ();
-    virtual size_t  nmodal  ();
-    virtual double  sum     ();
-    virtual double  mean    (bool* isvalid);
-    virtual double  stdev   (bool* isvalid);
-    virtual double  skew    (bool* isvalid);
-    virtual double  kurt    (bool* isvalid);
-    virtual int64_t min_int (bool* isvalid);
-    virtual double  min_dbl (bool* isvalid);
-    virtual int64_t max_int (bool* isvalid);
-    virtual double  max_dbl (bool* isvalid);
-    virtual int64_t mode_int(bool* isvalid);
-    virtual double  mode_dbl(bool* isvalid);
-    virtual CString mode_str(bool* isvalid);
+    virtual size_t  nacount    (bool* isvalid);
+    virtual size_t  nunique    (bool* isvalid);
+    virtual size_t  nmodal     (bool* isvalid);
+    virtual double  sum        (bool* isvalid);
+    virtual double  mean       (bool* isvalid);
+    virtual double  stdev      (bool* isvalid);
+    virtual double  skew       (bool* isvalid);
+    virtual double  kurt       (bool* isvalid);
+    virtual int64_t min_int    (bool* isvalid);
+    virtual double  min_double (bool* isvalid);
+    virtual int64_t max_int    (bool* isvalid);
+    virtual double  max_double (bool* isvalid);
+    virtual int64_t mode_int   (bool* isvalid);
+    virtual double  mode_double(bool* isvalid);
+    virtual CString mode_string(bool* isvalid);
+
 
   //---- Stat setters ------------------
   public:
-    void set_stat(Stat, int64_t, bool isvalid = true);
-    void set_stat(Stat, double, bool isvalid = true);
-    void set_stat(Stat, const CString&, bool isvalid = true);
+    void set_stat(Stat, int64_t value, bool isvalid = true);
+    void set_stat(Stat, size_t value, bool isvalid = true);
+    void set_stat(Stat, double value, bool isvalid = true);
+    void set_stat(Stat, const CString& value, bool isvalid = true);
+
+    virtual void set_nacount(size_t value, bool isvalid = true);
+    virtual void set_nunique(size_t value, bool isvalid = true);
+    virtual void set_nmodal (size_t value, bool isvalid = true);
+    virtual void set_sum    (double value, bool isvalid = true);
+    virtual void set_mean   (double value, bool isvalid = true);
+    virtual void set_stdev  (double value, bool isvalid = true);
+    virtual void set_skew   (double value, bool isvalid = true);
+    virtual void set_kurt   (double value, bool isvalid = true);
+    virtual void set_min    (int64_t value, bool isvalid = true);
+    virtual void set_min    (double  value, bool isvalid = true);
+    virtual void set_max    (int64_t value, bool isvalid = true);
+    virtual void set_max    (double  value, bool isvalid = true);
+    virtual void set_mode   (int64_t value, bool isvalid = true);
+    virtual void set_mode   (double  value, bool isvalid = true);
+    virtual void set_mode   (CString value, bool isvalid = true);
+
 
   //---- Computing stats ---------------
   protected:
     virtual void compute_countna();
     virtual void compute_minmax();
+    void _fill_validity_flag(Stat stat, bool* isvalid);
 
 
   //--- Old API ---
   public:
-
-    virtual void merge_stats(const Stats*);
 
     virtual size_t memory_footprint() const = 0;
     virtual void verify_integrity(const Column*) const;
@@ -219,7 +240,7 @@ class NumericStats : public Stats {
   protected:
     double _sum;
     double _mean;
-    double _sd;
+    double _stdev;
     double _skew;
     double _kurt;
     T _min;
@@ -229,20 +250,17 @@ class NumericStats : public Stats {
   public:
     using Stats::Stats;
 
-    bool get_nacount(int64_t* out) override;
-    bool get_nunique(int64_t* out) override;
-    bool get_nmodal (int64_t* out) override;
-    bool get_sum    (double* out) override;
-    bool get_mean   (double* out) override;
-    bool get_stdev  (double* out) override;
-    bool get_skew   (double* out) override;
-    bool get_kurt   (double* out) override;
-    bool get_min    (int64_t* out) override;
-    bool get_min    (double* out) override;
-    bool get_max    (int64_t* out) override;
-    bool get_max    (double* out) override;
-    bool get_mode   (int64_t* out) override;
-    bool get_mode   (double* out) override;
+    void set_sum  (double value, bool isvalid) override;
+    void set_mean (double value, bool isvalid) override;
+    void set_stdev(double value, bool isvalid) override;
+    void set_skew (double value, bool isvalid) override;
+    void set_kurt (double value, bool isvalid) override;
+    void set_min  (int64_t value, bool isvalid) override;
+    void set_min  (double value, bool isvalid) override;
+    void set_max  (int64_t value, bool isvalid) override;
+    void set_max  (double value, bool isvalid) override;
+    void set_mode (int64_t value, bool isvalid) override;
+    void set_mode (double value, bool isvalid) override;
 
   //---- OLD ---
     size_t memory_footprint() const override { return sizeof(*this); }
@@ -254,7 +272,7 @@ class NumericStats : public Stats {
     virtual void compute_numerical_stats(const Column*);
     virtual void compute_sorted_stats(const Column*) override;
     virtual void compute_countna(const Column*) override;
-    void compute_minmax();
+    void compute_minmax() override;
 };
 
 
@@ -336,7 +354,7 @@ class StringStats : public Stats {
     using Stats::Stats;
     virtual size_t memory_footprint() const override { return sizeof(*this); }
 
-    CString mode(const Column*);
+    void set_mode(CString value, bool isvalid) override;
 
   protected:
     void compute_countna(const Column*) override;

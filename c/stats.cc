@@ -21,13 +21,9 @@
 #include "stats.h"
 
 
-template<typename T>
-constexpr T infinity() {
-  return std::numeric_limits<T>::has_infinity
-         ? std::numeric_limits<T>::infinity()
-         : std::numeric_limits<T>::max();
-}
-
+//------------------------------------------------------------------------------
+// enum Stat helpers
+//------------------------------------------------------------------------------
 
 static const char* stat_name(Stat s) {
   switch (s) {
@@ -46,7 +42,7 @@ static const char* stat_name(Stat s) {
     case Stat::NModal:  return "NModal";
     case Stat::NUnique: return "NUnique";
   }
-  throw RuntimeError() << "Unknown stat " << int(s);
+  throw RuntimeError() << "Unknown stat " << static_cast<int>(s);
 }
 
 
@@ -73,12 +69,9 @@ bool Stats::is_valid(Stat stat) const {
   return _valid.test(static_cast<size_t>(stat));
 }
 
-void Stats::set_computed(Stat stat, bool flag) {
-  _computed.set(static_cast<size_t>(stat), flag);
-}
-
-void Stats::set_valid(Stat stat, bool flag) {
-  _valid.set(static_cast<size_t>(stat), flag);
+void Stats::set_valid(Stat stat, bool isvalid) {
+  _computed.set(static_cast<size_t>(stat), true);
+  _valid.set(static_cast<size_t>(stat), isvalid);
 }
 
 
@@ -88,30 +81,35 @@ void Stats::set_valid(Stat stat, bool flag) {
 // Stats getters (generic)
 //------------------------------------------------------------------------------
 
-static int64_t _wrap_int_stat(size_t value, bool* isvalid) {
-  if (isvalid) *isvalid = true;
-  return static_cast<int64_t>(value);
-}
-
 int64_t Stats::get_stat_int(Stat stat, bool* isvalid) {
   switch (stat) {
     case Stat::Min:     return min_int(isvalid);
     case Stat::Max:     return max_int(isvalid);
     case Stat::Mode:    return mode_int(isvalid);
-    case Stat::NaCount: return _wrap_int_stat(nacount(), isvalid);
-    case Stat::NUnique: return _wrap_int_stat(nunique(), isvalid);
-    case Stat::NModal:  return _wrap_int_stat(nmodal(), isvalid);
-    default:            return false;
+    default: {
+      if (isvalid) *isvalid = false;
+      return 0;
+    }
   }
 }
 
 
-double Stats::get_stat_dbl(Stat stat, bool* isvalid) {
+size_t Stats::get_stat_uint(Stat stat, bool* isvalid) {
   switch (stat) {
-    case Stat::Sum: {
-      if (isvalid) *isvalid = true;
-      return sum();
+    case Stat::NaCount: return nacount(isvalid);
+    case Stat::NUnique: return nunique(isvalid);
+    case Stat::NModal:  return nmodal(isvalid);
+    default: {
+      if (isvalid) *isvalid = false;
+      return 0;
     }
+  }
+}
+
+
+double Stats::get_stat_double(Stat stat, bool* isvalid) {
+  switch (stat) {
+    case Stat::Sum:   return sum(isvalid);
     case Stat::Mean:  return mean(isvalid);
     case Stat::StDev: return stdev(isvalid);
     case Stat::Skew:  return skew(isvalid);
@@ -124,7 +122,7 @@ double Stats::get_stat_dbl(Stat stat, bool* isvalid) {
 }
 
 
-CString Stats::get_stat_str(Stat stat, bool* isvalid) {
+CString Stats::get_stat_string(Stat stat, bool* isvalid) {
   switch (stat) {
     case Stat::Mode: return mode_str(isvalid);
     default:         return false;
@@ -138,15 +136,21 @@ bool Stats::get_stat(Stat stat, int64_t* out) {
   return ret;
 }
 
+bool Stats::get_stat(Stat stat, size_t* out) {
+  bool ret;
+  *out = get_stat_uint(stat, &ret);
+  return ret;
+}
+
 bool Stats::get_stat(Stat stat, double* out)   {
   bool ret;
-  *out = get_stat_dbl(stat, &ret);
+  *out = get_stat_double(stat, &ret);
   return ret;
 }
 
 bool Stats::get_stat(Stat stat, CString* out)  {
   bool ret;
-  *out = get_stat_str(stat, &ret);
+  *out = get_stat_string(stat, &ret);
   return ret;
 }
 
@@ -157,8 +161,13 @@ bool Stats::get_stat(Stat stat, CString* out)  {
 // Stats getters (specific)
 //------------------------------------------------------------------------------
 
-size_t Stats::nacount() {
+void Stats::_fill_validity_flag(Stat stat, bool* isvalid) {
+  if (isvalid) *isvalid = is_valid(stat);
+}
+
+size_t Stats::nacount(bool* isvalid) {
   if (!is_computed(Stat::NaCount)) compute_countna();
+  _fill_validity_flag(Stat::NaCount, isvalid);
   return _countna;
 }
 
@@ -182,11 +191,179 @@ CString Stats::mode(bool* isvalid) { return CString(); }
 
 
 //------------------------------------------------------------------------------
+// Stats setters (generic)
+//------------------------------------------------------------------------------
+
+void Stats::set_stat(Stat stat, int64_t value, bool isvalid) {
+  switch (stat) {
+    case Stat::Min:  return set_min(value, isvalid);
+    case Stat::Max:  return set_max(value, isvalid);
+    case Stat::Mode: return set_mode(value, isvalid);
+    default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
+  }
+}
+
+void Stats::set_stat(Stat stat, size_t value, bool isvalid) {
+  switch (stat) {
+    case Stat::NaCount: return set_nacount(value, isvalid);
+    case Stat::NUnique: return set_nunique(value, isvalid);
+    case Stat::NModal:  return set_nmodal(value, isvalid);
+    default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
+  }
+}
+
+void Stats::set_stat(Stat stat, double value, bool isvalid) {
+  switch (stat) {
+    case Stat::Sum:   return set_sum(value, isvalid);
+    case Stat::Mean:  return set_mean(value, isvalid);
+    case Stat::StDev: return set_stdev(value, isvalid);
+    case Stat::Skew:  return set_skew(value, isvalid);
+    case Stat::Kurt:  return set_jurt(value, isvalid);
+    case Stat::Min:   return set_min_dbl(value, isvalid);
+    case Stat::Max:   return set_max_dbl(value, isvalid);
+    case Stat::Mode:  return set_mode_dbl(value, isvalid);
+    default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
+  }
+}
+
+void Stats::set_stat(Stat stat, CString value, bool isvalid) {
+  switch (stat) {
+    case Stat::Mode: return set_mode(value, isvalid);
+    default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Stats setters (specific)
+//------------------------------------------------------------------------------
+
+void Stats::set_nacount(size_t value, bool isvalid) {
+  xassert(isvalid);
+  _countna = value;
+  set_valid(Stat::NaCount, isvalid);
+}
+
+void Stats::set_nunique(size_t value, bool isvalid) {
+  _nunique = value;
+  set_valid(Stat::NUnique, isvalid);
+}
+
+void Stats::set_nmodal(size_t value, bool isvalid) {
+  _nmodal = value;
+  set_valid(Stat::NModal, isvalid);
+}
+
+void Stats::set_sum(double, bool)   { throw RuntimeError(); }
+void Stats::set_mean(double, bool)  { throw RuntimeError(); }
+void Stats::set_stdev(double, bool) { throw RuntimeError(); }
+void Stats::set_skew(double, bool)  { throw RuntimeError(); }
+void Stats::set_kurt(double, bool)  { throw RuntimeError(); }
+void Stats::set_min(int64_t, bool)  { throw RuntimeError(); }
+void Stats::set_min(double, bool)   { throw RuntimeError(); }
+void Stats::set_max(int64_t, bool)  { throw RuntimeError(); }
+void Stats::set_max(double, bool)   { throw RuntimeError(); }
+void Stats::set_mode(int64_t, bool) { throw RuntimeError(); }
+void Stats::set_mode(double, bool)  { throw RuntimeError(); }
+void Stats::set_mode(CString, bool) { throw RuntimeError(); }
+
+
+template <typename T>
+void NumericStats<T>::set_sum(double value, bool isvalid) {
+  xassert(isvalid);
+  _sum = value;
+  set_valid(Stat::Sum, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_mean(double value, bool isvalid) {
+  _mean = value;
+  set_valid(Stat::Mean, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_stdev(double value, bool isvalid) {
+  _stdev = value;
+  set_valid(Stat::StDev, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_skew(double value, bool isvalid) {
+  _skew = value;
+  set_valid(Stat::Skew, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_kurt(double value, bool isvalid) {
+  _kurt = value;
+  set_valid(Stat::Kurt, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_min(int64_t value, bool isvalid) {
+  static_assert(std::is_same<T, int64_t>::value,
+                "Invalid call to NumericStats<T>::set_min(int64_t)");
+  _min = static_cast<T>(value);
+  set_valid(Stat::Min, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_min(double value, bool isvalid) {
+  static_assert(std::is_same<T, double>::value,
+                "Invalid call to NumericStats<T>::set_min(double)");
+  _min = static_cast<T>(value);
+  set_valid(Stat::Min, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_max(int64_t value, bool isvalid) {
+  static_assert(std::is_same<T, int64_t>::value,
+                "Invalid call to NumericStats<T>::set_max(int64_t)");
+  _max = static_cast<T>(value);
+  set_valid(Stat::Max, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_max(double value, bool isvalid) {
+  static_assert(std::is_same<T, double>::value,
+                "Invalid call to NumericStats<T>::set_max(double)");
+  _max = static_cast<T>(value);
+  set_valid(Stat::Max, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_mode(int64_t value, bool isvalid) {
+  static_assert(std::is_same<T, int64_t>::value,
+                "Invalid call to NumericStats<T>::set_mode(int64_t)");
+  _mode = static_cast<T>(value);
+  set_valid(Stat::Mode, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_mode(double value, bool isvalid) {
+  static_assert(std::is_same<T, double>::value,
+                "Invalid call to NumericStats<T>::set_mode(double)");
+  _mode = static_cast<T>(value);
+  set_valid(Stat::Mode, isvalid);
+}
+
+void StringStats::set_mode(CString value, bool isvalid) {
+  _mode = value;
+  set_valid(Stat::Mode, isvalid);
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // Stats computation
 //------------------------------------------------------------------------------
 
 template <typename T>
 static size_t _compute_countna(const OColumn& col) {
+  assert_compatible_type<T>(col.stype());
   std::atomic<size_t> total_countna = 0;
   dt::parallel_region(
     [&] {
@@ -207,23 +384,75 @@ void Stats::compute_countna() {
     case SType::BOOL:
     case SType::INT8:
     case SType::INT16:
-    case SType::INT32:   _countna = _compute_countna<int32_t>(column); break;
-    case SType::INT64:   _countna = _compute_countna<int64_t>(column); break;
-    case SType::FLOAT32: _countna = _compute_countna<float>(column); break;
-    case SType::FLOAT64: _countna = _compute_countna<double>(column); break;
+    case SType::INT32:   return set_nacount(_compute_countna<int32_t>(column));
+    case SType::INT64:   return set_nacount(_compute_countna<int64_t>(column));
+    case SType::FLOAT32: return set_nacount(_compute_countna<float>(column));
+    case SType::FLOAT64: return set_nacount(_compute_countna<double>(column));
     case SType::STR32:
-    case SType::STR64:   _countna = _compute_countna<CString>(column); break;
-    case SType::OBJ:     _countna = _compute_countna<py::robj>(column); break;
+    case SType::STR64:   return set_nacount(_compute_countna<CString>(column));
+    case SType::OBJ:     return set_nacount(_compute_countna<py::robj>(column));
     default: throw NotImplError();
   }
-  set_computed(Stat::NaCount, true);
-  set_valid(Stat::NaCount, true);
 }
 
 
+template<typename T>
+constexpr T infinity() {
+  return std::numeric_limits<T>::has_infinity
+         ? std::numeric_limits<T>::infinity()
+         : std::numeric_limits<T>::max();
+}
 
+template <typename T>
+static void _compute_minmax(const OColumn& col, T* out_min, T* out_max,
+                            size_t* out_nacnt, bool* valid_min, bool* valid_max)
+{
+  assert_compatible_type<T>(col.stype());
+  size_t nrows = col.nrows();
+  size_t count_valid = 0;
+  T min = infinity<T>();
+  T max = -infinity<T>();
+  std::mutex mutex;
+  dt::parallel_region(
+    [&] {
+      size_t t_count_notna = 0;
+      T t_min = infinity<T>();
+      T t_max = -infinity<T>();
 
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          T x;
+          bool isna = col.get_element(i, &x);
+          if (isna) return;
+          ++t_count_notna;
+          if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
+          if (x > t_max) t_max = x;
+        });
 
+      if (t_count_notna) {
+        std::lock_guard<std::mutex> lock(mutex);
+        count_valid += t_count_notna;
+        if (t_min < min) min = t_min;
+        if (t_max > max) max = t_max;
+      }
+    });
+  *out_nacnt = nrows - count_valid;
+  *out_min = min;
+  *out_max = max;
+  *valid_min = (count_valid > 0);
+  *valid_max = (count_valid > 0);
+}
+
+template <typename T>
+void IntegerStats<T>::compute_minmax() {
+  size_t nacnt;
+  T min, max;
+  bool min_valid, max_valid;
+  _compute_minmax(column, &min, &max, &nacnt, &min_valid, &max_valid);
+  set_nacount(nacnt, true);
+  set_min(static_cast<int64_t>(min), min_valid);
+  set_max(static_cast<int64_t>(max), max_valid);
+}
 
 
 
@@ -449,51 +678,7 @@ void NumericStats<T>::compute_sorted_stats(const Column* col) {
   set_computed(Stat::Mode);
 }
 
-template <typename T>
-void NumericStats<T>::compute_minmax() {
-  size_t nrows = column.nrows();
-  size_t count_notna = 0;
-  T min = infinity<T>();
-  T max = -infinity<T>();
-  std::mutex mutex;
-  dt::parallel_region(
-    [&] {
-      size_t t_count_notna = 0;
-      T t_min = infinity<T>();
-      T t_max = -infinity<T>();
 
-      dt::nested_for_static(nrows,
-        [&](size_t i) {
-          T x;
-          bool isna = column.get_element(i, &x);
-          if (isna) return;
-          ++t_count_notna;
-          if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
-          if (x > t_max) t_max = x;
-        });
-
-      if (t_count_notna) {
-        std::lock_guard<std::mutex> lock(mutex);
-        count_notna += t_count_notna;
-        if (t_min < min) min = t_min;
-        if (t_max > max) max = t_max;
-      }
-    });
-
-  _countna = nrows - count_notna;
-  if (count_notna == 0) {
-    set_isna(Stat::Min, true);
-    set_isna(Stat::Max, true);
-  } else {
-    _min = min;
-    _max = max;
-    set_isna(Stat::Min, false);
-    set_isna(Stat::Max, false);
-  }
-  set_computed(Stat::Min);
-  set_computed(Stat::Max);
-  set_computed(Stat::NaCount);
-}
 
 
 // template <typename T>
