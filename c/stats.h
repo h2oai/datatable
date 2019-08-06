@@ -139,6 +139,8 @@ class Stats
     bool is_computed(Stat s) const;
     bool is_valid(Stat s) const;
 
+    virtual size_t memory_footprint() const = 0;
+
   protected:
     // Also sets the `computed` flag
     void set_valid(Stat, bool isvalid = true);
@@ -199,24 +201,22 @@ class Stats
 
   //---- Computing stats ---------------
   protected:
-    virtual void compute_countna();
+    virtual void compute_nacount();
+    virtual void compute_nunique();
     virtual void compute_minmax();
+    virtual void compute_moments12();
+    virtual void compute_moments34();
+    virtual void compute_sorted_stats();
     void _fill_validity_flag(Stat stat, bool* isvalid);
 
 
   //--- Old API ---
-  public:
+  // public:
+  //   virtual size_t memory_footprint() const = 0;
+  //   virtual void verify_integrity(const Column*) const;
 
-    virtual size_t memory_footprint() const = 0;
-    virtual void verify_integrity(const Column*) const;
-
-  protected:
-    template <typename T, typename F> void verify_stat(Stat, T, F) const;
-    virtual void verify_more(Stats*, const Column*) const;
-
-    virtual void compute_nunique(const Column*);
-    virtual void compute_sorted_stats(const Column*) = 0;
-    void set_isna(Stat s, bool flag);
+  //   template <typename T, typename F> void verify_stat(Stat, T, F) const;
+  //   virtual void verify_more(Stats*, const Column*) const;
 };
 
 
@@ -227,15 +227,17 @@ class Stats
 
 /**
  * Base class for all numerical STypes. The class is parametrized by T - the
- * type of "min"/"max"/"mode" statistics, which can be either int64_t or double.
- * All lower integer or floating-point types should be promoted to these.
- *
- * This class itself is not compatible with any SType; one of its children
- * should be used instead (see the inheritance diagram above).
+ * type of element in the OColumn's API. Thus, T can be only int32_t|int64_t|
+ * float|double. The corresponding "min"/"max"/"mode" statistics are stored
+ * in upcasted type V, which is either int64_t or double.
  */
 template <typename T>
 class NumericStats : public Stats {
-  static_assert(std::is_same<T, int64_t>::value ||
+  using V = typename std::conditional<std::is_integral<T>::value,
+                                      int64_t, double>::type;
+  static_assert(std::is_same<T, int32_t>::value ||
+                std::is_same<T, int64_t>::value ||
+                std::is_same<T, float>::value ||
                 std::is_same<T, double>::value, "Wrong type in NumericStats");
   protected:
     double _sum;
@@ -243,12 +245,25 @@ class NumericStats : public Stats {
     double _stdev;
     double _skew;
     double _kurt;
-    T _min;
-    T _max;
-    T _mode;
+    V _min;
+    V _max;
+    V _mode;
 
   public:
     using Stats::Stats;
+    size_t memory_footprint() const override;
+
+    double  sum        (bool* isvalid) override;
+    double  mean       (bool* isvalid) override;
+    double  stdev      (bool* isvalid) override;
+    double  skew       (bool* isvalid) override;
+    double  kurt       (bool* isvalid) override;
+    int64_t min_int    (bool* isvalid) override;
+    double  min_double (bool* isvalid) override;
+    int64_t max_int    (bool* isvalid) override;
+    double  max_double (bool* isvalid) override;
+    int64_t mode_int   (bool* isvalid) override;
+    double  mode_double(bool* isvalid) override;
 
     void set_sum  (double value, bool isvalid) override;
     void set_mean (double value, bool isvalid) override;
@@ -262,22 +277,19 @@ class NumericStats : public Stats {
     void set_mode (int64_t value, bool isvalid) override;
     void set_mode (double value, bool isvalid) override;
 
-  //---- OLD ---
-    size_t memory_footprint() const override { return sizeof(*this); }
-
   protected:
-    void verify_more(Stats*, const Column*) const override;
-
-    // Helper method that computes min, max, sum, mean, sd, and countna
-    virtual void compute_numerical_stats(const Column*);
-    virtual void compute_sorted_stats(const Column*) override;
-    virtual void compute_countna(const Column*) override;
+    void compute_nacount() override;
     void compute_minmax() override;
+    void compute_moments12() override;
+    void compute_moments34() override;
+    void compute_sorted_stats() override;
+
+  // //---- OLD -----
+  // public:
+  //   void verify_more(Stats*, const Column*) const override;
+  //   size_t memory_footprint() const override { return sizeof(*this); }
 };
 
-
-extern template class NumericStats<int64_t>;
-extern template class NumericStats<double>;
 
 
 
@@ -289,11 +301,9 @@ extern template class NumericStats<double>;
  * Child of NumericalStats that represents real-valued columns.
  */
 template <typename T>
-class RealStats : public NumericStats<double> {
+class RealStats : public NumericStats<T> {
   public:
-    using NumericStats<double>::NumericStats;
-  protected:
-    void compute_numerical_stats(const Column*) override;
+    using NumericStats<T>::NumericStats;
 };
 
 extern template class RealStats<float>;
@@ -309,9 +319,9 @@ extern template class RealStats<double>;
  * Child of NumericalStats that represents integer-valued columns.
  */
 template <typename T>
-class IntegerStats : public NumericStats<int64_t> {
+class IntegerStats : public NumericStats<T> {
   public:
-    using NumericStats<int64_t>::NumericStats;
+    using NumericStats<T>::NumericStats;
 };
 
 extern template class IntegerStats<int32_t>;
@@ -331,9 +341,15 @@ extern template class IntegerStats<int64_t>;
 class BooleanStats : public NumericStats<int64_t> {
   public:
     using NumericStats<int64_t>::NumericStats;
+
   protected:
-    void compute_numerical_stats(const Column* col) override;
-    void compute_sorted_stats(const Column*) override;
+    void compute_nacount() override;
+    void compute_nunique() override;
+    void compute_minmax() override;
+    void compute_moments12() override;
+    void compute_moments34() override;
+    void compute_sorted_stats() override;
+    void compute_all_stats();
 };
 
 
@@ -352,14 +368,15 @@ class StringStats : public Stats {
 
   public:
     using Stats::Stats;
-    virtual size_t memory_footprint() const override { return sizeof(*this); }
+    size_t memory_footprint() const override;
 
+    CString mode_string(bool* isvalid) override;
     void set_mode(CString value, bool isvalid) override;
 
   protected:
-    void compute_countna(const Column*) override;
-    void compute_nunique(const Column*) override;
-    void compute_sorted_stats(const Column*) override;
+    void compute_nacount() override;
+    void compute_nunique() override;
+    void compute_sorted_stats() override;
 };
 
 
@@ -372,12 +389,14 @@ class StringStats : public Stats {
 class PyObjectStats : public Stats {
   public:
     using Stats::Stats;
-    virtual size_t memory_footprint() const override { return sizeof(*this); }
+    size_t memory_footprint() const override;
 
   protected:
-    void compute_countna(const Column*) override;
-    void compute_sorted_stats(const Column*) override;
+    void compute_nacount() override;
+    void compute_sorted_stats() override;
 };
+
+
 
 
 #endif /* dt_STATS_h */

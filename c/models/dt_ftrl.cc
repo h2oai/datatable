@@ -1091,12 +1091,12 @@ DataTable* Ftrl<T>::get_fi(bool normalize /* = true */) {
   DataTable* dt_fi_copy = dt_fi->copy();
   if (normalize) {
     OColumn& col = dt_fi_copy->get_ocolumn(1);
-    double max;
-    bool max_isna = col.get_stat(Stat::Max, &max);
+    bool max_isna;
+    T max = static_cast<T>(col.get_stats()->max_double(&max_isna));
     T* data = static_cast<T*>(col->data_w());
     T norm_factor = static_cast<T>(1.0);
 
-    if (!max_isna && fabs(max) > T_EPSILON) norm_factor /= static_cast<T>(max);
+    if (!max_isna && std::fabs(max) > T_EPSILON) norm_factor /= max;
     for (size_t i = 0; i < col.nrows(); ++i) {
       data[i] *= norm_factor;
     }

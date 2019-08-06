@@ -183,7 +183,7 @@ void Column::verify_integrity(const std::string& name) const {
 
   // Check Stats
   if (stats) { // Stats are allowed to be null
-    stats->verify_integrity(this);
+    // stats->verify_integrity(this);
   }
 }
 

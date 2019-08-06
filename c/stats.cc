@@ -14,6 +14,7 @@
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "utils/assert.h"
 #include "utils/misc.h"
 #include "column.h"
 #include "datatablemodule.h"
@@ -75,21 +76,39 @@ void Stats::set_valid(Stat stat, bool isvalid) {
 }
 
 
+template <typename T>
+size_t NumericStats<T>::memory_footprint() const {
+  return sizeof(NumericStats<T>);
+}
+
+size_t StringStats::memory_footprint() const {
+  return sizeof(StringStats);
+}
+
+size_t PyObjectStats::memory_footprint() const {
+  return sizeof(PyObjectStats);
+}
+
+
 
 
 //------------------------------------------------------------------------------
 // Stats getters (generic)
 //------------------------------------------------------------------------------
 
+template <typename T>
+static T _invalid(bool* isvalid) {
+  if (isvalid) *isvalid = false;
+  return T();
+}
+
+
 int64_t Stats::get_stat_int(Stat stat, bool* isvalid) {
   switch (stat) {
-    case Stat::Min:     return min_int(isvalid);
-    case Stat::Max:     return max_int(isvalid);
-    case Stat::Mode:    return mode_int(isvalid);
-    default: {
-      if (isvalid) *isvalid = false;
-      return 0;
-    }
+    case Stat::Min:  return min_int(isvalid);
+    case Stat::Max:  return max_int(isvalid);
+    case Stat::Mode: return mode_int(isvalid);
+    default:         return _invalid<int64_t>(isvalid);
   }
 }
 
@@ -99,10 +118,7 @@ size_t Stats::get_stat_uint(Stat stat, bool* isvalid) {
     case Stat::NaCount: return nacount(isvalid);
     case Stat::NUnique: return nunique(isvalid);
     case Stat::NModal:  return nmodal(isvalid);
-    default: {
-      if (isvalid) *isvalid = false;
-      return 0;
-    }
+    default:            return _invalid<size_t>(isvalid);
   }
 }
 
@@ -113,19 +129,19 @@ double Stats::get_stat_double(Stat stat, bool* isvalid) {
     case Stat::Mean:  return mean(isvalid);
     case Stat::StDev: return stdev(isvalid);
     case Stat::Skew:  return skew(isvalid);
-    case Stat::Kurt:  return jurt(isvalid);
-    case Stat::Min:   return min_dbl(isvalid);
-    case Stat::Max:   return max_dbl(isvalid);
-    case Stat::Mode:  return mode_dbl(isvalid);
-    default:          return false;
+    case Stat::Kurt:  return kurt(isvalid);
+    case Stat::Min:   return min_double(isvalid);
+    case Stat::Max:   return max_double(isvalid);
+    case Stat::Mode:  return mode_double(isvalid);
+    default:          return _invalid<double>(isvalid);
   }
 }
 
 
 CString Stats::get_stat_string(Stat stat, bool* isvalid) {
   switch (stat) {
-    case Stat::Mode: return mode_str(isvalid);
-    default:         return false;
+    case Stat::Mode: return mode_string(isvalid);
+    default:         return _invalid<CString>(isvalid);
   }
 }
 
@@ -166,26 +182,132 @@ void Stats::_fill_validity_flag(Stat stat, bool* isvalid) {
 }
 
 size_t Stats::nacount(bool* isvalid) {
-  if (!is_computed(Stat::NaCount)) compute_countna();
+  if (!is_computed(Stat::NaCount)) compute_nacount();
   _fill_validity_flag(Stat::NaCount, isvalid);
   return _countna;
 }
 
+size_t Stats::nunique(bool* isvalid) {
+  if (!is_computed(Stat::NUnique)) compute_nunique();
+  _fill_validity_flag(Stat::NUnique, isvalid);
+  return _nunique;
+}
 
-size_t Stats::nunique() { return 0; }
-size_t Stats::nmodal () { return 0; }
-double Stats::sum(bool* isvalid) { return 0; }
-double Stats::mean(bool* isvalid) { return 0; }
-double Stats::stdev(bool* isvalid) { return 0; }
-double Stats::skew(bool* isvalid) { return 0; }
-double Stats::kurt(bool* isvalid) { return 0; }
-int64_t Stats::min(bool* isvalid) { return 0; }
-double Stats::min(bool* isvalid) { return 0; }
-int64_t Stats::max(bool* isvalid) { return 0; }
-double Stats::max(bool* isvalid) { return 0; }
-int64_t Stats::mode(bool* isvalid) { return 0; }
-double Stats::mode(bool* isvalid) { return 0; }
-CString Stats::mode(bool* isvalid) { return CString(); }
+size_t Stats::nmodal(bool* isvalid) {
+  if (!is_computed(Stat::NModal)) compute_sorted_stats();
+  _fill_validity_flag(Stat::NModal, isvalid);
+  return _nmodal;
+}
+
+
+double Stats::sum  (bool* isvalid) { return _invalid<double>(isvalid); }
+double Stats::mean (bool* isvalid) { return _invalid<double>(isvalid); }
+double Stats::stdev(bool* isvalid) { return _invalid<double>(isvalid); }
+double Stats::skew (bool* isvalid) { return _invalid<double>(isvalid); }
+double Stats::kurt (bool* isvalid) { return _invalid<double>(isvalid); }
+
+template <typename T>
+double NumericStats<T>::sum(bool* isvalid) {
+  if (!is_computed(Stat::Sum)) compute_moments12();
+  _fill_validity_flag(Stat::Sum, isvalid);
+  return _sum;
+}
+
+template <typename T>
+double NumericStats<T>::mean(bool* isvalid) {
+  if (!is_computed(Stat::Mean)) compute_moments12();
+  _fill_validity_flag(Stat::Mean, isvalid);
+  return _mean;
+}
+
+template <typename T>
+double NumericStats<T>::stdev(bool* isvalid) {
+  if (!is_computed(Stat::StDev)) compute_moments12();
+  _fill_validity_flag(Stat::StDev, isvalid);
+  return _stdev;
+}
+
+template <typename T>
+double NumericStats<T>::skew(bool* isvalid) {
+  if (!is_computed(Stat::Skew)) compute_moments34();
+  _fill_validity_flag(Stat::Skew, isvalid);
+  return _skew;
+}
+
+template <typename T>
+double NumericStats<T>::kurt(bool* isvalid) {
+  if (!is_computed(Stat::Kurt)) compute_moments34();
+  _fill_validity_flag(Stat::Kurt, isvalid);
+  return _kurt;
+}
+
+int64_t Stats::min_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+int64_t Stats::max_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+int64_t Stats::mode_int   (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+double  Stats::min_double (bool* isvalid) { return _invalid<double>(isvalid); }
+double  Stats::max_double (bool* isvalid) { return _invalid<double>(isvalid); }
+double  Stats::mode_double(bool* isvalid) { return _invalid<double>(isvalid); }
+CString Stats::mode_string(bool* isvalid) { return _invalid<CString>(isvalid); }
+
+template <typename T>
+int64_t NumericStats<T>::min_int(bool* isvalid) {
+  if (!std::is_integral<T>::value) return _invalid<int64_t>(isvalid);
+  if (!is_computed(Stat::Min)) compute_minmax();
+  _fill_validity_flag(Stat::Min, isvalid);
+  xassert((std::is_same<decltype(_min), int64_t>::value));
+  return static_cast<int64_t>(_min);
+}
+
+template <typename T>
+int64_t NumericStats<T>::max_int(bool* isvalid) {
+  if (!std::is_integral<T>::value) return _invalid<int64_t>(isvalid);
+  if (!is_computed(Stat::Max)) compute_minmax();
+  _fill_validity_flag(Stat::Max, isvalid);
+  xassert((std::is_same<decltype(_max), int64_t>::value));
+  return static_cast<int64_t>(_max);
+}
+
+template <typename T>
+double NumericStats<T>::min_double(bool* isvalid) {
+  if (!std::is_floating_point<T>::value) return _invalid<double>(isvalid);
+  if (!is_computed(Stat::Min)) compute_minmax();
+  _fill_validity_flag(Stat::Min, isvalid);
+  xassert((std::is_same<decltype(_min), double>::value));
+  return static_cast<double>(_min);
+}
+
+template <typename T>
+double NumericStats<T>::max_double(bool* isvalid) {
+  if (!std::is_floating_point<T>::value) return _invalid<double>(isvalid);
+  if (!is_computed(Stat::Max)) compute_minmax();
+  _fill_validity_flag(Stat::Max, isvalid);
+  xassert((std::is_same<decltype(_max), double>::value));
+  return static_cast<double>(_max);
+}
+
+template <typename T>
+int64_t NumericStats<T>::mode_int(bool* isvalid) {
+  if (!std::is_integral<T>::value) return _invalid<int64_t>(isvalid);
+  if (!is_computed(Stat::Mode)) compute_sorted_stats();
+  _fill_validity_flag(Stat::Mode, isvalid);
+  xassert((std::is_same<decltype(_mode), int64_t>::value));
+  return static_cast<int64_t>(_mode);
+}
+
+template <typename T>
+double NumericStats<T>::mode_double(bool* isvalid) {
+  if (!std::is_floating_point<T>::value) return _invalid<double>(isvalid);
+  if (!is_computed(Stat::Mode)) compute_sorted_stats();
+  _fill_validity_flag(Stat::Mode, isvalid);
+  xassert((std::is_same<decltype(_mode), double>::value));
+  return static_cast<double>(_mode);
+}
+
+CString StringStats::mode_string(bool* isvalid) {
+  if (!is_computed(Stat::Mode)) compute_sorted_stats();
+  _fill_validity_flag(Stat::Mode, isvalid);
+  return _mode;
+}
 
 
 
@@ -218,15 +340,15 @@ void Stats::set_stat(Stat stat, double value, bool isvalid) {
     case Stat::Mean:  return set_mean(value, isvalid);
     case Stat::StDev: return set_stdev(value, isvalid);
     case Stat::Skew:  return set_skew(value, isvalid);
-    case Stat::Kurt:  return set_jurt(value, isvalid);
-    case Stat::Min:   return set_min_dbl(value, isvalid);
-    case Stat::Max:   return set_max_dbl(value, isvalid);
-    case Stat::Mode:  return set_mode_dbl(value, isvalid);
+    case Stat::Kurt:  return set_kurt(value, isvalid);
+    case Stat::Min:   return set_min(value, isvalid);
+    case Stat::Max:   return set_max(value, isvalid);
+    case Stat::Mode:  return set_mode(value, isvalid);
     default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
   }
 }
 
-void Stats::set_stat(Stat stat, CString value, bool isvalid) {
+void Stats::set_stat(Stat stat, const CString& value, bool isvalid) {
   switch (stat) {
     case Stat::Mode: return set_mode(value, isvalid);
     default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
@@ -303,49 +425,43 @@ void NumericStats<T>::set_kurt(double value, bool isvalid) {
 
 template <typename T>
 void NumericStats<T>::set_min(int64_t value, bool isvalid) {
-  static_assert(std::is_same<T, int64_t>::value,
-                "Invalid call to NumericStats<T>::set_min(int64_t)");
-  _min = static_cast<T>(value);
+  xassert((std::is_same<T, int64_t>::value));
+  _min = static_cast<V>(value);
   set_valid(Stat::Min, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_min(double value, bool isvalid) {
-  static_assert(std::is_same<T, double>::value,
-                "Invalid call to NumericStats<T>::set_min(double)");
-  _min = static_cast<T>(value);
+  xassert((std::is_same<T, double>::value));
+  _min = static_cast<V>(value);
   set_valid(Stat::Min, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_max(int64_t value, bool isvalid) {
-  static_assert(std::is_same<T, int64_t>::value,
-                "Invalid call to NumericStats<T>::set_max(int64_t)");
-  _max = static_cast<T>(value);
+  xassert((std::is_same<T, int64_t>::value));
+  _max = static_cast<V>(value);
   set_valid(Stat::Max, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_max(double value, bool isvalid) {
-  static_assert(std::is_same<T, double>::value,
-                "Invalid call to NumericStats<T>::set_max(double)");
-  _max = static_cast<T>(value);
+  xassert((std::is_same<T, double>::value));
+  _max = static_cast<V>(value);
   set_valid(Stat::Max, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_mode(int64_t value, bool isvalid) {
-  static_assert(std::is_same<T, int64_t>::value,
-                "Invalid call to NumericStats<T>::set_mode(int64_t)");
-  _mode = static_cast<T>(value);
+  xassert((std::is_same<T, int64_t>::value));
+  _mode = static_cast<V>(value);
   set_valid(Stat::Mode, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_mode(double value, bool isvalid) {
-  static_assert(std::is_same<T, double>::value,
-                "Invalid call to NumericStats<T>::set_mode(double)");
-  _mode = static_cast<T>(value);
+  xassert((std::is_same<T, double>::value));
+  _mode = static_cast<V>(value);
   set_valid(Stat::Mode, isvalid);
 }
 
@@ -358,13 +474,13 @@ void StringStats::set_mode(CString value, bool isvalid) {
 
 
 //------------------------------------------------------------------------------
-// Stats computation
+// Stats computation: NaCount
 //------------------------------------------------------------------------------
 
 template <typename T>
-static size_t _compute_countna(const OColumn& col) {
+static size_t _compute_nacount(const OColumn& col) {
   assert_compatible_type<T>(col.stype());
-  std::atomic<size_t> total_countna = 0;
+  std::atomic<size_t> total_countna { 0 };
   dt::parallel_region(
     [&] {
       T target;
@@ -379,22 +495,31 @@ static size_t _compute_countna(const OColumn& col) {
   return total_countna.load();
 }
 
-void Stats::compute_countna() {
-  switch (column.stype()) {
-    case SType::BOOL:
-    case SType::INT8:
-    case SType::INT16:
-    case SType::INT32:   return set_nacount(_compute_countna<int32_t>(column));
-    case SType::INT64:   return set_nacount(_compute_countna<int64_t>(column));
-    case SType::FLOAT32: return set_nacount(_compute_countna<float>(column));
-    case SType::FLOAT64: return set_nacount(_compute_countna<double>(column));
-    case SType::STR32:
-    case SType::STR64:   return set_nacount(_compute_countna<CString>(column));
-    case SType::OBJ:     return set_nacount(_compute_countna<py::robj>(column));
-    default: throw NotImplError();
-  }
+void Stats::compute_nacount() { throw NotImplError(); }
+
+template <typename T>
+void NumericStats<T>::compute_nacount() {
+  set_nacount(_compute_nacount<T>(column));
 }
 
+void BooleanStats::compute_nacount() {
+  compute_all_stats();
+}
+
+void StringStats::compute_nacount() {
+  set_nacount(_compute_nacount<CString>(column));
+}
+
+void PyObjectStats::compute_nacount() {
+  set_nacount(_compute_nacount<py::robj>(column));
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Stats computation: Min + Max
+//------------------------------------------------------------------------------
 
 template<typename T>
 constexpr T infinity() {
@@ -403,12 +528,19 @@ constexpr T infinity() {
          : std::numeric_limits<T>::max();
 }
 
+void Stats::compute_minmax() {
+  set_valid(Stat::Min, false);
+  set_valid(Stat::Max, false);
+}
+
+void BooleanStats::compute_minmax() {
+  compute_all_stats();
+}
+
 template <typename T>
-static void _compute_minmax(const OColumn& col, T* out_min, T* out_max,
-                            size_t* out_nacnt, bool* valid_min, bool* valid_max)
-{
-  assert_compatible_type<T>(col.stype());
-  size_t nrows = col.nrows();
+void NumericStats<T>::compute_minmax() {
+  assert_compatible_type<T>(column.stype());
+  size_t nrows = column.nrows();
   size_t count_valid = 0;
   T min = infinity<T>();
   T max = -infinity<T>();
@@ -422,9 +554,9 @@ static void _compute_minmax(const OColumn& col, T* out_min, T* out_max,
       dt::nested_for_static(nrows,
         [&](size_t i) {
           T x;
-          bool isna = col.get_element(i, &x);
+          bool isna = column.get_element(i, &x);
           if (isna) return;
-          ++t_count_notna;
+          t_count_notna++;
           if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
           if (x > t_max) t_max = x;
         });
@@ -436,51 +568,440 @@ static void _compute_minmax(const OColumn& col, T* out_min, T* out_max,
         if (t_max > max) max = t_max;
       }
     });
-  *out_nacnt = nrows - count_valid;
-  *out_min = min;
-  *out_max = max;
-  *valid_min = (count_valid > 0);
-  *valid_max = (count_valid > 0);
+  set_nacount(nrows - count_valid, true);
+  set_min(static_cast<V>(min), (count_valid > 0));
+  set_max(static_cast<V>(max), (count_valid > 0));
 }
+
+
+
+
+
+//------------------------------------------------------------------------------
+// Stats computation: NUnique
+//------------------------------------------------------------------------------
+
+void Stats::compute_nunique() {
+  set_valid(Stat::NUnique, false);
+}
+
+
+struct StrHasher {
+  size_t operator()(const CString& s) const {
+    return hash_murmur2(s.ch, static_cast<size_t>(s.size));
+  }
+};
+
+struct StrEqual {
+  bool operator()(const CString& lhs, const CString& rhs) const {
+    return (lhs.size == rhs.size) &&
+           ((lhs.ch == rhs.ch) ||  // This ensures NAs are properly handled too
+            (std::strncmp(lhs.ch, rhs.ch, static_cast<size_t>(lhs.size)) == 0));
+  }
+};
+
+void BooleanStats::compute_nunique() {
+  compute_all_stats();
+}
+
+void StringStats::compute_nunique() {
+  dt::shared_bmutex rwmutex;
+  phmap::parallel_flat_hash_set<CString, StrHasher, StrEqual> values_seen;
+
+  size_t batch_size = 8;
+  size_t nbatches = (column.nrows() + batch_size - 1) / batch_size;
+  dt::parallel_for_dynamic(
+    nbatches,
+    [&](size_t i) {
+      size_t j0 = i * batch_size;
+      size_t j1 = std::min(j0 + batch_size, column.nrows());
+      CString str;
+      for (size_t j = j0; j < j1; ++j) {
+        bool isna = column.get_element(j, &str);
+        if (isna) continue;
+        {
+          dt::shared_lock<dt::shared_bmutex> lock(rwmutex, false);
+          if (values_seen.contains(str)) continue;
+        }
+        {
+          dt::shared_lock<dt::shared_bmutex> lock(rwmutex, true);
+          values_seen.insert(str);
+        }
+      }
+    });
+  set_nunique(values_seen.size());
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Stats computation: Sum + Mean + StDev
+//------------------------------------------------------------------------------
+
+void Stats::compute_moments12() {
+  set_valid(Stat::Sum, false);
+  set_valid(Stat::Mean, false);
+  set_valid(Stat::StDev, false);
+}
+
+
+/**
+ * Standard deviation and mean computations are done using Welford's method.
+ * In particular, if m1[n-1] is the mean of n-1 observations x[1]...x[n-1], then
+ *
+ *     m1[n] = 1/n * (x[1] + x[2] + ... + x[n-1] + x[n])
+ *           = 1/n * ((n-1)*m1[n-1] + x[n])
+ *           = m1[n-1] + (x[n] - m1[n-1])/n
+ *           = m1[n-1] + delta1/n
+ *
+ * Similarly, for the second central moment:
+ *
+ *     M2[n] = (x[1] - m1[n])^2 + ... + (x[n] - m1[n])^2
+ *           = x[1]^2 + ... + x[n]^2 - 2*m1[n]*(x[1]+...+x[n]) + n*m1[n]^2
+ *           = (x[1]^2 + ... + x[n]^2) - n*m1[n]^2
+ *           = M2[n-1] + (n-1)*m1[n-1]^2 + x[n]^2 - n*m1[n]^2
+ *           = M2[n-1] + x[n]^2 - m1[n-1]^2 - n*(m1[n]^2 - m1[n-1]^2)
+ *           = M2[n-1] + delta1*(x[n] + m1[n-1]) - delta1*(m1[n] + m1[n-1])
+ *           = M2[n-1] + delta1*(x[n] - m1[n])
+ *           = M2[n-1] + delta1*delta2
+ *
+ * where `delta1 = x[n] - m1[n-1]` and `delta2 = x[n] - m1[n]`.
+ *
+ * References:
+ * [Pebay2008] P. Pébay. Formulas for Robust, One-Pass Parallel Computation of
+ *             Covariances and Arbitrary-Order Statistical Moments. Sandia
+ *             Report, 2008.
+ *             https://prod-ng.sandia.gov/techlib-noauth/access-control.cgi/2008/086212.pdf
+ */
+template <typename T>
+void NumericStats<T>::compute_moments12() {
+  size_t nrows = column.nrows();
+  size_t count = 0;
+  double sum = 0;
+  double mean = 0;
+  double M2 = 0;
+
+  std::mutex mutex;
+  dt::parallel_region(
+    [&] {
+      size_t t_count = 0;
+      double t_sum = 0.0;
+      double t_mean = 0.0;
+      double t_M2 = 0.0;
+
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          T value;
+          bool isna = column.get_element(i, &value);
+          if (isna) return;
+          double x = static_cast<double>(value);
+          t_count++;
+          t_sum += x;
+          double delta1 = x - t_mean;
+          t_mean += delta1 / t_count;
+          double delta2 = x - t_mean;
+          t_M2 += delta1 * delta2;
+        });
+
+      if (t_count) {
+        std::lock_guard<std::mutex> lock(mutex);
+        size_t n1 = count;
+        size_t n2 = t_count;
+        size_t n = n1 + n2;
+        double delta21 = t_mean - mean;
+        count = n;
+        sum += t_sum;
+        mean += delta21 * n2 / n;
+        M2 += t_M2 + delta21 * delta21 * n1 / n * n2;
+      }
+    });
+
+  size_t n = count;
+  double s = (n > 1) ? std::sqrt(M2 / (n - 1)) : 0.0;
+
+  set_nacount(nrows - n, true);
+  set_sum(sum, true);
+  set_mean(mean, (n > 0));
+  set_stdev(s, (n > 1));
+}
+
+void BooleanStats::compute_moments12() {
+  compute_all_stats();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Stats computation: Skew + Kurt
+//------------------------------------------------------------------------------
+
+void Stats::compute_moments34() {
+  set_valid(Stat::Skew, false);
+  set_valid(Stat::Kurt, false);
+}
+
+
+/**
+ * The [Pebay 2008] paper linked above gives formulas for parallel computation
+ * of third and fourth central moments too:
+ *
+ * delta = x[n] - m1[n-1]
+ * M3[n] = M3[n-1] + (n-1)*(n-2)*delta^3/n^2 - 3*M2[n-1]*delta/n
+ * M4[n] = M4[n-1] + (n-1)*(n^2 - 3n + 3)*delta^4/n^3 + 6*M2[n-1]*delta^2/n^2
+ *         -4*M3[n-1]*delta/n
+ */
+template <typename T>
+void NumericStats<T>::compute_moments34() {
+  size_t nrows = column.nrows();
+  size_t count = 0;
+  double sum = 0.0;   // x[1] + ... + x[n]
+  double mean = 0.0;  // sum / n
+  double M2 = 0.0;    // (x[1] - mean)^2 + ... (x[n] - mean)^2
+  double M3 = 0.0;    // (x[1] - mean)^3 + ... (x[n] - mean)^3
+  double M4 = 0.0;    // (x[1] - mean)^4 + ... (x[n] - mean)^4
+
+  std::mutex mutex;
+  dt::parallel_region(
+    [&] {
+      size_t t_count = 0;
+      double t_sum = 0.0;
+      double t_mean = 0.0;
+      double t_M2 = 0.0;
+      double t_M3 = 0.0;
+      double t_M4 = 0.0;
+
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          T value;
+          bool isna = column.get_element(i, &value);
+          if (isna) return;
+          double x = static_cast<double>(value);
+          ++t_count;
+          size_t n = t_count; // readability
+          double delta = x - t_mean;                // δ
+          double gamma = delta / n;                 // δ/n
+          double beta = gamma * gamma;              // δ²/n²
+          double alpha = delta * gamma * (n - 1);   // δ²(n-1)/n
+          t_sum += x;
+          t_mean += gamma;
+          t_M4 += (alpha * (n*n - 3*n + 3) + 6*t_M2) * beta - 4*gamma * t_M3;
+          t_M3 += (alpha * (n - 2) - 3*t_M2) * gamma;
+          t_M2 += alpha;
+        });
+
+      if (t_count) {
+        std::lock_guard<std::mutex> lock(mutex);
+        size_t n1 = count;
+        size_t n2 = t_count;
+        size_t n = n1 + n2;
+        double delta21 = t_mean - mean;
+        double gamma21 = delta21 / n;
+        double beta21  = gamma21 * gamma21;
+        double alpha21 = delta21 * delta21 * n1 * n2 / n;
+        double M2_1 = M2;
+        double M2_2 = t_M2;
+        double M3_1 = M3;
+        double M3_2 = t_M3;
+        double M4_1 = M4;
+        double M4_2 = t_M4;
+
+        count = n;
+        sum += t_sum;
+        mean += gamma21 * n2;
+        M2 = M2_1 + M2_2 + alpha21;
+        M3 = M3_1 + M3_2 + alpha21 * (n1 - n2)/n
+             + 3.0 * (n1 * M2_2 - n2 * M2_1) * gamma21;
+        M4 = M4_1 + M4_2 + alpha21 * beta21 * (n1*n1 - n1*n2 + n2*n2)
+             + 6 * beta21 * (n1*n1 * M2_2 + n2*n2 * M2_1)
+             + 4 * gamma21 * (n1 * M3_2 - n2 * M3_1);
+      }
+    });
+
+  size_t n = count;
+  double s = (n > 1) ? std::sqrt(M2 / (n - 1)) : 0.0;
+  double G = (n > 2) ? M3 / std::pow(s, 3) * n /(n-1) /(n-2) : 0.0;
+  double K = (n > 3) ? (M4 / std::pow(s, 4) * n*(n+1)
+                        - 3.0*(n-1)*(n-1)*(n-1)) /(n-1) /(n-2) /(n-3) : 0.0;
+
+  set_nacount(nrows - n, true);
+  set_sum(sum, true);
+  set_mean(mean, (n > 0));
+  set_stdev(s, (n > 1));
+  set_skew(G, (n > 2));
+  set_kurt(K, (n > 3));
+}
+
+
+void BooleanStats::compute_moments34() {
+  compute_all_stats();
+}
+
+
+
+//------------------------------------------------------------------------------
+// Stats computation: Mode, NModal
+//------------------------------------------------------------------------------
+
+void Stats::compute_sorted_stats() {
+  set_valid(Stat::Mode, false);
+  set_valid(Stat::NModal, false);
+}
+
 
 template <typename T>
-void IntegerStats<T>::compute_minmax() {
-  size_t nacnt;
-  T min, max;
-  bool min_valid, max_valid;
-  _compute_minmax(column, &min, &max, &nacnt, &min_valid, &max_valid);
-  set_nacount(nacnt, true);
-  set_min(static_cast<int64_t>(min), min_valid);
-  set_max(static_cast<int64_t>(max), max_valid);
+void NumericStats<T>::compute_sorted_stats() {
+  Groupby grpby;
+  RowIndex ri = column.sort(&grpby);
+  const int32_t* groups = grpby.offsets_r();
+  size_t n_groups = grpby.ngroups();
+
+  // Sorting gathers all NA elements at the top (in the first group). Thus if
+  // we did not yet compute the NA count for the column, we can do so now by
+  // checking whether the elements in the first group are NA or not.
+  if (!is_computed(Stat::NaCount)) {
+    T x0;
+    bool isna = ri.size() > 0? column.get_element(ri[0], &x0) : false;
+    set_nacount(isna? static_cast<size_t>(groups[1]) : 0);
+  }
+
+  bool has_nas = (_countna > 0);
+  set_nunique(n_groups - has_nas, true);
+
+  size_t max_group_size = 0;
+  size_t largest_group_index = 0;
+  for (size_t i = has_nas; i < n_groups; ++i) {
+    size_t grpsize = static_cast<size_t>(groups[i + 1] - groups[i]);
+    if (grpsize > max_group_size) {
+      max_group_size = grpsize;
+      largest_group_index = i;
+    }
+  }
+
+  size_t ig = static_cast<size_t>(groups[largest_group_index]);
+  T mode_value {};
+  bool mode_isna = max_group_size ? column.get_element(ri[ig], &mode_value)
+                                  : true;
+  set_mode(static_cast<V>(mode_value), !mode_isna);
+  set_nmodal(max_group_size, true);
+}
+
+
+void StringStats::compute_sorted_stats() {
+  Groupby grpby;
+  RowIndex ri = column.sort(&grpby);
+  const int32_t* groups = grpby.offsets_r();
+  size_t n_groups = grpby.ngroups();
+
+  // Sorting gathers all NA elements at the top (in the first group). Thus if
+  // we did not yet compute the NA count for the column, we can do so now by
+  // checking whether the elements in the first group are NA or not.
+  if (!is_computed(Stat::NaCount)) {
+    CString x0;
+    bool isna = ri.size() > 0? column.get_element(ri[0], &x0) : false;
+    set_nacount(isna? static_cast<size_t>(groups[1]) : 0);
+  }
+
+  bool has_nas = (_countna > 0);
+  set_nunique(n_groups - has_nas, true);
+
+  size_t max_group_size = 0;
+  size_t largest_group_index = 0;
+  for (size_t i = has_nas; i < n_groups; ++i) {
+    size_t grpsize = static_cast<size_t>(groups[i + 1] - groups[i]);
+    if (grpsize > max_group_size) {
+      max_group_size = grpsize;
+      largest_group_index = i;
+    }
+  }
+
+  size_t ig = static_cast<size_t>(groups[largest_group_index]);
+  CString mode_value;
+  bool mode_isna = max_group_size ? column.get_element(ri[ig], &mode_value)
+                                  : true;
+  set_mode(mode_value, !mode_isna);
+  set_nmodal(max_group_size, true);
+}
+
+
+void BooleanStats::compute_sorted_stats() {
+  compute_all_stats();
 }
 
 
 
-void Stats::compute_nunique(const Column* col) {
-  compute_sorted_stats(col);
+
+//------------------------------------------------------------------------------
+// BooleanStats: compute all
+//------------------------------------------------------------------------------
+
+/**
+ * For boolean column, all statistics can be computed from just two
+ * quantities: count of 0s `n0`, and count of 1s `n1`. Then:
+ *
+ *     n = n0 + n1
+ *     µ = n1 / n
+ *     s^2 = n0*n1 / (n*(n-1))
+ *     G = (n0 - n1) / ((n-2) * s)
+ *     K = (n-1)/((n-2)(n-3)) * ((n+1)*(n0^2 + n0*n1 + n1^2)/(n0*n1) - 3(n-1))
+ */
+void BooleanStats::compute_all_stats() {
+  size_t nrows = column.nrows();
+  std::atomic<size_t> count_all { 0 };
+  std::atomic<size_t> count_1 { 0 };
+
+  dt::parallel_region(
+    [&] {
+      size_t t_count_all = 0;
+      size_t t_count_1 = 0;
+
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          int32_t x;
+          bool isna = column.get_element(i, &x);
+          if (isna) return;
+          t_count_all++;
+          t_count_1 += static_cast<size_t>(x);
+        });
+
+      count_all += t_count_all;
+      count_1 += t_count_1;
+    });
+  size_t n = count_all.load();
+  size_t n1 = count_1.load();
+  size_t n0 = n - n1;
+
+  double mu = (n > 0) ? 1.0 * n1 / n : 0.0;
+  double s = (n > 1) ? std::sqrt(1.0 * n0 * n1 / n / (n-1)) : 0.0;
+  double G = (n > 2) ? 1.0 * (n0 - n1) / (n-2) / s : 0.0;
+  double K = (n > 3) ? 1.0 * ((n+1) * (n0*n0-n0*n1+n1*n1)/n0/n1 - 3*(n-1))
+                           * (n-1) / (n-2) / (n-3) : 0.0;
+
+  set_nacount(nrows - n, true);
+  set_nunique((n0 > 0) + (n1 > 0), true);
+  set_sum(static_cast<double>(n), true);
+  set_mean(mu, (n > 0));
+  set_stdev(s, (n > 1));
+  set_skew(G, (n > 2));
+  set_kurt(K, (n > 3));
+  set_min(int64_t(n0? 0 : 1), (n > 0));
+  set_max(int64_t(n1? 1 : 0), (n > 0));
+  set_mode(int64_t(n0>=n1? 0 : 1), (n > 0));
+  set_nmodal(std::max(n0, n1), (n > 0));
 }
 
 
 
-size_t Stats::nunique(const Column* col) {
-  if (!is_computed(Stat::NUnique)) compute_nunique(col);
-  return _nunique;
-}
-
-size_t Stats::nmodal(const Column* col) {
-  if (!is_computed(Stat::NModal)) compute_sorted_stats(col);
-  return _nmodal;
-}
-
-size_t Stats::memory_footprint() const {
-  return sizeof(*this);
-}
 
 
-void Stats::merge_stats(const Stats*) {
-  // TODO: implement
-}
+//------------------------------------------------------------------------------
+// etc.
+//------------------------------------------------------------------------------
 
+// size_t Stats::memory_footprint() const {
+//   return sizeof(*this);
+// }
 
 /**
  * See DataTable::verify_integrity for method description
@@ -509,279 +1030,6 @@ void Stats::merge_stats(const Stats*) {
 // }
 
 
-
-//==============================================================================
-// NumericalStats
-//==============================================================================
-
-/**
- * Standard deviation and mean computations are done using Welford's method.
- * Ditto for skewness and kurtosis computations.
- * (Source: https://www.johndcook.com/blog/standard_deviation)
- */
-template <typename T>
-void NumericStats<T>::compute_numerical_stats(const Column* col) {
-  size_t nrows = col->nrows;
-  size_t count_notna = 0;
-  double mean = 0;
-  double m2 = 0;
-  double m3 = 0;
-  double m4 = 0;
-  double sum = 0;
-  T min = infinity<T>();
-  T max = -infinity<T>();
-  std::mutex mutex;
-
-  dt::parallel_region(
-    [&] {
-      size_t t_count_notna = 0;
-      size_t n1 = 0;
-      size_t n2 = 0; // added for readability
-      double t_mean = 0;
-      double t_m2 = 0;
-      double t_m3 = 0;
-      double t_m4 = 0;
-      double t_m2_helper = 0;
-
-      double t_sum = 0;
-      T t_min = infinity<T>();
-      T t_max = -infinity<T>();
-
-      dt::nested_for_static(nrows,
-        [&](size_t i) {
-          T x;
-          bool r = col->get_element(i, &x);
-          if (r) return;
-          n1 = t_count_notna;
-          ++t_count_notna;
-          n2 = t_count_notna; // readability
-          t_sum += static_cast<double>(x);
-          if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
-          if (x > t_max) t_max = x;
-          double delta = static_cast<double>(x) - t_mean;
-          double delta_n = static_cast<double>(delta) / t_count_notna;
-          double delta_n2 = delta_n * delta_n;
-          double term1 = delta * delta_n * static_cast<double>(n1);
-          t_mean += delta / t_count_notna;
-          double delta2 = static_cast<double>(x) - t_mean;
-          t_m4 += term1 * delta_n2 * (n2 * n2 - 3 * n2 + 3);
-          t_m4 += 6 * delta_n2 * t_m2_helper - 4 * delta_n * t_m3;
-          t_m3 += (term1 * delta_n * (n2 - 2) - 3 * delta_n * t_m2_helper);
-          t_m2 += delta * delta2;
-          t_m2_helper += term1;
-        });
-
-      if (t_count_notna) {
-        std::lock_guard<std::mutex> lock(mutex);
-        size_t nold = count_notna;
-        count_notna += t_count_notna;
-        sum += t_sum;
-        if (t_min < min) min = t_min;
-        if (t_max > max) max = t_max;
-        double delta = mean - t_mean;
-        double delta2 = delta * delta;
-        double delta3 = delta2 * delta;
-        double delta4 = delta2 * delta2;
-        double a_m2 = m2;
-        double a_m3 = m3;
-        double b_m2 = t_m2;
-        double b_m3 = t_m3;
-        // readibility for counts
-        size_t a_n = nold;
-        size_t b_n = t_count_notna;
-        size_t c_n = count_notna;
-
-        // Running SD
-        m2 += t_m2 + delta2 * (1.0 * a_n / count_notna * t_count_notna);
-
-        // Running Skewness
-        m3 += t_m3 + delta3 * a_n * b_n * (a_n - b_n)/(c_n * c_n);
-        m3 += 3.0 * delta * (a_n * b_m2 - b_n * a_m2)/c_n;
-
-        // Running Kurtosis
-        m4 += t_m4 + delta4 * a_n * b_n * (a_n * a_n - a_n * b_n + b_n * b_n)/(pow(c_n,3));
-        m4 += 6 * delta2 * (a_n * a_n * b_m2 + b_n * b_n * a_m2) / (c_n*c_n);
-        m4 += 4 * delta * (a_n * b_m3 - b_n * a_m3) / c_n;
-
-        // Running mean
-        mean = static_cast<double>(sum) / count_notna;
-      }
-    });
-
-  _countna = nrows - count_notna;
-  if (count_notna == 0) {
-    _min = _max = GETNA<T>();
-    _mean = _sd = _skew = _kurt = GETNA<double>();
-    _sum = 0;
-  } else {
-    _min = min;
-    _max = max;
-    _sum = sum;
-    _mean = mean;
-    _sd = count_notna > 1 ? std::sqrt(m2 / (count_notna - 1)) : 0;
-    _skew = count_notna > 1 ? std::sqrt(count_notna) * m3/std::pow(m2,1.5) : 0;
-    _kurt = count_notna > 1 ? (static_cast<double>(m4)*count_notna)/(m2*m2) : 0;
-  }
-  set_computed(Stat::Min);
-  set_computed(Stat::Max);
-  set_computed(Stat::Sum);
-  set_computed(Stat::Mean);
-  set_computed(Stat::StDev);
-  set_computed(Stat::Skew);
-  set_computed(Stat::Kurt);
-  set_computed(Stat::NaCount);
-}
-
-
-template <typename T>
-void NumericStats<T>::compute_sorted_stats(const Column* col) {
-  Groupby grpby;
-  RowIndex ri = col->_sort(&grpby);
-  const int32_t* groups = grpby.offsets_r();
-  size_t n_groups = grpby.ngroups();
-
-  // Sorting gathers all NA elements at the top (in the first group). Thus if
-  // we did not yet compute the NA count for the column, we can do so now by
-  // checking whether the elements in the first group are NA or not.
-  if (!is_computed(Stat::NaCount)) {
-    T x0;
-    bool r = col->get_element(ri[0], &x0);
-    _countna = r? static_cast<size_t>(groups[1]) : 0;
-    set_computed(Stat::NaCount);
-  }
-
-  bool has_nas = (_countna > 0);
-  _nunique = n_groups - has_nas;
-  set_computed(Stat::NUnique);
-
-  size_t max_grpsize = 0;
-  size_t best_igrp = 0;
-  for (size_t i = has_nas; i < n_groups; ++i) {
-    size_t grpsize = static_cast<size_t>(groups[i + 1] - groups[i]);
-    if (grpsize > max_grpsize) {
-      max_grpsize = grpsize;
-      best_igrp = i;
-    }
-  }
-
-  _nmodal = max_grpsize;
-  size_t ig = static_cast<size_t>(groups[best_igrp]);
-  bool isna = true;
-  if (max_grpsize) {
-    isna = col->get_element(ri[ig], &_mode);
-  }
-  if (isna) {
-    _mode = GETNA<T>();  // TODO: remove
-  }
-  set_isna(Stat::Mode, isna);
-  set_computed(Stat::NModal);
-  set_computed(Stat::Mode);
-}
-
-
-
-
-// template <typename T>
-// double NumericStats<T>::sum(const Column* col) {
-//   if (!is_computed(Stat::Sum)) compute_numerical_stats(col);
-//   return _sum;
-// }
-
-// template <typename T>
-// T NumericStats<T>::min(const Column* col) {
-//   if (!is_computed(Stat::Min)) compute_numerical_stats(col);
-//   return _min;
-// }
-
-// template <typename T>
-// T NumericStats<T>::max(const Column* col) {
-//   if (!is_computed(Stat::Max)) compute_numerical_stats(col);
-//   return _max;
-// }
-
-// template <typename T>
-// T NumericStats<T>::mode(const Column* col) {
-//   if (!is_computed(Stat::Mode)) compute_sorted_stats(col);
-//   return _mode;
-// }
-
-// template <typename T>
-// double NumericStats<T>::mean(const Column* col) {
-//   if (!is_computed(Stat::Mean)) compute_numerical_stats(col);
-//   return _mean;
-// }
-
-// template <typename T>
-// double NumericStats<T>::stdev(const Column* col) {
-//   if (!is_computed(Stat::StDev)) compute_numerical_stats(col);
-//   return _sd;
-// }
-
-// template <typename T>
-// double NumericStats<T>::skew(const Column* col) {
-//   if (!is_computed(Stat::Skew)) compute_numerical_stats(col);
-//   return _skew;
-// }
-
-// template <typename T>
-// double NumericStats<T>::kurt(const Column* col) {
-//   if (!is_computed(Stat::Kurt)) compute_numerical_stats(col);
-//   return _kurt;
-// }
-
-template<typename T>
-void NumericStats<T>::compute_countna(const Column* col) {
-  compute_numerical_stats(col);
-}
-
-template<typename T>
-void NumericStats<T>::set_min(T value) {
-  set_computed(Stat::Min, !ISNA<T>(value));
-  _min = value;
-}
-
-template<typename T>
-void NumericStats<T>::set_max(T value) {
-  set_computed(Stat::Max, !ISNA<T>(value));
-  _max = value;
-}
-
-//--------------
-
-template<typename T>
-bool NumericStats<T>::get_min(int64_t* out) {
-  if (!std::is_integral<T>::value) return true;
-  if (!is_computed(Stat::Min)) compute_minmax();
-  *out = static_cast<int64_t>(_min);
-  return is_na(Stat::Min);
-}
-
-template<typename T>
-bool NumericStats<T>::get_max(int64_t* out) {
-  if (!std::is_integral<T>::value) return true;
-  if (!is_computed(Stat::Max)) compute_minmax();
-  *out = static_cast<int64_t>(_max);
-  return is_na(Stat::Max);
-}
-
-template<typename T>
-bool NumericStats<T>::get_min(double* out) {
-  if (!std::is_floating_point<T>::value) return true;
-  if (!is_computed(Stat::Min)) compute_minmax();
-  *out = static_cast<double>(_min);
-  return is_na(Stat::Min);
-}
-
-template<typename T>
-bool NumericStats<T>::get_max(double* out) {
-  if (!std::is_floating_point<T>::value) return true;
-  if (!is_computed(Stat::Max)) compute_minmax();
-  *out = static_cast<double>(_max);
-  return is_na(Stat::Max);
-}
-
-
-
 // template<typename T>
 // void NumericStats<T>::verify_more(Stats* test, const Column* col) const
 // {
@@ -795,8 +1043,6 @@ bool NumericStats<T>::get_max(double* out) {
 //   // verify_stat(Stat::Kurt,  _kurt,  [&](){ return ntest->kurt(col); });
 // }
 
-template class NumericStats<int64_t>;
-template class NumericStats<double>;
 
 
 
@@ -805,215 +1051,20 @@ template class NumericStats<double>;
 //==============================================================================
 
 // Adds a check for infinite/NaN mean and sd.
-template <typename T>
-void RealStats<T>::compute_numerical_stats(const Column* col) {
-  NumericStats<double>::compute_numerical_stats(col);
-  bool min_inf = (this->_min == -std::numeric_limits<double>::infinity());
-  bool max_inf = (this->_max == +std::numeric_limits<double>::infinity());
-  if (min_inf || max_inf) {
-    this->_sd = GETNA<double>();
-    this->_skew = GETNA<double>();
-    this->_kurt = GETNA<double>();
-    this->_mean = (min_inf && max_inf) ? GETNA<double>() :
-                  (min_inf) ? static_cast<double>(this->_min)
-                            : static_cast<double>(this->_max);
-  }
-}
-
-
-template class RealStats<float>;
-template class RealStats<double>;
-template class IntegerStats<int32_t>;
-template class IntegerStats<int64_t>;
-
-
-
-//==============================================================================
-// BooleanStats
-//==============================================================================
-
-/**
- * Compute standard deviation using the following formula derived from
- * `count0` and `count1`:
- *
- *            /              count0 * count1           \ 1/2
- *      sd = ( ---------------------------------------- )
- *            \ (count0 + count1 - 1)(count0 + count1) /
- */
-void BooleanStats::compute_numerical_stats(const Column* col) {
-  std::atomic<size_t> acountA { 0 };
-  std::atomic<size_t> acount1 { 0 };
-  size_t nrows = col->nrows;
-
-  dt::parallel_region(
-    [&] {
-      size_t tcountA = 0;
-      size_t tcount1 = 0;
-
-      dt::nested_for_static(nrows,
-        [&](size_t i) {
-          int32_t x;
-          bool r = col->get_element(i, &x);
-          if (r) return;
-          tcountA++;
-          tcount1 += static_cast<uint32_t>(x);
-        });
-
-      acountA += tcountA;
-      acount1 += tcount1;
-    });
-  size_t t_count = acountA.load();
-  size_t count1 = acount1.load();
-  size_t count0 = t_count - count1;
-  double dcount0 = static_cast<double>(count0);
-  double dcount1 = static_cast<double>(count1);
-  _mean = t_count > 0 ? dcount1 / t_count : GETNA<double>();
-  _sd = t_count > 1 ? std::sqrt(dcount0/t_count * dcount1/(t_count - 1))
-                    : t_count == 1 ? 0 : GETNA<double>();
-  _min = count0 ? 0 : count1 ? 1 : GETNA<int32_t>();
-  _max = count1 ? 1 : count0 ? 0 : GETNA<int32_t>();
-  _sum = static_cast<int64_t>(count1);
-  _countna = nrows - t_count;
-  _nunique = (!!count0) + (!!count1);
-  _mode = _nunique ? (count1 >= count0) : GETNA<int32_t>();
-  _nmodal = _mode == 1 ? count1 : _mode == 0 ? count0 : 0;
-  set_computed(Stat::Max);
-  set_computed(Stat::Mean);
-  set_computed(Stat::Min);
-  set_computed(Stat::Mode);
-  set_computed(Stat::NaCount);
-  set_computed(Stat::NModal);
-  set_computed(Stat::NUnique);
-  set_computed(Stat::StDev);
-  set_computed(Stat::Sum);
-}
-
-
-void BooleanStats::compute_sorted_stats(const Column *col) {
-  compute_numerical_stats(col);
-}
-
-
-
-
-//==============================================================================
-// StringStats
-//==============================================================================
-
-void StringStats::compute_countna(const Column* col) {
-  _countna = _count_nas<CString>(col);
-  set_computed(Stat::NaCount);
-}
-
-
-void StringStats::compute_sorted_stats(const Column* col) {
-  Groupby grpby;
-  RowIndex ri = col->_sort(&grpby);
-  const int32_t* groups = grpby.offsets_r();
-  size_t n_groups = grpby.ngroups();
-
-  if (!is_computed(Stat::NaCount)) {
-    CString target;
-    bool r = col->get_element(ri[0], &target);
-    _countna = r? static_cast<size_t>(groups[1]) : 0;
-    set_computed(Stat::NaCount);
-  }
-
-  bool has_nas = (_countna > 0);
-  _nunique = n_groups - has_nas;
-  set_computed(Stat::NUnique);
-
-  size_t max_grpsize = 0;
-  size_t best_igrp = 0;
-  for (size_t i = has_nas; i < n_groups; ++i) {
-    size_t grpsize = static_cast<size_t>(groups[i + 1] - groups[i]);
-    if (grpsize > max_grpsize) {
-      max_grpsize = grpsize;
-      best_igrp = i;
-    }
-  }
-
-  if (max_grpsize) {
-    _nmodal = max_grpsize;
-    size_t ig = static_cast<size_t>(groups[best_igrp]);
-    col->get_element(ri[ig], &_mode);
-  } else {
-    _nmodal = 0;
-    _mode = CString();
-  }
-  set_computed(Stat::NModal);
-  set_computed(Stat::Mode);
-}
-
-
-struct StrHasher {
-  size_t operator()(const CString& s) const {
-    return hash_murmur2(s.ch, static_cast<size_t>(s.size));
-  }
-};
-
-struct StrEqual {
-  bool operator()(const CString& lhs, const CString& rhs) const {
-    return (lhs.size == rhs.size) &&
-           ((lhs.ch == rhs.ch) ||  // This ensures NAs are properly handled too
-            (std::strncmp(lhs.ch, rhs.ch, static_cast<size_t>(lhs.size)) == 0));
-  }
-};
-
-
-void StringStats::compute_nunique(const Column* col) {
-  dt::shared_bmutex rwmutex;
-  phmap::parallel_flat_hash_set<CString, StrHasher, StrEqual> values_seen;
-
-  size_t batch_size = 8;
-  size_t nbatches = (col->nrows + batch_size - 1) / batch_size;
-  dt::parallel_for_dynamic(
-    nbatches,
-    [&](size_t i) {
-      size_t j0 = i * batch_size;
-      size_t j1 = std::min(j0 + batch_size, col->nrows);
-      CString str;
-      for (size_t j = j0; j < j1; ++j) {
-        bool r = col->get_element(j, &str);
-        if (r) continue;
-        {
-          dt::shared_lock<dt::shared_bmutex> lock(rwmutex, false);
-          if (values_seen.contains(str)) continue;
-        }
-        {
-          dt::shared_lock<dt::shared_bmutex> lock(rwmutex, true);
-          values_seen.insert(str);
-        }
-      }
-    });
-
-  _nunique = values_seen.size();
-  set_computed(Stat::NUnique);
-}
-
-
-CString StringStats::mode(const Column* col) {
-  if (!is_computed(Stat::Mode)) compute_sorted_stats(col);
-  return _mode;
-}
-
-
-
-
-
-//==============================================================================
-// PyObjectStats
-//==============================================================================
-
-void PyObjectStats::compute_countna(const Column* col) {
-  _countna = _count_nas<py::robj>(col);
-  set_computed(Stat::NaCount);
-}
-
-
-void PyObjectStats::compute_sorted_stats(const Column*) {
-  throw NotImplError();
-}
+// template <typename T>
+// void RealStats<T>::compute_numerical_stats(const Column* col) {
+//   NumericStats<double>::compute_numerical_stats(col);
+//   bool min_inf = (this->_min == -std::numeric_limits<double>::infinity());
+//   bool max_inf = (this->_max == +std::numeric_limits<double>::infinity());
+//   if (min_inf || max_inf) {
+//     this->_sd = GETNA<double>();
+//     this->_skew = GETNA<double>();
+//     this->_kurt = GETNA<double>();
+//     this->_mean = (min_inf && max_inf) ? GETNA<double>() :
+//                   (min_inf) ? static_cast<double>(this->_min)
+//                             : static_cast<double>(this->_max);
+//   }
+// }
 
 
 
@@ -1189,3 +1240,15 @@ OColumn OColumn::get_stat_as_column(Stat stat) const {
       throw NotImplError();
   }
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// Instantiate templates
+//------------------------------------------------------------------------------
+
+template class RealStats<float>;
+template class RealStats<double>;
+template class IntegerStats<int32_t>;
+template class IntegerStats<int64_t>;
