@@ -169,6 +169,8 @@ public:
   RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
 
+  SType stype() const { return _stype; }
+  LType ltype() const { return info(_stype).ltype(); }
   const MemoryRange& data_buf() const { return mbuf; }
   const void* data() const { return mbuf.rptr(); }
   void* data_w() { return mbuf.wptr(); }

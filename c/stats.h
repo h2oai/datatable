@@ -121,7 +121,7 @@ constexpr uint8_t NSTATS = 14;
 class Stats
 {
   protected:
-    const OColumn& column;
+    Column* column;
     std::bitset<NSTATS> _computed;
     std::bitset<NSTATS> _valid;
     size_t _countna;
@@ -130,7 +130,7 @@ class Stats
 
   //---- Generic properties ------------
   public:
-    explicit Stats(const OColumn& col);
+    explicit Stats(Column* col);
     Stats(const Stats&) = delete;
     Stats(Stats&&) = delete;
     virtual ~Stats();
