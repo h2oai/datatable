@@ -49,38 +49,6 @@ bool IntColumn<T>::get_element(size_t i, int64_t* out) const {
 
 
 
-//------------------------------------------------------------------------------
-// Stats
-//------------------------------------------------------------------------------
-
-// template <typename T>
-// static inline IntegerStats<promote<T>>* get_int_stats(const IntColumn<T>* col) {
-//   return static_cast<IntegerStats<promote<T>>*>(col->get_stats());
-// }
-
-// template <typename T> T       IntColumn<T>::min() const  { return downcast<T>(get_int_stats(this)->min(this)); }
-// template <typename T> T       IntColumn<T>::max() const  { return downcast<T>(get_int_stats(this)->max(this)); }
-// template <typename T> T       IntColumn<T>::mode() const { return downcast<T>(get_int_stats(this)->mode(this)); }
-// template <typename T> int64_t IntColumn<T>::sum() const  { return get_int_stats(this)->sum(this); }
-// template <typename T> double  IntColumn<T>::mean() const { return get_int_stats(this)->mean(this); }
-// template <typename T> double  IntColumn<T>::sd() const   { return get_int_stats(this)->stdev(this); }
-// template <typename T> double  IntColumn<T>::skew() const { return get_int_stats(this)->skew(this); }
-// template <typename T> double  IntColumn<T>::kurt() const { return get_int_stats(this)->kurt(this); }
-
-
-// template <typename T>
-// int64_t IntColumn<T>::min_int64() const {
-//   T x = min();
-//   return ISNA<T>(x)? GETNA<int64_t>() : static_cast<int64_t>(x);
-// }
-
-// template <typename T>
-// int64_t IntColumn<T>::max_int64() const {
-//   T x = max();
-//   return ISNA<T>(x)? GETNA<int64_t>() : static_cast<int64_t>(x);
-// }
-
-
 
 //------------------------------------------------------------------------------
 

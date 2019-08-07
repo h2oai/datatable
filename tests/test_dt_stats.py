@@ -60,13 +60,6 @@ srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)],
 srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
 
-def promote_stypes(stypes):
-    assert isinstance(stypes, tuple)
-    return tuple(stype.int64 if st.ltype == ltype.bool else
-                 stype.int64 if st.ltype == ltype.int else
-                 stype.float64 if st.ltype == ltype.real else
-                 st
-                 for st in stypes)
 
 
 #-------------------------------------------------------------------------------

@@ -39,27 +39,6 @@ bool RealColumn<T>::get_element(size_t i, T* out) const {
 
 
 //------------------------------------------------------------------------------
-// Stats
-//------------------------------------------------------------------------------
-
-// template <typename T>
-// static inline RealStats<T>* get_real_stats(const RealColumn<T>* col) {
-//   return static_cast<RealStats<T>*>(col->get_stats());
-// }
-
-// template <typename T> T      RealColumn<T>::min() const  { return get_real_stats(this)->min(this); }
-// template <typename T> T      RealColumn<T>::max() const  { return get_real_stats(this)->max(this); }
-// template <typename T> T      RealColumn<T>::mode() const { return get_real_stats(this)->mode(this); }
-// template <typename T> double RealColumn<T>::sum() const  { return get_real_stats(this)->sum(this); }
-// template <typename T> double RealColumn<T>::mean() const { return get_real_stats(this)->mean(this); }
-// template <typename T> double RealColumn<T>::sd() const   { return get_real_stats(this)->stdev(this); }
-// template <typename T> double RealColumn<T>::skew() const { return get_real_stats(this)->skew(this); }
-// template <typename T> double RealColumn<T>::kurt() const { return get_real_stats(this)->kurt(this); }
-
-
-
-
-//------------------------------------------------------------------------------
 
 
 // Explicit instantiation of the template

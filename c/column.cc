@@ -142,15 +142,6 @@ void Column::replace_rowindex(const RowIndex& newri) {
 
 
 
-//------------------------------------------------------------------------------
-// Stats
-//------------------------------------------------------------------------------
-
-// size_t Column::countna() const { return get_stats()->countna(this); }
-// size_t Column::nunique() const { return get_stats()->nunique(this); }
-// size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
-
-
 
 //------------------------------------------------------------------------------
 // OColumn

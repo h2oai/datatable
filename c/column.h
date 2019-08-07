@@ -281,11 +281,6 @@ public:
 
   virtual RowIndex join(const OColumn& keycol) const = 0;
 
-  // size_t countna() const;
-  // size_t nunique() const;
-  // size_t nmodal() const;
-  // virtual int64_t min_int64() const { return GETNA<int64_t>(); }
-  // virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
   /**
    * Check that the data in this Column object is correct. `name` is the name of
@@ -524,13 +519,6 @@ public:
   BoolColumn(size_t nrows = 0);
   BoolColumn(size_t nrows, MemoryRange&&);
 
-  // int8_t min() const;
-  // int8_t max() const;
-  // int8_t mode() const;
-  // int64_t sum() const;
-  // double mean() const;
-  // double sd() const;
-
   bool get_element(size_t i, int32_t* out) const override;
 
   protected:
@@ -550,17 +538,6 @@ template <typename T> class IntColumn : public FwColumn<T>
 public:
   IntColumn(size_t nrows = 0);
   IntColumn(size_t nrows, MemoryRange&&);
-
-  // T min() const;
-  // T max() const;
-  // T mode() const;
-  // int64_t sum() const;
-  // double mean() const;
-  // double sd() const;
-  // double skew() const;
-  // double kurt() const;
-  // int64_t min_int64() const override;
-  // int64_t max_int64() const override;
 
   bool get_element(size_t i, int32_t* out) const override;
   bool get_element(size_t i, int64_t* out) const override;
@@ -584,15 +561,6 @@ template <typename T> class RealColumn : public FwColumn<T>
 public:
   RealColumn(size_t nrows = 0);
   RealColumn(size_t nrows, MemoryRange&&);
-
-  // T min() const;
-  // T max() const;
-  // T mode() const;
-  // double sum() const;
-  // double mean() const;
-  // double sd() const;
-  // double skew() const;
-  // double kurt() const;
 
   bool get_element(size_t i, T* out) const override;
 
@@ -671,8 +639,6 @@ public:
   const T* offsets() const;
   T* offsets_w();
   size_t memory_footprint() const override;
-
-  // CString mode() const;
 
   Column* shallowcopy() const override;
   void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;

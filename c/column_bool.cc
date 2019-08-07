@@ -27,20 +27,3 @@ bool BoolColumn::get_element(size_t i, int32_t* x) const {
   *x = static_cast<int32_t>(value);
   return ISNA<int8_t>(value);
 }
-
-
-
-//------------------------------------------------------------------------------
-// Stats
-//------------------------------------------------------------------------------
-
-// static inline BooleanStats* get_bool_stats(const Column* col) {
-//   return static_cast<BooleanStats*>(col->get_stats());
-// }
-
-// int8_t  BoolColumn::min() const  { return downcast<int8_t>(get_bool_stats(this)->min(this)); }
-// int8_t  BoolColumn::max() const  { return downcast<int8_t>(get_bool_stats(this)->max(this)); }
-// int8_t  BoolColumn::mode() const { return downcast<int8_t>(get_bool_stats(this)->mode(this)); }
-// int64_t BoolColumn::sum() const  { return get_bool_stats(this)->sum(this); }
-// double  BoolColumn::mean() const { return get_bool_stats(this)->mean(this); }
-// double  BoolColumn::sd() const   { return get_bool_stats(this)->stdev(this); }
