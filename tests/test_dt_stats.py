@@ -60,6 +60,14 @@ srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)],
 srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
 
+def promote_stypes(stypes):
+    assert isinstance(stypes, tuple)
+    return tuple(stype.int64 if st.ltype == ltype.bool else
+                 stype.int64 if st.ltype == ltype.int else
+                 stype.float64 if st.ltype == ltype.real else
+                 st
+                 for st in stypes)
+
 
 #-------------------------------------------------------------------------------
 # Minimum function dt.min()
@@ -79,7 +87,7 @@ def test_min(src):
     dtr = dt0.min()
     frame_integrity_check(dtr)
     assert dtr.names == dt0.names
-    assert dtr.stypes == dt0.stypes
+    assert dtr.stypes == promote_stypes(dt0.stypes)
     assert dtr.shape == (1, 1)
     assert dtr.to_list() == [[t_min(src)]]
     assert dtr[0, 0] == dt0.min1()
@@ -111,7 +119,7 @@ def test_max(src):
     dtr = dt0.max()
     frame_integrity_check(dtr)
     assert dtr.names == dt0.names
-    assert dtr.stypes == dt0.stypes
+    assert dtr.stypes == promote_stypes(dt0.stypes)
     assert dtr.shape == (1, 1)
     assert dtr.to_list() == [[t_max(src)]]
     assert dtr[0, 0] == dt0.max1()
@@ -129,17 +137,13 @@ def t_sum(t):
     else:
         return sum(t)
 
-# Helper function that provides the result stype after `sum()` is called
-def sum_stype(st):
-    return stype.float64 if st.ltype == ltype.real else stype.int64
-
 
 @pytest.mark.parametrize("src", srcs_numeric)
 def test_sum(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sum()
     frame_integrity_check(dtr)
-    assert dtr.stypes == (sum_stype(dt0.stypes[0]), )
+    assert dtr.stypes == (stype.float64, ) * dt0.ncols
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
     assert list_equals(dtr.to_list(), [[t_sum(src)]])

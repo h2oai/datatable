@@ -1024,5 +1024,6 @@
   template void MemoryRange::set_element(size_t, int64_t);
   template void MemoryRange::set_element(size_t, uint32_t);
   template void MemoryRange::set_element(size_t, uint64_t);
+  template void MemoryRange::set_element(size_t, size_t);
   template void MemoryRange::set_element(size_t, float);
   template void MemoryRange::set_element(size_t, double);

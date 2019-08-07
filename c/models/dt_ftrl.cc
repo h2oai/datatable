@@ -1092,7 +1092,7 @@ DataTable* Ftrl<T>::get_fi(bool normalize /* = true */) {
   if (normalize) {
     OColumn& col = dt_fi_copy->get_ocolumn(1);
     bool max_isna;
-    T max = static_cast<T>(col.get_stats()->max_double(&max_isna));
+    T max = static_cast<T>(col.stats()->max_double(&max_isna));
     T* data = static_cast<T*>(col->data_w());
     T norm_factor = static_cast<T>(1.0);
 

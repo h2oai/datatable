@@ -123,8 +123,8 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const OColumn& column_in) :
   // this->max = column_real->max();
   // values = column_real->elements_r();
   R min, max;
-  column_in.get_stat(Stat::Min, &min);
-  column_in.get_stat(Stat::Max, &max);
+  column_in.stats()->get_stat(Stat::Min, &min);
+  column_in.stats()->get_stat(Stat::Max, &max);
   this->min = static_cast<T2>(min);
   this->max = static_cast<T2>(max);
   values = static_cast<const T1*>(column_in->data());

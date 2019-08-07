@@ -209,7 +209,7 @@ size_t OColumn::nrows() const noexcept {
 }
 
 size_t OColumn::na_count() const {
-  return get_stats()->nacount(nullptr);
+  return stats()->nacount();
 }
 
 SType OColumn::stype() const noexcept {
@@ -301,12 +301,12 @@ void OColumn::replace_values(const RowIndex& replace_at,
 }
 
 RowIndex OColumn::sort(Groupby* out_groups) const {
-  get_stats();
+  (void)stats();
   return pcol->_sort(out_groups);
 }
 
 RowIndex OColumn::sort_grouped(const RowIndex& ri, const Groupby& gb) const {
-  get_stats();
+  (void)stats();
   return pcol->_sort_grouped(ri, gb);
 }
 

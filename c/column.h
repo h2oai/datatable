@@ -430,18 +430,11 @@ class OColumn
   // Stats
   //------------------------------------
   public:
-    bool get_stat(Stat, int64_t* out) const;
-    bool get_stat(Stat, double* out) const;
-    bool get_stat(Stat, CString* out) const;
-    // bool get_stat(Stat, py::robj* out) const;
-
-    bool is_stat_computed(Stat) const;
-    py::oobj get_stat_as_pyobject(Stat) const;
-    OColumn get_stat_as_column(Stat) const;
-
-    Stats* get_stats() const;
+    Stats* stats() const;
     Stats* get_stats_if_exist() const;
     void reset_stats();
+    bool is_stat_computed(Stat) const;
+
 
   //------------------------------------
   // Column manipulation

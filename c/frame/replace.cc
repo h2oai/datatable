@@ -457,9 +457,8 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   if (x_int.empty()) return;
   OColumn& col = dt->get_ocolumn(colidx);
 
-  int64_t col_min, col_max;
-  col.get_stat(Stat::Min, &col_min);
-  col.get_stat(Stat::Max, &col_max);
+  int64_t col_min = col.stats()->min_int();
+  int64_t col_max = col.stats()->max_int();
 
   bool col_has_nas = (col.na_count() > 0);
   if (xmin_int > xmax_int) {  // iff replace_what = [NA]
@@ -504,7 +503,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     if (n == 0) return;
     T* coldata = static_cast<T*>(col->data_w());
     replace_fw<T>(xfilt.data(), yfilt.data(), col.nrows(), coldata, n);
-    col.get_stats()->reset();
+    col.reset_stats();
   }
 }
 
@@ -514,9 +513,8 @@ void ReplaceAgent::process_real_column(size_t colidx) {
   constexpr double MAX_FLOAT = double(std::numeric_limits<float>::max());
   if (x_real.empty()) return;
   OColumn& col = dt->get_ocolumn(colidx);
-  double col_min, col_max;
-  col.get_stat(Stat::Min, &col_min);
-  col.get_stat(Stat::Max, &col_max);
+  double col_min = col.stats()->min_double();
+  double col_max = col.stats()->max_double();
 
   bool col_has_nas = (col.na_count() > 0);
   if (xmin_real > xmax_real) {  // only when replace_what is [NA]
@@ -556,7 +554,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     if (n == 0) return;
     T* coldata = static_cast<T*>(col->data_w());
     replace_fw<T>(xfilt.data(), yfilt.data(), col.nrows(), coldata, n);
-    col.get_stats()->reset();
+    col.reset_stats();
   }
 }
 

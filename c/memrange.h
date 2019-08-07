@@ -277,6 +277,7 @@ extern template void MemoryRange::set_element(size_t, int32_t);
 extern template void MemoryRange::set_element(size_t, int64_t);
 extern template void MemoryRange::set_element(size_t, uint32_t);
 extern template void MemoryRange::set_element(size_t, uint64_t);
+extern template void MemoryRange::set_element(size_t, size_t);
 extern template void MemoryRange::set_element(size_t, float);
 extern template void MemoryRange::set_element(size_t, double);
 

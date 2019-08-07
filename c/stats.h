@@ -67,7 +67,7 @@ constexpr uint8_t NSTATS = 14;
  * are no public methods for retrieving this value without computing it).
  *
  * Once a value was computed, it can be either valid or NA (invalid). Some
- * stats (such as NaCount or Sum) are always valid. In the various stat-getter
+ * stats (such as NaCount) are always valid. In the various stat-getter
  * functions the validity of a stat is either returned from the function, or
  * stored in the provided `&isvalid` argument. When a stat is invalid, its
  * stored value can be arbitrary.
@@ -153,26 +153,29 @@ class Stats
     bool get_stat(Stat, double*);
     bool get_stat(Stat, CString*);
 
-    int64_t get_stat_int   (Stat, bool* isvalid);
-    size_t  get_stat_uint  (Stat, bool* isvalid);
-    double  get_stat_double(Stat, bool* isvalid);
-    CString get_stat_string(Stat, bool* isvalid);
+    int64_t get_stat_int   (Stat, bool* isvalid = nullptr);
+    size_t  get_stat_uint  (Stat, bool* isvalid = nullptr);
+    double  get_stat_double(Stat, bool* isvalid = nullptr);
+    CString get_stat_string(Stat, bool* isvalid = nullptr);
 
-    virtual size_t  nacount    (bool* isvalid);
-    virtual size_t  nunique    (bool* isvalid);
-    virtual size_t  nmodal     (bool* isvalid);
-    virtual double  sum        (bool* isvalid);
-    virtual double  mean       (bool* isvalid);
-    virtual double  stdev      (bool* isvalid);
-    virtual double  skew       (bool* isvalid);
-    virtual double  kurt       (bool* isvalid);
-    virtual int64_t min_int    (bool* isvalid);
-    virtual double  min_double (bool* isvalid);
-    virtual int64_t max_int    (bool* isvalid);
-    virtual double  max_double (bool* isvalid);
-    virtual int64_t mode_int   (bool* isvalid);
-    virtual double  mode_double(bool* isvalid);
-    virtual CString mode_string(bool* isvalid);
+    virtual size_t  nacount    (bool* isvalid = nullptr);
+    virtual size_t  nunique    (bool* isvalid = nullptr);
+    virtual size_t  nmodal     (bool* isvalid = nullptr);
+    virtual double  sum        (bool* isvalid = nullptr);
+    virtual double  mean       (bool* isvalid = nullptr);
+    virtual double  stdev      (bool* isvalid = nullptr);
+    virtual double  skew       (bool* isvalid = nullptr);
+    virtual double  kurt       (bool* isvalid = nullptr);
+    virtual int64_t min_int    (bool* isvalid = nullptr);
+    virtual double  min_double (bool* isvalid = nullptr);
+    virtual int64_t max_int    (bool* isvalid = nullptr);
+    virtual double  max_double (bool* isvalid = nullptr);
+    virtual int64_t mode_int   (bool* isvalid = nullptr);
+    virtual double  mode_double(bool* isvalid = nullptr);
+    virtual CString mode_string(bool* isvalid = nullptr);
+
+    py::oobj get_stat_as_pyobject(Stat);
+    OColumn get_stat_as_column(Stat);
 
 
   //---- Stat setters ------------------
@@ -217,6 +220,11 @@ class Stats
 
   //   template <typename T, typename F> void verify_stat(Stat, T, F) const;
   //   virtual void verify_more(Stats*, const Column*) const;
+
+  private:
+    template <typename S> py::oobj pywrap_stat(Stat);
+    template <typename S> OColumn colwrap_stat(Stat, SType);
+    OColumn strcolwrap_stat(Stat);
 };
 
 
@@ -282,6 +290,7 @@ class NumericStats : public Stats {
     void compute_minmax() override;
     void compute_moments12() override;
     void compute_moments34() override;
+    void compute_nunique() override;
     void compute_sorted_stats() override;
 
   // //---- OLD -----

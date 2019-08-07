@@ -682,9 +682,9 @@ class SortContext {
   template <bool ASC, typename T, typename TU>
   void _initI(const Column* col) {
     xassert(sizeof(T) == sizeof(TU));
-    int64_t min, max;
-    col->get_stats_if_exist()->get_stat(Stat::Min, &min);
-    col->get_stats_if_exist()->get_stat(Stat::Max, &max);
+    xassert(col->get_stats_if_exist() != nullptr);
+    int64_t min = col->get_stats_if_exist()->min_int(nullptr);
+    int64_t max = col->get_stats_if_exist()->max_int(nullptr);
     nsigbits = sizeof(T) * 8;
     nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
     T edge = static_cast<T>(ASC? min : max);
@@ -1367,7 +1367,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   xassert(n > 0);
 
   const OColumn& col0 = columns[spec[0].col_index];
-  col0.get_stats();  // instantiate Stats object; TODO: remove this
+  col0.stats();  // instantiate Stats object; TODO: remove this
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
@@ -1404,8 +1404,9 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     if (j == n - 1 && spec[j].sort_only) {
       do_groups = false;
     }
-    sc.continue_sort(columns[spec[j].col_index].get(),
-                     spec[j].descending, do_groups);
+    const OColumn& colj = columns[spec[j].col_index];
+    colj.stats();  // TODO: remove this
+    sc.continue_sort(colj.get(), spec[j].descending, do_groups);
   }
   result.first = sc.get_result_rowindex();
   if (!spec[0].sort_only && !result.second) {
