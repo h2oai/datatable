@@ -52,7 +52,9 @@ static const char* stat_name(Stat s) {
 // main Stats class
 //------------------------------------------------------------------------------
 
-Stats::Stats(const OColumn& col) : column(col) {}
+Stats::Stats(const OColumn& col) : column(col) {
+  xassert(col);
+}
 
 Stats::~Stats() {}
 
@@ -1038,9 +1040,6 @@ void BooleanStats::compute_all_stats() {
 // etc.
 //------------------------------------------------------------------------------
 
-// size_t Stats::memory_footprint() const {
-//   return sizeof(*this);
-// }
 
 /**
  * See DataTable::verify_integrity for method description
@@ -1085,25 +1084,6 @@ void BooleanStats::compute_all_stats() {
 
 
 
-//==============================================================================
-// RealStats
-//==============================================================================
-
-// Adds a check for infinite/NaN mean and sd.
-// template <typename T>
-// void RealStats<T>::compute_numerical_stats(const Column* col) {
-//   NumericStats<double>::compute_numerical_stats(col);
-//   bool min_inf = (this->_min == -std::numeric_limits<double>::infinity());
-//   bool max_inf = (this->_max == +std::numeric_limits<double>::infinity());
-//   if (min_inf || max_inf) {
-//     this->_sd = GETNA<double>();
-//     this->_skew = GETNA<double>();
-//     this->_kurt = GETNA<double>();
-//     this->_mean = (min_inf && max_inf) ? GETNA<double>() :
-//                   (min_inf) ? static_cast<double>(this->_min)
-//                             : static_cast<double>(this->_max);
-//   }
-// }
 
 
 
@@ -1150,6 +1130,65 @@ void OColumn::reset_stats() {
 bool OColumn::is_stat_computed(Stat stat) const {
   auto stats = get_stats_if_exist();
   return stats? stats->is_computed(stat) : false;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Stats integrity checks
+//------------------------------------------------------------------------------
+
+template <typename T>
+inline bool _equal(T a, T b) { return a == b; }
+
+template<>
+inline bool _equal(float a, float b) {
+  return std::abs(a - b) < 1e-7f;
+}
+
+template<>
+inline bool _equal(double a, double b) {
+  return std::abs(a - b) < 1e-12;
+}
+
+template <typename T>
+static void check_stat(Stat stat, Stats* curr_stats, Stats* new_stats) {
+  if (!curr_stats->is_computed(stat)) return;
+  T value1, value2;
+  bool isvalid1 = curr_stats->get_stat(stat, &value1);
+  bool isvalid2 = new_stats->get_stat(stat, &value2);
+  if (isvalid1 != isvalid2) {
+    throw AssertionError() << "Stat " << stat_name(stat) << " is recorded as "
+      "valid=" << isvalid1 << " in the Stats object, but was valid=" << isvalid2
+      << " upon re-checking";
+  }
+  if (!_equal(value1, value2)) {
+    throw AssertionError() << "Stat " << stat_name(stat) << "'s value is "
+      << value1 << ", but it was " << value2 << " upon recalculation";
+  }
+}
+
+void Stats::verify_integrity() {
+  if (!column) {
+    throw AssertionError() << "Column object in Stats is missing";
+  }
+  auto new_stats = _make_stats(column);
+  check_stat<size_t>(Stat::NaCount, this, new_stats.get());
+  check_stat<size_t>(Stat::NUnique, this, new_stats.get());
+  check_stat<size_t>(Stat::NModal, this, new_stats.get());
+  check_stat<double>(Stat::Sum, this, new_stats.get());
+  check_stat<double>(Stat::Mean, this, new_stats.get());
+  check_stat<double>(Stat::StDev, this, new_stats.get());
+  check_stat<double>(Stat::Skew, this, new_stats.get());
+  check_stat<double>(Stat::Kurt, this, new_stats.get());
+  check_stat<double>(Stat::Min, this, new_stats.get());
+  check_stat<double>(Stat::Max, this, new_stats.get());
+  check_stat<double>(Stat::Mode, this, new_stats.get());
+  check_stat<int64_t>(Stat::Min, this, new_stats.get());
+  check_stat<int64_t>(Stat::Max, this, new_stats.get());
+  check_stat<int64_t>(Stat::Mode, this, new_stats.get());
+  check_stat<CString>(Stat::Mode, this, new_stats.get());
 }
 
 

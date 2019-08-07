@@ -140,6 +140,7 @@ class Stats
     bool is_valid(Stat s) const;
 
     virtual size_t memory_footprint() const = 0;
+    void verify_integrity();
 
   protected:
     // Also sets the `computed` flag
@@ -213,14 +214,6 @@ class Stats
     void _fill_validity_flag(Stat stat, bool* isvalid);
 
 
-  //--- Old API ---
-  // public:
-  //   virtual size_t memory_footprint() const = 0;
-  //   virtual void verify_integrity(const Column*) const;
-
-  //   template <typename T, typename F> void verify_stat(Stat, T, F) const;
-  //   virtual void verify_more(Stats*, const Column*) const;
-
   private:
     template <typename S> py::oobj pywrap_stat(Stat);
     template <typename S, typename R> OColumn colwrap_stat(Stat, SType);
@@ -292,11 +285,6 @@ class NumericStats : public Stats {
     void compute_moments34() override;
     void compute_nunique() override;
     void compute_sorted_stats() override;
-
-  // //---- OLD -----
-  // public:
-  //   void verify_more(Stats*, const Column*) const override;
-  //   size_t memory_footprint() const override { return sizeof(*this); }
 };
 
 

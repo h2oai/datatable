@@ -97,6 +97,10 @@ Error& Error::operator<<(double v)             { error << v; return *this; }
   Error& Error::operator<<(ssize_t v)          { error << v; return *this; }
 #endif
 
+Error& Error::operator<<(const CString& str) {
+  return *this << std::string(str.ch, static_cast<size_t>(str.size));
+}
+
 Error& Error::operator<<(const py::_obj& o) {
   return *this << o.to_borrowed_ref();
 }
