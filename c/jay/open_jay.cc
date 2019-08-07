@@ -112,9 +112,9 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
   if (jstats) {
     using R = typename std::conditional<std::is_integral<T>::value,
                                         int64_t, double>::type;
-    stats->set_stat(Stat::NaCount, static_cast<int64_t>(jcol->nullcount()));
-    stats->set_stat(Stat::Min, static_cast<R>(jstats->min()));
-    stats->set_stat(Stat::Max, static_cast<R>(jstats->max()));
+    stats->set_nacount(static_cast<size_t>(jcol->nullcount()));
+    stats->set_min(static_cast<R>(jstats->min()));
+    stats->set_max(static_cast<R>(jstats->max()));
   }
 }
 
@@ -146,7 +146,7 @@ static OColumn column_from_jay(
     col = OColumn::new_mbuf_column(stype, std::move(databuf));
   }
 
-  Stats* stats = col->get_stats_if_exist();
+  Stats* stats = col.stats();
   switch (jtype) {
     case jay::Type_Bool8:   initStats<int8_t,  jay::StatsBool>(stats, jcol); break;
     case jay::Type_Int8:    initStats<int8_t,  jay::StatsInt8>(stats, jcol); break;

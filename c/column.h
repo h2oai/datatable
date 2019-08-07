@@ -430,6 +430,23 @@ class OColumn
   // Stats
   //------------------------------------
   public:
+    // Each column may optionally carry a `Stats` object which contains
+    // various summary statistics about the column: sum, mean, min, max, etc.
+    // Methods `stats()` will return a (borrowed) pointer to that stats object,
+    // instantiating it if necessary, while `get_stats_if_exists()` will
+    // return nullptr if the Stats object has not been initialized yet.
+    //
+    // Most stats functions can be accessed directly via the returns Stats
+    // object, however OColumn provides two additional helper functions:
+    //
+    //   reset_stats()
+    //     Will clear the current Stats object if it exists, or do nothing
+    //     if it doesn't;
+    //
+    //   is_stat_computed(stat)
+    //     Will return true if Stats object exists and the provided `stat`
+    //     has been already computed, or false otherwise.
+    //
     Stats* stats() const;
     Stats* get_stats_if_exist() const;
     void reset_stats();

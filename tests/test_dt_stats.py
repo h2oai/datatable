@@ -87,7 +87,7 @@ def test_min(src):
     dtr = dt0.min()
     frame_integrity_check(dtr)
     assert dtr.names == dt0.names
-    assert dtr.stypes == promote_stypes(dt0.stypes)
+    assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
     assert dtr.to_list() == [[t_min(src)]]
     assert dtr[0, 0] == dt0.min1()
@@ -119,7 +119,7 @@ def test_max(src):
     dtr = dt0.max()
     frame_integrity_check(dtr)
     assert dtr.names == dt0.names
-    assert dtr.stypes == promote_stypes(dt0.stypes)
+    assert dtr.stypes == dt0.stypes
     assert dtr.shape == (1, 1)
     assert dtr.to_list() == [[t_max(src)]]
     assert dtr[0, 0] == dt0.max1()
@@ -404,30 +404,37 @@ def test_object_column():
 
 def test_object_column2():
     df = dt.Frame([None, nan, 3, "srsh"])
+
     f0 = df.countna()
     frame_integrity_check(f0)
     assert f0.stypes == (stype.int64, )
     assert f0[0, 0] == 2
+
     f1 = df.min()
     frame_integrity_check(f1)
     assert f1.stypes == (stype.obj64, )
     assert f1[0, 0] is None
+
     f2 = df.max()
     frame_integrity_check(f2)
     assert f2.stypes == (stype.obj64, )
     assert f2[0, 0] is None
+
     f3 = df.sum()
     frame_integrity_check(f3)
-    assert f3.stypes == (stype.obj64, )
+    assert f3.stypes == (stype.float64, )
     assert f3[0, 0] is None
+
     f4 = df.mean()
     frame_integrity_check(f4)
-    assert f4.stypes == (stype.obj64, )
+    assert f4.stypes == (stype.float64, )
     assert f4[0, 0] is None
+
     f5 = df.sd()
     frame_integrity_check(f5)
-    assert f5.stypes == (stype.obj64, )
+    assert f5.stypes == (stype.float64, )
     assert f5[0, 0] is None
+
     assert df.mode()[0, 0] is None
     assert df.nunique()[0, 0] is None
     assert df.nmodal()[0, 0] is None

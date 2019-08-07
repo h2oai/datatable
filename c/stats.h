@@ -223,7 +223,7 @@ class Stats
 
   private:
     template <typename S> py::oobj pywrap_stat(Stat);
-    template <typename S> OColumn colwrap_stat(Stat, SType);
+    template <typename S, typename R> OColumn colwrap_stat(Stat, SType);
     OColumn strcolwrap_stat(Stat);
 };
 
