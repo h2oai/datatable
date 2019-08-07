@@ -209,9 +209,7 @@ size_t OColumn::nrows() const noexcept {
 }
 
 size_t OColumn::na_count() const {
-  int64_t na_count;
-  get_stat(Stat::NaCount, &na_count);
-  return static_cast<size_t>(na_count);
+  return get_stats()->nacount(nullptr);
 }
 
 SType OColumn::stype() const noexcept {

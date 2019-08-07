@@ -393,7 +393,6 @@ class PyObjectStats : public Stats {
 
   protected:
     void compute_nacount() override;
-    void compute_sorted_stats() override;
 };
 
 

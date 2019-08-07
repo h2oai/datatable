@@ -1367,6 +1367,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   xassert(n > 0);
 
   const OColumn& col0 = columns[spec[0].col_index];
+  col0.get_stats();  // instantiate Stats object; TODO: remove this
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {

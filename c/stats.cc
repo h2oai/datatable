@@ -425,42 +425,42 @@ void NumericStats<T>::set_kurt(double value, bool isvalid) {
 
 template <typename T>
 void NumericStats<T>::set_min(int64_t value, bool isvalid) {
-  xassert((std::is_same<T, int64_t>::value));
+  xassert((std::is_same<V, int64_t>::value));
   _min = static_cast<V>(value);
   set_valid(Stat::Min, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_min(double value, bool isvalid) {
-  xassert((std::is_same<T, double>::value));
+  xassert((std::is_same<V, double>::value));
   _min = static_cast<V>(value);
   set_valid(Stat::Min, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_max(int64_t value, bool isvalid) {
-  xassert((std::is_same<T, int64_t>::value));
+  xassert((std::is_same<V, int64_t>::value));
   _max = static_cast<V>(value);
   set_valid(Stat::Max, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_max(double value, bool isvalid) {
-  xassert((std::is_same<T, double>::value));
+  xassert((std::is_same<V, double>::value));
   _max = static_cast<V>(value);
   set_valid(Stat::Max, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_mode(int64_t value, bool isvalid) {
-  xassert((std::is_same<T, int64_t>::value));
+  xassert((std::is_same<V, int64_t>::value));
   _mode = static_cast<V>(value);
   set_valid(Stat::Mode, isvalid);
 }
 
 template <typename T>
 void NumericStats<T>::set_mode(double value, bool isvalid) {
-  xassert((std::is_same<T, double>::value));
+  xassert((std::is_same<V, double>::value));
   _mode = static_cast<V>(value);
   set_valid(Stat::Mode, isvalid);
 }
