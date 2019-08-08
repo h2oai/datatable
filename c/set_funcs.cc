@@ -112,7 +112,7 @@ static sort_result sort_columns(ccolvec&& cv) {
     res.column = OColumn::new_data_column(SType::VOID, 0);
     res.column.rbind(cv.columns);
   }
-  res.ri = res.column->sort(&res.gb);
+  res.ri = res.column.sort(&res.gb);
 
   return res;
 }

@@ -195,14 +195,14 @@ class HtmlWidget {
         const OColumn& col = dt->get_ocolumn(j);
         switch (col.stype()) {
           case SType::BOOL:
-          case SType::INT8:    render_fw_value<int8_t>(col, i); break;
-          case SType::INT16:   render_fw_value<int16_t>(col, i); break;
+          case SType::INT8:
+          case SType::INT16:
           case SType::INT32:   render_fw_value<int32_t>(col, i); break;
           case SType::INT64:   render_fw_value<int64_t>(col, i); break;
           case SType::FLOAT32: render_fw_value<float>(col, i); break;
           case SType::FLOAT64: render_fw_value<double>(col, i); break;
-          case SType::STR32:   render_str_value<uint32_t>(col, i); break;
-          case SType::STR64:   render_str_value<uint64_t>(col, i); break;
+          case SType::STR32:
+          case SType::STR64:   render_str_value(col, i); break;
           case SType::OBJ:     render_obj_value(col, i); break;
           default:
             html << "(unknown stype)";
@@ -254,45 +254,37 @@ class HtmlWidget {
 
     template <typename T>
     void render_fw_value(const OColumn& col, size_t row) {
-      auto irow = col->rowindex()[row];
-      if (irow == size_t(-1)) return render_na();
-      T val = reinterpret_cast<const T*>(col->data())[irow];
-      if (ISNA<T>(val)) render_na();
-      else {
+      T val;
+      bool isna = col.get_element(row, &val);
+      if (isna) {
+        render_na();
+      } else {
         if (val < 0) {
           html << "&minus;";
           val = -val;
         }
-        if (std::is_integral<T>::value) html << static_cast<int64_t>(val);
-        else html << val;
+        html << val;
       }
     }
 
-    template <typename T>
     void render_str_value(const OColumn& col, size_t row) {
-      auto scol = static_cast<const StringColumn<T>*>(col.get());
-      auto irow = scol->rowindex()[row];
-      if (irow == size_t(-1)) return render_na();
-      const T* offsets = scol->offsets();
-      const char* strdata = scol->strdata();
-      T str0 = offsets[irow - 1] & ~GETNA<T>();
-      T str1 = offsets[irow];
-      if (ISNA<T>(str1)) {
+      CString val;
+      bool isna = col.get_element(row, &val);
+      if (isna) {
         render_na();
       } else {
-        render_escaped_string(strdata + str0, str1 - str0);
+        render_escaped_string(val.ch, static_cast<size_t>(val.size));
       }
     }
 
     void render_obj_value(const OColumn& col, size_t row) {
-      auto scol = static_cast<const PyObjectColumn*>(col.get());
-      auto irow = scol->rowindex()[row];
-      if (irow == size_t(-1)) return render_na();
-      PyObject* val = scol->get_elem(irow);
-      if (ISNA<PyObject*>(val)) render_na();
-      else {
+      py::robj val;
+      bool isna = col.get_element(row, &val);
+      if (isna) {
+        render_na();
+      } else {
         // Should we use repr() here instead?
-        py::ostring strval = py::robj(val).to_pystring_force();
+        py::ostring strval = val.to_pystring_force();
         CString cstr = strval.to_cstring();
         render_escaped_string(cstr.ch, static_cast<size_t>(cstr.size));
       }

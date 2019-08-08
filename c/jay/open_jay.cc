@@ -108,12 +108,13 @@ static MemoryRange extract_buffer(
 
 template <typename T, typename JStats>
 static void initStats(Stats* stats, const jay::Column* jcol) {
-  auto tstats = static_cast<NumericalStats<promote<T>>*>(stats);
   auto jstats = static_cast<const JStats*>(jcol->stats());
   if (jstats) {
-    tstats->set_countna(jcol->nullcount());
-    tstats->set_min(jstats->min());
-    tstats->set_max(jstats->max());
+    using R = typename std::conditional<std::is_integral<T>::value,
+                                        int64_t, double>::type;
+    stats->set_nacount(static_cast<size_t>(jcol->nullcount()));
+    stats->set_min(static_cast<R>(jstats->min()));
+    stats->set_max(static_cast<R>(jstats->max()));
   }
 }
 
@@ -145,7 +146,7 @@ static OColumn column_from_jay(
     col = OColumn::new_mbuf_column(stype, std::move(databuf));
   }
 
-  Stats* stats = col->get_stats();
+  Stats* stats = col.stats();
   switch (jtype) {
     case jay::Type_Bool8:   initStats<int8_t,  jay::StatsBool>(stats, jcol); break;
     case jay::Type_Int8:    initStats<int8_t,  jay::StatsInt8>(stats, jcol); break;

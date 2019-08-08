@@ -148,6 +148,13 @@ oobj::~oobj() {
   if (v) Py_DECREF(v);
 }
 
+oobj oobj::wrap(int32_t v) { return py::oint(v); }
+oobj oobj::wrap(int64_t v) { return py::oint(v); }
+oobj oobj::wrap(size_t v)  { return py::oint(v); }
+oobj oobj::wrap(float v)   { return py::ofloat(v); }
+oobj oobj::wrap(double v)  { return py::ofloat(v); }
+oobj oobj::wrap(const CString& v) { return py::ostring(v); }
+
 
 
 //------------------------------------------------------------------------------

@@ -69,20 +69,6 @@ T FwColumn<T>::get_elem(size_t i) const {
 }
 
 
-template <>
-void FwColumn<PyObject*>::set_elem(size_t i, PyObject* value) {
-  PyObject** data = static_cast<PyObject**>(mbuf.wptr());
-  data[i] = value;
-  Py_INCREF(value);
-}
-
-template <typename T>
-void FwColumn<T>::set_elem(size_t i, T value) {
-  T* data = static_cast<T*>(mbuf.wptr());
-  data[i] = value;
-}
-
-
 template <typename T>
 void FwColumn<T>::materialize() {
   // If the rowindex is absent, then the column is already materialized.
@@ -204,7 +190,7 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    RowIndex replace_at, const OColumn& replace_with)
+    OColumn&, const RowIndex& replace_at, const OColumn& replace_with)
 {
   materialize();
   if (!replace_with) {

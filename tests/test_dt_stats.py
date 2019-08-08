@@ -61,6 +61,7 @@ srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
 
 
+
 #-------------------------------------------------------------------------------
 # Minimum function dt.min()
 #-------------------------------------------------------------------------------
@@ -129,17 +130,13 @@ def t_sum(t):
     else:
         return sum(t)
 
-# Helper function that provides the result stype after `sum()` is called
-def sum_stype(st):
-    return stype.float64 if st.ltype == ltype.real else stype.int64
-
 
 @pytest.mark.parametrize("src", srcs_numeric)
 def test_sum(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sum()
     frame_integrity_check(dtr)
-    assert dtr.stypes == (sum_stype(dt0.stypes[0]), )
+    assert dtr.stypes == (stype.float64, ) * dt0.ncols
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
     assert list_equals(dtr.to_list(), [[t_sum(src)]])
@@ -400,30 +397,37 @@ def test_object_column():
 
 def test_object_column2():
     df = dt.Frame([None, nan, 3, "srsh"])
+
     f0 = df.countna()
     frame_integrity_check(f0)
     assert f0.stypes == (stype.int64, )
     assert f0[0, 0] == 2
+
     f1 = df.min()
     frame_integrity_check(f1)
     assert f1.stypes == (stype.obj64, )
     assert f1[0, 0] is None
+
     f2 = df.max()
     frame_integrity_check(f2)
     assert f2.stypes == (stype.obj64, )
     assert f2[0, 0] is None
+
     f3 = df.sum()
     frame_integrity_check(f3)
-    assert f3.stypes == (stype.obj64, )
+    assert f3.stypes == (stype.float64, )
     assert f3[0, 0] is None
+
     f4 = df.mean()
     frame_integrity_check(f4)
-    assert f4.stypes == (stype.obj64, )
+    assert f4.stypes == (stype.float64, )
     assert f4[0, 0] is None
+
     f5 = df.sd()
     frame_integrity_check(f5)
-    assert f5.stypes == (stype.obj64, )
+    assert f5.stypes == (stype.float64, )
     assert f5[0, 0] is None
+
     assert df.mode()[0, 0] is None
     assert df.nunique()[0, 0] is None
     assert df.nmodal()[0, 0] is None

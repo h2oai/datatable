@@ -146,7 +146,7 @@ class Column
 protected:
   MemoryRange mbuf;
   RowIndex ri;
-  mutable Stats* stats;
+  mutable std::unique_ptr<Stats> stats;
 
 public:  // TODO: convert this into private
   SType _stype;
@@ -154,10 +154,6 @@ public:  // TODO: convert this into private
   size_t nrows;
 
 public:
-  static constexpr size_t MAX_STRING_SIZE = 0x7FFFFFFF;
-  static constexpr size_t MAX_STR32_BUFFER_SIZE = 0x7FFFFFFF;
-  static constexpr size_t MAX_STR32_NROWS = 0x7FFFFFFF;
-
   Column(const Column&) = delete;
   Column(Column&&) = delete;
   virtual ~Column();
@@ -173,6 +169,8 @@ public:
   RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
 
+  SType stype() const { return _stype; }
+  LType ltype() const { return info(_stype).ltype(); }
   const MemoryRange& data_buf() const { return mbuf; }
   const void* data() const { return mbuf.rptr(); }
   void* data_w() { return mbuf.wptr(); }
@@ -182,8 +180,8 @@ public:
   virtual size_t data_nrows() const = 0;
   virtual size_t memory_footprint() const;
 
-  RowIndex sort(Groupby* out_groups) const;
-  RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
+  RowIndex _sort(Groupby* out_groups) const;
+  RowIndex _sort_grouped(const RowIndex&, const Groupby&) const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
@@ -244,7 +242,9 @@ public:
    * with NAs.
    */
   virtual void replace_values(
-    RowIndex replace_at, const OColumn& replace_with) = 0;
+      OColumn& thiscol,
+      const RowIndex& replace_at,
+      const OColumn& replace_with) = 0;
 
   /**
    * Appends the provided columns to the bottom of the current column and
@@ -281,11 +281,6 @@ public:
 
   virtual RowIndex join(const OColumn& keycol) const = 0;
 
-  size_t countna() const;
-  size_t nunique() const;
-  size_t nmodal() const;
-  virtual int64_t min_int64() const { return GETNA<int64_t>(); }
-  virtual int64_t max_int64() const { return GETNA<int64_t>(); }
 
   /**
    * Check that the data in this Column object is correct. `name` is the name of
@@ -303,8 +298,7 @@ public:
    *   A simpler accessor than get_stats(): this will return either an existing
    *   Stats object, or nullptr if the Stats were not initialized yet.
    */
-  virtual Stats* get_stats() const = 0;
-  Stats* get_stats_if_exist() const { return stats; }
+  Stats* get_stats_if_exist() const { return stats.get(); }  // REMOVE
 
   virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) = 0;
 
@@ -393,11 +387,12 @@ class OColumn
     Column* operator->();
     const Column* operator->() const;
 
+
   //------------------------------------
   // Data access
   //------------------------------------
   public:
-    // Each `get_element(i, *out)` function retrieves the column's element
+    // Each `get_element(i, &out)` function retrieves the column's element
     // at index `i` and stores it in the variable `out`. The return value
     // is true if the returned element is NA (missing), or false otherwise.
     // When `true` is returned, the `out` value may contain garbage data,
@@ -428,10 +423,45 @@ class OColumn
     const void* data_with_nas_r() const { return pcol->mbuf.rptr(); }
 
 
+  //------------------------------------
+  // Stats
+  //------------------------------------
+  public:
+    // Each column may optionally carry a `Stats` object which contains
+    // various summary statistics about the column: sum, mean, min, max, etc.
+    // Methods `stats()` will return a (borrowed) pointer to that stats object,
+    // instantiating it if necessary, while `get_stats_if_exists()` will
+    // return nullptr if the Stats object has not been initialized yet.
+    //
+    // Most stats functions can be accessed directly via the returns Stats
+    // object, however OColumn provides two additional helper functions:
+    //
+    //   reset_stats()
+    //     Will clear the current Stats object if it exists, or do nothing
+    //     if it doesn't;
+    //
+    //   is_stat_computed(stat)
+    //     Will return true if Stats object exists and the provided `stat`
+    //     has been already computed, or false otherwise.
+    //
+    Stats* stats() const;
+    Stats* get_stats_if_exist() const;
+    void reset_stats();
+    bool is_stat_computed(Stat) const;
+
+
+  //------------------------------------
+  // Column manipulation
+  //------------------------------------
+  public:
     void rbind(colvec& columns);
     void materialize();
     OColumn cast(SType stype) const;
     OColumn cast(SType stype, MemoryRange&& mr) const;
+    RowIndex sort(Groupby* out_groups) const;
+    RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
+
+    void replace_values(const RowIndex& replace_at, const OColumn& replace_with);
 
     friend void swap(OColumn& lhs, OColumn& rhs);
     friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
@@ -451,13 +481,12 @@ public:
   const T* elements_r() const;
   T* elements_w();
   T get_elem(size_t i) const;
-  void set_elem(size_t i, T value);
 
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const OColumn& mask) override;
   virtual void materialize() override;
-  void replace_values(RowIndex at, const OColumn& with) override;
+  void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
   void replace_values(const RowIndex& at, T with);
   virtual RowIndex join(const OColumn& keycol) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
@@ -472,7 +501,6 @@ protected:
 };
 
 
-template <> void FwColumn<PyObject*>::set_elem(size_t, PyObject*);
 extern template class FwColumn<int8_t>;
 extern template class FwColumn<int16_t>;
 extern template class FwColumn<int32_t>;
@@ -490,14 +518,6 @@ class BoolColumn : public FwColumn<int8_t>
 public:
   BoolColumn(size_t nrows = 0);
   BoolColumn(size_t nrows, MemoryRange&&);
-
-  int8_t min() const;
-  int8_t max() const;
-  int8_t mode() const;
-  int64_t sum() const;
-  double mean() const;
-  double sd() const;
-  BooleanStats* get_stats() const override;
 
   bool get_element(size_t i, int32_t* out) const override;
 
@@ -518,18 +538,6 @@ template <typename T> class IntColumn : public FwColumn<T>
 public:
   IntColumn(size_t nrows = 0);
   IntColumn(size_t nrows, MemoryRange&&);
-
-  T min() const;
-  T max() const;
-  T mode() const;
-  int64_t sum() const;
-  double mean() const;
-  double sd() const;
-  double skew() const;
-  double kurt() const;
-  int64_t min_int64() const override;
-  int64_t max_int64() const override;
-  IntegerStats<promote<T>>* get_stats() const override;
 
   bool get_element(size_t i, int32_t* out) const override;
   bool get_element(size_t i, int64_t* out) const override;
@@ -553,16 +561,6 @@ template <typename T> class RealColumn : public FwColumn<T>
 public:
   RealColumn(size_t nrows = 0);
   RealColumn(size_t nrows, MemoryRange&&);
-
-  T min() const;
-  T max() const;
-  T mode() const;
-  double sum() const;
-  double mean() const;
-  double sd() const;
-  double skew() const;
-  double kurt() const;
-  RealStats<T>* get_stats() const override;
 
   bool get_element(size_t i, T* out) const override;
 
@@ -599,7 +597,6 @@ public:
   PyObjectColumn();
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, MemoryRange&&);
-  PyObjectStats* get_stats() const override;
 
   bool get_element(size_t i, py::robj* out) const override;
 
@@ -643,11 +640,8 @@ public:
   T* offsets_w();
   size_t memory_footprint() const override;
 
-  CString mode() const;
-
   Column* shallowcopy() const override;
-  void replace_values(RowIndex at, const OColumn& with) override;
-  StringStats* get_stats() const override;
+  void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
 
   void verify_integrity(const std::string& name) const override;
 
@@ -694,9 +688,8 @@ class VoidColumn : public Column {
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const OColumn&) override;
-    void replace_values(RowIndex, const OColumn&) override;
+    void replace_values(OColumn&, const RowIndex&, const OColumn&) override;
     RowIndex join(const OColumn& keycol) const override;
-    Stats* get_stats() const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     void init_data() override;

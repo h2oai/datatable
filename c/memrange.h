@@ -271,10 +271,15 @@ extern template uint32_t MemoryRange::get_element(size_t) const;
 extern template uint64_t MemoryRange::get_element(size_t) const;
 extern template void MemoryRange::set_element(size_t, PyObject*);
 extern template void MemoryRange::set_element(size_t, char);
+extern template void MemoryRange::set_element(size_t, int8_t);
+extern template void MemoryRange::set_element(size_t, int16_t);
 extern template void MemoryRange::set_element(size_t, int32_t);
 extern template void MemoryRange::set_element(size_t, int64_t);
 extern template void MemoryRange::set_element(size_t, uint32_t);
 extern template void MemoryRange::set_element(size_t, uint64_t);
+extern template void MemoryRange::set_element(size_t, size_t);
+extern template void MemoryRange::set_element(size_t, float);
+extern template void MemoryRange::set_element(size_t, double);
 
 
 #endif

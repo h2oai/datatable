@@ -163,7 +163,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     // sorted (if they are, computing min/max is much simpler).
     template <typename T> void _set_min_max();
 
-    // Helpers for `ArrayRowIndexImpl(Column*)`
+    // Helpers for `ArrayRowIndexImpl(const OColumn&)`
     void init_from_boolean_column(const OColumn& col);
     void init_from_integer_column(const OColumn& col);
     void compactify();
