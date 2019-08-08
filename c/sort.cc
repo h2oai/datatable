@@ -1360,7 +1360,7 @@ class SortContext {
 using RiGb = std::pair<RowIndex, Groupby>;
 
 
-RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
+RiGb DataTable::group(const std::vector<sort_spec>& spec) const
 {
   RiGb result;
   size_t n = spec.size();
@@ -1371,7 +1371,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
-      indices[0] = as_view? static_cast<int32_t>(col0->rowindex()[0]) : 0;
+      indices[0] = 0;
     }
     result.first = RowIndex(std::move(indices), true);
     if (!spec[0].sort_only) {
@@ -1380,22 +1380,13 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     return result;
   }
 
-  #ifndef NDEBUG
-    if (as_view) {
-      // Check that the sorted columns have consistent rowindices.
-      for (size_t j = 1; j < spec.size(); ++j) {
-        xassert(columns[spec[j].col_index]->rowindex() == col0->rowindex());
-      }
-    }
-  #endif
-  if (!as_view) {
-    for (auto& s : spec) {
-      const_cast<DataTable*>(this)->columns[s.col_index]->materialize();
-    }
+  for (auto& s : spec) {
+    const_cast<DataTable*>(this)->columns[s.col_index]->materialize();
   }
 
   bool do_groups = n > 1 || !spec[0].sort_only;
-  SortContext sc(nrows, col0->rowindex(), do_groups);
+  xassert(!col0->rowindex());
+  SortContext sc(nrows, RowIndex(), do_groups);
   sc.start_sort(col0.get(), spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
     if (spec[j].sort_only && !spec[j - 1].sort_only) {
