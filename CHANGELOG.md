@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - datatable now correctly handles the case of a degenerate range, producing
   an empty Frame instead of a 1-row Frame (#1942).
 
-- Fixed crash when computing certain stats for a single-row view frame (#1953).
+- Fixed crash when computing mode stat for a view frame (#1953).
 
 
 ### Changed
