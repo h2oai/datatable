@@ -1442,7 +1442,12 @@ RowIndex OColumn::sort(Groupby* out_grps) const {
   if (nrows() <= 1) {
     return sort_tiny(*this, out_grps);
   }
-  SortContext sc(nrows(), pcol->rowindex(), (out_grps != nullptr));
+
+  if (is_virtual()) {  // temporary
+    const_cast<OColumn*>(this)->materialize();
+  }
+  SortContext sc(nrows(), RowIndex(), (out_grps != nullptr));
+
   sc.start_sort(pcol, false);
   if (out_grps) {
     auto res = sc.get_result_groups();
