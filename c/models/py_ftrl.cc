@@ -343,17 +343,19 @@ oobj Ftrl::fit(const PKArgs& args) {
 
     if (!arg_nepochs_validation.is_none_or_undefined()) {
       nepochs_val = arg_nepochs_validation.to_double();
-      py::Validator::check_positive<double>(nepochs_val, arg_nepochs_validation);
-      py::Validator::check_less_than_or_equal_to<double>(
+      py::Validator::check_finite(nepochs_val, arg_nepochs_validation);
+      py::Validator::check_positive(nepochs_val, arg_nepochs_validation);
+      py::Validator::check_less_than_or_equal_to(
         nepochs_val,
-        dtft->get_nepochs(),
+        static_cast<double>(dtft->get_nepochs()),
         arg_nepochs_validation
       );
     } else nepochs_val = 1;
 
     if (!arg_validation_error.is_none_or_undefined()) {
       val_error = arg_validation_error.to_double();
-      // py::Validator::check_positive<double>(val_error, arg_validation_error);
+      py::Validator::check_finite(val_error, arg_validation_error);
+      py::Validator::check_positive(val_error, arg_validation_error);
     } else val_error = 0.01;
 
     if (!arg_validation_average_niterations.is_none_or_undefined()) {
@@ -652,6 +654,7 @@ oobj Ftrl::get_alpha() const {
 
 void Ftrl::set_alpha(const Arg& py_alpha) {
   double alpha = py_alpha.to_double();
+  py::Validator::check_finite(alpha, py_alpha);
   py::Validator::check_positive(alpha, py_alpha);
   dtft->set_alpha(alpha);
   py_params.replace(0, py_alpha.robj());
@@ -673,6 +676,7 @@ oobj Ftrl::get_beta() const {
 
 void Ftrl::set_beta(const Arg& py_beta) {
   double beta = py_beta.to_double();
+  py::Validator::check_finite(beta, py_beta);
   py::Validator::check_not_negative(beta, py_beta);
   dtft->set_beta(beta);
   py_params.replace(1, py_beta.to_robj());
@@ -694,6 +698,7 @@ oobj Ftrl::get_lambda1() const {
 
 void Ftrl::set_lambda1(const Arg& py_lambda1) {
   double lambda1 = py_lambda1.to_double();
+  py::Validator::check_finite(lambda1, py_lambda1);
   py::Validator::check_not_negative(lambda1, py_lambda1);
   dtft->set_lambda1(lambda1);
   py_params.replace(2, py_lambda1.to_robj());
@@ -715,6 +720,7 @@ oobj Ftrl::get_lambda2() const {
 
 void Ftrl::set_lambda2(const Arg& py_lambda2) {
   double lambda2 = py_lambda2.to_double();
+  py::Validator::check_finite(lambda2, py_lambda2);
   py::Validator::check_not_negative(lambda2, py_lambda2);
   dtft->set_lambda2(lambda2);
   py_params.replace(3, py_lambda2.to_robj());

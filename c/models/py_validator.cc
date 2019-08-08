@@ -35,3 +35,11 @@ Error py::Validator::error_manager::error_negative(PyObject* src,
   return ValueError() << name << " should be greater than or equal to zero: "
                       << src;
 }
+
+
+Error py::Validator::error_manager::error_is_infinity(PyObject* src,
+                                                 const std::string& name
+) const {
+  return ValueError() << name << " should be finite: "
+                      << src;
+}

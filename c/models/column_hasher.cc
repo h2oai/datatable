@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #include "models/column_hasher.h"
 
-
 /**
  *  Abstract Hasher class constructor and destructor.
  */
@@ -58,7 +57,8 @@ uint64_t HasherFloat<T>::hash(size_t row) const {
   if (r) value = GETNA<T>();
   double x = static_cast<double>(value);
   std::memcpy(&h, &x, sizeof(double));
-  return h >> shift_nbits;
+  h >>= shift_nbits;
+  return h;
 }
 
 

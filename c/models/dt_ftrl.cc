@@ -505,7 +505,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
           const size_t j0 = ri[0][ii];
 
-          if (j0 != RowIndex::NA && !ISNA<U>(data_y[0][j0])) {
+          if (j0 != RowIndex::NA && !ISNA<U>(data_y[0][j0])
+              && !std::isinf(data_y[0][j0]))
+          {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < label_ids_train.size(); ++k) {
               const size_t j = ri[0][ii];
@@ -543,7 +545,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
 
-            if (j0 != RowIndex::NA && !ISNA<U>(data_y_val[0][j0])) {
+            if (j0 != RowIndex::NA && !ISNA<U>(data_y_val[0][j0])
+                && !std::isinf(data_y[0][j0]))
+            {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < label_ids_val.size(); ++k) {
                 const size_t j = ri_val[0][i];
