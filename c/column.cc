@@ -291,16 +291,6 @@ void OColumn::replace_values(const RowIndex& replace_at,
   pcol->replace_values(*this, replace_at, replace_with);
 }
 
-RowIndex OColumn::sort(Groupby* out_groups) const {
-  (void)stats();
-  return pcol->_sort(out_groups);
-}
-
-RowIndex OColumn::sort_grouped(const RowIndex& ri, const Groupby& gb) const {
-  (void)stats();
-  return pcol->_sort_grouped(ri, gb);
-}
-
 
 
 

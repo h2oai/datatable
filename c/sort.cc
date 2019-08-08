@@ -1433,11 +1433,17 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
 
 
 RowIndex Column::_sort(Groupby* out_grps) const {
-  if (nrows <= 1) {
-    return sort_tiny(this, out_grps);
+  OColumn ocol(this->shallowcopy());
+  return ocol.sort(out_grps);
+}
+
+RowIndex OColumn::sort(Groupby* out_grps) const {
+  (void) stats();
+  if (nrows() <= 1) {
+    return sort_tiny(pcol, out_grps);
   }
-  SortContext sc(nrows, rowindex(), (out_grps != nullptr));
-  sc.start_sort(this, false);
+  SortContext sc(nrows(), pcol->rowindex(), (out_grps != nullptr));
+  sc.start_sort(pcol, false);
   if (out_grps) {
     auto res = sc.get_result_groups();
     *out_grps = std::move(res.second);
@@ -1448,11 +1454,12 @@ RowIndex Column::_sort(Groupby* out_grps) const {
 }
 
 
-RowIndex Column::_sort_grouped(const RowIndex& rowindex,
-                              const Groupby& grps) const
+RowIndex OColumn::sort_grouped(const RowIndex& rowindex,
+                               const Groupby& grps) const
 {
-  SortContext sc(nrows, rowindex, grps, /* make_groups = */ false);
-  sc.continue_sort(this, /* desc = */ false, /* make_groups = */ false);
+  (void)stats();
+  SortContext sc(nrows(), rowindex, grps, /* make_groups = */ false);
+  sc.continue_sort(pcol, /* desc = */ false, /* make_groups = */ false);
   return sc.get_result_rowindex();
 }
 

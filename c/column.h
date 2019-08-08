@@ -181,7 +181,6 @@ public:
   virtual size_t memory_footprint() const;
 
   RowIndex _sort(Groupby* out_groups) const;
-  RowIndex _sort_grouped(const RowIndex&, const Groupby&) const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
@@ -465,6 +464,7 @@ class OColumn
 
     friend void swap(OColumn& lhs, OColumn& rhs);
     friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
+    friend class Column;
 };
 
 
