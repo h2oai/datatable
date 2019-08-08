@@ -1427,7 +1427,7 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
     *out_grps = Groupby::single_group(1);
   }
   arr32_t indices(1);
-  indices[0] = static_cast<int32_t>(col->rowindex()[0]);
+  indices[0] = 0;
   return RowIndex(std::move(indices), true);
 }
 
