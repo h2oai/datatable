@@ -1417,17 +1417,17 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
 
 
 
-static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
-  if (col->nrows == 0) {
+static RowIndex sort_tiny(const OColumn& col, Groupby* out_grps) {
+  if (col.nrows() == 0) {
     if (out_grps) *out_grps = Groupby::single_group(0);
     return RowIndex(arr32_t(0), true);
   }
-  xassert(col->nrows == 1);
+  xassert(col.nrows() == 1);
   if (out_grps) {
     *out_grps = Groupby::single_group(1);
   }
   arr32_t indices(1);
-  indices[0] = static_cast<int32_t>(col->rowindex()[0]);
+  indices[0] = 0;
   return RowIndex(std::move(indices), true);
 }
 
@@ -1438,9 +1438,9 @@ RowIndex Column::_sort(Groupby* out_grps) const {
 }
 
 RowIndex OColumn::sort(Groupby* out_grps) const {
-  (void) stats();
+  (void) stats();  // temporary: instantiate stats object
   if (nrows() <= 1) {
-    return sort_tiny(pcol, out_grps);
+    return sort_tiny(*this, out_grps);
   }
   SortContext sc(nrows(), pcol->rowindex(), (out_grps != nullptr));
   sc.start_sort(pcol, false);
