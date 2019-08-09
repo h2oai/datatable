@@ -141,7 +141,7 @@ void workframe::fix_columns() {
   RowIndex ungroup_ri;
 
   for (size_t i = 0; i < columns.size(); ++i) {
-    if (columns[i]->nrows != ngrps) continue;
+    if (columns[i].nrows() != ngrps) continue;
     if (!ungroup_ri) {
       ungroup_ri = gb.ungroup_rowindex();
     }

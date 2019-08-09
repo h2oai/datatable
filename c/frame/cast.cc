@@ -217,7 +217,7 @@ static OColumn cast_str_to_str(const OColumn& col, MemoryRange&& out_offsets,
   const RowIndex& rowindex = scol->rowindex();
   if (sizeof(T) == 8 && target_stype == SType::STR32 &&
       (scol->datasize() > OColumn::MAX_ARR32_SIZE ||
-       scol->nrows > OColumn::MAX_ARR32_SIZE)) {
+       scol->nrows() > OColumn::MAX_ARR32_SIZE)) {
     // If the user attempts to convert str64 into str32 but the column is too
     // big, we will convert into str64 instead.
     // We could have also thrown an exception here, but this seems to be more
@@ -322,7 +322,7 @@ OColumn cast_manager::execute(const OColumn& src, MemoryRange&& target_mbuf,
   }
   xassert(castfns.f2);
 
-  target_mbuf.resize(src->nrows * info(target_stype).elemsize());
+  target_mbuf.resize(src.nrows() * info(target_stype).elemsize());
   void* out_data = target_mbuf.wptr();
   const RowIndex& rowindex = src->rowindex();
 

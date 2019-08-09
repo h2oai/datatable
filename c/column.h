@@ -147,11 +147,9 @@ protected:
   MemoryRange mbuf;
   RowIndex ri;
   mutable std::unique_ptr<Stats> stats;
+  size_t _nrows;
   SType _stype;
   size_t : 56;
-
-public:  // TODO: convert this into private
-  size_t nrows;
 
 public:
   Column(const Column&) = delete;
@@ -169,6 +167,7 @@ public:
   RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
 
+  size_t nrows() const { return _nrows; }
   SType stype() const { return _stype; }
   LType ltype() const { return info(_stype).ltype(); }
   const MemoryRange& data_buf() const { return mbuf; }

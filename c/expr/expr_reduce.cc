@@ -336,7 +336,7 @@ OColumn expr_reduce1::evaluate_eager(workframe& wf)
   void* output = res->data_w();
 
   if (out_nrows == 1) {
-    reducer->f(rowindex, 0, input_col->nrows, input, output, 0);
+    reducer->f(rowindex, 0, input_col.nrows(), input, output, 0);
   }
   else {
     const int32_t* groups = wf.get_groupby().offsets_r();

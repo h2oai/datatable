@@ -486,7 +486,7 @@ static size_t _compute_nacount(const Column* col) {
     [&] {
       T target;
       size_t thread_countna = 0;
-      dt::nested_for_static(col->nrows,
+      dt::nested_for_static(col->nrows(),
         [&](size_t i) {
           bool isna = col->get_element(i, &target);
           thread_countna += isna;
@@ -541,7 +541,7 @@ void BooleanStats::compute_minmax() {
 template <typename T>
 void NumericStats<T>::compute_minmax() {
   assert_compatible_type<T>(column->stype());
-  size_t nrows = column->nrows;
+  size_t nrows = column->nrows();
   size_t count_valid = 0;
   T min = infinity<T>();
   T max = -infinity<T>();
@@ -615,12 +615,12 @@ void StringStats::compute_nunique() {
   phmap::parallel_flat_hash_set<CString, StrHasher, StrEqual> values_seen;
 
   size_t batch_size = 8;
-  size_t nbatches = (column->nrows + batch_size - 1) / batch_size;
+  size_t nbatches = (column->nrows() + batch_size - 1) / batch_size;
   dt::parallel_for_dynamic(
     nbatches,
     [&](size_t i) {
       size_t j0 = i * batch_size;
-      size_t j1 = std::min(j0 + batch_size, column->nrows);
+      size_t j1 = std::min(j0 + batch_size, column->nrows());
       CString str;
       for (size_t j = j0; j < j1; ++j) {
         bool isna = column->get_element(j, &str);
@@ -682,7 +682,7 @@ void Stats::compute_moments12() {
  */
 template <typename T>
 void NumericStats<T>::compute_moments12() {
-  size_t nrows = column->nrows;
+  size_t nrows = column->nrows();
   size_t count = 0;
   bool has_pos_inf = false;
   bool has_neg_inf = false;
@@ -793,7 +793,7 @@ void Stats::compute_moments34() {
  */
 template <typename T>
 void NumericStats<T>::compute_moments34() {
-  size_t nrows = column->nrows;
+  size_t nrows = column->nrows();
   size_t count = 0;
   double sum = 0.0;   // x[1] + ... + x[n]
   double mean = 0.0;  // sum / n
@@ -986,7 +986,7 @@ void BooleanStats::compute_sorted_stats() {
  *     K = (n-1)/((n-2)(n-3)) * ((n+1)*(n0^2 + n0*n1 + n1^2)/(n0*n1) - 3(n-1))
  */
 void BooleanStats::compute_all_stats() {
-  size_t nrows = column->nrows;
+  size_t nrows = column->nrows();
   std::atomic<size_t> count_all { 0 };
   std::atomic<size_t> count_1 { 0 };
 
