@@ -17,8 +17,8 @@
 #include "sort.h"
 
 
-Column::Column(size_t nrows_)
-    : nrows(nrows_) {}
+Column::Column(size_t nrows)
+    : _nrows(nrows) {}
 
 Column::~Column() {}
 
@@ -46,7 +46,7 @@ static Column* new_column_impl(SType stype) {
 
 OColumn OColumn::new_data_column(SType stype, size_t nrows) {
   Column* col = new_column_impl(stype);
-  col->nrows = nrows;
+  col->_nrows = nrows;
   col->init_data();
   return OColumn(col);
 }
@@ -67,7 +67,7 @@ OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   if (stype == SType::OBJ) {
     xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
   }
-  col->nrows = mbuf.size() / elemsize;
+  col->_nrows = mbuf.size() / elemsize;
   col->mbuf = std::move(mbuf);
   return OColumn(col);
 }
@@ -111,7 +111,7 @@ bool Column::get_element(size_t, py::robj*) const {
  */
 Column* Column::shallowcopy() const {
   Column* col = new_column_impl(_stype);
-  col->nrows = nrows;
+  col->_nrows = _nrows;
   col->mbuf = mbuf;
   col->ri = ri;
   // TODO: also copy Stats object
@@ -137,7 +137,7 @@ RowIndex Column::remove_rowindex() {
 
 void Column::replace_rowindex(const RowIndex& newri) {
   ri = newri;
-  nrows = ri.size();
+  _nrows = ri.size();
 }
 
 
@@ -196,7 +196,7 @@ const Column* OColumn::operator->() const {
 //---- Properties ----------------------
 
 size_t OColumn::nrows() const noexcept {
-  return pcol->nrows;
+  return pcol->_nrows;
 }
 
 size_t OColumn::na_count() const {
@@ -291,16 +291,6 @@ void OColumn::replace_values(const RowIndex& replace_at,
   pcol->replace_values(*this, replace_at, replace_with);
 }
 
-RowIndex OColumn::sort(Groupby* out_groups) const {
-  (void)stats();
-  return pcol->_sort(out_groups);
-}
-
-RowIndex OColumn::sort_grouped(const RowIndex& ri, const Groupby& gb) const {
-  (void)stats();
-  return pcol->_sort_grouped(ri, gb);
-}
-
 
 
 
@@ -310,7 +300,7 @@ RowIndex OColumn::sort_grouped(const RowIndex& ri, const Groupby& gb) const {
 
 VoidColumn::VoidColumn() { _stype = SType::VOID; }
 VoidColumn::VoidColumn(size_t nrows) : Column(nrows) { _stype = SType::VOID; }
-size_t VoidColumn::data_nrows() const { return nrows; }
+size_t VoidColumn::data_nrows() const { return _nrows; }
 void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
@@ -340,7 +330,7 @@ class StrvecColumn : public Column {
     bool get_element(size_t i, CString* out) const override;
     Column* shallowcopy() const override;
 
-    size_t data_nrows() const override { return nrows; }
+    size_t data_nrows() const override { return _nrows; }
     void materialize() override {}
     void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}

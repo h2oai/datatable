@@ -122,7 +122,7 @@ class DataTable {
      * RowIndex+Groupby.
      */
     std::pair<RowIndex, Groupby>
-    group(const std::vector<sort_spec>& spec, bool as_view = false) const;
+    group(const std::vector<sort_spec>& spec) const;
 
     // Names
     const strvec& get_names() const;

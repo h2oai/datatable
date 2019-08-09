@@ -28,11 +28,11 @@
 #include "python/args.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-
 namespace dt {
 namespace set {
 
-struct ccolvec {
+
+struct named_colvec {
   colvec columns;
   std::string name;
 };
@@ -62,8 +62,8 @@ static py::oobj make_pyframe(sort_result&& sorted, arr32_t&& arr) {
 }
 
 
-static ccolvec columns_from_args(const py::PKArgs& args) {
-  ccolvec result;
+static named_colvec columns_from_args(const py::PKArgs& args) {
+  named_colvec result;
   std::function<void(py::robj)> process_arg = [&](py::robj arg) {
     if (arg.is_frame()) {
       DataTable* dt = arg.to_datatable();
@@ -96,21 +96,21 @@ static ccolvec columns_from_args(const py::PKArgs& args) {
   return result;
 }
 
-static sort_result sort_columns(ccolvec&& cv) {
-  xassert(!cv.columns.empty());
+static sort_result sort_columns(named_colvec&& ncv) {
+  xassert(!ncv.columns.empty());
   sort_result res;
-  res.colname = std::move(cv.name);
+  res.colname = std::move(ncv.name);
   size_t cumsize = 0;
-  for (const auto& col : cv.columns) {
+  for (const auto& col : ncv.columns) {
     cumsize += col.nrows();
     res.sizes.push_back(cumsize);
   }
-  if (cv.columns.size() == 1) {
-    res.column = std::move(cv.columns[0]);
+  if (ncv.columns.size() == 1) {
+    res.column = std::move(ncv.columns[0]);
     res.column.materialize();
   } else {
     res.column = OColumn::new_data_column(SType::VOID, 0);
-    res.column.rbind(cv.columns);
+    res.column.rbind(ncv.columns);
   }
   res.ri = res.column.sort(&res.gb);
 
@@ -118,11 +118,11 @@ static sort_result sort_columns(ccolvec&& cv) {
 }
 
 
-static py::oobj _union(ccolvec&& cv) {
-  if (cv.columns.empty()) {
+static py::oobj _union(named_colvec&& ncv) {
+  if (ncv.columns.empty()) {
     return py::Frame::oframe(new DataTable());
   }
-  sort_result sorted = sort_columns(std::move(cv));
+  sort_result sorted = sort_columns(std::move(ncv));
 
   size_t ngrps = sorted.gb.ngroups();
   const int32_t* goffsets = sorted.gb.offsets_r();
@@ -168,14 +168,14 @@ static py::oobj unique(const py::PKArgs& args) {
   }
   DataTable* dt = args[0].to_datatable();
 
-  ccolvec cv;
+  named_colvec ncv;
   for (size_t i = 0; i < dt->ncols; ++i) {
-    cv.columns.push_back(dt->get_ocolumn(i));
+    ncv.columns.push_back(dt->get_ocolumn(i));
   }
   if (dt->ncols == 1) {
-    cv.name = dt->get_names()[0];
+    ncv.name = dt->get_names()[0];
   }
-  return _union(std::move(cv));
+  return _union(std::move(ncv));
 }
 
 
@@ -206,7 +206,7 @@ This operation is equivalent to ``dt.unique(dt.rbind(*frames))``.
 
 
 static py::oobj union_(const py::PKArgs& args) {
-  ccolvec cc = columns_from_args(args);
+  named_colvec cc = columns_from_args(args);
   return _union(std::move(cc));
 }
 
@@ -217,7 +217,7 @@ static py::oobj union_(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 
 template <bool TWO>
-static py::oobj _intersect(ccolvec&& cv) {
+static py::oobj _intersect(named_colvec&& cv) {
   size_t K = cv.columns.size();
   sort_result sorted = sort_columns(std::move(cv));
   size_t ngrps = sorted.gb.ngroups();
@@ -296,7 +296,7 @@ the provided ``frames``.
 
 
 static py::oobj intersect(const py::PKArgs& args) {
-  ccolvec cv = columns_from_args(args);
+  named_colvec cv = columns_from_args(args);
   if (cv.columns.size() <= 1) {
     return _union(std::move(cv));
   }
@@ -313,7 +313,7 @@ static py::oobj intersect(const py::PKArgs& args) {
 // setdiff()
 //------------------------------------------------------------------------------
 
-static py::oobj _setdiff(ccolvec&& cv) {
+static py::oobj _setdiff(named_colvec&& cv) {
   xassert(cv.columns.size() >= 2);
   sort_result sorted = sort_columns(std::move(cv));
   size_t ngrps = sorted.gb.ngroups();
@@ -358,7 +358,7 @@ first frame ``frame0``, but not present in any of the ``frames``.
 )");
 
 static py::oobj setdiff(const py::PKArgs& args) {
-  ccolvec cv = columns_from_args(args);
+  named_colvec cv = columns_from_args(args);
   if (cv.columns.size() <= 1) {
     return _union(std::move(cv));
   }
@@ -372,7 +372,7 @@ static py::oobj setdiff(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 
 template <bool TWO>
-static py::oobj _symdiff(ccolvec&& cv) {
+static py::oobj _symdiff(named_colvec&& cv) {
   size_t K = cv.columns.size();
   sort_result sr = sort_columns(std::move(cv));
   size_t ngrps = sr.gb.ngroups();
@@ -447,7 +447,7 @@ two frames are those values that are present in an odd number of frames.
 
 
 static py::oobj symdiff(const py::PKArgs& args) {
-  ccolvec cv = columns_from_args(args);
+  named_colvec cv = columns_from_args(args);
   if (cv.columns.size() <= 1) {
     return _union(std::move(cv));
   }

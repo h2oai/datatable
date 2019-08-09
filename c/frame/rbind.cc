@@ -352,7 +352,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
                                  bool col_empty)
 {
   // Determine the size of the memory to allocate
-  size_t old_nrows = nrows;
+  size_t old_nrows = _nrows;
   size_t new_strbuf_size = 0;     // size of the string data region
   if (!col_empty) {
     new_strbuf_size += strbuf.size();
@@ -371,7 +371,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
   // Reallocate the column
   mbuf.resize(new_mbuf_size);
   strbuf.resize(new_strbuf_size);
-  nrows = new_nrows;
+  _nrows = new_nrows;
   T* offs = offsets_w();
 
   // Move the original offsets
@@ -428,11 +428,11 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
   const void* naptr = static_cast<const void*>(&na);
 
   // Reallocate the column's data buffer
-  size_t old_nrows = nrows;
+  size_t old_nrows = _nrows;
   size_t old_alloc_size = alloc_size();
   size_t new_alloc_size = sizeof(T) * new_nrows;
   mbuf.resize(new_alloc_size);
-  nrows = new_nrows;
+  _nrows = new_nrows;
 
   // Copy the data
   char* resptr = static_cast<char*>(mbuf.wptr());
@@ -476,13 +476,13 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 void PyObjectColumn::rbind_impl(
   colvec& columns, size_t nnrows, bool col_empty)
 {
-  size_t old_nrows = nrows;
+  size_t old_nrows = _nrows;
   size_t new_nrows = nnrows;
 
   // Reallocate the column's data buffer
   // `resize` fills all new elements with Py_None
   mbuf.resize(sizeof(PyObject*) * new_nrows);
-  nrows = nnrows;
+  _nrows = nnrows;
 
   // Copy the data
   PyObject** dest_data = static_cast<PyObject**>(mbuf.wptr());

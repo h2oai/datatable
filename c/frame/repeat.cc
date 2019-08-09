@@ -62,7 +62,7 @@ OColumn Column::repeat(size_t nreps) const {
   xassert(!info(_stype).is_varwidth());
   xassert(!ri);
   size_t esize = info(_stype).elemsize();
-  size_t new_nrows = nrows * nreps;
+  size_t new_nrows = _nrows * nreps;
 
   OColumn newcol = OColumn::new_data_column(_stype, new_nrows);
   if (!new_nrows) {
@@ -71,15 +71,15 @@ OColumn Column::repeat(size_t nreps) const {
   const void* olddata = data();
   void* newdata = newcol->data_w();
 
-  std::memcpy(newdata, olddata, nrows * esize);
-  size_t nrows_filled = nrows;
+  std::memcpy(newdata, olddata, _nrows * esize);
+  size_t nrows_filled = _nrows;
   while (nrows_filled < new_nrows) {
     size_t nrows_copy = std::min(new_nrows - nrows_filled, nrows_filled);
     std::memcpy(static_cast<char*>(newdata) + nrows_filled * esize,
                 newdata,
                 nrows_copy * esize);
     nrows_filled += nrows_copy;
-    xassert(nrows_filled % nrows == 0);
+    xassert(nrows_filled % _nrows == 0);
   }
   xassert(nrows_filled == new_nrows);
 

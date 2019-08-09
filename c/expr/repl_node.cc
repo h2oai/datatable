@@ -77,7 +77,7 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
     OColumn coli = (rcols == 1)? col0 : dtr->get_ocolumn(i);  // copy
-    if (coli->nrows == 1) {
+    if (coli.nrows() == 1) {
       coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
     }
     dt0->set_ocolumn(j, std::move(coli));

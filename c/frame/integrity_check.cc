@@ -156,19 +156,19 @@ void Column::verify_integrity(const std::string& name) const {
   // Check RowIndex
   if (ri.isabsent()) {
     // Check that nrows is a correct representation of mbuf's size
-    if (nrows != mbuf_nrows) {
+    if (_nrows != mbuf_nrows) {
       throw AssertionError()
           << "Mismatch between reported number of rows: " << name
-          << " has nrows=" << nrows << " but MemoryRange has data for "
+          << " has nrows=" << _nrows << " but MemoryRange has data for "
           << mbuf_nrows << " rows";
     }
   }
   else {
     // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != ri.size()) {
+    if (_nrows != ri.size()) {
       throw AssertionError()
           << "Mismatch in reported number of rows: " << name << " has "
-          << "nrows=" << nrows << ", while its rowindex.length="
+          << "nrows=" << _nrows << ", while its rowindex.length="
           << ri.size();
     }
     // Check that the maximum value of the RowIndex does not exceed the maximum

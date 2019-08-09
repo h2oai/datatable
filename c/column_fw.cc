@@ -44,7 +44,7 @@ FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
 template <typename T>
 void FwColumn<T>::init_data() {
   xassert(!ri);
-  mbuf.resize(nrows * sizeof(T));
+  mbuf.resize(_nrows * sizeof(T));
 }
 
 
@@ -77,7 +77,7 @@ void FwColumn<T>::materialize() {
   bool ascending = ri.isslice() && static_cast<int64_t>(ri.slice_step()) > 0;
 
   size_t elemsize = sizeof(T);
-  size_t newsize = elemsize * nrows;
+  size_t newsize = elemsize * _nrows;
 
   // Current `mbuf` can be reused iff it is not readonly. Thus, `new_mbuf` can
   // be either the same as `mbuf` (with old size), or a newly allocated buffer
@@ -106,7 +106,7 @@ void FwColumn<T>::materialize() {
     T* data_dest = mbuf.is_writable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.iterate(0, nrows, 1,
+    ri.iterate(0, _nrows, 1,
       [&](size_t i, size_t j) {
         data_dest[i] = (j == RowIndex::NA)? GETNA<T>() : data_src[j];
       });
@@ -125,20 +125,20 @@ void FwColumn<T>::materialize() {
 template <typename T>
 void FwColumn<T>::resize_and_fill(size_t new_nrows)
 {
-  if (new_nrows == nrows) return;
+  if (new_nrows == _nrows) return;
   materialize();
 
   mbuf.resize(sizeof(T) * new_nrows);
 
-  if (new_nrows > nrows) {
+  if (new_nrows > _nrows) {
     // Replicate the value or fill with NAs
-    T fill_value = nrows == 1? get_elem(0) : na_elem;
+    T fill_value = _nrows == 1? get_elem(0) : na_elem;
     T* data_dest = static_cast<T*>(mbuf.wptr());
-    for (size_t i = nrows; i < new_nrows; ++i) {
+    for (size_t i = _nrows; i < new_nrows; ++i) {
       data_dest[i] = fill_value;
     }
   }
-  this->nrows = new_nrows;
+  this->_nrows = new_nrows;
 
   // TODO(#301): Temporary fix.
   if (this->stats != nullptr) this->stats->reset();
@@ -158,7 +158,7 @@ void FwColumn<T>::apply_na_mask(const OColumn& mask) {
   auto maskdata = static_cast<const int8_t*>(mask->data());
   T* coldata = this->elements_w();
 
-  dt::parallel_for_static(nrows,
+  dt::parallel_for_static(_nrows,
     [=](size_t i) {
       if (maskdata[i] == 1) coldata[i] = GETNA<T>();
     });
@@ -170,7 +170,7 @@ template <typename T>
 void FwColumn<T>::fill_na() {
   xassert(!ri);
   T* vals = static_cast<T*>(mbuf.wptr());
-  dt::parallel_for_static(nrows,
+  dt::parallel_for_static(_nrows,
     [=](size_t i) {
       vals[i] = GETNA<T>();
     });
@@ -246,13 +246,13 @@ RowIndex FwColumn<T>::join(const OColumn& keycol) const {
   xassert(_stype == keycol.stype());
   xassert(!keycol->rowindex());
 
-  arr32_t target_indices(nrows);
+  arr32_t target_indices(_nrows);
   int32_t* trg_indices = target_indices.data();
   const T* src_data = elements_r();
   const T* search_data = static_cast<const T*>(keycol->data());
   int32_t search_n = static_cast<int32_t>(keycol.nrows());
 
-  ri.iterate(0, nrows, 1,
+  ri.iterate(0, _nrows, 1,
     [&](size_t i, size_t j) {
       if (j == RowIndex::NA) return;
       T value = src_data[j];

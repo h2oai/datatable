@@ -81,7 +81,7 @@ static void encode_nones(const OColumn& col, colvec& outcols) {
   size_t ncols = outcols.size();
   if (ncols == 0) return;
 
-  size_t nrows = outcols[0]->nrows;
+  size_t nrows = outcols[0].nrows();
   std::vector<int8_t*> coldata(ncols);
   for (size_t i = 0; i < ncols; ++i) {
     coldata[i] = static_cast<int8_t*>(outcols[i]->data_w());

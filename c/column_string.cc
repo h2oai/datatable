@@ -100,7 +100,7 @@ OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
 template <typename T>
 void StringColumn<T>::init_data() {
   xassert(!ri);
-  mbuf = MemoryRange::mem((nrows + 1) * sizeof(T));
+  mbuf = MemoryRange::mem((_nrows + 1) * sizeof(T));
   mbuf.set_element<T>(0, 0);
 }
 
@@ -183,7 +183,7 @@ void StringColumn<T>::materialize() {
   if (simple_slice) {
     const T* data_src = offsets() + ri.slice_start();
     T off0 = data_src[-1] & ~GETNA<T>();
-    T off1 = data_src[nrows - 1] & ~GETNA<T>();
+    T off1 = data_src[_nrows - 1] & ~GETNA<T>();
     new_strbuf_size = static_cast<size_t>(off1 - off0);
     if (!strbuf.is_writable()) {
       new_strbuf = MemoryRange::mem(new_strbuf_size);
@@ -191,7 +191,7 @@ void StringColumn<T>::materialize() {
     } else {
       std::memmove(new_strbuf.wptr(), strdata() + off0, new_strbuf_size);
     }
-    for (size_t i = 0; i < nrows; ++i) {
+    for (size_t i = 0; i < _nrows; ++i) {
       offs_dest[i] = data_src[i] - off0;
     }
 
@@ -211,7 +211,7 @@ void StringColumn<T>::materialize() {
     // worry about resizing beforehand
     T prev_off = 0;
     size_t j = start;
-    for (size_t i = 0; i < nrows; ++i, j += step) {
+    for (size_t i = 0; i < _nrows; ++i, j += step) {
       if (ISNA<T>(offs1[j])) {
         offs_dest[i] = prev_off ^ GETNA<T>();
       } else {
@@ -228,12 +228,12 @@ void StringColumn<T>::materialize() {
     new_strbuf_size = static_cast<size_t>(
         str_dest - static_cast<const char*>(new_strbuf.rptr()));
     // Note: We can also do a special case with slice.step = 0, but we have to
-    //       be careful about cases where nrows > T_MAX
+    //       be careful about cases where _nrows > T_MAX
   } else {
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     T strs_size = 0;
-    ri.iterate(0, nrows, 1,
+    ri.iterate(0, _nrows, 1,
       [&](size_t, size_t j) {
         if (j == RowIndex::NA) return;
         strs_size += offs1[j] - offs0[j];
@@ -244,7 +244,7 @@ void StringColumn<T>::materialize() {
     const char* strs_src = strdata();
     char* strs_dest = static_cast<char*>(new_strbuf.wptr());
     T prev_off = 0;
-    ri.iterate(0, nrows, 1,
+    ri.iterate(0, _nrows, 1,
       [&](size_t i, size_t j) {
         if (j == RowIndex::NA || ISNA<T>(offs1[j])) {
           offs_dest[i] = prev_off ^ GETNA<T>();
@@ -288,7 +288,7 @@ void StringColumn<T>::replace_values(
       bool r = with.get_element(0, &repl_value);
       if (r) repl_value = CString();
     }
-    MemoryRange mask = replace_at.as_boolean_mask(nrows);
+    MemoryRange mask = replace_at.as_boolean_mask(_nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
@@ -299,7 +299,7 @@ void StringColumn<T>::replace_values(
     const char* repl_strdata = repl_col->strdata();
     const T* repl_offsets = repl_col->offsets();
 
-    MemoryRange mask = replace_at.as_integer_mask(nrows);
+    MemoryRange mask = replace_at.as_integer_mask(_nrows);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
@@ -333,13 +333,13 @@ void StringColumn<T>::replace_values(
 template <typename T>
 void StringColumn<T>::resize_and_fill(size_t new_nrows)
 {
-  size_t old_nrows = nrows;
+  size_t old_nrows = _nrows;
   if (new_nrows == old_nrows) return;
   materialize();
 
   if (new_nrows > INT32_MAX && sizeof(T) == 4) {
     // TODO: instead of throwing an error, upcast the column to <uint64_t>
-    // This is only an issue for the case when nrows=1. Maybe we should separate
+    // This is only an issue for the case when _nrows=1. Maybe we should separate
     // the two methods?
     throw ValueError() << "Nrows is too big for a str32 column: " << new_nrows;
   }
@@ -377,10 +377,10 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
     } else {
       if (old_nrows == 1) xassert(old_strbuf_size == 0);
       T na = static_cast<T>(old_strbuf_size) ^ GETNA<T>();
-      set_value(offsets + nrows, &na, sizeof(T), new_nrows - old_nrows);
+      set_value(offsets + _nrows, &na, sizeof(T), new_nrows - old_nrows);
     }
   }
-  nrows = new_nrows;
+  _nrows = new_nrows;
   // TODO: Temporary fix. To be resolved in #301
   if (stats != nullptr) stats->reset();
 }
@@ -397,7 +397,7 @@ void StringColumn<T>::apply_na_mask(const OColumn& mask) {
   // How much to reduce the offsets1 by due to some strings turning into NAs
   T doffset = 0;
   T offp = 0;
-  for (size_t j = 0; j < nrows; ++j) {
+  for (size_t j = 0; j < _nrows; ++j) {
     T offi = offsets[j];
     T offa = offi & ~GETNA<T>();
     if (maskdata[j] == 1) {
@@ -424,12 +424,12 @@ void StringColumn<T>::fill_na() {
   // Perform a mini materialize (the actual `materialize` method will copy string and offset
   // data, both of which are extraneous for this method)
   strbuf.resize(0);
-  size_t new_mbuf_size = sizeof(T) * (nrows + 1);
+  size_t new_mbuf_size = sizeof(T) * (_nrows + 1);
   mbuf.resize(new_mbuf_size, /* keep_data = */ false);
   T* off_data = offsets_w();
   off_data[-1] = 0;
 
-  dt::parallel_for_static(nrows,
+  dt::parallel_for_static(_nrows,
     [=](size_t i){
       off_data[i] = GETNA<T>();
     });
@@ -500,15 +500,15 @@ RowIndex StringColumn<T>::join(const OColumn& keycol) const {
 
   auto kcol = static_cast<const StringColumn<T>*>(keycol.get());
 
-  arr32_t target_indices(nrows);
+  arr32_t target_indices(_nrows);
   int32_t* trg_indices = target_indices.data();
   const T* src_offsets = offsets();
   const T* key_offsets = kcol->offsets();
   const uint8_t* src_strdata = ustrdata();
   const uint8_t* key_strdata = kcol->ustrdata();
-  uint32_t key_n = static_cast<uint32_t>(keycol->nrows);
+  uint32_t key_n = static_cast<uint32_t>(keycol.nrows());
 
-  ri.iterate(0, nrows, 1,
+  ri.iterate(0, _nrows, 1,
     [&](size_t i, size_t j) {
       if (j == RowIndex::NA) return;
       T ostart = src_offsets[j - 1];

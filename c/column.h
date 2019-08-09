@@ -147,11 +147,9 @@ protected:
   MemoryRange mbuf;
   RowIndex ri;
   mutable std::unique_ptr<Stats> stats;
-
-public:  // TODO: convert this into private
+  size_t _nrows;
   SType _stype;
   size_t : 56;
-  size_t nrows;
 
 public:
   Column(const Column&) = delete;
@@ -169,6 +167,7 @@ public:
   RowIndex remove_rowindex();
   void replace_rowindex(const RowIndex& newri);
 
+  size_t nrows() const { return _nrows; }
   SType stype() const { return _stype; }
   LType ltype() const { return info(_stype).ltype(); }
   const MemoryRange& data_buf() const { return mbuf; }
@@ -181,7 +180,6 @@ public:
   virtual size_t memory_footprint() const;
 
   RowIndex _sort(Groupby* out_groups) const;
-  RowIndex _sort_grouped(const RowIndex&, const Groupby&) const;
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
@@ -316,9 +314,6 @@ protected:
    */
   virtual void fill_na() = 0;
 
-private:
-  // FIXME
-  friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
   friend class OColumn;
 };
 
@@ -465,6 +460,7 @@ class OColumn
 
     friend void swap(OColumn& lhs, OColumn& rhs);
     friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
+    friend class Column;
 };
 
 
