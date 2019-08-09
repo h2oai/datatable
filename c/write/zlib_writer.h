@@ -26,7 +26,7 @@
 #include "types.h"
 namespace zlib {
   extern "C" {
-    #include <zlib.h>
+    #include "lib/zlib/zlib.h"
   }
 }
 namespace dt {
@@ -71,6 +71,7 @@ class zlib_writer {
       //  | This function discards any unprocessed input and does not flush any
       //  | pending output.
       int r = zlib::deflateEnd(&stream);
+      (void)r;
       wassert(r == Z_OK);
     }
 
@@ -140,6 +141,7 @@ class zlib_writer {
     void reset_buffer() {
       if (!stream.next_in) return;
       int r = zlib::deflateReset(&stream);
+      (void)r;
       wassert(r == Z_OK);
     }
 };
