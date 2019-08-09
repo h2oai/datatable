@@ -24,7 +24,6 @@
 #include "python/obj.h"
 #include "python/arg.h"
 #include "column.h"
-#include <iostream>
 
 namespace py {
 namespace Validator {
