@@ -26,23 +26,23 @@ namespace Validator {
 
 // Error messages
 Error error_manager::error_not_positive(PyObject* src,
-                                                       const std::string& name
-) const {
+                                        const std::string& name) const
+{
   return ValueError() << name << " should be positive: " << src;
 }
 
 
 Error error_manager::error_negative(PyObject* src,
-                                                   const std::string& name
-) const {
+                                    const std::string& name) const
+{
   return ValueError() << name << " should be greater than or equal to zero: "
                       << src;
 }
 
 
-Error error_manager::error_is_infinity(PyObject* src,
-                                                 const std::string& name
-) const {
+Error error_manager::error_is_infinite(PyObject* src,
+                                       const std::string& name) const
+{
   return ValueError() << name << " should be finite: "
                       << src;
 }

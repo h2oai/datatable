@@ -34,7 +34,7 @@ namespace Validator {
 struct error_manager {
   error_manager() = default;
   error_manager(const error_manager&) = default;
-  Error error_is_infinity  (PyObject*, const std::string&) const;
+  Error error_is_infinite  (PyObject*, const std::string&) const;
   Error error_not_positive (PyObject*, const std::string&) const;
   Error error_negative     (PyObject*, const std::string&) const;
   template <typename T>
@@ -71,7 +71,7 @@ void check_finite(T value, const py::Arg& arg, error_manager& em = _em) {
   if (!std::isinf(value)) return;
 
   py::oobj py_obj = arg.to_robj();
-  throw em.error_is_infinity(py_obj.to_borrowed_ref(), arg.name());
+  throw em.error_is_infinite(py_obj.to_borrowed_ref(), arg.name());
 }
 
 
