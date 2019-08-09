@@ -1427,7 +1427,7 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
     *out_grps = Groupby::single_group(1);
   }
   arr32_t indices(1);
-  indices[0] = static_cast<int32_t>(col->rowindex()[0]);
+  indices[0] = 0;
   return RowIndex(std::move(indices), true);
 }
 
@@ -1436,7 +1436,10 @@ RowIndex Column::_sort(Groupby* out_grps) const {
   if (nrows <= 1) {
     return sort_tiny(this, out_grps);
   }
-  SortContext sc(nrows, rowindex(), (out_grps != nullptr));
+  if (rowindex()) {
+    const_cast<Column*>(this)->materialize();
+  }
+  SortContext sc(nrows, RowIndex(), (out_grps != nullptr));
   sc.start_sort(this, false);
   if (out_grps) {
     auto res = sc.get_result_groups();
