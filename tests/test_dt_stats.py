@@ -434,7 +434,7 @@ def test_object_column2():
 
 
 def test_issue1953():
-    DT0 = dt.Frame(A=range(5), B=['hey']*5)
+    DT0 = dt.Frame([range(5), ['hey']*5])
     RES1 = DT0[-1, :].mode()
     assert RES1.to_list() == [[4], ['hey']]
     RES2 = DT0[::-2, :].mode()

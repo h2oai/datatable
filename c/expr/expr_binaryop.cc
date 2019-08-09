@@ -564,8 +564,8 @@ static OColumn binaryop(Op opcode, OColumn& lhs, OColumn& rhs)
     throw RuntimeError()
       << "Unable to apply op " << static_cast<size_t>(opcode)
       << " to column1(stype=" << lhs_type
-      << ", nrows=" << lhs->nrows << ") and column2(stype=" << rhs_type
-      << ", nrows=" << rhs->nrows << ")";
+      << ", nrows=" << lhs.nrows() << ") and column2(stype=" << rhs_type
+      << ", nrows=" << rhs.nrows() << ")";
   }
   (*mapfn)(0, nrows, cols);
 
@@ -634,9 +634,9 @@ bool expr_binaryop::check_for_operation_with_literal_na(const workframe& wf) {
     auto pliteral = dynamic_cast<expr_literal*>(arg.get());
     if (!pliteral) return false;
     if (pliteral->resolve(wf) != SType::BOOL) return false;
-    OColumn pcol = pliteral->evaluate_eager(const_cast<workframe&>(wf));
-    if (pcol->nrows != 1) return false;
-    return ISNA<int8_t>(reinterpret_cast<const int8_t*>(pcol->data())[0]);
+    OColumn ocol = pliteral->evaluate_eager(const_cast<workframe&>(wf));
+    if (ocol.nrows() != 1) return false;
+    return ISNA<int8_t>(reinterpret_cast<const int8_t*>(ocol->data())[0]);
   };
   if (check_operand(rhs)) {
     SType lhs_stype = lhs->resolve(wf);

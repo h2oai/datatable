@@ -51,12 +51,12 @@ void PyObjectColumn::fill_na() {
 
 
 void PyObjectColumn::resize_and_fill(size_t new_nrows) {
-  if (new_nrows == nrows) return;
+  if (new_nrows == _nrows) return;
   materialize();
 
   mbuf.resize(sizeof(PyObject*) * new_nrows);
 
-  if (nrows == 1) {
+  if (_nrows == 1) {
     // Replicate the value; the case when we need to fill with NAs is already
     // handled by `mbuf.resize()`
     PyObject* fill_value = get_elem(0);
@@ -67,7 +67,7 @@ void PyObjectColumn::resize_and_fill(size_t new_nrows) {
     }
     fill_value->ob_refcnt += new_nrows - 1;
   }
-  this->nrows = new_nrows;
+  this->_nrows = new_nrows;
 
   // TODO(#301): Temporary fix.
   if (this->stats != nullptr) this->stats->reset();
@@ -77,12 +77,12 @@ void PyObjectColumn::resize_and_fill(size_t new_nrows) {
 void PyObjectColumn::materialize() {
   if (!ri) return;
 
-  MemoryRange newmr = MemoryRange::mem(sizeof(PyObject*) * nrows);
+  MemoryRange newmr = MemoryRange::mem(sizeof(PyObject*) * _nrows);
   newmr.set_pyobjects(/* clear_data = */ false);
 
   auto data_dest = static_cast<PyObject**>(newmr.xptr());
   auto data_src = elements_r();
-  ri.iterate(0, nrows, 1,
+  ri.iterate(0, _nrows, 1,
     [&](size_t i, size_t j) {
       data_dest[i] = (j == RowIndex::NA)? Py_None : data_src[j];
       Py_INCREF(data_dest[i]);

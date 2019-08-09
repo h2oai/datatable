@@ -512,7 +512,7 @@ class SortContext {
   SortContext(SortContext&&) = delete;
 
 
-  void start_sort(const Column* col, bool desc) {
+  void start_sort(const OColumn& col, bool desc) {
     descending = desc;
     if (desc) {
       _prepare_data_for_column<false>(col);
@@ -533,7 +533,7 @@ class SortContext {
   }
 
 
-  void continue_sort(const Column* col, bool desc, bool make_groups) {
+  void continue_sort(const OColumn& col, bool desc, bool make_groups) {
     nradixes = gg.size();
     descending = desc;
     xassert(nradixes > 0);
@@ -615,12 +615,12 @@ class SortContext {
   }
 
   template <bool ASC>
-  void _prepare_data_for_column(const Column* col) {
+  void _prepare_data_for_column(const OColumn& col) {
     strtype = 0;
     strdata = nullptr;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
-    SType stype = col->_stype;
+    SType stype = col.stype();
     switch (stype) {
       case SType::BOOL:    _initB<ASC>(col); break;
       case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(col); break;
@@ -649,7 +649,7 @@ class SortContext {
    * (128 - x) >> 6 |   0   2   1   NA first, DESC
    */
   template <bool ASC>
-  void _initB(const Column* col) {
+  void _initB(const OColumn& col) {
     const uint8_t* xi = static_cast<const uint8_t*>(col->data());
     elemsize = 1;
     nsigbits = 2;
@@ -680,11 +680,10 @@ class SortContext {
    * the data into an appropriate smaller type.
    */
   template <bool ASC, typename T, typename TU>
-  void _initI(const Column* col) {
+  void _initI(const OColumn& col) {
     xassert(sizeof(T) == sizeof(TU));
-    xassert(col->get_stats_if_exist() != nullptr);
-    int64_t min = col->get_stats_if_exist()->min_int(nullptr);
-    int64_t max = col->get_stats_if_exist()->max_int(nullptr);
+    int64_t min = col.stats()->min_int(nullptr);
+    int64_t max = col.stats()->max_int(nullptr);
     nsigbits = sizeof(T) * 8;
     nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
     T edge = static_cast<T>(ASC? min : max);
@@ -695,7 +694,7 @@ class SortContext {
   }
 
   template <bool ASC, typename T, typename TI, typename TO>
-  void _initI_impl(const Column* col, T edge) {
+  void _initI_impl(const OColumn& col, T edge) {
     TI una = static_cast<TI>(GETNA<T>());
     TI uedge = static_cast<TI>(edge);
     const TI* xi = static_cast<const TI*>(col->data());
@@ -753,7 +752,7 @@ class SortContext {
    *      https://en.wikipedia.org/wiki/Float64
    */
   template <bool ASC, typename TO>
-  void _initF(const Column* col) {
+  void _initF(const OColumn& col) {
     const TO* xi = static_cast<const TO*>(col->data());
     elemsize = sizeof(TO);
     nsigbits = elemsize * 8;
@@ -799,8 +798,8 @@ class SortContext {
    * because in UTF-8 the largest legal byte is 0xF7.
    */
   template <bool ASC, typename T>
-  void _initS(const Column* col) {
-    auto scol = static_cast<const StringColumn<T>*>(col);
+  void _initS(const OColumn& col) {
+    auto scol = static_cast<const StringColumn<T>*>(col.get());
     strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
     const T* offs = scol->offsets();
     stroffs = static_cast<const void*>(offs);
@@ -1360,7 +1359,7 @@ class SortContext {
 using RiGb = std::pair<RowIndex, Groupby>;
 
 
-RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
+RiGb DataTable::group(const std::vector<sort_spec>& spec) const
 {
   RiGb result;
   size_t n = spec.size();
@@ -1371,7 +1370,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
-      indices[0] = as_view? static_cast<int32_t>(col0->rowindex()[0]) : 0;
+      indices[0] = 0;
     }
     result.first = RowIndex(std::move(indices), true);
     if (!spec[0].sort_only) {
@@ -1380,23 +1379,14 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     return result;
   }
 
-  #ifndef NDEBUG
-    if (as_view) {
-      // Check that the sorted columns have consistent rowindices.
-      for (size_t j = 1; j < spec.size(); ++j) {
-        xassert(columns[spec[j].col_index]->rowindex() == col0->rowindex());
-      }
-    }
-  #endif
-  if (!as_view) {
-    for (auto& s : spec) {
-      const_cast<DataTable*>(this)->columns[s.col_index]->materialize();
-    }
+  for (auto& s : spec) {
+    const_cast<DataTable*>(this)->columns[s.col_index]->materialize();
   }
 
   bool do_groups = n > 1 || !spec[0].sort_only;
-  SortContext sc(nrows, col0->rowindex(), do_groups);
-  sc.start_sort(col0.get(), spec[0].descending);
+  xassert(!col0->rowindex());
+  SortContext sc(nrows, RowIndex(), do_groups);
+  sc.start_sort(col0, spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
     if (spec[j].sort_only && !spec[j - 1].sort_only) {
       result.second = sc.copy_groups();
@@ -1406,7 +1396,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     }
     const OColumn& colj = columns[spec[j].col_index];
     colj.stats();  // TODO: remove this
-    sc.continue_sort(colj.get(), spec[j].descending, do_groups);
+    sc.continue_sort(colj, spec[j].descending, do_groups);
   }
   result.first = sc.get_result_rowindex();
   if (!spec[0].sort_only && !result.second) {
@@ -1417,12 +1407,12 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
 
 
 
-static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
-  if (col->nrows == 0) {
+static RowIndex sort_tiny(const OColumn& col, Groupby* out_grps) {
+  if (col.nrows() == 0) {
     if (out_grps) *out_grps = Groupby::single_group(0);
     return RowIndex(arr32_t(0), true);
   }
-  xassert(col->nrows == 1);
+  xassert(col.nrows() == 1);
   if (out_grps) {
     *out_grps = Groupby::single_group(1);
   }
@@ -1433,14 +1423,22 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
 
 
 RowIndex Column::_sort(Groupby* out_grps) const {
-  if (nrows <= 1) {
-    return sort_tiny(this, out_grps);
+  OColumn ocol(this->shallowcopy());
+  return ocol.sort(out_grps);
+}
+
+RowIndex OColumn::sort(Groupby* out_grps) const {
+  (void) stats();  // temporary: instantiate stats object
+  if (nrows() <= 1) {
+    return sort_tiny(*this, out_grps);
   }
-  if (rowindex()) {
-    const_cast<Column*>(this)->materialize();
+
+  if (is_virtual()) {  // temporary
+    const_cast<OColumn*>(this)->materialize();
   }
-  SortContext sc(nrows, RowIndex(), (out_grps != nullptr));
-  sc.start_sort(this, false);
+  SortContext sc(nrows(), RowIndex(), (out_grps != nullptr));
+
+  sc.start_sort(*this, false);
   if (out_grps) {
     auto res = sc.get_result_groups();
     *out_grps = std::move(res.second);
@@ -1451,11 +1449,12 @@ RowIndex Column::_sort(Groupby* out_grps) const {
 }
 
 
-RowIndex Column::_sort_grouped(const RowIndex& rowindex,
-                              const Groupby& grps) const
+RowIndex OColumn::sort_grouped(const RowIndex& rowindex,
+                               const Groupby& grps) const
 {
-  SortContext sc(nrows, rowindex, grps, /* make_groups = */ false);
-  sc.continue_sort(this, /* desc = */ false, /* make_groups = */ false);
+  (void)stats();
+  SortContext sc(nrows(), rowindex, grps, /* make_groups = */ false);
+  sc.continue_sort(*this, /* desc = */ false, /* make_groups = */ false);
   return sc.get_result_rowindex();
 }
 

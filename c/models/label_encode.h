@@ -30,19 +30,23 @@ void label_encode(const OColumn&, dtptr&, dtptr&, bool is_binomial = false);
 
 
 /**
- *  Create labels datatable from unordered map for fixed widht columns.
+ *  Create labels datatable from unordered map for fixed width columns.
  */
 template <SType stype_from, SType stype_to>
-dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>, element_t<stype_to>>& labels_map) {
+dtptr create_dt_labels_fw(const std::unordered_map<promote<element_t<stype_from>>,
+                                                   element_t<stype_to>>& labels_map)
+{
+  using Tfrom = element_t<stype_from>;
+  using Tto = element_t<stype_to>;
   size_t nlabels = labels_map.size();
   OColumn labels_col = OColumn::new_data_column(stype_from, nlabels);
   OColumn ids_col = OColumn::new_data_column(stype_to, nlabels);
 
-  auto labels_data = static_cast<element_t<stype_from>*>(labels_col->data_w());
-  auto ids_data = static_cast<element_t<stype_to>*>(ids_col->data_w());
+  auto labels_data = static_cast<Tfrom*>(labels_col->data_w());
+  auto ids_data = static_cast<Tto*>(ids_col->data_w());
 
   for (auto& label : labels_map) {
-    labels_data[label.second] = label.first;
+    labels_data[label.second] = static_cast<Tfrom>(label.first);
     ids_data[label.second] = label.second;
   }
   return dtptr(new DataTable(
@@ -96,26 +100,20 @@ void set_ids(OColumn& col, T i0) {
  */
 template <SType stype_from, SType stype_to>
 void label_encode_fw(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
-  using T_from = element_t<stype_from>;
+  using T_from = promote<element_t<stype_from>>;
   using T_to = element_t<stype_to>;
-  const Column* col = ocol.get();
   const size_t nrows = ocol.nrows();
-  const RowIndex& ri = col->rowindex();
 
   OColumn outcol = OColumn::new_data_column(stype_to, nrows);
   auto outdata = static_cast<T_to*>(outcol->data_w());
   std::unordered_map<T_from, T_to> labels_map;
   dt::shared_mutex shmutex;
 
-
-  auto data = static_cast<const T_from*>(col->data());
-
   dt::parallel_for_static(nrows, NThreads(dt::FtrlBase::get_nthreads(nrows)),
     [&](size_t irow) {
-      size_t jrow = ri[irow];
-      T_from v = data[jrow];
-
-      if (jrow == RowIndex::NA || ISNA<T_from>(v)) {
+      T_from v;
+      bool isna = ocol.get_element(irow, &v);
+      if (isna) {
         outdata[irow] = GETNA<T_to>();
         return;
       }
@@ -156,36 +154,22 @@ void label_encode_fw(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
 template <typename U, SType stype_to>
 void label_encode_str(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   using T_to = element_t<stype_to>;
-  const Column* col = ocol.get();
   const size_t nrows = ocol.nrows();
-  const RowIndex& ri = col->rowindex();
   OColumn outcol = OColumn::new_data_column(stype_to, nrows);
   auto outdata = static_cast<T_to*>(outcol->data_w());
   std::unordered_map<std::string, T_to> labels_map;
   dt::shared_mutex shmutex;
 
-  auto scol = static_cast<const StringColumn<U>*>(col);
-  const U* offsets = scol->offsets();
-  const char* strdata = scol->strdata();
-
   dt::parallel_for_static(nrows, NThreads(dt::FtrlBase::get_nthreads(nrows)),
     [&](size_t irow) {
-      size_t jrow = ri[irow];
-
-      if (jrow == RowIndex::NA || ISNA<U>(offsets[jrow])) {
+      CString str;
+      bool isna = ocol.get_element(irow, &str);
+      if (isna || str.size == 0) {
         outdata[irow] = GETNA<T_to>();
         return;
       }
 
-      const U strstart = offsets[jrow - 1] & ~GETNA<U>();
-      auto len = offsets[jrow] - strstart;
-      if (len == 0) {
-        outdata[irow] = GETNA<T_to>();
-        return;
-      }
-
-      const char* c_str = strdata + strstart;
-      std::string v(c_str, len);
+      std::string v(str.ch, static_cast<size_t>(str.size));
 
       dt::shared_lock<dt::shared_mutex> lock(shmutex);
       if (labels_map.count(v)) {
