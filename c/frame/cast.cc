@@ -202,7 +202,7 @@ static OColumn cast_to_str(const OColumn& col, MemoryRange&& out_offsets,
       col.nrows(),
       std::move(out_offsets),
       /* force_str64 = */ (target_stype == SType::STR64),
-      /* force_single_threaded = */ (col->_stype == SType::OBJ)
+      /* force_single_threaded = */ (col.stype() == SType::OBJ)
   );
 }
 

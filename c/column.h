@@ -147,10 +147,10 @@ protected:
   MemoryRange mbuf;
   RowIndex ri;
   mutable std::unique_ptr<Stats> stats;
-
-public:  // TODO: convert this into private
   SType _stype;
   size_t : 56;
+
+public:  // TODO: convert this into private
   size_t nrows;
 
 public:
@@ -315,9 +315,6 @@ protected:
    */
   virtual void fill_na() = 0;
 
-private:
-  // FIXME
-  friend FreadReader;  // friend Column* realloc_column(Column *col, SType stype, size_t nrows, int j);
   friend class OColumn;
 };
 

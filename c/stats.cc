@@ -1041,7 +1041,7 @@ void BooleanStats::compute_all_stats() {
 
 static std::unique_ptr<Stats> _make_stats(Column* col) {
   using StatsPtr = std::unique_ptr<Stats>;
-  switch (col->_stype) {
+  switch (col->stype()) {
     case SType::BOOL:    return StatsPtr(new BooleanStats(col));
     case SType::INT8:
     case SType::INT16:
@@ -1055,7 +1055,7 @@ static std::unique_ptr<Stats> _make_stats(Column* col) {
     default:
       throw NotImplError()
         << "Cannot create Stats object for a column with type `"
-        << col->_stype << '`';
+        << col->stype() << '`';
   }
 }
 
