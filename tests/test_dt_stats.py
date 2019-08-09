@@ -433,6 +433,14 @@ def test_object_column2():
     assert df.nmodal()[0, 0] is None
 
 
+def test_issue1953():
+    DT0 = dt.Frame(A=range(5), B=['hey']*5)
+    RES1 = DT0[-1, :].mode()
+    assert RES1.to_list() == [[4], ['hey']]
+    RES2 = DT0[::-2, :].mode()
+    assert RES2.to_list() == [[0], ['hey']]
+
+
 
 #-------------------------------------------------------------------------------
 # Statistics on large arrays
