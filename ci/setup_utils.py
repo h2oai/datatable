@@ -401,10 +401,6 @@ def get_compile_includes():
             log.info("`%s` added from Llvm package" % dir2)
 
         includes = list(includes)
-        # For zlib.h; this must follow after all other include directories
-        if "/usr/include" not in includes:
-            includes.append("/usr/include")
-            log.info("`%s` added as a fall-back directory")
 
         for i, d in enumerate(includes):
             if not os.path.isdir(d):
@@ -572,6 +568,7 @@ def get_extra_link_args():
 
         # link zlib compression library
         flags += ["-lz"]
+        flags += ["-L" + sysconfig.get_config_var("LIBDIR")]
 
         for flag in flags:
             log.info(flag)
