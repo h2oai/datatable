@@ -119,6 +119,7 @@ class Ftrl : public dt::FtrlBase {
     void adjust_model();
     void init_model();
     void init_weights();
+    void reset_model_stats();
 
     // Do label encoding and set up mapping information
     void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);

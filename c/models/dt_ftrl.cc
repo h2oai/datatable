@@ -602,8 +602,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
     }
   );
-  job.done();
 
+  // Reset model stats after training, so that min gets re-computed
+  // in `py::Validator::has_negatives()` during unpickling.
+  reset_model_stats();
+  job.done();
 
   double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
@@ -934,6 +937,18 @@ void Ftrl<T>::init_model() {
   for (size_t i = 0; i < dt_model->ncols; ++i) {
     auto data = static_cast<T*>(dt_model->get_ocolumn(i)->data_w());
     std::memset(data, 0, nbins * sizeof(T));
+  }
+}
+
+
+/**
+ *  Reset model stats.
+ */
+ template <typename T>
+ void Ftrl<T>::reset_model_stats() {
+  if (dt_model == nullptr) return;
+  for (size_t i = 0; i < dt_model->ncols; ++i) {
+    (dt_model->get_ocolumn(i)).reset_stats();
   }
 }
 

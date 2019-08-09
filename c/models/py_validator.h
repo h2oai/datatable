@@ -24,6 +24,7 @@
 #include "python/obj.h"
 #include "python/arg.h"
 #include "column.h"
+#include <iostream>
 
 namespace py {
 namespace Validator {
@@ -45,6 +46,7 @@ static std::string _name = "Value";
 static error_manager _em;
 
 
+
 template <typename T>
 Error py::Validator::error_manager::error_greater_than(PyObject* src,
                                                        const std::string& name,
@@ -53,6 +55,11 @@ Error py::Validator::error_manager::error_greater_than(PyObject* src,
   return ValueError() << name << " should be less than or equal to " << value_max
                       << ", got: " << src;
 }
+
+
+// OColumn validators.
+
+bool has_negatives(const OColumn& col);
 
 
 // py::Arg validators
@@ -70,8 +77,7 @@ void check_finite(T value, const py::Arg& arg, error_manager& em = _em) {
 
 
 /**
- *  Positive check. Will emit an error, when `value` is not positive, `NaN`
- *  or infinity.
+ *  Positive check. Will emit an error, when `value` is not positive or `NaN`.
  */
 template <typename T>
 void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
@@ -83,8 +89,7 @@ void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
 
 
 /**
- *  Not negative check. Will emit an error, when `value` is negative, `NaN`
- *  or infinity.
+ *  Not negative check. Will emit an error, when `value` is negative or `NaN`.
  */
 template <typename T>
 void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
@@ -101,18 +106,6 @@ void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error
 
   py::oobj py_obj = arg.to_robj();
   throw em.error_greater_than(py_obj.to_borrowed_ref(), arg.name(), value_max);
-}
-
-
-template<typename T>
-bool has_negatives(const OColumn& col) {
-  // TODO: check if the column has min() value computed, and if it does
-  //       simply check whether the min is negative
-  auto d_n = static_cast<const T*>(col->data());
-  for (size_t i = 0; i < col.nrows(); ++i) {
-    if (d_n[i] < 0) return true;
-  }
-  return false;
 }
 
 

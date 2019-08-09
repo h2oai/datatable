@@ -535,10 +535,9 @@ void Ftrl::set_model(robj model) {
   }
 
   SType stype = (double_precision)? SType::FLOAT64 : SType::FLOAT32;
-  auto has_negatives = double_precision? py::Validator::has_negatives<double>:
-                                         py::Validator::has_negatives<float>;
 
   for (size_t i = 0; i < ncols; ++i) {
+
     const OColumn& col = dt_model->get_ocolumn(i);
     SType c_stype = col.stype();
     if (col.stype() != stype) {
@@ -548,7 +547,7 @@ void Ftrl::set_model(robj model) {
                          << c_stype;
     }
 
-    if ((i % 2) && has_negatives(col)) {
+    if ((i % 2) && py::Validator::has_negatives(col)) {
       throw ValueError() << "Column " << i << " cannot have negative values";
     }
   }
