@@ -95,6 +95,35 @@ class MultiCmp : public Cmp {
 };
 
 
+static cmpptr _make_comparator1(const DataTable* Xdt, const DataTable* Jdt,
+                                size_t xi, size_t ji)
+{
+  const OColumn& colx = Xdt->get_ocolumn(xi);
+  const OColumn& colj = Jdt->get_ocolumn(ji);
+  SType stype1 = colx.stype();
+  SType stype2 = colj.stype();
+  auto cmp = cmps[static_cast<size_t>(stype1)][static_cast<size_t>(stype2)];
+  if (!cmp) {
+    throw TypeError() << "Column `" << Xdt->get_names()[xi] << "` of type "
+        << stype1 << " in the left Frame cannot be joined to column `"
+        << Jdt->get_names()[ji] << "` of incompatible type " << stype2
+        << " in the right Frame";
+  }
+  return cmp(colx, colj);
+}
+
+static cmpptr _make_comparator(const DataTable* Xdt, const DataTable* Jdt,
+                               const intvec& x_indices, const intvec& j_indices)
+{
+  xassert(x_indices.size() == j_indices.size());
+  if (x_indices.size() == 1) {
+    return _make_comparator1(Xdt, Jdt, x_indices[0], j_indices[0]);
+  } else {
+    return cmpptr(new MultiCmp(x_indices, j_indices, Xdt, Jdt));
+  }
+}
+
+
 MultiCmp::MultiCmp(const intvec& Xindices, const intvec& Jindices,
                    const DataTable* Xdt, const DataTable* Jdt)
 {
@@ -102,18 +131,7 @@ MultiCmp::MultiCmp(const intvec& Xindices, const intvec& Jindices,
   for (size_t i = 0; i < Xindices.size(); ++i) {
     size_t xi = Xindices[i];
     size_t ji = Jindices[i];
-    const OColumn& col1 = Xdt->get_ocolumn(xi);
-    const OColumn& col2 = Jdt->get_ocolumn(ji);
-    SType stype1 = col1.stype();
-    SType stype2 = col2.stype();
-    auto cmp = cmps[static_cast<size_t>(stype1)][static_cast<size_t>(stype2)];
-    if (!cmp) {
-      throw TypeError() << "Column `" << Xdt->get_names()[xi] << "` of type "
-          << stype1 << " in the left Frame cannot be joined to column `"
-          << Jdt->get_names()[ji] << "` of incompatible type " << stype2
-          << " in the right Frame";
-    }
-    col_cmps.push_back(cmp(col1, col2));
+    col_cmps.push_back(_make_comparator1(Xdt, Jdt, xi, ji));
   }
 }
 
@@ -210,16 +228,11 @@ int FwCmp<TX, TJ>::set_xrow(size_t row) {
 // String Cmp
 //------------------------------------------------------------------------------
 
-template <typename TX, typename TJ>
 class StringCmp : public Cmp {
   private:
-    const uint8_t* strdataX;
-    const uint8_t* strdataJ;
-    const TX* offsetsX;
-    const TJ* offsetsJ;
-    TX xstart;
-    TX xend;
-    size_t : (128 - 2 * 8 * sizeof(TJ)) & 63;
+    const OColumn& colX;
+    const OColumn& colJ;
+    CString x_value;
 
   public:
     StringCmp(const OColumn&, const OColumn&);
@@ -230,50 +243,39 @@ class StringCmp : public Cmp {
 };
 
 
-template <typename TX, typename TJ>
-StringCmp<TX, TJ>::StringCmp(const OColumn& xcol, const OColumn& jcol) {
-  auto xcol_s = dynamic_cast<const StringColumn<TX>*>(xcol.get());
-  auto jcol_s = dynamic_cast<const StringColumn<TJ>*>(jcol.get());
-  xassert(xcol_s && jcol_s);
-  strdataX = xcol_s->ustrdata();
-  offsetsX = xcol_s->offsets();
-  strdataJ = jcol_s->ustrdata();
-  offsetsJ = jcol_s->offsets();
-}
+StringCmp::StringCmp(const OColumn& xcol, const OColumn& jcol)
+  : colX(xcol), colJ(jcol) {}
 
-template <typename TX, typename TJ>
-cmpptr StringCmp<TX, TJ>::make(const OColumn& col1, const OColumn& col2) {
-  return cmpptr(new StringCmp<TX, TJ>(col1, col2));
+cmpptr StringCmp::make(const OColumn& col1, const OColumn& col2) {
+  return cmpptr(new StringCmp(col1, col2));
 }
 
 
-template <typename TX, typename TJ>
-int StringCmp<TX, TJ>::cmp_jrow(size_t row) const {
-  TJ jend = offsetsJ[row];
-  if (ISNA<TJ>(jend)) return ISNA<TX>(xend) - 1;
-  if (ISNA<TX>(xend)) return 1;
+int StringCmp::cmp_jrow(size_t row) const {
+  CString j_value;
+  bool isna_j = colJ.get_element(row, &j_value);
+  bool isna_x = x_value.isna();
+  if (isna_j || isna_x) return isna_x - isna_j;
 
-  TJ jstart = offsetsJ[row - 1] & ~GETNA<TJ>();
-  TJ jlen = jend - jstart;
-  TX xlen = xend - xstart;
-  const uint8_t* xstr = strdataX + xstart;
-  const uint8_t* jstr = strdataJ + jstart;
-  for (TJ i = 0; i < jlen; ++i) {
+  int64_t xlen = x_value.size;
+  int64_t jlen = j_value.size;
+  const char* xstr = x_value.ch;
+  const char* jstr = j_value.ch;
+  for (int64_t i = 0; i < jlen; ++i) {
     if (i == xlen) return 1;  // jstr is longer than xstr
-    uint8_t jch = jstr[i];
-    uint8_t xch = xstr[i];
+    char jch = jstr[i];
+    char xch = xstr[i];
     if (xch != jch) {
-      return 1 - 2*(jch < xch);
+      return 1 - 2*(static_cast<uint8_t>(jch) < static_cast<uint8_t>(xch));
     }
   }
   return -(jlen != xlen);
 }
 
 
-template <typename TX, typename TJ>
-int StringCmp<TX, TJ>::set_xrow(size_t row) {
-  xend   = offsetsX[row];
-  xstart = offsetsX[row - 1] & ~GETNA<TX>();
+int StringCmp::set_xrow(size_t row) {
+  bool isna = colX.get_element(row, &x_value);
+  if (isna) x_value.ch = nullptr;
   return 0;
 }
 
@@ -347,10 +349,10 @@ static void _init_comparators() {
   cmps[flt64][int64] = FwCmp<double, int64_t>::make;
   cmps[flt64][flt32] = FwCmp<double, float>::make;
   cmps[flt64][flt64] = FwCmp<double, double>::make;
-  cmps[str32][str32] = StringCmp<uint32_t, uint32_t>::make;
-  cmps[str32][str64] = StringCmp<uint32_t, uint64_t>::make;
-  cmps[str64][str32] = StringCmp<uint64_t, uint32_t>::make;
-  cmps[str64][str64] = StringCmp<uint64_t, uint64_t>::make;
+  cmps[str32][str32] = StringCmp::make;
+  cmps[str32][str64] = StringCmp::make;
+  cmps[str64][str32] = StringCmp::make;
+  cmps[str64][str64] = StringCmp::make;
 }
 
 
@@ -415,13 +417,13 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
     dt::parallel_region(nchunks,
       [&] {
         // Creating the comparator may fail if xcols and jcols are incompatible
-        MultiCmp comparator(xcols, jcols, xdt, jdt);
+        cmpptr comparator = _make_comparator(xdt, jdt, xcols, jcols);
 
         dt::nested_for_static(xdt->nrows,
           [&](size_t i) {
-            int r = comparator.set_xrow(i);
+            int r = comparator->set_xrow(i);
             if (r == 0) {
-              size_t j = binsearch(&comparator, jdt->nrows);
+              size_t j = binsearch(comparator.get(), jdt->nrows);
               result_indices[i] = static_cast<int32_t>(j);
             } else {
               result_indices[i] = -1;
