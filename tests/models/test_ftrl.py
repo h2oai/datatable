@@ -378,39 +378,56 @@ def test_ftrl_set_wrong_interactions_not_string():
 # Test getters and setters for wrong values of individual FTRL parameters
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize('value', [0.0, None, math.nan, math.inf])
-def test_ftrl_set_bad_alpha_value(value):
+@pytest.mark.parametrize('value, message',
+                         [[0.0, "`.alpha` should be positive: 0.0"],
+                          [None, "`.alpha` should be positive: None"],
+                          [math.nan, "`.alpha` should be positive: nan"],
+                          [math.inf, "`.alpha` should be finite: inf"]
+                         ])
+def test_ftrl_set_bad_alpha_value(value, message):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.alpha = value
-    assert ("`.alpha` should be positive: %s" % str(value) == str(e.value))
+    assert (message == str(e.value))
 
 
-@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
-def test_ftrl_set_bad_beta_value(value):
+@pytest.mark.parametrize('value, message',
+                         [[-1.0, "`.beta` should be greater than or equal to zero: -1.0"],
+                          [None, "`.beta` should be greater than or equal to zero: None"],
+                          [math.nan, "`.beta` should be greater than or equal to zero: nan"],
+                          [math.inf, "`.beta` should be finite: inf"]
+                         ])
+def test_ftrl_set_bad_beta_value(value, message):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.beta = value
-    assert ("`.beta` should be greater than or equal to zero: %s" % str(value)
-            == str(e.value))
+    assert (message == str(e.value))
 
 
-@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
-def test_ftrl_set_bad_lambda1_value(value):
+@pytest.mark.parametrize('value, message',
+                         [[-1.0, "`.lambda1` should be greater than or equal to zero: -1.0"],
+                          [None, "`.lambda1` should be greater than or equal to zero: None"],
+                          [math.nan, "`.lambda1` should be greater than or equal to zero: nan"],
+                          [math.inf, "`.lambda1` should be finite: inf"]
+                         ])
+def test_ftrl_set_bad_lambda1_value(value, message):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda1 = value
-    assert ("`.lambda1` should be greater than or equal to zero: %s" % str(value)
-            == str(e.value))
+    assert (message == str(e.value))
 
 
-@pytest.mark.parametrize('value', [-1.0, None, math.nan, math.inf])
-def test_ftrl_set_bad_lambda2_value(value):
+@pytest.mark.parametrize('value, message',
+                         [[-1.0, "`.lambda2` should be greater than or equal to zero: -1.0"],
+                          [None, "`.lambda2` should be greater than or equal to zero: None"],
+                          [math.nan, "`.lambda2` should be greater than or equal to zero: nan"],
+                          [math.inf, "`.lambda2` should be finite: inf"]
+                         ])
+def test_ftrl_set_bad_lambda2_value(value, message):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.lambda2 = value
-    assert ("`.lambda2` should be greater than or equal to zero: %s" % str(value)
-            == str(e.value))
+    assert (message == str(e.value))
 
 
 def test_ftrl_set_wrong_nbins_value():
@@ -606,8 +623,8 @@ def test_ftrl_fit_predict_int():
 
 def test_ftrl_fit_predict_float():
     ft = Ftrl(alpha = 0.1, nepochs = 10000)
-    df_train = dt.Frame([[0.0, 1.0]])
-    df_target = dt.Frame([[True, False]])
+    df_train = dt.Frame([[0.0, 1.0, math.inf]])
+    df_target = dt.Frame([[True, False, False]])
     ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
     assert ft.model_type_trained == "binomial"
@@ -990,13 +1007,12 @@ def test_ftrl_regression_fit_none():
 
 def test_ftrl_regression_fit():
     ft = Ftrl(alpha = 2.0, nbins = 10, nepochs = 1000)
-    r = range(ft.nbins)
-    df_train = dt.Frame(r)
-    df_target = dt.Frame(r)
-    ft.fit(df_train, df_target)
+    r = list(range(ft.nbins - 1))
+    df_train = dt.Frame(r + [0])
+    df_target = dt.Frame(r + [math.inf])
     ft.fit(df_train, df_target)
     p = ft.predict(df_train)
-    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], r + [0])]
     assert ft.labels[:, 0].to_list() == [["C0"]]
     assert ft.model_type_trained == "regression"
     assert max(delta) < epsilon
