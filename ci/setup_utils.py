@@ -566,8 +566,8 @@ def get_extra_link_args():
         for lib in libs:
             flags += ["-L%s" % lib]
 
-        # link zlib compression library
-        flags += ["-lz"]
+        # link zlib compression library (?)
+        # flags += ["-lz"]
 
         for flag in flags:
             log.info(flag)
