@@ -1144,17 +1144,17 @@ DataTable* Ftrl<T>::get_fi(bool normalize /* = true */) {
 
   DataTable* dt_fi_copy = dt_fi->copy();
   if (normalize) {
-    OColumn& ocol = dt_fi_copy->get_ocolumn(1);
-    auto col = static_cast<RealColumn<T>*>(const_cast<Column*>(ocol.get()));
-    T max = col->max();
-    T* data = col->elements_w();
+    OColumn& col = dt_fi_copy->get_ocolumn(1);
+    bool max_isna;
+    T max = static_cast<T>(col.stats()->max_double(&max_isna));
+    T* data = static_cast<T*>(col->data_w());
     T norm_factor = static_cast<T>(1.0);
 
-    if (fabs(max) > T_EPSILON) norm_factor /= max;
-    for (size_t i = 0; i < col->nrows; ++i) {
+    if (!max_isna && std::fabs(max) > T_EPSILON) norm_factor /= max;
+    for (size_t i = 0; i < col.nrows(); ++i) {
       data[i] *= norm_factor;
     }
-    col->get_stats()->reset();
+    col.reset_stats();
   }
   return dt_fi_copy;
 }

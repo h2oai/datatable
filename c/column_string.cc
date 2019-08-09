@@ -80,8 +80,8 @@ OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
   size_t strb_size = str.size();
 
   if (data_size == sizeof(uint32_t) * (n + 1)) {
-    if (strb_size <= Column::MAX_STR32_BUFFER_SIZE &&
-        n <= Column::MAX_STR32_NROWS) {
+    if (strb_size <= OColumn::MAX_ARR32_SIZE &&
+        n <= OColumn::MAX_ARR32_SIZE) {
       return OColumn(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
     }
     // Otherwise, offsets need to be recoded into a uint64_t array
@@ -269,7 +269,7 @@ void StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    RowIndex replace_at, const OColumn& replace_with)
+    OColumn& thiscol, const RowIndex& replace_at, const OColumn& replace_with)
 {
   materialize();
   OColumn rescol;
@@ -290,7 +290,7 @@ void StringColumn<T>::replace_values(
     }
     MemoryRange mask = replace_at.as_boolean_mask(nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
-    rescol = dt::map_str2str(this,
+    rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         sb->write(mask_indices[i]? repl_value : value);
       });
@@ -301,7 +301,7 @@ void StringColumn<T>::replace_values(
 
     MemoryRange mask = replace_at.as_integer_mask(nrows);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
-    rescol = dt::map_str2str(this,
+    rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         int ir = mask_indices[i];
         if (ir == -1) {
@@ -527,23 +527,6 @@ void StringColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
   for (size_t i = row0; i < row1; ++i) {
     outmask[i] = ISNA<T>(offs[i]);
   }
-}
-
-
-
-//------------------------------------------------------------------------------
-// Stats
-//------------------------------------------------------------------------------
-
-template <typename T>
-StringStats* StringColumn<T>::get_stats() const {
-  if (stats == nullptr) stats = new StringStats();
-  return static_cast<StringStats*>(stats);
-}
-
-template <typename T>
-CString StringColumn<T>::mode() const {
-  return get_stats()->mode(this);
 }
 
 

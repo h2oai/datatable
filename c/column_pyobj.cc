@@ -91,13 +91,3 @@ void PyObjectColumn::materialize() {
   mbuf = std::move(newmr);
   ri.clear();
 }
-
-
-
-
-//----- Stats ------------------------------------------------------------------
-
-PyObjectStats* PyObjectColumn::get_stats() const {
-  if (stats == nullptr) stats = new PyObjectStats();
-  return static_cast<PyObjectStats*>(stats);
-}

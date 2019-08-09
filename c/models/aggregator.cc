@@ -252,13 +252,13 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       bool is_continuous = true;
       const OColumn& col = dt->get_ocolumn(i);
       switch (col.stype()) {
-        case SType::BOOL:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T, BoolColumn>(col)); break;
-        case SType::INT8:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T, IntColumn<int8_t>>(col)); break;
-        case SType::INT16:   contconv = ccptr<T>(new ColumnConvertorReal<int16_t, T, IntColumn<int16_t>>(col)); break;
-        case SType::INT32:   contconv = ccptr<T>(new ColumnConvertorReal<int32_t, T, IntColumn<int32_t>>(col)); break;
-        case SType::INT64:   contconv = ccptr<T>(new ColumnConvertorReal<int64_t, T, IntColumn<int64_t>>(col)); break;
-        case SType::FLOAT32: contconv = ccptr<T>(new ColumnConvertorReal<float, T, RealColumn<float>>(col)); break;
-        case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorReal<double, T, RealColumn<double>>(col)); break;
+        case SType::BOOL:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T>(col)); break;
+        case SType::INT8:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T>(col)); break;
+        case SType::INT16:   contconv = ccptr<T>(new ColumnConvertorReal<int16_t, T>(col)); break;
+        case SType::INT32:   contconv = ccptr<T>(new ColumnConvertorReal<int32_t, T>(col)); break;
+        case SType::INT64:   contconv = ccptr<T>(new ColumnConvertorReal<int64_t, T>(col)); break;
+        case SType::FLOAT32: contconv = ccptr<T>(new ColumnConvertorReal<float, T>(col)); break;
+        case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorReal<double, T>(col)); break;
         default:             if (dt->ncols < 3) {
                                is_continuous = false;
                                catcols.push_back(dt->get_ocolumn(i));
@@ -371,7 +371,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
         k++;
       }
     }
-    dt_members->get_ocolumn(0)->get_stats()->reset();
+    dt_members->get_ocolumn(0).reset_stats();
     was_sampled = true;
   }
 
@@ -430,7 +430,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
         d_members[ri_members[member_shift + j]] = static_cast<int32_t>(i_sampled);
       }
     });
-  dt_members->get_ocolumn(0)->get_stats()->reset();
+  dt_members->get_ocolumn(0).reset_stats();
 
   // Applying exemplars row index and binding exemplars with the counts.
   RowIndex ri_exemplars = RowIndex(std::move(exemplar_indices));

@@ -43,10 +43,11 @@ OColumn generate_string_column(dt::function<void(size_t, string_buf*)> fn,
 // Map over a string column producing a new ostring column
 //------------------------------------------------------------------------------
 
-template <typename T, typename F>
-OColumn map_str2str(StringColumn<T>* input_col, F f) {
-  size_t nrows = input_col->nrows;
-  writable_string_col output_col(nrows, /* str64= */ sizeof(T)==8);
+template <typename F>
+OColumn map_str2str(const OColumn& input_col, F f) {
+  bool use_str64 = (input_col.stype() == SType::STR64);
+  size_t nrows = input_col.nrows();
+  writable_string_col output_col(nrows, use_str64);
 
   constexpr size_t min_nrows_per_thread = 100;
   size_t nthreads = nrows / min_nrows_per_thread;
@@ -57,8 +58,7 @@ OColumn map_str2str(StringColumn<T>* input_col, F f) {
     nchunks,
     nthreads,  // will be truncated to pool size if necessary
     [&](ordered* o) {
-      std::unique_ptr<string_buf> sb(
-          new writable_string_col::buffer_impl<T>(output_col));
+      auto sb = output_col.make_buffer();
 
       o->parallel(
         [&](size_t iter) {
@@ -67,21 +67,13 @@ OColumn map_str2str(StringColumn<T>* input_col, F f) {
 
           sb->commit_and_start_new_chunk(i0);
           CString curr_str;
-          const T* offsets = input_col->offsets();
-          const char* strdata = input_col->strdata();
-          const RowIndex& rowindex = input_col->rowindex();
           for (size_t i = i0; i < i1; ++i) {
-            size_t j = rowindex[i];
-            if (j == RowIndex::NA || ISNA<T>(offsets[j])) {
+            bool isna = input_col.get_element(i, &curr_str);
+            if (isna) {
               curr_str.ch = nullptr;
               curr_str.size = 0;
-            } else {
-              T offstart = offsets[j - 1] & ~GETNA<T>();
-              T offend = offsets[j];
-              curr_str.ch = strdata + offstart;
-              curr_str.size = static_cast<int64_t>(offend - offstart);
             }
-            f(j, curr_str, sb.get());
+            f(i, curr_str, sb.get());
           }
         },
         [&](size_t) {

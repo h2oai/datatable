@@ -41,6 +41,7 @@ public:
   Error& operator<<(const std::string&);
   Error& operator<<(const char*);
   Error& operator<<(const void*);
+  Error& operator<<(const CString&);
   Error& operator<<(int64_t);
   Error& operator<<(int32_t);
   Error& operator<<(int8_t);

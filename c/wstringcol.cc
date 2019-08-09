@@ -54,6 +54,13 @@ OColumn writable_string_col::to_ocolumn() && {
 }
 
 
+using pbuf = std::unique_ptr<writable_string_col::buffer>;
+pbuf writable_string_col::make_buffer() {
+  return str64? pbuf(new writable_string_col::buffer_impl<uint64_t>(*this))
+              : pbuf(new writable_string_col::buffer_impl<uint32_t>(*this));
+}
+
+
 
 //------------------------------------------------------------------------------
 // writable_string_col::buffer
@@ -102,7 +109,7 @@ writable_string_col::buffer_impl<T>::buffer_impl(writable_string_col& s)
 template <typename T>
 void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
   if (ch) {
-    xassert(sizeof(T) == 4? len <= Column::MAX_STRING_SIZE : true);
+    if (sizeof(T) == 4) xassert(len <= OColumn::MAX_ARR32_SIZE);
     strbuf.ensuresize(strbuf_used + len);
     std::memcpy(strbuf.data() + strbuf_used, ch, len);
     strbuf_used += len;

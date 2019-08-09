@@ -18,16 +18,9 @@
 
 
 Column::Column(size_t nrows_)
-    : stats(nullptr),
-      nrows(nrows_)
-{
-  TRACK(this, sizeof(*this), "Column");
-}
+    : nrows(nrows_) {}
 
-Column::~Column() {
-  delete stats;
-  UNTRACK(this);
-}
+Column::~Column() {}
 
 
 
@@ -149,15 +142,6 @@ void Column::replace_rowindex(const RowIndex& newri) {
 
 
 
-//------------------------------------------------------------------------------
-// Stats
-//------------------------------------------------------------------------------
-
-size_t Column::countna() const { return get_stats()->countna(this); }
-size_t Column::nunique() const { return get_stats()->nunique(this); }
-size_t Column::nmodal() const  { return get_stats()->nmodal(this); }
-
-
 
 //------------------------------------------------------------------------------
 // OColumn
@@ -216,7 +200,7 @@ size_t OColumn::nrows() const noexcept {
 }
 
 size_t OColumn::na_count() const {
-  return pcol->countna();
+  return stats()->nacount();
 }
 
 SType OColumn::stype() const noexcept {
@@ -301,6 +285,21 @@ void OColumn::materialize() {
   pcol->materialize();
 }
 
+void OColumn::replace_values(const RowIndex& replace_at,
+                             const OColumn& replace_with)
+{
+  pcol->replace_values(*this, replace_at, replace_with);
+}
+
+RowIndex OColumn::sort(Groupby* out_groups) const {
+  (void)stats();
+  return pcol->_sort(out_groups);
+}
+
+RowIndex OColumn::sort_grouped(const RowIndex& ri, const Groupby& gb) const {
+  (void)stats();
+  return pcol->_sort_grouped(ri, gb);
+}
 
 
 
@@ -316,9 +315,8 @@ void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const OColumn&) {}
-void VoidColumn::replace_values(RowIndex, const OColumn&) {}
+void VoidColumn::replace_values(OColumn&, const RowIndex&, const OColumn&) {}
 void VoidColumn::init_data() {}
-Stats* VoidColumn::get_stats() const { return nullptr; }
 void VoidColumn::fill_na() {}
 RowIndex VoidColumn::join(const OColumn&) const { return RowIndex(); }
 void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
@@ -347,9 +345,8 @@ class StrvecColumn : public Column {
     void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}
     void apply_na_mask(const OColumn&) override {}
-    void replace_values(RowIndex, const OColumn&) override {}
+    void replace_values(OColumn&, const RowIndex&, const OColumn&) override {}
     void init_data() override {}
-    Stats* get_stats() const override { return nullptr; }
     void fill_na() override {}
     RowIndex join(const OColumn&) const override { return RowIndex(); }
     void fill_na_mask(int8_t*, size_t, size_t) override {}

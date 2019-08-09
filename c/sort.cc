@@ -681,17 +681,17 @@ class SortContext {
    */
   template <bool ASC, typename T, typename TU>
   void _initI(const Column* col) {
-    auto icol = static_cast<const IntColumn<T>*>(col);
     xassert(sizeof(T) == sizeof(TU));
-    T min = icol->min();
-    T max = icol->max();
+    xassert(col->get_stats_if_exist() != nullptr);
+    int64_t min = col->get_stats_if_exist()->min_int(nullptr);
+    int64_t max = col->get_stats_if_exist()->max_int(nullptr);
     nsigbits = sizeof(T) * 8;
     nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
-    T edge = ASC? min : max;
-    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(icol, edge);
-    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(icol, edge);
-    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(icol, edge);
-    else                    _initI_impl<ASC, T, TU, uint8_t >(icol, edge);
+    T edge = static_cast<T>(ASC? min : max);
+    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(col, edge);
+    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(col, edge);
+    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(col, edge);
+    else                    _initI_impl<ASC, T, TU, uint8_t >(col, edge);
   }
 
   template <bool ASC, typename T, typename TI, typename TO>
@@ -1367,6 +1367,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
   xassert(n > 0);
 
   const OColumn& col0 = columns[spec[0].col_index];
+  col0.stats();  // instantiate Stats object; TODO: remove this
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
@@ -1403,8 +1404,9 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     if (j == n - 1 && spec[j].sort_only) {
       do_groups = false;
     }
-    sc.continue_sort(columns[spec[j].col_index].get(),
-                     spec[j].descending, do_groups);
+    const OColumn& colj = columns[spec[j].col_index];
+    colj.stats();  // TODO: remove this
+    sc.continue_sort(colj.get(), spec[j].descending, do_groups);
   }
   result.first = sc.get_result_rowindex();
   if (!spec[0].sort_only && !result.second) {
@@ -1425,16 +1427,19 @@ static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
     *out_grps = Groupby::single_group(1);
   }
   arr32_t indices(1);
-  indices[0] = static_cast<int32_t>(col->rowindex()[0]);
+  indices[0] = 0;
   return RowIndex(std::move(indices), true);
 }
 
 
-RowIndex Column::sort(Groupby* out_grps) const {
+RowIndex Column::_sort(Groupby* out_grps) const {
   if (nrows <= 1) {
     return sort_tiny(this, out_grps);
   }
-  SortContext sc(nrows, rowindex(), (out_grps != nullptr));
+  if (rowindex()) {
+    const_cast<Column*>(this)->materialize();
+  }
+  SortContext sc(nrows, RowIndex(), (out_grps != nullptr));
   sc.start_sort(this, false);
   if (out_grps) {
     auto res = sc.get_result_groups();
@@ -1446,7 +1451,7 @@ RowIndex Column::sort(Groupby* out_grps) const {
 }
 
 
-RowIndex Column::sort_grouped(const RowIndex& rowindex,
+RowIndex Column::_sort_grouped(const RowIndex& rowindex,
                               const Groupby& grps) const
 {
   SortContext sc(nrows, rowindex, grps, /* make_groups = */ false);

@@ -106,7 +106,7 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
 {
   jay::Stats jsttype = jay::Stats_NONE;
   flatbuffers::Offset<void> jsto;
-  Stats* colstats = col->get_stats_if_exist();
+  Stats* colstats = col.get_stats_if_exist();
   switch (col.stype()) {
     case SType::BOOL:
       jsto = saveStats<int8_t,  jay::StatsBool>(colstats, fbb);
@@ -200,12 +200,15 @@ static flatbuffers::Offset<void> saveStats(
 {
   static_assert(std::is_constructible<StatBuilder, T, T>::value,
                 "Invalid StatBuilder class");
-  if (!stats ||
-      !(stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
+  static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value,
+                "Only integer / floating values are supporteds");
+  using R = typename std::conditional<std::is_integral<T>::value, int64_t, double>::type;
+  if (!(stats && stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
     return 0;
-  auto nstat = static_cast<NumericalStats<promote<T>>*>(stats);
-  StatBuilder ss(downcast<T>(nstat->min(nullptr)),
-                 downcast<T>(nstat->max(nullptr)));
+  R min, max;
+  stats->get_stat(Stat::Min, &min);
+  stats->get_stat(Stat::Max, &max);
+  StatBuilder ss(static_cast<T>(min), static_cast<T>(max));
   flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
   return o;
 }
