@@ -30,6 +30,7 @@
 // This is a modified version of the original zlib.h:
 //   - fix warnings produced by macros inflate/deflateInit
 //   - removed code conditional on Z_PREFIX_SET
+//   - removed functions whose __OSX_AVAILABLE_STARTING is >= MAC_10_13
 //
 #ifndef ZLIB_H
 #define ZLIB_H
@@ -666,28 +667,6 @@ ZEXTERN int ZEXPORT deflateSetDictionary OF((z_streamp strm,
    not perform any compression: this will be done by deflate().
 */
 
-ZEXTERN int ZEXPORT deflateGetDictionary OF((z_streamp strm,
-                                             Bytef *dictionary,
-                                             uInt  *dictLength))
-                                             __OSX_AVAILABLE_STARTING(__MAC_10_13,__IPHONE_11_0);
-/*
-     Returns the sliding dictionary being maintained by deflate.  dictLength is
-   set to the number of bytes in the dictionary, and that many bytes are copied
-   to dictionary.  dictionary must have enough space, where 32768 bytes is
-   always enough.  If deflateGetDictionary() is called with dictionary equal to
-   Z_NULL, then only the dictionary length is returned, and nothing is copied.
-   Similary, if dictLength is Z_NULL, then it is not set.
-
-     deflateGetDictionary() may return a length less than the window size, even
-   when more than the window size in input has been provided. It may return up
-   to 258 bytes less in that case, due to how zlib's implementation of deflate
-   manages the sliding window and lookahead for matches, where matches can be
-   up to 258 bytes long. If the application needs the last window-size bytes of
-   input, then that would need to be saved by the application outside of zlib.
-
-     deflateGetDictionary returns Z_OK on success, or Z_STREAM_ERROR if the
-   stream state is inconsistent.
-*/
 
 ZEXTERN int ZEXPORT deflateCopy OF((z_streamp dest,
                                     z_streamp source));
@@ -1299,14 +1278,6 @@ ZEXTERN int ZEXPORT uncompress OF((Bytef *dest,   uLongf *destLen,
    buffer with the uncompressed data up to that point.
 */
 
-ZEXTERN int ZEXPORT uncompress2 OF((Bytef *dest,   uLongf *destLen,
-                                    const Bytef *source, uLong *sourceLen))
-                                    __OSX_AVAILABLE_STARTING(__MAC_10_13,__IPHONE_11_0);
-/*
-     Same as uncompress, except that sourceLen is a pointer, where the
-   length of the source is *sourceLen.  On return, *sourceLen is the number of
-   source bytes consumed.
-*/
 
                         /* gzip file access functions */
 
@@ -1438,32 +1409,6 @@ ZEXTERN int ZEXPORT gzread OF((gzFile file, voidp buf, unsigned len));
    Z_STREAM_ERROR.
 */
 
-ZEXTERN z_size_t ZEXPORT gzfread OF((voidp buf, z_size_t size, z_size_t nitems,
-                                     gzFile file))
-                                     __OSX_AVAILABLE_STARTING(__MAC_10_13,__IPHONE_11_0);
-/*
-     Read up to nitems items of size size from file to buf, otherwise operating
-   as gzread() does.  This duplicates the interface of stdio's fread(), with
-   size_t request and return types.  If the library defines size_t, then
-   z_size_t is identical to size_t.  If not, then z_size_t is an unsigned
-   integer type that can contain a pointer.
-
-     gzfread() returns the number of full items read of size size, or zero if
-   the end of the file was reached and a full item could not be read, or if
-   there was an error.  gzerror() must be consulted if zero is returned in
-   order to determine if there was an error.  If the multiplication of size and
-   nitems overflows, i.e. the product does not fit in a z_size_t, then nothing
-   is read, zero is returned, and the error state is set to Z_STREAM_ERROR.
-
-     In the event that the end of file is reached and only a partial item is
-   available at the end, i.e. the remaining uncompressed data length is not a
-   multiple of size, then the final partial item is nevetheless read into buf
-   and the end-of-file flag is set.  The length of the partial item read is not
-   provided, but could be inferred from the result of gztell().  This behavior
-   is the same as the behavior of fread() implementations in common libraries,
-   but it prevents the direct use of gzfread() to read a concurrently written
-   file, reseting and retrying on end-of-file, when size is not 1.
-*/
 
 ZEXTERN int ZEXPORT gzwrite OF((gzFile file,
                                 voidpc buf, unsigned len));
@@ -1473,20 +1418,6 @@ ZEXTERN int ZEXPORT gzwrite OF((gzFile file,
    error.
 */
 
-ZEXTERN z_size_t ZEXPORT gzfwrite OF((voidpc buf, z_size_t size,
-                                      z_size_t nitems, gzFile file))
-                                      __OSX_AVAILABLE_STARTING(__MAC_10_13,__IPHONE_11_0);
-/*
-     gzfwrite() writes nitems items of size size from buf to file, duplicating
-   the interface of stdio's fwrite(), with size_t request and return types.  If
-   the library defines size_t, then z_size_t is identical to size_t.  If not,
-   then z_size_t is an unsigned integer type that can contain a pointer.
-
-     gzfwrite() returns the number of full items written of size size, or zero
-   if there was an error.  If the multiplication of size and nitems overflows,
-   i.e. the product does not fit in a z_size_t, then nothing is written, zero
-   is returned, and the error state is set to Z_STREAM_ERROR.
-*/
 
 ZEXTERN int ZEXPORTVA gzprintf Z_ARG((gzFile file, const char *format, ...));
 /*
@@ -1733,12 +1664,6 @@ ZEXTERN uLong ZEXPORT adler32 OF((uLong adler, const Bytef *buf, uInt len));
      if (adler != original_adler) error();
 */
 
-ZEXTERN uLong ZEXPORT adler32_z OF((uLong adler, const Bytef *buf,
-                                    z_size_t len))
-                                    __OSX_AVAILABLE_STARTING(__MAC_10_13,__IPHONE_11_0);
-/*
-     Same as adler32(), but with a size_t length.
-*/
 
 /*
 ZEXTERN uLong ZEXPORT adler32_combine OF((uLong adler1, uLong adler2,
@@ -1769,12 +1694,6 @@ ZEXTERN uLong ZEXPORT crc32   OF((uLong crc, const Bytef *buf, uInt len));
      if (crc != original_crc) error();
 */
 
-ZEXTERN uLong ZEXPORT crc32_z OF((uLong adler, const Bytef *buf,
-                                  z_size_t len))
-                                  __OSX_AVAILABLE_STARTING(__MAC_10_13,__IPHONE_11_0);
-/*
-     Same as crc32(), but with a size_t length.
-*/
 
 /*
 ZEXTERN uLong ZEXPORT crc32_combine OF((uLong crc1, uLong crc2, z_off_t len2));
@@ -1891,10 +1810,6 @@ ZEXTERN int            ZEXPORT inflateSyncPoint OF((z_streamp));
 ZEXTERN const z_crc_t FAR * ZEXPORT get_crc_table    OF((void));
 ZEXTERN int            ZEXPORT inflateUndermine OF((z_streamp, int))
                                                     __OSX_AVAILABLE_STARTING(__MAC_10_7,__IPHONE_5_0);
-ZEXTERN int            ZEXPORT inflateValidate OF((z_streamp, int))
-                                                    __OSX_AVAILABLE_STARTING(__MAC_10_13,__IPHONE_11_0);
-ZEXTERN unsigned long  ZEXPORT inflateCodesUsed OF ((z_streamp))
-                                                    __OSX_AVAILABLE_STARTING(__MAC_10_13,__IPHONE_11_0);
 ZEXTERN int            ZEXPORT inflateResetKeep OF((z_streamp))
                                                     __OSX_AVAILABLE_STARTING(__MAC_10_10,__IPHONE_8_0);
 ZEXTERN int            ZEXPORT deflateResetKeep OF((z_streamp))
