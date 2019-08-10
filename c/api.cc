@@ -121,15 +121,10 @@ void* DtFrame_ColumnDataW(PyObject* pydt, size_t i) {
 const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
-  SType st = dt->get_ocolumn(i).stype();
   try {
-    if (st == SType::STR32) {
-      auto scol = static_cast<const StringColumn<uint32_t>*>(dt->get_ocolumn(i).get());
-      return scol->strdata();
-    }
-    if (st == SType::STR64) {
-      auto scol = static_cast<const StringColumn<uint64_t>*>(dt->get_ocolumn(i).get());
-      return scol->strdata();
+    const OColumn& col = dt->get_ocolumn(i);
+    if (col.ltype() == LType::STRING) {
+      return static_cast<const char*>(col.secondary_data());
     }
   } catch (const std::exception& e) {
     exception_to_python(e);

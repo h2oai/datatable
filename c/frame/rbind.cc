@@ -363,8 +363,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
     if (col.stype() != _stype) {
       col = col.cast(_stype);
     }
-    // TODO: replace with datasize(). But: what if col is not a string?
-    new_strbuf_size += static_cast<const StringColumn<T>*>(col.get())->strbuf.size();
+    new_strbuf_size += col.secondary_size();
   }
   size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
 

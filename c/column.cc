@@ -223,6 +223,16 @@ OColumn::operator bool() const noexcept {
   return (pcol != nullptr);
 }
 
+const void* OColumn::secondary_data() const noexcept {
+  return pcol->data2();
+}
+
+size_t OColumn::secondary_size() const noexcept {
+  return pcol->data2_size();
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // OColumn : data accessors

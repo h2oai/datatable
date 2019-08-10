@@ -178,6 +178,8 @@ public:
   LType ltype() const { return info(_stype).ltype(); }
   const MemoryRange& data_buf() const { return mbuf; }
   const void* data() const { return mbuf.rptr(); }
+  virtual const void* data2() const { return nullptr; }
+  virtual size_t data2_size() const { return 0; }
   void* data_w() { return mbuf.wptr(); }
   PyObject* mbuf_repr() const;
   size_t alloc_size() const;
@@ -378,6 +380,9 @@ class OColumn
     size_t elemsize() const noexcept;
 
     operator bool() const noexcept;
+
+    const void* secondary_data() const noexcept;
+    size_t secondary_size() const noexcept;
 
     // TEMP accessors to the underlying implementation
     const Column* get() const { return pcol; }
@@ -636,6 +641,8 @@ public:
   const T* offsets() const;
   T* offsets_w();
   size_t memory_footprint() const override;
+  const void* data2() const override { return strbuf.rptr(); }
+  size_t data2_size() const override { return strbuf.size(); }
 
   Column* shallowcopy() const override;
   void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
