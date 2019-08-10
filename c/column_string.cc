@@ -279,14 +279,12 @@ void StringColumn<T>::replace_values(
     with = replace_with;  // copy
     if (with.stype() != _stype) with = with.cast(_stype);
   }
-  // This could be nullptr too
-  auto repl_col = static_cast<const StringColumn<T>*>(with.get());
 
   if (!with || with.nrows() == 1) {
     CString repl_value;  // Default constructor creates an NA string
     if (with) {
-      bool r = with.get_element(0, &repl_value);
-      if (r) repl_value = CString();
+      bool isna = with.get_element(0, &repl_value);
+      if (isna) repl_value = CString();
     }
     MemoryRange mask = replace_at.as_boolean_mask(_nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
@@ -296,9 +294,6 @@ void StringColumn<T>::replace_values(
       });
   }
   else {
-    const char* repl_strdata = repl_col->strdata();
-    const T* repl_offsets = repl_col->offsets();
-
     MemoryRange mask = replace_at.as_integer_mask(_nrows);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
@@ -307,12 +302,12 @@ void StringColumn<T>::replace_values(
         if (ir == -1) {
           sb->write(value);
         } else {
-          T offstart = repl_offsets[ir - 1] & ~GETNA<T>();
-          T offend = repl_offsets[ir];
-          if (ISNA<T>(offend)) {
+          CString str;
+          bool isna = with.get_element(static_cast<size_t>(ir), &str);
+          if (isna) {
             sb->write_na();
           } else {
-            sb->write(repl_strdata + offstart, offend - offstart);
+            sb->write(str);
           }
         }
       });
@@ -323,10 +318,7 @@ void StringColumn<T>::replace_values(
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
-  auto scol = static_cast<StringColumn<T>*>(const_cast<Column*>(rescol.get()));
-  std::swap(mbuf, scol->mbuf);
-  std::swap(strbuf, scol->strbuf);
-  if (stats) stats->reset();
+  thiscol = std::move(rescol);
 }
 
 
