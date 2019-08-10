@@ -160,10 +160,11 @@ int MultiCmp::cmp_jrow(size_t row) const {
 template <typename TX, typename TJ>
 class FwCmp : public Cmp {
   private:
-    const TX* dataX;
-    const TJ* dataJ;
-    TJ x_value;  // Current value from X frame, converted to TJ type
-    size_t : (64 - 8 * sizeof(TJ)) & 63;
+    const OColumn& colX;
+    const OColumn& colJ;
+    TJ x_value;   // Current value from X frame, converted to TJ type
+    bool x_isna;
+    size_t : (64 - 8 * sizeof(TJ) - 8) & 63;
 
   public:
     FwCmp(const OColumn&, const OColumn&);
@@ -175,12 +176,11 @@ class FwCmp : public Cmp {
 
 
 template <typename TX, typename TJ>
-FwCmp<TX, TJ>::FwCmp(const OColumn& xcol, const OColumn& jcol) {
-  auto xcol_f = dynamic_cast<const FwColumn<TX>*>(xcol.get());
-  auto jcol_f = dynamic_cast<const FwColumn<TJ>*>(jcol.get());
-  xassert(xcol_f && jcol_f);
-  dataX = xcol_f->elements_r();
-  dataJ = jcol_f->elements_r();
+FwCmp<TX, TJ>::FwCmp(const OColumn& xcol, const OColumn& jcol)
+  : colX(xcol), colJ(jcol)
+{
+  assert_compatible_type<TX>(xcol.stype());
+  assert_compatible_type<TJ>(jcol.stype());
 }
 
 template <typename TX, typename TJ>
@@ -191,17 +191,19 @@ cmpptr FwCmp<TX, TJ>::make(const OColumn& col1, const OColumn& col2) {
 
 template <typename TX, typename TJ>
 int FwCmp<TX, TJ>::cmp_jrow(size_t row) const {
-  TJ jval = dataJ[row];
-  return (jval > x_value) - (jval < x_value) +
-         (std::is_integral<TJ>::value? 0 : ISNA<TJ>(x_value) - ISNA<TJ>(jval));
+  TJ j_value;
+  bool j_isna = colJ.get_element(row, &j_value);
+  if (j_isna || x_isna) return x_isna - j_isna;
+  return (j_value > x_value) - (j_value < x_value);
 }
 
 
 template <typename TX, typename TJ>
 int FwCmp<TX, TJ>::set_xrow(size_t row) {
-  TX newval = dataX[row];
-  if (ISNA<TX>(newval)) {
-    x_value = GETNA<TJ>();
+  TX newval;
+  x_isna = colX.get_element(row, &newval);
+  if (x_isna) {
+    // x_value can be left intact
   } else {
     x_value = static_cast<TJ>(newval);
     if (std::is_integral<TJ>::value) {
@@ -211,9 +213,7 @@ int FwCmp<TX, TJ>::set_xrow(size_t row) {
            newval < static_cast<TX>(std::numeric_limits<TJ>::min())))
         return -1;
       // If matching floating point value to an integer column, values that
-      // are not round numbers should not match. We return `lt` comparator
-      // in this case, which is not entirely accurate, but it will provide
-      // the desired no-match semantics.
+      // are not round numbers should not match.
       if (!std::is_integral<TX>::value &&
           static_cast<TX>(x_value) != newval)
         return -1;
@@ -253,9 +253,9 @@ cmpptr StringCmp::make(const OColumn& col1, const OColumn& col2) {
 
 int StringCmp::cmp_jrow(size_t row) const {
   CString j_value;
-  bool isna_j = colJ.get_element(row, &j_value);
-  bool isna_x = x_value.isna();
-  if (isna_j || isna_x) return isna_x - isna_j;
+  bool j_isna = colJ.get_element(row, &j_value);
+  bool x_isna = x_value.isna();
+  if (j_isna || x_isna) return x_isna - j_isna;
 
   int64_t xlen = x_value.size;
   int64_t jlen = j_value.size;
@@ -300,51 +300,51 @@ static void _init_comparators() {
   size_t flt64 = static_cast<size_t>(SType::FLOAT64);
   size_t str32 = static_cast<size_t>(SType::STR32);
   size_t str64 = static_cast<size_t>(SType::STR64);
-  cmps[bool8][bool8] = FwCmp<int8_t, int8_t>::make;
-  cmps[bool8][int08] = FwCmp<int8_t, int8_t>::make;
-  cmps[bool8][int16] = FwCmp<int8_t, int16_t>::make;
-  cmps[bool8][int32] = FwCmp<int8_t, int32_t>::make;
-  cmps[bool8][int64] = FwCmp<int8_t, int64_t>::make;
-  cmps[bool8][flt32] = FwCmp<int8_t, float>::make;
-  cmps[bool8][flt64] = FwCmp<int8_t, double>::make;
-  cmps[int08][bool8] = FwCmp<int8_t, int8_t>::make;
-  cmps[int08][int08] = FwCmp<int8_t, int8_t>::make;
-  cmps[int08][int16] = FwCmp<int8_t, int16_t>::make;
-  cmps[int08][int32] = FwCmp<int8_t, int32_t>::make;
-  cmps[int08][int64] = FwCmp<int8_t, int64_t>::make;
-  cmps[int08][flt32] = FwCmp<int8_t, float>::make;
-  cmps[int08][flt64] = FwCmp<int8_t, double>::make;
-  cmps[int16][bool8] = FwCmp<int16_t, int8_t>::make;
-  cmps[int16][int08] = FwCmp<int16_t, int8_t>::make;
-  cmps[int16][int16] = FwCmp<int16_t, int16_t>::make;
-  cmps[int16][int32] = FwCmp<int16_t, int32_t>::make;
-  cmps[int16][int64] = FwCmp<int16_t, int64_t>::make;
-  cmps[int16][flt32] = FwCmp<int16_t, float>::make;
-  cmps[int16][flt64] = FwCmp<int16_t, double>::make;
-  cmps[int32][bool8] = FwCmp<int32_t, int8_t>::make;
-  cmps[int32][int08] = FwCmp<int32_t, int8_t>::make;
-  cmps[int32][int16] = FwCmp<int32_t, int16_t>::make;
+  cmps[bool8][bool8] = FwCmp<int32_t, int32_t>::make;
+  cmps[bool8][int08] = FwCmp<int32_t, int32_t>::make;
+  cmps[bool8][int16] = FwCmp<int32_t, int32_t>::make;
+  cmps[bool8][int32] = FwCmp<int32_t, int32_t>::make;
+  cmps[bool8][int64] = FwCmp<int32_t, int64_t>::make;
+  cmps[bool8][flt32] = FwCmp<int32_t, float>::make;
+  cmps[bool8][flt64] = FwCmp<int32_t, double>::make;
+  cmps[int08][bool8] = FwCmp<int32_t, int32_t>::make;
+  cmps[int08][int08] = FwCmp<int32_t, int32_t>::make;
+  cmps[int08][int16] = FwCmp<int32_t, int32_t>::make;
+  cmps[int08][int32] = FwCmp<int32_t, int32_t>::make;
+  cmps[int08][int64] = FwCmp<int32_t, int64_t>::make;
+  cmps[int08][flt32] = FwCmp<int32_t, float>::make;
+  cmps[int08][flt64] = FwCmp<int32_t, double>::make;
+  cmps[int16][bool8] = FwCmp<int32_t, int32_t>::make;
+  cmps[int16][int08] = FwCmp<int32_t, int32_t>::make;
+  cmps[int16][int16] = FwCmp<int32_t, int32_t>::make;
+  cmps[int16][int32] = FwCmp<int32_t, int32_t>::make;
+  cmps[int16][int64] = FwCmp<int32_t, int64_t>::make;
+  cmps[int16][flt32] = FwCmp<int32_t, float>::make;
+  cmps[int16][flt64] = FwCmp<int32_t, double>::make;
+  cmps[int32][bool8] = FwCmp<int32_t, int32_t>::make;
+  cmps[int32][int08] = FwCmp<int32_t, int32_t>::make;
+  cmps[int32][int16] = FwCmp<int32_t, int32_t>::make;
   cmps[int32][int32] = FwCmp<int32_t, int32_t>::make;
   cmps[int32][int64] = FwCmp<int32_t, int64_t>::make;
   cmps[int32][flt32] = FwCmp<int32_t, float>::make;
   cmps[int32][flt64] = FwCmp<int32_t, double>::make;
-  cmps[int64][bool8] = FwCmp<int64_t, int8_t>::make;
-  cmps[int64][int08] = FwCmp<int64_t, int8_t>::make;
-  cmps[int64][int16] = FwCmp<int64_t, int16_t>::make;
+  cmps[int64][bool8] = FwCmp<int64_t, int32_t>::make;
+  cmps[int64][int08] = FwCmp<int64_t, int32_t>::make;
+  cmps[int64][int16] = FwCmp<int64_t, int32_t>::make;
   cmps[int64][int32] = FwCmp<int64_t, int32_t>::make;
   cmps[int64][int64] = FwCmp<int64_t, int64_t>::make;
   cmps[int64][flt32] = FwCmp<int64_t, float>::make;
   cmps[int64][flt64] = FwCmp<int64_t, double>::make;
-  cmps[flt32][bool8] = FwCmp<float, int8_t>::make;
-  cmps[flt32][int08] = FwCmp<float, int8_t>::make;
-  cmps[flt32][int16] = FwCmp<float, int16_t>::make;
+  cmps[flt32][bool8] = FwCmp<float, int32_t>::make;
+  cmps[flt32][int08] = FwCmp<float, int32_t>::make;
+  cmps[flt32][int16] = FwCmp<float, int32_t>::make;
   cmps[flt32][int32] = FwCmp<float, int32_t>::make;
   cmps[flt32][int64] = FwCmp<float, int64_t>::make;
   cmps[flt32][flt32] = FwCmp<float, float>::make;
   cmps[flt32][flt64] = FwCmp<float, double>::make;
-  cmps[flt64][bool8] = FwCmp<double, int8_t>::make;
-  cmps[flt64][int08] = FwCmp<double, int8_t>::make;
-  cmps[flt64][int16] = FwCmp<double, int16_t>::make;
+  cmps[flt64][bool8] = FwCmp<double, int32_t>::make;
+  cmps[flt64][int08] = FwCmp<double, int32_t>::make;
+  cmps[flt64][int16] = FwCmp<double, int32_t>::make;
   cmps[flt64][int32] = FwCmp<double, int32_t>::make;
   cmps[flt64][int64] = FwCmp<double, int64_t>::make;
   cmps[flt64][flt32] = FwCmp<double, float>::make;
