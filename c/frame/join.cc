@@ -38,6 +38,37 @@ using cmpptr = std::unique_ptr<Cmp>;
 using comparator_maker = cmpptr (*)(const OColumn&, const OColumn&);
 static comparator_maker cmps[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
+static cmpptr _make_comparatorM(const DataTable* Xdt, const DataTable* Jdt,
+                                const intvec& x_ind, const intvec& j_ind);
+
+static cmpptr _make_comparator1(const DataTable* Xdt, const DataTable* Jdt,
+                                size_t xi, size_t ji)
+{
+  const OColumn& colx = Xdt->get_ocolumn(xi);
+  const OColumn& colj = Jdt->get_ocolumn(ji);
+  SType stype1 = colx.stype();
+  SType stype2 = colj.stype();
+  auto cmp = cmps[static_cast<size_t>(stype1)][static_cast<size_t>(stype2)];
+  if (!cmp) {
+    throw TypeError() << "Column `" << Xdt->get_names()[xi] << "` of type "
+        << stype1 << " in the left Frame cannot be joined to column `"
+        << Jdt->get_names()[ji] << "` of incompatible type " << stype2
+        << " in the right Frame";
+  }
+  return cmp(colx, colj);
+}
+
+static cmpptr _make_comparator(const DataTable* Xdt, const DataTable* Jdt,
+                               const intvec& x_indices, const intvec& j_indices)
+{
+  xassert(x_indices.size() == j_indices.size());
+  if (x_indices.size() == 1) {
+    return _make_comparator1(Xdt, Jdt, x_indices[0], j_indices[0]);
+  } else {
+    return _make_comparatorM(Xdt, Jdt, x_indices, j_indices);
+  }
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -88,44 +119,20 @@ class MultiCmp : public Cmp {
     std::vector<cmpptr> col_cmps;
 
   public:
-    MultiCmp(const intvec& Xindices, const intvec& Jindices,
-             const DataTable* Xdt, const DataTable* Jdt);
+    MultiCmp(const DataTable* Xdt, const DataTable* Jdt,
+             const intvec& Xindices, const intvec& Jindices);
     int set_xrow(size_t row) override;
     int cmp_jrow(size_t row) const override;
 };
 
-
-static cmpptr _make_comparator1(const DataTable* Xdt, const DataTable* Jdt,
-                                size_t xi, size_t ji)
-{
-  const OColumn& colx = Xdt->get_ocolumn(xi);
-  const OColumn& colj = Jdt->get_ocolumn(ji);
-  SType stype1 = colx.stype();
-  SType stype2 = colj.stype();
-  auto cmp = cmps[static_cast<size_t>(stype1)][static_cast<size_t>(stype2)];
-  if (!cmp) {
-    throw TypeError() << "Column `" << Xdt->get_names()[xi] << "` of type "
-        << stype1 << " in the left Frame cannot be joined to column `"
-        << Jdt->get_names()[ji] << "` of incompatible type " << stype2
-        << " in the right Frame";
-  }
-  return cmp(colx, colj);
-}
-
-static cmpptr _make_comparator(const DataTable* Xdt, const DataTable* Jdt,
-                               const intvec& x_indices, const intvec& j_indices)
-{
-  xassert(x_indices.size() == j_indices.size());
-  if (x_indices.size() == 1) {
-    return _make_comparator1(Xdt, Jdt, x_indices[0], j_indices[0]);
-  } else {
-    return cmpptr(new MultiCmp(x_indices, j_indices, Xdt, Jdt));
-  }
+static cmpptr _make_comparatorM(const DataTable* Xdt, const DataTable* Jdt,
+                                const intvec& x_ind, const intvec& j_ind) {
+  return cmpptr(new MultiCmp(Xdt, Jdt, x_ind, j_ind));
 }
 
 
-MultiCmp::MultiCmp(const intvec& Xindices, const intvec& Jindices,
-                   const DataTable* Xdt, const DataTable* Jdt)
+MultiCmp::MultiCmp(const DataTable* Xdt, const DataTable* Jdt,
+                   const intvec& Xindices, const intvec& Jindices)
 {
   xassert(Xindices.size() == Jindices.size());
   for (size_t i = 0; i < Xindices.size(); ++i) {
