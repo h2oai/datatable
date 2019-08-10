@@ -201,10 +201,12 @@ void FwColumn<T>::replace_values(
                     : replace_with.cast(_stype);
 
   if (with.nrows() == 1) {
-    auto rcol = dynamic_cast<const FwColumn<T>*>(with.get());
-    xassert(rcol);
-    return replace_values(replace_at, rcol->get_elem(0));
+    promote<T> replace_value;
+    bool isna = with.get_element(0, &replace_value);
+    return isna? replace_values(replace_at, GETNA<T>()) :
+                 replace_values(replace_at, downcast<T>(replace_value));
   }
+
   size_t replace_n = replace_at.size();
   const T* data_src = static_cast<const T*>(with->data());
   const RowIndex& rowindex_src = with->rowindex();

@@ -84,8 +84,9 @@ template <SType s>
 using element_t = typename _elt<s>::t;
 
 template <typename T> struct _promote { using t = T; };
-template <> struct _promote<int8_t>  { using t = int32_t; };
-template <> struct _promote<int16_t> { using t = int32_t; };
+template <> struct _promote<int8_t>    { using t = int32_t; };
+template <> struct _promote<int16_t>   { using t = int32_t; };
+template <> struct _promote<PyObject*> { using t = py::robj; };
 
 template <typename T>
 using promote = typename _promote<T>::t;
@@ -94,8 +95,13 @@ template <SType s>
 using getelement_t = promote<element_t<s>>;
 
 template <typename T>
-static inline T downcast(promote<T> v) {
+inline T downcast(promote<T> v) {
   return ISNA<promote<T>>(v)? GETNA<T>() : static_cast<T>(v);
+}
+
+template <>
+inline PyObject* downcast(py::robj v) {
+  return v.to_borrowed_ref();
 }
 
 
