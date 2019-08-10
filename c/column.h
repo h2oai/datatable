@@ -283,9 +283,6 @@ public:
   virtual void materialize() = 0;
 
 
-  virtual RowIndex join(const OColumn& keycol) const = 0;
-
-
   /**
    * Check that the data in this Column object is correct. `name` is the name of
    * the column to be used in the diagnostic messages.
@@ -490,7 +487,6 @@ public:
   virtual void materialize() override;
   void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
   void replace_values(const RowIndex& at, T with);
-  virtual RowIndex join(const OColumn& keycol) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
@@ -631,7 +627,6 @@ public:
   void materialize() override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const OColumn& mask) override;
-  RowIndex join(const OColumn& keycol) const override;
 
   MemoryRange str_buf() const { return strbuf; }
   size_t datasize() const;
@@ -691,7 +686,6 @@ class VoidColumn : public Column {
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const OColumn&) override;
     void replace_values(OColumn&, const RowIndex&, const OColumn&) override;
-    RowIndex join(const OColumn& keycol) const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     void init_data() override;
