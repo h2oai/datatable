@@ -184,21 +184,12 @@ class slice_fw_vcol : public fw_vcol<T> {
 
 template <typename T>
 class str_vcol : public _vcolumn {
-  protected:
-    const T* offsets;
-    const char* strdata;
-
   public:
-    explicit str_vcol(OColumn&& col)
-      : _vcolumn(std::move(col)),
-        offsets(static_cast<const StringColumn<T>*>(column.get())->offsets()),
-        strdata(static_cast<const StringColumn<T>*>(column.get())->strdata()) {}
+    using _vcolumn::_vcolumn;
 
     void compute(size_t i, CString* out) override {
-      T end = offsets[i];
-      T start = offsets[i - 1] & ~GETNA<T>();
-      out->size = static_cast<int64_t>(end - start);
-      out->ch = ISNA<T>(end) ? nullptr : strdata + start;
+      bool isna = column.get_element(i, out);
+      if (isna) out->ch = nullptr;
     }
 };
 

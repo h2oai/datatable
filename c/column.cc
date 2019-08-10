@@ -180,10 +180,6 @@ OColumn::~OColumn() {
 
 
 
-const Column* OColumn::get() const {
-  return pcol;  // borrowed ref
-}
-
 Column* OColumn::operator->() {
   return pcol;
 }
