@@ -442,6 +442,7 @@ class SortContext {
     int32_t* o;
     int32_t* next_o;
     size_t*  histogram;
+    OColumn column;
     const uint8_t* strdata;
     const void* stroffs;
     size_t strstart;
@@ -513,11 +514,12 @@ class SortContext {
 
 
   void start_sort(const OColumn& col, bool desc) {
+    column = col;
     descending = desc;
     if (desc) {
-      _prepare_data_for_column<false>(col);
+      _prepare_data_for_column<false>();
     } else {
-      _prepare_data_for_column<true>(col);
+      _prepare_data_for_column<true>();
     }
     if (n <= sort_insert_method_threshold) {
       if (use_order) {
@@ -534,14 +536,15 @@ class SortContext {
 
 
   void continue_sort(const OColumn& col, bool desc, bool make_groups) {
+    column = col;
     nradixes = gg.size();
     descending = desc;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
     if (desc) {
-      _prepare_data_for_column<false>(col);
+      _prepare_data_for_column<false>();
     } else {
-      _prepare_data_for_column<true>(col);
+      _prepare_data_for_column<true>();
     }
     if (strtype) strstart--;
     // Make sure that `xx` has enough storage capacity. Previous column may
@@ -615,22 +618,22 @@ class SortContext {
   }
 
   template <bool ASC>
-  void _prepare_data_for_column(const OColumn& col) {
+  void _prepare_data_for_column() {
     strtype = 0;
     strdata = nullptr;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
-    SType stype = col.stype();
+    SType stype = column.stype();
     switch (stype) {
-      case SType::BOOL:    _initB<ASC>(col); break;
-      case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(col); break;
-      case SType::INT16:   _initI<ASC, int16_t, uint16_t>(col); break;
-      case SType::INT32:   _initI<ASC, int32_t, uint32_t>(col); break;
-      case SType::INT64:   _initI<ASC, int64_t, uint64_t>(col); break;
-      case SType::FLOAT32: _initF<ASC, uint32_t>(col); break;
-      case SType::FLOAT64: _initF<ASC, uint64_t>(col); break;
-      case SType::STR32:   _initS<ASC, uint32_t>(col); break;
-      case SType::STR64:   _initS<ASC, uint64_t>(col); break;
+      case SType::BOOL:    _initB<ASC>(); break;
+      case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(); break;
+      case SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
+      case SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
+      case SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
+      case SType::FLOAT32: _initF<ASC, uint32_t>(); break;
+      case SType::FLOAT64: _initF<ASC, uint64_t>(); break;
+      case SType::STR32:   _initS<ASC, uint32_t>(); break;
+      case SType::STR64:   _initS<ASC, uint64_t>(); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
@@ -649,8 +652,8 @@ class SortContext {
    * (128 - x) >> 6 |   0   2   1   NA first, DESC
    */
   template <bool ASC>
-  void _initB(const OColumn& col) {
-    const uint8_t* xi = static_cast<const uint8_t*>(col->data());
+  void _initB() {
+    const uint8_t* xi = static_cast<const uint8_t*>(column->data());
     elemsize = 1;
     nsigbits = 2;
     allocate_x();
@@ -680,24 +683,24 @@ class SortContext {
    * the data into an appropriate smaller type.
    */
   template <bool ASC, typename T, typename TU>
-  void _initI(const OColumn& col) {
+  void _initI() {
     xassert(sizeof(T) == sizeof(TU));
-    int64_t min = col.stats()->min_int(nullptr);
-    int64_t max = col.stats()->max_int(nullptr);
+    int64_t min = column.stats()->min_int(nullptr);
+    int64_t max = column.stats()->max_int(nullptr);
     nsigbits = sizeof(T) * 8;
     nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
     T edge = static_cast<T>(ASC? min : max);
-    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(col, edge);
-    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(col, edge);
-    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(col, edge);
-    else                    _initI_impl<ASC, T, TU, uint8_t >(col, edge);
+    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(edge);
+    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(edge);
+    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(edge);
+    else                    _initI_impl<ASC, T, TU, uint8_t >(edge);
   }
 
   template <bool ASC, typename T, typename TI, typename TO>
-  void _initI_impl(const OColumn& col, T edge) {
+  void _initI_impl(T edge) {
     TI una = static_cast<TI>(GETNA<T>());
     TI uedge = static_cast<TI>(edge);
-    const TI* xi = static_cast<const TI*>(col->data());
+    const TI* xi = static_cast<const TI*>(column->data());
     elemsize = sizeof(TO);
     allocate_x();
     TO* xo = x.data<TO>();
@@ -752,8 +755,8 @@ class SortContext {
    *      https://en.wikipedia.org/wiki/Float64
    */
   template <bool ASC, typename TO>
-  void _initF(const OColumn& col) {
-    const TO* xi = static_cast<const TO*>(col->data());
+  void _initF() {
+    const TO* xi = static_cast<const TO*>(column->data());
     elemsize = sizeof(TO);
     nsigbits = elemsize * 8;
     allocate_x();
@@ -798,8 +801,8 @@ class SortContext {
    * because in UTF-8 the largest legal byte is 0xF7.
    */
   template <bool ASC, typename T>
-  void _initS(const OColumn& col) {
-    auto scol = static_cast<const StringColumn<T>*>(col.get());
+  void _initS() {
+    auto scol = static_cast<const StringColumn<T>*>(column.get());
     strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
     const T* offs = scol->offsets();
     stroffs = static_cast<const void*>(offs);
@@ -819,17 +822,16 @@ class SortContext {
         bool len_gt_1 = false;
         dt::nested_for_static(n, dt::ChunkSize(1024),
           [&](size_t j) {
-            int32_t k = use_order? o[j] : static_cast<int32_t>(j);
-            T offend = offs[k];
-            if (ISNA<T>(offend)) {
+            size_t k = use_order? static_cast<size_t>(o[j]) : j;
+            CString value;
+            bool isna = column.get_element(k, &value);
+            if (isna) {
               xo[j] = 0;    // NA string
             } else {
-              T offstart = offs[k - 1] & ~GETNA<T>();
-              if (offend > offstart) {
-                xo[j] = ASC? strdata[offstart] + 2
-                           : 0xFE - strdata[offstart];
-                T len = offend - offstart;
-                len_gt_1 |= (len > 1);
+              if (value.size) {
+                xo[j] = ASC? static_cast<uint8_t>(*value.ch) + 2
+                           : 0xFE - static_cast<uint8_t>(*value.ch);
+                len_gt_1 |= (value.size > 1);
               } else {
                 xo[j] = ASC? 1 : 0xFF;  // empty string
               }
@@ -1026,8 +1028,7 @@ class SortContext {
   void _reorder_str() {
     uint8_t* xi = x.data<uint8_t>();
     uint8_t* xo = xx.data<uint8_t>();
-    const T sstart = static_cast<T>(strstart) + 1;
-    const T* soffs = static_cast<const T*>(stroffs);
+    const int64_t sstart = static_cast<int64_t>(strstart) + 1;
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 
     dt::parallel_region(nth,
@@ -1041,20 +1042,19 @@ class SortContext {
             for (size_t j = j0; j < j1; ++j) {
               size_t k = tcounts[xi[j]]++;
               xassert(k < n);
-              int32_t w = use_order? o[j] : static_cast<int32_t>(j);
-              T offend = soffs[w];
-              T offstart = (soffs[w - 1] & ~GETNA<T>()) + sstart;
-              if (ISNA<T>(offend)) {
+              size_t w = use_order? static_cast<size_t>(o[j]) : j;
+              CString value;
+              bool isna = column.get_element(w, &value);
+              if (isna) {
                 xo[k] = 0;
-              } else if (offend > offstart) {
-                xo[k] = ASC? strdata[offstart] + 2
-                           : 0xFE - strdata[offstart];
-                T len = offend - offstart;
-                tlong |= (len > 0);
+              } else if (value.size > sstart) {
+                xo[k] = ASC? static_cast<uint8_t>(value.ch[sstart] + 2)
+                           : static_cast<uint8_t>(0xFE - value.ch[sstart]);
+                tlong = true;
               } else {
                 xo[k] = ASC? 1 : 0xFF;  // string is shorter than sstart
               }
-              next_o[k] = w;
+              next_o[k] = static_cast<int32_t>(w);
             }
           });
         if (tlong) flong.test_and_set();
