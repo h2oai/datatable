@@ -180,10 +180,6 @@ OColumn::~OColumn() {
 
 
 
-const Column* OColumn::get() const {
-  return pcol;  // borrowed ref
-}
-
 Column* OColumn::operator->() {
   return pcol;
 }
@@ -226,6 +222,16 @@ size_t OColumn::elemsize() const noexcept {
 OColumn::operator bool() const noexcept {
   return (pcol != nullptr);
 }
+
+const void* OColumn::secondary_data() const noexcept {
+  return pcol->data2();
+}
+
+size_t OColumn::secondary_size() const noexcept {
+  return pcol->data2_size();
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -308,7 +314,6 @@ void VoidColumn::apply_na_mask(const OColumn&) {}
 void VoidColumn::replace_values(OColumn&, const RowIndex&, const OColumn&) {}
 void VoidColumn::init_data() {}
 void VoidColumn::fill_na() {}
-RowIndex VoidColumn::join(const OColumn&) const { return RowIndex(); }
 void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
 
 
@@ -338,7 +343,6 @@ class StrvecColumn : public Column {
     void replace_values(OColumn&, const RowIndex&, const OColumn&) override {}
     void init_data() override {}
     void fill_na() override {}
-    RowIndex join(const OColumn&) const override { return RowIndex(); }
     void fill_na_mask(int8_t*, size_t, size_t) override {}
 };
 

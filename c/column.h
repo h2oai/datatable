@@ -84,8 +84,9 @@ template <SType s>
 using element_t = typename _elt<s>::t;
 
 template <typename T> struct _promote { using t = T; };
-template <> struct _promote<int8_t>  { using t = int32_t; };
-template <> struct _promote<int16_t> { using t = int32_t; };
+template <> struct _promote<int8_t>    { using t = int32_t; };
+template <> struct _promote<int16_t>   { using t = int32_t; };
+template <> struct _promote<PyObject*> { using t = py::robj; };
 
 template <typename T>
 using promote = typename _promote<T>::t;
@@ -94,8 +95,13 @@ template <SType s>
 using getelement_t = promote<element_t<s>>;
 
 template <typename T>
-static inline T downcast(promote<T> v) {
+inline T downcast(promote<T> v) {
   return ISNA<promote<T>>(v)? GETNA<T>() : static_cast<T>(v);
+}
+
+template <>
+inline PyObject* downcast(py::robj v) {
+  return v.to_borrowed_ref();
 }
 
 
@@ -172,6 +178,8 @@ public:
   LType ltype() const { return info(_stype).ltype(); }
   const MemoryRange& data_buf() const { return mbuf; }
   const void* data() const { return mbuf.rptr(); }
+  virtual const void* data2() const { return nullptr; }
+  virtual size_t data2_size() const { return 0; }
   void* data_w() { return mbuf.wptr(); }
   PyObject* mbuf_repr() const;
   size_t alloc_size() const;
@@ -277,9 +285,6 @@ public:
   virtual void materialize() = 0;
 
 
-  virtual RowIndex join(const OColumn& keycol) const = 0;
-
-
   /**
    * Check that the data in this Column object is correct. `name` is the name of
    * the column to be used in the diagnostic messages.
@@ -376,8 +381,11 @@ class OColumn
 
     operator bool() const noexcept;
 
+    const void* secondary_data() const noexcept;
+    size_t secondary_size() const noexcept;
+
     // TEMP accessors to the underlying implementation
-    const Column* get() const;
+    const Column* get() const { return pcol; }
 
     Column* operator->();
     const Column* operator->() const;
@@ -484,7 +492,6 @@ public:
   virtual void materialize() override;
   void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
   void replace_values(const RowIndex& at, T with);
-  virtual RowIndex join(const OColumn& keycol) const override;
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
@@ -625,7 +632,6 @@ public:
   void materialize() override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const OColumn& mask) override;
-  RowIndex join(const OColumn& keycol) const override;
 
   MemoryRange str_buf() const { return strbuf; }
   size_t datasize() const;
@@ -635,6 +641,8 @@ public:
   const T* offsets() const;
   T* offsets_w();
   size_t memory_footprint() const override;
+  const void* data2() const override { return strbuf.rptr(); }
+  size_t data2_size() const override { return strbuf.size(); }
 
   Column* shallowcopy() const override;
   void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
@@ -685,7 +693,6 @@ class VoidColumn : public Column {
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const OColumn&) override;
     void replace_values(OColumn&, const RowIndex&, const OColumn&) override;
-    RowIndex join(const OColumn& keycol) const override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     void init_data() override;

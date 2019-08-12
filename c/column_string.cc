@@ -279,14 +279,12 @@ void StringColumn<T>::replace_values(
     with = replace_with;  // copy
     if (with.stype() != _stype) with = with.cast(_stype);
   }
-  // This could be nullptr too
-  auto repl_col = static_cast<const StringColumn<T>*>(with.get());
 
   if (!with || with.nrows() == 1) {
     CString repl_value;  // Default constructor creates an NA string
     if (with) {
-      bool r = with.get_element(0, &repl_value);
-      if (r) repl_value = CString();
+      bool isna = with.get_element(0, &repl_value);
+      if (isna) repl_value = CString();
     }
     MemoryRange mask = replace_at.as_boolean_mask(_nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
@@ -296,9 +294,6 @@ void StringColumn<T>::replace_values(
       });
   }
   else {
-    const char* repl_strdata = repl_col->strdata();
-    const T* repl_offsets = repl_col->offsets();
-
     MemoryRange mask = replace_at.as_integer_mask(_nrows);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
@@ -307,12 +302,12 @@ void StringColumn<T>::replace_values(
         if (ir == -1) {
           sb->write(value);
         } else {
-          T offstart = repl_offsets[ir - 1] & ~GETNA<T>();
-          T offend = repl_offsets[ir];
-          if (ISNA<T>(offend)) {
+          CString str;
+          bool isna = with.get_element(static_cast<size_t>(ir), &str);
+          if (isna) {
             sb->write_na();
           } else {
-            sb->write(repl_strdata + offstart, offend - offstart);
+            sb->write(str);
           }
         }
       });
@@ -323,10 +318,7 @@ void StringColumn<T>::replace_values(
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
-  auto scol = static_cast<StringColumn<T>*>(const_cast<Column*>(rescol.get()));
-  std::swap(mbuf, scol->mbuf);
-  std::swap(strbuf, scol->strbuf);
-  if (stats) stats->reset();
+  thiscol = std::move(rescol);
 }
 
 
@@ -436,89 +428,6 @@ void StringColumn<T>::fill_na() {
 }
 
 
-// Compare 2 strings, each is given as a string buffer + offsets to each
-// strings' start and end.
-// Return -1 if str1 < str2; 0 if str1 == str2; and 1 if str1 > str2.
-// An NA string compares equal to another NA string, but < than any other
-// non-NA string.
-// Note: this function presumes that `start1` and `start2` were already
-// cleared from the NA flag.
-//
-template <typename T>
-int compare_strings(const uint8_t* strdata1, T start1, T end1,
-                    const uint8_t* strdata2, T start2, T end2)
-{
-  if (ISNA<T>(end1)) return ISNA<T>(end2) - 1;
-  if (ISNA<T>(end2)) return 1;
-
-  T len1 = end1 - start1;
-  T len2 = end2 - start2;
-  strdata1 += start1;
-  strdata2 += start2;
-  for (T i = 0; i < len1; ++i) {
-    if (i == len2) return 1;  // str2 is shorter than str1
-    uint8_t ch1 = strdata1[i];
-    uint8_t ch2 = strdata2[i];
-    if (ch1 != ch2) {
-      return 1 - 2*(ch1 < ch2);
-    }
-  }
-  return -(len1 != len2);
-}
-
-
-template <typename T>
-static int32_t binsearch(const uint8_t* strdata, const T* offsets, uint32_t len,
-                         const uint8_t* src, T ostart, T oend)
-{
-  ostart &= ~GETNA<T>();
-  // Use unsigned indices in order to avoid overflows. LOL about -1
-  uint32_t start = -1U;
-  uint32_t end   = len;
-  const T* start_offsets = offsets - 1;
-  while (end - start > 1) {
-    uint32_t mid = (start + end) >> 1;
-    T vstart = start_offsets[mid] & ~GETNA<T>();
-    T vend = offsets[mid];
-    int cmp = compare_strings<T>(strdata, vstart, vend, src, ostart, oend);
-    if (cmp < 0) {  // mid < o
-      start = mid;
-    } else if (cmp > 0) {
-      end = mid;
-    } else {
-      return static_cast<int32_t>(mid);
-    }
-  }
-  return -1;
-}
-
-
-template <typename T>
-RowIndex StringColumn<T>::join(const OColumn& keycol) const {
-  xassert(_stype == keycol.stype());
-  xassert(!keycol->rowindex());
-
-  auto kcol = static_cast<const StringColumn<T>*>(keycol.get());
-
-  arr32_t target_indices(_nrows);
-  int32_t* trg_indices = target_indices.data();
-  const T* src_offsets = offsets();
-  const T* key_offsets = kcol->offsets();
-  const uint8_t* src_strdata = ustrdata();
-  const uint8_t* key_strdata = kcol->ustrdata();
-  uint32_t key_n = static_cast<uint32_t>(keycol.nrows());
-
-  ri.iterate(0, _nrows, 1,
-    [&](size_t i, size_t j) {
-      if (j == RowIndex::NA) return;
-      T ostart = src_offsets[j - 1];
-      T oend = src_offsets[j];
-      trg_indices[i] = binsearch<T>(key_strdata, key_offsets, key_n,
-                                    src_strdata, ostart, oend);
-    });
-
-  return RowIndex(std::move(target_indices));
-}
 
 
 template <typename T>

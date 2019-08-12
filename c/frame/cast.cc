@@ -211,13 +211,9 @@ template <typename T>
 static OColumn cast_str_to_str(const OColumn& col, MemoryRange&& out_offsets,
                                SType target_stype)
 {
-  auto scol = static_cast<const StringColumn<T>*>(col.get());
-  auto offsets = scol->offsets();
-  auto strdata = scol->strdata();
-  const RowIndex& rowindex = scol->rowindex();
   if (sizeof(T) == 8 && target_stype == SType::STR32 &&
-      (scol->datasize() > OColumn::MAX_ARR32_SIZE ||
-       scol->nrows() > OColumn::MAX_ARR32_SIZE)) {
+      ( // col->datasize() > OColumn::MAX_ARR32_SIZE ||
+       col.nrows() > OColumn::MAX_ARR32_SIZE)) {
     // If the user attempts to convert str64 into str32 but the column is too
     // big, we will convert into str64 instead.
     // We could have also thrown an exception here, but this seems to be more
@@ -226,13 +222,12 @@ static OColumn cast_str_to_str(const OColumn& col, MemoryRange&& out_offsets,
   }
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
-        size_t j = rowindex[i];
-        T off_end = offsets[j];
-        if (j == RowIndex::NA || ISNA<T>(off_end)) {
+        CString value;
+        bool isna = col.get_element(i, &value);
+        if (isna) {
           buf->write_na();
         } else {
-          T off_start = offsets[j - 1] & ~GETNA<T>();
-          buf->write(strdata + off_start, off_end - off_start);
+          buf->write(value);
         }
       },
       col.nrows(),

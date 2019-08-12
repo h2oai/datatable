@@ -201,10 +201,12 @@ void FwColumn<T>::replace_values(
                     : replace_with.cast(_stype);
 
   if (with.nrows() == 1) {
-    auto rcol = dynamic_cast<const FwColumn<T>*>(with.get());
-    xassert(rcol);
-    return replace_values(replace_at, rcol->get_elem(0));
+    promote<T> replace_value;
+    bool isna = with.get_element(0, &replace_value);
+    return isna? replace_values(replace_at, GETNA<T>()) :
+                 replace_values(replace_at, downcast<T>(replace_value));
   }
+
   size_t replace_n = replace_at.size();
   const T* data_src = static_cast<const T*>(with->data());
   const RowIndex& rowindex_src = with->rowindex();
@@ -227,40 +229,6 @@ void FwColumn<T>::replace_values(
 }
 
 
-template <typename T>
-static int32_t binsearch(const T* data, int32_t len, T value) {
-  // Use unsigned indices in order to avoid overflows
-  uint32_t start = 0;
-  uint32_t end   = static_cast<uint32_t>(len);
-  while (end - start > 1) {
-    uint32_t mid = (start + end) >> 1;
-    if (data[mid] > value) end = mid;
-    else start = mid;
-  }
-  return (data[start] == value)? static_cast<int32_t>(start) : -1;
-}
-
-
-template <typename T>
-RowIndex FwColumn<T>::join(const OColumn& keycol) const {
-  xassert(_stype == keycol.stype());
-  xassert(!keycol->rowindex());
-
-  arr32_t target_indices(_nrows);
-  int32_t* trg_indices = target_indices.data();
-  const T* src_data = elements_r();
-  const T* search_data = static_cast<const T*>(keycol->data());
-  int32_t search_n = static_cast<int32_t>(keycol.nrows());
-
-  ri.iterate(0, _nrows, 1,
-    [&](size_t i, size_t j) {
-      if (j == RowIndex::NA) return;
-      T value = src_data[j];
-      trg_indices[i] = binsearch<T>(search_data, search_n, value);
-    });
-
-  return RowIndex(std::move(target_indices));
-}
 
 
 template <typename T>
