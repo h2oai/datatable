@@ -35,8 +35,10 @@ class expr_column : public base_expr {
 
   public:
     expr_column(size_t dfid, py::robj col);
+    expr_column(size_t dfid, size_t colid);
 
     size_t get_frame_id() const noexcept;
+    size_t get_col_frame(const workframe&) override;
     size_t get_col_index(const workframe&) override;
     bool is_column_expr() const override;
     SType resolve(const workframe&) override;

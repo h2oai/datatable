@@ -66,13 +66,14 @@ class collist_maker
     size_t : 40;
 
   public:
-    collist_maker(workframe& wf_, EvalMode mode, const char* srcname_)
+    collist_maker(workframe& wf_, EvalMode mode, const char* srcname_,
+                  size_t dt_index)
       : wf(wf_)
     {
       is_update = (mode == EvalMode::UPDATE);
       is_delete = (mode == EvalMode::DELETE);
       has_new_columns = false;
-      dt0 = wf.get_datatable(0);
+      dt0 = wf.get_datatable(dt_index);
       type = list_type::UNKNOWN;
       k = 0;
       srcname = srcname_;
@@ -222,11 +223,10 @@ class collist_maker
     void _process_element_expr(py::robj elem) {
       _set_type(list_type::EXPR);
       auto expr = elem.to_dtexpr();
-      auto colexpr = dynamic_cast<dt::expr::expr_column*>(expr.get());
-      if (colexpr) {
-        size_t frid = colexpr->get_frame_id();
+      if (expr->is_column_expr()) {
+        size_t frid = expr->get_col_frame(wf);
         if (frid == 0) {
-          size_t i = colexpr->get_col_index(wf);
+          size_t i = expr->get_col_index(wf);
           indices.push_back(i);
         }
         else if (frid >= wf.nframes()) {
@@ -332,20 +332,28 @@ class collist_maker
 //------------------------------------------------------------------------------
 
 collist::~collist() {}
-cols_intlist::~cols_intlist() {}
-cols_exprlist::~cols_exprlist() {}
 
 
 cols_intlist::cols_intlist(intvec&& indices_, strvec&& names_)
   : indices(std::move(indices_)), names(std::move(names_)) {}
 
+bool cols_intlist::is_simple_list() const {
+  return true;
+}
+
 
 cols_exprlist::cols_exprlist(exprvec&& exprs_, strvec&& names_)
   : exprs(std::move(exprs_)), names(std::move(names_)) {}
 
+bool cols_exprlist::is_simple_list() const {
+  return false;
+}
 
-collist_ptr collist::make(workframe& wf, py::robj src, const char* srcname) {
-  collist_maker maker(wf, wf.get_mode(), srcname);
+
+collist_ptr collist::make(
+    workframe& wf, py::robj src, const char* srcname, size_t dt_index)
+{
+  collist_maker maker(wf, wf.get_mode(), srcname, dt_index);
   maker.process(src);
   return maker.get();
 }

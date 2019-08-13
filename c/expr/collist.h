@@ -40,8 +40,10 @@ using collist_ptr = std::unique_ptr<collist>;
 
 class collist {
   public:
-    static collist_ptr make(workframe& wf, py::robj src, const char* srcname);
+    static collist_ptr make(workframe& wf, py::robj src, const char* srcname,
+                            size_t dt_index = 0);
     virtual ~collist();
+    virtual bool is_simple_list() const = 0;
 };
 
 
@@ -51,7 +53,7 @@ struct cols_intlist : public collist {
   strvec names;
 
   cols_intlist(intvec&& indices_, strvec&& names_);
-  ~cols_intlist() override;
+  virtual bool is_simple_list() const override;
 };
 
 
@@ -61,7 +63,7 @@ struct cols_exprlist : public collist {
   strvec  names;
 
   cols_exprlist(exprvec&& exprs_, strvec&& names_);
-  ~cols_exprlist() override;
+  virtual bool is_simple_list() const override;
 };
 
 

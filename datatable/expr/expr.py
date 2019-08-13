@@ -385,10 +385,12 @@ class FrameProxy:
 
 
     def __getitem__(self, item):
-        if not isinstance(item, (int, str)):
-            from datatable import TypeError
-            raise TypeError("Column selector should be an integer or a string, "
-                            "not %r" % type(item))
+        if not isinstance(item, (int, str, slice)):
+            from datatable import TypeError, stype, ltype
+            if not(item in [int, float, str] or
+                   isinstance(item, (stype, ltype))):
+                raise TypeError("Column selector should be an integer, string, "
+                                "or slice, not %r" % type(item))
         return Expr(OpCodes.COL, self._id, item)
 
 
