@@ -22,6 +22,7 @@
 #include "expr/collist.h"
 #include "expr/expr.h"
 #include "expr/expr_column.h"
+#include "expr/expr_columnset.h"
 #include "expr/workframe.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
@@ -38,6 +39,15 @@ static stypevec stINT = {SType::INT8, SType::INT16, SType::INT32, SType::INT64};
 static stypevec stFLOAT = {SType::FLOAT32, SType::FLOAT64};
 static stypevec stSTR = {SType::STR32, SType::STR64};
 static stypevec stOBJ = {SType::OBJ};
+
+
+template <typename T>
+static void concat_vectors(std::vector<T>& a, std::vector<T>&& b) {
+  a.reserve(a.size() + b.size());
+  for (size_t i = 0; i < b.size(); ++i) {
+    a.push_back(std::move(b[i]));
+  }
+}
 
 
 
@@ -208,6 +218,14 @@ class collist_maker
     void _process_element_expr(py::robj elem) {
       _set_type(list_type::EXPR);
       auto expr = elem.to_dtexpr();
+      if (expr->is_columnset_expr()) {
+        auto csexpr = dynamic_cast<expr::expr_columnset*>(expr.get());
+        auto collist = csexpr->convert_to_collist(wf);
+        concat_vectors(names,   collist->release_names());
+        concat_vectors(indices, collist->release_indices());
+        concat_vectors(exprs,   collist->release_exprs());
+        return;
+      }
       if (expr->is_column_expr()) {
         size_t frid = expr->get_col_frame(wf);
         if (frid == 0) {
