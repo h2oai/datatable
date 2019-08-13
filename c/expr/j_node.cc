@@ -151,7 +151,7 @@ class collist_jn : public j_node {
     strvec names;
 
   public:
-    explicit collist_jn(cols_intlist*);
+    explicit collist_jn(collist*);
     GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;
@@ -162,8 +162,9 @@ class collist_jn : public j_node {
 };
 
 
-collist_jn::collist_jn(cols_intlist* x)
-  : indices(std::move(x->indices)), names(std::move(x->names))
+collist_jn::collist_jn(collist* x)
+  : indices(x->release_indices()),
+    names(x->release_names())
 {
   xassert(names.empty() || names.size() == indices.size());
 }
@@ -258,7 +259,7 @@ class exprlist_jn : public j_node {
     strvec names;
 
   public:
-    explicit exprlist_jn(cols_exprlist*);
+    explicit exprlist_jn(collist*);
     GroupbyMode get_groupby_mode(workframe&) override;
     void select(workframe&) override;
     void delete_(workframe&) override;
@@ -269,8 +270,9 @@ class exprlist_jn : public j_node {
 };
 
 
-exprlist_jn::exprlist_jn(cols_exprlist* x)
-  : exprs(std::move(x->exprs)), names(std::move(x->names))
+exprlist_jn::exprlist_jn(collist* x)
+  : exprs(x->release_exprs()),
+    names(x->release_names())
 {
   xassert(names.empty() || names.size() == exprs.size());
 }
@@ -344,12 +346,10 @@ j_node_ptr j_node::make(py::robj src, workframe& wf) {
       || src.is_none() || src.is_ellipsis()) {
     return j_node_ptr(new allcols_jn());
   }
-  collist_ptr cl = collist::make(wf, src, "`j` selector");
-  auto cl_int = dynamic_cast<cols_intlist*>(cl.get());
-  auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
-  xassert(cl_int || cl_expr);
-  return cl_int? j_node_ptr(new collist_jn(cl_int))
-               : j_node_ptr(new exprlist_jn(cl_expr));
+  collist cl(wf, src, "`j` selector");
+  return cl.is_simple_list()
+            ? j_node_ptr(new collist_jn(&cl))
+            : j_node_ptr(new exprlist_jn(&cl));
 }
 
 

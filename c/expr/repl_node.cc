@@ -387,7 +387,7 @@ class collist_rn : public repl_node {
   intvec indices;
 
   public:
-    explicit collist_rn(cols_intlist* cl) : indices(std::move(cl->indices)) {}
+    explicit collist_rn(collist* cl) : indices(cl->release_indices()) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
     void replace_columns(workframe&, const intvec&) const override;
     void replace_values(workframe&, const intvec&) const override;
@@ -421,7 +421,7 @@ class exprlist_rn : public repl_node {
   exprvec exprs;
 
   public:
-    explicit exprlist_rn(cols_exprlist* cl) : exprs(std::move(cl->exprs)) {}
+    explicit exprlist_rn(collist* cl) : exprs(cl->release_exprs()) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
     void replace_columns(workframe&, const intvec&) const override;
     void replace_values(workframe&, const intvec&) const override;
@@ -487,12 +487,9 @@ repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   else if (src.is_float())  res = new scalar_float_rn(src.to_double());
   else if (src.is_string()) res = new scalar_string_rn(src.to_string());
   else if (src.is_dtexpr() || src.is_list_or_tuple()) {
-    auto cl = collist::make(wf, src, "replacement");
-    auto intcl = dynamic_cast<cols_intlist*>(cl.get());
-    auto expcl = dynamic_cast<cols_exprlist*>(cl.get());
-    xassert(intcl || expcl);
-    if (intcl) res = new collist_rn(std::move(intcl));
-    if (expcl) res = new exprlist_rn(std::move(expcl));
+    collist cl(wf, src, "replacement");
+    if (cl.is_simple_list()) res = new collist_rn(&cl);
+    else                     res = new exprlist_rn(&cl);
   }
   else {
     throw TypeError()

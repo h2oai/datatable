@@ -47,7 +47,7 @@ static stypevec stOBJ = {SType::OBJ};
 
 class collist_maker
 {
-  private:
+  public:
     enum class list_type : size_t {
       UNKNOWN, BOOL, INT, STR, EXPR, TYPE
     };
@@ -120,29 +120,14 @@ class collist_maker
         throw TypeError()
           << "Unsupported " << srcname << " of type " << src.typeobj();
       }
-    }
 
-
-    collist_ptr get() {
+      // Finalize
       if (type == list_type::BOOL && k != dt0->ncols) {
         throw ValueError()
             << "The length of boolean list in " << srcname
             << " does not match the number of columns in the Frame: "
             << k << " vs " << dt0->ncols;
       }
-      // A list of "EXPR" type may be either a list of plain column selectors
-      // (such as `f.A`), or a list of more complicated expressions. In the
-      // former case the vector of `indices` will be the same size as `exprs`,
-      // and we return a `collist_jn` node. In the latter case, the
-      // `exprlist_jn` node is created.
-      collist* res = nullptr;
-      if (exprs.size() > indices.size()) {
-        xassert(type == list_type::EXPR);
-        res = new cols_exprlist(std::move(exprs), std::move(names));
-      } else {
-        res = new cols_intlist(std::move(indices), std::move(names));
-      }
-      return collist_ptr(res);
     }
 
 
@@ -331,32 +316,37 @@ class collist_maker
 // collist
 //------------------------------------------------------------------------------
 
-collist::~collist() {}
-
-
-cols_intlist::cols_intlist(intvec&& indices_, strvec&& names_)
-  : indices(std::move(indices_)), names(std::move(names_)) {}
-
-bool cols_intlist::is_simple_list() const {
-  return true;
-}
-
-
-cols_exprlist::cols_exprlist(exprvec&& exprs_, strvec&& names_)
-  : exprs(std::move(exprs_)), names(std::move(names_)) {}
-
-bool cols_exprlist::is_simple_list() const {
-  return false;
-}
-
-
-collist_ptr collist::make(
-    workframe& wf, py::robj src, const char* srcname, size_t dt_index)
+collist::collist(workframe& wf, py::robj src, const char* srcname,
+                 size_t dt_index)
 {
   collist_maker maker(wf, wf.get_mode(), srcname, dt_index);
   maker.process(src);
-  return maker.get();
+  exprs = std::move(maker.exprs);
+  names = std::move(maker.names);
+  indices = std::move(maker.indices);
+  // A list of "EXPR" type may be either a list of plain column selectors
+  // (such as `f.A`), or a list of more complicated expressions. In the
+  // former case the vector of `indices` will be the same size as `exprs`,
+  // and we return a `collist_jn` node. In the latter case, the
+  // `exprlist_jn` node is created.
+  if (exprs.size() > indices.size()) {
+    xassert(maker.type == collist_maker::list_type::EXPR);
+    indices.clear();
+  }
 }
+
+
+bool collist::is_simple_list() const {
+  return (indices.size() > 0) || (exprs.size() == 0);
+}
+
+
+strvec collist::release_names()   { return std::move(names); }
+intvec collist::release_indices() { return std::move(indices); }
+exprvec collist::release_exprs()  { return std::move(exprs); }
+
+
+
 
 
 

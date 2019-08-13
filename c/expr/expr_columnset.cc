@@ -90,7 +90,7 @@ expr_simple_columnset::expr_simple_columnset(size_t frid, py::robj arg)
 
 
 collist_ptr expr_simple_columnset::convert_to_collist(workframe& wf) {
-  return collist::make(wf, selector, "", frame_id);
+  return collist_ptr(new collist(wf, selector, "", frame_id));
 }
 
 
@@ -112,13 +112,14 @@ collist_ptr expr_singlecol_columnset::convert_to_collist(workframe& wf) {
   size_t col_id = arg->get_col_index(wf);
   std::string colname = wf.get_datatable(frame_id)->get_names()[col_id];
   if (frame_id == 0) {
-    return collist_ptr(new cols_intlist({col_id}, {std::move(colname)}));
+    // FIXME
+    // return collist_ptr(new cols_intlist({col_id}, {std::move(colname)}));
   } else {
     // FIXME
     // return collist_ptr(new cols_exprlist({std::move(arg)},
                                          // {std::move(colname)}));
-    throw NotImplError();
   }
+    throw NotImplError();
 }
 
 
@@ -151,15 +152,15 @@ collist_ptr expr_sum_columnset::convert_to_collist(workframe& wf) {
   auto list1 = static_cast<expr_columnset*>(lhs.get())->convert_to_collist(wf);
   auto list2 = static_cast<expr_columnset*>(rhs.get())->convert_to_collist(wf);
   if (list1->is_simple_list() && list2->is_simple_list()) {
-    auto ilist1 = static_cast<cols_intlist*>(list1.get());
-    auto ilist2 = static_cast<cols_intlist*>(list2.get());
-    intvec iii;
-    strvec nnn;
-    iii.insert(iii.end(), ilist1->indices.begin(), ilist1->indices.end());
-    iii.insert(iii.end(), ilist2->indices.begin(), ilist2->indices.end());
-    nnn.insert(nnn.end(), ilist1->names.begin(), ilist1->names.end());
-    nnn.insert(nnn.end(), ilist2->names.begin(), ilist2->names.end());
-    return collist_ptr(new cols_intlist(std::move(iii), std::move(nnn)));
+    // auto ilist1 = static_cast<cols_intlist*>(list1.get());
+    // auto ilist2 = static_cast<cols_intlist*>(list2.get());
+    // intvec iii;
+    // strvec nnn;
+    // iii.insert(iii.end(), ilist1->indices.begin(), ilist1->indices.end());
+    // iii.insert(iii.end(), ilist2->indices.begin(), ilist2->indices.end());
+    // nnn.insert(nnn.end(), ilist1->names.begin(), ilist1->names.end());
+    // nnn.insert(nnn.end(), ilist2->names.begin(), ilist2->names.end());
+    // return collist_ptr(new cols_intlist(std::move(iii), std::move(nnn)));
   }
   throw NotImplError();
 }
