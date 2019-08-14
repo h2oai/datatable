@@ -92,23 +92,26 @@ collist_ptr expr_simple_columnset::convert_to_collist(workframe& wf) {
 //------------------------------------------------------------------------------
 
 expr_singlecol_columnset::expr_singlecol_columnset(pexpr&& a)
-  : arg(std::move(a))
-{
-  xassert(arg->is_column_expr());
-}
+  : arg(std::move(a)) {}
 
 
 collist_ptr expr_singlecol_columnset::convert_to_collist(workframe& wf) {
-  size_t frame_id = arg->get_col_frame(wf);
-  size_t col_id = arg->get_col_index(wf);
-  if (frame_id == 0) {
-    return collist_ptr(new collist({}, {col_id}, {}));
+  if (arg->is_column_expr()) {
+    size_t frame_id = arg->get_col_frame(wf);
+    size_t col_id = arg->get_col_index(wf);
+    if (frame_id == 0) {
+      return collist_ptr(new collist({}, {col_id}, {}));
+    } else {
+      std::string colname = wf.get_datatable(frame_id)->get_names()[col_id];
+      exprvec exprs;
+      exprs.push_back(std::move(arg));
+      return collist_ptr(new collist(std::move(exprs), {},
+                                     {std::move(colname)}));
+    }
   } else {
-    std::string colname = wf.get_datatable(frame_id)->get_names()[col_id];
-    exprvec exprs;
-    exprs.push_back(std::move(arg));
-    return collist_ptr(new collist(std::move(exprs), {},
-                                   {std::move(colname)}));
+      exprvec exprs;
+      exprs.push_back(std::move(arg));
+      return collist_ptr(new collist(std::move(exprs), {}, {}));
   }
 }
 
@@ -123,13 +126,10 @@ static pexpr _convert_to_columnset(pexpr&& expr) {
   if (expr->is_columnset_expr()) {
     return std::move(expr);
   }
-  if (expr->is_column_expr()) {
-    return pexpr(new expr_singlecol_columnset(std::move(expr)));
-  }
   if (expr->is_literal_expr()) {
     return pexpr(new expr_simple_columnset(0, expr->get_literal_arg()));
   }
-  throw TypeError() << "Cannot convert object into a columnset";
+  return pexpr(new expr_singlecol_columnset(std::move(expr)));
 }
 
 
