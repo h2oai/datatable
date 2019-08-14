@@ -47,6 +47,7 @@ class collist {
   public:
     collist(workframe& wf, py::robj src, const char* srcname,
             size_t dt_index = 0);
+    collist(exprvec&& exprs_, intvec&& indices_, strvec&& names_);
 
     bool is_simple_list() const;
     strvec release_names();

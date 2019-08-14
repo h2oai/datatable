@@ -354,6 +354,12 @@ collist::collist(workframe& wf, py::robj src, const char* srcname,
 }
 
 
+collist::collist(exprvec&& exprs_, intvec&& indices_, strvec&& names_)
+  : exprs(std::move(exprs_)),
+    indices(std::move(indices_)),
+    names(std::move(names_)) {}
+
+
 bool collist::is_simple_list() const {
   return (indices.size() > 0) || (exprs.size() == 0);
 }

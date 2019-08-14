@@ -30,17 +30,6 @@ namespace expr {
 
 
 class expr_columnset : public base_expr {
-  private:
-    struct item_in {
-      py::oobj selector;
-      uint32_t frame_id;
-      bool positive;
-      size_t : 24;
-    };
-    using outvec = std::vector<pexpr>;
-    std::vector<item_in> columns_in;
-    outvec columns_out;
-
   public:
     expr_columnset() = default;
     expr_columnset(const expr_columnset&) = delete;
@@ -48,27 +37,10 @@ class expr_columnset : public base_expr {
 
     virtual collist_ptr convert_to_collist(workframe&) = 0;
 
-    // expr_columnset* add(size_t dfid, py::robj selector);
-    // expr_columnset* remove(size_t dfid, py::robj selector);
-
+    bool is_columnset_expr() const override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     OColumn evaluate_eager(workframe&) override;
-
-    std::vector<SType> resolve_all(const workframe&);
-    std::vector<OColumn> evaluate_eager_all(workframe&);
-    std::vector<vcolptr> evaluate_lazy_all(workframe&);
-
-    bool is_columnset_expr() const override;
-
-  private:
-    void _add_remove(const workframe&, bool add, outvec&& items);
-    void _resolve_out_columns(const workframe&);
-    outvec _resolve_slice(const workframe&, uint32_t frame_id, py::robj src);
-    outvec _resolve_numslice(const workframe&, uint32_t, py::oslice);
-    outvec _resolve_strslice(const workframe&, uint32_t, py::oslice);
-    outvec _resolve_list(py::robj src);
-    outvec _resolve_single(py::robj src);
 };
 
 
@@ -113,6 +85,8 @@ class expr_diff_columnset : public expr_columnset {
     expr_diff_columnset(pexpr&& a, pexpr&& b);
     collist_ptr convert_to_collist(workframe&) override;
 };
+
+
 
 
 }}
