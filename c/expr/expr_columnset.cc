@@ -27,23 +27,6 @@ namespace dt {
 namespace expr {
 
 
-template <typename T>
-static void concat_vectors(std::vector<T>& a, std::vector<T>&& b) {
-  a.reserve(a.size() + b.size());
-  for (size_t i = 0; i < b.size(); ++i) {
-    a.push_back(std::move(b[i]));
-  }
-}
-
-template <typename T>
-static void delete_vector_element(std::vector<T>& vec, size_t index) {
-  if (index < vec.size()) {
-    vec.erase(vec.begin() + static_cast<long>(index));
-  }
-}
-
-
-
 
 //------------------------------------------------------------------------------
 // expr_columnset
@@ -141,19 +124,8 @@ expr_sum_columnset::expr_sum_columnset(pexpr&& a, pexpr&& b)
 collist_ptr expr_sum_columnset::convert_to_collist(workframe& wf) {
   auto list1 = static_cast<expr_columnset*>(lhs.get())->convert_to_collist(wf);
   auto list2 = static_cast<expr_columnset*>(rhs.get())->convert_to_collist(wf);
-  auto names1   = list1->release_names();
-  auto names2   = list2->release_names();
-  auto indices1 = list1->release_indices();
-  auto indices2 = list2->release_indices();
-  auto exprs1   = list1->release_exprs();
-  auto exprs2   = list2->release_exprs();
-  concat_vectors(names1, std::move(names2));
-  concat_vectors(exprs1, std::move(exprs2));
-  concat_vectors(indices1, std::move(indices2));
-  if (indices1.size() < exprs1.size()) indices1.clear();
-  return collist_ptr(new collist(std::move(exprs1),
-                                 std::move(indices1),
-                                 std::move(names1)));
+  list1->append(std::move(list2));
+  return list1;
 }
 
 
@@ -171,27 +143,8 @@ expr_diff_columnset::expr_diff_columnset(pexpr&& a, pexpr&& b)
 collist_ptr expr_diff_columnset::convert_to_collist(workframe& wf) {
   auto list1 = static_cast<expr_columnset*>(lhs.get())->convert_to_collist(wf);
   auto list2 = static_cast<expr_columnset*>(rhs.get())->convert_to_collist(wf);
-  if (!list2->is_simple_list()) {
-    throw TypeError() << "Column expression cannot be removed from a columnset";
-  }
-  auto exprs1   = list1->release_exprs();
-  auto names1   = list1->release_names();
-  auto indices1 = list1->release_indices();
-  auto indices2 = list2->release_indices();
-  for (size_t i = 0; i < indices2.size(); ++i) {
-    for (size_t j = 0; j < indices1.size(); ++j) {
-      if (indices1[j] == indices2[i]) {
-        delete_vector_element(exprs1, j);
-        delete_vector_element(names1, j);
-        delete_vector_element(indices1, j);
-        break;
-      }
-    }
-    // If the item to be erased not found, then don't treat this as an error.
-  }
-  return collist_ptr(new collist(std::move(exprs1),
-                                 std::move(indices1),
-                                 std::move(names1)));
+  list1->exclude(std::move(list2));
+  return list1;
 }
 
 

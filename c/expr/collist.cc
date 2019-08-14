@@ -350,7 +350,10 @@ collist::collist(workframe& wf, py::robj src, const char* srcname,
   if (exprs.size() > indices.size()) {
     xassert(maker.type == collist_maker::list_type::EXPR);
     indices.clear();
+  } else {
+    exprs.clear();
   }
+  check_integrity();
 }
 
 
@@ -361,7 +364,11 @@ collist::collist(exprvec&& exprs_, intvec&& indices_, strvec&& names_)
 
 
 bool collist::is_simple_list() const {
-  return (indices.size() > 0) || (exprs.size() == 0);
+  return (exprs.size() == 0);
+}
+
+size_t collist::size() const {
+  return indices.size() + exprs.size();
 }
 
 
@@ -371,6 +378,100 @@ exprvec collist::release_exprs()  { return std::move(exprs); }
 
 
 
+template <typename T>
+static void append_vector(std::vector<T>& a, std::vector<T>&& b) {
+  if (b.empty()) return;
+  a.reserve(a.size() + b.size());
+  for (size_t i = 0; i < b.size(); ++i) {
+    a.emplace_back(std::move(b[i]));
+  }
+}
+
+template <typename T>
+static void delete_vector_element(std::vector<T>& vec, size_t index) {
+  if (index < vec.size()) {
+    vec.erase(vec.begin() + static_cast<long>(index));
+  }
+}
+
+static exprvec indices2exprs(const intvec& vec) {
+  exprvec res;
+  res.reserve(vec.size());
+  for (size_t i = 0; i < vec.size(); ++i) {
+    res.emplace_back(new expr::expr_column(0, i));
+  }
+  return res;
+}
+
+
+void collist::append(collist_ptr&& other) {
+  size_t len1 = size();
+  auto names2 = other->release_names();
+  auto indxs2 = other->release_indices();
+  auto exprs2 = other->release_exprs();
+  if (exprs.size() == 0 && exprs2.size() == 0) {
+    append_vector(indices, std::move(indxs2));
+  }
+  else {
+    if (!indices.empty()) {
+      xassert(exprs.empty());
+      exprs = indices2exprs(indices);
+      indices.clear();
+    }
+    append_vector(exprs, std::move(exprs2));
+    append_vector(exprs, indices2exprs(indxs2));
+  }
+  if (!names2.empty()) {
+    names.resize(len1);
+    append_vector(names, std::move(names2));
+  }
+  check_integrity();
+}
+
+
+void collist::exclude(collist_ptr&& other) {
+  if (!other->is_simple_list()) {
+    throw TypeError() << "Column expressions cannot be removed from a columnset";
+  }
+  auto indices2 = other->release_indices();
+  for (size_t i = 0; i < indices2.size(); ++i) {
+    size_t column_index_to_find = indices2[i];
+    if (!indices.empty()) {
+      xassert(exprs.empty());
+      for (size_t j = 0; j < indices.size(); ++j) {
+        if (indices[j] == column_index_to_find) {
+          delete_vector_element(names, j);
+          delete_vector_element(indices, j);
+          break;
+        }
+      }
+    }
+    if (!exprs.empty()) {
+      workframe wf;
+      xassert(indices.empty());
+      for (size_t j = 0; j < exprs.size(); ++j) {
+        if (!exprs[j]->is_column_expr()) continue;
+        if (exprs[j]->get_col_frame(wf) != 0) continue;
+        size_t k = exprs[j]->get_col_index(wf);
+        if (k == column_index_to_find) {
+          delete_vector_element(names, j);
+          delete_vector_element(exprs, j);
+          break;
+        }
+      }
+    }
+    // If the item to be erased not found, then don't treat this as an error.
+  }
+  check_integrity();
+}
+
+
+void collist::check_integrity() {
+  #ifndef NDEBUG
+    xassert(indices.size() == 0 || exprs.size() == 0);
+    xassert(names.size() <= indices.size() + exprs.size());
+  #endif
+}
 
 
 

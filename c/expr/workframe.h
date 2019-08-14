@@ -94,7 +94,7 @@ class workframe {
     std::vector<ripair> all_ri;
 
   public:
-    workframe() = delete;
+    workframe() = default;
     workframe(const workframe&) = delete;
     workframe(workframe&&) = delete;
 

@@ -53,6 +53,13 @@ class collist {
     strvec release_names();
     intvec release_indices();
     exprvec release_exprs();
+
+    size_t size() const;
+    void append(collist_ptr&&);
+    void exclude(collist_ptr&&);
+
+  private:
+    void check_integrity();
 };
 
 
