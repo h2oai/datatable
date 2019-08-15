@@ -87,6 +87,7 @@ messages, and powerful API similar to R ``data.table``'s.
     :maxdepth: 2
     :hidden:
 
+    f-expressions
     install
     contrib
 
