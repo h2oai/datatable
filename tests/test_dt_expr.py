@@ -51,51 +51,6 @@ dt_obj = [[dt, pytest, random, f, dt_int, None],
           ["one", None, 3, 9.99, stype.int32, object, isinstance]]
 
 
-#-------------------------------------------------------------------------------
-# f
-#-------------------------------------------------------------------------------
-
-def test_f_col_selector_unbound():
-    # Check that unbounded col-selectors can be stringified. The precise
-    # representation may be modified in the future; however f-expressions
-    # should not raise exceptions when printed.
-    # See issues #1024 and #1241
-    assert str(f.a) == "Expr:col(0, 'a')"
-    assert str(f.abcdefghijkl) == "Expr:col(0, 'abcdefghijkl')"
-    assert str(f.abcdefghijklm) == "Expr:col(0, 'abcdefghijklm')"
-    assert str(f[0]) == "Expr:col(0, 0)"
-    assert str(f[1000]) == "Expr:col(0, 1000)"
-    assert str(f[-1]) == "Expr:col(0, -1)"
-    assert str(f[-999]) == "Expr:col(0, -999)"
-    assert str(f[""]) == "Expr:col(0, '')"
-    assert str(f["0"]) == "Expr:col(0, '0')"
-    assert str(f["A+B"]) == "Expr:col(0, 'A+B')"
-    assert str(f["_A"]) == "Expr:col(0, '_A')"
-    assert str(f["_54"]) == "Expr:col(0, '_54')"
-    assert str(f._3_) == "Expr:col(0, '_3_')"
-    assert str(f.a_b_c) == "Expr:col(0, 'a_b_c')"
-    assert str(f[" y "]) == "Expr:col(0, ' y ')"
-    assert str(f["a b c"]) == "Expr:col(0, 'a b c')"
-
-
-def test_f_col_selector_invalid():
-    with pytest.raises(TypeError) as e:
-        noop(f[2.5])
-    assert str(e.value) == ("Column selector should be an integer, string, or "
-                            "slice, not <class 'float'>")
-    # Note: at some point we may start supporting all the expressions below:
-    with pytest.raises(TypeError):
-        noop(f[[7, 4]])
-    with pytest.raises(TypeError):
-        noop(f[("A", "B", "C")])
-    with pytest.raises(TypeError):
-        noop(f[lambda: 1])
-
-
-def test_f_expressions():
-    assert str(f.C1 < f.C2) == "Expr:lt(Expr:col(0, 'C1'), Expr:col(0, 'C2'))"
-
-
 
 #-------------------------------------------------------------------------------
 # Unary bitwise NOT (__invert__)

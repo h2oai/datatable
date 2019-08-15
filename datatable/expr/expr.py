@@ -30,6 +30,8 @@ class OpCodes(enum.Enum):
     NOOP = 0
     COL = 1
     CAST = 2
+    SETPLUS = 3
+    SETMINUS = 4
 
     # Unary
     UPLUS = 101
@@ -167,6 +169,12 @@ class Expr:
     def __repr__(self):
         return "Expr:%s(%s)" % (OpCodes(self._op).name.lower(),
                                 ", ".join(repr(x) for x in self._args))
+
+    def extend(self, other):
+        return Expr(OpCodes.SETPLUS, self, other)
+
+    def remove(self, other):
+        return Expr(OpCodes.SETMINUS, self, other)
 
 
     #----- Binary operators ----------------------------------------------------
@@ -387,7 +395,7 @@ class FrameProxy:
     def __getitem__(self, item):
         if not isinstance(item, (int, str, slice)):
             from datatable import TypeError, stype, ltype
-            if not(item in [int, float, str] or
+            if not(item in [bool, int, float, str, object, None] or
                    isinstance(item, (stype, ltype))):
                 raise TypeError("Column selector should be an integer, string, "
                                 "or slice, not %r" % type(item))

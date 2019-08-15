@@ -51,6 +51,8 @@ enum class Op : size_t {
   NOOP = 0,
   COL = 1,
   CAST = 2,
+  SETPLUS = 3,
+  SETMINUS = 4,
 
   // Unary
   UPLUS = UNOP_FIRST,

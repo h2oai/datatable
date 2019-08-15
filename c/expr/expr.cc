@@ -112,14 +112,6 @@ static pexpr make_binop(Op op, const py::otuple& args) {
   check_args_count(args, 2);
   pexpr arg1 = args[0].to_dtexpr();
   pexpr arg2 = args[1].to_dtexpr();
-  if (arg1->is_columnset_expr() || arg2->is_columnset_expr()) {
-    if (op == Op::PLUS) {
-      return pexpr(new expr_sum_columnset(std::move(arg1), std::move(arg2)));
-    }
-    if (op == Op::MINUS) {
-      return pexpr(new expr_diff_columnset(std::move(arg1), std::move(arg2)));
-    }
-  }
   return pexpr(new expr_binaryop(std::move(arg1), std::move(arg2), op));
 }
 
@@ -130,18 +122,28 @@ static pexpr make_reduce(Op op, const py::otuple& args) {
   return pexpr(new expr_reduce1(std::move(arg), op));
 }
 
-// static pexpr make_math21(Op op, const py::otuple& args) {
-//   check_args_count(args, 2);
-//   pexpr arg1 = args[0].to_dtexpr();
-//   pexpr arg2 = args[1].to_dtexpr();
-//   return pexpr(new expr_math21(std::move(arg1), std::move(arg2), op));
-// }
 
 static pexpr make_string(Op, const py::otuple& args) {
   check_args_count(args, 2);
   pexpr arg = args[0].to_dtexpr();
   py::oobj params = args[1];
   return pexpr(new expr_string_match_re(std::move(arg), params));
+}
+
+
+static pexpr make_setplus(Op, const py::otuple& args) {
+  check_args_count(args, 2);
+  pexpr arg1 = args[0].to_dtexpr();
+  pexpr arg2 = args[1].to_dtexpr();
+  return pexpr(new expr_sum_columnset(std::move(arg1), std::move(arg2)));
+}
+
+
+static pexpr make_setminus(Op, const py::otuple& args) {
+  check_args_count(args, 2);
+  pexpr arg1 = args[0].to_dtexpr();
+  pexpr arg2 = args[1].to_dtexpr();
+  return pexpr(new expr_diff_columnset(std::move(arg1), std::move(arg2)));
 }
 
 
@@ -155,6 +157,8 @@ void init_expr() {
   for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   factory[static_cast<size_t>(Op::COL)]      = make_col;
   factory[static_cast<size_t>(Op::CAST)]     = make_cast;
+  factory[static_cast<size_t>(Op::SETPLUS)]  = make_setplus;
+  factory[static_cast<size_t>(Op::SETMINUS)] = make_setminus;
   factory[static_cast<size_t>(Op::COUNT0)]   = make_count0;
   factory[static_cast<size_t>(Op::RE_MATCH)] = make_string;
   // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;

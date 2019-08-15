@@ -221,9 +221,7 @@ class collist_maker
       if (expr->is_columnset_expr()) {
         auto csexpr = dynamic_cast<expr::expr_columnset*>(expr.get());
         auto collist = csexpr->convert_to_collist(wf);
-        concat_vectors(names,   collist->release_names());
-        concat_vectors(indices, collist->release_indices());
-        concat_vectors(exprs,   collist->release_exprs());
+        append(std::move(collist));
         return;
       }
       if (expr->is_column_expr()) {
@@ -303,8 +301,7 @@ class collist_maker
         case LType::REAL:   _select_types(stFLOAT); break;
         case LType::STRING: _select_types(stSTR); break;
         case LType::OBJECT: _select_types(stOBJ); break;
-        default:
-          throw TypeError() << "Unknown ltype value " << lt;
+        default: break;
       }
     }
 
