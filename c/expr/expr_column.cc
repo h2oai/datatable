@@ -35,6 +35,10 @@ expr_column::expr_column(size_t dfid, py::robj col)
     col_id(size_t(-1)),
     col_selector(col) {}
 
+expr_column::expr_column(size_t dfid, size_t colid)
+  : frame_id(dfid),
+    col_id(colid) {}
+
 
 size_t expr_column::get_frame_id() const noexcept {
   return frame_id;
@@ -45,6 +49,10 @@ bool expr_column::is_column_expr() const {
   return true;
 }
 
+
+size_t expr_column::get_col_frame(const workframe&) {
+  return frame_id;
+}
 
 size_t expr_column::get_col_index(const workframe& wf) {
   if (col_id == size_t(-1)) {

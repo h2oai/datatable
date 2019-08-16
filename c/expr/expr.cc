@@ -25,6 +25,7 @@
 #include "expr/expr_binaryop.h"
 #include "expr/expr_cast.h"
 #include "expr/expr_column.h"
+#include "expr/expr_columnset.h"
 #include "expr/expr_literal.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_str.h"
@@ -49,12 +50,16 @@ base_expr::~base_expr() {
 }
 
 bool base_expr::is_column_expr() const { return false; }
+bool base_expr::is_columnset_expr() const { return false; }
+bool base_expr::is_literal_expr() const { return false; }
 
 bool base_expr::is_negated_expr() const { return false; }
 
 pexpr base_expr::get_negated_expr() { return pexpr(); }
 
+size_t base_expr::get_col_frame(const workframe&) { return size_t(-1); }
 size_t base_expr::get_col_index(const workframe&) { return size_t(-1); }
+py::oobj base_expr::get_literal_arg() { return py::oobj(); }
 
 vcolptr base_expr::evaluate_lazy(workframe& wf) {
   return virtualize(evaluate_eager(wf));
@@ -77,7 +82,11 @@ static void check_args_count(const py::otuple& args, size_t n) {
 static pexpr make_col(Op, const py::otuple& args) {
   check_args_count(args, 2);
   size_t frame_id = args[0].to_size_t();
-  return pexpr(new expr_column(frame_id, args[1]));
+  if (args[1].is_int() || args[1].is_string()) {
+    return pexpr(new expr_column(frame_id, args[1]));
+  } else {
+    return pexpr(new expr_simple_columnset(frame_id, args[1]));
+  }
 }
 
 static pexpr make_cast(Op, const py::otuple& args) {
@@ -98,6 +107,7 @@ static pexpr make_unop(Op op, const py::otuple& args) {
   return pexpr(new expr_unaryop(std::move(arg), op));
 }
 
+
 static pexpr make_binop(Op op, const py::otuple& args) {
   check_args_count(args, 2);
   pexpr arg1 = args[0].to_dtexpr();
@@ -105,24 +115,35 @@ static pexpr make_binop(Op op, const py::otuple& args) {
   return pexpr(new expr_binaryop(std::move(arg1), std::move(arg2), op));
 }
 
+
 static pexpr make_reduce(Op op, const py::otuple& args) {
   check_args_count(args, 1);
   pexpr arg = args[0].to_dtexpr();
   return pexpr(new expr_reduce1(std::move(arg), op));
 }
 
-// static pexpr make_math21(Op op, const py::otuple& args) {
-//   check_args_count(args, 2);
-//   pexpr arg1 = args[0].to_dtexpr();
-//   pexpr arg2 = args[1].to_dtexpr();
-//   return pexpr(new expr_math21(std::move(arg1), std::move(arg2), op));
-// }
 
 static pexpr make_string(Op, const py::otuple& args) {
   check_args_count(args, 2);
   pexpr arg = args[0].to_dtexpr();
   py::oobj params = args[1];
   return pexpr(new expr_string_match_re(std::move(arg), params));
+}
+
+
+static pexpr make_setplus(Op, const py::otuple& args) {
+  check_args_count(args, 2);
+  pexpr arg1 = args[0].to_dtexpr();
+  pexpr arg2 = args[1].to_dtexpr();
+  return pexpr(new expr_sum_columnset(std::move(arg1), std::move(arg2)));
+}
+
+
+static pexpr make_setminus(Op, const py::otuple& args) {
+  check_args_count(args, 2);
+  pexpr arg1 = args[0].to_dtexpr();
+  pexpr arg2 = args[1].to_dtexpr();
+  return pexpr(new expr_diff_columnset(std::move(arg1), std::move(arg2)));
 }
 
 
@@ -136,6 +157,8 @@ void init_expr() {
   for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   factory[static_cast<size_t>(Op::COL)]      = make_col;
   factory[static_cast<size_t>(Op::CAST)]     = make_cast;
+  factory[static_cast<size_t>(Op::SETPLUS)]  = make_setplus;
+  factory[static_cast<size_t>(Op::SETMINUS)] = make_setminus;
   factory[static_cast<size_t>(Op::COUNT0)]   = make_count0;
   factory[static_cast<size_t>(Op::RE_MATCH)] = make_string;
   // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;

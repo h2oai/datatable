@@ -19,8 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/sort_node.h"
 #include "expr/collist.h"
+#include "expr/expr.h"
+#include "expr/sort_node.h"
 #include "python/_all.h"
 #include "utils/exceptions.h"
 
@@ -94,7 +95,8 @@ void osort::init(PyObject* m) {
 
 dt::collist_ptr osort::cols(dt::workframe& wf) const {
   robj cols = reinterpret_cast<const _sort*>(v)->cols;
-  return dt::collist::make(wf, cols, "`sort`");
+  return dt::collist_ptr(
+            new dt::collist(wf, cols, "`sort`"));
 }
 
 

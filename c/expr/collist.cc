@@ -22,6 +22,7 @@
 #include "expr/collist.h"
 #include "expr/expr.h"
 #include "expr/expr_column.h"
+#include "expr/expr_columnset.h"
 #include "expr/workframe.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
@@ -40,6 +41,15 @@ static stypevec stSTR = {SType::STR32, SType::STR64};
 static stypevec stOBJ = {SType::OBJ};
 
 
+template <typename T>
+static void concat_vectors(std::vector<T>& a, std::vector<T>&& b) {
+  a.reserve(a.size() + b.size());
+  for (size_t i = 0; i < b.size(); ++i) {
+    a.push_back(std::move(b[i]));
+  }
+}
+
+
 
 //------------------------------------------------------------------------------
 // collist_maker
@@ -47,7 +57,7 @@ static stypevec stOBJ = {SType::OBJ};
 
 class collist_maker
 {
-  private:
+  public:
     enum class list_type : size_t {
       UNKNOWN, BOOL, INT, STR, EXPR, TYPE
     };
@@ -66,13 +76,14 @@ class collist_maker
     size_t : 40;
 
   public:
-    collist_maker(workframe& wf_, EvalMode mode, const char* srcname_)
+    collist_maker(workframe& wf_, EvalMode mode, const char* srcname_,
+                  size_t dt_index)
       : wf(wf_)
     {
       is_update = (mode == EvalMode::UPDATE);
       is_delete = (mode == EvalMode::DELETE);
       has_new_columns = false;
-      dt0 = wf.get_datatable(0);
+      dt0 = wf.get_datatable(dt_index);
       type = list_type::UNKNOWN;
       k = 0;
       srcname = srcname_;
@@ -119,29 +130,14 @@ class collist_maker
         throw TypeError()
           << "Unsupported " << srcname << " of type " << src.typeobj();
       }
-    }
 
-
-    collist_ptr get() {
+      // Finalize
       if (type == list_type::BOOL && k != dt0->ncols) {
         throw ValueError()
             << "The length of boolean list in " << srcname
             << " does not match the number of columns in the Frame: "
             << k << " vs " << dt0->ncols;
       }
-      // A list of "EXPR" type may be either a list of plain column selectors
-      // (such as `f.A`), or a list of more complicated expressions. In the
-      // former case the vector of `indices` will be the same size as `exprs`,
-      // and we return a `collist_jn` node. In the latter case, the
-      // `exprlist_jn` node is created.
-      collist* res = nullptr;
-      if (exprs.size() > indices.size()) {
-        xassert(type == list_type::EXPR);
-        res = new cols_exprlist(std::move(exprs), std::move(names));
-      } else {
-        res = new cols_intlist(std::move(indices), std::move(names));
-      }
-      return collist_ptr(res);
     }
 
 
@@ -222,11 +218,18 @@ class collist_maker
     void _process_element_expr(py::robj elem) {
       _set_type(list_type::EXPR);
       auto expr = elem.to_dtexpr();
-      auto colexpr = dynamic_cast<dt::expr::expr_column*>(expr.get());
-      if (colexpr) {
-        size_t frid = colexpr->get_frame_id();
+      if (expr->is_columnset_expr()) {
+        auto csexpr = dynamic_cast<expr::expr_columnset*>(expr.get());
+        auto collist = csexpr->convert_to_collist(wf);
+        concat_vectors(names,   collist->release_names());
+        concat_vectors(indices, collist->release_indices());
+        concat_vectors(exprs,   collist->release_exprs());
+        return;
+      }
+      if (expr->is_column_expr()) {
+        size_t frid = expr->get_col_frame(wf);
         if (frid == 0) {
-          size_t i = colexpr->get_col_index(wf);
+          size_t i = expr->get_col_index(wf);
           indices.push_back(i);
         }
         else if (frid >= wf.nframes()) {
@@ -300,8 +303,7 @@ class collist_maker
         case LType::REAL:   _select_types(stFLOAT); break;
         case LType::STRING: _select_types(stSTR); break;
         case LType::OBJECT: _select_types(stOBJ); break;
-        default:
-          throw TypeError() << "Unknown ltype value " << lt;
+        default: break;
       }
     }
 
@@ -331,23 +333,143 @@ class collist_maker
 // collist
 //------------------------------------------------------------------------------
 
-collist::~collist() {}
-cols_intlist::~cols_intlist() {}
-cols_exprlist::~cols_exprlist() {}
-
-
-cols_intlist::cols_intlist(intvec&& indices_, strvec&& names_)
-  : indices(std::move(indices_)), names(std::move(names_)) {}
-
-
-cols_exprlist::cols_exprlist(exprvec&& exprs_, strvec&& names_)
-  : exprs(std::move(exprs_)), names(std::move(names_)) {}
-
-
-collist_ptr collist::make(workframe& wf, py::robj src, const char* srcname) {
-  collist_maker maker(wf, wf.get_mode(), srcname);
+collist::collist(workframe& wf, py::robj src, const char* srcname,
+                 size_t dt_index)
+{
+  collist_maker maker(wf, wf.get_mode(), srcname, dt_index);
   maker.process(src);
-  return maker.get();
+  exprs = std::move(maker.exprs);
+  names = std::move(maker.names);
+  indices = std::move(maker.indices);
+  // A list of "EXPR" type may be either a list of plain column selectors
+  // (such as `f.A`), or a list of more complicated expressions. In the
+  // former case the vector of `indices` will be the same size as `exprs`,
+  // and we return a `collist_jn` node. In the latter case, the
+  // `exprlist_jn` node is created.
+  if (exprs.size() > indices.size()) {
+    xassert(maker.type == collist_maker::list_type::EXPR);
+    indices.clear();
+  } else {
+    exprs.clear();
+  }
+  check_integrity();
+}
+
+
+collist::collist(exprvec&& exprs_, intvec&& indices_, strvec&& names_)
+  : exprs(std::move(exprs_)),
+    indices(std::move(indices_)),
+    names(std::move(names_)) {}
+
+
+bool collist::is_simple_list() const {
+  return (exprs.size() == 0);
+}
+
+size_t collist::size() const {
+  return indices.size() + exprs.size();
+}
+
+
+strvec collist::release_names()   { return std::move(names); }
+intvec collist::release_indices() { return std::move(indices); }
+exprvec collist::release_exprs()  { return std::move(exprs); }
+
+
+
+template <typename T>
+static void append_vector(std::vector<T>& a, std::vector<T>&& b) {
+  if (b.empty()) return;
+  a.reserve(a.size() + b.size());
+  for (size_t i = 0; i < b.size(); ++i) {
+    a.emplace_back(std::move(b[i]));
+  }
+}
+
+template <typename T>
+static void delete_vector_element(std::vector<T>& vec, size_t index) {
+  if (index < vec.size()) {
+    vec.erase(vec.begin() + static_cast<long>(index));
+  }
+}
+
+static exprvec indices2exprs(const intvec& vec) {
+  exprvec res;
+  res.reserve(vec.size());
+  for (size_t i = 0; i < vec.size(); ++i) {
+    res.emplace_back(new expr::expr_column(0, i));
+  }
+  return res;
+}
+
+
+void collist::append(collist_ptr&& other) {
+  size_t len1 = size();
+  auto names2 = other->release_names();
+  auto indxs2 = other->release_indices();
+  auto exprs2 = other->release_exprs();
+  if (exprs.size() == 0 && exprs2.size() == 0) {
+    append_vector(indices, std::move(indxs2));
+  }
+  else {
+    if (!indices.empty()) {
+      xassert(exprs.empty());
+      exprs = indices2exprs(indices);
+      indices.clear();
+    }
+    append_vector(exprs, std::move(exprs2));
+    append_vector(exprs, indices2exprs(indxs2));
+  }
+  if (!names2.empty()) {
+    names.resize(len1);
+    append_vector(names, std::move(names2));
+  }
+  check_integrity();
+}
+
+
+void collist::exclude(collist_ptr&& other) {
+  if (!other->is_simple_list()) {
+    throw TypeError() << "Column expressions cannot be removed from a columnset";
+  }
+  auto indices2 = other->release_indices();
+  for (size_t i = 0; i < indices2.size(); ++i) {
+    size_t column_index_to_find = indices2[i];
+    if (!indices.empty()) {
+      xassert(exprs.empty());
+      for (size_t j = 0; j < indices.size(); ++j) {
+        if (indices[j] == column_index_to_find) {
+          delete_vector_element(names, j);
+          delete_vector_element(indices, j);
+          break;
+        }
+      }
+    }
+    if (!exprs.empty()) {
+      workframe wf;
+      xassert(indices.empty());
+      for (size_t j = 0; j < exprs.size(); ++j) {
+        if (!exprs[j]->is_column_expr()) continue;
+        if (exprs[j]->get_col_frame(wf) != 0) continue;
+        size_t k = exprs[j]->get_col_index(wf);
+        if (k == column_index_to_find) {
+          delete_vector_element(names, j);
+          delete_vector_element(exprs, j);
+          break;
+        }
+      }
+    }
+    // If the item to be erased not found, then don't treat this as an error.
+  }
+  check_integrity();
+}
+
+
+void collist::check_integrity() {
+  #ifndef NDEBUG
+    xassert(indices.size() == 0 || exprs.size() == 0);
+    xassert(names.size() <= indices.size() + exprs.size());
+  #endif
 }
 
 

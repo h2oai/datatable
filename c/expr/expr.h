@@ -51,6 +51,8 @@ enum class Op : size_t {
   NOOP = 0,
   COL = 1,
   CAST = 2,
+  SETPLUS = 3,
+  SETMINUS = 4,
 
   // Unary
   UPLUS = UNOP_FIRST,
@@ -179,10 +181,14 @@ class base_expr {
     virtual OColumn evaluate_eager(workframe&) = 0;
     virtual vcolptr evaluate_lazy(workframe&);
 
+    virtual bool is_columnset_expr() const;
     virtual bool is_column_expr() const;
+    virtual bool is_literal_expr() const;
     virtual bool is_negated_expr() const;
     virtual pexpr get_negated_expr();
+    virtual size_t get_col_frame(const workframe&);
     virtual size_t get_col_index(const workframe&);
+    virtual py::oobj get_literal_arg();
 };
 
 
