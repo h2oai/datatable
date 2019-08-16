@@ -221,7 +221,9 @@ class collist_maker
       if (expr->is_columnset_expr()) {
         auto csexpr = dynamic_cast<expr::expr_columnset*>(expr.get());
         auto collist = csexpr->convert_to_collist(wf);
-        append(std::move(collist));
+        concat_vectors(names,   collist->release_names());
+        concat_vectors(indices, collist->release_indices());
+        concat_vectors(exprs,   collist->release_exprs());
         return;
       }
       if (expr->is_column_expr()) {
