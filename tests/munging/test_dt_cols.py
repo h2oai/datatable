@@ -301,8 +301,6 @@ def test_j_type_bad(dt0):
     assert_valueerror(
         dt0, type,
         "Unknown type <class 'type'> used as `j` selector")
-    assert_typeerror(
-        dt0, ltype.time, "Unknown ltype value")
 
 
 
