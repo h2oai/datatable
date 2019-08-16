@@ -49,6 +49,8 @@ such columns can be addressed as::
      for year in [2017, 2018, 2019]]
 
 
+.. _`columnsets`:
+
 Multi-column selector
 ---------------------
 
