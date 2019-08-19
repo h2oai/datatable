@@ -22,6 +22,7 @@
 #include "expr/expr.h"
 #include "expr/by_node.h"
 #include "expr/collist.h"
+#include "expr/expr_column.h"
 #include "expr/workframe.h"
 #include "python/arg.h"
 #include "python/tuple.h"
@@ -89,7 +90,8 @@ void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
       pexpr cexpr = std::move(exprs[i]);
       pexpr neg = cexpr->get_negated_expr();
       if (neg) {
-        size_t j = neg->get_col_index(wf);
+        auto colexpr = dynamic_cast<dt::expr::expr_column*>(neg.get());
+        size_t j = colexpr->get_col_index(wf);
         if (j != size_t(-1)) {
           cols.emplace_back(
               j,
@@ -213,7 +215,7 @@ void oby::init(PyObject* m) {
 dt::collist_ptr oby::cols(dt::workframe& wf) const {
   // robj cols = reinterpret_cast<const pyobj*>(v)->cols;
   robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
-  return dt::collist_ptr(new dt::collist(wf, cols, "`by`"));
+  return dt::collist_ptr(new dt::collist(wf, cols, dt::collist::BY_NODE));
 }
 
 

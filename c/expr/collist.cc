@@ -70,19 +70,14 @@ class collist_maker
     exprvec exprs;
     strvec  names;
     size_t  k;  // The index of the current element
-    bool is_update;
-    bool is_delete;
-    bool has_new_columns;
-    size_t : 40;
+    size_t  flags;
 
   public:
-    collist_maker(workframe& wf_, EvalMode mode, const char* srcname_,
-                  size_t dt_index)
+    collist_maker(workframe& wf_, size_t dt_index, size_t flags_,
+                  const char* srcname_)
       : wf(wf_)
     {
-      is_update = (mode == EvalMode::UPDATE);
-      is_delete = (mode == EvalMode::DELETE);
-      has_new_columns = false;
+      flags = flags_;
       dt0 = wf.get_datatable(dt_index);
       type = list_type::UNKNOWN;
       k = 0;
@@ -107,7 +102,7 @@ class collist_maker
         }
       }
       else if (src.is_dict()) {
-        if (is_delete) {
+        if (flags & collist::FORBID_SRC_DICT) {
           throw TypeError() << "When del operator is applied, "
               << srcname << " cannot be a dictionary";
         }
@@ -201,10 +196,9 @@ class collist_maker
 
     void _process_element_string(py::robj elem) {
       _set_type(list_type::STR);
-      if (is_update) {
+      if (flags & collist::ALLOW_NEW_COLUMNS) {
         int64_t j = dt0->colindex(elem);
         if (j == -1) {
-          has_new_columns = true;
           names.resize(indices.size());
           names.push_back(elem.to_string());
         }
@@ -220,21 +214,19 @@ class collist_maker
       auto expr = elem.to_dtexpr();
       if (expr->is_columnset_expr()) {
         auto csexpr = dynamic_cast<expr::expr_columnset*>(expr.get());
-        auto collist = csexpr->convert_to_collist(wf);
+        auto collist = csexpr->convert_to_collist(wf, flags);
         concat_vectors(names,   collist->release_names());
         concat_vectors(indices, collist->release_indices());
         concat_vectors(exprs,   collist->release_exprs());
         return;
       }
-      if (expr->is_column_expr()) {
-        size_t frid = expr->get_col_frame(wf);
-        if (frid == 0) {
-          size_t i = expr->get_col_index(wf);
-          indices.push_back(i);
-        }
-        else if (frid >= wf.nframes()) {
-          throw ValueError() << "Item " << k << " of " << srcname << " list "
-              "references a non-existing join frame";
+      auto colexpr = dynamic_cast<expr::expr_column*>(expr.get());
+      if (colexpr) {
+        bool strict = !(flags & collist::ALLOW_NEW_COLUMNS);
+        size_t frame_index = colexpr->get_col_frame(wf);
+        size_t col_index = colexpr->get_col_index(wf, strict);
+        if (frame_index == 0) {
+          indices.push_back(col_index);
         }
       }
       exprs.push_back(std::move(expr));
@@ -262,8 +254,20 @@ class collist_maker
       _set_type(list_type::STR);
       py::oobj ostart = ssrc.start_obj();
       py::oobj ostop = ssrc.stop_obj();
-      size_t start = ostart.is_none()? 0 : dt0->xcolindex(ostart);
-      size_t end = ostop.is_none()? dt0->ncols - 1 : dt0->xcolindex(ostop);
+      bool strict = !(flags & collist::ALLOW_NEW_COLUMNS);
+      size_t start, end;
+      if (strict) {
+        start = ostart.is_none()? 0 : dt0->xcolindex(ostart);
+        end = ostop.is_none()? dt0->ncols - 1 : dt0->xcolindex(ostop);
+      } else {
+        // Note: colindex() may return -1 indicating the column was not found
+        int64_t s = ostart.is_none()? -2 : dt0->colindex(ostart);
+        int64_t e = ostop.is_none()? -2 : dt0->colindex(ostop);
+        // If both ends of a range are not valid, the slice is considered empty
+        if ((s + e == -3) || (s == e && s == -1)) return;
+        start = (s < 0)? 0 : static_cast<size_t>(s);
+        end = (e < 0)? dt0->ncols - 1 : static_cast<size_t>(e);
+      }
       size_t len = start <= end? end - start + 1 : start - end + 1;
       indices.reserve(len);
       if (start <= end) {
@@ -333,10 +337,17 @@ class collist_maker
 // collist
 //------------------------------------------------------------------------------
 
-collist::collist(workframe& wf, py::robj src, const char* srcname,
-                 size_t dt_index)
+collist::collist(workframe& wf, py::robj src, size_t flags, size_t dt_index)
 {
-  collist_maker maker(wf, wf.get_mode(), srcname, dt_index);
+  const char* srcname = (flags & J_NODE)? "`j` selector" :
+                        (flags & BY_NODE)? "`by`" :
+                        (flags & SORT_NODE)? "`sort`" :
+                        (flags & REPL_NODE)? "replacement" : "columnset";
+  if (flags & J_NODE) {
+    if (wf.get_mode() == EvalMode::UPDATE) flags |= ALLOW_NEW_COLUMNS;
+    if (wf.get_mode() == EvalMode::DELETE) flags |= FORBID_SRC_DICT;
+  }
+  collist_maker maker(wf, dt_index, flags, srcname);
   maker.process(src);
   exprs = std::move(maker.exprs);
   names = std::move(maker.names);
@@ -449,10 +460,11 @@ void collist::exclude(collist_ptr&& other) {
       workframe wf;
       xassert(indices.empty());
       for (size_t j = 0; j < exprs.size(); ++j) {
-        if (!exprs[j]->is_column_expr()) continue;
-        if (exprs[j]->get_col_frame(wf) != 0) continue;
-        size_t k = exprs[j]->get_col_index(wf);
-        if (k == column_index_to_find) {
+        auto colexpr = dynamic_cast<expr::expr_column*>(exprs[j].get());
+        if (!colexpr) continue;
+        size_t f = colexpr->get_col_frame(wf);
+        size_t k = colexpr->get_col_index(wf);
+        if (k == column_index_to_find && f == 0) {
           delete_vector_element(names, j);
           delete_vector_element(exprs, j);
           break;

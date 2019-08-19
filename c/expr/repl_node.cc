@@ -487,7 +487,7 @@ repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   else if (src.is_float())  res = new scalar_float_rn(src.to_double());
   else if (src.is_string()) res = new scalar_string_rn(src.to_string());
   else if (src.is_dtexpr() || src.is_list_or_tuple()) {
-    collist cl(wf, src, "replacement");
+    collist cl(wf, src, collist::REPL_NODE);
     if (cl.is_simple_list()) res = new collist_rn(&cl);
     else                     res = new exprlist_rn(&cl);
   }

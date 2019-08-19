@@ -192,5 +192,17 @@ def test_columnset_diff(DT):
     assert_equals(DT[:, f[:].remove(f[3])], DT[:, [0, 1, 2, 4, 5, 6]])
     assert_equals(DT[:, f[:].remove(f[2:-2])], DT[:, [0, 1, 5, 6]])
     assert_equals(DT[:, f[:5].remove(f[int])], DT[:, [1, 3]])
-    # FIXME
-    # assert_equals(DT[:, f[:].remove(f.Z)], DT)
+    assert_equals(DT[:, f[:].remove(f.Z)], DT)
+    assert_equals(DT[:, f[:].remove([f.Z, f.Y])], DT)
+    assert_equals(DT[:, f[:].remove(f[100:])], DT)
+
+
+def test_columnset_diff2(DT):
+    # DT has column names {ABCDEFG}.
+    # Check that removing column ranges that are partially or completely outside
+    # of column names domain work as expected.
+    assert_equals(DT[:, f[:].remove(f["F":])], DT[:, :"E"])
+    assert_equals(DT[:, f[:].remove(f["F":"Z"])], DT[:, :"E"])
+    assert_equals(DT[:, f[:].remove(f["Q":"Z"])], DT)
+    assert_equals(DT[:, f[:].remove(f["Q":])], DT)
+    assert_equals(DT[:, f[:].remove(f[:"Q"])], DT)

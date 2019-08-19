@@ -49,7 +49,6 @@ base_expr::~base_expr() {
   UNTRACK(this);
 }
 
-bool base_expr::is_column_expr() const { return false; }
 bool base_expr::is_columnset_expr() const { return false; }
 bool base_expr::is_literal_expr() const { return false; }
 
@@ -57,8 +56,6 @@ bool base_expr::is_negated_expr() const { return false; }
 
 pexpr base_expr::get_negated_expr() { return pexpr(); }
 
-size_t base_expr::get_col_frame(const workframe&) { return size_t(-1); }
-size_t base_expr::get_col_index(const workframe&) { return size_t(-1); }
 py::oobj base_expr::get_literal_arg() { return py::oobj(); }
 
 vcolptr base_expr::evaluate_lazy(workframe& wf) {

@@ -35,7 +35,7 @@ class expr_columnset : public base_expr {
     expr_columnset(const expr_columnset&) = delete;
     expr_columnset(expr_columnset&&) = delete;
 
-    virtual collist_ptr convert_to_collist(workframe&) = 0;
+    virtual collist_ptr convert_to_collist(workframe&, size_t flags) = 0;
 
     bool is_columnset_expr() const override;
     SType resolve(const workframe&) override;
@@ -51,7 +51,7 @@ class expr_simple_columnset : public expr_columnset {
 
   public:
     expr_simple_columnset(size_t frid, py::robj arg);
-    collist_ptr convert_to_collist(workframe&) override;
+    collist_ptr convert_to_collist(workframe&, size_t flags) override;
 };
 
 
@@ -61,7 +61,7 @@ class expr_singlecol_columnset : public expr_columnset {
 
   public:
     expr_singlecol_columnset(pexpr&& a);
-    collist_ptr convert_to_collist(workframe&) override;
+    collist_ptr convert_to_collist(workframe&, size_t flags) override;
 };
 
 
@@ -72,7 +72,7 @@ class expr_sum_columnset : public expr_columnset {
 
   public:
     expr_sum_columnset(pexpr&& a, pexpr&& b);
-    collist_ptr convert_to_collist(workframe&) override;
+    collist_ptr convert_to_collist(workframe&, size_t flags) override;
 };
 
 
@@ -83,7 +83,7 @@ class expr_diff_columnset : public expr_columnset {
 
   public:
     expr_diff_columnset(pexpr&& a, pexpr&& b);
-    collist_ptr convert_to_collist(workframe&) override;
+    collist_ptr convert_to_collist(workframe&, size_t flags) override;
 };
 
 

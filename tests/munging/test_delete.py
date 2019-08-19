@@ -218,7 +218,7 @@ def test_del_cols_g1():
     d0 = smalldt()
     with pytest.raises(ValueError) as e:
         del d0[:, g[1]]
-    assert ("Item 0 of `j` selector list references a non-existing join frame"
+    assert ("Column expression references a non-existing join frame"
             == str(e.value))
 
 

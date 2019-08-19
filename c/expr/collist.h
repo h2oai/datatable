@@ -45,8 +45,14 @@ class collist {
     strvec names;
 
   public:
-    collist(workframe& wf, py::robj src, const char* srcname,
-            size_t dt_index = 0);
+    static constexpr size_t J_NODE = 1;
+    static constexpr size_t BY_NODE = 2;
+    static constexpr size_t SORT_NODE = 4;
+    static constexpr size_t REPL_NODE = 8;
+    static constexpr size_t ALLOW_NEW_COLUMNS = 256;
+    static constexpr size_t FORBID_SRC_DICT = 512;
+
+    collist(workframe& wf, py::robj src, size_t flags, size_t dt_index = 0);
     collist(exprvec&& exprs_, intvec&& indices_, strvec&& names_);
 
     bool is_simple_list() const;
