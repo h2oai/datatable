@@ -24,6 +24,8 @@
 namespace dt {
 namespace expr {
 
+static constexpr size_t UNRESOLVED_COLUMN = size_t(-2);
+static constexpr size_t NEW_COLUMN = size_t(-1);
 
 
 //------------------------------------------------------------------------------
@@ -32,7 +34,7 @@ namespace expr {
 
 expr_column::expr_column(size_t dfid, py::robj col)
   : frame_id(dfid),
-    col_id(size_t(-1)),
+    col_id(UNRESOLVED_COLUMN),
     col_selector(col) {}
 
 expr_column::expr_column(size_t dfid, size_t colid)
@@ -40,41 +42,37 @@ expr_column::expr_column(size_t dfid, size_t colid)
     col_id(colid) {}
 
 
-size_t expr_column::get_frame_id() const noexcept {
+size_t expr_column::get_col_frame(const workframe& wf) {
+  if (frame_id >= wf.nframes()) {
+    throw ValueError()
+        << "Column expression references a non-existing join frame";
+  }
   return frame_id;
 }
 
 
-bool expr_column::is_column_expr() const {
-  return true;
-}
-
-
-size_t expr_column::get_col_frame(const workframe&) {
-  return frame_id;
-}
-
-size_t expr_column::get_col_index(const workframe& wf) {
-  if (col_id == size_t(-1)) {
-    if (frame_id >= wf.nframes()) {
-      throw ValueError()
-          << "Column expression references a non-existing join frame";
-    }
-    const DataTable* dt = wf.get_datatable(frame_id);
+size_t expr_column::get_col_index(const workframe& wf, bool strict) {
+  if (col_id == UNRESOLVED_COLUMN) {
+    const DataTable* dt = wf.get_datatable(get_col_frame(wf));
     if (col_selector.is_int()) {
       int64_t icolid = col_selector.to_int64_strict();
       int64_t incols = static_cast<int64_t>(dt->ncols);
       if (icolid < -incols || icolid >= incols) {
-        throw ValueError() << "Column index " << icolid << " is invalid for "
-            "a Frame with " << incols << " column" << (incols == 1? "" : "s");
+        if (strict) {
+          throw ValueError() << "Column index " << icolid << " is invalid for "
+              "a Frame with " << incols << " column" << (incols == 1? "" : "s");
+        }
+        col_id = NEW_COLUMN;
+      } else {
+        if (icolid < 0) icolid += incols;
+        col_id = static_cast<size_t>(icolid);
+        xassert(col_id < dt->ncols);
       }
-      if (icolid < 0) icolid += incols;
-      col_id = static_cast<size_t>(icolid);
     }
-    else if (col_selector.is_string()) {
-      col_id = dt->xcolindex(col_selector);
+    else {
+      col_id = strict? dt->xcolindex(col_selector)
+                     : static_cast<size_t>(dt->colindex(col_selector));
     }
-    xassert(col_id < dt->ncols);
   }
   return col_id;
 }

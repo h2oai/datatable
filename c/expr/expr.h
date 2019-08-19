@@ -182,12 +182,9 @@ class base_expr {
     virtual vcolptr evaluate_lazy(workframe&);
 
     virtual bool is_columnset_expr() const;
-    virtual bool is_column_expr() const;
     virtual bool is_literal_expr() const;
     virtual bool is_negated_expr() const;
     virtual pexpr get_negated_expr();
-    virtual size_t get_col_frame(const workframe&);
-    virtual size_t get_col_index(const workframe&);
     virtual py::oobj get_literal_arg();
 };
 

@@ -308,14 +308,14 @@ void exprlist_jn::select(workframe& wf) {
 }
 
 
-void exprlist_jn::delete_(workframe&) {
+void exprlist_jn::delete_(workframe& wf) {
   for (size_t i = 0; i < exprs.size(); ++i) {
     auto colexpr = dynamic_cast<dt::expr::expr_column*>(exprs[i].get());
     if (!colexpr) {
       throw TypeError() << "Item " << i << " in the `j` selector list is a "
         "computed expression and cannot be deleted";
     }
-    if (colexpr->get_frame_id() > 0) {
+    if (colexpr->get_col_frame(wf) > 0) {
       throw TypeError() << "Item " << i << " in the `j` selector list is a "
         "column from a joined frame and cannot be deleted";
     }
@@ -350,7 +350,7 @@ j_node_ptr j_node::make(py::robj src, workframe& wf) {
       || src.is_none() || src.is_ellipsis()) {
     return j_node_ptr(new allcols_jnode());
   }
-  collist cl(wf, src, "`j` selector");
+  collist cl(wf, src, collist::J_NODE);
   return cl.is_simple_list()
             ? j_node_ptr(new simplelist_jnode(std::move(cl)))
             : j_node_ptr(new exprlist_jn(std::move(cl)));
