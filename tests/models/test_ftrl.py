@@ -1022,6 +1022,24 @@ def test_ftrl_regression_fit():
 # Test early stopping
 #-------------------------------------------------------------------------------
 
+def test_ftrl_wrong_validation_target_type():
+    nepochs = 1234
+    nepochs_validation = 56
+    nbins = 78
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    df_X_val = df_X
+    df_y_val = dt.Frame(["Some string data" for _ in r])
+
+    with pytest.raises(TypeError) as e:
+        res = ft.fit(df_X, df_y, df_X_val, df_y_val,
+                     nepochs_validation = 0)
+    assert ("Validation and training target columns must have the same ltype, "
+            "got: `str` and `int`" == str(e.value))
+
+
 def test_ftrl_wrong_validation_parameters():
     nepochs = 1234
     nepochs_validation = 56
