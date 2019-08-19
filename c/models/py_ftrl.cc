@@ -336,9 +336,9 @@ oobj Ftrl::fit(const PKArgs& args) {
     SType stype_val = dt_y_val->get_ocolumn(0).stype();
 
     if (info(stype).ltype() != info(stype_val).ltype()) {
-      throw TypeError() << "Validation and training target columns must have "
-                         << "the same ltype, got: `" << info(stype_val).ltype_name()
-                         << "` and `" << info(stype).ltype_name() << "`";
+      throw TypeError() << "Training and validation target columns must have "
+                        << "the same ltype, got: `" << info(stype).ltype_name()
+                        << "` and `" << info(stype_val).ltype_name() << "`";
     }
 
     if (dt_X_val->nrows != dt_y_val->nrows) {
