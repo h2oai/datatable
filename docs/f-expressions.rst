@@ -82,8 +82,8 @@ when ``i`` is a slice or a type::
     f[dt.str32]   # select all columns with stype `str32`
     f[None]       # select no columns (empty columnset)
 
-In all these cases a *columnset* is returned. Such columnset may contain
-variable number of columns, or even no columns at all, depending on the frame
+In all these cases a *columnset* is returned. This columnset may contain a
+variable number of columns or even no columns at all, depending on the frame
 to which this f-expression is applied.
 
 Applying a slice to symbol ``f`` follows the same semantics as if ``f`` was a
@@ -96,7 +96,7 @@ of a frame if it exists, but throws an exception if it doesn't.
 Besides the usual numeric ranges, you can also use name ranges. These ranges
 include the first named column, the last named column, and all columns in
 between. It is not possible to mix positional and named columns in a range,
-and it is not possible to specify a step. If the range is ``x:y`` yet column
+and it is not possible to specify a step. If the range is ``x:y``, yet column
 ``x`` comes after ``y`` in the frame, then the columns will be selected in the
 reverse order: first ``x``, then the column preceding ``x``, and so on, until
 column ``y`` is selected last::
@@ -108,7 +108,7 @@ column ``y`` is selected last::
 
 Finally, you can select all columns of a particular type by using that type
 as an f-selector. You can pass either common python types ``bool``, ``int``,
-``float``, ``str``; or an stype such as ``dt.int32``, or an ltype such as
+``float``, ``str``; or you can pass an stype such as ``dt.int32``, or an ltype such as
 ``dt.ltype.obj``. You can also pass `None` to not select any columns. By itself
 this may not be very useful, but occasionally you may need this as a fallback
 in conditional expressions::
