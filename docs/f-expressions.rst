@@ -2,23 +2,31 @@
 `f`-expressions
 ===============
 
-The ``datatable`` module exports a special symbol ``f``, which is a shortcut
-for "the frame currently being operated on". This symbol can be used to
-refer to individual columns in a frame. For example, the expression::
+The ``datatable`` module exports a special symbol ``f``, which can be used
+to refer to the columns of a frame currently being operated on. If this sounds
+cryptic, consider that the most common way to operate on a frame is via the
+square-bracket call ``DT[i, j, by, ...]``. And it is often the case that within
+this expression you would want to refer to individual columns of the frame:
+either to create a filter, or a transform, or specify a grouping variable, etc.
+In all such cases the ``f`` symbol is used, and it is considered to be
+evaluated within the context of the frame ``DT``.
+
+For example, consider the expression::
 
     f.price
 
-refers to a column named "price". Note that, devoid of context, this expression
-is abstract. It can only gain a concrete meaning when applied within the context
-of a particular frame. For example,::
+By itself, it just means *a column named "price", in an unspecified frame*.
+This expression becomes concrete, however, when used with a particular frame.
+For example,::
 
     train_df[f.price > 0, :]
 
 selects all rows in ``train_df`` where the price is positive. Thus, within the
 call to ``train_df[...]``, the symbol ``f`` refers to the frame ``train_df``.
 
-If the same expression is re-applied to several different frames, then ``f``
-will refer to each of those frames in turn::
+The standalone f-expression may occasionally be useful too: it can be saved in
+a variable and then re-applied to several different frames. Each time ``f``
+will refer to the frame to which it is being applied::
 
     filter = (f.price > 0)
     train_filtered = train[filter, :]
@@ -28,21 +36,27 @@ will refer to each of those frames in turn::
 Single-column selector
 ----------------------
 
-As you have seen, the expression ``f.NAME`` can be used to refer to a column
-called "NAME". This notation doesn't work, however, if the column's name is
-not a valid python identifier; or if a column must be selected by its index.
-For these purposes the symbol ``f`` supports the square-bracket selectors::
+As you have seen, the expression ``f.NAME`` refers to a column called "NAME".
+This notation is handy, but not universal. What do you do if the column's name
+contains spaces or unicode characters? Or if a column's name is not known, only
+its index? Or if the name is in a variable? For these purposes ``f`` supports
+the square-bracket selectors::
 
-    f[-1]
-    f["Price ($)"]
+    f[-1]           # select the last column
+    f["Price ($)"]  # select column names "Price ($)"
 
-Generally, ``f[i]`` means either the column at index ``i`` (if ``i`` is an
-integer), or the column with name ``i`` (if ``i`` is a string).
+Generally, ``f[i]`` means either the column at index ``i`` if ``i`` is an
+integer, or the column with name ``i`` if ``i`` is a string.
+
+Using an integer index follows the standard Python rule for list subscripts:
+negative indices are interpreted as counting from the end of the frame, and
+requesting a column with an index outside of ``[-ncols; ncols)`` will raise
+an error.
 
 This square-bracket form is also useful when you want to access a column
 dynamically, i.e. if its name is not known in advance. For example, suppose
 there is a frame with columns "2017_01", "2017_02", ..., "2019_12". Then
-such columns can be addressed as::
+all these columns can be addressed as::
 
     [f["%d_%02d" % (year, month)]
      for month in range(1, 13)
@@ -54,9 +68,9 @@ such columns can be addressed as::
 Multi-column selector
 ---------------------
 
-In the previous section you have seen that ``f[i]`` resolves to a single
-column when ``i`` is either an integer or a string. However we alo support
-the case when ``i`` is a slice, or a type::
+In the previous section you have seen that ``f[i]`` refers to a single column
+when ``i`` is either an integer or a string. However we alo support the case
+when ``i`` is a slice or a type::
 
     f[:]          # select all columns
     f[::-1]       # select all columns in reverse order
@@ -68,20 +82,52 @@ the case when ``i`` is a slice, or a type::
     f[dt.str32]   # select all columns with stype `str32`
     f[None]       # select no columns (empty columnset)
 
-In all these cases a *columnset* is returned. Such columnset may contain 0 or
-more columns, depending upon the frame to which it is applied.
+In all these cases a *columnset* is returned. Such columnset may contain
+variable number of columns, or even no columns at all, depending on the frame
+to which this f-expression is applied.
+
+Applying a slice to symbol ``f`` follows the same semantics as if ``f`` was a
+list of columns. Thus ``f[:10]`` means the first 10 columns of a frame, or all
+columns if the frame has less than 10. Similarly, ``f[9:10]`` selects the 10th
+column of a frame if it exists, or nothing if the frame has less than 10
+columns. Compare this to selector ``f[9]``, which also selects the 10th column
+of a frame if it exists, but throws an exception if it doesn't.
+
+Besides the usual numeric ranges, you can also use name ranges. These ranges
+include the first named column, the last named column, and all columns in
+between. It is not possible to mix positional and named columns in a range,
+and it is not possible to specify a step. If the range is ``x:y`` yet column
+``x`` comes after ``y`` in the frame, then the columns will be selected in the
+reverse order: first ``x``, then the column preceding ``x``, and so on, until
+column ``y`` is selected last::
+
+    f["C1":"C9"]   # Select columns from C1 up to C9
+    f["C9":"C1"]   # Select columns C9, C8, C7, ..., C2, C1
+    f[:"C3"]       # Select all columns up to C3
+    f["C5":]       # Select all columns after C5
+
+Finally, you can select all columns of a particular type by using that type
+as an f-selector. You can pass either common python types ``bool``, ``int``,
+``float``, ``str``; or an stype such as ``dt.int32``, or an ltype such as
+``dt.ltype.obj``. You can also pass `None` to not select any columns. By itself
+this may not be very useful, but occasionally you may need this as a fallback
+in conditional expressions::
+
+    f[int if select_types == "integer" else
+      float if select_types == "floating" else
+      None]  # otherwise don't select any columns
 
 A columnset can be used in situations where a sequence of columns is expected,
 such as:
 
-- the ``i`` node of ``DT[i,j,...]```;
+- the ``j`` node of ``DT[i,j,...]``;
 - within ``by()`` and ``sort()`` functions;
-- with certain functions that operate on a sequence of columns: ``rowsum()``,
+- with certain functions that operate on sequences of columns: ``rowsum()``,
   ``rowmean``, ``rowmin``, etc;
 - many other functions that normally operate on a single column will
   automatically map over all columns in columnset::
 
-    sum(f[:])       # equivalent to [sum(f[0]), sum(f[1]), ...]
+    sum(f[:])       # equivalent to [sum(f[i]) for i in range(DT.ncols)]
     f[:3] + f[-3:]  # same as [f[0]+f[-3], f[1]+f[-2], f[2]+f[-1]]
 
 .. versionadded:: 0.10.0
