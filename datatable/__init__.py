@@ -75,6 +75,3 @@ str32 = stype.str32
 str64 = stype.str64
 obj64 = stype.obj64
 DataTable = Frame
-
-
-Frame.__module__ = "datatable"

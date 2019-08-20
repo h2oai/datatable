@@ -266,7 +266,7 @@ static PKArgs args___init__(1, 0, 3, false, true,
                             "__init__", nullptr);
 
 void Frame::impl_init_type(XTypeMaker& xt) {
-  xt.set_class_name("datatable.core.Frame");
+  xt.set_class_name("datatable.Frame");
   xt.set_class_doc(
     "Two-dimensional column-oriented table of data. Each column has its own\n"
     "name and type. Types may vary across columns but cannot vary within\n"
@@ -283,6 +283,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
   xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
+  Frame_Type = reinterpret_cast<PyObject*>(&Frame::type);
 
   _init_cbind(xt);
   _init_key(xt);
