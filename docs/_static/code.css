@@ -151,7 +151,7 @@ div.document div.output-cell .highlight pre {
 
 
 
-/* ------- Miscellaneous ---------------------------------------------------- */
+/* ------- Changelog labels ------------------------------------------------- */
 
 span.tag {
   border-radius: 3pt;
@@ -179,6 +179,9 @@ h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
 }
 
 
+
+/* ------- See also blocks -------------------------------------------------- */
+
 .admonition.seealso {
   align-items: baseline;
   background: inherit;
@@ -193,10 +196,13 @@ h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
   background: inherit;
   color: #AAA;
   display: block;
-  font-size: inherit;
   font-weight: normal;
   margin: 0pt 3pt 0 0;
   padding: 0;
+}
+
+.admonition.seealso p.last {
+  font-size: inherit;
 }
 
 .admonition.seealso p.first.admonition-title:before {
@@ -205,4 +211,16 @@ h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
 
 .admonition.seealso p.first.admonition-title:after {
   content: ":";
+}
+
+
+
+/* ------- Miscellaneous ---------------------------------------------------- */
+
+h1 {
+  border-bottom: 4px solid #444;
+}
+
+h2 {
+  margin-top: 30pt;
 }
