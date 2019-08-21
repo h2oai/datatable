@@ -51,6 +51,7 @@ public:
   Error& operator<<(float);
   Error& operator<<(double);
   Error& operator<<(SType);
+  Error& operator<<(LType);
   Error& operator<<(const CErrno&);
   Error& operator<<(const py::_obj&);
   Error& operator<<(const py::ostring&);
