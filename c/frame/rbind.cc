@@ -363,7 +363,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
     if (col.stype() != _stype) {
       col = col.cast(_stype);
     }
-    new_strbuf_size += col.secondary_size();
+    new_strbuf_size += col.get_data_size(1);
   }
   size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
 

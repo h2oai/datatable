@@ -223,14 +223,6 @@ OColumn::operator bool() const noexcept {
   return (pcol != nullptr);
 }
 
-const void* OColumn::secondary_data() const noexcept {
-  return pcol->data2();
-}
-
-size_t OColumn::secondary_size() const noexcept {
-  return pcol->data2_size();
-}
-
 
 
 
@@ -276,6 +268,22 @@ py::oobj OColumn::get_element_as_pyobject(size_t i) const {
 }
 
 
+const void* OColumn::get_data_readonly(size_t i) {
+  if (is_virtual()) pcol->materialize();
+  return i == 0 ? pcol->mbuf.rptr()
+                : pcol->data2();
+}
+
+void* OColumn::get_data_editable() {
+  if (is_virtual()) pcol->materialize();
+  return pcol->mbuf.wptr();
+}
+
+size_t OColumn::get_data_size(size_t i) {
+  if (is_virtual()) pcol->materialize();
+  return i == 0 ? pcol->mbuf.size()
+                : pcol->data2_size();
+}
 
 
 

@@ -122,9 +122,9 @@ const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    const OColumn& col = dt->get_ocolumn(i);
+    OColumn& col = dt->get_ocolumn(i);
     if (col.ltype() == LType::STRING) {
-      return static_cast<const char*>(col.secondary_data());
+      return static_cast<const char*>(col.get_data_readonly(1));
     }
   } catch (const std::exception& e) {
     exception_to_python(e);

@@ -381,9 +381,6 @@ class OColumn
 
     operator bool() const noexcept;
 
-    const void* secondary_data() const noexcept;
-    size_t secondary_size() const noexcept;
-
     // TEMP accessors to the underlying implementation
     const Column* get() const { return pcol; }
 
@@ -423,11 +420,10 @@ class OColumn
     py::oobj get_element_as_pyobject(size_t i) const;
 
     const void* get_data_readonly(size_t i = 0);
-    void* get_data_editable(size_t i = 0);
+    void* get_data_editable();
     size_t get_data_size(size_t i = 0);
 
     const void* data_r() const { return pcol->mbuf.rptr(); }
-    const void* data_with_nas_r() const { return pcol->mbuf.rptr(); }
 
 
   //------------------------------------
