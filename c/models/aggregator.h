@@ -101,8 +101,6 @@ class Aggregator : public AggregatorBase {
     void group_2d_continuous();
     void group_2d_categorical();
     void group_2d_mixed();
-    template<typename U0>
-    void group_2d_mixed_str();
     void group_nd();
 
     // Random sampling and modular quasi-random generator
