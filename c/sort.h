@@ -119,8 +119,8 @@ void insert_sort_values(const T* x, V* o, int n, GroupGatherer& gg);
 template <typename V>
 void insert_sort_keys_str(const OColumn&, size_t, V*, V*, int, GroupGatherer&, bool);
 
-template <typename T, typename V>
-void insert_sort_values_str(const OColumn&, const uint8_t*, const T*, T, V*, int, GroupGatherer&, bool);
+template <typename V>
+void insert_sort_values_str(const OColumn&, size_t, V*, int, GroupGatherer&, bool);
 
 template <int R, typename T>
 int compare_offstrings(const uint8_t*, T, T, T, T);
@@ -141,8 +141,7 @@ extern template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGat
 extern template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
 extern template void insert_sort_keys_str(const OColumn&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-extern template void insert_sort_values_str(const OColumn&, const uint8_t*, const uint32_t*, uint32_t, int32_t*, int, GroupGatherer&, bool);
-extern template void insert_sort_values_str(const OColumn&, const uint8_t*, const uint64_t*, uint64_t, int32_t*, int, GroupGatherer&, bool);
+extern template void insert_sort_values_str(const OColumn&, size_t, int32_t*, int, GroupGatherer&, bool);
 
 extern template int compare_offstrings<1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
 extern template int compare_offstrings<1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);

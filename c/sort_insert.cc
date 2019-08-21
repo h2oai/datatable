@@ -88,7 +88,7 @@ int compare_strings(const CString& a, bool a_isna,
     char a_ch = a.ch[i];
     char b_ch = b.ch[i];
     if (a_ch == b_ch) continue;
-    return (static_cast<uint8_t>(a_ch) < static_cast<uint8_t>(b_ch)) * R;
+    return (static_cast<uint8_t>(a_ch) < static_cast<uint8_t>(b_ch))? R : -R;
   }
   return a_len == b_len ? 0 : R;
 }
@@ -206,24 +206,22 @@ void insert_sort_keys_str(
 }
 
 
-template <typename T, typename V>
+template <typename V>
 void insert_sort_values_str(
-    const OColumn& column,
-    const uint8_t* strdata, const T* stroffs, T strstart, V* o, int n,
+    const OColumn& column, size_t strstart, V* o, int n,
     GroupGatherer& gg, bool descending)
 {
-  auto compfn = descending? compare_offstrings<-1, T>
-                          : compare_offstrings<1, T>;
+  CString i_value, k_value;
+  bool i_isna, k_isna;
+  auto compfn = descending? compare_strings<-1> : compare_strings<1>;
   int j;
   o[0] = 0;
   for (int i = 1; i < n; ++i) {
-    T off0i = (stroffs[i - 1] + strstart) & ~GETNA<T>();
-    T off1i = stroffs[i];
+    i_isna = column.get_element(static_cast<size_t>(i), &i_value);
     for (j = i; j > 0; j--) {
-      V k = o[j - 1];
-      T off0k = (stroffs[k - 1] + strstart) & ~GETNA<T>();
-      T off1k = stroffs[k];
-      int cmp = compfn(strdata, off0i, off1i, off0k, off1k);
+      auto k = o[j - 1];
+      k_isna = column.get_element(static_cast<size_t>(k), &k_value);
+      int cmp = compfn(i_value, i_isna, k_value, k_isna, strstart);
       if (cmp != 1) break;
       o[j] = o[j-1];
     }
@@ -231,8 +229,6 @@ void insert_sort_values_str(
   }
   if (gg) {
     gg.from_data(column, o, static_cast<size_t>(n));
-    // gg.from_data(strdata, stroffs, strstart, o,
-    //              static_cast<size_t>(n), descending);
   }
 }
 
@@ -253,8 +249,7 @@ template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&)
 template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
 template void insert_sort_keys_str(const OColumn&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-template void insert_sort_values_str(const OColumn&, const uint8_t*, const uint32_t*, uint32_t, int32_t*, int, GroupGatherer&, bool);
-template void insert_sort_values_str(const OColumn&, const uint8_t*, const uint64_t*, uint64_t, int32_t*, int, GroupGatherer&, bool);
+template void insert_sort_values_str(const OColumn&, size_t, int32_t*, int, GroupGatherer&, bool);
 
 template int compare_offstrings<1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
 template int compare_offstrings<1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);

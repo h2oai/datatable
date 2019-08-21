@@ -1316,14 +1316,9 @@ class SortContext {
         case 4: _insert_sort_values<uint32_t>(); break;
         case 8: _insert_sort_values<uint64_t>(); break;
       }
-    } else if (strtype == 1) {
-      int32_t nn = static_cast<int32_t>(n);
-      const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_values_str(column, strdata, soffs, uint32_t(0), o, nn, gg, descending);
     } else {
       int32_t nn = static_cast<int32_t>(n);
-      const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_values_str(column, strdata, soffs, uint64_t(0), o, nn, gg, descending);
+      insert_sort_values_str(column, 0, o, nn, gg, descending);
     }
   }
 
