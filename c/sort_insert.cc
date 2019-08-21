@@ -40,38 +40,15 @@
 //==============================================================================
 
 /**
- * Compare two strings a and b, each given as a pair of offsets `off0` ..
- * `off1` into the common character buffer `strdata`. If `off1` is negative,
- * then that string is an NA string. If `off0 >= off1`, then the string is
- * considered empty.
- * Return 0 if strings are equal, 1 if a < b, or -1 if a > b. An NA string
+ * Compare two strings a and b (the NA flag for each string is passed
+ * separately). The `strstart` variable instructs to perform comparisons
+ * starting from that offset in the string. If `strstart` is larger than
+ * the length of a string, that string is considered empty.
+ *
+ * Return 0 if strings are equal, R if a < b, or -R if a > b. An NA string
  * compares equal to another NA string, and less than any non-NA string. An
  * empty string compares greater than NA, but less than any non-empty string.
- *
- * Type T can be either `int32_t` or `int64_t`.
  */
-template <int R, typename T>
-int compare_offstrings(
-    const uint8_t* strdata, T aoff0, T aoff1, T boff0, T boff1)
-{
-  // Handle NAs and empty strings
-  if (ISNA<T>(boff1)) return ISNA<T>(aoff1)? 0 : -1;
-  if (ISNA<T>(aoff1)) return 1;
-  if (boff1 <= boff0) return aoff1 <= aoff0? 0 : -R;
-  if (aoff1 <= aoff0) return R;
-
-  T lena = aoff1 - aoff0;
-  T lenb = boff1 - boff0;
-  for (T t = 0; t < lena; ++t) {
-    if (t == lenb) return -R;  // b is shorter than a
-    uint8_t ca = strdata[aoff0 + t];
-    uint8_t cb = strdata[boff0 + t];
-    if (ca == cb) continue;
-    return (ca < cb)? R : -R;  // a and b differ at character t
-  }
-  return lena == lenb? 0 : R;
-}
-
 template <int R>
 int compare_strings(const CString& a, bool a_isna,
                     const CString& b, bool b_isna, size_t strstart)
@@ -250,11 +227,6 @@ template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&)
 
 template void insert_sort_keys_str(const OColumn&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
 template void insert_sort_values_str(const OColumn&, size_t, int32_t*, int, GroupGatherer&, bool);
-
-template int compare_offstrings<1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
-template int compare_offstrings<1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
-template int compare_offstrings<-1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
-template int compare_offstrings<-1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
 
 template int compare_strings<1>(const CString&, bool, const CString&, bool, size_t);
 template int compare_strings<-1>(const CString&, bool, const CString&, bool, size_t);
