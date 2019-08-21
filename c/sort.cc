@@ -443,8 +443,6 @@ class SortContext {
     int32_t* next_o;
     size_t*  histogram;
     OColumn column;
-    const uint8_t* strdata;
-    const void* stroffs;
     size_t strstart;
     size_t n;
     size_t nth;
@@ -465,8 +463,6 @@ class SortContext {
     o = nullptr;
     next_o = nullptr;
     histogram = nullptr;
-    strdata = nullptr;
-    stroffs = nullptr;
     nchunks = 0;
     chunklen = 0;
     nradixes = 0;
@@ -620,7 +616,6 @@ class SortContext {
   template <bool ASC>
   void _prepare_data_for_column() {
     strtype = 0;
-    strdata = nullptr;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
     SType stype = column.stype();
@@ -802,10 +797,6 @@ class SortContext {
    */
   template <bool ASC, typename T>
   void _initS() {
-    auto scol = static_cast<const StringColumn<T>*>(column.get());
-    strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
-    const T* offs = scol->offsets();
-    stroffs = static_cast<const void*>(offs);
     strtype = sizeof(T) / 4;
     strstart = 0;
     nsigbits = 8;
