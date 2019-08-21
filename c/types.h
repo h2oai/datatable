@@ -30,10 +30,10 @@ struct CString {
     size = static_cast<int64_t>(str.size());
     return *this;
   }
-  operator bool() { return ch != nullptr; }
+  operator bool() const { return ch != nullptr; }
   bool isna() const { return ch == nullptr; }
 
-  bool operator==(const CString& other) {
+  bool operator==(const CString& other) const {
     return (size == other.size) &&
            ((ch == other.ch) ||  // This ensures NAs are properly handled too
             (std::strncmp(ch, other.ch, static_cast<size_t>(size)) == 0));
