@@ -1090,6 +1090,27 @@ def test_ftrl_no_early_stopping():
     assert math.isnan(res.loss) == False
 
 
+def test_ftrl_early_stopping_different_stypes():
+    nepochs = 10000
+    nepochs_validation = 5
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r) # int32 stype
+    df_y_val = dt.Frame(list(r)) # int8 stype
+
+    res = ft.fit(df_X, df_y, df_X, df_y_val,
+                 nepochs_validation = nepochs_validation
+                 )
+    p = ft.predict(df_X)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert res.epoch < nepochs
+    assert res.loss < epsilon
+    assert int(res.epoch) % nepochs_validation == 0
+    assert max(delta) < epsilon
+
+
 @pytest.mark.parametrize('validation_average_niterations', [1,5,10])
 def test_ftrl_early_stopping_int(validation_average_niterations):
     nepochs = 10000
