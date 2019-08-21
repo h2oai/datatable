@@ -32,6 +32,15 @@ will refer to the frame to which it is being applied::
     train_filtered = train[filter, :]
     test_filtered = test[filter, :]
 
+The simple expression ``f.price`` can be saved in a variable too. In fact,
+there is a Frame helper method ``.export_names()`` which does exactly that:
+creates a local variable for each column name in the frame, allowing you to
+omit the ``f.`` prefix::
+
+    DT.export_names()  # create variables Id, Price and Quantity
+    DT[:, [Id, Price, Quantity, Price * Quantity]]
+
+
 
 Single-column selector
 ----------------------
