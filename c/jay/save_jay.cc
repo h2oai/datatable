@@ -101,7 +101,9 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 //------------------------------------------------------------------------------
 
 static flatbuffers::Offset<jay::Column> column_to_jay(
-    const OColumn& col, const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
+    const OColumn& col,
+    const std::string& name,
+    flatbuffers::FlatBufferBuilder& fbb,
     WritableBuffer* wb)
 {
   jay::Stats jsttype = jay::Stats_NONE;
@@ -146,7 +148,7 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
   cbb.add_name(sname);
   cbb.add_nullcount(col.na_count());
 
-  MemoryRange mbuf = col->data_buf();  // shallow copt of col's `mbuf`
+  MemoryRange mbuf = col->data_buf();  // shallow copy of col's `mbuf`
   jay::Buffer saved_mbuf = saveMemoryRange(&mbuf, wb);
   cbb.add_data(&saved_mbuf);
   if (jsttype != jay::Stats_NONE) {
