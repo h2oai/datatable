@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cstdlib>     // atoll
 #include "python/_all.h"
@@ -246,18 +246,11 @@ bool OColumn::get_element(size_t i, CString*  out) const { return pcol->get_elem
 bool OColumn::get_element(size_t i, py::robj* out) const { return pcol->get_element(i, out); }
 
 
-static inline py::oobj wrap(int32_t x) { return py::oint(x); }
-static inline py::oobj wrap(int64_t x) { return py::oint(x); }
-static inline py::oobj wrap(float x) { return py::ofloat(x); }
-static inline py::oobj wrap(double x) { return py::ofloat(x); }
-static inline py::oobj wrap(const CString& x) { return py::ostring(x); }
-static inline py::oobj wrap(const py::robj& x) { return py::oobj(x); }
-
 template <typename T>
 static inline py::oobj getelem(const OColumn& col, size_t i) {
   T x;
   bool r = col.get_element(i, &x);
-  return r? py::None() : wrap(x);
+  return r? py::None() : py::oobj::wrap(x);
 }
 
 py::oobj OColumn::get_element_as_pyobject(size_t i) const {
@@ -286,6 +279,9 @@ py::oobj OColumn::get_element_as_pyobject(size_t i) const {
 
 
 
+//------------------------------------------------------------------------------
+// OColumn : manipulation
+//------------------------------------------------------------------------------
 
 void OColumn::materialize() {
   pcol->materialize();
