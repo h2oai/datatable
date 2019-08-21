@@ -28,9 +28,10 @@
 //   - https://en.wikipedia.org/wiki/Insertion_sort
 //   - datatable/microbench/insertsort
 //------------------------------------------------------------------------------
-#include "sort.h"
 #include <cstdlib>  // std::abs
 #include <cstring>  // std::memcpy
+#include "column.h"
+#include "sort.h"
 
 
 
@@ -70,6 +71,28 @@ int compare_offstrings(
   }
   return lena == lenb? 0 : R;
 }
+
+template <int R>
+int compare_strings(const CString& a, bool a_isna,
+                    const CString& b, bool b_isna, size_t strstart)
+{
+  if (a_isna || b_isna) return a_isna - b_isna;
+  const size_t a_len = static_cast<size_t>(a.size);
+  const size_t b_len = static_cast<size_t>(b.size);
+  const bool a_isempty = (a_len <= strstart);
+  const bool b_isempty = (b_len <= strstart);
+  if (a_isempty || b_isempty) return (a_isempty - b_isempty) * R;
+
+  for (size_t i = strstart; i < a_len; ++i) {
+    if (i == b_len) return -R;
+    char a_ch = a.ch[i];
+    char b_ch = b.ch[i];
+    if (a_ch == b_ch) continue;
+    return (static_cast<uint8_t>(a_ch) < static_cast<uint8_t>(b_ch)) * R;
+  }
+  return a_len == b_len ? 0 : R;
+}
+
 
 
 
@@ -152,23 +175,22 @@ void insert_sort_keys(const T* x, V* o, V* tmp, int n, GroupGatherer& gg)
 // Finally, parameter `strstart` instructs to compare the strings starting from
 // that byte.
 //
-template <typename T, typename V>
+template <typename V>
 void insert_sort_keys_str(
-    const uint8_t* strdata, const T* stroffs, T strstart, V* o, V* tmp, int n,
+    const OColumn& column, size_t strstart, V* o, V* tmp, int n,
     GroupGatherer& gg, bool descending)
 {
-  auto compfn = descending? compare_offstrings<-1, T>
-                          : compare_offstrings<1, T>;
+  CString i_value, k_value;
+  bool i_isna, k_isna;
+  auto compfn = descending? compare_strings<-1> : compare_strings<1>;
   int j;
   tmp[0] = 0;
   for (int i = 1; i < n; ++i) {
-    T off0i = (stroffs[o[i] - 1] + strstart) & ~GETNA<T>();
-    T off1i = stroffs[o[i]];
+    i_isna = column.get_element(static_cast<size_t>(o[i]), &i_value);
     for (j = i; j > 0; --j) {
-      V k = tmp[j - 1];
-      T off0k = (stroffs[o[k] - 1] + strstart) & ~GETNA<T>();
-      T off1k = stroffs[o[k]];
-      int cmp = compfn(strdata, off0i, off1i, off0k, off1k);
+      auto k = tmp[j - 1];
+      k_isna = column.get_element(static_cast<size_t>(o[k]), &k_value);
+      int cmp = compfn(i_value, i_isna, k_value, k_isna, strstart);
       if (cmp != 1) break;
       tmp[j] = tmp[j-1];
     }
@@ -178,8 +200,7 @@ void insert_sort_keys_str(
     tmp[i] = o[tmp[i]];
   }
   if (gg) {
-    gg.from_data(strdata, stroffs, strstart, tmp,
-                 static_cast<size_t>(n), descending);
+    gg.from_data(column, tmp, static_cast<size_t>(n));
   }
   std::memcpy(o, tmp, static_cast<size_t>(n) * sizeof(V));
 }
@@ -187,6 +208,7 @@ void insert_sort_keys_str(
 
 template <typename T, typename V>
 void insert_sort_values_str(
+    const OColumn& column,
     const uint8_t* strdata, const T* stroffs, T strstart, V* o, int n,
     GroupGatherer& gg, bool descending)
 {
@@ -208,8 +230,9 @@ void insert_sort_values_str(
     o[j] = static_cast<V>(i);
   }
   if (gg) {
-    gg.from_data(strdata, stroffs, strstart, o,
-                 static_cast<size_t>(n), descending);
+    gg.from_data(column, o, static_cast<size_t>(n));
+    // gg.from_data(strdata, stroffs, strstart, o,
+    //              static_cast<size_t>(n), descending);
   }
 }
 
@@ -229,12 +252,14 @@ template void insert_sort_values(const uint16_t*, int32_t*, int, GroupGatherer&)
 template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&);
 template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
-template void insert_sort_keys_str(  const uint8_t*, const uint32_t*, uint32_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-template void insert_sort_values_str(const uint8_t*, const uint32_t*, uint32_t, int32_t*, int, GroupGatherer&, bool);
-template void insert_sort_keys_str(  const uint8_t*, const uint64_t*, uint64_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-template void insert_sort_values_str(const uint8_t*, const uint64_t*, uint64_t, int32_t*, int, GroupGatherer&, bool);
+template void insert_sort_keys_str(const OColumn&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
+template void insert_sort_values_str(const OColumn&, const uint8_t*, const uint32_t*, uint32_t, int32_t*, int, GroupGatherer&, bool);
+template void insert_sort_values_str(const OColumn&, const uint8_t*, const uint64_t*, uint64_t, int32_t*, int, GroupGatherer&, bool);
 
 template int compare_offstrings<1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
 template int compare_offstrings<1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
 template int compare_offstrings<-1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
 template int compare_offstrings<-1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
+
+template int compare_strings<1>(const CString&, bool, const CString&, bool, size_t);
+template int compare_strings<-1>(const CString&, bool, const CString&, bool, size_t);

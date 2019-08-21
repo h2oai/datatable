@@ -1262,14 +1262,8 @@ class SortContext {
                   case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
                   case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
                 }
-              } else if (strtype == 1) {
-                const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-                uint32_t ss = static_cast<uint32_t>(_strstart + 1);
-                insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg, descending);
               } else {
-                const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-                uint64_t ss = static_cast<uint64_t>(_strstart + 1);
-                insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg, descending);
+                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending);
               }
               if (make_groups) {
                 rrmap[i].size = static_cast<size_t>(tgg.size());
@@ -1309,12 +1303,8 @@ class SortContext {
         case 4: _insert_sort_keys<uint32_t>(tmp); break;
         case 8: _insert_sort_keys<uint64_t>(tmp); break;
       }
-    } else if (strtype == 1) {
-      const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, uint32_t(0), o, tmp, nn, gg, descending);
     } else {
-      const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, uint64_t(0), o, tmp, nn, gg, descending);
+      insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending);
     }
   }
 
@@ -1329,11 +1319,11 @@ class SortContext {
     } else if (strtype == 1) {
       int32_t nn = static_cast<int32_t>(n);
       const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, uint32_t(0), o, nn, gg, descending);
+      insert_sort_values_str(column, strdata, soffs, uint32_t(0), o, nn, gg, descending);
     } else {
       int32_t nn = static_cast<int32_t>(n);
       const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, uint64_t(0), o, nn, gg, descending);
+      insert_sort_values_str(column, strdata, soffs, uint64_t(0), o, nn, gg, descending);
     }
   }
 

@@ -5,9 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "sort.h"
 #include <utility>  // std::move
 #include "utils/assert.h"
+#include "column.h"
+#include "sort.h"
 
 
 
@@ -70,6 +71,26 @@ void GroupGatherer::from_data(
 }
 
 
+template <typename V>
+void GroupGatherer::from_data(const OColumn& column, const V* o, size_t n) {
+  if (n == 0) return;
+  CString last_value, curr_value;
+  bool last_na, curr_na;
+  last_na = column.get_element(static_cast<size_t>(o[0]), &last_value);
+  size_t last_i = 0;
+  for (size_t i = 1; i < n; ++i) {
+    curr_na = column.get_element(static_cast<size_t>(o[i]), &curr_value);
+    if (compare_strings<1>(last_value, last_na, curr_value, curr_na, 0)) {
+      push(i - last_i);
+      last_i = i;
+      last_na = curr_na;
+      last_value = curr_value;
+    }
+  }
+  push(n - last_i);
+}
+
+
 void GroupGatherer::from_chunks(radix_range* rrmap, size_t nradixes) {
   xassert(count == 0);
   size_t dest_off = 0;
@@ -112,3 +133,5 @@ template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint8_t*, const uint32_t*, uint32_t, int32_t*, size_t, bool);
 template void GroupGatherer::from_data(const uint8_t*, const uint64_t*, uint64_t, int32_t*, size_t, bool);
+template void GroupGatherer::from_data(const OColumn&, const int32_t*, size_t);
+template void GroupGatherer::from_data(const OColumn&, const int64_t*, size_t);
