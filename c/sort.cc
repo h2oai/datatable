@@ -1390,7 +1390,7 @@ static RowIndex sort_tiny(const OColumn& col, Groupby* out_grps) {
 }
 
 
-RowIndex Column::_sort(Groupby* out_grps) const {
+RowIndex ColumnImpl::_sort(Groupby* out_grps) const {
   OColumn ocol(this->shallowcopy());
   return ocol.sort(out_grps);
 }

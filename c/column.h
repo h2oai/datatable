@@ -35,7 +35,6 @@ class DataTable;
 class BoolColumn;
 class PyObjectColumn;
 class FreadReader;  // used as a friend
-class iterable;     // helper for Column::from_py_iterable
 template <typename T> class IntColumn;
 template <typename T> class RealColumn;
 template <typename T> class StringColumn;
@@ -111,9 +110,9 @@ inline PyObject* downcast(py::robj v) {
 /**
  * A single column within a DataTable.
  *
- * A Column is a self-sufficient object, i.e. it may exist outside of a
+ * A ColumnImpl is a self-sufficient object, i.e. it may exist outside of a
  * DataTable too. This usually happens when a DataTable is being transformed,
- * then new Column objects will be created, manipulated, and eventually bundled
+ * then new ColumnImpl objects will be created, manipulated, and eventually bundled
  * into a new DataTable object.
  *
  * The main "payload" of this class is the data buffer `mbuf`, which contains
@@ -122,10 +121,10 @@ inline PyObject* downcast(py::robj v) {
  * character data (while `mbuf` stores the offsets).
  *
  * The data buffer `mbuf` may be shared across multiple columns: this enables
- * light-weight "shallow" copying of Column objects. A Column may also reference
- * another Column's `mbuf` applying a RowIndex `ri` to it. When a RowIndex is
+ * light-weight "shallow" copying of ColumnImpl objects. A ColumnImpl may also reference
+ * another ColumnImpl's `mbuf` applying a RowIndex `ri` to it. When a RowIndex is
  * present, it selects a subset of elements from `mbuf`, and only those
- * sub-elements are considered to be the actual values in the Column.
+ * sub-elements are considered to be the actual values in the ColumnImpl.
  *
  * Parameters
  * ----------
@@ -135,19 +134,19 @@ inline PyObject* downcast(py::robj v) {
  *
  * ri
  *     RowIndex applied to the column's data. All access to the contents of the
- *     Column should go through the rowindex. For example, the `i`-th element
+ *     ColumnImpl should go through the rowindex. For example, the `i`-th element
  *     in the column can be found as `mbuf->get_elem<T>(ri[i])`.
  *     This may also be NULL, which is equivalent to being an identity rowindex.
  *
  * nrows
- *     Number of elements in this column. If the Column has a rowindex, then
+ *     Number of elements in this column. If the ColumnImpl has a rowindex, then
  *     this number will be the same as the number of elements in the rowindex.
  *
  * stats
  *     Auxiliary structure that contains stat values about this column, if
  *     they were computed.
  */
-class Column
+class ColumnImpl
 {
 protected:
   MemoryRange mbuf;
@@ -158,9 +157,9 @@ protected:
   size_t : 56;
 
 public:
-  Column(const Column&) = delete;
-  Column(Column&&) = delete;
-  virtual ~Column();
+  ColumnImpl(const ColumnImpl&) = delete;
+  ColumnImpl(ColumnImpl&&) = delete;
+  virtual ~ColumnImpl();
 
   virtual bool get_element(size_t i, int32_t* out) const;
   virtual bool get_element(size_t i, int64_t* out) const;
@@ -191,7 +190,7 @@ public:
 
   /**
    * Resize the column up to `nrows` elements, and fill all new elements with
-   * NA values, except when the Column initially had just one row, in which case
+   * NA values, except when the ColumnImpl initially had just one row, in which case
    * that one value will be used to fill the new rows. For example:
    *
    *   {1, 2, 3, 4}.resize_and_fill(5) -> {1, 2, 3, 4, NA}
@@ -207,21 +206,21 @@ public:
   OColumn repeat(size_t nreps) const;
 
   /**
-   * Modify the Column, replacing values specified by the provided `mask` with
+   * Modify the ColumnImpl, replacing values specified by the provided `mask` with
    * NAs. The `mask` column must have the same number of rows as the current,
    * and neither of them can have a RowIndex.
    */
   virtual void apply_na_mask(const OColumn& mask) = 0;
 
   /**
-   * Create a shallow copy of this Column, possibly applying the provided
+   * Create a shallow copy of this ColumnImpl, possibly applying the provided
    * RowIndex. The copy is "shallow" in the sense that the main data buffer
    * is copied by-reference. If this column has a rowindex, and the user
    * asks to apply a new rowindex, then the new one will replace the original.
    * If you want the rowindices to be merged, you should merge them manually
    * and pass the merged rowindex to this method.
    */
-  virtual Column* shallowcopy() const;
+  virtual ColumnImpl* shallowcopy() const;
 
   /**
    * Factory method to cast the current column into the given `stype`. If a
@@ -230,19 +229,19 @@ public:
    * converted data into it.
    *
    * If the MemoryRange is provided, then that buffer will be used in the
-   * creation of the resulting column (the Column will assume ownership of the
+   * creation of the resulting column (the ColumnImpl will assume ownership of the
    * provided MemoryRange).
    */
 
   /**
    * Replace values at positions given by the RowIndex `replace_at` with
-   * values taken from the Column `replace_with`. The ltype of the replacement
+   * values taken from the ColumnImpl `replace_with`. The ltype of the replacement
    * column should be compatible with the current, and its number of rows
    * should be either 1 or equal to the length of `replace_at` (which must not
    * be empty).
    * The values are replaced in-place, if possible (if reference count is 1),
    * or otherwise the copy of a column is created and returned, and the
-   * current Column object is deleted.
+   * current ColumnImpl object is deleted.
    *
    * If the `replace_with` column is nullptr, then the values will be replaced
    * with NAs.
@@ -257,8 +256,8 @@ public:
    * returns the resulting column. This method is equivalent to `list.append()`
    * in Python or `rbind()` in R.
    *
-   * Current column is modified in-place, if possible. Otherwise, a new Column
-   * object is returned, and this Column is deleted. The expected usage pattern
+   * Current column is modified in-place, if possible. Otherwise, a new ColumnImpl
+   * object is returned, and this ColumnImpl is deleted. The expected usage pattern
    * is thus as follows:
    *
    *   column = column->rbind(columns_to_bind);
@@ -266,19 +265,19 @@ public:
    * Individual entries in the `columns` array may be instances of `VoidColumn`,
    * indicating columns that should be replaced with NAs.
    */
-  // Column* rbind(colvec& columns);
+  // ColumnImpl* rbind(colvec& columns);
 
   /**
-   * "Materialize" the Column. If the Column has no rowindex, this is a no-op.
+   * "Materialize" the ColumnImpl. If the ColumnImpl has no rowindex, this is a no-op.
    * Otherwise, this method "applies" the rowindex to the column's data and
    * subsequently replaces the column's data buffer with a new one that contains
-   * "plain" data. The rowindex object is subsequently released, and the Column
+   * "plain" data. The rowindex object is subsequently released, and the ColumnImpl
    * becomes converted from "view column" into a "data column".
    *
    * This operation is in-place, and we attempt to reuse existing memory buffer
    * whenever possible.
    *
-   * If the Column's rowindex carries groupby information, then we retain it
+   * If the ColumnImpl's rowindex carries groupby information, then we retain it
    * by replacing the current rowindex with the "plain slice" (i.e. a slice
    * with step 1).
    */
@@ -286,7 +285,7 @@ public:
 
 
   /**
-   * Check that the data in this Column object is correct. `name` is the name of
+   * Check that the data in this ColumnImpl object is correct. `name` is the name of
    * the column to be used in the diagnostic messages.
    */
   virtual void verify_integrity(const std::string& name) const;
@@ -306,7 +305,7 @@ public:
   virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) = 0;
 
 protected:
-  Column(size_t nrows = 0);
+  ColumnImpl(size_t nrows = 0);
   virtual void init_data() = 0;
   virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty) = 0;
 
@@ -314,7 +313,7 @@ protected:
    * Sets every row in the column to an NA value. As of now this method
    * modifies every element in the column's memory buffer regardless of its
    * refcount or rowindex. Use with caution.
-   * This implementation will be made safer after Column::extract is modified
+   * This implementation will be made safer after ColumnImpl::extract is modified
    * to be an in-place operation.
    */
   virtual void fill_na() = 0;
@@ -328,8 +327,8 @@ protected:
 // OColumn
 //------------------------------------------------------------------------------
 
-// "owner" of a Column
-// Eventually will be renamed into simple Column
+// "owner" of a ColumnImpl
+// Eventually will be renamed into simple ColumnImpl
 class OColumn
 {
   private:
@@ -337,7 +336,7 @@ class OColumn
     // reference count reaches 0, the object is deleted.
     // We do not use std::shared_ptr<> here primarily because it makes it much
     // harder to inspect the object in GDB / LLDB.
-    Column* pcol;
+    ColumnImpl* pcol;
 
   public:
     static constexpr size_t MAX_ARR32_SIZE = 0x7FFFFFFF;
@@ -365,7 +364,7 @@ class OColumn
 
   private:
     // Assumes ownership of the `col` object
-    explicit OColumn(Column* col);
+    explicit OColumn(ColumnImpl* col);
 
   //------------------------------------
   // Properties
@@ -381,8 +380,8 @@ class OColumn
 
     operator bool() const noexcept;
 
-    Column* operator->();
-    const Column* operator->() const;
+    ColumnImpl* operator->();
+    const ColumnImpl* operator->() const;
 
 
   //------------------------------------
@@ -460,7 +459,7 @@ class OColumn
 
 
   //------------------------------------
-  // Column manipulation
+  // ColumnImpl manipulation
   //------------------------------------
   public:
     void rbind(colvec& columns);
@@ -474,7 +473,7 @@ class OColumn
 
     friend void swap(OColumn& lhs, OColumn& rhs);
     friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
-    friend class Column;
+    friend class ColumnImpl;
 };
 
 
@@ -482,7 +481,7 @@ class OColumn
 
 //==============================================================================
 
-template <typename T> class FwColumn : public Column
+template <typename T> class FwColumn : public ColumnImpl
 {
 public:
   FwColumn();
@@ -506,7 +505,7 @@ protected:
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void fill_na() override;
 
-  friend Column;
+  friend ColumnImpl;
 };
 
 
@@ -534,8 +533,8 @@ public:
 
   void verify_integrity(const std::string& name) const override;
 
-  using Column::mbuf;
-  friend Column;
+  using ColumnImpl::mbuf;
+  friend ColumnImpl;
 };
 
 
@@ -552,9 +551,9 @@ public:
   bool get_element(size_t i, int64_t* out) const override;
 
 protected:
-  using Column::stats;
-  using Column::mbuf;
-  friend Column;
+  using ColumnImpl::stats;
+  using ColumnImpl::mbuf;
+  friend ColumnImpl;
 };
 
 extern template class IntColumn<int8_t>;
@@ -574,8 +573,8 @@ public:
   bool get_element(size_t i, T* out) const override;
 
 protected:
-  using Column::stats;
-  friend Column;
+  using ColumnImpl::stats;
+  friend ColumnImpl;
 };
 
 extern template class RealColumn<float>;
@@ -586,13 +585,13 @@ extern template class RealColumn<double>;
 //==============================================================================
 
 /**
- * Column containing `PyObject*`s.
+ * ColumnImpl containing `PyObject*`s.
  *
  * This column is a fall-back for implementing types that cannot be normally
  * supported by other columns. Manipulations with this column almost invariably
  * go through Python runtime, and hence are single-threaded and slow.
  *
- * The `mbuf` array for this Column must be marked as "pyobjects" (see
+ * The `mbuf` array for this ColumnImpl must be marked as "pyobjects" (see
  * documentation for MemoryRange). In practice it means that:
  *   * Only real python objects may be stored, not NULL pointers.
  *   * All stored `PyObject*`s must have their reference counts incremented.
@@ -618,7 +617,7 @@ protected:
   void materialize() override;
   void verify_integrity(const std::string& name) const override;
 
-  friend Column;
+  friend ColumnImpl;
 };
 
 
@@ -627,7 +626,7 @@ protected:
 // String column
 //==============================================================================
 
-template <typename T> class StringColumn : public Column
+template <typename T> class StringColumn : public ColumnImpl
 {
   MemoryRange strbuf;
 
@@ -650,7 +649,7 @@ public:
   const void* data2() const override { return strbuf.rptr(); }
   size_t data2_size() const override { return strbuf.size(); }
 
-  Column* shallowcopy() const override;
+  ColumnImpl* shallowcopy() const override;
   void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
 
   void verify_integrity(const std::string& name) const override;
@@ -666,8 +665,8 @@ protected:
 
   void fill_na() override;
 
-  friend Column;
-  friend FreadReader;  // friend Column* alloc_column(SType, size_t, int);
+  friend ColumnImpl;
+  friend FreadReader;  // friend ColumnImpl* alloc_column(SType, size_t, int);
   friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
 };
 
@@ -687,9 +686,9 @@ extern template class StringColumn<uint64_t>;
 
 //==============================================================================
 
-// "Fake" column, its only use is to serve as a placeholder for a Column with an
+// "Fake" column, its only use is to serve as a placeholder for a ColumnImpl with an
 // unknown type. This column cannot be put into a DataTable.
-class VoidColumn : public Column {
+class VoidColumn : public ColumnImpl {
   public:
     VoidColumn();
     VoidColumn(size_t nrows);
@@ -704,7 +703,7 @@ class VoidColumn : public Column {
     void init_data() override;
     void fill_na() override;
 
-    friend Column;
+    friend ColumnImpl;
 };
 
 

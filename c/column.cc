@@ -17,14 +17,14 @@
 #include "sort.h"
 
 
-Column::Column(size_t nrows)
+ColumnImpl::ColumnImpl(size_t nrows)
     : _nrows(nrows) {}
 
-Column::~Column() {}
+ColumnImpl::~ColumnImpl() {}
 
 
 
-static Column* new_column_impl(SType stype) {
+static ColumnImpl* new_column_impl(SType stype) {
   switch (stype) {
     case SType::VOID:    return new VoidColumn();
     case SType::BOOL:    return new BoolColumn();
@@ -45,7 +45,7 @@ static Column* new_column_impl(SType stype) {
 
 
 OColumn OColumn::new_data_column(SType stype, size_t nrows) {
-  Column* col = new_column_impl(stype);
+  ColumnImpl* col = new_column_impl(stype);
   col->_nrows = nrows;
   col->init_data();
   return OColumn(col);
@@ -62,7 +62,7 @@ OColumn OColumn::new_na_column(SType stype, size_t nrows) {
 
 OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   size_t elemsize = info(stype).elemsize();
-  Column* col = new_column_impl(stype);
+  ColumnImpl* col = new_column_impl(stype);
   xassert(mbuf.size() % elemsize == 0);
   if (stype == SType::OBJ) {
     xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
@@ -73,32 +73,32 @@ OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
 }
 
 
-bool Column::get_element(size_t, int32_t*) const {
+bool ColumnImpl::get_element(size_t, int32_t*) const {
   throw NotImplError()
     << "Cannot retrieve int32 values from a column of type " << _stype;
 }
 
-bool Column::get_element(size_t, int64_t*) const {
+bool ColumnImpl::get_element(size_t, int64_t*) const {
   throw NotImplError()
     << "Cannot retrieve int64 values from a column of type " << _stype;
 }
 
-bool Column::get_element(size_t, float*) const {
+bool ColumnImpl::get_element(size_t, float*) const {
   throw NotImplError()
     << "Cannot retrieve float values from a column of type " << _stype;
 }
 
-bool Column::get_element(size_t, double*) const {
+bool ColumnImpl::get_element(size_t, double*) const {
   throw NotImplError()
     << "Cannot retrieve double values from a column of type " << _stype;
 }
 
-bool Column::get_element(size_t, CString*) const {
+bool ColumnImpl::get_element(size_t, CString*) const {
   throw NotImplError()
     << "Cannot retrieve string values from a column of type " << _stype;
 }
 
-bool Column::get_element(size_t, py::robj*) const {
+bool ColumnImpl::get_element(size_t, py::robj*) const {
   throw NotImplError()
     << "Cannot retrieve object values from a column of type " << _stype;
 }
@@ -109,8 +109,8 @@ bool Column::get_element(size_t, py::robj*) const {
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
-Column* Column::shallowcopy() const {
-  Column* col = new_column_impl(_stype);
+ColumnImpl* ColumnImpl::shallowcopy() const {
+  ColumnImpl* col = new_column_impl(_stype);
   col->_nrows = _nrows;
   col->mbuf = mbuf;
   col->ri = ri;
@@ -119,23 +119,23 @@ Column* Column::shallowcopy() const {
 }
 
 
-size_t Column::alloc_size() const {
+size_t ColumnImpl::alloc_size() const {
   return mbuf.size();
 }
 
-PyObject* Column::mbuf_repr() const {
+PyObject* ColumnImpl::mbuf_repr() const {
   return mbuf.pyrepr();
 }
 
 
 
-RowIndex Column::remove_rowindex() {
+RowIndex ColumnImpl::remove_rowindex() {
   RowIndex res(std::move(ri));
   xassert(!ri);
   return res;
 }
 
-void Column::replace_rowindex(const RowIndex& newri) {
+void ColumnImpl::replace_rowindex(const RowIndex& newri) {
   ri = newri;
   _nrows = ri.size();
 }
@@ -153,7 +153,7 @@ void swap(OColumn& lhs, OColumn& rhs) {
 
 OColumn::OColumn() : pcol(nullptr) {}
 
-OColumn::OColumn(Column* col) : pcol(col) {}  // Steal ownership
+OColumn::OColumn(ColumnImpl* col) : pcol(col) {}  // Steal ownership
 
 OColumn::OColumn(const OColumn& other) : pcol(other.pcol->shallowcopy()) {}
 
@@ -180,11 +180,11 @@ OColumn::~OColumn() {
 
 
 
-Column* OColumn::operator->() {
+ColumnImpl* OColumn::operator->() {
   return pcol;
 }
 
-const Column* OColumn::operator->() const {
+const ColumnImpl* OColumn::operator->() const {
   return pcol;
 }
 
@@ -309,7 +309,7 @@ void OColumn::replace_values(const RowIndex& replace_at,
 //==============================================================================
 
 VoidColumn::VoidColumn() { _stype = SType::VOID; }
-VoidColumn::VoidColumn(size_t nrows) : Column(nrows) { _stype = SType::VOID; }
+VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows) { _stype = SType::VOID; }
 size_t VoidColumn::data_nrows() const { return _nrows; }
 void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
@@ -330,14 +330,14 @@ void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
 // Note: this class stores strvec by reference; therefore the lifetime
 // of the column may not exceed the lifetime of the string vector.
 //
-class StrvecColumn : public Column {
+class StrvecColumn : public ColumnImpl {
   private:
     const strvec& vec;
 
   public:
     StrvecColumn(const strvec& v);
     bool get_element(size_t i, CString* out) const override;
-    Column* shallowcopy() const override;
+    ColumnImpl* shallowcopy() const override;
 
     size_t data_nrows() const override { return _nrows; }
     void materialize() override {}
@@ -351,7 +351,7 @@ class StrvecColumn : public Column {
 };
 
 StrvecColumn::StrvecColumn(const strvec& v)
-  : Column(v.size()), vec(v)
+  : ColumnImpl(v.size()), vec(v)
 {
   _stype = SType::STR32;
 }
@@ -362,7 +362,7 @@ bool StrvecColumn::get_element(size_t i, CString* out) const {
   return false;
 }
 
-Column* StrvecColumn::shallowcopy() const {
+ColumnImpl* StrvecColumn::shallowcopy() const {
   return new StrvecColumn(vec);
 }
 

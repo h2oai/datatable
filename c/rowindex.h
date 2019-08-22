@@ -23,7 +23,6 @@
 #define dt_ROWINDEX_h
 #include "utils/array.h"
 
-class Column;
 class OColumn;
 class BoolColumn;
 class RowIndexImpl;

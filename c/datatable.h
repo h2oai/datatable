@@ -17,7 +17,6 @@
 #include "ztest.h"
 
 // avoid circular dependency between .h files
-class Column;
 class OColumn;
 class Stats;
 class DataTable;

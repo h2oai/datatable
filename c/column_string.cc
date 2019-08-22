@@ -24,7 +24,7 @@ template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 // public: create a string column for `n` rows, preallocating the offsets array
 // but leaving string buffer empty (and not allocated).
 template <typename T>
-StringColumn<T>::StringColumn(size_t n) : Column(n)
+StringColumn<T>::StringColumn(size_t n) : ColumnImpl(n)
 {
   _stype = stype_for<T>();
   mbuf = MemoryRange::mem(sizeof(T) * (n + 1));
@@ -34,7 +34,7 @@ StringColumn<T>::StringColumn(size_t n) : Column(n)
 
 // private use only
 template <typename T>
-StringColumn<T>::StringColumn() : Column(0) {
+StringColumn<T>::StringColumn() : ColumnImpl(0) {
   _stype = stype_for<T>();
 }
 
@@ -42,7 +42,7 @@ StringColumn<T>::StringColumn() : Column(0) {
 // private: use `new_string_column(n, &&mb, &&sb)` instead
 template <typename T>
 StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
-  : Column(n)
+  : ColumnImpl(n)
 {
   xassert(mb);
   xassert(mb.size() == sizeof(T) * (n + 1));
@@ -109,8 +109,8 @@ void StringColumn<T>::init_data() {
 //==============================================================================
 
 template <typename T>
-Column* StringColumn<T>::shallowcopy() const {
-  Column* newcol = Column::shallowcopy();
+ColumnImpl* StringColumn<T>::shallowcopy() const {
+  ColumnImpl* newcol = ColumnImpl::shallowcopy();
   StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
   col->strbuf = strbuf;
   return col;

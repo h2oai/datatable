@@ -58,7 +58,7 @@ static RowIndex _make_repeat_rowindex(size_t nrows, size_t nreps) {
 
 
 // TODO: we could create a special "repeated" column here
-OColumn Column::repeat(size_t nreps) const {
+OColumn ColumnImpl::repeat(size_t nreps) const {
   xassert(!info(_stype).is_varwidth());
   xassert(!ri);
   size_t esize = info(_stype).elemsize();

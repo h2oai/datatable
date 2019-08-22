@@ -18,15 +18,15 @@
  * should be subsequently called before using this column.
  */
 template <typename T>
-FwColumn<T>::FwColumn() : Column(0) {}
+FwColumn<T>::FwColumn() : ColumnImpl(0) {}
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_) : Column(nrows_) {
+FwColumn<T>::FwColumn(size_t nrows_) : ColumnImpl(nrows_) {
   mbuf.resize(sizeof(T) * nrows_);
 }
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
+FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : ColumnImpl(nrows_) {
   size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);

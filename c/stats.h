@@ -11,7 +11,7 @@
 #include <vector>
 #include "types.h"
 
-class Column;
+class ColumnImpl;
 class OColumn;
 
 
@@ -121,7 +121,7 @@ constexpr uint8_t NSTATS = 14;
 class Stats
 {
   protected:
-    Column* column;
+    ColumnImpl* column;
     std::bitset<NSTATS> _computed;
     std::bitset<NSTATS> _valid;
     size_t _countna;
@@ -130,7 +130,7 @@ class Stats
 
   //---- Generic properties ------------
   public:
-    explicit Stats(Column* col);
+    explicit Stats(ColumnImpl* col);
     Stats(const Stats&) = delete;
     Stats(Stats&&) = delete;
     virtual ~Stats();

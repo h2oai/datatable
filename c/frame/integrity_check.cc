@@ -147,7 +147,7 @@ void DataTable::verify_integrity() const
 // Column
 //------------------------------------------------------------------------------
 
-void Column::verify_integrity(const std::string& name) const {
+void ColumnImpl::verify_integrity(const std::string& name) const {
   mbuf.verify_integrity();
   ri.verify_integrity();
 
@@ -217,7 +217,7 @@ void BoolColumn::verify_integrity(const std::string& name) const {
 
 template <typename T>
 void StringColumn<T>::verify_integrity(const std::string& name) const {
-  Column::verify_integrity(name);
+  ColumnImpl::verify_integrity(name);
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
