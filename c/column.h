@@ -126,6 +126,7 @@ class OColumn
     static OColumn new_data_column(SType, size_t nrows);
     static OColumn new_na_column(SType, size_t nrows);
     static OColumn new_mbuf_column(SType, MemoryRange&&);
+    static OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
     static OColumn from_buffer(const py::robj& buffer);
     static OColumn from_pylist(const py::olist& list, int stype0 = 0);
     static OColumn from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
@@ -243,7 +244,7 @@ class OColumn
     void replace_values(const RowIndex& replace_at, const OColumn& replace_with);
 
     friend void swap(OColumn& lhs, OColumn& rhs);
-    friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
+    // friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
     friend class ColumnImpl;
 };
 
@@ -253,7 +254,7 @@ class OColumn
  * It will create either StringColumn<uint32_t>* or StringColumn<uint64_t>*
  * depending on the size of the data.
  */
-OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
+// OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
 
 
 #endif

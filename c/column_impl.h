@@ -452,7 +452,7 @@ protected:
 
   friend ColumnImpl;
   friend FreadReader;  // friend ColumnImpl* alloc_column(SType, size_t, int);
-  friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
+  friend OColumn;
 };
 
 

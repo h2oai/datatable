@@ -54,42 +54,6 @@ StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
 }
 
 
-static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
-  // TODO: make this parallel
-  MemoryRange off64 = MemoryRange::mem(offsets.size() * 2);
-  auto data64 = static_cast<uint64_t*>(off64.xptr());
-  auto data32 = static_cast<const uint32_t*>(offsets.rptr());
-  data64[0] = 0;
-  uint64_t curr_offset = 0;
-  size_t n = offsets.size() / sizeof(uint32_t) - 1;
-  for (size_t i = 1; i <= n; ++i) {
-    uint32_t len = data32[i] - data32[i - 1];
-    if (len == GETNA<uint32_t>()) {
-      data64[i] = curr_offset ^ GETNA<uint64_t>();
-    } else {
-      curr_offset += len & ~GETNA<uint32_t>();
-      data64[i] = curr_offset;
-    }
-  }
-  return off64;
-}
-
-
-OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
-  size_t data_size = data.size();
-  size_t strb_size = str.size();
-
-  if (data_size == sizeof(uint32_t) * (n + 1)) {
-    if (strb_size <= OColumn::MAX_ARR32_SIZE &&
-        n <= OColumn::MAX_ARR32_SIZE) {
-      return OColumn(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
-    }
-    // Otherwise, offsets need to be recoded into a uint64_t array
-    data = _recode_offsets_to_u64(data);
-  }
-  return OColumn(new StringColumn<uint64_t>(n, std::move(data), std::move(str)));
-}
-
 
 
 

@@ -169,7 +169,7 @@ static OColumn convert_fwchararray_to_column(Py_buffer* view)
   }
 
   strbuf.resize(static_cast<size_t>(offset));
-  return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
+  return OColumn::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -255,7 +255,7 @@ static void try_to_resolve_object_column(OColumn& col)
 
     xassert(offset < strbuf.size());
     strbuf.resize(offset);
-    col = new_string_column(nrows, std::move(offbuf), std::move(strbuf));
+    col = OColumn::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
   }
 }
 
