@@ -381,9 +381,6 @@ class OColumn
 
     operator bool() const noexcept;
 
-    // TEMP accessors to the underlying implementation
-    const Column* get() const { return pcol; }
-
     Column* operator->();
     const Column* operator->() const;
 
