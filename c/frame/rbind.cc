@@ -357,7 +357,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
   for (size_t i = 0; i < columns.size(); ++i) {
     OColumn& col = columns[i];
     if (col.stype() == SType::VOID) continue;
-    if (col.stype() != _stype) {
+    if (col.ltype() != LType::STRING) {
       col = col.cast(_stype);
     }
     new_strbuf_size += col.get_data_size(1);
@@ -391,16 +391,22 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
         rows_to_fill = 0;
       }
       const void* col_maindata = col.get_data_readonly(0);
+      constexpr T delta_na = static_cast<T>(GETNA<uint64_t>() -
+                                            GETNA<uint32_t>());
       if (col.stype() == SType::STR32) {
-        auto col_offsets = reinterpret_cast<const int32_t*>(col_maindata) + 1;
+        auto col_offsets = reinterpret_cast<const uint32_t*>(col_maindata) + 1;
         for (size_t j = 0; j < col.nrows(); ++j) {
-          *offs++ = static_cast<T>(col_offsets[j]) + curr_offset;
+          uint32_t offset = col_offsets[j];
+          *offs++ = static_cast<T>(offset) + curr_offset +
+                    (sizeof(T)==8 && ISNA<uint32_t>(offset)? delta_na : 0);
         }
       } else {
         xassert(col.stype() == SType::STR64);
-        auto col_offsets = reinterpret_cast<const int64_t*>(col_maindata) + 1;
+        auto col_offsets = reinterpret_cast<const uint64_t*>(col_maindata) + 1;
         for (size_t j = 0; j < col.nrows(); ++j) {
-          *offs++ = static_cast<T>(col_offsets[j]) + curr_offset;
+          uint64_t offset = col_offsets[j];
+          *offs++ = static_cast<T>(offset) + curr_offset -
+                    (sizeof(T)==4 && ISNA<uint64_t>(offset)? delta_na : 0);
         }
       }
       const void* col_strdata = col.get_data_readonly(1);
