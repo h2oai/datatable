@@ -15,6 +15,7 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "column.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "encodings.h"
 
@@ -24,10 +25,10 @@ namespace pybuffers {
 }
 
 // Forward declarations
-static void try_to_resolve_object_column(OColumn& col);
+static void try_to_resolve_object_column(Column& col);
 static SType stype_from_format(const char *format, int64_t itemsize);
 static const char* format_from_stype(SType stype);
-static OColumn convert_fwchararray_to_column(Py_buffer* view);
+static Column convert_fwchararray_to_column(Py_buffer* view);
 
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
 #define REQ_FORMAT(flags)   ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
@@ -46,7 +47,7 @@ static char strB[] = "B";
 // Construct a Column from a python object implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-OColumn OColumn::from_buffer(const py::robj& pyobj)
+Column Column::from_buffer(const py::robj& pyobj)
 {
   auto pview = std::unique_ptr<Py_buffer>(new Py_buffer());
   Py_buffer* view = pview.get();
@@ -92,7 +93,7 @@ OColumn OColumn::from_buffer(const py::robj& pyobj)
   SType stype = stype_from_format(view->format, view->itemsize);
   size_t nrows = static_cast<size_t>(view->len / view->itemsize);
 
-  OColumn res;
+  Column res;
   if (stype == SType::STR32) {
     res = convert_fwchararray_to_column(view);
   }
@@ -106,10 +107,10 @@ OColumn OColumn::from_buffer(const py::robj& pyobj)
     }
     const void* ptr = pview->buf;
     MemoryRange mbuf = MemoryRange::external(ptr, buffer_len, pview.release());
-    res = OColumn::new_mbuf_column(stype, std::move(mbuf));
+    res = Column::new_mbuf_column(stype, std::move(mbuf));
   }
   else {
-    res = OColumn::new_data_column(stype, nrows);
+    res = Column::new_data_column(stype, nrows);
     size_t stride = static_cast<size_t>(view->strides[0] / view->itemsize);
     if (view->itemsize == 8) {
       int64_t* out = static_cast<int64_t*>(res->data_w());
@@ -144,7 +145,7 @@ OColumn OColumn::from_buffer(const py::robj& pyobj)
 }
 
 
-static OColumn convert_fwchararray_to_column(Py_buffer* view)
+static Column convert_fwchararray_to_column(Py_buffer* view)
 {
   // Number of characters in each element
   size_t k = static_cast<size_t>(view->itemsize / 4);
@@ -168,7 +169,7 @@ static OColumn convert_fwchararray_to_column(Py_buffer* view)
   }
 
   strbuf.resize(static_cast<size_t>(offset));
-  return new_string_column(nrows, std::move(offbuf), std::move(strbuf));
+  return Column::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -180,7 +181,7 @@ static OColumn convert_fwchararray_to_column(Py_buffer* view)
  * if more appropriate), and return either the original or the new modified
  * column. If a new column is returned, the original one is decrefed.
  */
-static void try_to_resolve_object_column(OColumn& col)
+static void try_to_resolve_object_column(Column& col)
 {
   auto data = static_cast<PyObject* const*>(col->data());
   size_t nrows = col.nrows();
@@ -218,7 +219,7 @@ static void try_to_resolve_object_column(OColumn& col)
       PyObject* v = data[i];
       out[i] = v == Py_True? 1 : v == Py_False? 0 : GETNA<int8_t>();
     }
-    col = OColumn::new_mbuf_column(SType::BOOL, std::move(mbuf));
+    col = Column::new_mbuf_column(SType::BOOL, std::move(mbuf));
   }
 
   // All values were strings
@@ -254,7 +255,7 @@ static void try_to_resolve_object_column(OColumn& col)
 
     xassert(offset < strbuf.size());
     strbuf.resize(offset);
-    col = new_string_column(nrows, std::move(offbuf), std::move(strbuf));
+    col = Column::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
   }
 }
 
@@ -336,7 +337,7 @@ static void getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags)
   bool one_col = (pybuffers::single_col != size_t(-1));
   size_t i0 = one_col? pybuffers::single_col : 0;
   XInfo* xinfo = nullptr;
-  const OColumn& col = self->get_datatable()->get_ocolumn(i0);
+  const Column& col = self->get_datatable()->get_column(i0);
   const char* fmt = format_from_stype(col.stype());
 
   xinfo = new XInfo();
@@ -380,7 +381,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   // Check whether we have a single-column DataTable that doesn't need to be
   // copied -- in which case it should be possible to return the buffer
   // by-reference instead of copying the data into an intermediate buffer.
-  const OColumn& col_i0 = dt->get_ocolumn(i0);
+  const Column& col_i0 = dt->get_column(i0);
   if (ncols == 1 && !col_i0.is_virtual() && !REQ_WRITABLE(flags) &&
       col_i0.is_fixedwidth() && pybuffers::force_stype == SType::VOID)
   {
@@ -398,7 +399,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // Auto-detect common stype
     uint64_t stypes_mask = 0;
     for (size_t i = 0; i < ncols; ++i) {
-      SType next_stype = dt->get_ocolumn(i + i0).stype();
+      SType next_stype = dt->get_column(i + i0).stype();
       uint64_t unstype = static_cast<uint64_t>(next_stype);
       if (stypes_mask & (1 << unstype)) continue;
       stypes_mask |= 1 << unstype;
@@ -426,7 +427,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // created having the converted data; but the side-effect of this is
     // that `mbuf` will have the same data, and in the right place.
     {
-      OColumn newcol = dt->get_ocolumn(i + i0).cast(stype, std::move(xmb));
+      Column newcol = dt->get_column(i + i0).cast(stype, std::move(xmb));
       newcol.materialize();
       xassert(newcol->alloc_size() == colsize);
       // We can now delete the new column: this will delete `xmb` as well,

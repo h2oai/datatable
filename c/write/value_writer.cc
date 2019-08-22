@@ -32,7 +32,7 @@ namespace write {
 template <size_t N, typename T, void(*WriteValue)(T, writing_context&)>
 class generic_writer : public value_writer {
   public:
-    generic_writer(const OColumn& col) : value_writer(col, N) {}
+    generic_writer(const Column& col) : value_writer(col, N) {}
 
     void write_normal(size_t row, writing_context& ctx) const override {
       T value;
@@ -306,14 +306,14 @@ using string_quotedFF_writer = generic_writer<2, CString, write_str<false, false
 // Base value_writer
 //------------------------------------------------------------------------------
 
-value_writer::value_writer(const OColumn& col, size_t n)
+value_writer::value_writer(const Column& col, size_t n)
   : column(col), max_output_size(n) {}
 
 value_writer::~value_writer() {}
 
 
 using vptr = value_writer_ptr;
-vptr value_writer::create(const OColumn& col, const output_options& options)
+vptr value_writer::create(const Column& col, const output_options& options)
 {
   SType stype = col.stype();
   switch (stype) {

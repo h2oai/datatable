@@ -17,6 +17,7 @@
 #include "python/string.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"         // wallclock
+#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "encodings.h"
 #include "options.h"
@@ -823,7 +824,7 @@ dtptr GenericReader::makeDatatable() {
   size_t ncols = columns.size();
   size_t nrows = columns.get_nrows();
   size_t ocols = columns.nColumnsInOutput();
-  std::vector<OColumn> ccols;
+  std::vector<Column> ccols;
   ccols.reserve(ocols);
   for (size_t i = 0; i < ncols; ++i) {
     dt::read::Column& col = columns[i];
@@ -832,8 +833,8 @@ dtptr GenericReader::makeDatatable() {
     MemoryRange strbuf = col.extract_strbuf();
     SType stype = col.get_stype();
     ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
-      ? new_string_column(nrows, std::move(databuf), std::move(strbuf))
-      : OColumn::new_mbuf_column(stype, std::move(databuf))
+      ? Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))
+      : Column::new_mbuf_column(stype, std::move(databuf))
     );
   }
   py::olist names = freader.get_attr("_colnames").to_pylist();

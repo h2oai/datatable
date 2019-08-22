@@ -23,6 +23,7 @@
 #include "expr/virtual_column.h"
 #include "parallel/api.h"
 #include "utils/exceptions.h"
+#include "column_impl.h"  // TODO: remove
 namespace dt {
 namespace expr {
 
@@ -77,7 +78,7 @@ void virtual_column::compute(size_t, CString*) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void materialize_fw(virtual_column* self, OColumn& outcol) {
+void materialize_fw(virtual_column* self, Column& outcol) {
   T* out_data = static_cast<T*>(outcol->data_w());
   dt::parallel_for_static(
     outcol.nrows(),
@@ -87,8 +88,8 @@ void materialize_fw(virtual_column* self, OColumn& outcol) {
 }
 
 
-OColumn virtual_column::materialize() {
-  OColumn out = OColumn::new_data_column(_stype, _nrows);
+Column virtual_column::materialize() {
+  Column out = Column::new_data_column(_stype, _nrows);
   switch (_stype) {
     case SType::BOOL:
     case SType::INT8:    materialize_fw<int8_t> (this, out); break;
@@ -112,18 +113,18 @@ OColumn virtual_column::materialize() {
 
 class _vcolumn : public virtual_column {
   protected:
-    OColumn column;
+    Column column;
 
   public:
-    explicit _vcolumn(OColumn&& col);
-    OColumn materialize() override;
+    explicit _vcolumn(Column&& col);
+    Column materialize() override;
 };
 
-_vcolumn::_vcolumn(OColumn&& col)
+_vcolumn::_vcolumn(Column&& col)
   : virtual_column(col.nrows(), col.stype()),
     column(std::move(col)) {}
 
-OColumn _vcolumn::materialize() {
+Column _vcolumn::materialize() {
   return std::move(column);
 }
 
@@ -135,7 +136,7 @@ class fw_vcol : public _vcolumn {
     const T* data;
 
   public:
-    explicit fw_vcol(OColumn&& col)
+    explicit fw_vcol(Column&& col)
       : _vcolumn(std::move(col)),
         data(static_cast<const T*>(column->data())) {}
 
@@ -151,7 +152,7 @@ class arr_fw_vcol : public fw_vcol<T> {
     const A* index;
 
   public:
-    arr_fw_vcol(OColumn&& col, const A* indices)
+    arr_fw_vcol(Column&& col, const A* indices)
       : fw_vcol<T>(std::move(col)),
         index(indices) {}
 
@@ -169,7 +170,7 @@ class slice_fw_vcol : public fw_vcol<T> {
     size_t istep;
 
   public:
-    slice_fw_vcol(OColumn&& col, size_t start, size_t step)
+    slice_fw_vcol(Column&& col, size_t start, size_t step)
       : fw_vcol<T>(std::move(col)),
         istart(start),
         istep(step) {}
@@ -200,7 +201,7 @@ class arr_str_vcol : public str_vcol<T> {
     const A* index;
 
   public:
-    arr_str_vcol(OColumn&& col, const A* indices)
+    arr_str_vcol(Column&& col, const A* indices)
       : str_vcol<T>(std::move(col)),
         index(indices) {}
 
@@ -223,7 +224,7 @@ class slice_str_vcol : public str_vcol<T> {
     size_t istep;
 
   public:
-    slice_str_vcol(OColumn&& col, size_t start, size_t step)
+    slice_str_vcol(Column&& col, size_t start, size_t step)
       : str_vcol<T>(std::move(col)),
         istart(start),
         istep(step) {}
@@ -236,7 +237,7 @@ class slice_str_vcol : public str_vcol<T> {
 
 
 
-vcolptr virtualize(OColumn&& col) {
+vcolptr virtualize(Column&& col) {
   SType st = col.stype();
   const RowIndex& ri = col->rowindex();
   switch (ri.type()) {

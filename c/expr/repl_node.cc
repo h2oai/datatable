@@ -25,6 +25,7 @@
 #include "expr/repl_node.h"
 #include "expr/workframe.h"
 #include "utils/exceptions.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "datatablemodule.h"
 namespace dt {
@@ -66,9 +67,9 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   size_t lrows = dt0->nrows;
   xassert(rcols == 1 || rcols == lcols);  // enforced in `check_compatibility()`
 
-  OColumn col0;
+  Column col0;
   if (rcols == 1) {
-    col0 = dtr->get_ocolumn(0);  // copy
+    col0 = dtr->get_column(0);  // copy
     // Avoid resizing `col0` multiple times in the loop below
     if (rrows == 1) {
       col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
@@ -76,7 +77,7 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
   }
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    OColumn coli = (rcols == 1)? col0 : dtr->get_ocolumn(i);  // copy
+    Column coli = (rcols == 1)? col0 : dtr->get_column(i);  // copy
     if (coli.nrows() == 1) {
       coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
     }
@@ -97,12 +98,12 @@ void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
   xassert(rcols == 1 || rcols == lcols);
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    const OColumn& coli = dtr->get_ocolumn(rcols == 1? 0 : i);
-    if (!dt0->get_ocolumn(j)) {
+    const Column& coli = dtr->get_column(rcols == 1? 0 : i);
+    if (!dt0->get_column(j)) {
       dt0->set_ocolumn(j,
-          OColumn::new_na_column(coli.stype(), dt0->nrows));
+          Column::new_na_column(coli.stype(), dt0->nrows));
     }
-    OColumn& colj = dt0->get_ocolumn(j);
+    Column& colj = dt0->get_column(j);
     colj.replace_values(ri0, coli);
   }
 }
@@ -128,7 +129,7 @@ class scalar_rn : public repl_node {
     void check_column_types(const DataTable*, const intvec&) const;
     virtual const char* value_type() const noexcept = 0;
     virtual bool valid_ltype(LType lt) const noexcept = 0;
-    virtual OColumn make_column(SType st, size_t nrows) const = 0;
+    virtual Column make_column(SType st, size_t nrows) const = 0;
 };
 
 
@@ -139,7 +140,7 @@ void scalar_rn::check_column_types(
   const DataTable* dt0, const intvec& indices) const
 {
   for (size_t j : indices) {
-    const OColumn& col = dt0->get_ocolumn(j);
+    const Column& col = dt0->get_column(j);
     if (col && !valid_ltype(col.ltype())) {
       throw TypeError() << "Cannot assign " << value_type()
         << " value to column `" << dt0->get_names()[j]
@@ -153,14 +154,14 @@ void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
   DataTable* dt0 = wf.get_datatable(0);
   check_column_types(dt0, indices);
 
-  std::unordered_map<SType, OColumn, EnumClassHash> new_columns;
+  std::unordered_map<SType, Column, EnumClassHash> new_columns;
   for (size_t j : indices) {
-    const OColumn& col = dt0->get_ocolumn(j);
+    const Column& col = dt0->get_column(j);
     SType stype = col? col.stype() : SType::VOID;
     if (new_columns.count(stype) == 0) {
       new_columns[stype] = make_column(stype, dt0->nrows);
     }
-    OColumn newcol = new_columns[stype];  // copy
+    Column newcol = new_columns[stype];  // copy
     dt0->set_ocolumn(j, std::move(newcol));
   }
 }
@@ -172,17 +173,17 @@ void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
   check_column_types(dt0, indices);
 
   for (size_t j : indices) {
-    const OColumn& colj = dt0->get_ocolumn(j);
+    const Column& colj = dt0->get_column(j);
     SType stype = colj? colj.stype() : SType::VOID;
-    OColumn replcol = make_column(stype, 1);
+    Column replcol = make_column(stype, 1);
     stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
     if (!colj) {
-      dt0->set_ocolumn(j, OColumn::new_na_column(stype, dt0->nrows));
+      dt0->set_ocolumn(j, Column::new_na_column(stype, dt0->nrows));
     }
     else if (colj.stype() != stype) {
       dt0->set_ocolumn(j, colj.cast(stype));
     }
-    OColumn& ocol = dt0->get_ocolumn(j);
+    Column& ocol = dt0->get_column(j);
     ocol.replace_values(ri0, replcol);
   }
 }
@@ -198,7 +199,7 @@ class scalar_na_rn : public scalar_rn {
   protected:
     const char* value_type() const noexcept override;
     bool valid_ltype(LType) const noexcept override;
-    OColumn make_column(SType st, size_t nrows) const override;
+    Column make_column(SType st, size_t nrows) const override;
 };
 
 const char* scalar_na_rn::value_type() const noexcept {
@@ -211,9 +212,9 @@ bool scalar_na_rn::valid_ltype(LType) const noexcept {
 }
 
 
-OColumn scalar_na_rn::make_column(SType st, size_t nrows) const {
+Column scalar_na_rn::make_column(SType st, size_t nrows) const {
   if (st == SType::VOID) st = SType::BOOL;
-  return OColumn::new_na_column(st, nrows);
+  return Column::new_na_column(st, nrows);
 }
 
 
@@ -232,8 +233,8 @@ class scalar_int_rn : public scalar_rn {
   protected:
     const char* value_type() const noexcept override;
     bool valid_ltype(LType) const noexcept override;
-    OColumn make_column(SType st, size_t nrows) const override;
-    template <typename T> OColumn _make1(SType st) const;
+    Column make_column(SType st, size_t nrows) const override;
+    template <typename T> Column _make1(SType st) const;
 };
 
 
@@ -248,7 +249,7 @@ bool scalar_int_rn::valid_ltype(LType lt) const noexcept {
 }
 
 
-OColumn scalar_int_rn::make_column(SType st, size_t nrows) const {
+Column scalar_int_rn::make_column(SType st, size_t nrows) const {
   int64_t av = std::abs(value);
   SType rst = value == 0 || value == 1? SType::BOOL :
               av <= 127? SType::INT8 :
@@ -257,23 +258,23 @@ OColumn scalar_int_rn::make_column(SType st, size_t nrows) const {
   if (static_cast<size_t>(st) > static_cast<size_t>(rst)) {
     rst = st;
   }
-  OColumn col1 = rst == SType::BOOL? _make1<int8_t>(rst) :
+  Column col1 = rst == SType::BOOL? _make1<int8_t>(rst) :
                  rst == SType::INT8? _make1<int8_t>(rst) :
                  rst == SType::INT16? _make1<int16_t>(rst) :
                  rst == SType::INT32? _make1<int32_t>(rst) :
                  rst == SType::INT64? _make1<int64_t>(rst) :
                  rst == SType::FLOAT32? _make1<float>(rst) :
-                 rst == SType::FLOAT64? _make1<double>(rst) : OColumn();
+                 rst == SType::FLOAT64? _make1<double>(rst) : Column();
   xassert(col1);
   return col1->repeat(nrows);
 }
 
 
 template <typename T>
-OColumn scalar_int_rn::_make1(SType stype) const {
+Column scalar_int_rn::_make1(SType stype) const {
   MemoryRange mbuf = MemoryRange::mem(sizeof(T));
   mbuf.set_element<T>(0, static_cast<T>(value));
-  return OColumn::new_mbuf_column(stype, std::move(mbuf));
+  return Column::new_mbuf_column(stype, std::move(mbuf));
 }
 
 
@@ -292,7 +293,7 @@ class scalar_float_rn : public scalar_rn {
   protected:
     const char* value_type() const noexcept override;
     bool valid_ltype(LType) const noexcept override;
-    OColumn make_column(SType st, size_t nrows) const override;
+    Column make_column(SType st, size_t nrows) const override;
 };
 
 
@@ -306,7 +307,7 @@ bool scalar_float_rn::valid_ltype(LType lt) const noexcept {
 }
 
 
-OColumn scalar_float_rn::make_column(SType st, size_t nrows) const {
+Column scalar_float_rn::make_column(SType st, size_t nrows) const {
   constexpr double MAX = double(std::numeric_limits<float>::max());
   // st can be either VOID or FLOAT32 or FLOAT64
   // VOID we always convert into FLOAT64 so as to avoid loss of precision;
@@ -322,7 +323,7 @@ OColumn scalar_float_rn::make_column(SType st, size_t nrows) const {
   } else {
     mbuf.set_element<float>(0, static_cast<float>(value));
   }
-  return OColumn::new_mbuf_column(result_stype, std::move(mbuf))->repeat(nrows);
+  return Column::new_mbuf_column(result_stype, std::move(mbuf))->repeat(nrows);
 }
 
 
@@ -341,7 +342,7 @@ class scalar_string_rn : public scalar_rn {
   protected:
     const char* value_type() const noexcept override;
     bool valid_ltype(LType) const noexcept override;
-    OColumn make_column(SType st, size_t nrows) const override;
+    Column make_column(SType st, size_t nrows) const override;
 };
 
 const char* scalar_string_rn::value_type() const noexcept {
@@ -352,9 +353,9 @@ bool scalar_string_rn::valid_ltype(LType lt) const noexcept {
   return lt == LType::STRING;
 }
 
-OColumn scalar_string_rn::make_column(SType st, size_t nrows) const {
+Column scalar_string_rn::make_column(SType st, size_t nrows) const {
   if (nrows == 0) {
-    return OColumn::new_data_column(SType::STR32, 0);
+    return Column::new_data_column(SType::STR32, 0);
   }
   size_t len = value.size();
   SType rst = (st == SType::VOID)? SType::STR32 : st;
@@ -369,7 +370,7 @@ OColumn scalar_string_rn::make_column(SType st, size_t nrows) const {
   }
   MemoryRange strbuf = MemoryRange::mem(len);
   std::memcpy(strbuf.xptr(), value.data(), len);
-  OColumn col = new_string_column(1, std::move(offbuf), std::move(strbuf));
+  Column col = Column::new_string_column(1, std::move(offbuf), std::move(strbuf));
   if (nrows > 1) {
     col->replace_rowindex(RowIndex(size_t(0), nrows, 0));
   }
@@ -449,8 +450,8 @@ void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    OColumn col = (i < rcols)? exprs[i]->evaluate_eager(wf)
-                             : dt0->get_ocolumn(indices[0]);
+    Column col = (i < rcols)? exprs[i]->evaluate_eager(wf)
+                            : dt0->get_column(indices[0]);
     xassert(col.nrows() == dt0->nrows);
     dt0->set_ocolumn(j, std::move(col));
   }

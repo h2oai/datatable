@@ -19,7 +19,7 @@
 
 
 namespace dt {
-  DataTable* split_into_nhot(const OColumn& col, char sep, bool sort = false);
+  DataTable* split_into_nhot(const Column& col, char sep, bool sort = false);
 }
 
 

@@ -25,6 +25,7 @@
 #include "parallel/api.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 namespace dt {
 namespace expr {
@@ -97,12 +98,12 @@ GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
 }
 
 
-OColumn expr_string_match_re::evaluate_eager(workframe& wf) {
-  OColumn src = arg->evaluate_eager(wf);
+Column expr_string_match_re::evaluate_eager(workframe& wf) {
+  Column src = arg->evaluate_eager(wf);
   xassert(src.ltype() == LType::STRING);
   size_t nrows = src.nrows();
 
-  OColumn trg = OColumn::new_data_column(SType::BOOL, nrows);
+  Column trg = Column::new_data_column(SType::BOOL, nrows);
   int8_t* trg_data = static_cast<int8_t*>(trg->data_w());
 
   dt::parallel_for_dynamic(nrows,

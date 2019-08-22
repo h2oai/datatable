@@ -11,8 +11,8 @@
 #include <vector>
 #include "types.h"
 
+class ColumnImpl;
 class Column;
-class OColumn;
 
 
 enum class Stat : uint8_t {
@@ -121,7 +121,7 @@ constexpr uint8_t NSTATS = 14;
 class Stats
 {
   protected:
-    Column* column;
+    ColumnImpl* column;
     std::bitset<NSTATS> _computed;
     std::bitset<NSTATS> _valid;
     size_t _countna;
@@ -130,7 +130,7 @@ class Stats
 
   //---- Generic properties ------------
   public:
-    explicit Stats(Column* col);
+    explicit Stats(ColumnImpl* col);
     Stats(const Stats&) = delete;
     Stats(Stats&&) = delete;
     virtual ~Stats();
@@ -176,7 +176,7 @@ class Stats
     virtual CString mode_string(bool* isvalid = nullptr);
 
     py::oobj get_stat_as_pyobject(Stat);
-    OColumn get_stat_as_column(Stat);
+    Column get_stat_as_column(Stat);
 
 
   //---- Stat setters ------------------
@@ -216,8 +216,8 @@ class Stats
 
   private:
     template <typename S> py::oobj pywrap_stat(Stat);
-    template <typename S, typename R> OColumn colwrap_stat(Stat, SType);
-    OColumn strcolwrap_stat(Stat);
+    template <typename S, typename R> Column colwrap_stat(Stat, SType);
+    Column strcolwrap_stat(Stat);
 };
 
 
@@ -228,7 +228,7 @@ class Stats
 
 /**
  * Base class for all numerical STypes. The class is parametrized by T - the
- * type of element in the OColumn's API. Thus, T can be only int32_t|int64_t|
+ * type of element in the Column's API. Thus, T can be only int32_t|int64_t|
  * float|double. The corresponding "min"/"max"/"mode" statistics are stored
  * in upcasted type V, which is either int64_t or double.
  */

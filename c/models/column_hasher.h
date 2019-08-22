@@ -30,10 +30,10 @@
  */
 class Hasher {
   protected:
-    OColumn column;
+    Column column;
 
   public:
-    explicit Hasher(const OColumn&);
+    explicit Hasher(const Column&);
     virtual ~Hasher();
     virtual uint64_t hash(size_t row) const = 0;
 };
@@ -62,7 +62,7 @@ class HasherFloat : public Hasher {
     const int shift_nbits;
     int : 32;
   public:
-    HasherFloat(const OColumn&, int shift);
+    HasherFloat(const Column&, int shift);
     uint64_t hash(size_t row) const override;
 };
 

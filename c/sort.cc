@@ -137,6 +137,7 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "column.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "options.h"
@@ -438,7 +439,7 @@ class SortContext {
     int32_t* o;
     int32_t* next_o;
     size_t*  histogram;
-    OColumn column;
+    Column column;
     size_t strstart;
     size_t n;
     size_t nth;
@@ -505,7 +506,7 @@ class SortContext {
   SortContext(SortContext&&) = delete;
 
 
-  void start_sort(const OColumn& col, bool desc) {
+  void start_sort(const Column& col, bool desc) {
     column = col;
     descending = desc;
     if (desc) {
@@ -527,7 +528,7 @@ class SortContext {
   }
 
 
-  void continue_sort(const OColumn& col, bool desc, bool make_groups) {
+  void continue_sort(const Column& col, bool desc, bool make_groups) {
     column = col;
     nradixes = gg.size();
     descending = desc;
@@ -1333,7 +1334,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
   size_t n = spec.size();
   xassert(n > 0);
 
-  const OColumn& col0 = columns[spec[0].col_index];
+  const Column& col0 = columns[spec[0].col_index];
   col0.stats();  // instantiate Stats object; TODO: remove this
   if (nrows <= 1) {
     arr32_t indices(nrows);
@@ -1362,7 +1363,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
     if (j == n - 1 && spec[j].sort_only) {
       do_groups = false;
     }
-    const OColumn& colj = columns[spec[j].col_index];
+    const Column& colj = columns[spec[j].col_index];
     colj.stats();  // TODO: remove this
     sc.continue_sort(colj, spec[j].descending, do_groups);
   }
@@ -1375,7 +1376,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
 
 
 
-static RowIndex sort_tiny(const OColumn& col, Groupby* out_grps) {
+static RowIndex sort_tiny(const Column& col, Groupby* out_grps) {
   if (col.nrows() == 0) {
     if (out_grps) *out_grps = Groupby::single_group(0);
     return RowIndex(arr32_t(0), true);
@@ -1390,19 +1391,19 @@ static RowIndex sort_tiny(const OColumn& col, Groupby* out_grps) {
 }
 
 
-RowIndex Column::_sort(Groupby* out_grps) const {
-  OColumn ocol(this->shallowcopy());
+RowIndex ColumnImpl::_sort(Groupby* out_grps) const {
+  Column ocol(this->shallowcopy());
   return ocol.sort(out_grps);
 }
 
-RowIndex OColumn::sort(Groupby* out_grps) const {
+RowIndex Column::sort(Groupby* out_grps) const {
   (void) stats();  // temporary: instantiate stats object
   if (nrows() <= 1) {
     return sort_tiny(*this, out_grps);
   }
 
   if (is_virtual()) {  // temporary
-    const_cast<OColumn*>(this)->materialize();
+    const_cast<Column*>(this)->materialize();
   }
   SortContext sc(nrows(), RowIndex(), (out_grps != nullptr));
 
@@ -1417,8 +1418,8 @@ RowIndex OColumn::sort(Groupby* out_grps) const {
 }
 
 
-RowIndex OColumn::sort_grouped(const RowIndex& rowindex,
-                               const Groupby& grps) const
+RowIndex Column::sort_grouped(const RowIndex& rowindex,
+                              const Groupby& grps) const
 {
   (void)stats();
   SortContext sc(nrows(), rowindex, grps, /* make_groups = */ false);

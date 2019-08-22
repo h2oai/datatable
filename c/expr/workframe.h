@@ -127,7 +127,7 @@ class workframe {
 
     size_t size() const noexcept;
     void reserve(size_t n);
-    void add_column(OColumn&&, const RowIndex&, std::string&&);
+    void add_column(Column&&, const RowIndex&, std::string&&);
 
   private:
     RowIndex& _product(const RowIndex& ra, const RowIndex& rb);

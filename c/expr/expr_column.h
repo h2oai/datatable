@@ -53,7 +53,7 @@ class expr_column : public base_expr {
 
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    OColumn evaluate_eager(workframe&) override;
+    Column evaluate_eager(workframe&) override;
 };
 
 

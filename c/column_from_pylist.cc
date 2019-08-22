@@ -5,7 +5,6 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "column.h"
 #include <cstdlib>         // std::abs
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
@@ -14,6 +13,9 @@
 #include "python/string.h" // py::ostring
 #include "utils/exceptions.h"
 #include "utils/misc.h"
+#include "column.h"
+#include "column_impl.h"
+
 
 //------------------------------------------------------------------------------
 // Helper iterator classes
@@ -495,7 +497,7 @@ static SType find_next_stype(SType curr_stype, int stype0) {
 
 
 
-static OColumn ocolumn_from_iterable(const iterable* il, int stype0)
+static Column ocolumn_from_iterable(const iterable* il, int stype0)
 {
   MemoryRange membuf;
   MemoryRange strbuf;
@@ -541,24 +543,24 @@ static OColumn ocolumn_from_iterable(const iterable* il, int stype0)
   }
   if (stype == SType::STR32 || stype == SType::STR64) {
     size_t nrows = il->size();
-    return new_string_column(nrows, std::move(membuf), std::move(strbuf));
+    return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }
   else {
     if (stype == SType::OBJ) {
       membuf.set_pyobjects(/* clear_data = */ false);
     }
-    return OColumn::new_mbuf_column(stype, std::move(membuf));
+    return Column::new_mbuf_column(stype, std::move(membuf));
   }
 }
 
 
-OColumn OColumn::from_pylist(const py::olist& list, int stype0) {
+Column Column::from_pylist(const py::olist& list, int stype0) {
   ilist il(list);
   return ocolumn_from_iterable(&il, stype0);
 }
 
 
-OColumn OColumn::from_pylist_of_tuples(
+Column Column::from_pylist_of_tuples(
     const py::olist& list, size_t index, int stype0)
 {
   ituplist il(list, index);
@@ -566,7 +568,7 @@ OColumn OColumn::from_pylist_of_tuples(
 }
 
 
-OColumn OColumn::from_pylist_of_dicts(
+Column Column::from_pylist_of_dicts(
     const py::olist& list, py::robj name, int stype0)
 {
   idictlist il(list, name);
@@ -581,10 +583,10 @@ OColumn OColumn::from_pylist_of_dicts(
 //------------------------------------------------------------------------------
 
 template <typename T>
-static OColumn _make_range_column(
+static Column _make_range_column(
     int64_t start, int64_t length, int64_t step, SType stype)
 {
-  OColumn col = OColumn::new_data_column(stype, static_cast<size_t>(length));
+  Column col = Column::new_data_column(stype, static_cast<size_t>(length));
   T* elems = static_cast<T*>(col->data_w());
   for (int64_t i = 0, j = start; i < length; ++i) {
     elems[i] = static_cast<T>(j);
@@ -595,7 +597,7 @@ static OColumn _make_range_column(
 
 
 // TODO: create a special "range" column instead
-OColumn OColumn::from_range(
+Column Column::from_range(
     int64_t start, int64_t stop, int64_t step, SType stype)
 {
   xassert(step != 0);
@@ -612,7 +614,7 @@ OColumn OColumn::from_range(
     case SType::INT32: return _make_range_column<int32_t>(start, length, step, stype);
     case SType::INT64: return _make_range_column<int64_t>(start, length, step, stype);
     default: {
-      OColumn col = _make_range_column<int64_t>(start, length, step, SType::INT64);
+      Column col = _make_range_column<int64_t>(start, length, step, SType::INT64);
       return col.cast(stype);
     }
   }

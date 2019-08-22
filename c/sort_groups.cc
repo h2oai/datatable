@@ -47,7 +47,7 @@ void GroupGatherer::from_data(const T* data, V* o, size_t n) {
 
 
 template <typename V>
-void GroupGatherer::from_data(const OColumn& column, const V* o, size_t n) {
+void GroupGatherer::from_data(const Column& column, const V* o, size_t n) {
   if (n == 0) return;
   CString last_value, curr_value;
   bool last_na, curr_na;
@@ -106,5 +106,5 @@ template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);
 template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
-template void GroupGatherer::from_data(const OColumn&, const int32_t*, size_t);
-template void GroupGatherer::from_data(const OColumn&, const int64_t*, size_t);
+template void GroupGatherer::from_data(const Column&, const int32_t*, size_t);
+template void GroupGatherer::from_data(const Column&, const int64_t*, size_t);

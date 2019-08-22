@@ -26,11 +26,11 @@ namespace dt {
 // Ordered iteration, produce a string column
 //------------------------------------------------------------------------------
 
-OColumn generate_string_column(function<void(size_t, string_buf*)> fn,
-                               size_t nrows,
-                               MemoryRange&& offsets_buffer,
-                               bool force_str64,
-                               bool force_single_threaded)
+Column generate_string_column(function<void(size_t, string_buf*)> fn,
+                              size_t nrows,
+                              MemoryRange&& offsets_buffer,
+                              bool force_str64,
+                              bool force_single_threaded)
 {
   constexpr size_t min_nrows_per_thread = 100;
   size_t nthreads = force_single_threaded? 0 : nrows / min_nrows_per_thread;

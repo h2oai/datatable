@@ -89,7 +89,7 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
   label_ids_val.clear();
   FtrlFitOutput res;
 
-  SType stype_y = dt_y_train->get_ocolumn(0).stype();
+  SType stype_y = dt_y_train->get_column(0).stype();
   FtrlModelType model_type_train = !is_model_trained()? params.model_type :
                                                         model_type;
 
@@ -187,7 +187,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                                 std::vector<size_t>& label_ids) {
   xassert(label_ids.size() == 0);
   dtptr dt_labels_in;
-  label_encode(dt->get_ocolumn(0), dt_labels_in, dt_binomial, true);
+  label_encode(dt->get_column(0), dt_labels_in, dt_binomial, true);
 
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
@@ -208,8 +208,8 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
     xassert(nlabels != 0 && nlabels < 3);
-    auto data_label_ids_in = static_cast<int8_t*>(dt_labels_in->get_ocolumn(1)->data_w());
-    auto data_label_ids = static_cast<const int8_t*>(dt_labels->get_ocolumn(1)->data());
+    auto data_label_ids_in = static_cast<int8_t*>(dt_labels_in->get_column(1)->data_w());
+    auto data_label_ids = static_cast<const int8_t*>(dt_labels->get_column(1)->data());
 
 
     switch (nlabels) {
@@ -307,7 +307,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
   if (!std::isnan(nepochs_val)) {
     // If we got validation datasets, figure out stype of
     // the validation target column and make an appropriate call to `.fit()`.
-    SType stype_y_val = dt_y_val->get_ocolumn(0).stype();
+    SType stype_y_val = dt_y_val->get_column(0).stype();
     switch (stype_y_val) {
       case SType::BOOL:    res = fit<U, int8_t>(identity<T>, itarget<U>, itarget<int8_t>, squared_loss<T, int8_t>); break;
       case SType::INT8:    res = fit<U, int8_t>(identity<T>, itarget<U>, itarget<int8_t>, squared_loss<T, int8_t>); break;
@@ -384,12 +384,12 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
                                    bool validation /* = false */) {
   xassert(label_ids.size() == 0)
   dtptr dt_labels_in;
-  label_encode(dt->get_ocolumn(0), dt_labels_in, dt_multinomial);
+  label_encode(dt->get_column(0), dt_labels_in, dt_multinomial);
 
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
 
-  auto data_label_ids_in = static_cast<const int32_t*>(dt_labels_in->get_ocolumn(1)->data());
+  auto data_label_ids_in = static_cast<const int32_t*>(dt_labels_in->get_column(1)->data());
   size_t nlabels_in = dt_labels_in->nrows;
 
   // When we only start training, all the incoming labels become the model
@@ -405,7 +405,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     // When we already have some labels, and got new ones, we first
     // set up mapping in such a way, so that models will train
     // on all the negatives.
-    auto data_label_ids = static_cast<const int32_t*>(dt_labels->get_ocolumn(1)->data());
+    auto data_label_ids = static_cast<const int32_t*>(dt_labels->get_column(1)->data());
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
 
@@ -444,7 +444,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       new_label_indices.resize(n_new_labels);
       RowIndex ri_labels(std::move(new_label_indices));
       dt_labels_in->apply_rowindex(ri_labels);
-      set_ids(dt_labels_in->get_ocolumn(1), static_cast<int32_t>(dt_labels->nrows));
+      set_ids(dt_labels_in->get_column(1), static_cast<int32_t>(dt_labels->nrows));
       dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
 
       // It is necessary to re-key the column, because there is no guarantee
@@ -482,7 +482,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   std::vector<const U*> data_y;
   std::vector<const V*> data_y_val;
   fill_ri_data<U>(dt_y_train, ri, data_y);
-  auto data_fi = static_cast<T*>(dt_fi->get_ocolumn(1)->data_w());
+  auto data_fi = static_cast<T*>(dt_fi->get_column(1)->data_w());
 
   // Training settings. By default each training iteration consists of
   // `dt_X_train->nrows` rows.
@@ -708,7 +708,7 @@ dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X) {
                           "first";
   }
 
-  SType label_id_stype = dt_labels->get_ocolumn(1).stype();
+  SType label_id_stype = dt_labels->get_column(1).stype();
   dtptr dt_p;
   switch (label_id_stype) {
     case SType::BOOL:  dt_p = predict<int8_t>(dt_X); break;
@@ -742,12 +742,12 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = dt_labels->nrows;
 
-  auto data_label_ids = static_cast<const U*>(dt_labels->get_ocolumn(1)->data());
+  auto data_label_ids = static_cast<const U*>(dt_labels->get_column(1)->data());
 
   dtptr dt_p = create_p(dt_X->nrows);
   std::vector<T*> data_p(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
-    data_p[i] = static_cast<T*>(dt_p->get_ocolumn(i)->data_w());
+    data_p[i] = static_cast<T*>(dt_p->get_column(i)->data_w());
   }
 
   // Determine which link function we should use.
@@ -826,7 +826,7 @@ void Ftrl<T>::fill_ri_data(const DataTable* dt,
   data.reserve(ncols);
 
   for (size_t i = 0; i < ncols; ++i) {
-    const OColumn& col = dt->get_ocolumn(i);
+    const Column& col = dt->get_column(i);
     data.push_back(static_cast<const U*>(col->data()));
     ri.push_back(col->rowindex());
   }
@@ -843,7 +843,7 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
 
   std::vector<T*> data(ncols);
   for (size_t j = 0; j < ncols; ++j) {
-    data[j] = static_cast<T*>(dt->get_ocolumn(j)->data_w());
+    data[j] = static_cast<T*>(dt->get_column(j)->data_w());
   }
 
   dt::parallel_for_static(nrows, [&](size_t i){
@@ -871,7 +871,7 @@ void Ftrl<T>::create_model() {
   cols.reserve(ncols);
   constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
   for (size_t i = 0; i < ncols; ++i) {
-    cols.push_back(OColumn::new_data_column(stype, nbins));
+    cols.push_back(Column::new_data_column(stype, nbins));
   }
   dt_model = dtptr(new DataTable(std::move(cols), DataTable::default_names));
   init_model();
@@ -893,20 +893,20 @@ void Ftrl<T>::adjust_model() {
   colvec cols;
   cols.reserve(ncols_model_new);
   for (size_t i = 0; i < ncols_model; ++i) {
-    cols.push_back(dt_model->get_ocolumn(i));
+    cols.push_back(dt_model->get_column(i));
   }
 
-  OColumn newcol0, newcol1;
+  Column newcol0, newcol1;
   // If we have a negative class, then all the new classes
   // get a copy of its weights to start learning from.
   // Otherwise, new classes start learning from zero weights.
   // if (params.negative_class) {
-  //   newcol0 = dt_model->get_ocolumn(0);
-  //   cols_new[1] = dt_model->get_ocolumn(1);
+  //   newcol0 = dt_model->get_column(0);
+  //   cols_new[1] = dt_model->get_column(1);
   // } else
   {
     constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
-    OColumn col = OColumn::new_data_column(stype, nbins);
+    Column col = Column::new_data_column(stype, nbins);
     auto data = static_cast<T*>(col->data_w());
     std::memset(data, 0, nbins * sizeof(T));
     newcol0 = col;
@@ -931,7 +931,7 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
   size_t nlabels = dt_labels->nrows;
   xassert(nlabels > 0);
 
-  OColumn col0_str64 = dt_labels->get_ocolumn(0).cast(SType::STR64);
+  Column col0_str64 = dt_labels->get_column(0).cast(SType::STR64);
 
   strvec labels_vec(nlabels);
 
@@ -946,7 +946,7 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
   cols.reserve(nlabels);
   constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
   for (size_t i = 0; i < nlabels; ++i) {
-    cols.push_back(OColumn::new_data_column(stype, nrows));
+    cols.push_back(Column::new_data_column(stype, nrows));
   }
 
   // dtptr dt_p = dtptr(new DataTable(std::move(cols), labels));
@@ -975,7 +975,7 @@ template <typename T>
 void Ftrl<T>::init_model() {
   if (dt_model == nullptr) return;
   for (size_t i = 0; i < dt_model->ncols; ++i) {
-    auto data = static_cast<T*>(dt_model->get_ocolumn(i)->data_w());
+    auto data = static_cast<T*>(dt_model->get_column(i)->data_w());
     std::memset(data, 0, nbins * sizeof(T));
   }
 }
@@ -988,7 +988,7 @@ void Ftrl<T>::init_model() {
  void Ftrl<T>::reset_model_stats() {
   if (dt_model == nullptr) return;
   for (size_t i = 0; i < dt_model->ncols; ++i) {
-    (dt_model->get_ocolumn(i)).reset_stats();
+    (dt_model->get_column(i)).reset_stats();
   }
 }
 
@@ -1007,8 +1007,8 @@ void Ftrl<T>::init_weights() {
   n.reserve(nlabels);
 
   for (size_t k = 0; k < nlabels; ++k) {
-    z.push_back(static_cast<T*>(dt_model->get_ocolumn(2 * k)->data_w()));
-    n.push_back(static_cast<T*>(dt_model->get_ocolumn(2 * k + 1)->data_w()));
+    z.push_back(static_cast<T*>(dt_model->get_column(2 * k)->data_w()));
+    n.push_back(static_cast<T*>(dt_model->get_column(2 * k + 1)->data_w()));
   }
 }
 
@@ -1042,7 +1042,7 @@ void Ftrl<T>::create_fi() {
   sb.commit_and_start_new_chunk(nfeatures);
 
   constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
-  OColumn c_fi_values = OColumn::new_data_column(stype, nfeatures);
+  Column c_fi_values = Column::new_data_column(stype, nfeatures);
   dt_fi = dtptr(new DataTable({std::move(c_fi_names).to_ocolumn(), std::move(c_fi_values)},
                               {"feature_name", "feature_importance"})
                              );
@@ -1056,7 +1056,7 @@ void Ftrl<T>::create_fi() {
 template <typename T>
 void Ftrl<T>::init_fi() {
   if (dt_fi == nullptr) return;
-  auto data = static_cast<T*>(dt_fi->get_ocolumn(1)->data_w());
+  auto data = static_cast<T*>(dt_fi->get_column(1)->data_w());
   std::memset(data, 0, nfeatures * sizeof(T));
 }
 
@@ -1081,7 +1081,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
 
   // Create hashers.
   for (size_t i = 0; i < dt->ncols; ++i) {
-    const OColumn& col = dt->get_ocolumn(i);
+    const Column& col = dt->get_column(i);
     hashers.push_back(create_hasher(col));
   }
 
@@ -1103,7 +1103,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
  *  Depending on a column type, create a corresponding hasher.
  */
 template <typename T>
-hasherptr Ftrl<T>::create_hasher(const OColumn& col) {
+hasherptr Ftrl<T>::create_hasher(const Column& col) {
   int shift_nbits = dt::FtrlBase::DOUBLE_MANTISSA_NBITS - mantissa_nbits;
   switch (col.stype()) {
     case SType::BOOL:
@@ -1199,7 +1199,7 @@ DataTable* Ftrl<T>::get_fi(bool normalize /* = true */) {
 
   DataTable* dt_fi_copy = dt_fi->copy();
   if (normalize) {
-    OColumn& col = dt_fi_copy->get_ocolumn(1);
+    Column& col = dt_fi_copy->get_column(1);
     bool max_isna;
     T max = static_cast<T>(col.stats()->max_double(&max_isna));
     T* data = static_cast<T*>(col->data_w());

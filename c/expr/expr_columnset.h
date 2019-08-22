@@ -40,7 +40,7 @@ class expr_columnset : public base_expr {
     bool is_columnset_expr() const override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    OColumn evaluate_eager(workframe&) override;
+    Column evaluate_eager(workframe&) override;
 };
 
 

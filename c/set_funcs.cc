@@ -28,6 +28,7 @@
 #include "python/args.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include "column_impl.h"  // TODO: remove
 namespace dt {
 namespace set {
 
@@ -39,7 +40,7 @@ struct named_colvec {
 
 struct sort_result {
   intvec sizes;
-  OColumn column;
+  Column column;
   std::string colname;
   RowIndex ri;
   Groupby gb;
@@ -72,7 +73,7 @@ static named_colvec columns_from_args(const py::PKArgs& args) {
         throw ValueError() << "Only single-column Frames are allowed, "
             "but received a Frame with " << dt->ncols << " columns";
       }
-      OColumn col = dt->get_ocolumn(0);  // copy
+      Column col = dt->get_column(0);  // copy
       col.materialize();
       result.columns.push_back(std::move(col));
       if (result.name.empty()) {
@@ -109,7 +110,7 @@ static sort_result sort_columns(named_colvec&& ncv) {
     res.column = std::move(ncv.columns[0]);
     res.column.materialize();
   } else {
-    res.column = OColumn::new_data_column(SType::VOID, 0);
+    res.column = Column::new_data_column(SType::VOID, 0);
     res.column.rbind(ncv.columns);
   }
   res.ri = res.column.sort(&res.gb);
@@ -170,7 +171,7 @@ static py::oobj unique(const py::PKArgs& args) {
 
   named_colvec ncv;
   for (size_t i = 0; i < dt->ncols; ++i) {
-    ncv.columns.push_back(dt->get_ocolumn(i));
+    ncv.columns.push_back(dt->get_column(i));
   }
   if (dt->ncols == 1) {
     ncv.name = dt->get_names()[0];

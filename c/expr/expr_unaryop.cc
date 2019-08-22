@@ -9,6 +9,7 @@
 #include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "types.h"
 namespace dt {
@@ -256,8 +257,8 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 // an integer output column because each "element" of the input actually
 // consists of 2 entries: the offsets of the start and the end of a string.
 //
-OColumn expr_unaryop::evaluate_eager(workframe& wf) {
-  OColumn input_column = arg->evaluate_eager(wf);
+Column expr_unaryop::evaluate_eager(workframe& wf) {
+  Column input_column = arg->evaluate_eager(wf);
 
   auto input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
@@ -289,7 +290,7 @@ OColumn expr_unaryop::evaluate_eager(workframe& wf) {
     out = output_mbuf.xptr();
   }
   auto output_column =
-      OColumn::new_mbuf_column(ui.output_stype, std::move(output_mbuf));
+      Column::new_mbuf_column(ui.output_stype, std::move(output_mbuf));
 
   ui.vectorfn(nrows, inp, out);
 

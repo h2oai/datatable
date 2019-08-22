@@ -178,7 +178,7 @@ class base_expr {
     virtual ~base_expr();
     virtual SType resolve(const workframe&) = 0;
     virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual OColumn evaluate_eager(workframe&) = 0;
+    virtual Column evaluate_eager(workframe&) = 0;
     virtual vcolptr evaluate_lazy(workframe&);
 
     virtual bool is_columnset_expr() const;

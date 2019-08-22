@@ -13,7 +13,6 @@
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
-class Column;
 class DataTable;
 class RowIndex;
 

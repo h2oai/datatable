@@ -20,6 +20,7 @@
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
+#include "column_impl.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 
@@ -271,7 +272,7 @@ void DataTable::rbind(
 
   columns.reserve(new_ncols);
   for (size_t i = ncols; i < new_ncols; ++i) {
-    columns.push_back(OColumn::new_data_column(SType::VOID, nrows));
+    columns.push_back(Column::new_data_column(SType::VOID, nrows));
   }
 
   size_t new_nrows = this->nrows;
@@ -283,9 +284,9 @@ void DataTable::rbind(
   for (size_t i = 0; i < new_ncols; ++i) {
     for (size_t j = 0; j < dts.size(); ++j) {
       size_t k = col_indices[i][j];
-      OColumn col = (k == INVALID_INDEX)
-                      ? OColumn::new_data_column(SType::VOID, dts[j]->nrows)
-                      : dts[j]->get_ocolumn(k);
+      Column col = (k == INVALID_INDEX)
+                      ? Column::new_data_column(SType::VOID, dts[j]->nrows)
+                      : dts[j]->get_column(k);
       cols_to_append[j] = std::move(col);
     }
     columns[i].rbind(cols_to_append);
@@ -301,7 +302,7 @@ void DataTable::rbind(
 //  Column::rbind()
 //------------------------------------------------------------------------------
 
-void OColumn::rbind(colvec& columns) {
+void Column::rbind(colvec& columns) {
   // Is the current column "empty" ?
   bool col_empty = (stype() == SType::VOID);
   if (!col_empty) this->materialize();
@@ -316,11 +317,11 @@ void OColumn::rbind(colvec& columns) {
     new_stype = std::max(new_stype, col.stype());
   }
 
-  // Create the resulting OColumn object. It can be either: an empty column
+  // Create the resulting Column object. It can be either: an empty column
   // filled with NAs; the current column; or a type-cast of the current column.
-  OColumn newcol;
+  Column newcol;
   if (col_empty) {
-    newcol = OColumn::new_na_column(new_stype, nrows());
+    newcol = Column::new_na_column(new_stype, nrows());
   } else if (stype() == new_stype) {
     newcol = std::move(*this);
   } else {
@@ -355,7 +356,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
     new_strbuf_size += strbuf.size();
   }
   for (size_t i = 0; i < columns.size(); ++i) {
-    OColumn& col = columns[i];
+    Column& col = columns[i];
     if (col.stype() == SType::VOID) continue;
     if (col.ltype() != LType::STRING) {
       col = col.cast(_stype);
@@ -380,7 +381,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
     curr_offset = offs[old_nrows - 1] & ~GETNA<T>();
     offs += old_nrows;
   }
-  for (OColumn& col : columns) {
+  for (Column& col : columns) {
     if (col.stype() == SType::VOID) {
       rows_to_fill += col.nrows();
     } else {

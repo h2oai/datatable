@@ -29,6 +29,7 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "column.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 
 
@@ -105,7 +106,7 @@ static inline void obj_str(PyObject* x, dt::string_buf* buf) {
 // with RowIndexes that are plain slices).
 //
 template <typename T, typename U, U(*CAST_OP)(T)>
-static void cast_fw0(const OColumn& col, size_t start, void* out_data)
+static void cast_fw0(const Column& col, size_t start, void* out_data)
 {
   xassert(col->rowindex()? col->rowindex().is_simple_slice()
                          : (start == 0));
@@ -119,7 +120,7 @@ static void cast_fw0(const OColumn& col, size_t start, void* out_data)
 
 
 template <typename T, typename U, U(*CAST_OP)(T)>
-static void cast_fw1(const OColumn& col, const int32_t* indices,
+static void cast_fw1(const Column& col, const int32_t* indices,
                      void* out_data)
 {
   auto inp = static_cast<const T*>(col->data());
@@ -134,7 +135,7 @@ static void cast_fw1(const OColumn& col, const int32_t* indices,
 
 
 template <typename T, typename U, U(*CAST_OP)(T)>
-static void cast_fw2(const OColumn& col, void* out_data)
+static void cast_fw2(const Column& col, void* out_data)
 {
   auto inp = static_cast<const T*>(col->data());
   auto out = static_cast<U*>(out_data);
@@ -154,7 +155,7 @@ static void cast_fw2(const OColumn& col, void* out_data)
 // the buffer should not contain any existing PyObjects.
 //
 template <typename T, PyObject* (*CAST_OP)(T)>
-static void cast_to_pyobj(const OColumn& col, void* out_data)
+static void cast_to_pyobj(const Column& col, void* out_data)
 {
   auto inp = static_cast<const T*>(col->data());
   auto out = static_cast<PyObject**>(out_data);
@@ -168,7 +169,7 @@ static void cast_to_pyobj(const OColumn& col, void* out_data)
 
 
 template <typename T>
-static void cast_str_to_pyobj(const OColumn& col, void* out_data)
+static void cast_str_to_pyobj(const Column& col, void* out_data)
 {
   auto out = static_cast<PyObject**>(out_data);
   CString value;
@@ -185,8 +186,8 @@ static void cast_str_to_pyobj(const OColumn& col, void* out_data)
 
 
 template <typename T, void (*CAST_OP)(T, dt::string_buf*)>
-static OColumn cast_to_str(const OColumn& col, MemoryRange&& out_offsets,
-                           SType target_stype)
+static Column cast_to_str(const Column& col, MemoryRange&& out_offsets,
+                          SType target_stype)
 {
   auto inp = static_cast<const T*>(col->data());
   const RowIndex& rowindex = col->rowindex();
@@ -208,12 +209,12 @@ static OColumn cast_to_str(const OColumn& col, MemoryRange&& out_offsets,
 
 
 template <typename T>
-static OColumn cast_str_to_str(const OColumn& col, MemoryRange&& out_offsets,
-                               SType target_stype)
+static Column cast_str_to_str(const Column& col, MemoryRange&& out_offsets,
+                              SType target_stype)
 {
   if (sizeof(T) == 8 && target_stype == SType::STR32 &&
-      ( // col->datasize() > OColumn::MAX_ARR32_SIZE ||
-       col.nrows() > OColumn::MAX_ARR32_SIZE)) {
+      ( // col->datasize() > Column::MAX_ARR32_SIZE ||
+       col.nrows() > Column::MAX_ARR32_SIZE)) {
     // If the user attempts to convert str64 into str32 but the column is too
     // big, we will convert into str64 instead.
     // We could have also thrown an exception here, but this seems to be more
@@ -245,10 +246,10 @@ static OColumn cast_str_to_str(const OColumn& col, MemoryRange&& out_offsets,
 
 class cast_manager {
   private:
-    using castfn0 = void (*)(const OColumn&, size_t start, void* out);
-    using castfn1 = void (*)(const OColumn&, const int32_t* indices, void* out);
-    using castfn2 = void (*)(const OColumn&, void* out);
-    using castfnx = OColumn (*)(const OColumn&, MemoryRange&&, SType);
+    using castfn0 = void (*)(const Column&, size_t start, void* out);
+    using castfn1 = void (*)(const Column&, const int32_t* indices, void* out);
+    using castfn2 = void (*)(const Column&, void* out);
+    using castfnx = Column (*)(const Column&, MemoryRange&&, SType);
     struct cast_info {
       castfn0  f0;
       castfn1  f1;
@@ -265,7 +266,7 @@ class cast_manager {
     inline void add(SType st_from, SType st_to, castfn2 f);
     inline void add(SType st_from, SType st_to, castfnx f);
 
-    OColumn execute(const OColumn&, MemoryRange&&, SType);
+    Column execute(const Column&, MemoryRange&&, SType);
 
   private:
     static inline constexpr size_t key(SType st1, SType st2) {
@@ -300,8 +301,8 @@ void cast_manager::add(SType st_from, SType st_to, castfnx f) {
 }
 
 
-OColumn cast_manager::execute(const OColumn& src, MemoryRange&& target_mbuf,
-                              SType target_stype)
+Column cast_manager::execute(const Column& src, MemoryRange&& target_mbuf,
+                             SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
   size_t id = key(src.stype(), target_stype);
@@ -345,7 +346,7 @@ OColumn cast_manager::execute(const OColumn& src, MemoryRange&& target_mbuf,
     target_mbuf.set_pyobjects(/* clear = */ false);
   }
 
-  return OColumn::new_mbuf_column(target_stype, std::move(target_mbuf));
+  return Column::new_mbuf_column(target_stype, std::move(target_mbuf));
 }
 
 
@@ -545,13 +546,13 @@ void py::DatatableModule::init_casts()
 
 
 //------------------------------------------------------------------------------
-// OColumn (base methods)
+// Column (base methods)
 //------------------------------------------------------------------------------
 
-OColumn OColumn::cast(SType stype) const {
+Column Column::cast(SType stype) const {
   return casts.execute(*this, MemoryRange(), stype);
 }
 
-OColumn OColumn::cast(SType stype, MemoryRange&& mem) const {
+Column Column::cast(SType stype, MemoryRange&& mem) const {
   return casts.execute(*this, std::move(mem), stype);
 }

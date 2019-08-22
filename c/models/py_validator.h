@@ -56,9 +56,9 @@ Error py::Validator::error_manager::error_greater_than(PyObject* src,
 }
 
 
-// OColumn validators.
+// Column validators.
 
-bool has_negatives(const OColumn& col);
+bool has_negatives(const Column& col);
 
 
 // py::Arg validators

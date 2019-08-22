@@ -23,6 +23,7 @@
 #include "str/py_str.h"
 #include "datatable.h"
 #include "options.h"
+#include "column_impl.h"  // TODO: remove
 
 namespace dt {
 
@@ -77,7 +78,7 @@ static void tokenize_string(
 /**
  * Encode NA's with NA's
  */
-static void encode_nones(const OColumn& col, colvec& outcols) {
+static void encode_nones(const Column& col, colvec& outcols) {
   size_t ncols = outcols.size();
   if (ncols == 0) return;
 
@@ -120,7 +121,7 @@ static void sort_colnames(colvec& outcols, strvec& outnames) {
 }
 
 
-DataTable* split_into_nhot(const OColumn& col, char sep,
+DataTable* split_into_nhot(const Column& col, char sep,
                            bool sort /* = false */)
 {
   xassert((col.stype() == SType::STR32) || (col.stype() == SType::STR64));
@@ -165,7 +166,7 @@ DataTable* split_into_nhot(const OColumn& col, char sep,
               lock.exclusive_start();
               if (colsmap.count(s) == 0) {
                 colsmap[s] = outcols.size();
-                auto newcol = OColumn::new_data_column(SType::BOOL, nrows);
+                auto newcol = Column::new_data_column(SType::BOOL, nrows);
                 int8_t* data = static_cast<int8_t*>(newcol->data_w());
                 std::memset(data, 0, nrows);
                 data[irow] = 1;

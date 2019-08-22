@@ -38,7 +38,7 @@ py::oobj expr_literal::get_literal_arg() {
 SType expr_literal::resolve(const workframe&) {
   py::olist lst(1);
   lst.set(0, arg);
-  col = OColumn::from_pylist(lst, 0);
+  col = Column::from_pylist(lst, 0);
   return col.stype();
 }
 
@@ -48,7 +48,7 @@ GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
 }
 
 
-OColumn expr_literal::evaluate_eager(workframe&) {
+Column expr_literal::evaluate_eager(workframe&) {
   return col;  // copy
 }
 

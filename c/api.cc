@@ -20,8 +20,9 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "../datatable/include/datatable.h"
-#include "datatable.h"
 #include "frame/py_frame.h"
+#include "column_impl.h"  // TODO: remove
+#include "datatable.h"
 #include "rowindex.h"
 #include "py_rowindex.h"
 extern "C" {
@@ -83,14 +84,14 @@ size_t DtFrame_NRows(PyObject* pydt) {
 int DtFrame_ColumnStype(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return -1;
-  return static_cast<int>(dt->get_ocolumn(i).stype());  // stype() is noexcept
+  return static_cast<int>(dt->get_column(i).stype());  // stype() is noexcept
 }
 
 
 PyObject* DtFrame_ColumnRowindex(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
-  const RowIndex& ri = dt->get_ocolumn(i)->rowindex();  // rowindex() is noexcept
+  const RowIndex& ri = dt->get_column(i)->rowindex();  // rowindex() is noexcept
   return (ri? py::orowindex(ri) : py::None()).release();
 }
 
@@ -99,7 +100,7 @@ const void* DtFrame_ColumnDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    return dt->get_ocolumn(i)->data();
+    return dt->get_column(i)->data();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
@@ -110,7 +111,7 @@ void* DtFrame_ColumnDataW(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    return dt->get_ocolumn(i)->data_w();
+    return dt->get_column(i)->data_w();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
@@ -122,7 +123,7 @@ const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    OColumn& col = dt->get_ocolumn(i);
+    Column& col = dt->get_column(i);
     if (col.ltype() == LType::STRING) {
       return static_cast<const char*>(col.get_data_readonly(1));
     }

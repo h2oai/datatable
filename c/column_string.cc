@@ -10,7 +10,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "column.h"
+#include "column_impl.h"
 
 template <typename T> constexpr SType stype_for() { return SType::VOID; }
 template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }
@@ -24,7 +24,7 @@ template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 // public: create a string column for `n` rows, preallocating the offsets array
 // but leaving string buffer empty (and not allocated).
 template <typename T>
-StringColumn<T>::StringColumn(size_t n) : Column(n)
+StringColumn<T>::StringColumn(size_t n) : ColumnImpl(n)
 {
   _stype = stype_for<T>();
   mbuf = MemoryRange::mem(sizeof(T) * (n + 1));
@@ -34,7 +34,7 @@ StringColumn<T>::StringColumn(size_t n) : Column(n)
 
 // private use only
 template <typename T>
-StringColumn<T>::StringColumn() : Column(0) {
+StringColumn<T>::StringColumn() : ColumnImpl(0) {
   _stype = stype_for<T>();
 }
 
@@ -42,7 +42,7 @@ StringColumn<T>::StringColumn() : Column(0) {
 // private: use `new_string_column(n, &&mb, &&sb)` instead
 template <typename T>
 StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
-  : Column(n)
+  : ColumnImpl(n)
 {
   xassert(mb);
   xassert(mb.size() == sizeof(T) * (n + 1));
@@ -53,42 +53,6 @@ StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
   strbuf = std::move(sb);
 }
 
-
-static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
-  // TODO: make this parallel
-  MemoryRange off64 = MemoryRange::mem(offsets.size() * 2);
-  auto data64 = static_cast<uint64_t*>(off64.xptr());
-  auto data32 = static_cast<const uint32_t*>(offsets.rptr());
-  data64[0] = 0;
-  uint64_t curr_offset = 0;
-  size_t n = offsets.size() / sizeof(uint32_t) - 1;
-  for (size_t i = 1; i <= n; ++i) {
-    uint32_t len = data32[i] - data32[i - 1];
-    if (len == GETNA<uint32_t>()) {
-      data64[i] = curr_offset ^ GETNA<uint64_t>();
-    } else {
-      curr_offset += len & ~GETNA<uint32_t>();
-      data64[i] = curr_offset;
-    }
-  }
-  return off64;
-}
-
-
-OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str) {
-  size_t data_size = data.size();
-  size_t strb_size = str.size();
-
-  if (data_size == sizeof(uint32_t) * (n + 1)) {
-    if (strb_size <= OColumn::MAX_ARR32_SIZE &&
-        n <= OColumn::MAX_ARR32_SIZE) {
-      return OColumn(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
-    }
-    // Otherwise, offsets need to be recoded into a uint64_t array
-    data = _recode_offsets_to_u64(data);
-  }
-  return OColumn(new StringColumn<uint64_t>(n, std::move(data), std::move(str)));
-}
 
 
 
@@ -109,8 +73,8 @@ void StringColumn<T>::init_data() {
 //==============================================================================
 
 template <typename T>
-Column* StringColumn<T>::shallowcopy() const {
-  Column* newcol = Column::shallowcopy();
+ColumnImpl* StringColumn<T>::shallowcopy() const {
+  ColumnImpl* newcol = ColumnImpl::shallowcopy();
   StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
   col->strbuf = strbuf;
   return col;
@@ -269,12 +233,12 @@ void StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    OColumn& thiscol, const RowIndex& replace_at, const OColumn& replace_with)
+    Column& thiscol, const RowIndex& replace_at, const Column& replace_with)
 {
   materialize();
-  OColumn rescol;
+  Column rescol;
 
-  OColumn with;
+  Column with;
   if (replace_with) {
     with = replace_with;  // copy
     if (with.stype() != _stype) with = with.cast(_stype);
@@ -380,7 +344,7 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
 
 
 template <typename T>
-void StringColumn<T>::apply_na_mask(const OColumn& mask) {
+void StringColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
   auto maskdata = static_cast<const int8_t*>(mask->data());
   char* strdata = static_cast<char*>(strbuf.wptr());

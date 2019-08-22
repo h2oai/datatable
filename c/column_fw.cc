@@ -10,6 +10,7 @@
 #include "utils/misc.h"
 #include "parallel/api.h"  // dt::parallel_for_static
 #include "column.h"
+#include "column_impl.h"
 
 
 
@@ -18,15 +19,15 @@
  * should be subsequently called before using this column.
  */
 template <typename T>
-FwColumn<T>::FwColumn() : Column(0) {}
+FwColumn<T>::FwColumn() : ColumnImpl(0) {}
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_) : Column(nrows_) {
+FwColumn<T>::FwColumn(size_t nrows_) : ColumnImpl(nrows_) {
   mbuf.resize(sizeof(T) * nrows_);
 }
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
+FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : ColumnImpl(nrows_) {
   size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);
@@ -153,7 +154,7 @@ size_t FwColumn<T>::data_nrows() const {
 
 
 template <typename T>
-void FwColumn<T>::apply_na_mask(const OColumn& mask) {
+void FwColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
   auto maskdata = static_cast<const int8_t*>(mask->data());
   T* coldata = this->elements_w();
@@ -190,13 +191,13 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    OColumn&, const RowIndex& replace_at, const OColumn& replace_with)
+    Column&, const RowIndex& replace_at, const Column& replace_with)
 {
   materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  OColumn with = (replace_with.stype() == _stype)
+  Column with = (replace_with.stype() == _stype)
                     ? replace_with  // copy
                     : replace_with.cast(_stype);
 

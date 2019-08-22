@@ -31,6 +31,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
@@ -77,7 +78,7 @@ static py::oobj frame_column_rowindex(const py::PKArgs& args) {
   DataTable* dt = u.first;
   size_t col = u.second;
 
-  RowIndex ri = dt->get_ocolumn(col)->rowindex();
+  RowIndex ri = dt->get_column(col)->rowindex();
   return ri? py::orowindex(ri) : py::None();
 }
 
@@ -98,7 +99,7 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
   auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
-  size_t iptr = reinterpret_cast<size_t>(dt->get_ocolumn(col)->data());
+  size_t iptr = reinterpret_cast<size_t>(dt->get_column(col)->data());
   return c_void_p.call({py::oint(iptr)});
 }
 

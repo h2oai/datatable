@@ -16,6 +16,7 @@
 #include "frame/py_frame.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"      // repr_utf8
+#include "column_impl.h"
 #include "datatable.h"
 #include "encodings.h"
 
@@ -41,7 +42,7 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols;
     }
     for (size_t i = 0; i < dt->ncols; ++i) {
-      SType col_stype = dt->get_ocolumn(i).stype();
+      SType col_stype = dt->get_column(i).stype();
       auto elem = stypes_tuple[i];
       auto eexp = info(col_stype).py_stype();
       if (elem != eexp) {
@@ -60,7 +61,7 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols;
     }
     for (size_t i = 0; i < dt->ncols; ++i) {
-      SType col_stype = dt->get_ocolumn(i).stype();
+      SType col_stype = dt->get_column(i).stype();
       auto elem = ltypes_tuple[i];
       auto eexp = info(col_stype).py_ltype();
       if (elem != eexp) {
@@ -114,7 +115,7 @@ void DataTable::verify_integrity() const
    */
   for (size_t i = 0; i < ncols; ++i) {
     const std::string& col_name = names[i];
-    const OColumn& col = columns[i];
+    const Column& col = columns[i];
     if (!col) {
       throw AssertionError() << col_name << " of Frame is null";
     }
@@ -147,7 +148,7 @@ void DataTable::verify_integrity() const
 // Column
 //------------------------------------------------------------------------------
 
-void Column::verify_integrity(const std::string& name) const {
+void ColumnImpl::verify_integrity(const std::string& name) const {
   mbuf.verify_integrity();
   ri.verify_integrity();
 
@@ -217,7 +218,7 @@ void BoolColumn::verify_integrity(const std::string& name) const {
 
 template <typename T>
 void StringColumn<T>::verify_integrity(const std::string& name) const {
-  Column::verify_integrity(name);
+  ColumnImpl::verify_integrity(name);
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*

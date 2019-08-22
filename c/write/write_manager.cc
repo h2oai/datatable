@@ -162,7 +162,7 @@ py::oobj write_manager::get_result() {
 
 void write_manager::create_column_writers() {
   for (size_t i = 0; i < dt->ncols; ++i) {
-    const OColumn& col = dt->get_ocolumn(i);
+    const Column& col = dt->get_column(i);
     columns.push_back(value_writer::create(col, options));
   }
 }

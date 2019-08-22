@@ -47,7 +47,7 @@ GroupbyMode expr_columnset::get_groupby_mode(const workframe&) const {
     << "Method get_groupby_mode() should not be called on expr_columnset";
 }
 
-OColumn expr_columnset::evaluate_eager(workframe&) {
+Column expr_columnset::evaluate_eager(workframe&) {
   throw RuntimeError()
     << "Method evaluate_eager() should not be called on expr_columnset";
 }

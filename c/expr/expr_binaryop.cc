@@ -45,6 +45,7 @@
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "column.h"
+#include "column_impl.h"  // TODO: remove
 #include "types.h"
 namespace dt {
 namespace expr {
@@ -66,7 +67,7 @@ enum OpMode {
   One_to_N = 3,
 };
 
-using mapperfn = void(*)(size_t row0, size_t row1, OColumn* cols);
+using mapperfn = void(*)(size_t row0, size_t row1, Column* cols);
 
 
 
@@ -75,7 +76,7 @@ using mapperfn = void(*)(size_t row0, size_t row1, OColumn* cols);
 //------------------------------------------------------------------------------
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
-static void map_n_to_n(size_t row0, size_t row1, OColumn* cols) {
+static void map_n_to_n(size_t row0, size_t row1, Column* cols) {
   const LT* lhs_data = static_cast<const LT*>(cols[0]->data());
   const RT* rhs_data = static_cast<const RT*>(cols[1]->data());
   VT* res_data = static_cast<VT*>(cols[2]->data_w());
@@ -85,7 +86,7 @@ static void map_n_to_n(size_t row0, size_t row1, OColumn* cols) {
 }
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
-static void map_n_to_1(size_t row0, size_t row1, OColumn* cols) {
+static void map_n_to_1(size_t row0, size_t row1, Column* cols) {
   const LT* lhs_data = static_cast<const LT*>(cols[0]->data());
   RT rhs_value = static_cast<const RT*>(cols[1]->data())[0];
   VT* res_data = static_cast<VT*>(cols[2]->data_w());
@@ -95,7 +96,7 @@ static void map_n_to_1(size_t row0, size_t row1, OColumn* cols) {
 }
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
-static void map_1_to_n(size_t row0, size_t row1, OColumn* cols) {
+static void map_1_to_n(size_t row0, size_t row1, Column* cols) {
   LT lhs_value = static_cast<const LT*>(cols[0]->data())[0];
   const RT* rhs_data = static_cast<const RT*>(cols[1]->data());
   VT* res_data = static_cast<VT*>(cols[2]->data_w());
@@ -106,9 +107,9 @@ static void map_1_to_n(size_t row0, size_t row1, OColumn* cols) {
 
 
 template<typename TR, TR (*OP)(const CString&, bool, const CString&, bool)>
-static void strmap_n_to_n(size_t row0, size_t row1, OColumn* cols) {
-  const OColumn& col0 = cols[0];
-  const OColumn& col1 = cols[1];
+static void strmap_n_to_n(size_t row0, size_t row1, Column* cols) {
+  const Column& col0 = cols[0];
+  const Column& col1 = cols[1];
   auto res_data = static_cast<TR*>(cols[2]->data_w());
   CString val0, val1;
   bool isna0, isna1;
@@ -121,9 +122,9 @@ static void strmap_n_to_n(size_t row0, size_t row1, OColumn* cols) {
 
 
 template<typename TR, TR (*OP)(const CString&, bool, const CString&, bool)>
-static void strmap_n_to_1(size_t row0, size_t row1, OColumn* cols) {
-  const OColumn& col0 = cols[0];
-  const OColumn& col1 = cols[1];
+static void strmap_n_to_1(size_t row0, size_t row1, Column* cols) {
+  const Column& col0 = cols[0];
+  const Column& col1 = cols[1];
   auto res_data = static_cast<TR*>(cols[2]->data_w());
   CString val0, val1;
   bool isna0;
@@ -325,7 +326,7 @@ static mapperfn resolve2str(OpMode mode) {
 
 
 template<typename LT, typename RT, typename VT>
-static mapperfn resolve1(Op opcode, SType stype, OColumn* cols, size_t nrows, OpMode mode) {
+static mapperfn resolve1(Op opcode, SType stype, Column* cols, size_t nrows, OpMode mode) {
   if (static_cast<size_t>(opcode) >= static_cast<size_t>(Op::EQ) &&
       static_cast<size_t>(opcode) <= static_cast<size_t>(Op::GE)) {
     // override stype for relational operators
@@ -333,7 +334,7 @@ static mapperfn resolve1(Op opcode, SType stype, OColumn* cols, size_t nrows, Op
   } else if (opcode == Op::DIVIDE && std::is_integral<VT>::value) {
     stype = SType::FLOAT64;
   }
-  cols[2] = OColumn::new_data_column(stype, nrows);
+  cols[2] = Column::new_data_column(stype, nrows);
   switch (opcode) {
     case Op::PLUS:      return resolve2<LT, RT, VT, op_add<LT, RT, VT>>(mode);
     case Op::MINUS:     return resolve2<LT, RT, VT, op_sub<LT, RT, VT>>(mode);
@@ -360,12 +361,12 @@ static mapperfn resolve1(Op opcode, SType stype, OColumn* cols, size_t nrows, Op
 }
 
 
-static mapperfn resolve1str(Op opcode, OColumn* cols, size_t nrows, OpMode mode) {
+static mapperfn resolve1str(Op opcode, Column* cols, size_t nrows, OpMode mode) {
   if (mode == OpMode::One_to_N) {
     mode = OpMode::N_to_One;
     std::swap(cols[0], cols[1]);
   }
-  cols[2] = OColumn::new_data_column(SType::BOOL, nrows);
+  cols[2] = Column::new_data_column(SType::BOOL, nrows);
   switch (opcode) {
     case Op::EQ: return resolve2str<int8_t, strop_eq>(mode);
     case Op::NE: return resolve2str<int8_t, strop_ne>(mode);
@@ -375,12 +376,12 @@ static mapperfn resolve1str(Op opcode, OColumn* cols, size_t nrows, OpMode mode)
 }
 
 
-static mapperfn resolve0(SType lhs_type, SType rhs_type, Op opcode, OColumn* cols, size_t nrows, OpMode mode) {
+static mapperfn resolve0(SType lhs_type, SType rhs_type, Op opcode, Column* cols, size_t nrows, OpMode mode) {
   if (mode == OpMode::Error) return nullptr;
   switch (lhs_type) {
     case SType::BOOL:
       if (rhs_type == SType::BOOL && (opcode == Op::AND || opcode == Op::OR)) {
-        cols[2] = OColumn::new_data_column(SType::BOOL, nrows);
+        cols[2] = Column::new_data_column(SType::BOOL, nrows);
         if (opcode == Op::AND) return resolve2<int8_t, int8_t, int8_t, op_and>(mode);
         if (opcode == Op::OR)  return resolve2<int8_t, int8_t, int8_t, op_or>(mode);
       }
@@ -485,7 +486,7 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, Op opcode, OColumn* col
 // binaryop
 //------------------------------------------------------------------------------
 
-static OColumn binaryop(Op opcode, OColumn& lhs, OColumn& rhs)
+static Column binaryop(Op opcode, Column& lhs, Column& rhs)
 {
   // TODO: do not materialize, then `lhs` and `rhs` may be const
   lhs.materialize();
@@ -502,7 +503,7 @@ static OColumn binaryop(Op opcode, OColumn& lhs, OColumn& rhs)
   SType lhs_type = lhs.stype();
   SType rhs_type = rhs.stype();
 
-  OColumn cols[3];
+  Column cols[3];
   cols[0] = lhs;  // shallow copy
   cols[1] = rhs;  // shallow copy
 
@@ -557,7 +558,7 @@ GroupbyMode expr_binaryop::get_groupby_mode(const workframe& wf) const {
 }
 
 
-OColumn expr_binaryop::evaluate_eager(workframe& wf) {
+Column expr_binaryop::evaluate_eager(workframe& wf) {
   auto lhs_res = lhs->evaluate_eager(wf);
   auto rhs_res = rhs->evaluate_eager(wf);
   return expr::binaryop(opcode, lhs_res, rhs_res);
@@ -582,7 +583,7 @@ bool expr_binaryop::check_for_operation_with_literal_na(const workframe& wf) {
     auto pliteral = dynamic_cast<expr_literal*>(arg.get());
     if (!pliteral) return false;
     if (pliteral->resolve(wf) != SType::BOOL) return false;
-    OColumn ocol = pliteral->evaluate_eager(const_cast<workframe&>(wf));
+    Column ocol = pliteral->evaluate_eager(const_cast<workframe&>(wf));
     if (ocol.nrows() != 1) return false;
     return ISNA<int8_t>(reinterpret_cast<const int8_t*>(ocol->data())[0]);
   };

@@ -24,7 +24,7 @@
 /**
  *  Abstract Hasher class constructor and destructor.
  */
-Hasher::Hasher(const OColumn& col) : column(col) {}
+Hasher::Hasher(const Column& col) : column(col) {}
 Hasher::~Hasher() {}
 
 
@@ -45,7 +45,7 @@ uint64_t HasherInt<T>::hash(size_t row) const {
  *  also do mantissa binning here.
  */
 template <typename T>
-HasherFloat<T>::HasherFloat(const OColumn& col, int shift_nbits_in)
+HasherFloat<T>::HasherFloat(const Column& col, int shift_nbits_in)
   : Hasher(col), shift_nbits(shift_nbits_in) {}
 
 

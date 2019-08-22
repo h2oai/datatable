@@ -112,7 +112,7 @@ class Ftrl : public dt::FtrlBase {
 
     // Hashing methods
     std::vector<hasherptr> create_hashers(const DataTable*);
-    hasherptr create_hasher(const OColumn&);
+    hasherptr create_hasher(const Column&);
     void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model helper methods

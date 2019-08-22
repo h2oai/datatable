@@ -5,10 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "column.h"
 #include "python/obj.h"
 #include "python/string.h"
 #include "utils/assert.h"
+#include "column_impl.h"
 
 
 
@@ -42,7 +42,7 @@ bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
 
 
 void PyObjectColumn::fill_na() {
-  // This is called from `OColumn::new_na_column()` only; and for a
+  // This is called from `Column::new_na_column()` only; and for a
   // PyObjectColumn the buffer is already created containing Py_None values,
   // thus we don't need to do anything extra.
   // Semantics of this function may be clarified in the future (specifically,
