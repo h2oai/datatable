@@ -56,7 +56,7 @@ __all__ = (
     "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
     "join", "by", "abs", "exp", "log", "log10",
     "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
-    "DataTable", "options",
+    "options",
     "bool8", "int8", "int16", "int32", "int64",
     "float32", "float64", "str32", "str64", "obj64",
     "cbind", "rbind", "repeat", "sort",
@@ -74,4 +74,3 @@ float64 = stype.float64
 str32 = stype.str32
 str64 = stype.str64
 obj64 = stype.obj64
-DataTable = Frame
