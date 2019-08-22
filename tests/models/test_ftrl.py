@@ -1022,6 +1022,24 @@ def test_ftrl_regression_fit():
 # Test early stopping
 #-------------------------------------------------------------------------------
 
+def test_ftrl_wrong_validation_target_type():
+    nepochs = 1234
+    nepochs_validation = 56
+    nbins = 78
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r)
+    df_X_val = df_X
+    df_y_val = dt.Frame(["Some string data" for _ in r])
+
+    with pytest.raises(TypeError) as e:
+        res = ft.fit(df_X, df_y, df_X_val, df_y_val,
+                     nepochs_validation = 0)
+    assert ("Training and validation target columns must have the same ltype, "
+            "got: `int` and `str`" == str(e.value))
+
+
 def test_ftrl_wrong_validation_parameters():
     nepochs = 1234
     nepochs_validation = 56
@@ -1070,6 +1088,27 @@ def test_ftrl_no_early_stopping():
                  nepochs_validation = nepochs_validation)
     assert res.epoch == nepochs
     assert math.isnan(res.loss) == False
+
+
+def test_ftrl_early_stopping_different_stypes():
+    nepochs = 10000
+    nepochs_validation = 5
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins, nepochs = nepochs)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r) # int32 stype
+    df_y_val = dt.Frame(list(r)) # int8 stype
+
+    res = ft.fit(df_X, df_y, df_X, df_y_val,
+                 nepochs_validation = nepochs_validation
+                 )
+    p = ft.predict(df_X)
+    delta = [abs(i - j) for i, j in zip(p.to_list()[0], list(r))]
+    assert res.epoch < nepochs
+    assert res.loss < epsilon
+    assert int(res.epoch) % nepochs_validation == 0
+    assert max(delta) < epsilon
 
 
 @pytest.mark.parametrize('validation_average_niterations', [1,5,10])

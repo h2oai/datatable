@@ -331,9 +331,14 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "one column";
     }
 
-    if (dt_y_val->get_ocolumn(0).stype() != dt_y->get_ocolumn(0).stype()) {
-      throw ValueError() << "Validation target frame must have the same "
-                            "stype as the target frame";
+
+    LType ltype = dt_y->get_ocolumn(0).ltype();
+    LType ltype_val = dt_y_val->get_ocolumn(0).ltype();
+
+    if (ltype != ltype_val) {
+      throw TypeError() << "Training and validation target columns must have "
+                        << "the same ltype, got: `" << info::ltype_name(ltype)
+                        << "` and `" << info::ltype_name(ltype_val) << "`";
     }
 
     if (dt_X_val->nrows != dt_y_val->nrows) {

@@ -167,11 +167,13 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
     create_model();
   }
 
-  return fit<int8_t>(sigmoid<T>,
-                     [] (int8_t y, size_t label_id) -> int8_t {
+  // For binomial regression training and validation target columns
+  // are both SType::BOOL, see `label_encode()` implementation for more
+  // details.
+  auto targetfn = [] (int8_t y, size_t label_id) -> int8_t {
                        return static_cast<size_t>(y) == label_id;
-                     },
-                     log_loss<T>);
+                     };
+  return fit<int8_t, int8_t>(sigmoid<T>, targetfn, targetfn, log_loss<T>);
 }
 
 
@@ -262,6 +264,18 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
 
 
 /**
+ *  Identity target to be used by `fit_regression()`.
+ *  Since C++11 doesn't support templated lambdas, this one is implemented
+ *  as a separate inlined function.
+ */
+template <typename U>
+inline U itarget(U y, size_t label_indicator) {
+  (void) label_indicator;
+  return y;
+};
+
+
+/**
  *  Create labels (in the case of numeric regression there is no actual
  *  labeles, so we just use a column name for this purpose),
  *  set up identity mapping between models and the incoming label inficators,
@@ -276,6 +290,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
                          "mode different from regression. To train it "
                          "in a regression mode this model should be reset.";
   }
+
   if (!is_model_trained()) {
     const strvec& colnames = dt_y_train->get_names();
     std::unordered_map<std::string, int8_t> colnames_map = {{colnames[0], 0}};
@@ -287,12 +302,30 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
   label_ids_train = { 0 };
   label_ids_val = { 0 };
 
-  return fit<U>(identity<T>,
-                [](U y, size_t label_indicator) -> U {
-                  (void) label_indicator;
-                  return y;
-                },
-                squared_loss<T, U>);
+  FtrlFitOutput res;
+
+  if (!std::isnan(nepochs_val)) {
+    // If we got validation datasets, figure out stype of
+    // the validation target column and make an appropriate call to `.fit()`.
+    SType stype_y_val = dt_y_val->get_ocolumn(0).stype();
+    switch (stype_y_val) {
+      case SType::BOOL:    res = fit<U, int8_t>(identity<T>, itarget<U>, itarget<int8_t>, squared_loss<T, int8_t>); break;
+      case SType::INT8:    res = fit<U, int8_t>(identity<T>, itarget<U>, itarget<int8_t>, squared_loss<T, int8_t>); break;
+      case SType::INT16:   res = fit<U, int16_t>(identity<T>, itarget<U>, itarget<int16_t>, squared_loss<T, int16_t>); break;
+      case SType::INT32:   res = fit<U, int32_t>(identity<T>, itarget<U>, itarget<int32_t>, squared_loss<T, int32_t>); break;
+      case SType::INT64:   res = fit<U, int64_t>(identity<T>, itarget<U>, itarget<int64_t>, squared_loss<T, int64_t>); break;
+      case SType::FLOAT32: res = fit<U, float>(identity<T>, itarget<U>, itarget<float>, squared_loss<T, float>); break;
+      case SType::FLOAT64: res = fit<U, double>(identity<T>, itarget<U>, itarget<double>, squared_loss<T, double>); break;
+      default:             throw TypeError() << "Target column type `"
+                                             << stype_y_val << "` is not supported by numeric regression";
+    }
+  } else {
+    // If no validation was requested, it doesn't matter
+    // what validation type we are passing to the `fit()` method.
+    res = fit<U, U>(identity<T>, itarget<U>, itarget<U>, squared_loss<T, U>);
+  }
+
+  return res;
 }
 
 
@@ -330,11 +363,13 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
     model_type = FtrlModelType::MULTINOMIAL;
   }
 
-  return fit<int32_t>(sigmoid<T>,
-                      [] (int32_t y, size_t label_indicator) -> int32_t {
-                        return static_cast<size_t>(y) == label_indicator;
-                      },
-                      log_loss<T>);
+  // For binomial regression training and validation target columns
+  // are both SType::INT32, see `label_encode()` implementation for more
+  // details.
+  auto targetfn = [] (int32_t y, size_t label_indicator) -> int32_t {
+                       return static_cast<size_t>(y) == label_indicator;
+                     };
+  return fit<int32_t, int32_t>(sigmoid<T>, targetfn, targetfn, log_loss<T>);
 }
 
 
@@ -344,9 +379,9 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
  */
 template <typename T>
 void Ftrl<T>::create_y_multinomial(const DataTable* dt,
-                                      dtptr& dt_multinomial,
-                                      std::vector<size_t>& label_ids,
-                                      bool validation /* = false */) {
+                                   dtptr& dt_multinomial,
+                                   std::vector<size_t>& label_ids,
+                                   bool validation /* = false */) {
   xassert(label_ids.size() == 0)
   dtptr dt_labels_in;
   label_encode(dt->get_ocolumn(0), dt_labels_in, dt_multinomial);
@@ -391,7 +426,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
         label_ids[label_id] = label_id_in;
       } else {
         // If there is no corresponding label already set,
-        // we will need to create a new one and its  model.
+        // we will need to create a new one and its model.
         data[n_new_labels] = static_cast<int64_t>(i);
         label_ids.push_back(label_id_in);
         n_new_labels++;
@@ -429,8 +464,12 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
  *  Fit model on a datatable.
  */
 template <typename T>
-template <typename U> /* target column(s) data type */
-FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T, U)) {
+template <typename U, typename V> /* target column(s) data type */
+FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
+                           U(*targetfn)(U, size_t),
+                           V(*targetfn_val)(V, size_t),
+                           T(*lossfn)(T, V))
+{
   // Define features, weight pointers, feature importances storage,
   // as well as column hashers.
   define_features();
@@ -440,7 +479,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
 
   // Obtain rowindex and data pointers for the target column(s).
   std::vector<RowIndex> ri, ri_val;
-  std::vector<const U*> data_y, data_y_val;
+  std::vector<const U*> data_y;
+  std::vector<const V*> data_y_val;
   fill_ri_data<U>(dt_y_train, ri, data_y);
   auto data_fi = static_cast<T*>(dt_fi->get_ocolumn(1)->data_w());
 
@@ -465,7 +505,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
     iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows);
     niterations = total_nrows / iteration_nrows;
     loss_history.resize(val_niters, 0.0);
-    fill_ri_data<U>(dt_y_val, ri_val, data_y_val);
+    fill_ri_data<V>(dt_y_val, ri_val, data_y_val);
   }
 
 
@@ -545,7 +585,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
 
-            if (j0 != RowIndex::NA && !ISNA<U>(data_y_val[0][j0])
+            if (j0 != RowIndex::NA && !ISNA<V>(data_y_val[0][j0])
                 && !std::isinf(data_y[0][j0]))
             {
               hash_row(x, hashers_val, i);
@@ -554,7 +594,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
                 T p = linkfn(predict_row(
                         x, w, k, [&](size_t, T){}
                       ));
-                U y = targetfn(data_y_val[0][j], label_ids_val[k]);
+                V y = targetfn_val(data_y_val[0][j], label_ids_val[k]);
                 loss_local += lossfn(p, y);
               }
             }
@@ -585,7 +625,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T), U(*targetfn)(U, size_t), T(*lossfn)(T,
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
               job.set_message("Fitting: early stopping criteria is met");
-              // This will cause progress to "jump" to 100%.
+              // In some cases this makes progress "jumping" to 100%.
               job.set_done_amount(work_total);
             }
             break;
