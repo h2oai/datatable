@@ -306,6 +306,7 @@ def test_rbind_views2():
     dtr = dt.Frame({"A": [1, 5, 7, 3], "B": ["one", "two", None, "omega"]})
     assert_equals(dt1, dtr)
 
+
 def test_rbind_views3():
     # view + view
     dt0 = dt.Frame({"A": [129, 4, 73, 86],
@@ -318,6 +319,16 @@ def test_rbind_views3():
     dtr = dt.Frame({"A": [129, 73, -9, 365],
                     "B": ["eenie", "meenie", "miney", "mo"]})
     assert_equals(dt0, dtr)
+
+
+def test_rbind_view4():
+    DT = dt.Frame(A=list('abcdefghijklmnop'))
+    DTempty = dt.Frame(A=[])
+    DTempty.nrows = 2
+    assert_equals(dt.rbind(DT[:3, :], DT[:-4:-1, :]),
+                  dt.Frame(A=list('abcpon')))
+    assert_equals(dt.rbind(DT[2:4, :], DTempty, DT[2:5, :]),
+                  dt.Frame(A=['c', 'd', None, None, 'c', 'd', 'e']))
 
 
 def test_rbind_different_stypes1():
@@ -388,6 +399,15 @@ def test_rbind_different_stypes4():
     ]
 
 
+def test_rbind_str32_str64():
+    DT1 = dt.Frame(A=list('abcd'), stype=dt.str32)
+    DT2 = dt.Frame(A=list('efghij'), stype=dt.str64)
+    DT3 = dt.Frame(A=list('klm'), stype=dt.str32)
+    DTR = dt.rbind(DT1, DT2, DT3)
+    # It would be better if the result was str32
+    assert_equals(DTR, dt.Frame(A=list('abcdefghijklm'), stype=dt.str64))
+
+
 def test_rbind_all_stypes():
     sources = {
         dt.bool8: [True, False, True, None, False, None],
@@ -426,6 +446,12 @@ def test_rbind_modulefn():
     frame_integrity_check(f3)
     assert f3.to_list()[0] == f0.to_list()[0] + f1.to_list()[0]
 
+
+
+
+#-------------------------------------------------------------------------------
+# Issues
+#-------------------------------------------------------------------------------
 
 def test_issue1292():
     f0 = dt.Frame([None, None, None, "foo"])

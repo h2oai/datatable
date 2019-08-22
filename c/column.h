@@ -381,12 +381,6 @@ class OColumn
 
     operator bool() const noexcept;
 
-    const void* secondary_data() const noexcept;
-    size_t secondary_size() const noexcept;
-
-    // TEMP accessors to the underlying implementation
-    const Column* get() const { return pcol; }
-
     Column* operator->();
     const Column* operator->() const;
 
@@ -422,8 +416,20 @@ class OColumn
     //
     py::oobj get_element_as_pyobject(size_t i) const;
 
-    const void* data_r() const { return pcol->mbuf.rptr(); }
-    const void* data_with_nas_r() const { return pcol->mbuf.rptr(); }
+    // Access to the underlying column's data. If the column is virtual,
+    // it will be materialized first. The index `i` allows access to
+    // additional data buffers, depending on the column's type.
+    //
+    // For example, for string columns `get_data_readonly(0)` returns the
+    // array of 'start' offsets, while `get_data_readonly(1)` returns the
+    // raw character buffer.
+    //
+    // These methods are not marked const, because they may cause the
+    // column to become materialized.
+    //
+    const void* get_data_readonly(size_t i = 0);
+    void* get_data_editable();
+    size_t get_data_size(size_t i = 0);
 
 
   //------------------------------------

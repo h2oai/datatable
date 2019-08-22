@@ -18,6 +18,7 @@ static OColumn column_from_jay(size_t nrows,
                                const jay::Column* jaycol,
                                const MemoryRange& jaybuf);
 
+static void check_jay_signature(const uint8_t* ptr, size_t size);
 
 
 //------------------------------------------------------------------------------
@@ -45,15 +46,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
 
   const uint8_t* ptr = static_cast<const uint8_t*>(mbuf.rptr());
   const size_t len = mbuf.size();
-  if (len < 24) {
-    throw IOError() << "Invalid Jay file of size " << len;
-  }
-  if (std::memcmp(ptr, "JAY1\0\0\0\0", 8) != 0 ||
-      (std::memcmp(ptr + len - 8, "\0\0\0\0" "1JAY", 8) != 0 &&
-       std::memcmp(ptr + len - 8, "\0\0\0\0" "JAY1", 8) != 0))
-  {
-    throw IOError() << "Invalid signature for a Jay file";
-  }
+  check_jay_signature(ptr, len);
 
   size_t meta_size = *reinterpret_cast<const size_t*>(ptr + len - 16);
   if (meta_size > len - 24) {
@@ -90,6 +83,32 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   dt->set_nkeys_unsafe(static_cast<size_t>(frame->nkeys()));
   return dt;
 }
+
+
+static void check_jay_signature(const uint8_t* sof, size_t size) {
+  const uint8_t* eof = sof + size;
+  if (size < 24) {
+    throw IOError() << "Invalid Jay file of size " << size;
+  }
+
+  if (std::memcmp(sof, "JAY", 3) != 0) {
+    // Note: non-printable chars will be properly escaped by `operator<<`
+    throw IOError() << "Invalid signature for a Jay file: first 3 bytes are `"
+        << sof[0] << sof[1] << sof[2] << "`";
+  }
+  if (std::memcmp(eof - 3, "JAY", 3) != 0 &&
+      std::memcmp(eof - 4, "JAY1", 4) != 0)
+  {
+    throw IOError() << "Invalid signature for a Jay file: last 3 bytes are `"
+        << eof[-3] << eof[-2] << eof[-1] << "`";
+  }
+
+  if (std::memcmp(sof, "JAY1\0\0\0\0", 8) != 0) {
+    std::string version(reinterpret_cast<const char*>(sof) + 3, 5);
+    throw IOError() << "Unsupported Jay file version: " << version;
+  }
+}
+
 
 
 

@@ -318,6 +318,7 @@ class oobj : public _obj {
     static oobj wrap(float v);
     static oobj wrap(double v);
     static oobj wrap(const CString& v);
+    static oobj wrap(const py::robj& v);
 };
 
 
