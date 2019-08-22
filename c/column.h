@@ -23,25 +23,19 @@
 #define dt_COLUMN_h
 #include <string>
 #include <vector>
-#include "python/list.h"
-#include "python/obj.h"
-#include "groupby.h"
-#include "memrange.h"     // MemoryRange
-#include "rowindex.h"
-#include "stats.h"
-#include "types.h"
+#include "python/obj.h"  // py::robj, py::list
+#include "stats.h"       // Stat (enum), Stats
+#include "types.h"       // SType (enum), LType (enum), CString
 
+class OColumn;
 class ColumnImpl;
-class DataTable;
-class BoolColumn;
-class PyObjectColumn;
-class FreadReader;  // used as a friend
-template <typename T> class IntColumn;
-template <typename T> class RealColumn;
-template <typename T> class StringColumn;
-
+class Groupby;
+class MemoryRange;
 using colvec = std::vector<OColumn>;
 using strvec = std::vector<std::string>;
+
+
+//------------------------------------------------------------------------------
 
 /**
  * Helper template to convert between an stype and the C type
@@ -93,8 +87,19 @@ inline PyObject* downcast(py::robj v) {
 // OColumn
 //------------------------------------------------------------------------------
 
-// "owner" of a ColumnImpl
-// Eventually will be renamed into simple ColumnImpl
+/**
+ * A single column within a DataTable.
+ *
+ * A OColumn is a self-sufficient object, i.e. it may exist outside
+ * of a DataTable too. This usually happens when a DataTable is being
+ * transformed, then new OColumn objects will be created, manipulated,
+ * and eventually bundled into a new DataTable.
+ *
+ * The class implements the Pimpl idiom: its implementation details
+ * are hidden as a pointer `pcol` to a ColumnImpl instance. This
+ * object is polymorphic, uses shared-ptr-like mechanics, and may be
+ * replaced with some other instance on the fly.
+ */
 class OColumn
 {
   private:

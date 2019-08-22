@@ -11,6 +11,7 @@
 #include <string>         // std::string
 #include <vector>         // std::vector
 #include "python/_all.h"
+#include "groupby.h"
 #include "rowindex.h"
 #include "types.h"
 #include "column.h"
