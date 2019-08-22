@@ -41,10 +41,6 @@ class expr_string_match_re : public base_expr {
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     OColumn evaluate_eager(workframe& wf) override;
-
-  private:
-    template <typename T>
-    OColumn _compute(const OColumn& src);
 };
 
 

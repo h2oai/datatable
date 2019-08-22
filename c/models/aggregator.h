@@ -100,11 +100,7 @@ class Aggregator : public AggregatorBase {
     void group_2d();
     void group_2d_continuous();
     void group_2d_categorical();
-    template<typename U0, typename U1>
-    void group_2d_categorical_str();
     void group_2d_mixed();
-    template<typename U0>
-    void group_2d_mixed_str();
     void group_nd();
 
     // Random sampling and modular quasi-random generator

@@ -356,12 +356,8 @@ void sort_init_options() {
  * elemsize
  *   Size in bytes of each element in `x`, one of: 1, 2, 4, or 8.
  *
- * strdata, stroffs
- *   For string columns only, these are pointers `col->strdata()` and
- *   `col->offsets()` respectively.
- *
- * strtype
- *   0 when sorting non-strings, 1 if sorting str32, 2 if sorting str64
+ * is_string
+ *   true when sorting strings, false otherwise
  *
  * strstart
  *   For string columns only, this is the position within the string that is
@@ -443,8 +439,6 @@ class SortContext {
     int32_t* next_o;
     size_t*  histogram;
     OColumn column;
-    const uint8_t* strdata;
-    const void* stroffs;
     size_t strstart;
     size_t n;
     size_t nth;
@@ -455,7 +449,7 @@ class SortContext {
     uint8_t next_elemsize;
     uint8_t nsigbits;
     uint8_t shift;
-    uint8_t strtype;
+    bool is_string;
     bool use_order;
     bool descending;
     int : 8;
@@ -465,8 +459,6 @@ class SortContext {
     o = nullptr;
     next_o = nullptr;
     histogram = nullptr;
-    strdata = nullptr;
-    stroffs = nullptr;
     nchunks = 0;
     chunklen = 0;
     nradixes = 0;
@@ -474,7 +466,7 @@ class SortContext {
     next_elemsize = 0;
     nsigbits = 0;
     shift = 0;
-    strtype = 0;
+    is_string = false;
     use_order = false;
     descending = false;
 
@@ -546,7 +538,7 @@ class SortContext {
     } else {
       _prepare_data_for_column<true>();
     }
-    if (strtype) strstart--;
+    if (is_string) strstart--;
     // Make sure that `xx` has enough storage capacity. Previous column may
     // have had smaller `elemsize` than this, in which case `xx` will need
     // to be expanded.
@@ -619,8 +611,7 @@ class SortContext {
 
   template <bool ASC>
   void _prepare_data_for_column() {
-    strtype = 0;
-    strdata = nullptr;
+    is_string = false;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
     SType stype = column.stype();
@@ -632,8 +623,8 @@ class SortContext {
       case SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
       case SType::FLOAT32: _initF<ASC, uint32_t>(); break;
       case SType::FLOAT64: _initF<ASC, uint64_t>(); break;
-      case SType::STR32:   _initS<ASC, uint32_t>(); break;
-      case SType::STR64:   _initS<ASC, uint64_t>(); break;
+      case SType::STR32:
+      case SType::STR64:   _initS<ASC>(); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
@@ -792,21 +783,16 @@ class SortContext {
 
   /**
    * For strings, we fill array `x` with the values of the first character in
-   * each string. We also set up auxiliary variables `strdata`, `stroffs`,
-   * `strstart` and `strtype`.
+   * each string. We also set up auxiliary variables `strstart` and `is_string`.
    *
    * More specifically, for each string item, if it is NA then we map it to 0;
    * if it is an empty string we map it to 1, otherwise we map it to `ch[i] + 2`
    * where `ch[i]` is the i-th character of the string. This doesn't overflow
    * because in UTF-8 the largest legal byte is 0xF7.
    */
-  template <bool ASC, typename T>
+  template <bool ASC>
   void _initS() {
-    auto scol = static_cast<const StringColumn<T>*>(column.get());
-    strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
-    const T* offs = scol->offsets();
-    stroffs = static_cast<const void*>(offs);
-    strtype = sizeof(T) / 4;
+    is_string = true;
     strstart = 0;
     nsigbits = 8;
     elemsize = 1;
@@ -877,7 +863,7 @@ class SortContext {
 
     // The remaining number of sig.bits is `shift`. Thus, this value will
     // determine the `next_elemsize`.
-    next_elemsize = strtype? 1 :
+    next_elemsize = is_string? 1 :
                     shift > 32? 8 :
                     shift > 16? 4 :
                     shift > 0? 2 : 0;
@@ -959,16 +945,13 @@ class SortContext {
   void reorder_data() {
     if (!xx && next_elemsize) allocate_xx();
     if (!next_o) allocate_oo();
-    if (strtype) {
+    if (is_string) {
       if (xx) {
-        if (descending) {
-          if (strtype == 1) _reorder_str<false, uint32_t>();
-          else              _reorder_str<false, uint64_t>();
-        } else {
-          if (strtype == 1) _reorder_str<true, uint32_t>();
-          else              _reorder_str<true, uint64_t>();
-        }
-      } else _reorder_impl<uint8_t, char, false>();
+        if (descending) _reorder_str<false>();
+        else            _reorder_str<true>();
+      } else {
+        _reorder_impl<uint8_t, char, false>();
+      }
     } else {
       switch (elemsize) {
         case 8:
@@ -1024,7 +1007,7 @@ class SortContext {
     xassert(histogram[nchunks * nradixes - 1] == n);
   }
 
-  template <bool ASC, typename T>
+  template <bool ASC>
   void _reorder_str() {
     uint8_t* xi = x.data<uint8_t>();
     uint8_t* xo = xx.data<uint8_t>();
@@ -1085,7 +1068,7 @@ class SortContext {
       // If after reordering there are still unsorted elements in `x`, then
       // sort them recursively.
       uint8_t _nsigbits = nsigbits;
-      nsigbits = strtype? 8 : shift;
+      nsigbits = is_string? 8 : shift;
       dt::array<radix_range> rrmap(nradixes);
       radix_range* rrmap_ptr = rrmap.data();
       _fill_rrmap_from_histogram(rrmap_ptr);
@@ -1255,21 +1238,15 @@ class SortContext {
               if (make_groups) {
                 tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
               }
-              if (strtype == 0) {
+              if (is_string) {
+                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending);
+              } else {
                 switch (elemsize) {
                   case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
                   case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
                   case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
                   case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
                 }
-              } else if (strtype == 1) {
-                const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-                uint32_t ss = static_cast<uint32_t>(_strstart + 1);
-                insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg, descending);
-              } else {
-                const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-                uint64_t ss = static_cast<uint64_t>(_strstart + 1);
-                insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg, descending);
               }
               if (make_groups) {
                 rrmap[i].size = static_cast<size_t>(tgg.size());
@@ -1302,38 +1279,29 @@ class SortContext {
     arr32_t tmparr(n);
     int32_t* tmp = tmparr.data();
     int32_t nn = static_cast<int32_t>(n);
-    if (strtype == 0) {
+    if (is_string) {
+      insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending);
+    } else {
       switch (elemsize) {
         case 1: _insert_sort_keys<uint8_t >(tmp); break;
         case 2: _insert_sort_keys<uint16_t>(tmp); break;
         case 4: _insert_sort_keys<uint32_t>(tmp); break;
         case 8: _insert_sort_keys<uint64_t>(tmp); break;
       }
-    } else if (strtype == 1) {
-      const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, uint32_t(0), o, tmp, nn, gg, descending);
-    } else {
-      const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, uint64_t(0), o, tmp, nn, gg, descending);
     }
   }
 
   void vinsert_sort() {
-    if (strtype == 0) {
+    if (is_string) {
+      int32_t nn = static_cast<int32_t>(n);
+      insert_sort_values_str(column, 0, o, nn, gg, descending);
+    } else {
       switch (elemsize) {
         case 1: _insert_sort_values<uint8_t >(); break;
         case 2: _insert_sort_values<uint16_t>(); break;
         case 4: _insert_sort_values<uint32_t>(); break;
         case 8: _insert_sort_values<uint64_t>(); break;
       }
-    } else if (strtype == 1) {
-      int32_t nn = static_cast<int32_t>(n);
-      const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, uint32_t(0), o, nn, gg, descending);
-    } else {
-      int32_t nn = static_cast<int32_t>(n);
-      const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, uint64_t(0), o, nn, gg, descending);
     }
   }
 

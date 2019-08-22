@@ -38,9 +38,9 @@ class ColumnConvertor {
     virtual ~ColumnConvertor();
     virtual T operator[](size_t) const = 0;
     virtual void get_rows(std::vector<T>&, size_t, size_t, size_t) const = 0;
-    size_t get_nrows();
-    T get_min();
-    T get_max();
+    size_t get_nrows() const;
+    T get_min() const;
+    T get_max() const;
 
   protected:
     T min;
@@ -70,19 +70,19 @@ ColumnConvertor<T>::~ColumnConvertor() {}
  *  Getters for min, max and nrows.
  */
 template<typename T>
-T ColumnConvertor<T>::get_min() {
+T ColumnConvertor<T>::get_min() const {
   return min;
 }
 
 
 template<typename T>
-T ColumnConvertor<T>::get_max() {
+T ColumnConvertor<T>::get_max() const {
   return max;
 }
 
 
 template<typename T>
-size_t ColumnConvertor<T>::get_nrows() {
+size_t ColumnConvertor<T>::get_nrows() const {
   return nrows;
 }
 
