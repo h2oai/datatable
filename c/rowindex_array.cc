@@ -163,7 +163,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(const OColumn& col) {
+ArrayRowIndexImpl::ArrayRowIndexImpl(const Column& col) {
   data = nullptr;
   owned = true;
   ascending = false;
@@ -251,7 +251,7 @@ void ArrayRowIndexImpl::_set_min_max() {
 }
 
 
-void ArrayRowIndexImpl::init_from_boolean_column(const OColumn& col) {
+void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
   xassert(col.stype() == SType::BOOL);
   // total # of 1s in the column
   length = static_cast<size_t>(col.stats()->sum());
@@ -290,7 +290,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const OColumn& col) {
 }
 
 
-void ArrayRowIndexImpl::init_from_integer_column(const OColumn& col) {
+void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
   if (col.nrows() == 0) {
     min = max = RowIndex::NA;
   } else {
@@ -305,7 +305,7 @@ void ArrayRowIndexImpl::init_from_integer_column(const OColumn& col) {
     min = static_cast<size_t>(imin);
     max = static_cast<size_t>(imax);
   }
-  OColumn col2 = col;  // copy
+  Column col2 = col;  // copy
   col2.materialize();
 
   length = col.nrows();

@@ -146,7 +146,7 @@ class HtmlWidget {
           j = ncols - cols1;
           html << "<td></td>";
         }
-        SType stype = dt->get_ocolumn(j).stype();
+        SType stype = dt->get_column(j).stype();
         size_t elemsize = info(stype).elemsize();
         html << "<td class='" << info(stype).ltype_name()
              << "' title='" << info(stype).name() << "'>";
@@ -192,7 +192,7 @@ class HtmlWidget {
           html << "<td class=vellipsis>&hellip;</td>";
         }
         html << "<td>";
-        const OColumn& col = dt->get_ocolumn(j);
+        const Column& col = dt->get_column(j);
         switch (col.stype()) {
           case SType::BOOL:
           case SType::INT8:
@@ -253,7 +253,7 @@ class HtmlWidget {
     }
 
     template <typename T>
-    void render_fw_value(const OColumn& col, size_t row) {
+    void render_fw_value(const Column& col, size_t row) {
       T val;
       bool isna = col.get_element(row, &val);
       if (isna) {
@@ -267,7 +267,7 @@ class HtmlWidget {
       }
     }
 
-    void render_str_value(const OColumn& col, size_t row) {
+    void render_str_value(const Column& col, size_t row) {
       CString val;
       bool isna = col.get_element(row, &val);
       if (isna) {
@@ -277,7 +277,7 @@ class HtmlWidget {
       }
     }
 
-    void render_obj_value(const OColumn& col, size_t row) {
+    void render_obj_value(const Column& col, size_t row) {
       py::robj val;
       bool isna = col.get_element(row, &val);
       if (isna) {

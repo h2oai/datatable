@@ -161,7 +161,7 @@ oobj Frame::_main_getset(robj item, robj value) {
       size_t zrow = static_cast<size_t>(irow);
       size_t zcol = a1int? dt->xcolindex(arg1.to_int64_strict())
                          : dt->xcolindex(arg1);
-      const OColumn& col = dt->get_ocolumn(zcol);
+      const Column& col = dt->get_column(zcol);
       return col.get_element_as_pyobject(zrow);
     }
     // otherwise fall-through

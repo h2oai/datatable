@@ -30,11 +30,11 @@ namespace dt {
 
 using string_buf = writable_string_col::buffer;
 
-OColumn generate_string_column(dt::function<void(size_t, string_buf*)> fn,
-                               size_t n,
-                               MemoryRange&& offsets_buffer = MemoryRange(),
-                               bool force_str64 = false,
-                               bool force_single_threaded = false);
+Column generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+                              size_t n,
+                              MemoryRange&& offsets_buffer = MemoryRange(),
+                              bool force_str64 = false,
+                              bool force_single_threaded = false);
 
 
 
@@ -44,7 +44,7 @@ OColumn generate_string_column(dt::function<void(size_t, string_buf*)> fn,
 //------------------------------------------------------------------------------
 
 template <typename F>
-OColumn map_str2str(const OColumn& input_col, F f) {
+Column map_str2str(const Column& input_col, F f) {
   bool use_str64 = (input_col.stype() == SType::STR64);
   size_t nrows = input_col.nrows();
   writable_string_col output_col(nrows, use_str64);

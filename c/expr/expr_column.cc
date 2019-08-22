@@ -82,7 +82,7 @@ size_t expr_column::get_col_index(const workframe& wf, bool strict) {
 SType expr_column::resolve(const workframe& wf) {
   size_t i = get_col_index(wf);
   const DataTable* dt = wf.get_datatable(frame_id);
-  return dt->get_ocolumn(i).stype();
+  return dt->get_column(i).stype();
 }
 
 
@@ -94,9 +94,9 @@ GroupbyMode expr_column::get_groupby_mode(const workframe& wf) const {
 }
 
 
-OColumn expr_column::evaluate_eager(workframe& wf) {
+Column expr_column::evaluate_eager(workframe& wf) {
   const DataTable* dt = wf.get_datatable(frame_id);
-  OColumn newcol = dt->get_ocolumn(col_id);  // copy
+  Column newcol = dt->get_column(col_id);  // copy
   const RowIndex& dt_ri = wf.get_rowindex(frame_id);
   const RowIndex& col_ri = newcol->rowindex();
   if (dt_ri) {

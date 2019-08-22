@@ -42,7 +42,7 @@ writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows,
 }
 
 
-OColumn writable_string_col::to_ocolumn() && {
+Column writable_string_col::to_ocolumn() && {
   strdata.finalize();
   auto strbuf = strdata.get_mbuf();
   if (str64) {
@@ -50,7 +50,7 @@ OColumn writable_string_col::to_ocolumn() && {
   } else {
     offdata.set_element<uint32_t>(0, 0);
   }
-  return OColumn::new_string_column(n, std::move(offdata), std::move(strbuf));
+  return Column::new_string_column(n, std::move(offdata), std::move(strbuf));
 }
 
 
@@ -109,7 +109,7 @@ writable_string_col::buffer_impl<T>::buffer_impl(writable_string_col& s)
 template <typename T>
 void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
   if (ch) {
-    if (sizeof(T) == 4) xassert(len <= OColumn::MAX_ARR32_SIZE);
+    if (sizeof(T) == 4) xassert(len <= Column::MAX_ARR32_SIZE);
     strbuf.ensuresize(strbuf_used + len);
     std::memcpy(strbuf.data() + strbuf_used, ch, len);
     strbuf_used += len;

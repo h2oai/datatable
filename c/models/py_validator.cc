@@ -51,7 +51,7 @@ Error error_manager::error_is_infinite(PyObject* src,
 /**
  *  Check if column contains any negative values.
  */
-bool has_negatives(const OColumn& col) {
+bool has_negatives(const Column& col) {
   bool is_valid;
   double min = col.stats()->min_double(&is_valid);
   return is_valid? (min < 0) : true;

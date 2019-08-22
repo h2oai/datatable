@@ -30,7 +30,7 @@ namespace expr {
 class expr_literal : public base_expr {
   private:
     py::oobj arg;
-    OColumn col;
+    Column col;
 
   public:
     explicit expr_literal(py::robj);
@@ -38,7 +38,7 @@ class expr_literal : public base_expr {
     py::oobj get_literal_arg() override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    OColumn evaluate_eager(workframe&) override;
+    Column evaluate_eager(workframe&) override;
     // vcolptr evaluate_lazy(workframe&) override;
 };
 

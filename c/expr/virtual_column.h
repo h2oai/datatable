@@ -61,11 +61,11 @@ class virtual_column {
     virtual void compute(size_t i, double*  out);
     virtual void compute(size_t i, CString* out);
 
-    virtual OColumn materialize();
+    virtual Column materialize();
 };
 
 
-vcolptr virtualize(OColumn&& column);
+vcolptr virtualize(Column&& column);
 
 vcolptr cast(vcolptr&& vcol, SType new_stype);
 

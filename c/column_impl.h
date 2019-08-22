@@ -31,7 +31,7 @@
 #include "stats.h"
 #include "types.h"
 
-class OColumn;
+class Column;
 class DataTable;
 class BoolColumn;
 class PyObjectColumn;
@@ -40,7 +40,7 @@ template <typename T> class IntColumn;
 template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
-using colvec = std::vector<OColumn>;
+using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
 
 
@@ -144,14 +144,14 @@ class ColumnImpl
      * column.
      */
     virtual void resize_and_fill(size_t nrows) = 0;
-    OColumn repeat(size_t nreps) const;
+    Column repeat(size_t nreps) const;
 
     /**
      * Modify the ColumnImpl, replacing values specified by the provided `mask` with
      * NAs. The `mask` column must have the same number of rows as the current,
      * and neither of them can have a RowIndex.
      */
-    virtual void apply_na_mask(const OColumn& mask) = 0;
+    virtual void apply_na_mask(const Column& mask) = 0;
 
     /**
      * Create a shallow copy of this ColumnImpl, possibly applying the provided
@@ -188,9 +188,9 @@ class ColumnImpl
      * with NAs.
      */
     virtual void replace_values(
-        OColumn& thiscol,
+        Column& thiscol,
         const RowIndex& replace_at,
-        const OColumn& replace_with) = 0;
+        const Column& replace_with) = 0;
 
     /**
      * Appends the provided columns to the bottom of the current column and
@@ -259,7 +259,7 @@ class ColumnImpl
      */
     virtual void fill_na() = 0;
 
-    friend class OColumn;
+    friend class Column;
 };
 
 
@@ -278,9 +278,9 @@ public:
 
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
-  void apply_na_mask(const OColumn& mask) override;
+  void apply_na_mask(const Column& mask) override;
   virtual void materialize() override;
-  void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
+  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
   void replace_values(const RowIndex& at, T with);
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
@@ -421,7 +421,7 @@ public:
 
   void materialize() override;
   void resize_and_fill(size_t nrows) override;
-  void apply_na_mask(const OColumn& mask) override;
+  void apply_na_mask(const Column& mask) override;
 
   MemoryRange str_buf() const { return strbuf; }
   size_t datasize() const;
@@ -435,7 +435,7 @@ public:
   size_t data2_size() const override { return strbuf.size(); }
 
   ColumnImpl* shallowcopy() const override;
-  void replace_values(OColumn& thiscol, const RowIndex& at, const OColumn& with) override;
+  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
 
   void verify_integrity(const std::string& name) const override;
 
@@ -452,7 +452,7 @@ protected:
 
   friend ColumnImpl;
   friend FreadReader;  // friend ColumnImpl* alloc_column(SType, size_t, int);
-  friend OColumn;
+  friend Column;
 };
 
 
@@ -473,8 +473,8 @@ class VoidColumn : public ColumnImpl {
     void materialize() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
-    void apply_na_mask(const OColumn&) override;
-    void replace_values(OColumn&, const RowIndex&, const OColumn&) override;
+    void apply_na_mask(const Column&) override;
+    void replace_values(Column&, const RowIndex&, const Column&) override;
     void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     void init_data() override;

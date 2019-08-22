@@ -154,7 +154,7 @@ void insert_sort_keys(const T* x, V* o, V* tmp, int n, GroupGatherer& gg)
 //
 template <typename V>
 void insert_sort_keys_str(
-    const OColumn& column, size_t strstart, V* o, V* tmp, int n,
+    const Column& column, size_t strstart, V* o, V* tmp, int n,
     GroupGatherer& gg, bool descending)
 {
   CString i_value, k_value;
@@ -185,7 +185,7 @@ void insert_sort_keys_str(
 
 template <typename V>
 void insert_sort_values_str(
-    const OColumn& column, size_t strstart, V* o, int n,
+    const Column& column, size_t strstart, V* o, int n,
     GroupGatherer& gg, bool descending)
 {
   CString i_value, k_value;
@@ -225,8 +225,8 @@ template void insert_sort_values(const uint16_t*, int32_t*, int, GroupGatherer&)
 template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&);
 template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
-template void insert_sort_keys_str(const OColumn&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-template void insert_sort_values_str(const OColumn&, size_t, int32_t*, int, GroupGatherer&, bool);
+template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
+template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool);
 
 template int compare_strings<1>(const CString&, bool, const CString&, bool, size_t);
 template int compare_strings<-1>(const CString&, bool, const CString&, bool, size_t);

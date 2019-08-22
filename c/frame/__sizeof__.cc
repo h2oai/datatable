@@ -63,7 +63,7 @@ void Frame::_init_sizeof(XTypeMaker& xt) {
 size_t DataTable::memory_footprint() const {
   size_t sz = 0;
   sz += sizeof(*this);
-  sz += sizeof(OColumn) * columns.capacity();
+  sz += sizeof(Column) * columns.capacity();
   sz += sizeof(std::string) * names.capacity();
   for (size_t i = 0; i < ncols; ++i) {
     sz += columns[i]->memory_footprint();

@@ -154,7 +154,7 @@ size_t FwColumn<T>::data_nrows() const {
 
 
 template <typename T>
-void FwColumn<T>::apply_na_mask(const OColumn& mask) {
+void FwColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
   auto maskdata = static_cast<const int8_t*>(mask->data());
   T* coldata = this->elements_w();
@@ -191,13 +191,13 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    OColumn&, const RowIndex& replace_at, const OColumn& replace_with)
+    Column&, const RowIndex& replace_at, const Column& replace_with)
 {
   materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  OColumn with = (replace_with.stype() == _stype)
+  Column with = (replace_with.stype() == _stype)
                     ? replace_with  // copy
                     : replace_with.cast(_stype);
 

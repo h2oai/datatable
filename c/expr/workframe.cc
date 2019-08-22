@@ -236,7 +236,7 @@ void workframe::reserve(size_t n) {
 
 
 void workframe::add_column(
-  OColumn&& col, const RowIndex& ri, std::string&& name)
+  Column&& col, const RowIndex& ri, std::string&& name)
 {
   if (ri) {
     const RowIndex& ricol = col->rowindex();

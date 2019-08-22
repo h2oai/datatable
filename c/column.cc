@@ -45,23 +45,23 @@ static ColumnImpl* new_column_impl(SType stype) {
 }
 
 
-OColumn OColumn::new_data_column(SType stype, size_t nrows) {
+Column Column::new_data_column(SType stype, size_t nrows) {
   ColumnImpl* col = new_column_impl(stype);
   col->_nrows = nrows;
   col->init_data();
-  return OColumn(col);
+  return Column(col);
 }
 
 
 // TODO: create a special "NA" column instead
-OColumn OColumn::new_na_column(SType stype, size_t nrows) {
-  OColumn col = OColumn::new_data_column(stype, nrows);
+Column Column::new_na_column(SType stype, size_t nrows) {
+  Column col = Column::new_data_column(stype, nrows);
   col->fill_na();
   return col;
 }
 
 
-OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
+Column Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   size_t elemsize = info(stype).elemsize();
   ColumnImpl* col = new_column_impl(stype);
   xassert(mbuf.size() % elemsize == 0);
@@ -70,7 +70,7 @@ OColumn OColumn::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   }
   col->_nrows = mbuf.size() / elemsize;
   col->mbuf = std::move(mbuf);
-  return OColumn(col);
+  return Column(col);
 }
 
 
@@ -95,21 +95,21 @@ static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
 }
 
 
-OColumn OColumn::new_string_column(
+Column Column::new_string_column(
     size_t n, MemoryRange&& data, MemoryRange&& str)
 {
   size_t data_size = data.size();
   size_t strb_size = str.size();
 
   if (data_size == sizeof(uint32_t) * (n + 1)) {
-    if (strb_size <= OColumn::MAX_ARR32_SIZE &&
-        n <= OColumn::MAX_ARR32_SIZE) {
-      return OColumn(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
+    if (strb_size <= Column::MAX_ARR32_SIZE &&
+        n <= Column::MAX_ARR32_SIZE) {
+      return Column(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
     }
     // Otherwise, offsets need to be recoded into a uint64_t array
     data = _recode_offsets_to_u64(data);
   }
-  return OColumn(new StringColumn<uint64_t>(n, std::move(data), std::move(str)));
+  return Column(new StringColumn<uint64_t>(n, std::move(data), std::move(str)));
 }
 
 
@@ -185,82 +185,82 @@ void ColumnImpl::replace_rowindex(const RowIndex& newri) {
 
 
 //------------------------------------------------------------------------------
-// OColumn
+// Column
 //------------------------------------------------------------------------------
 
-void swap(OColumn& lhs, OColumn& rhs) {
+void swap(Column& lhs, Column& rhs) {
   std::swap(lhs.pcol, rhs.pcol);
 }
 
-OColumn::OColumn() : pcol(nullptr) {}
+Column::Column() : pcol(nullptr) {}
 
-OColumn::OColumn(ColumnImpl* col) : pcol(col) {}  // Steal ownership
+Column::Column(ColumnImpl* col) : pcol(col) {}  // Steal ownership
 
-OColumn::OColumn(const OColumn& other) : pcol(other.pcol->shallowcopy()) {}
+Column::Column(const Column& other) : pcol(other.pcol->shallowcopy()) {}
 
-OColumn::OColumn(OColumn&& other) : OColumn() {
+Column::Column(Column&& other) : Column() {
   std::swap(pcol, other.pcol);
 }
 
-OColumn& OColumn::operator=(const OColumn& other) {
+Column& Column::operator=(const Column& other) {
   delete pcol;
   pcol = other.pcol->shallowcopy();
   return *this;
 }
 
-OColumn& OColumn::operator=(OColumn&& other) {
+Column& Column::operator=(Column&& other) {
   delete pcol;
   pcol = other.pcol;
   other.pcol = nullptr;
   return *this;
 }
 
-OColumn::~OColumn() {
+Column::~Column() {
   delete pcol;
 }
 
 
 
-ColumnImpl* OColumn::operator->() {
+ColumnImpl* Column::operator->() {
   return pcol;
 }
 
-const ColumnImpl* OColumn::operator->() const {
+const ColumnImpl* Column::operator->() const {
   return pcol;
 }
 
 
 //---- Properties ----------------------
 
-size_t OColumn::nrows() const noexcept {
+size_t Column::nrows() const noexcept {
   return pcol->_nrows;
 }
 
-size_t OColumn::na_count() const {
+size_t Column::na_count() const {
   return stats()->nacount();
 }
 
-SType OColumn::stype() const noexcept {
+SType Column::stype() const noexcept {
   return pcol->_stype;
 }
 
-LType OColumn::ltype() const noexcept {
+LType Column::ltype() const noexcept {
   return info(pcol->_stype).ltype();
 }
 
-bool OColumn::is_fixedwidth() const noexcept {
+bool Column::is_fixedwidth() const noexcept {
   return !info(pcol->_stype).is_varwidth();
 }
 
-bool OColumn::is_virtual() const noexcept {
+bool Column::is_virtual() const noexcept {
   return bool(pcol->ri);
 }
 
-size_t OColumn::elemsize() const noexcept {
+size_t Column::elemsize() const noexcept {
   return info(pcol->_stype).elemsize();
 }
 
-OColumn::operator bool() const noexcept {
+Column::operator bool() const noexcept {
   return (pcol != nullptr);
 }
 
@@ -268,25 +268,25 @@ OColumn::operator bool() const noexcept {
 
 
 //------------------------------------------------------------------------------
-// OColumn : data accessors
+// Column : data accessors
 //------------------------------------------------------------------------------
 
-bool OColumn::get_element(size_t i, int32_t*  out) const { return pcol->get_element(i, out); }
-bool OColumn::get_element(size_t i, int64_t*  out) const { return pcol->get_element(i, out); }
-bool OColumn::get_element(size_t i, float*    out) const { return pcol->get_element(i, out); }
-bool OColumn::get_element(size_t i, double*   out) const { return pcol->get_element(i, out); }
-bool OColumn::get_element(size_t i, CString*  out) const { return pcol->get_element(i, out); }
-bool OColumn::get_element(size_t i, py::robj* out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, int32_t*  out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, int64_t*  out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, float*    out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, double*   out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, CString*  out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, py::robj* out) const { return pcol->get_element(i, out); }
 
 
 template <typename T>
-static inline py::oobj getelem(const OColumn& col, size_t i) {
+static inline py::oobj getelem(const Column& col, size_t i) {
   T x;
   bool r = col.get_element(i, &x);
   return r? py::None() : py::oobj::wrap(x);
 }
 
-py::oobj OColumn::get_element_as_pyobject(size_t i) const {
+py::oobj Column::get_element_as_pyobject(size_t i) const {
   switch (stype()) {
     case SType::BOOL: {
       int32_t x;
@@ -309,18 +309,18 @@ py::oobj OColumn::get_element_as_pyobject(size_t i) const {
 }
 
 
-const void* OColumn::get_data_readonly(size_t i) {
+const void* Column::get_data_readonly(size_t i) {
   if (is_virtual()) pcol->materialize();
   return i == 0 ? pcol->mbuf.rptr()
                 : pcol->data2();
 }
 
-void* OColumn::get_data_editable() {
+void* Column::get_data_editable() {
   if (is_virtual()) pcol->materialize();
   return pcol->mbuf.wptr();
 }
 
-size_t OColumn::get_data_size(size_t i) {
+size_t Column::get_data_size(size_t i) {
   if (is_virtual()) pcol->materialize();
   return i == 0 ? pcol->mbuf.size()
                 : pcol->data2_size();
@@ -329,15 +329,15 @@ size_t OColumn::get_data_size(size_t i) {
 
 
 //------------------------------------------------------------------------------
-// OColumn : manipulation
+// Column : manipulation
 //------------------------------------------------------------------------------
 
-void OColumn::materialize() {
+void Column::materialize() {
   pcol->materialize();
 }
 
-void OColumn::replace_values(const RowIndex& replace_at,
-                             const OColumn& replace_with)
+void Column::replace_values(const RowIndex& replace_at,
+                             const Column& replace_with)
 {
   pcol->replace_values(*this, replace_at, replace_with);
 }
@@ -355,8 +355,8 @@ size_t VoidColumn::data_nrows() const { return _nrows; }
 void VoidColumn::materialize() {}
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
-void VoidColumn::apply_na_mask(const OColumn&) {}
-void VoidColumn::replace_values(OColumn&, const RowIndex&, const OColumn&) {}
+void VoidColumn::apply_na_mask(const Column&) {}
+void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
 void VoidColumn::init_data() {}
 void VoidColumn::fill_na() {}
 void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
@@ -384,8 +384,8 @@ class StrvecColumn : public ColumnImpl {
     void materialize() override {}
     void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}
-    void apply_na_mask(const OColumn&) override {}
-    void replace_values(OColumn&, const RowIndex&, const OColumn&) override {}
+    void apply_na_mask(const Column&) override {}
+    void replace_values(Column&, const RowIndex&, const Column&) override {}
     void init_data() override {}
     void fill_na() override {}
     void fill_na_mask(int8_t*, size_t, size_t) override {}
@@ -407,6 +407,6 @@ ColumnImpl* StrvecColumn::shallowcopy() const {
   return new StrvecColumn(vec);
 }
 
-OColumn OColumn::from_strvec(const strvec& vec) {
-  return OColumn(new StrvecColumn(vec));
+Column Column::from_strvec(const strvec& vec) {
+  return Column(new StrvecColumn(vec));
 }

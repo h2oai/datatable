@@ -89,7 +89,7 @@ void allcols_jnode::select(workframe& wf) {
     const by_node& by = wf.get_by_node();
     for (size_t j = j0; j < ncolsi; ++j) {
       if (by.has_group_column(j)) continue;
-      wf.add_column(OColumn(dti->get_ocolumn(j)),  // copy
+      wf.add_column(Column(dti->get_column(j)),  // copy
                     rii,
                     std::string(dti_column_names[j]));
     }
@@ -190,7 +190,7 @@ void simplelist_jnode::select(workframe& wf) {
   wf.reserve(n);
   for (size_t i = 0; i < n; ++i) {
     size_t j = indices[i];
-    OColumn newcol = dt0->get_ocolumn(j);  // copy
+    Column newcol = dt0->get_column(j);  // copy
     wf.add_column(std::move(newcol), ri0, std::move(names[i]));
   }
 }
@@ -201,7 +201,7 @@ void simplelist_jnode::delete_(workframe& wf) {
   const RowIndex& ri0 = wf.get_rowindex(0);
   if (ri0) {
     for (size_t i : indices) {
-      dt0->get_ocolumn(i).replace_values(ri0, OColumn());
+      dt0->get_column(i).replace_values(ri0, Column());
     }
   } else {
     dt0->delete_columns(indices);

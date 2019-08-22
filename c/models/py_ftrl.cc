@@ -331,7 +331,7 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "one column";
     }
 
-    if (dt_y_val->get_ocolumn(0).stype() != dt_y->get_ocolumn(0).stype()) {
+    if (dt_y_val->get_column(0).stype() != dt_y->get_column(0).stype()) {
       throw ValueError() << "Validation target frame must have the same "
                             "stype as the target frame";
     }
@@ -538,7 +538,7 @@ void Ftrl::set_model(robj model) {
 
   for (size_t i = 0; i < ncols; ++i) {
 
-    const OColumn& col = dt_model->get_ocolumn(i);
+    const Column& col = dt_model->get_column(i);
     SType c_stype = col.stype();
     if (col.stype() != stype) {
       throw ValueError() << "Column " << i << " in the model frame should "

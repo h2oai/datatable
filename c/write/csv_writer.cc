@@ -81,7 +81,7 @@ void csv_writer::write_preamble() {
   const strvec& column_names = dt->get_names();
   if (column_names.empty()) return;
 
-  OColumn names_as_col = OColumn::from_strvec(column_names);
+  Column names_as_col = Column::from_strvec(column_names);
   auto writer = value_writer::create(names_as_col, options);
   writing_context ctx { 3*dt->ncols, 1, options.compress_zlib };
 

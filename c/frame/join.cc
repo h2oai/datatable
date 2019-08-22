@@ -36,7 +36,7 @@
 
 class Cmp;
 using cmpptr = std::unique_ptr<Cmp>;
-using comparator_maker = cmpptr (*)(const OColumn&, const OColumn&);
+using comparator_maker = cmpptr (*)(const Column&, const Column&);
 static comparator_maker cmps[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 static cmpptr _make_comparatorM(const DataTable* Xdt, const DataTable* Jdt,
@@ -45,8 +45,8 @@ static cmpptr _make_comparatorM(const DataTable* Xdt, const DataTable* Jdt,
 static cmpptr _make_comparator1(const DataTable* Xdt, const DataTable* Jdt,
                                 size_t xi, size_t ji)
 {
-  const OColumn& colx = Xdt->get_ocolumn(xi);
-  const OColumn& colj = Jdt->get_ocolumn(ji);
+  const Column& colx = Xdt->get_column(xi);
+  const Column& colj = Jdt->get_column(ji);
   SType stype1 = colx.stype();
   SType stype2 = colj.stype();
   auto cmp = cmps[static_cast<size_t>(stype1)][static_cast<size_t>(stype2)];
@@ -168,15 +168,15 @@ int MultiCmp::cmp_jrow(size_t row) const {
 template <typename TX, typename TJ>
 class FwCmp : public Cmp {
   private:
-    const OColumn& colX;
-    const OColumn& colJ;
+    const Column& colX;
+    const Column& colJ;
     TJ x_value;   // Current value from X frame, converted to TJ type
     bool x_isna;
     size_t : (64 - 8 * sizeof(TJ) - 8) & 63;
 
   public:
-    FwCmp(const OColumn&, const OColumn&);
-    static cmpptr make(const OColumn&, const OColumn&);
+    FwCmp(const Column&, const Column&);
+    static cmpptr make(const Column&, const Column&);
 
     int cmp_jrow(size_t row) const override;
     int set_xrow(size_t row) override;
@@ -184,7 +184,7 @@ class FwCmp : public Cmp {
 
 
 template <typename TX, typename TJ>
-FwCmp<TX, TJ>::FwCmp(const OColumn& xcol, const OColumn& jcol)
+FwCmp<TX, TJ>::FwCmp(const Column& xcol, const Column& jcol)
   : colX(xcol), colJ(jcol)
 {
   assert_compatible_type<TX>(xcol.stype());
@@ -192,7 +192,7 @@ FwCmp<TX, TJ>::FwCmp(const OColumn& xcol, const OColumn& jcol)
 }
 
 template <typename TX, typename TJ>
-cmpptr FwCmp<TX, TJ>::make(const OColumn& col1, const OColumn& col2) {
+cmpptr FwCmp<TX, TJ>::make(const Column& col1, const Column& col2) {
   return cmpptr(new FwCmp<TX, TJ>(col1, col2));
 }
 
@@ -238,23 +238,23 @@ int FwCmp<TX, TJ>::set_xrow(size_t row) {
 
 class StringCmp : public Cmp {
   private:
-    const OColumn& colX;
-    const OColumn& colJ;
+    const Column& colX;
+    const Column& colJ;
     CString x_value;
 
   public:
-    StringCmp(const OColumn&, const OColumn&);
-    static cmpptr make(const OColumn&, const OColumn&);
+    StringCmp(const Column&, const Column&);
+    static cmpptr make(const Column&, const Column&);
 
     int cmp_jrow(size_t row) const override;
     int set_xrow(size_t row) override;
 };
 
 
-StringCmp::StringCmp(const OColumn& xcol, const OColumn& jcol)
+StringCmp::StringCmp(const Column& xcol, const Column& jcol)
   : colX(xcol), colJ(jcol) {}
 
-cmpptr StringCmp::make(const OColumn& col1, const OColumn& col2) {
+cmpptr StringCmp::make(const Column& col1, const Column& col2) {
   return cmpptr(new StringCmp(col1, col2));
 }
 
@@ -412,7 +412,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   // its columns have the same rowindex (or at least all columns needed to
   // compute the result).
   for (size_t j : xcols) {
-    const_cast<DataTable*>(xdt)->get_ocolumn(j)->materialize();
+    const_cast<DataTable*>(xdt)->get_column(j)->materialize();
   }
 
   arr32_t arr_result_indices(xdt->nrows);

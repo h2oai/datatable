@@ -23,7 +23,7 @@
 #define dt_ROWINDEX_h
 #include "utils/array.h"
 
-class OColumn;
+class Column;
 class BoolColumn;
 class RowIndexImpl;
 
@@ -91,7 +91,7 @@ class RowIndex {
     /**
      * Create RowIndex from either a boolean or an integer column.
      */
-    RowIndex(const OColumn& col);
+    RowIndex(const Column& col);
 
 
     bool operator==(const RowIndex& other) { return impl == other.impl; }

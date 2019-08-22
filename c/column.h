@@ -27,11 +27,11 @@
 #include "stats.h"       // Stat (enum), Stats
 #include "types.h"       // SType (enum), LType (enum), CString
 
-class OColumn;
+class Column;
 class ColumnImpl;
 class Groupby;
 class MemoryRange;
-using colvec = std::vector<OColumn>;
+using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
 
 
@@ -84,15 +84,15 @@ inline PyObject* downcast(py::robj v) {
 
 
 //------------------------------------------------------------------------------
-// OColumn
+// Column
 //------------------------------------------------------------------------------
 
 /**
  * A single column within a DataTable.
  *
- * A OColumn is a self-sufficient object, i.e. it may exist outside
+ * A Column is a self-sufficient object, i.e. it may exist outside
  * of a DataTable too. This usually happens when a DataTable is being
- * transformed, then new OColumn objects will be created, manipulated,
+ * transformed, then new Column objects will be created, manipulated,
  * and eventually bundled into a new DataTable.
  *
  * The class implements the Pimpl idiom: its implementation details
@@ -100,7 +100,7 @@ inline PyObject* downcast(py::robj v) {
  * object is polymorphic, uses shared-ptr-like mechanics, and may be
  * replaced with some other instance on the fly.
  */
-class OColumn
+class Column
 {
   private:
     // shared pointer; its lifetime is governed by `pcol->refcount`: when the
@@ -116,27 +116,27 @@ class OColumn
   // Constructors
   //------------------------------------
   public:
-    OColumn();
-    OColumn(const OColumn&);
-    OColumn(OColumn&&);
-    OColumn& operator=(const OColumn&);
-    OColumn& operator=(OColumn&&);
-    ~OColumn();
+    Column();
+    Column(const Column&);
+    Column(Column&&);
+    Column& operator=(const Column&);
+    Column& operator=(Column&&);
+    ~Column();
 
-    static OColumn new_data_column(SType, size_t nrows);
-    static OColumn new_na_column(SType, size_t nrows);
-    static OColumn new_mbuf_column(SType, MemoryRange&&);
-    static OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
-    static OColumn from_buffer(const py::robj& buffer);
-    static OColumn from_pylist(const py::olist& list, int stype0 = 0);
-    static OColumn from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
-    static OColumn from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
-    static OColumn from_range(int64_t start, int64_t stop, int64_t step, SType);
-    static OColumn from_strvec(const strvec&);
+    static Column new_data_column(SType, size_t nrows);
+    static Column new_na_column(SType, size_t nrows);
+    static Column new_mbuf_column(SType, MemoryRange&&);
+    static Column new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
+    static Column from_buffer(const py::robj& buffer);
+    static Column from_pylist(const py::olist& list, int stype0 = 0);
+    static Column from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
+    static Column from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
+    static Column from_range(int64_t start, int64_t stop, int64_t step, SType);
+    static Column from_strvec(const strvec&);
 
   private:
     // Assumes ownership of the `col` object
-    explicit OColumn(ColumnImpl* col);
+    explicit Column(ColumnImpl* col);
 
   //------------------------------------
   // Properties
@@ -214,7 +214,7 @@ class OColumn
     // return nullptr if the Stats object has not been initialized yet.
     //
     // Most stats functions can be accessed directly via the returns Stats
-    // object, however OColumn provides two additional helper functions:
+    // object, however Column provides two additional helper functions:
     //
     //   reset_stats()
     //     Will clear the current Stats object if it exists, or do nothing
@@ -236,25 +236,18 @@ class OColumn
   public:
     void rbind(colvec& columns);
     void materialize();
-    OColumn cast(SType stype) const;
-    OColumn cast(SType stype, MemoryRange&& mr) const;
+    Column cast(SType stype) const;
+    Column cast(SType stype, MemoryRange&& mr) const;
     RowIndex sort(Groupby* out_groups) const;
     RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
 
-    void replace_values(const RowIndex& replace_at, const OColumn& replace_with);
+    void replace_values(const RowIndex& replace_at, const Column& replace_with);
 
-    friend void swap(OColumn& lhs, OColumn& rhs);
-    // friend OColumn new_string_column(size_t, MemoryRange&&, MemoryRange&&);
+    friend void swap(Column& lhs, Column& rhs);
+    // friend Column new_string_column(size_t, MemoryRange&&, MemoryRange&&);
     friend class ColumnImpl;
 };
 
-
-/**
- * Use this function to create a column from existing offsets & strdata.
- * It will create either StringColumn<uint32_t>* or StringColumn<uint64_t>*
- * depending on the size of the data.
- */
-// OColumn new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
 
 
 #endif

@@ -233,12 +233,12 @@ void StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    OColumn& thiscol, const RowIndex& replace_at, const OColumn& replace_with)
+    Column& thiscol, const RowIndex& replace_at, const Column& replace_with)
 {
   materialize();
-  OColumn rescol;
+  Column rescol;
 
-  OColumn with;
+  Column with;
   if (replace_with) {
     with = replace_with;  // copy
     if (with.stype() != _stype) with = with.cast(_stype);
@@ -344,7 +344,7 @@ void StringColumn<T>::resize_and_fill(size_t new_nrows)
 
 
 template <typename T>
-void StringColumn<T>::apply_na_mask(const OColumn& mask) {
+void StringColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
   auto maskdata = static_cast<const int8_t*>(mask->data());
   char* strdata = static_cast<char*>(strbuf.wptr());

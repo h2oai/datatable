@@ -1037,7 +1037,7 @@ void BooleanStats::compute_all_stats() {
 
 
 //------------------------------------------------------------------------------
-// OColumn's API
+// Column's API
 //------------------------------------------------------------------------------
 
 static std::unique_ptr<Stats> _make_stats(ColumnImpl* col) {
@@ -1060,22 +1060,22 @@ static std::unique_ptr<Stats> _make_stats(ColumnImpl* col) {
   }
 }
 
-Stats* OColumn::stats() const {
+Stats* Column::stats() const {
   if (!pcol->stats) pcol->stats = _make_stats(pcol);
   return pcol->stats.get();
 }
 
-Stats* OColumn::get_stats_if_exist() const {
+Stats* Column::get_stats_if_exist() const {
   return pcol->stats.get();
 }
 
 
-void OColumn::reset_stats() {
+void Column::reset_stats() {
   auto stats = get_stats_if_exist();
   if (stats) stats->reset();
 }
 
-bool OColumn::is_stat_computed(Stat stat) const {
+bool Column::is_stat_computed(Stat stat) const {
   auto stats = get_stats_if_exist();
   return stats? stats->is_computed(stat) : false;
 }
@@ -1189,23 +1189,23 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
 
 
 //------------------------------------------------------------------------------
-// Stats "OColumn" getter
+// Stats "Column" getter
 //------------------------------------------------------------------------------
 
 template <typename T>
-static OColumn _make_column(SType stype, T value) {
+static Column _make_column(SType stype, T value) {
   MemoryRange mbuf = MemoryRange::mem(sizeof(T));
   mbuf.set_element<T>(0, value);
-  OColumn res = OColumn::new_mbuf_column(stype, std::move(mbuf));
+  Column res = Column::new_mbuf_column(stype, std::move(mbuf));
   xassert(res.nrows() == 1);
   return res;
 }
 
-static OColumn _make_nacol(SType stype) {
-  return OColumn::new_na_column(stype, 1);
+static Column _make_nacol(SType stype) {
+  return Column::new_na_column(stype, 1);
 }
 
-static OColumn _make_column_str(CString value) {
+static Column _make_column_str(CString value) {
   using T = uint32_t;
   MemoryRange mbuf = MemoryRange::mem(sizeof(T) * 2);
   MemoryRange strbuf;
@@ -1219,19 +1219,19 @@ static OColumn _make_column_str(CString value) {
     mbuf.set_element<T>(0, 0);
     mbuf.set_element<T>(1, GETNA<T>());
   }
-  return OColumn::new_string_column(1, std::move(mbuf), std::move(strbuf));
+  return Column::new_string_column(1, std::move(mbuf), std::move(strbuf));
 }
 
 
 template <typename S, typename R>
-OColumn Stats::colwrap_stat(Stat stat, SType stype) {
+Column Stats::colwrap_stat(Stat stat, SType stype) {
   S value;
   bool isvalid = get_stat(stat, &value);
   return isvalid? _make_column<R>(stype, static_cast<R>(value))
                 : _make_nacol(stype);
 }
 
-OColumn Stats::strcolwrap_stat(Stat stat) {
+Column Stats::strcolwrap_stat(Stat stat) {
   CString value;
   bool isvalid = get_stat(stat, &value);
   return isvalid? _make_column_str(value)
@@ -1239,7 +1239,7 @@ OColumn Stats::strcolwrap_stat(Stat stat) {
 }
 
 
-OColumn Stats::get_stat_as_column(Stat stat) {
+Column Stats::get_stat_as_column(Stat stat) {
   switch (stat) {
     case Stat::NaCount:
     case Stat::NUnique:

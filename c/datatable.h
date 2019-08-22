@@ -18,7 +18,7 @@
 #include "ztest.h"
 
 // avoid circular dependency between .h files
-class OColumn;
+class Column;
 class Stats;
 class DataTable;
 class NameProvider;
@@ -41,7 +41,7 @@ struct RowColIndex {
   std::vector<size_t> colindices;
 };
 
-using colvec = std::vector<OColumn>;
+using colvec = std::vector<Column>;
 using intvec = std::vector<size_t>;
 using strvec = std::vector<std::string>;
 using dtptr  = std::unique_ptr<DataTable>;
@@ -107,13 +107,13 @@ class DataTable {
     DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const;
 
-    const OColumn& get_ocolumn(size_t i) const {
+    const Column& get_column(size_t i) const {
       return columns[i];
     }
-    OColumn& get_ocolumn(size_t i) {
+    Column& get_column(size_t i) {
       return columns[i];
     }
-    void set_ocolumn(size_t i, OColumn&& newcol) {
+    void set_ocolumn(size_t i, Column&& newcol) {
       columns[i] = std::move(newcol);
     }
 

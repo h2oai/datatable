@@ -14,9 +14,9 @@
 
 
 // Helper functions
-static OColumn column_from_jay(size_t nrows,
-                               const jay::Column* jaycol,
-                               const MemoryRange& jaybuf);
+static Column column_from_jay(size_t nrows,
+                              const jay::Column* jaycol,
+                              const MemoryRange& jaybuf);
 
 static void check_jay_signature(const uint8_t* ptr, size_t size);
 
@@ -69,7 +69,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
-    OColumn col = column_from_jay(nrows, jcol, mbuf);
+    Column col = column_from_jay(nrows, jcol, mbuf);
     if (col.nrows() != nrows) {
       throw IOError() << "Length of column " << i << " is " << col.nrows()
           << ", however the Frame contains " << nrows << " rows";
@@ -138,7 +138,7 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 }
 
 
-static OColumn column_from_jay(
+static Column column_from_jay(
     size_t nrows, const jay::Column* jcol, const MemoryRange& jaybuf)
 {
   jay::Type jtype = jcol->type();
@@ -156,13 +156,13 @@ static OColumn column_from_jay(
     case jay::Type_Str64:   stype = SType::STR64; break;
   }
 
-  OColumn col;
+  Column col;
   MemoryRange databuf = extract_buffer(jaybuf, jcol->data());
   if (stype == SType::STR32 || stype == SType::STR64) {
     MemoryRange strbuf = extract_buffer(jaybuf, jcol->strdata());
-    col = OColumn::new_string_column(nrows, std::move(databuf), std::move(strbuf));
+    col = Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
-    col = OColumn::new_mbuf_column(stype, std::move(databuf));
+    col = Column::new_mbuf_column(stype, std::move(databuf));
   }
 
   Stats* stats = col.stats();
