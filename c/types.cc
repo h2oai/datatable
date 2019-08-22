@@ -317,8 +317,7 @@ LType info::ltype() const {
   return stype_info[stype].ltype;
 }
 
-const char* info::ltype_name() const {
-  LType lt = ltype();
+const char* info::ltype_name(LType lt) {
   switch (lt) {
     case LType::MU:       return "void";
     case LType::BOOL:     return "bool";
@@ -330,6 +329,11 @@ const char* info::ltype_name() const {
     case LType::OBJECT:   return "obj";
   }
   throw RuntimeError() << "Unknown ltype " << int(lt); // LCOV_EXCL_LINE
+}
+
+const char* info::ltype_name() const {
+  LType lt = ltype();
+  return ltype_name(lt);
 }
 
 py::oobj info::py_ltype() const {

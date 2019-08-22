@@ -146,6 +146,11 @@ Error& Error::operator<<(SType stype) {
   return *this;
 }
 
+Error& Error::operator<<(LType ltype) {
+  error << info::ltype_name(ltype);
+  return *this;
+}
+
 Error& Error::operator<<(char c) {
   uint8_t uc = static_cast<uint8_t>(c);
   if (uc < 0x20 || uc >= 0x80) {

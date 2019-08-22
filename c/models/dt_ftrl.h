@@ -83,7 +83,7 @@ class Ftrl : public dt::FtrlBase {
     const DataTable* dt_X_val;
     const DataTable* dt_y_val;
 
-    // Other temporary parameters that needed for validation.
+    // Other temporary parameters needed for validation.
     T nepochs_val;
     T val_error;
     size_t val_niters;
@@ -99,12 +99,13 @@ class Ftrl : public dt::FtrlBase {
     FtrlFitOutput fit_binomial();
     FtrlFitOutput fit_multinomial();
     template <typename U> FtrlFitOutput fit_regression();
-    template <typename U> FtrlFitOutput fit(T(*)(T), U(*)(U, size_t), T(*)(T, U));
+    template <typename U, typename V>
+    FtrlFitOutput fit(T(*)(T), U(*)(U, size_t), V(*)(V, size_t), T(*)(T, V));
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
-    template <typename>
 
     // Predicting methods
+    template <typename>
     dtptr predict(const DataTable*);
     template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
     dtptr create_p(size_t);
