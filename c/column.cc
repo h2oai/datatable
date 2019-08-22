@@ -194,29 +194,30 @@ void swap(Column& lhs, Column& rhs) {
 
 Column::Column() : pcol(nullptr) {}
 
-Column::Column(ColumnImpl* col) : pcol(col) {}  // Steal ownership
+Column::Column(ColumnImpl* col) : pcol(col) {}  // private
 
-Column::Column(const Column& other) : pcol(other.pcol->shallowcopy()) {}
+Column::Column(const Column& other)
+  : pcol(other.pcol->acquire_instance()) {}
 
 Column::Column(Column&& other) : Column() {
   std::swap(pcol, other.pcol);
 }
 
 Column& Column::operator=(const Column& other) {
-  delete pcol;
-  pcol = other.pcol->shallowcopy();
+  pcol->release_instance();
+  pcol = other.pcol->acquire_instance();
   return *this;
 }
 
 Column& Column::operator=(Column&& other) {
-  delete pcol;
+  pcol->release_instance();
   pcol = other.pcol;
   other.pcol = nullptr;
   return *this;
 }
 
 Column::~Column() {
-  delete pcol;
+  pcol->release_instance();
 }
 
 
