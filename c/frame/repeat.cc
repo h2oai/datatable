@@ -23,6 +23,7 @@
 #include "frame/py_frame.h"
 #include "python/args.h"
 #include "rowindex.h"
+#include "column_impl.h"  // TODO: remove
 
 
 //------------------------------------------------------------------------------

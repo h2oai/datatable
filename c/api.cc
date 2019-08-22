@@ -20,8 +20,9 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "../datatable/include/datatable.h"
-#include "datatable.h"
 #include "frame/py_frame.h"
+#include "column_impl.h"  // TODO: remove
+#include "datatable.h"
 #include "rowindex.h"
 #include "py_rowindex.h"
 extern "C" {

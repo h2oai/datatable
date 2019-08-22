@@ -20,6 +20,7 @@
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
+#include "column_impl.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 

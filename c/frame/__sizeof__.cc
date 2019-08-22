@@ -3,6 +3,7 @@
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include "python/_all.h"
+#include "column_impl.h"
 namespace py {
 
 

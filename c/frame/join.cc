@@ -32,6 +32,7 @@
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "types.h"
+#include "column_impl.h"  // TODO: remove
 
 class Cmp;
 using cmpptr = std::unique_ptr<Cmp>;

@@ -23,6 +23,7 @@
 #define dt_MODELS_COLUMN_CONVERTOR_h
 #include "models/utils.h"
 #include "types.h"
+#include "column_impl.h"  // TODO: remove
 
 
 

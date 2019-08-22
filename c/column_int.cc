@@ -6,7 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/int.h"
-#include "column.h"
+#include "column_impl.h"
 #include "datatablemodule.h"
 
 template <typename T> constexpr SType stype_for() { return SType::VOID; }

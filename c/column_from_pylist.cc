@@ -5,7 +5,6 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "column.h"
 #include <cstdlib>         // std::abs
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
@@ -14,6 +13,9 @@
 #include "python/string.h" // py::ostring
 #include "utils/exceptions.h"
 #include "utils/misc.h"
+#include "column.h"
+#include "column_impl.h"
+
 
 //------------------------------------------------------------------------------
 // Helper iterator classes

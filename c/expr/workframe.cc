@@ -23,6 +23,7 @@
 #include "expr/expr.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
+#include "column_impl.h"  // TODO: remove
 namespace dt {
 
 

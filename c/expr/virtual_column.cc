@@ -23,6 +23,7 @@
 #include "expr/virtual_column.h"
 #include "parallel/api.h"
 #include "utils/exceptions.h"
+#include "column_impl.h"  // TODO: remove
 namespace dt {
 namespace expr {
 

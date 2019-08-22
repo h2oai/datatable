@@ -31,6 +31,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"

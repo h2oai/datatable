@@ -26,6 +26,7 @@
 #include "parallel/api.h"       // dt::parallel_for_static
 #include "progress/work.h"      // dt::progress::work
 #include "utils/c+++.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "options.h"
 namespace py {

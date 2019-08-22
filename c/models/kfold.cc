@@ -33,6 +33,7 @@
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "column_impl.h"  // TODO: remove
 
 namespace py {
 

@@ -24,6 +24,7 @@
 #include "python/_all.h"
 #include "python/args.h"
 #include "python/string.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 namespace py {
 

@@ -10,7 +10,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "column.h"
+#include "column_impl.h"
 
 template <typename T> constexpr SType stype_for() { return SType::VOID; }
 template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }

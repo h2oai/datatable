@@ -29,6 +29,7 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "column.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 
 

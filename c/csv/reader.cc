@@ -17,6 +17,7 @@
 #include "python/string.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"         // wallclock
+#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "encodings.h"
 #include "options.h"

@@ -5,10 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "column.h"
 #include "python/obj.h"
 #include "python/string.h"
 #include "utils/assert.h"
+#include "column_impl.h"
 
 
 

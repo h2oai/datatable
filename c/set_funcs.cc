@@ -28,6 +28,7 @@
 #include "python/args.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include "column_impl.h"  // TODO: remove
 namespace dt {
 namespace set {
 

@@ -15,6 +15,7 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "column.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "encodings.h"
 

@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/expr_column.h"
 #include "utils/exceptions.h"
+#include "column_impl.h"  // TODO: remove
 namespace dt {
 namespace expr {
 

@@ -17,6 +17,7 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "column.h"
+#include "column_impl.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "stats.h"

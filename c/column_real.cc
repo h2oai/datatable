@@ -5,10 +5,11 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "column.h"
 #include "csv/toa.h"
-#include "datatablemodule.h"
 #include "python/float.h"
+#include "column_impl.h"
+#include "datatablemodule.h"
+
 
 template <typename T> constexpr SType stype_for() { return SType::VOID; }
 template <> constexpr SType stype_for<float>()  { return SType::FLOAT32; }

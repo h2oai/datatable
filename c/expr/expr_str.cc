@@ -25,6 +25,7 @@
 #include "parallel/api.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 namespace dt {
 namespace expr {
