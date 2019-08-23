@@ -31,9 +31,9 @@ from tests import same_iterables, assert_equals, isview
 
 
 def test_groups_internal2():
-    d0 = dt.DataTable([[1,   5,   3,   2,   1,    3,   1,   1,   None],
-                       ["a", "b", "c", "a", None, "f", "b", "h", "d"]],
-                      names=["A", "B"])
+    d0 = dt.Frame([[1,   5,   3,   2,   1,    3,   1,   1,   None],
+                   ["a", "b", "c", "a", None, "f", "b", "h", "d"]],
+                  names=["A", "B"])
     d1 = d0[:, :, by("A")]
     # gb = d1.internal.groupby
     # assert gb.ngroups == 5
