@@ -58,7 +58,7 @@ constexpr uint8_t NSTATS = 14;
  * `NumericStats` acts as a base class for all numeric STypes.
  * `IntegerStats` are used with `IntegerColumn<T>`s.
  * `BooleanStats` are used for `BooleanColumn`.
- * `RealStats` are used for `RealColumn<T>` classes.
+ * `RealStats` are used for floating-point-valued classes.
  * `StringStats` are used with `StringColumn<T>`s.
  *
  * Each stat can be in one of the 3 states: not computed, computed&invalid,

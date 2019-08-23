@@ -33,8 +33,8 @@ ColumnImpl* ColumnImpl::new_impl(SType stype) {
     case SType::INT16:   return new IntColumn<int16_t>();
     case SType::INT32:   return new IntColumn<int32_t>();
     case SType::INT64:   return new IntColumn<int64_t>();
-    case SType::FLOAT32: return new RealColumn<float>();
-    case SType::FLOAT64: return new RealColumn<double>();
+    case SType::FLOAT32: return new FwColumn<float>();
+    case SType::FLOAT64: return new FwColumn<double>();
     case SType::STR32:   return new StringColumn<uint32_t>();
     case SType::STR64:   return new StringColumn<uint64_t>();
     case SType::OBJ:     return new PyObjectColumn();

@@ -353,12 +353,6 @@ extern template class IntColumn<int32_t>;
 extern template class IntColumn<int64_t>;
 
 
-//==============================================================================
-
-template <typename T>
-using RealColumn = FwColumn<T>;
-
-
 
 
 //==============================================================================
