@@ -38,7 +38,7 @@ class expr_cast : public base_expr {
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
     Column evaluate_eager(workframe& wf) override;
-    vcolptr evaluate_lazy(workframe& wf) override;
+    // vcolptr evaluate_lazy(workframe& wf) override;
 };
 
 

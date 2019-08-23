@@ -51,10 +51,10 @@ Column expr_cast::evaluate_eager(workframe& wf) {
 }
 
 
-vcolptr expr_cast::evaluate_lazy(workframe& wf) {
-  auto arg_vcol = arg->evaluate_lazy(wf);
-  return std::move(arg_vcol).cast(stype);
-}
+// vcolptr expr_cast::evaluate_lazy(workframe& wf) {
+//   auto arg_vcol = arg->evaluate_lazy(wf);
+//   return std::move(arg_vcol).cast(stype);
+// }
 
 
 

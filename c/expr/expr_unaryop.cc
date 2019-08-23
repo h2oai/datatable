@@ -300,22 +300,22 @@ Column expr_unaryop::evaluate_eager(workframe& wf) {
 }
 
 
-vcolptr expr_unaryop::evaluate_lazy(workframe& wf) {
-  auto varg = arg->evaluate_lazy(wf);
-  auto input_stype = varg.stype();
-  const auto& ui = unary_library.get_infox(opcode, input_stype);
+// vcolptr expr_unaryop::evaluate_lazy(workframe& wf) {
+//   auto varg = arg->evaluate_lazy(wf);
+//   auto input_stype = varg.stype();
+//   const auto& ui = unary_library.get_infox(opcode, input_stype);
 
-  if (ui.cast_stype != SType::VOID) {
-    varg = std::move(varg).cast(ui.cast_stype);
-    input_stype = ui.cast_stype;
-  }
-  if (!ui.vcolfn) {
-    throw NotImplError() << "Cannot create a virtual column for input_stype = "
-        << input_stype << " and op = " << static_cast<size_t>(opcode);
-  }
+//   if (ui.cast_stype != SType::VOID) {
+//     varg = std::move(varg).cast(ui.cast_stype);
+//     input_stype = ui.cast_stype;
+//   }
+//   if (!ui.vcolfn) {
+//     throw NotImplError() << "Cannot create a virtual column for input_stype = "
+//         << input_stype << " and op = " << static_cast<size_t>(opcode);
+//   }
 
-  return ui.vcolfn(std::move(varg));
-}
+//   return ui.vcolfn(std::move(varg));
+// }
 
 
 
