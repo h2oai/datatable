@@ -113,7 +113,9 @@ void progress_bar::set_message(std::string&& msg) {
 // at high levels.
 //
 void progress_bar::refresh() {
-  if (!enabled) return _check_interrupts();
+  _check_interrupts();
+  // std::cout << "enabled: " << enabled << "\n";
+  // if (!enabled) return _check_interrupts();
 
   auto now = std::chrono::steady_clock::now();
 
@@ -225,7 +227,6 @@ void progress_bar::_render_message(std::stringstream& out) {
   switch (status) {
     case Status::RUNNING:
       out << message;
-      out << "\x1B[K"; // clear till the end of the terminal line
       return;
 
     case Status::FINISHED:
@@ -248,6 +249,7 @@ void progress_bar::_render_message(std::stringstream& out) {
       break;
   }
   if (use_colors) out << "\x1B[m";
+  out << "\x1B[K"; // clear till the end of the terminal line
   out << '\n';
 }
 

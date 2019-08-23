@@ -16,11 +16,13 @@
 /* enable nice() function in unistd.h */
 #define _XOPEN_SOURCE
 #include <iostream>
+#include <csignal> // std::signal
 #include <unistd.h>
 #include "parallel/monitor_thread.h"
 #include "parallel/thread_worker.h"   // idle_job
 #include "progress/manager.h"  // dt::progress::manager
 #include "utils/exceptions.h"
+#include "parallel/api.h"
 namespace dt {
 
 
@@ -40,6 +42,7 @@ monitor_thread::~monitor_thread() {
 
 
 void monitor_thread::run() noexcept {
+  std::signal(SIGINT, sigint_handler);
   constexpr auto SLEEP_TIME = std::chrono::milliseconds(20);
   // Reduce this thread's priority to a minimum.
   // See http://man7.org/linux/man-pages/man2/nice.2.html
@@ -74,6 +77,12 @@ void monitor_thread::run() noexcept {
       sleep_state_cv.wait_for(lock, SLEEP_TIME);
     }
   }
+}
+
+
+void monitor_thread::sigint_handler(int signal) {
+  (void) signal;
+  progress::manager->set_interrupt();
 }
 
 

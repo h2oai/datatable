@@ -126,7 +126,7 @@ class subtask {
 
   public:
     subtask(work& w, size_t amount) noexcept;
-    ~subtask();
+    void done();
 };
 
 

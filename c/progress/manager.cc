@@ -63,6 +63,7 @@ void progress_manager::finish_work(work* task, bool successfully) {
 void progress_manager::update_view() const {
   xassert(dt::this_thread_index() == size_t(-1));
   std::lock_guard<std::mutex> lock(mutex);
+  handle_interrupt();
   if (!pbar) return;
   pbar->refresh();
 }
@@ -78,6 +79,19 @@ void progress_manager::set_error_status(bool cancelled) noexcept {
   pbar = nullptr;
 }
 
+
+void progress_manager::set_interrupt() {
+  caught_interrupt = true;
+  // PyErr_SetInterrupt();
+}
+
+
+void progress_manager::handle_interrupt() const {
+  if (!caught_interrupt) return;
+  caught_interrupt = false;
+  PyErr_SetNone(PyExc_KeyboardInterrupt);
+  throw PyError();
+}
 
 
 }} // namespace dt::progress

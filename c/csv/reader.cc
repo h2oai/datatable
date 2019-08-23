@@ -784,6 +784,7 @@ void GenericReader::decode_utf16() {
                   static_cast<size_t>(ssize) + 1);
   sof = static_cast<char*>(input_mbuf.wptr());
   eof = sof + ssize + 1;
+  subjob.done();
 }
 
 

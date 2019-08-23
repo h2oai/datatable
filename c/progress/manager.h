@@ -52,6 +52,8 @@ class progress_manager {
     // also accessing `pbar`. Without the mutex protection such an access
     // can result in a segfault.
     mutable std::mutex mutex;
+    mutable bool caught_interrupt;
+    size_t : 56;
 
   public:
     void update_view() const;
@@ -63,6 +65,10 @@ class progress_manager {
     void start_work(work* task);
     // called by `work.done()` / `~work()`
     void finish_work(work* task, bool successfully);
+    void set_interrupt();
+
+  private:
+    void handle_interrupt() const;
 };
 
 

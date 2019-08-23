@@ -17,6 +17,7 @@
 #include "progress/progress_bar.h"  // dt::progress::progress_bar
 #include "progress/work.h"
 #include "utils/assert.h"
+#include <iostream>
 namespace dt {
 namespace progress {
 
@@ -51,9 +52,13 @@ void work::done() {
 }
 
 work::~work() {
-  if (pbar) dt::progress::manager->finish_work(this, false);
+ if (!pbar) return;
+ try {
+   dt::progress::manager->finish_work(this, false);
+ } catch (std::exception& e) {
+   (void) e;
+ }
 }
-
 
 
 void work::add_work_amount(size_t amount) noexcept {
@@ -123,7 +128,7 @@ subtask::subtask(work& w, size_t amount) noexcept
 }
 
 
-subtask::~subtask() {
+void subtask::done() {
   parent.add_done_amount(work_amount);
 }
 

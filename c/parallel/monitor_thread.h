@@ -53,6 +53,7 @@ class monitor_thread {
 
   private:
     void run() noexcept;
+    static void sigint_handler(int);
 };
 
 
