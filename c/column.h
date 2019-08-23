@@ -174,6 +174,8 @@ class Column
     // The function expects (but doesn't check) that `i < nrows`. A segfault
     // may occur if this assumption is violated.
     //
+    bool get_element(size_t i, int8_t* out) const;
+    bool get_element(size_t i, int16_t* out) const;
     bool get_element(size_t i, int32_t* out) const;
     bool get_element(size_t i, int64_t* out) const;
     bool get_element(size_t i, float* out) const;

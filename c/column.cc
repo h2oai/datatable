@@ -95,38 +95,6 @@ Column Column::new_string_column(
 
 
 
-bool ColumnImpl::get_element(size_t, int32_t*) const {
-  throw NotImplError()
-    << "Cannot retrieve int32 values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, int64_t*) const {
-  throw NotImplError()
-    << "Cannot retrieve int64 values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, float*) const {
-  throw NotImplError()
-    << "Cannot retrieve float values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, double*) const {
-  throw NotImplError()
-    << "Cannot retrieve double values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, CString*) const {
-  throw NotImplError()
-    << "Cannot retrieve string values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, py::robj*) const {
-  throw NotImplError()
-    << "Cannot retrieve object values from a column of type " << _stype;
-}
-
-
-
 
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
@@ -253,6 +221,8 @@ Column::operator bool() const noexcept {
 // Column : data accessors
 //------------------------------------------------------------------------------
 
+bool Column::get_element(size_t i, int8_t*   out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, int16_t*  out) const { return pcol->get_element(i, out); }
 bool Column::get_element(size_t i, int32_t*  out) const { return pcol->get_element(i, out); }
 bool Column::get_element(size_t i, int64_t*  out) const { return pcol->get_element(i, out); }
 bool Column::get_element(size_t i, float*    out) const { return pcol->get_element(i, out); }

@@ -57,6 +57,29 @@ void ColumnImpl::release_instance() {
 
 
 
+
+//------------------------------------------------------------------------------
+// Data access
+//------------------------------------------------------------------------------
+
+[[noreturn]] static void _notimpl(const ColumnImpl* col, const char* type) {
+  throw NotImplError()
+      << "Cannot retrieve " << type
+      << " values from a column of type " << col->stype();
+}
+
+bool ColumnImpl::get_element(size_t, int8_t*)   const { _notimpl(this, "int8"); }
+bool ColumnImpl::get_element(size_t, int16_t*)  const { _notimpl(this, "int16"); }
+bool ColumnImpl::get_element(size_t, int32_t*)  const { _notimpl(this, "int32"); }
+bool ColumnImpl::get_element(size_t, int64_t*)  const { _notimpl(this, "int64"); }
+bool ColumnImpl::get_element(size_t, float*)    const { _notimpl(this, "float32"); }
+bool ColumnImpl::get_element(size_t, double*)   const { _notimpl(this, "float64"); }
+bool ColumnImpl::get_element(size_t, CString*)  const { _notimpl(this, "string"); }
+bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object"); }
+
+
+
+
 //------------------------------------------------------------------------------
 // Materialization
 //------------------------------------------------------------------------------

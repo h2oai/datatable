@@ -106,6 +106,8 @@ class ColumnImpl
     ColumnImpl* acquire_instance() const;
     void release_instance();
 
+    virtual bool get_element(size_t i, int8_t* out) const;
+    virtual bool get_element(size_t i, int16_t* out) const;
     virtual bool get_element(size_t i, int32_t* out) const;
     virtual bool get_element(size_t i, int64_t* out) const;
     virtual bool get_element(size_t i, float* out) const;
