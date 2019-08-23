@@ -70,7 +70,7 @@ class unary_vcol : public virtual_column {
 
   public:
     unary_vcol(vcolptr&& col, SType stype, operator_t f)
-      : virtual_column(col->nrows(), stype),
+      : virtual_column(col.nrows(), stype),
         arg(std::move(col)),
         func(f) {}
 
@@ -300,7 +300,7 @@ Column expr_unaryop::evaluate_eager(workframe& wf) {
 
 vcolptr expr_unaryop::evaluate_lazy(workframe& wf) {
   auto varg = arg->evaluate_lazy(wf);
-  auto input_stype = varg->stype();
+  auto input_stype = varg.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
 
   if (ui.cast_stype != SType::VOID) {

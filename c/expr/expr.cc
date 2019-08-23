@@ -59,7 +59,7 @@ pexpr base_expr::get_negated_expr() { return pexpr(); }
 py::oobj base_expr::get_literal_arg() { return py::oobj(); }
 
 vcolptr base_expr::evaluate_lazy(workframe& wf) {
-  return virtualize(evaluate_eager(wf));
+  return vcolptr(evaluate_eager(wf));
 }
 
 

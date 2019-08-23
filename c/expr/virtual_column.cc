@@ -34,13 +34,7 @@ virtual_column::virtual_column(size_t nrows, SType stype)
 virtual_column::~virtual_column() {}
 
 
-size_t virtual_column::nrows() const noexcept {
-  return _nrows;
-}
 
-SType virtual_column::stype() const noexcept {
-  return _stype;
-}
 
 
 void virtual_column::compute(size_t, int8_t*) {
@@ -237,21 +231,21 @@ class slice_str_vcol : public str_vcol<T> {
 
 
 
-vcolptr virtualize(Column&& col) {
+vcolptr::vcolptr(Column&& col) {
   SType st = col.stype();
   const RowIndex& ri = col->rowindex();
   switch (ri.type()) {
     case RowIndexType::UNKNOWN: {
       switch (st) {
-        case SType::BOOL:    return vcolptr(new fw_vcol<int8_t> (std::move(col)));
-        case SType::INT8:    return vcolptr(new fw_vcol<int8_t> (std::move(col)));
-        case SType::INT16:   return vcolptr(new fw_vcol<int16_t>(std::move(col)));
-        case SType::INT32:   return vcolptr(new fw_vcol<int32_t>(std::move(col)));
-        case SType::INT64:   return vcolptr(new fw_vcol<int64_t>(std::move(col)));
-        case SType::FLOAT32: return vcolptr(new fw_vcol<float>  (std::move(col)));
-        case SType::FLOAT64: return vcolptr(new fw_vcol<double> (std::move(col)));
-        case SType::STR32:   return vcolptr(new str_vcol<uint32_t>(std::move(col)));
-        case SType::STR64:   return vcolptr(new str_vcol<uint64_t>(std::move(col)));
+        case SType::BOOL:    vcol = new fw_vcol<int8_t> (std::move(col)); return;
+        case SType::INT8:    vcol = new fw_vcol<int8_t> (std::move(col)); return;
+        case SType::INT16:   vcol = new fw_vcol<int16_t>(std::move(col)); return;
+        case SType::INT32:   vcol = new fw_vcol<int32_t>(std::move(col)); return;
+        case SType::INT64:   vcol = new fw_vcol<int64_t>(std::move(col)); return;
+        case SType::FLOAT32: vcol = new fw_vcol<float>  (std::move(col)); return;
+        case SType::FLOAT64: vcol = new fw_vcol<double> (std::move(col)); return;
+        case SType::STR32:   vcol = new str_vcol<uint32_t>(std::move(col)); return;
+        case SType::STR64:   vcol = new str_vcol<uint64_t>(std::move(col)); return;
         default: break;
       }
       break;
@@ -260,15 +254,15 @@ vcolptr virtualize(Column&& col) {
     case RowIndexType::ARR32: {
       const int32_t* ind32 = ri.indices32();
       switch (st) {
-        case SType::BOOL:    return vcolptr(new arr_fw_vcol<int32_t, int8_t> (std::move(col), ind32));
-        case SType::INT8:    return vcolptr(new arr_fw_vcol<int32_t, int8_t> (std::move(col), ind32));
-        case SType::INT16:   return vcolptr(new arr_fw_vcol<int32_t, int16_t>(std::move(col), ind32));
-        case SType::INT32:   return vcolptr(new arr_fw_vcol<int32_t, int32_t>(std::move(col), ind32));
-        case SType::INT64:   return vcolptr(new arr_fw_vcol<int32_t, int64_t>(std::move(col), ind32));
-        case SType::FLOAT32: return vcolptr(new arr_fw_vcol<int32_t, float>  (std::move(col), ind32));
-        case SType::FLOAT64: return vcolptr(new arr_fw_vcol<int32_t, double> (std::move(col), ind32));
-        case SType::STR32:   return vcolptr(new arr_str_vcol<int32_t, uint32_t>(std::move(col), ind32));
-        case SType::STR64:   return vcolptr(new arr_str_vcol<int32_t, uint64_t>(std::move(col), ind32));
+        case SType::BOOL:    vcol = new arr_fw_vcol<int32_t, int8_t> (std::move(col), ind32); return;
+        case SType::INT8:    vcol = new arr_fw_vcol<int32_t, int8_t> (std::move(col), ind32); return;
+        case SType::INT16:   vcol = new arr_fw_vcol<int32_t, int16_t>(std::move(col), ind32); return;
+        case SType::INT32:   vcol = new arr_fw_vcol<int32_t, int32_t>(std::move(col), ind32); return;
+        case SType::INT64:   vcol = new arr_fw_vcol<int32_t, int64_t>(std::move(col), ind32); return;
+        case SType::FLOAT32: vcol = new arr_fw_vcol<int32_t, float>  (std::move(col), ind32); return;
+        case SType::FLOAT64: vcol = new arr_fw_vcol<int32_t, double> (std::move(col), ind32); return;
+        case SType::STR32:   vcol = new arr_str_vcol<int32_t, uint32_t>(std::move(col), ind32); return;
+        case SType::STR64:   vcol = new arr_str_vcol<int32_t, uint64_t>(std::move(col), ind32); return;
         default: break;
       }
       break;
@@ -277,15 +271,15 @@ vcolptr virtualize(Column&& col) {
     case RowIndexType::ARR64: {
       const int64_t* ind64 = ri.indices64();
       switch (st) {
-        case SType::BOOL:    return vcolptr(new arr_fw_vcol<int64_t, int8_t> (std::move(col), ind64));
-        case SType::INT8:    return vcolptr(new arr_fw_vcol<int64_t, int8_t> (std::move(col), ind64));
-        case SType::INT16:   return vcolptr(new arr_fw_vcol<int64_t, int16_t>(std::move(col), ind64));
-        case SType::INT32:   return vcolptr(new arr_fw_vcol<int64_t, int32_t>(std::move(col), ind64));
-        case SType::INT64:   return vcolptr(new arr_fw_vcol<int64_t, int64_t>(std::move(col), ind64));
-        case SType::FLOAT32: return vcolptr(new arr_fw_vcol<int64_t, float>  (std::move(col), ind64));
-        case SType::FLOAT64: return vcolptr(new arr_fw_vcol<int64_t, double> (std::move(col), ind64));
-        case SType::STR32:   return vcolptr(new arr_str_vcol<int64_t, uint32_t>(std::move(col), ind64));
-        case SType::STR64:   return vcolptr(new arr_str_vcol<int64_t, uint64_t>(std::move(col), ind64));
+        case SType::BOOL:    vcol = new arr_fw_vcol<int64_t, int8_t> (std::move(col), ind64); return;
+        case SType::INT8:    vcol = new arr_fw_vcol<int64_t, int8_t> (std::move(col), ind64); return;
+        case SType::INT16:   vcol = new arr_fw_vcol<int64_t, int16_t>(std::move(col), ind64); return;
+        case SType::INT32:   vcol = new arr_fw_vcol<int64_t, int32_t>(std::move(col), ind64); return;
+        case SType::INT64:   vcol = new arr_fw_vcol<int64_t, int64_t>(std::move(col), ind64); return;
+        case SType::FLOAT32: vcol = new arr_fw_vcol<int64_t, float>  (std::move(col), ind64); return;
+        case SType::FLOAT64: vcol = new arr_fw_vcol<int64_t, double> (std::move(col), ind64); return;
+        case SType::STR32:   vcol = new arr_str_vcol<int64_t, uint32_t>(std::move(col), ind64); return;
+        case SType::STR64:   vcol = new arr_str_vcol<int64_t, uint64_t>(std::move(col), ind64); return;
         default: break;
       }
       break;
@@ -295,20 +289,21 @@ vcolptr virtualize(Column&& col) {
       size_t start = ri.slice_start();
       size_t step = ri.slice_step();
       switch (st) {
-        case SType::BOOL:    return vcolptr(new slice_fw_vcol<int8_t> (std::move(col), start, step));
-        case SType::INT8:    return vcolptr(new slice_fw_vcol<int8_t> (std::move(col), start, step));
-        case SType::INT16:   return vcolptr(new slice_fw_vcol<int16_t>(std::move(col), start, step));
-        case SType::INT32:   return vcolptr(new slice_fw_vcol<int32_t>(std::move(col), start, step));
-        case SType::INT64:   return vcolptr(new slice_fw_vcol<int64_t>(std::move(col), start, step));
-        case SType::FLOAT32: return vcolptr(new slice_fw_vcol<float>  (std::move(col), start, step));
-        case SType::FLOAT64: return vcolptr(new slice_fw_vcol<double> (std::move(col), start, step));
-        case SType::STR32:   return vcolptr(new slice_str_vcol<uint32_t>(std::move(col), start, step));
-        case SType::STR64:   return vcolptr(new slice_str_vcol<uint64_t>(std::move(col), start, step));
+        case SType::BOOL:    vcol = new slice_fw_vcol<int8_t> (std::move(col), start, step); return;
+        case SType::INT8:    vcol = new slice_fw_vcol<int8_t> (std::move(col), start, step); return;
+        case SType::INT16:   vcol = new slice_fw_vcol<int16_t>(std::move(col), start, step); return;
+        case SType::INT32:   vcol = new slice_fw_vcol<int32_t>(std::move(col), start, step); return;
+        case SType::INT64:   vcol = new slice_fw_vcol<int64_t>(std::move(col), start, step); return;
+        case SType::FLOAT32: vcol = new slice_fw_vcol<float>  (std::move(col), start, step); return;
+        case SType::FLOAT64: vcol = new slice_fw_vcol<double> (std::move(col), start, step); return;
+        case SType::STR32:   vcol = new slice_str_vcol<uint32_t>(std::move(col), start, step); return;
+        case SType::STR64:   vcol = new slice_str_vcol<uint64_t>(std::move(col), start, step); return;
         default: break;
       }
       break;
     }
   }
+  vcol = nullptr;
   throw NotImplError() << "Cannot create virtual column of stype " << st;  // LCOV_EXCL_LINE
 }
 
@@ -326,7 +321,7 @@ class cast_fw_vcol : public virtual_column {
 
   public:
     cast_fw_vcol(vcolptr&& col, SType new_stype)
-      : virtual_column(col->nrows(), new_stype),
+      : virtual_column(col.nrows(), new_stype),
         arg(std::move(col)) {}
 
     void compute(size_t i, int8_t* out) override {
@@ -382,7 +377,7 @@ class cast_fw_vcol : public virtual_column {
 
 
 vcolptr cast(vcolptr&& vcol, SType new_stype) {
-  SType old_stype = vcol->stype();
+  SType old_stype = vcol.stype();
   switch (old_stype) {
     case SType::BOOL:
     case SType::INT8:    return vcolptr(new cast_fw_vcol<int8_t> (std::move(vcol), new_stype));

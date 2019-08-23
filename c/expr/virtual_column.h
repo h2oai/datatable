@@ -47,8 +47,8 @@ class virtual_column {
     virtual_column(size_t nrows, SType stype);
     virtual ~virtual_column();
 
-    size_t nrows() const noexcept;
-    SType stype() const noexcept;
+    // size_t nrows() const noexcept;
+    // SType stype() const noexcept;
 
     virtual void compute(size_t i, int8_t*  out);
     virtual void compute(size_t i, int16_t* out);
@@ -59,6 +59,8 @@ class virtual_column {
     virtual void compute(size_t i, CString* out);
 
     virtual Column to_column();
+
+    friend class vcolptr;
 };
 
 
@@ -69,6 +71,7 @@ class vcolptr {
 
   public:
     vcolptr() : vcol(nullptr) {}
+    vcolptr(Column&& column);
     vcolptr(virtual_column* v) : vcol(v) {}
     vcolptr(const vcolptr&) = delete;
     vcolptr& operator=(const vcolptr&) = delete;
@@ -86,10 +89,12 @@ class vcolptr {
 
     virtual_column* operator->() { return vcol; }
     const virtual_column* operator->() const { return vcol; }
+
+    size_t nrows() const { return vcol->_nrows; }
+    SType stype() const { return vcol->_stype; }
 };
 
 
-vcolptr virtualize(Column&& column);
 
 vcolptr cast(vcolptr&& vcol, SType new_stype);
 
