@@ -50,13 +50,13 @@ class virtual_column {
     // size_t nrows() const { return _nrows; }
     // SType stype() const { return _stype; }
 
-    virtual void compute(size_t i, int8_t*  out);
-    virtual void compute(size_t i, int16_t* out);
-    virtual void compute(size_t i, int32_t* out);
-    virtual void compute(size_t i, int64_t* out);
-    virtual void compute(size_t i, float*   out);
-    virtual void compute(size_t i, double*  out);
-    virtual void compute(size_t i, CString* out);
+    virtual void _compute(size_t i, int8_t*  out);
+    virtual void _compute(size_t i, int16_t* out);
+    virtual void _compute(size_t i, int32_t* out);
+    virtual void _compute(size_t i, int64_t* out);
+    virtual void _compute(size_t i, float*   out);
+    virtual void _compute(size_t i, double*  out);
+    virtual void _compute(size_t i, CString* out);
 
     virtual Column to_column();
 
@@ -87,6 +87,14 @@ class vcolptr {
     size_t nrows() const;
     SType stype() const;
     vcolptr cast(SType new_stype) &&;
+
+    bool get_element(size_t i, int8_t* value);
+    bool get_element(size_t i, int16_t* value);
+    bool get_element(size_t i, int32_t* value);
+    bool get_element(size_t i, int64_t* value);
+    bool get_element(size_t i, float* value);
+    bool get_element(size_t i, double* value);
+    bool get_element(size_t i, CString* value);
 };
 
 

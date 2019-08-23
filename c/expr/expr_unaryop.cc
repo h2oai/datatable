@@ -74,9 +74,9 @@ class unary_vcol : public virtual_column {
         arg(std::move(col)),
         func(f) {}
 
-    void compute(size_t i, TO* out) {
+    void _compute(size_t i, TO* out) {
       TI x;
-      arg->compute(i, &x);
+      arg.get_element(i, &x);
       *out = func(x);
     }
 };

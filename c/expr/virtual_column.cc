@@ -37,32 +37,32 @@ virtual_column::~virtual_column() {}
 
 
 
-void virtual_column::compute(size_t, int8_t*) {
-  throw RuntimeError() << "int8 value cannot be computed";   // LCOV_EXCL_LINE
+void virtual_column::_compute(size_t, int8_t*) {
+  throw RuntimeError() << "int8 value cannot be computed";
 }
 
-void virtual_column::compute(size_t, int16_t*) {
-  throw RuntimeError() << "int16 value cannot be computed";  // LCOV_EXCL_LINE
+void virtual_column::_compute(size_t, int16_t*) {
+  throw RuntimeError() << "int16 value cannot be computed";
 }
 
-void virtual_column::compute(size_t, int32_t*) {
-  throw RuntimeError() << "int32 value cannot be computed";  // LCOV_EXCL_LINE
+void virtual_column::_compute(size_t, int32_t*) {
+  throw RuntimeError() << "int32 value cannot be computed";
 }
 
-void virtual_column::compute(size_t, int64_t*) {
-  throw RuntimeError() << "int64 value cannot be computed";  // LCOV_EXCL_LINE
+void virtual_column::_compute(size_t, int64_t*) {
+  throw RuntimeError() << "int64 value cannot be computed";
 }
 
-void virtual_column::compute(size_t, float*) {
-  throw RuntimeError() << "float value cannot be computed";  // LCOV_EXCL_LINE
+void virtual_column::_compute(size_t, float*) {
+  throw RuntimeError() << "float value cannot be computed";
 }
 
-void virtual_column::compute(size_t, double*) {
-  throw RuntimeError() << "double value cannot be computed"; // LCOV_EXCL_LINE
+void virtual_column::_compute(size_t, double*) {
+  throw RuntimeError() << "double value cannot be computed";
 }
 
-void virtual_column::compute(size_t, CString*) {
-  throw RuntimeError() << "string value cannot be computed"; // LCOV_EXCL_LINE
+void virtual_column::_compute(size_t, CString*) {
+  throw RuntimeError() << "string value cannot be computed";
 }
 
 
@@ -77,7 +77,7 @@ void materialize_fw(virtual_column* self, Column& outcol) {
   dt::parallel_for_static(
     outcol.nrows(),
     [&](size_t i) {
-      self->compute(i, out_data + i);
+      self->_compute(i, out_data + i);
     });
 }
 
@@ -134,7 +134,7 @@ class fw_vcol : public _vcolumn {
       : _vcolumn(std::move(col)),
         data(static_cast<const T*>(column->data())) {}
 
-    void compute(size_t i, T* out) override {
+    void _compute(size_t i, T* out) override {
       *out = data[i];
     }
 };
@@ -150,7 +150,7 @@ class arr_fw_vcol : public fw_vcol<T> {
       : fw_vcol<T>(std::move(col)),
         index(indices) {}
 
-    void compute(size_t i, T* out) override {
+    void _compute(size_t i, T* out) override {
       A j = index[i];
       *out = (j == -1) ? GETNA<T>() : this->data[j];
     }
@@ -169,7 +169,7 @@ class slice_fw_vcol : public fw_vcol<T> {
         istart(start),
         istep(step) {}
 
-    void compute(size_t i, T* out) override {
+    void _compute(size_t i, T* out) override {
       size_t j = istart + i * istep;
       *out = this->data[j];
     }
@@ -182,7 +182,7 @@ class str_vcol : public _vcolumn {
   public:
     using _vcolumn::_vcolumn;
 
-    void compute(size_t i, CString* out) override {
+    void _compute(size_t i, CString* out) override {
       bool isna = column.get_element(i, out);
       if (isna) out->ch = nullptr;
     }
@@ -199,13 +199,13 @@ class arr_str_vcol : public str_vcol<T> {
       : str_vcol<T>(std::move(col)),
         index(indices) {}
 
-    void compute(size_t i, CString* out) override {
+    void _compute(size_t i, CString* out) override {
       A j = index[i];
       if (j == -1) {
         out->ch = nullptr;
         out->size = 0;
       } else {
-        str_vcol<T>::compute(static_cast<size_t>(j), out);
+        str_vcol<T>::_compute(static_cast<size_t>(j), out);
       }
     }
 };
@@ -223,9 +223,9 @@ class slice_str_vcol : public str_vcol<T> {
         istart(start),
         istep(step) {}
 
-    void compute(size_t i, CString* out) override {
+    void _compute(size_t i, CString* out) override {
       size_t j = istart + i * istep;
-      str_vcol<T>::compute(j, out);
+      str_vcol<T>::_compute(j, out);
     }
 };
 
@@ -304,7 +304,7 @@ vcolptr::vcolptr(Column&& col) {
     }
   }
   vcol = nullptr;
-  throw NotImplError() << "Cannot create virtual column of stype " << st;  // LCOV_EXCL_LINE
+  throw NotImplError() << "Cannot create virtual column of stype " << st;
 }
 
 
@@ -324,46 +324,46 @@ class cast_fw_vcol : public virtual_column {
       : virtual_column(vcol.nrows(), new_stype),
         arg(std::move(vcol)) {}
 
-    void compute(size_t i, int8_t* out) override {
+    void _compute(size_t i, int8_t* out) override {
       T x;
-      arg->compute(i, &x);
+      arg->_compute(i, &x);
       *out = ISNA<T>(x)? GETNA<int8_t>() : static_cast<int8_t>(x);
     }
 
-    void compute(size_t i, int16_t* out) override {
+    void _compute(size_t i, int16_t* out) override {
       T x;
-      arg->compute(i, &x);
+      arg->_compute(i, &x);
       *out = ISNA<T>(x)? GETNA<int16_t>() : static_cast<int16_t>(x);
     }
 
-    void compute(size_t i, int32_t* out) override {
+    void _compute(size_t i, int32_t* out) override {
       T x;
-      arg->compute(i, &x);
+      arg->_compute(i, &x);
       *out = ISNA<T>(x)? GETNA<int32_t>() : static_cast<int32_t>(x);
     }
 
-    void compute(size_t i, int64_t* out) override {
+    void _compute(size_t i, int64_t* out) override {
       T x;
-      arg->compute(i, &x);
+      arg->_compute(i, &x);
       *out = ISNA<T>(x)? GETNA<int64_t>() : static_cast<int64_t>(x);
     }
 
-    void compute(size_t i, float* out) override {
+    void _compute(size_t i, float* out) override {
       T x;
-      arg->compute(i, &x);
+      arg->_compute(i, &x);
       *out = ISNA<T>(x)? GETNA<float>() : static_cast<float>(x);
     }
 
-    void compute(size_t i, double* out) override {
+    void _compute(size_t i, double* out) override {
       T x;
-      arg->compute(i, &x);
+      arg->_compute(i, &x);
       *out = ISNA<T>(x)? GETNA<double>() : static_cast<double>(x);
     }
 
-    void compute(size_t i, CString* out) override {
+    void _compute(size_t i, CString* out) override {
       static thread_local char buffer[30];
       T x;
-      arg->compute(i, &x);
+      arg->_compute(i, &x);
       if (ISNA<T>(x)) {
         out->ch = nullptr;
       } else {
@@ -425,6 +425,43 @@ size_t vcolptr::nrows() const {
 SType vcolptr::stype() const {
   return vcol->_stype;
 }
+
+
+bool vcolptr::get_element(size_t i, int8_t* out) {
+  vcol->_compute(i, out);
+  return false;
+}
+
+bool vcolptr::get_element(size_t i, int16_t* out) {
+  vcol->_compute(i, out);
+  return false;
+}
+
+bool vcolptr::get_element(size_t i, int32_t* out) {
+  vcol->_compute(i, out);
+  return false;
+}
+
+bool vcolptr::get_element(size_t i, int64_t* out) {
+  vcol->_compute(i, out);
+  return false;
+}
+
+bool vcolptr::get_element(size_t i, float* out) {
+  vcol->_compute(i, out);
+  return false;
+}
+
+bool vcolptr::get_element(size_t i, double* out) {
+  vcol->_compute(i, out);
+  return false;
+}
+
+bool vcolptr::get_element(size_t i, CString* out) {
+  vcol->_compute(i, out);
+  return false;
+}
+
 
 
 
