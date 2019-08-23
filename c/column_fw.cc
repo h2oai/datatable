@@ -274,6 +274,3 @@ template class FwColumn<int64_t>;
 template class FwColumn<float>;
 template class FwColumn<double>;
 template class FwColumn<py::robj>;
-
-template class RealColumn<float>;
-template class RealColumn<double>;

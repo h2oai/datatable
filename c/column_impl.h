@@ -35,9 +35,7 @@
 class DataTable;
 class BoolColumn;
 class PyObjectColumn;
-class FreadReader;  // used as a friend
 template <typename T> class IntColumn;
-template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
 using colvec = std::vector<Column>;
@@ -358,10 +356,8 @@ extern template class IntColumn<int64_t>;
 //==============================================================================
 
 template <typename T>
-class RealColumn : public FwColumn<T> {};
+using RealColumn = FwColumn<T>;
 
-extern template class RealColumn<float>;
-extern template class RealColumn<double>;
 
 
 
@@ -449,7 +445,6 @@ protected:
   void fill_na() override;
 
   friend ColumnImpl;
-  friend FreadReader;  // friend ColumnImpl* alloc_column(SType, size_t, int);
   friend Column;
 };
 
