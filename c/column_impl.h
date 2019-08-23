@@ -25,13 +25,13 @@
 #include <vector>
 #include "python/list.h"
 #include "python/obj.h"
+#include "column.h"
 #include "groupby.h"
 #include "memrange.h"     // MemoryRange
 #include "rowindex.h"
 #include "stats.h"
 #include "types.h"
 
-class Column;
 class DataTable;
 class BoolColumn;
 class PyObjectColumn;
@@ -42,7 +42,7 @@ template <typename T> class StringColumn;
 
 using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
-
+using pimpl = std::unique_ptr<ColumnImpl>;
 
 
 
@@ -98,6 +98,7 @@ class ColumnImpl
     size_t : 56;
 
   public:
+    static ColumnImpl* new_impl(SType);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
     virtual ~ColumnImpl();
@@ -113,6 +114,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, py::robj* out) const;
 
     const RowIndex& rowindex() const noexcept { return ri; }
+    bool is_virtual() const noexcept { return bool(ri); }
     RowIndex remove_rowindex();
     void replace_rowindex(const RowIndex& newri);
 

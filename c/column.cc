@@ -25,28 +25,9 @@ ColumnImpl::~ColumnImpl() {}
 
 
 
-static ColumnImpl* new_column_impl(SType stype) {
-  switch (stype) {
-    case SType::VOID:    return new VoidColumn();
-    case SType::BOOL:    return new BoolColumn();
-    case SType::INT8:    return new IntColumn<int8_t>();
-    case SType::INT16:   return new IntColumn<int16_t>();
-    case SType::INT32:   return new IntColumn<int32_t>();
-    case SType::INT64:   return new IntColumn<int64_t>();
-    case SType::FLOAT32: return new RealColumn<float>();
-    case SType::FLOAT64: return new RealColumn<double>();
-    case SType::STR32:   return new StringColumn<uint32_t>();
-    case SType::STR64:   return new StringColumn<uint64_t>();
-    case SType::OBJ:     return new PyObjectColumn();
-    default:
-      throw ValueError()
-          << "Unable to create a column of stype `" << stype << "`";
-  }
-}
-
 
 Column Column::new_data_column(SType stype, size_t nrows) {
-  ColumnImpl* col = new_column_impl(stype);
+  ColumnImpl* col = ColumnImpl::new_impl(stype);
   col->_nrows = nrows;
   col->init_data();
   return Column(col);
@@ -63,7 +44,7 @@ Column Column::new_na_column(SType stype, size_t nrows) {
 
 Column Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   size_t elemsize = info(stype).elemsize();
-  ColumnImpl* col = new_column_impl(stype);
+  ColumnImpl* col = ColumnImpl::new_impl(stype);
   xassert(mbuf.size() % elemsize == 0);
   if (stype == SType::OBJ) {
     xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
@@ -151,7 +132,7 @@ bool ColumnImpl::get_element(size_t, py::robj*) const {
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
 ColumnImpl* ColumnImpl::shallowcopy() const {
-  ColumnImpl* col = new_column_impl(_stype);
+  ColumnImpl* col = ColumnImpl::new_impl(_stype);
   col->_nrows = _nrows;
   col->mbuf = mbuf;
   col->ri = ri;

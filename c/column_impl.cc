@@ -19,7 +19,30 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "parallel/api.h"
 #include "column_impl.h"
+
+
+
+
+ColumnImpl* ColumnImpl::new_impl(SType stype) {
+  switch (stype) {
+    case SType::VOID:    return new VoidColumn();
+    case SType::BOOL:    return new BoolColumn();
+    case SType::INT8:    return new IntColumn<int8_t>();
+    case SType::INT16:   return new IntColumn<int16_t>();
+    case SType::INT32:   return new IntColumn<int32_t>();
+    case SType::INT64:   return new IntColumn<int64_t>();
+    case SType::FLOAT32: return new RealColumn<float>();
+    case SType::FLOAT64: return new RealColumn<double>();
+    case SType::STR32:   return new StringColumn<uint32_t>();
+    case SType::STR64:   return new StringColumn<uint64_t>();
+    case SType::OBJ:     return new PyObjectColumn();
+    default:
+      throw ValueError()
+          << "Unable to create a column of stype `" << stype << "`";
+  }
+}
 
 
 // TODO: replace these with ref-counting semantics
@@ -30,6 +53,50 @@ ColumnImpl* ColumnImpl::acquire_instance() const {
 
 void ColumnImpl::release_instance() {
   delete this;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Materialization
+//------------------------------------------------------------------------------
+
+template <typename T>
+void _materialize_fw(const ColumnImpl* input_column, ColumnImpl* output_column)
+{
+  using R = promote<T>;
+  assert_compatible_type<R>(input_column->stype());
+  xassert(input_column->nrows() == output_column->nrows());
+  xassert(!output_column->is_virtual());
+
+  auto out_data = static_cast<T*>(output_column->data_w());
+  dt::parallel_for_static(
+    input_column->nrows(),
+    [&](size_t i) {
+      R value;
+      bool isna = input_column->get_element(i, &value);
+      out_data[i] = isna? GETNA<T>() : static_cast<T>(value);
+    });
+}
+
+
+ColumnImpl* ColumnImpl::materialize() {
+  ColumnImpl* out = ColumnImpl::new_impl(_stype);
+  out->_nrows = _nrows;
+  out->init_data();
+  switch (_stype) {
+    case SType::BOOL:
+    case SType::INT8:    _materialize_fw<int8_t> (this, out); break;
+    case SType::INT16:   _materialize_fw<int16_t>(this, out); break;
+    case SType::INT32:   _materialize_fw<int32_t>(this, out); break;
+    case SType::INT64:   _materialize_fw<int64_t>(this, out); break;
+    case SType::FLOAT32: _materialize_fw<float>  (this, out); break;
+    case SType::FLOAT64: _materialize_fw<double> (this, out); break;
+    default:
+      throw NotImplError() << "Cannot materialize column of stype `"
+                           << _stype << "`";
+  }
+  return out;
 }
 
 
