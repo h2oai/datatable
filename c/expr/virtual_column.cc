@@ -326,44 +326,44 @@ class cast_fw_vcol : public virtual_column {
 
     void _compute(size_t i, int8_t* out) override {
       T x;
-      arg->_compute(i, &x);
+      bool isna = arg.get_element(i, &x);
       *out = ISNA<T>(x)? GETNA<int8_t>() : static_cast<int8_t>(x);
     }
 
     void _compute(size_t i, int16_t* out) override {
       T x;
-      arg->_compute(i, &x);
+      bool isna = arg.get_element(i, &x);
       *out = ISNA<T>(x)? GETNA<int16_t>() : static_cast<int16_t>(x);
     }
 
     void _compute(size_t i, int32_t* out) override {
       T x;
-      arg->_compute(i, &x);
+      bool isna = arg.get_element(i, &x);
       *out = ISNA<T>(x)? GETNA<int32_t>() : static_cast<int32_t>(x);
     }
 
     void _compute(size_t i, int64_t* out) override {
       T x;
-      arg->_compute(i, &x);
+      bool isna = arg.get_element(i, &x);
       *out = ISNA<T>(x)? GETNA<int64_t>() : static_cast<int64_t>(x);
     }
 
     void _compute(size_t i, float* out) override {
       T x;
-      arg->_compute(i, &x);
+      bool isna = arg.get_element(i, &x);
       *out = ISNA<T>(x)? GETNA<float>() : static_cast<float>(x);
     }
 
     void _compute(size_t i, double* out) override {
       T x;
-      arg->_compute(i, &x);
+      bool isna = arg.get_element(i, &x);
       *out = ISNA<T>(x)? GETNA<double>() : static_cast<double>(x);
     }
 
     void _compute(size_t i, CString* out) override {
       static thread_local char buffer[30];
       T x;
-      arg->_compute(i, &x);
+      bool isna = arg.get_element(i, &x);
       if (ISNA<T>(x)) {
         out->ch = nullptr;
       } else {

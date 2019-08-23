@@ -81,9 +81,6 @@ class vcolptr {
     vcolptr& operator=(vcolptr&& other);
     ~vcolptr();
 
-    virtual_column* operator->() { return vcol; }
-    const virtual_column* operator->() const { return vcol; }
-
     size_t nrows() const;
     SType stype() const;
     vcolptr cast(SType new_stype) &&;
