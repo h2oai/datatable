@@ -74,8 +74,8 @@ void PyObjectColumn::resize_and_fill(size_t new_nrows) {
 }
 
 
-void PyObjectColumn::materialize() {
-  if (!ri) return;
+ColumnImpl* PyObjectColumn::materialize() {
+  if (!ri) return this;
 
   MemoryRange newmr = MemoryRange::mem(sizeof(PyObject*) * _nrows);
   newmr.set_pyobjects(/* clear_data = */ false);
@@ -90,4 +90,5 @@ void PyObjectColumn::materialize() {
 
   mbuf = std::move(newmr);
   ri.clear();
+  return this;
 }

@@ -92,7 +92,7 @@ static Column reduce_first(const Column& col, const Groupby& groupby)
                 * col->rowindex();
   Column res = col;  // copy
   res->replace_rowindex(ri);
-  if (ngrps == 1) res->materialize();
+  if (ngrps == 1) res.materialize();
   return res;
 }
 

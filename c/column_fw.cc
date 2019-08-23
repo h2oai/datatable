@@ -71,9 +71,9 @@ T FwColumn<T>::get_elem(size_t i) const {
 
 
 template <typename T>
-void FwColumn<T>::materialize() {
+ColumnImpl* FwColumn<T>::materialize() {
   // If the rowindex is absent, then the column is already materialized.
-  if (!ri) return;
+  if (!ri) return this;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
   bool ascending = ri.isslice() && static_cast<int64_t>(ri.slice_step()) > 0;
 
@@ -119,6 +119,7 @@ void FwColumn<T>::materialize() {
     mbuf.resize(newsize);
   }
   ri.clear();
+  return this;
 }
 
 

@@ -412,7 +412,7 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
   // its columns have the same rowindex (or at least all columns needed to
   // compute the result).
   for (size_t j : xcols) {
-    const_cast<DataTable*>(xdt)->get_column(j)->materialize();
+    const_cast<DataTable*>(xdt)->get_column(j).materialize();
   }
 
   arr32_t arr_result_indices(xdt->nrows);

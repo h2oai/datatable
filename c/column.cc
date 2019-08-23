@@ -311,18 +311,18 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 
 
 const void* Column::get_data_readonly(size_t i) {
-  if (is_virtual()) pcol->materialize();
+  if (is_virtual()) materialize();
   return i == 0 ? pcol->mbuf.rptr()
                 : pcol->data2();
 }
 
 void* Column::get_data_editable() {
-  if (is_virtual()) pcol->materialize();
+  if (is_virtual()) materialize();
   return pcol->mbuf.wptr();
 }
 
 size_t Column::get_data_size(size_t i) {
-  if (is_virtual()) pcol->materialize();
+  if (is_virtual()) materialize();
   return i == 0 ? pcol->mbuf.size()
                 : pcol->data2_size();
 }
@@ -334,7 +334,7 @@ size_t Column::get_data_size(size_t i) {
 //------------------------------------------------------------------------------
 
 void Column::materialize() {
-  pcol->materialize();
+  pcol = pcol->materialize();
 }
 
 void Column::replace_values(const RowIndex& replace_at,
@@ -353,7 +353,7 @@ void Column::replace_values(const RowIndex& replace_at,
 VoidColumn::VoidColumn() { _stype = SType::VOID; }
 VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows) { _stype = SType::VOID; }
 size_t VoidColumn::data_nrows() const { return _nrows; }
-void VoidColumn::materialize() {}
+ColumnImpl* VoidColumn::materialize() { return this; }
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const Column&) {}
@@ -382,7 +382,7 @@ class StrvecColumn : public ColumnImpl {
     ColumnImpl* shallowcopy() const override;
 
     size_t data_nrows() const override { return _nrows; }
-    void materialize() override {}
+    ColumnImpl* materialize() override { return this; }
     void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}
     void apply_na_mask(const Column&) override {}

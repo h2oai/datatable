@@ -212,26 +212,25 @@ class ColumnImpl
     // ColumnImpl* rbind(colvec& columns);
 
     /**
-     * "Materialize" the ColumnImpl. If the ColumnImpl has no rowindex, this is a no-op.
-     * Otherwise, this method "applies" the rowindex to the column's data and
-     * subsequently replaces the column's data buffer with a new one that contains
-     * "plain" data. The rowindex object is subsequently released, and the ColumnImpl
-     * becomes converted from "view column" into a "data column".
+     * "Materialize" the ColumnImpl. Depending on the column, this
+     * could be either done in-place, or a new ColumnImpl must be
+     * created to replace the current. In the former case, `this`
+     * is returned; in the latter we return the new instance and
+     * the current instance is released. Thus, the expected semantics
+     * of using this method is:
      *
-     * This operation is in-place, and we attempt to reuse existing memory buffer
-     * whenever possible.
+     *     pcol = pcol->materialize();
      *
-     * If the ColumnImpl's rowindex carries groupby information, then we retain it
-     * by replacing the current rowindex with the "plain slice" (i.e. a slice
-     * with step 1).
      */
-    virtual void materialize() = 0;
+  protected:
+    virtual ColumnImpl* materialize() = 0;
 
 
     /**
      * Check that the data in this ColumnImpl object is correct. `name` is the name of
      * the column to be used in the diagnostic messages.
      */
+  public:
     virtual void verify_integrity(const std::string& name) const;
 
     /**
@@ -282,7 +281,7 @@ public:
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
-  virtual void materialize() override;
+  virtual ColumnImpl* materialize() override;
   void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
   void replace_values(const RowIndex& at, T with);
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
@@ -402,7 +401,7 @@ protected:
 
   void resize_and_fill(size_t nrows) override;
   void fill_na() override;
-  void materialize() override;
+  ColumnImpl* materialize() override;
   void verify_integrity(const std::string& name) const override;
 
   friend ColumnImpl;
@@ -422,7 +421,7 @@ public:
   StringColumn();
   StringColumn(size_t nrows);
 
-  void materialize() override;
+  ColumnImpl* materialize() override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
 
@@ -473,7 +472,7 @@ class VoidColumn : public ColumnImpl {
     VoidColumn();
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
-    void materialize() override;
+    ColumnImpl* materialize() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const Column&) override;
