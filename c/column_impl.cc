@@ -87,8 +87,7 @@ bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object")
 template <typename T>
 void _materialize_fw(const ColumnImpl* input_column, ColumnImpl* output_column)
 {
-  using R = promote<T>;
-  assert_compatible_type<R>(input_column->stype());
+  assert_compatible_type<T>(input_column->stype());
   xassert(input_column->nrows() == output_column->nrows());
   xassert(!output_column->is_virtual());
 
@@ -96,9 +95,9 @@ void _materialize_fw(const ColumnImpl* input_column, ColumnImpl* output_column)
   dt::parallel_for_static(
     input_column->nrows(),
     [&](size_t i) {
-      R value;
+      T value;
       bool isna = input_column->get_element(i, &value);
-      out_data[i] = isna? GETNA<T>() : static_cast<T>(value);
+      out_data[i] = isna? GETNA<T>() : value;  // TODO: store NA separately
     });
 }
 

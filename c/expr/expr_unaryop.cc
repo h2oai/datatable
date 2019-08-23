@@ -78,12 +78,12 @@ class unary_vcol : public ColumnImpl {
       _stype = stype;
     }
 
-    bool get_element(size_t i, promote<TO>* out) const override {
-      promote<TI> x;
+    bool get_element(size_t i, TO* out) const override {
+      TI x;
       bool isna = arg.get_element(i, &x);
       (void) isna;  // FIXME
-      TO value = func(static_cast<TI>(x));
-      *out = static_cast<promote<TO>>(value);
+      TO value = func(x);
+      *out = value;
       return ISNA<TO>(value);
     }
 };

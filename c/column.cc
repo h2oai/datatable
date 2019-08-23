@@ -245,8 +245,8 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
       bool r = get_element(i, &x);
       return r? py::None() : py::obool(x);
     }
-    case SType::INT8:
-    case SType::INT16:
+    case SType::INT8:    return getelem<int8_t>(*this, i);
+    case SType::INT16:   return getelem<int16_t>(*this, i);
     case SType::INT32:   return getelem<int32_t>(*this, i);
     case SType::INT64:   return getelem<int64_t>(*this, i);
     case SType::FLOAT32: return getelem<float>(*this, i);

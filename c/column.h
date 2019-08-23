@@ -44,6 +44,9 @@ using strvec = std::vector<std::string>;
  * element_t<stype>
  *   resolves to the type of the element that is in the main data buffer
  *   of `column_t<stype>`.
+ *
+ * TODO: element_t<SType::BOOL> should be changed to `bool`, once
+ *       NA flags are stored as a separate bitmask.
  */
 template <SType s> struct _elt {};
 template <> struct _elt<SType::BOOL>    { using t = int8_t; };
@@ -60,26 +63,6 @@ template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 template <SType s>
 using element_t = typename _elt<s>::t;
 
-template <typename T> struct _promote { using t = T; };
-template <> struct _promote<int8_t>    { using t = int32_t; };
-template <> struct _promote<int16_t>   { using t = int32_t; };
-template <> struct _promote<PyObject*> { using t = py::robj; };
-
-template <typename T>
-using promote = typename _promote<T>::t;
-
-template <SType s>
-using getelement_t = promote<element_t<s>>;
-
-template <typename T>
-inline T downcast(promote<T> v) {
-  return ISNA<promote<T>>(v)? GETNA<T>() : static_cast<T>(v);
-}
-
-template <>
-inline PyObject* downcast(py::robj v) {
-  return v.to_borrowed_ref();
-}
 
 
 

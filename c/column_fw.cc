@@ -226,10 +226,10 @@ void FwColumn<T>::replace_values(
                     : replace_with.cast(_stype);
 
   if (with.nrows() == 1) {
-    promote<T> replace_value;
+    T replace_value;
     bool isna = with.get_element(0, &replace_value);
     return isna? replace_values(replace_at, GETNA<T>()) :
-                 replace_values(replace_at, downcast<T>(replace_value));
+                 replace_values(replace_at, replace_value);
   }
 
   size_t replace_n = replace_at.size();
