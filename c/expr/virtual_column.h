@@ -47,8 +47,8 @@ class virtual_column {
     virtual_column(size_t nrows, SType stype);
     virtual ~virtual_column();
 
-    // size_t nrows() const noexcept;
-    // SType stype() const noexcept;
+    // size_t nrows() const { return _nrows; }
+    // SType stype() const { return _stype; }
 
     virtual void compute(size_t i, int8_t*  out);
     virtual void compute(size_t i, int16_t* out);
@@ -64,39 +64,32 @@ class virtual_column {
 };
 
 
-
+// This class should expose API maximally similar to Column's.
+// At some point we will replace itt with Column.
+//
 class vcolptr {
   private:
     virtual_column* vcol;  // owned
 
   public:
-    vcolptr() : vcol(nullptr) {}
+    vcolptr();
     vcolptr(Column&& column);
-    vcolptr(virtual_column* v) : vcol(v) {}
+    vcolptr(virtual_column* v);
     vcolptr(const vcolptr&) = delete;
     vcolptr& operator=(const vcolptr&) = delete;
-    vcolptr(vcolptr&& other) {
-      vcol = other.vcol;
-      other.vcol = nullptr;
-    }
-    vcolptr& operator=(vcolptr&& other) {
-      delete vcol;
-      vcol = other.vcol;
-      other.vcol = nullptr;
-      return *this;
-    }
-    ~vcolptr() { delete vcol; }
+    vcolptr(vcolptr&& other);
+    vcolptr& operator=(vcolptr&& other);
+    ~vcolptr();
 
     virtual_column* operator->() { return vcol; }
     const virtual_column* operator->() const { return vcol; }
 
-    size_t nrows() const { return vcol->_nrows; }
-    SType stype() const { return vcol->_stype; }
+    size_t nrows() const;
+    SType stype() const;
+    vcolptr cast(SType new_stype) &&;
 };
 
 
-
-vcolptr cast(vcolptr&& vcol, SType new_stype);
 
 
 }}  // namespace dt::expr

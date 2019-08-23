@@ -320,9 +320,9 @@ class cast_fw_vcol : public virtual_column {
     vcolptr arg;
 
   public:
-    cast_fw_vcol(vcolptr&& col, SType new_stype)
-      : virtual_column(col.nrows(), new_stype),
-        arg(std::move(col)) {}
+    cast_fw_vcol(vcolptr&& vcol, SType new_stype)
+      : virtual_column(vcol.nrows(), new_stype),
+        arg(std::move(vcol)) {}
 
     void compute(size_t i, int8_t* out) override {
       T x;
@@ -376,21 +376,55 @@ class cast_fw_vcol : public virtual_column {
 };
 
 
-vcolptr cast(vcolptr&& vcol, SType new_stype) {
-  SType old_stype = vcol.stype();
+vcolptr vcolptr::cast(SType new_stype) && {
+  SType old_stype = stype();
   switch (old_stype) {
     case SType::BOOL:
-    case SType::INT8:    return vcolptr(new cast_fw_vcol<int8_t> (std::move(vcol), new_stype));
-    case SType::INT16:   return vcolptr(new cast_fw_vcol<int16_t>(std::move(vcol), new_stype));
-    case SType::INT32:   return vcolptr(new cast_fw_vcol<int32_t>(std::move(vcol), new_stype));
-    case SType::INT64:   return vcolptr(new cast_fw_vcol<int64_t>(std::move(vcol), new_stype));
-    case SType::FLOAT32: return vcolptr(new cast_fw_vcol<float>  (std::move(vcol), new_stype));
-    case SType::FLOAT64: return vcolptr(new cast_fw_vcol<double> (std::move(vcol), new_stype));
+    case SType::INT8:    return vcolptr(new cast_fw_vcol<int8_t> (std::move(*this), new_stype));
+    case SType::INT16:   return vcolptr(new cast_fw_vcol<int16_t>(std::move(*this), new_stype));
+    case SType::INT32:   return vcolptr(new cast_fw_vcol<int32_t>(std::move(*this), new_stype));
+    case SType::INT64:   return vcolptr(new cast_fw_vcol<int64_t>(std::move(*this), new_stype));
+    case SType::FLOAT32: return vcolptr(new cast_fw_vcol<float>  (std::move(*this), new_stype));
+    case SType::FLOAT64: return vcolptr(new cast_fw_vcol<double> (std::move(*this), new_stype));
     default: break;
   }
   throw NotImplError() << "Cannot virtual-cast column of stype " << old_stype;
 }
 
+
+
+//------------------------------------------------------------------------------
+// vcolptr
+//------------------------------------------------------------------------------
+
+vcolptr::vcolptr() : vcol(nullptr) {}
+
+vcolptr::vcolptr(virtual_column* v) : vcol(v) {}
+
+vcolptr::vcolptr(vcolptr&& other) {
+  vcol = other.vcol;
+  other.vcol = nullptr;
+}
+
+vcolptr& vcolptr::operator=(vcolptr&& other) {
+  delete vcol;
+  vcol = other.vcol;
+  other.vcol = nullptr;
+  return *this;
+}
+
+vcolptr::~vcolptr() {
+  delete vcol;
+}
+
+
+size_t vcolptr::nrows() const {
+  return vcol->_nrows;
+}
+
+SType vcolptr::stype() const {
+  return vcol->_stype;
+}
 
 
 

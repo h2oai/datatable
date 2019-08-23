@@ -304,7 +304,7 @@ vcolptr expr_unaryop::evaluate_lazy(workframe& wf) {
   const auto& ui = unary_library.get_infox(opcode, input_stype);
 
   if (ui.cast_stype != SType::VOID) {
-    varg = cast(std::move(varg), ui.cast_stype);
+    varg = std::move(varg).cast(ui.cast_stype);
     input_stype = ui.cast_stype;
   }
   if (!ui.vcolfn) {
