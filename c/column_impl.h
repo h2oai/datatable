@@ -282,6 +282,8 @@ public:
   T* elements_w();
   T get_elem(size_t i) const;
 
+  virtual bool get_element(size_t i, T* out) const override;
+
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
@@ -292,7 +294,7 @@ public:
 
 protected:
   void init_data() override;
-  static constexpr T na_elem = GETNA<T>();
+  // static constexpr T na_elem = GETNA<T>();
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void fill_na() override;
 
@@ -306,7 +308,7 @@ extern template class FwColumn<int32_t>;
 extern template class FwColumn<int64_t>;
 extern template class FwColumn<float>;
 extern template class FwColumn<double>;
-extern template class FwColumn<PyObject*>;
+extern template class FwColumn<py::robj>;
 
 
 
@@ -314,18 +316,18 @@ extern template class FwColumn<PyObject*>;
 
 class BoolColumn : public FwColumn<int8_t>
 {
-public:
-  BoolColumn(size_t nrows = 0);
-  BoolColumn(size_t nrows, MemoryRange&&);
+  public:
+    BoolColumn(size_t nrows = 0);
+    BoolColumn(size_t nrows, MemoryRange&&);
 
-  bool get_element(size_t i, int32_t* out) const override;
+    using FwColumn<int8_t>::get_element;
+    bool get_element(size_t i, int32_t* out) const override;
 
   protected:
+    void verify_integrity(const std::string& name) const override;
 
-  void verify_integrity(const std::string& name) const override;
-
-  using ColumnImpl::mbuf;
-  friend ColumnImpl;
+    using ColumnImpl::mbuf;
+    friend ColumnImpl;
 };
 
 
@@ -334,17 +336,17 @@ public:
 
 template <typename T> class IntColumn : public FwColumn<T>
 {
-public:
-  IntColumn(size_t nrows = 0);
-  IntColumn(size_t nrows, MemoryRange&&);
+  public:
+    using FwColumn<T>::FwColumn;
 
-  bool get_element(size_t i, int32_t* out) const override;
-  bool get_element(size_t i, int64_t* out) const override;
+    using FwColumn<T>::get_element;
+    bool get_element(size_t i, int32_t* out) const override;
+    bool get_element(size_t i, int64_t* out) const override;
 
-protected:
-  using ColumnImpl::stats;
-  using ColumnImpl::mbuf;
-  friend ColumnImpl;
+  protected:
+    using ColumnImpl::stats;
+    using ColumnImpl::mbuf;
+    friend ColumnImpl;
 };
 
 extern template class IntColumn<int8_t>;
@@ -355,18 +357,8 @@ extern template class IntColumn<int64_t>;
 
 //==============================================================================
 
-template <typename T> class RealColumn : public FwColumn<T>
-{
-public:
-  RealColumn(size_t nrows = 0);
-  RealColumn(size_t nrows, MemoryRange&&);
-
-  bool get_element(size_t i, T* out) const override;
-
-protected:
-  using ColumnImpl::stats;
-  friend ColumnImpl;
-};
+template <typename T>
+class RealColumn : public FwColumn<T> {};
 
 extern template class RealColumn<float>;
 extern template class RealColumn<double>;
@@ -390,7 +382,7 @@ extern template class RealColumn<double>;
  * The `mbuf`'s API already respects these rules, however the user must also
  * obey them when manipulating the data manually.
  */
-class PyObjectColumn : public FwColumn<PyObject*>
+class PyObjectColumn : public FwColumn<py::robj>
 {
 public:
   PyObjectColumn();

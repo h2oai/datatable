@@ -12,18 +12,18 @@
 
 
 
-PyObjectColumn::PyObjectColumn() : FwColumn<PyObject*>() {
+PyObjectColumn::PyObjectColumn() : FwColumn<py::robj>() {
   _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
-PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<PyObject*>(nrows_) {
+PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<py::robj>(nrows_) {
   _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
-    : FwColumn<PyObject*>(nrows_, std::move(mb))
+    : FwColumn<py::robj>(nrows_, std::move(mb))
 {
   _stype = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
@@ -34,9 +34,9 @@ PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
 bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
   size_t j = (this->ri)[i];
   if (j == RowIndex::NA) return true;
-  PyObject* x = this->elements_r()[j];
+  py::robj x = this->elements_r()[j];
   *out = x;
-  return (x == Py_None);
+  return x.is_none();
 }
 
 
@@ -59,13 +59,13 @@ void PyObjectColumn::resize_and_fill(size_t new_nrows) {
   if (_nrows == 1) {
     // Replicate the value; the case when we need to fill with NAs is already
     // handled by `mbuf.resize()`
-    PyObject* fill_value = get_elem(0);
-    PyObject** dest_data = this->elements_w();
+    py::robj fill_value = get_elem(0);
+    py::robj* dest_data = this->elements_w();
     for (size_t i = 1; i < new_nrows; ++i) {
-      Py_DECREF(dest_data[i]);
+      Py_DECREF(dest_data[i].to_borrowed_ref());
       dest_data[i] = fill_value;
     }
-    fill_value->ob_refcnt += new_nrows - 1;
+    fill_value.to_borrowed_ref()->ob_refcnt += new_nrows - 1;
   }
   this->_nrows = new_nrows;
 
@@ -81,10 +81,10 @@ ColumnImpl* PyObjectColumn::materialize() {
   newmr.set_pyobjects(/* clear_data = */ false);
 
   auto data_dest = static_cast<PyObject**>(newmr.xptr());
-  auto data_src = elements_r();
+  const py::robj* data_src = elements_r();
   ri.iterate(0, _nrows, 1,
     [&](size_t i, size_t j) {
-      data_dest[i] = (j == RowIndex::NA)? Py_None : data_src[j];
+      data_dest[i] = (j == RowIndex::NA)? Py_None : data_src[j].to_borrowed_ref();
       Py_INCREF(data_dest[i]);
     });
 

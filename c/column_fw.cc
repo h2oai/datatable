@@ -12,6 +12,16 @@
 #include "column.h"
 #include "column_impl.h"
 
+template<> inline py::robj GETNA() { return py::rnone(); }
+
+template <typename T> constexpr SType stype_for(){ return SType::VOID; }
+template <> constexpr SType stype_for<int8_t>()  { return SType::INT8; }
+template <> constexpr SType stype_for<int16_t>() { return SType::INT16; }
+template <> constexpr SType stype_for<int32_t>() { return SType::INT32; }
+template <> constexpr SType stype_for<int64_t>() { return SType::INT64; }
+template <> constexpr SType stype_for<float>()   { return SType::FLOAT32; }
+template <> constexpr SType stype_for<double>()  { return SType::FLOAT64; }
+
 
 
 /**
@@ -19,15 +29,19 @@
  * should be subsequently called before using this column.
  */
 template <typename T>
-FwColumn<T>::FwColumn() : ColumnImpl(0) {}
+FwColumn<T>::FwColumn() : ColumnImpl(0) {
+  _stype = stype_for<T>();
+}
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_) : ColumnImpl(nrows_) {
+  _stype = stype_for<T>();
   mbuf.resize(sizeof(T) * nrows_);
 }
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : ColumnImpl(nrows_) {
+  _stype = stype_for<T>();
   size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);
@@ -67,6 +81,15 @@ T* FwColumn<T>::elements_w() {
 template <typename T>
 T FwColumn<T>::get_elem(size_t i) const {
   return static_cast<const T*>(mbuf.rptr())[i];
+}
+
+template <typename T>
+bool FwColumn<T>::get_element(size_t i, T* out) const {
+  size_t j = (this->ri)[i];
+  if (j == RowIndex::NA) return true;
+  T x = static_cast<const T*>(mbuf.rptr())[j];
+  *out = x;
+  return ISNA<T>(x);
 }
 
 
@@ -134,7 +157,7 @@ void FwColumn<T>::resize_and_fill(size_t new_nrows)
 
   if (new_nrows > _nrows) {
     // Replicate the value or fill with NAs
-    T fill_value = _nrows == 1? get_elem(0) : na_elem;
+    T fill_value = _nrows == 1? get_elem(0) : GETNA<T>();
     T* data_dest = static_cast<T*>(mbuf.wptr());
     for (size_t i = _nrows; i < new_nrows; ++i) {
       data_dest[i] = fill_value;
@@ -250,4 +273,7 @@ template class FwColumn<int32_t>;
 template class FwColumn<int64_t>;
 template class FwColumn<float>;
 template class FwColumn<double>;
-template class FwColumn<PyObject*>;
+template class FwColumn<py::robj>;
+
+template class RealColumn<float>;
+template class RealColumn<double>;
