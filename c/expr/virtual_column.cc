@@ -74,7 +74,7 @@ void virtual_column::compute(size_t, CString*) {
 
 
 //------------------------------------------------------------------------------
-// materialize
+// to_column
 //------------------------------------------------------------------------------
 
 template <typename T>
@@ -88,7 +88,7 @@ void materialize_fw(virtual_column* self, Column& outcol) {
 }
 
 
-Column virtual_column::materialize() {
+Column virtual_column::to_column() {
   Column out = Column::new_data_column(_stype, _nrows);
   switch (_stype) {
     case SType::BOOL:
@@ -117,14 +117,14 @@ class _vcolumn : public virtual_column {
 
   public:
     explicit _vcolumn(Column&& col);
-    Column materialize() override;
+    Column to_column() override;
 };
 
 _vcolumn::_vcolumn(Column&& col)
   : virtual_column(col.nrows(), col.stype()),
     column(std::move(col)) {}
 
-Column _vcolumn::materialize() {
+Column _vcolumn::to_column() {
   return std::move(column);
 }
 

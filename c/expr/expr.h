@@ -29,7 +29,7 @@ namespace expr {
 
 class base_expr;
 using pexpr = std::unique_ptr<base_expr>;
-using vcolptr = std::unique_ptr<virtual_column>;
+// using vcolptr = std::unique_ptr<virtual_column>;
 
 static constexpr size_t UNOP_FIRST    = 101;
 static constexpr size_t UNOP_LAST     = 111;

@@ -27,9 +27,6 @@
 namespace dt {
 namespace expr {
 
-class virtual_column;
-using vcolptr = std::unique_ptr<virtual_column>;
-
 
 /**
  * This class is a basic building block in creating lazy evaluation
@@ -61,7 +58,34 @@ class virtual_column {
     virtual void compute(size_t i, double*  out);
     virtual void compute(size_t i, CString* out);
 
-    virtual Column materialize();
+    virtual Column to_column();
+};
+
+
+
+class vcolptr {
+  private:
+    virtual_column* vcol;  // owned
+
+  public:
+    vcolptr() : vcol(nullptr) {}
+    vcolptr(virtual_column* v) : vcol(v) {}
+    vcolptr(const vcolptr&) = delete;
+    vcolptr& operator=(const vcolptr&) = delete;
+    vcolptr(vcolptr&& other) {
+      vcol = other.vcol;
+      other.vcol = nullptr;
+    }
+    vcolptr& operator=(vcolptr&& other) {
+      delete vcol;
+      vcol = other.vcol;
+      other.vcol = nullptr;
+      return *this;
+    }
+    ~vcolptr() { delete vcol; }
+
+    virtual_column* operator->() { return vcol; }
+    const virtual_column* operator->() const { return vcol; }
 };
 
 
