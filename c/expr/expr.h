@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_h
 #define dt_EXPR_EXPR_h
-#include "expr/virtual_column.h"
 #include "expr/workframe.h"
 #include "column.h"
 namespace dt {
@@ -29,7 +28,6 @@ namespace expr {
 
 class base_expr;
 using pexpr = std::unique_ptr<base_expr>;
-// using vcolptr = std::unique_ptr<virtual_column>;
 
 static constexpr size_t UNOP_FIRST    = 101;
 static constexpr size_t UNOP_LAST     = 111;
