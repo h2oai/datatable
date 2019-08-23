@@ -306,9 +306,9 @@ GroupbyMode expr_reduce1::get_groupby_mode(const workframe&) const {
 }
 
 
-Column expr_reduce1::evaluate_eager(workframe& wf)
+Column expr_reduce1::evaluate(workframe& wf)
 {
-  auto input_col = arg->evaluate_eager(wf);
+  auto input_col = arg->evaluate(wf);
   Groupby gb = wf.get_groupby();
   if (!gb) gb = Groupby::single_group(input_col.nrows());
 
@@ -373,7 +373,7 @@ GroupbyMode expr_reduce0::get_groupby_mode(const workframe&) const {
 }
 
 
-Column expr_reduce0::evaluate_eager(workframe& wf) {
+Column expr_reduce0::evaluate(workframe& wf) {
   Column res;
   if (opcode == Op::COUNT0) {  // COUNT
     if (wf.has_groupby()) {

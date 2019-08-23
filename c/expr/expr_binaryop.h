@@ -39,7 +39,7 @@ class expr_binaryop : public base_expr {
     expr_binaryop(pexpr&& l, pexpr&& r, Op op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column evaluate_eager(workframe& wf) override;
+    Column evaluate(workframe& wf) override;
 
   private:
     /**

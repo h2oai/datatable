@@ -450,7 +450,7 @@ void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
 
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column col = (i < rcols)? exprs[i]->evaluate_eager(wf)
+    Column col = (i < rcols)? exprs[i]->evaluate(wf)
                             : dt0->get_column(indices[0]);
     xassert(col.nrows() == dt0->nrows);
     dt0->set_ocolumn(j, std::move(col));

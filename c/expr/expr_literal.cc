@@ -48,7 +48,7 @@ GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
 }
 
 
-Column expr_literal::evaluate_eager(workframe&) {
+Column expr_literal::evaluate(workframe&) {
   return col;  // copy
 }
 

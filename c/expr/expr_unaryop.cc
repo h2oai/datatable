@@ -70,8 +70,7 @@ class unary_vcol : public ColumnImpl {
 
   public:
     unary_vcol(Column&& col, SType stype, operator_t f)
-      : // virtual_column(col.nrows(), stype),
-        arg(std::move(col)),
+      : arg(std::move(col)),
         func(f)
     {
       _nrows = arg.nrows();
@@ -264,8 +263,8 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 // an integer output column because each "element" of the input actually
 // consists of 2 entries: the offsets of the start and the end of a string.
 //
-Column expr_unaryop::evaluate_eager(workframe& wf) {
-  Column input_column = arg->evaluate_eager(wf);
+Column expr_unaryop::evaluate(workframe& wf) {
+  Column input_column = arg->evaluate(wf);
 
   auto input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
@@ -305,11 +304,10 @@ Column expr_unaryop::evaluate_eager(workframe& wf) {
 }
 
 
-// vcolptr expr_unaryop::evaluate_lazy(workframe& wf) {
-//   auto varg = arg->evaluate_lazy(wf);
-//   auto input_stype = varg.stype();
+// Column expr_unaryop::evaluate(workframe& wf) {
+//   Column varg = arg->evaluate(wf);
+//   SType input_stype = varg.stype();
 //   const auto& ui = unary_library.get_infox(opcode, input_stype);
-
 //   if (ui.cast_stype != SType::VOID) {
 //     varg = std::move(varg).cast(ui.cast_stype);
 //     input_stype = ui.cast_stype;
@@ -318,7 +316,6 @@ Column expr_unaryop::evaluate_eager(workframe& wf) {
 //     throw NotImplError() << "Cannot create a virtual column for input_stype = "
 //         << input_stype << " and op = " << static_cast<size_t>(opcode);
 //   }
-
 //   return ui.vcolfn(std::move(varg));
 // }
 

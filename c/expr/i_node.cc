@@ -280,8 +280,8 @@ void expr_in::execute(workframe& wf) {
     throw TypeError() << "Filter expression must be boolean, instead it "
         "was of type " << st;
   }
-  auto col = expr->evaluate_eager(wf);
-  RowIndex res(col);
+  auto col = expr->evaluate(wf);
+  RowIndex res(std::move(col));
   wf.apply_rowindex(res);
 }
 
