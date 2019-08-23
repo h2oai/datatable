@@ -37,31 +37,31 @@ virtual_column::~virtual_column() {}
 
 
 
-void virtual_column::_compute(size_t, int8_t*) {
+bool virtual_column::_compute(size_t, int8_t*) {
   throw RuntimeError() << "int8 value cannot be computed";
 }
 
-void virtual_column::_compute(size_t, int16_t*) {
+bool virtual_column::_compute(size_t, int16_t*) {
   throw RuntimeError() << "int16 value cannot be computed";
 }
 
-void virtual_column::_compute(size_t, int32_t*) {
+bool virtual_column::_compute(size_t, int32_t*) {
   throw RuntimeError() << "int32 value cannot be computed";
 }
 
-void virtual_column::_compute(size_t, int64_t*) {
+bool virtual_column::_compute(size_t, int64_t*) {
   throw RuntimeError() << "int64 value cannot be computed";
 }
 
-void virtual_column::_compute(size_t, float*) {
+bool virtual_column::_compute(size_t, float*) {
   throw RuntimeError() << "float value cannot be computed";
 }
 
-void virtual_column::_compute(size_t, double*) {
+bool virtual_column::_compute(size_t, double*) {
   throw RuntimeError() << "double value cannot be computed";
 }
 
-void virtual_column::_compute(size_t, CString*) {
+bool virtual_column::_compute(size_t, CString*) {
   throw RuntimeError() << "string value cannot be computed";
 }
 
@@ -77,7 +77,8 @@ void materialize_fw(virtual_column* self, Column& outcol) {
   dt::parallel_for_static(
     outcol.nrows(),
     [&](size_t i) {
-      self->_compute(i, out_data + i);
+      bool isna = self->_compute(i, out_data + i);
+      if (isna) out_data[i] = GETNA<T>();
     });
 }
 
@@ -134,8 +135,9 @@ class fw_vcol : public _vcolumn {
       : _vcolumn(std::move(col)),
         data(static_cast<const T*>(column->data())) {}
 
-    void _compute(size_t i, T* out) override {
+    bool _compute(size_t i, T* out) override {
       *out = data[i];
+      return ISNA<T>(*out);
     }
 };
 
@@ -150,9 +152,11 @@ class arr_fw_vcol : public fw_vcol<T> {
       : fw_vcol<T>(std::move(col)),
         index(indices) {}
 
-    void _compute(size_t i, T* out) override {
+    bool _compute(size_t i, T* out) override {
       A j = index[i];
-      *out = (j == -1) ? GETNA<T>() : this->data[j];
+      if (j == -1) return true;
+      *out = this->data[j];
+      return ISNA<T>(*out);
     }
 };
 
@@ -169,9 +173,10 @@ class slice_fw_vcol : public fw_vcol<T> {
         istart(start),
         istep(step) {}
 
-    void _compute(size_t i, T* out) override {
+    bool _compute(size_t i, T* out) override {
       size_t j = istart + i * istep;
       *out = this->data[j];
+      return ISNA<T>(*out);
     }
 };
 
@@ -182,9 +187,8 @@ class str_vcol : public _vcolumn {
   public:
     using _vcolumn::_vcolumn;
 
-    void _compute(size_t i, CString* out) override {
-      bool isna = column.get_element(i, out);
-      if (isna) out->ch = nullptr;
+    bool _compute(size_t i, CString* out) override {
+      return column.get_element(i, out);
     }
 };
 
@@ -199,13 +203,12 @@ class arr_str_vcol : public str_vcol<T> {
       : str_vcol<T>(std::move(col)),
         index(indices) {}
 
-    void _compute(size_t i, CString* out) override {
+    bool _compute(size_t i, CString* out) override {
       A j = index[i];
       if (j == -1) {
-        out->ch = nullptr;
-        out->size = 0;
+        return true;
       } else {
-        str_vcol<T>::_compute(static_cast<size_t>(j), out);
+        return str_vcol<T>::_compute(static_cast<size_t>(j), out);
       }
     }
 };
@@ -223,9 +226,9 @@ class slice_str_vcol : public str_vcol<T> {
         istart(start),
         istep(step) {}
 
-    void _compute(size_t i, CString* out) override {
+    bool _compute(size_t i, CString* out) override {
       size_t j = istart + i * istep;
-      str_vcol<T>::_compute(j, out);
+      return str_vcol<T>::_compute(j, out);
     }
 };
 
@@ -324,54 +327,59 @@ class cast_fw_vcol : public virtual_column {
       : virtual_column(vcol.nrows(), new_stype),
         arg(std::move(vcol)) {}
 
-    void _compute(size_t i, int8_t* out) override {
+    bool _compute(size_t i, int8_t* out) override {
       T x;
       bool isna = arg.get_element(i, &x);
-      *out = isna? GETNA<int8_t>() : static_cast<int8_t>(x);
+      *out = static_cast<int8_t>(x);
+      return isna;
     }
 
-    void _compute(size_t i, int16_t* out) override {
+    bool _compute(size_t i, int16_t* out) override {
       T x;
       bool isna = arg.get_element(i, &x);
-      *out = isna? GETNA<int16_t>() : static_cast<int16_t>(x);
+      *out = static_cast<int16_t>(x);
+      return isna;
     }
 
-    void _compute(size_t i, int32_t* out) override {
+    bool _compute(size_t i, int32_t* out) override {
       T x;
       bool isna = arg.get_element(i, &x);
-      *out = isna? GETNA<int32_t>() : static_cast<int32_t>(x);
+      *out = static_cast<int32_t>(x);
+      return isna;
     }
 
-    void _compute(size_t i, int64_t* out) override {
+    bool _compute(size_t i, int64_t* out) override {
       T x;
       bool isna = arg.get_element(i, &x);
-      *out = isna? GETNA<int64_t>() : static_cast<int64_t>(x);
+      *out = static_cast<int64_t>(x);
+      return isna;
     }
 
-    void _compute(size_t i, float* out) override {
+    bool _compute(size_t i, float* out) override {
       T x;
       bool isna = arg.get_element(i, &x);
-      *out = isna? GETNA<float>() : static_cast<float>(x);
+      *out = static_cast<float>(x);
+      return isna;
     }
 
-    void _compute(size_t i, double* out) override {
+    bool _compute(size_t i, double* out) override {
       T x;
       bool isna = arg.get_element(i, &x);
-      *out = isna? GETNA<double>() : static_cast<double>(x);
+      *out = static_cast<double>(x);
+      return isna;
     }
 
-    void _compute(size_t i, CString* out) override {
+    bool _compute(size_t i, CString* out) override {
       static thread_local char buffer[30];
       T x;
       bool isna = arg.get_element(i, &x);
-      if (isna) {
-        out->ch = nullptr;
-      } else {
+      if (!isna) {
         char* ch = buffer;
         toa<T>(&ch, x);
         out->ch = buffer;
         out->size = ch - buffer;
       }
+      return isna;
     }
 };
 
@@ -428,38 +436,31 @@ SType vcolptr::stype() const {
 
 
 bool vcolptr::get_element(size_t i, int8_t* out) {
-  vcol->_compute(i, out);
-  return ISNA<int8_t>(*out);
+  return vcol->_compute(i, out);
 }
 
 bool vcolptr::get_element(size_t i, int16_t* out) {
-  vcol->_compute(i, out);
-  return ISNA<int16_t>(*out);
+  return vcol->_compute(i, out);
 }
 
 bool vcolptr::get_element(size_t i, int32_t* out) {
-  vcol->_compute(i, out);
-  return ISNA<int32_t>(*out);
+  return vcol->_compute(i, out);
 }
 
 bool vcolptr::get_element(size_t i, int64_t* out) {
-  vcol->_compute(i, out);
-  return ISNA<int64_t>(*out);
+  return vcol->_compute(i, out);
 }
 
 bool vcolptr::get_element(size_t i, float* out) {
-  vcol->_compute(i, out);
-  return ISNA<float>(*out);
+  return vcol->_compute(i, out);
 }
 
 bool vcolptr::get_element(size_t i, double* out) {
-  vcol->_compute(i, out);
-  return ISNA<double>(*out);
+  return vcol->_compute(i, out);
 }
 
 bool vcolptr::get_element(size_t i, CString* out) {
-  vcol->_compute(i, out);
-  return out->isna();
+  return vcol->_compute(i, out);
 }
 
 

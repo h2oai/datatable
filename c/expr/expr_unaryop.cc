@@ -74,10 +74,12 @@ class unary_vcol : public virtual_column {
         arg(std::move(col)),
         func(f) {}
 
-    void _compute(size_t i, TO* out) {
+    bool _compute(size_t i, TO* out) {
       TI x;
-      arg.get_element(i, &x);
+      bool isna = arg.get_element(i, &x);
+      if (isna) x = GETNA<TI>();
       *out = func(x);
+      return ISNA<TO>(*out);
     }
 };
 

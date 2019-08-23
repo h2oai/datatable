@@ -47,16 +47,13 @@ class virtual_column {
     virtual_column(size_t nrows, SType stype);
     virtual ~virtual_column();
 
-    // size_t nrows() const { return _nrows; }
-    // SType stype() const { return _stype; }
-
-    virtual void _compute(size_t i, int8_t*  out);
-    virtual void _compute(size_t i, int16_t* out);
-    virtual void _compute(size_t i, int32_t* out);
-    virtual void _compute(size_t i, int64_t* out);
-    virtual void _compute(size_t i, float*   out);
-    virtual void _compute(size_t i, double*  out);
-    virtual void _compute(size_t i, CString* out);
+    virtual bool _compute(size_t i, int8_t*  out);
+    virtual bool _compute(size_t i, int16_t* out);
+    virtual bool _compute(size_t i, int32_t* out);
+    virtual bool _compute(size_t i, int64_t* out);
+    virtual bool _compute(size_t i, float*   out);
+    virtual bool _compute(size_t i, double*  out);
+    virtual bool _compute(size_t i, CString* out);
 
     virtual Column to_column();
 

@@ -387,6 +387,7 @@ template<> constexpr uint64_t GETNA() { return NA_S8; }
 template<> constexpr float    GETNA() { return NA_F4; }
 template<> constexpr double   GETNA() { return NA_F8; }
 template<> constexpr PyObject* GETNA() { return Py_None; }
+template<> inline    CString  GETNA() { return CString(); }
 
 /**
  * ISNA function
