@@ -129,7 +129,7 @@ class ColumnImpl
     PyObject* mbuf_repr() const;
     size_t alloc_size() const;
 
-    virtual size_t data_nrows() const = 0;
+    virtual size_t data_nrows() const;
     virtual size_t memory_footprint() const;
 
     RowIndex _sort(Groupby* out_groups) const;
@@ -148,7 +148,7 @@ class ColumnImpl
      * This method can be used to both increase and reduce the size of the
      * column.
      */
-    virtual void resize_and_fill(size_t nrows) = 0;
+    virtual void resize_and_fill(size_t nrows);
     Column repeat(size_t nreps) const;
 
     /**
@@ -156,7 +156,7 @@ class ColumnImpl
      * NAs. The `mask` column must have the same number of rows as the current,
      * and neither of them can have a RowIndex.
      */
-    virtual void apply_na_mask(const Column& mask) = 0;
+    virtual void apply_na_mask(const Column& mask);
 
     /**
      * Create a shallow copy of this ColumnImpl, possibly applying the provided
@@ -195,7 +195,7 @@ class ColumnImpl
     virtual void replace_values(
         Column& thiscol,
         const RowIndex& replace_at,
-        const Column& replace_with) = 0;
+        const Column& replace_with);
 
     /**
      * Appends the provided columns to the bottom of the current column and
@@ -225,7 +225,7 @@ class ColumnImpl
      *
      */
   protected:
-    virtual ColumnImpl* materialize() = 0;
+    virtual ColumnImpl* materialize();
 
 
     /**
@@ -247,12 +247,12 @@ class ColumnImpl
      */
     Stats* get_stats_if_exist() const { return stats.get(); }  // REMOVE
 
-    virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) = 0;
+    virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1);
 
   protected:
     ColumnImpl(size_t nrows = 0);
-    virtual void init_data() = 0;
-    virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty) = 0;
+    virtual void init_data();
+    virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
     /**
      * Sets every row in the column to an NA value. As of now this method
@@ -261,7 +261,7 @@ class ColumnImpl
      * This implementation will be made safer after ColumnImpl::extract is modified
      * to be an in-place operation.
      */
-    virtual void fill_na() = 0;
+    virtual void fill_na();
 
     friend class Column;
 };

@@ -134,7 +134,7 @@ class Column
     static Column from_range(int64_t start, int64_t stop, int64_t step, SType);
     static Column from_strvec(const strvec&);
 
-  private:
+  public: // temp
     // Assumes ownership of the `col` object
     explicit Column(ColumnImpl* col);
 

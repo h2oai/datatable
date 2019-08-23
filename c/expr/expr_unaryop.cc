@@ -62,40 +62,45 @@ void map_str_isna(size_t nrows, const T* inp, int8_t* out) {
 //------------------------------------------------------------------------------
 
 template <typename TI, typename TO>
-class unary_vcol : public virtual_column {
+class unary_vcol : public ColumnImpl {
   using operator_t = TO(*)(TI);
   private:
-    vcolptr arg;
+    Column arg;
     operator_t func;
 
   public:
-    unary_vcol(vcolptr&& col, SType stype, operator_t f)
-      : virtual_column(col.nrows(), stype),
+    unary_vcol(Column&& col, SType stype, operator_t f)
+      : // virtual_column(col.nrows(), stype),
         arg(std::move(col)),
-        func(f) {}
+        func(f)
+    {
+      _nrows = arg.nrows();
+      _stype = stype;
+    }
 
-    bool _compute(size_t i, TO* out) {
-      TI x;
+    bool get_element(size_t i, promote<TO>* out) const override {
+      promote<TI> x;
       bool isna = arg.get_element(i, &x);
-      if (isna) x = GETNA<TI>();
-      *out = func(x);
-      return ISNA<TO>(*out);
+      (void) isna;  // FIXME
+      TO value = func(static_cast<TI>(x));
+      *out = static_cast<promote<TO>>(value);
+      return ISNA<TO>(value);
     }
 };
 
 
 template <SType SI, SType SO, element_t<SO>(*FN)(element_t<SI>)>
-vcolptr vcol_factory(vcolptr&& arg) {
-  return vcolptr(
+Column vcol_factory(Column&& arg) {
+  return Column(
       new unary_vcol<element_t<SI>, element_t<SO>>(std::move(arg), SO, FN)
   );
 }
 
 
 template <SType SI, bool(*FN)(element_t<SI>)>
-vcolptr vcol_factory_bool(vcolptr&& arg) {
+Column vcol_factory_bool(Column&& arg) {
   using TI = element_t<SI>;
-  return vcolptr(
+  return Column(
       new unary_vcol<TI, int8_t>(std::move(arg), SType::BOOL,
                                  reinterpret_cast<int8_t(*)(TI)>(FN))
   );
@@ -103,14 +108,14 @@ vcolptr vcol_factory_bool(vcolptr&& arg) {
 
 
 template <SType SO, element_t<SO>(*FN)(CString)>
-vcolptr vcol_factory_str(vcolptr&& arg) {
-  return vcolptr(
+Column vcol_factory_str(Column&& arg) {
+  return Column(
       new unary_vcol<CString, element_t<SO>>(std::move(arg), SO, FN)
   );
 }
 
 
-static vcolptr vcol_id(vcolptr&& arg) {
+static Column vcol_id(Column&& arg) {
   return std::move(arg);
 }
 

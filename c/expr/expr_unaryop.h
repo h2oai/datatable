@@ -159,7 +159,7 @@ py::oobj unary_pyfn(const py::PKArgs&);
  *
  */
 class unary_infos {
-  using vcol_func_t = vcolptr(*)(vcolptr&& arg);
+  using vcol_func_t = Column(*)(Column&& arg);
   using unary_func_t = void(*)(size_t nrows, const void* inp, void* out);
   using erased_func_t = void(*)();
 

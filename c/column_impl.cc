@@ -101,3 +101,36 @@ ColumnImpl* ColumnImpl::materialize() {
 
 
 
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
+
+size_t ColumnImpl::data_nrows() const {
+  return _nrows;
+}
+
+void ColumnImpl::init_data() {}
+
+void ColumnImpl::resize_and_fill(size_t) {
+  throw NotImplError();
+}
+
+void ColumnImpl::apply_na_mask(const Column&) {
+  throw NotImplError();
+}
+
+void ColumnImpl::replace_values(Column&, const RowIndex&, const Column&) {
+  throw NotImplError();
+}
+
+void ColumnImpl::fill_na_mask(int8_t*, size_t, size_t) {
+  throw NotImplError();
+}
+
+void ColumnImpl::rbind_impl(colvec&, size_t, bool) {
+  throw NotImplError();
+}
+
+void ColumnImpl::fill_na() {
+  throw NotImplError();
+}
