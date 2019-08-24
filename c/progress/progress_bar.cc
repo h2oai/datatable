@@ -223,10 +223,9 @@ void progress_bar::_render_progressbar_ascii(std::stringstream& out) {
 
 
 void progress_bar::_render_message(std::stringstream& out) {
-  out << ' ';
+  out << ' ' << message << ' ';
   switch (status) {
     case Status::RUNNING:
-      out << message;
       return;
 
     case Status::FINISHED:
@@ -235,17 +234,18 @@ void progress_bar::_render_message(std::stringstream& out) {
         out << "\x1B[1G\x1B[K";
         return;
       }
-      out << message;
+      if (use_colors) out << "\x1B[1;32m";  // bold-green
+      out << "[done]";
       break;
 
     case Status::ERROR:
       if (use_colors) out << "\x1B[1;31m";  // bold-red
-      out << "(error)";
+      out << "[error]";
       break;
 
     case Status::CANCELLED:
       if (use_colors) out << "\x1B[1;33m";  // bold-ochra
-      out << "(cancelled)";
+      out << "[cancelled]";
       break;
   }
   if (use_colors) out << "\x1B[m";
