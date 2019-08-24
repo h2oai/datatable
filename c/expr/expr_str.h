@@ -40,7 +40,7 @@ class expr_string_match_re : public base_expr {
     expr_string_match_re(pexpr&& expr, py::oobj params);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column evaluate_eager(workframe& wf) override;
+    Column evaluate(workframe& wf) override;
 };
 
 

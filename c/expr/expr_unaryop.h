@@ -41,8 +41,7 @@ class expr_unaryop : public base_expr {
     expr_unaryop(pexpr&& a, Op op);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column evaluate_eager(workframe& wf) override;
-    vcolptr evaluate_lazy(workframe& wf) override;
+    Column evaluate(workframe& wf) override;
 
     bool is_negated_expr() const override;
     pexpr get_negated_expr() override;
@@ -159,7 +158,7 @@ py::oobj unary_pyfn(const py::PKArgs&);
  *
  */
 class unary_infos {
-  using vcol_func_t = vcolptr(*)(vcolptr&& arg);
+  using vcol_func_t = Column(*)(Column&& arg);
   using unary_func_t = void(*)(size_t nrows, const void* inp, void* out);
   using erased_func_t = void(*)();
 

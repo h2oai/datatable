@@ -260,7 +260,7 @@ void DataTable::replace_groupby(const Groupby& newgb) {
  */
 void DataTable::materialize() {
   for (Column& col : columns) {
-    col->materialize();
+    col.materialize();
   }
 }
 

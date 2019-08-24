@@ -119,7 +119,7 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in) :
   // SType to_stype = (sizeof(T2) == 4)? SType::FLOAT32 : SType::FLOAT64;
 
   // column = Column(column_in->cast(to_stype));
-  // auto column_real = static_cast<const RealColumn<T2>*>(column.get());
+  // auto column_real = static_cast<const FwColumn<T2>*>(column.get());
   // this->min = column_real->min();
   // this->max = column_real->max();
   // values = column_real->elements_r();

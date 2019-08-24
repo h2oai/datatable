@@ -276,7 +276,7 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
 //------------------------------------------------------------------------------
 
 void PyObjectColumn::verify_integrity(const std::string& name) const {
-  FwColumn<PyObject*>::verify_integrity(name);
+  FwColumn<py::robj>::verify_integrity(name);
 
   if (!mbuf.is_pyobjects()) {
     throw AssertionError() << "(object) " << name << "'s internal buffer is "
@@ -285,14 +285,14 @@ void PyObjectColumn::verify_integrity(const std::string& name) const {
 
   // Check that all elements are valid pyobjects
   size_t mbuf_nrows = data_nrows();
-  PyObject* const* vals = elements_r();
+  const py::robj* vals = elements_r();
   for (size_t i = 0; i < mbuf_nrows; ++i) {
-    PyObject* val = vals[i];
-    if (val == nullptr) {
+    py::robj val = vals[i];
+    if (!val) {
       throw AssertionError() << "Object column " << name << " has NULL value "
           "in row " << i;
     }
-    if (Py_REFCNT(val) <= 0) {
+    if (Py_REFCNT(val.to_borrowed_ref()) <= 0) {
       throw AssertionError()
           << "Element " << i << " in object column " << name
           << " has 0 refcount";

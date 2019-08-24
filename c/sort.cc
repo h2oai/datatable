@@ -1349,7 +1349,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
   }
 
   for (auto& s : spec) {
-    const_cast<DataTable*>(this)->columns[s.col_index]->materialize();
+    const_cast<DataTable*>(this)->columns[s.col_index].materialize();
   }
 
   bool do_groups = n > 1 || !spec[0].sort_only;

@@ -72,9 +72,18 @@
   }
 
   template<>
+  inline void assert_compatible_type<int8_t>(SType s) {
+    xassert(s == SType::INT8 || s == SType::BOOL);
+  }
+
+  template<>
+  inline void assert_compatible_type<int16_t>(SType s) {
+    xassert(s == SType::INT16);
+  }
+
+  template<>
   inline void assert_compatible_type<int32_t>(SType s) {
-    xassert(s == SType::BOOL ||
-            s == SType::INT8 || s == SType::INT16 || s == SType::INT32);
+    xassert(s == SType::INT32);
   }
 
   template<>

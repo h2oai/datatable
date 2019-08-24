@@ -25,28 +25,9 @@ ColumnImpl::~ColumnImpl() {}
 
 
 
-static ColumnImpl* new_column_impl(SType stype) {
-  switch (stype) {
-    case SType::VOID:    return new VoidColumn();
-    case SType::BOOL:    return new BoolColumn();
-    case SType::INT8:    return new IntColumn<int8_t>();
-    case SType::INT16:   return new IntColumn<int16_t>();
-    case SType::INT32:   return new IntColumn<int32_t>();
-    case SType::INT64:   return new IntColumn<int64_t>();
-    case SType::FLOAT32: return new RealColumn<float>();
-    case SType::FLOAT64: return new RealColumn<double>();
-    case SType::STR32:   return new StringColumn<uint32_t>();
-    case SType::STR64:   return new StringColumn<uint64_t>();
-    case SType::OBJ:     return new PyObjectColumn();
-    default:
-      throw ValueError()
-          << "Unable to create a column of stype `" << stype << "`";
-  }
-}
-
 
 Column Column::new_data_column(SType stype, size_t nrows) {
-  ColumnImpl* col = new_column_impl(stype);
+  ColumnImpl* col = ColumnImpl::new_impl(stype);
   col->_nrows = nrows;
   col->init_data();
   return Column(col);
@@ -63,7 +44,7 @@ Column Column::new_na_column(SType stype, size_t nrows) {
 
 Column Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
   size_t elemsize = info(stype).elemsize();
-  ColumnImpl* col = new_column_impl(stype);
+  ColumnImpl* col = ColumnImpl::new_impl(stype);
   xassert(mbuf.size() % elemsize == 0);
   if (stype == SType::OBJ) {
     xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
@@ -114,44 +95,12 @@ Column Column::new_string_column(
 
 
 
-bool ColumnImpl::get_element(size_t, int32_t*) const {
-  throw NotImplError()
-    << "Cannot retrieve int32 values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, int64_t*) const {
-  throw NotImplError()
-    << "Cannot retrieve int64 values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, float*) const {
-  throw NotImplError()
-    << "Cannot retrieve float values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, double*) const {
-  throw NotImplError()
-    << "Cannot retrieve double values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, CString*) const {
-  throw NotImplError()
-    << "Cannot retrieve string values from a column of type " << _stype;
-}
-
-bool ColumnImpl::get_element(size_t, py::robj*) const {
-  throw NotImplError()
-    << "Cannot retrieve object values from a column of type " << _stype;
-}
-
-
-
 
 /**
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
 ColumnImpl* ColumnImpl::shallowcopy() const {
-  ColumnImpl* col = new_column_impl(_stype);
+  ColumnImpl* col = ColumnImpl::new_impl(_stype);
   col->_nrows = _nrows;
   col->mbuf = mbuf;
   col->ri = ri;
@@ -194,29 +143,30 @@ void swap(Column& lhs, Column& rhs) {
 
 Column::Column() : pcol(nullptr) {}
 
-Column::Column(ColumnImpl* col) : pcol(col) {}  // Steal ownership
+Column::Column(ColumnImpl* col) : pcol(col) {}  // private
 
-Column::Column(const Column& other) : pcol(other.pcol->shallowcopy()) {}
+Column::Column(const Column& other)
+  : pcol(other.pcol->acquire_instance()) {}
 
 Column::Column(Column&& other) : Column() {
   std::swap(pcol, other.pcol);
 }
 
 Column& Column::operator=(const Column& other) {
-  delete pcol;
-  pcol = other.pcol->shallowcopy();
+  pcol->release_instance();
+  pcol = other.pcol->acquire_instance();
   return *this;
 }
 
 Column& Column::operator=(Column&& other) {
-  delete pcol;
+  pcol->release_instance();
   pcol = other.pcol;
   other.pcol = nullptr;
   return *this;
 }
 
 Column::~Column() {
-  delete pcol;
+  pcol->release_instance();
 }
 
 
@@ -271,6 +221,8 @@ Column::operator bool() const noexcept {
 // Column : data accessors
 //------------------------------------------------------------------------------
 
+bool Column::get_element(size_t i, int8_t*   out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, int16_t*  out) const { return pcol->get_element(i, out); }
 bool Column::get_element(size_t i, int32_t*  out) const { return pcol->get_element(i, out); }
 bool Column::get_element(size_t i, int64_t*  out) const { return pcol->get_element(i, out); }
 bool Column::get_element(size_t i, float*    out) const { return pcol->get_element(i, out); }
@@ -293,8 +245,8 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
       bool r = get_element(i, &x);
       return r? py::None() : py::obool(x);
     }
-    case SType::INT8:
-    case SType::INT16:
+    case SType::INT8:    return getelem<int8_t>(*this, i);
+    case SType::INT16:   return getelem<int16_t>(*this, i);
     case SType::INT32:   return getelem<int32_t>(*this, i);
     case SType::INT64:   return getelem<int64_t>(*this, i);
     case SType::FLOAT32: return getelem<float>(*this, i);
@@ -310,18 +262,18 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 
 
 const void* Column::get_data_readonly(size_t i) {
-  if (is_virtual()) pcol->materialize();
+  if (is_virtual()) materialize();
   return i == 0 ? pcol->mbuf.rptr()
                 : pcol->data2();
 }
 
 void* Column::get_data_editable() {
-  if (is_virtual()) pcol->materialize();
+  if (is_virtual()) materialize();
   return pcol->mbuf.wptr();
 }
 
 size_t Column::get_data_size(size_t i) {
-  if (is_virtual()) pcol->materialize();
+  if (is_virtual()) materialize();
   return i == 0 ? pcol->mbuf.size()
                 : pcol->data2_size();
 }
@@ -333,7 +285,7 @@ size_t Column::get_data_size(size_t i) {
 //------------------------------------------------------------------------------
 
 void Column::materialize() {
-  pcol->materialize();
+  pcol = pcol->materialize();
 }
 
 void Column::replace_values(const RowIndex& replace_at,
@@ -352,7 +304,7 @@ void Column::replace_values(const RowIndex& replace_at,
 VoidColumn::VoidColumn() { _stype = SType::VOID; }
 VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows) { _stype = SType::VOID; }
 size_t VoidColumn::data_nrows() const { return _nrows; }
-void VoidColumn::materialize() {}
+ColumnImpl* VoidColumn::materialize() { return this; }
 void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const Column&) {}
@@ -381,7 +333,7 @@ class StrvecColumn : public ColumnImpl {
     ColumnImpl* shallowcopy() const override;
 
     size_t data_nrows() const override { return _nrows; }
-    void materialize() override {}
+    ColumnImpl* materialize() override { return this; }
     void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}
     void apply_na_mask(const Column&) override {}

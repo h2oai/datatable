@@ -34,7 +34,7 @@ void label_encode(const Column&, dtptr&, dtptr&, bool is_binomial = false);
  *  Create labels datatable from unordered map for fixed width columns.
  */
 template <SType stype_from, SType stype_to>
-dtptr create_dt_labels_fw(const std::unordered_map<promote<element_t<stype_from>>,
+dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>,
                                                    element_t<stype_to>>& labels_map)
 {
   using Tfrom = element_t<stype_from>;
@@ -101,7 +101,7 @@ void set_ids(Column& col, T i0) {
  */
 template <SType stype_from, SType stype_to>
 void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
-  using T_from = promote<element_t<stype_from>>;
+  using T_from = element_t<stype_from>;
   using T_to = element_t<stype_to>;
   const size_t nrows = ocol.nrows();
 

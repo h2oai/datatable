@@ -38,8 +38,7 @@ class expr_literal : public base_expr {
     py::oobj get_literal_arg() override;
     SType resolve(const workframe&) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column evaluate_eager(workframe&) override;
-    // vcolptr evaluate_lazy(workframe&) override;
+    Column evaluate(workframe&) override;
 };
 
 

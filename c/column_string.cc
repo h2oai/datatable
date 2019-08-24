@@ -130,9 +130,9 @@ T* StringColumn<T>::offsets_w() {
 
 
 template <typename T>
-void StringColumn<T>::materialize() {
+ColumnImpl* StringColumn<T>::materialize() {
   // If our rowindex is null, then we're already done
-  if (ri.isabsent()) return;
+  if (!ri) return this;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
   bool ascending_slice = ri.isslice() &&
                          static_cast<int64_t>(ri.slice_step()) > 0;
@@ -228,6 +228,7 @@ void StringColumn<T>::materialize() {
   mbuf = std::move(new_mbuf);
   strbuf = std::move(new_strbuf);
   ri.clear();
+  return this;
 }
 
 

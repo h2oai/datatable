@@ -25,24 +25,22 @@
 #include <vector>
 #include "python/list.h"
 #include "python/obj.h"
+#include "column.h"
 #include "groupby.h"
 #include "memrange.h"     // MemoryRange
 #include "rowindex.h"
 #include "stats.h"
 #include "types.h"
 
-class Column;
 class DataTable;
 class BoolColumn;
 class PyObjectColumn;
-class FreadReader;  // used as a friend
 template <typename T> class IntColumn;
-template <typename T> class RealColumn;
 template <typename T> class StringColumn;
 
 using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
-
+using pimpl = std::unique_ptr<ColumnImpl>;
 
 
 
@@ -98,10 +96,16 @@ class ColumnImpl
     size_t : 56;
 
   public:
+    static ColumnImpl* new_impl(SType);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
     virtual ~ColumnImpl();
 
+    ColumnImpl* acquire_instance() const;
+    void release_instance();
+
+    virtual bool get_element(size_t i, int8_t* out) const;
+    virtual bool get_element(size_t i, int16_t* out) const;
     virtual bool get_element(size_t i, int32_t* out) const;
     virtual bool get_element(size_t i, int64_t* out) const;
     virtual bool get_element(size_t i, float* out) const;
@@ -110,6 +114,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, py::robj* out) const;
 
     const RowIndex& rowindex() const noexcept { return ri; }
+    bool is_virtual() const noexcept { return bool(ri); }
     RowIndex remove_rowindex();
     void replace_rowindex(const RowIndex& newri);
 
@@ -124,7 +129,7 @@ class ColumnImpl
     PyObject* mbuf_repr() const;
     size_t alloc_size() const;
 
-    virtual size_t data_nrows() const = 0;
+    virtual size_t data_nrows() const;
     virtual size_t memory_footprint() const;
 
     RowIndex _sort(Groupby* out_groups) const;
@@ -143,7 +148,7 @@ class ColumnImpl
      * This method can be used to both increase and reduce the size of the
      * column.
      */
-    virtual void resize_and_fill(size_t nrows) = 0;
+    virtual void resize_and_fill(size_t nrows);
     Column repeat(size_t nreps) const;
 
     /**
@@ -151,7 +156,7 @@ class ColumnImpl
      * NAs. The `mask` column must have the same number of rows as the current,
      * and neither of them can have a RowIndex.
      */
-    virtual void apply_na_mask(const Column& mask) = 0;
+    virtual void apply_na_mask(const Column& mask);
 
     /**
      * Create a shallow copy of this ColumnImpl, possibly applying the provided
@@ -190,7 +195,7 @@ class ColumnImpl
     virtual void replace_values(
         Column& thiscol,
         const RowIndex& replace_at,
-        const Column& replace_with) = 0;
+        const Column& replace_with);
 
     /**
      * Appends the provided columns to the bottom of the current column and
@@ -209,26 +214,25 @@ class ColumnImpl
     // ColumnImpl* rbind(colvec& columns);
 
     /**
-     * "Materialize" the ColumnImpl. If the ColumnImpl has no rowindex, this is a no-op.
-     * Otherwise, this method "applies" the rowindex to the column's data and
-     * subsequently replaces the column's data buffer with a new one that contains
-     * "plain" data. The rowindex object is subsequently released, and the ColumnImpl
-     * becomes converted from "view column" into a "data column".
+     * "Materialize" the ColumnImpl. Depending on the column, this
+     * could be either done in-place, or a new ColumnImpl must be
+     * created to replace the current. In the former case, `this`
+     * is returned; in the latter we return the new instance and
+     * the current instance is released. Thus, the expected semantics
+     * of using this method is:
      *
-     * This operation is in-place, and we attempt to reuse existing memory buffer
-     * whenever possible.
+     *     pcol = pcol->materialize();
      *
-     * If the ColumnImpl's rowindex carries groupby information, then we retain it
-     * by replacing the current rowindex with the "plain slice" (i.e. a slice
-     * with step 1).
      */
-    virtual void materialize() = 0;
+  protected:
+    virtual ColumnImpl* materialize();
 
 
     /**
      * Check that the data in this ColumnImpl object is correct. `name` is the name of
      * the column to be used in the diagnostic messages.
      */
+  public:
     virtual void verify_integrity(const std::string& name) const;
 
     /**
@@ -243,12 +247,12 @@ class ColumnImpl
      */
     Stats* get_stats_if_exist() const { return stats.get(); }  // REMOVE
 
-    virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) = 0;
+    virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1);
 
   protected:
     ColumnImpl(size_t nrows = 0);
-    virtual void init_data() = 0;
-    virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty) = 0;
+    virtual void init_data();
+    virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
     /**
      * Sets every row in the column to an NA value. As of now this method
@@ -257,7 +261,7 @@ class ColumnImpl
      * This implementation will be made safer after ColumnImpl::extract is modified
      * to be an in-place operation.
      */
-    virtual void fill_na() = 0;
+    virtual void fill_na();
 
     friend class Column;
 };
@@ -276,17 +280,19 @@ public:
   T* elements_w();
   T get_elem(size_t i) const;
 
+  virtual bool get_element(size_t i, T* out) const override;
+
   size_t data_nrows() const override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
-  virtual void materialize() override;
+  virtual ColumnImpl* materialize() override;
   void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
   void replace_values(const RowIndex& at, T with);
   void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
   void init_data() override;
-  static constexpr T na_elem = GETNA<T>();
+  // static constexpr T na_elem = GETNA<T>();
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void fill_na() override;
 
@@ -300,7 +306,7 @@ extern template class FwColumn<int32_t>;
 extern template class FwColumn<int64_t>;
 extern template class FwColumn<float>;
 extern template class FwColumn<double>;
-extern template class FwColumn<PyObject*>;
+extern template class FwColumn<py::robj>;
 
 
 
@@ -308,18 +314,18 @@ extern template class FwColumn<PyObject*>;
 
 class BoolColumn : public FwColumn<int8_t>
 {
-public:
-  BoolColumn(size_t nrows = 0);
-  BoolColumn(size_t nrows, MemoryRange&&);
+  public:
+    BoolColumn(size_t nrows = 0);
+    BoolColumn(size_t nrows, MemoryRange&&);
 
-  bool get_element(size_t i, int32_t* out) const override;
+    using FwColumn<int8_t>::get_element;
+    bool get_element(size_t i, int32_t* out) const override;
 
   protected:
+    void verify_integrity(const std::string& name) const override;
 
-  void verify_integrity(const std::string& name) const override;
-
-  using ColumnImpl::mbuf;
-  friend ColumnImpl;
+    using ColumnImpl::mbuf;
+    friend ColumnImpl;
 };
 
 
@@ -328,17 +334,17 @@ public:
 
 template <typename T> class IntColumn : public FwColumn<T>
 {
-public:
-  IntColumn(size_t nrows = 0);
-  IntColumn(size_t nrows, MemoryRange&&);
+  public:
+    using FwColumn<T>::FwColumn;
 
-  bool get_element(size_t i, int32_t* out) const override;
-  bool get_element(size_t i, int64_t* out) const override;
+    using FwColumn<T>::get_element;
+    bool get_element(size_t i, int32_t* out) const override;
+    bool get_element(size_t i, int64_t* out) const override;
 
-protected:
-  using ColumnImpl::stats;
-  using ColumnImpl::mbuf;
-  friend ColumnImpl;
+  protected:
+    using ColumnImpl::stats;
+    using ColumnImpl::mbuf;
+    friend ColumnImpl;
 };
 
 extern template class IntColumn<int8_t>;
@@ -346,24 +352,6 @@ extern template class IntColumn<int16_t>;
 extern template class IntColumn<int32_t>;
 extern template class IntColumn<int64_t>;
 
-
-//==============================================================================
-
-template <typename T> class RealColumn : public FwColumn<T>
-{
-public:
-  RealColumn(size_t nrows = 0);
-  RealColumn(size_t nrows, MemoryRange&&);
-
-  bool get_element(size_t i, T* out) const override;
-
-protected:
-  using ColumnImpl::stats;
-  friend ColumnImpl;
-};
-
-extern template class RealColumn<float>;
-extern template class RealColumn<double>;
 
 
 
@@ -384,7 +372,7 @@ extern template class RealColumn<double>;
  * The `mbuf`'s API already respects these rules, however the user must also
  * obey them when manipulating the data manually.
  */
-class PyObjectColumn : public FwColumn<PyObject*>
+class PyObjectColumn : public FwColumn<py::robj>
 {
 public:
   PyObjectColumn();
@@ -399,7 +387,7 @@ protected:
 
   void resize_and_fill(size_t nrows) override;
   void fill_na() override;
-  void materialize() override;
+  ColumnImpl* materialize() override;
   void verify_integrity(const std::string& name) const override;
 
   friend ColumnImpl;
@@ -419,7 +407,7 @@ public:
   StringColumn();
   StringColumn(size_t nrows);
 
-  void materialize() override;
+  ColumnImpl* materialize() override;
   void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
 
@@ -451,7 +439,6 @@ protected:
   void fill_na() override;
 
   friend ColumnImpl;
-  friend FreadReader;  // friend ColumnImpl* alloc_column(SType, size_t, int);
   friend Column;
 };
 
@@ -470,7 +457,7 @@ class VoidColumn : public ColumnImpl {
     VoidColumn();
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
-    void materialize() override;
+    ColumnImpl* materialize() override;
     void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const Column&) override;

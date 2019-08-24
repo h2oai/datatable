@@ -742,7 +742,7 @@ void NumericStats<T>::compute_moments12() {
 
   // Adjustment for the case when some of the `x[i]`s where infinite.
   if (std::is_floating_point<T>::value && (has_pos_inf || has_neg_inf)) {
-    constexpr double nan = GETNA<double>();
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
     constexpr double inf = std::numeric_limits<double>::infinity();
     s = nan;
     stdev_valid = false;
@@ -1044,8 +1044,8 @@ static std::unique_ptr<Stats> _make_stats(ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
   switch (col->stype()) {
     case SType::BOOL:    return StatsPtr(new BooleanStats(col));
-    case SType::INT8:
-    case SType::INT16:
+    case SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
+    case SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
     case SType::INT32:   return StatsPtr(new IntegerStats<int32_t>(col));
     case SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
     case SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
@@ -1283,5 +1283,7 @@ Column Stats::get_stat_as_column(Stat stat) {
 
 template class RealStats<float>;
 template class RealStats<double>;
+template class IntegerStats<int8_t>;
+template class IntegerStats<int16_t>;
 template class IntegerStats<int32_t>;
 template class IntegerStats<int64_t>;

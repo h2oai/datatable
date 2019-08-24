@@ -311,6 +311,9 @@ class oobj : public _obj {
     //
     PyObject* release() &&;
 
+    static oobj wrap(bool v);
+    static oobj wrap(int8_t v);
+    static oobj wrap(int16_t v);
     static oobj wrap(int32_t v);
     static oobj wrap(int64_t v);
     static oobj wrap(size_t v);

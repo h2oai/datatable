@@ -58,7 +58,7 @@ constexpr uint8_t NSTATS = 14;
  * `NumericStats` acts as a base class for all numeric STypes.
  * `IntegerStats` are used with `IntegerColumn<T>`s.
  * `BooleanStats` are used for `BooleanColumn`.
- * `RealStats` are used for `RealColumn<T>` classes.
+ * `RealStats` are used for floating-point-valued classes.
  * `StringStats` are used with `StringColumn<T>`s.
  *
  * Each stat can be in one of the 3 states: not computed, computed&invalid,
@@ -235,8 +235,12 @@ class Stats
 template <typename T>
 class NumericStats : public Stats {
   using V = typename std::conditional<std::is_integral<T>::value,
-                                      int64_t, double>::type;
-  static_assert(std::is_same<T, int32_t>::value ||
+                                        int64_t,
+                                        double
+                                     >::type;
+  static_assert(std::is_same<T, int8_t>::value ||
+                std::is_same<T, int16_t>::value ||
+                std::is_same<T, int32_t>::value ||
                 std::is_same<T, int64_t>::value ||
                 std::is_same<T, float>::value ||
                 std::is_same<T, double>::value, "Wrong type in NumericStats");
@@ -321,6 +325,8 @@ class IntegerStats : public NumericStats<T> {
     using NumericStats<T>::NumericStats;
 };
 
+extern template class IntegerStats<int8_t>;
+extern template class IntegerStats<int16_t>;
 extern template class IntegerStats<int32_t>;
 extern template class IntegerStats<int64_t>;
 

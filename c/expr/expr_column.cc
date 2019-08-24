@@ -94,7 +94,7 @@ GroupbyMode expr_column::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column expr_column::evaluate_eager(workframe& wf) {
+Column expr_column::evaluate(workframe& wf) {
   const DataTable* dt = wf.get_datatable(frame_id);
   Column newcol = dt->get_column(col_id);  // copy
   const RowIndex& dt_ri = wf.get_rowindex(frame_id);

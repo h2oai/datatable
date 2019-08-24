@@ -98,8 +98,8 @@ GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
 }
 
 
-Column expr_string_match_re::evaluate_eager(workframe& wf) {
-  Column src = arg->evaluate_eager(wf);
+Column expr_string_match_re::evaluate(workframe& wf) {
+  Column src = arg->evaluate(wf);
   xassert(src.ltype() == LType::STRING);
   size_t nrows = src.nrows();
 

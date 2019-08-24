@@ -392,7 +392,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
         rows_to_fill = 0;
       }
       const void* col_maindata = col.get_data_readonly(0);
-      constexpr T delta_na = static_cast<T>(GETNA<uint64_t>() -
+      const T delta_na = static_cast<T>(GETNA<uint64_t>() -
                                             GETNA<uint32_t>());
       if (col.stype() == SType::STR32) {
         auto col_offsets = reinterpret_cast<const uint32_t*>(col_maindata) + 1;
@@ -430,11 +430,12 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
 //------------------------------------------------------------------------------
 // rbind fixed-width columns
 //------------------------------------------------------------------------------
+template<> inline py::robj GETNA() { return py::rnone(); }
 
 template <typename T>
 void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 {
-  const T na = na_elem;
+  const T na = GETNA<T>();
   const void* naptr = static_cast<const void*>(&na);
 
   // Reallocate the column's data buffer
@@ -528,6 +529,6 @@ template class FwColumn<int32_t>;
 template class FwColumn<int64_t>;
 template class FwColumn<float>;
 template class FwColumn<double>;
-template class FwColumn<PyObject*>;
+template class FwColumn<py::robj>;
 template class StringColumn<uint32_t>;
 template class StringColumn<uint64_t>;
