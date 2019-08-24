@@ -742,7 +742,7 @@ void NumericStats<T>::compute_moments12() {
 
   // Adjustment for the case when some of the `x[i]`s where infinite.
   if (std::is_floating_point<T>::value && (has_pos_inf || has_neg_inf)) {
-    constexpr double nan = GETNA<double>();
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
     constexpr double inf = std::numeric_limits<double>::infinity();
     s = nan;
     stdev_valid = false;

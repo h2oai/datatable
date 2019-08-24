@@ -392,7 +392,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
         rows_to_fill = 0;
       }
       const void* col_maindata = col.get_data_readonly(0);
-      constexpr T delta_na = static_cast<T>(GETNA<uint64_t>() -
+      const T delta_na = static_cast<T>(GETNA<uint64_t>() -
                                             GETNA<uint32_t>());
       if (col.stype() == SType::STR32) {
         auto col_offsets = reinterpret_cast<const uint32_t*>(col_maindata) + 1;

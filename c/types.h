@@ -377,17 +377,17 @@ constexpr double   NA_F8 = std::numeric_limits<double>::quiet_NaN();
  * type of `T`. Returns NULL if `T` is incompatible.
  */
 template <typename T>
-           constexpr T        GETNA() { return NULL;  }
-template<> constexpr int8_t   GETNA() { return NA_I1; }
-template<> constexpr int16_t  GETNA() { return NA_I2; }
-template<> constexpr int32_t  GETNA() { return NA_I4; }
-template<> constexpr int64_t  GETNA() { return NA_I8; }
-template<> constexpr uint32_t GETNA() { return NA_S4; }
-template<> constexpr uint64_t GETNA() { return NA_S8; }
-template<> constexpr float    GETNA() { return NA_F4; }
-template<> constexpr double   GETNA() { return NA_F8; }
-template<> constexpr PyObject* GETNA() { return Py_None; }
-template<> inline    CString  GETNA() { return CString(); }
+           inline T        GETNA() { return NULL;  }
+template<> inline int8_t   GETNA() { return NA_I1; }
+template<> inline int16_t  GETNA() { return NA_I2; }
+template<> inline int32_t  GETNA() { return NA_I4; }
+template<> inline int64_t  GETNA() { return NA_I8; }
+template<> inline uint32_t GETNA() { return NA_S4; }
+template<> inline uint64_t GETNA() { return NA_S8; }
+template<> inline float    GETNA() { return NA_F4; }
+template<> inline double   GETNA() { return NA_F8; }
+template<> inline PyObject* GETNA() { return Py_None; }
+template<> inline CString  GETNA() { return CString(); }
 
 /**
  * ISNA function
