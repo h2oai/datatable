@@ -20,7 +20,7 @@ namespace dt {
 namespace progress {
 
 // forward-declare
-class progress_bar;
+class progress_bar_base;
 class work;
 
 
@@ -92,7 +92,7 @@ class work {
     size_t done_amount;
     size_t done_tentative;
     double pmin, pmax;
-    progress_bar* pbar;  // borrowed ref
+    progress_bar_base* pbar;  // borrowed ref
     bool message_set;
     size_t : 56;
 
@@ -110,7 +110,7 @@ class work {
 
   public: // package-private
     // used from progress_manager to complete initialization of the class
-    void init(progress_bar* pb, work* parent);
+    void init(progress_bar_base* pb, work* parent);
 
   private:
     double calculate_progress(size_t amount) const noexcept;

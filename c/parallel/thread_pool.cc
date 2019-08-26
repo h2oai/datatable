@@ -19,7 +19,7 @@
 #include "parallel/thread_pool.h"
 #include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
-#include "progress/manager.h"
+#include "progress/progress_manager.h"
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "options.h"

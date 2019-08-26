@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "progress/manager.h"       // dt::progress::manager
-#include "progress/progress_bar.h"  // dt::progress::progress_bar
+#include "progress/progress_bar.h"     // dt::progress::progress_bar
+#include "progress/progress_manager.h" // dt::progress::progress_manager
 #include "progress/work.h"
 #include "utils/assert.h"
 #include <iostream>
@@ -36,7 +36,7 @@ work::work(size_t amount)
   // progress manager will call this->init();
 }
 
-void work::init(progress_bar* pb, work* parent) {
+void work::init(progress_bar_base* pb, work* parent) {
   xassert(pb);
   pbar = pb;
   if (parent) {

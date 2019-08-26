@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <string.h>
 #include "parallel/api.h"
-#include "progress/manager.h"
+#include "progress/progress_manager.h"
 #include "python/obj.h"
 #include "python/string.h"
 #include "utils/exceptions.h"

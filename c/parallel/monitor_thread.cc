@@ -20,7 +20,7 @@
 #include <unistd.h>
 #include "parallel/monitor_thread.h"
 #include "parallel/thread_worker.h"   // idle_job
-#include "progress/manager.h"  // dt::progress::manager
+#include "progress/progress_manager.h"  // dt::progress::manager
 #include "utils/exceptions.h"
 #include "parallel/api.h"
 namespace dt {

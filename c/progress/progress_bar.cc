@@ -32,7 +32,6 @@ static void init_status_strings() {
 }
 
 
-
 progress_bar::progress_bar() {
   // Progress bar's state
   progress = 0.0;
@@ -41,29 +40,26 @@ progress_bar::progress_bar() {
 
   // Parameters
   bar_width = 50;
-  enabled = dt::progress::enabled;
   clear_on_success = dt::progress::clear_on_success;
-  if (enabled) {
-    use_colors = dt::get_option("display.use_colors").to_bool_strict();
-    use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
-  }
+  use_colors = dt::get_option("display.use_colors").to_bool_strict();
+  use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
 
   // Runtime support
   rtime_t freq { 1.0/updates_per_second };
   update_interval = std::chrono::duration_cast<dtime_t>(freq);
   time_started = std::chrono::steady_clock::now();
   time_next_update = time_started + update_interval;
-  if (enabled) {
-    if (dt::progress::progress_fn) {
-      init_status_strings();
-      pyfn_external = py::oobj(dt::progress::progress_fn);
-    }
-    else {
-      auto stdout = py::stdout();
-      pyfn_write = stdout.get_attr("write");
-      pyfn_flush = stdout.get_attr("flush");
-    }
+
+  if (dt::progress::progress_fn) {
+    init_status_strings();
+    pyfn_external = py::oobj(dt::progress::progress_fn);
   }
+  else {
+    auto stdout = py::stdout();
+    pyfn_write = stdout.get_attr("write");
+    pyfn_flush = stdout.get_attr("flush");
+  }
+
   visible = false;
   force_redraw = false;
 }
@@ -113,9 +109,6 @@ void progress_bar::set_message(std::string&& msg) {
 // at high levels.
 //
 void progress_bar::refresh() {
-  _check_interrupts();
-  if (!enabled) return;
-
   auto now = std::chrono::steady_clock::now();
 
   if (!visible) {
@@ -141,12 +134,6 @@ void progress_bar::refresh() {
 //------------------------------------------------------------------------------
 // Rendering
 //------------------------------------------------------------------------------
-
-void progress_bar::_check_interrupts() {
-  int ret = PyErr_CheckSignals();
-  if (ret) throw PyError();
-}
-
 
 void progress_bar::_report_to_python() {
   static py::onamedtupletype ntt(
@@ -252,6 +239,15 @@ void progress_bar::_render_message(std::stringstream& out) {
   out << '\n';
 }
 
+
+
+progress_bar_base::~progress_bar_base() {}
+
+void progress_bar_disabled::set_progress(double, double) noexcept {};
+void progress_bar_disabled::set_status_finished() {};
+void progress_bar_disabled::set_status_error(bool) {};
+void progress_bar_disabled::set_message(std::string&&) {};
+void progress_bar_disabled::refresh() {};
 
 
 }}  // namespace dt::progress

@@ -14,10 +14,12 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/api.h"           // dt::this_thread_index
-#include "progress/manager.h"
+#include "progress/_options.h"
 #include "progress/progress_bar.h"
+#include "progress/progress_manager.h"
 #include "progress/work.h"
 #include "utils/assert.h"
+#include <iostream>
 namespace dt {
 namespace progress {
 
@@ -36,7 +38,12 @@ void progress_manager::start_work(work* task) {
   if (tasks.empty()) {
     std::lock_guard<std::mutex> lock(mutex);
     xassert(pbar == nullptr);
-    pbar = new progress_bar;
+    if (dt::progress::enabled) {
+      pbar = new progress_bar();
+    } else {
+      pbar = new progress_bar_disabled();
+    }
+
     task->init(pbar, nullptr);
   } else {
     work* previous_work = tasks.top();
@@ -64,8 +71,7 @@ void progress_manager::update_view() const {
   xassert(dt::this_thread_index() == size_t(-1));
   std::lock_guard<std::mutex> lock(mutex);
   handle_interrupt();
-  if (!pbar) return;
-  pbar->refresh();
+  if (pbar) pbar->refresh();
 }
 
 
