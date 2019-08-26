@@ -14,6 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <algorithm>
+#include <functional>   // std::function
 #include <numeric>
 #include <unordered_map>
 #include "frame/py_frame.h"
