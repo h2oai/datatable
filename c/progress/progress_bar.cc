@@ -114,8 +114,7 @@ void progress_bar::set_message(std::string&& msg) {
 //
 void progress_bar::refresh() {
   _check_interrupts();
-  // std::cout << "enabled: " << enabled << "\n";
-  // if (!enabled) return _check_interrupts();
+  if (!enabled) return;
 
   auto now = std::chrono::steady_clock::now();
 
