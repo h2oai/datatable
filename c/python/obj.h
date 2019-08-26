@@ -13,7 +13,6 @@
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
-class Column;
 class DataTable;
 class RowIndex;
 
@@ -312,12 +311,16 @@ class oobj : public _obj {
     //
     PyObject* release() &&;
 
+    static oobj wrap(bool v);
+    static oobj wrap(int8_t v);
+    static oobj wrap(int16_t v);
     static oobj wrap(int32_t v);
     static oobj wrap(int64_t v);
     static oobj wrap(size_t v);
     static oobj wrap(float v);
     static oobj wrap(double v);
     static oobj wrap(const CString& v);
+    static oobj wrap(const py::robj& v);
 };
 
 

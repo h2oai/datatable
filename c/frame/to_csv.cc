@@ -60,16 +60,21 @@ path: str
     will be returned.
 
 quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
-    csv.QUOTE_MINIMAL (0) -- quote the string fields only as
-        necessary, i.e. if the string starts or ends with the
-        whitespace, or contains quote characters, separator, or
-        any of the C0 control characters (including newlines, etc).
-    csv.QUOTE_ALL (1) -- all fields will be quoted, both string and
-        numeric, and even boolean.
-    csv.QUOTE_NONNUMERIC (2) -- all string fields will be quoted.
-    csv.QUOTE_NONE (3) -- none of the fields will be quoted. This
-        option must be used at user's own risk: the file produced
-        may not be valid CSV.
+    csv.QUOTE_MINIMAL (0)
+        quote the string fields only as necessary, i.e. if the string
+        starts or ends with the whitespace, or contains quote
+        characters, separator, or any of the C0 control characters
+        (including newlines, etc).
+
+    csv.QUOTE_ALL (1)
+        all fields will be quoted, both string, numeric, and boolean.
+
+    csv.QUOTE_NONNUMERIC (2)
+        all string fields will be quoted.
+
+    csv.QUOTE_NONE (3)
+        none of the fields will be quoted. This option must be used
+        at user's own risk: the file produced may not be valid CSV.
 
 hex: bool
     If True, then all floating-point values will be printed in hex

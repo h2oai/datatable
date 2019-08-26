@@ -23,24 +23,25 @@
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
 #include "models/dt_ftrl_base.h"
+#include "column_impl.h"  // TODO: remove
 namespace dt {
 
 
-void label_encode(const OColumn&, dtptr&, dtptr&, bool is_binomial = false);
+void label_encode(const Column&, dtptr&, dtptr&, bool is_binomial = false);
 
 
 /**
  *  Create labels datatable from unordered map for fixed width columns.
  */
 template <SType stype_from, SType stype_to>
-dtptr create_dt_labels_fw(const std::unordered_map<promote<element_t<stype_from>>,
+dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>,
                                                    element_t<stype_to>>& labels_map)
 {
   using Tfrom = element_t<stype_from>;
   using Tto = element_t<stype_to>;
   size_t nlabels = labels_map.size();
-  OColumn labels_col = OColumn::new_data_column(stype_from, nlabels);
-  OColumn ids_col = OColumn::new_data_column(stype_to, nlabels);
+  Column labels_col = Column::new_data_column(stype_from, nlabels);
+  Column ids_col = Column::new_data_column(stype_to, nlabels);
 
   auto labels_data = static_cast<Tfrom*>(labels_col->data_w());
   auto ids_data = static_cast<Tto*>(ids_col->data_w());
@@ -61,7 +62,7 @@ dtptr create_dt_labels_fw(const std::unordered_map<promote<element_t<stype_from>
 template <typename T, SType stype_to>
 dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype_to>>& labels_map) {
   size_t nlabels = labels_map.size();
-  OColumn ids_col = OColumn::new_data_column(stype_to, nlabels);
+  Column ids_col = Column::new_data_column(stype_to, nlabels);
   auto ids_data = static_cast<element_t<stype_to>*>(ids_col->data_w());
   dt::writable_string_col c_label_names(nlabels);
   dt::writable_string_col::buffer_impl<T> sb(c_label_names);
@@ -87,7 +88,7 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
  *  Used in the multinomial case when we encounter new labels.
  */
 template <typename T>
-void set_ids(OColumn& col, T i0) {
+void set_ids(Column& col, T i0) {
   auto data = static_cast<T*>(col->data_w());
   for (T i = 0; i < static_cast<T>(col.nrows()); ++i) {
     data[i] = i0 + i;
@@ -99,12 +100,12 @@ void set_ids(OColumn& col, T i0) {
  *  Encode fixed width columns.
  */
 template <SType stype_from, SType stype_to>
-void label_encode_fw(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
-  using T_from = promote<element_t<stype_from>>;
+void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
+  using T_from = element_t<stype_from>;
   using T_to = element_t<stype_to>;
   const size_t nrows = ocol.nrows();
 
-  OColumn outcol = OColumn::new_data_column(stype_to, nrows);
+  Column outcol = Column::new_data_column(stype_to, nrows);
   auto outdata = static_cast<T_to*>(outcol->data_w());
   std::unordered_map<T_from, T_to> labels_map;
   dt::shared_mutex shmutex;
@@ -152,10 +153,10 @@ void label_encode_fw(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
  *  Encode string columns.
  */
 template <typename U, SType stype_to>
-void label_encode_str(const OColumn& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
+void label_encode_str(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   using T_to = element_t<stype_to>;
   const size_t nrows = ocol.nrows();
-  OColumn outcol = OColumn::new_data_column(stype_to, nrows);
+  Column outcol = Column::new_data_column(stype_to, nrows);
   auto outdata = static_cast<T_to*>(outcol->data_w());
   std::unordered_map<std::string, T_to> labels_map;
   dt::shared_mutex shmutex;

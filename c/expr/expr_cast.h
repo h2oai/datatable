@@ -37,8 +37,7 @@ class expr_cast : public base_expr {
     expr_cast(pexpr&& a, SType s);
     SType resolve(const workframe& wf) override;
     GroupbyMode get_groupby_mode(const workframe&) const override;
-    OColumn evaluate_eager(workframe& wf) override;
-    vcolptr evaluate_lazy(workframe& wf) override;
+    Column evaluate(workframe& wf) override;
 };
 
 

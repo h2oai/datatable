@@ -17,6 +17,7 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "column.h"
+#include "column_impl.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "stats.h"
@@ -52,7 +53,7 @@ static const char* stat_name(Stat s) {
 // main Stats class
 //------------------------------------------------------------------------------
 
-Stats::Stats(Column* col) : column(col) {
+Stats::Stats(ColumnImpl* col) : column(col) {
   xassert(col);
 }
 
@@ -479,7 +480,7 @@ void StringStats::set_mode(CString value, bool isvalid) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-static size_t _compute_nacount(const Column* col) {
+static size_t _compute_nacount(const ColumnImpl* col) {
   assert_compatible_type<T>(col->stype());
   std::atomic<size_t> total_countna { 0 };
   dt::parallel_region(
@@ -741,7 +742,7 @@ void NumericStats<T>::compute_moments12() {
 
   // Adjustment for the case when some of the `x[i]`s where infinite.
   if (std::is_floating_point<T>::value && (has_pos_inf || has_neg_inf)) {
-    constexpr double nan = GETNA<double>();
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
     constexpr double inf = std::numeric_limits<double>::infinity();
     s = nan;
     stdev_valid = false;
@@ -1036,15 +1037,15 @@ void BooleanStats::compute_all_stats() {
 
 
 //------------------------------------------------------------------------------
-// OColumn's API
+// Column's API
 //------------------------------------------------------------------------------
 
-static std::unique_ptr<Stats> _make_stats(Column* col) {
+static std::unique_ptr<Stats> _make_stats(ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
   switch (col->stype()) {
     case SType::BOOL:    return StatsPtr(new BooleanStats(col));
-    case SType::INT8:
-    case SType::INT16:
+    case SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
+    case SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
     case SType::INT32:   return StatsPtr(new IntegerStats<int32_t>(col));
     case SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
     case SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
@@ -1059,22 +1060,22 @@ static std::unique_ptr<Stats> _make_stats(Column* col) {
   }
 }
 
-Stats* OColumn::stats() const {
+Stats* Column::stats() const {
   if (!pcol->stats) pcol->stats = _make_stats(pcol);
   return pcol->stats.get();
 }
 
-Stats* OColumn::get_stats_if_exist() const {
+Stats* Column::get_stats_if_exist() const {
   return pcol->stats.get();
 }
 
 
-void OColumn::reset_stats() {
+void Column::reset_stats() {
   auto stats = get_stats_if_exist();
   if (stats) stats->reset();
 }
 
-bool OColumn::is_stat_computed(Stat stat) const {
+bool Column::is_stat_computed(Stat stat) const {
   auto stats = get_stats_if_exist();
   return stats? stats->is_computed(stat) : false;
 }
@@ -1188,23 +1189,23 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
 
 
 //------------------------------------------------------------------------------
-// Stats "OColumn" getter
+// Stats "Column" getter
 //------------------------------------------------------------------------------
 
 template <typename T>
-static OColumn _make_column(SType stype, T value) {
+static Column _make_column(SType stype, T value) {
   MemoryRange mbuf = MemoryRange::mem(sizeof(T));
   mbuf.set_element<T>(0, value);
-  OColumn res = OColumn::new_mbuf_column(stype, std::move(mbuf));
+  Column res = Column::new_mbuf_column(stype, std::move(mbuf));
   xassert(res.nrows() == 1);
   return res;
 }
 
-static OColumn _make_nacol(SType stype) {
-  return OColumn::new_na_column(stype, 1);
+static Column _make_nacol(SType stype) {
+  return Column::new_na_column(stype, 1);
 }
 
-static OColumn _make_column_str(CString value) {
+static Column _make_column_str(CString value) {
   using T = uint32_t;
   MemoryRange mbuf = MemoryRange::mem(sizeof(T) * 2);
   MemoryRange strbuf;
@@ -1218,19 +1219,19 @@ static OColumn _make_column_str(CString value) {
     mbuf.set_element<T>(0, 0);
     mbuf.set_element<T>(1, GETNA<T>());
   }
-  return new_string_column(1, std::move(mbuf), std::move(strbuf));
+  return Column::new_string_column(1, std::move(mbuf), std::move(strbuf));
 }
 
 
 template <typename S, typename R>
-OColumn Stats::colwrap_stat(Stat stat, SType stype) {
+Column Stats::colwrap_stat(Stat stat, SType stype) {
   S value;
   bool isvalid = get_stat(stat, &value);
   return isvalid? _make_column<R>(stype, static_cast<R>(value))
                 : _make_nacol(stype);
 }
 
-OColumn Stats::strcolwrap_stat(Stat stat) {
+Column Stats::strcolwrap_stat(Stat stat) {
   CString value;
   bool isvalid = get_stat(stat, &value);
   return isvalid? _make_column_str(value)
@@ -1238,7 +1239,7 @@ OColumn Stats::strcolwrap_stat(Stat stat) {
 }
 
 
-OColumn Stats::get_stat_as_column(Stat stat) {
+Column Stats::get_stat_as_column(Stat stat) {
   switch (stat) {
     case Stat::NaCount:
     case Stat::NUnique:
@@ -1282,5 +1283,7 @@ OColumn Stats::get_stat_as_column(Stat stat) {
 
 template class RealStats<float>;
 template class RealStats<double>;
+template class IntegerStats<int8_t>;
+template class IntegerStats<int16_t>;
 template class IntegerStats<int32_t>;
 template class IntegerStats<int64_t>;

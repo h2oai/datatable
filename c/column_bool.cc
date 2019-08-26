@@ -6,7 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include "python/_all.h"
-#include "column.h"
+#include "column_impl.h"
 #include "datatablemodule.h"
 
 

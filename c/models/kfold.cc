@@ -33,6 +33,7 @@
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "column_impl.h"  // TODO: remove
 
 namespace py {
 
@@ -161,9 +162,9 @@ static oobj kfold(const PKArgs& args) {
     int64_t b1 = ii*n/k;
     int64_t b2 = (ii+1)*n/k;
     size_t colsize = static_cast<size_t>(b1 + n - b2);
-    OColumn col = OColumn::new_data_column(SType::INT32, colsize);
+    Column col = Column::new_data_column(SType::INT32, colsize);
     DataTable* dt = new DataTable({std::move(col)}, DataTable::default_names);
-    data.push_back(static_cast<int32_t*>(dt->get_ocolumn(0)->data_w()));
+    data.push_back(static_cast<int32_t*>(dt->get_column(0)->data_w()));
 
     res.set(static_cast<size_t>(ii),
             otuple(Frame::oframe(dt), orange(b1, b2)));
@@ -332,14 +333,14 @@ static oobj kfold_random(const PKArgs& args) {
   olist res(nsplits);
   for (size_t x = 0; x < nsplits; ++x) {
     size_t fold_size = (x + 1) * nrows / nsplits - x * nrows / nsplits;
-    OColumn col1 = OColumn::new_data_column(S, nrows - fold_size);
-    OColumn col2 = OColumn::new_data_column(S, fold_size);
+    Column col1 = Column::new_data_column(S, nrows - fold_size);
+    Column col2 = Column::new_data_column(S, fold_size);
     DataTable* dt1 = new DataTable({std::move(col1)}, DataTable::default_names);
     DataTable* dt2 = new DataTable({std::move(col2)}, DataTable::default_names);
     oobj train = Frame::oframe(dt1);
     oobj test  = Frame::oframe(dt2);
-    train_folds[x] = static_cast<T*>(dt1->get_ocolumn(0)->data_w());
-    test_folds[x] = static_cast<T*>(dt2->get_ocolumn(0)->data_w());
+    train_folds[x] = static_cast<T*>(dt1->get_column(0)->data_w());
+    test_folds[x] = static_cast<T*>(dt2->get_column(0)->data_w());
     res.set(x, otuple{ train, test });
   }
 

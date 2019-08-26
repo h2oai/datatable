@@ -1,0 +1,58 @@
+
+.. include:: definitions.rst
+
+
+Version 0.10.0
+==============
+
+Columnsets |new|
+----------------
+
+.. seealso:: :ref:`columnsets`
+
+The ``f``-symbol syntax has been extended to allow selecting multiple columns
+from a frame at once, so-called *columnsets*. The primary use case here is to
+select a slice of columns, or to select columns based on their type::
+
+    f[:]         # select all columns
+    f[:5]        # select the first 5 columns
+    f["A":"Z"]   # select columns from 'A' to 'Z'
+    f[float]     # select all floating point columns
+    f[dt.int32]  # select all columns with stype int32
+    f[int   if select_ints else
+      float if select_floats else
+      None]
+
+In addition, columnsets can be added / subtracted, allowing to express a richer
+selection of columns::
+
+    f[int].extend(f[float])   # all integers and floating point columns
+    f[:].remove(f[str])       # all columns except those of string type
+    f[:10].extend(f[-1])      # first 10, plus the last column
+
+The columnsets can be used in places where a list/sequence of columns is
+expected, such as the ``i`` node of ``DT[i,j,...]``, the ``by()`` function;
+also in functions that operate on lists of columns, such as ``rowsum()``,
+``rowmin()``, etc.
+
+
+Frame
+-----
+
+- |new| Added method :meth:`.export_names() <datatable.Frame.export_names>`
+  which creates a set of global variables referencing each column in the Frame.
+  This is recommended for interactive use only::
+
+    DT.export_names()
+    # Now DT's columns 'PROC_ID' and 'SORT_NR' can be referenced as variables,
+    # without the f. syntax:
+    DT[(PROC_ID == "A") & (SORT_NR > 2), :]
+
+  If you need to export only a subset of columns, you can select those columns
+  first via the standard ``DT[i,j]`` syntax::
+
+    # Only create variables for the first 5 columns
+    DT[:, :5].export_names()
+
+  The variables are created in the global scope because python's locals cannot
+  be manipulated programmatically.

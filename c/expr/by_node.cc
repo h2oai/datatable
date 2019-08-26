@@ -22,6 +22,7 @@
 #include "expr/expr.h"
 #include "expr/by_node.h"
 #include "expr/collist.h"
+#include "expr/expr_column.h"
 #include "expr/workframe.h"
 #include "python/arg.h"
 #include "python/tuple.h"
@@ -64,37 +65,37 @@ void by_node::add_sortby_columns(workframe& wf, collist_ptr&& cl) {
 
 
 void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
-  auto cl_int  = dynamic_cast<cols_intlist*>(cl.get());
-  auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
-  xassert(cl_int || cl_expr);
-  if (cl_int) {
-    bool has_names = !cl_int->names.empty();
-    size_t n = cl_int->indices.size();
+  strvec names = cl->release_names();
+  bool has_names = !names.empty();
+  if (cl->is_simple_list()) {
+    intvec indices = cl->release_indices();
+    size_t n = indices.size();
     for (size_t i = 0; i < n; ++i) {
       cols.emplace_back(
-          cl_int->indices[i],
-          has_names? std::move(cl_int->names[i]) : std::string(),
+          indices[i],
+          has_names? std::move(names[i]) : std::string(),
           false,          // descending
-          !isgrp  // sort_only
+          !isgrp          // sort_only
       );
     }
     n_group_columns += isgrp * n;
   }
-  if (cl_expr) {
+  else {
     using pexpr = std::unique_ptr<dt::expr::base_expr>;
-    bool has_names = !cl_expr->names.empty();
-    size_t n = cl_expr->exprs.size();
+    exprvec exprs = cl->release_exprs();
+    size_t n = exprs.size();
     size_t n_computed = 0;
     for (size_t i = 0; i < n; ++i) {
       bool descending = false;
-      pexpr cexpr = std::move(cl_expr->exprs[i]);
+      pexpr cexpr = std::move(exprs[i]);
       pexpr neg = cexpr->get_negated_expr();
       if (neg) {
-        size_t j = neg->get_col_index(wf);
+        auto colexpr = dynamic_cast<dt::expr::expr_column*>(neg.get());
+        size_t j = colexpr->get_col_index(wf);
         if (j != size_t(-1)) {
           cols.emplace_back(
               j,
-              has_names? std::move(cl_expr->names[i]) : std::string(),
+              has_names? std::move(names[i]) : std::string(),
               true,   // descending
               !isgrp  // sort_only
           );
@@ -105,7 +106,7 @@ void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
       }
       cols.emplace_back(
           std::move(cexpr),
-          has_names? std::move(cl_expr->names[i]) : std::string(),
+          has_names? std::move(names[i]) : std::string(),
           descending,
           !isgrp  // sort_only
       );
@@ -144,7 +145,7 @@ void by_node::create_columns(workframe& wf) {
     if (col.sort_only) continue;
     size_t j = col.index;
     xassert(j != size_t(-1));
-    OColumn newcol = dt0->get_ocolumn(j);  // copy
+    Column newcol = dt0->get_column(j);  // copy
     wf.add_column(std::move(newcol), ri0,
                   col.name.empty()? dt0_names[j] : std::move(col.name));
   }
@@ -214,7 +215,7 @@ void oby::init(PyObject* m) {
 dt::collist_ptr oby::cols(dt::workframe& wf) const {
   // robj cols = reinterpret_cast<const pyobj*>(v)->cols;
   robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
-  return dt::collist::make(wf, cols, "`by`");
+  return dt::collist_ptr(new dt::collist(wf, cols, dt::collist::BY_NODE));
 }
 
 

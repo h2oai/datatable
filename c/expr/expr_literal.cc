@@ -24,14 +24,21 @@ namespace dt {
 namespace expr {
 
 
-expr_literal::expr_literal(py::robj v) {
-  py::olist lst(1);
-  lst.set(0, v);
-  col = OColumn::from_pylist(lst, 0);
+expr_literal::expr_literal(py::robj v) : arg(v) {}
+
+bool expr_literal::is_literal_expr() const {
+  return true;
+}
+
+py::oobj expr_literal::get_literal_arg() {
+  return arg;
 }
 
 
 SType expr_literal::resolve(const workframe&) {
+  py::olist lst(1);
+  lst.set(0, arg);
+  col = Column::from_pylist(lst, 0);
   return col.stype();
 }
 
@@ -41,7 +48,7 @@ GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
 }
 
 
-OColumn expr_literal::evaluate_eager(workframe&) {
+Column expr_literal::evaluate(workframe&) {
   return col;  // copy
 }
 

@@ -45,16 +45,11 @@ GroupbyMode expr_cast::get_groupby_mode(const workframe& wf) const {
 }
 
 
-OColumn expr_cast::evaluate_eager(workframe& wf) {
-  auto arg_col = arg->evaluate_eager(wf);
-  return arg_col.cast(stype);
+Column expr_cast::evaluate(workframe& wf) {
+  auto arg_col = arg->evaluate(wf);
+  return std::move(arg_col).cast(stype);
 }
 
-
-vcolptr expr_cast::evaluate_lazy(workframe& wf) {
-  auto arg_vcol = arg->evaluate_lazy(wf);
-  return cast(std::move(arg_vcol), stype);
-}
 
 
 

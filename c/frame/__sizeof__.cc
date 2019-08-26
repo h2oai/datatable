@@ -3,6 +3,7 @@
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include "python/_all.h"
+#include "column_impl.h"
 namespace py {
 
 
@@ -62,7 +63,7 @@ void Frame::_init_sizeof(XTypeMaker& xt) {
 size_t DataTable::memory_footprint() const {
   size_t sz = 0;
   sz += sizeof(*this);
-  sz += sizeof(OColumn) * columns.capacity();
+  sz += sizeof(Column) * columns.capacity();
   sz += sizeof(std::string) * names.capacity();
   for (size_t i = 0; i < ncols; ++i) {
     sz += columns[i]->memory_footprint();
@@ -87,7 +88,7 @@ size_t DataTable::memory_footprint() const {
  * from `column->alloc_size`, which in general reports byte size of the `data`
  * portion of the column.
  */
-size_t Column::memory_footprint() const {
+size_t ColumnImpl::memory_footprint() const {
   size_t sz = sizeof(*this);
   if (!ri) sz += mbuf.memory_footprint();
   sz += ri.memory_footprint();
@@ -98,7 +99,7 @@ size_t Column::memory_footprint() const {
 
 template <typename T>
 size_t StringColumn<T>::memory_footprint() const {
-  return Column::memory_footprint() + (ri? 0 : strbuf.memory_footprint());
+  return ColumnImpl::memory_footprint() + (ri? 0 : strbuf.memory_footprint());
 }
 
 

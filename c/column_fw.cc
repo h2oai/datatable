@@ -10,6 +10,17 @@
 #include "utils/misc.h"
 #include "parallel/api.h"  // dt::parallel_for_static
 #include "column.h"
+#include "column_impl.h"
+
+template<> inline py::robj GETNA() { return py::rnone(); }
+
+template <typename T> constexpr SType stype_for(){ return SType::VOID; }
+template <> constexpr SType stype_for<int8_t>()  { return SType::INT8; }
+template <> constexpr SType stype_for<int16_t>() { return SType::INT16; }
+template <> constexpr SType stype_for<int32_t>() { return SType::INT32; }
+template <> constexpr SType stype_for<int64_t>() { return SType::INT64; }
+template <> constexpr SType stype_for<float>()   { return SType::FLOAT32; }
+template <> constexpr SType stype_for<double>()  { return SType::FLOAT64; }
 
 
 
@@ -18,15 +29,19 @@
  * should be subsequently called before using this column.
  */
 template <typename T>
-FwColumn<T>::FwColumn() : Column(0) {}
+FwColumn<T>::FwColumn() : ColumnImpl(0) {
+  _stype = stype_for<T>();
+}
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_) : Column(nrows_) {
+FwColumn<T>::FwColumn(size_t nrows_) : ColumnImpl(nrows_) {
+  _stype = stype_for<T>();
   mbuf.resize(sizeof(T) * nrows_);
 }
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
+FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : ColumnImpl(nrows_) {
+  _stype = stype_for<T>();
   size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);
@@ -68,11 +83,20 @@ T FwColumn<T>::get_elem(size_t i) const {
   return static_cast<const T*>(mbuf.rptr())[i];
 }
 
+template <typename T>
+bool FwColumn<T>::get_element(size_t i, T* out) const {
+  size_t j = (this->ri)[i];
+  if (j == RowIndex::NA) return true;
+  T x = static_cast<const T*>(mbuf.rptr())[j];
+  *out = x;
+  return ISNA<T>(x);
+}
+
 
 template <typename T>
-void FwColumn<T>::materialize() {
+ColumnImpl* FwColumn<T>::materialize() {
   // If the rowindex is absent, then the column is already materialized.
-  if (!ri) return;
+  if (!ri) return this;
   bool simple_slice = ri.isslice() && ri.slice_step() == 1;
   bool ascending = ri.isslice() && static_cast<int64_t>(ri.slice_step()) > 0;
 
@@ -118,6 +142,7 @@ void FwColumn<T>::materialize() {
     mbuf.resize(newsize);
   }
   ri.clear();
+  return this;
 }
 
 
@@ -132,7 +157,7 @@ void FwColumn<T>::resize_and_fill(size_t new_nrows)
 
   if (new_nrows > _nrows) {
     // Replicate the value or fill with NAs
-    T fill_value = _nrows == 1? get_elem(0) : na_elem;
+    T fill_value = _nrows == 1? get_elem(0) : GETNA<T>();
     T* data_dest = static_cast<T*>(mbuf.wptr());
     for (size_t i = _nrows; i < new_nrows; ++i) {
       data_dest[i] = fill_value;
@@ -153,7 +178,7 @@ size_t FwColumn<T>::data_nrows() const {
 
 
 template <typename T>
-void FwColumn<T>::apply_na_mask(const OColumn& mask) {
+void FwColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
   auto maskdata = static_cast<const int8_t*>(mask->data());
   T* coldata = this->elements_w();
@@ -190,21 +215,23 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    OColumn&, const RowIndex& replace_at, const OColumn& replace_with)
+    Column&, const RowIndex& replace_at, const Column& replace_with)
 {
   materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  OColumn with = (replace_with.stype() == _stype)
+  Column with = (replace_with.stype() == _stype)
                     ? replace_with  // copy
                     : replace_with.cast(_stype);
 
   if (with.nrows() == 1) {
-    auto rcol = dynamic_cast<const FwColumn<T>*>(with.get());
-    xassert(rcol);
-    return replace_values(replace_at, rcol->get_elem(0));
+    T replace_value;
+    bool isna = with.get_element(0, &replace_value);
+    return isna? replace_values(replace_at, GETNA<T>()) :
+                 replace_values(replace_at, replace_value);
   }
+
   size_t replace_n = replace_at.size();
   const T* data_src = static_cast<const T*>(with->data());
   const RowIndex& rowindex_src = with->rowindex();
@@ -227,40 +254,6 @@ void FwColumn<T>::replace_values(
 }
 
 
-template <typename T>
-static int32_t binsearch(const T* data, int32_t len, T value) {
-  // Use unsigned indices in order to avoid overflows
-  uint32_t start = 0;
-  uint32_t end   = static_cast<uint32_t>(len);
-  while (end - start > 1) {
-    uint32_t mid = (start + end) >> 1;
-    if (data[mid] > value) end = mid;
-    else start = mid;
-  }
-  return (data[start] == value)? static_cast<int32_t>(start) : -1;
-}
-
-
-template <typename T>
-RowIndex FwColumn<T>::join(const OColumn& keycol) const {
-  xassert(_stype == keycol.stype());
-  xassert(!keycol->rowindex());
-
-  arr32_t target_indices(_nrows);
-  int32_t* trg_indices = target_indices.data();
-  const T* src_data = elements_r();
-  const T* search_data = static_cast<const T*>(keycol->data());
-  int32_t search_n = static_cast<int32_t>(keycol.nrows());
-
-  ri.iterate(0, _nrows, 1,
-    [&](size_t i, size_t j) {
-      if (j == RowIndex::NA) return;
-      T value = src_data[j];
-      trg_indices[i] = binsearch<T>(search_data, search_n, value);
-    });
-
-  return RowIndex(std::move(target_indices));
-}
 
 
 template <typename T>
@@ -280,4 +273,4 @@ template class FwColumn<int32_t>;
 template class FwColumn<int64_t>;
 template class FwColumn<float>;
 template class FwColumn<double>;
-template class FwColumn<PyObject*>;
+template class FwColumn<py::robj>;

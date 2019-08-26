@@ -223,7 +223,7 @@ def test_issue1481():
     DT = dt.Frame(A=range(5))
     with pytest.raises(ValueError) as e:
         noop(DT[:, [f.A, g.A]])
-    assert ("Item 1 of `j` selector list references a non-existing join frame"
+    assert ("Column expression references a non-existing join frame"
             == str(e.value))
 
 

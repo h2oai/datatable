@@ -1157,17 +1157,3 @@ def test_duplicate_mangled():
         frame_integrity_check(DT)
         assert DT.names == (".", ".1", ".2", ".3", ".4")
     assert ("Duplicate column names found" in ws[0].message.args[0])
-
-
-
-
-#-------------------------------------------------------------------------------
-# Deprecated
-#-------------------------------------------------------------------------------
-
-def test_create_datatable():
-    """DataTable is old symbol for Frame."""
-    d = dt.DataTable([1, 2, 3])
-    frame_integrity_check(d)
-    assert d.__class__.__name__ == "Frame"
-    assert d.to_list() == [[1, 2, 3]]

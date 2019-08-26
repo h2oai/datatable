@@ -17,7 +17,7 @@
 namespace dt {
 
 
-static void label_encode_bool(const OColumn&, dtptr&, dtptr&);
+static void label_encode_bool(const Column&, dtptr&, dtptr&);
 
 
 /**
@@ -25,7 +25,7 @@ static void label_encode_bool(const OColumn&, dtptr&, dtptr&);
  *  the function expects two classes at maximum and will emit an error,
  *  if there is more.
  */
-void label_encode(const OColumn& col, dtptr& dt_labels, dtptr& dt_encoded,
+void label_encode(const Column& col, dtptr& dt_labels, dtptr& dt_encoded,
                   bool is_binomial /* = false =*/) {
   xassert(dt_labels == nullptr);
   xassert(dt_encoded == nullptr);
@@ -74,14 +74,14 @@ void label_encode(const OColumn& col, dtptr& dt_labels, dtptr& dt_encoded,
  *  false/true. No encoding in this case is necessary, so `dt_encoded`
  *  just uses a shallow copy of `col`.
  */
-static void label_encode_bool(const OColumn& col, dtptr& dt_labels, dtptr& dt_encoded)
+static void label_encode_bool(const Column& col, dtptr& dt_labels, dtptr& dt_encoded)
 {
   // If we only got NA's, return
   if (col.na_count() == col.nrows()) return;
 
   // Set up boolean labels and their corresponding ids.
-  OColumn ids_col = OColumn::new_data_column(SType::BOOL, 2);
-  OColumn labels_col = OColumn::new_data_column(SType::BOOL, 2);
+  Column ids_col = Column::new_data_column(SType::BOOL, 2);
+  Column labels_col = Column::new_data_column(SType::BOOL, 2);
   auto ids_data = static_cast<int8_t*>(ids_col->data_w());
   auto labels_data = static_cast<int8_t*>(labels_col->data_w());
   ids_data[0] = 0;
@@ -91,7 +91,7 @@ static void label_encode_bool(const OColumn& col, dtptr& dt_labels, dtptr& dt_en
 
   dt_labels = dtptr(new DataTable({std::move(labels_col), std::move(ids_col)},
                                   {"label", "id"}));
-  dt_encoded = dtptr(new DataTable({OColumn(col)}, DataTable::default_names));
+  dt_encoded = dtptr(new DataTable({Column(col)}, DataTable::default_names));
 }
 
 

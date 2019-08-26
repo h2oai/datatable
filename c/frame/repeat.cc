@@ -23,6 +23,7 @@
 #include "frame/py_frame.h"
 #include "python/args.h"
 #include "rowindex.h"
+#include "column_impl.h"  // TODO: remove
 
 
 //------------------------------------------------------------------------------
@@ -58,13 +59,13 @@ static RowIndex _make_repeat_rowindex(size_t nrows, size_t nreps) {
 
 
 // TODO: we could create a special "repeated" column here
-OColumn Column::repeat(size_t nreps) const {
+Column ColumnImpl::repeat(size_t nreps) const {
   xassert(!info(_stype).is_varwidth());
   xassert(!ri);
   size_t esize = info(_stype).elemsize();
   size_t new_nrows = _nrows * nreps;
 
-  OColumn newcol = OColumn::new_data_column(_stype, new_nrows);
+  Column newcol = Column::new_data_column(_stype, new_nrows);
   if (!new_nrows) {
     return newcol;
   }
@@ -115,7 +116,7 @@ static oobj repeat(const PKArgs& args) {
   }
 
   // Single-colum fixed-width Frame:
-  const OColumn& col0 = dt->get_ocolumn(0);
+  const Column& col0 = dt->get_column(0);
   if (dt->ncols == 1 && col0.is_fixedwidth() && !col0.is_virtual()) {
     auto newcol = col0->repeat(n);
     DataTable* newdt = new DataTable({std::move(newcol)}, dt);  // copy names from dt

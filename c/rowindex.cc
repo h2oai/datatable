@@ -101,7 +101,7 @@ RowIndex::RowIndex(arr64_t&& arr, size_t min, size_t max) {
   TRACK(this, sizeof(*this), "RowIndex");
 }
 
-RowIndex::RowIndex(const OColumn& col) {
+RowIndex::RowIndex(const Column& col) {
   impl = (new ArrayRowIndexImpl(col))->acquire();
   TRACK(this, sizeof(*this), "RowIndex");
 }

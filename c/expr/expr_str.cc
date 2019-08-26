@@ -25,6 +25,7 @@
 #include "parallel/api.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 namespace dt {
 namespace expr {
@@ -97,38 +98,23 @@ GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
 }
 
 
-OColumn expr_string_match_re::evaluate_eager(workframe& wf) {
-  auto arg_res = arg->evaluate_eager(wf);
-  SType arg_stype = arg_res.stype();
-  xassert(arg_stype == SType::STR32 || arg_stype == SType::STR64);
-  return arg_stype == SType::STR32? _compute<uint32_t>(arg_res)
-                                  : _compute<uint64_t>(arg_res);
-}
-
-
-template <typename T>
-OColumn expr_string_match_re::_compute(const OColumn& src) {
-  auto ssrc = dynamic_cast<const StringColumn<T>*>(src.get());
+Column expr_string_match_re::evaluate(workframe& wf) {
+  Column src = arg->evaluate(wf);
+  xassert(src.ltype() == LType::STRING);
   size_t nrows = src.nrows();
-  RowIndex src_rowindex = ssrc->rowindex();
-  const char* src_strdata = ssrc->strdata();
-  const T* src_offsets = ssrc->offsets();
 
-  OColumn trg = OColumn::new_data_column(SType::BOOL, nrows);
+  Column trg = Column::new_data_column(SType::BOOL, nrows);
   int8_t* trg_data = static_cast<int8_t*>(trg->data_w());
 
   dt::parallel_for_dynamic(nrows,
     [&](size_t i) {
-      size_t j = src_rowindex[i];
-      T start = src_offsets[j - 1] & ~GETNA<T>();
-      T end = src_offsets[j];
-      if (ISNA<T>(end)) {
+      CString value;
+      bool isna = src.get_element(i, &value);
+      if (isna) {
         trg_data[i] = GETNA<int8_t>();
         return;
       }
-      bool res = std::regex_match(src_strdata + start,
-                                  src_strdata + end,
-                                  regex);
+      bool res = std::regex_match(value.ch, value.ch + value.size, regex);
       trg_data[i] = res;
     });
   return trg;

@@ -39,29 +39,33 @@ using collist_ptr = std::unique_ptr<collist>;
 
 
 class collist {
+  private:
+    exprvec exprs;
+    intvec indices;
+    strvec names;
+
   public:
-    static collist_ptr make(workframe& wf, py::robj src, const char* srcname);
-    virtual ~collist();
-};
+    static constexpr size_t J_NODE = 1;
+    static constexpr size_t BY_NODE = 2;
+    static constexpr size_t SORT_NODE = 4;
+    static constexpr size_t REPL_NODE = 8;
+    static constexpr size_t ALLOW_NEW_COLUMNS = 256;
+    static constexpr size_t FORBID_SRC_DICT = 512;
 
+    collist(workframe& wf, py::robj src, size_t flags, size_t dt_index = 0);
+    collist(exprvec&& exprs_, intvec&& indices_, strvec&& names_);
 
+    bool is_simple_list() const;
+    strvec release_names();
+    intvec release_indices();
+    exprvec release_exprs();
 
-struct cols_intlist : public collist {
-  intvec indices;
-  strvec names;
+    size_t size() const;
+    void append(collist_ptr&&);
+    void exclude(collist_ptr&&);
 
-  cols_intlist(intvec&& indices_, strvec&& names_);
-  ~cols_intlist() override;
-};
-
-
-
-struct cols_exprlist : public collist {
-  exprvec exprs;
-  strvec  names;
-
-  cols_exprlist(exprvec&& exprs_, strvec&& names_);
-  ~cols_exprlist() override;
+  private:
+    void check_integrity();
 };
 
 

@@ -84,11 +84,14 @@ messages, and powerful API similar to R ``data.table``'s.
     using-datatable
 
 .. toctree::
+    :caption: User manual
     :maxdepth: 2
     :hidden:
 
+    f-expressions
     install
     contrib
+    changelog
 
 .. toctree::
     :maxdepth: 2

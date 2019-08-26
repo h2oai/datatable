@@ -36,13 +36,13 @@ using value_writer_ptr = std::unique_ptr<value_writer>;
 
 class value_writer {
   protected:
-    OColumn column;
+    Column column;
     size_t max_output_size;
 
   public:
-    value_writer(const OColumn& col, size_t n);
+    value_writer(const Column& col, size_t n);
     virtual ~value_writer();
-    static value_writer_ptr create(const OColumn& col, const output_options&);
+    static value_writer_ptr create(const Column& col, const output_options&);
 
     // Write value `ctx.value_XX` into the output stream `ctx.ch`.
     // Advance the output pointer `ctx.ch` to the new output position.

@@ -42,7 +42,7 @@ static DataTable* _make_frame(DataTable* dt, Stat stat) {
   colvec out_cols;
   out_cols.reserve(dt->ncols);
   for (size_t i = 0; i < dt->ncols; ++i) {
-    const OColumn& dtcol = dt->get_ocolumn(i);
+    const Column& dtcol = dt->get_column(i);
     out_cols.push_back(dtcol.stats()->get_stat_as_column(stat));
   }
   return new DataTable(std::move(out_cols), dt);
@@ -85,7 +85,7 @@ oobj Frame::stat1(const PKArgs& args) {
   if (dt->ncols != 1) {
     throw ValueError() << "This method can only be applied to a 1-column Frame";
   }
-  const OColumn& col0 = dt->get_ocolumn(0);
+  const Column& col0 = dt->get_column(0);
   Stat stat = stat_from_args[&args];
   return col0.stats()->get_stat_as_pyobject(stat);
 }

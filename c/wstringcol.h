@@ -49,7 +49,7 @@ class writable_string_col {
     writable_string_col(size_t nrows, bool str64_ = false);
     writable_string_col(MemoryRange&& offsets, size_t nrows,
                         bool str64_ = false);
-    OColumn to_ocolumn() &&;
+    Column to_ocolumn() &&;
 
     class buffer {
       public:

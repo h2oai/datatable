@@ -19,6 +19,7 @@
 #include "utils/assert.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "column_impl.h"  // TODO: remove
 
 namespace py {
 
@@ -189,7 +190,7 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
 
   // Fix up the DataTable's columns if they have different number of rows
   if (fix_columns) {
-    for (OColumn& col : columns) {
+    for (Column& col : columns) {
       col->resize_and_fill(final_nrows);
     }
   }

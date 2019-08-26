@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_h
 #define dt_EXPR_EXPR_h
-#include "expr/virtual_column.h"
 #include "expr/workframe.h"
 #include "column.h"
 namespace dt {
@@ -29,7 +28,6 @@ namespace expr {
 
 class base_expr;
 using pexpr = std::unique_ptr<base_expr>;
-using vcolptr = std::unique_ptr<virtual_column>;
 
 static constexpr size_t UNOP_FIRST    = 101;
 static constexpr size_t UNOP_LAST     = 111;
@@ -51,6 +49,8 @@ enum class Op : size_t {
   NOOP = 0,
   COL = 1,
   CAST = 2,
+  SETPLUS = 3,
+  SETMINUS = 4,
 
   // Unary
   UPLUS = UNOP_FIRST,
@@ -176,13 +176,13 @@ class base_expr {
     virtual ~base_expr();
     virtual SType resolve(const workframe&) = 0;
     virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual OColumn evaluate_eager(workframe&) = 0;
-    virtual vcolptr evaluate_lazy(workframe&);
+    virtual Column evaluate(workframe&) = 0;
 
-    virtual bool is_column_expr() const;
+    virtual bool is_columnset_expr() const;
+    virtual bool is_literal_expr() const;
     virtual bool is_negated_expr() const;
     virtual pexpr get_negated_expr();
-    virtual size_t get_col_index(const workframe&);
+    virtual py::oobj get_literal_arg();
 };
 
 

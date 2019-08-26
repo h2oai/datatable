@@ -14,10 +14,11 @@
 
 
 // Helper functions
-static OColumn column_from_jay(size_t nrows,
-                               const jay::Column* jaycol,
-                               const MemoryRange& jaybuf);
+static Column column_from_jay(size_t nrows,
+                              const jay::Column* jaycol,
+                              const MemoryRange& jaybuf);
 
+static void check_jay_signature(const uint8_t* ptr, size_t size);
 
 
 //------------------------------------------------------------------------------
@@ -45,15 +46,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
 
   const uint8_t* ptr = static_cast<const uint8_t*>(mbuf.rptr());
   const size_t len = mbuf.size();
-  if (len < 24) {
-    throw IOError() << "Invalid Jay file of size " << len;
-  }
-  if (std::memcmp(ptr, "JAY1\0\0\0\0", 8) != 0 ||
-      (std::memcmp(ptr + len - 8, "\0\0\0\0" "1JAY", 8) != 0 &&
-       std::memcmp(ptr + len - 8, "\0\0\0\0" "JAY1", 8) != 0))
-  {
-    throw IOError() << "Invalid signature for a Jay file";
-  }
+  check_jay_signature(ptr, len);
 
   size_t meta_size = *reinterpret_cast<const size_t*>(ptr + len - 16);
   if (meta_size > len - 24) {
@@ -76,7 +69,7 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
-    OColumn col = column_from_jay(nrows, jcol, mbuf);
+    Column col = column_from_jay(nrows, jcol, mbuf);
     if (col.nrows() != nrows) {
       throw IOError() << "Length of column " << i << " is " << col.nrows()
           << ", however the Frame contains " << nrows << " rows";
@@ -90,6 +83,32 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   dt->set_nkeys_unsafe(static_cast<size_t>(frame->nkeys()));
   return dt;
 }
+
+
+static void check_jay_signature(const uint8_t* sof, size_t size) {
+  const uint8_t* eof = sof + size;
+  if (size < 24) {
+    throw IOError() << "Invalid Jay file of size " << size;
+  }
+
+  if (std::memcmp(sof, "JAY", 3) != 0) {
+    // Note: non-printable chars will be properly escaped by `operator<<`
+    throw IOError() << "Invalid signature for a Jay file: first 3 bytes are `"
+        << sof[0] << sof[1] << sof[2] << "`";
+  }
+  if (std::memcmp(eof - 3, "JAY", 3) != 0 &&
+      std::memcmp(eof - 4, "JAY1", 4) != 0)
+  {
+    throw IOError() << "Invalid signature for a Jay file: last 3 bytes are `"
+        << eof[-3] << eof[-2] << eof[-1] << "`";
+  }
+
+  if (std::memcmp(sof, "JAY1\0\0\0\0", 8) != 0) {
+    std::string version(reinterpret_cast<const char*>(sof) + 3, 5);
+    throw IOError() << "Unsupported Jay file version: " << version;
+  }
+}
+
 
 
 
@@ -119,7 +138,7 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 }
 
 
-static OColumn column_from_jay(
+static Column column_from_jay(
     size_t nrows, const jay::Column* jcol, const MemoryRange& jaybuf)
 {
   jay::Type jtype = jcol->type();
@@ -137,13 +156,13 @@ static OColumn column_from_jay(
     case jay::Type_Str64:   stype = SType::STR64; break;
   }
 
-  OColumn col;
+  Column col;
   MemoryRange databuf = extract_buffer(jaybuf, jcol->data());
   if (stype == SType::STR32 || stype == SType::STR64) {
     MemoryRange strbuf = extract_buffer(jaybuf, jcol->strdata());
-    col = new_string_column(nrows, std::move(databuf), std::move(strbuf));
+    col = Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
-    col = OColumn::new_mbuf_column(stype, std::move(databuf));
+    col = Column::new_mbuf_column(stype, std::move(databuf));
   }
 
   Stats* stats = col.stats();

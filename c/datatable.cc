@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include <algorithm>
 #include <limits>
+#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
@@ -216,7 +217,7 @@ DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
   for (auto& rcitem : rc) {
     RowIndex newri = ri * rcitem.rowindex;
     for (size_t i : rcitem.colindices) {
-      newcols[i] = dt->get_ocolumn(i);
+      newcols[i] = dt->get_column(i);
       newcols[i]->replace_rowindex(newri);
     }
   }
@@ -258,8 +259,8 @@ void DataTable::replace_groupby(const Groupby& newgb) {
  * Materialize all columns in the DataTable.
  */
 void DataTable::materialize() {
-  for (OColumn& col : columns) {
-    col->materialize();
+  for (Column& col : columns) {
+    col.materialize();
   }
 }
 

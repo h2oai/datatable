@@ -101,6 +101,51 @@ oobj Frame::copy(const PKArgs&) {
 
 
 //------------------------------------------------------------------------------
+// export_names()
+//------------------------------------------------------------------------------
+
+static PKArgs args_export_names(
+  0, 0, 0, false, false,
+  {}, "export_names",
+
+R"(export_names(self)
+--
+
+Create local variables for each column of this frame.
+
+This method inserts into `globals()` as many new variables as there are
+columns in this frame. Each variable is an f-expression referring to
+its column. For example, if the frame has columns A, B, and C, then
+three new variables will be created A = f.A, B = f.B and C = f.C.
+After calling this method you will be able to write column expressions
+using the column names directly, without using the f symbol:
+
+    DT[A + B > C, :]
+
+If a variable with the same name's as one of the columns already
+exists in the globals, it will be overwritten. If the same variable
+exists locally, it will remain as-is.
+
+This method is effectively equivalent to
+
+    for name in self.names:
+        globals()[name] = f[name]
+)");
+
+void Frame::export_names(const PKArgs&) {
+  py::oobj f = py::oobj::import("datatable", "f");
+  py::odict globals = py::robj(PyEval_GetGlobals()).to_pydict();
+  py::otuple names = dt->get_pynames();
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    py::robj name = names[i];
+    globals.set(name, f.get_item(name));
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
 bool Frame::internal_construction = false;
@@ -229,7 +274,7 @@ oobj Frame::get_stypes() const {
   if (stypes == nullptr) {
     py::otuple ostypes(dt->ncols);
     for (size_t i = 0; i < ostypes.size(); ++i) {
-      SType st = dt->get_ocolumn(i).stype();
+      SType st = dt->get_column(i).stype();
       ostypes.set(i, info(st).py_stype());
     }
     stypes = std::move(ostypes).release();
@@ -246,7 +291,7 @@ oobj Frame::get_ltypes() const {
   if (ltypes == nullptr) {
     py::otuple oltypes(dt->ncols);
     for (size_t i = 0; i < oltypes.size(); ++i) {
-      SType st = dt->get_ocolumn(i).stype();
+      SType st = dt->get_column(i).stype();
       oltypes.set(i, info(st).py_ltype());
     }
     ltypes = std::move(oltypes).release();
@@ -266,7 +311,7 @@ static PKArgs args___init__(1, 0, 3, false, true,
                             "__init__", nullptr);
 
 void Frame::impl_init_type(XTypeMaker& xt) {
-  xt.set_class_name("datatable.core.Frame");
+  xt.set_class_name("datatable.Frame");
   xt.set_class_doc(
     "Two-dimensional column-oriented table of data. Each column has its own\n"
     "name and type. Types may vary across columns but cannot vary within\n"
@@ -283,6 +328,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
   xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
+  Frame_Type = reinterpret_cast<PyObject*>(&Frame::type);
 
   _init_cbind(xt);
   _init_key(xt);
@@ -311,6 +357,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::tail, args_tail));
   xt.add(METHOD(&Frame::copy, args_copy));
   xt.add(METHOD(&Frame::materialize, args_materialize));
+  xt.add(METHOD(&Frame::export_names, args_export_names));
   xt.add(METHOD0(&Frame::get_names, "keys"));
 }
 
