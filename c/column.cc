@@ -153,20 +153,20 @@ Column::Column(Column&& other) : Column() {
 }
 
 Column& Column::operator=(const Column& other) {
-  pcol->release_instance();
+  if (pcol) pcol->release_instance();
   pcol = other.pcol->acquire_instance();
   return *this;
 }
 
 Column& Column::operator=(Column&& other) {
-  pcol->release_instance();
+  if (pcol) pcol->release_instance();
   pcol = other.pcol;
   other.pcol = nullptr;
   return *this;
 }
 
 Column::~Column() {
-  pcol->release_instance();
+  if (pcol) pcol->release_instance();
 }
 
 
