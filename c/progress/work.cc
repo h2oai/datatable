@@ -55,9 +55,7 @@ work::~work() {
  if (!pbar) return;
  try {
    dt::progress::manager->finish_work(this, false);
- } catch (std::exception& e) {
-   (void) e;
- }
+ } catch (...) {};
 }
 
 

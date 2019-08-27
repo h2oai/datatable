@@ -36,12 +36,16 @@ from datatable.lib import core
 from tests import same_iterables, list_equals, noop, isview, assert_equals
 
 
+
 #-------------------------------------------------------------------------------
 # Check if we need to run C++ tests
 #-------------------------------------------------------------------------------
 
 cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
                               reason="C++ tests were not compiled")
+@cpp_test
+def test_progress():
+    core.test_progress(1000000,5)
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions
