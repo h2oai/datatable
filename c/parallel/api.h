@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <functional>    // std::function
 #include <mutex>         // std::mutex
+#include "parallel/api_primitives.h"
 #include "utils/function.h"
 namespace dt {
 using std::size_t;
@@ -101,7 +102,7 @@ void barrier();
  * Run parallel loop `for i in range(nrows): f(i)`, with dynamic scheduling.
  */
 void parallel_for_dynamic(size_t nrows, std::function<void(size_t)> fn);
-void parallel_for_dynamic(size_t nrows, size_t nthreads,
+void parallel_for_dynamic(size_t nrows, NThreads _NThreads,
                           std::function<void(size_t)> fn);
 
 
@@ -130,7 +131,7 @@ class ordered {
     void set_n_iterations(size_t n);
 };
 
-void parallel_for_ordered(size_t n_iterations, size_t n_threads,
+void parallel_for_ordered(size_t n_iterations, NThreads _NThreads,
                           function<void(ordered*)> fn);
 
 void parallel_for_ordered(size_t n_iterations,

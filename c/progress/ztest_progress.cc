@@ -29,7 +29,7 @@ void test_progress(size_t n, size_t nth) {
 
   std::vector<size_t> data(n, 0);
 
-  dt::parallel_for_dynamic(n, nth,
+  dt::parallel_for_dynamic(n, dt::NThreads(nth),
     [&](size_t i) {
       for (size_t j = 1; j < 100500; ++j) {
         data[i] += i % j;

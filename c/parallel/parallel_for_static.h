@@ -16,7 +16,6 @@
 #ifndef dt_PARALLEL_FOR_STATIC_h
 #define dt_PARALLEL_FOR_STATIC_h
 #include <algorithm>
-#include "parallel/api_primitives.h"
 #include "utils/assert.h"
 namespace dt {
 

@@ -1256,7 +1256,7 @@ class SortContext {
               ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
               rrmap[i].size = 1;
             }
-          });  // dt::parallel_for_dynamic
+          });  // dt::nested_for_static
       });  // dt::parallel_region
 
     // Consolidate groups into a single contiguous chunk

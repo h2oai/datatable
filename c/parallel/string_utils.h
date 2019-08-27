@@ -56,7 +56,7 @@ Column map_str2str(const Column& input_col, F f) {
 
   dt::parallel_for_ordered(
     nchunks,
-    nthreads,  // will be truncated to pool size if necessary
+    NThreads(nthreads),  // will be truncated to pool size if necessary
     [&](ordered* o) {
       auto sb = output_col.make_buffer();
 
