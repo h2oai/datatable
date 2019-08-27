@@ -43,9 +43,14 @@ from tests import same_iterables, list_equals, noop, isview, assert_equals
 
 cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
                               reason="C++ tests were not compiled")
+
+
+#-------------------------------------------------------------------------------
+# Test progress bar
+#-------------------------------------------------------------------------------
 @cpp_test
 def test_progress():
-    core.test_progress(10000,5)
+    core.test_progress(10000, 5)
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions

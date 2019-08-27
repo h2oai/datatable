@@ -24,12 +24,12 @@ namespace dttest {
 
 
 void test_progress(size_t n, size_t nth) {
-  dt::progress::work job(n / nth);
+  dt::progress::work job(n);
   job.set_message("Starting...");
 
   std::vector<size_t> data(n, 0);
 
-  dt::parallel_for_static(n, dt::ChunkSize(n / nth), dt::NThreads(nth),
+  dt::parallel_for_dynamic(n, nth,
     [&](size_t i) {
       for (size_t j = 1; j < 100500; ++j) {
         data[i] += i % j;
@@ -37,9 +37,10 @@ void test_progress(size_t n, size_t nth) {
 
       if (dt::this_thread_index() == 0) {
         job.set_message("Running...");
-        job.set_done_amount(i + 1);
+        job.set_done_amount(i);
       }
     });
+  job.set_done_amount(n);
 
   job.set_message("Finishing...");
   job.done();
