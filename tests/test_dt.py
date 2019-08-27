@@ -45,7 +45,7 @@ cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
                               reason="C++ tests were not compiled")
 @cpp_test
 def test_progress():
-    core.test_progress(1000000,5)
+    core.test_progress(10000,5)
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions

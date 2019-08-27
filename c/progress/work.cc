@@ -36,6 +36,14 @@ work::work(size_t amount)
   // progress manager will call this->init();
 }
 
+work::~work() {
+ if (!pbar) return;
+ try {
+   dt::progress::manager->finish_work(this, false);
+ } catch (...) {};
+}
+
+
 void work::init(progress_bar* pb, work* parent) {
   xassert(pb);
   pbar = pb;
@@ -45,17 +53,15 @@ void work::init(progress_bar* pb, work* parent) {
   }
 }
 
+
+/**
+ * This method must be called at the end of progress reporting.
+ * If not called, progress bar object never gets deleted.
+ */
 void work::done() {
   xassert(done_amount == total_amount);
   dt::progress::manager->finish_work(this, true);
   pbar = nullptr;
-}
-
-work::~work() {
- if (!pbar) return;
- try {
-   dt::progress::manager->finish_work(this, false);
- } catch (...) {};
 }
 
 
