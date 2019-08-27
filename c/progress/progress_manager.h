@@ -21,9 +21,9 @@ namespace dt {
 namespace progress {
 
 // forward-declare
-class progress_bar_base;
-class progress_bar_disabled;
 class progress_bar;
+class progress_bar_disabled;
+class progress_bar_enabled;
 class work;
 
 
@@ -44,7 +44,7 @@ class progress_manager {
     // the first task is pushed onto the stack. It destroyes the instance
     // when the last task is popped off the stack. This cycle continues,
     // while more and more top-level tasks are received.
-    progress_bar_base* pbar;
+    progress_bar* pbar;
     std::stack<work*> tasks;
 
     // This mutex is used to protect access to `pbar`. In particular,

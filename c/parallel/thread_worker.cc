@@ -14,7 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/thread_worker.h"
-#include "progress/progress_manager.h"  // dt::progress::manager
+#include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {

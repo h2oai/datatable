@@ -34,9 +34,9 @@ enum class Status : size_t {
 /**
  * Base progress bar class declaring progress bar API.
  */
-class progress_bar_base {
+class progress_bar {
   public:
-    virtual ~progress_bar_base();
+    virtual ~progress_bar();
     virtual void set_progress(double actual, double tentative) noexcept = 0;
     virtual void set_status_finished() = 0;
     virtual void set_status_error(bool cancelled) = 0;
@@ -48,7 +48,7 @@ class progress_bar_base {
 /**
  * Progress bar stub to be used when progress bar is not enabled.
  */
-class progress_bar_disabled : public progress_bar_base {
+class progress_bar_disabled : public progress_bar {
   public:
     void set_progress(double actual, double tentative) noexcept;
     void set_status_finished();
@@ -61,7 +61,7 @@ class progress_bar_disabled : public progress_bar_base {
 /**
  * Actual progress bar implementation.
  */
-class progress_bar : public progress_bar_base {
+class progress_bar_enabled : public progress_bar {
   using ptime_t = std::chrono::steady_clock::time_point;
   using dtime_t = std::chrono::steady_clock::duration;
   using rtime_t = std::chrono::duration<double>;  // in seconds
@@ -91,7 +91,7 @@ class progress_bar : public progress_bar_base {
     size_t : 48;
 
   public:
-    progress_bar();
+    progress_bar_enabled();
 
     void set_progress(double actual, double tentative) noexcept;
     void set_status_finished();

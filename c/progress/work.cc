@@ -36,7 +36,7 @@ work::work(size_t amount)
   // progress manager will call this->init();
 }
 
-void work::init(progress_bar_base* pb, work* parent) {
+void work::init(progress_bar* pb, work* parent) {
   xassert(pb);
   pbar = pb;
   if (parent) {

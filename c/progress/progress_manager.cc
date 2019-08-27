@@ -39,7 +39,7 @@ void progress_manager::start_work(work* task) {
     std::lock_guard<std::mutex> lock(mutex);
     xassert(pbar == nullptr);
     if (dt::progress::enabled) {
-      pbar = new progress_bar();
+      pbar = new progress_bar_enabled();
     } else {
       pbar = new progress_bar_disabled();
     }

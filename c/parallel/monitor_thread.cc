@@ -19,8 +19,8 @@
 #include <csignal> // std::signal
 #include <unistd.h>
 #include "parallel/monitor_thread.h"
-#include "parallel/thread_worker.h"   // idle_job
-#include "progress/progress_manager.h"  // dt::progress::manager
+#include "parallel/thread_worker.h"     // idle_job
+#include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "utils/exceptions.h"
 #include "parallel/api.h"
 namespace dt {
