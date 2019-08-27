@@ -30,7 +30,7 @@ progress_manager* manager = new progress_manager;
 
 
 progress_manager::progress_manager()
-  : pbar(nullptr) {}
+  : pbar(nullptr), caught_interrupt(false) {}
 
 
 void progress_manager::start_work(work* task) {
