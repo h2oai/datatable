@@ -34,7 +34,6 @@
 namespace dt {
 namespace expr {
 
-class expr_head {};
 
 //------------------------------------------------------------------------------
 // Expr construction
@@ -42,9 +41,19 @@ class expr_head {};
 
 Expr::Expr(py::robj src) {
   if (src.is_dtexpr()) {
-    // size_t op = src.get_attr("_op").to_size_t();
-    // py::otuple args = src.get_attr("_args").to_otuple();
-    // ...
+    size_t op = src.get_attr("_op").to_size_t();
+    py::otuple args = src.get_attr("_args").to_otuple();
+    py::otuple params = src.get_attr("_params").to_otuple();
+
+    size_t n_inputs = args.size();
+    for (size_t i = 0; i < n_inputs; ++i) {
+      inputs.push_back(Expr(args[i]));
+    }
+
+    head = Head::from_op(static_cast<Op>(op), params);
+  }
+  else {
+    head = Head::from_literal(src);
   }
 }
 

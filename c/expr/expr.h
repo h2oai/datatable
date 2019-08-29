@@ -22,6 +22,7 @@
 #ifndef dt_EXPR_EXPR_h
 #define dt_EXPR_EXPR_h
 #include <memory>
+#include <string>
 #include <vector>
 #include "expr/op.h"
 #include "expr/workframe.h"
@@ -31,8 +32,8 @@ namespace dt {
 namespace expr {
 
 
-class expr_head;
-
+class Head;
+class Output;
 
 //------------------------------------------------------------------------------
 // Expr
@@ -40,16 +41,34 @@ class expr_head;
 
 class Expr {
   private:
-    std::unique_ptr<expr_head> head;
-    std::vector<Expr>          inputs;
-    std::vector<Column>        outputs;
-    bool output_grouped;
-    size_t : 56;
+    std::unique_ptr<Head>  head;
+    std::vector<Expr>      inputs;
+    std::vector<Output>    outputs;
 
   public:
     explicit Expr(py::robj src);
     Expr(const Expr&) = delete;
     Expr(Expr&&) = default;
+};
+
+
+
+class Head {
+  public:
+    static std::unique_ptr<Head> from_op(Op, const py::otuple& params);
+    static std::unique_ptr<Head> from_literal(py::robj src);
+
+    virtual ~Head();
+    virtual colvec evaluate(colvec&& args, workframe& wf) = 0;
+};
+
+
+class Output {
+  public:
+    Column       column;
+    std::string  name;
+    bool         is_grouped;
+    size_t : 56;
 };
 
 
