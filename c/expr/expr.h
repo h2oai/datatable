@@ -21,6 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_h
 #define dt_EXPR_EXPR_h
+#include <memory>
+#include <vector>
 #include "expr/op.h"
 #include "expr/workframe.h"
 #include "python/obj.h"
@@ -29,19 +31,25 @@ namespace dt {
 namespace expr {
 
 
+class expr_head;
+
+
 //------------------------------------------------------------------------------
 // Expr
 //------------------------------------------------------------------------------
 
 class Expr {
   private:
-    std::vector<Expr> inputs;
-    std::vector<Column> outputs;
-    bool output_is_grouped;
+    std::unique_ptr<expr_head> head;
+    std::vector<Expr>          inputs;
+    std::vector<Column>        outputs;
+    bool output_grouped;
     size_t : 56;
 
   public:
-    Expr(py::robj src, int flags);
+    explicit Expr(py::robj src);
+    Expr(const Expr&) = delete;
+    Expr(Expr&&) = default;
 };
 
 
@@ -83,7 +91,7 @@ void init_expr();
 
 
 py::oobj make_pyexpr(Op opcode, py::oobj arg);
-py::oobj make_pyexpr(Op opcode, py::oobj arg1, py::oobj arg2);
+py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params);
 
 
 

@@ -52,22 +52,22 @@ def test_f_col_selector_unbound():
     # representation may be modified in the future; however f-expressions
     # should not raise exceptions when printed.
     # See issues #1024 and #1241
-    assert str(f.a) == "Expr:col(0, 'a')"
-    assert str(f.abcdefghijkl) == "Expr:col(0, 'abcdefghijkl')"
-    assert str(f.abcdefghijklm) == "Expr:col(0, 'abcdefghijklm')"
-    assert str(f[0]) == "Expr:col(0, 0)"
-    assert str(f[1000]) == "Expr:col(0, 1000)"
-    assert str(f[-1]) == "Expr:col(0, -1)"
-    assert str(f[-999]) == "Expr:col(0, -999)"
-    assert str(f[""]) == "Expr:col(0, '')"
-    assert str(f["0"]) == "Expr:col(0, '0')"
-    assert str(f["A+B"]) == "Expr:col(0, 'A+B')"
-    assert str(f["_A"]) == "Expr:col(0, '_A')"
-    assert str(f["_54"]) == "Expr:col(0, '_54')"
-    assert str(f._3_) == "Expr:col(0, '_3_')"
-    assert str(f.a_b_c) == "Expr:col(0, 'a_b_c')"
-    assert str(f[" y "]) == "Expr:col(0, ' y ')"
-    assert str(f["a b c"]) == "Expr:col(0, 'a b c')"
+    assert str(f.a) == "Expr:col(; 0, 'a')"
+    assert str(f.abcdefghijkl) == "Expr:col(; 0, 'abcdefghijkl')"
+    assert str(f.abcdefghijklm) == "Expr:col(; 0, 'abcdefghijklm')"
+    assert str(f[0]) == "Expr:col(; 0, 0)"
+    assert str(f[1000]) == "Expr:col(; 0, 1000)"
+    assert str(f[-1]) == "Expr:col(; 0, -1)"
+    assert str(f[-999]) == "Expr:col(; 0, -999)"
+    assert str(f[""]) == "Expr:col(; 0, '')"
+    assert str(f["0"]) == "Expr:col(; 0, '0')"
+    assert str(f["A+B"]) == "Expr:col(; 0, 'A+B')"
+    assert str(f["_A"]) == "Expr:col(; 0, '_A')"
+    assert str(f["_54"]) == "Expr:col(; 0, '_54')"
+    assert str(f._3_) == "Expr:col(; 0, '_3_')"
+    assert str(f.a_b_c) == "Expr:col(; 0, 'a_b_c')"
+    assert str(f[" y "]) == "Expr:col(; 0, ' y ')"
+    assert str(f["a b c"]) == "Expr:col(; 0, 'a b c')"
 
 
 def test_f_col_selector_invalid():
@@ -85,35 +85,35 @@ def test_f_col_selector_invalid():
 
 
 def test_f_expressions():
-    assert str(f.C1 < f.C2) == "Expr:lt(Expr:col(0, 'C1'), Expr:col(0, 'C2'))"
+    assert str(f.C1 < f.C2) == "Expr:lt(Expr:col(; 0, 'C1'), Expr:col(; 0, 'C2'); )"
 
 
 def test_f_columnset():
-    assert str(f[:]) == "Expr:col(0, slice(None, None, None))"
-    assert str(f[:7]) == "Expr:col(0, slice(None, 7, None))"
-    assert str(f[::-1]) == "Expr:col(0, slice(None, None, -1))"
-    assert str(f[bool]) == "Expr:col(0, <class 'bool'>)"
-    assert str(f[int]) == "Expr:col(0, <class 'int'>)"
-    assert str(f[float]) == "Expr:col(0, <class 'float'>)"
-    assert str(f[str]) == "Expr:col(0, <class 'str'>)"
-    assert str(f[object]) == "Expr:col(0, <class 'object'>)"
-    assert str(f[dt.int32]) == "Expr:col(0, stype.int32)"
-    assert str(f[dt.float64]) == "Expr:col(0, stype.float64)"
-    assert str(f[dt.ltype.int]) == "Expr:col(0, ltype.int)"
+    assert str(f[:]) == "Expr:col(; 0, slice(None, None, None))"
+    assert str(f[:7]) == "Expr:col(; 0, slice(None, 7, None))"
+    assert str(f[::-1]) == "Expr:col(; 0, slice(None, None, -1))"
+    assert str(f[bool]) == "Expr:col(; 0, <class 'bool'>)"
+    assert str(f[int]) == "Expr:col(; 0, <class 'int'>)"
+    assert str(f[float]) == "Expr:col(; 0, <class 'float'>)"
+    assert str(f[str]) == "Expr:col(; 0, <class 'str'>)"
+    assert str(f[object]) == "Expr:col(; 0, <class 'object'>)"
+    assert str(f[dt.int32]) == "Expr:col(; 0, stype.int32)"
+    assert str(f[dt.float64]) == "Expr:col(; 0, stype.float64)"
+    assert str(f[dt.ltype.int]) == "Expr:col(; 0, ltype.int)"
 
 
 def test_f_columnset_extend():
     assert str(f[:].extend(f.A)) == \
-        "Expr:setplus(Expr:col(0, slice(None, None, None)), Expr:col(0, 'A'))"
+        "Expr:setplus(Expr:col(; 0, slice(None, None, None)), Expr:col(; 0, 'A'); )"
     assert str(f[int].extend(f[str])) == \
-        "Expr:setplus(Expr:col(0, <class 'int'>), Expr:col(0, <class 'str'>))"
+        "Expr:setplus(Expr:col(; 0, <class 'int'>), Expr:col(; 0, <class 'str'>); )"
 
 
 def test_f_columnset_remove():
     assert str(f[:].remove(f.A)) == \
-        "Expr:setminus(Expr:col(0, slice(None, None, None)), Expr:col(0, 'A'))"
+        "Expr:setminus(Expr:col(; 0, slice(None, None, None)), Expr:col(; 0, 'A'); )"
     assert str(f[int].remove(f[0])) == \
-        "Expr:setminus(Expr:col(0, <class 'int'>), Expr:col(0, 0))"
+        "Expr:setminus(Expr:col(; 0, <class 'int'>), Expr:col(; 0, 0); )"
 
 
 
