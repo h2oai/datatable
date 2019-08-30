@@ -18,10 +18,6 @@
 #include "sort.h"
 
 
-ColumnImpl::ColumnImpl(size_t nrows)
-    : _nrows(nrows) {}
-
-ColumnImpl::~ColumnImpl() {}
 
 
 
@@ -203,7 +199,7 @@ bool Column::is_fixedwidth() const noexcept {
 }
 
 bool Column::is_virtual() const noexcept {
-  return bool(pcol->ri);
+  return pcol->is_virtual();
 }
 
 size_t Column::elemsize() const noexcept {
@@ -301,8 +297,8 @@ void Column::replace_values(const RowIndex& replace_at,
 // VoidColumn
 //==============================================================================
 
-VoidColumn::VoidColumn() { _stype = SType::VOID; }
-VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows) { _stype = SType::VOID; }
+VoidColumn::VoidColumn() : ColumnImpl(0, SType::VOID) {}
+VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows, SType::VOID) {}
 size_t VoidColumn::data_nrows() const { return _nrows; }
 ColumnImpl* VoidColumn::materialize() { return this; }
 void VoidColumn::resize_and_fill(size_t) {}
@@ -344,10 +340,7 @@ class StrvecColumn : public ColumnImpl {
 };
 
 StrvecColumn::StrvecColumn(const strvec& v)
-  : ColumnImpl(v.size()), vec(v)
-{
-  _stype = SType::STR32;
-}
+  : ColumnImpl(v.size(), SType::STR32), vec(v) {}
 
 bool StrvecColumn::get_element(size_t i, CString* out) const {
   out->ch = vec[i].c_str();

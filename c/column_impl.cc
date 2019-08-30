@@ -24,6 +24,12 @@
 
 
 
+ColumnImpl::ColumnImpl(size_t nrows, SType stype)
+  : _nrows(nrows),
+    _stype(stype) {}
+
+ColumnImpl::~ColumnImpl() {}
+
 
 ColumnImpl* ColumnImpl::new_impl(SType stype) {
   switch (stype) {

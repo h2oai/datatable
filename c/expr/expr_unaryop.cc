@@ -70,12 +70,9 @@ class unary_vcol : public ColumnImpl {
 
   public:
     unary_vcol(Column&& col, SType stype, operator_t f)
-      : arg(std::move(col)),
-        func(f)
-    {
-      _nrows = arg.nrows();
-      _stype = stype;
-    }
+      : ColumnImpl(col.nrows(), stype),
+        arg(std::move(col)),
+        func(f) {}
 
     bool get_element(size_t i, TO* out) const override {
       TI x;

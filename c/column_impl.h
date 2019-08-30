@@ -97,6 +97,7 @@ class ColumnImpl
 
   public:
     static ColumnImpl* new_impl(SType);
+    ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
     virtual ~ColumnImpl();
@@ -114,7 +115,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, py::robj* out) const;
 
     const RowIndex& rowindex() const noexcept { return ri; }
-    bool is_virtual() const noexcept { return bool(ri); }
+    virtual bool is_virtual() const noexcept { return bool(ri); }
     RowIndex remove_rowindex();
     void replace_rowindex(const RowIndex& newri);
 
@@ -250,7 +251,6 @@ class ColumnImpl
     virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1);
 
   protected:
-    ColumnImpl(size_t nrows = 0);
     virtual void init_data();
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 

@@ -30,26 +30,16 @@ namespace expr {
 
 class head_literal : public Head {
   public:
+    static ptrHead from_none();
+    static ptrHead from_bool(bool);
+    static ptrHead from_int(int64_t);
+    static ptrHead from_float(double);
+    static ptrHead from_string(CString);
+
     Outputs evaluate(const vecExpr&, workframe&) const override;
 
-  protected:
-    virtual Column make_colummn() const = 0;
+    virtual Column make_column() const = 0;
 };
-
-
-
-
-class head_literal_bool : public head_literal {
-  private:
-    bool value;
-
-  public:
-    head_literal_bool(bool x);
-
-  protected:
-    Column make_column() const override;
-}
-
 
 
 

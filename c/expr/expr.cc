@@ -29,6 +29,7 @@
 #include "expr/expr_str.h"
 #include "expr/expr_unaryop.h"
 #include "expr/head.h"
+#include "expr/head_literal.h"
 #include "expr/outputs.h"
 #include "expr/workframe.h"
 #include "datatable.h"
@@ -67,7 +68,7 @@ Expr::Expr(py::robj src) {
 
 void Expr::_init_from_bool(py::robj src) {
   int8_t t = src.to_bool_strict();
-  head = Head::make_bool(t);
+  head = head_literal::from_bool(t);
 }
 
 

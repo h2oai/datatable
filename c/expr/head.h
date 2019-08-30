@@ -39,7 +39,6 @@ using vecExpr = std::vector<Expr>;
 
 class Head {
   public:
-    static ptrHead make_bool(bool);
     static ptrHead make_list();
     static ptrHead make_named_list(strvec&& names);
     static ptrHead from_op(Op, const py::otuple& params);

@@ -19,30 +19,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/head.h"
-#include "expr/head_list.h"
-#include "expr/head_literal.h"
+#ifndef dt_COLUMN_COLUMN_CONST_h
+#define dt_COLUMN_COLUMN_CONST_h
+#include "column_impl.h"
 namespace dt {
-namespace expr {
 
 
-Head::~Head() {}
+class Const_ColumnImpl : public ColumnImpl {
+  public:
+    using ColumnImpl::ColumnImpl;
+    static Column make_na_column(size_t nrows);
+    static Column make_bool_column(size_t nrows, bool value);
+    static Column make_int_column(size_t nrows, int64_t value);
+    static Column make_float_column(size_t nrows, double value);
+    static Column make_string_column(size_t nrows, CString value);
 
-
-ptrHead Head::make_list() {
-  return ptrHead(new head_list());
-}
-
-ptrHead Head::make_named_list(strvec&& names) {
-  return ptrHead(new head_named_list(std::move(names)));
-}
-
-
-ptrHead Head::from_op(Op, const py::otuple&) {
-  return ptrHead();
-}
+    bool is_virtual() const noexcept override;
+};
 
 
 
-
-}}  // namespace dt::expr
+}  // namespace dt
+#endif
