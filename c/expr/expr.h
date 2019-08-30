@@ -32,8 +32,13 @@ namespace dt {
 namespace expr {
 
 
+class Expr;
 class Head;
-class Output;
+class Outputs;
+using ptrHead = std::unique_ptr<Head>;
+using vecExpr = std::vector<Expr>;
+
+
 
 //------------------------------------------------------------------------------
 // Expr
@@ -41,34 +46,33 @@ class Output;
 
 class Expr {
   private:
-    std::unique_ptr<Head>  head;
-    std::vector<Expr>      inputs;
-    std::vector<Output>    outputs;
+    ptrHead  head;
+    vecExpr  inputs;
 
   public:
     explicit Expr(py::robj src);
-    Expr(const Expr&) = delete;
+    Expr() = default;
     Expr(Expr&&) = default;
-};
+    Expr(const Expr&) = delete;
 
+    Outputs evaluate(workframe&) const;
 
-
-class Head {
-  public:
-    static std::unique_ptr<Head> from_op(Op, const py::otuple& params);
-    static std::unique_ptr<Head> from_literal(py::robj src);
-
-    virtual ~Head();
-    virtual colvec evaluate(colvec&& args, workframe& wf) = 0;
-};
-
-
-class Output {
-  public:
-    Column       column;
-    std::string  name;
-    bool         is_grouped;
-    size_t : 56;
+  private:
+    // Construction helpers
+    void _init_from_bool(py::robj);
+    void _init_from_dictionary(py::robj);
+    void _init_from_dtexpr(py::robj);
+    void _init_from_float(py::robj);
+    void _init_from_frame(py::robj);
+    void _init_from_int(py::robj);
+    void _init_from_iterable(py::robj);
+    void _init_from_list(py::robj);
+    void _init_from_none(py::robj);
+    void _init_from_numpy(py::robj);
+    void _init_from_pandas(py::robj);
+    void _init_from_slice(py::robj);
+    void _init_from_string(py::robj);
+    void _init_from_type(py::robj);
 };
 
 
