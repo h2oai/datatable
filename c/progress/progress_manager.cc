@@ -19,7 +19,6 @@
 #include "progress/progress_manager.h"
 #include "progress/work.h"
 #include "utils/assert.h"
-#include <iostream>
 namespace dt {
 namespace progress {
 

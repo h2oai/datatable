@@ -17,7 +17,6 @@
 #define dt_PARALLEL_FOR_STATIC_h
 #include <algorithm>
 #include "utils/assert.h"
-#include <iostream>
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
 namespace dt {
 
