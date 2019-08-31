@@ -55,7 +55,8 @@ class progress_manager {
     // can result in a segfault.
     mutable std::mutex mutex;
     mutable bool caught_interrupt;
-    size_t : 56;
+    mutable std::atomic<bool> abort_execution;
+    size_t : 48;
 
   public:
     void update_view() const;
@@ -67,9 +68,9 @@ class progress_manager {
     void start_work(work* task);
     // called by `work.done()` / `~work()`
     void finish_work(work* task, bool successfully);
-    void set_interrupt();
-
-  private:
+    void set_interrupt() const;
+    bool get_abort_execution() const;
+    void reset_abort_execution() const;
     void handle_interrupt() const;
 };
 

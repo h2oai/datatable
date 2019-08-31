@@ -54,6 +54,7 @@ void thread_team::wait_at_barrier() {
 
 
 void barrier() {
+  if (dt::progress::manager->get_abort_execution()) return;
   thread_pool::get_team_unchecked()->wait_at_barrier();
 }
 

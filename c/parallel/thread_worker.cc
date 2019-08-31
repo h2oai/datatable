@@ -187,6 +187,7 @@ void idle_job::join() {
   monitor->set_active(false);
 
   if (saved_exception) {
+    progress::manager->reset_abort_execution();
     std::rethrow_exception(saved_exception);
   }
 }

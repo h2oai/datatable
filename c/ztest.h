@@ -36,7 +36,9 @@ void test_parallel_for_ordered(size_t);
 void test_shmutex(size_t n_iters, size_t n_threads, int impl);
 
 // Defined in progress/ztest_progress.cc
-void test_progress(size_t, size_t);
+void test_progress_static(size_t, size_t);
+void test_progress_nested(size_t, size_t);
+void test_progress_dynamic(size_t, size_t);
 
 }  // namespace dttest
 

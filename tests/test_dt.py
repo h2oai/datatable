@@ -48,9 +48,17 @@ cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
 #-------------------------------------------------------------------------------
 # Test progress bar
 #-------------------------------------------------------------------------------
-# @cpp_test
-# def test_progress():
-#     core.test_progress(10000, 5)
+@cpp_test
+def test_progress_static():
+    core.test_progress_static(10000, 5)
+
+@cpp_test
+def test_progress_static():
+    core.test_progress_nested(10000, 5)
+
+@cpp_test
+def test_progress_dynamic():
+    core.test_progress_dynamic(10000, 5)
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions

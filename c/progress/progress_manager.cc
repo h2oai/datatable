@@ -19,6 +19,7 @@
 #include "progress/progress_manager.h"
 #include "progress/work.h"
 #include "utils/assert.h"
+#include <iostream>
 namespace dt {
 namespace progress {
 
@@ -30,7 +31,10 @@ progress_manager* manager = new progress_manager;
 
 
 progress_manager::progress_manager()
-  : pbar(nullptr), caught_interrupt(false) {}
+  : pbar(nullptr), caught_interrupt(false)
+{
+  abort_execution.store(false);
+}
 
 
 void progress_manager::start_work(work* task) {
@@ -57,8 +61,11 @@ void progress_manager::finish_work(work* task, bool successfully) {
   xassert(!tasks.empty() && tasks.top() == task);
   xassert(pbar != nullptr);
   tasks.pop();
+
+
+  std::lock_guard<std::mutex> lock(mutex);
+  handle_interrupt();
   if (successfully && tasks.empty()) {
-    std::lock_guard<std::mutex> lock(mutex);
     pbar->set_status_finished();
     delete pbar;
     pbar = nullptr;
@@ -85,9 +92,20 @@ void progress_manager::set_error_status(bool cancelled) noexcept {
 }
 
 
-void progress_manager::set_interrupt() {
+void progress_manager::set_interrupt() const {
   caught_interrupt = true;
+  abort_execution.store(true);
   // PyErr_SetInterrupt();
+}
+
+
+bool progress_manager::get_abort_execution() const {
+  return abort_execution;
+}
+
+
+void progress_manager::reset_abort_execution() const {
+  abort_execution.store(false);
 }
 
 

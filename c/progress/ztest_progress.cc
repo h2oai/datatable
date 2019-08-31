@@ -19,11 +19,64 @@
 #include "progress/work.h"      // dt::progress::work
 #include "utils/exceptions.h"
 #include "ztest.h"
-#include <iostream>
 namespace dttest {
 
 
-void test_progress(size_t n, size_t nth) {
+void test_progress_static(size_t n, size_t nth) {
+  dt::progress::work job(n/nth);
+  job.set_message("Starting...");
+
+  std::vector<size_t> data(n, 0);
+
+  dt::parallel_for_static(n, dt::ChunkSize(10), dt::NThreads(nth),
+    [&](size_t i) {
+      for (size_t j = 1; j < 100500; ++j) {
+        data[i] += i % j;
+      }
+
+      if (dt::this_thread_index() == 0) {
+        job.set_message("Running parallel_for_static...");
+        job.add_done_amount(1);
+      }
+    });
+
+  job.set_message("Finishing...");
+  job.done();
+}
+
+
+void test_progress_nested(size_t n, size_t nth) {
+  size_t n_iters = 10;
+  dt::progress::work job(n_iters * (n/nth));
+  job.set_message("Starting...");
+
+  std::vector<size_t> data(n, 0);
+
+  dt::parallel_region(nth,
+    [&]() {
+
+
+      for (size_t a = 0; a < n_iters; ++a) {
+        dt::nested_for_static(n,
+          [&](size_t i) {
+            for (size_t j = 1; j < 100500; ++j) {
+              data[i] += i % j;
+            }
+
+            if (dt::this_thread_index() == 0) {
+              job.set_message("Running test_progress_nested...");
+              job.add_done_amount(1);
+            }
+          });
+      }
+    });
+
+  job.set_message("Finishing...");
+  job.done();
+}
+
+
+void test_progress_dynamic (size_t n, size_t nth) {
   dt::progress::work job(n);
   job.set_message("Starting...");
 
@@ -36,12 +89,12 @@ void test_progress(size_t n, size_t nth) {
       }
 
       if (dt::this_thread_index() == 0) {
-        job.set_message("Running...");
-        job.set_done_amount(i);
+        job.set_message("Running test_progress_dynamic...");
+        job.add_done_amount(1);
       }
     });
-  job.set_done_amount(n);
 
+  job.set_done_amount(n);
   job.set_message("Finishing...");
   job.done();
 }

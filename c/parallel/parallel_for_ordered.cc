@@ -359,7 +359,6 @@ void parallel_for_ordered(size_t niters, NThreads _NThreads,
   ordered_scheduler sch(ntasks, nthreads, niters, job);
   ordered octx(&sch, fn);
   fn(&octx);
-  job.done();
 }
 
 
