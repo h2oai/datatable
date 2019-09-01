@@ -37,15 +37,52 @@ using ptrHead = std::unique_ptr<Head>;
 using vecExpr = std::vector<Expr>;
 
 
+
+/**
+ * `Head` is the part of an `Expr`. It can be thought as a function
+ * without the arguments. For example:
+ *
+ *    Expr            Head            Arguments
+ *    --------------  --------------  ----------
+ *    fn(a, b, c)     fn              (a, b, c)
+ *    x + y           binary_plus     (x, y)
+ *    3               literal_int     ()
+ *    [p, q, ..., z]  list            (p, q, ..., z)
+ *
+ * Each Head object may be parametrized. Generally, the distinction
+ * between arguments and parameters is that the arguments in an Expr
+ * may only be fully resolved when that Expr is evaluated in a
+ * workframe. On the contrary, the parameters are known at the time
+ * when the Expr is created.
+ *
+ * The main API of Head class consists of 3 `evaluate()` methods. Each
+ * of them takes a vector of arguments (if any) and the workframe, and
+ * produces a list of named `Column`s. The difference between these
+ * methods is the context in which the expression is to be evaluated:
+ *
+ * evaluate() is the "standard" mode of evaluation;
+ * evaluate_j() computes the expression when it is the root node in
+ *     j- or by-expr of DT[i,j,...].
+ * evaluate_f() computes the expression when it is used as an
+ *     f-selector, i.e. f[expr], or g[expr].
+ *
+ */
 class Head {
   public:
+    static constexpr size_t F_MASK = 255;
+    static constexpr size_t F_EXPR = 256;
+    static constexpr size_t J_NODE = 512;
+
     static ptrHead make_list();
     static ptrHead make_named_list(strvec&& names);
     static ptrHead from_op(Op, const py::otuple& params);
 
     virtual ~Head();
-    virtual Outputs evaluate(const vecExpr& inputs, workframe& wf) const = 0;
+    virtual Outputs evaluate(const vecExpr& args, workframe& wf) const = 0;
+    virtual Outputs evaluate_j(const vecExpr& args, workframe& wf) const = 0;
+    virtual Outputs evaluate_f(const vecExpr& args, workframe& wf, size_t frame_id) const = 0;
 };
+
 
 
 

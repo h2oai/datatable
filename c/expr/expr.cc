@@ -29,6 +29,7 @@
 #include "expr/expr_str.h"
 #include "expr/expr_unaryop.h"
 #include "expr/head.h"
+#include "expr/head_frame.h"
 #include "expr/head_literal.h"
 #include "expr/outputs.h"
 #include "expr/workframe.h"
@@ -53,7 +54,7 @@ Expr::Expr(py::robj src) {
   else if (src.is_dict())          _init_from_dictionary(src);
   else if (src.is_anytype())       _init_from_type(src);
   else if (src.is_generator())     _init_from_iterable(src);
-  else if (src.is_none())          _init_from_none(src);
+  else if (src.is_none())          _init_from_none();
   else if (src.is_frame())         _init_from_frame(src);
   else if (src.is_pandas_frame() ||
            src.is_pandas_series()) _init_from_pandas(src);
@@ -68,7 +69,20 @@ Expr::Expr(py::robj src) {
 
 void Expr::_init_from_bool(py::robj src) {
   int8_t t = src.to_bool_strict();
-  head = head_literal::from_bool(t);
+  head = Head_Literal::from_bool(t);
+}
+
+
+void Expr::_init_from_dictionary(py::robj src) {
+  strvec names;
+  for (auto kv : src.to_pydict()) {
+    if (!kv.first.is_string()) {
+      throw TypeError() << "Keys in the dictionary must be strings";
+    }
+    names.push_back(kv.first.to_string());
+    inputs.emplace_back(kv.second);
+  }
+  head = Head::make_named_list(std::move(names));
 }
 
 
@@ -84,13 +98,20 @@ void Expr::_init_from_dtexpr(py::robj src) {
 }
 
 
-void Expr::_init_from_list(py::robj src) {
-  auto srclist = src.to_pylist();
-  size_t nelems = srclist.size();
-  for (size_t i = 0; i < nelems; ++i) {
-    inputs.emplace_back(srclist[i]);
-  }
-  head = Head::make_list();
+void Expr::_init_from_float(py::robj src) {
+  double x = src.to_double();
+  head = Head_Literal::from_float(x);
+}
+
+
+void Expr::_init_from_frame(py::robj src) {
+  head = Head_Frame::from_datatable(src);
+}
+
+
+void Expr::_init_from_int(py::robj src) {
+  int64_t x = src.to_int64_strict();
+  head = Head_Literal::from_int(x);
 }
 
 
@@ -102,17 +123,40 @@ void Expr::_init_from_iterable(py::robj src) {
 }
 
 
-void Expr::_init_from_dictionary(py::robj src) {
-  strvec names;
-  for (auto kv : src.to_pydict()) {
-    if (!kv.first.is_string()) {
-      throw TypeError() << "Keys in the dictionary must be strings";
-    }
-    names.push_back(kv.first.to_string());
-    inputs.emplace_back(kv.second);
+void Expr::_init_from_list(py::robj src) {
+  auto srclist = src.to_pylist();
+  size_t nelems = srclist.size();
+  for (size_t i = 0; i < nelems; ++i) {
+    inputs.emplace_back(srclist[i]);
   }
-  head = Head::make_named_list(std::move(names));
+  head = Head::make_list();
 }
+
+
+void Expr::_init_from_none() {
+  head = Head_Literal::from_none();
+}
+
+
+void Expr::_init_from_numpy(py::robj src) {
+  head = Head_Frame::from_numpy(src);
+}
+
+
+void Expr::_init_from_pandas(py::robj src) {
+  head = Head_Frame::from_pandas(src);
+}
+
+
+void Expr::_init_from_slice(py::robj) {}
+
+
+void Expr::_init_from_string(py::robj src) {
+  head = Head_Literal::from_string(src.to_cstring());
+}
+
+
+void Expr::_init_from_type(py::robj) {}
 
 
 

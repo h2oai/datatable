@@ -408,6 +408,9 @@ class FrameInitializationManager {
       } else {
         xassert(src.is_pandas_series());
         check_names_count(1);
+        if (!names_arg) {
+          colnames.append(pdsrc.get_attr("name").to_pystring_force());
+        }
         py::oobj colsrc = pdsrc.get_attr("values");
         make_column(colsrc, SType::VOID);
       }

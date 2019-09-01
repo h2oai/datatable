@@ -67,7 +67,7 @@ class Expr {
     void _init_from_int(py::robj);
     void _init_from_iterable(py::robj);
     void _init_from_list(py::robj);
-    void _init_from_none(py::robj);
+    void _init_from_none();
     void _init_from_numpy(py::robj);
     void _init_from_pandas(py::robj);
     void _init_from_slice(py::robj);

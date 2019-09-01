@@ -51,7 +51,8 @@ Outputs& Outputs::add(Column&& col, size_t group_level) {
 }
 
 Outputs& Outputs::add(Column&& col) {
-  items.emplace_back(std::move(col), std::string(), GroupToAll);
+  constexpr size_t g = Outputs::GroupToAll;
+  items.emplace_back(std::move(col), std::string(), g);
   return *this;
 }
 

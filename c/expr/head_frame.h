@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_HEAD_LITERAL_h
-#define dt_EXPR_HEAD_LITERAL_h
+#ifndef dt_EXPR_HEAD_FRAME_h
+#define dt_EXPR_HEAD_FRAME_h
 #include <string>
 #include <vector>
 #include "expr/head.h"
@@ -28,21 +28,25 @@ namespace dt {
 namespace expr {
 
 
-class Head_Literal : public Head {
+class Head_Frame : public Head {
+  private:
+    py::oobj container;
+    DataTable* dt;
+    bool ignore_names;
+    size_t : 56;
+
   public:
-    static ptrHead from_none();
-    static ptrHead from_bool(bool);
-    static ptrHead from_int(int64_t);
-    static ptrHead from_float(double);
-    static ptrHead from_string(CString);
+    static ptrHead from_datatable(py::robj src);
+    static ptrHead from_numpy(py::robj src);
+    static ptrHead from_pandas(py::robj src);
+
+    Head_Frame(py::robj src, bool ignore_names = false);
 
     Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
-
-    virtual Column eval_as_literal() const = 0;
-    virtual Outputs eval_as_selector(workframe&, size_t frame_id) const = 0;
 };
+
 
 
 

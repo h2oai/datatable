@@ -38,12 +38,16 @@ namespace expr {
 // head_literal_none
 //------------------------------------------------------------------------------
 
-class head_literal_none : public head_literal {
+class head_literal_none : public Head_Literal {
   public:
     head_literal_none() {}
 
-    Column make_column() const override {
+    Column eval_as_literal() const override {
       return Const_ColumnImpl::make_na_column(1);
+    }
+
+    Outputs eval_as_selector(workframe&, size_t) const override {
+      return Outputs();
     }
 };
 
@@ -54,7 +58,7 @@ class head_literal_none : public head_literal {
 // head_literal_bool
 //------------------------------------------------------------------------------
 
-class head_literal_bool : public head_literal {
+class head_literal_bool : public Head_Literal {
   private:
     bool value;
     size_t : 56;
@@ -62,8 +66,13 @@ class head_literal_bool : public head_literal {
   public:
     head_literal_bool(bool x) : value(x) {}
 
-    Column make_column() const override {
+    Column eval_as_literal() const override {
       return Const_ColumnImpl::make_bool_column(1, value);
+    }
+
+    Outputs eval_as_selector(workframe&, size_t) const override {
+      throw TypeError()
+        << "A boolean value cannot be used as a column selector";
     }
 };
 
@@ -74,15 +83,29 @@ class head_literal_bool : public head_literal {
 // head_literal_int
 //------------------------------------------------------------------------------
 
-class head_literal_int : public head_literal {
+class head_literal_int : public Head_Literal {
   private:
     int64_t value;
 
   public:
     head_literal_int(int64_t x) : value(x) {}
 
-    Column make_column() const override {
+    Column eval_as_literal() const override {
       return Const_ColumnImpl::make_int_column(1, value);
+    }
+
+    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override {
+      auto df = wf.get_datatable(frame_id);
+      int64_t icols = static_cast<int64_t>(df->ncols);
+      if (value < -icols || value >= icols) {
+        throw ValueError()
+            << "Column index `" << value << "` is invalid for a Frame with "
+            << icols << " column" << (icols == 1? "" : "s");
+      }
+      size_t i = static_cast<size_t>(value < 0? value + icols : value);
+      return Outputs().add(Column(df->get_column(i)),
+                           std::string(df->get_names()[i]),
+                           Outputs::GroupToAll);
     }
 };
 
@@ -93,15 +116,20 @@ class head_literal_int : public head_literal {
 // head_literal_float
 //------------------------------------------------------------------------------
 
-class head_literal_float : public head_literal {
+class head_literal_float : public Head_Literal {
   private:
     double value;
 
   public:
     head_literal_float(double x) : value(x) {}
 
-    Column make_column() const override {
+    Column eval_as_literal() const override {
       return Const_ColumnImpl::make_float_column(1, value);
+    }
+
+    Outputs eval_as_selector(workframe&, size_t) const override {
+      throw TypeError() << "A floating-point value cannot be used as a "
+          "column selector";
     }
 };
 
@@ -112,15 +140,20 @@ class head_literal_float : public head_literal {
 // head_literal_string
 //------------------------------------------------------------------------------
 
-class head_literal_string : public head_literal {
+class head_literal_string : public Head_Literal {
   private:
-    CString value;
+    std::string value;
 
   public:
-    head_literal_string(CString x) : value(x) {}
+    head_literal_string(CString x)
+      : value(x.ch, static_cast<size_t>(x.size)) {}
 
-    Column make_column() const override {
+    Column eval_as_literal() const override {
       return Const_ColumnImpl::make_string_column(1, value);
+    }
+
+    Outputs eval_as_selector(workframe&, size_t frame_id) const override {
+      // TODO
     }
 };
 
@@ -128,36 +161,55 @@ class head_literal_string : public head_literal {
 
 
 //------------------------------------------------------------------------------
-// head_literal
+// Head_Literal
 //------------------------------------------------------------------------------
 
-ptrHead head_literal::from_none() {
+ptrHead Head_Literal::from_none() {
   return ptrHead(new head_literal_none());
 }
 
-ptrHead head_literal::from_bool(bool x) {
+ptrHead Head_Literal::from_bool(bool x) {
   return ptrHead(new head_literal_bool(x));
 }
 
-ptrHead head_literal::from_int(int64_t x) {
+ptrHead Head_Literal::from_int(int64_t x) {
   return ptrHead(new head_literal_int(x));
 }
 
-ptrHead head_literal::from_float(double x) {
+ptrHead Head_Literal::from_float(double x) {
   return ptrHead(new head_literal_float(x));
 }
 
-ptrHead head_literal::from_string(CString x) {
+ptrHead Head_Literal::from_string(CString x) {
   return ptrHead(new head_literal_string(x));
 }
 
 
 
-Outputs head_literal::evaluate(const vecExpr& inputs, workframe&) const {
+Outputs Head_Literal::evaluate(const vecExpr& inputs, workframe&) const {
   (void) inputs;
   xassert(inputs.size() == 0);
-  return Outputs().add(make_column(), Outputs::GroupToOne);
+  return Outputs().add(eval_as_literal(), Outputs::GroupToOne);
 }
+
+
+
+Outputs Head_Literal::evaluate_j(const vecExpr& inputs, workframe& wf) const {
+  (void) inputs;
+  xassert(inputs.size() == 0);
+  return eval_as_selector(wf, 0);
+}
+
+
+
+Outputs Head_Literal::evaluate_f(
+    const vecExpr& inputs, workframe& wf, size_t frame_id) const
+{
+  (void) inputs;
+  xassert(inputs.size() == 0);
+  return eval_as_selector(wf, frame_id);
+}
+
 
 
 

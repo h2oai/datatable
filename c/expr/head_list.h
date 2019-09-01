@@ -32,6 +32,8 @@ class head_list : public Head {
   public:
     head_list() = default;
     Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_j(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
 };
 
 
@@ -43,6 +45,8 @@ class head_named_list : public Head {
   public:
     head_named_list(strvec&&);
     Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_j(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
 };
 
 
