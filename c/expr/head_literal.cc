@@ -40,13 +40,26 @@ namespace expr {
 
 class head_literal_none : public Head_Literal {
   public:
-    head_literal_none() {}
-
     Column eval_as_literal() const override {
       return Const_ColumnImpl::make_na_column(1);
     }
 
     Outputs eval_as_selector(workframe&, size_t) const override {
+      throw RuntimeError();  // LCOV_EXCL_LINE
+    }
+
+    // When used as j, `None` means select all columns
+    Outputs evaluate_j(const vecExpr&, workframe& wf) const override {
+      auto dt0 = wf.get_datatable(0);
+      Outputs res;
+      for (size_t i = 0; i < dt0->ncols; ++i) {
+        res.add_column(dt0, i);
+      }
+      return res;
+    }
+
+    // When used in f, `None` means select nothing
+    Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override {
       return Outputs();
     }
 };
@@ -142,18 +155,20 @@ class head_literal_float : public Head_Literal {
 
 class head_literal_string : public Head_Literal {
   private:
-    std::string value;
+    py::oobj pystr;
 
   public:
-    head_literal_string(CString x)
-      : value(x.ch, static_cast<size_t>(x.size)) {}
+    head_literal_string(py::robj x)
+      : pystr(x) {}
 
     Column eval_as_literal() const override {
-      return Const_ColumnImpl::make_string_column(1, value);
+      return Const_ColumnImpl::make_string_column(1, pystr.to_string());
     }
 
-    Outputs eval_as_selector(workframe&, size_t frame_id) const override {
-      // TODO
+    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override {
+      auto df = wf.get_datatable(frame_id);
+      size_t j = df->xcolindex(pystr);
+      return Outputs().add_column(df, j);
     }
 };
 
@@ -180,7 +195,7 @@ ptrHead Head_Literal::from_float(double x) {
   return ptrHead(new head_literal_float(x));
 }
 
-ptrHead Head_Literal::from_string(CString x) {
+ptrHead Head_Literal::from_string(py::robj x) {
   return ptrHead(new head_literal_string(x));
 }
 

@@ -30,10 +30,15 @@ namespace expr {
 
 
 //------------------------------------------------------------------------------
-// head_list
+// Head_List
 //------------------------------------------------------------------------------
 
-Outputs head_list::evaluate(const vecExpr& inputs, workframe& wf) const {
+ptrHead Head_List::make() {
+  return ptrHead(new Head_List());
+}
+
+
+Outputs Head_List::evaluate(const vecExpr& inputs, workframe& wf) const {
   Outputs res;
   for (const Expr& arg : inputs) {
     res.append( arg.evaluate(wf) );
@@ -44,14 +49,18 @@ Outputs head_list::evaluate(const vecExpr& inputs, workframe& wf) const {
 
 
 //------------------------------------------------------------------------------
-// head_named_list
+// Head_NamedList
 //------------------------------------------------------------------------------
 
-head_named_list::head_named_list(strvec&& names_)
+ptrHead Head_NamedList::make(strvec&& names) {
+  return ptrHead(new Head_NamedList(std::move(names)));
+}
+
+Head_NamedList::Head_NamedList(strvec&& names_)
   : names(std::move(names_)) {}
 
 
-Outputs head_named_list::evaluate(const vecExpr& inputs, workframe& wf) const {
+Outputs Head_NamedList::evaluate(const vecExpr& inputs, workframe& wf) const {
   xassert(inputs.size() == names.size());
   Outputs res;
   for (size_t i = 0; i < inputs.size(); ++i) {

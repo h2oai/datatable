@@ -28,9 +28,10 @@ namespace dt {
 namespace expr {
 
 
-class head_list : public Head {
+class Head_List : public Head {
   public:
-    head_list() = default;
+    static ptrHead make();
+    Head_List() = default;
     Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
@@ -38,12 +39,13 @@ class head_list : public Head {
 
 
 
-class head_named_list : public Head {
+class Head_NamedList : public Head {
   private:
     strvec names;
 
   public:
-    head_named_list(strvec&&);
+    static ptrHead make(strvec&&);
+    Head_NamedList(strvec&&);
     Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;

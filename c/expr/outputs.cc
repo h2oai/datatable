@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/outputs.h"
+#include "datatable.h"
 namespace dt {
 namespace expr {
 
@@ -53,6 +54,16 @@ Outputs& Outputs::add(Column&& col, size_t group_level) {
 Outputs& Outputs::add(Column&& col) {
   constexpr size_t g = Outputs::GroupToAll;
   items.emplace_back(std::move(col), std::string(), g);
+  return *this;
+}
+
+// Add column df[i] to the outputs
+//
+Outputs& Outputs::add_column(DataTable* df, size_t i) {
+  const Column& column = df->get_column(i);
+  const std::string& name = df->get_names()[i];
+  size_t group_level = Outputs::GroupToAll;
+  items.emplace_back(Column(column), std::string(name), group_level);
   return *this;
 }
 

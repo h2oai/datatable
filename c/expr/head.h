@@ -60,21 +60,19 @@ using vecExpr = std::vector<Expr>;
  * produces a list of named `Column`s. The difference between these
  * methods is the context in which the expression is to be evaluated:
  *
- * evaluate() is the "standard" mode of evaluation;
- * evaluate_j() computes the expression when it is the root node in
- *     j- or by-expr of DT[i,j,...].
- * evaluate_f() computes the expression when it is used as an
+ * - evaluate() is the "standard" mode of evaluation;
+ *
+ * - evaluate_j() computes the expression when it is the root node in
+ *     j- or by-expr of DT[i,j,...]. The flag `assignment` is true
+ *     when the j-expression is used in an assignment statement
+ *     `DT[i,j] = smth`.
+ *
+ * - evaluate_f() computes the expression when it is used as an
  *     f-selector, i.e. f[expr], or g[expr].
  *
  */
 class Head {
   public:
-    static constexpr size_t F_MASK = 255;
-    static constexpr size_t F_EXPR = 256;
-    static constexpr size_t J_NODE = 512;
-
-    static ptrHead make_list();
-    static ptrHead make_named_list(strvec&& names);
     static ptrHead from_op(Op, const py::otuple& params);
 
     virtual ~Head();

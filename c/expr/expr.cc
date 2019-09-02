@@ -30,6 +30,7 @@
 #include "expr/expr_unaryop.h"
 #include "expr/head.h"
 #include "expr/head_frame.h"
+#include "expr/head_list.h"
 #include "expr/head_literal.h"
 #include "expr/outputs.h"
 #include "expr/workframe.h"
@@ -82,7 +83,7 @@ void Expr::_init_from_dictionary(py::robj src) {
     names.push_back(kv.first.to_string());
     inputs.emplace_back(kv.second);
   }
-  head = Head::make_named_list(std::move(names));
+  head = Head_NamedList::make(std::move(names));
 }
 
 
@@ -119,7 +120,7 @@ void Expr::_init_from_iterable(py::robj src) {
   for (auto elem : src.to_oiter()) {
     inputs.emplace_back(elem);
   }
-  head = Head::make_list();
+  head = Head_List::make();
 }
 
 
@@ -129,7 +130,7 @@ void Expr::_init_from_list(py::robj src) {
   for (size_t i = 0; i < nelems; ++i) {
     inputs.emplace_back(srclist[i]);
   }
-  head = Head::make_list();
+  head = Head_List::make();
 }
 
 
@@ -152,7 +153,7 @@ void Expr::_init_from_slice(py::robj) {}
 
 
 void Expr::_init_from_string(py::robj src) {
-  head = Head_Literal::from_string(src.to_cstring());
+  head = Head_Literal::from_string(src);
 }
 
 

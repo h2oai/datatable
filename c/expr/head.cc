@@ -29,15 +29,6 @@ namespace expr {
 Head::~Head() {}
 
 
-ptrHead Head::make_list() {
-  return ptrHead(new head_list());
-}
-
-ptrHead Head::make_named_list(strvec&& names) {
-  return ptrHead(new head_named_list(std::move(names)));
-}
-
-
 ptrHead Head::from_op(Op, const py::otuple&) {
   return ptrHead();
 }

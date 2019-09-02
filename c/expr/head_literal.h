@@ -34,7 +34,7 @@ class Head_Literal : public Head {
     static ptrHead from_bool(bool);
     static ptrHead from_int(int64_t);
     static ptrHead from_float(double);
-    static ptrHead from_string(CString);
+    static ptrHead from_string(py::robj);
 
     Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
