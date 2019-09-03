@@ -17,7 +17,6 @@
 #include "progress/progress_manager.h" // dt::progress::progress_manager
 #include "progress/work.h"
 #include "utils/assert.h"
-#include <iostream>
 namespace dt {
 namespace progress {
 
@@ -56,7 +55,6 @@ void work::init(progress_bar* pb, work* parent) {
 
 /**
  * This method must be called at the end of progress reporting.
- * If not called, progress bar object never gets deleted.
  */
 void work::done() {
   xassert(done_amount == total_amount);

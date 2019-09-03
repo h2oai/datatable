@@ -48,17 +48,26 @@ cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
 #-------------------------------------------------------------------------------
 # Test progress bar
 #-------------------------------------------------------------------------------
-@cpp_test
-def test_progress_static():
-    core.test_progress_static(10000, 5)
 
 @cpp_test
-def test_progress_static():
-    core.test_progress_nested(10000, 5)
+@pytest.mark.parametrize('parallel_type', ["static", "nested", "dynamic"])
+def test_progress_interrupt(parallel_type):
+    import signal
+    import subprocess
+    import time
+    nthreads = [dt.options.nthreads]
 
-@cpp_test
-def test_progress_dynamic():
-    core.test_progress_dynamic(10000, 5)
+    for i in nthreads:
+        cmd = "import datatable as dt; from datatable.lib import core; core.test_progress_%s (10000, %s)" % (parallel_type, i)
+        proc = subprocess.Popen(["python", "-c", cmd],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(0.1)
+        proc.send_signal(signal.Signals.SIGINT)
+        ret = proc.wait()
+        stdout = proc.stdout.read().decode()
+        stderr = proc.stderr.read().decode()
+        assert(stderr[-18:] == "KeyboardInterrupt\n")
+
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions
