@@ -19,18 +19,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/head.h"
-#include "expr/head_list.h"
+#include "column/column_const.h"
 #include "expr/head_literal.h"
+#include "expr/outputs.h"
 namespace dt {
 namespace expr {
 
 
-Head::~Head() {}
+
+Column Head_Literal_None::eval_as_literal() const {
+  return Const_ColumnImpl::make_na_column(1);
+}
 
 
-ptrHead Head::from_op(Op, const py::otuple&) {
-  return ptrHead();
+Outputs Head_Literal_None::eval_as_selector(workframe&, size_t) const {
+  throw RuntimeError();  // LCOV_EXCL_LINE
+}
+
+
+// When used as j, `None` means select all columns
+Outputs Head_Literal_None::evaluate_j(const vecExpr&, workframe& wf) const {
+  auto dt0 = wf.get_datatable(0);
+  Outputs res;
+  for (size_t i = 0; i < dt0->ncols; ++i) {
+    res.add_column(dt0, i);
+  }
+  return res;
+}
+
+
+// When used in f, `None` means select nothing
+Outputs Head_Literal_None::evaluate_f(const vecExpr&, workframe&, size_t) const {
+  return Outputs();
 }
 
 

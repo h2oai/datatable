@@ -21,44 +21,34 @@
 //------------------------------------------------------------------------------
 #include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/expr.h"
 #include "expr/outputs.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
 
 
-//------------------------------------------------------------------------------
-// Head_Literal
-//------------------------------------------------------------------------------
+Head_Literal_Int::Head_Literal_Int(int64_t x) : value(x) {}
 
-Outputs Head_Literal::evaluate(const vecExpr& inputs, workframe&) const {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return Outputs().add(eval_as_literal(), Outputs::GroupToOne);
+
+Column Head_Literal_Int::eval_as_literal() const {
+  return Const_ColumnImpl::make_int_column(1, value);
 }
 
 
-
-Outputs Head_Literal::evaluate_j(const vecExpr& inputs, workframe& wf) const {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return eval_as_selector(wf, 0);
-}
-
-
-
-Outputs Head_Literal::evaluate_f(
-    const vecExpr& inputs, workframe& wf, size_t frame_id) const
+Outputs Head_Literal_Int::eval_as_selector(workframe& wf, size_t frame_id) const
 {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return eval_as_selector(wf, frame_id);
+  auto df = wf.get_datatable(frame_id);
+  int64_t icols = static_cast<int64_t>(df->ncols);
+  if (value < -icols || value >= icols) {
+    throw ValueError()
+        << "Column index `" << value << "` is invalid for a Frame with "
+        << icols << " column" << (icols == 1? "" : "s");
+  }
+  size_t i = static_cast<size_t>(value < 0? value + icols : value);
+  return Outputs().add(Column(df->get_column(i)),
+                       std::string(df->get_names()[i]),
+                       Outputs::GroupToAll);
 }
-
 
 
 

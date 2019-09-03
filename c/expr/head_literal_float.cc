@@ -21,44 +21,23 @@
 //------------------------------------------------------------------------------
 #include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/expr.h"
 #include "expr/outputs.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
 
+Head_Literal_Float::Head_Literal_Float(double x) : value(x) {}
 
-//------------------------------------------------------------------------------
-// Head_Literal
-//------------------------------------------------------------------------------
 
-Outputs Head_Literal::evaluate(const vecExpr& inputs, workframe&) const {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return Outputs().add(eval_as_literal(), Outputs::GroupToOne);
+Column Head_Literal_Float::eval_as_literal() const {
+  return Const_ColumnImpl::make_float_column(1, value);
 }
 
 
-
-Outputs Head_Literal::evaluate_j(const vecExpr& inputs, workframe& wf) const {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return eval_as_selector(wf, 0);
+Outputs Head_Literal_Float::eval_as_selector(workframe&, size_t) const {
+  throw TypeError() << "A floating-point value cannot be used as a "
+      "column selector";
 }
-
-
-
-Outputs Head_Literal::evaluate_f(
-    const vecExpr& inputs, workframe& wf, size_t frame_id) const
-{
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return eval_as_selector(wf, frame_id);
-}
-
 
 
 

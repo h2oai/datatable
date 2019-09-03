@@ -21,42 +21,27 @@
 //------------------------------------------------------------------------------
 #include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/expr.h"
 #include "expr/outputs.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
 
 
-//------------------------------------------------------------------------------
-// Head_Literal
-//------------------------------------------------------------------------------
 
-Outputs Head_Literal::evaluate(const vecExpr& inputs, workframe&) const {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return Outputs().add(eval_as_literal(), Outputs::GroupToOne);
+Head_Literal_String::Head_Literal_String(py::robj x) : pystr(x) {}
+
+
+Column Head_Literal_String::eval_as_literal() const {
+  return Const_ColumnImpl::make_string_column(1, pystr.to_string());
 }
 
 
-
-Outputs Head_Literal::evaluate_j(const vecExpr& inputs, workframe& wf) const {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return eval_as_selector(wf, 0);
-}
-
-
-
-Outputs Head_Literal::evaluate_f(
-    const vecExpr& inputs, workframe& wf, size_t frame_id) const
+Outputs Head_Literal_String::eval_as_selector(
+    workframe& wf, size_t frame_id) const
 {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return eval_as_selector(wf, frame_id);
+  auto df = wf.get_datatable(frame_id);
+  size_t j = df->xcolindex(pystr);
+  return Outputs().add_column(df, j);
 }
 
 

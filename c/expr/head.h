@@ -73,8 +73,6 @@ using vecExpr = std::vector<Expr>;
  */
 class Head {
   public:
-    static ptrHead from_op(Op, const py::otuple& params);
-
     virtual ~Head();
     virtual Outputs evaluate(const vecExpr& args, workframe& wf) const = 0;
     virtual Outputs evaluate_j(const vecExpr& args, workframe& wf) const = 0;

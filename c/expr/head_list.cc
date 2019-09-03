@@ -72,6 +72,16 @@ Outputs Head_NamedList::evaluate(const vecExpr& inputs, workframe& wf) const {
 }
 
 
+Outputs Head_NamedList::evaluate_f(const vecExpr&, workframe&, size_t) const {
+  throw TypeError() << "A dictionary cannot be used as an f-selector";
+}
+
+
+Outputs Head_NamedList::evaluate_j(const vecExpr& inputs, workframe& wf) const {
+  return evaluate(inputs, wf);
+}
+
+
 
 
 }}  // namespace dt::expr

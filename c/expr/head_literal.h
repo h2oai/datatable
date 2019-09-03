@@ -30,12 +30,6 @@ namespace expr {
 
 class Head_Literal : public Head {
   public:
-    static ptrHead from_none();
-    static ptrHead from_bool(bool);
-    static ptrHead from_int(int64_t);
-    static ptrHead from_float(double);
-    static ptrHead from_string(py::robj);
-
     Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
@@ -43,6 +37,67 @@ class Head_Literal : public Head {
     virtual Column eval_as_literal() const = 0;
     virtual Outputs eval_as_selector(workframe&, size_t frame_id) const = 0;
 };
+
+
+
+class Head_Literal_None : public Head_Literal {
+  public:
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe&, size_t) const override;
+
+    Outputs evaluate_j(const vecExpr&, workframe& wf) const override;
+    Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
+};
+
+
+
+class Head_Literal_Bool : public Head_Literal {
+  private:
+    bool value;
+    size_t : 56;
+
+  public:
+    Head_Literal_Bool(bool x);
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe&, size_t) const override;
+};
+
+
+
+class Head_Literal_Int : public Head_Literal {
+  private:
+    int64_t value;
+
+  public:
+    Head_Literal_Int(int64_t x);
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe&, size_t) const override;
+};
+
+
+
+class Head_Literal_Float : public Head_Literal {
+  private:
+    double value;
+
+  public:
+    Head_Literal_Float(double x);
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe&, size_t) const override;
+};
+
+
+
+class Head_Literal_String : public Head_Literal {
+  private:
+    py::oobj pystr;
+
+  public:
+    Head_Literal_String(py::robj x);
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
+};
+
 
 
 

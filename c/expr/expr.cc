@@ -40,6 +40,9 @@ namespace dt {
 namespace expr {
 
 
+Head::~Head() {}
+
+
 //------------------------------------------------------------------------------
 // Expr construction
 //------------------------------------------------------------------------------
@@ -70,7 +73,7 @@ Expr::Expr(py::robj src) {
 
 void Expr::_init_from_bool(py::robj src) {
   int8_t t = src.to_bool_strict();
-  head = Head_Literal::from_bool(t);
+  head = ptrHead(new Head_Literal_Bool(t));
 }
 
 
@@ -95,13 +98,13 @@ void Expr::_init_from_dtexpr(py::robj src) {
   for (size_t i = 0; i < args.size(); ++i) {
     inputs.emplace_back(args[i]);
   }
-  head = Head::from_op(static_cast<Op>(op), params);
+  // head = Head::from_op(static_cast<Op>(op), params);
 }
 
 
 void Expr::_init_from_float(py::robj src) {
   double x = src.to_double();
-  head = Head_Literal::from_float(x);
+  head = ptrHead(new Head_Literal_Float(x));
 }
 
 
@@ -112,7 +115,7 @@ void Expr::_init_from_frame(py::robj src) {
 
 void Expr::_init_from_int(py::robj src) {
   int64_t x = src.to_int64_strict();
-  head = Head_Literal::from_int(x);
+  head = ptrHead(new Head_Literal_Int(x));
 }
 
 
@@ -135,7 +138,7 @@ void Expr::_init_from_list(py::robj src) {
 
 
 void Expr::_init_from_none() {
-  head = Head_Literal::from_none();
+  head = ptrHead(new Head_Literal_None);
 }
 
 
@@ -149,11 +152,13 @@ void Expr::_init_from_pandas(py::robj src) {
 }
 
 
-void Expr::_init_from_slice(py::robj) {}
+void Expr::_init_from_slice(py::robj src) {
+  // head = Head_Literal::from_slice(src);
+}
 
 
 void Expr::_init_from_string(py::robj src) {
-  head = Head_Literal::from_string(src);
+  head = ptrHead(new Head_Literal_String(src));
 }
 
 
