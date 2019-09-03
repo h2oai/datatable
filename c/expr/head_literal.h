@@ -28,6 +28,7 @@ namespace dt {
 namespace expr {
 
 
+
 class Head_Literal : public Head {
   public:
     Outputs evaluate(const vecExpr&, workframe&) const override;

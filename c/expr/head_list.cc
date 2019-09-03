@@ -33,11 +33,6 @@ namespace expr {
 // Head_List
 //------------------------------------------------------------------------------
 
-ptrHead Head_List::make() {
-  return ptrHead(new Head_List());
-}
-
-
 Outputs Head_List::evaluate(const vecExpr& inputs, workframe& wf) const {
   Outputs res;
   for (const Expr& arg : inputs) {
@@ -45,6 +40,13 @@ Outputs Head_List::evaluate(const vecExpr& inputs, workframe& wf) const {
   }
   return res;
 }
+
+
+Outputs Head_List::evaluate_j(const vecExpr& inputs, workframe& wf) const {
+  for (const Expr& arg : inputs) {
+  }
+}
+
 
 
 

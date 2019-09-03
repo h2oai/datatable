@@ -123,7 +123,7 @@ void Expr::_init_from_iterable(py::robj src) {
   for (auto elem : src.to_oiter()) {
     inputs.emplace_back(elem);
   }
-  head = Head_List::make();
+  head = ptrHead(new Head_List);
 }
 
 
@@ -133,7 +133,7 @@ void Expr::_init_from_list(py::robj src) {
   for (size_t i = 0; i < nelems; ++i) {
     inputs.emplace_back(srclist[i]);
   }
-  head = Head_List::make();
+  head = ptrHead(new Head_List);
 }
 
 
