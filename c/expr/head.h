@@ -74,13 +74,13 @@ using vecExpr = std::vector<Expr>;
 class Head {
   public:
     enum Kind {
-      Unknown, Bool, Int, Float, String, Type, Func, List, Frame
+      Unknown, Bool, Int, Float, Str, Type, Func, List, Frame
     };
 
     virtual ~Head();
     virtual Outputs evaluate(const vecExpr& args, workframe& wf) const = 0;
     virtual Outputs evaluate_j(const vecExpr& args, workframe& wf) const = 0;
-    virtual Outputs evaluate_f(const vecExpr& args, workframe& wf, size_t frame_id) const = 0;
+    virtual Outputs evaluate_f(workframe& wf, size_t frame_id) const = 0;
 
     virtual Kind get_expr_kind() const = 0;
 };

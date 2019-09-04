@@ -77,12 +77,12 @@ Head::Kind Head_Literal_Type::get_expr_kind() const {
 }
 
 
-Column Head_Literal_Type::eval_as_literal() const {
+Outputs Head_Literal_Type::evaluate(const vecExpr&, workframe&) const {
   throw TypeError() << value << " cannot appear in this context";
 }
 
 
-Outputs Head_Literal_Type::eval_as_selector(workframe& wf, size_t fid) const
+Outputs Head_Literal_Type::evaluate_f(workframe& wf, size_t fid) const
 {
   DataTable* df = wf.get_datatable(fid);
   if (value.is_type()) {
@@ -107,6 +107,7 @@ Outputs Head_Literal_Type::eval_as_selector(workframe& wf, size_t fid) const
   }
   throw ValueError() << "Unknown type " << value << " used as a selector";
 }
+
 
 
 

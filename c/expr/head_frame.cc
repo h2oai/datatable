@@ -82,7 +82,7 @@ Outputs Head_Frame::evaluate_j(const vecExpr& args, workframe& wf) const {
 }
 
 
-Outputs Head_Frame::evaluate_f(const vecExpr&, workframe&, size_t) const {
+Outputs Head_Frame::evaluate_f(workframe&, size_t) const {
   throw TypeError() << "A Frame cannot be used inside an f-expression";
 }
 

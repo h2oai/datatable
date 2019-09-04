@@ -31,14 +31,10 @@ Head::Kind Head_Literal_None::get_expr_kind() const {
 }
 
 
-Column Head_Literal_None::eval_as_literal() const {
-  return Const_ColumnImpl::make_na_column(1);
+Outputs Head_Literal_None::evaluate(const vecExpr&, workframe&) const {
+  return _wrap_column(Const_ColumnImpl::make_na_column(1));
 }
 
-
-Outputs Head_Literal_None::eval_as_selector(workframe&, size_t) const {
-  throw RuntimeError();  // LCOV_EXCL_LINE
-}
 
 
 // When used as j, `None` means select all columns
@@ -53,7 +49,7 @@ Outputs Head_Literal_None::evaluate_j(const vecExpr&, workframe& wf) const {
 
 
 // When used in f, `None` means select nothing
-Outputs Head_Literal_None::evaluate_f(const vecExpr&, workframe&, size_t) const {
+Outputs Head_Literal_None::evaluate_f(workframe&, size_t) const {
   return Outputs();
 }
 

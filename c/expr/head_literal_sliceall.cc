@@ -26,31 +26,25 @@ namespace dt {
 namespace expr {
 
 
+Head::Kind Head_Literal_SliceAll::get_expr_kind() const {
+  return Head::Kind::Unknown;
+}
 
-Head_Literal_Int::Head_Literal_Int(int64_t x) : value(x) {}
 
-Head::Kind Head_Literal_Int::get_expr_kind() const {
-  return Head::Kind::Int;
+Outputs Head_Literal_SliceAll::evaluate(const vecExpr&, workframe&) const {
+  throw TypeError() << "A slice expression cannot appear in this context";
 }
 
 
 
-Outputs Head_Literal_Int::evaluate(const vecExpr&, workframe&) const {
-  return _wrap_column(Const_ColumnImpl::make_int_column(1, value));
-}
-
-
-Outputs Head_Literal_Int::evaluate_f(workframe& wf, size_t frame_id) const
+Outputs Head_Literal_SliceAll::evaluate_f(workframe& wf, size_t frame_id) const
 {
-  auto df = wf.get_datatable(frame_id);
-  int64_t icols = static_cast<int64_t>(df->ncols);
-  if (value < -icols || value >= icols) {
-    throw ValueError()
-        << "Column index `" << value << "` is invalid for a Frame with "
-        << icols << " column" << (icols == 1? "" : "s");
+  DataTable* df = wf.get_datatable(frame_id);
+  Outputs res;
+  for (size_t i = 0; i < df->ncols; ++i) {
+    res.add_column(df, i);
   }
-  size_t i = static_cast<size_t>(value < 0? value + icols : value);
-  return Outputs().add_column(df, i);
+  return res;
 }
 
 

@@ -46,9 +46,18 @@ Outputs Head_List::evaluate(const vecExpr& inputs, workframe& wf) const {
 }
 
 
+Outputs Head_List::evaluate_f(workframe&, size_t) const {
+  throw TypeError() << "A list or a sequence cannot be used as an f-selector";
+}
+
+
+
 Outputs Head_List::evaluate_j(const vecExpr& inputs, workframe& wf) const {
-  for (const Expr& arg : inputs) {
-  }
+  // for (const Expr& arg : inputs) {
+  // }
+  (void) wf;
+  (void) inputs;
+  return Outputs();
 }
 
 
@@ -78,7 +87,7 @@ Outputs Head_NamedList::evaluate(const vecExpr& inputs, workframe& wf) const {
 }
 
 
-Outputs Head_NamedList::evaluate_f(const vecExpr&, workframe&, size_t) const {
+Outputs Head_NamedList::evaluate_f(workframe&, size_t) const {
   throw TypeError() << "A dictionary cannot be used as an f-selector";
 }
 

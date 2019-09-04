@@ -31,17 +31,17 @@ namespace expr {
 Head_Literal_String::Head_Literal_String(py::robj x) : pystr(x) {}
 
 Head::Kind Head_Literal_String::get_expr_kind() const {
-  return Head::Kind::String;
+  return Head::Kind::Str;
 }
 
 
-Column Head_Literal_String::eval_as_literal() const {
-  return Const_ColumnImpl::make_string_column(1, pystr.to_string());
+Outputs Head_Literal_String::evaluate(const vecExpr&, workframe&) const {
+  return _wrap_column(
+            Const_ColumnImpl::make_string_column(1, pystr.to_string()));
 }
 
 
-Outputs Head_Literal_String::eval_as_selector(
-    workframe& wf, size_t frame_id) const
+Outputs Head_Literal_String::evaluate_f(workframe& wf, size_t frame_id) const
 {
   auto df = wf.get_datatable(frame_id);
   size_t j = df->xcolindex(pystr);

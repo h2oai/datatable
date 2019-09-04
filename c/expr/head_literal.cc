@@ -35,29 +35,10 @@ namespace expr {
 // Head_Literal
 //------------------------------------------------------------------------------
 
-Outputs Head_Literal::evaluate(const vecExpr& inputs, workframe&) const {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return Outputs().add(eval_as_literal(), Outputs::GroupToOne);
+Outputs Head_Literal::_wrap_column(Column&& col) {
+  return Outputs().add(std::move(col), Outputs::GroupToOne);
 }
 
-
-
-Outputs Head_Literal::evaluate_j(const vecExpr& inputs, workframe& wf) const {
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return eval_as_selector(wf, 0);
-}
-
-
-
-Outputs Head_Literal::evaluate_f(
-    const vecExpr& inputs, workframe& wf, size_t frame_id) const
-{
-  (void) inputs;
-  xassert(inputs.size() == 0);
-  return eval_as_selector(wf, frame_id);
-}
 
 
 

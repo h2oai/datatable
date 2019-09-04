@@ -34,12 +34,12 @@ Head::Kind Head_Literal_Float::get_expr_kind() const {
 
 
 
-Column Head_Literal_Float::eval_as_literal() const {
-  return Const_ColumnImpl::make_float_column(1, value);
+Outputs Head_Literal_Float::evaluate(const vecExpr&, workframe&) const {
+  return _wrap_column(Const_ColumnImpl::make_float_column(1, value));
 }
 
 
-Outputs Head_Literal_Float::eval_as_selector(workframe&, size_t) const {
+Outputs Head_Literal_Float::evaluate_f(workframe&, size_t) const {
   throw TypeError() << "A floating-point value cannot be used as a "
       "column selector";
 }

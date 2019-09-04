@@ -45,7 +45,7 @@ class Head_Frame : public Head {
 
     Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
-    Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 

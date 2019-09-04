@@ -28,27 +28,33 @@ namespace dt {
 namespace expr {
 
 
+//------------------------------------------------------------------------------
+// base Head_Literal
+//------------------------------------------------------------------------------
 
 class Head_Literal : public Head {
   public:
     Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
-    Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 
-    virtual Column eval_as_literal() const = 0;
-    virtual Outputs eval_as_selector(workframe&, size_t frame_id) const = 0;
+  protected:
+    static Outputs _wrap_column(Column&&);
 };
 
 
 
+
+//------------------------------------------------------------------------------
+// implementations
+//------------------------------------------------------------------------------
+
 class Head_Literal_None : public Head_Literal {
   public:
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe&, size_t) const override;
-
+    Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe& wf) const override;
-    Outputs evaluate_f(const vecExpr&, workframe&, size_t) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
@@ -61,8 +67,8 @@ class Head_Literal_Bool : public Head_Literal {
   public:
     explicit Head_Literal_Bool(bool x);
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe&, size_t) const override;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
@@ -74,8 +80,8 @@ class Head_Literal_Int : public Head_Literal {
   public:
     explicit Head_Literal_Int(int64_t x);
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe&, size_t) const override;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
@@ -87,8 +93,8 @@ class Head_Literal_Float : public Head_Literal {
   public:
     explicit Head_Literal_Float(double x);
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe&, size_t) const override;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
@@ -100,8 +106,8 @@ class Head_Literal_String : public Head_Literal {
   public:
     explicit Head_Literal_String(py::robj x);
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
@@ -109,21 +115,21 @@ class Head_Literal_String : public Head_Literal {
 class Head_Literal_SliceAll : public Head_Literal {
   public:
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe&, size_t) const override;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
 
 class Head_Literal_SliceInt : public Head_Literal {
   private:
-    size_t start, stop, step;
+    py::oslice value;
 
   public:
     explicit Head_Literal_SliceInt(py::oslice x);
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
@@ -136,8 +142,8 @@ class Head_Literal_SliceStr : public Head_Literal {
   public:
     explicit Head_Literal_SliceStr(py::oslice x);
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
@@ -149,8 +155,8 @@ class Head_Literal_Type : public Head_Literal {
   public:
     explicit Head_Literal_Type(py::robj x);
     Kind get_expr_kind() const override;
-    Column eval_as_literal() const override;
-    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_f(workframe&, size_t) const override;
 };
 
 
