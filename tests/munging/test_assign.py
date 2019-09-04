@@ -218,6 +218,26 @@ def test_assign_to_single_column_selector():
                                stypes=(dt.int32, dt.str32, dt.bool8)))
 
 
+def test_assign_nonexisting_column():
+    # See #1983: if column `B` is created at a wrong moment in the evaluation
+    # sequence, this may seg.fault
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError) as e:
+        DT[:, "B"] = f.B + 1
+    assert ("Column `B` does not exist in the Frame" in str(e.value))
+    frame_integrity_check(DT)
+
+
+@pytest.mark.xfail
+def test_assign_wrong_type():
+    # Check that if one assignment was correct, the exception during the
+    # next assignment rolls the frame back to a consistent state
+    DT = dt.Frame(B=range(5))
+    with pytest.raises(TypeError):
+        DT[:, ["A", "B"]] = 3.3
+    frame_integrity_check(DT)
+
+
 
 
 #-------------------------------------------------------------------------------

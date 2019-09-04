@@ -56,3 +56,7 @@ Frame
 
   The variables are created in the global scope because python's locals cannot
   be manipulated programmatically.
+
+- |bug| Fixed a bug where creating a new column via assignment would crash if
+  the RHS of the assignment contained an expression that tried to use the
+  column that was being created (#1983).
