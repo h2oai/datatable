@@ -56,6 +56,11 @@ Outputs Head_Literal_SliceInt::evaluate_f(workframe& wf, size_t frame_id) const
 }
 
 
+Outputs Head_Literal_SliceInt::evaluate_j(const vecExpr&, workframe& wf) const
+{
+  return evaluate_f(wf, 0);
+}
+
 
 
 }}  // namespace dt::expr

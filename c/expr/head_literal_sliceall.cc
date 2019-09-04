@@ -36,16 +36,40 @@ Outputs Head_Literal_SliceAll::evaluate(const vecExpr&, workframe&) const {
 }
 
 
-
+// `f[:]` will return all columns from `f`
+//
 Outputs Head_Literal_SliceAll::evaluate_f(workframe& wf, size_t frame_id) const
 {
   DataTable* df = wf.get_datatable(frame_id);
-  Outputs res;
+  Outputs outputs;
   for (size_t i = 0; i < df->ncols; ++i) {
-    res.add_column(df, i);
+    outputs.add_column(df, i);
   }
-  return res;
+  return outputs;
 }
+
+
+// When `:` is used in j expression, it means "all columns in all frames,
+// including the joined frames". There are 2 exceptions though:
+//   - any groupby columns are not added (since they should be added at the
+//     front by the groupby operation itself);
+//   - key columns in naturally joined frames are skipped, to avoid duplication.
+//
+Outputs Head_Literal_SliceAll::evaluate_j(const vecExpr&, workframe& wf) const
+{
+  Outputs outputs;
+  for (size_t i = 0; i < wf.nframes(); ++i) {
+    const DataTable* dti = wf.get_datatable(i);
+    size_t j0 = wf.is_naturally_joined(i)? dti->get_nkeys() : 0;
+    const by_node& by = wf.get_by_node();
+    for (size_t j = j0; j < dti->ncols; ++j) {
+      if (by.has_group_column(j)) continue;
+      outputs.add_column(dti, j);
+    }
+  }
+  return outputs;
+}
+
 
 
 
