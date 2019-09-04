@@ -300,6 +300,7 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
                        function<void(size_t)> post_ordered)
 {
   if (sch->n_threads <= 1) {
+    enable_monitor(true);
     if (!pre_ordered)  pre_ordered = noop;
     if (!do_ordered)   do_ordered = noop;
     if (!post_ordered) post_ordered = noop;
@@ -309,6 +310,7 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
       post_ordered(j);
       sch->work.add_done_amount(1);
     }
+    enable_monitor(false);
   }
   else {
     sch->tasks.emplace_back(pre_ordered, do_ordered, post_ordered);
@@ -359,6 +361,7 @@ void parallel_for_ordered(size_t niters, NThreads _NThreads,
   ordered_scheduler sch(ntasks, nthreads, niters, job);
   ordered octx(&sch, fn);
   fn(&octx);
+  job.done();
 }
 
 

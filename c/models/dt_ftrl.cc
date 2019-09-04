@@ -775,8 +775,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 
-    dt::nested_for_static(dt_X->nrows, [&](size_t i){
-
+    dt::nested_for_static(dt_X->nrows, [&](size_t i) {
       // Predicting for all the `nlabels`
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
@@ -795,7 +794,6 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
       }
     });
   });
-
   job.done();
 
   if (model_type == FtrlModelType::BINOMIAL) {

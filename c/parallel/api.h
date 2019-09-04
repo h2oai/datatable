@@ -74,7 +74,7 @@ size_t this_thread_index();
  */
 size_t get_hardware_concurrency() noexcept;
 
-
+void enable_monitor(bool) noexcept;
 
 //------------------------------------------------------------------------------
 // Parallel constructs

@@ -132,11 +132,19 @@ thread_team* thread_pool::get_team_unchecked() noexcept {
 }
 
 
+void thread_pool::enable_monitor(bool a) const noexcept {
+  controller.enable_monitor(a);
+}
 
 
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
+
+
+void enable_monitor(bool a) noexcept {
+  thpool->enable_monitor(a);
+}
 
 size_t num_threads_in_pool() {
   return thpool->size();

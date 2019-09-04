@@ -193,6 +193,11 @@ void idle_job::join() {
 }
 
 
+void idle_job::enable_monitor(bool a) const noexcept {
+  monitor->set_active(a);
+}
+
+
 void idle_job::set_master_worker(thread_worker* worker) noexcept {
   master_worker = worker;
 }

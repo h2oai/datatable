@@ -55,7 +55,7 @@ def test_progress_interrupt(parallel_type):
     import signal
     import subprocess
     import time
-    nthreads = [dt.options.nthreads]
+    nthreads = [1, dt.options.nthreads//2, dt.options.nthreads]
 
     for i in nthreads:
         cmd = "import datatable as dt; from datatable.lib import core; core.test_progress_%s (10000, %s)" % (parallel_type, i)

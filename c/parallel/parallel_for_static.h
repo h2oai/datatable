@@ -24,6 +24,7 @@ namespace dt {
 size_t this_thread_index();
 size_t num_threads_in_pool();
 size_t num_threads_in_team();
+void enable_monitor(bool) noexcept;
 
 
 
@@ -119,9 +120,11 @@ void parallel_for_static(size_t n_iterations,
   // Fast case: the number of rows is too small compared to the
   // chunk size, no need to start a parallel region
   if (n_iterations <= chunk_size_ || num_threads == 1) {
+    enable_monitor(true);
     for (size_t i = 0; i < n_iterations; ++i) {
       func(i);
     }
+    enable_monitor(false);
     return;
   }
 

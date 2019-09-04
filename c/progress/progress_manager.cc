@@ -61,7 +61,6 @@ void progress_manager::finish_work(work* task, bool successfully) {
   xassert(pbar != nullptr);
   tasks.pop();
 
-
   std::lock_guard<std::mutex> lock(mutex);
   handle_interrupt();
   if (successfully && tasks.empty()) {
@@ -69,6 +68,7 @@ void progress_manager::finish_work(work* task, bool successfully) {
     delete pbar;
     pbar = nullptr;
   }
+  abort_execution.store(false);
 }
 
 
