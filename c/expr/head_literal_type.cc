@@ -72,6 +72,10 @@ static Outputs _select_type(const DataTable* df, SType stype0) {
 
 Head_Literal_Type::Head_Literal_Type(py::robj x) : value(x) {}
 
+Head::Kind Head_Literal_Type::get_expr_kind() const {
+  return Head::Kind::Type;
+}
+
 
 Column Head_Literal_Type::eval_as_literal() const {
   throw TypeError() << value << " cannot appear in this context";
@@ -99,7 +103,7 @@ Outputs Head_Literal_Type::eval_as_selector(workframe& wf, size_t fid) const
   }
   if (value.is_stype()) {
     auto st = static_cast<SType>(value.get_attr("value").to_size_t());
-    return _select_type(st);
+    return _select_type(df, st);
   }
   throw ValueError() << "Unknown type " << value << " used as a selector";
 }

@@ -33,6 +33,10 @@ namespace expr {
 // Head_List
 //------------------------------------------------------------------------------
 
+Head::Kind Head_List::get_expr_kind() const {
+  return Head::Kind::List;
+}
+
 Outputs Head_List::evaluate(const vecExpr& inputs, workframe& wf) const {
   Outputs res;
   for (const Expr& arg : inputs) {
@@ -54,12 +58,12 @@ Outputs Head_List::evaluate_j(const vecExpr& inputs, workframe& wf) const {
 // Head_NamedList
 //------------------------------------------------------------------------------
 
-ptrHead Head_NamedList::make(strvec&& names) {
-  return ptrHead(new Head_NamedList(std::move(names)));
-}
-
 Head_NamedList::Head_NamedList(strvec&& names_)
   : names(std::move(names_)) {}
+
+Head::Kind Head_NamedList::get_expr_kind() const {
+  return Head::Kind::List;
+}
 
 
 Outputs Head_NamedList::evaluate(const vecExpr& inputs, workframe& wf) const {

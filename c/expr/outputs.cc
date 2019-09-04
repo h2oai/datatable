@@ -59,7 +59,7 @@ Outputs& Outputs::add(Column&& col) {
 
 // Add column df[i] to the outputs
 //
-Outputs& Outputs::add_column(DataTable* df, size_t i) {
+Outputs& Outputs::add_column(const DataTable* df, size_t i) {
   const Column& column = df->get_column(i);
   const std::string& name = df->get_names()[i];
   size_t group_level = Outputs::GroupToAll;

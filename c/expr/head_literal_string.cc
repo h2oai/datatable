@@ -30,6 +30,10 @@ namespace expr {
 
 Head_Literal_String::Head_Literal_String(py::robj x) : pystr(x) {}
 
+Head::Kind Head_Literal_String::get_expr_kind() const {
+  return Head::Kind::String;
+}
+
 
 Column Head_Literal_String::eval_as_literal() const {
   return Const_ColumnImpl::make_string_column(1, pystr.to_string());

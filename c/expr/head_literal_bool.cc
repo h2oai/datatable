@@ -28,6 +28,10 @@ namespace expr {
 
 Head_Literal_Bool::Head_Literal_Bool(bool x) : value(x) {}
 
+Head::Kind Head_Literal_Bool::get_expr_kind() const {
+  return Head::Kind::Bool;
+}
+
 
 Column Head_Literal_Bool::eval_as_literal() const {
   return Const_ColumnImpl::make_bool_column(1, value);

@@ -41,6 +41,7 @@ class Head_Frame : public Head {
     static ptrHead from_pandas(py::robj src);
 
     Head_Frame(py::robj src, bool ignore_names = false);
+    Kind get_expr_kind() const override;
 
     Outputs evaluate(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;

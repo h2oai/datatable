@@ -26,6 +26,10 @@ namespace dt {
 namespace expr {
 
 
+Head::Kind Head_Literal_None::get_expr_kind() const {
+  return Head::Kind::Unknown;
+}
+
 
 Column Head_Literal_None::eval_as_literal() const {
   return Const_ColumnImpl::make_na_column(1);

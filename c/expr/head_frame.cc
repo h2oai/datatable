@@ -50,6 +50,11 @@ Head_Frame::Head_Frame(py::robj src, bool ignore_names_)
     ignore_names(ignore_names_) {}
 
 
+Head::Kind Head_Frame::get_expr_kind() const {
+  return Head::Kind::Frame;
+}
+
+
 
 Outputs Head_Frame::evaluate(const vecExpr& args, workframe& wf) const {
   (void) args;
@@ -61,7 +66,7 @@ Outputs Head_Frame::evaluate(const vecExpr& args, workframe& wf) const {
         << " are expected";
   }
   size_t grouplevel = (dt->nrows == 1)? Outputs::GroupToOne
-                                        : Outputs::GroupToAll;
+                                      : Outputs::GroupToAll;
   Outputs res;
   for (size_t i = 0; i < dt->ncols; ++i) {
     res.add(Column(dt->get_column(i)),

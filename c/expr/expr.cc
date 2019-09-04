@@ -30,6 +30,7 @@
 #include "expr/expr_unaryop.h"
 #include "expr/head.h"
 #include "expr/head_frame.h"
+#include "expr/head_func.h"
 #include "expr/head_list.h"
 #include "expr/head_literal.h"
 #include "expr/outputs.h"
@@ -86,7 +87,7 @@ void Expr::_init_from_dictionary(py::robj src) {
     names.push_back(kv.first.to_string());
     inputs.emplace_back(kv.second);
   }
-  head = Head_NamedList::make(std::move(names));
+  head = ptrHead(new Head_NamedList(std::move(names)));
 }
 
 
@@ -98,7 +99,7 @@ void Expr::_init_from_dtexpr(py::robj src) {
   for (size_t i = 0; i < args.size(); ++i) {
     inputs.emplace_back(args[i]);
   }
-  // head = Head::from_op(static_cast<Op>(op), params);
+  head = Head_Func::from_op(static_cast<Op>(op), params);
 }
 
 

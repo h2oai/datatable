@@ -28,6 +28,11 @@ namespace expr {
 
 Head_Literal_Float::Head_Literal_Float(double x) : value(x) {}
 
+Head::Kind Head_Literal_Float::get_expr_kind() const {
+  return Head::Kind::Float;
+}
+
+
 
 Column Head_Literal_Float::eval_as_literal() const {
   return Const_ColumnImpl::make_float_column(1, value);

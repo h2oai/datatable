@@ -67,7 +67,7 @@ class Outputs {
     Outputs& add(Column&& col, std::string&& name, size_t group_level);
     Outputs& add(Column&& col, size_t group_level);
     Outputs& add(Column&& col);
-    Outputs& add_column(DataTable* df, size_t i);
+    Outputs& add_column(const DataTable* df, size_t i);
     size_t size() const noexcept;
     void append(Outputs&&);
     void apply_name(const std::string& name);
