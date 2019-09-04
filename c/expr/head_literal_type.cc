@@ -110,5 +110,11 @@ Outputs Head_Literal_Type::evaluate_f(workframe& wf, size_t fid) const
 
 
 
+Outputs Head_Literal_Type::evaluate_j(const vecExpr&, workframe& wf) const {
+  return evaluate_f(wf, 0);
+}
+
+
+
 
 }}  // namespace dt::expr

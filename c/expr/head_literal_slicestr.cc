@@ -32,7 +32,7 @@ Head_Literal_SliceStr::Head_Literal_SliceStr(py::oslice x)
 
 
 Head::Kind Head_Literal_SliceStr::get_expr_kind() const {
-  return Head::Kind::Str;
+  return Head::Kind::SliceStr;
 }
 
 

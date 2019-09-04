@@ -74,7 +74,8 @@ using vecExpr = std::vector<Expr>;
 class Head {
   public:
     enum Kind {
-      Unknown, Bool, Int, Float, Str, Type, Func, List, Frame
+      Unknown, None, Bool, Int, Float, Str, Type, Func, List, Frame,
+      SliceAll, SliceInt, SliceStr
     };
 
     virtual ~Head();

@@ -38,11 +38,11 @@ Head::Kind Head_List::get_expr_kind() const {
 }
 
 Outputs Head_List::evaluate(const vecExpr& inputs, workframe& wf) const {
-  Outputs res;
+  Outputs outputs;
   for (const Expr& arg : inputs) {
-    res.append( arg.evaluate(wf) );
+    outputs.append( arg.evaluate(wf) );
   }
-  return res;
+  return outputs;
 }
 
 
@@ -52,12 +52,100 @@ Outputs Head_List::evaluate_f(workframe&, size_t) const {
 
 
 
-Outputs Head_List::evaluate_j(const vecExpr& inputs, workframe& wf) const {
-  // for (const Expr& arg : inputs) {
-  // }
-  (void) wf;
-  (void) inputs;
-  return Outputs();
+static const char* _name_type(Head::Kind t) {
+  switch (t) {
+    case Head::Kind::Unknown:
+    case Head::Kind::None:     return "None";
+    case Head::Kind::Bool:     return "bool";
+    case Head::Kind::Int:      return "integer";
+    case Head::Kind::Str:      return "string";
+    case Head::Kind::Func:     return "expression";
+    case Head::Kind::Type:     return "type";
+    case Head::Kind::SliceAll: return "slice";
+    default:             return "?";
+  }
+}
+
+// Resolve logic should work as follows:
+//  - List[bool] -> Kind::Bool
+//  - List[int | slice_int | slice_all | None] -> Kind::Int
+//  - List[str | slice_str | slice_all | None] -> Kind::Str
+//  - List[frame | func | None] -> Kind::Func
+//  - List[type | None] -> Kind::Type
+//
+// If a list contains either floats or lists, or invalid combination of
+// element kinds, an error must be thrown.
+// A list containing only `None` or `slice_all` should resolve as Kind::Int.
+//
+static Head::Kind _resolve_list_kind(const vecExpr& inputs) {
+  auto listkind = Head::Kind::Unknown;
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    auto kind = inputs[i].get_expr_kind();
+    xassert(kind != Head::Kind::Unknown);
+    if (kind == listkind) continue;
+    if (kind != Head::Kind::Bool && listkind != Head::Kind::Bool) {
+      if (kind == Head::Kind::None) continue;
+      if (kind == Head::Kind::SliceAll &&
+          (listkind == Head::Kind::Int ||
+           listkind == Head::Kind::Str)) continue;
+      if (kind == Head::Kind::Frame)    kind = Head::Kind::Func;
+      if (kind == Head::Kind::SliceInt) kind = Head::Kind::Int;
+      if (kind == Head::Kind::SliceStr) kind = Head::Kind::Str;
+      if (kind == Head::Kind::Float) {
+        throw TypeError()
+          << "A floating value cannot be used as a column selector";
+      }
+      if (kind == Head::Kind::List) {
+          throw TypeError()
+            << "Nested lists are not supported as a column selector";
+      }
+      if (listkind == Head::Kind::Unknown) listkind = kind;
+      if (listkind == Head::Kind::SliceAll &&
+          (kind == Head::Kind::Int || kind == Head::Kind::Str)) listkind = kind;
+      if (kind == listkind) continue;
+    }
+    throw TypeError() << "Mixed selector types are not allowed. Element "
+        << i << " is of type " << _name_type(kind) << ", whereas the "
+        "previous element(s) were of type " << _name_type(listkind);
+  }
+  if (listkind == Head::Kind::Unknown ||
+      listkind == Head::Kind::SliceAll) return Head::Kind::Int;
+  return listkind;
+}
+
+
+static Outputs _evaluate_bool_list(const vecExpr& inputs, workframe& wf) {
+  DataTable* df = wf.get_datatable(0);
+  if (inputs.size() != df->ncols) {
+    throw ValueError()
+        << "The length of boolean list in j selector does not match the "
+           "number of columns in the Frame: "
+        << inputs.size() << " vs " << df->ncols;
+  }
+  Outputs outputs;
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    bool x = inputs[i].evaluate_as_bool();
+    if (x) outputs.add_column(df, i);
+  }
+  return outputs;
+}
+
+
+static Outputs _evaluate_f_list(const vecExpr& inputs, workframe& wf) {
+  Outputs outputs;
+  for (const Expr& arg : inputs) {
+    outputs.append( arg.evaluate_f(wf, 0) );
+  }
+  return outputs;
+}
+
+
+Outputs Head_List::evaluate_j(const vecExpr& inputs, workframe& wf) const
+{
+  auto kind = _resolve_list_kind(inputs);
+  if (kind == Kind::Bool) return _evaluate_bool_list(inputs, wf);
+  if (kind == Kind::Func) return evaluate(inputs, wf);
+  return _evaluate_f_list(inputs, wf);
 }
 
 

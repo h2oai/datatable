@@ -40,8 +40,8 @@ Outputs Head_Literal_Int::evaluate(const vecExpr&, workframe&) const {
 }
 
 
-Outputs Head_Literal_Int::evaluate_f(workframe& wf, size_t frame_id) const
-{
+
+Outputs Head_Literal_Int::evaluate_f(workframe& wf, size_t frame_id) const {
   auto df = wf.get_datatable(frame_id);
   int64_t icols = static_cast<int64_t>(df->ncols);
   if (value < -icols || value >= icols) {
@@ -52,6 +52,13 @@ Outputs Head_Literal_Int::evaluate_f(workframe& wf, size_t frame_id) const
   size_t i = static_cast<size_t>(value < 0? value + icols : value);
   return Outputs().add_column(df, i);
 }
+
+
+
+Outputs Head_Literal_Int::evaluate_j(const vecExpr&, workframe& wf) const {
+  return evaluate_f(wf, 0);
+}
+
 
 
 

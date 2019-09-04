@@ -45,5 +45,11 @@ Outputs Head_Literal_Float::evaluate_f(workframe&, size_t) const {
 }
 
 
+Outputs Head_Literal_Float::evaluate_j(const vecExpr&, workframe&) const {
+  throw TypeError() << "A floating-point value cannot be used as a "
+      "column selector";
+}
+
+
 
 }}  // namespace dt::expr

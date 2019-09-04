@@ -44,6 +44,7 @@ namespace expr {
 Head::~Head() {}
 
 
+
 //------------------------------------------------------------------------------
 // Expr construction
 //------------------------------------------------------------------------------
@@ -186,10 +187,24 @@ void Expr::_init_from_type(py::robj src) {
 // Expr core functionality
 //------------------------------------------------------------------------------
 
+Head::Kind Expr::get_expr_kind() const {
+  return head->get_expr_kind();
+}
+
+
 Outputs Expr::evaluate(workframe& wf) const {
   return head->evaluate(inputs, wf);
 }
 
+Outputs Expr::evaluate_f(workframe& wf, size_t frame_id) const {
+  return head->evaluate_f(wf, frame_id);
+}
+
+bool Expr::evaluate_as_bool() const {
+  auto boolhead = dynamic_cast<Head_Literal_Bool*>(head.get());
+  xassert(boolhead);
+  return boolhead->get_value();
+}
 
 
 

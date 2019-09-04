@@ -31,7 +31,7 @@ Head_Literal_SliceInt::Head_Literal_SliceInt(py::oslice x)
 
 
 Head::Kind Head_Literal_SliceInt::get_expr_kind() const {
-  return Head::Kind::Int;
+  return Head::Kind::SliceInt;
 }
 
 

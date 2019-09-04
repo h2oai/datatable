@@ -27,7 +27,7 @@ namespace expr {
 
 
 Head::Kind Head_Literal_SliceAll::get_expr_kind() const {
-  return Head::Kind::Unknown;
+  return Head::Kind::SliceAll;
 }
 
 

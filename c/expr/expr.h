@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "expr/head.h"
 #include "expr/op.h"
 #include "expr/workframe.h"
 #include "python/obj.h"
@@ -33,9 +34,7 @@ namespace expr {
 
 
 class Expr;
-class Head;
 class Outputs;
-using ptrHead = std::unique_ptr<Head>;
 using vecExpr = std::vector<Expr>;
 
 
@@ -55,7 +54,11 @@ class Expr {
     Expr(Expr&&) = default;
     Expr(const Expr&) = delete;
 
-    Outputs evaluate(workframe&) const;
+    Head::Kind get_expr_kind() const;
+    bool evaluate_as_bool() const;
+
+    Outputs evaluate(workframe& wf) const;
+    Outputs evaluate_f(workframe& wf, size_t frame_id) const;
 
   private:
     // Construction helpers

@@ -32,6 +32,11 @@ Head::Kind Head_Literal_Bool::get_expr_kind() const {
   return Head::Kind::Bool;
 }
 
+bool Head_Literal_Bool::get_value() const {
+  return value;
+}
+
+
 
 Outputs Head_Literal_Bool::evaluate(const vecExpr&, workframe&) const {
   return _wrap_column(Const_ColumnImpl::make_bool_column(1, value));
@@ -39,6 +44,12 @@ Outputs Head_Literal_Bool::evaluate(const vecExpr&, workframe&) const {
 
 
 Outputs Head_Literal_Bool::evaluate_f(workframe&, size_t) const {
+  throw TypeError()
+    << "A boolean value cannot be used as a column selector";
+}
+
+
+Outputs Head_Literal_Bool::evaluate_j(const vecExpr&, workframe&) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";
 }
