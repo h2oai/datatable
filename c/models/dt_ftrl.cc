@@ -26,6 +26,7 @@
 #include "wstringcol.h"
 #include "column.h"
 #include "progress/work.h"      // dt::progress::work
+#include <iostream>
 
 
 namespace dt {
@@ -511,22 +512,18 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   // Mutex to update global feature importance information
   std::mutex m;
-  size_t nthreads = get_nthreads(iteration_nrows);
 
-  // Fit work amount for all iterations but the last one
-  size_t work_total = (niterations - 1) * (iteration_nrows / nthreads);
-  // Fit work amount for the last iteration
-  work_total += (total_nrows - iteration_nrows * (niterations - 1)) / nthreads;
-  // Validate work amount for all iterations
-  work_total += (validation)? niterations * (dt_X_val->nrows / nthreads) : 0;
+  // Calculate work amounts for full fit iterations, last fit iteration and
+  // validation.
+  size_t work_amount = (niterations - 1) * get_work_amount(iteration_nrows);
+  work_amount += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows);
+  if (validation) work_amount += niterations * get_work_amount(dt_X_val->nrows);
 
   // Set work amount to be reported by the zero thread.
-  // NB: each work amount had to be divided by `nthreads` separately,
-  // as integer division was involved above.
-  dt::progress::work job(work_total);
+  dt::progress::work job(work_amount);
   job.set_message("Fitting");
 
-  dt::parallel_region(nthreads,
+  dt::parallel_region(get_nthreads(iteration_nrows),
     [&]() {
       // Each thread gets a private storage for hashes,
       // temporary weights and feature importances.
@@ -541,7 +538,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
         size_t iteration_size = iteration_end - iteration_start;
 
         // Training.
-        dt::nested_for_static(iteration_size, [&](size_t i) {
+        dt::nested_for_static(iteration_size, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
           const size_t j0 = ri[0][ii];
 
@@ -571,18 +568,21 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           // Report progress
           if (dt::this_thread_index() == 0) {
             job.add_done_amount(1);
+            // std::cout << "i: " << i << "; done amount after fit: " << job.get_done_amount() << "\n";
           }
 
         }); // End training.
         barrier();
+        if (dt::this_thread_index() == 0) {
+          // std::cout << "done amount after fit: " << job.get_done_amount() << "\n";
+        }
 
         // Validation and early stopping.
         if (validation) {
           dt::atomic<T> loss_global {0.0};
           T loss_local = 0.0;
 
-
-          dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
+          dt::nested_for_static(dt_X_val->nrows, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
             const size_t j0 = ri_val[0][i];
 
             if (j0 != RowIndex::NA && !ISNA<V>(data_y_val[0][j0])
@@ -602,12 +602,16 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
             // Report progress
             if (dt::this_thread_index() == 0) {
               job.add_done_amount(1);
+              // std::cout << "i: " << i << "; done amount after validate: " << job.get_done_amount() << "\n";
             }
 
           });
 
           loss_global.fetch_add(loss_local);
           barrier();
+          if (dt::this_thread_index() == 0) {
+            // std::cout << "done amount after validate: " << job.get_done_amount() << "\n";
+          }
 
           // Thread #0 checks relative loss change and, if it does not decrease
           // more than `val_error`, sets `loss_old` to `NaN` -> this will stop
@@ -626,7 +630,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
             if (dt::this_thread_index() == 0) {
               job.set_message("Fitting: early stopping criteria is met");
               // In some cases this makes progress "jumping" to 100%.
-              job.set_done_amount(work_total);
+              job.set_done_amount(work_amount);
             }
             break;
           }
@@ -642,11 +646,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
     }
   );
+  job.done();
 
   // Reset model stats after training, so that min gets re-computed
   // in `py::Validator::has_negatives()` during unpickling.
   reset_model_stats();
-  job.done();
 
   double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
@@ -1102,7 +1106,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
  */
 template <typename T>
 hasherptr Ftrl<T>::create_hasher(const Column& col) {
-  int shift_nbits = dt::FtrlBase::DOUBLE_MANTISSA_NBITS - mantissa_nbits;
+  int shift_nbits = DOUBLE_MANTISSA_NBITS - mantissa_nbits;
   switch (col.stype()) {
     case SType::BOOL:
     case SType::INT8:
@@ -1368,7 +1372,7 @@ void Ftrl<T>::set_nbins(uint64_t nbins_in) {
 template <typename T>
 void Ftrl<T>::set_mantissa_nbits(unsigned char mantissa_nbits_in) {
   xassert(mantissa_nbits_in >= 0);
-  xassert(mantissa_nbits_in <= dt::FtrlBase::DOUBLE_MANTISSA_NBITS);
+  xassert(mantissa_nbits_in <= DOUBLE_MANTISSA_NBITS);
   params.mantissa_nbits = mantissa_nbits_in;
   mantissa_nbits = mantissa_nbits_in;
 }

@@ -48,7 +48,6 @@ class monitor_thread {
      * set_active(false) puts the thread back to sleep.
      */
     void set_active(bool a);
-
     void stop_running();
 
   private:

@@ -43,4 +43,16 @@ size_t FtrlBase::get_nthreads(size_t nrows) {
 }
 
 
+/**
+ *  Calculate work amount, i.e. number of rows, to be processed
+ *  by the zero thread for a MIN_ROWS_PER_THREAD chunk size.
+ */
+size_t FtrlBase::get_work_amount(size_t nrows) {
+  size_t chunk_size = MIN_ROWS_PER_THREAD;
+  size_t nthreads = get_nthreads(nrows);
+  size_t chunk_rows = chunk_size * (nrows / (nthreads * chunk_size));
+  size_t residual_rows = std::min(nrows - chunk_rows * nthreads, chunk_size);
+  return chunk_rows + residual_rows;
 }
+
+} // namespace dt

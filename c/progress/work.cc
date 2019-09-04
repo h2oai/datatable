@@ -21,7 +21,6 @@ namespace dt {
 namespace progress {
 
 
-
 work::work(size_t amount)
   : total_amount(amount),
     done_amount(0),
