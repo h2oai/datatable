@@ -58,7 +58,7 @@ class Head_Literal_Bool : public Head_Literal {
     size_t : 56;
 
   public:
-    Head_Literal_Bool(bool x);
+    explicit Head_Literal_Bool(bool x);
     Column eval_as_literal() const override;
     Outputs eval_as_selector(workframe&, size_t) const override;
 };
@@ -70,7 +70,7 @@ class Head_Literal_Int : public Head_Literal {
     int64_t value;
 
   public:
-    Head_Literal_Int(int64_t x);
+    explicit Head_Literal_Int(int64_t x);
     Column eval_as_literal() const override;
     Outputs eval_as_selector(workframe&, size_t) const override;
 };
@@ -82,7 +82,7 @@ class Head_Literal_Float : public Head_Literal {
     double value;
 
   public:
-    Head_Literal_Float(double x);
+    explicit Head_Literal_Float(double x);
     Column eval_as_literal() const override;
     Outputs eval_as_selector(workframe&, size_t) const override;
 };
@@ -94,7 +94,53 @@ class Head_Literal_String : public Head_Literal {
     py::oobj pystr;
 
   public:
-    Head_Literal_String(py::robj x);
+    explicit Head_Literal_String(py::robj x);
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
+};
+
+
+
+class Head_Literal_SliceAll : public Head_Literal {
+  public:
+    Head_Literal_SliceAll() = default;
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe&, size_t) const override;
+};
+
+
+
+class Head_Literal_SliceInt : public Head_Literal {
+  private:
+    size_t start, stop, step;
+
+  public:
+    explicit Head_Literal_SliceInt(py::oslice x);
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
+};
+
+
+
+class Head_Literal_SliceStr : public Head_Literal {
+  private:
+    py::oobj start;
+    py::oobj end;
+
+  public:
+    explicit Head_Literal_SliceStr(py::oslice x);
+    Column eval_as_literal() const override;
+    Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
+};
+
+
+
+class Head_Literal_Type : public Head_Literal {
+  private:
+    py::oobj value;
+
+  public:
+    explicit Head_Literal_Type(py::robj x);
     Column eval_as_literal() const override;
     Outputs eval_as_selector(workframe& wf, size_t frame_id) const override;
 };
