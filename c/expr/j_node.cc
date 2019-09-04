@@ -226,26 +226,37 @@ void simplelist_jnode::update(workframe& wf, repl_node* repl) {
   size_t lrows = ri0? ri0.size() : dt0->nrows;
   repl->check_compatibility(lrows, lcols);
 
-  size_t num_new_columns = 0;
-  for (size_t j : indices) {
-    num_new_columns += (j == size_t(-1));
-  }
-  if (num_new_columns) {
-    strvec new_names = dt0->get_names();  // copy names
-    new_names.reserve(dt0->ncols + num_new_columns);
-    for (size_t i = 0; i < indices.size(); ++i) {
-      if (indices[i] == size_t(-1)) {
-        indices[i] = dt0->ncols++;
-        new_names.push_back(names[i]);
-      }
+  size_t ncols = dt0->ncols;
+  strvec new_names{ dt0->get_names() };  // copy names
+  try {
+    size_t num_new_columns = 0;
+    for (size_t j : indices) {
+      num_new_columns += (j == size_t(-1));
     }
-    dt0->set_names(new_names);
-  }
+    if (num_new_columns) {
+      // Resolve the `repl` node before any changes to `dt0` are committed.
+      repl->resolve(wf);
+      new_names.reserve(ncols + num_new_columns);
+      for (size_t i = 0; i < indices.size(); ++i) {
+        if (indices[i] == size_t(-1)) {
+          indices[i] = new_names.size();
+          new_names.push_back(names[i]);
+        }
+      }
+      dt0->ncols = new_names.size();
+      dt0->set_names(new_names);
+    }
 
-  if (ri0) {
-    repl->replace_values(wf, indices);
-  } else {
-    repl->replace_columns(wf, indices);
+    if (ri0) {
+      repl->replace_values(wf, indices);
+    } else {
+      repl->replace_columns(wf, indices);
+    }
+  } catch (...) {
+    new_names.resize(ncols);
+    dt0->ncols = ncols;
+    dt0->set_names(new_names);
+    throw;
   }
 }
 
