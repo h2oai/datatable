@@ -92,6 +92,8 @@ extern _binary_infos binary_infos;
 // TODO: remove
 void init_binops();
 
+Column binaryop(Op opcode, Column& lhs, Column& rhs);
+
 
 }}
 #endif

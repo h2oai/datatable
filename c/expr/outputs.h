@@ -23,6 +23,7 @@
 #define dt_EXPR_OUTPUTS_h
 #include <string>
 #include <vector>
+#include "expr/workframe.h"
 #include "column.h"
 namespace dt {
 namespace expr {
@@ -49,6 +50,8 @@ class Outputs {
       size_t       grouping_level;
 
       Output(Column&&, std::string&&, size_t);
+
+      void increase_grouping_level(size_t n, workframe& wf);
     };
 
     std::vector<Output> items;
@@ -71,6 +74,9 @@ class Outputs {
     size_t size() const noexcept;
     void append(Outputs&&);
     void apply_name(const std::string& name);
+
+    Output& get_item(size_t i);
+    std::vector<Output>& get_items();
 
     strvec release_names();
     colvec release_columns();

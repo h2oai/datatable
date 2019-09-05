@@ -486,7 +486,7 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, Op opcode, Column* cols
 // binaryop
 //------------------------------------------------------------------------------
 
-static Column binaryop(Op opcode, Column& lhs, Column& rhs)
+Column binaryop(Op opcode, Column& lhs, Column& rhs)
 {
   // TODO: do not materialize, then `lhs` and `rhs` may be const
   lhs.materialize();

@@ -25,10 +25,23 @@ namespace dt {
 namespace expr {
 
 
+//------------------------------------------------------------------------------
+// Output
+//------------------------------------------------------------------------------
+
 Outputs::Output::Output(Column&& col, std::string&& nm, size_t g)
   : column(std::move(col)),
     name(std::move(nm)),
     grouping_level(g) {}
+
+
+void Outputs::Output::increase_grouping_level(size_t n, workframe&) {
+  xassert(n > grouping_level);
+  grouping_level = n;
+  throw NotImplError() << "Mixing expressions at different grouping levels "
+      "is not supported yet";
+}
+
 
 
 
@@ -103,6 +116,16 @@ void Outputs::apply_name(const std::string& name) {
     }
   }
 }
+
+
+Outputs::Output& Outputs::get_item(size_t i) {
+  return items[i];
+}
+
+std::vector<Outputs::Output>& Outputs::get_items() {
+  return items;
+}
+
 
 
 strvec Outputs::release_names() {
