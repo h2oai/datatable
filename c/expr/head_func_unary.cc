@@ -36,8 +36,11 @@ Outputs Head_Func_Unary::evaluate(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 1);
   Outputs outputs = args[0].evaluate(wf);
   for (auto& out : outputs.get_items()) {
-    auto fn = unary_library.get_infox(op, out.column.stype()).vcolfn;
-    out.column = fn(std::move(out.column));
+    const auto& info = unary_library.get_infox(op, out.column.stype());
+    if (info.cast_stype != SType::VOID) {
+      out.column.cast_inplace(info.cast_stype);
+    }
+    out.column = info.vcolfn(std::move(out.column));
   }
   return outputs;
 }

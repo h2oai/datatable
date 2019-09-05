@@ -95,6 +95,17 @@ class Head_Func_Binary : public Head_Func {
 
 
 
+class Head_Func_Reduce : public Head_Func {
+  private:
+    Op op;
+
+  public:
+    explicit Head_Func_Reduce(Op);
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+};
+
+
+
 
 
 }}  // namespace dt::expr

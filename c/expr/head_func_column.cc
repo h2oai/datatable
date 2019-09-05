@@ -33,6 +33,10 @@ Head_Func_Column::Head_Func_Column(size_t f) : frame_id(f) {}
 
 Outputs Head_Func_Column::evaluate(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 1);
+  if (frame_id >= wf.nframes()) {
+    throw ValueError()
+        << "Column expression references a non-existing join frame";
+  }
   return args[0].evaluate_f(wf, frame_id);
 }
 
