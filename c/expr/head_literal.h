@@ -34,9 +34,9 @@ namespace expr {
 
 class Head_Literal : public Head {
   public:
-    Outputs evaluate(const vecExpr&, workframe&) const override;
-    Outputs evaluate_j(const vecExpr&, workframe&) const override;
-    Outputs evaluate_f(workframe&, size_t) const override;
+    // Outputs evaluate(const vecExpr&, workframe&) const override;
+    // Outputs evaluate_j(const vecExpr&, workframe&) const override;
+    // Outputs evaluate_f(workframe&, size_t) const override;
 
   protected:
     static Outputs _wrap_column(Column&&);

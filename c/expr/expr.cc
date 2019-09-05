@@ -253,13 +253,14 @@ static void check_args_count(const py::otuple& args, size_t n) {
 }
 
 
-static pexpr make_col(Op, const py::otuple&, const py::otuple& params) {
-  check_args_count(params, 2);
+static pexpr make_col(Op, const py::otuple& args, const py::otuple& params) {
+  check_args_count(args, 1);
+  check_args_count(params, 1);
   size_t frame_id = params[0].to_size_t();
-  if (params[1].is_int() || params[1].is_string()) {
-    return pexpr(new expr_column(frame_id, params[1]));
+  if (args[0].is_int() || args[0].is_string()) {
+    return pexpr(new expr_column(frame_id, args[0]));
   } else {
-    return pexpr(new expr_simple_columnset(frame_id, params[1]));
+    return pexpr(new expr_simple_columnset(frame_id, args[0]));
   }
 }
 

@@ -333,8 +333,8 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
   py::olist columns(dt->ncols);
   for (size_t i = 0; i < dt->ncols; ++i) {
     py::oobj col_selector = make_pyexpr(Op::COL,
-                                        py::otuple(0),
-                                        py::otuple{py::oint(0), py::oint(i)});
+                                        py::otuple{py::oint(i)},
+                                        py::otuple{py::oint(0)});
     columns.set(i, make_pyexpr(opcode, col_selector));
   }
 

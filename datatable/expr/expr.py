@@ -401,7 +401,7 @@ class FrameProxy:
                    isinstance(item, (stype, ltype))):
                 raise TypeError("Column selector should be an integer, string, "
                                 "or slice, not %r" % type(item))
-        return Expr(OpCodes.COL, (), (self._id, item))
+        return Expr(OpCodes.COL, (item,), (self._id,))
 
 
 

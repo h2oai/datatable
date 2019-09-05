@@ -19,6 +19,7 @@
 #include "expr/expr_binaryop.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_unaryop.h"
+#include "expr/head_func.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
@@ -378,6 +379,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     dt::expr::init_expr();
     dt::expr::init_reducers();
     dt::expr::init_binops();
+    dt::expr::Head_Func::init();
 
     py::Frame::init_type(m);
     py::Ftrl::init_type(m);

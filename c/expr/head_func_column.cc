@@ -19,49 +19,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_HEAD_FUNC_h
-#define dt_EXPR_HEAD_FUNC_h
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include "expr/head.h"
-#include "python/tuple.h"
+#include "expr/expr.h"
+#include "expr/head_func.h"
+#include "expr/outputs.h"
+#include "utils/assert.h"
+#include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
 
-class Head_Func : public Head {
-  private:
-    using maker_t = ptrHead(*)(Op, const py::otuple&);
-    static std::unordered_map<size_t, maker_t> factory;
-
-  public:
-    static void init();  // called once from datatablemodule.h
-    static ptrHead from_op(Op op, py::otuple params);
-
-    Kind get_expr_kind() const override;
-    Outputs evaluate_j(const vecExpr&, workframe&) const override;
-    Outputs evaluate_f(workframe&, size_t) const override;
-};
+Head_Func_Column::Head_Func_Column(size_t f) : frame_id(f) {}
 
 
-
-//------------------------------------------------------------------------------
-// Derived classes
-//------------------------------------------------------------------------------
-
-class Head_Func_Column : public Head_Func {
-  private:
-    size_t frame_id;
-
-  public:
-    explicit Head_Func_Column(size_t);
-    Outputs evaluate(const vecExpr&, workframe&) const override;
-};
-
+Outputs Head_Func_Column::evaluate(const vecExpr& args, workframe& wf) const {
+  xassert(args.size() == 1);
+  return args[0].evaluate_f(wf, frame_id);
+}
 
 
 
 
 }}  // namespace dt::expr
-#endif
