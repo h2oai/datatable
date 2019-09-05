@@ -25,6 +25,9 @@
 #include "parallel/api.h"
 namespace dt {
 
+using sig_handler_t = void(*)(int);
+static sig_handler_t sigint_handler_prev = nullptr;
+
 
 monitor_thread::monitor_thread(idle_job* wc)
   : controller(wc),
@@ -42,7 +45,7 @@ monitor_thread::~monitor_thread() {
 
 
 void monitor_thread::run() noexcept {
-  std::signal(SIGINT, sigint_handler);
+  sigint_handler_prev = std::signal(SIGINT, sigint_handler);
   constexpr auto SLEEP_TIME = std::chrono::milliseconds(20);
   // Reduce this thread's priority to a minimum.
   // See http://man7.org/linux/man-pages/man2/nice.2.html
@@ -81,8 +84,11 @@ void monitor_thread::run() noexcept {
 
 
 void monitor_thread::sigint_handler(int signal) {
-  (void) signal;
-  progress::manager->set_interrupt();
+  if (dt::num_threads_in_team()) {
+    progress::manager->set_interrupt();
+  } else {
+    sigint_handler_prev(signal);
+  }
 }
 
 
