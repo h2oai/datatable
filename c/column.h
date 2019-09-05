@@ -221,6 +221,7 @@ class Column
   public:
     void rbind(colvec& columns);
     void materialize();
+    void cast_inplace(SType stype);
     Column cast(SType stype) const;
     Column cast(SType stype, MemoryRange&& mr) const;
     RowIndex sort(Groupby* out_groups) const;

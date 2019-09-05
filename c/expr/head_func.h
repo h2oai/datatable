@@ -61,6 +61,18 @@ class Head_Func_Column : public Head_Func {
 
 
 
+class Head_Func_Cast : public Head_Func {
+  private:
+    SType stype;
+    size_t : 56;
+
+  public:
+    explicit Head_Func_Cast(SType);
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+};
+
+
+
 class Head_Func_Unary : public Head_Func {
   private:
     Op op;
