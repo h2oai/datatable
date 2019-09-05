@@ -73,6 +73,21 @@ class Head_Func_Cast : public Head_Func {
 
 
 
+class Head_Func_Colset : public Head_Func {
+  private:
+    Op op;
+
+  public:
+    explicit Head_Func_Colset(Op);
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+
+  private:
+    Outputs _extend(Outputs&& lhs, Outputs&& rhs) const;
+    Outputs _remove(Outputs&& lhs, Outputs&& rhs) const;
+};
+
+
+
 class Head_Func_Unary : public Head_Func {
   private:
     Op op;
