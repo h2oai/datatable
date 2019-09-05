@@ -32,11 +32,13 @@ namespace expr {
 // base Head_Literal
 //------------------------------------------------------------------------------
 
+// TODO: remove?
 class Head_Literal : public Head {
   public:
     // Outputs evaluate(const vecExpr&, workframe&) const override;
     // Outputs evaluate_j(const vecExpr&, workframe&) const override;
     // Outputs evaluate_f(workframe&, size_t) const override;
+    virtual ~Head_Literal();
 
   protected:
     static Outputs _wrap_column(Column&&);

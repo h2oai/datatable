@@ -19,27 +19,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/column_const.h"
-#include "expr/head_literal.h"
 #include "expr/expr.h"
+#include "expr/unaryop.h"  // TODO: merge into this file
+#include "expr/head_func.h"
 #include "expr/outputs.h"
-#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
 
+Head_Func_Unary::Head_Func_Unary(Op op_) : op(op_) {}
 
-//------------------------------------------------------------------------------
-// Head_Literal
-//------------------------------------------------------------------------------
 
-Outputs Head_Literal::_wrap_column(Column&& col) {
-  return Outputs().add(std::move(col), Outputs::GroupToOne);
+Outputs Head_Func_Unary::evaluate(const vecExpr& args, workframe& wf) const {
+  xassert(args.size() == 1);
+  Outputs outputs = args[0].evaluate(wf);
+  for (auto& out : outputs) {
+    auto fn = unary_library.get_infox(op, out.column.stype());
+    out.column = fn(std::move(out.column));
+  }
+  return outputs;
 }
-
-Head_Literal::~Head_Literal() {}
 
 
 
