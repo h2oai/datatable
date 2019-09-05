@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/expr_column.h"
+#include "expr/workframe.h"
 #include "utils/exceptions.h"
 #include "column_impl.h"  // TODO: remove
 namespace dt {

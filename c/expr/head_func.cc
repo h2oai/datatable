@@ -100,7 +100,7 @@ void Head_Func::init() {
   for (size_t i = UNOP_FIRST;    i <= UNOP_LAST;    ++i) factory[i] = make_unop;
   for (size_t i = BINOP_FIRST;   i <= BINOP_LAST;   ++i) factory[i] = make_binop;
   // for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce;
-  // for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
+  for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   factory[static_cast<size_t>(Op::COL)]      = make_col;
   factory[static_cast<size_t>(Op::CAST)]     = make_cast;
   // factory[static_cast<size_t>(Op::SETPLUS)]  = make_setplus;

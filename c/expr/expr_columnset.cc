@@ -22,6 +22,7 @@
 #include <iterator>
 #include "expr/expr_column.h"
 #include "expr/expr_columnset.h"
+#include "expr/workframe.h"
 #include "utils/exceptions.h"
 namespace dt {
 namespace expr {

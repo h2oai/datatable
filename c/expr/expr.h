@@ -24,18 +24,14 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "expr/by_node.h"
 #include "expr/head.h"
 #include "expr/op.h"
-#include "expr/workframe.h"
+#include "expr/declarations.h"
 #include "python/obj.h"
 #include "column.h"
 namespace dt {
 namespace expr {
-
-
-class Expr;
-class Outputs;
-using vecExpr = std::vector<Expr>;
 
 
 
@@ -53,6 +49,8 @@ class Expr {
     Expr() = default;
     Expr(Expr&&) = default;
     Expr(const Expr&) = delete;
+    Expr& operator=(Expr&&) = default;
+    Expr& operator=(const Expr&) = delete;
 
     Head::Kind get_expr_kind() const;
     bool evaluate_as_bool() const;

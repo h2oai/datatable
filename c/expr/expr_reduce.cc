@@ -10,6 +10,7 @@
 #include <memory>             // std::unique_ptr
 #include <unordered_map>      // std::unordered_map
 #include "expr/expr_reduce.h"
+#include "expr/workframe.h"
 #include "parallel/api.h"
 #include "column_impl.h"  // TODO: remove
 #include "types.h"

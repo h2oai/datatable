@@ -21,20 +21,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_HEAD_h
 #define dt_EXPR_HEAD_h
-#include <string>
-#include <vector>
 #include "expr/op.h"
-#include "expr/workframe.h"
+#include "expr/declarations.h"
 #include "python/obj.h"
 namespace dt {
 namespace expr {
-
-class Head;
-class Expr;
-class Outputs;
-using strvec = std::vector<std::string>;
-using ptrHead = std::unique_ptr<Head>;
-using vecExpr = std::vector<Expr>;
 
 
 

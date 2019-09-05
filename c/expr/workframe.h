@@ -23,6 +23,7 @@
 #define dt_EXPR_WORKFRAME_h
 #include <vector>            // std::vector
 #include "expr/by_node.h"    // py::oby, by_node_ptr
+#include "expr/expr.h"
 #include "expr/i_node.h"     // i_node_ptr
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
@@ -78,6 +79,7 @@ class workframe {
     by_node       byexpr;
     i_node_ptr    iexpr;
     j_node_ptr    jexpr;
+    expr::Expr    jexpr2;
     repl_node_ptr repl;
 
     // Runtime

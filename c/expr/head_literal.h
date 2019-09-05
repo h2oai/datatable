@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include "expr/head.h"
+#include "python/slice.h"
 namespace dt {
 namespace expr {
 

@@ -21,27 +21,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_BY_NODE_h
 #define dt_EXPR_BY_NODE_h
-#include <memory>            // std::unique_ptr
+#include "expr/declarations.h"
 #include "python/obj.h"
 #include "python/xobject.h"
 #include "datatable.h"
 #include "groupby.h"         // Groupby
 namespace dt {
 
-namespace expr { class base_expr; }
 
-class by_node;
-class collist;
-class workframe;
-using by_node_ptr = std::unique_ptr<by_node>;
-using collist_ptr = std::unique_ptr<collist>;
-
-enum class GroupbyMode : uint8_t {
-  NONE   = 0,
-  GtoONE = 1,
-  GtoALL = 2,
-  GtoANY = 3
-};
 
 
 //------------------------------------------------------------------------------

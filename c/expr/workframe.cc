@@ -80,6 +80,7 @@ void workframe::add_i(py::oobj oi) {
 void workframe::add_j(py::oobj oj) {
   xassert(!jexpr);
   jexpr = j_node::make(oj, *this);
+  jexpr2 = dt::expr::Expr(oj);
 }
 
 
