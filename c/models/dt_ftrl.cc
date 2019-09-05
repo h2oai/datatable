@@ -26,7 +26,6 @@
 #include "wstringcol.h"
 #include "column.h"
 #include "progress/work.h"      // dt::progress::work
-#include <iostream>
 
 
 namespace dt {
@@ -568,14 +567,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           // Report progress
           if (dt::this_thread_index() == 0) {
             job.add_done_amount(1);
-            // std::cout << "i: " << i << "; done amount after fit: " << job.get_done_amount() << "\n";
           }
 
         }); // End training.
         barrier();
-        if (dt::this_thread_index() == 0) {
-          // std::cout << "done amount after fit: " << job.get_done_amount() << "\n";
-        }
 
         // Validation and early stopping.
         if (validation) {
@@ -602,16 +597,12 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
             // Report progress
             if (dt::this_thread_index() == 0) {
               job.add_done_amount(1);
-              // std::cout << "i: " << i << "; done amount after validate: " << job.get_done_amount() << "\n";
             }
 
           });
 
           loss_global.fetch_add(loss_local);
           barrier();
-          if (dt::this_thread_index() == 0) {
-            // std::cout << "done amount after validate: " << job.get_done_amount() << "\n";
-          }
 
           // Thread #0 checks relative loss change and, if it does not decrease
           // more than `val_error`, sets `loss_old` to `NaN` -> this will stop

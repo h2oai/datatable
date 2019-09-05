@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 /* enable nice() function in unistd.h */
 #define _XOPEN_SOURCE
-#include <iostream>
 #include <csignal> // std::signal
 #include <unistd.h>
 #include "parallel/monitor_thread.h"

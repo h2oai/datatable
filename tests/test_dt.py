@@ -53,19 +53,18 @@ cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
 @pytest.mark.parametrize('parallel_type', ["static", "nested", "dynamic"])
 def test_progress_interrupt(parallel_type):
     import signal
-    import subprocess
-    import time
     nthreads = [1, dt.options.nthreads//2, dt.options.nthreads]
 
     for i in nthreads:
-        cmd = "import datatable as dt; from datatable.lib import core; core.test_progress_%s (10000, %s)" % (parallel_type, i)
+        cmd = "import datatable as dt; from datatable.lib import core; core.test_progress_%s (100000, %s)" % (parallel_type, i)
         proc = subprocess.Popen(["python", "-c", cmd],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(0.1)
+        time.sleep(0.5)
         proc.send_signal(signal.Signals.SIGINT)
         ret = proc.wait()
         stdout = proc.stdout.read().decode()
         stderr = proc.stderr.read().decode()
+        # print(stdout, stderr)
         assert(stderr[-18:] == "KeyboardInterrupt\n")
 
 

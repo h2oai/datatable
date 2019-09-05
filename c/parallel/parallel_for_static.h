@@ -121,8 +121,17 @@ void parallel_for_static(size_t n_iterations,
   // chunk size, no need to start a parallel region
   if (n_iterations <= chunk_size_ || num_threads == 1) {
     enable_monitor(true);
-    for (size_t i = 0; i < n_iterations; ++i) {
-      func(i);
+    size_t i0 = 0;
+    while (i0 < n_iterations) {
+      size_t i1 = std::min(i0 + chunk_size_, n_iterations);
+      for (size_t i = i0; i < i1; ++i) {
+        func(i);
+      }
+      i0 += chunk_size_;
+      if (progress::manager->get_abort_execution()) {
+        i0 = n_iterations;
+        progress::manager->handle_interrupt();
+      }
     }
     enable_monitor(false);
     return;
