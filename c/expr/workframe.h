@@ -94,6 +94,7 @@ class workframe {
     strvec colnames;
     struct ripair { RowIndex ab, bc, ac; };
     std::vector<ripair> all_ri;
+    dtptr  out_datatable;
 
   public:
     workframe() = default;
@@ -131,7 +132,6 @@ class workframe {
     void reserve(size_t n);
     void add_column(Column&&, const RowIndex&, std::string&&);
 
-  private:
     RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
     void fix_columns();
 

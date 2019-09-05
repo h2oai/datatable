@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/outputs.h"
+#include "column_impl.h"
 #include "datatable.h"
 namespace dt {
 namespace expr {
@@ -72,9 +73,15 @@ Outputs& Outputs::add(Column&& col) {
 
 // Add column df[i] to the outputs
 //
-Outputs& Outputs::add_column(const DataTable* df, size_t i) {
-  const Column& column = df->get_column(i);
-  const std::string& name = df->get_names()[i];
+Outputs& Outputs::add_column(workframe& wf, size_t iframe, size_t icol) {
+  const DataTable* df = wf.get_datatable(iframe);
+  const RowIndex& rowindex = wf.get_rowindex(iframe);
+  Column column { df->get_column(icol) };  // copy
+  if (rowindex) {
+    const RowIndex& ricol = column->rowindex();
+    column->replace_rowindex(wf._product(rowindex, ricol));
+  }
+  const std::string& name = df->get_names()[icol];
   size_t group_level = Outputs::GroupToAll;
   items.emplace_back(Column(column), std::string(name), group_level);
   return *this;

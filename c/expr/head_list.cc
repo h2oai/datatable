@@ -125,7 +125,7 @@ static Outputs _evaluate_bool_list(const vecExpr& inputs, workframe& wf) {
   Outputs outputs;
   for (size_t i = 0; i < inputs.size(); ++i) {
     bool x = inputs[i].evaluate_as_bool();
-    if (x) outputs.add_column(df, i);
+    if (x) outputs.add_column(wf, 0, i);
   }
   return outputs;
 }

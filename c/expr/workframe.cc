@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/collist.h"
 #include "expr/expr.h"
+#include "expr/outputs.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
 #include "column_impl.h"  // TODO: remove
@@ -115,9 +116,14 @@ void workframe::evaluate() {
     case EvalMode::SELECT:
       if (byexpr) {
         byexpr.create_columns(*this);
+        jexpr->select(*this);
+        fix_columns();
       }
-      jexpr->select(*this);
-      fix_columns();
+      else {
+        auto res = jexpr2.evaluate_j(*this);
+        out_datatable = dtptr(new DataTable(res.release_columns(),
+                                            res.release_names()));
+      }
       break;
 
     case EvalMode::DELETE:
@@ -155,7 +161,9 @@ void workframe::fix_columns() {
 
 py::oobj workframe::get_result() {
   if (mode == EvalMode::SELECT) {
-    DataTable* result = new DataTable(std::move(columns), std::move(colnames));
+    DataTable* result =
+        out_datatable? out_datatable.release()
+                     : new DataTable(std::move(columns), std::move(colnames));
     if (result->ncols == 0) {
       // When selecting a 0-column subset, make sure the number of rows is the
       // same as if some of the columns were selected.

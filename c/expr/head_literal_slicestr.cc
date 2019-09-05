@@ -52,7 +52,7 @@ Outputs Head_Literal_SliceStr::evaluate_f(workframe& wf, size_t frame_id) const
   Outputs res;
   size_t di = (istart <= iend)? 1 : size_t(-1);
   for (size_t i = istart; ; i += di) {
-    res.add_column(df, i);
+    res.add_column(wf, frame_id, i);
     if (i == iend) break;
   }
   return res;

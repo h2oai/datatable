@@ -44,13 +44,12 @@ Outputs Head_Literal_SliceInt::evaluate(const vecExpr&, workframe&) const {
 
 Outputs Head_Literal_SliceInt::evaluate_f(workframe& wf, size_t frame_id) const
 {
-  DataTable* df = wf.get_datatable(frame_id);
-  size_t len = df->ncols;
+  size_t len = wf.get_datatable(frame_id)->ncols;
   size_t start, count, step;
   value.normalize(len, &start, &count, &step);
   Outputs res;
   for (size_t i = 0; i < count; ++i) {
-    res.add_column(df, start + i * step);
+    res.add_column(wf, frame_id, start + i * step);
   }
   return res;
 }

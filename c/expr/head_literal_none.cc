@@ -39,10 +39,10 @@ Outputs Head_Literal_None::evaluate(const vecExpr&, workframe&) const {
 
 // When used as j, `None` means select all columns
 Outputs Head_Literal_None::evaluate_j(const vecExpr&, workframe& wf) const {
-  auto dt0 = wf.get_datatable(0);
+  size_t n = wf.get_datatable(0)->ncols;
   Outputs res;
-  for (size_t i = 0; i < dt0->ncols; ++i) {
-    res.add_column(dt0, i);
+  for (size_t i = 0; i < n; ++i) {
+    res.add_column(wf, 0, i);
   }
   return res;
 }

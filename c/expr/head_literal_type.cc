@@ -37,13 +37,16 @@ static stypevec stFLOAT = {SType::FLOAT32, SType::FLOAT64};
 static stypevec stSTR = {SType::STR32, SType::STR64};
 static stypevec stOBJ = {SType::OBJ};
 
-static Outputs _select_types(const DataTable* df, const stypevec& stypes) {
+static Outputs _select_types(
+    workframe& wf, size_t frame_id, const stypevec& stypes)
+{
+  const DataTable* df = wf.get_datatable(frame_id);
   Outputs res;
   for (size_t i = 0; i < df->ncols; ++i) {
     SType st = df->get_column(i).stype();
     for (SType s : stypes) {
       if (s == st) {
-        res.add_column(df, i);
+        res.add_column(wf, frame_id, i);
         break;
       }
     }
@@ -51,12 +54,14 @@ static Outputs _select_types(const DataTable* df, const stypevec& stypes) {
   return res;
 }
 
-static Outputs _select_type(const DataTable* df, SType stype0) {
+static Outputs _select_type(workframe& wf, size_t frame_id, SType stype0)
+{
+  const DataTable* df = wf.get_datatable(frame_id);
   Outputs res;
   for (size_t i = 0; i < df->ncols; ++i) {
     SType stypei = df->get_column(i).stype();
     if (stypei == stype0) {
-      res.add_column(df, i);
+      res.add_column(wf, frame_id, i);
     }
   }
   return res;
@@ -84,26 +89,25 @@ Outputs Head_Literal_Type::evaluate(const vecExpr&, workframe&) const {
 
 Outputs Head_Literal_Type::evaluate_f(workframe& wf, size_t fid) const
 {
-  DataTable* df = wf.get_datatable(fid);
   if (value.is_type()) {
     auto et = reinterpret_cast<PyTypeObject*>(value.to_borrowed_ref());
-    if (et == &PyLong_Type)       return _select_types(df, stINT);
-    if (et == &PyFloat_Type)      return _select_types(df, stFLOAT);
-    if (et == &PyUnicode_Type)    return _select_types(df, stSTR);
-    if (et == &PyBool_Type)       return _select_types(df, stBOOL);
-    if (et == &PyBaseObject_Type) return _select_types(df, stOBJ);
+    if (et == &PyLong_Type)       return _select_types(wf, fid, stINT);
+    if (et == &PyFloat_Type)      return _select_types(wf, fid, stFLOAT);
+    if (et == &PyUnicode_Type)    return _select_types(wf, fid, stSTR);
+    if (et == &PyBool_Type)       return _select_types(wf, fid, stBOOL);
+    if (et == &PyBaseObject_Type) return _select_types(wf, fid, stOBJ);
   }
   if (value.is_ltype()) {
     auto lt = static_cast<LType>(value.get_attr("value").to_size_t());
-    if (lt == LType::BOOL)   return _select_types(df, stBOOL);
-    if (lt == LType::INT)    return _select_types(df, stINT);
-    if (lt == LType::REAL)   return _select_types(df, stFLOAT);
-    if (lt == LType::STRING) return _select_types(df, stSTR);
-    if (lt == LType::OBJECT) return _select_types(df, stOBJ);
+    if (lt == LType::BOOL)   return _select_types(wf, fid, stBOOL);
+    if (lt == LType::INT)    return _select_types(wf, fid, stINT);
+    if (lt == LType::REAL)   return _select_types(wf, fid, stFLOAT);
+    if (lt == LType::STRING) return _select_types(wf, fid, stSTR);
+    if (lt == LType::OBJECT) return _select_types(wf, fid, stOBJ);
   }
   if (value.is_stype()) {
     auto st = static_cast<SType>(value.get_attr("value").to_size_t());
-    return _select_type(df, st);
+    return _select_type(wf, fid, st);
   }
   throw ValueError() << "Unknown type " << value << " used as a selector";
 }

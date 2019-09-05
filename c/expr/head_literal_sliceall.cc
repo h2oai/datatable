@@ -40,10 +40,10 @@ Outputs Head_Literal_SliceAll::evaluate(const vecExpr&, workframe&) const {
 //
 Outputs Head_Literal_SliceAll::evaluate_f(workframe& wf, size_t frame_id) const
 {
-  DataTable* df = wf.get_datatable(frame_id);
+  size_t ncols = wf.get_datatable(frame_id)->ncols;
   Outputs outputs;
-  for (size_t i = 0; i < df->ncols; ++i) {
-    outputs.add_column(df, i);
+  for (size_t i = 0; i < ncols; ++i) {
+    outputs.add_column(wf, frame_id, i);
   }
   return outputs;
 }
@@ -64,7 +64,7 @@ Outputs Head_Literal_SliceAll::evaluate_j(const vecExpr&, workframe& wf) const
     const by_node& by = wf.get_by_node();
     for (size_t j = j0; j < dti->ncols; ++j) {
       if (by.has_group_column(j)) continue;
-      outputs.add_column(dti, j);
+      outputs.add_column(wf, i, j);
     }
   }
   return outputs;

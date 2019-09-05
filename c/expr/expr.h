@@ -57,6 +57,7 @@ class Expr {
 
     Outputs evaluate(workframe& wf) const;
     Outputs evaluate_f(workframe& wf, size_t frame_id) const;
+    Outputs evaluate_j(workframe& wf) const;
 
   private:
     // Construction helpers
