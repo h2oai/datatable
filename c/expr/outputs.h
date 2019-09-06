@@ -35,7 +35,7 @@ class Outputs {
     // constructed w.r.t. grouped input frame (and if it wasn't
     // explicitly grouped, presume that the entire frame was one
     // single big group).
-    //   0 - each group is mapped to 0 rows (shouldn't happen?)
+    //   0 - output is a scalar, conforms with any size
     //   1 - each group is mapped to exactly 1 row
     //   2 - each group is mapped to 0 <= ... <= `groupsize` rows
     //   3 - each group is mapped to `groupsize` rows
@@ -59,7 +59,7 @@ class Outputs {
     std::vector<Output> items;
 
   public:
-    static constexpr size_t GroupToNone = 0;
+    static constexpr size_t AllToOne    = 0;
     static constexpr size_t GroupToOne  = 1;
     static constexpr size_t GroupToSome = 2;
     static constexpr size_t GroupToAll  = 3;
