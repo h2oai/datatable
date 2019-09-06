@@ -108,14 +108,16 @@ def test_internal_parallel_for_ordered2():
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niters = 50000
+    niters = 10000
     sleep_time = 0.1
     cmd_import = "import datatable as dt; from datatable.lib import core; "
 
     if parallel_type is None:
-        cmd_run = "import time; dt.options.nthreads = %s; time.sleep(%s)" % (nthreads, sleep_time * 2)
+        cmd_run = "import time; dt.options.nthreads = %s; time.sleep(%s)" % (
+                  nthreads, sleep_time * 2)
     else:
-        cmd_run = "core.test_progress_%s(%s, %s)" % (parallel_type, niters, nthreads)
+        cmd_run = "core.test_progress_%s(%s, %s)" % (
+                  parallel_type, niters, nthreads)
     cmd = cmd_import + cmd_run
     proc = subprocess.Popen(["python", "-c", cmd],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
