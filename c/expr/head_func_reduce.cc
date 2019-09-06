@@ -36,9 +36,11 @@ Outputs Head_Func_Reduce::evaluate(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 1);
   Outputs outputs = args[0].evaluate(wf);
   for (auto& out : outputs.get_items()) {
-    throw NotImplError() << "Head_Func_Reduce::evaluate not implemented yet";
+    (void) out;
+    (void) op;
   }
-  return outputs;
+  throw NotImplError() << "Head_Func_Reduce::evaluate not implemented yet";
+  // return outputs;
 }
 
 

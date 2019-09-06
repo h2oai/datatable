@@ -44,19 +44,21 @@ Outputs Head_Func_Binary::evaluate(const vecExpr& args, workframe& wf) const {
       << " items";
   }
   size_t size = lmask? lhs.size() : rmask? rhs.size() : 1;
+  size_t lhs_grouping_level = lhs.get_grouping_level();
+  size_t rhs_grouping_level = rhs.get_grouping_level();
+  if (lhs_grouping_level < rhs_grouping_level) {
+    lhs.increase_grouping_level(rhs_grouping_level, wf);
+    // lhs_grouping_level = lhs.get_grouping_level();
+  }
+  if (rhs_grouping_level < lhs_grouping_level) {
+    rhs.increase_grouping_level(lhs_grouping_level, wf);
+  }
   Outputs outputs;
   for (size_t i = 0; i < size; ++i) {
-    auto& out1 = lhs.get_item(i & lmask);
-    auto& out2 = rhs.get_item(i & rmask);
-    if (out1.grouping_level != out2.grouping_level) {
-      if (out1.grouping_level < out2.grouping_level)
-        out1.increase_grouping_level(out2.grouping_level, wf);
-      else
-        out2.increase_grouping_level(out1.grouping_level, wf);
-    }
-    outputs.add(binaryop(op, out1.column, out2.column),
-                std::move(out1.name),  // name is inherited from the first argument
-                out1.grouping_level);  // grouping levels are same
+    outputs.add(binaryop(op, lhs.get_column(i & lmask),
+                             rhs.get_column(i & rmask)),
+                std::move(lhs.get_name(i & lmask)),  // name is inherited from the first argument
+                lhs_grouping_level);  // grouping levels are same
   }
   return outputs;
 }

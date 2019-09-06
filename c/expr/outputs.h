@@ -52,8 +52,6 @@ class Outputs {
       Output(Column&&, std::string&&, size_t);
       Output(Output&&) = default;
       Output(const Output&) = delete;
-
-      void increase_grouping_level(size_t n, workframe& wf);
     };
 
     std::vector<Output> items;
@@ -77,8 +75,13 @@ class Outputs {
     void append(Outputs&&);
     void apply_name(const std::string& name);
 
-    Output& get_item(size_t i);
     std::vector<Output>& get_items();
+    Column& get_column(size_t i);
+    std::string& get_name(size_t i);
+    size_t get_grouping_level() const;
+
+    [[noreturn]]
+    void increase_grouping_level(size_t n, workframe& wf);
 
     strvec release_names();
     colvec release_columns();
