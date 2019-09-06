@@ -36,19 +36,15 @@ Outputs::Outputs(workframe& wf_)
 
 
 
-void Outputs::add(Column&& col, std::string&& name, Grouping glevel) {
-  if (glevel != grouping_mode) {
-    // TODO
-  }
+void Outputs::add(Column&& col, std::string&& name, Grouping gmode) {
+  sync_grouping_mode(col, gmode);
   columns.emplace_back(std::move(col));
   names.emplace_back(std::move(name));
 }
 
 
-void Outputs::add(Column&& col, Grouping glevel) {
-  if (glevel != grouping_mode) {
-    // TODO
-  }
+void Outputs::add(Column&& col, Grouping gmode) {
+  sync_grouping_mode(col, gmode);
   columns.emplace_back(std::move(col));
   names.emplace_back(std::string());
 }
@@ -71,7 +67,7 @@ void Outputs::add_column(size_t iframe, size_t icol) {
 
 
 void Outputs::append(Outputs&& other) {
-  // TODO: normalize grouping levels too
+  sync_grouping_mode(other);
   if (columns.size() == 0) {
     columns = std::move(other.columns);
     names = std::move(other.names);
@@ -160,9 +156,30 @@ void Outputs::sync_grouping_mode(Outputs& other) {
 }
 
 
-void Outputs::increase_grouping_mode(Grouping g) {
-  grouping_mode = g;
+void Outputs::sync_grouping_mode(Column& col, Grouping gmode) {
+  if (grouping_mode == gmode) return;
+  size_t g1 = static_cast<size_t>(grouping_mode);
+  size_t g2 = static_cast<size_t>(gmode);
+  if (g1 < g2) increase_grouping_mode(gmode);
+  else         column_increase_grouping_mode(col, gmode, grouping_mode);
 }
+
+
+void Outputs::increase_grouping_mode(Grouping gmode) {
+  for (auto& col : columns) {
+    column_increase_grouping_mode(col, grouping_mode, gmode);
+  }
+  grouping_mode = gmode;
+}
+
+
+void Outputs::column_increase_grouping_mode(
+    Column& col, Grouping gfrom, Grouping gto)
+{
+  // TODO
+  (void)col; (void) gfrom; (void) gto;
+}
+
 
 
 

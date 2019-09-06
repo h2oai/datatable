@@ -59,10 +59,12 @@ class Outputs {
     // same grouping mode. It can either modify itself, or
     // `other` object.
     void sync_grouping_mode(Outputs& other);
+    void sync_grouping_mode(Column& col, Grouping gmode);
     Grouping get_grouping_mode() const;
 
   private:
     void increase_grouping_mode(Grouping g);
+    void column_increase_grouping_mode(Column&, Grouping from, Grouping to);
 };
 
 
