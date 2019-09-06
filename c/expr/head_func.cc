@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
 #include "expr/head_func.h"
+#include "expr/head_reduce.h"
 #include "expr/outputs.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
@@ -97,9 +98,15 @@ static ptrHead make_binop(Op op, const py::otuple& params) {
 }
 
 
-static ptrHead make_reduce(Op op, const py::otuple& params) {
+static ptrHead make_reduce0(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
-  return ptrHead(new Head_Func_Reduce(op));
+  return ptrHead(new Head_Reduce_Nullary(op));
+}
+
+
+static ptrHead make_reduce1(Op op, const py::otuple& params) {
+  xassert(params.size() == 0);
+  return ptrHead(new Head_Reduce_Unary(op));
 }
 
 
@@ -111,13 +118,13 @@ std::unordered_map<size_t, Head_Func::maker_t> Head_Func::factory;
 void Head_Func::init() {
   for (size_t i = UNOP_FIRST;    i <= UNOP_LAST;    ++i) factory[i] = make_unop;
   for (size_t i = BINOP_FIRST;   i <= BINOP_LAST;   ++i) factory[i] = make_binop;
-  for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce;
+  for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce1;
   for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   factory[static_cast<size_t>(Op::COL)]      = make_col;
   factory[static_cast<size_t>(Op::CAST)]     = make_cast;
   factory[static_cast<size_t>(Op::SETPLUS)]  = make_colsetop;
   factory[static_cast<size_t>(Op::SETMINUS)] = make_colsetop;
-  // factory[static_cast<size_t>(Op::COUNT0)]   = make_count0;
+  factory[static_cast<size_t>(Op::COUNT0)]   = make_reduce0;
   // factory[static_cast<size_t>(Op::RE_MATCH)] = make_string;
   // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;
   // factory[static_cast<size_t>(Op::ARCTAN2)]  = make_math21;

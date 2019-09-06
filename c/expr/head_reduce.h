@@ -19,31 +19,57 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/expr.h"
-#include "expr/expr_unaryop.h"  // TODO: merge into this file
+#ifndef dt_EXPR_HEAD_REDUCE_h
+#define dt_EXPR_HEAD_REDUCE_h
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include "expr/head_func.h"
-#include "expr/outputs.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
 
-Head_Func_Reduce::Head_Func_Reduce(Op op_) : op(op_) {}
+class Head_Reduce : public Head_Func {
+  protected:
+    Op op;
+
+  public:
+    static void init();  // called once from datatablemodule.h
+    explicit Head_Reduce(Op);
+    Kind get_expr_kind() const override;
+};
 
 
-Outputs Head_Func_Reduce::evaluate(const vecExpr& args, workframe& wf) const {
-  xassert(args.size() == 1);
-  Outputs outputs = args[0].evaluate(wf);
-  for (auto& col : outputs.get_columns()) {
-    (void) col;
-    (void) op;
-  }
-  throw NotImplError() << "Head_Func_Reduce::evaluate not implemented yet";
-  // return outputs;
-}
+
+//------------------------------------------------------------------------------
+// Derived classes
+//------------------------------------------------------------------------------
+
+class Head_Reduce_Nullary : public Head_Reduce {
+  public:
+    using Head_Reduce::Head_Reduce;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+};
+
+
+
+class Head_Reduce_Unary : public Head_Reduce {
+  public:
+    using Head_Reduce::Head_Reduce;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+};
+
+
+
+class Head_Reduce_Binary : public Head_Reduce {
+  public:
+    using Head_Reduce::Head_Reduce;
+    Outputs evaluate(const vecExpr&, workframe&) const override;
+};
+
 
 
 
 
 }}  // namespace dt::expr
+#endif
