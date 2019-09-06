@@ -59,7 +59,7 @@ Outputs Head_Func_Colset::_extend(Outputs&& lhs, Outputs&& rhs) const {
 
 
 Outputs Head_Func_Colset::_remove(Outputs&& lhs, Outputs&& rhs) const {
-  return lhs;
+  return std::move(lhs);
 }
 
 

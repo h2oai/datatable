@@ -36,7 +36,9 @@ namespace expr {
 //------------------------------------------------------------------------------
 
 Outputs Head_Literal::_wrap_column(Column&& col) {
-  return Outputs().add(std::move(col), Outputs::GroupToOne);
+  Outputs outputs;
+  outputs.add(std::move(col), Outputs::GroupToOne);
+  return outputs;
 }
 
 Head_Literal::~Head_Literal() {}

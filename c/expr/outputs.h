@@ -50,6 +50,8 @@ class Outputs {
       size_t       grouping_level;
 
       Output(Column&&, std::string&&, size_t);
+      Output(Output&&) = default;
+      Output(const Output&) = delete;
 
       void increase_grouping_level(size_t n, workframe& wf);
     };
@@ -64,13 +66,13 @@ class Outputs {
     static constexpr size_t GroupToMany = 4;
 
     Outputs() = default;
-    Outputs(const Outputs&) = default;
+    Outputs(const Outputs&) = delete;
     Outputs(Outputs&&) = default;
 
-    Outputs& add(Column&& col, std::string&& name, size_t group_level);
-    Outputs& add(Column&& col, size_t group_level);
-    Outputs& add(Column&& col);
-    Outputs& add_column(workframe& wf, size_t iframe, size_t icol);
+    void add(Column&& col, std::string&& name, size_t group_level);
+    void add(Column&& col, size_t group_level);
+    void add(Column&& col);
+    void add_column(workframe& wf, size_t iframe, size_t icol);
     size_t size() const noexcept;
     void append(Outputs&&);
     void apply_name(const std::string& name);

@@ -45,7 +45,9 @@ Outputs Head_Literal_String::evaluate_f(workframe& wf, size_t frame_id) const
 {
   auto df = wf.get_datatable(frame_id);
   size_t j = df->xcolindex(pystr);
-  return Outputs().add_column(wf, frame_id, j);
+  Outputs outputs;
+  outputs.add_column(wf, frame_id, j);
+  return outputs;
 }
 
 

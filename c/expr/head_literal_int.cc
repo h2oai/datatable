@@ -50,7 +50,9 @@ Outputs Head_Literal_Int::evaluate_f(workframe& wf, size_t frame_id) const {
         << icols << " column" << (icols == 1? "" : "s");
   }
   size_t i = static_cast<size_t>(value < 0? value + icols : value);
-  return Outputs().add_column(wf, frame_id, i);
+  Outputs outputs;
+  outputs.add_column(wf, frame_id, i);
+  return outputs;
 }
 
 

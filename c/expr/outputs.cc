@@ -55,25 +55,25 @@ size_t Outputs::size() const noexcept {
 }
 
 
-Outputs& Outputs::add(Column&& col, std::string&& name, size_t group_level) {
+void Outputs::add(Column&& col, std::string&& name, size_t group_level) {
   items.emplace_back(std::move(col), std::move(name), group_level);
-  return *this;
 }
 
-Outputs& Outputs::add(Column&& col, size_t group_level) {
+
+void Outputs::add(Column&& col, size_t group_level) {
   items.emplace_back(std::move(col), std::string(), group_level);
-  return *this;
 }
 
-Outputs& Outputs::add(Column&& col) {
+
+void Outputs::add(Column&& col) {
   constexpr size_t g = Outputs::GroupToAll;
   items.emplace_back(std::move(col), std::string(), g);
-  return *this;
 }
+
 
 // Add column df[i] to the outputs
 //
-Outputs& Outputs::add_column(workframe& wf, size_t iframe, size_t icol) {
+void Outputs::add_column(workframe& wf, size_t iframe, size_t icol) {
   const DataTable* df = wf.get_datatable(iframe);
   const RowIndex& rowindex = wf.get_rowindex(iframe);
   Column column { df->get_column(icol) };  // copy
@@ -84,7 +84,6 @@ Outputs& Outputs::add_column(workframe& wf, size_t iframe, size_t icol) {
   const std::string& name = df->get_names()[icol];
   size_t group_level = Outputs::GroupToAll;
   items.emplace_back(Column(column), std::string(name), group_level);
-  return *this;
 }
 
 
@@ -93,7 +92,6 @@ void Outputs::append(Outputs&& other) {
     items = std::move(other.items);
   }
   else {
-    items.reserve(size() + other.size());
     for (auto& item : other.items) {
       items.emplace_back(std::move(item));
     }

@@ -74,6 +74,8 @@ class unary_vcol : public ColumnImpl {
         arg(std::move(col)),
         func(f) {}
 
+    bool is_virtual() const noexcept override { return true; }
+
     bool get_element(size_t i, TO* out) const override {
       TI x;
       bool isna = arg.get_element(i, &x);
@@ -96,6 +98,8 @@ class unary_vcol<TI, int8_t> : public ColumnImpl {
       : ColumnImpl(col.nrows(), stype),
         arg(std::move(col)),
         func(f) {}
+
+    bool is_virtual() const noexcept override { return true; }
 
     bool get_element(size_t i, int8_t* out) const override {
       TI x;
