@@ -52,33 +52,36 @@ bool is_monitor_enabled() noexcept;
  * using all available threads.
  *
  * This function must not be called within a parallel region. See
- * `nested_for_static()` instead.
+ * `nested_for_static_plain()` instead.
+ *
+ * Note: as this function doesn't do any chunking, it cannot be interrupted
+ * with the SIGINT signal.
  */
-// template <typename F>
-// void parallel_for_static(size_t n_iterations, NThreads nthreads, F func) {
-//   xassert(num_threads_in_team() == 0);
-//   xassert(n_iterations <= size_t(-1) / nthreads.get());
+template <typename F>
+void parallel_for_static_plain(size_t n_iterations, NThreads nthreads, F func) {
+  xassert(num_threads_in_team() == 0);
+  xassert(n_iterations <= size_t(-1) / nthreads.get());
 
-//   // Fast case: the number of iterations is either 0 or 1
-//   if (n_iterations <= 1) {
-//     if (n_iterations) {
-//       func(0);
-//     }
-//     return;
-//   }
+  // Fast case: the number of iterations is either 0 or 1
+  if (n_iterations <= 1) {
+    if (n_iterations) {
+      func(0);
+    }
+    return;
+  }
 
-//   parallel_region(
-//     nthreads.get(),
-//     [=] {
-//       size_t ith = this_thread_index();
-//       size_t nth = num_threads_in_team();
-//       size_t i0 = n_iterations * ith / nth;
-//       size_t i1 = n_iterations * (ith + 1) / nth;
-//       for (size_t i = i0; i < i1; ++i) {
-//         func(i);
-//       }
-//     });
-// }
+  parallel_region(
+    nthreads.get(),
+    [=] {
+      size_t ith = this_thread_index();
+      size_t nth = num_threads_in_team();
+      size_t i0 = n_iterations * ith / nth;
+      size_t i1 = n_iterations * (ith + 1) / nth;
+      for (size_t i = i0; i < i1; ++i) {
+        func(i);
+      }
+    });
+}
 
 
 
@@ -104,7 +107,7 @@ bool is_monitor_enabled() noexcept;
  * pool will be used.
  *
  * This function must not be called within another parallel region.
- * See `nested_for_static()` instead.
+ * See `nested_for_static_plain()` instead.
  */
 template <typename F>
 void parallel_for_static(size_t n_iterations,
@@ -112,7 +115,6 @@ void parallel_for_static(size_t n_iterations,
                          NThreads nthreads,
                          F func)
 {
-  if (dt::progress::manager->get_abort_execution()) return;
   xassert(num_threads_in_team() == 0);
   size_t chunk_size_ = chunk_size.get();
   size_t num_threads = nthreads.get();
@@ -175,7 +177,7 @@ void parallel_for_static(size_t n_iterations, NThreads nthreads, F func) {
 
 
 /**
- * Similar to `parallel_for_static(n_iterations, func)`, however this
+ * Similar to `parallel_for_static_plain(n_iterations, func)`, however this
  * function is expected to be called from within a parallel region.
  *
  * This function will effectively execute the loop
@@ -191,19 +193,22 @@ void parallel_for_static(size_t n_iterations, NThreads nthreads, F func) {
  * that as each thread finishes its iterations, it will not wait for
  * the other threads to finish theirs. If a barrier is desired, add
  * an explicit call to `dt::barrier()` at the end.
+ *
+ * Note: as this function doesn't do any chunking, it cannot be interrupted
+ * with the SIGINT signal.
  */
-// template <typename F>
-// void nested_for_static(size_t n_iterations, F func) {
-//   size_t ith = this_thread_index();
-//   size_t nth = num_threads_in_team();
-//   xassert(nth > 0);
+template <typename F>
+void nested_for_static_plain(size_t n_iterations, F func) {
+  size_t ith = this_thread_index();
+  size_t nth = num_threads_in_team();
+  xassert(nth > 0);
 
-//   size_t i0 = n_iterations * ith / nth;
-//   size_t i1 = n_iterations * (ith + 1) / nth;
-//   for (size_t i = i0; i < i1; ++i) {
-//     func(i);
-//   }
-// }
+  size_t i0 = n_iterations * ith / nth;
+  size_t i1 = n_iterations * (ith + 1) / nth;
+  for (size_t i = i0; i < i1; ++i) {
+    func(i);
+  }
+}
 
 
 
@@ -215,7 +220,6 @@ void parallel_for_static(size_t n_iterations, NThreads nthreads, F func) {
 template <typename F>
 void nested_for_static(size_t n_iterations, ChunkSize chunk_size, F func)
 {
-  if (dt::progress::manager->get_abort_execution()) return;
   size_t chsize = chunk_size.get();
   size_t i0 = chsize * this_thread_index();
   size_t di = chsize * num_threads_in_team();
