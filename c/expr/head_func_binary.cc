@@ -50,7 +50,6 @@ Outputs Head_Func_Binary::evaluate(const vecExpr& args, workframe& wf) const {
   for (size_t i = 0; i < size; ++i) {
     outputs.add(binaryop(op, lhs.get_column(i & lmask),
                              rhs.get_column(i & rmask)),
-                std::move(lhs.get_name(i & lmask)),  // name is inherited from the first argument
                 gmode);
   }
   return outputs;
