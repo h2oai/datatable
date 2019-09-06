@@ -29,7 +29,7 @@ void test_progress_static(size_t n, size_t nth) {
   std::vector<size_t> data(n, 0);
   dt::parallel_for_static(n, dt::ChunkSize(10), dt::NThreads(nth),
     [&](size_t i) {
-      for (size_t j = 1; j < 100500; ++j) {
+      for (size_t j = 1; j < 10000; ++j) {
         data[i] += i % j;
       }
 
@@ -56,7 +56,7 @@ void test_progress_nested(size_t n, size_t nth) {
       for (size_t a = 0; a < n_iters; ++a) {
         dt::nested_for_static(n,
           [&](size_t i) {
-            for (size_t j = 1; j < 100500; ++j) {
+            for (size_t j = 1; j < 10000; ++j) {
               data[i] += i % j;
             }
             if (dt::this_thread_index() == 0) {
@@ -81,7 +81,7 @@ void test_progress_dynamic(size_t n, size_t nth) {
 
   dt::parallel_for_dynamic(n, dt::NThreads(nth),
     [&](size_t i) {
-      for (size_t j = 1; j < 100500; ++j) {
+      for (size_t j = 1; j < 10000; ++j) {
         data[i] += i % j;
       }
 
@@ -106,17 +106,17 @@ void test_progress_ordered(size_t n, size_t nth) {
     [&] (dt::ordered* o) {
       o->parallel(
         [&](size_t i) {
-          for (size_t j = 1; j < 100500; ++j) {
+          for (size_t j = 1; j < 10000; ++j) {
             data[i] += i % j + 1;
           }
         },
         [&](size_t i) {
-          for (size_t j = 1; j < 100500; ++j) {
+          for (size_t j = 1; j < 10000; ++j) {
             data[i] += i % j + 2;
           }
         },
         [&](size_t i) {
-          for (size_t j = 1; j < 100500; ++j) {
+          for (size_t j = 1; j < 10000; ++j) {
             data[i] += i % j + 3;
           }
         });
