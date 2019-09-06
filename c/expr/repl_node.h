@@ -61,6 +61,8 @@ class repl_node {
      * This method is used when `ri0` is not empty.
      */
     virtual void replace_values(workframe&, const intvec&) const = 0;
+
+    virtual void resolve(workframe&) const;
 };
 
 
