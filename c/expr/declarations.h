@@ -30,6 +30,8 @@ class DataTable;
 
 namespace dt {
 namespace expr {
+  using std::size_t;
+
   class Head;
   class Expr;
   class Outputs;
@@ -38,7 +40,46 @@ namespace expr {
   using ptrHead = std::unique_ptr<Head>;
   using vecExpr = std::vector<Expr>;
 
+  // TODO: remove
   class base_expr;
+
+
+  // The `Grouping` enum describes how a column or a set of columns
+  // behave wrt a group-by structure on the frame.
+  //
+  // SCALAR
+  //   Indicates that the column is a scalar, which conforms to any
+  //   frame size. Such column can be resized as necessary.
+  //
+  // GtoONE
+  //   Each group is mapped to exactly 1 row. This grouping mode is
+  //   common as a result of "reduce" operations such as `sum`, `sd`,
+  //   `min`, etc. A column with this level may need to be expanded
+  //   in order to become conformable with any full-sized column.
+  //
+  // GtoFEW
+  //   Each group is mapped to 0 <= ... <= `groupsize` rows. This
+  //   mode is uncommon. If it needs to be upcasted to the
+  //   "full-sized" level, any missing entries are filled with NAs.
+  //
+  // GtoALL
+  //   Each group is mapped to exactly `groupsize` rows. This is the
+  //   most common grouping mode. Any simple column, or a function of
+  //   a simple column will be using this mode. Few groupby functions
+  //   may use this mode too
+  //
+  // GtoANY
+  //   Groups may be mapped to any number of rows, including having
+  //   more rows than `groupsize`. This is the rarest grouping mode.
+  //
+  enum Grouping : size_t {
+    SCALAR = 0,
+    GtoONE = 1,
+    GtoFEW = 2,
+    GtoALL = 3,
+    GtoANY = 4,
+  };
+
 }}
 
 

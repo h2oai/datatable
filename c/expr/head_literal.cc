@@ -37,7 +37,7 @@ namespace expr {
 
 Outputs Head_Literal::_wrap_column(Column&& col) {
   Outputs outputs;
-  outputs.add(std::move(col), Outputs::GroupToOne);
+  outputs.add(std::move(col), Grouping::SCALAR);
   return outputs;
 }
 

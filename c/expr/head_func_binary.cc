@@ -44,21 +44,21 @@ Outputs Head_Func_Binary::evaluate(const vecExpr& args, workframe& wf) const {
       << " items";
   }
   size_t size = lmask? lhs.size() : rmask? rhs.size() : 1;
-  size_t lhs_grouping_level = lhs.get_grouping_level();
-  size_t rhs_grouping_level = rhs.get_grouping_level();
-  if (lhs_grouping_level < rhs_grouping_level) {
-    lhs.increase_grouping_level(rhs_grouping_level, wf);
-    // lhs_grouping_level = lhs.get_grouping_level();
+  auto lhs_gmode = lhs.get_grouping_mode();
+  auto rhs_gmode = rhs.get_grouping_mode();
+  if (lhs_gmode < rhs_gmode) {
+    lhs.increase_grouping_level(rhs_gmode, wf);
+    // lhs_gmode = lhs.get_grouping_mode();
   }
-  if (rhs_grouping_level < lhs_grouping_level) {
-    rhs.increase_grouping_level(lhs_grouping_level, wf);
+  if (rhs_gmode < lhs_gmode) {
+    rhs.increase_grouping_level(lhs_gmode, wf);
   }
   Outputs outputs;
   for (size_t i = 0; i < size; ++i) {
     outputs.add(binaryop(op, lhs.get_column(i & lmask),
                              rhs.get_column(i & rmask)),
                 std::move(lhs.get_name(i & lmask)),  // name is inherited from the first argument
-                lhs_grouping_level);  // grouping levels are same
+                lhs_gmode);  // grouping levels are same
   }
   return outputs;
 }

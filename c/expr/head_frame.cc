@@ -65,8 +65,8 @@ Outputs Head_Frame::evaluate(const vecExpr& args, workframe& wf) const {
         "cannot be used in an expression where " << wf.nrows()
         << " are expected";
   }
-  size_t grouplevel = (dt->nrows == 1)? Outputs::GroupToOne
-                                      : Outputs::GroupToAll;
+  Grouping grouplevel = (dt->nrows == 1)? Grouping::GtoONE
+                                        : Grouping::GtoALL;
   Outputs res;
   for (size_t i = 0; i < dt->ncols; ++i) {
     res.add(Column(dt->get_column(i)),

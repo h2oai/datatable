@@ -23,6 +23,7 @@
 #define dt_EXPR_OUTPUTS_h
 #include <string>
 #include <vector>
+#include "expr/declarations.h"
 #include "expr/workframe.h"
 #include "column.h"
 namespace dt {
@@ -31,62 +32,30 @@ namespace expr {
 
 class Outputs {
   private:
-    // The `grouping_level` describes how the output column was
-    // constructed w.r.t. grouped input frame (and if it wasn't
-    // explicitly grouped, presume that the entire frame was one
-    // single big group).
-    //   0 - output is a scalar, conforms with any size
-    //   1 - each group is mapped to exactly 1 row
-    //   2 - each group is mapped to 0 <= ... <= `groupsize` rows
-    //   3 - each group is mapped to `groupsize` rows
-    //   4 - groups may be mapped to any number of rows,
-    //       including having more rows than `groupsize`
-    //
-    // The most common levels are 1 and 3.
-    //
-    // struct Output {
-    //   Column       column;
-    //   std::string  name;
-    //   size_t       grouping_level;
-
-    //   Output(Column&&, std::string&&, size_t);
-    //   Output(Output&&) = default;
-    //   Output(const Output&) = delete;
-    // };
-
-    // std::vector<Output> items;
     colvec columns;
     strvec names;
-    size_t grouping_level;
+    Grouping grouping_mode;
 
   public:
-    static constexpr size_t AllToOne    = 0;
-    static constexpr size_t GroupToOne  = 1;
-    static constexpr size_t GroupToSome = 2;
-    static constexpr size_t GroupToAll  = 3;
-    static constexpr size_t GroupToMany = 4;
-
     Outputs();
     Outputs(const Outputs&) = delete;
     Outputs(Outputs&&) = default;
 
-    void add(Column&& col, std::string&& name, size_t group_level);
-    void add(Column&& col, size_t group_level = Outputs::GroupToAll);
+    void add(Column&& col, std::string&& name, Grouping grp);
+    void add(Column&& col, Grouping grp = Grouping::GtoALL);
     void add_column(workframe& wf, size_t iframe, size_t icol);
     void append(Outputs&&);
     void apply_name(const std::string& name);
 
     size_t size() const noexcept;
-    // std::vector<Output>& get_items();
+    Grouping get_grouping_mode() const;
     Column& get_column(size_t i);
     std::string& get_name(size_t i);
-    size_t get_grouping_level() const;
     colvec& get_columns();
     strvec& get_names();
 
     [[noreturn]]
     void increase_grouping_level(size_t n, workframe& wf);
-
 };
 
 

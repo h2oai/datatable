@@ -30,14 +30,14 @@ namespace expr {
 // Output
 //------------------------------------------------------------------------------
 
-Outputs::Outputs() : grouping_level(0) {}
+Outputs::Outputs() : grouping_mode(Grouping::SCALAR) {}
 
 
 
 
 
-void Outputs::add(Column&& col, std::string&& name, size_t glevel) {
-  if (glevel != grouping_level) {
+void Outputs::add(Column&& col, std::string&& name, Grouping glevel) {
+  if (glevel != grouping_mode) {
     // TODO
   }
   columns.emplace_back(std::move(col));
@@ -45,8 +45,8 @@ void Outputs::add(Column&& col, std::string&& name, size_t glevel) {
 }
 
 
-void Outputs::add(Column&& col, size_t glevel) {
-  if (glevel != grouping_level) {
+void Outputs::add(Column&& col, Grouping glevel) {
+  if (glevel != grouping_mode) {
     // TODO
   }
   columns.emplace_back(std::move(col));
@@ -66,7 +66,7 @@ void Outputs::add_column(workframe& wf, size_t iframe, size_t icol) {
   }
   const std::string& name = df->get_names()[icol];
   // TODO: check whether the column belongs to the group key
-  add(Column(column), std::string(name), Outputs::GroupToAll);
+  add(Column(column), std::string(name), Grouping::GtoALL);
 }
 
 
@@ -124,14 +124,14 @@ std::string& Outputs::get_name(size_t i) {
   return names[i];
 }
 
-size_t Outputs::get_grouping_level() const {
-  return grouping_level;
+Grouping Outputs::get_grouping_mode() const {
+  return grouping_mode;
 }
 
 [[noreturn]]
 void Outputs::increase_grouping_level(size_t, workframe&) {
-  // xassert(n > grouping_level);
-  // grouping_level = n;
+  // xassert(n > grouping_mode);
+  // grouping_mode = n;
   throw NotImplError() << "Mixing expressions at different grouping levels "
                           "is not supported yet";
 }
