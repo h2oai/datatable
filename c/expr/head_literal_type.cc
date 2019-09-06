@@ -31,11 +31,12 @@ namespace expr {
 
 using stypevec = std::vector<SType>;
 
-static stypevec stBOOL = {SType::BOOL};
-static stypevec stINT = {SType::INT8, SType::INT16, SType::INT32, SType::INT64};
+static stypevec stBOOL  = {SType::BOOL};
+static stypevec stINT   = {SType::INT8, SType::INT16, SType::INT32, SType::INT64};
 static stypevec stFLOAT = {SType::FLOAT32, SType::FLOAT64};
-static stypevec stSTR = {SType::STR32, SType::STR64};
-static stypevec stOBJ = {SType::OBJ};
+static stypevec stSTR   = {SType::STR32, SType::STR64};
+static stypevec stTIME  = {};
+static stypevec stOBJ   = {SType::OBJ};
 
 
 static Outputs _select_types(
@@ -101,11 +102,12 @@ Outputs Head_Literal_Type::evaluate_f(workframe& wf, size_t fid) const
   }
   if (value.is_ltype()) {
     auto lt = static_cast<LType>(value.get_attr("value").to_size_t());
-    if (lt == LType::BOOL)   return _select_types(wf, fid, stBOOL);
-    if (lt == LType::INT)    return _select_types(wf, fid, stINT);
-    if (lt == LType::REAL)   return _select_types(wf, fid, stFLOAT);
-    if (lt == LType::STRING) return _select_types(wf, fid, stSTR);
-    if (lt == LType::OBJECT) return _select_types(wf, fid, stOBJ);
+    if (lt == LType::BOOL)     return _select_types(wf, fid, stBOOL);
+    if (lt == LType::INT)      return _select_types(wf, fid, stINT);
+    if (lt == LType::REAL)     return _select_types(wf, fid, stFLOAT);
+    if (lt == LType::STRING)   return _select_types(wf, fid, stSTR);
+    if (lt == LType::DATETIME) return _select_types(wf, fid, stTIME);
+    if (lt == LType::OBJECT)   return _select_types(wf, fid, stOBJ);
   }
   if (value.is_stype()) {
     auto st = static_cast<SType>(value.get_attr("value").to_size_t());
