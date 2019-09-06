@@ -29,7 +29,6 @@ import re
 import subprocess
 import sys
 import time
-import itertools
 from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_column_rowindex, frame_integrity_check

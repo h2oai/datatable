@@ -514,12 +514,12 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   // Calculate work amounts for full fit iterations, last fit iteration and
   // validation.
-  size_t work_amount = (niterations - 1) * get_work_amount(iteration_nrows);
-  work_amount += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows);
-  if (validation) work_amount += niterations * get_work_amount(dt_X_val->nrows);
+  size_t work_total = (niterations - 1) * get_work_amount(iteration_nrows);
+  work_total += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows);
+  if (validation) work_total += niterations * get_work_amount(dt_X_val->nrows);
 
   // Set work amount to be reported by the zero thread.
-  dt::progress::work job(work_amount);
+  dt::progress::work job(work_total);
   job.set_message("Fitting");
 
   dt::parallel_region(get_nthreads(iteration_nrows),
@@ -621,7 +621,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
             if (dt::this_thread_index() == 0) {
               job.set_message("Fitting: early stopping criteria is met");
               // In some cases this makes progress "jumping" to 100%.
-              job.set_done_amount(work_amount);
+              job.set_done_amount(work_total);
             }
             break;
           }

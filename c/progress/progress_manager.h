@@ -54,7 +54,18 @@ class progress_manager {
     // also accessing `pbar`. Without the mutex protection such an access
     // can result in a segfault.
     mutable std::mutex mutex;
+
+    // This flag is initially set to `false`. When SIGINT signal is caught,
+    // `caught_interrupt` is set to `true`. When progress manager handles
+    // the interrupt, it also resets `caught_interrupt` back to `false`.
     mutable bool caught_interrupt;
+
+    // This flag is kind of similar to the above, but is atomic and not
+    // cleared by the interrupt handler. It is only cleared when threads are
+    // joining, and used in the cases when there is no special scheduler
+    // (like in the cases of `parallel_for_static`, `nested_for_static`
+    // or a single threaded `parallel_for_ordered`) but we still want
+    // to abort execution of all threads when SIGINT is received.
     mutable std::atomic<bool> abort_execution;
     size_t : 48;
 

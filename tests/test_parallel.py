@@ -120,10 +120,12 @@ def test_progress_interrupt(parallel_type, nthreads):
                   parallel_type, niters, nthreads)
     cmd = cmd_import + cmd_run
     proc = subprocess.Popen(["python", "-c", cmd],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            stdout = subprocess.PIPE,
+                            stderr = subprocess.PIPE)
     time.sleep(sleep_time)
     proc.send_signal(signal.Signals.SIGINT)
     ret = proc.wait()
     stderr = proc.stderr.read().decode()
     assert(stderr[-18:] == "KeyboardInterrupt\n")
+
 

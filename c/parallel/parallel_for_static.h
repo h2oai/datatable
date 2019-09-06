@@ -107,7 +107,7 @@ void parallel_for_static_plain(size_t n_iterations, NThreads nthreads, F func) {
  * pool will be used.
  *
  * This function must not be called within another parallel region.
- * See `nested_for_static_plain()` instead.
+ * See `nested_for_static()` instead.
  */
 template <typename F>
 void parallel_for_static(size_t n_iterations,
