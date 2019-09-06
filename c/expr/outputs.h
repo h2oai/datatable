@@ -44,17 +44,20 @@ class Outputs {
     //
     // The most common levels are 1 and 3.
     //
-    struct Output {
-      Column       column;
-      std::string  name;
-      size_t       grouping_level;
+    // struct Output {
+    //   Column       column;
+    //   std::string  name;
+    //   size_t       grouping_level;
 
-      Output(Column&&, std::string&&, size_t);
-      Output(Output&&) = default;
-      Output(const Output&) = delete;
-    };
+    //   Output(Column&&, std::string&&, size_t);
+    //   Output(Output&&) = default;
+    //   Output(const Output&) = delete;
+    // };
 
-    std::vector<Output> items;
+    // std::vector<Output> items;
+    colvec columns;
+    strvec names;
+    size_t grouping_level;
 
   public:
     static constexpr size_t AllToOne    = 0;
@@ -63,28 +66,27 @@ class Outputs {
     static constexpr size_t GroupToAll  = 3;
     static constexpr size_t GroupToMany = 4;
 
-    Outputs() = default;
+    Outputs();
     Outputs(const Outputs&) = delete;
     Outputs(Outputs&&) = default;
 
     void add(Column&& col, std::string&& name, size_t group_level);
-    void add(Column&& col, size_t group_level);
-    void add(Column&& col);
+    void add(Column&& col, size_t group_level = Outputs::GroupToAll);
     void add_column(workframe& wf, size_t iframe, size_t icol);
-    size_t size() const noexcept;
     void append(Outputs&&);
     void apply_name(const std::string& name);
 
-    std::vector<Output>& get_items();
+    size_t size() const noexcept;
+    // std::vector<Output>& get_items();
     Column& get_column(size_t i);
     std::string& get_name(size_t i);
     size_t get_grouping_level() const;
+    colvec& get_columns();
+    strvec& get_names();
 
     [[noreturn]]
     void increase_grouping_level(size_t n, workframe& wf);
 
-    strvec release_names();
-    colvec release_columns();
 };
 
 

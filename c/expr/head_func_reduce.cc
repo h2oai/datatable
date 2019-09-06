@@ -35,8 +35,8 @@ Head_Func_Reduce::Head_Func_Reduce(Op op_) : op(op_) {}
 Outputs Head_Func_Reduce::evaluate(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 1);
   Outputs outputs = args[0].evaluate(wf);
-  for (auto& out : outputs.get_items()) {
-    (void) out;
+  for (auto& col : outputs.get_columns()) {
+    (void) col;
     (void) op;
   }
   throw NotImplError() << "Head_Func_Reduce::evaluate not implemented yet";

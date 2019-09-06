@@ -30,37 +30,27 @@ namespace expr {
 // Output
 //------------------------------------------------------------------------------
 
-Outputs::Output::Output(Column&& col, std::string&& nm, size_t g)
-  : column(std::move(col)),
-    name(std::move(nm)),
-    grouping_level(g) {}
+Outputs::Outputs() : grouping_level(0) {}
 
 
 
 
 
-//------------------------------------------------------------------------------
-// Outputs
-//------------------------------------------------------------------------------
-
-size_t Outputs::size() const noexcept {
-  return items.size();
+void Outputs::add(Column&& col, std::string&& name, size_t glevel) {
+  if (glevel != grouping_level) {
+    // TODO
+  }
+  columns.emplace_back(std::move(col));
+  names.emplace_back(std::move(name));
 }
 
 
-void Outputs::add(Column&& col, std::string&& name, size_t group_level) {
-  items.emplace_back(std::move(col), std::move(name), group_level);
-}
-
-
-void Outputs::add(Column&& col, size_t group_level) {
-  items.emplace_back(std::move(col), std::string(), group_level);
-}
-
-
-void Outputs::add(Column&& col) {
-  constexpr size_t g = Outputs::GroupToAll;
-  items.emplace_back(std::move(col), std::string(), g);
+void Outputs::add(Column&& col, size_t glevel) {
+  if (glevel != grouping_level) {
+    // TODO
+  }
+  columns.emplace_back(std::move(col));
+  names.emplace_back(std::string());
 }
 
 
@@ -75,31 +65,36 @@ void Outputs::add_column(workframe& wf, size_t iframe, size_t icol) {
     column->replace_rowindex(wf._product(rowindex, ricol));
   }
   const std::string& name = df->get_names()[icol];
-  size_t group_level = Outputs::GroupToAll;
-  items.emplace_back(Column(column), std::string(name), group_level);
+  // TODO: check whether the column belongs to the group key
+  add(Column(column), std::string(name), Outputs::GroupToAll);
 }
 
 
 void Outputs::append(Outputs&& other) {
-  if (items.size() == 0) {
-    items = std::move(other.items);
+  // TODO: normalize grouping levels too
+  if (columns.size() == 0) {
+    columns = std::move(other.columns);
+    names = std::move(other.names);
   }
   else {
-    for (auto& item : other.items) {
-      items.emplace_back(std::move(item));
+    for (auto& item : other.columns) {
+      columns.emplace_back(std::move(item));
+    }
+    for (auto& item : other.names) {
+      names.emplace_back(std::move(item));
     }
   }
 }
 
 
 void Outputs::apply_name(const std::string& name) {
-  if (items.size() == 1) {
-    items[0].name = name;
+  if (names.size() == 1) {
+    names[0] = name;
   }
   else {
-    for (auto& item : items) {
-      if (item.name.empty()) {
-        item.name = name;
+    for (auto& nameref : names) {
+      if (nameref.empty()) {
+        nameref = name;
       }
       else {
         // Note: name.c_str() returns pointer to a null-terminated character
@@ -108,28 +103,29 @@ void Outputs::apply_name(const std::string& name) {
         // array into `item.name`, together with the NUL character, and then
         // overwrite the NUL with a '.'. The end result is that we have a
         // string with content "{name}.{item.name}".
-        item.name.insert(0, name.c_str(), name.size() + 1);
-        item.name[name.size()] = '.';
+        nameref.insert(0, name.c_str(), name.size() + 1);
+        nameref[name.size()] = '.';
       }
     }
   }
 }
 
 
-std::vector<Outputs::Output>& Outputs::get_items() {
-  return items;
+
+size_t Outputs::size() const noexcept {
+  return columns.size();
 }
 
 Column& Outputs::get_column(size_t i) {
-  return items[i].column;
+  return columns[i];
 }
 
 std::string& Outputs::get_name(size_t i) {
-  return items[i].name;
+  return names[i];
 }
 
 size_t Outputs::get_grouping_level() const {
-  return items.empty()? 0 : items[0].grouping_level;
+  return grouping_level;
 }
 
 [[noreturn]]
@@ -142,23 +138,13 @@ void Outputs::increase_grouping_level(size_t, workframe&) {
 
 
 
-strvec Outputs::release_names() {
-  strvec out;
-  out.reserve(items.size());
-  for (auto& item : items) {
-    out.push_back(std::move(item.name));
-  }
-  return out;
+strvec& Outputs::get_names() {
+  return names;
 }
 
 
-colvec Outputs::release_columns() {
-  colvec out;
-  out.reserve(items.size());
-  for (auto& item : items) {
-    out.push_back(std::move(item.column));
-  }
-  return out;
+colvec& Outputs::get_columns() {
+  return columns;
 }
 
 

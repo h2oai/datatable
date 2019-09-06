@@ -35,12 +35,12 @@ Head_Func_Unary::Head_Func_Unary(Op op_) : op(op_) {}
 Outputs Head_Func_Unary::evaluate(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 1);
   Outputs outputs = args[0].evaluate(wf);
-  for (auto& out : outputs.get_items()) {
-    const auto& info = unary_library.get_infox(op, out.column.stype());
+  for (auto& col : outputs.get_columns()) {
+    const auto& info = unary_library.get_infox(op, col.stype());
     if (info.cast_stype != SType::VOID) {
-      out.column.cast_inplace(info.cast_stype);
+      col.cast_inplace(info.cast_stype);
     }
-    out.column = info.vcolfn(std::move(out.column));
+    col = info.vcolfn(std::move(col));
   }
   return outputs;
 }

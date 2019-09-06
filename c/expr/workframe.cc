@@ -121,8 +121,8 @@ void workframe::evaluate() {
       }
       else {
         auto res = jexpr2.evaluate_j(*this);
-        out_datatable = dtptr(new DataTable(res.release_columns(),
-                                            res.release_names()));
+        out_datatable = dtptr(new DataTable(std::move(res.get_columns()),
+                                            std::move(res.get_names())));
       }
       break;
 

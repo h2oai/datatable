@@ -34,8 +34,8 @@ Head_Func_Cast::Head_Func_Cast(SType s) : stype(s) {}
 Outputs Head_Func_Cast::evaluate(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 1);
   Outputs outputs = args[0].evaluate(wf);
-  for (auto& out : outputs.get_items()) {
-    out.column.cast_inplace(stype);
+  for (auto& col : outputs.get_columns()) {
+    col.cast_inplace(stype);
   }
   return outputs;
 }
