@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PROGRESS_MANAGER_h
 #define dt_PROGRESS_MANAGER_h
+#include <atomic>
 #include <stack>      // std::stack
 #include <mutex>      // std::mutex, std::lock_guard
 namespace dt {
