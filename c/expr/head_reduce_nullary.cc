@@ -28,30 +28,32 @@
 namespace dt {
 namespace expr {
 
+
+
 //------------------------------------------------------------------------------
 // count()
 //------------------------------------------------------------------------------
 
-static Outputs _count0(workframe& wf) {
-  Column col;
+static Column _count0(workframe& wf)
+{
   if (wf.has_groupby()) {
+    // TODO: convert this into a virtual column
     const Groupby& grpby = wf.get_groupby();
     size_t ng = grpby.ngroups();
     const int32_t* offsets = grpby.offsets_r();
-    col = Column::new_data_column(SType::INT64, ng);
+    Column col = Column::new_data_column(SType::INT64, ng);
     auto d_res = static_cast<int64_t*>(col->data_w());
     for (size_t i = 0; i < ng; ++i) {
       d_res[i] = offsets[i + 1] - offsets[i];
     }
+    return col;
   }
   else {
     auto value = static_cast<int64_t>(wf.nrows());
-    col = Const_ColumnImpl::make_int_column(1, value);
+    return Const_ColumnImpl::make_int_column(1, value);
   }
-  Outputs outputs(wf);
-  outputs.add(std::move(col), std::string("count"), Grouping::SCALAR);
-  return outputs;
 }
+
 
 
 
@@ -59,12 +61,19 @@ static Outputs _count0(workframe& wf) {
 // Head_Reduce_Nullary
 //------------------------------------------------------------------------------
 
+static Outputs _wrap_column(workframe& wf, Column&& col, std::string&& name) {
+  Outputs outputs(wf);
+  outputs.add(std::move(col), std::move(name), Grouping::GtoONE);
+  return outputs;
+}
+
+
 Outputs Head_Reduce_Nullary::evaluate(const vecExpr& args, workframe& wf) const
 {
   xassert(args.size() == 0);
   (void) args;
   switch (op) {
-    case Op::COUNT0: return _count0(wf);
+    case Op::COUNT0: return _wrap_column(wf, _count0(wf), "count");
     default: break;
   }
   throw RuntimeError() << "Unknown op " << static_cast<size_t>(op)

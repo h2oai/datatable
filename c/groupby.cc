@@ -44,8 +44,18 @@ size_t Groupby::ngroups() const {
   return n;
 }
 
+size_t Groupby::size() const noexcept {
+  return n;
+}
+
 Groupby::operator bool() const {
   return n != 0;
+}
+
+void Groupby::get_group(size_t i, size_t* i0, size_t* i1) const {
+  const int32_t* offsets_array = offsets_r();
+  *i0 = static_cast<size_t>(offsets_array[i]);
+  *i1 = static_cast<size_t>(offsets_array[i + 1]);
 }
 
 

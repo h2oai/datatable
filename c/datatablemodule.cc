@@ -20,6 +20,7 @@
 #include "expr/expr_reduce.h"
 #include "expr/expr_unaryop.h"
 #include "expr/head_func.h"
+#include "expr/head_reduce.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"

@@ -34,7 +34,6 @@ class Head_Reduce : public Head_Func {
     Op op;
 
   public:
-    static void init();  // called once from datatablemodule.h
     explicit Head_Reduce(Op);
     Kind get_expr_kind() const override;
 };

@@ -63,6 +63,23 @@ template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 template <SType s>
 using element_t = typename _elt<s>::t;
 
+template <SType s> struct _readt { using t = element_t<s>; };
+template <> struct _readt<SType::STR32> { using t = CString; };
+template <> struct _readt<SType::STR64> { using t = CString; };
+template <> struct _readt<SType::OBJ>   { using t = py::robj; };
+
+template <SType s>
+using read_t = typename _readt<s>::t;
+
+
+template <typename T> inline SType stype_from() { return SType::VOID; }
+template <> inline SType stype_from<int8_t>()   { return SType::INT8; }
+template <> inline SType stype_from<int16_t>()  { return SType::INT16; }
+template <> inline SType stype_from<int32_t>()  { return SType::INT32; }
+template <> inline SType stype_from<int64_t>()  { return SType::INT64; }
+template <> inline SType stype_from<float>()    { return SType::FLOAT32; }
+template <> inline SType stype_from<double>()   { return SType::FLOAT64; }
+template <> inline SType stype_from<CString>()  { return SType::STR32; }
 
 
 
