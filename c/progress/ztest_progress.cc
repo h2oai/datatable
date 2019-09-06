@@ -45,7 +45,7 @@ void test_progress_static(size_t n, size_t nth) {
 
 
 void test_progress_nested(size_t n, size_t nth) {
-  size_t n_iters = 10;
+  size_t n_iters = 2;
   dt::progress::work job(n_iters * (n/nth));
   job.set_message("Starting test_progress_nested...");
 
@@ -59,13 +59,13 @@ void test_progress_nested(size_t n, size_t nth) {
             for (size_t j = 1; j < 100500; ++j) {
               data[i] += i % j;
             }
-
             if (dt::this_thread_index() == 0) {
               job.set_message("Running test_progress_nested...");
               job.add_done_amount(1);
             }
           });
       }
+      dt::barrier();
     });
 
   job.set_message("Finishing test_progress_nested...");
@@ -73,7 +73,7 @@ void test_progress_nested(size_t n, size_t nth) {
 }
 
 
-void test_progress_dynamic (size_t n, size_t nth) {
+void test_progress_dynamic(size_t n, size_t nth) {
   dt::progress::work job(n);
   job.set_message("Starting test_progress_dynamic...");
 
@@ -94,6 +94,33 @@ void test_progress_dynamic (size_t n, size_t nth) {
   job.set_done_amount(n);
   job.set_message("Finishing test_progress_dynamic...");
   job.done();
+}
+
+
+void test_progress_ordered(size_t n, size_t nth) {
+  std::vector<size_t> data(n, 0);
+
+  dt::parallel_for_ordered(
+    /* n_iters = */ n,
+    /* n_threads = */ dt::NThreads(nth),
+    [&] (dt::ordered* o) {
+      o->parallel(
+        [&](size_t i) {
+          for (size_t j = 1; j < 100500; ++j) {
+            data[i] += i % j + 1;
+          }
+        },
+        [&](size_t i) {
+          for (size_t j = 1; j < 100500; ++j) {
+            data[i] += i % j + 2;
+          }
+        },
+        [&](size_t i) {
+          for (size_t j = 1; j < 100500; ++j) {
+            data[i] += i % j + 3;
+          }
+        });
+    });
 }
 
 

@@ -84,7 +84,7 @@ void monitor_thread::run() noexcept {
 
 
 void monitor_thread::sigint_handler(int signal) {
-  if (dt::num_threads_in_team()) {
+  if (dt::is_monitor_enabled()) {
     progress::manager->set_interrupt();
   } else {
     sigint_handler_prev(signal);
@@ -98,6 +98,11 @@ void monitor_thread::set_active(bool a) {
     is_active = a;
   }
   sleep_state_cv.notify_one();
+}
+
+
+bool monitor_thread::get_active() {
+  return is_active;
 }
 
 

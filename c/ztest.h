@@ -13,7 +13,6 @@
 
 namespace dttest {
 
-
 void test_assert(const std::function<void(void)>&, const std::string&);
 
 void cover_init_FrameInitializationManager_em();
@@ -39,6 +38,7 @@ void test_shmutex(size_t n_iters, size_t n_threads, int impl);
 void test_progress_static(size_t, size_t);
 void test_progress_nested(size_t, size_t);
 void test_progress_dynamic(size_t, size_t);
+void test_progress_ordered(size_t, size_t);
 
 }  // namespace dttest
 

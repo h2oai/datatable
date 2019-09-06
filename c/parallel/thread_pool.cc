@@ -137,10 +137,18 @@ void thread_pool::enable_monitor(bool a) const noexcept {
 }
 
 
+bool thread_pool::is_monitor_enabled() const noexcept {
+  return controller.is_monitor_enabled();
+}
+
+
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
 
+bool is_monitor_enabled() noexcept {
+  return thpool->is_monitor_enabled();
+}
 
 void enable_monitor(bool a) noexcept {
   thpool->enable_monitor(a);

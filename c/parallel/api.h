@@ -74,7 +74,17 @@ size_t this_thread_index();
  */
 size_t get_hardware_concurrency() noexcept;
 
+
+/**
+ * Turn on or off monitor thread.
+ */
 void enable_monitor(bool) noexcept;
+
+
+/**
+ * Check if the monitor thread is running.
+ */
+bool is_monitor_enabled() noexcept;
 
 //------------------------------------------------------------------------------
 // Parallel constructs

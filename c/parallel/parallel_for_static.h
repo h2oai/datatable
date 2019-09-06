@@ -16,8 +16,8 @@
 #ifndef dt_PARALLEL_FOR_STATIC_h
 #define dt_PARALLEL_FOR_STATIC_h
 #include <algorithm>
-#include "utils/assert.h"
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
+#include "utils/assert.h"
 namespace dt {
 
 // Declared in api.h
@@ -25,7 +25,7 @@ size_t this_thread_index();
 size_t num_threads_in_pool();
 size_t num_threads_in_team();
 void enable_monitor(bool) noexcept;
-
+bool is_monitor_enabled() noexcept;
 
 
 /**
@@ -129,7 +129,7 @@ void parallel_for_static(size_t n_iterations,
       }
       i0 += chunk_size_;
       if (progress::manager->get_abort_execution()) {
-        i0 = n_iterations;
+        enable_monitor(false);
         progress::manager->handle_interrupt();
       }
     }

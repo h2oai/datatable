@@ -109,7 +109,6 @@ size_t thread_worker::get_index() const noexcept {
 
 
 
-
 //------------------------------------------------------------------------------
 // "worker controller" scheduler
 //------------------------------------------------------------------------------
@@ -195,6 +194,11 @@ void idle_job::join() {
 
 void idle_job::enable_monitor(bool a) const noexcept {
   monitor->set_active(a);
+}
+
+
+bool idle_job::is_monitor_enabled() const noexcept {
+  return monitor->get_active();
 }
 
 

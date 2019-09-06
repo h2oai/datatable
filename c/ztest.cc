@@ -112,6 +112,17 @@ static void test_progress_dynamic(const PKArgs& args) {
 }
 
 
+static PKArgs arg_test_progress_ordered(2, 0, 0, false, false,
+  {"n_iters", "n_threads"},
+  "test_progress_ordered");
+
+static void test_progress_ordered(const PKArgs& args) {
+  size_t n_iters = args[0].to_size_t();
+  size_t n_threads = args[1].to_size_t();
+  dttest::test_progress_ordered(n_iters, n_threads);
+}
+
+
 void DatatableModule::init_tests() {
   ADD_FN(&test_coverage, arg_test_coverage);
   ADD_FN(&test_shmutex, arg_test_shmutex);
@@ -123,7 +134,9 @@ void DatatableModule::init_tests() {
   ADD_FN(&test_progress_static, arg_test_progress_static);
   ADD_FN(&test_progress_nested, arg_test_progress_nested);
   ADD_FN(&test_progress_dynamic, arg_test_progress_dynamic);
+  ADD_FN(&test_progress_ordered, arg_test_progress_ordered);
 }
+
 
 
 } // namespace py

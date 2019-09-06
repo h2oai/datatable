@@ -62,7 +62,6 @@ void progress_manager::finish_work(work* task, bool successfully) {
   tasks.pop();
 
   std::lock_guard<std::mutex> lock(mutex);
-  handle_interrupt();
   if (successfully && tasks.empty()) {
     pbar->set_status_finished();
     delete pbar;
@@ -75,7 +74,12 @@ void progress_manager::finish_work(work* task, bool successfully) {
 void progress_manager::update_view() const {
   xassert(dt::this_thread_index() == size_t(-1));
   std::lock_guard<std::mutex> lock(mutex);
-  handle_interrupt();
+
+  // Handle interrupt if in a parallel region.
+  // If not in a parallel region, `handle_interrupt()`
+  // must be invoked in a special way, i.e.
+  // when `get_abort_execution() == true`.
+  if (dt::num_threads_in_team()) handle_interrupt();
   if (pbar) pbar->refresh();
 }
 

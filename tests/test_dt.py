@@ -29,6 +29,7 @@ import re
 import subprocess
 import sys
 import time
+import itertools
 from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_column_rowindex, frame_integrity_check
@@ -46,26 +47,34 @@ cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
 
 
 #-------------------------------------------------------------------------------
-# Test progress bar
+# Test progress reporting iterrupt
 #-------------------------------------------------------------------------------
 
 @cpp_test
-@pytest.mark.parametrize('parallel_type', ["static", "nested", "dynamic"])
-def test_progress_interrupt(parallel_type):
+@pytest.mark.parametrize('parallel_type, nthreads',
+                         itertools.product(
+                            [None, "static", "nested", "dynamic", "ordered"],
+                            [1, dt.options.nthreads//2, dt.options.nthreads]
+                         )
+                        )
+def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    nthreads = [1, dt.options.nthreads//2, dt.options.nthreads]
+    niters = 50000
+    sleep_time = 0.1
+    cmd_import = "import datatable as dt; from datatable.lib import core; "
 
-    for i in nthreads:
-        cmd = "import datatable as dt; from datatable.lib import core; core.test_progress_%s (100000, %s)" % (parallel_type, i)
-        proc = subprocess.Popen(["python", "-c", cmd],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(0.5)
-        proc.send_signal(signal.Signals.SIGINT)
-        ret = proc.wait()
-        stdout = proc.stdout.read().decode()
-        stderr = proc.stderr.read().decode()
-        # print(stdout, stderr)
-        assert(stderr[-18:] == "KeyboardInterrupt\n")
+    if parallel_type is None:
+        cmd_run = "import time; dt.options.nthreads = %s; time.sleep(%s)" % (nthreads, sleep_time * 2)
+    else:
+        cmd_run = "core.test_progress_%s(%s, %s)" % (parallel_type, niters, nthreads)
+    cmd = cmd_import + cmd_run
+    proc = subprocess.Popen(["python", "-c", cmd],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    time.sleep(sleep_time)
+    proc.send_signal(signal.Signals.SIGINT)
+    ret = proc.wait()
+    stderr = proc.stderr.read().decode()
+    assert(stderr[-18:] == "KeyboardInterrupt\n")
 
 
 #-------------------------------------------------------------------------------
