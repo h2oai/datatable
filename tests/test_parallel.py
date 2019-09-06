@@ -108,7 +108,7 @@ def test_internal_parallel_for_ordered2():
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niters = 10000
+    niters = 100000
     sleep_time = 0.1
     cmd_import = "import datatable as dt; from datatable.lib import core; "
 
