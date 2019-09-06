@@ -67,7 +67,7 @@ Outputs Head_Frame::evaluate(const vecExpr& args, workframe& wf) const {
   }
   Grouping grouplevel = (dt->nrows == 1)? Grouping::GtoONE
                                         : Grouping::GtoALL;
-  Outputs res;
+  Outputs res(wf);
   for (size_t i = 0; i < dt->ncols; ++i) {
     res.add(Column(dt->get_column(i)),
             ignore_names? std::string() : std::string(dt->get_names()[i]),

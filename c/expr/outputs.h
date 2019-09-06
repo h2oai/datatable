@@ -32,30 +32,37 @@ namespace expr {
 
 class Outputs {
   private:
+    workframe& wf;
     colvec columns;
     strvec names;
     Grouping grouping_mode;
 
   public:
-    Outputs();
+    Outputs(workframe&);
     Outputs(const Outputs&) = delete;
     Outputs(Outputs&&) = default;
 
     void add(Column&& col, std::string&& name, Grouping grp);
     void add(Column&& col, Grouping grp = Grouping::GtoALL);
-    void add_column(workframe& wf, size_t iframe, size_t icol);
+    void add_column(size_t iframe, size_t icol);
     void append(Outputs&&);
     void apply_name(const std::string& name);
 
     size_t size() const noexcept;
-    Grouping get_grouping_mode() const;
+    workframe& get_workframe() const noexcept;
     Column& get_column(size_t i);
     std::string& get_name(size_t i);
     colvec& get_columns();
     strvec& get_names();
 
-    [[noreturn]]
-    void increase_grouping_level(size_t n, workframe& wf);
+    // This method ensures that two `Outputs` objects have the
+    // same grouping mode. It can either modify itself, or
+    // `other` object.
+    void sync_grouping_mode(Outputs& other);
+    Grouping get_grouping_mode() const;
+
+  private:
+    void increase_grouping_mode(Grouping g);
 };
 
 

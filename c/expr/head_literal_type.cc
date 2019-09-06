@@ -37,34 +37,36 @@ static stypevec stFLOAT = {SType::FLOAT32, SType::FLOAT64};
 static stypevec stSTR = {SType::STR32, SType::STR64};
 static stypevec stOBJ = {SType::OBJ};
 
+
 static Outputs _select_types(
     workframe& wf, size_t frame_id, const stypevec& stypes)
 {
   const DataTable* df = wf.get_datatable(frame_id);
-  Outputs res;
+  Outputs outputs(wf);
   for (size_t i = 0; i < df->ncols; ++i) {
     SType st = df->get_column(i).stype();
     for (SType s : stypes) {
       if (s == st) {
-        res.add_column(wf, frame_id, i);
+        outputs.add_column(frame_id, i);
         break;
       }
     }
   }
-  return res;
+  return outputs;
 }
+
 
 static Outputs _select_type(workframe& wf, size_t frame_id, SType stype0)
 {
   const DataTable* df = wf.get_datatable(frame_id);
-  Outputs res;
+  Outputs outputs(wf);
   for (size_t i = 0; i < df->ncols; ++i) {
     SType stypei = df->get_column(i).stype();
     if (stypei == stype0) {
-      res.add_column(wf, frame_id, i);
+      outputs.add_column(frame_id, i);
     }
   }
-  return res;
+  return outputs;
 }
 
 

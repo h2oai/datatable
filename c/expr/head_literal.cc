@@ -19,13 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/expr.h"
 #include "expr/outputs.h"
-#include "expr/workframe.h"
 #include "utils/assert.h"
-#include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
@@ -35,8 +31,8 @@ namespace expr {
 // Head_Literal
 //------------------------------------------------------------------------------
 
-Outputs Head_Literal::_wrap_column(Column&& col) {
-  Outputs outputs;
+Outputs Head_Literal::_wrap_column(workframe& wf, Column&& col) {
+  Outputs outputs(wf);
   outputs.add(std::move(col), Grouping::SCALAR);
   return outputs;
 }

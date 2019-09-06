@@ -44,21 +44,14 @@ Outputs Head_Func_Binary::evaluate(const vecExpr& args, workframe& wf) const {
       << " items";
   }
   size_t size = lmask? lhs.size() : rmask? rhs.size() : 1;
-  auto lhs_gmode = lhs.get_grouping_mode();
-  auto rhs_gmode = rhs.get_grouping_mode();
-  if (lhs_gmode < rhs_gmode) {
-    lhs.increase_grouping_level(rhs_gmode, wf);
-    // lhs_gmode = lhs.get_grouping_mode();
-  }
-  if (rhs_gmode < lhs_gmode) {
-    rhs.increase_grouping_level(lhs_gmode, wf);
-  }
-  Outputs outputs;
+  lhs.sync_grouping_mode(rhs);
+  auto gmode = lhs.get_grouping_mode();
+  Outputs outputs(wf);
   for (size_t i = 0; i < size; ++i) {
     outputs.add(binaryop(op, lhs.get_column(i & lmask),
                              rhs.get_column(i & rmask)),
                 std::move(lhs.get_name(i & lmask)),  // name is inherited from the first argument
-                lhs_gmode);  // grouping levels are same
+                gmode);
   }
   return outputs;
 }

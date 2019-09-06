@@ -42,7 +42,7 @@ class Head_Literal : public Head {
     virtual ~Head_Literal();
 
   protected:
-    static Outputs _wrap_column(Column&&);
+    static Outputs _wrap_column(workframe&, Column&&);
 };
 
 

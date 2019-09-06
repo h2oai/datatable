@@ -51,7 +51,7 @@ Outputs Head_Func_Colset::evaluate(const vecExpr& args, workframe& wf) const {
 
 
 Outputs Head_Func_Colset::_extend(Outputs&& lhs, Outputs&& rhs) const {
-  Outputs outputs;
+  Outputs outputs(lhs.get_workframe());
   outputs.append(std::move(lhs));
   outputs.append(std::move(rhs));
   return outputs;

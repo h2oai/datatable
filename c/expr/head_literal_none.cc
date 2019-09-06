@@ -31,8 +31,8 @@ Head::Kind Head_Literal_None::get_expr_kind() const {
 }
 
 
-Outputs Head_Literal_None::evaluate(const vecExpr&, workframe&) const {
-  return _wrap_column(Const_ColumnImpl::make_na_column(1));
+Outputs Head_Literal_None::evaluate(const vecExpr&, workframe& wf) const {
+  return _wrap_column(wf, Const_ColumnImpl::make_na_column(1));
 }
 
 
@@ -40,17 +40,17 @@ Outputs Head_Literal_None::evaluate(const vecExpr&, workframe&) const {
 // When used as j, `None` means select all columns
 Outputs Head_Literal_None::evaluate_j(const vecExpr&, workframe& wf) const {
   size_t n = wf.get_datatable(0)->ncols;
-  Outputs res;
+  Outputs outputs(wf);
   for (size_t i = 0; i < n; ++i) {
-    res.add_column(wf, 0, i);
+    outputs.add_column(0, i);
   }
-  return res;
+  return outputs;
 }
 
 
 // When used in f, `None` means select nothing
-Outputs Head_Literal_None::evaluate_f(workframe&, size_t) const {
-  return Outputs();
+Outputs Head_Literal_None::evaluate_f(workframe& wf, size_t) const {
+  return Outputs(wf);
 }
 
 

@@ -38,7 +38,7 @@ Head::Kind Head_List::get_expr_kind() const {
 }
 
 Outputs Head_List::evaluate(const vecExpr& inputs, workframe& wf) const {
-  Outputs outputs;
+  Outputs outputs(wf);
   for (const Expr& arg : inputs) {
     outputs.append( arg.evaluate(wf) );
   }
@@ -122,17 +122,17 @@ static Outputs _evaluate_bool_list(const vecExpr& inputs, workframe& wf) {
            "number of columns in the Frame: "
         << inputs.size() << " vs " << df->ncols;
   }
-  Outputs outputs;
+  Outputs outputs(wf);
   for (size_t i = 0; i < inputs.size(); ++i) {
     bool x = inputs[i].evaluate_as_bool();
-    if (x) outputs.add_column(wf, 0, i);
+    if (x) outputs.add_column(0, i);
   }
   return outputs;
 }
 
 
 static Outputs _evaluate_f_list(const vecExpr& inputs, workframe& wf) {
-  Outputs outputs;
+  Outputs outputs(wf);
   for (const Expr& arg : inputs) {
     outputs.append( arg.evaluate_f(wf, 0) );
   }
@@ -165,13 +165,13 @@ Head::Kind Head_NamedList::get_expr_kind() const {
 
 Outputs Head_NamedList::evaluate(const vecExpr& inputs, workframe& wf) const {
   xassert(inputs.size() == names.size());
-  Outputs res;
+  Outputs outputs(wf);
   for (size_t i = 0; i < inputs.size(); ++i) {
     Outputs arg_out = inputs[i].evaluate(wf);
     arg_out.apply_name(names[i]);
-    res.append( std::move(arg_out) );
+    outputs.append( std::move(arg_out) );
   }
-  return res;
+  return outputs;
 }
 
 

@@ -41,9 +41,9 @@ Outputs Head_Literal_SliceAll::evaluate(const vecExpr&, workframe&) const {
 Outputs Head_Literal_SliceAll::evaluate_f(workframe& wf, size_t frame_id) const
 {
   size_t ncols = wf.get_datatable(frame_id)->ncols;
-  Outputs outputs;
+  Outputs outputs(wf);
   for (size_t i = 0; i < ncols; ++i) {
-    outputs.add_column(wf, frame_id, i);
+    outputs.add_column(frame_id, i);
   }
   return outputs;
 }
@@ -57,14 +57,14 @@ Outputs Head_Literal_SliceAll::evaluate_f(workframe& wf, size_t frame_id) const
 //
 Outputs Head_Literal_SliceAll::evaluate_j(const vecExpr&, workframe& wf) const
 {
-  Outputs outputs;
+  Outputs outputs(wf);
   for (size_t i = 0; i < wf.nframes(); ++i) {
     const DataTable* dti = wf.get_datatable(i);
     size_t j0 = wf.is_naturally_joined(i)? dti->get_nkeys() : 0;
     const by_node& by = wf.get_by_node();
     for (size_t j = j0; j < dti->ncols; ++j) {
       if (by.has_group_column(j)) continue;
-      outputs.add_column(wf, i, j);
+      outputs.add_column(i, j);
     }
   }
   return outputs;

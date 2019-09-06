@@ -35,8 +35,8 @@ Head::Kind Head_Literal_Int::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_Int::evaluate(const vecExpr&, workframe&) const {
-  return _wrap_column(Const_ColumnImpl::make_int_column(1, value));
+Outputs Head_Literal_Int::evaluate(const vecExpr&, workframe& wf) const {
+  return _wrap_column(wf, Const_ColumnImpl::make_int_column(1, value));
 }
 
 
@@ -50,8 +50,8 @@ Outputs Head_Literal_Int::evaluate_f(workframe& wf, size_t frame_id) const {
         << icols << " column" << (icols == 1? "" : "s");
   }
   size_t i = static_cast<size_t>(value < 0? value + icols : value);
-  Outputs outputs;
-  outputs.add_column(wf, frame_id, i);
+  Outputs outputs(wf);
+  outputs.add_column(frame_id, i);
   return outputs;
 }
 

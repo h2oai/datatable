@@ -38,8 +38,8 @@ bool Head_Literal_Bool::get_value() const {
 
 
 
-Outputs Head_Literal_Bool::evaluate(const vecExpr&, workframe&) const {
-  return _wrap_column(Const_ColumnImpl::make_bool_column(1, value));
+Outputs Head_Literal_Bool::evaluate(const vecExpr&, workframe& wf) const {
+  return _wrap_column(wf, Const_ColumnImpl::make_bool_column(1, value));
 }
 
 

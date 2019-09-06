@@ -27,12 +27,12 @@ namespace expr {
 
 
 //------------------------------------------------------------------------------
-// Output
+// Outputs
 //------------------------------------------------------------------------------
 
-Outputs::Outputs() : grouping_mode(Grouping::SCALAR) {}
-
-
+Outputs::Outputs(workframe& wf_)
+  : wf(wf_),
+    grouping_mode(Grouping::SCALAR) {}
 
 
 
@@ -56,7 +56,7 @@ void Outputs::add(Column&& col, Grouping glevel) {
 
 // Add column df[i] to the outputs
 //
-void Outputs::add_column(workframe& wf, size_t iframe, size_t icol) {
+void Outputs::add_column(size_t iframe, size_t icol) {
   const DataTable* df = wf.get_datatable(iframe);
   const RowIndex& rowindex = wf.get_rowindex(iframe);
   Column column { df->get_column(icol) };  // copy
@@ -116,6 +116,11 @@ size_t Outputs::size() const noexcept {
   return columns.size();
 }
 
+workframe& Outputs::get_workframe() const noexcept {
+  return wf;
+}
+
+
 Column& Outputs::get_column(size_t i) {
   return columns[i];
 }
@@ -126,14 +131,6 @@ std::string& Outputs::get_name(size_t i) {
 
 Grouping Outputs::get_grouping_mode() const {
   return grouping_mode;
-}
-
-[[noreturn]]
-void Outputs::increase_grouping_level(size_t, workframe&) {
-  // xassert(n > grouping_mode);
-  // grouping_mode = n;
-  throw NotImplError() << "Mixing expressions at different grouping levels "
-                          "is not supported yet";
 }
 
 
@@ -147,6 +144,25 @@ colvec& Outputs::get_columns() {
   return columns;
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Grouping mode manipulation
+//------------------------------------------------------------------------------
+
+void Outputs::sync_grouping_mode(Outputs& other) {
+  if (grouping_mode == other.grouping_mode) return;
+  size_t g1 = static_cast<size_t>(grouping_mode);
+  size_t g2 = static_cast<size_t>(other.grouping_mode);
+  if (g1 < g2) increase_grouping_mode(other.grouping_mode);
+  else         other.increase_grouping_mode(grouping_mode);
+}
+
+
+void Outputs::increase_grouping_mode(Grouping g) {
+  grouping_mode = g;
+}
 
 
 
