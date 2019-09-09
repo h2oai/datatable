@@ -252,7 +252,11 @@ MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
 
 
 MmapWritableBuffer::~MmapWritableBuffer() {
-  unmap();
+  try {
+    unmap();
+  } catch (const std::exception& e) {
+    printf("%s\n", e.what());
+  }
   UNTRACK(this);
 }
 
@@ -277,10 +281,12 @@ void MmapWritableBuffer::map(int fd, size_t size) {
 
 void MmapWritableBuffer::unmap() {
   if (!buffer) return;
-  int ret = munmap(buffer, allocsize);
+  int ret = msync(buffer, allocsize, MS_ASYNC) ||
+            munmap(buffer, allocsize);
   if (ret) {
-    printf("Error unmapping the view of file %s (%p..+%zu): [errno %d] %s",
-           filename.c_str(), buffer, allocsize, errno, strerror(errno));
+    throw IOError() << "Error unmapping the view of file "
+        << filename << " (" << buffer << "..+" << allocsize
+        << "): " << Errno;
   }
   buffer = nullptr;
 }
