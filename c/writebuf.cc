@@ -299,3 +299,12 @@ void MmapWritableBuffer::realloc(size_t newsize)
   file.resize(newsize);
   map(file.descriptor(), newsize);
 }
+
+
+// Similar to realloc(), but does not re-map the file
+void MmapWritableBuffer::finalize() {
+  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
+  unmap();
+  File file(filename, File::READWRITE);
+  file.resize(bytes_written);
+}

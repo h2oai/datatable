@@ -181,6 +181,8 @@ public:
   MmapWritableBuffer(const std::string& path, size_t size);
   ~MmapWritableBuffer() override;
 
+  void finalize() override;
+
 private:
   void realloc(size_t newsize) override;
   void map(int fd, size_t size);
