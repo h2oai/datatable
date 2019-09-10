@@ -422,22 +422,30 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
                               dt::num_threads_in_pool());
     xassert(nchunks);
 
-    dt::parallel_region(nchunks,
-      [&] {
-        // Creating the comparator may fail if xcols and jcols are incompatible
-        cmpptr comparator = _make_comparator(xdt, jdt, xcols, jcols);
+    if (jdt->nrows == 0) {
+      dt::parallel_for_static(xdt->nrows,
+        [&](size_t i) {
+          result_indices[i] = -1;
+        });
+    }
+    else {
+      dt::parallel_region(nchunks,
+        [&] {
+          // Creating the comparator may fail if xcols and jcols are incompatible
+          cmpptr comparator = _make_comparator(xdt, jdt, xcols, jcols);
 
-        dt::nested_for_static(xdt->nrows,
-          [&](size_t i) {
-            int r = comparator->set_xrow(i);
-            if (r == 0) {
-              size_t j = binsearch(comparator.get(), jdt->nrows);
-              result_indices[i] = static_cast<int32_t>(j);
-            } else {
-              result_indices[i] = -1;
-            }
-          });
-      });
+          dt::nested_for_static(xdt->nrows,
+            [&](size_t i) {
+              int r = comparator->set_xrow(i);
+              if (r == 0) {
+                size_t j = binsearch(comparator.get(), jdt->nrows);
+                result_indices[i] = static_cast<int32_t>(j);
+              } else {
+                result_indices[i] = -1;
+              }
+            });
+        });
+    }
   }
 
   return RowIndex(std::move(arr_result_indices));
