@@ -1336,9 +1336,14 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
 
   const Column& col0 = columns[spec[0].col_index];
   col0.stats();  // instantiate Stats object; TODO: remove this
+
+  // For a 0-row Frame we return a rowindex of size 0, and the
+  // Groupby containing a single group (also of size 0).
   if (nrows <= 1) {
-    arr32_t indices(1);
-    indices[0] = 0;
+    arr32_t indices(nrows);
+    if (nrows) {
+      indices[0] = 0;
+    }
     result.first = RowIndex(std::move(indices), true);
     if (!spec[0].sort_only) {
       result.second = Groupby::single_group(nrows);
