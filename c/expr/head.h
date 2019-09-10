@@ -64,11 +64,6 @@ namespace expr {
  */
 class Head {
   public:
-    enum Kind {
-      Unknown, None, Bool, Int, Float, Str, Type, Func, List, Frame,
-      SliceAll, SliceInt, SliceStr
-    };
-
     virtual ~Head();
     virtual Outputs evaluate(const vecExpr& args, workframe& wf) const = 0;
     virtual Outputs evaluate_j(const vecExpr& args, workframe& wf) const = 0;

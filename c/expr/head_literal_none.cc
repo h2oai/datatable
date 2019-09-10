@@ -26,8 +26,8 @@ namespace dt {
 namespace expr {
 
 
-Head::Kind Head_Literal_None::get_expr_kind() const {
-  return Head::Kind::None;
+Kind Head_Literal_None::get_expr_kind() const {
+  return Kind::None;
 }
 
 

@@ -193,7 +193,7 @@ void Expr::_init_from_type(py::robj src) {
 // Expr core functionality
 //------------------------------------------------------------------------------
 
-Head::Kind Expr::get_expr_kind() const {
+Kind Expr::get_expr_kind() const {
   return head->get_expr_kind();
 }
 

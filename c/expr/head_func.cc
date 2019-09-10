@@ -40,8 +40,8 @@ ptrHead Head_Func::from_op(Op op, const py::otuple& params) {
 }
 
 
-Head::Kind Head_Func::get_expr_kind() const {
-  return Head::Kind::Func;
+Kind Head_Func::get_expr_kind() const {
+  return Kind::Func;
 }
 
 

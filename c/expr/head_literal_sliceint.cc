@@ -30,8 +30,8 @@ Head_Literal_SliceInt::Head_Literal_SliceInt(py::oslice x)
   : value(x) {}
 
 
-Head::Kind Head_Literal_SliceInt::get_expr_kind() const {
-  return Head::Kind::SliceInt;
+Kind Head_Literal_SliceInt::get_expr_kind() const {
+  return Kind::SliceInt;
 }
 
 

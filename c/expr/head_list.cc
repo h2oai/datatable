@@ -33,8 +33,8 @@ namespace expr {
 // Head_List
 //------------------------------------------------------------------------------
 
-Head::Kind Head_List::get_expr_kind() const {
-  return Head::Kind::List;
+Kind Head_List::get_expr_kind() const {
+  return Kind::List;
 }
 
 Outputs Head_List::evaluate(const vecExpr& inputs, workframe& wf) const {
@@ -52,16 +52,16 @@ Outputs Head_List::evaluate_f(workframe&, size_t) const {
 
 
 
-static const char* _name_type(Head::Kind t) {
+static const char* _name_type(Kind t) {
   switch (t) {
-    case Head::Kind::Unknown:
-    case Head::Kind::None:     return "None";
-    case Head::Kind::Bool:     return "bool";
-    case Head::Kind::Int:      return "integer";
-    case Head::Kind::Str:      return "string";
-    case Head::Kind::Func:     return "expression";
-    case Head::Kind::Type:     return "type";
-    case Head::Kind::SliceAll: return "slice";
+    case Kind::Unknown:
+    case Kind::None:     return "None";
+    case Kind::Bool:     return "bool";
+    case Kind::Int:      return "integer";
+    case Kind::Str:      return "string";
+    case Kind::Func:     return "expression";
+    case Kind::Type:     return "type";
+    case Kind::SliceAll: return "slice";
     default:             return "?";
   }
 }
@@ -77,43 +77,43 @@ static const char* _name_type(Head::Kind t) {
 // element kinds, an error must be thrown.
 // A list containing only `None` or `slice_all` should resolve as Kind::Int.
 //
-static Head::Kind _resolve_list_kind(const vecExpr& inputs) {
-  auto listkind = Head::Kind::Unknown;
+static Kind _resolve_list_kind(const vecExpr& inputs) {
+  auto listkind = Kind::Unknown;
   for (size_t i = 0; i < inputs.size(); ++i) {
     auto kind = inputs[i].get_expr_kind();
-    xassert(kind != Head::Kind::Unknown);
+    xassert(kind != Kind::Unknown);
     if (kind == listkind) continue;
-    if (kind != Head::Kind::Bool && listkind != Head::Kind::Bool) {
-      if (kind == Head::Kind::None) continue;
-      if (kind == Head::Kind::SliceAll &&
-          (listkind == Head::Kind::Int ||
-           listkind == Head::Kind::Str)) continue;
-      if (kind == Head::Kind::Frame)    kind = Head::Kind::Func;
-      if (kind == Head::Kind::SliceInt) kind = Head::Kind::Int;
-      if (kind == Head::Kind::SliceStr) kind = Head::Kind::Str;
-      if (kind == Head::Kind::Float) {
+    if (kind != Kind::Bool && listkind != Kind::Bool) {
+      if (kind == Kind::None) continue;
+      if (kind == Kind::SliceAll &&
+          (listkind == Kind::Int ||
+           listkind == Kind::Str)) continue;
+      if (kind == Kind::Frame)    kind = Kind::Func;
+      if (kind == Kind::SliceInt) kind = Kind::Int;
+      if (kind == Kind::SliceStr) kind = Kind::Str;
+      if (kind == Kind::Float) {
         throw TypeError()
           << "A floating value cannot be used as a column selector";
       }
-      if (kind == Head::Kind::List) {
+      if (kind == Kind::List) {
           throw TypeError()
             << "Nested lists are not supported as a column selector";
       }
-      if (listkind == Head::Kind::Unknown) listkind = kind;
-      if (listkind == Head::Kind::SliceAll &&
-          (kind == Head::Kind::Int || kind == Head::Kind::Str)) listkind = kind;
+      if (listkind == Kind::Unknown) listkind = kind;
+      if (listkind == Kind::SliceAll &&
+          (kind == Kind::Int || kind == Kind::Str)) listkind = kind;
       if (kind == listkind) continue;
     }
-    if (kind == Head::Kind::Bool && listkind == Head::Kind::Unknown) {
-      listkind = Head::Kind::Bool;
+    if (kind == Kind::Bool && listkind == Kind::Unknown) {
+      listkind = Kind::Bool;
       continue;
     }
     throw TypeError() << "Mixed selector types are not allowed. Element "
         << i << " is of type " << _name_type(kind) << ", whereas the "
         "previous element(s) were of type " << _name_type(listkind);
   }
-  if (listkind == Head::Kind::Unknown ||
-      listkind == Head::Kind::SliceAll) return Head::Kind::Int;
+  if (listkind == Kind::Unknown ||
+      listkind == Kind::SliceAll) return Kind::Int;
   return listkind;
 }
 
@@ -162,8 +162,8 @@ Outputs Head_List::evaluate_j(const vecExpr& inputs, workframe& wf) const
 Head_NamedList::Head_NamedList(strvec&& names_)
   : names(std::move(names_)) {}
 
-Head::Kind Head_NamedList::get_expr_kind() const {
-  return Head::Kind::List;
+Kind Head_NamedList::get_expr_kind() const {
+  return Kind::List;
 }
 
 

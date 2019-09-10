@@ -29,8 +29,8 @@ namespace expr {
 
 Head_Literal_Int::Head_Literal_Int(int64_t x) : value(x) {}
 
-Head::Kind Head_Literal_Int::get_expr_kind() const {
-  return Head::Kind::Int;
+Kind Head_Literal_Int::get_expr_kind() const {
+  return Kind::Int;
 }
 
 

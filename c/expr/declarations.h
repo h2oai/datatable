@@ -80,9 +80,33 @@ namespace expr {
     GtoANY = 4,
   };
 
+
+  // The `Kind` enum is the value returned by `Expr::get_expr_kind()`.
+  // This value roughly corresponds to the type of the Expr, and is
+  // used in contexts where we may need to query such type.
+  //
+  enum Kind {
+    Unknown,
+    None,
+    Bool,
+    Int,
+    Float,
+    Str,
+    Type,
+    Func,
+    List,
+    Frame,
+    SliceAll,
+    SliceInt,
+    SliceStr
+  };
+
 }}
 
 
+//
+// OBSOLETE
+//
 namespace dt {
   class workframe;
   class by_node;

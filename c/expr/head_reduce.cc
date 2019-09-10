@@ -31,8 +31,8 @@ namespace expr {
 Head_Reduce::Head_Reduce(Op op_) : op(op_) {}
 
 
-Head::Kind Head_Reduce::get_expr_kind() const {
-  return Head::Kind::Func;
+Kind Head_Reduce::get_expr_kind() const {
+  return Kind::Func;
 }
 
 

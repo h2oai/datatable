@@ -28,8 +28,8 @@ namespace expr {
 
 Head_Literal_Float::Head_Literal_Float(double x) : value(x) {}
 
-Head::Kind Head_Literal_Float::get_expr_kind() const {
-  return Head::Kind::Float;
+Kind Head_Literal_Float::get_expr_kind() const {
+  return Kind::Float;
 }
 
 

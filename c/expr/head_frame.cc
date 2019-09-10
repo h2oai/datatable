@@ -50,8 +50,8 @@ Head_Frame::Head_Frame(py::robj src, bool ignore_names_)
     ignore_names(ignore_names_) {}
 
 
-Head::Kind Head_Frame::get_expr_kind() const {
-  return Head::Kind::Frame;
+Kind Head_Frame::get_expr_kind() const {
+  return Kind::Frame;
 }
 
 

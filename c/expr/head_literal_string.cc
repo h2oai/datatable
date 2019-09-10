@@ -30,8 +30,8 @@ namespace expr {
 
 Head_Literal_String::Head_Literal_String(py::robj x) : pystr(x) {}
 
-Head::Kind Head_Literal_String::get_expr_kind() const {
-  return Head::Kind::Str;
+Kind Head_Literal_String::get_expr_kind() const {
+  return Kind::Str;
 }
 
 

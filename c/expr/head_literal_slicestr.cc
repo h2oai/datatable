@@ -31,8 +31,8 @@ Head_Literal_SliceStr::Head_Literal_SliceStr(py::oslice x)
     end(x.stop_obj()) {}
 
 
-Head::Kind Head_Literal_SliceStr::get_expr_kind() const {
-  return Head::Kind::SliceStr;
+Kind Head_Literal_SliceStr::get_expr_kind() const {
+  return Kind::SliceStr;
 }
 
 

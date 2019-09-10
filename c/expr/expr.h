@@ -52,7 +52,7 @@ class Expr {
     Expr& operator=(Expr&&) = default;
     Expr& operator=(const Expr&) = delete;
 
-    Head::Kind get_expr_kind() const;
+    Kind get_expr_kind() const;
     bool evaluate_as_bool() const;
 
     Outputs evaluate(workframe& wf) const;

@@ -80,8 +80,8 @@ static Outputs _select_type(workframe& wf, size_t frame_id, SType stype0)
 
 Head_Literal_Type::Head_Literal_Type(py::robj x) : value(x) {}
 
-Head::Kind Head_Literal_Type::get_expr_kind() const {
-  return Head::Kind::Type;
+Kind Head_Literal_Type::get_expr_kind() const {
+  return Kind::Type;
 }
 
 

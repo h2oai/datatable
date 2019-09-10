@@ -28,8 +28,8 @@ namespace expr {
 
 Head_Literal_Bool::Head_Literal_Bool(bool x) : value(x) {}
 
-Head::Kind Head_Literal_Bool::get_expr_kind() const {
-  return Head::Kind::Bool;
+Kind Head_Literal_Bool::get_expr_kind() const {
+  return Kind::Bool;
 }
 
 bool Head_Literal_Bool::get_value() const {
