@@ -488,6 +488,8 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, Op opcode, Column* cols
 
 Column binaryop(Op opcode, Column& lhs, Column& rhs)
 {
+  if (rhs.stype() == SType::VOID) rhs.cast_inplace(lhs.stype());
+  if (lhs.stype() == SType::VOID) lhs.cast_inplace(rhs.stype());
   // TODO: do not materialize, then `lhs` and `rhs` may be const
   lhs.materialize();
   rhs.materialize();

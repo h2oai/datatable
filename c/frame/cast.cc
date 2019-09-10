@@ -305,6 +305,10 @@ Column cast_manager::execute(const Column& src, MemoryRange&& target_mbuf,
                              SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
+  if (src.stype() == SType::VOID) {
+    return Column::new_na_column(target_stype, src.nrows());
+  }
+
   size_t id = key(src.stype(), target_stype);
   if (all_casts.count(id) == 0) {
     throw NotImplError()

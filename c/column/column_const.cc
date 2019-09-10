@@ -45,8 +45,20 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     bool get_element(size_t, CString*)  const override { return true; }
     bool get_element(size_t, py::robj*) const override { return true; }
 
-    // TODO: special versions of
-    //       materialize(), resize() and cast()
+    // TODO: override cast()
+
+    // VOID column materializes into BOOL stype
+    ColumnImpl* materialize() override {
+      ColumnImpl* out = ColumnImpl::new_impl(SType::BOOL);
+      out->_nrows = _nrows;
+      out->init_data();
+      out->fill_na();
+      return out;
+    }
+
+    void resize_and_fill(size_t nrows) override {
+      _nrows = nrows;
+    }
 };
 
 

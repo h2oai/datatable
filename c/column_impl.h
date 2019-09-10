@@ -35,6 +35,9 @@
 class DataTable;
 class BoolColumn;
 class PyObjectColumn;
+namespace dt {
+  class ConstNa_ColumnImpl;
+}
 template <typename T> class IntColumn;
 template <typename T> class StringColumn;
 
@@ -264,6 +267,7 @@ class ColumnImpl
     virtual void fill_na();
 
     friend class Column;
+    friend class dt::ConstNa_ColumnImpl;
 };
 
 

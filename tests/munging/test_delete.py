@@ -152,6 +152,7 @@ def test_del_cols_multislice():
     assert_equals(d0, d1)
 
 
+@pytest.mark.xfail(reason="Re-enable once j-Expr supports del operator")
 def test_del_cols_generator():
     d0 = smalldt()
     del d0[:, (i**2 for i in range(4))]
