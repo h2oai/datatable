@@ -24,7 +24,7 @@
 import datatable as dt
 import pytest
 import random
-from tests import random_string, noop
+from tests import random_string, noop, assert_equals
 from datatable import join, ltype, stype, f, g, mean
 from datatable.internal import frame_integrity_check
 
@@ -295,3 +295,12 @@ def test_select_from_joined():
     for i in range(3):
         for j in range(1, DT.ncols):
             assert DT[i, j] is None
+
+
+def test_join_empty_frame():
+    # See issue #1988
+    DT1 = dt.Frame(A=range(5), B=['gs', 'dfk', None, 'ava;lej', 'fdsfal;k'])
+    DT2 = dt.Frame(A=[])
+    DT2.key = "A"
+    RES = DT1[:, :, dt.join(DT2)]
+    assert_equals(RES, DT1)
