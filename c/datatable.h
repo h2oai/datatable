@@ -108,12 +108,15 @@ class DataTable {
     size_t memory_footprint() const;
 
     const Column& get_column(size_t i) const {
+      xassert(i < columns.size());
       return columns[i];
     }
     Column& get_column(size_t i) {
+      xassert(i < columns.size());
       return columns[i];
     }
     void set_ocolumn(size_t i, Column&& newcol) {
+      xassert(i < columns.size());
       columns[i] = std::move(newcol);
     }
 

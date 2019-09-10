@@ -426,6 +426,7 @@ class exprlist_rn : public repl_node {
     void check_compatibility(size_t lrows, size_t lcols) const override;
     void replace_columns(workframe&, const intvec&) const override;
     void replace_values(workframe&, const intvec&) const override;
+    void resolve(workframe&) const override;
 };
 
 
@@ -438,15 +439,19 @@ void exprlist_rn::check_compatibility(size_t, size_t lcols) const {
 }
 
 
+void exprlist_rn::resolve(workframe& wf) const {
+  for (auto& expr : exprs) {
+    expr->resolve(wf);
+  }
+}
+
+
 void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
   DataTable* dt0 = wf.get_datatable(0);
   size_t lcols = indices.size();
   size_t rcols = exprs.size();
   xassert(lcols == rcols || rcols == 1);
-
-  for (auto& expr : exprs) {
-    expr->resolve(wf);
-  }
+  resolve(wf);
 
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
@@ -498,6 +503,10 @@ repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   }
   return repl_node_ptr(res);
 }
+
+
+void repl_node::resolve(workframe&) const {}
+
 
 
 
