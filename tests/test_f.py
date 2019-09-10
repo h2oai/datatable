@@ -188,6 +188,7 @@ def test_columnset_sum(DT):
     #               dt.cbind(DT, DT[:, {"extra": f.A + f.C}]))
 
 
+@pytest.mark.xfail
 def test_columnset_diff(DT):
     assert_equals(DT[:, f[:].remove(f[3])], DT[:, [0, 1, 2, 4, 5, 6]])
     assert_equals(DT[:, f[:].remove(f[2:-2])], DT[:, [0, 1, 5, 6]])
@@ -197,6 +198,7 @@ def test_columnset_diff(DT):
     assert_equals(DT[:, f[:].remove(f[100:])], DT)
 
 
+@pytest.mark.xfail
 def test_columnset_diff2(DT):
     # DT has column names {ABCDEFG}.
     # Check that removing column ranges that are partially or completely outside
