@@ -115,12 +115,15 @@ class Column
   //------------------------------------
   // Constructors
   //------------------------------------
+  // Note: the move-constructor MUST be noexcept; if not then an
+  // `std::vector<Column>` will be copying Columns instead of moving
+  // when the vector if resized.
   public:
     Column();
     Column(const Column&);
-    Column(Column&&);
+    Column(Column&&) noexcept;
     Column& operator=(const Column&);
-    Column& operator=(Column&&);
+    Column& operator=(Column&&) noexcept;
     ~Column();
 
     static Column new_data_column(SType, size_t nrows);

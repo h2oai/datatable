@@ -103,7 +103,7 @@ class ColumnImpl
     virtual ~ColumnImpl();
 
     ColumnImpl* acquire_instance() const;
-    void release_instance();
+    void release_instance() noexcept;
 
     virtual bool get_element(size_t i, int8_t* out) const;
     virtual bool get_element(size_t i, int16_t* out) const;

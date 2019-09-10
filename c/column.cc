@@ -144,7 +144,7 @@ Column::Column(ColumnImpl* col) : pcol(col) {}  // private
 Column::Column(const Column& other)
   : pcol(other.pcol->acquire_instance()) {}
 
-Column::Column(Column&& other) : Column() {
+Column::Column(Column&& other) noexcept : Column() {
   std::swap(pcol, other.pcol);
 }
 
@@ -154,7 +154,7 @@ Column& Column::operator=(const Column& other) {
   return *this;
 }
 
-Column& Column::operator=(Column&& other) {
+Column& Column::operator=(Column&& other) noexcept {
   if (pcol) pcol->release_instance();
   pcol = other.pcol;
   other.pcol = nullptr;

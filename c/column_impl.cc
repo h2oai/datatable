@@ -57,7 +57,7 @@ ColumnImpl* ColumnImpl::acquire_instance() const {
   return this->shallowcopy();
 }
 
-void ColumnImpl::release_instance() {
+void ColumnImpl::release_instance() noexcept {
   delete this;
 }
 
