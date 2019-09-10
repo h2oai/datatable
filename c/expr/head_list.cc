@@ -104,7 +104,11 @@ static Head::Kind _resolve_list_kind(const vecExpr& inputs) {
           (kind == Head::Kind::Int || kind == Head::Kind::Str)) listkind = kind;
       if (kind == listkind) continue;
     }
-    throw TypeError() << "Mixed selector types are not allowed. Element "
+    if (kind == Head::Kind::Bool && listkind == Head::Kind::Unknown) {
+      listkind = Head::Kind::Bool;
+      continue;
+    }
+    throw RuntimeError() << "Mixed selector types are not allowed. Element "
         << i << " is of type " << _name_type(kind) << ", whereas the "
         "previous element(s) were of type " << _name_type(listkind);
   }
