@@ -499,6 +499,7 @@ def get_extra_compile_flags():
                 "-Wno-reserved-id-macro",
                 "-Wno-switch-enum",
                 "-Wno-weak-template-vtables",
+                "-Wno-weak-vtables",
             ]
         elif is_gcc():
             # Ignored warnings:

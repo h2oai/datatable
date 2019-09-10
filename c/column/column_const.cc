@@ -23,8 +23,6 @@
 #include "python/obj.h"
 namespace dt {
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-vtables"
 
 
 //------------------------------------------------------------------------------
@@ -200,6 +198,5 @@ bool Const_ColumnImpl::is_virtual() const noexcept {
 
 
 
-#pragma clang diagnostic pop
 
 }  // namespace dt

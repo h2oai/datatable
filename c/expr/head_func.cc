@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
 #include "expr/head_func.h"
+#include "expr/head_func_other.h"
 #include "expr/head_reduce.h"
 #include "expr/outputs.h"
 #include "utils/assert.h"
@@ -30,7 +31,7 @@ namespace expr {
 
 
 
-ptrHead Head_Func::from_op(Op op, py::otuple params) {
+ptrHead Head_Func::from_op(Op op, const py::otuple& params) {
   size_t z = static_cast<size_t>(op);
   if (factory.count(z) == 0) {
     throw NotImplError() << "Unknown opcode in Expr(): " << z;
@@ -111,7 +112,6 @@ static ptrHead make_reduce1(Op op, const py::otuple& params) {
 
 
 
-
 std::unordered_map<size_t, Head_Func::maker_t> Head_Func::factory;
 
 // static
@@ -125,7 +125,7 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::SETPLUS)]  = make_colsetop;
   factory[static_cast<size_t>(Op::SETMINUS)] = make_colsetop;
   factory[static_cast<size_t>(Op::COUNT0)]   = make_reduce0;
-  // factory[static_cast<size_t>(Op::RE_MATCH)] = make_string;
+  factory[static_cast<size_t>(Op::RE_MATCH)] = &Head_Func_Re_Match::make;
   // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;
   // factory[static_cast<size_t>(Op::ARCTAN2)]  = make_math21;
   // factory[static_cast<size_t>(Op::POWER)]    = make_math21;

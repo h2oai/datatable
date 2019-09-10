@@ -37,7 +37,7 @@ class Head_Func : public Head {
 
   public:
     static void init();  // called once from datatablemodule.h
-    static ptrHead from_op(Op op, py::otuple params);
+    static ptrHead from_op(Op op, const py::otuple& params);
 
     Kind get_expr_kind() const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
