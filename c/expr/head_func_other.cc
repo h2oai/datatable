@@ -20,13 +20,14 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>                 // std::memcmp
-#include "column_impl.h"
 #include "expr/expr.h"
 #include "expr/head_func_other.h"
 #include "expr/outputs.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
+#include "column_impl.h"
+#include "datatablemodule.h"
 namespace dt {
 namespace expr {
 
