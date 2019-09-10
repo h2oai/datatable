@@ -64,6 +64,7 @@ class Expr {
     void _init_from_bool(py::robj);
     void _init_from_dictionary(py::robj);
     void _init_from_dtexpr(py::robj);
+    void _init_from_ellipsis();
     void _init_from_float(py::robj);
     void _init_from_frame(py::robj);
     void _init_from_int(py::robj);

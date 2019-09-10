@@ -66,6 +66,7 @@ Expr::Expr(py::robj src) {
            src.is_pandas_series()) _init_from_pandas(src);
   else if (src.is_numpy_array() ||
            src.is_numpy_marray())  _init_from_numpy(src);
+  else if (src.is_ellipsis())      _init_from_ellipsis();
   else {
     throw TypeError() << "An object of type " << src.typeobj()
                       << " cannot be used in an Expr";
@@ -101,6 +102,11 @@ void Expr::_init_from_dtexpr(py::robj src) {
     inputs.emplace_back(args[i]);
   }
   head = Head_Func::from_op(static_cast<Op>(op), params);
+}
+
+
+void Expr::_init_from_ellipsis() {
+  head = ptrHead(new Head_Literal_SliceAll);
 }
 
 
