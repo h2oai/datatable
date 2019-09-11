@@ -25,6 +25,7 @@ import datatable as dt
 import pytest
 import random
 from datatable.internal import frame_integrity_check
+from tests import assert_equals
 
 
 
@@ -84,6 +85,19 @@ def test_setfns_ignore_empty_frames(fn):
     res2 = fn(dt1, dt.Frame(), dt2)
     assert res1.to_list() == res2.to_list()
 
+
+@pytest.mark.parametrize("fn", set_fns)
+def test_setfns_between_empty_frames1(fn):
+    DT = dt.Frame()
+    res = fn(DT, DT)
+    assert_equals(res, DT)
+
+
+@pytest.mark.parametrize("fn", set_fns)
+def test_setfns_between_empty_frames2(fn):
+    DT = dt.Frame(A=[])
+    res = fn(DT, DT)
+    assert_equals(res, DT)
 
 
 
