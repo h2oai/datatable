@@ -30,9 +30,37 @@ namespace expr {
 
 
 /**
-  * `Workframe` is a "frame-in-progress": a collection of columns
-  * that will at some point be converted into an actual DataTable.
+  * `Workframe` is a "frame-in-progress": a collection of column
+  * records that will at some point be converted into an actual
+  * DataTable.
   *
+  * Each column record contains the following information:
+  *
+  *   column    - the actual Column object
+  *   name      - this column's name (or empty)
+  *   frame_id  - if a column is added by reference, this will contain
+  *               the index of the frame (within the evaluation
+  *               context) where this column came from. If the column
+  *               was NOT added by reference, this will contain -1.
+  *   column_id - index of the column within the frame, if a column
+  *               was added by reference.
+  *
+  * A column is considered to be "added by reference" if it's a copy
+  * of one of the columns in one of the frames in the evaluation
+  * context. For such columns we keep their original "address"
+  * together with the column object. This allows us to refer back to
+  * the original columns when performing certain operations such as
+  * UPDATE or DELETE.
+  *
+  * A computed column is not added by reference, so for such column
+  * the frame id is -1, and column id can be anything.
+  *
+  * Another possible column type is the "placeholder" column. These
+  * columns have empty `column` object, and are used to denote new
+  * or unresolved columns in a frame. For example, in the expression
+  * `DT["A"] = 1` if there is no column "A" in the frame `DT`, the
+  * expression will be resolved to a placeholder column named "A",
+  * allowing us later to add such column in the UPDATE call.
   *
   */
 class Workframe {
@@ -59,9 +87,10 @@ class Workframe {
     Workframe(const Workframe&) = delete;
     Workframe(Workframe&&) = default;
 
-    void add(Column&& col, std::string&& name, Grouping grp);
-    void add(Column&& col, Grouping grp = Grouping::GtoALL);
+    void add_column(Column&& col, std::string&& name, Grouping grp);
+    void add_column(Column&& col, Grouping grp = Grouping::GtoALL);
     void add_ref_column(size_t iframe, size_t icol);
+    void add_placeholder(const std::string& name, size_t iframe);
     void append(Workframe&&);
     void replace_name(const std::string& name);
 
@@ -70,7 +99,7 @@ class Workframe {
     Column&      get_column(size_t i);
     std::string& get_name(size_t i);
 
-    std::unique_ptr<DataTable> convert_to_datatable();
+    std::unique_ptr<DataTable> convert_to_datatable() &&;
 
     // This method ensures that two `Workframe` objects have the
     // same grouping mode. It can either modify itself, or

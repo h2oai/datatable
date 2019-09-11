@@ -48,9 +48,9 @@ Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) co
   auto gmode = lhs.get_grouping_mode();
   Workframe outputs(ctx);
   for (size_t i = 0; i < size; ++i) {
-    outputs.add(binaryop(op, lhs.get_column(i & lmask),
-                             rhs.get_column(i & rmask)),
-                gmode);
+    outputs.add_column(binaryop(op, lhs.get_column(i & lmask),
+                                    rhs.get_column(i & rmask)),
+                       gmode);
   }
   return outputs;
 }

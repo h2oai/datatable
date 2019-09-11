@@ -58,13 +58,13 @@ Workframe::Workframe(EvalContext& ctx_)
 
 
 
-void Workframe::add(Column&& col, std::string&& name, Grouping gmode) {
+void Workframe::add_column(Column&& col, std::string&& name, Grouping gmode) {
   sync_grouping_mode(col, gmode);
   entries.emplace_back(std::move(col), std::move(name));
 }
 
 
-void Workframe::add(Column&& col, Grouping gmode) {
+void Workframe::add_column(Column&& col, Grouping gmode) {
   sync_grouping_mode(col, gmode);
   entries.emplace_back(std::move(col), std::string());
 }
@@ -86,8 +86,12 @@ void Workframe::add_ref_column(size_t iframe, size_t icol) {
                 ctx.get_by_node().has_group_column(icol)) ? Grouping::GtoONE
                                                           : Grouping::GtoALL;
   sync_grouping_mode(column, gmode);
-
   entries.emplace_back(std::move(column), name, iframe, icol);
+}
+
+
+void Workframe::add_placeholder(const std::string& name, size_t iframe) {
+  entries.emplace_back(Column(), std::string(name), iframe, 0);
 }
 
 
@@ -155,7 +159,7 @@ Grouping Workframe::get_grouping_mode() const {
 
 
 
-std::unique_ptr<DataTable> Workframe::convert_to_datatable() {
+std::unique_ptr<DataTable> Workframe::convert_to_datatable() && {
   colvec columns;
   strvec names;
   names.reserve(entries.size());

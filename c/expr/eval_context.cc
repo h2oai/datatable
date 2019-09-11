@@ -121,7 +121,7 @@ void EvalContext::evaluate() {
       }
       else {
         auto res = jexpr2.evaluate_j(*this);
-        out_datatable = res.convert_to_datatable();
+        out_datatable = std::move(res).convert_to_datatable();
       }
       break;
 

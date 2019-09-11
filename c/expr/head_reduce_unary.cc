@@ -275,9 +275,10 @@ Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) c
   Workframe outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
     Column& col = inputs.get_column(i);
-    outputs.add(fn(std::move(col), gby),
-                std::move(inputs.get_name(i)),
-                Grouping::GtoONE);
+    outputs.add_column(
+        fn(std::move(col), gby),
+        std::move(inputs.get_name(i)),
+        Grouping::GtoONE);
   }
   return outputs;
 }

@@ -69,9 +69,10 @@ Workframe Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
                                         : Grouping::GtoALL;
   Workframe res(ctx);
   for (size_t i = 0; i < dt->ncols; ++i) {
-    res.add(Column(dt->get_column(i)),
-            ignore_names? std::string() : std::string(dt->get_names()[i]),
-            grouplevel);
+    res.add_column(
+        Column(dt->get_column(i)),
+        ignore_names? std::string() : std::string(dt->get_names()[i]),
+        grouplevel);
   }
   return res;
 }

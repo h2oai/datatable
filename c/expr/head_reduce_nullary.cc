@@ -63,7 +63,7 @@ static Column _count0(EvalContext& ctx)
 
 static Workframe _wrap_column(EvalContext& ctx, Column&& col, std::string&& name) {
   Workframe outputs(ctx);
-  outputs.add(std::move(col), std::move(name), Grouping::GtoONE);
+  outputs.add_column(std::move(col), std::move(name), Grouping::GtoONE);
   return outputs;
 }
 

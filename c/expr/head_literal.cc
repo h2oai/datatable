@@ -33,7 +33,7 @@ namespace expr {
 
 Workframe Head_Literal::_wrap_column(EvalContext& ctx, Column&& col) {
   Workframe outputs(ctx);
-  outputs.add(std::move(col), Grouping::SCALAR);
+  outputs.add_column(std::move(col), Grouping::SCALAR);
   return outputs;
 }
 
