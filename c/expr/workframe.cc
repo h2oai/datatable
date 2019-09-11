@@ -64,12 +64,6 @@ void Workframe::add_column(Column&& col, std::string&& name, Grouping gmode) {
 }
 
 
-void Workframe::add_column(Column&& col, Grouping gmode) {
-  sync_grouping_mode(col, gmode);
-  entries.emplace_back(std::move(col), std::string());
-}
-
-
 void Workframe::add_ref_column(size_t iframe, size_t icol) {
   const DataTable* df = ctx.get_datatable(iframe);
   const RowIndex& rowindex = ctx.get_rowindex(iframe);
@@ -95,7 +89,7 @@ void Workframe::add_placeholder(const std::string& name, size_t iframe) {
 }
 
 
-void Workframe::append(Workframe&& other) {
+void Workframe::cbind(Workframe&& other) {
   sync_grouping_mode(other);
   if (entries.size() == 0) {
     entries = std::move(other.entries);
@@ -108,7 +102,7 @@ void Workframe::append(Workframe&& other) {
 }
 
 
-void Workframe::replace_name(const std::string& newname) {
+void Workframe::rename(const std::string& newname) {
   if (entries.size() == 1) {
     entries[0].name = newname;
   }
@@ -138,7 +132,7 @@ size_t Workframe::size() const noexcept {
   return entries.size();
 }
 
-EvalContext& Workframe::get_workframe() const noexcept {
+EvalContext& Workframe::get_context() const noexcept {
   return ctx;
 }
 

@@ -88,14 +88,13 @@ class Workframe {
     Workframe(Workframe&&) = default;
 
     void add_column(Column&& col, std::string&& name, Grouping grp);
-    void add_column(Column&& col, Grouping grp = Grouping::GtoALL);
     void add_ref_column(size_t iframe, size_t icol);
     void add_placeholder(const std::string& name, size_t iframe);
-    void append(Workframe&&);
-    void replace_name(const std::string& name);
+    void cbind(Workframe&&);
+    void rename(const std::string& name);
 
     size_t       size() const noexcept;
-    EvalContext& get_workframe() const noexcept;
+    EvalContext& get_context() const noexcept;
     Column&      get_column(size_t i);
     std::string& get_name(size_t i);
 

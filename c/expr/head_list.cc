@@ -40,7 +40,7 @@ Kind Head_List::get_expr_kind() const {
 Workframe Head_List::evaluate_n(const vecExpr& inputs, EvalContext& ctx) const {
   Workframe outputs(ctx);
   for (const Expr& arg : inputs) {
-    outputs.append( arg.evaluate_n(ctx) );
+    outputs.cbind( arg.evaluate_n(ctx) );
   }
   return outputs;
 }
@@ -138,7 +138,7 @@ static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
 static Workframe _evaluate_f_list(const vecExpr& inputs, EvalContext& ctx) {
   Workframe outputs(ctx);
   for (const Expr& arg : inputs) {
-    outputs.append( arg.evaluate_f(ctx, 0) );
+    outputs.cbind( arg.evaluate_f(ctx, 0) );
   }
   return outputs;
 }
@@ -172,8 +172,8 @@ Workframe Head_NamedList::evaluate_n(const vecExpr& inputs, EvalContext& ctx) co
   Workframe outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
     Workframe arg_out = inputs[i].evaluate_n(ctx);
-    arg_out.replace_name(names[i]);
-    outputs.append( std::move(arg_out) );
+    arg_out.rename(names[i]);
+    outputs.cbind( std::move(arg_out) );
   }
   return outputs;
 }

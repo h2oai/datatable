@@ -50,6 +50,7 @@ Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) co
   for (size_t i = 0; i < size; ++i) {
     outputs.add_column(binaryop(op, lhs.get_column(i & lmask),
                                     rhs.get_column(i & rmask)),
+                       std::string(),
                        gmode);
   }
   return outputs;
