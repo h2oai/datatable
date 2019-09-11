@@ -35,7 +35,7 @@ Kind Head_Literal_String::get_expr_kind() const {
 }
 
 
-Outputs Head_Literal_String::evaluate(const vecExpr&, workframe& wf) const {
+Outputs Head_Literal_String::evaluate_n(const vecExpr&, workframe& wf) const {
   return _wrap_column(wf,
             Const_ColumnImpl::make_string_column(1, pystr.to_string()));
 }

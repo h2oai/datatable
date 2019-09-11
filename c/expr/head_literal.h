@@ -55,7 +55,7 @@ class Head_Literal : public Head {
 class Head_Literal_None : public Head_Literal {
   public:
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe& wf) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
 };
@@ -72,7 +72,7 @@ class Head_Literal_Bool : public Head_Literal {
     Kind get_expr_kind() const override;
     bool get_value() const;
 
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
 };
@@ -86,7 +86,7 @@ class Head_Literal_Int : public Head_Literal {
   public:
     explicit Head_Literal_Int(int64_t x);
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
 };
@@ -100,7 +100,7 @@ class Head_Literal_Float : public Head_Literal {
   public:
     explicit Head_Literal_Float(double x);
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
 };
@@ -114,7 +114,7 @@ class Head_Literal_String : public Head_Literal {
   public:
     explicit Head_Literal_String(py::robj x);
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
 };
@@ -124,7 +124,7 @@ class Head_Literal_String : public Head_Literal {
 class Head_Literal_SliceAll : public Head_Literal {
   public:
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
 };
@@ -138,7 +138,7 @@ class Head_Literal_SliceInt : public Head_Literal {
   public:
     explicit Head_Literal_SliceInt(py::oslice x);
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
 };
@@ -153,7 +153,7 @@ class Head_Literal_SliceStr : public Head_Literal {
   public:
     explicit Head_Literal_SliceStr(py::oslice x);
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
 };
@@ -167,7 +167,7 @@ class Head_Literal_Type : public Head_Literal {
   public:
     explicit Head_Literal_Type(py::robj x);
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
 };

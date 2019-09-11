@@ -35,7 +35,7 @@ Kind Head_Literal_Int::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_Int::evaluate(const vecExpr&, workframe& wf) const {
+Outputs Head_Literal_Int::evaluate_n(const vecExpr&, workframe& wf) const {
   return _wrap_column(wf, Const_ColumnImpl::make_int_column(1, value));
 }
 

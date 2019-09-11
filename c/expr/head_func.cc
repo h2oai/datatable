@@ -57,7 +57,7 @@ Outputs Head_Func::evaluate_f(workframe&, size_t) const {
 // evaluating this expression in "normal" mode.
 //
 Outputs Head_Func::evaluate_j(const vecExpr& args, workframe& wf) const {
-  return evaluate(args, wf);
+  return evaluate_n(args, wf);
 }
 
 

@@ -56,7 +56,7 @@ Kind Head_Frame::get_expr_kind() const {
 
 
 
-Outputs Head_Frame::evaluate(const vecExpr& args, workframe& wf) const {
+Outputs Head_Frame::evaluate_n(const vecExpr& args, workframe& wf) const {
   (void) args;
   xassert(args.size() == 0);
 
@@ -78,7 +78,7 @@ Outputs Head_Frame::evaluate(const vecExpr& args, workframe& wf) const {
 
 
 Outputs Head_Frame::evaluate_j(const vecExpr& args, workframe& wf) const {
-  return evaluate(args, wf);
+  return evaluate_n(args, wf);
 }
 
 

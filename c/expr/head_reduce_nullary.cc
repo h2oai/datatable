@@ -68,7 +68,7 @@ static Outputs _wrap_column(workframe& wf, Column&& col, std::string&& name) {
 }
 
 
-Outputs Head_Reduce_Nullary::evaluate(const vecExpr& args, workframe& wf) const
+Outputs Head_Reduce_Nullary::evaluate_n(const vecExpr& args, workframe& wf) const
 {
   xassert(args.size() == 0);
   (void) args;

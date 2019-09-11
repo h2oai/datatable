@@ -31,7 +31,7 @@ Kind Head_Literal_None::get_expr_kind() const {
 }
 
 
-Outputs Head_Literal_None::evaluate(const vecExpr&, workframe& wf) const {
+Outputs Head_Literal_None::evaluate_n(const vecExpr&, workframe& wf) const {
   return _wrap_column(wf, Const_ColumnImpl::make_na_column(1));
 }
 

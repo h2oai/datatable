@@ -31,7 +31,7 @@ namespace expr {
 Head_Func_Column::Head_Func_Column(size_t f) : frame_id(f) {}
 
 
-Outputs Head_Func_Column::evaluate(const vecExpr& args, workframe& wf) const {
+Outputs Head_Func_Column::evaluate_n(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 1);
   if (frame_id >= wf.nframes()) {
     throw ValueError()

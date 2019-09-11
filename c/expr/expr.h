@@ -39,6 +39,25 @@ namespace expr {
 // Expr
 //------------------------------------------------------------------------------
 
+/**
+  * `Expr` class is the main building block when evaluating
+  * expressions in DT[i,j,...] call. Thus, each i, j and other nodes
+  * are represented as `Expr` objects. In turn, each `Expr` contains
+  * 0 or more children Exprs called `inputs`. Thus, each i, j and
+  * other nodes are in fact trees of Exprs.
+  *
+  * Each `Expr` node carries a payload `head` pointer. This is an
+  * object that contains the actual functionality of the Expr. Please
+  * refer to the description of `Head` class for further info.
+  *
+  * Even though Exprs are used as universal building blocks, their
+  * meaning may be different in different contexts. For example,
+  * number `3` means a simple 1x1 Frame when used as a function
+  * argument, or the 4th column in the Frame when used as `j` node,
+  * or the 4th row when used as `i` node, etc. This is why we provide
+  * several evaluation modes:
+  *
+  */
 class Expr {
   private:
     ptrHead  head;
@@ -53,11 +72,11 @@ class Expr {
     Expr& operator=(const Expr&) = delete;
 
     Kind get_expr_kind() const;
-    bool evaluate_as_bool() const;
 
-    Outputs evaluate(workframe& wf) const;
+    Outputs evaluate_n(workframe& wf) const;
     Outputs evaluate_f(workframe& wf, size_t frame_id) const;
     Outputs evaluate_j(workframe& wf) const;
+    bool    evaluate_as_bool() const;
 
   private:
     // Construction helpers
@@ -83,18 +102,14 @@ class Expr {
 
 
 //------------------------------------------------------------------------------
+//
+// |  Obsolete
+// V
 //------------------------------------------------------------------------------
-
 
 class base_expr;
 using pexpr = std::unique_ptr<base_expr>;
 
-
-
-
-//------------------------------------------------------------------------------
-// dt::expr::base_expr
-//------------------------------------------------------------------------------
 
 class base_expr {
   public:
@@ -124,13 +139,6 @@ py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params);
 }}  // namespace dt::expr
 
 
-// hashing support
-namespace std {
-  template <> struct hash<dt::expr::Op> {
-    std::size_t operator()(const dt::expr::Op& op) const {
-      return static_cast<size_t>(op);
-    }
-  };
-}
+
 
 #endif

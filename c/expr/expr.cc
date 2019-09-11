@@ -198,8 +198,8 @@ Kind Expr::get_expr_kind() const {
 }
 
 
-Outputs Expr::evaluate(workframe& wf) const {
-  return head->evaluate(inputs, wf);
+Outputs Expr::evaluate_n(workframe& wf) const {
+  return head->evaluate_n(inputs, wf);
 }
 
 

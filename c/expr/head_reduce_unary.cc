@@ -254,9 +254,10 @@ static Column compute_max(Column&& arg, const Groupby& gby) {
 // Head_Reduce_Unary
 //------------------------------------------------------------------------------
 
-Outputs Head_Reduce_Unary::evaluate(const vecExpr& args, workframe& wf) const {
+Outputs Head_Reduce_Unary::evaluate_n(const vecExpr& args, workframe& wf) const
+{
   xassert(args.size() == 1);
-  Outputs inputs = args[0].evaluate(wf);
+  Outputs inputs = args[0].evaluate_n(wf);
   Groupby gby = wf.get_groupby();
   if (!gby) gby = Groupby::single_group(wf.nrows());
 

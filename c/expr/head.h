@@ -51,7 +51,7 @@ namespace expr {
  * produces a list of named `Column`s. The difference between these
  * methods is the context in which the expression is to be evaluated:
  *
- * - evaluate() is the "standard" mode of evaluation;
+ * - evaluate_n() is the "standard" mode of evaluation;
  *
  * - evaluate_j() computes the expression when it is the root node in
  *     j- or by-expr of DT[i,j,...]. The flag `assignment` is true
@@ -65,7 +65,7 @@ namespace expr {
 class Head {
   public:
     virtual ~Head();
-    virtual Outputs evaluate(const vecExpr& args, workframe& wf) const = 0;
+    virtual Outputs evaluate_n(const vecExpr& args, workframe& wf) const = 0;
     virtual Outputs evaluate_j(const vecExpr& args, workframe& wf) const = 0;
     virtual Outputs evaluate_f(workframe& wf, size_t frame_id) const = 0;
 

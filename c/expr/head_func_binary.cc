@@ -32,10 +32,10 @@ namespace expr {
 Head_Func_Binary::Head_Func_Binary(Op op_) : op(op_) {}
 
 
-Outputs Head_Func_Binary::evaluate(const vecExpr& args, workframe& wf) const {
+Outputs Head_Func_Binary::evaluate_n(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 2);
-  Outputs lhs = args[0].evaluate(wf);
-  Outputs rhs = args[1].evaluate(wf);
+  Outputs lhs = args[0].evaluate_n(wf);
+  Outputs rhs = args[1].evaluate_n(wf);
   size_t lmask = (lhs.size() == 1)? 0 : size_t(-1);
   size_t rmask = (rhs.size() == 1)? 0 : size_t(-1);
   if (lmask && rmask && lhs.size() != rhs.size()) {

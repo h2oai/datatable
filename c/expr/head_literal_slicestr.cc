@@ -37,7 +37,7 @@ Kind Head_Literal_SliceStr::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_SliceStr::evaluate(const vecExpr&, workframe&) const {
+Outputs Head_Literal_SliceStr::evaluate_n(const vecExpr&, workframe&) const {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
 

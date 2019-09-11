@@ -32,9 +32,9 @@ namespace expr {
 Head_Func_Unary::Head_Func_Unary(Op op_) : op(op_) {}
 
 
-Outputs Head_Func_Unary::evaluate(const vecExpr& args, workframe& wf) const {
+Outputs Head_Func_Unary::evaluate_n(const vecExpr& args, workframe& wf) const {
   xassert(args.size() == 1);
-  Outputs outputs = args[0].evaluate(wf);
+  Outputs outputs = args[0].evaluate_n(wf);
   for (auto& col : outputs.get_columns()) {
     const auto& info = unary_library.get_infox(op, col.stype());
     if (info.cast_stype != SType::VOID) {

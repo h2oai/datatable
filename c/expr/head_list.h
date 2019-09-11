@@ -31,7 +31,7 @@ namespace expr {
 class Head_List : public Head {
   public:
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
 };
@@ -45,7 +45,7 @@ class Head_NamedList : public Head {
   public:
     Head_NamedList(strvec&&);
     Kind get_expr_kind() const override;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
     Outputs evaluate_j(const vecExpr&, workframe&) const override;
     Outputs evaluate_f(workframe&, size_t) const override;
 };

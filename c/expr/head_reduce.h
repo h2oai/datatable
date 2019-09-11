@@ -47,7 +47,7 @@ class Head_Reduce : public Head_Func {
 class Head_Reduce_Nullary : public Head_Reduce {
   public:
     using Head_Reduce::Head_Reduce;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
 };
 
 
@@ -55,7 +55,7 @@ class Head_Reduce_Nullary : public Head_Reduce {
 class Head_Reduce_Unary : public Head_Reduce {
   public:
     using Head_Reduce::Head_Reduce;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
 };
 
 
@@ -63,7 +63,7 @@ class Head_Reduce_Unary : public Head_Reduce {
 class Head_Reduce_Binary : public Head_Reduce {
   public:
     using Head_Reduce::Head_Reduce;
-    Outputs evaluate(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, workframe&) const override;
 };
 
 

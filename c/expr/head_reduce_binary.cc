@@ -28,7 +28,7 @@ namespace dt {
 namespace expr {
 
 
-Outputs Head_Reduce_Binary::evaluate(const vecExpr& args, workframe& wf) const
+Outputs Head_Reduce_Binary::evaluate_n(const vecExpr& args, workframe& wf) const
 {
   xassert(args.size() == 0);
   (void) args;
