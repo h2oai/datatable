@@ -35,7 +35,9 @@ Head_Func_Unary::Head_Func_Unary(Op op_) : op(op_) {}
 Workframe Head_Func_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 1);
   Workframe outputs = args[0].evaluate_n(ctx);
-  for (auto& col : outputs.get_columns()) {
+  size_t n = outputs.size();
+  for (size_t i = 0; i < n; ++i) {
+    Column& col = outputs.get_column(i);
     const auto& info = unary_library.get_infox(op, col.stype());
     if (info.cast_stype != SType::VOID) {
       col.cast_inplace(info.cast_stype);

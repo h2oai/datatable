@@ -118,7 +118,9 @@ Head_Func_Re_Match::Head_Func_Re_Match(py::robj arg_pattern, py::robj arg_flags)
 Workframe Head_Func_Re_Match::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 1);
   Workframe outputs = args[0].evaluate_n(ctx);
-  for (auto& col : outputs.get_columns()) {
+  size_t n = outputs.size();
+  for (size_t i = 0; i < n; ++i) {
+    Column& col = outputs.get_column(i);
     if (col.ltype() != LType::STRING) {
       throw TypeError() << "Method `.re_match()` cannot be applied to a "
           "column of type " << col.stype();

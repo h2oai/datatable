@@ -27,22 +27,21 @@ namespace expr {
 
 
 //------------------------------------------------------------------------------
-// Workframe::Info
+// Workframe::Record
 //------------------------------------------------------------------------------
 
-Workframe::Info::Info() : frame_id(INVALID_FRAME) {}
+Workframe::Record::Record()
+  : frame_id(INVALID_FRAME) {}
 
-Workframe::Info::Info(std::string&& name_)
-  : name(std::move(name_)),
+Workframe::Record::Record(Column&& col, std::string&& name_)
+  : column(std::move(col)),
+    name(std::move(name_)),
     frame_id(INVALID_FRAME) {}
 
-Workframe::Info::Info(std::string&& name_, size_t fid, size_t cid)
-  : name(std::move(name_)),
-    frame_id(static_cast<uint32_t>(fid)),
-    column_id(static_cast<uint32_t>(cid)) {}
-
-Workframe::Info::Info(const std::string& name_, size_t fid, size_t cid)
-  : name(name_),
+Workframe::Record::Record(Column&& col, const std::string& name_, size_t fid,
+                          size_t cid)
+  : column(std::move(col)),
+    name(name_),
     frame_id(static_cast<uint32_t>(fid)),
     column_id(static_cast<uint32_t>(cid)) {}
 
@@ -61,15 +60,13 @@ Workframe::Workframe(EvalContext& ctx_)
 
 void Workframe::add(Column&& col, std::string&& name, Grouping gmode) {
   sync_grouping_mode(col, gmode);
-  columns.emplace_back(std::move(col));
-  infos.emplace_back(std::move(name));
+  entries.emplace_back(std::move(col), std::move(name));
 }
 
 
 void Workframe::add(Column&& col, Grouping gmode) {
   sync_grouping_mode(col, gmode);
-  columns.emplace_back(std::move(col));
-  infos.emplace_back(std::string());
+  entries.emplace_back(std::move(col), std::string());
 }
 
 
@@ -90,35 +87,30 @@ void Workframe::add_ref_column(size_t iframe, size_t icol) {
                                                           : Grouping::GtoALL;
   sync_grouping_mode(column, gmode);
 
-  columns.emplace_back(std::move(column));
-  infos.emplace_back(name, iframe, icol);
+  entries.emplace_back(std::move(column), name, iframe, icol);
 }
 
 
 void Workframe::append(Workframe&& other) {
   sync_grouping_mode(other);
-  if (columns.size() == 0) {
-    columns = std::move(other.columns);
-    infos = std::move(other.infos);
+  if (entries.size() == 0) {
+    entries = std::move(other.entries);
   }
   else {
-    for (auto& item : other.columns) {
-      columns.emplace_back(std::move(item));
-    }
-    for (auto& item : other.infos) {
-      infos.emplace_back(std::move(item));
+    for (auto& item : other.entries) {
+      entries.emplace_back(std::move(item));
     }
   }
 }
 
 
 void Workframe::replace_name(const std::string& newname) {
-  if (infos.size() == 1) {
-    infos[0].name = newname;
+  if (entries.size() == 1) {
+    entries[0].name = newname;
   }
   else {
     size_t len = newname.size();
-    for (auto& info : infos) {
+    for (auto& info : entries) {
       if (info.name.empty()) {
         info.name = newname;
       }
@@ -139,7 +131,7 @@ void Workframe::replace_name(const std::string& newname) {
 
 
 size_t Workframe::size() const noexcept {
-  return columns.size();
+  return entries.size();
 }
 
 EvalContext& Workframe::get_workframe() const noexcept {
@@ -148,11 +140,13 @@ EvalContext& Workframe::get_workframe() const noexcept {
 
 
 Column& Workframe::get_column(size_t i) {
-  return columns[i];
+  xassert(i < entries.size());
+  return entries[i].column;
 }
 
 std::string& Workframe::get_name(size_t i) {
-  return infos[i].name;
+  xassert(i < entries.size());
+  return entries[i].name;
 }
 
 Grouping Workframe::get_grouping_mode() const {
@@ -162,19 +156,17 @@ Grouping Workframe::get_grouping_mode() const {
 
 
 std::unique_ptr<DataTable> Workframe::convert_to_datatable() {
+  colvec columns;
   strvec names;
-  names.reserve(infos.size());
-  for (auto& info : infos) {
-    names.emplace_back(std::move(info.name));
+  names.reserve(entries.size());
+  columns.reserve(entries.size());
+  for (auto& record : entries) {
+    columns.emplace_back(std::move(record.column));
+    names.emplace_back(std::move(record.name));
   }
-  return dtptr(new DataTable(std::move(columns),
-                             std::move(names)));
+  return dtptr(new DataTable(std::move(columns), std::move(names)));
 }
 
-
-colvec& Workframe::get_columns() {
-  return columns;
-}
 
 
 
@@ -202,8 +194,8 @@ void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
 
 
 void Workframe::increase_grouping_mode(Grouping gmode) {
-  for (auto& col : columns) {
-    column_increase_grouping_mode(col, grouping_mode, gmode);
+  for (auto& item : entries) {
+    column_increase_grouping_mode(item.column, grouping_mode, gmode);
   }
   grouping_mode = gmode;
 }

@@ -30,26 +30,28 @@ namespace expr {
 
 
 /**
+  * `Workframe` is a "frame-in-progress": a collection of columns
+  * that will at some point be converted into an actual DataTable.
+  *
   *
   */
 class Workframe {
   private:
-    struct Info {
+    struct Record {
       static constexpr uint32_t INVALID_FRAME = uint32_t(-1);
+      Column      column;
       std::string name;
       uint32_t    frame_id;
       uint32_t    column_id;
 
-      Info();
-      Info(Info&&) noexcept = default;
-      Info(std::string&&);
-      Info(std::string&&, size_t, size_t);
-      Info(const std::string&, size_t, size_t);
+      Record();
+      Record(Record&&) noexcept = default;
+      Record(Column&&, std::string&&);
+      Record(Column&&, const std::string&, size_t, size_t);
     };
 
+    std::vector<Record> entries;
     EvalContext& ctx;
-    std::vector<Column> columns;
-    std::vector<Info>   infos;
     Grouping grouping_mode;
 
   public:
@@ -63,11 +65,10 @@ class Workframe {
     void append(Workframe&&);
     void replace_name(const std::string& name);
 
-    size_t size() const noexcept;
+    size_t       size() const noexcept;
     EvalContext& get_workframe() const noexcept;
-    Column& get_column(size_t i);
+    Column&      get_column(size_t i);
     std::string& get_name(size_t i);
-    colvec& get_columns();
 
     std::unique_ptr<DataTable> convert_to_datatable();
 
