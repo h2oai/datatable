@@ -38,18 +38,18 @@ bool Head_Literal_Bool::get_value() const {
 
 
 
-Outputs Head_Literal_Bool::evaluate_n(const vecExpr&, workframe& wf) const {
-  return _wrap_column(wf, Const_ColumnImpl::make_bool_column(1, value));
+Outputs Head_Literal_Bool::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+  return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
 }
 
 
-Outputs Head_Literal_Bool::evaluate_f(workframe&, size_t) const {
+Outputs Head_Literal_Bool::evaluate_f(EvalContext&, size_t) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";
 }
 
 
-Outputs Head_Literal_Bool::evaluate_j(const vecExpr&, workframe&) const {
+Outputs Head_Literal_Bool::evaluate_j(const vecExpr&, EvalContext&) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";
 }

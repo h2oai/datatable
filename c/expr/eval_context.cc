@@ -22,17 +22,17 @@
 #include "expr/collist.h"
 #include "expr/expr.h"
 #include "expr/outputs.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "frame/py_frame.h"
 #include "column_impl.h"  // TODO: remove
 namespace dt {
 
 
 //------------------------------------------------------------------------------
-// workframe
+// EvalContext
 //------------------------------------------------------------------------------
 
-workframe::workframe(DataTable* dt) {
+EvalContext::EvalContext(DataTable* dt) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
@@ -41,57 +41,57 @@ workframe::workframe(DataTable* dt) {
 }
 
 
-void workframe::set_mode(EvalMode m) {
+void EvalContext::set_mode(EvalMode m) {
   mode = m;
 }
 
 
-EvalMode workframe::get_mode() const {
+EvalMode EvalContext::get_mode() const {
   return mode;
 }
 
 
-GroupbyMode workframe::get_groupby_mode() const {
+GroupbyMode EvalContext::get_groupby_mode() const {
   return groupby_mode;
 }
 
 
-void workframe::add_join(py::ojoin oj) {
+void EvalContext::add_join(py::ojoin oj) {
   DataTable* dt = oj.get_datatable();
   frames.push_back(subframe {dt, RowIndex(), true});
 }
 
 
-void workframe::add_groupby(py::oby og) {
+void EvalContext::add_groupby(py::oby og) {
   byexpr.add_groupby_columns(*this, og.cols(*this));
 }
 
 
-void workframe::add_sortby(py::osort obj) {
+void EvalContext::add_sortby(py::osort obj) {
   byexpr.add_sortby_columns(*this, obj.cols(*this));
 }
 
 
-void workframe::add_i(py::oobj oi) {
+void EvalContext::add_i(py::oobj oi) {
   xassert(!iexpr);
   iexpr = i_node::make(oi, *this);
 }
 
 
-void workframe::add_j(py::oobj oj) {
+void EvalContext::add_j(py::oobj oj) {
   xassert(!jexpr);
   jexpr2 = dt::expr::Expr(oj);
   jexpr = j_node::make(oj, *this);
 }
 
 
-void workframe::add_replace(py::oobj obj) {
+void EvalContext::add_replace(py::oobj obj) {
   xassert(!repl);
   repl = repl_node::make(*this, obj);
 }
 
 
-void workframe::evaluate() {
+void EvalContext::evaluate() {
   // Compute joins
   DataTable* xdt = frames[0].dt;
   for (size_t i = 1; i < frames.size(); ++i) {
@@ -141,7 +141,7 @@ void workframe::evaluate() {
 // sizes: some are aggregated to group level, others have same number of rows
 // as dt0. If this happens, we need to expand the "short" columns to the full
 // size.
-void workframe::fix_columns() {
+void EvalContext::fix_columns() {
   if (groupby_mode != GroupbyMode::GtoALL) return;
   xassert(byexpr);
   // size_t nrows0 = get_datatable(0)->nrows;
@@ -159,7 +159,7 @@ void workframe::fix_columns() {
 }
 
 
-py::oobj workframe::get_result() {
+py::oobj EvalContext::get_result() {
   if (mode == EvalMode::SELECT) {
     DataTable* result =
         out_datatable? out_datatable.release()
@@ -176,54 +176,54 @@ py::oobj workframe::get_result() {
 }
 
 
-DataTable* workframe::get_datatable(size_t i) const {
+DataTable* EvalContext::get_datatable(size_t i) const {
   return frames[i].dt;
 }
 
 
-const RowIndex& workframe::get_rowindex(size_t i) const {
+const RowIndex& EvalContext::get_rowindex(size_t i) const {
   return frames[i].ri;
 }
 
 
-const Groupby& workframe::get_groupby() {
+const Groupby& EvalContext::get_groupby() {
   return gb;
 }
 
 
-const by_node& workframe::get_by_node() const {
+const by_node& EvalContext::get_by_node() const {
   return byexpr;
 }
 
 
-bool workframe::is_naturally_joined(size_t i) const {
+bool EvalContext::is_naturally_joined(size_t i) const {
   return frames[i].natural;
 }
 
-bool workframe::has_groupby() const {
+bool EvalContext::has_groupby() const {
   return bool(byexpr);
 }
 
 
-size_t workframe::nframes() const {
+size_t EvalContext::nframes() const {
   return frames.size();
 }
 
 
-size_t workframe::nrows() const {
+size_t EvalContext::nrows() const {
   const RowIndex& ri0 = frames[0].ri;
   return ri0? ri0.size() : frames[0].dt->nrows;
 }
 
 
-void workframe::apply_rowindex(const RowIndex& ri) {
+void EvalContext::apply_rowindex(const RowIndex& ri) {
   for (size_t i = 0; i < frames.size(); ++i) {
     frames[i].ri = ri * frames[i].ri;
   }
 }
 
 
-void workframe::apply_groupby(const Groupby& gb_) {
+void EvalContext::apply_groupby(const Groupby& gb_) {
   xassert(static_cast<size_t>(gb_.offsets_r()[gb_.ngroups()]) == nrows());
   gb = gb_;
 }
@@ -232,19 +232,19 @@ void workframe::apply_groupby(const Groupby& gb_) {
 
 //---- Construct the resulting frame -------------
 
-size_t workframe::size() const noexcept {
+size_t EvalContext::size() const noexcept {
   return columns.size();
 }
 
 
-void workframe::reserve(size_t n) {
+void EvalContext::reserve(size_t n) {
   size_t nn = n + columns.size();
   columns.reserve(nn);
   colnames.reserve(nn);
 }
 
 
-void workframe::add_column(
+void EvalContext::add_column(
   Column&& col, const RowIndex& ri, std::string&& name)
 {
   if (ri) {
@@ -256,7 +256,7 @@ void workframe::add_column(
 }
 
 
-RowIndex& workframe::_product(const RowIndex& ra, const RowIndex& rb) {
+RowIndex& EvalContext::_product(const RowIndex& ra, const RowIndex& rb) {
   for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
     if (it->ab == ra && it->bc == rb) {
       return it->ac;

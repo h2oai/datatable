@@ -31,13 +31,13 @@ namespace expr {
 Head_Func_Column::Head_Func_Column(size_t f) : frame_id(f) {}
 
 
-Outputs Head_Func_Column::evaluate_n(const vecExpr& args, workframe& wf) const {
+Outputs Head_Func_Column::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 1);
-  if (frame_id >= wf.nframes()) {
+  if (frame_id >= ctx.nframes()) {
     throw ValueError()
         << "Column expression references a non-existing join frame";
   }
-  return args[0].evaluate_f(wf, frame_id);
+  return args[0].evaluate_f(ctx, frame_id);
 }
 
 

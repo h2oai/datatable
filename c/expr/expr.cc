@@ -34,7 +34,7 @@
 #include "expr/head_list.h"
 #include "expr/head_literal.h"
 #include "expr/outputs.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 namespace dt {
@@ -198,22 +198,22 @@ Kind Expr::get_expr_kind() const {
 }
 
 
-Outputs Expr::evaluate_n(workframe& wf) const {
-  return head->evaluate_n(inputs, wf);
+Outputs Expr::evaluate_n(EvalContext& ctx) const {
+  return head->evaluate_n(inputs, ctx);
 }
 
 
-Outputs Expr::evaluate_j(workframe& wf) const {
-  return head->evaluate_j(inputs, wf);
+Outputs Expr::evaluate_j(EvalContext& ctx) const {
+  return head->evaluate_j(inputs, ctx);
 }
 
 
-Outputs Expr::evaluate_f(workframe& wf, size_t frame_id) const {
-  return head->evaluate_f(wf, frame_id);
+Outputs Expr::evaluate_f(EvalContext& ctx, size_t frame_id) const {
+  return head->evaluate_f(ctx, frame_id);
 }
 
 
-bool Expr::evaluate_as_bool() const {
+bool Expr::evaluate_bool() const {
   auto boolhead = dynamic_cast<Head_Literal_Bool*>(head.get());
   xassert(boolhead);
   return boolhead->get_value();

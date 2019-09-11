@@ -31,8 +31,8 @@ namespace expr {
 // Head_Literal
 //------------------------------------------------------------------------------
 
-Outputs Head_Literal::_wrap_column(workframe& wf, Column&& col) {
-  Outputs outputs(wf);
+Outputs Head_Literal::_wrap_column(EvalContext& ctx, Column&& col) {
+  Outputs outputs(ctx);
   outputs.add(std::move(col), Grouping::SCALAR);
   return outputs;
 }

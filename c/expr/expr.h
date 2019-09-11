@@ -57,6 +57,27 @@ namespace expr {
   * or the 4th row when used as `i` node, etc. This is why we provide
   * several evaluation modes:
   *
+  * evaluate_n()
+  *   "Natural" evaluation mode. In this mode the Expr is evaluated
+  *   as its most natural meaning, without any special "placement
+  *   bonus". Most often this mode is used when Expr is an argument
+  *   to some other function. For example, in `3 * <Expr>`, or
+  *   `sum(<Expr>)` the <Expr> will be evaluated in natural mode.
+  *
+  * evaluate_j()
+  *   Evaluate Expr as a root j node. In other words, this Expr is
+  *   use as `DT[:, <Expr>]` and must be evaluated as such.
+  *
+  * evaluate_f()
+  *   The expression is used as an argument to a FrameProxy symbol:
+  *   `f[<Expr>]`. In this mode `frame_id` is also passed to the Expr,
+  *   allowing to disambiguate between symbols `f`, `g`, etc.
+  *
+  * evaluate_bool()
+  *   This is not a "proper" evaluation mode: it is only applied to
+  *   boolean expressions (i.e. an expression with `get_expr_kind()`
+  *   equal to `Bool`).
+  *
   */
 class Expr {
   private:
@@ -73,10 +94,10 @@ class Expr {
 
     Kind get_expr_kind() const;
 
-    Outputs evaluate_n(workframe& wf) const;
-    Outputs evaluate_f(workframe& wf, size_t frame_id) const;
-    Outputs evaluate_j(workframe& wf) const;
-    bool    evaluate_as_bool() const;
+    Outputs evaluate_n(EvalContext& ctx) const;
+    Outputs evaluate_f(EvalContext& ctx, size_t frame_id) const;
+    Outputs evaluate_j(EvalContext& ctx) const;
+    bool    evaluate_bool() const;
 
   private:
     // Construction helpers
@@ -115,9 +136,9 @@ class base_expr {
   public:
     base_expr();
     virtual ~base_expr();
-    virtual SType resolve(const workframe&) = 0;
-    virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual Column evaluate(workframe&) = 0;
+    virtual SType resolve(const EvalContext&) = 0;
+    virtual GroupbyMode get_groupby_mode(const EvalContext&) const = 0;
+    virtual Column evaluate(EvalContext&) = 0;
 
     virtual bool is_columnset_expr() const;
     virtual bool is_literal_expr() const;

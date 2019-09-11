@@ -33,10 +33,10 @@ Head_Func_Colset::Head_Func_Colset(Op op_) : op(op_) {
 }
 
 
-Outputs Head_Func_Colset::evaluate_n(const vecExpr& args, workframe& wf) const {
+Outputs Head_Func_Colset::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 2);
-  Outputs lhs = args[0].evaluate_n(wf);
-  Outputs rhs = args[1].evaluate_n(wf);
+  Outputs lhs = args[0].evaluate_n(ctx);
+  Outputs rhs = args[1].evaluate_n(ctx);
   return (op == Op::SETPLUS)? _extend(std::move(lhs), std::move(rhs))
                             : _remove(std::move(lhs), std::move(rhs));
   // for (auto& out : outputs.get_items()) {

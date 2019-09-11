@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 #include "expr/declarations.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "column.h"
 namespace dt {
 namespace expr {
@@ -32,13 +32,13 @@ namespace expr {
 
 class Outputs {
   private:
-    workframe& wf;
+    EvalContext& ctx;
     colvec columns;
     strvec names;
     Grouping grouping_mode;
 
   public:
-    Outputs(workframe&);
+    Outputs(EvalContext&);
     Outputs(const Outputs&) = delete;
     Outputs(Outputs&&) = default;
 
@@ -49,7 +49,7 @@ class Outputs {
     void apply_name(const std::string& name);
 
     size_t size() const noexcept;
-    workframe& get_workframe() const noexcept;
+    EvalContext& get_workframe() const noexcept;
     Column& get_column(size_t i);
     std::string& get_name(size_t i);
     colvec& get_columns();

@@ -37,23 +37,23 @@ class expr_column : public base_expr {
     expr_column(size_t dfid, py::robj col);
     expr_column(size_t dfid, size_t colid);
 
-    // get_col_index(wf, strict)
+    // get_col_index(ctx, strict)
     //   Resolve the column-selector expression within the context of the given
-    //   workframe, and return the index of the column within its frame. The
+    //   EvalContext, and return the index of the column within its frame. The
     //   `strict` flag controls the behavior in case the column cannot be found
     //   in the frame: when the flag is true an exception is raised; otherwise
     //   merely returns -1.
     //
-    size_t get_col_index(const workframe&, bool strict = true);
+    size_t get_col_index(const EvalContext&, bool strict = true);
 
-    // get_col_frame(wf)
-    //   Return the index of this column's frame within the workframe.
+    // get_col_frame(ctx)
+    //   Return the index of this column's frame within the EvalContext.
     //
-    size_t get_col_frame(const workframe&);
+    size_t get_col_frame(const EvalContext&);
 
-    SType resolve(const workframe&) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column evaluate(workframe&) override;
+    SType resolve(const EvalContext&) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext&) override;
 };
 
 

@@ -41,9 +41,9 @@ class expr_unaryop : public base_expr {
 
   public:
     expr_unaryop(pexpr&& a, Op op);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column evaluate(workframe& wf) override;
+    SType resolve(const EvalContext& ctx) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext& ctx) override;
 
     bool is_negated_expr() const override;
     pexpr get_negated_expr() override;

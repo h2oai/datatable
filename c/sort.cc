@@ -128,7 +128,7 @@
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
 #include "expr/sort_node.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/args.h"
@@ -1458,14 +1458,14 @@ remains unmodified.
 )");
 
 py::oobj py::Frame::sort(const PKArgs& args) {
-  dt::workframe wf(dt);
+  dt::EvalContext ctx(dt);
 
   if (args.num_vararg_args() == 0) {
     py::otuple all_cols(dt->ncols);
     for (size_t i = 0; i < dt->ncols; ++i) {
       all_cols.set(i, py::oint(i));
     }
-    wf.add_sortby(py::osort(all_cols));
+    ctx.add_sortby(py::osort(all_cols));
   }
   else {
     std::vector<py::robj> cols;
@@ -1484,13 +1484,13 @@ py::oobj py::Frame::sort(const PKArgs& args) {
     for (size_t i = 0; i < cols.size(); ++i) {
       sort_cols.set(i, cols[i]);
     }
-    wf.add_sortby(py::osort(sort_cols));
+    ctx.add_sortby(py::osort(sort_cols));
   }
 
-  wf.add_i(py::None());
-  wf.add_j(py::None());
-  wf.evaluate();
-  return wf.get_result();
+  ctx.add_i(py::None());
+  ctx.add_j(py::None());
+  ctx.evaluate();
+  return ctx.get_result();
 }
 
 

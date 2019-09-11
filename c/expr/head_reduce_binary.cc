@@ -28,11 +28,11 @@ namespace dt {
 namespace expr {
 
 
-Outputs Head_Reduce_Binary::evaluate_n(const vecExpr& args, workframe& wf) const
+Outputs Head_Reduce_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 0);
   (void) args;
-  (void) wf;
+  (void) ctx;
   throw NotImplError() << "Head_Reduce_Binary::evaluate not implemented yet";
 }
 

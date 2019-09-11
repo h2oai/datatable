@@ -36,9 +36,9 @@ class expr_literal : public base_expr {
     explicit expr_literal(py::robj);
     bool is_literal_expr() const override;
     py::oobj get_literal_arg() override;
-    SType resolve(const workframe&) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column evaluate(workframe&) override;
+    SType resolve(const EvalContext&) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext&) override;
 };
 
 

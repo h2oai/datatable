@@ -34,18 +34,18 @@ Kind Head_Literal_Float::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_Float::evaluate_n(const vecExpr&, workframe& wf) const {
-  return _wrap_column(wf, Const_ColumnImpl::make_float_column(1, value));
+Outputs Head_Literal_Float::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+  return _wrap_column(ctx, Const_ColumnImpl::make_float_column(1, value));
 }
 
 
-Outputs Head_Literal_Float::evaluate_f(workframe&, size_t) const {
+Outputs Head_Literal_Float::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A floating-point value cannot be used as a "
       "column selector";
 }
 
 
-Outputs Head_Literal_Float::evaluate_j(const vecExpr&, workframe&) const {
+Outputs Head_Literal_Float::evaluate_j(const vecExpr&, EvalContext&) const {
   throw TypeError() << "A floating-point value cannot be used as a "
       "column selector";
 }

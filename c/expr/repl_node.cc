@@ -23,7 +23,7 @@
 #include "expr/expr.h"
 #include "expr/collist.h"
 #include "expr/repl_node.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "utils/exceptions.h"
 #include "column_impl.h"  // TODO: remove
 #include "datatable.h"
@@ -41,8 +41,8 @@ class frame_rn : public repl_node {
   public:
     explicit frame_rn(DataTable* dt_) : dtr(dt_) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
-    void replace_columns(workframe&, const intvec&) const override;
-    void replace_values(workframe&, const intvec&) const override;
+    void replace_columns(EvalContext&, const intvec&) const override;
+    void replace_values(EvalContext&, const intvec&) const override;
 };
 
 
@@ -57,12 +57,12 @@ void frame_rn::check_compatibility(size_t lrows, size_t lcols) const {
 }
 
 
-void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
+void frame_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
   size_t rcols = dtr->ncols;
   size_t rrows = dtr->nrows;
   if (rcols == 0) return;
 
-  DataTable* dt0 = wf.get_datatable(0);
+  DataTable* dt0 = ctx.get_datatable(0);
   size_t lcols = indices.size();
   size_t lrows = dt0->nrows;
   xassert(rcols == 1 || rcols == lcols);  // enforced in `check_compatibility()`
@@ -86,13 +86,13 @@ void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
 }
 
 
-void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
+void frame_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
   size_t rcols = dtr->ncols;
   size_t rrows = dtr->nrows;
   if (rcols == 0 || rrows == 0) return;
 
-  DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+  DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   size_t lcols = indices.size();
 
   xassert(rcols == 1 || rcols == lcols);
@@ -122,8 +122,8 @@ struct EnumClassHash {
 class scalar_rn : public repl_node {
   public:
     void check_compatibility(size_t lrows, size_t lcols) const override;
-    void replace_columns(workframe&, const intvec&) const override;
-    void replace_values(workframe&, const intvec&) const override;
+    void replace_columns(EvalContext&, const intvec&) const override;
+    void replace_values(EvalContext&, const intvec&) const override;
 
   protected:
     void check_column_types(const DataTable*, const intvec&) const;
@@ -150,8 +150,8 @@ void scalar_rn::check_column_types(
 }
 
 
-void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
-  DataTable* dt0 = wf.get_datatable(0);
+void scalar_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
+  DataTable* dt0 = ctx.get_datatable(0);
   check_column_types(dt0, indices);
 
   std::unordered_map<SType, Column, EnumClassHash> new_columns;
@@ -167,9 +167,9 @@ void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
 }
 
 
-void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
-  DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+void scalar_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
+  DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   check_column_types(dt0, indices);
 
   for (size_t j : indices) {
@@ -390,8 +390,8 @@ class collist_rn : public repl_node {
   public:
     explicit collist_rn(collist* cl) : indices(cl->release_indices()) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
-    void replace_columns(workframe&, const intvec&) const override;
-    void replace_values(workframe&, const intvec&) const override;
+    void replace_columns(EvalContext&, const intvec&) const override;
+    void replace_values(EvalContext&, const intvec&) const override;
 };
 
 
@@ -404,10 +404,10 @@ void collist_rn::check_compatibility(size_t, size_t lcols) const {
 }
 
 
-void collist_rn::replace_columns(workframe&, const intvec&) const {
+void collist_rn::replace_columns(EvalContext&, const intvec&) const {
   throw NotImplError() << "collist_rn::replace_columns()";
 }
-void collist_rn::replace_values(workframe&, const intvec&) const {
+void collist_rn::replace_values(EvalContext&, const intvec&) const {
   throw NotImplError() << "collist_rn::replace_values()";
 }
 
@@ -424,9 +424,9 @@ class exprlist_rn : public repl_node {
   public:
     explicit exprlist_rn(collist* cl) : exprs(cl->release_exprs()) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
-    void replace_columns(workframe&, const intvec&) const override;
-    void replace_values(workframe&, const intvec&) const override;
-    void resolve(workframe&) const override;
+    void replace_columns(EvalContext&, const intvec&) const override;
+    void replace_values(EvalContext&, const intvec&) const override;
+    void resolve(EvalContext&) const override;
 };
 
 
@@ -439,23 +439,23 @@ void exprlist_rn::check_compatibility(size_t, size_t lcols) const {
 }
 
 
-void exprlist_rn::resolve(workframe& wf) const {
+void exprlist_rn::resolve(EvalContext& ctx) const {
   for (auto& expr : exprs) {
-    expr->resolve(wf);
+    expr->resolve(ctx);
   }
 }
 
 
-void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
-  DataTable* dt0 = wf.get_datatable(0);
+void exprlist_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
+  DataTable* dt0 = ctx.get_datatable(0);
   size_t lcols = indices.size();
   size_t rcols = exprs.size();
   xassert(lcols == rcols || rcols == 1);
-  resolve(wf);
+  resolve(ctx);
 
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column col = (i < rcols)? exprs[i]->evaluate(wf)
+    Column col = (i < rcols)? exprs[i]->evaluate(ctx)
                             : dt0->get_column(indices[0]);
     xassert(col.nrows() == dt0->nrows);
     dt0->set_ocolumn(j, std::move(col));
@@ -463,7 +463,7 @@ void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
 }
 
 
-void exprlist_rn::replace_values(workframe&, const intvec&) const {
+void exprlist_rn::replace_values(EvalContext&, const intvec&) const {
   throw NotImplError() << "exprlist_rn::replace_values()";
 }
 
@@ -483,7 +483,7 @@ repl_node::~repl_node() {
 }
 
 
-repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
+repl_node_ptr repl_node::make(EvalContext& ctx, py::oobj src) {
   repl_node* res = nullptr;
 
   if (src.is_frame())       res = new frame_rn(src.to_datatable());
@@ -493,7 +493,7 @@ repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   else if (src.is_float())  res = new scalar_float_rn(src.to_double());
   else if (src.is_string()) res = new scalar_string_rn(src.to_string());
   else if (src.is_dtexpr() || src.is_list_or_tuple()) {
-    collist cl(wf, src, collist::REPL_NODE);
+    collist cl(ctx, src, collist::REPL_NODE);
     if (cl.is_simple_list()) res = new collist_rn(&cl);
     else                     res = new exprlist_rn(&cl);
   }
@@ -505,7 +505,7 @@ repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
 }
 
 
-void repl_node::resolve(workframe&) const {}
+void repl_node::resolve(EvalContext&) const {}
 
 
 

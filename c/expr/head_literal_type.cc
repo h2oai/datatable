@@ -40,10 +40,10 @@ static stypevec stOBJ   = {SType::OBJ};
 
 
 static Outputs _select_types(
-    workframe& wf, size_t frame_id, const stypevec& stypes)
+    EvalContext& ctx, size_t frame_id, const stypevec& stypes)
 {
-  const DataTable* df = wf.get_datatable(frame_id);
-  Outputs outputs(wf);
+  const DataTable* df = ctx.get_datatable(frame_id);
+  Outputs outputs(ctx);
   for (size_t i = 0; i < df->ncols; ++i) {
     SType st = df->get_column(i).stype();
     for (SType s : stypes) {
@@ -57,10 +57,10 @@ static Outputs _select_types(
 }
 
 
-static Outputs _select_type(workframe& wf, size_t frame_id, SType stype0)
+static Outputs _select_type(EvalContext& ctx, size_t frame_id, SType stype0)
 {
-  const DataTable* df = wf.get_datatable(frame_id);
-  Outputs outputs(wf);
+  const DataTable* df = ctx.get_datatable(frame_id);
+  Outputs outputs(ctx);
   for (size_t i = 0; i < df->ncols; ++i) {
     SType stypei = df->get_column(i).stype();
     if (stypei == stype0) {
@@ -85,41 +85,41 @@ Kind Head_Literal_Type::get_expr_kind() const {
 }
 
 
-Outputs Head_Literal_Type::evaluate_n(const vecExpr&, workframe&) const {
+Outputs Head_Literal_Type::evaluate_n(const vecExpr&, EvalContext&) const {
   throw TypeError() << value << " cannot appear in this context";
 }
 
 
-Outputs Head_Literal_Type::evaluate_f(workframe& wf, size_t fid) const
+Outputs Head_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const
 {
   if (value.is_type()) {
     auto et = reinterpret_cast<PyTypeObject*>(value.to_borrowed_ref());
-    if (et == &PyLong_Type)       return _select_types(wf, fid, stINT);
-    if (et == &PyFloat_Type)      return _select_types(wf, fid, stFLOAT);
-    if (et == &PyUnicode_Type)    return _select_types(wf, fid, stSTR);
-    if (et == &PyBool_Type)       return _select_types(wf, fid, stBOOL);
-    if (et == &PyBaseObject_Type) return _select_types(wf, fid, stOBJ);
+    if (et == &PyLong_Type)       return _select_types(ctx, fid, stINT);
+    if (et == &PyFloat_Type)      return _select_types(ctx, fid, stFLOAT);
+    if (et == &PyUnicode_Type)    return _select_types(ctx, fid, stSTR);
+    if (et == &PyBool_Type)       return _select_types(ctx, fid, stBOOL);
+    if (et == &PyBaseObject_Type) return _select_types(ctx, fid, stOBJ);
   }
   if (value.is_ltype()) {
     auto lt = static_cast<LType>(value.get_attr("value").to_size_t());
-    if (lt == LType::BOOL)     return _select_types(wf, fid, stBOOL);
-    if (lt == LType::INT)      return _select_types(wf, fid, stINT);
-    if (lt == LType::REAL)     return _select_types(wf, fid, stFLOAT);
-    if (lt == LType::STRING)   return _select_types(wf, fid, stSTR);
-    if (lt == LType::DATETIME) return _select_types(wf, fid, stTIME);
-    if (lt == LType::OBJECT)   return _select_types(wf, fid, stOBJ);
+    if (lt == LType::BOOL)     return _select_types(ctx, fid, stBOOL);
+    if (lt == LType::INT)      return _select_types(ctx, fid, stINT);
+    if (lt == LType::REAL)     return _select_types(ctx, fid, stFLOAT);
+    if (lt == LType::STRING)   return _select_types(ctx, fid, stSTR);
+    if (lt == LType::DATETIME) return _select_types(ctx, fid, stTIME);
+    if (lt == LType::OBJECT)   return _select_types(ctx, fid, stOBJ);
   }
   if (value.is_stype()) {
     auto st = static_cast<SType>(value.get_attr("value").to_size_t());
-    return _select_type(wf, fid, st);
+    return _select_type(ctx, fid, st);
   }
   throw ValueError() << "Unknown type " << value << " used as a selector";
 }
 
 
 
-Outputs Head_Literal_Type::evaluate_j(const vecExpr&, workframe& wf) const {
-  return evaluate_f(wf, 0);
+Outputs Head_Literal_Type::evaluate_j(const vecExpr&, EvalContext& ctx) const {
+  return evaluate_f(ctx, 0);
 }
 
 

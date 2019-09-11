@@ -30,8 +30,8 @@ namespace expr {
 // Outputs
 //------------------------------------------------------------------------------
 
-Outputs::Outputs(workframe& wf_)
-  : wf(wf_),
+Outputs::Outputs(EvalContext& ctx_)
+  : ctx(ctx_),
     grouping_mode(Grouping::SCALAR) {}
 
 
@@ -53,12 +53,12 @@ void Outputs::add(Column&& col, Grouping gmode) {
 // Add column df[i] to the outputs
 //
 void Outputs::add_column(size_t iframe, size_t icol) {
-  const DataTable* df = wf.get_datatable(iframe);
-  const RowIndex& rowindex = wf.get_rowindex(iframe);
+  const DataTable* df = ctx.get_datatable(iframe);
+  const RowIndex& rowindex = ctx.get_rowindex(iframe);
   Column column { df->get_column(icol) };  // copy
   if (rowindex) {
     const RowIndex& ricol = column->rowindex();
-    column->replace_rowindex(wf._product(rowindex, ricol));
+    column->replace_rowindex(ctx._product(rowindex, ricol));
   }
   const std::string& name = df->get_names()[icol];
   // TODO: check whether the column belongs to the group key
@@ -112,8 +112,8 @@ size_t Outputs::size() const noexcept {
   return columns.size();
 }
 
-workframe& Outputs::get_workframe() const noexcept {
-  return wf;
+EvalContext& Outputs::get_workframe() const noexcept {
+  return ctx;
 }
 
 

@@ -57,16 +57,16 @@ class by_node {
     by_node();
     ~by_node();
 
-    void add_groupby_columns(workframe&, collist_ptr&&);
-    void add_sortby_columns(workframe&, collist_ptr&&);
+    void add_groupby_columns(EvalContext&, collist_ptr&&);
+    void add_sortby_columns(EvalContext&, collist_ptr&&);
 
     explicit operator bool() const;
     bool has_group_column(size_t i) const;
-    void create_columns(workframe&);
-    void execute(workframe&) const;
+    void create_columns(EvalContext&);
+    void execute(EvalContext&) const;
 
   private:
-    void _add_columns(workframe& wf, collist_ptr&& cl, bool isgrp);
+    void _add_columns(EvalContext& ctx, collist_ptr&& cl, bool isgrp);
 };
 
 
@@ -106,7 +106,7 @@ class oby : public oobj
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
-    dt::collist_ptr cols(dt::workframe&) const;
+    dt::collist_ptr cols(dt::EvalContext&) const;
 
   private:
     // This private constructor will reinterpret the object `r` as an

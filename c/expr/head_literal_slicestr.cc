@@ -37,19 +37,19 @@ Kind Head_Literal_SliceStr::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_SliceStr::evaluate_n(const vecExpr&, workframe&) const {
+Outputs Head_Literal_SliceStr::evaluate_n(const vecExpr&, EvalContext&) const {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
 
 
 
-Outputs Head_Literal_SliceStr::evaluate_f(workframe& wf, size_t frame_id) const
+Outputs Head_Literal_SliceStr::evaluate_f(EvalContext& ctx, size_t frame_id) const
 {
-  DataTable* df = wf.get_datatable(frame_id);
+  DataTable* df = ctx.get_datatable(frame_id);
   size_t istart = start.is_none()? 0 : df->xcolindex(start);
   size_t iend = end.is_none()? df->ncols - 1 : df->xcolindex(end);
 
-  Outputs outputs(wf);
+  Outputs outputs(ctx);
   size_t di = (istart <= iend)? 1 : size_t(-1);
   for (size_t i = istart; ; i += di) {
     outputs.add_column(frame_id, i);
@@ -59,9 +59,9 @@ Outputs Head_Literal_SliceStr::evaluate_f(workframe& wf, size_t frame_id) const
 }
 
 
-Outputs Head_Literal_SliceStr::evaluate_j(const vecExpr&, workframe& wf) const
+Outputs Head_Literal_SliceStr::evaluate_j(const vecExpr&, EvalContext& ctx) const
 {
-  return evaluate_f(wf, 0);
+  return evaluate_f(ctx, 0);
 }
 
 

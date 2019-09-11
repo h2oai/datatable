@@ -43,9 +43,9 @@ class Head_Frame : public Head {
     Head_Frame(py::robj src, bool ignore_names = false);
     Kind get_expr_kind() const override;
 
-    Outputs evaluate_n(const vecExpr&, workframe&) const override;
-    Outputs evaluate_j(const vecExpr&, workframe&) const override;
-    Outputs evaluate_f(workframe&, size_t) const override;
+    Outputs evaluate_n(const vecExpr&, EvalContext&) const override;
+    Outputs evaluate_j(const vecExpr&, EvalContext&) const override;
+    Outputs evaluate_f(EvalContext&, size_t) const override;
 };
 
 

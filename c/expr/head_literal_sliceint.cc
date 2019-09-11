@@ -36,18 +36,18 @@ Kind Head_Literal_SliceInt::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_SliceInt::evaluate_n(const vecExpr&, workframe&) const {
+Outputs Head_Literal_SliceInt::evaluate_n(const vecExpr&, EvalContext&) const {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
 
 
 
-Outputs Head_Literal_SliceInt::evaluate_f(workframe& wf, size_t frame_id) const
+Outputs Head_Literal_SliceInt::evaluate_f(EvalContext& ctx, size_t frame_id) const
 {
-  size_t len = wf.get_datatable(frame_id)->ncols;
+  size_t len = ctx.get_datatable(frame_id)->ncols;
   size_t start, count, step;
   value.normalize(len, &start, &count, &step);
-  Outputs outputs(wf);
+  Outputs outputs(ctx);
   for (size_t i = 0; i < count; ++i) {
     outputs.add_column(frame_id, start + i * step);
   }
@@ -55,9 +55,9 @@ Outputs Head_Literal_SliceInt::evaluate_f(workframe& wf, size_t frame_id) const
 }
 
 
-Outputs Head_Literal_SliceInt::evaluate_j(const vecExpr&, workframe& wf) const
+Outputs Head_Literal_SliceInt::evaluate_j(const vecExpr&, EvalContext& ctx) const
 {
-  return evaluate_f(wf, 0);
+  return evaluate_f(ctx, 0);
 }
 
 

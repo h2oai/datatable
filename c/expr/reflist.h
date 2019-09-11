@@ -32,7 +32,7 @@ namespace expr {
 /**
   * Simple structure that is used in `RefList`. This is a reference
   * to a column `column_index` within the frame `frame_id` in the
-  * current workframe.
+  * current EvalContext.
   */
 struct RefColumn {
   size_t frame_id;

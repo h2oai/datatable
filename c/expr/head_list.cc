@@ -22,7 +22,7 @@
 #include "expr/head_list.h"
 #include "expr/expr.h"
 #include "expr/outputs.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
@@ -37,16 +37,16 @@ Kind Head_List::get_expr_kind() const {
   return Kind::List;
 }
 
-Outputs Head_List::evaluate_n(const vecExpr& inputs, workframe& wf) const {
-  Outputs outputs(wf);
+Outputs Head_List::evaluate_n(const vecExpr& inputs, EvalContext& ctx) const {
+  Outputs outputs(ctx);
   for (const Expr& arg : inputs) {
-    outputs.append( arg.evaluate_n(wf) );
+    outputs.append( arg.evaluate_n(ctx) );
   }
   return outputs;
 }
 
 
-Outputs Head_List::evaluate_f(workframe&, size_t) const {
+Outputs Head_List::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A list or a sequence cannot be used as an f-selector";
 }
 
@@ -118,38 +118,38 @@ static Kind _resolve_list_kind(const vecExpr& inputs) {
 }
 
 
-static Outputs _evaluate_bool_list(const vecExpr& inputs, workframe& wf) {
-  DataTable* df = wf.get_datatable(0);
+static Outputs _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
+  DataTable* df = ctx.get_datatable(0);
   if (inputs.size() != df->ncols) {
     throw ValueError()
         << "The length of boolean list in j selector does not match the "
            "number of columns in the Frame: "
         << inputs.size() << " vs " << df->ncols;
   }
-  Outputs outputs(wf);
+  Outputs outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
-    bool x = inputs[i].evaluate_as_bool();
+    bool x = inputs[i].evaluate_bool();
     if (x) outputs.add_column(0, i);
   }
   return outputs;
 }
 
 
-static Outputs _evaluate_f_list(const vecExpr& inputs, workframe& wf) {
-  Outputs outputs(wf);
+static Outputs _evaluate_f_list(const vecExpr& inputs, EvalContext& ctx) {
+  Outputs outputs(ctx);
   for (const Expr& arg : inputs) {
-    outputs.append( arg.evaluate_f(wf, 0) );
+    outputs.append( arg.evaluate_f(ctx, 0) );
   }
   return outputs;
 }
 
 
-Outputs Head_List::evaluate_j(const vecExpr& inputs, workframe& wf) const
+Outputs Head_List::evaluate_j(const vecExpr& inputs, EvalContext& ctx) const
 {
   auto kind = _resolve_list_kind(inputs);
-  if (kind == Kind::Bool) return _evaluate_bool_list(inputs, wf);
-  if (kind == Kind::Func) return evaluate_n(inputs, wf);
-  return _evaluate_f_list(inputs, wf);
+  if (kind == Kind::Bool) return _evaluate_bool_list(inputs, ctx);
+  if (kind == Kind::Func) return evaluate_n(inputs, ctx);
+  return _evaluate_f_list(inputs, ctx);
 }
 
 
@@ -167,11 +167,11 @@ Kind Head_NamedList::get_expr_kind() const {
 }
 
 
-Outputs Head_NamedList::evaluate_n(const vecExpr& inputs, workframe& wf) const {
+Outputs Head_NamedList::evaluate_n(const vecExpr& inputs, EvalContext& ctx) const {
   xassert(inputs.size() == names.size());
-  Outputs outputs(wf);
+  Outputs outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
-    Outputs arg_out = inputs[i].evaluate_n(wf);
+    Outputs arg_out = inputs[i].evaluate_n(ctx);
     arg_out.apply_name(names[i]);
     outputs.append( std::move(arg_out) );
   }
@@ -179,13 +179,13 @@ Outputs Head_NamedList::evaluate_n(const vecExpr& inputs, workframe& wf) const {
 }
 
 
-Outputs Head_NamedList::evaluate_f(workframe&, size_t) const {
+Outputs Head_NamedList::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A dictionary cannot be used as an f-selector";
 }
 
 
-Outputs Head_NamedList::evaluate_j(const vecExpr& inputs, workframe& wf) const {
-  return evaluate_n(inputs, wf);
+Outputs Head_NamedList::evaluate_j(const vecExpr& inputs, EvalContext& ctx) const {
+  return evaluate_n(inputs, ctx);
 }
 
 

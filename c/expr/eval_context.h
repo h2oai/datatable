@@ -58,7 +58,7 @@ enum class EvalMode : uint8_t {
  * a real frame, however, in the sense that it may be misshapen, or violate
  * other Frame constraints at some point in its lifetime.
  *
- * Initially, a workframe is created using the DataTable* object `DT` which is
+ * Initially, a EvalContext is created using the DataTable* object `DT` which is
  * at the root of the expression `DT[i, j, ...]`.
  *
  * Later, `join_node`(s) may append additional DataTable* objects, with all
@@ -66,14 +66,14 @@ enum class EvalMode : uint8_t {
  *
  * The `by_node` will attach a `Groupby` object. The Groupby will specify how
  * the rows are split into groups, and it applies to all `DataTable*`s in the
- * workframe. The shape of the Groupby must be compatible with all current
+ * EvalContext. The shape of the Groupby must be compatible with all current
  * `RowIndex`es.
  *
- * An `i_node` applies a new row filter to all Frames in the workframe. If
+ * An `i_node` applies a new row filter to all Frames in the EvalContext. If
  * there is a non-empty Groupby, the `i_node` must apply within each group, and
  * then update the Groupby to account for the new configuration of the rows.
  */
-class workframe {
+class EvalContext {
   private:
     // Inputs
     by_node       byexpr;
@@ -97,11 +97,11 @@ class workframe {
     dtptr  out_datatable;
 
   public:
-    workframe() = default;
-    workframe(const workframe&) = delete;
-    workframe(workframe&&) = delete;
+    EvalContext() = default;
+    EvalContext(const EvalContext&) = delete;
+    EvalContext(EvalContext&&) = delete;
 
-    explicit workframe(DataTable*);
+    explicit EvalContext(DataTable*);
     void set_mode(EvalMode);
     EvalMode get_mode() const;
     GroupbyMode get_groupby_mode() const;

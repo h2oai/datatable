@@ -270,14 +270,14 @@ pexpr expr_unaryop::get_negated_expr() {
 }
 
 
-SType expr_unaryop::resolve(const workframe& wf) {
-  SType input_stype = arg->resolve(wf);
+SType expr_unaryop::resolve(const EvalContext& ctx) {
+  SType input_stype = arg->resolve(ctx);
   return unary_library.get_infox(opcode, input_stype).output_stype;
 }
 
 
-GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
-  return arg->get_groupby_mode(wf);
+GroupbyMode expr_unaryop::get_groupby_mode(const EvalContext& ctx) const {
+  return arg->get_groupby_mode(ctx);
 }
 
 
@@ -297,8 +297,8 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 // an integer output column because each "element" of the input actually
 // consists of 2 entries: the offsets of the start and the end of a string.
 //
-Column expr_unaryop::evaluate(workframe& wf) {
-  Column input_column = arg->evaluate(wf);
+Column expr_unaryop::evaluate(EvalContext& ctx) {
+  Column input_column = arg->evaluate(ctx);
 
   auto input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
@@ -338,8 +338,8 @@ Column expr_unaryop::evaluate(workframe& wf) {
 }
 
 
-// Column expr_unaryop::evaluate(workframe& wf) {
-//   Column varg = arg->evaluate(wf);
+// Column expr_unaryop::evaluate(EvalContext& ctx) {
+//   Column varg = arg->evaluate(ctx);
 //   SType input_stype = varg.stype();
 //   const auto& ui = unary_library.get_infox(opcode, input_stype);
 //   if (ui.cast_stype != SType::VOID) {

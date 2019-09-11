@@ -35,25 +35,25 @@ Kind Head_Literal_String::get_expr_kind() const {
 }
 
 
-Outputs Head_Literal_String::evaluate_n(const vecExpr&, workframe& wf) const {
-  return _wrap_column(wf,
+Outputs Head_Literal_String::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+  return _wrap_column(ctx,
             Const_ColumnImpl::make_string_column(1, pystr.to_string()));
 }
 
 
-Outputs Head_Literal_String::evaluate_f(workframe& wf, size_t frame_id) const
+Outputs Head_Literal_String::evaluate_f(EvalContext& ctx, size_t frame_id) const
 {
-  auto df = wf.get_datatable(frame_id);
+  auto df = ctx.get_datatable(frame_id);
   size_t j = df->xcolindex(pystr);
-  Outputs outputs(wf);
+  Outputs outputs(ctx);
   outputs.add_column(frame_id, j);
   return outputs;
 }
 
 
 
-Outputs Head_Literal_String::evaluate_j(const vecExpr&, workframe& wf) const {
-  return evaluate_f(wf, 0);
+Outputs Head_Literal_String::evaluate_j(const vecExpr&, EvalContext& ctx) const {
+  return evaluate_f(ctx, 0);
 }
 
 

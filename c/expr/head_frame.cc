@@ -56,18 +56,18 @@ Kind Head_Frame::get_expr_kind() const {
 
 
 
-Outputs Head_Frame::evaluate_n(const vecExpr& args, workframe& wf) const {
+Outputs Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   (void) args;
   xassert(args.size() == 0);
 
-  if (!(dt->nrows == wf.nrows() || dt->nrows == 1)) {
+  if (!(dt->nrows == ctx.nrows() || dt->nrows == 1)) {
     throw ValueError() << "Frame has " << dt->nrows << " rows, and "
-        "cannot be used in an expression where " << wf.nrows()
+        "cannot be used in an expression where " << ctx.nrows()
         << " are expected";
   }
   Grouping grouplevel = (dt->nrows == 1)? Grouping::GtoONE
                                         : Grouping::GtoALL;
-  Outputs res(wf);
+  Outputs res(ctx);
   for (size_t i = 0; i < dt->ncols; ++i) {
     res.add(Column(dt->get_column(i)),
             ignore_names? std::string() : std::string(dt->get_names()[i]),
@@ -77,12 +77,12 @@ Outputs Head_Frame::evaluate_n(const vecExpr& args, workframe& wf) const {
 }
 
 
-Outputs Head_Frame::evaluate_j(const vecExpr& args, workframe& wf) const {
-  return evaluate_n(args, wf);
+Outputs Head_Frame::evaluate_j(const vecExpr& args, EvalContext& ctx) const {
+  return evaluate_n(args, ctx);
 }
 
 
-Outputs Head_Frame::evaluate_f(workframe&, size_t) const {
+Outputs Head_Frame::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A Frame cannot be used inside an f-expression";
 }
 

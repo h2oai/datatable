@@ -254,12 +254,12 @@ static Column compute_max(Column&& arg, const Groupby& gby) {
 // Head_Reduce_Unary
 //------------------------------------------------------------------------------
 
-Outputs Head_Reduce_Unary::evaluate_n(const vecExpr& args, workframe& wf) const
+Outputs Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 1);
-  Outputs inputs = args[0].evaluate_n(wf);
-  Groupby gby = wf.get_groupby();
-  if (!gby) gby = Groupby::single_group(wf.nrows());
+  Outputs inputs = args[0].evaluate_n(ctx);
+  Groupby gby = ctx.get_groupby();
+  if (!gby) gby = Groupby::single_group(ctx.nrows());
 
   maker_fn fn = nullptr;
   switch (op) {
@@ -272,7 +272,7 @@ Outputs Head_Reduce_Unary::evaluate_n(const vecExpr& args, workframe& wf) const
                                << static_cast<size_t>(op);
   }
 
-  Outputs outputs(wf);
+  Outputs outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
     Column& col = inputs.get_column(i);
     outputs.add(fn(std::move(col), gby),

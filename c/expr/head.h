@@ -43,11 +43,11 @@ namespace expr {
  * Each Head object may be parametrized. Generally, the distinction
  * between arguments and parameters is that the arguments in an Expr
  * may only be fully resolved when that Expr is evaluated in a
- * workframe. On the contrary, the parameters are known at the time
+ * EvalContext. On the contrary, the parameters are known at the time
  * when the Expr is created.
  *
  * The main API of Head class consists of 3 `evaluate()` methods. Each
- * of them takes a vector of arguments (if any) and the workframe, and
+ * of them takes a vector of arguments (if any) and the EvalContext, and
  * produces a list of named `Column`s. The difference between these
  * methods is the context in which the expression is to be evaluated:
  *
@@ -65,9 +65,9 @@ namespace expr {
 class Head {
   public:
     virtual ~Head();
-    virtual Outputs evaluate_n(const vecExpr& args, workframe& wf) const = 0;
-    virtual Outputs evaluate_j(const vecExpr& args, workframe& wf) const = 0;
-    virtual Outputs evaluate_f(workframe& wf, size_t frame_id) const = 0;
+    virtual Outputs evaluate_n(const vecExpr& args, EvalContext& ctx) const = 0;
+    virtual Outputs evaluate_j(const vecExpr& args, EvalContext& ctx) const = 0;
+    virtual Outputs evaluate_f(EvalContext& ctx, size_t frame_id) const = 0;
 
     virtual Kind get_expr_kind() const = 0;
 };

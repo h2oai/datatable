@@ -40,8 +40,8 @@ class Head_Func : public Head {
     static ptrHead from_op(Op op, const py::otuple& params);
 
     Kind get_expr_kind() const override;
-    Outputs evaluate_j(const vecExpr&, workframe&) const override;
-    Outputs evaluate_f(workframe&, size_t) const override;
+    Outputs evaluate_j(const vecExpr&, EvalContext&) const override;
+    Outputs evaluate_f(EvalContext&, size_t) const override;
 };
 
 
@@ -56,7 +56,7 @@ class Head_Func_Column : public Head_Func {
 
   public:
     explicit Head_Func_Column(size_t);
-    Outputs evaluate_n(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -68,7 +68,7 @@ class Head_Func_Cast : public Head_Func {
 
   public:
     explicit Head_Func_Cast(SType);
-    Outputs evaluate_n(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -79,7 +79,7 @@ class Head_Func_Colset : public Head_Func {
 
   public:
     explicit Head_Func_Colset(Op);
-    Outputs evaluate_n(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, EvalContext&) const override;
 
   private:
     Outputs _extend(Outputs&& lhs, Outputs&& rhs) const;
@@ -94,7 +94,7 @@ class Head_Func_Unary : public Head_Func {
 
   public:
     explicit Head_Func_Unary(Op);
-    Outputs evaluate_n(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -105,7 +105,7 @@ class Head_Func_Binary : public Head_Func {
 
   public:
     explicit Head_Func_Binary(Op);
-    Outputs evaluate_n(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -116,7 +116,7 @@ class Head_Func_Reduce : public Head_Func {
 
   public:
     explicit Head_Func_Reduce(Op);
-    Outputs evaluate_n(const vecExpr&, workframe&) const override;
+    Outputs evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
