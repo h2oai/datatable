@@ -137,15 +137,25 @@ EvalContext& Workframe::get_context() const noexcept {
 }
 
 
-Column& Workframe::get_column(size_t i) {
+std::string Workframe::retrieve_name(size_t i) {
   xassert(i < entries.size());
-  return entries[i].column;
+  return std::move(entries[i].name);
 }
 
-std::string& Workframe::get_name(size_t i) {
+
+Column Workframe::retrieve_column(size_t i) {
   xassert(i < entries.size());
-  return entries[i].name;
+  return std::move(entries[i].column);
 }
+
+
+void Workframe::replace_column(size_t i, Column&& col) {
+  xassert(i < entries.size());
+  xassert(!entries[i].column);
+  entries[i].column = std::move(col);
+  entries[i].frame_id = Record::INVALID_FRAME;
+}
+
 
 Grouping Workframe::get_grouping_mode() const {
   return grouping_mode;

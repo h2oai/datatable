@@ -120,12 +120,12 @@ Workframe Head_Func_Re_Match::evaluate_n(const vecExpr& args, EvalContext& ctx) 
   Workframe outputs = args[0].evaluate_n(ctx);
   size_t n = outputs.size();
   for (size_t i = 0; i < n; ++i) {
-    Column& col = outputs.get_column(i);
+    Column col = outputs.retrieve_column(i);
     if (col.ltype() != LType::STRING) {
       throw TypeError() << "Method `.re_match()` cannot be applied to a "
           "column of type " << col.stype();
     }
-    col = Column(new re_match_vcol(std::move(col), regex));
+    outputs.replace_column(i, Column(new re_match_vcol(std::move(col), regex)));
   }
   return outputs;
 }

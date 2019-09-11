@@ -37,12 +37,12 @@ Workframe Head_Func_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) con
   Workframe outputs = args[0].evaluate_n(ctx);
   size_t n = outputs.size();
   for (size_t i = 0; i < n; ++i) {
-    Column& col = outputs.get_column(i);
+    Column col = outputs.retrieve_column(i);
     const auto& info = unary_library.get_infox(op, col.stype());
     if (info.cast_stype != SType::VOID) {
       col.cast_inplace(info.cast_stype);
     }
-    col = info.vcolfn(std::move(col));
+    outputs.replace_column(i, info.vcolfn(std::move(col)));
   }
   return outputs;
 }

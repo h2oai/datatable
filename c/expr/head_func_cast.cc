@@ -36,7 +36,9 @@ Workframe Head_Func_Cast::evaluate_n(const vecExpr& args, EvalContext& ctx) cons
   Workframe outputs = args[0].evaluate_n(ctx);
   size_t n = outputs.size();
   for (size_t i = 0; i < n; ++i) {
-    outputs.get_column(i).cast_inplace(stype);
+    Column col = outputs.retrieve_column(i);
+    col.cast_inplace(stype);
+    outputs.replace_column(i, std::move(col));
   }
   return outputs;
 }

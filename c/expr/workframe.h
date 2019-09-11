@@ -93,10 +93,12 @@ class Workframe {
     void cbind(Workframe&&);
     void rename(const std::string& name);
 
-    size_t       size() const noexcept;
+    size_t size() const noexcept;
     EvalContext& get_context() const noexcept;
-    Column&      get_column(size_t i);
-    std::string& get_name(size_t i);
+
+    std::string retrieve_name(size_t i);
+    Column      retrieve_column(size_t i);
+    void        replace_column(size_t i, Column&& col);
 
     std::unique_ptr<DataTable> convert_to_datatable() &&;
 
