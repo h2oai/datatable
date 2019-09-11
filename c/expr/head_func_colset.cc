@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
 #include "expr/head_func.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
@@ -33,10 +33,10 @@ Head_Func_Colset::Head_Func_Colset(Op op_) : op(op_) {
 }
 
 
-Outputs Head_Func_Colset::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func_Colset::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 2);
-  Outputs lhs = args[0].evaluate_n(ctx);
-  Outputs rhs = args[1].evaluate_n(ctx);
+  Workframe lhs = args[0].evaluate_n(ctx);
+  Workframe rhs = args[1].evaluate_n(ctx);
   return (op == Op::SETPLUS)? _extend(std::move(lhs), std::move(rhs))
                             : _remove(std::move(lhs), std::move(rhs));
   // for (auto& out : outputs.get_items()) {
@@ -50,15 +50,15 @@ Outputs Head_Func_Colset::evaluate_n(const vecExpr& args, EvalContext& ctx) cons
 }
 
 
-Outputs Head_Func_Colset::_extend(Outputs&& lhs, Outputs&& rhs) const {
-  Outputs outputs(lhs.get_workframe());
+Workframe Head_Func_Colset::_extend(Workframe&& lhs, Workframe&& rhs) const {
+  Workframe outputs(lhs.get_workframe());
   outputs.append(std::move(lhs));
   outputs.append(std::move(rhs));
   return outputs;
 }
 
 
-Outputs Head_Func_Colset::_remove(Outputs&& lhs, Outputs&& rhs) const {
+Workframe Head_Func_Colset::_remove(Workframe&& lhs, Workframe&& rhs) const {
   (void) rhs;
   return std::move(lhs);
 }

@@ -22,7 +22,7 @@
 #include <cstring>                 // std::memcmp
 #include "expr/expr.h"
 #include "expr/head_func_other.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
@@ -115,9 +115,9 @@ Head_Func_Re_Match::Head_Func_Re_Match(py::robj arg_pattern, py::robj arg_flags)
 
 
 
-Outputs Head_Func_Re_Match::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func_Re_Match::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 1);
-  Outputs outputs = args[0].evaluate_n(ctx);
+  Workframe outputs = args[0].evaluate_n(ctx);
   for (auto& col : outputs.get_columns()) {
     if (col.ltype() != LType::STRING) {
       throw TypeError() << "Method `.re_match()` cannot be applied to a "

@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_WORKFRAME_h
-#define dt_EXPR_WORKFRAME_h
+#ifndef dt_EXPR_EVAL_CONTEXT_h
+#define dt_EXPR_EVAL_CONTEXT_h
 #include <vector>            // std::vector
 #include "expr/by_node.h"    // py::oby, by_node_ptr
 #include "expr/expr.h"

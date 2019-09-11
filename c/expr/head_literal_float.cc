@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
@@ -34,18 +34,18 @@ Kind Head_Literal_Float::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_Float::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Float::evaluate_n(const vecExpr&, EvalContext& ctx) const {
   return _wrap_column(ctx, Const_ColumnImpl::make_float_column(1, value));
 }
 
 
-Outputs Head_Literal_Float::evaluate_f(EvalContext&, size_t) const {
+Workframe Head_Literal_Float::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A floating-point value cannot be used as a "
       "column selector";
 }
 
 
-Outputs Head_Literal_Float::evaluate_j(const vecExpr&, EvalContext&) const {
+Workframe Head_Literal_Float::evaluate_j(const vecExpr&, EvalContext&) const {
   throw TypeError() << "A floating-point value cannot be used as a "
       "column selector";
 }

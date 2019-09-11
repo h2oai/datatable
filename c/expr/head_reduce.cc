@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {

@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
@@ -38,18 +38,18 @@ bool Head_Literal_Bool::get_value() const {
 
 
 
-Outputs Head_Literal_Bool::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Bool::evaluate_n(const vecExpr&, EvalContext& ctx) const {
   return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
 }
 
 
-Outputs Head_Literal_Bool::evaluate_f(EvalContext&, size_t) const {
+Workframe Head_Literal_Bool::evaluate_f(EvalContext&, size_t) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";
 }
 
 
-Outputs Head_Literal_Bool::evaluate_j(const vecExpr&, EvalContext&) const {
+Workframe Head_Literal_Bool::evaluate_j(const vecExpr&, EvalContext&) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";
 }

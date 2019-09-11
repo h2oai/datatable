@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
@@ -31,19 +31,19 @@ Kind Head_Literal_SliceAll::get_expr_kind() const {
 }
 
 
-Outputs Head_Literal_SliceAll::evaluate_n(const vecExpr&, EvalContext&) const {
+Workframe Head_Literal_SliceAll::evaluate_n(const vecExpr&, EvalContext&) const {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
 
 
 // `f[:]` will return all columns from `f`
 //
-Outputs Head_Literal_SliceAll::evaluate_f(EvalContext& ctx, size_t frame_id) const
+Workframe Head_Literal_SliceAll::evaluate_f(EvalContext& ctx, size_t frame_id) const
 {
   size_t ncols = ctx.get_datatable(frame_id)->ncols;
-  Outputs outputs(ctx);
+  Workframe outputs(ctx);
   for (size_t i = 0; i < ncols; ++i) {
-    outputs.add_column(frame_id, i);
+    outputs.add_ref_column(frame_id, i);
   }
   return outputs;
 }
@@ -55,16 +55,16 @@ Outputs Head_Literal_SliceAll::evaluate_f(EvalContext& ctx, size_t frame_id) con
 //     front by the groupby operation itself);
 //   - key columns in naturally joined frames are skipped, to avoid duplication.
 //
-Outputs Head_Literal_SliceAll::evaluate_j(const vecExpr&, EvalContext& ctx) const
+Workframe Head_Literal_SliceAll::evaluate_j(const vecExpr&, EvalContext& ctx) const
 {
-  Outputs outputs(ctx);
+  Workframe outputs(ctx);
   for (size_t i = 0; i < ctx.nframes(); ++i) {
     const DataTable* dti = ctx.get_datatable(i);
     size_t j0 = ctx.is_naturally_joined(i)? dti->get_nkeys() : 0;
     const by_node& by = ctx.get_by_node();
     for (size_t j = j0; j < dti->ncols; ++j) {
       if (by.has_group_column(j)) continue;
-      outputs.add_column(i, j);
+      outputs.add_ref_column(i, j);
     }
   }
   return outputs;

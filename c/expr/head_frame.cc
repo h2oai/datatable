@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
 #include "expr/head_frame.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "frame/py_frame.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
@@ -56,7 +56,7 @@ Kind Head_Frame::get_expr_kind() const {
 
 
 
-Outputs Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   (void) args;
   xassert(args.size() == 0);
 
@@ -67,7 +67,7 @@ Outputs Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   }
   Grouping grouplevel = (dt->nrows == 1)? Grouping::GtoONE
                                         : Grouping::GtoALL;
-  Outputs res(ctx);
+  Workframe res(ctx);
   for (size_t i = 0; i < dt->ncols; ++i) {
     res.add(Column(dt->get_column(i)),
             ignore_names? std::string() : std::string(dt->get_names()[i]),
@@ -77,12 +77,12 @@ Outputs Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
 }
 
 
-Outputs Head_Frame::evaluate_j(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Frame::evaluate_j(const vecExpr& args, EvalContext& ctx) const {
   return evaluate_n(args, ctx);
 }
 
 
-Outputs Head_Frame::evaluate_f(EvalContext&, size_t) const {
+Workframe Head_Frame::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A Frame cannot be used inside an f-expression";
 }
 

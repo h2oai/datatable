@@ -34,8 +34,7 @@ namespace expr {
 
   class Head;
   class Expr;
-  class Outputs;
-  class Reflist;
+  class Workframe;
 
   using strvec = std::vector<std::string>;
   using ptrHead = std::unique_ptr<Head>;

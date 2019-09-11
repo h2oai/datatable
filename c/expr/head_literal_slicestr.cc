@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
@@ -37,29 +37,29 @@ Kind Head_Literal_SliceStr::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_SliceStr::evaluate_n(const vecExpr&, EvalContext&) const {
+Workframe Head_Literal_SliceStr::evaluate_n(const vecExpr&, EvalContext&) const {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
 
 
 
-Outputs Head_Literal_SliceStr::evaluate_f(EvalContext& ctx, size_t frame_id) const
+Workframe Head_Literal_SliceStr::evaluate_f(EvalContext& ctx, size_t frame_id) const
 {
   DataTable* df = ctx.get_datatable(frame_id);
   size_t istart = start.is_none()? 0 : df->xcolindex(start);
   size_t iend = end.is_none()? df->ncols - 1 : df->xcolindex(end);
 
-  Outputs outputs(ctx);
+  Workframe outputs(ctx);
   size_t di = (istart <= iend)? 1 : size_t(-1);
   for (size_t i = istart; ; i += di) {
-    outputs.add_column(frame_id, i);
+    outputs.add_ref_column(frame_id, i);
     if (i == iend) break;
   }
   return outputs;
 }
 
 
-Outputs Head_Literal_SliceStr::evaluate_j(const vecExpr&, EvalContext& ctx) const
+Workframe Head_Literal_SliceStr::evaluate_j(const vecExpr&, EvalContext& ctx) const
 {
   return evaluate_f(ctx, 0);
 }

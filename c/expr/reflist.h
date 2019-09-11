@@ -23,7 +23,7 @@
 #define dt_EXPR_REFLIST_h
 #include <string>
 #include <vector>
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
@@ -60,7 +60,7 @@ struct RefColumn {
 class RefList {
   private:
     std::vector<RefColumn> items;
-    Outputs outputs;
+    Workframe outputs;
 
   public:
 

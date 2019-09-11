@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
 #include "expr/head_func.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
@@ -31,7 +31,7 @@ namespace expr {
 Head_Func_Column::Head_Func_Column(size_t f) : frame_id(f) {}
 
 
-Outputs Head_Func_Column::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func_Column::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 1);
   if (frame_id >= ctx.nframes()) {
     throw ValueError()

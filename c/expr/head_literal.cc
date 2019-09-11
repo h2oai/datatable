@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/head_literal.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 namespace dt {
 namespace expr {
@@ -31,8 +31,8 @@ namespace expr {
 // Head_Literal
 //------------------------------------------------------------------------------
 
-Outputs Head_Literal::_wrap_column(EvalContext& ctx, Column&& col) {
-  Outputs outputs(ctx);
+Workframe Head_Literal::_wrap_column(EvalContext& ctx, Column&& col) {
+  Workframe outputs(ctx);
   outputs.add(std::move(col), Grouping::SCALAR);
   return outputs;
 }

@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/column_const.h"
 #include "expr/head_literal.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
@@ -35,13 +35,13 @@ Kind Head_Literal_Int::get_expr_kind() const {
 
 
 
-Outputs Head_Literal_Int::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Int::evaluate_n(const vecExpr&, EvalContext& ctx) const {
   return _wrap_column(ctx, Const_ColumnImpl::make_int_column(1, value));
 }
 
 
 
-Outputs Head_Literal_Int::evaluate_f(EvalContext& ctx, size_t frame_id) const {
+Workframe Head_Literal_Int::evaluate_f(EvalContext& ctx, size_t frame_id) const {
   auto df = ctx.get_datatable(frame_id);
   int64_t icols = static_cast<int64_t>(df->ncols);
   if (value < -icols || value >= icols) {
@@ -50,14 +50,14 @@ Outputs Head_Literal_Int::evaluate_f(EvalContext& ctx, size_t frame_id) const {
         << icols << " column" << (icols == 1? "" : "s");
   }
   size_t i = static_cast<size_t>(value < 0? value + icols : value);
-  Outputs outputs(ctx);
-  outputs.add_column(frame_id, i);
+  Workframe outputs(ctx);
+  outputs.add_ref_column(frame_id, i);
   return outputs;
 }
 
 
 
-Outputs Head_Literal_Int::evaluate_j(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Int::evaluate_j(const vecExpr&, EvalContext& ctx) const {
   return evaluate_f(ctx, 0);
 }
 

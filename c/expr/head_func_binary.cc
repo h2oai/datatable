@@ -22,7 +22,7 @@
 #include "expr/expr.h"
 #include "expr/expr_binaryop.h"  // TODO: merge into this file
 #include "expr/head_func.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
@@ -32,10 +32,10 @@ namespace expr {
 Head_Func_Binary::Head_Func_Binary(Op op_) : op(op_) {}
 
 
-Outputs Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 2);
-  Outputs lhs = args[0].evaluate_n(ctx);
-  Outputs rhs = args[1].evaluate_n(ctx);
+  Workframe lhs = args[0].evaluate_n(ctx);
+  Workframe rhs = args[1].evaluate_n(ctx);
   size_t lmask = (lhs.size() == 1)? 0 : size_t(-1);
   size_t rmask = (rhs.size() == 1)? 0 : size_t(-1);
   if (lmask && rmask && lhs.size() != rhs.size()) {
@@ -46,7 +46,7 @@ Outputs Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) cons
   size_t size = lmask? lhs.size() : rmask? rhs.size() : 1;
   lhs.sync_grouping_mode(rhs);
   auto gmode = lhs.get_grouping_mode();
-  Outputs outputs(ctx);
+  Workframe outputs(ctx);
   for (size_t i = 0; i < size; ++i) {
     outputs.add(binaryop(op, lhs.get_column(i & lmask),
                              rhs.get_column(i & rmask)),

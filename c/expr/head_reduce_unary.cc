@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "column_impl.h"
@@ -254,10 +254,10 @@ static Column compute_max(Column&& arg, const Groupby& gby) {
 // Head_Reduce_Unary
 //------------------------------------------------------------------------------
 
-Outputs Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
+Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 1);
-  Outputs inputs = args[0].evaluate_n(ctx);
+  Workframe inputs = args[0].evaluate_n(ctx);
   Groupby gby = ctx.get_groupby();
   if (!gby) gby = Groupby::single_group(ctx.nrows());
 
@@ -272,7 +272,7 @@ Outputs Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) con
                                << static_cast<size_t>(op);
   }
 
-  Outputs outputs(ctx);
+  Workframe outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
     Column& col = inputs.get_column(i);
     outputs.add(fn(std::move(col), gby),

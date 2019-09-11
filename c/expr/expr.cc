@@ -33,7 +33,7 @@
 #include "expr/head_func.h"
 #include "expr/head_list.h"
 #include "expr/head_literal.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "expr/eval_context.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -198,17 +198,17 @@ Kind Expr::get_expr_kind() const {
 }
 
 
-Outputs Expr::evaluate_n(EvalContext& ctx) const {
+Workframe Expr::evaluate_n(EvalContext& ctx) const {
   return head->evaluate_n(inputs, ctx);
 }
 
 
-Outputs Expr::evaluate_j(EvalContext& ctx) const {
+Workframe Expr::evaluate_j(EvalContext& ctx) const {
   return head->evaluate_j(inputs, ctx);
 }
 
 
-Outputs Expr::evaluate_f(EvalContext& ctx, size_t frame_id) const {
+Workframe Expr::evaluate_f(EvalContext& ctx, size_t frame_id) const {
   return head->evaluate_f(ctx, frame_id);
 }
 

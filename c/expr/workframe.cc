@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "column_impl.h"
 #include "datatable.h"
 namespace dt {
@@ -27,32 +27,53 @@ namespace expr {
 
 
 //------------------------------------------------------------------------------
-// Outputs
+// Workframe::Info
 //------------------------------------------------------------------------------
 
-Outputs::Outputs(EvalContext& ctx_)
+Workframe::Info::Info() : frame_id(INVALID_FRAME) {}
+
+Workframe::Info::Info(std::string&& name_)
+  : name(std::move(name_)),
+    frame_id(INVALID_FRAME) {}
+
+Workframe::Info::Info(std::string&& name_, size_t fid, size_t cid)
+  : name(std::move(name_)),
+    frame_id(static_cast<uint32_t>(fid)),
+    column_id(static_cast<uint32_t>(cid)) {}
+
+Workframe::Info::Info(const std::string& name_, size_t fid, size_t cid)
+  : name(name_),
+    frame_id(static_cast<uint32_t>(fid)),
+    column_id(static_cast<uint32_t>(cid)) {}
+
+
+
+
+//------------------------------------------------------------------------------
+// Workframe
+//------------------------------------------------------------------------------
+
+Workframe::Workframe(EvalContext& ctx_)
   : ctx(ctx_),
     grouping_mode(Grouping::SCALAR) {}
 
 
 
-void Outputs::add(Column&& col, std::string&& name, Grouping gmode) {
+void Workframe::add(Column&& col, std::string&& name, Grouping gmode) {
   sync_grouping_mode(col, gmode);
   columns.emplace_back(std::move(col));
-  names.emplace_back(std::move(name));
+  infos.emplace_back(std::move(name));
 }
 
 
-void Outputs::add(Column&& col, Grouping gmode) {
+void Workframe::add(Column&& col, Grouping gmode) {
   sync_grouping_mode(col, gmode);
   columns.emplace_back(std::move(col));
-  names.emplace_back(std::string());
+  infos.emplace_back(std::string());
 }
 
 
-// Add column df[i] to the outputs
-//
-void Outputs::add_column(size_t iframe, size_t icol) {
+void Workframe::add_ref_column(size_t iframe, size_t icol) {
   const DataTable* df = ctx.get_datatable(iframe);
   const RowIndex& rowindex = ctx.get_rowindex(iframe);
   Column column { df->get_column(icol) };  // copy
@@ -61,36 +82,45 @@ void Outputs::add_column(size_t iframe, size_t icol) {
     column->replace_rowindex(ctx._product(rowindex, ricol));
   }
   const std::string& name = df->get_names()[icol];
-  // TODO: check whether the column belongs to the group key
-  add(Column(column), std::string(name), Grouping::GtoALL);
+
+  auto gmode = (grouping_mode <= Grouping::GtoONE &&
+                iframe == 0 &&
+                ctx.has_groupby() &&
+                ctx.get_by_node().has_group_column(icol)) ? Grouping::GtoONE
+                                                          : Grouping::GtoALL;
+  sync_grouping_mode(column, gmode);
+
+  columns.emplace_back(std::move(column));
+  infos.emplace_back(name, iframe, icol);
 }
 
 
-void Outputs::append(Outputs&& other) {
+void Workframe::append(Workframe&& other) {
   sync_grouping_mode(other);
   if (columns.size() == 0) {
     columns = std::move(other.columns);
-    names = std::move(other.names);
+    infos = std::move(other.infos);
   }
   else {
     for (auto& item : other.columns) {
       columns.emplace_back(std::move(item));
     }
-    for (auto& item : other.names) {
-      names.emplace_back(std::move(item));
+    for (auto& item : other.infos) {
+      infos.emplace_back(std::move(item));
     }
   }
 }
 
 
-void Outputs::apply_name(const std::string& name) {
-  if (names.size() == 1) {
-    names[0] = name;
+void Workframe::replace_name(const std::string& newname) {
+  if (infos.size() == 1) {
+    infos[0].name = newname;
   }
   else {
-    for (auto& nameref : names) {
-      if (nameref.empty()) {
-        nameref = name;
+    size_t len = newname.size();
+    for (auto& info : infos) {
+      if (info.name.empty()) {
+        info.name = newname;
       }
       else {
         // Note: name.c_str() returns pointer to a null-terminated character
@@ -98,9 +128,9 @@ void Outputs::apply_name(const std::string& name) {
         // the length of `name` + 1 (for trailing NUL). We insert the entire
         // array into `item.name`, together with the NUL character, and then
         // overwrite the NUL with a '.'. The end result is that we have a
-        // string with content "{name}.{item.name}".
-        nameref.insert(0, name.c_str(), name.size() + 1);
-        nameref[name.size()] = '.';
+        // string with content "{newname}.{item.name}".
+        info.name.insert(0, newname.c_str(), len + 1);
+        info.name[len] = '.';
       }
     }
   }
@@ -108,35 +138,41 @@ void Outputs::apply_name(const std::string& name) {
 
 
 
-size_t Outputs::size() const noexcept {
+size_t Workframe::size() const noexcept {
   return columns.size();
 }
 
-EvalContext& Outputs::get_workframe() const noexcept {
+EvalContext& Workframe::get_workframe() const noexcept {
   return ctx;
 }
 
 
-Column& Outputs::get_column(size_t i) {
+Column& Workframe::get_column(size_t i) {
   return columns[i];
 }
 
-std::string& Outputs::get_name(size_t i) {
-  return names[i];
+std::string& Workframe::get_name(size_t i) {
+  return infos[i].name;
 }
 
-Grouping Outputs::get_grouping_mode() const {
+Grouping Workframe::get_grouping_mode() const {
   return grouping_mode;
 }
 
 
 
-strvec& Outputs::get_names() {
-  return names;
+std::unique_ptr<DataTable> Workframe::convert_to_datatable() {
+  strvec names;
+  names.reserve(infos.size());
+  for (auto& info : infos) {
+    names.emplace_back(std::move(info.name));
+  }
+  return dtptr(new DataTable(std::move(columns),
+                             std::move(names)));
 }
 
 
-colvec& Outputs::get_columns() {
+colvec& Workframe::get_columns() {
   return columns;
 }
 
@@ -147,7 +183,7 @@ colvec& Outputs::get_columns() {
 // Grouping mode manipulation
 //------------------------------------------------------------------------------
 
-void Outputs::sync_grouping_mode(Outputs& other) {
+void Workframe::sync_grouping_mode(Workframe& other) {
   if (grouping_mode == other.grouping_mode) return;
   size_t g1 = static_cast<size_t>(grouping_mode);
   size_t g2 = static_cast<size_t>(other.grouping_mode);
@@ -156,7 +192,7 @@ void Outputs::sync_grouping_mode(Outputs& other) {
 }
 
 
-void Outputs::sync_grouping_mode(Column& col, Grouping gmode) {
+void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
   if (grouping_mode == gmode) return;
   size_t g1 = static_cast<size_t>(grouping_mode);
   size_t g2 = static_cast<size_t>(gmode);
@@ -165,7 +201,7 @@ void Outputs::sync_grouping_mode(Column& col, Grouping gmode) {
 }
 
 
-void Outputs::increase_grouping_mode(Grouping gmode) {
+void Workframe::increase_grouping_mode(Grouping gmode) {
   for (auto& col : columns) {
     column_increase_grouping_mode(col, grouping_mode, gmode);
   }
@@ -173,7 +209,7 @@ void Outputs::increase_grouping_mode(Grouping gmode) {
 }
 
 
-void Outputs::column_increase_grouping_mode(
+void Workframe::column_increase_grouping_mode(
     Column& col, Grouping gfrom, Grouping gto)
 {
   // TODO

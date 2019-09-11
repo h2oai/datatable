@@ -22,7 +22,7 @@
 #include "expr/expr.h"
 #include "expr/expr_unaryop.h"  // TODO: merge into this file
 #include "expr/head_func.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
@@ -32,9 +32,9 @@ namespace expr {
 Head_Func_Unary::Head_Func_Unary(Op op_) : op(op_) {}
 
 
-Outputs Head_Func_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 1);
-  Outputs outputs = args[0].evaluate_n(ctx);
+  Workframe outputs = args[0].evaluate_n(ctx);
   for (auto& col : outputs.get_columns()) {
     const auto& info = unary_library.get_infox(op, col.stype());
     if (info.cast_stype != SType::VOID) {

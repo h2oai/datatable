@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/head_literal.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
@@ -39,16 +39,16 @@ static stypevec stTIME  = {};
 static stypevec stOBJ   = {SType::OBJ};
 
 
-static Outputs _select_types(
+static Workframe _select_types(
     EvalContext& ctx, size_t frame_id, const stypevec& stypes)
 {
   const DataTable* df = ctx.get_datatable(frame_id);
-  Outputs outputs(ctx);
+  Workframe outputs(ctx);
   for (size_t i = 0; i < df->ncols; ++i) {
     SType st = df->get_column(i).stype();
     for (SType s : stypes) {
       if (s == st) {
-        outputs.add_column(frame_id, i);
+        outputs.add_ref_column(frame_id, i);
         break;
       }
     }
@@ -57,14 +57,14 @@ static Outputs _select_types(
 }
 
 
-static Outputs _select_type(EvalContext& ctx, size_t frame_id, SType stype0)
+static Workframe _select_type(EvalContext& ctx, size_t frame_id, SType stype0)
 {
   const DataTable* df = ctx.get_datatable(frame_id);
-  Outputs outputs(ctx);
+  Workframe outputs(ctx);
   for (size_t i = 0; i < df->ncols; ++i) {
     SType stypei = df->get_column(i).stype();
     if (stypei == stype0) {
-      outputs.add_column(frame_id, i);
+      outputs.add_ref_column(frame_id, i);
     }
   }
   return outputs;
@@ -85,12 +85,12 @@ Kind Head_Literal_Type::get_expr_kind() const {
 }
 
 
-Outputs Head_Literal_Type::evaluate_n(const vecExpr&, EvalContext&) const {
+Workframe Head_Literal_Type::evaluate_n(const vecExpr&, EvalContext&) const {
   throw TypeError() << value << " cannot appear in this context";
 }
 
 
-Outputs Head_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const
+Workframe Head_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const
 {
   if (value.is_type()) {
     auto et = reinterpret_cast<PyTypeObject*>(value.to_borrowed_ref());
@@ -118,7 +118,7 @@ Outputs Head_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const
 
 
 
-Outputs Head_Literal_Type::evaluate_j(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Type::evaluate_j(const vecExpr&, EvalContext& ctx) const {
   return evaluate_f(ctx, 0);
 }
 

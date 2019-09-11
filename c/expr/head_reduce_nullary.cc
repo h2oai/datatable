@@ -22,7 +22,7 @@
 #include "column/column_const.h"
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
@@ -61,14 +61,14 @@ static Column _count0(EvalContext& ctx)
 // Head_Reduce_Nullary
 //------------------------------------------------------------------------------
 
-static Outputs _wrap_column(EvalContext& ctx, Column&& col, std::string&& name) {
-  Outputs outputs(ctx);
+static Workframe _wrap_column(EvalContext& ctx, Column&& col, std::string&& name) {
+  Workframe outputs(ctx);
   outputs.add(std::move(col), std::move(name), Grouping::GtoONE);
   return outputs;
 }
 
 
-Outputs Head_Reduce_Nullary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
+Workframe Head_Reduce_Nullary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 0);
   (void) args;

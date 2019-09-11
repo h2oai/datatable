@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/collist.h"
 #include "expr/expr.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "expr/eval_context.h"
 #include "frame/py_frame.h"
 #include "column_impl.h"  // TODO: remove
@@ -121,8 +121,7 @@ void EvalContext::evaluate() {
       }
       else {
         auto res = jexpr2.evaluate_j(*this);
-        out_datatable = dtptr(new DataTable(std::move(res.get_columns()),
-                                            std::move(res.get_names())));
+        out_datatable = res.convert_to_datatable();
       }
       break;
 

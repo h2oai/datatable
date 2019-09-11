@@ -21,14 +21,14 @@
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
-#include "expr/outputs.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
 
-Outputs Head_Reduce_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
+Workframe Head_Reduce_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 0);
   (void) args;

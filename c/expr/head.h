@@ -65,9 +65,9 @@ namespace expr {
 class Head {
   public:
     virtual ~Head();
-    virtual Outputs evaluate_n(const vecExpr& args, EvalContext& ctx) const = 0;
-    virtual Outputs evaluate_j(const vecExpr& args, EvalContext& ctx) const = 0;
-    virtual Outputs evaluate_f(EvalContext& ctx, size_t frame_id) const = 0;
+    virtual Workframe evaluate_n(const vecExpr& args, EvalContext& ctx) const = 0;
+    virtual Workframe evaluate_j(const vecExpr& args, EvalContext& ctx) const = 0;
+    virtual Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const = 0;
 
     virtual Kind get_expr_kind() const = 0;
 };
