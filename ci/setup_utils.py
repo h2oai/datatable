@@ -141,7 +141,7 @@ def get_datatable_version():
         log.info("Reading file " + filename)
         with open(filename, encoding="utf-8") as f:
             rx = re.compile(r"version\s*=\s*['\"]"
-                            r"(\d+(?:\.\d+)*(?:(?:a|b|rc)\d+)?)"
+                            r"(\d+(?:\.\d+)+(?:(?:a|b|rc)\d*)?)"
                             r"['\"]\s*")
             for line in f:
                 mm = re.match(rx, line)
