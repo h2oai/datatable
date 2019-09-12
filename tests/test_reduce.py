@@ -24,7 +24,7 @@
 import datatable as dt
 import math
 import pytest
-from datatable import f, by, ltype, first, count, median
+from datatable import f, by, ltype, first, count, median, sum
 from datatable.internal import frame_integrity_check
 from tests import noop
 
@@ -248,6 +248,19 @@ def test_minmax_nas(mm, st):
     DT2 = dt.Frame(B=[None]*3, stype=st)
     assert DT2[:, mm(f.B)].to_list() == [[None]]
 
+
+
+
+#-------------------------------------------------------------------------------
+# sum
+#-------------------------------------------------------------------------------
+
+def test_sum_simple():
+    DT = dt.Frame(A=range(5))
+    R = DT[:, sum(f.A)]
+    frame_integrity_check(R)
+    assert R.to_list() == [[10]]
+    assert str(R)
 
 
 

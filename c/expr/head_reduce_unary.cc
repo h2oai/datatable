@@ -66,6 +66,11 @@ class Reduced_ColumnImpl : public ColumnImpl {
         groupby(grpby),
         reducer(fn) {}
 
+    ColumnImpl* shallowcopy() const override {
+      return new Reduced_ColumnImpl<T, U>(_stype, Column(arg), groupby,
+                                          reducer);
+    }
+
     bool get_element(size_t i, U* out) const override {
       size_t i0, i1;
       groupby.get_group(i, &i0, &i1);

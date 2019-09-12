@@ -74,6 +74,10 @@ class unary_vcol : public ColumnImpl {
         arg(std::move(col)),
         func(f) {}
 
+    ColumnImpl* shallowcopy() const override {
+      return new unary_vcol<TI, TO>(Column(arg), _stype, func);
+    }
+
     bool is_virtual() const noexcept override { return true; }
 
     bool get_element(size_t i, TO* out) const override {

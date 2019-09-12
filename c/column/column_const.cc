@@ -45,6 +45,10 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
 
     // TODO: override cast()
 
+    ColumnImpl* shallowcopy() const override {
+      return new ConstNa_ColumnImpl(_nrows);
+    }
+
     // VOID column materializes into BOOL stype
     ColumnImpl* materialize() override {
       ColumnImpl* out = ColumnImpl::new_impl(SType::BOOL);
@@ -77,6 +81,9 @@ class ConstInt_ColumnImpl : public ColumnImpl {
     ConstInt_ColumnImpl(size_t nrows, int64_t x)
       : ColumnImpl(nrows, stype_for_value(x)), value(x) {}
 
+    ColumnImpl* shallowcopy() const override {
+      return new ConstInt_ColumnImpl(_nrows, value);
+    }
 
     bool get_element(size_t, int8_t* out) const override {
       *out = static_cast<int8_t>(value);
@@ -130,6 +137,9 @@ class ConstFloat_ColumnImpl : public ColumnImpl {
     ConstFloat_ColumnImpl(size_t nrows, double x)
       : ColumnImpl(nrows, SType::FLOAT64), value(x) {}
 
+    ColumnImpl* shallowcopy() const override {
+      return new ConstFloat_ColumnImpl(_nrows, value);
+    }
 
     bool get_element(size_t, float* out) const override {
       *out = static_cast<float>(value);
@@ -157,6 +167,9 @@ class ConstString_ColumnImpl : public ColumnImpl {
     ConstString_ColumnImpl(size_t nrows, CString x)
       : ColumnImpl(nrows, SType::STR32), value(x) {}
 
+    ColumnImpl* shallowcopy() const override {
+      return new ConstString_ColumnImpl(_nrows, value);
+    }
 
     bool get_element(size_t, CString* out) const override {
       *out = value;
