@@ -281,7 +281,8 @@ void MmapWritableBuffer::map(int fd, size_t size) {
 
 void MmapWritableBuffer::unmap() {
   if (!buffer) return;
-  int ret = msync(buffer, allocsize, MS_ASYNC) ||
+  // Do not short-circuit: both `msync` and `munmap` must run
+  int ret = msync(buffer, allocsize, MS_ASYNC) |
             munmap(buffer, allocsize);
   if (ret) {
     throw IOError() << "Error unmapping the view of file "
