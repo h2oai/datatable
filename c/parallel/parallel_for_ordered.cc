@@ -346,12 +346,12 @@ void parallel_for_ordered(size_t niters, function<void(ordered*)> fn) {
 }
 
 
-void parallel_for_ordered(size_t niters, NThreads _NThreads,
+void parallel_for_ordered(size_t niters, NThreads NThreads_,
                           function<void(ordered*)> fn)
 {
   if (!niters) return;
   dt::progress::work job(niters);
-  size_t nthreads = _NThreads.get();
+  size_t nthreads = NThreads_.get();
 
   thpool->instantiate_threads();  // temp fix
   xassert(!thpool->in_parallel_region());

@@ -102,7 +102,7 @@ void test_parallel_for_ordered(size_t n) {
 
   dt::parallel_for_ordered(
     /* n_iters = */ n,
-    /* n_threads = */ dt::NThreads(size_t(-1)),
+    /* n_threads = */ dt::NThreads(),
     [&] (dt::ordered* o) {
       std::atomic_flag executing_local = ATOMIC_FLAG_INIT;
       int k = ordered_section.fetch_add(1);

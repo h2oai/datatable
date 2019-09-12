@@ -35,11 +35,11 @@ static void init_status_strings() {
 progress_bar::~progress_bar() {}
 
 
-void progress_bar_disabled::set_progress(double, double) noexcept {};
-void progress_bar_disabled::set_status_finished() {};
-void progress_bar_disabled::set_status_error(bool) {};
-void progress_bar_disabled::set_message(std::string&&) {};
-void progress_bar_disabled::refresh() {};
+void progress_bar_disabled::set_progress(double, double) noexcept {}
+void progress_bar_disabled::set_status_finished() {}
+void progress_bar_disabled::set_status_error(bool) {}
+void progress_bar_disabled::set_message(std::string&&) {}
+void progress_bar_disabled::refresh() {}
 
 
 progress_bar_enabled::progress_bar_enabled() {

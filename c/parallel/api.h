@@ -112,7 +112,7 @@ void barrier();
  * Run parallel loop `for i in range(nrows): f(i)`, with dynamic scheduling.
  */
 void parallel_for_dynamic(size_t nrows, std::function<void(size_t)> fn);
-void parallel_for_dynamic(size_t nrows, NThreads _NThreads,
+void parallel_for_dynamic(size_t nrows, NThreads NThreads_,
                           std::function<void(size_t)> fn);
 
 
@@ -141,7 +141,7 @@ class ordered {
     void set_n_iterations(size_t n);
 };
 
-void parallel_for_ordered(size_t n_iterations, NThreads _NThreads,
+void parallel_for_ordered(size_t n_iterations, NThreads NThreads_,
                           function<void(ordered*)> fn);
 
 void parallel_for_ordered(size_t n_iterations,
