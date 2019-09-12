@@ -135,6 +135,8 @@ class EvalContext {
     RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
     void fix_columns();
 
+  private:
+    void evaluate_delete();
     friend class dt::expr::expr_column;  // Use _product
     friend class by_node;  // Allow access to `gb`
 };

@@ -136,6 +136,23 @@ EvalContext& Workframe::get_context() const noexcept {
   return ctx;
 }
 
+bool Workframe::is_computed_column(size_t i) const {
+  return entries[i].frame_id == Record::INVALID_FRAME;
+}
+
+bool Workframe::is_placeholder_column(size_t i) const {
+  return !entries[i].column;
+}
+
+bool Workframe::is_reference_column(
+    size_t i, size_t* iframe, size_t* icol) const
+{
+  *iframe = entries[i].frame_id;
+  *icol  = entries[i].column_id;
+  return !(is_computed_column(i) || is_placeholder_column(i));
+}
+
+
 
 std::string Workframe::retrieve_name(size_t i) {
   xassert(i < entries.size());

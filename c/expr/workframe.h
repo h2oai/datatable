@@ -96,6 +96,10 @@ class Workframe {
     size_t size() const noexcept;
     EvalContext& get_context() const noexcept;
 
+    bool is_computed_column(size_t i) const;
+    bool is_reference_column(size_t i, size_t* iframe, size_t* icol) const;
+    bool is_placeholder_column(size_t i) const;
+
     std::string retrieve_name(size_t i);
     Column      retrieve_column(size_t i);
     void        replace_column(size_t i, Column&& col);
