@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
+#include "column/latent.h"
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
 #include "expr/workframe.h"
@@ -130,9 +131,10 @@ bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
 template <typename T, typename U>
 static Column _sum(Column&& arg, const Groupby& gby) {
   return Column(
+          new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, U>(
                  stype_from<U>(), std::move(arg), gby, sum_reducer<T, U>
-            ));
+            )));
 }
 
 static Column compute_sum(Column&& arg, const Groupby& gby) {
@@ -179,9 +181,10 @@ static Column _mean(Column&& arg, const Groupby& gby) {
   using U = typename std::conditional<std::is_same<T, float>::value,
                                       float, double>::type;
   return Column(
+          new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, U>(
                  stype_from<U>(), std::move(arg), gby, mean_reducer<T, U>
-            ));
+            )));
 }
 
 static Column compute_mean(Column&& arg, const Groupby& gby) {
@@ -221,9 +224,10 @@ bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
 template <typename T>
 static Column _count(Column&& arg, const Groupby& gby) {
   return Column(
+          new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, int64_t>(
                  SType::INT64, std::move(arg), gby, count_reducer<T>
-            ));
+            )));
 }
 
 static Column compute_count(Column&& arg, const Groupby& gby) {
@@ -270,9 +274,10 @@ bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
 template <typename T, bool MM>
 static Column _minmax(Column&& arg, const Groupby& gby) {
   return Column(
+          new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, T>(
                  stype_from<T>(), std::move(arg), gby, minmax_reducer<T, MM>
-            ));
+            )));
 }
 
 static Column compute_min(Column&& arg, const Groupby& gby) {
