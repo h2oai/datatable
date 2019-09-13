@@ -305,9 +305,16 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
     if (!do_ordered)   do_ordered = noop;
     if (!post_ordered) post_ordered = noop;
     for (size_t i = 0; i < sch->n_iterations; ++i) {
-      pre_ordered(i);
-      do_ordered(i);
-      post_ordered(i);
+      // *_rdered functions may potentially throw an exception,
+      // in this case we rethrow it and stop the monitor thread.
+      try {
+        pre_ordered(i);
+        do_ordered(i);
+        post_ordered(i);
+      } catch (...) {
+        enable_monitor(false);
+        throw;
+      }
       sch->work.add_done_amount(1);
       if (progress::manager->get_abort_execution()) {
         enable_monitor(false);

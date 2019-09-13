@@ -127,7 +127,14 @@ void parallel_for_static(size_t n_iterations,
     while (i0 < n_iterations) {
       size_t i1 = std::min(i0 + chunk_size_, n_iterations);
       for (size_t i = i0; i < i1; ++i) {
-        func(i);
+        // func() may potentially throw an exception,
+        // in this case we rethrow it and stop the monitor thread.
+        try {
+          func(i);
+        } catch (...) {
+          enable_monitor(false);
+          throw;
+        }
       }
       i0 += chunk_size_;
       if (progress::manager->get_abort_execution()) {
