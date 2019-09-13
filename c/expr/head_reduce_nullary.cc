@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/column_const.h"
+#include "column/const.h"
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
 #include "expr/workframe.h"

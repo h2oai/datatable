@@ -46,7 +46,7 @@ using maker_fn = Column(*)(Column&&, const Groupby&);
 
 
 //------------------------------------------------------------------------------
-// Reduced_ColumnImpl
+// Reduced_ ColumnImpl
 //------------------------------------------------------------------------------
 
 // T - type of elements in the `arg` column
@@ -86,23 +86,48 @@ class Reduced_ColumnImpl : public ColumnImpl {
 // first(A)
 //------------------------------------------------------------------------------
 
-static Column compute_first(Column&& col, const Groupby& gby)
-{
-  if (col.nrows() == 0) {
-    return Column::new_data_column(col.stype(), 0);
+class First_ColumnImpl : public ColumnImpl {
+  private:
+    Column arg;
+    Groupby groupby;
+
+  public:
+    First_ColumnImpl(Column&& col, const Groupby& grpby)
+      : ColumnImpl(grpby.size(), col.stype()),
+        arg(std::move(col)),
+        groupby(grpby) {}
+
+    ColumnImpl* shallowcopy() const override {
+      return new First_ColumnImpl(Column(arg), groupby);
+    }
+
+    bool get_element(size_t i, int8_t*   out) const override { return _get(i, out); }
+    bool get_element(size_t i, int16_t*  out) const override { return _get(i, out); }
+    bool get_element(size_t i, int32_t*  out) const override { return _get(i, out); }
+    bool get_element(size_t i, int64_t*  out) const override { return _get(i, out); }
+    bool get_element(size_t i, float*    out) const override { return _get(i, out); }
+    bool get_element(size_t i, double*   out) const override { return _get(i, out); }
+    bool get_element(size_t i, CString*  out) const override { return _get(i, out); }
+    bool get_element(size_t i, py::robj* out) const override { return _get(i, out); }
+
+  private:
+    template <typename T>
+    bool _get(size_t i, T* out) const {
+      size_t i0, i1;
+      groupby.get_group(i, &i0, &i1);
+      xassert(i0 < i1);
+      return arg.get_element(i0, out);
+    }
+};
+
+
+static Column compute_first(Column&& arg, const Groupby& gby) {
+  if (arg.nrows() == 0) {
+    return Column::new_na_column(arg.stype(), 1);
   }
-  size_t ngrps = gby.ngroups();
-  // gby.offsets array has length `ngrps + 1` and contains offsets of the
-  // beginning of each group. We will take this array and reinterpret it as a
-  // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
-  // to the column will produce the vector of first elements in that column.
-  arr32_t indices(ngrps, gby.offsets_r());
-  RowIndex ri = RowIndex(std::move(indices), true)
-                * col->rowindex();
-  Column res = col;  // copy
-  res->replace_rowindex(ri);
-  if (ngrps == 1) res.materialize();
-  return res;
+  else {
+    return Column(new First_ColumnImpl(std::move(arg), gby));
+  }
 }
 
 

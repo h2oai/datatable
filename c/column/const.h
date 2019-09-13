@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_COLUMN_CONST_h
-#define dt_COLUMN_COLUMN_CONST_h
+#ifndef dt_COLUMN_CONST_h
+#define dt_COLUMN_CONST_h
 #include "column_impl.h"
 namespace dt {
 

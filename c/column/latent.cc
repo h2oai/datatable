@@ -50,6 +50,11 @@ bool Latent_ColumnImpl::is_virtual() const noexcept {
   return true;
 }
 
+
+ColumnImpl* Latent_ColumnImpl::shallowcopy() const {
+  return new Latent_ColumnImpl(column->shallowcopy());
+}
+
 ColumnImpl* Latent_ColumnImpl::materialize() {
   return vivify();
 }

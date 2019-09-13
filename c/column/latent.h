@@ -50,6 +50,7 @@ class Latent_ColumnImpl : public ColumnImpl {
     Latent_ColumnImpl(ColumnImpl*);
 
     bool is_virtual() const noexcept override;
+    ColumnImpl* shallowcopy() const override;
     ColumnImpl* materialize() override;
 
     bool get_element(size_t, int8_t*)   const override;

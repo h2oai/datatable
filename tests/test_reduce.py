@@ -26,7 +26,7 @@ import math
 import pytest
 from datatable import f, by, ltype, first, count, median, sum, mean
 from datatable.internal import frame_integrity_check
-from tests import noop
+from tests import assert_equals, noop
 
 
 #-------------------------------------------------------------------------------
@@ -158,6 +158,12 @@ def test_first_dt():
     assert df_reduce.to_list() == [[9]]
 
 
+def test_first_empty_frame():
+    DT = dt.Frame(A=[], stype=dt.float32)
+    RZ = DT[:, first(f.A)]
+    assert_equals(RZ, dt.Frame(A=[None], stype=dt.float32))
+
+
 def test_first_dt_range():
     df_in = dt.Frame(A=range(10))[3::3, :]
     df_reduce = df_in[:, first(f.A)]
@@ -273,6 +279,7 @@ def test_sum_empty_frame():
     assert RZ.names == ("A", "B", "C", "D")
     assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64)
     assert RZ.to_list() == [[0], [0], [0], [0]]
+    assert str(RZ)
 
 
 
