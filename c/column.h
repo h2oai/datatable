@@ -250,7 +250,6 @@ class Column
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
 
     friend void swap(Column& lhs, Column& rhs);
-    // friend Column new_string_column(size_t, MemoryRange&&, MemoryRange&&);
     friend class ColumnImpl;
 };
 

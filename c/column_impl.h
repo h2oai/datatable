@@ -100,6 +100,7 @@ class ColumnImpl
 
   public:
     static ColumnImpl* new_impl(SType);
+    static ColumnImpl* new_impl(void*, SType);
     ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
@@ -228,8 +229,9 @@ class ColumnImpl
      *     pcol = pcol->materialize();
      *
      */
-  protected:
+  public:
     virtual ColumnImpl* materialize();
+    virtual void materialize_at(void* addr) const;
 
 
     /**
