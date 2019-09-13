@@ -123,24 +123,23 @@ void parallel_for_static(size_t n_iterations,
   // chunk size, no need to start a parallel region
   if (n_iterations <= chunk_size_ || num_threads == 1) {
     enable_monitor(true);
-    size_t i0 = 0;
-    while (i0 < n_iterations) {
-      size_t i1 = std::min(i0 + chunk_size_, n_iterations);
-      for (size_t i = i0; i < i1; ++i) {
-        // func() may potentially throw an exception,
-        // in this case we rethrow it and stop the monitor thread.
-        try {
+    // func() may potentially throw an exception,
+    // in this case we rethrow it and stop the monitor thread.
+    try {
+      size_t i0 = 0;
+      while (i0 < n_iterations) {
+        size_t i1 = std::min(i0 + chunk_size_, n_iterations);
+        for (size_t i = i0; i < i1; ++i) {
           func(i);
-        } catch (...) {
-          enable_monitor(false);
-          throw;
+        }
+        i0 += chunk_size_;
+        if (progress::manager->get_abort_execution()) {
+          progress::manager->handle_interrupt();
         }
       }
-      i0 += chunk_size_;
-      if (progress::manager->get_abort_execution()) {
-        enable_monitor(false);
-        progress::manager->handle_interrupt();
-      }
+    } catch (...) {
+      enable_monitor(false);
+      throw;
     }
     enable_monitor(false);
     return;
