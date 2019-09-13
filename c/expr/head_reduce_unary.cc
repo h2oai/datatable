@@ -152,6 +152,55 @@ static Column compute_sum(Column&& arg, const Groupby& gby) {
 
 
 //------------------------------------------------------------------------------
+// mean(A)
+//------------------------------------------------------------------------------
+
+template <typename T, typename U>
+bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
+  U sum = 0;
+  int64_t count = 0;
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isna = col.get_element(i, &value);
+    if (!isna) {
+      sum += static_cast<U>(value);
+      count++;
+    }
+  }
+  if (!count) return true;
+  *out = sum / count;
+  return false;  // *out is not NA
+}
+
+
+
+template <typename T>
+static Column _mean(Column&& arg, const Groupby& gby) {
+  using U = typename std::conditional<std::is_same<T, float>::value,
+                                      float, double>::type;
+  return Column(
+            new Reduced_ColumnImpl<T, U>(
+                 stype_from<U>(), std::move(arg), gby, mean_reducer<T, U>
+            ));
+}
+
+static Column compute_mean(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _mean<int8_t> (std::move(arg), gby);
+    case SType::INT16:   return _mean<int16_t>(std::move(arg), gby);
+    case SType::INT32:   return _mean<int32_t>(std::move(arg), gby);
+    case SType::INT64:   return _mean<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _mean<float>  (std::move(arg), gby);
+    case SType::FLOAT64: return _mean<double> (std::move(arg), gby);
+    default: throw _error("mean", arg.stype());
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // count(A)
 //------------------------------------------------------------------------------
 
@@ -268,11 +317,13 @@ Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) c
 
   maker_fn fn = nullptr;
   switch (op) {
-    case Op::FIRST: fn = compute_first; break;
-    case Op::COUNT: fn = compute_count; break;
-    case Op::SUM:   fn = compute_sum; break;
-    case Op::MIN:   fn = compute_min; break;
-    case Op::MAX:   fn = compute_max; break;
+    case Op::MEAN:   fn = compute_mean; break;
+    case Op::MIN:    fn = compute_min; break;
+    case Op::MAX:    fn = compute_max; break;
+    case Op::FIRST:  fn = compute_first; break;
+    case Op::SUM:    fn = compute_sum; break;
+    case Op::COUNT:  fn = compute_count; break;
+    case Op::MEDIAN:
     default: throw TypeError() << "Unknown reducer function: "
                                << static_cast<size_t>(op);
   }

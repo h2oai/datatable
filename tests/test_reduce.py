@@ -24,7 +24,7 @@
 import datatable as dt
 import math
 import pytest
-from datatable import f, by, ltype, first, count, median, sum
+from datatable import f, by, ltype, first, count, median, sum, mean
 from datatable.internal import frame_integrity_check
 from tests import noop
 
@@ -261,6 +261,46 @@ def test_sum_simple():
     frame_integrity_check(R)
     assert R.to_list() == [[10]]
     assert str(R)
+
+
+def test_sum_empty_frame():
+    DT = dt.Frame([[]] * 4, names=list("ABCD"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
+    assert DT.shape == (0, 4)
+    RZ = DT[:, sum(f[:])]
+    frame_integrity_check(RZ)
+    assert RZ.shape == (1, 4)
+    assert RZ.names == ("A", "B", "C", "D")
+    assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64)
+    assert RZ.to_list() == [[0], [0], [0], [0]]
+
+
+
+
+#-------------------------------------------------------------------------------
+# Mean
+#-------------------------------------------------------------------------------
+
+def test_mean_simple():
+    DT = dt.Frame(A=range(5))
+    RZ = DT[:, mean(f.A)]
+    frame_integrity_check(RZ)
+    assert RZ.stypes == (dt.float64,)
+    assert RZ.to_list() == [[2.0]]
+
+
+def test_mean_empty_frame():
+    DT = dt.Frame([[]] * 4, names=list("ABCD"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
+    assert DT.shape == (0, 4)
+    RZ = DT[:, mean(f[:])]
+    frame_integrity_check(RZ)
+    assert RZ.shape == (1, 4)
+    assert RZ.names == ("A", "B", "C", "D")
+    assert RZ.stypes == (dt.float64, dt.float64, dt.float32, dt.float64)
+    assert RZ.to_list() == [[None]] * 4
+
+
 
 
 
