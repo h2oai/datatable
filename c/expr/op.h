@@ -33,7 +33,7 @@ static constexpr size_t BINOP_FIRST   = 201;
 static constexpr size_t BINOP_LAST    = 218;
 static constexpr size_t STRING_FIRST  = 301;
 static constexpr size_t REDUCER_FIRST = 401;
-static constexpr size_t REDUCER_LAST  = 409;
+static constexpr size_t REDUCER_LAST  = 410;
 static constexpr size_t MATH_FIRST    = 501;
 static constexpr size_t MATH_LAST     = 542;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
@@ -93,6 +93,7 @@ enum class Op : size_t {
   MAX,
   STDEV,
   FIRST,
+  LAST,
   SUM,
   COUNT,
   COUNT0,

@@ -29,6 +29,7 @@ from builtins import max as _builtin_max
 __all__ = (
     "count",
     "first",
+    "last",
     "max",
     "mean",
     "median",
@@ -53,6 +54,21 @@ def first(iterable):
         return Expr(OpCodes.FIRST, (iterable,))
     else:
         for x in iterable:
+            return x
+
+
+def last(iterable):
+    if isinstance(iterable, Expr):
+        return Expr(OpCodes.LAST, (iterable,))
+    else:
+        try:
+            for x in reversed(iterable):
+                return x
+        except TypeError:
+            # Some iterators may not be reversible
+            x = None
+            for x in iterable:
+                pass
             return x
 
 

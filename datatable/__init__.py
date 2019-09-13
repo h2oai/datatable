@@ -23,7 +23,7 @@
 from .__version__ import version as __version__
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
-                   log, log10, f, g, median)
+                   last, log, log10, f, g, median)
 from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
@@ -52,7 +52,7 @@ __all__ = (
     "mean",
     "median",
     "min",
-    "open", "sd", "sum", "count", "first",
+    "open", "sd", "sum", "count", "first", "last",
     "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
     "join", "by", "abs", "exp", "log", "log10",
     "TypeError", "ValueError", "DatatableWarning", "FreadWarning",

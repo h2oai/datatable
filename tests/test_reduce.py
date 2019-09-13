@@ -24,7 +24,7 @@
 import datatable as dt
 import math
 import pytest
-from datatable import f, by, ltype, first, count, median, sum, mean
+from datatable import f, by, ltype, first, last, count, median, sum, mean
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
 
@@ -144,9 +144,9 @@ def test_count_with_i():
 #-------------------------------------------------------------------------------
 
 def test_first_array():
-    a_in = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1]
-    a_reduce = first(a_in)
-    assert a_reduce == 9
+    assert first([9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1]) == 9
+    assert first((3.5, 17.9, -4.4)) == 3.5
+    assert first([]) == None
 
 
 def test_first_dt():
@@ -211,6 +211,30 @@ def test_first_2d_array():
     a_reduce = first(a_in)
     assert a_reduce == [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1]
 
+
+
+#-------------------------------------------------------------------------------
+# Last
+#-------------------------------------------------------------------------------
+
+def test_last_array():
+    assert last([1, 5, 7]) == 7
+    assert last("dlvksjdnf") == "f"
+    assert last(x.upper() for x in "abcd") == "D"
+    assert last(x * 2 for x in "") == None
+    assert last([]) == None
+
+def test_last_frame():
+    DT = dt.Frame(A=[1, 3, 7], B=[None, "er", "hooray"])
+    RZ = DT[:, last(f[:])]
+    assert_equals(RZ, DT[-1, :])
+
+
+def test_last_empty_frame():
+    DT = dt.Frame(A=[], B=[], C=[], stypes=[dt.float32, dt.bool8, dt.str64])
+    RZ = DT[:, last(f[:])]
+    DT.nrows = 1
+    assert_equals(RZ, DT)
 
 
 

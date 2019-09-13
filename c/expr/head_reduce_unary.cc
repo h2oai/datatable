@@ -86,19 +86,20 @@ class Reduced_ColumnImpl : public ColumnImpl {
 // first(A)
 //------------------------------------------------------------------------------
 
-class First_ColumnImpl : public ColumnImpl {
+template <bool FIRST>
+class FirstLast_ColumnImpl : public ColumnImpl {
   private:
     Column arg;
     Groupby groupby;
 
   public:
-    First_ColumnImpl(Column&& col, const Groupby& grpby)
+    FirstLast_ColumnImpl(Column&& col, const Groupby& grpby)
       : ColumnImpl(grpby.size(), col.stype()),
         arg(std::move(col)),
         groupby(grpby) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new First_ColumnImpl(Column(arg), groupby);
+      return new FirstLast_ColumnImpl<FIRST>(Column(arg), groupby);
     }
 
     bool get_element(size_t i, int8_t*   out) const override { return _get(i, out); }
@@ -116,17 +117,19 @@ class First_ColumnImpl : public ColumnImpl {
       size_t i0, i1;
       groupby.get_group(i, &i0, &i1);
       xassert(i0 < i1);
-      return arg.get_element(i0, out);
+      return FIRST? arg.get_element(i0, out)
+                  : arg.get_element(i1 - 1, out);
     }
 };
 
 
-static Column compute_first(Column&& arg, const Groupby& gby) {
+template <bool FIRST>
+static Column compute_firstlast(Column&& arg, const Groupby& gby) {
   if (arg.nrows() == 0) {
     return Column::new_na_column(arg.stype(), 1);
   }
   else {
-    return Column(new First_ColumnImpl(std::move(arg), gby));
+    return Column(new FirstLast_ColumnImpl<FIRST>(std::move(arg), gby));
   }
 }
 
@@ -305,29 +308,17 @@ static Column _minmax(Column&& arg, const Groupby& gby) {
             )));
 }
 
-static Column compute_min(Column&& arg, const Groupby& gby) {
+template <bool MIN>
+static Column compute_minmax(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
     case SType::BOOL:
-    case SType::INT8:    return _minmax<int8_t, true>(std::move(arg), gby);
-    case SType::INT16:   return _minmax<int16_t, true>(std::move(arg), gby);
-    case SType::INT32:   return _minmax<int32_t, true>(std::move(arg), gby);
-    case SType::INT64:   return _minmax<int64_t, true>(std::move(arg), gby);
-    case SType::FLOAT32: return _minmax<float, true>(std::move(arg), gby);
-    case SType::FLOAT64: return _minmax<double, true>(std::move(arg), gby);
-    default: throw _error("min", arg.stype());
-  }
-}
-
-static Column compute_max(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
-    case SType::BOOL:
-    case SType::INT8:    return _minmax<int8_t, false>(std::move(arg), gby);
-    case SType::INT16:   return _minmax<int16_t, false>(std::move(arg), gby);
-    case SType::INT32:   return _minmax<int32_t, false>(std::move(arg), gby);
-    case SType::INT64:   return _minmax<int64_t, false>(std::move(arg), gby);
-    case SType::FLOAT32: return _minmax<float, false>(std::move(arg), gby);
-    case SType::FLOAT64: return _minmax<double, false>(std::move(arg), gby);
-    default: throw _error("max", arg.stype());
+    case SType::INT8:    return _minmax<int8_t, MIN>(std::move(arg), gby);
+    case SType::INT16:   return _minmax<int16_t, MIN>(std::move(arg), gby);
+    case SType::INT32:   return _minmax<int32_t, MIN>(std::move(arg), gby);
+    case SType::INT64:   return _minmax<int64_t, MIN>(std::move(arg), gby);
+    case SType::FLOAT32: return _minmax<float, MIN>(std::move(arg), gby);
+    case SType::FLOAT64: return _minmax<double, MIN>(std::move(arg), gby);
+    default: throw _error(MIN? "min" : "max", arg.stype());
   }
 }
 
@@ -348,9 +339,10 @@ Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) c
   maker_fn fn = nullptr;
   switch (op) {
     case Op::MEAN:   fn = compute_mean; break;
-    case Op::MIN:    fn = compute_min; break;
-    case Op::MAX:    fn = compute_max; break;
-    case Op::FIRST:  fn = compute_first; break;
+    case Op::MIN:    fn = compute_minmax<true>; break;
+    case Op::MAX:    fn = compute_minmax<false>; break;
+    case Op::FIRST:  fn = compute_firstlast<true>; break;
+    case Op::LAST:   fn = compute_firstlast<false>; break;
     case Op::SUM:    fn = compute_sum; break;
     case Op::COUNT:  fn = compute_count; break;
     case Op::MEDIAN:

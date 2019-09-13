@@ -75,10 +75,11 @@ class OpCodes(enum.Enum):
     MAX = 403
     STDEV = 404
     FIRST = 405
-    SUM = 406
-    COUNT = 407
-    COUNT0 = 408
-    MEDIAN = 409
+    LAST = 406
+    SUM = 407
+    COUNT = 408
+    COUNT0 = 409
+    MEDIAN = 410
 
     # Math: trigonometric
     SIN = 501
