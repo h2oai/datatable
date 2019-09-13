@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/latent.h"
+#include "parallel/api.h"
 #include "column.h"
 #include "column_impl.h"
 namespace dt {
@@ -70,7 +71,22 @@ bool Latent_ColumnImpl::get_element(size_t i, CString* out)  const { return vivi
 bool Latent_ColumnImpl::get_element(size_t i, py::robj* out) const { return vivify()->get_element(i, out); }
 
 
+// This method is not thread-safe!
+// In particular, if multiple threads are trying to retrieve
+// different elements at the same time, then each thread will call
+// the `vivify()` function simultaneously, resulting in UB.
+// It might be possible to fix this by adding a mutex; however it
+// will still be problematic:
+//   - if only 1 thread is working on materialization, while others
+//     are waiting, it will be inefficient;
+//   - if the materializing function tries to use parallelism, then
+//     either an exception will be thrown, or a deadlock will occur.
+//
+// Thus, a better approach is needed: some mechanism to inform the
+// caller that this column must be "prepared" first.
+
 ColumnImpl* Latent_ColumnImpl::vivify() const {
+  xassert(num_threads_in_team() == 0);
   // Note: we're using placement-materialize to overwrite `this` with
   // the materialized `column` object. Effectively, the current object
   // will be replaced with a new one. The destructor of current object

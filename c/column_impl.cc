@@ -129,6 +129,7 @@ void _materialize_fw(const ColumnImpl* input_column, ColumnImpl* output_column)
 
 
 ColumnImpl* ColumnImpl::materialize() {
+  const_cast<ColumnImpl*>(this)->pre_materialize_hook();
   ColumnImpl* out = ColumnImpl::new_impl(_stype);
   out->_nrows = _nrows;
   out->init_data();
@@ -150,6 +151,7 @@ ColumnImpl* ColumnImpl::materialize() {
 
 
 void ColumnImpl::materialize_at(void* addr) const {
+  const_cast<ColumnImpl*>(this)->pre_materialize_hook();
   ColumnImpl* out = ColumnImpl::new_impl(addr, _stype);
   xassert(static_cast<void*>(out) == addr);
   out->_nrows = _nrows;

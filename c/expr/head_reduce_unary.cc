@@ -326,6 +326,86 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 
 
 //------------------------------------------------------------------------------
+// Median
+//------------------------------------------------------------------------------
+
+template <typename T, typename U>
+class Median_ColumnImpl : public ColumnImpl {
+  private:
+    Column arg;
+    Groupby groupby;
+    RowIndex sort_order;
+
+  public:
+    Median_ColumnImpl(Column&& col, const Groupby& grpby)
+      : ColumnImpl(grpby.size(), stype_from<U>()),
+        arg(std::move(col)),
+        groupby(grpby) {}
+
+    ColumnImpl* shallowcopy() const override {
+      auto res = new Median_ColumnImpl<T, U>(Column(arg), groupby);
+      res->sort_order = sort_order;
+      return res;
+    }
+
+    void pre_materialize_hook() override {
+      sort_order = arg.sort_grouped(arg->rowindex(), groupby);
+    }
+
+    bool get_element(size_t i, U* out) const override {
+      size_t i0, i1;
+      T value1, value2;
+      groupby.get_group(i, &i0, &i1);
+
+      // skip NA values if any
+      while (true) {
+        bool isna = arg.get_element(i0, &value1);
+        if (!isna) break;
+        if (i0 == i1) return true;  // all elements are NA
+        ++i0;
+      }
+
+      size_t j = (i0 + i1) / 2;
+      arg.get_element(j, &value1);
+      if ((i1 - i0) & 1) { // Odd count of elements
+        *out = static_cast<U>(value1);
+      } else {
+        arg.get_element(j - 1, &value2);
+        *out = (static_cast<U>(value1) + static_cast<U>(value2))/2;
+      }
+      return false;
+    }
+};
+
+
+template <typename T>
+static Column _median(Column&& arg, const Groupby& gby) {
+  using U = typename std::conditional<std::is_same<T, float>::value,
+                                      float, double>::type;
+  return Column(
+          new Latent_ColumnImpl(
+            new Median_ColumnImpl<T, U>(std::move(arg), gby)
+          ));
+}
+
+static Column compute_median(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _median<int8_t> (std::move(arg), gby);
+    case SType::INT16:   return _median<int16_t>(std::move(arg), gby);
+    case SType::INT32:   return _median<int32_t>(std::move(arg), gby);
+    case SType::INT64:   return _median<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _median<float>  (std::move(arg), gby);
+    case SType::FLOAT64: return _median<double> (std::move(arg), gby);
+    default: throw _error("median", arg.stype());
+  }
+}
+
+
+
+
+
+//------------------------------------------------------------------------------
 // Head_Reduce_Unary
 //------------------------------------------------------------------------------
 
@@ -345,7 +425,7 @@ Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) c
     case Op::LAST:   fn = compute_firstlast<false>; break;
     case Op::SUM:    fn = compute_sum; break;
     case Op::COUNT:  fn = compute_count; break;
-    case Op::MEDIAN:
+    case Op::MEDIAN: fn = compute_median; break;
     default: throw TypeError() << "Unknown reducer function: "
                                << static_cast<size_t>(op);
   }

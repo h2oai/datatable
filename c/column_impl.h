@@ -231,6 +231,7 @@ class ColumnImpl
      */
   public:
     virtual ColumnImpl* materialize();
+    virtual void pre_materialize_hook() {}
     virtual void materialize_at(void* addr) const;
 
 
