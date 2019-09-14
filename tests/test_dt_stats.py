@@ -335,6 +335,21 @@ def test_mode(src):
         assert f0.nmodal1() == 0
 
 
+def test_mode_empty1():
+    DT = dt.Frame()
+    RZ = DT.mode()
+    assert RZ.shape == (0, 0)
+
+
+def test_mode_empty2():
+    DT = dt.Frame(A=[], B=[], C=[], stypes=(dt.int16, dt.float32, dt.str64))
+    assert DT.shape == (0, 3)
+    RZ = DT.mode()
+    assert RZ.names == DT.names
+    assert RZ.stypes == DT.stypes
+    assert RZ.to_list() == [[None]] * 3
+
+
 
 #-------------------------------------------------------------------------------
 # Special cases
