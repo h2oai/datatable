@@ -22,7 +22,7 @@
 #include "expr/expr.h"
 #include "expr/expr_column.h"
 #include "expr/i_node.h"
-#include "expr/workframe.h"   // dt::workframe
+#include "expr/eval_context.h"   // dt::EvalContext
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -46,14 +46,14 @@ namespace dt {
 class allrows_in : public i_node {
   public:
     allrows_in() = default;
-    void execute(workframe&) override;
-    void execute_grouped(workframe&) override;
+    void execute(EvalContext&) override;
+    void execute_grouped(EvalContext&) override;
 };
 
 
-// All rows are selected, so no need to change the workframe.
-void allrows_in::execute(workframe&) {}
-void allrows_in::execute_grouped(workframe&) {}
+// All rows are selected, so no need to change the EvalContext.
+void allrows_in::execute(EvalContext&) {}
+void allrows_in::execute_grouped(EvalContext&) {}
 
 
 
@@ -68,17 +68,17 @@ class onerow_in : public i_node {
 
   public:
     explicit onerow_in(int64_t i);
-    void post_init_check(workframe&) override;
-    void execute(workframe&) override;
-    void execute_grouped(workframe&) override;
+    void post_init_check(EvalContext&) override;
+    void execute(EvalContext&) override;
+    void execute_grouped(EvalContext&) override;
 };
 
 
 onerow_in::onerow_in(int64_t i) : irow(i) {}
 
 
-void onerow_in::post_init_check(workframe& wf) {
-  int64_t inrows = static_cast<int64_t>(wf.nrows());
+void onerow_in::post_init_check(EvalContext& ctx) {
+  int64_t inrows = static_cast<int64_t>(ctx.nrows());
   if (irow < -inrows || irow >= inrows) {
     throw ValueError() << "Row `" << irow << "` is invalid for a frame with "
         << inrows << " row" << (inrows == 1? "" : "s");
@@ -87,13 +87,13 @@ void onerow_in::post_init_check(workframe& wf) {
 }
 
 
-void onerow_in::execute(workframe& wf) {
+void onerow_in::execute(EvalContext& ctx) {
   size_t start = static_cast<size_t>(irow);
-  wf.apply_rowindex(RowIndex(start, 1, 1));
+  ctx.apply_rowindex(RowIndex(start, 1, 1));
 }
 
 
-void onerow_in::execute_grouped(workframe&) {
+void onerow_in::execute_grouped(EvalContext&) {
   throw NotImplError() << "onerow_in::execute_grouped() not implemented yet";
 }
 
@@ -112,8 +112,8 @@ class slice_in : public i_node {
 
   public:
     slice_in(int64_t, int64_t, int64_t, bool);
-    void execute(workframe&) override;
-    void execute_grouped(workframe&) override;
+    void execute(EvalContext&) override;
+    void execute_grouped(EvalContext&) override;
 };
 
 
@@ -137,8 +137,8 @@ slice_in::slice_in(int64_t _start, int64_t _stop, int64_t _step, bool _slice)
 }
 
 
-void slice_in::execute(workframe& wf) {
-  size_t nrows = wf.nrows();
+void slice_in::execute(EvalContext& ctx) {
+  size_t nrows = ctx.nrows();
   size_t start, count, step;
   if (is_slice) {
     py::oslice::normalize(nrows, istart, istop, istep, &start, &count, &step);
@@ -152,19 +152,19 @@ void slice_in::execute(workframe& wf) {
           << " row" << (nrows == 1? "" : "s");
     }
   }
-  wf.apply_rowindex(RowIndex(start, count, step));
+  ctx.apply_rowindex(RowIndex(start, count, step));
 }
 
 
 // Apply slice to each group, and then update the RowIndexes of all
-// subframes in `wf`, as well as the groupby offsets `gb`.
+// subframes in `ctx`, as well as the groupby offsets `gb`.
 //
-void slice_in::execute_grouped(workframe& wf) {
-  const Groupby& gb = wf.get_groupby();
+void slice_in::execute_grouped(EvalContext& ctx) {
+  const Groupby& gb = ctx.get_groupby();
   size_t ng = gb.ngroups();
   const int32_t* group_offsets = gb.offsets_r() + 1;
 
-  size_t ri_size = istep == 0? ng * static_cast<size_t>(istop) : wf.nrows();
+  size_t ri_size = istep == 0? ng * static_cast<size_t>(istop) : ctx.nrows();
   arr32_t out_ri_array(ri_size);
   MemoryRange out_groups = MemoryRange::mem((ng + 1) * sizeof(int32_t));
   int32_t* out_rowindices = out_ri_array.data();
@@ -176,7 +176,7 @@ void slice_in::execute_grouped(workframe& wf) {
   int32_t step = static_cast<int32_t>(istep);
   if (step > 0) {
     if (istart == py::oslice::NA) istart = 0;
-    if (istop == py::oslice::NA) istop = static_cast<int64_t>(wf.nrows());
+    if (istop == py::oslice::NA) istop = static_cast<int64_t>(ctx.nrows());
     for (size_t g = 0; g < ng; ++g) {
       int32_t off0 = group_offsets[g - 1];
       int32_t off1 = group_offsets[g];
@@ -247,8 +247,8 @@ void slice_in::execute_grouped(workframe& wf) {
   out_groups.resize((k + 1) * sizeof(int32_t));
   RowIndex newri(std::move(out_ri_array), /* sorted = */ (step >= 0));
   Groupby newgb(k, std::move(out_groups));
-  wf.apply_rowindex(newri);
-  wf.apply_groupby(newgb);
+  ctx.apply_rowindex(newri);
+  ctx.apply_groupby(newgb);
 }
 
 
@@ -264,8 +264,8 @@ class expr_in : public i_node {
 
   public:
     explicit expr_in(py::robj src);
-    void execute(workframe&) override;
-    void execute_grouped(workframe&) override;
+    void execute(EvalContext&) override;
+    void execute_grouped(EvalContext&) override;
 };
 
 
@@ -274,19 +274,19 @@ expr_in::expr_in(py::robj src) {
 }
 
 
-void expr_in::execute(workframe& wf) {
-  SType st = expr->resolve(wf);
+void expr_in::execute(EvalContext& ctx) {
+  SType st = expr->resolve(ctx);
   if (st != SType::BOOL) {
     throw TypeError() << "Filter expression must be boolean, instead it "
         "was of type " << st;
   }
-  auto col = expr->evaluate(wf);
+  auto col = expr->evaluate(ctx);
   RowIndex res(std::move(col));
-  wf.apply_rowindex(res);
+  ctx.apply_rowindex(res);
 }
 
 
-void expr_in::execute_grouped(workframe&) {
+void expr_in::execute_grouped(EvalContext&) {
   throw NotImplError() << "expr_in::execute_grouped() not implemented yet";
 }
 
@@ -307,9 +307,9 @@ class frame_in : public i_node {
 
   public:
     explicit frame_in(py::robj src);
-    void post_init_check(workframe&) override;
-    void execute(workframe&) override;
-    void execute_grouped(workframe&) override;
+    void post_init_check(EvalContext&) override;
+    void execute(EvalContext&) override;
+    void execute_grouped(EvalContext&) override;
 };
 
 
@@ -327,9 +327,9 @@ frame_in::frame_in(py::robj src) : dtobj(src) {
 }
 
 
-void frame_in::post_init_check(workframe& wf) {
+void frame_in::post_init_check(EvalContext& ctx) {
   const Column& col = dt->get_column(0);
-  size_t nrows = wf.nrows();
+  size_t nrows = ctx.nrows();
   if (col.stype() == SType::BOOL) {
     if (col.nrows() != nrows) {
       throw ValueError() << "A boolean column used as `i` selector has "
@@ -354,13 +354,13 @@ void frame_in::post_init_check(workframe& wf) {
 }
 
 
-void frame_in::execute(workframe& wf) {
+void frame_in::execute(EvalContext& ctx) {
   RowIndex ri { dt->get_column(0) };
-  wf.apply_rowindex(ri);
+  ctx.apply_rowindex(ri);
 }
 
 
-void frame_in::execute_grouped(workframe&) {
+void frame_in::execute_grouped(EvalContext&) {
   throw ValueError() << "When a `by()` node is specified, the `i` selector "
       "cannot be a Frame or a numpy array";
 }
@@ -423,9 +423,9 @@ class multislice_in : public i_node {
 
   public:
     explicit multislice_in(py::robj src);
-    void post_init_check(workframe&) override;
-    void execute(workframe&) override;
-    void execute_grouped(workframe&) override;
+    void post_init_check(EvalContext&) override;
+    void execute(EvalContext&) override;
+    void execute_grouped(EvalContext&) override;
 };
 
 
@@ -495,16 +495,16 @@ multislice_in::multislice_in(py::robj src) {
 }
 
 
-void multislice_in::post_init_check(workframe& wf) {
-  if (wf.nrows() < min_nrows) {
+void multislice_in::post_init_check(EvalContext& ctx) {
+  if (ctx.nrows() < min_nrows) {
     throw ValueError() << "`i` selector is not valid for a Frame with "
-        << wf.nrows() << " row" << (wf.nrows() == 1? "" : "s");
+        << ctx.nrows() << " row" << (ctx.nrows() == 1? "" : "s");
   }
 }
 
 
-void multislice_in::execute(workframe& wf) {
-  int64_t inrows = static_cast<int64_t>(wf.nrows());
+void multislice_in::execute(EvalContext& ctx) {
+  int64_t inrows = static_cast<int64_t>(ctx.nrows());
   size_t total_count = 0;
   for (auto& item : items) {
     switch (item.kind) {
@@ -571,11 +571,11 @@ void multislice_in::execute(workframe& wf) {
   }
   xassert(j == total_count);
   RowIndex ri(std::move(indices), false);
-  wf.apply_rowindex(ri);
+  ctx.apply_rowindex(ri);
 }
 
 
-void multislice_in::execute_grouped(workframe&) {
+void multislice_in::execute_grouped(EvalContext&) {
   throw NotImplError() << "multislice_in::execute_grouped() not available yet";
 }
 
@@ -594,7 +594,7 @@ i_node::~i_node() {
   UNTRACK(this);
 }
 
-void i_node::post_init_check(workframe&) {}
+void i_node::post_init_check(EvalContext&) {}
 
 
 static i_node* _make(py::robj src) {
@@ -644,9 +644,9 @@ static i_node* _make(py::robj src) {
 }
 
 
-i_node_ptr i_node::make(py::robj src, workframe& wf) {
+i_node_ptr i_node::make(py::robj src, EvalContext& ctx) {
   i_node_ptr res(_make(src));
-  res->post_init_check(wf);
+  res->post_init_check(ctx);
   return res;
 }
 

@@ -22,7 +22,7 @@
 #-------------------------------------------------------------------------------
 from .expr import f, g, Expr
 from .math import abs, log, log10, exp, isna
-from .reduce import sum, count, first, mean, median, min, max, sd
+from .reduce import sum, count, first, last, mean, median, min, max, sd
 
 __all__ = (
     "Expr",
@@ -33,6 +33,7 @@ __all__ = (
     "first",
     "g",
     "isna",
+    "last",
     "log",
     "log10",
     "max",

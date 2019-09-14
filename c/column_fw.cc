@@ -29,19 +29,22 @@ template <> constexpr SType stype_for<double>()  { return SType::FLOAT64; }
  * should be subsequently called before using this column.
  */
 template <typename T>
-FwColumn<T>::FwColumn() : ColumnImpl(0) {
-  _stype = stype_for<T>();
-}
+FwColumn<T>::FwColumn()
+  : ColumnImpl(0, stype_for<T>()) {}
+
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_) : ColumnImpl(nrows_) {
-  _stype = stype_for<T>();
+FwColumn<T>::FwColumn(size_t nrows_)
+  : ColumnImpl(nrows_, stype_for<T>())
+{
   mbuf.resize(sizeof(T) * nrows_);
 }
 
+
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : ColumnImpl(nrows_) {
-  _stype = stype_for<T>();
+FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr)
+  : ColumnImpl(nrows_, stype_for<T>())
+{
   size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);

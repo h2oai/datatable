@@ -10,6 +10,7 @@
 #include <memory>             // std::unique_ptr
 #include <unordered_map>      // std::unordered_map
 #include "expr/expr_reduce.h"
+#include "expr/eval_context.h"
 #include "parallel/api.h"
 #include "column_impl.h"  // TODO: remove
 #include "types.h"
@@ -286,8 +287,8 @@ expr_reduce1::expr_reduce1(pexpr&& a, Op op)
   : arg(std::move(a)), opcode(op) {}
 
 
-SType expr_reduce1::resolve(const dt::workframe& wf) {
-  SType arg_stype = arg->resolve(wf);
+SType expr_reduce1::resolve(const dt::EvalContext& ctx) {
+  SType arg_stype = arg->resolve(ctx);
   if (opcode == Op::FIRST) {
     return arg_stype;
   }
@@ -301,15 +302,15 @@ SType expr_reduce1::resolve(const dt::workframe& wf) {
 }
 
 
-GroupbyMode expr_reduce1::get_groupby_mode(const workframe&) const {
+GroupbyMode expr_reduce1::get_groupby_mode(const EvalContext&) const {
   return GroupbyMode::GtoONE;
 }
 
 
-Column expr_reduce1::evaluate(workframe& wf)
+Column expr_reduce1::evaluate(EvalContext& ctx)
 {
-  auto input_col = arg->evaluate(wf);
-  Groupby gb = wf.get_groupby();
+  auto input_col = arg->evaluate(ctx);
+  Groupby gb = ctx.get_groupby();
   if (!gb) gb = Groupby::single_group(input_col.nrows());
 
   size_t out_nrows = gb.ngroups();
@@ -340,7 +341,7 @@ Column expr_reduce1::evaluate(workframe& wf)
     reducer->f(rowindex, 0, input_col.nrows(), input, output, 0);
   }
   else {
-    const int32_t* groups = wf.get_groupby().offsets_r();
+    const int32_t* groups = ctx.get_groupby().offsets_r();
 
     parallel_for_dynamic(out_nrows,
       [&](size_t i) {
@@ -363,21 +364,21 @@ expr_reduce0::expr_reduce0(Op op)
   : opcode(op) {}
 
 
-SType expr_reduce0::resolve(const workframe&) {
+SType expr_reduce0::resolve(const EvalContext&) {
   return SType::INT64;
 }
 
 
-GroupbyMode expr_reduce0::get_groupby_mode(const workframe&) const {
+GroupbyMode expr_reduce0::get_groupby_mode(const EvalContext&) const {
   return GroupbyMode::GtoONE;
 }
 
 
-Column expr_reduce0::evaluate(workframe& wf) {
+Column expr_reduce0::evaluate(EvalContext& ctx) {
   Column res;
   if (opcode == Op::COUNT0) {  // COUNT
-    if (wf.has_groupby()) {
-      const Groupby& grpby = wf.get_groupby();
+    if (ctx.has_groupby()) {
+      const Groupby& grpby = ctx.get_groupby();
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
       res = Column::new_data_column(SType::INT32, ng);
@@ -388,7 +389,7 @@ Column expr_reduce0::evaluate(workframe& wf) {
     } else {
       res = Column::new_data_column(SType::INT64, 1);
       auto d_res = static_cast<int64_t*>(res->data_w());
-      d_res[0] = static_cast<int64_t>(wf.nrows());
+      d_res[0] = static_cast<int64_t>(ctx.nrows());
     }
   }
   return res;

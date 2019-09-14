@@ -896,6 +896,7 @@ void NumericStats<T>::compute_sorted_stats() {
   RowIndex ri = column->_sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
+  xassert(n_groups >= 1);
 
   // Sorting gathers all NA elements at the top (in the first group). Thus if
   // we did not yet compute the NA count for the column, we can do so now by
@@ -907,7 +908,8 @@ void NumericStats<T>::compute_sorted_stats() {
   }
 
   bool has_nas = (_countna > 0);
-  set_nunique(n_groups - has_nas, true);
+  bool grp_empty = (n_groups == 1) && (groups[1] == 0);
+  set_nunique(n_groups - has_nas - grp_empty, true);
 
   size_t max_group_size = 0;
   size_t largest_group_index = 0;
@@ -933,6 +935,7 @@ void StringStats::compute_sorted_stats() {
   RowIndex ri = column->_sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
+  xassert(n_groups >= 1);
 
   // Sorting gathers all NA elements at the top (in the first group). Thus if
   // we did not yet compute the NA count for the column, we can do so now by
@@ -944,7 +947,8 @@ void StringStats::compute_sorted_stats() {
   }
 
   bool has_nas = (_countna > 0);
-  set_nunique(n_groups - has_nas, true);
+  bool grp_empty = (n_groups == 1) && (groups[1] == 0);
+  set_nunique(n_groups - has_nas - grp_empty, true);
 
   size_t max_group_size = 0;
   size_t largest_group_index = 0;

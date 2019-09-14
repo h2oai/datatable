@@ -83,8 +83,8 @@ expr_string_match_re::expr_string_match_re(pexpr&& expr, py::oobj params) {
 }
 
 
-SType expr_string_match_re::resolve(const workframe& wf) {
-  SType arg_stype = arg->resolve(wf);
+SType expr_string_match_re::resolve(const EvalContext& ctx) {
+  SType arg_stype = arg->resolve(ctx);
   if (!(arg_stype == SType::STR32 || arg_stype == SType::STR64)) {
     throw TypeError() << "Method `.re_match()` cannot be applied to a "
         "column of type " << arg_stype;
@@ -93,13 +93,13 @@ SType expr_string_match_re::resolve(const workframe& wf) {
 }
 
 
-GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
-  return arg->get_groupby_mode(wf);
+GroupbyMode expr_string_match_re::get_groupby_mode(const EvalContext& ctx) const {
+  return arg->get_groupby_mode(ctx);
 }
 
 
-Column expr_string_match_re::evaluate(workframe& wf) {
-  Column src = arg->evaluate(wf);
+Column expr_string_match_re::evaluate(EvalContext& ctx) {
+  Column src = arg->evaluate(ctx);
   xassert(src.ltype() == LType::STRING);
   size_t nrows = src.nrows();
 

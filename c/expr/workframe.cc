@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,244 +19,221 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/collist.h"
-#include "expr/expr.h"
 #include "expr/workframe.h"
-#include "frame/py_frame.h"
-#include "column_impl.h"  // TODO: remove
+#include "column_impl.h"
+#include "datatable.h"
 namespace dt {
+namespace expr {
 
 
 //------------------------------------------------------------------------------
-// workframe
+// Workframe::Record
 //------------------------------------------------------------------------------
 
-workframe::workframe(DataTable* dt) {
-  // The source frame must have flag `natural=false` so that `allcols_jn`
-  // knows to select all columns from it.
-  frames.push_back(subframe {dt, RowIndex(), false});
-  mode = EvalMode::SELECT;
-  groupby_mode = GroupbyMode::NONE;
+Workframe::Record::Record()
+  : frame_id(INVALID_FRAME) {}
+
+Workframe::Record::Record(Column&& col, std::string&& name_)
+  : column(std::move(col)),
+    name(std::move(name_)),
+    frame_id(INVALID_FRAME) {}
+
+Workframe::Record::Record(Column&& col, const std::string& name_, size_t fid,
+                          size_t cid)
+  : column(std::move(col)),
+    name(name_),
+    frame_id(static_cast<uint32_t>(fid)),
+    column_id(static_cast<uint32_t>(cid)) {}
+
+
+
+
+//------------------------------------------------------------------------------
+// Workframe
+//------------------------------------------------------------------------------
+
+Workframe::Workframe(EvalContext& ctx_)
+  : ctx(ctx_),
+    grouping_mode(Grouping::SCALAR) {}
+
+
+
+void Workframe::add_column(Column&& col, std::string&& name, Grouping gmode) {
+  sync_grouping_mode(col, gmode);
+  entries.emplace_back(std::move(col), std::move(name));
 }
 
 
-void workframe::set_mode(EvalMode m) {
-  mode = m;
-}
-
-
-EvalMode workframe::get_mode() const {
-  return mode;
-}
-
-
-GroupbyMode workframe::get_groupby_mode() const {
-  return groupby_mode;
-}
-
-
-void workframe::add_join(py::ojoin oj) {
-  DataTable* dt = oj.get_datatable();
-  frames.push_back(subframe {dt, RowIndex(), true});
-}
-
-
-void workframe::add_groupby(py::oby og) {
-  byexpr.add_groupby_columns(*this, og.cols(*this));
-}
-
-
-void workframe::add_sortby(py::osort obj) {
-  byexpr.add_sortby_columns(*this, obj.cols(*this));
-}
-
-
-void workframe::add_i(py::oobj oi) {
-  xassert(!iexpr);
-  iexpr = i_node::make(oi, *this);
-}
-
-
-void workframe::add_j(py::oobj oj) {
-  xassert(!jexpr);
-  jexpr = j_node::make(oj, *this);
-}
-
-
-void workframe::add_replace(py::oobj obj) {
-  xassert(!repl);
-  repl = repl_node::make(*this, obj);
-}
-
-
-void workframe::evaluate() {
-  // Compute joins
-  DataTable* xdt = frames[0].dt;
-  for (size_t i = 1; i < frames.size(); ++i) {
-    DataTable* jdt = frames[i].dt;
-    frames[i].ri = natural_join(xdt, jdt);
+void Workframe::add_ref_column(size_t iframe, size_t icol) {
+  const DataTable* df = ctx.get_datatable(iframe);
+  const RowIndex& rowindex = ctx.get_rowindex(iframe);
+  Column column { df->get_column(icol) };  // copy
+  if (rowindex) {
+    const RowIndex& ricol = column->rowindex();
+    column->replace_rowindex(ctx._product(rowindex, ricol));
   }
+  const std::string& name = df->get_names()[icol];
 
-  // Compute groupby
-  if (byexpr) {
-    groupby_mode = jexpr->get_groupby_mode(*this);
+  auto gmode = (grouping_mode <= Grouping::GtoONE &&
+                iframe == 0 &&
+                ctx.has_groupby() &&
+                ctx.get_by_node().has_group_column(icol)) ? Grouping::GtoONE
+                                                          : Grouping::GtoALL;
+  sync_grouping_mode(column, gmode);
+  entries.emplace_back(std::move(column), name, iframe, icol);
+}
+
+
+void Workframe::add_placeholder(const std::string& name, size_t iframe) {
+  entries.emplace_back(Column(), std::string(name), iframe, 0);
+}
+
+
+void Workframe::cbind(Workframe&& other) {
+  sync_grouping_mode(other);
+  if (entries.size() == 0) {
+    entries = std::move(other.entries);
   }
-  byexpr.execute(*this);
-
-  // Compute i filter
-  if (has_groupby()) {
-    iexpr->execute_grouped(*this);
-  } else {
-    iexpr->execute(*this);
+  else {
+    for (auto& item : other.entries) {
+      entries.emplace_back(std::move(item));
+    }
   }
+}
 
-  switch (mode) {
-    case EvalMode::SELECT:
-      if (byexpr) {
-        byexpr.create_columns(*this);
+
+void Workframe::rename(const std::string& newname) {
+  if (entries.size() == 1) {
+    entries[0].name = newname;
+  }
+  else {
+    size_t len = newname.size();
+    for (auto& info : entries) {
+      if (info.name.empty()) {
+        info.name = newname;
       }
-      jexpr->select(*this);
-      fix_columns();
-      break;
-
-    case EvalMode::DELETE:
-      jexpr->delete_(*this);
-      break;
-
-    case EvalMode::UPDATE:
-      jexpr->update(*this, repl.get());
-      break;
-  }
-}
-
-
-// After evaluation of the j node, the columns in `columns` may have different
-// sizes: some are aggregated to group level, others have same number of rows
-// as dt0. If this happens, we need to expand the "short" columns to the full
-// size.
-void workframe::fix_columns() {
-  if (groupby_mode != GroupbyMode::GtoALL) return;
-  xassert(byexpr);
-  // size_t nrows0 = get_datatable(0)->nrows;
-  size_t ngrps = gb.ngroups();
-  RowIndex ungroup_ri;
-
-  for (size_t i = 0; i < columns.size(); ++i) {
-    if (columns[i].nrows() != ngrps) continue;
-    if (!ungroup_ri) {
-      ungroup_ri = gb.ungroup_rowindex();
+      else {
+        // Note: name.c_str() returns pointer to a null-terminated character
+        // array with the same data as `name`. The length of that array is
+        // the length of `name` + 1 (for trailing NUL). We insert the entire
+        // array into `item.name`, together with the NUL character, and then
+        // overwrite the NUL with a '.'. The end result is that we have a
+        // string with content "{newname}.{item.name}".
+        info.name.insert(0, newname.c_str(), len + 1);
+        info.name[len] = '.';
+      }
     }
-    const RowIndex& col_rowindex = columns[i]->rowindex();
-    columns[i]->replace_rowindex(_product(ungroup_ri, col_rowindex));
   }
 }
 
 
-py::oobj workframe::get_result() {
-  if (mode == EvalMode::SELECT) {
-    DataTable* result = new DataTable(std::move(columns), std::move(colnames));
-    if (result->ncols == 0) {
-      // When selecting a 0-column subset, make sure the number of rows is the
-      // same as if some of the columns were selected.
-      result->nrows = frames[0].ri? frames[0].ri.size()
-                                  : frames[0].dt->nrows;
-    }
-    return py::Frame::oframe(result);
-  }
-  return py::None();
+
+size_t Workframe::size() const noexcept {
+  return entries.size();
 }
 
-
-DataTable* workframe::get_datatable(size_t i) const {
-  return frames[i].dt;
+EvalContext& Workframe::get_context() const noexcept {
+  return ctx;
 }
 
-
-const RowIndex& workframe::get_rowindex(size_t i) const {
-  return frames[i].ri;
+bool Workframe::is_computed_column(size_t i) const {
+  return entries[i].frame_id == Record::INVALID_FRAME;
 }
 
-
-const Groupby& workframe::get_groupby() {
-  return gb;
+bool Workframe::is_placeholder_column(size_t i) const {
+  return !entries[i].column;
 }
 
-
-const by_node& workframe::get_by_node() const {
-  return byexpr;
-}
-
-
-bool workframe::is_naturally_joined(size_t i) const {
-  return frames[i].natural;
-}
-
-bool workframe::has_groupby() const {
-  return bool(byexpr);
-}
-
-
-size_t workframe::nframes() const {
-  return frames.size();
-}
-
-
-size_t workframe::nrows() const {
-  const RowIndex& ri0 = frames[0].ri;
-  return ri0? ri0.size() : frames[0].dt->nrows;
-}
-
-
-void workframe::apply_rowindex(const RowIndex& ri) {
-  for (size_t i = 0; i < frames.size(); ++i) {
-    frames[i].ri = ri * frames[i].ri;
-  }
-}
-
-
-void workframe::apply_groupby(const Groupby& gb_) {
-  xassert(static_cast<size_t>(gb_.offsets_r()[gb_.ngroups()]) == nrows());
-  gb = gb_;
-}
-
-
-
-//---- Construct the resulting frame -------------
-
-size_t workframe::size() const noexcept {
-  return columns.size();
-}
-
-
-void workframe::reserve(size_t n) {
-  size_t nn = n + columns.size();
-  columns.reserve(nn);
-  colnames.reserve(nn);
-}
-
-
-void workframe::add_column(
-  Column&& col, const RowIndex& ri, std::string&& name)
+bool Workframe::is_reference_column(
+    size_t i, size_t* iframe, size_t* icol) const
 {
-  if (ri) {
-    const RowIndex& ricol = col->rowindex();
-    col->replace_rowindex(_product(ri, ricol));
-  }
-  columns.push_back(std::move(col));
-  colnames.push_back(std::move(name));
-}
-
-
-RowIndex& workframe::_product(const RowIndex& ra, const RowIndex& rb) {
-  for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
-    if (it->ab == ra && it->bc == rb) {
-      return it->ac;
-    }
-  }
-  all_ri.push_back({ra, rb, ra * rb});
-  return all_ri.back().ac;
+  *iframe = entries[i].frame_id;
+  *icol  = entries[i].column_id;
+  return !(is_computed_column(i) || is_placeholder_column(i));
 }
 
 
 
-} // namespace dt
+std::string Workframe::retrieve_name(size_t i) {
+  xassert(i < entries.size());
+  return std::move(entries[i].name);
+}
+
+
+Column Workframe::retrieve_column(size_t i) {
+  xassert(i < entries.size());
+  return std::move(entries[i].column);
+}
+
+
+void Workframe::replace_column(size_t i, Column&& col) {
+  xassert(i < entries.size());
+  xassert(!entries[i].column);
+  entries[i].column = std::move(col);
+  entries[i].frame_id = Record::INVALID_FRAME;
+}
+
+
+Grouping Workframe::get_grouping_mode() const {
+  return grouping_mode;
+}
+
+
+
+std::unique_ptr<DataTable> Workframe::convert_to_datatable() && {
+  colvec columns;
+  strvec names;
+  names.reserve(entries.size());
+  columns.reserve(entries.size());
+  for (auto& record : entries) {
+    columns.emplace_back(std::move(record.column));
+    names.emplace_back(std::move(record.name));
+  }
+  return dtptr(new DataTable(std::move(columns), std::move(names)));
+}
+
+
+
+
+
+//------------------------------------------------------------------------------
+// Grouping mode manipulation
+//------------------------------------------------------------------------------
+
+void Workframe::sync_grouping_mode(Workframe& other) {
+  if (grouping_mode == other.grouping_mode) return;
+  size_t g1 = static_cast<size_t>(grouping_mode);
+  size_t g2 = static_cast<size_t>(other.grouping_mode);
+  if (g1 < g2) increase_grouping_mode(other.grouping_mode);
+  else         other.increase_grouping_mode(grouping_mode);
+}
+
+
+void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
+  if (grouping_mode == gmode) return;
+  size_t g1 = static_cast<size_t>(grouping_mode);
+  size_t g2 = static_cast<size_t>(gmode);
+  if (g1 < g2) increase_grouping_mode(gmode);
+  else         column_increase_grouping_mode(col, gmode, grouping_mode);
+}
+
+
+void Workframe::increase_grouping_mode(Grouping gmode) {
+  for (auto& item : entries) {
+    column_increase_grouping_mode(item.column, grouping_mode, gmode);
+  }
+  grouping_mode = gmode;
+}
+
+
+void Workframe::column_increase_grouping_mode(
+    Column& col, Grouping gfrom, Grouping gto)
+{
+  // TODO
+  (void)col; (void) gfrom; (void) gto;
+}
+
+
+
+
+}}  // namespace dt::expr

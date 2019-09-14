@@ -70,12 +70,15 @@ class unary_vcol : public ColumnImpl {
 
   public:
     unary_vcol(Column&& col, SType stype, operator_t f)
-      : arg(std::move(col)),
-        func(f)
-    {
-      _nrows = arg.nrows();
-      _stype = stype;
+      : ColumnImpl(col.nrows(), stype),
+        arg(std::move(col)),
+        func(f) {}
+
+    ColumnImpl* shallowcopy() const override {
+      return new unary_vcol<TI, TO>(Column(arg), _stype, func);
     }
+
+    bool is_virtual() const noexcept override { return true; }
 
     bool get_element(size_t i, TO* out) const override {
       TI x;
@@ -86,6 +89,41 @@ class unary_vcol : public ColumnImpl {
       return ISNA<TO>(value);
     }
 };
+
+template <typename TI>
+class unary_vcol<TI, int8_t> : public ColumnImpl {
+  using operator_t = int8_t(*)(TI);
+  private:
+    Column arg;
+    operator_t func;
+
+  public:
+    unary_vcol(Column&& col, SType stype, operator_t f)
+      : ColumnImpl(col.nrows(), stype),
+        arg(std::move(col)),
+        func(f) {}
+
+    bool is_virtual() const noexcept override { return true; }
+
+    bool get_element(size_t i, int8_t* out) const override {
+      TI x;
+      bool isna = arg.get_element(i, &x);
+      (void) isna;  // FIXME
+      int8_t value = func(x);
+      *out = value;
+      return ISNA<int8_t>(value);
+    }
+
+    bool get_element(size_t i, int32_t* out) const override {
+      TI x;
+      bool isna = arg.get_element(i, &x);
+      (void) isna;  // FIXME
+      int8_t value = func(x);
+      *out = static_cast<int32_t>(value);
+      return ISNA<int8_t>(value);
+    }
+};
+
 
 
 template <SType SI, SType SO, element_t<SO>(*FN)(element_t<SI>)>
@@ -236,14 +274,14 @@ pexpr expr_unaryop::get_negated_expr() {
 }
 
 
-SType expr_unaryop::resolve(const workframe& wf) {
-  SType input_stype = arg->resolve(wf);
+SType expr_unaryop::resolve(const EvalContext& ctx) {
+  SType input_stype = arg->resolve(ctx);
   return unary_library.get_infox(opcode, input_stype).output_stype;
 }
 
 
-GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
-  return arg->get_groupby_mode(wf);
+GroupbyMode expr_unaryop::get_groupby_mode(const EvalContext& ctx) const {
+  return arg->get_groupby_mode(ctx);
 }
 
 
@@ -263,8 +301,8 @@ GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
 // an integer output column because each "element" of the input actually
 // consists of 2 entries: the offsets of the start and the end of a string.
 //
-Column expr_unaryop::evaluate(workframe& wf) {
-  Column input_column = arg->evaluate(wf);
+Column expr_unaryop::evaluate(EvalContext& ctx) {
+  Column input_column = arg->evaluate(ctx);
 
   auto input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
@@ -304,8 +342,8 @@ Column expr_unaryop::evaluate(workframe& wf) {
 }
 
 
-// Column expr_unaryop::evaluate(workframe& wf) {
-//   Column varg = arg->evaluate(wf);
+// Column expr_unaryop::evaluate(EvalContext& ctx) {
+//   Column varg = arg->evaluate(ctx);
 //   SType input_stype = varg.stype();
 //   const auto& ui = unary_library.get_infox(opcode, input_stype);
 //   if (ui.cast_stype != SType::VOID) {
@@ -335,7 +373,9 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
 
   py::olist columns(dt->ncols);
   for (size_t i = 0; i < dt->ncols; ++i) {
-    py::oobj col_selector = make_pyexpr(Op::COL, py::oint(0), py::oint(i));
+    py::oobj col_selector = make_pyexpr(Op::COL,
+                                        py::otuple{py::oint(i)},
+                                        py::otuple{py::oint(0)});
     columns.set(i, make_pyexpr(opcode, col_selector));
   }
 

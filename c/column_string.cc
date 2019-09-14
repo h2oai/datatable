@@ -24,9 +24,9 @@ template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 // public: create a string column for `n` rows, preallocating the offsets array
 // but leaving string buffer empty (and not allocated).
 template <typename T>
-StringColumn<T>::StringColumn(size_t n) : ColumnImpl(n)
+StringColumn<T>::StringColumn(size_t n)
+  : ColumnImpl(n, stype_for<T>())
 {
-  _stype = stype_for<T>();
   mbuf = MemoryRange::mem(sizeof(T) * (n + 1));
   mbuf.set_element<T>(0, 0);
 }
@@ -34,21 +34,19 @@ StringColumn<T>::StringColumn(size_t n) : ColumnImpl(n)
 
 // private use only
 template <typename T>
-StringColumn<T>::StringColumn() : ColumnImpl(0) {
-  _stype = stype_for<T>();
-}
+StringColumn<T>::StringColumn()
+  : ColumnImpl(0, stype_for<T>())  {}
 
 
 // private: use `new_string_column(n, &&mb, &&sb)` instead
 template <typename T>
 StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
-  : ColumnImpl(n)
+  : ColumnImpl(n, stype_for<T>())
 {
   xassert(mb);
   xassert(mb.size() == sizeof(T) * (n + 1));
   xassert(mb.get_element<T>(0) == 0);
   xassert(sb.size() == (mb.get_element<T>(n) & ~GETNA<T>()));
-  _stype = stype_for<T>();
   mbuf = std::move(mb);
   strbuf = std::move(sb);
 }

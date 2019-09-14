@@ -38,14 +38,14 @@
 // `by_node`.
 //
 // Likewise, each `join()` call in python creates a "join_node" object, and we
-// only need to collect these objects into the workframe.
+// only need to collect these objects into the EvalContext.
 //
 //
-// The "workframe" object gathers all the information necessary to evaluate the
+// The "EvalContext" object gathers all the information necessary to evaluate the
 // expression `DT[i, j, ...]` above.
 //
 // We begin evaluation with checking the by- and join- nodes and inserting them
-// into the workframe. This has to be done first, because `i` and `j` nodes can
+// into the EvalContext. This has to be done first, because `i` and `j` nodes can
 // refer to columns from the join frames, and therefore in order to check their
 // correctness we need to know which frames are joined.
 //
@@ -63,7 +63,7 @@
 #include "expr/j_node.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -167,9 +167,9 @@ oobj Frame::_main_getset(robj item, robj value) {
     // otherwise fall-through
   }
 
-  // 1. Create the workframe
-  dt::workframe wf(dt);
-  wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
+  // 1. Create the EvalContext
+  dt::EvalContext ctx(dt);
+  ctx.set_mode(value == GETITEM? dt::EvalMode::SELECT :
               value == DELITEM? dt::EvalMode::DELETE :
                                 dt::EvalMode::UPDATE);
 
@@ -181,21 +181,21 @@ oobj Frame::_main_getset(robj item, robj value) {
   for (size_t k = 2; k < nargs; ++k) {
     robj arg = targs[k];
     if ((arg_join = arg.to_ojoin_lax())) {
-      wf.add_join(arg_join);
+      ctx.add_join(arg_join);
       continue;
     }
     if ((arg_by = arg.to_oby_lax())) {
-      wf.add_groupby(arg_by);
+      ctx.add_groupby(arg_by);
       continue;
     }
     if ((arg_sort = arg.to_osort_lax())) {
-      wf.add_sortby(arg_sort);
+      ctx.add_sortby(arg_sort);
       continue;
     }
     if (arg.is_none()) continue;
     if (k == 2 && (arg.is_string() || arg.is_dtexpr())) {
       oby byexpr = oby::make(arg);
-      wf.add_groupby(byexpr);
+      ctx.add_groupby(byexpr);
       continue;
     }
     throw TypeError() << "Invalid item at position " << k
@@ -203,18 +203,18 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
 
   // 3. Instantiate `i_node` and `j_node`.
-  wf.add_i(targs[0]);
-  wf.add_j(targs[1]);
+  ctx.add_i(targs[0]);
+  ctx.add_j(targs[1]);
 
-  if (wf.get_mode() == dt::EvalMode::UPDATE) {
-    wf.add_replace(value);
+  if (ctx.get_mode() == dt::EvalMode::UPDATE) {
+    ctx.add_replace(value);
   }
 
-  wf.evaluate();
-  if (wf.get_mode() != dt::EvalMode::SELECT) {
+  ctx.evaluate();
+  if (ctx.get_mode() != dt::EvalMode::SELECT) {
     _clear_types();
   }
-  return wf.get_result();
+  return ctx.get_result();
 }
 
 

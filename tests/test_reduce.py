@@ -24,9 +24,9 @@
 import datatable as dt
 import math
 import pytest
-from datatable import f, by, ltype, first, count, median
+from datatable import f, by, ltype, first, last, count, median, sum, mean
 from datatable.internal import frame_integrity_check
-from tests import noop
+from tests import assert_equals, noop
 
 
 #-------------------------------------------------------------------------------
@@ -144,9 +144,9 @@ def test_count_with_i():
 #-------------------------------------------------------------------------------
 
 def test_first_array():
-    a_in = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1]
-    a_reduce = first(a_in)
-    assert a_reduce == 9
+    assert first([9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1]) == 9
+    assert first((3.5, 17.9, -4.4)) == 3.5
+    assert first([]) == None
 
 
 def test_first_dt():
@@ -156,6 +156,12 @@ def test_first_dt():
     assert df_reduce.shape == (1, 1)
     assert df_reduce.ltypes == (ltype.int,)
     assert df_reduce.to_list() == [[9]]
+
+
+def test_first_empty_frame():
+    DT = dt.Frame(A=[], stype=dt.float32)
+    RZ = DT[:, first(f.A)]
+    assert_equals(RZ, dt.Frame(A=[None], stype=dt.float32))
 
 
 def test_first_dt_range():
@@ -207,6 +213,30 @@ def test_first_2d_array():
 
 
 
+#-------------------------------------------------------------------------------
+# Last
+#-------------------------------------------------------------------------------
+
+def test_last_array():
+    assert last([1, 5, 7]) == 7
+    assert last("dlvksjdnf") == "f"
+    assert last(x.upper() for x in "abcd") == "D"
+    assert last(x * 2 for x in "") == None
+    assert last([]) == None
+
+def test_last_frame():
+    DT = dt.Frame(A=[1, 3, 7], B=[None, "er", "hooray"])
+    RZ = DT[:, last(f[:])]
+    assert_equals(RZ, DT[-1, :])
+
+
+def test_last_empty_frame():
+    DT = dt.Frame(A=[], B=[], C=[], stypes=[dt.float32, dt.bool8, dt.str64])
+    RZ = DT[:, last(f[:])]
+    DT.nrows = 1
+    assert_equals(RZ, DT)
+
+
 
 #-------------------------------------------------------------------------------
 # min/max
@@ -247,6 +277,60 @@ def test_minmax_empty(mm, st):
 def test_minmax_nas(mm, st):
     DT2 = dt.Frame(B=[None]*3, stype=st)
     assert DT2[:, mm(f.B)].to_list() == [[None]]
+
+
+
+
+#-------------------------------------------------------------------------------
+# sum
+#-------------------------------------------------------------------------------
+
+def test_sum_simple():
+    DT = dt.Frame(A=range(5))
+    R = DT[:, sum(f.A)]
+    frame_integrity_check(R)
+    assert R.to_list() == [[10]]
+    assert str(R)
+
+
+def test_sum_empty_frame():
+    DT = dt.Frame([[]] * 4, names=list("ABCD"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
+    assert DT.shape == (0, 4)
+    RZ = DT[:, sum(f[:])]
+    frame_integrity_check(RZ)
+    assert RZ.shape == (1, 4)
+    assert RZ.names == ("A", "B", "C", "D")
+    assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64)
+    assert RZ.to_list() == [[0], [0], [0], [0]]
+    assert str(RZ)
+
+
+
+
+#-------------------------------------------------------------------------------
+# Mean
+#-------------------------------------------------------------------------------
+
+def test_mean_simple():
+    DT = dt.Frame(A=range(5))
+    RZ = DT[:, mean(f.A)]
+    frame_integrity_check(RZ)
+    assert RZ.stypes == (dt.float64,)
+    assert RZ.to_list() == [[2.0]]
+
+
+def test_mean_empty_frame():
+    DT = dt.Frame([[]] * 4, names=list("ABCD"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
+    assert DT.shape == (0, 4)
+    RZ = DT[:, mean(f[:])]
+    frame_integrity_check(RZ)
+    assert RZ.shape == (1, 4)
+    assert RZ.names == ("A", "B", "C", "D")
+    assert RZ.stypes == (dt.float64, dt.float64, dt.float32, dt.float64)
+    assert RZ.to_list() == [[None]] * 4
+
 
 
 

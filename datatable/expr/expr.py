@@ -24,7 +24,7 @@ __all__ = ("Expr", "OpCodes", "f", "g")
 @enum.unique
 class OpCodes(enum.Enum):
     # The values in this enum must be kept in sync with C++ enum `Op` in
-    # file "c/expr/expr.h"
+    # file "c/expr/op.h"
 
     # Misc
     NOOP = 0
@@ -75,10 +75,11 @@ class OpCodes(enum.Enum):
     MAX = 403
     STDEV = 404
     FIRST = 405
-    SUM = 406
-    COUNT = 407
-    COUNT0 = 408
-    MEDIAN = 409
+    LAST = 406
+    SUM = 407
+    COUNT = 408
+    COUNT0 = 409
+    MEDIAN = 410
 
     # Math: trigonometric
     SIN = 501
@@ -159,119 +160,121 @@ class Expr:
     The main property of ``Expr`` is the ``._args`` field, which is used from
     C++ engine to evaluate this expression.
     """
-    __slots__ = ["_op", "_args"]
+    __slots__ = ["_op", "_args", "_params"]
 
 
-    def __init__(self, op, *args):
+    def __init__(self, op, args, params=()):
         self._op = op if isinstance(op, int) else op.value
         self._args = args
+        self._params = params
 
     def __repr__(self):
-        return "Expr:%s(%s)" % (OpCodes(self._op).name.lower(),
-                                ", ".join(repr(x) for x in self._args))
+        return "Expr:%s(%s; %s)" % (OpCodes(self._op).name.lower(),
+                                    ", ".join(repr(x) for x in self._args),
+                                    ", ".join(repr(x) for x in self._params))
 
     def extend(self, other):
-        return Expr(OpCodes.SETPLUS, self, other)
+        return Expr(OpCodes.SETPLUS, (self, other))
 
     def remove(self, other):
-        return Expr(OpCodes.SETMINUS, self, other)
+        return Expr(OpCodes.SETMINUS, (self, other))
 
 
     #----- Binary operators ----------------------------------------------------
 
     def __add__(self, other):
-        return Expr(OpCodes.PLUS, self, other)
+        return Expr(OpCodes.PLUS, (self, other))
 
     def __sub__(self, other):
-        return Expr(OpCodes.MINUS, self, other)
+        return Expr(OpCodes.MINUS, (self, other))
 
     def __mul__(self, other):
-        return Expr(OpCodes.MULTIPLY, self, other)
+        return Expr(OpCodes.MULTIPLY, (self, other))
 
     def __truediv__(self, other):
-        return Expr(OpCodes.DIVIDE, self, other)
+        return Expr(OpCodes.DIVIDE, (self, other))
 
     def __floordiv__(self, other):
-        return Expr(OpCodes.INTDIV, self, other)
+        return Expr(OpCodes.INTDIV, (self, other))
 
     def __mod__(self, other):
-        return Expr(OpCodes.MODULO, self, other)
+        return Expr(OpCodes.MODULO, (self, other))
 
     def __pow__(self, other):
-        return Expr(OpCodes.POWER, self, other)
+        return Expr(OpCodes.POWER, (self, other))
 
     def __and__(self, other):
-        return Expr(OpCodes.AND, self, other)
+        return Expr(OpCodes.AND, (self, other))
 
     def __xor__(self, other):
-        return Expr(OpCodes.XOR, self, other)
+        return Expr(OpCodes.XOR, (self, other))
 
     def __or__(self, other):
-        return Expr(OpCodes.OR, self, other)
+        return Expr(OpCodes.OR, (self, other))
 
     def __lshift__(self, other):
-        return Expr(OpCodes.LSHIFT, self, other)
+        return Expr(OpCodes.LSHIFT, (self, other))
 
     def __rshift__(self, other):
-        return Expr(OpCodes.RSHIFT, self, other)
+        return Expr(OpCodes.RSHIFT, (self, other))
 
 
     def __radd__(self, other):
-        return Expr(OpCodes.PLUS, other, self)
+        return Expr(OpCodes.PLUS, (other, self))
 
     def __rsub__(self, other):
-        return Expr(OpCodes.MINUS, other, self)
+        return Expr(OpCodes.MINUS, (other, self))
 
     def __rmul__(self, other):
-        return Expr(OpCodes.MULTIPLY, other, self)
+        return Expr(OpCodes.MULTIPLY, (other, self))
 
     def __rtruediv__(self, other):
-        return Expr(OpCodes.DIVIDE, other, self)
+        return Expr(OpCodes.DIVIDE, (other, self))
 
     def __rfloordiv__(self, other):
-        return Expr(OpCodes.INTDIV, other, self)
+        return Expr(OpCodes.INTDIV, (other, self))
 
     def __rmod__(self, other):
-        return Expr(OpCodes.MODULO, other, self)
+        return Expr(OpCodes.MODULO, (other, self))
 
     def __rpow__(self, other):
-        return Expr(OpCodes.POWER, other, self)
+        return Expr(OpCodes.POWER, (other, self))
 
     def __rand__(self, other):
-        return Expr(OpCodes.AND, other, self)
+        return Expr(OpCodes.AND, (other, self))
 
     def __rxor__(self, other):
-        return Expr(OpCodes.XOR, other, self)
+        return Expr(OpCodes.XOR, (other, self))
 
     def __ror__(self, other):
-        return Expr(OpCodes.OR, other, self)
+        return Expr(OpCodes.OR, (other, self))
 
     def __rlshift__(self, other):
-        return Expr(OpCodes.LSHIFT, other, self)
+        return Expr(OpCodes.LSHIFT, (other, self))
 
     def __rrshift__(self, other):
-        return Expr(OpCodes.RSHIFT, other, self)
+        return Expr(OpCodes.RSHIFT, (other, self))
 
 
     #----- Relational operators ------------------------------------------------
 
     def __eq__(self, other):
-        return Expr(OpCodes.EQ, self, other)
+        return Expr(OpCodes.EQ, (self, other))
 
     def __ne__(self, other):
-        return Expr(OpCodes.NE, self, other)
+        return Expr(OpCodes.NE, (self, other))
 
     def __lt__(self, other):
-        return Expr(OpCodes.LT, self, other)
+        return Expr(OpCodes.LT, (self, other))
 
     def __gt__(self, other):
-        return Expr(OpCodes.GT, self, other)
+        return Expr(OpCodes.GT, (self, other))
 
     def __le__(self, other):
-        return Expr(OpCodes.LE, self, other)
+        return Expr(OpCodes.LE, (self, other))
 
     def __ge__(self, other):
-        return Expr(OpCodes.GE, self, other)
+        return Expr(OpCodes.GE, (self, other))
 
 
     #----- Unary operators -----------------------------------------------------
@@ -304,24 +307,24 @@ class Expr:
 
     def __invert__(self):
         """Unary inversion: ~expr."""
-        return Expr(OpCodes.UINVERT, self)
+        return Expr(OpCodes.UINVERT, (self,))
 
     def __neg__(self):
         """Unary minus: -expr."""
-        return Expr(OpCodes.UMINUS, self)
+        return Expr(OpCodes.UMINUS, (self,))
 
     def __pos__(self):
         """Unary plus (no-op)."""
-        return Expr(OpCodes.UPLUS, self)
+        return Expr(OpCodes.UPLUS, (self,))
 
 
     #----- String functions ----------------------------------------------------
 
     def len(self):
-        return Expr(OpCodes.LEN, self)
+        return Expr(OpCodes.LEN, (self,))
 
     def re_match(self, pattern, flags=None):
-        return Expr(OpCodes.RE_MATCH, self, (pattern, flags))
+        return Expr(OpCodes.RE_MATCH, (self,), (pattern, flags))
 
 
 
@@ -399,7 +402,7 @@ class FrameProxy:
                    isinstance(item, (stype, ltype))):
                 raise TypeError("Column selector should be an integer, string, "
                                 "or slice, not %r" % type(item))
-        return Expr(OpCodes.COL, self._id, item)
+        return Expr(OpCodes.COL, (item,), (self._id,))
 
 
 

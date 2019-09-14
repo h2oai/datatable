@@ -35,7 +35,7 @@ py::oobj expr_literal::get_literal_arg() {
 }
 
 
-SType expr_literal::resolve(const workframe&) {
+SType expr_literal::resolve(const EvalContext&) {
   py::olist lst(1);
   lst.set(0, arg);
   col = Column::from_pylist(lst, 0);
@@ -43,12 +43,12 @@ SType expr_literal::resolve(const workframe&) {
 }
 
 
-GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
+GroupbyMode expr_literal::get_groupby_mode(const EvalContext&) const {
   return GroupbyMode::GtoONE;
 }
 
 
-Column expr_literal::evaluate(workframe&) {
+Column expr_literal::evaluate(EvalContext&) {
   return col;  // copy
 }
 

@@ -551,6 +551,9 @@ static void verify_integrity_helper(
 void ArrayRowIndexImpl::verify_integrity() const {
   RowIndexImpl::verify_integrity();
 
+  if (length && !data) {
+    throw AssertionError() << "data pointer in ArrayRowIndexImpl is NULL";
+  }
   if (type == RowIndexType::ARR32) {
     verify_integrity_helper<int32_t>(data, length, min, max, ascending);
   } else if (type == RowIndexType::ARR64) {

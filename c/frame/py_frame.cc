@@ -163,6 +163,11 @@ oobj Frame::oframe(DataTable* dt) {
 }
 
 
+oobj Frame::oframe(robj src) {
+  return robj(Frame_Type).call(otuple{src});
+}
+
+
 void Frame::m__dealloc__() {
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);

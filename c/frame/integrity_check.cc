@@ -155,7 +155,7 @@ void ColumnImpl::verify_integrity(const std::string& name) const {
   size_t mbuf_nrows = data_nrows();
 
   // Check RowIndex
-  if (ri.isabsent()) {
+  if (!is_virtual()) {
     // Check that nrows is a correct representation of mbuf's size
     if (_nrows != mbuf_nrows) {
       throw AssertionError()
@@ -164,7 +164,7 @@ void ColumnImpl::verify_integrity(const std::string& name) const {
           << mbuf_nrows << " rows";
     }
   }
-  else {
+  if (ri) {
     // Check that the length of the RowIndex corresponds to `nrows`
     if (_nrows != ri.size()) {
       throw AssertionError()

@@ -23,7 +23,7 @@
 #include "expr/by_node.h"
 #include "expr/collist.h"
 #include "expr/expr_column.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "python/arg.h"
 #include "python/tuple.h"
 #include "utils/exceptions.h"
@@ -55,16 +55,16 @@ by_node::~by_node() {
 }
 
 
-void by_node::add_groupby_columns(workframe& wf, collist_ptr&& cl) {
-  _add_columns(wf, std::move(cl), true);
+void by_node::add_groupby_columns(EvalContext& ctx, collist_ptr&& cl) {
+  _add_columns(ctx, std::move(cl), true);
 }
 
-void by_node::add_sortby_columns(workframe& wf, collist_ptr&& cl) {
-  _add_columns(wf, std::move(cl), false);
+void by_node::add_sortby_columns(EvalContext& ctx, collist_ptr&& cl) {
+  _add_columns(ctx, std::move(cl), false);
 }
 
 
-void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
+void by_node::_add_columns(EvalContext& ctx, collist_ptr&& cl, bool isgrp) {
   strvec names = cl->release_names();
   bool has_names = !names.empty();
   if (cl->is_simple_list()) {
@@ -91,7 +91,7 @@ void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
       pexpr neg = cexpr->get_negated_expr();
       if (neg) {
         auto colexpr = dynamic_cast<dt::expr::expr_column*>(neg.get());
-        size_t j = colexpr->get_col_index(wf);
+        size_t j = colexpr->get_col_index(ctx);
         if (j != size_t(-1)) {
           cols.emplace_back(
               j,
@@ -133,11 +133,11 @@ bool by_node::has_group_column(size_t i) const {
 }
 
 
-void by_node::create_columns(workframe& wf) {
-  DataTable* dt0 = wf.get_datatable(0);
-  RowIndex ri0 = wf.get_rowindex(0);
-  if (wf.get_groupby_mode() == GroupbyMode::GtoONE) {
-    ri0 = RowIndex(arr32_t(wf.gb.ngroups(), wf.gb.offsets_r()), true) * ri0;
+void by_node::create_columns(EvalContext& ctx) {
+  DataTable* dt0 = ctx.get_datatable(0);
+  RowIndex ri0 = ctx.get_rowindex(0);
+  if (ctx.get_groupby_mode() == GroupbyMode::GtoONE) {
+    ri0 = RowIndex(arr32_t(ctx.gb.ngroups(), ctx.gb.offsets_r()), true) * ri0;
   }
 
   auto dt0_names = dt0->get_names();
@@ -146,16 +146,16 @@ void by_node::create_columns(workframe& wf) {
     size_t j = col.index;
     xassert(j != size_t(-1));
     Column newcol = dt0->get_column(j);  // copy
-    wf.add_column(std::move(newcol), ri0,
+    ctx.add_column(std::move(newcol), ri0,
                   col.name.empty()? dt0_names[j] : std::move(col.name));
   }
 }
 
 
-void by_node::execute(workframe& wf) const {
+void by_node::execute(EvalContext& ctx) const {
   if (cols.empty()) return;
-  const DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+  const DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   if (ri0) {
     throw NotImplError() << "Groupby/sort cannot be combined with i expression";
   }
@@ -175,11 +175,11 @@ void by_node::execute(workframe& wf) const {
   }
   // if (n_group_columns) {
     auto res = dt0->group(spec);
-    wf.gb = std::move(res.second);
-    wf.apply_rowindex(res.first);
+    ctx.gb = std::move(res.second);
+    ctx.apply_rowindex(res.first);
   // } else {
   //   auto res = dt0->sort(spec);
-  //   wf.apply_rowindex(res);
+  //   ctx.apply_rowindex(res);
   // }
 }
 
@@ -212,10 +212,10 @@ void oby::init(PyObject* m) {
 }
 
 
-dt::collist_ptr oby::cols(dt::workframe& wf) const {
+dt::collist_ptr oby::cols(dt::EvalContext& ctx) const {
   // robj cols = reinterpret_cast<const pyobj*>(v)->cols;
   robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
-  return dt::collist_ptr(new dt::collist(wf, cols, dt::collist::BY_NODE));
+  return dt::collist_ptr(new dt::collist(ctx, cols, dt::collist::BY_NODE));
 }
 
 

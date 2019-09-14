@@ -501,7 +501,6 @@ static Column ocolumn_from_iterable(const iterable* il, int stype0)
 {
   MemoryRange membuf;
   MemoryRange strbuf;
-  // TODO: Perhaps `stype` and `curr_stype` should have type SType ?
   SType stype = find_next_stype(SType::VOID, stype0);
   size_t i = 0;
   while (stype != SType::VOID) {

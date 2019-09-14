@@ -305,6 +305,10 @@ Column cast_manager::execute(const Column& src, MemoryRange&& target_mbuf,
                              SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
+  if (src.stype() == SType::VOID) {
+    return Column::new_na_column(target_stype, src.nrows());
+  }
+
   size_t id = key(src.stype(), target_stype);
   if (all_casts.count(id) == 0) {
     throw NotImplError()
@@ -549,9 +553,16 @@ void py::DatatableModule::init_casts()
 // Column (base methods)
 //------------------------------------------------------------------------------
 
+void Column::cast_inplace(SType stype) {
+  Column newcolumn = casts.execute(*this, MemoryRange(), stype);
+  std::swap(*this, newcolumn);
+}
+
+
 Column Column::cast(SType stype) const {
   return casts.execute(*this, MemoryRange(), stype);
 }
+
 
 Column Column::cast(SType stype, MemoryRange&& mem) const {
   return casts.execute(*this, std::move(mem), stype);

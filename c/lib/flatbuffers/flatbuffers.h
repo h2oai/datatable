@@ -18,7 +18,6 @@
 #define FLATBUFFERS_H_
 
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-vtables"
 #pragma clang diagnostic ignored "-Wdocumentation"
 #pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
 #pragma clang diagnostic ignored "-Wsign-conversion"

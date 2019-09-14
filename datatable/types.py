@@ -74,7 +74,7 @@ class stype(enum.Enum):
         return str(self)
 
     def __call__(self, arg):
-        return Expr(OpCodes.CAST, arg, self)
+        return Expr(OpCodes.CAST, (arg,), (self,))
 
     @property
     def code(self):

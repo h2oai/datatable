@@ -29,6 +29,7 @@ from builtins import max as _builtin_max
 __all__ = (
     "count",
     "first",
+    "last",
     "max",
     "mean",
     "median",
@@ -41,37 +42,52 @@ __all__ = (
 
 def count(iterable=None):
     if isinstance(iterable, Expr):
-        return Expr(OpCodes.COUNT, iterable)
+        return Expr(OpCodes.COUNT, (iterable,))
     elif iterable is None:
-        return Expr(OpCodes.COUNT0)
+        return Expr(OpCodes.COUNT0, ())
     else:
         return _builtin_sum((x is not None) for x in iterable)
 
 
 def first(iterable):
     if isinstance(iterable, Expr):
-        return Expr(OpCodes.FIRST, iterable)
+        return Expr(OpCodes.FIRST, (iterable,))
     else:
         for x in iterable:
             return x
 
 
+def last(iterable):
+    if isinstance(iterable, Expr):
+        return Expr(OpCodes.LAST, (iterable,))
+    else:
+        try:
+            for x in reversed(iterable):
+                return x
+        except TypeError:
+            # Some iterators may not be reversible
+            x = None
+            for x in iterable:
+                pass
+            return x
+
+
 def mean(expr):
-    return Expr(OpCodes.MEAN, expr)
+    return Expr(OpCodes.MEAN, (expr,))
 
 
 def sd(expr):
-    return Expr(OpCodes.STDEV, expr)
+    return Expr(OpCodes.STDEV, (expr,))
 
 
 def median(expr):
-    return Expr(OpCodes.MEDIAN, expr)
+    return Expr(OpCodes.MEDIAN, (expr,))
 
 
 # noinspection PyShadowingBuiltins
 def sum(iterable, start=0):
     if isinstance(iterable, Expr):
-        return Expr(OpCodes.SUM, iterable)
+        return Expr(OpCodes.SUM, (iterable,))
     else:
         return _builtin_sum(iterable, start)
 
@@ -79,7 +95,7 @@ def sum(iterable, start=0):
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
     if len(args) == 1 and isinstance(args[0], Expr):
-        return Expr(OpCodes.MIN, args[0])
+        return Expr(OpCodes.MIN, args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].min()
     else:
@@ -89,7 +105,7 @@ def min(*args, **kwds):
 # noinspection PyShadowingBuiltins
 def max(*args, **kwds):
     if len(args) == 1 and isinstance(args[0], Expr):
-        return Expr(OpCodes.MAX, args[0])
+        return Expr(OpCodes.MAX, args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].max()
     else:
