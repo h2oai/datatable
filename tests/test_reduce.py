@@ -339,7 +339,6 @@ def test_mean_empty_frame():
 # Median
 #-------------------------------------------------------------------------------
 
-@pytest.mark.xfail()
 def test_median_empty_frame():
     DT = dt.Frame(A=[])
     RES = DT[:, median(f.A)]
@@ -347,7 +346,6 @@ def test_median_empty_frame():
     assert RES.to_list() == [[None]]
 
 
-@pytest.mark.xfail()
 def test_median_bool_even_nrows():
     DT = dt.Frame(A=[True, False, True, False])
     RES = DT[:, median(f.A)]
@@ -356,7 +354,6 @@ def test_median_bool_even_nrows():
     assert RES[0, 0] == 0.5
 
 
-@pytest.mark.xfail()
 def test_median_bool_odd_nrows():
     DT2 = dt.Frame(B=[True, False, True])
     RES2 = DT2[:, median(f.B)]
@@ -365,7 +362,6 @@ def test_median_bool_odd_nrows():
     assert RES2[0, 0] == 1.0
 
 
-@pytest.mark.xfail()
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
 def test_median_int_even_nrows(st):
     # data points in the middle: 5 and 7
@@ -376,7 +372,6 @@ def test_median_int_even_nrows(st):
     assert RES[0, 0] == 6.0
 
 
-@pytest.mark.xfail()
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
 def test_median_int_odd_nrows(st):
     # data points in the middle: 5 and 7
@@ -387,7 +382,6 @@ def test_median_int_odd_nrows(st):
     assert RES[0, 0] == 8.0
 
 
-@pytest.mark.xfail()
 def test_median_int_no_overflow():
     # If median calculation done inaccurately, 111+112 may overflow int8,
     # giving a negative result
@@ -396,7 +390,6 @@ def test_median_int_no_overflow():
     assert RES[0, 0] == 111.5
 
 
-@pytest.mark.xfail()
 @pytest.mark.parametrize("st", [dt.float32, dt.float64])
 def test_median_float(st):
     DT = dt.Frame(W=[0.0, 5.5, 7.9, math.inf, -math.inf], stype=st)
@@ -406,7 +399,6 @@ def test_median_float(st):
     assert RES[0, 0] == 5.5  # 5.5 has same value in float64 and float32
 
 
-@pytest.mark.xfail()
 def test_median_all_nas():
     DT = dt.Frame(N=[math.nan] * 8)
     RES = DT[:, median(f.N)]
@@ -415,7 +407,6 @@ def test_median_all_nas():
     assert RES[0, 0] is None
 
 
-@pytest.mark.xfail()
 def test_median_some_nas():
     DT = dt.Frame(S=[None, 5, None, 12, None, -3, None, None, None, 4])
     RES = DT[:, median(f.S)]
@@ -424,7 +415,6 @@ def test_median_some_nas():
     assert RES[0, 0] == 4.5
 
 
-# @pytest.mark.xfail()
 def test_median_grouped():
     DT = dt.Frame(A=[0, 0, 0, 0, 1, 1, 1, 1, 1],
                   B=[2, 6, 1, 0, -3, 4, None, None, -1],
@@ -435,7 +425,6 @@ def test_median_grouped():
     assert RES.to_list() == [[0, 1], [1.5, -1.0]]
 
 
-@pytest.mark.xfail()
 def test_median_wrong_stype():
     DT = dt.Frame(A=["foo"], B=["moo"], stypes={"A": dt.str32, "B": dt.str64})
     with pytest.raises(TypeError) as e:

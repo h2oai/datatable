@@ -356,21 +356,22 @@ class Median_ColumnImpl : public ColumnImpl {
       size_t i0, i1;
       T value1, value2;
       groupby.get_group(i, &i0, &i1);
+      xassert(i0 < i1);
 
       // skip NA values if any
       while (true) {
-        bool isna = arg.get_element(i0, &value1);
+        bool isna = arg.get_element(sort_order[i0], &value1);
         if (!isna) break;
-        if (i0 == i1) return true;  // all elements are NA
         ++i0;
+        if (i0 == i1) return true;  // all elements are NA
       }
 
       size_t j = (i0 + i1) / 2;
-      arg.get_element(j, &value1);
+      arg.get_element(sort_order[j], &value1);
       if ((i1 - i0) & 1) { // Odd count of elements
         *out = static_cast<U>(value1);
       } else {
-        arg.get_element(j - 1, &value2);
+        arg.get_element(sort_order[j - 1], &value2);
         *out = (static_cast<U>(value1) + static_cast<U>(value2))/2;
       }
       return false;
@@ -389,6 +390,9 @@ static Column _median(Column&& arg, const Groupby& gby) {
 }
 
 static Column compute_median(Column&& arg, const Groupby& gby) {
+  if (arg.nrows() == 0) {
+    return Column::new_na_column(arg.stype(), 1);
+  }
   switch (arg.stype()) {
     case SType::BOOL:
     case SType::INT8:    return _median<int8_t> (std::move(arg), gby);
