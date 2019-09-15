@@ -44,11 +44,12 @@ static Error _name_not_found_error(const DataTable* dt, const std::string& name)
 
 class NameProvider {
   public:
-    virtual ~NameProvider();  // LCOV_EXCL_LINE
+    virtual ~NameProvider() {}  // LCOV_EXCL_LINE
     virtual size_t size() const = 0;
     virtual CString item_as_cstring(size_t i) = 0;
     virtual py::oobj item_as_pyoobj(size_t i) = 0;
 };
+
 
 
 class pylistNP : public NameProvider {
@@ -56,11 +57,27 @@ class pylistNP : public NameProvider {
     const py::olist& names;
 
   public:
-    explicit pylistNP(const py::olist& arg) : names(arg) {}
-    virtual size_t size() const override;
-    virtual CString item_as_cstring(size_t i) override;
-    virtual py::oobj item_as_pyoobj(size_t i) override;
+    explicit pylistNP(const py::olist& arg)
+      : names(arg) {}
+
+    virtual size_t size() const override {
+      return names.size();
+    }
+
+    virtual CString item_as_cstring(size_t i) override {
+      py::robj name = names[i];
+      if (!name.is_string() && !name.is_none()) {
+        throw TypeError() << "Invalid `names` list: element " << i
+            << " is not a string";
+      }
+      return name.to_cstring();
+    }
+
+    virtual py::oobj item_as_pyoobj(size_t i) override {
+      return py::oobj(names[i]);
+    }
 };
+
 
 
 class strvecNP : public NameProvider {
@@ -68,47 +85,22 @@ class strvecNP : public NameProvider {
     const strvec& names;
 
   public:
-    explicit strvecNP(const std::vector<std::string>& arg) : names(arg) {}
-    virtual size_t size() const override;
-    virtual CString item_as_cstring(size_t i) override;
-    virtual py::oobj item_as_pyoobj(size_t i) override;
+    explicit strvecNP(const std::vector<std::string>& arg)
+      : names(arg) {}
+
+    virtual size_t size() const override {
+      return names.size();
+    }
+
+    virtual CString item_as_cstring(size_t i) override {
+      const std::string& name = names[i];
+      return CString { name.data(), static_cast<int64_t>(name.size()) };
+    }
+
+    virtual py::oobj item_as_pyoobj(size_t i) override {
+      return py::ostring(names[i]);
+    }
 };
-
-
-//------------------------------------------------------------------------------
-
-NameProvider::~NameProvider() {}
-
-size_t pylistNP::size() const {
-  return names.size();
-}
-
-CString pylistNP::item_as_cstring(size_t i) {
-  py::robj name = names[i];
-  if (!name.is_string() && !name.is_none()) {
-    throw TypeError() << "Invalid `names` list: element " << i
-        << " is not a string";
-  }
-  return name.to_cstring();
-}
-
-py::oobj pylistNP::item_as_pyoobj(size_t i) {
-  return py::oobj(names[i]);
-}
-
-
-size_t strvecNP::size() const {
-  return names.size();
-}
-
-CString strvecNP::item_as_cstring(size_t i) {
-  const std::string& name = names[i];
-  return CString { name.data(), static_cast<int64_t>(name.size()) };
-}
-
-py::oobj strvecNP::item_as_pyoobj(size_t i) {
-  return py::ostring(names[i]);
-}  // LCOV_EXCL_LINE
 
 
 
@@ -259,7 +251,7 @@ void py::Frame::init_names_options() {
 /**
  * Return DataTable column names as a C++ vector of strings.
  */
-const std::vector<std::string>& DataTable::get_names() const {
+const strvec& DataTable::get_names() const {
   return names;
 }
 
