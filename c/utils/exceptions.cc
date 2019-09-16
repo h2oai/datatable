@@ -255,9 +255,14 @@ void init_exceptions() {
 
 Warning::Warning(PyObject* cls) : Error(cls) {}
 
-Warning::~Warning() {
+void Warning::emit() {
   const std::string errstr = error.str();
-  PyErr_WarnEx(pycls, errstr.c_str(), 1);
+  // Normally, PyErr_WarnEx returns 0. However, when the `warnings` module is
+  // configured in such a way that all warnings are converted into errors,
+  // then PyErr_WarnEx will return -1. At that point we should throw
+  // an exception too, the error message is already set in Python.
+  int ret = PyErr_WarnEx(pycls, errstr.c_str(), 1);
+  if (ret) throw PyError();
 }
 
 
