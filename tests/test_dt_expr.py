@@ -420,3 +420,9 @@ def test_expr_reuse():
     df2 = df1[:, expr]
     frame_integrity_check(df2)
     assert df2.to_list() == [[False, True, True, True, True]]
+
+
+def test_expr_names():
+    # See issue #1963
+    DT = dt.Frame(A=range(5), B=range(5))
+    assert DT[:, [f.A, f.A + f.B]].names == ("A", "C0")

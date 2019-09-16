@@ -50,16 +50,16 @@ DataTable::DataTable(colvec&& cols, DefaultNamesTag)
 }
 
 
-DataTable::DataTable(colvec&& cols, const py::olist& nn)
+DataTable::DataTable(colvec&& cols, const py::olist& nn, bool warn)
   : DataTable(std::move(cols))
 {
-  set_names(nn);
+  set_names(nn, warn);
 }
 
-DataTable::DataTable(colvec&& cols, const strvec& nn)
+DataTable::DataTable(colvec&& cols, const strvec& nn, bool warn)
   : DataTable(std::move(cols))
 {
-  set_names(nn);
+  set_names(nn, warn);
 }
 
 DataTable::DataTable(colvec&& cols, const DataTable* nn)
