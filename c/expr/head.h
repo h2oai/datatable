@@ -66,8 +66,10 @@ class Head {
   public:
     virtual ~Head();
     virtual Workframe evaluate_n(const vecExpr& args, EvalContext& ctx) const = 0;
-    virtual Workframe evaluate_j(const vecExpr& args, EvalContext& ctx) const = 0;
-    virtual Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const = 0;
+    virtual Workframe evaluate_j(const vecExpr& args, EvalContext& ctx,
+                                 bool allow_new) const = 0;
+    virtual Workframe evaluate_f(EvalContext& ctx, size_t frame_id,
+                                 bool allow_new) const = 0;
 
     virtual Kind get_expr_kind() const = 0;
 };

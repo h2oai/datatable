@@ -42,7 +42,8 @@ Workframe Head_Literal_SliceInt::evaluate_n(const vecExpr&, EvalContext&) const 
 
 
 
-Workframe Head_Literal_SliceInt::evaluate_f(EvalContext& ctx, size_t frame_id) const
+Workframe Head_Literal_SliceInt::evaluate_f(
+    EvalContext& ctx, size_t frame_id, bool) const
 {
   size_t len = ctx.get_datatable(frame_id)->ncols;
   size_t start, count, step;
@@ -55,9 +56,10 @@ Workframe Head_Literal_SliceInt::evaluate_f(EvalContext& ctx, size_t frame_id) c
 }
 
 
-Workframe Head_Literal_SliceInt::evaluate_j(const vecExpr&, EvalContext& ctx) const
+Workframe Head_Literal_SliceInt::evaluate_j(
+    const vecExpr&, EvalContext& ctx, bool allow_new) const
 {
-  return evaluate_f(ctx, 0);
+  return evaluate_f(ctx, 0, allow_new);
 }
 
 

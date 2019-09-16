@@ -203,13 +203,16 @@ Workframe Expr::evaluate_n(EvalContext& ctx) const {
 }
 
 
-Workframe Expr::evaluate_j(EvalContext& ctx, bool allow_new) const {
-  return head->evaluate_j(inputs, ctx);
+Workframe Expr::evaluate_j(EvalContext& ctx, bool allow_new) const
+{
+  return head->evaluate_j(inputs, ctx, allow_new);
 }
 
 
-Workframe Expr::evaluate_f(EvalContext& ctx, size_t frame_id) const {
-  return head->evaluate_f(ctx, frame_id);
+Workframe Expr::evaluate_f(
+    EvalContext& ctx, size_t frame_id, bool allow_new) const
+{
+  return head->evaluate_f(ctx, frame_id, allow_new);
 }
 
 

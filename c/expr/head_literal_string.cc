@@ -41,19 +41,29 @@ Workframe Head_Literal_String::evaluate_n(const vecExpr&, EvalContext& ctx) cons
 }
 
 
-Workframe Head_Literal_String::evaluate_f(EvalContext& ctx, size_t frame_id) const
+Workframe Head_Literal_String::evaluate_f(
+    EvalContext& ctx, size_t frame_id, bool allow_new) const
 {
   auto df = ctx.get_datatable(frame_id);
-  size_t j = df->xcolindex(pystr);
   Workframe outputs(ctx);
-  outputs.add_ref_column(frame_id, j);
+  if (allow_new) {
+    int64_t i = df->colindex(pystr);
+    if (i < 0) outputs.add_placeholder(pystr.to_string(), frame_id);
+    else       outputs.add_ref_column(frame_id, static_cast<size_t>(i));
+  }
+  else {
+    size_t j = df->xcolindex(pystr);
+    outputs.add_ref_column(frame_id, j);
+  }
   return outputs;
 }
 
 
 
-Workframe Head_Literal_String::evaluate_j(const vecExpr&, EvalContext& ctx) const {
-  return evaluate_f(ctx, 0);
+Workframe Head_Literal_String::evaluate_j(
+    const vecExpr&, EvalContext& ctx, bool allow_new) const
+{
+  return evaluate_f(ctx, 0, allow_new);
 }
 
 

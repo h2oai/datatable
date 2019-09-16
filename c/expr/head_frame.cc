@@ -78,12 +78,12 @@ Workframe Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
 }
 
 
-Workframe Head_Frame::evaluate_j(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Frame::evaluate_j(const vecExpr& args, EvalContext& ctx, bool) const {
   return evaluate_n(args, ctx);
 }
 
 
-Workframe Head_Frame::evaluate_f(EvalContext&, size_t) const {
+Workframe Head_Frame::evaluate_f(EvalContext&, size_t, bool) const {
   throw TypeError() << "A Frame cannot be used inside an f-expression";
 }
 

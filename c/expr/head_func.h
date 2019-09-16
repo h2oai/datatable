@@ -40,8 +40,8 @@ class Head_Func : public Head {
     static ptrHead from_op(Op op, const py::otuple& params);
 
     Kind get_expr_kind() const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_f(EvalContext&, size_t) const override;
+    Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_f(EvalContext&, size_t, bool) const override;
 };
 
 
