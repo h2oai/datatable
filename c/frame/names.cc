@@ -85,7 +85,7 @@ class strvecNP : public NameProvider {
     const strvec& names;
 
   public:
-    explicit strvecNP(const std::vector<std::string>& arg)
+    explicit strvecNP(const strvec& arg)
       : names(arg) {}
 
     virtual size_t size() const override {
@@ -317,22 +317,22 @@ void DataTable::set_names_to_default() {
 }
 
 
-void DataTable::set_names(const py::olist& names_list) {
+void DataTable::set_names(const py::olist& names_list, bool warn) {
   if (!names_list) return set_names_to_default();
   pylistNP np(names_list);
-  _set_names_impl(&np);
+  _set_names_impl(&np, warn);
   columns.resize(names.size());
 }
 
 
-void DataTable::set_names(const strvec& names_list) {
+void DataTable::set_names(const strvec& names_list, bool warn) {
   strvecNP np(names_list);
-  _set_names_impl(&np);
+  _set_names_impl(&np, warn);
   columns.resize(names.size());
 }
 
 
-void DataTable::replace_names(py::odict replacements) {
+void DataTable::replace_names(py::odict replacements, bool warn) {
   py::olist newnames(ncols);
 
   for (size_t i = 0; i < ncols; ++i) {
@@ -353,7 +353,7 @@ void DataTable::replace_names(py::odict replacements) {
     int64_t i = idx.to_int64_strict();
     newnames.set(i, val);
   }
-  set_names(newnames);
+  set_names(newnames, warn);
 }
 
 
@@ -474,7 +474,7 @@ static void _deduplicate(std::string* name, py::oobj* pyname,
  * names are valid, not duplicate, and if necessary modifies them to enforce
  * such constraints.
  */
-void DataTable::_set_names_impl(NameProvider* nameslist) {
+void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
   if (nameslist->size() != ncols) {
     throw ValueError() << "The `names` list has length " << nameslist->size()
         << ", while the Frame has "
@@ -490,8 +490,8 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   std::unordered_map<std::string, size_t> stems;
   static constexpr size_t MAX_DUPLICATES = 3;
   size_t n_duplicates = 0;
-  std::vector<std::string> duplicates(MAX_DUPLICATES);
-  std::vector<std::string> replacements(MAX_DUPLICATES);
+  strvec duplicates(MAX_DUPLICATES);
+  strvec replacements(MAX_DUPLICATES);
 
   // If any name is empty or None, it will be replaced with the default name
   // in the end. The reason we don't replace immediately upon seeing an empty
@@ -570,7 +570,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   }
 
   // If there were any duplicate names, issue a warning
-  if (n_duplicates) {
+  if (n_duplicates > 0 && warn_duplicates) {
     Warning w = DatatableWarning();
     if (n_duplicates == 1) {
       w << "Duplicate column name found, and was assigned a unique name: "

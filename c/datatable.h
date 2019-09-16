@@ -89,9 +89,9 @@ class DataTable {
 
     DataTable();
     DataTable(colvec&& cols, DefaultNamesTag);
-    DataTable(colvec&& cols, const strvec&);
+    DataTable(colvec&& cols, const strvec&, bool warn_duplicates = true);
+    DataTable(colvec&& cols, const py::olist&, bool warn_duplicates = true);
     DataTable(colvec&& cols, const DataTable*);
-    DataTable(colvec&& cols, const py::olist&);
     ~DataTable();
 
     void delete_columns(intvec&);
@@ -135,9 +135,9 @@ class DataTable {
     size_t xcolindex(int64_t index) const;
     void copy_names_from(const DataTable* other);
     void set_names_to_default();
-    void set_names(const py::olist& names_list);
-    void set_names(const strvec& names_list);
-    void replace_names(py::odict replacements);
+    void set_names(const py::olist& names_list, bool warn = true);
+    void set_names(const strvec& names_list, bool warn = true);
+    void replace_names(py::odict replacements, bool warn = true);
     void reorder_names(const intvec& col_indices);
 
     // Key
@@ -176,7 +176,7 @@ class DataTable {
     DataTable(colvec&& cols);
 
     void _init_pynames() const;
-    void _set_names_impl(NameProvider*);
+    void _set_names_impl(NameProvider*, bool warn);
     void _integrity_check_names() const;
     void _integrity_check_pynames() const;
 
