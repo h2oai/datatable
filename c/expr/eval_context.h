@@ -137,6 +137,11 @@ class EvalContext {
 
   private:
     void evaluate_delete();
+    void evaluate_delete_rows();
+    void evaluate_delete_columns();
+    void evaluate_delete_subframe();
+    intvec evaluate_j_as_column_index();
+
     friend class dt::expr::expr_column;  // Use _product
     friend class by_node;  // Allow access to `gb`
 };

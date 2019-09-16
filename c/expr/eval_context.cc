@@ -91,6 +91,11 @@ void EvalContext::add_replace(py::oobj obj) {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Main evaluation
+//------------------------------------------------------------------------------
+
 void EvalContext::evaluate() {
   // Compute joins
   DataTable* xdt = frames[0].dt;
@@ -134,46 +139,72 @@ void EvalContext::evaluate() {
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// DELETE
+//------------------------------------------------------------------------------
+
 void EvalContext::evaluate_delete() {
+  if (jexpr2.get_expr_kind() == expr::Kind::SliceAll) {
+    evaluate_delete_rows();
+  } else if (frames[0].ri) {
+    evaluate_delete_subframe();
+  } else {
+    evaluate_delete_columns();
+  }
+}
+
+
+void EvalContext::evaluate_delete_rows() {
   DataTable* dt0 = frames[0].dt;
   const RowIndex& ri0 = frames[0].ri;
+  if (ri0) {
+    RowIndex ri_neg = ri0.negate(dt0->nrows);
+    dt0->apply_rowindex(ri_neg);
+  } else {
+    dt0->delete_all();
+  }
+}
 
-  if (jexpr2.get_expr_kind() == expr::Kind::SliceAll) {
-    if (ri0) {
-      RowIndex ri_neg = ri0.negate(dt0->nrows);
-      dt0->apply_rowindex(ri_neg);
-    } else {
-      dt0->delete_all();
+
+void EvalContext::evaluate_delete_columns() {
+  DataTable* dt0 = frames[0].dt;
+  auto indices = evaluate_j_as_column_index();
+  dt0->delete_columns(indices);
+}
+
+
+void EvalContext::evaluate_delete_subframe() {
+  DataTable* dt0 = frames[0].dt;
+  const RowIndex& ri0 = frames[0].ri;
+  auto indices = evaluate_j_as_column_index();
+  for (size_t i : indices) {
+    dt0->get_column(i).replace_values(ri0, Column());
+  }
+}
+
+
+intvec EvalContext::evaluate_j_as_column_index() {
+  expr::Workframe jres = jexpr2.evaluate_j(*this);
+  size_t n = jres.size();
+  std::vector<size_t> indices(n);
+  for (size_t i = 0; i < n; ++i) {
+    size_t frame_id, col_id;
+    if (jres.is_reference_column(i, &frame_id, &col_id)) {
+      if (frame_id == 0) {
+        indices[i] = col_id;
+        continue;
+      }
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+          "column from a joined frame and cannot be deleted";
+    }
+    if (jres.is_computed_column(i)) {
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+          "computed expression and cannot be deleted";
     }
   }
-  else {
-    expr::Workframe jres = jexpr2.evaluate_j(*this);
-    size_t n = jres.size();
-    std::vector<size_t> indices(n);
-    for (size_t i = 0; i < n; ++i) {
-      size_t frame_id, col_id;
-      if (jres.is_reference_column(i, &frame_id, &col_id)) {
-        if (frame_id == 0) {
-          indices[i] = col_id;
-          continue;
-        }
-        throw TypeError() << "Item " << i << " in the `j` selector list is a "
-            "column from a joined frame and cannot be deleted";
-      }
-      if (jres.is_computed_column(i)) {
-        throw TypeError() << "Item " << i << " in the `j` selector list is a "
-            "computed expression and cannot be deleted";
-      }
-    }
-
-    if (ri0) {
-      for (size_t i : indices) {
-        dt0->get_column(i).replace_values(ri0, Column());
-      }
-    } else {
-      dt0->delete_columns(indices);
-    }
-  }
+  return indices;
 }
 
 
