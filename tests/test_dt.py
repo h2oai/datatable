@@ -77,7 +77,7 @@ def assert_valueerror(frame, rows, error_message):
 
 
 #-------------------------------------------------------------------------------
-# Run the tests
+# Generic tests
 #-------------------------------------------------------------------------------
 
 def test_platform():
@@ -377,6 +377,19 @@ def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0[3,])
     assert "Invalid tuple of size 1 used as a frame selector" in str(e.value)
+
+
+def test_warnings_as_errors():
+    # See issue #2005
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        try:
+            dt.fread("A,A,A\n1,2,3")
+        except dt.DatatableWarning as e:
+            assert "Duplicate column names found" in str(e)
+            assert "SystemError" not in str(e)
+            assert e.__cause__ is None
 
 
 

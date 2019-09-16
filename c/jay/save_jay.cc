@@ -65,8 +65,9 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
   for (size_t i = 0; i < ncols; ++i) {
     Column& col = get_column(i);
     if (col.stype() == SType::OBJ) {
-      DatatableWarning() << "Column `" << names[i]
-          << "` of type obj64 was not saved";
+      auto w = DatatableWarning();
+      w << "Column `" << names[i] << "` of type obj64 was not saved";
+      w.emit();
     } else {
       auto saved_col = column_to_jay(col, names[i], fbb, wb);
       msg_columns.push_back(saved_col);

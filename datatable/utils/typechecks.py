@@ -41,9 +41,13 @@ TImportError.__name__ = "ImportError"
 #-------------------------------------------------------------------------------
 
 class DatatableWarning(UserWarning):
-    def _handle_(self):
-        print(term.color("yellow", self.__class__.__name__ + ": ") +
-              term.color("bright_black", str(self)))
+    def _handle_(self, *exc_args):
+        if exc_args:
+            # Warning was converted into an exception
+            TTypeError._handle_(self, *exc_args)
+        else:
+            print(term.color("yellow", self.__class__.__name__ + ": ") +
+                  term.color("bright_black", str(self)))
 
 
 def dtwarn(message):

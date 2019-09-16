@@ -585,7 +585,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
           << replacements[i] << "'";
       }
     }
-    // as `w` goes out of scope, the warning is sent to Python
+    w.emit();
   }
 
   xassert(ncols == names.size());
