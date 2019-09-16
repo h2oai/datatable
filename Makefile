@@ -86,7 +86,7 @@ test_install:
 test:
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -ra --maxfail=10 $(PYTEST_FLAGS) \
+	$(PYTHON) -m pytest -ra --maxfail=10 -Werror $(PYTEST_FLAGS) \
 		--junit-prefix=$(PLATFORM) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
