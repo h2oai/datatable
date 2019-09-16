@@ -140,11 +140,63 @@ void EvalContext::evaluate() {
 
 
 
+// Helper for DELETE and UPDATE evaluation: in these modes the
+// j expression must be a list of column references, so this
+// method will simply return them as a list of colum indices.
+//
+// Additionally, under UPDATE evaluation mode we allow the j list
+// to contain references to unknown columns too. If such "new"
+// columns exist, they will be created as empty `Column` objects
+// in `dt0`, with the approriate names. The returned array of indices
+// will contain the location of these columns in the updated `dt0`.
+//
+intvec EvalContext::evaluate_j_as_column_index() {
+  bool allow_new = (mode == EvalMode::UPDATE);
+  DataTable* dt0 = frames[0].dt;
+  auto jres = jexpr2.evaluate_j(*this);
+  size_t n = jres.size();
+  intvec indices(n);
+  strvec newnames;
+
+  for (size_t i = 0; i < n; ++i) {
+    size_t frame_id, col_id;
+    if (jres.is_reference_column(i, &frame_id, &col_id)) {
+      if (frame_id == 0) {
+        indices[i] = col_id;
+        continue;
+      }
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+          "column from a joined frame and cannot be deleted";
+    }
+    if (jres.is_placeholder_column(i)) {
+      // If allow_new is false, no placeholder columns should be generated
+      xassert(allow_new);
+      indices[i] = dt0->ncols + newnames.size();
+      newnames.emplace_back(jres.retrieve_name(i));
+    }
+    if (jres.is_computed_column(i)) {
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+          "computed expression and cannot be deleted";
+    }
+  }
+  if (!newnames.empty()) {
+    const strvec& oldnames = dt0->get_names();
+    newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
+    dt0->ncols = newnames.size();
+    dt0->set_names(newnames);
+  }
+  return indices;
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // DELETE
 //------------------------------------------------------------------------------
 
+// Main delete function: `del DT[...]`
+//
 void EvalContext::evaluate_delete() {
   if (jexpr2.get_expr_kind() == expr::Kind::SliceAll) {
     evaluate_delete_rows();
@@ -156,6 +208,8 @@ void EvalContext::evaluate_delete() {
 }
 
 
+// Delete a subset of rows from the frame: `del DT[i, :]`
+//
 void EvalContext::evaluate_delete_rows() {
   DataTable* dt0 = frames[0].dt;
   const RowIndex& ri0 = frames[0].ri;
@@ -168,6 +222,8 @@ void EvalContext::evaluate_delete_rows() {
 }
 
 
+// Delete columns from the frame: `del DT[:, j]`
+//
 void EvalContext::evaluate_delete_columns() {
   DataTable* dt0 = frames[0].dt;
   auto indices = evaluate_j_as_column_index();
@@ -175,6 +231,10 @@ void EvalContext::evaluate_delete_columns() {
 }
 
 
+// Delete a rectangular subset of values. The subset contains neither whole
+// rows nor whole columns: `del DT[i, j]`. Deleting these values actually
+// replaces them with NAs.
+//
 void EvalContext::evaluate_delete_subframe() {
   DataTable* dt0 = frames[0].dt;
   const RowIndex& ri0 = frames[0].ri;
@@ -185,29 +245,19 @@ void EvalContext::evaluate_delete_subframe() {
 }
 
 
-intvec EvalContext::evaluate_j_as_column_index() {
-  expr::Workframe jres = jexpr2.evaluate_j(*this);
-  size_t n = jres.size();
-  std::vector<size_t> indices(n);
-  for (size_t i = 0; i < n; ++i) {
-    size_t frame_id, col_id;
-    if (jres.is_reference_column(i, &frame_id, &col_id)) {
-      if (frame_id == 0) {
-        indices[i] = col_id;
-        continue;
-      }
-      throw TypeError() << "Item " << i << " in the `j` selector list is a "
-          "column from a joined frame and cannot be deleted";
-    }
-    if (jres.is_computed_column(i)) {
-      throw TypeError() << "Item " << i << " in the `j` selector list is a "
-          "computed expression and cannot be deleted";
-    }
-  }
-  return indices;
-}
+
+//------------------------------------------------------------------------------
+// UPDATE
+//------------------------------------------------------------------------------
 
 
+
+
+
+
+//------------------------------------------------------------------------------
+// Other
+//------------------------------------------------------------------------------
 
 // After evaluation of the j node, the columns in `columns` may have different
 // sizes: some are aggregated to group level, others have same number of rows

@@ -203,7 +203,7 @@ Workframe Expr::evaluate_n(EvalContext& ctx) const {
 }
 
 
-Workframe Expr::evaluate_j(EvalContext& ctx) const {
+Workframe Expr::evaluate_j(EvalContext& ctx, bool allow_new) const {
   return head->evaluate_j(inputs, ctx);
 }
 

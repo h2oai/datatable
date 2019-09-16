@@ -147,6 +147,7 @@ bool Workframe::is_placeholder_column(size_t i) const {
 bool Workframe::is_reference_column(
     size_t i, size_t* iframe, size_t* icol) const
 {
+  xassert(is_computed_column(i) + is_placeholder_column(i) <= 1);
   *iframe = entries[i].frame_id;
   *icol  = entries[i].column_id;
   return !(is_computed_column(i) || is_placeholder_column(i));

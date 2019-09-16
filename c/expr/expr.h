@@ -96,7 +96,7 @@ class Expr {
 
     Workframe evaluate_n(EvalContext& ctx) const;
     Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const;
-    Workframe evaluate_j(EvalContext& ctx) const;
+    Workframe evaluate_j(EvalContext& ctx, bool allow_new) const;
     bool    evaluate_bool() const;
 
   private:
