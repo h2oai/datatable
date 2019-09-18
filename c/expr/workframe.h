@@ -75,6 +75,8 @@ class Workframe {
       Record();
       Record(const Record&) = default;
       Record(Record&&) noexcept = default;
+      Record& operator=(const Record&) = default;
+      Record& operator=(Record&&) = default;
       Record(Column&&, std::string&&);
       Record(Column&&, const std::string&, size_t, size_t);
     };
