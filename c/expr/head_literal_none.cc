@@ -38,7 +38,9 @@ Workframe Head_Literal_None::evaluate_n(const vecExpr&, EvalContext& ctx) const 
 
 
 // When used as j, `None` means select all columns
-Workframe Head_Literal_None::evaluate_j(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_None::evaluate_j(
+    const vecExpr&, EvalContext& ctx, bool) const
+{
   size_t n = ctx.get_datatable(0)->ncols;
   Workframe outputs(ctx);
   for (size_t i = 0; i < n; ++i) {
@@ -49,7 +51,7 @@ Workframe Head_Literal_None::evaluate_j(const vecExpr&, EvalContext& ctx) const 
 
 
 // When used in f, `None` means select nothing
-Workframe Head_Literal_None::evaluate_f(EvalContext& ctx, size_t) const {
+Workframe Head_Literal_None::evaluate_f(EvalContext& ctx, size_t, bool) const {
   return Workframe(ctx);
 }
 

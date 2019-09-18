@@ -19,43 +19,41 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/const.h"
-#include "expr/head_literal.h"
-#include "expr/workframe.h"
+#ifndef dt_COLUMN_REPEATED_h
+#define dt_COLUMN_REPEATED_h
+#include <memory>
+#include "column_impl.h"
 namespace dt {
-namespace expr {
 
 
-Head_Literal_Bool::Head_Literal_Bool(bool x) : value(x) {}
+/**
+  * Virtual column representing the `arg` column repeated n times.
+  */
+class Repeated_ColumnImpl : public ColumnImpl {
+  private:
+    size_t mod;
+    Column arg;  // arg.nrows() == mod
 
-Kind Head_Literal_Bool::get_expr_kind() const {
-  return Kind::Bool;
-}
+  public:
+    Repeated_ColumnImpl(Column&&, size_t ntimes);
 
-bool Head_Literal_Bool::get_value() const {
-  return value;
-}
+    bool is_virtual() const noexcept override;
+    ColumnImpl* shallowcopy() const override;
+    void repeat(size_t ntimes, bool inplace, Column& out) override;
+    // ColumnImpl* materialize() override;
 
-
-
-Workframe Head_Literal_Bool::evaluate_n(const vecExpr&, EvalContext& ctx) const {
-  return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
-}
-
-
-Workframe Head_Literal_Bool::evaluate_f(EvalContext&, size_t, bool) const {
-  throw TypeError()
-    << "A boolean value cannot be used as a column selector";
-}
-
-
-Workframe Head_Literal_Bool::evaluate_j(
-    const vecExpr&, EvalContext&, bool) const
-{
-  throw TypeError()
-    << "A boolean value cannot be used as a column selector";
-}
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, py::robj*) const override;
+};
 
 
 
-}}  // namespace dt::expr
+
+}  // namespace dt
+#endif

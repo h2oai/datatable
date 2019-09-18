@@ -32,28 +32,14 @@ namespace dt {
 // EvalContext
 //------------------------------------------------------------------------------
 
-EvalContext::EvalContext(DataTable* dt) {
+EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
-  mode = EvalMode::SELECT;
+  mode = evalmode;
   groupby_mode = GroupbyMode::NONE;
 }
 
-
-void EvalContext::set_mode(EvalMode m) {
-  mode = m;
-}
-
-
-EvalMode EvalContext::get_mode() const {
-  return mode;
-}
-
-
-GroupbyMode EvalContext::get_groupby_mode() const {
-  return groupby_mode;
-}
 
 
 void EvalContext::add_join(py::ojoin oj) {
@@ -87,9 +73,32 @@ void EvalContext::add_j(py::oobj oj) {
 
 void EvalContext::add_replace(py::oobj obj) {
   xassert(!repl);
+  repl2 = dt::expr::Expr(obj);
   repl = repl_node::make(*this, obj);
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Properties
+//------------------------------------------------------------------------------
+
+EvalMode EvalContext::get_mode() const {
+  return mode;
+}
+
+GroupbyMode EvalContext::get_groupby_mode() const {
+  return groupby_mode;
+}
+
+
+
+
+
+//------------------------------------------------------------------------------
+// Main evaluation
+//------------------------------------------------------------------------------
 
 void EvalContext::evaluate() {
   // Compute joins
@@ -126,57 +135,218 @@ void EvalContext::evaluate() {
       break;
 
     case EvalMode::DELETE: evaluate_delete(); break;
-
-    case EvalMode::UPDATE:
-      jexpr->update(*this, repl.get());
-      break;
+    case EvalMode::UPDATE: evaluate_update(); break;
   }
 }
 
 
+
+// Helper for DELETE and UPDATE evaluation: in these modes the
+// j expression must be a list of column references, so this
+// method will simply return them as a list of colum indices.
+//
+// Additionally, under UPDATE evaluation mode we allow the j list
+// to contain references to unknown columns too. If such "new"
+// columns exist, they will be created as empty `Column` objects
+// in `dt0`, with the approriate names. The returned array of indices
+// will contain the location of these columns in the updated `dt0`.
+//
+intvec EvalContext::evaluate_j_as_column_index() {
+  bool allow_new = (mode == EvalMode::UPDATE);
+  DataTable* dt0 = frames[0].dt;
+  auto jres = jexpr2.evaluate_j(*this, allow_new);
+  size_t n = jres.ncols();
+  intvec indices(n);
+
+  for (size_t i = 0; i < n; ++i) {
+    size_t frame_id, col_id;
+    if (jres.is_reference_column(i, &frame_id, &col_id)) {
+      if (frame_id == 0) {
+        indices[i] = col_id;
+        continue;
+      }
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+          "column from a joined frame and cannot be deleted";
+    }
+    if (jres.is_placeholder_column(i)) {
+      // If allow_new is false, no placeholder columns should be generated
+      xassert(allow_new);
+      indices[i] = dt0->ncols + newnames.size();
+      newnames.emplace_back(jres.retrieve_name(i));
+    }
+    if (jres.is_computed_column(i)) {
+      throw TypeError() << "Item " << i << " in the `j` selector list is a "
+          "computed expression and cannot be deleted";
+    }
+  }
+  return indices;
+}
+
+
+void EvalContext::create_placeholder_columns() {
+  if (newnames.empty()) return;
+  DataTable* dt0 = frames[0].dt;
+  const strvec& oldnames = dt0->get_names();
+  newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
+  dt0->ncols = newnames.size();
+  dt0->set_names(newnames);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// DELETE
+//------------------------------------------------------------------------------
+
+// Main delete function: `del DT[...]`. Deleting basically falls into
+// four categories:
+//   - delete rows from a frame;
+//   - delete columns from a frame;
+//   - delete subset of both rows & columns;
+//   - delete all rows & all columns (i.e. delete the entire frame).
+//
 void EvalContext::evaluate_delete() {
+  if (jexpr2.get_expr_kind() == expr::Kind::SliceAll) {
+    evaluate_delete_rows();
+  } else if (frames[0].ri) {
+    evaluate_delete_subframe();
+  } else {
+    evaluate_delete_columns();
+  }
+}
+
+
+// Delete a subset of rows from the frame: `del DT[i, :]`
+//
+void EvalContext::evaluate_delete_rows() {
   DataTable* dt0 = frames[0].dt;
   const RowIndex& ri0 = frames[0].ri;
-
-  if (jexpr2.get_expr_kind() == expr::Kind::SliceAll) {
-    if (ri0) {
-      RowIndex ri_neg = ri0.negate(dt0->nrows);
-      dt0->apply_rowindex(ri_neg);
-    } else {
-      dt0->delete_all();
-    }
+  if (ri0) {
+    RowIndex ri_neg = ri0.negate(dt0->nrows);
+    dt0->apply_rowindex(ri_neg);
+  } else {
+    dt0->delete_all();
   }
-  else {
-    expr::Workframe jres = jexpr2.evaluate_j(*this);
-    size_t n = jres.size();
-    std::vector<size_t> indices(n);
-    for (size_t i = 0; i < n; ++i) {
-      size_t frame_id, col_id;
-      if (jres.is_reference_column(i, &frame_id, &col_id)) {
-        if (frame_id == 0) {
-          indices[i] = col_id;
-          continue;
-        }
-        throw TypeError() << "Item " << i << " in the `j` selector list is a "
-            "column from a joined frame and cannot be deleted";
-      }
-      if (jres.is_computed_column(i)) {
-        throw TypeError() << "Item " << i << " in the `j` selector list is a "
-            "computed expression and cannot be deleted";
-      }
-    }
+}
 
-    if (ri0) {
-      for (size_t i : indices) {
-        dt0->get_column(i).replace_values(ri0, Column());
+
+// Delete columns from the frame: `del DT[:, j]`
+//
+void EvalContext::evaluate_delete_columns() {
+  DataTable* dt0 = frames[0].dt;
+  auto indices = evaluate_j_as_column_index();
+  dt0->delete_columns(indices);
+}
+
+
+// Delete a rectangular subset of values. The subset contains neither whole
+// rows nor whole columns: `del DT[i, j]`. Deleting these values actually
+// replaces them with NAs.
+//
+void EvalContext::evaluate_delete_subframe() {
+  DataTable* dt0 = frames[0].dt;
+  const RowIndex& ri0 = frames[0].ri;
+  auto indices = evaluate_j_as_column_index();
+  for (size_t i : indices) {
+    dt0->get_column(i).replace_values(ri0, Column());
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
+// UPDATE
+//------------------------------------------------------------------------------
+
+// Similarly to DELETE, there are 4 conceptual cases here:
+//   - evaluate_update_everything(): `DT[:, :] = R`
+//   - evaluate_update_columns():    `DT[:, j] = R`
+//   - evaluate_update_rows():       `DT[i, :] = R`
+//   - evaluate_update_subframe():   `DT[i, j] = R`
+//
+void EvalContext::evaluate_update() {
+  jexpr->update(*this, repl.get());
+  /*
+  bool allrows = !(frames[0].ri);
+  bool allcols = (jexpr2.get_expr_kind() == expr::Kind::SliceAll);
+  if (allcols) {
+    if (allrows) evaluate_update_everything();
+    else         evaluate_update_rows();
+  } else {
+    if (allrows) evaluate_update_columns();
+    else         evaluate_update_subframe();
+  }
+  */
+}
+
+
+void EvalContext::evaluate_update_columns() {
+  auto dt0 = get_datatable(0);
+  auto replacement = repl2.evaluate_n(*this);
+  auto indices = evaluate_j_as_column_index();
+  size_t lrows = nrows();
+  size_t lcols = indices.size();
+  replacement.reshape_for_update(lrows, lcols);
+  create_placeholder_columns();
+  typecheck_for_update(replacement, indices);
+
+  for (size_t i = 0; i < lcols; ++i) {
+    dt0->set_ocolumn(indices[i], replacement.retrieve_column(i));
+  }
+}
+
+void EvalContext::evaluate_update_everything() {
+  jexpr->update(*this, repl.get());
+}
+
+void EvalContext::evaluate_update_rows() {
+  jexpr->update(*this, repl.get());
+}
+
+void EvalContext::evaluate_update_subframe() {
+  jexpr->update(*this, repl.get());
+}
+
+
+void EvalContext::typecheck_for_update(
+    expr::Workframe& replframe, const intvec& indices)
+{
+  DataTable* dt0 = get_datatable(0);
+  bool allrows = !(frames[0].ri);
+  bool repl_1row = replframe.get_grouping_mode() == expr::Grouping::SCALAR;
+  size_t n = indices.size();
+  xassert(replframe.ncols() == indices.size());
+
+  for (size_t i = 0; i < n; ++i) {
+    const Column& lcol = dt0->get_column(indices[i]);
+    const Column& rcol = replframe.get_column(i);
+    if (!lcol || lcol.stype() == SType::VOID) continue;
+    if (allrows && !repl_1row) continue; // Keep rcol's type as-is
+    if (lcol.stype() != rcol.stype()) {
+      auto llt = lcol.ltype();
+      auto rlt = rcol.ltype();
+      bool ok = (llt == rlt) ||
+                (llt == LType::INT && rlt == LType::BOOL) ||
+                (llt == LType::REAL && rlt == LType::INT);
+      if (ok) {
+        Column newcol = replframe.retrieve_column(i);
+        newcol.cast_inplace(lcol.stype());
+        replframe.replace_column(i, std::move(newcol));
+      } else {
+        throw TypeError() << "Cannot assign " << rlt
+          << " value to column `" << dt0->get_names()[indices[i]]
+          << "` of type " << lcol.stype();
       }
-    } else {
-      dt0->delete_columns(indices);
     }
   }
 }
 
 
+
+//------------------------------------------------------------------------------
+// Other
+//------------------------------------------------------------------------------
 
 // After evaluation of the j node, the columns in `columns` may have different
 // sizes: some are aggregated to group level, others have same number of rows

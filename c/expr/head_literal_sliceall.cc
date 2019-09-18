@@ -38,7 +38,8 @@ Workframe Head_Literal_SliceAll::evaluate_n(const vecExpr&, EvalContext&) const 
 
 // `f[:]` will return all columns from `f`
 //
-Workframe Head_Literal_SliceAll::evaluate_f(EvalContext& ctx, size_t frame_id) const
+Workframe Head_Literal_SliceAll::evaluate_f(
+    EvalContext& ctx, size_t frame_id, bool) const
 {
   size_t ncols = ctx.get_datatable(frame_id)->ncols;
   Workframe outputs(ctx);
@@ -55,7 +56,8 @@ Workframe Head_Literal_SliceAll::evaluate_f(EvalContext& ctx, size_t frame_id) c
 //     front by the groupby operation itself);
 //   - key columns in naturally joined frames are skipped, to avoid duplication.
 //
-Workframe Head_Literal_SliceAll::evaluate_j(const vecExpr&, EvalContext& ctx) const
+Workframe Head_Literal_SliceAll::evaluate_j(
+    const vecExpr&, EvalContext& ctx, bool) const
 {
   Workframe outputs(ctx);
   for (size_t i = 0; i < ctx.nframes(); ++i) {

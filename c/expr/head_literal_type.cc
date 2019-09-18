@@ -90,7 +90,8 @@ Workframe Head_Literal_Type::evaluate_n(const vecExpr&, EvalContext&) const {
 }
 
 
-Workframe Head_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const
+Workframe Head_Literal_Type::evaluate_f(
+    EvalContext& ctx, size_t fid, bool) const
 {
   if (value.is_type()) {
     auto et = reinterpret_cast<PyTypeObject*>(value.to_borrowed_ref());
@@ -118,8 +119,10 @@ Workframe Head_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const
 
 
 
-Workframe Head_Literal_Type::evaluate_j(const vecExpr&, EvalContext& ctx) const {
-  return evaluate_f(ctx, 0);
+Workframe Head_Literal_Type::evaluate_j(
+    const vecExpr&, EvalContext& ctx, bool allow_new) const
+{
+  return evaluate_f(ctx, 0, allow_new);
 }
 
 

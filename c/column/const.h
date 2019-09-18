@@ -33,8 +33,10 @@ class Const_ColumnImpl : public ColumnImpl {
     static Column make_int_column(size_t nrows, int64_t value);
     static Column make_float_column(size_t nrows, double value);
     static Column make_string_column(size_t nrows, CString value);
+    static Column from_1row_column(const Column& col);
 
     bool is_virtual() const noexcept override;
+    void repeat(size_t ntimes, bool inplace, Column& out) override;
 };
 
 

@@ -95,9 +95,9 @@ class Expr {
     Kind get_expr_kind() const;
 
     Workframe evaluate_n(EvalContext& ctx) const;
-    Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const;
-    Workframe evaluate_j(EvalContext& ctx) const;
-    bool    evaluate_bool() const;
+    Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new = false) const;
+    Workframe evaluate_j(EvalContext& ctx, bool allow_new = false) const;
+    bool evaluate_bool() const;
 
   private:
     // Construction helpers

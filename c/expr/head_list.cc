@@ -46,8 +46,9 @@ Workframe Head_List::evaluate_n(const vecExpr& inputs, EvalContext& ctx) const {
 }
 
 
-Workframe Head_List::evaluate_f(EvalContext&, size_t) const {
-  throw TypeError() << "A list or a sequence cannot be used as an f-selector";
+Workframe Head_List::evaluate_f(EvalContext&, size_t, bool) const {
+  throw TypeError()
+      << "A list or a sequence cannot be used inside an f-selector";
 }
 
 
@@ -135,21 +136,24 @@ static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
 }
 
 
-static Workframe _evaluate_f_list(const vecExpr& inputs, EvalContext& ctx) {
+static Workframe _evaluate_f_list(
+    const vecExpr& inputs, EvalContext& ctx, bool allow_new)
+{
   Workframe outputs(ctx);
   for (const Expr& arg : inputs) {
-    outputs.cbind( arg.evaluate_f(ctx, 0) );
+    outputs.cbind( arg.evaluate_f(ctx, 0, allow_new) );
   }
   return outputs;
 }
 
 
-Workframe Head_List::evaluate_j(const vecExpr& inputs, EvalContext& ctx) const
+Workframe Head_List::evaluate_j(
+    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
 {
   auto kind = _resolve_list_kind(inputs);
   if (kind == Kind::Bool) return _evaluate_bool_list(inputs, ctx);
   if (kind == Kind::Func) return evaluate_n(inputs, ctx);
-  return _evaluate_f_list(inputs, ctx);
+  return _evaluate_f_list(inputs, ctx, allow_new);
 }
 
 
@@ -179,12 +183,14 @@ Workframe Head_NamedList::evaluate_n(const vecExpr& inputs, EvalContext& ctx) co
 }
 
 
-Workframe Head_NamedList::evaluate_f(EvalContext&, size_t) const {
+Workframe Head_NamedList::evaluate_f(EvalContext&, size_t, bool) const {
   throw TypeError() << "A dictionary cannot be used as an f-selector";
 }
 
 
-Workframe Head_NamedList::evaluate_j(const vecExpr& inputs, EvalContext& ctx) const {
+Workframe Head_NamedList::evaluate_j(
+    const vecExpr& inputs, EvalContext& ctx, bool) const
+{
   return evaluate_n(inputs, ctx);
 }
 

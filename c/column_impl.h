@@ -157,6 +157,19 @@ class ColumnImpl
     Column repeat(size_t nreps) const;
 
     /**
+      * Repeat the column `ntimes` times. Depending on the `inplace`
+      * flag, this method is either allowed to modify the current
+      * object (inplace = true), or it should be treated as const
+      * (inplace = false). If this flag is true, an implementation is
+      * allowed to treat it as if it was false. In either case, if the
+      * implementation creates a new ColumnImpl instance, it should be
+      * stored in the provided `out` column object.
+      *
+      * Implementation in column/repeated.cc
+      */
+    virtual void repeat(size_t ntimes, bool inplace, Column& out);
+
+    /**
      * Modify the ColumnImpl, replacing values specified by the provided `mask` with
      * NAs. The `mask` column must have the same number of rows as the current,
      * and neither of them can have a RowIndex.

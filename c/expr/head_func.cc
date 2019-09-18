@@ -48,7 +48,7 @@ Kind Head_Func::get_expr_kind() const {
 
 // Forbid expressions like `f[f.A]`.
 //
-Workframe Head_Func::evaluate_f(EvalContext&, size_t) const {
+Workframe Head_Func::evaluate_f(EvalContext&, size_t, bool) const {
   throw TypeError() << "An expression cannot be used as a column selector";
 }
 
@@ -56,7 +56,9 @@ Workframe Head_Func::evaluate_f(EvalContext&, size_t) const {
 // When used as j node, a Func expression means exactly the same as
 // evaluating this expression in "normal" mode.
 //
-Workframe Head_Func::evaluate_j(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func::evaluate_j(
+    const vecExpr& args, EvalContext& ctx, bool) const
+{
   return evaluate_n(args, ctx);
 }
 

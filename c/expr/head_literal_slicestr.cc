@@ -42,8 +42,11 @@ Workframe Head_Literal_SliceStr::evaluate_n(const vecExpr&, EvalContext&) const 
 }
 
 
-
-Workframe Head_Literal_SliceStr::evaluate_f(EvalContext& ctx, size_t frame_id) const
+// Ignore the `allow_new` flag (else how would we expand the slice
+// into a list?)
+//
+Workframe Head_Literal_SliceStr::evaluate_f(
+    EvalContext& ctx, size_t frame_id, bool) const
 {
   DataTable* df = ctx.get_datatable(frame_id);
   size_t istart = start.is_none()? 0 : df->xcolindex(start);
@@ -59,9 +62,10 @@ Workframe Head_Literal_SliceStr::evaluate_f(EvalContext& ctx, size_t frame_id) c
 }
 
 
-Workframe Head_Literal_SliceStr::evaluate_j(const vecExpr&, EvalContext& ctx) const
+Workframe Head_Literal_SliceStr::evaluate_j(
+    const vecExpr&, EvalContext& ctx, bool allow_new) const
 {
-  return evaluate_f(ctx, 0);
+  return evaluate_f(ctx, 0, allow_new);
 }
 
 

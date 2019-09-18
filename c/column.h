@@ -137,8 +137,8 @@ class Column
     static Column from_range(int64_t start, int64_t stop, int64_t step, SType);
     static Column from_strvec(const strvec&);
 
-  public: // temp
-    // Assumes ownership of the `col` object
+    // Assumes ownership of the `col` object. This constructor is
+    // intended for use by derived `ColumnImpl` classes.
     explicit Column(ColumnImpl* col);
 
   //------------------------------------
@@ -248,6 +248,10 @@ class Column
     RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
+
+    // This method modifies the column in-place rbinding it with
+    // itself `ntimes` times.
+    void repeat(size_t ntimes);
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;

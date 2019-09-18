@@ -435,7 +435,7 @@ Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) c
   }
 
   Workframe outputs(ctx);
-  for (size_t i = 0; i < inputs.size(); ++i) {
+  for (size_t i = 0; i < inputs.ncols(); ++i) {
     outputs.add_column(
         fn(inputs.retrieve_column(i), gby),
         inputs.retrieve_name(i),

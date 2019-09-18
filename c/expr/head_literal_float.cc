@@ -39,13 +39,13 @@ Workframe Head_Literal_Float::evaluate_n(const vecExpr&, EvalContext& ctx) const
 }
 
 
-Workframe Head_Literal_Float::evaluate_f(EvalContext&, size_t) const {
+Workframe Head_Literal_Float::evaluate_f(EvalContext&, size_t, bool) const {
   throw TypeError() << "A floating-point value cannot be used as a "
       "column selector";
 }
 
 
-Workframe Head_Literal_Float::evaluate_j(const vecExpr&, EvalContext&) const {
+Workframe Head_Literal_Float::evaluate_j(const vecExpr&, EvalContext&, bool) const {
   throw TypeError() << "A floating-point value cannot be used as a "
       "column selector";
 }
