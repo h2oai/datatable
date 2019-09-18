@@ -236,24 +236,16 @@ void FwColumn<T>::replace_values(
   }
 
   size_t replace_n = replace_at.size();
-  const T* data_src = static_cast<const T*>(with->data());
-  const RowIndex& rowindex_src = with->rowindex();
   T* data_dest = elements_w();
   xassert(with.nrows() == replace_n);
-  if (rowindex_src) {
-    replace_at.iterate(0, replace_n, 1,
-      [&](size_t i, size_t j) {
-        if (j == RowIndex::NA) return;
-        size_t k = rowindex_src[i];
-        data_dest[j] = (k == RowIndex::NA)? GETNA<T>() : data_src[k];
-      });
-  } else {
-    replace_at.iterate(0, replace_n, 1,
-      [&](size_t i, size_t j) {
-        if (j == RowIndex::NA) return;
-        data_dest[j] = data_src[i];
-      });
-  }
+
+  replace_at.iterate(0, replace_n, 1,
+    [&](size_t i, size_t j) {
+      if (j == RowIndex::NA) return;
+      T value;
+      bool isna = replace_with.get_element(i, &value);
+      data_dest[j] = isna? GETNA<T>() : value;
+    });
 }
 
 
