@@ -187,6 +187,10 @@ void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
 }
 
 
+const Column& Workframe::get_column(size_t i) const {
+  return entries[i].column;
+}
+
 
 std::string Workframe::retrieve_name(size_t i) {
   xassert(i < entries.size());

@@ -32,17 +32,12 @@ namespace dt {
 // EvalContext
 //------------------------------------------------------------------------------
 
-EvalContext::EvalContext(DataTable* dt) {
+EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
-  mode = EvalMode::SELECT;
+  mode = evalmode;
   groupby_mode = GroupbyMode::NONE;
-}
-
-
-void EvalContext::set_mode(EvalMode m) {
-  mode = m;
 }
 
 
@@ -154,7 +149,6 @@ intvec EvalContext::evaluate_j_as_column_index() {
   auto jres = jexpr2.evaluate_j(*this, allow_new);
   size_t n = jres.ncols();
   intvec indices(n);
-  strvec newnames;
 
   for (size_t i = 0; i < n; ++i) {
     size_t frame_id, col_id;
@@ -177,13 +171,17 @@ intvec EvalContext::evaluate_j_as_column_index() {
           "computed expression and cannot be deleted";
     }
   }
-  if (!newnames.empty()) {
-    const strvec& oldnames = dt0->get_names();
-    newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
-    dt0->ncols = newnames.size();
-    dt0->set_names(newnames);
-  }
   return indices;
+}
+
+
+void EvalContext::create_placeholder_columns() {
+  if (newnames.empty()) return;
+  DataTable* dt0 = frames[0].dt;
+  const strvec& oldnames = dt0->get_names();
+  newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
+  dt0->ncols = newnames.size();
+  dt0->set_names(newnames);
 }
 
 
@@ -283,6 +281,8 @@ void EvalContext::evaluate_update_columns() {
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);
+  create_placeholder_columns();
+  typecheck_for_update(replacement, indices);
 
   for (size_t i = 0; i < lcols; ++i) {
     dt0->set_ocolumn(indices[i], replacement.retrieve_column(i));
@@ -301,6 +301,18 @@ void EvalContext::evaluate_update_subframe() {
   jexpr->update(*this, repl.get());
 }
 
+
+void EvalContext::typecheck_for_update(expr::Workframe& repl, const intvec& indices)
+{
+  xassert(repl.ncols() == indices.size());
+  size_t n = indices.size();
+  DataTable* dt0 = get_datatable(0);
+  for (size_t i = 0; i < n; ++i) {
+    const Column& lcol = dt0->get_column(indices[i]);
+    const Column& rcol = repl.get_column(i);
+    if (!lcol) continue; // Keep rcol's type as-is
+  }
+}
 
 
 

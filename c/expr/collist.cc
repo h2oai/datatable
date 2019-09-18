@@ -457,7 +457,7 @@ void collist::exclude(collist_ptr&& other) {
       }
     }
     if (!exprs.empty()) {
-      EvalContext ctx;
+      EvalContext ctx(nullptr, EvalMode::SELECT);
       xassert(indices.empty());
       for (size_t j = 0; j < exprs.size(); ++j) {
         auto colexpr = dynamic_cast<expr::expr_column*>(exprs[j].get());

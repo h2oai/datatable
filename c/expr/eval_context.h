@@ -92,18 +92,17 @@ class EvalContext {
 
     // Result
     colvec columns;
+    strvec newnames;
     strvec colnames;
-    struct ripair { RowIndex ab, bc, ac; };
-    std::vector<ripair> all_ri;
+    struct ritriple { RowIndex ab, bc, ac; };
+    std::vector<ritriple> all_ri;
     dtptr  out_datatable;
 
   public:
-    EvalContext() = default;
+    EvalContext(DataTable*, EvalMode);
     EvalContext(const EvalContext&) = delete;
     EvalContext(EvalContext&&) = delete;
 
-    explicit EvalContext(DataTable*);
-    void set_mode(EvalMode);
     EvalMode get_mode() const;
     GroupbyMode get_groupby_mode() const;
 
@@ -147,6 +146,8 @@ class EvalContext {
     void evaluate_update_rows();
     void evaluate_update_subframe();
     intvec evaluate_j_as_column_index();
+    void create_placeholder_columns();
+    void typecheck_for_update(expr::Workframe&, const intvec&);
 
     friend class dt::expr::expr_column;  // Use _product
     friend class by_node;  // Allow access to `gb`

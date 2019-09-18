@@ -103,6 +103,7 @@ class Workframe {
     bool is_placeholder_column(size_t i) const;
 
     void reshape_for_update(size_t target_nrows, size_t target_ncols);
+    const Column& get_column(size_t i) const;
     std::string retrieve_name(size_t i);
     Column      retrieve_column(size_t i);
     void        replace_column(size_t i, Column&& col);

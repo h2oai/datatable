@@ -126,14 +126,14 @@ oobj Frame::_main_getset(robj item, robj value) {
 
   // Single-column-selector case. Commonly used expressions such as
   // DT[3] or DT["col"] will result in `item` being an int/string not
-  // a tuple, and thus having `nargs == 1`.
+  // a tuple, and thus `targs` will be empty.
   if (!targs) {
     if (value == GETITEM) return _get_single_column(item);
     if (value == DELITEM) return _del_single_column(item);
     return _main_getset(otuple({py::None(), item}), value);
   }
 
-  size_t nargs = targs? targs.size() : 0;
+  size_t nargs = targs.size();
   if (nargs <= 1) {
     // Selectors of the type `DT[tuple()]` or `DT[0,]`
     throw ValueError() << "Invalid tuple of size " << nargs
@@ -168,10 +168,10 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
 
   // 1. Create the EvalContext
-  dt::EvalContext ctx(dt);
-  ctx.set_mode(value == GETITEM? dt::EvalMode::SELECT :
+  auto mode = value == GETITEM? dt::EvalMode::SELECT :
               value == DELITEM? dt::EvalMode::DELETE :
-                                dt::EvalMode::UPDATE);
+                                dt::EvalMode::UPDATE;
+  dt::EvalContext ctx(dt, mode);
 
   // 2. Search for join nodes in order to bind all aliases and
   //    to know which frames participate in `DT[...]`.
@@ -203,15 +203,16 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
 
   // 3. Instantiate `i_node` and `j_node`.
+  xassert(nargs >= 2);
   ctx.add_i(targs[0]);
   ctx.add_j(targs[1]);
 
-  if (ctx.get_mode() == dt::EvalMode::UPDATE) {
+  if (mode == dt::EvalMode::UPDATE) {
     ctx.add_replace(value);
   }
 
   ctx.evaluate();
-  if (ctx.get_mode() != dt::EvalMode::SELECT) {
+  if (mode != dt::EvalMode::SELECT) {
     _clear_types();
   }
   return ctx.get_result();
