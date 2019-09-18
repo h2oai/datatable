@@ -31,8 +31,8 @@ namespace dt {
 
 class ConstNa_ColumnImpl : public Const_ColumnImpl {
   public:
-    ConstNa_ColumnImpl(size_t nrows)
-      : Const_ColumnImpl(nrows, SType::VOID) {}
+    ConstNa_ColumnImpl(size_t nrows, SType stype = SType::VOID)
+      : Const_ColumnImpl(nrows, stype) {}
 
     bool get_element(size_t, int8_t*)   const override { return true; }
     bool get_element(size_t, int16_t*)  const override { return true; }
@@ -70,16 +70,28 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
 // ConstInt_ColumnImpl
 //------------------------------------------------------------------------------
 
-class ConstInt_ColumnImpl : public ColumnImpl {
+class ConstInt_ColumnImpl : public Const_ColumnImpl {
   private:
     int64_t value;
 
   public:
     ConstInt_ColumnImpl(size_t nrows, bool x)
-      : ColumnImpl(nrows, SType::BOOL), value(x) {}
+      : Const_ColumnImpl(nrows, SType::BOOL), value(x) {}
 
     ConstInt_ColumnImpl(size_t nrows, int64_t x)
-      : ColumnImpl(nrows, stype_for_value(x)), value(x) {}
+      : Const_ColumnImpl(nrows, stype_for_value(x)), value(x) {}
+
+    ConstInt_ColumnImpl(size_t nrows, int8_t x, SType stype)
+      : Const_ColumnImpl(nrows, stype), value(x) {}
+
+    ConstInt_ColumnImpl(size_t nrows, int16_t x, SType stype)
+      : Const_ColumnImpl(nrows, stype), value(x) {}
+
+    ConstInt_ColumnImpl(size_t nrows, int32_t x, SType stype)
+      : Const_ColumnImpl(nrows, stype), value(x) {}
+
+    ConstInt_ColumnImpl(size_t nrows, int64_t x, SType stype)
+      : Const_ColumnImpl(nrows, stype), value(x) {}
 
     ColumnImpl* shallowcopy() const override {
       return new ConstInt_ColumnImpl(_nrows, value);
@@ -129,13 +141,19 @@ class ConstInt_ColumnImpl : public ColumnImpl {
 // ConstFloat_ColumnImpl
 //------------------------------------------------------------------------------
 
-class ConstFloat_ColumnImpl : public ColumnImpl {
+class ConstFloat_ColumnImpl : public Const_ColumnImpl {
   private:
     double value;
 
   public:
     ConstFloat_ColumnImpl(size_t nrows, double x)
-      : ColumnImpl(nrows, SType::FLOAT64), value(x) {}
+      : Const_ColumnImpl(nrows, SType::FLOAT64), value(x) {}
+
+    ConstFloat_ColumnImpl(size_t nrows, float x, SType stype)
+      : Const_ColumnImpl(nrows, stype), value(static_cast<double>(x)) {}
+
+    ConstFloat_ColumnImpl(size_t nrows, double x, SType stype)
+      : Const_ColumnImpl(nrows, stype), value(x) {}
 
     ColumnImpl* shallowcopy() const override {
       return new ConstFloat_ColumnImpl(_nrows, value);
@@ -159,17 +177,21 @@ class ConstFloat_ColumnImpl : public ColumnImpl {
 // ConstString_ColumnImpl
 //------------------------------------------------------------------------------
 
-class ConstString_ColumnImpl : public ColumnImpl {
+class ConstString_ColumnImpl : public Const_ColumnImpl {
   private:
     std::string value;
 
   public:
     ConstString_ColumnImpl(size_t nrows, CString x)
-      : ColumnImpl(nrows, SType::STR32),
+      : Const_ColumnImpl(nrows, SType::STR32),
+        value(x.ch, static_cast<size_t>(x.size)) {}
+
+    ConstString_ColumnImpl(size_t nrows, CString x, SType stype)
+      : Const_ColumnImpl(nrows, stype),
         value(x.ch, static_cast<size_t>(x.size)) {}
 
     ConstString_ColumnImpl(size_t nrows, std::string x)
-      : ColumnImpl(nrows, SType::STR32),
+      : Const_ColumnImpl(nrows, SType::STR32),
         value(std::move(x)) {}
 
     ColumnImpl* shallowcopy() const override {
@@ -209,6 +231,34 @@ Column Const_ColumnImpl::make_float_column(size_t nrows, double x) {
 Column Const_ColumnImpl::make_string_column(size_t nrows, CString x) {
   return Column(new ConstString_ColumnImpl(nrows, x));
 }
+
+
+template <typename COL, SType stype>
+static Column _make(const Column& col) {
+  read_t<stype> value;
+  bool isna = col.get_element(0, &value);
+  return isna? Column(new ConstNa_ColumnImpl(1, stype))
+             : Column(new COL(1, value, stype));
+}
+
+Column Const_ColumnImpl::from_1row_column(const Column& col) {
+  xassert(col.nrows() == 1);
+  switch (col.stype()) {
+    case SType::BOOL:    return _make<ConstInt_ColumnImpl, SType::BOOL>(col);
+    case SType::INT8:    return _make<ConstInt_ColumnImpl, SType::INT8>(col);
+    case SType::INT16:   return _make<ConstInt_ColumnImpl, SType::INT16>(col);
+    case SType::INT32:   return _make<ConstInt_ColumnImpl, SType::INT32>(col);
+    case SType::INT64:   return _make<ConstInt_ColumnImpl, SType::INT64>(col);
+    case SType::FLOAT32: return _make<ConstFloat_ColumnImpl, SType::FLOAT32>(col);
+    case SType::FLOAT64: return _make<ConstFloat_ColumnImpl, SType::FLOAT64>(col);
+    case SType::STR32:   return _make<ConstString_ColumnImpl, SType::STR32>(col);
+    case SType::STR64:   return _make<ConstString_ColumnImpl, SType::STR64>(col);
+    default:
+      throw NotImplError() << "Cannot convert 1-row column of stype "
+                           << col.stype();
+  }
+}
+
 
 
 bool Const_ColumnImpl::is_virtual() const noexcept {

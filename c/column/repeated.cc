@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/const.h"
 #include "column/repeated.h"
 namespace dt {
 
@@ -69,10 +70,25 @@ bool Repeated_ColumnImpl::get_element(size_t i, py::robj* out) const { return ar
 
 
 }  // namespace dt
-//------------------------------------------------------------------------------
-// Base ColumnImpl
-//------------------------------------------------------------------------------
 
-void ColumnImpl::repeat(size_t ntimes, bool, Column& out) {
-  out = Column(new dt::Repeated_ColumnImpl(std::move(out), ntimes));
+// This is the base implementation of the virtual
+// `ColumnImpl::repeat()` method. In this implementation the
+// `inplace` flag is ignored, because we cannot make an arbitrary
+// column repeated in-place.
+//
+// Instead, we replace this object with a `Repeated_ColumnImpl` in
+// general, or with a `Const_ColumnImpl` in a special case when the
+// current column has only 1 row.
+//
+void ColumnImpl::repeat(size_t ntimes, bool inplace, Column& out) {
+  (void) inplace;
+  if (nrows() == 1) {
+    // Note: Const_ColumnImpl overrides the `repeat()` method. If it
+    // didn't, we would have had an infinite recursion here...
+    out = dt::Const_ColumnImpl::from_1row_column(out);
+    out.repeat(ntimes);
+  }
+  else {
+    out = Column(new dt::Repeated_ColumnImpl(std::move(out), ntimes));
+  }
 }
