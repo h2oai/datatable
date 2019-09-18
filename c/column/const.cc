@@ -161,18 +161,24 @@ class ConstFloat_ColumnImpl : public ColumnImpl {
 
 class ConstString_ColumnImpl : public ColumnImpl {
   private:
-    CString value;
+    std::string value;
 
   public:
     ConstString_ColumnImpl(size_t nrows, CString x)
-      : ColumnImpl(nrows, SType::STR32), value(x) {}
+      : ColumnImpl(nrows, SType::STR32),
+        value(x.ch, static_cast<size_t>(x.size)) {}
+
+    ConstString_ColumnImpl(size_t nrows, std::string x)
+      : ColumnImpl(nrows, SType::STR32),
+        value(std::move(x)) {}
 
     ColumnImpl* shallowcopy() const override {
       return new ConstString_ColumnImpl(_nrows, value);
     }
 
     bool get_element(size_t, CString* out) const override {
-      *out = value;
+      out->ch = value.c_str();
+      out->size = static_cast<int64_t>(value.size());
       return false;
     }
 };
@@ -207,6 +213,18 @@ Column Const_ColumnImpl::make_string_column(size_t nrows, CString x) {
 
 bool Const_ColumnImpl::is_virtual() const noexcept {
   return true;
+}
+
+
+void Const_ColumnImpl::repeat(size_t ntimes, bool inplace, Column& out) {
+  if (inplace) {
+    _nrows *= ntimes;
+  }
+  else {
+    ColumnImpl* newimpl = this->shallowcopy();
+    newimpl->repeat(ntimes, true, out);
+    out = Column(newimpl);
+  }
 }
 
 

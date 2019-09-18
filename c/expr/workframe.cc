@@ -128,8 +128,12 @@ void Workframe::rename(const std::string& newname) {
 
 
 
-size_t Workframe::size() const noexcept {
+size_t Workframe::ncols() const noexcept {
   return entries.size();
+}
+
+size_t Workframe::nrows() const noexcept {
+  return entries.empty()? 0 : entries[0].column.nrows();
 }
 
 EvalContext& Workframe::get_context() const noexcept {
@@ -151,6 +155,35 @@ bool Workframe::is_reference_column(
   *iframe = entries[i].frame_id;
   *icol  = entries[i].column_id;
   return !(is_computed_column(i) || is_placeholder_column(i));
+}
+
+
+// Ensure that this workframe is suitable for updating a region
+// of the requested shape [target_nrows x target_ncols].
+//
+void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
+  size_t this_nrows = nrows();
+  size_t this_ncols = ncols();
+  if (this_ncols == 0 && target_ncols == 0 && this_nrows == 0) return;
+  bool ok = (this_nrows == target_nrows || this_nrows == 1) &&
+            (this_ncols == target_ncols || this_ncols == 1);
+  if (!ok) {
+    throw ValueError() << "Invalid replacement Frame: expected ["
+        << target_nrows << " x " << target_ncols << "], but received ["
+        << this_nrows << " x " << this_ncols << "]";
+  }
+  if (this_nrows != target_nrows) {
+    xassert(this_nrows == 1);
+    for (auto& item : entries) {
+      item.column.repeat(target_nrows);  // modifies the column in-place
+    }
+  }
+  if (this_ncols != target_ncols) {
+    xassert(this_ncols == 1);
+    entries.resize(target_ncols, entries[0]);
+  }
+  xassert(nrows() == target_nrows);
+  xassert(ncols() == target_ncols);
 }
 
 

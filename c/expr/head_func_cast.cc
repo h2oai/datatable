@@ -34,7 +34,7 @@ Head_Func_Cast::Head_Func_Cast(SType s) : stype(s) {}
 Workframe Head_Func_Cast::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   xassert(args.size() == 1);
   Workframe outputs = args[0].evaluate_n(ctx);
-  size_t n = outputs.size();
+  size_t n = outputs.ncols();
   for (size_t i = 0; i < n; ++i) {
     Column col = outputs.retrieve_column(i);
     col.cast_inplace(stype);

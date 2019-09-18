@@ -73,6 +73,7 @@ class Workframe {
       uint32_t    column_id;
 
       Record();
+      Record(const Record&) = default;
       Record(Record&&) noexcept = default;
       Record(Column&&, std::string&&);
       Record(Column&&, const std::string&, size_t, size_t);
@@ -93,13 +94,15 @@ class Workframe {
     void cbind(Workframe&&);
     void rename(const std::string& name);
 
-    size_t size() const noexcept;
+    size_t ncols() const noexcept;
+    size_t nrows() const noexcept;
     EvalContext& get_context() const noexcept;
 
     bool is_computed_column(size_t i) const;
     bool is_reference_column(size_t i, size_t* iframe, size_t* icol) const;
     bool is_placeholder_column(size_t i) const;
 
+    void reshape_for_update(size_t target_nrows, size_t target_ncols);
     std::string retrieve_name(size_t i);
     Column      retrieve_column(size_t i);
     void        replace_column(size_t i, Column&& col);

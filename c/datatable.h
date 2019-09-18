@@ -117,6 +117,7 @@ class DataTable {
     }
     void set_ocolumn(size_t i, Column&& newcol) {
       xassert(i < columns.size());
+      xassert(newcol.nrows() == nrows);
       columns[i] = std::move(newcol);
     }
 

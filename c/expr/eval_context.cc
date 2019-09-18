@@ -87,6 +87,7 @@ void EvalContext::add_j(py::oobj oj) {
 
 void EvalContext::add_replace(py::oobj obj) {
   xassert(!repl);
+  repl2 = dt::expr::Expr(obj);
   repl = repl_node::make(*this, obj);
 }
 
@@ -131,10 +132,7 @@ void EvalContext::evaluate() {
       break;
 
     case EvalMode::DELETE: evaluate_delete(); break;
-
-    case EvalMode::UPDATE:
-      jexpr->update(*this, repl.get());
-      break;
+    case EvalMode::UPDATE: evaluate_update(); break;
   }
 }
 
@@ -153,8 +151,8 @@ void EvalContext::evaluate() {
 intvec EvalContext::evaluate_j_as_column_index() {
   bool allow_new = (mode == EvalMode::UPDATE);
   DataTable* dt0 = frames[0].dt;
-  auto jres = jexpr2.evaluate_j(*this);
-  size_t n = jres.size();
+  auto jres = jexpr2.evaluate_j(*this, allow_new);
+  size_t n = jres.ncols();
   intvec indices(n);
   strvec newnames;
 
@@ -195,7 +193,12 @@ intvec EvalContext::evaluate_j_as_column_index() {
 // DELETE
 //------------------------------------------------------------------------------
 
-// Main delete function: `del DT[...]`
+// Main delete function: `del DT[...]`. Deleting basically falls into
+// four categories:
+//   - delete rows from a frame;
+//   - delete columns from a frame;
+//   - delete subset of both rows & columns;
+//   - delete all rows & all columns (i.e. delete the entire frame).
 //
 void EvalContext::evaluate_delete() {
   if (jexpr2.get_expr_kind() == expr::Kind::SliceAll) {
@@ -250,7 +253,53 @@ void EvalContext::evaluate_delete_subframe() {
 // UPDATE
 //------------------------------------------------------------------------------
 
+// Similarly to DELETE, there are 4 conceptual cases here:
+//   - evaluate_update_everything(): `DT[:, :] = R`
+//   - evaluate_update_columns():    `DT[:, j] = R`
+//   - evaluate_update_rows():       `DT[i, :] = R`
+//   - evaluate_update_subframe():   `DT[i, j] = R`
+//
+void EvalContext::evaluate_update() {
+  bool allrows = !(frames[0].ri);
+  bool allcols = (jexpr2.get_expr_kind() == expr::Kind::SliceAll);
+  if (allcols) {
+    if (allrows) evaluate_update_everything();
+    else         evaluate_update_rows();
+  } else {
+    if (allrows) evaluate_update_columns();
+    else         evaluate_update_subframe();
+  }
+}
 
+
+void EvalContext::evaluate_update_columns() {
+  // Note: replacement MUST be evaluated before indices, since
+  // computing indices may add new temporary columns into the
+  // frame.
+  //
+  auto replacement = repl2.evaluate_n(*this);
+  auto indices = evaluate_j_as_column_index();
+  auto dt0 = get_datatable(0);
+  size_t lrows = nrows();
+  size_t lcols = indices.size();
+  replacement.reshape_for_update(lrows, lcols);
+
+  for (size_t i = 0; i < lcols; ++i) {
+    dt0->set_ocolumn(indices[i], replacement.retrieve_column(i));
+  }
+}
+
+void EvalContext::evaluate_update_everything() {
+  jexpr->update(*this, repl.get());
+}
+
+void EvalContext::evaluate_update_rows() {
+  jexpr->update(*this, repl.get());
+}
+
+void EvalContext::evaluate_update_subframe() {
+  jexpr->update(*this, repl.get());
+}
 
 
 

@@ -36,14 +36,14 @@ Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) co
   xassert(args.size() == 2);
   Workframe lhs = args[0].evaluate_n(ctx);
   Workframe rhs = args[1].evaluate_n(ctx);
-  size_t lmask = (lhs.size() == 1)? 0 : size_t(-1);
-  size_t rmask = (rhs.size() == 1)? 0 : size_t(-1);
-  if (lmask && rmask && lhs.size() != rhs.size()) {
+  size_t lmask = (lhs.ncols() == 1)? 0 : size_t(-1);
+  size_t rmask = (rhs.ncols() == 1)? 0 : size_t(-1);
+  if (lmask && rmask && lhs.ncols() != rhs.ncols()) {
     throw ValueError() << "Incompatible column vectors in a binary operation: "
-      "LHS contains " << lhs.size() << " items, while RHS has " << rhs.size()
+      "LHS contains " << lhs.ncols() << " items, while RHS has " << rhs.ncols()
       << " items";
   }
-  size_t size = lmask? lhs.size() : rmask? rhs.size() : 1;
+  size_t size = lmask? lhs.ncols() : rmask? rhs.ncols() : 1;
   lhs.sync_grouping_mode(rhs);
   auto gmode = lhs.get_grouping_mode();
   Workframe outputs(ctx);

@@ -81,6 +81,7 @@ class EvalContext {
     j_node_ptr    jexpr;
     expr::Expr    jexpr2;
     repl_node_ptr repl;
+    expr::Expr    repl2;
 
     // Runtime
     frvec         frames;
@@ -137,9 +138,14 @@ class EvalContext {
 
   private:
     void evaluate_delete();
-    void evaluate_delete_rows();
     void evaluate_delete_columns();
+    void evaluate_delete_rows();
     void evaluate_delete_subframe();
+    void evaluate_update();
+    void evaluate_update_columns();
+    void evaluate_update_everything();
+    void evaluate_update_rows();
+    void evaluate_update_subframe();
     intvec evaluate_j_as_column_index();
 
     friend class dt::expr::expr_column;  // Use _product

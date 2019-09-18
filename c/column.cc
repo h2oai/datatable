@@ -137,9 +137,11 @@ void swap(Column& lhs, Column& rhs) {
   std::swap(lhs.pcol, rhs.pcol);
 }
 
-Column::Column() : pcol(nullptr) {}
+Column::Column()
+  : pcol(nullptr) {}
 
-Column::Column(ColumnImpl* col) : pcol(col) {}  // private
+Column::Column(ColumnImpl* col)
+  : pcol(col) {}
 
 Column::Column(const Column& other)
   : pcol(other.pcol->acquire_instance()) {}
@@ -288,6 +290,12 @@ void Column::replace_values(const RowIndex& replace_at,
                              const Column& replace_with)
 {
   pcol->replace_values(*this, replace_at, replace_with);
+}
+
+
+void Column::repeat(size_t ntimes) {
+  bool inplace = true;  // && pcol->use_count() == 1
+  pcol->repeat(ntimes, inplace, *this);
 }
 
 

@@ -19,25 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_CONST_h
-#define dt_COLUMN_CONST_h
+#ifndef dt_COLUMN_REPEATED_h
+#define dt_COLUMN_REPEATED_h
+#include <memory>
 #include "column_impl.h"
 namespace dt {
 
 
-class Const_ColumnImpl : public ColumnImpl {
+/**
+  * Virtual column representing the `arg` column repeated n times.
+  */
+class Repeated_ColumnImpl : public ColumnImpl {
+  private:
+    size_t mod;
+    Column arg;  // arg.nrows() == mod
+
   public:
-    using ColumnImpl::ColumnImpl;
-    static Column make_na_column(size_t nrows);
-    static Column make_bool_column(size_t nrows, bool value);
-    static Column make_int_column(size_t nrows, int64_t value);
-    static Column make_float_column(size_t nrows, double value);
-    static Column make_string_column(size_t nrows, CString value);
-    static Column from_1row_column(const Column& col);
+    Repeated_ColumnImpl(Column&&, size_t ntimes);
 
     bool is_virtual() const noexcept override;
+    ColumnImpl* shallowcopy() const override;
     void repeat(size_t ntimes, bool inplace, Column& out) override;
+    // ColumnImpl* materialize() override;
+
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, py::robj*) const override;
 };
+
 
 
 
