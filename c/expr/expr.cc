@@ -122,8 +122,17 @@ void Expr::_init_from_frame(py::robj src) {
 
 
 void Expr::_init_from_int(py::robj src) {
-  int64_t x = src.to_int64_strict();
-  head = ptrHead(new Head_Literal_Int(x));
+  py::oint src_int = src.to_pyint();
+  int overflow;
+  int64_t x = src_int.ovalue<int64_t>(&overflow);
+  if (overflow) {
+    // If overflow occurs here, the returned value will be +/-Inf,
+    // which is exactly what we need.
+    double xx = src_int.ovalue<double>(&overflow);
+    head = ptrHead(new Head_Literal_Float(xx));
+  } else {
+    head = ptrHead(new Head_Literal_Int(x));
+  }
 }
 
 

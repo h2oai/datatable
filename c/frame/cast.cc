@@ -137,14 +137,12 @@ static void cast_fw1(const Column& col, const int32_t* indices,
 template <typename T, typename U, U(*CAST_OP)(T)>
 static void cast_fw2(const Column& col, void* out_data)
 {
-  auto inp = static_cast<const T*>(col->data());
   auto out = static_cast<U*>(out_data);
-  const RowIndex& rowindex = col->rowindex();
   dt::parallel_for_static(col.nrows(),
     [=](size_t i) {
-      size_t j = rowindex[i];
-      T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
-      out[i] = CAST_OP(x);
+      T value;
+      bool isna = col.get_element(i, &value);
+      out[i] = isna? GETNA<U>() : CAST_OP(value);
     });
 }
 
@@ -338,7 +336,7 @@ Column cast_manager::execute(const Column& src, MemoryRange&& target_mbuf,
     }
   }
   else {
-    if (castfns.f0) {
+    if (castfns.f0 && !src.is_virtual()) {
       castfns.f0(src, 0, out_data);
     }
     else {

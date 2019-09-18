@@ -41,15 +41,6 @@ EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
 }
 
 
-EvalMode EvalContext::get_mode() const {
-  return mode;
-}
-
-
-GroupbyMode EvalContext::get_groupby_mode() const {
-  return groupby_mode;
-}
-
 
 void EvalContext::add_join(py::ojoin oj) {
   DataTable* dt = oj.get_datatable();
@@ -85,6 +76,23 @@ void EvalContext::add_replace(py::oobj obj) {
   repl2 = dt::expr::Expr(obj);
   repl = repl_node::make(*this, obj);
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// Properties
+//------------------------------------------------------------------------------
+
+EvalMode EvalContext::get_mode() const {
+  return mode;
+}
+
+GroupbyMode EvalContext::get_groupby_mode() const {
+  return groupby_mode;
+}
+
+
 
 
 
@@ -258,6 +266,8 @@ void EvalContext::evaluate_delete_subframe() {
 //   - evaluate_update_subframe():   `DT[i, j] = R`
 //
 void EvalContext::evaluate_update() {
+  jexpr->update(*this, repl.get());
+  /*
   bool allrows = !(frames[0].ri);
   bool allcols = (jexpr2.get_expr_kind() == expr::Kind::SliceAll);
   if (allcols) {
@@ -267,17 +277,14 @@ void EvalContext::evaluate_update() {
     if (allrows) evaluate_update_columns();
     else         evaluate_update_subframe();
   }
+  */
 }
 
 
 void EvalContext::evaluate_update_columns() {
-  // Note: replacement MUST be evaluated before indices, since
-  // computing indices may add new temporary columns into the
-  // frame.
-  //
+  auto dt0 = get_datatable(0);
   auto replacement = repl2.evaluate_n(*this);
   auto indices = evaluate_j_as_column_index();
-  auto dt0 = get_datatable(0);
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);
@@ -302,15 +309,36 @@ void EvalContext::evaluate_update_subframe() {
 }
 
 
-void EvalContext::typecheck_for_update(expr::Workframe& repl, const intvec& indices)
+void EvalContext::typecheck_for_update(
+    expr::Workframe& replframe, const intvec& indices)
 {
-  xassert(repl.ncols() == indices.size());
-  size_t n = indices.size();
   DataTable* dt0 = get_datatable(0);
+  bool allrows = !(frames[0].ri);
+  bool repl_1row = replframe.get_grouping_mode() == expr::Grouping::SCALAR;
+  size_t n = indices.size();
+  xassert(replframe.ncols() == indices.size());
+
   for (size_t i = 0; i < n; ++i) {
     const Column& lcol = dt0->get_column(indices[i]);
-    const Column& rcol = repl.get_column(i);
-    if (!lcol) continue; // Keep rcol's type as-is
+    const Column& rcol = replframe.get_column(i);
+    if (!lcol || lcol.stype() == SType::VOID) continue;
+    if (allrows && !repl_1row) continue; // Keep rcol's type as-is
+    if (lcol.stype() != rcol.stype()) {
+      auto llt = lcol.ltype();
+      auto rlt = rcol.ltype();
+      bool ok = (llt == rlt) ||
+                (llt == LType::INT && rlt == LType::BOOL) ||
+                (llt == LType::REAL && rlt == LType::INT);
+      if (ok) {
+        Column newcol = replframe.retrieve_column(i);
+        newcol.cast_inplace(lcol.stype());
+        replframe.replace_column(i, std::move(newcol));
+      } else {
+        throw TypeError() << "Cannot assign " << rlt
+          << " value to column `" << dt0->get_names()[indices[i]]
+          << "` of type " << lcol.stype();
+      }
+    }
   }
 }
 
