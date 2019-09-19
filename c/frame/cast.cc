@@ -122,21 +122,6 @@ static void cast_fw0(const Column& col, size_t start, void* out_data)
 
 
 template <typename T, typename U, U(*CAST_OP)(T)>
-static void cast_fw1(const Column& col, const int32_t* indices,
-                     void* out_data)
-{
-  auto inp = static_cast<const T*>(col->data());
-  auto out = static_cast<U*>(out_data);
-  dt::parallel_for_static(col.nrows(),
-    [=](size_t i) {
-      size_t j = static_cast<size_t>(indices[i]);
-      T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
-      out[i] = CAST_OP(x);
-    });
-}
-
-
-template <typename T, typename U, U(*CAST_OP)(T)>
 static void cast_fw2(const Column& col, void* out_data)
 {
   auto out = static_cast<U*>(out_data);
@@ -228,22 +213,19 @@ static Column cast_str_to_str(const Column& col, MemoryRange&& out_offsets,
 class cast_manager {
   private:
     using castfn0 = void (*)(const Column&, size_t start, void* out);
-    using castfn1 = void (*)(const Column&, const int32_t* indices, void* out);
     using castfn2 = void (*)(const Column&, void* out);
     using castfnx = Column (*)(const Column&, MemoryRange&&, SType);
     struct cast_info {
       castfn0  f0;
-      castfn1  f1;
       castfn2  f2;
       castfnx  fx;
-      cast_info() : f0(nullptr), f1(nullptr), f2(nullptr), fx(nullptr) {}
+      cast_info() : f0(nullptr), f2(nullptr), fx(nullptr) {}
     };
     std::unordered_map<size_t, cast_info> all_casts;
 
   public:
 
     inline void add(SType st_from, SType st_to, castfn0 f);
-    inline void add(SType st_from, SType st_to, castfn1 f);
     inline void add(SType st_from, SType st_to, castfn2 f);
     inline void add(SType st_from, SType st_to, castfnx f);
 
@@ -261,12 +243,6 @@ void cast_manager::add(SType st_from, SType st_to, castfn0 f) {
   size_t id = key(st_from, st_to);
   xassert(!all_casts[id].f0);
   all_casts[id].f0 = f;
-}
-
-void cast_manager::add(SType st_from, SType st_to, castfn1 f) {
-  size_t id = key(st_from, st_to);
-  xassert(!all_casts[id].f1);
-  all_casts[id].f1 = f;
 }
 
 void cast_manager::add(SType st_from, SType st_to, castfn2 f) {
@@ -333,7 +309,6 @@ static cast_manager casts;
 void py::DatatableModule::init_casts()
 {
   // cast_fw0: cast a fw column without rowindex
-  // cast_fw1: cast a fw column with ARR32 rowindex
   // cast_fw2: cast a fw column with any rowindex (including none)
   constexpr SType bool8  = SType::BOOL;
   constexpr SType int8   = SType::INT8;
@@ -354,14 +329,6 @@ void py::DatatableModule::init_casts()
   casts.add(int64, int64,   cast_fw0<int64_t, int64_t, _copy<int64_t>>);
   casts.add(real32, real32, cast_fw0<float,   float,   _copy<float>>);
   casts.add(real64, real64, cast_fw0<double,  double,  _copy<double>>);
-
-  casts.add(bool8, bool8,   cast_fw1<int8_t,  int8_t,  _copy<int8_t>>);
-  casts.add(int8, int8,     cast_fw1<int8_t,  int8_t,  _copy<int8_t>>);
-  casts.add(int16, int16,   cast_fw1<int16_t, int16_t, _copy<int16_t>>);
-  casts.add(int32, int32,   cast_fw1<int32_t, int32_t, _copy<int32_t>>);
-  casts.add(int64, int64,   cast_fw1<int64_t, int64_t, _copy<int64_t>>);
-  casts.add(real32, real32, cast_fw1<float,   float,   _copy<float>>);
-  casts.add(real64, real64, cast_fw1<double,  double,  _copy<double>>);
 
   casts.add(bool8, bool8,   cast_fw2<int8_t,  int8_t,  _copy<int8_t>>);
   casts.add(int8, int8,     cast_fw2<int8_t,  int8_t,  _copy<int8_t>>);
@@ -403,13 +370,6 @@ void py::DatatableModule::init_casts()
   casts.add(real32, int32, cast_fw0<float,   int32_t, fw_fw<float, int32_t>>);
   casts.add(real64, int32, cast_fw0<double,  int32_t, fw_fw<double, int32_t>>);
 
-  casts.add(bool8, int32,  cast_fw1<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
-  casts.add(int8, int32,   cast_fw1<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
-  casts.add(int16, int32,  cast_fw1<int16_t, int32_t, fw_fw<int16_t, int32_t>>);
-  casts.add(int64, int32,  cast_fw1<int64_t, int32_t, fw_fw<int64_t, int32_t>>);
-  casts.add(real32, int32, cast_fw1<float,   int32_t, fw_fw<float, int32_t>>);
-  casts.add(real64, int32, cast_fw1<double,  int32_t, fw_fw<double, int32_t>>);
-
   casts.add(bool8, int32,  cast_fw2<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
   casts.add(int8, int32,   cast_fw2<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
   casts.add(int16, int32,  cast_fw2<int16_t, int32_t, fw_fw<int16_t, int32_t>>);
@@ -424,13 +384,6 @@ void py::DatatableModule::init_casts()
   casts.add(int32, int64,  cast_fw0<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
   casts.add(real32, int64, cast_fw0<float,   int64_t, fw_fw<float, int64_t>>);
   casts.add(real64, int64, cast_fw0<double,  int64_t, fw_fw<double, int64_t>>);
-
-  casts.add(bool8, int64,  cast_fw1<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
-  casts.add(int8, int64,   cast_fw1<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
-  casts.add(int16, int64,  cast_fw1<int16_t, int64_t, fw_fw<int16_t, int64_t>>);
-  casts.add(int32, int64,  cast_fw1<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
-  casts.add(real32, int64, cast_fw1<float,   int64_t, fw_fw<float, int64_t>>);
-  casts.add(real64, int64, cast_fw1<double,  int64_t, fw_fw<double, int64_t>>);
 
   casts.add(bool8, int64,  cast_fw2<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
   casts.add(int8, int64,   cast_fw2<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
@@ -461,13 +414,6 @@ void py::DatatableModule::init_casts()
   casts.add(int32, real64,  cast_fw0<int32_t, double, fw_fw<int32_t, double>>);
   casts.add(int64, real64,  cast_fw0<int64_t, double, fw_fw<int64_t, double>>);
   casts.add(real32, real64, cast_fw0<float,   double, _static<float, double>>);
-
-  casts.add(bool8, real64,  cast_fw1<int8_t,  double, fw_fw<int8_t, double>>);
-  casts.add(int8, real64,   cast_fw1<int8_t,  double, fw_fw<int8_t, double>>);
-  casts.add(int16, real64,  cast_fw1<int16_t, double, fw_fw<int16_t, double>>);
-  casts.add(int32, real64,  cast_fw1<int32_t, double, fw_fw<int32_t, double>>);
-  casts.add(int64, real64,  cast_fw1<int64_t, double, fw_fw<int64_t, double>>);
-  casts.add(real32, real64, cast_fw1<float,   double, _static<float, double>>);
 
   casts.add(bool8, real64,  cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
   casts.add(int8, real64,   cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
