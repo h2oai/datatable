@@ -643,8 +643,9 @@ def find_linked_dynamic_libraries():
                 else:
                     log.fatal("Cannot locate dynamic library `%s`" % libname)
             else:
-                log.fatal("`locate` command returned the following error:\n%s"
-                          % stderr.decode())
+                print("%s :::: %d :::: %s" % (libname, proc.returncode, stdout.decode()))
+                log.fatal("`locate` command returned the following error while looking for %s:\n%s"
+                          % (libname, stderr.decode()))
         return resolved
 
 
