@@ -89,10 +89,8 @@ static Column reduce_first(const Column& col, const Groupby& groupby)
   // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
   // to the column will produce the vector of first elements in that column.
   arr32_t indices(ngrps, groupby.offsets_r());
-  RowIndex ri = RowIndex(std::move(indices), true)
-                * col->rowindex();
   Column res = col;  // copy
-  res->replace_rowindex(ri);
+  res.apply_rowindex_old(RowIndex(std::move(indices), true));
   if (ngrps == 1) res.materialize();
   return res;
 }
