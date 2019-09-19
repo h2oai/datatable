@@ -170,6 +170,11 @@ class ColumnImpl
     virtual void repeat(size_t ntimes, bool inplace, Column& out);
 
     /**
+      * Implementation in column/view.cc
+      */
+    virtual void apply_rowindex(const RowIndex& ri, Column& out);
+
+    /**
      * Modify the ColumnImpl, replacing values specified by the provided `mask` with
      * NAs. The `mask` column must have the same number of rows as the current,
      * and neither of them can have a RowIndex.
