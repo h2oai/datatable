@@ -62,3 +62,12 @@ Frame
   column that was being created (#1983).
 
 - |fix| Fixed a crash when joining a frame that had 0 rows (#1988).
+
+
+Internal
+--------
+
+- |api| Function `dt.internal.frame_column_rowindex(DT, i)` was removed and
+  replaced with `dt.internal.frame_columns_virtual(DT)`. The latter returns
+  a tuple of True/False indicators of whether each column in a Frame is
+  virtual or not.

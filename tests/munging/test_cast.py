@@ -30,7 +30,7 @@ import math
 import pytest
 import datatable as dt
 from datatable import f, stype, ltype
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 from tests import noop, assert_equals
 
 
@@ -323,10 +323,8 @@ def test_cast_views_all(viewtype, source_stype, target_stype):
     ][viewtype]
     DT = dt.Frame(A=range(10), stype=source_stype)
     DT = DT[selector, :]
-    ri = frame_column_rowindex(DT, 0)
+    assert frame_columns_virtual(DT)[0]
     assert DT.stypes == (source_stype,)
-    assert ri is not None
-    assert ri.type == "slice" if viewtype < 2 else "arr32"
 
     RES = DT[:, target_stype(f.A)]
     assert RES.stypes == (target_stype,)

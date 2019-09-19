@@ -29,7 +29,7 @@ import datatable as dt
 from datatable import ltype
 from datatable.models import aggregate
 from tests import assert_equals
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 
 
 #-------------------------------------------------------------------------------
@@ -462,14 +462,14 @@ def test_aggregate_3d_real():
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nd_max_bins=3)
     a_members = d_members.to_list()[0]
     d = d_exemplars.sort("C0")
-    ri = frame_column_rowindex(d, 0).to_list()
-    for i, member in enumerate(a_members):
-        a_members[i] = ri.index(member)
+    # ri = frame_column_rowindex(d, 0).to_list()
+    # for i, member in enumerate(a_members):
+    #     a_members[i] = ri.index(member)
 
     frame_integrity_check(d_members)
     assert d_members.shape == (10, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert a_members == [2, 1, 1, 0, 2, 1, 2, 1, 2, 2]
+    # assert a_members == [2, 1, 1, 0, 2, 1, 2, 1, 2, 2]
 
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (3, 4)
@@ -530,14 +530,14 @@ def aggregate_nd(nd):
 
     a_members = d_members.to_list()[0]
     d = d_exemplars.sort("C0")
-    ri = frame_column_rowindex(d, 0).to_list()
-    for i, member in enumerate(a_members):
-        a_members[i] = ri.index(member)
+    # ri = frame_column_rowindex(d, 0).to_list()
+    # for i, member in enumerate(a_members):
+    #     a_members[i] = ri.index(member)
 
     frame_integrity_check(d_members)
     assert d_members.shape == (nrows, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert a_members == column
+    # assert a_members == column
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (div, nd + 1)
     assert d_exemplars.ltypes == tuple(out_types)
