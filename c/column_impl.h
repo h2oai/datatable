@@ -100,6 +100,7 @@ class ColumnImpl
 
   public:
     static ColumnImpl* new_impl(SType);
+    static ColumnImpl* new_impl(SType, size_t nrows);
     static ColumnImpl* new_impl(void*, SType);
     ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;

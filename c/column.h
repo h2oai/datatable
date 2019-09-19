@@ -157,7 +157,7 @@ class Column
 
     ColumnImpl* operator->();
     const ColumnImpl* operator->() const;
-
+    ColumnImpl* release() noexcept;
 
   //------------------------------------
   // Data access

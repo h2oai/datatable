@@ -177,6 +177,13 @@ const ColumnImpl* Column::operator->() const {
   return pcol;
 }
 
+ColumnImpl* Column::release() noexcept {
+  ColumnImpl* tmp = pcol;
+  pcol = nullptr;
+  return tmp;
+}
+
+
 
 //---- Properties ----------------------
 
