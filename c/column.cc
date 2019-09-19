@@ -339,7 +339,6 @@ void VoidColumn::apply_na_mask(const Column&) {}
 void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
 void VoidColumn::init_data() {}
 void VoidColumn::fill_na() {}
-void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
 
 
 
@@ -367,7 +366,6 @@ class StrvecColumn : public ColumnImpl {
     void replace_values(Column&, const RowIndex&, const Column&) override {}
     void init_data() override {}
     void fill_na() override {}
-    void fill_na_mask(int8_t*, size_t, size_t) override {}
 };
 
 StrvecColumn::StrvecColumn(const strvec& v)

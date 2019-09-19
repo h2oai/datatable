@@ -300,7 +300,6 @@ public:
   virtual ColumnImpl* materialize() override;
   void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
   void replace_values(const RowIndex& at, T with);
-  void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
   void init_data() override;
@@ -438,7 +437,6 @@ public:
   void verify_integrity(const std::string& name) const override;
 
   bool get_element(size_t i, CString* out) const override;
-  void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
   StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
@@ -471,7 +469,6 @@ class VoidColumn : public ColumnImpl {
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const Column&) override;
     void replace_values(Column&, const RowIndex&, const Column&) override;
-    void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     void init_data() override;
     void fill_na() override;

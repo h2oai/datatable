@@ -338,16 +338,6 @@ void StringColumn<T>::fill_na() {
 
 
 
-template <typename T>
-void StringColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
-  const T* offs = this->offsets();
-  for (size_t i = row0; i < row1; ++i) {
-    outmask[i] = ISNA<T>(offs[i]);
-  }
-}
-
-
-
 
 //------------------------------------------------------------------------------
 // Explicit instantiation of the template

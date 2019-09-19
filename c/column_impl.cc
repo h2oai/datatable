@@ -208,6 +208,38 @@ void ColumnImpl::materialize_at(void* addr) const {
 
 
 //------------------------------------------------------------------------------
+// fill_na_mask()
+//------------------------------------------------------------------------------
+
+template <typename T>
+void _fill_na_mask(ColumnImpl* icol, int8_t* outmask, size_t row0, size_t row1)
+{
+  T value;
+  for (size_t i = row0; i < row1; ++i) {
+    outmask[i] = icol->get_element(i, &value);
+  }
+}
+
+void ColumnImpl::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
+  switch (_stype) {
+    case SType::BOOL:
+    case SType::INT8:    _fill_na_mask<int8_t> (this, outmask, row0, row1); break;
+    case SType::INT16:   _fill_na_mask<int16_t>(this, outmask, row0, row1); break;
+    case SType::INT32:   _fill_na_mask<int32_t>(this, outmask, row0, row1); break;
+    case SType::INT64:   _fill_na_mask<int64_t>(this, outmask, row0, row1); break;
+    case SType::FLOAT32: _fill_na_mask<float>  (this, outmask, row0, row1); break;
+    case SType::FLOAT64: _fill_na_mask<double> (this, outmask, row0, row1); break;
+    case SType::STR32:
+    case SType::STR64:   _fill_na_mask<CString>(this, outmask, row0, row1); break;
+    default:
+      throw NotImplError() << "Cannot fill_na_mask() on column of stype `"
+                           << _stype << "`";
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
 
@@ -219,23 +251,19 @@ void ColumnImpl::init_data() {}
 
 
 void ColumnImpl::apply_na_mask(const Column&) {
-  throw NotImplError();
+  throw NotImplError() << "Method ColumnImpl::apply_na_mask() not implemented";
 }
 
 void ColumnImpl::replace_values(Column&, const RowIndex&, const Column&) {
-  throw NotImplError();
-}
-
-void ColumnImpl::fill_na_mask(int8_t*, size_t, size_t) {
-  throw NotImplError();
+  throw NotImplError() << "Method ColumnImpl::replace_values() not implemented";
 }
 
 void ColumnImpl::rbind_impl(colvec&, size_t, bool) {
-  throw NotImplError();
+  throw NotImplError() << "Method ColumnImpl::rbind_impl() not implemented";
 }
 
 void ColumnImpl::fill_na() {
-  throw NotImplError();
+  throw NotImplError() << "Method ColumnImpl::fill_na() not implemented";
 }
 
 void ColumnImpl::na_pad(size_t new_nrows, bool inplace, Column& out) {

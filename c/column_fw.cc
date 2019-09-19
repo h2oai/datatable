@@ -229,16 +229,6 @@ void FwColumn<T>::replace_values(
 
 
 
-template <typename T>
-void FwColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
-  const T* tdata = elements_r();
-  ri.iterate(row0, row1, 1,
-    [&](size_t i, size_t j) {
-      outmask[i] = (j == RowIndex::NA) || ISNA<T>(tdata[j]);
-    });
-}
-
-
 // Explicit instantiations
 template class FwColumn<int8_t>;
 template class FwColumn<int16_t>;
