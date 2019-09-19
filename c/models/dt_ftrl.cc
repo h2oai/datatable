@@ -545,9 +545,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
           const size_t j0 = ri[0][ii];
 
-          if (j0 != RowIndex::NA && !ISNA<U>(data_y[0][j0])
-              && !std::isinf(data_y[0][j0]))
-          {
+          if (is_data_valid(data_y[0], j0)) {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < label_ids_train.size(); ++k) {
               const size_t j = ri[0][ii];
@@ -585,9 +583,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
             const size_t j0 = ri_val[0][i];
 
-            if (j0 != RowIndex::NA && !ISNA<V>(data_y_val[0][j0])
-                && !std::isinf(data_y[0][j0]))
-            {
+            if (is_data_valid(data_y_val[0], j0)) {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < label_ids_val.size(); ++k) {
                 const size_t j = ri_val[0][i];
@@ -830,6 +826,19 @@ void Ftrl<T>::fill_ri_data(const DataTable* dt,
     data.push_back(static_cast<const U*>(col->data()));
     ri.push_back(col->rowindex());
   }
+}
+
+
+/**
+ *  Check if `data[i]` is valid data for training.
+ */
+template <typename T>
+template <typename U /* column data type */>
+bool Ftrl<T>::is_data_valid(const U* data, size_t i) {
+  bool res = i!= RowIndex::NA &&
+             !ISNA<U>(data[i]) &&
+             !std::isinf(data[i]);
+  return res;
 }
 
 

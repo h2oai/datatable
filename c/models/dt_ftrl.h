@@ -137,6 +137,8 @@ class Ftrl : public dt::FtrlBase {
     void fill_ri_data(const DataTable*,
                       std::vector<RowIndex>&,
                       std::vector<const U*>&);
+    template <typename U>
+    static bool is_data_valid(const U*, size_t);
 
   public:
     Ftrl();
