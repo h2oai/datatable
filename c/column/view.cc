@@ -42,8 +42,7 @@ class SliceView_ColumnImpl : public Virtual_ColumnImpl {
         step(ri.slice_step())
     {
       xassert(ri.isslice());
-      xassert(start < col.nrows());
-      xassert(start + step * (ri.size() - 1) < col.nrows());
+      xassert(ri.max() < arg.nrows());
     }
 
     ColumnImpl* shallowcopy() const override {
@@ -85,7 +84,11 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
       : Virtual_ColumnImpl(ri.size(), col.stype()),
         arg(std::move(col)),
         rowindex(ri),
-        indices(get_indices<T>(ri)) {}
+        indices(get_indices<T>(ri))
+    {
+      xassert(std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64());
+      xassert(ri.max() < arg.nrows());
+    }
 
     ColumnImpl* shallowcopy() const override {
       return new ArrayView_ColumnImpl<T>(Column(arg), rowindex);
