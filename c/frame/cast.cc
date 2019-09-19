@@ -58,22 +58,26 @@ static inline int8_t fw_bool(T x) {
 }
 
 static inline PyObject* bool_obj(int8_t x) {
-  return ISNA<int8_t>(x)? py::None().release() : py::obool(x).release();
-}  // LCOV_EXCL_LINE
+  return py::obool(x).release();
+}
 
 template <typename T>
 static inline PyObject* int_obj(T x) {
-  return ISNA<T>(x)? py::None().release() : py::oint(x).release();
-}  // LCOV_EXCL_LINE
+  return py::oint(x).release();
+}
 
 template <typename T>
 static inline PyObject* real_obj(T x) {
-  return ISNA<T>(x)? py::None().release() : py::ofloat(x).release();
-}  // LCOV_EXCL_LINE
+  return py::ofloat(x).release();
+}
 
-static inline PyObject* obj_obj(PyObject* x) {
+static inline PyObject* str_obj(CString x) {
+  return py::ostring(x).release();
+}
+
+static inline PyObject* obj_obj(py::robj x) {
   return py::oobj(x).release();
-}  // LCOV_EXCL_LINE
+}
 
 template <typename T, size_t MAX = 30>
 static inline void num_str(T x, dt::string_buf* buf) {
@@ -108,8 +112,6 @@ static inline void obj_str(PyObject* x, dt::string_buf* buf) {
 template <typename T, typename U, U(*CAST_OP)(T)>
 static void cast_fw0(const Column& col, size_t start, void* out_data)
 {
-  xassert(col->rowindex()? col->rowindex().is_simple_slice()
-                         : (start == 0));
   auto inp = static_cast<const T*>(col->data()) + start;
   auto out = static_cast<U*>(out_data);
   dt::parallel_for_static(col.nrows(),
@@ -155,29 +157,11 @@ static void cast_fw2(const Column& col, void* out_data)
 template <typename T, PyObject* (*CAST_OP)(T)>
 static void cast_to_pyobj(const Column& col, void* out_data)
 {
-  auto inp = static_cast<const T*>(col->data());
   auto out = static_cast<PyObject**>(out_data);
-  const RowIndex& rowindex = col->rowindex();
-  for (size_t i = 0; i < col.nrows(); ++i) {
-    size_t j = rowindex[i];
-    T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
-    out[i] = CAST_OP(x);
-  }
-}
-
-
-template <typename T>
-static void cast_str_to_pyobj(const Column& col, void* out_data)
-{
-  auto out = static_cast<PyObject**>(out_data);
-  CString value;
+  T value;
   for (size_t i = 0; i < col.nrows(); ++i) {
     bool isna = col.get_element(i, &value);
-    if (isna) {
-      out[i] = py::None().release();
-    } else {
-      out[i] = py::ostring(value).release();
-    }
+    out[i] = isna? py::None().release() : CAST_OP(value);
   }
 }
 
@@ -532,16 +516,16 @@ void py::DatatableModule::init_casts()
   casts.add(obj64, str64,  cast_to_str<PyObject*, obj_str>);
 
   // Casts into obj64
-  casts.add(bool8, obj64,  cast_to_pyobj<int8_t,    bool_obj>);
-  casts.add(int8, obj64,   cast_to_pyobj<int8_t,    int_obj<int8_t>>);
-  casts.add(int16, obj64,  cast_to_pyobj<int16_t,   int_obj<int16_t>>);
-  casts.add(int32, obj64,  cast_to_pyobj<int32_t,   int_obj<int32_t>>);
-  casts.add(int64, obj64,  cast_to_pyobj<int64_t,   int_obj<int64_t>>);
-  casts.add(real32, obj64, cast_to_pyobj<float,     real_obj<float>>);
-  casts.add(real64, obj64, cast_to_pyobj<double,    real_obj<double>>);
-  casts.add(str32, obj64,  cast_str_to_pyobj<uint32_t>);
-  casts.add(str64, obj64,  cast_str_to_pyobj<uint64_t>);
-  casts.add(obj64, obj64,  cast_to_pyobj<PyObject*, obj_obj>);
+  casts.add(bool8, obj64,  cast_to_pyobj<int8_t,   bool_obj>);
+  casts.add(int8, obj64,   cast_to_pyobj<int8_t,   int_obj<int8_t>>);
+  casts.add(int16, obj64,  cast_to_pyobj<int16_t,  int_obj<int16_t>>);
+  casts.add(int32, obj64,  cast_to_pyobj<int32_t,  int_obj<int32_t>>);
+  casts.add(int64, obj64,  cast_to_pyobj<int64_t,  int_obj<int64_t>>);
+  casts.add(real32, obj64, cast_to_pyobj<float,    real_obj<float>>);
+  casts.add(real64, obj64, cast_to_pyobj<double,   real_obj<double>>);
+  casts.add(str32, obj64,  cast_to_pyobj<CString,  str_obj>);
+  casts.add(str64, obj64,  cast_to_pyobj<CString,  str_obj>);
+  casts.add(obj64, obj64,  cast_to_pyobj<py::robj, obj_obj>);
 }
 
 
