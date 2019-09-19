@@ -208,22 +208,6 @@ void DataTable::replace_rowindex(const RowIndex& newri) {
 }
 
 
-/**
- * Equivalent of ``return DT[ri, :]``.
- */
-DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
-  auto rc = dt->split_columns_by_rowindices();
-  colvec newcols(dt->ncols);
-  for (auto& rcitem : rc) {
-    RowIndex newri = ri * rcitem.rowindex;
-    for (size_t i : rcitem.colindices) {
-      newcols[i] = dt->get_column(i);
-      newcols[i]->replace_rowindex(newri);
-    }
-  }
-  return new DataTable(std::move(newcols), dt);
-}
-
 
 /**
  * Equivalent of ``DT = DT[ri, :]``.
@@ -232,13 +216,8 @@ void DataTable::apply_rowindex(const RowIndex& ri) {
   // If RowIndex is empty, no need to do anything. Also, the expression
   // `ri.size()` cannot be computed.
   if (!ri) return;
-
-  auto rc = split_columns_by_rowindices();
-  for (auto& rcitem : rc) {
-    RowIndex newri = ri * rcitem.rowindex;
-    for (size_t i : rcitem.colindices) {
-      columns[i]->replace_rowindex(newri);
-    }
+  for (Column& col : columns) {
+    col.apply_rowindex_old(ri);
   }
   nrows = ri.size();
 }

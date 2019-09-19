@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/nafilled.h"
 #include "parallel/api.h"
 #include "column_impl.h"
 
@@ -206,4 +207,10 @@ void ColumnImpl::rbind_impl(colvec&, size_t, bool) {
 
 void ColumnImpl::fill_na() {
   throw NotImplError();
+}
+
+void ColumnImpl::na_pad(size_t new_nrows, bool inplace, Column& out) {
+  (void) inplace;
+  xassert(new_nrows >= nrows());
+  out = Column(new dt::NaFilled_ColumnImpl(std::move(out), new_nrows));
 }

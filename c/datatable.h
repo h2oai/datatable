@@ -175,8 +175,6 @@ DataTable* open_jay_from_file(const std::string& path);
 DataTable* open_jay_from_bytes(const char* ptr, size_t len);
 DataTable* open_jay_from_mbuf(const MemoryRange&);
 
-DataTable* apply_rowindex(const DataTable*, const RowIndex& ri);
-
 RowIndex natural_join(const DataTable* xdt, const DataTable* jdt);
 
 

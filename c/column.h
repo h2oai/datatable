@@ -249,9 +249,11 @@ class Column
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
 
-    // This method modifies the column in-place rbinding it with
-    // itself `ntimes` times.
+    // Rbind the column with itself `ntimes` times.
     void repeat(size_t ntimes);
+
+    // Pad the column with NAs until it had `new_nrows` rows.
+    void na_pad(size_t new_nrows);
 
     // Modifies the column in-place converting it into a view column
     // using the provided row index.

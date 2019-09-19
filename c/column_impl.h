@@ -154,7 +154,7 @@ class ColumnImpl
      * column.
      */
     virtual void resize_and_fill(size_t nrows);
-    Column repeat(size_t nreps) const;
+    Column repeat(size_t nreps) const;  // OLD
 
     /**
       * Repeat the column `ntimes` times. Depending on the `inplace`
@@ -168,6 +168,8 @@ class ColumnImpl
       * Implementation in column/repeated.cc
       */
     virtual void repeat(size_t ntimes, bool inplace, Column& out);
+
+    virtual void na_pad(size_t new_nrows, bool inplace, Column& out);
 
     /**
       * Implementation in column/view.cc
@@ -483,7 +485,6 @@ class VoidColumn : public ColumnImpl {
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
     ColumnImpl* materialize() override;
-    void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const Column&) override;
     void replace_values(Column&, const RowIndex&, const Column&) override;

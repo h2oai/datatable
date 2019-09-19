@@ -311,6 +311,11 @@ void Column::apply_rowindex_old(const RowIndex& ri) {
 }
 
 
+void Column::na_pad(size_t new_nrows) {
+  bool inplace = true;
+  pcol->na_pad(new_nrows, inplace, *this);
+}
+
 
 
 
@@ -322,7 +327,6 @@ VoidColumn::VoidColumn() : ColumnImpl(0, SType::VOID) {}
 VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows, SType::VOID) {}
 size_t VoidColumn::data_nrows() const { return _nrows; }
 ColumnImpl* VoidColumn::materialize() { return this; }
-void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const Column&) {}
 void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
@@ -351,7 +355,6 @@ class StrvecColumn : public ColumnImpl {
 
     size_t data_nrows() const override { return _nrows; }
     ColumnImpl* materialize() override { return this; }
-    void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}
     void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}

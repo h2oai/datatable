@@ -72,14 +72,14 @@ void frame_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
     col0 = dtr->get_column(0);  // copy
     // Avoid resizing `col0` multiple times in the loop below
     if (rrows == 1) {
-      col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
+      col0.repeat(lrows);
     }
   }
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
     Column coli = (rcols == 1)? col0 : dtr->get_column(i);  // copy
     if (coli.nrows() == 1) {
-      coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
+      coli.repeat(lrows);
     }
     dt0->set_ocolumn(j, std::move(coli));
   }
