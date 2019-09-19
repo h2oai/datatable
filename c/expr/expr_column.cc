@@ -103,6 +103,7 @@ Column expr_column::evaluate(EvalContext& ctx) {
   if (dt_ri) {
     newcol->replace_rowindex(ctx._product(dt_ri, col_ri));
   }
+  // newcol.apply_rowindex(dt_ri);
   return newcol;
 }
 

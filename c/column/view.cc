@@ -86,7 +86,7 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
         rowindex(ri),
         indices(get_indices<T>(ri))
     {
-      xassert(std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64());
+      xassert((std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64()));
       xassert(ri.max() < arg.nrows());
     }
 
@@ -160,9 +160,6 @@ static Column _make_view(Column&& col, const RowIndex& ri) {
     return Column::new_na_column(col.stype(), 0);
   }
   switch (ri.type()) {
-    case RowIndexType::UNKNOWN:
-      return std::move(col);  // empty rowindex
-
     case RowIndexType::SLICE:
       return Column(new dt::SliceView_ColumnImpl(std::move(col), ri));
 
@@ -171,10 +168,15 @@ static Column _make_view(Column&& col, const RowIndex& ri) {
 
     case RowIndexType::ARR64:
       return Column(new dt::ArrayView_ColumnImpl<int64_t>(std::move(col), ri));
+
+    default:
+      throw RuntimeError()
+        << "Invalid Rowindex type: " << static_cast<int>(ri.type());
   }
 }
 
 
 void ColumnImpl::apply_rowindex(const RowIndex& rowindex, Column& out) {
+  if (!rowindex) return;
   out = _make_view(std::move(out), rowindex);
 }

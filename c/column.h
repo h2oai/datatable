@@ -253,6 +253,10 @@ class Column
     // itself `ntimes` times.
     void repeat(size_t ntimes);
 
+    // Modifies the column in-place converting it into a view column
+    // using the provided row index.
+    void apply_rowindex(const RowIndex&);
+
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;
 };

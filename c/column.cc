@@ -298,6 +298,11 @@ void Column::repeat(size_t ntimes) {
   pcol->repeat(ntimes, inplace, *this);
 }
 
+void Column::apply_rowindex(const RowIndex& ri) {
+  if (!ri) return;
+  pcol->apply_rowindex(ri, *this);  // modifies in-place
+}
+
 
 
 
