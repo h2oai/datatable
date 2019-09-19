@@ -58,10 +58,6 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
       return out;
     }
 
-    void resize_and_fill(size_t nrows) override {
-      _nrows = nrows;
-    }
-
     void na_pad(size_t nrows, bool inplace, Column& out) override {
       if (inplace) {
         _nrows = nrows;

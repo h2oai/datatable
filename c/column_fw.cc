@@ -150,28 +150,6 @@ ColumnImpl* FwColumn<T>::materialize() {
 
 
 
-template <typename T>
-void FwColumn<T>::resize_and_fill(size_t new_nrows)
-{
-  if (new_nrows == _nrows) return;
-  materialize();
-
-  mbuf.resize(sizeof(T) * new_nrows);
-
-  if (new_nrows > _nrows) {
-    // Replicate the value or fill with NAs
-    T fill_value = _nrows == 1? get_elem(0) : GETNA<T>();
-    T* data_dest = static_cast<T*>(mbuf.wptr());
-    for (size_t i = _nrows; i < new_nrows; ++i) {
-      data_dest[i] = fill_value;
-    }
-  }
-  this->_nrows = new_nrows;
-
-  // TODO(#301): Temporary fix.
-  if (this->stats != nullptr) this->stats->reset();
-}
-
 
 
 template <typename T>

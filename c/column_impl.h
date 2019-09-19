@@ -140,21 +140,6 @@ class ColumnImpl
 
     RowIndex _sort(Groupby* out_groups) const;
 
-    /**
-     * Resize the column up to `nrows` elements, and fill all new elements with
-     * NA values, except when the ColumnImpl initially had just one row, in which case
-     * that one value will be used to fill the new rows. For example:
-     *
-     *   {1, 2, 3, 4}.resize_and_fill(5) -> {1, 2, 3, 4, NA}
-     *   {1, 3}.resize_and_fill(5)       -> {1, 3, NA, NA, NA}
-     *   {1}.resize_and_fill(5)          -> {1, 1, 1, 1, 1}
-     *
-     * The contents of the column will be modified in-place if possible.
-     *
-     * This method can be used to both increase and reduce the size of the
-     * column.
-     */
-    virtual void resize_and_fill(size_t nrows);
     Column repeat(size_t nreps) const;  // OLD
 
     /**
@@ -311,7 +296,6 @@ public:
   virtual bool get_element(size_t i, T* out) const override;
 
   size_t data_nrows() const override;
-  void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
   virtual ColumnImpl* materialize() override;
   void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
@@ -413,7 +397,6 @@ protected:
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
-  void resize_and_fill(size_t nrows) override;
   void fill_na() override;
   ColumnImpl* materialize() override;
   void verify_integrity(const std::string& name) const override;
@@ -436,7 +419,6 @@ public:
   StringColumn(size_t nrows);
 
   ColumnImpl* materialize() override;
-  void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
 
   MemoryRange str_buf() const { return strbuf; }

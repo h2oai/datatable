@@ -217,9 +217,6 @@ size_t ColumnImpl::data_nrows() const {
 
 void ColumnImpl::init_data() {}
 
-void ColumnImpl::resize_and_fill(size_t) {
-  throw NotImplError();
-}
 
 void ColumnImpl::apply_na_mask(const Column&) {
   throw NotImplError();

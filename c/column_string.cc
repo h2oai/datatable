@@ -285,61 +285,6 @@ void StringColumn<T>::replace_values(
 }
 
 
-template <typename T>
-void StringColumn<T>::resize_and_fill(size_t new_nrows)
-{
-  size_t old_nrows = _nrows;
-  if (new_nrows == old_nrows) return;
-  materialize();
-
-  if (new_nrows > INT32_MAX && sizeof(T) == 4) {
-    // TODO: instead of throwing an error, upcast the column to <uint64_t>
-    // This is only an issue for the case when _nrows=1. Maybe we should separate
-    // the two methods?
-    throw ValueError() << "Nrows is too big for a str32 column: " << new_nrows;
-  }
-
-  size_t old_strbuf_size = strbuf.size();
-  size_t new_strbuf_size = old_strbuf_size;
-  size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
-  if (old_nrows == 1) {
-    new_strbuf_size = old_strbuf_size * new_nrows;
-  }
-  if (new_nrows < old_nrows) {
-    T lastoff = mbuf.get_element<T>(new_nrows);
-    new_strbuf_size = static_cast<size_t>(lastoff & ~GETNA<T>());
-  }
-
-  // Resize the offsets buffer
-  mbuf.resize(new_mbuf_size);
-
-  if (new_nrows < old_nrows) {
-    strbuf.resize(new_strbuf_size);
-  } else {
-    // Replicate the value, or fill with NAs
-    T* offsets = static_cast<T*>(mbuf.wptr()) + 1;
-    if (old_nrows == 1 && !ISNA<T>(offsets[0])) {
-      MemoryRange new_strbuf = MemoryRange::mem(new_strbuf_size);
-      const char* str_src = static_cast<const char*>(strbuf.rptr());
-      char* str_dest = static_cast<char*>(new_strbuf.wptr());
-      T src_len = static_cast<T>(old_strbuf_size);
-      for (size_t i = 0; i < new_nrows; ++i) {
-        std::memcpy(str_dest, str_src, old_strbuf_size);
-        str_dest += old_strbuf_size;
-        offsets[i] = static_cast<T>(i + 1) * src_len;
-      }
-      strbuf = new_strbuf;
-    } else {
-      if (old_nrows == 1) xassert(old_strbuf_size == 0);
-      T na = static_cast<T>(old_strbuf_size) ^ GETNA<T>();
-      set_value(offsets + _nrows, &na, sizeof(T), new_nrows - old_nrows);
-    }
-  }
-  _nrows = new_nrows;
-  // TODO: Temporary fix. To be resolved in #301
-  if (stats != nullptr) stats->reset();
-}
-
 
 
 template <typename T>

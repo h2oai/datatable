@@ -196,7 +196,6 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
       } else {
         col.na_pad(final_nrows);
       }
-      // col->resize_and_fill(final_nrows);
     }
   }
 
