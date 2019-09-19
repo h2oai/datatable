@@ -305,26 +305,12 @@ Column cast_manager::execute(const Column& src, MemoryRange&& target_mbuf,
 
   target_mbuf.resize(src.nrows() * info(target_stype).elemsize());
   void* out_data = target_mbuf.wptr();
-  const RowIndex& rowindex = src->rowindex();
 
-  if (rowindex) {
-    if (castfns.f0 && rowindex.is_simple_slice()) {
-      castfns.f0(src, rowindex.slice_start(), out_data);
-    }
-    else if (castfns.f1 && rowindex.isarr32()) {
-      castfns.f1(src, rowindex.indices32(), out_data);
-    }
-    else {
-      castfns.f2(src, out_data);
-    }
+  if (src.is_virtual() || !castfns.f0) {
+    castfns.f2(src, out_data);
   }
   else {
-    if (castfns.f0 && !src.is_virtual()) {
-      castfns.f0(src, 0, out_data);
-    }
-    else {
-      castfns.f2(src, out_data);
-    }
+    castfns.f0(src, 0, out_data);
   }
 
   if (target_stype == SType::OBJ) {
