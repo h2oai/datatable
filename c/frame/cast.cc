@@ -92,8 +92,8 @@ static inline void bool_str(int8_t x, dt::string_buf* buf) {
   buf->write(x? str_true : str_false);
 }
 
-static inline void obj_str(PyObject* x, dt::string_buf* buf) {
-  CString xstr = py::robj(x).to_pystring_force().to_cstring();
+static inline void obj_str(py::robj x, dt::string_buf* buf) {
+  CString xstr = x.to_pystring_force().to_cstring();
   buf->write(xstr);
 }
 
@@ -171,15 +171,14 @@ template <typename T, void (*CAST_OP)(T, dt::string_buf*)>
 static Column cast_to_str(const Column& col, MemoryRange&& out_offsets,
                           SType target_stype)
 {
-  auto inp = static_cast<const T*>(col->data());
-  const RowIndex& rowindex = col->rowindex();
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
-        size_t j = rowindex[i];
-        if (j == RowIndex::NA || ISNA<T>(inp[j])) {
+        T value;
+        bool isna = col.get_element(i, &value);
+        if (isna) {
           buf->write_na();
         } else {
-          CAST_OP(inp[j], buf);
+          CAST_OP(value, buf);
         }
       },
       col.nrows(),
@@ -501,7 +500,7 @@ void py::DatatableModule::init_casts()
   casts.add(real64, str32, cast_to_str<double, num_str<double>>);
   casts.add(str32, str32,  cast_str_to_str<uint32_t>);
   casts.add(str64, str32,  cast_str_to_str<uint64_t>);
-  casts.add(obj64, str32,  cast_to_str<PyObject*, obj_str>);
+  casts.add(obj64, str32,  cast_to_str<py::robj, obj_str>);
 
   // Casts into str64
   casts.add(bool8, str64,  cast_to_str<int8_t, bool_str>);
@@ -513,7 +512,7 @@ void py::DatatableModule::init_casts()
   casts.add(real64, str64, cast_to_str<double, num_str<double>>);
   casts.add(str32, str64,  cast_str_to_str<uint32_t>);
   casts.add(str64, str64,  cast_str_to_str<uint64_t>);
-  casts.add(obj64, str64,  cast_to_str<PyObject*, obj_str>);
+  casts.add(obj64, str64,  cast_to_str<py::robj, obj_str>);
 
   // Casts into obj64
   casts.add(bool8, obj64,  cast_to_pyobj<int8_t,   bool_obj>);
