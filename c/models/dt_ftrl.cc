@@ -478,7 +478,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   auto hashers = create_hashers(dt_X_train);
 
   // Obtain rowindex and data pointers for the target column(s).
-  const Column& train_col0 = dt_y_train->get_column(0);
+  const Column& target_col0_train = dt_y_train->get_column(0);
   auto data_fi = static_cast<T*>(dt_fi->get_column(1)->data_w());
 
   // Training settings. By default each training iteration consists of
@@ -497,8 +497,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   T loss_old = T_ZERO; // Value of `loss` for a previous iteraction
   std::vector<T> loss_history;
   std::vector<hasherptr> hashers_val;
-  const Column& valid_col0 = validation? dt_y_val->get_column(0)
-                                       : train_col0;  // anything really...
+  const Column& target_col0_val = validation? dt_y_val->get_column(0)
+                                       : target_col0_train;  // anything really...
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
     iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows);
@@ -542,7 +542,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
         dt::nested_for_static(iteration_size, [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
           U value;
-          bool isna = train_col0.get_element(ii, &value);
+          bool isna = target_col0_train.get_element(ii, &value);
 
           if (!isna && std::isfinite(value))
           {
@@ -579,7 +579,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
           dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
             V value;
-            bool isna = valid_col0.get_element(i, &value);
+            bool isna = target_col0_val.get_element(i, &value);
 
             if (!isna && std::isfinite(value))
             {
