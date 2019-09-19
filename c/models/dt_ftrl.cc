@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -478,10 +478,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   auto hashers = create_hashers(dt_X_train);
 
   // Obtain rowindex and data pointers for the target column(s).
-  std::vector<RowIndex> ri, ri_val;
-  std::vector<const U*> data_y;
-  std::vector<const V*> data_y_val;
-  fill_ri_data<U>(dt_y_train, ri, data_y);
+  const Column& train_col0 = dt_y_train->get_column(0);
   auto data_fi = static_cast<T*>(dt_fi->get_column(1)->data_w());
 
   // Training settings. By default each training iteration consists of
@@ -500,12 +497,13 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   T loss_old = T_ZERO; // Value of `loss` for a previous iteraction
   std::vector<T> loss_history;
   std::vector<hasherptr> hashers_val;
+  const Column& valid_col0 = validation? dt_y_val->get_column(0)
+                                       : train_col0;  // anything really...
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
     iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows);
     niterations = total_nrows / iteration_nrows;
     loss_history.resize(val_niters, 0.0);
-    fill_ri_data<V>(dt_y_val, ri_val, data_y_val);
   }
 
 
@@ -543,15 +541,13 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
         // Training.
         dt::nested_for_static(iteration_size, [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
-          const size_t j0 = ri[0][ii];
+          U value;
+          bool isna = train_col0.get_element(ii, &value);
 
-          if (j0 != RowIndex::NA && !ISNA<U>(data_y[0][j0])
-              && !std::isinf(data_y[0][j0]))
+          if (!isna && std::isfinite(value))
           {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < label_ids_train.size(); ++k) {
-              const size_t j = ri[0][ii];
-
               T p = linkfn(predict_row(
                       x, w, k,
                       [&](size_t f_id, T f_imp) {
@@ -562,8 +558,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
               // `targetfn` returns the actual target for the k-th model,
               // depending on the data in the y column and the label indicator.
               // When we do multilabel, we will have a set of y columns
-              // and some sort of loop over the data_y[i] here.
-              U y = targetfn(data_y[0][j], label_ids_train[k]);
+              // and some sort of loop over their values here.
+              U y = targetfn(value, label_ids_train[k]);
               update(x, w, p, y, k);
             }
           }
@@ -581,20 +577,18 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           dt::atomic<T> loss_global {0.0};
           T loss_local = 0.0;
 
-
           dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
-            const size_t j0 = ri_val[0][i];
+            V value;
+            bool isna = valid_col0.get_element(i, &value);
 
-            if (j0 != RowIndex::NA && !ISNA<V>(data_y_val[0][j0])
-                && !std::isinf(data_y[0][j0]))
+            if (!isna && std::isfinite(value))
             {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < label_ids_val.size(); ++k) {
-                const size_t j = ri_val[0][i];
                 T p = linkfn(predict_row(
                         x, w, k, [&](size_t, T){}
                       ));
-                V y = targetfn_val(data_y_val[0][j], label_ids_val[k]);
+                V y = targetfn_val(value, label_ids_val[k]);
                 loss_local += lossfn(p, y);
               }
             }
@@ -810,26 +804,6 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   // so that predictions sum up to 1, effectively doing `softmax` linking.
   if (nlabels > 2) normalize_rows(dt_p);
   return dt_p;
-}
-
-
-/**
- *  Obtain pointers to column rowindexes and data.
- */
-template <typename T>
-template <typename U /* column data type */>
-void Ftrl<T>::fill_ri_data(const DataTable* dt,
-                           std::vector<RowIndex>& ri,
-                           std::vector<const U*>& data) {
-  size_t ncols = dt->ncols;
-  ri.reserve(ncols);
-  data.reserve(ncols);
-
-  for (size_t i = 0; i < ncols; ++i) {
-    const Column& col = dt->get_column(i);
-    data.push_back(static_cast<const U*>(col->data()));
-    ri.push_back(col->rowindex());
-  }
 }
 
 
