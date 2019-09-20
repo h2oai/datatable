@@ -381,14 +381,14 @@ def get_compile_includes():
         includes.add("c")
         log.info("`c` is the main C++ source directory")
 
+        # Adding the include directory in sys.prefix as an -isystem flag breaks
+        # gcc because it messes with its include_next mechanism on Fedora where
+        # sys.prefix resolves to /usr.  It doesn't seem necessary either because
+        # with non-standard sys.prefix, CONFINCLUDEPY is good enough.
         confincludepy = sysconfig.get_config_var("CONFINCLUDEPY")
         if confincludepy:
             includes.add(confincludepy)
             log.info("`%s` added from CONFINCLUDEPY" % confincludepy)
-
-        sysprefixinclude = os.path.join(sys.prefix, "include")
-        includes.add(sysprefixinclude)
-        log.info("`%s` added from sys.prefix" % sysprefixinclude)
 
         # Include path to C++ header files
         llvmdir = get_llvm()
