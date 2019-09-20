@@ -42,12 +42,6 @@ static DataTable* _extract_dt(PyObject* pydt) {
   return static_cast<py::Frame*>(pydt)->get_datatable();
 }
 
-static RowIndex* _extract_ri(PyObject* pyri) {
-  if (pyri == Py_None) return nullptr;
-  return static_cast<py::orowindex::pyobject*>(pyri)->ri;
-}
-
-
 size_t DtABIVersion() {
   return 2;
 }
