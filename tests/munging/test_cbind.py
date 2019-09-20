@@ -344,3 +344,18 @@ def test_cbind_expanded_frame():
     DT = dt.Frame(A=[1, 2], B=['a', "E"], C=[7, 1000], D=[-3.14, 159265])
     RES = dt.cbind(*DT)
     assert_equals(DT, RES)
+
+
+def test_cbind_issue2024():
+    DT = dt.Frame([[]] * 2, names=["A.1", "A.5"])
+    with pytest.warns(DatatableWarning):
+        RZ = dt.cbind(DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6")
+        RZ = dt.cbind(DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7")
+        RZ = dt.cbind(DT, DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7", "A.4",
+                            "A.8")
+        RZ = dt.cbind(DT, DT, DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7", "A.4",
+                            "A.8", "A.9", "A.10")

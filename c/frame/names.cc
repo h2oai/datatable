@@ -14,8 +14,9 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <sstream>
-#include "frame/py_frame.h"
+#include <unordered_map>
 #include <unordered_set>
+#include "frame/py_frame.h"
 #include "python/dict.h"
 #include "python/int.h"
 #include "python/string.h"
@@ -433,7 +434,8 @@ static std::string _mangle_name(CString name, bool* was_mangled) {
 
 static void _deduplicate(std::string* name, py::oobj* pyname,
                          py::odict& seen_names,
-                         std::unordered_map<std::string, size_t>& stems)
+                         std::unordered_map<std::string,
+                                            std::unordered_set<size_t>>& stems)
 {
   size_t n = name->size();
   const char* chars = name->data();
@@ -457,15 +459,25 @@ static void _deduplicate(std::string* name, py::oobj* pyname,
     stem += '.';
   }
 
-  if (stems.count(stem)) {
-    count = std::max(count, stems[stem]);
+  if (!stems.count(stem)) {
+    stems[stem] = std::unordered_set<size_t>();
+    stems[stem].insert(count);
   }
-  while (seen_names.has(*pyname)) {
-    count++;
+  auto& seen_counts = stems[stem];
+  while (true) {
+    // Quickly skip `count` values that were observed previously
+    while (seen_counts.count(count)) count++;
+    // Now the value of `count` has not been seen before. Update
+    // the name variable to use the new count value
     *name = stem + std::to_string(count);
     *pyname = py::ostring(*name);
+    seen_counts.insert(count);
+    // If this new name is not in the list of seen names, then
+    // we are done: use this new name
+    if (!seen_names.has(*pyname)) break;
+    // Otherwise, increase the count and try again
+    count++;
   }
-  stems[stem] = count;
 }
 
 
@@ -487,7 +499,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
   py_inames = py::odict();
   names.clear();
   names.reserve(ncols);
-  std::unordered_map<std::string, size_t> stems;
+  std::unordered_map<std::string, std::unordered_set<size_t>> stems;
   static constexpr size_t MAX_DUPLICATES = 3;
   size_t n_duplicates = 0;
   strvec duplicates(MAX_DUPLICATES);
