@@ -55,8 +55,7 @@ static py::oobj make_pyframe(sort_result&& sorted, arr32_t&& arr) {
   // The array of rowindices `arr` is typically shuffled because the values
   // in the input are sorted before they are compared.
   RowIndex out_ri = RowIndex(std::move(arr), false);
-  sorted.column->replace_rowindex(out_ri);
-  sorted.column.materialize();
+  sorted.column.apply_rowindex(out_ri);
   DataTable* dt = new DataTable({std::move(sorted.column)},
                                 {std::move(sorted.colname)});
   return py::Frame::oframe(dt);

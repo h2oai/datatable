@@ -31,7 +31,7 @@ import sys
 import time
 from collections import namedtuple
 from datatable import stype, ltype
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 from datatable.lib import core
 from tests import same_iterables, list_equals, noop, isview, assert_equals
 
@@ -1243,13 +1243,9 @@ def test_materialize():
     DT2 = dt.repeat(dt.Frame(B=["red", "green", "blue"]), 2)
     DT3 = dt.Frame(C=[4, 2, 9.1, 12, 0])
     DT = dt.cbind(DT1, DT2, DT3, force=True)
-    assert frame_column_rowindex(DT, 0).type == "slice"
-    assert frame_column_rowindex(DT, 1).type == "arr32"
-    assert frame_column_rowindex(DT, 2) is None
+    assert frame_columns_virtual(DT) == (True, True, True)
     DT.materialize()
-    assert frame_column_rowindex(DT, 0) is None
-    assert frame_column_rowindex(DT, 1) is None
-    assert frame_column_rowindex(DT, 2) is None
+    assert frame_columns_virtual(DT) == (False, False, False)
 
 
 def test_materialize_object_col():
@@ -1377,10 +1373,8 @@ def test_export_names(dt0):
 def test_internal_rowindex():
     d0 = dt.Frame(range(100))
     d1 = d0[:20, :]
-    ri0 = frame_column_rowindex(d0, 0)
-    ri1 = frame_column_rowindex(d1, 0)
-    assert ri0 is None
-    assert repr(ri1) == "datatable.internal.RowIndex(0/20/1)"
+    assert frame_columns_virtual(d0) == (False,)
+    assert frame_columns_virtual(d1) == (True,)
 
 
 def test_issue898():

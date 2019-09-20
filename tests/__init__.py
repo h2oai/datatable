@@ -9,7 +9,7 @@ import pytest
 import random
 import sys
 from math import isnan
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 
 
 # Try importing _datatable (core lib), so that if that doesn't work we don't
@@ -177,5 +177,4 @@ def assert_value_error(f, msg):
 
 
 def isview(frame):
-    return any(frame_column_rowindex(frame, i) is not None
-               for i in range(frame.ncols))
+    return any(frame_columns_virtual(frame))

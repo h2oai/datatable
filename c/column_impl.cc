@@ -19,7 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/nafilled.h"
 #include "parallel/api.h"
+#include "parallel/string_utils.h"
 #include "column_impl.h"
 
 
@@ -48,6 +50,13 @@ ColumnImpl* ColumnImpl::new_impl(SType stype) {
       throw ValueError()
           << "Unable to create a column of stype `" << stype << "`";
   }
+}
+
+ColumnImpl* ColumnImpl::new_impl(SType stype, size_t nrows) {
+  auto ret = new_impl(stype);
+  ret->_nrows = nrows;
+  ret->init_data();
+  return ret;
 }
 
 
@@ -111,11 +120,15 @@ bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object")
 //------------------------------------------------------------------------------
 
 template <typename T>
-void _materialize_fw(const ColumnImpl* input_column, ColumnImpl* output_column)
+void _materialize_fw(const ColumnImpl* input_column, ColumnImpl** pout)
 {
   assert_compatible_type<T>(input_column->stype());
-  xassert(input_column->nrows() == output_column->nrows());
-  xassert(!output_column->is_virtual());
+  ColumnImpl* output_column = *pout;
+  if (!output_column) {
+    output_column = ColumnImpl::new_impl(input_column->stype(),
+                                         input_column->nrows());
+    *pout = output_column;
+  }
 
   auto out_data = static_cast<T*>(output_column->data_w());
   dt::parallel_for_static(
@@ -128,19 +141,39 @@ void _materialize_fw(const ColumnImpl* input_column, ColumnImpl* output_column)
 }
 
 
+static void _materialize_str(const ColumnImpl* input_column, ColumnImpl** pout)
+{
+  Column inp(const_cast<ColumnImpl*>(input_column));
+  try {
+    Column rescol = dt::map_str2str(inp,
+      [=](size_t, CString& value, dt::string_buf* sb) {
+        sb->write(value);
+      });
+    *pout = rescol.release();
+  } catch (...) {
+    // prevent input_column from being deleted in case materialization
+    // fails.
+    inp.release();
+    throw;
+  }
+  inp.release();
+}
+
+// TODO: fix semantics of materialization...
+//
 ColumnImpl* ColumnImpl::materialize() {
   const_cast<ColumnImpl*>(this)->pre_materialize_hook();
-  ColumnImpl* out = ColumnImpl::new_impl(_stype);
-  out->_nrows = _nrows;
-  out->init_data();
+  ColumnImpl* out = nullptr;
   switch (_stype) {
     case SType::BOOL:
-    case SType::INT8:    _materialize_fw<int8_t> (this, out); break;
-    case SType::INT16:   _materialize_fw<int16_t>(this, out); break;
-    case SType::INT32:   _materialize_fw<int32_t>(this, out); break;
-    case SType::INT64:   _materialize_fw<int64_t>(this, out); break;
-    case SType::FLOAT32: _materialize_fw<float>  (this, out); break;
-    case SType::FLOAT64: _materialize_fw<double> (this, out); break;
+    case SType::INT8:    _materialize_fw<int8_t> (this, &out); break;
+    case SType::INT16:   _materialize_fw<int16_t>(this, &out); break;
+    case SType::INT32:   _materialize_fw<int32_t>(this, &out); break;
+    case SType::INT64:   _materialize_fw<int64_t>(this, &out); break;
+    case SType::FLOAT32: _materialize_fw<float>  (this, &out); break;
+    case SType::FLOAT64: _materialize_fw<double> (this, &out); break;
+    case SType::STR32:
+    case SType::STR64:   _materialize_str(this, &out); break;
     default:
       throw NotImplError() << "Cannot materialize column of stype `"
                            << _stype << "`";
@@ -160,14 +193,46 @@ void ColumnImpl::materialize_at(void* addr) const {
   out->init_data();
   switch (_stype) {
     case SType::BOOL:
-    case SType::INT8:    _materialize_fw<int8_t> (this, out); break;
-    case SType::INT16:   _materialize_fw<int16_t>(this, out); break;
-    case SType::INT32:   _materialize_fw<int32_t>(this, out); break;
-    case SType::INT64:   _materialize_fw<int64_t>(this, out); break;
-    case SType::FLOAT32: _materialize_fw<float>  (this, out); break;
-    case SType::FLOAT64: _materialize_fw<double> (this, out); break;
+    case SType::INT8:    _materialize_fw<int8_t> (this, &out); break;
+    case SType::INT16:   _materialize_fw<int16_t>(this, &out); break;
+    case SType::INT32:   _materialize_fw<int32_t>(this, &out); break;
+    case SType::INT64:   _materialize_fw<int64_t>(this, &out); break;
+    case SType::FLOAT32: _materialize_fw<float>  (this, &out); break;
+    case SType::FLOAT64: _materialize_fw<double> (this, &out); break;
     default:
       throw NotImplError() << "Cannot materialize column of stype `"
+                           << _stype << "`";
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
+// fill_na_mask()
+//------------------------------------------------------------------------------
+
+template <typename T>
+void _fill_na_mask(ColumnImpl* icol, int8_t* outmask, size_t row0, size_t row1)
+{
+  T value;
+  for (size_t i = row0; i < row1; ++i) {
+    outmask[i] = icol->get_element(i, &value);
+  }
+}
+
+void ColumnImpl::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
+  switch (_stype) {
+    case SType::BOOL:
+    case SType::INT8:    _fill_na_mask<int8_t> (this, outmask, row0, row1); break;
+    case SType::INT16:   _fill_na_mask<int16_t>(this, outmask, row0, row1); break;
+    case SType::INT32:   _fill_na_mask<int32_t>(this, outmask, row0, row1); break;
+    case SType::INT64:   _fill_na_mask<int64_t>(this, outmask, row0, row1); break;
+    case SType::FLOAT32: _fill_na_mask<float>  (this, outmask, row0, row1); break;
+    case SType::FLOAT64: _fill_na_mask<double> (this, outmask, row0, row1); break;
+    case SType::STR32:
+    case SType::STR64:   _fill_na_mask<CString>(this, outmask, row0, row1); break;
+    default:
+      throw NotImplError() << "Cannot fill_na_mask() on column of stype `"
                            << _stype << "`";
   }
 }
@@ -184,26 +249,38 @@ size_t ColumnImpl::data_nrows() const {
 
 void ColumnImpl::init_data() {}
 
-void ColumnImpl::resize_and_fill(size_t) {
-  throw NotImplError();
-}
 
 void ColumnImpl::apply_na_mask(const Column&) {
-  throw NotImplError();
+  throw NotImplError() << "Method ColumnImpl::apply_na_mask() not implemented";
 }
 
 void ColumnImpl::replace_values(Column&, const RowIndex&, const Column&) {
-  throw NotImplError();
-}
-
-void ColumnImpl::fill_na_mask(int8_t*, size_t, size_t) {
-  throw NotImplError();
+  throw NotImplError() << "Method ColumnImpl::replace_values() not implemented";
 }
 
 void ColumnImpl::rbind_impl(colvec&, size_t, bool) {
-  throw NotImplError();
+  throw NotImplError() << "Method ColumnImpl::rbind_impl() not implemented";
 }
 
 void ColumnImpl::fill_na() {
-  throw NotImplError();
+  throw NotImplError() << "Method ColumnImpl::fill_na() not implemented";
+}
+
+
+void ColumnImpl::na_pad(size_t new_nrows, bool inplace, Column& out) {
+  (void) inplace;
+  xassert(new_nrows > nrows());
+  out = Column(new dt::NaFilled_ColumnImpl(std::move(out), new_nrows));
+}
+
+void ColumnImpl::truncate(size_t new_nrows, bool inplace, Column& out) {
+  xassert(new_nrows < nrows());
+  if (inplace) {
+    _nrows = new_nrows;
+  }
+  else {
+    ColumnImpl* copy = shallowcopy();
+    copy->_nrows = new_nrows;
+    out = Column(copy);
+  }
 }

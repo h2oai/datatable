@@ -72,14 +72,14 @@ void frame_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
     col0 = dtr->get_column(0);  // copy
     // Avoid resizing `col0` multiple times in the loop below
     if (rrows == 1) {
-      col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
+      col0.repeat(lrows);
     }
   }
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
     Column coli = (rcols == 1)? col0 : dtr->get_column(i);  // copy
     if (coli.nrows() == 1) {
-      coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
+      coli.repeat(lrows);
     }
     dt0->set_ocolumn(j, std::move(coli));
   }
@@ -259,12 +259,12 @@ Column scalar_int_rn::make_column(SType st, size_t nrows) const {
     rst = st;
   }
   Column col1 = rst == SType::BOOL? _make1<int8_t>(rst) :
-                 rst == SType::INT8? _make1<int8_t>(rst) :
-                 rst == SType::INT16? _make1<int16_t>(rst) :
-                 rst == SType::INT32? _make1<int32_t>(rst) :
-                 rst == SType::INT64? _make1<int64_t>(rst) :
-                 rst == SType::FLOAT32? _make1<float>(rst) :
-                 rst == SType::FLOAT64? _make1<double>(rst) : Column();
+                rst == SType::INT8? _make1<int8_t>(rst) :
+                rst == SType::INT16? _make1<int16_t>(rst) :
+                rst == SType::INT32? _make1<int32_t>(rst) :
+                rst == SType::INT64? _make1<int64_t>(rst) :
+                rst == SType::FLOAT32? _make1<float>(rst) :
+                rst == SType::FLOAT64? _make1<double>(rst) : Column();
   xassert(col1);
   return col1->repeat(nrows);
 }
@@ -372,7 +372,7 @@ Column scalar_string_rn::make_column(SType st, size_t nrows) const {
   std::memcpy(strbuf.xptr(), value.data(), len);
   Column col = Column::new_string_column(1, std::move(offbuf), std::move(strbuf));
   if (nrows > 1) {
-    col->replace_rowindex(RowIndex(size_t(0), nrows, 0));
+    col.repeat(nrows);
   }
   return col;
 }

@@ -58,8 +58,13 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
       return out;
     }
 
-    void resize_and_fill(size_t nrows) override {
-      _nrows = nrows;
+    void na_pad(size_t nrows, bool inplace, Column& out) override {
+      if (inplace) {
+        _nrows = nrows;
+      }
+      else {
+        out = Column(new ConstNa_ColumnImpl(nrows));
+      }
     }
 };
 
@@ -195,7 +200,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
         value(std::move(x)) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstString_ColumnImpl(_nrows, value);
+      return new ConstString_ColumnImpl(_nrows, value, _stype);
     }
 
     bool get_element(size_t, CString* out) const override {

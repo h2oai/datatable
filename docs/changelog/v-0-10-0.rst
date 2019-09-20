@@ -62,3 +62,29 @@ Frame
   column that was being created (#1983).
 
 - |fix| Fixed a crash when joining a frame that had 0 rows (#1988).
+
+
+Internal
+--------
+
+- |api| Function `dt.internal.frame_column_rowindex(DT, i)` was removed and
+  replaced with `dt.internal.frame_columns_virtual(DT)`. The latter returns
+  a tuple of True/False indicators of whether each column in a Frame is
+  virtual or not.
+
+- C API version increased to 2.
+
+- Removed C API methods and macros related to retrieval of a column's rowindex:
+  - `DtFrame_ColumnRowindex()`,
+  - `DtRowindex_Check()`,
+  - `DtRowindex_Type()`,
+  - `DtRowindex_Size()`,
+  - `DtRowindex_UnpackSlice()`,
+  - `DtRowindex_ArrayData()`,
+  - `DtRowindex_NONE`,
+  - `DtRowindex_ARR32`,
+  - `DtRowindex_ARR64`,
+  - `DtRowindex_SLICE`
+
+- Added C API method `DtFrame_ColumnIsVirtual()` which returns a boolean
+  indicator whether the column in a Frame is virtual or not.

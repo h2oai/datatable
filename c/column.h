@@ -157,7 +157,7 @@ class Column
 
     ColumnImpl* operator->();
     const ColumnImpl* operator->() const;
-
+    ColumnImpl* release() noexcept;
 
   //------------------------------------
   // Data access
@@ -245,13 +245,24 @@ class Column
     Column cast(SType stype) const;
     Column cast(SType stype, MemoryRange&& mr) const;
     RowIndex sort(Groupby* out_groups) const;
-    RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
+    void sort_grouped_inplace(const Groupby&);
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
 
-    // This method modifies the column in-place rbinding it with
-    // itself `ntimes` times.
+    // Rbind the column with itself `ntimes` times.
     void repeat(size_t ntimes);
+
+    // Resize this column to `new_nrows` rows.
+    // If the new number of rows is greater than the current number
+    // of rows, the column is padded with NAs.
+    // If it is less than the current number of rows, the column is
+    // truncated.
+    void resize(size_t new_nrows);
+
+    // Modifies the column in-place converting it into a view column
+    // using the provided row index.
+    void apply_rowindex(const RowIndex&);
+    void apply_rowindex_old(const RowIndex&);  // TODO: remove this
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;

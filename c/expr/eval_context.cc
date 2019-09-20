@@ -364,8 +364,7 @@ void EvalContext::fix_columns() {
     if (!ungroup_ri) {
       ungroup_ri = gb.ungroup_rowindex();
     }
-    const RowIndex& col_rowindex = columns[i]->rowindex();
-    columns[i]->replace_rowindex(_product(ungroup_ri, col_rowindex));
+    columns[i].apply_rowindex_old(ungroup_ri);
   }
 }
 
@@ -458,10 +457,7 @@ void EvalContext::reserve(size_t n) {
 void EvalContext::add_column(
   Column&& col, const RowIndex& ri, std::string&& name)
 {
-  if (ri) {
-    const RowIndex& ricol = col->rowindex();
-    col->replace_rowindex(_product(ri, ricol));
-  }
+  col.apply_rowindex_old(ri);
   columns.push_back(std::move(col));
   colnames.push_back(std::move(name));
 }

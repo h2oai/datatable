@@ -115,18 +115,6 @@ PyObject* ColumnImpl::mbuf_repr() const {
 
 
 
-RowIndex ColumnImpl::remove_rowindex() {
-  RowIndex res(std::move(ri));
-  xassert(!ri);
-  return res;
-}
-
-void ColumnImpl::replace_rowindex(const RowIndex& newri) {
-  ri = newri;
-  _nrows = ri.size();
-}
-
-
 
 
 //------------------------------------------------------------------------------
@@ -151,15 +139,17 @@ Column::Column(Column&& other) noexcept : Column() {
 }
 
 Column& Column::operator=(const Column& other) {
-  if (pcol) pcol->release_instance();
+  auto old = pcol;
   pcol = other.pcol->acquire_instance();
+  if (old) old->release_instance();
   return *this;
 }
 
 Column& Column::operator=(Column&& other) noexcept {
-  if (pcol) pcol->release_instance();
+  auto old = pcol;
   pcol = other.pcol;
   other.pcol = nullptr;
+  if (old) old->release_instance();
   return *this;
 }
 
@@ -176,6 +166,13 @@ ColumnImpl* Column::operator->() {
 const ColumnImpl* Column::operator->() const {
   return pcol;
 }
+
+ColumnImpl* Column::release() noexcept {
+  ColumnImpl* tmp = pcol;
+  pcol = nullptr;
+  return tmp;
+}
+
 
 
 //---- Properties ----------------------
@@ -298,6 +295,27 @@ void Column::repeat(size_t ntimes) {
   pcol->repeat(ntimes, inplace, *this);
 }
 
+void Column::apply_rowindex(const RowIndex& ri) {
+  if (!ri) return;
+  pcol->apply_rowindex(ri, *this);  // modifies in-place
+}
+
+void Column::apply_rowindex_old(const RowIndex& ri) {
+  if (!ri) return;
+  if (pcol->is_virtual() && !pcol->ri) materialize();
+  RowIndex new_rowindex = ri * pcol->ri;
+  pcol->ri = new_rowindex;
+  pcol->_nrows = new_rowindex.size();
+}
+
+
+void Column::resize(size_t new_nrows) {
+  bool inplace = true;
+  size_t curr_nrows = nrows();
+  if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, inplace, *this);
+  if (new_nrows < curr_nrows) pcol->truncate(new_nrows, inplace, *this);
+}
+
 
 
 
@@ -309,13 +327,11 @@ VoidColumn::VoidColumn() : ColumnImpl(0, SType::VOID) {}
 VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows, SType::VOID) {}
 size_t VoidColumn::data_nrows() const { return _nrows; }
 ColumnImpl* VoidColumn::materialize() { return this; }
-void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const Column&) {}
 void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
 void VoidColumn::init_data() {}
 void VoidColumn::fill_na() {}
-void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
 
 
 
@@ -338,13 +354,11 @@ class StrvecColumn : public ColumnImpl {
 
     size_t data_nrows() const override { return _nrows; }
     ColumnImpl* materialize() override { return this; }
-    void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}
     void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}
     void init_data() override {}
     void fill_na() override {}
-    void fill_na_mask(int8_t*, size_t, size_t) override {}
 };
 
 StrvecColumn::StrvecColumn(const strvec& v)

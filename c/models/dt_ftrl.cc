@@ -498,7 +498,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   std::vector<T> loss_history;
   std::vector<hasherptr> hashers_val;
   const Column& target_col0_val = validation? dt_y_val->get_column(0)
-                                       : target_col0_train;  // anything really...
+                                            : target_col0_train;  // whatever
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
     iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows);

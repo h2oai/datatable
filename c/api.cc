@@ -42,14 +42,8 @@ static DataTable* _extract_dt(PyObject* pydt) {
   return static_cast<py::Frame*>(pydt)->get_datatable();
 }
 
-static RowIndex* _extract_ri(PyObject* pyri) {
-  if (pyri == Py_None) return nullptr;
-  return static_cast<py::orowindex::pyobject*>(pyri)->ri;
-}
-
-
 size_t DtABIVersion() {
-  return 1;
+  return 2;
 }
 
 
@@ -88,11 +82,10 @@ int DtFrame_ColumnStype(PyObject* pydt, size_t i) {
 }
 
 
-PyObject* DtFrame_ColumnRowindex(PyObject* pydt, size_t i) {
+int DtFrame_ColumnIsVirtual(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
-  if (_column_index_oob(dt, i)) return nullptr;
-  const RowIndex& ri = dt->get_column(i)->rowindex();  // rowindex() is noexcept
-  return (ri? py::orowindex(ri) : py::None()).release();
+  if (_column_index_oob(dt, i)) return -1;
+  return dt->get_column(i).is_virtual();  // is_virtual() is noexcept
 }
 
 
@@ -132,59 +125,6 @@ const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
     return nullptr;
   }
   PyErr_Format(PyExc_TypeError, "Column %zu is not of string type", i);
-  return nullptr;
-}
-
-
-
-//------------------------------------------------------------------------------
-// Rowindex
-//------------------------------------------------------------------------------
-
-int DtRowindex_Check(PyObject* ob) {
-  if (ob == Py_None) return 1;
-  return py::orowindex::check(ob);
-}
-
-
-int DtRowindex_Type(PyObject* pyri) {
-  RowIndex* ri = _extract_ri(pyri);
-  if (!ri) return 0;
-  return static_cast<int>(ri->type());
-}
-
-
-size_t DtRowindex_Size(PyObject* pyri) {
-  RowIndex* ri = _extract_ri(pyri);
-  if (!ri) return 0;
-  return ri->size();
-}
-
-
-int DtRowindex_UnpackSlice(
-    PyObject* pyri, size_t* start, size_t* length, size_t* step)
-{
-  RowIndex* ri = _extract_ri(pyri);
-  if (!ri || ri->type() != RowIndexType::SLICE) {
-    PyErr_Format(PyExc_TypeError, "expected a slice rowindex");
-    return -1;
-  }
-  *start = ri->slice_start();
-  *length = ri->size();
-  *step = ri->slice_step();
-  return 0;
-}
-
-
-const void* DtRowindex_ArrayData(PyObject* pyri) {
-  RowIndex* ri = _extract_ri(pyri);
-  if (ri && ri->type() == RowIndexType::ARR32) {
-    return ri->indices32();
-  }
-  if (ri && ri->type() == RowIndexType::ARR64) {
-    return ri->indices64();
-  }
-  PyErr_Format(PyExc_TypeError, "expected an array rowindex");
   return nullptr;
 }
 

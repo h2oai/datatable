@@ -40,11 +40,6 @@ extern "C" {
 #define DtStype_STR64    12
 #define DtStype_OBJ      21
 
-#define DtRowindex_NONE  0
-#define DtRowindex_ARR32 1
-#define DtRowindex_ARR64 2
-#define DtRowindex_SLICE 3
-
 /**
  * Return the ABI version of the currently linked datatable library. The ABI
  * version will be increased every time new functions are added to this header
@@ -78,13 +73,11 @@ int DtFrame_ColumnStype(PyObject* pydt, size_t i);
 
 
 /**
- * Return the RowIndex object of column `i` in Frame `pydt`. If the column
- * does not have a RowIndex, `Py_None` is returned. If the column `i` does not
- * exist, sets an error and returns NULL.
- *
- *   Return value: New reference.
+ * Return the boolean indicator of whether the column `i` in Frame `pydt` is
+ * virtual or not. If the column `i` does not exist, sets an error and returns
+ * -1.
  */
-PyObject* DtFrame_ColumnRowindex(PyObject* pydt, size_t i);
+int DtFrame_ColumnIsVirtual(PyObject* pydt, size_t i);
 
 
 /**
@@ -122,51 +115,6 @@ void* DtFrame_ColumnDataW(PyObject* pydt, size_t i);
 const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i);
 
 
-
-//-------- Rowindex ------------------------------------------------------------
-
-/**
- * Return 1 if `ob` is a datatable.Rowindex object or None, and 0 otherwise.
- */
-int DtRowindex_Check(PyObject* ob);
-
-
-/**
- * Return the type of the Rowindex object `pyri`, one of: NONE, ARR32, ARR64
- * or SLICE.
- */
-int DtRowindex_Type(PyObject* pyri);
-
-
-/**
- * Return the length of the Rowindex `pyri`, or 0 for an empty Rowindex.
- */
-size_t DtRowindex_Size(PyObject* pyri);
-
-
-/**
- * For SLICE Rowindex object `pyri`, extract its fields `start`, `length` and
- * `step` and store in the provided variables. Returns 0 on success, and -1 if
- * there was an error.
- *
- * The field `step` may be larger than INT64_MAX, in which case it is considered
- * negative. Such step can still be used during iteration: `start + i * step`
- * will be a valid index for any `i` in `range(length)`.
- */
-int DtRowindex_UnpackSlice(
-    PyObject* pyri, size_t* start, size_t* length, size_t* step);
-
-
-/**
- * For ARR32/ARR64 Rowindex object `pyri` return the pointer to its internal
- * data buffer. The buffer's actual type is `int32_t[]` or `int64_t[]` depending
- * on the type of the RowIndex. If an error occurs, an error is set and a null
- * pointer returned.
- *
- * The returned pointer is a borrowed reference. It may become invalidated
- * during the subsequent datatable calls.
- */
-const void* DtRowindex_ArrayData(PyObject* pyri);
 
 
 

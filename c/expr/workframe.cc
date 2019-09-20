@@ -68,10 +68,7 @@ void Workframe::add_ref_column(size_t iframe, size_t icol) {
   const DataTable* df = ctx.get_datatable(iframe);
   const RowIndex& rowindex = ctx.get_rowindex(iframe);
   Column column { df->get_column(icol) };  // copy
-  if (rowindex) {
-    const RowIndex& ricol = column->rowindex();
-    column->replace_rowindex(ctx._product(rowindex, ricol));
-  }
+  column.apply_rowindex_old(rowindex);
   const std::string& name = df->get_names()[icol];
 
   auto gmode = (grouping_mode <= Grouping::GtoONE &&

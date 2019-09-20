@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,9 +23,10 @@
 #define dt_MODELS_COLUMN_CONVERTOR_h
 #include "models/utils.h"
 #include "types.h"
-#include "column_impl.h"  // TODO: remove
 
 
+
+// TODO: replace this class with a simple column cast
 
 /**
  *  An abstract base class for all the column convertors.
@@ -34,8 +35,7 @@
 template<typename T>
 class ColumnConvertor {
   public:
-    const RowIndex& ri;
-    explicit ColumnConvertor(const Column&);
+    explicit ColumnConvertor(size_t n);
     virtual ~ColumnConvertor();
     virtual T operator[](size_t) const = 0;
     virtual void get_rows(std::vector<T>&, size_t, size_t, size_t) const = 0;
@@ -55,10 +55,8 @@ class ColumnConvertor {
  *  to be used when the data are accessed.
  */
 template<typename T>
-ColumnConvertor<T>::ColumnConvertor(const Column& col) :
-  ri(col->rowindex()),
-  nrows(col.nrows())
-{}
+ColumnConvertor<T>::ColumnConvertor(size_t n)
+  : nrows(n) {}
 
 
 /**
@@ -95,9 +93,11 @@ size_t ColumnConvertor<T>::get_nrows() const {
  */
 template<typename T1, typename T2>
 class ColumnConvertorReal : public ColumnConvertor<T2> {
+  static_assert(std::is_same<T2, float>::value || std::is_same<T2, double>::value,
+                "Wrong T2 in ColumnConvertorReal");
   private:
-    const  T1* values;
     Column column;
+
   public:
     explicit ColumnConvertorReal(const Column&);
     T2 operator[](size_t) const override;
@@ -110,25 +110,17 @@ class ColumnConvertorReal : public ColumnConvertor<T2> {
  *  for the multi-threaded ND aggregator.
  */
 template<typename T1, typename T2>
-ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in) :
-  ColumnConvertor<T2>(column_in)
+ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
+  : ColumnConvertor<T2>(column_in.nrows()),
+    column(column_in)
 {
-  static_assert(std::is_same<T2, float>::value || std::is_same<T2, double>::value,
-                "Wrong T2 in ColumnConvertorReal");
-  using R = typename std::conditional<std::is_integral<T1>::value, int64_t, double>::type;
-  // SType to_stype = (sizeof(T2) == 4)? SType::FLOAT32 : SType::FLOAT64;
-
-  // column = Column(column_in->cast(to_stype));
-  // auto column_real = static_cast<const FwColumn<T2>*>(column.get());
-  // this->min = column_real->min();
-  // this->max = column_real->max();
-  // values = column_real->elements_r();
+  using R = typename std::conditional<std::is_integral<T1>::value,
+                                      int64_t, double>::type;
   R min, max;
   column_in.stats()->get_stat(Stat::Min, &min);
   column_in.stats()->get_stat(Stat::Max, &max);
   this->min = static_cast<T2>(min);
   this->max = static_cast<T2>(max);
-  values = static_cast<const T1*>(column_in->data());
 }
 
 
@@ -140,14 +132,9 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in) :
  */
 template<typename T1, typename T2>
 T2 ColumnConvertorReal<T1, T2>::operator[](size_t row) const {
-  // size_t i = row;
-  size_t i = this->ri[row];
-  if (i == RowIndex::NA  || ISNA<T1>(values[i]) ) {
-    return GETNA<T2>();
-  } else {
-    // return values[i];
-    return static_cast<T2>(values[i]);
-  }
+  T1 value;
+  bool isna = column.get_element(row, &value);
+  return isna? GETNA<T2>() : static_cast<T2>(value);
 }
 
 
@@ -156,19 +143,13 @@ T2 ColumnConvertorReal<T1, T2>::operator[](size_t row) const {
  *  No bound checks are performed.
  */
 template<typename T1, typename T2>
-void ColumnConvertorReal<T1, T2>::get_rows(std::vector<T2>& buffer,
-                                               size_t from,
-                                               size_t step,
-                                               size_t count) const {
+void ColumnConvertorReal<T1, T2>::get_rows(
+    std::vector<T2>& buffer, size_t start, size_t step, size_t count) const
+{
   for (size_t j = 0; j < count; ++j) {
-    // size_t i = from + j * step;
-    size_t i = this->ri[from + j * step];
-    if (i == RowIndex::NA || ISNA<T1>(values[i])) {
-      buffer[j] = GETNA<T2>();
-    } else {
-      // buffer[j] = values[i];
-      buffer[j] = static_cast<T2>(values[i]);
-    }
+    T1 value;
+    bool isna = column.get_element(start + j * step, &value);
+    buffer[j] = isna? GETNA<T2>() : static_cast<T2>(value);
   }
 }
 

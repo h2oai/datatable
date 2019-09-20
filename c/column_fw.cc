@@ -150,28 +150,6 @@ ColumnImpl* FwColumn<T>::materialize() {
 
 
 
-template <typename T>
-void FwColumn<T>::resize_and_fill(size_t new_nrows)
-{
-  if (new_nrows == _nrows) return;
-  materialize();
-
-  mbuf.resize(sizeof(T) * new_nrows);
-
-  if (new_nrows > _nrows) {
-    // Replicate the value or fill with NAs
-    T fill_value = _nrows == 1? get_elem(0) : GETNA<T>();
-    T* data_dest = static_cast<T*>(mbuf.wptr());
-    for (size_t i = _nrows; i < new_nrows; ++i) {
-      data_dest[i] = fill_value;
-    }
-  }
-  this->_nrows = new_nrows;
-
-  // TODO(#301): Temporary fix.
-  if (this->stats != nullptr) this->stats->reset();
-}
-
 
 
 template <typename T>
@@ -236,37 +214,19 @@ void FwColumn<T>::replace_values(
   }
 
   size_t replace_n = replace_at.size();
-  const T* data_src = static_cast<const T*>(with->data());
-  const RowIndex& rowindex_src = with->rowindex();
   T* data_dest = elements_w();
   xassert(with.nrows() == replace_n);
-  if (rowindex_src) {
-    replace_at.iterate(0, replace_n, 1,
-      [&](size_t i, size_t j) {
-        if (j == RowIndex::NA) return;
-        size_t k = rowindex_src[i];
-        data_dest[j] = (k == RowIndex::NA)? GETNA<T>() : data_src[k];
-      });
-  } else {
-    replace_at.iterate(0, replace_n, 1,
-      [&](size_t i, size_t j) {
-        if (j == RowIndex::NA) return;
-        data_dest[j] = data_src[i];
-      });
-  }
-}
 
-
-
-
-template <typename T>
-void FwColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
-  const T* tdata = elements_r();
-  ri.iterate(row0, row1, 1,
+  replace_at.iterate(0, replace_n, 1,
     [&](size_t i, size_t j) {
-      outmask[i] = (j == RowIndex::NA) || ISNA<T>(tdata[j]);
+      if (j == RowIndex::NA) return;
+      T value;
+      bool isna = replace_with.get_element(i, &value);
+      data_dest[j] = isna? GETNA<T>() : value;
     });
 }
+
+
 
 
 // Explicit instantiations
