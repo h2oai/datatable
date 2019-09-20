@@ -394,6 +394,25 @@ def test_warnings_as_errors():
 
 
 #-------------------------------------------------------------------------------
+# Stype
+#-------------------------------------------------------------------------------
+
+def test_dt_stype(dt0):
+    assert dt0[0].stype == stype.int8
+    assert dt0[1].stype == stype.bool8
+    assert dt0[:, [1, 2, 4, 5]].stype == stype.bool8
+    assert dt0[-1].stype == stype.str32
+
+
+def test_dt_stype_heterogenous(dt0):
+    with pytest.raises(ValueError) as e:
+        noop(dt0.stype)
+    assert ("The stype of column 'B' is `bool8`, which is different "
+            "from the stype of the previous column" in str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
 # Colindex
 #-------------------------------------------------------------------------------
 

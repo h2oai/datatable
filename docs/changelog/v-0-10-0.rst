@@ -57,6 +57,11 @@ Frame
   The variables are created in the global scope because python's locals cannot
   be manipulated programmatically.
 
+- |new| Added frame property :meth:`.stype <datatable.Frame.stype>` which is
+  similar to :meth:`.stypes <datatable.Frame.stypes>` except that it returns
+  a single stype instead of a tuple. This method can only be used on a frame
+  where all columns have the same stype, or there is only one column.
+
 - |fix| Fixed a bug where creating a new column via assignment would crash if
   the RHS of the assignment contained an expression that tried to use the
   column that was being created (#1983).
