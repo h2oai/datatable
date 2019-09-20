@@ -362,6 +362,14 @@ def test_median_bool_odd_nrows():
     assert RES2[0, 0] == 1.0
 
 
+def test_median_bygroup():
+    DT = dt.Frame(A=[0.1, 0.2, 0.5, 0.4, 0.3, 0], B=[1, 2, 1, 1, 2, 2])
+    RZ = DT[:, median(f.A), by(f.B)]
+    # group 1: 0.1, 0.4, 0.5
+    # group 2: 0.0, 0.2, 0.3
+    assert RZ.to_list() == [[1, 2], [0.4, 0.2]]
+
+
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
 def test_median_int_even_nrows(st):
     # data points in the middle: 5 and 7

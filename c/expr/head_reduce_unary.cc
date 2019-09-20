@@ -334,7 +334,6 @@ class Median_ColumnImpl : public ColumnImpl {
   private:
     Column arg;
     Groupby groupby;
-    RowIndex sort_order;
 
   public:
     Median_ColumnImpl(Column&& col, const Groupby& grpby)
@@ -344,12 +343,11 @@ class Median_ColumnImpl : public ColumnImpl {
 
     ColumnImpl* shallowcopy() const override {
       auto res = new Median_ColumnImpl<T, U>(Column(arg), groupby);
-      res->sort_order = sort_order;
       return res;
     }
 
     void pre_materialize_hook() override {
-      sort_order = arg.sort_grouped(arg->rowindex(), groupby);
+      arg.sort_grouped_inplace(groupby);
     }
 
     bool get_element(size_t i, U* out) const override {
@@ -360,18 +358,18 @@ class Median_ColumnImpl : public ColumnImpl {
 
       // skip NA values if any
       while (true) {
-        bool isna = arg.get_element(sort_order[i0], &value1);
+        bool isna = arg.get_element(i0, &value1);
         if (!isna) break;
         ++i0;
         if (i0 == i1) return true;  // all elements are NA
       }
 
       size_t j = (i0 + i1) / 2;
-      arg.get_element(sort_order[j], &value1);
+      arg.get_element(j, &value1);
       if ((i1 - i0) & 1) { // Odd count of elements
         *out = static_cast<U>(value1);
       } else {
-        arg.get_element(sort_order[j - 1], &value2);
+        arg.get_element(j-1, &value2);
         *out = (static_cast<U>(value1) + static_cast<U>(value2))/2;
       }
       return false;

@@ -325,10 +325,10 @@ Column expr_reduce1::evaluate(EvalContext& ctx)
   SType out_stype = reducer->output_stype;
   auto res = Column::new_data_column(out_stype, out_nrows);
 
-  RowIndex rowindex = input_col->rowindex();
-  if (opcode == Op::MEDIAN && gb) {
-    rowindex = input_col.sort_grouped(rowindex, gb);
+  if (opcode == Op::MEDIAN) {
+    input_col.sort_grouped_inplace(gb);
   }
+  RowIndex rowindex = input_col->rowindex();
 
   const void* input = input_col->data();
   if (in_stype == SType::STR32) input = static_cast<const char*>(input) + 4;

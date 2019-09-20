@@ -1421,13 +1421,12 @@ RowIndex Column::sort(Groupby* out_grps) const {
 }
 
 
-RowIndex Column::sort_grouped(const RowIndex& rowindex,
-                              const Groupby& grps) const
+void Column::sort_grouped_inplace(const Groupby& grps)
 {
   (void)stats();
-  SortContext sc(nrows(), rowindex, grps, /* make_groups = */ false);
+  SortContext sc(nrows(), pcol->rowindex(), grps, /* make_groups = */ false);
   sc.continue_sort(*this, /* desc = */ false, /* make_groups = */ false);
-  return sc.get_result_rowindex();
+  pcol->ri = sc.get_result_rowindex();
 }
 
 
