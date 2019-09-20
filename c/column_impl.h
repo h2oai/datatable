@@ -119,7 +119,6 @@ class ColumnImpl
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::robj* out) const;
 
-    const RowIndex& rowindex() const noexcept { return ri; }
     virtual bool is_virtual() const noexcept { return bool(ri); }
 
     size_t nrows() const { return _nrows; }
