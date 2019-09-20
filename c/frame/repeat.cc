@@ -30,34 +30,6 @@
 // Static helpers
 //------------------------------------------------------------------------------
 
-/**
- * Create and return a RowIndex with elements
- *
- *     list(range(nrows)) * nreps
- *
- * The returned RowIndex will be either ARR32 or ARR64 depending on how many
- * elements are in it.
- */
-// template <typename T>
-// static RowIndex _make_repeat_rowindex(size_t nrows, size_t nreps) {
-//   size_t new_nrows = nrows * nreps;
-//   dt::array<T> indices(new_nrows);
-//   T* ptr = indices.data();
-//   for (size_t i = 0; i < nrows; ++i) {
-//     ptr[i] = static_cast<T>(i);
-//   }
-//   size_t nrows_filled = nrows;
-//   while (nrows_filled < new_nrows) {
-//     size_t nrows_copy = std::min(new_nrows - nrows_filled, nrows_filled);
-//     std::memcpy(ptr + nrows_filled, ptr, nrows_copy * sizeof(T));
-//     nrows_filled += nrows_copy;
-//     xassert(nrows_filled % nrows == 0);
-//   }
-//   xassert(nrows_filled == new_nrows);
-//   return RowIndex(std::move(indices), 0, nrows - 1);
-// }
-
-
 // TODO: we could create a special "repeated" column here
 Column ColumnImpl::repeat(size_t nreps) const {
   xassert(!info(_stype).is_varwidth());

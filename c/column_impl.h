@@ -121,7 +121,6 @@ class ColumnImpl
 
     const RowIndex& rowindex() const noexcept { return ri; }
     virtual bool is_virtual() const noexcept { return bool(ri); }
-    void replace_rowindex(const RowIndex& newri);
 
     size_t nrows() const { return _nrows; }
     SType stype() const { return _stype; }

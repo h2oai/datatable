@@ -115,12 +115,6 @@ PyObject* ColumnImpl::mbuf_repr() const {
 
 
 
-void ColumnImpl::replace_rowindex(const RowIndex& newri) {
-  ri = newri;
-  _nrows = ri.size();
-}
-
-
 
 
 //------------------------------------------------------------------------------
