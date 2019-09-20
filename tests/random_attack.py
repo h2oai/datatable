@@ -471,7 +471,8 @@ class Frame0:
                 while base[-1].isdigit():
                     base = base[:-1]
                 if base == name:
-                    base += "."
+                    if base[-1] != '.':
+                        base += "."
                     num = 0
                 else:
                     num = int(name[len(base):])
