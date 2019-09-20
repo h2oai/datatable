@@ -115,12 +115,6 @@ PyObject* ColumnImpl::mbuf_repr() const {
 
 
 
-RowIndex ColumnImpl::remove_rowindex() {
-  RowIndex res(std::move(ri));
-  xassert(!ri);
-  return res;
-}
-
 void ColumnImpl::replace_rowindex(const RowIndex& newri) {
   ri = newri;
   _nrows = ri.size();

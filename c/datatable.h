@@ -97,7 +97,6 @@ class DataTable {
     void delete_columns(intvec&);
     void delete_all();
     void resize_rows(size_t n);
-    void replace_rowindex(const RowIndex& newri);
     void apply_rowindex(const RowIndex&);
     void replace_groupby(const Groupby& newgb);
     void materialize();
