@@ -63,6 +63,9 @@ Frame
 
 - |fix| Fixed a crash when joining a frame that had 0 rows (#1988).
 
+- |fix| Increasing the number of rows in a keyed Frame was documented as
+  invalid, but didn't actually throw any errors. Now it does (#2021).
+
 
 Internal
 --------
