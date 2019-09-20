@@ -105,8 +105,8 @@ ColumnImpl* ColumnImpl::shallowcopy() const {
 }
 
 
-size_t ColumnImpl::alloc_size() const {
-  return mbuf.size();
+size_t ColumnImpl::alloc_size() const {  // TODO: remove
+  return _nrows * info(_stype).elemsize();
 }
 
 PyObject* ColumnImpl::mbuf_repr() const {
