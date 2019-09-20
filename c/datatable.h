@@ -152,8 +152,6 @@ class DataTable {
     MemoryRange save_jay();
     void save_jay(const std::string& path, WritableBuffer::Strategy);
 
-    std::vector<RowColIndex> split_columns_by_rowindices() const;
-
   private:
     DataTable(colvec&& cols);
 

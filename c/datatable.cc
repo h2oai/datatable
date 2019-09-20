@@ -145,28 +145,6 @@ void DataTable::delete_all() {
 }
 
 
-
-// Split all columns into groups, by their `RowIndex`es
-std::vector<RowColIndex> DataTable::split_columns_by_rowindices() const {
-  std::vector<RowColIndex> res;
-  for (size_t i = 0; i < ncols; ++i) {
-    RowIndex r = columns[i]->rowindex();
-    bool found = false;
-    for (auto& item : res) {
-      if (item.rowindex == r) {
-        found = true;
-        item.colindices.push_back(i);
-        break;
-      }
-    }
-    if (!found) {
-      res.push_back({r, {i}});
-    }
-  }
-  return res;
-}
-
-
 void DataTable::resize_rows(size_t new_nrows) {
   if (new_nrows == nrows) return;
 
