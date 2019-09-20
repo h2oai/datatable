@@ -14,8 +14,8 @@ import blessed
 import os
 import subprocess
 import random
-
-term = blessed.Terminal()
+from datatable.utils.terminal import term
+# term = blessed.Terminal()
 skip_successful_seeds = False
 save_logs_to_file = False
 

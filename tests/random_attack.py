@@ -339,7 +339,10 @@ class Frame0:
         frame_integrity_check(self.df)
         self.check_shape()
         self.check_types()
-        assert self.df.names == tuple(self.names)
+        if self.df.names != tuple(self.names):
+            print("ERROR: df.names=%r ≠\n"
+                  "       py.names=%r" % (self.df.names, tuple(self.names)))
+            sys.exit(1)
         self.check_data()
 
     def check_shape(self):
