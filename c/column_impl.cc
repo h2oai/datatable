@@ -266,8 +266,21 @@ void ColumnImpl::fill_na() {
   throw NotImplError() << "Method ColumnImpl::fill_na() not implemented";
 }
 
+
 void ColumnImpl::na_pad(size_t new_nrows, bool inplace, Column& out) {
   (void) inplace;
-  xassert(new_nrows >= nrows());
+  xassert(new_nrows > nrows());
   out = Column(new dt::NaFilled_ColumnImpl(std::move(out), new_nrows));
+}
+
+void ColumnImpl::truncate(size_t new_nrows, bool inplace, Column& out) {
+  xassert(new_nrows < nrows());
+  if (inplace) {
+    _nrows = new_nrows;
+  }
+  else {
+    ColumnImpl* copy = shallowcopy();
+    copy->_nrows = new_nrows;
+    out = Column(copy);
+  }
 }

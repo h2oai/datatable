@@ -194,7 +194,7 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
       if (col.nrows() == 1) {
         col.repeat(final_nrows);
       } else {
-        col.na_pad(final_nrows);
+        col.resize(final_nrows);  // padding with NAs
       }
     }
   }

@@ -85,7 +85,7 @@ int DtFrame_ColumnStype(PyObject* pydt, size_t i) {
 int DtFrame_ColumnIsVirtual(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return -1;
-  return dt->get_column(i).is_virtual();  // rowindex() is noexcept
+  return dt->get_column(i).is_virtual();  // is_virtual() is noexcept
 }
 
 

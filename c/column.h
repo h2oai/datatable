@@ -252,8 +252,12 @@ class Column
     // Rbind the column with itself `ntimes` times.
     void repeat(size_t ntimes);
 
-    // Pad the column with NAs until it had `new_nrows` rows.
-    void na_pad(size_t new_nrows);
+    // Resize this column to `new_nrows` rows.
+    // If the new number of rows is greater than the current number
+    // of rows, the column is padded with NAs.
+    // If it is less than the current number of rows, the column is
+    // truncated.
+    void resize(size_t new_nrows);
 
     // Modifies the column in-place converting it into a view column
     // using the provided row index.

@@ -147,31 +147,8 @@ void DataTable::delete_all() {
 
 void DataTable::resize_rows(size_t new_nrows) {
   if (new_nrows == nrows) return;
-
-  // Split all columns into groups, by their `RowIndex`es
-  std::vector<RowIndex> rowindices;
-  std::vector<intvec> colindices;
-  for (size_t i = 0; i < ncols; ++i) {
-    RowIndex r = columns[i]->remove_rowindex();
-    size_t j = 0;
-    for (; j < rowindices.size(); ++j) {
-      if (rowindices[j] == r) break;
-    }
-    if (j == rowindices.size()) {
-      rowindices.push_back(std::move(r));
-      colindices.resize(j + 1);
-    }
-    colindices[j].push_back(i);
-  }
-
-  for (size_t j = 0; j < rowindices.size(); ++j) {
-    RowIndex r = std::move(rowindices[j]);
-    xassert(!rowindices[j]);
-    if (!r) r = RowIndex(size_t(0), nrows, size_t(1));
-    r.resize(new_nrows);
-    for (size_t i : colindices[j]) {
-      columns[i]->replace_rowindex(r);
-    }
+  for (Column& col : columns) {
+    col.resize(new_nrows);
   }
   nrows = new_nrows;
 }

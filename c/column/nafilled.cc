@@ -27,7 +27,10 @@ namespace dt {
 NaFilled_ColumnImpl::NaFilled_ColumnImpl(Column&& col, size_t nrows)
   : Virtual_ColumnImpl(nrows, col.stype()),
     arg_nrows(col.nrows()),
-    arg(std::move(col)) {}
+    arg(std::move(col))
+{
+  xassert(nrows >= arg.nrows());
+}
 
 
 ColumnImpl* NaFilled_ColumnImpl::shallowcopy() const {
@@ -38,6 +41,21 @@ ColumnImpl* NaFilled_ColumnImpl::shallowcopy() const {
 void NaFilled_ColumnImpl::na_pad(size_t new_nrows, bool inplace, Column& out) {
   xassert(new_nrows >= _nrows);
   if (inplace) {
+    _nrows = new_nrows;
+  }
+  else {
+    out = Column(new NaFilled_ColumnImpl(Column(arg), new_nrows));
+  }
+}
+
+void NaFilled_ColumnImpl::truncate(size_t new_nrows, bool inplace, Column& out)
+{
+  xassert(new_nrows < _nrows);
+  if (new_nrows < arg_nrows) {
+    arg.resize(new_nrows);
+    out = std::move(arg);
+  }
+  else if (inplace) {
     _nrows = new_nrows;
   }
   else {

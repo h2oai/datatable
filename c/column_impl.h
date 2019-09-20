@@ -156,6 +156,7 @@ class ColumnImpl
     virtual void repeat(size_t ntimes, bool inplace, Column& out);
 
     virtual void na_pad(size_t new_nrows, bool inplace, Column& out);
+    virtual void truncate(size_t new_nrows, bool inplace, Column& out);
 
     /**
       * Implementation in column/view.cc
