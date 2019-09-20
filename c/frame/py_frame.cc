@@ -288,6 +288,30 @@ oobj Frame::get_stypes() const {
 }
 
 
+static GSArgs args_stype(
+  "stype",
+  "The common stype for all columns.\n\n"
+  "This property is well-defined only for frames where all columns\n"
+  "share the same stype. For heterogeneous frames accessing this\n"
+  "property will raise an error. For 0-column frames this property\n"
+  "returns None.\n");
+
+oobj Frame::get_stype() const {
+  if (dt->ncols == 0) return None();
+  SType stype = dt->get_column(0).stype();
+  for (size_t i = 1; i < dt->ncols; ++i) {
+    SType col_stype = dt->get_column(i).stype();
+    if (col_stype != stype) {
+      throw ValueError() << "The stype of column '" << dt->get_names()[i]
+          << "' is `" << col_stype << "`, which is different from the "
+          "stype of the previous column" << (i>1? "s" : "");
+    }
+  }
+  return info(stype).py_stype();
+}
+
+
+
 static GSArgs args_ltypes(
   "ltypes",
   "The tuple of each column's ltypes (\"logical types\")\n");
@@ -355,6 +379,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETSET(&Frame::get_nrows, &Frame::set_nrows, args_nrows));
   xt.add(GETTER(&Frame::get_shape, args_shape));
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
+  xt.add(GETTER(&Frame::get_stype,  args_stype));
   xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
   xt.add(GETTER(&Frame::get_ndims, args_ndims));
 
