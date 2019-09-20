@@ -200,7 +200,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
         value(std::move(x)) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstString_ColumnImpl(_nrows, value);
+      return new ConstString_ColumnImpl(_nrows, value, _stype);
     }
 
     bool get_element(size_t, CString* out) const override {

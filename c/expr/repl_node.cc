@@ -372,7 +372,7 @@ Column scalar_string_rn::make_column(SType st, size_t nrows) const {
   std::memcpy(strbuf.xptr(), value.data(), len);
   Column col = Column::new_string_column(1, std::move(offbuf), std::move(strbuf));
   if (nrows > 1) {
-    col->replace_rowindex(RowIndex(size_t(0), nrows, 0));
+    col.repeat(nrows);
   }
   return col;
 }
