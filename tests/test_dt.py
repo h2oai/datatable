@@ -31,7 +31,7 @@ import sys
 import time
 from collections import namedtuple
 from datatable import stype, ltype
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 from datatable.lib import core
 from tests import same_iterables, list_equals, noop, isview, assert_equals
 
@@ -77,7 +77,7 @@ def assert_valueerror(frame, rows, error_message):
 
 
 #-------------------------------------------------------------------------------
-# Run the tests
+# Generic tests
 #-------------------------------------------------------------------------------
 
 def test_platform():
@@ -318,6 +318,38 @@ def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0[3,])
     assert "Invalid tuple of size 1 used as a frame selector" in str(e.value)
+
+
+def test_warnings_as_errors():
+    # See issue #2005
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        try:
+            dt.fread("A,A,A\n1,2,3")
+        except dt.DatatableWarning as e:
+            assert "Duplicate column names found" in str(e)
+            assert "SystemError" not in str(e)
+            assert e.__cause__ is None
+
+
+
+#-------------------------------------------------------------------------------
+# Stype
+#-------------------------------------------------------------------------------
+
+def test_dt_stype(dt0):
+    assert dt0[0].stype == stype.int8
+    assert dt0[1].stype == stype.bool8
+    assert dt0[:, [1, 2, 4, 5]].stype == stype.bool8
+    assert dt0[-1].stype == stype.str32
+
+
+def test_dt_stype_heterogenous(dt0):
+    with pytest.raises(ValueError) as e:
+        noop(dt0.stype)
+    assert ("The stype of column 'B' is `bool8`, which is different "
+            "from the stype of the previous column" in str(e.value))
 
 
 
@@ -1171,13 +1203,9 @@ def test_materialize():
     DT2 = dt.repeat(dt.Frame(B=["red", "green", "blue"]), 2)
     DT3 = dt.Frame(C=[4, 2, 9.1, 12, 0])
     DT = dt.cbind(DT1, DT2, DT3, force=True)
-    assert frame_column_rowindex(DT, 0).type == "slice"
-    assert frame_column_rowindex(DT, 1).type == "arr32"
-    assert frame_column_rowindex(DT, 2) is None
+    assert frame_columns_virtual(DT) == (True, True, True)
     DT.materialize()
-    assert frame_column_rowindex(DT, 0) is None
-    assert frame_column_rowindex(DT, 1) is None
-    assert frame_column_rowindex(DT, 2) is None
+    assert frame_columns_virtual(DT) == (False, False, False)
 
 
 def test_materialize_object_col():
@@ -1305,10 +1333,8 @@ def test_export_names(dt0):
 def test_internal_rowindex():
     d0 = dt.Frame(range(100))
     d1 = d0[:20, :]
-    ri0 = frame_column_rowindex(d0, 0)
-    ri1 = frame_column_rowindex(d1, 0)
-    assert ri0 is None
-    assert repr(ri1) == "datatable.internal.RowIndex(0/20/1)"
+    assert frame_columns_virtual(d0) == (False,)
+    assert frame_columns_virtual(d1) == (True,)
 
 
 def test_issue898():

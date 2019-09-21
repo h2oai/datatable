@@ -37,9 +37,9 @@ class expr_binaryop : public base_expr {
 
   public:
     expr_binaryop(pexpr&& l, pexpr&& r, Op op);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    Column evaluate(workframe& wf) override;
+    SType resolve(const EvalContext& ctx) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext& ctx) override;
 
   private:
     /**
@@ -47,7 +47,7 @@ class expr_binaryop : public base_expr {
      * adjust its stype to match the stype of the other operand.
      * Returns true if such adjustment was made, or false otherwise.
      */
-    bool check_for_operation_with_literal_na(const workframe&);
+    bool check_for_operation_with_literal_na(const EvalContext&);
 };
 
 
@@ -91,6 +91,8 @@ extern _binary_infos binary_infos;
 // Called once at module initialization
 // TODO: remove
 void init_binops();
+
+Column binaryop(Op opcode, Column& lhs, Column& rhs);
 
 
 }}

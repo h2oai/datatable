@@ -480,3 +480,13 @@ def test_issue1607():
     DT.rbind(DT, DT)
     frame_integrity_check(DT)
     assert DT.shape == (0, 3)
+
+
+def test_issue2026():
+    DT = dt.Frame(A=range(10))
+    DT.rbind(DT)
+    DT.nrows = 8
+    DT.rbind(DT)
+    frame_integrity_check(DT)
+    assert DT.to_list() == [[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]]
+

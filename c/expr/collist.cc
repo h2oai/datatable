@@ -23,7 +23,7 @@
 #include "expr/expr.h"
 #include "expr/expr_column.h"
 #include "expr/expr_columnset.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
 namespace dt {
@@ -62,7 +62,7 @@ class collist_maker
       UNKNOWN, BOOL, INT, STR, EXPR, TYPE
     };
 
-    workframe& wf;
+    EvalContext& ctx;
     const DataTable* dt0;
     const char* srcname;
     list_type type;
@@ -73,12 +73,12 @@ class collist_maker
     size_t  flags;
 
   public:
-    collist_maker(workframe& wf_, size_t dt_index, size_t flags_,
+    collist_maker(EvalContext& ctx_, size_t dt_index, size_t flags_,
                   const char* srcname_)
-      : wf(wf_)
+      : ctx(ctx_)
     {
       flags = flags_;
-      dt0 = wf.get_datatable(dt_index);
+      dt0 = ctx.get_datatable(dt_index);
       type = list_type::UNKNOWN;
       k = 0;
       srcname = srcname_;
@@ -214,7 +214,7 @@ class collist_maker
       auto expr = elem.to_dtexpr();
       if (expr->is_columnset_expr()) {
         auto csexpr = dynamic_cast<expr::expr_columnset*>(expr.get());
-        auto collist = csexpr->convert_to_collist(wf, flags);
+        auto collist = csexpr->convert_to_collist(ctx, flags);
         concat_vectors(names,   collist->release_names());
         concat_vectors(indices, collist->release_indices());
         concat_vectors(exprs,   collist->release_exprs());
@@ -223,8 +223,8 @@ class collist_maker
       auto colexpr = dynamic_cast<expr::expr_column*>(expr.get());
       if (colexpr) {
         bool strict = !(flags & collist::ALLOW_NEW_COLUMNS);
-        size_t frame_index = colexpr->get_col_frame(wf);
-        size_t col_index = colexpr->get_col_index(wf, strict);
+        size_t frame_index = colexpr->get_col_frame(ctx);
+        size_t col_index = colexpr->get_col_index(ctx, strict);
         if (frame_index == 0) {
           indices.push_back(col_index);
         }
@@ -337,17 +337,17 @@ class collist_maker
 // collist
 //------------------------------------------------------------------------------
 
-collist::collist(workframe& wf, py::robj src, size_t flags, size_t dt_index)
+collist::collist(EvalContext& ctx, py::robj src, size_t flags, size_t dt_index)
 {
   const char* srcname = (flags & J_NODE)? "`j` selector" :
                         (flags & BY_NODE)? "`by`" :
                         (flags & SORT_NODE)? "`sort`" :
                         (flags & REPL_NODE)? "replacement" : "columnset";
   if (flags & J_NODE) {
-    if (wf.get_mode() == EvalMode::UPDATE) flags |= ALLOW_NEW_COLUMNS;
-    if (wf.get_mode() == EvalMode::DELETE) flags |= FORBID_SRC_DICT;
+    if (ctx.get_mode() == EvalMode::UPDATE) flags |= ALLOW_NEW_COLUMNS;
+    if (ctx.get_mode() == EvalMode::DELETE) flags |= FORBID_SRC_DICT;
   }
-  collist_maker maker(wf, dt_index, flags, srcname);
+  collist_maker maker(ctx, dt_index, flags, srcname);
   maker.process(src);
   exprs = std::move(maker.exprs);
   names = std::move(maker.names);
@@ -457,13 +457,13 @@ void collist::exclude(collist_ptr&& other) {
       }
     }
     if (!exprs.empty()) {
-      workframe wf;
+      EvalContext ctx(nullptr, EvalMode::SELECT);
       xassert(indices.empty());
       for (size_t j = 0; j < exprs.size(); ++j) {
         auto colexpr = dynamic_cast<expr::expr_column*>(exprs[j].get());
         if (!colexpr) continue;
-        size_t f = colexpr->get_col_frame(wf);
-        size_t k = colexpr->get_col_index(wf);
+        size_t f = colexpr->get_col_frame(ctx);
+        size_t k = colexpr->get_col_index(ctx);
         if (k == column_index_to_find && f == 0) {
           delete_vector_element(names, j);
           delete_vector_element(exprs, j);

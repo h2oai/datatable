@@ -63,6 +63,23 @@ template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 template <SType s>
 using element_t = typename _elt<s>::t;
 
+template <SType s> struct _readt { using t = element_t<s>; };
+template <> struct _readt<SType::STR32> { using t = CString; };
+template <> struct _readt<SType::STR64> { using t = CString; };
+template <> struct _readt<SType::OBJ>   { using t = py::robj; };
+
+template <SType s>
+using read_t = typename _readt<s>::t;
+
+
+template <typename T> inline SType stype_from() { return SType::VOID; }
+template <> inline SType stype_from<int8_t>()   { return SType::INT8; }
+template <> inline SType stype_from<int16_t>()  { return SType::INT16; }
+template <> inline SType stype_from<int32_t>()  { return SType::INT32; }
+template <> inline SType stype_from<int64_t>()  { return SType::INT64; }
+template <> inline SType stype_from<float>()    { return SType::FLOAT32; }
+template <> inline SType stype_from<double>()   { return SType::FLOAT64; }
+template <> inline SType stype_from<CString>()  { return SType::STR32; }
 
 
 
@@ -98,12 +115,15 @@ class Column
   //------------------------------------
   // Constructors
   //------------------------------------
+  // Note: the move-constructor MUST be noexcept; if not then an
+  // `std::vector<Column>` will be copying Columns instead of moving
+  // when the vector if resized.
   public:
     Column();
     Column(const Column&);
-    Column(Column&&);
+    Column(Column&&) noexcept;
     Column& operator=(const Column&);
-    Column& operator=(Column&&);
+    Column& operator=(Column&&) noexcept;
     ~Column();
 
     static Column new_data_column(SType, size_t nrows);
@@ -117,8 +137,8 @@ class Column
     static Column from_range(int64_t start, int64_t stop, int64_t step, SType);
     static Column from_strvec(const strvec&);
 
-  public: // temp
-    // Assumes ownership of the `col` object
+    // Assumes ownership of the `col` object. This constructor is
+    // intended for use by derived `ColumnImpl` classes.
     explicit Column(ColumnImpl* col);
 
   //------------------------------------
@@ -137,7 +157,7 @@ class Column
 
     ColumnImpl* operator->();
     const ColumnImpl* operator->() const;
-
+    ColumnImpl* release() noexcept;
 
   //------------------------------------
   // Data access
@@ -221,15 +241,30 @@ class Column
   public:
     void rbind(colvec& columns);
     void materialize();
+    void cast_inplace(SType stype);
     Column cast(SType stype) const;
     Column cast(SType stype, MemoryRange&& mr) const;
     RowIndex sort(Groupby* out_groups) const;
-    RowIndex sort_grouped(const RowIndex&, const Groupby&) const;
+    void sort_grouped_inplace(const Groupby&);
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
 
+    // Rbind the column with itself `ntimes` times.
+    void repeat(size_t ntimes);
+
+    // Resize this column to `new_nrows` rows.
+    // If the new number of rows is greater than the current number
+    // of rows, the column is padded with NAs.
+    // If it is less than the current number of rows, the column is
+    // truncated.
+    void resize(size_t new_nrows);
+
+    // Modifies the column in-place converting it into a view column
+    // using the provided row index.
+    void apply_rowindex(const RowIndex&);
+    void apply_rowindex_old(const RowIndex&);  // TODO: remove this
+
     friend void swap(Column& lhs, Column& rhs);
-    // friend Column new_string_column(size_t, MemoryRange&&, MemoryRange&&);
     friend class ColumnImpl;
 };
 

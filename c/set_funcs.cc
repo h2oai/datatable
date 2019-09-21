@@ -55,8 +55,7 @@ static py::oobj make_pyframe(sort_result&& sorted, arr32_t&& arr) {
   // The array of rowindices `arr` is typically shuffled because the values
   // in the input are sorted before they are compared.
   RowIndex out_ri = RowIndex(std::move(arr), false);
-  sorted.column->replace_rowindex(out_ri);
-  sorted.column.materialize();
+  sorted.column.apply_rowindex(out_ri);
   DataTable* dt = new DataTable({std::move(sorted.column)},
                                 {std::move(sorted.colname)});
   return py::Frame::oframe(dt);
@@ -127,6 +126,8 @@ static py::oobj _union(named_colvec&& ncv) {
 
   size_t ngrps = sorted.gb.ngroups();
   const int32_t* goffsets = sorted.gb.offsets_r();
+  if (goffsets[ngrps] == 0) ngrps = 0;
+
   const int32_t* indices = sorted.ri.indices32();
   arr32_t arr(ngrps);
   int32_t* out_indices = arr.data();
@@ -223,6 +224,8 @@ static py::oobj _intersect(named_colvec&& cv) {
   sort_result sorted = sort_columns(std::move(cv));
   size_t ngrps = sorted.gb.ngroups();
   const int32_t* goffsets = sorted.gb.offsets_r();
+  if (goffsets[ngrps] == 0) ngrps = 0;
+
   const int32_t* indices = sorted.ri.indices32();
   arr32_t arr(ngrps);
   int32_t* out_indices = arr.data();
@@ -319,6 +322,8 @@ static py::oobj _setdiff(named_colvec&& cv) {
   sort_result sorted = sort_columns(std::move(cv));
   size_t ngrps = sorted.gb.ngroups();
   const int32_t* goffsets = sorted.gb.offsets_r();
+  if (goffsets[ngrps] == 0) ngrps = 0;
+
   const int32_t* indices = sorted.ri.indices32();
   arr32_t arr(ngrps);
   int32_t* out_indices = arr.data();
@@ -378,6 +383,8 @@ static py::oobj _symdiff(named_colvec&& cv) {
   sort_result sr = sort_columns(std::move(cv));
   size_t ngrps = sr.gb.ngroups();
   const int32_t* goffsets = sr.gb.offsets_r();
+  if (goffsets[ngrps] == 0) ngrps = 0;
+
   const int32_t* indices = sr.ri.indices32();
   arr32_t arr(ngrps);
   int32_t* out_indices = arr.data();

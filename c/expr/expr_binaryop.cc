@@ -486,8 +486,10 @@ static mapperfn resolve0(SType lhs_type, SType rhs_type, Op opcode, Column* cols
 // binaryop
 //------------------------------------------------------------------------------
 
-static Column binaryop(Op opcode, Column& lhs, Column& rhs)
+Column binaryop(Op opcode, Column& lhs, Column& rhs)
 {
+  if (rhs.stype() == SType::VOID) rhs.cast_inplace(lhs.stype());
+  if (lhs.stype() == SType::VOID) lhs.cast_inplace(rhs.stype());
   // TODO: do not materialize, then `lhs` and `rhs` may be const
   lhs.materialize();
   rhs.materialize();
@@ -534,13 +536,13 @@ expr_binaryop::expr_binaryop(pexpr&& l, pexpr&& r, Op op)
     opcode(op) {}
 
 
-SType expr_binaryop::resolve(const workframe& wf) {
-  SType lhs_stype = lhs->resolve(wf);
-  SType rhs_stype = rhs->resolve(wf);
+SType expr_binaryop::resolve(const EvalContext& ctx) {
+  SType lhs_stype = lhs->resolve(ctx);
+  SType rhs_stype = rhs->resolve(ctx);
   size_t triple = id(opcode, lhs_stype, rhs_stype);
   if (binop_rules.count(triple) == 0) {
-    if (check_for_operation_with_literal_na(wf)) {
-      return resolve(wf);  // Try resolving again, one of lhs/rhs has changed
+    if (check_for_operation_with_literal_na(ctx)) {
+      return resolve(ctx);  // Try resolving again, one of lhs/rhs has changed
     }
     throw TypeError() << "Binary operator `"
         << binop_names[id(opcode)]
@@ -551,16 +553,16 @@ SType expr_binaryop::resolve(const workframe& wf) {
 }
 
 
-GroupbyMode expr_binaryop::get_groupby_mode(const workframe& wf) const {
-  auto lmode = static_cast<uint8_t>(lhs->get_groupby_mode(wf));
-  auto rmode = static_cast<uint8_t>(rhs->get_groupby_mode(wf));
+GroupbyMode expr_binaryop::get_groupby_mode(const EvalContext& ctx) const {
+  auto lmode = static_cast<uint8_t>(lhs->get_groupby_mode(ctx));
+  auto rmode = static_cast<uint8_t>(rhs->get_groupby_mode(ctx));
   return static_cast<GroupbyMode>(std::max(lmode, rmode));
 }
 
 
-Column expr_binaryop::evaluate(workframe& wf) {
-  auto lhs_res = lhs->evaluate(wf);
-  auto rhs_res = rhs->evaluate(wf);
+Column expr_binaryop::evaluate(EvalContext& ctx) {
+  auto lhs_res = lhs->evaluate(ctx);
+  auto rhs_res = rhs->evaluate(ctx);
   return expr::binaryop(opcode, lhs_res, rhs_res);
 }
 
@@ -578,22 +580,22 @@ Column expr_binaryop::evaluate(workframe& wf) {
 // column created out of None values only, and have that type convert into
 // any other stype as necessary.
 //
-bool expr_binaryop::check_for_operation_with_literal_na(const workframe& wf) {
+bool expr_binaryop::check_for_operation_with_literal_na(const EvalContext& ctx) {
   auto check_operand = [&](pexpr& arg) -> bool {
     auto pliteral = dynamic_cast<expr_literal*>(arg.get());
     if (!pliteral) return false;
-    if (pliteral->resolve(wf) != SType::BOOL) return false;
-    Column ocol = pliteral->evaluate(const_cast<workframe&>(wf));
+    if (pliteral->resolve(ctx) != SType::BOOL) return false;
+    Column ocol = pliteral->evaluate(const_cast<EvalContext&>(ctx));
     if (ocol.nrows() != 1) return false;
     return ISNA<int8_t>(reinterpret_cast<const int8_t*>(ocol->data())[0]);
   };
   if (check_operand(rhs)) {
-    SType lhs_stype = lhs->resolve(wf);
+    SType lhs_stype = lhs->resolve(ctx);
     rhs = pexpr(new expr_cast(std::move(rhs), lhs_stype));
     return true;
   }
   if (check_operand(lhs)) {
-    SType rhs_stype = rhs->resolve(wf);
+    SType rhs_stype = rhs->resolve(ctx);
     lhs = pexpr(new expr_cast(std::move(lhs), rhs_stype));
     return true;
   }

@@ -141,7 +141,7 @@ def get_datatable_version():
         log.info("Reading file " + filename)
         with open(filename, encoding="utf-8") as f:
             rx = re.compile(r"version\s*=\s*['\"]"
-                            r"(\d+(?:\.\d+)*(?:(?:a|b|rc)\d+)?)"
+                            r"(\d+(?:\.\d+)+(?:(?:a|b|rc)\d*)?)"
                             r"['\"]\s*")
             for line in f:
                 mm = re.match(rx, line)
@@ -381,14 +381,14 @@ def get_compile_includes():
         includes.add("c")
         log.info("`c` is the main C++ source directory")
 
+        # Adding the include directory in sys.prefix as an -isystem flag breaks
+        # gcc because it messes with its include_next mechanism on Fedora where
+        # sys.prefix resolves to /usr.  It doesn't seem necessary either because
+        # with non-standard sys.prefix, CONFINCLUDEPY is good enough.
         confincludepy = sysconfig.get_config_var("CONFINCLUDEPY")
         if confincludepy:
             includes.add(confincludepy)
             log.info("`%s` added from CONFINCLUDEPY" % confincludepy)
-
-        sysprefixinclude = os.path.join(sys.prefix, "include")
-        includes.add(sysprefixinclude)
-        log.info("`%s` added from sys.prefix" % sysprefixinclude)
 
         # Include path to C++ header files
         llvmdir = get_llvm()
@@ -499,6 +499,7 @@ def get_extra_compile_flags():
                 "-Wno-reserved-id-macro",
                 "-Wno-switch-enum",
                 "-Wno-weak-template-vtables",
+                "-Wno-weak-vtables",
             ]
         elif is_gcc():
             # Ignored warnings:
@@ -642,8 +643,9 @@ def find_linked_dynamic_libraries():
                 else:
                     log.fatal("Cannot locate dynamic library `%s`" % libname)
             else:
-                log.fatal("`locate` command returned the following error:\n%s"
-                          % stderr.decode())
+                print("%s :::: %d :::: %s" % (libname, proc.returncode, stdout.decode()))
+                log.fatal("`locate` command returned the following error while looking for %s:\n%s"
+                          % (libname, stderr.decode()))
         return resolved
 
 

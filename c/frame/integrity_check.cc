@@ -148,39 +148,9 @@ void DataTable::verify_integrity() const
 // Column
 //------------------------------------------------------------------------------
 
-void ColumnImpl::verify_integrity(const std::string& name) const {
+void ColumnImpl::verify_integrity(const std::string&) const {
   mbuf.verify_integrity();
   ri.verify_integrity();
-
-  size_t mbuf_nrows = data_nrows();
-
-  // Check RowIndex
-  if (ri.isabsent()) {
-    // Check that nrows is a correct representation of mbuf's size
-    if (_nrows != mbuf_nrows) {
-      throw AssertionError()
-          << "Mismatch between reported number of rows: " << name
-          << " has nrows=" << _nrows << " but MemoryRange has data for "
-          << mbuf_nrows << " rows";
-    }
-  }
-  else {
-    // Check that the length of the RowIndex corresponds to `nrows`
-    if (_nrows != ri.size()) {
-      throw AssertionError()
-          << "Mismatch in reported number of rows: " << name << " has "
-          << "nrows=" << _nrows << ", while its rowindex.length="
-          << ri.size();
-    }
-    // Check that the maximum value of the RowIndex does not exceed the maximum
-    // row number in the memory buffer
-    if (ri.max() >= mbuf_nrows && ri.max() != RowIndex::NA) {
-      throw AssertionError()
-          << "Maximum row number in the rowindex of " << name << " exceeds the "
-          << "number of rows in the underlying memory buffer: max(rowindex)="
-          << ri.max() << ", and nrows(membuf)=" << mbuf_nrows;
-    }
-  }
 
   // Check Stats
   if (stats) { // Stats are allowed to be null
@@ -233,13 +203,6 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
 
   size_t mbuf_nrows = data_nrows();
   strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
-
-  if (strbuf.size() != strdata_size) {
-    throw AssertionError()
-        << "Size of string data section in " << name << " does not correspond"
-           " to the magnitude of the final offset: size = " << strbuf.size()
-        << ", expected " << strdata_size;
-  }
 
   // Check for the validity of each offset
   T lastoff = 0;

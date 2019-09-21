@@ -465,7 +465,7 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
         rows_to_fill = 0;
       }
       if (col.stype() != _stype) {
-        col = col.cast(_stype);
+        col.cast_inplace(_stype);
       }
       std::memcpy(resptr, col->data(), col->alloc_size());
       resptr += col->alloc_size();

@@ -317,6 +317,7 @@ vptr value_writer::create(const Column& col, const output_options& options)
 {
   SType stype = col.stype();
   switch (stype) {
+    case SType::VOID:
     case SType::BOOL:
       return options.booleans_as_words? vptr(new booleanTF_writer(col))
                                       : vptr(new boolean01_writer(col));

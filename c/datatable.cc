@@ -50,16 +50,16 @@ DataTable::DataTable(colvec&& cols, DefaultNamesTag)
 }
 
 
-DataTable::DataTable(colvec&& cols, const py::olist& nn)
+DataTable::DataTable(colvec&& cols, const py::olist& nn, bool warn)
   : DataTable(std::move(cols))
 {
-  set_names(nn);
+  set_names(nn, warn);
 }
 
-DataTable::DataTable(colvec&& cols, const strvec& nn)
+DataTable::DataTable(colvec&& cols, const strvec& nn, bool warn)
   : DataTable(std::move(cols))
 {
-  set_names(nn);
+  set_names(nn, warn);
 }
 
 DataTable::DataTable(colvec&& cols, const DataTable* nn)
@@ -145,84 +145,18 @@ void DataTable::delete_all() {
 }
 
 
-
-// Split all columns into groups, by their `RowIndex`es
-std::vector<RowColIndex> DataTable::split_columns_by_rowindices() const {
-  std::vector<RowColIndex> res;
-  for (size_t i = 0; i < ncols; ++i) {
-    RowIndex r = columns[i]->rowindex();
-    bool found = false;
-    for (auto& item : res) {
-      if (item.rowindex == r) {
-        found = true;
-        item.colindices.push_back(i);
-        break;
-      }
-    }
-    if (!found) {
-      res.push_back({r, {i}});
-    }
-  }
-  return res;
-}
-
-
 void DataTable::resize_rows(size_t new_nrows) {
   if (new_nrows == nrows) return;
-
-  // Split all columns into groups, by their `RowIndex`es
-  std::vector<RowIndex> rowindices;
-  std::vector<intvec> colindices;
-  for (size_t i = 0; i < ncols; ++i) {
-    RowIndex r = columns[i]->remove_rowindex();
-    size_t j = 0;
-    for (; j < rowindices.size(); ++j) {
-      if (rowindices[j] == r) break;
-    }
-    if (j == rowindices.size()) {
-      rowindices.push_back(std::move(r));
-      colindices.resize(j + 1);
-    }
-    colindices[j].push_back(i);
+  if (new_nrows > nrows && nkeys > 0) {
+    throw ValueError() << "Cannot increase the number of rows in a keyed frame";
   }
-
-  for (size_t j = 0; j < rowindices.size(); ++j) {
-    RowIndex r = std::move(rowindices[j]);
-    xassert(!rowindices[j]);
-    if (!r) r = RowIndex(size_t(0), nrows, size_t(1));
-    r.resize(new_nrows);
-    for (size_t i : colindices[j]) {
-      columns[i]->replace_rowindex(r);
-    }
+  for (Column& col : columns) {
+    col.resize(new_nrows);
   }
   nrows = new_nrows;
 }
 
 
-
-void DataTable::replace_rowindex(const RowIndex& newri) {
-  nrows = newri.size();
-  for (size_t i = 0; i < ncols; ++i) {
-    columns[i]->replace_rowindex(newri);
-  }
-}
-
-
-/**
- * Equivalent of ``return DT[ri, :]``.
- */
-DataTable* apply_rowindex(const DataTable* dt, const RowIndex& ri) {
-  auto rc = dt->split_columns_by_rowindices();
-  colvec newcols(dt->ncols);
-  for (auto& rcitem : rc) {
-    RowIndex newri = ri * rcitem.rowindex;
-    for (size_t i : rcitem.colindices) {
-      newcols[i] = dt->get_column(i);
-      newcols[i]->replace_rowindex(newri);
-    }
-  }
-  return new DataTable(std::move(newcols), dt);
-}
 
 
 /**
@@ -232,13 +166,8 @@ void DataTable::apply_rowindex(const RowIndex& ri) {
   // If RowIndex is empty, no need to do anything. Also, the expression
   // `ri.size()` cannot be computed.
   if (!ri) return;
-
-  auto rc = split_columns_by_rowindices();
-  for (auto& rcitem : rc) {
-    RowIndex newri = ri * rcitem.rowindex;
-    for (size_t i : rcitem.colindices) {
-      columns[i]->replace_rowindex(newri);
-    }
+  for (Column& col : columns) {
+    col.apply_rowindex_old(ri);
   }
   nrows = ri.size();
 }

@@ -119,7 +119,8 @@ class Warning : public Error {
   public:
     Warning(PyObject* cls);
     Warning(const Warning&) = default;
-    ~Warning() override;
+
+    void emit();
 };
 
 Warning DatatableWarning();

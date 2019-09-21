@@ -128,7 +128,7 @@
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
 #include "expr/sort_node.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/args.h"
@@ -1336,6 +1336,9 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
 
   const Column& col0 = columns[spec[0].col_index];
   col0.stats();  // instantiate Stats object; TODO: remove this
+
+  // For a 0-row Frame we return a rowindex of size 0, and the
+  // Groupby containing a single group (also of size 0).
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
@@ -1353,7 +1356,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
   }
 
   bool do_groups = n > 1 || !spec[0].sort_only;
-  xassert(!col0->rowindex());
+  xassert(!col0.is_virtual());
   SortContext sc(nrows, RowIndex(), do_groups);
   sc.start_sort(col0, spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
@@ -1418,13 +1421,12 @@ RowIndex Column::sort(Groupby* out_grps) const {
 }
 
 
-RowIndex Column::sort_grouped(const RowIndex& rowindex,
-                              const Groupby& grps) const
+void Column::sort_grouped_inplace(const Groupby& grps)
 {
   (void)stats();
-  SortContext sc(nrows(), rowindex, grps, /* make_groups = */ false);
+  SortContext sc(nrows(), pcol->ri, grps, /* make_groups = */ false);
   sc.continue_sort(*this, /* desc = */ false, /* make_groups = */ false);
-  return sc.get_result_rowindex();
+  pcol->ri = sc.get_result_rowindex();
 }
 
 
@@ -1455,14 +1457,14 @@ remains unmodified.
 )");
 
 py::oobj py::Frame::sort(const PKArgs& args) {
-  dt::workframe wf(dt);
+  dt::EvalContext ctx(dt, dt::EvalMode::SELECT);
 
   if (args.num_vararg_args() == 0) {
     py::otuple all_cols(dt->ncols);
     for (size_t i = 0; i < dt->ncols; ++i) {
       all_cols.set(i, py::oint(i));
     }
-    wf.add_sortby(py::osort(all_cols));
+    ctx.add_sortby(py::osort(all_cols));
   }
   else {
     std::vector<py::robj> cols;
@@ -1481,13 +1483,13 @@ py::oobj py::Frame::sort(const PKArgs& args) {
     for (size_t i = 0; i < cols.size(); ++i) {
       sort_cols.set(i, cols[i]);
     }
-    wf.add_sortby(py::osort(sort_cols));
+    ctx.add_sortby(py::osort(sort_cols));
   }
 
-  wf.add_i(py::None());
-  wf.add_j(py::None());
-  wf.evaluate();
-  return wf.get_result();
+  ctx.add_i(py::None());
+  ctx.add_j(py::None());
+  ctx.evaluate();
+  return ctx.get_result();
 }
 
 

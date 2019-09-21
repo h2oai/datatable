@@ -153,6 +153,7 @@ class _obj {
     //--------------------------------------------------------------------------
     // Type tests
     //--------------------------------------------------------------------------
+    bool is_anytype()       const noexcept;
     bool is_bool()          const noexcept;
     bool is_buffer()        const noexcept;
     bool is_by_node()       const noexcept;

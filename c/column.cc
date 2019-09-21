@@ -18,10 +18,6 @@
 #include "sort.h"
 
 
-ColumnImpl::ColumnImpl(size_t nrows)
-    : _nrows(nrows) {}
-
-ColumnImpl::~ColumnImpl() {}
 
 
 
@@ -109,26 +105,14 @@ ColumnImpl* ColumnImpl::shallowcopy() const {
 }
 
 
-size_t ColumnImpl::alloc_size() const {
-  return mbuf.size();
+size_t ColumnImpl::alloc_size() const {  // TODO: remove
+  return _nrows * info(_stype).elemsize();
 }
 
 PyObject* ColumnImpl::mbuf_repr() const {
   return mbuf.pyrepr();
 }
 
-
-
-RowIndex ColumnImpl::remove_rowindex() {
-  RowIndex res(std::move(ri));
-  xassert(!ri);
-  return res;
-}
-
-void ColumnImpl::replace_rowindex(const RowIndex& newri) {
-  ri = newri;
-  _nrows = ri.size();
-}
 
 
 
@@ -141,27 +125,31 @@ void swap(Column& lhs, Column& rhs) {
   std::swap(lhs.pcol, rhs.pcol);
 }
 
-Column::Column() : pcol(nullptr) {}
+Column::Column()
+  : pcol(nullptr) {}
 
-Column::Column(ColumnImpl* col) : pcol(col) {}  // private
+Column::Column(ColumnImpl* col)
+  : pcol(col) {}
 
 Column::Column(const Column& other)
   : pcol(other.pcol->acquire_instance()) {}
 
-Column::Column(Column&& other) : Column() {
+Column::Column(Column&& other) noexcept : Column() {
   std::swap(pcol, other.pcol);
 }
 
 Column& Column::operator=(const Column& other) {
-  if (pcol) pcol->release_instance();
+  auto old = pcol;
   pcol = other.pcol->acquire_instance();
+  if (old) old->release_instance();
   return *this;
 }
 
-Column& Column::operator=(Column&& other) {
-  if (pcol) pcol->release_instance();
+Column& Column::operator=(Column&& other) noexcept {
+  auto old = pcol;
   pcol = other.pcol;
   other.pcol = nullptr;
+  if (old) old->release_instance();
   return *this;
 }
 
@@ -178,6 +166,13 @@ ColumnImpl* Column::operator->() {
 const ColumnImpl* Column::operator->() const {
   return pcol;
 }
+
+ColumnImpl* Column::release() noexcept {
+  ColumnImpl* tmp = pcol;
+  pcol = nullptr;
+  return tmp;
+}
+
 
 
 //---- Properties ----------------------
@@ -203,7 +198,7 @@ bool Column::is_fixedwidth() const noexcept {
 }
 
 bool Column::is_virtual() const noexcept {
-  return bool(pcol->ri);
+  return pcol->is_virtual();
 }
 
 size_t Column::elemsize() const noexcept {
@@ -295,23 +290,48 @@ void Column::replace_values(const RowIndex& replace_at,
 }
 
 
+void Column::repeat(size_t ntimes) {
+  bool inplace = true;  // && pcol->use_count() == 1
+  pcol->repeat(ntimes, inplace, *this);
+}
+
+void Column::apply_rowindex(const RowIndex& ri) {
+  if (!ri) return;
+  pcol->apply_rowindex(ri, *this);  // modifies in-place
+}
+
+void Column::apply_rowindex_old(const RowIndex& ri) {
+  if (!ri) return;
+  if (pcol->is_virtual() && !pcol->ri) materialize();
+  RowIndex new_rowindex = ri * pcol->ri;
+  pcol->ri = new_rowindex;
+  pcol->_nrows = new_rowindex.size();
+}
+
+
+void Column::resize(size_t new_nrows) {
+  bool inplace = true;
+  size_t curr_nrows = nrows();
+  if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, inplace, *this);
+  if (new_nrows < curr_nrows) pcol->truncate(new_nrows, inplace, *this);
+}
+
+
 
 
 //==============================================================================
 // VoidColumn
 //==============================================================================
 
-VoidColumn::VoidColumn() { _stype = SType::VOID; }
-VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows) { _stype = SType::VOID; }
+VoidColumn::VoidColumn() : ColumnImpl(0, SType::VOID) {}
+VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows, SType::VOID) {}
 size_t VoidColumn::data_nrows() const { return _nrows; }
 ColumnImpl* VoidColumn::materialize() { return this; }
-void VoidColumn::resize_and_fill(size_t) {}
 void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const Column&) {}
 void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
 void VoidColumn::init_data() {}
 void VoidColumn::fill_na() {}
-void VoidColumn::fill_na_mask(int8_t*, size_t, size_t) {}
 
 
 
@@ -334,20 +354,15 @@ class StrvecColumn : public ColumnImpl {
 
     size_t data_nrows() const override { return _nrows; }
     ColumnImpl* materialize() override { return this; }
-    void resize_and_fill(size_t) override {}
     void rbind_impl(colvec&, size_t, bool) override {}
     void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}
     void init_data() override {}
     void fill_na() override {}
-    void fill_na_mask(int8_t*, size_t, size_t) override {}
 };
 
 StrvecColumn::StrvecColumn(const strvec& v)
-  : ColumnImpl(v.size()), vec(v)
-{
-  _stype = SType::STR32;
-}
+  : ColumnImpl(v.size(), SType::STR32), vec(v) {}
 
 bool StrvecColumn::get_element(size_t i, CString* out) const {
   out->ch = vec[i].c_str();

@@ -191,7 +191,11 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
   // Fix up the DataTable's columns if they have different number of rows
   if (fix_columns) {
     for (Column& col : columns) {
-      col->resize_and_fill(final_nrows);
+      if (col.nrows() == 1) {
+        col.repeat(final_nrows);
+      } else {
+        col.resize(final_nrows);  // padding with NAs
+      }
     }
   }
 

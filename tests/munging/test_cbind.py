@@ -9,7 +9,7 @@ import types
 import datatable as dt
 from tests import assert_equals
 from datatable import stype, DatatableWarning
-from datatable.internal import frame_integrity_check
+from datatable.internal import frame_integrity_check, frame_columns_virtual
 
 
 def dt_compute_stats(*dts):
@@ -191,7 +191,6 @@ def test_cbind_views2():
 
 
 def test_cbind_views3():
-    from datatable.internal import frame_column_rowindex
     d0 = dt.Frame(A=range(10))[::-1, :]
     d1 = dt.Frame(B=list("abcde") * 2)
     d2 = dt.Frame(C=range(1000))[[14, 19, 35, 17, 3, 0, 1, 0, 10, 777], :]
@@ -199,11 +198,7 @@ def test_cbind_views3():
     assert d0.to_list() == [list(range(10))[::-1],
                             list("abcde" * 2),
                             [14, 19, 35, 17, 3, 0, 1, 0, 10, 777]]
-    assert (repr(frame_column_rowindex(d0, 0)) ==
-            "datatable.internal.RowIndex(9/10/-1)")
-    assert frame_column_rowindex(d0, 1) is None
-    assert (repr(frame_column_rowindex(d0, 2)) ==
-            "datatable.internal.RowIndex(int32[10])")
+    assert frame_columns_virtual(d0) == (True, False, True)
 
 
 
@@ -349,3 +344,18 @@ def test_cbind_expanded_frame():
     DT = dt.Frame(A=[1, 2], B=['a', "E"], C=[7, 1000], D=[-3.14, 159265])
     RES = dt.cbind(*DT)
     assert_equals(DT, RES)
+
+
+def test_cbind_issue2024():
+    DT = dt.Frame([[]] * 2, names=["A.1", "A.5"])
+    with pytest.warns(DatatableWarning):
+        RZ = dt.cbind(DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6")
+        RZ = dt.cbind(DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7")
+        RZ = dt.cbind(DT, DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7", "A.4",
+                            "A.8")
+        RZ = dt.cbind(DT, DT, DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7", "A.4",
+                            "A.8", "A.9", "A.10")

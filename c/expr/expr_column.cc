@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/expr_column.h"
+#include "expr/eval_context.h"
 #include "utils/exceptions.h"
 #include "column_impl.h"  // TODO: remove
 namespace dt {
@@ -43,8 +44,8 @@ expr_column::expr_column(size_t dfid, size_t colid)
     col_id(colid) {}
 
 
-size_t expr_column::get_col_frame(const workframe& wf) {
-  if (frame_id >= wf.nframes()) {
+size_t expr_column::get_col_frame(const EvalContext& ctx) {
+  if (frame_id >= ctx.nframes()) {
     throw ValueError()
         << "Column expression references a non-existing join frame";
   }
@@ -52,9 +53,9 @@ size_t expr_column::get_col_frame(const workframe& wf) {
 }
 
 
-size_t expr_column::get_col_index(const workframe& wf, bool strict) {
+size_t expr_column::get_col_index(const EvalContext& ctx, bool strict) {
   if (col_id == UNRESOLVED_COLUMN) {
-    const DataTable* dt = wf.get_datatable(get_col_frame(wf));
+    const DataTable* dt = ctx.get_datatable(get_col_frame(ctx));
     if (col_selector.is_int()) {
       int64_t icolid = col_selector.to_int64_strict();
       int64_t incols = static_cast<int64_t>(dt->ncols);
@@ -79,29 +80,26 @@ size_t expr_column::get_col_index(const workframe& wf, bool strict) {
 }
 
 
-SType expr_column::resolve(const workframe& wf) {
-  size_t i = get_col_index(wf);
-  const DataTable* dt = wf.get_datatable(frame_id);
+SType expr_column::resolve(const EvalContext& ctx) {
+  size_t i = get_col_index(ctx);
+  const DataTable* dt = ctx.get_datatable(frame_id);
   return dt->get_column(i).stype();
 }
 
 
-GroupbyMode expr_column::get_groupby_mode(const workframe& wf) const {
+GroupbyMode expr_column::get_groupby_mode(const EvalContext& ctx) const {
   return (frame_id == 0 &&
-          wf.has_groupby() &&
-          wf.get_by_node().has_group_column(col_id))? GroupbyMode::GtoONE
+          ctx.has_groupby() &&
+          ctx.get_by_node().has_group_column(col_id))? GroupbyMode::GtoONE
                                                     : GroupbyMode::GtoALL;
 }
 
 
-Column expr_column::evaluate(workframe& wf) {
-  const DataTable* dt = wf.get_datatable(frame_id);
+Column expr_column::evaluate(EvalContext& ctx) {
+  const DataTable* dt = ctx.get_datatable(frame_id);
   Column newcol = dt->get_column(col_id);  // copy
-  const RowIndex& dt_ri = wf.get_rowindex(frame_id);
-  const RowIndex& col_ri = newcol->rowindex();
-  if (dt_ri) {
-    newcol->replace_rowindex(wf._product(dt_ri, col_ri));
-  }
+  const RowIndex& dt_ri = ctx.get_rowindex(frame_id);
+  newcol.apply_rowindex_old(dt_ri);
   return newcol;
 }
 

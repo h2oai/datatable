@@ -26,7 +26,7 @@ namespace dt {
 
 class j_node;
 class repl_node;
-class workframe;
+class EvalContext;
 using j_node_ptr = std::unique_ptr<dt::j_node>;
 
 /**
@@ -34,14 +34,14 @@ using j_node_ptr = std::unique_ptr<dt::j_node>;
  */
 class j_node {
   public:
-    static j_node_ptr make(py::robj src, workframe& wf);
+    static j_node_ptr make(py::robj src, EvalContext& ctx);
 
     j_node();
     virtual ~j_node();
-    virtual GroupbyMode get_groupby_mode(workframe&) = 0;
-    virtual void select(workframe&) = 0;
-    virtual void delete_(workframe&) = 0;
-    virtual void update(workframe&, repl_node*) = 0;
+    virtual GroupbyMode get_groupby_mode(EvalContext&) = 0;
+    virtual void select(EvalContext&) = 0;
+    virtual void delete_(EvalContext&) = 0;
+    virtual void update(EvalContext&, repl_node*) = 0;
 };
 
 

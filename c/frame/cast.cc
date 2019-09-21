@@ -58,22 +58,26 @@ static inline int8_t fw_bool(T x) {
 }
 
 static inline PyObject* bool_obj(int8_t x) {
-  return ISNA<int8_t>(x)? py::None().release() : py::obool(x).release();
-}  // LCOV_EXCL_LINE
+  return py::obool(x).release();
+}
 
 template <typename T>
 static inline PyObject* int_obj(T x) {
-  return ISNA<T>(x)? py::None().release() : py::oint(x).release();
-}  // LCOV_EXCL_LINE
+  return py::oint(x).release();
+}
 
 template <typename T>
 static inline PyObject* real_obj(T x) {
-  return ISNA<T>(x)? py::None().release() : py::ofloat(x).release();
-}  // LCOV_EXCL_LINE
+  return py::ofloat(x).release();
+}
 
-static inline PyObject* obj_obj(PyObject* x) {
+static inline PyObject* str_obj(CString x) {
+  return py::ostring(x).release();
+}
+
+static inline PyObject* obj_obj(py::robj x) {
   return py::oobj(x).release();
-}  // LCOV_EXCL_LINE
+}
 
 template <typename T, size_t MAX = 30>
 static inline void num_str(T x, dt::string_buf* buf) {
@@ -88,8 +92,8 @@ static inline void bool_str(int8_t x, dt::string_buf* buf) {
   buf->write(x? str_true : str_false);
 }
 
-static inline void obj_str(PyObject* x, dt::string_buf* buf) {
-  CString xstr = py::robj(x).to_pystring_force().to_cstring();
+static inline void obj_str(py::robj x, dt::string_buf* buf) {
+  CString xstr = x.to_pystring_force().to_cstring();
   buf->write(xstr);
 }
 
@@ -108,8 +112,6 @@ static inline void obj_str(PyObject* x, dt::string_buf* buf) {
 template <typename T, typename U, U(*CAST_OP)(T)>
 static void cast_fw0(const Column& col, size_t start, void* out_data)
 {
-  xassert(col->rowindex()? col->rowindex().is_simple_slice()
-                         : (start == 0));
   auto inp = static_cast<const T*>(col->data()) + start;
   auto out = static_cast<U*>(out_data);
   dt::parallel_for_static(col.nrows(),
@@ -120,31 +122,14 @@ static void cast_fw0(const Column& col, size_t start, void* out_data)
 
 
 template <typename T, typename U, U(*CAST_OP)(T)>
-static void cast_fw1(const Column& col, const int32_t* indices,
-                     void* out_data)
-{
-  auto inp = static_cast<const T*>(col->data());
-  auto out = static_cast<U*>(out_data);
-  dt::parallel_for_static(col.nrows(),
-    [=](size_t i) {
-      size_t j = static_cast<size_t>(indices[i]);
-      T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
-      out[i] = CAST_OP(x);
-    });
-}
-
-
-template <typename T, typename U, U(*CAST_OP)(T)>
 static void cast_fw2(const Column& col, void* out_data)
 {
-  auto inp = static_cast<const T*>(col->data());
   auto out = static_cast<U*>(out_data);
-  const RowIndex& rowindex = col->rowindex();
   dt::parallel_for_static(col.nrows(),
     [=](size_t i) {
-      size_t j = rowindex[i];
-      T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
-      out[i] = CAST_OP(x);
+      T value;
+      bool isna = col.get_element(i, &value);
+      out[i] = isna? GETNA<U>() : CAST_OP(value);
     });
 }
 
@@ -157,29 +142,11 @@ static void cast_fw2(const Column& col, void* out_data)
 template <typename T, PyObject* (*CAST_OP)(T)>
 static void cast_to_pyobj(const Column& col, void* out_data)
 {
-  auto inp = static_cast<const T*>(col->data());
   auto out = static_cast<PyObject**>(out_data);
-  const RowIndex& rowindex = col->rowindex();
-  for (size_t i = 0; i < col.nrows(); ++i) {
-    size_t j = rowindex[i];
-    T x = (j == RowIndex::NA)? GETNA<T>() : inp[j];
-    out[i] = CAST_OP(x);
-  }
-}
-
-
-template <typename T>
-static void cast_str_to_pyobj(const Column& col, void* out_data)
-{
-  auto out = static_cast<PyObject**>(out_data);
-  CString value;
+  T value;
   for (size_t i = 0; i < col.nrows(); ++i) {
     bool isna = col.get_element(i, &value);
-    if (isna) {
-      out[i] = py::None().release();
-    } else {
-      out[i] = py::ostring(value).release();
-    }
+    out[i] = isna? py::None().release() : CAST_OP(value);
   }
 }
 
@@ -189,15 +156,14 @@ template <typename T, void (*CAST_OP)(T, dt::string_buf*)>
 static Column cast_to_str(const Column& col, MemoryRange&& out_offsets,
                           SType target_stype)
 {
-  auto inp = static_cast<const T*>(col->data());
-  const RowIndex& rowindex = col->rowindex();
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
-        size_t j = rowindex[i];
-        if (j == RowIndex::NA || ISNA<T>(inp[j])) {
+        T value;
+        bool isna = col.get_element(i, &value);
+        if (isna) {
           buf->write_na();
         } else {
-          CAST_OP(inp[j], buf);
+          CAST_OP(value, buf);
         }
       },
       col.nrows(),
@@ -247,22 +213,19 @@ static Column cast_str_to_str(const Column& col, MemoryRange&& out_offsets,
 class cast_manager {
   private:
     using castfn0 = void (*)(const Column&, size_t start, void* out);
-    using castfn1 = void (*)(const Column&, const int32_t* indices, void* out);
     using castfn2 = void (*)(const Column&, void* out);
     using castfnx = Column (*)(const Column&, MemoryRange&&, SType);
     struct cast_info {
       castfn0  f0;
-      castfn1  f1;
       castfn2  f2;
       castfnx  fx;
-      cast_info() : f0(nullptr), f1(nullptr), f2(nullptr), fx(nullptr) {}
+      cast_info() : f0(nullptr), f2(nullptr), fx(nullptr) {}
     };
     std::unordered_map<size_t, cast_info> all_casts;
 
   public:
 
     inline void add(SType st_from, SType st_to, castfn0 f);
-    inline void add(SType st_from, SType st_to, castfn1 f);
     inline void add(SType st_from, SType st_to, castfn2 f);
     inline void add(SType st_from, SType st_to, castfnx f);
 
@@ -282,12 +245,6 @@ void cast_manager::add(SType st_from, SType st_to, castfn0 f) {
   all_casts[id].f0 = f;
 }
 
-void cast_manager::add(SType st_from, SType st_to, castfn1 f) {
-  size_t id = key(st_from, st_to);
-  xassert(!all_casts[id].f1);
-  all_casts[id].f1 = f;
-}
-
 void cast_manager::add(SType st_from, SType st_to, castfn2 f) {
   size_t id = key(st_from, st_to);
   xassert(!all_casts[id].f2);
@@ -305,6 +262,10 @@ Column cast_manager::execute(const Column& src, MemoryRange&& target_mbuf,
                              SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
+  if (src.stype() == SType::VOID) {
+    return Column::new_na_column(target_stype, src.nrows());
+  }
+
   size_t id = key(src.stype(), target_stype);
   if (all_casts.count(id) == 0) {
     throw NotImplError()
@@ -320,26 +281,12 @@ Column cast_manager::execute(const Column& src, MemoryRange&& target_mbuf,
 
   target_mbuf.resize(src.nrows() * info(target_stype).elemsize());
   void* out_data = target_mbuf.wptr();
-  const RowIndex& rowindex = src->rowindex();
 
-  if (rowindex) {
-    if (castfns.f0 && rowindex.is_simple_slice()) {
-      castfns.f0(src, rowindex.slice_start(), out_data);
-    }
-    else if (castfns.f1 && rowindex.isarr32()) {
-      castfns.f1(src, rowindex.indices32(), out_data);
-    }
-    else {
-      castfns.f2(src, out_data);
-    }
+  if (src.is_virtual() || !castfns.f0) {
+    castfns.f2(src, out_data);
   }
   else {
-    if (castfns.f0) {
-      castfns.f0(src, 0, out_data);
-    }
-    else {
-      castfns.f2(src, out_data);
-    }
+    castfns.f0(src, 0, out_data);
   }
 
   if (target_stype == SType::OBJ) {
@@ -362,7 +309,6 @@ static cast_manager casts;
 void py::DatatableModule::init_casts()
 {
   // cast_fw0: cast a fw column without rowindex
-  // cast_fw1: cast a fw column with ARR32 rowindex
   // cast_fw2: cast a fw column with any rowindex (including none)
   constexpr SType bool8  = SType::BOOL;
   constexpr SType int8   = SType::INT8;
@@ -383,14 +329,6 @@ void py::DatatableModule::init_casts()
   casts.add(int64, int64,   cast_fw0<int64_t, int64_t, _copy<int64_t>>);
   casts.add(real32, real32, cast_fw0<float,   float,   _copy<float>>);
   casts.add(real64, real64, cast_fw0<double,  double,  _copy<double>>);
-
-  casts.add(bool8, bool8,   cast_fw1<int8_t,  int8_t,  _copy<int8_t>>);
-  casts.add(int8, int8,     cast_fw1<int8_t,  int8_t,  _copy<int8_t>>);
-  casts.add(int16, int16,   cast_fw1<int16_t, int16_t, _copy<int16_t>>);
-  casts.add(int32, int32,   cast_fw1<int32_t, int32_t, _copy<int32_t>>);
-  casts.add(int64, int64,   cast_fw1<int64_t, int64_t, _copy<int64_t>>);
-  casts.add(real32, real32, cast_fw1<float,   float,   _copy<float>>);
-  casts.add(real64, real64, cast_fw1<double,  double,  _copy<double>>);
 
   casts.add(bool8, bool8,   cast_fw2<int8_t,  int8_t,  _copy<int8_t>>);
   casts.add(int8, int8,     cast_fw2<int8_t,  int8_t,  _copy<int8_t>>);
@@ -432,13 +370,6 @@ void py::DatatableModule::init_casts()
   casts.add(real32, int32, cast_fw0<float,   int32_t, fw_fw<float, int32_t>>);
   casts.add(real64, int32, cast_fw0<double,  int32_t, fw_fw<double, int32_t>>);
 
-  casts.add(bool8, int32,  cast_fw1<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
-  casts.add(int8, int32,   cast_fw1<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
-  casts.add(int16, int32,  cast_fw1<int16_t, int32_t, fw_fw<int16_t, int32_t>>);
-  casts.add(int64, int32,  cast_fw1<int64_t, int32_t, fw_fw<int64_t, int32_t>>);
-  casts.add(real32, int32, cast_fw1<float,   int32_t, fw_fw<float, int32_t>>);
-  casts.add(real64, int32, cast_fw1<double,  int32_t, fw_fw<double, int32_t>>);
-
   casts.add(bool8, int32,  cast_fw2<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
   casts.add(int8, int32,   cast_fw2<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
   casts.add(int16, int32,  cast_fw2<int16_t, int32_t, fw_fw<int16_t, int32_t>>);
@@ -453,13 +384,6 @@ void py::DatatableModule::init_casts()
   casts.add(int32, int64,  cast_fw0<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
   casts.add(real32, int64, cast_fw0<float,   int64_t, fw_fw<float, int64_t>>);
   casts.add(real64, int64, cast_fw0<double,  int64_t, fw_fw<double, int64_t>>);
-
-  casts.add(bool8, int64,  cast_fw1<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
-  casts.add(int8, int64,   cast_fw1<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
-  casts.add(int16, int64,  cast_fw1<int16_t, int64_t, fw_fw<int16_t, int64_t>>);
-  casts.add(int32, int64,  cast_fw1<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
-  casts.add(real32, int64, cast_fw1<float,   int64_t, fw_fw<float, int64_t>>);
-  casts.add(real64, int64, cast_fw1<double,  int64_t, fw_fw<double, int64_t>>);
 
   casts.add(bool8, int64,  cast_fw2<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
   casts.add(int8, int64,   cast_fw2<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
@@ -491,13 +415,6 @@ void py::DatatableModule::init_casts()
   casts.add(int64, real64,  cast_fw0<int64_t, double, fw_fw<int64_t, double>>);
   casts.add(real32, real64, cast_fw0<float,   double, _static<float, double>>);
 
-  casts.add(bool8, real64,  cast_fw1<int8_t,  double, fw_fw<int8_t, double>>);
-  casts.add(int8, real64,   cast_fw1<int8_t,  double, fw_fw<int8_t, double>>);
-  casts.add(int16, real64,  cast_fw1<int16_t, double, fw_fw<int16_t, double>>);
-  casts.add(int32, real64,  cast_fw1<int32_t, double, fw_fw<int32_t, double>>);
-  casts.add(int64, real64,  cast_fw1<int64_t, double, fw_fw<int64_t, double>>);
-  casts.add(real32, real64, cast_fw1<float,   double, _static<float, double>>);
-
   casts.add(bool8, real64,  cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
   casts.add(int8, real64,   cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
   casts.add(int16, real64,  cast_fw2<int16_t, double, fw_fw<int16_t, double>>);
@@ -515,7 +432,7 @@ void py::DatatableModule::init_casts()
   casts.add(real64, str32, cast_to_str<double, num_str<double>>);
   casts.add(str32, str32,  cast_str_to_str<uint32_t>);
   casts.add(str64, str32,  cast_str_to_str<uint64_t>);
-  casts.add(obj64, str32,  cast_to_str<PyObject*, obj_str>);
+  casts.add(obj64, str32,  cast_to_str<py::robj, obj_str>);
 
   // Casts into str64
   casts.add(bool8, str64,  cast_to_str<int8_t, bool_str>);
@@ -527,19 +444,19 @@ void py::DatatableModule::init_casts()
   casts.add(real64, str64, cast_to_str<double, num_str<double>>);
   casts.add(str32, str64,  cast_str_to_str<uint32_t>);
   casts.add(str64, str64,  cast_str_to_str<uint64_t>);
-  casts.add(obj64, str64,  cast_to_str<PyObject*, obj_str>);
+  casts.add(obj64, str64,  cast_to_str<py::robj, obj_str>);
 
   // Casts into obj64
-  casts.add(bool8, obj64,  cast_to_pyobj<int8_t,    bool_obj>);
-  casts.add(int8, obj64,   cast_to_pyobj<int8_t,    int_obj<int8_t>>);
-  casts.add(int16, obj64,  cast_to_pyobj<int16_t,   int_obj<int16_t>>);
-  casts.add(int32, obj64,  cast_to_pyobj<int32_t,   int_obj<int32_t>>);
-  casts.add(int64, obj64,  cast_to_pyobj<int64_t,   int_obj<int64_t>>);
-  casts.add(real32, obj64, cast_to_pyobj<float,     real_obj<float>>);
-  casts.add(real64, obj64, cast_to_pyobj<double,    real_obj<double>>);
-  casts.add(str32, obj64,  cast_str_to_pyobj<uint32_t>);
-  casts.add(str64, obj64,  cast_str_to_pyobj<uint64_t>);
-  casts.add(obj64, obj64,  cast_to_pyobj<PyObject*, obj_obj>);
+  casts.add(bool8, obj64,  cast_to_pyobj<int8_t,   bool_obj>);
+  casts.add(int8, obj64,   cast_to_pyobj<int8_t,   int_obj<int8_t>>);
+  casts.add(int16, obj64,  cast_to_pyobj<int16_t,  int_obj<int16_t>>);
+  casts.add(int32, obj64,  cast_to_pyobj<int32_t,  int_obj<int32_t>>);
+  casts.add(int64, obj64,  cast_to_pyobj<int64_t,  int_obj<int64_t>>);
+  casts.add(real32, obj64, cast_to_pyobj<float,    real_obj<float>>);
+  casts.add(real64, obj64, cast_to_pyobj<double,   real_obj<double>>);
+  casts.add(str32, obj64,  cast_to_pyobj<CString,  str_obj>);
+  casts.add(str64, obj64,  cast_to_pyobj<CString,  str_obj>);
+  casts.add(obj64, obj64,  cast_to_pyobj<py::robj, obj_obj>);
 }
 
 
@@ -549,9 +466,16 @@ void py::DatatableModule::init_casts()
 // Column (base methods)
 //------------------------------------------------------------------------------
 
+void Column::cast_inplace(SType stype) {
+  Column newcolumn = casts.execute(*this, MemoryRange(), stype);
+  std::swap(*this, newcolumn);
+}
+
+
 Column Column::cast(SType stype) const {
   return casts.execute(*this, MemoryRange(), stype);
 }
+
 
 Column Column::cast(SType stype, MemoryRange&& mem) const {
   return casts.execute(*this, std::move(mem), stype);

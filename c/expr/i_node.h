@@ -27,7 +27,7 @@ namespace dt {
 
 
 class i_node;
-class workframe;
+class EvalContext;
 using i_node_ptr = std::unique_ptr<dt::i_node>;
 
 /**
@@ -35,17 +35,17 @@ using i_node_ptr = std::unique_ptr<dt::i_node>;
  * `i` part in a `DT[i, j, ...]` call.
  *
  * When executed, this class will compute a RowIndex and apply it to the
- * provided workframe `wf`.
+ * provided EvalContext `ctx`.
  */
 class i_node {
   public:
-    static i_node_ptr make(py::robj src, workframe& wf);
+    static i_node_ptr make(py::robj src, EvalContext& ctx);
 
     i_node();
     virtual ~i_node();
-    virtual void post_init_check(workframe&);
-    virtual void execute(workframe&) = 0;
-    virtual void execute_grouped(workframe&) = 0;
+    virtual void post_init_check(EvalContext&);
+    virtual void execute(EvalContext&) = 0;
+    virtual void execute_grouped(EvalContext&) = 0;
 };
 
 

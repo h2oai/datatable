@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <exception>       // std::exception
 #include <iostream>        // std::cerr
@@ -19,6 +19,8 @@
 #include "expr/expr_binaryop.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_unaryop.h"
+#include "expr/head_func.h"
+#include "expr/head_reduce.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
@@ -63,23 +65,22 @@ _unpack_frame_column_args(const py::PKArgs& args)
 }
 
 
-static py::PKArgs args_frame_column_rowindex(
-    2, 0, 0, false, false, {"frame", "i"},
-    "frame_column_rowindex",
-R"(frame_column_rowindex(frame, i)
+static py::PKArgs args_frame_columns_virtual(
+    1, 0, 0, false, false, {"frame"},
+    "frame_columns_virtual",
+R"(frame_columns_virtual(frame)
 --
 
-Return the RowIndex of the `i`th column of the `frame`, or None if that column
-has no row index.
+Return the tuple of which columns in the Frame are virtual.
 )");
 
-static py::oobj frame_column_rowindex(const py::PKArgs& args) {
-  auto u = _unpack_frame_column_args(args);
-  DataTable* dt = u.first;
-  size_t col = u.second;
-
-  RowIndex ri = dt->get_column(col)->rowindex();
-  return ri? py::orowindex(ri) : py::None();
+static py::oobj frame_columns_virtual(const py::PKArgs& args) {
+  DataTable* dt = args[0].to_datatable();
+  py::otuple virtuals(dt->ncols);
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    virtuals.set(i, py::obool(dt->get_column(i).is_virtual()));
+  }
+  return std::move(virtuals);
 }
 
 
@@ -327,7 +328,7 @@ static py::oobj get_tracked_objects(const py::PKArgs&) {
 void py::DatatableModule::init_methods() {
   ADD_FN(&_register_function, args__register_function);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
-  ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
+  ADD_FN(&frame_columns_virtual, args_frame_columns_virtual);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
@@ -378,6 +379,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     dt::expr::init_expr();
     dt::expr::init_reducers();
     dt::expr::init_binops();
+    dt::expr::Head_Func::init();
 
     py::Frame::init_type(m);
     py::Ftrl::init_type(m);

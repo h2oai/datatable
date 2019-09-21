@@ -73,7 +73,7 @@
 
   template<>
   inline void assert_compatible_type<int8_t>(SType s) {
-    xassert(s == SType::INT8 || s == SType::BOOL);
+    xassert(s == SType::VOID || s == SType::INT8 || s == SType::BOOL);
   }
 
   template<>

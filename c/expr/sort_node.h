@@ -56,7 +56,7 @@ class osort : public oobj {
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
-    dt::collist_ptr cols(dt::workframe&) const;
+    dt::collist_ptr cols(dt::EvalContext&) const;
 
   private:
     // This private constructor will reinterpret the object `r` as an

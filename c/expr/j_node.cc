@@ -25,7 +25,7 @@
 #include "expr/collist.h"
 #include "expr/j_node.h"
 #include "expr/repl_node.h"
-#include "expr/workframe.h"   // dt::workframe
+#include "expr/eval_context.h"   // dt::EvalContext
 #include "datatablemodule.h"
 namespace dt {
 
@@ -65,31 +65,31 @@ namespace dt {
 class allcols_jnode : public j_node {
   public:
     allcols_jnode() = default;
-    GroupbyMode get_groupby_mode(workframe&) override;
-    void select(workframe&) override;
-    void delete_(workframe&) override;
-    void update(workframe&, repl_node*) override;
+    GroupbyMode get_groupby_mode(EvalContext&) override;
+    void select(EvalContext&) override;
+    void delete_(EvalContext&) override;
+    void update(EvalContext&, repl_node*) override;
 };
 
 
-GroupbyMode allcols_jnode::get_groupby_mode(workframe&) {
+GroupbyMode allcols_jnode::get_groupby_mode(EvalContext&) {
   return GroupbyMode::GtoALL;
 }
 
 
-void allcols_jnode::select(workframe& wf) {
-  for (size_t i = 0; i < wf.nframes(); ++i) {
-    const DataTable* dti = wf.get_datatable(i);
-    const RowIndex& rii = wf.get_rowindex(i);
+void allcols_jnode::select(EvalContext& ctx) {
+  for (size_t i = 0; i < ctx.nframes(); ++i) {
+    const DataTable* dti = ctx.get_datatable(i);
+    const RowIndex& rii = ctx.get_rowindex(i);
     const strvec& dti_column_names = dti->get_names();
     size_t ncolsi = dti->ncols;
 
-    size_t j0 = wf.is_naturally_joined(i)? dti->get_nkeys() : 0;
-    wf.reserve(ncolsi - j0);
-    const by_node& by = wf.get_by_node();
+    size_t j0 = ctx.is_naturally_joined(i)? dti->get_nkeys() : 0;
+    ctx.reserve(ncolsi - j0);
+    const by_node& by = ctx.get_by_node();
     for (size_t j = j0; j < ncolsi; ++j) {
       if (by.has_group_column(j)) continue;
-      wf.add_column(Column(dti->get_column(j)),  // copy
+      ctx.add_column(Column(dti->get_column(j)),  // copy
                     rii,
                     std::string(dti_column_names[j]));
     }
@@ -97,9 +97,9 @@ void allcols_jnode::select(workframe& wf) {
 }
 
 
-void allcols_jnode::delete_(workframe& wf) {
-  DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+void allcols_jnode::delete_(EvalContext& ctx) {
+  DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   if (ri0) {
     RowIndex ri_neg = ri0.negate(dt0->nrows);
     dt0->apply_rowindex(ri_neg);
@@ -109,9 +109,9 @@ void allcols_jnode::delete_(workframe& wf) {
 }
 
 
-void allcols_jnode::update(workframe& wf, repl_node* repl) {
-  DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+void allcols_jnode::update(EvalContext& ctx, repl_node* repl) {
+  DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   size_t ncols = dt0->ncols;
   size_t nrows = ri0? ri0.size() : dt0->nrows;
   repl->check_compatibility(nrows, ncols);
@@ -119,9 +119,9 @@ void allcols_jnode::update(workframe& wf, repl_node* repl) {
   std::vector<size_t> indices(ncols);
   std::iota(indices.begin(), indices.end(), 0);
   if (ri0) {
-    repl->replace_values(wf, indices);
+    repl->replace_values(ctx, indices);
   } else {
-    repl->replace_columns(wf, indices);
+    repl->replace_columns(ctx, indices);
   }
 }
 
@@ -156,13 +156,13 @@ class simplelist_jnode : public j_node {
 
   public:
     explicit simplelist_jnode(collist&&);
-    GroupbyMode get_groupby_mode(workframe&) override;
-    void select(workframe&) override;
-    void delete_(workframe&) override;
-    void update(workframe&, repl_node*) override;
+    GroupbyMode get_groupby_mode(EvalContext&) override;
+    void select(EvalContext&) override;
+    void delete_(EvalContext&) override;
+    void update(EvalContext&, repl_node*) override;
 
   private:
-    void _init_names(workframe&);
+    void _init_names(EvalContext&);
 };
 
 
@@ -174,31 +174,31 @@ simplelist_jnode::simplelist_jnode(collist&& x)
 }
 
 
-GroupbyMode simplelist_jnode::get_groupby_mode(workframe&) {
+GroupbyMode simplelist_jnode::get_groupby_mode(EvalContext&) {
   return GroupbyMode::GtoALL;
 }
 
 
-void simplelist_jnode::select(workframe& wf) {
-  const DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+void simplelist_jnode::select(EvalContext& ctx) {
+  const DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   size_t n = indices.size();
 
-  _init_names(wf);
+  _init_names(ctx);
   xassert(names.size() == n);
 
-  wf.reserve(n);
+  ctx.reserve(n);
   for (size_t i = 0; i < n; ++i) {
     size_t j = indices[i];
     Column newcol = dt0->get_column(j);  // copy
-    wf.add_column(std::move(newcol), ri0, std::move(names[i]));
+    ctx.add_column(std::move(newcol), ri0, std::move(names[i]));
   }
 }
 
 
-void simplelist_jnode::delete_(workframe& wf) {
-  DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+void simplelist_jnode::delete_(EvalContext& ctx) {
+  DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   if (ri0) {
     for (size_t i : indices) {
       dt0->get_column(i).replace_values(ri0, Column());
@@ -209,9 +209,9 @@ void simplelist_jnode::delete_(workframe& wf) {
 }
 
 
-void simplelist_jnode::_init_names(workframe& wf) {
+void simplelist_jnode::_init_names(EvalContext& ctx) {
   if (!names.empty()) return;
-  const strvec& dt0_names = wf.get_datatable(0)->get_names();
+  const strvec& dt0_names = ctx.get_datatable(0)->get_names();
   names.reserve(indices.size());
   for (size_t i : indices) {
     names.push_back(dt0_names[i]);
@@ -219,9 +219,9 @@ void simplelist_jnode::_init_names(workframe& wf) {
 }
 
 
-void simplelist_jnode::update(workframe& wf, repl_node* repl) {
-  DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+void simplelist_jnode::update(EvalContext& ctx, repl_node* repl) {
+  DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   size_t lcols = indices.size();
   size_t lrows = ri0? ri0.size() : dt0->nrows;
   repl->check_compatibility(lrows, lcols);
@@ -235,7 +235,7 @@ void simplelist_jnode::update(workframe& wf, repl_node* repl) {
     }
     if (num_new_columns) {
       // Resolve the `repl` node before any changes to `dt0` are committed.
-      repl->resolve(wf);
+      repl->resolve(ctx);
       new_names.reserve(ncols + num_new_columns);
       for (size_t i = 0; i < indices.size(); ++i) {
         if (indices[i] == size_t(-1)) {
@@ -248,9 +248,9 @@ void simplelist_jnode::update(workframe& wf, repl_node* repl) {
     }
 
     if (ri0) {
-      repl->replace_values(wf, indices);
+      repl->replace_values(ctx, indices);
     } else {
-      repl->replace_columns(wf, indices);
+      repl->replace_columns(ctx, indices);
     }
   } catch (...) {
     new_names.resize(ncols);
@@ -275,13 +275,13 @@ class exprlist_jn : public j_node {
 
   public:
     explicit exprlist_jn(collist&&);
-    GroupbyMode get_groupby_mode(workframe&) override;
-    void select(workframe&) override;
-    void delete_(workframe&) override;
-    void update(workframe&, repl_node*) override;
+    GroupbyMode get_groupby_mode(EvalContext&) override;
+    void select(EvalContext&) override;
+    void delete_(EvalContext&) override;
+    void update(EvalContext&, repl_node*) override;
 
   private:
-    void _init_names(workframe&);
+    void _init_names(EvalContext&);
 };
 
 
@@ -293,40 +293,40 @@ exprlist_jn::exprlist_jn(collist&& x)
 }
 
 
-GroupbyMode exprlist_jn::get_groupby_mode(workframe& wf) {
+GroupbyMode exprlist_jn::get_groupby_mode(EvalContext& ctx) {
   for (auto& expr : exprs) {
-    GroupbyMode gm = expr->get_groupby_mode(wf);
+    GroupbyMode gm = expr->get_groupby_mode(ctx);
     if (gm == GroupbyMode::GtoALL) return gm;
   }
   return GroupbyMode::GtoONE;
 }
 
 
-void exprlist_jn::select(workframe& wf) {
-  _init_names(wf);
+void exprlist_jn::select(EvalContext& ctx) {
+  _init_names(ctx);
   for (auto& expr : exprs) {
-    expr->resolve(wf);
+    expr->resolve(ctx);
   }
   size_t n = exprs.size();
   xassert(names.size() == n);
 
-  wf.reserve(n);
+  ctx.reserve(n);
   RowIndex ri0;  // empty rowindex
   for (size_t i = 0; i < n; ++i) {
-    auto col = exprs[i]->evaluate(wf);
-    wf.add_column(std::move(col), ri0, std::move(names[i]));
+    auto col = exprs[i]->evaluate(ctx);
+    ctx.add_column(std::move(col), ri0, std::move(names[i]));
   }
 }
 
 
-void exprlist_jn::delete_(workframe& wf) {
+void exprlist_jn::delete_(EvalContext& ctx) {
   for (size_t i = 0; i < exprs.size(); ++i) {
     auto colexpr = dynamic_cast<dt::expr::expr_column*>(exprs[i].get());
     if (!colexpr) {
       throw TypeError() << "Item " << i << " in the `j` selector list is a "
         "computed expression and cannot be deleted";
     }
-    if (colexpr->get_col_frame(wf) > 0) {
+    if (colexpr->get_col_frame(ctx) > 0) {
       throw TypeError() << "Item " << i << " in the `j` selector list is a "
         "column from a joined frame and cannot be deleted";
     }
@@ -337,14 +337,14 @@ void exprlist_jn::delete_(workframe& wf) {
 }
 
 
-void exprlist_jn::_init_names(workframe&) {
+void exprlist_jn::_init_names(EvalContext&) {
   if (!names.empty()) return;
   // For now, use empty names. TODO: do something smarter?
   names.resize(exprs.size());
 }
 
 
-void exprlist_jn::update(workframe&, repl_node*) {
+void exprlist_jn::update(EvalContext&, repl_node*) {
   throw ValueError() << "Cannot execute an update on computed columns";
 }
 
@@ -355,13 +355,13 @@ void exprlist_jn::update(workframe&, repl_node*) {
 // j_node
 //------------------------------------------------------------------------------
 
-j_node_ptr j_node::make(py::robj src, workframe& wf) {
+j_node_ptr j_node::make(py::robj src, EvalContext& ctx) {
   // The most common case is ":", a trivial slice
   if ((src.is_slice() && src.to_oslice().is_trivial())
       || src.is_none() || src.is_ellipsis()) {
     return j_node_ptr(new allcols_jnode());
   }
-  collist cl(wf, src, collist::J_NODE);
+  collist cl(ctx, src, collist::J_NODE);
   return cl.is_simple_list()
             ? j_node_ptr(new simplelist_jnode(std::move(cl)))
             : j_node_ptr(new exprlist_jn(std::move(cl)));

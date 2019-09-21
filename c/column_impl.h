@@ -35,6 +35,9 @@
 class DataTable;
 class BoolColumn;
 class PyObjectColumn;
+namespace dt {
+  class ConstNa_ColumnImpl;
+}
 template <typename T> class IntColumn;
 template <typename T> class StringColumn;
 
@@ -97,12 +100,15 @@ class ColumnImpl
 
   public:
     static ColumnImpl* new_impl(SType);
+    static ColumnImpl* new_impl(SType, size_t nrows);
+    static ColumnImpl* new_impl(void*, SType);
+    ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
     virtual ~ColumnImpl();
 
     ColumnImpl* acquire_instance() const;
-    void release_instance();
+    void release_instance() noexcept;
 
     virtual bool get_element(size_t i, int8_t* out) const;
     virtual bool get_element(size_t i, int16_t* out) const;
@@ -113,10 +119,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::robj* out) const;
 
-    const RowIndex& rowindex() const noexcept { return ri; }
-    bool is_virtual() const noexcept { return bool(ri); }
-    RowIndex remove_rowindex();
-    void replace_rowindex(const RowIndex& newri);
+    virtual bool is_virtual() const noexcept { return bool(ri); }
 
     size_t nrows() const { return _nrows; }
     SType stype() const { return _stype; }
@@ -134,22 +137,28 @@ class ColumnImpl
 
     RowIndex _sort(Groupby* out_groups) const;
 
+    Column repeat(size_t nreps) const;  // OLD
+
     /**
-     * Resize the column up to `nrows` elements, and fill all new elements with
-     * NA values, except when the ColumnImpl initially had just one row, in which case
-     * that one value will be used to fill the new rows. For example:
-     *
-     *   {1, 2, 3, 4}.resize_and_fill(5) -> {1, 2, 3, 4, NA}
-     *   {1, 3}.resize_and_fill(5)       -> {1, 3, NA, NA, NA}
-     *   {1}.resize_and_fill(5)          -> {1, 1, 1, 1, 1}
-     *
-     * The contents of the column will be modified in-place if possible.
-     *
-     * This method can be used to both increase and reduce the size of the
-     * column.
-     */
-    virtual void resize_and_fill(size_t nrows);
-    Column repeat(size_t nreps) const;
+      * Repeat the column `ntimes` times. Depending on the `inplace`
+      * flag, this method is either allowed to modify the current
+      * object (inplace = true), or it should be treated as const
+      * (inplace = false). If this flag is true, an implementation is
+      * allowed to treat it as if it was false. In either case, if the
+      * implementation creates a new ColumnImpl instance, it should be
+      * stored in the provided `out` column object.
+      *
+      * Implementation in column/repeated.cc
+      */
+    virtual void repeat(size_t ntimes, bool inplace, Column& out);
+
+    virtual void na_pad(size_t new_nrows, bool inplace, Column& out);
+    virtual void truncate(size_t new_nrows, bool inplace, Column& out);
+
+    /**
+      * Implementation in column/view.cc
+      */
+    virtual void apply_rowindex(const RowIndex& ri, Column& out);
 
     /**
      * Modify the ColumnImpl, replacing values specified by the provided `mask` with
@@ -224,8 +233,10 @@ class ColumnImpl
      *     pcol = pcol->materialize();
      *
      */
-  protected:
+  public:
     virtual ColumnImpl* materialize();
+    virtual void pre_materialize_hook() {}
+    virtual void materialize_at(void* addr) const;
 
 
     /**
@@ -250,7 +261,6 @@ class ColumnImpl
     virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1);
 
   protected:
-    ColumnImpl(size_t nrows = 0);
     virtual void init_data();
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
@@ -264,6 +274,7 @@ class ColumnImpl
     virtual void fill_na();
 
     friend class Column;
+    friend class dt::ConstNa_ColumnImpl;
 };
 
 
@@ -283,12 +294,10 @@ public:
   virtual bool get_element(size_t i, T* out) const override;
 
   size_t data_nrows() const override;
-  void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
   virtual ColumnImpl* materialize() override;
   void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
   void replace_values(const RowIndex& at, T with);
-  void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
   void init_data() override;
@@ -385,7 +394,6 @@ protected:
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
-  void resize_and_fill(size_t nrows) override;
   void fill_na() override;
   ColumnImpl* materialize() override;
   void verify_integrity(const std::string& name) const override;
@@ -408,7 +416,6 @@ public:
   StringColumn(size_t nrows);
 
   ColumnImpl* materialize() override;
-  void resize_and_fill(size_t nrows) override;
   void apply_na_mask(const Column& mask) override;
 
   MemoryRange str_buf() const { return strbuf; }
@@ -428,7 +435,6 @@ public:
   void verify_integrity(const std::string& name) const override;
 
   bool get_element(size_t i, CString* out) const override;
-  void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
 
 protected:
   StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
@@ -458,11 +464,9 @@ class VoidColumn : public ColumnImpl {
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
     ColumnImpl* materialize() override;
-    void resize_and_fill(size_t) override;
     void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const Column&) override;
     void replace_values(Column&, const RowIndex&, const Column&) override;
-    void fill_na_mask(int8_t* outmask, size_t row0, size_t row1) override;
   protected:
     void init_data() override;
     void fill_na() override;

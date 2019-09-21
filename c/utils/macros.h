@@ -64,6 +64,7 @@
 
 #define DT_ARCH_X86_64    0
 #define DT_ARCH_PPC64_LE  0
+#define DT_ARCH_AARCH64   0
 
 #if DT_OS_WINDOWS
   #if defined(_M_AMD64) || defined(__x86_64)
@@ -78,10 +79,13 @@
   #elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__)
     #undef  DT_ARCH_PPC64_LE
     #define DT_ARCH_PPC64_LE 1
+  #elif defined(__aarch64__)
+    #undef  DT_ARCH_AARCH64
+    #define DT_ARCH_AARCH64 1
   #endif
 #endif
 
-#if DT_ARCH_X86_64 + DT_ARCH_PPC64_LE != 1
+#if DT_ARCH_X86_64 + DT_ARCH_PPC64_LE + DT_ARCH_AARCH64 != 1
   #error Unknown Platform
 #endif
 

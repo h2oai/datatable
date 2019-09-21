@@ -14,8 +14,9 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <sstream>
-#include "frame/py_frame.h"
+#include <unordered_map>
 #include <unordered_set>
+#include "frame/py_frame.h"
 #include "python/dict.h"
 #include "python/int.h"
 #include "python/string.h"
@@ -44,11 +45,12 @@ static Error _name_not_found_error(const DataTable* dt, const std::string& name)
 
 class NameProvider {
   public:
-    virtual ~NameProvider();  // LCOV_EXCL_LINE
+    virtual ~NameProvider() {}  // LCOV_EXCL_LINE
     virtual size_t size() const = 0;
     virtual CString item_as_cstring(size_t i) = 0;
     virtual py::oobj item_as_pyoobj(size_t i) = 0;
 };
+
 
 
 class pylistNP : public NameProvider {
@@ -56,11 +58,27 @@ class pylistNP : public NameProvider {
     const py::olist& names;
 
   public:
-    explicit pylistNP(const py::olist& arg) : names(arg) {}
-    virtual size_t size() const override;
-    virtual CString item_as_cstring(size_t i) override;
-    virtual py::oobj item_as_pyoobj(size_t i) override;
+    explicit pylistNP(const py::olist& arg)
+      : names(arg) {}
+
+    virtual size_t size() const override {
+      return names.size();
+    }
+
+    virtual CString item_as_cstring(size_t i) override {
+      py::robj name = names[i];
+      if (!name.is_string() && !name.is_none()) {
+        throw TypeError() << "Invalid `names` list: element " << i
+            << " is not a string";
+      }
+      return name.to_cstring();
+    }
+
+    virtual py::oobj item_as_pyoobj(size_t i) override {
+      return py::oobj(names[i]);
+    }
 };
+
 
 
 class strvecNP : public NameProvider {
@@ -68,47 +86,22 @@ class strvecNP : public NameProvider {
     const strvec& names;
 
   public:
-    explicit strvecNP(const std::vector<std::string>& arg) : names(arg) {}
-    virtual size_t size() const override;
-    virtual CString item_as_cstring(size_t i) override;
-    virtual py::oobj item_as_pyoobj(size_t i) override;
+    explicit strvecNP(const strvec& arg)
+      : names(arg) {}
+
+    virtual size_t size() const override {
+      return names.size();
+    }
+
+    virtual CString item_as_cstring(size_t i) override {
+      const std::string& name = names[i];
+      return CString { name.data(), static_cast<int64_t>(name.size()) };
+    }
+
+    virtual py::oobj item_as_pyoobj(size_t i) override {
+      return py::ostring(names[i]);
+    }
 };
-
-
-//------------------------------------------------------------------------------
-
-NameProvider::~NameProvider() {}
-
-size_t pylistNP::size() const {
-  return names.size();
-}
-
-CString pylistNP::item_as_cstring(size_t i) {
-  py::robj name = names[i];
-  if (!name.is_string() && !name.is_none()) {
-    throw TypeError() << "Invalid `names` list: element " << i
-        << " is not a string";
-  }
-  return name.to_cstring();
-}
-
-py::oobj pylistNP::item_as_pyoobj(size_t i) {
-  return py::oobj(names[i]);
-}
-
-
-size_t strvecNP::size() const {
-  return names.size();
-}
-
-CString strvecNP::item_as_cstring(size_t i) {
-  const std::string& name = names[i];
-  return CString { name.data(), static_cast<int64_t>(name.size()) };
-}
-
-py::oobj strvecNP::item_as_pyoobj(size_t i) {
-  return py::ostring(names[i]);
-}  // LCOV_EXCL_LINE
 
 
 
@@ -259,7 +252,7 @@ void py::Frame::init_names_options() {
 /**
  * Return DataTable column names as a C++ vector of strings.
  */
-const std::vector<std::string>& DataTable::get_names() const {
+const strvec& DataTable::get_names() const {
   return names;
 }
 
@@ -325,22 +318,22 @@ void DataTable::set_names_to_default() {
 }
 
 
-void DataTable::set_names(const py::olist& names_list) {
+void DataTable::set_names(const py::olist& names_list, bool warn) {
   if (!names_list) return set_names_to_default();
   pylistNP np(names_list);
-  _set_names_impl(&np);
+  _set_names_impl(&np, warn);
   columns.resize(names.size());
 }
 
 
-void DataTable::set_names(const strvec& names_list) {
+void DataTable::set_names(const strvec& names_list, bool warn) {
   strvecNP np(names_list);
-  _set_names_impl(&np);
+  _set_names_impl(&np, warn);
   columns.resize(names.size());
 }
 
 
-void DataTable::replace_names(py::odict replacements) {
+void DataTable::replace_names(py::odict replacements, bool warn) {
   py::olist newnames(ncols);
 
   for (size_t i = 0; i < ncols; ++i) {
@@ -361,7 +354,7 @@ void DataTable::replace_names(py::odict replacements) {
     int64_t i = idx.to_int64_strict();
     newnames.set(i, val);
   }
-  set_names(newnames);
+  set_names(newnames, warn);
 }
 
 
@@ -441,7 +434,8 @@ static std::string _mangle_name(CString name, bool* was_mangled) {
 
 static void _deduplicate(std::string* name, py::oobj* pyname,
                          py::odict& seen_names,
-                         std::unordered_map<std::string, size_t>& stems)
+                         std::unordered_map<std::string,
+                                            std::unordered_set<size_t>>& stems)
 {
   size_t n = name->size();
   const char* chars = name->data();
@@ -465,15 +459,25 @@ static void _deduplicate(std::string* name, py::oobj* pyname,
     stem += '.';
   }
 
-  if (stems.count(stem)) {
-    count = std::max(count, stems[stem]);
+  if (!stems.count(stem)) {
+    stems[stem] = std::unordered_set<size_t>();
+    stems[stem].insert(count);
   }
-  while (seen_names.has(*pyname)) {
-    count++;
+  auto& seen_counts = stems[stem];
+  while (true) {
+    // Quickly skip `count` values that were observed previously
+    while (seen_counts.count(count)) count++;
+    // Now the value of `count` has not been seen before. Update
+    // the name variable to use the new count value
     *name = stem + std::to_string(count);
     *pyname = py::ostring(*name);
+    seen_counts.insert(count);
+    // If this new name is not in the list of seen names, then
+    // we are done: use this new name
+    if (!seen_names.has(*pyname)) break;
+    // Otherwise, increase the count and try again
+    count++;
   }
-  stems[stem] = count;
 }
 
 
@@ -482,7 +486,7 @@ static void _deduplicate(std::string* name, py::oobj* pyname,
  * names are valid, not duplicate, and if necessary modifies them to enforce
  * such constraints.
  */
-void DataTable::_set_names_impl(NameProvider* nameslist) {
+void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
   if (nameslist->size() != ncols) {
     throw ValueError() << "The `names` list has length " << nameslist->size()
         << ", while the Frame has "
@@ -495,11 +499,11 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   py_inames = py::odict();
   names.clear();
   names.reserve(ncols);
-  std::unordered_map<std::string, size_t> stems;
+  std::unordered_map<std::string, std::unordered_set<size_t>> stems;
   static constexpr size_t MAX_DUPLICATES = 3;
   size_t n_duplicates = 0;
-  std::vector<std::string> duplicates(MAX_DUPLICATES);
-  std::vector<std::string> replacements(MAX_DUPLICATES);
+  strvec duplicates(MAX_DUPLICATES);
+  strvec replacements(MAX_DUPLICATES);
 
   // If any name is empty or None, it will be replaced with the default name
   // in the end. The reason we don't replace immediately upon seeing an empty
@@ -578,7 +582,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
   }
 
   // If there were any duplicate names, issue a warning
-  if (n_duplicates) {
+  if (n_duplicates > 0 && warn_duplicates) {
     Warning w = DatatableWarning();
     if (n_duplicates == 1) {
       w << "Duplicate column name found, and was assigned a unique name: "
@@ -593,7 +597,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist) {
           << replacements[i] << "'";
       }
     }
-    // as `w` goes out of scope, the warning is sent to Python
+    w.emit();
   }
 
   xassert(ncols == names.size());

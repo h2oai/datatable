@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,123 +21,110 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_WORKFRAME_h
 #define dt_EXPR_WORKFRAME_h
-#include <vector>            // std::vector
-#include "expr/by_node.h"    // py::oby, by_node_ptr
-#include "expr/i_node.h"     // i_node_ptr
-#include "expr/j_node.h"     // j_node_ptr
-#include "expr/join_node.h"  // py::ojoin
-#include "expr/repl_node.h"  // repl_node_ptr
-#include "expr/sort_node.h"  // py::osort
-#include "datatable.h"       // DataTable
-#include "rowindex.h"        // RowIndex
+#include <string>
+#include <vector>
+#include "expr/declarations.h"
+#include "expr/eval_context.h"
 namespace dt {
-
-namespace expr { class expr_column; }
-
-
-struct subframe {
-  DataTable* dt;
-  RowIndex ri;
-  bool natural;  // was this frame joined naturally?
-  size_t : 56;
-};
-using frvec = std::vector<subframe>;
-
-enum class EvalMode : uint8_t {
-  SELECT,
-  UPDATE,
-  DELETE
-};
-
+namespace expr {
 
 
 /**
- * This is a main class used to evaluate the expression `DT[i, j, ...]`. This
- * class is essentially a "work-in-progress Frame", hence the name. It is not
- * a real frame, however, in the sense that it may be misshapen, or violate
- * other Frame constraints at some point in its lifetime.
- *
- * Initially, a workframe is created using the DataTable* object `DT` which is
- * at the root of the expression `DT[i, j, ...]`.
- *
- * Later, `join_node`(s) may append additional DataTable* objects, with all
- * `RowIndex`es specifying how they merge together.
- *
- * The `by_node` will attach a `Groupby` object. The Groupby will specify how
- * the rows are split into groups, and it applies to all `DataTable*`s in the
- * workframe. The shape of the Groupby must be compatible with all current
- * `RowIndex`es.
- *
- * An `i_node` applies a new row filter to all Frames in the workframe. If
- * there is a non-empty Groupby, the `i_node` must apply within each group, and
- * then update the Groupby to account for the new configuration of the rows.
- */
-class workframe {
+  * `Workframe` is a "frame-in-progress": a collection of column
+  * records that will at some point be converted into an actual
+  * DataTable.
+  *
+  * Each column record contains the following information:
+  *
+  *   column    - the actual Column object
+  *   name      - this column's name (or empty)
+  *   frame_id  - if a column is added by reference, this will contain
+  *               the index of the frame (within the evaluation
+  *               context) where this column came from. If the column
+  *               was NOT added by reference, this will contain -1.
+  *   column_id - index of the column within the frame, if a column
+  *               was added by reference.
+  *
+  * A column is considered to be "added by reference" if it's a copy
+  * of one of the columns in one of the frames in the evaluation
+  * context. For such columns we keep their original "address"
+  * together with the column object. This allows us to refer back to
+  * the original columns when performing certain operations such as
+  * UPDATE or DELETE.
+  *
+  * A computed column is not added by reference, so for such column
+  * the frame id is -1, and column id can be anything.
+  *
+  * Another possible column type is the "placeholder" column. These
+  * columns have empty `column` object, and are used to denote new
+  * or unresolved columns in a frame. For example, in the expression
+  * `DT["A"] = 1` if there is no column "A" in the frame `DT`, the
+  * expression will be resolved to a placeholder column named "A",
+  * allowing us later to add such column in the UPDATE call.
+  *
+  */
+class Workframe {
   private:
-    // Inputs
-    by_node       byexpr;
-    i_node_ptr    iexpr;
-    j_node_ptr    jexpr;
-    repl_node_ptr repl;
+    struct Record {
+      static constexpr uint32_t INVALID_FRAME = uint32_t(-1);
+      Column      column;
+      std::string name;
+      uint32_t    frame_id;
+      uint32_t    column_id;
 
-    // Runtime
-    frvec         frames;
-    Groupby       gb;
-    EvalMode      mode;
-    GroupbyMode   groupby_mode;
-    size_t : 48;
+      Record();
+      Record(const Record&) = default;
+      Record(Record&&) noexcept = default;
+      Record& operator=(const Record&) = default;
+      Record& operator=(Record&&) = default;
+      Record(Column&&, std::string&&);
+      Record(Column&&, const std::string&, size_t, size_t);
+    };
 
-    // Result
-    colvec columns;
-    strvec colnames;
-    struct ripair { RowIndex ab, bc, ac; };
-    std::vector<ripair> all_ri;
+    std::vector<Record> entries;
+    EvalContext& ctx;
+    Grouping grouping_mode;
 
   public:
-    workframe() = default;
-    workframe(const workframe&) = delete;
-    workframe(workframe&&) = delete;
+    Workframe(EvalContext&);
+    Workframe(const Workframe&) = delete;
+    Workframe(Workframe&&) = default;
 
-    explicit workframe(DataTable*);
-    void set_mode(EvalMode);
-    EvalMode get_mode() const;
-    GroupbyMode get_groupby_mode() const;
+    void add_column(Column&& col, std::string&& name, Grouping grp);
+    void add_ref_column(size_t iframe, size_t icol);
+    void add_placeholder(const std::string& name, size_t iframe);
+    void cbind(Workframe&&);
+    void rename(const std::string& name);
 
-    void add_join(py::ojoin);
-    void add_groupby(py::oby);
-    void add_sortby(py::osort);
-    void add_i(py::oobj);
-    void add_j(py::oobj);
-    void add_replace(py::oobj);
+    size_t ncols() const noexcept;
+    size_t nrows() const noexcept;
+    EvalContext& get_context() const noexcept;
 
-    void evaluate();
-    py::oobj get_result();
+    bool is_computed_column(size_t i) const;
+    bool is_reference_column(size_t i, size_t* iframe, size_t* icol) const;
+    bool is_placeholder_column(size_t i) const;
 
-    DataTable* get_datatable(size_t i) const;
-    const RowIndex& get_rowindex(size_t i) const;
-    const Groupby& get_groupby();
-    const by_node& get_by_node() const;
-    bool is_naturally_joined(size_t i) const;
-    bool has_groupby() const;
-    size_t nframes() const;
-    size_t nrows() const;
+    void reshape_for_update(size_t target_nrows, size_t target_ncols);
+    const Column& get_column(size_t i) const;
+    std::string retrieve_name(size_t i);
+    Column      retrieve_column(size_t i);
+    void        replace_column(size_t i, Column&& col);
 
-    void apply_rowindex(const RowIndex& ri);
-    void apply_groupby(const Groupby& gb_);
+    std::unique_ptr<DataTable> convert_to_datatable() &&;
 
-    size_t size() const noexcept;
-    void reserve(size_t n);
-    void add_column(Column&&, const RowIndex&, std::string&&);
+    // This method ensures that two `Workframe` objects have the
+    // same grouping mode. It can either modify itself, or
+    // `other` object.
+    void sync_grouping_mode(Workframe& other);
+    void sync_grouping_mode(Column& col, Grouping gmode);
+    Grouping get_grouping_mode() const;
 
   private:
-    RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
-    void fix_columns();
-
-    friend class dt::expr::expr_column;  // Use _product
-    friend class by_node;  // Allow access to `gb`
+    void increase_grouping_mode(Grouping g);
+    void column_increase_grouping_mode(Column&, Grouping from, Grouping to);
 };
 
 
 
-}  // namespace dt
+}}  // namespace dt::expr
 #endif

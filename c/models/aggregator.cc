@@ -398,9 +398,13 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   auto res = dt_members->group(spec);
   RowIndex ri_members = std::move(res.first);
   Groupby gb_members = std::move(res.second);
-
+  size_t ngroups = gb_members.ngroups();
   const int32_t* offsets = gb_members.offsets_r();
-  size_t n_exemplars = gb_members.ngroups() - was_sampled;
+  // If the input was an empty frame, then treat this case as if no
+  // groups are present
+  if (offsets[ngroups] == 0) ngroups = 0;
+
+  size_t n_exemplars = ngroups - was_sampled;
   arr32_t exemplar_indices(n_exemplars);
 
   // Setting up a table for counts
@@ -413,7 +417,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 
   // Setting up exemplar indices and counts
   auto d_members = static_cast<int32_t*>(dt_members->get_column(0)->data_w());
-  for (size_t i = was_sampled; i < gb_members.ngroups(); ++i) {
+  for (size_t i = was_sampled; i < ngroups; ++i) {
     size_t i_sampled = i - was_sampled;
     size_t off_i = static_cast<size_t>(offsets[i]);
     exemplar_indices[i_sampled] = static_cast<int32_t>(ri_members[off_i]);
@@ -426,7 +430,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   // - for ND we first generate exemplar_id's based on the exemplar row ids
   //   from the original dataset, so those should be replaced with the
   //   actual exemplar_id's from the exemplar column.
-  dt::parallel_for_dynamic(gb_members.ngroups() - was_sampled,
+  dt::parallel_for_dynamic(ngroups - was_sampled,
     [&](size_t i_sampled) {
       size_t member_shift = static_cast<size_t>(offsets[i_sampled + was_sampled]);
       size_t jmax = static_cast<size_t>(d_counts[i_sampled]);

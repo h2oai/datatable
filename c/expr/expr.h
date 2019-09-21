@@ -21,162 +21,124 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_h
 #define dt_EXPR_EXPR_h
-#include "expr/workframe.h"
+#include <memory>
+#include <string>
+#include <vector>
+#include "expr/by_node.h"
+#include "expr/head.h"
+#include "expr/op.h"
+#include "expr/declarations.h"
+#include "python/obj.h"
 #include "column.h"
 namespace dt {
 namespace expr {
 
-class base_expr;
-using pexpr = std::unique_ptr<base_expr>;
 
-static constexpr size_t UNOP_FIRST    = 101;
-static constexpr size_t UNOP_LAST     = 111;
-static constexpr size_t BINOP_FIRST   = 201;
-static constexpr size_t BINOP_LAST    = 218;
-static constexpr size_t STRING_FIRST  = 301;
-static constexpr size_t REDUCER_FIRST = 401;
-static constexpr size_t REDUCER_LAST  = 409;
-static constexpr size_t MATH_FIRST    = 501;
-static constexpr size_t MATH_LAST     = 542;
-static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
-static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
-static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
 
-// The values in this enum must be kept in sync with Python enum OpCodes in
-// file "datatable/expr/expr.py"
-enum class Op : size_t {
-  // Misc
-  NOOP = 0,
-  COL = 1,
-  CAST = 2,
-  SETPLUS = 3,
-  SETMINUS = 4,
+//------------------------------------------------------------------------------
+// Expr
+//------------------------------------------------------------------------------
 
-  // Unary
-  UPLUS = UNOP_FIRST,
-  UMINUS,
-  UINVERT,
-  ISFINITE,
-  ISINF,
-  ISNA,
-  ABS,
-  CEIL,
-  FLOOR,
-  TRUNC,
-  LEN = UNOP_LAST,
+/**
+  * `Expr` class is the main building block when evaluating
+  * expressions in DT[i,j,...] call. Thus, each i, j and other nodes
+  * are represented as `Expr` objects. In turn, each `Expr` contains
+  * 0 or more children Exprs called `inputs`. Thus, each i, j and
+  * other nodes are in fact trees of Exprs.
+  *
+  * Each `Expr` node carries a payload `head` pointer. This is an
+  * object that contains the actual functionality of the Expr. Please
+  * refer to the description of `Head` class for further info.
+  *
+  * Even though Exprs are used as universal building blocks, their
+  * meaning may be different in different contexts. For example,
+  * number `3` means a simple 1x1 Frame when used as a function
+  * argument, or the 4th column in the Frame when used as `j` node,
+  * or the 4th row when used as `i` node, etc. This is why we provide
+  * several evaluation modes:
+  *
+  * evaluate_n()
+  *   "Natural" evaluation mode. In this mode the Expr is evaluated
+  *   as its most natural meaning, without any special "placement
+  *   bonus". Most often this mode is used when Expr is an argument
+  *   to some other function. For example, in `3 * <Expr>`, or
+  *   `sum(<Expr>)` the <Expr> will be evaluated in natural mode.
+  *
+  * evaluate_j()
+  *   Evaluate Expr as a root j node. In other words, this Expr is
+  *   use as `DT[:, <Expr>]` and must be evaluated as such.
+  *
+  * evaluate_f()
+  *   The expression is used as an argument to a FrameProxy symbol:
+  *   `f[<Expr>]`. In this mode `frame_id` is also passed to the Expr,
+  *   allowing to disambiguate between symbols `f`, `g`, etc.
+  *
+  * evaluate_bool()
+  *   This is not a "proper" evaluation mode: it is only applied to
+  *   boolean expressions (i.e. an expression with `get_expr_kind()`
+  *   equal to `Bool`).
+  *
+  */
+class Expr {
+  private:
+    ptrHead  head;
+    vecExpr  inputs;
 
-  // Binary
-  PLUS = BINOP_FIRST,
-  MINUS,
-  MULTIPLY,
-  DIVIDE,
-  INTDIV,
-  MODULO,
-  POWER,
-  AND,
-  XOR,
-  OR,
-  LSHIFT,
-  RSHIFT,
-  EQ,
-  NE,
-  LT,
-  GT,
-  LE,
-  GE = BINOP_LAST,
+  public:
+    explicit Expr(py::robj src);
+    Expr() = default;
+    Expr(Expr&&) = default;
+    Expr(const Expr&) = delete;
+    Expr& operator=(Expr&&) = default;
+    Expr& operator=(const Expr&) = delete;
 
-  // String
-  RE_MATCH = STRING_FIRST,
+    Kind get_expr_kind() const;
 
-  // Reducers
-  MEAN = REDUCER_FIRST,
-  MIN,
-  MAX,
-  STDEV,
-  FIRST,
-  SUM,
-  COUNT,
-  COUNT0,
-  MEDIAN = REDUCER_LAST,
+    Workframe evaluate_n(EvalContext& ctx) const;
+    Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new = false) const;
+    Workframe evaluate_j(EvalContext& ctx, bool allow_new = false) const;
+    bool evaluate_bool() const;
 
-  // Math: trigonometric
-  SIN = MATH_FIRST,
-  COS,
-  TAN,
-  ARCSIN,
-  ARCCOS,
-  ARCTAN,
-  ARCTAN2,
-  HYPOT,
-  DEG2RAD,
-  RAD2DEG,
-
-  // Math: hyperbolic
-  SINH,
-  COSH,
-  TANH,
-  ARSINH,
-  ARCOSH,
-  ARTANH,
-
-  // Math: exponential/power
-  CBRT,
-  EXP,
-  EXP2,
-  EXPM1,
-  LOG,
-  LOG10,
-  LOG1P,
-  LOG2,
-  LOGADDEXP,
-  LOGADDEXP2,
-  // POWER,
-  SQRT,
-  SQUARE,
-
-  // Math: special
-  ERF,
-  ERFC,
-  GAMMA,
-  LGAMMA,
-
-  // Math: floating-point
-  // CEIL,
-  COPYSIGN,
-  FABS,
-  // FLOOR,
-  // FREXP: double->(double, int)
-  // ISCLOSE: non-trivial signature
-  LDEXP,
-  NEXTAFTER,
-  // RINT ?
-  SIGN,
-  SIGNBIT,
-  // SPACING ?
-  // TRUNC,
-
-  // Math: misc
-  CLIP,
-  // DIVMOD (double,double)->(double,double)
-  // MODF double->(double,double)
-  MAXIMUM,
-  MINIMUM,
-  FMOD = MATH_LAST,
+  private:
+    // Construction helpers
+    void _init_from_bool(py::robj);
+    void _init_from_dictionary(py::robj);
+    void _init_from_dtexpr(py::robj);
+    void _init_from_ellipsis();
+    void _init_from_float(py::robj);
+    void _init_from_frame(py::robj);
+    void _init_from_int(py::robj);
+    void _init_from_iterable(py::robj);
+    void _init_from_list(py::robj);
+    void _init_from_none();
+    void _init_from_numpy(py::robj);
+    void _init_from_pandas(py::robj);
+    void _init_from_slice(py::robj);
+    void _init_from_string(py::robj);
+    void _init_from_type(py::robj);
 };
 
 
 
+
+
 //------------------------------------------------------------------------------
-// dt::expr::base_expr
+//
+// |  Obsolete
+// V
 //------------------------------------------------------------------------------
+
+class base_expr;
+using pexpr = std::unique_ptr<base_expr>;
+
 
 class base_expr {
   public:
     base_expr();
     virtual ~base_expr();
-    virtual SType resolve(const workframe&) = 0;
-    virtual GroupbyMode get_groupby_mode(const workframe&) const = 0;
-    virtual Column evaluate(workframe&) = 0;
+    virtual SType resolve(const EvalContext&) = 0;
+    virtual GroupbyMode get_groupby_mode(const EvalContext&) const = 0;
+    virtual Column evaluate(EvalContext&) = 0;
 
     virtual bool is_columnset_expr() const;
     virtual bool is_literal_expr() const;
@@ -191,20 +153,13 @@ void init_expr();
 
 
 py::oobj make_pyexpr(Op opcode, py::oobj arg);
-py::oobj make_pyexpr(Op opcode, py::oobj arg1, py::oobj arg2);
+py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params);
 
 
 
 }}  // namespace dt::expr
 
 
-// hashing support
-namespace std {
-  template <> struct hash<dt::expr::Op> {
-    std::size_t operator()(const dt::expr::Op& op) const {
-      return static_cast<size_t>(op);
-    }
-  };
-}
+
 
 #endif

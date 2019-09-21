@@ -50,28 +50,6 @@ void PyObjectColumn::fill_na() {
 }
 
 
-void PyObjectColumn::resize_and_fill(size_t new_nrows) {
-  if (new_nrows == _nrows) return;
-  materialize();
-
-  mbuf.resize(sizeof(PyObject*) * new_nrows);
-
-  if (_nrows == 1) {
-    // Replicate the value; the case when we need to fill with NAs is already
-    // handled by `mbuf.resize()`
-    py::robj fill_value = get_elem(0);
-    py::robj* dest_data = this->elements_w();
-    for (size_t i = 1; i < new_nrows; ++i) {
-      Py_DECREF(dest_data[i].to_borrowed_ref());
-      dest_data[i] = fill_value;
-    }
-    fill_value.to_borrowed_ref()->ob_refcnt += new_nrows - 1;
-  }
-  this->_nrows = new_nrows;
-
-  // TODO(#301): Temporary fix.
-  if (this->stats != nullptr) this->stats->reset();
-}
 
 
 ColumnImpl* PyObjectColumn::materialize() {
