@@ -455,22 +455,25 @@ static void _deduplicate(std::string* name, py::oobj* pyname,
       char ch = chars[j];
       count = count * 10 + static_cast<size_t>(ch - '0');
     }
-  } else if (chars[j-1] != '.') {
-    stem += '.';
+  } else {
+    count = static_cast<size_t>(names_auto_index);
+    if (chars[n-1] != '.') {
+      stem += '.';
+    }
   }
 
-  if (!stems.count(stem)) {
-    stems[stem] = std::unordered_set<size_t>();
-    stems[stem].insert(count);
-  }
-  auto& seen_counts = stems[stem];
+  auto& seen_counts = stems[stem];  // inserts an empty set if needed
   while (true) {
-    // Quickly skip `count` values that were observed previously
+    // Quickly skip those `count` values that were observed previously
     while (seen_counts.count(count)) count++;
-    // Now the value of `count` has not been seen before. Update
+    // Now the value of `count` may have not been seen before. Update
     // the name variable to use the new count value
     *name = stem + std::to_string(count);
     *pyname = py::ostring(*name);
+    // The name "{stem}{count}" was either seen before, in which case we
+    // should add it to the `seen_counts` set; or it wasn't seen before,
+    // in which case we'll return this name to the caller, and thus it
+    // has to be added to the `seen_counts` set anyways.
     seen_counts.insert(count);
     // If this new name is not in the list of seen names, then
     // we are done: use this new name

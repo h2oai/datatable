@@ -154,11 +154,12 @@ div.document div.output-cell .highlight pre {
 /* ------- Changelog labels ------------------------------------------------- */
 
 span.tag {
-  border-radius: 3pt;
-  font-size: 85%;
-  font-variant: small-caps;
+  border-radius: 4pt;
+  font-size: 75%;
   margin-right: .3em;
   padding: 0 .4em .1em .4em;
+  position: relative;
+  top: -2px;
 }
 
 span.tag.new {
@@ -168,6 +169,11 @@ span.tag.new {
 
 span.tag.fix {
   background-color: #A00000;
+  color: #FFFFFF;
+}
+
+span.tag.api {
+  background-color: #A000A0;
   color: #FFFFFF;
 }
 
