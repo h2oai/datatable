@@ -473,7 +473,7 @@ class Frame0:
                 if base == name:
                     if base[-1] != '.':
                         base += "."
-                    num = 0
+                    num = -1  # will be incremented to 0 in the while-loop
                 else:
                     num = int(name[len(base):])
                 while name in seen_names:
