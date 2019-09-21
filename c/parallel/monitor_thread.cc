@@ -92,12 +92,12 @@ void monitor_thread::sigint_handler(int signal) {
 }
 
 
-void monitor_thread::set_active(bool a) {
-  {
+void monitor_thread::set_active(bool a) noexcept {
+  try {
     std::lock_guard<std::mutex> lock(mutex);
     is_active = a;
-  }
-  sleep_state_cv.notify_one();
+  } catch (...) {}
+  sleep_state_cv.notify_one();  // noexcept
 }
 
 

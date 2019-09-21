@@ -28,6 +28,12 @@ class progress_bar_enabled;
 class work;
 
 
+enum class InterruptStatus : unsigned char {
+  RUN = 0,
+  ABORT_EXECUTION = 1,
+  HANDLE_INTERRUPT = 2
+};
+
 /**
  * Singleton class that acts as a liaison between the progress bar and
  * multiple `work` instances.
@@ -56,19 +62,16 @@ class progress_manager {
     // can result in a segfault.
     mutable std::mutex mutex;
 
-    // This flag is initially set to `false`. When SIGINT signal is caught,
-    // `caught_interrupt` is set to `true`. When progress manager handles
-    // the interrupt, it also resets `caught_interrupt` back to `false`.
-    mutable bool caught_interrupt;
-
-    // This flag is kind of similar to the above, but is atomic and not
-    // cleared by the interrupt handler. It is only cleared when threads are
-    // joining, and used in the cases when there is no special scheduler
-    // (like in the cases of `parallel_for_static`, `nested_for_static`
-    // or a single threaded `parallel_for_ordered`) but we still want
-    // to abort execution of all threads when SIGINT is received.
-    mutable std::atomic<bool> abort_execution;
-    size_t : 48;
+    // This flag is initially set to InterruptStatus::RUN, meaning that
+    // threads are allowed to run their tasks. When SIGINT signal is caught,
+    // it is set to InterruptStatus::HANDLE_INTERRUPT, meaning that
+    // job execution should be aborted and interrupt should be handled.
+    // When interrupt is handled in `handle_interrupt()`, this flag
+    // is set to InterruptStatus::ABORT_EXECUTION, meaning that
+    // job execution should be aborted. When execution is aborted,
+    // this flag is set back to InterruptStatus::RUN.
+    mutable std::atomic<InterruptStatus> interrupt_status;
+    size_t : 56;
 
   public:
     void update_view() const;
@@ -81,8 +84,8 @@ class progress_manager {
     // called by `work.done()` / `~work()`
     void finish_work(work* task, bool successfully);
     void set_interrupt() const;
-    bool get_abort_execution() const;
-    void reset_abort_execution() const;
+    bool is_interrupt_occurred() const;
+    void reset_interrupt_status() const;
     void handle_interrupt() const;
 };
 

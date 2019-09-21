@@ -19,6 +19,7 @@
 #include "progress/progress_manager.h"
 #include "progress/work.h"
 #include "utils/assert.h"
+#include <iostream>
 namespace dt {
 namespace progress {
 
@@ -30,9 +31,9 @@ progress_manager* manager = new progress_manager;
 
 
 progress_manager::progress_manager()
-  : pbar(nullptr), caught_interrupt(false)
+  : pbar(nullptr)
 {
-  abort_execution.store(false);
+  interrupt_status.store(InterruptStatus::RUN);
 }
 
 
@@ -67,7 +68,7 @@ void progress_manager::finish_work(work* task, bool successfully) {
     delete pbar;
     pbar = nullptr;
   }
-  abort_execution.store(false);
+  interrupt_status.store(InterruptStatus::RUN);
 }
 
 
@@ -78,7 +79,7 @@ void progress_manager::update_view() const {
   // Handle interrupt if in a parallel region.
   // If not in a parallel region, `handle_interrupt()`
   // must be invoked in a special way, i.e.
-  // when `get_abort_execution() == true`.
+  // when `get_interrupt_status() == true`.
   if (dt::num_threads_in_team()) handle_interrupt();
   if (pbar) pbar->refresh();
 }
@@ -96,27 +97,26 @@ void progress_manager::set_error_status(bool cancelled) noexcept {
 
 
 void progress_manager::set_interrupt() const {
-  caught_interrupt = true;
-  abort_execution.store(true);
-  // PyErr_SetInterrupt();
+  interrupt_status.store(InterruptStatus::HANDLE_INTERRUPT);
 }
 
 
-bool progress_manager::get_abort_execution() const {
-  return abort_execution;
+bool progress_manager::is_interrupt_occurred() const {
+  return interrupt_status != InterruptStatus::RUN;
 }
 
 
-void progress_manager::reset_abort_execution() const {
-  abort_execution.store(false);
+void progress_manager::reset_interrupt_status() const {
+  interrupt_status.store(InterruptStatus::RUN);
 }
 
 
 void progress_manager::handle_interrupt() const {
-  if (!caught_interrupt) return;
-  caught_interrupt = false;
-  PyErr_SetNone(PyExc_KeyboardInterrupt);
-  throw PyError();
+  if (interrupt_status == InterruptStatus::HANDLE_INTERRUPT) {
+    interrupt_status.store(InterruptStatus::ABORT_EXECUTION);
+    PyErr_SetNone(PyExc_KeyboardInterrupt);
+    throw PyError();
+  }
 }
 
 

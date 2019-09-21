@@ -17,6 +17,7 @@
 #define dt_PARALLEL_FOR_STATIC_h
 #include <algorithm>
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
+#include "parallel/monitor_thread.h"
 #include "utils/assert.h"
 namespace dt {
 
@@ -24,7 +25,6 @@ namespace dt {
 size_t this_thread_index();
 size_t num_threads_in_pool();
 size_t num_threads_in_team();
-void enable_monitor(bool) noexcept;
 bool is_monitor_enabled() noexcept;
 
 
@@ -122,26 +122,20 @@ void parallel_for_static(size_t n_iterations,
   // Fast case: the number of rows is too small compared to the
   // chunk size, no need to start a parallel region
   if (n_iterations <= chunk_size_ || num_threads == 1) {
-    enable_monitor(true);
-    // func() may potentially throw an exception,
-    // in this case we rethrow it and stop the monitor thread.
-    try {
-      size_t i0 = 0;
-      while (i0 < n_iterations) {
-        size_t i1 = std::min(i0 + chunk_size_, n_iterations);
-        for (size_t i = i0; i < i1; ++i) {
-          func(i);
-        }
-        i0 += chunk_size_;
-        if (progress::manager->get_abort_execution()) {
-          progress::manager->handle_interrupt();
-        }
+    // ensures monitor thread is turned off in the end
+    MonitorGuard _;
+    size_t i0 = 0;
+    while (i0 < n_iterations) {
+      size_t i1 = std::min(i0 + chunk_size_, n_iterations);
+      for (size_t i = i0; i < i1; ++i) {
+        func(i);
       }
-    } catch (...) {
-      enable_monitor(false);
-      throw;
+      i0 += chunk_size_;
+      if (progress::manager->is_interrupt_occurred()) {
+        i0 = n_iterations;
+        progress::manager->handle_interrupt();
+      }
     }
-    enable_monitor(false);
     return;
   }
 
@@ -156,9 +150,8 @@ void parallel_for_static(size_t n_iterations,
           func(i);
         }
         i0 += di;
-        if (progress::manager->get_abort_execution()) {
+      if (progress::manager->is_interrupt_occurred()) {
           i0 = n_iterations;
-          progress::manager->handle_interrupt();
         }
       }
     });
@@ -235,9 +228,8 @@ void nested_for_static(size_t n_iterations, ChunkSize chunk_size, F func)
       func(i);
     }
     i0 += di;
-    if (progress::manager->get_abort_execution()) {
+    if (progress::manager->is_interrupt_occurred()) {
       i0 = n_iterations;
-      progress::manager->handle_interrupt();
     }
   }
 }

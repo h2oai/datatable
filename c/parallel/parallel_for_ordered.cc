@@ -300,27 +300,19 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
                        function<void(size_t)> post_ordered)
 {
   if (sch->n_threads <= 1) {
-    enable_monitor(true);
+    MonitorGuard _;
     if (!pre_ordered)  pre_ordered = noop;
     if (!do_ordered)   do_ordered = noop;
     if (!post_ordered) post_ordered = noop;
-    // *_ordered functions may potentially throw an exception,
-    // in this case we rethrow it and stop the monitor thread.
-    try {
-      for (size_t i = 0; i < sch->n_iterations; ++i) {
-        pre_ordered(i);
-        do_ordered(i);
-        post_ordered(i);
-        sch->work.add_done_amount(1);
-        if (progress::manager->get_abort_execution()) {
-          progress::manager->handle_interrupt();
-        }
+    for (size_t i = 0; i < sch->n_iterations; ++i) {
+      pre_ordered(i);
+      do_ordered(i);
+      post_ordered(i);
+      sch->work.add_done_amount(1);
+      if (progress::manager->is_interrupt_occurred()) {
+        progress::manager->handle_interrupt();
       }
-    } catch (...) {
-      enable_monitor(false);
-      throw;
     }
-    enable_monitor(false);
     return;
   }
 
