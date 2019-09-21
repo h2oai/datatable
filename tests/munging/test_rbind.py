@@ -186,7 +186,7 @@ def test_repeating_names():
         dt0 = dt.Frame([[5], [6], [7], [4]], names=["x", "y", "x", "x"])
         dt1 = dt.Frame([[4], [3], [2]], names=["y", "x", "x"])
         dtr = dt.Frame([[5, 3], [6, 4], [7, 2], [4, None]],
-                       names=["x", "y", "x.1", "x.2"])
+                       names=["x", "y", "x.0", "x.1"])
         dt0.rbind(dt1, force=True)
         assert_equals(dt0, dtr)
 

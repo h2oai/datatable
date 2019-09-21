@@ -62,6 +62,13 @@ Frame
   a single stype instead of a tuple. This method can only be used on a frame
   where all columns have the same stype, or there is only one column.
 
+- |api| The name deduplication algorithm now starts looking for candidate names
+  starting from `name + dt.options.frame.name_auto_index`. For example, if
+  you're creating a Frame with column names `["A", "A", "A"]`, then those names
+  will be modified to ensure uniqueness. Before, they were changed into `["A",
+  "A.1", "A.2"]`; now they are changed into `["A", "A.0", "A.1"]` (assuming
+  the value of option `frame.name_auto_index` is `0`).
+
 - |fix| Fixed a bug where creating a new column via assignment would crash if
   the RHS of the assignment contained an expression that tried to use the
   column that was being created (#1983).
@@ -80,9 +87,10 @@ Internal
   a tuple of True/False indicators of whether each column in a Frame is
   virtual or not.
 
-- C API version increased to 2.
+- |api| C API version increased to 2.
 
-- Removed C API methods and macros related to retrieval of a column's rowindex:
+- |api| Removed C API methods and macros related to retrieval of a column's
+  rowindex:
   - `DtFrame_ColumnRowindex()`,
   - `DtRowindex_Check()`,
   - `DtRowindex_Type()`,
@@ -94,5 +102,5 @@ Internal
   - `DtRowindex_ARR64`,
   - `DtRowindex_SLICE`
 
-- Added C API method `DtFrame_ColumnIsVirtual()` which returns a boolean
+- |api| Added C API method `DtFrame_ColumnIsVirtual()` which returns a boolean
   indicator whether the column in a Frame is virtual or not.

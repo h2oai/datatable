@@ -87,7 +87,7 @@ def test_cbind_self():
         d0.cbind(d0)
         d0.cbind(d0)
     dr = dt.Frame([[1, 2, 3]] * 8,
-                  names=["fun"] + ["fun.%d" % i for i in range(1, 8)])
+                  names=["fun"] + ["fun.%d" % i for i in range(7)])
     assert_equals(d0, dr)
 
 
@@ -247,7 +247,7 @@ def test_cbind_array():
         d0.cbind([d0] * 10)
     frame_integrity_check(d0)
     assert d0.shape == (5, 11)
-    assert d0.names == ("A",) + tuple("A.%d" % (i + 1) for i in range(10))
+    assert d0.names == ("A",) + tuple("A.%d" % i for i in range(10))
     assert d0.to_list() == [[0, 1, 2, 3, 4]] * 11
 
 
@@ -359,3 +359,16 @@ def test_cbind_issue2024():
         RZ = dt.cbind(DT, DT, DT, DT, DT)
         assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7", "A.4",
                             "A.8", "A.9", "A.10")
+
+
+def test_cbind_issue2028():
+    def join(names1, names2):
+        with pytest.warns(DatatableWarning):
+            return dt.cbind(dt.Frame(names=names1),
+                            dt.Frame(names=names2)).names
+
+    assert join(["A", "A.1"], ["A", "A.1"]) == ("A", "A.1", "A.0", "A.2")
+    assert join(["A", "A.1"], ["A.1", "A"]) == ("A", "A.1", "A.2", "A.0")
+    assert join(["B"], ["B.0", "B.00", "B"]) == ("B", "B.0", "B.00", "B.1")
+    with dt.options.frame.context(names_auto_index=17):
+        assert join(["A", "A.1"], ["A", "A.1"]) == ("A", "A.1", "A.17", "A.2")
