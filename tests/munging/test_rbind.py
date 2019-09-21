@@ -490,3 +490,10 @@ def test_issue2026():
     frame_integrity_check(DT)
     assert DT.to_list() == [[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]]
 
+
+def test_issue2030():
+    DT = dt.Frame(B=[None, 'tzgu', 'dsedpz', 'a', 'weeeeeeeee'])
+    DT.nrows = 3
+    DT.rbind(DT, DT)
+    frame_integrity_check(DT)
+    assert DT.to_list()[0] == [None, 'tzgu', 'dsedpz'] * 3
