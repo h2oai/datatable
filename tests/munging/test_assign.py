@@ -185,11 +185,11 @@ def test_assign_list_duplicates():
     with pytest.warns(DatatableWarning) as ws:
         DT[:, ["B", "B"]] = [f.A + 1, f.A + 2]
     frame_integrity_check(DT)
-    assert DT.names == ("A", "B", "B.1")
+    assert DT.names == ("A", "B", "B.0")
     assert DT.to_list() == [[0, 1, 2, 3, 4], [1, 2, 3, 4, 5], [2, 3, 4, 5, 6]]
     assert len(ws) == 1
     assert ("Duplicate column name found, and was assigned a unique name: "
-            "'B' -> 'B.1'" in ws[0].message.args[0])
+            "'B' -> 'B.0'" in ws[0].message.args[0])
 
 
 def test_stats_after_assign():

@@ -499,11 +499,11 @@ def test_fread_columns_set1():
 def test_fread_columns_set2():
     with pytest.warns(DatatableWarning) as ws:
         d0 = dt.fread(text="A,B,A\n1,2,3\n", columns={"A"})
-    assert d0.names == ("A", "A.1")
+    assert d0.names == ("A", "A.0")
     assert d0.to_list() == [[1], [3]]
     assert len(ws) == 1
     assert ("Duplicate column name found, and was assigned a unique name: "
-            "'A' -> 'A.1'" in ws[0].message.args[0])
+            "'A' -> 'A.0'" in ws[0].message.args[0])
 
 
 def test_fread_columns_set_bad():

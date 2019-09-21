@@ -895,7 +895,7 @@ def test_create_from_pandas_with_duplicate_names(pandas):
     with pytest.warns(DatatableWarning):
         X = dt.Frame(Y)
     assert X.shape == (1, 3)
-    assert X.names == ("A", "A.1", "A.2")
+    assert X.names == ("A", "A.0", "A.1")
     assert X.to_list() == [[1], [2], [3]]
 
 
@@ -1107,37 +1107,37 @@ def test_duplicate_names1():
     with pytest.warns(DatatableWarning) as ws:
         d = dt.Frame([[1], [2], [3]], names=["A", "A", "A"])
         frame_integrity_check(d)
-        assert d.names == ("A", "A.1", "A.2")
+        assert d.names == ("A", "A.0", "A.1")
     assert len(ws) == 1
     assert ("Duplicate column names found, and were assigned unique names: "
-            "'A' -> 'A.1', 'A' -> 'A.2'" in ws[0].message.args[0])
+            "'A' -> 'A.0', 'A' -> 'A.1'" in ws[0].message.args[0])
 
 
 def test_duplicate_names2():
     with pytest.warns(DatatableWarning):
         d = dt.Frame([[1], [2], [3], [4]], names=("A", "A.1", "A", "A.2"))
         frame_integrity_check(d)
-        assert d.names == ("A", "A.1", "A.2", "A.3")
+        assert d.names == ("A", "A.1", "A.0", "A.2")
 
 
 def test_duplicate_names3():
     with pytest.warns(DatatableWarning) as ws:
         d = dt.Frame([[1]] * 4, names=["A"] * 4)
         frame_integrity_check(d)
-        assert d.names == ("A", "A.1", "A.2", "A.3")
+        assert d.names == ("A", "A.0", "A.1", "A.2")
     assert len(ws) == 1
     assert ("Duplicate column names found, and were assigned unique names: "
-            "'A' -> 'A.1', 'A' -> 'A.2', 'A' -> 'A.3'" in ws[0].message.args[0])
+            "'A' -> 'A.0', 'A' -> 'A.1', 'A' -> 'A.2'" in ws[0].message.args[0])
 
 
 def test_duplicate_names4():
     with pytest.warns(DatatableWarning) as ws:
         d = dt.Frame([[1]] * 5, names=["A"] * 5)
         frame_integrity_check(d)
-        assert d.names == ("A", "A.1", "A.2", "A.3", "A.4")
+        assert d.names == ("A", "A.0", "A.1", "A.2", "A.3")
     assert len(ws) == 1
     assert ("Duplicate column names found, and were assigned unique names: "
-            "'A' -> 'A.1', 'A' -> 'A.2', ..., 'A' -> 'A.4'"
+            "'A' -> 'A.0', 'A' -> 'A.1', ..., 'A' -> 'A.3'"
             in ws[0].message.args[0])
 
 
@@ -1155,5 +1155,5 @@ def test_duplicate_mangled():
     with pytest.warns(DatatableWarning) as ws:
         DT = dt.Frame([[2]] * 5, names=["\n\n\n"] * 3 + ["\n\t2"] * 2)
         frame_integrity_check(DT)
-        assert DT.names == (".", ".1", ".2", ".3", ".4")
+        assert DT.names == (".", ".0", ".1", ".2", ".3")
     assert ("Duplicate column names found" in ws[0].message.args[0])
