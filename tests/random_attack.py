@@ -7,13 +7,16 @@
 import copy
 import datatable as dt
 import itertools
+import os
 import random
 import sys
+import textwrap
 import time
 import warnings
 from datatable.internal import frame_integrity_check
 
 exhaustive_checks = False
+python_output = None
 
 def repr_row(row, j):
     assert 0 <= j < len(row)
@@ -30,6 +33,53 @@ def repr_row(row, j):
     else:
         out = str(row[:10])[:-1] + ", ..., " + str(row[j]) + ", ...]"
     return out
+
+def repr_slice(s):
+    if s == slice(None):
+        return ":"
+    if s.start is None:
+        if s.stop is None:
+            return "::" +  str(s.step)
+        elif s.step is None:
+            return ":" + str(s.stop)
+        else:
+            return ":" + str(s.stop) + ":" + str(s.step)
+    else:
+        if s.stop is None:
+            return str(s.start) + "::" +  str(s.step)
+        elif s.step is None:
+            return str(s.start) + ":" + str(s.stop)
+        else:
+            return str(s.start) + ":" + str(s.stop) + ":" + str(s.step)
+
+def repr_data(data, indent):
+    out = "["
+    for i, arr in enumerate(data):
+        if i > 0:
+            out += " " * (indent + 1)
+        out += "["
+        out += textwrap.fill(", ".join(repr(e) for e in arr),
+                             width = 80, subsequent_indent=" "*(indent+2))
+        out += "]"
+        if i != len(data) - 1:
+            out += ",\n"
+    out += "]"
+    return out
+
+def repr_type(t):
+    if t is int:
+        return "int"
+    if t is bool:
+        return "bool"
+    if t is float:
+        return "float"
+    if t is str:
+        return "str"
+    raise ValueError("Unknown type %r" % t)
+
+def repr_types(types):
+    assert isinstance(types, (list, tuple))
+    return "[" + ", ".join(repr_type(t) for t in types) + "]"
 
 
 
@@ -83,6 +133,8 @@ class Attacker:
         curr_nrows = frame.nrows
         new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
         print("[01] Setting nrows to %d" % (new_nrows, ))
+        if python_output:
+            python_output.write("DT.nrows = %d\n" % new_nrows)
         frame.resize_rows(new_nrows)
 
     def slice_rows(self, frame):
@@ -90,6 +142,8 @@ class Attacker:
         new_ncols = len(range(*s.indices(frame.nrows)))
         print("[02] Applying row slice (%r, %r, %r) -> nrows = %d"
               % (s.start, s.stop, s.step, new_ncols))
+        if python_output:
+            python_output.write("DT = DT[%s, :]\n" % repr_slice(s))
         frame.slice_rows(s)
 
     def slice_cols(self, frame):
@@ -97,6 +151,8 @@ class Attacker:
         new_ncols = len(range(*s.indices(frame.ncols)))
         print("[03] Applying column slice (%r, %r, %r) -> ncols = %d"
               % (s.start, s.stop, s.step, new_ncols))
+        if python_output:
+            python_output.write("DT = DT[:, %s]\n" % repr_slice(s))
         frame.slice_cols(s)
 
     def cbind_self(self, frame):
@@ -105,12 +161,16 @@ class Attacker:
         t = random.randint(1, min(5, 100 // (1 + frame.ncols)) + 1)
         print("[04] Cbinding frame with itself %d times -> ncols = %d"
               % (t, frame.ncols * (t + 1)))
+        if python_output:
+            python_output.write("DT.cbind([DT] * %d)\n" % t)
         frame.cbind([frame] * t)
 
     def rbind_self(self, frame):
         t = random.randint(1, min(5, 1000 // (1 + frame.nrows)) + 1)
         print("[05] Rbinding frame with itself %d times -> nrows = %d"
               % (t, frame.nrows * (t + 1)))
+        if python_output:
+            python_output.write("DT.rbind([DT] * %d)\n" % t)
         frame.rbind([frame] * t)
 
     def select_rows_array(self, frame):
@@ -118,6 +178,8 @@ class Attacker:
             return
         s = self.random_array(frame.nrows)
         print("[06] Selecting a row list %r -> nrows = %d" % (s, len(s)))
+        if python_output:
+            python_output.write("DT = DT[%r, :]\n" % (s,))
         frame.slice_rows(s)
 
     def delete_rows_array(self, frame):
@@ -127,6 +189,8 @@ class Attacker:
         s = sorted(set(s))
         print("[07] Removing rows %r -> nrows = %d"
               % (s, frame.nrows - len(s)))
+        if python_output:
+            python_output.write("del DT[%r, :]\n" % (s,))
         frame.delete_rows(s)
 
 
@@ -218,6 +282,12 @@ class Frame0:
         self.names = names
         self.types = types
         self.df = dt.Frame(data, names=names, stypes=types)
+        if python_output:
+            python_output.write("DT = dt.Frame(%s,\n"
+                                "              names=%r,\n"
+                                "              stypes=%s)\n"
+                                % (repr_data(data, 14), names, repr_types(types)))
+            python_output.write("assert DT.shape == (%d, %d)\n\n" % (nrows, ncols))
 
 
     def random_type(self):
@@ -495,11 +565,21 @@ if __name__ == "__main__":
                     "a particular seed value, otherwise run `random_driver.py`."
     )
     parser.add_argument("seed", type=int, metavar="SEED")
+    parser.add_argument("-py", "--python", action="store_true",
+                        help="Generate python file corresponding to the code "
+                             "being run.")
     parser.add_argument("-x", "--exhaustive", action="store_true",
                         help="Run exhaustive checks, i.e. check for validity "
                              "after every step.")
     args = parser.parse_args()
     exhaustive_checks = args.exhaustive
+    if args.python:
+        outfile = os.path.join(os.path.dirname(__file__), "random_attack_logs",
+                               str(args.seed) + ".py")
+        python_output = open(outfile, "wt")
+        python_output.write("#!/usr/bin/env python\n")
+        python_output.write("import datatable as dt\n")
+        python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
     ra = Attacker(args.seed)
     ra.attack()
