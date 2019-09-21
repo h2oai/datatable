@@ -19,7 +19,6 @@
 #include "progress/progress_manager.h"
 #include "progress/work.h"
 #include "utils/assert.h"
-#include <iostream>
 namespace dt {
 namespace progress {
 
@@ -79,7 +78,7 @@ void progress_manager::update_view() const {
   // Handle interrupt if in a parallel region.
   // If not in a parallel region, `handle_interrupt()`
   // must be invoked in a special way, i.e.
-  // when `get_interrupt_status() == true`.
+  // when `is_interrupt_occurred() == true`.
   if (dt::num_threads_in_team()) handle_interrupt();
   if (pbar) pbar->refresh();
 }

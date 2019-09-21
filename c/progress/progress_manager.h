@@ -63,7 +63,7 @@ class progress_manager {
     mutable std::mutex mutex;
 
     // This flag is initially set to InterruptStatus::RUN, meaning that
-    // threads are allowed to run their tasks. When SIGINT signal is caught,
+    // threads are allowed to perform their jobs. When SIGINT signal is caught,
     // it is set to InterruptStatus::HANDLE_INTERRUPT, meaning that
     // job execution should be aborted and interrupt should be handled.
     // When interrupt is handled in `handle_interrupt()`, this flag
