@@ -455,6 +455,7 @@ static void _deduplicate(std::string* name, py::oobj* pyname,
       char ch = chars[j];
       count = count * 10 + static_cast<size_t>(ch - '0');
     }
+    count++;
   } else {
     count = static_cast<size_t>(names_auto_index);
     if (chars[n-1] != '.') {
