@@ -392,6 +392,12 @@ def test_warnings_as_errors():
             assert e.__cause__ is None
 
 
+def test_names_deduplication():
+    with pytest.warns(dt.DatatableWarning):
+        DT = dt.Frame(names=["A", "A01", "A01"])
+        assert DT.names == ("A", "A01", "A2")
+
+
 
 #-------------------------------------------------------------------------------
 # Stype
