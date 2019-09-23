@@ -167,7 +167,7 @@ void DataTable::apply_rowindex(const RowIndex& ri) {
   // `ri.size()` cannot be computed.
   if (!ri) return;
   for (Column& col : columns) {
-    col.apply_rowindex_old(ri);
+    col.apply_rowindex(ri);
   }
   nrows = ri.size();
 }

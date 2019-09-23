@@ -89,6 +89,7 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
  */
 template <typename T>
 void set_ids(Column& col, T i0) {
+  col.materialize();
   auto data = static_cast<T*>(col->data_w());
   for (T i = 0; i < static_cast<T>(col.nrows()); ++i) {
     data[i] = i0 + i;

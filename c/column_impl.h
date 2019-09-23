@@ -128,7 +128,10 @@ class ColumnImpl
     const void* data() const { return mbuf.rptr(); }
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
-    void* data_w() { return mbuf.wptr(); }
+    void* data_w() {
+      assert(!is_virtual());
+      return mbuf.wptr();
+    }
     PyObject* mbuf_repr() const;
     size_t alloc_size() const;
 
