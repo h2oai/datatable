@@ -28,8 +28,7 @@ from .lib._datatable import (
     frame_integrity_check,
     get_thread_ids,
     in_debug_mode,
-    regex_supported,
-    RowIndex
+    regex_supported
 )
 
 __all__ = [
@@ -40,5 +39,4 @@ __all__ = [
     "get_thread_ids",
     "in_debug_mode",
     "regex_supported",
-    "RowIndex",
 ]

@@ -25,7 +25,6 @@
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
-#include "py_rowindex.h"
 #include "python/_all.h"
 #include "python/list.h"
 #include "python/string.h"
