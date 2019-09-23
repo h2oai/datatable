@@ -347,7 +347,7 @@ class Median_ColumnImpl : public ColumnImpl {
     }
 
     void pre_materialize_hook() override {
-      arg.sort_grouped_inplace(groupby);
+      arg.sort_grouped(groupby);
     }
 
     bool get_element(size_t i, U* out) const override {

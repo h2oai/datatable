@@ -139,6 +139,7 @@ class ColumnImpl
     virtual size_t memory_footprint() const;
 
     RowIndex _sort(Groupby* out_groups) const;
+    virtual void sort_grouped(const Groupby&, bool inplace, Column& out);
 
     Column repeat(size_t nreps) const;  // OLD
 

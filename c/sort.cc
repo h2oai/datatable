@@ -127,6 +127,7 @@
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
+#include "column/view.h"
 #include "expr/sort_node.h"
 #include "expr/eval_context.h"
 #include "frame/py_frame.h"
@@ -1421,14 +1422,34 @@ RowIndex Column::sort(Groupby* out_grps) const {
 }
 
 
-void Column::sort_grouped_inplace(const Groupby& grps)
-{
-  (void)stats();
-  SortContext sc(nrows(), pcol->ri, grps, /* make_groups = */ false);
-  sc.continue_sort(*this, /* desc = */ false, /* make_groups = */ false);
-  pcol->ri = sc.get_result_rowindex();
+void ColumnImpl::sort_grouped(const Groupby& grps, bool inplace, Column& out) {
+  (void) inplace;
+  (void) out.stats();
+  SortContext sc(nrows(), ri, grps, /* make_groups = */ false);
+  sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);
+  //out.apply_rowindex(sc.get_result_rowindex());
+  ri = sc.get_result_rowindex();
 }
 
+
+template <typename T>
+void dt::ArrayView_ColumnImpl<T>::sort_grouped(
+    const Groupby& grps, bool inplace, Column& out)
+{
+  if (inplace) {
+    (void) out.stats();
+    SortContext sc(nrows(), rowindex, grps, /* make_groups = */ false);
+    sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);
+    rowindex = sc.get_result_rowindex();
+  }
+  else {
+    out = Column(this->shallowcopy());
+    out.sort_grouped(grps);
+  }
+}
+
+template class dt::ArrayView_ColumnImpl<int32_t>;
+template class dt::ArrayView_ColumnImpl<int64_t>;
 
 
 

@@ -317,6 +317,11 @@ void Column::resize(size_t new_nrows) {
 }
 
 
+void Column::sort_grouped(const Groupby& grps) {
+  bool inplace = true;
+  pcol->sort_grouped(grps, inplace, *this);
+}
+
 
 
 //==============================================================================

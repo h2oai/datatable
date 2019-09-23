@@ -318,7 +318,7 @@ Column expr_reduce1::evaluate(EvalContext& ctx)
     return reduce_first(input_col, gb);
   }
   if (opcode == Op::MEDIAN) {
-    input_col.sort_grouped_inplace(gb);
+    input_col.sort_grouped(gb);
   }
 
   SType in_stype = input_col.stype();

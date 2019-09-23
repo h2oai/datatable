@@ -245,7 +245,7 @@ class Column
     Column cast(SType stype) const;
     Column cast(SType stype, MemoryRange&& mr) const;
     RowIndex sort(Groupby* out_groups) const;
-    void sort_grouped_inplace(const Groupby&);
+    void sort_grouped(const Groupby&);
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
 
