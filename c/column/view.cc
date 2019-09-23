@@ -153,8 +153,9 @@ template class ArrayView_ColumnImpl<int64_t>;
 
 // factory function
 static Column _make_view(Column&& col, const RowIndex& ri) {
-  if (ri.size() == 0) {
-    return Column::new_na_column(col.stype(), 0);
+  // This covers the case when ri.size()==0, and when all elements are NAs
+  if (ri.max() == RowIndex::NA) {
+    return Column::new_na_column(col.stype(), ri.size());
   }
   switch (ri.type()) {
     case RowIndexType::SLICE:
