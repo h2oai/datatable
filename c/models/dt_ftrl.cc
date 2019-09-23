@@ -509,22 +509,18 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   // Mutex to update global feature importance information
   std::mutex m;
-  size_t nthreads = get_nthreads(iteration_nrows);
 
-  // Fit work amount for all iterations but the last one
-  size_t work_total = (niterations - 1) * (iteration_nrows / nthreads);
-  // Fit work amount for the last iteration
-  work_total += (total_nrows - iteration_nrows * (niterations - 1)) / nthreads;
-  // Validate work amount for all iterations
-  work_total += (validation)? niterations * (dt_X_val->nrows / nthreads) : 0;
+  // Calculate work amounts for full fit iterations, last fit iteration and
+  // validation.
+  size_t work_total = (niterations - 1) * get_work_amount(iteration_nrows);
+  work_total += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows);
+  if (validation) work_total += niterations * get_work_amount(dt_X_val->nrows);
 
   // Set work amount to be reported by the zero thread.
-  // NB: each work amount had to be divided by `nthreads` separately,
-  // as integer division was involved above.
   dt::progress::work job(work_total);
   job.set_message("Fitting");
 
-  dt::parallel_region(nthreads,
+  dt::parallel_region(get_nthreads(iteration_nrows),
     [&]() {
       // Each thread gets a private storage for hashes,
       // temporary weights and feature importances.
@@ -539,7 +535,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
         size_t iteration_size = iteration_end - iteration_start;
 
         // Training.
-        dt::nested_for_static(iteration_size, [&](size_t i) {
+        dt::nested_for_static(iteration_size, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
           U value;
           bool isna = target_col0_train.get_element(ii, &value);
@@ -577,7 +573,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           dt::atomic<T> loss_global {0.0};
           T loss_local = 0.0;
 
-          dt::nested_for_static(dt_X_val->nrows, [&](size_t i) {
+          dt::nested_for_static(dt_X_val->nrows, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
             V value;
             bool isna = target_col0_val.get_element(i, &value);
 
@@ -636,11 +632,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
     }
   );
+  job.done();
 
   // Reset model stats after training, so that min gets re-computed
   // in `py::Validator::has_negatives()` during unpickling.
   reset_model_stats();
-  job.done();
 
   double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
@@ -769,8 +765,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 
-    dt::nested_for_static(dt_X->nrows, [&](size_t i){
-
+    dt::nested_for_static(dt_X->nrows, [&](size_t i) {
       // Predicting for all the `nlabels`
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
@@ -789,7 +784,6 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
       }
     });
   });
-
   job.done();
 
   if (model_type == FtrlModelType::BINOMIAL) {
@@ -1078,7 +1072,7 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
  */
 template <typename T>
 hasherptr Ftrl<T>::create_hasher(const Column& col) {
-  int shift_nbits = dt::FtrlBase::DOUBLE_MANTISSA_NBITS - mantissa_nbits;
+  int shift_nbits = DOUBLE_MANTISSA_NBITS - mantissa_nbits;
   switch (col.stype()) {
     case SType::BOOL:
     case SType::INT8:
@@ -1344,7 +1338,7 @@ void Ftrl<T>::set_nbins(uint64_t nbins_in) {
 template <typename T>
 void Ftrl<T>::set_mantissa_nbits(unsigned char mantissa_nbits_in) {
   xassert(mantissa_nbits_in >= 0);
-  xassert(mantissa_nbits_in <= dt::FtrlBase::DOUBLE_MANTISSA_NBITS);
+  xassert(mantissa_nbits_in <= DOUBLE_MANTISSA_NBITS);
   params.mantissa_nbits = mantissa_nbits_in;
   mantissa_nbits = mantissa_nbits_in;
 }

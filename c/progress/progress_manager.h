@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PROGRESS_MANAGER_h
 #define dt_PROGRESS_MANAGER_h
+#include <atomic>
 #include <stack>      // std::stack
 #include <mutex>      // std::mutex, std::lock_guard
 namespace dt {
@@ -22,8 +23,16 @@ namespace progress {
 
 // forward-declare
 class progress_bar;
+class progress_bar_disabled;
+class progress_bar_enabled;
 class work;
 
+
+enum class InterruptStatus : unsigned char {
+  RUN = 0,
+  ABORT_EXECUTION = 1,
+  HANDLE_INTERRUPT = 2
+};
 
 /**
  * Singleton class that acts as a liaison between the progress bar and
@@ -53,6 +62,17 @@ class progress_manager {
     // can result in a segfault.
     mutable std::mutex mutex;
 
+    // This flag is initially set to InterruptStatus::RUN, meaning that
+    // threads are allowed to perform their jobs. When SIGINT signal is caught,
+    // it is set to InterruptStatus::HANDLE_INTERRUPT, meaning that
+    // job execution should be aborted and interrupt should be handled.
+    // When interrupt is handled in `handle_interrupt()`, this flag
+    // is set to InterruptStatus::ABORT_EXECUTION, meaning that
+    // job execution should be aborted. When execution is aborted,
+    // this flag is set back to InterruptStatus::RUN.
+    mutable std::atomic<InterruptStatus> interrupt_status;
+    size_t : 56;
+
   public:
     void update_view() const;
     void set_error_status(bool cancelled) noexcept;
@@ -63,6 +83,10 @@ class progress_manager {
     void start_work(work* task);
     // called by `work.done()` / `~work()`
     void finish_work(work* task, bool successfully);
+    void set_interrupt() const;
+    bool is_interrupt_occurred() const;
+    void reset_interrupt_status() const;
+    void handle_interrupt() const;
 };
 
 

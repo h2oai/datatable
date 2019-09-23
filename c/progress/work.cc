@@ -13,13 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "progress/manager.h"       // dt::progress::manager
-#include "progress/progress_bar.h"  // dt::progress::progress_bar
+#include "progress/progress_bar.h"     // dt::progress::progress_bar
+#include "progress/progress_manager.h" // dt::progress::progress_manager
 #include "progress/work.h"
 #include "utils/assert.h"
 namespace dt {
 namespace progress {
-
 
 
 work::work(size_t amount)
@@ -35,6 +34,14 @@ work::work(size_t amount)
   // progress manager will call this->init();
 }
 
+work::~work() {
+ if (!pbar) return;
+ try {
+   dt::progress::manager->finish_work(this, false);
+ } catch (...) {};
+}
+
+
 void work::init(progress_bar* pb, work* parent) {
   xassert(pb);
   pbar = pb;
@@ -44,16 +51,15 @@ void work::init(progress_bar* pb, work* parent) {
   }
 }
 
+
+/**
+ * This method must be called at the end of progress reporting.
+ */
 void work::done() {
   xassert(done_amount == total_amount);
   dt::progress::manager->finish_work(this, true);
   pbar = nullptr;
 }
-
-work::~work() {
-  if (pbar) dt::progress::manager->finish_work(this, false);
-}
-
 
 
 void work::add_work_amount(size_t amount) noexcept {
@@ -123,7 +129,7 @@ subtask::subtask(work& w, size_t amount) noexcept
 }
 
 
-subtask::~subtask() {
+void subtask::done() {
   parent.add_done_amount(work_amount);
 }
 

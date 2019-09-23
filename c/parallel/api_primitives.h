@@ -27,7 +27,7 @@ size_t num_threads_in_pool();
 class ChunkSize {
   size_t value;
   public:
-    explicit ChunkSize(size_t sz) {
+    explicit ChunkSize(size_t sz = 1000 /* Default chunk size */) {
       value = sz? sz : 1;
     }
     ChunkSize(const ChunkSize&) = default;

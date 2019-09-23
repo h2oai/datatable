@@ -200,65 +200,6 @@ def test_coverage():
     core.test_coverage()
 
 
-def test_multiprocessing_threadpool():
-    # Verify that threads work properly after forking (#1758)
-    import multiprocessing as mp
-    from datatable.internal import get_thread_ids
-    parent_threads = get_thread_ids()
-    n = 4
-    pool = mp.Pool(processes=n)
-    child_threads = pool.starmap(get_thread_ids, [()] * n, chunksize=1)
-    assert len(child_threads) == n
-    for chthreads in child_threads:
-        assert len(parent_threads) == len(chthreads)
-        assert chthreads != parent_threads
-
-
-@cpp_test
-def test_internal_shared_mutex():
-    core.test_shmutex(500, dt.options.nthreads * 2, 1)
-
-
-@cpp_test
-def test_internal_shared_bmutex():
-    core.test_shmutex(1000, dt.options.nthreads * 2, 0)
-
-
-@cpp_test
-def test_internal_atomic():
-    core.test_atomic()
-
-
-@cpp_test
-def test_internal_barrier():
-    core.test_barrier(100)
-
-
-@cpp_test
-def test_internal_parallel_for_static():
-    core.test_parallel_for_static(1000)
-
-
-@cpp_test
-def test_internal_parallel_for_dynamic():
-    core.test_parallel_for_dynamic(1000)
-
-
-@cpp_test
-def test_internal_parallel_for_ordered1():
-    core.test_parallel_for_ordered(17234)
-
-
-@cpp_test
-def test_internal_parallel_for_ordered2():
-    n0 = dt.options.nthreads
-    try:
-        dt.options.nthreads = 2
-        core.test_parallel_for_ordered(17234)
-    finally:
-        dt.options.nthreads = n0
-
-
 def test_internal_compiler_version():
     ver = dt.internal.compiler_version()
     assert ver

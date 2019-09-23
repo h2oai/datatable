@@ -295,12 +295,14 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
         default: group_nd();
                  max_bins = nd_max_bins;
       }
+      subjob.done();
     }
     {
       // Sample members if we gathered too many exempalrs.
       job.set_message("Sampling");
       dt::progress::subtask subjob(job, WORK_SAMPLE);
       was_sampled = sample_exemplars(max_bins, n_na_bins);
+      subjob.done();
     }
   } else {
     group_0d();
@@ -314,6 +316,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     job.set_message("Finalizing");
     dt::progress::subtask subjob(job, WORK_FINALIZE);
     aggregate_exemplars(was_sampled);
+    subjob.done();
   }
 
   dt_exemplars_in = std::move(dt_exemplars);

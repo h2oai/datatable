@@ -151,7 +151,7 @@ void ParallelReader::read_all()
 
   dt::parallel_for_ordered(
     /* n_iterations = */ chunk_count,
-    /* n_threads = */ nthreads,
+    /* n_threads = */ NThreads(nthreads),
 
     [&](dt::ordered* o) {
       // Thread-local parse context. This object does most of the parsing job.

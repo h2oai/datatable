@@ -21,9 +21,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_FTRL_BASE_h
 #define dt_MODELS_FTRL_BASE_h
+#include "options.h"
 #include "models/utils.h"
 #include "str/py_str.h"
-#include "options.h"
 namespace dt {
 
 
@@ -112,6 +112,7 @@ class FtrlBase {
     virtual FtrlParams get_params() = 0;
     virtual DataTable* get_labels() = 0;
     static size_t get_nthreads(size_t);
+    static size_t get_work_amount(size_t);
 
     // Setters
     virtual void set_model(DataTable*) = 0;
@@ -137,7 +138,7 @@ class FtrlBase {
     static constexpr char SEPARATOR = ',';
 
     // Minimum number of rows a thread will get for fitting and predicting.
-    static constexpr size_t MIN_ROWS_PER_THREAD = 1000;
+    static constexpr size_t MIN_ROWS_PER_THREAD = 10000;
 };
 
 

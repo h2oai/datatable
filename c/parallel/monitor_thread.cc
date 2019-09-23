@@ -16,12 +16,17 @@
 /* enable nice() function in unistd.h */
 #define _XOPEN_SOURCE
 #include <iostream>
+#include <csignal> // std::signal
 #include <unistd.h>
 #include "parallel/monitor_thread.h"
-#include "parallel/thread_worker.h"   // idle_job
-#include "progress/manager.h"  // dt::progress::manager
+#include "parallel/thread_worker.h"     // idle_job
+#include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "utils/exceptions.h"
+#include "parallel/api.h"
 namespace dt {
+
+using sig_handler_t = void(*)(int);
+static sig_handler_t sigint_handler_prev = nullptr;
 
 
 monitor_thread::monitor_thread(idle_job* wc)
@@ -40,6 +45,7 @@ monitor_thread::~monitor_thread() {
 
 
 void monitor_thread::run() noexcept {
+  sigint_handler_prev = std::signal(SIGINT, sigint_handler);
   constexpr auto SLEEP_TIME = std::chrono::milliseconds(20);
   // Reduce this thread's priority to a minimum.
   // See http://man7.org/linux/man-pages/man2/nice.2.html
@@ -77,12 +83,26 @@ void monitor_thread::run() noexcept {
 }
 
 
-void monitor_thread::set_active(bool a) {
-  {
+void monitor_thread::sigint_handler(int signal) {
+  if (dt::is_monitor_enabled()) {
+    progress::manager->set_interrupt();
+  } else {
+    sigint_handler_prev(signal);
+  }
+}
+
+
+void monitor_thread::set_active(bool a) noexcept {
+  try {
     std::lock_guard<std::mutex> lock(mutex);
     is_active = a;
-  }
-  sleep_state_cv.notify_one();
+  } catch (...) {}
+  sleep_state_cv.notify_one();  // noexcept
+}
+
+
+bool monitor_thread::get_active() {
+  return is_active;
 }
 
 

@@ -300,23 +300,27 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
                        function<void(size_t)> post_ordered)
 {
   if (sch->n_threads <= 1) {
+    MonitorGuard _;
     if (!pre_ordered)  pre_ordered = noop;
     if (!do_ordered)   do_ordered = noop;
     if (!post_ordered) post_ordered = noop;
-    for (size_t j = 0; j < sch->n_iterations; ++j) {
-      pre_ordered(j);
-      do_ordered(j);
-      post_ordered(j);
+    for (size_t i = 0; i < sch->n_iterations; ++i) {
+      pre_ordered(i);
+      do_ordered(i);
+      post_ordered(i);
       sch->work.add_done_amount(1);
+      if (progress::manager->is_interrupt_occurred()) {
+        progress::manager->handle_interrupt();
+      }
     }
+    return;
   }
-  else {
-    sch->tasks.emplace_back(pre_ordered, do_ordered, post_ordered);
-    if (sch->tasks.size() == sch->n_tasks) {
-      thpool->execute_job(sch);
-    } else {
-      init(this);
-    }
+
+  sch->tasks.emplace_back(pre_ordered, do_ordered, post_ordered);
+  if (sch->tasks.size() == sch->n_tasks) {
+    thpool->execute_job(sch);
+  } else {
+    init(this);
   }
 }
 
@@ -336,15 +340,16 @@ void ordered::set_n_iterations(size_t n) {
 //------------------------------------------------------------------------------
 
 void parallel_for_ordered(size_t niters, function<void(ordered*)> fn) {
-  parallel_for_ordered(niters, thpool->size(), fn);
+  parallel_for_ordered(niters, NThreads(thpool->size()), fn);
 }
 
 
-void parallel_for_ordered(size_t niters, size_t nthreads,
+void parallel_for_ordered(size_t niters, NThreads NThreads_,
                           function<void(ordered*)> fn)
 {
   if (!niters) return;
   dt::progress::work job(niters);
+  size_t nthreads = NThreads_.get();
 
   thpool->instantiate_threads();  // temp fix
   xassert(!thpool->in_parallel_region());

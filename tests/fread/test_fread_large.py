@@ -11,6 +11,7 @@
 import os
 import pytest
 import datatable as dt
+import warnings
 import zipfile
 from datatable.internal import frame_integrity_check
 from tests import find_file
@@ -141,8 +142,10 @@ def test_h2o3_smalldata(f):
         params = {}
         if "test_pubdev3589" in f:
             params["sep"] = "\n"
-        d0 = dt.fread(f, **params)
-        frame_integrity_check(d0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            DT = dt.fread(f, **params)
+            frame_integrity_check(DT)
 
 
 @pytest.mark.parametrize("f", get_file_list("h2o-3", "bigdata", "laptop"),
@@ -195,16 +198,20 @@ def test_h2o3_bigdata(f):
         params = {}
         if any(ff in f for ff in filledna_files):
             params["fill"] = True
-        d0 = dt.fread(f, **params)
-        frame_integrity_check(d0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            DT = dt.fread(f, **params)
+            frame_integrity_check(DT)
 
 
 
 @pytest.mark.parametrize("f", get_file_list("h2o-3", "fread", skip={"1206FUT.txt"}),
                          indirect=True)
 def test_fread_all(f):
-    d0 = dt.fread(f)
-    frame_integrity_check(d0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        DT = dt.fread(f)
+        frame_integrity_check(DT)
 
 
 def test_fread_1206FUT():

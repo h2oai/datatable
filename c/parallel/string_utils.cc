@@ -41,7 +41,7 @@ Column generate_string_column(function<void(size_t, string_buf*)> fn,
 
   dt::parallel_for_ordered(
     nchunks,
-    nthreads,  // will be truncated to pool size if necessary
+    NThreads(nthreads),  // will be truncated to pool size if necessary
     [&](ordered* o) {
       using sbptr = std::unique_ptr<string_buf>;
       auto sb = force_str64

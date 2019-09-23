@@ -131,9 +131,10 @@ void dynamic_scheduler::abort_execution() {
 // parallel_for_dynamic
 //------------------------------------------------------------------------------
 
-void parallel_for_dynamic(size_t nrows, size_t nthreads, dynamicfn_t fn) {
+void parallel_for_dynamic(size_t nrows, NThreads NThreads_, dynamicfn_t fn) {
   if (nrows == 1) return fn(0);
   size_t ith = dt::this_thread_index();
+  size_t nthreads = NThreads_.get();
 
   // Running from the master thread
   if (!thpool->in_parallel_region()) {
@@ -159,7 +160,7 @@ void parallel_for_dynamic(size_t nrows, size_t nthreads, dynamicfn_t fn) {
 
 
 void parallel_for_dynamic(size_t nrows, dynamicfn_t fn) {
-  parallel_for_dynamic(nrows, dt::num_threads_available(), fn);
+  parallel_for_dynamic(nrows, NThreads(dt::num_threads_available()), fn);
 }
 
 

@@ -31,8 +31,37 @@ enum class Status : size_t {
 };
 
 
-
+/**
+ * Base progress bar class declaring progress bar API.
+ */
 class progress_bar {
+  public:
+    virtual ~progress_bar();
+    virtual void set_progress(double actual, double tentative) noexcept = 0;
+    virtual void set_status_finished() = 0;
+    virtual void set_status_error(bool cancelled) = 0;
+    virtual void set_message(std::string&& msg) = 0;
+    virtual void refresh() = 0;
+};
+
+
+/**
+ * Progress bar stub to be used when progress bar is not enabled.
+ */
+class progress_bar_disabled : public progress_bar {
+  public:
+    void set_progress(double actual, double tentative) noexcept;
+    void set_status_finished();
+    void set_status_error(bool cancelled);
+    void set_message(std::string&& msg);
+    void refresh();
+};
+
+
+/**
+ * Actual progress bar implementation.
+ */
+class progress_bar_enabled : public progress_bar {
   using ptime_t = std::chrono::steady_clock::time_point;
   using dtime_t = std::chrono::steady_clock::duration;
   using rtime_t = std::chrono::duration<double>;  // in seconds
@@ -45,10 +74,10 @@ class progress_bar {
 
     // parameters (constant during progress bar's lifetime)
     int bar_width;
-    bool enabled;
     bool clear_on_success;
     bool use_colors;
     bool use_unicode;
+    size_t : 8;
 
     // runtime support
     dtime_t update_interval;
@@ -62,17 +91,16 @@ class progress_bar {
     size_t : 48;
 
   public:
-    progress_bar();
+    progress_bar_enabled();
 
     void set_progress(double actual, double tentative) noexcept;
     void set_status_finished();
     void set_status_error(bool cancelled);
-    void set_message(std::string&&);
+    void set_message(std::string&& msg);
 
     void refresh();
 
   private:
-    void _check_interrupts();
     void _report_to_python();
     void _render_to_stdout();
     void _render_percentage(std::stringstream& out);
@@ -80,7 +108,6 @@ class progress_bar {
     void _render_progressbar_ascii(std::stringstream& out);
     void _render_message(std::stringstream& out);
 };
-
 
 
 }} // namespace dt::progress

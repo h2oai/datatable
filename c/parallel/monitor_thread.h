@@ -23,6 +23,7 @@ namespace dt {
 using std::size_t;
 
 class idle_job;
+void enable_monitor(bool) noexcept;
 
 
 class monitor_thread {
@@ -47,14 +48,25 @@ class monitor_thread {
      *   running its main job;
      * set_active(false) puts the thread back to sleep.
      */
-    void set_active(bool a);
-
+    void set_active(bool a) noexcept;
+    bool get_active();
     void stop_running();
 
   private:
     void run() noexcept;
+    static void sigint_handler(int);
 };
 
+
+class MonitorGuard {
+  public:
+    MonitorGuard() {
+      enable_monitor(true);
+    }
+    ~MonitorGuard() {
+      enable_monitor(false);  // noexcept
+    }
+};
 
 
 } // namespace dt

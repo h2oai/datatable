@@ -19,7 +19,7 @@
 #include "parallel/thread_pool.h"
 #include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
-#include "progress/manager.h"
+#include "progress/progress_manager.h"
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "options.h"
@@ -132,11 +132,27 @@ thread_team* thread_pool::get_team_unchecked() noexcept {
 }
 
 
+void thread_pool::enable_monitor(bool a) const noexcept {
+  controller.enable_monitor(a);
+}
+
+
+bool thread_pool::is_monitor_enabled() const noexcept {
+  return controller.is_monitor_enabled();
+}
 
 
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
+
+bool is_monitor_enabled() noexcept {
+  return thpool->is_monitor_enabled();
+}
+
+void enable_monitor(bool a) noexcept {
+  thpool->enable_monitor(a);
+}
 
 size_t num_threads_in_pool() {
   return thpool->size();

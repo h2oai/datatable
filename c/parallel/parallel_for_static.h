@@ -16,7 +16,8 @@
 #ifndef dt_PARALLEL_FOR_STATIC_h
 #define dt_PARALLEL_FOR_STATIC_h
 #include <algorithm>
-#include "parallel/api_primitives.h"
+#include "progress/progress_manager.h"  // dt::progress::progress_manager
+#include "parallel/monitor_thread.h"
 #include "utils/assert.h"
 namespace dt {
 
@@ -24,7 +25,7 @@ namespace dt {
 size_t this_thread_index();
 size_t num_threads_in_pool();
 size_t num_threads_in_team();
-
+bool is_monitor_enabled() noexcept;
 
 
 /**
@@ -51,10 +52,13 @@ size_t num_threads_in_team();
  * using all available threads.
  *
  * This function must not be called within a parallel region. See
- * `nested_for_static()` instead.
+ * `nested_for_static_plain()` instead.
+ *
+ * Note: as this function doesn't do any chunking, it cannot be interrupted
+ * with the SIGINT signal.
  */
 template <typename F>
-void parallel_for_static(size_t n_iterations, NThreads nthreads, F func) {
+void parallel_for_static_plain(size_t n_iterations, NThreads nthreads, F func) {
   xassert(num_threads_in_team() == 0);
   xassert(n_iterations <= size_t(-1) / nthreads.get());
 
@@ -77,11 +81,6 @@ void parallel_for_static(size_t n_iterations, NThreads nthreads, F func) {
         func(i);
       }
     });
-}
-
-template <typename F>
-void parallel_for_static(size_t n_iterations, F func) {
-  parallel_for_static(n_iterations, NThreads(), func);
 }
 
 
@@ -123,8 +122,19 @@ void parallel_for_static(size_t n_iterations,
   // Fast case: the number of rows is too small compared to the
   // chunk size, no need to start a parallel region
   if (n_iterations <= chunk_size_ || num_threads == 1) {
-    for (size_t i = 0; i < n_iterations; ++i) {
-      func(i);
+    // ensures monitor thread is turned off in the end
+    MonitorGuard _;
+    size_t i0 = 0;
+    while (i0 < n_iterations) {
+      size_t i1 = std::min(i0 + chunk_size_, n_iterations);
+      for (size_t i = i0; i < i1; ++i) {
+        func(i);
+      }
+      i0 += chunk_size_;
+      if (progress::manager->is_interrupt_occurred()) {
+        i0 = n_iterations;
+        progress::manager->handle_interrupt();
+      }
     }
     return;
   }
@@ -140,6 +150,9 @@ void parallel_for_static(size_t n_iterations,
           func(i);
         }
         i0 += di;
+      if (progress::manager->is_interrupt_occurred()) {
+          i0 = n_iterations;
+        }
       }
     });
 }
@@ -150,9 +163,20 @@ void parallel_for_static(size_t n_iterations, ChunkSize cs, F func) {
 }
 
 
+template <typename F>
+void parallel_for_static(size_t n_iterations, F func) {
+  parallel_for_static(n_iterations, ChunkSize(),  NThreads(), func);
+}
+
+
+template <typename F>
+void parallel_for_static(size_t n_iterations, NThreads nthreads, F func) {
+  parallel_for_static(n_iterations, ChunkSize(), nthreads, func);
+}
+
 
 /**
- * Similar to `parallel_for_static(n_iterations, func)`, however this
+ * Similar to `parallel_for_static_plain(n_iterations, func)`, however this
  * function is expected to be called from within a parallel region.
  *
  * This function will effectively execute the loop
@@ -168,9 +192,12 @@ void parallel_for_static(size_t n_iterations, ChunkSize cs, F func) {
  * that as each thread finishes its iterations, it will not wait for
  * the other threads to finish theirs. If a barrier is desired, add
  * an explicit call to `dt::barrier()` at the end.
+ *
+ * Note: as this function doesn't do any chunking, it cannot be interrupted
+ * with the SIGINT signal.
  */
 template <typename F>
-void nested_for_static(size_t n_iterations, F func) {
+void nested_for_static_plain(size_t n_iterations, F func) {
   size_t ith = this_thread_index();
   size_t nth = num_threads_in_team();
   xassert(nth > 0);
@@ -201,7 +228,16 @@ void nested_for_static(size_t n_iterations, ChunkSize chunk_size, F func)
       func(i);
     }
     i0 += di;
+    if (progress::manager->is_interrupt_occurred()) {
+      i0 = n_iterations;
+    }
   }
+}
+
+
+template <typename F>
+void nested_for_static(size_t n_iterations, F func) {
+  nested_for_static(n_iterations, ChunkSize(), func);
 }
 
 

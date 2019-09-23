@@ -14,9 +14,10 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "parallel/thread_worker.h"
-#include "progress/manager.h"  // dt::progress::manager
+#include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include "parallel/api.h"
 namespace dt {
 
 
@@ -73,6 +74,7 @@ void thread_worker::run() noexcept {
         scheduler = controller;
       }
     } catch (...) {
+      enable_monitor(false);
       controller->catch_exception();
       scheduler->abort_execution();
     }
@@ -96,6 +98,7 @@ void thread_worker::run_master(thread_scheduler* job) noexcept {
       if (!task) break;
       task->execute(this);
     } catch (...) {
+      enable_monitor(false);
       controller->catch_exception();
       job->abort_execution();
     }
@@ -106,7 +109,6 @@ void thread_worker::run_master(thread_scheduler* job) noexcept {
 size_t thread_worker::get_index() const noexcept {
   return thread_index;
 }
-
 
 
 
@@ -187,8 +189,21 @@ void idle_job::join() {
   monitor->set_active(false);
 
   if (saved_exception) {
+    progress::manager->reset_interrupt_status();
     std::rethrow_exception(saved_exception);
   }
+
+  progress::manager->handle_interrupt();
+}
+
+
+void idle_job::enable_monitor(bool a) const noexcept {
+  monitor->set_active(a);
+}
+
+
+bool idle_job::is_monitor_enabled() const noexcept {
+  return monitor->get_active();
 }
 
 
