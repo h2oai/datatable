@@ -99,7 +99,6 @@ ColumnImpl* ColumnImpl::shallowcopy() const {
   ColumnImpl* col = ColumnImpl::new_impl(_stype);
   col->_nrows = _nrows;
   col->mbuf = mbuf;
-  col->ri = ri;
   // TODO: also copy Stats object
   return col;
 }
@@ -300,15 +299,6 @@ void Column::apply_rowindex(const RowIndex& ri) {
   pcol->apply_rowindex(ri, *this);  // modifies in-place
 }
 
-void Column::apply_rowindex_old(const RowIndex& ri) {
-  if (!ri) return;
-  if (pcol->is_virtual() && !pcol->ri) materialize();
-  RowIndex new_rowindex = ri * pcol->ri;
-  pcol->ri = new_rowindex;
-  pcol->_nrows = new_rowindex.size();
-}
-
-
 void Column::resize(size_t new_nrows) {
   bool inplace = true;
   size_t curr_nrows = nrows();
@@ -316,6 +306,11 @@ void Column::resize(size_t new_nrows) {
   if (new_nrows < curr_nrows) pcol->truncate(new_nrows, inplace, *this);
 }
 
+
+void Column::sort_grouped(const Groupby& grps) {
+  bool inplace = true;
+  pcol->sort_grouped(grps, inplace, *this);
+}
 
 
 

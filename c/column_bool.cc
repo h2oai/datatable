@@ -21,9 +21,7 @@ BoolColumn::BoolColumn(size_t nrows, MemoryRange&& mem)
 
 
 bool BoolColumn::get_element(size_t i, int32_t* x) const {
-  size_t j = ri[i];
-  if (j == RowIndex::NA) return true;
-  int8_t value = elements_r()[j];
+  int8_t value = elements_r()[i];
   *x = static_cast<int32_t>(value);
   return ISNA<int8_t>(value);
 }

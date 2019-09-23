@@ -99,7 +99,7 @@ Column expr_column::evaluate(EvalContext& ctx) {
   const DataTable* dt = ctx.get_datatable(frame_id);
   Column newcol = dt->get_column(col_id);  // copy
   const RowIndex& dt_ri = ctx.get_rowindex(frame_id);
-  newcol.apply_rowindex_old(dt_ri);
+  newcol.apply_rowindex(dt_ri);
   return newcol;
 }
 

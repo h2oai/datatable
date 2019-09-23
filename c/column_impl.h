@@ -74,13 +74,7 @@ using pimpl = std::unique_ptr<ColumnImpl>;
  *     Raw data buffer, generally it's a plain array of primitive C types
  *     (such as `int32_t` or `double`).
  *
- * ri
- *     RowIndex applied to the column's data. All access to the contents of the
- *     ColumnImpl should go through the rowindex. For example, the `i`-th element
- *     in the column can be found as `mbuf->get_elem<T>(ri[i])`.
- *     This may also be NULL, which is equivalent to being an identity rowindex.
- *
- * nrows
+ * _nrows
  *     Number of elements in this column. If the ColumnImpl has a rowindex, then
  *     this number will be the same as the number of elements in the rowindex.
  *
@@ -92,7 +86,6 @@ class ColumnImpl
 {
   protected:
     MemoryRange mbuf;
-    RowIndex ri;
     mutable std::unique_ptr<Stats> stats;
     size_t _nrows;
     SType _stype;
@@ -119,7 +112,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::robj* out) const;
 
-    virtual bool is_virtual() const noexcept { return bool(ri); }
+    virtual bool is_virtual() const noexcept { return false; }
 
     size_t nrows() const { return _nrows; }
     SType stype() const { return _stype; }
@@ -128,7 +121,10 @@ class ColumnImpl
     const void* data() const { return mbuf.rptr(); }
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
-    void* data_w() { return mbuf.wptr(); }
+    void* data_w() {
+      assert(!is_virtual());
+      return mbuf.wptr();
+    }
     PyObject* mbuf_repr() const;
     size_t alloc_size() const;
 
@@ -136,6 +132,7 @@ class ColumnImpl
     virtual size_t memory_footprint() const;
 
     RowIndex _sort(Groupby* out_groups) const;
+    virtual void sort_grouped(const Groupby&, bool inplace, Column& out);
 
     Column repeat(size_t nreps) const;  // OLD
 

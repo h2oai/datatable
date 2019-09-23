@@ -61,7 +61,6 @@ FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr)
 
 template <typename T>
 void FwColumn<T>::init_data() {
-  xassert(!ri);
   mbuf.resize(_nrows * sizeof(T));
 }
 
@@ -76,7 +75,6 @@ const T* FwColumn<T>::elements_r() const {
 
 template <typename T>
 T* FwColumn<T>::elements_w() {
-  if (ri) materialize();
   return static_cast<T*>(mbuf.wptr());
 }
 
@@ -88,9 +86,7 @@ T FwColumn<T>::get_elem(size_t i) const {
 
 template <typename T>
 bool FwColumn<T>::get_element(size_t i, T* out) const {
-  size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return true;
-  T x = static_cast<const T*>(mbuf.rptr())[j];
+  T x = static_cast<const T*>(mbuf.rptr())[i];
   *out = x;
   return ISNA<T>(x);
 }
@@ -98,53 +94,6 @@ bool FwColumn<T>::get_element(size_t i, T* out) const {
 
 template <typename T>
 ColumnImpl* FwColumn<T>::materialize() {
-  // If the rowindex is absent, then the column is already materialized.
-  if (!ri) return this;
-  bool simple_slice = ri.isslice() && ri.slice_step() == 1;
-  bool ascending = ri.isslice() && static_cast<int64_t>(ri.slice_step()) > 0;
-
-  size_t elemsize = sizeof(T);
-  size_t newsize = elemsize * _nrows;
-
-  // Current `mbuf` can be reused iff it is not readonly. Thus, `new_mbuf` can
-  // be either the same as `mbuf` (with old size), or a newly allocated buffer
-  // (with new size). Correspondingly, the old buffer may or may not have to be
-  // released afterwards.
-  // Note also that `newsize` may be either smaller or bigger than the old size,
-  // this must be taken into consideration.
-  MemoryRange newmr;
-
-  if (simple_slice) {
-    // Slice with step 1: a portion of the buffer can be simply mem-copied onto
-    // the new buffer.
-    size_t start = static_cast<size_t>(ri.slice_start());
-    const void* src = mbuf.rptr(start * elemsize);
-    void* dest = mbuf.is_writable()
-        ? mbuf.wptr()
-        : newmr.resize(newsize).wptr();
-    std::memmove(dest, src, newsize);
-
-  } else {
-    // In all other cases we have to manually loop over the rowindex and
-    // copy array elements onto the new positions. This can be done in-place
-    // only if we know that the indices are monotonically increasing (otherwise
-    // there is a risk of scrambling the data).
-    const T* data_src = static_cast<const T*>(mbuf.rptr());
-    T* data_dest = mbuf.is_writable() && ascending
-       ? static_cast<T*>(mbuf.wptr())
-       : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.iterate(0, _nrows, 1,
-      [&](size_t i, size_t j) {
-        data_dest[i] = (j == RowIndex::NA)? GETNA<T>() : data_src[j];
-      });
-  }
-
-  if (newmr) {
-    mbuf = std::move(newmr);
-  } else {
-    mbuf.resize(newsize);
-  }
-  ri.clear();
   return this;
 }
 
@@ -174,7 +123,6 @@ void FwColumn<T>::apply_na_mask(const Column& mask) {
 
 template <typename T>
 void FwColumn<T>::fill_na() {
-  xassert(!ri);
   T* vals = static_cast<T*>(mbuf.wptr());
   dt::parallel_for_static(_nrows,
     [=](size_t i) {

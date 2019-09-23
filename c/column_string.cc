@@ -61,7 +61,6 @@ StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
 
 template <typename T>
 void StringColumn<T>::init_data() {
-  xassert(!ri);
   mbuf = MemoryRange::mem((_nrows + 1) * sizeof(T));
   mbuf.set_element<T>(0, 0);
 }
@@ -81,12 +80,10 @@ ColumnImpl* StringColumn<T>::shallowcopy() const {
 
 template <typename T>
 bool StringColumn<T>::get_element(size_t i, CString* out) const {
-  size_t j = (this->ri)[i];
-  if (j == RowIndex::NA) return true;
   const T* offs = this->offsets();
-  T off_end = offs[j];
+  T off_end = offs[i];
   if (ISNA<T>(off_end)) return true;
-  T off_beg = offs[j - 1] & ~GETNA<T>();
+  T off_beg = offs[i - 1] & ~GETNA<T>();
   out->ch = this->strdata() + off_beg,
   out->size = static_cast<int64_t>(off_end - off_beg);
   return false;
@@ -129,103 +126,6 @@ T* StringColumn<T>::offsets_w() {
 
 template <typename T>
 ColumnImpl* StringColumn<T>::materialize() {
-  // If our rowindex is null, then we're already done
-  if (!ri) return this;
-  bool simple_slice = ri.isslice() && ri.slice_step() == 1;
-  bool ascending_slice = ri.isslice() &&
-                         static_cast<int64_t>(ri.slice_step()) > 0;
-
-  size_t new_mbuf_size = (ri.size() + 1) * sizeof(T);
-  size_t new_strbuf_size = 0;
-  MemoryRange new_strbuf = strbuf;
-  MemoryRange new_mbuf = MemoryRange::mem(new_mbuf_size);
-  T* offs_dest = static_cast<T*>(new_mbuf.wptr()) + 1;
-  offs_dest[-1] = 0;
-
-  if (simple_slice) {
-    const T* data_src = offsets() + ri.slice_start();
-    T off0 = data_src[-1] & ~GETNA<T>();
-    T off1 = data_src[_nrows - 1] & ~GETNA<T>();
-    new_strbuf_size = static_cast<size_t>(off1 - off0);
-    if (!strbuf.is_writable()) {
-      new_strbuf = MemoryRange::mem(new_strbuf_size);
-      std::memcpy(new_strbuf.wptr(), strdata() + off0, new_strbuf_size);
-    } else {
-      std::memmove(new_strbuf.wptr(), strdata() + off0, new_strbuf_size);
-    }
-    for (size_t i = 0; i < _nrows; ++i) {
-      offs_dest[i] = data_src[i] - off0;
-    }
-
-  } else if (ascending_slice) {
-    // Special case: We can still do this in-place
-    // (assuming the buffers are not read-only)
-    if (!strbuf.is_writable())
-      new_strbuf = MemoryRange::mem(strbuf.size()); // We don't know the actual size yet
-                                                    // but it can't be larger than this
-    size_t step = ri.slice_step();
-    size_t start = ri.slice_start();
-    const T* offs1 = offsets();
-    const T* offs0 = offs1 - 1;
-    const char* str_src = strdata();
-    char* str_dest = static_cast<char*>(new_strbuf.wptr());
-    // We know that the resulting strbuf/mbuf size will be smaller, so no need to
-    // worry about resizing beforehand
-    T prev_off = 0;
-    size_t j = start;
-    for (size_t i = 0; i < _nrows; ++i, j += step) {
-      if (ISNA<T>(offs1[j])) {
-        offs_dest[i] = prev_off ^ GETNA<T>();
-      } else {
-        T off0 = offs0[j] & ~GETNA<T>();
-        T str_len = offs1[j] - off0;
-        if (str_len != 0) {
-          std::memmove(str_dest, str_src + off0, static_cast<size_t>(str_len));
-          str_dest += str_len;
-        }
-        prev_off += str_len;
-        offs_dest[i] = prev_off;
-      }
-    }
-    new_strbuf_size = static_cast<size_t>(
-        str_dest - static_cast<const char*>(new_strbuf.rptr()));
-    // Note: We can also do a special case with slice.step = 0, but we have to
-    //       be careful about cases where _nrows > T_MAX
-  } else {
-    const T* offs1 = offsets();
-    const T* offs0 = offs1 - 1;
-    T strs_size = 0;
-    ri.iterate(0, _nrows, 1,
-      [&](size_t, size_t j) {
-        if (j == RowIndex::NA) return;
-        strs_size += offs1[j] - offs0[j];
-      });
-    strs_size &= ~GETNA<T>();
-    new_strbuf_size = static_cast<size_t>(strs_size);
-    new_strbuf = MemoryRange::mem(new_strbuf_size);
-    const char* strs_src = strdata();
-    char* strs_dest = static_cast<char*>(new_strbuf.wptr());
-    T prev_off = 0;
-    ri.iterate(0, _nrows, 1,
-      [&](size_t i, size_t j) {
-        if (j == RowIndex::NA || ISNA<T>(offs1[j])) {
-          offs_dest[i] = prev_off ^ GETNA<T>();
-        } else {
-          T off0 = offs0[j] & ~GETNA<T>();
-          T str_len = offs1[j] - off0;
-          if (str_len != 0) {
-            std::memcpy(strs_dest + prev_off, strs_src + off0, str_len);
-            prev_off += str_len;
-          }
-          offs_dest[i] = prev_off;
-        }
-      });
-  }
-
-  new_strbuf.resize(new_strbuf_size);
-  mbuf = std::move(new_mbuf);
-  strbuf = std::move(new_strbuf);
-  ri.clear();
   return this;
 }
 
@@ -234,9 +134,7 @@ template <typename T>
 void StringColumn<T>::replace_values(
     Column& thiscol, const RowIndex& replace_at, const Column& replace_with)
 {
-  materialize();
   Column rescol;
-
   Column with;
   if (replace_with) {
     with = replace_with;  // copy
@@ -320,7 +218,6 @@ void StringColumn<T>::apply_na_mask(const Column& mask) {
 
 template <typename T>
 void StringColumn<T>::fill_na() {
-  xassert(!ri);
   // Perform a mini materialize (the actual `materialize` method will copy string and offset
   // data, both of which are extraneous for this method)
   strbuf.resize(0);

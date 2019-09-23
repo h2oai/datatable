@@ -88,9 +88,11 @@ static Column reduce_first(const Column& col, const Groupby& groupby)
   // beginning of each group. We will take this array and reinterpret it as a
   // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
   // to the column will produce the vector of first elements in that column.
-  arr32_t indices(ngrps, groupby.offsets_r());
+  arr32_t indices(ngrps);
+  // TODO: Groupby should use MemoryRange, then data copying can be shallow
+  std::memcpy(indices.data(), groupby.offsets_r(), ngrps * 4);
   Column res = col;  // copy
-  res.apply_rowindex_old(RowIndex(std::move(indices), true));
+  res.apply_rowindex(RowIndex(std::move(indices), true));
   if (ngrps == 1) res.materialize();
   return res;
 }
@@ -318,7 +320,7 @@ Column expr_reduce1::evaluate(EvalContext& ctx)
     return reduce_first(input_col, gb);
   }
   if (opcode == Op::MEDIAN) {
-    input_col.sort_grouped_inplace(gb);
+    input_col.sort_grouped(gb);
   }
 
   SType in_stype = input_col.stype();

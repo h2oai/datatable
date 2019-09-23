@@ -90,8 +90,7 @@ size_t DataTable::memory_footprint() const {
  */
 size_t ColumnImpl::memory_footprint() const {
   size_t sz = sizeof(*this);
-  if (!ri) sz += mbuf.memory_footprint();
-  sz += ri.memory_footprint();
+  sz += mbuf.memory_footprint();
   if (stats) sz += stats->memory_footprint();
   return sz;
 }
@@ -99,7 +98,7 @@ size_t ColumnImpl::memory_footprint() const {
 
 template <typename T>
 size_t StringColumn<T>::memory_footprint() const {
-  return ColumnImpl::memory_footprint() + (ri? 0 : strbuf.memory_footprint());
+  return ColumnImpl::memory_footprint() + strbuf.memory_footprint();
 }
 
 

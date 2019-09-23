@@ -38,7 +38,6 @@
 #include "options.h"
 #include "sort.h"
 #include "py_encodings.h"
-#include "py_rowindex.h"
 #include "ztest.h"
 
 
@@ -384,7 +383,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     py::Frame::init_type(m);
     py::Ftrl::init_type(m);
     dt::init_config_option(m);
-    py::orowindex::pyobject::init_type(m);
     py::oby::init(m);
     py::ojoin::init(m);
     py::osort::init(m);

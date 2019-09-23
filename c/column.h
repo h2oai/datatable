@@ -207,6 +207,13 @@ class Column
     void* get_data_editable();
     size_t get_data_size(size_t i = 0);
 
+    struct res_i32 { int32_t value; bool isna; int:24; };
+    res_i32 get_element_i32(size_t i) const __attribute__((used)) {
+      int32_t value;
+      bool isna = get_element(i, &value);
+      return res_i32 {value, isna};
+    }
+
 
   //------------------------------------
   // Stats
@@ -245,7 +252,7 @@ class Column
     Column cast(SType stype) const;
     Column cast(SType stype, MemoryRange&& mr) const;
     RowIndex sort(Groupby* out_groups) const;
-    void sort_grouped_inplace(const Groupby&);
+    void sort_grouped(const Groupby&);
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
 
@@ -262,7 +269,6 @@ class Column
     // Modifies the column in-place converting it into a view column
     // using the provided row index.
     void apply_rowindex(const RowIndex&);
-    void apply_rowindex_old(const RowIndex&);  // TODO: remove this
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;
