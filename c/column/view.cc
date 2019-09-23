@@ -140,6 +140,8 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, py::robj* out) const {
 }
 
 
+template class ArrayView_ColumnImpl<int32_t>;
+template class ArrayView_ColumnImpl<int64_t>;
 
 
 

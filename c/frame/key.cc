@@ -152,7 +152,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   new_columns.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
     Column col = columns[col_indices[i]];  // copy
-    col.apply_rowindex_old(ri);  // apply sort key
+    col.apply_rowindex(ri);  // apply sort key
     new_columns.emplace_back(std::move(col));
   }
   columns = std::move(new_columns);

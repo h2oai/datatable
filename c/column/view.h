@@ -83,6 +83,9 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
 };
 
 
+extern template class ArrayView_ColumnImpl<int32_t>;
+extern template class ArrayView_ColumnImpl<int64_t>;
+
 
 
 
