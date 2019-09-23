@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/virtual.h"
+#include "column/view.h"
 namespace dt {
 
 
@@ -28,37 +28,30 @@ namespace dt {
 // SliceView_ColumnImpl
 //------------------------------------------------------------------------------
 
-class SliceView_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    Column arg;
-    size_t start;
-    size_t step;
+SliceView_ColumnImpl::SliceView_ColumnImpl(Column&& col, const RowIndex& ri)
+  : Virtual_ColumnImpl(ri.size(), col.stype()),
+    arg(std::move(col)),
+    start(ri.slice_start()),
+    step(ri.slice_step())
+{
+  xassert(ri.isslice());
+  xassert(ri.max() < arg.nrows());
+}
 
-  public:
-    SliceView_ColumnImpl(Column&& col, const RowIndex& ri)
-      : Virtual_ColumnImpl(ri.size(), col.stype()),
-        arg(std::move(col)),
-        start(ri.slice_start()),
-        step(ri.slice_step())
-    {
-      xassert(ri.isslice());
-      xassert(ri.max() < arg.nrows());
-    }
 
-    ColumnImpl* shallowcopy() const override {
-      return new SliceView_ColumnImpl(Column(arg), RowIndex(start, _nrows, step));
-    }
+ColumnImpl* SliceView_ColumnImpl::shallowcopy() const {
+  return new SliceView_ColumnImpl(Column(arg), RowIndex(start, _nrows, step));
+}
 
-    bool get_element(size_t i, int8_t* out)   const override { return arg.get_element(start + i*step, out); }
-    bool get_element(size_t i, int16_t* out)  const override { return arg.get_element(start + i*step, out); }
-    bool get_element(size_t i, int32_t* out)  const override { return arg.get_element(start + i*step, out); }
-    bool get_element(size_t i, int64_t* out)  const override { return arg.get_element(start + i*step, out); }
-    bool get_element(size_t i, float* out)    const override { return arg.get_element(start + i*step, out); }
-    bool get_element(size_t i, double* out)   const override { return arg.get_element(start + i*step, out); }
-    bool get_element(size_t i, CString* out)  const override { return arg.get_element(start + i*step, out); }
-    bool get_element(size_t i, py::robj* out) const override { return arg.get_element(start + i*step, out); }
-};
 
+bool SliceView_ColumnImpl::get_element(size_t i, int8_t* out)   const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, int16_t* out)  const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, int32_t* out)  const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, int64_t* out)  const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, float* out)    const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, double* out)   const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, CString* out)  const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, py::robj* out) const { return arg.get_element(start + i*step, out); }
 
 
 
@@ -73,76 +66,78 @@ template <> const int64_t* get_indices(const RowIndex& ri) { return ri.indices64
 
 
 template <typename T>
-class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    Column arg;
-    RowIndex rowindex; // owns the `indices` array
-    const T* indices;
-
-  public:
-    ArrayView_ColumnImpl(Column&& col, const RowIndex& ri)
-      : Virtual_ColumnImpl(ri.size(), col.stype()),
-        arg(std::move(col)),
-        rowindex(ri),
-        indices(get_indices<T>(ri))
-    {
-      xassert((std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64()));
-      xassert(ri.max() < arg.nrows());
-    }
-
-    ColumnImpl* shallowcopy() const override {
-      return new ArrayView_ColumnImpl<T>(Column(arg), rowindex);
-    }
+ArrayView_ColumnImpl<T>::ArrayView_ColumnImpl(Column&& col, const RowIndex& ri)
+  : Virtual_ColumnImpl(ri.size(), col.stype()),
+    arg(std::move(col)),
+    rowindex(ri),
+    indices(get_indices<T>(ri))
+{
+  xassert((std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64()));
+  xassert(ri.max() < arg.nrows());
+}
 
 
-    bool get_element(size_t i, int8_t* out) const override {
-      T j = indices[i];
-      if (j < 0) return true;
-      return arg.get_element(static_cast<size_t>(j), out);
-    }
+template <typename T>
+ColumnImpl* ArrayView_ColumnImpl<T>::shallowcopy() const {
+  return new ArrayView_ColumnImpl<T>(Column(arg), rowindex);
+}
 
-    bool get_element(size_t i, int16_t* out) const override {
-      T j = indices[i];
-      if (j < 0) return true;
-      return arg.get_element(static_cast<size_t>(j), out);
-    }
 
-    bool get_element(size_t i, int32_t* out) const override {
-      T j = indices[i];
-      if (j < 0) return true;
-      return arg.get_element(static_cast<size_t>(j), out);
-    }
+template <typename T>
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
+  T j = indices[i];
+  if (j < 0) return true;
+  return arg.get_element(static_cast<size_t>(j), out);
+}
 
-    bool get_element(size_t i, int64_t* out) const override {
-      T j = indices[i];
-      if (j < 0) return true;
-      return arg.get_element(static_cast<size_t>(j), out);
-    }
+template <typename T>
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
+  T j = indices[i];
+  if (j < 0) return true;
+  return arg.get_element(static_cast<size_t>(j), out);
+}
 
-    bool get_element(size_t i, float* out) const override {
-      T j = indices[i];
-      if (j < 0) return true;
-      return arg.get_element(static_cast<size_t>(j), out);
-    }
+template <typename T>
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
+  T j = indices[i];
+  if (j < 0) return true;
+  return arg.get_element(static_cast<size_t>(j), out);
+}
 
-    bool get_element(size_t i, double* out) const override {
-      T j = indices[i];
-      if (j < 0) return true;
-      return arg.get_element(static_cast<size_t>(j), out);
-    }
+template <typename T>
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
+  T j = indices[i];
+  if (j < 0) return true;
+  return arg.get_element(static_cast<size_t>(j), out);
+}
 
-    bool get_element(size_t i, CString* out) const override {
-      T j = indices[i];
-      if (j < 0) return true;
-      return arg.get_element(static_cast<size_t>(j), out);
-    }
+template <typename T>
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, float* out) const {
+  T j = indices[i];
+  if (j < 0) return true;
+  return arg.get_element(static_cast<size_t>(j), out);
+}
 
-    bool get_element(size_t i, py::robj* out) const override {
-      T j = indices[i];
-      if (j < 0) return true;
-      return arg.get_element(static_cast<size_t>(j), out);
-    }
-};
+template <typename T>
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, double* out) const {
+  T j = indices[i];
+  if (j < 0) return true;
+  return arg.get_element(static_cast<size_t>(j), out);
+}
+
+template <typename T>
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, CString* out) const {
+  T j = indices[i];
+  if (j < 0) return true;
+  return arg.get_element(static_cast<size_t>(j), out);
+}
+
+template <typename T>
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, py::robj* out) const {
+  T j = indices[i];
+  if (j < 0) return true;
+  return arg.get_element(static_cast<size_t>(j), out);
+}
 
 
 
