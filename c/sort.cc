@@ -1425,10 +1425,9 @@ RowIndex Column::sort(Groupby* out_grps) const {
 void ColumnImpl::sort_grouped(const Groupby& grps, bool inplace, Column& out) {
   (void) inplace;
   (void) out.stats();
-  SortContext sc(nrows(), _ri, grps, /* make_groups = */ false);
+  SortContext sc(nrows(), RowIndex(), grps, /* make_groups = */ false);
   sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);
-  //out.apply_rowindex(sc.get_result_rowindex());
-  _ri = sc.get_result_rowindex();
+  out.apply_rowindex(sc.get_result_rowindex());
 }
 
 

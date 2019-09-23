@@ -150,7 +150,6 @@ void DataTable::verify_integrity() const
 
 void ColumnImpl::verify_integrity(const std::string&) const {
   mbuf.verify_integrity();
-  _ri.verify_integrity();
 
   // Check Stats
   if (stats) { // Stats are allowed to be null

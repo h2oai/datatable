@@ -118,14 +118,10 @@ bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object")
 //------------------------------------------------------------------------------
 // Materialization
 //------------------------------------------------------------------------------
-template<> inline py::oobj GETNA() { return py::None(); }
-
 
 template <typename T>
-void _materialize_fw(const ColumnImpl* input_column, ColumnImpl** pout)
+static void _materialize_fw(const ColumnImpl* input_column, ColumnImpl** pout)
 {
-  using U = typename std::conditional<std::is_same<T, py::robj>::value,
-                                      py::oobj, T>::type;
   SType inp_stype = input_column->stype();
   assert_compatible_type<T>(inp_stype);
   ColumnImpl* output_column = *pout;
@@ -134,19 +130,37 @@ void _materialize_fw(const ColumnImpl* input_column, ColumnImpl** pout)
     *pout = output_column;
   }
 
-  // TODO: instead we should check whether the input is thread-safe
-  auto nthreads = (inp_stype == SType::OBJ)? dt::NThreads(1)
-                                           : dt::NThreads();
-
-  auto out_data = static_cast<U*>(output_column->data_w());
+  auto out_data = static_cast<T*>(output_column->data_w());
   dt::parallel_for_static(
     input_column->nrows(),
-    nthreads,
     [&](size_t i) {
       T value;
       bool isna = input_column->get_element(i, &value);
-      out_data[i] = isna? GETNA<U>() : static_cast<U>(value);  // TODO: store NA separately
+      out_data[i] = isna? GETNA<T>() : value;  // TODO: store NA separately
     });
+}
+
+
+static void _materialize_obj(const ColumnImpl* input_column, ColumnImpl** pout)
+{
+  size_t inp_nrows = input_column->nrows();
+  SType inp_stype = input_column->stype();
+  assert_compatible_type<py::robj>(inp_stype);
+
+  ColumnImpl* output_column = *pout;
+  if (!output_column) {
+    output_column = ColumnImpl::new_impl(SType::OBJ, inp_nrows);
+    *pout = output_column;
+  }
+
+  // Writing output array as `py::oobj` will ensure that the elements
+  // will be properly INCREF-ed.
+  auto out_data = static_cast<py::oobj*>(output_column->data_w());
+  for (size_t i = 0; i < inp_nrows; ++i) {
+    py::robj value;
+    bool isna = input_column->get_element(i, &value);
+    out_data[i] = isna? py::None() : py::oobj(value);
+  }
 }
 
 
@@ -182,9 +196,9 @@ ColumnImpl* ColumnImpl::materialize() {
     case SType::INT64:   _materialize_fw<int64_t>(this, &out); break;
     case SType::FLOAT32: _materialize_fw<float>  (this, &out); break;
     case SType::FLOAT64: _materialize_fw<double> (this, &out); break;
-    case SType::OBJ:     _materialize_fw<py::robj>(this, &out); break;
     case SType::STR32:
     case SType::STR64:   _materialize_str(this, &out); break;
+    case SType::OBJ:     _materialize_obj(this, &out); break;
     default:
       throw NotImplError() << "Cannot materialize column of stype `"
                            << _stype << "`";

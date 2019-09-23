@@ -99,7 +99,6 @@ ColumnImpl* ColumnImpl::shallowcopy() const {
   ColumnImpl* col = ColumnImpl::new_impl(_stype);
   col->_nrows = _nrows;
   col->mbuf = mbuf;
-  col->_ri = _ri;
   // TODO: also copy Stats object
   return col;
 }

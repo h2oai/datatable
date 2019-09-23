@@ -32,9 +32,7 @@ PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
 
 
 bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
-  size_t j = (this->_ri)[i];
-  if (j == RowIndex::NA) return true;
-  py::robj x = this->elements_r()[j];
+  py::robj x = this->elements_r()[i];
   *out = x;
   return x.is_none();
 }
@@ -53,20 +51,5 @@ void PyObjectColumn::fill_na() {
 
 
 ColumnImpl* PyObjectColumn::materialize() {
-  if (!_ri) return this;
-
-  MemoryRange newmr = MemoryRange::mem(sizeof(PyObject*) * _nrows);
-  newmr.set_pyobjects(/* clear_data = */ false);
-
-  auto data_dest = static_cast<PyObject**>(newmr.xptr());
-  const py::robj* data_src = elements_r();
-  _ri.iterate(0, _nrows, 1,
-    [&](size_t i, size_t j) {
-      data_dest[i] = (j == RowIndex::NA)? Py_None : data_src[j].to_borrowed_ref();
-      Py_INCREF(data_dest[i]);
-    });
-
-  mbuf = std::move(newmr);
-  _ri.clear();
   return this;
 }
