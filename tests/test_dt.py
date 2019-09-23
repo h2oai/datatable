@@ -1368,3 +1368,15 @@ def test_issue1728(tempfile):
     counts.materialize()
     frame_integrity_check(counts)
     assert counts.to_dict() == {'department1': ['t'], 'C0': [1047]}
+
+
+def test_issue2036():
+    DT = dt.Frame(Z=range(17))
+    DT.rbind([DT] * 3)
+    assert DT.nrows == 68
+    del DT[[1, 4, 7], :]
+    assert DT.nrows == 65
+    DT.nrows = 14
+    assert DT.nrows == 14
+    DT = DT.copy()
+    assert DT.nrows == 14
