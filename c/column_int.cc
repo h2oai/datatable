@@ -12,7 +12,7 @@
 
 template <typename T>
 bool IntColumn<T>::get_element(size_t i, int32_t* out) const {
-  size_t j = (this->ri)[i];
+  size_t j = (this->_ri)[i];
   if (j == RowIndex::NA) return true;
   T x = this->elements_r()[j];
   *out = static_cast<int32_t>(x);
@@ -21,7 +21,7 @@ bool IntColumn<T>::get_element(size_t i, int32_t* out) const {
 
 template <typename T>
 bool IntColumn<T>::get_element(size_t i, int64_t* out) const {
-  size_t j = (this->ri)[i];
+  size_t j = (this->_ri)[i];
   if (j == RowIndex::NA) return true;
   T x = this->elements_r()[j];
   *out = static_cast<int64_t>(x);

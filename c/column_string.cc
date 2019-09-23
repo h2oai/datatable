@@ -61,7 +61,7 @@ StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
 
 template <typename T>
 void StringColumn<T>::init_data() {
-  xassert(!ri);
+  xassert(!_ri);
   mbuf = MemoryRange::mem((_nrows + 1) * sizeof(T));
   mbuf.set_element<T>(0, 0);
 }
@@ -81,7 +81,7 @@ ColumnImpl* StringColumn<T>::shallowcopy() const {
 
 template <typename T>
 bool StringColumn<T>::get_element(size_t i, CString* out) const {
-  size_t j = (this->ri)[i];
+  size_t j = (this->_ri)[i];
   if (j == RowIndex::NA) return true;
   const T* offs = this->offsets();
   T off_end = offs[j];
@@ -130,12 +130,12 @@ T* StringColumn<T>::offsets_w() {
 template <typename T>
 ColumnImpl* StringColumn<T>::materialize() {
   // If our rowindex is null, then we're already done
-  if (!ri) return this;
-  bool simple_slice = ri.isslice() && ri.slice_step() == 1;
-  bool ascending_slice = ri.isslice() &&
-                         static_cast<int64_t>(ri.slice_step()) > 0;
+  if (!_ri) return this;
+  bool simple_slice = _ri.isslice() && _ri.slice_step() == 1;
+  bool ascending_slice = _ri.isslice() &&
+                         static_cast<int64_t>(_ri.slice_step()) > 0;
 
-  size_t new_mbuf_size = (ri.size() + 1) * sizeof(T);
+  size_t new_mbuf_size = (_ri.size() + 1) * sizeof(T);
   size_t new_strbuf_size = 0;
   MemoryRange new_strbuf = strbuf;
   MemoryRange new_mbuf = MemoryRange::mem(new_mbuf_size);
@@ -143,7 +143,7 @@ ColumnImpl* StringColumn<T>::materialize() {
   offs_dest[-1] = 0;
 
   if (simple_slice) {
-    const T* data_src = offsets() + ri.slice_start();
+    const T* data_src = offsets() + _ri.slice_start();
     T off0 = data_src[-1] & ~GETNA<T>();
     T off1 = data_src[_nrows - 1] & ~GETNA<T>();
     new_strbuf_size = static_cast<size_t>(off1 - off0);
@@ -163,8 +163,8 @@ ColumnImpl* StringColumn<T>::materialize() {
     if (!strbuf.is_writable())
       new_strbuf = MemoryRange::mem(strbuf.size()); // We don't know the actual size yet
                                                     // but it can't be larger than this
-    size_t step = ri.slice_step();
-    size_t start = ri.slice_start();
+    size_t step = _ri.slice_step();
+    size_t start = _ri.slice_start();
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     const char* str_src = strdata();
@@ -195,7 +195,7 @@ ColumnImpl* StringColumn<T>::materialize() {
     const T* offs1 = offsets();
     const T* offs0 = offs1 - 1;
     T strs_size = 0;
-    ri.iterate(0, _nrows, 1,
+    _ri.iterate(0, _nrows, 1,
       [&](size_t, size_t j) {
         if (j == RowIndex::NA) return;
         strs_size += offs1[j] - offs0[j];
@@ -206,7 +206,7 @@ ColumnImpl* StringColumn<T>::materialize() {
     const char* strs_src = strdata();
     char* strs_dest = static_cast<char*>(new_strbuf.wptr());
     T prev_off = 0;
-    ri.iterate(0, _nrows, 1,
+    _ri.iterate(0, _nrows, 1,
       [&](size_t i, size_t j) {
         if (j == RowIndex::NA || ISNA<T>(offs1[j])) {
           offs_dest[i] = prev_off ^ GETNA<T>();
@@ -225,7 +225,7 @@ ColumnImpl* StringColumn<T>::materialize() {
   new_strbuf.resize(new_strbuf_size);
   mbuf = std::move(new_mbuf);
   strbuf = std::move(new_strbuf);
-  ri.clear();
+  _ri.clear();
   return this;
 }
 
@@ -320,7 +320,7 @@ void StringColumn<T>::apply_na_mask(const Column& mask) {
 
 template <typename T>
 void StringColumn<T>::fill_na() {
-  xassert(!ri);
+  xassert(!_ri);
   // Perform a mini materialize (the actual `materialize` method will copy string and offset
   // data, both of which are extraneous for this method)
   strbuf.resize(0);

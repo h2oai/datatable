@@ -160,16 +160,16 @@ void DataTable::resize_rows(size_t new_nrows) {
 
 
 /**
- * Equivalent of ``DT = DT[ri, :]``.
+ * Equivalent of ``DT = DT[rowindex, :]``.
  */
-void DataTable::apply_rowindex(const RowIndex& ri) {
+void DataTable::apply_rowindex(const RowIndex& rowindex) {
   // If RowIndex is empty, no need to do anything. Also, the expression
-  // `ri.size()` cannot be computed.
-  if (!ri) return;
+  // `rowindex.size()` cannot be computed.
+  if (!rowindex) return;
   for (Column& col : columns) {
-    col.apply_rowindex(ri);
+    col.apply_rowindex(rowindex);
   }
-  nrows = ri.size();
+  nrows = rowindex.size();
 }
 
 

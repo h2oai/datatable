@@ -33,7 +33,7 @@
 // TODO: we could create a special "repeated" column here
 Column ColumnImpl::repeat(size_t nreps) const {
   xassert(!info(_stype).is_varwidth());
-  xassert(!ri);
+  xassert(!_ri);
   size_t esize = info(_stype).elemsize();
   size_t new_nrows = _nrows * nreps;
 

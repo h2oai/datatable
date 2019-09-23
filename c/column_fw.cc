@@ -61,7 +61,7 @@ FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr)
 
 template <typename T>
 void FwColumn<T>::init_data() {
-  xassert(!ri);
+  xassert(!_ri);
   mbuf.resize(_nrows * sizeof(T));
 }
 
@@ -76,7 +76,7 @@ const T* FwColumn<T>::elements_r() const {
 
 template <typename T>
 T* FwColumn<T>::elements_w() {
-  if (ri) materialize();
+  if (_ri) materialize();
   return static_cast<T*>(mbuf.wptr());
 }
 
@@ -88,7 +88,7 @@ T FwColumn<T>::get_elem(size_t i) const {
 
 template <typename T>
 bool FwColumn<T>::get_element(size_t i, T* out) const {
-  size_t j = (this->ri)[i];
+  size_t j = (this->_ri)[i];
   if (j == RowIndex::NA) return true;
   T x = static_cast<const T*>(mbuf.rptr())[j];
   *out = x;
@@ -99,9 +99,9 @@ bool FwColumn<T>::get_element(size_t i, T* out) const {
 template <typename T>
 ColumnImpl* FwColumn<T>::materialize() {
   // If the rowindex is absent, then the column is already materialized.
-  if (!ri) return this;
-  bool simple_slice = ri.isslice() && ri.slice_step() == 1;
-  bool ascending = ri.isslice() && static_cast<int64_t>(ri.slice_step()) > 0;
+  if (!_ri) return this;
+  bool simple_slice = _ri.isslice() && _ri.slice_step() == 1;
+  bool ascending = _ri.isslice() && static_cast<int64_t>(_ri.slice_step()) > 0;
 
   size_t elemsize = sizeof(T);
   size_t newsize = elemsize * _nrows;
@@ -117,7 +117,7 @@ ColumnImpl* FwColumn<T>::materialize() {
   if (simple_slice) {
     // Slice with step 1: a portion of the buffer can be simply mem-copied onto
     // the new buffer.
-    size_t start = static_cast<size_t>(ri.slice_start());
+    size_t start = static_cast<size_t>(_ri.slice_start());
     const void* src = mbuf.rptr(start * elemsize);
     void* dest = mbuf.is_writable()
         ? mbuf.wptr()
@@ -133,7 +133,7 @@ ColumnImpl* FwColumn<T>::materialize() {
     T* data_dest = mbuf.is_writable() && ascending
        ? static_cast<T*>(mbuf.wptr())
        : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.iterate(0, _nrows, 1,
+    _ri.iterate(0, _nrows, 1,
       [&](size_t i, size_t j) {
         data_dest[i] = (j == RowIndex::NA)? GETNA<T>() : data_src[j];
       });
@@ -144,7 +144,7 @@ ColumnImpl* FwColumn<T>::materialize() {
   } else {
     mbuf.resize(newsize);
   }
-  ri.clear();
+  _ri.clear();
   return this;
 }
 
@@ -174,7 +174,7 @@ void FwColumn<T>::apply_na_mask(const Column& mask) {
 
 template <typename T>
 void FwColumn<T>::fill_na() {
-  xassert(!ri);
+  xassert(!_ri);
   T* vals = static_cast<T*>(mbuf.wptr());
   dt::parallel_for_static(_nrows,
     [=](size_t i) {
