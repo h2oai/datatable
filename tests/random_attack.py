@@ -13,6 +13,7 @@ import sys
 import textwrap
 import time
 import warnings
+from datatable import f
 from datatable.internal import frame_integrity_check
 
 exhaustive_checks = False
@@ -193,6 +194,36 @@ class Attacker:
             python_output.write("del DT[%r, :]\n" % (s,))
         frame.delete_rows(s)
 
+    def select_rows_with_boolean_column(self, frame):
+        bool_columns = [i for i in range(frame.ncols) if frame.types[i] is bool]
+        if frame.ncols <= 1 or not bool_columns:
+            return
+        filter_column = random.choice(bool_columns)
+        print("[08] Selecting rows where column %d (%r) is True"
+              % (filter_column, frame.names[filter_column]))
+        if python_output:
+            python_output.write("DT = DT[f[%d], :]\n" % filter_column)
+            python_output.write("del DT[:, %d]\n" % filter_column)
+        frame.filter_on_bool_column(filter_column)
+        frame.delete_column(filter_column)
+
+    def replace_nas_in_column(self, frame):
+        icol = random.randint(0, frame.ncols - 1)
+        if frame.types[icol] is bool:
+            replacement_value = random.choice([True, False])
+        elif frame.types[icol] is int:
+            replacement_value = random.randint(-100, 100)
+        elif frame.types[icol] is float:
+            replacement_value = random.random() * 1000
+        elif frame.types[icol] is str:
+            replacement_value = Frame0.random_name()
+        print("[09] Replacing NA values in column %d with %r"
+              % (icol, replacement_value))
+        if python_output:
+            python_output.write("DT[f[%d] == None, f[%d]] = %r\n"
+                                % (icol, icol, replacement_value))
+        frame.replace_nas_in_column(icol, replacement_value)
+
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -231,6 +262,8 @@ class Attacker:
         rbind_self: 1,
         select_rows_array: 1,
         delete_rows_array: 1,
+        select_rows_with_boolean_column: 1,
+        replace_nas_in_column: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -315,7 +348,8 @@ class Frame0:
             return ["%s%d" % (c, i) for i in range(ncols)]
 
 
-    def random_name(self, alphabet="abcdefghijklmnopqrstuvwxyz"):
+    @staticmethod
+    def random_name(alphabet="abcdefghijklmnopqrstuvwxyz"):
         n = int(random.expovariate(0.2) + 1.5)
         while True:
             name = "".join(random.choice(alphabet) for _ in range(n))
@@ -527,6 +561,28 @@ class Frame0:
                 assert self.names[j] == iframe.names[j]
                 newdata[j] += iframe.data[j]
         self.data = newdata
+
+    def filter_on_bool_column(self, icol):
+        assert self.types[icol] is bool
+        filter_col = self.data[icol]
+        self.data = [[value for i, value in enumerate(column) if filter_col[i]]
+                     for column in self.data]
+        self.df = self.df[f[icol], :]
+
+    def delete_column(self, icol):
+        del self.data[icol]
+        del self.names[icol]
+        del self.types[icol]
+        del self.df[icol]
+
+    def replace_nas_in_column(self, icol, replacement_value):
+        assert 0 <= icol < self.ncols
+        assert isinstance(replacement_value, self.types[icol])
+        column = self.data[icol]
+        for i, value in enumerate(column):
+            if value is None:
+                column[i] = replacement_value
+        self.df[f[icol] == None, f[icol]] = replacement_value
 
 
     #---------------------------------------------------------------------------
