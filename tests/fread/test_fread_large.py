@@ -210,7 +210,7 @@ def test_h2o3_bigdata(f):
 def test_fread_all(f):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        DT = dt.fread(f, **params)
+        DT = dt.fread(f)
         frame_integrity_check(DT)
 
 
