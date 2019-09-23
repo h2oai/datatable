@@ -269,7 +269,6 @@ class Column
     // Modifies the column in-place converting it into a view column
     // using the provided row index.
     void apply_rowindex(const RowIndex&);
-    void apply_rowindex_old(const RowIndex&);  // TODO: remove this
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;

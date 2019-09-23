@@ -300,15 +300,6 @@ void Column::apply_rowindex(const RowIndex& ri) {
   pcol->apply_rowindex(ri, *this);  // modifies in-place
 }
 
-void Column::apply_rowindex_old(const RowIndex& ri) {
-  if (!ri) return;
-  if (pcol->is_virtual() && !pcol->ri) materialize();
-  RowIndex new_rowindex = ri * pcol->ri;
-  pcol->ri = new_rowindex;
-  pcol->_nrows = new_rowindex.size();
-}
-
-
 void Column::resize(size_t new_nrows) {
   bool inplace = true;
   size_t curr_nrows = nrows();
