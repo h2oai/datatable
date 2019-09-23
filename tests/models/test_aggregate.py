@@ -525,20 +525,16 @@ def aggregate_nd(nd):
         assert progress_reports[-1].status == "finished"
         assert progress_reports[-1].message == "Finalizing"
 
-    a_members = d_members.to_list()[0]
-    d = d_exemplars.sort("C0")
-    # ri = frame_column_rowindex(d, 0).to_list()
-    # for i, member in enumerate(a_members):
-    #     a_members[i] = ri.index(member)
-
     frame_integrity_check(d_members)
     assert d_members.shape == (nrows, 1)
     assert d_members.ltypes == (ltype.int,)
-    # assert a_members == column
+    for i in range(nrows) :
+        assert(i % div == d_exemplars[d_members[i, 0], 0])
+
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (div, nd + 1)
     assert d_exemplars.ltypes == tuple(out_types)
-    assert d.to_list() == out_value
+    assert d_exemplars.sort("C0").to_list() == out_value
     assert_equals(d_in, d_in_copy)
 
 
