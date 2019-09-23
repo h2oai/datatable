@@ -28,8 +28,9 @@ namespace dt {
 // SliceView_ColumnImpl
 //------------------------------------------------------------------------------
 
-SliceView_ColumnImpl::SliceView_ColumnImpl(Column&& col, const RowIndex& ri)
-  : Virtual_ColumnImpl(ri.size(), col.stype()),
+SliceView_ColumnImpl::SliceView_ColumnImpl(
+    Column&& col, const RowIndex& ri, size_t nrows)
+  : Virtual_ColumnImpl(nrows, col.stype()),
     arg(std::move(col)),
     start(ri.slice_start()),
     step(ri.slice_step())
@@ -40,7 +41,8 @@ SliceView_ColumnImpl::SliceView_ColumnImpl(Column&& col, const RowIndex& ri)
 
 
 ColumnImpl* SliceView_ColumnImpl::shallowcopy() const {
-  return new SliceView_ColumnImpl(Column(arg), RowIndex(start, _nrows, step));
+  return new SliceView_ColumnImpl(
+                Column(arg), RowIndex(start, _nrows, step), _nrows);
 }
 
 
@@ -66,8 +68,9 @@ template <> const int64_t* get_indices(const RowIndex& ri) { return ri.indices64
 
 
 template <typename T>
-ArrayView_ColumnImpl<T>::ArrayView_ColumnImpl(Column&& col, const RowIndex& ri)
-  : Virtual_ColumnImpl(ri.size(), col.stype()),
+ArrayView_ColumnImpl<T>::ArrayView_ColumnImpl(
+    Column&& col, const RowIndex& ri, size_t nrows)
+  : Virtual_ColumnImpl(nrows, col.stype()),
     arg(std::move(col))
 {
   xassert((std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64()));
@@ -84,7 +87,7 @@ void ArrayView_ColumnImpl<T>::set_rowindex(const RowIndex& ri) {
 
 template <typename T>
 ColumnImpl* ArrayView_ColumnImpl<T>::shallowcopy() const {
-  return new ArrayView_ColumnImpl<T>(Column(arg), rowindex_container);
+  return new ArrayView_ColumnImpl<T>(Column(arg), rowindex_container, _nrows);
 }
 
 
@@ -172,13 +175,16 @@ static Column _make_view(Column&& col, const RowIndex& ri) {
   }
   switch (ri.type()) {
     case RowIndexType::SLICE:
-      return Column(new dt::SliceView_ColumnImpl(std::move(col), ri));
+      return Column(new dt::SliceView_ColumnImpl(
+                      std::move(col), ri, ri.size()));
 
     case RowIndexType::ARR32:
-      return Column(new dt::ArrayView_ColumnImpl<int32_t>(std::move(col), ri));
+      return Column(new dt::ArrayView_ColumnImpl<int32_t>(
+                      std::move(col), ri, ri.size()));
 
     case RowIndexType::ARR64:
-      return Column(new dt::ArrayView_ColumnImpl<int64_t>(std::move(col), ri));
+      return Column(new dt::ArrayView_ColumnImpl<int64_t>(
+                      std::move(col), ri, ri.size()));
 
     default:
       throw RuntimeError()
