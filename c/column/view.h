@@ -62,7 +62,7 @@ template <typename T>
 class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg;
-    RowIndex rowindex; // owns the `indices` array
+    RowIndex rowindex_container; // owns the `indices` array
     const T* indices;
 
   public:
@@ -80,6 +80,9 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, double* out)   const override;
     bool get_element(size_t i, CString* out)  const override;
     bool get_element(size_t i, py::robj* out) const override;
+
+  private:
+    void set_rowindex(const RowIndex&);
 };
 
 

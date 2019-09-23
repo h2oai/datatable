@@ -207,6 +207,13 @@ class Column
     void* get_data_editable();
     size_t get_data_size(size_t i = 0);
 
+    struct res_i32 { int32_t value; bool isna; int:24; };
+    res_i32 get_element_i32(size_t i) const __attribute__((used)) {
+      int32_t value;
+      bool isna = get_element(i, &value);
+      return res_i32 {value, isna};
+    }
+
 
   //------------------------------------
   // Stats

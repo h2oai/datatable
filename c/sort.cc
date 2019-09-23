@@ -1438,9 +1438,9 @@ void dt::ArrayView_ColumnImpl<T>::sort_grouped(
 {
   if (inplace) {
     (void) out.stats();
-    SortContext sc(nrows(), rowindex, grps, /* make_groups = */ false);
-    sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);
-    rowindex = sc.get_result_rowindex();
+    SortContext sc(nrows(), rowindex_container, grps, /*make_groups=*/ false);
+    sc.continue_sort(arg, /*desc=*/ false, /*make_groups=*/ false);
+    set_rowindex(sc.get_result_rowindex());
   }
   else {
     out = Column(this->shallowcopy());

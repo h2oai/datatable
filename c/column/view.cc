@@ -68,23 +68,29 @@ template <> const int64_t* get_indices(const RowIndex& ri) { return ri.indices64
 template <typename T>
 ArrayView_ColumnImpl<T>::ArrayView_ColumnImpl(Column&& col, const RowIndex& ri)
   : Virtual_ColumnImpl(ri.size(), col.stype()),
-    arg(std::move(col)),
-    rowindex(ri),
-    indices(get_indices<T>(ri))
+    arg(std::move(col))
 {
   xassert((std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64()));
   xassert(ri.max() < arg.nrows());
+  set_rowindex(ri);
+}
+
+template <typename T>
+void ArrayView_ColumnImpl<T>::set_rowindex(const RowIndex& ri) {
+  rowindex_container = ri;
+  indices = get_indices<T>(ri);
 }
 
 
 template <typename T>
 ColumnImpl* ArrayView_ColumnImpl<T>::shallowcopy() const {
-  return new ArrayView_ColumnImpl<T>(Column(arg), rowindex);
+  return new ArrayView_ColumnImpl<T>(Column(arg), rowindex_container);
 }
 
 
 template <typename T>
 bool ArrayView_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
+  xassert(i < _nrows);
   T j = indices[i];
   if (j < 0) return true;
   return arg.get_element(static_cast<size_t>(j), out);
@@ -92,6 +98,7 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
 
 template <typename T>
 bool ArrayView_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
+  xassert(i < _nrows);
   T j = indices[i];
   if (j < 0) return true;
   return arg.get_element(static_cast<size_t>(j), out);
@@ -99,6 +106,7 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
 
 template <typename T>
 bool ArrayView_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
+  xassert(i < _nrows);
   T j = indices[i];
   if (j < 0) return true;
   return arg.get_element(static_cast<size_t>(j), out);
@@ -106,6 +114,7 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
 
 template <typename T>
 bool ArrayView_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
+  xassert(i < _nrows);
   T j = indices[i];
   if (j < 0) return true;
   return arg.get_element(static_cast<size_t>(j), out);
@@ -113,6 +122,7 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
 
 template <typename T>
 bool ArrayView_ColumnImpl<T>::get_element(size_t i, float* out) const {
+  xassert(i < _nrows);
   T j = indices[i];
   if (j < 0) return true;
   return arg.get_element(static_cast<size_t>(j), out);
@@ -120,6 +130,7 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, float* out) const {
 
 template <typename T>
 bool ArrayView_ColumnImpl<T>::get_element(size_t i, double* out) const {
+  xassert(i < _nrows);
   T j = indices[i];
   if (j < 0) return true;
   return arg.get_element(static_cast<size_t>(j), out);
@@ -127,6 +138,7 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, double* out) const {
 
 template <typename T>
 bool ArrayView_ColumnImpl<T>::get_element(size_t i, CString* out) const {
+  xassert(i < _nrows);
   T j = indices[i];
   if (j < 0) return true;
   return arg.get_element(static_cast<size_t>(j), out);
@@ -134,6 +146,7 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, CString* out) const {
 
 template <typename T>
 bool ArrayView_ColumnImpl<T>::get_element(size_t i, py::robj* out) const {
+  xassert(i < _nrows);
   T j = indices[i];
   if (j < 0) return true;
   return arg.get_element(static_cast<size_t>(j), out);
