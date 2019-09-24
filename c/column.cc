@@ -215,14 +215,46 @@ Column::operator bool() const noexcept {
 // Column : data accessors
 //------------------------------------------------------------------------------
 
-bool Column::get_element(size_t i, int8_t*   out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, int16_t*  out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, int32_t*  out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, int64_t*  out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, float*    out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, double*   out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, CString*  out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, py::robj* out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, int8_t* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, int16_t* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, int32_t* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, int64_t* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, float* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, double* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, CString* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, py::robj* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
 
 
 template <typename T>
@@ -255,20 +287,20 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 }
 
 
-const void* Column::get_data_readonly(size_t i) {
+const void* Column::get_data_readonly(size_t k) const {
   if (is_virtual()) materialize();
-  return i == 0 ? pcol->mbuf.rptr()
+  return k == 0 ? pcol->mbuf.rptr()
                 : pcol->data2();
 }
 
-void* Column::get_data_editable() {
+void* Column::get_data_editable(size_t k) {
   if (is_virtual()) materialize();
   return pcol->mbuf.wptr();
 }
 
-size_t Column::get_data_size(size_t i) {
+size_t Column::get_data_size(size_t k) const {
   if (is_virtual()) materialize();
-  return i == 0 ? pcol->mbuf.size()
+  return k == 0 ? pcol->mbuf.size()
                 : pcol->data2_size();
 }
 
@@ -278,8 +310,9 @@ size_t Column::get_data_size(size_t i) {
 // Column : manipulation
 //------------------------------------------------------------------------------
 
-void Column::materialize() {
-  pcol = pcol->materialize();
+void Column::materialize() const {
+  auto self = const_cast<Column*>(this);
+  self->pcol = self->pcol->materialize();
 }
 
 void Column::replace_values(const RowIndex& replace_at,
