@@ -36,7 +36,7 @@ class generic_writer : public value_writer {
 
     void write_normal(size_t row, writing_context& ctx) const override {
       T value;
-      bool isvalid = column.get_element_new(row, &value);
+      bool isvalid = column.get_element(row, &value);
       if (isvalid) {
         WriteValue(value, ctx);
       } else {
@@ -46,7 +46,7 @@ class generic_writer : public value_writer {
 
     void write_quoted(size_t row, writing_context& ctx) const override {
       T value;
-      bool isvalid = column.get_element_new(row, &value);
+      bool isvalid = column.get_element(row, &value);
       if (isvalid) {
         *ctx.ch++ = '"';
         WriteValue(value, ctx);

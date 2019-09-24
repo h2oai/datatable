@@ -68,7 +68,7 @@ Column map_str2str(const Column& input_col, F f) {
           sb->commit_and_start_new_chunk(i0);
           CString curr_str;
           for (size_t i = i0; i < i1; ++i) {
-            bool isvalid = input_col.get_element_new(i, &curr_str);
+            bool isvalid = input_col.get_element(i, &curr_str);
             if (!isvalid) {
               curr_str.ch = nullptr;
               curr_str.size = 0;

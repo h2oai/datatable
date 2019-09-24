@@ -215,44 +215,44 @@ Column::operator bool() const noexcept {
 // Column : data accessors
 //------------------------------------------------------------------------------
 
-bool Column::get_element_new(size_t i, int8_t* out) const {
+bool Column::get_element(size_t i, int8_t* out) const {
   xassert(i < nrows());
-  return pcol->get_element_new(i, out);
+  return pcol->get_element(i, out);
 }
 
-bool Column::get_element_new(size_t i, int16_t* out) const {
+bool Column::get_element(size_t i, int16_t* out) const {
   xassert(i < nrows());
-  return pcol->get_element_new(i, out);
+  return pcol->get_element(i, out);
 }
 
-bool Column::get_element_new(size_t i, int32_t* out) const {
+bool Column::get_element(size_t i, int32_t* out) const {
   xassert(i < nrows());
-  return pcol->get_element_new(i, out);
+  return pcol->get_element(i, out);
 }
 
-bool Column::get_element_new(size_t i, int64_t* out) const {
+bool Column::get_element(size_t i, int64_t* out) const {
   xassert(i < nrows());
-  return pcol->get_element_new(i, out);
+  return pcol->get_element(i, out);
 }
 
-bool Column::get_element_new(size_t i, float* out) const {
+bool Column::get_element(size_t i, float* out) const {
   xassert(i < nrows());
-  return pcol->get_element_new(i, out);
+  return pcol->get_element(i, out);
 }
 
-bool Column::get_element_new(size_t i, double* out) const {
+bool Column::get_element(size_t i, double* out) const {
   xassert(i < nrows());
-  return pcol->get_element_new(i, out);
+  return pcol->get_element(i, out);
 }
 
-bool Column::get_element_new(size_t i, CString* out) const {
+bool Column::get_element(size_t i, CString* out) const {
   xassert(i < nrows());
-  return pcol->get_element_new(i, out);
+  return pcol->get_element(i, out);
 }
 
-bool Column::get_element_new(size_t i, py::robj* out) const {
+bool Column::get_element(size_t i, py::robj* out) const {
   xassert(i < nrows());
-  return pcol->get_element_new(i, out);
+  return pcol->get_element(i, out);
 }
 
 
@@ -260,7 +260,7 @@ bool Column::get_element_new(size_t i, py::robj* out) const {
 template <typename T>
 static inline py::oobj getelem(const Column& col, size_t i) {
   T x;
-  bool isvalid = col.get_element_new(i, &x);
+  bool isvalid = col.get_element(i, &x);
   return isvalid? py::oobj::wrap(x) : py::None();
 }
 
@@ -268,7 +268,7 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
   switch (stype()) {
     case SType::BOOL: {
       int32_t x;
-      bool isvalid = get_element_new(i, &x);
+      bool isvalid = get_element(i, &x);
       return isvalid? py::obool(x) : py::None();
     }
     case SType::INT8:    return getelem<int8_t>(*this, i);
@@ -377,7 +377,7 @@ class StrvecColumn : public ColumnImpl {
 
   public:
     StrvecColumn(const strvec& v);
-    bool get_element_new(size_t i, CString* out) const override;
+    bool get_element(size_t i, CString* out) const override;
     ColumnImpl* shallowcopy() const override;
 
     size_t data_nrows() const override { return _nrows; }
@@ -392,7 +392,7 @@ class StrvecColumn : public ColumnImpl {
 StrvecColumn::StrvecColumn(const strvec& v)
   : ColumnImpl(v.size(), SType::STR32), vec(v) {}
 
-bool StrvecColumn::get_element_new(size_t i, CString* out) const {
+bool StrvecColumn::get_element(size_t i, CString* out) const {
   out->ch = vec[i].c_str();
   out->size = static_cast<int64_t>(vec[i].size());
   return true;

@@ -41,14 +41,14 @@ class NaFilled_ColumnImpl : public Virtual_ColumnImpl {
     void na_pad(size_t new_nrows, bool inplace, Column& out) override;
     void truncate(size_t new_nrows, bool inplace, Column& out) override;
 
-    bool get_element_new(size_t, int8_t*)   const override;
-    bool get_element_new(size_t, int16_t*)  const override;
-    bool get_element_new(size_t, int32_t*)  const override;
-    bool get_element_new(size_t, int64_t*)  const override;
-    bool get_element_new(size_t, float*)    const override;
-    bool get_element_new(size_t, double*)   const override;
-    bool get_element_new(size_t, CString*)  const override;
-    bool get_element_new(size_t, py::robj*) const override;
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, py::robj*) const override;
 };
 
 

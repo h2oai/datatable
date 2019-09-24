@@ -268,7 +268,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     auto ind32 = static_cast<int32_t*>(data);
     size_t k = 0;
     for (size_t i = 0; i < col.nrows(); ++i) {
-      bool isvalid = col.get_element_new(i, &value);
+      bool isvalid = col.get_element(i, &value);
       if (value && isvalid) {
         ind32[k++] = static_cast<int32_t>(i);
       }
@@ -279,7 +279,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     auto ind64 = static_cast<int64_t*>(data);
     size_t k = 0;
     for (size_t i = 0; i < col.nrows(); ++i) {
-      bool isvalid = col.get_element_new(i, &value);
+      bool isvalid = col.get_element(i, &value);
       if (value && isvalid) {
         ind64[k++] = static_cast<int64_t>(i);
       }

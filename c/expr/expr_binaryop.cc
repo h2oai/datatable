@@ -114,8 +114,8 @@ static void strmap_n_to_n(size_t row0, size_t row1, Column* cols) {
   CString val0, val1;
   bool valid0, valid1;
   for (size_t i = row0; i < row1; ++i) {
-    valid0 = col0.get_element_new(i, &val0);
-    valid1 = col1.get_element_new(i, &val1);
+    valid0 = col0.get_element(i, &val0);
+    valid1 = col1.get_element(i, &val1);
     res_data[i] = OP(val0, valid0, val1, valid1);
   }
 }
@@ -128,9 +128,9 @@ static void strmap_n_to_1(size_t row0, size_t row1, Column* cols) {
   auto res_data = static_cast<TR*>(cols[2]->data_w());
   CString val0, val1;
   bool valid0;
-  bool valid1 = col1.get_element_new(0, &val1);
+  bool valid1 = col1.get_element(0, &val1);
   for (size_t i = row0; i < row1; ++i) {
-    valid0 = col0.get_element_new(i, &val0);
+    valid0 = col0.get_element(i, &val0);
     res_data[i] = OP(val0, valid0, val1, valid1);
   }
 }

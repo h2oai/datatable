@@ -255,7 +255,7 @@ class HtmlWidget {
     template <typename T>
     void render_fw_value(const Column& col, size_t row) {
       T val;
-      bool isvalid = col.get_element_new(row, &val);
+      bool isvalid = col.get_element(row, &val);
       if (isvalid) {
         if (val < 0) {
           html << "&minus;";
@@ -269,7 +269,7 @@ class HtmlWidget {
 
     void render_str_value(const Column& col, size_t row) {
       CString val;
-      bool isvalid = col.get_element_new(row, &val);
+      bool isvalid = col.get_element(row, &val);
       if (isvalid) {
         render_escaped_string(val.ch, static_cast<size_t>(val.size));
       } else {
@@ -279,7 +279,7 @@ class HtmlWidget {
 
     void render_obj_value(const Column& col, size_t row) {
       py::robj val;
-      bool isvalid = col.get_element_new(row, &val);
+      bool isvalid = col.get_element(row, &val);
       if (isvalid) {
         // Should we use repr() here instead?
         py::ostring strval = val.to_pystring_force();

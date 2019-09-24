@@ -103,31 +103,14 @@ void ColumnImpl::release_instance() noexcept {
       << " values from a column of type " << col->stype();
 }
 
-// bool ColumnImpl::get_element(size_t, int8_t*)   const { _notimpl(this, "int8"); }
-// bool ColumnImpl::get_element(size_t, int16_t*)  const { _notimpl(this, "int16"); }
-// bool ColumnImpl::get_element(size_t, int32_t*)  const { _notimpl(this, "int32"); }
-// bool ColumnImpl::get_element(size_t, int64_t*)  const { _notimpl(this, "int64"); }
-// bool ColumnImpl::get_element(size_t, float*)    const { _notimpl(this, "float32"); }
-// bool ColumnImpl::get_element(size_t, double*)   const { _notimpl(this, "float64"); }
-// bool ColumnImpl::get_element(size_t, CString*)  const { _notimpl(this, "string"); }
-// bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object"); }
-bool ColumnImpl::get_element(size_t i, int8_t* out)   const { return !get_element_new(i, out); }
-bool ColumnImpl::get_element(size_t i, int16_t* out)  const { return !get_element_new(i, out); }
-bool ColumnImpl::get_element(size_t i, int32_t* out)  const { return !get_element_new(i, out); }
-bool ColumnImpl::get_element(size_t i, int64_t* out)  const { return !get_element_new(i, out); }
-bool ColumnImpl::get_element(size_t i, float* out)    const { return !get_element_new(i, out); }
-bool ColumnImpl::get_element(size_t i, double* out)   const { return !get_element_new(i, out); }
-bool ColumnImpl::get_element(size_t i, CString* out)  const { return !get_element_new(i, out); }
-bool ColumnImpl::get_element(size_t i, py::robj* out) const { return !get_element_new(i, out); }
-
-bool ColumnImpl::get_element_new(size_t i, int8_t* out)   const { return !get_element(i, out); }
-bool ColumnImpl::get_element_new(size_t i, int16_t* out)  const { return !get_element(i, out); }
-bool ColumnImpl::get_element_new(size_t i, int32_t* out)  const { return !get_element(i, out); }
-bool ColumnImpl::get_element_new(size_t i, int64_t* out)  const { return !get_element(i, out); }
-bool ColumnImpl::get_element_new(size_t i, float* out)    const { return !get_element(i, out); }
-bool ColumnImpl::get_element_new(size_t i, double* out)   const { return !get_element(i, out); }
-bool ColumnImpl::get_element_new(size_t i, CString* out)  const { return !get_element(i, out); }
-bool ColumnImpl::get_element_new(size_t i, py::robj* out) const { return !get_element(i, out); }
+bool ColumnImpl::get_element(size_t, int8_t*)   const { _notimpl(this, "int8"); }
+bool ColumnImpl::get_element(size_t, int16_t*)  const { _notimpl(this, "int16"); }
+bool ColumnImpl::get_element(size_t, int32_t*)  const { _notimpl(this, "int32"); }
+bool ColumnImpl::get_element(size_t, int64_t*)  const { _notimpl(this, "int64"); }
+bool ColumnImpl::get_element(size_t, float*)    const { _notimpl(this, "float32"); }
+bool ColumnImpl::get_element(size_t, double*)   const { _notimpl(this, "float64"); }
+bool ColumnImpl::get_element(size_t, CString*)  const { _notimpl(this, "string"); }
+bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object"); }
 
 
 
@@ -152,7 +135,7 @@ static void _materialize_fw(const ColumnImpl* input_column, ColumnImpl** pout)
     input_column->nrows(),
     [&](size_t i) {
       T value;
-      bool isvalid = input_column->get_element_new(i, &value);
+      bool isvalid = input_column->get_element(i, &value);
       out_data[i] = isvalid? value : GETNA<T>();  // TODO: store NA separately
     });
 }
@@ -175,7 +158,7 @@ static void _materialize_obj(const ColumnImpl* input_column, ColumnImpl** pout)
   auto out_data = static_cast<py::oobj*>(output_column->data_w());
   for (size_t i = 0; i < inp_nrows; ++i) {
     py::robj value;
-    bool isvalid = input_column->get_element_new(i, &value);
+    bool isvalid = input_column->get_element(i, &value);
     out_data[i] = isvalid? py::oobj(value) : py::None();
   }
 }
@@ -258,7 +241,7 @@ void _fill_na_mask(ColumnImpl* icol, int8_t* outmask, size_t row0, size_t row1)
 {
   T value;
   for (size_t i = row0; i < row1; ++i) {
-    outmask[i] = !icol->get_element_new(i, &value);
+    outmask[i] = !icol->get_element(i, &value);
   }
 }
 

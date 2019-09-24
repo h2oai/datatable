@@ -489,7 +489,7 @@ static size_t _compute_nacount(const ColumnImpl* col) {
       size_t thread_countna = 0;
       dt::nested_for_static(col->nrows(),
         [&](size_t i) {
-          bool isvalid = col->get_element_new(i, &target);
+          bool isvalid = col->get_element(i, &target);
           thread_countna += !isvalid;
         });
       total_countna += thread_countna;
@@ -556,7 +556,7 @@ void NumericStats<T>::compute_minmax() {
       dt::nested_for_static(nrows,
         [&](size_t i) {
           T x;
-          bool isvalid = column->get_element_new(i, &x);
+          bool isvalid = column->get_element(i, &x);
           if (!isvalid) return;
           t_count_notna++;
           if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
@@ -624,7 +624,7 @@ void StringStats::compute_nunique() {
       size_t j1 = std::min(j0 + batch_size, column->nrows());
       CString str;
       for (size_t j = j0; j < j1; ++j) {
-        bool isvalid = column->get_element_new(j, &str);
+        bool isvalid = column->get_element(j, &str);
         if (!isvalid) continue;
         {
           dt::shared_lock<dt::shared_bmutex> lock(rwmutex, false);
@@ -704,7 +704,7 @@ void NumericStats<T>::compute_moments12() {
       dt::nested_for_static(nrows,
         [&](size_t i) {
           T value;
-          bool isvalid = column->get_element_new(i, &value);
+          bool isvalid = column->get_element(i, &value);
           if (!isvalid) return;
           double x = static_cast<double>(value);
           t_count++;
@@ -815,7 +815,7 @@ void NumericStats<T>::compute_moments34() {
       dt::nested_for_static(nrows,
         [&](size_t i) {
           T value;
-          bool isvalid = column->get_element_new(i, &value);
+          bool isvalid = column->get_element(i, &value);
           if (!isvalid) return;
           double x = static_cast<double>(value);
           ++t_count;
@@ -903,7 +903,7 @@ void NumericStats<T>::compute_sorted_stats() {
   // checking whether the elements in the first group are NA or not.
   if (!is_computed(Stat::NaCount)) {
     T x0;
-    bool isvalid = ri.size() > 0? column->get_element_new(ri[0], &x0) : true;
+    bool isvalid = ri.size() > 0? column->get_element(ri[0], &x0) : true;
     set_nacount(isvalid? 0 : static_cast<size_t>(groups[1]));
   }
 
@@ -923,7 +923,7 @@ void NumericStats<T>::compute_sorted_stats() {
 
   size_t ig = static_cast<size_t>(groups[largest_group_index]);
   T mode_value {};
-  bool mode_valid = max_group_size ? column->get_element_new(ri[ig], &mode_value)
+  bool mode_valid = max_group_size ? column->get_element(ri[ig], &mode_value)
                                    : false;
   set_mode(static_cast<V>(mode_value), mode_valid);
   set_nmodal(max_group_size, true);
@@ -942,7 +942,7 @@ void StringStats::compute_sorted_stats() {
   // checking whether the elements in the first group are NA or not.
   if (!is_computed(Stat::NaCount)) {
     CString x0;
-    bool isvalid = ri.size() > 0? column->get_element_new(ri[0], &x0) : true;
+    bool isvalid = ri.size() > 0? column->get_element(ri[0], &x0) : true;
     set_nacount(isvalid? 0 : static_cast<size_t>(groups[1]));
   }
 
@@ -962,7 +962,7 @@ void StringStats::compute_sorted_stats() {
 
   size_t ig = static_cast<size_t>(groups[largest_group_index]);
   CString mode_value;
-  bool mode_valid = max_group_size ? column->get_element_new(ri[ig], &mode_value)
+  bool mode_valid = max_group_size ? column->get_element(ri[ig], &mode_value)
                                    : false;
   set_mode(mode_value, mode_valid);
   set_nmodal(max_group_size, true);
@@ -1003,7 +1003,7 @@ void BooleanStats::compute_all_stats() {
       dt::nested_for_static(nrows,
         [&](size_t i) {
           int32_t x;
-          bool isvalid = column->get_element_new(i, &x);
+          bool isvalid = column->get_element(i, &x);
           if (!isvalid) return;
           t_count_all++;
           t_count_1 += static_cast<size_t>(x);

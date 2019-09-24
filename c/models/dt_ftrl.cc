@@ -538,7 +538,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
         dt::nested_for_static(iteration_size, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
           U value;
-          bool isvalid = target_col0_train.get_element_new(ii, &value);
+          bool isvalid = target_col0_train.get_element(ii, &value);
 
           if (isvalid && std::isfinite(value))
           {
@@ -575,7 +575,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
           dt::nested_for_static(dt_X_val->nrows, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
             V value;
-            bool isvalid = target_col0_val.get_element_new(i, &value);
+            bool isvalid = target_col0_val.get_element(i, &value);
 
             if (isvalid && std::isfinite(value))
             {
@@ -905,7 +905,7 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
 
   for (size_t i = 0; i < nlabels; ++i) {
     CString val;
-    bool isvalid = col0_str64.get_element_new(i, &val);
+    bool isvalid = col0_str64.get_element(i, &val);
     labels_vec[i] = isvalid? std::string(val.ch, static_cast<size_t>(val.size))
                            : std::string();
   }

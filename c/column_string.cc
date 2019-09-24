@@ -79,7 +79,7 @@ ColumnImpl* StringColumn<T>::shallowcopy() const {
 
 
 template <typename T>
-bool StringColumn<T>::get_element_new(size_t i, CString* out) const {
+bool StringColumn<T>::get_element(size_t i, CString* out) const {
   const T* offs = this->offsets();
   T off_end = offs[i];
   if (ISNA<T>(off_end)) return false;
@@ -144,7 +144,7 @@ void StringColumn<T>::replace_values(
   if (!with || with.nrows() == 1) {
     CString repl_value;  // Default constructor creates an NA string
     if (with) {
-      bool isvalid = with.get_element_new(0, &repl_value);
+      bool isvalid = with.get_element(0, &repl_value);
       if (!isvalid) repl_value = CString();
     }
     MemoryRange mask = replace_at.as_boolean_mask(_nrows);
@@ -164,7 +164,7 @@ void StringColumn<T>::replace_values(
           sb->write(value);
         } else {
           CString str;
-          bool isvalid = with.get_element_new(static_cast<size_t>(ir), &str);
+          bool isvalid = with.get_element(static_cast<size_t>(ir), &str);
           if (isvalid) {
             sb->write(str);
           } else {

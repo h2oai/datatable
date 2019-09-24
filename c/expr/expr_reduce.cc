@@ -110,7 +110,7 @@ static void sum_reducer(const Column& input_col, size_t row0, size_t row1,
   U sum = 0;
   for (size_t j = row0; j < row1; ++j) {
     T value;
-    bool isvalid = input_col.get_element_new(j, &value);
+    bool isvalid = input_col.get_element(j, &value);
     if (isvalid) {
       sum += static_cast<U>(value);
     }
@@ -132,7 +132,7 @@ static void count_reducer(const Column& input_col, size_t row0, size_t row1,
   T tmp;
   int64_t count = 0;
   for (size_t j = row0; j < row1; ++j) {
-    bool isvalid = input_col.get_element_new(j, &tmp);
+    bool isvalid = input_col.get_element(j, &tmp);
     count += isvalid;
   }
   int64_t* outputs = static_cast<int64_t*>(out);
@@ -153,7 +153,7 @@ static void mean_reducer(const Column& input_col, size_t row0, size_t row1,
   U sum = 0;
   int64_t count = 0;
   for (size_t j = row0; j < row1; ++j) {
-    bool isvalid = input_col.get_element_new(j, &value);
+    bool isvalid = input_col.get_element(j, &value);
     if (isvalid) {
       sum += static_cast<U>(value);
       count++;
@@ -179,7 +179,7 @@ static void stdev_reducer(const Column& input_col, size_t row0, size_t row1,
   T value;
   int64_t count = 0;
   for (size_t j = row0; j < row1; ++j) {
-    bool isvalid = input_col.get_element_new(j, &value);
+    bool isvalid = input_col.get_element(j, &value);
     if (isvalid) {
       count++;
       U tmp1 = static_cast<U>(value) - mean;
@@ -206,7 +206,7 @@ static void min_reducer(const Column& input_col, size_t row0, size_t row1,
   T res = infinity<T>();
   bool valid = false;
   for (size_t j = row0; j < row1; ++j) {
-    bool isvalid = input_col.get_element_new(j, &value);
+    bool isvalid = input_col.get_element(j, &value);
     if (isvalid) {
       if (value < res) res = value;
       valid = true;
@@ -230,7 +230,7 @@ static void max_reducer(const Column& input_col, size_t row0, size_t row1,
   T res = -infinity<T>();
   bool valid = false;
   for (size_t j = row0; j < row1; ++j) {
-    bool isvalid = input_col.get_element_new(j, &value);
+    bool isvalid = input_col.get_element(j, &value);
     if (isvalid) {
       if (value > res) res = value;
       valid = true;
@@ -254,7 +254,7 @@ static void median_reducer(const Column& input_col, size_t row0, size_t row1,
   T value;
   bool isvalid;
   for (; row0 < row1; ++row0) {
-    isvalid = input_col.get_element_new(row0, &value);
+    isvalid = input_col.get_element(row0, &value);
     if (isvalid) break;
   }
 
@@ -263,14 +263,14 @@ static void median_reducer(const Column& input_col, size_t row0, size_t row1,
     outputs[grp_index] = GETNA<U>();
   } else {
     size_t j = (row1 + row0) / 2;
-    isvalid = input_col.get_element_new(j, &value);
+    isvalid = input_col.get_element(j, &value);
     xassert(isvalid);
     if ((row1 - row0) & 1) {
       outputs[grp_index] = static_cast<U>(value);
     }
     else {
       T value2;
-      isvalid = input_col.get_element_new(j-1, &value2);
+      isvalid = input_col.get_element(j-1, &value2);
       xassert(isvalid);
       outputs[grp_index] = (static_cast<U>(value) + static_cast<U>(value2))/2;
     }

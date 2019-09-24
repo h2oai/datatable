@@ -91,7 +91,7 @@ static void encode_nones(const Column& col, colvec& outcols) {
   dt::parallel_for_dynamic(nrows,
     [&](size_t irow) {
       CString s;
-      bool isvalid = col.get_element_new(irow, &s);
+      bool isvalid = col.get_element(irow, &s);
       if (!isvalid) {
         for (size_t i = 0; i < ncols; ++i) {
           coldata[i][irow] = GETNA<int8_t>();
@@ -142,7 +142,7 @@ DataTable* split_into_nhot(const Column& col, char sep,
       dt::nested_for_static(nrows,
         [&](size_t irow) {
           CString str;
-          bool isvalid = col.get_element_new(irow, &str);
+          bool isvalid = col.get_element(irow, &str);
           if (!isvalid || str.size == 0) return;
           const char* strstart = str.ch;
           const char* strend = strstart + str.size;

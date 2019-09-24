@@ -812,7 +812,7 @@ class SortContext {
           [&](size_t j) {
             size_t k = use_order? static_cast<size_t>(o[j]) : j;
             CString value;
-            bool isvalid = column.get_element_new(k, &value);
+            bool isvalid = column.get_element(k, &value);
             if (isvalid) {
               if (value.size) {
                 xo[j] = ASC? static_cast<uint8_t>(*value.ch) + 2
@@ -1029,7 +1029,7 @@ class SortContext {
               xassert(k < n);
               size_t w = use_order? static_cast<size_t>(o[j]) : j;
               CString value;
-              bool isvalid = column.get_element_new(w, &value);
+              bool isvalid = column.get_element(w, &value);
               if (isvalid) {
                 if (value.size > sstart) {
                   xo[k] = ASC? static_cast<uint8_t>(value.ch[sstart] + 2)

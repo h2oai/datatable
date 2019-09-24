@@ -163,10 +163,10 @@ void insert_sort_keys_str(
   int j;
   tmp[0] = 0;
   for (int i = 1; i < n; ++i) {
-    i_valid = column.get_element_new(static_cast<size_t>(o[i]), &i_value);
+    i_valid = column.get_element(static_cast<size_t>(o[i]), &i_value);
     for (j = i; j > 0; --j) {
       auto k = tmp[j - 1];
-      k_valid = column.get_element_new(static_cast<size_t>(o[k]), &k_value);
+      k_valid = column.get_element(static_cast<size_t>(o[k]), &k_value);
       int cmp = compfn(i_value, i_valid, k_value, k_valid, strstart);
       if (cmp != 1) break;
       tmp[j] = tmp[j-1];
@@ -194,10 +194,10 @@ void insert_sort_values_str(
   int j;
   o[0] = 0;
   for (int i = 1; i < n; ++i) {
-    i_valid = column.get_element_new(static_cast<size_t>(i), &i_value);
+    i_valid = column.get_element(static_cast<size_t>(i), &i_value);
     for (j = i; j > 0; j--) {
       auto k = o[j - 1];
-      k_valid = column.get_element_new(static_cast<size_t>(k), &k_value);
+      k_valid = column.get_element(static_cast<size_t>(k), &k_value);
       int cmp = compfn(i_value, i_valid, k_value, k_valid, strstart);
       if (cmp != 1) break;
       o[j] = o[j-1];

@@ -11,14 +11,14 @@
 
 
 template <typename T>
-bool IntColumn<T>::get_element_new(size_t i, int32_t* out) const {
+bool IntColumn<T>::get_element(size_t i, int32_t* out) const {
   T x = this->elements_r()[i];
   *out = static_cast<int32_t>(x);
   return !ISNA<T>(x);
 }
 
 template <typename T>
-bool IntColumn<T>::get_element_new(size_t i, int64_t* out) const {
+bool IntColumn<T>::get_element(size_t i, int64_t* out) const {
   T x = this->elements_r()[i];
   *out = static_cast<int64_t>(x);
   return !ISNA<T>(x);

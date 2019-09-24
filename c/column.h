@@ -171,41 +171,33 @@ class Column
   // Element access
   //------------------------------------
   public:
-    // Each `get_element(i, &out)` function retrieves the column's element
-    // at index `i` and stores it in the variable `out`. The return value
-    // is true if the i-th element is NA (missing), and false otherwise.
-    // When `true` is returned, the `out` value may contain garbage data,
-    // and should not be relied upon.
+    // Each `get_element(i, &out)` function retrieves the column's
+    // element at index `i` and stores it in the variable `out`. The
+    // return value is true if the i-th element is valid, and false
+    // if it is NA (missing).
+    // When `false` is returned, the `out` value may contain garbage
+    // data, and should not be relied upon.
     //
-    // Multiple overloads of `get_element()` correspond to different stypes
-    // of the underlying column. It is the caller's responsibility to call
-    // the correct function variant; calling a method that doesn't match
-    // this column's SType will likely result in an exception thrown.
+    // Multiple overloads of `get_element()` correspond to different
+    // stypes of the underlying column. It is the caller's
+    // responsibility to call the correct function variant; calling
+    // a method that doesn't match the column's SType will likely
+    // result in an exception thrown.
     //
-    // The function expects that `i < nrows()`. This assumption is only
-    // checked in debug builds, but not in production.
+    // The function expects that `i < nrows()`. This assumption is
+    // not checked in production builds.
     //
-    bool get_element(size_t i, int8_t* out) const { return !get_element_new(i, out); }
-    bool get_element(size_t i, int16_t* out) const { return !get_element_new(i, out); }
-    bool get_element(size_t i, int32_t* out) const { return !get_element_new(i, out); }
-    bool get_element(size_t i, int64_t* out) const { return !get_element_new(i, out); }
-    bool get_element(size_t i, float* out) const { return !get_element_new(i, out); }
-    bool get_element(size_t i, double* out) const { return !get_element_new(i, out); }
-    bool get_element(size_t i, CString* out) const { return !get_element_new(i, out); }
-    bool get_element(size_t i, py::robj* out) const { return !get_element_new(i, out); }
+    bool get_element(size_t i, int8_t* out) const;
+    bool get_element(size_t i, int16_t* out) const;
+    bool get_element(size_t i, int32_t* out) const;
+    bool get_element(size_t i, int64_t* out) const;
+    bool get_element(size_t i, float* out) const;
+    bool get_element(size_t i, double* out) const;
+    bool get_element(size_t i, CString* out) const;
+    bool get_element(size_t i, py::robj* out) const;
 
-    bool get_element_new(size_t i, int8_t* out) const;
-    bool get_element_new(size_t i, int16_t* out) const;
-    bool get_element_new(size_t i, int32_t* out) const;
-    bool get_element_new(size_t i, int64_t* out) const;
-    bool get_element_new(size_t i, float* out) const;
-    bool get_element_new(size_t i, double* out) const;
-    bool get_element_new(size_t i, CString* out) const;
-    bool get_element_new(size_t i, py::robj* out) const;
-
-    // `get_element_as_pyobject(i)` returns the i-th element of the column
-    // wrapped into a pyobject of the appropriate type.
-    //
+    // `get_element_as_pyobject(i)` returns the i-th element of the
+    // column wrapped into a pyobject of the appropriate type.
     py::oobj get_element_as_pyobject(size_t i) const;
 
 

@@ -109,7 +109,7 @@ Column expr_string_match_re::evaluate(EvalContext& ctx) {
   dt::parallel_for_dynamic(nrows,
     [&](size_t i) {
       CString value;
-      bool isvalid = src.get_element_new(i, &value);
+      bool isvalid = src.get_element(i, &value);
       if (isvalid) {
         bool res = std::regex_match(value.ch, value.ch + value.size, regex);
         trg_data[i] = res;

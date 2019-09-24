@@ -114,7 +114,7 @@ void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   dt::parallel_for_static(nrows, NThreads(dt::FtrlBase::get_nthreads(nrows)),
     [&](size_t irow) {
       T_from v;
-      bool isvalid = ocol.get_element_new(irow, &v);
+      bool isvalid = ocol.get_element(irow, &v);
       if (!isvalid) {
         outdata[irow] = GETNA<T_to>();
         return;
@@ -165,7 +165,7 @@ void label_encode_str(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   dt::parallel_for_static(nrows, NThreads(dt::FtrlBase::get_nthreads(nrows)),
     [&](size_t irow) {
       CString str;
-      bool isvalid = ocol.get_element_new(irow, &str);
+      bool isvalid = ocol.get_element(irow, &str);
       if (!isvalid || str.size == 0) {
         outdata[irow] = GETNA<T_to>();
         return;

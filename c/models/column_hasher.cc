@@ -34,7 +34,7 @@ Hasher::~Hasher() {}
 template <typename T>
 uint64_t HasherInt<T>::hash(size_t row) const {
   T value;
-  bool isvalid = column.get_element_new(row, &value);
+  bool isvalid = column.get_element(row, &value);
   return isvalid? static_cast<uint64_t>(value)
                 : static_cast<uint64_t>(GETNA<T>());
 }
@@ -53,7 +53,7 @@ template <typename T>
 uint64_t HasherFloat<T>::hash(size_t row) const {
   T value;  // float or double
   uint64_t h;
-  bool isvalid = column.get_element_new(row, &value);
+  bool isvalid = column.get_element(row, &value);
   if (!isvalid) value = GETNA<T>();
   double x = static_cast<double>(value);
   std::memcpy(&h, &x, sizeof(double));
@@ -67,7 +67,7 @@ uint64_t HasherFloat<T>::hash(size_t row) const {
  */
 uint64_t HasherString::hash(size_t row) const {
   CString value;
-  bool isvalid = column.get_element_new(row, &value);
+  bool isvalid = column.get_element(row, &value);
   return isvalid? hash_murmur2(value.ch, static_cast<size_t>(value.size))
                 : GETNA<uint64_t>();
 }
