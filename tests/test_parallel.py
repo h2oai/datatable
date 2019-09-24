@@ -124,8 +124,8 @@ def test_progress(parallel_type, nthreads):
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niters = 100000
-    sleep_time = 0.1
+    niters = 1000000
+    sleep_time = 0.2
     exception = "KeyboardInterrupt\n"
     cmd_import = "import datatable as dt; from datatable.lib import core; "
 
