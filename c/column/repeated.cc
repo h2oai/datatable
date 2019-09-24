@@ -57,14 +57,14 @@ void Repeated_ColumnImpl::repeat(size_t ntimes, bool inplace, Column& out) {
 
 
 
-bool Repeated_ColumnImpl::get_element(size_t i, int8_t* out)   const { return arg.get_element(i % mod, out); }
-bool Repeated_ColumnImpl::get_element(size_t i, int16_t* out)  const { return arg.get_element(i % mod, out); }
-bool Repeated_ColumnImpl::get_element(size_t i, int32_t* out)  const { return arg.get_element(i % mod, out); }
-bool Repeated_ColumnImpl::get_element(size_t i, int64_t* out)  const { return arg.get_element(i % mod, out); }
-bool Repeated_ColumnImpl::get_element(size_t i, float* out)    const { return arg.get_element(i % mod, out); }
-bool Repeated_ColumnImpl::get_element(size_t i, double* out)   const { return arg.get_element(i % mod, out); }
-bool Repeated_ColumnImpl::get_element(size_t i, CString* out)  const { return arg.get_element(i % mod, out); }
-bool Repeated_ColumnImpl::get_element(size_t i, py::robj* out) const { return arg.get_element(i % mod, out); }
+bool Repeated_ColumnImpl::get_element_new(size_t i, int8_t* out)   const { return arg.get_element_new(i % mod, out); }
+bool Repeated_ColumnImpl::get_element_new(size_t i, int16_t* out)  const { return arg.get_element_new(i % mod, out); }
+bool Repeated_ColumnImpl::get_element_new(size_t i, int32_t* out)  const { return arg.get_element_new(i % mod, out); }
+bool Repeated_ColumnImpl::get_element_new(size_t i, int64_t* out)  const { return arg.get_element_new(i % mod, out); }
+bool Repeated_ColumnImpl::get_element_new(size_t i, float* out)    const { return arg.get_element_new(i % mod, out); }
+bool Repeated_ColumnImpl::get_element_new(size_t i, double* out)   const { return arg.get_element_new(i % mod, out); }
+bool Repeated_ColumnImpl::get_element_new(size_t i, CString* out)  const { return arg.get_element_new(i % mod, out); }
+bool Repeated_ColumnImpl::get_element_new(size_t i, py::robj* out) const { return arg.get_element_new(i % mod, out); }
 
 
 

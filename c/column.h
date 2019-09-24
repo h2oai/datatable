@@ -185,14 +185,23 @@ class Column
     // The function expects that `i < nrows()`. This assumption is only
     // checked in debug builds, but not in production.
     //
-    bool get_element(size_t i, int8_t* out) const;
-    bool get_element(size_t i, int16_t* out) const;
-    bool get_element(size_t i, int32_t* out) const;
-    bool get_element(size_t i, int64_t* out) const;
-    bool get_element(size_t i, float* out) const;
-    bool get_element(size_t i, double* out) const;
-    bool get_element(size_t i, CString* out) const;
-    bool get_element(size_t i, py::robj* out) const;
+    bool get_element(size_t i, int8_t* out) const { return !get_element_new(i, out); }
+    bool get_element(size_t i, int16_t* out) const { return !get_element_new(i, out); }
+    bool get_element(size_t i, int32_t* out) const { return !get_element_new(i, out); }
+    bool get_element(size_t i, int64_t* out) const { return !get_element_new(i, out); }
+    bool get_element(size_t i, float* out) const { return !get_element_new(i, out); }
+    bool get_element(size_t i, double* out) const { return !get_element_new(i, out); }
+    bool get_element(size_t i, CString* out) const { return !get_element_new(i, out); }
+    bool get_element(size_t i, py::robj* out) const { return !get_element_new(i, out); }
+
+    bool get_element_new(size_t i, int8_t* out) const;
+    bool get_element_new(size_t i, int16_t* out) const;
+    bool get_element_new(size_t i, int32_t* out) const;
+    bool get_element_new(size_t i, int64_t* out) const;
+    bool get_element_new(size_t i, float* out) const;
+    bool get_element_new(size_t i, double* out) const;
+    bool get_element_new(size_t i, CString* out) const;
+    bool get_element_new(size_t i, py::robj* out) const;
 
     // `get_element_as_pyobject(i)` returns the i-th element of the column
     // wrapped into a pyobject of the appropriate type.

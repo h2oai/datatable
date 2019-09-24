@@ -85,10 +85,10 @@ T FwColumn<T>::get_elem(size_t i) const {
 }
 
 template <typename T>
-bool FwColumn<T>::get_element(size_t i, T* out) const {
+bool FwColumn<T>::get_element_new(size_t i, T* out) const {
   T x = static_cast<const T*>(mbuf.rptr())[i];
   *out = x;
-  return ISNA<T>(x);
+  return !ISNA<T>(x);
 }
 
 
@@ -156,9 +156,9 @@ void FwColumn<T>::replace_values(
 
   if (with.nrows() == 1) {
     T replace_value;
-    bool isna = with.get_element(0, &replace_value);
-    return isna? replace_values(replace_at, GETNA<T>()) :
-                 replace_values(replace_at, replace_value);
+    bool isvalid = with.get_element_new(0, &replace_value);
+    return isvalid? replace_values(replace_at, replace_value) :
+                    replace_values(replace_at, GETNA<T>());
   }
 
   size_t replace_n = replace_at.size();
@@ -169,8 +169,8 @@ void FwColumn<T>::replace_values(
     [&](size_t i, size_t j) {
       if (j == RowIndex::NA) return;
       T value;
-      bool isna = replace_with.get_element(i, &value);
-      data_dest[j] = isna? GETNA<T>() : value;
+      bool isvalid = replace_with.get_element_new(i, &value);
+      data_dest[j] = isvalid? value : GETNA<T>();
     });
 }
 

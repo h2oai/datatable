@@ -66,36 +66,36 @@ void NaFilled_ColumnImpl::truncate(size_t new_nrows, bool inplace, Column& out)
 
 
 
-bool NaFilled_ColumnImpl::get_element(size_t i, int8_t* out)   const {
-  return (i >= arg_nrows) || arg.get_element(i, out);
+bool NaFilled_ColumnImpl::get_element_new(size_t i, int8_t* out)   const {
+  return (i < arg_nrows) && arg.get_element_new(i, out);
 }
 
-bool NaFilled_ColumnImpl::get_element(size_t i, int16_t* out)  const {
-  return (i >= arg_nrows) || arg.get_element(i, out);
+bool NaFilled_ColumnImpl::get_element_new(size_t i, int16_t* out)  const {
+  return (i < arg_nrows) && arg.get_element_new(i, out);
 }
 
-bool NaFilled_ColumnImpl::get_element(size_t i, int32_t* out)  const {
-  return (i >= arg_nrows) || arg.get_element(i, out);
+bool NaFilled_ColumnImpl::get_element_new(size_t i, int32_t* out)  const {
+  return (i < arg_nrows) && arg.get_element_new(i, out);
 }
 
-bool NaFilled_ColumnImpl::get_element(size_t i, int64_t* out)  const {
-  return (i >= arg_nrows) || arg.get_element(i, out);
+bool NaFilled_ColumnImpl::get_element_new(size_t i, int64_t* out)  const {
+  return (i < arg_nrows) && arg.get_element_new(i, out);
 }
 
-bool NaFilled_ColumnImpl::get_element(size_t i, float* out)    const {
-  return (i >= arg_nrows) || arg.get_element(i, out);
+bool NaFilled_ColumnImpl::get_element_new(size_t i, float* out)    const {
+  return (i < arg_nrows) && arg.get_element_new(i, out);
 }
 
-bool NaFilled_ColumnImpl::get_element(size_t i, double* out)   const {
-  return (i >= arg_nrows) || arg.get_element(i, out);
+bool NaFilled_ColumnImpl::get_element_new(size_t i, double* out)   const {
+  return (i < arg_nrows) && arg.get_element_new(i, out);
 }
 
-bool NaFilled_ColumnImpl::get_element(size_t i, CString* out)  const {
-  return (i >= arg_nrows) || arg.get_element(i, out);
+bool NaFilled_ColumnImpl::get_element_new(size_t i, CString* out)  const {
+  return (i < arg_nrows) && arg.get_element_new(i, out);
 }
 
-bool NaFilled_ColumnImpl::get_element(size_t i, py::robj* out) const {
-  return (i >= arg_nrows) || arg.get_element(i, out);
+bool NaFilled_ColumnImpl::get_element_new(size_t i, py::robj* out) const {
+  return (i < arg_nrows) && arg.get_element_new(i, out);
 }
 
 

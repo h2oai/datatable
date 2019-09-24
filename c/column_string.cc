@@ -79,14 +79,14 @@ ColumnImpl* StringColumn<T>::shallowcopy() const {
 
 
 template <typename T>
-bool StringColumn<T>::get_element(size_t i, CString* out) const {
+bool StringColumn<T>::get_element_new(size_t i, CString* out) const {
   const T* offs = this->offsets();
   T off_end = offs[i];
-  if (ISNA<T>(off_end)) return true;
+  if (ISNA<T>(off_end)) return false;
   T off_beg = offs[i - 1] & ~GETNA<T>();
   out->ch = this->strdata() + off_beg,
   out->size = static_cast<int64_t>(off_end - off_beg);
-  return false;
+  return true;
 }
 
 
@@ -144,8 +144,8 @@ void StringColumn<T>::replace_values(
   if (!with || with.nrows() == 1) {
     CString repl_value;  // Default constructor creates an NA string
     if (with) {
-      bool isna = with.get_element(0, &repl_value);
-      if (isna) repl_value = CString();
+      bool isvalid = with.get_element_new(0, &repl_value);
+      if (!isvalid) repl_value = CString();
     }
     MemoryRange mask = replace_at.as_boolean_mask(_nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
@@ -164,11 +164,11 @@ void StringColumn<T>::replace_values(
           sb->write(value);
         } else {
           CString str;
-          bool isna = with.get_element(static_cast<size_t>(ir), &str);
-          if (isna) {
-            sb->write_na();
-          } else {
+          bool isvalid = with.get_element_new(static_cast<size_t>(ir), &str);
+          if (isvalid) {
             sb->write(str);
+          } else {
+            sb->write_na();
           }
         }
       });

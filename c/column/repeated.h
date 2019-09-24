@@ -42,14 +42,14 @@ class Repeated_ColumnImpl : public ColumnImpl {
     void repeat(size_t ntimes, bool inplace, Column& out) override;
     // ColumnImpl* materialize() override;
 
-    bool get_element(size_t, int8_t*)   const override;
-    bool get_element(size_t, int16_t*)  const override;
-    bool get_element(size_t, int32_t*)  const override;
-    bool get_element(size_t, int64_t*)  const override;
-    bool get_element(size_t, float*)    const override;
-    bool get_element(size_t, double*)   const override;
-    bool get_element(size_t, CString*)  const override;
-    bool get_element(size_t, py::robj*) const override;
+    bool get_element_new(size_t, int8_t*)   const override;
+    bool get_element_new(size_t, int16_t*)  const override;
+    bool get_element_new(size_t, int32_t*)  const override;
+    bool get_element_new(size_t, int64_t*)  const override;
+    bool get_element_new(size_t, float*)    const override;
+    bool get_element_new(size_t, double*)   const override;
+    bool get_element_new(size_t, CString*)  const override;
+    bool get_element_new(size_t, py::robj*) const override;
 };
 
 

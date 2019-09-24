@@ -112,6 +112,15 @@ class ColumnImpl
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::robj* out) const;
 
+    virtual bool get_element_new(size_t i, int8_t* out) const;
+    virtual bool get_element_new(size_t i, int16_t* out) const;
+    virtual bool get_element_new(size_t i, int32_t* out) const;
+    virtual bool get_element_new(size_t i, int64_t* out) const;
+    virtual bool get_element_new(size_t i, float* out) const;
+    virtual bool get_element_new(size_t i, double* out) const;
+    virtual bool get_element_new(size_t i, CString* out) const;
+    virtual bool get_element_new(size_t i, py::robj* out) const;
+
     virtual bool is_virtual() const noexcept { return false; }
 
     size_t nrows() const { return _nrows; }
@@ -288,7 +297,7 @@ public:
   T* elements_w();
   T get_elem(size_t i) const;
 
-  virtual bool get_element(size_t i, T* out) const override;
+  virtual bool get_element_new(size_t i, T* out) const override;
 
   size_t data_nrows() const override;
   void apply_na_mask(const Column& mask) override;
@@ -324,8 +333,8 @@ class BoolColumn : public FwColumn<int8_t>
     BoolColumn(size_t nrows = 0);
     BoolColumn(size_t nrows, MemoryRange&&);
 
-    using FwColumn<int8_t>::get_element;
-    bool get_element(size_t i, int32_t* out) const override;
+    using FwColumn<int8_t>::get_element_new;
+    bool get_element_new(size_t i, int32_t* out) const override;
 
   protected:
     void verify_integrity(const std::string& name) const override;
@@ -343,9 +352,9 @@ template <typename T> class IntColumn : public FwColumn<T>
   public:
     using FwColumn<T>::FwColumn;
 
-    using FwColumn<T>::get_element;
-    bool get_element(size_t i, int32_t* out) const override;
-    bool get_element(size_t i, int64_t* out) const override;
+    using FwColumn<T>::get_element_new;
+    bool get_element_new(size_t i, int32_t* out) const override;
+    bool get_element_new(size_t i, int64_t* out) const override;
 
   protected:
     using ColumnImpl::stats;
@@ -385,7 +394,7 @@ public:
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, MemoryRange&&);
 
-  bool get_element(size_t i, py::robj* out) const override;
+  bool get_element_new(size_t i, py::robj* out) const override;
 
 protected:
 
@@ -433,7 +442,7 @@ public:
 
   void verify_integrity(const std::string& name) const override;
 
-  bool get_element(size_t i, CString* out) const override;
+  bool get_element_new(size_t i, CString* out) const override;
 
 protected:
   StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);

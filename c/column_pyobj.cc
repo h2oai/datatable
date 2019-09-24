@@ -31,10 +31,10 @@ PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
 
 
 
-bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
+bool PyObjectColumn::get_element_new(size_t i, py::robj* out) const {
   py::robj x = this->elements_r()[i];
   *out = x;
-  return x.is_none();
+  return !x.is_none();
 }
 
 
