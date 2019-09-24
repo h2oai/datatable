@@ -40,14 +40,14 @@ class SliceView_ColumnImpl : public Virtual_ColumnImpl {
     SliceView_ColumnImpl(Column&& col, const RowIndex& ri, size_t nrows);
     ColumnImpl* shallowcopy() const override;
 
-    bool get_element(size_t i, int8_t* out)   const override;
-    bool get_element(size_t i, int16_t* out)  const override;
-    bool get_element(size_t i, int32_t* out)  const override;
-    bool get_element(size_t i, int64_t* out)  const override;
-    bool get_element(size_t i, float* out)    const override;
-    bool get_element(size_t i, double* out)   const override;
-    bool get_element(size_t i, CString* out)  const override;
-    bool get_element(size_t i, py::robj* out) const override;
+    bool get_element_new(size_t i, int8_t* out)   const override;
+    bool get_element_new(size_t i, int16_t* out)  const override;
+    bool get_element_new(size_t i, int32_t* out)  const override;
+    bool get_element_new(size_t i, int64_t* out)  const override;
+    bool get_element_new(size_t i, float* out)    const override;
+    bool get_element_new(size_t i, double* out)   const override;
+    bool get_element_new(size_t i, CString* out)  const override;
+    bool get_element_new(size_t i, py::robj* out) const override;
 };
 
 
@@ -72,14 +72,14 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
     // defined in sort.cc
     void sort_grouped(const Groupby& gby, bool inplace, Column& out) override;
 
-    bool get_element(size_t i, int8_t* out)   const override;
-    bool get_element(size_t i, int16_t* out)  const override;
-    bool get_element(size_t i, int32_t* out)  const override;
-    bool get_element(size_t i, int64_t* out)  const override;
-    bool get_element(size_t i, float* out)    const override;
-    bool get_element(size_t i, double* out)   const override;
-    bool get_element(size_t i, CString* out)  const override;
-    bool get_element(size_t i, py::robj* out) const override;
+    bool get_element_new(size_t i, int8_t* out)   const override;
+    bool get_element_new(size_t i, int16_t* out)  const override;
+    bool get_element_new(size_t i, int32_t* out)  const override;
+    bool get_element_new(size_t i, int64_t* out)  const override;
+    bool get_element_new(size_t i, float* out)    const override;
+    bool get_element_new(size_t i, double* out)   const override;
+    bool get_element_new(size_t i, CString* out)  const override;
+    bool get_element_new(size_t i, py::robj* out) const override;
 
   private:
     void set_rowindex(const RowIndex&);

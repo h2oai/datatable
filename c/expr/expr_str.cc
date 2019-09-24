@@ -109,13 +109,14 @@ Column expr_string_match_re::evaluate(EvalContext& ctx) {
   dt::parallel_for_dynamic(nrows,
     [&](size_t i) {
       CString value;
-      bool isna = src.get_element(i, &value);
-      if (isna) {
-        trg_data[i] = GETNA<int8_t>();
-        return;
+      bool isvalid = src.get_element_new(i, &value);
+      if (isvalid) {
+        bool res = std::regex_match(value.ch, value.ch + value.size, regex);
+        trg_data[i] = res;
       }
-      bool res = std::regex_match(value.ch, value.ch + value.size, regex);
-      trg_data[i] = res;
+      else {
+        trg_data[i] = GETNA<int8_t>();
+      }
     });
   return trg;
 }

@@ -46,14 +46,14 @@ ColumnImpl* SliceView_ColumnImpl::shallowcopy() const {
 }
 
 
-bool SliceView_ColumnImpl::get_element(size_t i, int8_t* out)   const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, int16_t* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, int32_t* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, int64_t* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, float* out)    const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, double* out)   const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, CString* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, py::robj* out) const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element_new(size_t i, int8_t* out)   const { return arg.get_element_new(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element_new(size_t i, int16_t* out)  const { return arg.get_element_new(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element_new(size_t i, int32_t* out)  const { return arg.get_element_new(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element_new(size_t i, int64_t* out)  const { return arg.get_element_new(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element_new(size_t i, float* out)    const { return arg.get_element_new(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element_new(size_t i, double* out)   const { return arg.get_element_new(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element_new(size_t i, CString* out)  const { return arg.get_element_new(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element_new(size_t i, py::robj* out) const { return arg.get_element_new(start + i*step, out); }
 
 
 
@@ -92,67 +92,67 @@ ColumnImpl* ArrayView_ColumnImpl<T>::shallowcopy() const {
 
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
+bool ArrayView_ColumnImpl<T>::get_element_new(size_t i, int8_t* out) const {
   xassert(i < _nrows);
   T j = indices[i];
-  if (j < 0) return true;
-  return arg.get_element(static_cast<size_t>(j), out);
+  if (j < 0) return false;
+  return arg.get_element_new(static_cast<size_t>(j), out);
 }
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
+bool ArrayView_ColumnImpl<T>::get_element_new(size_t i, int16_t* out) const {
   xassert(i < _nrows);
   T j = indices[i];
-  if (j < 0) return true;
-  return arg.get_element(static_cast<size_t>(j), out);
+  if (j < 0) return false;
+  return arg.get_element_new(static_cast<size_t>(j), out);
 }
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
+bool ArrayView_ColumnImpl<T>::get_element_new(size_t i, int32_t* out) const {
   xassert(i < _nrows);
   T j = indices[i];
-  if (j < 0) return true;
-  return arg.get_element(static_cast<size_t>(j), out);
+  if (j < 0) return false;
+  return arg.get_element_new(static_cast<size_t>(j), out);
 }
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
+bool ArrayView_ColumnImpl<T>::get_element_new(size_t i, int64_t* out) const {
   xassert(i < _nrows);
   T j = indices[i];
-  if (j < 0) return true;
-  return arg.get_element(static_cast<size_t>(j), out);
+  if (j < 0) return false;
+  return arg.get_element_new(static_cast<size_t>(j), out);
 }
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, float* out) const {
+bool ArrayView_ColumnImpl<T>::get_element_new(size_t i, float* out) const {
   xassert(i < _nrows);
   T j = indices[i];
-  if (j < 0) return true;
-  return arg.get_element(static_cast<size_t>(j), out);
+  if (j < 0) return false;
+  return arg.get_element_new(static_cast<size_t>(j), out);
 }
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, double* out) const {
+bool ArrayView_ColumnImpl<T>::get_element_new(size_t i, double* out) const {
   xassert(i < _nrows);
   T j = indices[i];
-  if (j < 0) return true;
-  return arg.get_element(static_cast<size_t>(j), out);
+  if (j < 0) return false;
+  return arg.get_element_new(static_cast<size_t>(j), out);
 }
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, CString* out) const {
+bool ArrayView_ColumnImpl<T>::get_element_new(size_t i, CString* out) const {
   xassert(i < _nrows);
   T j = indices[i];
-  if (j < 0) return true;
-  return arg.get_element(static_cast<size_t>(j), out);
+  if (j < 0) return false;
+  return arg.get_element_new(static_cast<size_t>(j), out);
 }
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, py::robj* out) const {
+bool ArrayView_ColumnImpl<T>::get_element_new(size_t i, py::robj* out) const {
   xassert(i < _nrows);
   T j = indices[i];
-  if (j < 0) return true;
-  return arg.get_element(static_cast<size_t>(j), out);
+  if (j < 0) return false;
+  return arg.get_element_new(static_cast<size_t>(j), out);
 }
 
 

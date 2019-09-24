@@ -49,20 +49,22 @@ class re_match_vcol : public ColumnImpl {
 
     bool is_virtual() const noexcept override { return true; }
 
-    bool get_element(size_t i, int8_t* out) const override {
+    bool get_element_new(size_t i, int8_t* out) const override {
       CString x;
-      bool isna = arg.get_element(i, &x);
-      if (isna) return true;
-      *out = std::regex_match(x.ch, x.ch + x.size, regex);
-      return false;
+      bool isvalid = arg.get_element_new(i, &x);
+      if (isvalid) {
+        *out = std::regex_match(x.ch, x.ch + x.size, regex);
+      }
+      return isvalid;
     }
 
-    bool get_element(size_t i, int32_t* out) const override {
+    bool get_element_new(size_t i, int32_t* out) const override {
       CString x;
-      bool isna = arg.get_element(i, &x);
-      if (isna) return true;
-      *out = std::regex_match(x.ch, x.ch + x.size, regex);
-      return false;
+      bool isvalid = arg.get_element_new(i, &x);
+      if (isvalid) {
+        *out = std::regex_match(x.ch, x.ch + x.size, regex);
+      }
+      return isvalid;
     }
 };
 

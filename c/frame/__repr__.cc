@@ -255,38 +255,38 @@ class HtmlWidget {
     template <typename T>
     void render_fw_value(const Column& col, size_t row) {
       T val;
-      bool isna = col.get_element(row, &val);
-      if (isna) {
-        render_na();
-      } else {
+      bool isvalid = col.get_element_new(row, &val);
+      if (isvalid) {
         if (val < 0) {
           html << "&minus;";
           val = -val;
         }
         html << val;
+      } else {
+        render_na();
       }
     }
 
     void render_str_value(const Column& col, size_t row) {
       CString val;
-      bool isna = col.get_element(row, &val);
-      if (isna) {
-        render_na();
-      } else {
+      bool isvalid = col.get_element_new(row, &val);
+      if (isvalid) {
         render_escaped_string(val.ch, static_cast<size_t>(val.size));
+      } else {
+        render_na();
       }
     }
 
     void render_obj_value(const Column& col, size_t row) {
       py::robj val;
-      bool isna = col.get_element(row, &val);
-      if (isna) {
-        render_na();
-      } else {
+      bool isvalid = col.get_element_new(row, &val);
+      if (isvalid) {
         // Should we use repr() here instead?
         py::ostring strval = val.to_pystring_force();
         CString cstr = strval.to_cstring();
         render_escaped_string(cstr.ch, static_cast<size_t>(cstr.size));
+      } else {
+        render_na();
       }
     }
 
