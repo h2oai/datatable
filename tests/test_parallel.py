@@ -141,8 +141,7 @@ def test_progress_interrupt(parallel_type, nthreads):
                             stderr = subprocess.PIPE)
     time.sleep(sleep_time)
     proc.send_signal(signal.Signals.SIGINT)
-    ret = proc.wait()
-    stderr = proc.stderr.read().decode()
-    assert stderr.endswith(exception)
+    (stdout, stderr) = proc.communicate()
+    assert stderr.decode().endswith(exception)
 
 
