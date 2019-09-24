@@ -102,14 +102,29 @@ def test_internal_parallel_for_ordered2():
 @cpp_test
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
+                            ["static", "nested", "dynamic", "ordered"],
+                            [1, dt.options.nthreads//2, dt.options.nthreads]
+                         )
+                        )
+def test_progress(parallel_type, nthreads):
+    import signal
+    niters = 100
+    cmd_run = "core.test_progress_%s(%s, %s)" % (
+              parallel_type, niters, nthreads)
+    exec(cmd_run)
+
+
+@cpp_test
+@pytest.mark.parametrize('parallel_type, nthreads',
+                         itertools.product(
                             [None, "static", "nested", "dynamic", "ordered"],
                             [1, dt.options.nthreads//2, dt.options.nthreads]
                          )
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niters = 1000000
-    sleep_time = 0.1
+    niters = 100000
+    sleep_time = 0.01
     cmd_import = "import datatable as dt; from datatable.lib import core; "
 
     if parallel_type is None:
