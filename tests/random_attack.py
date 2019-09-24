@@ -519,6 +519,7 @@ class Frame0:
                 self.data[i] = [col[j] for j in s]
 
     def delete_rows(self, s):
+        self.check_shape()
         nrows = self.nrows
         del self.df[s, :]
         if isinstance(s, slice):

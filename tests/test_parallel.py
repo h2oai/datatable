@@ -99,6 +99,7 @@ def test_internal_parallel_for_ordered2():
         dt.options.nthreads = n0
 
 
+@pytest.mark.skip()
 @cpp_test
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
@@ -126,6 +127,6 @@ def test_progress_interrupt(parallel_type, nthreads):
     proc.send_signal(signal.Signals.SIGINT)
     ret = proc.wait()
     stderr = proc.stderr.read().decode()
-    assert(stderr[-18:] == "KeyboardInterrupt\n")
+    assert stderr.endswith("KeyboardInterrupt\n")
 
 
