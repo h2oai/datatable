@@ -99,6 +99,7 @@ def test_internal_parallel_for_ordered2():
         dt.options.nthreads = n0
 
 
+# Make sure C++ tests run cleanly when not interrupted
 @cpp_test
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
@@ -114,6 +115,7 @@ def test_progress(parallel_type, nthreads):
     exec(cmd_run)
 
 
+# Send interrupt signal and make sure process throws KeyboardInterrupt
 @cpp_test
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
@@ -124,7 +126,8 @@ def test_progress(parallel_type, nthreads):
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
     niters = 100000
-    sleep_time = 0.01
+    sleep_time = 0.1
+    exception = "KeyboardInterrupt\n"
     cmd_import = "import datatable as dt; from datatable.lib import core; "
 
     if parallel_type is None:
@@ -141,6 +144,6 @@ def test_progress_interrupt(parallel_type, nthreads):
     proc.send_signal(signal.Signals.SIGINT)
     ret = proc.wait()
     stderr = proc.stderr.read().decode()
-    assert(stderr[-18:] == "KeyboardInterrupt\n")
+    assert(stderr[-len(exception):] == exception)
 
 
