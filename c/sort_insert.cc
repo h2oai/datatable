@@ -40,7 +40,7 @@
 //==============================================================================
 
 /**
- * Compare two strings a and b (the NA flag for each string is passed
+ * Compare two strings a and b (the validity flag for each string is passed
  * separately). The `strstart` variable instructs to perform comparisons
  * starting from that offset in the string. If `strstart` is larger than
  * the length of a string, that string is considered empty.
@@ -50,10 +50,10 @@
  * empty string compares greater than NA, but less than any non-empty string.
  */
 template <int R>
-int compare_strings(const CString& a, bool a_isna,
-                    const CString& b, bool b_isna, size_t strstart)
+int compare_strings(const CString& a, bool a_valid,
+                    const CString& b, bool b_valid, size_t strstart)
 {
-  if (a_isna || b_isna) return a_isna - b_isna;
+  if (!(a_valid && b_valid)) return b_valid - a_valid;
   const size_t a_len = static_cast<size_t>(a.size);
   const size_t b_len = static_cast<size_t>(b.size);
   const bool a_isempty = (a_len <= strstart);
@@ -158,16 +158,16 @@ void insert_sort_keys_str(
     GroupGatherer& gg, bool descending)
 {
   CString i_value, k_value;
-  bool i_isna, k_isna;
+  bool i_valid, k_valid;
   auto compfn = descending? compare_strings<-1> : compare_strings<1>;
   int j;
   tmp[0] = 0;
   for (int i = 1; i < n; ++i) {
-    i_isna = column.get_element(static_cast<size_t>(o[i]), &i_value);
+    i_valid = column.get_element_new(static_cast<size_t>(o[i]), &i_value);
     for (j = i; j > 0; --j) {
       auto k = tmp[j - 1];
-      k_isna = column.get_element(static_cast<size_t>(o[k]), &k_value);
-      int cmp = compfn(i_value, i_isna, k_value, k_isna, strstart);
+      k_valid = column.get_element_new(static_cast<size_t>(o[k]), &k_value);
+      int cmp = compfn(i_value, i_valid, k_value, k_valid, strstart);
       if (cmp != 1) break;
       tmp[j] = tmp[j-1];
     }
@@ -189,16 +189,16 @@ void insert_sort_values_str(
     GroupGatherer& gg, bool descending)
 {
   CString i_value, k_value;
-  bool i_isna, k_isna;
+  bool i_valid, k_valid;
   auto compfn = descending? compare_strings<-1> : compare_strings<1>;
   int j;
   o[0] = 0;
   for (int i = 1; i < n; ++i) {
-    i_isna = column.get_element(static_cast<size_t>(i), &i_value);
+    i_valid = column.get_element_new(static_cast<size_t>(i), &i_value);
     for (j = i; j > 0; j--) {
       auto k = o[j - 1];
-      k_isna = column.get_element(static_cast<size_t>(k), &k_value);
-      int cmp = compfn(i_value, i_isna, k_value, k_isna, strstart);
+      k_valid = column.get_element_new(static_cast<size_t>(k), &k_value);
+      int cmp = compfn(i_value, i_valid, k_value, k_valid, strstart);
       if (cmp != 1) break;
       o[j] = o[j-1];
     }

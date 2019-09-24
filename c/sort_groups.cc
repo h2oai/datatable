@@ -50,15 +50,15 @@ template <typename V>
 void GroupGatherer::from_data(const Column& column, const V* o, size_t n) {
   if (n == 0) return;
   CString last_value, curr_value;
-  bool last_na, curr_na;
-  last_na = column.get_element(static_cast<size_t>(o[0]), &last_value);
+  bool last_valid, curr_valid;
+  last_valid = column.get_element_new(static_cast<size_t>(o[0]), &last_value);
   size_t last_i = 0;
   for (size_t i = 1; i < n; ++i) {
-    curr_na = column.get_element(static_cast<size_t>(o[i]), &curr_value);
-    if (compare_strings<1>(last_value, last_na, curr_value, curr_na, 0)) {
+    curr_valid = column.get_element_new(static_cast<size_t>(o[i]), &curr_value);
+    if (compare_strings<1>(last_value, last_valid, curr_value, curr_valid, 0)) {
       push(i - last_i);
       last_i = i;
-      last_na = curr_na;
+      last_valid = curr_valid;
       last_value = curr_value;
     }
   }

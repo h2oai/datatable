@@ -72,7 +72,7 @@ class Reduced_ColumnImpl : public ColumnImpl {
                                           reducer);
     }
 
-    bool get_element(size_t i, U* out) const override {
+    bool get_element_new(size_t i, U* out) const override {
       size_t i0, i1;
       groupby.get_group(i, &i0, &i1);
       return reducer(arg, i0, i1, out);
@@ -102,14 +102,14 @@ class FirstLast_ColumnImpl : public ColumnImpl {
       return new FirstLast_ColumnImpl<FIRST>(Column(arg), groupby);
     }
 
-    bool get_element(size_t i, int8_t*   out) const override { return _get(i, out); }
-    bool get_element(size_t i, int16_t*  out) const override { return _get(i, out); }
-    bool get_element(size_t i, int32_t*  out) const override { return _get(i, out); }
-    bool get_element(size_t i, int64_t*  out) const override { return _get(i, out); }
-    bool get_element(size_t i, float*    out) const override { return _get(i, out); }
-    bool get_element(size_t i, double*   out) const override { return _get(i, out); }
-    bool get_element(size_t i, CString*  out) const override { return _get(i, out); }
-    bool get_element(size_t i, py::robj* out) const override { return _get(i, out); }
+    bool get_element_new(size_t i, int8_t*   out) const override { return _get(i, out); }
+    bool get_element_new(size_t i, int16_t*  out) const override { return _get(i, out); }
+    bool get_element_new(size_t i, int32_t*  out) const override { return _get(i, out); }
+    bool get_element_new(size_t i, int64_t*  out) const override { return _get(i, out); }
+    bool get_element_new(size_t i, float*    out) const override { return _get(i, out); }
+    bool get_element_new(size_t i, double*   out) const override { return _get(i, out); }
+    bool get_element_new(size_t i, CString*  out) const override { return _get(i, out); }
+    bool get_element_new(size_t i, py::robj* out) const override { return _get(i, out); }
 
   private:
     template <typename T>
@@ -117,8 +117,8 @@ class FirstLast_ColumnImpl : public ColumnImpl {
       size_t i0, i1;
       groupby.get_group(i, &i0, &i1);
       xassert(i0 < i1);
-      return FIRST? arg.get_element(i0, out)
-                  : arg.get_element(i1 - 1, out);
+      return FIRST? arg.get_element_new(i0, out)
+                  : arg.get_element_new(i1 - 1, out);
     }
 };
 
@@ -145,13 +145,13 @@ bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
   U sum = 0;
   for (size_t i = i0; i < i1; ++i) {
     T value;
-    bool isna = col.get_element(i, &value);
-    if (!isna) {
+    bool isvalid = col.get_element_new(i, &value);
+    if (isvalid) {
       sum += static_cast<U>(value);
     }
   }
   *out = sum;
-  return false;  // *out is not NA
+  return true;  // *out is not NA
 }
 
 
@@ -191,15 +191,15 @@ bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
   int64_t count = 0;
   for (size_t i = i0; i < i1; ++i) {
     T value;
-    bool isna = col.get_element(i, &value);
-    if (!isna) {
+    bool isvalid = col.get_element_new(i, &value);
+    if (isvalid) {
       sum += static_cast<U>(value);
       count++;
     }
   }
-  if (!count) return true;
+  if (!count) return false;
   *out = sum / count;
-  return false;  // *out is not NA
+  return true;  // *out is not NA
 }
 
 
@@ -240,11 +240,11 @@ bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
   int64_t count = 0;
   for (size_t i = i0; i < i1; ++i) {
     T value;
-    bool isna = col.get_element(i, &value);
-    count += !isna;
+    bool isvalid = col.get_element_new(i, &value);
+    count += isvalid;
   }
   *out = count;
-  return false;  // *out is not NA
+  return true;  // *out is not NA
 }
 
 
@@ -286,15 +286,15 @@ bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
   bool minmax_isna = true;
   for (size_t i = i0; i < i1; ++i) {
     T value;
-    bool isna = col.get_element(i, &value);
-    if (isna) continue;
+    bool isvalid = col.get_element_new(i, &value);
+    if (!isvalid) continue;
     if ((MIN? (value < minmax) : (value > minmax)) || minmax_isna) {
       minmax = value;
       minmax_isna = false;
     }
   }
   *out = minmax;
-  return minmax_isna;
+  return !minmax_isna;
 }
 
 
@@ -350,7 +350,7 @@ class Median_ColumnImpl : public ColumnImpl {
       arg.sort_grouped(groupby);
     }
 
-    bool get_element(size_t i, U* out) const override {
+    bool get_element_new(size_t i, U* out) const override {
       size_t i0, i1;
       T value1, value2;
       groupby.get_group(i, &i0, &i1);
@@ -358,21 +358,21 @@ class Median_ColumnImpl : public ColumnImpl {
 
       // skip NA values if any
       while (true) {
-        bool isna = arg.get_element(i0, &value1);
-        if (!isna) break;
+        bool isvalid = arg.get_element_new(i0, &value1);
+        if (isvalid) break;
         ++i0;
-        if (i0 == i1) return true;  // all elements are NA
+        if (i0 == i1) return false;  // all elements are NA
       }
 
       size_t j = (i0 + i1) / 2;
-      arg.get_element(j, &value1);
+      arg.get_element_new(j, &value1);
       if ((i1 - i0) & 1) { // Odd count of elements
         *out = static_cast<U>(value1);
       } else {
-        arg.get_element(j-1, &value2);
+        arg.get_element_new(j-1, &value2);
         *out = (static_cast<U>(value1) + static_cast<U>(value2))/2;
       }
-      return false;
+      return true;
     }
 };
 
