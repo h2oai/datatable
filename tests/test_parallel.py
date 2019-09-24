@@ -126,6 +126,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     import signal
     niters = 100000
     sleep_time = 0.1
+    exception = "KeyboardInterrupt\n"
     cmd_import = "import datatable as dt; from datatable.lib import core; "
 
     if parallel_type is None:
@@ -142,6 +143,6 @@ def test_progress_interrupt(parallel_type, nthreads):
     proc.send_signal(signal.Signals.SIGINT)
     ret = proc.wait()
     stderr = proc.stderr.read().decode()
-    assert stderr.endswith("KeyboardInterrupt\n")
+    assert stderr.endswith(exception)
 
 
