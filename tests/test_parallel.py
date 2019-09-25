@@ -108,10 +108,12 @@ def test_internal_parallel_for_ordered2():
                          )
                         )
 def test_progress(parallel_type, nthreads):
-    niters = 100
-    cmd_run = "core.test_progress_%s(%s, %s)" % (
+    niters = 1000
+    ntimes = 5
+    cmd_run = "core.test_progress_%s(%s, %s);" % (
               parallel_type, niters, nthreads)
-    exec(cmd_run)
+    for _ in range(ntimes) :
+        exec(cmd_run)
 
 
 # Send interrupt signal and make sure process throws KeyboardInterrupt
@@ -124,8 +126,8 @@ def test_progress(parallel_type, nthreads):
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niters = 1000000
-    sleep_time = 0.2
+    niters = 100000
+    sleep_time = 0.1
     exception = "KeyboardInterrupt\n"
     cmd_import = "import datatable as dt; from datatable.lib import core; "
 
@@ -142,6 +144,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     time.sleep(sleep_time)
     proc.send_signal(signal.Signals.SIGINT)
     (stdout, stderr) = proc.communicate()
+    print("stdout: ", stdout.decode(), "stderr: ", stderr.decode())
     assert stderr.decode().endswith(exception)
 
 

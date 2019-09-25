@@ -23,7 +23,7 @@ namespace dttest {
 
 
 void test_progress_static(size_t n, size_t nth) {
-  const size_t iteration_size = 10000;
+  const size_t iteration_size = 100;
   dt::progress::work job(n);
   job.set_message("Starting test_progress_static...");
 
@@ -32,11 +32,13 @@ void test_progress_static(size_t n, size_t nth) {
   std::vector<size_t> data(niterations, 0);
   dt::parallel_for_static(niterations, dt::ChunkSize(1), nthreads,
     [&](size_t i) {
+      if (dt::this_thread_index() == 0) {
+        job.set_message("Running test_progress_nested...");
+      }
       for (size_t j = 0; j < iteration_size; ++j) {
         data[i] += i % (j + 1);
       }
       if (dt::this_thread_index() == 0) {
-        job.set_message("Running test_progress_static...");
         job.add_done_amount(1);
       }
     });
@@ -47,7 +49,7 @@ void test_progress_static(size_t n, size_t nth) {
 
 
 void test_progress_nested(size_t n, size_t nth) {
-  const size_t iteration_size = 10000;
+  const size_t iteration_size = 100;
   const size_t nloops = 2;
   dt::progress::work job(nloops * n);
   job.set_message("Starting test_progress_nested...");
@@ -58,6 +60,9 @@ void test_progress_nested(size_t n, size_t nth) {
 
   dt::parallel_region(nthreads.get(),
     [&]() {
+      if (dt::this_thread_index() == 0) {
+        job.set_message("Running test_progress_nested...");
+      }
       for (size_t l = 0; l < nloops; ++l) {
         dt::nested_for_static(niterations, dt::ChunkSize(1),
           [&](size_t i) {
@@ -65,7 +70,6 @@ void test_progress_nested(size_t n, size_t nth) {
               data[i] += i % (j + 1);
             }
             if (dt::this_thread_index() == 0) {
-              job.set_message("Running test_progress_nested...");
               job.add_done_amount(1);
             }
           });
@@ -79,7 +83,7 @@ void test_progress_nested(size_t n, size_t nth) {
 
 
 void test_progress_dynamic(size_t n, size_t nth) {
-  const size_t iteration_size = 10000;
+  const size_t iteration_size = 100;
   dt::progress::work job(n);
   job.set_message("Starting test_progress_dynamic...");
 
@@ -89,12 +93,14 @@ void test_progress_dynamic(size_t n, size_t nth) {
 
   dt::parallel_for_dynamic(niterations, nthreads,
     [&](size_t i) {
+      if (dt::this_thread_index() == 0) {
+        job.set_message("Running test_progress_nested...");
+      }
       for (size_t j = 0; j < iteration_size; ++j) {
         data[i] += i % (j + 1);
       }
 
       if (dt::this_thread_index() == 0) {
-        job.set_message("Running test_progress_dynamic...");
         job.set_done_amount(i / nthreads.get());
       }
     });
@@ -106,7 +112,7 @@ void test_progress_dynamic(size_t n, size_t nth) {
 
 
 void test_progress_ordered(size_t n, size_t nth) {
-  const size_t iteration_size = 10000;
+  const size_t iteration_size = 100;
 
   dt::NThreads nthreads = dt::NThreads(nth);
   size_t niterations= n * nthreads.get();
