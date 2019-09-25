@@ -163,8 +163,8 @@ class Column
 
     operator bool() const noexcept;
 
-    ColumnImpl* operator->();
-    const ColumnImpl* operator->() const;
+    ColumnImpl* operator->() { return pcol; }
+    const ColumnImpl* operator->() const { return pcol; }
     ColumnImpl* release() noexcept;
 
   //------------------------------------

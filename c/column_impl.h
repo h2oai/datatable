@@ -463,7 +463,6 @@ class VoidColumn : public ColumnImpl {
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
     ColumnImpl* materialize() override;
-    void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const Column&) override;
     void replace_values(Column&, const RowIndex&, const Column&) override;
   protected:

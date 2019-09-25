@@ -21,13 +21,13 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_CONST_h
 #define dt_COLUMN_CONST_h
-#include "column_impl.h"
+#include "column/virtual.h"
 namespace dt {
 
 
-class Const_ColumnImpl : public ColumnImpl {
+class Const_ColumnImpl : public Virtual_ColumnImpl {
   public:
-    using ColumnImpl::ColumnImpl;
+    using Virtual_ColumnImpl::Virtual_ColumnImpl;
     static Column make_na_column(size_t nrows);
     static Column make_bool_column(size_t nrows, bool value);
     static Column make_int_column(size_t nrows, int64_t value);
@@ -35,7 +35,6 @@ class Const_ColumnImpl : public ColumnImpl {
     static Column make_string_column(size_t nrows, CString value);
     static Column from_1row_column(const Column& col);
 
-    bool is_virtual() const noexcept override;
     void repeat(size_t ntimes, bool inplace, Column& out) override;
 };
 

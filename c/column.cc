@@ -157,15 +157,6 @@ Column::~Column() {
 }
 
 
-
-ColumnImpl* Column::operator->() {
-  return pcol;
-}
-
-const ColumnImpl* Column::operator->() const {
-  return pcol;
-}
-
 ColumnImpl* Column::release() noexcept {
   ColumnImpl* tmp = pcol;
   pcol = nullptr;
@@ -356,7 +347,6 @@ VoidColumn::VoidColumn() : ColumnImpl(0, SType::VOID) {}
 VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows, SType::VOID) {}
 size_t VoidColumn::data_nrows() const { return _nrows; }
 ColumnImpl* VoidColumn::materialize() { return this; }
-void VoidColumn::rbind_impl(colvec&, size_t, bool) {}
 void VoidColumn::apply_na_mask(const Column&) {}
 void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
 void VoidColumn::init_data() {}
@@ -383,7 +373,6 @@ class StrvecColumn : public ColumnImpl {
 
     size_t data_nrows() const override { return _nrows; }
     ColumnImpl* materialize() override { return this; }
-    void rbind_impl(colvec&, size_t, bool) override {}
     void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}
     void init_data() override {}
