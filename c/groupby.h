@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_GROUPBY_h
 #define dt_GROUPBY_h
-#include "memrange.h"
+#include "buffer.h"
 #include "rowindex.h"
 
 

@@ -27,7 +27,7 @@
 #include "python/obj.h"
 #include "column.h"
 #include "groupby.h"
-#include "memrange.h"     // MemoryRange
+#include "buffer.h"     // MemoryRange
 #include "rowindex.h"
 #include "stats.h"
 #include "types.h"

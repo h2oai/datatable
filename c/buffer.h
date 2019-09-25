@@ -5,8 +5,8 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#ifndef dt_MEMRANGE_h
-#define dt_MEMRANGE_h
+#ifndef dt_BUFFER_h
+#define dt_BUFFER_h
 #include <cstdint>
 #include <memory>             // std::unique_ptr
 #include <string>             // std::string

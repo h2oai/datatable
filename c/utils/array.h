@@ -8,7 +8,7 @@
 #ifndef dt_UTILS_ARRAY_h
 #define dt_UTILS_ARRAY_h
 #include <algorithm>      // std::swap
-#include "memrange.h"
+#include "buffer.h"
 #include "utils/alloc.h"  // dt::realloc
 #include "utils/exceptions.h"
 

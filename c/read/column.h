@@ -8,7 +8,7 @@
 #ifndef dt_READ_COLUMN_h
 #define dt_READ_COLUMN_h
 #include <string>
-#include "memrange.h"     // MemoryRange
+#include "buffer.h"     // MemoryRange
 #include "python/obj.h"   // py::oobj
 #include "writebuf.h"     // WritableBuffer
 

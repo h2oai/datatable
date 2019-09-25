@@ -13,7 +13,7 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "datatablemodule.h"
-#include "memrange.h"
+#include "buffer.h"
 #include "writebuf.h"
 
 
