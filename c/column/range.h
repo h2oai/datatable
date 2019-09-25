@@ -19,25 +19,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_VIRTUAL_h
-#define dt_COLUMN_VIRTUAL_h
+#ifndef dt_COLUMN_RANGE_h
+#define dt_COLUMN_RANGE_h
 #include <memory>
-#include "column_impl.h"
+#include "column/virtual.h"
 namespace dt {
 
 
 /**
-  * Base class for all virtual columns.
+  * Virtual column representing the `arg` column repeated n times.
   */
-class Virtual_ColumnImpl : public ColumnImpl {
-  public:
-    Virtual_ColumnImpl(size_t nrows, SType stype)
-      : ColumnImpl(nrows, stype) {}
+class Range_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    int64_t start_;
+    int64_t step_;
 
-    bool is_virtual() const noexcept override {
-      return true;
-    }
+  public:
+    Range_ColumnImpl(int64_t start, int64_t stop, int64_t step,
+                     SType stype = SType::VOID);
+
+    ColumnImpl* shallowcopy() const override;
+
+    bool get_element(size_t, int8_t*)  const override;
+    bool get_element(size_t, int16_t*) const override;
+    bool get_element(size_t, int32_t*) const override;
+    bool get_element(size_t, int64_t*) const override;
+    bool get_element(size_t, float*)   const override;
+    bool get_element(size_t, double*)  const override;
+
+  private:
+    Range_ColumnImpl(SType, size_t, int64_t, int64_t);  // for cloning
 };
+
 
 
 

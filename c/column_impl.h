@@ -122,7 +122,7 @@ class ColumnImpl
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
     void* data_w() {
-      assert(!is_virtual());
+      xassert(!is_virtual());
       return mbuf.wptr();
     }
     PyObject* mbuf_repr() const;
