@@ -27,7 +27,7 @@
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
 #include "column.h"            // Column, BoolColumn
-#include "memrange.h"          // MemoryRange
+#include "buffer.h"          // MemoryRange
 #include "rowindex.h"
 #include "rowindex_impl.h"
 

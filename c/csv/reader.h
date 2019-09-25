@@ -8,7 +8,7 @@
 #ifndef dt_CSV_READER_h
 #define dt_CSV_READER_h
 #include <memory>           // std::unique_ptr, std::shared_ptr
-#include "memrange.h"       // MemoryRange
+#include "buffer.h"       // MemoryRange
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
 #include "read/columns.h"   // dt::read::Columns

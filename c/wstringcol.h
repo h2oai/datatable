@@ -16,7 +16,7 @@
 #ifndef dt_WSTRINGCOL_h
 #define dt_WSTRINGCOL_h
 #include <memory>           // std::unique_ptr
-#include "memrange.h"       // MemoryRange
+#include "buffer.h"       // MemoryRange
 #include "column.h"
 #include "types.h"          // CString
 #include "utils/array.h"    // dt::array

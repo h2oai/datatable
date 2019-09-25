@@ -16,7 +16,7 @@
 #include "utils/macros.h"
 #include "utils/misc.h"        // malloc_size
 #include "datatablemodule.h"   // TRACK, UNTRACK, IS_TRACKED
-#include "memrange.h"
+#include "buffer.h"
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
 
 
