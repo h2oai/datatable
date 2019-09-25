@@ -812,10 +812,8 @@ class SortContext {
           [&](size_t j) {
             size_t k = use_order? static_cast<size_t>(o[j]) : j;
             CString value;
-            bool isna = column.get_element(k, &value);
-            if (isna) {
-              xo[j] = 0;    // NA string
-            } else {
+            bool isvalid = column.get_element(k, &value);
+            if (isvalid) {
               if (value.size) {
                 xo[j] = ASC? static_cast<uint8_t>(*value.ch) + 2
                            : 0xFE - static_cast<uint8_t>(*value.ch);
@@ -823,6 +821,8 @@ class SortContext {
               } else {
                 xo[j] = ASC? 1 : 0xFF;  // empty string
               }
+            } else {
+              xo[j] = 0;    // NA string
             }
           });
         if (len_gt_1) flong.test_and_set();
@@ -1029,15 +1029,17 @@ class SortContext {
               xassert(k < n);
               size_t w = use_order? static_cast<size_t>(o[j]) : j;
               CString value;
-              bool isna = column.get_element(w, &value);
-              if (isna) {
-                xo[k] = 0;
-              } else if (value.size > sstart) {
-                xo[k] = ASC? static_cast<uint8_t>(value.ch[sstart] + 2)
-                           : static_cast<uint8_t>(0xFE - value.ch[sstart]);
-                tlong = true;
+              bool isvalid = column.get_element(w, &value);
+              if (isvalid) {
+                if (value.size > sstart) {
+                  xo[k] = ASC? static_cast<uint8_t>(value.ch[sstart] + 2)
+                             : static_cast<uint8_t>(0xFE - value.ch[sstart]);
+                  tlong = true;
+                } else {
+                  xo[k] = ASC? 1 : 0xFF;  // string is shorter than sstart
+                }
               } else {
-                xo[k] = ASC? 1 : 0xFF;  // string is shorter than sstart
+                xo[k] = 0;
               }
               next_o[k] = static_cast<int32_t>(w);
             }

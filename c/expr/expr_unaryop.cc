@@ -82,11 +82,11 @@ class unary_vcol : public ColumnImpl {
 
     bool get_element(size_t i, TO* out) const override {
       TI x;
-      bool isna = arg.get_element(i, &x);
-      (void) isna;  // FIXME
+      bool isvalid = arg.get_element(i, &x);
+      (void) isvalid;  // FIXME
       TO value = func(x);
       *out = value;
-      return ISNA<TO>(value);
+      return !ISNA<TO>(value);
     }
 };
 
@@ -107,20 +107,20 @@ class unary_vcol<TI, int8_t> : public ColumnImpl {
 
     bool get_element(size_t i, int8_t* out) const override {
       TI x;
-      bool isna = arg.get_element(i, &x);
-      (void) isna;  // FIXME
+      bool isvalid = arg.get_element(i, &x);
+      (void) isvalid;  // FIXME
       int8_t value = func(x);
       *out = value;
-      return ISNA<int8_t>(value);
+      return !ISNA<int8_t>(value);
     }
 
     bool get_element(size_t i, int32_t* out) const override {
       TI x;
-      bool isna = arg.get_element(i, &x);
-      (void) isna;  // FIXME
+      bool isvalid = arg.get_element(i, &x);
+      (void) isvalid;  // FIXME
       int8_t value = func(x);
       *out = static_cast<int32_t>(value);
-      return ISNA<int8_t>(value);
+      return !ISNA<int8_t>(value);
     }
 };
 

@@ -112,11 +112,11 @@ static void strmap_n_to_n(size_t row0, size_t row1, Column* cols) {
   const Column& col1 = cols[1];
   auto res_data = static_cast<TR*>(cols[2]->data_w());
   CString val0, val1;
-  bool isna0, isna1;
+  bool valid0, valid1;
   for (size_t i = row0; i < row1; ++i) {
-    isna0 = col0.get_element(i, &val0);
-    isna1 = col1.get_element(i, &val1);
-    res_data[i] = OP(val0, isna0, val1, isna1);
+    valid0 = col0.get_element(i, &val0);
+    valid1 = col1.get_element(i, &val1);
+    res_data[i] = OP(val0, valid0, val1, valid1);
   }
 }
 
@@ -127,11 +127,11 @@ static void strmap_n_to_1(size_t row0, size_t row1, Column* cols) {
   const Column& col1 = cols[1];
   auto res_data = static_cast<TR*>(cols[2]->data_w());
   CString val0, val1;
-  bool isna0;
-  bool isna1 = col1.get_element(0, &val1);
+  bool valid0;
+  bool valid1 = col1.get_element(0, &val1);
   for (size_t i = row0; i < row1; ++i) {
-    isna0 = col0.get_element(i, &val0);
-    res_data[i] = OP(val0, isna0, val1, isna1);
+    valid0 = col0.get_element(i, &val0);
+    res_data[i] = OP(val0, valid0, val1, valid1);
   }
 }
 
@@ -268,16 +268,16 @@ inline static int8_t op_le(LT x, RT y) {  // x <= y
          (x_isna && y_isna);
 }
 
-inline static int8_t strop_eq(const CString& a, bool a_isna,
-                               const CString& b, bool b_isna) {
-  return (a_isna || b_isna) ? (a_isna & b_isna)
-                            : (a == b);
+inline static int8_t strop_eq(const CString& a, bool a_valid,
+                              const CString& b, bool b_valid) {
+  return (a_valid && b_valid) ? (a == b)
+                              : !(a_valid | b_valid);
 }
 
-inline static int8_t strop_ne(const CString& a, bool a_isna,
-                               const CString& b, bool b_isna) {
-  return (a_isna || b_isna) ? !(a_isna & b_isna)
-                            : !(a == b);
+inline static int8_t strop_ne(const CString& a, bool a_valid,
+                              const CString& b, bool b_valid) {
+  return (a_valid && b_valid) ? !(a == b)
+                              : (a_valid | b_valid);
 }
 
 

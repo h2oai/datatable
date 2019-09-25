@@ -145,13 +145,13 @@ bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
   U sum = 0;
   for (size_t i = i0; i < i1; ++i) {
     T value;
-    bool isna = col.get_element(i, &value);
-    if (!isna) {
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) {
       sum += static_cast<U>(value);
     }
   }
   *out = sum;
-  return false;  // *out is not NA
+  return true;  // *out is not NA
 }
 
 
@@ -191,15 +191,15 @@ bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
   int64_t count = 0;
   for (size_t i = i0; i < i1; ++i) {
     T value;
-    bool isna = col.get_element(i, &value);
-    if (!isna) {
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) {
       sum += static_cast<U>(value);
       count++;
     }
   }
-  if (!count) return true;
+  if (!count) return false;
   *out = sum / count;
-  return false;  // *out is not NA
+  return true;  // *out is not NA
 }
 
 
@@ -240,11 +240,11 @@ bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
   int64_t count = 0;
   for (size_t i = i0; i < i1; ++i) {
     T value;
-    bool isna = col.get_element(i, &value);
-    count += !isna;
+    bool isvalid = col.get_element(i, &value);
+    count += isvalid;
   }
   *out = count;
-  return false;  // *out is not NA
+  return true;  // *out is not NA
 }
 
 
@@ -286,15 +286,15 @@ bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
   bool minmax_isna = true;
   for (size_t i = i0; i < i1; ++i) {
     T value;
-    bool isna = col.get_element(i, &value);
-    if (isna) continue;
+    bool isvalid = col.get_element(i, &value);
+    if (!isvalid) continue;
     if ((MIN? (value < minmax) : (value > minmax)) || minmax_isna) {
       minmax = value;
       minmax_isna = false;
     }
   }
   *out = minmax;
-  return minmax_isna;
+  return !minmax_isna;
 }
 
 
@@ -358,10 +358,10 @@ class Median_ColumnImpl : public ColumnImpl {
 
       // skip NA values if any
       while (true) {
-        bool isna = arg.get_element(i0, &value1);
-        if (!isna) break;
+        bool isvalid = arg.get_element(i0, &value1);
+        if (isvalid) break;
         ++i0;
-        if (i0 == i1) return true;  // all elements are NA
+        if (i0 == i1) return false;  // all elements are NA
       }
 
       size_t j = (i0 + i1) / 2;
@@ -372,7 +372,7 @@ class Median_ColumnImpl : public ColumnImpl {
         arg.get_element(j-1, &value2);
         *out = (static_cast<U>(value1) + static_cast<U>(value2))/2;
       }
-      return false;
+      return true;
     }
 };
 

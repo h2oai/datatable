@@ -135,8 +135,8 @@ static void _materialize_fw(const ColumnImpl* input_column, ColumnImpl** pout)
     input_column->nrows(),
     [&](size_t i) {
       T value;
-      bool isna = input_column->get_element(i, &value);
-      out_data[i] = isna? GETNA<T>() : value;  // TODO: store NA separately
+      bool isvalid = input_column->get_element(i, &value);
+      out_data[i] = isvalid? value : GETNA<T>();  // TODO: store NA separately
     });
 }
 
@@ -158,8 +158,8 @@ static void _materialize_obj(const ColumnImpl* input_column, ColumnImpl** pout)
   auto out_data = static_cast<py::oobj*>(output_column->data_w());
   for (size_t i = 0; i < inp_nrows; ++i) {
     py::robj value;
-    bool isna = input_column->get_element(i, &value);
-    out_data[i] = isna? py::None() : py::oobj(value);
+    bool isvalid = input_column->get_element(i, &value);
+    out_data[i] = isvalid? py::oobj(value) : py::None();
   }
 }
 
@@ -241,7 +241,7 @@ void _fill_na_mask(ColumnImpl* icol, int8_t* outmask, size_t row0, size_t row1)
 {
   T value;
   for (size_t i = row0; i < row1; ++i) {
-    outmask[i] = icol->get_element(i, &value);
+    outmask[i] = !icol->get_element(i, &value);
   }
 }
 

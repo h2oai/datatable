@@ -128,8 +128,8 @@ static void cast_fw2(const Column& col, void* out_data)
   dt::parallel_for_static(col.nrows(),
     [=](size_t i) {
       T value;
-      bool isna = col.get_element(i, &value);
-      out[i] = isna? GETNA<U>() : CAST_OP(value);
+      bool isvalid = col.get_element(i, &value);
+      out[i] = isvalid? CAST_OP(value) : GETNA<U>();
     });
 }
 
@@ -145,8 +145,8 @@ static void cast_to_pyobj(const Column& col, void* out_data)
   auto out = static_cast<PyObject**>(out_data);
   T value;
   for (size_t i = 0; i < col.nrows(); ++i) {
-    bool isna = col.get_element(i, &value);
-    out[i] = isna? py::None().release() : CAST_OP(value);
+    bool isvalid = col.get_element(i, &value);
+    out[i] = isvalid? CAST_OP(value) : py::None().release();
   }
 }
 
@@ -159,11 +159,11 @@ static Column cast_to_str(const Column& col, MemoryRange&& out_offsets,
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
         T value;
-        bool isna = col.get_element(i, &value);
-        if (isna) {
-          buf->write_na();
-        } else {
+        bool isvalid = col.get_element(i, &value);
+        if (isvalid) {
           CAST_OP(value, buf);
+        } else {
+          buf->write_na();
         }
       },
       col.nrows(),
@@ -190,11 +190,11 @@ static Column cast_str_to_str(const Column& col, MemoryRange&& out_offsets,
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
         CString value;
-        bool isna = col.get_element(i, &value);
-        if (isna) {
-          buf->write_na();
-        } else {
+        bool isvalid = col.get_element(i, &value);
+        if (isvalid) {
           buf->write(value);
+        } else {
+          buf->write_na();
         }
       },
       col.nrows(),

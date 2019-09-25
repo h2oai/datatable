@@ -27,12 +27,20 @@
 #include "stats.h"       // Stat (enum), Stats
 #include "types.h"       // SType (enum), LType (enum), CString
 
+class BitMask;
 class Column;
 class ColumnImpl;
 class Groupby;
 class MemoryRange;
 using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
+
+enum class NaStorage : uint8_t {
+  NONE,
+  INLINE,
+  BITMASK,
+  VIRTUAL,
+};
 
 
 //------------------------------------------------------------------------------
@@ -160,22 +168,24 @@ class Column
     ColumnImpl* release() noexcept;
 
   //------------------------------------
-  // Data access
+  // Element access
   //------------------------------------
   public:
-    // Each `get_element(i, &out)` function retrieves the column's element
-    // at index `i` and stores it in the variable `out`. The return value
-    // is true if the returned element is NA (missing), or false otherwise.
-    // When `true` is returned, the `out` value may contain garbage data,
-    // and should not be used in any way.
+    // Each `get_element(i, &out)` function retrieves the column's
+    // element at index `i` and stores it in the variable `out`. The
+    // return value is true if the i-th element is valid, and false
+    // if it is NA (missing).
+    // When `false` is returned, the `out` value may contain garbage
+    // data, and should not be relied upon.
     //
-    // Multiple overloads of `get_element()` correspond to different stypes
-    // of the underlying column. It is the caller's responsibility to call
-    // the correct function variant; calling a method that doesn't match
-    // this column's SType will likely result in an exception thrown.
+    // Multiple overloads of `get_element()` correspond to different
+    // stypes of the underlying column. It is the caller's
+    // responsibility to call the correct function variant; calling
+    // a method that doesn't match the column's SType will likely
+    // result in an exception thrown.
     //
-    // The function expects (but doesn't check) that `i < nrows`. A segfault
-    // may occur if this assumption is violated.
+    // The function expects that `i < nrows()`. This assumption is
+    // not checked in production builds.
     //
     bool get_element(size_t i, int8_t* out) const;
     bool get_element(size_t i, int16_t* out) const;
@@ -186,33 +196,41 @@ class Column
     bool get_element(size_t i, CString* out) const;
     bool get_element(size_t i, py::robj* out) const;
 
-    // `get_element_as_pyobject(i)` returns the i-th element of the column
-    // wrapped into a pyobject of the appropriate type. Use this function
-    // for interoperation with Python.
-    //
+    // `get_element_as_pyobject(i)` returns the i-th element of the
+    // column wrapped into a pyobject of the appropriate type.
     py::oobj get_element_as_pyobject(size_t i) const;
 
-    // Access to the underlying column's data. If the column is virtual,
-    // it will be materialized first. The index `i` allows access to
-    // additional data buffers, depending on the column's type.
-    //
-    // For example, for string columns `get_data_readonly(0)` returns the
-    // array of 'start' offsets, while `get_data_readonly(1)` returns the
-    // raw character buffer.
-    //
-    // These methods are not marked const, because they may cause the
-    // column to become materialized.
-    //
-    const void* get_data_readonly(size_t i = 0);
-    void* get_data_editable();
-    size_t get_data_size(size_t i = 0);
 
-    struct res_i32 { int32_t value; bool isna; int:24; };
-    res_i32 get_element_i32(size_t i) const __attribute__((used)) {
-      int32_t value;
-      bool isna = get_element(i, &value);
-      return res_i32 {value, isna};
-    }
+  //------------------------------------
+  // Data buffers
+  //------------------------------------
+  public:
+    // A Column may be comprised of multiple data buffers. For virtual
+    // columns this property returns 0.
+    size_t get_num_data_buffers() const;
+
+    // Since the Column contains `n = get_n_data_buffers()` buffers,
+    // each of the methods below takes the parameter `k < n` that
+    // specifies which buffer the function is applied to.
+    // Correspondingly, the methods below are not applicable to
+    // virtual columns and will raise an exception.
+
+    // Return the method that this column uses to encode NAs. See
+    // the description of `NaStorage` enum for details.
+    NaStorage get_na_storage_method(size_t k = 0) const;
+
+    // Return true if data buffer can be edited as-is, without
+    // creating any extra copies.
+    bool is_data_editable(size_t k = 0) const;
+
+    // Access the column's data buffers. The "readonly" version will
+    // return the data buffer suitable for reading, while the
+    // "editable" method will allow the data to be both read and
+    // written. The latter method may need to create a copy of the
+    // data buffer.
+    size_t get_data_size(size_t k = 0) const;
+    const void* get_data_readonly(size_t k = 0) const;
+    void*       get_data_editable(size_t k = 0);
 
 
   //------------------------------------
@@ -247,7 +265,7 @@ class Column
   //------------------------------------
   public:
     void rbind(colvec& columns);
-    void materialize();
+    void materialize() const;
     void cast_inplace(SType stype);
     Column cast(SType stype) const;
     Column cast(SType stype, MemoryRange&& mr) const;

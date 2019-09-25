@@ -538,9 +538,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
         dt::nested_for_static(iteration_size, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
           size_t ii = (iteration_start + i) % dt_X_train->nrows;
           U value;
-          bool isna = target_col0_train.get_element(ii, &value);
+          bool isvalid = target_col0_train.get_element(ii, &value);
 
-          if (!isna && std::isfinite(value))
+          if (isvalid && std::isfinite(value))
           {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < label_ids_train.size(); ++k) {
@@ -575,9 +575,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
           dt::nested_for_static(dt_X_val->nrows, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
             V value;
-            bool isna = target_col0_val.get_element(i, &value);
+            bool isvalid = target_col0_val.get_element(i, &value);
 
-            if (!isna && std::isfinite(value))
+            if (isvalid && std::isfinite(value))
             {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < label_ids_val.size(); ++k) {
@@ -904,10 +904,10 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
   strvec labels_vec(nlabels);
 
   for (size_t i = 0; i < nlabels; ++i) {
-    CString value;
-    bool isna = col0_str64.get_element(i, &value);
-    labels_vec[i] = isna? std::string()
-                        : std::string(value.ch, static_cast<size_t>(value.size));
+    CString val;
+    bool isvalid = col0_str64.get_element(i, &val);
+    labels_vec[i] = isvalid? std::string(val.ch, static_cast<size_t>(val.size))
+                           : std::string();
   }
 
   colvec cols;

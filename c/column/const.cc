@@ -34,14 +34,14 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     ConstNa_ColumnImpl(size_t nrows, SType stype = SType::VOID)
       : Const_ColumnImpl(nrows, stype) {}
 
-    bool get_element(size_t, int8_t*)   const override { return true; }
-    bool get_element(size_t, int16_t*)  const override { return true; }
-    bool get_element(size_t, int32_t*)  const override { return true; }
-    bool get_element(size_t, int64_t*)  const override { return true; }
-    bool get_element(size_t, float*)    const override { return true; }
-    bool get_element(size_t, double*)   const override { return true; }
-    bool get_element(size_t, CString*)  const override { return true; }
-    bool get_element(size_t, py::robj*) const override { return true; }
+    bool get_element(size_t, int8_t*)   const override { return false; }
+    bool get_element(size_t, int16_t*)  const override { return false; }
+    bool get_element(size_t, int32_t*)  const override { return false; }
+    bool get_element(size_t, int64_t*)  const override { return false; }
+    bool get_element(size_t, float*)    const override { return false; }
+    bool get_element(size_t, double*)   const override { return false; }
+    bool get_element(size_t, CString*)  const override { return false; }
+    bool get_element(size_t, py::robj*) const override { return false; }
 
     // TODO: override cast()
 
@@ -104,32 +104,32 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
 
     bool get_element(size_t, int8_t* out) const override {
       *out = static_cast<int8_t>(value);
-      return false;
+      return true;
     }
 
     bool get_element(size_t, int16_t* out) const override {
       *out = static_cast<int16_t>(value);
-      return false;
+      return true;
     }
 
     bool get_element(size_t, int32_t* out) const override {
       *out = static_cast<int32_t>(value);
-      return false;
+      return true;
     }
 
     bool get_element(size_t, int64_t* out) const override {
       *out = value;
-      return false;
+      return true;
     }
 
     bool get_element(size_t, float* out) const override {
       *out = static_cast<float>(value);
-      return false;
+      return true;
     }
 
     bool get_element(size_t, double* out) const override {
       *out = static_cast<double>(value);
-      return false;
+      return true;
     }
 
 
@@ -166,12 +166,12 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
 
     bool get_element(size_t, float* out) const override {
       *out = static_cast<float>(value);
-      return false;
+      return true;
     }
 
     bool get_element(size_t, double* out) const override {
       *out = value;
-      return false;
+      return true;
     }
 };
 
@@ -206,7 +206,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
     bool get_element(size_t, CString* out) const override {
       out->ch = value.c_str();
       out->size = static_cast<int64_t>(value.size());
-      return false;
+      return true;
     }
 };
 
@@ -241,9 +241,9 @@ Column Const_ColumnImpl::make_string_column(size_t nrows, CString x) {
 template <typename COL, SType stype>
 static Column _make(const Column& col) {
   read_t<stype> value;
-  bool isna = col.get_element(0, &value);
-  return isna? Column(new ConstNa_ColumnImpl(1, stype))
-             : Column(new COL(1, value, stype));
+  bool isvalid = col.get_element(0, &value);
+  return isvalid? Column(new COL(1, value, stype))
+                : Column(new ConstNa_ColumnImpl(1, stype));
 }
 
 Column Const_ColumnImpl::from_1row_column(const Column& col) {

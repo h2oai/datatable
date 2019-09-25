@@ -133,8 +133,8 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
 template<typename T1, typename T2>
 T2 ColumnConvertorReal<T1, T2>::operator[](size_t row) const {
   T1 value;
-  bool isna = column.get_element(row, &value);
-  return isna? GETNA<T2>() : static_cast<T2>(value);
+  bool isvalid = column.get_element(row, &value);
+  return isvalid? static_cast<T2>(value) : GETNA<T2>();
 }
 
 
@@ -148,8 +148,8 @@ void ColumnConvertorReal<T1, T2>::get_rows(
 {
   for (size_t j = 0; j < count; ++j) {
     T1 value;
-    bool isna = column.get_element(start + j * step, &value);
-    buffer[j] = isna? GETNA<T2>() : static_cast<T2>(value);
+    bool isvalid = column.get_element(start + j * step, &value);
+    buffer[j] = isvalid? static_cast<T2>(value) : GETNA<T2>();
   }
 }
 

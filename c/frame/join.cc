@@ -171,7 +171,7 @@ class FwCmp : public Cmp {
     const Column& colX;
     const Column& colJ;
     TJ x_value;   // Current value from X frame, converted to TJ type
-    bool x_isna;
+    bool x_valid;
     size_t : (64 - 8 * sizeof(TJ) - 8) & 63;
 
   public:
@@ -200,19 +200,20 @@ cmpptr FwCmp<TX, TJ>::make(const Column& col1, const Column& col2) {
 template <typename TX, typename TJ>
 int FwCmp<TX, TJ>::cmp_jrow(size_t row) const {
   TJ j_value;
-  bool j_isna = colJ.get_element(row, &j_value);
-  if (j_isna || x_isna) return x_isna - j_isna;
-  return (j_value > x_value) - (j_value < x_value);
+  bool j_valid = colJ.get_element(row, &j_value);
+  if (j_valid && x_valid) {
+    return (j_value > x_value) - (j_value < x_value);
+  } else {
+    return j_valid - x_valid;
+  }
 }
 
 
 template <typename TX, typename TJ>
 int FwCmp<TX, TJ>::set_xrow(size_t row) {
   TX newval;
-  x_isna = colX.get_element(row, &newval);
-  if (x_isna) {
-    // x_value can be left intact
-  } else {
+  x_valid = colX.get_element(row, &newval);
+  if (x_valid) {
     x_value = static_cast<TJ>(newval);
     if (std::is_integral<TJ>::value) {
       if (std::is_integral<TX>::value &&
@@ -226,6 +227,8 @@ int FwCmp<TX, TJ>::set_xrow(size_t row) {
           static_cast<TX>(x_value) != newval)
         return -1;
     }
+  } else {
+    // x_value can be left intact
   }
   return 0;
 }
@@ -261,9 +264,9 @@ cmpptr StringCmp::make(const Column& col1, const Column& col2) {
 
 int StringCmp::cmp_jrow(size_t row) const {
   CString j_value;
-  bool j_isna = colJ.get_element(row, &j_value);
-  bool x_isna = x_value.isna();
-  if (j_isna || x_isna) return x_isna - j_isna;
+  bool j_valid = colJ.get_element(row, &j_value);
+  bool x_valid = !x_value.isna();
+  if (!(j_valid && x_valid)) return j_valid - x_valid;
 
   int64_t xlen = x_value.size;
   int64_t jlen = j_value.size;
@@ -282,8 +285,8 @@ int StringCmp::cmp_jrow(size_t row) const {
 
 
 int StringCmp::set_xrow(size_t row) {
-  bool isna = colX.get_element(row, &x_value);
-  if (isna) x_value.ch = nullptr;
+  bool isvalid = colX.get_element(row, &x_value);
+  if (!isvalid) x_value.ch = nullptr;
   return 0;
 }
 

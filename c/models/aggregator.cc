@@ -610,8 +610,8 @@ void Aggregator<T>::group_2d_categorical()
       auto group_i_end = static_cast<size_t>(offsets[i+1]);
       for (size_t j = group_i_start; j < group_i_end; ++j) {
         size_t gi = ri[j];
-        bool val0_isna = col0.get_element(gi, &tmp);
-        bool val1_isna = col1.get_element(gi, &tmp);
+        bool val0_isna = !col0.get_element(gi, &tmp);
+        bool val1_isna = !col1.get_element(gi, &tmp);
         int na_case = val0_isna + 2 * val1_isna;
         if (na_case) {
           d_members[gi] = -na_case;
@@ -656,7 +656,7 @@ void Aggregator<T>::group_2d_mixed()
       auto group_i_end = static_cast<size_t>(offsets_cat[i+1]);
       for (size_t j = group_i_start; j < group_i_end; ++j) {
         size_t gi = ri_cat[j];
-        bool val0_isna = col0.get_element(gi, &tmp);
+        bool val0_isna = !col0.get_element(gi, &tmp);
         bool val1_isna = ISNA<T>(col1[gi]);
         int32_t na_case = val1_isna + 2 * val0_isna;
         if (na_case) {

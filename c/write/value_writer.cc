@@ -36,19 +36,24 @@ class generic_writer : public value_writer {
 
     void write_normal(size_t row, writing_context& ctx) const override {
       T value;
-      bool isna = column.get_element(row, &value);
-      if (isna) ctx.write_na();
-      else WriteValue(value, ctx);
+      bool isvalid = column.get_element(row, &value);
+      if (isvalid) {
+        WriteValue(value, ctx);
+      } else {
+        ctx.write_na();
+      }
     }
 
     void write_quoted(size_t row, writing_context& ctx) const override {
       T value;
-      bool isna = column.get_element(row, &value);
-      if (isna) ctx.write_na();
-      else {
+      bool isvalid = column.get_element(row, &value);
+      if (isvalid) {
         *ctx.ch++ = '"';
         WriteValue(value, ctx);
         *ctx.ch++ = '"';
+      }
+      else {
+        ctx.write_na();
       }
     }
 };

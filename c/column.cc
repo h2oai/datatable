@@ -215,29 +215,61 @@ Column::operator bool() const noexcept {
 // Column : data accessors
 //------------------------------------------------------------------------------
 
-bool Column::get_element(size_t i, int8_t*   out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, int16_t*  out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, int32_t*  out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, int64_t*  out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, float*    out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, double*   out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, CString*  out) const { return pcol->get_element(i, out); }
-bool Column::get_element(size_t i, py::robj* out) const { return pcol->get_element(i, out); }
+bool Column::get_element(size_t i, int8_t* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, int16_t* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, int32_t* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, int64_t* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, float* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, double* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, CString* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
+bool Column::get_element(size_t i, py::robj* out) const {
+  xassert(i < nrows());
+  return pcol->get_element(i, out);
+}
+
 
 
 template <typename T>
 static inline py::oobj getelem(const Column& col, size_t i) {
   T x;
-  bool r = col.get_element(i, &x);
-  return r? py::None() : py::oobj::wrap(x);
+  bool isvalid = col.get_element(i, &x);
+  return isvalid? py::oobj::wrap(x) : py::None();
 }
 
 py::oobj Column::get_element_as_pyobject(size_t i) const {
   switch (stype()) {
     case SType::BOOL: {
       int32_t x;
-      bool r = get_element(i, &x);
-      return r? py::None() : py::obool(x);
+      bool isvalid = get_element(i, &x);
+      return isvalid? py::obool(x) : py::None();
     }
     case SType::INT8:    return getelem<int8_t>(*this, i);
     case SType::INT16:   return getelem<int16_t>(*this, i);
@@ -255,20 +287,20 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 }
 
 
-const void* Column::get_data_readonly(size_t i) {
+const void* Column::get_data_readonly(size_t k) const {
   if (is_virtual()) materialize();
-  return i == 0 ? pcol->mbuf.rptr()
+  return k == 0 ? pcol->mbuf.rptr()
                 : pcol->data2();
 }
 
-void* Column::get_data_editable() {
+void* Column::get_data_editable(size_t k) {
   if (is_virtual()) materialize();
   return pcol->mbuf.wptr();
 }
 
-size_t Column::get_data_size(size_t i) {
+size_t Column::get_data_size(size_t k) const {
   if (is_virtual()) materialize();
-  return i == 0 ? pcol->mbuf.size()
+  return k == 0 ? pcol->mbuf.size()
                 : pcol->data2_size();
 }
 
@@ -278,8 +310,9 @@ size_t Column::get_data_size(size_t i) {
 // Column : manipulation
 //------------------------------------------------------------------------------
 
-void Column::materialize() {
-  pcol = pcol->materialize();
+void Column::materialize() const {
+  auto self = const_cast<Column*>(this);
+  self->pcol = self->pcol->materialize();
 }
 
 void Column::replace_values(const RowIndex& replace_at,
@@ -362,7 +395,7 @@ StrvecColumn::StrvecColumn(const strvec& v)
 bool StrvecColumn::get_element(size_t i, CString* out) const {
   out->ch = vec[i].c_str();
   out->size = static_cast<int64_t>(vec[i].size());
-  return false;
+  return true;
 }
 
 ColumnImpl* StrvecColumn::shallowcopy() const {
