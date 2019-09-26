@@ -14,7 +14,7 @@ BoolColumn::BoolColumn(size_t nrows) : FwColumn<int8_t>(nrows) {
   _stype = SType::BOOL;
 }
 
-BoolColumn::BoolColumn(size_t nrows, MemoryRange&& mem)
+BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
   : FwColumn<int8_t>(nrows, std::move(mem)) {
   _stype = SType::BOOL;
 }

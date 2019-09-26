@@ -26,7 +26,7 @@
 //------------------------------------------------------------------------------
 
 /**
-  * Abstract implementation for the MemoryRange object.
+  * Abstract implementation for the Buffer object.
   *
   * BufferImpl represents a contiguous chunk of memory, stored as the
   * `data_` pointer + `size_`. This base class does not own the data
@@ -53,7 +53,7 @@
   */
 class BufferImpl
 {
-  friend class MemoryRange;
+  friend class Buffer;
   protected:
     void*  data_;
     size_t size_;
@@ -690,144 +690,144 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
 
 
 //==============================================================================
-// MemoryRange
+// Buffer
 //==============================================================================
 
   //---- Constructors ----------------------------
 
-  MemoryRange::MemoryRange(BufferImpl*&& impl)
+  Buffer::Buffer(BufferImpl*&& impl)
     : impl_(impl) {}
 
-  MemoryRange::MemoryRange()
-    : MemoryRange(new Memory_BufferImpl(0)) {}
+  Buffer::Buffer()
+    : Buffer(new Memory_BufferImpl(0)) {}
 
-  MemoryRange::MemoryRange(const MemoryRange& other)
+  Buffer::Buffer(const Buffer& other)
     : impl_(other.impl_->acquire()) {}
 
-  MemoryRange::MemoryRange(MemoryRange&& other) {
+  Buffer::Buffer(Buffer&& other) {
     impl_ = other.impl_;
     other.impl_ = nullptr;
   }
 
-  MemoryRange& MemoryRange::operator=(const MemoryRange& other) {
+  Buffer& Buffer::operator=(const Buffer& other) {
     auto tmp = impl_;
     impl_ = other.impl_->acquire();
     tmp->release();
     return *this;
   }
 
-  MemoryRange& MemoryRange::operator=(MemoryRange&& other) {
+  Buffer& Buffer::operator=(Buffer&& other) {
     std::swap(impl_, other.impl_);
     return *this;
   }
 
-  MemoryRange::~MemoryRange() {
+  Buffer::~Buffer() {
     if (impl_) impl_->release();
   }
 
 
-  MemoryRange MemoryRange::mem(size_t n) {
-    return MemoryRange(new Memory_BufferImpl(n));
+  Buffer Buffer::mem(size_t n) {
+    return Buffer(new Memory_BufferImpl(n));
   }
 
-  MemoryRange MemoryRange::mem(int64_t n) {
-    return MemoryRange(new Memory_BufferImpl(static_cast<size_t>(n)));
+  Buffer Buffer::mem(int64_t n) {
+    return Buffer(new Memory_BufferImpl(static_cast<size_t>(n)));
   }
 
-  MemoryRange MemoryRange::acquire(void* ptr, size_t n) {
-    return MemoryRange(new Memory_BufferImpl(std::move(ptr), n));
+  Buffer Buffer::acquire(void* ptr, size_t n) {
+    return Buffer(new Memory_BufferImpl(std::move(ptr), n));
   }
 
-  MemoryRange MemoryRange::external(void* ptr, size_t n) {
-    return MemoryRange(new External_BufferImpl(ptr, n));
+  Buffer Buffer::external(void* ptr, size_t n) {
+    return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  MemoryRange MemoryRange::external(const void* ptr, size_t n) {
-    return MemoryRange(new External_BufferImpl(ptr, n));
+  Buffer Buffer::external(const void* ptr, size_t n) {
+    return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  MemoryRange MemoryRange::external(const void* ptr, size_t n, Py_buffer* pb) {
-    return MemoryRange(new External_BufferImpl(ptr, n, pb));
+  Buffer Buffer::external(const void* ptr, size_t n, Py_buffer* pb) {
+    return Buffer(new External_BufferImpl(ptr, n, pb));
   }
 
-  MemoryRange MemoryRange::view(const MemoryRange& src, size_t n, size_t offset) {
-    return MemoryRange(new View_BufferImpl(src.impl_, n, offset));
+  Buffer Buffer::view(const Buffer& src, size_t n, size_t offset) {
+    return Buffer(new View_BufferImpl(src.impl_, n, offset));
   }
 
-  MemoryRange MemoryRange::mmap(const std::string& path) {
-    return MemoryRange(new Mmap_BufferImpl(path));
+  Buffer Buffer::mmap(const std::string& path) {
+    return Buffer(new Mmap_BufferImpl(path));
   }
 
-  MemoryRange MemoryRange::mmap(const std::string& path, size_t n, int fd) {
-    return MemoryRange(new Mmap_BufferImpl(path, n, fd));
+  Buffer Buffer::mmap(const std::string& path, size_t n, int fd) {
+    return Buffer(new Mmap_BufferImpl(path, n, fd));
   }
 
-  MemoryRange MemoryRange::overmap(const std::string& path, size_t extra_n,
+  Buffer Buffer::overmap(const std::string& path, size_t extra_n,
                                    int fd)
   {
-    return MemoryRange(new Overmap_BufferImpl(path, extra_n, fd));
+    return Buffer(new Overmap_BufferImpl(path, extra_n, fd));
   }
 
 
   //---- Basic properties ------------------------
 
-  MemoryRange::operator bool() const {
+  Buffer::operator bool() const {
     return (impl_->size() != 0);
   }
 
-  bool MemoryRange::is_writable() const {
+  bool Buffer::is_writable() const {
     return impl_->is_writable();
   }
 
-  bool MemoryRange::is_resizable() const {
+  bool Buffer::is_resizable() const {
     return impl_->is_resizable();
   }
 
-  bool MemoryRange::is_pyobjects() const {
+  bool Buffer::is_pyobjects() const {
     return impl_->contains_pyobjects_;
   }
 
-  size_t MemoryRange::size() const {
+  size_t Buffer::size() const {
     return impl_->size();
   }
 
-  size_t MemoryRange::memory_footprint() const {
-    return sizeof(MemoryRange) + impl_->memory_footprint();
+  size_t Buffer::memory_footprint() const {
+    return sizeof(Buffer) + impl_->memory_footprint();
   }
 
 
   //---- Main data accessors ---------------------
 
-  const void* MemoryRange::rptr() const {
+  const void* Buffer::rptr() const {
     return impl_->data();
   }
 
-  const void* MemoryRange::rptr(size_t offset) const {
+  const void* Buffer::rptr(size_t offset) const {
     return static_cast<const char*>(rptr()) + offset;
   }
 
-  void* MemoryRange::wptr() {
+  void* Buffer::wptr() {
     if (!is_writable()) materialize();
     return impl_->data();
   }
 
-  void* MemoryRange::wptr(size_t offset) {
+  void* Buffer::wptr(size_t offset) {
     return static_cast<char*>(wptr()) + offset;
   }
 
-  void* MemoryRange::xptr() const {
+  void* Buffer::xptr() const {
     XAssert(is_writable());
     return impl_->data();
   }
 
-  void* MemoryRange::xptr(size_t offset) const {
+  void* Buffer::xptr(size_t offset) const {
     return static_cast<char*>(xptr()) + offset;
   }
 
 
-  //---- MemoryRange manipulators ----------------
+  //---- Buffer manipulators ----------------
 
-  MemoryRange& MemoryRange::set_pyobjects(bool clear_data) {
+  Buffer& Buffer::set_pyobjects(bool clear_data) {
     xassert(impl_->size() % sizeof(PyObject*) == 0);
     size_t n = impl_->size() / sizeof(PyObject*);
     if (clear_data) {
@@ -841,7 +841,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
     return *this;
   }
 
-  MemoryRange& MemoryRange::resize(size_t newsize, bool keep_data) {
+  Buffer& Buffer::resize(size_t newsize, bool keep_data) {
     size_t oldsize = impl_->size();
     if (newsize != oldsize) {
       if (is_resizable()) {
@@ -873,17 +873,17 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
 
   //---- Utility functions -----------------------
 
-  void MemoryRange::verify_integrity() const {
+  void Buffer::verify_integrity() const {
     XAssert(impl_);
     impl_->verify_integrity();
   }
 
-  void MemoryRange::materialize() {
+  void Buffer::materialize() {
     size_t s = impl_->size();
     materialize(s, s);
   }
 
-  void MemoryRange::materialize(size_t newsize, size_t copysize) {
+  void Buffer::materialize(size_t newsize, size_t copysize) {
     xassert(newsize >= copysize);
     auto newimpl = new Memory_BufferImpl(newsize);
     // No exception can occur after this point, and `newimpl` will be

@@ -19,31 +19,31 @@ class BufferImpl;
 
 
 //==============================================================================
-// MemoryRange
+// Buffer
 //==============================================================================
 
 /**
- * MemoryRange class represents a contiguous chunk of memory. This memory
- * chunk may be shared across multiple MemoryRange instances: this allows
- * MemoryRange objects to be copied with negligible overhead.
+ * Buffer class represents a contiguous chunk of memory. This memory
+ * chunk may be shared across multiple Buffer instances: this allows
+ * Buffer objects to be copied with negligible overhead.
  *
- * Internally, MemoryRange object contains just a single `shared_ptr<internal>`
- * object `o`. This shared pointer allows `MemoryRange` to be easily copyable.
+ * Internally, Buffer object contains just a single `shared_ptr<internal>`
+ * object `o`. This shared pointer allows `Buffer` to be easily copyable.
  * The "internal" struct contains a `unique_ptr<BufferImpl> impl` pointer, whereas
  * the BufferImpl object can actually be instantiated into any of the derived
  * classes (representing different backends):
  *   - plain memory storage (MemoryMRI);
  *   - memory owned by an external source (ExternalMRI);
- *   - view onto another MemoryRange (ViewMRI);
- *   - MemoryRange that is currently being "viewed" (ViewedMRI);
+ *   - view onto another Buffer (ViewMRI);
+ *   - Buffer that is currently being "viewed" (ViewedMRI);
  *   - memory-mapped file (MmapMRI).
  * This 2-tiered structure allows us to replace the internal `BufferImpl` object
  * with another implementation, if needed -- without having to modify any of
- * the user-facing `MemoryRange` objects.
+ * the user-facing `Buffer` objects.
  *
  * The class implements Copy-on-Write semantics: if a user wants to write into
- * the memory buffer contained in a MemoryRange object, and that memory buffer
- * is currently shared with other MemoryRange instances, then the class will
+ * the memory buffer contained in a Buffer object, and that memory buffer
+ * is currently shared with other Buffer instances, then the class will
  * first replace its internal impl with a writable copy of the memory buffer.
  *
  * The class may also be marked as "containing PyObjects". In this case the
@@ -65,7 +65,7 @@ class BufferImpl;
  *     DECREFing the element being overwritten.
  *
  */
-class MemoryRange
+class Buffer
 {
   private:
     BufferImpl* impl_;  // shared-pointer semantics
@@ -76,68 +76,68 @@ class MemoryRange
     // The move constructor leaves the source object in a state where the
     // only legal operation is to destruct that object.
     //
-    MemoryRange();
-    MemoryRange(const MemoryRange&);
-    MemoryRange(MemoryRange&&);
-    MemoryRange& operator=(const MemoryRange&);
-    MemoryRange& operator=(MemoryRange&&);
-    ~MemoryRange();
+    Buffer();
+    Buffer(const Buffer&);
+    Buffer(Buffer&&);
+    Buffer& operator=(const Buffer&);
+    Buffer& operator=(Buffer&&);
+    ~Buffer();
 
     // Factory constructors:
     //
-    // MemoryRange::mem(n)
+    // Buffer::mem(n)
     //   Allocate memory region of size `n` in memory (on the heap). The memory
-    //   will be freed when the MemoryRange object goes out of scope (assuming
+    //   will be freed when the Buffer object goes out of scope (assuming
     //   no shallow copies were created).
     //
-    // MemoryRange::acquire(ptr, n)
-    //   Create MemoryRange from an existing pointer `ptr` to a memory buffer
+    // Buffer::acquire(ptr, n)
+    //   Create Buffer from an existing pointer `ptr` to a memory buffer
     //   of size `n`. The ownership of `ptr` will be transferred to the
-    //   MemoryRange object. In this case the `ptr` should have had been
+    //   Buffer object. In this case the `ptr` should have had been
     //   allocated using `dt::malloc`.
     //
-    // MemoryRange::external(ptr, n)
-    //   Create MemoryRange from an existing pointer `ptr` to a memory buffer
+    // Buffer::external(ptr, n)
+    //   Create Buffer from an existing pointer `ptr` to a memory buffer
     //   of size `n`, however the ownership of the pointer will not be assumed:
     //   the caller will be responsible for deallocating `ptr` when it is no
-    //   longer in use, but not before the MemoryRange object is deleted.
+    //   longer in use, but not before the Buffer object is deleted.
     //
-    // MemoryRange::external(ptr, n, pybuf)
-    //   Create MemoryRange from a pointer `ptr` to a memory buffer of size `n`
+    // Buffer::external(ptr, n, pybuf)
+    //   Create Buffer from a pointer `ptr` to a memory buffer of size `n`
     //   and using `pybuf` as the guard for the memory buffer's lifetime. The
     //   `pybuf` here is a `Py_buffer` struct used to implement Python buffers
-    //   interface. The MemoryRange object created in this way is neither
+    //   interface. The Buffer object created in this way is neither
     //   writeable nor resizeable.
     //
-    // MemoryRange::view(src, n, offset)
-    //   Create MemoryRange as a "view" onto another MemoryRange `src`. The
+    // Buffer::view(src, n, offset)
+    //   Create Buffer as a "view" onto another Buffer `src`. The
     //   view is positioned at `offset` from the beginning of `src`s buffer,
     //   and has the length `n`.
     //
-    // MemoryRange:mmap(path)
-    //   Create MemoryRange by mem-mapping a file given by the `path`.
+    // Buffer:mmap(path)
+    //   Create Buffer by mem-mapping a file given by the `path`.
     //
-    // MemoryRange::mmap(path, n, [fd])
+    // Buffer::mmap(path, n, [fd])
     //   Create a file of size `n` at `path`, and then memory-map it.
     //
-    // MemoryRange::overmap(path, nextra)
+    // Buffer::overmap(path, nextra)
     //   Similar to `mmap(path)`, but the memmap will return a buffer
     //   over-allocated for `nextra` bytes above the size of the file. This is
     //   used mostly in fread.
     //
-    static MemoryRange mem(size_t n);
-    static MemoryRange mem(int64_t n);
-    static MemoryRange acquire(void* ptr, size_t n);
-    static MemoryRange external(void* ptr, size_t n);
-    static MemoryRange external(const void* ptr, size_t n);
-    static MemoryRange external(const void* ptr, size_t n, Py_buffer* pybuf);
-    static MemoryRange view(const MemoryRange& src, size_t n, size_t offset);
-    static MemoryRange mmap(const std::string& path);
-    static MemoryRange mmap(const std::string& path, size_t n, int fd = -1);
-    static MemoryRange overmap(const std::string& path, size_t nextra,
+    static Buffer mem(size_t n);
+    static Buffer mem(int64_t n);
+    static Buffer acquire(void* ptr, size_t n);
+    static Buffer external(void* ptr, size_t n);
+    static Buffer external(const void* ptr, size_t n);
+    static Buffer external(const void* ptr, size_t n, Py_buffer* pybuf);
+    static Buffer view(const Buffer& src, size_t n, size_t offset);
+    static Buffer mmap(const std::string& path);
+    static Buffer mmap(const std::string& path, size_t n, int fd = -1);
+    static Buffer overmap(const std::string& path, size_t nextra,
                                int fd = -1);
 
-    // Basic properties of the MemoryRange:
+    // Basic properties of the Buffer:
     //
     // size()
     //   Size of the memory in bytes.
@@ -146,7 +146,7 @@ class MemoryRange
     //   Return true if the memory allocation is non-empty, i.e. size() > 0.
     //
     // is_writable()
-    //   Return true if modifying data in this MemoryRange is allowed. This may
+    //   Return true if modifying data in this Buffer is allowed. This may
     //   return false in one of the two cases: (1) either the data is inherently
     //   read-only (e.g. opened from a file, or from external memory region
     //   passed via pybuffers interface); or (2) reference count on the data is
@@ -164,7 +164,7 @@ class MemoryRange
     //   filled with `Py_None`s during resizing.
     //
     // memory_footprint()
-    //   Return total size in bytes taken by this MemoryRange object. This
+    //   Return total size in bytes taken by this Buffer object. This
     //   includes the size of the memory buffer itself, plus the sizes of all
     //   auxiliary variables.
     //
@@ -201,7 +201,7 @@ class MemoryRange
     //   Getter/setter for individual entries in the memory buffer when it is
     //   viewed as an array `T[]`. These methods perform bounds checks on `i`,
     //   and therefore should not be used in performance-critical code.
-    //   If the MemoryRange is marked as "pyobjects" then the getter will return
+    //   If the Buffer is marked as "pyobjects" then the getter will return
     //   a "borrowed reference" object, while the setter will "steal" the
     //   ownership of `value`.
     //
@@ -214,10 +214,10 @@ class MemoryRange
     template <typename T> T get_element(size_t i) const;
     template <typename T> void set_element(size_t i, T value);
 
-    // MemoryRange manipulators
+    // Buffer manipulators
     //
     // set_pyobjects(clear_data)
-    //   Marks the MemoryRange as "pyobjects" (there is no function to remove
+    //   Marks the Buffer as "pyobjects" (there is no function to remove
     //   such a mark). The flag `clear_data` controls what to do with the
     //   existing data. If the flag is true, then current data is cleared and
     //   the buffer is filled with `Py_None` objects. In this case the data
@@ -234,8 +234,8 @@ class MemoryRange
     //   (default is true) then the implementation *may* replace the current
     //   data with garbage bytes or it may leave them intact.
     //
-    MemoryRange& set_pyobjects(bool clear_data);
-    MemoryRange& resize(size_t newsize, bool keep_data = true);
+    Buffer& set_pyobjects(bool clear_data);
+    Buffer& resize(size_t newsize, bool keep_data = true);
 
     // Utility functions
     //
@@ -245,7 +245,7 @@ class MemoryRange
     void verify_integrity() const;
 
   private:
-    explicit MemoryRange(BufferImpl*&& impl);
+    explicit Buffer(BufferImpl*&& impl);
 
     // Helper function for dealing with non-writeable objects. It will replace
     // the current `impl` with a new `MemoryMRI` object of size `newsize`,
@@ -270,14 +270,14 @@ inline void buffer_oob_check(size_t i, size_t size, size_t elemsize) {
 }
 
 template <typename T>
-T MemoryRange::get_element(size_t i) const {
+T Buffer::get_element(size_t i) const {
   buffer_oob_check(i, size(), sizeof(T));
   const T* data = static_cast<const T*>(this->rptr());
   return data[i];
 }
 
 template <>
-inline void MemoryRange::set_element(size_t i, PyObject* value) {
+inline void Buffer::set_element(size_t i, PyObject* value) {
   buffer_oob_check(i, size(), sizeof(PyObject*));
   xassert(this->is_pyobjects());
   PyObject** data = static_cast<PyObject**>(this->wptr());
@@ -286,7 +286,7 @@ inline void MemoryRange::set_element(size_t i, PyObject* value) {
 }
 
 template <typename T>
-void MemoryRange::set_element(size_t i, T value) {
+void Buffer::set_element(size_t i, T value) {
   buffer_oob_check(i, size(), sizeof(T));
   T* data = static_cast<T*>(this->wptr());
   data[i] = value;

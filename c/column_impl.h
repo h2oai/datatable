@@ -27,7 +27,7 @@
 #include "python/obj.h"
 #include "column.h"
 #include "groupby.h"
-#include "buffer.h"     // MemoryRange
+#include "buffer.h"     // Buffer
 #include "rowindex.h"
 #include "stats.h"
 #include "types.h"
@@ -85,7 +85,7 @@ using pimpl = std::unique_ptr<ColumnImpl>;
 class ColumnImpl
 {
   protected:
-    MemoryRange mbuf;
+    Buffer mbuf;
     mutable std::unique_ptr<Stats> stats;
     size_t _nrows;
     SType _stype;
@@ -117,7 +117,7 @@ class ColumnImpl
     size_t nrows() const { return _nrows; }
     SType stype() const { return _stype; }
     LType ltype() const { return info(_stype).ltype(); }
-    const MemoryRange& data_buf() const { return mbuf; }
+    const Buffer& data_buf() const { return mbuf; }
     const void* data() const { return mbuf.rptr(); }
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
@@ -179,9 +179,9 @@ class ColumnImpl
      * this method constructs a new column of the provided stype and writes the
      * converted data into it.
      *
-     * If the MemoryRange is provided, then that buffer will be used in the
+     * If the Buffer is provided, then that buffer will be used in the
      * creation of the resulting column (the ColumnImpl will assume ownership of the
-     * provided MemoryRange).
+     * provided Buffer).
      */
 
     /**
@@ -282,7 +282,7 @@ template <typename T> class FwColumn : public ColumnImpl
 public:
   FwColumn();
   FwColumn(size_t nrows);
-  FwColumn(size_t nrows, MemoryRange&&);
+  FwColumn(size_t nrows, Buffer&&);
   const T* elements_r() const;
   T* elements_w();
   T get_elem(size_t i) const;
@@ -321,7 +321,7 @@ class BoolColumn : public FwColumn<int8_t>
 {
   public:
     BoolColumn(size_t nrows = 0);
-    BoolColumn(size_t nrows, MemoryRange&&);
+    BoolColumn(size_t nrows, Buffer&&);
 
     using FwColumn<int8_t>::get_element;
     bool get_element(size_t i, int32_t* out) const override;
@@ -370,7 +370,7 @@ extern template class IntColumn<int64_t>;
  * go through Python runtime, and hence are single-threaded and slow.
  *
  * The `mbuf` array for this ColumnImpl must be marked as "pyobjects" (see
- * documentation for MemoryRange). In practice it means that:
+ * documentation for Buffer). In practice it means that:
  *   * Only real python objects may be stored, not NULL pointers.
  *   * All stored `PyObject*`s must have their reference counts incremented.
  *   * When a value is removed or replaced in `mbuf`, it should be decref'd.
@@ -382,7 +382,7 @@ class PyObjectColumn : public FwColumn<py::robj>
 public:
   PyObjectColumn();
   PyObjectColumn(size_t nrows);
-  PyObjectColumn(size_t nrows, MemoryRange&&);
+  PyObjectColumn(size_t nrows, Buffer&&);
 
   bool get_element(size_t i, py::robj* out) const override;
 
@@ -405,7 +405,7 @@ protected:
 
 template <typename T> class StringColumn : public ColumnImpl
 {
-  MemoryRange strbuf;
+  Buffer strbuf;
 
 public:
   StringColumn();
@@ -414,7 +414,7 @@ public:
   ColumnImpl* materialize() override;
   void apply_na_mask(const Column& mask) override;
 
-  MemoryRange str_buf() const { return strbuf; }
+  Buffer str_buf() const { return strbuf; }
   size_t datasize() const;
   size_t data_nrows() const override;
   const char* strdata() const;
@@ -435,7 +435,7 @@ public:
   bool get_element(size_t i, CString* out) const override;
 
 protected:
-  StringColumn(size_t nrows, MemoryRange&& offbuf, MemoryRange&& strbuf);
+  StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
   void init_data() override;
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;

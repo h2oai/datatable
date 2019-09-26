@@ -166,7 +166,7 @@ void slice_in::execute_grouped(EvalContext& ctx) {
 
   size_t ri_size = istep == 0? ng * static_cast<size_t>(istop) : ctx.nrows();
   arr32_t out_ri_array(ri_size);
-  MemoryRange out_groups = MemoryRange::mem((ng + 1) * sizeof(int32_t));
+  Buffer out_groups = Buffer::mem((ng + 1) * sizeof(int32_t));
   int32_t* out_rowindices = out_ri_array.data();
   int32_t* out_offsets = static_cast<int32_t*>(out_groups.xptr()) + 1;
   out_offsets[-1] = 0;

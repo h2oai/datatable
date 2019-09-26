@@ -222,10 +222,10 @@ void* MemoryWritableBuffer::get_cptr()
 }
 
 
-MemoryRange MemoryWritableBuffer::get_mbuf() {
+Buffer MemoryWritableBuffer::get_mbuf() {
   size_t size = allocsize;
   void* ptr = get_cptr();
-  return MemoryRange::acquire(ptr, size);
+  return Buffer::acquire(ptr, size);
 }
 
 

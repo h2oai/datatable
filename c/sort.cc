@@ -577,7 +577,7 @@ class SortContext {
     size_t ng = gg.size();
     xassert(groups.size() > ng);
     size_t memsize = (ng + 1) * sizeof(int32_t);
-    MemoryRange mr = MemoryRange::mem(memsize);
+    Buffer mr = Buffer::mem(memsize);
     std::memcpy(mr.xptr(), groups.data(), memsize);
     return Groupby(ng, std::move(mr));
   }

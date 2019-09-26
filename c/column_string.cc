@@ -27,7 +27,7 @@ template <typename T>
 StringColumn<T>::StringColumn(size_t n)
   : ColumnImpl(n, stype_for<T>())
 {
-  mbuf = MemoryRange::mem(sizeof(T) * (n + 1));
+  mbuf = Buffer::mem(sizeof(T) * (n + 1));
   mbuf.set_element<T>(0, 0);
 }
 
@@ -40,7 +40,7 @@ StringColumn<T>::StringColumn()
 
 // private: use `new_string_column(n, &&mb, &&sb)` instead
 template <typename T>
-StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
+StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
   : ColumnImpl(n, stype_for<T>())
 {
   xassert(mb);
@@ -61,7 +61,7 @@ StringColumn<T>::StringColumn(size_t n, MemoryRange&& mb, MemoryRange&& sb)
 
 template <typename T>
 void StringColumn<T>::init_data() {
-  mbuf = MemoryRange::mem((_nrows + 1) * sizeof(T));
+  mbuf = Buffer::mem((_nrows + 1) * sizeof(T));
   mbuf.set_element<T>(0, 0);
 }
 
@@ -147,7 +147,7 @@ void StringColumn<T>::replace_values(
       bool isvalid = with.get_element(0, &repl_value);
       if (!isvalid) repl_value = CString();
     }
-    MemoryRange mask = replace_at.as_boolean_mask(_nrows);
+    Buffer mask = replace_at.as_boolean_mask(_nrows);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
@@ -155,7 +155,7 @@ void StringColumn<T>::replace_values(
       });
   }
   else {
-    MemoryRange mask = replace_at.as_integer_mask(_nrows);
+    Buffer mask = replace_at.as_integer_mask(_nrows);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {

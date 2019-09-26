@@ -694,7 +694,7 @@ static PKArgs fn___setstate__(
 
 // TODO: add py::obytes object
 oobj Frame::m__getstate__(const PKArgs&) {
-  MemoryRange mr = dt->save_jay();
+  Buffer mr = dt->save_jay();
   auto data = static_cast<const char*>(mr.xptr());
   auto size = static_cast<Py_ssize_t>(mr.size());
   return oobj::from_new_reference(PyBytes_FromStringAndSize(data, size));
