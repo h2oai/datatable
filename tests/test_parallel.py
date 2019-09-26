@@ -108,10 +108,10 @@ def test_internal_parallel_for_ordered2():
                          )
                         )
 def test_progress(parallel_type, nthreads):
-    niters = 1000
+    niterations = 1000
     ntimes = 5
     cmd_run = "core.test_progress_%s(%s, %s);" % (
-              parallel_type, niters, nthreads)
+              parallel_type, niterations, nthreads)
     for _ in range(ntimes) :
         exec(cmd_run)
 
@@ -126,23 +126,23 @@ def test_progress(parallel_type, nthreads):
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niters = 100000
+    niterations = 100000
     sleep_time = 0.1
     exception = "KeyboardInterrupt\n"
-    cmd_import = "import datatable as dt; from datatable.lib import core;"
-    cmd_import += "dt.options.progress.enabled = True;"
-    cmd_import += "dt.options.progress.min_duration = 0;"
-    cmd_import += "print('%s start', flush = True); " % parallel_type;
+    cmd_settings = "import datatable as dt; from datatable.lib import core;"
+    cmd_settings += "dt.options.progress.enabled = True;"
+    cmd_settings += "dt.options.progress.min_duration = 0;"
+    cmd_settings += "print('%s start', flush = True); " % parallel_type;
 
     if parallel_type is None:
-        cmd_run = "import time; dt.options.nthreads = %s; time.sleep(%s);" % (
-                  nthreads, sleep_time * 10)
+        cmd_settings += "import time; "
+        cmd_settings += "dt.options.nthreads = %s; " % nthreads
+        cmd_run = "time.sleep(%s);" % sleep_time * 10
     else:
         cmd_run = "core.test_progress_%s(%s, %s)" % (
-                  parallel_type, niters, nthreads)
-    cmd = cmd_import + cmd_run
+                  parallel_type, niterations, nthreads)
 
-    proc = subprocess.Popen(["python", "-c", cmd],
+    proc = subprocess.Popen(["python", "-c", cmd_settings + cmd_run],
                             stdout = subprocess.PIPE,
                             stderr = subprocess.PIPE)
 
@@ -153,7 +153,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     (stdout, stderr) = proc.communicate()
 
     if (parallel_type) :
-        assert stdout.decode().find("[cancelled")
+        assert stdout.decode().endswith("[cancelled]\x1b[m\x1b[K\n")
     assert stderr.decode().endswith(exception)
 
 
