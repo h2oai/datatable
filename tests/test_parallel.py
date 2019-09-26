@@ -109,7 +109,7 @@ def test_internal_parallel_for_ordered2():
                         )
 def test_progress(parallel_type, nthreads):
     niterations = 1000
-    ntimes = 5
+    ntimes = 2
     cmd_run = "core.test_progress_%s(%s, %s);" % (
               parallel_type, niterations, nthreads)
     for _ in range(ntimes) :
