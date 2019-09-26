@@ -15,8 +15,7 @@
 #include "utils/exceptions.h"
 #include "writebuf.h"
 
-class BaseMRI;
-class ViewedMRI;
+class BufferImpl;
 
 
 //==============================================================================
@@ -30,15 +29,15 @@ class ViewedMRI;
  *
  * Internally, MemoryRange object contains just a single `shared_ptr<internal>`
  * object `o`. This shared pointer allows `MemoryRange` to be easily copyable.
- * The "internal" struct contains a `unique_ptr<BaseMRI> impl` pointer, whereas
- * the BaseMRI object can actually be instantiated into any of the derived
+ * The "internal" struct contains a `unique_ptr<BufferImpl> impl` pointer, whereas
+ * the BufferImpl object can actually be instantiated into any of the derived
  * classes (representing different backends):
  *   - plain memory storage (MemoryMRI);
  *   - memory owned by an external source (ExternalMRI);
  *   - view onto another MemoryRange (ViewMRI);
  *   - MemoryRange that is currently being "viewed" (ViewedMRI);
  *   - memory-mapped file (MmapMRI).
- * This 2-tiered structure allows us to replace the internal `BaseMRI` object
+ * This 2-tiered structure allows us to replace the internal `BufferImpl` object
  * with another implementation, if needed -- without having to modify any of
  * the user-facing `MemoryRange` objects.
  *
@@ -69,8 +68,7 @@ class ViewedMRI;
 class MemoryRange
 {
   private:
-    struct internal;
-    std::shared_ptr<internal> o;
+    BufferImpl* impl_;  // shared-pointer semantics
 
   public:
     // Basic copy & move constructors / assignment operators.
@@ -79,10 +77,11 @@ class MemoryRange
     // only legal operation is to destruct that object.
     //
     MemoryRange();
-    MemoryRange(const MemoryRange&) = default;
-    MemoryRange(MemoryRange&&) = default;
-    MemoryRange& operator=(const MemoryRange&) = default;
-    MemoryRange& operator=(MemoryRange&&) = default;
+    MemoryRange(const MemoryRange&);
+    MemoryRange(MemoryRange&&);
+    MemoryRange& operator=(const MemoryRange&);
+    MemoryRange& operator=(MemoryRange&&);
+    ~MemoryRange();
 
     // Factory constructors:
     //
@@ -253,7 +252,7 @@ class MemoryRange
     void verify_integrity() const;
 
   private:
-    explicit MemoryRange(BaseMRI* impl);
+    explicit MemoryRange(BufferImpl* impl);
 
     // Helper function for dealing with non-writeable objects. It will replace
     // the current `impl` with a new `MemoryMRI` object of size `newsize`,
@@ -262,8 +261,6 @@ class MemoryRange
     // The no-arguments form does pure copy (i.e. newsize = copysize = bufsize)
     void materialize(size_t newsize, size_t copysize);
     void materialize();
-
-    friend ViewedMRI;
 };
 
 
