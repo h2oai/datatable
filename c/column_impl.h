@@ -125,7 +125,6 @@ class ColumnImpl
       assert(!is_virtual());
       return mbuf.wptr();
     }
-    PyObject* mbuf_repr() const;
     size_t alloc_size() const;
 
     virtual size_t data_nrows() const;

@@ -108,10 +108,6 @@ size_t ColumnImpl::alloc_size() const {  // TODO: remove
   return _nrows * info(_stype).elemsize();
 }
 
-PyObject* ColumnImpl::mbuf_repr() const {
-  return mbuf.pyrepr();
-}
-
 
 
 
@@ -293,7 +289,7 @@ const void* Column::get_data_readonly(size_t k) const {
                 : pcol->data2();
 }
 
-void* Column::get_data_editable(size_t k) {
+void* Column::get_data_editable(size_t) {
   if (is_virtual()) materialize();
   return pcol->mbuf.wptr();
 }

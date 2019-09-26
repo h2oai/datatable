@@ -241,14 +241,9 @@ class MemoryRange
 
     // Utility functions
     //
-    // pyrepr()
-    //   Return PyObject* containing `repr()` string of this object. [Not sure
-    //   if this function ought to exist].
-    //
     // verify_integrity()
     //   Check internal validity of this object.
     //
-    PyObject* pyrepr() const;
     void verify_integrity() const;
 
   private:

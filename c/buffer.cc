@@ -25,119 +25,156 @@
 // BufferImpl
 //------------------------------------------------------------------------------
 
-  class BufferImpl {
-    public:
-      void*  bufdata;
-      size_t bufsize;
-      size_t refcount;
-      uint32_t n_shared;
-      bool   pyobjects;
-      bool   writable;
-      bool   resizable;
-      int : 8;
+class BufferImpl {
+  public:
+    void*  bufdata;
+    size_t bufsize;
+    size_t refcount;
+    uint32_t n_shared;
+    bool   pyobjects;
+    bool   writable;
+    bool   resizable;
+    int : 8;
 
-    public:
-      BufferImpl()
-        : bufdata(nullptr),
-          bufsize(0),
-          refcount(0),
-          n_shared(0),
-          pyobjects(false),
-          writable(true),
-          resizable(true) {}
+  public:
+    BufferImpl()
+      : bufdata(nullptr),
+        bufsize(0),
+        refcount(0),
+        n_shared(0),
+        pyobjects(false),
+        writable(true),
+        resizable(true) {}
 
-      virtual ~BufferImpl() {
-        wassert(!pyobjects);
+    virtual ~BufferImpl() {
+      wassert(!pyobjects);
+    }
+
+    // If memory buffer contains `PyObject*`s, then they must be
+    // DECREFed before being deleted.
+    //
+    // This method must be called by the destructors of the derived
+    // classes. The reason this code is not in the ~BufferImpl is
+    // because it is the derived classes who handle freeing
+    // `bufdata`, and clearing PyObjects must happen before that.
+    //
+    void clear_pyobjects() {
+      if (!pyobjects) return;
+      PyObject** items = static_cast<PyObject**>(bufdata);
+      size_t n = bufsize / sizeof(PyObject*);
+      for (size_t i = 0; i < n; ++i) {
+        Py_DECREF(items[i]);
       }
+      pyobjects = false;
+    }
 
-      // If memory buffer contains `PyObject*`s, then they must be
-      // DECREFed before being deleted.
-      //
-      // This method must be called by the destructors of the derived
-      // classes. The reason this code is not in the ~BufferImpl is
-      // because it is the derived classes who handle freeing
-      // `bufdata`, and clearing PyObjects must happen before that.
-      //
-      void clear_pyobjects() {
-        if (!pyobjects) return;
-        PyObject** items = static_cast<PyObject**>(bufdata);
+    BufferImpl* acquire() {
+      refcount++;
+      return this;
+    }
+
+    void release() {
+      refcount--;
+      if (refcount == 0) delete this;
+    }
+
+    virtual size_t size() const { return bufsize; }
+    virtual void* ptr() const { return bufdata; }
+    virtual void resize(size_t) = 0;
+    virtual size_t memory_footprint() const = 0;
+
+    virtual void verify_integrity() const {
+      if (!bufdata && bufsize) {
+        throw AssertionError()
+            << "Buffer has bufdata = NULL but size = " << bufsize;
+      }
+      if (bufdata && !bufsize) {
+        throw AssertionError()
+            << "Buffer has bufdata = " << bufdata << " but size = 0";
+      }
+      if (resizable && !writable) {
+        throw AssertionError() << "Buffer is resizable but not writable";
+      }
+      if (pyobjects) {
         size_t n = bufsize / sizeof(PyObject*);
+        if (bufsize != n * sizeof(PyObject*)) {
+          throw AssertionError()
+              << "Buffer is marked as containing PyObjects, but its size is "
+              << bufsize << ", not a multiple of " << sizeof(PyObject*);
+        }
+        PyObject** elements = static_cast<PyObject**>(bufdata);
         for (size_t i = 0; i < n; ++i) {
-          Py_DECREF(items[i]);
-        }
-        pyobjects = false;
-      }
-
-      BufferImpl* acquire() {
-        refcount++;
-        return this;
-      }
-
-      void release() {
-        refcount--;
-        if (refcount == 0) delete this;
-      }
-
-      virtual void resize(size_t) {}
-      virtual size_t size() const { return bufsize; }
-      virtual void* ptr() const { return bufdata; }
-      virtual size_t memory_footprint() const = 0;
-      virtual const char* name() const = 0;
-
-      virtual void verify_integrity() const {
-        if (!bufdata && bufsize) {
-          throw AssertionError()
-              << "Buffer has bufdata = NULL but size = " << bufsize;
-        }
-        if (bufdata && !bufsize) {
-          throw AssertionError()
-              << "Buffer has bufdata = " << bufdata << " but size = 0";
-        }
-        if (resizable && !writable) {
-          throw AssertionError() << "Buffer is resizable but not writable";
-        }
-        if (pyobjects) {
-          size_t n = bufsize / sizeof(PyObject*);
-          if (bufsize != n * sizeof(PyObject*)) {
+          if (elements[i] == nullptr) {
             throw AssertionError()
-                << "Buffer is marked as containing PyObjects, but its size is "
-                << bufsize << ", not a multiple of " << sizeof(PyObject*);
+                << "Element " << i << " in pyobjects Buffer is NULL";
           }
-          PyObject** elements = static_cast<PyObject**>(bufdata);
-          for (size_t i = 0; i < n; ++i) {
-            if (elements[i] == nullptr) {
-              throw AssertionError()
-                  << "Element " << i << " in pyobjects Buffer is NULL";
-            }
-            if (elements[i]->ob_refcnt <= 0) {
-              throw AssertionError()
-                  << "Reference count on PyObject at index " << i
-                  << " in Buffer is " << elements[i]->ob_refcnt;
-            }
+          if (elements[i]->ob_refcnt <= 0) {
+            throw AssertionError()
+                << "Reference count on PyObject at index " << i
+                << " in Buffer is " << elements[i]->ob_refcnt;
           }
         }
       }
-  };
+    }
+};
 
 
 
 
 //------------------------------------------------------------------------------
-// MemoryMRI
+// Memory_BufferImpl
 //------------------------------------------------------------------------------
 
-  class MemoryMRI : public BufferImpl {
-    public:
-      explicit MemoryMRI(size_t n);
-      MemoryMRI(size_t n, void* ptr);
-      ~MemoryMRI() override;
+class Memory_BufferImpl : public BufferImpl {
+  public:
+    explicit Memory_BufferImpl(size_t n) {
+      bufsize = n;
+      bufdata = dt::malloc<void>(n);
+    }
 
-      void resize(size_t n) override;
-      size_t memory_footprint() const override;
-      const char* name() const override { return "ram"; }
-      void verify_integrity() const override;
-  };
+    Memory_BufferImpl(size_t n, void* ptr) {
+      if (n && !ptr) {
+        throw ValueError() << "Unallocated memory region provided";
+      }
+      bufsize = n;
+      bufdata = ptr;
+    }
 
+    ~Memory_BufferImpl() override {
+      clear_pyobjects();
+      dt::free(bufdata);
+   }
+
+    void resize(size_t n) override {
+      if (n == bufsize) return;
+      bufdata = dt::realloc(bufdata, n);
+      bufsize = n;
+    }
+
+    size_t memory_footprint() const override {
+      return sizeof(Memory_BufferImpl) + bufsize;
+    }
+
+    void verify_integrity() const override {
+      BufferImpl::verify_integrity();
+      if (bufsize) {
+        size_t actual_allocsize = malloc_size(bufdata);
+        if (bufsize > actual_allocsize) {
+          throw AssertionError()
+              << "MemoryRange has bufsize = " << bufsize
+              << ", while the internal buffer was allocated for "
+              << actual_allocsize << " bytes only";
+        }
+      }
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// ExternalMRI
+//------------------------------------------------------------------------------
 
   class ExternalMRI : public BufferImpl {
     private:
@@ -151,7 +188,6 @@
 
       void resize(size_t n) override;
       size_t memory_footprint() const override;
-      const char* name() const override { return "ext"; }
   };
 
 
@@ -191,7 +227,6 @@
 
       void resize(size_t n) override;
       size_t memory_footprint() const override;
-      const char* name() const override { return "view"; }
       void verify_integrity() const override;
   };
 
@@ -218,7 +253,6 @@
       void evict() override;
       void resize(size_t n) override;
       size_t memory_footprint() const override;
-      const char* name() const override { return "mmap"; }
       void verify_integrity() const override;
 
     protected:
@@ -237,7 +271,6 @@
       ~OvermapMRI() override;
 
       virtual size_t memory_footprint() const override;
-      const char* name() const override { return "omap"; }
 
     protected:
       void memmap() override;
@@ -246,60 +279,11 @@
 
 
 
-//==============================================================================
-// BufferImpl
-//==============================================================================
-
-
-
-
 
 //==============================================================================
-// MemoryMRI
+// Memory_BufferImpl
 //==============================================================================
 
-  MemoryMRI::MemoryMRI(size_t n) {
-    bufsize = n;
-    bufdata = dt::malloc<void>(n);
-    TRACK(this, sizeof(*this), "MemoryMRI");
-  }
-
-  MemoryMRI::MemoryMRI(size_t n, void* ptr) {
-    if (n && !ptr) throw ValueError() << "Unallocated memory region provided";
-    // xassert(!ptr || IS_TRACKED(ptr));
-    bufsize = n;
-    bufdata = ptr;
-    TRACK(this, sizeof(*this), "MemoryMRI");
-  }
-
-  MemoryMRI::~MemoryMRI() {
-    clear_pyobjects();
-    dt::free(bufdata);
-    UNTRACK(this);
-  }
-
-  size_t MemoryMRI::memory_footprint() const {
-    return sizeof(MemoryMRI) + bufsize;
-  }
-
-  void MemoryMRI::resize(size_t n) {
-    if (n == bufsize) return;
-    bufdata = dt::realloc(bufdata, n);
-    bufsize = n;
-  }
-
-  void MemoryMRI::verify_integrity() const {
-    BufferImpl::verify_integrity();
-    if (bufsize) {
-      size_t actual_allocsize = malloc_size(bufdata);
-      if (bufsize > actual_allocsize) {
-        throw AssertionError()
-            << "MemoryRange has bufsize = " << bufsize
-            << ", while the internal buffer was allocated for "
-            << actual_allocsize << " bytes only";
-      }
-    }
-  }
 
 
 
@@ -728,7 +712,7 @@
     : impl_(impl->acquire()) {}
 
   MemoryRange::MemoryRange()
-    : MemoryRange(new MemoryMRI(0)) {}
+    : MemoryRange(new Memory_BufferImpl(0)) {}
 
   MemoryRange::MemoryRange(const MemoryRange& other)
     : impl_(other.impl_->acquire()) {}
@@ -756,15 +740,15 @@
 
 
   MemoryRange MemoryRange::mem(size_t n) {
-    return MemoryRange(new MemoryMRI(n));
+    return MemoryRange(new Memory_BufferImpl(n));
   }
 
   MemoryRange MemoryRange::mem(int64_t n) {
-    return MemoryRange(new MemoryMRI(static_cast<size_t>(n)));
+    return MemoryRange(new Memory_BufferImpl(static_cast<size_t>(n)));
   }
 
   MemoryRange MemoryRange::acquire(void* ptr, size_t n) {
-    return MemoryRange(new MemoryMRI(n, ptr));
+    return MemoryRange(new Memory_BufferImpl(n, ptr));
   }
 
   MemoryRange MemoryRange::external(const void* ptr, size_t n) {
@@ -877,7 +861,7 @@
 
   MemoryRange& MemoryRange::resize(size_t newsize, bool keep_data) {
     if (!impl_) {
-      impl_ = (new MemoryMRI(newsize))->acquire();
+      impl_ = (new Memory_BufferImpl(newsize))->acquire();
     }
     size_t oldsize = impl_->size();
     if (newsize != oldsize) {
@@ -918,12 +902,6 @@
 
   //---- Utility functions -----------------------
 
-  PyObject* MemoryRange::pyrepr() const {
-    return PyUnicode_FromFormat("<MemoryRange:%s %p+%zu (ref=%zu)>",
-                                impl_->name(), impl_->ptr(), impl_->size(),
-                                impl_->refcount);
-  }
-
   void MemoryRange::verify_integrity() const {
     if (!impl_) {
       throw AssertionError() << "NULL implementation object in MemoryRange";
@@ -938,7 +916,7 @@
 
   void MemoryRange::materialize(size_t newsize, size_t copysize) {
     xassert(newsize >= copysize);
-    MemoryMRI* newimpl = new MemoryMRI(newsize);
+    Memory_BufferImpl* newimpl = new Memory_BufferImpl(newsize);
     if (copysize) {
       std::memcpy(newimpl->ptr(), impl_->ptr(), copysize);
     }
