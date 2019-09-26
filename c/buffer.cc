@@ -8,9 +8,6 @@
 #include <algorithm>           // std::min
 #include <cerrno>              // errno
 #include <mutex>               // std::mutex, std::lock_guard
-#ifndef _WIN32
-#include <sys/mman.h>          // mmap, munmap
-#endif
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
 #include "utils/exceptions.h"  // ValueError, MemoryError
 #include "utils/macros.h"
@@ -19,6 +16,9 @@
 #include "buffer.h"
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
 
+#if !DT_OS_WINDOWS
+  #include <sys/mman.h>        // mmap, munmap
+#endif
 
 
 //------------------------------------------------------------------------------
@@ -350,36 +350,228 @@ class View_BufferImpl : public BufferImpl
 
 
 //------------------------------------------------------------------------------
-// MmapMRI
+// Mmap_BufferImpl
 //------------------------------------------------------------------------------
 
-  class MmapMRI : public BufferImpl, MemoryMapWorker {
-    private:
-      const std::string filename;
-      size_t mmm_index;
-      int fd;
-      bool mapped;
-      bool temporary_file;
-      int : 16;
+class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
+  private:
+    const std::string filename_;
+    size_t mmm_index_;
+    int fd_;
+    bool mapped_;
+    bool temporary_file_;
+    int : 16;
 
-    public:
-      explicit MmapMRI(const std::string& path);
-      MmapMRI(size_t n, const std::string& path, int fd);
-      MmapMRI(size_t n, const std::string& path, int fd, bool create);
-      virtual ~MmapMRI() override;
+  //------------------------------------
+  // Constructors
+  //------------------------------------
+  public:
+    explicit Mmap_BufferImpl(const std::string& path)
+      : Mmap_BufferImpl(0, path, -1, false) {}
 
-      void* data() const override;
-      size_t size() const override;
-      void save_entry_index(size_t i) override;
-      void evict() override;
-      void resize(size_t n) override;
-      size_t memory_footprint() const override;
-      void verify_integrity() const override;
+    Mmap_BufferImpl(size_t n, const std::string& path, int fileno)
+      : Mmap_BufferImpl(n, path, fileno, true) {}
 
-    protected:
-      virtual void memmap();
-      void memunmap();
-  };
+    Mmap_BufferImpl(size_t n, const std::string& path, int fileno, bool create)
+      : filename_(path), fd_(fileno), mapped_(false)
+    {
+      data_ = nullptr;
+      size_ = n;
+      writable_ = create;
+      resizable_ = create;
+      temporary_file_ = create;
+      mmm_index_ = 0;
+    }
+
+    virtual ~Mmap_BufferImpl() override {
+      memunmap();
+      if (temporary_file_) {
+        File::remove(filename_, /* except= */ false);
+      }
+    }
+
+
+  //------------------------------------
+  // Properties
+  //------------------------------------
+  public:
+    void* data() const override {
+      const_cast<Mmap_BufferImpl*>(this)->memmap();
+      return data_;
+    }
+
+    size_t size() const override {
+      if (mapped_) {
+        return size_;
+      } else {
+        bool create = temporary_file_;
+        size_t filesize = File::asize(filename_);
+        size_t extra = create? 0 : size_;
+        return filesize==0? 0 : filesize + extra;
+      }
+    }
+
+    void resize(size_t n) override {
+      memunmap();
+      File file(filename_, File::READWRITE);
+      file.resize(n);
+      memmap();
+    }
+
+    size_t memory_footprint() const override {
+      return sizeof(Mmap_BufferImpl) + filename_.size() + (mapped_? size_ : 0);
+    }
+
+    void verify_integrity() const override {
+      BufferImpl::verify_integrity();
+      if (mapped_) {
+        XAssert(MemoryMapManager::get()->check_entry(mmm_index_, this));
+      }
+      else {
+        XAssert(mmm_index_ == 0);
+        XAssert(!size_ && !data_);
+      }
+    }
+
+
+  //------------------------------------
+  // MemoryMapWorker interface
+  //------------------------------------
+  public:
+    void save_entry_index(size_t i) override {
+      mmm_index_ = i;
+      xassert(MemoryMapManager::get()->check_entry(mmm_index_, this));
+    }
+
+    void evict() override {
+      mmm_index_ = 0;  // prevent from sending del_entry() signal back
+      memunmap();
+      xassert(!mapped_ && !mmm_index_);
+    }
+
+
+  //------------------------------------
+  // Mapping / Unmapping
+  //------------------------------------
+  protected:
+    virtual void memmap() {
+      if (mapped_) return;
+      #if DT_OS_WINDOWS
+        throw NotImplError() << "Memory-mapping not supported on Windows yet";
+
+      #else
+        // Place a mutex lock to prevent multiple threads from trying
+        // to perform memory-mapping of different files (or same file)
+        // in parallel. If multiple threads called this method at the
+        // same time, then only one will proceed, while all others
+        // will wait until the lock is released, and then exit because
+        // flag `mapped_` will now be true.
+        static std::mutex mmp_mutex;
+        std::lock_guard<std::mutex> _(mmp_mutex);
+        if (mapped_) return;
+
+        bool create = temporary_file_;
+        size_t n = size_;
+
+        File file(filename_, create? File::CREATE : File::READ, fd_);
+        file.assert_is_not_dir();
+        if (create) {
+          file.resize(n);
+        }
+        size_t filesize = file.size();
+        if (filesize == 0) {
+          // Cannot memory-map 0-bytes file. However we shouldn't
+          // really need to: if memory size is 0 then mmp can be NULL
+          // as nobody is going to read from it anyways.
+          size_ = 0;
+          data_ = nullptr;
+          mapped_ = true;
+          return;
+        }
+        size_ = filesize + (create? 0 : n);
+
+        // Memory-map the file.
+        // In "open" mode if `n` is non-zero, then we will be opening
+        // a buffer with larger size than the actual file size. Also,
+        // the file is opened in "private, read-write" mode -- meaning
+        // that the user can write to that buffer if needed. From the
+        // man pages of `mmap`:
+        //
+        // | MAP_SHARED
+        // |   Share this mapping. Updates to the mapping are visible
+        // |   to other processes that map this file, and are carried
+        // |   through to the underlying file. The file may not
+        // |   actually be updated until msync(2) or munmap() is
+        // |   called.
+        // | MAP_PRIVATE
+        // |   Create a private copy-on-write mapping.  Updates to the
+        // |   mapping are not carried through to the underlying file.
+        // | MAP_NORESERVE
+        // |   Do not reserve swap space for this mapping.  When swap
+        // |   space is reserved, one has the guarantee that it is
+        // |   possible to modify the mapping.  When swap space is not
+        // |   reserved one might get SIGSEGV upon a write if no
+        // |   physical memory is available.
+        //
+        int attempts = 3;
+        while (attempts--) {
+          int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
+          data_ = mmap(/* address = */ nullptr,
+                         /* length = */ size_,
+                         /* protection = */ PROT_WRITE|PROT_READ,
+                         /* flags = */ flags,
+                         /* fd = */ file.descriptor(),
+                         /* offset = */ 0);
+          if (data_ == MAP_FAILED) {
+            data_ = nullptr;
+            if (errno == 12) {  // release some memory and try again
+              MemoryMapManager::get()->freeup_memory();
+              if (attempts) {
+                errno = 0;
+                continue;
+              }
+            }
+            // Exception is thrown from the constructor -> the base class'
+            // destructor will be called, which checks that `data_` is null.
+            throw IOError() << "Memory-map failed for file " << file.cname()
+                            << " of size " << filesize
+                            << " +" << size_ - filesize << Errno;
+          } else {
+            MemoryMapManager::get()->add_entry(this, size_);
+            break;
+          }
+        }
+        mapped_ = true;
+        xassert(mmm_index_);
+      #endif
+    }
+
+    void memunmap() noexcept {
+      if (!mapped_) return;
+      #if DT_OS_WINDOWS
+      #else
+        if (data_) {
+          int ret = munmap(data_, size_);
+          if (ret) {
+            // Cannot throw exceptions from a destructor, so just
+            // print a message
+            printf("Error unmapping the view of file: [errno %d] %s. "
+                   "Resources may have not been freed properly.",
+                   errno, std::strerror(errno));
+          }
+          data_ = nullptr;
+        }
+        mapped_ = false;
+        size_ = 0;
+        if (mmm_index_) {
+          try {
+            MemoryMapManager::get()->del_entry(mmm_index_);
+          } catch (...) {}
+          mmm_index_ = 0;
+        }
+      #endif
+    }
+};
 
 
 
@@ -388,7 +580,7 @@ class View_BufferImpl : public BufferImpl
 // OvermapMRI
 //------------------------------------------------------------------------------
 
-  class OvermapMRI : public MmapMRI {
+  class OvermapMRI : public Mmap_BufferImpl {
     private:
       void* xbuf;
       size_t xbuf_size;
@@ -405,236 +597,16 @@ class View_BufferImpl : public BufferImpl
 
 
 
-
-//==============================================================================
-// MmapMRI
-//==============================================================================
-
-  MmapMRI::MmapMRI(const std::string& path)
-    : MmapMRI(0, path, -1, false) {}
-
-  MmapMRI::MmapMRI(size_t n, const std::string& path, int fileno)
-    : MmapMRI(n, path, fileno, true) {}
-
-  MmapMRI::MmapMRI(size_t n, const std::string& path, int fileno, bool create)
-    : filename(path), fd(fileno), mapped(false)
-  {
-    data_ = nullptr;
-    size_ = n;
-    writable_ = create;
-    resizable_ = create;
-    temporary_file = create;
-    mmm_index = 0;
-    TRACK(this, sizeof(*this), "MmapMRI");
-  }
-
-  MmapMRI::~MmapMRI() {
-    memunmap();
-    if (temporary_file) {
-      File::remove(filename);
-    }
-    UNTRACK(this);
-  }
-
-  void* MmapMRI::data() const {
-    const_cast<MmapMRI*>(this)->memmap();
-    return data_;
-  }
-
-  void MmapMRI::resize(size_t n) {
-    memunmap();
-    File file(filename, File::READWRITE);
-    file.resize(n);
-    memmap();
-  }
-
-  size_t MmapMRI::memory_footprint() const {
-    return sizeof(MmapMRI) + filename.size() + (mapped? size_ : 0);
-  }
-
-  void MmapMRI::memmap() {
-    if (mapped) return;
-    #ifdef _WIN32
-      throw RuntimeError() << "Memory-mapping not supported on Windows yet";
-
-    #else
-      // Place a mutex lock to prevent multiple threads from trying to perform
-      // memory-mapping of different files (or same file) in parallel. If
-      // multiple threads called this method at the same time, then only one
-      // will proceed, while all others will wait until the lock is released,
-      // and then exit because flag `mapped` will now be true.
-      static std::mutex mmp_mutex;
-      std::lock_guard<std::mutex> _(mmp_mutex);
-      if (mapped) return;
-
-      bool create = temporary_file;
-      size_t n = size_;
-
-      File file(filename, create? File::CREATE : File::READ, fd);
-      file.assert_is_not_dir();
-      if (create) {
-        file.resize(n);
-      }
-      size_t filesize = file.size();
-      if (filesize == 0) {
-        // Cannot memory-map 0-bytes file. However we shouldn't really need to:
-        // if memory size is 0 then mmp can be NULL as nobody is going to read
-        // from it anyways.
-        size_ = 0;
-        data_ = nullptr;
-        mapped = true;
-        return;
-      }
-      size_ = filesize + (create? 0 : n);
-
-      // Memory-map the file.
-      // In "open" mode if `n` is non-zero, then we will be opening a buffer
-      // with larger size than the actual file size. Also, the file is opened in
-      // "private, read-write" mode -- meaning that the user can write to that
-      // buffer if needed. From the man pages of `mmap`:
-      //
-      // | MAP_SHARED
-      // |   Share this mapping. Updates to the mapping are visible to other
-      // |   processes that map this file, and are carried through to the
-      // |   underlying file. The file may not actually be updated until
-      // |   msync(2) or munmap() is called.
-      // | MAP_PRIVATE
-      // |   Create a private copy-on-write mapping.  Updates to the mapping
-      // |   are not carried through to the underlying file.
-      // | MAP_NORESERVE
-      // |   Do not reserve swap space for this mapping.  When swap space is
-      // |   reserved, one has the guarantee that it is possible to modify the
-      // |   mapping.  When swap space is not reserved one might get SIGSEGV
-      // |   upon a write if no physical memory is available.
-      //
-      int attempts = 3;
-      while (attempts--) {
-        int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
-        data_ = mmap(/* address = */ nullptr,
-                       /* length = */ size_,
-                       /* protection = */ PROT_WRITE|PROT_READ,
-                       /* flags = */ flags,
-                       /* fd = */ file.descriptor(),
-                       /* offset = */ 0);
-        if (data_ == MAP_FAILED) {
-          data_ = nullptr;
-          if (errno == 12) {  // release some memory and try again
-            MemoryMapManager::get()->freeup_memory();
-            if (attempts) {
-              errno = 0;
-              continue;
-            }
-          }
-          // Exception is thrown from the constructor -> the base class'
-          // destructor will be called, which checks that `data_` is null.
-          throw RuntimeError() << "Memory-map failed for file " << file.cname()
-                               << " of size " << filesize
-                               << " +" << size_ - filesize << Errno;
-        } else {
-          MemoryMapManager::get()->add_entry(this, size_);
-          break;
-        }
-      }
-      mapped = true;
-      xassert(mmm_index);
-    #endif
-  }
-
-
-  void MmapMRI::memunmap() {
-    if (!mapped) return;
-    #ifdef _WIN32
-    #else
-      if (data_) {
-        int ret = munmap(data_, size_);
-        if (ret) {
-          // Cannot throw exceptions from a destructor, so just print a message
-          printf("Error unmapping the view of file: [errno %d] %s. Resources "
-                 "may have not been freed properly.",
-                 errno, std::strerror(errno));
-        }
-        data_ = nullptr;
-      }
-      mapped = false;
-      size_ = 0;
-      if (mmm_index) {
-        MemoryMapManager::get()->del_entry(mmm_index);
-        mmm_index = 0;
-      }
-    #endif
-  }
-
-
-  size_t MmapMRI::size() const {
-    if (mapped) {
-      return size_;
-    } else {
-      bool create = temporary_file;
-      size_t filesize = File::asize(filename);
-      size_t extra = create? 0 : size_;
-      return filesize==0? 0 : filesize + extra;
-    }
-  }
-
-
-  void MmapMRI::save_entry_index(size_t i) {
-    mmm_index = i;
-    xassert(MemoryMapManager::get()->check_entry(mmm_index, this));
-  }
-
-  void MmapMRI::evict() {
-    mmm_index = 0;  // prevent from sending del_entry() signal back
-    memunmap();
-    xassert(!mapped && !mmm_index);
-  }
-
-  void MmapMRI::verify_integrity() const {
-    BufferImpl::verify_integrity();
-    if (mapped) {
-      if (!MemoryMapManager::get()->check_entry(mmm_index, this)) {
-        throw AssertionError()
-            << "Mmap MemoryRange is not properly registered with the "
-               "MemoryMapManager: mmm_index = " << mmm_index;
-      }
-      if (size_ == 0 && data_) {
-        throw AssertionError()
-            << "Mmap MemoryRange has size = 0 but data pointer is: " << data_;
-      }
-      if (size_ && !data_) {
-        throw AssertionError()
-            << "Mmap MemoryRange has size = " << size_
-            << " and marked as mapped, however its data pointer is NULL";
-      }
-    } else {
-      if (mmm_index) {
-        throw AssertionError()
-            << "Mmap MemoryRange is not mapped but its mmm_index = "
-            << mmm_index;
-      }
-      if (size_ || data_) {
-        throw AssertionError()
-            << "Mmap MemoryRange is not mapped but its size = " << size_
-            << " and data pointer = " << data_;
-      }
-    }
-  }
-
-
-
-//==============================================================================
-// OvermapMRI
-//==============================================================================
-
   OvermapMRI::OvermapMRI(const std::string& path, size_t xn, int fd)
-      : MmapMRI(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn)
+      : Mmap_BufferImpl(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn)
   {
     writable_ = true;
-    // already TRACKed via MmapMRI constructor
+    // already TRACKed via Mmap_BufferImpl constructor
   }
 
 
   void OvermapMRI::memmap() {
-    MmapMRI::memmap();
+    Mmap_BufferImpl::memmap();
     if (xbuf_size == 0) return;
     if (!data_) return;
     #ifdef _WIN32
@@ -715,7 +687,7 @@ class View_BufferImpl : public BufferImpl
 
 
   size_t OvermapMRI::memory_footprint() const {
-    return MmapMRI::memory_footprint() - sizeof(MmapMRI) +
+    return Mmap_BufferImpl::memory_footprint() - sizeof(Mmap_BufferImpl) +
            xbuf_size + sizeof(OvermapMRI);
   }
 
@@ -725,9 +697,9 @@ class View_BufferImpl : public BufferImpl
 
 
 
-//------------------------------------------------------------------------------
+//==============================================================================
 // MemoryRange
-//------------------------------------------------------------------------------
+//==============================================================================
 
   //---- Constructors ----------------------------
 
@@ -791,11 +763,11 @@ class View_BufferImpl : public BufferImpl
   }
 
   MemoryRange MemoryRange::mmap(const std::string& path) {
-    return MemoryRange(new MmapMRI(path));
+    return MemoryRange(new Mmap_BufferImpl(path));
   }
 
   MemoryRange MemoryRange::mmap(const std::string& path, size_t n, int fd) {
-    return MemoryRange(new MmapMRI(n, path, fd));
+    return MemoryRange(new Mmap_BufferImpl(n, path, fd));
   }
 
   MemoryRange MemoryRange::overmap(const std::string& path, size_t extra_n,
