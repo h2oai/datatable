@@ -28,6 +28,11 @@
 /**
   * Abstract implementation for the MemoryRange object.
   *
+  * BufferImpl represents a contiguous chunk of memory, stored as the
+  * `data_` pointer + `size_`. This base class does not own the data
+  * pointer, it is up to the derived class to manage the memory
+  * ownership, and to free the resources when needed.
+  *
   * The class uses the reference-counting semantics, and thus acts
   * as a self-owning object. The refcount is set to 1 when the object
   * is created; all subsequent copies of the pointer must be done via
@@ -163,7 +168,9 @@ class BufferImpl
   // Methods
   //------------------------------------
   public:
-    virtual void resize(size_t) = 0;
+    virtual void resize(size_t) {
+      throw AssertionError() << "buffer cannot be resized";
+    }
 
     virtual size_t memory_footprint() const = 0;
 
@@ -192,18 +199,22 @@ class BufferImpl
 // Memory_BufferImpl
 //------------------------------------------------------------------------------
 
+/**
+  * Simple buffer that represents a piece of memory allocated via
+  * dt::malloc(). The memory is owned by this class.
+  */
 class Memory_BufferImpl : public BufferImpl
 {
   public:
     explicit Memory_BufferImpl(size_t n) {
       size_ = n;
-      data_ = dt::malloc<void>(n);
+      data_ = dt::malloc<void>(n);  // may throw
     }
 
-    Memory_BufferImpl(size_t n, void* ptr) {
-      if (n && !ptr) {
-        throw ValueError() << "Unallocated memory region provided";
-      }
+    // Assumes ownership of pointer `ptr` (the pointer must be
+    // deletable via `dt::free()`).
+    Memory_BufferImpl(size_t n, void*&& ptr) {
+      XAssert(ptr || n == 0);
       size_ = n;
       data_ = ptr;
     }
@@ -227,12 +238,7 @@ class Memory_BufferImpl : public BufferImpl
       BufferImpl::verify_integrity();
       if (size_) {
         size_t actual_allocsize = malloc_size(data_);
-        if (size_ > actual_allocsize) {
-          throw AssertionError()
-              << "MemoryRange has size_ = " << size_
-              << ", while the internal buffer was allocated for "
-              << actual_allocsize << " bytes only";
-        }
+        XAssert(size_ <= actual_allocsize);
       }
     }
 };
@@ -244,6 +250,11 @@ class Memory_BufferImpl : public BufferImpl
 // External_BufferImpl
 //------------------------------------------------------------------------------
 
+/**
+  * This class represents a piece of memory owned by some external
+  * entity.
+  *
+  */
 class External_BufferImpl : public BufferImpl
 {
   private:
@@ -251,9 +262,7 @@ class External_BufferImpl : public BufferImpl
 
   public:
     External_BufferImpl(size_t n, const void* ptr, Py_buffer* pybuf) {
-      if (!ptr && n > 0) {
-        throw AssertionError() << "Null pointer given to the external buffer";
-      }
+      XAssert(ptr || n == 0);
       data_ = const_cast<void*>(ptr);
       size_ = n;
       pybufinfo = pybuf;
@@ -262,25 +271,18 @@ class External_BufferImpl : public BufferImpl
     }
 
     External_BufferImpl(size_t n, const void* ptr)
-      : External_BufferImpl(n, ptr, nullptr)
-    {
-      writable_ = true;
-    }
+      : External_BufferImpl(n, ptr, nullptr) {}
 
-    explicit External_BufferImpl(const char* str)
-      : External_BufferImpl(strlen(str) + 1, str, nullptr) {}
+    External_BufferImpl(size_t n, void* ptr)
+      : External_BufferImpl(n, ptr, nullptr) { writable_ = true; }
 
     ~External_BufferImpl() override {
-      // If the buffer contained contains_pyobjects_, leave them as-is and do not attempt
+      // If the buffer contained pyobjects, leave them as-is and do not attempt
       // to DECREF (this is up to the external owner).
       contains_pyobjects_ = false;
       if (pybufinfo) {
         PyBuffer_Release(pybufinfo);
       }
-    }
-
-    void resize(size_t) override {
-      throw Error() << "Unable to resize an external buffer";
     }
 
     size_t memory_footprint() const override {
@@ -343,10 +345,6 @@ class View_BufferImpl : public BufferImpl
     virtual ~View_BufferImpl() override {
       parent->release_shared();
       contains_pyobjects_ = false;
-    }
-
-    void resize(size_t) override {
-      throw RuntimeError() << "view buffer cannot be resized";
     }
 
     size_t memory_footprint() const override {
@@ -791,7 +789,11 @@ class View_BufferImpl : public BufferImpl
   }
 
   MemoryRange MemoryRange::acquire(void* ptr, size_t n) {
-    return MemoryRange(new Memory_BufferImpl(n, ptr));
+    return MemoryRange(new Memory_BufferImpl(n, std::move(ptr)));
+  }
+
+  MemoryRange MemoryRange::external(void* ptr, size_t n) {
+    return MemoryRange(new External_BufferImpl(n, ptr));
   }
 
   MemoryRange MemoryRange::external(const void* ptr, size_t n) {

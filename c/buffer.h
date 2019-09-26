@@ -128,6 +128,7 @@ class MemoryRange
     static MemoryRange mem(size_t n);
     static MemoryRange mem(int64_t n);
     static MemoryRange acquire(void* ptr, size_t n);
+    static MemoryRange external(void* ptr, size_t n);
     static MemoryRange external(const void* ptr, size_t n);
     static MemoryRange external(const void* ptr, size_t n, Py_buffer* pybuf);
     static MemoryRange view(const MemoryRange& src, size_t n, size_t offset);
