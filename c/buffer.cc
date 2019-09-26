@@ -25,29 +25,31 @@
 // BufferImpl
 //------------------------------------------------------------------------------
 
-class BufferImpl {
-  public:
-    void*  bufdata;
-    size_t bufsize;
-    size_t refcount;
-    uint32_t n_shared;
-    bool   pyobjects;
-    bool   writable;
-    bool   resizable;
+class BufferImpl
+{
+  friend class MemoryRange;
+  protected:
+    void*  data_;
+    size_t size_;
+    size_t refcount_;
+    uint32_t nshared_;
+    bool   contains_pyobjects_;
+    bool   writable_;
+    bool   resizable_;
     int : 8;
 
   public:
     BufferImpl()
-      : bufdata(nullptr),
-        bufsize(0),
-        refcount(0),
-        n_shared(0),
-        pyobjects(false),
-        writable(true),
-        resizable(true) {}
+      : data_(nullptr),
+        size_(0),
+        refcount_(0),
+        nshared_(0),
+        contains_pyobjects_(false),
+        writable_(true),
+        resizable_(true) {}
 
     virtual ~BufferImpl() {
-      wassert(!pyobjects);
+      wassert(!contains_pyobjects_);
     }
 
     // If memory buffer contains `PyObject*`s, then they must be
@@ -56,57 +58,57 @@ class BufferImpl {
     // This method must be called by the destructors of the derived
     // classes. The reason this code is not in the ~BufferImpl is
     // because it is the derived classes who handle freeing
-    // `bufdata`, and clearing PyObjects must happen before that.
+    // `data_`, and clearing PyObjects must happen before that.
     //
     void clear_pyobjects() {
-      if (!pyobjects) return;
-      PyObject** items = static_cast<PyObject**>(bufdata);
-      size_t n = bufsize / sizeof(PyObject*);
+      if (!contains_pyobjects_) return;
+      PyObject** items = static_cast<PyObject**>(data_);
+      size_t n = size_ / sizeof(PyObject*);
       for (size_t i = 0; i < n; ++i) {
         Py_DECREF(items[i]);
       }
-      pyobjects = false;
+      contains_pyobjects_ = false;
     }
 
     BufferImpl* acquire() {
-      refcount++;
+      refcount_++;
       return this;
     }
 
     void release() {
-      refcount--;
-      if (refcount == 0) delete this;
+      refcount_--;
+      if (refcount_ == 0) delete this;
     }
 
-    virtual size_t size() const { return bufsize; }
-    virtual void* ptr() const { return bufdata; }
+    virtual size_t size() const { return size_; }
+    virtual void* ptr() const { return data_; }
     virtual void resize(size_t) = 0;
     virtual size_t memory_footprint() const = 0;
 
     virtual void verify_integrity() const {
-      if (!bufdata && bufsize) {
+      if (!data_ && size_) {
         throw AssertionError()
-            << "Buffer has bufdata = NULL but size = " << bufsize;
+            << "Buffer has data_ = NULL but size = " << size_;
       }
-      if (bufdata && !bufsize) {
+      if (data_ && !size_) {
         throw AssertionError()
-            << "Buffer has bufdata = " << bufdata << " but size = 0";
+            << "Buffer has data_ = " << data_ << " but size = 0";
       }
-      if (resizable && !writable) {
+      if (resizable_ && !writable_) {
         throw AssertionError() << "Buffer is resizable but not writable";
       }
-      if (pyobjects) {
-        size_t n = bufsize / sizeof(PyObject*);
-        if (bufsize != n * sizeof(PyObject*)) {
+      if (contains_pyobjects_) {
+        size_t n = size_ / sizeof(PyObject*);
+        if (size_ != n * sizeof(PyObject*)) {
           throw AssertionError()
               << "Buffer is marked as containing PyObjects, but its size is "
-              << bufsize << ", not a multiple of " << sizeof(PyObject*);
+              << size_ << ", not a multiple of " << sizeof(PyObject*);
         }
-        PyObject** elements = static_cast<PyObject**>(bufdata);
+        PyObject** elements = static_cast<PyObject**>(data_);
         for (size_t i = 0; i < n; ++i) {
           if (elements[i] == nullptr) {
             throw AssertionError()
-                << "Element " << i << " in pyobjects Buffer is NULL";
+                << "Element " << i << " in contains_pyobjects_ Buffer is NULL";
           }
           if (elements[i]->ob_refcnt <= 0) {
             throw AssertionError()
@@ -129,40 +131,40 @@ class Memory_BufferImpl : public BufferImpl
 {
   public:
     explicit Memory_BufferImpl(size_t n) {
-      bufsize = n;
-      bufdata = dt::malloc<void>(n);
+      size_ = n;
+      data_ = dt::malloc<void>(n);
     }
 
     Memory_BufferImpl(size_t n, void* ptr) {
       if (n && !ptr) {
         throw ValueError() << "Unallocated memory region provided";
       }
-      bufsize = n;
-      bufdata = ptr;
+      size_ = n;
+      data_ = ptr;
     }
 
     ~Memory_BufferImpl() override {
       clear_pyobjects();
-      dt::free(bufdata);
+      dt::free(data_);
    }
 
     void resize(size_t n) override {
-      if (n == bufsize) return;
-      bufdata = dt::realloc(bufdata, n);
-      bufsize = n;
+      if (n == size_) return;
+      data_ = dt::realloc(data_, n);
+      size_ = n;
     }
 
     size_t memory_footprint() const override {
-      return sizeof(Memory_BufferImpl) + bufsize;
+      return sizeof(Memory_BufferImpl) + size_;
     }
 
     void verify_integrity() const override {
       BufferImpl::verify_integrity();
-      if (bufsize) {
-        size_t actual_allocsize = malloc_size(bufdata);
-        if (bufsize > actual_allocsize) {
+      if (size_) {
+        size_t actual_allocsize = malloc_size(data_);
+        if (size_ > actual_allocsize) {
           throw AssertionError()
-              << "MemoryRange has bufsize = " << bufsize
+              << "MemoryRange has size_ = " << size_
               << ", while the internal buffer was allocated for "
               << actual_allocsize << " bytes only";
         }
@@ -185,29 +187,28 @@ class External_BufferImpl : public BufferImpl
   public:
     External_BufferImpl(size_t n, const void* ptr, Py_buffer* pybuf) {
       if (!ptr && n > 0) {
-        throw RuntimeError() << "Unallocated buffer supplied to the "
-            "external buffer. Expected memory region of size " << n;
+        throw AssertionError() << "Null pointer given to the external buffer";
       }
-      bufdata = const_cast<void*>(ptr);
-      bufsize = n;
+      data_ = const_cast<void*>(ptr);
+      size_ = n;
       pybufinfo = pybuf;
-      resizable = false;
-      writable = false;
+      resizable_ = false;
+      writable_ = false;
     }
 
     External_BufferImpl(size_t n, const void* ptr)
       : External_BufferImpl(n, ptr, nullptr)
     {
-      writable = true;
+      writable_ = true;
     }
 
     explicit External_BufferImpl(const char* str)
       : External_BufferImpl(strlen(str) + 1, str, nullptr) {}
 
     ~External_BufferImpl() override {
-      // If the buffer contained pyobjects, leave them as-is and do not attempt
+      // If the buffer contained contains_pyobjects_, leave them as-is and do not attempt
       // to DECREF (this is up to the external owner).
-      pyobjects = false;
+      contains_pyobjects_ = false;
       if (pybufinfo) {
         PyBuffer_Release(pybufinfo);
       }
@@ -219,7 +220,7 @@ class External_BufferImpl : public BufferImpl
 
     size_t memory_footprint() const override {
       // Py_buffer is owned externally
-      return sizeof(External_BufferImpl) + bufsize;
+      return sizeof(External_BufferImpl) + size_;
     }
 };
 
@@ -249,7 +250,7 @@ class External_BufferImpl : public BufferImpl
 //    prevents the ViewedMRI `impl` from being deleted even if the original
 //    MemoryRange object goes out of scope.
 // 2) Each view (View_BufferImpl) carries a reference `ViewedMRI* base` to the object
-//    being viewed. The `ViewedMRI` in turn contains a `refcount` to keep
+//    being viewed. The `ViewedMRI` in turn contains a `refcount_` to keep
 //    track of how many views are still using it.
 // 3) When ViewedMRI's `refounct` reaches 0, it means there are no longer any
 //    views onto the original MemoryRange object, and the original `impl` can
@@ -268,16 +269,16 @@ class View_BufferImpl : public BufferImpl
       xassert(offs + n <= src.size());
       parent.acquire_shared();
       offset = offs;
-      bufdata = const_cast<void*>(src.rptr(offs));
-      bufsize = n;
-      resizable = false;
-      writable = src.is_writable();
-      pyobjects = src.is_pyobjects();
+      data_ = const_cast<void*>(src.rptr(offs));
+      size_ = n;
+      resizable_ = false;
+      writable_ = src.is_writable();
+      contains_pyobjects_ = src.is_pyobjects();
     }
 
     virtual ~View_BufferImpl() override {
       parent.release_shared();
-      pyobjects = false;
+      contains_pyobjects_ = false;
     }
 
     void resize(size_t) override {
@@ -285,20 +286,20 @@ class View_BufferImpl : public BufferImpl
     }
 
     size_t memory_footprint() const override {
-      return sizeof(View_BufferImpl) + bufsize;
+      return sizeof(View_BufferImpl) + size_;
     }
 
     void verify_integrity() const override {
       BufferImpl::verify_integrity();
-      if (resizable) {
-        throw AssertionError() << "View_BufferImpl cannot be marked as resizable";
+      if (resizable_) {
+        throw AssertionError() << "view buffer cannot be marked as resizable";
       }
       auto base_ptr = static_cast<const void*>(
                           static_cast<const char*>(parent.rptr()) + offset);
-      if (base_ptr != bufdata) {
+      if (base_ptr != data_) {
         throw AssertionError()
-            << "Invalid data pointer in View MemoryRange: should be "
-            << base_ptr << " but actual pointer is " << bufdata;
+            << "Invalid data pointer in view buffer: should be "
+            << base_ptr << " but actual pointer is " << data_;
       }
     }
 };
@@ -376,10 +377,10 @@ class View_BufferImpl : public BufferImpl
   MmapMRI::MmapMRI(size_t n, const std::string& path, int fileno, bool create)
     : filename(path), fd(fileno), mapped(false)
   {
-    bufdata = nullptr;
-    bufsize = n;
-    writable = create;
-    resizable = create;
+    data_ = nullptr;
+    size_ = n;
+    writable_ = create;
+    resizable_ = create;
     temporary_file = create;
     mmm_index = 0;
     TRACK(this, sizeof(*this), "MmapMRI");
@@ -395,7 +396,7 @@ class View_BufferImpl : public BufferImpl
 
   void* MmapMRI::ptr() const {
     const_cast<MmapMRI*>(this)->memmap();
-    return bufdata;
+    return data_;
   }
 
   void MmapMRI::resize(size_t n) {
@@ -406,7 +407,7 @@ class View_BufferImpl : public BufferImpl
   }
 
   size_t MmapMRI::memory_footprint() const {
-    return sizeof(MmapMRI) + filename.size() + (mapped? bufsize : 0);
+    return sizeof(MmapMRI) + filename.size() + (mapped? size_ : 0);
   }
 
   void MmapMRI::memmap() {
@@ -425,7 +426,7 @@ class View_BufferImpl : public BufferImpl
       if (mapped) return;
 
       bool create = temporary_file;
-      size_t n = bufsize;
+      size_t n = size_;
 
       File file(filename, create? File::CREATE : File::READ, fd);
       file.assert_is_not_dir();
@@ -437,12 +438,12 @@ class View_BufferImpl : public BufferImpl
         // Cannot memory-map 0-bytes file. However we shouldn't really need to:
         // if memory size is 0 then mmp can be NULL as nobody is going to read
         // from it anyways.
-        bufsize = 0;
-        bufdata = nullptr;
+        size_ = 0;
+        data_ = nullptr;
         mapped = true;
         return;
       }
-      bufsize = filesize + (create? 0 : n);
+      size_ = filesize + (create? 0 : n);
 
       // Memory-map the file.
       // In "open" mode if `n` is non-zero, then we will be opening a buffer
@@ -467,14 +468,14 @@ class View_BufferImpl : public BufferImpl
       int attempts = 3;
       while (attempts--) {
         int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
-        bufdata = mmap(/* address = */ nullptr,
-                       /* length = */ bufsize,
+        data_ = mmap(/* address = */ nullptr,
+                       /* length = */ size_,
                        /* protection = */ PROT_WRITE|PROT_READ,
                        /* flags = */ flags,
                        /* fd = */ file.descriptor(),
                        /* offset = */ 0);
-        if (bufdata == MAP_FAILED) {
-          bufdata = nullptr;
+        if (data_ == MAP_FAILED) {
+          data_ = nullptr;
           if (errno == 12) {  // release some memory and try again
             MemoryMapManager::get()->freeup_memory();
             if (attempts) {
@@ -483,12 +484,12 @@ class View_BufferImpl : public BufferImpl
             }
           }
           // Exception is thrown from the constructor -> the base class'
-          // destructor will be called, which checks that `bufdata` is null.
+          // destructor will be called, which checks that `data_` is null.
           throw RuntimeError() << "Memory-map failed for file " << file.cname()
                                << " of size " << filesize
-                               << " +" << bufsize - filesize << Errno;
+                               << " +" << size_ - filesize << Errno;
         } else {
-          MemoryMapManager::get()->add_entry(this, bufsize);
+          MemoryMapManager::get()->add_entry(this, size_);
           break;
         }
       }
@@ -502,18 +503,18 @@ class View_BufferImpl : public BufferImpl
     if (!mapped) return;
     #ifdef _WIN32
     #else
-      if (bufdata) {
-        int ret = munmap(bufdata, bufsize);
+      if (data_) {
+        int ret = munmap(data_, size_);
         if (ret) {
           // Cannot throw exceptions from a destructor, so just print a message
           printf("Error unmapping the view of file: [errno %d] %s. Resources "
                  "may have not been freed properly.",
                  errno, std::strerror(errno));
         }
-        bufdata = nullptr;
+        data_ = nullptr;
       }
       mapped = false;
-      bufsize = 0;
+      size_ = 0;
       if (mmm_index) {
         MemoryMapManager::get()->del_entry(mmm_index);
         mmm_index = 0;
@@ -524,11 +525,11 @@ class View_BufferImpl : public BufferImpl
 
   size_t MmapMRI::size() const {
     if (mapped) {
-      return bufsize;
+      return size_;
     } else {
       bool create = temporary_file;
       size_t filesize = File::asize(filename);
-      size_t extra = create? 0 : bufsize;
+      size_t extra = create? 0 : size_;
       return filesize==0? 0 : filesize + extra;
     }
   }
@@ -553,13 +554,13 @@ class View_BufferImpl : public BufferImpl
             << "Mmap MemoryRange is not properly registered with the "
                "MemoryMapManager: mmm_index = " << mmm_index;
       }
-      if (bufsize == 0 && bufdata) {
+      if (size_ == 0 && data_) {
         throw AssertionError()
-            << "Mmap MemoryRange has size = 0 but data pointer is: " << bufdata;
+            << "Mmap MemoryRange has size = 0 but data pointer is: " << data_;
       }
-      if (bufsize && !bufdata) {
+      if (size_ && !data_) {
         throw AssertionError()
-            << "Mmap MemoryRange has size = " << bufsize
+            << "Mmap MemoryRange has size = " << size_
             << " and marked as mapped, however its data pointer is NULL";
       }
     } else {
@@ -568,10 +569,10 @@ class View_BufferImpl : public BufferImpl
             << "Mmap MemoryRange is not mapped but its mmm_index = "
             << mmm_index;
       }
-      if (bufsize || bufdata) {
+      if (size_ || data_) {
         throw AssertionError()
-            << "Mmap MemoryRange is not mapped but its size = " << bufsize
-            << " and data pointer = " << bufdata;
+            << "Mmap MemoryRange is not mapped but its size = " << size_
+            << " and data pointer = " << data_;
       }
     }
   }
@@ -585,7 +586,7 @@ class View_BufferImpl : public BufferImpl
   OvermapMRI::OvermapMRI(const std::string& path, size_t xn, int fd)
       : MmapMRI(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn)
   {
-    writable = true;
+    writable_ = true;
     // already TRACKed via MmapMRI constructor
   }
 
@@ -593,7 +594,7 @@ class View_BufferImpl : public BufferImpl
   void OvermapMRI::memmap() {
     MmapMRI::memmap();
     if (xbuf_size == 0) return;
-    if (!bufdata) return;
+    if (!data_) return;
     #ifdef _WIN32
       throw RuntimeError() << "Memory-mapping not supported on Windows yet";
 
@@ -641,7 +642,7 @@ class View_BufferImpl : public BufferImpl
       size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
       if (xn > gapsize) {
         void* target = static_cast<void*>(
-                          static_cast<char*>(bufdata) + filesize + gapsize);
+                          static_cast<char*>(data_) + filesize + gapsize);
         xbuf_size = xn - gapsize;
         xbuf = mmap(/* address = */ target,
                     /* size = */ xbuf_size,
@@ -676,7 +677,7 @@ class View_BufferImpl : public BufferImpl
            xbuf_size + sizeof(OvermapMRI);
   }
 
-  // Check that resizable = false
+  // Check that resizable_ = false
 
 
 
@@ -765,15 +766,15 @@ class View_BufferImpl : public BufferImpl
   }
 
   bool MemoryRange::is_writable() const {
-    return (impl_->refcount - impl_->n_shared == 1) && impl_->writable;
+    return (impl_->refcount_ - impl_->nshared_ == 1) && impl_->writable_;
   }
 
   bool MemoryRange::is_resizable() const {
-    return (impl_->refcount == 1) && impl_->resizable;
+    return (impl_->refcount_ == 1) && impl_->resizable_;
   }
 
   bool MemoryRange::is_pyobjects() const {
-    return impl_->pyobjects;
+    return impl_->contains_pyobjects_;
   }
 
   size_t MemoryRange::size() const {
@@ -812,7 +813,7 @@ class View_BufferImpl : public BufferImpl
     xassert(impl_);
     if (!is_writable()) {
       throw RuntimeError() << "Cannot write into this MemoryRange object: "
-        "refcount=" << impl_->refcount << ", writable=" << impl_->writable;
+        "refcount_=" << impl_->refcount_ << ", writable=" << impl_->writable_;
     }
     return impl_->ptr();
   }
@@ -835,7 +836,7 @@ class View_BufferImpl : public BufferImpl
       }
       Py_None->ob_refcnt += n;
     }
-    impl_->pyobjects = true;
+    impl_->contains_pyobjects_ = true;
     return *this;
   }
 
@@ -846,7 +847,7 @@ class View_BufferImpl : public BufferImpl
     size_t oldsize = impl_->size();
     if (newsize != oldsize) {
       if (is_resizable()) {
-        if (impl_->pyobjects) {
+        if (impl_->contains_pyobjects_) {
           size_t n_old = oldsize / sizeof(PyObject*);
           size_t n_new = newsize / sizeof(PyObject*);
           if (n_new < n_old) {
@@ -872,11 +873,11 @@ class View_BufferImpl : public BufferImpl
 
 
   void MemoryRange::acquire_shared() {
-    impl_->n_shared++;
+    impl_->nshared_++;
   }
 
   void MemoryRange::release_shared() {
-    impl_->n_shared--;
+    impl_->nshared_--;
   }
 
 
@@ -900,8 +901,8 @@ class View_BufferImpl : public BufferImpl
     if (copysize) {
       std::memcpy(newimpl->ptr(), impl_->ptr(), copysize);
     }
-    if (impl_->pyobjects) {
-      newimpl->pyobjects = true;
+    if (impl_->contains_pyobjects_) {
+      newimpl->contains_pyobjects_ = true;
       PyObject** newdata = static_cast<PyObject**>(newimpl->ptr());
       size_t n_new = newsize / sizeof(PyObject*);
       size_t n_copy = copysize / sizeof(PyObject*);
@@ -913,60 +914,3 @@ class View_BufferImpl : public BufferImpl
     impl_->release();
     impl_ = newimpl->acquire();
   }
-
-
-  //---- Element getters/setters -----------------
-
-  static void _oob_check(size_t i, size_t size, size_t elemsize) {
-    if ((i + 1) * elemsize > size) {
-      throw ValueError() << "Index " << i << " is out of bounds for a memory "
-        "region of size " << size << " viewed as an array of elements of size "
-        << elemsize;
-    }
-  }
-
-  template <typename T>
-  T MemoryRange::get_element(size_t i) const {
-    _oob_check(i, size(), sizeof(T));
-    const T* data = static_cast<const T*>(this->rptr());
-    return data[i];
-  }
-
-  template <>
-  void MemoryRange::set_element(size_t i, PyObject* value) {
-    _oob_check(i, size(), sizeof(PyObject*));
-    xassert(this->is_pyobjects());
-    PyObject** data = static_cast<PyObject**>(this->wptr());
-    Py_DECREF(data[i]);
-    data[i] = value;
-  }
-
-  template <typename T>
-  void MemoryRange::set_element(size_t i, T value) {
-    _oob_check(i, size(), sizeof(T));
-    T* data = static_cast<T*>(this->wptr());
-    data[i] = value;
-  }
-
-
-
-//==============================================================================
-// Template instantiations
-//==============================================================================
-
-  template int32_t MemoryRange::get_element(size_t) const;
-  template int64_t MemoryRange::get_element(size_t) const;
-  template uint32_t MemoryRange::get_element(size_t) const;
-  template uint64_t MemoryRange::get_element(size_t) const;
-  template void MemoryRange::set_element(size_t, char);
-  template void MemoryRange::set_element(size_t, int8_t);
-  template void MemoryRange::set_element(size_t, int16_t);
-  template void MemoryRange::set_element(size_t, int32_t);
-  template void MemoryRange::set_element(size_t, int64_t);
-  template void MemoryRange::set_element(size_t, uint32_t);
-  template void MemoryRange::set_element(size_t, uint64_t);
-  #if DT_OS_DARWIN
-    template void MemoryRange::set_element(size_t, size_t);
-  #endif
-  template void MemoryRange::set_element(size_t, float);
-  template void MemoryRange::set_element(size_t, double);

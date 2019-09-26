@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_BUFFER_h
 #define dt_BUFFER_h
@@ -259,22 +259,41 @@ class MemoryRange
 };
 
 
-template <> void MemoryRange::set_element(size_t, PyObject*);
-extern template int32_t MemoryRange::get_element(size_t) const;
-extern template int64_t MemoryRange::get_element(size_t) const;
-extern template uint32_t MemoryRange::get_element(size_t) const;
-extern template uint64_t MemoryRange::get_element(size_t) const;
-extern template void MemoryRange::set_element(size_t, PyObject*);
-extern template void MemoryRange::set_element(size_t, char);
-extern template void MemoryRange::set_element(size_t, int8_t);
-extern template void MemoryRange::set_element(size_t, int16_t);
-extern template void MemoryRange::set_element(size_t, int32_t);
-extern template void MemoryRange::set_element(size_t, int64_t);
-extern template void MemoryRange::set_element(size_t, uint32_t);
-extern template void MemoryRange::set_element(size_t, uint64_t);
-extern template void MemoryRange::set_element(size_t, size_t);
-extern template void MemoryRange::set_element(size_t, float);
-extern template void MemoryRange::set_element(size_t, double);
+
+//------------------------------------------------------------------------------
+// Template definitions
+//------------------------------------------------------------------------------
+
+inline void buffer_oob_check(size_t i, size_t size, size_t elemsize) {
+  if ((i + 1) * elemsize > size) {
+    throw ValueError() << "Index " << i << " is out of bounds for a buffer "
+      "of size " << size << " bytes when each element's size is " << elemsize;
+  }
+}
+
+template <typename T>
+T MemoryRange::get_element(size_t i) const {
+  buffer_oob_check(i, size(), sizeof(T));
+  const T* data = static_cast<const T*>(this->rptr());
+  return data[i];
+}
+
+template <>
+inline void MemoryRange::set_element(size_t i, PyObject* value) {
+  buffer_oob_check(i, size(), sizeof(PyObject*));
+  xassert(this->is_pyobjects());
+  PyObject** data = static_cast<PyObject**>(this->wptr());
+  Py_DECREF(data[i]);
+  data[i] = value;
+}
+
+template <typename T>
+void MemoryRange::set_element(size_t i, T value) {
+  buffer_oob_check(i, size(), sizeof(T));
+  T* data = static_cast<T*>(this->wptr());
+  data[i] = value;
+}
+
 
 
 #endif
