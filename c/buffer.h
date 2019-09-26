@@ -236,9 +236,6 @@ class MemoryRange
     MemoryRange& set_pyobjects(bool clear_data);
     MemoryRange& resize(size_t newsize, bool keep_data = true);
 
-    void acquire_shared();
-    void release_shared();
-
     // Utility functions
     //
     // verify_integrity()

@@ -38,6 +38,9 @@ class BufferImpl
     bool   resizable_;
     int : 8;
 
+  //------------------------------------
+  // Constructors
+  //------------------------------------
   public:
     BufferImpl()
       : data_(nullptr),
@@ -58,7 +61,7 @@ class BufferImpl
     // This method must be called by the destructors of the derived
     // classes. The reason this code is not in the ~BufferImpl is
     // because it is the derived classes who handle freeing
-    // `data_`, and clearing PyObjects must happen before that.
+    // `data_`, and decrefing PyObjects must happen before that.
     //
     void clear_pyobjects() {
       if (!contains_pyobjects_) return;
@@ -70,51 +73,91 @@ class BufferImpl
       contains_pyobjects_ = false;
     }
 
-    BufferImpl* acquire() {
+
+  //------------------------------------
+  // Refcounting
+  //------------------------------------
+  // Call `acquire()` when storing a `BufferImpl*` pointer in a
+  // variable. Call `release()` when that variable or its contents
+  // are destroyed.
+  //
+  // The "shared" version of acquire/release calls allows the
+  // object to be shared with another user: both owners of the
+  // "shared" pointer are allowed to write into the data buffer
+  // (however they still can't resize it).
+  //
+  public:
+    inline BufferImpl* acquire() noexcept {
       refcount_++;
       return this;
     }
 
-    void release() {
+    inline void release() noexcept {
       refcount_--;
       if (refcount_ == 0) delete this;
     }
 
-    virtual size_t size() const { return size_; }
-    virtual void* ptr() const { return data_; }
+    inline BufferImpl* acquire_shared() noexcept {
+      refcount_++;
+      nshared_++;
+      return this;
+    }
+
+    inline void release_shared() noexcept {
+      refcount_--;
+      nshared_--;
+      if (refcount_ == 0) delete this;
+    }
+
+
+  //------------------------------------
+  // Properties
+  //------------------------------------
+  public:
+    // size() and data() are virtual to allow the children to fetch
+    // the data pointer only when it is needed.
+    virtual size_t size() const {
+      return size_;
+    }
+
+    virtual void* data() const {
+      return data_;
+    }
+
+    bool is_resizable() const noexcept {
+      return resizable_ && (refcount_ == 1);
+    }
+
+    bool is_writable() const noexcept {
+      return writable_ && (refcount_ - nshared_ == 1);
+    }
+
+    bool is_pyobjects() const noexcept {
+      return contains_pyobjects_;
+    }
+
+
+  //------------------------------------
+  // Methods
+  //------------------------------------
+  public:
     virtual void resize(size_t) = 0;
+
     virtual size_t memory_footprint() const = 0;
 
     virtual void verify_integrity() const {
-      if (!data_ && size_) {
-        throw AssertionError()
-            << "Buffer has data_ = NULL but size = " << size_;
-      }
-      if (data_ && !size_) {
-        throw AssertionError()
-            << "Buffer has data_ = " << data_ << " but size = 0";
-      }
-      if (resizable_ && !writable_) {
-        throw AssertionError() << "Buffer is resizable but not writable";
+      if (data_) { XAssert(size_ > 0); }
+      else       { XAssert(size_ == 0); }
+      if (resizable_) {
+        XAssert(writable_);
       }
       if (contains_pyobjects_) {
         size_t n = size_ / sizeof(PyObject*);
-        if (size_ != n * sizeof(PyObject*)) {
-          throw AssertionError()
-              << "Buffer is marked as containing PyObjects, but its size is "
-              << size_ << ", not a multiple of " << sizeof(PyObject*);
-        }
+        XAssert(size_ == n * sizeof(PyObject*));
         PyObject** elements = static_cast<PyObject**>(data_);
         for (size_t i = 0; i < n; ++i) {
-          if (elements[i] == nullptr) {
-            throw AssertionError()
-                << "Element " << i << " in contains_pyobjects_ Buffer is NULL";
-          }
-          if (elements[i]->ob_refcnt <= 0) {
-            throw AssertionError()
-                << "Reference count on PyObject at index " << i
-                << " in Buffer is " << elements[i]->ob_refcnt;
-          }
+          XAssert(elements[i] != nullptr);
+          XAssert(elements[i]->ob_refcnt > 0);
         }
       }
     }
@@ -259,25 +302,24 @@ class External_BufferImpl : public BufferImpl
 class View_BufferImpl : public BufferImpl
 {
   private:
-    MemoryRange parent;
+    BufferImpl* parent;
     size_t offset;
 
   public:
-    View_BufferImpl(const MemoryRange& src, size_t n, size_t offs)
-      : parent(src), offset(offs)
+    View_BufferImpl(BufferImpl* src, size_t n, size_t offs)
     {
-      xassert(offs + n <= src.size());
-      parent.acquire_shared();
+      XAssert(offs + n <= src->size());
+      parent = src->acquire_shared();
       offset = offs;
-      data_ = const_cast<void*>(src.rptr(offs));
+      data_ = static_cast<char*>(src->data()) + offset;
       size_ = n;
       resizable_ = false;
-      writable_ = src.is_writable();
-      contains_pyobjects_ = src.is_pyobjects();
+      writable_ = src->is_writable();
+      contains_pyobjects_ = src->is_pyobjects();
     }
 
     virtual ~View_BufferImpl() override {
-      parent.release_shared();
+      parent->release_shared();
       contains_pyobjects_ = false;
     }
 
@@ -291,11 +333,9 @@ class View_BufferImpl : public BufferImpl
 
     void verify_integrity() const override {
       BufferImpl::verify_integrity();
-      if (resizable_) {
-        throw AssertionError() << "view buffer cannot be marked as resizable";
-      }
+      XAssert(!resizable_);
       auto base_ptr = static_cast<const void*>(
-                          static_cast<const char*>(parent.rptr()) + offset);
+                          static_cast<const char*>(parent->data()) + offset);
       if (base_ptr != data_) {
         throw AssertionError()
             << "Invalid data pointer in view buffer: should be "
@@ -326,7 +366,7 @@ class View_BufferImpl : public BufferImpl
       MmapMRI(size_t n, const std::string& path, int fd, bool create);
       virtual ~MmapMRI() override;
 
-      void* ptr() const override;
+      void* data() const override;
       size_t size() const override;
       void save_entry_index(size_t i) override;
       void evict() override;
@@ -394,7 +434,7 @@ class View_BufferImpl : public BufferImpl
     UNTRACK(this);
   }
 
-  void* MmapMRI::ptr() const {
+  void* MmapMRI::data() const {
     const_cast<MmapMRI*>(this)->memmap();
     return data_;
   }
@@ -741,7 +781,7 @@ class View_BufferImpl : public BufferImpl
   }
 
   MemoryRange MemoryRange::view(const MemoryRange& src, size_t n, size_t offset) {
-    return MemoryRange(new View_BufferImpl(src, n, offset));
+    return MemoryRange(new View_BufferImpl(src.impl_, n, offset));
   }
 
   MemoryRange MemoryRange::mmap(const std::string& path) {
@@ -762,15 +802,15 @@ class View_BufferImpl : public BufferImpl
   //---- Basic properties ------------------------
 
   MemoryRange::operator bool() const {
-    return (impl_ && impl_->size() != 0);
+    return (impl_->size() != 0);
   }
 
   bool MemoryRange::is_writable() const {
-    return (impl_->refcount_ - impl_->nshared_ == 1) && impl_->writable_;
+    return impl_->is_writable();
   }
 
   bool MemoryRange::is_resizable() const {
-    return (impl_->refcount_ == 1) && impl_->resizable_;
+    return impl_->is_resizable();
   }
 
   bool MemoryRange::is_pyobjects() const {
@@ -789,8 +829,7 @@ class View_BufferImpl : public BufferImpl
   //---- Main data accessors ---------------------
 
   const void* MemoryRange::rptr() const {
-    xassert(impl_);
-    return impl_->ptr();
+    return impl_->data();
   }
 
   const void* MemoryRange::rptr(size_t offset) const {
@@ -799,9 +838,8 @@ class View_BufferImpl : public BufferImpl
   }
 
   void* MemoryRange::wptr() {
-    xassert(impl_);
     if (!is_writable()) materialize();
-    return impl_->ptr();
+    return impl_->data();
   }
 
   void* MemoryRange::wptr(size_t offset) {
@@ -810,12 +848,8 @@ class View_BufferImpl : public BufferImpl
   }
 
   void* MemoryRange::xptr() const {
-    xassert(impl_);
-    if (!is_writable()) {
-      throw RuntimeError() << "Cannot write into this MemoryRange object: "
-        "refcount_=" << impl_->refcount_ << ", writable=" << impl_->writable_;
-    }
-    return impl_->ptr();
+    XAssert(is_writable());
+    return impl_->data();
   }
 
   void* MemoryRange::xptr(size_t offset) const {
@@ -830,7 +864,7 @@ class View_BufferImpl : public BufferImpl
     xassert(n * sizeof(PyObject*) == impl_->size());
     xassert(this->is_writable());
     if (clear_data) {
-      PyObject** data = static_cast<PyObject**>(impl_->ptr());
+      PyObject** data = static_cast<PyObject**>(impl_->data());
       for (size_t i = 0; i < n; ++i) {
         data[i] = Py_None;
       }
@@ -851,12 +885,12 @@ class View_BufferImpl : public BufferImpl
           size_t n_old = oldsize / sizeof(PyObject*);
           size_t n_new = newsize / sizeof(PyObject*);
           if (n_new < n_old) {
-            PyObject** data = static_cast<PyObject**>(impl_->ptr());
+            PyObject** data = static_cast<PyObject**>(impl_->data());
             for (size_t i = n_new; i < n_old; ++i) Py_DECREF(data[i]);
           }
           impl_->resize(newsize);
           if (n_new > n_old) {
-            PyObject** data = static_cast<PyObject**>(impl_->ptr());
+            PyObject** data = static_cast<PyObject**>(impl_->data());
             for (size_t i = n_old; i < n_new; ++i) data[i] = Py_None;
             Py_None->ob_refcnt += n_new - n_old;
           }
@@ -871,14 +905,6 @@ class View_BufferImpl : public BufferImpl
     return *this;
   }
 
-
-  void MemoryRange::acquire_shared() {
-    impl_->nshared_++;
-  }
-
-  void MemoryRange::release_shared() {
-    impl_->nshared_--;
-  }
 
 
   //---- Utility functions -----------------------
@@ -899,11 +925,11 @@ class View_BufferImpl : public BufferImpl
     xassert(newsize >= copysize);
     Memory_BufferImpl* newimpl = new Memory_BufferImpl(newsize);
     if (copysize) {
-      std::memcpy(newimpl->ptr(), impl_->ptr(), copysize);
+      std::memcpy(newimpl->data(), impl_->data(), copysize);
     }
     if (impl_->contains_pyobjects_) {
       newimpl->contains_pyobjects_ = true;
-      PyObject** newdata = static_cast<PyObject**>(newimpl->ptr());
+      PyObject** newdata = static_cast<PyObject**>(newimpl->data());
       size_t n_new = newsize / sizeof(PyObject*);
       size_t n_copy = copysize / sizeof(PyObject*);
       size_t i = 0;
