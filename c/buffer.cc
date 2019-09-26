@@ -50,7 +50,6 @@
   * refcount). Writing will also be forbidden for multiple users,
   * unless they called `acquire_shared()` to indicate that copy-on-
   * -write semantics should be suspended.
-  *
   */
 class BufferImpl
 {
@@ -252,20 +251,23 @@ class Memory_BufferImpl : public BufferImpl
 
 /**
   * This class represents a piece of memory owned by some external
-  * entity.
-  *
+  * entity. The lifetime of the memory region may be guarded by a
+  * Py_buffer object. However, it is also possible to wrap a
+  * completely unguarded memory range, in which cast it is the
+  * responsibility of the user to ensure that the memory remains
+  * valid during the lifetime of External_BufferImpl object.
   */
 class External_BufferImpl : public BufferImpl
 {
   private:
-    Py_buffer* pybufinfo;
+    Py_buffer* pybufinfo_;
 
   public:
     External_BufferImpl(size_t n, const void* ptr, Py_buffer* pybuf) {
       XAssert(ptr || n == 0);
       data_ = const_cast<void*>(ptr);
       size_ = n;
-      pybufinfo = pybuf;
+      pybufinfo_ = pybuf;
       resizable_ = false;
       writable_ = false;
     }
@@ -277,17 +279,17 @@ class External_BufferImpl : public BufferImpl
       : External_BufferImpl(n, ptr, nullptr) { writable_ = true; }
 
     ~External_BufferImpl() override {
-      // If the buffer contained pyobjects, leave them as-is and do not attempt
-      // to DECREF (this is up to the external owner).
+      // If the buffer contained pyobjects, leave them as-is and
+      // do not attempt to DECREF (since the memory is not freed).
       contains_pyobjects_ = false;
-      if (pybufinfo) {
-        PyBuffer_Release(pybufinfo);
+      if (pybufinfo_) {
+        PyBuffer_Release(pybufinfo_);
       }
     }
 
     size_t memory_footprint() const override {
-      // Py_buffer is owned externally
-      return sizeof(External_BufferImpl) + size_;
+      // All memory is owned externally
+      return sizeof(External_BufferImpl);
     }
 };
 
@@ -298,44 +300,30 @@ class External_BufferImpl : public BufferImpl
 // View_BufferImpl
 //------------------------------------------------------------------------------
 
-// View_BufferImpl represents a buffer which is a part of a larger buffer
-// `parent`.
-//
-// Typical use-case: memory-map a file, then carve out various regions of
-// that file as separate MemoryRange objects for each column. Another example:
-// when converting to Numpy, allocate a large contiguous chunk of memory,
-// then split it into separate memory buffers for each column, and cast the
-// existing Frame into those prepared column buffers.
-//
-// View_BufferImpl exists in tandem with ViewedMRI (which replaces the `impl` of the
-// object being viewed). This mechanism is needed in order to keep the source
-// MemoryRegion impl alive even if its owner went out of scope. The mechanism
-// is the following:
-// 1) When a view onto a MemoryRange is created, its `impl` is replaced with
-//    a `ViewedMRI` object, which holds the original impl, and carries a
-//    `shared_ptr<internal>` reference to the source MemoryRange's `o`. This
-//    prevents the ViewedMRI `impl` from being deleted even if the original
-//    MemoryRange object goes out of scope.
-// 2) Each view (View_BufferImpl) carries a reference `ViewedMRI* base` to the object
-//    being viewed. The `ViewedMRI` in turn contains a `refcount_` to keep
-//    track of how many views are still using it.
-// 3) When ViewedMRI's `refounct` reaches 0, it means there are no longer any
-//    views onto the original MemoryRange object, and the original `impl` can
-//    be restored.
-//
+/**
+  * View_BufferImpl represents a buffer that is a "view" onto another
+  * buffer `parent`.
+  *
+  * Typical use-case: memory-map a file, then carve out various
+  * regions of that file as separate Buffer objects for each column.
+  * Another example: when converting to Numpy, allocate a large
+  * contiguous chunk of memory, then split it into separate buffers
+  * for each column, and cast the existing Frame into those prepared
+  * column buffers.
+  */
 class View_BufferImpl : public BufferImpl
 {
   private:
-    BufferImpl* parent;
-    size_t offset;
+    BufferImpl* parent_;
+    size_t offset_;
 
   public:
     View_BufferImpl(BufferImpl* src, size_t n, size_t offs)
     {
       XAssert(offs + n <= src->size());
-      parent = src->acquire_shared();
-      offset = offs;
-      data_ = static_cast<char*>(src->data()) + offset;
+      parent_ = src->acquire_shared();
+      offset_ = offs;
+      data_ = static_cast<char*>(src->data()) + offset_;
       size_ = n;
       resizable_ = false;
       writable_ = src->is_writable();
@@ -343,8 +331,8 @@ class View_BufferImpl : public BufferImpl
     }
 
     virtual ~View_BufferImpl() override {
-      parent->release_shared();
       contains_pyobjects_ = false;
+      parent_->release_shared();
     }
 
     size_t memory_footprint() const override {
@@ -354,13 +342,7 @@ class View_BufferImpl : public BufferImpl
     void verify_integrity() const override {
       BufferImpl::verify_integrity();
       XAssert(!resizable_);
-      auto base_ptr = static_cast<const void*>(
-                          static_cast<const char*>(parent->data()) + offset);
-      if (base_ptr != data_) {
-        throw AssertionError()
-            << "Invalid data pointer in view buffer: should be "
-            << base_ptr << " but actual pointer is " << data_;
-      }
+      XAssert(data_ == static_cast<const char*>(parent_->data()) + offset_);
     }
 };
 
