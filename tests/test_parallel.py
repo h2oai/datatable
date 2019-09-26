@@ -126,24 +126,34 @@ def test_progress(parallel_type, nthreads):
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niters = 10000
-    sleep_time = 0.01
+    niters = 100000
+    sleep_time = 0.1
     exception = "KeyboardInterrupt\n"
-    cmd_import = "import datatable as dt; from datatable.lib import core; "
+    cmd_import = "import datatable as dt; from datatable.lib import core;"
+    cmd_import += "dt.options.progress.enabled = True;"
+    cmd_import += "dt.options.progress.min_duration = 0;"
+    cmd_import += "print('%s start', flush = True); " % parallel_type;
 
     if parallel_type is None:
-        cmd_run = "import time; dt.options.nthreads = %s; time.sleep(%s)" % (
-                  nthreads, sleep_time * 2)
+        cmd_run = "import time; dt.options.nthreads = %s; time.sleep(%s);" % (
+                  nthreads, sleep_time * 10)
     else:
         cmd_run = "core.test_progress_%s(%s, %s)" % (
                   parallel_type, niters, nthreads)
     cmd = cmd_import + cmd_run
+
     proc = subprocess.Popen(["python", "-c", cmd],
                             stdout = subprocess.PIPE,
                             stderr = subprocess.PIPE)
-    time.sleep(sleep_time)
+
+    line = proc.stdout.readline()
+    time.sleep(sleep_time);
+
     proc.send_signal(signal.Signals.SIGINT)
     (stdout, stderr) = proc.communicate()
+
+    if (parallel_type) :
+        assert stdout.decode().find("[cancelled")
     assert stderr.decode().endswith(exception)
 
 
