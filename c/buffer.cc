@@ -125,7 +125,8 @@ class BufferImpl {
 // Memory_BufferImpl
 //------------------------------------------------------------------------------
 
-class Memory_BufferImpl : public BufferImpl {
+class Memory_BufferImpl : public BufferImpl
+{
   public:
     explicit Memory_BufferImpl(size_t n) {
       bufsize = n;
@@ -176,15 +177,16 @@ class Memory_BufferImpl : public BufferImpl {
 // External_BufferImpl
 //------------------------------------------------------------------------------
 
-class External_BufferImpl : public BufferImpl {
+class External_BufferImpl : public BufferImpl
+{
   private:
     Py_buffer* pybufinfo;
 
   public:
     External_BufferImpl(size_t n, const void* ptr, Py_buffer* pybuf) {
       if (!ptr && n > 0) {
-        throw RuntimeError() << "Unallocated buffer supplied to "
-            "External_BufferImpl. Expected memory region of size " << n;
+        throw RuntimeError() << "Unallocated buffer supplied to the "
+            "external buffer. Expected memory region of size " << n;
       }
       bufdata = const_cast<void*>(ptr);
       bufsize = n;
@@ -212,7 +214,7 @@ class External_BufferImpl : public BufferImpl {
     }
 
     void resize(size_t) override {
-      throw Error() << "Unable to resize an External_BufferImpl buffer";
+      throw Error() << "Unable to resize an external buffer";
     }
 
     size_t memory_footprint() const override {
@@ -225,47 +227,81 @@ class External_BufferImpl : public BufferImpl {
 
 
 //------------------------------------------------------------------------------
-// ViewMRI
+// View_BufferImpl
 //------------------------------------------------------------------------------
 
-  // ViewMRI represents a memory range which is a part of a larger memory
-  // region controlled by `base` ViewedMRI.
-  //
-  // Typical use-case: memory-map a file, then carve out various regions of
-  // that file as separate MemoryRange objects for each column. Another example:
-  // when converting to Numpy, allocate a large contiguous chunk of memory,
-  // then split it into separate memory buffers for each column, and cast the
-  // existing Frame into those prepared column buffers.
-  //
-  // ViewMRI exists in tandem with ViewedMRI (which replaces the `impl` of the
-  // object being viewed). This mechanism is needed in order to keep the source
-  // MemoryRegion impl alive even if its owner went out of scope. The mechanism
-  // is the following:
-  // 1) When a view onto a MemoryRange is created, its `impl` is replaced with
-  //    a `ViewedMRI` object, which holds the original impl, and carries a
-  //    `shared_ptr<internal>` reference to the source MemoryRange's `o`. This
-  //    prevents the ViewedMRI `impl` from being deleted even if the original
-  //    MemoryRange object goes out of scope.
-  // 2) Each view (ViewMRI) carries a reference `ViewedMRI* base` to the object
-  //    being viewed. The `ViewedMRI` in turn contains a `refcount` to keep
-  //    track of how many views are still using it.
-  // 3) When ViewedMRI's `refounct` reaches 0, it means there are no longer any
-  //    views onto the original MemoryRange object, and the original `impl` can
-  //    be restored.
-  //
-  class ViewMRI : public BufferImpl {
-    private:
-      MemoryRange parent;
-      size_t offset;
+// View_BufferImpl represents a buffer which is a part of a larger buffer
+// `parent`.
+//
+// Typical use-case: memory-map a file, then carve out various regions of
+// that file as separate MemoryRange objects for each column. Another example:
+// when converting to Numpy, allocate a large contiguous chunk of memory,
+// then split it into separate memory buffers for each column, and cast the
+// existing Frame into those prepared column buffers.
+//
+// View_BufferImpl exists in tandem with ViewedMRI (which replaces the `impl` of the
+// object being viewed). This mechanism is needed in order to keep the source
+// MemoryRegion impl alive even if its owner went out of scope. The mechanism
+// is the following:
+// 1) When a view onto a MemoryRange is created, its `impl` is replaced with
+//    a `ViewedMRI` object, which holds the original impl, and carries a
+//    `shared_ptr<internal>` reference to the source MemoryRange's `o`. This
+//    prevents the ViewedMRI `impl` from being deleted even if the original
+//    MemoryRange object goes out of scope.
+// 2) Each view (View_BufferImpl) carries a reference `ViewedMRI* base` to the object
+//    being viewed. The `ViewedMRI` in turn contains a `refcount` to keep
+//    track of how many views are still using it.
+// 3) When ViewedMRI's `refounct` reaches 0, it means there are no longer any
+//    views onto the original MemoryRange object, and the original `impl` can
+//    be restored.
+//
+class View_BufferImpl : public BufferImpl
+{
+  private:
+    MemoryRange parent;
+    size_t offset;
 
-    public:
-      ViewMRI(const MemoryRange& src, size_t n, size_t offset);
-      virtual ~ViewMRI() override;
+  public:
+    View_BufferImpl(const MemoryRange& src, size_t n, size_t offs)
+      : parent(src), offset(offs)
+    {
+      xassert(offs + n <= src.size());
+      parent.acquire_shared();
+      offset = offs;
+      bufdata = const_cast<void*>(src.rptr(offs));
+      bufsize = n;
+      resizable = false;
+      writable = src.is_writable();
+      pyobjects = src.is_pyobjects();
+    }
 
-      void resize(size_t n) override;
-      size_t memory_footprint() const override;
-      void verify_integrity() const override;
-  };
+    virtual ~View_BufferImpl() override {
+      parent.release_shared();
+      pyobjects = false;
+    }
+
+    void resize(size_t) override {
+      throw RuntimeError() << "view buffer cannot be resized";
+    }
+
+    size_t memory_footprint() const override {
+      return sizeof(View_BufferImpl) + bufsize;
+    }
+
+    void verify_integrity() const override {
+      BufferImpl::verify_integrity();
+      if (resizable) {
+        throw AssertionError() << "View_BufferImpl cannot be marked as resizable";
+      }
+      auto base_ptr = static_cast<const void*>(
+                          static_cast<const char*>(parent.rptr()) + offset);
+      if (base_ptr != bufdata) {
+        throw AssertionError()
+            << "Invalid data pointer in View MemoryRange: should be "
+            << base_ptr << " but actual pointer is " << bufdata;
+      }
+    }
+};
 
 
 
@@ -323,55 +359,6 @@ class External_BufferImpl : public BufferImpl {
     protected:
       void memmap() override;
   };
-
-
-
-
-
-//==============================================================================
-// ViewMRI
-//==============================================================================
-
-  ViewMRI::ViewMRI(const MemoryRange& src, size_t n, size_t offs)
-    : parent(src),
-      offset(offs)
-  {
-    xassert(offs + n <= src.size());
-    parent.acquire_shared();
-    offset = offs;
-    bufdata = const_cast<void*>(src.rptr(offs));
-    bufsize = n;
-    resizable = false;
-    writable = src.is_writable();
-    pyobjects = src.is_pyobjects();
-  }
-
-  ViewMRI::~ViewMRI() {
-    parent.release_shared();
-    pyobjects = false;
-  }
-
-  size_t ViewMRI::memory_footprint() const {
-    return sizeof(ViewMRI) + bufsize;
-  }
-
-  void ViewMRI::resize(size_t) {
-    throw RuntimeError() << "ViewMRI cannot be resized";
-  }
-
-  void ViewMRI::verify_integrity() const {
-    BufferImpl::verify_integrity();
-    if (resizable) {
-      throw AssertionError() << "ViewMRI cannot be marked as resizable";
-    }
-    auto base_ptr = static_cast<const void*>(
-                        static_cast<const char*>(parent.rptr()) + offset);
-    if (base_ptr != bufdata) {
-      throw AssertionError()
-          << "Invalid data pointer in View MemoryRange: should be "
-          << base_ptr << " but actual pointer is " << bufdata;
-    }
-  }
 
 
 
@@ -753,7 +740,7 @@ class External_BufferImpl : public BufferImpl {
   }
 
   MemoryRange MemoryRange::view(const MemoryRange& src, size_t n, size_t offset) {
-    return MemoryRange(new ViewMRI(src, n, offset));
+    return MemoryRange(new View_BufferImpl(src, n, offset));
   }
 
   MemoryRange MemoryRange::mmap(const std::string& path) {
