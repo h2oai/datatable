@@ -167,8 +167,11 @@ size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*) {
 
 
 void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src) {
+  // When n==0, the `buffer` pointer may remain unallocated, and it
+  // is invalid to `memcpy` 0 bytes into a null pointer.
+  if (n == 0) return;
   if (pos + n > allocsize) {
-    throw RuntimeError() << "Attempt to write at pos=" << pos << " chunk of "
+    throw AssertionError() << "Attempt to write at pos=" << pos << " chunk of "
       "length " << n << ", however the buffer is allocated for " << allocsize
       << " bytes only";
   }

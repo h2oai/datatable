@@ -212,7 +212,7 @@ class Memory_BufferImpl : public BufferImpl
 
     // Assumes ownership of pointer `ptr` (the pointer must be
     // deletable via `dt::free()`).
-    Memory_BufferImpl(size_t n, void*&& ptr) {
+    Memory_BufferImpl(void*&& ptr, size_t n) {
       XAssert(ptr || n == 0);
       size_ = n;
       data_ = ptr;
@@ -263,7 +263,7 @@ class External_BufferImpl : public BufferImpl
     Py_buffer* pybufinfo_;
 
   public:
-    External_BufferImpl(size_t n, const void* ptr, Py_buffer* pybuf) {
+    External_BufferImpl(const void* ptr, size_t n, Py_buffer* pybuf) {
       XAssert(ptr || n == 0);
       data_ = const_cast<void*>(ptr);
       size_ = n;
@@ -272,11 +272,11 @@ class External_BufferImpl : public BufferImpl
       writable_ = false;
     }
 
-    External_BufferImpl(size_t n, const void* ptr)
-      : External_BufferImpl(n, ptr, nullptr) {}
+    External_BufferImpl(const void* ptr, size_t n)
+      : External_BufferImpl(ptr, n, nullptr) {}
 
-    External_BufferImpl(size_t n, void* ptr)
-      : External_BufferImpl(n, ptr, nullptr) { writable_ = true; }
+    External_BufferImpl(void* ptr, size_t n)
+      : External_BufferImpl(ptr, n, nullptr) { writable_ = true; }
 
     ~External_BufferImpl() override {
       // If the buffer contained pyobjects, leave them as-is and
@@ -367,12 +367,12 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
   //------------------------------------
   public:
     explicit Mmap_BufferImpl(const std::string& path)
-      : Mmap_BufferImpl(0, path, -1, false) {}
+      : Mmap_BufferImpl(path, 0, -1, false) {}
 
-    Mmap_BufferImpl(size_t n, const std::string& path, int fileno)
-      : Mmap_BufferImpl(n, path, fileno, true) {}
+    Mmap_BufferImpl(const std::string& path, size_t n, int fileno)
+      : Mmap_BufferImpl(path, n, fileno, true) {}
 
-    Mmap_BufferImpl(size_t n, const std::string& path, int fileno, bool create)
+    Mmap_BufferImpl(const std::string& path, size_t n, int fileno, bool create)
       : filename_(path), fd_(fileno), mapped_(false)
     {
       data_ = nullptr;
@@ -586,7 +586,9 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
 
   public:
     Overmap_BufferImpl(const std::string& path, size_t xn, int fd = -1)
-      : Mmap_BufferImpl(xn, path, fd, false), xbuf_(nullptr), xsize_(xn)
+      : Mmap_BufferImpl(path, xn, fd, false),
+        xbuf_(nullptr),
+        xsize_(xn)
     {
       writable_ = true;
     }
@@ -733,19 +735,19 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
   }
 
   MemoryRange MemoryRange::acquire(void* ptr, size_t n) {
-    return MemoryRange(new Memory_BufferImpl(n, std::move(ptr)));
+    return MemoryRange(new Memory_BufferImpl(std::move(ptr), n));
   }
 
   MemoryRange MemoryRange::external(void* ptr, size_t n) {
-    return MemoryRange(new External_BufferImpl(n, ptr));
+    return MemoryRange(new External_BufferImpl(ptr, n));
   }
 
   MemoryRange MemoryRange::external(const void* ptr, size_t n) {
-    return MemoryRange(new External_BufferImpl(n, ptr));
+    return MemoryRange(new External_BufferImpl(ptr, n));
   }
 
   MemoryRange MemoryRange::external(const void* ptr, size_t n, Py_buffer* pb) {
-    return MemoryRange(new External_BufferImpl(n, ptr, pb));
+    return MemoryRange(new External_BufferImpl(ptr, n, pb));
   }
 
   MemoryRange MemoryRange::view(const MemoryRange& src, size_t n, size_t offset) {
@@ -757,7 +759,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
   }
 
   MemoryRange MemoryRange::mmap(const std::string& path, size_t n, int fd) {
-    return MemoryRange(new Mmap_BufferImpl(n, path, fd));
+    return MemoryRange(new Mmap_BufferImpl(path, n, fd));
   }
 
   MemoryRange MemoryRange::overmap(const std::string& path, size_t extra_n,
