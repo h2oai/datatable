@@ -27,42 +27,32 @@ class BufferImpl;
  * chunk may be shared across multiple Buffer instances: this allows
  * Buffer objects to be copied with negligible overhead.
  *
- * Internally, Buffer object contains just a single `shared_ptr<internal>`
- * object `o`. This shared pointer allows `Buffer` to be easily copyable.
- * The "internal" struct contains a `unique_ptr<BufferImpl> impl` pointer, whereas
- * the BufferImpl object can actually be instantiated into any of the derived
- * classes (representing different backends):
- *   - plain memory storage (MemoryMRI);
- *   - memory owned by an external source (ExternalMRI);
- *   - view onto another Buffer (ViewMRI);
- *   - Buffer that is currently being "viewed" (ViewedMRI);
- *   - memory-mapped file (MmapMRI).
- * This 2-tiered structure allows us to replace the internal `BufferImpl` object
- * with another implementation, if needed -- without having to modify any of
- * the user-facing `Buffer` objects.
+ * The class implements Copy-on-Write semantics: if a user wants to
+ * write into the memory buffer contained in a Buffer object, and
+ * that memory buffer is currently shared with other Buffer instances,
+ * then the class will first replace its internal impl with a
+ * writable copy of the memory buffer.
  *
- * The class implements Copy-on-Write semantics: if a user wants to write into
- * the memory buffer contained in a Buffer object, and that memory buffer
- * is currently shared with other Buffer instances, then the class will
- * first replace its internal impl with a writable copy of the memory buffer.
- *
- * The class may also be marked as "containing PyObjects". In this case the
- * contents of the buffer will receive special treatment:
- *   - The length of the data buffer must be a multiple of sizeof(PyObject*).
- *   - Each element in the data buffer must be a valid PyObject* pointer at
- *     all times: this is why `set_contains_pyobjects()` has a boolean flag
- *     whether the data needs to be initialized to contain `Py_None`s, or
- *     whether the buffer already contains valid `PyObject*`s.
+ * The class may also be marked as "containing PyObjects". In this
+ * case the contents of the buffer will receive special treatment:
+ *   - The length of the data buffer must be a multiple of
+ *     sizeof(PyObject*).
+ *   - Each element in the data buffer must be a valid PyObject*
+ *     pointer at all times: this is why `set_contains_pyobjects()`
+ *     has a boolean flag whether the data needs to be initialized
+ *     to contain `Py_None`s, or whether the buffer already contains
+ *      valid `PyObject*`s.
  *   - When such array is deallocated, all its elements are DECREFed.
- *   - When the array is copied for the purpose of CoW semantics, the elements
- *     in the copied array are INCREFed.
- *   - When the array is resized upwards, the newly added elements are
- *     initialized to `Py_None`s.
- *   - When the array is resized downwards, the elements that disappear
- *     will be DECREFed.
- *   - get_element() returns a borrowed reference to the requested element.
- *   - set_element() takes a new reference and stores it into the array,
- *     DECREFing the element being overwritten.
+ *   - When the array is copied for the purpose of CoW semantics, the
+ *     elements in the copied array are INCREFed.
+ *   - When the array is resized upwards, the newly added elements
+ *     are initialized to `Py_None`s.
+ *   - When the array is resized downwards, the elements that
+ *     disappear will be DECREFed.
+ *   - get_element() returns a borrowed reference to the requested
+ *     element.
+ *   - set_element() takes a new reference and stores it into the
+ *     array, DECREFing the element being overwritten.
  *
  */
 class Buffer
@@ -134,8 +124,7 @@ class Buffer
     static Buffer view(const Buffer& src, size_t n, size_t offset);
     static Buffer mmap(const std::string& path);
     static Buffer mmap(const std::string& path, size_t n, int fd = -1);
-    static Buffer overmap(const std::string& path, size_t nextra,
-                               int fd = -1);
+    static Buffer overmap(const std::string& path, size_t nextra, int fd = -1);
 
     // Basic properties of the Buffer:
     //
