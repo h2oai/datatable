@@ -244,7 +244,7 @@ class MemoryRange
     void verify_integrity() const;
 
   private:
-    explicit MemoryRange(BufferImpl* impl);
+    explicit MemoryRange(BufferImpl*&& impl);
 
     // Helper function for dealing with non-writeable objects. It will replace
     // the current `impl` with a new `MemoryMRI` object of size `newsize`,

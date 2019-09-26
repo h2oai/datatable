@@ -25,6 +25,28 @@
 // BufferImpl
 //------------------------------------------------------------------------------
 
+/**
+  * Abstract implementation for the MemoryRange object.
+  *
+  * The class uses the reference-counting semantics, and thus acts
+  * as a self-owning object. The refcount is set to 1 when the object
+  * is created; all subsequent copies of the pointer must be done via
+  * the `acquire()` call, which must be paired with the corresponding
+  * `release()` call when the pointer is no longer needed. The
+  * object will self-destruct when its refcount reaches 0.
+  *
+  * The BufferImpl may be marked as containing PyObjects. They will
+  * be incref'd when copied, and decref'd when the buffer is resized
+  * or destructed.
+  *
+  * The BufferImpl also carries flags that indicate whether the object
+  * is writable / resizable. Resizing will also be forbidden if there
+  * are multiple users sharing the same pointer (as indicated by the
+  * refcount). Writing will also be forbidden for multiple users,
+  * unless they called `acquire_shared()` to indicate that copy-on-
+  * -write semantics should be suspended.
+  *
+  */
 class BufferImpl
 {
   friend class MemoryRange;
@@ -45,7 +67,7 @@ class BufferImpl
     BufferImpl()
       : data_(nullptr),
         size_(0),
-        refcount_(0),
+        refcount_(1),
         nshared_(0),
         contains_pyobjects_(false),
         writable_(true),
@@ -729,8 +751,8 @@ class View_BufferImpl : public BufferImpl
 
   //---- Constructors ----------------------------
 
-  MemoryRange::MemoryRange(BufferImpl* impl)
-    : impl_(impl->acquire()) {}
+  MemoryRange::MemoryRange(BufferImpl*&& impl)
+    : impl_(impl) {}
 
   MemoryRange::MemoryRange()
     : MemoryRange(new Memory_BufferImpl(0)) {}
