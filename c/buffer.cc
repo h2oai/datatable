@@ -173,23 +173,60 @@ class Memory_BufferImpl : public BufferImpl {
 
 
 //------------------------------------------------------------------------------
-// ExternalMRI
+// External_BufferImpl
 //------------------------------------------------------------------------------
 
-  class ExternalMRI : public BufferImpl {
-    private:
-      Py_buffer* pybufinfo;
+class External_BufferImpl : public BufferImpl {
+  private:
+    Py_buffer* pybufinfo;
 
-    public:
-      ExternalMRI(size_t n, const void* ptr);
-      ExternalMRI(size_t n, const void* ptr, Py_buffer* pybuf);
-      explicit ExternalMRI(const char* str);
-      ~ExternalMRI() override;
+  public:
+    External_BufferImpl(size_t n, const void* ptr, Py_buffer* pybuf) {
+      if (!ptr && n > 0) {
+        throw RuntimeError() << "Unallocated buffer supplied to "
+            "External_BufferImpl. Expected memory region of size " << n;
+      }
+      bufdata = const_cast<void*>(ptr);
+      bufsize = n;
+      pybufinfo = pybuf;
+      resizable = false;
+      writable = false;
+    }
 
-      void resize(size_t n) override;
-      size_t memory_footprint() const override;
-  };
+    External_BufferImpl(size_t n, const void* ptr)
+      : External_BufferImpl(n, ptr, nullptr)
+    {
+      writable = true;
+    }
 
+    explicit External_BufferImpl(const char* str)
+      : External_BufferImpl(strlen(str) + 1, str, nullptr) {}
+
+    ~External_BufferImpl() override {
+      // If the buffer contained pyobjects, leave them as-is and do not attempt
+      // to DECREF (this is up to the external owner).
+      pyobjects = false;
+      if (pybufinfo) {
+        PyBuffer_Release(pybufinfo);
+      }
+    }
+
+    void resize(size_t) override {
+      throw Error() << "Unable to resize an External_BufferImpl buffer";
+    }
+
+    size_t memory_footprint() const override {
+      // Py_buffer is owned externally
+      return sizeof(External_BufferImpl) + bufsize;
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// ViewMRI
+//------------------------------------------------------------------------------
 
   // ViewMRI represents a memory range which is a part of a larger memory
   // region controlled by `base` ViewedMRI.
@@ -232,6 +269,11 @@ class Memory_BufferImpl : public BufferImpl {
 
 
 
+
+//------------------------------------------------------------------------------
+// MmapMRI
+//------------------------------------------------------------------------------
+
   class MmapMRI : public BufferImpl, MemoryMapWorker {
     private:
       const std::string filename;
@@ -261,6 +303,12 @@ class Memory_BufferImpl : public BufferImpl {
   };
 
 
+
+
+//------------------------------------------------------------------------------
+// OvermapMRI
+//------------------------------------------------------------------------------
+
   class OvermapMRI : public MmapMRI {
     private:
       void* xbuf;
@@ -276,61 +324,6 @@ class Memory_BufferImpl : public BufferImpl {
       void memmap() override;
   };
 
-
-
-
-
-//==============================================================================
-// Memory_BufferImpl
-//==============================================================================
-
-
-
-
-
-//==============================================================================
-// ExternalMRI
-//==============================================================================
-
-  ExternalMRI::ExternalMRI(size_t size, const void* ptr, Py_buffer* pybuf) {
-    if (!ptr && size > 0) {
-      throw RuntimeError() << "Unallocated buffer supplied to the ExternalMRI "
-          "constructor. Expected memory region of size " << size;
-    }
-    bufdata = const_cast<void*>(ptr);
-    bufsize = size;
-    pybufinfo = pybuf;
-    resizable = false;
-    writable = false;
-    TRACK(this, sizeof(*this), "ExternalMRI");
-  }
-
-  ExternalMRI::ExternalMRI(size_t n, const void* ptr)
-    : ExternalMRI(n, ptr, nullptr)
-  {
-    writable = true;
-  }
-
-  ExternalMRI::ExternalMRI(const char* str)
-      : ExternalMRI(strlen(str) + 1, str, nullptr) {}
-
-  ExternalMRI::~ExternalMRI() {
-    // If the buffer contained pyobjects, leave them as-is and do not attempt
-    // to DECREF (this is up to the external owner).
-    pyobjects = false;
-    if (pybufinfo) {
-      PyBuffer_Release(pybufinfo);
-    }
-    UNTRACK(this);
-  }
-
-  void ExternalMRI::resize(size_t) {
-    throw Error() << "Unable to resize an ExternalMRI buffer";
-  }
-
-  size_t ExternalMRI::memory_footprint() const {
-    return sizeof(ExternalMRI) + bufsize + (pybufinfo? sizeof(Py_buffer) : 0);
-  }
 
 
 
@@ -752,11 +745,11 @@ class Memory_BufferImpl : public BufferImpl {
   }
 
   MemoryRange MemoryRange::external(const void* ptr, size_t n) {
-    return MemoryRange(new ExternalMRI(n, ptr));
+    return MemoryRange(new External_BufferImpl(n, ptr));
   }
 
   MemoryRange MemoryRange::external(const void* ptr, size_t n, Py_buffer* pb) {
-    return MemoryRange(new ExternalMRI(n, ptr, pb));
+    return MemoryRange(new External_BufferImpl(n, ptr, pb));
   }
 
   MemoryRange MemoryRange::view(const MemoryRange& src, size_t n, size_t offset) {
