@@ -139,6 +139,8 @@ def test_progress_interrupt(parallel_type, nthreads):
         cmd_settings += "dt.options.nthreads = %s; " % nthreads
         cmd_run = "time.sleep(%s);" % sleep_time * 10
     else:
+        if parallel_type is "ordered":
+            niterations //= 10
         cmd_run = "core.test_progress_%s(%s, %s)" % (
                   parallel_type, niterations, nthreads)
 
