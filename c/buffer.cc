@@ -803,8 +803,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
   }
 
   const void* MemoryRange::rptr(size_t offset) const {
-    const char* ptr0 = static_cast<const char*>(rptr());
-    return static_cast<const void*>(ptr0 + offset);
+    return static_cast<const char*>(rptr()) + offset;
   }
 
   void* MemoryRange::wptr() {
@@ -813,8 +812,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
   }
 
   void* MemoryRange::wptr(size_t offset) {
-    char* ptr0 = static_cast<char*>(wptr());
-    return static_cast<void*>(ptr0 + offset);
+    return static_cast<char*>(wptr()) + offset;
   }
 
   void* MemoryRange::xptr() const {
@@ -823,18 +821,17 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
   }
 
   void* MemoryRange::xptr(size_t offset) const {
-    return static_cast<void*>(static_cast<char*>(xptr()) + offset);
+    return static_cast<char*>(xptr()) + offset;
   }
 
 
   //---- MemoryRange manipulators ----------------
 
   MemoryRange& MemoryRange::set_pyobjects(bool clear_data) {
+    xassert(impl_->size() % sizeof(PyObject*) == 0);
     size_t n = impl_->size() / sizeof(PyObject*);
-    xassert(n * sizeof(PyObject*) == impl_->size());
-    xassert(this->is_writable());
     if (clear_data) {
-      PyObject** data = static_cast<PyObject**>(impl_->data());
+      PyObject** data = static_cast<PyObject**>(xptr());
       for (size_t i = 0; i < n; ++i) {
         data[i] = Py_None;
       }
@@ -845,9 +842,6 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
   }
 
   MemoryRange& MemoryRange::resize(size_t newsize, bool keep_data) {
-    if (!impl_) {
-      impl_ = (new Memory_BufferImpl(newsize))->acquire();
-    }
     size_t oldsize = impl_->size();
     if (newsize != oldsize) {
       if (is_resizable()) {
@@ -855,12 +849,12 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
           size_t n_old = oldsize / sizeof(PyObject*);
           size_t n_new = newsize / sizeof(PyObject*);
           if (n_new < n_old) {
-            PyObject** data = static_cast<PyObject**>(impl_->data());
+            PyObject** data = static_cast<PyObject**>(xptr());
             for (size_t i = n_new; i < n_old; ++i) Py_DECREF(data[i]);
           }
           impl_->resize(newsize);
           if (n_new > n_old) {
-            PyObject** data = static_cast<PyObject**>(impl_->data());
+            PyObject** data = static_cast<PyObject**>(xptr());
             for (size_t i = n_old; i < n_new; ++i) data[i] = Py_None;
             Py_None->ob_refcnt += n_new - n_old;
           }
@@ -880,9 +874,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
   //---- Utility functions -----------------------
 
   void MemoryRange::verify_integrity() const {
-    if (!impl_) {
-      throw AssertionError() << "NULL implementation object in MemoryRange";
-    }
+    XAssert(impl_);
     impl_->verify_integrity();
   }
 
@@ -893,13 +885,15 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
 
   void MemoryRange::materialize(size_t newsize, size_t copysize) {
     xassert(newsize >= copysize);
-    Memory_BufferImpl* newimpl = new Memory_BufferImpl(newsize);
+    auto newimpl = new Memory_BufferImpl(newsize);
+    // No exception can occur after this point, and `newimpl` will be
+    // safely stored in variable `this->impl_`.
     if (copysize) {
       std::memcpy(newimpl->data(), impl_->data(), copysize);
     }
     if (impl_->contains_pyobjects_) {
       newimpl->contains_pyobjects_ = true;
-      PyObject** newdata = static_cast<PyObject**>(newimpl->data());
+      auto newdata = static_cast<PyObject**>(newimpl->data());
       size_t n_new = newsize / sizeof(PyObject*);
       size_t n_copy = copysize / sizeof(PyObject*);
       size_t i = 0;
@@ -907,6 +901,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
       for (; i < n_new; ++i) newdata[i] = Py_None;
       Py_None->ob_refcnt += n_new - n_copy;
     }
-    impl_->release();
-    impl_ = newimpl->acquire();
+    impl_->release();  // noexcept
+    impl_ = newimpl;
+    xassert(impl_->refcount_ == 1);
   }
