@@ -86,7 +86,7 @@ def test_internal_parallel_for_dynamic():
 
 @cpp_test
 def test_internal_parallel_for_ordered1():
-    core.test_parallel_for_ordered(17234)
+    core.test_parallel_for_ordered(1723)
 
 
 @cpp_test
@@ -94,7 +94,7 @@ def test_internal_parallel_for_ordered2():
     n0 = dt.options.nthreads
     try:
         dt.options.nthreads = 2
-        core.test_parallel_for_ordered(17234)
+        core.test_parallel_for_ordered(1723)
     finally:
         dt.options.nthreads = n0
 
@@ -126,8 +126,8 @@ def test_progress(parallel_type, nthreads):
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niterations = 100000
-    sleep_time = 0.1
+    niterations = 10000
+    sleep_time = 0.01
     exception = "KeyboardInterrupt\n"
     cmd_settings = "import datatable as dt; from datatable.lib import core;"
     cmd_settings += "dt.options.progress.enabled = True;"
