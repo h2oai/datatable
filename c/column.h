@@ -205,6 +205,10 @@ class Column
   // Data buffers
   //------------------------------------
   public:
+    // Return the method that this column uses to encode NAs. See
+    // the description of `NaStorage` enum for details.
+    NaStorage get_na_storage_method() const;
+
     // A Column may be comprised of multiple data buffers. For virtual
     // columns this property returns 0.
     size_t get_num_data_buffers() const;
@@ -214,10 +218,6 @@ class Column
     // specifies which buffer the function is applied to.
     // Correspondingly, the methods below are not applicable to
     // virtual columns and will raise an exception.
-
-    // Return the method that this column uses to encode NAs. See
-    // the description of `NaStorage` enum for details.
-    NaStorage get_na_storage_method(size_t k = 0) const;
 
     // Return true if data buffer can be edited as-is, without
     // creating any extra copies.
