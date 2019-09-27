@@ -14,7 +14,6 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <algorithm>  // std::min
-#include <iostream>
 #include <mutex>      // std::lock_guard
 #include <thread>     // std::this_thread
 #include <vector>     // std::vector
@@ -178,16 +177,12 @@ ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
     ordering_thread_index(NO_THREAD),
     istart(0),
     iorder(0),
-    ifinish(0) {
-      std::cout << "ordered_scheduler: n_iterations = " << n_iterations << "\n";
-      xassert(n_iterations < (1 << 30));
-    }
+    ifinish(0) {}
 
 
 thread_task* ordered_scheduler::get_next_task(size_t ith) {
   if (ith >= n_threads) return nullptr;
   std::lock_guard<spin_mutex> lock(mutex);
-  std::cout << "get_next_task[" << ith << "]: n_iterations = " << n_iterations << "\n";
 
   ordered_task* task = assigned_tasks[ith];
   task->advance_state();
