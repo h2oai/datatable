@@ -3,11 +3,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cstdlib>         // std::abs
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
+#include "column/range.h"
 #include "python/_all.h"
 #include "python/list.h"   // py::olist
 #include "python/string.h" // py::ostring
@@ -581,40 +582,13 @@ Column Column::from_pylist_of_dicts(
 // Create from range
 //------------------------------------------------------------------------------
 
-template <typename T>
-static Column _make_range_column(
-    int64_t start, int64_t length, int64_t step, SType stype)
-{
-  Column col = Column::new_data_column(stype, static_cast<size_t>(length));
-  T* elems = static_cast<T*>(col->data_w());
-  for (int64_t i = 0, j = start; i < length; ++i) {
-    elems[i] = static_cast<T>(j);
-    j += step;
-  }
-  return col;
-}
-
-
-// TODO: create a special "range" column instead
 Column Column::from_range(
     int64_t start, int64_t stop, int64_t step, SType stype)
 {
-  xassert(step != 0);
-  int64_t length = (step > 0) ? (stop - start + step - 1) / step
-                              : (start - stop - step - 1) / (-step);
-  if (length < 0) length = 0;
-  if (stype == SType::VOID) {
-    stype = (start == static_cast<int32_t>(start) &&
-             stop == static_cast<int32_t>(stop)) ? SType::INT32 : SType::INT64;
+  if (stype == SType::STR32 || stype == SType::STR64 || stype == SType::OBJ) {
+    Column col = Column(new dt::Range_ColumnImpl(start, stop, step));
+    col.cast_inplace(stype);
+    return col;
   }
-  switch (stype) {
-    case SType::INT8:  return _make_range_column<int8_t> (start, length, step, stype);
-    case SType::INT16: return _make_range_column<int16_t>(start, length, step, stype);
-    case SType::INT32: return _make_range_column<int32_t>(start, length, step, stype);
-    case SType::INT64: return _make_range_column<int64_t>(start, length, step, stype);
-    default: {
-      Column col = _make_range_column<int64_t>(start, length, step, SType::INT64);
-      return col.cast(stype);
-    }
-  }
+  return Column(new dt::Range_ColumnImpl(start, stop, step, stype));
 }

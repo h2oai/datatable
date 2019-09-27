@@ -19,23 +19,35 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_CONST_h
-#define dt_COLUMN_CONST_h
+#ifndef dt_COLUMN_RBOUND_h
+#define dt_COLUMN_RBOUND_h
+#include <memory>
+#include <vector>
 #include "column/virtual.h"
 namespace dt {
 
 
-class Const_ColumnImpl : public Virtual_ColumnImpl {
-  public:
-    using Virtual_ColumnImpl::Virtual_ColumnImpl;
-    static Column make_na_column(size_t nrows);
-    static Column make_bool_column(size_t nrows, bool value);
-    static Column make_int_column(size_t nrows, int64_t value);
-    static Column make_float_column(size_t nrows, double value);
-    static Column make_string_column(size_t nrows, CString value);
-    static Column from_1row_column(const Column& col);
+/**
+  *
+  */
+class Rbound_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    std::vector<Column> columns_;
 
-    void repeat(size_t ntimes, bool inplace, Column& out) override;
+  public:
+    Rbound_ColumnImpl(const colvec& columns);
+
+    ColumnImpl* shallowcopy() const override;
+    // ColumnImpl* materialize() override;
+
+    bool get_element(size_t i, int8_t* out)   const override;
+    bool get_element(size_t i, int16_t* out)  const override;
+    bool get_element(size_t i, int32_t* out)  const override;
+    bool get_element(size_t i, int64_t* out)  const override;
+    bool get_element(size_t i, float* out)    const override;
+    bool get_element(size_t i, double* out)   const override;
+    bool get_element(size_t i, CString* out)  const override;
+    bool get_element(size_t i, py::robj* out) const override;
 };
 
 

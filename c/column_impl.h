@@ -122,7 +122,7 @@ class ColumnImpl
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
     void* data_w() {
-      assert(!is_virtual());
+      xassert(!is_virtual());
       return mbuf.wptr();
     }
     size_t alloc_size() const;
@@ -462,7 +462,6 @@ class VoidColumn : public ColumnImpl {
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
     ColumnImpl* materialize() override;
-    void rbind_impl(colvec&, size_t, bool) override;
     void apply_na_mask(const Column&) override;
     void replace_values(Column&, const RowIndex&, const Column&) override;
   protected:

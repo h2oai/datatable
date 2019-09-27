@@ -445,6 +445,7 @@ void ReplaceAgent::check_uniqueness(std::vector<T>& data) {
 void ReplaceAgent::process_bool_column(size_t colidx) {
   if (x_bool.empty()) return;
   Column& col = dt->get_column(colidx);
+  col.materialize();
   int8_t* coldata = static_cast<int8_t*>(col->data_w());
   size_t n = x_bool.size();
   xassert(n == y_bool.size());
@@ -457,6 +458,7 @@ template <typename T>
 void ReplaceAgent::process_int_column(size_t colidx) {
   if (x_int.empty()) return;
   Column& col = dt->get_column(colidx);
+  col.materialize();
 
   int64_t col_min = col.stats()->min_int();
   int64_t col_max = col.stats()->max_int();
@@ -514,6 +516,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
   constexpr double MAX_FLOAT = double(std::numeric_limits<float>::max());
   if (x_real.empty()) return;
   Column& col = dt->get_column(colidx);
+  col.materialize();
   double col_min = col.stats()->min_double();
   double col_max = col.stats()->max_double();
 

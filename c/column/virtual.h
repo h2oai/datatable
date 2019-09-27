@@ -31,7 +31,8 @@ namespace dt {
   */
 class Virtual_ColumnImpl : public ColumnImpl {
   public:
-    using ColumnImpl::ColumnImpl;
+    Virtual_ColumnImpl(size_t nrows, SType stype)
+      : ColumnImpl(nrows, stype) {}
 
     bool is_virtual() const noexcept override {
       return true;

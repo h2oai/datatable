@@ -1337,7 +1337,7 @@ def test_export_names(dt0):
 #-------------------------------------------------------------------------------
 
 def test_internal_rowindex():
-    d0 = dt.Frame(range(100))
+    d0 = dt.Frame(list(range(100)))
     d1 = d0[:20, :]
     assert frame_columns_virtual(d0) == (False,)
     assert frame_columns_virtual(d1) == (True,)
