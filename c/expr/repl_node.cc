@@ -82,7 +82,7 @@ void frame_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
     if (coli.nrows() == 1) {
       coli.repeat(lrows);
     }
-    dt0->set_ocolumn(j, std::move(coli));
+    dt0->set_column(j, std::move(coli));
   }
 }
 
@@ -101,7 +101,7 @@ void frame_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
     size_t j = indices[i];
     const Column& coli = dtr->get_column(rcols == 1? 0 : i);
     if (!dt0->get_column(j)) {
-      dt0->set_ocolumn(j,
+      dt0->set_column(j,
           Column::new_na_column(coli.stype(), dt0->nrows));
     }
     Column& colj = dt0->get_column(j);
@@ -163,7 +163,7 @@ void scalar_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
       new_columns[stype] = make_column(stype, dt0->nrows);
     }
     Column newcol = new_columns[stype];  // copy
-    dt0->set_ocolumn(j, std::move(newcol));
+    dt0->set_column(j, std::move(newcol));
   }
 }
 
@@ -179,10 +179,10 @@ void scalar_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
     Column replcol = make_column(stype, 1);
     stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
     if (!colj) {
-      dt0->set_ocolumn(j, Column::new_na_column(stype, dt0->nrows));
+      dt0->set_column(j, Column::new_na_column(stype, dt0->nrows));
     }
     else if (colj.stype() != stype) {
-      dt0->set_ocolumn(j, colj.cast(stype));
+      dt0->set_column(j, colj.cast(stype));
     }
     Column& ocol = dt0->get_column(j);
     ocol.replace_values(ri0, replcol);
@@ -407,7 +407,7 @@ void exprlist_rn::replace_columns(EvalContext& ctx, const intvec& indices) const
     Column col = (i < rcols)? exprs[i]->evaluate(ctx)
                             : dt0->get_column(indices[0]);
     xassert(col.nrows() == dt0->nrows);
-    dt0->set_ocolumn(j, std::move(col));
+    dt0->set_column(j, std::move(col));
   }
 }
 

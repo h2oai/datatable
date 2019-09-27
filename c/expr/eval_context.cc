@@ -292,7 +292,7 @@ void EvalContext::evaluate_update_columns() {
   typecheck_for_update(replacement, indices);
 
   for (size_t i = 0; i < lcols; ++i) {
-    dt0->set_ocolumn(indices[i], replacement.retrieve_column(i));
+    dt0->set_column(indices[i], replacement.retrieve_column(i));
   }
 }
 
