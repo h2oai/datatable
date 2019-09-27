@@ -66,12 +66,12 @@ WritableBuffer* Column::strdata_w() {
   return strbuf;
 }
 
-MemoryRange Column::extract_databuf() {
+Buffer Column::extract_databuf() {
   return std::move(databuf);
 }
 
-MemoryRange Column::extract_strbuf() {
-  if (!(strbuf && is_string())) return MemoryRange();
+Buffer Column::extract_strbuf() {
+  if (!(strbuf && is_string())) return Buffer();
   strbuf->finalize();
   return strbuf->get_mbuf();
 }

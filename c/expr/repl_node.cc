@@ -272,7 +272,7 @@ Column scalar_int_rn::make_column(SType st, size_t nrows) const {
 
 template <typename T>
 Column scalar_int_rn::_make1(SType stype) const {
-  MemoryRange mbuf = MemoryRange::mem(sizeof(T));
+  Buffer mbuf = Buffer::mem(sizeof(T));
   mbuf.set_element<T>(0, static_cast<T>(value));
   return Column::new_mbuf_column(stype, std::move(mbuf));
 }
@@ -317,7 +317,7 @@ Column scalar_float_rn::make_column(SType st, size_t nrows) const {
                 std::abs(value) > MAX);
   SType result_stype = res64? SType::FLOAT64 : SType::FLOAT32;
 
-  MemoryRange mbuf = MemoryRange::mem(res64? sizeof(double) : sizeof(float));
+  Buffer mbuf = Buffer::mem(res64? sizeof(double) : sizeof(float));
   if (res64) {
     mbuf.set_element<double>(0, value);
   } else {
@@ -360,7 +360,7 @@ Column scalar_string_rn::make_column(SType st, size_t nrows) const {
   size_t len = value.size();
   SType rst = (st == SType::VOID)? SType::STR32 : st;
   size_t elemsize = (rst == SType::STR32)? 4 : 8;
-  MemoryRange offbuf = MemoryRange::mem(2 * elemsize);
+  Buffer offbuf = Buffer::mem(2 * elemsize);
   if (elemsize == 4) {
     offbuf.set_element<uint32_t>(0, 0);
     offbuf.set_element<uint32_t>(1, static_cast<uint32_t>(len));
@@ -368,7 +368,7 @@ Column scalar_string_rn::make_column(SType st, size_t nrows) const {
     offbuf.set_element<uint64_t>(0, 0);
     offbuf.set_element<uint64_t>(1, len);
   }
-  MemoryRange strbuf = MemoryRange::mem(len);
+  Buffer strbuf = Buffer::mem(len);
   std::memcpy(strbuf.xptr(), value.data(), len);
   Column col = Column::new_string_column(1, std::move(offbuf), std::move(strbuf));
   if (nrows > 1) {

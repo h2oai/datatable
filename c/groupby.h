@@ -7,18 +7,18 @@
 //------------------------------------------------------------------------------
 #ifndef dt_GROUPBY_h
 #define dt_GROUPBY_h
-#include "memrange.h"
+#include "buffer.h"
 #include "rowindex.h"
 
 
 class Groupby {
   private:
-    MemoryRange offsets;
+    Buffer offsets;
     size_t n;
 
   public:
     Groupby();
-    Groupby(size_t _n, MemoryRange&& _offs);
+    Groupby(size_t _n, Buffer&& _offs);
     Groupby(const Groupby&) = default;
     Groupby(Groupby&&) = default;
     Groupby& operator=(const Groupby&) = default;

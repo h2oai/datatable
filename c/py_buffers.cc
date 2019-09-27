@@ -106,7 +106,7 @@ Column Column::from_buffer(const py::robj& pyobj)
                     << ", expected " << expected_buffer_len;
     }
     const void* ptr = pview->buf;
-    MemoryRange mbuf = MemoryRange::external(ptr, buffer_len, pview.release());
+    Buffer mbuf = Buffer::external(ptr, buffer_len, pview.release());
     res = Column::new_mbuf_column(stype, std::move(mbuf));
   }
   else {
@@ -154,8 +154,8 @@ static Column convert_fwchararray_to_column(Py_buffer* view)
   size_t maxsize = static_cast<size_t>(view->len);
   auto input = reinterpret_cast<uint32_t*>(view->buf);
 
-  MemoryRange strbuf = MemoryRange::mem(maxsize);
-  MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
+  Buffer strbuf = Buffer::mem(maxsize);
+  Buffer offbuf = Buffer::mem((nrows + 1) * 4);
   char* strptr = static_cast<char*>(strbuf.wptr());
   uint32_t* offptr = static_cast<uint32_t*>(offbuf.wptr());
   *offptr++ = 0;
@@ -213,7 +213,7 @@ static void try_to_resolve_object_column(Column& col)
 
   // All values in the list were booleans (or None)
   if (all_booleans) {
-    MemoryRange mbuf = MemoryRange::mem(nrows);
+    Buffer mbuf = Buffer::mem(nrows);
     auto out = static_cast<int8_t*>(mbuf.xptr());
     for (size_t i = 0; i < nrows; ++i) {
       PyObject* v = data[i];
@@ -225,8 +225,8 @@ static void try_to_resolve_object_column(Column& col)
   // All values were strings
   else if (all_strings) {
     size_t strbuf_size = total_length;
-    MemoryRange offbuf = MemoryRange::mem((nrows + 1) * 4);
-    MemoryRange strbuf = MemoryRange::mem(strbuf_size);
+    Buffer offbuf = Buffer::mem((nrows + 1) * 4);
+    Buffer strbuf = Buffer::mem(strbuf_size);
     uint32_t* offsets = static_cast<uint32_t*>(offbuf.xptr());
     char* strs = static_cast<char*>(strbuf.xptr());
 
@@ -282,8 +282,8 @@ static void try_to_resolve_object_column(Column& col)
 //==============================================================================
 
 struct XInfo {
-  // Exported MemoryRange object.
-  MemoryRange mbuf;
+  // Exported Buffer object.
+  Buffer mbuf;
 
   // An array of Py_ssize_t of length `ndim`, indicating the shape of the
   // memory as an n-dimensional array (prod(shape) * itemsize == len).
@@ -411,7 +411,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   xassert(!info(stype).is_varwidth());
   size_t elemsize = info(stype).elemsize();
   size_t colsize = nrows * elemsize;
-  MemoryRange memr = MemoryRange::mem(ncols * colsize);
+  Buffer memr = Buffer::mem(ncols * colsize);
   const char* fmt = format_from_stype(stype);
 
   // Construct the data buffer
@@ -420,7 +420,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // ExternalMemBuf object is documented to be readonly; however in
     // practice it can still be written to, just not resized (this is
     // hacky, maybe fix in the future).
-    MemoryRange xmb = MemoryRange::view(memr, colsize, i*colsize);
+    Buffer xmb = Buffer::view(memr, colsize, i*colsize);
     // Now we create a `newcol` by casting `col` into `stype`, using
     // the buffer `xmb`. Since `xmb` already has the correct size, this
     // is possible. The effect of this call is that `newcol` will be

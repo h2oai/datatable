@@ -42,7 +42,7 @@ FwColumn<T>::FwColumn(size_t nrows_)
 
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr)
+FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
   : ColumnImpl(nrows_, stype_for<T>())
 {
   size_t req_size = sizeof(T) * nrows_;

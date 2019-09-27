@@ -31,7 +31,7 @@ class BitMask;
 class Column;
 class ColumnImpl;
 class Groupby;
-class MemoryRange;
+class Buffer;
 using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
 
@@ -136,8 +136,8 @@ class Column
 
     static Column new_data_column(SType, size_t nrows);
     static Column new_na_column(SType, size_t nrows);
-    static Column new_mbuf_column(SType, MemoryRange&&);
-    static Column new_string_column(size_t n, MemoryRange&& data, MemoryRange&& str);
+    static Column new_mbuf_column(SType, Buffer&&);
+    static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);
     static Column from_buffer(const py::robj& buffer);
     static Column from_pylist(const py::olist& list, int stype0 = 0);
     static Column from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
@@ -268,7 +268,7 @@ class Column
     void materialize() const;
     void cast_inplace(SType stype);
     Column cast(SType stype) const;
-    Column cast(SType stype, MemoryRange&& mr) const;
+    Column cast(SType stype, Buffer&& mr) const;
     RowIndex sort(Groupby* out_groups) const;
     void sort_grouped(const Groupby&);
 

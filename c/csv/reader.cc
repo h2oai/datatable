@@ -534,7 +534,7 @@ void GenericReader::open_input() {
   size_t extra_byte = 0;
   if (fileno > 0) {
     const char* src = src_arg.to_cstring().ch;
-    input_mbuf = MemoryRange::overmap(src, /* extra = */ 1, fileno);
+    input_mbuf = Buffer::overmap(src, /* extra = */ 1, fileno);
     size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
@@ -545,12 +545,12 @@ void GenericReader::open_input() {
 
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
-    input_mbuf = MemoryRange::external(text.ch, size + 1);
+    input_mbuf = Buffer::external(text.ch, size + 1);
     extra_byte = 1;
     input_is_string = true;
 
   } else if ((filename = file_arg.to_cstring().ch)) {
-    input_mbuf = MemoryRange::overmap(filename, /* extra = */ 1);
+    input_mbuf = Buffer::overmap(filename, /* extra = */ 1);
     size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
@@ -780,7 +780,7 @@ void GenericReader::decode_utf16() {
 
   // `buf` is a borrowed ref, belongs to PyObject* `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
-  input_mbuf = MemoryRange::external(
+  input_mbuf = Buffer::external(
                   const_cast<void*>(static_cast<const void*>(buf)),
                   static_cast<size_t>(ssize) + 1);
   sof = static_cast<char*>(input_mbuf.wptr());
@@ -830,8 +830,8 @@ dtptr GenericReader::makeDatatable() {
   for (size_t i = 0; i < ncols; ++i) {
     dt::read::Column& col = columns[i];
     if (!col.is_in_output()) continue;
-    MemoryRange databuf = col.extract_databuf();
-    MemoryRange strbuf = col.extract_strbuf();
+    Buffer databuf = col.extract_databuf();
+    Buffer strbuf = col.extract_strbuf();
     SType stype = col.get_stype();
     ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
       ? Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))

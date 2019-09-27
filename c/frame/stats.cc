@@ -26,7 +26,7 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "column.h"
-#include "memrange.h"
+#include "buffer.h"
 #include "stats.h"
 
 namespace py {

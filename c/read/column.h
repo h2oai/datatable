@@ -8,7 +8,7 @@
 #ifndef dt_READ_COLUMN_h
 #define dt_READ_COLUMN_h
 #include <string>
-#include "memrange.h"     // MemoryRange
+#include "buffer.h"     // Buffer
 #include "python/obj.h"   // py::oobj
 #include "writebuf.h"     // WritableBuffer
 
@@ -34,7 +34,7 @@ namespace read {
 class Column {
   private:
     std::string name;
-    MemoryRange databuf;
+    Buffer databuf;
     MemoryWritableBuffer* strbuf;
     PT ptype;
     RT rtype;
@@ -68,8 +68,8 @@ class Column {
     void allocate(size_t nrows);
     void* data_w();
     WritableBuffer* strdata_w();
-    MemoryRange extract_databuf();
-    MemoryRange extract_strbuf();
+    Buffer extract_databuf();
+    Buffer extract_strbuf();
 
     // Column's name
     const std::string& get_name() const noexcept;

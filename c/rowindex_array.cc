@@ -27,7 +27,7 @@
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
 #include "column.h"            // Column, BoolColumn
-#include "memrange.h"          // MemoryRange
+#include "buffer.h"          // Buffer
 #include "rowindex.h"
 #include "rowindex_impl.h"
 
@@ -316,13 +316,13 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
     // will be written into `xbuf`, which is just a view onto `ind32`. Also,
     // since `xbuf` is ExternalMemBuf, its memory won't be reclaimed when
     // the column is destructed.
-    MemoryRange xbuf = MemoryRange::external(data, length * sizeof(int32_t));
+    Buffer xbuf = Buffer::external(data, length * sizeof(int32_t));
     xassert(xbuf.is_writable());
     auto col3 = col2.cast(SType::INT32, std::move(xbuf));
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
-    MemoryRange xbuf = MemoryRange::external(data, length * sizeof(int64_t));
+    Buffer xbuf = Buffer::external(data, length * sizeof(int64_t));
     xassert(xbuf.is_writable());
     auto col3 = col2.cast(SType::INT64, std::move(xbuf));
   }

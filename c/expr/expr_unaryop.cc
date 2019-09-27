@@ -315,10 +315,10 @@ Column expr_unaryop::evaluate(EvalContext& ctx) {
   input_column.materialize();
 
   size_t nrows = input_column.nrows();
-  const MemoryRange& input_mbuf = input_column->data_buf();
+  const Buffer& input_mbuf = input_column->data_buf();
   const void* inp = input_mbuf.rptr();
 
-  MemoryRange output_mbuf;
+  Buffer output_mbuf;
   void* out = nullptr;
   size_t out_elemsize = info(ui.output_stype).elemsize();
   if (input_mbuf.is_writable() &&
@@ -327,10 +327,10 @@ Column expr_unaryop::evaluate(EvalContext& ctx) {
     // The address `out` must be taken *before* `output_mbuf` is initialized,
     // since the `.xptr()` method checks that the reference counter is 1.
     out = input_mbuf.xptr();
-    output_mbuf = MemoryRange(input_mbuf);
+    output_mbuf = Buffer(input_mbuf);
   }
   else {
-    output_mbuf = MemoryRange::mem(out_elemsize * nrows);
+    output_mbuf = Buffer::mem(out_elemsize * nrows);
     out = output_mbuf.xptr();
   }
   auto output_column =

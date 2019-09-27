@@ -13,7 +13,7 @@
 #include "utils/file.h"
 using std::size_t;
 
-class MemoryRange;
+class Buffer;
 
 
 
@@ -162,7 +162,7 @@ public:
    * it will be the responsibility of the caller to handle it.
    */
   void* get_cptr();
-  MemoryRange get_mbuf();
+  Buffer get_mbuf();
   std::string get_string();
 
 private:
