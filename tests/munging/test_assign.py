@@ -361,3 +361,10 @@ def test_assign_scalar_to_str64_column():
     DT = dt.Frame(A=["wonder", None, "ful", None], stype=dt.str64)
     DT[:, "A"] = "beep"
     assert_equals(DT, dt.Frame(A=["beep"] * 4, stype=dt.str64))
+
+
+def test_assign_str_to_empty_frame():
+    # See issue #2043, the assignment used to deadlock
+    DT = dt.Frame(W=[], stype=dt.str32)
+    DT[f.W == '', f.W] = 'yay!'
+    assert_equals(DT, dt.Frame(W=[], stype=dt.str32))
