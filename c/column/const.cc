@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/const.h"
 #include "python/obj.h"
+#include "utils/macros.h"
 namespace dt {
 
 
@@ -83,9 +84,6 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
     ConstInt_ColumnImpl(size_t nrows, bool x)
       : Const_ColumnImpl(nrows, SType::BOOL), value(x) {}
 
-    ConstInt_ColumnImpl(size_t nrows, int64_t x)
-      : Const_ColumnImpl(nrows, stype_for_value(x)), value(x) {}
-
     ConstInt_ColumnImpl(size_t nrows, int8_t x, SType stype)
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
@@ -95,8 +93,9 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
     ConstInt_ColumnImpl(size_t nrows, int32_t x, SType stype)
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
-    ConstInt_ColumnImpl(size_t nrows, int64_t x, SType stype)
-      : Const_ColumnImpl(nrows, stype), value(x) {}
+    ConstInt_ColumnImpl(size_t nrows, int64_t x, SType stype = SType::VOID)
+      : Const_ColumnImpl(nrows, normalize_stype(stype, x)),
+        value(x) {}
 
     ColumnImpl* shallowcopy() const override {
       return new ConstInt_ColumnImpl(_nrows, value, _stype);
@@ -134,8 +133,24 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
 
 
   private:
-    static SType stype_for_value(int64_t x) {
-      return (x == static_cast<int32_t>(x))? SType::INT32 : SType::INT64;
+    static SType normalize_stype(SType stype0, int64_t x) {
+      switch (stype0) {
+        case SType::INT8:
+          if (x == static_cast<int8_t>(x)) return SType::INT8;
+          FALLTHROUGH;
+
+        case SType::INT16:
+          if (x == static_cast<int16_t>(x)) return SType::INT16;
+          FALLTHROUGH;
+
+        case SType::INT32:
+        case SType::VOID:
+          if (x == static_cast<int32_t>(x)) return SType::INT32;
+          return SType::INT64;
+
+        default:
+          return stype0;
+      }
     }
 };
 
@@ -222,16 +237,16 @@ Column Const_ColumnImpl::make_bool_column(size_t nrows, bool x) {
   return Column(new ConstInt_ColumnImpl(nrows, x));
 }
 
-Column Const_ColumnImpl::make_int_column(size_t nrows, int64_t x) {
-  return Column(new ConstInt_ColumnImpl(nrows, x));
+Column Const_ColumnImpl::make_int_column(size_t nrows, int64_t x, SType st) {
+  return Column(new ConstInt_ColumnImpl(nrows, x, st));
 }
 
 Column Const_ColumnImpl::make_float_column(size_t nrows, double x, SType st) {
   return Column(new ConstFloat_ColumnImpl(nrows, x, st));
 }
 
-Column Const_ColumnImpl::make_string_column(size_t nrows, CString x) {
-  return Column(new ConstString_ColumnImpl(nrows, x));
+Column Const_ColumnImpl::make_string_column(size_t nrows, CString x, SType st) {
+  return Column(new ConstString_ColumnImpl(nrows, x, st));
 }
 
 
