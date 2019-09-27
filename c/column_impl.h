@@ -125,7 +125,6 @@ class ColumnImpl
       xassert(!is_virtual());
       return mbuf.wptr();
     }
-    size_t alloc_size() const;
 
     virtual size_t data_nrows() const;
     virtual size_t memory_footprint() const;

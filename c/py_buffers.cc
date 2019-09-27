@@ -429,16 +429,11 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     {
       Column newcol = dt->get_column(i + i0).cast(stype, std::move(xmb));
       newcol.materialize();
-      xassert(newcol->alloc_size() == colsize);
       // We can now delete the new column: this will delete `xmb` as well,
-      // however an ExternalMemBuf object does not attempt to free its
-      // memory buffer. The converted data that was written to `mbuf` will
-      // thus remain intact. No need to delete `xmb` either.
+      // however a "view buffer" object does not attempt to free its
+      // memory. The converted data that was written to `xmb` will
+      // thus remain intact.
     }
-
-    // Delete the `col` pointer, which was extracted from the i-th column
-    // of the DataTable.
-    // delete col;
   }
   if (stype == SType::OBJ) {
     memr.set_pyobjects(/*clear=*/ false);

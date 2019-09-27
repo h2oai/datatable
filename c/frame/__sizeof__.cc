@@ -84,10 +84,8 @@ size_t DataTable::memory_footprint() const {
 
 
 /**
- * Get the total size of the memory occupied by the Column. This is different
- * from `column->alloc_size`, which in general reports byte size of the `data`
- * portion of the column.
- */
+  * Get the total size of the memory occupied by the Column.
+  */
 size_t ColumnImpl::memory_footprint() const {
   size_t sz = sizeof(*this);
   sz += mbuf.memory_footprint();
