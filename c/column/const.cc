@@ -151,13 +151,10 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
     double value;
 
   public:
-    ConstFloat_ColumnImpl(size_t nrows, double x)
-      : Const_ColumnImpl(nrows, SType::FLOAT64), value(x) {}
-
-    ConstFloat_ColumnImpl(size_t nrows, float x, SType stype)
+    ConstFloat_ColumnImpl(size_t nrows, float x, SType stype = SType::FLOAT32)
       : Const_ColumnImpl(nrows, stype), value(static_cast<double>(x)) {}
 
-    ConstFloat_ColumnImpl(size_t nrows, double x, SType stype)
+    ConstFloat_ColumnImpl(size_t nrows, double x, SType stype = SType::FLOAT64)
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
     ColumnImpl* shallowcopy() const override {
@@ -229,8 +226,8 @@ Column Const_ColumnImpl::make_int_column(size_t nrows, int64_t x) {
   return Column(new ConstInt_ColumnImpl(nrows, x));
 }
 
-Column Const_ColumnImpl::make_float_column(size_t nrows, double x) {
-  return Column(new ConstFloat_ColumnImpl(nrows, x));
+Column Const_ColumnImpl::make_float_column(size_t nrows, double x, SType st) {
+  return Column(new ConstFloat_ColumnImpl(nrows, x, st));
 }
 
 Column Const_ColumnImpl::make_string_column(size_t nrows, CString x) {

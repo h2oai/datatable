@@ -133,8 +133,6 @@ class ColumnImpl
     RowIndex _sort(Groupby* out_groups) const;
     virtual void sort_grouped(const Groupby&, bool inplace, Column& out);
 
-    Column repeat(size_t nreps) const;  // OLD
-
     /**
       * Repeat the column `ntimes` times. Depending on the `inplace`
       * flag, this method is either allowed to modify the current

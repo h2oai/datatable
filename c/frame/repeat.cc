@@ -25,18 +25,13 @@
 #include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "rowindex.h"
-
-
-Column ColumnImpl::repeat(size_t nreps) const {
-  return Column(new dt::Repeated_ColumnImpl(Column(this->shallowcopy()), nreps));
-}
+namespace py {
 
 
 
 //------------------------------------------------------------------------------
 // datatable.repeat()
 //------------------------------------------------------------------------------
-namespace py {
 
 static PKArgs args_repeat(
     2, 0, 0, false, false, {"frame", "n"},
@@ -71,8 +66,11 @@ static oobj repeat(const PKArgs& args) {
 
 
 
+
 void DatatableModule::init_methods_repeat() {
   ADD_FN(&repeat, args_repeat);
 }
+
+
 
 } // namespace py

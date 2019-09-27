@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
+#include "column/const.h"
 #include "expr/expr.h"
 #include "expr/collist.h"
 #include "expr/repl_node.h"
@@ -317,14 +318,16 @@ Column scalar_float_rn::make_column(SType st, size_t nrows) const {
   bool res64 = (st == SType::FLOAT64 || st == SType::VOID ||
                 std::abs(value) > MAX);
   SType result_stype = res64? SType::FLOAT64 : SType::FLOAT32;
+  return Const_ColumnImpl::make_float_column(nrows, value, result_stype);
+  // return Column(new )
 
-  Buffer mbuf = Buffer::mem(res64? sizeof(double) : sizeof(float));
-  if (res64) {
-    mbuf.set_element<double>(0, value);
-  } else {
-    mbuf.set_element<float>(0, static_cast<float>(value));
-  }
-  return Column::new_mbuf_column(result_stype, std::move(mbuf))->repeat(nrows);
+  // Buffer mbuf = Buffer::mem(res64? sizeof(double) : sizeof(float));
+  // if (res64) {
+  //   mbuf.set_element<double>(0, value);
+  // } else {
+  //   mbuf.set_element<float>(0, static_cast<float>(value));
+  // }
+  // return Column::new_mbuf_column(result_stype, std::move(mbuf))->repeat(nrows);
 }
 
 
