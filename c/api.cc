@@ -103,7 +103,7 @@ void* DtFrame_ColumnDataW(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    return dt->get_column(i)->data_w();
+    return dt->get_column(i).get_data_editable();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;

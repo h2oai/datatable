@@ -103,7 +103,7 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
                                         case SType::INT64:   res = fit_regression<int64_t>(); break;
                                         case SType::FLOAT32: res = fit_regression<float>(); break;
                                         case SType::FLOAT64: res = fit_regression<double>(); break;
-                                        case SType::STR32:   FALLTHROUGH;
+                                        case SType::STR32:
                                         case SType::STR64:   res = fit_multinomial(); break;
                                         default:             throw TypeError() << "Target column type `"
                                                                                << stype_y << "` is not supported";
@@ -208,7 +208,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
     xassert(nlabels != 0 && nlabels < 3);
-    auto data_label_ids_in = static_cast<int8_t*>(dt_labels_in->get_column(1)->data_w());
+    auto data_label_ids_in = static_cast<int8_t*>(dt_labels_in->get_column(1).get_data_editable());
     auto data_label_ids = static_cast<const int8_t*>(dt_labels->get_column(1)->data());
 
 
@@ -479,7 +479,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   // Obtain rowindex and data pointers for the target column(s).
   const Column& target_col0_train = dt_y_train->get_column(0);
-  auto data_fi = static_cast<T*>(dt_fi->get_column(1)->data_w());
+  auto data_fi = static_cast<T*>(dt_fi->get_column(1).get_data_editable());
 
   // Training settings. By default each training iteration consists of
   // `dt_X_train->nrows` rows.
@@ -737,7 +737,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   dtptr dt_p = create_p(dt_X->nrows);
   std::vector<T*> data_p(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
-    data_p[i] = static_cast<T*>(dt_p->get_column(i)->data_w());
+    data_p[i] = static_cast<T*>(dt_p->get_column(i).get_data_editable());
   }
 
   // Determine which link function we should use.
@@ -811,7 +811,7 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
 
   std::vector<T*> data(ncols);
   for (size_t j = 0; j < ncols; ++j) {
-    data[j] = static_cast<T*>(dt->get_column(j)->data_w());
+    data[j] = static_cast<T*>(dt->get_column(j).get_data_editable());
   }
 
   dt::parallel_for_static(nrows, [&](size_t i){
@@ -875,7 +875,7 @@ void Ftrl<T>::adjust_model() {
   {
     constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
     Column col = Column::new_data_column(stype, nbins);
-    auto data = static_cast<T*>(col->data_w());
+    auto data = static_cast<T*>(col.get_data_editable());
     std::memset(data, 0, nbins * sizeof(T));
     newcol0 = col;
     newcol1 = col;
@@ -943,7 +943,7 @@ template <typename T>
 void Ftrl<T>::init_model() {
   if (dt_model == nullptr) return;
   for (size_t i = 0; i < dt_model->ncols; ++i) {
-    auto data = static_cast<T*>(dt_model->get_column(i)->data_w());
+    auto data = static_cast<T*>(dt_model->get_column(i).get_data_editable());
     std::memset(data, 0, nbins * sizeof(T));
   }
 }
@@ -975,8 +975,8 @@ void Ftrl<T>::init_weights() {
   n.reserve(nlabels);
 
   for (size_t k = 0; k < nlabels; ++k) {
-    z.push_back(static_cast<T*>(dt_model->get_column(2 * k)->data_w()));
-    n.push_back(static_cast<T*>(dt_model->get_column(2 * k + 1)->data_w()));
+    z.push_back(static_cast<T*>(dt_model->get_column(2 * k).get_data_editable()));
+    n.push_back(static_cast<T*>(dt_model->get_column(2 * k + 1).get_data_editable()));
   }
 }
 
@@ -1024,7 +1024,7 @@ void Ftrl<T>::create_fi() {
 template <typename T>
 void Ftrl<T>::init_fi() {
   if (dt_fi == nullptr) return;
-  auto data = static_cast<T*>(dt_fi->get_column(1)->data_w());
+  auto data = static_cast<T*>(dt_fi->get_column(1).get_data_editable());
   std::memset(data, 0, nfeatures * sizeof(T));
 }
 
@@ -1170,7 +1170,7 @@ DataTable* Ftrl<T>::get_fi(bool normalize /* = true */) {
     Column& col = dt_fi_copy->get_column(1);
     bool max_isna;
     T max = static_cast<T>(col.stats()->max_double(&max_isna));
-    T* data = static_cast<T*>(col->data_w());
+    T* data = static_cast<T*>(col.get_data_editable());
     T norm_factor = static_cast<T>(1.0);
 
     if (!max_isna && std::fabs(max) > T_EPSILON) norm_factor /= max;

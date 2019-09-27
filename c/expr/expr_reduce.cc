@@ -329,7 +329,7 @@ Column expr_reduce1::evaluate(EvalContext& ctx)
 
   SType out_stype = reducer->output_stype;
   auto res = Column::new_data_column(out_stype, out_nrows);
-  void* output = res->data_w();
+  void* output = res.get_data_editable();
 
   if (out_nrows == 1) {
     reducer->f(input_col, 0, input_col.nrows(), output, 0);
@@ -376,13 +376,13 @@ Column expr_reduce0::evaluate(EvalContext& ctx) {
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
       res = Column::new_data_column(SType::INT32, ng);
-      auto d_res = static_cast<int32_t*>(res->data_w());
+      auto d_res = static_cast<int32_t*>(res.get_data_editable());
       for (size_t i = 0; i < ng; ++i) {
         d_res[i] = offsets[i + 1] - offsets[i];
       }
     } else {
       res = Column::new_data_column(SType::INT64, 1);
-      auto d_res = static_cast<int64_t*>(res->data_w());
+      auto d_res = static_cast<int64_t*>(res.get_data_editable());
       d_res[0] = static_cast<int64_t>(ctx.nrows());
     }
   }

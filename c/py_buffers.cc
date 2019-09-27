@@ -113,25 +113,25 @@ Column Column::from_buffer(const py::robj& pyobj)
     res = Column::new_data_column(stype, nrows);
     size_t stride = static_cast<size_t>(view->strides[0] / view->itemsize);
     if (view->itemsize == 8) {
-      int64_t* out = static_cast<int64_t*>(res->data_w());
+      int64_t* out = static_cast<int64_t*>(res.get_data_editable());
       int64_t* inp = static_cast<int64_t*>(view->buf);
       for (size_t j = 0; j < nrows; ++j) {
         out[j] = inp[j * stride];
       }
     } else if (view->itemsize == 4) {
-      int32_t* out = static_cast<int32_t*>(res->data_w());
+      int32_t* out = static_cast<int32_t*>(res.get_data_editable());
       int32_t* inp = static_cast<int32_t*>(view->buf);
       for (size_t j = 0; j < nrows; ++j) {
         out[j] = inp[j * stride];
       }
     } else if (view->itemsize == 2) {
-      int16_t* out = static_cast<int16_t*>(res->data_w());
+      int16_t* out = static_cast<int16_t*>(res.get_data_editable());
       int16_t* inp = static_cast<int16_t*>(view->buf);
       for (size_t j = 0; j < nrows; ++j) {
         out[j] = inp[j * stride];
       }
     } else if (view->itemsize == 1) {
-      int8_t* out = static_cast<int8_t*>(res->data_w());
+      int8_t* out = static_cast<int8_t*>(res.get_data_editable());
       int8_t* inp = static_cast<int8_t*>(view->buf);
       for (size_t j = 0; j < nrows; ++j) {
         out[j] = inp[j * stride];

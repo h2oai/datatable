@@ -446,7 +446,7 @@ void ReplaceAgent::process_bool_column(size_t colidx) {
   if (x_bool.empty()) return;
   Column& col = dt->get_column(colidx);
   col.materialize();
-  int8_t* coldata = static_cast<int8_t*>(col->data_w());
+  int8_t* coldata = static_cast<int8_t*>(col.get_data_editable());
   size_t n = x_bool.size();
   xassert(n == y_bool.size());
   if (n == 0) return;
@@ -504,7 +504,7 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     size_t n = xfilt.size();
     xassert(n == yfilt.size());
     if (n == 0) return;
-    T* coldata = static_cast<T*>(col->data_w());
+    T* coldata = static_cast<T*>(col.get_data_editable());
     replace_fw<T>(xfilt.data(), yfilt.data(), col.nrows(), coldata, n);
     col.reset_stats();
   }
@@ -556,7 +556,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     size_t n = xfilt.size();
     xassert(n == yfilt.size());
     if (n == 0) return;
-    T* coldata = static_cast<T*>(col->data_w());
+    T* coldata = static_cast<T*>(col.get_data_editable());
     replace_fw<T>(xfilt.data(), yfilt.data(), col.nrows(), coldata, n);
     col.reset_stats();
   }
