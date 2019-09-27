@@ -47,8 +47,12 @@ template <typename F>
 Column map_str2str(const Column& input_col, F f) {
   bool use_str64 = (input_col.stype() == SType::STR64);
   size_t nrows = input_col.nrows();
+  if (nrows == 0) {
+    return Column::new_data_column(input_col.stype(), 0);
+  }
   writable_string_col output_col(nrows, use_str64);
 
+  // Do not allow the case of nrows==0 here, because then `nrows-1` overflows
   constexpr size_t min_nrows_per_thread = 100;
   size_t nthreads = nrows / min_nrows_per_thread;
   size_t nchunks = 1 + (nrows - 1)/1000;

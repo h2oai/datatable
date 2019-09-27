@@ -78,6 +78,9 @@ Frame
 - |fix| Increasing the number of rows in a keyed Frame was documented as
   invalid, but didn't actually throw any errors. Now it does (#2021).
 
+- |fix| Operations on a 0-row frame containing string columns will no
+  longer cause an infinite loop (#2043).
+
 
 Internal
 --------
