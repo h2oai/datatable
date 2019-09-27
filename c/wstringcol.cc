@@ -27,11 +27,11 @@ namespace dt {
 
 writable_string_col::writable_string_col(size_t nrows, bool str64_)
   : strdata(nrows),
-    offdata(MemoryRange::mem((nrows + 1) * 4 * (1 + str64_))),
+    offdata(Buffer::mem((nrows + 1) * 4 * (1 + str64_))),
     n(nrows),
     str64(str64_) {}
 
-writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows,
+writable_string_col::writable_string_col(Buffer&& offsets, size_t nrows,
                                          bool str64_)
   : strdata(nrows),
     offdata(std::move(offsets)),

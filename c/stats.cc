@@ -1198,7 +1198,7 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
 
 template <typename T>
 static Column _make_column(SType stype, T value) {
-  MemoryRange mbuf = MemoryRange::mem(sizeof(T));
+  Buffer mbuf = Buffer::mem(sizeof(T));
   mbuf.set_element<T>(0, value);
   Column res = Column::new_mbuf_column(stype, std::move(mbuf));
   xassert(res.nrows() == 1);
@@ -1211,8 +1211,8 @@ static Column _make_nacol(SType stype) {
 
 static Column _make_column_str(CString value) {
   using T = uint32_t;
-  MemoryRange mbuf = MemoryRange::mem(sizeof(T) * 2);
-  MemoryRange strbuf;
+  Buffer mbuf = Buffer::mem(sizeof(T) * 2);
+  Buffer strbuf;
   if (value.size >= 0) {
     size_t len = static_cast<size_t>(value.size);
     mbuf.set_element<T>(0, 0);

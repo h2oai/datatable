@@ -18,10 +18,11 @@
 // may add it as a default compilation flag, so in order to combat this we have
 // defined a new `DTDEBUG` macro. This macro may be passed from the Makefile,
 // and if declared it means to ignore the NDEBUG macro even if it is present.
-#if defined(DTDEBUG) && defined(NDEBUG)
-  #undef NDEBUG
-#endif
-#if !defined(DTDEBUG) && !defined(NDEBUG)
+#undef NDEBUG
+#ifdef DTDEBUG
+  #undef DTDEBUG
+  #define DTDEBUG 1
+#else
   #define NDEBUG 1
 #endif
 
@@ -31,10 +32,7 @@
 
 // Here we also define the `xassert` macro, which behaves similarly to `assert`,
 // however it throws exceptions instead of terminating the program
-#ifdef NDEBUG
-  #define wassert(EXPRESSION)
-  #define xassert(EXPRESSION)
-#else
+#if DTDEBUG
   #define wassert(EXPRESSION) \
     if (!(EXPRESSION)) { \
       (AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
@@ -46,7 +44,20 @@
       throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
           << __FILE__ << ", line " << __LINE__; \
     }
+#else
+  #define wassert(EXPRESSION)
+  #define xassert(EXPRESSION)
 #endif
+
+
+// XAssert() macro is similar to xassert(), except it works both in
+// debug and in production.
+#define XAssert(EXPRESSION) \
+  if (!(EXPRESSION)) { \
+    throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
+        << __FILE__ << ", line " << __LINE__; \
+  }
+
 
 
 #ifdef static_assert

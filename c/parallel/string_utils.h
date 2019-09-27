@@ -32,7 +32,7 @@ using string_buf = writable_string_col::buffer;
 
 Column generate_string_column(dt::function<void(size_t, string_buf*)> fn,
                               size_t n,
-                              MemoryRange&& offsets_buffer = MemoryRange(),
+                              Buffer&& offsets_buffer = Buffer(),
                               bool force_str64 = false,
                               bool force_single_threaded = false);
 

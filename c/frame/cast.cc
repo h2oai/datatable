@@ -153,7 +153,7 @@ static void cast_to_pyobj(const Column& col, void* out_data)
 
 
 template <typename T, void (*CAST_OP)(T, dt::string_buf*)>
-static Column cast_to_str(const Column& col, MemoryRange&& out_offsets,
+static Column cast_to_str(const Column& col, Buffer&& out_offsets,
                           SType target_stype)
 {
   return dt::generate_string_column(
@@ -175,7 +175,7 @@ static Column cast_to_str(const Column& col, MemoryRange&& out_offsets,
 
 
 template <typename T>
-static Column cast_str_to_str(const Column& col, MemoryRange&& out_offsets,
+static Column cast_str_to_str(const Column& col, Buffer&& out_offsets,
                               SType target_stype)
 {
   if (sizeof(T) == 8 && target_stype == SType::STR32 &&
@@ -214,7 +214,7 @@ class cast_manager {
   private:
     using castfn0 = void (*)(const Column&, size_t start, void* out);
     using castfn2 = void (*)(const Column&, void* out);
-    using castfnx = Column (*)(const Column&, MemoryRange&&, SType);
+    using castfnx = Column (*)(const Column&, Buffer&&, SType);
     struct cast_info {
       castfn0  f0;
       castfn2  f2;
@@ -229,7 +229,7 @@ class cast_manager {
     inline void add(SType st_from, SType st_to, castfn2 f);
     inline void add(SType st_from, SType st_to, castfnx f);
 
-    Column execute(const Column&, MemoryRange&&, SType);
+    Column execute(const Column&, Buffer&&, SType);
 
   private:
     static inline constexpr size_t key(SType st1, SType st2) {
@@ -258,7 +258,7 @@ void cast_manager::add(SType st_from, SType st_to, castfnx f) {
 }
 
 
-Column cast_manager::execute(const Column& src, MemoryRange&& target_mbuf,
+Column cast_manager::execute(const Column& src, Buffer&& target_mbuf,
                              SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
@@ -467,16 +467,16 @@ void py::DatatableModule::init_casts()
 //------------------------------------------------------------------------------
 
 void Column::cast_inplace(SType stype) {
-  Column newcolumn = casts.execute(*this, MemoryRange(), stype);
+  Column newcolumn = casts.execute(*this, Buffer(), stype);
   std::swap(*this, newcolumn);
 }
 
 
 Column Column::cast(SType stype) const {
-  return casts.execute(*this, MemoryRange(), stype);
+  return casts.execute(*this, Buffer(), stype);
 }
 
 
-Column Column::cast(SType stype, MemoryRange&& mem) const {
+Column Column::cast(SType stype, Buffer&& mem) const {
   return casts.execute(*this, std::move(mem), stype);
 }

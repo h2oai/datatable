@@ -45,7 +45,7 @@ void DataTable::save_jay(const std::string& path,
 /**
  * Save Frame in Jay format to memory,
  */
-MemoryRange DataTable::save_jay() {
+Buffer DataTable::save_jay() {
   auto wb = std::unique_ptr<MemoryWritableBuffer>(
                 new MemoryWritableBuffer(memory_footprint()));
   save_jay_impl(wb.get());
@@ -263,7 +263,7 @@ oobj Frame::to_jay(const PKArgs& args) {
   }
 
   if (filename.empty()) {
-    MemoryRange mr = dt->save_jay();
+    Buffer mr = dt->save_jay();
     auto data = static_cast<const char*>(mr.xptr());
     auto size = static_cast<Py_ssize_t>(mr.size());
     return oobj::from_new_reference(PyBytes_FromStringAndSize(data, size));

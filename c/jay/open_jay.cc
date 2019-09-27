@@ -16,7 +16,7 @@
 // Helper functions
 static Column column_from_jay(size_t nrows,
                               const jay::Column* jaycol,
-                              const MemoryRange& jaybuf);
+                              const Buffer& jaybuf);
 
 static void check_jay_signature(const uint8_t* ptr, size_t size);
 
@@ -26,7 +26,7 @@ static void check_jay_signature(const uint8_t* ptr, size_t size);
 //------------------------------------------------------------------------------
 
 DataTable* open_jay_from_file(const std::string& path) {
-  MemoryRange mbuf = MemoryRange::mmap(path);
+  Buffer mbuf = Buffer::mmap(path);
   return open_jay_from_mbuf(mbuf);
 }
 
@@ -34,13 +34,13 @@ DataTable* open_jay_from_bytes(const char* ptr, size_t len) {
   // The buffer's lifetime is tied to the lifetime of the bytes object, which
   // could be very short. This is why we have to copy the buffer (even storing
   // a reference will be insufficient: what if the bytes object gets modified?)
-  MemoryRange mbuf = MemoryRange::mem(len);
+  Buffer mbuf = Buffer::mem(len);
   std::memcpy(mbuf.xptr(), ptr, len);
   return open_jay_from_mbuf(mbuf);
 }
 
 
-DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
+DataTable* open_jay_from_mbuf(const Buffer& mbuf)
 {
   std::vector<std::string> colnames;
 
@@ -116,12 +116,12 @@ static void check_jay_signature(const uint8_t* sof, size_t size) {
 // Open an individual column
 //------------------------------------------------------------------------------
 
-static MemoryRange extract_buffer(
-    const MemoryRange& src, const jay::Buffer* jbuf)
+static Buffer extract_buffer(
+    const Buffer& src, const jay::Buffer* jbuf)
 {
   size_t offset = jbuf->offset();
   size_t length = jbuf->length();
-  return MemoryRange::view(src, length, offset + 8);
+  return Buffer::view(src, length, offset + 8);
 }
 
 
@@ -139,7 +139,7 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 
 
 static Column column_from_jay(
-    size_t nrows, const jay::Column* jcol, const MemoryRange& jaybuf)
+    size_t nrows, const jay::Column* jcol, const Buffer& jaybuf)
 {
   jay::Type jtype = jcol->type();
 
@@ -157,9 +157,9 @@ static Column column_from_jay(
   }
 
   Column col;
-  MemoryRange databuf = extract_buffer(jaybuf, jcol->data());
+  Buffer databuf = extract_buffer(jaybuf, jcol->data());
   if (stype == SType::STR32 || stype == SType::STR64) {
-    MemoryRange strbuf = extract_buffer(jaybuf, jcol->strdata());
+    Buffer strbuf = extract_buffer(jaybuf, jcol->strdata());
     col = Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
     col = Column::new_mbuf_column(stype, std::move(databuf));

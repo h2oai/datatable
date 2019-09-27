@@ -38,7 +38,7 @@ Column Column::new_na_column(SType stype, size_t nrows) {
 }
 
 
-Column Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
+Column Column::new_mbuf_column(SType stype, Buffer&& mbuf) {
   size_t elemsize = info(stype).elemsize();
   ColumnImpl* col = ColumnImpl::new_impl(stype);
   xassert(mbuf.size() % elemsize == 0);
@@ -51,9 +51,9 @@ Column Column::new_mbuf_column(SType stype, MemoryRange&& mbuf) {
 }
 
 
-static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
+static Buffer _recode_offsets_to_u64(const Buffer& offsets) {
   // TODO: make this parallel
-  MemoryRange off64 = MemoryRange::mem(offsets.size() * 2);
+  Buffer off64 = Buffer::mem(offsets.size() * 2);
   auto data64 = static_cast<uint64_t*>(off64.xptr());
   auto data32 = static_cast<const uint32_t*>(offsets.rptr());
   data64[0] = 0;
@@ -73,7 +73,7 @@ static MemoryRange _recode_offsets_to_u64(const MemoryRange& offsets) {
 
 
 Column Column::new_string_column(
-    size_t n, MemoryRange&& data, MemoryRange&& str)
+    size_t n, Buffer&& data, Buffer&& str)
 {
   size_t data_size = data.size();
   size_t strb_size = str.size();
@@ -106,10 +106,6 @@ ColumnImpl* ColumnImpl::shallowcopy() const {
 
 size_t ColumnImpl::alloc_size() const {  // TODO: remove
   return _nrows * info(_stype).elemsize();
-}
-
-PyObject* ColumnImpl::mbuf_repr() const {
-  return mbuf.pyrepr();
 }
 
 
@@ -293,7 +289,7 @@ const void* Column::get_data_readonly(size_t k) const {
                 : pcol->data2();
 }
 
-void* Column::get_data_editable(size_t k) {
+void* Column::get_data_editable(size_t) {
   if (is_virtual()) materialize();
   return pcol->mbuf.wptr();
 }

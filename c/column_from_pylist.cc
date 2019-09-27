@@ -119,7 +119,7 @@ py::robj idictlist::item(size_t i) const {
  * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
  * If any other value is encountered, the parse will fail.
  */
-static bool parse_as_bool(const iterable* list, MemoryRange& membuf, size_t& from)
+static bool parse_as_bool(const iterable* list, Buffer& membuf, size_t& from)
 {
   size_t nrows = list->size();
   membuf.resize(nrows);
@@ -151,7 +151,7 @@ static bool parse_as_bool(const iterable* list, MemoryRange& membuf, size_t& fro
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(const iterable* list, MemoryRange& membuf)
+static void force_as_bool(const iterable* list, Buffer& membuf)
 {
   size_t nrows = list->size();
   membuf.resize(nrows);
@@ -181,7 +181,7 @@ static void force_as_bool(const iterable* list, MemoryRange& membuf)
  * parser will fail if the `int` value does not fit into the range of type `T`.
  */
 template <typename T>
-static bool parse_as_int(const iterable* list, MemoryRange& membuf, size_t& from)
+static bool parse_as_int(const iterable* list, Buffer& membuf, size_t& from)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
@@ -222,7 +222,7 @@ static bool parse_as_int(const iterable* list, MemoryRange& membuf, size_t& from
  * as C++'s `static_cast<T>`).
  */
 template <typename T>
-static void force_as_int(const iterable* list, MemoryRange& membuf)
+static void force_as_int(const iterable* list, Buffer& membuf)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
@@ -250,7 +250,7 @@ static void force_as_int(const iterable* list, MemoryRange& membuf)
  * as doubles, and it's extremely hard to determine whether that number should
  * have been a float instead...
  */
-static bool parse_as_double(const iterable* list, MemoryRange& membuf, size_t& from)
+static bool parse_as_double(const iterable* list, Buffer& membuf, size_t& from)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(double));
@@ -286,7 +286,7 @@ static bool parse_as_double(const iterable* list, MemoryRange& membuf, size_t& f
 
 
 template <typename T>
-static void force_as_real(const iterable* list, MemoryRange& membuf)
+static void force_as_real(const iterable* list, Buffer& membuf)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
@@ -318,8 +318,8 @@ static void force_as_real(const iterable* list, MemoryRange& membuf)
 //------------------------------------------------------------------------------
 
 template <typename T>
-static bool parse_as_str(const iterable* list, MemoryRange& offbuf,
-                         MemoryRange& strbuf)
+static bool parse_as_str(const iterable* list, Buffer& offbuf,
+                         Buffer& strbuf)
 {
   size_t nrows = list->size();
   offbuf.resize((nrows + 1) * sizeof(T));
@@ -391,8 +391,8 @@ static bool parse_as_str(const iterable* list, MemoryRange& offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(const iterable* list, MemoryRange& offbuf,
-                         MemoryRange& strbuf)
+static void force_as_str(const iterable* list, Buffer& offbuf,
+                         Buffer& strbuf)
 {
   size_t nrows = list->size();
   if (nrows > std::numeric_limits<T>::max()) {
@@ -454,7 +454,7 @@ static void force_as_str(const iterable* list, MemoryRange& offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static bool parse_as_pyobj(const iterable* list, MemoryRange& membuf)
+static bool parse_as_pyobj(const iterable* list, Buffer& membuf)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(PyObject*));
@@ -499,8 +499,8 @@ static SType find_next_stype(SType curr_stype, int stype0) {
 
 static Column ocolumn_from_iterable(const iterable* il, int stype0)
 {
-  MemoryRange membuf;
-  MemoryRange strbuf;
+  Buffer membuf;
+  Buffer strbuf;
   SType stype = find_next_stype(SType::VOID, stype0);
   size_t i = 0;
   while (stype != SType::VOID) {

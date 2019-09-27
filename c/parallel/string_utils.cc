@@ -28,7 +28,7 @@ namespace dt {
 
 Column generate_string_column(function<void(size_t, string_buf*)> fn,
                               size_t nrows,
-                              MemoryRange&& offsets_buffer,
+                              Buffer&& offsets_buffer,
                               bool force_str64,
                               bool force_single_threaded)
 {

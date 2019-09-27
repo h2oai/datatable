@@ -3,14 +3,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <algorithm>           // std::min
 #include <cerrno>              // errno
 #include <mutex>               // std::mutex, std::lock_guard
-#ifndef _WIN32
-#include <sys/mman.h>          // mmap, munmap
-#endif
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
 #include "utils/exceptions.h"  // ValueError, MemoryError
 #include "utils/macros.h"
@@ -19,328 +16,850 @@
 #include "buffer.h"
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
 
+#if !DT_OS_WINDOWS
+  #include <sys/mman.h>        // mmap, munmap
+#endif
+
+
+//------------------------------------------------------------------------------
+// BufferImpl
+//------------------------------------------------------------------------------
+
+/**
+  * Abstract implementation for the Buffer object.
+  *
+  * BufferImpl represents a contiguous chunk of memory, stored as the
+  * `data_` pointer + `size_`. This base class does not own the data
+  * pointer, it is up to the derived class to manage the memory
+  * ownership, and to free the resources when needed.
+  *
+  * The class uses the reference-counting semantics, and thus acts
+  * as a self-owning object. The refcount is set to 1 when the object
+  * is created; all subsequent copies of the pointer must be done via
+  * the `acquire()` call, which must be paired with the corresponding
+  * `release()` call when the pointer is no longer needed. The
+  * object will self-destruct when its refcount reaches 0.
+  *
+  * The BufferImpl may be marked as containing PyObjects. They will
+  * be incref'd when copied, and decref'd when the buffer is resized
+  * or destructed.
+  *
+  * The BufferImpl also carries flags that indicate whether the object
+  * is writable / resizable. Resizing will also be forbidden if there
+  * are multiple users sharing the same pointer (as indicated by the
+  * refcount). Writing will also be forbidden for multiple users,
+  * unless they called `acquire_shared()` to indicate that copy-on-
+  * -write semantics should be suspended.
+  */
+class BufferImpl
+{
+  friend class Buffer;
+  protected:
+    void*  data_;
+    size_t size_;
+    size_t refcount_;
+    uint32_t nshared_;
+    bool   contains_pyobjects_;
+    bool   writable_;
+    bool   resizable_;
+    int : 8;
+
+  //------------------------------------
+  // Constructors
+  //------------------------------------
+  public:
+    BufferImpl()
+      : data_(nullptr),
+        size_(0),
+        refcount_(1),
+        nshared_(0),
+        contains_pyobjects_(false),
+        writable_(true),
+        resizable_(true) {}
+
+    virtual ~BufferImpl() {
+      wassert(!contains_pyobjects_);
+    }
+
+    // If memory buffer contains `PyObject*`s, then they must be
+    // DECREFed before being deleted.
+    //
+    // This method must be called by the destructors of the derived
+    // classes. The reason this code is not in the ~BufferImpl is
+    // because it is the derived classes who handle freeing
+    // `data_`, and decrefing PyObjects must happen before that.
+    //
+    void clear_pyobjects() {
+      if (!contains_pyobjects_) return;
+      PyObject** items = static_cast<PyObject**>(data_);
+      size_t n = size_ / sizeof(PyObject*);
+      for (size_t i = 0; i < n; ++i) {
+        Py_DECREF(items[i]);
+      }
+      contains_pyobjects_ = false;
+    }
+
+
+  //------------------------------------
+  // Refcounting
+  //------------------------------------
+  // Call `acquire()` when storing a `BufferImpl*` pointer in a
+  // variable. Call `release()` when that variable or its contents
+  // are destroyed.
+  //
+  // The "shared" version of acquire/release calls allows the
+  // object to be shared with another user: both owners of the
+  // "shared" pointer are allowed to write into the data buffer
+  // (however they still can't resize it).
+  //
+  public:
+    inline BufferImpl* acquire() noexcept {
+      refcount_++;
+      return this;
+    }
+
+    inline void release() noexcept {
+      refcount_--;
+      if (refcount_ == 0) delete this;
+    }
+
+    inline BufferImpl* acquire_shared() noexcept {
+      refcount_++;
+      nshared_++;
+      return this;
+    }
+
+    inline void release_shared() noexcept {
+      refcount_--;
+      nshared_--;
+      if (refcount_ == 0) delete this;
+    }
+
+
+  //------------------------------------
+  // Properties
+  //------------------------------------
+  public:
+    // size() and data() are virtual to allow the children to fetch
+    // the data pointer only when it is needed.
+    virtual size_t size() const {
+      return size_;
+    }
+
+    virtual void* data() const {
+      return data_;
+    }
+
+    bool is_resizable() const noexcept {
+      return resizable_ && (refcount_ == 1);
+    }
+
+    bool is_writable() const noexcept {
+      return writable_ && (refcount_ - nshared_ == 1);
+    }
+
+    bool is_pyobjects() const noexcept {
+      return contains_pyobjects_;
+    }
+
+
+  //------------------------------------
+  // Methods
+  //------------------------------------
+  public:
+    virtual void resize(size_t) {
+      throw AssertionError() << "buffer cannot be resized";
+    }
+
+    virtual size_t memory_footprint() const = 0;
+
+    virtual void verify_integrity() const {
+      if (data_) { XAssert(size_ > 0); }
+      else       { XAssert(size_ == 0); }
+      if (resizable_) {
+        XAssert(writable_);
+      }
+      if (contains_pyobjects_) {
+        size_t n = size_ / sizeof(PyObject*);
+        XAssert(size_ == n * sizeof(PyObject*));
+        PyObject** elements = static_cast<PyObject**>(data_);
+        for (size_t i = 0; i < n; ++i) {
+          XAssert(elements[i] != nullptr);
+          XAssert(elements[i]->ob_refcnt > 0);
+        }
+      }
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// Memory_BufferImpl
+//------------------------------------------------------------------------------
+
+/**
+  * Simple buffer that represents a piece of memory allocated via
+  * dt::malloc(). The memory is owned by this class.
+  */
+class Memory_BufferImpl : public BufferImpl
+{
+  public:
+    explicit Memory_BufferImpl(size_t n) {
+      size_ = n;
+      data_ = dt::malloc<void>(n);  // may throw
+    }
+
+    // Assumes ownership of pointer `ptr` (the pointer must be
+    // deletable via `dt::free()`).
+    Memory_BufferImpl(void*&& ptr, size_t n) {
+      XAssert(ptr || n == 0);
+      size_ = n;
+      data_ = ptr;
+    }
+
+    ~Memory_BufferImpl() override {
+      clear_pyobjects();
+      dt::free(data_);
+   }
+
+    void resize(size_t n) override {
+      if (n == size_) return;
+      data_ = dt::realloc(data_, n);
+      size_ = n;
+    }
+
+    size_t memory_footprint() const override {
+      return sizeof(Memory_BufferImpl) + size_;
+    }
+
+    void verify_integrity() const override {
+      BufferImpl::verify_integrity();
+      if (size_) {
+        size_t actual_allocsize = malloc_size(data_);
+        XAssert(size_ <= actual_allocsize);
+      }
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// External_BufferImpl
+//------------------------------------------------------------------------------
+
+/**
+  * This class represents a piece of memory owned by some external
+  * entity. The lifetime of the memory region may be guarded by a
+  * Py_buffer object. However, it is also possible to wrap a
+  * completely unguarded memory range, in which cast it is the
+  * responsibility of the user to ensure that the memory remains
+  * valid during the lifetime of External_BufferImpl object.
+  */
+class External_BufferImpl : public BufferImpl
+{
+  private:
+    Py_buffer* pybufinfo_;
+
+  public:
+    External_BufferImpl(const void* ptr, size_t n, Py_buffer* pybuf) {
+      XAssert(ptr || n == 0);
+      data_ = const_cast<void*>(ptr);
+      size_ = n;
+      pybufinfo_ = pybuf;
+      resizable_ = false;
+      writable_ = false;
+    }
+
+    External_BufferImpl(const void* ptr, size_t n)
+      : External_BufferImpl(ptr, n, nullptr) {}
+
+    External_BufferImpl(void* ptr, size_t n)
+      : External_BufferImpl(ptr, n, nullptr) { writable_ = true; }
+
+    ~External_BufferImpl() override {
+      // If the buffer contained pyobjects, leave them as-is and
+      // do not attempt to DECREF (since the memory is not freed).
+      contains_pyobjects_ = false;
+      if (pybufinfo_) {
+        PyBuffer_Release(pybufinfo_);
+      }
+    }
+
+    size_t memory_footprint() const override {
+      // All memory is owned externally
+      return sizeof(External_BufferImpl);
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// View_BufferImpl
+//------------------------------------------------------------------------------
+
+/**
+  * View_BufferImpl represents a buffer that is a "view" onto another
+  * buffer `parent`.
+  *
+  * Typical use-case: memory-map a file, then carve out various
+  * regions of that file as separate Buffer objects for each column.
+  * Another example: when converting to Numpy, allocate a large
+  * contiguous chunk of memory, then split it into separate buffers
+  * for each column, and cast the existing Frame into those prepared
+  * column buffers.
+  */
+class View_BufferImpl : public BufferImpl
+{
+  private:
+    BufferImpl* parent_;
+    size_t offset_;
+
+  public:
+    View_BufferImpl(BufferImpl* src, size_t n, size_t offs)
+    {
+      XAssert(offs + n <= src->size());
+      parent_ = src->acquire_shared();
+      offset_ = offs;
+      data_ = static_cast<char*>(src->data()) + offset_;
+      size_ = n;
+      resizable_ = false;
+      writable_ = src->is_writable();
+      contains_pyobjects_ = src->is_pyobjects();
+    }
+
+    virtual ~View_BufferImpl() override {
+      contains_pyobjects_ = false;
+      parent_->release_shared();
+    }
+
+    size_t memory_footprint() const override {
+      return sizeof(View_BufferImpl) + size_;
+    }
+
+    void verify_integrity() const override {
+      BufferImpl::verify_integrity();
+      XAssert(!resizable_);
+      XAssert(data_ == static_cast<const char*>(parent_->data()) + offset_);
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// Mmap_BufferImpl
+//------------------------------------------------------------------------------
+
+class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
+  private:
+    const std::string filename_;
+    size_t mmm_index_;
+    int fd_;
+    bool mapped_;
+    bool temporary_file_;
+    int : 16;
+
+  //------------------------------------
+  // Constructors
+  //------------------------------------
+  public:
+    explicit Mmap_BufferImpl(const std::string& path)
+      : Mmap_BufferImpl(path, 0, -1, false) {}
+
+    Mmap_BufferImpl(const std::string& path, size_t n, int fileno)
+      : Mmap_BufferImpl(path, n, fileno, true) {}
+
+    Mmap_BufferImpl(const std::string& path, size_t n, int fileno, bool create)
+      : filename_(path), fd_(fileno), mapped_(false)
+    {
+      data_ = nullptr;
+      size_ = n;
+      writable_ = create;
+      resizable_ = create;
+      temporary_file_ = create;
+      mmm_index_ = 0;
+    }
+
+    virtual ~Mmap_BufferImpl() override {
+      memunmap();
+      if (temporary_file_) {
+        File::remove(filename_, /* except= */ false);
+      }
+    }
+
+
+  //------------------------------------
+  // Properties
+  //------------------------------------
+  public:
+    void* data() const override {
+      const_cast<Mmap_BufferImpl*>(this)->memmap();
+      return data_;
+    }
+
+    size_t size() const override {
+      if (mapped_) {
+        return size_;
+      } else {
+        bool create = temporary_file_;
+        size_t filesize = File::asize(filename_);
+        size_t extra = create? 0 : size_;
+        return filesize==0? 0 : filesize + extra;
+      }
+    }
+
+    void resize(size_t n) override {
+      memunmap();
+      File file(filename_, File::READWRITE);
+      file.resize(n);
+      memmap();
+    }
+
+    size_t memory_footprint() const override {
+      return sizeof(Mmap_BufferImpl) + filename_.size() + (mapped_? size_ : 0);
+    }
+
+    void verify_integrity() const override {
+      BufferImpl::verify_integrity();
+      if (mapped_) {
+        XAssert(MemoryMapManager::get()->check_entry(mmm_index_, this));
+      }
+      else {
+        XAssert(mmm_index_ == 0);
+        XAssert(!size_ && !data_);
+      }
+    }
+
+
+  //------------------------------------
+  // MemoryMapWorker interface
+  //------------------------------------
+  public:
+    void save_entry_index(size_t i) override {
+      mmm_index_ = i;
+      xassert(MemoryMapManager::get()->check_entry(mmm_index_, this));
+    }
+
+    void evict() override {
+      mmm_index_ = 0;  // prevent from sending del_entry() signal back
+      memunmap();
+      xassert(!mapped_ && !mmm_index_);
+    }
+
+
+  //------------------------------------
+  // Mapping / Unmapping
+  //------------------------------------
+  protected:
+    virtual void memmap() {
+      if (mapped_) return;
+      #if DT_OS_WINDOWS
+        throw NotImplError() << "Memory-mapping not supported on Windows yet";
+
+      #else
+        // Place a mutex lock to prevent multiple threads from trying
+        // to perform memory-mapping of different files (or same file)
+        // in parallel. If multiple threads called this method at the
+        // same time, then only one will proceed, while all others
+        // will wait until the lock is released, and then exit because
+        // flag `mapped_` will now be true.
+        static std::mutex mmp_mutex;
+        std::lock_guard<std::mutex> _(mmp_mutex);
+        if (mapped_) return;
+
+        bool create = temporary_file_;
+        size_t n = size_;
+
+        File file(filename_, create? File::CREATE : File::READ, fd_);
+        file.assert_is_not_dir();
+        if (create) {
+          file.resize(n);
+        }
+        size_t filesize = file.size();
+        if (filesize == 0) {
+          // Cannot memory-map 0-bytes file. However we shouldn't
+          // really need to: if memory size is 0 then mmp can be NULL
+          // as nobody is going to read from it anyways.
+          size_ = 0;
+          data_ = nullptr;
+          mapped_ = true;
+          return;
+        }
+        size_ = filesize + (create? 0 : n);
+
+        // Memory-map the file.
+        // In "open" mode if `n` is non-zero, then we will be opening
+        // a buffer with larger size than the actual file size. Also,
+        // the file is opened in "private, read-write" mode -- meaning
+        // that the user can write to that buffer if needed. From the
+        // man pages of `mmap`:
+        //
+        // | MAP_SHARED
+        // |   Share this mapping. Updates to the mapping are visible
+        // |   to other processes that map this file, and are carried
+        // |   through to the underlying file. The file may not
+        // |   actually be updated until msync(2) or munmap() is
+        // |   called.
+        // | MAP_PRIVATE
+        // |   Create a private copy-on-write mapping.  Updates to the
+        // |   mapping are not carried through to the underlying file.
+        // | MAP_NORESERVE
+        // |   Do not reserve swap space for this mapping.  When swap
+        // |   space is reserved, one has the guarantee that it is
+        // |   possible to modify the mapping.  When swap space is not
+        // |   reserved one might get SIGSEGV upon a write if no
+        // |   physical memory is available.
+        //
+        int attempts = 3;
+        while (attempts--) {
+          int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
+          data_ = mmap(/* address = */ nullptr,
+                         /* length = */ size_,
+                         /* protection = */ PROT_WRITE|PROT_READ,
+                         /* flags = */ flags,
+                         /* fd = */ file.descriptor(),
+                         /* offset = */ 0);
+          if (data_ == MAP_FAILED) {
+            data_ = nullptr;
+            if (errno == 12) {  // release some memory and try again
+              MemoryMapManager::get()->freeup_memory();
+              if (attempts) {
+                errno = 0;
+                continue;
+              }
+            }
+            // Exception is thrown from the constructor -> the base class'
+            // destructor will be called, which checks that `data_` is null.
+            throw IOError() << "Memory-map failed for file " << file.cname()
+                            << " of size " << filesize
+                            << " +" << size_ - filesize << Errno;
+          } else {
+            MemoryMapManager::get()->add_entry(this, size_);
+            break;
+          }
+        }
+        mapped_ = true;
+        xassert(mmm_index_);
+      #endif
+    }
+
+    void memunmap() noexcept {
+      if (!mapped_) return;
+      #if !DT_OS_WINDOWS
+        if (data_) {
+          int ret = munmap(data_, size_);
+          if (ret) {
+            // Cannot throw exceptions from a destructor, so just
+            // print a message
+            printf("Error unmapping the view of file: [errno %d] %s. "
+                   "Resources may have not been freed properly.",
+                   errno, std::strerror(errno));
+          }
+          data_ = nullptr;
+        }
+        mapped_ = false;
+        size_ = 0;
+        if (mmm_index_) {
+          try {
+            MemoryMapManager::get()->del_entry(mmm_index_);
+          } catch (...) {}
+          mmm_index_ = 0;
+        }
+      #endif
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// Overmap_BufferImpl
+//------------------------------------------------------------------------------
+
+class Overmap_BufferImpl : public Mmap_BufferImpl {
+  private:
+    void* xbuf_;
+    size_t xsize_;
+
+  public:
+    Overmap_BufferImpl(const std::string& path, size_t xn, int fd = -1)
+      : Mmap_BufferImpl(path, xn, fd, false),
+        xbuf_(nullptr),
+        xsize_(xn)
+    {
+      writable_ = true;
+    }
+
+    ~Overmap_BufferImpl() override {
+      if (!xbuf_) return;
+      #if !DT_OS_WINDOWS
+        int ret = munmap(xbuf_, xsize_);
+        if (ret) {
+          printf("Cannot unmap extra memory %p: [errno %d] %s",
+                 xbuf_, errno, std::strerror(errno));
+        }
+      #endif
+    }
+
+    virtual size_t memory_footprint() const override {
+      return Mmap_BufferImpl::memory_footprint() - sizeof(Mmap_BufferImpl) +
+             xsize_ + sizeof(Overmap_BufferImpl);
+    }
+
+  protected:
+    void memmap() override {
+      Mmap_BufferImpl::memmap();
+      if (xsize_ == 0) return;
+      if (!data_) return;
+      #if DT_OS_WINDOWS
+        throw NotImplError() << "Memory-mapping not supported on Windows yet";
+
+      #else
+        // The parent's constructor has opened a memory-mapped region
+        // of size `filesize + xn`. This, however, is not always
+        // enough:
+        // | A file is mapped in multiples of the page size. For a
+        // | file that is not a multiple of the page size, the
+        // | remaining memory is 0ed when mapped, and writes to that
+        // | region are not written out to the file.
+        //
+        // Thus, when `filesize` is *not* a multiple of pagesize,
+        // then the memory mapping will have some writable "scratch"
+        // space at the end, filled with '\0' bytes. We check -- if
+        // this space is large enough to hold `xn` bytes, then don't
+        // do anything extra. If not (for example when `filesize` is
+        // an exact multiple of `pagesize`), then attempt to read/
+        // write past physical end of file wil fail with a BUS error,
+        // despite the fact that the map was overallocated for the
+        // extra `xn` bytes:
+        // | Use of a mapped region can result in these signals:
+        // | SIGBUS:
+        // |   Attempted access to a portion of the buffer that does
+        // |   not correspond to the file (for example, beyond the
+        // |   end of the file)
+        //
+        // In order to circumvent this, we allocate a new memory-
+        // mapped region of size `xn` and placed at address `buf +
+        // filesize`. In theory, this should always succeed because
+        // we over-allocated `buf` by `xn` bytes; and even though
+        // those extra bytes are not readable/writable, at least
+        // there is a guarantee that it is not occupied by anyone
+        // else. Now, `mmap()` documentation explicitly allows to
+        // declare mappings that overlap each other:
+        // | MAP_ANONYMOUS:
+        // |   The mapping is not backed by any file; its contents are
+        // |   initialized to zero. The fd argument is ignored.
+        // | MAP_FIXED
+        // |   Don't interpret addr as a hint: place the mapping at
+        // |   exactly that address.  `addr` must be a multiple of
+        // |   the page size. If the memory region specified by addr
+        // |   and len overlaps pages of any existing mapping(s), then
+        // |   the overlapped part of the existing mapping(s) will be
+        // |   discarded.
+        //
+        size_t xn = xsize_;
+        size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
+        size_t filesize = size() - xn;
+        // How much to add to filesize to align it to a page boundary
+        size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
+        if (xn > gapsize) {
+          void* target = static_cast<void*>(
+                            static_cast<char*>(data_) + filesize + gapsize);
+          xsize_ = xn - gapsize;
+          xbuf_ = mmap(/* address = */ target,
+                      /* size = */ xsize_,
+                      /* protection = */ PROT_WRITE|PROT_READ,
+                      /* flags = */ MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
+                      /* file descriptor, ignored */ -1,
+                      /* offset, ignored */ 0);
+          if (xbuf_ == MAP_FAILED) {
+            throw RuntimeError() << "Cannot allocate additional " << xsize_
+                                 << " bytes at address " << target << ": "
+                                 << Errno;
+          }
+        }
+      #endif
+    }
+};
+
+
+
 
 
 //==============================================================================
-// Implementation classes
-//==============================================================================
-
-  class BaseMRI {
-    public:
-      void*  bufdata;
-      size_t bufsize;
-      bool   pyobjects;
-      bool   writable;
-      bool   resizable;
-      int64_t: 40;
-
-    public:
-      BaseMRI();
-      virtual ~BaseMRI();
-      void clear_pyobjects();
-
-      virtual void resize(size_t) {}
-      virtual size_t size() const { return bufsize; }
-      virtual void* ptr() const { return bufdata; }
-      virtual size_t memory_footprint() const = 0;
-      virtual const char* name() const = 0;
-      virtual void verify_integrity() const;
-  };
-
-
-  struct MemoryRange::internal {
-    std::unique_ptr<BaseMRI> impl;
-
-    explicit internal(BaseMRI* _impl) : impl(std::move(_impl)) {}
-  };
-
-
-  class MemoryMRI : public BaseMRI {
-    public:
-      explicit MemoryMRI(size_t n);
-      MemoryMRI(size_t n, void* ptr);
-      ~MemoryMRI() override;
-
-      void resize(size_t n) override;
-      size_t memory_footprint() const override;
-      const char* name() const override { return "ram"; }
-      void verify_integrity() const override;
-  };
-
-
-  class ExternalMRI : public BaseMRI {
-    private:
-      Py_buffer* pybufinfo;
-
-    public:
-      ExternalMRI(size_t n, const void* ptr);
-      ExternalMRI(size_t n, const void* ptr, Py_buffer* pybuf);
-      explicit ExternalMRI(const char* str);
-      ~ExternalMRI() override;
-
-      void resize(size_t n) override;
-      size_t memory_footprint() const override;
-      const char* name() const override { return "ext"; }
-  };
-
-
-  // ViewMRI represents a memory range which is a part of a larger memory
-  // region controlled by `base` ViewedMRI.
-  //
-  // Typical use-case: memory-map a file, then carve out various regions of
-  // that file as separate MemoryRange objects for each column. Another example:
-  // when converting to Numpy, allocate a large contiguous chunk of memory,
-  // then split it into separate memory buffers for each column, and cast the
-  // existing Frame into those prepared column buffers.
-  //
-  // ViewMRI exists in tandem with ViewedMRI (which replaces the `impl` of the
-  // object being viewed). This mechanism is needed in order to keep the source
-  // MemoryRegion impl alive even if its owner went out of scope. The mechanism
-  // is the following:
-  // 1) When a view onto a MemoryRange is created, its `impl` is replaced with
-  //    a `ViewedMRI` object, which holds the original impl, and carries a
-  //    `shared_ptr<internal>` reference to the source MemoryRange's `o`. This
-  //    prevents the ViewedMRI `impl` from being deleted even if the original
-  //    MemoryRange object goes out of scope.
-  // 2) Each view (ViewMRI) carries a reference `ViewedMRI* base` to the object
-  //    being viewed. The `ViewedMRI` in turn contains a `refcount` to keep
-  //    track of how many views are still using it.
-  // 3) When ViewedMRI's `refounct` reaches 0, it means there are no longer any
-  //    views onto the original MemoryRange object, and the original `impl` can
-  //    be restored.
-  //
-  class ViewMRI : public BaseMRI {
-    private:
-      size_t offset;
-      ViewedMRI* base;
-
-    public:
-      ViewMRI(size_t n, const MemoryRange& src, size_t offset);
-      virtual ~ViewMRI() override;
-
-      void resize(size_t n) override;
-      size_t memory_footprint() const override;
-      const char* name() const override { return "view"; }
-      void verify_integrity() const override;
-  };
-
-
-  class ViewedMRI : public BaseMRI {
-    private:
-      std::shared_ptr<MemoryRange::internal> parent;
-      BaseMRI* original_impl;
-      size_t refcount;
-
-    public:
-      static ViewedMRI* acquire_viewed(const MemoryRange& src);
-      ~ViewedMRI() override;
-      void release();
-
-      bool is_writable() const;
-      size_t memory_footprint() const override;
-      const char* name() const override { return "viewed"; }
-
-    private:
-      explicit ViewedMRI(const MemoryRange& src);
-    };
-
-
-  class MmapMRI : public BaseMRI, MemoryMapWorker {
-    private:
-      const std::string filename;
-      size_t mmm_index;
-      int fd;
-      bool mapped;
-      bool temporary_file;
-      int : 16;
-
-    public:
-      explicit MmapMRI(const std::string& path);
-      MmapMRI(size_t n, const std::string& path, int fd);
-      MmapMRI(size_t n, const std::string& path, int fd, bool create);
-      virtual ~MmapMRI() override;
-
-      void* ptr() const override;
-      size_t size() const override;
-      void save_entry_index(size_t i) override;
-      void evict() override;
-      void resize(size_t n) override;
-      size_t memory_footprint() const override;
-      const char* name() const override { return "mmap"; }
-      void verify_integrity() const override;
-
-    protected:
-      virtual void memmap();
-      void memunmap();
-  };
-
-
-  class OvermapMRI : public MmapMRI {
-    private:
-      void* xbuf;
-      size_t xbuf_size;
-
-    public:
-      OvermapMRI(const std::string& path, size_t n, int fd = -1);
-      ~OvermapMRI() override;
-
-      virtual size_t memory_footprint() const override;
-      const char* name() const override { return "omap"; }
-
-    protected:
-      void memmap() override;
-  };
-
-
-
-
-//==============================================================================
-// Main `MemoryRange` class
+// Buffer
 //==============================================================================
 
   //---- Constructors ----------------------------
 
-  MemoryRange::MemoryRange(BaseMRI* impl)
-    : o(std::make_shared<internal>(impl)) {}
+  Buffer::Buffer(BufferImpl*&& impl)
+    : impl_(impl) {}
 
-  MemoryRange::MemoryRange() : MemoryRange(new MemoryMRI(0)) {}
+  Buffer::Buffer()
+    : Buffer(new Memory_BufferImpl(0)) {}
 
-  MemoryRange MemoryRange::mem(size_t n) {
-    return MemoryRange(new MemoryMRI(n));
+  Buffer::Buffer(const Buffer& other)
+    : impl_(other.impl_->acquire()) {}
+
+  Buffer::Buffer(Buffer&& other) {
+    impl_ = other.impl_;
+    other.impl_ = nullptr;
   }
 
-  MemoryRange MemoryRange::mem(int64_t n) {
-    return MemoryRange(new MemoryMRI(static_cast<size_t>(n)));
+  Buffer& Buffer::operator=(const Buffer& other) {
+    auto tmp = impl_;
+    impl_ = other.impl_->acquire();
+    tmp->release();
+    return *this;
   }
 
-  MemoryRange MemoryRange::acquire(void* ptr, size_t n) {
-    return MemoryRange(new MemoryMRI(n, ptr));
+  Buffer& Buffer::operator=(Buffer&& other) {
+    std::swap(impl_, other.impl_);
+    return *this;
   }
 
-  MemoryRange MemoryRange::external(const void* ptr, size_t n) {
-    return MemoryRange(new ExternalMRI(n, ptr));
+  Buffer::~Buffer() {
+    if (impl_) impl_->release();
   }
 
-  MemoryRange MemoryRange::external(const void* ptr, size_t n, Py_buffer* pb) {
-    return MemoryRange(new ExternalMRI(n, ptr, pb));
+
+  Buffer Buffer::mem(size_t n) {
+    return Buffer(new Memory_BufferImpl(n));
   }
 
-  MemoryRange MemoryRange::view(const MemoryRange& src, size_t n, size_t offset) {
-    return MemoryRange(new ViewMRI(n, src, offset));
+  Buffer Buffer::mem(int64_t n) {
+    return Buffer(new Memory_BufferImpl(static_cast<size_t>(n)));
   }
 
-  MemoryRange MemoryRange::mmap(const std::string& path) {
-    return MemoryRange(new MmapMRI(path));
+  Buffer Buffer::acquire(void* ptr, size_t n) {
+    return Buffer(new Memory_BufferImpl(std::move(ptr), n));
   }
 
-  MemoryRange MemoryRange::mmap(const std::string& path, size_t n, int fd) {
-    return MemoryRange(new MmapMRI(n, path, fd));
+  Buffer Buffer::external(void* ptr, size_t n) {
+    return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  MemoryRange MemoryRange::overmap(const std::string& path, size_t extra_n,
+  Buffer Buffer::external(const void* ptr, size_t n) {
+    return Buffer(new External_BufferImpl(ptr, n));
+  }
+
+  Buffer Buffer::external(const void* ptr, size_t n, Py_buffer* pb) {
+    return Buffer(new External_BufferImpl(ptr, n, pb));
+  }
+
+  Buffer Buffer::view(const Buffer& src, size_t n, size_t offset) {
+    return Buffer(new View_BufferImpl(src.impl_, n, offset));
+  }
+
+  Buffer Buffer::mmap(const std::string& path) {
+    return Buffer(new Mmap_BufferImpl(path));
+  }
+
+  Buffer Buffer::mmap(const std::string& path, size_t n, int fd) {
+    return Buffer(new Mmap_BufferImpl(path, n, fd));
+  }
+
+  Buffer Buffer::overmap(const std::string& path, size_t extra_n,
                                    int fd)
   {
-    return MemoryRange(new OvermapMRI(path, extra_n, fd));
+    return Buffer(new Overmap_BufferImpl(path, extra_n, fd));
   }
 
 
   //---- Basic properties ------------------------
 
-  MemoryRange::operator bool() const {
-    return (o->impl->size() != 0);
+  Buffer::operator bool() const {
+    return (impl_->size() != 0);
   }
 
-  bool MemoryRange::is_writable() const {
-    return (o.use_count() == 1) && o->impl->writable;
+  bool Buffer::is_writable() const {
+    return impl_->is_writable();
   }
 
-  bool MemoryRange::is_resizable() const {
-    return (o.use_count() == 1) && o->impl->resizable;
+  bool Buffer::is_resizable() const {
+    return impl_->is_resizable();
   }
 
-  bool MemoryRange::is_pyobjects() const {
-    return o->impl->pyobjects;
+  bool Buffer::is_pyobjects() const {
+    return impl_->contains_pyobjects_;
   }
 
-  size_t MemoryRange::size() const {
-    return o->impl->size();
+  size_t Buffer::size() const {
+    return impl_->size();
   }
 
-  size_t MemoryRange::memory_footprint() const {
-    return sizeof(MemoryRange) + sizeof(internal) + o->impl->memory_footprint();
+  size_t Buffer::memory_footprint() const {
+    return sizeof(Buffer) + impl_->memory_footprint();
   }
 
 
   //---- Main data accessors ---------------------
 
-  const void* MemoryRange::rptr() const {
-    return o->impl->ptr();
+  const void* Buffer::rptr() const {
+    return impl_->data();
   }
 
-  const void* MemoryRange::rptr(size_t offset) const {
-    const char* ptr0 = static_cast<const char*>(rptr());
-    return static_cast<const void*>(ptr0 + offset);
+  const void* Buffer::rptr(size_t offset) const {
+    return static_cast<const char*>(rptr()) + offset;
   }
 
-  void* MemoryRange::wptr() {
+  void* Buffer::wptr() {
     if (!is_writable()) materialize();
-    return o->impl->ptr();
+    return impl_->data();
   }
 
-  void* MemoryRange::wptr(size_t offset) {
-    char* ptr0 = static_cast<char*>(wptr());
-    return static_cast<void*>(ptr0 + offset);
+  void* Buffer::wptr(size_t offset) {
+    return static_cast<char*>(wptr()) + offset;
   }
 
-  void* MemoryRange::xptr() const {
-    if (!is_writable()) {
-      throw RuntimeError() << "Cannot write into this MemoryRange object: "
-        "refcount=" << o.use_count() << ", writable=" << o->impl->writable;
-    }
-    return o->impl->ptr();
+  void* Buffer::xptr() const {
+    XAssert(is_writable());
+    return impl_->data();
   }
 
-  void* MemoryRange::xptr(size_t offset) const {
-    return static_cast<void*>(static_cast<char*>(xptr()) + offset);
+  void* Buffer::xptr(size_t offset) const {
+    return static_cast<char*>(xptr()) + offset;
   }
 
 
-  //---- MemoryRange manipulators ----------------
+  //---- Buffer manipulators ----------------
 
-  MemoryRange& MemoryRange::set_pyobjects(bool clear_data) {
-    size_t n = o->impl->size() / sizeof(PyObject*);
-    xassert(n * sizeof(PyObject*) == o->impl->size());
-    xassert(this->is_writable());
+  Buffer& Buffer::set_pyobjects(bool clear_data) {
+    xassert(impl_->size() % sizeof(PyObject*) == 0);
+    size_t n = impl_->size() / sizeof(PyObject*);
     if (clear_data) {
-      PyObject** data = static_cast<PyObject**>(o->impl->ptr());
+      PyObject** data = static_cast<PyObject**>(xptr());
       for (size_t i = 0; i < n; ++i) {
         data[i] = Py_None;
       }
       Py_None->ob_refcnt += n;
     }
-    o->impl->pyobjects = true;
+    impl_->contains_pyobjects_ = true;
     return *this;
   }
 
-  MemoryRange& MemoryRange::resize(size_t newsize, bool keep_data) {
-    size_t oldsize = o->impl->size();
+  Buffer& Buffer::resize(size_t newsize, bool keep_data) {
+    size_t oldsize = impl_->size();
     if (newsize != oldsize) {
       if (is_resizable()) {
-        if (o->impl->pyobjects) {
+        if (impl_->contains_pyobjects_) {
           size_t n_old = oldsize / sizeof(PyObject*);
           size_t n_new = newsize / sizeof(PyObject*);
           if (n_new < n_old) {
-            PyObject** data = static_cast<PyObject**>(o->impl->ptr());
+            PyObject** data = static_cast<PyObject**>(xptr());
             for (size_t i = n_new; i < n_old; ++i) Py_DECREF(data[i]);
           }
-          o->impl->resize(newsize);
+          impl_->resize(newsize);
           if (n_new > n_old) {
-            PyObject** data = static_cast<PyObject**>(o->impl->ptr());
+            PyObject** data = static_cast<PyObject**>(xptr());
             for (size_t i = n_old; i < n_new; ++i) data[i] = Py_None;
             Py_None->ob_refcnt += n_new - n_old;
           }
         } else {
-          o->impl->resize(newsize);
+          impl_->resize(newsize);
         }
       } else {
         size_t copysize = keep_data? std::min(newsize, oldsize) : 0;
@@ -351,35 +870,30 @@
   }
 
 
+
   //---- Utility functions -----------------------
 
-  PyObject* MemoryRange::pyrepr() const {
-    return PyUnicode_FromFormat("<MemoryRange:%s %p+%zu (ref=%zu)>",
-                                o->impl->name(), o->impl->ptr(), o->impl->size(),
-                                o.use_count());
+  void Buffer::verify_integrity() const {
+    XAssert(impl_);
+    impl_->verify_integrity();
   }
 
-  void MemoryRange::verify_integrity() const {
-    if (!o || !o->impl) {
-      throw AssertionError() << "NULL implementation object in MemoryRange";
-    }
-    o->impl->verify_integrity();
-  }
-
-  void MemoryRange::materialize() {
-    size_t s = o->impl->size();
+  void Buffer::materialize() {
+    size_t s = impl_->size();
     materialize(s, s);
   }
 
-  void MemoryRange::materialize(size_t newsize, size_t copysize) {
+  void Buffer::materialize(size_t newsize, size_t copysize) {
     xassert(newsize >= copysize);
-    MemoryMRI* newimpl = new MemoryMRI(newsize);
+    auto newimpl = new Memory_BufferImpl(newsize);
+    // No exception can occur after this point, and `newimpl` will be
+    // safely stored in variable `this->impl_`.
     if (copysize) {
-      std::memcpy(newimpl->ptr(), o->impl->ptr(), copysize);
+      std::memcpy(newimpl->data(), impl_->data(), copysize);
     }
-    if (o->impl->pyobjects) {
-      newimpl->pyobjects = true;
-      PyObject** newdata = static_cast<PyObject**>(newimpl->ptr());
+    if (impl_->contains_pyobjects_) {
+      newimpl->contains_pyobjects_ = true;
+      auto newdata = static_cast<PyObject**>(newimpl->data());
       size_t n_new = newsize / sizeof(PyObject*);
       size_t n_copy = copysize / sizeof(PyObject*);
       size_t i = 0;
@@ -387,646 +901,7 @@
       for (; i < n_new; ++i) newdata[i] = Py_None;
       Py_None->ob_refcnt += n_new - n_copy;
     }
-    o = std::make_shared<internal>(std::move(newimpl));
+    impl_->release();  // noexcept
+    impl_ = newimpl;
+    xassert(impl_->refcount_ == 1);
   }
-
-
-  //---- Element getters/setters -----------------
-
-  static void _oob_check(size_t i, size_t size, size_t elemsize) {
-    if ((i + 1) * elemsize > size) {
-      throw ValueError() << "Index " << i << " is out of bounds for a memory "
-        "region of size " << size << " viewed as an array of elements of size "
-        << elemsize;
-    }
-  }
-
-  template <typename T>
-  T MemoryRange::get_element(size_t i) const {
-    _oob_check(i, size(), sizeof(T));
-    const T* data = static_cast<const T*>(this->rptr());
-    return data[i];
-  }
-
-  template <>
-  void MemoryRange::set_element(size_t i, PyObject* value) {
-    _oob_check(i, size(), sizeof(PyObject*));
-    xassert(this->is_pyobjects());
-    PyObject** data = static_cast<PyObject**>(this->wptr());
-    Py_DECREF(data[i]);
-    data[i] = value;
-  }
-
-  template <typename T>
-  void MemoryRange::set_element(size_t i, T value) {
-    _oob_check(i, size(), sizeof(T));
-    T* data = static_cast<T*>(this->wptr());
-    data[i] = value;
-  }
-
-
-
-
-//==============================================================================
-// BaseMRI
-//==============================================================================
-
-  BaseMRI::BaseMRI()
-    : bufdata(nullptr),
-      bufsize(0),
-      pyobjects(false),
-      writable(true),
-      resizable(true) {}
-
-  BaseMRI::~BaseMRI() {
-    if (pyobjects) {
-      printf("pyobjects not properly cleared\n");
-    }
-  }
-
-  // This method must be called by the destructors of the derived classes. The
-  // reason this code is not in the ~BaseMRI is because it is the derived
-  // classes who handle freeing of `bufdata`, and clearing PyObjects must
-  // happen before that.
-  //
-  void BaseMRI::clear_pyobjects() {
-    // If memory buffer contains `PyObject*`s, then they must be DECREFed
-    // before being deleted.
-    if (pyobjects) {
-      PyObject** items = static_cast<PyObject**>(bufdata);
-      size_t n = bufsize / sizeof(PyObject*);
-      for (size_t i = 0; i < n; ++i) {
-        Py_DECREF(items[i]);
-      }
-      pyobjects = false;
-    }
-  }
-
-  void BaseMRI::verify_integrity() const {
-    if (!bufdata && bufsize) {
-      throw AssertionError()
-          << "MemoryRange has bufdata = NULL but size = " << bufsize;
-    }
-    if (bufdata && !bufsize) {
-      throw AssertionError()
-          << "MemoryRange has bufdata = " << bufdata << " but size = 0";
-    }
-    if (resizable && !writable) {
-      throw AssertionError() << "MemoryRange is resizable but not writable";
-    }
-    if (pyobjects) {
-      size_t n = bufsize / sizeof(PyObject*);
-      if (bufsize != n * sizeof(PyObject*)) {
-        throw AssertionError()
-            << "MemoryRange is marked as containing PyObjects, but its size is "
-            << bufsize << ", not a multiple of " << sizeof(PyObject*);
-      }
-      PyObject** elements = static_cast<PyObject**>(bufdata);
-      for (size_t i = 0; i < n; ++i) {
-        if (elements[i] == nullptr) {
-          throw AssertionError()
-              << "Element " << i << " in pyobjects MemoryRange is NULL";
-        }
-        if (elements[i]->ob_refcnt <= 0) {
-          throw AssertionError()
-              << "Reference count on PyObject at index " << i
-              << " in MemoryRange is " << elements[i]->ob_refcnt;
-        }
-      }
-    }
-  }
-
-
-
-
-//==============================================================================
-// MemoryMRI
-//==============================================================================
-
-  MemoryMRI::MemoryMRI(size_t n) {
-    bufsize = n;
-    bufdata = dt::malloc<void>(n);
-    TRACK(this, sizeof(*this), "MemoryMRI");
-  }
-
-  MemoryMRI::MemoryMRI(size_t n, void* ptr) {
-    if (n && !ptr) throw ValueError() << "Unallocated memory region provided";
-    // xassert(!ptr || IS_TRACKED(ptr));
-    bufsize = n;
-    bufdata = ptr;
-    TRACK(this, sizeof(*this), "MemoryMRI");
-  }
-
-  MemoryMRI::~MemoryMRI() {
-    clear_pyobjects();
-    dt::free(bufdata);
-    UNTRACK(this);
-  }
-
-  size_t MemoryMRI::memory_footprint() const {
-    return sizeof(MemoryMRI) + bufsize;
-  }
-
-  void MemoryMRI::resize(size_t n) {
-    if (n == bufsize) return;
-    bufdata = dt::realloc(bufdata, n);
-    bufsize = n;
-  }
-
-  void MemoryMRI::verify_integrity() const {
-    BaseMRI::verify_integrity();
-    if (bufsize) {
-      size_t actual_allocsize = malloc_size(bufdata);
-      if (bufsize > actual_allocsize) {
-        throw AssertionError()
-            << "MemoryRange has bufsize = " << bufsize
-            << ", while the internal buffer was allocated for "
-            << actual_allocsize << " bytes only";
-      }
-    }
-  }
-
-
-
-
-//==============================================================================
-// ExternalMRI
-//==============================================================================
-
-  ExternalMRI::ExternalMRI(size_t size, const void* ptr, Py_buffer* pybuf) {
-    if (!ptr && size > 0) {
-      throw RuntimeError() << "Unallocated buffer supplied to the ExternalMRI "
-          "constructor. Expected memory region of size " << size;
-    }
-    bufdata = const_cast<void*>(ptr);
-    bufsize = size;
-    pybufinfo = pybuf;
-    resizable = false;
-    writable = false;
-    TRACK(this, sizeof(*this), "ExternalMRI");
-  }
-
-  ExternalMRI::ExternalMRI(size_t n, const void* ptr)
-    : ExternalMRI(n, ptr, nullptr)
-  {
-    writable = true;
-  }
-
-  ExternalMRI::ExternalMRI(const char* str)
-      : ExternalMRI(strlen(str) + 1, str, nullptr) {}
-
-  ExternalMRI::~ExternalMRI() {
-    // If the buffer contained pyobjects, leave them as-is and do not attempt
-    // to DECREF (this is up to the external owner).
-    pyobjects = false;
-    if (pybufinfo) {
-      PyBuffer_Release(pybufinfo);
-    }
-    UNTRACK(this);
-  }
-
-  void ExternalMRI::resize(size_t) {
-    throw Error() << "Unable to resize an ExternalMRI buffer";
-  }
-
-  size_t ExternalMRI::memory_footprint() const {
-    return sizeof(ExternalMRI) + bufsize + (pybufinfo? sizeof(Py_buffer) : 0);
-  }
-
-
-
-
-//==============================================================================
-// ViewMRI
-//==============================================================================
-
-  ViewMRI::ViewMRI(size_t n, const MemoryRange& src, size_t offs) {
-    xassert(offs + n <= src.size());
-    base = ViewedMRI::acquire_viewed(src);
-    offset = offs;
-    bufdata = const_cast<void*>(src.rptr(offs));
-    bufsize = n;
-    resizable = false;
-    writable = base->is_writable();
-    pyobjects = src.is_pyobjects();
-    TRACK(this, sizeof(*this), "ViewMRI");
-  }
-
-  ViewMRI::~ViewMRI() {
-    base->release();
-    pyobjects = false;
-    UNTRACK(this);
-  }
-
-  size_t ViewMRI::memory_footprint() const {
-    return sizeof(ViewMRI) + bufsize;
-  }
-
-  void ViewMRI::resize(size_t) {
-    throw RuntimeError() << "ViewMRI cannot be resized";
-  }
-
-  void ViewMRI::verify_integrity() const {
-    BaseMRI::verify_integrity();
-    if (resizable) {
-      throw AssertionError() << "ViewMRI cannot be marked as resizable";
-    }
-    void* base_ptr = static_cast<void*>(
-                        static_cast<char*>(base->bufdata) + offset);
-    if (base_ptr != bufdata) {
-      throw AssertionError()
-          << "Invalid data pointer in View MemoryRange: should be "
-          << base_ptr << " but actual pointer is " << bufdata;
-    }
-  }
-
-
-
-
-//==============================================================================
-// ViewedMRI
-//==============================================================================
-
-  ViewedMRI::ViewedMRI(const MemoryRange& src) {
-    BaseMRI* implptr = src.o->impl.release();
-    src.o->impl.reset(this);
-    parent = src.o;  // copy std::shared_ptr
-    original_impl = implptr;
-    refcount = 0;
-    bufdata = implptr->bufdata;
-    bufsize = implptr->bufsize;
-    pyobjects = implptr->pyobjects;
-    writable = false;
-    resizable = false;
-    TRACK(this, sizeof(*this), "ViewedMRI");
-  }
-
-  ViewedMRI::~ViewedMRI() {
-    UNTRACK(this);
-  }
-
-  ViewedMRI* ViewedMRI::acquire_viewed(const MemoryRange& src) {
-    BaseMRI* implptr = src.o->impl.get();
-    ViewedMRI* viewedptr = dynamic_cast<ViewedMRI*>(implptr);
-    if (!viewedptr) {
-      viewedptr = new ViewedMRI(src);
-    }
-    viewedptr->refcount++;
-    return viewedptr;
-  }
-
-  void ViewedMRI::release() {
-    if (--refcount == 0) {
-      parent->impl.release();
-      parent->impl.reset(original_impl);
-      delete this;
-    }
-  }
-
-  bool ViewedMRI::is_writable() const {
-    return original_impl->writable;
-  }
-
-  size_t ViewedMRI::memory_footprint() const {
-    return 0;
-  }
-
-
-
-//==============================================================================
-// MmapMRI
-//==============================================================================
-
-  MmapMRI::MmapMRI(const std::string& path)
-    : MmapMRI(0, path, -1, false) {}
-
-  MmapMRI::MmapMRI(size_t n, const std::string& path, int fileno)
-    : MmapMRI(n, path, fileno, true) {}
-
-  MmapMRI::MmapMRI(size_t n, const std::string& path, int fileno, bool create)
-    : filename(path), fd(fileno), mapped(false)
-  {
-    bufdata = nullptr;
-    bufsize = n;
-    writable = create;
-    resizable = create;
-    temporary_file = create;
-    mmm_index = 0;
-    TRACK(this, sizeof(*this), "MmapMRI");
-  }
-
-  MmapMRI::~MmapMRI() {
-    memunmap();
-    if (temporary_file) {
-      File::remove(filename);
-    }
-    UNTRACK(this);
-  }
-
-  void* MmapMRI::ptr() const {
-    const_cast<MmapMRI*>(this)->memmap();
-    return bufdata;
-  }
-
-  void MmapMRI::resize(size_t n) {
-    memunmap();
-    File file(filename, File::READWRITE);
-    file.resize(n);
-    memmap();
-  }
-
-  size_t MmapMRI::memory_footprint() const {
-    return sizeof(MmapMRI) + filename.size() + (mapped? bufsize : 0);
-  }
-
-  void MmapMRI::memmap() {
-    if (mapped) return;
-    #ifdef _WIN32
-      throw RuntimeError() << "Memory-mapping not supported on Windows yet";
-
-    #else
-      // Place a mutex lock to prevent multiple threads from trying to perform
-      // memory-mapping of different files (or same file) in parallel. If
-      // multiple threads called this method at the same time, then only one
-      // will proceed, while all others will wait until the lock is released,
-      // and then exit because flag `mapped` will now be true.
-      static std::mutex mmp_mutex;
-      std::lock_guard<std::mutex> _(mmp_mutex);
-      if (mapped) return;
-
-      bool create = temporary_file;
-      size_t n = bufsize;
-
-      File file(filename, create? File::CREATE : File::READ, fd);
-      file.assert_is_not_dir();
-      if (create) {
-        file.resize(n);
-      }
-      size_t filesize = file.size();
-      if (filesize == 0) {
-        // Cannot memory-map 0-bytes file. However we shouldn't really need to:
-        // if memory size is 0 then mmp can be NULL as nobody is going to read
-        // from it anyways.
-        bufsize = 0;
-        bufdata = nullptr;
-        mapped = true;
-        return;
-      }
-      bufsize = filesize + (create? 0 : n);
-
-      // Memory-map the file.
-      // In "open" mode if `n` is non-zero, then we will be opening a buffer
-      // with larger size than the actual file size. Also, the file is opened in
-      // "private, read-write" mode -- meaning that the user can write to that
-      // buffer if needed. From the man pages of `mmap`:
-      //
-      // | MAP_SHARED
-      // |   Share this mapping. Updates to the mapping are visible to other
-      // |   processes that map this file, and are carried through to the
-      // |   underlying file. The file may not actually be updated until
-      // |   msync(2) or munmap() is called.
-      // | MAP_PRIVATE
-      // |   Create a private copy-on-write mapping.  Updates to the mapping
-      // |   are not carried through to the underlying file.
-      // | MAP_NORESERVE
-      // |   Do not reserve swap space for this mapping.  When swap space is
-      // |   reserved, one has the guarantee that it is possible to modify the
-      // |   mapping.  When swap space is not reserved one might get SIGSEGV
-      // |   upon a write if no physical memory is available.
-      //
-      int attempts = 3;
-      while (attempts--) {
-        int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
-        bufdata = mmap(/* address = */ nullptr,
-                       /* length = */ bufsize,
-                       /* protection = */ PROT_WRITE|PROT_READ,
-                       /* flags = */ flags,
-                       /* fd = */ file.descriptor(),
-                       /* offset = */ 0);
-        if (bufdata == MAP_FAILED) {
-          bufdata = nullptr;
-          if (errno == 12) {  // release some memory and try again
-            MemoryMapManager::get()->freeup_memory();
-            if (attempts) {
-              errno = 0;
-              continue;
-            }
-          }
-          // Exception is thrown from the constructor -> the base class'
-          // destructor will be called, which checks that `bufdata` is null.
-          throw RuntimeError() << "Memory-map failed for file " << file.cname()
-                               << " of size " << filesize
-                               << " +" << bufsize - filesize << Errno;
-        } else {
-          MemoryMapManager::get()->add_entry(this, bufsize);
-          break;
-        }
-      }
-      mapped = true;
-      xassert(mmm_index);
-    #endif
-  }
-
-
-  void MmapMRI::memunmap() {
-    if (!mapped) return;
-    #ifdef _WIN32
-    #else
-      if (bufdata) {
-        int ret = munmap(bufdata, bufsize);
-        if (ret) {
-          // Cannot throw exceptions from a destructor, so just print a message
-          printf("Error unmapping the view of file: [errno %d] %s. Resources "
-                 "may have not been freed properly.",
-                 errno, std::strerror(errno));
-        }
-        bufdata = nullptr;
-      }
-      mapped = false;
-      bufsize = 0;
-      if (mmm_index) {
-        MemoryMapManager::get()->del_entry(mmm_index);
-        mmm_index = 0;
-      }
-    #endif
-  }
-
-
-  size_t MmapMRI::size() const {
-    if (mapped) {
-      return bufsize;
-    } else {
-      bool create = temporary_file;
-      size_t filesize = File::asize(filename);
-      size_t extra = create? 0 : bufsize;
-      return filesize==0? 0 : filesize + extra;
-    }
-  }
-
-
-  void MmapMRI::save_entry_index(size_t i) {
-    mmm_index = i;
-    xassert(MemoryMapManager::get()->check_entry(mmm_index, this));
-  }
-
-  void MmapMRI::evict() {
-    mmm_index = 0;  // prevent from sending del_entry() signal back
-    memunmap();
-    xassert(!mapped && !mmm_index);
-  }
-
-  void MmapMRI::verify_integrity() const {
-    BaseMRI::verify_integrity();
-    if (mapped) {
-      if (!MemoryMapManager::get()->check_entry(mmm_index, this)) {
-        throw AssertionError()
-            << "Mmap MemoryRange is not properly registered with the "
-               "MemoryMapManager: mmm_index = " << mmm_index;
-      }
-      if (bufsize == 0 && bufdata) {
-        throw AssertionError()
-            << "Mmap MemoryRange has size = 0 but data pointer is: " << bufdata;
-      }
-      if (bufsize && !bufdata) {
-        throw AssertionError()
-            << "Mmap MemoryRange has size = " << bufsize
-            << " and marked as mapped, however its data pointer is NULL";
-      }
-    } else {
-      if (mmm_index) {
-        throw AssertionError()
-            << "Mmap MemoryRange is not mapped but its mmm_index = "
-            << mmm_index;
-      }
-      if (bufsize || bufdata) {
-        throw AssertionError()
-            << "Mmap MemoryRange is not mapped but its size = " << bufsize
-            << " and data pointer = " << bufdata;
-      }
-    }
-  }
-
-
-
-//==============================================================================
-// OvermapMRI
-//==============================================================================
-
-  OvermapMRI::OvermapMRI(const std::string& path, size_t xn, int fd)
-      : MmapMRI(xn, path, fd, false), xbuf(nullptr), xbuf_size(xn)
-  {
-    writable = true;
-    // already TRACKed via MmapMRI constructor
-  }
-
-
-  void OvermapMRI::memmap() {
-    MmapMRI::memmap();
-    if (xbuf_size == 0) return;
-    if (!bufdata) return;
-    #ifdef _WIN32
-      throw RuntimeError() << "Memory-mapping not supported on Windows yet";
-
-    #else
-      // The parent's constructor has opened a memory-mapped region of size
-      // `filesize + xn`. This, however, is not always enough:
-      // | A file is mapped in multiples of the page size. For a file that is
-      // | not a multiple of the page size, the remaining memory is 0ed when
-      // | mapped, and writes to that region are not written out to the file.
-      //
-      // Thus, when `filesize` is *not* a multiple of pagesize, then the
-      // memory mapping will have some writable "scratch" space at the end,
-      // filled with '\0' bytes. We check -- if this space is large enough to
-      // hold `xn` bytes, then don't do anything extra. If not (for example
-      // when `filesize` is an exact multiple of `pagesize`), then attempt to
-      // read/write past physical end of file wil fail with a BUS error --
-      // despite the fact that the map was overallocated for the extra `xn`
-      // bytes:
-      // | Use of a mapped region can result in these signals:
-      // | SIGBUS:
-      // |   Attempted access to a portion of the buffer that does not
-      // |   correspond to the file (for example, beyond the end of the file)
-      //
-      // In order to circumvent this, we allocate a new memory-mapped region of
-      // size `xn` and placed at address `buf + filesize`. In theory, this
-      // should always succeed because we over-allocated `buf` by `xn` bytes;
-      // and even though those extra bytes are not readable/writable, at least
-      // there is a guarantee that it is not occupied by anyone else. Now,
-      // `mmap()` documentation explicitly allows to declare mappings that
-      // overlap each other:
-      // | MAP_ANONYMOUS:
-      // |   The mapping is not backed by any file; its contents are
-      // |   initialized to zero. The fd argument is ignored.
-      // | MAP_FIXED
-      // |   Don't interpret addr as a hint: place the mapping at exactly
-      // |   that address.  `addr` must be a multiple of the page size. If
-      // |   the memory region specified by addr and len overlaps pages of
-      // |   any existing mapping(s), then the overlapped part of the existing
-      // |   mapping(s) will be discarded.
-      //
-      size_t xn = xbuf_size;
-      size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
-      size_t filesize = size() - xn;
-      // How much to add to filesize to align it to a page boundary
-      size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
-      if (xn > gapsize) {
-        void* target = static_cast<void*>(
-                          static_cast<char*>(bufdata) + filesize + gapsize);
-        xbuf_size = xn - gapsize;
-        xbuf = mmap(/* address = */ target,
-                    /* size = */ xbuf_size,
-                    /* protection = */ PROT_WRITE|PROT_READ,
-                    /* flags = */ MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
-                    /* file descriptor, ignored */ -1,
-                    /* offset, ignored */ 0);
-        if (xbuf == MAP_FAILED) {
-          throw RuntimeError() << "Cannot allocate additional " << xbuf_size
-                               << " bytes at address " << target << ": "
-                               << Errno;
-        }
-      }
-    #endif
-  }
-
-
-  OvermapMRI::~OvermapMRI() {
-    if (!xbuf) return;
-    #ifndef _WIN32
-      int ret = munmap(xbuf, xbuf_size);
-      if (ret) {
-        printf("Cannot unmap extra memory %p: [errno %d] %s",
-               xbuf, errno, std::strerror(errno));
-      }
-    #endif
-  }
-
-
-  size_t OvermapMRI::memory_footprint() const {
-    return MmapMRI::memory_footprint() - sizeof(MmapMRI) +
-           xbuf_size + sizeof(OvermapMRI);
-  }
-
-  // Check that resizable = false
-
-
-
-//==============================================================================
-// Template instantiations
-//==============================================================================
-
-  template int32_t MemoryRange::get_element(size_t) const;
-  template int64_t MemoryRange::get_element(size_t) const;
-  template uint32_t MemoryRange::get_element(size_t) const;
-  template uint64_t MemoryRange::get_element(size_t) const;
-  template void MemoryRange::set_element(size_t, char);
-  template void MemoryRange::set_element(size_t, int8_t);
-  template void MemoryRange::set_element(size_t, int16_t);
-  template void MemoryRange::set_element(size_t, int32_t);
-  template void MemoryRange::set_element(size_t, int64_t);
-  template void MemoryRange::set_element(size_t, uint32_t);
-  template void MemoryRange::set_element(size_t, uint64_t);
-  #if DT_OS_DARWIN
-    template void MemoryRange::set_element(size_t, size_t);
-  #endif
-  template void MemoryRange::set_element(size_t, float);
-  template void MemoryRange::set_element(size_t, double);

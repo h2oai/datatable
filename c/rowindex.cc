@@ -232,8 +232,8 @@ RowIndex operator *(const RowIndex& ri1, const RowIndex& ri2) {
 }
 
 
-MemoryRange RowIndex::as_boolean_mask(size_t nrows) const {
-  MemoryRange res = MemoryRange::mem(nrows);
+Buffer RowIndex::as_boolean_mask(size_t nrows) const {
+  Buffer res = Buffer::mem(nrows);
   int8_t* data = static_cast<int8_t*>(res.xptr());
   if (isabsent()) {
     // No RowIndex is equivalent to having RowIndex over all rows, i.e. we
@@ -250,8 +250,8 @@ MemoryRange RowIndex::as_boolean_mask(size_t nrows) const {
 }
 
 
-MemoryRange RowIndex::as_integer_mask(size_t nrows) const {
-  MemoryRange res = MemoryRange::mem(nrows * 4);
+Buffer RowIndex::as_integer_mask(size_t nrows) const {
+  Buffer res = Buffer::mem(nrows * 4);
   int32_t* data = static_cast<int32_t*>(res.xptr());
   // NA index is -1 in byte, and also -1 in int32
   std::memset(data, -1, nrows * 4);

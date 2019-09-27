@@ -22,7 +22,7 @@ PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<py::robj>(nrows_) {
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
-PyObjectColumn::PyObjectColumn(size_t nrows_, MemoryRange&& mb)
+PyObjectColumn::PyObjectColumn(size_t nrows_, Buffer&& mb)
     : FwColumn<py::robj>(nrows_, std::move(mb))
 {
   _stype = SType::OBJ;

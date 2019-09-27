@@ -12,7 +12,7 @@
 Groupby::Groupby() : n(0) {}
 
 
-Groupby::Groupby(size_t _n, MemoryRange&& _offs) {
+Groupby::Groupby(size_t _n, Buffer&& _offs) {
   if (_offs.size() < sizeof(int32_t) * (_n + 1)) {
     throw RuntimeError() << "Cannot create groupby for " << _n << " groups "
         "from memory buffer of size " << _offs.size();
@@ -27,7 +27,7 @@ Groupby::Groupby(size_t _n, MemoryRange&& _offs) {
 
 
 Groupby Groupby::single_group(size_t nrows) {
-  MemoryRange mr = MemoryRange::mem(2 * sizeof(int32_t));
+  Buffer mr = Buffer::mem(2 * sizeof(int32_t));
   mr.set_element<int32_t>(0, 0);
   mr.set_element<int32_t>(1, static_cast<int32_t>(nrows));
   return Groupby(1, std::move(mr));

@@ -89,7 +89,7 @@ static Column reduce_first(const Column& col, const Groupby& groupby)
   // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
   // to the column will produce the vector of first elements in that column.
   arr32_t indices(ngrps);
-  // TODO: Groupby should use MemoryRange, then data copying can be shallow
+  // TODO: Groupby should use Buffer, then data copying can be shallow
   std::memcpy(indices.data(), groupby.offsets_r(), ngrps * 4);
   Column res = col;  // copy
   res.apply_rowindex(RowIndex(std::move(indices), true));
