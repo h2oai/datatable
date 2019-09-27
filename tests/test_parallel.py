@@ -86,7 +86,7 @@ def test_internal_parallel_for_dynamic():
 
 @cpp_test
 def test_internal_parallel_for_ordered1():
-    core.test_parallel_for_ordered(17234)
+    core.test_parallel_for_ordered(1723)
 
 
 @cpp_test
@@ -94,12 +94,29 @@ def test_internal_parallel_for_ordered2():
     n0 = dt.options.nthreads
     try:
         dt.options.nthreads = 2
-        core.test_parallel_for_ordered(17234)
+        core.test_parallel_for_ordered(1723)
     finally:
         dt.options.nthreads = n0
 
 
-@pytest.mark.skip()
+# Make sure C++ tests run cleanly when not interrupted
+@cpp_test
+@pytest.mark.parametrize('parallel_type, nthreads',
+                         itertools.product(
+                            ["static", "nested", "dynamic", "ordered"],
+                            [1, dt.options.nthreads//2, dt.options.nthreads]
+                         )
+                        )
+def test_progress(parallel_type, nthreads):
+    niterations = 1000
+    ntimes = 2
+    cmd_run = "core.test_progress_%s(%s, %s);" % (
+              parallel_type, niterations, nthreads)
+    for _ in range(ntimes) :
+        exec(cmd_run)
+
+
+# Send interrupt signal and make sure process throws KeyboardInterrupt
 @cpp_test
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
@@ -109,24 +126,36 @@ def test_internal_parallel_for_ordered2():
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niters = 1000000
-    sleep_time = 0.1
-    cmd_import = "import datatable as dt; from datatable.lib import core; "
+    niterations = 10000
+    sleep_time = 0.01
+    exception = "KeyboardInterrupt\n"
+    cmd_settings = "import datatable as dt; from datatable.lib import core;"
+    cmd_settings += "dt.options.progress.enabled = True;"
+    cmd_settings += "dt.options.progress.min_duration = 0;"
+    cmd_settings += "print('%s start', flush = True); " % parallel_type;
 
     if parallel_type is None:
-        cmd_run = "import time; dt.options.nthreads = %s; time.sleep(%s)" % (
-                  nthreads, sleep_time * 2)
+        cmd_settings += "import time; "
+        cmd_settings += "dt.options.nthreads = %s; " % nthreads
+        cmd_run = "time.sleep(%s);" % sleep_time * 10
     else:
+        if parallel_type is "ordered":
+            niterations //= 10
         cmd_run = "core.test_progress_%s(%s, %s)" % (
-                  parallel_type, niters, nthreads)
-    cmd = cmd_import + cmd_run
-    proc = subprocess.Popen(["python", "-c", cmd],
+                  parallel_type, niterations, nthreads)
+
+    proc = subprocess.Popen(["python", "-c", cmd_settings + cmd_run],
                             stdout = subprocess.PIPE,
                             stderr = subprocess.PIPE)
-    time.sleep(sleep_time)
+
+    line = proc.stdout.readline()
+    time.sleep(sleep_time);
+
     proc.send_signal(signal.Signals.SIGINT)
-    ret = proc.wait()
-    stderr = proc.stderr.read().decode()
-    assert stderr.endswith("KeyboardInterrupt\n")
+    (stdout, stderr) = proc.communicate()
+
+    if (parallel_type) :
+        assert stdout.decode().endswith("[cancelled]\x1b[m\x1b[K\n")
+    assert stderr.decode().endswith(exception)
 
 
