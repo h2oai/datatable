@@ -46,7 +46,7 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     // TODO: override cast()
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstNa_ColumnImpl(_nrows);
+      return new ConstNa_ColumnImpl(_nrows, _stype);
     }
 
     // VOID column materializes into BOOL stype
@@ -99,7 +99,7 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstInt_ColumnImpl(_nrows, value);
+      return new ConstInt_ColumnImpl(_nrows, value, _stype);
     }
 
     bool get_element(size_t, int8_t* out) const override {
@@ -161,7 +161,7 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstFloat_ColumnImpl(_nrows, value);
+      return new ConstFloat_ColumnImpl(_nrows, value, _stype);
     }
 
     bool get_element(size_t, float* out) const override {

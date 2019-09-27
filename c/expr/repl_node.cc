@@ -266,7 +266,8 @@ Column scalar_int_rn::make_column(SType st, size_t nrows) const {
                 rst == SType::FLOAT32? _make1<float>(rst) :
                 rst == SType::FLOAT64? _make1<double>(rst) : Column();
   xassert(col1);
-  return col1->repeat(nrows);
+  col1.repeat(nrows);
+  return col1;
 }
 
 
