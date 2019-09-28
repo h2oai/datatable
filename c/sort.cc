@@ -646,7 +646,7 @@ class SortContext {
    */
   template <bool ASC>
   void _initB() {
-    const uint8_t* xi = static_cast<const uint8_t*>(column->data());
+    const uint8_t* xi = static_cast<const uint8_t*>(column.get_data_readonly());
     elemsize = 1;
     nsigbits = 2;
     allocate_x();
@@ -693,7 +693,7 @@ class SortContext {
   void _initI_impl(T edge) {
     TI una = static_cast<TI>(GETNA<T>());
     TI uedge = static_cast<TI>(edge);
-    const TI* xi = static_cast<const TI*>(column->data());
+    const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);
     allocate_x();
     TO* xo = x.data<TO>();
@@ -749,7 +749,7 @@ class SortContext {
    */
   template <bool ASC, typename TO>
   void _initF() {
-    const TO* xi = static_cast<const TO*>(column->data());
+    const TO* xi = static_cast<const TO*>(column.get_data_readonly());
     elemsize = sizeof(TO);
     nsigbits = elemsize * 8;
     allocate_x();

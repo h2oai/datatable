@@ -37,7 +37,7 @@ class SliceView_ColumnImpl : public Virtual_ColumnImpl {
     size_t step;
 
   public:
-    SliceView_ColumnImpl(Column&& col, const RowIndex& ri, size_t nrows);
+    SliceView_ColumnImpl(Column&& col, const RowIndex& ri);
     ColumnImpl* shallowcopy() const override;
 
     bool get_element(size_t i, int8_t* out)   const override;

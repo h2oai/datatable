@@ -510,7 +510,8 @@ void PyObjectColumn::rbind_impl(
       if (col.stype() != SType::OBJ) {
         col = col.cast(_stype);
       }
-      auto src_data = static_cast<PyObject* const*>(col->data());
+      auto src_data = static_cast<PyObject* const*>(
+                        col.get_data_readonly());
       for (size_t i = 0; i < col.nrows(); ++i) {
         Py_INCREF(src_data[i]);
         Py_DECREF(*dest_data);

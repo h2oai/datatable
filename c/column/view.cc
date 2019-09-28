@@ -29,8 +29,8 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 SliceView_ColumnImpl::SliceView_ColumnImpl(
-    Column&& col, const RowIndex& ri, size_t nrows)
-  : Virtual_ColumnImpl(nrows, col.stype()),
+    Column&& col, const RowIndex& ri)
+  : Virtual_ColumnImpl(ri.size(), col.stype()),
     arg(std::move(col)),
     start(ri.slice_start()),
     step(ri.slice_step())
@@ -42,7 +42,7 @@ SliceView_ColumnImpl::SliceView_ColumnImpl(
 
 ColumnImpl* SliceView_ColumnImpl::shallowcopy() const {
   return new SliceView_ColumnImpl(
-                Column(arg), RowIndex(start, _nrows, step), _nrows);
+                Column(arg), RowIndex(start, _nrows, step));
 }
 
 
@@ -175,8 +175,7 @@ static Column _make_view(Column&& col, const RowIndex& ri) {
   }
   switch (ri.type()) {
     case RowIndexType::SLICE:
-      return Column(new dt::SliceView_ColumnImpl(
-                      std::move(col), ri, ri.size()));
+      return Column(new dt::SliceView_ColumnImpl(std::move(col), ri));
 
     case RowIndexType::ARR32:
       return Column(new dt::ArrayView_ColumnImpl<int32_t>(

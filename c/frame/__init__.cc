@@ -450,7 +450,7 @@ class FrameInitializationManager {
           auto colsrc  = npsrc.get_attr("data").get_item(col_key);
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
           make_column(colsrc, SType::VOID);
-          Column maskcol = Column::from_buffer(masksrc);
+          Column maskcol = Column::from_pybuffer(masksrc);
           cols.back()->apply_na_mask(maskcol);
         }
       } else {
@@ -595,7 +595,7 @@ class FrameInitializationManager {
         col = srcdt->get_column(0);
       }
       else if (colsrc.is_buffer()) {
-        col = Column::from_buffer(colsrc);
+        col = Column::from_pybuffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
         col = Column::from_pylist(colsrc.to_pylist(), int(s));

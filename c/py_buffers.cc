@@ -10,6 +10,7 @@
 // See: https://docs.python.org/3/c-api/buffer.html
 //------------------------------------------------------------------------------
 #include <stdlib.h>  // atoi
+#include "column/view.h"
 #include "frame/py_frame.h"
 #include "python/obj.h"
 #include "utils/assert.h"
@@ -47,7 +48,7 @@ static char strB[] = "B";
 // Construct a Column from a python object implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-Column Column::from_buffer(const py::robj& pyobj)
+Column Column::from_pybuffer(const py::robj& pyobj)
 {
   auto pview = std::unique_ptr<Py_buffer>(new Py_buffer());
   Py_buffer* view = pview.get();
@@ -57,11 +58,11 @@ Column Column::from_buffer(const py::robj& pyobj)
     auto dtype = pyobj.get_attr("dtype");
     auto kind = dtype.get_attr("kind").to_string();
     if (kind == "M" || kind == "m") {
-      return from_buffer(pyobj.invoke("astype", "(s)", "str"));
+      return Column::from_pybuffer(pyobj.invoke("astype", "(s)", "str"));
     }
     auto fmt = dtype.get_attr("char").to_string();
     if (kind == "f" && fmt == "e") {  // float16
-      return from_buffer(pyobj.invoke("astype", "(s)", "float32"));
+      return Column::from_pybuffer(pyobj.invoke("astype", "(s)", "float32"));
     }
   }
 
@@ -85,7 +86,7 @@ Column Column::from_buffer(const py::robj& pyobj)
       }
     }
     if (num_nontrivial_dimensions > 1) {
-      throw NotImplError() << "Source buffer has " << num_nontrivial_dimensions
+      throw ValueError() << "Source buffer has " << num_nontrivial_dimensions
         << " non-trivial dimensions, however only 1-D buffers are supported";
     }
   }
@@ -97,45 +98,28 @@ Column Column::from_buffer(const py::robj& pyobj)
   if (stype == SType::STR32) {
     res = convert_fwchararray_to_column(view);
   }
-  else if (view->strides == nullptr) {
-    size_t expected_buffer_len = nrows * info(stype).elemsize();
-    size_t buffer_len = static_cast<size_t>(pview->len);
-    if (buffer_len != expected_buffer_len) {
-      throw Error() << "PyBuffer cannot be used to create a column of " << nrows
-                    << " rows: buffer length is " << buffer_len
-                    << ", expected " << expected_buffer_len;
-    }
-    const void* ptr = pview->buf;
-    Buffer mbuf = Buffer::external(ptr, buffer_len, pview.release());
-    res = Column::new_mbuf_column(stype, std::move(mbuf));
-  }
   else {
-    res = Column::new_data_column(stype, nrows);
-    size_t stride = static_cast<size_t>(view->strides[0] / view->itemsize);
-    if (view->itemsize == 8) {
-      int64_t* out = static_cast<int64_t*>(res.get_data_editable());
-      int64_t* inp = static_cast<int64_t*>(view->buf);
-      for (size_t j = 0; j < nrows; ++j) {
-        out[j] = inp[j * stride];
-      }
-    } else if (view->itemsize == 4) {
-      int32_t* out = static_cast<int32_t*>(res.get_data_editable());
-      int32_t* inp = static_cast<int32_t*>(view->buf);
-      for (size_t j = 0; j < nrows; ++j) {
-        out[j] = inp[j * stride];
-      }
-    } else if (view->itemsize == 2) {
-      int16_t* out = static_cast<int16_t*>(res.get_data_editable());
-      int16_t* inp = static_cast<int16_t*>(view->buf);
-      for (size_t j = 0; j < nrows; ++j) {
-        out[j] = inp[j * stride];
-      }
-    } else if (view->itemsize == 1) {
-      int8_t* out = static_cast<int8_t*>(res.get_data_editable());
-      int8_t* inp = static_cast<int8_t*>(view->buf);
-      for (size_t j = 0; j < nrows; ++j) {
-        out[j] = inp[j * stride];
-      }
+    bool strided = (view->strides != nullptr);
+    size_t stride_len = strided? static_cast<size_t>(view->strides[0] /
+                                                     view->itemsize) : 1;
+    size_t buffer_len = static_cast<size_t>(pview->len);
+    size_t buffer_len_expected = nrows * info(stype).elemsize();
+    if (buffer_len != buffer_len_expected) {
+      throw RuntimeError()
+                << "PyBuffer cannot be used to create a column of " << nrows
+                << " rows: buffer length is " << buffer_len
+                << ", expected " << buffer_len_expected;
+    }
+
+    pview.release();
+    res = Column::new_mbuf_column(stype,
+              Buffer::external(view->buf, buffer_len * stride_len, view)
+          );
+    if (strided) {
+      res = Column(
+              new dt::SliceView_ColumnImpl(std::move(res),
+                                           RowIndex(0, nrows, stride_len))
+            );
     }
   }
   if (res.stype() == SType::OBJ) {
@@ -183,7 +167,7 @@ static Column convert_fwchararray_to_column(Py_buffer* view)
  */
 static void try_to_resolve_object_column(Column& col)
 {
-  auto data = static_cast<PyObject* const*>(col->data());
+  auto data = static_cast<PyObject* const*>(col.get_data_readonly());
   size_t nrows = col.nrows();
 
   bool all_strings = true;
@@ -535,6 +519,9 @@ static SType stype_from_format(const char* format, int64_t itemsize)
   if (stype == SType::VOID) {
     throw ValueError()
         << "Unknown format '" << format << "' with itemsize " << itemsize;
+  }
+  if (!info(stype).is_varwidth()) {
+    xassert(info(stype).elemsize() == static_cast<size_t>(itemsize));
   }
   return stype;
 }
