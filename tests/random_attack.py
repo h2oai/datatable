@@ -226,9 +226,8 @@ class Attacker:
         frame.replace_nas_in_column(icol, replacement_value)
 
     def sort_column(self, frame):
-        if frame.nrows == 0 or frame.ncols == 0:
+        if frame.ncols == 0:
             return
-
         icol = random.randint(0, frame.ncols - 1)
         print("[10] Sorting column %d ASC" % icol)
         if python_output:
@@ -598,9 +597,10 @@ class Frame0:
 
     def sort(self, icol):
         self.df = self.df.sort(icol)
-        data = list(zip(*self.data))
-        data.sort(key=lambda x: (x[icol] is not None, x[icol]))
-        self.data = list(map(list, zip(*data)))
+        if (len(self.data[0])):
+            data = list(zip(*self.data))
+            data.sort(key=lambda x: (x[icol] is not None, x[icol]))
+            self.data = list(map(list, zip(*data)))
 
     #---------------------------------------------------------------------------
     # Helpers
