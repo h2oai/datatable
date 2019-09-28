@@ -208,8 +208,10 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
     xassert(nlabels != 0 && nlabels < 3);
-    auto data_label_ids_in = static_cast<int8_t*>(dt_labels_in->get_column(1).get_data_editable());
-    auto data_label_ids = static_cast<const int8_t*>(dt_labels->get_column(1)->data());
+    auto data_label_ids_in = static_cast<int8_t*>(
+                              dt_labels_in->get_column(1).get_data_editable());
+    auto data_label_ids = static_cast<const int8_t*>(
+                              dt_labels->get_column(1).get_data_readonly());
 
 
     switch (nlabels) {
@@ -389,7 +391,8 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
 
-  auto data_label_ids_in = static_cast<const int32_t*>(dt_labels_in->get_column(1)->data());
+  auto data_label_ids_in = static_cast<const int32_t*>(
+                              dt_labels_in->get_column(1).get_data_readonly());
   size_t nlabels_in = dt_labels_in->nrows;
 
   // When we only start training, all the incoming labels become the model
@@ -405,7 +408,8 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     // When we already have some labels, and got new ones, we first
     // set up mapping in such a way, so that models will train
     // on all the negatives.
-    auto data_label_ids = static_cast<const int32_t*>(dt_labels->get_column(1)->data());
+    auto data_label_ids = static_cast<const int32_t*>(
+                            dt_labels->get_column(1).get_data_readonly());
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
     size_t nlabels = dt_labels->nrows;
 
@@ -732,7 +736,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = dt_labels->nrows;
 
-  auto data_label_ids = static_cast<const U*>(dt_labels->get_column(1)->data());
+  auto data_label_ids = static_cast<const U*>(
+                            dt_labels->get_column(1).get_data_readonly());
 
   dtptr dt_p = create_p(dt_X->nrows);
   std::vector<T*> data_p(nlabels);
