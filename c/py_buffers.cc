@@ -111,9 +111,9 @@ Column Column::from_pybuffer(const py::robj& pyobj)
                 << ", expected " << buffer_len_expected;
     }
 
-    pview.release();
+    void* ptr = pview->buf;
     res = Column::new_mbuf_column(stype,
-              Buffer::external(view->buf, buffer_len * stride_len, view)
+              Buffer::external(ptr, buffer_len * stride_len, std::move(pview))
           );
     if (strided) {
       res = Column(
