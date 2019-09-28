@@ -6,6 +6,7 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "column/virtual.h"
 #include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
@@ -62,7 +63,7 @@ void map_str_isna(size_t nrows, const T* inp, int8_t* out) {
 //------------------------------------------------------------------------------
 
 template <typename TI, typename TO>
-class unary_vcol : public ColumnImpl {
+class unary_vcol : public Virtual_ColumnImpl {
   using operator_t = TO(*)(TI);
   private:
     Column arg;
@@ -70,15 +71,13 @@ class unary_vcol : public ColumnImpl {
 
   public:
     unary_vcol(Column&& col, SType stype, operator_t f)
-      : ColumnImpl(col.nrows(), stype),
+      : Virtual_ColumnImpl(col.nrows(), stype),
         arg(std::move(col)),
         func(f) {}
 
     ColumnImpl* shallowcopy() const override {
       return new unary_vcol<TI, TO>(Column(arg), _stype, func);
     }
-
-    bool is_virtual() const noexcept override { return true; }
 
     bool get_element(size_t i, TO* out) const override {
       TI x;
@@ -91,7 +90,7 @@ class unary_vcol : public ColumnImpl {
 };
 
 template <typename TI>
-class unary_vcol<TI, int8_t> : public ColumnImpl {
+class unary_vcol<TI, int8_t> : public Virtual_ColumnImpl {
   using operator_t = int8_t(*)(TI);
   private:
     Column arg;
@@ -99,11 +98,13 @@ class unary_vcol<TI, int8_t> : public ColumnImpl {
 
   public:
     unary_vcol(Column&& col, SType stype, operator_t f)
-      : ColumnImpl(col.nrows(), stype),
+      : Virtual_ColumnImpl(col.nrows(), stype),
         arg(std::move(col)),
         func(f) {}
 
-    bool is_virtual() const noexcept override { return true; }
+    ColumnImpl* shallowcopy() const override {
+      return new unary_vcol<TI, int8_t>(Column(arg), _stype, func);
+    }
 
     bool get_element(size_t i, int8_t* out) const override {
       TI x;

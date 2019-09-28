@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>                 // std::memcmp
+#include "column/virtual.h"
 #include "expr/expr.h"
 #include "expr/head_func_other.h"
 #include "expr/workframe.h"
@@ -36,18 +37,20 @@ namespace expr {
 // Head_Func_Re_Match
 //------------------------------------------------------------------------------
 
-class re_match_vcol : public ColumnImpl {
+class re_match_vcol : public Virtual_ColumnImpl {
   private:
     Column arg;
     std::regex regex;
 
   public:
     re_match_vcol(Column&& col, const std::regex& rx)
-      : ColumnImpl(col.nrows(), SType::BOOL),
+      : Virtual_ColumnImpl(col.nrows(), SType::BOOL),
         arg(std::move(col)),
         regex(rx) {}
 
-    bool is_virtual() const noexcept override { return true; }
+    ColumnImpl* shallowcopy() const override {
+      return new re_match_vcol(Column(arg), regex);
+    }
 
     bool get_element(size_t i, int8_t* out) const override {
       CString x;

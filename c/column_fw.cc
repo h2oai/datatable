@@ -55,6 +55,22 @@ FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
 }
 
 
+/**
+ * Create a shallow copy of the column; possibly applying the provided rowindex.
+ */
+template <typename T>
+ColumnImpl* FwColumn<T>::shallowcopy() const {
+  ColumnImpl* col = ColumnImpl::new_impl(_stype);
+  auto fwcol = dynamic_cast<FwColumn<T>*>(col);
+  xassert(fwcol);
+  fwcol->_nrows = _nrows;
+  fwcol->mbuf = mbuf;
+  // TODO: also copy Stats object
+  return col;
+}
+
+
+
 //==============================================================================
 // Initialization methods
 //==============================================================================

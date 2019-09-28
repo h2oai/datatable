@@ -168,7 +168,7 @@ class ColumnImpl
      * If you want the rowindices to be merged, you should merge them manually
      * and pass the merged rowindex to this method.
      */
-    virtual ColumnImpl* shallowcopy() const;
+    virtual ColumnImpl* shallowcopy() const = 0;
 
     /**
      * Factory method to cast the current column into the given `stype`. If a
@@ -285,6 +285,7 @@ public:
   T get_elem(size_t i) const;
 
   virtual bool get_element(size_t i, T* out) const override;
+  ColumnImpl* shallowcopy() const override;
 
   size_t data_nrows() const override;
   void apply_na_mask(const Column& mask) override;
@@ -459,6 +460,7 @@ class VoidColumn : public ColumnImpl {
     VoidColumn(size_t nrows);
     size_t data_nrows() const override;
     ColumnImpl* materialize() override;
+    ColumnImpl* shallowcopy() const override { return new VoidColumn(_nrows); }
     void apply_na_mask(const Column&) override;
     void replace_values(Column&, const RowIndex&, const Column&) override;
   protected:
