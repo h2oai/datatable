@@ -339,6 +339,19 @@ def test_names_deduplication():
         assert DT.names == ("A", "A01", "A2")
 
 
+#-------------------------------------------------------------------------------
+# Run several random attacks on a datatable as a whole
+#-------------------------------------------------------------------------------
+
+def test_random_attack():
+    import subprocess
+    proc = subprocess.Popen(["python", "./tests/random_driver.py",
+                            "-v", "-n 5"],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate(timeout=100)
+    assert("FAIL" not in out.decode())
+    assert(err == b'')
+
 
 #-------------------------------------------------------------------------------
 # Stype

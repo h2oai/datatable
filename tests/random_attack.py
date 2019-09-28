@@ -15,6 +15,7 @@ import time
 import warnings
 from datatable import f
 from datatable.internal import frame_integrity_check
+from datatable.utils.terminal import term
 
 exhaustive_checks = False
 python_output = None
@@ -115,7 +116,7 @@ class Attacker:
                 break
         print("\nAttack ended, checking the outcome")
         frame.check()
-        print("...ok.")
+        print(term.color("bright_green", "PASSED"))
         t1 = time.time()
         print("Time taken = %.3fs" % (t1 - t0))
 
