@@ -82,8 +82,8 @@ static void label_encode_bool(const Column& col, dtptr& dt_labels, dtptr& dt_enc
   // Set up boolean labels and their corresponding ids.
   Column ids_col = Column::new_data_column(SType::BOOL, 2);
   Column labels_col = Column::new_data_column(SType::BOOL, 2);
-  auto ids_data = static_cast<int8_t*>(ids_col->data_w());
-  auto labels_data = static_cast<int8_t*>(labels_col->data_w());
+  auto ids_data = static_cast<int8_t*>(ids_col.get_data_editable());
+  auto labels_data = static_cast<int8_t*>(labels_col.get_data_editable());
   ids_data[0] = 0;
   ids_data[1] = 1;
   labels_data[0] = 0;

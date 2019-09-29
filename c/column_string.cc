@@ -44,9 +44,9 @@ StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
   : ColumnImpl(n, stype_for<T>())
 {
   xassert(mb);
-  xassert(mb.size() == sizeof(T) * (n + 1));
+  xassert(mb.size() >= sizeof(T) * (n + 1));
   xassert(mb.get_element<T>(0) == 0);
-  xassert(sb.size() == (mb.get_element<T>(n) & ~GETNA<T>()));
+  xassert(sb.size() >= (mb.get_element<T>(n) & ~GETNA<T>()));
   mbuf = std::move(mb);
   strbuf = std::move(sb);
 }
@@ -71,10 +71,7 @@ void StringColumn<T>::init_data() {
 
 template <typename T>
 ColumnImpl* StringColumn<T>::shallowcopy() const {
-  ColumnImpl* newcol = ColumnImpl::shallowcopy();
-  StringColumn<T>* col = static_cast<StringColumn<T>*>(newcol);
-  col->strbuf = strbuf;
-  return col;
+  return new StringColumn<T>(_nrows, Buffer(mbuf), Buffer(strbuf));
 }
 
 

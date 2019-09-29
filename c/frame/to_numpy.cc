@@ -124,7 +124,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
 
     size_t dtsize = ncols * dt->nrows;
     Column mask_col = Column::new_data_column(SType::BOOL, dtsize);
-    int8_t* mask_data = static_cast<int8_t*>(mask_col->data_w());
+    int8_t* mask_data = static_cast<int8_t*>(mask_col.get_data_editable());
 
     size_t n_row_chunks = std::max(dt->nrows / 100, size_t(1));
     size_t rows_per_chunk = dt->nrows / n_row_chunks;

@@ -112,7 +112,7 @@ static inline void obj_str(py::robj x, dt::string_buf* buf) {
 template <typename T, typename U, U(*CAST_OP)(T)>
 static void cast_fw0(const Column& col, size_t start, void* out_data)
 {
-  auto inp = static_cast<const T*>(col->data()) + start;
+  auto inp = static_cast<const T*>(col.get_data_readonly()) + start;
   auto out = static_cast<U*>(out_data);
   dt::parallel_for_static(col.nrows(),
     [=](size_t i) {

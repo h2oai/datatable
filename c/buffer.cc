@@ -263,11 +263,13 @@ class External_BufferImpl : public BufferImpl
     Py_buffer* pybufinfo_;
 
   public:
-    External_BufferImpl(const void* ptr, size_t n, Py_buffer* pybuf) {
+    External_BufferImpl(const void* ptr, size_t n,
+                        std::unique_ptr<Py_buffer>&& pybuf)
+    {
       XAssert(ptr || n == 0);
       data_ = const_cast<void*>(ptr);
       size_ = n;
-      pybufinfo_ = pybuf;
+      pybufinfo_ = pybuf.release();
       resizable_ = false;
       writable_ = false;
     }
@@ -746,8 +748,10 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
     return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  Buffer Buffer::external(const void* ptr, size_t n, Py_buffer* pb) {
-    return Buffer(new External_BufferImpl(ptr, n, pb));
+  Buffer Buffer::external(const void* ptr, size_t n,
+                          std::unique_ptr<Py_buffer>&& pb)
+  {
+    return Buffer(new External_BufferImpl(ptr, n, std::move(pb)));
   }
 
   Buffer Buffer::view(const Buffer& src, size_t n, size_t offset) {

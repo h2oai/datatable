@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
+#include "column/const.h"
 #include "expr/expr.h"
 #include "expr/collist.h"
 #include "expr/repl_node.h"
@@ -81,7 +82,7 @@ void frame_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
     if (coli.nrows() == 1) {
       coli.repeat(lrows);
     }
-    dt0->set_ocolumn(j, std::move(coli));
+    dt0->set_column(j, std::move(coli));
   }
 }
 
@@ -100,7 +101,7 @@ void frame_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
     size_t j = indices[i];
     const Column& coli = dtr->get_column(rcols == 1? 0 : i);
     if (!dt0->get_column(j)) {
-      dt0->set_ocolumn(j,
+      dt0->set_column(j,
           Column::new_na_column(coli.stype(), dt0->nrows));
     }
     Column& colj = dt0->get_column(j);
@@ -162,7 +163,7 @@ void scalar_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
       new_columns[stype] = make_column(stype, dt0->nrows);
     }
     Column newcol = new_columns[stype];  // copy
-    dt0->set_ocolumn(j, std::move(newcol));
+    dt0->set_column(j, std::move(newcol));
   }
 }
 
@@ -178,10 +179,10 @@ void scalar_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
     Column replcol = make_column(stype, 1);
     stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
     if (!colj) {
-      dt0->set_ocolumn(j, Column::new_na_column(stype, dt0->nrows));
+      dt0->set_column(j, Column::new_na_column(stype, dt0->nrows));
     }
     else if (colj.stype() != stype) {
-      dt0->set_ocolumn(j, colj.cast(stype));
+      dt0->set_column(j, colj.cast(stype));
     }
     Column& ocol = dt0->get_column(j);
     ocol.replace_values(ri0, replcol);
@@ -226,56 +227,27 @@ Column scalar_na_rn::make_column(SType st, size_t nrows) const {
 
 class scalar_int_rn : public scalar_rn {
   int64_t value;
+  bool isbool;
+  size_t : 56;
 
   public:
-    explicit scalar_int_rn(int64_t x) : value(x) {}
+    explicit scalar_int_rn(int64_t x) : value(x), isbool(false) {}
+    explicit scalar_int_rn(bool x)    : value(x), isbool(true) {}
 
   protected:
-    const char* value_type() const noexcept override;
-    bool valid_ltype(LType) const noexcept override;
-    Column make_column(SType st, size_t nrows) const override;
-    template <typename T> Column _make1(SType st) const;
+    const char* value_type() const noexcept override { return "integer"; }
+
+    bool valid_ltype(LType lt) const noexcept override {
+      return lt == LType::INT || lt == LType::REAL ||
+             (lt == LType::BOOL && (value == 0 || value == 1));
+    }
+
+    Column make_column(SType st, size_t nrows) const override {
+      return (isbool && (st == SType::VOID || st == SType::BOOL))
+                ? Const_ColumnImpl::make_bool_column(nrows, bool(value))
+                : Const_ColumnImpl::make_int_column(nrows, value, st);
+    }
 };
-
-
-const char* scalar_int_rn::value_type() const noexcept {
-  return "integer";
-}
-
-
-bool scalar_int_rn::valid_ltype(LType lt) const noexcept {
-  return lt == LType::INT || lt == LType::REAL ||
-         (lt == LType::BOOL && (value == 0 || value == 1));
-}
-
-
-Column scalar_int_rn::make_column(SType st, size_t nrows) const {
-  int64_t av = std::abs(value);
-  SType rst = value == 0 || value == 1? SType::BOOL :
-              av <= 127? SType::INT8 :
-              av <= 32767? SType::INT16 :
-              av <= 2147483647? SType::INT32 : SType::INT64;
-  if (static_cast<size_t>(st) > static_cast<size_t>(rst)) {
-    rst = st;
-  }
-  Column col1 = rst == SType::BOOL? _make1<int8_t>(rst) :
-                rst == SType::INT8? _make1<int8_t>(rst) :
-                rst == SType::INT16? _make1<int16_t>(rst) :
-                rst == SType::INT32? _make1<int32_t>(rst) :
-                rst == SType::INT64? _make1<int64_t>(rst) :
-                rst == SType::FLOAT32? _make1<float>(rst) :
-                rst == SType::FLOAT64? _make1<double>(rst) : Column();
-  xassert(col1);
-  return col1->repeat(nrows);
-}
-
-
-template <typename T>
-Column scalar_int_rn::_make1(SType stype) const {
-  Buffer mbuf = Buffer::mem(sizeof(T));
-  mbuf.set_element<T>(0, static_cast<T>(value));
-  return Column::new_mbuf_column(stype, std::move(mbuf));
-}
 
 
 
@@ -316,14 +288,7 @@ Column scalar_float_rn::make_column(SType st, size_t nrows) const {
   bool res64 = (st == SType::FLOAT64 || st == SType::VOID ||
                 std::abs(value) > MAX);
   SType result_stype = res64? SType::FLOAT64 : SType::FLOAT32;
-
-  Buffer mbuf = Buffer::mem(res64? sizeof(double) : sizeof(float));
-  if (res64) {
-    mbuf.set_element<double>(0, value);
-  } else {
-    mbuf.set_element<float>(0, static_cast<float>(value));
-  }
-  return Column::new_mbuf_column(result_stype, std::move(mbuf))->repeat(nrows);
+  return Const_ColumnImpl::make_float_column(nrows, value, result_stype);
 }
 
 
@@ -354,27 +319,11 @@ bool scalar_string_rn::valid_ltype(LType lt) const noexcept {
 }
 
 Column scalar_string_rn::make_column(SType st, size_t nrows) const {
+  if (st == SType::VOID) st = SType::STR32;
   if (nrows == 0) {
     return Column::new_data_column(SType::STR32, 0);
   }
-  size_t len = value.size();
-  SType rst = (st == SType::VOID)? SType::STR32 : st;
-  size_t elemsize = (rst == SType::STR32)? 4 : 8;
-  Buffer offbuf = Buffer::mem(2 * elemsize);
-  if (elemsize == 4) {
-    offbuf.set_element<uint32_t>(0, 0);
-    offbuf.set_element<uint32_t>(1, static_cast<uint32_t>(len));
-  } else {
-    offbuf.set_element<uint64_t>(0, 0);
-    offbuf.set_element<uint64_t>(1, len);
-  }
-  Buffer strbuf = Buffer::mem(len);
-  std::memcpy(strbuf.xptr(), value.data(), len);
-  Column col = Column::new_string_column(1, std::move(offbuf), std::move(strbuf));
-  if (nrows > 1) {
-    col.repeat(nrows);
-  }
-  return col;
+  return Const_ColumnImpl::make_string_column(nrows, CString(value), st);
 }
 
 
@@ -458,7 +407,7 @@ void exprlist_rn::replace_columns(EvalContext& ctx, const intvec& indices) const
     Column col = (i < rcols)? exprs[i]->evaluate(ctx)
                             : dt0->get_column(indices[0]);
     xassert(col.nrows() == dt0->nrows);
-    dt0->set_ocolumn(j, std::move(col));
+    dt0->set_column(j, std::move(col));
   }
 }
 
@@ -488,7 +437,7 @@ repl_node_ptr repl_node::make(EvalContext& ctx, py::oobj src) {
 
   if (src.is_frame())       res = new frame_rn(src.to_datatable());
   else if (src.is_none())   res = new scalar_na_rn();
-  else if (src.is_bool())   res = new scalar_int_rn(src.to_bool());
+  else if (src.is_bool())   res = new scalar_int_rn(bool(src.to_bool()));
   else if (src.is_int())    res = new scalar_int_rn(src.to_int64());
   else if (src.is_float())  res = new scalar_float_rn(src.to_double());
   else if (src.is_string()) res = new scalar_string_rn(src.to_string());

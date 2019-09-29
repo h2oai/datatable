@@ -92,25 +92,6 @@ Column Column::new_string_column(
 
 
 
-/**
- * Create a shallow copy of the column; possibly applying the provided rowindex.
- */
-ColumnImpl* ColumnImpl::shallowcopy() const {
-  ColumnImpl* col = ColumnImpl::new_impl(_stype);
-  col->_nrows = _nrows;
-  col->mbuf = mbuf;
-  // TODO: also copy Stats object
-  return col;
-}
-
-
-size_t ColumnImpl::alloc_size() const {  // TODO: remove
-  return _nrows * info(_stype).elemsize();
-}
-
-
-
-
 
 //------------------------------------------------------------------------------
 // Column

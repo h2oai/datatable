@@ -164,7 +164,7 @@ static oobj kfold(const PKArgs& args) {
     size_t colsize = static_cast<size_t>(b1 + n - b2);
     Column col = Column::new_data_column(SType::INT32, colsize);
     DataTable* dt = new DataTable({std::move(col)}, DataTable::default_names);
-    data.push_back(static_cast<int32_t*>(dt->get_column(0)->data_w()));
+    data.push_back(static_cast<int32_t*>(dt->get_column(0).get_data_editable()));
 
     res.set(static_cast<size_t>(ii),
             otuple(Frame::oframe(dt), orange(b1, b2)));
@@ -339,8 +339,8 @@ static oobj kfold_random(const PKArgs& args) {
     DataTable* dt2 = new DataTable({std::move(col2)}, DataTable::default_names);
     oobj train = Frame::oframe(dt1);
     oobj test  = Frame::oframe(dt2);
-    train_folds[x] = static_cast<T*>(dt1->get_column(0)->data_w());
-    test_folds[x] = static_cast<T*>(dt2->get_column(0)->data_w());
+    train_folds[x] = static_cast<T*>(dt1->get_column(0).get_data_editable());
+    test_folds[x] = static_cast<T*>(dt2->get_column(0).get_data_editable());
     res.set(x, otuple{ train, test });
   }
 

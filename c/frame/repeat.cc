@@ -19,51 +19,19 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "datatablemodule.h"
+#include "column/repeated.h"
 #include "frame/py_frame.h"
 #include "python/args.h"
-#include "rowindex.h"
 #include "column_impl.h"  // TODO: remove
-
-
-//------------------------------------------------------------------------------
-// Static helpers
-//------------------------------------------------------------------------------
-
-// TODO: we could create a special "repeated" column here
-Column ColumnImpl::repeat(size_t nreps) const {
-  xassert(!info(_stype).is_varwidth());
-  size_t esize = info(_stype).elemsize();
-  size_t new_nrows = _nrows * nreps;
-
-  Column newcol = Column::new_data_column(_stype, new_nrows);
-  if (!new_nrows) {
-    return newcol;
-  }
-  const void* olddata = data();
-  void* newdata = newcol->data_w();
-
-  std::memcpy(newdata, olddata, _nrows * esize);
-  size_t nrows_filled = _nrows;
-  while (nrows_filled < new_nrows) {
-    size_t nrows_copy = std::min(new_nrows - nrows_filled, nrows_filled);
-    std::memcpy(static_cast<char*>(newdata) + nrows_filled * esize,
-                newdata,
-                nrows_copy * esize);
-    nrows_filled += nrows_copy;
-    xassert(nrows_filled % _nrows == 0);
-  }
-  xassert(nrows_filled == new_nrows);
-
-  return newcol;
-}
+#include "datatablemodule.h"
+#include "rowindex.h"
+namespace py {
 
 
 
 //------------------------------------------------------------------------------
 // datatable.repeat()
 //------------------------------------------------------------------------------
-namespace py {
 
 static PKArgs args_repeat(
     2, 0, 0, false, false, {"frame", "n"},
@@ -98,8 +66,11 @@ static oobj repeat(const PKArgs& args) {
 
 
 
+
 void DatatableModule::init_methods_repeat() {
   ADD_FN(&repeat, args_repeat);
 }
+
+
 
 } // namespace py

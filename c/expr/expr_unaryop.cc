@@ -6,6 +6,7 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "column/virtual.h"
 #include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
@@ -62,7 +63,7 @@ void map_str_isna(size_t nrows, const T* inp, int8_t* out) {
 //------------------------------------------------------------------------------
 
 template <typename TI, typename TO>
-class unary_vcol : public ColumnImpl {
+class unary_vcol : public Virtual_ColumnImpl {
   using operator_t = TO(*)(TI);
   private:
     Column arg;
@@ -70,15 +71,13 @@ class unary_vcol : public ColumnImpl {
 
   public:
     unary_vcol(Column&& col, SType stype, operator_t f)
-      : ColumnImpl(col.nrows(), stype),
+      : Virtual_ColumnImpl(col.nrows(), stype),
         arg(std::move(col)),
         func(f) {}
 
     ColumnImpl* shallowcopy() const override {
       return new unary_vcol<TI, TO>(Column(arg), _stype, func);
     }
-
-    bool is_virtual() const noexcept override { return true; }
 
     bool get_element(size_t i, TO* out) const override {
       TI x;
@@ -91,7 +90,7 @@ class unary_vcol : public ColumnImpl {
 };
 
 template <typename TI>
-class unary_vcol<TI, int8_t> : public ColumnImpl {
+class unary_vcol<TI, int8_t> : public Virtual_ColumnImpl {
   using operator_t = int8_t(*)(TI);
   private:
     Column arg;
@@ -99,11 +98,13 @@ class unary_vcol<TI, int8_t> : public ColumnImpl {
 
   public:
     unary_vcol(Column&& col, SType stype, operator_t f)
-      : ColumnImpl(col.nrows(), stype),
+      : Virtual_ColumnImpl(col.nrows(), stype),
         arg(std::move(col)),
         func(f) {}
 
-    bool is_virtual() const noexcept override { return true; }
+    ColumnImpl* shallowcopy() const override {
+      return new unary_vcol<TI, int8_t>(Column(arg), _stype, func);
+    }
 
     bool get_element(size_t i, int8_t* out) const override {
       TI x;
@@ -285,29 +286,13 @@ GroupbyMode expr_unaryop::get_groupby_mode(const EvalContext& ctx) const {
 }
 
 
-// In this method we use the following shortcut:
-// if the `input_column` evaluated from `arg` is "writable" (meaning that
-// its reference-counter is 1, it is allocated in RAM and not marked readonly),
-// then this column's memory buffer can be reused to create the output column.
-// Indeed, if nobody else holds a reference to the same memory range, then it
-// will be deallocated at the end of this function anyways, together with the
-// `input_column`.
-//
-// This works only if each element in the output array corresponds to an
-// element in the input at exactly the same memory location. Thus, this
-// optimization is only applicable when both columns are "fixed-width" and
-// element sizes in the input and output columns are the same. Notably,
-// if the input is a string column, then it cannot be safely repurposed into
-// an integer output column because each "element" of the input actually
-// consists of 2 entries: the offsets of the start and the end of a string.
-//
 Column expr_unaryop::evaluate(EvalContext& ctx) {
   Column input_column = arg->evaluate(ctx);
 
   auto input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
   if (ui.cast_stype != SType::VOID) {
-    input_column = input_column.cast(ui.cast_stype);
+    input_column.cast_inplace(ui.cast_stype);
   }
   if (ui.vectorfn == nullptr) {
     return input_column;
@@ -315,26 +300,9 @@ Column expr_unaryop::evaluate(EvalContext& ctx) {
   input_column.materialize();
 
   size_t nrows = input_column.nrows();
-  const Buffer& input_mbuf = input_column->data_buf();
-  const void* inp = input_mbuf.rptr();
-
-  Buffer output_mbuf;
-  void* out = nullptr;
-  size_t out_elemsize = info(ui.output_stype).elemsize();
-  if (input_mbuf.is_writable() &&
-      input_column.is_fixedwidth() &&
-      input_column.elemsize() == out_elemsize) {
-    // The address `out` must be taken *before* `output_mbuf` is initialized,
-    // since the `.xptr()` method checks that the reference counter is 1.
-    out = input_mbuf.xptr();
-    output_mbuf = Buffer(input_mbuf);
-  }
-  else {
-    output_mbuf = Buffer::mem(out_elemsize * nrows);
-    out = output_mbuf.xptr();
-  }
-  auto output_column =
-      Column::new_mbuf_column(ui.output_stype, std::move(output_mbuf));
+  const void* inp =  input_column.get_data_readonly();
+  Column output_column = Column::new_data_column(ui.output_stype, nrows);
+  void* out = output_column.get_data_editable();
 
   ui.vectorfn(nrows, inp, out);
 

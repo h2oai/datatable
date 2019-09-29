@@ -55,6 +55,22 @@ FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
 }
 
 
+/**
+ * Create a shallow copy of the column; possibly applying the provided rowindex.
+ */
+template <typename T>
+ColumnImpl* FwColumn<T>::shallowcopy() const {
+  ColumnImpl* col = ColumnImpl::new_impl(_stype);
+  auto fwcol = dynamic_cast<FwColumn<T>*>(col);
+  xassert(fwcol);
+  fwcol->_nrows = _nrows;
+  fwcol->mbuf = mbuf;
+  // TODO: also copy Stats object
+  return col;
+}
+
+
+
 //==============================================================================
 // Initialization methods
 //==============================================================================
@@ -110,7 +126,7 @@ size_t FwColumn<T>::data_nrows() const {
 template <typename T>
 void FwColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
-  auto maskdata = static_cast<const int8_t*>(mask->data());
+  auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());
   T* coldata = this->elements_w();
 
   dt::parallel_for_static(_nrows,

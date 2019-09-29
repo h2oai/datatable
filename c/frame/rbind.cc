@@ -441,7 +441,7 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 
   // Reallocate the column's data buffer
   size_t old_nrows = _nrows;
-  size_t old_alloc_size = alloc_size();
+  size_t old_alloc_size = sizeof(T) * old_nrows;
   size_t new_alloc_size = sizeof(T) * new_nrows;
   mbuf.resize(new_alloc_size);
   _nrows = new_nrows;
@@ -467,8 +467,9 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
       if (col.stype() != _stype) {
         col.cast_inplace(_stype);
       }
-      std::memcpy(resptr, col->data(), col->alloc_size());
-      resptr += col->alloc_size();
+      size_t col_data_size = sizeof(T) * col.nrows();
+      std::memcpy(resptr, col.get_data_readonly(), col_data_size);
+      resptr += col_data_size;
     }
   }
   if (rows_to_fill) {
@@ -509,7 +510,8 @@ void PyObjectColumn::rbind_impl(
       if (col.stype() != SType::OBJ) {
         col = col.cast(_stype);
       }
-      auto src_data = static_cast<PyObject* const*>(col->data());
+      auto src_data = static_cast<PyObject* const*>(
+                        col.get_data_readonly());
       for (size_t i = 0; i < col.nrows(); ++i) {
         Py_INCREF(src_data[i]);
         Py_DECREF(*dest_data);

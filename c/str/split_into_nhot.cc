@@ -85,7 +85,7 @@ static void encode_nones(const Column& col, colvec& outcols) {
   size_t nrows = outcols[0].nrows();
   std::vector<int8_t*> coldata(ncols);
   for (size_t i = 0; i < ncols; ++i) {
-    coldata[i] = static_cast<int8_t*>(outcols[i]->data_w());
+    coldata[i] = static_cast<int8_t*>(outcols[i].get_data_editable());
   }
 
   dt::parallel_for_dynamic(nrows,
@@ -125,7 +125,7 @@ static void sort_colnames(colvec& outcols, strvec& outnames) {
 DataTable* split_into_nhot(const Column& col, char sep,
                            bool sort /* = false */)
 {
-  xassert((col.stype() == SType::STR32) || (col.stype() == SType::STR64));
+  xassert(col.ltype() == LType::STRING);
 
   size_t nrows = col.nrows();
   std::unordered_map<std::string, size_t> colsmap;
@@ -168,7 +168,7 @@ DataTable* split_into_nhot(const Column& col, char sep,
               if (colsmap.count(s) == 0) {
                 colsmap[s] = outcols.size();
                 auto newcol = Column::new_data_column(SType::BOOL, nrows);
-                int8_t* data = static_cast<int8_t*>(newcol->data_w());
+                int8_t* data = static_cast<int8_t*>(newcol.get_data_editable());
                 std::memset(data, 0, nrows);
                 data[irow] = 1;
                 outcols.push_back(std::move(newcol));

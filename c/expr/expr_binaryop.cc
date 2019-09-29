@@ -77,32 +77,54 @@ using mapperfn = void(*)(size_t row0, size_t row1, Column* cols);
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
 static void map_n_to_n(size_t row0, size_t row1, Column* cols) {
-  const LT* lhs_data = static_cast<const LT*>(cols[0]->data());
-  const RT* rhs_data = static_cast<const RT*>(cols[1]->data());
-  VT* res_data = static_cast<VT*>(cols[2]->data_w());
+  const Column& col0 = cols[0];
+  const Column& col1 = cols[1];
+  LT lhs_value;
+  RT rhs_value;
+  bool lhs_valid, rhs_valid;
+
+  VT* res_data = static_cast<VT*>(cols[2].get_data_editable());
   for (size_t i = row0; i < row1; ++i) {
-    res_data[i] = OP(lhs_data[i], rhs_data[i]);
+    lhs_valid = col0.get_element(i, &lhs_value);
+    rhs_valid = col1.get_element(i, &rhs_value);
+    res_data[i] = OP(lhs_value, rhs_value);
   }
+  (void) lhs_valid;  // FIXME
+  (void) rhs_valid;
 }
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
 static void map_n_to_1(size_t row0, size_t row1, Column* cols) {
-  const LT* lhs_data = static_cast<const LT*>(cols[0]->data());
-  RT rhs_value = static_cast<const RT*>(cols[1]->data())[0];
-  VT* res_data = static_cast<VT*>(cols[2]->data_w());
+  const Column& col0 = cols[0];
+  LT lhs_value;
+  RT rhs_value;
+  bool lhs_valid, rhs_valid;
+
+  rhs_valid = cols[1].get_element(0, &rhs_value);
+  VT* res_data = static_cast<VT*>(cols[2].get_data_editable());
   for (size_t i = row0; i < row1; ++i) {
-    res_data[i] = OP(lhs_data[i], rhs_value);
+    lhs_valid = col0.get_element(i, &lhs_value);
+    res_data[i] = OP(lhs_value, rhs_value);
   }
+  (void) lhs_valid;  // FIXME
+  (void) rhs_valid;
 }
 
 template<typename LT, typename RT, typename VT, VT (*OP)(LT, RT)>
 static void map_1_to_n(size_t row0, size_t row1, Column* cols) {
-  LT lhs_value = static_cast<const LT*>(cols[0]->data())[0];
-  const RT* rhs_data = static_cast<const RT*>(cols[1]->data());
-  VT* res_data = static_cast<VT*>(cols[2]->data_w());
+  const Column& col1 = cols[1];
+  LT lhs_value;
+  RT rhs_value;
+  bool lhs_valid, rhs_valid;
+
+  lhs_valid = cols[0].get_element(0, &lhs_value);
+  VT* res_data = static_cast<VT*>(cols[2].get_data_editable());
   for (size_t i = row0; i < row1; ++i) {
-    res_data[i] = OP(lhs_value, rhs_data[i]);
+    rhs_valid = col1.get_element(i, &rhs_value);
+    res_data[i] = OP(lhs_value, rhs_value);
   }
+  (void) lhs_valid;  // FIXME
+  (void) rhs_valid;
 }
 
 
@@ -110,7 +132,7 @@ template<typename TR, TR (*OP)(const CString&, bool, const CString&, bool)>
 static void strmap_n_to_n(size_t row0, size_t row1, Column* cols) {
   const Column& col0 = cols[0];
   const Column& col1 = cols[1];
-  auto res_data = static_cast<TR*>(cols[2]->data_w());
+  auto res_data = static_cast<TR*>(cols[2].get_data_editable());
   CString val0, val1;
   bool valid0, valid1;
   for (size_t i = row0; i < row1; ++i) {
@@ -125,7 +147,7 @@ template<typename TR, TR (*OP)(const CString&, bool, const CString&, bool)>
 static void strmap_n_to_1(size_t row0, size_t row1, Column* cols) {
   const Column& col0 = cols[0];
   const Column& col1 = cols[1];
-  auto res_data = static_cast<TR*>(cols[2]->data_w());
+  auto res_data = static_cast<TR*>(cols[2].get_data_editable());
   CString val0, val1;
   bool valid0;
   bool valid1 = col1.get_element(0, &val1);
@@ -587,7 +609,8 @@ bool expr_binaryop::check_for_operation_with_literal_na(const EvalContext& ctx) 
     if (pliteral->resolve(ctx) != SType::BOOL) return false;
     Column ocol = pliteral->evaluate(const_cast<EvalContext&>(ctx));
     if (ocol.nrows() != 1) return false;
-    return ISNA<int8_t>(reinterpret_cast<const int8_t*>(ocol->data())[0]);
+    int8_t tmp;
+    return !ocol.get_element(0, &tmp);
   };
   if (check_operand(rhs)) {
     SType lhs_stype = lhs->resolve(ctx);
