@@ -135,7 +135,7 @@ class Column
     ~Column();
 
     static Column new_data_column(SType, size_t nrows);
-    static Column new_na_column(SType, size_t nrows);
+    static Column new_na_column(size_t nrows, SType stype = SType::VOID);
     static Column new_mbuf_column(SType, Buffer&&);
     static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);
     static Column from_pybuffer(const py::robj& buffer);

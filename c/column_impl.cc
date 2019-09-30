@@ -35,7 +35,6 @@ ColumnImpl::~ColumnImpl() {}
 
 ColumnImpl* ColumnImpl::new_impl(SType stype) {
   switch (stype) {
-    case SType::VOID:    return new VoidColumn();
     case SType::BOOL:    return new BoolColumn();
     case SType::INT8:    return new IntColumn<int8_t>();
     case SType::INT16:   return new IntColumn<int16_t>();
@@ -62,7 +61,6 @@ ColumnImpl* ColumnImpl::new_impl(SType stype, size_t nrows) {
 
 ColumnImpl* ColumnImpl::new_impl(void* addr, SType stype) {
   switch (stype) {
-    case SType::VOID:    return new (addr) VoidColumn();
     case SType::BOOL:    return new (addr) BoolColumn();
     case SType::INT8:    return new (addr) IntColumn<int8_t>();
     case SType::INT16:   return new (addr) IntColumn<int16_t>();

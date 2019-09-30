@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -273,7 +273,7 @@ void DataTable::rbind(
 
   columns.reserve(new_ncols);
   for (size_t i = ncols; i < new_ncols; ++i) {
-    columns.push_back(Column::new_data_column(SType::VOID, nrows));
+    columns.push_back(Column::new_na_column(nrows));
   }
 
   size_t new_nrows = this->nrows;
@@ -286,7 +286,7 @@ void DataTable::rbind(
     for (size_t j = 0; j < dts.size(); ++j) {
       size_t k = col_indices[i][j];
       Column col = (k == INVALID_INDEX)
-                      ? Column::new_data_column(SType::VOID, dts[j]->nrows)
+                      ? Column::new_na_column(dts[j]->nrows)
                       : dts[j]->get_column(k);
       cols_to_append[j] = std::move(col);
     }
@@ -322,7 +322,7 @@ void Column::rbind(colvec& columns) {
   // filled with NAs; the current column; or a type-cast of the current column.
   Column newcol;
   if (col_empty) {
-    newcol = Column::new_na_column(new_stype, nrows());
+    newcol = Column::new_na_column(nrows(), new_stype);
   } else if (stype() == new_stype) {
     newcol = std::move(*this);
   } else {

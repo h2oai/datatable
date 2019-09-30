@@ -126,7 +126,7 @@ class FirstLast_ColumnImpl : public ColumnImpl {
 template <bool FIRST>
 static Column compute_firstlast(Column&& arg, const Groupby& gby) {
   if (arg.nrows() == 0) {
-    return Column::new_na_column(arg.stype(), 1);
+    return Column::new_na_column(1, arg.stype());
   }
   else {
     return Column(new FirstLast_ColumnImpl<FIRST>(std::move(arg), gby));
@@ -389,7 +389,7 @@ static Column _median(Column&& arg, const Groupby& gby) {
 
 static Column compute_median(Column&& arg, const Groupby& gby) {
   if (arg.nrows() == 0) {
-    return Column::new_na_column(arg.stype(), 1);
+    return Column::new_na_column(1, arg.stype());
   }
   switch (arg.stype()) {
     case SType::BOOL:

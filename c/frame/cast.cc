@@ -263,7 +263,7 @@ Column cast_manager::execute(const Column& src, Buffer&& target_mbuf,
 {
   xassert(!target_mbuf.is_pyobjects());
   if (src.stype() == SType::VOID) {
-    return Column::new_na_column(target_stype, src.nrows());
+    return Column::new_na_column(src.nrows(), target_stype);
   }
 
   size_t id = key(src.stype(), target_stype);

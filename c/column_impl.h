@@ -421,27 +421,4 @@ extern template class StringColumn<uint32_t>;
 extern template class StringColumn<uint64_t>;
 
 
-
-//==============================================================================
-
-// "Fake" column, its only use is to serve as a placeholder for a ColumnImpl with an
-// unknown type. This column cannot be put into a DataTable.
-class VoidColumn : public ColumnImpl {
-  public:
-    VoidColumn();
-    VoidColumn(size_t nrows);
-    size_t data_nrows() const override;
-    ColumnImpl* materialize() override;
-    ColumnImpl* shallowcopy() const override { return new VoidColumn(_nrows); }
-    void apply_na_mask(const Column&) override;
-    void replace_values(Column&, const RowIndex&, const Column&) override;
-  protected:
-    void init_data() override;
-
-    friend ColumnImpl;
-};
-
-
-
-
 #endif

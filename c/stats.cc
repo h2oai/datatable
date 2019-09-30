@@ -1206,7 +1206,7 @@ static Column _make_column(SType stype, T value) {
 }
 
 static Column _make_nacol(SType stype) {
-  return Column::new_na_column(stype, 1);
+  return Column::new_na_column(1, stype);
 }
 
 static Column _make_column_str(CString value) {

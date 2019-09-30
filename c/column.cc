@@ -31,7 +31,7 @@ Column Column::new_data_column(SType stype, size_t nrows) {
 }
 
 
-Column Column::new_na_column(SType stype, size_t nrows) {
+Column Column::new_na_column(size_t nrows, SType stype) {
   return Column(new dt::ConstNa_ColumnImpl(nrows, stype));
 }
 
@@ -308,20 +308,6 @@ void Column::resize(size_t new_nrows) {
 void Column::sort_grouped(const Groupby& grps) {
   pcol->sort_grouped(grps, *this);
 }
-
-
-
-//==============================================================================
-// VoidColumn
-//==============================================================================
-
-VoidColumn::VoidColumn() : ColumnImpl(0, SType::VOID) {}
-VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows, SType::VOID) {}
-size_t VoidColumn::data_nrows() const { return _nrows; }
-ColumnImpl* VoidColumn::materialize() { return this; }
-void VoidColumn::apply_na_mask(const Column&) {}
-void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
-void VoidColumn::init_data() {}
 
 
 

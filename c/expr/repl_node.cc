@@ -102,7 +102,7 @@ void frame_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
     const Column& coli = dtr->get_column(rcols == 1? 0 : i);
     if (!dt0->get_column(j)) {
       dt0->set_column(j,
-          Column::new_na_column(coli.stype(), dt0->nrows));
+          Column::new_na_column(dt0->nrows, coli.stype()));
     }
     Column& colj = dt0->get_column(j);
     colj.replace_values(ri0, coli);
@@ -179,7 +179,7 @@ void scalar_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
     Column replcol = make_column(stype, 1);
     stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
     if (!colj) {
-      dt0->set_column(j, Column::new_na_column(stype, dt0->nrows));
+      dt0->set_column(j, Column::new_na_column(dt0->nrows, stype));
     }
     else if (colj.stype() != stype) {
       dt0->set_column(j, colj.cast(stype));
@@ -215,7 +215,7 @@ bool scalar_na_rn::valid_ltype(LType) const noexcept {
 
 Column scalar_na_rn::make_column(SType st, size_t nrows) const {
   if (st == SType::VOID) st = SType::BOOL;
-  return Column::new_na_column(st, nrows);
+  return Column::new_na_column(nrows, st);
 }
 
 
