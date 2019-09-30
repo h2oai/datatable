@@ -134,7 +134,7 @@ class Column
     Column& operator=(Column&&) noexcept;
     ~Column();
 
-    static Column new_data_column(SType, size_t nrows);
+    static Column new_data_column(size_t nrows, SType);
     static Column new_na_column(size_t nrows, SType stype = SType::VOID);
     static Column new_mbuf_column(SType, Buffer&&);
     static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);

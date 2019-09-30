@@ -321,7 +321,7 @@ bool scalar_string_rn::valid_ltype(LType lt) const noexcept {
 Column scalar_string_rn::make_column(SType st, size_t nrows) const {
   if (st == SType::VOID) st = SType::STR32;
   if (nrows == 0) {
-    return Column::new_data_column(SType::STR32, 0);
+    return Column::new_data_column(0, SType::STR32);
   }
   return Const_ColumnImpl::make_string_column(nrows, CString(value), st);
 }

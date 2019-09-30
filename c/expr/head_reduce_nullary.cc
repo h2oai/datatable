@@ -41,7 +41,7 @@ static Column _count0(EvalContext& ctx)
     const Groupby& grpby = ctx.get_groupby();
     size_t ng = grpby.ngroups();
     const int32_t* offsets = grpby.offsets_r();
-    Column col = Column::new_data_column(SType::INT64, ng);
+    Column col = Column::new_data_column(ng, SType::INT64);
     auto d_res = static_cast<int64_t*>(col.get_data_editable());
     for (size_t i = 0; i < ng; ++i) {
       d_res[i] = offsets[i + 1] - offsets[i];

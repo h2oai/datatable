@@ -103,7 +103,7 @@ Column expr_string_match_re::evaluate(EvalContext& ctx) {
   xassert(src.ltype() == LType::STRING);
   size_t nrows = src.nrows();
 
-  Column trg = Column::new_data_column(SType::BOOL, nrows);
+  Column trg = Column::new_data_column(nrows, SType::BOOL);
   int8_t* trg_data = static_cast<int8_t*>(trg.get_data_editable());
 
   dt::parallel_for_dynamic(nrows,

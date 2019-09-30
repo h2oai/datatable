@@ -167,7 +167,7 @@ DataTable* split_into_nhot(const Column& col, char sep,
               lock.exclusive_start();
               if (colsmap.count(s) == 0) {
                 colsmap[s] = outcols.size();
-                auto newcol = Column::new_data_column(SType::BOOL, nrows);
+                auto newcol = Column::new_data_column(nrows, SType::BOOL);
                 int8_t* data = static_cast<int8_t*>(newcol.get_data_editable());
                 std::memset(data, 0, nrows);
                 data[irow] = 1;

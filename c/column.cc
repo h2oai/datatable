@@ -23,7 +23,7 @@
 
 
 
-Column Column::new_data_column(SType stype, size_t nrows) {
+Column Column::new_data_column(size_t nrows, SType stype) {
   ColumnImpl* col = ColumnImpl::new_impl(stype);
   col->_nrows = nrows;
   col->init_data();

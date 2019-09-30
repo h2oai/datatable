@@ -301,7 +301,7 @@ Column expr_unaryop::evaluate(EvalContext& ctx) {
 
   size_t nrows = input_column.nrows();
   const void* inp =  input_column.get_data_readonly();
-  Column output_column = Column::new_data_column(ui.output_stype, nrows);
+  Column output_column = Column::new_data_column(nrows, ui.output_stype);
   void* out = output_column.get_data_editable();
 
   ui.vectorfn(nrows, inp, out);
