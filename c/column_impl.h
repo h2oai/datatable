@@ -235,7 +235,6 @@ class ColumnImpl
     virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1);
 
   protected:
-    virtual void init_data();
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
     friend class Column;
@@ -284,8 +283,6 @@ public:
   bool get_element(size_t i, CString* out) const override;
 
 protected:
-  void init_data() override;
-
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
   friend ColumnImpl;

@@ -323,7 +323,6 @@ class StrvecColumn : public ColumnImpl {
     ColumnImpl* materialize() override { return this; }
     void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}
-    void init_data() override {}
 };
 
 StrvecColumn::StrvecColumn(const strvec& v)

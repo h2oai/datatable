@@ -78,17 +78,9 @@ ColumnImpl* FwColumn<T>::shallowcopy() const {
 
 
 //==============================================================================
-// Initialization methods
+// Data access
 //==============================================================================
 
-template <typename T>
-void FwColumn<T>::init_data() {
-  mbuf.resize(_nrows * sizeof(T));
-}
-
-
-
-//==============================================================================
 
 template <typename T>
 const T* FwColumn<T>::elements_r() const {

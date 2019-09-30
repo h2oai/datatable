@@ -209,8 +209,6 @@ size_t ColumnImpl::data_nrows() const {
   return _nrows;
 }
 
-void ColumnImpl::init_data() {}
-
 
 void ColumnImpl::apply_na_mask(const Column&) {
   throw NotImplError() << "Method ColumnImpl::apply_na_mask() not implemented";

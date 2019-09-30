@@ -60,16 +60,6 @@ StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
 //==============================================================================
 
 template <typename T>
-void StringColumn<T>::init_data() {
-  mbuf = Buffer::mem((_nrows + 1) * sizeof(T));
-  mbuf.set_element<T>(0, 0);
-}
-
-
-
-//==============================================================================
-
-template <typename T>
 ColumnImpl* StringColumn<T>::shallowcopy() const {
   return new StringColumn<T>(_nrows, Buffer(mbuf), Buffer(strbuf));
 }
