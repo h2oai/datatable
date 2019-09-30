@@ -30,6 +30,10 @@ PyObjectColumn::PyObjectColumn(size_t nrows_, Buffer&& mb)
 }
 
 
+ColumnImpl* PyObjectColumn::shallowcopy() const {
+  return new PyObjectColumn(_nrows, Buffer(mbuf));
+}
+
 
 bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
   py::robj x = this->elements_r()[i];

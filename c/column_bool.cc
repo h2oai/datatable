@@ -26,6 +26,11 @@ BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
 }
 
 
+ColumnImpl* BoolColumn::shallowcopy() const {
+  return new BoolColumn(_nrows, Buffer(mbuf));
+}
+
+
 bool BoolColumn::get_element(size_t i, int32_t* x) const {
   int8_t value = elements_r()[i];
   *x = static_cast<int32_t>(value);

@@ -59,7 +59,7 @@ FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
 {
   size_t req_size = sizeof(T) * nrows_;
   if (mr) {
-    xassert(mr.size() == req_size);
+    xassert(mr.size() >= req_size);
   } else {
     mr.resize(req_size);
   }
@@ -72,13 +72,7 @@ FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
  */
 template <typename T>
 ColumnImpl* FwColumn<T>::shallowcopy() const {
-  ColumnImpl* col = ColumnImpl::new_impl(_stype);
-  auto fwcol = dynamic_cast<FwColumn<T>*>(col);
-  xassert(fwcol);
-  fwcol->_nrows = _nrows;
-  fwcol->mbuf = mbuf;
-  // TODO: also copy Stats object
-  return col;
+  return new FwColumn<T>(_nrows, Buffer(mbuf));
 }
 
 
