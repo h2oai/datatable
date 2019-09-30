@@ -88,17 +88,24 @@ ColumnImpl* Latent_ColumnImpl::vivify() const {
   xassert(num_threads_in_team() == 0);
   // Note: we're using placement-materialize to overwrite `this` with
   // the materialized `column` object. Effectively, the current object
-  // will be replaced with a new one. The destructor of current object
-  // is never called though, so we need to delete the original column
-  // instance manually.
-  // This will work, provided that `sizeof(*this)` is >= to the size
+  // will be replaced with a new one.
+  // This will work, provided that `sizeof(*this)` is >= the size
   // of the class of the materialized column.
-  ColumnImpl* ptr = const_cast<ColumnImpl*>(
-                        static_cast<const ColumnImpl*>(this));
-  std::unique_ptr<ColumnImpl> old = std::move(column);
-  old->materialize_at(ptr);
-  xassert(!is_virtual());
-  return ptr;
+  auto ptr = const_cast<void*>(static_cast<const void*>(this));
+  ColumnImpl* new_pcol = column->materialize();
+  SType stype = new_pcol->stype();
+  switch (stype) {
+    case SType::BOOL:    new (ptr) BoolColumn(std::move(new_pcol)); break;
+    case SType::INT8:    new (ptr) IntColumn<int8_t>(std::move(new_pcol)); break;
+    case SType::INT16:   new (ptr) IntColumn<int16_t>(std::move(new_pcol)); break;
+    case SType::INT32:   new (ptr) IntColumn<int32_t>(std::move(new_pcol)); break;
+    case SType::INT64:   new (ptr) IntColumn<int64_t>(std::move(new_pcol)); break;
+    case SType::FLOAT32: new (ptr) FwColumn<float>(std::move(new_pcol)); break;
+    case SType::FLOAT64: new (ptr) FwColumn<double>(std::move(new_pcol)); break;
+    default:
+      throw NotImplError() << "Cannot vivify column of type " << stype;
+  }
+  return static_cast<ColumnImpl*>(ptr);
 }
 
 

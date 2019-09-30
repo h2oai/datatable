@@ -94,7 +94,6 @@ class ColumnImpl
   public:
     static ColumnImpl* new_impl(SType);
     static ColumnImpl* new_impl(SType, size_t nrows);
-    static ColumnImpl* new_impl(void*, SType);
     ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
@@ -214,7 +213,6 @@ class ColumnImpl
   public:
     virtual ColumnImpl* materialize();
     virtual void pre_materialize_hook() {}
-    virtual void materialize_at(void* addr) const;
 
 
     /**
@@ -254,6 +252,7 @@ template <typename T> class FwColumn : public ColumnImpl
 {
 public:
   FwColumn();
+  FwColumn(ColumnImpl*&&);
   FwColumn(size_t nrows);
   FwColumn(size_t nrows, Buffer&&);
   const T* elements_r() const;
@@ -293,6 +292,7 @@ extern template class FwColumn<py::robj>;
 class BoolColumn : public FwColumn<int8_t>
 {
   public:
+    BoolColumn(ColumnImpl*&&);
     BoolColumn(size_t nrows = 0);
     BoolColumn(size_t nrows, Buffer&&);
 

@@ -10,9 +10,14 @@
 #include "datatablemodule.h"
 
 
+BoolColumn::BoolColumn(ColumnImpl*&& other)
+  : FwColumn<int8_t>(std::move(other)) {}
+
+
 BoolColumn::BoolColumn(size_t nrows) : FwColumn<int8_t>(nrows) {
   _stype = SType::BOOL;
 }
+
 
 BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
   : FwColumn<int8_t>(nrows, std::move(mem)) {

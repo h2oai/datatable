@@ -59,24 +59,6 @@ ColumnImpl* ColumnImpl::new_impl(SType stype, size_t nrows) {
 }
 
 
-ColumnImpl* ColumnImpl::new_impl(void* addr, SType stype) {
-  switch (stype) {
-    case SType::BOOL:    return new (addr) BoolColumn();
-    case SType::INT8:    return new (addr) IntColumn<int8_t>();
-    case SType::INT16:   return new (addr) IntColumn<int16_t>();
-    case SType::INT32:   return new (addr) IntColumn<int32_t>();
-    case SType::INT64:   return new (addr) IntColumn<int64_t>();
-    case SType::FLOAT32: return new (addr) FwColumn<float>();
-    case SType::FLOAT64: return new (addr) FwColumn<double>();
-    case SType::STR32:   return new (addr) StringColumn<uint32_t>();
-    case SType::STR64:   return new (addr) StringColumn<uint64_t>();
-    case SType::OBJ:     return new (addr) PyObjectColumn();
-    default:
-      throw ValueError()
-          << "Unable to create a column of stype `" << stype << "`";
-  }
-}
-
 
 // TODO: replace these with ref-counting semantics
 
@@ -205,28 +187,6 @@ ColumnImpl* ColumnImpl::materialize() {
   return out;
 }
 
-
-void ColumnImpl::materialize_at(void* addr) const {
-  const_cast<ColumnImpl*>(this)->pre_materialize_hook();
-  ColumnImpl* out = ColumnImpl::new_impl(addr, _stype);
-  xassert(static_cast<void*>(out) == addr);
-  out->_nrows = _nrows;
-  // Even if this throws, `addr` will still contain an object in some
-  // valid state, which is safe to destruct.
-  out->init_data();
-  switch (_stype) {
-    case SType::BOOL:
-    case SType::INT8:    _materialize_fw<int8_t> (this, &out); break;
-    case SType::INT16:   _materialize_fw<int16_t>(this, &out); break;
-    case SType::INT32:   _materialize_fw<int32_t>(this, &out); break;
-    case SType::INT64:   _materialize_fw<int64_t>(this, &out); break;
-    case SType::FLOAT32: _materialize_fw<float>  (this, &out); break;
-    case SType::FLOAT64: _materialize_fw<double> (this, &out); break;
-    default:
-      throw NotImplError() << "Cannot materialize column of stype `"
-                           << _stype << "`";
-  }
-}
 
 
 

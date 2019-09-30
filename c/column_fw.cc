@@ -34,6 +34,17 @@ FwColumn<T>::FwColumn()
 
 
 template <typename T>
+FwColumn<T>::FwColumn(ColumnImpl*&& other)
+  : ColumnImpl(other->nrows(), other->stype())
+{
+  auto fwother = dynamic_cast<FwColumn<T>*>(other);
+  xassert(fwother != nullptr);
+  mbuf = std::move(fwother->mbuf);
+  stats = std::move(fwother->stats);
+}
+
+
+template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_)
   : ColumnImpl(nrows_, stype_for<T>())
 {
