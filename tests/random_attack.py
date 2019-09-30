@@ -4,17 +4,18 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')
 import copy
 import datatable as dt
 import itertools
 import os
 import random
-import sys
 import textwrap
 import time
 import warnings
 from datatable import f
 from datatable.internal import frame_integrity_check
+from datatable.utils.terminal import term
 
 exhaustive_checks = False
 python_output = None
@@ -113,9 +114,9 @@ class Attacker:
             if time.time() - t0 > 60:
                 print(">>> Stopped early, taking too long <<<")
                 break
-        print("\nAttack ended, checking the outcome")
+        print("\nAttack ended, checking the outcome... ", end='')
         frame.check()
-        print("...ok.")
+        print(term.color("bright_green", "PASSED"))
         t1 = time.time()
         print("Time taken = %.3fs" % (t1 - t0))
 
@@ -224,6 +225,14 @@ class Attacker:
                                 % (icol, icol, replacement_value))
         frame.replace_nas_in_column(icol, replacement_value)
 
+    def sort_column(self, frame):
+        if frame.ncols == 0:
+            return
+        icol = random.randint(0, frame.ncols - 1)
+        print("[10] Sorting column %d ASC" % icol)
+        if python_output:
+            python_output.write("DT = DT.sort(f[%d])\n" % icol)
+        frame.sort(icol)
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -264,6 +273,7 @@ class Attacker:
         delete_rows_array: 1,
         select_rows_with_boolean_column: 1,
         replace_nas_in_column: 1,
+        sort_column: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -585,6 +595,12 @@ class Frame0:
                 column[i] = replacement_value
         self.df[f[icol] == None, f[icol]] = replacement_value
 
+    def sort(self, icol):
+        self.df = self.df.sort(icol)
+        if (len(self.data[0])):
+            data = list(zip(*self.data))
+            data.sort(key=lambda x: (x[icol] is not None, x[icol]))
+            self.data = list(map(list, zip(*data)))
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -636,6 +652,7 @@ if __name__ == "__main__":
         python_output = open(outfile, "wt")
         python_output.write("#!/usr/bin/env python\n")
         python_output.write("import datatable as dt\n")
+        python_output.write("from datatable import f\n")
         python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
     ra = Attacker(args.seed)
