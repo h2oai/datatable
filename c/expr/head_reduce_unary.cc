@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <unordered_map>
 #include "column/latent.h"
+#include "column/virtual.h"
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
 #include "expr/workframe.h"
@@ -53,7 +54,7 @@ using maker_fn = Column(*)(Column&&, const Groupby&);
 // U - type of output elements from this column
 //
 template <typename T, typename U>
-class Reduced_ColumnImpl : public ColumnImpl {
+class Reduced_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg;
     Groupby groupby;
@@ -62,7 +63,7 @@ class Reduced_ColumnImpl : public ColumnImpl {
   public:
     Reduced_ColumnImpl(SType stype, Column&& col, const Groupby& grpby,
                        reducer_fn<U> fn)
-      : ColumnImpl(grpby.size(), stype),
+      : Virtual_ColumnImpl(grpby.size(), stype),
         arg(std::move(col)),
         groupby(grpby),
         reducer(fn) {}
@@ -87,14 +88,14 @@ class Reduced_ColumnImpl : public ColumnImpl {
 //------------------------------------------------------------------------------
 
 template <bool FIRST>
-class FirstLast_ColumnImpl : public ColumnImpl {
+class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg;
     Groupby groupby;
 
   public:
     FirstLast_ColumnImpl(Column&& col, const Groupby& grpby)
-      : ColumnImpl(grpby.size(), col.stype()),
+      : Virtual_ColumnImpl(grpby.size(), col.stype()),
         arg(std::move(col)),
         groupby(grpby) {}
 
@@ -330,14 +331,14 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 
 template <typename T, typename U>
-class Median_ColumnImpl : public ColumnImpl {
+class Median_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg;
     Groupby groupby;
 
   public:
     Median_ColumnImpl(Column&& col, const Groupby& grpby)
-      : ColumnImpl(grpby.size(), stype_from<U>()),
+      : Virtual_ColumnImpl(grpby.size(), stype_from<U>()),
         arg(std::move(col)),
         groupby(grpby) {}
 

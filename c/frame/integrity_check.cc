@@ -14,6 +14,7 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "column/sentinel_fw.h"
+#include "column/sentinel_str.h"
 #include "frame/py_frame.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"      // repr_utf8

@@ -3,8 +3,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
+#include "column/sentinel_str.h"
 #include "parallel/api.h"           // dt::parallel_for_static
 #include "parallel/string_utils.h"  // dt::map_str2str
 #include "python/string.h"
@@ -25,7 +26,7 @@ template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 // but leaving string buffer empty (and not allocated).
 template <typename T>
 StringColumn<T>::StringColumn(size_t n)
-  : ColumnImpl(n, stype_for<T>())
+  : Sentinel_ColumnImpl(n, stype_for<T>())
 {
   mbuf = Buffer::mem(sizeof(T) * (n + 1));
   mbuf.set_element<T>(0, 0);
@@ -35,13 +36,13 @@ StringColumn<T>::StringColumn(size_t n)
 // private use only
 template <typename T>
 StringColumn<T>::StringColumn()
-  : ColumnImpl(0, stype_for<T>())  {}
+  : Sentinel_ColumnImpl(0, stype_for<T>())  {}
 
 
 // private: use `new_string_column(n, &&mb, &&sb)` instead
 template <typename T>
 StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
-  : ColumnImpl(n, stype_for<T>())
+  : Sentinel_ColumnImpl(n, stype_for<T>())
 {
   xassert(mb);
   xassert(mb.size() >= sizeof(T) * (n + 1));

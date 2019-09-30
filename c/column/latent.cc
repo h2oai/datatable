@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/latent.h"
 #include "column/sentinel_fw.h"
+#include "column/sentinel_str.h"
 #include "parallel/api.h"
 #include "column.h"
 namespace dt {

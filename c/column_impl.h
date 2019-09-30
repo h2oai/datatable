@@ -109,7 +109,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::robj* out) const;
 
-    virtual bool is_virtual() const noexcept { return false; }
+    virtual bool is_virtual() const noexcept = 0;
 
     size_t nrows() const { return _nrows; }
     SType stype() const { return _stype; }
@@ -242,54 +242,6 @@ class ColumnImpl
 
 
 
-
-
-
-//==============================================================================
-// String column
-//==============================================================================
-
-template <typename T> class StringColumn : public ColumnImpl
-{
-  Buffer strbuf;
-
-public:
-  StringColumn();
-  StringColumn(size_t nrows);
-  StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
-
-  ColumnImpl* materialize() override;
-  void apply_na_mask(const Column& mask) override;
-
-  Buffer str_buf() const { return strbuf; }
-  size_t datasize() const;
-  const char* strdata() const;
-  const uint8_t* ustrdata() const;
-  const T* offsets() const;
-  T* offsets_w();
-  size_t memory_footprint() const override;
-  const void* data2() const override { return strbuf.rptr(); }
-  size_t data2_size() const override {
-    return static_cast<const T*>(mbuf.rptr())[_nrows] & ~GETNA<T>();
-  }
-
-  ColumnImpl* shallowcopy() const override;
-  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
-
-  void verify_integrity(const std::string& name) const override;
-
-  bool get_element(size_t i, CString* out) const override;
-
-protected:
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-
-  friend ColumnImpl;
-  friend Column;
-};
-
-
-extern template class StringColumn<uint32_t>;
-extern template class StringColumn<uint64_t>;
 
 
 #endif

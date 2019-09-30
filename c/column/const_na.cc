@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/const.h"
 #include "column/sentinel_fw.h"
+#include "column/sentinel_str.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 namespace dt {
