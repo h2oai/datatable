@@ -40,5 +40,32 @@ class Const_ColumnImpl : public Virtual_ColumnImpl {
 
 
 
+/**
+  * Virtual column containing only NA values. This column may have
+  * any stype, including SType::VOID (in fact, this is the only
+  * column that allows VOID stype).
+  */
+class ConstNa_ColumnImpl : public Const_ColumnImpl {
+  public:
+    ConstNa_ColumnImpl(size_t nrows, SType stype = SType::VOID);
+
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, py::robj*) const override;
+
+    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* materialize() override;
+    void na_pad(size_t nrows, Column&) override;
+};
+
+
+
+
+
 }  // namespace dt
 #endif

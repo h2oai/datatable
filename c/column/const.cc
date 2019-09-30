@@ -27,47 +27,6 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// ConstNa_ColumnImpl
-//------------------------------------------------------------------------------
-
-class ConstNa_ColumnImpl : public Const_ColumnImpl {
-  public:
-    ConstNa_ColumnImpl(size_t nrows, SType stype = SType::VOID)
-      : Const_ColumnImpl(nrows, stype) {}
-
-    bool get_element(size_t, int8_t*)   const override { return false; }
-    bool get_element(size_t, int16_t*)  const override { return false; }
-    bool get_element(size_t, int32_t*)  const override { return false; }
-    bool get_element(size_t, int64_t*)  const override { return false; }
-    bool get_element(size_t, float*)    const override { return false; }
-    bool get_element(size_t, double*)   const override { return false; }
-    bool get_element(size_t, CString*)  const override { return false; }
-    bool get_element(size_t, py::robj*) const override { return false; }
-
-    // TODO: override cast()
-
-    ColumnImpl* shallowcopy() const override {
-      return new ConstNa_ColumnImpl(_nrows, _stype);
-    }
-
-    // VOID column materializes into BOOL stype
-    ColumnImpl* materialize() override {
-      ColumnImpl* out = ColumnImpl::new_impl(SType::BOOL);
-      out->_nrows = _nrows;
-      out->init_data();
-      out->fill_na();
-      return out;
-    }
-
-    void na_pad(size_t nrows, Column&) override {
-      _nrows = nrows;
-    }
-};
-
-
-
-
-//------------------------------------------------------------------------------
 // ConstInt_ColumnImpl
 //------------------------------------------------------------------------------
 

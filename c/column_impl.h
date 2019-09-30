@@ -393,6 +393,7 @@ template <typename T> class StringColumn : public ColumnImpl
 public:
   StringColumn();
   StringColumn(size_t nrows);
+  StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
 
   ColumnImpl* materialize() override;
   void apply_na_mask(const Column& mask) override;
@@ -418,7 +419,6 @@ public:
   bool get_element(size_t i, CString* out) const override;
 
 protected:
-  StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
   void init_data() override;
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
