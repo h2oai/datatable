@@ -34,16 +34,9 @@ Column Column::new_na_column(size_t nrows, SType stype) {
 }
 
 
-Column Column::new_mbuf_column(SType stype, Buffer&& mbuf) {
-  size_t elemsize = info(stype).elemsize();
-  ColumnImpl* col = ColumnImpl::new_impl(stype);
-  xassert(mbuf.size() % elemsize == 0);
-  if (stype == SType::OBJ) {
-    xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
-  }
-  col->_nrows = mbuf.size() / elemsize;
-  col->mbuf = std::move(mbuf);
-  return Column(col);
+Column Column::new_mbuf_column(size_t nrows, SType stype, Buffer&& mbuf) {
+  return Column(dt::Sentinel_ColumnImpl::make_fw_column(
+                    nrows, stype, std::move(mbuf)));
 }
 
 

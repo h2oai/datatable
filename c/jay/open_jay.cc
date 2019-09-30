@@ -162,7 +162,7 @@ static Column column_from_jay(
     Buffer strbuf = extract_buffer(jaybuf, jcol->strdata());
     col = Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
-    col = Column::new_mbuf_column(stype, std::move(databuf));
+    col = Column::new_mbuf_column(nrows, stype, std::move(databuf));
   }
 
   Stats* stats = col.stats();

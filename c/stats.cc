@@ -1200,7 +1200,7 @@ template <typename T>
 static Column _make_column(SType stype, T value) {
   Buffer mbuf = Buffer::mem(sizeof(T));
   mbuf.set_element<T>(0, value);
-  Column res = Column::new_mbuf_column(stype, std::move(mbuf));
+  Column res = Column::new_mbuf_column(1, stype, std::move(mbuf));
   xassert(res.nrows() == 1);
   return res;
 }

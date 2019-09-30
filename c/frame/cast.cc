@@ -262,8 +262,9 @@ Column cast_manager::execute(const Column& src, Buffer&& target_mbuf,
                              SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
+  size_t nrows = src.nrows();
   if (src.stype() == SType::VOID) {
-    return Column::new_na_column(src.nrows(), target_stype);
+    return Column::new_na_column(nrows, target_stype);
   }
 
   size_t id = key(src.stype(), target_stype);
@@ -279,7 +280,7 @@ Column cast_manager::execute(const Column& src, Buffer&& target_mbuf,
   }
   xassert(castfns.f2);
 
-  target_mbuf.resize(src.nrows() * info(target_stype).elemsize());
+  target_mbuf.resize(nrows * info(target_stype).elemsize());
   void* out_data = target_mbuf.wptr();
 
   if (src.is_virtual() || !castfns.f0) {
@@ -293,7 +294,7 @@ Column cast_manager::execute(const Column& src, Buffer&& target_mbuf,
     target_mbuf.set_pyobjects(/* clear = */ false);
   }
 
-  return Column::new_mbuf_column(target_stype, std::move(target_mbuf));
+  return Column::new_mbuf_column(nrows, target_stype, std::move(target_mbuf));
 }
 
 
