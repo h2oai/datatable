@@ -27,38 +27,15 @@
 
 
 
+//------------------------------------------------------------------------------
+// Basic constructors
+//------------------------------------------------------------------------------
+
 ColumnImpl::ColumnImpl(size_t nrows, SType stype)
   : _nrows(nrows),
     _stype(stype) {}
 
 ColumnImpl::~ColumnImpl() {}
-
-
-ColumnImpl* ColumnImpl::new_impl(SType stype) {
-  switch (stype) {
-    case SType::BOOL:    return new BoolColumn();
-    case SType::INT8:    return new IntColumn<int8_t>();
-    case SType::INT16:   return new IntColumn<int16_t>();
-    case SType::INT32:   return new IntColumn<int32_t>();
-    case SType::INT64:   return new IntColumn<int64_t>();
-    case SType::FLOAT32: return new FwColumn<float>();
-    case SType::FLOAT64: return new FwColumn<double>();
-    case SType::STR32:   return new StringColumn<uint32_t>();
-    case SType::STR64:   return new StringColumn<uint64_t>();
-    case SType::OBJ:     return new PyObjectColumn();
-    default:
-      throw ValueError()
-          << "Unable to create a column of stype `" << stype << "`";
-  }
-}
-
-ColumnImpl* ColumnImpl::new_impl(SType stype, size_t nrows) {
-  auto ret = new_impl(stype);
-  ret->_nrows = nrows;
-  ret->init_data();
-  return ret;
-}
-
 
 
 // TODO: replace these with ref-counting semantics
@@ -103,17 +80,18 @@ bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object")
 template <typename T>
 static void _materialize_fw(const ColumnImpl* input_column, ColumnImpl** pout)
 {
+  size_t inp_nrows = input_column->nrows();
   SType inp_stype = input_column->stype();
   assert_compatible_type<T>(inp_stype);
   ColumnImpl* output_column = *pout;
   if (!output_column) {
-    output_column = ColumnImpl::new_impl(inp_stype, input_column->nrows());
+    output_column = dt::Sentinel_ColumnImpl::make_column(inp_nrows, inp_stype);
     *pout = output_column;
   }
 
   auto out_data = static_cast<T*>(output_column->data_w());
   dt::parallel_for_static(
-    input_column->nrows(),
+    inp_nrows,
     [&](size_t i) {
       T value;
       bool isvalid = input_column->get_element(i, &value);
@@ -130,7 +108,7 @@ static void _materialize_obj(const ColumnImpl* input_column, ColumnImpl** pout)
 
   ColumnImpl* output_column = *pout;
   if (!output_column) {
-    output_column = ColumnImpl::new_impl(SType::OBJ, inp_nrows);
+    output_column = dt::Sentinel_ColumnImpl::make_column(inp_nrows, SType::OBJ);
     *pout = output_column;
   }
 

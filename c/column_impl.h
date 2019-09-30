@@ -92,8 +92,6 @@ class ColumnImpl
     size_t : 56;
 
   public:
-    static ColumnImpl* new_impl(SType);
-    static ColumnImpl* new_impl(SType, size_t nrows);
     ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
