@@ -6,6 +6,7 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cstdlib>     // atoll
+#include "column/const.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/assert.h"
@@ -30,11 +31,8 @@ Column Column::new_data_column(SType stype, size_t nrows) {
 }
 
 
-// TODO: create a special "NA" column instead
 Column Column::new_na_column(SType stype, size_t nrows) {
-  Column col = Column::new_data_column(stype, nrows);
-  col->fill_na();
-  return col;
+  return Column(new dt::ConstNa_ColumnImpl(nrows, stype));
 }
 
 
