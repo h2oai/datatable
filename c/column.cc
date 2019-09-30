@@ -292,8 +292,7 @@ void Column::replace_values(const RowIndex& replace_at,
 
 
 void Column::repeat(size_t ntimes) {
-  bool inplace = true;  // && pcol->use_count() == 1
-  pcol->repeat(ntimes, inplace, *this);
+  pcol->repeat(ntimes, *this);
 }
 
 void Column::apply_rowindex(const RowIndex& ri) {
@@ -302,16 +301,14 @@ void Column::apply_rowindex(const RowIndex& ri) {
 }
 
 void Column::resize(size_t new_nrows) {
-  bool inplace = true;
   size_t curr_nrows = nrows();
-  if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, inplace, *this);
-  if (new_nrows < curr_nrows) pcol->truncate(new_nrows, inplace, *this);
+  if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, *this);
+  if (new_nrows < curr_nrows) pcol->truncate(new_nrows, *this);
 }
 
 
 void Column::sort_grouped(const Groupby& grps) {
-  bool inplace = true;
-  pcol->sort_grouped(grps, inplace, *this);
+  pcol->sort_grouped(grps, *this);
 }
 
 

@@ -35,7 +35,7 @@ class Const_ColumnImpl : public Virtual_ColumnImpl {
     static Column make_string_column(size_t nrows, CString value, SType stype = SType::STR32);
     static Column from_1row_column(const Column& col);
 
-    void repeat(size_t ntimes, bool inplace, Column& out) override;
+    void repeat(size_t ntimes, Column& out) override;
 };
 
 

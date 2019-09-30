@@ -130,23 +130,19 @@ class ColumnImpl
     virtual size_t memory_footprint() const;
 
     RowIndex _sort(Groupby* out_groups) const;
-    virtual void sort_grouped(const Groupby&, bool inplace, Column& out);
+    virtual void sort_grouped(const Groupby&, Column& out);
 
     /**
-      * Repeat the column `ntimes` times. Depending on the `inplace`
-      * flag, this method is either allowed to modify the current
-      * object (inplace = true), or it should be treated as const
-      * (inplace = false). If this flag is true, an implementation is
-      * allowed to treat it as if it was false. In either case, if the
-      * implementation creates a new ColumnImpl instance, it should be
-      * stored in the provided `out` column object.
+      * Repeat the column `ntimes` times. The implementation may either
+      * modify the current column (if it can), or otherwise it should
+      * create a new instance and store it in the provided `out` object.
       *
       * Implementation in column/repeated.cc
       */
-    virtual void repeat(size_t ntimes, bool inplace, Column& out);
+    virtual void repeat(size_t ntimes, Column& out);
 
-    virtual void na_pad(size_t new_nrows, bool inplace, Column& out);
-    virtual void truncate(size_t new_nrows, bool inplace, Column& out);
+    virtual void na_pad(size_t new_nrows, Column& out);
+    virtual void truncate(size_t new_nrows, Column& out);
 
     /**
       * Implementation in column/view.cc
@@ -169,17 +165,6 @@ class ColumnImpl
      * and pass the merged rowindex to this method.
      */
     virtual ColumnImpl* shallowcopy() const = 0;
-
-    /**
-     * Factory method to cast the current column into the given `stype`. If a
-     * column is cast into its own stype, a shallow copy is returned. Otherwise,
-     * this method constructs a new column of the provided stype and writes the
-     * converted data into it.
-     *
-     * If the Buffer is provided, then that buffer will be used in the
-     * creation of the resulting column (the ColumnImpl will assume ownership of the
-     * provided Buffer).
-     */
 
     /**
      * Replace values at positions given by the RowIndex `replace_at` with

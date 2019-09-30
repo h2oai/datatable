@@ -39,7 +39,7 @@ class Repeated_ColumnImpl : public ColumnImpl {
 
     bool is_virtual() const noexcept override;
     ColumnImpl* shallowcopy() const override;
-    void repeat(size_t ntimes, bool inplace, Column& out) override;
+    void repeat(size_t ntimes, Column& out) override;
     // ColumnImpl* materialize() override;
 
     bool get_element(size_t, int8_t*)   const override;

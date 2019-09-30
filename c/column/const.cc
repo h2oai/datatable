@@ -59,13 +59,8 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
       return out;
     }
 
-    void na_pad(size_t nrows, bool inplace, Column& out) override {
-      if (inplace) {
-        _nrows = nrows;
-      }
-      else {
-        out = Column(new ConstNa_ColumnImpl(nrows));
-      }
+    void na_pad(size_t nrows, Column&) override {
+      _nrows = nrows;
     }
 };
 
@@ -278,15 +273,8 @@ Column Const_ColumnImpl::from_1row_column(const Column& col) {
 
 
 
-void Const_ColumnImpl::repeat(size_t ntimes, bool inplace, Column& out) {
-  if (inplace) {
-    _nrows *= ntimes;
-  }
-  else {
-    ColumnImpl* newimpl = this->shallowcopy();
-    newimpl->repeat(ntimes, true, out);
-    out = Column(newimpl);
-  }
+void Const_ColumnImpl::repeat(size_t ntimes, Column&) {
+  _nrows *= ntimes;
 }
 
 

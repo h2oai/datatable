@@ -70,7 +70,7 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
     ColumnImpl* shallowcopy() const override;
 
     // defined in sort.cc
-    void sort_grouped(const Groupby& gby, bool inplace, Column& out) override;
+    void sort_grouped(const Groupby& gby, Column& out) override;
 
     bool get_element(size_t i, int8_t* out)   const override;
     bool get_element(size_t i, int16_t* out)  const override;

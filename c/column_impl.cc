@@ -292,20 +292,12 @@ void ColumnImpl::fill_na() {
 }
 
 
-void ColumnImpl::na_pad(size_t new_nrows, bool inplace, Column& out) {
-  (void) inplace;
+void ColumnImpl::na_pad(size_t new_nrows, Column& out) {
   xassert(new_nrows > nrows());
   out = Column(new dt::NaFilled_ColumnImpl(std::move(out), new_nrows));
 }
 
-void ColumnImpl::truncate(size_t new_nrows, bool inplace, Column& out) {
+void ColumnImpl::truncate(size_t new_nrows, Column&) {
   xassert(new_nrows < nrows());
-  if (inplace) {
-    _nrows = new_nrows;
-  }
-  else {
-    ColumnImpl* copy = shallowcopy();
-    copy->_nrows = new_nrows;
-    out = Column(copy);
-  }
+  _nrows = new_nrows;
 }
