@@ -213,24 +213,6 @@ void StringColumn<T>::apply_na_mask(const Column& mask) {
   if (stats) stats->reset();
 }
 
-template <typename T>
-void StringColumn<T>::fill_na() {
-  // Perform a mini materialize (the actual `materialize` method will copy string and offset
-  // data, both of which are extraneous for this method)
-  strbuf.resize(0);
-  size_t new_mbuf_size = sizeof(T) * (_nrows + 1);
-  mbuf.resize(new_mbuf_size, /* keep_data = */ false);
-  T* off_data = offsets_w();
-  off_data[-1] = 0;
-
-  dt::parallel_for_static(_nrows,
-    [=](size_t i){
-      off_data[i] = GETNA<T>();
-    });
-}
-
-
-
 
 
 //------------------------------------------------------------------------------

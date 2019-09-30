@@ -287,10 +287,6 @@ void ColumnImpl::rbind_impl(colvec&, size_t, bool) {
   throw NotImplError() << "Method ColumnImpl::rbind_impl() not implemented";
 }
 
-void ColumnImpl::fill_na() {
-  throw NotImplError() << "Method ColumnImpl::fill_na() not implemented";
-}
-
 
 void ColumnImpl::na_pad(size_t new_nrows, Column& out) {
   xassert(new_nrows > nrows());

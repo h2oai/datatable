@@ -242,15 +242,6 @@ class ColumnImpl
     virtual void init_data();
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
-    /**
-     * Sets every row in the column to an NA value. As of now this method
-     * modifies every element in the column's memory buffer regardless of its
-     * refcount or rowindex. Use with caution.
-     * This implementation will be made safer after ColumnImpl::extract is modified
-     * to be an in-place operation.
-     */
-    virtual void fill_na();
-
     friend class Column;
     friend class dt::ConstNa_ColumnImpl;
 };
@@ -282,7 +273,6 @@ protected:
   void init_data() override;
   // static constexpr T na_elem = GETNA<T>();
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-  void fill_na() override;
 
   friend ColumnImpl;
 };
@@ -373,7 +363,6 @@ protected:
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
-  void fill_na() override;
   ColumnImpl* materialize() override;
   void verify_integrity(const std::string& name) const override;
 
@@ -423,8 +412,6 @@ protected:
 
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
 
-  void fill_na() override;
-
   friend ColumnImpl;
   friend Column;
 };
@@ -450,7 +437,6 @@ class VoidColumn : public ColumnImpl {
     void replace_values(Column&, const RowIndex&, const Column&) override;
   protected:
     void init_data() override;
-    void fill_na() override;
 
     friend ColumnImpl;
 };

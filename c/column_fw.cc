@@ -137,14 +137,6 @@ void FwColumn<T>::apply_na_mask(const Column& mask) {
 }
 
 
-template <typename T>
-void FwColumn<T>::fill_na() {
-  T* vals = static_cast<T*>(mbuf.wptr());
-  dt::parallel_for_static(_nrows,
-    [=](size_t i) {
-      vals[i] = GETNA<T>();
-    });
-}
 
 
 template <typename T>

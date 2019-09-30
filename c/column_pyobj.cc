@@ -39,17 +39,6 @@ bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
 
 
 
-void PyObjectColumn::fill_na() {
-  // This is called from `Column::new_na_column()` only; and for a
-  // PyObjectColumn the buffer is already created containing Py_None values,
-  // thus we don't need to do anything extra.
-  // Semantics of this function may be clarified in the future (specifically,
-  // is it ever called on a column with data?)
-}
-
-
-
-
 ColumnImpl* PyObjectColumn::materialize() {
   return this;
 }

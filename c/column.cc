@@ -322,7 +322,6 @@ ColumnImpl* VoidColumn::materialize() { return this; }
 void VoidColumn::apply_na_mask(const Column&) {}
 void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
 void VoidColumn::init_data() {}
-void VoidColumn::fill_na() {}
 
 
 
@@ -348,7 +347,6 @@ class StrvecColumn : public ColumnImpl {
     void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}
     void init_data() override {}
-    void fill_na() override {}
 };
 
 StrvecColumn::StrvecColumn(const strvec& v)
