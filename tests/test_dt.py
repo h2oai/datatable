@@ -345,7 +345,8 @@ def test_names_deduplication():
 
 def test_random_attack():
     import subprocess
-    proc = subprocess.Popen(["python", "./tests/random_driver.py",
+    cmd_run = "./tests/random_driver.py"
+    proc = subprocess.Popen(["python", cmd_run,
                             "-v", "-n 5"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             encoding='utf8')

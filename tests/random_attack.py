@@ -114,7 +114,7 @@ class Attacker:
             if time.time() - t0 > 60:
                 print(">>> Stopped early, taking too long <<<")
                 break
-        print("\nAttack ended, checking the outcome")
+        print("\nAttack ended, checking the outcome... ", end='')
         frame.check()
         print(term.color("bright_green", "PASSED"))
         t1 = time.time()
