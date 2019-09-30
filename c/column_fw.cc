@@ -116,12 +116,6 @@ ColumnImpl* FwColumn<T>::materialize() {
 
 
 template <typename T>
-size_t FwColumn<T>::data_nrows() const {
-  return mbuf.size() / sizeof(T);
-}
-
-
-template <typename T>
 void FwColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
   auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());

@@ -123,7 +123,6 @@ class ColumnImpl
       return mbuf.wptr();
     }
 
-    virtual size_t data_nrows() const;
     virtual size_t memory_footprint() const;
 
     RowIndex _sort(Groupby* out_groups) const;
@@ -264,7 +263,6 @@ public:
 
   Buffer str_buf() const { return strbuf; }
   size_t datasize() const;
-  size_t data_nrows() const override;
   const char* strdata() const;
   const uint8_t* ustrdata() const;
   const T* offsets() const;

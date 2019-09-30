@@ -319,7 +319,6 @@ class StrvecColumn : public ColumnImpl {
     bool get_element(size_t i, CString* out) const override;
     ColumnImpl* shallowcopy() const override;
 
-    size_t data_nrows() const override { return _nrows; }
     ColumnImpl* materialize() override { return this; }
     void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}

@@ -205,11 +205,6 @@ void ColumnImpl::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
 // Misc
 //------------------------------------------------------------------------------
 
-size_t ColumnImpl::data_nrows() const {
-  return _nrows;
-}
-
-
 void ColumnImpl::apply_na_mask(const Column&) {
   throw NotImplError() << "Method ColumnImpl::apply_na_mask() not implemented";
 }

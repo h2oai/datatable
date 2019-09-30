@@ -84,11 +84,6 @@ size_t StringColumn<T>::datasize() const{
   return static_cast<size_t>(end[-1] & ~GETNA<T>());
 }
 
-template <typename T>
-size_t StringColumn<T>::data_nrows() const {
-  // `mbuf` always contains one more element than the number of rows
-  return mbuf.size() / sizeof(T) - 1;
-}
 
 template <typename T>
 const char* StringColumn<T>::strdata() const {
