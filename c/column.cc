@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #include <cstdlib>     // atoll
 #include "column/const.h"
+#include "column/sentinel.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/assert.h"
@@ -24,10 +25,7 @@
 
 
 Column Column::new_data_column(size_t nrows, SType stype) {
-  ColumnImpl* col = ColumnImpl::new_impl(stype);
-  col->_nrows = nrows;
-  col->init_data();
-  return Column(col);
+  return Column(dt::Sentinel_ColumnImpl::make_column(nrows, stype));
 }
 
 

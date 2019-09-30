@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "column/sentinel_fw.h"
 #include "python/int.h"
 #include "column_impl.h"
 #include "datatablemodule.h"

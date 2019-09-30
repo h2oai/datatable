@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include "column/sentinel_fw.h"
 #include "frame/py_frame.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"      // repr_utf8

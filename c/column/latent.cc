@@ -20,9 +20,9 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/latent.h"
+#include "column/sentinel_fw.h"
 #include "parallel/api.h"
 #include "column.h"
-#include "column_impl.h"
 namespace dt {
 
 #define CHECK_SIZE(cls) \

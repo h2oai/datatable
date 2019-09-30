@@ -17,6 +17,7 @@
 #include <functional>   // std::function
 #include <numeric>
 #include <unordered_map>
+#include "column/sentinel_fw.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "utils/assert.h"

@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/nafilled.h"
+#include "column/sentinel_fw.h"
 #include "parallel/api.h"
 #include "parallel/string_utils.h"
 #include "column_impl.h"

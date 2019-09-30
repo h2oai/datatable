@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <type_traits>
+#include "column/sentinel_fw.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "parallel/api.h"  // dt::parallel_for_static
@@ -30,12 +31,12 @@ template <> constexpr SType stype_for<double>()  { return SType::FLOAT64; }
  */
 template <typename T>
 FwColumn<T>::FwColumn()
-  : ColumnImpl(0, stype_for<T>()) {}
+  : Sentinel_ColumnImpl(0, stype_for<T>()) {}
 
 
 template <typename T>
 FwColumn<T>::FwColumn(ColumnImpl*&& other)
-  : ColumnImpl(other->nrows(), other->stype())
+  : Sentinel_ColumnImpl(other->nrows(), other->stype())
 {
   auto fwother = dynamic_cast<FwColumn<T>*>(other);
   xassert(fwother != nullptr);
@@ -46,7 +47,7 @@ FwColumn<T>::FwColumn(ColumnImpl*&& other)
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_)
-  : ColumnImpl(nrows_, stype_for<T>())
+  : Sentinel_ColumnImpl(nrows_, stype_for<T>())
 {
   mbuf.resize(sizeof(T) * nrows_);
 }
@@ -54,7 +55,7 @@ FwColumn<T>::FwColumn(size_t nrows_)
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
-  : ColumnImpl(nrows_, stype_for<T>())
+  : Sentinel_ColumnImpl(nrows_, stype_for<T>())
 {
   size_t req_size = sizeof(T) * nrows_;
   if (mr) {

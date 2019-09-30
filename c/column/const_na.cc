@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
+#include "column/sentinel_fw.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 namespace dt {
