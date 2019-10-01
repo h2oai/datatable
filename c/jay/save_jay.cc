@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include "jay/jay_generated.h"
@@ -17,9 +17,9 @@
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::Type stype_to_jaytype[DT_STYPES_COUNT];
 static flatbuffers::Offset<jay::Column> column_to_jay(
-    Column* col, const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
-    WritableBuffer* wb);
-static jay::Buffer saveMemoryRange(const MemoryRange*, WritableBuffer*);
+    Column& col, const std::string& name,
+    flatbuffers::FlatBufferBuilder& fbb, WritableBuffer* wb);
+static jay::Buffer saveMemoryRange(const void*, size_t, WritableBuffer*);
 template <typename T, typename StatBuilder>
 static flatbuffers::Offset<void> saveStats(
     Stats* stats, flatbuffers::FlatBufferBuilder& fbb);
@@ -45,7 +45,7 @@ void DataTable::save_jay(const std::string& path,
 /**
  * Save Frame in Jay format to memory,
  */
-MemoryRange DataTable::save_jay() {
+Buffer DataTable::save_jay() {
   auto wb = std::unique_ptr<MemoryWritableBuffer>(
                 new MemoryWritableBuffer(memory_footprint()));
   save_jay_impl(wb.get());
@@ -63,10 +63,11 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 
   std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
   for (size_t i = 0; i < ncols; ++i) {
-    Column* col = columns[i];
-    if (col->stype() == SType::OBJ) {
-      DatatableWarning() << "Column `" << names[i]
-          << "` of type obj64 was not saved";
+    Column& col = get_column(i);
+    if (col.stype() == SType::OBJ) {
+      auto w = DatatableWarning();
+      w << "Column `" << names[i] << "` of type obj64 was not saved";
+      w.emit();
     } else {
       auto saved_col = column_to_jay(col, names[i], fbb, wb);
       msg_columns.push_back(saved_col);
@@ -101,13 +102,15 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 //------------------------------------------------------------------------------
 
 static flatbuffers::Offset<jay::Column> column_to_jay(
-    Column* col, const std::string& name, flatbuffers::FlatBufferBuilder& fbb,
+    Column& col,
+    const std::string& name,
+    flatbuffers::FlatBufferBuilder& fbb,
     WritableBuffer* wb)
 {
   jay::Stats jsttype = jay::Stats_NONE;
   flatbuffers::Offset<void> jsto;
-  Stats* colstats = col->get_stats_if_exist();
-  switch (col->stype()) {
+  Stats* colstats = col.get_stats_if_exist();
+  switch (col.stype()) {
     case SType::BOOL:
       jsto = saveStats<int8_t,  jay::StatsBool>(colstats, fbb);
       jsttype = jay::Stats_Bool;
@@ -142,28 +145,23 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
   auto sname = fbb.CreateString(name.c_str());
 
   jay::ColumnBuilder cbb(fbb);
-  cbb.add_type(stype_to_jaytype[static_cast<int>(col->stype())]);
+  cbb.add_type(stype_to_jaytype[static_cast<int>(col.stype())]);
   cbb.add_name(sname);
-  cbb.add_nullcount(static_cast<uint64_t>(col->countna()));
+  cbb.add_nullcount(col.na_count());
 
-  MemoryRange mbuf = col->data_buf();  // shallow copt of col's `mbuf`
-  jay::Buffer saved_mbuf = saveMemoryRange(&mbuf, wb);
+  const void* data = col.get_data_readonly();
+  size_t size = col.get_data_size();
+  jay::Buffer saved_mbuf = saveMemoryRange(data, size, wb);
   cbb.add_data(&saved_mbuf);
   if (jsttype != jay::Stats_NONE) {
     cbb.add_stats_type(jsttype);
     cbb.add_stats(jsto);
   }
 
-  if (col->stype() == SType::STR32) {
-    auto scol = static_cast<StringColumn<uint32_t>*>(col);
-    MemoryRange sbuf = scol->str_buf();
-    jay::Buffer saved_strbuf = saveMemoryRange(&sbuf, wb);
-    cbb.add_strdata(&saved_strbuf);
-  }
-  if (col->stype() == SType::STR64) {
-    auto scol = static_cast<StringColumn<uint64_t>*>(col);
-    MemoryRange sbuf = scol->str_buf();
-    jay::Buffer saved_strbuf = saveMemoryRange(&sbuf, wb);
+  if (col.ltype() == LType::STRING) {
+    data = col.get_data_readonly(1);
+    size = col.get_data_size(1);
+    jay::Buffer saved_strbuf = saveMemoryRange(data, size, wb);
     cbb.add_strdata(&saved_strbuf);
   }
 
@@ -177,11 +175,8 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
 //------------------------------------------------------------------------------
 
 static jay::Buffer saveMemoryRange(
-    const MemoryRange* mbuf, WritableBuffer* wb)
+    const void* data, size_t len, WritableBuffer* wb)
 {
-  if (!mbuf) return jay::Buffer();
-  size_t len = mbuf->size();
-  const void* data = mbuf->rptr();
   size_t pos = wb->prep_write(len, data);
   wb->write_at(pos, len, data);
   xassert(pos >= 8);
@@ -189,9 +184,9 @@ static jay::Buffer saveMemoryRange(
     uint64_t zero = 0;
     wb->write(8 - (len & 7), &zero);
   }
-
   return jay::Buffer(pos - 8, len);
 }
+
 
 
 template <typename T, typename StatBuilder>
@@ -200,11 +195,15 @@ static flatbuffers::Offset<void> saveStats(
 {
   static_assert(std::is_constructible<StatBuilder, T, T>::value,
                 "Invalid StatBuilder class");
-  if (!stats ||
-      !(stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
+  static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value,
+                "Only integer / floating values are supporteds");
+  using R = typename std::conditional<std::is_integral<T>::value, int64_t, double>::type;
+  if (!(stats && stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
     return 0;
-  auto nstat = static_cast<NumericalStats<T>*>(stats);
-  StatBuilder ss(nstat->min(nullptr), nstat->max(nullptr));
+  R min, max;
+  stats->get_stat(Stat::Min, &min);
+  stats->get_stat(Stat::Max, &max);
+  StatBuilder ss(static_cast<T>(min), static_cast<T>(max));
   flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
   return o;
 }
@@ -264,7 +263,7 @@ oobj Frame::to_jay(const PKArgs& args) {
   }
 
   if (filename.empty()) {
-    MemoryRange mr = dt->save_jay();
+    Buffer mr = dt->save_jay();
     auto data = static_cast<const char*>(mr.xptr());
     auto size = static_cast<Py_ssize_t>(mr.size());
     return oobj::from_new_reference(PyBytes_FromStringAndSize(data, size));
@@ -277,8 +276,8 @@ oobj Frame::to_jay(const PKArgs& args) {
 
 
 
-void Frame::Type::_init_jay(Methods& mm) {
-  ADD_METHOD(mm, &Frame::to_jay, args_to_jay);
+void Frame::_init_jay(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::to_jay, args_to_jay));
 
   stype_to_jaytype[int(SType::BOOL)]    = jay::Type_Bool8;
   stype_to_jaytype[int(SType::INT8)]    = jay::Type_Int8;

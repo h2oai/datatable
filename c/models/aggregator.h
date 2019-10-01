@@ -83,6 +83,7 @@ class Aggregator : public AggregatorBase {
     ccptrvec<T> contconvs;
     dtptr dt_cat;
 
+    // Progress reporting constants
     static constexpr size_t WORK_PREPARE = 1;
     static constexpr size_t WORK_AGGREGATE = 100;
     static constexpr size_t WORK_SAMPLE = 20;
@@ -99,11 +100,7 @@ class Aggregator : public AggregatorBase {
     void group_2d();
     void group_2d_continuous();
     void group_2d_categorical();
-    template<typename U0, typename U1>
-    void group_2d_categorical_str();
     void group_2d_mixed();
-    template<typename U0>
-    void group_2d_mixed_str();
     void group_nd();
 
     // Random sampling and modular quasi-random generator

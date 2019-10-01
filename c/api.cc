@@ -20,10 +20,10 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "../datatable/include/datatable.h"
-#include "datatable.h"
 #include "frame/py_frame.h"
+#include "column_impl.h"  // TODO: remove
+#include "datatable.h"
 #include "rowindex.h"
-#include "py_rowindex.h"
 extern "C" {
 
 
@@ -41,14 +41,8 @@ static DataTable* _extract_dt(PyObject* pydt) {
   return static_cast<py::Frame*>(pydt)->get_datatable();
 }
 
-static RowIndex* _extract_ri(PyObject* pyri) {
-  if (pyri == Py_None) return nullptr;
-  return static_cast<py::orowindex::pyobject*>(pyri)->ri;
-}
-
-
 size_t DtABIVersion() {
-  return 1;
+  return 2;
 }
 
 
@@ -59,7 +53,7 @@ size_t DtABIVersion() {
 
 int DtFrame_Check(PyObject* ob) {
   if (ob == nullptr) return 0;
-  auto typeptr = reinterpret_cast<PyObject*>(&py::Frame::Type::type);
+  auto typeptr = reinterpret_cast<PyObject*>(&py::Frame::type);
   int ret = PyObject_IsInstance(ob, typeptr);
   if (ret == -1) {
     PyErr_Clear();
@@ -83,15 +77,14 @@ size_t DtFrame_NRows(PyObject* pydt) {
 int DtFrame_ColumnStype(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return -1;
-  return static_cast<int>(dt->columns[i]->stype());  // stype() is noexcept
+  return static_cast<int>(dt->get_column(i).stype());  // stype() is noexcept
 }
 
 
-PyObject* DtFrame_ColumnRowindex(PyObject* pydt, size_t i) {
+int DtFrame_ColumnIsVirtual(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
-  if (_column_index_oob(dt, i)) return nullptr;
-  const RowIndex& ri = dt->columns[i]->rowindex();  // rowindex() is noexcept
-  return (ri? py::orowindex(ri) : py::None()).release();
+  if (_column_index_oob(dt, i)) return -1;
+  return dt->get_column(i).is_virtual();  // is_virtual() is noexcept
 }
 
 
@@ -99,7 +92,7 @@ const void* DtFrame_ColumnDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    return dt->columns[i]->data();
+    return dt->get_column(i).get_data_readonly();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
@@ -110,7 +103,7 @@ void* DtFrame_ColumnDataW(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    return dt->columns[i]->data_w();
+    return dt->get_column(i).get_data_editable();
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
@@ -121,74 +114,16 @@ void* DtFrame_ColumnDataW(PyObject* pydt, size_t i) {
 const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
-  SType st = dt->columns[i]->stype();
   try {
-    if (st == SType::STR32) {
-      auto scol = static_cast<StringColumn<uint32_t>*>(dt->columns[i]);
-      return scol->strdata();
-    }
-    if (st == SType::STR64) {
-      auto scol = static_cast<StringColumn<uint64_t>*>(dt->columns[i]);
-      return scol->strdata();
+    Column& col = dt->get_column(i);
+    if (col.ltype() == LType::STRING) {
+      return static_cast<const char*>(col.get_data_readonly(1));
     }
   } catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
   }
   PyErr_Format(PyExc_TypeError, "Column %zu is not of string type", i);
-  return nullptr;
-}
-
-
-
-//------------------------------------------------------------------------------
-// Rowindex
-//------------------------------------------------------------------------------
-
-int DtRowindex_Check(PyObject* ob) {
-  if (ob == Py_None) return 1;
-  return py::orowindex::check(ob);
-}
-
-
-int DtRowindex_Type(PyObject* pyri) {
-  RowIndex* ri = _extract_ri(pyri);
-  if (!ri) return 0;
-  return static_cast<int>(ri->type());
-}
-
-
-size_t DtRowindex_Size(PyObject* pyri) {
-  RowIndex* ri = _extract_ri(pyri);
-  if (!ri) return 0;
-  return ri->size();
-}
-
-
-int DtRowindex_UnpackSlice(
-    PyObject* pyri, size_t* start, size_t* length, size_t* step)
-{
-  RowIndex* ri = _extract_ri(pyri);
-  if (!ri || ri->type() != RowIndexType::SLICE) {
-    PyErr_Format(PyExc_TypeError, "expected a slice rowindex");
-    return -1;
-  }
-  *start = ri->slice_start();
-  *length = ri->size();
-  *step = ri->slice_step();
-  return 0;
-}
-
-
-const void* DtRowindex_ArrayData(PyObject* pyri) {
-  RowIndex* ri = _extract_ri(pyri);
-  if (ri && ri->type() == RowIndexType::ARR32) {
-    return ri->indices32();
-  }
-  if (ri && ri->type() == RowIndexType::ARR64) {
-    return ri->indices64();
-  }
-  PyErr_Format(PyExc_TypeError, "expected an array rowindex");
   return nullptr;
 }
 

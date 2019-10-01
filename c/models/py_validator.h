@@ -34,6 +34,7 @@ namespace Validator {
 struct error_manager {
   error_manager() = default;
   error_manager(const error_manager&) = default;
+  Error error_is_infinite  (PyObject*, const std::string&) const;
   Error error_not_positive (PyObject*, const std::string&) const;
   Error error_negative     (PyObject*, const std::string&) const;
   template <typename T>
@@ -42,6 +43,7 @@ struct error_manager {
 
 static std::string _name = "Value";
 static error_manager _em;
+
 
 
 template <typename T>
@@ -54,15 +56,31 @@ Error py::Validator::error_manager::error_greater_than(PyObject* src,
 }
 
 
+// Column validators.
+
+bool has_negatives(const Column& col);
+
+
 // py::Arg validators
 
 /**
- *  Positive check. Will emit an error, when `value` is not positive, `NaN`
- *  or infinity.
+ *  Infinity check.
+ */
+template <typename T>
+void check_finite(T value, const py::Arg& arg, error_manager& em = _em) {
+  if (!std::isinf(value)) return;
+
+  py::oobj py_obj = arg.to_robj();
+  throw em.error_is_infinite(py_obj.to_borrowed_ref(), arg.name());
+}
+
+
+/**
+ *  Positive check. Will emit an error, when `value` is not positive or `NaN`.
  */
 template <typename T>
 void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
-  if (!std::isinf(value) && value > 0) return;
+  if (value > 0) return;
 
   py::oobj py_obj = arg.to_robj();
   throw em.error_not_positive(py_obj.to_borrowed_ref(), arg.name());
@@ -70,12 +88,11 @@ void check_positive(T value, const py::Arg& arg, error_manager& em = _em) {
 
 
 /**
- *  Not negative check. Will emit an error, when `value` is negative, `NaN`
- *  or infinity.
+ *  Not negative check. Will emit an error, when `value` is negative or `NaN`.
  */
 template <typename T>
 void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
-  if (!std::isinf(value) && value >= 0) return;
+  if (value >= 0) return;
 
   py::oobj py_obj = arg.to_robj();
   throw em.error_negative(py_obj.to_borrowed_ref(), arg.name());
@@ -84,21 +101,10 @@ void check_not_negative(T value, const py::Arg& arg, error_manager& em = _em) {
 
 template <typename T>
 void check_less_than_or_equal_to(T value, T value_max, const py::Arg& arg, error_manager& em = _em) {
-
-  if (!std::isinf(value) && value <= value_max) return;
+  if (value <= value_max) return;
 
   py::oobj py_obj = arg.to_robj();
   throw em.error_greater_than(py_obj.to_borrowed_ref(), arg.name(), value_max);
-}
-
-
-template<typename T>
-bool has_negatives(const Column* col) {
-  auto d_n = static_cast<const T*>(col->data());
-  for (size_t i = 0; i < col->nrows; ++i) {
-    if (d_n[i] < 0) return true;
-  }
-  return false;
 }
 
 

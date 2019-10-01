@@ -10,7 +10,9 @@
 #include <memory>             // std::unique_ptr
 #include <unordered_map>      // std::unordered_map
 #include "expr/expr_reduce.h"
+#include "expr/eval_context.h"
 #include "parallel/api.h"
+#include "column_impl.h"  // TODO: remove
 #include "types.h"
 namespace dt {
 namespace expr {
@@ -23,8 +25,6 @@ constexpr T infinity() {
          : std::numeric_limits<T>::max();
 }
 
-using colptr = std::unique_ptr<Column>;
-
 static const char* reducer_names[REDUCER_COUNT] = {
   "mean", "min", "max", "stdev", "first", "sum", "count", "count", "median"
 };
@@ -34,8 +34,8 @@ static const char* reducer_names[REDUCER_COUNT] = {
 //------------------------------------------------------------------------------
 // Reducer library
 //------------------------------------------------------------------------------
-using reducer_fn = void (*)(const RowIndex& ri, size_t row0, size_t row1,
-                            const void* input, void* output, size_t grp);
+using reducer_fn = void (*)(const Column& ri, size_t row0, size_t row1,
+                            void* output, size_t grp);
 
 struct Reducer {
   reducer_fn f;
@@ -78,21 +78,22 @@ static ReducerLibrary library;
 // "First" reducer
 //------------------------------------------------------------------------------
 
-static colptr reduce_first(const colptr& col, const Groupby& groupby)
+static Column reduce_first(const Column& col, const Groupby& groupby)
 {
-  if (col->nrows == 0) {
-    return colptr(Column::new_data_column(col->stype(), 0));
+  if (col.nrows() == 0) {
+    return Column::new_data_column(col.stype(), 0);
   }
   size_t ngrps = groupby.ngroups();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the
   // beginning of each group. We will take this array and reinterpret it as a
   // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
   // to the column will produce the vector of first elements in that column.
-  arr32_t indices(ngrps, groupby.offsets_r());
-  RowIndex ri = RowIndex(std::move(indices), true)
-                * col->rowindex();
-  auto res = colptr(col->shallowcopy(ri));
-  if (ngrps == 1) res->materialize();
+  arr32_t indices(ngrps);
+  // TODO: Groupby should use Buffer, then data copying can be shallow
+  std::memcpy(indices.data(), groupby.offsets_r(), ngrps * 4);
+  Column res = col;  // copy
+  res.apply_rowindex(RowIndex(std::move(indices), true));
+  if (ngrps == 1) res.materialize();
   return res;
 }
 
@@ -103,19 +104,18 @@ static colptr reduce_first(const colptr& col, const Groupby& groupby)
 //------------------------------------------------------------------------------
 
 template<typename T, typename U>
-static void sum_reducer(const RowIndex& ri, size_t row0, size_t row1,
-                        const void* inp, void* out, size_t grp_index)
+static void sum_reducer(const Column& input_col, size_t row0, size_t row1,
+                        void* out, size_t grp_index)
 {
-  const T* inputs = static_cast<const T*>(inp);
-  U* outputs = static_cast<U*>(out);
   U sum = 0;
-  ri.iterate(row0, row1, 1,
-    [&](size_t, size_t j) {
-      if (j == RowIndex::NA) return;
-      T x = inputs[j];
-      if (!ISNA<T>(x))
-        sum += static_cast<U>(x);
-    });
+  for (size_t j = row0; j < row1; ++j) {
+    T value;
+    bool isvalid = input_col.get_element(j, &value);
+    if (isvalid) {
+      sum += static_cast<U>(value);
+    }
+  }
+  U* outputs = static_cast<U*>(out);
   outputs[grp_index] = sum;
 }
 
@@ -126,16 +126,15 @@ static void sum_reducer(const RowIndex& ri, size_t row0, size_t row1,
 //------------------------------------------------------------------------------
 
 template<typename T>
-static void count_reducer(const RowIndex& ri, size_t row0, size_t row1,
-                          const void* inp, void* out, size_t grp_index)
+static void count_reducer(const Column& input_col, size_t row0, size_t row1,
+                          void* out, size_t grp_index)
 {
-  const T* inputs = static_cast<const T*>(inp);
+  T tmp;
   int64_t count = 0;
-  ri.iterate(row0, row1, 1,
-    [&](size_t, size_t j) {
-      if (j == RowIndex::NA) return;
-      count += !ISNA<T>(inputs[j]);
-    });
+  for (size_t j = row0; j < row1; ++j) {
+    bool isvalid = input_col.get_element(j, &tmp);
+    count += isvalid;
+  }
   int64_t* outputs = static_cast<int64_t*>(out);
   outputs[grp_index] = count;
 }
@@ -147,22 +146,20 @@ static void count_reducer(const RowIndex& ri, size_t row0, size_t row1,
 //------------------------------------------------------------------------------
 
 template<typename T, typename U>
-static void mean_reducer(const RowIndex& ri, size_t row0, size_t row1,
-                        const void* inp, void* out, size_t grp_index)
+static void mean_reducer(const Column& input_col, size_t row0, size_t row1,
+                         void* out, size_t grp_index)
 {
-  const T* inputs = static_cast<const T*>(inp);
-  U* outputs = static_cast<U*>(out);
+  T value;
   U sum = 0;
   int64_t count = 0;
-  ri.iterate(row0, row1, 1,
-    [&](size_t, size_t j) {
-      if (j == RowIndex::NA) return;
-      T x = inputs[j];
-      if (!ISNA<T>(x)) {
-        sum += static_cast<U>(x);
-        count++;
-      }
-    });
+  for (size_t j = row0; j < row1; ++j) {
+    bool isvalid = input_col.get_element(j, &value);
+    if (isvalid) {
+      sum += static_cast<U>(value);
+      count++;
+    }
+  }
+  U* outputs = static_cast<U*>(out);
   outputs[grp_index] = (count == 0)? GETNA<U>() : sum / count;
 }
 
@@ -174,26 +171,24 @@ static void mean_reducer(const RowIndex& ri, size_t row0, size_t row1,
 
 // Welford algorithm
 template<typename T, typename U>
-static void stdev_reducer(const RowIndex& ri, size_t row0, size_t row1,
-                          const void* inp, void* out, size_t grp_index)
+static void stdev_reducer(const Column& input_col, size_t row0, size_t row1,
+                          void* out, size_t grp_index)
 {
-  const T* inputs = static_cast<const T*>(inp);
-  U* outputs = static_cast<U*>(out);
   U mean = 0;
   U m2 = 0;
+  T value;
   int64_t count = 0;
-  ri.iterate(row0, row1, 1,
-    [&](size_t, size_t j) {
-      if (j == RowIndex::NA) return;
-      T x = inputs[j];
-      if (!ISNA<T>(x)) {
-        count++;
-        U tmp1 = static_cast<U>(x) - mean;
-        mean += tmp1 / count;
-        U tmp2 = static_cast<U>(x) - mean;
-        m2 += tmp1 * tmp2;
-      }
-    });
+  for (size_t j = row0; j < row1; ++j) {
+    bool isvalid = input_col.get_element(j, &value);
+    if (isvalid) {
+      count++;
+      U tmp1 = static_cast<U>(value) - mean;
+      mean += tmp1 / count;
+      U tmp2 = static_cast<U>(value) - mean;
+      m2 += tmp1 * tmp2;
+    }
+  }
+  U* outputs = static_cast<U*>(out);
   outputs[grp_index] = (count <= 1)? GETNA<U>() : std::sqrt(m2/(count - 1));
 }
 
@@ -204,21 +199,20 @@ static void stdev_reducer(const RowIndex& ri, size_t row0, size_t row1,
 //------------------------------------------------------------------------------
 
 template<typename T>
-static void min_reducer(const RowIndex& ri, size_t row0, size_t row1,
-                        const void* inp, void* out, size_t grp_index)
+static void min_reducer(const Column& input_col, size_t row0, size_t row1,
+                        void* out, size_t grp_index)
 {
-  const T* inputs = static_cast<const T*>(inp);
-  T* outputs = static_cast<T*>(out);
+  T value;
   T res = infinity<T>();
   bool valid = false;
-  ri.iterate(row0, row1, 1,
-    [&](size_t, size_t j) {
-      if (j == RowIndex::NA) return;
-      T x = inputs[j];
-      if (ISNA<T>(x)) return;
-      if (x < res) res = x;
+  for (size_t j = row0; j < row1; ++j) {
+    bool isvalid = input_col.get_element(j, &value);
+    if (isvalid) {
+      if (value < res) res = value;
       valid = true;
-    });
+    }
+  }
+  T* outputs = static_cast<T*>(out);
   outputs[grp_index] = valid? res : GETNA<T>();
 }
 
@@ -229,21 +223,20 @@ static void min_reducer(const RowIndex& ri, size_t row0, size_t row1,
 //------------------------------------------------------------------------------
 
 template<typename T>
-static void max_reducer(const RowIndex& ri, size_t row0, size_t row1,
-                        const void* inp, void* out, size_t grp_index)
+static void max_reducer(const Column& input_col, size_t row0, size_t row1,
+                        void* out, size_t grp_index)
 {
-  const T* inputs = static_cast<const T*>(inp);
-  T* outputs = static_cast<T*>(out);
+  T value;
   T res = -infinity<T>();
   bool valid = false;
-  ri.iterate(row0, row1, 1,
-    [&](size_t, size_t j) {
-      if (j == RowIndex::NA) return;
-      T x = inputs[j];
-      if (ISNA<T>(x)) return;
-      if (x > res) res = x;
+  for (size_t j = row0; j < row1; ++j) {
+    bool isvalid = input_col.get_element(j, &value);
+    if (isvalid) {
+      if (value > res) res = value;
       valid = true;
-    });
+    }
+  }
+  T* outputs = static_cast<T*>(out);
   outputs[grp_index] = valid? res : GETNA<T>();
 }
 
@@ -254,25 +247,33 @@ static void max_reducer(const RowIndex& ri, size_t row0, size_t row1,
 //------------------------------------------------------------------------------
 
 template<typename T, typename U>
-static void median_reducer(const RowIndex& ri, size_t row0, size_t row1,
-                           const void* inp, void* out, size_t grp_index)
+static void median_reducer(const Column& input_col, size_t row0, size_t row1,
+                           void* out, size_t grp_index)
 {
-  const T* inputs = static_cast<const T*>(inp);
-  U* outputs = static_cast<U*>(out);
-
   // skip NA values if any
+  T value;
+  bool isvalid;
   for (; row0 < row1; ++row0) {
-    size_t j = ri[row0];
-    if (j != RowIndex::NA && !ISNA<T>(inputs[j])) break;
+    isvalid = input_col.get_element(row0, &value);
+    if (isvalid) break;
   }
 
+  U* outputs = static_cast<U*>(out);
   if (row0 == row1) {
     outputs[grp_index] = GETNA<U>();
   } else {
     size_t j = (row1 + row0) / 2;
-    outputs[grp_index] = ((row1 - row0) & 1)
-      ? static_cast<U>(inputs[ri[j]]) :
-        (static_cast<U>(inputs[ri[j]]) + static_cast<U>(inputs[ri[j - 1]]))/2;
+    isvalid = input_col.get_element(j, &value);
+    xassert(isvalid);
+    if ((row1 - row0) & 1) {
+      outputs[grp_index] = static_cast<U>(value);
+    }
+    else {
+      T value2;
+      isvalid = input_col.get_element(j-1, &value2);
+      xassert(isvalid);
+      outputs[grp_index] = (static_cast<U>(value) + static_cast<U>(value2))/2;
+    }
   }
 }
 
@@ -286,8 +287,8 @@ expr_reduce1::expr_reduce1(pexpr&& a, Op op)
   : arg(std::move(a)), opcode(op) {}
 
 
-SType expr_reduce1::resolve(const dt::workframe& wf) {
-  SType arg_stype = arg->resolve(wf);
+SType expr_reduce1::resolve(const dt::EvalContext& ctx) {
+  SType arg_stype = arg->resolve(ctx);
   if (opcode == Op::FIRST) {
     return arg_stype;
   }
@@ -301,16 +302,16 @@ SType expr_reduce1::resolve(const dt::workframe& wf) {
 }
 
 
-GroupbyMode expr_reduce1::get_groupby_mode(const workframe&) const {
+GroupbyMode expr_reduce1::get_groupby_mode(const EvalContext&) const {
   return GroupbyMode::GtoONE;
 }
 
 
-colptr expr_reduce1::evaluate_eager(workframe& wf)
+Column expr_reduce1::evaluate(EvalContext& ctx)
 {
-  auto input_col = arg->evaluate_eager(wf);
-  Groupby gb = wf.get_groupby();
-  if (!gb) gb = Groupby::single_group(input_col->nrows);
+  auto input_col = arg->evaluate(ctx);
+  Groupby gb = ctx.get_groupby();
+  if (!gb) gb = Groupby::single_group(input_col.nrows());
 
   size_t out_nrows = gb.ngroups();
   if (!out_nrows) out_nrows = 1;  // only when input_col has 0 rows
@@ -318,35 +319,29 @@ colptr expr_reduce1::evaluate_eager(workframe& wf)
   if (opcode == Op::FIRST) {
     return reduce_first(input_col, gb);
   }
+  if (opcode == Op::MEDIAN) {
+    input_col.sort_grouped(gb);
+  }
 
-  SType in_stype = input_col->stype();
+  SType in_stype = input_col.stype();
   auto reducer = library.lookup(opcode, in_stype);
   xassert(reducer);  // checked in .resolve()
 
   SType out_stype = reducer->output_stype;
-  auto res = colptr(Column::new_data_column(out_stype, out_nrows));
-
-  RowIndex rowindex = input_col->rowindex();
-  if (opcode == Op::MEDIAN && gb) {
-    rowindex = input_col->sort_grouped(rowindex, gb);
-  }
-
-  const void* input = input_col->data();
-  if (in_stype == SType::STR32) input = static_cast<const char*>(input) + 4;
-  if (in_stype == SType::STR64) input = static_cast<const char*>(input) + 8;
-  void* output = res->data_w();
+  auto res = Column::new_data_column(out_stype, out_nrows);
+  void* output = res.get_data_editable();
 
   if (out_nrows == 1) {
-    reducer->f(rowindex, 0, input_col->nrows, input, output, 0);
+    reducer->f(input_col, 0, input_col.nrows(), output, 0);
   }
   else {
-    const int32_t* groups = wf.get_groupby().offsets_r();
+    const int32_t* groups = ctx.get_groupby().offsets_r();
 
     parallel_for_dynamic(out_nrows,
       [&](size_t i) {
         size_t row0 = static_cast<size_t>(groups[i]);
         size_t row1 = static_cast<size_t>(groups[i + 1]);
-        reducer->f(rowindex, row0, row1, input, output, i);
+        reducer->f(input_col, row0, row1, output, i);
       });
   }
   return res;
@@ -363,35 +358,35 @@ expr_reduce0::expr_reduce0(Op op)
   : opcode(op) {}
 
 
-SType expr_reduce0::resolve(const workframe&) {
+SType expr_reduce0::resolve(const EvalContext&) {
   return SType::INT64;
 }
 
 
-GroupbyMode expr_reduce0::get_groupby_mode(const workframe&) const {
+GroupbyMode expr_reduce0::get_groupby_mode(const EvalContext&) const {
   return GroupbyMode::GtoONE;
 }
 
 
-colptr expr_reduce0::evaluate_eager(workframe& wf) {
-  Column* res = nullptr;
+Column expr_reduce0::evaluate(EvalContext& ctx) {
+  Column res;
   if (opcode == Op::COUNT0) {  // COUNT
-    if (wf.has_groupby()) {
-      const Groupby& grpby = wf.get_groupby();
+    if (ctx.has_groupby()) {
+      const Groupby& grpby = ctx.get_groupby();
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
       res = Column::new_data_column(SType::INT32, ng);
-      auto d_res = static_cast<int32_t*>(res->data_w());
+      auto d_res = static_cast<int32_t*>(res.get_data_editable());
       for (size_t i = 0; i < ng; ++i) {
         d_res[i] = offsets[i + 1] - offsets[i];
       }
     } else {
       res = Column::new_data_column(SType::INT64, 1);
-      auto d_res = static_cast<int64_t*>(res->data_w());
-      d_res[0] = static_cast<int64_t>(wf.nrows());
+      auto d_res = static_cast<int64_t*>(res.get_data_editable());
+      d_res[0] = static_cast<int64_t>(ctx.nrows());
     }
   }
-  return colptr(res);
+  return res;
 }
 
 
@@ -404,15 +399,15 @@ colptr expr_reduce0::evaluate_eager(workframe& wf) {
 void init_reducers()
 {
   // Count
-  library.add(Op::COUNT, count_reducer<int8_t>,   SType::BOOL, SType::INT64);
-  library.add(Op::COUNT, count_reducer<int8_t>,   SType::INT8, SType::INT64);
-  library.add(Op::COUNT, count_reducer<int16_t>,  SType::INT16, SType::INT64);
-  library.add(Op::COUNT, count_reducer<int32_t>,  SType::INT32, SType::INT64);
-  library.add(Op::COUNT, count_reducer<int64_t>,  SType::INT64, SType::INT64);
-  library.add(Op::COUNT, count_reducer<float>,    SType::FLOAT32, SType::INT64);
-  library.add(Op::COUNT, count_reducer<double>,   SType::FLOAT64, SType::INT64);
-  library.add(Op::COUNT, count_reducer<uint32_t>, SType::STR32, SType::INT64);
-  library.add(Op::COUNT, count_reducer<uint64_t>, SType::STR64, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int8_t>,  SType::BOOL, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int8_t>,  SType::INT8, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int16_t>, SType::INT16, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int32_t>, SType::INT32, SType::INT64);
+  library.add(Op::COUNT, count_reducer<int64_t>, SType::INT64, SType::INT64);
+  library.add(Op::COUNT, count_reducer<float>,   SType::FLOAT32, SType::INT64);
+  library.add(Op::COUNT, count_reducer<double>,  SType::FLOAT64, SType::INT64);
+  library.add(Op::COUNT, count_reducer<CString>, SType::STR32, SType::INT64);
+  library.add(Op::COUNT, count_reducer<CString>, SType::STR64, SType::INT64);
 
   // Min
   library.add(Op::MIN, min_reducer<int8_t>,  SType::BOOL, SType::BOOL);

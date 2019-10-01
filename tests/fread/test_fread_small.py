@@ -503,7 +503,7 @@ def test_input_htmlfile():
     with pytest.raises(Exception) as e:
         dt.fread("  \n  <!DOCTYPE html>\n"
                  "<html><body>HA!</body></html>", verbose=True)
-    assert "<text> is an HTML file" in str(e)
+    assert "<text> is an HTML file" in str(e.value)
 
 
 
@@ -1064,7 +1064,8 @@ def test_under_allocation(capsys):
     assert mm
     assert int(mm.group(1)) < n, "Under-allocation didn't happen"
     assert not err
-    assert "Too few rows allocated" in out
+    assert "Too few rows allocated" in out, \
+           "Missing message 'Too few rows allocated' in output:\n%s" % out
     frame_integrity_check(d0)
     assert d0.shape == (n, 2)
     assert d0.ltypes == (ltype.int, ltype.int)

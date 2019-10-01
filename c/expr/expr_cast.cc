@@ -34,21 +34,22 @@ expr_cast::expr_cast(pexpr&& a, SType s)
     stype(s) {}
 
 
-SType expr_cast::resolve(const workframe& wf) {
-  (void) arg->resolve(wf);
+SType expr_cast::resolve(const EvalContext& ctx) {
+  (void) arg->resolve(ctx);
   return stype;
 }
 
 
-GroupbyMode expr_cast::get_groupby_mode(const workframe& wf) const {
-  return arg->get_groupby_mode(wf);
+GroupbyMode expr_cast::get_groupby_mode(const EvalContext& ctx) const {
+  return arg->get_groupby_mode(ctx);
 }
 
 
-colptr expr_cast::evaluate_eager(workframe& wf) {
-  auto arg_col = arg->evaluate_eager(wf);
-  return colptr(arg_col->cast(stype));
+Column expr_cast::evaluate(EvalContext& ctx) {
+  auto arg_col = arg->evaluate(ctx);
+  return std::move(arg_col).cast(stype);
 }
+
 
 
 

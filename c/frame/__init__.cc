@@ -28,6 +28,7 @@
 #include "python/oset.h"
 #include "python/string.h"
 #include "utils/alloc.h"
+#include "column_impl.h"  // TODO: remove
 #include "ztest.h"
 
 namespace py {
@@ -39,7 +40,7 @@ namespace py {
 
 class FrameInitializationManager {
   private:
-    PKArgs& all_args;
+    const PKArgs& all_args;
     const Arg& src;
     const Arg& names_arg;
     const Arg& stypes_arg;
@@ -50,7 +51,7 @@ class FrameInitializationManager {
     SType stype0;
     int : 32;
     Frame* frame;
-    std::vector<Column*> cols;
+    colvec cols;
 
     class em : public py::_obj::error_manager {
       Error error_not_stype(PyObject*) const override;
@@ -61,7 +62,7 @@ class FrameInitializationManager {
   // External API
   //----------------------------------------------------------------------------
   public:
-    FrameInitializationManager(PKArgs& args, Frame* f)
+    FrameInitializationManager(const PKArgs& args, Frame* f)
       : all_args(args),
         src(args[0]),
         names_arg(args[1]),
@@ -83,11 +84,6 @@ class FrameInitializationManager {
         throw _error_unknown_kwargs();
       }
     }
-
-    ~FrameInitializationManager() {
-      for (auto col : cols) delete col;
-    }
-
 
     void run()
     {
@@ -239,8 +235,7 @@ class FrameInitializationManager {
       for (size_t j = 0; j < ncols; ++j) {
         py::robj name = nameslist[j];
         SType s = get_stype_for_column(j, &name);
-        Column* col = Column::from_pylist_of_dicts(srclist, name, int(s));
-        cols.push_back(col);
+        cols.push_back(Column::from_pylist_of_dicts(srclist, name, int(s)));
       }
       make_datatable(nameslist);
     }
@@ -348,7 +343,7 @@ class FrameInitializationManager {
             "a copy of a Frame";
       }
       for (size_t i = 0; i < ncols; ++i) {
-        cols.push_back(srcdt->columns[i]->shallowcopy());
+        cols.push_back(srcdt->get_column(i));
       }
       if (names_arg) {
         make_datatable(names_arg.to_pylist());
@@ -413,6 +408,9 @@ class FrameInitializationManager {
       } else {
         xassert(src.is_pandas_series());
         check_names_count(1);
+        if (!names_arg) {
+          colnames.append(pdsrc.get_attr("name").to_pystring_force());
+        }
         py::oobj colsrc = pdsrc.get_attr("values");
         make_column(colsrc, SType::VOID);
       }
@@ -452,10 +450,8 @@ class FrameInitializationManager {
           auto colsrc  = npsrc.get_attr("data").get_item(col_key);
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
           make_column(colsrc, SType::VOID);
-          Column* maskcol = Column::from_buffer(masksrc);
-          xassert(maskcol->stype() == SType::BOOL);
-          cols.back()->apply_na_mask(static_cast<BoolColumn*>(maskcol));
-          delete maskcol;
+          Column maskcol = Column::from_pybuffer(masksrc);
+          cols.back()->apply_na_mask(maskcol);
         }
       } else {
         for (size_t i = 0; i < ncols; ++i) {
@@ -589,9 +585,17 @@ class FrameInitializationManager {
 
 
     void make_column(py::robj colsrc, SType s) {
-      Column* col = nullptr;
-      if (colsrc.is_buffer()) {
-        col = Column::from_buffer(colsrc);
+      Column col;
+      if (colsrc.is_frame()) {
+        DataTable* srcdt = colsrc.to_datatable();
+        if (srcdt->ncols != 1) {
+          throw ValueError() << "A column cannot be constructed from a Frame "
+              "with " << srcdt->ncols << " columns";
+        }
+        col = srcdt->get_column(0);
+      }
+      else if (colsrc.is_buffer()) {
+        col = Column::from_pybuffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
         col = Column::from_pylist(colsrc.to_pylist(), int(s));
@@ -603,10 +607,10 @@ class FrameInitializationManager {
       else {
         throw TypeError() << "Cannot create a column from " << colsrc.typeobj();
       }
-      cols.push_back(col);
+      cols.push_back(std::move(col));
       if (cols.size() > 1) {
-        size_t nrows0 = cols.front()->nrows;
-        size_t nrows1 = cols.back()->nrows;
+        size_t nrows0 = cols.front().nrows();
+        size_t nrows1 = cols.back().nrows();
         if (nrows0 != nrows1) {
           throw ValueError()
             << "Column " << cols.size() - 1 << " has different number of "
@@ -618,14 +622,14 @@ class FrameInitializationManager {
 
 
     void make_datatable(std::nullptr_t) {
-      frame->dt = new DataTable(std::move(cols));
+      frame->dt = new DataTable(std::move(cols), DataTable::default_names);
     }
 
     void make_datatable(const Arg& names) {
       if (names) {
         frame->dt = new DataTable(std::move(cols), names.to_pylist());
       } else {
-        frame->dt = new DataTable(std::move(cols));
+        frame->dt = new DataTable(std::move(cols), DataTable::default_names);
       }
     }
 
@@ -664,7 +668,7 @@ Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
 // Main Frame constructor
 //------------------------------------------------------------------------------
 
-void Frame::m__init__(PKArgs& args) {
+void Frame::m__init__(const PKArgs& args) {
   if (dt) m__dealloc__();
   dt = nullptr;
   stypes = nullptr;
@@ -690,7 +694,7 @@ static PKArgs fn___setstate__(
 
 // TODO: add py::obytes object
 oobj Frame::m__getstate__(const PKArgs&) {
-  MemoryRange mr = dt->save_jay();
+  Buffer mr = dt->save_jay();
   auto data = static_cast<const char*>(mr.xptr());
   auto size = static_cast<Py_ssize_t>(mr.size());
   return oobj::from_new_reference(PyBytes_FromStringAndSize(data, size));
@@ -713,9 +717,9 @@ void Frame::m__setstate__(const PKArgs& args) {
 }
 
 
-void Frame::Type::_init_init(Methods& mm) {
-  ADD_METHOD(mm, &Frame::m__getstate__, fn___getstate__);
-  ADD_METHOD(mm, &Frame::m__setstate__, fn___setstate__);
+void Frame::_init_init(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::m__getstate__, fn___getstate__));
+  xt.add(METHOD(&Frame::m__setstate__, fn___setstate__));
 }
 
 

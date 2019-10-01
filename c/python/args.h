@@ -30,7 +30,7 @@ namespace py {
 //------------------------------------------------------------------------------
 
 /**
- * Helper class for getters/setters in ExtType<T>::GetSetters.
+ * Helper class for getters/setters in XTypeMaker.
  */
 class GSArgs {
   public:
@@ -40,31 +40,6 @@ class GSArgs {
 
     GSArgs(const char* name_, const char* doc_=nullptr)
       : name(name_), doc(doc_), _arg(std::string("`.") + name_ + "`") {}
-
-    template <typename T>
-    PyObject* exec_getter(PyObject* obj, oobj (T::*func)() const) noexcept {
-      try {
-        T* t = static_cast<T*>(obj);
-        oobj res = (t->*func)();
-        return std::move(res).release();
-      } catch (const std::exception& e) {
-        exception_to_python(e);
-        return nullptr;
-      }
-    }
-
-    template <typename T>
-    int exec_setter(PyObject* obj, PyObject* value, void (T::*func)(const Arg&)) noexcept {
-      try {
-        T* t = static_cast<T*>(obj);
-        _arg.set(value);
-        (t->*func)(_arg);
-        return 0;
-      } catch (const std::exception& e) {
-        exception_to_python(e);
-        return -1;
-      }
-    }
 };
 
 
@@ -80,7 +55,7 @@ class VarKwdsIterable;
 
 
 /**
- * Helper class for ExtType: it encapsulates arguments passed to a function
+ * Helper class for XTypeMaker: it encapsulates arguments passed to a function
  * and helps verify / parse them. This is the base class for a family of
  * args-related functions, each designed to handle different calling
  * convention.
@@ -136,17 +111,8 @@ class PKArgs {
         PyObject* args, PyObject* kwds,
         void (*fn)(const PKArgs&)) noexcept;
 
-    template <class T>
-    PyObject* exec_method(
-        PyObject* self, PyObject* args, PyObject* kwds,
-        oobj (T::*)(const PKArgs&)) const noexcept;
 
-    template <class T>
-    PyObject* exec_method(
-        PyObject* self, PyObject* args, PyObject* kwds,
-        void (T::*)(const PKArgs&)) const noexcept;
-
-    //---- API for ExtType<T> ----------
+    //---- API for XTypeMaker ----------
     void set_class_name(const char* name);
 
     // Each `Args` object describes a certain function, or method in a class.
@@ -289,40 +255,6 @@ T PKArgs::get(size_t i, T default_value) const {
           : static_cast<T>(bound_args[i]);
 }
 
-template <class T>
-PyObject* PKArgs::exec_method(
-    PyObject* self, PyObject* args, PyObject* kwds,
-    oobj (T::*fn)(const PKArgs&)) const noexcept
-{
-  try {
-    const_cast<PKArgs*>(this)->bind(args, kwds);
-    T* obj = reinterpret_cast<T*>(self);
-    oobj res = (obj->*fn)(*this);
-    return std::move(res).release();
-
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    return nullptr;
-  }
-}
-
-template <class T>
-PyObject* PKArgs::exec_method(
-    PyObject* self, PyObject* args, PyObject* kwds,
-    void (T::*fn)(const PKArgs&)) const noexcept
-{
-  try {
-    const_cast<PKArgs*>(this)->bind(args, kwds);
-    T* obj = reinterpret_cast<T*>(self);
-    (obj->*fn)(*this);
-    Py_INCREF(Py_None);
-    return Py_None;
-
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    return nullptr;
-  }
-}
 
 
 }  // namespace py

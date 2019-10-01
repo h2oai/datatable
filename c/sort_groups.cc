@@ -5,9 +5,10 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include "sort.h"
 #include <utility>  // std::move
 #include "utils/assert.h"
+#include "column.h"
+#include "sort.h"
 
 
 
@@ -45,28 +46,23 @@ void GroupGatherer::from_data(const T* data, V* o, size_t n) {
 }
 
 
-template <typename T, typename V>
-void GroupGatherer::from_data(
-  const uint8_t* strdata, const T* stroffs, T start, V* o, size_t n,
-  bool descending
-) {
+template <typename V>
+void GroupGatherer::from_data(const Column& column, const V* o, size_t n) {
   if (n == 0) return;
-  auto compfn = descending? compare_offstrings<-1, T>
-                          : compare_offstrings<1, T>;
-  T olast0 = (stroffs[o[0] - 1] & ~GETNA<T>()) + start;
-  T olast1 = stroffs[o[0]];
-  size_t lasti = 0;
+  CString last_value, curr_value;
+  bool last_valid, curr_valid;
+  last_valid = column.get_element(static_cast<size_t>(o[0]), &last_value);
+  size_t last_i = 0;
   for (size_t i = 1; i < n; ++i) {
-    T ocurr0 = (stroffs[o[i] - 1] & ~GETNA<T>()) + start;
-    T ocurr1 = stroffs[o[i]];
-    if (compfn(strdata, olast0, olast1, ocurr0, ocurr1)) {
-      push(i - lasti);
-      olast0 = ocurr0;
-      olast1 = ocurr1;
-      lasti = i;
+    curr_valid = column.get_element(static_cast<size_t>(o[i]), &curr_value);
+    if (compare_strings<1>(last_value, last_valid, curr_value, curr_valid, 0)) {
+      push(i - last_i);
+      last_i = i;
+      last_valid = curr_valid;
+      last_value = curr_value;
     }
   }
-  push(n - lasti);
+  push(n - last_i);
 }
 
 
@@ -110,5 +106,5 @@ template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);
 template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
-template void GroupGatherer::from_data(const uint8_t*, const uint32_t*, uint32_t, int32_t*, size_t, bool);
-template void GroupGatherer::from_data(const uint8_t*, const uint64_t*, uint64_t, int32_t*, size_t, bool);
+template void GroupGatherer::from_data(const Column&, const int32_t*, size_t);
+template void GroupGatherer::from_data(const Column&, const int64_t*, size_t);

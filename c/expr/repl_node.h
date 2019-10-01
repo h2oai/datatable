@@ -34,7 +34,7 @@ class repl_node {
   public:
     repl_node();
     virtual ~repl_node();
-    static repl_node_ptr make(workframe& wf, py::oobj src);
+    static repl_node_ptr make(EvalContext& ctx, py::oobj src);
 
     /**
      * Check whether this replacement node is valid for replacing a rectangular
@@ -44,23 +44,25 @@ class repl_node {
     virtual void check_compatibility(size_t lrows, size_t lcols) const = 0;
 
     /**
-     * Replace the columns of `dt0` (taken from the workframe) at indices
+     * Replace the columns of `dt0` (taken from the EvalContext) at indices
      * `ind` with the values from this replacement node. The columns are
      * replaced as whole.
      *
-     * This method is used when `ri0` from the workframe is empty (meaning
+     * This method is used when `ri0` from the EvalContext is empty (meaning
      * all rows should be used).
      */
-    virtual void replace_columns(workframe& wf, const intvec& ind) const = 0;
+    virtual void replace_columns(EvalContext& ctx, const intvec& ind) const = 0;
 
     /**
      * Replace the values in `dt0[ri0, ind]` with the values from this
      * replacement node. Thus, only a subset of data in the Frame will be
-     * modified. Here `dt0` and `ri0` are taken from the workframe.
+     * modified. Here `dt0` and `ri0` are taken from the EvalContext.
      *
      * This method is used when `ri0` is not empty.
      */
-    virtual void replace_values(workframe&, const intvec&) const = 0;
+    virtual void replace_values(EvalContext&, const intvec&) const = 0;
+
+    virtual void resolve(EvalContext&) const;
 };
 
 

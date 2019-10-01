@@ -29,7 +29,7 @@ import datatable as dt
 from datatable import ltype
 from datatable.models import aggregate
 from tests import assert_equals
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 
 
 #-------------------------------------------------------------------------------
@@ -452,6 +452,7 @@ def test_aggregate_3d_categorical():
     assert_equals(d_in, d_in_copy)
 
 
+# Single thread test, due to small number of rows
 def test_aggregate_3d_real():
     d_in = dt.Frame([
         [0.95, 0.50, 0.55, 0.10, 0.90, 0.50, 0.90, 0.50, 0.90, 1.00],
@@ -460,25 +461,22 @@ def test_aggregate_3d_real():
     ])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nd_max_bins=3)
-    a_members = d_members.to_list()[0]
-    d = d_exemplars.sort("C0")
-    ri = frame_column_rowindex(d, 0).to_list()
-    for i, member in enumerate(a_members):
-        a_members[i] = ri.index(member)
-
-    frame_integrity_check(d_members)
-    assert d_members.shape == (10, 1)
-    assert d_members.ltypes == (ltype.int,)
-    assert a_members == [2, 1, 1, 0, 2, 1, 2, 1, 2, 2]
 
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (3, 4)
     assert d_exemplars.ltypes == (ltype.real, ltype.real, ltype.real, ltype.int)
-    assert d.to_list() == [[0.10, 0.50, 0.95],
-                           [0.05, 0.55, 1.00],
-                           [0.00, 0.50, 0.90],
-                           [1, 4, 5]]
+    assert d_exemplars.to_list() == [[0.95, 0.50, 0.10],
+                                     [1.00, 0.55, 0.05],
+                                     [0.90, 0.50, 0.00],
+                                     [5, 4, 1]]
+
+    frame_integrity_check(d_members)
+    assert d_members.shape == (10, 1)
+    assert d_members.ltypes == (ltype.int,)
+    assert d_members.to_list() == [[0, 1, 1, 2, 0, 1, 0, 1, 0, 0]]
+
     assert_equals(d_in, d_in_copy)
+
 
 
 def test_aggregate_nd_direct():
@@ -503,42 +501,40 @@ def aggregate_nd(nd):
     d_in = dt.Frame(matrix)
     d_in_copy = dt.Frame(d_in)
 
-    messages = []
+    progress_reports = []
     def progress_fn(p):
         assert 0 <= p.progress <= 1
         assert p.status in ("running", "finished", "cancelled", "error")
-        assert p.message in ("", "Preparing", "Aggregating", "Sampling", "Finalizing")
-        messages.append(p)
+        progress_reports.append(p)
 
     with dt.options.progress.context(callback = progress_fn,
                                      enabled=True,
                                      min_duration=0):
         [d_exemplars, d_members] = aggregate(d_in, min_rows=0,
                                              nd_max_bins=div, seed=1)
-        assert messages[0].progress == 0
-        assert messages[0].status == "running"
-        assert messages[0].message == "Preparing"
-        assert messages[-2].progress <= 1.0
-        assert messages[-2].status == "running"
-        assert messages[-2].message == "Finalizing"
-        assert messages[-1].progress == 1.0
-        assert messages[-1].status == "finished"
-        assert messages[-1].message == ""
+        messages = ("", "Preparing", "Aggregating", "Sampling", "Finalizing")
+        message_index = 0
+        for i, p in enumerate(progress_reports):
+            if i > 0:
+                assert p.progress >= progress_reports[i-1].progress
+            message_index_new = messages.index(p.message)
+            assert message_index <= message_index_new or p.status == "finished"
+            message_index = message_index_new
 
-    a_members = d_members.to_list()[0]
-    d = d_exemplars.sort("C0")
-    ri = frame_column_rowindex(d, 0).to_list()
-    for i, member in enumerate(a_members):
-        a_members[i] = ri.index(member)
+        assert progress_reports[-1].progress == 1.0
+        assert progress_reports[-1].status == "finished"
+        assert progress_reports[-1].message == "Finalizing"
 
     frame_integrity_check(d_members)
     assert d_members.shape == (nrows, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert a_members == column
+    for i in range(nrows) :
+        assert(i % div == d_exemplars[d_members[i, 0], 0])
+
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (div, nd + 1)
     assert d_exemplars.ltypes == tuple(out_types)
-    assert d.to_list() == out_value
+    assert d_exemplars.sort("C0").to_list() == out_value
     assert_equals(d_in, d_in_copy)
 
 

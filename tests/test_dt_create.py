@@ -124,6 +124,14 @@ def test_different_column_lengths():
             "columns (10)" == str(e.value))
 
 
+def test_from_frame_as_column():
+    DT = dt.Frame(A=[1, 2, 3], B=[7, 4, 1])
+    with pytest.raises(ValueError) as e:
+        dt.Frame(X=DT)
+    assert ("A column cannot be constructed from a Frame with 2 columns"
+            == str(e.value))
+
+
 
 #-------------------------------------------------------------------------------
 # Create empty Frame
@@ -204,6 +212,19 @@ def test_create_from_range():
     frame_integrity_check(d0)
     assert d0.shape == (8, 1)
     assert d0.to_list() == [list(range(8))]
+
+
+@pytest.mark.parametrize("r", [range(1, 3), range(2, 7, 3), range(-1, 4, 2),
+                               range(5, 2, -1), range(278, -14, -5),
+                               range(2, 2, 2), range(2, 3, 15), range(-3, -1),
+                               range(4, 3, 3), range(2, 3, -2),
+                               range(4, 6, -10), range(4, 8, -2),
+                               range(4, 2, -2)])
+def test_create_from_range2(r):
+    DT = dt.Frame(A=r)
+    frame_integrity_check(DT)
+    assert DT.ncols == 1
+    assert DT.to_list()[0] == list(r)
 
 
 
@@ -351,6 +372,24 @@ def test_create_from_frame_error():
     with pytest.raises(TypeError) as e2:
         dt.Frame(d0, stypes=[stype.str32])
     assert str(e1.value) == str(e2.value)
+
+
+@pytest.mark.usefixtures("py36")
+def test_create_from_column_frames():
+    DT0 = dt.Frame(A=range(5), B=list("dfkjd"),
+                   C=[False, True, True, None, True])
+    DT1 = dt.Frame(a=DT0["A"], b=DT0["B"], c=DT0["C"])
+    assert DT1.names == ("a", "b", "c")
+    assert DT1.stypes == DT0.stypes
+    assert DT1.to_list() == DT0.to_list()
+
+
+@pytest.mark.usefixtures("py36")
+def test_create_from_doublestar_expansion():
+    DT0 = dt.Frame(A=range(3), B=["df", "qe;r", None])
+    DT1 = dt.Frame(D=[7.99, -12.5, 0.1], E=[None]*3)
+    DT = dt.Frame(**DT0, **DT1)
+    assert_equals(DT, dt.cbind(DT0, DT1))
 
 
 
@@ -856,7 +895,7 @@ def test_create_from_pandas_with_duplicate_names(pandas):
     with pytest.warns(DatatableWarning):
         X = dt.Frame(Y)
     assert X.shape == (1, 3)
-    assert X.names == ("A", "A.1", "A.2")
+    assert X.names == ("A", "A.0", "A.1")
     assert X.to_list() == [[1], [2], [3]]
 
 
@@ -1068,16 +1107,38 @@ def test_duplicate_names1():
     with pytest.warns(DatatableWarning) as ws:
         d = dt.Frame([[1], [2], [3]], names=["A", "A", "A"])
         frame_integrity_check(d)
-        assert d.names == ("A", "A.1", "A.2")
+        assert d.names == ("A", "A.0", "A.1")
     assert len(ws) == 1
-    assert "Duplicate column names found: 'A' and 'A'" in ws[0].message.args[0]
+    assert ("Duplicate column names found, and were assigned unique names: "
+            "'A' -> 'A.0', 'A' -> 'A.1'" in ws[0].message.args[0])
 
 
 def test_duplicate_names2():
     with pytest.warns(DatatableWarning):
         d = dt.Frame([[1], [2], [3], [4]], names=("A", "A.1", "A", "A.2"))
         frame_integrity_check(d)
-        assert d.names == ("A", "A.1", "A.2", "A.3")
+        assert d.names == ("A", "A.1", "A.0", "A.2")
+
+
+def test_duplicate_names3():
+    with pytest.warns(DatatableWarning) as ws:
+        d = dt.Frame([[1]] * 4, names=["A"] * 4)
+        frame_integrity_check(d)
+        assert d.names == ("A", "A.0", "A.1", "A.2")
+    assert len(ws) == 1
+    assert ("Duplicate column names found, and were assigned unique names: "
+            "'A' -> 'A.0', 'A' -> 'A.1', 'A' -> 'A.2'" in ws[0].message.args[0])
+
+
+def test_duplicate_names4():
+    with pytest.warns(DatatableWarning) as ws:
+        d = dt.Frame([[1]] * 5, names=["A"] * 5)
+        frame_integrity_check(d)
+        assert d.names == ("A", "A.0", "A.1", "A.2", "A.3")
+    assert len(ws) == 1
+    assert ("Duplicate column names found, and were assigned unique names: "
+            "'A' -> 'A.0', 'A' -> 'A.1', ..., 'A' -> 'A.3'"
+            in ws[0].message.args[0])
 
 
 def test_special_characters_in_names():
@@ -1090,14 +1151,9 @@ def test_special_characters_in_names():
     assert d.names == (".", "help.needed", "foo.bar. .baz", "A.B.C.D.")
 
 
-
-#-------------------------------------------------------------------------------
-# Deprecated
-#-------------------------------------------------------------------------------
-
-def test_create_datatable():
-    """DataTable is old symbol for Frame."""
-    d = dt.DataTable([1, 2, 3])
-    frame_integrity_check(d)
-    assert d.__class__.__name__ == "Frame"
-    assert d.to_list() == [[1, 2, 3]]
+def test_duplicate_mangled():
+    with pytest.warns(DatatableWarning) as ws:
+        DT = dt.Frame([[2]] * 5, names=["\n\n\n"] * 3 + ["\n\t2"] * 2)
+        frame_integrity_check(DT)
+        assert DT.names == (".", ".0", ".1", ".2", ".3")
+    assert ("Duplicate column names found" in ws[0].message.args[0])

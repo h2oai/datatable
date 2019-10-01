@@ -13,7 +13,7 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "datatablemodule.h"
-#include "memrange.h"
+#include "buffer.h"
 #include "writebuf.h"
 
 
@@ -167,8 +167,11 @@ size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*) {
 
 
 void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src) {
+  // When n==0, the `buffer` pointer may remain unallocated, and it
+  // is invalid to `memcpy` 0 bytes into a null pointer.
+  if (n == 0) return;
   if (pos + n > allocsize) {
-    throw RuntimeError() << "Attempt to write at pos=" << pos << " chunk of "
+    throw AssertionError() << "Attempt to write at pos=" << pos << " chunk of "
       "length " << n << ", however the buffer is allocated for " << allocsize
       << " bytes only";
   }
@@ -219,10 +222,10 @@ void* MemoryWritableBuffer::get_cptr()
 }
 
 
-MemoryRange MemoryWritableBuffer::get_mbuf() {
+Buffer MemoryWritableBuffer::get_mbuf() {
   size_t size = allocsize;
   void* ptr = get_cptr();
-  return MemoryRange::acquire(ptr, size);
+  return Buffer::acquire(ptr, size);
 }
 
 
@@ -252,7 +255,11 @@ MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
 
 
 MmapWritableBuffer::~MmapWritableBuffer() {
-  unmap();
+  try {
+    unmap();
+  } catch (const std::exception& e) {
+    printf("%s\n", e.what());
+  }
   UNTRACK(this);
 }
 
@@ -277,10 +284,13 @@ void MmapWritableBuffer::map(int fd, size_t size) {
 
 void MmapWritableBuffer::unmap() {
   if (!buffer) return;
-  int ret = munmap(buffer, allocsize);
+  // Do not short-circuit: both `msync` and `munmap` must run
+  int ret = msync(buffer, allocsize, MS_ASYNC) |
+            munmap(buffer, allocsize);
   if (ret) {
-    printf("Error unmapping the view of file %s (%p..+%zu): [errno %d] %s",
-           filename.c_str(), buffer, allocsize, errno, strerror(errno));
+    throw IOError() << "Error unmapping the view of file "
+        << filename << " (" << buffer << "..+" << allocsize
+        << "): " << Errno;
   }
   buffer = nullptr;
 }
@@ -292,4 +302,13 @@ void MmapWritableBuffer::realloc(size_t newsize)
   File file(filename, File::READWRITE);
   file.resize(newsize);
   map(file.descriptor(), newsize);
+}
+
+
+// Similar to realloc(), but does not re-map the file
+void MmapWritableBuffer::finalize() {
+  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
+  unmap();
+  File file(filename, File::READWRITE);
+  file.resize(bytes_written);
 }

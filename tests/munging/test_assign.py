@@ -185,10 +185,11 @@ def test_assign_list_duplicates():
     with pytest.warns(DatatableWarning) as ws:
         DT[:, ["B", "B"]] = [f.A + 1, f.A + 2]
     frame_integrity_check(DT)
-    assert DT.names == ("A", "B", "B.1")
+    assert DT.names == ("A", "B", "B.0")
     assert DT.to_list() == [[0, 1, 2, 3, 4], [1, 2, 3, 4, 5], [2, 3, 4, 5, 6]]
     assert len(ws) == 1
-    assert "Duplicate column name 'B' found" in ws[0].message.args[0]
+    assert ("Duplicate column name found, and was assigned a unique name: "
+            "'B' -> 'B.0'" in ws[0].message.args[0])
 
 
 def test_stats_after_assign():
@@ -199,6 +200,42 @@ def test_stats_after_assign():
     DT[:, "A"] = 100
     assert DT.min1() == DT.max1() == 100
     assert DT.countna1() == 0
+
+
+def test_assign_to_single_column_selector():
+    DT = dt.Frame(A=range(5), B=list('abcde'))[:, ['A', 'B']]
+    DT["A"] = 17
+    assert_equals(DT, dt.Frame([[17] * 5, list('abcde')],
+                               names=('A', 'B'),
+                               stypes=(dt.int32, dt.str32)))
+    DT["C"] = False
+    assert_equals(DT, dt.Frame([[17] * 5, list('abcde'), [False] * 5],
+                               names=('A', 'B', 'C'),
+                               stypes=(dt.int32, dt.str32, dt.bool8)))
+    DT[-2] = "hi!"
+    assert_equals(DT, dt.Frame([[17] * 5, ["hi!"] * 5, [False] * 5],
+                               names=('A', 'B', 'C'),
+                               stypes=(dt.int32, dt.str32, dt.bool8)))
+
+
+def test_assign_nonexisting_column():
+    # See #1983: if column `B` is created at a wrong moment in the evaluation
+    # sequence, this may seg.fault
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError) as e:
+        DT[:, "B"] = f.B + 1
+    assert ("Column `B` does not exist in the Frame" in str(e.value))
+    frame_integrity_check(DT)
+
+
+@pytest.mark.xfail
+def test_assign_wrong_type():
+    # Check that if one assignment was correct, the exception during the
+    # next assignment rolls the frame back to a consistent state
+    DT = dt.Frame(B=range(5))
+    with pytest.raises(TypeError):
+        DT[:, ["A", "B"]] = 3.3
+    frame_integrity_check(DT)
 
 
 
@@ -324,3 +361,10 @@ def test_assign_scalar_to_str64_column():
     DT = dt.Frame(A=["wonder", None, "ful", None], stype=dt.str64)
     DT[:, "A"] = "beep"
     assert_equals(DT, dt.Frame(A=["beep"] * 4, stype=dt.str64))
+
+
+def test_assign_str_to_empty_frame():
+    # See issue #2043, the assignment used to deadlock
+    DT = dt.Frame(W=[], stype=dt.str32)
+    DT[f.W == '', f.W] = 'yay!'
+    assert_equals(DT, dt.Frame(W=[], stype=dt.str32))

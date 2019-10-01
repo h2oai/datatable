@@ -19,14 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/writer.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "write/csv_writer.h"
 #include "options.h"
 namespace py {
 
+static void change_to_lowercase(std::string& str) {
+  for (size_t i = 0; i < str.size(); ++i) {
+    char c = str[i];
+    if (c >= 'A' && c <= 'Z') str[i] = c - 'A' + 'a';
+  }
+}
 
 
 
@@ -35,12 +41,12 @@ namespace py {
 //------------------------------------------------------------------------------
 
 static PKArgs args_to_csv(
-    0, 1, 4, false, false,
-    {"path", "nthreads", "hex", "verbose", "_strategy"},
+    0, 1, 5, false, false,
+    {"path", "quoting", "hex", "compression", "verbose", "_strategy"},
     "to_csv",
 
-R"(to_csv(self, path=None, nthreads=None, hex=False, verbose=False,
-       _strategy="auto")
+R"(to_csv(self, path=None, *, quoting="minimal", hex=False,
+       compression=None, verbose=False, _strategy="auto")
 --
 
 Write the Frame into the provided file in CSV format.
@@ -53,11 +59,22 @@ path: str
     then the Frame will be serialized into a string, and that string
     will be returned.
 
-nthreads: int
-    How many threads to use for writing. The value of 0 means to use
-    all available threads. Negative values indicate to use that many
-    threads less than the maximum available. If this parameter is
-    omitted then `dt.options.nthreads` will be used.
+quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
+    csv.QUOTE_MINIMAL (0)
+        quote the string fields only as necessary, i.e. if the string
+        starts or ends with the whitespace, or contains quote
+        characters, separator, or any of the C0 control characters
+        (including newlines, etc).
+
+    csv.QUOTE_ALL (1)
+        all fields will be quoted, both string, numeric, and boolean.
+
+    csv.QUOTE_NONNUMERIC (2)
+        all string fields will be quoted.
+
+    csv.QUOTE_NONE (3)
+        none of the fields will be quoted. This option must be used
+        at user's own risk: the file produced may not be valid CSV.
 
 hex: bool
     If True, then all floating-point values will be printed in hex
@@ -65,6 +82,12 @@ hex: bool
     around 3 times faster to write/read compared to usual decimal
     representation, so its use is recommended if you need maximum
     speed.
+
+compression: None | "gzip" | "infer"
+    Which compression method to use for the output stream. The default
+    is "infer", which tries to guess the compression method from the
+    output file name. The only compression format currently supported
+    is "gzip".
 
 verbose: bool
     If True, some extra information will be printed to the console,
@@ -74,6 +97,15 @@ _strategy: "mmap" | "write" | "auto"
     Which method to use for writing to disk. On certain systems 'mmap'
     gives a better performance; on other OSes 'mmap' may not work at
     all.
+
+Returns
+-------
+None if `path` is non-empty. This is the most common case: the output
+is written to the file provided.
+
+String containing the CSV text as if it would have been written to a
+file, if the path is empty or None. If the compression is turned on,
+a bytes object will be returned instead.
 )");
 
 
@@ -88,50 +120,66 @@ oobj Frame::to_csv(const PKArgs& args)
   path = oobj::import("os", "path", "expanduser").call({path});
   std::string filename = path.to_string();
 
-  // nthreads
-  int32_t maxth = static_cast<int32_t>(dt::num_threads_in_pool());
-  int32_t nthreads = args[1].to<int32_t>(maxth);
-  if (nthreads > maxth) nthreads = maxth;
-  if (nthreads <= 0) nthreads += maxth;
-  if (nthreads <= 0) nthreads = 1;
+  // quoting
+  int quoting;
+  if (args[1].is_string()) {
+    auto quoting_str = args[1].to_string();
+    change_to_lowercase(quoting_str);
+    if (quoting_str == "minimal") quoting = 0;
+    else if (quoting_str == "all") quoting = 1;
+    else if (quoting_str == "nonnumeric") quoting = 2;
+    else if (quoting_str == "none") quoting = 3;
+    else {
+      throw ValueError() << "Invalid value of the `quoting` parameter in "
+          "Frame.to_csv(): '" << quoting_str << "'";
+    }
+  } else {
+    quoting = args[1].to<int>(0);
+    if (quoting < 0 || quoting > 3) {
+      throw ValueError() << "Invalid value of the `quoting` parameter in "
+          "Frame.to_csv(): " << quoting;
+    }
+  }
 
   // hex
   bool hex = args[2].to<bool>(false);
 
+  // compress
+  auto compress_str = args[3].to<std::string>("infer");
+  bool compress = false;  // eventually this will be an Enum
+  if (compress_str == "infer") {
+    size_t n = filename.size();
+    compress = (n > 3 && filename[n-3] == '.' &&
+                         filename[n-2] == 'g' &&
+                         filename[n-1] == 'z');
+  } else if (compress_str == "gzip") {
+    compress = true;
+  } else {
+    throw ValueError() << "Unsupported compression method '"
+        << compress_str << "' in Frame.to_csv()";
+  }
+
   // verbose
-  bool verbose = args[3].to<bool>(false);
+  bool verbose = args[4].to<bool>(false);
   oobj logger;
   if (verbose) {
     logger = oobj::import("datatable", "_DefaultLogger").call();
   }
 
-  auto strategy = args[4].to<std::string>("");
+  auto strategy = args[5].to<std::string>("");
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
 
   // Create the CsvWriter object
-  CsvWriter cwriter(dt, filename);
-  cwriter.set_nthreads(static_cast<size_t>(nthreads));
-  cwriter.set_strategy(sstrategy);
-  cwriter.set_usehex(hex);
-  cwriter.set_logger(logger);
-
-  cwriter.write();
-
-  // Post-process the result
-  if (filename.empty()) {
-    WritableBuffer* wb = cwriter.get_output_buffer();
-    MemoryWritableBuffer* mb = dynamic_cast<MemoryWritableBuffer*>(wb);
-    xassert(mb);
-
-    // -1 because the buffer also stores trailing \0
-    size_t len = mb->size() - 1;
-    char* str = static_cast<char*>(mb->get_cptr());
-    return ostring(str, len);
-  }
-
-  return None();
+  dt::write::csv_writer writer(dt, filename);
+  writer.set_strategy(sstrategy);
+  writer.set_usehex(hex);
+  writer.set_logger(logger);
+  writer.set_quoting(quoting);
+  writer.set_compression(compress);
+  writer.write_main();
+  return writer.get_result();
 }
 
 
@@ -141,10 +189,8 @@ oobj Frame::to_csv(const PKArgs& args)
 // Declare Frame methods
 //------------------------------------------------------------------------------
 
-void Frame::Type::_init_tocsv(Methods& mm) {
-  ADD_METHOD(mm, &Frame::to_csv, args_to_csv);
-
-  init_csvwrite_constants();
+void Frame::_init_tocsv(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::to_csv, args_to_csv));
 }
 
 

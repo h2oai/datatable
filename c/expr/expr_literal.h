@@ -29,13 +29,16 @@ namespace expr {
 
 class expr_literal : public base_expr {
   private:
-    colptr col;
+    py::oobj arg;
+    Column col;
 
   public:
     explicit expr_literal(py::robj);
-    SType resolve(const workframe&) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe&) override;
+    bool is_literal_expr() const override;
+    py::oobj get_literal_arg() override;
+    SType resolve(const EvalContext&) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext&) override;
 };
 
 

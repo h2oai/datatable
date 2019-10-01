@@ -9,6 +9,7 @@
 #define dt_SORT_h
 #include "utils/array.h"  // arr32_t
 
+class Column;
 
 struct radix_range {
   size_t size;
@@ -42,7 +43,7 @@ void sort_init_options();
  *     extract and add group information from it. The groups are detected based
  *     on whether the consecutive elements compare equal or not.
  *
- * from_data(strdata, offsets, strstart, indices, n)
+ * from_data(column, indices, n)
  *     Similar to the previous function, but works with string data.
  *
  * from_chunks(rrmap, nr)
@@ -92,8 +93,8 @@ class GroupGatherer {
     template <typename T, typename V>
     void from_data(const T*, V*, size_t);
 
-    template <typename T, typename V>
-    void from_data(const uint8_t*, const T*, T, V*, size_t, bool descending);
+    template <typename V>
+    void from_data(const Column&, const V*, size_t);
 
     void from_chunks(radix_range* rrmap, size_t nradixes);
 
@@ -112,15 +113,15 @@ void insert_sort_keys(const T* x, V* o, V* oo, int n, GroupGatherer& gg);
 template <typename T, typename V>
 void insert_sort_values(const T* x, V* o, int n, GroupGatherer& gg);
 
-template <typename T, typename V>
-void insert_sort_keys_str(const uint8_t*, const T*, T, V*, V*, int, GroupGatherer&, bool);
+template <typename V>
+void insert_sort_keys_str(const Column&, size_t, V*, V*, int, GroupGatherer&, bool);
 
-template <typename T, typename V>
-void insert_sort_values_str(const uint8_t*, const T*, T, V*, int, GroupGatherer&, bool);
+template <typename V>
+void insert_sort_values_str(const Column&, size_t, V*, int, GroupGatherer&, bool);
 
-template <int R, typename T>
-int compare_offstrings(const uint8_t*, T, T, T, T);
-
+template <int R>
+int compare_strings(const CString& a, bool a_isna,
+                    const CString& b, bool b_isna, size_t strstart);
 
 
 extern template void insert_sort_keys(const uint8_t*,  int32_t*, int32_t*, int, GroupGatherer&);
@@ -133,22 +134,17 @@ extern template void insert_sort_values(const uint16_t*, int32_t*, int, GroupGat
 extern template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&);
 extern template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
-extern template void insert_sort_keys_str(  const uint8_t*, const uint32_t*, uint32_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-extern template void insert_sort_values_str(const uint8_t*, const uint32_t*, uint32_t, int32_t*, int, GroupGatherer&, bool);
-extern template void insert_sort_keys_str(  const uint8_t*, const uint64_t*, uint64_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-extern template void insert_sort_values_str(const uint8_t*, const uint64_t*, uint64_t, int32_t*, int, GroupGatherer&, bool);
+extern template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
+extern template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool);
 
-extern template int compare_offstrings<1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
-extern template int compare_offstrings<1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
-extern template int compare_offstrings<-1>(const uint8_t*, uint32_t, uint32_t, uint32_t, uint32_t);
-extern template int compare_offstrings<-1>(const uint8_t*, uint64_t, uint64_t, uint64_t, uint64_t);
+extern template int compare_strings<1>(const CString&, bool, const CString&, bool, size_t);
+extern template int compare_strings<-1>(const CString&, bool, const CString&, bool, size_t);
 
 extern template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
-extern template void GroupGatherer::from_data(const uint8_t*, const uint32_t*, uint32_t, int32_t*, size_t, bool);
-extern template void GroupGatherer::from_data(const uint8_t*, const uint64_t*, uint64_t, int32_t*, size_t, bool);
-
+extern template void GroupGatherer::from_data(const Column&, const int32_t*, size_t);
+extern template void GroupGatherer::from_data(const Column&, const int64_t*, size_t);
 
 #endif

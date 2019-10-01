@@ -9,10 +9,12 @@
 #include <iostream>
 #include <errno.h>
 #include <string.h>
-#include "progress/manager.h"
+#include "parallel/api.h"
+#include "progress/progress_manager.h"
 #include "python/obj.h"
 #include "python/string.h"
 #include "utils/exceptions.h"
+#include "utils/assert.h"
 
 
 // Singleton, used to write the current "errno" into the stream
@@ -38,9 +40,10 @@ static bool is_string_empty(const char* msg) noexcept {
 
 
 void exception_to_python(const std::exception& e) noexcept {
+  wassert(dt::num_threads_in_team() == 0);
   const Error* error = dynamic_cast<const Error*>(&e);
   if (error) {
-    dt::progress::manager.set_error_status(error->is_keyboard_interrupt());
+    dt::progress::manager->set_error_status(error->is_keyboard_interrupt());
     error->to_python();
   }
   else if (!PyErr_Occurred()) {
@@ -94,6 +97,10 @@ Error& Error::operator<<(double v)             { error << v; return *this; }
   Error& Error::operator<<(ssize_t v)          { error << v; return *this; }
 #endif
 
+Error& Error::operator<<(const CString& str) {
+  return *this << std::string(str.ch, static_cast<size_t>(str.size));
+}
+
 Error& Error::operator<<(const py::_obj& o) {
   return *this << o.to_borrowed_ref();
 }
@@ -136,6 +143,11 @@ Error& Error::operator<<(const CErrno&) {
 
 Error& Error::operator<<(SType stype) {
   error << info(stype).name();
+  return *this;
+}
+
+Error& Error::operator<<(LType ltype) {
+  error << info::ltype_name(ltype);
   return *this;
 }
 
@@ -243,9 +255,14 @@ void init_exceptions() {
 
 Warning::Warning(PyObject* cls) : Error(cls) {}
 
-Warning::~Warning() {
+void Warning::emit() {
   const std::string errstr = error.str();
-  PyErr_WarnEx(pycls, errstr.c_str(), 1);
+  // Normally, PyErr_WarnEx returns 0. However, when the `warnings` module is
+  // configured in such a way that all warnings are converted into errors,
+  // then PyErr_WarnEx will return -1. At that point we should throw
+  // an exception too, the error message is already set in Python.
+  int ret = PyErr_WarnEx(pycls, errstr.c_str(), 1);
+  if (ret) throw PyError();
 }
 
 

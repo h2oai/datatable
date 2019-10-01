@@ -7,18 +7,18 @@
 //------------------------------------------------------------------------------
 #ifndef dt_GROUPBY_h
 #define dt_GROUPBY_h
-#include "memrange.h"
+#include "buffer.h"
 #include "rowindex.h"
 
 
 class Groupby {
   private:
-    MemoryRange offsets;
+    Buffer offsets;
     size_t n;
 
   public:
     Groupby();
-    Groupby(size_t _n, MemoryRange&& _offs);
+    Groupby(size_t _n, Buffer&& _offs);
     Groupby(const Groupby&) = default;
     Groupby(Groupby&&) = default;
     Groupby& operator=(const Groupby&) = default;
@@ -27,7 +27,9 @@ class Groupby {
 
     const int32_t* offsets_r() const;
     size_t ngroups() const;
+    size_t size() const noexcept;  // same as ngroups()
     explicit operator bool() const;
+    void get_group(size_t i, size_t* i0, size_t* i1) const;
 
     // Return a RowIndex which can be used to perform "ungrouping" operation.
     // More specifically, it is a RowIndex with the following data:

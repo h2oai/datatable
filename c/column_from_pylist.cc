@@ -3,17 +3,20 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
-#include "column.h"
 #include <cstdlib>         // std::abs
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
+#include "column/range.h"
 #include "python/_all.h"
 #include "python/list.h"   // py::olist
 #include "python/string.h" // py::ostring
 #include "utils/exceptions.h"
 #include "utils/misc.h"
+#include "column.h"
+#include "column_impl.h"
+
 
 //------------------------------------------------------------------------------
 // Helper iterator classes
@@ -117,7 +120,7 @@ py::robj idictlist::item(size_t i) const {
  * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
  * If any other value is encountered, the parse will fail.
  */
-static bool parse_as_bool(const iterable* list, MemoryRange& membuf, size_t& from)
+static bool parse_as_bool(const iterable* list, Buffer& membuf, size_t& from)
 {
   size_t nrows = list->size();
   membuf.resize(nrows);
@@ -149,7 +152,7 @@ static bool parse_as_bool(const iterable* list, MemoryRange& membuf, size_t& fro
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(const iterable* list, MemoryRange& membuf)
+static void force_as_bool(const iterable* list, Buffer& membuf)
 {
   size_t nrows = list->size();
   membuf.resize(nrows);
@@ -179,7 +182,7 @@ static void force_as_bool(const iterable* list, MemoryRange& membuf)
  * parser will fail if the `int` value does not fit into the range of type `T`.
  */
 template <typename T>
-static bool parse_as_int(const iterable* list, MemoryRange& membuf, size_t& from)
+static bool parse_as_int(const iterable* list, Buffer& membuf, size_t& from)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
@@ -220,7 +223,7 @@ static bool parse_as_int(const iterable* list, MemoryRange& membuf, size_t& from
  * as C++'s `static_cast<T>`).
  */
 template <typename T>
-static void force_as_int(const iterable* list, MemoryRange& membuf)
+static void force_as_int(const iterable* list, Buffer& membuf)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
@@ -248,7 +251,7 @@ static void force_as_int(const iterable* list, MemoryRange& membuf)
  * as doubles, and it's extremely hard to determine whether that number should
  * have been a float instead...
  */
-static bool parse_as_double(const iterable* list, MemoryRange& membuf, size_t& from)
+static bool parse_as_double(const iterable* list, Buffer& membuf, size_t& from)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(double));
@@ -284,7 +287,7 @@ static bool parse_as_double(const iterable* list, MemoryRange& membuf, size_t& f
 
 
 template <typename T>
-static void force_as_real(const iterable* list, MemoryRange& membuf)
+static void force_as_real(const iterable* list, Buffer& membuf)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(T));
@@ -316,8 +319,8 @@ static void force_as_real(const iterable* list, MemoryRange& membuf)
 //------------------------------------------------------------------------------
 
 template <typename T>
-static bool parse_as_str(const iterable* list, MemoryRange& offbuf,
-                         MemoryRange& strbuf)
+static bool parse_as_str(const iterable* list, Buffer& offbuf,
+                         Buffer& strbuf)
 {
   size_t nrows = list->size();
   offbuf.resize((nrows + 1) * sizeof(T));
@@ -389,8 +392,8 @@ static bool parse_as_str(const iterable* list, MemoryRange& offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(const iterable* list, MemoryRange& offbuf,
-                         MemoryRange& strbuf)
+static void force_as_str(const iterable* list, Buffer& offbuf,
+                         Buffer& strbuf)
 {
   size_t nrows = list->size();
   if (nrows > std::numeric_limits<T>::max()) {
@@ -452,7 +455,7 @@ static void force_as_str(const iterable* list, MemoryRange& offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static bool parse_as_pyobj(const iterable* list, MemoryRange& membuf)
+static bool parse_as_pyobj(const iterable* list, Buffer& membuf)
 {
   size_t nrows = list->size();
   membuf.resize(nrows * sizeof(PyObject*));
@@ -495,11 +498,10 @@ static SType find_next_stype(SType curr_stype, int stype0) {
 
 
 
-Column* Column::from_py_iterable(const iterable* il, int stype0)
+static Column ocolumn_from_iterable(const iterable* il, int stype0)
 {
-  MemoryRange membuf;
-  MemoryRange strbuf;
-  // TODO: Perhaps `stype` and `curr_stype` should have type SType ?
+  Buffer membuf;
+  Buffer strbuf;
   SType stype = find_next_stype(SType::VOID, stype0);
   size_t i = 0;
   while (stype != SType::VOID) {
@@ -541,7 +543,7 @@ Column* Column::from_py_iterable(const iterable* il, int stype0)
   }
   if (stype == SType::STR32 || stype == SType::STR64) {
     size_t nrows = il->size();
-    return new_string_column(nrows, std::move(membuf), std::move(strbuf));
+    return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }
   else {
     if (stype == SType::OBJ) {
@@ -552,25 +554,25 @@ Column* Column::from_py_iterable(const iterable* il, int stype0)
 }
 
 
-Column* Column::from_pylist(const py::olist& list, int stype0) {
+Column Column::from_pylist(const py::olist& list, int stype0) {
   ilist il(list);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
-Column* Column::from_pylist_of_tuples(
+Column Column::from_pylist_of_tuples(
     const py::olist& list, size_t index, int stype0)
 {
   ituplist il(list, index);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
-Column* Column::from_pylist_of_dicts(
+Column Column::from_pylist_of_dicts(
     const py::olist& list, py::robj name, int stype0)
 {
   idictlist il(list, name);
-  return from_py_iterable(&il, stype0);
+  return ocolumn_from_iterable(&il, stype0);
 }
 
 
@@ -580,39 +582,13 @@ Column* Column::from_pylist_of_dicts(
 // Create from range
 //------------------------------------------------------------------------------
 
-template <typename T>
-static Column* _make_range_column(
-    int64_t start, int64_t length, int64_t step, SType stype)
-{
-  Column* col = Column::new_data_column(stype, static_cast<size_t>(length));
-  T* elems = static_cast<T*>(col->data_w());
-  for (int64_t i = 0, j = start; i < length; ++i) {
-    elems[i] = static_cast<T>(j);
-    j += step;
-  }
-  return col;
-}
-
-
-Column* Column::from_range(
+Column Column::from_range(
     int64_t start, int64_t stop, int64_t step, SType stype)
 {
-  int64_t length = (stop - start - (step > 0 ? 1 : -1)) / step + 1;
-  if (length < 0) length = 0;
-  if (stype == SType::VOID) {
-    stype = (start == static_cast<int32_t>(start) &&
-             stop == static_cast<int32_t>(stop)) ? SType::INT32 : SType::INT64;
+  if (stype == SType::STR32 || stype == SType::STR64 || stype == SType::OBJ) {
+    Column col = Column(new dt::Range_ColumnImpl(start, stop, step));
+    col.cast_inplace(stype);
+    return col;
   }
-  switch (stype) {
-    case SType::INT8:  return _make_range_column<int8_t> (start, length, step, stype);
-    case SType::INT16: return _make_range_column<int16_t>(start, length, step, stype);
-    case SType::INT32: return _make_range_column<int32_t>(start, length, step, stype);
-    case SType::INT64: return _make_range_column<int64_t>(start, length, step, stype);
-    default: {
-      Column* col = _make_range_column<int64_t>(start, length, step, SType::INT64);
-      Column* res = col->cast(stype);
-      delete col;
-      return res;
-    }
-  }
+  return Column(new dt::Range_ColumnImpl(start, stop, step, stype));
 }

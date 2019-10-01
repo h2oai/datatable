@@ -38,14 +38,14 @@
 // `by_node`.
 //
 // Likewise, each `join()` call in python creates a "join_node" object, and we
-// only need to collect these objects into the workframe.
+// only need to collect these objects into the EvalContext.
 //
 //
-// The "workframe" object gathers all the information necessary to evaluate the
+// The "EvalContext" object gathers all the information necessary to evaluate the
 // expression `DT[i, j, ...]` above.
 //
 // We begin evaluation with checking the by- and join- nodes and inserting them
-// into the workframe. This has to be done first, because `i` and `j` nodes can
+// into the EvalContext. This has to be done first, because `i` and `j` nodes can
 // refer to columns from the join frames, and therefore in order to check their
 // correctness we need to know which frames are joined.
 //
@@ -63,11 +63,10 @@
 #include "expr/j_node.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
-
 namespace py {
 
 // Sentinel values for __getitem__() mode
@@ -85,13 +84,60 @@ void Frame::m__setitem__(robj item, robj value) {
 }
 
 
+//------------------------------------------------------------------------------
+// Implementation of various selectors
+//------------------------------------------------------------------------------
+
+oobj Frame::_get_single_column(robj selector) {
+  if (selector.is_int()) {
+    size_t col_index = dt->xcolindex(selector.to_int64_strict());
+    return Frame::oframe(dt->extract_column(col_index));
+  }
+  if (selector.is_string()) {
+    size_t col_index = dt->xcolindex(selector);
+    return Frame::oframe(dt->extract_column(col_index));
+  }
+  throw TypeError() << "Column selector must be an integer or a string, not "
+                    << selector.typeobj();
+}
+
+oobj Frame::_del_single_column(robj selector) {
+  if (selector.is_int()) {
+    size_t col_index = dt->xcolindex(selector.to_int64_strict());
+    intvec columns_to_delete = {col_index};
+    dt->delete_columns(columns_to_delete);
+  }
+  else if (selector.is_string()) {
+    size_t col_index = dt->xcolindex(selector);
+    intvec columns_to_delete = {col_index};
+    dt->delete_columns(columns_to_delete);
+  }
+  else {
+    throw TypeError() << "Column selector must be an integer or a string, not "
+                  << selector.typeobj();
+  }
+  _clear_types();
+  return oobj();
+}
+
+
 oobj Frame::_main_getset(robj item, robj value) {
   rtuple targs = item.to_rtuple_lax();
-  size_t nargs = targs? targs.size() : 0;
+
+  // Single-column-selector case. Commonly used expressions such as
+  // DT[3] or DT["col"] will result in `item` being an int/string not
+  // a tuple, and thus `targs` will be empty.
+  if (!targs) {
+    if (value == GETITEM) return _get_single_column(item);
+    if (value == DELITEM) return _del_single_column(item);
+    return _main_getset(otuple({py::None(), item}), value);
+  }
+
+  size_t nargs = targs.size();
   if (nargs <= 1) {
-    throw ValueError() << "Single-item selectors `DT[col]` are prohibited "
-        "since 0.8.0; please use `DT[:, col]`. In 0.9.0 this expression "
-        "will be interpreted as a row selector instead.";
+    // Selectors of the type `DT[tuple()]` or `DT[0,]`
+    throw ValueError() << "Invalid tuple of size " << nargs
+        << " used as a frame selector";
   }
 
   // "Fast" get/set only handles the case of the form `DT[i, j]` where
@@ -107,37 +153,25 @@ oobj Frame::_main_getset(robj item, robj value) {
     if (a0int && (a1int || arg1.is_string())) {
       int64_t irow = arg0.to_int64_strict();
       int64_t nrows = static_cast<int64_t>(dt->nrows);
-      int64_t ncols = static_cast<int64_t>(dt->ncols);
       if (irow < -nrows || irow >= nrows) {
         throw ValueError() << "Row `" << irow << "` is invalid for a frame "
             "with " << nrows << " row" << (nrows == 1? "" : "s");
       }
       if (irow < 0) irow += nrows;
       size_t zrow = static_cast<size_t>(irow);
-      size_t zcol;
-      if (a1int) {
-        int64_t icol = arg1.to_int64_strict();
-        if (icol < -ncols || icol >= ncols) {
-          throw ValueError() << "Column index `" << icol << "` is invalid "
-              "for a frame with " << ncols << " column" <<
-              (ncols == 1? "" : "s");
-        }
-        if (icol < 0) icol += ncols;
-        zcol = static_cast<size_t>(icol);
-      } else {
-        zcol = dt->xcolindex(arg1);
-      }
-      Column* col = dt->columns[zcol];
-      return col->get_value_at_index(zrow);
+      size_t zcol = a1int? dt->xcolindex(arg1.to_int64_strict())
+                         : dt->xcolindex(arg1);
+      const Column& col = dt->get_column(zcol);
+      return col.get_element_as_pyobject(zrow);
     }
     // otherwise fall-through
   }
 
-  // 1. Create the workframe
-  dt::workframe wf(dt);
-  wf.set_mode(value == GETITEM? dt::EvalMode::SELECT :
+  // 1. Create the EvalContext
+  auto mode = value == GETITEM? dt::EvalMode::SELECT :
               value == DELITEM? dt::EvalMode::DELETE :
-                                dt::EvalMode::UPDATE);
+                                dt::EvalMode::UPDATE;
+  dt::EvalContext ctx(dt, mode);
 
   // 2. Search for join nodes in order to bind all aliases and
   //    to know which frames participate in `DT[...]`.
@@ -147,21 +181,21 @@ oobj Frame::_main_getset(robj item, robj value) {
   for (size_t k = 2; k < nargs; ++k) {
     robj arg = targs[k];
     if ((arg_join = arg.to_ojoin_lax())) {
-      wf.add_join(arg_join);
+      ctx.add_join(arg_join);
       continue;
     }
     if ((arg_by = arg.to_oby_lax())) {
-      wf.add_groupby(arg_by);
+      ctx.add_groupby(arg_by);
       continue;
     }
     if ((arg_sort = arg.to_osort_lax())) {
-      wf.add_sortby(arg_sort);
+      ctx.add_sortby(arg_sort);
       continue;
     }
     if (arg.is_none()) continue;
     if (k == 2 && (arg.is_string() || arg.is_dtexpr())) {
       oby byexpr = oby::make(arg);
-      wf.add_groupby(byexpr);
+      ctx.add_groupby(byexpr);
       continue;
     }
     throw TypeError() << "Invalid item at position " << k
@@ -169,18 +203,19 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
 
   // 3. Instantiate `i_node` and `j_node`.
-  wf.add_i(targs[0]);
-  wf.add_j(targs[1]);
+  xassert(nargs >= 2);
+  ctx.add_i(targs[0]);
+  ctx.add_j(targs[1]);
 
-  if (wf.get_mode() == dt::EvalMode::UPDATE) {
-    wf.add_replace(value);
+  if (mode == dt::EvalMode::UPDATE) {
+    ctx.add_replace(value);
   }
 
-  wf.evaluate();
-  if (wf.get_mode() != dt::EvalMode::SELECT) {
+  ctx.evaluate();
+  if (mode != dt::EvalMode::SELECT) {
     _clear_types();
   }
-  return wf.get_result();
+  return ctx.get_result();
 }
 
 

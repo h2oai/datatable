@@ -13,11 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include <functional>
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "column_impl.h"  // TODO: remove
 
 namespace py {
 
@@ -25,13 +27,6 @@ namespace py {
 //------------------------------------------------------------------------------
 // Frame::cbind
 //------------------------------------------------------------------------------
-
-
-// Forward-declare
-static void check_nrows(DataTable* dt, size_t* nrows);
-static Error item_error(const py::_obj&);
-
-
 
 static PKArgs args_cbind(
   0, 0, 1, true, false,
@@ -75,58 +70,50 @@ force: boolean
 
 
 
-void Frame::cbind(const PKArgs& args) {
-  bool force = args[0]? args[0].to_bool_strict() : false;
+void Frame::cbind(const PKArgs& args)
+{
+  std::vector<py::oobj> frame_objs;
+  std::vector<DataTable*> datatables;
 
-  size_t nrows = dt->nrows == 0 && dt->ncols == 0? size_t(-1) : dt->nrows;
-  std::vector<DataTable*> dts;
-  for (auto va : args.varargs()) {
-    if (va.is_frame()) {
-      DataTable* idt = va.to_datatable();
-      if (idt->ncols == 0) continue;
-      if (!force) check_nrows(idt, &nrows);
-      dts.push_back(idt);
+  std::function<void(robj)> collect_arg = [&](robj item) -> void {
+    if (item.is_frame()) {
+      DataTable* idt = item.to_datatable();
+      if (idt->ncols == 0) return;
+      frame_objs.emplace_back(item);
+      datatables.push_back(idt);
     }
-    else if (va.is_iterable()) {
-      for (auto item : va.to_oiter()) {
-        if (item.is_frame()) {
-          DataTable* idt = item.to_datatable();
-          if (idt->ncols == 0) continue;
-          if (!force) check_nrows(idt, &nrows);
-          dts.push_back(idt);
-        } else {
-          throw item_error(item);
-        }
+    else if (item.is_list_or_tuple() || item.is_generator()) {
+      for (auto subitem : item.to_oiter()) {
+        collect_arg(subitem);
       }
+    } else if (item.is_none()) {
+      return;
     } else {
-      throw item_error(va);
+      throw TypeError() << "Frame.cbind() expects a list or sequence of "
+          "Frames, but got an argument of type " << item.typeobj();
+    }
+  };
+
+  for (auto va : args.varargs()) {
+    collect_arg(va);
+  }
+
+  bool force = args[0]? args[0].to_bool_strict() : false;
+  if (!force) {
+    size_t nrows = (dt->nrows == 0 && dt->ncols == 0)? 1 : dt->nrows;
+    for (DataTable* idt : datatables) {
+      size_t inrows = idt->nrows;
+      if (nrows == 1) nrows = inrows;
+      if (nrows == inrows || inrows == 1) continue;
+      throw ValueError() << "Cannot cbind frame with " << inrows << " rows to "
+          "a frame with " << nrows << " rows. Use `force=True` to disregard "
+          "this check and merge the frames anyways.";
     }
   }
 
+  dt->cbind(datatables);
   _clear_types();
-  dt->cbind(dts);
 }
-
-
-static void check_nrows(DataTable* dt, size_t* nrows) {
-  size_t inrows = dt->nrows;
-  if (*nrows == 1 || *nrows == size_t(-1)) *nrows = inrows;
-  if (*nrows == inrows || inrows == 1) return;
-  throw ValueError() << "Cannot cbind frame with " << inrows << " rows to "
-      "a frame with " << *nrows << " rows. Use `force=True` to disregard "
-      "this check and merge the frames anyways.";
-}
-
-static Error item_error(const py::_obj& item) {
-  return TypeError() << "Frame.cbind() expects a list or sequence of Frames, "
-      "but got an argument of type " << item.typeobj();
-}
-
-
-void Frame::Type::_init_cbind(Methods& mm) {
-  ADD_METHOD(mm, &Frame::cbind, args_cbind);
-}
-
 
 
 
@@ -140,74 +127,81 @@ static PKArgs args_dt_cbind(
 
 static oobj dt_cbind(const PKArgs& args) {
   oobj r = oobj::import("datatable", "Frame").call();
+  xassert(r.is_frame());
   PyObject* rv = r.to_borrowed_ref();
   reinterpret_cast<Frame*>(rv)->cbind(args);
   return r;
 }
 
 
+
+void Frame::_init_cbind(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::cbind, args_cbind));
+}
+
 void DatatableModule::init_methods_cbind() {
   ADD_FN(&dt_cbind, args_dt_cbind);
 }
 
+
+
+
 }  // namespace py
-
-
-
 //------------------------------------------------------------------------------
 // DataTable::cbind
 //------------------------------------------------------------------------------
 
 /**
- * Merge datatables `dts` into the datatable `dt`, by columns. Datatable `dt`
- * will be modified in-place. If any datatable has less rows than the others,
- * it will be filled with NAs; with the exception of 1-row datatables which will
- * be expanded to the desired height by duplicating that row.
+ * Merge `datatables` into the current DataTable, modifying it in-place. If any
+ * DataTable has less rows than the others, it will be filled with NAs; with
+ * the exception of 1-row datatables which will be expanded to the desired
+ * height by duplicating that row.
  */
-void DataTable::cbind(const std::vector<DataTable*>& dts)
+void DataTable::cbind(const std::vector<DataTable*>& datatables)
 {
-  size_t t_ncols = ncols;
-  size_t t_nrows = nrows;
-  for (auto dt : dts) {
-    t_ncols += dt->ncols;
-    if (t_nrows < dt->nrows) t_nrows = dt->nrows;
+  size_t final_ncols = ncols;
+  size_t final_nrows = nrows;
+  for (DataTable* dt : datatables) {
+    final_ncols += dt->ncols;
+    if (final_nrows < dt->nrows) final_nrows = dt->nrows;
   }
 
-  // Fix up the main datatable if it has too few rows
-  if (nrows < t_nrows) {
-    for (auto col : columns) {
-      col->resize_and_fill(t_nrows);
-    }
-    nrows = t_nrows;
-  }
+  bool fix_columns = (nrows < final_nrows);
+  strvec newnames = names;
+  columns.reserve(final_ncols);
 
-  // Append columns from `dts` into the "main" datatable
-  //
   // NOTE: when appending a DataTable to itself, the following happens:
   // we start changing `this->columns` vector, which thus becomes
   // temporarily out-of-sync with `this->ncols` field (which reflects the
   // original number of columns). Thus, when iterating over columns of
   // `dt`, it is important NOT to use `for (col : dt->columns)` iterator.
   //
-  std::vector<std::string> newnames = names;
-  columns.reserve(t_ncols);
-  for (auto dt : dts) {
-    size_t ncolsi = dt->ncols;
-    bool fix_columns = (dt->nrows < t_nrows);
-    for (size_t ii = 0; ii < ncolsi; ++ii) {
-      Column* c = dt->columns[ii]->shallowcopy();
-      if (fix_columns) c->resize_and_fill(t_nrows);
-      columns.push_back(c);
+  for (auto dt : datatables) {
+    fix_columns |= (dt->nrows < final_nrows);
+    for (size_t ii = 0; ii < dt->ncols; ++ii) {
+      columns.push_back(dt->columns[ii]);
     }
     const auto& namesi = dt->names;
-    xassert(namesi.size() == ncolsi);
+    xassert(namesi.size() == dt->ncols);
     newnames.insert(newnames.end(), namesi.begin(), namesi.end());
   }
-  xassert(columns.size() == t_ncols);
-  xassert(newnames.size() == t_ncols);
+  xassert(columns.size() == final_ncols);
+  xassert(newnames.size() == final_ncols);
+
+  // Fix up the DataTable's columns if they have different number of rows
+  if (fix_columns) {
+    for (Column& col : columns) {
+      if (col.nrows() == 1) {
+        col.repeat(final_nrows);
+      } else {
+        col.resize(final_nrows);  // padding with NAs
+      }
+    }
+  }
 
   // Done.
-  ncols = t_ncols;
+  nrows = final_nrows;
+  ncols = final_ncols;
   set_names(newnames);
 }
 

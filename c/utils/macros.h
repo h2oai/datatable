@@ -23,6 +23,78 @@
 #define dt_UTILS_MACROS_h
 
 
+//------------------------------------------------------------------------------
+// Operating system
+//------------------------------------------------------------------------------
+
+#define DT_OS_WINDOWS 0
+#define DT_OS_DARWIN  0
+#define DT_OS_LINUX   0
+
+#ifdef _WIN32
+  #undef  DT_OS_WINDOWS
+  #define DT_OS_WINDOWS 1
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+  #undef  DT_OS_DARWIN
+  #define DT_OS_DARWIN 1
+#endif
+
+#if defined(__linux) || defined(__linux__)
+  #undef  DT_OS_LINUX
+  #define DT_OS_LINUX 1
+#endif
+
+#if (DT_OS_LINUX || DT_OS_DARWIN)
+  #define DT_UNIX 1
+#else
+  #define DT_UNIX 0
+#endif
+
+#if DT_OS_WINDOWS + DT_OS_DARWIN + DT_OS_LINUX != 1
+  #error Unknown operating system
+#endif
+
+
+
+//------------------------------------------------------------------------------
+// Platform
+//------------------------------------------------------------------------------
+
+#define DT_ARCH_X86_64    0
+#define DT_ARCH_PPC64_LE  0
+#define DT_ARCH_AARCH64   0
+
+#if DT_OS_WINDOWS
+  #if defined(_M_AMD64) || defined(__x86_64)
+    #undef  DT_ARCH_X86_64
+    #define DT_ARCH_X86_64 1
+  #endif
+
+#elif DT_UNIX
+  #if defined(__x86_64)
+    #undef  DT_ARCH_X86_64
+    #define DT_ARCH_X86_64 1
+  #elif defined(__powerpc64__) && defined(__LITTLE_ENDIAN__)
+    #undef  DT_ARCH_PPC64_LE
+    #define DT_ARCH_PPC64_LE 1
+  #elif defined(__aarch64__)
+    #undef  DT_ARCH_AARCH64
+    #define DT_ARCH_AARCH64 1
+  #endif
+#endif
+
+#if DT_ARCH_X86_64 + DT_ARCH_PPC64_LE + DT_ARCH_AARCH64 != 1
+  #error Unknown Platform
+#endif
+
+
+
+//------------------------------------------------------------------------------
+// Compiler
+//------------------------------------------------------------------------------
+
 #if defined(__clang__)
   #define FALLTHROUGH [[clang::fallthrough]]
 #elif defined(__GNUC__) && __GNUC__ >= 7

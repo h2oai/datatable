@@ -11,8 +11,20 @@ import datatable as dt
 import pytest
 import random
 import re
+import sys
 from datatable.internal import frame_integrity_check
 from tests import find_file, same_iterables
+
+
+def test_issue1935():
+    # Check that giving wrong command to `cmd=` parameter raises
+    # an error instead of returning an empty Frame silently.
+    with pytest.raises(ValueError) as e:
+        dt.fread(cmd="leeroy jenkins")
+    assert ("Shell command returned error code" in str(e.value))
+    # This may need adjustments for different OSes
+    assert re.search(r"leeroy:(?: command)? not found\s*", str(e.value))
+
 
 
 #-------------------------------------------------------------------------------
@@ -99,8 +111,8 @@ def test_issue_R2287(v):
     """
     with pytest.raises(Exception) as e:
         dt.fread("A,B\nfoo,1\nbar" + v)
-    assert 'expected 2 but found only 1' in str(e)
-    assert ('<<bar%s>>' % v) in str(e)
+    assert 'expected 2 but found only 1' in str(e.value)
+    assert ('<<bar%s>>' % v) in str(e.value)
 
 
 def test_issue_R2299():
@@ -113,7 +125,7 @@ def test_issue_R2299():
     with pytest.raises(Exception) as e:
         dt.fread(src)
     assert re.search("Too few fields on line 102: expected 2 but found only 1",
-                     str(e))
+                     str(e.value))
 
 
 def test_issue_R2351(tempfile):

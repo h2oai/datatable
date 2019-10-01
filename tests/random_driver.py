@@ -10,12 +10,11 @@
 #     python tests/random_driver.py --help
 #
 #-------------------------------------------------------------------------------
-import blessed
 import os
 import subprocess
 import random
+from datatable.utils.terminal import term
 
-term = blessed.Terminal()
 skip_successful_seeds = False
 save_logs_to_file = False
 
@@ -47,8 +46,11 @@ def start_random_attack(n_attacks=None, maxfail=None):
 
 
 def try_seed(seed):
+    utf8_env = os.environ
+    utf8_env['PYTHONIOENCODING'] = 'utf-8'
     proc = subprocess.Popen(["python", "random_attack.py", str(seed)],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            env=utf8_env)
     try:
         out, err = proc.communicate(timeout=100)
     except subprocess.TimeoutExpired:

@@ -27,6 +27,30 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][]
 
+### Fixed
+
+- Fixed error when displaying `help(dt)` (#1931).
+
+- `fread(cmd=)` now throws an error if it occurred while running the provided
+  command `cmd` in the shell. Previously the error was silently discarded
+  (#1935).
+
+- datatable now correctly handles the case of a degenerate range, producing
+  an empty Frame instead of a 1-row Frame (#1942).
+
+- Fixed crash when computing mode stat for a view frame (#1953).
+
+
+### Changed
+
+- Support for NFF format was removed. This was an old datatable's format for
+  storing data frames on disk, and it was deprecated in favor of Jay over a
+  year ago. If you still have any data stored in NFF format, we recommend to
+  re-save in Jay using datatable 0.9.
+
+
+## [0.9.0][] — 2019-06-15
+
 ### Added
 
 - Added function `dt.models.kfold(nrows, nsplits)` to prepare indices for
@@ -84,6 +108,28 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   that can be applied to datatable Frames. The set of functions is close to
   what is available in the standard python `math` module. See documentation
   for more details.
+
+- New module `datatable.sphinxext.dtframe_directive`, which can be used as
+  a plugin for Sphinx. This module adds directive `.. dtframe` that allows
+  to easily include a Frame display in an .rst document.
+
+- Frame can now be treated as an iterable over the columns. Thus, a Frame
+  object can now be used in a for-loop, producing its individual columns.
+
+- A Frame can now be treated as a mapping; in particular both `dict(frame)`
+  and `**frame` are now valid.
+
+- Single-column frames can be be used as sources for Frame construction.
+
+- CSV writer now quotes fields containing single-quote mark (`'`).
+
+- Added parameter `quoting=` to method `Frame.to_csv()`. The accepted values
+  are 4 constants from the standard `csv` module: `csv.QUOTE_MINIMAL`
+  (default), `csv.QUOTE_ALL`, `csv.QUOTE_NONNUMERIC` and `csv.QUOTE_NONE`.
+
+- Added parameter `compression=` to method `Frame.to_csv()`, with possibility
+  to request gzip compression for the output file. By default the compression
+  method will be inferred from the file name.
 
 
 ### Fixed
@@ -160,6 +206,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed crash that occurred when sorting by multiple columns, and the first
   column is of low cardinality (#1857).
 
+- Fixed display of NA values produced during a join, when a Frame was displayed
+  in Jupyter Lab (#1872).
+
+- Fixed a crash when replacing values in a str64 column (#1890).
+
+- `cbind()` no longer throws an error when passed a generator producing
+  temporary frames (#1905).
+
+- Fixed comparison of string columns vs. value `None` (#1912).
+
+- Fixed a crash when trying to select individual cells from a joined Frame,
+  for the cells that were un-matched during the join (#1917).
+
+- Fixed a crash when writing a joined frame into CSV (#1919).
+
+- Fixed a crash when writing into CSV string view columns, especially of
+  str64 type (#1921).
+
 
 ### Changed
 
@@ -179,6 +243,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `datatable` no longer uses OpenMP for parallelism. Instead, we use our own
   thread pool to perform multi-threaded computations (#1736).
 
+- Parameter `progress_fn` in function `dt.models.aggregate()` is removed.
+  In its place you can set the global option `dt.options.progress.callback`.
+
+- Removed deprecated Frame methods `.topython()`, `.topandas()`, `.tonumpy()`,
+  and `Frame.__call__()`.
+
+- Syntax `DT[col]` has been restored (was previously deprecated in 0.7.0),
+  however it works only for `col` an integer or a string. Support for slices
+  may be added in the future, or not: there is a potential to confuse
+  `DT[a:b]` for a row selection. A column slice may still be selected via
+  the i-j selector `DT[:, a:b]`.
+
+- The `nthreads=` parameter in `Frame.to_csv()` was removed. If needed, please
+  set the global option `dt.options.nthreads`.
+
 
 ### Deprecated
 
@@ -192,23 +271,32 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   other `.to_*()` methods). The old name is still usable, but marked as
   deprecated and will be removed in 0.10.0.
 
-- Parameter `progress_fn` in function `dt.models.aggregate()` is deprecated,
-  to be removed in 0.9.0. In its place you can set the global option
-  `dt.options.progress.callback`.
-
 
 ### Notes
 
 - Thanks to everyone who helped make `datatable` more stable by discovering
   and reporting bugs that were fixed in this release:
 
-  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857),
+  - [Arno Candel][] (#1619, #1730, #1738, #1800, #1803, #1846, #1857, #1890,
+    #1891, #1919, #1921),
+
   - [Antorsae][] (#1639),
+
+  - [Olivier][] (#1872),
+
   - [Hawk Berry][] (#1834),
+
   - [Jonathan McKinney][] (#1816, #1837),
+
+  - [Mateusz Dymczyk][] (#1912),
+
   - [NachiGithub][] (#1789, #1793),
-  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705)
-  - [Tom Kraljevic][] (#1805)
+
+  - [Pasha Stetsenko][] (#1672, #1694, #1695, #1697, #1703, #1705, #1905,
+    #1917),
+
+  - [Tom Kraljevic][] (#1805),
+
   - [XiaomoWu][] (#1825)
 
 
@@ -1107,7 +1195,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-[unreleased]: https://github.com/h2oai/datatable/compare/v0.8.0...HEAD
+[unreleased]: https://github.com/h2oai/datatable/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/h2oai/datatable/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/h2oai/datatable/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/h2oai/datatable/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/h2oai/datatable/compare/v0.5.0...v0.6.0
@@ -1128,6 +1217,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [hawk berry]: https://github.com/hawkberry
 [jonathan mckinney]: https://github.com/pseudotensor
 [joseph granados]: https://github.com/g-eoj
+[mateusz dymczyk]: https://github.com/mdymczyk
 [megan kurka]: https://github.com/meganjkurka
 [michael frasco]: https://github.com/mfrasco
 [michal raška]: https://github.com/michal-raska

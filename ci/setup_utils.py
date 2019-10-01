@@ -109,6 +109,9 @@ class TaskContext:
 def dtroot():
     return os.path.abspath(os.path.join(os.path.basename(__file__), ".."))
 
+def dtpath(*args):
+    return os.path.join(dtroot(), *args)
+
 def islinux():
     return sys.platform == "linux"
 
@@ -122,14 +125,24 @@ def iswindows():
 
 
 def get_datatable_version():
+    # According to PEP-440, the canonical version must have the following
+    # general form:
+    #
+    #     [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
+    #
+    # In the version file we allow only `N(.N)*[{a|b|rc}N]`, with "dev" suffix
+    # optionally added afterwards from CI_VERSION_SUFFIX environment variable.
+    #
     with TaskContext("Determine datatable version") as log:
         version = None
-        filename = os.path.join(dtroot(), "datatable", "__version__.py")
+        filename = dtpath("datatable", "__version__.py")
         if not os.path.isfile(filename):
             log.fatal("The version file %s does not exist" % filename)
         log.info("Reading file " + filename)
         with open(filename, encoding="utf-8") as f:
-            rx = re.compile(r"version\s*=\s*['\"]([\d.]*)['\"]\s*")
+            rx = re.compile(r"version\s*=\s*['\"]"
+                            r"(\d+(?:\.\d+)+(?:(?:a|b|rc)\d*)?)"
+                            r"['\"]\s*")
             for line in f:
                 mm = re.match(rx, line)
                 if mm is not None:
@@ -142,14 +155,14 @@ def get_datatable_version():
         # Append build suffix if necessary
         suffix = os.environ.get("CI_VERSION_SUFFIX")
         if suffix:
-            # See https://www.python.org/dev/peps/pep-0440/ for the acceptable
-            # versioning schemes.
-            log.info("... appending version suffix " + suffix)
+            log.info("Appending suffix from CI_VERSION_SUFFIX = " + suffix)
             mm = re.match(r"(?:master|dev)[.+_-]?(\d+)", suffix)
             if mm:
                 suffix = "dev" + str(mm.group(1))
             version += "." + suffix
             log.info("Final version = " + version)
+        else:
+            log.info("Environment variable CI_VERSION_SUUFFIX not present")
         return version
 
 
@@ -368,14 +381,14 @@ def get_compile_includes():
         includes.add("c")
         log.info("`c` is the main C++ source directory")
 
+        # Adding the include directory in sys.prefix as an -isystem flag breaks
+        # gcc because it messes with its include_next mechanism on Fedora where
+        # sys.prefix resolves to /usr.  It doesn't seem necessary either because
+        # with non-standard sys.prefix, CONFINCLUDEPY is good enough.
         confincludepy = sysconfig.get_config_var("CONFINCLUDEPY")
         if confincludepy:
             includes.add(confincludepy)
             log.info("`%s` added from CONFINCLUDEPY" % confincludepy)
-
-        sysprefixinclude = os.path.join(sys.prefix, "include")
-        includes.add(sysprefixinclude)
-        log.info("`%s` added from sys.prefix" % sysprefixinclude)
 
         # Include path to C++ header files
         llvmdir = get_llvm()
@@ -388,11 +401,12 @@ def get_compile_includes():
             log.info("`%s` added from Llvm package" % dir2)
 
         includes = list(includes)
+
         for i, d in enumerate(includes):
             if not os.path.isdir(d):
                 includes[i] = None
                 log.info("Directory `%s` not found, ignoring" % d)
-    return sorted(i for i in includes if i is not None)
+    return [i for i in includes if i is not None]
 
 
 
@@ -467,6 +481,8 @@ def get_extra_compile_flags():
             #   -Wswitch-enum: generates spurious warnings about missing
             #       cases even if `default` clause is present. -Wswitch
             #       does not suffer from this drawback.
+            #   -Wreserved-id-macros: macro _XOPEN_SOURCE is standard on Linux
+            #       platform, unclear why Clang would complain about it.
             #   -Wweak-template-vtables: this waning's purpose is unclear, and
             #       it is also unclear how to prevent it...
             #   -Wglobal-constructors, -Wexit-time-destructors: having static
@@ -480,8 +496,10 @@ def get_extra_compile_flags():
                 "-Wno-exit-time-destructors",
                 "-Wno-float-equal",
                 "-Wno-global-constructors",
+                "-Wno-reserved-id-macro",
                 "-Wno-switch-enum",
                 "-Wno-weak-template-vtables",
+                "-Wno-weak-vtables",
             ]
         elif is_gcc():
             # Ignored warnings:
@@ -548,6 +566,10 @@ def get_extra_link_args():
                           for lib in find_linked_dynamic_libraries()))
         for lib in libs:
             flags += ["-L%s" % lib]
+
+        # link zlib compression library
+        flags += ["-lz"]
+        flags += ["-L" + sysconfig.get_config_var("LIBDIR")]
 
         for flag in flags:
             log.info(flag)
@@ -621,8 +643,9 @@ def find_linked_dynamic_libraries():
                 else:
                     log.fatal("Cannot locate dynamic library `%s`" % libname)
             else:
-                log.fatal("`locate` command returned the following error:\n%s"
-                          % stderr.decode())
+                print("%s :::: %d :::: %s" % (libname, proc.returncode, stdout.decode()))
+                log.fatal("`locate` command returned the following error while looking for %s:\n%s"
+                          % (libname, stderr.decode()))
         return resolved
 
 
@@ -671,7 +694,7 @@ def monkey_patch_compiler():
                                                  lib[len("@rpath/"):])
                     if not os.path.isfile(resolved_name):
                         raise SystemExit("Dependency %s does not exist"
-                                         % resolved_name)
+                                        % resolved_name)
                 else:
                     resolved_name = lib
                 if resolved_name == executable:
@@ -720,14 +743,63 @@ def monkey_patch_compiler():
             return compiler_so
 
 
-        def link(self, *args, **kwargs):
-            super().link(*args, **kwargs)
-            outname = args[2] if len(args) >= 3 else kwargs["output_filename"]
-            outdir = args[3] if len(args) >= 4 else kwargs["output_dir"]
-            if outdir is not None:
-                outname = os.path.join(outdir, outname)
+        def fixup_linker(self):
+            # Remove duplicate arguments
+            # Remove any explicit library paths -- having a user-defined library
+            # path before -L/usr/lib messes up with dylib resolution, and we end
+            # up creating a wrong .so file.
+            seen_args = set()
+            new_linker = []
+            delayed_args = []
+            for arg in self.library_dirs:
+                if not arg.startswith("-L"):
+                    arg = "-L" + arg
+                delayed_args.append(arg)
+            for arg in self.linker_so:
+                if arg in seen_args: continue
+                seen_args.add(arg)
+                if arg.startswith("-L"):
+                    delayed_args.append(arg)
+                else:
+                    new_linker.append(arg)
+            self.linker_so = new_linker
+            self.library_dirs = []
+            self.delayed_libraries = delayed_args
+
+
+        def link(self,
+                 target_desc,
+                 objects,
+                 output_filename,
+                 output_dir=None,
+                 libraries=None,
+                 library_dirs=None,
+                 runtime_library_dirs=None,
+                 export_symbols=None,
+                 debug=0,
+                 extra_preargs=None,
+                 extra_postargs=None,
+                 build_temp=None,
+                 target_lang=None):
+            self.fixup_linker()
+            extra_postargs.extend(self.delayed_libraries)
+            super().link(target_desc=target_desc,
+                         objects=objects,
+                         output_filename=output_filename,
+                         output_dir=output_dir,
+                         libraries=libraries,
+                         library_dirs=library_dirs,
+                         runtime_library_dirs=runtime_library_dirs,
+                         export_symbols=export_symbols,
+                         debug=debug,
+                         extra_preargs=extra_preargs,
+                         extra_postargs=extra_postargs,
+                         build_temp=build_temp,
+                         target_lang=target_lang)
+            if output_dir is not None:
+                output_filename = os.path.join(output_dir, output_filename)
             if ismacos():
-                self.postlink(outname)
+                self.postlink(output_filename)
 
 
         def postlink(self, outname):
@@ -770,7 +842,6 @@ if __name__ == "__main__":
         if cmd == "--help":
             usage()
         elif cmd == "ccflags":
-            os.environ["DTDEBUG"] = "1"  # Force the debug flag
             flags = [get_default_compile_flags()] + get_extra_compile_flags()
             print(" ".join(flags))
         elif cmd == "compiler":
@@ -778,7 +849,6 @@ if __name__ == "__main__":
         elif cmd == "ext_suffix":
             print(sysconfig.get_config_var("EXT_SUFFIX"))
         elif cmd == "ldflags":
-            os.environ["DTDEBUG"] = "1"  # Force the debug flag
             flags = [get_default_link_flags()] + get_extra_link_args()
             print(" ".join(flags))
         elif cmd == "version":

@@ -31,7 +31,7 @@ import sys
 import time
 from collections import namedtuple
 from datatable import stype, ltype
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 from datatable.lib import core
 from tests import same_iterables, list_equals, noop, isview, assert_equals
 
@@ -77,7 +77,7 @@ def assert_valueerror(frame, rows, error_message):
 
 
 #-------------------------------------------------------------------------------
-# Run the tests
+# Generic tests
 #-------------------------------------------------------------------------------
 
 def test_platform():
@@ -156,12 +156,32 @@ def test_dt_version():
     assert len(dt.__git_revision__) == 40
 
 
+def test_dt_help():
+    # Issue #1931: verify that rendering help does not throw an error
+    import pydoc
+    from io import StringIO
+    try:
+        original_pager = pydoc.pager
+        pydoc.pager = pydoc.plainpager
+        buf = sys.stdout = StringIO()
+        help(dt)
+        out = buf.getvalue()
+        assert len(out) > 30000
+        assert "class Frame(" in out
+    finally:
+        # Restore the original stdout / pydoc pager
+        sys.stdout = sys.__stdout__
+        pydoc.pager = original_pager
+
+
+
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.Frame)
     frame_integrity_check(dt0)
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
+    assert dt0.ndims == 2
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.ltypes == (ltype.int, ltype.bool, ltype.bool, ltype.real,
                           ltype.bool, ltype.bool, ltype.str)
@@ -178,65 +198,6 @@ def test_sizeof():
 @cpp_test
 def test_coverage():
     core.test_coverage()
-
-
-def test_multiprocessing_threadpool():
-    # Verify that threads work properly after forking (#1758)
-    import multiprocessing as mp
-    from datatable.internal import get_thread_ids
-    parent_threads = get_thread_ids()
-    n = 4
-    pool = mp.Pool(processes=n)
-    child_threads = pool.starmap(get_thread_ids, [()] * n, chunksize=1)
-    assert len(child_threads) == n
-    for chthreads in child_threads:
-        assert len(parent_threads) == len(chthreads)
-        assert chthreads != parent_threads
-
-
-@cpp_test
-def test_internal_shared_mutex():
-    core.test_shmutex(500, dt.options.nthreads * 2, 1)
-
-
-@cpp_test
-def test_internal_shared_bmutex():
-    core.test_shmutex(1000, dt.options.nthreads * 2, 0)
-
-
-@cpp_test
-def test_internal_atomic():
-    core.test_atomic()
-
-
-@cpp_test
-def test_internal_barrier():
-    core.test_barrier(100)
-
-
-@cpp_test
-def test_internal_parallel_for_static():
-    core.test_parallel_for_static(1000)
-
-
-@cpp_test
-def test_internal_parallel_for_dynamic():
-    core.test_parallel_for_dynamic(1000)
-
-
-@cpp_test
-def test_internal_parallel_for_ordered1():
-    core.test_parallel_for_ordered(17234)
-
-
-@cpp_test
-def test_internal_parallel_for_ordered2():
-    n0 = dt.options.nthreads
-    try:
-        dt.options.nthreads = 2
-        core.test_parallel_for_ordered(17234)
-    finally:
-        dt.options.nthreads = n0
 
 
 def test_internal_compiler_version():
@@ -302,19 +263,116 @@ def test_dt_getitem(dt0):
     with pytest.raises(TypeError) as e:
         noop(dt0[0, 1, 2, 3])
     assert "Invalid item at position 2 in DT[i, j, ...] call" == str(e.value)
-    with pytest.raises(ValueError) as e:
-        noop(dt0["A"])
-    assert ("Single-item selectors `DT[col]` are prohibited"
-            in str(e.value))
+
+
+def test_dt_getitem2(dt0):
+    assert_equals(dt0["A"], dt0[:, "A"])
+    assert_equals(dt0[1], dt0[:, 1])
+
+
+def test_frame_as_iterable(dt0):
+    assert iter(dt0)
+    assert iter(dt0).__length_hint__() == dt0.ncols
+    for i, col in enumerate(dt0):
+        assert_equals(col, dt0[:, i])
+    for i, col in enumerate(reversed(dt0)):
+        assert_equals(col, dt0[:, -i-1])
+
+
+def test_frame_star_expansion(dt0):
+    def foo(*args):
+        for arg in args:
+            assert isinstance(arg, dt.Frame)
+            assert arg.shape == (dt0.nrows, 1)
+            frame_integrity_check(arg)
+
+    foo(*dt0)
+
+
+@pytest.mark.usefixtures("py36")
+def test_frame_as_mapping(dt0):
+    assert dt0.keys() == dt0.names
+    i = 0
+    for name, col in dict(dt0).items():
+        assert name == dt0.names[i]
+        assert_equals(col, dt0[:, i])
+        i += 1
+
+
+def test_frame_doublestar_expansion(dt0):
+    def foo(**kwds):
+        for name, col in kwds.items():
+            assert isinstance(name, str)
+            assert isinstance(col, dt.Frame)
+            assert col.shape == (dt0.nrows, 1)
+            assert name == col.names[0]
+            frame_integrity_check(col)
+
+    foo(**dt0)
 
 
 def test_issue1406(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0[tuple()])
-    assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
+    assert "Invalid tuple of size 0 used as a frame selector" in str(e.value)
     with pytest.raises(ValueError) as e:
-        noop(dt0[(None,)])
-    assert "Single-item selectors `DT[col]` are prohibited" in str(e.value)
+        noop(dt0[3,])
+    assert "Invalid tuple of size 1 used as a frame selector" in str(e.value)
+
+
+def test_warnings_as_errors():
+    # See issue #2005
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        try:
+            dt.fread("A,A,A\n1,2,3")
+        except dt.DatatableWarning as e:
+            assert "Duplicate column names found" in str(e)
+            assert "SystemError" not in str(e)
+            assert e.__cause__ is None
+
+
+def test_names_deduplication():
+    with pytest.warns(dt.DatatableWarning):
+        DT = dt.Frame(names=["A", "A01", "A01"])
+        assert DT.names == ("A", "A01", "A2")
+
+
+#-------------------------------------------------------------------------------
+# Run several random attacks on a datatable as a whole
+#-------------------------------------------------------------------------------
+
+# To pick up attacks based on the corresponding weights, random attacker
+# uses random.choices(), introduced in Python 3.6.
+@pytest.mark.usefixtures("py36")
+def test_random_attack():
+    import subprocess
+    cmd_run = "./tests/random_driver.py"
+    proc = subprocess.Popen(["python", cmd_run,
+                            "-v", "-n 5"],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate(timeout=100)
+    assert("FAIL" not in out.decode())
+    assert(err.decode() == '')
+
+
+#-------------------------------------------------------------------------------
+# Stype
+#-------------------------------------------------------------------------------
+
+def test_dt_stype(dt0):
+    assert dt0[0].stype == stype.int8
+    assert dt0[1].stype == stype.bool8
+    assert dt0[:, [1, 2, 4, 5]].stype == stype.bool8
+    assert dt0[-1].stype == stype.str32
+
+
+def test_dt_stype_heterogenous(dt0):
+    with pytest.raises(ValueError) as e:
+        noop(dt0.stype)
+    assert ("The stype of column 'B' is `bool8`, which is different "
+            "from the stype of the previous column" in str(e.value))
 
 
 
@@ -339,14 +397,14 @@ def test_dt_colindex_bad1(dt0):
 def test_dt_colindex_bad2(dt0):
     with pytest.raises(ValueError) as e:
         dt0.colindex(7)
-    assert ("Column index `7` is invalid for a Frame with 7 columns" ==
+    assert ("Column index `7` is invalid for a frame with 7 columns" ==
             str(e.value))
 
 
 def test_dt_colindex_bad3(dt0):
     with pytest.raises(ValueError) as e:
         dt0.colindex(-8)
-    assert ("Column index `-8` is invalid for a Frame with 7 columns" ==
+    assert ("Column index `-8` is invalid for a frame with 7 columns" ==
             str(e.value))
 
 
@@ -1168,13 +1226,9 @@ def test_materialize():
     DT2 = dt.repeat(dt.Frame(B=["red", "green", "blue"]), 2)
     DT3 = dt.Frame(C=[4, 2, 9.1, 12, 0])
     DT = dt.cbind(DT1, DT2, DT3, force=True)
-    assert frame_column_rowindex(DT, 0).type == "slice"
-    assert frame_column_rowindex(DT, 1).type == "arr32"
-    assert frame_column_rowindex(DT, 2) is None
+    assert frame_columns_virtual(DT) == (True, True, True)
     DT.materialize()
-    assert frame_column_rowindex(DT, 0) is None
-    assert frame_column_rowindex(DT, 1) is None
-    assert frame_column_rowindex(DT, 2) is None
+    assert frame_columns_virtual(DT) == (False, False, False)
 
 
 def test_materialize_object_col():
@@ -1226,6 +1280,9 @@ def parse_html_repr(html):
     rows = []
     for str_row in str_rows:
         row = re.findall("<td>(.*?)</td>", str_row, re.S)
+        for i, elem in enumerate(row):
+            if elem == "<span class=na>NA</span>":
+                row[i] = None
         rows.append(row)
     html_repr = namedtuple("html_repr", ["names", "stypes", "shape", "data"])
     return html_repr(names=tuple(colnames),
@@ -1262,18 +1319,45 @@ def test_html_repr_unicode():
     assert src in html
 
 
+def test_html_repr_joined_frame():
+    L_dt = dt.Frame([[5, 6, 7, 9], [7, 8, 9, 10]], names = ["A", "B"])
+    R_dt = dt.Frame([[5, 7], [7, 9], [1, 2]], names = ["A", "B", "yhat"])
+    R_dt.key = ["A", "B"]
+    DT = L_dt[:, :, dt.join(R_dt)]
+    html = DT._repr_html_()
+    hr = parse_html_repr(html)
+    assert hr.names == ("A", "B", "yhat")
+    assert hr.shape == (4, 3)
+    assert hr.data == [['5', '7', '1'],
+                       ['6', '8', None],
+                       ['7', '9', '2'],
+                       ['9', '10', None]]
+
+
+
+#-------------------------------------------------------------------------------
+# export_names()
+#-------------------------------------------------------------------------------
+
+def test_export_names(dt0):
+    assert "A" not in locals()
+    dt0.export_names()
+    all = [A, B, C, D, E, F, G]
+    assert_equals(dt0[:, all], dt0)
+    assert_equals(dt0[A > 0, :], dt0[:2, :])
+    assert str(A + B <= C + D) == str(dt.f.A + dt.f.B <= dt.f.C + dt.f.D)
+
+
 
 #-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
 
 def test_internal_rowindex():
-    d0 = dt.Frame(range(100))
+    d0 = dt.Frame(list(range(100)))
     d1 = d0[:20, :]
-    ri0 = frame_column_rowindex(d0, 0)
-    ri1 = frame_column_rowindex(d1, 0)
-    assert ri0 is None
-    assert repr(ri1) == "datatable.internal.RowIndex(0/20/1)"
+    assert frame_columns_virtual(d0) == (False,)
+    assert frame_columns_virtual(d1) == (True,)
 
 
 def test_issue898():
@@ -1301,3 +1385,15 @@ def test_issue1728(tempfile):
     counts.materialize()
     frame_integrity_check(counts)
     assert counts.to_dict() == {'department1': ['t'], 'C0': [1047]}
+
+
+def test_issue2036():
+    DT = dt.Frame(Z=range(17))
+    DT.rbind([DT] * 3)
+    assert DT.nrows == 68
+    del DT[[1, 4, 7], :]
+    assert DT.nrows == 65
+    DT.nrows = 14
+    assert DT.nrows == 14
+    DT = DT.copy()
+    assert DT.nrows == 14

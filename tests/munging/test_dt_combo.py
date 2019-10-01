@@ -6,7 +6,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 from datatable import stype, f
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 
 
 
@@ -32,8 +32,7 @@ def test_columns_rows():
 def test_issue1225():
     f0 = dt.Frame(A=[1, 2, 3], B=[5, 6, 8])
     f1 = f0[::-1, :][:, [dt.float64(f.A), f.B]]
-    assert frame_column_rowindex(f1, 0) is None
-    assert frame_column_rowindex(f1, 1).type == "slice"
+    assert frame_columns_virtual(f1) == (False, True)
     f1.materialize()
     assert f1.stypes == (stype.float64, stype.int8)
     assert f1.to_list() == [[3.0, 2.0, 1.0], [8, 6, 5]]

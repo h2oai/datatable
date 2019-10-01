@@ -306,14 +306,24 @@ class GenericReader(object):
 
 
     def _resolve_source_cmd(self, cmd):
+        import subprocess
         if cmd is None:
             return
         if not isinstance(cmd, str):
             raise TTypeError("Invalid parameter `cmd` in fread: expected str, "
                              "got %r" % type(cmd))
-        result = os.popen(cmd)
-        self._text = result.read()
-        self._src = cmd
+        proc = subprocess.Popen(cmd, shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        ret = proc.wait()
+        if ret:
+            msg = proc.stderr.read()
+            msg = msg.decode("utf-8", errors="replace").strip()
+            raise TValueError("Shell command returned error code %r: `%s`"
+                              % (ret, msg))
+        else:
+            self._text = proc.stdout.read()
+            self._src = cmd
 
 
     def _resolve_source_url(self, url):

@@ -146,7 +146,7 @@ class HtmlWidget {
           j = ncols - cols1;
           html << "<td></td>";
         }
-        SType stype = dt->columns[j]->stype();
+        SType stype = dt->get_column(j).stype();
         size_t elemsize = info(stype).elemsize();
         html << "<td class='" << info(stype).ltype_name()
              << "' title='" << info(stype).name() << "'>";
@@ -192,17 +192,17 @@ class HtmlWidget {
           html << "<td class=vellipsis>&hellip;</td>";
         }
         html << "<td>";
-        const Column* col = dt->columns[j];
-        switch (col->stype()) {
+        const Column& col = dt->get_column(j);
+        switch (col.stype()) {
           case SType::BOOL:
-          case SType::INT8:    render_fw_value<int8_t>(col, i); break;
-          case SType::INT16:   render_fw_value<int16_t>(col, i); break;
+          case SType::INT8:
+          case SType::INT16:
           case SType::INT32:   render_fw_value<int32_t>(col, i); break;
           case SType::INT64:   render_fw_value<int64_t>(col, i); break;
           case SType::FLOAT32: render_fw_value<float>(col, i); break;
           case SType::FLOAT64: render_fw_value<double>(col, i); break;
-          case SType::STR32:   render_str_value<uint32_t>(col, i); break;
-          case SType::STR64:   render_str_value<uint64_t>(col, i); break;
+          case SType::STR32:
+          case SType::STR64:   render_str_value(col, i); break;
           case SType::OBJ:     render_obj_value(col, i); break;
           default:
             html << "(unknown stype)";
@@ -253,46 +253,40 @@ class HtmlWidget {
     }
 
     template <typename T>
-    void render_fw_value(const Column* col, size_t row) {
-      auto scol = static_cast<const FwColumn<T>*>(col);
-      auto irow = scol->rowindex()[row];
-      T val = scol->get_elem(irow);
-      if (ISNA<T>(val)) render_na();
-      else {
+    void render_fw_value(const Column& col, size_t row) {
+      T val;
+      bool isvalid = col.get_element(row, &val);
+      if (isvalid) {
         if (val < 0) {
           html << "&minus;";
           val = -val;
         }
-        if (std::is_integral<T>::value) html << static_cast<int64_t>(val);
-        else html << val;
-      }
-    }
-
-    template <typename T>
-    void render_str_value(const Column* col, size_t row) {
-      auto scol = static_cast<const StringColumn<T>*>(col);
-      auto irow = scol->rowindex()[row];
-      const T* offsets = scol->offsets();
-      const char* strdata = scol->strdata();
-      T str0 = offsets[irow - 1] & ~GETNA<T>();
-      T str1 = offsets[irow];
-      if (ISNA<T>(str1)) {
-        render_na();
+        html << val;
       } else {
-        render_escaped_string(strdata + str0, str1 - str0);
+        render_na();
       }
     }
 
-    void render_obj_value(const Column* col, size_t row) {
-      auto scol = static_cast<const PyObjectColumn*>(col);
-      auto irow = scol->rowindex()[row];
-      PyObject* val = scol->get_elem(irow);
-      if (ISNA<PyObject*>(val)) render_na();
-      else {
+    void render_str_value(const Column& col, size_t row) {
+      CString val;
+      bool isvalid = col.get_element(row, &val);
+      if (isvalid) {
+        render_escaped_string(val.ch, static_cast<size_t>(val.size));
+      } else {
+        render_na();
+      }
+    }
+
+    void render_obj_value(const Column& col, size_t row) {
+      py::robj val;
+      bool isvalid = col.get_element(row, &val);
+      if (isvalid) {
         // Should we use repr() here instead?
-        py::ostring strval = py::robj(val).to_pystring_force();
+        py::ostring strval = val.to_pystring_force();
         CString cstr = strval.to_cstring();
         render_escaped_string(cstr.ch, static_cast<size_t>(cstr.size));
+      } else {
+        render_na();
       }
     }
 
@@ -401,7 +395,7 @@ bool HtmlWidget::styles_emitted = false;
 //------------------------------------------------------------------------------
 namespace py {
 
-oobj Frame::m__repr__() {
+oobj Frame::m__repr__() const {
   size_t nrows = dt->nrows;
   size_t ncols = dt->ncols;
   std::ostringstream out;
@@ -410,7 +404,7 @@ oobj Frame::m__repr__() {
   return ostring(out.str());
 }
 
-oobj Frame::m__str__() {
+oobj Frame::m__str__() const {
   oobj DFWidget = oobj::import("datatable")
                   .get_attr("widget")
                   .get_attr("DataFrameWidget");
@@ -452,12 +446,12 @@ void Frame::view(const PKArgs& args) {
 
 
 
-void Frame::Type::_init_repr(Methods& mm) {
-  mm.add("__repr__", cxx2py<Frame, &Frame::m__repr__>);
-  mm.add("__str__", cxx2py<Frame, &Frame::m__str__>);
-  ADD_METHOD(mm, &Frame::_repr_html_, args__repr_html_);
-  ADD_METHOD(mm, &Frame::_repr_pretty_, args__repr_pretty_);
-  ADD_METHOD(mm, &Frame::view, args_view);
+void Frame::_init_repr(XTypeMaker& xt) {
+  xt.add(METHOD__REPR__(&Frame::m__repr__));
+  xt.add(METHOD__STR__(&Frame::m__str__));
+  xt.add(METHOD(&Frame::_repr_html_, args__repr_html_));
+  xt.add(METHOD(&Frame::_repr_pretty_, args__repr_pretty_));
+  xt.add(METHOD(&Frame::view, args_view));
 }
 
 

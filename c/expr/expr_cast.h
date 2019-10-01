@@ -35,9 +35,9 @@ class expr_cast : public base_expr {
 
   public:
     expr_cast(pexpr&& a, SType s);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe& wf) override;
+    SType resolve(const EvalContext& ctx) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext& ctx) override;
 };
 
 

@@ -14,10 +14,11 @@
 
 
 // Helper functions
-static Column* column_from_jay(size_t nrows,
-                               const jay::Column* jaycol,
-                               const MemoryRange& jaybuf);
+static Column column_from_jay(size_t nrows,
+                              const jay::Column* jaycol,
+                              const Buffer& jaybuf);
 
+static void check_jay_signature(const uint8_t* ptr, size_t size);
 
 
 //------------------------------------------------------------------------------
@@ -25,7 +26,7 @@ static Column* column_from_jay(size_t nrows,
 //------------------------------------------------------------------------------
 
 DataTable* open_jay_from_file(const std::string& path) {
-  MemoryRange mbuf = MemoryRange::mmap(path);
+  Buffer mbuf = Buffer::mmap(path);
   return open_jay_from_mbuf(mbuf);
 }
 
@@ -33,27 +34,19 @@ DataTable* open_jay_from_bytes(const char* ptr, size_t len) {
   // The buffer's lifetime is tied to the lifetime of the bytes object, which
   // could be very short. This is why we have to copy the buffer (even storing
   // a reference will be insufficient: what if the bytes object gets modified?)
-  MemoryRange mbuf = MemoryRange::mem(len);
+  Buffer mbuf = Buffer::mem(len);
   std::memcpy(mbuf.xptr(), ptr, len);
   return open_jay_from_mbuf(mbuf);
 }
 
 
-DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
+DataTable* open_jay_from_mbuf(const Buffer& mbuf)
 {
   std::vector<std::string> colnames;
 
   const uint8_t* ptr = static_cast<const uint8_t*>(mbuf.rptr());
   const size_t len = mbuf.size();
-  if (len < 24) {
-    throw IOError() << "Invalid Jay file of size " << len;
-  }
-  if (std::memcmp(ptr, "JAY1\0\0\0\0", 8) != 0 ||
-      (std::memcmp(ptr + len - 8, "\0\0\0\0" "1JAY", 8) != 0 &&
-       std::memcmp(ptr + len - 8, "\0\0\0\0" "JAY1", 8) != 0))
-  {
-    throw IOError() << "Invalid signature for a Jay file";
-  }
+  check_jay_signature(ptr, len);
 
   size_t meta_size = *reinterpret_cast<const size_t*>(ptr + len - 16);
   if (meta_size > len - 24) {
@@ -72,16 +65,16 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
   size_t nrows = frame->nrows();
   auto msg_columns = frame->columns();
 
-  std::vector<Column*> columns;
+  colvec columns;
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
-    Column* col = column_from_jay(nrows, jcol, mbuf);
-    if (col->nrows != nrows) {
-      throw IOError() << "Length of column " << i << " is " << col->nrows
+    Column col = column_from_jay(nrows, jcol, mbuf);
+    if (col.nrows() != nrows) {
+      throw IOError() << "Length of column " << i << " is " << col.nrows()
           << ", however the Frame contains " << nrows << " rows";
     }
-    columns.push_back(col);
+    columns.push_back(std::move(col));
     colnames.push_back(jcol->name()->str());
     ++i;
   }
@@ -92,34 +85,61 @@ DataTable* open_jay_from_mbuf(const MemoryRange& mbuf)
 }
 
 
+static void check_jay_signature(const uint8_t* sof, size_t size) {
+  const uint8_t* eof = sof + size;
+  if (size < 24) {
+    throw IOError() << "Invalid Jay file of size " << size;
+  }
+
+  if (std::memcmp(sof, "JAY", 3) != 0) {
+    // Note: non-printable chars will be properly escaped by `operator<<`
+    throw IOError() << "Invalid signature for a Jay file: first 3 bytes are `"
+        << sof[0] << sof[1] << sof[2] << "`";
+  }
+  if (std::memcmp(eof - 3, "JAY", 3) != 0 &&
+      std::memcmp(eof - 4, "JAY1", 4) != 0)
+  {
+    throw IOError() << "Invalid signature for a Jay file: last 3 bytes are `"
+        << eof[-3] << eof[-2] << eof[-1] << "`";
+  }
+
+  if (std::memcmp(sof, "JAY1\0\0\0\0", 8) != 0) {
+    std::string version(reinterpret_cast<const char*>(sof) + 3, 5);
+    throw IOError() << "Unsupported Jay file version: " << version;
+  }
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Open an individual column
 //------------------------------------------------------------------------------
 
-static MemoryRange extract_buffer(
-    const MemoryRange& src, const jay::Buffer* jbuf)
+static Buffer extract_buffer(
+    const Buffer& src, const jay::Buffer* jbuf)
 {
   size_t offset = jbuf->offset();
   size_t length = jbuf->length();
-  return MemoryRange::view(src, length, offset + 8);
+  return Buffer::view(src, length, offset + 8);
 }
 
 
 template <typename T, typename JStats>
 static void initStats(Stats* stats, const jay::Column* jcol) {
-  auto tstats = static_cast<NumericalStats<T>*>(stats);
   auto jstats = static_cast<const JStats*>(jcol->stats());
   if (jstats) {
-    tstats->set_countna(jcol->nullcount());
-    tstats->set_min(jstats->min());
-    tstats->set_max(jstats->max());
+    using R = typename std::conditional<std::is_integral<T>::value,
+                                        int64_t, double>::type;
+    stats->set_nacount(static_cast<size_t>(jcol->nullcount()));
+    stats->set_min(static_cast<R>(jstats->min()));
+    stats->set_max(static_cast<R>(jstats->max()));
   }
 }
 
 
-static Column* column_from_jay(
-    size_t nrows, const jay::Column* jcol, const MemoryRange& jaybuf)
+static Column column_from_jay(
+    size_t nrows, const jay::Column* jcol, const Buffer& jaybuf)
 {
   jay::Type jtype = jcol->type();
 
@@ -136,16 +156,16 @@ static Column* column_from_jay(
     case jay::Type_Str64:   stype = SType::STR64; break;
   }
 
-  Column* col = nullptr;
-  MemoryRange databuf = extract_buffer(jaybuf, jcol->data());
+  Column col;
+  Buffer databuf = extract_buffer(jaybuf, jcol->data());
   if (stype == SType::STR32 || stype == SType::STR64) {
-    MemoryRange strbuf = extract_buffer(jaybuf, jcol->strdata());
-    col = new_string_column(nrows, std::move(databuf), std::move(strbuf));
+    Buffer strbuf = extract_buffer(jaybuf, jcol->strdata());
+    col = Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {
     col = Column::new_mbuf_column(stype, std::move(databuf));
   }
 
-  Stats* stats = col->get_stats();
+  Stats* stats = col.stats();
   switch (jtype) {
     case jay::Type_Bool8:   initStats<int8_t,  jay::StatsBool>(stats, jcol); break;
     case jay::Type_Int8:    initStats<int8_t,  jay::StatsInt8>(stats, jcol); break;
@@ -189,8 +209,7 @@ static oobj open_jay(const PKArgs& args) {
   else {
     throw TypeError() << "Invalid type of the argument to open_jay()";
   }
-  Frame* frame = Frame::from_datatable(dt);
-  return oobj::from_new_reference(frame);
+  return Frame::oframe(dt);
 }
 
 

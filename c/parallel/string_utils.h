@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_PARALLEL_h
-#define dt_UTILS_PARALLEL_h
+#ifndef dt_PARALLEL_STRING_UTILS_h
+#define dt_PARALLEL_STRING_UTILS_h
 #include <memory>             // std::unique_ptr
 #include <vector>             // std::vector
 #include "parallel/api.h"     // dt::parallel_for_ordered
@@ -30,11 +30,11 @@ namespace dt {
 
 using string_buf = writable_string_col::buffer;
 
-Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
-                               size_t n,
-                               MemoryRange&& offsets_buffer = MemoryRange(),
-                               bool force_str64 = false,
-                               bool force_single_threaded = false);
+Column generate_string_column(dt::function<void(size_t, string_buf*)> fn,
+                              size_t n,
+                              Buffer&& offsets_buffer = Buffer(),
+                              bool force_str64 = false,
+                              bool force_single_threaded = false);
 
 
 
@@ -43,11 +43,16 @@ Column* generate_string_column(dt::function<void(size_t, string_buf*)> fn,
 // Map over a string column producing a new ostring column
 //------------------------------------------------------------------------------
 
-template <typename T, typename F>
-Column* map_str2str(StringColumn<T>* input_col, F f) {
-  size_t nrows = input_col->nrows;
-  writable_string_col output_col(nrows);
+template <typename F>
+Column map_str2str(const Column& input_col, F f) {
+  bool use_str64 = (input_col.stype() == SType::STR64);
+  size_t nrows = input_col.nrows();
+  if (nrows == 0) {
+    return Column::new_data_column(input_col.stype(), 0);
+  }
+  writable_string_col output_col(nrows, use_str64);
 
+  // Do not allow the case of nrows==0 here, because then `nrows-1` overflows
   constexpr size_t min_nrows_per_thread = 100;
   size_t nthreads = nrows / min_nrows_per_thread;
   size_t nchunks = 1 + (nrows - 1)/1000;
@@ -55,10 +60,9 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
 
   dt::parallel_for_ordered(
     nchunks,
-    nthreads,  // will be truncated to pool size if necessary
+    NThreads(nthreads),  // will be truncated to pool size if necessary
     [&](ordered* o) {
-      std::unique_ptr<string_buf> sb(
-          new writable_string_col::buffer_impl<uint32_t>(output_col));
+      auto sb = output_col.make_buffer();
 
       o->parallel(
         [&](size_t iter) {
@@ -67,21 +71,13 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
 
           sb->commit_and_start_new_chunk(i0);
           CString curr_str;
-          const T* offsets = input_col->offsets();
-          const char* strdata = input_col->strdata();
-          const RowIndex& rowindex = input_col->rowindex();
           for (size_t i = i0; i < i1; ++i) {
-            size_t j = rowindex[i];
-            if (j == RowIndex::NA || ISNA<T>(offsets[j])) {
+            bool isvalid = input_col.get_element(i, &curr_str);
+            if (!isvalid) {
               curr_str.ch = nullptr;
               curr_str.size = 0;
-            } else {
-              T offstart = offsets[j - 1] & ~GETNA<T>();
-              T offend = offsets[j];
-              curr_str.ch = strdata + offstart;
-              curr_str.size = static_cast<int64_t>(offend - offstart);
             }
-            f(j, curr_str, sb.get());
+            f(i, curr_str, sb.get());
           }
         },
         [&](size_t) {
@@ -93,7 +89,7 @@ Column* map_str2str(StringColumn<T>* input_col, F f) {
       sb->commit_and_start_new_chunk(nrows);
     });
 
-  return std::move(output_col).to_column();
+  return std::move(output_col).to_ocolumn();
 }
 
 

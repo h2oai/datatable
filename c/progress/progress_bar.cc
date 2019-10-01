@@ -32,8 +32,17 @@ static void init_status_strings() {
 }
 
 
+progress_bar::~progress_bar() {}
 
-progress_bar::progress_bar() {
+
+void progress_bar_disabled::set_progress(double, double) noexcept {}
+void progress_bar_disabled::set_status_finished() {}
+void progress_bar_disabled::set_status_error(bool) {}
+void progress_bar_disabled::set_message(std::string&&) {}
+void progress_bar_disabled::refresh() {}
+
+
+progress_bar_enabled::progress_bar_enabled() {
   // Progress bar's state
   progress = 0.0;
   tentative_progress = 0.0;
@@ -41,48 +50,45 @@ progress_bar::progress_bar() {
 
   // Parameters
   bar_width = 50;
-  enabled = dt::progress::enabled;
-  clear_on_success = false;
-  if (enabled) {
-    use_colors = dt::get_option("display.use_colors").to_bool_strict();
-    use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
-  }
+  clear_on_success = dt::progress::clear_on_success;
+  use_colors = dt::get_option("display.use_colors").to_bool_strict();
+  use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
 
   // Runtime support
   rtime_t freq { 1.0/updates_per_second };
   update_interval = std::chrono::duration_cast<dtime_t>(freq);
   time_started = std::chrono::steady_clock::now();
   time_next_update = time_started + update_interval;
-  if (enabled) {
-    if (dt::progress::progress_fn) {
-      init_status_strings();
-      pyfn_external = py::oobj(dt::progress::progress_fn);
-    }
-    else {
-      auto stdout = py::stdout();
-      pyfn_write = stdout.get_attr("write");
-      pyfn_flush = stdout.get_attr("flush");
-    }
+
+  if (dt::progress::progress_fn) {
+    init_status_strings();
+    pyfn_external = py::oobj(dt::progress::progress_fn);
   }
+  else {
+    auto stdout = py::stdout();
+    pyfn_write = stdout.get_attr("write");
+    pyfn_flush = stdout.get_attr("flush");
+  }
+
   visible = false;
   force_redraw = false;
 }
 
 
-void progress_bar::set_progress(double actual, double tentative) noexcept {
+void progress_bar_enabled::set_progress(double actual, double tentative) noexcept {
   wassert(0.0 <= actual && actual <= tentative && tentative <= 1.0);
   progress = actual;
   tentative_progress = tentative;
 }
 
-void progress_bar::set_status_finished() {
+void progress_bar_enabled::set_status_finished() {
   wassert(status == Status::RUNNING);
   status = Status::FINISHED;
   force_redraw = true;
   refresh();
 }
 
-void progress_bar::set_status_error(bool cancelled) {
+void progress_bar_enabled::set_status_error(bool cancelled) {
   wassert(status == Status::RUNNING);
   status = cancelled? Status::CANCELLED : Status::ERROR;
   force_redraw = true;
@@ -90,7 +96,7 @@ void progress_bar::set_status_error(bool cancelled) {
 }
 
 
-void progress_bar::set_message(std::string&& msg) {
+void progress_bar_enabled::set_message(std::string&& msg) {
   message = std::move(msg);
   force_redraw = true;
 }
@@ -112,9 +118,7 @@ void progress_bar::set_message(std::string&& msg) {
 // curves are much likelier to intersect at low levels of `progress`, than
 // at high levels.
 //
-void progress_bar::refresh() {
-  if (!enabled) return _check_interrupts();
-
+void progress_bar_enabled::refresh() {
   auto now = std::chrono::steady_clock::now();
 
   if (!visible) {
@@ -141,13 +145,7 @@ void progress_bar::refresh() {
 // Rendering
 //------------------------------------------------------------------------------
 
-void progress_bar::_check_interrupts() {
-  int ret = PyErr_CheckSignals();
-  if (ret) throw PyError();
-}
-
-
-void progress_bar::_report_to_python() {
+void progress_bar_enabled::_report_to_python() {
   static py::onamedtupletype ntt(
     "ProgressStatus",
     "Progress state for dt.options.progress.callback function",
@@ -165,7 +163,7 @@ void progress_bar::_report_to_python() {
 }
 
 
-void progress_bar::_render_to_stdout() {
+void progress_bar_enabled::_render_to_stdout() {
   std::stringstream out;
 
   if (visible) out << '\r';
@@ -179,7 +177,7 @@ void progress_bar::_render_to_stdout() {
 }
 
 
-void progress_bar::_render_percentage(std::stringstream& out) {
+void progress_bar_enabled::_render_percentage(std::stringstream& out) {
   int percentage = static_cast<int>(progress * 100 + 0.1);
   if (percentage < 10) out << ' ';
   if (percentage < 100) out << ' ';
@@ -187,7 +185,7 @@ void progress_bar::_render_percentage(std::stringstream& out) {
 }
 
 
-void progress_bar::_render_progressbar_unicode(std::stringstream& out) {
+void progress_bar_enabled::_render_progressbar_unicode(std::stringstream& out) {
   double x = progress * bar_width;
   int n_full_chars = static_cast<int>(x + 0.001);
   int fractional_char = static_cast<int>((x - n_full_chars) * 8);
@@ -208,7 +206,7 @@ void progress_bar::_render_progressbar_unicode(std::stringstream& out) {
 }
 
 
-void progress_bar::_render_progressbar_ascii(std::stringstream& out) {
+void progress_bar_enabled::_render_progressbar_ascii(std::stringstream& out) {
   int n_chars = static_cast<int>(progress * bar_width + 0.001);
   int i = 0;
   if (use_colors) out << "\x1B[2m";
@@ -220,11 +218,10 @@ void progress_bar::_render_progressbar_ascii(std::stringstream& out) {
 }
 
 
-void progress_bar::_render_message(std::stringstream& out) {
-  out << ' ';
+void progress_bar_enabled::_render_message(std::stringstream& out) {
+  out << ' ' << message << ' ';
   switch (status) {
     case Status::RUNNING:
-      out << message;
       return;
 
     case Status::FINISHED:
@@ -233,23 +230,24 @@ void progress_bar::_render_message(std::stringstream& out) {
         out << "\x1B[1G\x1B[K";
         return;
       }
-      out << message;
+      if (use_colors) out << "\x1B[1;32m";  // bold-green
+      out << "[done]";
       break;
 
     case Status::ERROR:
       if (use_colors) out << "\x1B[1;31m";  // bold-red
-      out << "(error)";
+      out << "[error]";
       break;
 
     case Status::CANCELLED:
       if (use_colors) out << "\x1B[1;33m";  // bold-ochra
-      out << "(cancelled)";
+      out << "[cancelled]";
       break;
   }
   if (use_colors) out << "\x1B[m";
+  out << "\x1B[K"; // clear till the end of the terminal line
   out << '\n';
 }
-
 
 
 }}  // namespace dt::progress

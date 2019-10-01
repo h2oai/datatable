@@ -34,9 +34,9 @@ class expr_reduce1 : public base_expr {
 
   public:
     expr_reduce1(pexpr&& a, Op op);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe& wf) override;
+    SType resolve(const EvalContext& ctx) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext& ctx) override;
 };
 
 
@@ -47,9 +47,9 @@ class expr_reduce0 : public base_expr {
 
   public:
     explicit expr_reduce0(Op op);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe& wf) override;
+    SType resolve(const EvalContext& ctx) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext& ctx) override;
 };
 
 

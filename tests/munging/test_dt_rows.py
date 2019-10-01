@@ -25,7 +25,7 @@ import pytest
 import datatable as dt
 import random
 from datatable import stype, ltype, f, by
-from datatable.internal import frame_column_rowindex, frame_integrity_check
+from datatable.internal import frame_columns_virtual, frame_integrity_check
 from tests import same_iterables, noop, assert_equals, isview
 
 
@@ -61,20 +61,6 @@ def as_list(df):
     return df.to_list()
 
 
-def is_slice(DT):
-    for i in range(DT.ncols):
-        r = frame_column_rowindex(DT, i)
-        if r is None or r.type != "slice":
-            return False
-    return True
-
-
-def is_arr(DT):
-    for i in range(DT.ncols):
-        r = frame_column_rowindex(DT, i)
-        if r is None or r.type != "arr32":
-            return False
-    return True
 
 
 
@@ -91,8 +77,7 @@ def test_dt0_properties(dt0):
     assert dt0.names == ("colA", "colB", "colC")
     assert dt0.ltypes == (ltype.bool, ltype.int, ltype.real)
     assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
-    for i in range(dt0.ncols):
-        assert frame_column_rowindex(dt0, i) is None
+    assert not any(frame_columns_virtual(dt0))
     frame_integrity_check(dt0)
 
 
@@ -125,7 +110,7 @@ def test_rows_integer1(dt0, i):
     assert dt1.shape == (1, 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
-    assert is_slice(dt1)
+    assert isview(dt1)
     assert dt1.to_list() == [[col[i]] for col in dt0.to_list()]
 
 
@@ -177,7 +162,7 @@ def test_rows_slice1(dt0, sliceobj, nrows):
     frame_integrity_check(dt1)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
-    assert nrows == 0 or is_slice(dt1)
+    assert nrows == 0 or isview(dt1)
     assert dt1.to_list() == [col[sliceobj] for col in dt0.to_list()]
 
 
@@ -258,7 +243,7 @@ def test_rows_range1(dt0, rangeobj):
     assert dt1.shape == (len(rangeobj), 3)
     assert dt1.names == dt0.names
     assert dt1.ltypes == dt0.ltypes
-    assert len(rangeobj) == 0 or is_slice(dt1)
+    assert len(rangeobj) == 0 or isview(dt1)
     assert dt1.to_list() == [[col[i] for i in rangeobj]
                              for col in dt0.to_list()]
 
@@ -289,7 +274,7 @@ def test_rows_generator(dt0):
     dt1 = dt0[g, :]
     frame_integrity_check(dt1)
     assert dt1.shape == (4, 3)
-    assert is_arr(dt1)
+    assert isview(dt1)
 
 
 def test_rows_generator_bad(dt0):
@@ -322,7 +307,7 @@ def test_rows_multislice(dt0, selector, nrows):
     assert dt1.shape == (nrows, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
-    assert is_arr(dt1)
+    assert isview(dt1)
 
 
 def test_rows_multislice2(dt0):
@@ -419,7 +404,7 @@ def test_rows_bool_column(dt0):
     assert dt1.shape == (5, 3)
     assert dt1.names == ("colA", "colB", "colC")
     assert dt1.ltypes == (ltype.bool, ltype.int, ltype.real)
-    assert is_arr(dt1)
+    assert isview(dt1)
     assert as_list(dt1)[1] == [7, 9, 10000, -1, 1]
 
 
@@ -806,14 +791,14 @@ def test_chained_slice0(dt0):
     dt1 = dt0[::2, :]
     frame_integrity_check(dt1)
     assert dt1.shape == (5, 3)
-    assert is_slice(dt1)
+    assert isview(dt1)
 
 
 def test_chained_slice1(dt0):
     dt2 = dt0[::2, :][::-1, :]
     frame_integrity_check(dt2)
     assert dt2.shape == (5, 3)
-    assert is_slice(dt2)
+    assert isview(dt2)
     assert dt2.to_list()[1] == [1, 0, None, 9, 7]
 
 
@@ -821,7 +806,7 @@ def test_chained_slice2(dt0):
     dt3 = dt0[::2, :][2:4, :]
     frame_integrity_check(dt3)
     assert dt3.shape == (2, 3)
-    assert is_slice(dt3)
+    assert isview(dt3)
     assert dt3.to_list() == [[0, 1], [None, 0], [100000, -2.6]]
 
 
@@ -829,7 +814,7 @@ def test_chained_slice3(dt0):
     dt4 = dt0[::2, :][[1, 0, 3, 2], :]
     frame_integrity_check(dt4)
     assert dt4.shape == (4, 3)
-    assert is_arr(dt4)
+    assert isview(dt4)
     assert dt4.to_list() == [[1, 0, 1, 0], [9, 7, 0, None], [1.3, 5, -2.6, 1e5]]
 
 
@@ -837,14 +822,14 @@ def test_chained_array0(dt0):
     dt1 = dt0[[2, 5, 1, 1, 1, 0], :]
     frame_integrity_check(dt1)
     assert dt1.shape == (6, 3)
-    assert is_arr(dt1)
+    assert isview(dt1)
 
 
 def test_chained_array1(dt0):
     dt2 = dt0[[2, 5, 1, 1, 1, 0], :][::2, :]
     frame_integrity_check(dt2)
     assert dt2.shape == (3, 3)
-    assert is_arr(dt2)
+    assert isview(dt2)
     assert as_list(dt2) == [[1, 1, 1], [9, -11, -11], [1.3, 1, 1]]
 
 
@@ -852,7 +837,7 @@ def test_chained_array2(dt0):
     dt3 = dt0[[2, 5, 1, 1, 1, 0], :][::-1, :]
     frame_integrity_check(dt3)
     assert dt3.shape == (6, 3)
-    assert is_arr(dt3)
+    assert isview(dt3)
     assert as_list(dt3)[:2] == [[0, 1, 1, 1, 0, 1], [7, -11, -11, -11, 0, 9]]
 
 

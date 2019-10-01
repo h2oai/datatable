@@ -1,0 +1,109 @@
+
+.. include:: definitions.rst
+
+
+Version 0.10.0
+==============
+
+Columnsets |new|
+----------------
+
+.. seealso:: :ref:`columnsets`
+
+The ``f``-symbol syntax has been extended to allow selecting multiple columns
+from a frame at once, so-called *columnsets*. The primary use case here is to
+select a slice of columns, or to select columns based on their type::
+
+    f[:]         # select all columns
+    f[:5]        # select the first 5 columns
+    f["A":"Z"]   # select columns from 'A' to 'Z'
+    f[float]     # select all floating point columns
+    f[dt.int32]  # select all columns with stype int32
+    f[int   if select_ints else
+      float if select_floats else
+      None]
+
+In addition, columnsets can be added / subtracted, allowing to express a richer
+selection of columns::
+
+    f[int].extend(f[float])   # all integers and floating point columns
+    f[:].remove(f[str])       # all columns except those of string type
+    f[:10].extend(f[-1])      # first 10, plus the last column
+
+The columnsets can be used in places where a list/sequence of columns is
+expected, such as the ``i`` node of ``DT[i,j,...]``, the ``by()`` function;
+also in functions that operate on lists of columns, such as ``rowsum()``,
+``rowmin()``, etc.
+
+
+Frame
+-----
+
+- |new| Added method :meth:`.export_names() <datatable.Frame.export_names>`
+  which creates a set of global variables referencing each column in the Frame.
+  This is recommended for interactive use only::
+
+    DT.export_names()
+    # Now DT's columns 'PROC_ID' and 'SORT_NR' can be referenced as variables,
+    # without the f. syntax:
+    DT[(PROC_ID == "A") & (SORT_NR > 2), :]
+
+  If you need to export only a subset of columns, you can select those columns
+  first via the standard ``DT[i,j]`` syntax::
+
+    # Only create variables for the first 5 columns
+    DT[:, :5].export_names()
+
+  The variables are created in the global scope because python's locals cannot
+  be manipulated programmatically.
+
+- |new| Added frame property :meth:`.stype <datatable.Frame.stype>` which is
+  similar to :meth:`.stypes <datatable.Frame.stypes>` except that it returns
+  a single stype instead of a tuple. This method can only be used on a frame
+  where all columns have the same stype, or there is only one column.
+
+- |api| The name deduplication algorithm now starts looking for candidate names
+  starting from `name + dt.options.frame.name_auto_index`. For example, if
+  you're creating a Frame with column names `["A", "A", "A"]`, then those names
+  will be modified to ensure uniqueness. Before, they were changed into `["A",
+  "A.1", "A.2"]`; now they are changed into `["A", "A.0", "A.1"]` (assuming
+  the value of option `frame.name_auto_index` is `0`).
+
+- |fix| Fixed a bug where creating a new column via assignment would crash if
+  the RHS of the assignment contained an expression that tried to use the
+  column that was being created (#1983).
+
+- |fix| Fixed a crash when joining a frame that had 0 rows (#1988).
+
+- |fix| Increasing the number of rows in a keyed Frame was documented as
+  invalid, but didn't actually throw any errors. Now it does (#2021).
+
+- |fix| Operations on a 0-row frame containing string columns will no
+  longer cause an infinite loop (#2043).
+
+
+Internal
+--------
+
+- |api| Function `dt.internal.frame_column_rowindex(DT, i)` was removed and
+  replaced with `dt.internal.frame_columns_virtual(DT)`. The latter returns
+  a tuple of True/False indicators of whether each column in a Frame is
+  virtual or not.
+
+- |api| C API version increased to 2.
+
+- |api| Removed C API methods and macros related to retrieval of a column's
+  rowindex:
+  - `DtFrame_ColumnRowindex()`,
+  - `DtRowindex_Check()`,
+  - `DtRowindex_Type()`,
+  - `DtRowindex_Size()`,
+  - `DtRowindex_UnpackSlice()`,
+  - `DtRowindex_ArrayData()`,
+  - `DtRowindex_NONE`,
+  - `DtRowindex_ARR32`,
+  - `DtRowindex_ARR64`,
+  - `DtRowindex_SLICE`
+
+- |api| Added C API method `DtFrame_ColumnIsVirtual()` which returns a boolean
+  indicator whether the column in a Frame is virtual or not.

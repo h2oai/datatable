@@ -21,27 +21,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_BY_NODE_h
 #define dt_EXPR_BY_NODE_h
-#include <memory>            // std::unique_ptr
-#include "python/ext_type.h"
+#include "expr/declarations.h"
 #include "python/obj.h"
+#include "python/xobject.h"
 #include "datatable.h"
 #include "groupby.h"         // Groupby
 namespace dt {
 
-namespace expr { class base_expr; }
 
-class by_node;
-class collist;
-class workframe;
-using by_node_ptr = std::unique_ptr<by_node>;
-using collist_ptr = std::unique_ptr<collist>;
-
-enum class GroupbyMode : uint8_t {
-  NONE   = 0,
-  GtoONE = 1,
-  GtoALL = 2,
-  GtoANY = 3
-};
 
 
 //------------------------------------------------------------------------------
@@ -70,16 +57,16 @@ class by_node {
     by_node();
     ~by_node();
 
-    void add_groupby_columns(workframe&, collist_ptr&&);
-    void add_sortby_columns(workframe&, collist_ptr&&);
+    void add_groupby_columns(EvalContext&, collist_ptr&&);
+    void add_sortby_columns(EvalContext&, collist_ptr&&);
 
     explicit operator bool() const;
     bool has_group_column(size_t i) const;
-    void create_columns(workframe&);
-    void execute(workframe&) const;
+    void create_columns(EvalContext&);
+    void execute(EvalContext&) const;
 
   private:
-    void _add_columns(workframe& wf, collist_ptr&& cl, bool isgrp);
+    void _add_columns(EvalContext& ctx, collist_ptr&& cl, bool isgrp);
 };
 
 
@@ -88,24 +75,20 @@ class by_node {
 //------------------------------------------------------------------------------
 // py::oby
 //------------------------------------------------------------------------------
+namespace py {
 
-class py::oby : public oobj
+
+class oby : public oobj
 {
-  class pyobj : public PyObject {
-    public:
+  class oby_pyobject : public XObject<oby_pyobject> {
+    private:
       oobj cols;
 
-      class Type : public ExtType<pyobj> {
-        public:
-          static PKArgs args___init__;
-          static const char* classname();
-          static const char* classdoc();
-          static bool is_subclassable();
-          static void init_methods_and_getsets(Methods&, GetSetters&);
-      };
-
-      void m__init__(PKArgs&);
+      void m__init__(const PKArgs&);
       void m__dealloc__();
+
+    public:
+      static void impl_init_type(XTypeMaker& xt);
       oobj get_cols() const;
   };
 
@@ -123,7 +106,7 @@ class py::oby : public oobj
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
-    dt::collist_ptr cols(dt::workframe&) const;
+    dt::collist_ptr cols(dt::EvalContext&) const;
 
   private:
     // This private constructor will reinterpret the object `r` as an
@@ -136,4 +119,5 @@ class py::oby : public oobj
 
 
 
+} // namespace py
 #endif

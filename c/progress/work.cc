@@ -13,13 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "progress/manager.h"       // dt::progress::manager
-#include "progress/progress_bar.h"  // dt::progress::progress_bar
+#include "progress/progress_bar.h"     // dt::progress::progress_bar
+#include "progress/progress_manager.h" // dt::progress::progress_manager
 #include "progress/work.h"
 #include "utils/assert.h"
 namespace dt {
 namespace progress {
-
 
 
 work::work(size_t amount)
@@ -31,9 +30,17 @@ work::work(size_t amount)
     pbar(nullptr),
     message_set(false)
 {
-  dt::progress::manager.start_work(this);
+  dt::progress::manager->start_work(this);
   // progress manager will call this->init();
 }
+
+work::~work() {
+ if (!pbar) return;
+ try {
+   dt::progress::manager->finish_work(this, false);
+ } catch (...) {};
+}
+
 
 void work::init(progress_bar* pb, work* parent) {
   xassert(pb);
@@ -44,17 +51,15 @@ void work::init(progress_bar* pb, work* parent) {
   }
 }
 
+
+/**
+ * This method must be called at the end of progress reporting.
+ */
 void work::done() {
   xassert(done_amount == total_amount);
-  if (message_set) pbar->set_message("");
-  dt::progress::manager.finish_work(this, true);
+  dt::progress::manager->finish_work(this, true);
   pbar = nullptr;
 }
-
-work::~work() {
-  if (pbar) dt::progress::manager.finish_work(this, false);
-}
-
 
 
 void work::add_work_amount(size_t amount) noexcept {
@@ -62,17 +67,25 @@ void work::add_work_amount(size_t amount) noexcept {
   push_to_progress_bar();
 }
 
+
 void work::set_done_amount(size_t amount) noexcept {
   done_amount = amount;
   done_tentative = amount;
   push_to_progress_bar();
 }
 
+
 void work::add_done_amount(size_t amount) noexcept {
   done_amount += amount;
   done_tentative = done_amount;
   push_to_progress_bar();
 }
+
+
+size_t work::get_done_amount() noexcept {
+  return done_amount;
+}
+
 
 void work::add_tentative_amount(size_t amount) noexcept {
   done_tentative += amount;
@@ -116,7 +129,7 @@ subtask::subtask(work& w, size_t amount) noexcept
 }
 
 
-subtask::~subtask() {
+void subtask::done() {
   parent.add_done_amount(work_amount);
 }
 

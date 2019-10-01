@@ -16,12 +16,12 @@
 #ifndef dt_WSTRINGCOL_h
 #define dt_WSTRINGCOL_h
 #include <memory>           // std::unique_ptr
-#include "memrange.h"       // MemoryRange
+#include "buffer.h"       // Buffer
+#include "column.h"
 #include "types.h"          // CString
 #include "utils/array.h"    // dt::array
 #include "writebuf.h"       // WritableBuffer
 
-class Column;
 template <typename T> class StringColumn;
 
 namespace dt {
@@ -40,16 +40,16 @@ namespace dt {
 class writable_string_col {
   private:
     MemoryWritableBuffer strdata;
-    MemoryRange offdata;
+    Buffer offdata;
     size_t n;
     bool str64;
     size_t : 56;
 
   public:
     writable_string_col(size_t nrows, bool str64_ = false);
-    writable_string_col(MemoryRange&& offsets, size_t nrows,
+    writable_string_col(Buffer&& offsets, size_t nrows,
                         bool str64_ = false);
-    Column* to_column() &&;
+    Column to_ocolumn() &&;
 
     class buffer {
       public:
@@ -86,6 +86,8 @@ class writable_string_col {
         void order() override;
         void commit_and_start_new_chunk(size_t i0) override;
     };
+
+    std::unique_ptr<buffer> make_buffer();
 };
 
 

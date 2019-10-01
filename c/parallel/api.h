@@ -17,13 +17,12 @@
 #define dt_PARALLEL_API_h
 #include <cstddef>
 #include <functional>    // std::function
+#include <mutex>         // std::mutex
+#include "parallel/api_primitives.h"
 #include "utils/function.h"
 namespace dt {
 using std::size_t;
 
-// Private
-void _parallel_for_static(size_t, size_t, size_t,
-                          std::function<void(size_t, size_t)>);
 
 
 //------------------------------------------------------------------------------
@@ -77,6 +76,12 @@ size_t get_hardware_concurrency() noexcept;
 
 
 
+/**
+ * Check if the monitor thread is running.
+ */
+bool is_monitor_enabled() noexcept;
+
+
 //------------------------------------------------------------------------------
 // Parallel constructs
 //------------------------------------------------------------------------------
@@ -98,42 +103,12 @@ void parallel_region(function<void()> f);
 void barrier();
 
 
-/**
- * Run parallel loop `for i in range(nrows): f(i)`, with static scheduling.
- */
-template <typename F>
-void parallel_for_static(size_t nrows, F f) {
-  _parallel_for_static(nrows, 4096, dt::num_threads_available(),
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) f(i);
-    });
-}
-
-template <typename F>
-void parallel_for_static(size_t nrows, size_t chunk_size, F f) {
-  _parallel_for_static(nrows, chunk_size, dt::num_threads_available(),
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) f(i);
-    });
-}
-
-
-template <typename F>
-void parallel_for_static(size_t nrows, size_t chunk_size, size_t nthreads,
-                         F f)
-{
-  _parallel_for_static(nrows, chunk_size, nthreads,
-    [&](size_t i0, size_t i1) {
-      for (size_t i = i0; i < i1; ++i) f(i);
-    });
-}
-
 
 /**
  * Run parallel loop `for i in range(nrows): f(i)`, with dynamic scheduling.
  */
 void parallel_for_dynamic(size_t nrows, std::function<void(size_t)> fn);
-void parallel_for_dynamic(size_t nrows, size_t nthreads,
+void parallel_for_dynamic(size_t nrows, NThreads NThreads_,
                           std::function<void(size_t)> fn);
 
 
@@ -162,9 +137,23 @@ class ordered {
     void set_n_iterations(size_t n);
 };
 
-void parallel_for_ordered(size_t n_iterations, size_t n_threads,
+void parallel_for_ordered(size_t n_iterations, NThreads NThreads_,
+                          function<void(ordered*)> fn);
+
+void parallel_for_ordered(size_t n_iterations,
                           function<void(ordered*)> fn);
 
 
+std::mutex& python_mutex();
+
 }  // namespace dt
+
+
+//------------------------------------------------------------------------------
+// parallel-for-static
+//------------------------------------------------------------------------------
+#include "parallel/parallel_for_static.h"
+
+
+
 #endif

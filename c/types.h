@@ -12,20 +12,28 @@
 #include <limits>    // std::numeric_limits
 #include <string>    // std::string
 #include "python/python.h"
+using size_t = std::size_t;
 
 
 struct CString {
   const char* ch;
-  int64_t size;
+  int64_t size;  // TODO: convert into size_t
 
   CString() : ch(nullptr), size(0) {}
   CString(const char* ptr, int64_t sz) : ch(ptr), size(sz) {}
   CString(const CString&) = default;
   CString& operator=(const CString&) = default;
-  operator bool() { return ch != nullptr; }
+  CString(const std::string& str)
+    : ch(str.data()), size(static_cast<int64_t>(str.size())) {}
+  CString& operator=(const std::string& str) {
+    ch = str.data();
+    size = static_cast<int64_t>(str.size());
+    return *this;
+  }
+  operator bool() const { return ch != nullptr; }
   bool isna() const { return ch == nullptr; }
 
-  bool operator==(const CString& other) {
+  bool operator==(const CString& other) const {
     return (size == other.size) &&
            ((ch == other.ch) ||  // This ensures NAs are properly handled too
             (std::strncmp(ch, other.ch, static_cast<size_t>(size)) == 0));
@@ -328,6 +336,7 @@ class info {
   public:
     info(SType s);
     const char* name() const;
+    static const char* ltype_name(LType);
     const char* ltype_name() const;
     size_t elemsize() const;
     bool is_varwidth() const;
@@ -368,16 +377,17 @@ constexpr double   NA_F8 = std::numeric_limits<double>::quiet_NaN();
  * type of `T`. Returns NULL if `T` is incompatible.
  */
 template <typename T>
-           constexpr T        GETNA() { return NULL;  }
-template<> constexpr int8_t   GETNA() { return NA_I1; }
-template<> constexpr int16_t  GETNA() { return NA_I2; }
-template<> constexpr int32_t  GETNA() { return NA_I4; }
-template<> constexpr int64_t  GETNA() { return NA_I8; }
-template<> constexpr uint32_t GETNA() { return NA_S4; }
-template<> constexpr uint64_t GETNA() { return NA_S8; }
-template<> constexpr float    GETNA() { return NA_F4; }
-template<> constexpr double   GETNA() { return NA_F8; }
-template<> constexpr PyObject* GETNA() { return Py_None; }
+           inline T        GETNA() { return NULL;  }
+template<> inline int8_t   GETNA() { return NA_I1; }
+template<> inline int16_t  GETNA() { return NA_I2; }
+template<> inline int32_t  GETNA() { return NA_I4; }
+template<> inline int64_t  GETNA() { return NA_I8; }
+template<> inline uint32_t GETNA() { return NA_S4; }
+template<> inline uint64_t GETNA() { return NA_S8; }
+template<> inline float    GETNA() { return NA_F4; }
+template<> inline double   GETNA() { return NA_F8; }
+template<> inline PyObject* GETNA() { return Py_None; }
+template<> inline CString  GETNA() { return CString(); }
 
 /**
  * ISNA function

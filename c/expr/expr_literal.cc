@@ -24,25 +24,32 @@ namespace dt {
 namespace expr {
 
 
-expr_literal::expr_literal(py::robj v) {
+expr_literal::expr_literal(py::robj v) : arg(v) {}
+
+bool expr_literal::is_literal_expr() const {
+  return true;
+}
+
+py::oobj expr_literal::get_literal_arg() {
+  return arg;
+}
+
+
+SType expr_literal::resolve(const EvalContext&) {
   py::olist lst(1);
-  lst.set(0, v);
-  col = colptr(Column::from_pylist(lst, 0));
+  lst.set(0, arg);
+  col = Column::from_pylist(lst, 0);
+  return col.stype();
 }
 
 
-SType expr_literal::resolve(const workframe&) {
-  return col->stype();
-}
-
-
-GroupbyMode expr_literal::get_groupby_mode(const workframe&) const {
+GroupbyMode expr_literal::get_groupby_mode(const EvalContext&) const {
   return GroupbyMode::GtoONE;
 }
 
 
-colptr expr_literal::evaluate_eager(workframe&) {
-  return colptr(col->shallowcopy());
+Column expr_literal::evaluate(EvalContext&) {
+  return col;  // copy
 }
 
 

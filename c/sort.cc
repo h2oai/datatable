@@ -127,8 +127,9 @@
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
+#include "column/view.h"
 #include "expr/sort_node.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/args.h"
@@ -137,6 +138,7 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "column.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "options.h"
@@ -254,10 +256,10 @@ void swap(rmem& left, rmem& right) noexcept {
 
 static size_t sort_insert_method_threshold = 64;
 static size_t sort_thread_multiplier = 2;
-static size_t sort_max_chunk_length = 1 << 20;
+static size_t sort_max_chunk_length = 1 << 8;
 static uint8_t sort_max_radix_bits = 12;
 static uint8_t sort_over_radix_bits = 8;
-static int32_t sort_nthreads = 4;
+static int32_t sort_nthreads = static_cast<int>(dt::get_hardware_concurrency());
 
 void sort_init_options() {
   dt::register_option(
@@ -318,7 +320,7 @@ void sort_init_options() {
       int32_t nth = value.to_int32_strict();
       if (nth <= 0) nth += static_cast<int32_t>(dt::get_hardware_concurrency());
       if (nth <= 0) nth = 1;
-      sort_over_radix_bits = static_cast<uint8_t>(nth);
+      sort_nthreads = static_cast<uint8_t>(nth);
     }, "");
 }
 
@@ -356,12 +358,8 @@ void sort_init_options() {
  * elemsize
  *   Size in bytes of each element in `x`, one of: 1, 2, 4, or 8.
  *
- * strdata, stroffs
- *   For string columns only, these are pointers `col->strdata()` and
- *   `col->offsets()` respectively.
- *
- * strtype
- *   0 when sorting non-strings, 1 if sorting str32, 2 if sorting str64
+ * is_string
+ *   true when sorting strings, false otherwise
  *
  * strstart
  *   For string columns only, this is the position within the string that is
@@ -442,8 +440,7 @@ class SortContext {
     int32_t* o;
     int32_t* next_o;
     size_t*  histogram;
-    const uint8_t* strdata;
-    const void* stroffs;
+    Column column;
     size_t strstart;
     size_t n;
     size_t nth;
@@ -454,7 +451,7 @@ class SortContext {
     uint8_t next_elemsize;
     uint8_t nsigbits;
     uint8_t shift;
-    uint8_t strtype;
+    bool is_string;
     bool use_order;
     bool descending;
     int : 8;
@@ -464,8 +461,6 @@ class SortContext {
     o = nullptr;
     next_o = nullptr;
     histogram = nullptr;
-    strdata = nullptr;
-    stroffs = nullptr;
     nchunks = 0;
     chunklen = 0;
     nradixes = 0;
@@ -473,7 +468,7 @@ class SortContext {
     next_elemsize = 0;
     nsigbits = 0;
     shift = 0;
-    strtype = 0;
+    is_string = false;
     use_order = false;
     descending = false;
 
@@ -512,12 +507,13 @@ class SortContext {
   SortContext(SortContext&&) = delete;
 
 
-  void start_sort(const Column* col, bool desc) {
+  void start_sort(const Column& col, bool desc) {
+    column = col;
     descending = desc;
     if (desc) {
-      _prepare_data_for_column<false>(col);
+      _prepare_data_for_column<false>();
     } else {
-      _prepare_data_for_column<true>(col);
+      _prepare_data_for_column<true>();
     }
     if (n <= sort_insert_method_threshold) {
       if (use_order) {
@@ -533,17 +529,18 @@ class SortContext {
   }
 
 
-  void continue_sort(const Column* col, bool desc, bool make_groups) {
+  void continue_sort(const Column& col, bool desc, bool make_groups) {
+    column = col;
     nradixes = gg.size();
     descending = desc;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
     if (desc) {
-      _prepare_data_for_column<false>(col);
+      _prepare_data_for_column<false>();
     } else {
-      _prepare_data_for_column<true>(col);
+      _prepare_data_for_column<true>();
     }
-    if (strtype) strstart--;
+    if (is_string) strstart--;
     // Make sure that `xx` has enough storage capacity. Previous column may
     // have had smaller `elemsize` than this, in which case `xx` will need
     // to be expanded.
@@ -580,7 +577,7 @@ class SortContext {
     size_t ng = gg.size();
     xassert(groups.size() > ng);
     size_t memsize = (ng + 1) * sizeof(int32_t);
-    MemoryRange mr = MemoryRange::mem(memsize);
+    Buffer mr = Buffer::mem(memsize);
     std::memcpy(mr.xptr(), groups.data(), memsize);
     return Groupby(ng, std::move(mr));
   }
@@ -615,22 +612,21 @@ class SortContext {
   }
 
   template <bool ASC>
-  void _prepare_data_for_column(const Column* col) {
-    strtype = 0;
-    strdata = nullptr;
+  void _prepare_data_for_column() {
+    is_string = false;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
-    SType stype = col->stype();
+    SType stype = column.stype();
     switch (stype) {
-      case SType::BOOL:    _initB<ASC>(col); break;
-      case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(col); break;
-      case SType::INT16:   _initI<ASC, int16_t, uint16_t>(col); break;
-      case SType::INT32:   _initI<ASC, int32_t, uint32_t>(col); break;
-      case SType::INT64:   _initI<ASC, int64_t, uint64_t>(col); break;
-      case SType::FLOAT32: _initF<ASC, uint32_t>(col); break;
-      case SType::FLOAT64: _initF<ASC, uint64_t>(col); break;
-      case SType::STR32:   _initS<ASC, uint32_t>(col); break;
-      case SType::STR64:   _initS<ASC, uint64_t>(col); break;
+      case SType::BOOL:    _initB<ASC>(); break;
+      case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(); break;
+      case SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
+      case SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
+      case SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
+      case SType::FLOAT32: _initF<ASC, uint32_t>(); break;
+      case SType::FLOAT64: _initF<ASC, uint64_t>(); break;
+      case SType::STR32:
+      case SType::STR64:   _initS<ASC>(); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
@@ -649,8 +645,8 @@ class SortContext {
    * (128 - x) >> 6 |   0   2   1   NA first, DESC
    */
   template <bool ASC>
-  void _initB(const Column* col) {
-    const uint8_t* xi = static_cast<const uint8_t*>(col->data());
+  void _initB() {
+    const uint8_t* xi = static_cast<const uint8_t*>(column.get_data_readonly());
     elemsize = 1;
     nsigbits = 2;
     allocate_x();
@@ -680,25 +676,24 @@ class SortContext {
    * the data into an appropriate smaller type.
    */
   template <bool ASC, typename T, typename TU>
-  void _initI(const Column* col) {
-    auto icol = static_cast<const IntColumn<T>*>(col);
+  void _initI() {
     xassert(sizeof(T) == sizeof(TU));
-    T min = icol->min();
-    T max = icol->max();
+    int64_t min = column.stats()->min_int(nullptr);
+    int64_t max = column.stats()->max_int(nullptr);
     nsigbits = sizeof(T) * 8;
     nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
-    T edge = ASC? min : max;
-    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(icol, edge);
-    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(icol, edge);
-    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(icol, edge);
-    else                    _initI_impl<ASC, T, TU, uint8_t >(icol, edge);
+    T edge = static_cast<T>(ASC? min : max);
+    if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(edge);
+    else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(edge);
+    else if (nsigbits > 8)  _initI_impl<ASC, T, TU, uint16_t>(edge);
+    else                    _initI_impl<ASC, T, TU, uint8_t >(edge);
   }
 
   template <bool ASC, typename T, typename TI, typename TO>
-  void _initI_impl(const Column* col, T edge) {
+  void _initI_impl(T edge) {
     TI una = static_cast<TI>(GETNA<T>());
     TI uedge = static_cast<TI>(edge);
-    const TI* xi = static_cast<const TI*>(col->data());
+    const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);
     allocate_x();
     TO* xo = x.data<TO>();
@@ -753,8 +748,8 @@ class SortContext {
    *      https://en.wikipedia.org/wiki/Float64
    */
   template <bool ASC, typename TO>
-  void _initF(const Column* col) {
-    const TO* xi = static_cast<const TO*>(col->data());
+  void _initF() {
+    const TO* xi = static_cast<const TO*>(column.get_data_readonly());
     elemsize = sizeof(TO);
     nsigbits = elemsize * 8;
     allocate_x();
@@ -790,21 +785,16 @@ class SortContext {
 
   /**
    * For strings, we fill array `x` with the values of the first character in
-   * each string. We also set up auxiliary variables `strdata`, `stroffs`,
-   * `strstart` and `strtype`.
+   * each string. We also set up auxiliary variables `strstart` and `is_string`.
    *
    * More specifically, for each string item, if it is NA then we map it to 0;
    * if it is an empty string we map it to 1, otherwise we map it to `ch[i] + 2`
    * where `ch[i]` is the i-th character of the string. This doesn't overflow
    * because in UTF-8 the largest legal byte is 0xF7.
    */
-  template <bool ASC, typename T>
-  void _initS(const Column* col) {
-    auto scol = static_cast<const StringColumn<T>*>(col);
-    strdata = reinterpret_cast<const uint8_t*>(scol->strdata());
-    const T* offs = scol->offsets();
-    stroffs = static_cast<const void*>(offs);
-    strtype = sizeof(T) / 4;
+  template <bool ASC>
+  void _initS() {
+    is_string = true;
     strstart = 0;
     nsigbits = 8;
     elemsize = 1;
@@ -818,24 +808,21 @@ class SortContext {
       /* nthreads= */ nth,
       [&] {
         bool len_gt_1 = false;
-        dt::parallel_for_static(
-          /* n_iterations= */ n,
-          /* chunk_size= */ 1024,
+        dt::nested_for_static(n, dt::ChunkSize(1024),
           [&](size_t j) {
-            int32_t k = use_order? o[j] : static_cast<int32_t>(j);
-            T offend = offs[k];
-            if (ISNA<T>(offend)) {
-              xo[j] = 0;    // NA string
-            } else {
-              T offstart = offs[k - 1] & ~GETNA<T>();
-              if (offend > offstart) {
-                xo[j] = ASC? strdata[offstart] + 2
-                           : 0xFE - strdata[offstart];
-                T len = offend - offstart;
-                len_gt_1 |= (len > 1);
+            size_t k = use_order? static_cast<size_t>(o[j]) : j;
+            CString value;
+            bool isvalid = column.get_element(k, &value);
+            if (isvalid) {
+              if (value.size) {
+                xo[j] = ASC? static_cast<uint8_t>(*value.ch) + 2
+                           : 0xFE - static_cast<uint8_t>(*value.ch);
+                len_gt_1 |= (value.size > 1);
               } else {
                 xo[j] = ASC? 1 : 0xFF;  // empty string
               }
+            } else {
+              xo[j] = 0;    // NA string
             }
           });
         if (len_gt_1) flong.test_and_set();
@@ -878,7 +865,7 @@ class SortContext {
 
     // The remaining number of sig.bits is `shift`. Thus, this value will
     // determine the `next_elemsize`.
-    next_elemsize = strtype? 1 :
+    next_elemsize = is_string? 1 :
                     shift > 32? 8 :
                     shift > 16? 4 :
                     shift > 0? 2 : 0;
@@ -914,7 +901,7 @@ class SortContext {
 
   template<typename T> void _histogram_gather() {
     T* tx = x.data<T>();
-    dt::parallel_for_static(nchunks, 1,
+    dt::parallel_for_static(nchunks, dt::ChunkSize(1),
       [&](size_t i) {
         size_t* cnts = histogram + (nradixes * i);
         size_t j0 = i * chunklen;
@@ -960,16 +947,13 @@ class SortContext {
   void reorder_data() {
     if (!xx && next_elemsize) allocate_xx();
     if (!next_o) allocate_oo();
-    if (strtype) {
+    if (is_string) {
       if (xx) {
-        if (descending) {
-          if (strtype == 1) _reorder_str<false, uint32_t>();
-          else              _reorder_str<false, uint64_t>();
-        } else {
-          if (strtype == 1) _reorder_str<true, uint32_t>();
-          else              _reorder_str<true, uint64_t>();
-        }
-      } else _reorder_impl<uint8_t, char, false>();
+        if (descending) _reorder_str<false>();
+        else            _reorder_str<true>();
+      } else {
+        _reorder_impl<uint8_t, char, false>();
+      }
     } else {
       switch (elemsize) {
         case 8:
@@ -1008,7 +992,7 @@ class SortContext {
       xo = xx.data<TO>();
       mask = static_cast<TI>((1ULL << shift) - 1);
     }
-    dt::parallel_for_static(nchunks,
+    dt::parallel_for_static(nchunks, dt::ChunkSize(1),
       [&](size_t i) {
         size_t j0 = i * chunklen;
         size_t j1 = std::min(j0 + chunklen, n);
@@ -1025,20 +1009,17 @@ class SortContext {
     xassert(histogram[nchunks * nradixes - 1] == n);
   }
 
-  template <bool ASC, typename T>
+  template <bool ASC>
   void _reorder_str() {
     uint8_t* xi = x.data<uint8_t>();
     uint8_t* xo = xx.data<uint8_t>();
-    const T sstart = static_cast<T>(strstart) + 1;
-    const T* soffs = static_cast<const T*>(stroffs);
+    const int64_t sstart = static_cast<int64_t>(strstart) + 1;
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 
     dt::parallel_region(nth,
       [&] {
         bool tlong = false;
-        dt::parallel_for_static(
-          /* n_iterations= */ nchunks,
-          /* chunk_size= */ 1,
+        dt::nested_for_static(nchunks, dt::ChunkSize(1),
           [&](size_t i) {
             size_t j0 = i * chunklen;
             size_t j1 = std::min(j0 + chunklen, n);
@@ -1046,20 +1027,21 @@ class SortContext {
             for (size_t j = j0; j < j1; ++j) {
               size_t k = tcounts[xi[j]]++;
               xassert(k < n);
-              int32_t w = use_order? o[j] : static_cast<int32_t>(j);
-              T offend = soffs[w];
-              T offstart = (soffs[w - 1] & ~GETNA<T>()) + sstart;
-              if (ISNA<T>(offend)) {
-                xo[k] = 0;
-              } else if (offend > offstart) {
-                xo[k] = ASC? strdata[offstart] + 2
-                           : 0xFE - strdata[offstart];
-                T len = offend - offstart;
-                tlong |= (len > 0);
+              size_t w = use_order? static_cast<size_t>(o[j]) : j;
+              CString value;
+              bool isvalid = column.get_element(w, &value);
+              if (isvalid) {
+                if (value.size > sstart) {
+                  xo[k] = ASC? static_cast<uint8_t>(value.ch[sstart] + 2)
+                             : static_cast<uint8_t>(0xFE - value.ch[sstart]);
+                  tlong = true;
+                } else {
+                  xo[k] = ASC? 1 : 0xFF;  // string is shorter than sstart
+                }
               } else {
-                xo[k] = ASC? 1 : 0xFF;  // string is shorter than sstart
+                xo[k] = 0;
               }
-              next_o[k] = w;
+              next_o[k] = static_cast<int32_t>(w);
             }
           });
         if (tlong) flong.test_and_set();
@@ -1090,7 +1072,7 @@ class SortContext {
       // If after reordering there are still unsorted elements in `x`, then
       // sort them recursively.
       uint8_t _nsigbits = nsigbits;
-      nsigbits = strtype? 8 : shift;
+      nsigbits = is_string? 8 : shift;
       dt::array<radix_range> rrmap(nradixes);
       radix_range* rrmap_ptr = rrmap.data();
       _fill_rrmap_from_histogram(rrmap_ptr);
@@ -1227,7 +1209,6 @@ class SortContext {
     // Finally iterate over all remaining radix ranges, in-parallel, and
     // sort each of them independently using a simpler insertion sort
     // method.
-    size_t nthreads = std::min(nth, nsmallgroups);
     int32_t* tmp = nullptr;
     bool own_tmp = false;
     if (size0) {
@@ -1236,18 +1217,18 @@ class SortContext {
       //   tmp = (int32_t*)_x;
       // } else {
       own_tmp = true;
-      tmp = new int32_t[size0 * nthreads];
+      tmp = new int32_t[size0 * nth];
       TRACK(tmp, sizeof(tmp), "sort.tmp");
       // }
     }
 
-    dt::parallel_region(nthreads,
+    dt::parallel_region(nth,
       [&] {
         size_t tnum = dt::this_thread_index();
         int32_t* oo = tmp + tnum * size0;
         GroupGatherer tgg;
 
-        dt::parallel_for_dynamic(
+        dt::nested_for_static(
           /* n_iterations */ _nradixes,
           [&](size_t i) {
             size_t zn  = rrmap[i].size;
@@ -1261,21 +1242,15 @@ class SortContext {
               if (make_groups) {
                 tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
               }
-              if (strtype == 0) {
+              if (is_string) {
+                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending);
+              } else {
                 switch (elemsize) {
                   case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
                   case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
                   case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
                   case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
                 }
-              } else if (strtype == 1) {
-                const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-                uint32_t ss = static_cast<uint32_t>(_strstart + 1);
-                insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg, descending);
-              } else {
-                const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-                uint64_t ss = static_cast<uint64_t>(_strstart + 1);
-                insert_sort_keys_str(strdata, soffs, ss, to, oo, tn, tgg, descending);
               }
               if (make_groups) {
                 rrmap[i].size = static_cast<size_t>(tgg.size());
@@ -1284,7 +1259,7 @@ class SortContext {
               ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
               rrmap[i].size = 1;
             }
-          });  // dt::parallel_for_dynamic
+          });  // dt::nested_for_static
       });  // dt::parallel_region
 
     // Consolidate groups into a single contiguous chunk
@@ -1308,38 +1283,29 @@ class SortContext {
     arr32_t tmparr(n);
     int32_t* tmp = tmparr.data();
     int32_t nn = static_cast<int32_t>(n);
-    if (strtype == 0) {
+    if (is_string) {
+      insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending);
+    } else {
       switch (elemsize) {
         case 1: _insert_sort_keys<uint8_t >(tmp); break;
         case 2: _insert_sort_keys<uint16_t>(tmp); break;
         case 4: _insert_sort_keys<uint32_t>(tmp); break;
         case 8: _insert_sort_keys<uint64_t>(tmp); break;
       }
-    } else if (strtype == 1) {
-      const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, uint32_t(0), o, tmp, nn, gg, descending);
-    } else {
-      const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_keys_str(strdata, soffs, uint64_t(0), o, tmp, nn, gg, descending);
     }
   }
 
   void vinsert_sort() {
-    if (strtype == 0) {
+    if (is_string) {
+      int32_t nn = static_cast<int32_t>(n);
+      insert_sort_values_str(column, 0, o, nn, gg, descending);
+    } else {
       switch (elemsize) {
         case 1: _insert_sort_values<uint8_t >(); break;
         case 2: _insert_sort_values<uint16_t>(); break;
         case 4: _insert_sort_values<uint32_t>(); break;
         case 8: _insert_sort_values<uint64_t>(); break;
       }
-    } else if (strtype == 1) {
-      int32_t nn = static_cast<int32_t>(n);
-      const uint32_t* soffs = static_cast<const uint32_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, uint32_t(0), o, nn, gg, descending);
-    } else {
-      int32_t nn = static_cast<int32_t>(n);
-      const uint64_t* soffs = static_cast<const uint64_t*>(stroffs);
-      insert_sort_values_str(strdata, soffs, uint64_t(0), o, nn, gg, descending);
     }
   }
 
@@ -1365,17 +1331,21 @@ class SortContext {
 using RiGb = std::pair<RowIndex, Groupby>;
 
 
-RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
+RiGb DataTable::group(const std::vector<sort_spec>& spec) const
 {
   RiGb result;
   size_t n = spec.size();
   xassert(n > 0);
 
-  Column* col0 = columns[spec[0].col_index];
+  const Column& col0 = columns[spec[0].col_index];
+  col0.stats();  // instantiate Stats object; TODO: remove this
+
+  // For a 0-row Frame we return a rowindex of size 0, and the
+  // Groupby containing a single group (also of size 0).
   if (nrows <= 1) {
     arr32_t indices(nrows);
     if (nrows) {
-      indices[0] = as_view? static_cast<int32_t>(col0->rowindex()[0]) : 0;
+      indices[0] = 0;
     }
     result.first = RowIndex(std::move(indices), true);
     if (!spec[0].sort_only) {
@@ -1384,22 +1354,13 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     return result;
   }
 
-  #ifndef NDEBUG
-    if (as_view) {
-      // Check that the sorted columns have consistent rowindices.
-      for (size_t j = 1; j < spec.size(); ++j) {
-        xassert(columns[spec[j].col_index]->rowindex() == col0->rowindex());
-      }
-    }
-  #endif
-  if (!as_view) {
-    for (auto& s : spec) {
-      columns[s.col_index]->materialize();
-    }
+  for (auto& s : spec) {
+    const_cast<DataTable*>(this)->columns[s.col_index].materialize();
   }
 
   bool do_groups = n > 1 || !spec[0].sort_only;
-  SortContext sc(nrows, col0->rowindex(), do_groups);
+  xassert(!col0.is_virtual());
+  SortContext sc(nrows, RowIndex(), do_groups);
   sc.start_sort(col0, spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
     if (spec[j].sort_only && !spec[j - 1].sort_only) {
@@ -1408,8 +1369,9 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
     if (j == n - 1 && spec[j].sort_only) {
       do_groups = false;
     }
-    sc.continue_sort(columns[spec[j].col_index],
-                     spec[j].descending, do_groups);
+    const Column& colj = columns[spec[j].col_index];
+    colj.stats();  // TODO: remove this
+    sc.continue_sort(colj, spec[j].descending, do_groups);
   }
   result.first = sc.get_result_rowindex();
   if (!spec[0].sort_only && !result.second) {
@@ -1420,27 +1382,38 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec, bool as_view) const
 
 
 
-static RowIndex sort_tiny(const Column* col, Groupby* out_grps) {
-  if (col->nrows == 0) {
+static RowIndex sort_tiny(const Column& col, Groupby* out_grps) {
+  if (col.nrows() == 0) {
     if (out_grps) *out_grps = Groupby::single_group(0);
     return RowIndex(arr32_t(0), true);
   }
-  xassert(col->nrows == 1);
+  xassert(col.nrows() == 1);
   if (out_grps) {
     *out_grps = Groupby::single_group(1);
   }
   arr32_t indices(1);
-  indices[0] = static_cast<int32_t>(col->rowindex()[0]);
+  indices[0] = 0;
   return RowIndex(std::move(indices), true);
 }
 
 
+RowIndex ColumnImpl::_sort(Groupby* out_grps) const {
+  Column ocol(this->shallowcopy());
+  return ocol.sort(out_grps);
+}
+
 RowIndex Column::sort(Groupby* out_grps) const {
-  if (nrows <= 1) {
-    return sort_tiny(this, out_grps);
+  (void) stats();  // temporary: instantiate stats object
+  if (nrows() <= 1) {
+    return sort_tiny(*this, out_grps);
   }
-  SortContext sc(nrows, rowindex(), (out_grps != nullptr));
-  sc.start_sort(this, false);
+
+  if (is_virtual()) {  // temporary
+    const_cast<Column*>(this)->materialize();
+  }
+  SortContext sc(nrows(), RowIndex(), (out_grps != nullptr));
+
+  sc.start_sort(*this, false);
   if (out_grps) {
     auto res = sc.get_result_groups();
     *out_grps = std::move(res.second);
@@ -1451,14 +1424,33 @@ RowIndex Column::sort(Groupby* out_grps) const {
 }
 
 
-RowIndex Column::sort_grouped(const RowIndex& rowindex,
-                              const Groupby& grps) const
-{
-  SortContext sc(nrows, rowindex, grps, /* make_groups = */ false);
-  sc.continue_sort(this, /* desc = */ false, /* make_groups = */ false);
-  return sc.get_result_rowindex();
+void ColumnImpl::sort_grouped(const Groupby& grps, bool inplace, Column& out) {
+  (void) inplace;
+  (void) out.stats();
+  SortContext sc(nrows(), RowIndex(), grps, /* make_groups = */ false);
+  sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);
+  out.apply_rowindex(sc.get_result_rowindex());
 }
 
+
+template <typename T>
+void dt::ArrayView_ColumnImpl<T>::sort_grouped(
+    const Groupby& grps, bool inplace, Column& out)
+{
+  if (inplace) {
+    (void) out.stats();
+    SortContext sc(nrows(), rowindex_container, grps, /*make_groups=*/ false);
+    sc.continue_sort(arg, /*desc=*/ false, /*make_groups=*/ false);
+    set_rowindex(sc.get_result_rowindex());
+  }
+  else {
+    out = Column(this->shallowcopy());
+    out.sort_grouped(grps);
+  }
+}
+
+template class dt::ArrayView_ColumnImpl<int32_t>;
+template class dt::ArrayView_ColumnImpl<int64_t>;
 
 
 
@@ -1487,14 +1479,14 @@ remains unmodified.
 )");
 
 py::oobj py::Frame::sort(const PKArgs& args) {
-  dt::workframe wf(dt);
+  dt::EvalContext ctx(dt, dt::EvalMode::SELECT);
 
   if (args.num_vararg_args() == 0) {
     py::otuple all_cols(dt->ncols);
     for (size_t i = 0; i < dt->ncols; ++i) {
       all_cols.set(i, py::oint(i));
     }
-    wf.add_sortby(py::osort(all_cols));
+    ctx.add_sortby(py::osort(all_cols));
   }
   else {
     std::vector<py::robj> cols;
@@ -1513,17 +1505,17 @@ py::oobj py::Frame::sort(const PKArgs& args) {
     for (size_t i = 0; i < cols.size(); ++i) {
       sort_cols.set(i, cols[i]);
     }
-    wf.add_sortby(py::osort(sort_cols));
+    ctx.add_sortby(py::osort(sort_cols));
   }
 
-  wf.add_i(py::None());
-  wf.add_j(py::None());
-  wf.evaluate();
-  return wf.get_result();
+  ctx.add_i(py::None());
+  ctx.add_j(py::None());
+  ctx.evaluate();
+  return ctx.get_result();
 }
 
 
 
-void py::Frame::Type::_init_sort(Methods& mm) {
-  ADD_METHOD(mm, &Frame::sort, args_sort);
+void py::Frame::_init_sort(XTypeMaker& xt) {
+  xt.add(METHOD(&Frame::sort, args_sort));
 }

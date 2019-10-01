@@ -9,7 +9,7 @@ import types
 import datatable as dt
 from tests import assert_equals
 from datatable import stype, DatatableWarning
-from datatable.internal import frame_integrity_check
+from datatable.internal import frame_integrity_check, frame_columns_virtual
 
 
 def dt_compute_stats(*dts):
@@ -43,6 +43,23 @@ def test_cbind_simple():
     assert_equals(d0, dr)
 
 
+def test_cbind_api():
+    DT1 = dt.Frame(A=[1, 2, 3])
+    DT2 = dt.Frame(B=[-4, -5, None])
+    DT3 = dt.Frame(X=["makes", "gonna", "make"])
+    RES1 = dt.cbind(DT1, DT2, DT3)
+    RES2 = dt.cbind([DT1, DT2, DT3])
+    RES3 = dt.cbind((DT1, DT2, DT3))  # tuple
+    RES4 = dt.cbind([DT1], [DT2, DT3])
+    RES5 = dt.cbind(DT1, [DT2], DT3)
+    RES6 = dt.cbind((frame for frame in [DT1, DT2, DT3]))  # generator
+    assert_equals(RES1, RES2)
+    assert_equals(RES1, RES3)
+    assert_equals(RES1, RES4)
+    assert_equals(RES1, RES5)
+    assert_equals(RES1, RES6)
+
+
 def test_cbind_empty1():
     d0 = dt.Frame([1, 2, 3])
     dt_compute_stats(d0)
@@ -57,6 +74,11 @@ def test_cbind_empty2():
     assert_equals(d0, dt.Frame([1, 2, 3]))
 
 
+def test_cbind_empty3():
+    DT = dt.cbind()
+    assert_equals(DT, dt.Frame())
+
+
 def test_cbind_self():
     d0 = dt.Frame({"fun": [1, 2, 3]})
     dt_compute_stats(d0)
@@ -65,7 +87,7 @@ def test_cbind_self():
         d0.cbind(d0)
         d0.cbind(d0)
     dr = dt.Frame([[1, 2, 3]] * 8,
-                  names=["fun"] + ["fun.%d" % i for i in range(1, 8)])
+                  names=["fun"] + ["fun.%d" % i for i in range(7)])
     assert_equals(d0, dr)
 
 
@@ -169,7 +191,6 @@ def test_cbind_views2():
 
 
 def test_cbind_views3():
-    from datatable.internal import frame_column_rowindex
     d0 = dt.Frame(A=range(10))[::-1, :]
     d1 = dt.Frame(B=list("abcde") * 2)
     d2 = dt.Frame(C=range(1000))[[14, 19, 35, 17, 3, 0, 1, 0, 10, 777], :]
@@ -177,11 +198,7 @@ def test_cbind_views3():
     assert d0.to_list() == [list(range(10))[::-1],
                             list("abcde" * 2),
                             [14, 19, 35, 17, 3, 0, 1, 0, 10, 777]]
-    assert (repr(frame_column_rowindex(d0, 0)) ==
-            "datatable.internal.RowIndex(9/10/-1)")
-    assert frame_column_rowindex(d0, 1) is None
-    assert (repr(frame_column_rowindex(d0, 2)) ==
-            "datatable.internal.RowIndex(int32[10])")
+    assert frame_columns_virtual(d0) == (True, False, True)
 
 
 
@@ -230,7 +247,7 @@ def test_cbind_array():
         d0.cbind([d0] * 10)
     frame_integrity_check(d0)
     assert d0.shape == (5, 11)
-    assert d0.names == ("A",) + tuple("A.%d" % (i + 1) for i in range(10))
+    assert d0.names == ("A",) + tuple("A.%d" % i for i in range(10))
     assert d0.to_list() == [[0, 1, 2, 3, 4]] * 11
 
 
@@ -306,3 +323,52 @@ def test_cbind_error_3():
         DT.cbind(dt.Frame(B=[]))
     assert ("Cannot cbind frame with 0 rows to a frame with 5 rows"
             in str(e.value))
+
+
+def test_issue1905():
+    # cbind() is passed a generator, where each generated Frame is a
+    # temporary. In this case cbind() should take care to keep the
+    # references to all frames while working, lest they get gc-d by
+    # the end of the generator loop.
+    DT = dt.cbind(dt.Frame(range(50), names=[str(i)])
+                  for i in range(30))
+    assert DT.shape == (50, 30)
+
+
+def test_cbind_nones():
+    DT = dt.cbind(None, dt.Frame(A=range(5)), None, dt.Frame(B=[0]*5))
+    assert_equals(DT, dt.Frame(A=range(5), B=[0]*5))
+
+
+def test_cbind_expanded_frame():
+    DT = dt.Frame(A=[1, 2], B=['a', "E"], C=[7, 1000], D=[-3.14, 159265])
+    RES = dt.cbind(*DT)
+    assert_equals(DT, RES)
+
+
+def test_cbind_issue2024():
+    DT = dt.Frame([[]] * 2, names=["A.1", "A.5"])
+    with pytest.warns(DatatableWarning):
+        RZ = dt.cbind(DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6")
+        RZ = dt.cbind(DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7")
+        RZ = dt.cbind(DT, DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7", "A.4",
+                            "A.8")
+        RZ = dt.cbind(DT, DT, DT, DT, DT)
+        assert RZ.names == ("A.1", "A.5", "A.2", "A.6", "A.3", "A.7", "A.4",
+                            "A.8", "A.9", "A.10")
+
+
+def test_cbind_issue2028():
+    def join(names1, names2):
+        with pytest.warns(DatatableWarning):
+            return dt.cbind(dt.Frame(names=names1),
+                            dt.Frame(names=names2)).names
+
+    assert join(["A", "A.1"], ["A", "A.1"]) == ("A", "A.1", "A.0", "A.2")
+    assert join(["A", "A.1"], ["A.1", "A"]) == ("A", "A.1", "A.2", "A.0")
+    assert join(["B"], ["B.0", "B.00", "B"]) == ("B", "B.0", "B.00", "B.1")
+    with dt.options.frame.context(names_auto_index=17):
+        assert join(["A", "A.1"], ["A", "A.1"]) == ("A", "A.1", "A.17", "A.2")

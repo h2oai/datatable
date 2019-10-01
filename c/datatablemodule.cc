@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <exception>       // std::exception
 #include <iostream>        // std::cerr
@@ -19,6 +19,8 @@
 #include "expr/expr_binaryop.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_unaryop.h"
+#include "expr/head_func.h"
+#include "expr/head_reduce.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
@@ -31,11 +33,11 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
 #include "py_encodings.h"
-#include "py_rowindex.h"
 #include "ztest.h"
 
 
@@ -62,23 +64,22 @@ _unpack_frame_column_args(const py::PKArgs& args)
 }
 
 
-static py::PKArgs args_frame_column_rowindex(
-    2, 0, 0, false, false, {"frame", "i"},
-    "frame_column_rowindex",
-R"(frame_column_rowindex(frame, i)
+static py::PKArgs args_frame_columns_virtual(
+    1, 0, 0, false, false, {"frame"},
+    "frame_columns_virtual",
+R"(frame_columns_virtual(frame)
 --
 
-Return the RowIndex of the `i`th column of the `frame`, or None if that column
-has no row index.
+Return the tuple of which columns in the Frame are virtual.
 )");
 
-static py::oobj frame_column_rowindex(const py::PKArgs& args) {
-  auto u = _unpack_frame_column_args(args);
-  DataTable* dt = u.first;
-  size_t col = u.second;
-
-  RowIndex ri = dt->columns[col]->rowindex();
-  return ri? py::orowindex(ri) : py::None();
+static py::oobj frame_columns_virtual(const py::PKArgs& args) {
+  DataTable* dt = args[0].to_datatable();
+  py::otuple virtuals(dt->ncols);
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    virtuals.set(i, py::obool(dt->get_column(i).is_virtual()));
+  }
+  return std::move(virtuals);
 }
 
 
@@ -98,7 +99,8 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
   auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
   size_t col = u.second;
-  size_t iptr = reinterpret_cast<size_t>(dt->columns[col]->data());
+  size_t iptr = reinterpret_cast<size_t>(
+                    dt->get_column(col).get_data_readonly());
   return c_void_p.call({py::oint(iptr)});
 }
 
@@ -146,7 +148,7 @@ static py::oobj get_thread_ids(const py::PKArgs&) {
   std::mutex m;
   size_t n = dt::num_threads_in_pool();
   py::olist list(n);
-  xassert(dt::this_thread_index() == size_t(-1));
+  xassert(dt::this_thread_index() == 0);
 
   dt::parallel_region([&] {
     std::stringstream ss;
@@ -228,28 +230,6 @@ static py::oobj regex_supported(const py::PKArgs&) {
   return py::obool(REGEX_SUPPORTED);
 }
 
-
-
-static py::PKArgs args__column_save_to_disk(
-  4, 0, 0, false, false,
-  {"frame", "i", "filename", "strategy"},
-  "_column_save_to_disk",
-  "Save `frame[i]` column's data into the file `filename`,\n"
-  "using the provided writing strategy.\n");
-
-static void _column_save_to_disk(const py::PKArgs& args) {
-  DataTable* dt        = args[0].to_datatable();
-  size_t i             = args[1].to_size_t();
-  std::string filename = args[2].to_string();
-  std::string strategy = args[3].to_string();
-
-  Column* col = dt->columns[i];
-  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
-                   (strategy == "write") ? WritableBuffer::Strategy::Write :
-                                           WritableBuffer::Strategy::Auto;
-
-  col->save_to_disk(filename, sstrategy);
-}
 
 
 
@@ -348,9 +328,8 @@ static py::oobj get_tracked_objects(const py::PKArgs&) {
 void py::DatatableModule::init_methods() {
   ADD_FN(&_register_function, args__register_function);
   ADD_FN(&in_debug_mode, args_in_debug_mode);
-  ADD_FN(&frame_column_rowindex, args_frame_column_rowindex);
+  ADD_FN(&frame_columns_virtual, args_frame_columns_virtual);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
-  ADD_FN(&_column_save_to_disk, args__column_save_to_disk);
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
@@ -364,7 +343,6 @@ void py::DatatableModule::init_methods() {
   init_methods_jay();
   init_methods_join();
   init_methods_kfold();
-  init_methods_nff();
   init_methods_rbind();
   init_methods_repeat();
   init_methods_sets();
@@ -401,11 +379,11 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     dt::expr::init_expr();
     dt::expr::init_reducers();
     dt::expr::init_binops();
+    dt::expr::Head_Func::init();
 
-    py::Frame::Type::init(m);
-    py::Ftrl::Type::init(m);
+    py::Frame::init_type(m);
+    py::Ftrl::init_type(m);
     dt::init_config_option(m);
-    py::orowindex::pyobject::Type::init(m);
     py::oby::init(m);
     py::ojoin::init(m);
     py::osort::init(m);

@@ -25,6 +25,7 @@
 #include "parallel/api.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 namespace dt {
 namespace expr {
@@ -82,8 +83,8 @@ expr_string_match_re::expr_string_match_re(pexpr&& expr, py::oobj params) {
 }
 
 
-SType expr_string_match_re::resolve(const workframe& wf) {
-  SType arg_stype = arg->resolve(wf);
+SType expr_string_match_re::resolve(const EvalContext& ctx) {
+  SType arg_stype = arg->resolve(ctx);
   if (!(arg_stype == SType::STR32 || arg_stype == SType::STR64)) {
     throw TypeError() << "Method `.re_match()` cannot be applied to a "
         "column of type " << arg_stype;
@@ -92,46 +93,32 @@ SType expr_string_match_re::resolve(const workframe& wf) {
 }
 
 
-GroupbyMode expr_string_match_re::get_groupby_mode(const workframe& wf) const {
-  return arg->get_groupby_mode(wf);
+GroupbyMode expr_string_match_re::get_groupby_mode(const EvalContext& ctx) const {
+  return arg->get_groupby_mode(ctx);
 }
 
 
-colptr expr_string_match_re::evaluate_eager(workframe& wf) {
-  auto arg_res = arg->evaluate_eager(wf);
-  SType arg_stype = arg_res->stype();
-  xassert(arg_stype == SType::STR32 || arg_stype == SType::STR64);
-  return arg_stype == SType::STR32? _compute<uint32_t>(arg_res.get())
-                                  : _compute<uint64_t>(arg_res.get());
-}
+Column expr_string_match_re::evaluate(EvalContext& ctx) {
+  Column src = arg->evaluate(ctx);
+  xassert(src.ltype() == LType::STRING);
+  size_t nrows = src.nrows();
 
-
-template <typename T>
-colptr expr_string_match_re::_compute(Column* src) {
-  auto ssrc = dynamic_cast<StringColumn<T>*>(src);
-  size_t nrows = ssrc->nrows;
-  RowIndex src_rowindex = ssrc->rowindex();
-  const char* src_strdata = ssrc->strdata();
-  const T* src_offsets = ssrc->offsets();
-
-  auto trg = new BoolColumn(nrows);
-  int8_t* trg_data = static_cast<int8_t*>(trg->data_w());
+  Column trg = Column::new_data_column(SType::BOOL, nrows);
+  int8_t* trg_data = static_cast<int8_t*>(trg.get_data_editable());
 
   dt::parallel_for_dynamic(nrows,
     [&](size_t i) {
-      size_t j = src_rowindex[i];
-      T start = src_offsets[j - 1] & ~GETNA<T>();
-      T end = src_offsets[j];
-      if (ISNA<T>(end)) {
-        trg_data[i] = GETNA<int8_t>();
-        return;
+      CString value;
+      bool isvalid = src.get_element(i, &value);
+      if (isvalid) {
+        bool res = std::regex_match(value.ch, value.ch + value.size, regex);
+        trg_data[i] = res;
       }
-      bool res = std::regex_match(src_strdata + start,
-                                  src_strdata + end,
-                                  regex);
-      trg_data[i] = res;
+      else {
+        trg_data[i] = GETNA<int8_t>();
+      }
     });
-  return colptr(trg);
+  return trg;
 }
 
 

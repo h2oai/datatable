@@ -77,6 +77,50 @@ static void test_parallel_for_ordered(const PKArgs& args) {
   dttest::test_parallel_for_ordered(n);
 }
 
+// Test progress reporting
+
+static PKArgs arg_test_progress_static(2, 0, 0, false, false,
+  {"n_iters", "n_threads"},
+  "test_progress_static");
+
+static void test_progress_static(const PKArgs& args) {
+  size_t n_iters = args[0].to_size_t();
+  size_t n_threads = args[1].to_size_t();
+  dttest::test_progress_static(n_iters, n_threads);
+}
+
+
+static PKArgs arg_test_progress_nested(2, 0, 0, false, false,
+  {"n_iters", "n_threads"},
+  "test_progress_nested");
+
+static void test_progress_nested(const PKArgs& args) {
+  size_t n_iters = args[0].to_size_t();
+  size_t n_threads = args[1].to_size_t();
+  dttest::test_progress_nested(n_iters, n_threads);
+}
+
+
+static PKArgs arg_test_progress_dynamic(2, 0, 0, false, false,
+  {"n_iters", "n_threads"},
+  "test_progress_dynamic");
+
+static void test_progress_dynamic(const PKArgs& args) {
+  size_t n_iters = args[0].to_size_t();
+  size_t n_threads = args[1].to_size_t();
+  dttest::test_progress_dynamic(n_iters, n_threads);
+}
+
+
+static PKArgs arg_test_progress_ordered(2, 0, 0, false, false,
+  {"n_iters", "n_threads"},
+  "test_progress_ordered");
+
+static void test_progress_ordered(const PKArgs& args) {
+  size_t n_iters = args[0].to_size_t();
+  size_t n_threads = args[1].to_size_t();
+  dttest::test_progress_ordered(n_iters, n_threads);
+}
 
 
 void DatatableModule::init_tests() {
@@ -87,7 +131,12 @@ void DatatableModule::init_tests() {
   ADD_FN(&test_parallel_for_static, arg_test_parallel_for_static);
   ADD_FN(&test_parallel_for_dynamic, arg_test_parallel_for_dynamic);
   ADD_FN(&test_parallel_for_ordered, arg_test_parallel_for_ordered);
+  ADD_FN(&test_progress_static, arg_test_progress_static);
+  ADD_FN(&test_progress_nested, arg_test_progress_nested);
+  ADD_FN(&test_progress_dynamic, arg_test_progress_dynamic);
+  ADD_FN(&test_progress_ordered, arg_test_progress_ordered);
 }
+
 
 
 } // namespace py

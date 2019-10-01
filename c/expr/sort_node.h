@@ -23,29 +23,22 @@
 #define dt_EXPR_SORT_NODE_h
 #include <memory>
 #include "expr/collist.h"
-#include "python/ext_type.h"
 #include "python/obj.h"
+#include "python/xobject.h"
 namespace py {
 
 
-class _sort : public PyObject {
+class _sort : public XObject<_sort> {
   private:
     oobj cols;
     friend class osort;
 
   public:
-    class Type : public ExtType<_sort> {
-      public:
-        static PKArgs args___init__;
-        static const char* classname();
-        static const char* classdoc();
-        static bool is_subclassable();
-        static void init_methods_and_getsets(Methods&, GetSetters&);
-    };
-
-    void m__init__(PKArgs&);
+    void m__init__(const PKArgs&);
     void m__dealloc__();
     oobj get_cols() const;
+
+    static void impl_init_type(XTypeMaker&);
 };
 
 
@@ -63,7 +56,7 @@ class osort : public oobj {
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
-    dt::collist_ptr cols(dt::workframe&) const;
+    dt::collist_ptr cols(dt::EvalContext&) const;
 
   private:
     // This private constructor will reinterpret the object `r` as an

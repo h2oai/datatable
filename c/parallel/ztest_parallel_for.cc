@@ -23,10 +23,10 @@ namespace dttest {
 
 
 void test_parallel_for_static(size_t n) {
-  for (size_t nth = 0; nth <= dt::num_threads_in_pool(); ++nth) {
+  for (size_t nth = 0; nth <= dt::num_threads_in_pool() * 2; ++nth) {
     std::vector<size_t> data(n, 0);
 
-    dt::parallel_for_static(n, 1, nth,
+    dt::parallel_for_static(n, dt::ChunkSize(1), dt::NThreads(nth),
       [&](size_t i) {
         data[i] += 1 + 2 * i;
       });
@@ -46,7 +46,7 @@ void test_parallel_for_dynamic(size_t n) {
   for (size_t nth = 0; nth <= dt::num_threads_in_pool(); ++nth) {
     std::vector<size_t> data(n, 0);
 
-    dt::parallel_for_dynamic(n, nth,
+    dt::parallel_for_dynamic(n, dt::NThreads(nth),
       [&](size_t i) {
         data[i] += 1 + 2 * i;
       });
@@ -102,7 +102,7 @@ void test_parallel_for_ordered(size_t n) {
 
   dt::parallel_for_ordered(
     /* n_iters = */ n,
-    /* n_threads = */ size_t(-1),
+    /* n_threads = */ dt::NThreads(),
     [&] (dt::ordered* o) {
       std::atomic_flag executing_local = ATOMIC_FLAG_INIT;
       int k = ordered_section.fetch_add(1);

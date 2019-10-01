@@ -22,7 +22,8 @@
 #include "expr/expr.h"
 #include "expr/by_node.h"
 #include "expr/collist.h"
-#include "expr/workframe.h"
+#include "expr/expr_column.h"
+#include "expr/eval_context.h"
 #include "python/arg.h"
 #include "python/tuple.h"
 #include "utils/exceptions.h"
@@ -54,47 +55,47 @@ by_node::~by_node() {
 }
 
 
-void by_node::add_groupby_columns(workframe& wf, collist_ptr&& cl) {
-  _add_columns(wf, std::move(cl), true);
+void by_node::add_groupby_columns(EvalContext& ctx, collist_ptr&& cl) {
+  _add_columns(ctx, std::move(cl), true);
 }
 
-void by_node::add_sortby_columns(workframe& wf, collist_ptr&& cl) {
-  _add_columns(wf, std::move(cl), false);
+void by_node::add_sortby_columns(EvalContext& ctx, collist_ptr&& cl) {
+  _add_columns(ctx, std::move(cl), false);
 }
 
 
-void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
-  auto cl_int  = dynamic_cast<cols_intlist*>(cl.get());
-  auto cl_expr = dynamic_cast<cols_exprlist*>(cl.get());
-  xassert(cl_int || cl_expr);
-  if (cl_int) {
-    bool has_names = !cl_int->names.empty();
-    size_t n = cl_int->indices.size();
+void by_node::_add_columns(EvalContext& ctx, collist_ptr&& cl, bool isgrp) {
+  strvec names = cl->release_names();
+  bool has_names = !names.empty();
+  if (cl->is_simple_list()) {
+    intvec indices = cl->release_indices();
+    size_t n = indices.size();
     for (size_t i = 0; i < n; ++i) {
       cols.emplace_back(
-          cl_int->indices[i],
-          has_names? std::move(cl_int->names[i]) : std::string(),
+          indices[i],
+          has_names? std::move(names[i]) : std::string(),
           false,          // descending
-          !isgrp  // sort_only
+          !isgrp          // sort_only
       );
     }
     n_group_columns += isgrp * n;
   }
-  if (cl_expr) {
+  else {
     using pexpr = std::unique_ptr<dt::expr::base_expr>;
-    bool has_names = !cl_expr->names.empty();
-    size_t n = cl_expr->exprs.size();
+    exprvec exprs = cl->release_exprs();
+    size_t n = exprs.size();
     size_t n_computed = 0;
     for (size_t i = 0; i < n; ++i) {
       bool descending = false;
-      pexpr cexpr = std::move(cl_expr->exprs[i]);
+      pexpr cexpr = std::move(exprs[i]);
       pexpr neg = cexpr->get_negated_expr();
       if (neg) {
-        size_t j = neg->get_col_index(wf);
+        auto colexpr = dynamic_cast<dt::expr::expr_column*>(neg.get());
+        size_t j = colexpr->get_col_index(ctx);
         if (j != size_t(-1)) {
           cols.emplace_back(
               j,
-              has_names? std::move(cl_expr->names[i]) : std::string(),
+              has_names? std::move(names[i]) : std::string(),
               true,   // descending
               !isgrp  // sort_only
           );
@@ -105,7 +106,7 @@ void by_node::_add_columns(workframe& wf, collist_ptr&& cl, bool isgrp) {
       }
       cols.emplace_back(
           std::move(cexpr),
-          has_names? std::move(cl_expr->names[i]) : std::string(),
+          has_names? std::move(names[i]) : std::string(),
           descending,
           !isgrp  // sort_only
       );
@@ -132,11 +133,11 @@ bool by_node::has_group_column(size_t i) const {
 }
 
 
-void by_node::create_columns(workframe& wf) {
-  DataTable* dt0 = wf.get_datatable(0);
-  RowIndex ri0 = wf.get_rowindex(0);
-  if (wf.get_groupby_mode() == GroupbyMode::GtoONE) {
-    ri0 = RowIndex(arr32_t(wf.gb.ngroups(), wf.gb.offsets_r()), true) * ri0;
+void by_node::create_columns(EvalContext& ctx) {
+  DataTable* dt0 = ctx.get_datatable(0);
+  RowIndex ri0 = ctx.get_rowindex(0);
+  if (ctx.get_groupby_mode() == GroupbyMode::GtoONE) {
+    ri0 = RowIndex(arr32_t(ctx.gb.ngroups(), ctx.gb.offsets_r()), true) * ri0;
   }
 
   auto dt0_names = dt0->get_names();
@@ -144,17 +145,17 @@ void by_node::create_columns(workframe& wf) {
     if (col.sort_only) continue;
     size_t j = col.index;
     xassert(j != size_t(-1));
-    Column* colj = dt0->columns[j]->shallowcopy();
-    wf.add_column(colj, ri0, col.name.empty()? dt0_names[j]
-                                             : std::move(col.name));
+    Column newcol = dt0->get_column(j);  // copy
+    ctx.add_column(std::move(newcol), ri0,
+                  col.name.empty()? dt0_names[j] : std::move(col.name));
   }
 }
 
 
-void by_node::execute(workframe& wf) const {
+void by_node::execute(EvalContext& ctx) const {
   if (cols.empty()) return;
-  const DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+  const DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   if (ri0) {
     throw NotImplError() << "Groupby/sort cannot be combined with i expression";
   }
@@ -174,11 +175,11 @@ void by_node::execute(workframe& wf) const {
   }
   // if (n_group_columns) {
     auto res = dt0->group(spec);
-    wf.gb = std::move(res.second);
-    wf.apply_rowindex(res.first);
+    ctx.gb = std::move(res.second);
+    ctx.apply_rowindex(res.first);
   // } else {
   //   auto res = dt0->sort(spec);
-  //   wf.apply_rowindex(res);
+  //   ctx.apply_rowindex(res);
   // }
 }
 
@@ -186,41 +187,57 @@ void by_node::execute(workframe& wf) const {
 
 
 }  // namespace dt
+//------------------------------------------------------------------------------
+// py::oby
+//------------------------------------------------------------------------------
 namespace py {
 
 
-//------------------------------------------------------------------------------
-// py::oby::pyobj::Type
-//------------------------------------------------------------------------------
+oby::oby(const robj& src) : oobj(src) {}
+oby::oby(const oobj& src) : oobj(src) {}
 
-PKArgs oby::pyobj::Type::args___init__(
-    0, 0, 0, true, false, {}, "__init__", nullptr);
 
-const char* oby::pyobj::Type::classname() {
-  return "datatable.by";
+oby oby::make(const robj& r) {
+  return oby(oby::oby_pyobject::make(r));
 }
 
-const char* oby::pyobj::Type::classdoc() {
-  return "by() clause for use in DT[i, j, ...]";
+
+bool oby::check(PyObject* v) {
+  return oby::oby_pyobject::check(v);
 }
 
-bool oby::pyobj::Type::is_subclassable() {
-  return true;  // TODO: make false
+
+void oby::init(PyObject* m) {
+  oby::oby_pyobject::init_type(m);
 }
 
-void oby::pyobj::Type::init_methods_and_getsets(Methods&, GetSetters& gs) {
+
+dt::collist_ptr oby::cols(dt::EvalContext& ctx) const {
+  // robj cols = reinterpret_cast<const pyobj*>(v)->cols;
+  robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
+  return dt::collist_ptr(new dt::collist(ctx, cols, dt::collist::BY_NODE));
+}
+
+
+
+
+static PKArgs args___init__(0, 0, 0, true, false, {}, "__init__", nullptr);
+
+
+void oby::oby_pyobject::impl_init_type(XTypeMaker& xt) {
+  xt.set_class_name("datatable.by");
+  xt.set_class_doc("by() clause for use in DT[i, j, ...]");
+  xt.set_subclassable(true);
+
+  xt.add(CONSTRUCTOR(&oby::oby_pyobject::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&oby::oby_pyobject::m__dealloc__));
+
   static GSArgs args__cols("_cols");
-  ADD_GETTER(gs, &pyobj::get_cols, args__cols);
+  xt.add(GETTER(&oby::oby_pyobject::get_cols, args__cols));
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// py::oby::pyobj
-//------------------------------------------------------------------------------
-
-void oby::pyobj::m__init__(PKArgs& args) {
+void oby::oby_pyobject::m__init__(const PKArgs& args) {
   olist colslist(args.num_vararg_args());
   size_t i = 0;
   for (robj arg : args.varargs()) {
@@ -230,49 +247,13 @@ void oby::pyobj::m__init__(PKArgs& args) {
 }
 
 
-void oby::pyobj::m__dealloc__() {
+void oby::oby_pyobject::m__dealloc__() {
   cols = nullptr;  // Releases the stored oobj
 }
 
 
-oobj oby::pyobj::get_cols() const {
+oobj oby::oby_pyobject::get_cols() const {
   return cols;
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// py::oby
-//------------------------------------------------------------------------------
-
-oby::oby(const robj& src) : oobj(src) {}
-oby::oby(const oobj& src) : oobj(src) {}
-
-
-oby oby::make(const robj& r) {
-  robj oby_type(reinterpret_cast<PyObject*>(&pyobj::Type::type));
-  return oby(oby_type.call({r}));
-}
-
-
-bool oby::check(PyObject* v) {
-  if (!v) return false;
-  auto typeptr = reinterpret_cast<PyObject*>(&pyobj::Type::type);
-  int ret = PyObject_IsInstance(v, typeptr);
-  if (ret == -1) PyErr_Clear();
-  return (ret == 1);
-}
-
-
-void oby::init(PyObject* m) {
-  pyobj::Type::init(m);
-}
-
-
-dt::collist_ptr oby::cols(dt::workframe& wf) const {
-  robj cols = reinterpret_cast<const pyobj*>(v)->cols;
-  return dt::collist::make(wf, cols, "`by`");
 }
 
 

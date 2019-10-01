@@ -25,6 +25,7 @@
 #include <sstream>
 #include "python/_all.h"
 #include "python/obj.h"
+#include "python/string.h"
 
 
 struct ff {

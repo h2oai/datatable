@@ -22,6 +22,21 @@ namespace dt {
 namespace progress {
 
 
+//------------------------------------------------------------------------------
+// dt.options.progress.clear_on_success
+//------------------------------------------------------------------------------
+
+bool clear_on_success = false;
+
+static void init_option_clear_on_success() {
+  dt::register_option(
+    "progress.clear_on_success",
+    []{ return py::obool(clear_on_success); },
+    [](const py::Arg& value){ clear_on_success = value.to_bool_strict(); },
+    "If `True`, clear progress bar when job finished successfully."
+  );
+}
+
 
 //------------------------------------------------------------------------------
 // dt.options.progress.enabled
@@ -67,6 +82,7 @@ static py::oobj get_ups() {
 
 static void set_ups(const py::Arg& value) {
   double x = value.to_double();
+  py::Validator::check_finite(x, value);
   py::Validator::check_positive(x, value);
   updates_per_second = x;
 }
@@ -163,6 +179,7 @@ void init_options() {
   init_option_updates_per_second();
   init_option_min_duration();
   init_option_callback();
+  init_option_clear_on_success();
 }
 
 

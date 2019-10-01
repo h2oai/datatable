@@ -151,7 +151,7 @@ void ParallelReader::read_all()
 
   dt::parallel_for_ordered(
     /* n_iterations = */ chunk_count,
-    /* n_threads = */ nthreads,
+    /* n_threads = */ NThreads(nthreads),
 
     [&](dt::ordered* o) {
       // Thread-local parse context. This object does most of the parsing job.
@@ -257,6 +257,7 @@ void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
     new_nrows = nrows_max;
   }
   nrows_allocated = new_nrows;
+
   g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
 
   { // Acquire a lock and then resize all columns

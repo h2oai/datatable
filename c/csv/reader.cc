@@ -17,6 +17,7 @@
 #include "python/string.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"         // wallclock
+#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "encodings.h"
 #include "options.h"
@@ -370,6 +371,19 @@ void GenericReader::warn(const char* format, ...) const {
   va_end(args);
 }
 
+static void _send_message_to_python(
+    const char* method, const char* message, const py::oobj& logger)
+{
+  PyObject* pymsg = PyUnicode_FromString(message);
+  if (pymsg) {
+    PyObject* py_logger = logger.to_borrowed_ref();
+    PyObject* res = PyObject_CallMethod(py_logger, method, "(O)", pymsg);
+    Py_XDECREF(res);
+  }
+  PyErr_Clear();  // ignore any exceptions
+  Py_XDECREF(pymsg);
+}
+
 void GenericReader::_message(
   const char* method, const char* format, va_list args) const
 {
@@ -385,33 +399,21 @@ void GenericReader::_message(
     #pragma GCC diagnostic pop
   }
 
-  size_t ith = dt::this_thread_index();
-  if (ith + 1 <= 1) {
-    try {
-      Py_ssize_t len = static_cast<Py_ssize_t>(strlen(msg));
-      PyObject* pymsg = PyUnicode_Decode(msg, len, "utf-8",
-                                         "backslashreplace");  // new ref
-      if (!pymsg) throw PyError();
-      logger.invoke(method, "(O)", pymsg);
-      Py_XDECREF(pymsg);
-    } catch (const std::exception&) {
-      // ignore any exceptions
-    }
+  if (dt::num_threads_in_team() == 0) {
+    _send_message_to_python(method, msg, logger);
   } else {
-    if (strcmp(method, "debug") == 0) {
-      delayed_message += msg;
-    } else {
-      // delayed_warning not implemented yet
-    }
+    // Any other team-wide mutex would work too
+    std::lock_guard<std::mutex> lock(dt::python_mutex());
+    delayed_message += msg;
   }
 }
 
 void GenericReader::emit_delayed_messages() {
+  std::lock_guard<std::mutex> lock(dt::python_mutex());
   if (delayed_message.size()) {
-    trace("%s", delayed_message.c_str());
+    _send_message_to_python("debug", delayed_message.c_str(), logger);
     delayed_message.clear();
   }
-  // delayed_warning not implemented
 }
 
 
@@ -532,7 +534,7 @@ void GenericReader::open_input() {
   size_t extra_byte = 0;
   if (fileno > 0) {
     const char* src = src_arg.to_cstring().ch;
-    input_mbuf = MemoryRange::overmap(src, /* extra = */ 1, fileno);
+    input_mbuf = Buffer::overmap(src, /* extra = */ 1, fileno);
     size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
@@ -543,12 +545,12 @@ void GenericReader::open_input() {
 
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
-    input_mbuf = MemoryRange::external(text.ch, size + 1);
+    input_mbuf = Buffer::external(text.ch, size + 1);
     extra_byte = 1;
     input_is_string = true;
 
   } else if ((filename = file_arg.to_cstring().ch)) {
-    input_mbuf = MemoryRange::overmap(filename, /* extra = */ 1);
+    input_mbuf = Buffer::overmap(filename, /* extra = */ 1);
     size_t sz = input_mbuf.size();
     if (sz > 0) {
       sz--;
@@ -778,11 +780,12 @@ void GenericReader::decode_utf16() {
 
   // `buf` is a borrowed ref, belongs to PyObject* `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
-  input_mbuf = MemoryRange::external(
+  input_mbuf = Buffer::external(
                   const_cast<void*>(static_cast<const void*>(buf)),
                   static_cast<size_t>(ssize) + 1);
   sof = static_cast<char*>(input_mbuf.wptr());
   eof = sof + ssize + 1;
+  subjob.done();
 }
 
 
@@ -822,16 +825,16 @@ dtptr GenericReader::makeDatatable() {
   size_t ncols = columns.size();
   size_t nrows = columns.get_nrows();
   size_t ocols = columns.nColumnsInOutput();
-  std::vector<Column*> ccols;
+  std::vector<Column> ccols;
   ccols.reserve(ocols);
   for (size_t i = 0; i < ncols; ++i) {
     dt::read::Column& col = columns[i];
     if (!col.is_in_output()) continue;
-    MemoryRange databuf = col.extract_databuf();
-    MemoryRange strbuf = col.extract_strbuf();
+    Buffer databuf = col.extract_databuf();
+    Buffer strbuf = col.extract_strbuf();
     SType stype = col.get_stype();
     ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
-      ? new_string_column(nrows, std::move(databuf), std::move(strbuf))
+      ? Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))
       : Column::new_mbuf_column(stype, std::move(databuf))
     );
   }

@@ -186,7 +186,7 @@ def test_repeating_names():
         dt0 = dt.Frame([[5], [6], [7], [4]], names=["x", "y", "x", "x"])
         dt1 = dt.Frame([[4], [3], [2]], names=["y", "x", "x"])
         dtr = dt.Frame([[5, 3], [6, 4], [7, 2], [4, None]],
-                       names=["x", "y", "x.1", "x.2"])
+                       names=["x", "y", "x.0", "x.1"])
         dt0.rbind(dt1, force=True)
         assert_equals(dt0, dtr)
 
@@ -306,6 +306,7 @@ def test_rbind_views2():
     dtr = dt.Frame({"A": [1, 5, 7, 3], "B": ["one", "two", None, "omega"]})
     assert_equals(dt1, dtr)
 
+
 def test_rbind_views3():
     # view + view
     dt0 = dt.Frame({"A": [129, 4, 73, 86],
@@ -318,6 +319,16 @@ def test_rbind_views3():
     dtr = dt.Frame({"A": [129, 73, -9, 365],
                     "B": ["eenie", "meenie", "miney", "mo"]})
     assert_equals(dt0, dtr)
+
+
+def test_rbind_view4():
+    DT = dt.Frame(A=list('abcdefghijklmnop'))
+    DTempty = dt.Frame(A=[])
+    DTempty.nrows = 2
+    assert_equals(dt.rbind(DT[:3, :], DT[:-4:-1, :]),
+                  dt.Frame(A=list('abcpon')))
+    assert_equals(dt.rbind(DT[2:4, :], DTempty, DT[2:5, :]),
+                  dt.Frame(A=['c', 'd', None, None, 'c', 'd', 'e']))
 
 
 def test_rbind_different_stypes1():
@@ -388,6 +399,15 @@ def test_rbind_different_stypes4():
     ]
 
 
+def test_rbind_str32_str64():
+    DT1 = dt.Frame(A=list('abcd'), stype=dt.str32)
+    DT2 = dt.Frame(A=list('efghij'), stype=dt.str64)
+    DT3 = dt.Frame(A=list('klm'), stype=dt.str32)
+    DTR = dt.rbind(DT1, DT2, DT3)
+    # It would be better if the result was str32
+    assert_equals(DTR, dt.Frame(A=list('abcdefghijklm'), stype=dt.str64))
+
+
 def test_rbind_all_stypes():
     sources = {
         dt.bool8: [True, False, True, None, False, None],
@@ -427,6 +447,12 @@ def test_rbind_modulefn():
     assert f3.to_list()[0] == f0.to_list()[0] + f1.to_list()[0]
 
 
+
+
+#-------------------------------------------------------------------------------
+# Issues
+#-------------------------------------------------------------------------------
+
 def test_issue1292():
     f0 = dt.Frame([None, None, None, "foo"])
     f0.nrows = 2
@@ -454,3 +480,20 @@ def test_issue1607():
     DT.rbind(DT, DT)
     frame_integrity_check(DT)
     assert DT.shape == (0, 3)
+
+
+def test_issue2026():
+    DT = dt.Frame(A=range(10))
+    DT.rbind(DT)
+    DT.nrows = 8
+    DT.rbind(DT)
+    frame_integrity_check(DT)
+    assert DT.to_list() == [[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]]
+
+
+def test_issue2030():
+    DT = dt.Frame(B=[None, 'tzgu', 'dsedpz', 'a', 'weeeeeeeee'])
+    DT.nrows = 3
+    DT.rbind(DT, DT)
+    frame_integrity_check(DT)
+    assert DT.to_list()[0] == [None, 'tzgu', 'dsedpz'] * 3

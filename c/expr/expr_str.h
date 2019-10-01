@@ -38,13 +38,9 @@ class expr_string_match_re : public base_expr {
 
   public:
     expr_string_match_re(pexpr&& expr, py::oobj params);
-    SType resolve(const workframe& wf) override;
-    GroupbyMode get_groupby_mode(const workframe&) const override;
-    colptr evaluate_eager(workframe& wf) override;
-
-  private:
-    template <typename T>
-    colptr _compute(Column* src);
+    SType resolve(const EvalContext& ctx) override;
+    GroupbyMode get_groupby_mode(const EvalContext&) const override;
+    Column evaluate(EvalContext& ctx) override;
 };
 
 

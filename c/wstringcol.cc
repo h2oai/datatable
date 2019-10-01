@@ -27,11 +27,11 @@ namespace dt {
 
 writable_string_col::writable_string_col(size_t nrows, bool str64_)
   : strdata(nrows),
-    offdata(MemoryRange::mem((nrows + 1) * 4 * (1 + str64_))),
+    offdata(Buffer::mem((nrows + 1) * 4 * (1 + str64_))),
     n(nrows),
     str64(str64_) {}
 
-writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows,
+writable_string_col::writable_string_col(Buffer&& offsets, size_t nrows,
                                          bool str64_)
   : strdata(nrows),
     offdata(std::move(offsets)),
@@ -42,7 +42,7 @@ writable_string_col::writable_string_col(MemoryRange&& offsets, size_t nrows,
 }
 
 
-Column* writable_string_col::to_column() && {
+Column writable_string_col::to_ocolumn() && {
   strdata.finalize();
   auto strbuf = strdata.get_mbuf();
   if (str64) {
@@ -50,7 +50,14 @@ Column* writable_string_col::to_column() && {
   } else {
     offdata.set_element<uint32_t>(0, 0);
   }
-  return new_string_column(n, std::move(offdata), std::move(strbuf));
+  return Column::new_string_column(n, std::move(offdata), std::move(strbuf));
+}
+
+
+using pbuf = std::unique_ptr<writable_string_col::buffer>;
+pbuf writable_string_col::make_buffer() {
+  return str64? pbuf(new writable_string_col::buffer_impl<uint64_t>(*this))
+              : pbuf(new writable_string_col::buffer_impl<uint32_t>(*this));
 }
 
 
@@ -102,7 +109,7 @@ writable_string_col::buffer_impl<T>::buffer_impl(writable_string_col& s)
 template <typename T>
 void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
   if (ch) {
-    xassert(sizeof(T) == 4? len <= Column::MAX_STRING_SIZE : true);
+    if (sizeof(T) == 4) xassert(len <= Column::MAX_ARR32_SIZE);
     strbuf.ensuresize(strbuf_used + len);
     std::memcpy(strbuf.data() + strbuf_used, ch, len);
     strbuf_used += len;

@@ -23,7 +23,7 @@
 from .__version__ import version as __version__
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
-                   log, log10, f, g, median)
+                   last, log, log10, f, g, median)
 from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
@@ -52,11 +52,11 @@ __all__ = (
     "mean",
     "median",
     "min",
-    "open", "sd", "sum", "count", "first",
+    "open", "sd", "sum", "count", "first", "last",
     "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
     "join", "by", "abs", "exp", "log", "log10",
     "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
-    "DataTable", "options",
+    "options",
     "bool8", "int8", "int16", "int32", "int64",
     "float32", "float64", "str32", "str64", "obj64",
     "cbind", "rbind", "repeat", "sort",
@@ -74,7 +74,3 @@ float64 = stype.float64
 str32 = stype.str32
 str64 = stype.str64
 obj64 = stype.obj64
-DataTable = Frame
-
-
-Frame.__module__ = "datatable"

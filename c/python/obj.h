@@ -13,7 +13,6 @@
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
-class Column;
 class DataTable;
 class RowIndex;
 
@@ -154,6 +153,7 @@ class _obj {
     //--------------------------------------------------------------------------
     // Type tests
     //--------------------------------------------------------------------------
+    bool is_anytype()       const noexcept;
     bool is_bool()          const noexcept;
     bool is_buffer()        const noexcept;
     bool is_by_node()       const noexcept;
@@ -164,6 +164,7 @@ class _obj {
     bool is_false()         const noexcept;
     bool is_float()         const noexcept;
     bool is_frame()         const noexcept;
+    bool is_generator()     const noexcept;
     bool is_int()           const noexcept;
     bool is_iterable()      const noexcept;
     bool is_join_node()     const noexcept;
@@ -310,6 +311,17 @@ class oobj : public _obj {
     //    std::move(x).release();
     //
     PyObject* release() &&;
+
+    static oobj wrap(bool v);
+    static oobj wrap(int8_t v);
+    static oobj wrap(int16_t v);
+    static oobj wrap(int32_t v);
+    static oobj wrap(int64_t v);
+    static oobj wrap(size_t v);
+    static oobj wrap(float v);
+    static oobj wrap(double v);
+    static oobj wrap(const CString& v);
+    static oobj wrap(const py::robj& v);
 };
 
 

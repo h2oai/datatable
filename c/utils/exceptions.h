@@ -41,6 +41,7 @@ public:
   Error& operator<<(const std::string&);
   Error& operator<<(const char*);
   Error& operator<<(const void*);
+  Error& operator<<(const CString&);
   Error& operator<<(int64_t);
   Error& operator<<(int32_t);
   Error& operator<<(int8_t);
@@ -50,6 +51,7 @@ public:
   Error& operator<<(float);
   Error& operator<<(double);
   Error& operator<<(SType);
+  Error& operator<<(LType);
   Error& operator<<(const CErrno&);
   Error& operator<<(const py::_obj&);
   Error& operator<<(const py::ostring&);
@@ -117,7 +119,8 @@ class Warning : public Error {
   public:
     Warning(PyObject* cls);
     Warning(const Warning&) = default;
-    ~Warning() override;
+
+    void emit();
 };
 
 Warning DatatableWarning();

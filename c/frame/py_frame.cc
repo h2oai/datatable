@@ -91,11 +91,57 @@ it was deep-copied.)"
 );
 
 oobj Frame::copy(const PKArgs&) {
-  Frame* newframe = Frame::from_datatable(dt->copy());
+  oobj res = Frame::oframe(dt->copy());
+  Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
-  return py::oobj::from_new_reference(newframe);
+  return res;
 }
+
+
+
+//------------------------------------------------------------------------------
+// export_names()
+//------------------------------------------------------------------------------
+
+static PKArgs args_export_names(
+  0, 0, 0, false, false,
+  {}, "export_names",
+
+R"(export_names(self)
+--
+
+Create local variables for each column of this frame.
+
+This method inserts into `globals()` as many new variables as there are
+columns in this frame. Each variable is an f-expression referring to
+its column. For example, if the frame has columns A, B, and C, then
+three new variables will be created A = f.A, B = f.B and C = f.C.
+After calling this method you will be able to write column expressions
+using the column names directly, without using the f symbol:
+
+    DT[A + B > C, :]
+
+If a variable with the same name's as one of the columns already
+exists in the globals, it will be overwritten. If the same variable
+exists locally, it will remain as-is.
+
+This method is effectively equivalent to
+
+    for name in self.names:
+        globals()[name] = f[name]
+)");
+
+void Frame::export_names(const PKArgs&) {
+  py::oobj f = py::oobj::import("datatable", "f");
+  py::odict globals = py::robj(PyEval_GetGlobals()).to_pydict();
+  py::otuple names = dt->get_pynames();
+  for (size_t i = 0; i < dt->ncols; ++i) {
+    py::robj name = names[i];
+    globals.set(name, f.get_item(name));
+  }
+}
+
 
 
 
@@ -105,8 +151,7 @@ oobj Frame::copy(const PKArgs&) {
 bool Frame::internal_construction = false;
 
 
-Frame* Frame::from_datatable(DataTable* dt) {
-  // PyObject* pytype = reinterpret_cast<PyObject*>(&Frame::Type::type);
+oobj Frame::oframe(DataTable* dt) {
   Frame::internal_construction = true;
   PyObject* res = PyObject_CallObject(Frame_Type, nullptr);
   Frame::internal_construction = false;
@@ -114,7 +159,12 @@ Frame* Frame::from_datatable(DataTable* dt) {
 
   Frame* frame = reinterpret_cast<Frame*>(res);
   frame->dt = dt;
-  return frame;
+  return oobj::from_new_reference(frame);
+}
+
+
+oobj Frame::oframe(robj src) {
+  return robj(Frame_Type).call(otuple{src});
 }
 
 
@@ -203,12 +253,22 @@ void Frame::set_nrows(const Arg& nr) {
 }
 
 
+
 static GSArgs args_shape(
   "shape",
   "Tuple with (nrows, ncols) dimensions of the Frame\n");
 
 oobj Frame::get_shape() const {
   return otuple(get_nrows(), get_ncols());
+}
+
+
+static GSArgs args_ndims(
+  "ndims",
+  "Number of dimensions in the Frame, always 2\n");
+
+oobj Frame::get_ndims() const {
+  return oint(2);
 }
 
 
@@ -220,13 +280,37 @@ oobj Frame::get_stypes() const {
   if (stypes == nullptr) {
     py::otuple ostypes(dt->ncols);
     for (size_t i = 0; i < ostypes.size(); ++i) {
-      SType st = dt->columns[i]->stype();
+      SType st = dt->get_column(i).stype();
       ostypes.set(i, info(st).py_stype());
     }
     stypes = std::move(ostypes).release();
   }
   return oobj(stypes);
 }
+
+
+static GSArgs args_stype(
+  "stype",
+  "The common stype for all columns.\n\n"
+  "This property is well-defined only for frames where all columns\n"
+  "share the same stype. For heterogeneous frames accessing this\n"
+  "property will raise an error. For 0-column frames this property\n"
+  "returns None.\n");
+
+oobj Frame::get_stype() const {
+  if (dt->ncols == 0) return None();
+  SType stype = dt->get_column(0).stype();
+  for (size_t i = 1; i < dt->ncols; ++i) {
+    SType col_stype = dt->get_column(i).stype();
+    if (col_stype != stype) {
+      throw ValueError() << "The stype of column '" << dt->get_names()[i]
+          << "' is `" << col_stype << "`, which is different from the "
+          "stype of the previous column" << (i>1? "s" : "");
+    }
+  }
+  return info(stype).py_stype();
+}
+
 
 
 static GSArgs args_ltypes(
@@ -237,7 +321,7 @@ oobj Frame::get_ltypes() const {
   if (ltypes == nullptr) {
     py::otuple oltypes(dt->ncols);
     for (size_t i = 0; i < oltypes.size(); ++i) {
-      SType st = dt->columns[i]->stype();
+      SType st = dt->get_column(i).stype();
       oltypes.set(i, info(st).py_ltype());
     }
     ltypes = std::move(oltypes).release();
@@ -252,17 +336,13 @@ oobj Frame::get_ltypes() const {
 // Declare Frame's API
 //------------------------------------------------------------------------------
 
-PKArgs Frame::Type::args___init__(1, 0, 3, false, true,
-                                  {"src", "names", "stypes", "stype"},
-                                  "__init__", nullptr);
+static PKArgs args___init__(1, 0, 3, false, true,
+                            {"src", "names", "stypes", "stype"},
+                            "__init__", nullptr);
 
-
-const char* Frame::Type::classname() {
-  return "datatable.core.Frame";
-}
-
-const char* Frame::Type::classdoc() {
-  return
+void Frame::impl_init_type(XTypeMaker& xt) {
+  xt.set_class_name("datatable.Frame");
+  xt.set_class_doc(
     "Two-dimensional column-oriented table of data. Each column has its own\n"
     "name and type. Types may vary across columns but cannot vary within\n"
     "each column.\n"
@@ -270,36 +350,46 @@ const char* Frame::Type::classdoc() {
     "Internally the data is stored as C primitives, and processed using\n"
     "multithreaded native C++ code.\n"
     "\n"
-    "This is a primary data structure for the `datatable` module.\n";
-}
+    "This is a primary data structure for the `datatable` module.\n"
+  );
+  xt.set_subclassable(true);
+  xt.add(CONSTRUCTOR(&Frame::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&Frame::m__dealloc__));
+  xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
+  xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
+  xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
+  Frame_Type = reinterpret_cast<PyObject*>(&Frame::type);
 
+  _init_cbind(xt);
+  _init_key(xt);
+  _init_init(xt);
+  _init_iter(xt);
+  _init_jay(xt);
+  _init_names(xt);
+  _init_rbind(xt);
+  _init_replace(xt);
+  _init_repr(xt);
+  _init_sizeof(xt);
+  _init_stats(xt);
+  _init_sort(xt);
+  _init_tocsv(xt);
+  _init_tonumpy(xt);
+  _init_topython(xt);
 
-void Frame::Type::init_methods_and_getsets(Methods& mm, GetSetters& gs) {
-  _init_cbind(mm);
-  _init_key(gs);
-  _init_init(mm);
-  _init_jay(mm);
-  _init_names(mm, gs);
-  _init_rbind(mm);
-  _init_replace(mm);
-  _init_repr(mm);
-  _init_sizeof(mm);
-  _init_stats(mm);
-  _init_sort(mm);
-  _init_tocsv(mm);
-  _init_tonumpy(mm);
-  _init_topython(mm);
+  xt.add(GETTER(&Frame::get_ncols, args_ncols));
+  xt.add(GETSET(&Frame::get_nrows, &Frame::set_nrows, args_nrows));
+  xt.add(GETTER(&Frame::get_shape, args_shape));
+  xt.add(GETTER(&Frame::get_stypes, args_stypes));
+  xt.add(GETTER(&Frame::get_stype,  args_stype));
+  xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
+  xt.add(GETTER(&Frame::get_ndims, args_ndims));
 
-  ADD_GETTER(gs, &Frame::get_ncols, args_ncols);
-  ADD_GETSET(gs, &Frame::get_nrows, &Frame::set_nrows, args_nrows);
-  ADD_GETTER(gs, &Frame::get_shape, args_shape);
-  ADD_GETTER(gs, &Frame::get_stypes, args_stypes);
-  ADD_GETTER(gs, &Frame::get_ltypes, args_ltypes);
-
-  ADD_METHOD(mm, &Frame::head, args_head);
-  ADD_METHOD(mm, &Frame::tail, args_tail);
-  ADD_METHOD(mm, &Frame::copy, args_copy);
-  ADD_METHOD(mm, &Frame::materialize, args_materialize);
+  xt.add(METHOD(&Frame::head, args_head));
+  xt.add(METHOD(&Frame::tail, args_tail));
+  xt.add(METHOD(&Frame::copy, args_copy));
+  xt.add(METHOD(&Frame::materialize, args_materialize));
+  xt.add(METHOD(&Frame::export_names, args_export_names));
+  xt.add(METHOD0(&Frame::get_names, "keys"));
 }
 
 

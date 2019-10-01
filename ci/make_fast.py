@@ -11,6 +11,10 @@ import sys
 rx_include = re.compile(r'#include\s+"(.*?)"')
 rx_targeth = re.compile(r'^([/\w]+\.h)\s*:\s*(.*)')
 
+debug_mode = (len(sys.argv) > 1 and sys.argv[1] == "debug")
+if debug_mode:
+    os.environ["DTDEBUG"] = "1"
+
 
 def get_files():
     """
@@ -200,11 +204,20 @@ def write_make_targets(out):
     out.write("#" + "-" * 79 + "\n")
     out.write("# Main\n")
     out.write("#" + "-" * 79 + "\n")
-    out.write(".PHONY: fast main-fast\n")
     out.write("\n")
-    out.write("fast:\n")
-    out.write("\t$(eval DTDEBUG := 1)\n")
-    out.write("\t$(eval export DTDEBUG)\n")
+    main_target, secondary_target = ("dfast", "fast") if debug_mode else \
+                                    ("fast", "dfast")
+    out.write(".PHONY: fast dfast main-fast\n")
+
+    out.write("%s:\n" % secondary_target)
+    out.write("\t@$(MAKE) clean\n")
+    out.write("\t@$(MAKE) %s\n" % secondary_target)
+    out.write("\n")
+
+    out.write("%s:\n" % main_target)
+    if debug_mode:
+        out.write("\t$(eval DTDEBUG := 1)\n")
+        out.write("\t$(eval export DTDEBUG)\n")
     out.write("\t$(eval CC := %s)\n" % get_setup("compiler"))
     out.write("\t$(eval CCFLAGS := %s)\n" % get_setup("ccflags"))
     out.write("\t$(eval LDFLAGS := %s)\n" % get_setup("ldflags"))
@@ -212,9 +225,11 @@ def write_make_targets(out):
     out.write("\t$(eval export CC CCFLAGS LDFLAGS EXTEXT)\n")
     out.write("\t@$(MAKE) main-fast\n")
     out.write("\n")
+
     out.write("main-fast: $(BUILDDIR)/_datatable.so\n")
     out.write("\t@echo • Done.\n")
     out.write("\n")
+
     out.write("$(BUILDDIR)/_datatable.so: $(fast_objects)\n")
     out.write("\t@echo • Linking object files into _datatable.so\n")
     out.write("\t@$(CC) $(LDFLAGS) -o $@ $+\n")

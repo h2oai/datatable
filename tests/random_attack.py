@@ -4,16 +4,21 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')
 import copy
 import datatable as dt
 import itertools
+import os
 import random
-import sys
+import textwrap
 import time
 import warnings
+from datatable import f
 from datatable.internal import frame_integrity_check
+from datatable.utils.terminal import term
 
 exhaustive_checks = False
+python_output = None
 
 def repr_row(row, j):
     assert 0 <= j < len(row)
@@ -30,6 +35,53 @@ def repr_row(row, j):
     else:
         out = str(row[:10])[:-1] + ", ..., " + str(row[j]) + ", ...]"
     return out
+
+def repr_slice(s):
+    if s == slice(None):
+        return ":"
+    if s.start is None:
+        if s.stop is None:
+            return "::" +  str(s.step)
+        elif s.step is None:
+            return ":" + str(s.stop)
+        else:
+            return ":" + str(s.stop) + ":" + str(s.step)
+    else:
+        if s.stop is None:
+            return str(s.start) + "::" +  str(s.step)
+        elif s.step is None:
+            return str(s.start) + ":" + str(s.stop)
+        else:
+            return str(s.start) + ":" + str(s.stop) + ":" + str(s.step)
+
+def repr_data(data, indent):
+    out = "["
+    for i, arr in enumerate(data):
+        if i > 0:
+            out += " " * (indent + 1)
+        out += "["
+        out += textwrap.fill(", ".join(repr(e) for e in arr),
+                             width = 80, subsequent_indent=" "*(indent+2))
+        out += "]"
+        if i != len(data) - 1:
+            out += ",\n"
+    out += "]"
+    return out
+
+def repr_type(t):
+    if t is int:
+        return "int"
+    if t is bool:
+        return "bool"
+    if t is float:
+        return "float"
+    if t is str:
+        return "str"
+    raise ValueError("Unknown type %r" % t)
+
+def repr_types(types):
+    assert isinstance(types, (list, tuple))
+    return "[" + ", ".join(repr_type(t) for t in types) + "]"
 
 
 
@@ -62,9 +114,9 @@ class Attacker:
             if time.time() - t0 > 60:
                 print(">>> Stopped early, taking too long <<<")
                 break
-        print("\nAttack ended, checking the outcome")
+        print("\nAttack ended, checking the outcome... ", end='')
         frame.check()
-        print("...ok.")
+        print(term.color("bright_green", "PASSED"))
         t1 = time.time()
         print("Time taken = %.3fs" % (t1 - t0))
 
@@ -83,6 +135,8 @@ class Attacker:
         curr_nrows = frame.nrows
         new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
         print("[01] Setting nrows to %d" % (new_nrows, ))
+        if python_output:
+            python_output.write("DT.nrows = %d\n" % new_nrows)
         frame.resize_rows(new_nrows)
 
     def slice_rows(self, frame):
@@ -90,6 +144,8 @@ class Attacker:
         new_ncols = len(range(*s.indices(frame.nrows)))
         print("[02] Applying row slice (%r, %r, %r) -> nrows = %d"
               % (s.start, s.stop, s.step, new_ncols))
+        if python_output:
+            python_output.write("DT = DT[%s, :]\n" % repr_slice(s))
         frame.slice_rows(s)
 
     def slice_cols(self, frame):
@@ -97,6 +153,8 @@ class Attacker:
         new_ncols = len(range(*s.indices(frame.ncols)))
         print("[03] Applying column slice (%r, %r, %r) -> ncols = %d"
               % (s.start, s.stop, s.step, new_ncols))
+        if python_output:
+            python_output.write("DT = DT[:, %s]\n" % repr_slice(s))
         frame.slice_cols(s)
 
     def cbind_self(self, frame):
@@ -105,12 +163,16 @@ class Attacker:
         t = random.randint(1, min(5, 100 // (1 + frame.ncols)) + 1)
         print("[04] Cbinding frame with itself %d times -> ncols = %d"
               % (t, frame.ncols * (t + 1)))
+        if python_output:
+            python_output.write("DT.cbind([DT] * %d)\n" % t)
         frame.cbind([frame] * t)
 
     def rbind_self(self, frame):
         t = random.randint(1, min(5, 1000 // (1 + frame.nrows)) + 1)
         print("[05] Rbinding frame with itself %d times -> nrows = %d"
               % (t, frame.nrows * (t + 1)))
+        if python_output:
+            python_output.write("DT.rbind([DT] * %d)\n" % t)
         frame.rbind([frame] * t)
 
     def select_rows_array(self, frame):
@@ -118,6 +180,8 @@ class Attacker:
             return
         s = self.random_array(frame.nrows)
         print("[06] Selecting a row list %r -> nrows = %d" % (s, len(s)))
+        if python_output:
+            python_output.write("DT = DT[%r, :]\n" % (s,))
         frame.slice_rows(s)
 
     def delete_rows_array(self, frame):
@@ -127,8 +191,48 @@ class Attacker:
         s = sorted(set(s))
         print("[07] Removing rows %r -> nrows = %d"
               % (s, frame.nrows - len(s)))
+        if python_output:
+            python_output.write("del DT[%r, :]\n" % (s,))
         frame.delete_rows(s)
 
+    def select_rows_with_boolean_column(self, frame):
+        bool_columns = [i for i in range(frame.ncols) if frame.types[i] is bool]
+        if frame.ncols <= 1 or not bool_columns:
+            return
+        filter_column = random.choice(bool_columns)
+        print("[08] Selecting rows where column %d (%r) is True"
+              % (filter_column, frame.names[filter_column]))
+        if python_output:
+            python_output.write("DT = DT[f[%d], :]\n" % filter_column)
+            python_output.write("del DT[:, %d]\n" % filter_column)
+        frame.filter_on_bool_column(filter_column)
+        frame.delete_column(filter_column)
+
+    def replace_nas_in_column(self, frame):
+        icol = random.randint(0, frame.ncols - 1)
+        if frame.types[icol] is bool:
+            replacement_value = random.choice([True, False])
+        elif frame.types[icol] is int:
+            replacement_value = random.randint(-100, 100)
+        elif frame.types[icol] is float:
+            replacement_value = random.random() * 1000
+        elif frame.types[icol] is str:
+            replacement_value = Frame0.random_name()
+        print("[09] Replacing NA values in column %d with %r"
+              % (icol, replacement_value))
+        if python_output:
+            python_output.write("DT[f[%d] == None, f[%d]] = %r\n"
+                                % (icol, icol, replacement_value))
+        frame.replace_nas_in_column(icol, replacement_value)
+
+    def sort_column(self, frame):
+        if frame.ncols == 0:
+            return
+        icol = random.randint(0, frame.ncols - 1)
+        print("[10] Sorting column %d ASC" % icol)
+        if python_output:
+            python_output.write("DT = DT.sort(f[%d])\n" % icol)
+        frame.sort(icol)
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -167,6 +271,9 @@ class Attacker:
         rbind_self: 1,
         select_rows_array: 1,
         delete_rows_array: 1,
+        select_rows_with_boolean_column: 1,
+        replace_nas_in_column: 1,
+        sort_column: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -218,6 +325,12 @@ class Frame0:
         self.names = names
         self.types = types
         self.df = dt.Frame(data, names=names, stypes=types)
+        if python_output:
+            python_output.write("DT = dt.Frame(%s,\n"
+                                "              names=%r,\n"
+                                "              stypes=%s)\n"
+                                % (repr_data(data, 14), names, repr_types(types)))
+            python_output.write("assert DT.shape == (%d, %d)\n\n" % (nrows, ncols))
 
 
     def random_type(self):
@@ -245,7 +358,8 @@ class Frame0:
             return ["%s%d" % (c, i) for i in range(ncols)]
 
 
-    def random_name(self, alphabet="abcdefghijklmnopqrstuvwxyz"):
+    @staticmethod
+    def random_name(alphabet="abcdefghijklmnopqrstuvwxyz"):
         n = int(random.expovariate(0.2) + 1.5)
         while True:
             name = "".join(random.choice(alphabet) for _ in range(n))
@@ -339,7 +453,10 @@ class Frame0:
         frame_integrity_check(self.df)
         self.check_shape()
         self.check_types()
-        assert self.df.names == tuple(self.names)
+        if self.df.names != tuple(self.names):
+            print("ERROR: df.names=%r ≠\n"
+                  "       py.names=%r" % (self.df.names, tuple(self.names)))
+            sys.exit(1)
         self.check_data()
 
     def check_shape(self):
@@ -412,6 +529,7 @@ class Frame0:
                 self.data[i] = [col[j] for j in s]
 
     def delete_rows(self, s):
+        self.check_shape()
         nrows = self.nrows
         del self.df[s, :]
         if isinstance(s, slice):
@@ -455,6 +573,34 @@ class Frame0:
                 newdata[j] += iframe.data[j]
         self.data = newdata
 
+    def filter_on_bool_column(self, icol):
+        assert self.types[icol] is bool
+        filter_col = self.data[icol]
+        self.data = [[value for i, value in enumerate(column) if filter_col[i]]
+                     for column in self.data]
+        self.df = self.df[f[icol], :]
+
+    def delete_column(self, icol):
+        del self.data[icol]
+        del self.names[icol]
+        del self.types[icol]
+        del self.df[icol]
+
+    def replace_nas_in_column(self, icol, replacement_value):
+        assert 0 <= icol < self.ncols
+        assert isinstance(replacement_value, self.types[icol])
+        column = self.data[icol]
+        for i, value in enumerate(column):
+            if value is None:
+                column[i] = replacement_value
+        self.df[f[icol] == None, f[icol]] = replacement_value
+
+    def sort(self, icol):
+        self.df = self.df.sort(icol)
+        if (len(self.data[0])):
+            data = list(zip(*self.data))
+            data.sort(key=lambda x: (x[icol] is not None, x[icol]))
+            self.data = list(map(list, zip(*data)))
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -468,8 +614,9 @@ class Frame0:
                 while base[-1].isdigit():
                     base = base[:-1]
                 if base == name:
-                    base += "."
-                    num = 0
+                    if base[-1] != '.':
+                        base += "."
+                    num = -1  # will be incremented to 0 in the while-loop
                 else:
                     num = int(name[len(base):])
                 while name in seen_names:
@@ -491,11 +638,22 @@ if __name__ == "__main__":
                     "a particular seed value, otherwise run `random_driver.py`."
     )
     parser.add_argument("seed", type=int, metavar="SEED")
+    parser.add_argument("-py", "--python", action="store_true",
+                        help="Generate python file corresponding to the code "
+                             "being run.")
     parser.add_argument("-x", "--exhaustive", action="store_true",
                         help="Run exhaustive checks, i.e. check for validity "
                              "after every step.")
     args = parser.parse_args()
     exhaustive_checks = args.exhaustive
+    if args.python:
+        outfile = os.path.join(os.path.dirname(__file__), "random_attack_logs",
+                               str(args.seed) + ".py")
+        python_output = open(outfile, "wt")
+        python_output.write("#!/usr/bin/env python\n")
+        python_output.write("import datatable as dt\n")
+        python_output.write("from datatable import f\n")
+        python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
     ra = Attacker(args.seed)
     ra.attack()

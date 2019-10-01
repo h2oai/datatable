@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import math
 import os
 import random
 import re
@@ -93,21 +94,6 @@ def test_write_spacenames():
     assert d.to_list() == dd.to_list()
 
 
-def test_strategy(capsys, tempfile):
-    """Check that the _strategy parameter is respected."""
-    d = dt.Frame({"A": [5, 6, 10, 12], "B": ["one", "two", "tree", "for"]})
-    d.to_csv(tempfile, _strategy="mmap", verbose=True)
-    out, err = capsys.readouterr()
-    assert out
-    assert err == ""
-    # assert ("Creating and memory-mapping destination file " + tempfile) in out
-    d.to_csv(tempfile, _strategy="write", verbose=True)
-    out, err = capsys.readouterr()
-    assert out
-    assert err == ""
-    # assert ("Creating an empty destination file " + tempfile) in out
-
-
 @pytest.mark.parametrize("col, scol", [("col", "col"),
                                        ("", 'C0'),
                                        (" ", '" "'),
@@ -132,6 +118,13 @@ def test_view_to_csv():
     txt2 = df1.to_csv()
     assert txt1 == txt2
 
+
+def test_save_large():
+    n = 1000000
+    DT = dt.Frame(A=range(n))
+    out1 = DT.to_csv()
+    out2 = "\n".join(["A"] + [str(n) for n in range(n)] + [''])
+    assert out1 == out2
 
 
 
@@ -245,8 +238,7 @@ def test_save_hexdouble_random(seed):
     assert hexxed == [pyhex(v) for v in src]
 
 
-# TODO: remove dependency on Pandas once #415 is implemented
-def test_save_hexfloat_sample(pandas):
+def test_save_hexfloat_sample():
     # Manually check these values against Java's generated strings
     src = {
         0: "0x0p+0",
@@ -275,14 +267,13 @@ def test_save_hexfloat_sample(pandas):
         3.4028236e38: "inf",
         -3e328: "-inf",
     }
-    d = dt.Frame(pandas.DataFrame({"A": list(src.keys())}, dtype="float32"))
-    assert d.stypes == (stype.float32, )
-    hexxed = d.to_csv(hex=True).split("\n")[1:-1]
+    DT = dt.Frame(A=list(src.keys()), stype=stype.float32)
+    assert DT.stypes == (stype.float32, )
+    hexxed = DT.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == list(src.values())
 
 
-# TODO: remove dependency on Pandas once #415 is implemented
-def test_save_float_sample(pandas):
+def test_save_float_sample():
     src = {
         0: "0.0",
         10: "10.0",
@@ -307,9 +298,9 @@ def test_save_float_sample(pandas):
         1.13404e+28: "1.13404e+28",
         1.134043e+28: "1.134043e+28",
     }
-    d = dt.Frame(pandas.DataFrame(list(src.keys()), dtype="float32"))
-    assert d.stypes == (stype.float32, )
-    decs = d.to_csv().split("\n")[1:-1]
+    DT = dt.Frame(A=list(src.keys()), stype=stype.float32)
+    assert DT.stypes == (stype.float32, )
+    decs = DT.to_csv().split("\n")[1:-1]
     assert decs == list(src.values())
 
 
@@ -333,8 +324,8 @@ def test_save_strings():
         '"simple', 'newline","with,commas"',
         'A backslash!\\n,"\twith tabs\t"',
         'Anoth\\\\er,"""oh-no"',
-        '"weird\rnewline",single\'quote',
-        '"', '', '', '",\'squoted\'',
+        '"weird\rnewline","single\'quote"',
+        '"', '', '', '","\'squoted\'"',
         '"\x01\x02\x03\x04\x05\x06\x07","\x00bwahaha!"',
         '"""""""""""",?',
         ',here be dragons',
@@ -395,3 +386,152 @@ def test_issue1615():
     DT.cbind(dt.Frame(B=range(500)))
     RES = dt.fread(DT.to_csv())
     assert_equals(RES, DT)
+
+
+def test_write_joined_frame():
+    # The joined frame will have a rowindex with some rows missing (-1).
+    # Check that such frame can be written correctly. See issue #1919.
+    DT1 = dt.Frame(A=range(5), B=list('ABCDE'))
+    DT1.key = "A"
+    DT2 = dt.Frame(A=[3, 7, 11, -2, 0, 1])
+    DT = DT2[:, :, dt.join(DT1)]
+    out = DT.to_csv()
+    assert out == 'A,B\n3,D\n7,\n11,\n-2,\n0,A\n1,B\n'
+
+
+def test_issue1921():
+    n = 1921
+    DTA = dt.Frame(A=range(n))
+    DTB = dt.repeat(dt.Frame(B=["hey"], stype=dt.str64), n)
+    DT = dt.cbind(DTA, DTB)
+    out = DT.to_csv()
+    assert out == "\n".join(["A,B"] + ["%d,hey" % i for i in range(n)] + [""])
+
+
+
+#-------------------------------------------------------------------------------
+# Test options
+#-------------------------------------------------------------------------------
+
+def test_strategy(capsys, tempfile):
+    """Check that the _strategy parameter is respected."""
+    DT = dt.Frame(A=[5, 6, 10, 12], B=["one", "two", "tree", "for"])
+    DT.to_csv(tempfile, _strategy="mmap", verbose=True)
+    out, err = capsys.readouterr()
+    assert out
+    assert err == ""
+    DT.to_csv(tempfile, _strategy="write", verbose=True)
+    out, err = capsys.readouterr()
+    assert out
+    assert err == ""
+
+
+def test_quoting():
+    import csv
+    DT = dt.Frame(A=range(5),
+                  B=[True, False, None, None, True],
+                  C=[0.77, -3.14, math.inf, math.nan, 200.001],
+                  D=["once", "up'on", "  a time  ", None, ", THE END"])
+    DT = DT[:, list("ABCD")]  # Fix column order in Python 3.5
+
+    answer0 = ("A,B,C,D\n"
+               "0,1,0.77,once\n"
+               "1,0,-3.14,\"up'on\"\n"
+               "2,,inf,\"  a time  \"\n"
+               "3,,,\n"
+               "4,1,200.001,\", THE END\"\n")
+    for q in [csv.QUOTE_MINIMAL, "minimal", "MINIMAL"]:
+        out = DT.to_csv(quoting=q)
+        assert out == answer0
+
+    answer1 = ('"A","B","C","D"\n'
+               '"0","1","0.77","once"\n'
+               '"1","0","-3.14","up\'on"\n'
+               '"2",,"inf","  a time  "\n'
+               '"3",,,\n'
+               '"4","1","200.001",", THE END"\n')
+    for q in [csv.QUOTE_ALL, "all", "ALL"]:
+        out = DT.to_csv(quoting=q)
+        assert out == answer1
+
+    answer2 = ('"A","B","C","D"\n'
+               '0,1,0.77,"once"\n'
+               '1,0,-3.14,"up\'on"\n'
+               '2,,inf,"  a time  "\n'
+               '3,,,\n'
+               '4,1,200.001,", THE END"\n')
+    for q in [csv.QUOTE_NONNUMERIC, "nonnumeric", "NONNUMERIC"]:
+        out = DT.to_csv(quoting=q)
+        assert out == answer2
+
+    answer3 = ('A,B,C,D\n'
+               '0,1,0.77,once\n'
+               '1,0,-3.14,up\'on\n'
+               '2,,inf,  a time  \n'
+               '3,,,\n'
+               '4,1,200.001,, THE END\n')
+    for q in [csv.QUOTE_NONE, "none", "NONE"]:
+        out = DT.to_csv(quoting=q)
+        assert out == answer3
+
+
+def test_quoting_invalid():
+    DT = dt.Frame(A=range(5))
+
+    with pytest.raises(TypeError) as e:
+        DT.to_csv(quoting=1.7)
+    assert ("Argument `quoting` in Frame.to_csv() should be an integer"
+            in str(e.value))
+
+    for q in [-1, 4, 99, "ANY"]:
+        with pytest.raises(ValueError) as e:
+            DT.to_csv(quoting=q)
+        assert ("Invalid value of the `quoting` parameter in Frame.to_csv()"
+                in str(e.value))
+
+
+def test_compress1():
+    DT = dt.Frame(A=range(5))
+    out = DT.to_csv(compression="gzip")
+    expected = (b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff'
+                b's\xe4\x02\x00\xa5\x85nH\x02\x00\x00\x00'
+                b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff'
+                b'3\xe02\xe42\xe22\xe62\xe1\x02\x00'
+                b'\n\x1a\xb4D\n\x00\x00\x00')
+    assert isinstance(out, bytes)
+    assert len(out) == 52
+    # The last byte in the 10-bytes header of each Gzip section is the
+    # OS code, which will be different on different platforms. We
+    # replace those bytes with \xFF so that the output can be safely
+    # compared against the "expected" sample.
+    arr = bytearray(out)
+    arr[9] = 0xFF
+    arr[31] = 0xFF
+    out = bytes(arr)
+    assert out == expected
+
+
+def test_compress2(tempfile):
+    tempfile += ".gz"
+    DT = dt.Frame(A=range(1000), B=["one", "five", "seven", "t"]*250)
+    out = DT.to_csv()  # uncompressed
+    try:
+        DT.to_csv(tempfile, compression="infer")
+        assert os.path.isfile(tempfile)
+        assert os.stat(tempfile).st_size < len(out)
+        IN = dt.fread(tempfile)
+        assert_equals(DT, IN)
+    finally:
+        os.unlink(tempfile)
+
+
+def test_compress_invalid():
+    DT = dt.Frame()
+    with pytest.raises(TypeError) as e:
+        DT.to_csv(compression=0)
+    assert ("Expected a string, instead got <class 'int'>"
+            in str(e.value))
+    with pytest.raises(ValueError) as e:
+        DT.to_csv(compression="rar")
+    assert ("Unsupported compression method 'rar' in Frame.to_csv()"
+            == str(e.value))

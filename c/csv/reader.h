@@ -8,7 +8,7 @@
 #ifndef dt_CSV_READER_h
 #define dt_CSV_READER_h
 #include <memory>           // std::unique_ptr, std::shared_ptr
-#include "memrange.h"       // MemoryRange
+#include "buffer.h"       // Buffer
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
 #include "read/columns.h"   // dt::read::Columns
@@ -82,7 +82,7 @@ class GenericReader
     static constexpr size_t WORK_REREAD = 60;
     static constexpr size_t WORK_DECODE_UTF16 = 50;
     std::shared_ptr<dt::progress::work> job; // owned
-    MemoryRange input_mbuf;
+    Buffer input_mbuf;
     const char* sof;
     const char* eof;
     size_t line;
@@ -140,7 +140,6 @@ class GenericReader
      */
     bool extra_byte_accessible() const;
 
-    const py::oobj& pyreader() const { return freader; }
     bool get_verbose() const { return verbose; }
     void trace(const char* format, ...) const;
     void warn(const char* format, ...) const;

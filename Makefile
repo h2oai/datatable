@@ -9,7 +9,7 @@ BUILDDIR := build/fast
 PYTHON   ?= python
 MODULE   ?= .
 ifneq ($(CI),)
-PYTEST_FLAGS := -vv -s
+PYTEST_FLAGS := -vv -s --showlocals
 endif
 
 # Platform details
@@ -28,6 +28,13 @@ ifeq ($(MAKECMDGOALS), fast)
 ci/fast.mk:
 	@echo • Regenerating ci/fast.mk
 	@$(PYTHON) ci/make_fast.py
+endif
+
+ifeq ($(MAKECMDGOALS), dfast)
+-include ci/fast.mk
+ci/fast.mk:
+	@echo • Regenerating ci/fast.mk [debug mode]
+	@$(PYTHON) ci/make_fast.py debug
 endif
 
 ifeq ($(MAKECMDGOALS), main-fast)
@@ -79,7 +86,7 @@ test_install:
 test:
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -ra --maxfail=10 $(PYTEST_FLAGS) \
+	$(PYTHON) -m pytest -ra --maxfail=10 -Werror $(PYTEST_FLAGS) \
 		--junit-prefix=$(PLATFORM) \
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests

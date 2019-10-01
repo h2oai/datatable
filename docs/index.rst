@@ -29,7 +29,7 @@
           <a class="reference internal" href="using-datatable.html">
             <i class="fa fa-chevron-circle-right"></i> User Guide
           </a>
-          <a class="reference internal" href="api-reference.html">
+          <a class="reference internal" href="api/frame.html">
             <i class="fa fa-chevron-circle-right"></i> API Reference
           </a>
         </div>
@@ -84,11 +84,14 @@ messages, and powerful API similar to R ``data.table``'s.
     using-datatable
 
 .. toctree::
+    :caption: User manual
     :maxdepth: 2
     :hidden:
 
+    f-expressions
     install
     contrib
+    changelog
 
 .. toctree::
     :maxdepth: 2

@@ -41,8 +41,6 @@ void* _realloc(void* ptr, size_t n) {
       // another thread picks up that address emitting an error that the address
       // is in use (because the first thread hadn't had the chance to untrack it
       // yet).
-      // if (ptr) UNTRACK(ptr);
-      // TRACK(newptr, n, "malloc");
       return newptr;
     }
     if (errno == 12 && attempts--) {

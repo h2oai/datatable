@@ -20,11 +20,13 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
+#include "column/const.h"
 #include "expr/expr.h"
 #include "expr/collist.h"
 #include "expr/repl_node.h"
-#include "expr/workframe.h"
+#include "expr/eval_context.h"
 #include "utils/exceptions.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "datatablemodule.h"
 namespace dt {
@@ -40,8 +42,8 @@ class frame_rn : public repl_node {
   public:
     explicit frame_rn(DataTable* dt_) : dtr(dt_) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
-    void replace_columns(workframe&, const intvec&) const override;
-    void replace_values(workframe&, const intvec&) const override;
+    void replace_columns(EvalContext&, const intvec&) const override;
+    void replace_values(EvalContext&, const intvec&) const override;
 };
 
 
@@ -56,57 +58,54 @@ void frame_rn::check_compatibility(size_t lrows, size_t lcols) const {
 }
 
 
-void frame_rn::replace_columns(workframe& wf, const intvec& indices) const {
+void frame_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
   size_t rcols = dtr->ncols;
   size_t rrows = dtr->nrows;
   if (rcols == 0) return;
 
-  DataTable* dt0 = wf.get_datatable(0);
+  DataTable* dt0 = ctx.get_datatable(0);
   size_t lcols = indices.size();
   size_t lrows = dt0->nrows;
   xassert(rcols == 1 || rcols == lcols);  // enforced in `check_compatibility()`
 
-  Column* col0 = nullptr;
+  Column col0;
   if (rcols == 1) {
-    col0 = dtr->columns[0]->shallowcopy();
+    col0 = dtr->get_column(0);  // copy
     // Avoid resizing `col0` multiple times in the loop below
     if (rrows == 1) {
-      col0->resize_and_fill(lrows);  // TODO: use function from repeat.cc
+      col0.repeat(lrows);
     }
   }
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* coli = rcols == 1? col0->shallowcopy()
-                             : dtr->columns[i]->shallowcopy();
-    if (coli->nrows == 1) {
-      coli->resize_and_fill(lrows);  // TODO: use function from repeat.cc
+    Column coli = (rcols == 1)? col0 : dtr->get_column(i);  // copy
+    if (coli.nrows() == 1) {
+      coli.repeat(lrows);
     }
-    delete dt0->columns[j];
-    dt0->columns[j] = coli;
+    dt0->set_column(j, std::move(coli));
   }
-  delete col0;
 }
 
 
-void frame_rn::replace_values(workframe& wf, const intvec& indices) const {
+void frame_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
   size_t rcols = dtr->ncols;
   size_t rrows = dtr->nrows;
   if (rcols == 0 || rrows == 0) return;
 
-  DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+  DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   size_t lcols = indices.size();
 
   xassert(rcols == 1 || rcols == lcols);
   for (size_t i = 0; i < lcols; ++i) {
     size_t j = indices[i];
-    Column* coli = dtr->columns[rcols == 1? 0 : i];
-    Column* colj = dt0->columns[j];
-    if (!colj) {
-      colj = Column::new_na_column(coli->stype(), dt0->nrows);
-      dt0->columns[j] = colj;
+    const Column& coli = dtr->get_column(rcols == 1? 0 : i);
+    if (!dt0->get_column(j)) {
+      dt0->set_column(j,
+          Column::new_na_column(coli.stype(), dt0->nrows));
     }
-    colj->replace_values(ri0, coli);
+    Column& colj = dt0->get_column(j);
+    colj.replace_values(ri0, coli);
   }
 }
 
@@ -124,14 +123,14 @@ struct EnumClassHash {
 class scalar_rn : public repl_node {
   public:
     void check_compatibility(size_t lrows, size_t lcols) const override;
-    void replace_columns(workframe&, const intvec&) const override;
-    void replace_values(workframe&, const intvec&) const override;
+    void replace_columns(EvalContext&, const intvec&) const override;
+    void replace_values(EvalContext&, const intvec&) const override;
 
   protected:
     void check_column_types(const DataTable*, const intvec&) const;
     virtual const char* value_type() const noexcept = 0;
     virtual bool valid_ltype(LType lt) const noexcept = 0;
-    virtual colptr make_column(SType st, size_t nrows) const = 0;
+    virtual Column make_column(SType st, size_t nrows) const = 0;
 };
 
 
@@ -142,54 +141,51 @@ void scalar_rn::check_column_types(
   const DataTable* dt0, const intvec& indices) const
 {
   for (size_t j : indices) {
-    Column* col = dt0->columns[j];
-    if (col && !valid_ltype(col->ltype())) {
+    const Column& col = dt0->get_column(j);
+    if (col && !valid_ltype(col.ltype())) {
       throw TypeError() << "Cannot assign " << value_type()
         << " value to column `" << dt0->get_names()[j]
-        << "` of type " << col->stype();
+        << "` of type " << col.stype();
     }
   }
 }
 
 
-void scalar_rn::replace_columns(workframe& wf, const intvec& indices) const {
-  DataTable* dt0 = wf.get_datatable(0);
+void scalar_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
+  DataTable* dt0 = ctx.get_datatable(0);
   check_column_types(dt0, indices);
 
-  std::unordered_map<SType, colptr, EnumClassHash> new_columns;
+  std::unordered_map<SType, Column, EnumClassHash> new_columns;
   for (size_t j : indices) {
-    Column* col = dt0->columns[j];
-    SType st = col? col->stype() : SType::VOID;
-    if (new_columns.count(st) == 0) {
-      new_columns[st] = make_column(st, dt0->nrows);
+    const Column& col = dt0->get_column(j);
+    SType stype = col? col.stype() : SType::VOID;
+    if (new_columns.count(stype) == 0) {
+      new_columns[stype] = make_column(stype, dt0->nrows);
     }
-    delete col;
-    dt0->columns[j] = new_columns[st]->shallowcopy();
+    Column newcol = new_columns[stype];  // copy
+    dt0->set_column(j, std::move(newcol));
   }
 }
 
 
-void scalar_rn::replace_values(workframe& wf, const intvec& indices) const {
-  DataTable* dt0 = wf.get_datatable(0);
-  const RowIndex& ri0 = wf.get_rowindex(0);
+void scalar_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
+  DataTable* dt0 = ctx.get_datatable(0);
+  const RowIndex& ri0 = ctx.get_rowindex(0);
   check_column_types(dt0, indices);
 
   for (size_t j : indices) {
-    Column* col = dt0->columns[j];
-    SType st = col? col->stype() : SType::VOID;
-    colptr replcol = make_column(st, 1);
-    if (col) {
-      SType res_stype = replcol->stype();
-      if (col->stype() != res_stype) {
-        dt0->columns[j] = col->cast(res_stype);
-        delete col;
-        col = dt0->columns[j];
-      }
-    } else {
-      col = Column::new_na_column(replcol->stype(), dt0->nrows);
-      dt0->columns[j] = col;
+    const Column& colj = dt0->get_column(j);
+    SType stype = colj? colj.stype() : SType::VOID;
+    Column replcol = make_column(stype, 1);
+    stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
+    if (!colj) {
+      dt0->set_column(j, Column::new_na_column(stype, dt0->nrows));
     }
-    col->replace_values(ri0, replcol.get());
+    else if (colj.stype() != stype) {
+      dt0->set_column(j, colj.cast(stype));
+    }
+    Column& ocol = dt0->get_column(j);
+    ocol.replace_values(ri0, replcol);
   }
 }
 
@@ -204,7 +200,7 @@ class scalar_na_rn : public scalar_rn {
   protected:
     const char* value_type() const noexcept override;
     bool valid_ltype(LType) const noexcept override;
-    colptr make_column(SType st, size_t nrows) const override;
+    Column make_column(SType st, size_t nrows) const override;
 };
 
 const char* scalar_na_rn::value_type() const noexcept {
@@ -217,9 +213,9 @@ bool scalar_na_rn::valid_ltype(LType) const noexcept {
 }
 
 
-colptr scalar_na_rn::make_column(SType st, size_t nrows) const {
+Column scalar_na_rn::make_column(SType st, size_t nrows) const {
   if (st == SType::VOID) st = SType::BOOL;
-  return colptr(Column::new_na_column(st, nrows));
+  return Column::new_na_column(st, nrows);
 }
 
 
@@ -231,57 +227,27 @@ colptr scalar_na_rn::make_column(SType st, size_t nrows) const {
 
 class scalar_int_rn : public scalar_rn {
   int64_t value;
+  bool isbool;
+  size_t : 56;
 
   public:
-    explicit scalar_int_rn(int64_t x) : value(x) {}
+    explicit scalar_int_rn(int64_t x) : value(x), isbool(false) {}
+    explicit scalar_int_rn(bool x)    : value(x), isbool(true) {}
 
   protected:
-    const char* value_type() const noexcept override;
-    bool valid_ltype(LType) const noexcept override;
-    colptr make_column(SType st, size_t nrows) const override;
-    template <typename T> colptr _make1(SType st) const;
+    const char* value_type() const noexcept override { return "integer"; }
+
+    bool valid_ltype(LType lt) const noexcept override {
+      return lt == LType::INT || lt == LType::REAL ||
+             (lt == LType::BOOL && (value == 0 || value == 1));
+    }
+
+    Column make_column(SType st, size_t nrows) const override {
+      return (isbool && (st == SType::VOID || st == SType::BOOL))
+                ? Const_ColumnImpl::make_bool_column(nrows, bool(value))
+                : Const_ColumnImpl::make_int_column(nrows, value, st);
+    }
 };
-
-
-const char* scalar_int_rn::value_type() const noexcept {
-  return "integer";
-}
-
-
-bool scalar_int_rn::valid_ltype(LType lt) const noexcept {
-  return lt == LType::INT || lt == LType::REAL ||
-         (lt == LType::BOOL && (value == 0 || value == 1));
-}
-
-
-colptr scalar_int_rn::make_column(SType st, size_t nrows) const {
-  int64_t av = std::abs(value);
-  SType rst = value == 0 || value == 1? SType::BOOL :
-              av <= 127? SType::INT8 :
-              av <= 32767? SType::INT16 :
-              av <= 2147483647? SType::INT32 : SType::INT64;
-  if (static_cast<size_t>(st) > static_cast<size_t>(rst)) {
-    rst = st;
-  }
-  colptr col1 = rst == SType::BOOL? _make1<int8_t>(rst) :
-                rst == SType::INT8? _make1<int8_t>(rst) :
-                rst == SType::INT16? _make1<int16_t>(rst) :
-                rst == SType::INT32? _make1<int32_t>(rst) :
-                rst == SType::INT64? _make1<int64_t>(rst) :
-                rst == SType::FLOAT32? _make1<float>(rst) :
-                rst == SType::FLOAT64? _make1<double>(rst) : nullptr;
-  xassert(col1);
-  return colptr(col1->repeat(nrows));
-}
-
-
-template <typename T>
-colptr scalar_int_rn::_make1(SType st) const {
-  Column* col = Column::new_data_column(st, 1);
-  auto tcol = static_cast<FwColumn<T>*>(col);
-  tcol->set_elem(0, static_cast<T>(value));
-  return colptr(col);
-}
 
 
 
@@ -299,7 +265,7 @@ class scalar_float_rn : public scalar_rn {
   protected:
     const char* value_type() const noexcept override;
     bool valid_ltype(LType) const noexcept override;
-    colptr make_column(SType st, size_t nrows) const override;
+    Column make_column(SType st, size_t nrows) const override;
 };
 
 
@@ -313,21 +279,16 @@ bool scalar_float_rn::valid_ltype(LType lt) const noexcept {
 }
 
 
-colptr scalar_float_rn::make_column(SType st, size_t nrows) const {
+Column scalar_float_rn::make_column(SType st, size_t nrows) const {
   constexpr double MAX = double(std::numeric_limits<float>::max());
   // st can be either VOID or FLOAT32 or FLOAT64
   // VOID we always convert into FLOAT64 so as to avoid loss of precision;
   // otherwise we attempt to keep the old type `st`, unless doing so will lead
   // to value truncation (value does not fit into float32).
-  SType rst = st == SType::VOID || std::abs(value) > MAX
-              ? SType::FLOAT64 : st;
-  Column* col = Column::new_data_column(rst, 1);
-  if (rst == SType::FLOAT32) {
-    static_cast<FwColumn<float>*>(col)->set_elem(0, static_cast<float>(value));
-  } else {
-    static_cast<FwColumn<double>*>(col)->set_elem(0, value);
-  }
-  return colptr(col->repeat(nrows));
+  bool res64 = (st == SType::FLOAT64 || st == SType::VOID ||
+                std::abs(value) > MAX);
+  SType result_stype = res64? SType::FLOAT64 : SType::FLOAT32;
+  return Const_ColumnImpl::make_float_column(nrows, value, result_stype);
 }
 
 
@@ -346,7 +307,7 @@ class scalar_string_rn : public scalar_rn {
   protected:
     const char* value_type() const noexcept override;
     bool valid_ltype(LType) const noexcept override;
-    colptr make_column(SType st, size_t nrows) const override;
+    Column make_column(SType st, size_t nrows) const override;
 };
 
 const char* scalar_string_rn::value_type() const noexcept {
@@ -357,23 +318,12 @@ bool scalar_string_rn::valid_ltype(LType lt) const noexcept {
   return lt == LType::STRING;
 }
 
-colptr scalar_string_rn::make_column(SType st, size_t nrows) const {
-  size_t len = value.size();
-  SType rst = (st == SType::VOID)? SType::STR32 : st;
-  size_t elemsize = (rst == SType::STR32)? 4 : 8;
-  MemoryRange offbuf = MemoryRange::mem(2 * elemsize);
-  if (elemsize == 4) {
-    offbuf.set_element<uint32_t>(0, 0);
-    offbuf.set_element<uint32_t>(1, static_cast<uint32_t>(len));
-  } else {
-    offbuf.set_element<uint64_t>(0, 0);
-    offbuf.set_element<uint64_t>(1, len);
+Column scalar_string_rn::make_column(SType st, size_t nrows) const {
+  if (st == SType::VOID) st = SType::STR32;
+  if (nrows == 0) {
+    return Column::new_data_column(SType::STR32, 0);
   }
-  MemoryRange strbuf = MemoryRange::mem(len);
-  std::memcpy(strbuf.xptr(), value.data(), len);
-  Column* col = new_string_column(1, std::move(offbuf), std::move(strbuf));
-  col->replace_rowindex(RowIndex(size_t(0), nrows, 0));
-  return colptr(col);
+  return Const_ColumnImpl::make_string_column(nrows, CString(value), st);
 }
 
 
@@ -387,10 +337,10 @@ class collist_rn : public repl_node {
   intvec indices;
 
   public:
-    explicit collist_rn(cols_intlist* cl) : indices(std::move(cl->indices)) {}
+    explicit collist_rn(collist* cl) : indices(cl->release_indices()) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
-    void replace_columns(workframe&, const intvec&) const override;
-    void replace_values(workframe&, const intvec&) const override;
+    void replace_columns(EvalContext&, const intvec&) const override;
+    void replace_values(EvalContext&, const intvec&) const override;
 };
 
 
@@ -403,10 +353,10 @@ void collist_rn::check_compatibility(size_t, size_t lcols) const {
 }
 
 
-void collist_rn::replace_columns(workframe&, const intvec&) const {
+void collist_rn::replace_columns(EvalContext&, const intvec&) const {
   throw NotImplError() << "collist_rn::replace_columns()";
 }
-void collist_rn::replace_values(workframe&, const intvec&) const {
+void collist_rn::replace_values(EvalContext&, const intvec&) const {
   throw NotImplError() << "collist_rn::replace_values()";
 }
 
@@ -421,10 +371,11 @@ class exprlist_rn : public repl_node {
   exprvec exprs;
 
   public:
-    explicit exprlist_rn(cols_exprlist* cl) : exprs(std::move(cl->exprs)) {}
+    explicit exprlist_rn(collist* cl) : exprs(cl->release_exprs()) {}
     void check_compatibility(size_t lrows, size_t lcols) const override;
-    void replace_columns(workframe&, const intvec&) const override;
-    void replace_values(workframe&, const intvec&) const override;
+    void replace_columns(EvalContext&, const intvec&) const override;
+    void replace_values(EvalContext&, const intvec&) const override;
+    void resolve(EvalContext&) const override;
 };
 
 
@@ -437,28 +388,31 @@ void exprlist_rn::check_compatibility(size_t, size_t lcols) const {
 }
 
 
-void exprlist_rn::replace_columns(workframe& wf, const intvec& indices) const {
-  DataTable* dt0 = wf.get_datatable(0);
-  size_t lcols = indices.size();
-  size_t rcols = exprs.size();
-  xassert(lcols == rcols || rcols == 1);
-
+void exprlist_rn::resolve(EvalContext& ctx) const {
   for (auto& expr : exprs) {
-    expr->resolve(wf);
-  }
-
-  for (size_t i = 0; i < lcols; ++i) {
-    size_t j = indices[i];
-    Column* col = i < rcols? exprs[i]->evaluate_eager(wf).release()
-                           : dt0->columns[indices[0]]->shallowcopy();
-    xassert(col->nrows == dt0->nrows);
-    delete dt0->columns[j];
-    dt0->columns[j] = col;
+    expr->resolve(ctx);
   }
 }
 
 
-void exprlist_rn::replace_values(workframe&, const intvec&) const {
+void exprlist_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
+  DataTable* dt0 = ctx.get_datatable(0);
+  size_t lcols = indices.size();
+  size_t rcols = exprs.size();
+  xassert(lcols == rcols || rcols == 1);
+  resolve(ctx);
+
+  for (size_t i = 0; i < lcols; ++i) {
+    size_t j = indices[i];
+    Column col = (i < rcols)? exprs[i]->evaluate(ctx)
+                            : dt0->get_column(indices[0]);
+    xassert(col.nrows() == dt0->nrows);
+    dt0->set_column(j, std::move(col));
+  }
+}
+
+
+void exprlist_rn::replace_values(EvalContext&, const intvec&) const {
   throw NotImplError() << "exprlist_rn::replace_values()";
 }
 
@@ -478,22 +432,19 @@ repl_node::~repl_node() {
 }
 
 
-repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
+repl_node_ptr repl_node::make(EvalContext& ctx, py::oobj src) {
   repl_node* res = nullptr;
 
   if (src.is_frame())       res = new frame_rn(src.to_datatable());
   else if (src.is_none())   res = new scalar_na_rn();
-  else if (src.is_bool())   res = new scalar_int_rn(src.to_bool());
+  else if (src.is_bool())   res = new scalar_int_rn(bool(src.to_bool()));
   else if (src.is_int())    res = new scalar_int_rn(src.to_int64());
   else if (src.is_float())  res = new scalar_float_rn(src.to_double());
   else if (src.is_string()) res = new scalar_string_rn(src.to_string());
   else if (src.is_dtexpr() || src.is_list_or_tuple()) {
-    auto cl = collist::make(wf, src, "replacement");
-    auto intcl = dynamic_cast<cols_intlist*>(cl.get());
-    auto expcl = dynamic_cast<cols_exprlist*>(cl.get());
-    xassert(intcl || expcl);
-    if (intcl) res = new collist_rn(std::move(intcl));
-    if (expcl) res = new exprlist_rn(std::move(expcl));
+    collist cl(ctx, src, collist::REPL_NODE);
+    if (cl.is_simple_list()) res = new collist_rn(&cl);
+    else                     res = new exprlist_rn(&cl);
   }
   else {
     throw TypeError()
@@ -501,6 +452,10 @@ repl_node_ptr repl_node::make(workframe& wf, py::oobj src) {
   }
   return repl_node_ptr(res);
 }
+
+
+void repl_node::resolve(EvalContext&) const {}
+
 
 
 

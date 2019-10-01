@@ -10,6 +10,17 @@
 #include "utils/misc.h"
 #include "parallel/api.h"  // dt::parallel_for_static
 #include "column.h"
+#include "column_impl.h"
+
+template<> inline py::robj GETNA() { return py::rnone(); }
+
+template <typename T> constexpr SType stype_for(){ return SType::VOID; }
+template <> constexpr SType stype_for<int8_t>()  { return SType::INT8; }
+template <> constexpr SType stype_for<int16_t>() { return SType::INT16; }
+template <> constexpr SType stype_for<int32_t>() { return SType::INT32; }
+template <> constexpr SType stype_for<int64_t>() { return SType::INT64; }
+template <> constexpr SType stype_for<float>()   { return SType::FLOAT32; }
+template <> constexpr SType stype_for<double>()  { return SType::FLOAT64; }
 
 
 
@@ -18,16 +29,23 @@
  * should be subsequently called before using this column.
  */
 template <typename T>
-FwColumn<T>::FwColumn() : Column(0) {}
+FwColumn<T>::FwColumn()
+  : ColumnImpl(0, stype_for<T>()) {}
+
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_) : Column(nrows_) {
-  mbuf.resize(elemsize() * nrows_);
+FwColumn<T>::FwColumn(size_t nrows_)
+  : ColumnImpl(nrows_, stype_for<T>())
+{
+  mbuf.resize(sizeof(T) * nrows_);
 }
 
+
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
-  size_t req_size = elemsize() * nrows_;
+FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
+  : ColumnImpl(nrows_, stype_for<T>())
+{
+  size_t req_size = sizeof(T) * nrows_;
   if (mr) {
     xassert(mr.size() == req_size);
   } else {
@@ -37,63 +55,34 @@ FwColumn<T>::FwColumn(size_t nrows_, MemoryRange&& mr) : Column(nrows_) {
 }
 
 
+/**
+ * Create a shallow copy of the column; possibly applying the provided rowindex.
+ */
+template <typename T>
+ColumnImpl* FwColumn<T>::shallowcopy() const {
+  ColumnImpl* col = ColumnImpl::new_impl(_stype);
+  auto fwcol = dynamic_cast<FwColumn<T>*>(col);
+  xassert(fwcol);
+  fwcol->_nrows = _nrows;
+  fwcol->mbuf = mbuf;
+  // TODO: also copy Stats object
+  return col;
+}
+
+
+
 //==============================================================================
 // Initialization methods
 //==============================================================================
 
 template <typename T>
 void FwColumn<T>::init_data() {
-  xassert(!ri);
-  mbuf.resize(nrows * elemsize());
-}
-
-template <typename T>
-void FwColumn<T>::init_mmap(const std::string& filename) {
-  xassert(!ri);
-  mbuf = MemoryRange::mmap(filename, nrows * elemsize());
-}
-
-template <typename T>
-void FwColumn<T>::open_mmap(const std::string& filename, bool) {
-  xassert(!ri);
-  mbuf = MemoryRange::mmap(filename);
-  // size_t exp_size = nrows * sizeof(T);
-  // if (mbuf.size() != exp_size) {
-  //   throw Error() << "File \"" << filename <<
-  //       "\" cannot be used to create a column with " << nrows <<
-  //       " rows. Expected file size of " << exp_size <<
-  //       " bytes, actual size is " << mbuf.size() << " bytes";
-  // }
-}
-
-template <typename T>
-void FwColumn<T>::init_xbuf(Py_buffer* pybuffer) {
-  xassert(!ri);
-  size_t exp_buf_len = nrows * elemsize();
-  if (static_cast<size_t>(pybuffer->len) != exp_buf_len) {
-    throw Error() << "PyBuffer cannot be used to create a column of " << nrows
-                  << " rows: buffer length is "
-                  << static_cast<size_t>(pybuffer->len)
-                  << ", expected " << exp_buf_len;
-  }
-  const void* ptr = pybuffer->buf;
-  mbuf = MemoryRange::external(ptr, exp_buf_len, pybuffer);
+  mbuf.resize(_nrows * sizeof(T));
 }
 
 
 
 //==============================================================================
-
-template <typename T>
-size_t FwColumn<T>::elemsize() const {
-  return sizeof(T);
-}
-
-template <typename T>
-bool FwColumn<T>::is_fixedwidth() const {
-  return true;
-}
-
 
 template <typename T>
 const T* FwColumn<T>::elements_r() const {
@@ -102,7 +91,6 @@ const T* FwColumn<T>::elements_r() const {
 
 template <typename T>
 T* FwColumn<T>::elements_w() {
-  if (ri) materialize();
   return static_cast<T*>(mbuf.wptr());
 }
 
@@ -112,95 +100,20 @@ T FwColumn<T>::get_elem(size_t i) const {
   return static_cast<const T*>(mbuf.rptr())[i];
 }
 
-
-template <>
-void FwColumn<PyObject*>::set_elem(size_t i, PyObject* value) {
-  PyObject** data = static_cast<PyObject**>(mbuf.wptr());
-  data[i] = value;
-  Py_INCREF(value);
-}
-
 template <typename T>
-void FwColumn<T>::set_elem(size_t i, T value) {
-  T* data = static_cast<T*>(mbuf.wptr());
-  data[i] = value;
+bool FwColumn<T>::get_element(size_t i, T* out) const {
+  T x = static_cast<const T*>(mbuf.rptr())[i];
+  *out = x;
+  return !ISNA<T>(x);
 }
 
 
 template <typename T>
-void FwColumn<T>::materialize() {
-  // If the rowindex is absent, then the column is already materialized.
-  if (!ri) return;
-  bool simple_slice = ri.isslice() && ri.slice_step() == 1;
-  bool ascending = ri.isslice() && static_cast<int64_t>(ri.slice_step()) > 0;
-
-  size_t elemsize = sizeof(T);
-  size_t newsize = elemsize * nrows;
-
-  // Current `mbuf` can be reused iff it is not readonly. Thus, `new_mbuf` can
-  // be either the same as `mbuf` (with old size), or a newly allocated buffer
-  // (with new size). Correspondingly, the old buffer may or may not have to be
-  // released afterwards.
-  // Note also that `newsize` may be either smaller or bigger than the old size,
-  // this must be taken into consideration.
-  MemoryRange newmr;
-
-  if (simple_slice) {
-    // Slice with step 1: a portion of the buffer can be simply mem-copied onto
-    // the new buffer.
-    size_t start = static_cast<size_t>(ri.slice_start());
-    const void* src = mbuf.rptr(start * elemsize);
-    void* dest = mbuf.is_writable()
-        ? mbuf.wptr()
-        : newmr.resize(newsize).wptr();
-    std::memmove(dest, src, newsize);
-
-  } else {
-    // In all other cases we have to manually loop over the rowindex and
-    // copy array elements onto the new positions. This can be done in-place
-    // only if we know that the indices are monotonically increasing (otherwise
-    // there is a risk of scrambling the data).
-    const T* data_src = static_cast<const T*>(mbuf.rptr());
-    T* data_dest = mbuf.is_writable() && ascending
-       ? static_cast<T*>(mbuf.wptr())
-       : static_cast<T*>(newmr.resize(newsize).wptr());
-    ri.iterate(0, nrows, 1,
-      [&](size_t i, size_t j) {
-        data_dest[i] = (j == RowIndex::NA)? GETNA<T>() : data_src[j];
-      });
-  }
-
-  if (newmr) {
-    mbuf = std::move(newmr);
-  } else {
-    mbuf.resize(newsize);
-  }
-  ri.clear();
+ColumnImpl* FwColumn<T>::materialize() {
+  return this;
 }
 
 
-
-template <typename T>
-void FwColumn<T>::resize_and_fill(size_t new_nrows)
-{
-  if (new_nrows == nrows) return;
-  materialize();
-
-  mbuf.resize(sizeof(T) * new_nrows);
-
-  if (new_nrows > nrows) {
-    // Replicate the value or fill with NAs
-    T fill_value = nrows == 1? get_elem(0) : na_elem;
-    T* data_dest = static_cast<T*>(mbuf.wptr());
-    for (size_t i = nrows; i < new_nrows; ++i) {
-      data_dest[i] = fill_value;
-    }
-  }
-  this->nrows = new_nrows;
-
-  // TODO(#301): Temporary fix.
-  if (this->stats != nullptr) this->stats->reset();
-}
 
 
 
@@ -211,11 +124,12 @@ size_t FwColumn<T>::data_nrows() const {
 
 
 template <typename T>
-void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
-  const int8_t* maskdata = mask->elements_r();
+void FwColumn<T>::apply_na_mask(const Column& mask) {
+  xassert(mask.stype() == SType::BOOL);
+  auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());
   T* coldata = this->elements_w();
 
-  dt::parallel_for_static(nrows,
+  dt::parallel_for_static(_nrows,
     [=](size_t i) {
       if (maskdata[i] == 1) coldata[i] = GETNA<T>();
     });
@@ -225,9 +139,8 @@ void FwColumn<T>::apply_na_mask(const BoolColumn* mask) {
 
 template <typename T>
 void FwColumn<T>::fill_na() {
-  xassert(!ri);
   T* vals = static_cast<T*>(mbuf.wptr());
-  dt::parallel_for_static(nrows,
+  dt::parallel_for_static(_nrows,
     [=](size_t i) {
       vals[i] = GETNA<T>();
     });
@@ -247,89 +160,37 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    RowIndex replace_at, const Column* replace_with)
+    Column&, const RowIndex& replace_at, const Column& replace_with)
 {
   materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  if (replace_with->stype() != stype()) {
-    replace_with = replace_with->cast(stype());
+  Column with = (replace_with.stype() == _stype)
+                    ? replace_with  // copy
+                    : replace_with.cast(_stype);
+
+  if (with.nrows() == 1) {
+    T replace_value;
+    bool isvalid = with.get_element(0, &replace_value);
+    return isvalid? replace_values(replace_at, replace_value) :
+                    replace_values(replace_at, GETNA<T>());
   }
 
-  if (replace_with->nrows == 1) {
-    auto rcol = dynamic_cast<const FwColumn<T>*>(replace_with);
-    xassert(rcol);
-    return replace_values(replace_at, rcol->get_elem(0));
-  }
   size_t replace_n = replace_at.size();
-  const T* data_src = static_cast<const T*>(replace_with->data());
-  const RowIndex& rowindex_src = replace_with->rowindex();
   T* data_dest = elements_w();
-  xassert(replace_with->nrows == replace_n);
-  if (rowindex_src) {
-    replace_at.iterate(0, replace_n, 1,
-      [&](size_t i, size_t j) {
-        if (j == RowIndex::NA) return;
-        size_t k = rowindex_src[i];
-        data_dest[j] = (k == RowIndex::NA)? GETNA<T>() : data_src[k];
-      });
-  } else {
-    replace_at.iterate(0, replace_n, 1,
-      [&](size_t i, size_t j) {
-        if (j == RowIndex::NA) return;
-        data_dest[j] = data_src[i];
-      });
-  }
-}
+  xassert(with.nrows() == replace_n);
 
-
-template <typename T>
-static int32_t binsearch(const T* data, int32_t len, T value) {
-  // Use unsigned indices in order to avoid overflows
-  uint32_t start = 0;
-  uint32_t end   = static_cast<uint32_t>(len);
-  while (end - start > 1) {
-    uint32_t mid = (start + end) >> 1;
-    if (data[mid] > value) end = mid;
-    else start = mid;
-  }
-  return (data[start] == value)? static_cast<int32_t>(start) : -1;
-}
-
-
-template <typename T>
-RowIndex FwColumn<T>::join(const Column* keycol) const {
-  xassert(stype() == keycol->stype());
-
-  auto kcol = static_cast<const FwColumn<T>*>(keycol);
-  xassert(!kcol->ri);
-
-  arr32_t target_indices(nrows);
-  int32_t* trg_indices = target_indices.data();
-  const T* src_data = elements_r();
-  const T* search_data = kcol->elements_r();
-  int32_t search_n = static_cast<int32_t>(keycol->nrows);
-
-  ri.iterate(0, nrows, 1,
+  replace_at.iterate(0, replace_n, 1,
     [&](size_t i, size_t j) {
       if (j == RowIndex::NA) return;
-      T value = src_data[j];
-      trg_indices[i] = binsearch<T>(search_data, search_n, value);
-    });
-
-  return RowIndex(std::move(target_indices));
-}
-
-
-template <typename T>
-void FwColumn<T>::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
-  const T* tdata = elements_r();
-  ri.iterate(row0, row1, 1,
-    [&](size_t i, size_t j) {
-      outmask[i] = (j == RowIndex::NA) || ISNA<T>(tdata[j]);
+      T value;
+      bool isvalid = replace_with.get_element(i, &value);
+      data_dest[j] = isvalid? value : GETNA<T>();
     });
 }
+
+
 
 
 // Explicit instantiations
@@ -339,4 +200,4 @@ template class FwColumn<int32_t>;
 template class FwColumn<int64_t>;
 template class FwColumn<float>;
 template class FwColumn<double>;
-template class FwColumn<PyObject*>;
+template class FwColumn<py::robj>;

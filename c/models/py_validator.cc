@@ -21,17 +21,42 @@
 //------------------------------------------------------------------------------
 #include "models/py_validator.h"
 
+namespace py {
+namespace Validator {
+
 // Error messages
-Error py::Validator::error_manager::error_not_positive(PyObject* src,
-                                                       const std::string& name
-) const {
+Error error_manager::error_not_positive(PyObject* src,
+                                        const std::string& name) const
+{
   return ValueError() << name << " should be positive: " << src;
 }
 
 
-Error py::Validator::error_manager::error_negative(PyObject* src,
-                                                   const std::string& name
-) const {
+Error error_manager::error_negative(PyObject* src,
+                                    const std::string& name) const
+{
   return ValueError() << name << " should be greater than or equal to zero: "
                       << src;
 }
+
+
+Error error_manager::error_is_infinite(PyObject* src,
+                                       const std::string& name) const
+{
+  return ValueError() << name << " should be finite: "
+                      << src;
+}
+
+
+/**
+ *  Check if column contains any negative values.
+ */
+bool has_negatives(const Column& col) {
+  bool is_valid;
+  double min = col.stats()->min_double(&is_valid);
+  return is_valid? (min < 0) : true;
+}
+
+
+} // namespace Validator
+} // namespace py

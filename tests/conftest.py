@@ -13,6 +13,7 @@ import sys
 import pytest
 import shutil
 import tempfile as mod_tempfile
+import warnings
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -59,8 +60,10 @@ def pandas():
     This fixture returns pandas module, or if unavailable marks test as skipped.
     """
     try:
-        import pandas as pd
-        return pd
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            import pandas as pd
+            return pd
     except ImportError:
         pytest.skip("Pandas module is required for this test")
 

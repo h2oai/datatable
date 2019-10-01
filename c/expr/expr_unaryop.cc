@@ -6,9 +6,11 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "column/virtual.h"
 #include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
+#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "types.h"
 namespace dt {
@@ -20,11 +22,11 @@ unary_infos unary_library;
 
 
 //------------------------------------------------------------------------------
-// Mapper functions
+// Vector functions
 //------------------------------------------------------------------------------
 
-template<typename T, T(*OP)(T)>
-void map1(size_t nrows, const T* inp, T* out) {
+template<typename TI, typename TO, TO(*OP)(TI)>
+void mapfw(size_t nrows, const TI* inp, TO* out) {
   dt::parallel_for_static(nrows,
     [=](size_t i) {
       out[i] = OP(inp[i]);
@@ -32,23 +34,14 @@ void map1(size_t nrows, const T* inp, T* out) {
 }
 
 
-template<typename IT, typename OT, OT(*OP)(IT)>
-void map11(size_t nrows, const IT* inp, OT* out) {
-  dt::parallel_for_static(nrows,
-    [=](size_t i) {
-      out[i] = OP(inp[i]);
-    });
-}
-
-
-template<typename IT, typename OT>
-void map_str_len(size_t nrows, const IT* inp, OT* out) {
+template<typename TI, typename TO>
+void map_str_len(size_t nrows, const TI* inp, TO* out) {
   inp++;
   dt::parallel_for_static(nrows,
     [=](size_t i) {
-      out[i] = ISNA<IT>(inp[i])
-                  ? GETNA<OT>()
-                  : static_cast<OT>((inp[i] - inp[i-1]) & ~GETNA<IT>());
+      out[i] = ISNA<TI>(inp[i])
+                  ? GETNA<TO>()
+                  : static_cast<TO>((inp[i] - inp[i-1]) & ~GETNA<TI>());
     });
 }
 
@@ -63,12 +56,105 @@ void map_str_isna(size_t nrows, const T* inp, int8_t* out) {
 }
 
 
-template <int8_t VAL>
-void set_const(size_t nrows, const void*, int8_t* out) {
-  dt::parallel_for_static(nrows,
-    [=](size_t i){
-      out[i] = VAL;
-    });
+
+
+//------------------------------------------------------------------------------
+// Virtual-column functions
+//------------------------------------------------------------------------------
+
+template <typename TI, typename TO>
+class unary_vcol : public Virtual_ColumnImpl {
+  using operator_t = TO(*)(TI);
+  private:
+    Column arg;
+    operator_t func;
+
+  public:
+    unary_vcol(Column&& col, SType stype, operator_t f)
+      : Virtual_ColumnImpl(col.nrows(), stype),
+        arg(std::move(col)),
+        func(f) {}
+
+    ColumnImpl* shallowcopy() const override {
+      return new unary_vcol<TI, TO>(Column(arg), _stype, func);
+    }
+
+    bool get_element(size_t i, TO* out) const override {
+      TI x;
+      bool isvalid = arg.get_element(i, &x);
+      (void) isvalid;  // FIXME
+      TO value = func(x);
+      *out = value;
+      return !ISNA<TO>(value);
+    }
+};
+
+template <typename TI>
+class unary_vcol<TI, int8_t> : public Virtual_ColumnImpl {
+  using operator_t = int8_t(*)(TI);
+  private:
+    Column arg;
+    operator_t func;
+
+  public:
+    unary_vcol(Column&& col, SType stype, operator_t f)
+      : Virtual_ColumnImpl(col.nrows(), stype),
+        arg(std::move(col)),
+        func(f) {}
+
+    ColumnImpl* shallowcopy() const override {
+      return new unary_vcol<TI, int8_t>(Column(arg), _stype, func);
+    }
+
+    bool get_element(size_t i, int8_t* out) const override {
+      TI x;
+      bool isvalid = arg.get_element(i, &x);
+      (void) isvalid;  // FIXME
+      int8_t value = func(x);
+      *out = value;
+      return !ISNA<int8_t>(value);
+    }
+
+    bool get_element(size_t i, int32_t* out) const override {
+      TI x;
+      bool isvalid = arg.get_element(i, &x);
+      (void) isvalid;  // FIXME
+      int8_t value = func(x);
+      *out = static_cast<int32_t>(value);
+      return !ISNA<int8_t>(value);
+    }
+};
+
+
+
+template <SType SI, SType SO, element_t<SO>(*FN)(element_t<SI>)>
+Column vcol_factory(Column&& arg) {
+  return Column(
+      new unary_vcol<element_t<SI>, element_t<SO>>(std::move(arg), SO, FN)
+  );
+}
+
+
+template <SType SI, bool(*FN)(element_t<SI>)>
+Column vcol_factory_bool(Column&& arg) {
+  using TI = element_t<SI>;
+  return Column(
+      new unary_vcol<TI, int8_t>(std::move(arg), SType::BOOL,
+                                 reinterpret_cast<int8_t(*)(TI)>(FN))
+  );
+}
+
+
+template <SType SO, element_t<SO>(*FN)(CString)>
+Column vcol_factory_str(Column&& arg) {
+  return Column(
+      new unary_vcol<CString, element_t<SO>>(std::move(arg), SO, FN)
+  );
+}
+
+
+static Column vcol_id(Column&& arg) {
+  return std::move(arg);
 }
 
 
@@ -87,13 +173,13 @@ inline static T op_minus(T x) {
 }
 
 template <typename T>
-inline static bool op_isna(T x) { return ISNA<T>(x); }
+inline static int8_t op_isna(T x) { return ISNA<T>(x); }
 
 template <typename T>
-inline static bool op_notna(T x) { return !ISNA<T>(x); }
+inline static int8_t op_notna(T x) { return !ISNA<T>(x); }
 
 template <typename T>
-inline static bool op_false(T) { return false; }
+inline static int8_t op_false(T) { return false; }
 
 
 template <typename T>
@@ -105,6 +191,14 @@ inline static T op_abs(T x) {
   return (x < 0) ? -x : x;
 }
 
+// Redefine functions isinf / isfinite here, because apparently the standard
+// library implementation is not that standard: in some implementation the
+// return value is `bool`, in others it's `int`.
+template <typename T>
+inline static int8_t op_isinf(T x) { return std::isinf(x); }
+
+template <typename T>
+inline static int8_t op_isfinite(T x) { return std::isfinite(x); }
 
 inline static int8_t op_invert_bool(int8_t x) {
   return ISNA<int8_t>(x)? x : !x;
@@ -113,6 +207,15 @@ inline static int8_t op_invert_bool(int8_t x) {
 template <typename T>
 inline static T op_inverse(T x) {
   return ISNA<T>(x)? x : ~x;
+}
+
+inline static int8_t op_str_isna(CString str) {
+  return (str.ch == nullptr);
+}
+
+template <typename T>
+inline static T op_str_len(CString str) {
+  return (str.ch == nullptr)? GETNA<T>() : static_cast<T>(str.size);
 }
 
 
@@ -172,76 +275,56 @@ pexpr expr_unaryop::get_negated_expr() {
 }
 
 
-SType expr_unaryop::resolve(const workframe& wf) {
-  SType input_stype = arg->resolve(wf);
+SType expr_unaryop::resolve(const EvalContext& ctx) {
+  SType input_stype = arg->resolve(ctx);
   return unary_library.get_infox(opcode, input_stype).output_stype;
 }
 
 
-GroupbyMode expr_unaryop::get_groupby_mode(const workframe& wf) const {
-  return arg->get_groupby_mode(wf);
+GroupbyMode expr_unaryop::get_groupby_mode(const EvalContext& ctx) const {
+  return arg->get_groupby_mode(ctx);
 }
 
 
-// In this method we use the following shortcut:
-// if the `input_column` evaluated from `arg` is "writable" (meaning that
-// its reference-counter is 1, it is allocated in RAM and not marked readonly),
-// then this column's memory buffer can be reused to create the output column.
-// Indeed, if nobody else holds a reference to the same memory range, then it
-// will be deallocated at the end of this function anyways, together with the
-// `input_column`.
-//
-// This works only if each element in the output array corresponds to an
-// element in the input at exactly the same memory location. Thus, this
-// optimization is only applicable when both columns are "fixed-width" and
-// element sizes in the input and output columns are the same. Notably,
-// if the input is a string column, then it cannot be safely repurposed into
-// an integer output column because each "element" of the input actually
-// consists of 2 entries: the offsets of the start and the end of a string.
-//
-colptr expr_unaryop::evaluate_eager(workframe& wf) {
-  auto input_column = arg->evaluate_eager(wf);
+Column expr_unaryop::evaluate(EvalContext& ctx) {
+  Column input_column = arg->evaluate(ctx);
 
-  auto input_stype = input_column->stype();
+  auto input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
+  if (ui.cast_stype != SType::VOID) {
+    input_column.cast_inplace(ui.cast_stype);
+  }
   if (ui.vectorfn == nullptr) {
-    if (input_stype == ui.output_stype) {
-      return colptr(input_column->shallowcopy());
-    } else {
-      return colptr(input_column->cast(ui.output_stype));
-    }
+    return input_column;
   }
-  if (ui.cast_stype != SType::VOID && input_stype != ui.cast_stype) {
-    input_column = colptr(input_column->cast(ui.cast_stype));
-  }
-  input_column->materialize();
+  input_column.materialize();
 
-  size_t nrows = input_column->nrows;
-  const MemoryRange& input_mbuf = input_column->data_buf();
-  const void* inp = input_mbuf.rptr();
-
-  MemoryRange output_mbuf;
-  void* out = nullptr;
-  size_t out_elemsize = info(ui.output_stype).elemsize();
-  if (input_mbuf.is_writable() &&
-      input_column->is_fixedwidth() &&
-      input_column->elemsize() == out_elemsize) {
-    // The address `out` must be taken *before* `output_mbuf` is initialized,
-    // since the `.xptr()` method checks that the reference counter is 1.
-    out = input_mbuf.xptr();
-    output_mbuf = MemoryRange(input_mbuf);
-  }
-  else {
-    output_mbuf = MemoryRange::mem(out_elemsize * nrows);
-    out = output_mbuf.xptr();
-  }
-  auto output_column = colptr(
-      Column::new_mbuf_column(ui.output_stype, std::move(output_mbuf)));
+  size_t nrows = input_column.nrows();
+  const void* inp =  input_column.get_data_readonly();
+  Column output_column = Column::new_data_column(ui.output_stype, nrows);
+  void* out = output_column.get_data_editable();
 
   ui.vectorfn(nrows, inp, out);
 
   return output_column;
 }
+
+
+// Column expr_unaryop::evaluate(EvalContext& ctx) {
+//   Column varg = arg->evaluate(ctx);
+//   SType input_stype = varg.stype();
+//   const auto& ui = unary_library.get_infox(opcode, input_stype);
+//   if (ui.cast_stype != SType::VOID) {
+//     varg = std::move(varg).cast(ui.cast_stype);
+//     input_stype = ui.cast_stype;
+//   }
+//   if (!ui.vcolfn) {
+//     throw NotImplError() << "Cannot create a virtual column for input_stype = "
+//         << input_stype << " and op = " << static_cast<size_t>(opcode);
+//   }
+//   return ui.vcolfn(std::move(varg));
+// }
+
 
 
 
@@ -258,7 +341,9 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
 
   py::olist columns(dt->ncols);
   for (size_t i = 0; i < dt->ncols; ++i) {
-    py::oobj col_selector = make_pyexpr(Op::COL, py::oint(0), py::oint(i));
+    py::oobj col_selector = make_pyexpr(Op::COL,
+                                        py::otuple{py::oint(i)},
+                                        py::otuple{py::oint(0)});
     columns.set(i, make_pyexpr(opcode, col_selector));
   }
 
@@ -284,11 +369,11 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
     int64_t v = x.to_int64_strict();
     const uinfo* info = unary_library.get_infon(opcode, SType::INT64);
     if (info && info->output_stype == SType::INT64) {
-      auto res = info->scalarfn.l_l(v);
+      auto res = reinterpret_cast<int64_t(*)(int64_t)>(info->scalarfn)(v);
       return py::oint(res);
     }
     if (info && info->output_stype == SType::BOOL) {
-      auto res = info->scalarfn.l_b(v);
+      auto res = reinterpret_cast<bool(*)(int64_t)>(info->scalarfn)(v);
       return py::obool(res);
     }
     goto process_as_float;
@@ -298,11 +383,11 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
     double v = x.to_double();
     const uinfo* info = unary_library.get_infon(opcode, SType::FLOAT64);
     if (info && info->output_stype == SType::FLOAT64) {
-      auto res = info->scalarfn.d_d(v);
+      auto res = reinterpret_cast<double(*)(double)>(info->scalarfn)(v);
       return py::ofloat(res);
     }
     if (info && info->output_stype == SType::BOOL) {
-      auto res = info->scalarfn.d_b(v);
+      auto res = reinterpret_cast<bool(*)(double)>(info->scalarfn)(v);
       return py::obool(res);
     }
     if (!x.is_none()) {
@@ -550,34 +635,14 @@ static py::PKArgs args_len(
 //------------------------------------------------------------------------------
 // unary_infos
 //------------------------------------------------------------------------------
+using uinfo = unary_infos::uinfo;
 
-constexpr size_t unary_infos::id(Op op) noexcept {
-  return static_cast<size_t>(op) - UNOP_FIRST;
-}
-
-constexpr size_t unary_infos::id(Op op, SType stype) noexcept {
-  return static_cast<size_t>(op) * DT_STYPES_COUNT +
-         static_cast<size_t>(stype);
-}
-
-void unary_infos::add(Op op, SType input_stype, SType output_stype,
-                      unary_func_t fn, SType cast)
-{
-  size_t entry_id = id(op, input_stype);
-  xassert(info.count(entry_id) == 0);
-  info[entry_id] = {fn, {nullptr}, output_stype, cast};
-}
-
-
-const unary_infos::uinfo* unary_infos::get_infon(Op op, SType input_stype) const
-{
+const uinfo* unary_infos::get_infon(Op op, SType input_stype) const {
   size_t entry_id = id(op, input_stype);
   return info.count(entry_id)? &info.at(entry_id) : nullptr;
 }
 
-
-const unary_infos::uinfo& unary_infos::get_infox(Op op, SType input_stype) const
-{
+const uinfo& unary_infos::get_infox(Op op, SType input_stype) const {
   size_t entry_id = id(op, input_stype);
   if (info.count(entry_id)) {
     return info.at(entry_id);
@@ -595,104 +660,94 @@ const unary_infos::uinfo& unary_infos::get_infox(Op op, SType input_stype) const
   throw err;
 }
 
-
 Op unary_infos::get_opcode_from_args(const py::PKArgs& args) const {
   return opcodes.at(&args);
 }
 
 
-void unary_infos::register_op(
-  Op opcode, const std::string& name, const py::PKArgs* pargs,
-  dt::function<void()> more)
-{
+
+constexpr size_t unary_infos::id(Op op) noexcept {
+  return static_cast<size_t>(op) - UNOP_FIRST;
+}
+
+constexpr size_t unary_infos::id(Op op, SType stype) noexcept {
+  return static_cast<size_t>(op) * DT_STYPES_COUNT +
+         static_cast<size_t>(stype);
+}
+
+void unary_infos::add_op(Op opcode, const char* name, const py::PKArgs* args) {
   names[id(opcode)] = name;
-  if (pargs) opcodes[pargs] = opcode;
-  current_opcode = opcode;
-  more();
-}
-
-void unary_infos::add_converter(SType in, SType out, unary_func_t fn) {
-  add(current_opcode, in, out, fn);
-}
-
-void unary_infos::add_copy_converter(SType in, SType out) {
-  if (out == SType::VOID) out = in;
-  add(current_opcode, in, out, nullptr);
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const int8_t*, int8_t*)) {
-  add(current_opcode, SType::INT8, SType::INT8, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const int16_t*, int16_t*)) {
-  add(current_opcode, SType::INT16, SType::INT16, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const int32_t*, int32_t*)) {
-  add(current_opcode, SType::INT32, SType::INT32, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const int64_t*, int64_t*)) {
-  add(current_opcode, SType::INT64, SType::INT64, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const float*, float*)) {
-  add(current_opcode, SType::FLOAT32, SType::FLOAT32, reinterpret_cast<unary_func_t>(f));
-}
-
-void unary_infos::add_converter(void(*f)(size_t, const double*, double*)) {
-  add(current_opcode, SType::FLOAT64, SType::FLOAT64, reinterpret_cast<unary_func_t>(f));
+  opcodes[args] = opcode;
 }
 
 
-void unary_infos::add_scalarfn_l(int64_t(*f)(int64_t)) {
-  size_t entry_id = id(current_opcode, SType::INT64);
-  xassert(info.count(entry_id) && !info[entry_id].scalarfn.l_l);
-  info[entry_id].scalarfn.l_l = f;
+template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(element_t<SI>)>
+void unary_infos::add() {
+  using TI = element_t<SI>;
+  using TO = element_t<SO>;
+  constexpr size_t entry_id = id(OP, SI);
+  xassert(info.count(entry_id) == 0);
+  info[entry_id] = {
+    /* vectorfn = */ reinterpret_cast<unary_func_t>(mapfw<TI, TO, FN>),
+    /* scalarfn = */ reinterpret_cast<erased_func_t>(FN),
+    /* vcolfn =   */ vcol_factory<SI, SO, FN>,
+    /* outstype = */ SO,
+    /* caststype= */ SType::VOID
+  };
 }
 
-void unary_infos::add_scalarfn_l(bool(*f)(int64_t)) {
-  size_t entry_id = id(current_opcode, SType::INT64);
-  xassert(info.count(entry_id) && !info[entry_id].scalarfn.l_b);
-  info[entry_id].scalarfn.l_b = f;
+template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(CString)>
+void unary_infos::add_str(unary_func_t mapfn)
+{
+  constexpr size_t entry_id = id(OP, SI);
+  xassert(info.count(entry_id) == 0);
+  info[entry_id] = {
+    mapfn,
+    reinterpret_cast<erased_func_t>(FN),
+    vcol_factory_str<SO, FN>,
+    SO,
+    SType::VOID
+  };
 }
 
-void unary_infos::add_scalarfn_d(double(*f)(double)) {
-  size_t entry_id = id(current_opcode, SType::FLOAT64);
-  xassert(info.count(entry_id) && !info[entry_id].scalarfn.d_d);
-  info[entry_id].scalarfn.d_d = f;
+void unary_infos::add_copy(Op op, SType input_stype, SType output_stype) {
+  size_t entry_id = id(op, input_stype);
+  xassert(info.count(entry_id) == 0);
+  SType cast_stype = (input_stype == output_stype)? SType::VOID : output_stype;
+  info[entry_id] = {nullptr, nullptr, vcol_id, output_stype, cast_stype};
 }
 
-void unary_infos::add_scalarfn_d(bool(*f)(double)) {
-  size_t entry_id = id(current_opcode, SType::FLOAT64);
-  xassert(info.count(entry_id) && !info[entry_id].scalarfn.d_b);
-  info[entry_id].scalarfn.d_b = f;
-}
 
 template <float(*F32)(float), double(*F64)(double)>
-inline void unary_infos::register_math_op(
-    Op opcode, const std::string& name, const py::PKArgs& args)
+inline void unary_infos::add_math(
+    Op opcode, const char* name, const py::PKArgs& args)
 {
-  auto f32 = reinterpret_cast<unary_func_t>(map1<float, F32>);
-  auto f64 = reinterpret_cast<unary_func_t>(map1<double, F64>);
+  static SType integer_stypes[] = {SType::BOOL, SType::INT8, SType::INT16,
+                                   SType::INT32, SType::INT64};
+  auto m32 = reinterpret_cast<unary_func_t>(mapfw<float,  float,  F32>);
+  auto m64 = reinterpret_cast<unary_func_t>(mapfw<double, double, F64>);
+  auto s32 = reinterpret_cast<erased_func_t>(F32);
+  auto s64 = reinterpret_cast<erased_func_t>(F64);
+  auto v32 = vcol_factory<SType::FLOAT32, SType::FLOAT32, F32>;
+  auto v64 = vcol_factory<SType::FLOAT64, SType::FLOAT64, F64>;
   names[id(opcode)] = name;
   opcodes[&args] = opcode;
-  current_opcode = opcode;
-  constexpr SType float64 = SType::FLOAT64;
-  constexpr SType float32 = SType::FLOAT32;
-  add(opcode, SType::BOOL,  float64, f64, float64);
-  add(opcode, SType::INT8,  float64, f64, float64);
-  add(opcode, SType::INT16, float64, f64, float64);
-  add(opcode, SType::INT32, float64, f64, float64);
-  add(opcode, SType::INT64, float64, f64, float64);
-  add_converter(float32, float32, f32);
-  add_converter(float64, float64, f64);
-  add_scalarfn_d(F64);
+  for (size_t i = 0; i < 5; ++i) {
+    size_t entry_id = id(opcode, integer_stypes[i]);
+    xassert(info.count(entry_id) == 0);
+    info[entry_id] = {m64, s64, v64, SType::FLOAT64, SType::FLOAT64};
+  }
+  size_t id_f32 = id(opcode, SType::FLOAT32);
+  size_t id_f64 = id(opcode, SType::FLOAT64);
+  xassert(info.count(id_f32) == 0 && info.count(id_f64) == 0);
+  info[id_f32] = {m32, s32, v32, SType::FLOAT32, SType::VOID};
+  info[id_f64] = {m64, s64, v64, SType::FLOAT64, SType::VOID};
 }
 
 
 unary_infos::unary_infos() {
   #define U reinterpret_cast<unary_func_t>
+
   constexpr SType bool8 = SType::BOOL;
   constexpr SType int8  = SType::INT8;
   constexpr SType int16 = SType::INT16;
@@ -703,166 +758,133 @@ unary_infos::unary_infos() {
   constexpr SType str32 = SType::STR32;
   constexpr SType str64 = SType::STR64;
 
-  register_op(Op::UPLUS, "+", nullptr,
-    [=]{
-      add_copy_converter(bool8, int8);
-      add_copy_converter(int8,  int8);
-      add_copy_converter(int16, int16);
-      add_copy_converter(int32, int32);
-      add_copy_converter(int64, int64);
-      add_copy_converter(flt32, flt32);
-      add_copy_converter(flt64, flt64);
-    });
+  add_op(Op::UPLUS, "+", nullptr);
+  add_copy(Op::UPLUS, bool8, int8);
+  add_copy(Op::UPLUS, int8,  int8);
+  add_copy(Op::UPLUS, int16, int16);
+  add_copy(Op::UPLUS, int32, int32);
+  add_copy(Op::UPLUS, int64, int64);
+  add_copy(Op::UPLUS, flt32, flt32);
+  add_copy(Op::UPLUS, flt64, flt64);
 
-  register_op(Op::UMINUS, "-", nullptr,
-    [=]{
-      add_converter(bool8, int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
-      add_converter(int8,  int8,  U(map11<int8_t,  int8_t,  op_minus<int8_t>>));
-      add_converter(int16, int16, U(map11<int16_t, int16_t, op_minus<int16_t>>));
-      add_converter(int32, int32, U(map11<int32_t, int32_t, op_minus<int32_t>>));
-      add_converter(int64, int64, U(map11<int64_t, int64_t, op_minus<int64_t>>));
-      add_converter(flt32, flt32, U(map11<float,   float,   op_minus<float>>));
-      add_converter(flt64, flt64, U(map11<double,  double,  op_minus<double>>));
-    });
+  add_op(Op::UMINUS, "-", nullptr);
+  add<Op::UMINUS, bool8, int8,  op_minus<int8_t>>();
+  add<Op::UMINUS, int8,  int8,  op_minus<int8_t>>();
+  add<Op::UMINUS, int16, int16, op_minus<int16_t>>();
+  add<Op::UMINUS, int32, int32, op_minus<int32_t>>();
+  add<Op::UMINUS, int64, int64, op_minus<int64_t>>();
+  add<Op::UMINUS, flt32, flt32, op_minus<float>>();
+  add<Op::UMINUS, flt64, flt64, op_minus<double>>();
 
-  register_op(Op::UINVERT, "~", nullptr,
-    [=]{
-      add_converter(bool8, bool8, U(map11<int8_t,  int8_t,  op_invert_bool>));
-      add_converter(int8,  int8,  U(map11<int8_t,  int8_t,  op_inverse<int8_t>>));
-      add_converter(int16, int16, U(map11<int16_t, int16_t, op_inverse<int16_t>>));
-      add_converter(int32, int32, U(map11<int32_t, int32_t, op_inverse<int32_t>>));
-      add_converter(int64, int64, U(map11<int64_t, int64_t, op_inverse<int64_t>>));
-    });
+  add_op(Op::UINVERT, "~", nullptr);
+  add<Op::UINVERT, bool8, bool8, op_invert_bool>();
+  add<Op::UINVERT, int8,  int8,  op_inverse<int8_t>>();
+  add<Op::UINVERT, int16, int16, op_inverse<int16_t>>();
+  add<Op::UINVERT, int32, int32, op_inverse<int32_t>>();
+  add<Op::UINVERT, int64, int64, op_inverse<int64_t>>();
 
-  register_op(Op::ABS, "abs", &args_abs,
-    [=]{
-      add_copy_converter(bool8, int8);
-      add_converter(map1<int8_t,  op_abs<int8_t>>);
-      add_converter(map1<int16_t, op_abs<int16_t>>);
-      add_converter(map1<int32_t, op_abs<int32_t>>);
-      add_converter(map1<int64_t, op_abs<int64_t>>);
-      add_converter(map1<float,   std::abs>);
-      add_converter(map1<double,  std::abs>);
-      add_scalarfn_l(op_abs<int64_t>);
-      add_scalarfn_d(std::abs);
-    });
+  add_op(Op::ABS, "abs", &args_abs);
+  add_copy(Op::ABS, bool8, int8);
+  add<Op::ABS, int8,  int8,  op_abs<int8_t>>();
+  add<Op::ABS, int16, int16, op_abs<int16_t>>();
+  add<Op::ABS, int32, int32, op_abs<int32_t>>();
+  add<Op::ABS, int64, int64, op_abs<int64_t>>();
+  add<Op::ABS, flt32, flt32, std::abs>();
+  add<Op::ABS, flt64, flt64, std::abs>();
 
-  register_op(Op::ISNA, "isna", &args_isna,
-    [=]{
-      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_isna<int8_t>>));
-      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_isna<int8_t>>));
-      add_converter(int16, bool8, U(map11<int16_t, bool, op_isna<int16_t>>));
-      add_converter(int32, bool8, U(map11<int32_t, bool, op_isna<int32_t>>));
-      add_converter(int64, bool8, U(map11<int64_t, bool, op_isna<int64_t>>));
-      add_converter(flt32, bool8, U(map11<float,   bool, std::isnan>));
-      add_converter(flt64, bool8, U(map11<double,  bool, std::isnan>));
-      add_converter(str32, bool8, U(map_str_isna<uint32_t>));
-      add_converter(str64, bool8, U(map_str_isna<uint64_t>));
-      add_scalarfn_l(op_isna<int64_t>);
-      add_scalarfn_d(std::isnan);
-    });
+  add_op(Op::ISNA, "isna", &args_isna);
+  add<Op::ISNA, bool8, bool8, op_isna<int8_t>>();
+  add<Op::ISNA, int8,  bool8, op_isna<int8_t>>();
+  add<Op::ISNA, int16, bool8, op_isna<int16_t>>();
+  add<Op::ISNA, int32, bool8, op_isna<int32_t>>();
+  add<Op::ISNA, int64, bool8, op_isna<int64_t>>();
+  add<Op::ISNA, flt32, bool8, op_isna<float>>();
+  add<Op::ISNA, flt64, bool8, op_isna<double>>();
+  add_str<Op::ISNA, str32, bool8, op_str_isna>(U(map_str_isna<uint32_t>));
+  add_str<Op::ISNA, str64, bool8, op_str_isna>(U(map_str_isna<uint64_t>));
 
-  register_op(Op::ISFINITE, "isfinite", &args_isfinite,
-    [&]{
-      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_notna<int8_t>>));
-      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_notna<int8_t>>));
-      add_converter(int16, bool8, U(map11<int16_t, bool, op_notna<int16_t>>));
-      add_converter(int32, bool8, U(map11<int32_t, bool, op_notna<int32_t>>));
-      add_converter(int64, bool8, U(map11<int64_t, bool, op_notna<int64_t>>));
-      add_converter(flt32, bool8, U(map11<float,   bool, std::isfinite>));
-      add_converter(flt64, bool8, U(map11<double,  bool, std::isfinite>));
-      add_scalarfn_l(op_notna<int64_t>);
-      add_scalarfn_d(std::isfinite);
-    });
+  add_op(Op::ISFINITE, "isfinite", &args_isfinite);
+  add<Op::ISFINITE, bool8, bool8, op_notna<int8_t>>();
+  add<Op::ISFINITE, int8,  bool8, op_notna<int8_t>>();
+  add<Op::ISFINITE, int16, bool8, op_notna<int16_t>>();
+  add<Op::ISFINITE, int32, bool8, op_notna<int32_t>>();
+  add<Op::ISFINITE, int64, bool8, op_notna<int64_t>>();
+  add<Op::ISFINITE, flt32, bool8, op_isfinite<float>>();
+  add<Op::ISFINITE, flt64, bool8, op_isfinite<double>>();
 
-  register_op(Op::ISINF, "isinf", &args_isinf,
-    [&]{
-      add_converter(bool8, bool8, U(map11<int8_t,  bool, op_false<int8_t>>));
-      add_converter(int8,  bool8, U(map11<int8_t,  bool, op_false<int8_t>>));
-      add_converter(int16, bool8, U(map11<int16_t, bool, op_false<int16_t>>));
-      add_converter(int32, bool8, U(map11<int32_t, bool, op_false<int32_t>>));
-      add_converter(int64, bool8, U(map11<int64_t, bool, op_false<int64_t>>));
-      add_converter(flt32, bool8, U(map11<float,   bool, std::isinf>));
-      add_converter(flt64, bool8, U(map11<double,  bool, std::isinf>));
-      add_scalarfn_l(op_false<int64_t>);
-      add_scalarfn_d(std::isinf);
-    });
+  add_op(Op::ISINF, "isinf", &args_isinf);
+  add<Op::ISINF, bool8, bool8, op_false<int8_t>>();
+  add<Op::ISINF, int8,  bool8, op_false<int8_t>>();
+  add<Op::ISINF, int16, bool8, op_false<int16_t>>();
+  add<Op::ISINF, int32, bool8, op_false<int32_t>>();
+  add<Op::ISINF, int64, bool8, op_false<int64_t>>();
+  add<Op::ISINF, flt32, bool8, op_isinf<float>>();
+  add<Op::ISINF, flt64, bool8, op_isinf<double>>();
 
-  register_op(Op::CEIL, "ceil", &args_ceil,
-    [&]{
-      add_copy_converter(bool8, flt64);
-      add_copy_converter(int8,  flt64);
-      add_copy_converter(int16, flt64);
-      add_copy_converter(int32, flt64);
-      add_copy_converter(int64, flt64);
-      add_converter(flt32, flt32, U(map11<float,  float,  std::ceil>));
-      add_converter(flt64, flt64, U(map11<double, double, std::ceil>));
-      add_scalarfn_d(std::ceil);
-    });
+  add_op(Op::CEIL, "ceil", &args_ceil);
+  add_copy(Op::CEIL, bool8, flt64);
+  add_copy(Op::CEIL, int8,  flt64);
+  add_copy(Op::CEIL, int16, flt64);
+  add_copy(Op::CEIL, int32, flt64);
+  add_copy(Op::CEIL, int64, flt64);
+  add<Op::CEIL, flt32, flt32, std::ceil>();
+  add<Op::CEIL, flt64, flt64, std::ceil>();
 
-  register_op(Op::FLOOR, "floor", &args_floor,
-    [&]{
-      add_copy_converter(bool8, flt64);
-      add_copy_converter(int8,  flt64);
-      add_copy_converter(int16, flt64);
-      add_copy_converter(int32, flt64);
-      add_copy_converter(int64, flt64);
-      add_converter(flt32, flt32, U(map11<float,  float,  std::floor>));
-      add_converter(flt64, flt64, U(map11<double, double, std::floor>));
-      add_scalarfn_d(std::floor);
-    });
+  add_op(Op::FLOOR, "floor", &args_floor);
+  add_copy(Op::FLOOR, bool8, flt64);
+  add_copy(Op::FLOOR, int8,  flt64);
+  add_copy(Op::FLOOR, int16, flt64);
+  add_copy(Op::FLOOR, int32, flt64);
+  add_copy(Op::FLOOR, int64, flt64);
+  add<Op::FLOOR, flt32, flt32, std::floor>();
+  add<Op::FLOOR, flt64, flt64, std::floor>();
 
-  register_op(Op::TRUNC, "trunc", &args_trunc,
-    [&]{
-      add_copy_converter(bool8, flt64);
-      add_copy_converter(int8,  flt64);
-      add_copy_converter(int16, flt64);
-      add_copy_converter(int32, flt64);
-      add_copy_converter(int64, flt64);
-      add_converter(flt32, flt32, U(map11<float,  float,  std::trunc>));
-      add_converter(flt64, flt64, U(map11<double, double, std::trunc>));
-      add_scalarfn_d(std::trunc);
-    });
+  add_op(Op::TRUNC, "trunc", &args_trunc);
+  add_copy(Op::TRUNC, bool8, flt64);
+  add_copy(Op::TRUNC, int8,  flt64);
+  add_copy(Op::TRUNC, int16, flt64);
+  add_copy(Op::TRUNC, int32, flt64);
+  add_copy(Op::TRUNC, int64, flt64);
+  add<Op::TRUNC, flt32, flt32, std::trunc>();
+  add<Op::TRUNC, flt64, flt64, std::trunc>();
 
-  register_op(Op::LEN, "len", &args_len,
-    [&]{
-      add_converter(str32, int32, U(map_str_len<uint32_t, int32_t>));
-      add_converter(str64, int64, U(map_str_len<uint64_t, int64_t>));
-    });
+  add_op(Op::LEN, "len", &args_len);
+  add_str<Op::LEN, str32, int32, op_str_len<int32_t>>(U(map_str_len<uint32_t, int32_t>));
+  add_str<Op::LEN, str64, int64, op_str_len<int64_t>>(U(map_str_len<uint64_t, int64_t>));
 
-  register_math_op<&std::acos,  &std::acos> (Op::ARCCOS,  "arccos",  args_arccos);
-  register_math_op<&std::acosh, &std::acosh>(Op::ARCOSH,  "arcosh",  args_arcosh);
-  register_math_op<&std::asin,  &std::asin> (Op::ARCSIN,  "arcsin",  args_arcsin);
-  register_math_op<&std::asinh, &std::asinh>(Op::ARSINH,  "arsinh",  args_arsinh);
-  register_math_op<&std::atan,  &std::atan> (Op::ARCTAN,  "arctan",  args_arctan);
-  register_math_op<&std::atanh, &std::atanh>(Op::ARTANH,  "artanh",  args_artanh);
-  register_math_op<&std::cos,   &std::cos>  (Op::COS,     "cos",     args_cos);
-  register_math_op<&std::cosh,  &std::cosh> (Op::COSH,    "cosh",    args_cosh);
-  register_math_op<&fn_deg2rad, &fn_deg2rad>(Op::DEG2RAD, "deg2rad", args_deg2rad);
-  register_math_op<&fn_rad2deg, &fn_rad2deg>(Op::RAD2DEG, "rad2deg", args_rad2deg);
-  register_math_op<&std::sin,   &std::sin>  (Op::SIN,     "sin",     args_sin);
-  register_math_op<&std::sinh,  &std::sinh> (Op::SINH,    "sinh",    args_sinh);
-  register_math_op<&std::tan,   &std::tan>  (Op::TAN,     "tan",     args_tan);
-  register_math_op<&std::tanh,  &std::tanh> (Op::TANH,    "tanh",    args_tanh);
+  add_math<&std::acos,  &std::acos> (Op::ARCCOS,  "arccos",  args_arccos);
+  add_math<&std::acosh, &std::acosh>(Op::ARCOSH,  "arcosh",  args_arcosh);
+  add_math<&std::asin,  &std::asin> (Op::ARCSIN,  "arcsin",  args_arcsin);
+  add_math<&std::asinh, &std::asinh>(Op::ARSINH,  "arsinh",  args_arsinh);
+  add_math<&std::atan,  &std::atan> (Op::ARCTAN,  "arctan",  args_arctan);
+  add_math<&std::atanh, &std::atanh>(Op::ARTANH,  "artanh",  args_artanh);
+  add_math<&std::cos,   &std::cos>  (Op::COS,     "cos",     args_cos);
+  add_math<&std::cosh,  &std::cosh> (Op::COSH,    "cosh",    args_cosh);
+  add_math<&fn_deg2rad, &fn_deg2rad>(Op::DEG2RAD, "deg2rad", args_deg2rad);
+  add_math<&fn_rad2deg, &fn_rad2deg>(Op::RAD2DEG, "rad2deg", args_rad2deg);
+  add_math<&std::sin,   &std::sin>  (Op::SIN,     "sin",     args_sin);
+  add_math<&std::sinh,  &std::sinh> (Op::SINH,    "sinh",    args_sinh);
+  add_math<&std::tan,   &std::tan>  (Op::TAN,     "tan",     args_tan);
+  add_math<&std::tanh,  &std::tanh> (Op::TANH,    "tanh",    args_tanh);
 
-  register_math_op<&std::cbrt,  &std::cbrt> (Op::CBRT,    "cbrt",    args_cbrt);
-  register_math_op<&std::exp,   &std::exp>  (Op::EXP,     "exp",     args_exp);
-  register_math_op<&std::exp2,  &std::exp2> (Op::EXP2,    "exp2",    args_exp2);
-  register_math_op<&std::expm1, &std::expm1>(Op::EXPM1,   "expm1",   args_expm1);
-  register_math_op<&std::log,   &std::log>  (Op::LOG,     "log",     args_log);
-  register_math_op<&std::log10, &std::log10>(Op::LOG10,   "log10",   args_log10);
-  register_math_op<&std::log1p, &std::log1p>(Op::LOG1P,   "log1p",   args_log1p);
-  register_math_op<&std::log2,  &std::log2> (Op::LOG2,    "log2",    args_log2);
-  register_math_op<&std::sqrt,  &std::sqrt> (Op::SQRT,    "sqrt",    args_sqrt);
-  register_math_op<&fn_square,  &fn_square> (Op::SQUARE,  "square",  args_square);
+  add_math<&std::cbrt,  &std::cbrt> (Op::CBRT,    "cbrt",    args_cbrt);
+  add_math<&std::exp,   &std::exp>  (Op::EXP,     "exp",     args_exp);
+  add_math<&std::exp2,  &std::exp2> (Op::EXP2,    "exp2",    args_exp2);
+  add_math<&std::expm1, &std::expm1>(Op::EXPM1,   "expm1",   args_expm1);
+  add_math<&std::log,   &std::log>  (Op::LOG,     "log",     args_log);
+  add_math<&std::log10, &std::log10>(Op::LOG10,   "log10",   args_log10);
+  add_math<&std::log1p, &std::log1p>(Op::LOG1P,   "log1p",   args_log1p);
+  add_math<&std::log2,  &std::log2> (Op::LOG2,    "log2",    args_log2);
+  add_math<&std::sqrt,  &std::sqrt> (Op::SQRT,    "sqrt",    args_sqrt);
+  add_math<&fn_square,  &fn_square> (Op::SQUARE,  "square",  args_square);
 
-  register_math_op<&std::erf,    &std::erf>   (Op::ERF,    "erf",    args_erf);
-  register_math_op<&std::erfc,   &std::erfc>  (Op::ERFC,   "erfc",   args_erfc);
-  register_math_op<&std::tgamma, &std::tgamma>(Op::GAMMA,  "gamma",  args_gamma);
-  register_math_op<&std::lgamma, &std::lgamma>(Op::LGAMMA, "lgamma", args_lgamma);
+  add_math<&std::erf,    &std::erf>   (Op::ERF,    "erf",    args_erf);
+  add_math<&std::erfc,   &std::erfc>  (Op::ERFC,   "erfc",   args_erfc);
+  add_math<&std::tgamma, &std::tgamma>(Op::GAMMA,  "gamma",  args_gamma);
+  add_math<&std::lgamma, &std::lgamma>(Op::LGAMMA, "lgamma", args_lgamma);
 
-  register_math_op<&std::fabs, &std::fabs>(Op::FABS, "fabs", args_fabs);
-  register_math_op<&fn_sign,   &fn_sign>  (Op::SIGN, "sign", args_sign);
+  add_math<&std::fabs, &std::fabs>(Op::FABS, "fabs", args_fabs);
+  add_math<&fn_sign,   &fn_sign>  (Op::SIGN, "sign", args_sign);
 
   #undef U
 }

@@ -16,6 +16,7 @@
 #include "frame/py_frame.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"      // repr_utf8
+#include "column_impl.h"
 #include "datatable.h"
 #include "encodings.h"
 
@@ -41,7 +42,7 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols;
     }
     for (size_t i = 0; i < dt->ncols; ++i) {
-      SType col_stype = dt->columns[i]->stype();
+      SType col_stype = dt->get_column(i).stype();
       auto elem = stypes_tuple[i];
       auto eexp = info(col_stype).py_stype();
       if (elem != eexp) {
@@ -60,7 +61,7 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols;
     }
     for (size_t i = 0; i < dt->ncols; ++i) {
-      SType col_stype = dt->columns[i]->stype();
+      SType col_stype = dt->get_column(i).stype();
       auto elem = ltypes_tuple[i];
       auto eexp = info(col_stype).py_ltype();
       if (elem != eexp) {
@@ -99,6 +100,11 @@ void DataTable::verify_integrity() const
         << "DataTable.columns array size is " << columns.size()
         << " whereas ncols = " << ncols;
   }
+  if (names.size() != ncols) {
+    throw AssertionError()
+        << "Number of column names, " << names.size() << ", is not equal "
+           "to the number of columns in the Frame: " << ncols;
+  }
 
   /**
    * Check the structure and contents of the column array.
@@ -108,35 +114,29 @@ void DataTable::verify_integrity() const
    * are equal to those of each column.
    */
   for (size_t i = 0; i < ncols; ++i) {
-    std::string col_name = std::string("Column ") + std::to_string(i);
-    Column* col = columns[i];
-    if (col == nullptr) {
+    const std::string& col_name = names[i];
+    const Column& col = columns[i];
+    if (!col) {
       throw AssertionError() << col_name << " of Frame is null";
     }
     // Make sure the column and the datatable have the same value for `nrows`
-    if (nrows != col->nrows) {
+    if (nrows != col.nrows()) {
       throw AssertionError()
-          << "Mismatch in `nrows`: " << col_name << ".nrows = " << col->nrows
+          << "Mismatch in `nrows`: " << col_name << ".nrows = " << col.nrows()
           << ", while the Frame has nrows=" << nrows;
     }
     col->verify_integrity(col_name);
   }
 
-  if (names.size() != ncols) {
-    throw AssertionError()
-        << "Number of column names, " << names.size() << ", is not equal "
-           "to the number of columns in the Frame: " << ncols;
-  }
-  for (size_t i = 0; i < names.size(); ++i) {
-    auto name = names[i];
-    auto data = name.data();
+  for (size_t i = 0; i < ncols; ++i) {
+    const std::string& name = names[i];
     if (name.empty()) {
       throw AssertionError() << "Column " << i << " has empty name";
     }
     for (size_t j = 0; j < name.size(); ++j) {
-      if (data[j] >= '\0' && data[j] < '\x20') {
+      if (name[j] >= '\0' && name[j] < '\x20') {
         throw AssertionError() << "Column " << i << "'s name contains "
-          "unprintable character " << data[j];
+          "unprintable character " << name[j];
       }
     }
   }
@@ -148,43 +148,12 @@ void DataTable::verify_integrity() const
 // Column
 //------------------------------------------------------------------------------
 
-void Column::verify_integrity(const std::string& name) const {
+void ColumnImpl::verify_integrity(const std::string&) const {
   mbuf.verify_integrity();
-  ri.verify_integrity();
-
-  size_t mbuf_nrows = data_nrows();
-
-  // Check RowIndex
-  if (ri.isabsent()) {
-    // Check that nrows is a correct representation of mbuf's size
-    if (nrows != mbuf_nrows) {
-      throw AssertionError()
-          << "Mismatch between reported number of rows: " << name
-          << " has nrows=" << nrows << " but MemoryRange has data for "
-          << mbuf_nrows << " rows";
-    }
-  }
-  else {
-    // Check that the length of the RowIndex corresponds to `nrows`
-    if (nrows != ri.size()) {
-      throw AssertionError()
-          << "Mismatch in reported number of rows: " << name << " has "
-          << "nrows=" << nrows << ", while its rowindex.length="
-          << ri.size();
-    }
-    // Check that the maximum value of the RowIndex does not exceed the maximum
-    // row number in the memory buffer
-    if (ri.max() >= mbuf_nrows && ri.max() != RowIndex::NA) {
-      throw AssertionError()
-          << "Maximum row number in the rowindex of " << name << " exceeds the "
-          << "number of rows in the underlying memory buffer: max(rowindex)="
-          << ri.max() << ", and nrows(membuf)=" << mbuf_nrows;
-    }
-  }
 
   // Check Stats
   if (stats) { // Stats are allowed to be null
-    stats->verify_integrity(this);
+    stats->verify_integrity();
   }
 }
 
@@ -218,7 +187,7 @@ void BoolColumn::verify_integrity(const std::string& name) const {
 
 template <typename T>
 void StringColumn<T>::verify_integrity(const std::string& name) const {
-  Column::verify_integrity(name);
+  ColumnImpl::verify_integrity(name);
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
@@ -233,13 +202,6 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
 
   size_t mbuf_nrows = data_nrows();
   strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
-
-  if (strbuf.size() != strdata_size) {
-    throw AssertionError()
-        << "Size of string data section in " << name << " does not correspond"
-           " to the magnitude of the final offset: size = " << strbuf.size()
-        << ", expected " << strdata_size;
-  }
 
   // Check for the validity of each offset
   T lastoff = 0;
@@ -276,7 +238,7 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
 //------------------------------------------------------------------------------
 
 void PyObjectColumn::verify_integrity(const std::string& name) const {
-  FwColumn<PyObject*>::verify_integrity(name);
+  FwColumn<py::robj>::verify_integrity(name);
 
   if (!mbuf.is_pyobjects()) {
     throw AssertionError() << "(object) " << name << "'s internal buffer is "
@@ -285,14 +247,14 @@ void PyObjectColumn::verify_integrity(const std::string& name) const {
 
   // Check that all elements are valid pyobjects
   size_t mbuf_nrows = data_nrows();
-  PyObject* const* vals = elements_r();
+  const py::robj* vals = elements_r();
   for (size_t i = 0; i < mbuf_nrows; ++i) {
-    PyObject* val = vals[i];
-    if (val == nullptr) {
+    py::robj val = vals[i];
+    if (!val) {
       throw AssertionError() << "Object column " << name << " has NULL value "
           "in row " << i;
     }
-    if (Py_REFCNT(val) <= 0) {
+    if (Py_REFCNT(val.to_borrowed_ref()) <= 0) {
       throw AssertionError()
           << "Element " << i << " in object column " << name
           << " has 0 refcount";

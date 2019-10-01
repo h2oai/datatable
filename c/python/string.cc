@@ -26,23 +26,20 @@ ostring ostring::from_new_reference(PyObject* ref) {
 }
 
 
-ostring::ostring(const std::string& s) {
-  Py_ssize_t slen = static_cast<Py_ssize_t>(s.size());
-  v = PyUnicode_FromStringAndSize(s.data(), slen);
-  if (!v) throw PyError();
-}
-
 ostring::ostring(const char* str, size_t len) {
   Py_ssize_t slen = static_cast<Py_ssize_t>(len);
   v = PyUnicode_FromStringAndSize(str, slen);
   if (!v) throw PyError();
 }
 
-ostring::ostring(const char* str) {
-  Py_ssize_t slen = static_cast<Py_ssize_t>(std::strlen(str));
-  v = PyUnicode_FromStringAndSize(str, slen);
-  if (!v) throw PyError();
-}
+ostring::ostring(const std::string& s)
+  : ostring(s.data(), s.size()) {}
+
+ostring::ostring(const CString& s)
+  : ostring(s.ch, static_cast<size_t>(s.size)) {}
+
+ostring::ostring(const char* str)
+  : ostring(str, std::strlen(str)) {}
 
 
 ostring::ostring(const ostring& other) : oobj(other) {}

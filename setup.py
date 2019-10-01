@@ -29,6 +29,7 @@ Build script for the `datatable` module.
     $ twine upload dist/*
 """
 import os
+import setuptools
 import shutil
 import sys
 if sys.version_info < (3, 5):
@@ -38,7 +39,6 @@ if sys.version_info < (3, 5):
                      "whereas your Python is %s\n\x1B[39m"
                      % ".".join(str(d) for d in sys.version_info))
 
-from setuptools import setup, find_packages, Extension
 from ci.setup_utils import (get_datatable_version, make_git_version_file,
                             get_compiler, get_extra_compile_flags,
                             get_extra_link_args, find_linked_dynamic_libraries,
@@ -48,9 +48,12 @@ from ci.setup_utils import (get_datatable_version, make_git_version_file,
 print()
 cmd = ""
 with TaskContext("Start setup.py") as log:
-    if len(sys.argv) > 1:
-        cmd = sys.argv[1]
+    for arg in sys.argv[1:]:
+        if not arg.startswith("--"):
+            cmd = arg
+            break
     log.info("command = `%s`" % cmd)
+    log.info("setuptools version = %s" % setuptools.__version__)
 
 
 
@@ -78,25 +81,19 @@ def get_c_sources(folder, include_headers=False):
 
 def get_py_sources():
     """Find python source directories."""
-    packages = find_packages(exclude=["tests", "tests.munging", "temp", "c"])
-    return packages
+    # setuptools.find_packages() cannot find directories without __init__.py
+    # files, so it can't be used reliably
+    return [
+        'datatable',
+        'datatable.expr',
+        'datatable.lib',
+        'datatable.sphinxext',
+        'datatable.utils',
+    ]
 
 
 def get_main_dependencies():
     deps = ["typesentry>=0.2.6", "blessed"]
-    # If there is an active LLVM installation, then also require the
-    # `llvmlite` module.
-    # llvmdir, llvmver = get_llvm(True)
-    # if llvmdir:
-    #     llvmlite_req = (">=0.20.0,<0.21.0" if llvmver == "LLVM4" else
-    #                     ">=0.21.0,<0.23.0" if llvmver == "LLVM5" else
-    #                     ">=0.23.0,<0.27.0" if llvmver == "LLVM6" else
-    #                     ">=0.27.0")
-    #     deps += ["llvmlite" + llvmlite_req]
-    #     # If we need to install llvmlite, this can help
-    #     if not os.environ.get("LLVM_CONFIG"):
-    #         os.environ["LLVM_CONFIG"] = \
-    #             os.path.join(llvmdir, "bin", "llvm-config")
     return deps
 
 
@@ -104,6 +101,7 @@ def get_test_dependencies():
     # Test dependencies are exposed as extras, see
     # https://stackoverflow.com/questions/29870629
     return [
+        "docutils>=0.14",
         "pytest>=3.1",
         "pytest-cov",
         "pytest-benchmark>=3.1",
@@ -167,7 +165,7 @@ if cmd in ("build", "sdist", "bdist_wheel", "install"):
 #-------------------------------------------------------------------------------
 # Main setup
 #-------------------------------------------------------------------------------
-setup(
+setuptools.setup(
     name="datatable",
     version=get_datatable_version(),
 
@@ -223,7 +221,7 @@ setup(
     zip_safe=True,
 
     ext_modules=[
-        Extension(
+        setuptools.Extension(
             "datatable/lib/_datatable",
             include_dirs=["c", "include"],
             sources=cpp_files,

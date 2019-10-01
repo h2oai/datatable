@@ -22,12 +22,12 @@
 #include <algorithm>           // std::min, std::swap, std::move
 #include <cstdlib>             // std::memcpy
 #include <limits>              // std::numeric_limits
-#include "parallel/api.h"      // parallel_for_static
+#include "parallel/api.h"      // nested_for_static
 #include "parallel/atomic.h"
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
 #include "column.h"            // Column, BoolColumn
-#include "memrange.h"          // MemoryRange
+#include "buffer.h"          // Buffer
 #include "rowindex.h"
 #include "rowindex_impl.h"
 
@@ -163,13 +163,13 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(const Column* col) {
+ArrayRowIndexImpl::ArrayRowIndexImpl(const Column& col) {
   data = nullptr;
   owned = true;
   ascending = false;
-  switch (col->stype()) {
+  switch (col.stype()) {
     case SType::BOOL:
-      init_from_boolean_column(static_cast<const BoolColumn*>(col));
+      init_from_boolean_column(col);
       break;
     case SType::INT8:
     case SType::INT16:
@@ -229,7 +229,7 @@ void ArrayRowIndexImpl::_set_min_max() {
       [&] {
         T local_min = TMAX;
         T local_max = -TMAX;
-        dt::parallel_for_static(length,
+        dt::nested_for_static(length,
           [&](size_t i) {
             T t = idata[i];
             if (t == -1) return;
@@ -251,61 +251,64 @@ void ArrayRowIndexImpl::_set_min_max() {
 }
 
 
-void ArrayRowIndexImpl::init_from_boolean_column(const BoolColumn* col) {
-  const int8_t* tdata = col->elements_r();
-  length = static_cast<size_t>(col->sum());  // total # of 1s in the column
+void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
+  xassert(col.stype() == SType::BOOL);
+  // total # of 1s in the column
+  length = static_cast<size_t>(col.stats()->sum());
 
   if (length == 0) {
     // no need to do anything: the data arrays already have 0 length
     type = RowIndexType::ARR32;
     return;
   }
-  if (length <= INT32_MAX && col->nrows <= INT32_MAX) {
+  int32_t value;
+  if (length <= INT32_MAX && col.nrows() <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
     auto ind32 = static_cast<int32_t*>(data);
     size_t k = 0;
-    col->rowindex().iterate(0, col->nrows, 1,
-      [&](size_t, size_t j) {
-        if (tdata[j] == 1)
-          ind32[k++] = static_cast<int32_t>(j);
-      });
+    for (size_t i = 0; i < col.nrows(); ++i) {
+      bool isvalid = col.get_element(i, &value);
+      if (value && isvalid) {
+        ind32[k++] = static_cast<int32_t>(i);
+      }
+    }
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
     auto ind64 = static_cast<int64_t*>(data);
     size_t k = 0;
-    col->rowindex().iterate(0, col->nrows, 1,
-      [&](size_t, size_t j) {
-        if (tdata[j] == 1)
-          ind64[k++] = static_cast<int64_t>(j);
-      });
+    for (size_t i = 0; i < col.nrows(); ++i) {
+      bool isvalid = col.get_element(i, &value);
+      if (value && isvalid) {
+        ind64[k++] = static_cast<int64_t>(i);
+      }
+    }
   }
   ascending = true;
   set_min_max();
 }
 
 
-void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
-  if (col->countna()) {
-    throw ValueError() << "RowIndex source column contains NA values.";
-  }
-  if (col->nrows == 0) {
+void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
+  if (col.nrows() == 0) {
     min = max = RowIndex::NA;
   } else {
-    int64_t imin = col->min_int64();
-    int64_t imax = col->max_int64();
+    int64_t imin = col.stats()->min_int();
+    int64_t imax = col.stats()->max_int();
     if (imin < -1) {
       throw ValueError() << "Row indices in integer column cannot be negative";
+    }
+    if (col.na_count()) {
+      throw ValueError() << "RowIndex source column contains NA values.";
     }
     min = static_cast<size_t>(imin);
     max = static_cast<size_t>(imax);
   }
-  Column* col2 = col->shallowcopy();
-  col2->materialize();  // noop if col has no rowindex
+  Column col2 = col;  // copy
+  col2.materialize();
 
-  length = col->nrows;
-  Column* col3 = nullptr;
+  length = col.nrows();
   if (length <= INT32_MAX && max <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
@@ -313,19 +316,16 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column* col) {
     // will be written into `xbuf`, which is just a view onto `ind32`. Also,
     // since `xbuf` is ExternalMemBuf, its memory won't be reclaimed when
     // the column is destructed.
-    MemoryRange xbuf = MemoryRange::external(data, length * sizeof(int32_t));
+    Buffer xbuf = Buffer::external(data, length * sizeof(int32_t));
     xassert(xbuf.is_writable());
-    col3 = col2->cast(SType::INT32, std::move(xbuf));
+    auto col3 = col2.cast(SType::INT32, std::move(xbuf));
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
-    MemoryRange xbuf = MemoryRange::external(data, length * sizeof(int64_t));
+    Buffer xbuf = Buffer::external(data, length * sizeof(int64_t));
     xassert(xbuf.is_writable());
-    col3 = col2->cast(SType::INT64, std::move(xbuf));
+    auto col3 = col2.cast(SType::INT64, std::move(xbuf));
   }
-
-  delete col2;
-  delete col3;
 }
 
 
@@ -551,6 +551,9 @@ static void verify_integrity_helper(
 void ArrayRowIndexImpl::verify_integrity() const {
   RowIndexImpl::verify_integrity();
 
+  if (length && !data) {
+    throw AssertionError() << "data pointer in ArrayRowIndexImpl is NULL";
+  }
   if (type == RowIndexType::ARR32) {
     verify_integrity_helper<int32_t>(data, length, min, max, ascending);
   } else if (type == RowIndexType::ARR64) {

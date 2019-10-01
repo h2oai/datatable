@@ -149,73 +149,84 @@ div.document div.output-cell .highlight pre {
 }
 
 
-.datatable table.frame {
-  border: none;
-  border-collapse: collapse;
-  border-spacing: 0;
-  color: #222;
-  cursor: default;
-  font-size: 12px;
-  margin: 0 0 0 0;
-}
-.datatable .frame thead {
-  border-bottom: none;
-  vertical-align: bottom;
-}
-.datatable table.frame tr.coltypes td {
-  color: #FFFFFF;
-  line-height: 6px;
-  padding: 0 0.5em;
-}
-.datatable .bool { background: #DDDD99; }
-.datatable .obj  { background: #565656; }
-.datatable .int  { background: #5D9E5D; }
-.datatable .real { background: #4040CC; }
-.datatable .str  { background: #CC4040; }
-.datatable .frame td,
-.datatable .frame th,
-.datatable .frame tr {
-  border: none;
-  max-width: none;
-  padding: 0.5em 0.5em;
-  text-align: right;
-  vertical-align: middle;
-}
-.datatable .frame th:nth-child(2) {
-  padding-left: 12px;
-}
-.datatable .frame tr:nth-child(even) {
-  background-color: #F5F5F5;
+
+
+/* ------- Changelog labels ------------------------------------------------- */
+
+span.tag {
+  border-radius: 4pt;
+  font-size: 75%;
+  margin-right: .3em;
+  padding: 0 .4em .1em .4em;
+  position: relative;
+  top: -2px;
 }
 
-.datatable .frame .row_index {
-  color: rgba(0, 0, 0, 0.38);
-  background: #EEEEEE;
-  font-size: 9px;
-  border-right: 1px solid #BDBDBD;
+span.tag.new {
+  background-color: #00A000;
+  color: #FFFFFF;
 }
-.datatable .frame tr.coltypes .row_index {
-  background: #BDBDBD;
+
+span.tag.fix {
+  background-color: #A00000;
+  color: #FFFFFF;
 }
-.datatable .frame .hellipsis {
-  color: #E0E0E0;
+
+span.tag.api {
+  background-color: #A000A0;
+  color: #FFFFFF;
 }
-.datatable .frame .vellipsis {
-  background: #FFFFFF;
-  color: #E0E0E0;
+
+h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
+  font-family: sans-serif;
+  font-size: 60%;
+  position: relative;
+  top: -.6em;
 }
-.datatable .frame .na {
-  color: #E0E0E0;
-  font-size: 80%;
+
+
+
+/* ------- See also blocks -------------------------------------------------- */
+
+.admonition.seealso {
+  align-items: baseline;
+  background: inherit;
+  display: flex;
+  font-size: 85%;
+  font-style: italic;
+  margin: -9pt 0 9pt 30pt;
+  padding: 0;
 }
-.datatable .footer {
-  font-size: 9px;
+
+.admonition.seealso p.first.admonition-title {
+  background: inherit;
+  color: #AAA;
+  display: block;
+  font-weight: normal;
+  margin: 0pt 3pt 0 0;
+  padding: 0;
 }
-.datatable .footer .frame_dimensions {
-  background: #EEEEEE;
-  border-top: 1px solid #BDBDBD;
-  color: rgba(0, 0, 0, 0.38);
-  display: inline-block;
-  opacity: 0.6;
-  padding: 1px 10px 1px 5px;
+
+.admonition.seealso p.last {
+  font-size: inherit;
+}
+
+.admonition.seealso p.first.admonition-title:before {
+  content: "";
+}
+
+.admonition.seealso p.first.admonition-title:after {
+  content: ":";
+}
+
+
+
+/* ------- Miscellaneous ---------------------------------------------------- */
+
+h1 {
+  border-bottom: 4px solid #444;
+}
+
+h2 {
+  margin-top: 30pt;
 }

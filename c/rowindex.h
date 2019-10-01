@@ -91,7 +91,7 @@ class RowIndex {
     /**
      * Create RowIndex from either a boolean or an integer column.
      */
-    RowIndex(const Column* col);
+    RowIndex(const Column& col);
 
 
     bool operator==(const RowIndex& other) { return impl == other.impl; }
@@ -123,14 +123,14 @@ class RowIndex {
      * is either 1 or 0 depending whether that element is selected by the
      * current RowIndex or not.
      */
-    MemoryRange as_boolean_mask(size_t nrows) const;
+    Buffer as_boolean_mask(size_t nrows) const;
 
     /**
      * Convert the RowIndex into an array `int32_t[nrows]`, where entries not
      * selected by this RowIndex are -1, and the selected entries are
      * consecutive integers 0, 1, ..., size()-1.
      */
-    MemoryRange as_integer_mask(size_t nrows) const;
+    Buffer as_integer_mask(size_t nrows) const;
 
     /**
      * Return a RowIndex which is the negation of the current, when applied
@@ -193,14 +193,6 @@ class RowIndex {
 };
 
 
-// hashing support
-namespace std {
-  template <> struct hash<RowIndex> {
-    std::size_t operator()(const RowIndex& ri) const {
-      return reinterpret_cast<size_t>(ri.ptr());
-    }
-  };
-}
 
 
 //==============================================================================

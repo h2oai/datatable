@@ -8,7 +8,7 @@
 #ifndef dt_UTILS_ARRAY_h
 #define dt_UTILS_ARRAY_h
 #include <algorithm>      // std::swap
-#include "memrange.h"
+#include "buffer.h"
 #include "utils/alloc.h"  // dt::realloc
 #include "utils/exceptions.h"
 
@@ -82,13 +82,13 @@ template <typename T> class array
       return res;
     }
 
-    MemoryRange to_memoryrange() {
+    Buffer to_memoryrange() {
       void* ptr = x;
       size_t size = sizeof(T) * n;
       x = nullptr;
       n = 0;
-      if (owned) return MemoryRange::acquire(ptr, size);
-      else       return MemoryRange::external(ptr, size);
+      if (owned) return Buffer::acquire(ptr, size);
+      else       return Buffer::external(ptr, size);
     }
 
     // Standard operators

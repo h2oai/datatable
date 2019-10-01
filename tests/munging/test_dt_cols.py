@@ -99,7 +99,7 @@ def test_j_none(dt0):
 def test_j_function(dt0):
     assert_typeerror(
         dt0, lambda r: r.A,
-        "Unsupported `j` selector of type <class 'function'>")
+        "An object of type <class 'function'> cannot be used in an Expr")
 
 
 
@@ -155,7 +155,7 @@ def test_j_string_error(dt0):
 def test_j_bytes_error(dt0):
     assert_typeerror(
         dt0, b'A',
-        "Unsupported `j` selector of type <class 'bytes'>")
+        "An object of type <class 'bytes'> cannot be used in an Expr")
 
 
 
@@ -225,7 +225,7 @@ def test_j_slice_error1(dt0):
 def test_j_slice_error2(dt0, s):
     assert_typeerror(
         dt0, s,
-        str(s) + " is neither integer- nor string-valued")
+        str(s) + " is neither integer- nor string- valued")
 
 
 
@@ -301,8 +301,6 @@ def test_j_type_bad(dt0):
     assert_valueerror(
         dt0, type,
         "Unknown type <class 'type'> used as `j` selector")
-    assert_typeerror(
-        dt0, ltype.time, "Unknown ltype value")
 
 
 
@@ -438,7 +436,7 @@ def test_j_dict(dt0, tbl0):
 def test_j_dict_bad1(dt0):
     assert_typeerror(
         dt0, {1: f.A, 2: f.B + f.C},
-        "Keys in `j` selector dictionary must be strings")
+        "Keys in the dictionary must be strings")
 
 
 def test_j_dict_bad2(dt0):
@@ -535,7 +533,7 @@ def test_j_bad_arguments(dt0):
         "Unsupported `j` selector of type <class 'float'>")
     assert_typeerror(dt0,
         slice(1, 2, "A"),
-        "slice(1, 2, 'A') is neither integer- nor string-valued")
+        "slice(1, 2, 'A') is neither integer- nor string- valued")
     assert_typeerror(
         dt0, [0, 0.5, 1],
         "Element 1 in `j` selector list has type `<class 'float'>`")

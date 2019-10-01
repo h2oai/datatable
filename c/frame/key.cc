@@ -84,8 +84,8 @@ void Frame::set_key(const Arg& val) {
 
 
 
-void Frame::Type::_init_key(GetSetters& gs) {
-  ADD_GETSET(gs, &Frame::get_key, &Frame::set_key, args_key);
+void Frame::_init_key(XTypeMaker& xt) {
+  xt.add(GETSET(&Frame::get_key, &Frame::set_key, args_key));
 }
 
 
@@ -128,7 +128,8 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   auto res = group(ss);
   RowIndex ri = res.first;
   xassert(ri.size() == nrows);
-  if (res.second.ngroups() != nrows) {
+  // Note: it's possible to have ngroups > nrows, when grouping a 0-row Frame
+  if (res.second.ngroups() < nrows) {
     throw ValueError() << "Cannot set a key: the values are not unique";
   }
 
@@ -147,15 +148,16 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   xassert(col_indices.size() == ncols);
 
   // Reorder the columns
-  std::vector<Column*> new_columns(ncols, nullptr);
+  colvec new_columns;
+  new_columns.reserve(ncols);
   for (size_t i = 0; i < ncols; ++i) {
-    new_columns[i] = columns[col_indices[i]];
+    Column col = columns[col_indices[i]];  // copy
+    col.apply_rowindex(ri);  // apply sort key
+    new_columns.emplace_back(std::move(col));
   }
   columns = std::move(new_columns);
   reorder_names(col_indices);
 
-  // Apply sort key
-  apply_rowindex(ri);
   materialize();
 
   nkeys = K;

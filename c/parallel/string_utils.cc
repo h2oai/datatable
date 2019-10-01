@@ -26,11 +26,11 @@ namespace dt {
 // Ordered iteration, produce a string column
 //------------------------------------------------------------------------------
 
-Column* generate_string_column(function<void(size_t, string_buf*)> fn,
-                               size_t nrows,
-                               MemoryRange&& offsets_buffer,
-                               bool force_str64,
-                               bool force_single_threaded)
+Column generate_string_column(function<void(size_t, string_buf*)> fn,
+                              size_t nrows,
+                              Buffer&& offsets_buffer,
+                              bool force_str64,
+                              bool force_single_threaded)
 {
   constexpr size_t min_nrows_per_thread = 100;
   size_t nthreads = force_single_threaded? 0 : nrows / min_nrows_per_thread;
@@ -41,7 +41,7 @@ Column* generate_string_column(function<void(size_t, string_buf*)> fn,
 
   dt::parallel_for_ordered(
     nchunks,
-    nthreads,  // will be truncated to pool size if necessary
+    NThreads(nthreads),  // will be truncated to pool size if necessary
     [&](ordered* o) {
       using sbptr = std::unique_ptr<string_buf>;
       auto sb = force_str64
@@ -67,7 +67,7 @@ Column* generate_string_column(function<void(size_t, string_buf*)> fn,
       sb->commit_and_start_new_chunk(nrows);
     });
 
-  return std::move(outcol).to_column();
+  return std::move(outcol).to_ocolumn();
 }
 
 

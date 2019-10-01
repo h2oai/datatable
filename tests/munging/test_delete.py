@@ -61,7 +61,7 @@ def test_del_1col_str_1():
 
 def test_del_1col_str_2():
     d0 = smalldt()
-    del d0[:, "B"]
+    del d0["B"]
     assert_equals(d0, dt.Frame([[i] for i in range(16) if i != 1],
                                names=list("ACDEFGHIJKLMNOP")))
 
@@ -85,6 +85,13 @@ def test_del_1col_int():
     del d0[:, -1]
     assert_equals(d0, dt.Frame([[i] for i in range(16) if i != 15],
                                names=list("ABCDEFGHIJKLMNO")))
+
+
+def test_del_1col_int2():
+    d0 = smalldt()
+    del d0[5]
+    assert_equals(d0, dt.Frame([[i] for i in range(16) if i != 5],
+                               names=list("ABCDEGHIJKLMNOP")))
 
 
 def test_del_1col_expr():
@@ -211,7 +218,7 @@ def test_del_cols_g1():
     d0 = smalldt()
     with pytest.raises(ValueError) as e:
         del d0[:, g[1]]
-    assert ("Item 0 of `j` selector list references a non-existing join frame"
+    assert ("Column expression references a non-existing join frame"
             == str(e.value))
 
 

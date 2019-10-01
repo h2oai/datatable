@@ -13,7 +13,7 @@
 #include "utils/file.h"
 using std::size_t;
 
-class MemoryRange;
+class Buffer;
 
 
 
@@ -97,6 +97,10 @@ public:
   void write(size_t n, const void* src) {
     write_at(prep_write(n, src), n, src);
   }
+  void write(const CString& src) {
+    size_t at = prep_write(static_cast<size_t>(src.size), src.ch);
+    write_at(at, static_cast<size_t>(src.size), src.ch);
+  }
 
   // Prevent copying / assignment for these objects
   WritableBuffer(const WritableBuffer&) = delete;
@@ -158,7 +162,7 @@ public:
    * it will be the responsibility of the caller to handle it.
    */
   void* get_cptr();
-  MemoryRange get_mbuf();
+  Buffer get_mbuf();
   std::string get_string();
 
 private:
@@ -176,6 +180,8 @@ class MmapWritableBuffer : public ThreadsafeWritableBuffer
 public:
   MmapWritableBuffer(const std::string& path, size_t size);
   ~MmapWritableBuffer() override;
+
+  void finalize() override;
 
 private:
   void realloc(size_t newsize) override;

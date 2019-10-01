@@ -113,6 +113,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     dt::progress::subtask subwork(*job, firstTime? WORK_READ : WORK_REREAD);
     dt::read::FreadParallelReader scr(*this, types);
     scr.read_all();
+    subwork.done();
 
     if (firstTime) {
       fo.t_data_read = fo.t_data_reread = wallclock();

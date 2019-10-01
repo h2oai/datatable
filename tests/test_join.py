@@ -24,7 +24,7 @@
 import datatable as dt
 import pytest
 import random
-from tests import random_string, noop
+from tests import random_string, noop, assert_equals
 from datatable import join, ltype, stype, f, g, mean
 from datatable.internal import frame_integrity_check
 
@@ -223,7 +223,7 @@ def test_issue1481():
     DT = dt.Frame(A=range(5))
     with pytest.raises(ValueError) as e:
         noop(DT[:, [f.A, g.A]])
-    assert ("Item 1 of `j` selector list references a non-existing join frame"
+    assert ("Column expression references a non-existing join frame"
             == str(e.value))
 
 
@@ -276,3 +276,31 @@ def test_issue1800():
     assert X2.to_dict() == {"A": [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
                             "N": [0.1, 0.1, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4,
                                   0.5, 0.5, None, None]}
+
+
+def test_select_from_joined():
+    # Test that selecting unmatched elements in the joined frame does not
+    # lead to a crash. Selection should be done using the "fast" DT[i, j]
+    # syntax, where both i and j are integers.
+    # See issue #1917
+    JDT = dt.Frame(A=[0], B=[True], C1=[34], C2=[17], C3=[18], C4=[20],
+                   D1=[5.2], D2=[-7.7], E1=["foo"], E2=["bar"],
+                   stypes={"A": dt.int32, "B": dt.bool8,
+                           "C1": dt.int8, "C2": dt.int16, "C3": dt.int32, "C4": dt.int64,
+                           "D1": dt.float32, "D2": dt.float64,
+                           "E1": dt.str32, "E2": dt.str64})
+    JDT.key = "A"
+    SRC = dt.Frame(A=[1, 3, 7], stype=dt.int32)
+    DT = SRC[:, :, join(JDT)]
+    for i in range(3):
+        for j in range(1, DT.ncols):
+            assert DT[i, j] is None
+
+
+def test_join_empty_frame():
+    # See issue #1988
+    DT1 = dt.Frame(A=range(5), B=['gs', 'dfk', None, 'ava;lej', 'fdsfal;k'])
+    DT2 = dt.Frame(A=[])
+    DT2.key = "A"
+    RES = DT1[:, :, dt.join(DT2)]
+    assert_equals(RES, DT1)

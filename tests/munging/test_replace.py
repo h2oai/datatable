@@ -25,6 +25,7 @@ import datatable as dt
 import pytest
 import random
 import sys
+from datatable import f
 from datatable.internal import frame_integrity_check
 from math import inf, nan
 from tests import list_equals
@@ -271,6 +272,23 @@ def test_replace_str_huge():
     assert DT[-2, 0] == "A" * 250
     assert DT[-1, 0] is None
     assert DT[-100, 0] is None
+
+
+def test_replace_str64():
+    Y = dt.Frame([["BLSD", "RY", "IO OUSEVOUY", "@"], [3, 4, 1, 2]],
+                 names=["A", "B"], stypes=["str64", "int32"])
+    Y[f.B < 100, f.A] = "*"
+    frame_integrity_check(Y)
+    assert Y.stypes == (dt.str64, dt.int32)
+    assert Y.to_list() == [["*"] * 4, [3, 4, 1, 2]]
+
+
+def test_replace_str64_2():
+    Y = dt.Frame([["a"], [0]], names=["A", "B"], stypes=["str64", "int32"])
+    Y[f.B < 100, f.A] = "hello"
+    frame_integrity_check(Y)
+    assert Y.stypes == (dt.str64, dt.int32)
+    assert Y.to_list() == [["hello"], [0]]
 
 
 
