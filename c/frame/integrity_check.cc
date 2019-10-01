@@ -119,7 +119,7 @@ void DataTable::verify_integrity() const
     const std::string& col_name = names[i];
     const Column& col = columns[i];
     if (!col) {
-      throw AssertionError() << col_name << " of Frame is null";
+      throw AssertionError() << col_name << " of Frame is empty";
     }
     // Make sure the column and the datatable have the same value for `nrows`
     if (nrows != col.nrows()) {
@@ -127,7 +127,14 @@ void DataTable::verify_integrity() const
           << "Mismatch in `nrows`: " << col_name << ".nrows = " << col.nrows()
           << ", while the Frame has nrows=" << nrows;
     }
-    col->verify_integrity(col_name);
+    try {
+      col.verify_integrity();
+    }
+    catch (Error& e) {
+      e = std::move(AssertionError() << "in column " << i
+                    << " '" << col_name << "': " << e.what());
+      throw;
+    }
   }
 
   for (size_t i = 0; i < ncols; ++i) {
@@ -150,7 +157,7 @@ void DataTable::verify_integrity() const
 // Column
 //------------------------------------------------------------------------------
 
-void ColumnImpl::verify_integrity(const std::string&) const {
+void ColumnImpl::verify_integrity() const {
   mbuf.verify_integrity();
 
   // Check Stats
@@ -165,8 +172,8 @@ void ColumnImpl::verify_integrity(const std::string&) const {
 // BoolColumn
 //------------------------------------------------------------------------------
 
-void BoolColumn::verify_integrity(const std::string& name) const {
-  FwColumn<int8_t>::verify_integrity(name);
+void BoolColumn::verify_integrity() const {
+  FwColumn<int8_t>::verify_integrity();
 
   // Check that all elements in column are either 0, 1, or NA_I1
   size_t mbuf_nrows = mbuf.size();
@@ -175,7 +182,7 @@ void BoolColumn::verify_integrity(const std::string& name) const {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {
       throw AssertionError()
-          << "(Boolean) " << name << " has value " << val << " in row " << i;
+          << "boolean column has value " << val << " in row " << i;
     }
   }
 }
@@ -188,8 +195,8 @@ void BoolColumn::verify_integrity(const std::string& name) const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void StringColumn<T>::verify_integrity(const std::string& name) const {
-  ColumnImpl::verify_integrity(name);
+void StringColumn<T>::verify_integrity() const {
+  ColumnImpl::verify_integrity();
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
@@ -199,7 +206,7 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
   // Check that the offsets section is preceded by a -1
   if (str_offsets[-1] != 0) {
     throw AssertionError()
-        << "Offsets section in (string) " << name << " does not start with 0";
+        << "Offsets section in string column does not start with 0";
   }
 
   size_t mbuf_nrows = mbuf.size()/sizeof(T) - 1;
@@ -212,20 +219,20 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
     if (ISNA<T>(oj)) {
       if (oj != (lastoff ^ GETNA<T>())) {
         throw AssertionError()
-            << "Offset of NA String in row " << i << " of " << name
-            << " does not have the same magnitude as the previous offset: "
-               "offset = " << oj << ", previous offset = " << lastoff;
+            << "Offset of NA String in row " << i << " does not have the same "
+               "magnitude as the previous offset: offset = "
+            << oj << ", previous offset = " << lastoff;
       }
     } else {
       if (oj < lastoff) {
         throw AssertionError()
-            << "String offset in row " << i << " of " << name
-            << " cannot be less than the previous offset: offset = " << oj
+            << "String offset in row " << i << " cannot be less than the "
+               "previous offset: offset = " << oj
             << ", previous offset = " << lastoff;
       }
       if (!is_valid_utf8(cdata + lastoff, static_cast<size_t>(oj - lastoff))) {
         throw AssertionError()
-            << "Invalid UTF-8 string in row " << i << " of " << name << ": "
+            << "Invalid UTF-8 string in row " << i << ": "
             << repr_utf8(cdata + lastoff, cdata + oj);
       }
       lastoff = oj;
@@ -239,11 +246,11 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
 // PyObjColumn
 //------------------------------------------------------------------------------
 
-void PyObjectColumn::verify_integrity(const std::string& name) const {
-  FwColumn<py::robj>::verify_integrity(name);
+void PyObjectColumn::verify_integrity() const {
+  FwColumn<py::robj>::verify_integrity();
 
   if (!mbuf.is_pyobjects()) {
-    throw AssertionError() << "(object) " << name << "'s internal buffer is "
+    throw AssertionError() << "obj64 column's internal buffer is "
         "not marked as containing PyObjects";
   }
 
@@ -253,13 +260,11 @@ void PyObjectColumn::verify_integrity(const std::string& name) const {
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     py::robj val = vals[i];
     if (!val) {
-      throw AssertionError() << "Object column " << name << " has NULL value "
-          "in row " << i;
+      throw AssertionError() << "obj64 column has NULL value in row " << i;
     }
     if (Py_REFCNT(val.to_borrowed_ref()) <= 0) {
       throw AssertionError()
-          << "Element " << i << " in object column " << name
-          << " has 0 refcount";
+          << "Element " << i << " in obj64 column has refcount <= 0";
     }
   }
 }

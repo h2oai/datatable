@@ -113,11 +113,10 @@ class ColumnImpl
 
     size_t nrows() const { return nrows_; }
     SType stype() const { return stype_; }
-    const Buffer& data_buf() const { return mbuf; }
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
 
-    virtual size_t memory_footprint() const;
+    virtual size_t memory_footprint() const noexcept;
 
     RowIndex _sort(Groupby* out_groups) const;
     virtual void sort_grouped(const Groupby&, Column& out);
@@ -138,13 +137,6 @@ class ColumnImpl
       * Implementation in column/view.cc
       */
     virtual void apply_rowindex(const RowIndex& ri, Column& out);
-
-    /**
-     * Modify the ColumnImpl, replacing values specified by the provided `mask` with
-     * NAs. The `mask` column must have the same number of rows as the current,
-     * and neither of them can have a RowIndex.
-     */
-    virtual void apply_na_mask(const Column& mask);
 
     /**
      * Create a shallow copy of this ColumnImpl, possibly applying the provided
@@ -206,12 +198,8 @@ class ColumnImpl
     virtual void pre_materialize_hook() {}
 
 
-    /**
-     * Check that the data in this ColumnImpl object is correct. `name` is the name of
-     * the column to be used in the diagnostic messages.
-     */
-  public:
-    virtual void verify_integrity(const std::string& name) const;
+    // Check that the data in this ColumnImpl object is correct.
+    virtual void verify_integrity() const;
 
     /**
      * get_stats()
@@ -225,7 +213,7 @@ class ColumnImpl
      */
     Stats* get_stats_if_exist() const { return stats.get(); }  // REMOVE
 
-    virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1);
+    virtual void fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
   protected:
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
@@ -233,6 +221,9 @@ class ColumnImpl
     template <typename T> ColumnImpl* _materialize_fw();
     ColumnImpl* _materialize_str();
     ColumnImpl* _materialize_obj();
+
+    template <typename T>
+    void _fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
     friend class Column;
     friend class dt::ConstNa_ColumnImpl;

@@ -229,10 +229,9 @@ py::oobj Column::py_descriptor() const {
   return py::oobj::from_new_reference(nt_tuple);
 }
 
-size_t Column::memory_footprint() const {
+size_t Column::memory_footprint() const noexcept {
   return databuf.memory_footprint() +
-         (strbuf? strbuf->size() : 0) +
-         name.size() + sizeof(*this);
+         (strbuf? strbuf->size() : 0) + name.size() + sizeof(*this);
 }
 
 

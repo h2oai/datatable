@@ -58,7 +58,7 @@ void swap(Column& lhs, Column& rhs) {
 Column::Column()
   : pcol(nullptr) {}
 
-Column::Column(ColumnImpl* col)
+Column::Column(ColumnImpl*&& col)
   : pcol(col) {}
 
 Column::Column(const Column& other)
@@ -88,7 +88,7 @@ Column::~Column() {
 }
 
 
-ColumnImpl* Column::release() noexcept {
+ColumnImpl* Column::release() && noexcept {
   ColumnImpl* tmp = pcol;
   pcol = nullptr;
   return tmp;
@@ -96,7 +96,9 @@ ColumnImpl* Column::release() noexcept {
 
 
 
-//---- Properties ----------------------
+//------------------------------------------------------------------------------
+// Properties
+//------------------------------------------------------------------------------
 
 size_t Column::nrows() const noexcept {
   return pcol->nrows_;
@@ -130,6 +132,9 @@ Column::operator bool() const noexcept {
   return (pcol != nullptr);
 }
 
+size_t Column::memory_footprint() const noexcept {
+  return sizeof(Column) + (pcol? pcol->memory_footprint() : 0);
+}
 
 
 
@@ -209,6 +214,16 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Column : data buffers
+//------------------------------------------------------------------------------
+
+bool Column::is_data_editable(size_t k) const {
+  if (k != 0) return false;
+  return pcol->mbuf.is_writable();
+}
+
 const void* Column::get_data_readonly(size_t k) const {
   if (is_virtual()) materialize();
   return k == 0 ? pcol->mbuf.rptr()
@@ -218,6 +233,11 @@ const void* Column::get_data_readonly(size_t k) const {
 void* Column::get_data_editable(size_t) {
   if (is_virtual()) materialize();
   return pcol->mbuf.wptr();
+}
+
+Buffer Column::get_data_buffer(size_t) const {
+  if (is_virtual()) materialize();
+  return pcol->mbuf;
 }
 
 size_t Column::get_data_size(size_t k) const {
@@ -266,42 +286,11 @@ void Column::sort_grouped(const Groupby& grps) {
 }
 
 
-
-
-//==============================================================================
-// StrvecColumn
-//==============================================================================
-
-// Note: this class stores strvec by reference; therefore the lifetime
-// of the column may not exceed the lifetime of the string vector.
-//
-class StrvecColumn : public dt::Virtual_ColumnImpl {
-  private:
-    const strvec& vec;
-
-  public:
-    StrvecColumn(const strvec& v);
-    bool get_element(size_t i, CString* out) const override;
-    ColumnImpl* shallowcopy() const override;
-    ColumnImpl* materialize() override { return this; }
-
-    void apply_na_mask(const Column&) override {}
-    void replace_values(Column&, const RowIndex&, const Column&) override {}
-};
-
-StrvecColumn::StrvecColumn(const strvec& v)
-  : Virtual_ColumnImpl(v.size(), SType::STR32), vec(v) {}
-
-bool StrvecColumn::get_element(size_t i, CString* out) const {
-  out->ch = vec[i].c_str();
-  out->size = static_cast<int64_t>(vec[i].size());
-  return true;
+void Column::verify_integrity() const {
+  pcol->verify_integrity();
 }
 
-ColumnImpl* StrvecColumn::shallowcopy() const {
-  return new StrvecColumn(vec);
-}
 
-Column Column::from_strvec(const strvec& vec) {
-  return Column(new StrvecColumn(vec));
+void Column::fill_npmask(bool* out_mask, size_t row0, size_t row1) const {
+  pcol->fill_npmask(out_mask, row0, row1);
 }

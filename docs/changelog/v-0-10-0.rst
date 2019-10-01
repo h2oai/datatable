@@ -81,6 +81,10 @@ Frame
 - |fix| Operations on a 0-row frame containing string columns will no
   longer cause an infinite loop (#2043).
 
+- |fix| Conversion of a Frame into a masked numpy array was sometimes done
+  incorrectly when some columns in the frame contained NAs, while others
+  did not (#2050).
+
 
 Internal
 --------

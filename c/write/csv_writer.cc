@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <memory>                // std::unique_ptr
+#include "column/strvec.h"
 #include "write/csv_writer.h"
 #include "write/value_writer.h"
 #include "write/writing_context.h"
@@ -81,7 +82,7 @@ void csv_writer::write_preamble() {
   const strvec& column_names = dt->get_names();
   if (column_names.empty()) return;
 
-  Column names_as_col = Column::from_strvec(column_names);
+  Column names_as_col = Column(new Strvec_ColumnImpl(column_names));
   auto writer = value_writer::create(names_as_col, options);
   writing_context ctx { 3*dt->ncols, 1, options.compress_zlib };
 

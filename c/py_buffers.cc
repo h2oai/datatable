@@ -325,7 +325,7 @@ static void getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags)
   const char* fmt = format_from_stype(col.stype());
 
   xinfo = new XInfo();
-  xinfo->mbuf = col->data_buf();
+  xinfo->mbuf = col.get_data_buffer();
   xinfo->shape[0] = static_cast<Py_ssize_t>(col.nrows());
   xinfo->shape[1] = 1;
   xinfo->strides[0] = static_cast<Py_ssize_t>(col.elemsize());

@@ -124,13 +124,13 @@ ColumnImpl* ColumnImpl::_materialize_str() {
       [=](size_t, CString& value, dt::string_buf* sb) {
         sb->write(value);
       });
-    inp.release();
-    return rescol.release();
+    std::move(inp).release();
+    return std::move(rescol).release();
   }
   catch (...) {
     // prevent this from being deleted in case materialization
     // fails.
-    inp.release();
+    std::move(inp).release();
     throw;
   }
 }
@@ -164,31 +164,35 @@ ColumnImpl* ColumnImpl::materialize() {
 
 
 //------------------------------------------------------------------------------
-// fill_na_mask()
+// fill_npmask()
 //------------------------------------------------------------------------------
 
 template <typename T>
-void _fill_na_mask(ColumnImpl* icol, int8_t* outmask, size_t row0, size_t row1)
-{
+void ColumnImpl::_fill_npmask(bool* outmask, size_t row0, size_t row1) const {
   T value;
   for (size_t i = row0; i < row1; ++i) {
-    outmask[i] = !icol->get_element(i, &value);
+    outmask[i] = !get_element(i, &value);
   }
 }
 
-void ColumnImpl::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
+void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
+  if (stats && stats->is_computed(Stat::NaCount) && stats->nacount() == 0) {
+    std::fill(outmask + row0, outmask + row1, false);
+    return;
+  }
   switch (stype_) {
     case SType::BOOL:
-    case SType::INT8:    _fill_na_mask<int8_t> (this, outmask, row0, row1); break;
-    case SType::INT16:   _fill_na_mask<int16_t>(this, outmask, row0, row1); break;
-    case SType::INT32:   _fill_na_mask<int32_t>(this, outmask, row0, row1); break;
-    case SType::INT64:   _fill_na_mask<int64_t>(this, outmask, row0, row1); break;
-    case SType::FLOAT32: _fill_na_mask<float>  (this, outmask, row0, row1); break;
-    case SType::FLOAT64: _fill_na_mask<double> (this, outmask, row0, row1); break;
+    case SType::INT8:    _fill_npmask<int8_t> (outmask, row0, row1); break;
+    case SType::INT16:   _fill_npmask<int16_t>(outmask, row0, row1); break;
+    case SType::INT32:   _fill_npmask<int32_t>(outmask, row0, row1); break;
+    case SType::INT64:   _fill_npmask<int64_t>(outmask, row0, row1); break;
+    case SType::FLOAT32: _fill_npmask<float>  (outmask, row0, row1); break;
+    case SType::FLOAT64: _fill_npmask<double> (outmask, row0, row1); break;
     case SType::STR32:
-    case SType::STR64:   _fill_na_mask<CString>(this, outmask, row0, row1); break;
+    case SType::STR64:   _fill_npmask<CString>(outmask, row0, row1); break;
+    case SType::OBJ:     _fill_npmask<py::robj>(outmask, row0, row1); break;
     default:
-      throw NotImplError() << "Cannot fill_na_mask() on column of stype `"
+      throw NotImplError() << "Cannot fill_npmask() on column of stype `"
                            << stype_ << "`";
   }
 }
@@ -198,10 +202,6 @@ void ColumnImpl::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
-
-void ColumnImpl::apply_na_mask(const Column&) {
-  throw NotImplError() << "Method ColumnImpl::apply_na_mask() not implemented";
-}
 
 void ColumnImpl::replace_values(Column&, const RowIndex&, const Column&) {
   throw NotImplError() << "Method ColumnImpl::replace_values() not implemented";

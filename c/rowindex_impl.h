@@ -80,7 +80,7 @@ class RowIndexImpl {
     virtual void resize(size_t n) = 0;
     virtual RowIndexImpl* resized(size_t n) = 0;
 
-    virtual size_t memory_footprint() const = 0;
+    virtual size_t memory_footprint() const noexcept = 0;
     virtual void verify_integrity() const;
 };
 
@@ -105,7 +105,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
     void resize(size_t n) override;
     RowIndexImpl* resized(size_t n) override;
 
-    size_t memory_footprint() const override;
+    size_t memory_footprint() const noexcept override;
     void verify_integrity() const override;
 
   protected:
@@ -151,7 +151,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     void resize(size_t n) override;
     RowIndexImpl* resized(size_t n) override;
 
-    size_t memory_footprint() const override;
+    size_t memory_footprint() const noexcept override;
     void verify_integrity() const override;
 
   private:

@@ -61,13 +61,13 @@ void Frame::_init_sizeof(XTypeMaker& xt) {
 // DataTable methods
 //------------------------------------------------------------------------------
 
-size_t DataTable::memory_footprint() const {
+size_t DataTable::memory_footprint() const noexcept {
   size_t sz = 0;
   sz += sizeof(*this);
   sz += sizeof(Column) * columns.capacity();
   sz += sizeof(std::string) * names.capacity();
   for (size_t i = 0; i < ncols; ++i) {
-    sz += columns[i]->memory_footprint();
+    sz += columns[i].memory_footprint();
     sz += names[i].size();
   }
   if (py_names) {
@@ -87,7 +87,7 @@ size_t DataTable::memory_footprint() const {
 /**
   * Get the total size of the memory occupied by the Column.
   */
-size_t ColumnImpl::memory_footprint() const {
+size_t ColumnImpl::memory_footprint() const noexcept {
   size_t sz = sizeof(*this);
   sz += mbuf.memory_footprint();
   if (stats) sz += stats->memory_footprint();
@@ -96,7 +96,7 @@ size_t ColumnImpl::memory_footprint() const {
 
 
 template <typename T>
-size_t StringColumn<T>::memory_footprint() const {
+size_t StringColumn<T>::memory_footprint() const noexcept {
   return ColumnImpl::memory_footprint() + strbuf.memory_footprint();
 }
 

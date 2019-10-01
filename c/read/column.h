@@ -98,7 +98,7 @@ class Column {
 
     // Misc
     py::oobj py_descriptor() const;
-    size_t memory_footprint() const;
+    size_t memory_footprint() const noexcept;
 };
 
 

@@ -19,55 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_SENTINEL_STR_h
-#define dt_COLUMN_SENTINEL_STR_h
-#include "column/sentinel.h"
-// namespace dt {
+#ifndef dt_COLUMN_STRVEC_h
+#define dt_COLUMN_STRVEC_h
+#include <string>
+#include <vector>
+#include "column/virtual.h"
+namespace dt {
 
 
-template <typename T>
-class StringColumn : public dt::Sentinel_ColumnImpl
-{
-  Buffer strbuf;
 
-public:
-  StringColumn();
-  StringColumn(size_t nrows);
-  StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
+/**
+  * This class treats a simple vector of strings as if it was a
+  * STR32 column.
+  *
+  * Note that the vector is stored by reference, and it is therefore
+  * the responsibility of the user to keep the source vector alive
+  * for the duration of the lifetime of this object.
+  */
+class Strvec_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    const strvec& vec;
 
-  ColumnImpl* materialize() override;
+  public:
+    Strvec_ColumnImpl(const strvec& v)
+      : Virtual_ColumnImpl(v.size(), SType::STR32),
+        vec(v) {}
 
-  Buffer str_buf() const { return strbuf; }
-  size_t datasize() const;
-  const char* strdata() const;
-  const uint8_t* ustrdata() const;
-  const T* offsets() const;
-  T* offsets_w();
-  size_t memory_footprint() const noexcept override;
-  const void* data2() const override { return strbuf.rptr(); }
-  size_t data2_size() const override {
-    return static_cast<const T*>(mbuf.rptr())[nrows_] & ~GETNA<T>();
-  }
+    bool get_element(size_t i, CString* out) const override {
+      out->ch = vec[i].c_str();
+      out->size = static_cast<int64_t>(vec[i].size());
+      return true;
+    }
 
-  ColumnImpl* shallowcopy() const override;
-  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
-
-  void verify_integrity() const override;
-
-  bool get_element(size_t i, CString* out) const override;
-
-protected:
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-
-  friend ColumnImpl;
-  friend Column;
+    ColumnImpl* shallowcopy() const override {
+      return new Strvec_ColumnImpl(vec);
+    }
 };
 
 
-extern template class StringColumn<uint32_t>;
-extern template class StringColumn<uint64_t>;
 
 
-
-// }  // namespace dt
+}  // namespace dt
 #endif

@@ -81,6 +81,7 @@ using read_t = typename _readt<s>::t;
 
 
 template <typename T> inline SType stype_from() { return SType::VOID; }
+template <> inline SType stype_from<bool>()     { return SType::BOOL; }
 template <> inline SType stype_from<int8_t>()   { return SType::INT8; }
 template <> inline SType stype_from<int16_t>()  { return SType::INT16; }
 template <> inline SType stype_from<int32_t>()  { return SType::INT32; }
@@ -88,6 +89,8 @@ template <> inline SType stype_from<int64_t>()  { return SType::INT64; }
 template <> inline SType stype_from<float>()    { return SType::FLOAT32; }
 template <> inline SType stype_from<double>()   { return SType::FLOAT64; }
 template <> inline SType stype_from<CString>()  { return SType::STR32; }
+template <> inline SType stype_from<PyObject*>(){ return SType::OBJ; }
+template <> inline SType stype_from<py::robj>() { return SType::OBJ; }
 
 
 
@@ -143,11 +146,10 @@ class Column
     static Column from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
     static Column from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
     static Column from_range(int64_t start, int64_t stop, int64_t step, SType);
-    static Column from_strvec(const strvec&);
 
-    // Assumes ownership of the `col` object. This constructor is
-    // intended for use by derived `ColumnImpl` classes.
-    explicit Column(ColumnImpl* col);
+    // Move-semantics for the pointer here indicates to the user that
+    // the class overtakes ownership of that pointer.
+    explicit Column(ColumnImpl*&& col);
 
   //------------------------------------
   // Properties
@@ -155,17 +157,15 @@ class Column
   public:
     size_t nrows() const noexcept;
     size_t na_count() const;
-    SType stype() const noexcept;
-    LType ltype() const noexcept;
-    bool is_fixedwidth() const noexcept;
-    bool is_virtual() const noexcept;
+    SType  stype() const noexcept;
+    LType  ltype() const noexcept;
     size_t elemsize() const noexcept;
-
+    bool   is_fixedwidth() const noexcept;
+    bool   is_virtual() const noexcept;
+    size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 
-    ColumnImpl* operator->() { return pcol; }
-    const ColumnImpl* operator->() const { return pcol; }
-    ColumnImpl* release() noexcept;
+    ColumnImpl* release() && noexcept;
 
   //------------------------------------
   // Element access
@@ -231,6 +231,7 @@ class Column
     size_t get_data_size(size_t k = 0) const;
     const void* get_data_readonly(size_t k = 0) const;
     void*       get_data_editable(size_t k = 0);
+    Buffer      get_data_buffer(size_t  k = 0) const;
 
 
   //------------------------------------
@@ -285,8 +286,22 @@ class Column
     void resize(size_t new_nrows);
 
     // Modifies the column in-place converting it into a view column
-    // using the provided row index.
+    // using the provided RowIndex.
     void apply_rowindex(const RowIndex&);
+
+    // "npmask" is a boolean array containing of the same length as
+    // the column, the true/false values in this mask indicate whether
+    // each element of the column is NA (true) or not (false).
+    //
+    // This method requires such `out_mask` array to be filled from
+    // `out_mask[row0]` to `out_mask[row1 - 1]`. This method is
+    // single-threaded (it is designed to run from multiple threads).
+    void fill_npmask(bool* out_mask, size_t row0, size_t row1) const;
+
+    // Checks internal integrity of the column. An `AssertionError`
+    // exception will be raised if the column's data is in an
+    // erroneous state.
+    void verify_integrity() const;
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;

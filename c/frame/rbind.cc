@@ -333,11 +333,11 @@ void Column::rbind(colvec& columns) {
   xassert(newcol.stype() == new_stype);
 
   // TODO: Temporary Fix. To be resolved in #301
-  if (newcol->stats != nullptr) newcol->stats->reset();
+  newcol.reset_stats();
 
   // Use the appropriate strategy to continue appending the columns.
   newcol.materialize();
-  newcol->rbind_impl(columns, new_nrows, col_empty);
+  newcol.pcol->rbind_impl(columns, new_nrows, col_empty);
 
   // Replace current column's impl with the newcol's
   std::swap(pcol, newcol.pcol);

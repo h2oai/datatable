@@ -139,7 +139,7 @@ class Stats
     bool is_computed(Stat s) const;
     bool is_valid(Stat s) const;
 
-    virtual size_t memory_footprint() const = 0;
+    virtual size_t memory_footprint() const noexcept = 0;
     void verify_integrity();
 
   protected:
@@ -256,7 +256,7 @@ class NumericStats : public Stats {
 
   public:
     using Stats::Stats;
-    size_t memory_footprint() const override;
+    size_t memory_footprint() const noexcept override;
 
     double  sum        (bool* isvalid) override;
     double  mean       (bool* isvalid) override;
@@ -371,7 +371,7 @@ class StringStats : public Stats {
 
   public:
     using Stats::Stats;
-    size_t memory_footprint() const override;
+    size_t memory_footprint() const noexcept override;
 
     CString mode_string(bool* isvalid) override;
     void set_mode(CString value, bool isvalid) override;
@@ -392,7 +392,7 @@ class StringStats : public Stats {
 class PyObjectStats : public Stats {
   public:
     using Stats::Stats;
-    size_t memory_footprint() const override;
+    size_t memory_footprint() const noexcept override;
 
   protected:
     void compute_nacount() override;

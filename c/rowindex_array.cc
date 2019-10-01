@@ -510,7 +510,7 @@ size_t ArrayRowIndexImpl::nth(size_t i) const {
 
 
 
-size_t ArrayRowIndexImpl::memory_footprint() const {
+size_t ArrayRowIndexImpl::memory_footprint() const noexcept {
   return sizeof(*this) + length * (type == RowIndexType::ARR32? 4 : 8);
 }
 

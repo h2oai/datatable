@@ -224,7 +224,7 @@ RowIndexImpl* SliceRowIndexImpl::resized(size_t n) {
 
 
 
-size_t SliceRowIndexImpl::memory_footprint() const {
+size_t SliceRowIndexImpl::memory_footprint() const noexcept {
   return sizeof(*this);
 }
 

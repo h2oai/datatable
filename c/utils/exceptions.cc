@@ -68,13 +68,18 @@ Error::Error(const Error& other) {
 }
 
 Error::Error(Error&& other) : Error() {
+  *this = std::move(other);
+}
+
+Error& Error::operator=(Error&& other) {
   #if defined(__GNUC__) && __GNUC__ < 5
     // In gcc4.8 string stream was not moveable
-    error << other.error.str();
+    error.str(other.error.str());
   #else
     std::swap(error, other.error);
   #endif
   std::swap(pycls, other.pycls);
+  return *this;
 }
 
 void Error::to_stderr() {
