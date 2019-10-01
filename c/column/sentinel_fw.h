@@ -78,7 +78,7 @@ class BoolColumn : public FwColumn<int8_t>
     bool get_element(size_t i, int32_t* out) const override;
 
   protected:
-    void verify_integrity(const std::string& name) const override;
+    void verify_integrity() const override;
 
     using ColumnImpl::mbuf;
     friend ColumnImpl;
@@ -143,7 +143,7 @@ public:
 
 protected:
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-  void verify_integrity(const std::string& name) const override;
+  void verify_integrity() const override;
   friend ColumnImpl;
 };
 

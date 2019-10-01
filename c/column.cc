@@ -58,7 +58,7 @@ void swap(Column& lhs, Column& rhs) {
 Column::Column()
   : pcol(nullptr) {}
 
-Column::Column(ColumnImpl* col)
+Column::Column(ColumnImpl*&& col)
   : pcol(col) {}
 
 Column::Column(const Column& other)
@@ -278,4 +278,9 @@ void Column::resize(size_t new_nrows) {
 
 void Column::sort_grouped(const Groupby& grps) {
   pcol->sort_grouped(grps, *this);
+}
+
+
+void Column::verify_integrity() const {
+  pcol->verify_integrity();
 }

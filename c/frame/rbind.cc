@@ -333,7 +333,8 @@ void Column::rbind(colvec& columns) {
   xassert(newcol.stype() == new_stype);
 
   // TODO: Temporary Fix. To be resolved in #301
-  if (newcol->stats != nullptr) newcol->stats->reset();
+  auto stats = newcol.get_stats_if_exist();
+  if (stats) stats->reset();
 
   // Use the appropriate strategy to continue appending the columns.
   newcol.materialize();

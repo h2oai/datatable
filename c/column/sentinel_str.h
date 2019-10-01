@@ -52,7 +52,7 @@ public:
   ColumnImpl* shallowcopy() const override;
   void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
 
-  void verify_integrity(const std::string& name) const override;
+  void verify_integrity() const override;
 
   bool get_element(size_t i, CString* out) const override;
 

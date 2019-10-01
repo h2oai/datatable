@@ -36,6 +36,7 @@ public:
   Error(PyObject* cls = PyExc_Exception);
   Error(const Error& other);
   Error(Error&& other);
+  Error& operator=(Error&& other);
   virtual ~Error() override {}
 
   Error& operator<<(const std::string&);

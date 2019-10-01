@@ -199,12 +199,8 @@ class ColumnImpl
     virtual void pre_materialize_hook() {}
 
 
-    /**
-     * Check that the data in this ColumnImpl object is correct. `name` is the name of
-     * the column to be used in the diagnostic messages.
-     */
-  public:
-    virtual void verify_integrity(const std::string& name) const;
+    // Check that the data in this ColumnImpl object is correct.
+    virtual void verify_integrity() const;
 
     /**
      * get_stats()
