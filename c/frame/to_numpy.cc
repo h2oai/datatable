@@ -124,7 +124,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
 
     size_t dtsize = ncols * dt->nrows;
     Column mask_col = Column::new_data_column(dtsize, SType::BOOL);
-    int8_t* mask_data = static_cast<int8_t*>(mask_col.get_data_editable());
+    bool* mask_data = static_cast<bool*>(mask_col.get_data_editable());
 
     size_t n_row_chunks = std::max(dt->nrows / 100, size_t(1));
     size_t rows_per_chunk = dt->nrows / n_row_chunks;
@@ -138,13 +138,9 @@ oobj Frame::to_numpy(const PKArgs& args) {
         size_t irow = j - (icol * n_row_chunks);
         size_t row0 = irow * rows_per_chunk;
         size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
-        int8_t* mask_ptr = mask_data + icol * dt->nrows;
+        bool* mask_ptr = mask_data + icol * dt->nrows;
         Column& col = dt->get_column(icol + i0);
-        if (col.na_count()) {
-          col->fill_na_mask(mask_ptr, row0, row1);
-        } else {
-          std::memset(mask_ptr, 0, row1 - row0);
-        }
+        col.fill_npmask(mask_ptr, row0, row1);
       });
 
     DataTable* mask_dt = new DataTable({std::move(mask_col)},

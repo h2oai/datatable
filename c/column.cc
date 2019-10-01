@@ -289,3 +289,8 @@ void Column::sort_grouped(const Groupby& grps) {
 void Column::verify_integrity() const {
   pcol->verify_integrity();
 }
+
+
+void Column::fill_npmask(bool* out_mask, size_t row0, size_t row1) const {
+  pcol->fill_npmask(out_mask, row0, row1);
+}

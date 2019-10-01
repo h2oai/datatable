@@ -291,6 +291,15 @@ class Column
     // using the provided RowIndex.
     void apply_rowindex(const RowIndex&);
 
+    // "npmask" is a boolean array containing of the same length as
+    // the column, the true/false values in this mask indicate whether
+    // each element of the column is NA (true) or not (false).
+    //
+    // This method requires such `out_mask` array to be filled from
+    // `out_mask[row0]` to `out_mask[row1 - 1]`. This method is
+    // single-threaded (it is designed to run from multiple threads).
+    void fill_npmask(bool* out_mask, size_t row0, size_t row1) const;
+
     // Checks internal integrity of the column. An `AssertionError`
     // exception will be raised if the column's data is in an
     // erroneous state.

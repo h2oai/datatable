@@ -213,7 +213,7 @@ class ColumnImpl
      */
     Stats* get_stats_if_exist() const { return stats.get(); }  // REMOVE
 
-    virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1);
+    virtual void fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
   protected:
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
@@ -221,6 +221,9 @@ class ColumnImpl
     template <typename T> ColumnImpl* _materialize_fw();
     ColumnImpl* _materialize_str();
     ColumnImpl* _materialize_obj();
+
+    template <typename T>
+    void _fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
     friend class Column;
     friend class dt::ConstNa_ColumnImpl;
