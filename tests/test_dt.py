@@ -1038,6 +1038,15 @@ def test_tonumpy_with_NAs_view():
     assert a.tolist() == [[2.3], [None], [4.4], [9.8], [None]]
 
 
+@pytest.mark.usefixtures("numpy")
+def test_tonumpy_issue2050():
+    n = 1234
+    DT = dt.Frame(A=[1,2,None,4,5], B=range(5), C=[4, None, None, None, 4], stype=int)
+    DT = dt.repeat(DT[:, ["A", "B", "C"]], n)
+    assert DT.sum().to_list() == [[12*n], [10*n], [8*n]]
+    assert DT.to_numpy().sum() == 30*n
+
+
 
 #-------------------------------------------------------------------------------
 # [0, 0] (conversion to scalar python variable)
