@@ -209,6 +209,16 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Column : data buffers
+//------------------------------------------------------------------------------
+
+bool Column::is_data_editable(size_t k) const {
+  if (k != 0) return false;
+  return pcol->mbuf.is_writable();
+}
+
 const void* Column::get_data_readonly(size_t k) const {
   if (is_virtual()) materialize();
   return k == 0 ? pcol->mbuf.rptr()
@@ -218,6 +228,11 @@ const void* Column::get_data_readonly(size_t k) const {
 void* Column::get_data_editable(size_t) {
   if (is_virtual()) materialize();
   return pcol->mbuf.wptr();
+}
+
+Buffer Column::get_data_buffer(size_t) const {
+  if (is_virtual()) materialize();
+  return pcol->mbuf;
 }
 
 size_t Column::get_data_size(size_t k) const {
@@ -285,7 +300,6 @@ class StrvecColumn : public dt::Virtual_ColumnImpl {
     ColumnImpl* shallowcopy() const override;
     ColumnImpl* materialize() override { return this; }
 
-    void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}
 };
 

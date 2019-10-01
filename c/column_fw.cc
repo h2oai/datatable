@@ -114,23 +114,6 @@ ColumnImpl* FwColumn<T>::materialize() {
 
 
 
-
-template <typename T>
-void FwColumn<T>::apply_na_mask(const Column& mask) {
-  xassert(mask.stype() == SType::BOOL);
-  auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());
-  T* coldata = this->elements_w();
-
-  dt::parallel_for_static(nrows_,
-    [=](size_t i) {
-      if (maskdata[i] == 1) coldata[i] = GETNA<T>();
-    });
-  if (stats != nullptr) stats->reset();
-}
-
-
-
-
 template <typename T>
 void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
   T* data = elements_w();  // This will materialize the column if necessary

@@ -19,55 +19,43 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_SENTINEL_STR_h
-#define dt_COLUMN_SENTINEL_STR_h
-#include "column/sentinel.h"
-// namespace dt {
+#ifndef dt_COLUMN_NPMASKED_h
+#define dt_COLUMN_NPMASKED_h
+#include "column/virtual.h"
+namespace dt {
 
 
-template <typename T>
-class StringColumn : public dt::Sentinel_ColumnImpl
-{
-  Buffer strbuf;
+/**
+  * Virtual column that applies a numpy-style mask on top of
+  * another column. Note that numpy-masks differ from arrow-style
+  * masks in 2 respects:
+  *   - they use 1 byte per value (instead of 1 bit);
+  *   - value "1" in the mask indicates invalid field (in arrow it's
+  *     the other way around: value "1" indicates a valid field).
+  */
+class NpMasked_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column arg_;
+    Buffer mask_;
 
-public:
-  StringColumn();
-  StringColumn(size_t nrows);
-  StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
+  public:
+    NpMasked_ColumnImpl(Column&& arg, Buffer&& mask);
 
-  ColumnImpl* materialize() override;
+    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* materialize() override;
 
-  Buffer str_buf() const { return strbuf; }
-  size_t datasize() const;
-  const char* strdata() const;
-  const uint8_t* ustrdata() const;
-  const T* offsets() const;
-  T* offsets_w();
-  size_t memory_footprint() const override;
-  const void* data2() const override { return strbuf.rptr(); }
-  size_t data2_size() const override {
-    return static_cast<const T*>(mbuf.rptr())[nrows_] & ~GETNA<T>();
-  }
-
-  ColumnImpl* shallowcopy() const override;
-  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
-
-  void verify_integrity(const std::string& name) const override;
-
-  bool get_element(size_t i, CString* out) const override;
-
-protected:
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-
-  friend ColumnImpl;
-  friend Column;
+    bool get_element(size_t, int8_t*)  const override;
+    bool get_element(size_t, int16_t*) const override;
+    bool get_element(size_t, int32_t*) const override;
+    bool get_element(size_t, int64_t*) const override;
+    bool get_element(size_t, float*)   const override;
+    bool get_element(size_t, double*)  const override;
+    bool get_element(size_t, CString*) const override;
+    bool get_element(size_t, py::robj*) const override;
 };
 
 
-extern template class StringColumn<uint32_t>;
-extern template class StringColumn<uint64_t>;
 
 
-
-// }  // namespace dt
+}  // namespace dt
 #endif

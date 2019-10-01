@@ -168,39 +168,6 @@ void StringColumn<T>::replace_values(
 
 
 
-template <typename T>
-void StringColumn<T>::apply_na_mask(const Column& mask) {
-  xassert(mask.stype() == SType::BOOL);
-  auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());
-  char* strdata = static_cast<char*>(strbuf.wptr());
-  T* offsets = this->offsets_w();
-
-  // How much to reduce the offsets1 by due to some strings turning into NAs
-  T doffset = 0;
-  T offp = 0;
-  for (size_t j = 0; j < nrows_; ++j) {
-    T offi = offsets[j];
-    T offa = offi & ~GETNA<T>();
-    if (maskdata[j] == 1) {
-      doffset += offa - offp;
-      offsets[j] = offp ^ GETNA<T>();
-      continue;
-    } else if (doffset) {
-      if (offi == offa) {
-        offsets[j] = offi - doffset;
-        std::memmove(strdata + offp, strdata + offp + doffset,
-                     offi - offp - doffset);
-      } else {
-        offsets[j] = offp ^ GETNA<T>();
-      }
-    }
-    offp = offa;
-  }
-  if (stats) stats->reset();
-}
-
-
-
 //------------------------------------------------------------------------------
 // Explicit instantiation of the template
 //------------------------------------------------------------------------------

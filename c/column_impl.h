@@ -140,13 +140,6 @@ class ColumnImpl
     virtual void apply_rowindex(const RowIndex& ri, Column& out);
 
     /**
-     * Modify the ColumnImpl, replacing values specified by the provided `mask` with
-     * NAs. The `mask` column must have the same number of rows as the current,
-     * and neither of them can have a RowIndex.
-     */
-    virtual void apply_na_mask(const Column& mask);
-
-    /**
      * Create a shallow copy of this ColumnImpl, possibly applying the provided
      * RowIndex. The copy is "shallow" in the sense that the main data buffer
      * is copied by-reference. If this column has a rowindex, and the user

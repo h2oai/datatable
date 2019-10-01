@@ -231,6 +231,7 @@ class Column
     size_t get_data_size(size_t k = 0) const;
     const void* get_data_readonly(size_t k = 0) const;
     void*       get_data_editable(size_t k = 0);
+    Buffer      get_data_buffer(size_t  k = 0) const;
 
 
   //------------------------------------

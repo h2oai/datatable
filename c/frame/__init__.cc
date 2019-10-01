@@ -23,12 +23,13 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "column/npmasked.h"
 #include "python/_all.h"
 #include "python/list.h"
 #include "python/oset.h"
 #include "python/string.h"
 #include "utils/alloc.h"
-#include "column_impl.h"  // TODO: remove
+// #include "column_impl.h"  // TODO: remove
 #include "ztest.h"
 
 namespace py {
@@ -449,9 +450,13 @@ class FrameInitializationManager {
           col_key.replace(1, py::oint(i));
           auto colsrc  = npsrc.get_attr("data").get_item(col_key);
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
-          make_column(colsrc, SType::VOID);
+          Column datacol = Column::from_pybuffer(colsrc);
           Column maskcol = Column::from_pybuffer(masksrc);
-          cols.back()->apply_na_mask(maskcol);
+          check_nrows(datacol.nrows());
+          cols.push_back(Column(
+            new dt::NpMasked_ColumnImpl(std::move(datacol),
+                                        maskcol.get_data_buffer()))
+          );
         }
       } else {
         for (size_t i = 0; i < ncols; ++i) {
@@ -607,16 +612,18 @@ class FrameInitializationManager {
       else {
         throw TypeError() << "Cannot create a column from " << colsrc.typeobj();
       }
+      check_nrows(col.nrows());
       cols.push_back(std::move(col));
-      if (cols.size() > 1) {
-        size_t nrows0 = cols.front().nrows();
-        size_t nrows1 = cols.back().nrows();
-        if (nrows0 != nrows1) {
-          throw ValueError()
-            << "Column " << cols.size() - 1 << " has different number of "
-            << "rows (" << nrows1 << ") than the preceding columns ("
-            << nrows0 << ")";
-        }
+    }
+
+    void check_nrows(size_t nrows) {
+      if (cols.empty()) return;
+      size_t nrows0 = cols.front().nrows();
+      if (nrows0 != nrows) {
+        throw ValueError()
+          << "Column " << cols.size() << " has different number of "
+          << "rows (" << nrows << ") than the preceding columns ("
+          << nrows0 << ")";
       }
     }
 

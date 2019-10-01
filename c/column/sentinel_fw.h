@@ -44,7 +44,6 @@ public:
   virtual ColumnImpl* shallowcopy() const override;
   virtual ColumnImpl* materialize() override;
 
-  void apply_na_mask(const Column& mask) override;
   void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
   void replace_values(const RowIndex& at, T with);
 
