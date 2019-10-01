@@ -133,7 +133,7 @@ Column::operator bool() const noexcept {
 }
 
 size_t Column::memory_footprint() const noexcept {
-  return sizeof(Column) + pcol->memory_footprint();
+  return sizeof(Column) + (pcol? pcol->memory_footprint() : 0);
 }
 
 

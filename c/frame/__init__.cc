@@ -29,7 +29,6 @@
 #include "python/oset.h"
 #include "python/string.h"
 #include "utils/alloc.h"
-// #include "column_impl.h"  // TODO: remove
 #include "ztest.h"
 
 namespace py {
