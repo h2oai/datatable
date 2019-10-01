@@ -162,7 +162,7 @@ static oobj kfold(const PKArgs& args) {
     int64_t b1 = ii*n/k;
     int64_t b2 = (ii+1)*n/k;
     size_t colsize = static_cast<size_t>(b1 + n - b2);
-    Column col = Column::new_data_column(SType::INT32, colsize);
+    Column col = Column::new_data_column(colsize, SType::INT32);
     DataTable* dt = new DataTable({std::move(col)}, DataTable::default_names);
     data.push_back(static_cast<int32_t*>(dt->get_column(0).get_data_editable()));
 
@@ -333,8 +333,8 @@ static oobj kfold_random(const PKArgs& args) {
   olist res(nsplits);
   for (size_t x = 0; x < nsplits; ++x) {
     size_t fold_size = (x + 1) * nrows / nsplits - x * nrows / nsplits;
-    Column col1 = Column::new_data_column(S, nrows - fold_size);
-    Column col2 = Column::new_data_column(S, fold_size);
+    Column col1 = Column::new_data_column(nrows - fold_size, S);
+    Column col2 = Column::new_data_column(fold_size, S);
     DataTable* dt1 = new DataTable({std::move(col1)}, DataTable::default_names);
     DataTable* dt2 = new DataTable({std::move(col2)}, DataTable::default_names);
     oobj train = Frame::oframe(dt1);

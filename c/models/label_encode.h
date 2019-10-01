@@ -40,8 +40,8 @@ dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>,
   using Tfrom = element_t<stype_from>;
   using Tto = element_t<stype_to>;
   size_t nlabels = labels_map.size();
-  Column labels_col = Column::new_data_column(stype_from, nlabels);
-  Column ids_col = Column::new_data_column(stype_to, nlabels);
+  Column labels_col = Column::new_data_column(nlabels, stype_from);
+  Column ids_col = Column::new_data_column(nlabels, stype_to);
 
   auto labels_data = static_cast<Tfrom*>(labels_col.get_data_editable());
   auto ids_data = static_cast<Tto*>(ids_col.get_data_editable());
@@ -62,7 +62,7 @@ dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>,
 template <typename T, SType stype_to>
 dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype_to>>& labels_map) {
   size_t nlabels = labels_map.size();
-  Column ids_col = Column::new_data_column(stype_to, nlabels);
+  Column ids_col = Column::new_data_column(nlabels, stype_to);
   auto ids_data = static_cast<element_t<stype_to>*>(ids_col.get_data_editable());
   dt::writable_string_col c_label_names(nlabels);
   dt::writable_string_col::buffer_impl<T> sb(c_label_names);
@@ -106,7 +106,7 @@ void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   using T_to = element_t<stype_to>;
   const size_t nrows = ocol.nrows();
 
-  Column outcol = Column::new_data_column(stype_to, nrows);
+  Column outcol = Column::new_data_column(nrows, stype_to);
   auto outdata = static_cast<T_to*>(outcol.get_data_editable());
   std::unordered_map<T_from, T_to> labels_map;
   dt::shared_mutex shmutex;
@@ -157,7 +157,7 @@ template <typename U, SType stype_to>
 void label_encode_str(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   using T_to = element_t<stype_to>;
   const size_t nrows = ocol.nrows();
-  Column outcol = Column::new_data_column(stype_to, nrows);
+  Column outcol = Column::new_data_column(nrows, stype_to);
   auto outdata = static_cast<T_to*>(outcol.get_data_editable());
   std::unordered_map<std::string, T_to> labels_map;
   dt::shared_mutex shmutex;

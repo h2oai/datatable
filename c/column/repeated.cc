@@ -43,16 +43,11 @@ bool Repeated_ColumnImpl::is_virtual() const noexcept {
 }
 
 ColumnImpl* Repeated_ColumnImpl::shallowcopy() const {
-  return new Repeated_ColumnImpl(Column(arg), _nrows / mod);
+  return new Repeated_ColumnImpl(Column(arg), nrows_ / mod);
 }
 
-void Repeated_ColumnImpl::repeat(size_t ntimes, bool inplace, Column& out) {
-  if (inplace) {
-    _nrows *= ntimes;
-  }
-  else {
-    out = Column(new Repeated_ColumnImpl(Column(arg), _nrows * ntimes / mod));
-  }
+void Repeated_ColumnImpl::repeat(size_t ntimes, Column&) {
+  nrows_ *= ntimes;
 }
 
 
@@ -72,16 +67,13 @@ bool Repeated_ColumnImpl::get_element(size_t i, py::robj* out) const { return ar
 }  // namespace dt
 
 // This is the base implementation of the virtual
-// `ColumnImpl::repeat()` method. In this implementation the
-// `inplace` flag is ignored, because we cannot make an arbitrary
-// column repeated in-place.
+// `ColumnImpl::repeat()` method.
 //
 // Instead, we replace this object with a `Repeated_ColumnImpl` in
 // general, or with a `Const_ColumnImpl` in a special case when the
 // current column has only 1 row.
 //
-void ColumnImpl::repeat(size_t ntimes, bool inplace, Column& out) {
-  (void) inplace;
+void ColumnImpl::repeat(size_t ntimes, Column& out) {
   if (nrows() == 1) {
     // Note: Const_ColumnImpl overrides the `repeat()` method. If it
     // didn't, we would have had an infinite recursion here...

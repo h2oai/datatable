@@ -19,38 +19,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_NAFILLED_h
-#define dt_COLUMN_NAFILLED_h
+#ifndef dt_COLUMN_SENTINEL_h
+#define dt_COLUMN_SENTINEL_h
 #include <memory>
-#include "column/virtual.h"
+#include "column_impl.h"
 namespace dt {
 
 
 /**
-  * Virtual column representing the `arg` column repeated n times.
+  * Base class for all material columns that use sentinel values
+  * in order to encode NAs.
   */
-class NaFilled_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    size_t arg_nrows;
-    Column arg;
-
+class Sentinel_ColumnImpl : public ColumnImpl
+{
   public:
-    NaFilled_ColumnImpl(Column&&, size_t nrows);
-    ColumnImpl* shallowcopy() const override;
+  	static ColumnImpl* make_column(size_t nrows, SType);
+    static ColumnImpl* make_fw_column(size_t nrows, SType, Buffer&&);
+    static ColumnImpl* make_str_column(size_t nrows, Buffer&&, Buffer&&);
 
-    void na_pad(size_t new_nrows, Column& out) override;
-    void truncate(size_t new_nrows, Column& out) override;
+    bool is_virtual() const noexcept override;
 
-    bool get_element(size_t, int8_t*)   const override;
-    bool get_element(size_t, int16_t*)  const override;
-    bool get_element(size_t, int32_t*)  const override;
-    bool get_element(size_t, int64_t*)  const override;
-    bool get_element(size_t, float*)    const override;
-    bool get_element(size_t, double*)   const override;
-    bool get_element(size_t, CString*)  const override;
-    bool get_element(size_t, py::robj*) const override;
+  protected:
+    Sentinel_ColumnImpl(size_t nrows, SType stype);
 };
-
 
 
 

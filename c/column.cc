@@ -6,6 +6,9 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cstdlib>     // atoll
+#include "column/const.h"
+#include "column/sentinel.h"
+#include "column/virtual.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/assert.h"
@@ -19,82 +22,33 @@
 
 
 
-
-
-
-Column Column::new_data_column(SType stype, size_t nrows) {
-  ColumnImpl* col = ColumnImpl::new_impl(stype);
-  col->_nrows = nrows;
-  col->init_data();
-  return Column(col);
+Column Column::new_data_column(size_t nrows, SType stype) {
+  return Column(dt::Sentinel_ColumnImpl::make_column(nrows, stype));
 }
 
 
-// TODO: create a special "NA" column instead
-Column Column::new_na_column(SType stype, size_t nrows) {
-  Column col = Column::new_data_column(stype, nrows);
-  col->fill_na();
-  return col;
+Column Column::new_na_column(size_t nrows, SType stype) {
+  return Column(new dt::ConstNa_ColumnImpl(nrows, stype));
 }
 
 
-Column Column::new_mbuf_column(SType stype, Buffer&& mbuf) {
-  size_t elemsize = info(stype).elemsize();
-  ColumnImpl* col = ColumnImpl::new_impl(stype);
-  xassert(mbuf.size() % elemsize == 0);
-  if (stype == SType::OBJ) {
-    xassert(mbuf.is_pyobjects() || !mbuf.is_writable());
-  }
-  col->_nrows = mbuf.size() / elemsize;
-  col->mbuf = std::move(mbuf);
-  return Column(col);
-}
-
-
-static Buffer _recode_offsets_to_u64(const Buffer& offsets) {
-  // TODO: make this parallel
-  Buffer off64 = Buffer::mem(offsets.size() * 2);
-  auto data64 = static_cast<uint64_t*>(off64.xptr());
-  auto data32 = static_cast<const uint32_t*>(offsets.rptr());
-  data64[0] = 0;
-  uint64_t curr_offset = 0;
-  size_t n = offsets.size() / sizeof(uint32_t) - 1;
-  for (size_t i = 1; i <= n; ++i) {
-    uint32_t len = data32[i] - data32[i - 1];
-    if (len == GETNA<uint32_t>()) {
-      data64[i] = curr_offset ^ GETNA<uint64_t>();
-    } else {
-      curr_offset += len & ~GETNA<uint32_t>();
-      data64[i] = curr_offset;
-    }
-  }
-  return off64;
+Column Column::new_mbuf_column(size_t nrows, SType stype, Buffer&& mbuf) {
+  return Column(dt::Sentinel_ColumnImpl::make_fw_column(
+                    nrows, stype, std::move(mbuf)));
 }
 
 
 Column Column::new_string_column(
-    size_t n, Buffer&& data, Buffer&& str)
+    size_t nrows, Buffer&& data, Buffer&& str)
 {
-  size_t data_size = data.size();
-  size_t strb_size = str.size();
-
-  if (data_size == sizeof(uint32_t) * (n + 1)) {
-    if (strb_size <= Column::MAX_ARR32_SIZE &&
-        n <= Column::MAX_ARR32_SIZE) {
-      return Column(new StringColumn<uint32_t>(n, std::move(data), std::move(str)));
-    }
-    // Otherwise, offsets need to be recoded into a uint64_t array
-    data = _recode_offsets_to_u64(data);
-  }
-  return Column(new StringColumn<uint64_t>(n, std::move(data), std::move(str)));
+  return Column(dt::Sentinel_ColumnImpl::make_str_column(
+                      nrows, std::move(data), std::move(str)));
 }
 
 
 
-
-
 //------------------------------------------------------------------------------
-// Column
+// Column constructors
 //------------------------------------------------------------------------------
 
 void swap(Column& lhs, Column& rhs) {
@@ -145,7 +99,7 @@ ColumnImpl* Column::release() noexcept {
 //---- Properties ----------------------
 
 size_t Column::nrows() const noexcept {
-  return pcol->_nrows;
+  return pcol->nrows_;
 }
 
 size_t Column::na_count() const {
@@ -153,15 +107,15 @@ size_t Column::na_count() const {
 }
 
 SType Column::stype() const noexcept {
-  return pcol->_stype;
+  return pcol->stype_;
 }
 
 LType Column::ltype() const noexcept {
-  return info(pcol->_stype).ltype();
+  return info(pcol->stype_).ltype();
 }
 
 bool Column::is_fixedwidth() const noexcept {
-  return !info(pcol->_stype).is_varwidth();
+  return !info(pcol->stype_).is_varwidth();
 }
 
 bool Column::is_virtual() const noexcept {
@@ -169,7 +123,7 @@ bool Column::is_virtual() const noexcept {
 }
 
 size_t Column::elemsize() const noexcept {
-  return info(pcol->_stype).elemsize();
+  return info(pcol->stype_).elemsize();
 }
 
 Column::operator bool() const noexcept {
@@ -292,8 +246,7 @@ void Column::replace_values(const RowIndex& replace_at,
 
 
 void Column::repeat(size_t ntimes) {
-  bool inplace = true;  // && pcol->use_count() == 1
-  pcol->repeat(ntimes, inplace, *this);
+  pcol->repeat(ntimes, *this);
 }
 
 void Column::apply_rowindex(const RowIndex& ri) {
@@ -302,32 +255,15 @@ void Column::apply_rowindex(const RowIndex& ri) {
 }
 
 void Column::resize(size_t new_nrows) {
-  bool inplace = true;
   size_t curr_nrows = nrows();
-  if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, inplace, *this);
-  if (new_nrows < curr_nrows) pcol->truncate(new_nrows, inplace, *this);
+  if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, *this);
+  if (new_nrows < curr_nrows) pcol->truncate(new_nrows, *this);
 }
 
 
 void Column::sort_grouped(const Groupby& grps) {
-  bool inplace = true;
-  pcol->sort_grouped(grps, inplace, *this);
+  pcol->sort_grouped(grps, *this);
 }
-
-
-
-//==============================================================================
-// VoidColumn
-//==============================================================================
-
-VoidColumn::VoidColumn() : ColumnImpl(0, SType::VOID) {}
-VoidColumn::VoidColumn(size_t nrows) : ColumnImpl(nrows, SType::VOID) {}
-size_t VoidColumn::data_nrows() const { return _nrows; }
-ColumnImpl* VoidColumn::materialize() { return this; }
-void VoidColumn::apply_na_mask(const Column&) {}
-void VoidColumn::replace_values(Column&, const RowIndex&, const Column&) {}
-void VoidColumn::init_data() {}
-void VoidColumn::fill_na() {}
 
 
 
@@ -339,7 +275,7 @@ void VoidColumn::fill_na() {}
 // Note: this class stores strvec by reference; therefore the lifetime
 // of the column may not exceed the lifetime of the string vector.
 //
-class StrvecColumn : public ColumnImpl {
+class StrvecColumn : public dt::Virtual_ColumnImpl {
   private:
     const strvec& vec;
 
@@ -347,17 +283,14 @@ class StrvecColumn : public ColumnImpl {
     StrvecColumn(const strvec& v);
     bool get_element(size_t i, CString* out) const override;
     ColumnImpl* shallowcopy() const override;
-
-    size_t data_nrows() const override { return _nrows; }
     ColumnImpl* materialize() override { return this; }
+
     void apply_na_mask(const Column&) override {}
     void replace_values(Column&, const RowIndex&, const Column&) override {}
-    void init_data() override {}
-    void fill_na() override {}
 };
 
 StrvecColumn::StrvecColumn(const strvec& v)
-  : ColumnImpl(v.size(), SType::STR32), vec(v) {}
+  : Virtual_ColumnImpl(v.size(), SType::STR32), vec(v) {}
 
 bool StrvecColumn::get_element(size_t i, CString* out) const {
   out->ch = vec[i].c_str();

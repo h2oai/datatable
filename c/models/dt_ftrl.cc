@@ -844,7 +844,7 @@ void Ftrl<T>::create_model() {
   cols.reserve(ncols);
   constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
   for (size_t i = 0; i < ncols; ++i) {
-    cols.push_back(Column::new_data_column(stype, nbins));
+    cols.push_back(Column::new_data_column(nbins, stype));
   }
   dt_model = dtptr(new DataTable(std::move(cols), DataTable::default_names));
   init_model();
@@ -879,7 +879,7 @@ void Ftrl<T>::adjust_model() {
   // } else
   {
     constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
-    Column col = Column::new_data_column(stype, nbins);
+    Column col = Column::new_data_column(nbins, stype);
     auto data = static_cast<T*>(col.get_data_editable());
     std::memset(data, 0, nbins * sizeof(T));
     newcol0 = col;
@@ -919,7 +919,7 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
   cols.reserve(nlabels);
   constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
   for (size_t i = 0; i < nlabels; ++i) {
-    cols.push_back(Column::new_data_column(stype, nrows));
+    cols.push_back(Column::new_data_column(nrows, stype));
   }
 
   // dtptr dt_p = dtptr(new DataTable(std::move(cols), labels));
@@ -1015,7 +1015,7 @@ void Ftrl<T>::create_fi() {
   sb.commit_and_start_new_chunk(nfeatures);
 
   constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
-  Column c_fi_values = Column::new_data_column(stype, nfeatures);
+  Column c_fi_values = Column::new_data_column(nfeatures, stype);
   dt_fi = dtptr(new DataTable({std::move(c_fi_names).to_ocolumn(), std::move(c_fi_values)},
                               {"feature_name", "feature_importance"})
                              );

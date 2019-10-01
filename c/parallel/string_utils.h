@@ -48,7 +48,7 @@ Column map_str2str(const Column& input_col, F f) {
   bool use_str64 = (input_col.stype() == SType::STR64);
   size_t nrows = input_col.nrows();
   if (nrows == 0) {
-    return Column::new_data_column(input_col.stype(), 0);
+    return Column::new_data_column(0, input_col.stype());
   }
   writable_string_col output_col(nrows, use_str64);
 

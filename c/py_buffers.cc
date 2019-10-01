@@ -112,7 +112,7 @@ Column Column::from_pybuffer(const py::robj& pyobj)
     }
 
     void* ptr = pview->buf;
-    res = Column::new_mbuf_column(stype,
+    res = Column::new_mbuf_column(nrows * stride_len, stype,
               Buffer::external(ptr, buffer_len * stride_len, std::move(pview))
           );
     if (strided) {
@@ -203,7 +203,7 @@ static void try_to_resolve_object_column(Column& col)
       PyObject* v = data[i];
       out[i] = v == Py_True? 1 : v == Py_False? 0 : GETNA<int8_t>();
     }
-    col = Column::new_mbuf_column(SType::BOOL, std::move(mbuf));
+    col = Column::new_mbuf_column(nrows, SType::BOOL, std::move(mbuf));
   }
 
   // All values were strings

@@ -34,32 +34,24 @@ NaFilled_ColumnImpl::NaFilled_ColumnImpl(Column&& col, size_t nrows)
 
 
 ColumnImpl* NaFilled_ColumnImpl::shallowcopy() const {
-  return new NaFilled_ColumnImpl(Column(arg), _nrows);
+  return new NaFilled_ColumnImpl(Column(arg), nrows_);
 }
 
 
-void NaFilled_ColumnImpl::na_pad(size_t new_nrows, bool inplace, Column& out) {
-  xassert(new_nrows >= _nrows);
-  if (inplace) {
-    _nrows = new_nrows;
-  }
-  else {
-    out = Column(new NaFilled_ColumnImpl(Column(arg), new_nrows));
-  }
+void NaFilled_ColumnImpl::na_pad(size_t new_nrows, Column&) {
+  xassert(new_nrows >= nrows_);
+  nrows_ = new_nrows;
 }
 
-void NaFilled_ColumnImpl::truncate(size_t new_nrows, bool inplace, Column& out)
+void NaFilled_ColumnImpl::truncate(size_t new_nrows, Column& out)
 {
-  xassert(new_nrows < _nrows);
+  xassert(new_nrows < nrows_);
   if (new_nrows < arg_nrows) {
     arg.resize(new_nrows);
     out = std::move(arg);
   }
-  else if (inplace) {
-    _nrows = new_nrows;
-  }
   else {
-    out = Column(new NaFilled_ColumnImpl(Column(arg), new_nrows));
+    nrows_ = new_nrows;
   }
 }
 

@@ -123,7 +123,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
     size_t i0 = one_col? force_col : 0;
 
     size_t dtsize = ncols * dt->nrows;
-    Column mask_col = Column::new_data_column(SType::BOOL, dtsize);
+    Column mask_col = Column::new_data_column(dtsize, SType::BOOL);
     int8_t* mask_data = static_cast<int8_t*>(mask_col.get_data_editable());
 
     size_t n_row_chunks = std::max(dt->nrows / 100, size_t(1));

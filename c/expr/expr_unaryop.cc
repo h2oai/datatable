@@ -76,7 +76,7 @@ class unary_vcol : public Virtual_ColumnImpl {
         func(f) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new unary_vcol<TI, TO>(Column(arg), _stype, func);
+      return new unary_vcol<TI, TO>(Column(arg), stype_, func);
     }
 
     bool get_element(size_t i, TO* out) const override {
@@ -103,7 +103,7 @@ class unary_vcol<TI, int8_t> : public Virtual_ColumnImpl {
         func(f) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new unary_vcol<TI, int8_t>(Column(arg), _stype, func);
+      return new unary_vcol<TI, int8_t>(Column(arg), stype_, func);
     }
 
     bool get_element(size_t i, int8_t* out) const override {
@@ -301,7 +301,7 @@ Column expr_unaryop::evaluate(EvalContext& ctx) {
 
   size_t nrows = input_column.nrows();
   const void* inp =  input_column.get_data_readonly();
-  Column output_column = Column::new_data_column(ui.output_stype, nrows);
+  Column output_column = Column::new_data_column(nrows, ui.output_stype);
   void* out = output_column.get_data_editable();
 
   ui.vectorfn(nrows, inp, out);

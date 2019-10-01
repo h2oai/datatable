@@ -3,8 +3,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
+#include "column/sentinel_str.h"
 #include "parallel/api.h"           // dt::parallel_for_static
 #include "parallel/string_utils.h"  // dt::map_str2str
 #include "python/string.h"
@@ -25,7 +26,7 @@ template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 // but leaving string buffer empty (and not allocated).
 template <typename T>
 StringColumn<T>::StringColumn(size_t n)
-  : ColumnImpl(n, stype_for<T>())
+  : Sentinel_ColumnImpl(n, stype_for<T>())
 {
   mbuf = Buffer::mem(sizeof(T) * (n + 1));
   mbuf.set_element<T>(0, 0);
@@ -35,13 +36,13 @@ StringColumn<T>::StringColumn(size_t n)
 // private use only
 template <typename T>
 StringColumn<T>::StringColumn()
-  : ColumnImpl(0, stype_for<T>())  {}
+  : Sentinel_ColumnImpl(0, stype_for<T>())  {}
 
 
 // private: use `new_string_column(n, &&mb, &&sb)` instead
 template <typename T>
 StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
-  : ColumnImpl(n, stype_for<T>())
+  : Sentinel_ColumnImpl(n, stype_for<T>())
 {
   xassert(mb);
   xassert(mb.size() >= sizeof(T) * (n + 1));
@@ -60,18 +61,8 @@ StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
 //==============================================================================
 
 template <typename T>
-void StringColumn<T>::init_data() {
-  mbuf = Buffer::mem((_nrows + 1) * sizeof(T));
-  mbuf.set_element<T>(0, 0);
-}
-
-
-
-//==============================================================================
-
-template <typename T>
 ColumnImpl* StringColumn<T>::shallowcopy() const {
-  return new StringColumn<T>(_nrows, Buffer(mbuf), Buffer(strbuf));
+  return new StringColumn<T>(nrows_, Buffer(mbuf), Buffer(strbuf));
 }
 
 
@@ -94,11 +85,6 @@ size_t StringColumn<T>::datasize() const{
   return static_cast<size_t>(end[-1] & ~GETNA<T>());
 }
 
-template <typename T>
-size_t StringColumn<T>::data_nrows() const {
-  // `mbuf` always contains one more element than the number of rows
-  return mbuf.size() / sizeof(T) - 1;
-}
 
 template <typename T>
 const char* StringColumn<T>::strdata() const {
@@ -135,7 +121,7 @@ void StringColumn<T>::replace_values(
   Column with;
   if (replace_with) {
     with = replace_with;  // copy
-    if (with.stype() != _stype) with = with.cast(_stype);
+    if (with.stype() != stype_) with = with.cast(stype_);
   }
 
   if (!with || with.nrows() == 1) {
@@ -144,7 +130,7 @@ void StringColumn<T>::replace_values(
       bool isvalid = with.get_element(0, &repl_value);
       if (!isvalid) repl_value = CString();
     }
-    Buffer mask = replace_at.as_boolean_mask(_nrows);
+    Buffer mask = replace_at.as_boolean_mask(nrows_);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
@@ -152,7 +138,7 @@ void StringColumn<T>::replace_values(
       });
   }
   else {
-    Buffer mask = replace_at.as_integer_mask(_nrows);
+    Buffer mask = replace_at.as_integer_mask(nrows_);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
@@ -172,7 +158,7 @@ void StringColumn<T>::replace_values(
   }
 
   xassert(rescol);
-  if (rescol.stype() != _stype) {
+  if (rescol.stype() != stype_) {
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
@@ -185,14 +171,14 @@ void StringColumn<T>::replace_values(
 template <typename T>
 void StringColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
-  auto maskdata = static_cast<const int8_t*>(mask->data());
+  auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());
   char* strdata = static_cast<char*>(strbuf.wptr());
   T* offsets = this->offsets_w();
 
   // How much to reduce the offsets1 by due to some strings turning into NAs
   T doffset = 0;
   T offp = 0;
-  for (size_t j = 0; j < _nrows; ++j) {
+  for (size_t j = 0; j < nrows_; ++j) {
     T offi = offsets[j];
     T offa = offi & ~GETNA<T>();
     if (maskdata[j] == 1) {
@@ -212,24 +198,6 @@ void StringColumn<T>::apply_na_mask(const Column& mask) {
   }
   if (stats) stats->reset();
 }
-
-template <typename T>
-void StringColumn<T>::fill_na() {
-  // Perform a mini materialize (the actual `materialize` method will copy string and offset
-  // data, both of which are extraneous for this method)
-  strbuf.resize(0);
-  size_t new_mbuf_size = sizeof(T) * (_nrows + 1);
-  mbuf.resize(new_mbuf_size, /* keep_data = */ false);
-  T* off_data = offsets_w();
-  off_data[-1] = 0;
-
-  dt::parallel_for_static(_nrows,
-    [=](size_t i){
-      off_data[i] = GETNA<T>();
-    });
-}
-
-
 
 
 

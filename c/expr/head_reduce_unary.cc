@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <unordered_map>
 #include "column/latent.h"
+#include "column/virtual.h"
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
 #include "expr/workframe.h"
@@ -53,7 +54,7 @@ using maker_fn = Column(*)(Column&&, const Groupby&);
 // U - type of output elements from this column
 //
 template <typename T, typename U>
-class Reduced_ColumnImpl : public ColumnImpl {
+class Reduced_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg;
     Groupby groupby;
@@ -62,13 +63,13 @@ class Reduced_ColumnImpl : public ColumnImpl {
   public:
     Reduced_ColumnImpl(SType stype, Column&& col, const Groupby& grpby,
                        reducer_fn<U> fn)
-      : ColumnImpl(grpby.size(), stype),
+      : Virtual_ColumnImpl(grpby.size(), stype),
         arg(std::move(col)),
         groupby(grpby),
         reducer(fn) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new Reduced_ColumnImpl<T, U>(_stype, Column(arg), groupby,
+      return new Reduced_ColumnImpl<T, U>(stype_, Column(arg), groupby,
                                           reducer);
     }
 
@@ -87,14 +88,14 @@ class Reduced_ColumnImpl : public ColumnImpl {
 //------------------------------------------------------------------------------
 
 template <bool FIRST>
-class FirstLast_ColumnImpl : public ColumnImpl {
+class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg;
     Groupby groupby;
 
   public:
     FirstLast_ColumnImpl(Column&& col, const Groupby& grpby)
-      : ColumnImpl(grpby.size(), col.stype()),
+      : Virtual_ColumnImpl(grpby.size(), col.stype()),
         arg(std::move(col)),
         groupby(grpby) {}
 
@@ -126,7 +127,7 @@ class FirstLast_ColumnImpl : public ColumnImpl {
 template <bool FIRST>
 static Column compute_firstlast(Column&& arg, const Groupby& gby) {
   if (arg.nrows() == 0) {
-    return Column::new_na_column(arg.stype(), 1);
+    return Column::new_na_column(1, arg.stype());
   }
   else {
     return Column(new FirstLast_ColumnImpl<FIRST>(std::move(arg), gby));
@@ -330,14 +331,14 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 
 template <typename T, typename U>
-class Median_ColumnImpl : public ColumnImpl {
+class Median_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg;
     Groupby groupby;
 
   public:
     Median_ColumnImpl(Column&& col, const Groupby& grpby)
-      : ColumnImpl(grpby.size(), stype_from<U>()),
+      : Virtual_ColumnImpl(grpby.size(), stype_from<U>()),
         arg(std::move(col)),
         groupby(grpby) {}
 
@@ -389,7 +390,7 @@ static Column _median(Column&& arg, const Groupby& gby) {
 
 static Column compute_median(Column&& arg, const Groupby& gby) {
   if (arg.nrows() == 0) {
-    return Column::new_na_column(arg.stype(), 1);
+    return Column::new_na_column(1, arg.stype());
   }
   switch (arg.stype()) {
     case SType::BOOL:

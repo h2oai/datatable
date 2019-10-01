@@ -81,7 +81,7 @@ static ReducerLibrary library;
 static Column reduce_first(const Column& col, const Groupby& groupby)
 {
   if (col.nrows() == 0) {
-    return Column::new_data_column(col.stype(), 0);
+    return Column::new_data_column(0, col.stype());
   }
   size_t ngrps = groupby.ngroups();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the
@@ -328,7 +328,7 @@ Column expr_reduce1::evaluate(EvalContext& ctx)
   xassert(reducer);  // checked in .resolve()
 
   SType out_stype = reducer->output_stype;
-  auto res = Column::new_data_column(out_stype, out_nrows);
+  auto res = Column::new_data_column(out_nrows, out_stype);
   void* output = res.get_data_editable();
 
   if (out_nrows == 1) {
@@ -375,13 +375,13 @@ Column expr_reduce0::evaluate(EvalContext& ctx) {
       const Groupby& grpby = ctx.get_groupby();
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
-      res = Column::new_data_column(SType::INT32, ng);
+      res = Column::new_data_column(ng, SType::INT32);
       auto d_res = static_cast<int32_t*>(res.get_data_editable());
       for (size_t i = 0; i < ng; ++i) {
         d_res[i] = offsets[i + 1] - offsets[i];
       }
     } else {
-      res = Column::new_data_column(SType::INT64, 1);
+      res = Column::new_data_column(1, SType::INT64);
       auto d_res = static_cast<int64_t*>(res.get_data_editable());
       d_res[0] = static_cast<int64_t>(ctx.nrows());
     }

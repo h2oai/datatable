@@ -541,15 +541,15 @@ static Column ocolumn_from_iterable(const iterable* il, int stype0)
       stype = next_stype;
     }
   }
+  size_t nrows = il->size();
   if (stype == SType::STR32 || stype == SType::STR64) {
-    size_t nrows = il->size();
     return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }
   else {
     if (stype == SType::OBJ) {
       membuf.set_pyobjects(/* clear_data = */ false);
     }
-    return Column::new_mbuf_column(stype, std::move(membuf));
+    return Column::new_mbuf_column(nrows, stype, std::move(membuf));
   }
 }
 

@@ -27,52 +27,6 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// ConstNa_ColumnImpl
-//------------------------------------------------------------------------------
-
-class ConstNa_ColumnImpl : public Const_ColumnImpl {
-  public:
-    ConstNa_ColumnImpl(size_t nrows, SType stype = SType::VOID)
-      : Const_ColumnImpl(nrows, stype) {}
-
-    bool get_element(size_t, int8_t*)   const override { return false; }
-    bool get_element(size_t, int16_t*)  const override { return false; }
-    bool get_element(size_t, int32_t*)  const override { return false; }
-    bool get_element(size_t, int64_t*)  const override { return false; }
-    bool get_element(size_t, float*)    const override { return false; }
-    bool get_element(size_t, double*)   const override { return false; }
-    bool get_element(size_t, CString*)  const override { return false; }
-    bool get_element(size_t, py::robj*) const override { return false; }
-
-    // TODO: override cast()
-
-    ColumnImpl* shallowcopy() const override {
-      return new ConstNa_ColumnImpl(_nrows, _stype);
-    }
-
-    // VOID column materializes into BOOL stype
-    ColumnImpl* materialize() override {
-      ColumnImpl* out = ColumnImpl::new_impl(SType::BOOL);
-      out->_nrows = _nrows;
-      out->init_data();
-      out->fill_na();
-      return out;
-    }
-
-    void na_pad(size_t nrows, bool inplace, Column& out) override {
-      if (inplace) {
-        _nrows = nrows;
-      }
-      else {
-        out = Column(new ConstNa_ColumnImpl(nrows));
-      }
-    }
-};
-
-
-
-
-//------------------------------------------------------------------------------
 // ConstInt_ColumnImpl
 //------------------------------------------------------------------------------
 
@@ -98,7 +52,7 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
         value(x) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstInt_ColumnImpl(_nrows, value, _stype);
+      return new ConstInt_ColumnImpl(nrows_, value, stype_);
     }
 
     bool get_element(size_t, int8_t* out) const override {
@@ -173,7 +127,7 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstFloat_ColumnImpl(_nrows, value, _stype);
+      return new ConstFloat_ColumnImpl(nrows_, value, stype_);
     }
 
     bool get_element(size_t, float* out) const override {
@@ -212,7 +166,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
         value(std::move(x)) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstString_ColumnImpl(_nrows, value, _stype);
+      return new ConstString_ColumnImpl(nrows_, value, stype_);
     }
 
     bool get_element(size_t, CString* out) const override {
@@ -278,15 +232,8 @@ Column Const_ColumnImpl::from_1row_column(const Column& col) {
 
 
 
-void Const_ColumnImpl::repeat(size_t ntimes, bool inplace, Column& out) {
-  if (inplace) {
-    _nrows *= ntimes;
-  }
-  else {
-    ColumnImpl* newimpl = this->shallowcopy();
-    newimpl->repeat(ntimes, true, out);
-    out = Column(newimpl);
-  }
+void Const_ColumnImpl::repeat(size_t ntimes, Column&) {
+  nrows_ *= ntimes;
 }
 
 

@@ -704,8 +704,8 @@ namespace dttest {
 
   void cover_names_integrity_checks() {
     DataTable* dt = new DataTable({
-                        Column::new_data_column(SType::INT32, 1),
-                        Column::new_data_column(SType::FLOAT64, 1)
+                        Column::new_data_column(1, SType::INT32),
+                        Column::new_data_column(1, SType::FLOAT64)
                     });
 
     auto check1 = [dt]() { dt->_integrity_check_names(); };

@@ -1424,8 +1424,7 @@ RowIndex Column::sort(Groupby* out_grps) const {
 }
 
 
-void ColumnImpl::sort_grouped(const Groupby& grps, bool inplace, Column& out) {
-  (void) inplace;
+void ColumnImpl::sort_grouped(const Groupby& grps, Column& out) {
   (void) out.stats();
   SortContext sc(nrows(), RowIndex(), grps, /* make_groups = */ false);
   sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);
@@ -1435,18 +1434,12 @@ void ColumnImpl::sort_grouped(const Groupby& grps, bool inplace, Column& out) {
 
 template <typename T>
 void dt::ArrayView_ColumnImpl<T>::sort_grouped(
-    const Groupby& grps, bool inplace, Column& out)
+    const Groupby& grps, Column& out)
 {
-  if (inplace) {
-    (void) out.stats();
-    SortContext sc(nrows(), rowindex_container, grps, /*make_groups=*/ false);
-    sc.continue_sort(arg, /*desc=*/ false, /*make_groups=*/ false);
-    set_rowindex(sc.get_result_rowindex());
-  }
-  else {
-    out = Column(this->shallowcopy());
-    out.sort_grouped(grps);
-  }
+  (void) out.stats();
+  SortContext sc(nrows(), rowindex_container, grps, /*make_groups=*/ false);
+  sc.continue_sort(arg, /*desc=*/ false, /*make_groups=*/ false);
+  set_rowindex(sc.get_result_rowindex());
 }
 
 template class dt::ArrayView_ColumnImpl<int32_t>;

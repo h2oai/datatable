@@ -74,7 +74,7 @@ using pimpl = std::unique_ptr<ColumnImpl>;
  *     Raw data buffer, generally it's a plain array of primitive C types
  *     (such as `int32_t` or `double`).
  *
- * _nrows
+ * nrows_
  *     Number of elements in this column. If the ColumnImpl has a rowindex, then
  *     this number will be the same as the number of elements in the rowindex.
  *
@@ -87,14 +87,11 @@ class ColumnImpl
   protected:
     Buffer mbuf;
     mutable std::unique_ptr<Stats> stats;
-    size_t _nrows;
-    SType _stype;
+    size_t nrows_;
+    SType stype_;
     size_t : 56;
 
   public:
-    static ColumnImpl* new_impl(SType);
-    static ColumnImpl* new_impl(SType, size_t nrows);
-    static ColumnImpl* new_impl(void*, SType);
     ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
@@ -112,41 +109,30 @@ class ColumnImpl
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::robj* out) const;
 
-    virtual bool is_virtual() const noexcept { return false; }
+    virtual bool is_virtual() const noexcept = 0;
 
-    size_t nrows() const { return _nrows; }
-    SType stype() const { return _stype; }
-    LType ltype() const { return info(_stype).ltype(); }
+    size_t nrows() const { return nrows_; }
+    SType stype() const { return stype_; }
     const Buffer& data_buf() const { return mbuf; }
-    const void* data() const { return mbuf.rptr(); }
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
-    void* data_w() {
-      xassert(!is_virtual());
-      return mbuf.wptr();
-    }
 
-    virtual size_t data_nrows() const;
     virtual size_t memory_footprint() const;
 
     RowIndex _sort(Groupby* out_groups) const;
-    virtual void sort_grouped(const Groupby&, bool inplace, Column& out);
+    virtual void sort_grouped(const Groupby&, Column& out);
 
     /**
-      * Repeat the column `ntimes` times. Depending on the `inplace`
-      * flag, this method is either allowed to modify the current
-      * object (inplace = true), or it should be treated as const
-      * (inplace = false). If this flag is true, an implementation is
-      * allowed to treat it as if it was false. In either case, if the
-      * implementation creates a new ColumnImpl instance, it should be
-      * stored in the provided `out` column object.
+      * Repeat the column `ntimes` times. The implementation may either
+      * modify the current column (if it can), or otherwise it should
+      * create a new instance and store it in the provided `out` object.
       *
       * Implementation in column/repeated.cc
       */
-    virtual void repeat(size_t ntimes, bool inplace, Column& out);
+    virtual void repeat(size_t ntimes, Column& out);
 
-    virtual void na_pad(size_t new_nrows, bool inplace, Column& out);
-    virtual void truncate(size_t new_nrows, bool inplace, Column& out);
+    virtual void na_pad(size_t new_nrows, Column& out);
+    virtual void truncate(size_t new_nrows, Column& out);
 
     /**
       * Implementation in column/view.cc
@@ -169,17 +155,6 @@ class ColumnImpl
      * and pass the merged rowindex to this method.
      */
     virtual ColumnImpl* shallowcopy() const = 0;
-
-    /**
-     * Factory method to cast the current column into the given `stype`. If a
-     * column is cast into its own stype, a shallow copy is returned. Otherwise,
-     * this method constructs a new column of the provided stype and writes the
-     * converted data into it.
-     *
-     * If the Buffer is provided, then that buffer will be used in the
-     * creation of the resulting column (the ColumnImpl will assume ownership of the
-     * provided Buffer).
-     */
 
     /**
      * Replace values at positions given by the RowIndex `replace_at` with
@@ -229,7 +204,6 @@ class ColumnImpl
   public:
     virtual ColumnImpl* materialize();
     virtual void pre_materialize_hook() {}
-    virtual void materialize_at(void* addr) const;
 
 
     /**
@@ -254,221 +228,16 @@ class ColumnImpl
     virtual void fill_na_mask(int8_t* outmask, size_t row0, size_t row1);
 
   protected:
-    virtual void init_data();
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
-    /**
-     * Sets every row in the column to an NA value. As of now this method
-     * modifies every element in the column's memory buffer regardless of its
-     * refcount or rowindex. Use with caution.
-     * This implementation will be made safer after ColumnImpl::extract is modified
-     * to be an in-place operation.
-     */
-    virtual void fill_na();
+    template <typename T> ColumnImpl* _materialize_fw();
+    ColumnImpl* _materialize_str();
+    ColumnImpl* _materialize_obj();
 
     friend class Column;
     friend class dt::ConstNa_ColumnImpl;
 };
 
-
-
-//==============================================================================
-
-template <typename T> class FwColumn : public ColumnImpl
-{
-public:
-  FwColumn();
-  FwColumn(size_t nrows);
-  FwColumn(size_t nrows, Buffer&&);
-  const T* elements_r() const;
-  T* elements_w();
-  T get_elem(size_t i) const;
-
-  virtual bool get_element(size_t i, T* out) const override;
-  ColumnImpl* shallowcopy() const override;
-
-  size_t data_nrows() const override;
-  void apply_na_mask(const Column& mask) override;
-  virtual ColumnImpl* materialize() override;
-  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
-  void replace_values(const RowIndex& at, T with);
-
-protected:
-  void init_data() override;
-  // static constexpr T na_elem = GETNA<T>();
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-  void fill_na() override;
-
-  friend ColumnImpl;
-};
-
-
-extern template class FwColumn<int8_t>;
-extern template class FwColumn<int16_t>;
-extern template class FwColumn<int32_t>;
-extern template class FwColumn<int64_t>;
-extern template class FwColumn<float>;
-extern template class FwColumn<double>;
-extern template class FwColumn<py::robj>;
-
-
-
-//==============================================================================
-
-class BoolColumn : public FwColumn<int8_t>
-{
-  public:
-    BoolColumn(size_t nrows = 0);
-    BoolColumn(size_t nrows, Buffer&&);
-
-    using FwColumn<int8_t>::get_element;
-    bool get_element(size_t i, int32_t* out) const override;
-
-  protected:
-    void verify_integrity(const std::string& name) const override;
-
-    using ColumnImpl::mbuf;
-    friend ColumnImpl;
-};
-
-
-
-//==============================================================================
-
-template <typename T> class IntColumn : public FwColumn<T>
-{
-  public:
-    using FwColumn<T>::FwColumn;
-
-    using FwColumn<T>::get_element;
-    bool get_element(size_t i, int32_t* out) const override;
-    bool get_element(size_t i, int64_t* out) const override;
-
-  protected:
-    using ColumnImpl::stats;
-    using ColumnImpl::mbuf;
-    friend ColumnImpl;
-};
-
-extern template class IntColumn<int8_t>;
-extern template class IntColumn<int16_t>;
-extern template class IntColumn<int32_t>;
-extern template class IntColumn<int64_t>;
-
-
-
-
-//==============================================================================
-
-/**
- * ColumnImpl containing `PyObject*`s.
- *
- * This column is a fall-back for implementing types that cannot be normally
- * supported by other columns. Manipulations with this column almost invariably
- * go through Python runtime, and hence are single-threaded and slow.
- *
- * The `mbuf` array for this ColumnImpl must be marked as "pyobjects" (see
- * documentation for Buffer). In practice it means that:
- *   * Only real python objects may be stored, not NULL pointers.
- *   * All stored `PyObject*`s must have their reference counts incremented.
- *   * When a value is removed or replaced in `mbuf`, it should be decref'd.
- * The `mbuf`'s API already respects these rules, however the user must also
- * obey them when manipulating the data manually.
- */
-class PyObjectColumn : public FwColumn<py::robj>
-{
-public:
-  PyObjectColumn();
-  PyObjectColumn(size_t nrows);
-  PyObjectColumn(size_t nrows, Buffer&&);
-
-  bool get_element(size_t i, py::robj* out) const override;
-
-protected:
-
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-
-  void fill_na() override;
-  ColumnImpl* materialize() override;
-  void verify_integrity(const std::string& name) const override;
-
-  friend ColumnImpl;
-};
-
-
-
-//==============================================================================
-// String column
-//==============================================================================
-
-template <typename T> class StringColumn : public ColumnImpl
-{
-  Buffer strbuf;
-
-public:
-  StringColumn();
-  StringColumn(size_t nrows);
-
-  ColumnImpl* materialize() override;
-  void apply_na_mask(const Column& mask) override;
-
-  Buffer str_buf() const { return strbuf; }
-  size_t datasize() const;
-  size_t data_nrows() const override;
-  const char* strdata() const;
-  const uint8_t* ustrdata() const;
-  const T* offsets() const;
-  T* offsets_w();
-  size_t memory_footprint() const override;
-  const void* data2() const override { return strbuf.rptr(); }
-  size_t data2_size() const override {
-    return static_cast<const T*>(mbuf.rptr())[_nrows] & ~GETNA<T>();
-  }
-
-  ColumnImpl* shallowcopy() const override;
-  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
-
-  void verify_integrity(const std::string& name) const override;
-
-  bool get_element(size_t i, CString* out) const override;
-
-protected:
-  StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
-  void init_data() override;
-
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-
-  void fill_na() override;
-
-  friend ColumnImpl;
-  friend Column;
-};
-
-
-extern template class StringColumn<uint32_t>;
-extern template class StringColumn<uint64_t>;
-
-
-
-//==============================================================================
-
-// "Fake" column, its only use is to serve as a placeholder for a ColumnImpl with an
-// unknown type. This column cannot be put into a DataTable.
-class VoidColumn : public ColumnImpl {
-  public:
-    VoidColumn();
-    VoidColumn(size_t nrows);
-    size_t data_nrows() const override;
-    ColumnImpl* materialize() override;
-    ColumnImpl* shallowcopy() const override { return new VoidColumn(_nrows); }
-    void apply_na_mask(const Column&) override;
-    void replace_values(Column&, const RowIndex&, const Column&) override;
-  protected:
-    void init_data() override;
-    void fill_na() override;
-
-    friend ColumnImpl;
-};
 
 
 

@@ -109,7 +109,7 @@ static sort_result sort_columns(named_colvec&& ncv) {
     res.column = std::move(ncv.columns[0]);
     res.column.materialize();
   } else {
-    res.column = Column::new_data_column(SType::VOID, 0);
+    res.column = Column::new_na_column(0);
     res.column.rbind(ncv.columns);
   }
   res.ri = res.column.sort(&res.gb);

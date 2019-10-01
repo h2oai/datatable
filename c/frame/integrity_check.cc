@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include "column/sentinel_fw.h"
+#include "column/sentinel_str.h"
 #include "frame/py_frame.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"      // repr_utf8
@@ -167,7 +169,7 @@ void BoolColumn::verify_integrity(const std::string& name) const {
   FwColumn<int8_t>::verify_integrity(name);
 
   // Check that all elements in column are either 0, 1, or NA_I1
-  size_t mbuf_nrows = data_nrows();
+  size_t mbuf_nrows = mbuf.size();
   const int8_t* vals = elements_r();
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
@@ -200,7 +202,7 @@ void StringColumn<T>::verify_integrity(const std::string& name) const {
         << "Offsets section in (string) " << name << " does not start with 0";
   }
 
-  size_t mbuf_nrows = data_nrows();
+  size_t mbuf_nrows = mbuf.size()/sizeof(T) - 1;
   strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
 
   // Check for the validity of each offset
@@ -246,7 +248,7 @@ void PyObjectColumn::verify_integrity(const std::string& name) const {
   }
 
   // Check that all elements are valid pyobjects
-  size_t mbuf_nrows = data_nrows();
+  size_t mbuf_nrows = mbuf.size() / sizeof(PyObject*);
   const py::robj* vals = elements_r();
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     py::robj val = vals[i];

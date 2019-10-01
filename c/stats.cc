@@ -1176,7 +1176,7 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
     case Stat::Min:
     case Stat::Max:
     case Stat::Mode: {
-      switch (column->ltype()) {
+      switch (info(column->stype()).ltype()) {
         case LType::BOOL:
         case LType::INT:  return pywrap_stat<int64_t>(stat);
         case LType::REAL: return pywrap_stat<double>(stat);
@@ -1200,13 +1200,13 @@ template <typename T>
 static Column _make_column(SType stype, T value) {
   Buffer mbuf = Buffer::mem(sizeof(T));
   mbuf.set_element<T>(0, value);
-  Column res = Column::new_mbuf_column(stype, std::move(mbuf));
+  Column res = Column::new_mbuf_column(1, stype, std::move(mbuf));
   xassert(res.nrows() == 1);
   return res;
 }
 
 static Column _make_nacol(SType stype) {
-  return Column::new_na_column(stype, 1);
+  return Column::new_na_column(1, stype);
 }
 
 static Column _make_column_str(CString value) {

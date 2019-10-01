@@ -6,6 +6,7 @@
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
 #include <type_traits>
+#include "column/sentinel_fw.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "parallel/api.h"  // dt::parallel_for_static
@@ -30,12 +31,23 @@ template <> constexpr SType stype_for<double>()  { return SType::FLOAT64; }
  */
 template <typename T>
 FwColumn<T>::FwColumn()
-  : ColumnImpl(0, stype_for<T>()) {}
+  : Sentinel_ColumnImpl(0, stype_for<T>()) {}
+
+
+template <typename T>
+FwColumn<T>::FwColumn(ColumnImpl*&& other)
+  : Sentinel_ColumnImpl(other->nrows(), other->stype())
+{
+  auto fwother = dynamic_cast<FwColumn<T>*>(other);
+  xassert(fwother != nullptr);
+  mbuf = std::move(fwother->mbuf);
+  stats = std::move(fwother->stats);
+}
 
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_)
-  : ColumnImpl(nrows_, stype_for<T>())
+  : Sentinel_ColumnImpl(nrows_, stype_for<T>())
 {
   mbuf.resize(sizeof(T) * nrows_);
 }
@@ -43,11 +55,11 @@ FwColumn<T>::FwColumn(size_t nrows_)
 
 template <typename T>
 FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
-  : ColumnImpl(nrows_, stype_for<T>())
+  : Sentinel_ColumnImpl(nrows_, stype_for<T>())
 {
   size_t req_size = sizeof(T) * nrows_;
   if (mr) {
-    xassert(mr.size() == req_size);
+    xassert(mr.size() >= req_size);
   } else {
     mr.resize(req_size);
   }
@@ -60,29 +72,15 @@ FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
  */
 template <typename T>
 ColumnImpl* FwColumn<T>::shallowcopy() const {
-  ColumnImpl* col = ColumnImpl::new_impl(_stype);
-  auto fwcol = dynamic_cast<FwColumn<T>*>(col);
-  xassert(fwcol);
-  fwcol->_nrows = _nrows;
-  fwcol->mbuf = mbuf;
-  // TODO: also copy Stats object
-  return col;
+  return new FwColumn<T>(nrows_, Buffer(mbuf));
 }
 
 
 
 //==============================================================================
-// Initialization methods
+// Data access
 //==============================================================================
 
-template <typename T>
-void FwColumn<T>::init_data() {
-  mbuf.resize(_nrows * sizeof(T));
-}
-
-
-
-//==============================================================================
 
 template <typename T>
 const T* FwColumn<T>::elements_r() const {
@@ -118,18 +116,12 @@ ColumnImpl* FwColumn<T>::materialize() {
 
 
 template <typename T>
-size_t FwColumn<T>::data_nrows() const {
-  return mbuf.size() / sizeof(T);
-}
-
-
-template <typename T>
 void FwColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
   auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());
   T* coldata = this->elements_w();
 
-  dt::parallel_for_static(_nrows,
+  dt::parallel_for_static(nrows_,
     [=](size_t i) {
       if (maskdata[i] == 1) coldata[i] = GETNA<T>();
     });
@@ -137,14 +129,6 @@ void FwColumn<T>::apply_na_mask(const Column& mask) {
 }
 
 
-template <typename T>
-void FwColumn<T>::fill_na() {
-  T* vals = static_cast<T*>(mbuf.wptr());
-  dt::parallel_for_static(_nrows,
-    [=](size_t i) {
-      vals[i] = GETNA<T>();
-    });
-}
 
 
 template <typename T>
@@ -166,9 +150,9 @@ void FwColumn<T>::replace_values(
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  Column with = (replace_with.stype() == _stype)
+  Column with = (replace_with.stype() == stype_)
                     ? replace_with  // copy
-                    : replace_with.cast(_stype);
+                    : replace_with.cast(stype_);
 
   if (with.nrows() == 1) {
     T replace_value;

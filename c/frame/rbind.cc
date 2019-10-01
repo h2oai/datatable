@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 #include <functional>   // std::function
 #include <numeric>
 #include <unordered_map>
+#include "column/sentinel_fw.h"
+#include "column/sentinel_str.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "utils/assert.h"
@@ -273,7 +275,7 @@ void DataTable::rbind(
 
   columns.reserve(new_ncols);
   for (size_t i = ncols; i < new_ncols; ++i) {
-    columns.push_back(Column::new_data_column(SType::VOID, nrows));
+    columns.push_back(Column::new_na_column(nrows));
   }
 
   size_t new_nrows = this->nrows;
@@ -286,7 +288,7 @@ void DataTable::rbind(
     for (size_t j = 0; j < dts.size(); ++j) {
       size_t k = col_indices[i][j];
       Column col = (k == INVALID_INDEX)
-                      ? Column::new_data_column(SType::VOID, dts[j]->nrows)
+                      ? Column::new_na_column(dts[j]->nrows)
                       : dts[j]->get_column(k);
       cols_to_append[j] = std::move(col);
     }
@@ -322,7 +324,7 @@ void Column::rbind(colvec& columns) {
   // filled with NAs; the current column; or a type-cast of the current column.
   Column newcol;
   if (col_empty) {
-    newcol = Column::new_na_column(new_stype, nrows());
+    newcol = Column::new_na_column(nrows(), new_stype);
   } else if (stype() == new_stype) {
     newcol = std::move(*this);
   } else {
@@ -334,6 +336,7 @@ void Column::rbind(colvec& columns) {
   if (newcol->stats != nullptr) newcol->stats->reset();
 
   // Use the appropriate strategy to continue appending the columns.
+  newcol.materialize();
   newcol->rbind_impl(columns, new_nrows, col_empty);
 
   // Replace current column's impl with the newcol's
@@ -351,7 +354,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
                                  bool col_empty)
 {
   // Determine the size of the memory to allocate
-  size_t old_nrows = _nrows;
+  size_t old_nrows = nrows_;
   size_t new_strbuf_size = 0;     // size of the string data region
   if (!col_empty) {
     new_strbuf_size += strbuf.size();
@@ -360,7 +363,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
     Column& col = columns[i];
     if (col.stype() == SType::VOID) continue;
     if (col.ltype() != LType::STRING) {
-      col = col.cast(_stype);
+      col = col.cast(stype_);
     }
     new_strbuf_size += col.get_data_size(1);
   }
@@ -369,7 +372,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
   // Reallocate the column
   mbuf.resize(new_mbuf_size);
   strbuf.resize(new_strbuf_size);
-  _nrows = new_nrows;
+  nrows_ = new_nrows;
   T* offs = offsets_w();
 
   // Move the original offsets
@@ -440,11 +443,11 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
   const void* naptr = static_cast<const void*>(&na);
 
   // Reallocate the column's data buffer
-  size_t old_nrows = _nrows;
+  size_t old_nrows = nrows_;
   size_t old_alloc_size = sizeof(T) * old_nrows;
   size_t new_alloc_size = sizeof(T) * new_nrows;
   mbuf.resize(new_alloc_size);
-  _nrows = new_nrows;
+  nrows_ = new_nrows;
 
   // Copy the data
   char* resptr = static_cast<char*>(mbuf.wptr());
@@ -464,8 +467,8 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
         resptr += rows_to_fill * sizeof(T);
         rows_to_fill = 0;
       }
-      if (col.stype() != _stype) {
-        col.cast_inplace(_stype);
+      if (col.stype() != stype_) {
+        col.cast_inplace(stype_);
       }
       size_t col_data_size = sizeof(T) * col.nrows();
       std::memcpy(resptr, col.get_data_readonly(), col_data_size);
@@ -489,13 +492,13 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 void PyObjectColumn::rbind_impl(
   colvec& columns, size_t nnrows, bool col_empty)
 {
-  size_t old_nrows = _nrows;
+  size_t old_nrows = nrows_;
   size_t new_nrows = nnrows;
 
   // Reallocate the column's data buffer
   // `resize` fills all new elements with Py_None
   mbuf.resize(sizeof(PyObject*) * new_nrows);
-  _nrows = nnrows;
+  nrows_ = nnrows;
 
   // Copy the data
   PyObject** dest_data = static_cast<PyObject**>(mbuf.wptr());
@@ -508,7 +511,7 @@ void PyObjectColumn::rbind_impl(
       dest_data += col.nrows();
     } else {
       if (col.stype() != SType::OBJ) {
-        col = col.cast(_stype);
+        col = col.cast(stype_);
       }
       auto src_data = static_cast<PyObject* const*>(
                         col.get_data_readonly());
