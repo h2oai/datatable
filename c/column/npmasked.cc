@@ -61,7 +61,7 @@ ColumnImpl* NpMasked_ColumnImpl::materialize() {
       case SType::FLOAT64: _apply_mask(static_cast<double*>(arg_data), mask_data, nrows_); break;
       default: return ColumnImpl::materialize();
     }
-    return arg_.release();
+    return std::move(arg_).release();
   }
   else {
     return ColumnImpl::materialize();

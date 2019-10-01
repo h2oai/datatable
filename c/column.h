@@ -165,9 +165,7 @@ class Column
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 
-    ColumnImpl* operator->() { return pcol; }
-    const ColumnImpl* operator->() const { return pcol; }
-    ColumnImpl* release() noexcept;
+    ColumnImpl* release() && noexcept;
 
   //------------------------------------
   // Element access

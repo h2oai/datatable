@@ -337,7 +337,7 @@ void Column::rbind(colvec& columns) {
 
   // Use the appropriate strategy to continue appending the columns.
   newcol.materialize();
-  newcol->rbind_impl(columns, new_nrows, col_empty);
+  newcol.pcol->rbind_impl(columns, new_nrows, col_empty);
 
   // Replace current column's impl with the newcol's
   std::swap(pcol, newcol.pcol);

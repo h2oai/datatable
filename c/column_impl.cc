@@ -124,13 +124,13 @@ ColumnImpl* ColumnImpl::_materialize_str() {
       [=](size_t, CString& value, dt::string_buf* sb) {
         sb->write(value);
       });
-    inp.release();
-    return rescol.release();
+    std::move(inp).release();
+    return std::move(rescol).release();
   }
   catch (...) {
     // prevent this from being deleted in case materialization
     // fails.
-    inp.release();
+    std::move(inp).release();
     throw;
   }
 }

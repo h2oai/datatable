@@ -88,7 +88,7 @@ Column::~Column() {
 }
 
 
-ColumnImpl* Column::release() noexcept {
+ColumnImpl* Column::release() && noexcept {
   ColumnImpl* tmp = pcol;
   pcol = nullptr;
   return tmp;
