@@ -13,25 +13,25 @@
 
 
 PyObjectColumn::PyObjectColumn() : FwColumn<py::robj>() {
-  _stype = SType::OBJ;
+  stype_ = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<py::robj>(nrows_) {
-  _stype = SType::OBJ;
+  stype_ = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_, Buffer&& mb)
     : FwColumn<py::robj>(nrows_, std::move(mb))
 {
-  _stype = SType::OBJ;
+  stype_ = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ false);
 }
 
 
 ColumnImpl* PyObjectColumn::shallowcopy() const {
-  return new PyObjectColumn(_nrows, Buffer(mbuf));
+  return new PyObjectColumn(nrows_, Buffer(mbuf));
 }
 
 

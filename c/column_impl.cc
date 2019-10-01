@@ -32,8 +32,8 @@
 //------------------------------------------------------------------------------
 
 ColumnImpl::ColumnImpl(size_t nrows, SType stype)
-  : _nrows(nrows),
-    _stype(stype) {}
+  : nrows_(nrows),
+    stype_(stype) {}
 
 ColumnImpl::~ColumnImpl() {}
 
@@ -147,7 +147,7 @@ static void _materialize_str(const ColumnImpl* input_column, ColumnImpl** pout)
 ColumnImpl* ColumnImpl::materialize() {
   const_cast<ColumnImpl*>(this)->pre_materialize_hook();
   ColumnImpl* out = nullptr;
-  switch (_stype) {
+  switch (stype_) {
     case SType::BOOL:
     case SType::INT8:    _materialize_fw<int8_t> (this, &out); break;
     case SType::INT16:   _materialize_fw<int16_t>(this, &out); break;
@@ -160,7 +160,7 @@ ColumnImpl* ColumnImpl::materialize() {
     case SType::OBJ:     _materialize_obj(this, &out); break;
     default:
       throw NotImplError() << "Cannot materialize column of stype `"
-                           << _stype << "`";
+                           << stype_ << "`";
   }
   delete this;
   return out;
@@ -183,7 +183,7 @@ void _fill_na_mask(ColumnImpl* icol, int8_t* outmask, size_t row0, size_t row1)
 }
 
 void ColumnImpl::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
-  switch (_stype) {
+  switch (stype_) {
     case SType::BOOL:
     case SType::INT8:    _fill_na_mask<int8_t> (this, outmask, row0, row1); break;
     case SType::INT16:   _fill_na_mask<int16_t>(this, outmask, row0, row1); break;
@@ -195,7 +195,7 @@ void ColumnImpl::fill_na_mask(int8_t* outmask, size_t row0, size_t row1) {
     case SType::STR64:   _fill_na_mask<CString>(this, outmask, row0, row1); break;
     default:
       throw NotImplError() << "Cannot fill_na_mask() on column of stype `"
-                           << _stype << "`";
+                           << stype_ << "`";
   }
 }
 
@@ -225,5 +225,5 @@ void ColumnImpl::na_pad(size_t new_nrows, Column& out) {
 
 void ColumnImpl::truncate(size_t new_nrows, Column&) {
   xassert(new_nrows < nrows());
-  _nrows = new_nrows;
+  nrows_ = new_nrows;
 }

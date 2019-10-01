@@ -69,7 +69,7 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
         reducer(fn) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new Reduced_ColumnImpl<T, U>(_stype, Column(arg), groupby,
+      return new Reduced_ColumnImpl<T, U>(stype_, Column(arg), groupby,
                                           reducer);
     }
 

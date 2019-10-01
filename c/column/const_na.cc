@@ -44,13 +44,13 @@ bool ConstNa_ColumnImpl::get_element(size_t, py::robj*) const { return false; }
 
 
 ColumnImpl* ConstNa_ColumnImpl::shallowcopy() const {
-  return new ConstNa_ColumnImpl(_nrows, _stype);
+  return new ConstNa_ColumnImpl(nrows_, stype_);
 }
 
 
 void ConstNa_ColumnImpl::na_pad(size_t nrows, Column&) {
-  xassert(nrows >= _nrows);
-  _nrows = nrows;
+  xassert(nrows >= nrows_);
+  nrows_ = nrows;
 }
 
 
@@ -90,20 +90,20 @@ static ColumnImpl* _str_col(size_t nrows) {
 
 
 ColumnImpl* ConstNa_ColumnImpl::materialize() {
-  switch (_stype) {
+  switch (stype_) {
     case SType::VOID:
-    case SType::BOOL:    return _fw_col<int8_t, BoolColumn>(_nrows);
-    case SType::INT8:    return _fw_col<int8_t, IntColumn<int8_t>>(_nrows);
-    case SType::INT16:   return _fw_col<int16_t, IntColumn<int16_t>>(_nrows);
-    case SType::INT32:   return _fw_col<int32_t, IntColumn<int32_t>>(_nrows);
-    case SType::INT64:   return _fw_col<int64_t, IntColumn<int64_t>>(_nrows);
-    case SType::FLOAT32: return _fw_col<float, FwColumn<float>>(_nrows);
-    case SType::FLOAT64: return _fw_col<double, FwColumn<double>>(_nrows);
-    case SType::OBJ:     return _fw_col<PyObject*, PyObjectColumn>(_nrows);
-    case SType::STR32:   return _str_col<uint32_t>(_nrows);
-    case SType::STR64:   return _str_col<uint64_t>(_nrows);
+    case SType::BOOL:    return _fw_col<int8_t, BoolColumn>(nrows_);
+    case SType::INT8:    return _fw_col<int8_t, IntColumn<int8_t>>(nrows_);
+    case SType::INT16:   return _fw_col<int16_t, IntColumn<int16_t>>(nrows_);
+    case SType::INT32:   return _fw_col<int32_t, IntColumn<int32_t>>(nrows_);
+    case SType::INT64:   return _fw_col<int64_t, IntColumn<int64_t>>(nrows_);
+    case SType::FLOAT32: return _fw_col<float, FwColumn<float>>(nrows_);
+    case SType::FLOAT64: return _fw_col<double, FwColumn<double>>(nrows_);
+    case SType::OBJ:     return _fw_col<PyObject*, PyObjectColumn>(nrows_);
+    case SType::STR32:   return _str_col<uint32_t>(nrows_);
+    case SType::STR64:   return _str_col<uint64_t>(nrows_);
     default:
-      throw NotImplError() << "Cannot materialize NaColumn of type " << _stype;
+      throw NotImplError() << "Cannot materialize NaColumn of type " << stype_;
   }
 }
 

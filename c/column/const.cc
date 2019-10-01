@@ -52,7 +52,7 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
         value(x) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstInt_ColumnImpl(_nrows, value, _stype);
+      return new ConstInt_ColumnImpl(nrows_, value, stype_);
     }
 
     bool get_element(size_t, int8_t* out) const override {
@@ -127,7 +127,7 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstFloat_ColumnImpl(_nrows, value, _stype);
+      return new ConstFloat_ColumnImpl(nrows_, value, stype_);
     }
 
     bool get_element(size_t, float* out) const override {
@@ -166,7 +166,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
         value(std::move(x)) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new ConstString_ColumnImpl(_nrows, value, _stype);
+      return new ConstString_ColumnImpl(nrows_, value, stype_);
     }
 
     bool get_element(size_t, CString* out) const override {
@@ -233,7 +233,7 @@ Column Const_ColumnImpl::from_1row_column(const Column& col) {
 
 
 void Const_ColumnImpl::repeat(size_t ntimes, Column&) {
-  _nrows *= ntimes;
+  nrows_ *= ntimes;
 }
 
 

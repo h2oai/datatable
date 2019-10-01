@@ -76,7 +76,7 @@ class unary_vcol : public Virtual_ColumnImpl {
         func(f) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new unary_vcol<TI, TO>(Column(arg), _stype, func);
+      return new unary_vcol<TI, TO>(Column(arg), stype_, func);
     }
 
     bool get_element(size_t i, TO* out) const override {
@@ -103,7 +103,7 @@ class unary_vcol<TI, int8_t> : public Virtual_ColumnImpl {
         func(f) {}
 
     ColumnImpl* shallowcopy() const override {
-      return new unary_vcol<TI, int8_t>(Column(arg), _stype, func);
+      return new unary_vcol<TI, int8_t>(Column(arg), stype_, func);
     }
 
     bool get_element(size_t i, int8_t* out) const override {

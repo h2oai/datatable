@@ -72,7 +72,7 @@ FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
  */
 template <typename T>
 ColumnImpl* FwColumn<T>::shallowcopy() const {
-  return new FwColumn<T>(_nrows, Buffer(mbuf));
+  return new FwColumn<T>(nrows_, Buffer(mbuf));
 }
 
 
@@ -121,7 +121,7 @@ void FwColumn<T>::apply_na_mask(const Column& mask) {
   auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());
   T* coldata = this->elements_w();
 
-  dt::parallel_for_static(_nrows,
+  dt::parallel_for_static(nrows_,
     [=](size_t i) {
       if (maskdata[i] == 1) coldata[i] = GETNA<T>();
     });
@@ -150,9 +150,9 @@ void FwColumn<T>::replace_values(
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  Column with = (replace_with.stype() == _stype)
+  Column with = (replace_with.stype() == stype_)
                     ? replace_with  // copy
-                    : replace_with.cast(_stype);
+                    : replace_with.cast(stype_);
 
   if (with.nrows() == 1) {
     T replace_value;

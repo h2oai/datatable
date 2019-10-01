@@ -13,7 +13,7 @@
 
 template <typename T>
 ColumnImpl* IntColumn<T>::shallowcopy() const {
-  return new IntColumn<T>(this->_nrows, Buffer(mbuf));
+  return new IntColumn<T>(this->nrows_, Buffer(mbuf));
 }
 
 

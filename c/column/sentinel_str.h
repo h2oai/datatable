@@ -47,7 +47,7 @@ public:
   size_t memory_footprint() const override;
   const void* data2() const override { return strbuf.rptr(); }
   size_t data2_size() const override {
-    return static_cast<const T*>(mbuf.rptr())[_nrows] & ~GETNA<T>();
+    return static_cast<const T*>(mbuf.rptr())[nrows_] & ~GETNA<T>();
   }
 
   ColumnImpl* shallowcopy() const override;

@@ -99,7 +99,7 @@ ColumnImpl* Column::release() noexcept {
 //---- Properties ----------------------
 
 size_t Column::nrows() const noexcept {
-  return pcol->_nrows;
+  return pcol->nrows_;
 }
 
 size_t Column::na_count() const {
@@ -107,15 +107,15 @@ size_t Column::na_count() const {
 }
 
 SType Column::stype() const noexcept {
-  return pcol->_stype;
+  return pcol->stype_;
 }
 
 LType Column::ltype() const noexcept {
-  return info(pcol->_stype).ltype();
+  return info(pcol->stype_).ltype();
 }
 
 bool Column::is_fixedwidth() const noexcept {
-  return !info(pcol->_stype).is_varwidth();
+  return !info(pcol->stype_).is_varwidth();
 }
 
 bool Column::is_virtual() const noexcept {
@@ -123,7 +123,7 @@ bool Column::is_virtual() const noexcept {
 }
 
 size_t Column::elemsize() const noexcept {
-  return info(pcol->_stype).elemsize();
+  return info(pcol->stype_).elemsize();
 }
 
 Column::operator bool() const noexcept {

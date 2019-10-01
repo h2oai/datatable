@@ -16,18 +16,18 @@ BoolColumn::BoolColumn(ColumnImpl*&& other)
 
 
 BoolColumn::BoolColumn(size_t nrows) : FwColumn<int8_t>(nrows) {
-  _stype = SType::BOOL;
+  stype_ = SType::BOOL;
 }
 
 
 BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
   : FwColumn<int8_t>(nrows, std::move(mem)) {
-  _stype = SType::BOOL;
+  stype_ = SType::BOOL;
 }
 
 
 ColumnImpl* BoolColumn::shallowcopy() const {
-  return new BoolColumn(_nrows, Buffer(mbuf));
+  return new BoolColumn(nrows_, Buffer(mbuf));
 }
 
 

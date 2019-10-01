@@ -74,7 +74,7 @@ using pimpl = std::unique_ptr<ColumnImpl>;
  *     Raw data buffer, generally it's a plain array of primitive C types
  *     (such as `int32_t` or `double`).
  *
- * _nrows
+ * nrows_
  *     Number of elements in this column. If the ColumnImpl has a rowindex, then
  *     this number will be the same as the number of elements in the rowindex.
  *
@@ -87,8 +87,8 @@ class ColumnImpl
   protected:
     Buffer mbuf;
     mutable std::unique_ptr<Stats> stats;
-    size_t _nrows;
-    SType _stype;
+    size_t nrows_;
+    SType stype_;
     size_t : 56;
 
   public:
@@ -111,9 +111,9 @@ class ColumnImpl
 
     virtual bool is_virtual() const noexcept = 0;
 
-    size_t nrows() const { return _nrows; }
-    SType stype() const { return _stype; }
-    LType ltype() const { return info(_stype).ltype(); }
+    size_t nrows() const { return nrows_; }
+    SType stype() const { return stype_; }
+    LType ltype() const { return info(stype_).ltype(); }
     const Buffer& data_buf() const { return mbuf; }
     const void* data() const { return mbuf.rptr(); }
     virtual const void* data2() const { return nullptr; }

@@ -43,11 +43,11 @@ bool Repeated_ColumnImpl::is_virtual() const noexcept {
 }
 
 ColumnImpl* Repeated_ColumnImpl::shallowcopy() const {
-  return new Repeated_ColumnImpl(Column(arg), _nrows / mod);
+  return new Repeated_ColumnImpl(Column(arg), nrows_ / mod);
 }
 
 void Repeated_ColumnImpl::repeat(size_t ntimes, Column&) {
-  _nrows *= ntimes;
+  nrows_ *= ntimes;
 }
 
 

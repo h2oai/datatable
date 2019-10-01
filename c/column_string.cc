@@ -62,7 +62,7 @@ StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
 
 template <typename T>
 ColumnImpl* StringColumn<T>::shallowcopy() const {
-  return new StringColumn<T>(_nrows, Buffer(mbuf), Buffer(strbuf));
+  return new StringColumn<T>(nrows_, Buffer(mbuf), Buffer(strbuf));
 }
 
 
@@ -121,7 +121,7 @@ void StringColumn<T>::replace_values(
   Column with;
   if (replace_with) {
     with = replace_with;  // copy
-    if (with.stype() != _stype) with = with.cast(_stype);
+    if (with.stype() != stype_) with = with.cast(stype_);
   }
 
   if (!with || with.nrows() == 1) {
@@ -130,7 +130,7 @@ void StringColumn<T>::replace_values(
       bool isvalid = with.get_element(0, &repl_value);
       if (!isvalid) repl_value = CString();
     }
-    Buffer mask = replace_at.as_boolean_mask(_nrows);
+    Buffer mask = replace_at.as_boolean_mask(nrows_);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
@@ -138,7 +138,7 @@ void StringColumn<T>::replace_values(
       });
   }
   else {
-    Buffer mask = replace_at.as_integer_mask(_nrows);
+    Buffer mask = replace_at.as_integer_mask(nrows_);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
     rescol = dt::map_str2str(thiscol,
       [=](size_t i, CString& value, dt::string_buf* sb) {
@@ -158,7 +158,7 @@ void StringColumn<T>::replace_values(
   }
 
   xassert(rescol);
-  if (rescol.stype() != _stype) {
+  if (rescol.stype() != stype_) {
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
@@ -178,7 +178,7 @@ void StringColumn<T>::apply_na_mask(const Column& mask) {
   // How much to reduce the offsets1 by due to some strings turning into NAs
   T doffset = 0;
   T offp = 0;
-  for (size_t j = 0; j < _nrows; ++j) {
+  for (size_t j = 0; j < nrows_; ++j) {
     T offi = offsets[j];
     T offa = offi & ~GETNA<T>();
     if (maskdata[j] == 1) {
