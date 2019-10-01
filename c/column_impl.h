@@ -113,7 +113,6 @@ class ColumnImpl
 
     size_t nrows() const { return nrows_; }
     SType stype() const { return stype_; }
-    const Buffer& data_buf() const { return mbuf; }
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
 
