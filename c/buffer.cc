@@ -171,7 +171,7 @@ class BufferImpl
       throw AssertionError() << "buffer cannot be resized";
     }
 
-    virtual size_t memory_footprint() const = 0;
+    virtual size_t memory_footprint() const noexcept = 0;
 
     virtual void verify_integrity() const {
       if (data_) { XAssert(size_ > 0); }
@@ -229,7 +229,7 @@ class Memory_BufferImpl : public BufferImpl
       size_ = n;
     }
 
-    size_t memory_footprint() const override {
+    size_t memory_footprint() const noexcept override {
       return sizeof(Memory_BufferImpl) + size_;
     }
 
@@ -289,7 +289,7 @@ class External_BufferImpl : public BufferImpl
       }
     }
 
-    size_t memory_footprint() const override {
+    size_t memory_footprint() const noexcept override {
       // All memory is owned externally
       return sizeof(External_BufferImpl);
     }
@@ -337,7 +337,7 @@ class View_BufferImpl : public BufferImpl
       parent_->release_shared();
     }
 
-    size_t memory_footprint() const override {
+    size_t memory_footprint() const noexcept override {
       return sizeof(View_BufferImpl) + size_;
     }
 
@@ -420,7 +420,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
       memmap();
     }
 
-    size_t memory_footprint() const override {
+    size_t memory_footprint() const noexcept override {
       return sizeof(Mmap_BufferImpl) + filename_.size() + (mapped_? size_ : 0);
     }
 
@@ -606,7 +606,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
       #endif
     }
 
-    virtual size_t memory_footprint() const override {
+    virtual size_t memory_footprint() const noexcept override {
       return Mmap_BufferImpl::memory_footprint() - sizeof(Mmap_BufferImpl) +
              xsize_ + sizeof(Overmap_BufferImpl);
     }
@@ -795,7 +795,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
     return impl_->size();
   }
 
-  size_t Buffer::memory_footprint() const {
+  size_t Buffer::memory_footprint() const noexcept {
     return sizeof(Buffer) + impl_->memory_footprint();
   }
 

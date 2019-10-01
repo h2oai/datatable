@@ -96,7 +96,9 @@ ColumnImpl* Column::release() noexcept {
 
 
 
-//---- Properties ----------------------
+//------------------------------------------------------------------------------
+// Properties
+//------------------------------------------------------------------------------
 
 size_t Column::nrows() const noexcept {
   return pcol->nrows_;
@@ -130,6 +132,9 @@ Column::operator bool() const noexcept {
   return (pcol != nullptr);
 }
 
+size_t Column::memory_footprint() const noexcept {
+  return sizeof(Column) + pcol->memory_footprint();
+}
 
 
 

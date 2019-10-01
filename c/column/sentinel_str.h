@@ -43,7 +43,7 @@ public:
   const uint8_t* ustrdata() const;
   const T* offsets() const;
   T* offsets_w();
-  size_t memory_footprint() const override;
+  size_t memory_footprint() const noexcept override;
   const void* data2() const override { return strbuf.rptr(); }
   size_t data2_size() const override {
     return static_cast<const T*>(mbuf.rptr())[nrows_] & ~GETNA<T>();

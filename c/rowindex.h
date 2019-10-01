@@ -185,7 +185,7 @@ class RowIndex {
     template<typename F>
     void iterate(size_t istart, size_t iend, size_t istep, F f) const;
 
-    size_t memory_footprint() const;
+    size_t memory_footprint() const noexcept;
     void verify_integrity() const;
 
   private:

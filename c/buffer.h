@@ -163,7 +163,7 @@ class Buffer
     bool is_writable() const;
     bool is_resizable() const;
     bool is_pyobjects() const;
-    size_t memory_footprint() const;
+    size_t memory_footprint() const noexcept;
 
     // Main data accessors
     //

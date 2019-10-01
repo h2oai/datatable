@@ -116,7 +116,7 @@ class ColumnImpl
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
 
-    virtual size_t memory_footprint() const;
+    virtual size_t memory_footprint() const noexcept;
 
     RowIndex _sort(Groupby* out_groups) const;
     virtual void sort_grouped(const Groupby&, Column& out);

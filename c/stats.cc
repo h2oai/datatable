@@ -80,15 +80,15 @@ void Stats::set_valid(Stat stat, bool isvalid) {
 
 
 template <typename T>
-size_t NumericStats<T>::memory_footprint() const {
+size_t NumericStats<T>::memory_footprint() const noexcept {
   return sizeof(NumericStats<T>);
 }
 
-size_t StringStats::memory_footprint() const {
+size_t StringStats::memory_footprint() const noexcept {
   return sizeof(StringStats);
 }
 
-size_t PyObjectStats::memory_footprint() const {
+size_t PyObjectStats::memory_footprint() const noexcept {
   return sizeof(PyObjectStats);
 }
 

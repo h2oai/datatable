@@ -104,7 +104,7 @@ class DataTable {
     void cbind(const std::vector<DataTable*>&);
     DataTable* copy() const;
     DataTable* extract_column(size_t i) const;
-    size_t memory_footprint() const;
+    size_t memory_footprint() const noexcept;
 
     const Column& get_column(size_t i) const {
       xassert(i < columns.size());

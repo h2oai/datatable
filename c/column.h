@@ -162,7 +162,7 @@ class Column
     size_t elemsize() const noexcept;
     bool   is_fixedwidth() const noexcept;
     bool   is_virtual() const noexcept;
-
+    size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 
     ColumnImpl* operator->() { return pcol; }
