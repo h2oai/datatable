@@ -143,7 +143,6 @@ class Column
     static Column from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
     static Column from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
     static Column from_range(int64_t start, int64_t stop, int64_t step, SType);
-    static Column from_strvec(const strvec&);
 
     // Assumes ownership of the `col` object. This constructor is
     // intended for use by derived `ColumnImpl` classes.
