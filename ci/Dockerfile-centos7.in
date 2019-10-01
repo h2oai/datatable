@@ -17,6 +17,7 @@ RUN \
 
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
+ENV CFLAGS="-std=c99"
 ENV PANDAS_VERSION=0.23.4
 ENV LD_LIBRARY_PATH=/opt/h2oai/dai/lib/:${LD_LIBRARY_PATH}
 
