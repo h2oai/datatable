@@ -113,15 +113,9 @@ class ColumnImpl
 
     size_t nrows() const { return nrows_; }
     SType stype() const { return stype_; }
-    LType ltype() const { return info(stype_).ltype(); }
     const Buffer& data_buf() const { return mbuf; }
-    const void* data() const { return mbuf.rptr(); }
     virtual const void* data2() const { return nullptr; }
     virtual size_t data2_size() const { return 0; }
-    void* data_w() {
-      xassert(!is_virtual());
-      return mbuf.wptr();
-    }
 
     virtual size_t memory_footprint() const;
 
@@ -235,6 +229,10 @@ class ColumnImpl
 
   protected:
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
+
+    template <typename T> ColumnImpl* _materialize_fw();
+    ColumnImpl* _materialize_str();
+    ColumnImpl* _materialize_obj();
 
     friend class Column;
     friend class dt::ConstNa_ColumnImpl;

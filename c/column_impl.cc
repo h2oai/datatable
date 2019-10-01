@@ -78,67 +78,61 @@ bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object")
 //------------------------------------------------------------------------------
 
 template <typename T>
-static void _materialize_fw(const ColumnImpl* input_column, ColumnImpl** pout)
-{
-  size_t inp_nrows = input_column->nrows();
-  SType inp_stype = input_column->stype();
+ColumnImpl* ColumnImpl::_materialize_fw() {
+  size_t inp_nrows = this->nrows();
+  SType inp_stype = this->stype();
   assert_compatible_type<T>(inp_stype);
-  ColumnImpl* output_column = *pout;
-  if (!output_column) {
-    output_column = dt::Sentinel_ColumnImpl::make_column(inp_nrows, inp_stype);
-    *pout = output_column;
-  }
+  ColumnImpl* output_column
+      = dt::Sentinel_ColumnImpl::make_column(inp_nrows, inp_stype);
+  auto out_data = static_cast<T*>(output_column->mbuf.wptr());
 
-  auto out_data = static_cast<T*>(output_column->data_w());
   dt::parallel_for_static(
     inp_nrows,
-    [&](size_t i) {
+    [=](size_t i) {
       T value;
-      bool isvalid = input_column->get_element(i, &value);
-      out_data[i] = isvalid? value : GETNA<T>();  // TODO: store NA separately
+      bool isvalid = this->get_element(i, &value);
+      out_data[i] = isvalid? value : GETNA<T>();
     });
+  return output_column;
 }
 
 
-static void _materialize_obj(const ColumnImpl* input_column, ColumnImpl** pout)
-{
-  size_t inp_nrows = input_column->nrows();
-  SType inp_stype = input_column->stype();
+ColumnImpl* ColumnImpl::_materialize_obj() {
+  size_t inp_nrows = this->nrows();
+  SType inp_stype = this->stype();
   assert_compatible_type<py::robj>(inp_stype);
 
-  ColumnImpl* output_column = *pout;
-  if (!output_column) {
-    output_column = dt::Sentinel_ColumnImpl::make_column(inp_nrows, SType::OBJ);
-    *pout = output_column;
-  }
+  ColumnImpl* output_column
+      = dt::Sentinel_ColumnImpl::make_column(inp_nrows, SType::OBJ);
+  auto out_data = static_cast<py::oobj*>(output_column->mbuf.wptr());
 
   // Writing output array as `py::oobj` will ensure that the elements
   // will be properly INCREF-ed.
-  auto out_data = static_cast<py::oobj*>(output_column->data_w());
   for (size_t i = 0; i < inp_nrows; ++i) {
     py::robj value;
-    bool isvalid = input_column->get_element(i, &value);
+    bool isvalid = this->get_element(i, &value);
     out_data[i] = isvalid? py::oobj(value) : py::None();
   }
+  return output_column;
 }
 
 
-static void _materialize_str(const ColumnImpl* input_column, ColumnImpl** pout)
-{
-  Column inp(const_cast<ColumnImpl*>(input_column));
+ColumnImpl* ColumnImpl::_materialize_str() {
+  Column inp(const_cast<ColumnImpl*>(this));
   try {
     Column rescol = dt::map_str2str(inp,
       [=](size_t, CString& value, dt::string_buf* sb) {
         sb->write(value);
       });
-    *pout = rescol.release();
-  } catch (...) {
-    // prevent input_column from being deleted in case materialization
+    inp.release();
+    return rescol.release();
+  }
+  catch (...) {
+    // prevent this from being deleted in case materialization
     // fails.
     inp.release();
     throw;
   }
-  inp.release();
 }
 
 
@@ -149,15 +143,15 @@ ColumnImpl* ColumnImpl::materialize() {
   ColumnImpl* out = nullptr;
   switch (stype_) {
     case SType::BOOL:
-    case SType::INT8:    _materialize_fw<int8_t> (this, &out); break;
-    case SType::INT16:   _materialize_fw<int16_t>(this, &out); break;
-    case SType::INT32:   _materialize_fw<int32_t>(this, &out); break;
-    case SType::INT64:   _materialize_fw<int64_t>(this, &out); break;
-    case SType::FLOAT32: _materialize_fw<float>  (this, &out); break;
-    case SType::FLOAT64: _materialize_fw<double> (this, &out); break;
+    case SType::INT8:    out = _materialize_fw<int8_t> (); break;
+    case SType::INT16:   out = _materialize_fw<int16_t>(); break;
+    case SType::INT32:   out = _materialize_fw<int32_t>(); break;
+    case SType::INT64:   out = _materialize_fw<int64_t>(); break;
+    case SType::FLOAT32: out = _materialize_fw<float>  (); break;
+    case SType::FLOAT64: out = _materialize_fw<double> (); break;
     case SType::STR32:
-    case SType::STR64:   _materialize_str(this, &out); break;
-    case SType::OBJ:     _materialize_obj(this, &out); break;
+    case SType::STR64:   out = _materialize_str(); break;
+    case SType::OBJ:     out = _materialize_obj(); break;
     default:
       throw NotImplError() << "Cannot materialize column of stype `"
                            << stype_ << "`";

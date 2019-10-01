@@ -171,7 +171,7 @@ void StringColumn<T>::replace_values(
 template <typename T>
 void StringColumn<T>::apply_na_mask(const Column& mask) {
   xassert(mask.stype() == SType::BOOL);
-  auto maskdata = static_cast<const int8_t*>(mask->data());
+  auto maskdata = static_cast<const int8_t*>(mask.get_data_readonly());
   char* strdata = static_cast<char*>(strbuf.wptr());
   T* offsets = this->offsets_w();
 
