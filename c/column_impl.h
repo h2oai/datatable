@@ -21,62 +21,20 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_IMPL_h
 #define dt_COLUMN_IMPL_h
-#include <string>
-#include <vector>
-#include "python/list.h"
-#include "python/obj.h"
-#include "column.h"
-#include "groupby.h"
-#include "buffer.h"     // Buffer
-#include "rowindex.h"
-#include "stats.h"
-#include "types.h"
+#include <memory>        // std::unique_ptr
+#include "python/obj.h"  // py::robj
+#include "column.h"      // Column, NaStorage, colvec
+#include "groupby.h"     // Groupby
+#include "buffer.h"      // Buffer
+#include "stats.h"       // Stats
+#include "types.h"       // SType, CString
 
-class DataTable;
-class BoolColumn;
-class PyObjectColumn;
-namespace dt {
-  class ConstNa_ColumnImpl;
-}
-template <typename T> class IntColumn;
-template <typename T> class StringColumn;
-
-using colvec = std::vector<Column>;
-using strvec = std::vector<std::string>;
-using pimpl = std::unique_ptr<ColumnImpl>;
-
-
-
-//==============================================================================
 
 /**
  * A single column within a DataTable.
  *
- * A ColumnImpl is a self-sufficient object, i.e. it may exist outside of a
- * DataTable too. This usually happens when a DataTable is being transformed,
- * then new ColumnImpl objects will be created, manipulated, and eventually bundled
- * into a new DataTable object.
- *
- * The main "payload" of this class is the data buffer `mbuf`, which contains
- * a contiguous memory region with the column's data in NFF format. Columns
- * of "string" type carry an additional buffer `strbuf` that stores the column's
- * character data (while `mbuf` stores the offsets).
- *
- * The data buffer `mbuf` may be shared across multiple columns: this enables
- * light-weight "shallow" copying of ColumnImpl objects. A ColumnImpl may also reference
- * another ColumnImpl's `mbuf` applying a RowIndex `ri` to it. When a RowIndex is
- * present, it selects a subset of elements from `mbuf`, and only those
- * sub-elements are considered to be the actual values in the ColumnImpl.
- *
- * Parameters
- * ----------
- * nrows_
- *     Number of elements in this column. If the ColumnImpl has a rowindex, then
- *     this number will be the same as the number of elements in the rowindex.
- *
- * stats
- *     Auxiliary structure that contains stat values about this column, if
- *     they were computed.
+ * This class serves as the base in the hierarchy of different
+ * column implementation classes.
  */
 class ColumnImpl
 {
@@ -143,6 +101,7 @@ class ColumnImpl
   //------------------------------------
   // Column manipulation
   //------------------------------------
+  public:
     virtual void fill_npmask(bool* outmask, size_t row0, size_t row1) const;
     virtual RowIndex sort(Groupby* out_groups) const;
     virtual void sort_grouped(const Groupby&, Column& out);
@@ -167,7 +126,6 @@ class ColumnImpl
     void _fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
     friend class Column;
-    friend class dt::ConstNa_ColumnImpl;
 };
 
 
