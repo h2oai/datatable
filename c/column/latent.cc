@@ -44,16 +44,21 @@ CHECK_SIZE(PyObjectColumn);
 
 Latent_ColumnImpl::Latent_ColumnImpl(ColumnImpl* pcol)
   : Virtual_ColumnImpl(pcol->nrows(), pcol->stype()),
-    column(pcol) {}
+    column_(std::move(pcol)) {}
+
+
+Latent_ColumnImpl::Latent_ColumnImpl(const Column& col)
+  : Virtual_ColumnImpl(col.nrows(), col.stype()),
+    column_(col) {}
 
 
 
 ColumnImpl* Latent_ColumnImpl::shallowcopy() const {
-  return new Latent_ColumnImpl(column->shallowcopy());
+  return new Latent_ColumnImpl(column_);
 }
 
-ColumnImpl* Latent_ColumnImpl::materialize() {
-  return vivify();
+void Latent_ColumnImpl::materialize(Column&) {
+  vivify();
 }
 
 
@@ -89,8 +94,10 @@ ColumnImpl* Latent_ColumnImpl::vivify() const {
   // This will work, provided that `sizeof(*this)` is >= the size
   // of the class of the materialized column.
   auto ptr = const_cast<void*>(static_cast<const void*>(this));
-  ColumnImpl* new_pcol = column->materialize();
+  column_.materialize();
+  ColumnImpl* new_pcol = std::move(column_).release();
   SType stype = new_pcol->stype();
+
   switch (stype) {
     case SType::BOOL:    new (ptr) BoolColumn(std::move(new_pcol)); break;
     case SType::INT8:    new (ptr) IntColumn<int8_t>(std::move(new_pcol)); break;

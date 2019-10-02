@@ -45,10 +45,10 @@ class FwColumn : public Sentinel_ColumnImpl
     virtual bool get_element(size_t i, T* out) const override;
 
     virtual ColumnImpl* shallowcopy() const override;
-    virtual ColumnImpl* materialize() override;
-    size_t get_num_data_buffers() const noexcept override;
-    bool is_data_editable(size_t k) const override;
-    size_t get_data_size(size_t k) const override;
+
+    size_t      get_num_data_buffers() const noexcept override;
+    bool        is_data_editable(size_t k) const override;
+    size_t      get_data_size(size_t k) const override;
     const void* get_data_readonly(size_t k) const override;
     void*       get_data_editable(size_t k) override;
     Buffer      get_data_buffer(size_t k) const override;
@@ -146,7 +146,6 @@ public:
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, Buffer&&);
   ColumnImpl* shallowcopy() const override;
-  ColumnImpl* materialize() override;
 
   bool get_element(size_t i, py::robj* out) const override;
 

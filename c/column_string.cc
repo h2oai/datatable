@@ -155,11 +155,6 @@ T* StringColumn<T>::offsets_w() {
 }
 
 
-template <typename T>
-ColumnImpl* StringColumn<T>::materialize() {
-  return this;
-}
-
 
 template <typename T>
 void StringColumn<T>::replace_values(

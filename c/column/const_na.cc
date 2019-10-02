@@ -59,7 +59,7 @@ void ConstNa_ColumnImpl::na_pad(size_t nrows, Column&) {
 //------------------------------------------------------------------------------
 
 template <typename T, typename ColClass>
-static ColumnImpl* _fw_col(size_t nrows) {
+static Column _fw_col(size_t nrows) {
   Buffer buf = Buffer::mem(nrows * sizeof(T));
   T* data = static_cast<T*>(buf.xptr());
 
@@ -72,11 +72,11 @@ static ColumnImpl* _fw_col(size_t nrows) {
     Py_None->ob_refcnt += nrows;
     buf.set_pyobjects(/* clear_data= */ false);
   }
-  return new ColClass(nrows, std::move(buf));
+  return Column(new ColClass(nrows, std::move(buf)));
 }
 
 template <typename T>
-static ColumnImpl* _str_col(size_t nrows) {
+static Column _str_col(size_t nrows) {
   Buffer offsets = Buffer::mem((nrows + 1) * sizeof(T));
   T* offsets_data = static_cast<T*>(offsets.xptr());
   *offsets_data++ = 0;
@@ -85,23 +85,23 @@ static ColumnImpl* _str_col(size_t nrows) {
     [=](size_t i) {
       offsets_data[i] = GETNA<T>();
     });
-  return new StringColumn<T>(nrows, std::move(offsets), Buffer());
+  return Column(new StringColumn<T>(nrows, std::move(offsets), Buffer()));
 }
 
 
-ColumnImpl* ConstNa_ColumnImpl::materialize() {
+void ConstNa_ColumnImpl::materialize(Column& out) {
   switch (stype_) {
     case SType::VOID:
-    case SType::BOOL:    return _fw_col<int8_t, BoolColumn>(nrows_);
-    case SType::INT8:    return _fw_col<int8_t, IntColumn<int8_t>>(nrows_);
-    case SType::INT16:   return _fw_col<int16_t, IntColumn<int16_t>>(nrows_);
-    case SType::INT32:   return _fw_col<int32_t, IntColumn<int32_t>>(nrows_);
-    case SType::INT64:   return _fw_col<int64_t, IntColumn<int64_t>>(nrows_);
-    case SType::FLOAT32: return _fw_col<float, FwColumn<float>>(nrows_);
-    case SType::FLOAT64: return _fw_col<double, FwColumn<double>>(nrows_);
-    case SType::OBJ:     return _fw_col<PyObject*, PyObjectColumn>(nrows_);
-    case SType::STR32:   return _str_col<uint32_t>(nrows_);
-    case SType::STR64:   return _str_col<uint64_t>(nrows_);
+    case SType::BOOL:    out = _fw_col<int8_t, BoolColumn>(nrows_); break;
+    case SType::INT8:    out = _fw_col<int8_t, IntColumn<int8_t>>(nrows_); break;
+    case SType::INT16:   out = _fw_col<int16_t, IntColumn<int16_t>>(nrows_); break;
+    case SType::INT32:   out = _fw_col<int32_t, IntColumn<int32_t>>(nrows_); break;
+    case SType::INT64:   out = _fw_col<int64_t, IntColumn<int64_t>>(nrows_); break;
+    case SType::FLOAT32: out = _fw_col<float, FwColumn<float>>(nrows_); break;
+    case SType::FLOAT64: out = _fw_col<double, FwColumn<double>>(nrows_); break;
+    case SType::OBJ:     out = _fw_col<PyObject*, PyObjectColumn>(nrows_); break;
+    case SType::STR32:   out = _str_col<uint32_t>(nrows_); break;
+    case SType::STR64:   out = _str_col<uint64_t>(nrows_); break;
     default:
       throw NotImplError() << "Cannot materialize NaColumn of type " << stype_;
   }

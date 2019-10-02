@@ -108,12 +108,6 @@ bool FwColumn<T>::get_element(size_t i, T* out) const {
 
 
 template <typename T>
-ColumnImpl* FwColumn<T>::materialize() {
-  return this;
-}
-
-
-template <typename T>
 size_t FwColumn<T>::get_num_data_buffers() const noexcept {
   return 1;
 }

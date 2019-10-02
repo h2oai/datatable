@@ -42,7 +42,7 @@ class NpMasked_ColumnImpl : public Virtual_ColumnImpl {
     NpMasked_ColumnImpl(Column&& arg, Buffer&& mask);
 
     ColumnImpl* shallowcopy() const override;
-    ColumnImpl* materialize() override;
+    void materialize(Column&) override;
 
     bool get_element(size_t, int8_t*)  const override;
     bool get_element(size_t, int16_t*) const override;
@@ -52,6 +52,9 @@ class NpMasked_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, double*)  const override;
     bool get_element(size_t, CString*) const override;
     bool get_element(size_t, py::robj*) const override;
+
+  private:
+    template <typename T> void _apply_mask();
 };
 
 

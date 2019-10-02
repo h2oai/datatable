@@ -59,7 +59,7 @@ class ColumnImpl
     void release_instance() noexcept;
 
     virtual ColumnImpl* shallowcopy() const = 0;
-    virtual ColumnImpl* materialize();
+    virtual void materialize(Column& out);
     virtual void verify_integrity() const;
 
 
@@ -124,9 +124,9 @@ class ColumnImpl
     // TODO: this should really be materializer for RBound column impl
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
-    template <typename T> ColumnImpl* _materialize_fw();
-    ColumnImpl* _materialize_str();
-    ColumnImpl* _materialize_obj();
+    template <typename T> void _materialize_fw(Column&);
+    void _materialize_str(Column&);
+    void _materialize_obj(Column&);
 
     template <typename T>
     void _fill_npmask(bool* outmask, size_t row0, size_t row1) const;

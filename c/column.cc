@@ -262,7 +262,7 @@ Buffer Column::get_data_buffer(size_t k) const {
 
 void Column::materialize() const {
   auto self = const_cast<Column*>(this);
-  self->pcol = self->pcol->materialize();
+  self->pcol->materialize(*self);
 }
 
 void Column::replace_values(const RowIndex& replace_at,
