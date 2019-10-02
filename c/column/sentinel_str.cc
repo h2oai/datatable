@@ -18,6 +18,7 @@ template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }
 template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 
 
+
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
@@ -28,8 +29,8 @@ template <typename T>
 SentinelStr_ColumnImpl<T>::SentinelStr_ColumnImpl(size_t n)
   : Sentinel_ColumnImpl(n, stype_for<T>())
 {
-  mbuf = Buffer::mem(sizeof(T) * (n + 1));
-  static_cast<T*>(mbuf.wptr())[0] = 0;
+  offbuf_ = Buffer::mem(sizeof(T) * (n + 1));
+  static_cast<T*>(offbuf_.wptr())[0] = 0;
 }
 
 
@@ -48,14 +49,14 @@ SentinelStr_ColumnImpl<T>::SentinelStr_ColumnImpl(size_t n, Buffer&& mb, Buffer&
   xassert(mb.size() >= sizeof(T) * (n + 1));
   xassert(mb.get_element<T>(0) == 0);
   xassert(sb.size() >= (mb.get_element<T>(n) & ~GETNA<T>()));
-  mbuf = std::move(mb);
-  strbuf = std::move(sb);
+  offbuf_ = std::move(mb);
+  strbuf_ = std::move(sb);
 }
 
 
 template <typename T>
 ColumnImpl* SentinelStr_ColumnImpl<T>::clone() const {
-  return new SentinelStr_ColumnImpl<T>(nrows_, Buffer(mbuf), Buffer(strbuf));
+  return new SentinelStr_ColumnImpl<T>(nrows_, Buffer(offbuf_), Buffer(strbuf_));
 }
 
 
@@ -80,12 +81,12 @@ template <typename T>
 size_t SentinelStr_ColumnImpl<T>::get_data_size(size_t k) const {
   xassert(k <= 1);
   if (k == 0) {
-    xassert(mbuf.size() >= (nrows_ + 1) * sizeof(T));
+    xassert(offbuf_.size() >= (nrows_ + 1) * sizeof(T));
     return (nrows_ + 1) * sizeof(T);
   }
   else {
-    size_t sz = static_cast<const T*>(mbuf.rptr())[nrows_] & ~GETNA<T>();
-    xassert(sz <= strbuf.size());
+    size_t sz = static_cast<const T*>(offbuf_.rptr())[nrows_] & ~GETNA<T>();
+    xassert(sz <= strbuf_.size());
     return sz;
   }
 }
@@ -94,21 +95,21 @@ size_t SentinelStr_ColumnImpl<T>::get_data_size(size_t k) const {
 template <typename T>
 const void* SentinelStr_ColumnImpl<T>::get_data_readonly(size_t k) const {
   xassert(k <= 1);
-  return (k == 0)? mbuf.rptr() : strbuf.rptr();
+  return (k == 0)? offbuf_.rptr() : strbuf_.rptr();
 }
 
 
 template <typename T>
 void* SentinelStr_ColumnImpl<T>::get_data_editable(size_t k) {
   xassert(k <= 1);
-  return (k == 0)? mbuf.xptr() : strbuf.xptr();
+  return (k == 0)? offbuf_.xptr() : strbuf_.xptr();
 }
 
 
 template <typename T>
 Buffer SentinelStr_ColumnImpl<T>::get_data_buffer(size_t k) const {
   xassert(k <= 1);
-  return (k == 0)? Buffer(mbuf) : Buffer(strbuf);
+  return (k == 0)? Buffer(offbuf_) : Buffer(strbuf_);
 }
 
 
@@ -120,14 +121,15 @@ Buffer SentinelStr_ColumnImpl<T>::get_data_buffer(size_t k) const {
 
 template <typename T>
 bool SentinelStr_ColumnImpl<T>::get_element(size_t i, CString* out) const {
-  auto start_offsets = static_cast<const T*>(mbuf.rptr());
+  auto start_offsets = static_cast<const T*>(offbuf_.rptr());
   T off_end = start_offsets[i + 1];
   if (ISNA<T>(off_end)) return false;
   T off_beg = start_offsets[i] & ~GETNA<T>();
-  out->ch = static_cast<const char*>(strbuf.rptr()) + off_beg,
+  out->ch = static_cast<const char*>(strbuf_.rptr()) + off_beg,
   out->size = static_cast<int64_t>(off_end - off_beg);
   return true;
 }
+
 
 
 
@@ -178,12 +180,7 @@ void SentinelStr_ColumnImpl<T>::replace_values(
         }
       });
   }
-
-  xassert(rescol);
-  if (rescol.stype() != stype_) {
-    throw NotImplError() << "When replacing string values, the size of the "
-      "resulting column exceeds the maximum for str32";
-  }
+  // Note: it's possible that rescol.stype() != this->stype()
   out = std::move(rescol);
 }
 

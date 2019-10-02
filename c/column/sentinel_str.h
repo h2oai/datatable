@@ -29,8 +29,8 @@ template <typename T>
 class SentinelStr_ColumnImpl : public Sentinel_ColumnImpl
 {
   private:
-    Buffer mbuf;
-    Buffer strbuf;
+    Buffer offbuf_;
+    Buffer strbuf_;
 
   public:
     SentinelStr_ColumnImpl();
@@ -60,6 +60,7 @@ class SentinelStr_ColumnImpl : public Sentinel_ColumnImpl
 
 extern template class SentinelStr_ColumnImpl<uint32_t>;
 extern template class SentinelStr_ColumnImpl<uint64_t>;
+
 
 
 

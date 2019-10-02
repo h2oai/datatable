@@ -86,8 +86,8 @@ size_t DataTable::memory_footprint() const noexcept {
 template <typename T>
 size_t dt::SentinelStr_ColumnImpl<T>::memory_footprint() const noexcept {
   return sizeof(*this)
-         + mbuf.memory_footprint()
-         + strbuf.memory_footprint()
+         + offbuf_.memory_footprint()
+         + strbuf_.memory_footprint()
          + (stats_? stats_->memory_footprint() : 0);
 }
 

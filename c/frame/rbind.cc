@@ -356,7 +356,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows
   size_t old_nrows = nrows_;
   size_t new_strbuf_size = 0;     // size of the string data region
   if (!col_empty) {
-    new_strbuf_size += strbuf.size();
+    new_strbuf_size += strbuf_.size();
   }
   for (size_t i = 0; i < columns.size(); ++i) {
     Column& col = columns[i];
@@ -369,10 +369,10 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows
   size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
 
   // Reallocate the column
-  mbuf.resize(new_mbuf_size);
-  strbuf.resize(new_strbuf_size);
+  offbuf_.resize(new_mbuf_size);
+  strbuf_.resize(new_strbuf_size);
   nrows_ = new_nrows;
-  T* offs = static_cast<T*>(mbuf.wptr()) + 1;
+  T* offs = static_cast<T*>(offbuf_.wptr()) + 1;
 
   // Move the original offsets
   size_t rows_to_fill = 0;  // how many rows need to be filled with NAs
@@ -416,7 +416,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows
       const void* col_strdata = col.get_data_readonly(1);
       const size_t col_strsize = col.get_data_size(1);
       if (col_strsize) {
-        void* target = strbuf.wptr(static_cast<size_t>(curr_offset));
+        void* target = strbuf_.wptr(static_cast<size_t>(curr_offset));
         std::memcpy(target, col_strdata, col_strsize);
         curr_offset += col_strsize;
       }

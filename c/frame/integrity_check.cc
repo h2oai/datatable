@@ -215,13 +215,13 @@ void SentinelBool_ColumnImpl::verify_integrity() const {
 template <typename T>
 void SentinelStr_ColumnImpl<T>::verify_integrity() const {
   Sentinel_ColumnImpl::verify_integrity();
-  mbuf.verify_integrity();
-  strbuf.verify_integrity();
+  offbuf_.verify_integrity();
+  strbuf_.verify_integrity();
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
-  const uint8_t* cdata = static_cast<const uint8_t*>(strbuf.rptr());
-  const T* str_offsets = static_cast<const T*>(mbuf.rptr())
+  const uint8_t* cdata = static_cast<const uint8_t*>(strbuf_.rptr());
+  const T* str_offsets = static_cast<const T*>(offbuf_.rptr()) + 1;
 
   // Check that the offsets section is preceded by a -1
   if (str_offsets[-1] != 0) {
@@ -229,7 +229,7 @@ void SentinelStr_ColumnImpl<T>::verify_integrity() const {
         << "Offsets section in string column does not start with 0";
   }
 
-  size_t mbuf_nrows = mbuf.size()/sizeof(T) - 1;
+  size_t mbuf_nrows = offbuf_.size()/sizeof(T) - 1;
   strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
 
   // Check for the validity of each offset
