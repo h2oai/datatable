@@ -92,7 +92,7 @@ static Column _str_col(size_t nrows) {
 void ConstNa_ColumnImpl::materialize(Column& out) {
   switch (stype_) {
     case SType::VOID:
-    case SType::BOOL:    out = _fw_col<int8_t,  BoolColumn>(nrows_); break;
+    case SType::BOOL:    out = _fw_col<int8_t,  SentinelBool_ColumnImpl>(nrows_); break;
     case SType::INT8:    out = _fw_col<int8_t,  SentinelFw_ColumnImpl<int8_t>>(nrows_); break;
     case SType::INT16:   out = _fw_col<int16_t, SentinelFw_ColumnImpl<int16_t>>(nrows_); break;
     case SType::INT32:   out = _fw_col<int32_t, SentinelFw_ColumnImpl<int32_t>>(nrows_); break;

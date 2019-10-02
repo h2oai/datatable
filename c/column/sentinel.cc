@@ -28,7 +28,7 @@ namespace dt {
 
 Column Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
   switch (stype) {
-    case SType::BOOL:    return Column(new BoolColumn(nrows));
+    case SType::BOOL:    return Column(new SentinelBool_ColumnImpl(nrows));
     case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows));
     case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows));
     case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows));
@@ -50,7 +50,7 @@ Column Sentinel_ColumnImpl::make_fw_column(
 {
   xassert(buf.size() >= nrows * info(stype).elemsize());
   switch (stype) {
-    case SType::BOOL:    return Column(new BoolColumn(nrows, std::move(buf)));
+    case SType::BOOL:    return Column(new SentinelBool_ColumnImpl(nrows, std::move(buf)));
     case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows, std::move(buf)));
     case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows, std::move(buf)));
     case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows, std::move(buf)));

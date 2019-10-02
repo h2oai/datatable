@@ -26,8 +26,8 @@
 #include "parallel/atomic.h"
 #include "utils/exceptions.h"  // ValueError, RuntimeError
 #include "utils/assert.h"
-#include "column.h"            // Column, BoolColumn
-#include "buffer.h"          // Buffer
+#include "column.h"            // Column
+#include "buffer.h"            // Buffer
 #include "rowindex.h"
 #include "rowindex_impl.h"
 

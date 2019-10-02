@@ -30,7 +30,7 @@ SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(ColumnImpl*&& other)
   stats_ = std::move(fwother->stats_);
 }
 
-BoolColumn::BoolColumn(ColumnImpl*&& other)
+SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(ColumnImpl*&& other)
   : SentinelFw_ColumnImpl<int8_t>(std::move(other)) {}
 
 
@@ -42,7 +42,7 @@ SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows)
   mbuf_.resize(sizeof(T) * nrows);
 }
 
-BoolColumn::BoolColumn(size_t nrows)
+SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(size_t nrows)
   : SentinelFw_ColumnImpl<int8_t>(nrows)
 {
   stype_ = SType::BOOL;
@@ -63,7 +63,7 @@ SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, Buffer&& mr)
   mbuf_ = std::move(mr);
 }
 
-BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
+SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(size_t nrows, Buffer&& mem)
   : SentinelFw_ColumnImpl<int8_t>(nrows, std::move(mem))
 {
   stype_ = SType::BOOL;
@@ -77,8 +77,8 @@ ColumnImpl* SentinelFw_ColumnImpl<T>::clone() const {
   return new SentinelFw_ColumnImpl<T>(nrows_, Buffer(mbuf_));
 }
 
-ColumnImpl* BoolColumn::clone() const {
-  return new BoolColumn(nrows_, Buffer(mbuf_));
+ColumnImpl* SentinelBool_ColumnImpl::clone() const {
+  return new SentinelBool_ColumnImpl(nrows_, Buffer(mbuf_));
 }
 
 

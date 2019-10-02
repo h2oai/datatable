@@ -186,10 +186,10 @@ void SentinelFw_ColumnImpl<T>::verify_integrity() const {
 
 
 //------------------------------------------------------------------------------
-// BoolColumn
+// SentinelBool_ColumnImpl
 //------------------------------------------------------------------------------
 
-void BoolColumn::verify_integrity() const {
+void SentinelBool_ColumnImpl::verify_integrity() const {
   SentinelFw_ColumnImpl<int8_t>::verify_integrity();
   XAssert(stype_ == SType::BOOL);
 

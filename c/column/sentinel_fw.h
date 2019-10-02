@@ -76,12 +76,12 @@ extern template class SentinelFw_ColumnImpl<py::robj>;
 
 //==============================================================================
 
-class BoolColumn : public SentinelFw_ColumnImpl<int8_t>
+class SentinelBool_ColumnImpl : public SentinelFw_ColumnImpl<int8_t>
 {
   public:
-    BoolColumn(ColumnImpl*&&);
-    BoolColumn(size_t nrows);
-    BoolColumn(size_t nrows, Buffer&&);
+    SentinelBool_ColumnImpl(ColumnImpl*&&);
+    SentinelBool_ColumnImpl(size_t nrows);
+    SentinelBool_ColumnImpl(size_t nrows, Buffer&&);
     ColumnImpl* clone() const override;
 
   protected:

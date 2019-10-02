@@ -29,7 +29,7 @@ namespace dt {
 #define CHECK_SIZE(cls) \
   static_assert(sizeof(Latent_ColumnImpl) >= sizeof(cls), \
                 "Size of Latent_ColumnImpl is smaller than size of " #cls)
-CHECK_SIZE(BoolColumn);
+CHECK_SIZE(SentinelBool_ColumnImpl);
 CHECK_SIZE(SentinelFw_ColumnImpl<int8_t>);
 CHECK_SIZE(SentinelFw_ColumnImpl<int16_t>);
 CHECK_SIZE(SentinelFw_ColumnImpl<int32_t>);
@@ -99,7 +99,7 @@ ColumnImpl* Latent_ColumnImpl::vivify() const {
   SType stype = new_pcol->stype();
 
   switch (stype) {
-    case SType::BOOL:    new (ptr) BoolColumn(std::move(new_pcol)); break;
+    case SType::BOOL:    new (ptr) SentinelBool_ColumnImpl(std::move(new_pcol)); break;
     case SType::INT8:    new (ptr) SentinelFw_ColumnImpl<int8_t>(std::move(new_pcol)); break;
     case SType::INT16:   new (ptr) SentinelFw_ColumnImpl<int16_t>(std::move(new_pcol)); break;
     case SType::INT32:   new (ptr) SentinelFw_ColumnImpl<int32_t>(std::move(new_pcol)); break;
