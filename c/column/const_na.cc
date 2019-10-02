@@ -85,7 +85,7 @@ static Column _str_col(size_t nrows) {
     [=](size_t i) {
       offsets_data[i] = GETNA<T>();
     });
-  return Column(new StringColumn<T>(nrows, std::move(offsets), Buffer()));
+  return Column(new SentinelStr_ColumnImpl<T>(nrows, std::move(offsets), Buffer()));
 }
 
 

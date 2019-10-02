@@ -349,7 +349,7 @@ void Column::rbind(colvec& columns) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void dt::StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
+void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows,
                                  bool col_empty)
 {
   // Determine the size of the memory to allocate
@@ -535,5 +535,5 @@ template class dt::SentinelFw_ColumnImpl<int64_t>;
 template class dt::SentinelFw_ColumnImpl<float>;
 template class dt::SentinelFw_ColumnImpl<double>;
 template class dt::SentinelFw_ColumnImpl<py::robj>;
-template class dt::StringColumn<uint32_t>;
-template class dt::StringColumn<uint64_t>;
+template class dt::SentinelStr_ColumnImpl<uint32_t>;
+template class dt::SentinelStr_ColumnImpl<uint64_t>;

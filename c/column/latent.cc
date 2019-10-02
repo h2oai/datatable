@@ -36,8 +36,8 @@ CHECK_SIZE(SentinelFw_ColumnImpl<int32_t>);
 CHECK_SIZE(SentinelFw_ColumnImpl<int64_t>);
 CHECK_SIZE(SentinelFw_ColumnImpl<float>);
 CHECK_SIZE(SentinelFw_ColumnImpl<double>);
-CHECK_SIZE(StringColumn<uint32_t>);
-CHECK_SIZE(StringColumn<uint64_t>);
+CHECK_SIZE(SentinelStr_ColumnImpl<uint32_t>);
+CHECK_SIZE(SentinelStr_ColumnImpl<uint64_t>);
 CHECK_SIZE(SentinelObj_ColumnImpl);
 
 

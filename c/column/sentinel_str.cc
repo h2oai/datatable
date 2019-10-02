@@ -19,29 +19,29 @@ template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 
 
 //------------------------------------------------------------------------------
-// String column construction
+// Constructors
 //------------------------------------------------------------------------------
 
 // public: create a string column for `n` rows, preallocating the offsets array
 // but leaving string buffer empty (and not allocated).
 template <typename T>
-StringColumn<T>::StringColumn(size_t n)
+SentinelStr_ColumnImpl<T>::SentinelStr_ColumnImpl(size_t n)
   : Sentinel_ColumnImpl(n, stype_for<T>())
 {
   mbuf = Buffer::mem(sizeof(T) * (n + 1));
-  mbuf.set_element<T>(0, 0);
+  static_cast<T*>(mbuf.wptr())[0] = 0;
 }
 
 
 // private use only
 template <typename T>
-StringColumn<T>::StringColumn()
+SentinelStr_ColumnImpl<T>::SentinelStr_ColumnImpl()
   : Sentinel_ColumnImpl(0, stype_for<T>())  {}
 
 
 // private: use `new_string_column(n, &&mb, &&sb)` instead
 template <typename T>
-StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
+SentinelStr_ColumnImpl<T>::SentinelStr_ColumnImpl(size_t n, Buffer&& mb, Buffer&& sb)
   : Sentinel_ColumnImpl(n, stype_for<T>())
 {
   xassert(mb);
@@ -53,31 +53,31 @@ StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
 }
 
 
-
-
-
-//==============================================================================
-// Initialization methods
-//==============================================================================
-
 template <typename T>
-ColumnImpl* StringColumn<T>::clone() const {
-  return new StringColumn<T>(nrows_, Buffer(mbuf), Buffer(strbuf));
+ColumnImpl* SentinelStr_ColumnImpl<T>::clone() const {
+  return new SentinelStr_ColumnImpl<T>(nrows_, Buffer(mbuf), Buffer(strbuf));
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Data buffers
+//------------------------------------------------------------------------------
+
 template <typename T>
-size_t StringColumn<T>::get_num_data_buffers() const noexcept {
+size_t SentinelStr_ColumnImpl<T>::get_num_data_buffers() const noexcept {
   return 2;
 }
 
 template <typename T>
-bool StringColumn<T>::is_data_editable(size_t k) const {
+bool SentinelStr_ColumnImpl<T>::is_data_editable(size_t k) const {
   xassert(k <= 1);
   return false;
 }
 
 template <typename T>
-size_t StringColumn<T>::get_data_size(size_t k) const {
+size_t SentinelStr_ColumnImpl<T>::get_data_size(size_t k) const {
   xassert(k <= 1);
   if (k == 0) {
     xassert(mbuf.size() >= (nrows_ + 1) * sizeof(T));
@@ -92,21 +92,21 @@ size_t StringColumn<T>::get_data_size(size_t k) const {
 
 
 template <typename T>
-const void* StringColumn<T>::get_data_readonly(size_t k) const {
+const void* SentinelStr_ColumnImpl<T>::get_data_readonly(size_t k) const {
   xassert(k <= 1);
   return (k == 0)? mbuf.rptr() : strbuf.rptr();
 }
 
 
 template <typename T>
-void* StringColumn<T>::get_data_editable(size_t k) {
+void* SentinelStr_ColumnImpl<T>::get_data_editable(size_t k) {
   xassert(k <= 1);
   return (k == 0)? mbuf.xptr() : strbuf.xptr();
 }
 
 
 template <typename T>
-Buffer StringColumn<T>::get_data_buffer(size_t k) const {
+Buffer SentinelStr_ColumnImpl<T>::get_data_buffer(size_t k) const {
   xassert(k <= 1);
   return (k == 0)? Buffer(mbuf) : Buffer(strbuf);
 }
@@ -114,8 +114,12 @@ Buffer StringColumn<T>::get_data_buffer(size_t k) const {
 
 
 
+//------------------------------------------------------------------------------
+// Data access
+//------------------------------------------------------------------------------
+
 template <typename T>
-bool StringColumn<T>::get_element(size_t i, CString* out) const {
+bool SentinelStr_ColumnImpl<T>::get_element(size_t i, CString* out) const {
   const T* offs = this->offsets();
   T off_end = offs[i];
   if (ISNA<T>(off_end)) return false;
@@ -126,8 +130,13 @@ bool StringColumn<T>::get_element(size_t i, CString* out) const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Misc?
+//------------------------------------------------------------------------------
+
 template <typename T>
-size_t StringColumn<T>::datasize() const{
+size_t SentinelStr_ColumnImpl<T>::datasize() const{
   size_t sz = mbuf.size();
   const T* end = static_cast<const T*>(mbuf.rptr(sz));
   return static_cast<size_t>(end[-1] & ~GETNA<T>());
@@ -135,29 +144,29 @@ size_t StringColumn<T>::datasize() const{
 
 
 template <typename T>
-const char* StringColumn<T>::strdata() const {
+const char* SentinelStr_ColumnImpl<T>::strdata() const {
   return static_cast<const char*>(strbuf.rptr());
 }
 
 template <typename T>
-const uint8_t* StringColumn<T>::ustrdata() const {
+const uint8_t* SentinelStr_ColumnImpl<T>::ustrdata() const {
   return static_cast<const uint8_t*>(strbuf.rptr());
 }
 
 template <typename T>
-const T* StringColumn<T>::offsets() const {
+const T* SentinelStr_ColumnImpl<T>::offsets() const {
   return static_cast<const T*>(mbuf.rptr()) + 1;
 }
 
 template <typename T>
-T* StringColumn<T>::offsets_w() {
+T* SentinelStr_ColumnImpl<T>::offsets_w() {
   return static_cast<T*>(mbuf.wptr()) + 1;
 }
 
 
 
 template <typename T>
-void StringColumn<T>::replace_values(
+void SentinelStr_ColumnImpl<T>::replace_values(
     const RowIndex& replace_at, const Column& replace_with, Column& out)
 {
   Column rescol;
@@ -211,10 +220,7 @@ void StringColumn<T>::replace_values(
 
 
 
-//------------------------------------------------------------------------------
-// Explicit instantiation of the template
-//------------------------------------------------------------------------------
+template class SentinelStr_ColumnImpl<uint32_t>;
+template class SentinelStr_ColumnImpl<uint64_t>;
 
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
 }  // namespace dt

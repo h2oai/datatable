@@ -35,8 +35,8 @@ Column Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
     case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows));
     case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows));
     case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows));
-    case SType::STR32:   return Column(new StringColumn<uint32_t>(nrows));
-    case SType::STR64:   return Column(new StringColumn<uint64_t>(nrows));
+    case SType::STR32:   return Column(new SentinelStr_ColumnImpl<uint32_t>(nrows));
+    case SType::STR64:   return Column(new SentinelStr_ColumnImpl<uint64_t>(nrows));
     case SType::OBJ:     return Column(new SentinelObj_ColumnImpl(nrows));
     default:
       throw ValueError()
@@ -96,14 +96,14 @@ Column Sentinel_ColumnImpl::make_str_column(
   if (data_size == sizeof(uint32_t) * (nrows + 1)) {
     if (strb_size <= Column::MAX_ARR32_SIZE &&
         nrows <= Column::MAX_ARR32_SIZE) {
-      return Column(new StringColumn<uint32_t>(
+      return Column(new SentinelStr_ColumnImpl<uint32_t>(
                       nrows, std::move(offsets), std::move(strdata)));
     }
     // Otherwise, offsets need to be recoded into a uint64_t array
     offsets = _recode_offsets_to_u64(offsets);
   }
   return Column(
-      new StringColumn<uint64_t>(
+      new SentinelStr_ColumnImpl<uint64_t>(
                       nrows, std::move(offsets), std::move(strdata))
   );
 }

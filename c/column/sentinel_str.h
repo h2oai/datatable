@@ -26,16 +26,16 @@ namespace dt {
 
 
 template <typename T>
-class StringColumn : public Sentinel_ColumnImpl
+class SentinelStr_ColumnImpl : public Sentinel_ColumnImpl
 {
   private:
     Buffer mbuf;
     Buffer strbuf;
 
   public:
-    StringColumn();
-    StringColumn(size_t nrows);
-    StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
+    SentinelStr_ColumnImpl();
+    SentinelStr_ColumnImpl(size_t nrows);
+    SentinelStr_ColumnImpl(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
 
     ColumnImpl* clone() const override;
 
@@ -67,8 +67,8 @@ class StringColumn : public Sentinel_ColumnImpl
 };
 
 
-extern template class StringColumn<uint32_t>;
-extern template class StringColumn<uint64_t>;
+extern template class SentinelStr_ColumnImpl<uint32_t>;
+extern template class SentinelStr_ColumnImpl<uint64_t>;
 
 
 

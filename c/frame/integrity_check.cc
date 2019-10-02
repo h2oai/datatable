@@ -209,11 +209,11 @@ void SentinelBool_ColumnImpl::verify_integrity() const {
 
 
 //------------------------------------------------------------------------------
-// StringColumn
+// SentinelStr_ColumnImpl
 //------------------------------------------------------------------------------
 
 template <typename T>
-void StringColumn<T>::verify_integrity() const {
+void SentinelStr_ColumnImpl<T>::verify_integrity() const {
   Sentinel_ColumnImpl::verify_integrity();
   mbuf.verify_integrity();
   strbuf.verify_integrity();
@@ -298,7 +298,7 @@ template class SentinelFw_ColumnImpl<int64_t>;
 template class SentinelFw_ColumnImpl<float>;
 template class SentinelFw_ColumnImpl<double>;
 template class SentinelFw_ColumnImpl<py::robj>;
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
+template class SentinelStr_ColumnImpl<uint32_t>;
+template class SentinelStr_ColumnImpl<uint64_t>;
 
 } // namespace dt
