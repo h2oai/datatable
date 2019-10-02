@@ -30,7 +30,7 @@ template <typename T>
 class FwColumn : public Sentinel_ColumnImpl
 {
   protected:
-    Buffer mbuf;
+    Buffer mbuf_;
 
   public:
     FwColumn(size_t nrows);

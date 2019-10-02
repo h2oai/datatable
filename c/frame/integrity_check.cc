@@ -172,8 +172,8 @@ void dt::BoolColumn::verify_integrity() const {
   FwColumn<int8_t>::verify_integrity();
 
   // Check that all elements in column are either 0, 1, or NA_I1
-  size_t mbuf_nrows = mbuf.size();
-  const int8_t* vals = static_cast<const int8_t*>(mbuf.rptr());
+  size_t mbuf_nrows = mbuf_.size();
+  const int8_t* vals = static_cast<const int8_t*>(mbuf_.rptr());
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {
@@ -247,14 +247,14 @@ void dt::StringColumn<T>::verify_integrity() const {
 void dt::PyObjectColumn::verify_integrity() const {
   FwColumn<py::robj>::verify_integrity();
 
-  if (!mbuf.is_pyobjects()) {
+  if (!mbuf_.is_pyobjects()) {
     throw AssertionError() << "obj64 column's internal buffer is "
         "not marked as containing PyObjects";
   }
 
   // Check that all elements are valid pyobjects
-  size_t mbuf_nrows = mbuf.size() / sizeof(PyObject*);
-  const py::robj* vals = static_cast<const py::robj*>(mbuf.rptr());
+  size_t mbuf_nrows = mbuf_.size() / sizeof(PyObject*);
+  const py::robj* vals = static_cast<const py::robj*>(mbuf_.rptr());
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     py::robj val = vals[i];
     if (!val) {

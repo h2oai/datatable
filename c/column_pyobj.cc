@@ -15,24 +15,24 @@ namespace dt {
 
 PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<py::robj>(nrows_) {
   stype_ = SType::OBJ;
-  mbuf.set_pyobjects(/*clear_data = */ true);
+  mbuf_.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_, Buffer&& mb)
     : FwColumn<py::robj>(nrows_, std::move(mb))
 {
   stype_ = SType::OBJ;
-  mbuf.set_pyobjects(/*clear_data = */ false);
+  mbuf_.set_pyobjects(/*clear_data = */ false);
 }
 
 
 ColumnImpl* PyObjectColumn::clone() const {
-  return new PyObjectColumn(nrows_, Buffer(mbuf));
+  return new PyObjectColumn(nrows_, Buffer(mbuf_));
 }
 
 
 bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
-  py::robj x = static_cast<const py::robj*>(mbuf.rptr())[i];
+  py::robj x = static_cast<const py::robj*>(mbuf_.rptr())[i];
   *out = x;
   return !x.is_none();
 }

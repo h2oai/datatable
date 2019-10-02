@@ -26,7 +26,7 @@ FwColumn<T>::FwColumn(ColumnImpl*&& other)
   assert_compatible_type<T>(other->stype());
   auto fwother = dynamic_cast<FwColumn<T>*>(other);
   xassert(fwother != nullptr);
-  mbuf = std::move(fwother->mbuf);
+  mbuf_ = std::move(fwother->mbuf_);
   stats_ = std::move(fwother->stats_);
 }
 
@@ -35,7 +35,7 @@ template <typename T>
 FwColumn<T>::FwColumn(size_t nrows)
   : Sentinel_ColumnImpl(nrows, stype_from<T>())
 {
-  mbuf.resize(sizeof(T) * nrows);
+  mbuf_.resize(sizeof(T) * nrows);
 }
 
 
@@ -49,13 +49,13 @@ FwColumn<T>::FwColumn(size_t nrows, Buffer&& mr)
   } else {
     mr.resize(req_size);
   }
-  mbuf = std::move(mr);
+  mbuf_ = std::move(mr);
 }
 
 
 template <typename T>
 ColumnImpl* FwColumn<T>::clone() const {
-  return new FwColumn<T>(nrows_, Buffer(mbuf));
+  return new FwColumn<T>(nrows_, Buffer(mbuf_));
 }
 
 
@@ -67,7 +67,7 @@ ColumnImpl* FwColumn<T>::clone() const {
 
 template <typename T>
 bool FwColumn<T>::get_element(size_t i, T* out) const {
-  T x = static_cast<const T*>(mbuf.rptr())[i];
+  T x = static_cast<const T*>(mbuf_.rptr())[i];
   *out = x;
   return !ISNA<T>(x);
 }
@@ -89,14 +89,14 @@ size_t FwColumn<T>::get_num_data_buffers() const noexcept {
 template <typename T>
 bool FwColumn<T>::is_data_editable(size_t k) const {
   xassert(k == 0);
-  return mbuf.is_writable();
+  return mbuf_.is_writable();
 }
 
 
 template <typename T>
 size_t FwColumn<T>::get_data_size(size_t k) const {
   xassert(k == 0);
-  xassert(mbuf.size() >= nrows_ * sizeof(T));
+  xassert(mbuf_.size() >= nrows_ * sizeof(T));
   return nrows_ * sizeof(T);
 }
 
@@ -104,21 +104,21 @@ size_t FwColumn<T>::get_data_size(size_t k) const {
 template <typename T>
 const void* FwColumn<T>::get_data_readonly(size_t k) const {
   xassert(k == 0);
-  return mbuf.rptr();
+  return mbuf_.rptr();
 }
 
 
 template <typename T>
 void* FwColumn<T>::get_data_editable(size_t k) {
   xassert(k == 0);
-  return mbuf.wptr();
+  return mbuf_.wptr();
 }
 
 
 template <typename T>
 Buffer FwColumn<T>::get_data_buffer(size_t k) const {
   xassert(k == 0);
-  return Buffer(mbuf);
+  return Buffer(mbuf_);
 }
 
 
@@ -130,7 +130,7 @@ Buffer FwColumn<T>::get_data_buffer(size_t k) const {
 
 template <typename T>
 void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
-  T* data = static_cast<T*>(mbuf.wptr());
+  T* data = static_cast<T*>(mbuf_.wptr());
   replace_at.iterate(0, replace_at.size(), 1,
     [&](size_t, size_t j) {
       data[j] = replace_with;
@@ -158,7 +158,7 @@ void FwColumn<T>::replace_values(
   }
 
   size_t replace_n = replace_at.size();
-  T* data_dest = static_cast<T*>(mbuf.wptr());
+  T* data_dest = static_cast<T*>(mbuf_.wptr());
   xassert(with.nrows() == replace_n);
 
   replace_at.iterate(0, replace_n, 1,
@@ -174,13 +174,13 @@ void FwColumn<T>::replace_values(
 template <typename T>
 size_t FwColumn<T>::memory_footprint() const noexcept {
   return sizeof(*this) + (stats_? stats_->memory_footprint() : 0)
-                       + mbuf.memory_footprint();
+                       + mbuf_.memory_footprint();
 }
 
 template <typename T>
 void FwColumn<T>::verify_integrity() const {
   Sentinel_ColumnImpl::verify_integrity();
-  mbuf.verify_integrity();
+  mbuf_.verify_integrity();
 }
 
 

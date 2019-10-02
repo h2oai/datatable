@@ -445,11 +445,11 @@ void dt::FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_emp
   size_t old_nrows = nrows_;
   size_t old_alloc_size = sizeof(T) * old_nrows;
   size_t new_alloc_size = sizeof(T) * new_nrows;
-  mbuf.resize(new_alloc_size);
+  mbuf_.resize(new_alloc_size);
   nrows_ = new_nrows;
 
   // Copy the data
-  char* resptr = static_cast<char*>(mbuf.wptr());
+  char* resptr = static_cast<char*>(mbuf_.wptr());
   char* resptr0 = resptr;
   size_t rows_to_fill = 0;
   if (col_empty) {
@@ -496,11 +496,11 @@ void dt::PyObjectColumn::rbind_impl(
 
   // Reallocate the column's data buffer
   // `resize` fills all new elements with Py_None
-  mbuf.resize(sizeof(PyObject*) * new_nrows);
+  mbuf_.resize(sizeof(PyObject*) * new_nrows);
   nrows_ = nnrows;
 
   // Copy the data
-  PyObject** dest_data = static_cast<PyObject**>(mbuf.wptr());
+  PyObject** dest_data = static_cast<PyObject**>(mbuf_.wptr());
   PyObject** dest_data0 = dest_data;
   if (!col_empty) {
     dest_data += old_nrows;

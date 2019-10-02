@@ -27,12 +27,12 @@ BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
 
 
 ColumnImpl* BoolColumn::clone() const {
-  return new BoolColumn(nrows_, Buffer(mbuf));
+  return new BoolColumn(nrows_, Buffer(mbuf_));
 }
 
 
 bool BoolColumn::get_element(size_t i, int32_t* x) const {
-  int8_t value = static_cast<const int8_t*>(mbuf.rptr())[i];
+  int8_t value = static_cast<const int8_t*>(mbuf_.rptr())[i];
   *x = static_cast<int32_t>(value);
   return !ISNA<int8_t>(value);
 }
