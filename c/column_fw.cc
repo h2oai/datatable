@@ -11,7 +11,6 @@
 #include "utils/misc.h"
 #include "parallel/api.h"  // dt::parallel_for_static
 #include "column.h"
-#include "column_impl.h"
 template<> inline py::robj GETNA() { return py::rnone(); }
 
 namespace dt {

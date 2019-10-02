@@ -12,7 +12,6 @@
 #include "expr/expr_reduce.h"
 #include "expr/eval_context.h"
 #include "parallel/api.h"
-#include "column_impl.h"  // TODO: remove
 #include "types.h"
 namespace dt {
 namespace expr {

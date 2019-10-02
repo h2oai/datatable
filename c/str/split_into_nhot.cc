@@ -23,7 +23,6 @@
 #include "str/py_str.h"
 #include "datatable.h"
 #include "options.h"
-#include "column_impl.h"  // TODO: remove
 
 namespace dt {
 

@@ -18,7 +18,6 @@
 #include "frame/py_frame.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"      // repr_utf8
-#include "column_impl.h"
 #include "datatable.h"
 #include "encodings.h"
 

@@ -27,7 +27,6 @@
 #include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "column_impl.h"
 namespace dt {
 namespace expr {
 

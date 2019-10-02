@@ -9,6 +9,7 @@
 #include <cmath>        // std::isinf, std::sqrt
 #include <limits>       // std::numeric_limits
 #include <type_traits>  // std::is_floating_point
+#include "column/column_impl.h"
 #include "lib/parallel_hashmap/phmap.h"
 #include "models/murmurhash.h"
 #include "parallel/api.h"
@@ -17,7 +18,6 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "column.h"
-#include "column_impl.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "stats.h"

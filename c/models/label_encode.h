@@ -23,7 +23,6 @@
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
 #include "models/dt_ftrl_base.h"
-#include "column_impl.h"  // TODO: remove
 namespace dt {
 
 

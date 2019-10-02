@@ -11,7 +11,6 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "column_impl.h"
 namespace dt {
 
 template <typename T> constexpr SType stype_for() { return SType::VOID; }

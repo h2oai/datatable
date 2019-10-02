@@ -138,7 +138,6 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "column.h"
-#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "options.h"

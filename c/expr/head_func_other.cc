@@ -27,7 +27,6 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
-#include "column_impl.h"
 #include "datatablemodule.h"
 namespace dt {
 namespace expr {

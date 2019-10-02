@@ -22,7 +22,7 @@
 #ifndef dt_COLUMN_SENTINEL_h
 #define dt_COLUMN_SENTINEL_h
 #include <memory>
-#include "column_impl.h"
+#include "column/column_impl.h"
 namespace dt {
 
 

@@ -19,11 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/column_impl.h"
 #include "column/nafilled.h"
 #include "column/sentinel_fw.h"
 #include "parallel/api.h"
 #include "parallel/string_utils.h"
-#include "column_impl.h"
 namespace dt {
 
 

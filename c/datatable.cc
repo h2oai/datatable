@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include <algorithm>
 #include <limits>
-#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "rowindex.h"

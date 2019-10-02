@@ -26,7 +26,6 @@
 #include "expr/repl_node.h"
 #include "expr/eval_context.h"
 #include "utils/exceptions.h"
-#include "column_impl.h"  // TODO: remove
 #include "datatable.h"
 #include "datatablemodule.h"
 namespace dt {

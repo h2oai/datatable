@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 #include "python/_all.h"
 #include "column/sentinel_fw.h"
-#include "column_impl.h"
 #include "datatablemodule.h"
 namespace dt {
 

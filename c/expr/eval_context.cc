@@ -24,7 +24,6 @@
 #include "expr/workframe.h"
 #include "expr/eval_context.h"
 #include "frame/py_frame.h"
-#include "column_impl.h"  // TODO: remove
 namespace dt {
 
 

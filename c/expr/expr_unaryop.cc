@@ -10,7 +10,6 @@
 #include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
-#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "types.h"
 namespace dt {
