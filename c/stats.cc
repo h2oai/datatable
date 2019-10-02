@@ -893,7 +893,7 @@ void Stats::compute_sorted_stats() {
 template <typename T>
 void NumericStats<T>::compute_sorted_stats() {
   Groupby grpby;
-  RowIndex ri = column->_sort(&grpby);
+  RowIndex ri = column->sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
   xassert(n_groups >= 1);
@@ -932,7 +932,7 @@ void NumericStats<T>::compute_sorted_stats() {
 
 void StringStats::compute_sorted_stats() {
   Groupby grpby;
-  RowIndex ri = column->_sort(&grpby);
+  RowIndex ri = column->sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
   xassert(n_groups >= 1);

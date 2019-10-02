@@ -267,10 +267,10 @@ void Column::materialize() const {
 }
 
 void Column::replace_values(const RowIndex& replace_at,
-                             const Column& replace_with)
+                            const Column& replace_with)
 {
   materialize();
-  pcol->replace_values(*this, replace_at, replace_with);
+  pcol->replace_values(replace_at, replace_with, *this);
 }
 
 

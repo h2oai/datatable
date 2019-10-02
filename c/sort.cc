@@ -1397,7 +1397,7 @@ static RowIndex sort_tiny(const Column& col, Groupby* out_grps) {
 }
 
 
-RowIndex ColumnImpl::_sort(Groupby* out_grps) const {
+RowIndex ColumnImpl::sort(Groupby* out_grps) const {
   Column ocol(this->shallowcopy());
   return ocol.sort(out_grps);
 }

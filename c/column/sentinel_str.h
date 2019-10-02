@@ -56,7 +56,7 @@ class StringColumn : public dt::Sentinel_ColumnImpl
     T* offsets_w();
     size_t memory_footprint() const noexcept override;
 
-    void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
+    void replace_values(const RowIndex& at, const Column& with, Column&) override;
 
     void verify_integrity() const override;
 

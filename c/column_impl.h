@@ -98,6 +98,10 @@ class ColumnImpl
     ColumnImpl* acquire_instance() const;
     void release_instance() noexcept;
 
+    virtual ColumnImpl* shallowcopy() const = 0;
+    virtual ColumnImpl* materialize();
+    virtual void verify_integrity() const;
+
 
   //------------------------------------
   // Element access
@@ -120,9 +124,6 @@ class ColumnImpl
     size_t nrows() const noexcept { return nrows_; }
     SType  stype() const noexcept { return stype_; }
     virtual bool is_virtual() const noexcept = 0;
-
-    virtual const void* data2() const { return nullptr; }
-
     virtual size_t memory_footprint() const noexcept;
 
 
@@ -139,102 +140,21 @@ class ColumnImpl
     virtual Buffer      get_data_buffer(size_t k) const = 0;
 
 
-    RowIndex _sort(Groupby* out_groups) const;
+  //------------------------------------
+  // Column manipulation
+  //------------------------------------
+    virtual void fill_npmask(bool* outmask, size_t row0, size_t row1) const;
+    virtual RowIndex sort(Groupby* out_groups) const;
     virtual void sort_grouped(const Groupby&, Column& out);
 
-    /**
-      * Repeat the column `ntimes` times. The implementation may either
-      * modify the current column (if it can), or otherwise it should
-      * create a new instance and store it in the provided `out` object.
-      *
-      * Implementation in column/repeated.cc
-      */
     virtual void repeat(size_t ntimes, Column& out);
-
     virtual void na_pad(size_t new_nrows, Column& out);
     virtual void truncate(size_t new_nrows, Column& out);
-
-    /**
-      * Implementation in column/view.cc
-      */
     virtual void apply_rowindex(const RowIndex& ri, Column& out);
-
-    /**
-     * Create a shallow copy of this ColumnImpl, possibly applying the provided
-     * RowIndex. The copy is "shallow" in the sense that the main data buffer
-     * is copied by-reference. If this column has a rowindex, and the user
-     * asks to apply a new rowindex, then the new one will replace the original.
-     * If you want the rowindices to be merged, you should merge them manually
-     * and pass the merged rowindex to this method.
-     */
-    virtual ColumnImpl* shallowcopy() const = 0;
-
-    /**
-     * Replace values at positions given by the RowIndex `replace_at` with
-     * values taken from the ColumnImpl `replace_with`. The ltype of the replacement
-     * column should be compatible with the current, and its number of rows
-     * should be either 1 or equal to the length of `replace_at` (which must not
-     * be empty).
-     * The values are replaced in-place, if possible (if reference count is 1),
-     * or otherwise the copy of a column is created and returned, and the
-     * current ColumnImpl object is deleted.
-     *
-     * If the `replace_with` column is nullptr, then the values will be replaced
-     * with NAs.
-     */
-    virtual void replace_values(
-        Column& thiscol,
-        const RowIndex& replace_at,
-        const Column& replace_with);
-
-    /**
-     * Appends the provided columns to the bottom of the current column and
-     * returns the resulting column. This method is equivalent to `list.append()`
-     * in Python or `rbind()` in R.
-     *
-     * Current column is modified in-place, if possible. Otherwise, a new ColumnImpl
-     * object is returned, and this ColumnImpl is deleted. The expected usage pattern
-     * is thus as follows:
-     *
-     *   column = column->rbind(columns_to_bind);
-     *
-     * Individual entries in the `columns` array may be instances of `VoidColumn`,
-     * indicating columns that should be replaced with NAs.
-     */
-    // ColumnImpl* rbind(colvec& columns);
-
-    /**
-     * "Materialize" the ColumnImpl. Depending on the column, this
-     * could be either done in-place, or a new ColumnImpl must be
-     * created to replace the current. In the former case, `this`
-     * is returned; in the latter we return the new instance and
-     * the current instance is released. Thus, the expected semantics
-     * of using this method is:
-     *
-     *     pcol = pcol->materialize();
-     *
-     */
-  public:
-    virtual ColumnImpl* materialize();
+    virtual void replace_values(const RowIndex& replace_at,
+                                const Column& replace_with, Column& out);
     virtual void pre_materialize_hook() {}
 
-
-    // Check that the data in this ColumnImpl object is correct.
-    virtual void verify_integrity() const;
-
-    /**
-     * get_stats()
-     *   Getter method for this column's reference to `Stats`. If the reference
-     *   is null then the method will create a new Stats instance for this column
-     *   and return a pointer to said instance.
-     *
-     * get_stats_if_exist()
-     *   A simpler accessor than get_stats(): this will return either an existing
-     *   Stats object, or nullptr if the Stats were not initialized yet.
-     */
-    Stats* get_stats_if_exist() const { return stats.get(); }  // REMOVE
-
-    virtual void fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
   protected:
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
@@ -249,7 +169,6 @@ class ColumnImpl
     friend class Column;
     friend class dt::ConstNa_ColumnImpl;
 };
-
 
 
 

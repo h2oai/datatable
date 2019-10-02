@@ -201,7 +201,7 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 // Misc
 //------------------------------------------------------------------------------
 
-void ColumnImpl::replace_values(Column&, const RowIndex&, const Column&) {
+void ColumnImpl::replace_values(const RowIndex&, const Column&, Column&) {
   throw NotImplError() << "Method ColumnImpl::replace_values() not implemented";
 }
 

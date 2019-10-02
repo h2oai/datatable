@@ -163,7 +163,7 @@ ColumnImpl* StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    Column& thiscol, const RowIndex& replace_at, const Column& replace_with)
+    const RowIndex& replace_at, const Column& replace_with, Column& out)
 {
   Column rescol;
   Column with;
@@ -180,7 +180,7 @@ void StringColumn<T>::replace_values(
     }
     Buffer mask = replace_at.as_boolean_mask(nrows_);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
-    rescol = dt::map_str2str(thiscol,
+    rescol = dt::map_str2str(out,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         sb->write(mask_indices[i]? repl_value : value);
       });
@@ -188,7 +188,7 @@ void StringColumn<T>::replace_values(
   else {
     Buffer mask = replace_at.as_integer_mask(nrows_);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
-    rescol = dt::map_str2str(thiscol,
+    rescol = dt::map_str2str(out,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         int ir = mask_indices[i];
         if (ir == -1) {
@@ -210,7 +210,7 @@ void StringColumn<T>::replace_values(
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
-  thiscol = std::move(rescol);
+  out = std::move(rescol);
 }
 
 

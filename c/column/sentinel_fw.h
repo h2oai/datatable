@@ -53,7 +53,7 @@ class FwColumn : public dt::Sentinel_ColumnImpl
     void*       get_data_editable(size_t k) override;
     Buffer      get_data_buffer(size_t k) const override;
 
-    void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
+    void replace_values(const RowIndex& at, const Column& with, Column&) override;
     void replace_values(const RowIndex& at, T with);
     size_t memory_footprint() const noexcept override;
     void verify_integrity() const override;

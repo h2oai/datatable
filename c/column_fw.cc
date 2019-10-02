@@ -170,9 +170,8 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    Column&, const RowIndex& replace_at, const Column& replace_with)
+    const RowIndex& replace_at, const Column& replace_with, Column&)
 {
-  materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
