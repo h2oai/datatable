@@ -35,8 +35,6 @@ ColumnImpl::ColumnImpl(size_t nrows, SType stype)
   : nrows_(nrows),
     stype_(stype) {}
 
-ColumnImpl::~ColumnImpl() {}
-
 
 // TODO: replace these with ref-counting semantics
 
@@ -84,7 +82,7 @@ ColumnImpl* ColumnImpl::_materialize_fw() {
   assert_compatible_type<T>(inp_stype);
   ColumnImpl* output_column
       = dt::Sentinel_ColumnImpl::make_column(inp_nrows, inp_stype);
-  auto out_data = static_cast<T*>(output_column->mbuf.wptr());
+  auto out_data = static_cast<T*>(output_column->get_data_editable(0));
 
   dt::parallel_for_static(
     inp_nrows,
@@ -104,7 +102,7 @@ ColumnImpl* ColumnImpl::_materialize_obj() {
 
   ColumnImpl* output_column
       = dt::Sentinel_ColumnImpl::make_column(inp_nrows, SType::OBJ);
-  auto out_data = static_cast<py::oobj*>(output_column->mbuf.wptr());
+  auto out_data = static_cast<py::oobj*>(output_column->get_data_editable(0));
 
   // Writing output array as `py::oobj` will ensure that the elements
   // will be properly INCREF-ed.

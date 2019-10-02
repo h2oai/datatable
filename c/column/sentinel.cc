@@ -115,6 +115,12 @@ bool Sentinel_ColumnImpl::is_virtual() const noexcept {
   return false;
 }
 
+NaStorage Sentinel_ColumnImpl::get_na_storage_method() const noexcept {
+  return NaStorage::SENTINEL;
+}
+
+
+
 
 
 }  // namespace dt

@@ -43,13 +43,9 @@ CHECK_SIZE(PyObjectColumn);
 
 
 Latent_ColumnImpl::Latent_ColumnImpl(ColumnImpl* pcol)
-  : ColumnImpl(pcol->nrows(), pcol->stype()),
+  : Virtual_ColumnImpl(pcol->nrows(), pcol->stype()),
     column(pcol) {}
 
-
-bool Latent_ColumnImpl::is_virtual() const noexcept {
-  return true;
-}
 
 
 ColumnImpl* Latent_ColumnImpl::shallowcopy() const {

@@ -89,7 +89,6 @@ size_t DataTable::memory_footprint() const noexcept {
   */
 size_t ColumnImpl::memory_footprint() const noexcept {
   size_t sz = sizeof(*this);
-  sz += mbuf.memory_footprint();
   if (stats) sz += stats->memory_footprint();
   return sz;
 }
@@ -97,7 +96,10 @@ size_t ColumnImpl::memory_footprint() const noexcept {
 
 template <typename T>
 size_t StringColumn<T>::memory_footprint() const noexcept {
-  return ColumnImpl::memory_footprint() + strbuf.memory_footprint();
+  return sizeof(*this)
+         + mbuf.memory_footprint()
+         + strbuf.memory_footprint()
+         + (stats? stats->memory_footprint() : 0);
 }
 
 

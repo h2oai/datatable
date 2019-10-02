@@ -30,17 +30,13 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 Repeated_ColumnImpl::Repeated_ColumnImpl(Column&& col, size_t ntimes)
-  : ColumnImpl(col.nrows() * ntimes, col.stype()),
+  : Virtual_ColumnImpl(col.nrows() * ntimes, col.stype()),
     mod(col.nrows()),
     arg(std::move(col))
 {
   if (mod == 0) mod = 1;
 }
 
-
-bool Repeated_ColumnImpl::is_virtual() const noexcept {
-  return true;
-}
 
 ColumnImpl* Repeated_ColumnImpl::shallowcopy() const {
   return new Repeated_ColumnImpl(Column(arg), nrows_ / mod);

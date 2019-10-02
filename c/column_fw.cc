@@ -112,6 +112,49 @@ ColumnImpl* FwColumn<T>::materialize() {
 }
 
 
+template <typename T>
+size_t FwColumn<T>::get_num_data_buffers() const noexcept {
+  return 1;
+}
+
+
+template <typename T>
+bool FwColumn<T>::is_data_editable(size_t k) const {
+  xassert(k == 0);
+  return mbuf.is_writable();
+}
+
+
+template <typename T>
+size_t FwColumn<T>::get_data_size(size_t k) const {
+  xassert(k == 0);
+  xassert(mbuf.size() >= nrows_ * sizeof(T));
+  return nrows_ * sizeof(T);
+}
+
+
+template <typename T>
+const void* FwColumn<T>::get_data_readonly(size_t k) const {
+  xassert(k == 0);
+  return mbuf.rptr();
+}
+
+
+template <typename T>
+void* FwColumn<T>::get_data_editable(size_t k) {
+  xassert(k == 0);
+  return mbuf.wptr();
+}
+
+
+template <typename T>
+Buffer FwColumn<T>::get_data_buffer(size_t k) const {
+  xassert(k == 0);
+  return Buffer(mbuf);
+}
+
+
+
 
 
 template <typename T>
@@ -157,6 +200,18 @@ void FwColumn<T>::replace_values(
     });
 }
 
+
+template <typename T>
+size_t FwColumn<T>::memory_footprint() const noexcept {
+  return sizeof(*this) + (stats? stats->memory_footprint() : 0)
+                       + mbuf.memory_footprint();
+}
+
+template <typename T>
+void FwColumn<T>::verify_integrity() const {
+  Sentinel_ColumnImpl::verify_integrity();
+  mbuf.verify_integrity();
+}
 
 
 

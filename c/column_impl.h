@@ -70,10 +70,6 @@ using pimpl = std::unique_ptr<ColumnImpl>;
  *
  * Parameters
  * ----------
- * mbuf
- *     Raw data buffer, generally it's a plain array of primitive C types
- *     (such as `int32_t` or `double`).
- *
  * nrows_
  *     Number of elements in this column. If the ColumnImpl has a rowindex, then
  *     this number will be the same as the number of elements in the rowindex.
@@ -85,21 +81,28 @@ using pimpl = std::unique_ptr<ColumnImpl>;
 class ColumnImpl
 {
   protected:
-    Buffer mbuf;
-    mutable std::unique_ptr<Stats> stats;
     size_t nrows_;
-    SType stype_;
+    SType  stype_;
     size_t : 56;
+    mutable std::unique_ptr<Stats> stats;
 
+  //------------------------------------
+  // Constructors
+  //------------------------------------
   public:
     ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
-    virtual ~ColumnImpl();
+    virtual ~ColumnImpl() = default;
 
     ColumnImpl* acquire_instance() const;
     void release_instance() noexcept;
 
+
+  //------------------------------------
+  // Element access
+  //------------------------------------
+  public:
     virtual bool get_element(size_t i, int8_t* out) const;
     virtual bool get_element(size_t i, int16_t* out) const;
     virtual bool get_element(size_t i, int32_t* out) const;
@@ -109,14 +112,32 @@ class ColumnImpl
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::robj* out) const;
 
+
+  //------------------------------------
+  // Properties
+  //------------------------------------
+  public:
+    size_t nrows() const noexcept { return nrows_; }
+    SType  stype() const noexcept { return stype_; }
     virtual bool is_virtual() const noexcept = 0;
 
-    size_t nrows() const { return nrows_; }
-    SType stype() const { return stype_; }
     virtual const void* data2() const { return nullptr; }
-    virtual size_t data2_size() const { return 0; }
 
     virtual size_t memory_footprint() const noexcept;
+
+
+  //------------------------------------
+  // Data buffers
+  //------------------------------------
+  public:
+    virtual NaStorage get_na_storage_method() const noexcept = 0;
+    virtual size_t    get_num_data_buffers() const noexcept = 0;
+    virtual bool        is_data_editable(size_t k) const = 0;
+    virtual size_t      get_data_size(size_t k) const = 0;
+    virtual const void* get_data_readonly(size_t k) const = 0;
+    virtual void*       get_data_editable(size_t k) = 0;
+    virtual Buffer      get_data_buffer(size_t k) const = 0;
+
 
     RowIndex _sort(Groupby* out_groups) const;
     virtual void sort_grouped(const Groupby&, Column& out);
