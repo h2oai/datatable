@@ -32,7 +32,7 @@ ColumnImpl* BoolColumn::clone() const {
 
 
 bool BoolColumn::get_element(size_t i, int32_t* x) const {
-  int8_t value = elements_r()[i];
+  int8_t value = static_cast<const int8_t*>(mbuf.rptr())[i];
   *x = static_cast<int32_t>(value);
   return !ISNA<int8_t>(value);
 }

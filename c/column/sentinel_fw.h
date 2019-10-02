@@ -33,18 +33,15 @@ class FwColumn : public Sentinel_ColumnImpl
     Buffer mbuf;
 
   public:
-    FwColumn();
-    FwColumn(ColumnImpl*&&);
     FwColumn(size_t nrows);
     FwColumn(size_t nrows, Buffer&&);
-
-    const T* elements_r() const;
-    T* elements_w();
-    T get_elem(size_t i) const;
-
-    virtual bool get_element(size_t i, T* out) const override;
+    FwColumn(ColumnImpl*&&);
 
     virtual ColumnImpl* clone() const override;
+    void verify_integrity() const override;
+    size_t memory_footprint() const noexcept override;
+
+    virtual bool get_element(size_t i, T* out) const override;
 
     size_t      get_num_data_buffers() const noexcept override;
     bool        is_data_editable(size_t k) const override;
@@ -55,8 +52,6 @@ class FwColumn : public Sentinel_ColumnImpl
 
     void replace_values(const RowIndex& at, const Column& with, Column&) override;
     void replace_values(const RowIndex& at, T with);
-    size_t memory_footprint() const noexcept override;
-    void verify_integrity() const override;
 
   protected:
     void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
@@ -142,7 +137,6 @@ extern template class IntColumn<int64_t>;
 class PyObjectColumn : public FwColumn<py::robj>
 {
 public:
-  PyObjectColumn();
   PyObjectColumn(size_t nrows);
   PyObjectColumn(size_t nrows, Buffer&&);
   ColumnImpl* clone() const override;

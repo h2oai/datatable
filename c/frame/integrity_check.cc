@@ -173,7 +173,7 @@ void dt::BoolColumn::verify_integrity() const {
 
   // Check that all elements in column are either 0, 1, or NA_I1
   size_t mbuf_nrows = mbuf.size();
-  const int8_t* vals = elements_r();
+  const int8_t* vals = static_cast<const int8_t*>(mbuf.rptr());
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {
@@ -254,7 +254,7 @@ void dt::PyObjectColumn::verify_integrity() const {
 
   // Check that all elements are valid pyobjects
   size_t mbuf_nrows = mbuf.size() / sizeof(PyObject*);
-  const py::robj* vals = elements_r();
+  const py::robj* vals = static_cast<const py::robj*>(mbuf.rptr());
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     py::robj val = vals[i];
     if (!val) {

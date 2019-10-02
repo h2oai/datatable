@@ -13,11 +13,6 @@ namespace dt {
 
 
 
-PyObjectColumn::PyObjectColumn() : FwColumn<py::robj>() {
-  stype_ = SType::OBJ;
-  mbuf.set_pyobjects(/*clear_data = */ true);
-}
-
 PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<py::robj>(nrows_) {
   stype_ = SType::OBJ;
   mbuf.set_pyobjects(/*clear_data = */ true);
@@ -37,7 +32,7 @@ ColumnImpl* PyObjectColumn::clone() const {
 
 
 bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
-  py::robj x = this->elements_r()[i];
+  py::robj x = static_cast<const py::robj*>(mbuf.rptr())[i];
   *out = x;
   return !x.is_none();
 }
