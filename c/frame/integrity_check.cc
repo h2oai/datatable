@@ -220,8 +220,8 @@ void SentinelStr_ColumnImpl<T>::verify_integrity() const {
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
-  const uint8_t* cdata = reinterpret_cast<const uint8_t*>(strdata());
-  const T* str_offsets = offsets();
+  const uint8_t* cdata = static_cast<const uint8_t*>(strbuf.rptr());
+  const T* str_offsets = static_cast<const T*>(mbuf.rptr())
 
   // Check that the offsets section is preceded by a -1
   if (str_offsets[-1] != 0) {

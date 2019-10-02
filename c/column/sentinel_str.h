@@ -38,32 +38,23 @@ class SentinelStr_ColumnImpl : public Sentinel_ColumnImpl
     SentinelStr_ColumnImpl(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
 
     ColumnImpl* clone() const override;
+    void verify_integrity() const override;
+    size_t memory_footprint() const noexcept override;
 
     bool get_element(size_t i, CString* out) const override;
 
-    size_t get_num_data_buffers() const noexcept override;
-    bool is_data_editable(size_t k) const override;
-    size_t get_data_size(size_t k) const override;
+    size_t      get_num_data_buffers() const noexcept override;
+    bool        is_data_editable(size_t k) const override;
+    size_t      get_data_size(size_t k) const override;
     const void* get_data_readonly(size_t k) const override;
-    void* get_data_editable(size_t k) override;
-    Buffer get_data_buffer(size_t k) const override;
+    void*       get_data_editable(size_t k) override;
+    Buffer      get_data_buffer(size_t k) const override;
 
-    size_t datasize() const;
-    const char* strdata() const;
-    const uint8_t* ustrdata() const;
-    const T* offsets() const;
-    T* offsets_w();
-    size_t memory_footprint() const noexcept override;
-
-    void replace_values(const RowIndex& at, const Column& with, Column&) override;
-
-    void verify_integrity() const override;
+    void replace_values(const RowIndex& at, const Column& with,
+                        Column& out) override;
 
   protected:
     void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-
-    friend ColumnImpl;
-    friend Column;
 };
 
 

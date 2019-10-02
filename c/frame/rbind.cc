@@ -372,7 +372,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows
   mbuf.resize(new_mbuf_size);
   strbuf.resize(new_strbuf_size);
   nrows_ = new_nrows;
-  T* offs = offsets_w();
+  T* offs = static_cast<T*>(mbuf.wptr()) + 1;
 
   // Move the original offsets
   size_t rows_to_fill = 0;  // how many rows need to be filled with NAs

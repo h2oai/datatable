@@ -84,7 +84,7 @@ size_t SentinelStr_ColumnImpl<T>::get_data_size(size_t k) const {
     return (nrows_ + 1) * sizeof(T);
   }
   else {
-    size_t sz = this->offsets()[nrows_ - 1] & ~GETNA<T>();
+    size_t sz = static_cast<const T*>(mbuf.rptr())[nrows_] & ~GETNA<T>();
     xassert(sz <= strbuf.size());
     return sz;
   }
@@ -120,11 +120,11 @@ Buffer SentinelStr_ColumnImpl<T>::get_data_buffer(size_t k) const {
 
 template <typename T>
 bool SentinelStr_ColumnImpl<T>::get_element(size_t i, CString* out) const {
-  const T* offs = this->offsets();
-  T off_end = offs[i];
+  auto start_offsets = static_cast<const T*>(mbuf.rptr());
+  T off_end = start_offsets[i + 1];
   if (ISNA<T>(off_end)) return false;
-  T off_beg = offs[i - 1] & ~GETNA<T>();
-  out->ch = this->strdata() + off_beg,
+  T off_beg = start_offsets[i] & ~GETNA<T>();
+  out->ch = static_cast<const char*>(strbuf.rptr()) + off_beg,
   out->size = static_cast<int64_t>(off_end - off_beg);
   return true;
 }
@@ -132,38 +132,8 @@ bool SentinelStr_ColumnImpl<T>::get_element(size_t i, CString* out) const {
 
 
 //------------------------------------------------------------------------------
-// Misc?
+// Column operations
 //------------------------------------------------------------------------------
-
-template <typename T>
-size_t SentinelStr_ColumnImpl<T>::datasize() const{
-  size_t sz = mbuf.size();
-  const T* end = static_cast<const T*>(mbuf.rptr(sz));
-  return static_cast<size_t>(end[-1] & ~GETNA<T>());
-}
-
-
-template <typename T>
-const char* SentinelStr_ColumnImpl<T>::strdata() const {
-  return static_cast<const char*>(strbuf.rptr());
-}
-
-template <typename T>
-const uint8_t* SentinelStr_ColumnImpl<T>::ustrdata() const {
-  return static_cast<const uint8_t*>(strbuf.rptr());
-}
-
-template <typename T>
-const T* SentinelStr_ColumnImpl<T>::offsets() const {
-  return static_cast<const T*>(mbuf.rptr()) + 1;
-}
-
-template <typename T>
-T* SentinelStr_ColumnImpl<T>::offsets_w() {
-  return static_cast<T*>(mbuf.wptr()) + 1;
-}
-
-
 
 template <typename T>
 void SentinelStr_ColumnImpl<T>::replace_values(
