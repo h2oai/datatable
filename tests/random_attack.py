@@ -232,7 +232,15 @@ class Attacker:
         print("[10] Sorting column %d ASC" % icol)
         if python_output:
             python_output.write("DT = DT.sort(f[%d])\n" % icol)
-        frame.sort(icol)
+        frame.sort_column(icol)
+
+    def cbind_numpy_column(self, frame):
+        print("[11] Cbinding frame with a numpy column -> ncols = %d"
+              % (frame.ncols + 1))
+
+        if python_output:
+            python_output.write("DT = DT.cbind(DT_np)\n")
+        frame.cbind_numpy_column()
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -274,6 +282,7 @@ class Attacker:
         select_rows_with_boolean_column: 1,
         replace_nas_in_column: 1,
         sort_column: 1,
+        cbind_numpy_column: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -319,7 +328,7 @@ class Frame0:
         print("  types: bool=%d, int=%d, float=%d, str=%d"
               % (tt[bool], tt[int], tt[float], tt[str]))
         print("  missing values: %.3f" % missing_fraction)
-        data = [self.random_column(nrows, types[i], missing_fraction)
+        data = [self.random_column(nrows, types[i], missing_fraction)[0]
                 for i in range(ncols)]
         self.data = data
         self.names = names
@@ -367,7 +376,8 @@ class Frame0:
                 return name
 
 
-    def random_column(self, nrows, ttype, missing):
+    def random_column(self, nrows, ttype, missing, ma=False):
+        mmask = [False] * nrows
         if ttype == bool:
             data = self.random_bool_column(nrows)
         elif ttype == int:
@@ -379,8 +389,13 @@ class Frame0:
         if missing:
             for i in range(nrows):
                 if random.random() < missing:
-                    data[i] = None
-        return data
+                    mmask[i] = True
+
+        if not ma:
+            for i in range(nrows):
+                if mmask[i]: data[i] = None
+
+        return data, mmask
 
 
     def random_bool_column(self, nrows):
@@ -595,12 +610,29 @@ class Frame0:
                 column[i] = replacement_value
         self.df[f[icol] == None, f[icol]] = replacement_value
 
-    def sort(self, icol):
+    def sort_column(self, icol):
         self.df = self.df.sort(icol)
         if (len(self.data[0])):
             data = list(zip(*self.data))
             data.sort(key=lambda x: (x[icol] is not None, x[icol]))
             self.data = list(map(list, zip(*data)))
+
+    def cbind_numpy_column(self):
+        import numpy as np
+
+        coltype = self.random_type()
+        mfraction = random.random()
+        data, mmask = self.random_column(self.nrows, coltype, mfraction, True)
+        np_data = np.ma.array(data, mask=mmask, dtype=np.dtype(coltype)).T
+        names = self.random_names(1)
+        df = dt.Frame(np_data, names=names)
+        for i in range(self.nrows):
+            if mmask[i]: data[i] = None
+
+        self.df.cbind(df)
+        self.names += names
+        self.data += [data]
+        self.types += [coltype]
 
     #---------------------------------------------------------------------------
     # Helpers
