@@ -174,7 +174,7 @@ void ColumnImpl::_fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 }
 
 void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
-  if (stats && stats->is_computed(Stat::NaCount) && stats->nacount() == 0) {
+  if (stats_ && stats_->is_computed(Stat::NaCount) && stats_->nacount() == 0) {
     std::fill(outmask + row0, outmask + row1, false);
     return;
   }

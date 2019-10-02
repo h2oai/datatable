@@ -41,7 +41,7 @@ FwColumn<T>::FwColumn(ColumnImpl*&& other)
   auto fwother = dynamic_cast<FwColumn<T>*>(other);
   xassert(fwother != nullptr);
   mbuf = std::move(fwother->mbuf);
-  stats = std::move(fwother->stats);
+  stats_ = std::move(fwother->stats_);
 }
 
 
@@ -164,7 +164,7 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
     [&](size_t, size_t j) {
       data[j] = replace_with;
     });
-  if (stats) stats->reset();
+  if (stats_) stats_->reset();
 }
 
 
@@ -202,7 +202,7 @@ void FwColumn<T>::replace_values(
 
 template <typename T>
 size_t FwColumn<T>::memory_footprint() const noexcept {
-  return sizeof(*this) + (stats? stats->memory_footprint() : 0)
+  return sizeof(*this) + (stats_? stats_->memory_footprint() : 0)
                        + mbuf.memory_footprint();
 }
 

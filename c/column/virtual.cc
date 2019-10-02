@@ -31,6 +31,11 @@ bool Virtual_ColumnImpl::is_virtual() const noexcept {
   return true;
 }
 
+size_t Virtual_ColumnImpl::memory_footprint() const noexcept {
+  return sizeof(*this);
+}
+
+
 
 NaStorage Virtual_ColumnImpl::get_na_storage_method() const noexcept {
   return NaStorage::VIRTUAL;

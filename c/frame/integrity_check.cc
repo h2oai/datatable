@@ -158,8 +158,8 @@ void DataTable::verify_integrity() const
 //------------------------------------------------------------------------------
 
 void ColumnImpl::verify_integrity() const {
-  if (stats) { // Stats are allowed to be null
-    stats->verify_integrity();
+  if (stats_) { // Stats are allowed to be null
+    stats_->verify_integrity();
   }
 }
 

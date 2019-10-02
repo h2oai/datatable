@@ -35,6 +35,8 @@ class Virtual_ColumnImpl : public ColumnImpl
     Virtual_ColumnImpl(size_t nrows, SType stype);
 
     bool is_virtual() const noexcept override;
+    size_t memory_footprint() const noexcept override;
+
     NaStorage get_na_storage_method() const noexcept override;
     size_t get_num_data_buffers() const noexcept override;
     bool is_data_editable(size_t) const override;

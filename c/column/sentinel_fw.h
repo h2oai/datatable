@@ -110,7 +110,7 @@ class IntColumn : public FwColumn<T>
     bool get_element(size_t i, int64_t* out) const override;
 
   protected:
-    using ColumnImpl::stats;
+    using ColumnImpl::stats_;
     friend ColumnImpl;
 };
 

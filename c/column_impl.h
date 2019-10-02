@@ -84,7 +84,7 @@ class ColumnImpl
     size_t nrows_;
     SType  stype_;
     size_t : 56;
-    mutable std::unique_ptr<Stats> stats;
+    mutable std::unique_ptr<Stats> stats_;
 
   //------------------------------------
   // Constructors
@@ -124,7 +124,7 @@ class ColumnImpl
     size_t nrows() const noexcept { return nrows_; }
     SType  stype() const noexcept { return stype_; }
     virtual bool is_virtual() const noexcept = 0;
-    virtual size_t memory_footprint() const noexcept;
+    virtual size_t memory_footprint() const noexcept = 0;
 
 
   //------------------------------------
