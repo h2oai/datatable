@@ -54,20 +54,20 @@ void ColumnImpl::release_instance() noexcept {
 // Data access
 //------------------------------------------------------------------------------
 
-[[noreturn]] static void _notimpl(const ColumnImpl* col, const char* type) {
+[[noreturn]] static void _ni(const ColumnImpl* col, const char* type) {
   throw NotImplError()
       << "Cannot retrieve " << type
       << " values from a column of type " << col->stype();
 }
 
-bool ColumnImpl::get_element(size_t, int8_t*)   const { _notimpl(this, "int8"); }
-bool ColumnImpl::get_element(size_t, int16_t*)  const { _notimpl(this, "int16"); }
-bool ColumnImpl::get_element(size_t, int32_t*)  const { _notimpl(this, "int32"); }
-bool ColumnImpl::get_element(size_t, int64_t*)  const { _notimpl(this, "int64"); }
-bool ColumnImpl::get_element(size_t, float*)    const { _notimpl(this, "float32"); }
-bool ColumnImpl::get_element(size_t, double*)   const { _notimpl(this, "float64"); }
-bool ColumnImpl::get_element(size_t, CString*)  const { _notimpl(this, "string"); }
-bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object"); }
+bool ColumnImpl::get_element(size_t, int8_t*)   const { _ni(this, "int8"); }
+bool ColumnImpl::get_element(size_t, int16_t*)  const { _ni(this, "int16"); }
+bool ColumnImpl::get_element(size_t, int32_t*)  const { _ni(this, "int32"); }
+bool ColumnImpl::get_element(size_t, int64_t*)  const { _ni(this, "int64"); }
+bool ColumnImpl::get_element(size_t, float*)    const { _ni(this, "float32"); }
+bool ColumnImpl::get_element(size_t, double*)   const { _ni(this, "float64"); }
+bool ColumnImpl::get_element(size_t, CString*)  const { _ni(this, "string"); }
+bool ColumnImpl::get_element(size_t, py::robj*) const { _ni(this, "object"); }
 
 
 
@@ -81,18 +81,17 @@ ColumnImpl* ColumnImpl::_materialize_fw() {
   size_t inp_nrows = this->nrows();
   SType inp_stype = this->stype();
   assert_compatible_type<T>(inp_stype);
-  ColumnImpl* output_column
-      = dt::Sentinel_ColumnImpl::make_column(inp_nrows, inp_stype);
-  auto out_data = static_cast<T*>(output_column->get_data_editable(0));
+  auto out_column = Sentinel_ColumnImpl::make_column(inp_nrows, inp_stype);
+  auto out_data = static_cast<T*>(out_column->get_data_editable(0));
 
-  dt::parallel_for_static(
+  parallel_for_static(
     inp_nrows,
     [=](size_t i) {
       T value;
       bool isvalid = this->get_element(i, &value);
       out_data[i] = isvalid? value : GETNA<T>();
     });
-  return output_column;
+  return out_column;
 }
 
 
@@ -101,37 +100,28 @@ ColumnImpl* ColumnImpl::_materialize_obj() {
   SType inp_stype = this->stype();
   assert_compatible_type<py::robj>(inp_stype);
 
-  ColumnImpl* output_column
-      = dt::Sentinel_ColumnImpl::make_column(inp_nrows, SType::OBJ);
-  auto out_data = static_cast<py::oobj*>(output_column->get_data_editable(0));
+  auto out_column = Sentinel_ColumnImpl::make_column(inp_nrows, SType::OBJ);
+  auto out_data = static_cast<py::oobj*>(out_column->get_data_editable(0));
 
-  // Writing output array as `py::oobj` will ensure that the elements
+  // Treating output array as `py::oobj[]` will ensure that the elements
   // will be properly INCREF-ed.
   for (size_t i = 0; i < inp_nrows; ++i) {
     py::robj value;
     bool isvalid = this->get_element(i, &value);
     out_data[i] = isvalid? py::oobj(value) : py::None();
   }
-  return output_column;
+  return out_column;
 }
 
 
 ColumnImpl* ColumnImpl::_materialize_str() {
-  Column inp(const_cast<ColumnImpl*>(this));
-  try {
-    Column rescol = dt::map_str2str(inp,
-      [=](size_t, CString& value, dt::string_buf* sb) {
-        sb->write(value);
-      });
-    std::move(inp).release();
-    return std::move(rescol).release();
-  }
-  catch (...) {
-    // prevent this from being deleted in case materialization
-    // fails.
-    std::move(inp).release();
-    throw;
-  }
+  Column inp(this->shallowcopy());
+  Column rescol = map_str2str(inp,
+    [=](size_t, CString& value, string_buf* sb) {
+      sb->write(value);
+    });
+  // std::move(inp).release();
+  return std::move(rescol).release();
 }
 
 
@@ -213,7 +203,7 @@ void ColumnImpl::rbind_impl(colvec&, size_t, bool) {
 
 void ColumnImpl::na_pad(size_t new_nrows, Column& out) {
   xassert(new_nrows > nrows());
-  out = Column(new dt::NaFilled_ColumnImpl(std::move(out), new_nrows));
+  out = Column(new NaFilled_ColumnImpl(std::move(out), new_nrows));
 }
 
 void ColumnImpl::truncate(size_t new_nrows, Column&) {
