@@ -24,6 +24,7 @@
 #include "parallel/api.h"
 #include "parallel/string_utils.h"
 #include "column_impl.h"
+namespace dt {
 
 
 
@@ -219,3 +220,8 @@ void ColumnImpl::truncate(size_t new_nrows, Column&) {
   xassert(new_nrows < nrows());
   nrows_ = new_nrows;
 }
+
+
+
+
+}  // namespace dt

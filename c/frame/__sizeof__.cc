@@ -85,7 +85,7 @@ size_t DataTable::memory_footprint() const noexcept {
 
 
 template <typename T>
-size_t StringColumn<T>::memory_footprint() const noexcept {
+size_t dt::StringColumn<T>::memory_footprint() const noexcept {
   return sizeof(*this)
          + mbuf.memory_footprint()
          + strbuf.memory_footprint()
@@ -93,5 +93,5 @@ size_t StringColumn<T>::memory_footprint() const noexcept {
 }
 
 
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
+template class dt::StringColumn<uint32_t>;
+template class dt::StringColumn<uint64_t>;

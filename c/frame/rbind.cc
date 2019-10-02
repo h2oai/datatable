@@ -350,7 +350,7 @@ void Column::rbind(colvec& columns) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
+void dt::StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
                                  bool col_empty)
 {
   // Determine the size of the memory to allocate
@@ -437,7 +437,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
 template<> inline py::robj GETNA() { return py::rnone(); }
 
 template <typename T>
-void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
+void dt::FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 {
   const T na = GETNA<T>();
   const void* naptr = static_cast<const void*>(&na);
@@ -489,7 +489,7 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 // rbind object columns
 //------------------------------------------------------------------------------
 
-void PyObjectColumn::rbind_impl(
+void dt::PyObjectColumn::rbind_impl(
   colvec& columns, size_t nnrows, bool col_empty)
 {
   size_t old_nrows = nrows_;
@@ -529,12 +529,12 @@ void PyObjectColumn::rbind_impl(
 
 
 // Explicitly instantiate these templates:
-template class FwColumn<int8_t>;
-template class FwColumn<int16_t>;
-template class FwColumn<int32_t>;
-template class FwColumn<int64_t>;
-template class FwColumn<float>;
-template class FwColumn<double>;
-template class FwColumn<py::robj>;
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
+template class dt::FwColumn<int8_t>;
+template class dt::FwColumn<int16_t>;
+template class dt::FwColumn<int32_t>;
+template class dt::FwColumn<int64_t>;
+template class dt::FwColumn<float>;
+template class dt::FwColumn<double>;
+template class dt::FwColumn<py::robj>;
+template class dt::StringColumn<uint32_t>;
+template class dt::StringColumn<uint64_t>;

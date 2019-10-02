@@ -12,6 +12,7 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "column_impl.h"
+namespace dt {
 
 template <typename T> constexpr SType stype_for() { return SType::VOID; }
 template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }
@@ -222,3 +223,4 @@ void StringColumn<T>::replace_values(
 
 template class StringColumn<uint32_t>;
 template class StringColumn<uint64_t>;
+}  // namespace dt

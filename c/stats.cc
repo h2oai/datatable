@@ -53,7 +53,7 @@ static const char* stat_name(Stat s) {
 // main Stats class
 //------------------------------------------------------------------------------
 
-Stats::Stats(ColumnImpl* col) : column(col) {
+Stats::Stats(dt::ColumnImpl* col) : column(col) {
   xassert(col);
 }
 
@@ -480,7 +480,7 @@ void StringStats::set_mode(CString value, bool isvalid) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-static size_t _compute_nacount(const ColumnImpl* col) {
+static size_t _compute_nacount(const dt::ColumnImpl* col) {
   assert_compatible_type<T>(col->stype());
   std::atomic<size_t> total_countna { 0 };
   dt::parallel_region(
@@ -1044,7 +1044,7 @@ void BooleanStats::compute_all_stats() {
 // Column's API
 //------------------------------------------------------------------------------
 
-static std::unique_ptr<Stats> _make_stats(ColumnImpl* col) {
+static std::unique_ptr<Stats> _make_stats(dt::ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
   switch (col->stype()) {
     case SType::BOOL:    return StatsPtr(new BooleanStats(col));

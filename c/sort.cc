@@ -1397,7 +1397,7 @@ static RowIndex sort_tiny(const Column& col, Groupby* out_grps) {
 }
 
 
-RowIndex ColumnImpl::sort(Groupby* out_grps) const {
+RowIndex dt::ColumnImpl::sort(Groupby* out_grps) const {
   Column ocol(this->shallowcopy());
   return ocol.sort(out_grps);
 }
@@ -1424,7 +1424,7 @@ RowIndex Column::sort(Groupby* out_grps) const {
 }
 
 
-void ColumnImpl::sort_grouped(const Groupby& grps, Column& out) {
+void dt::ColumnImpl::sort_grouped(const Groupby& grps, Column& out) {
   (void) out.stats();
   SortContext sc(nrows(), RowIndex(), grps, /* make_groups = */ false);
   sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);

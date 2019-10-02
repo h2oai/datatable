@@ -60,8 +60,6 @@ bool Repeated_ColumnImpl::get_element(size_t i, py::robj* out) const { return ar
 
 
 
-}  // namespace dt
-
 // This is the base implementation of the virtual
 // `ColumnImpl::repeat()` method.
 //
@@ -80,3 +78,7 @@ void ColumnImpl::repeat(size_t ntimes, Column& out) {
     out = Column(new dt::Repeated_ColumnImpl(std::move(out), ntimes));
   }
 }
+
+
+
+}  // namespace dt

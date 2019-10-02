@@ -28,6 +28,8 @@
 #include "buffer.h"      // Buffer
 #include "stats.h"       // Stats
 #include "types.h"       // SType, CString
+namespace dt {
+
 
 
 /**
@@ -115,7 +117,11 @@ class ColumnImpl
     virtual void pre_materialize_hook() {}
 
 
-  protected:
+  //------------------------------------
+  // Private helpers
+  //------------------------------------
+  private:
+    // TODO: this should really be materializer for RBound column impl
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
     template <typename T> ColumnImpl* _materialize_fw();
@@ -125,10 +131,11 @@ class ColumnImpl
     template <typename T>
     void _fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
-    friend class Column;
+    friend class ::Column;
 };
 
 
 
 
+} // namespace dt
 #endif

@@ -3,12 +3,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include "python/_all.h"
 #include "column/sentinel_fw.h"
 #include "column_impl.h"
 #include "datatablemodule.h"
+namespace dt {
 
 
 BoolColumn::BoolColumn(ColumnImpl*&& other)
@@ -36,3 +37,6 @@ bool BoolColumn::get_element(size_t i, int32_t* x) const {
   *x = static_cast<int32_t>(value);
   return !ISNA<int8_t>(value);
 }
+
+
+} // namespace dt

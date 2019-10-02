@@ -12,8 +12,10 @@
 #include "parallel/api.h"  // dt::parallel_for_static
 #include "column.h"
 #include "column_impl.h"
-
 template<> inline py::robj GETNA() { return py::rnone(); }
+
+namespace dt {
+
 
 template <typename T> constexpr SType stype_for(){ return SType::VOID; }
 template <> constexpr SType stype_for<int8_t>()  { return SType::INT8; }
@@ -222,3 +224,6 @@ template class FwColumn<int64_t>;
 template class FwColumn<float>;
 template class FwColumn<double>;
 template class FwColumn<py::robj>;
+
+
+} // namespace dt

@@ -157,7 +157,7 @@ void DataTable::verify_integrity() const
 // Column
 //------------------------------------------------------------------------------
 
-void ColumnImpl::verify_integrity() const {
+void dt::ColumnImpl::verify_integrity() const {
   if (stats_) { // Stats are allowed to be null
     stats_->verify_integrity();
   }
@@ -169,7 +169,7 @@ void ColumnImpl::verify_integrity() const {
 // BoolColumn
 //------------------------------------------------------------------------------
 
-void BoolColumn::verify_integrity() const {
+void dt::BoolColumn::verify_integrity() const {
   FwColumn<int8_t>::verify_integrity();
 
   // Check that all elements in column are either 0, 1, or NA_I1
@@ -192,7 +192,7 @@ void BoolColumn::verify_integrity() const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void StringColumn<T>::verify_integrity() const {
+void dt::StringColumn<T>::verify_integrity() const {
   Sentinel_ColumnImpl::verify_integrity();
   mbuf.verify_integrity();
   strbuf.verify_integrity();
@@ -245,7 +245,7 @@ void StringColumn<T>::verify_integrity() const {
 // PyObjColumn
 //------------------------------------------------------------------------------
 
-void PyObjectColumn::verify_integrity() const {
+void dt::PyObjectColumn::verify_integrity() const {
   FwColumn<py::robj>::verify_integrity();
 
   if (!mbuf.is_pyobjects()) {
@@ -270,5 +270,5 @@ void PyObjectColumn::verify_integrity() const {
 
 
 // Explicit instantiation of templates
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
+template class dt::StringColumn<uint32_t>;
+template class dt::StringColumn<uint64_t>;

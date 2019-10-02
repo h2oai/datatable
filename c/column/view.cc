@@ -161,7 +161,6 @@ template class ArrayView_ColumnImpl<int64_t>;
 
 
 
-}  // namespace dt
 
 //------------------------------------------------------------------------------
 // base ColumnImpl
@@ -196,3 +195,7 @@ void ColumnImpl::apply_rowindex(const RowIndex& rowindex, Column& out) {
   if (!rowindex) return;
   out = _make_view(std::move(out), rowindex);
 }
+
+
+
+}  // namespace dt

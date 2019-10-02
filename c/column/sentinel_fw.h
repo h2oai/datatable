@@ -22,12 +22,12 @@
 #ifndef dt_COLUMN_SENTINEL_FW_h
 #define dt_COLUMN_SENTINEL_FW_h
 #include "column/sentinel.h"
-// namespace dt {
+namespace dt {
 
 
 
 template <typename T>
-class FwColumn : public dt::Sentinel_ColumnImpl
+class FwColumn : public Sentinel_ColumnImpl
 {
   protected:
     Buffer mbuf;
@@ -158,5 +158,5 @@ protected:
 
 
 
-// }  // namespace dt
+}  // namespace dt
 #endif

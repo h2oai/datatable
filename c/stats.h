@@ -11,7 +11,9 @@
 #include <vector>
 #include "types.h"
 
-class ColumnImpl;
+namespace dt {
+  class ColumnImpl;
+}
 class Column;
 
 
@@ -121,7 +123,7 @@ constexpr uint8_t NSTATS = 14;
 class Stats
 {
   protected:
-    ColumnImpl* column;
+    dt::ColumnImpl* column;
     std::bitset<NSTATS> _computed;
     std::bitset<NSTATS> _valid;
     size_t _countna;
@@ -130,7 +132,7 @@ class Stats
 
   //---- Generic properties ------------
   public:
-    explicit Stats(ColumnImpl* col);
+    explicit Stats(dt::ColumnImpl* col);
     Stats(const Stats&) = delete;
     Stats(Stats&&) = delete;
     virtual ~Stats();

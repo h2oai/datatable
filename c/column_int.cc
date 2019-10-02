@@ -9,6 +9,8 @@
 #include "python/int.h"
 #include "column_impl.h"
 #include "datatablemodule.h"
+namespace dt {
+
 
 
 template <typename T>
@@ -41,3 +43,4 @@ template class IntColumn<int8_t>;
 template class IntColumn<int16_t>;
 template class IntColumn<int32_t>;
 template class IntColumn<int64_t>;
+} // namespace dt

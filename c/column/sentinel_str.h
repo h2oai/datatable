@@ -22,11 +22,11 @@
 #ifndef dt_COLUMN_SENTINEL_STR_h
 #define dt_COLUMN_SENTINEL_STR_h
 #include "column/sentinel.h"
-// namespace dt {
+namespace dt {
 
 
 template <typename T>
-class StringColumn : public dt::Sentinel_ColumnImpl
+class StringColumn : public Sentinel_ColumnImpl
 {
   private:
     Buffer mbuf;
@@ -73,5 +73,5 @@ extern template class StringColumn<uint64_t>;
 
 
 
-// }  // namespace dt
+}  // namespace dt
 #endif

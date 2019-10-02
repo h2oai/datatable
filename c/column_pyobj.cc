@@ -9,6 +9,7 @@
 #include "python/obj.h"
 #include "python/string.h"
 #include "utils/assert.h"
+namespace dt {
 
 
 
@@ -46,3 +47,8 @@ bool PyObjectColumn::get_element(size_t i, py::robj* out) const {
 ColumnImpl* PyObjectColumn::materialize() {
   return this;
 }
+
+
+
+
+} // namespace dt

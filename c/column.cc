@@ -58,7 +58,7 @@ void swap(Column& lhs, Column& rhs) {
 Column::Column()
   : pcol(nullptr) {}
 
-Column::Column(ColumnImpl*&& col)
+Column::Column(dt::ColumnImpl*&& col)
   : pcol(col) {}
 
 Column::Column(const Column& other)
@@ -88,8 +88,8 @@ Column::~Column() {
 }
 
 
-ColumnImpl* Column::release() && noexcept {
-  ColumnImpl* tmp = pcol;
+dt::ColumnImpl* Column::release() && noexcept {
+  dt::ColumnImpl* tmp = pcol;
   pcol = nullptr;
   return tmp;
 }
