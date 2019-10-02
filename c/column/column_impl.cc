@@ -54,20 +54,20 @@ void ColumnImpl::release_instance() noexcept {
 // Data access
 //------------------------------------------------------------------------------
 
-[[noreturn]] static void _ni(const ColumnImpl* col, const char* type) {
+[[noreturn]] static void err(SType col_stype, const char* type) {
   throw NotImplError()
       << "Cannot retrieve " << type
-      << " values from a column of type " << col->stype();
+      << " values from a column of type " << col_stype;
 }
 
-bool ColumnImpl::get_element(size_t, int8_t*)   const { _ni(this, "int8"); }
-bool ColumnImpl::get_element(size_t, int16_t*)  const { _ni(this, "int16"); }
-bool ColumnImpl::get_element(size_t, int32_t*)  const { _ni(this, "int32"); }
-bool ColumnImpl::get_element(size_t, int64_t*)  const { _ni(this, "int64"); }
-bool ColumnImpl::get_element(size_t, float*)    const { _ni(this, "float32"); }
-bool ColumnImpl::get_element(size_t, double*)   const { _ni(this, "float64"); }
-bool ColumnImpl::get_element(size_t, CString*)  const { _ni(this, "string"); }
-bool ColumnImpl::get_element(size_t, py::robj*) const { _ni(this, "object"); }
+bool ColumnImpl::get_element(size_t, int8_t*)  const { err(stype_, "int8"); }
+bool ColumnImpl::get_element(size_t, int16_t*) const { err(stype_, "int16"); }
+bool ColumnImpl::get_element(size_t, int32_t*) const { err(stype_, "int32"); }
+bool ColumnImpl::get_element(size_t, int64_t*) const { err(stype_, "int64"); }
+bool ColumnImpl::get_element(size_t, float*)   const { err(stype_, "float32"); }
+bool ColumnImpl::get_element(size_t, double*)  const { err(stype_, "float64"); }
+bool ColumnImpl::get_element(size_t, CString*) const { err(stype_, "string"); }
+bool ColumnImpl::get_element(size_t, py::robj*)const { err(stype_, "object"); }
 
 
 
