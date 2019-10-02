@@ -27,21 +27,27 @@ namespace dt {
 
 
 template <typename T>
-class FwColumn : public Sentinel_ColumnImpl
+class SentinelFw_ColumnImpl : public Sentinel_ColumnImpl
 {
   protected:
     Buffer mbuf_;
 
   public:
-    FwColumn(size_t nrows);
-    FwColumn(size_t nrows, Buffer&&);
-    FwColumn(ColumnImpl*&&);
+    SentinelFw_ColumnImpl(size_t nrows);
+    SentinelFw_ColumnImpl(size_t nrows, Buffer&&);
+    SentinelFw_ColumnImpl(ColumnImpl*&&);
 
     virtual ColumnImpl* clone() const override;
     void verify_integrity() const override;
     size_t memory_footprint() const noexcept override;
 
-    virtual bool get_element(size_t i, T* out) const override;
+    virtual bool get_element(size_t i, int8_t* out) const override;
+    virtual bool get_element(size_t i, int16_t* out) const override;
+    virtual bool get_element(size_t i, int32_t* out) const override;
+    virtual bool get_element(size_t i, int64_t* out) const override;
+    virtual bool get_element(size_t i, float* out) const override;
+    virtual bool get_element(size_t i, double* out) const override;
+    virtual bool get_element(size_t i, py::robj* out) const override;
 
     size_t      get_num_data_buffers() const noexcept override;
     bool        is_data_editable(size_t k) const override;
@@ -60,19 +66,19 @@ class FwColumn : public Sentinel_ColumnImpl
 };
 
 
-extern template class FwColumn<int8_t>;
-extern template class FwColumn<int16_t>;
-extern template class FwColumn<int32_t>;
-extern template class FwColumn<int64_t>;
-extern template class FwColumn<float>;
-extern template class FwColumn<double>;
-extern template class FwColumn<py::robj>;
+extern template class SentinelFw_ColumnImpl<int8_t>;
+extern template class SentinelFw_ColumnImpl<int16_t>;
+extern template class SentinelFw_ColumnImpl<int32_t>;
+extern template class SentinelFw_ColumnImpl<int64_t>;
+extern template class SentinelFw_ColumnImpl<float>;
+extern template class SentinelFw_ColumnImpl<double>;
+extern template class SentinelFw_ColumnImpl<py::robj>;
 
 
 
 //==============================================================================
 
-class BoolColumn : public FwColumn<int8_t>
+class BoolColumn : public SentinelFw_ColumnImpl<int8_t>
 {
   public:
     BoolColumn(ColumnImpl*&&);
@@ -80,7 +86,7 @@ class BoolColumn : public FwColumn<int8_t>
     BoolColumn(size_t nrows, Buffer&&);
     ColumnImpl* clone() const override;
 
-    using FwColumn<int8_t>::get_element;
+    using SentinelFw_ColumnImpl<int8_t>::get_element;
     bool get_element(size_t i, int32_t* out) const override;
 
   protected:
@@ -88,31 +94,6 @@ class BoolColumn : public FwColumn<int8_t>
 
     friend ColumnImpl;
 };
-
-
-
-//==============================================================================
-
-template <typename T>
-class IntColumn : public FwColumn<T>
-{
-  public:
-    using FwColumn<T>::FwColumn;
-    ColumnImpl* clone() const override;
-
-    using FwColumn<T>::get_element;
-    bool get_element(size_t i, int32_t* out) const override;
-    bool get_element(size_t i, int64_t* out) const override;
-
-  protected:
-    using ColumnImpl::stats_;
-    friend ColumnImpl;
-};
-
-extern template class IntColumn<int8_t>;
-extern template class IntColumn<int16_t>;
-extern template class IntColumn<int32_t>;
-extern template class IntColumn<int64_t>;
 
 
 
@@ -134,7 +115,7 @@ extern template class IntColumn<int64_t>;
  * The `mbuf`'s API already respects these rules, however the user must also
  * obey them when manipulating the data manually.
  */
-class PyObjectColumn : public FwColumn<py::robj>
+class PyObjectColumn : public SentinelFw_ColumnImpl<py::robj>
 {
 public:
   PyObjectColumn(size_t nrows);

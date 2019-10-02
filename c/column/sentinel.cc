@@ -29,12 +29,12 @@ namespace dt {
 Column Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
   switch (stype) {
     case SType::BOOL:    return Column(new BoolColumn(nrows));
-    case SType::INT8:    return Column(new IntColumn<int8_t>(nrows));
-    case SType::INT16:   return Column(new IntColumn<int16_t>(nrows));
-    case SType::INT32:   return Column(new IntColumn<int32_t>(nrows));
-    case SType::INT64:   return Column(new IntColumn<int64_t>(nrows));
-    case SType::FLOAT32: return Column(new FwColumn<float>(nrows));
-    case SType::FLOAT64: return Column(new FwColumn<double>(nrows));
+    case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows));
+    case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows));
+    case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows));
+    case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows));
+    case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows));
+    case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows));
     case SType::STR32:   return Column(new StringColumn<uint32_t>(nrows));
     case SType::STR64:   return Column(new StringColumn<uint64_t>(nrows));
     case SType::OBJ:     return Column(new PyObjectColumn(nrows));
@@ -51,12 +51,12 @@ Column Sentinel_ColumnImpl::make_fw_column(
   xassert(buf.size() >= nrows * info(stype).elemsize());
   switch (stype) {
     case SType::BOOL:    return Column(new BoolColumn(nrows, std::move(buf)));
-    case SType::INT8:    return Column(new IntColumn<int8_t>(nrows, std::move(buf)));
-    case SType::INT16:   return Column(new IntColumn<int16_t>(nrows, std::move(buf)));
-    case SType::INT32:   return Column(new IntColumn<int32_t>(nrows, std::move(buf)));
-    case SType::INT64:   return Column(new IntColumn<int64_t>(nrows, std::move(buf)));
-    case SType::FLOAT32: return Column(new FwColumn<float>(nrows, std::move(buf)));
-    case SType::FLOAT64: return Column(new FwColumn<double>(nrows, std::move(buf)));
+    case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows, std::move(buf)));
+    case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows, std::move(buf)));
+    case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows, std::move(buf)));
+    case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows, std::move(buf)));
+    case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows, std::move(buf)));
+    case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows, std::move(buf)));
     case SType::OBJ:     return Column(new PyObjectColumn(nrows, std::move(buf)));
     default:
       throw ValueError()

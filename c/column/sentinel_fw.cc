@@ -16,15 +16,15 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// FwColumn
+// SentinelFw_ColumnImpl
 //------------------------------------------------------------------------------
 
 template <typename T>
-FwColumn<T>::FwColumn(ColumnImpl*&& other)
+SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(ColumnImpl*&& other)
   : Sentinel_ColumnImpl(other->nrows(), other->stype())
 {
   assert_compatible_type<T>(other->stype());
-  auto fwother = dynamic_cast<FwColumn<T>*>(other);
+  auto fwother = dynamic_cast<SentinelFw_ColumnImpl<T>*>(other);
   xassert(fwother != nullptr);
   mbuf_ = std::move(fwother->mbuf_);
   stats_ = std::move(fwother->stats_);
@@ -32,7 +32,7 @@ FwColumn<T>::FwColumn(ColumnImpl*&& other)
 
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows)
+SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows)
   : Sentinel_ColumnImpl(nrows, stype_from<T>())
 {
   mbuf_.resize(sizeof(T) * nrows);
@@ -40,7 +40,7 @@ FwColumn<T>::FwColumn(size_t nrows)
 
 
 template <typename T>
-FwColumn<T>::FwColumn(size_t nrows, Buffer&& mr)
+SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, Buffer&& mr)
   : Sentinel_ColumnImpl(nrows, stype_from<T>())
 {
   size_t req_size = sizeof(T) * nrows;
@@ -54,8 +54,24 @@ FwColumn<T>::FwColumn(size_t nrows, Buffer&& mr)
 
 
 template <typename T>
-ColumnImpl* FwColumn<T>::clone() const {
-  return new FwColumn<T>(nrows_, Buffer(mbuf_));
+ColumnImpl* SentinelFw_ColumnImpl<T>::clone() const {
+  return new SentinelFw_ColumnImpl<T>(nrows_, Buffer(mbuf_));
+}
+
+
+template <typename T>
+void SentinelFw_ColumnImpl<T>::verify_integrity() const {
+  assert_compatible_type<T>(stype_);
+  Sentinel_ColumnImpl::verify_integrity();
+  mbuf_.verify_integrity();
+  XAssert(mbuf_.size() >= sizeof(T) * nrows_);
+}
+
+
+template <typename T>
+size_t SentinelFw_ColumnImpl<T>::memory_footprint() const noexcept {
+  return sizeof(*this) + (stats_? stats_->memory_footprint() : 0)
+                       + mbuf_.memory_footprint();
 }
 
 
@@ -66,11 +82,53 @@ ColumnImpl* FwColumn<T>::clone() const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-bool FwColumn<T>::get_element(size_t i, T* out) const {
+bool SentinelFw_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
   T x = static_cast<const T*>(mbuf_.rptr())[i];
-  *out = x;
+  *out = static_cast<int8_t>(x);
   return !ISNA<T>(x);
 }
+
+template <typename T>
+bool SentinelFw_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
+  T x = static_cast<const T*>(mbuf_.rptr())[i];
+  *out = static_cast<int16_t>(x);
+  return !ISNA<T>(x);
+}
+
+template <typename T>
+bool SentinelFw_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
+  T x = static_cast<const T*>(mbuf_.rptr())[i];
+  *out = static_cast<int32_t>(x);
+  return !ISNA<T>(x);
+}
+
+template <typename T>
+bool SentinelFw_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
+  T x = static_cast<const T*>(mbuf_.rptr())[i];
+  *out = static_cast<int64_t>(x);
+  return !ISNA<T>(x);
+}
+
+template <typename T>
+bool SentinelFw_ColumnImpl<T>::get_element(size_t i, float* out) const {
+  T x = static_cast<const T*>(mbuf_.rptr())[i];
+  *out = static_cast<float>(x);
+  return !ISNA<T>(x);
+}
+
+template <typename T>
+bool SentinelFw_ColumnImpl<T>::get_element(size_t i, double* out) const {
+  T x = static_cast<const T*>(mbuf_.rptr())[i];
+  *out = static_cast<double>(x);
+  return !ISNA<T>(x);
+}
+
+
+template <typename T>
+bool SentinelFw_ColumnImpl<T>::get_element(size_t i, py::robj* out) const {
+  return ColumnImpl::get_element(i, out);
+}
+
 
 
 
@@ -81,20 +139,20 @@ bool FwColumn<T>::get_element(size_t i, T* out) const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-size_t FwColumn<T>::get_num_data_buffers() const noexcept {
+size_t SentinelFw_ColumnImpl<T>::get_num_data_buffers() const noexcept {
   return 1;
 }
 
 
 template <typename T>
-bool FwColumn<T>::is_data_editable(size_t k) const {
+bool SentinelFw_ColumnImpl<T>::is_data_editable(size_t k) const {
   xassert(k == 0);
   return mbuf_.is_writable();
 }
 
 
 template <typename T>
-size_t FwColumn<T>::get_data_size(size_t k) const {
+size_t SentinelFw_ColumnImpl<T>::get_data_size(size_t k) const {
   xassert(k == 0);
   xassert(mbuf_.size() >= nrows_ * sizeof(T));
   return nrows_ * sizeof(T);
@@ -102,21 +160,21 @@ size_t FwColumn<T>::get_data_size(size_t k) const {
 
 
 template <typename T>
-const void* FwColumn<T>::get_data_readonly(size_t k) const {
+const void* SentinelFw_ColumnImpl<T>::get_data_readonly(size_t k) const {
   xassert(k == 0);
   return mbuf_.rptr();
 }
 
 
 template <typename T>
-void* FwColumn<T>::get_data_editable(size_t k) {
+void* SentinelFw_ColumnImpl<T>::get_data_editable(size_t k) {
   xassert(k == 0);
   return mbuf_.wptr();
 }
 
 
 template <typename T>
-Buffer FwColumn<T>::get_data_buffer(size_t k) const {
+Buffer SentinelFw_ColumnImpl<T>::get_data_buffer(size_t k) const {
   xassert(k == 0);
   return Buffer(mbuf_);
 }
@@ -129,7 +187,7 @@ Buffer FwColumn<T>::get_data_buffer(size_t k) const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
+void SentinelFw_ColumnImpl<T>::replace_values(const RowIndex& replace_at, T replace_with) {
   T* data = static_cast<T*>(mbuf_.wptr());
   replace_at.iterate(0, replace_at.size(), 1,
     [&](size_t, size_t j) {
@@ -140,7 +198,7 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
 
 
 template <typename T>
-void FwColumn<T>::replace_values(
+void SentinelFw_ColumnImpl<T>::replace_values(
     const RowIndex& replace_at, const Column& replace_with, Column&)
 {
   if (!replace_with) {
@@ -171,28 +229,16 @@ void FwColumn<T>::replace_values(
 }
 
 
-template <typename T>
-size_t FwColumn<T>::memory_footprint() const noexcept {
-  return sizeof(*this) + (stats_? stats_->memory_footprint() : 0)
-                       + mbuf_.memory_footprint();
-}
-
-template <typename T>
-void FwColumn<T>::verify_integrity() const {
-  Sentinel_ColumnImpl::verify_integrity();
-  mbuf_.verify_integrity();
-}
-
 
 
 // Explicit instantiations
-template class FwColumn<int8_t>;
-template class FwColumn<int16_t>;
-template class FwColumn<int32_t>;
-template class FwColumn<int64_t>;
-template class FwColumn<float>;
-template class FwColumn<double>;
-template class FwColumn<py::robj>;
+template class SentinelFw_ColumnImpl<int8_t>;
+template class SentinelFw_ColumnImpl<int16_t>;
+template class SentinelFw_ColumnImpl<int32_t>;
+template class SentinelFw_ColumnImpl<int64_t>;
+template class SentinelFw_ColumnImpl<float>;
+template class SentinelFw_ColumnImpl<double>;
+template class SentinelFw_ColumnImpl<py::robj>;
 
 
 } // namespace dt

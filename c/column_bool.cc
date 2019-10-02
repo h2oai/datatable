@@ -12,16 +12,16 @@ namespace dt {
 
 
 BoolColumn::BoolColumn(ColumnImpl*&& other)
-  : FwColumn<int8_t>(std::move(other)) {}
+  : SentinelFw_ColumnImpl<int8_t>(std::move(other)) {}
 
 
-BoolColumn::BoolColumn(size_t nrows) : FwColumn<int8_t>(nrows) {
+BoolColumn::BoolColumn(size_t nrows) : SentinelFw_ColumnImpl<int8_t>(nrows) {
   stype_ = SType::BOOL;
 }
 
 
 BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
-  : FwColumn<int8_t>(nrows, std::move(mem)) {
+  : SentinelFw_ColumnImpl<int8_t>(nrows, std::move(mem)) {
   stype_ = SType::BOOL;
 }
 

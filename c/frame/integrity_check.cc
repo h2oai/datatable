@@ -169,7 +169,7 @@ void dt::ColumnImpl::verify_integrity() const {
 //------------------------------------------------------------------------------
 
 void dt::BoolColumn::verify_integrity() const {
-  FwColumn<int8_t>::verify_integrity();
+  SentinelFw_ColumnImpl<int8_t>::verify_integrity();
 
   // Check that all elements in column are either 0, 1, or NA_I1
   size_t mbuf_nrows = mbuf_.size();
@@ -245,7 +245,7 @@ void dt::StringColumn<T>::verify_integrity() const {
 //------------------------------------------------------------------------------
 
 void dt::PyObjectColumn::verify_integrity() const {
-  FwColumn<py::robj>::verify_integrity();
+  SentinelFw_ColumnImpl<py::robj>::verify_integrity();
 
   if (!mbuf_.is_pyobjects()) {
     throw AssertionError() << "obj64 column's internal buffer is "

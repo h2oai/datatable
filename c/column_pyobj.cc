@@ -13,13 +13,13 @@ namespace dt {
 
 
 
-PyObjectColumn::PyObjectColumn(size_t nrows_) : FwColumn<py::robj>(nrows_) {
+PyObjectColumn::PyObjectColumn(size_t nrows_) : SentinelFw_ColumnImpl<py::robj>(nrows_) {
   stype_ = SType::OBJ;
   mbuf_.set_pyobjects(/*clear_data = */ true);
 }
 
 PyObjectColumn::PyObjectColumn(size_t nrows_, Buffer&& mb)
-    : FwColumn<py::robj>(nrows_, std::move(mb))
+    : SentinelFw_ColumnImpl<py::robj>(nrows_, std::move(mb))
 {
   stype_ = SType::OBJ;
   mbuf_.set_pyobjects(/*clear_data = */ false);

@@ -30,12 +30,12 @@ namespace dt {
   static_assert(sizeof(Latent_ColumnImpl) >= sizeof(cls), \
                 "Size of Latent_ColumnImpl is smaller than size of " #cls)
 CHECK_SIZE(BoolColumn);
-CHECK_SIZE(IntColumn<int8_t>);
-CHECK_SIZE(IntColumn<int16_t>);
-CHECK_SIZE(IntColumn<int32_t>);
-CHECK_SIZE(IntColumn<int64_t>);
-CHECK_SIZE(FwColumn<float>);
-CHECK_SIZE(FwColumn<double>);
+CHECK_SIZE(SentinelFw_ColumnImpl<int8_t>);
+CHECK_SIZE(SentinelFw_ColumnImpl<int16_t>);
+CHECK_SIZE(SentinelFw_ColumnImpl<int32_t>);
+CHECK_SIZE(SentinelFw_ColumnImpl<int64_t>);
+CHECK_SIZE(SentinelFw_ColumnImpl<float>);
+CHECK_SIZE(SentinelFw_ColumnImpl<double>);
 CHECK_SIZE(StringColumn<uint32_t>);
 CHECK_SIZE(StringColumn<uint64_t>);
 CHECK_SIZE(PyObjectColumn);
@@ -100,12 +100,12 @@ ColumnImpl* Latent_ColumnImpl::vivify() const {
 
   switch (stype) {
     case SType::BOOL:    new (ptr) BoolColumn(std::move(new_pcol)); break;
-    case SType::INT8:    new (ptr) IntColumn<int8_t>(std::move(new_pcol)); break;
-    case SType::INT16:   new (ptr) IntColumn<int16_t>(std::move(new_pcol)); break;
-    case SType::INT32:   new (ptr) IntColumn<int32_t>(std::move(new_pcol)); break;
-    case SType::INT64:   new (ptr) IntColumn<int64_t>(std::move(new_pcol)); break;
-    case SType::FLOAT32: new (ptr) FwColumn<float>(std::move(new_pcol)); break;
-    case SType::FLOAT64: new (ptr) FwColumn<double>(std::move(new_pcol)); break;
+    case SType::INT8:    new (ptr) SentinelFw_ColumnImpl<int8_t>(std::move(new_pcol)); break;
+    case SType::INT16:   new (ptr) SentinelFw_ColumnImpl<int16_t>(std::move(new_pcol)); break;
+    case SType::INT32:   new (ptr) SentinelFw_ColumnImpl<int32_t>(std::move(new_pcol)); break;
+    case SType::INT64:   new (ptr) SentinelFw_ColumnImpl<int64_t>(std::move(new_pcol)); break;
+    case SType::FLOAT32: new (ptr) SentinelFw_ColumnImpl<float>(std::move(new_pcol)); break;
+    case SType::FLOAT64: new (ptr) SentinelFw_ColumnImpl<double>(std::move(new_pcol)); break;
     default:
       throw NotImplError() << "Cannot vivify column of type " << stype;
   }

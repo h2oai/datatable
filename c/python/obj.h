@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_OBJ_h
 #define dt_PYTHON_OBJ_h
@@ -149,6 +149,13 @@ class _obj {
     explicit operator bool() const noexcept;  // opposite of is_undefined()
     bool operator==(const _obj& other) const noexcept;
     bool operator!=(const _obj& other) const noexcept;
+
+    explicit operator int8_t() { throw RuntimeError(); }
+    explicit operator int16_t() { throw RuntimeError(); }
+    explicit operator int32_t() { throw RuntimeError(); }
+    explicit operator int64_t() { throw RuntimeError(); }
+    explicit operator float() { throw RuntimeError(); }
+    explicit operator double() { throw RuntimeError(); }
 
     //--------------------------------------------------------------------------
     // Type tests

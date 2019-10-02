@@ -92,13 +92,13 @@ static Column _str_col(size_t nrows) {
 void ConstNa_ColumnImpl::materialize(Column& out) {
   switch (stype_) {
     case SType::VOID:
-    case SType::BOOL:    out = _fw_col<int8_t, BoolColumn>(nrows_); break;
-    case SType::INT8:    out = _fw_col<int8_t, IntColumn<int8_t>>(nrows_); break;
-    case SType::INT16:   out = _fw_col<int16_t, IntColumn<int16_t>>(nrows_); break;
-    case SType::INT32:   out = _fw_col<int32_t, IntColumn<int32_t>>(nrows_); break;
-    case SType::INT64:   out = _fw_col<int64_t, IntColumn<int64_t>>(nrows_); break;
-    case SType::FLOAT32: out = _fw_col<float, FwColumn<float>>(nrows_); break;
-    case SType::FLOAT64: out = _fw_col<double, FwColumn<double>>(nrows_); break;
+    case SType::BOOL:    out = _fw_col<int8_t,  BoolColumn>(nrows_); break;
+    case SType::INT8:    out = _fw_col<int8_t,  SentinelFw_ColumnImpl<int8_t>>(nrows_); break;
+    case SType::INT16:   out = _fw_col<int16_t, SentinelFw_ColumnImpl<int16_t>>(nrows_); break;
+    case SType::INT32:   out = _fw_col<int32_t, SentinelFw_ColumnImpl<int32_t>>(nrows_); break;
+    case SType::INT64:   out = _fw_col<int64_t, SentinelFw_ColumnImpl<int64_t>>(nrows_); break;
+    case SType::FLOAT32: out = _fw_col<float,   SentinelFw_ColumnImpl<float>>(nrows_); break;
+    case SType::FLOAT64: out = _fw_col<double,  SentinelFw_ColumnImpl<double>>(nrows_); break;
     case SType::OBJ:     out = _fw_col<PyObject*, PyObjectColumn>(nrows_); break;
     case SType::STR32:   out = _str_col<uint32_t>(nrows_); break;
     case SType::STR64:   out = _str_col<uint64_t>(nrows_); break;

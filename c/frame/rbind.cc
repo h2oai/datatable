@@ -436,7 +436,7 @@ void dt::StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
 template<> inline py::robj GETNA() { return py::rnone(); }
 
 template <typename T>
-void dt::FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
+void dt::SentinelFw_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 {
   const T na = GETNA<T>();
   const void* naptr = static_cast<const void*>(&na);
@@ -528,12 +528,12 @@ void dt::PyObjectColumn::rbind_impl(
 
 
 // Explicitly instantiate these templates:
-template class dt::FwColumn<int8_t>;
-template class dt::FwColumn<int16_t>;
-template class dt::FwColumn<int32_t>;
-template class dt::FwColumn<int64_t>;
-template class dt::FwColumn<float>;
-template class dt::FwColumn<double>;
-template class dt::FwColumn<py::robj>;
+template class dt::SentinelFw_ColumnImpl<int8_t>;
+template class dt::SentinelFw_ColumnImpl<int16_t>;
+template class dt::SentinelFw_ColumnImpl<int32_t>;
+template class dt::SentinelFw_ColumnImpl<int64_t>;
+template class dt::SentinelFw_ColumnImpl<float>;
+template class dt::SentinelFw_ColumnImpl<double>;
+template class dt::SentinelFw_ColumnImpl<py::robj>;
 template class dt::StringColumn<uint32_t>;
 template class dt::StringColumn<uint64_t>;
