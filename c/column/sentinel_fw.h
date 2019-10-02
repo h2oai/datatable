@@ -61,8 +61,6 @@ class SentinelFw_ColumnImpl : public Sentinel_ColumnImpl
 
   protected:
     void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-
-    friend ColumnImpl;
 };
 
 
@@ -82,17 +80,12 @@ class BoolColumn : public SentinelFw_ColumnImpl<int8_t>
 {
   public:
     BoolColumn(ColumnImpl*&&);
-    BoolColumn(size_t nrows = 0);
+    BoolColumn(size_t nrows);
     BoolColumn(size_t nrows, Buffer&&);
     ColumnImpl* clone() const override;
 
-    using SentinelFw_ColumnImpl<int8_t>::get_element;
-    bool get_element(size_t i, int32_t* out) const override;
-
   protected:
     void verify_integrity() const override;
-
-    friend ColumnImpl;
 };
 
 
@@ -127,7 +120,6 @@ public:
 protected:
   void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
   void verify_integrity() const override;
-  friend ColumnImpl;
 };
 
 

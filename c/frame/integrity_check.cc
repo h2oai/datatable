@@ -152,11 +152,16 @@ void DataTable::verify_integrity() const
 
 
 
+
+namespace dt {
+
 //------------------------------------------------------------------------------
-// Column
+// ColumnImpl
 //------------------------------------------------------------------------------
 
-void dt::ColumnImpl::verify_integrity() const {
+void ColumnImpl::verify_integrity() const {
+  XAssert(static_cast<int64_t>(nrows_) >= 0);
+  XAssert(static_cast<size_t>(stype_) < DT_STYPES_COUNT);
   if (stats_) { // Stats are allowed to be null
     stats_->verify_integrity();
   }
@@ -164,12 +169,29 @@ void dt::ColumnImpl::verify_integrity() const {
 
 
 
+
+//------------------------------------------------------------------------------
+// SentinelFw_ColumnImpl<T>
+//------------------------------------------------------------------------------
+
+template <typename T>
+void SentinelFw_ColumnImpl<T>::verify_integrity() const {
+  ColumnImpl::verify_integrity();
+  assert_compatible_type<T>(stype_);
+  XAssert(mbuf_.size() >= sizeof(T) * nrows_);
+  mbuf_.verify_integrity();
+}
+
+
+
+
 //------------------------------------------------------------------------------
 // BoolColumn
 //------------------------------------------------------------------------------
 
-void dt::BoolColumn::verify_integrity() const {
+void BoolColumn::verify_integrity() const {
   SentinelFw_ColumnImpl<int8_t>::verify_integrity();
+  XAssert(stype_ == SType::BOOL);
 
   // Check that all elements in column are either 0, 1, or NA_I1
   size_t mbuf_nrows = mbuf_.size();
@@ -191,7 +213,7 @@ void dt::BoolColumn::verify_integrity() const {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void dt::StringColumn<T>::verify_integrity() const {
+void StringColumn<T>::verify_integrity() const {
   Sentinel_ColumnImpl::verify_integrity();
   mbuf.verify_integrity();
   strbuf.verify_integrity();
@@ -244,7 +266,7 @@ void dt::StringColumn<T>::verify_integrity() const {
 // PyObjColumn
 //------------------------------------------------------------------------------
 
-void dt::PyObjectColumn::verify_integrity() const {
+void PyObjectColumn::verify_integrity() const {
   SentinelFw_ColumnImpl<py::robj>::verify_integrity();
 
   if (!mbuf_.is_pyobjects()) {
@@ -269,5 +291,14 @@ void dt::PyObjectColumn::verify_integrity() const {
 
 
 // Explicit instantiation of templates
-template class dt::StringColumn<uint32_t>;
-template class dt::StringColumn<uint64_t>;
+template class SentinelFw_ColumnImpl<int8_t>;
+template class SentinelFw_ColumnImpl<int16_t>;
+template class SentinelFw_ColumnImpl<int32_t>;
+template class SentinelFw_ColumnImpl<int64_t>;
+template class SentinelFw_ColumnImpl<float>;
+template class SentinelFw_ColumnImpl<double>;
+template class SentinelFw_ColumnImpl<py::robj>;
+template class StringColumn<uint32_t>;
+template class StringColumn<uint64_t>;
+
+} // namespace dt

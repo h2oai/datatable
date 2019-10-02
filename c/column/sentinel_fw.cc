@@ -30,6 +30,10 @@ SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(ColumnImpl*&& other)
   stats_ = std::move(fwother->stats_);
 }
 
+BoolColumn::BoolColumn(ColumnImpl*&& other)
+  : SentinelFw_ColumnImpl<int8_t>(std::move(other)) {}
+
+
 
 template <typename T>
 SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows)
@@ -37,6 +41,13 @@ SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows)
 {
   mbuf_.resize(sizeof(T) * nrows);
 }
+
+BoolColumn::BoolColumn(size_t nrows)
+  : SentinelFw_ColumnImpl<int8_t>(nrows)
+{
+  stype_ = SType::BOOL;
+}
+
 
 
 template <typename T>
@@ -52,20 +63,24 @@ SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, Buffer&& mr)
   mbuf_ = std::move(mr);
 }
 
+BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
+  : SentinelFw_ColumnImpl<int8_t>(nrows, std::move(mem))
+{
+  stype_ = SType::BOOL;
+}
+
+
+
 
 template <typename T>
 ColumnImpl* SentinelFw_ColumnImpl<T>::clone() const {
   return new SentinelFw_ColumnImpl<T>(nrows_, Buffer(mbuf_));
 }
 
-
-template <typename T>
-void SentinelFw_ColumnImpl<T>::verify_integrity() const {
-  assert_compatible_type<T>(stype_);
-  Sentinel_ColumnImpl::verify_integrity();
-  mbuf_.verify_integrity();
-  XAssert(mbuf_.size() >= sizeof(T) * nrows_);
+ColumnImpl* BoolColumn::clone() const {
+  return new BoolColumn(nrows_, Buffer(mbuf_));
 }
+
 
 
 template <typename T>
