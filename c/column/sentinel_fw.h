@@ -29,28 +29,39 @@
 template <typename T>
 class FwColumn : public dt::Sentinel_ColumnImpl
 {
-public:
-  FwColumn();
-  FwColumn(ColumnImpl*&&);
-  FwColumn(size_t nrows);
-  FwColumn(size_t nrows, Buffer&&);
+  protected:
+    Buffer mbuf;
 
-  const T* elements_r() const;
-  T* elements_w();
-  T get_elem(size_t i) const;
+  public:
+    FwColumn();
+    FwColumn(ColumnImpl*&&);
+    FwColumn(size_t nrows);
+    FwColumn(size_t nrows, Buffer&&);
 
-  virtual bool get_element(size_t i, T* out) const override;
+    const T* elements_r() const;
+    T* elements_w();
+    T get_elem(size_t i) const;
 
-  virtual ColumnImpl* shallowcopy() const override;
-  virtual ColumnImpl* materialize() override;
+    virtual bool get_element(size_t i, T* out) const override;
 
-  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
-  void replace_values(const RowIndex& at, T with);
+    virtual ColumnImpl* shallowcopy() const override;
+    virtual ColumnImpl* materialize() override;
+    size_t get_num_data_buffers() const noexcept override;
+    bool is_data_editable(size_t k) const override;
+    size_t get_data_size(size_t k) const override;
+    const void* get_data_readonly(size_t k) const override;
+    void*       get_data_editable(size_t k) override;
+    Buffer      get_data_buffer(size_t k) const override;
 
-protected:
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
+    void replace_values(const RowIndex& at, const Column& with, Column&) override;
+    void replace_values(const RowIndex& at, T with);
+    size_t memory_footprint() const noexcept override;
+    void verify_integrity() const override;
 
-  friend ColumnImpl;
+  protected:
+    void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
+
+    friend ColumnImpl;
 };
 
 
@@ -80,7 +91,6 @@ class BoolColumn : public FwColumn<int8_t>
   protected:
     void verify_integrity() const override;
 
-    using ColumnImpl::mbuf;
     friend ColumnImpl;
 };
 
@@ -100,8 +110,7 @@ class IntColumn : public FwColumn<T>
     bool get_element(size_t i, int64_t* out) const override;
 
   protected:
-    using ColumnImpl::stats;
-    using ColumnImpl::mbuf;
+    using ColumnImpl::stats_;
     friend ColumnImpl;
 };
 

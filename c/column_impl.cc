@@ -35,8 +35,6 @@ ColumnImpl::ColumnImpl(size_t nrows, SType stype)
   : nrows_(nrows),
     stype_(stype) {}
 
-ColumnImpl::~ColumnImpl() {}
-
 
 // TODO: replace these with ref-counting semantics
 
@@ -84,7 +82,7 @@ ColumnImpl* ColumnImpl::_materialize_fw() {
   assert_compatible_type<T>(inp_stype);
   ColumnImpl* output_column
       = dt::Sentinel_ColumnImpl::make_column(inp_nrows, inp_stype);
-  auto out_data = static_cast<T*>(output_column->mbuf.wptr());
+  auto out_data = static_cast<T*>(output_column->get_data_editable(0));
 
   dt::parallel_for_static(
     inp_nrows,
@@ -104,7 +102,7 @@ ColumnImpl* ColumnImpl::_materialize_obj() {
 
   ColumnImpl* output_column
       = dt::Sentinel_ColumnImpl::make_column(inp_nrows, SType::OBJ);
-  auto out_data = static_cast<py::oobj*>(output_column->mbuf.wptr());
+  auto out_data = static_cast<py::oobj*>(output_column->get_data_editable(0));
 
   // Writing output array as `py::oobj` will ensure that the elements
   // will be properly INCREF-ed.
@@ -176,7 +174,7 @@ void ColumnImpl::_fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 }
 
 void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
-  if (stats && stats->is_computed(Stat::NaCount) && stats->nacount() == 0) {
+  if (stats_ && stats_->is_computed(Stat::NaCount) && stats_->nacount() == 0) {
     std::fill(outmask + row0, outmask + row1, false);
     return;
   }
@@ -203,7 +201,7 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 // Misc
 //------------------------------------------------------------------------------
 
-void ColumnImpl::replace_values(Column&, const RowIndex&, const Column&) {
+void ColumnImpl::replace_values(const RowIndex&, const Column&, Column&) {
   throw NotImplError() << "Method ColumnImpl::replace_values() not implemented";
 }
 

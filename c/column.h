@@ -37,7 +37,7 @@ using strvec = std::vector<std::string>;
 
 enum class NaStorage : uint8_t {
   NONE,
-  INLINE,
+  SENTINEL,
   BITMASK,
   VIRTUAL,
 };
@@ -207,11 +207,11 @@ class Column
   public:
     // Return the method that this column uses to encode NAs. See
     // the description of `NaStorage` enum for details.
-    NaStorage get_na_storage_method() const;
+    NaStorage get_na_storage_method() const noexcept;
 
     // A Column may be comprised of multiple data buffers. For virtual
     // columns this property returns 0.
-    size_t get_num_data_buffers() const;
+    size_t get_num_data_buffers() const noexcept;
 
     // Since the Column contains `n = get_n_data_buffers()` buffers,
     // each of the methods below takes the parameter `k < n` that
@@ -228,10 +228,10 @@ class Column
     // "editable" method will allow the data to be both read and
     // written. The latter method may need to create a copy of the
     // data buffer.
-    size_t get_data_size(size_t k = 0) const;
+    size_t      get_data_size(size_t k = 0) const;
     const void* get_data_readonly(size_t k = 0) const;
     void*       get_data_editable(size_t k = 0);
-    Buffer      get_data_buffer(size_t  k = 0) const;
+    Buffer      get_data_buffer(size_t k = 0) const;
 
 
   //------------------------------------

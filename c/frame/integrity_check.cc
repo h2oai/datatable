@@ -132,7 +132,7 @@ void DataTable::verify_integrity() const
     }
     catch (Error& e) {
       e = std::move(AssertionError() << "in column " << i
-                    << " '" << col_name << "': " << e.what());
+                    << " '" << col_name << "': " << e.to_string());
       throw;
     }
   }
@@ -158,11 +158,8 @@ void DataTable::verify_integrity() const
 //------------------------------------------------------------------------------
 
 void ColumnImpl::verify_integrity() const {
-  mbuf.verify_integrity();
-
-  // Check Stats
-  if (stats) { // Stats are allowed to be null
-    stats->verify_integrity();
+  if (stats_) { // Stats are allowed to be null
+    stats_->verify_integrity();
   }
 }
 
@@ -196,7 +193,9 @@ void BoolColumn::verify_integrity() const {
 
 template <typename T>
 void StringColumn<T>::verify_integrity() const {
-  ColumnImpl::verify_integrity();
+  Sentinel_ColumnImpl::verify_integrity();
+  mbuf.verify_integrity();
+  strbuf.verify_integrity();
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*

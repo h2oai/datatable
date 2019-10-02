@@ -84,20 +84,12 @@ size_t DataTable::memory_footprint() const noexcept {
 }
 
 
-/**
-  * Get the total size of the memory occupied by the Column.
-  */
-size_t ColumnImpl::memory_footprint() const noexcept {
-  size_t sz = sizeof(*this);
-  sz += mbuf.memory_footprint();
-  if (stats) sz += stats->memory_footprint();
-  return sz;
-}
-
-
 template <typename T>
 size_t StringColumn<T>::memory_footprint() const noexcept {
-  return ColumnImpl::memory_footprint() + strbuf.memory_footprint();
+  return sizeof(*this)
+         + mbuf.memory_footprint()
+         + strbuf.memory_footprint()
+         + (stats_? stats_->memory_footprint() : 0);
 }
 
 

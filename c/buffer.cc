@@ -325,7 +325,7 @@ class View_BufferImpl : public BufferImpl
       XAssert(offs + n <= src->size());
       parent_ = src->acquire_shared();
       offset_ = offs;
-      data_ = static_cast<char*>(src->data()) + offset_;
+      data_ = n? static_cast<char*>(src->data()) + offset_ : nullptr;
       size_ = n;
       resizable_ = false;
       writable_ = src->is_writable();
@@ -343,8 +343,10 @@ class View_BufferImpl : public BufferImpl
 
     void verify_integrity() const override {
       BufferImpl::verify_integrity();
+      auto parent_data = static_cast<const char*>(parent_->data());
       XAssert(!resizable_);
-      XAssert(data_ == static_cast<const char*>(parent_->data()) + offset_);
+      XAssert(size_? data_ == parent_data + offset_
+                   : data_ == nullptr);
     }
 };
 

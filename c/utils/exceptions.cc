@@ -82,8 +82,12 @@ Error& Error::operator=(Error&& other) {
   return *this;
 }
 
-void Error::to_stderr() {
+void Error::to_stderr() const {
   std::cerr << error.str() << "\n";
+}
+
+std::string Error::to_string() const {
+  return error.str();
 }
 
 

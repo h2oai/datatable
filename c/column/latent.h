@@ -22,7 +22,7 @@
 #ifndef dt_COLUMN_LATENT_h
 #define dt_COLUMN_LATENT_h
 #include <memory>
-#include "column_impl.h"
+#include "column/virtual.h"
 namespace dt {
 
 
@@ -41,7 +41,7 @@ namespace dt {
   *     manifest; hidden or concealed.
   *
   */
-class Latent_ColumnImpl : public ColumnImpl {
+class Latent_ColumnImpl : public Virtual_ColumnImpl {
   private:
     mutable std::unique_ptr<ColumnImpl> column;
     size_t : 64;
@@ -49,7 +49,6 @@ class Latent_ColumnImpl : public ColumnImpl {
   public:
     Latent_ColumnImpl(ColumnImpl*);
 
-    bool is_virtual() const noexcept override;
     ColumnImpl* shallowcopy() const override;
     ColumnImpl* materialize() override;
 

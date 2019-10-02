@@ -29,14 +29,22 @@ namespace dt {
 /**
   * Base class for all virtual columns.
   */
-class Virtual_ColumnImpl : public ColumnImpl {
+class Virtual_ColumnImpl : public ColumnImpl
+{
   public:
-    Virtual_ColumnImpl(size_t nrows, SType stype)
-      : ColumnImpl(nrows, stype) {}
+    Virtual_ColumnImpl(size_t nrows, SType stype);
 
-    bool is_virtual() const noexcept override {
-      return true;
-    }
+    bool is_virtual() const noexcept override;
+    size_t memory_footprint() const noexcept override;
+
+    NaStorage get_na_storage_method() const noexcept override;
+    size_t get_num_data_buffers() const noexcept override;
+    bool is_data_editable(size_t) const override;
+    size_t get_data_size(size_t) const override;
+    const void* get_data_readonly(size_t k) const override;
+    void* get_data_editable(size_t k) override;
+    Buffer get_data_buffer(size_t k) const override;
+
 };
 
 

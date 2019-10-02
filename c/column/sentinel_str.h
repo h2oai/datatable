@@ -28,39 +28,43 @@
 template <typename T>
 class StringColumn : public dt::Sentinel_ColumnImpl
 {
-  Buffer strbuf;
+  private:
+    Buffer mbuf;
+    Buffer strbuf;
 
-public:
-  StringColumn();
-  StringColumn(size_t nrows);
-  StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
+  public:
+    StringColumn();
+    StringColumn(size_t nrows);
+    StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
 
-  ColumnImpl* materialize() override;
+    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* materialize() override;
 
-  Buffer str_buf() const { return strbuf; }
-  size_t datasize() const;
-  const char* strdata() const;
-  const uint8_t* ustrdata() const;
-  const T* offsets() const;
-  T* offsets_w();
-  size_t memory_footprint() const noexcept override;
-  const void* data2() const override { return strbuf.rptr(); }
-  size_t data2_size() const override {
-    return static_cast<const T*>(mbuf.rptr())[nrows_] & ~GETNA<T>();
-  }
+    bool get_element(size_t i, CString* out) const override;
 
-  ColumnImpl* shallowcopy() const override;
-  void replace_values(Column& thiscol, const RowIndex& at, const Column& with) override;
+    size_t get_num_data_buffers() const noexcept override;
+    bool is_data_editable(size_t k) const override;
+    size_t get_data_size(size_t k) const override;
+    const void* get_data_readonly(size_t k) const override;
+    void* get_data_editable(size_t k) override;
+    Buffer get_data_buffer(size_t k) const override;
 
-  void verify_integrity() const override;
+    size_t datasize() const;
+    const char* strdata() const;
+    const uint8_t* ustrdata() const;
+    const T* offsets() const;
+    T* offsets_w();
+    size_t memory_footprint() const noexcept override;
 
-  bool get_element(size_t i, CString* out) const override;
+    void replace_values(const RowIndex& at, const Column& with, Column&) override;
 
-protected:
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
+    void verify_integrity() const override;
 
-  friend ColumnImpl;
-  friend Column;
+  protected:
+    void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
+
+    friend ColumnImpl;
+    friend Column;
 };
 
 

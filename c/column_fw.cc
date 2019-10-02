@@ -41,7 +41,7 @@ FwColumn<T>::FwColumn(ColumnImpl*&& other)
   auto fwother = dynamic_cast<FwColumn<T>*>(other);
   xassert(fwother != nullptr);
   mbuf = std::move(fwother->mbuf);
-  stats = std::move(fwother->stats);
+  stats_ = std::move(fwother->stats_);
 }
 
 
@@ -112,6 +112,49 @@ ColumnImpl* FwColumn<T>::materialize() {
 }
 
 
+template <typename T>
+size_t FwColumn<T>::get_num_data_buffers() const noexcept {
+  return 1;
+}
+
+
+template <typename T>
+bool FwColumn<T>::is_data_editable(size_t k) const {
+  xassert(k == 0);
+  return mbuf.is_writable();
+}
+
+
+template <typename T>
+size_t FwColumn<T>::get_data_size(size_t k) const {
+  xassert(k == 0);
+  xassert(mbuf.size() >= nrows_ * sizeof(T));
+  return nrows_ * sizeof(T);
+}
+
+
+template <typename T>
+const void* FwColumn<T>::get_data_readonly(size_t k) const {
+  xassert(k == 0);
+  return mbuf.rptr();
+}
+
+
+template <typename T>
+void* FwColumn<T>::get_data_editable(size_t k) {
+  xassert(k == 0);
+  return mbuf.wptr();
+}
+
+
+template <typename T>
+Buffer FwColumn<T>::get_data_buffer(size_t k) const {
+  xassert(k == 0);
+  return Buffer(mbuf);
+}
+
+
+
 
 
 template <typename T>
@@ -121,15 +164,14 @@ void FwColumn<T>::replace_values(const RowIndex& replace_at, T replace_with) {
     [&](size_t, size_t j) {
       data[j] = replace_with;
     });
-  if (stats) stats->reset();
+  if (stats_) stats_->reset();
 }
 
 
 template <typename T>
 void FwColumn<T>::replace_values(
-    Column&, const RowIndex& replace_at, const Column& replace_with)
+    const RowIndex& replace_at, const Column& replace_with, Column&)
 {
-  materialize();
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
@@ -157,6 +199,18 @@ void FwColumn<T>::replace_values(
     });
 }
 
+
+template <typename T>
+size_t FwColumn<T>::memory_footprint() const noexcept {
+  return sizeof(*this) + (stats_? stats_->memory_footprint() : 0)
+                       + mbuf.memory_footprint();
+}
+
+template <typename T>
+void FwColumn<T>::verify_integrity() const {
+  Sentinel_ColumnImpl::verify_integrity();
+  mbuf.verify_integrity();
+}
 
 
 

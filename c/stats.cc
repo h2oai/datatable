@@ -893,7 +893,7 @@ void Stats::compute_sorted_stats() {
 template <typename T>
 void NumericStats<T>::compute_sorted_stats() {
   Groupby grpby;
-  RowIndex ri = column->_sort(&grpby);
+  RowIndex ri = column->sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
   xassert(n_groups >= 1);
@@ -932,7 +932,7 @@ void NumericStats<T>::compute_sorted_stats() {
 
 void StringStats::compute_sorted_stats() {
   Groupby grpby;
-  RowIndex ri = column->_sort(&grpby);
+  RowIndex ri = column->sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
   xassert(n_groups >= 1);
@@ -1065,12 +1065,12 @@ static std::unique_ptr<Stats> _make_stats(ColumnImpl* col) {
 }
 
 Stats* Column::stats() const {
-  if (!pcol->stats) pcol->stats = _make_stats(pcol);
-  return pcol->stats.get();
+  if (!pcol->stats_) pcol->stats_ = _make_stats(pcol);
+  return pcol->stats_.get();
 }
 
 Stats* Column::get_stats_if_exist() const {
-  return pcol->stats.get();
+  return pcol->stats_.get();
 }
 
 

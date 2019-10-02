@@ -219,32 +219,41 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 // Column : data buffers
 //------------------------------------------------------------------------------
 
+NaStorage Column::get_na_storage_method() const noexcept {
+  return pcol->get_na_storage_method();
+}
+
+
+size_t Column::get_num_data_buffers() const noexcept {
+  return pcol->get_num_data_buffers();
+}
+
+
 bool Column::is_data_editable(size_t k) const {
-  if (k != 0) return false;
-  return pcol->mbuf.is_writable();
+  return pcol->is_data_editable(k);
 }
 
-const void* Column::get_data_readonly(size_t k) const {
-  if (is_virtual()) materialize();
-  return k == 0 ? pcol->mbuf.rptr()
-                : pcol->data2();
-}
-
-void* Column::get_data_editable(size_t) {
-  if (is_virtual()) materialize();
-  return pcol->mbuf.wptr();
-}
-
-Buffer Column::get_data_buffer(size_t) const {
-  if (is_virtual()) materialize();
-  return pcol->mbuf;
-}
 
 size_t Column::get_data_size(size_t k) const {
-  if (is_virtual()) materialize();
-  return k == 0 ? pcol->mbuf.size()
-                : pcol->data2_size();
+  return pcol->get_data_size(k);
 }
+
+
+const void* Column::get_data_readonly(size_t k) const {
+  return pcol->get_data_readonly(k);
+}
+
+
+void* Column::get_data_editable(size_t k) {
+  return pcol->get_data_editable(k);
+}
+
+
+Buffer Column::get_data_buffer(size_t k) const {
+  return pcol->get_data_buffer(k);
+
+}
+
 
 
 
@@ -258,10 +267,10 @@ void Column::materialize() const {
 }
 
 void Column::replace_values(const RowIndex& replace_at,
-                             const Column& replace_with)
+                            const Column& replace_with)
 {
   materialize();
-  pcol->replace_values(*this, replace_at, replace_with);
+  pcol->replace_values(replace_at, replace_with, *this);
 }
 
 

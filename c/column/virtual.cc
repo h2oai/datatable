@@ -19,32 +19,59 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_SENTINEL_h
-#define dt_COLUMN_SENTINEL_h
-#include <memory>
-#include "column_impl.h"
+#include "column/virtual.h"
 namespace dt {
 
 
-/**
-  * Base class for all material columns that use sentinel values
-  * in order to encode NAs.
-  */
-class Sentinel_ColumnImpl : public ColumnImpl
-{
-  public:
-  	static ColumnImpl* make_column(size_t nrows, SType);
-    static ColumnImpl* make_fw_column(size_t nrows, SType, Buffer&&);
-    static ColumnImpl* make_str_column(size_t nrows, Buffer&&, Buffer&&);
+Virtual_ColumnImpl::Virtual_ColumnImpl(size_t nrows, SType stype)
+  : ColumnImpl(nrows, stype) {}
 
-    bool is_virtual() const noexcept override;
-    NaStorage get_na_storage_method() const noexcept override;
 
-  protected:
-    Sentinel_ColumnImpl(size_t nrows, SType stype);
-};
+bool Virtual_ColumnImpl::is_virtual() const noexcept {
+  return true;
+}
+
+size_t Virtual_ColumnImpl::memory_footprint() const noexcept {
+  return sizeof(*this);
+}
+
+
+
+NaStorage Virtual_ColumnImpl::get_na_storage_method() const noexcept {
+  return NaStorage::VIRTUAL;
+}
+
+
+size_t Virtual_ColumnImpl::get_num_data_buffers() const noexcept {
+  return 0;
+}
+
+
+bool Virtual_ColumnImpl::is_data_editable(size_t) const {
+  throw RuntimeError() << "Invalid data access for a virtual column";
+}
+
+
+size_t Virtual_ColumnImpl::get_data_size(size_t) const {
+  throw RuntimeError() << "Invalid data access for a virtual column";
+}
+
+
+const void* Virtual_ColumnImpl::get_data_readonly(size_t) const {
+  throw RuntimeError() << "Invalid data access for a virtual column";
+}
+
+
+void* Virtual_ColumnImpl::get_data_editable(size_t) {
+  throw RuntimeError() << "Invalid data access for a virtual column";
+}
+
+
+Buffer Virtual_ColumnImpl::get_data_buffer(size_t) const {
+  throw RuntimeError() << "Invalid data access for a virtual column";
+}
+
 
 
 
 }  // namespace dt
-#endif

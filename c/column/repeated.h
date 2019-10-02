@@ -22,14 +22,14 @@
 #ifndef dt_COLUMN_REPEATED_h
 #define dt_COLUMN_REPEATED_h
 #include <memory>
-#include "column_impl.h"
+#include "column/virtual.h"
 namespace dt {
 
 
 /**
   * Virtual column representing the `arg` column repeated n times.
   */
-class Repeated_ColumnImpl : public ColumnImpl {
+class Repeated_ColumnImpl : public Virtual_ColumnImpl {
   private:
     size_t mod;
     Column arg;  // arg.nrows() == mod
@@ -37,10 +37,8 @@ class Repeated_ColumnImpl : public ColumnImpl {
   public:
     Repeated_ColumnImpl(Column&&, size_t ntimes);
 
-    bool is_virtual() const noexcept override;
     ColumnImpl* shallowcopy() const override;
     void repeat(size_t ntimes, Column& out) override;
-    // ColumnImpl* materialize() override;
 
     bool get_element(size_t, int8_t*)   const override;
     bool get_element(size_t, int16_t*)  const override;

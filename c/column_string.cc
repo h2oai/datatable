@@ -65,6 +65,54 @@ ColumnImpl* StringColumn<T>::shallowcopy() const {
   return new StringColumn<T>(nrows_, Buffer(mbuf), Buffer(strbuf));
 }
 
+template <typename T>
+size_t StringColumn<T>::get_num_data_buffers() const noexcept {
+  return 2;
+}
+
+template <typename T>
+bool StringColumn<T>::is_data_editable(size_t k) const {
+  xassert(k <= 1);
+  return false;
+}
+
+template <typename T>
+size_t StringColumn<T>::get_data_size(size_t k) const {
+  xassert(k <= 1);
+  if (k == 0) {
+    xassert(mbuf.size() >= (nrows_ + 1) * sizeof(T));
+    return (nrows_ + 1) * sizeof(T);
+  }
+  else {
+    size_t sz = this->offsets()[nrows_ - 1] & ~GETNA<T>();
+    xassert(sz <= strbuf.size());
+    return sz;
+  }
+}
+
+
+template <typename T>
+const void* StringColumn<T>::get_data_readonly(size_t k) const {
+  xassert(k <= 1);
+  return (k == 0)? mbuf.rptr() : strbuf.rptr();
+}
+
+
+template <typename T>
+void* StringColumn<T>::get_data_editable(size_t k) {
+  xassert(k <= 1);
+  return (k == 0)? mbuf.xptr() : strbuf.xptr();
+}
+
+
+template <typename T>
+Buffer StringColumn<T>::get_data_buffer(size_t k) const {
+  xassert(k <= 1);
+  return (k == 0)? Buffer(mbuf) : Buffer(strbuf);
+}
+
+
+
 
 template <typename T>
 bool StringColumn<T>::get_element(size_t i, CString* out) const {
@@ -115,7 +163,7 @@ ColumnImpl* StringColumn<T>::materialize() {
 
 template <typename T>
 void StringColumn<T>::replace_values(
-    Column& thiscol, const RowIndex& replace_at, const Column& replace_with)
+    const RowIndex& replace_at, const Column& replace_with, Column& out)
 {
   Column rescol;
   Column with;
@@ -132,7 +180,7 @@ void StringColumn<T>::replace_values(
     }
     Buffer mask = replace_at.as_boolean_mask(nrows_);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
-    rescol = dt::map_str2str(thiscol,
+    rescol = dt::map_str2str(out,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         sb->write(mask_indices[i]? repl_value : value);
       });
@@ -140,7 +188,7 @@ void StringColumn<T>::replace_values(
   else {
     Buffer mask = replace_at.as_integer_mask(nrows_);
     auto mask_indices = static_cast<const int32_t*>(mask.rptr());
-    rescol = dt::map_str2str(thiscol,
+    rescol = dt::map_str2str(out,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         int ir = mask_indices[i];
         if (ir == -1) {
@@ -162,7 +210,7 @@ void StringColumn<T>::replace_values(
     throw NotImplError() << "When replacing string values, the size of the "
       "resulting column exceeds the maximum for str32";
   }
-  thiscol = std::move(rescol);
+  out = std::move(rescol);
 }
 
 
