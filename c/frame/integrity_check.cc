@@ -266,7 +266,7 @@ void StringColumn<T>::verify_integrity() const {
 // PyObjColumn
 //------------------------------------------------------------------------------
 
-void PyObjectColumn::verify_integrity() const {
+void SentinelObj_ColumnImpl::verify_integrity() const {
   SentinelFw_ColumnImpl<py::robj>::verify_integrity();
 
   if (!mbuf_.is_pyobjects()) {

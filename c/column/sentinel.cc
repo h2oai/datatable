@@ -37,7 +37,7 @@ Column Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
     case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows));
     case SType::STR32:   return Column(new StringColumn<uint32_t>(nrows));
     case SType::STR64:   return Column(new StringColumn<uint64_t>(nrows));
-    case SType::OBJ:     return Column(new PyObjectColumn(nrows));
+    case SType::OBJ:     return Column(new SentinelObj_ColumnImpl(nrows));
     default:
       throw ValueError()
           << "Unable to create a column of stype `" << stype << "`";
@@ -57,7 +57,7 @@ Column Sentinel_ColumnImpl::make_fw_column(
     case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows, std::move(buf)));
     case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows, std::move(buf)));
     case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows, std::move(buf)));
-    case SType::OBJ:     return Column(new PyObjectColumn(nrows, std::move(buf)));
+    case SType::OBJ:     return Column(new SentinelObj_ColumnImpl(nrows, std::move(buf)));
     default:
       throw ValueError()
           << "Unable to create a column of stype `" << stype << "`";

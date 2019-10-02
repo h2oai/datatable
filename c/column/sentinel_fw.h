@@ -26,6 +26,10 @@ namespace dt {
 
 
 
+//------------------------------------------------------------------------------
+// SentinelFw_ColumnImpl<T>
+//------------------------------------------------------------------------------
+
 template <typename T>
 class SentinelFw_ColumnImpl : public Sentinel_ColumnImpl
 {
@@ -74,7 +78,10 @@ extern template class SentinelFw_ColumnImpl<py::robj>;
 
 
 
-//==============================================================================
+
+//------------------------------------------------------------------------------
+// SentinelBool_ColumnImpl
+//------------------------------------------------------------------------------
 
 class SentinelBool_ColumnImpl : public SentinelFw_ColumnImpl<int8_t>
 {
@@ -91,7 +98,9 @@ class SentinelBool_ColumnImpl : public SentinelFw_ColumnImpl<int8_t>
 
 
 
-//==============================================================================
+//------------------------------------------------------------------------------
+// SentinelObj_ColumnImpl
+//------------------------------------------------------------------------------
 
 /**
  * ColumnImpl containing `PyObject*`s.
@@ -108,11 +117,11 @@ class SentinelBool_ColumnImpl : public SentinelFw_ColumnImpl<int8_t>
  * The `mbuf`'s API already respects these rules, however the user must also
  * obey them when manipulating the data manually.
  */
-class PyObjectColumn : public SentinelFw_ColumnImpl<py::robj>
+class SentinelObj_ColumnImpl : public SentinelFw_ColumnImpl<py::robj>
 {
 public:
-  PyObjectColumn(size_t nrows);
-  PyObjectColumn(size_t nrows, Buffer&&);
+  SentinelObj_ColumnImpl(size_t nrows);
+  SentinelObj_ColumnImpl(size_t nrows, Buffer&&);
   ColumnImpl* clone() const override;
 
   bool get_element(size_t i, py::robj* out) const override;

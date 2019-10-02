@@ -488,7 +488,7 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows,
 // rbind object columns
 //------------------------------------------------------------------------------
 
-void dt::PyObjectColumn::rbind_impl(
+void dt::SentinelObj_ColumnImpl::rbind_impl(
   colvec& columns, size_t nnrows, bool col_empty)
 {
   size_t old_nrows = nrows_;

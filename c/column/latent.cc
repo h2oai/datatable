@@ -38,7 +38,7 @@ CHECK_SIZE(SentinelFw_ColumnImpl<float>);
 CHECK_SIZE(SentinelFw_ColumnImpl<double>);
 CHECK_SIZE(StringColumn<uint32_t>);
 CHECK_SIZE(StringColumn<uint64_t>);
-CHECK_SIZE(PyObjectColumn);
+CHECK_SIZE(SentinelObj_ColumnImpl);
 
 
 

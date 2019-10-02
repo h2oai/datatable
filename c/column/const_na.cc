@@ -99,7 +99,7 @@ void ConstNa_ColumnImpl::materialize(Column& out) {
     case SType::INT64:   out = _fw_col<int64_t, SentinelFw_ColumnImpl<int64_t>>(nrows_); break;
     case SType::FLOAT32: out = _fw_col<float,   SentinelFw_ColumnImpl<float>>(nrows_); break;
     case SType::FLOAT64: out = _fw_col<double,  SentinelFw_ColumnImpl<double>>(nrows_); break;
-    case SType::OBJ:     out = _fw_col<PyObject*, PyObjectColumn>(nrows_); break;
+    case SType::OBJ:     out = _fw_col<PyObject*, SentinelObj_ColumnImpl>(nrows_); break;
     case SType::STR32:   out = _str_col<uint32_t>(nrows_); break;
     case SType::STR64:   out = _str_col<uint64_t>(nrows_); break;
     default:
