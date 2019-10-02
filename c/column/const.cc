@@ -51,7 +51,7 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
       : Const_ColumnImpl(nrows, normalize_stype(stype, x)),
         value(x) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new ConstInt_ColumnImpl(nrows_, value, stype_);
     }
 
@@ -126,7 +126,7 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
     ConstFloat_ColumnImpl(size_t nrows, double x, SType stype = SType::FLOAT64)
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new ConstFloat_ColumnImpl(nrows_, value, stype_);
     }
 
@@ -165,7 +165,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
       : Const_ColumnImpl(nrows, SType::STR32),
         value(std::move(x)) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new ConstString_ColumnImpl(nrows_, value, stype_);
     }
 

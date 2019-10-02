@@ -26,7 +26,7 @@ BoolColumn::BoolColumn(size_t nrows, Buffer&& mem)
 }
 
 
-ColumnImpl* BoolColumn::shallowcopy() const {
+ColumnImpl* BoolColumn::clone() const {
   return new BoolColumn(nrows_, Buffer(mbuf));
 }
 

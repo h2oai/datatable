@@ -31,7 +31,7 @@ PyObjectColumn::PyObjectColumn(size_t nrows_, Buffer&& mb)
 }
 
 
-ColumnImpl* PyObjectColumn::shallowcopy() const {
+ColumnImpl* PyObjectColumn::clone() const {
   return new PyObjectColumn(nrows_, Buffer(mbuf));
 }
 

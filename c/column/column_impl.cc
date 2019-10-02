@@ -40,7 +40,7 @@ ColumnImpl::ColumnImpl(size_t nrows, SType stype)
 // TODO: replace these with ref-counting semantics
 
 ColumnImpl* ColumnImpl::acquire_instance() const {
-  return this->shallowcopy();
+  return this->clone();
 }
 
 void ColumnImpl::release_instance() noexcept {

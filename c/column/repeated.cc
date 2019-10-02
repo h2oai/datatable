@@ -38,7 +38,7 @@ Repeated_ColumnImpl::Repeated_ColumnImpl(Column&& col, size_t ntimes)
 }
 
 
-ColumnImpl* Repeated_ColumnImpl::shallowcopy() const {
+ColumnImpl* Repeated_ColumnImpl::clone() const {
   return new Repeated_ColumnImpl(Column(arg), nrows_ / mod);
 }
 

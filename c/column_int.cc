@@ -13,7 +13,7 @@ namespace dt {
 
 
 template <typename T>
-ColumnImpl* IntColumn<T>::shallowcopy() const {
+ColumnImpl* IntColumn<T>::clone() const {
   return new IntColumn<T>(this->nrows_, Buffer(this->mbuf));
 }
 

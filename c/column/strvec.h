@@ -51,7 +51,7 @@ class Strvec_ColumnImpl : public Virtual_ColumnImpl {
       return true;
     }
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new Strvec_ColumnImpl(vec);
     }
 };

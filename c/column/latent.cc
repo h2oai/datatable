@@ -53,7 +53,7 @@ Latent_ColumnImpl::Latent_ColumnImpl(const Column& col)
 
 
 
-ColumnImpl* Latent_ColumnImpl::shallowcopy() const {
+ColumnImpl* Latent_ColumnImpl::clone() const {
   return new Latent_ColumnImpl(column_);
 }
 

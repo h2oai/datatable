@@ -38,7 +38,7 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
     Range_ColumnImpl(int64_t start, int64_t stop, int64_t step,
                      SType stype = SType::VOID);
 
-    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* clone() const override;
 
     bool get_element(size_t, int8_t*)  const override;
     bool get_element(size_t, int16_t*) const override;

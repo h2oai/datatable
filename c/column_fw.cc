@@ -72,7 +72,7 @@ FwColumn<T>::FwColumn(size_t nrows_, Buffer&& mr)
  * Create a shallow copy of the column; possibly applying the provided rowindex.
  */
 template <typename T>
-ColumnImpl* FwColumn<T>::shallowcopy() const {
+ColumnImpl* FwColumn<T>::clone() const {
   return new FwColumn<T>(nrows_, Buffer(mbuf));
 }
 

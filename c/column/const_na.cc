@@ -43,7 +43,7 @@ bool ConstNa_ColumnImpl::get_element(size_t, CString*)  const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, py::robj*) const { return false; }
 
 
-ColumnImpl* ConstNa_ColumnImpl::shallowcopy() const {
+ColumnImpl* ConstNa_ColumnImpl::clone() const {
   return new ConstNa_ColumnImpl(nrows_, stype_);
 }
 

@@ -49,7 +49,7 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
     explicit Latent_ColumnImpl(ColumnImpl*);
     explicit Latent_ColumnImpl(const Column&);
 
-    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* clone() const override;
     void materialize(Column&) override;
 
     bool get_element(size_t, int8_t*)   const override;

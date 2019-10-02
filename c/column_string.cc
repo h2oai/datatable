@@ -61,7 +61,7 @@ StringColumn<T>::StringColumn(size_t n, Buffer&& mb, Buffer&& sb)
 //==============================================================================
 
 template <typename T>
-ColumnImpl* StringColumn<T>::shallowcopy() const {
+ColumnImpl* StringColumn<T>::clone() const {
   return new StringColumn<T>(nrows_, Buffer(mbuf), Buffer(strbuf));
 }
 

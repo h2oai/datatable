@@ -41,7 +41,7 @@ class NpMasked_ColumnImpl : public Virtual_ColumnImpl {
   public:
     NpMasked_ColumnImpl(Column&& arg, Buffer&& mask);
 
-    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* clone() const override;
     void materialize(Column&) override;
 
     bool get_element(size_t, int8_t*)  const override;

@@ -58,7 +58,7 @@ class ColumnImpl
     ColumnImpl* acquire_instance() const;
     void release_instance() noexcept;
 
-    virtual ColumnImpl* shallowcopy() const = 0;
+    virtual ColumnImpl* clone() const = 0;
     virtual void materialize(Column& out);
     virtual void verify_integrity() const;
 

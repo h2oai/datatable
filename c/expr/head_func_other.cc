@@ -47,7 +47,7 @@ class re_match_vcol : public Virtual_ColumnImpl {
         arg(std::move(col)),
         regex(rx) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new re_match_vcol(Column(arg), regex);
     }
 

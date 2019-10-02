@@ -37,7 +37,7 @@ class StringColumn : public Sentinel_ColumnImpl
     StringColumn(size_t nrows);
     StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
 
-    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* clone() const override;
 
     bool get_element(size_t i, CString* out) const override;
 

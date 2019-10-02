@@ -36,7 +36,7 @@ class NaFilled_ColumnImpl : public Virtual_ColumnImpl {
 
   public:
     NaFilled_ColumnImpl(Column&&, size_t nrows);
-    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* clone() const override;
 
     void na_pad(size_t new_nrows, Column& out) override;
     void truncate(size_t new_nrows, Column& out) override;

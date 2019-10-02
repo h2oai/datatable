@@ -33,7 +33,7 @@ NaFilled_ColumnImpl::NaFilled_ColumnImpl(Column&& col, size_t nrows)
 }
 
 
-ColumnImpl* NaFilled_ColumnImpl::shallowcopy() const {
+ColumnImpl* NaFilled_ColumnImpl::clone() const {
   return new NaFilled_ColumnImpl(Column(arg), nrows_);
 }
 

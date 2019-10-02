@@ -34,7 +34,7 @@ NpMasked_ColumnImpl::NpMasked_ColumnImpl(Column&& arg, Buffer&& mask)
 }
 
 
-ColumnImpl* NpMasked_ColumnImpl::shallowcopy() const {
+ColumnImpl* NpMasked_ColumnImpl::clone() const {
   return new NpMasked_ColumnImpl(Column(arg_), Buffer(mask_));
 }
 
