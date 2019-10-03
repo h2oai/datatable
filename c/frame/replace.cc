@@ -565,12 +565,12 @@ void ReplaceAgent::process_real_column(size_t colidx) {
 
 void ReplaceAgent::process_str_column(size_t colidx) {
   if (x_str.empty()) return;
-  Column& col = dt->get_column(colidx);
+  const Column& col = dt->get_column(colidx);
   if (x_str.size() == 1 && x_str[0].isna()) {
     if (col.na_count() == 0) return;
   }
   Column newcol = replace_str(x_str.size(), x_str.data(), y_str.data(), col);
-  columns_cast = (newcol.stype() != col.stype());
+  columns_cast |= (newcol.stype() != col.stype());
   dt->set_column(colidx, std::move(newcol));
 }
 

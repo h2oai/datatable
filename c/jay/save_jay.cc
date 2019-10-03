@@ -17,7 +17,7 @@
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::Type stype_to_jaytype[DT_STYPES_COUNT];
 static flatbuffers::Offset<jay::Column> column_to_jay(
-    Column& col, const std::string& name,
+    const Column& col, const std::string& name,
     flatbuffers::FlatBufferBuilder& fbb, WritableBuffer* wb);
 static jay::Buffer saveMemoryRange(const void*, size_t, WritableBuffer*);
 template <typename T, typename StatBuilder>
@@ -63,7 +63,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 
   std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
   for (size_t i = 0; i < ncols; ++i) {
-    Column& col = get_column(i);
+    const Column& col = get_column(i);
     if (col.stype() == SType::OBJ) {
       auto w = DatatableWarning();
       w << "Column `" << names[i] << "` of type obj64 was not saved";
@@ -102,7 +102,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 //------------------------------------------------------------------------------
 
 static flatbuffers::Offset<jay::Column> column_to_jay(
-    Column& col,
+    const Column& col,
     const std::string& name,
     flatbuffers::FlatBufferBuilder& fbb,
     WritableBuffer* wb)

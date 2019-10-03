@@ -138,7 +138,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
         size_t row0 = irow * rows_per_chunk;
         size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
         bool* mask_ptr = mask_data + icol * dt->nrows;
-        Column& col = dt->get_column(icol + i0);
+        const Column& col = dt->get_column(icol + i0);
         col.fill_npmask(mask_ptr, row0, row1);
       });
 

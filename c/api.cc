@@ -114,7 +114,7 @@ const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
   auto dt = _extract_dt(pydt);
   if (_column_index_oob(dt, i)) return nullptr;
   try {
-    Column& col = dt->get_column(i);
+    const Column& col = dt->get_column(i);
     if (col.ltype() == LType::STRING) {
       return static_cast<const char*>(col.get_data_readonly(1));
     }
