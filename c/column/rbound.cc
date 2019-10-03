@@ -58,7 +58,9 @@ Rbound_ColumnImpl::Rbound_ColumnImpl(const colvec& columns)
 
 
 ColumnImpl* Rbound_ColumnImpl::clone() const {
-  return new Rbound_ColumnImpl(columns_);
+  auto res = new Rbound_ColumnImpl(columns_);
+  res->nrows_ = nrows_;
+  return res;
 }
 
 

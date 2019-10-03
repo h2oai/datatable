@@ -35,7 +35,9 @@ NpMasked_ColumnImpl::NpMasked_ColumnImpl(Column&& arg, Buffer&& mask)
 
 
 ColumnImpl* NpMasked_ColumnImpl::clone() const {
-  return new NpMasked_ColumnImpl(Column(arg_), Buffer(mask_));
+  auto res = new NpMasked_ColumnImpl(Column(arg_), Buffer(mask_));
+  res->nrows_ = nrows_;
+  return res;
 }
 
 

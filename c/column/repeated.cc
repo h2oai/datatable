@@ -39,7 +39,9 @@ Repeated_ColumnImpl::Repeated_ColumnImpl(Column&& col, size_t ntimes)
 
 
 ColumnImpl* Repeated_ColumnImpl::clone() const {
-  return new Repeated_ColumnImpl(Column(arg), nrows_ / mod);
+  auto res = new Repeated_ColumnImpl(Column(arg), nrows_ / mod);
+  res->nrows_ = nrows_;
+  return res;
 }
 
 void Repeated_ColumnImpl::repeat(size_t ntimes, Column&) {

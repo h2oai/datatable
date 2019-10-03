@@ -900,6 +900,17 @@ def test_issue1602():
     assert DT.to_list() == [[None]]
 
 
+def test_issue2055(numpy):
+    DT = dt.cbind(
+        dt.Frame(A=[1, 2]),
+        dt.Frame(numpy.ma.array([True, True], mask=[False, False]))
+    )
+    DT.nrows = 1
+    DT = DT.copy()
+    frame_integrity_check(DT)
+    assert DT.to_list() == [[1], [True]]
+
+
 
 #-------------------------------------------------------------------------------
 # (i=slice) + by
