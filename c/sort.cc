@@ -1336,7 +1336,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
   size_t n = spec.size();
   xassert(n > 0);
 
-  const Column& col0 = columns[spec[0].col_index];
+  const Column& col0 = columns_[spec[0].col_index];
   col0.stats();  // instantiate Stats object; TODO: remove this
 
   // For a 0-row Frame we return a rowindex of size 0, and the
@@ -1354,7 +1354,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
   }
 
   for (auto& s : spec) {
-    const_cast<DataTable*>(this)->columns[s.col_index].materialize();
+    const_cast<DataTable*>(this)->columns_[s.col_index].materialize();
   }
 
   bool do_groups = n > 1 || !spec[0].sort_only;
@@ -1368,7 +1368,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
     if (j == n - 1 && spec[j].sort_only) {
       do_groups = false;
     }
-    const Column& colj = columns[spec[j].col_index];
+    const Column& colj = columns_[spec[j].col_index];
     colj.stats();  // TODO: remove this
     sc.continue_sort(colj, spec[j].descending, do_groups);
   }

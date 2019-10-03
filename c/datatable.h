@@ -76,7 +76,7 @@ class DataTable {
     size_t  nrows_;
     size_t  ncols_;
     size_t  nkeys_;
-    colvec  columns;
+    colvec  columns_;
     strvec  names;
     mutable py::otuple py_names;   // memoized tuple of column names
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
@@ -106,19 +106,9 @@ class DataTable {
     DataTable* extract_column(size_t i) const;
     size_t memory_footprint() const noexcept;
 
-    const Column& get_column(size_t i) const {
-      xassert(i < columns.size());
-      return columns[i];
-    }
-    Column& get_column(size_t i) {
-      xassert(i < columns.size());
-      return columns[i];
-    }
-    void set_column(size_t i, Column&& newcol) {
-      xassert(i < columns.size());
-      xassert(newcol.nrows() == nrows_);
-      columns[i] = std::move(newcol);
-    }
+    const Column& get_column(size_t i) const;
+    Column& get_column(size_t i);
+    void set_column(size_t i, Column&& newcol);
 
     /**
      * Sort the DataTable by specified columns, and return the corresponding

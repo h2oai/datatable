@@ -322,7 +322,7 @@ void DataTable::set_names(const py::olist& names_list, bool warn) {
   if (!names_list) return set_names_to_default();
   pylistNP np(names_list);
   _set_names_impl(&np, warn);
-  columns.resize(names.size());
+  columns_.resize(names.size());
 }
 
 

@@ -167,7 +167,7 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
 
   bool fix_columns = (nrows_ < final_nrows);
   strvec newnames = names;
-  columns.reserve(final_ncols);
+  columns_.reserve(final_ncols);
 
   // NOTE: when appending a DataTable to itself, the following happens:
   // we start changing `this->columns` vector, which thus becomes
@@ -178,18 +178,18 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
   for (auto dt : datatables) {
     fix_columns |= (dt->nrows() < final_nrows);
     for (size_t ii = 0; ii < dt->ncols(); ++ii) {
-      columns.push_back(dt->columns[ii]);
+      columns_.push_back(dt->columns_[ii]);
     }
     const auto& namesi = dt->names;
     xassert(namesi.size() == dt->ncols());
     newnames.insert(newnames.end(), namesi.begin(), namesi.end());
   }
-  xassert(columns.size() == final_ncols);
+  xassert(columns_.size() == final_ncols);
   xassert(newnames.size() == final_ncols);
 
   // Fix up the DataTable's columns if they have different number of rows
   if (fix_columns) {
-    for (Column& col : columns) {
+    for (Column& col : columns_) {
       if (col.nrows() == 1) {
         col.repeat(final_nrows);
       } else {

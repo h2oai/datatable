@@ -86,7 +86,7 @@ void py::Frame::integrity_check() {
 void DataTable::verify_integrity() const
 {
   XAssert(nkeys_ <= ncols_);
-  XAssert(columns.size() == ncols_);
+  XAssert(columns_.size() == ncols_);
   XAssert(names.size() == ncols_);
 
   _integrity_check_names();
@@ -102,7 +102,7 @@ void DataTable::verify_integrity() const
    */
   for (size_t i = 0; i < ncols_; ++i) {
     const std::string& col_name = names[i];
-    const Column& col = columns[i];
+    const Column& col = columns_[i];
     if (!col) {
       throw AssertionError() << col_name << " of Frame is empty";
     }

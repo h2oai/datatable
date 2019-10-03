@@ -32,11 +32,11 @@ DataTable::~DataTable() {
 DataTable::DataTable(colvec&& cols) : DataTable()
 {
   if (cols.empty()) return;
-  columns = std::move(cols);
-  ncols_ = columns.size();
-  nrows_ = columns[0].nrows();
+  columns_ = std::move(cols);
+  ncols_ = columns_.size();
+  nrows_ = columns_[0].nrows();
   #if DTDEBUG
-    for (const auto& col : columns) {
+    for (const auto& col : columns_) {
       xassert(col && col.nrows() == nrows_);
     }
   #endif
@@ -74,6 +74,23 @@ DataTable::DataTable(colvec&& cols, const DataTable* nn)
 // Public API
 //------------------------------------------------------------------------------
 
+const Column& DataTable::get_column(size_t i) const {
+  xassert(i < columns_.size());
+  return columns_[i];
+}
+
+Column& DataTable::get_column(size_t i) {
+  xassert(i < columns_.size());
+  return columns_[i];
+}
+
+void DataTable::set_column(size_t i, Column&& newcol) {
+  xassert(i < columns_.size());
+  xassert(newcol.nrows() == nrows_);
+  columns_[i] = std::move(newcol);
+}
+
+
 size_t DataTable::xcolindex(int64_t index) const {
   int64_t incols = static_cast<int64_t>(ncols_);
   if (index < -incols || index >= incols) {
@@ -90,7 +107,7 @@ size_t DataTable::xcolindex(int64_t index) const {
  * Make a shallow copy of the current DataTable.
  */
 DataTable* DataTable::copy() const {
-  colvec newcols = columns;  // copy the vector
+  colvec newcols = columns_;  // copy the vector
   DataTable* res = new DataTable(std::move(newcols), this);
   res->nkeys_ = nkeys_;
   return res;
@@ -99,7 +116,7 @@ DataTable* DataTable::copy() const {
 
 DataTable* DataTable::extract_column(size_t i) const {
   xassert(i < ncols_);
-  return new DataTable({columns[i]}, {names[i]});
+  return new DataTable({columns_[i]}, {names[i]});
 }
 
 
@@ -120,13 +137,13 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
       continue;
     }
     if (i != j) {
-      std::swap(columns[j], columns[i]);
+      std::swap(columns_[j], columns_[i]);
       std::swap(names[j], names[i]);
     }
     ++j;
   }
   ncols_ = j;
-  columns.resize(j);
+  columns_.resize(j);
   names.resize(j);
   py_names  = py::otuple();
   py_inames = py::odict();
@@ -137,7 +154,7 @@ void DataTable::delete_all() {
   ncols_ = 0;
   nrows_ = 0;
   nkeys_ = 0;
-  columns.resize(0);
+  columns_.resize(0);
   names.resize(0);
   py_names  = py::otuple();
   py_inames = py::odict();
@@ -149,7 +166,7 @@ void DataTable::resize_rows(size_t new_nrows) {
   if (new_nrows > nrows_ && nkeys_ > 0) {
     throw ValueError() << "Cannot increase the number of rows in a keyed frame";
   }
-  for (Column& col : columns) {
+  for (Column& col : columns_) {
     col.resize(new_nrows);
   }
   nrows_ = new_nrows;
@@ -158,7 +175,7 @@ void DataTable::resize_rows(size_t new_nrows) {
 
 void DataTable::resize_columns(const strvec& new_names) {
   ncols_ = new_names.size();
-  columns.resize(ncols_);
+  columns_.resize(ncols_);
   set_names(new_names);
 }
 
@@ -171,7 +188,7 @@ void DataTable::apply_rowindex(const RowIndex& rowindex) {
   // If RowIndex is empty, no need to do anything. Also, the expression
   // `rowindex.size()` cannot be computed.
   if (!rowindex) return;
-  for (Column& col : columns) {
+  for (Column& col : columns_) {
     col.apply_rowindex(rowindex);
   }
   nrows_ = rowindex.size();
@@ -184,7 +201,7 @@ void DataTable::apply_rowindex(const RowIndex& rowindex) {
  * Materialize all columns in the DataTable.
  */
 void DataTable::materialize() {
-  for (Column& col : columns) {
+  for (Column& col : columns_) {
     col.materialize();
   }
 }
