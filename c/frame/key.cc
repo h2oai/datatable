@@ -114,7 +114,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   for (size_t i = 0; i < K; ++i) {
     for (size_t j = i + 1; j < K; ++j) {
       if (col_indices[i] == col_indices[j]) {
-        throw ValueError() << "Column `" << names[col_indices[i]] << "` is "
+        throw ValueError() << "Column `" << names_[col_indices[i]] << "` is "
           "specified multiple times within the key";
       }
     }

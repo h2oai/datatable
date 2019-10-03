@@ -28,7 +28,7 @@ DataTable::~DataTable() {
   UNTRACK(this);
 }
 
-// Private constructor, initializes only columns but not names
+// Private constructor, initializes only columns but not names_
 DataTable::DataTable(colvec&& cols) : DataTable()
 {
   if (cols.empty()) return;
@@ -116,7 +116,7 @@ DataTable* DataTable::copy() const {
 
 DataTable* DataTable::extract_column(size_t i) const {
   xassert(i < ncols_);
-  return new DataTable({columns_[i]}, {names[i]});
+  return new DataTable({columns_[i]}, {names_[i]});
 }
 
 
@@ -138,13 +138,13 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
     }
     if (i != j) {
       std::swap(columns_[j], columns_[i]);
-      std::swap(names[j], names[i]);
+      std::swap(names_[j], names_[i]);
     }
     ++j;
   }
   ncols_ = j;
   columns_.resize(j);
-  names.resize(j);
+  names_.resize(j);
   py_names  = py::otuple();
   py_inames = py::odict();
 }
@@ -155,7 +155,7 @@ void DataTable::delete_all() {
   nrows_ = 0;
   nkeys_ = 0;
   columns_.resize(0);
-  names.resize(0);
+  names_.resize(0);
   py_names  = py::otuple();
   py_inames = py::odict();
 }

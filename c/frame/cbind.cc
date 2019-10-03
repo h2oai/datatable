@@ -166,7 +166,7 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
   }
 
   bool fix_columns = (nrows_ < final_nrows);
-  strvec newnames = names;
+  strvec newnames = names_;
   columns_.reserve(final_ncols);
 
   // NOTE: when appending a DataTable to itself, the following happens:
@@ -180,7 +180,7 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
     for (size_t ii = 0; ii < dt->ncols(); ++ii) {
       columns_.push_back(dt->columns_[ii]);
     }
-    const auto& namesi = dt->names;
+    const strvec& namesi = dt->get_names();
     xassert(namesi.size() == dt->ncols());
     newnames.insert(newnames.end(), namesi.begin(), namesi.end());
   }

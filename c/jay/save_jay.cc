@@ -66,10 +66,10 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
     const Column& col = get_column(i);
     if (col.stype() == SType::OBJ) {
       auto w = DatatableWarning();
-      w << "Column `" << names[i] << "` of type obj64 was not saved";
+      w << "Column `" << names_[i] << "` of type obj64 was not saved";
       w.emit();
     } else {
-      auto saved_col = column_to_jay(col, names[i], fbb, wb);
+      auto saved_col = column_to_jay(col, names_[i], fbb, wb);
       msg_columns.push_back(saved_col);
     }
   }
