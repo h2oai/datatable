@@ -29,23 +29,13 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// Basic constructors
+// Constructor
 //------------------------------------------------------------------------------
 
 ColumnImpl::ColumnImpl(size_t nrows, SType stype)
   : nrows_(nrows),
-    stype_(stype) {}
-
-
-// TODO: replace these with ref-counting semantics
-
-ColumnImpl* ColumnImpl::acquire_instance() const {
-  return this->clone();
-}
-
-void ColumnImpl::release_instance() noexcept {
-  delete this;
-}
+    stype_(stype),
+    refcount_(1) {}
 
 
 

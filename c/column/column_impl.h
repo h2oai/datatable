@@ -54,7 +54,8 @@ class ColumnImpl
   protected:
     size_t nrows_;
     SType  stype_;
-    size_t : 56;
+    size_t : 24;
+    mutable uint32_t refcount_;
     mutable std::unique_ptr<Stats> stats_;
 
   //------------------------------------
@@ -65,9 +66,6 @@ class ColumnImpl
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
     virtual ~ColumnImpl() = default;
-
-    ColumnImpl* acquire_instance() const;
-    void release_instance() noexcept;
 
     virtual ColumnImpl* clone() const = 0;
     virtual void materialize(Column& out);

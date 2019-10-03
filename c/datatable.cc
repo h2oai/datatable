@@ -35,7 +35,7 @@ DataTable::DataTable(colvec&& cols) : DataTable()
   columns = std::move(cols);
   ncols = columns.size();
   nrows = columns[0].nrows();
-  #ifndef NDEBUG
+  #if DTDEBUG
     for (const auto& col : columns) {
       xassert(col && col.nrows() == nrows);
     }

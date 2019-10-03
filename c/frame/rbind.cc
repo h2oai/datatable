@@ -305,6 +305,7 @@ void DataTable::rbind(
 //------------------------------------------------------------------------------
 
 void Column::rbind(colvec& columns) {
+  _get_mutable_impl();
   // Is the current column "empty" ?
   bool col_empty = (stype() == SType::VOID);
   if (!col_empty) this->materialize();
@@ -336,10 +337,10 @@ void Column::rbind(colvec& columns) {
 
   // Use the appropriate strategy to continue appending the columns.
   newcol.materialize();
-  newcol.pcol->rbind_impl(columns, new_nrows, col_empty);
+  newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty);
 
   // Replace current column's impl with the newcol's
-  std::swap(pcol, newcol.pcol);
+  std::swap(impl_, newcol.impl_);
 }
 
 

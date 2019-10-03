@@ -53,7 +53,7 @@ static const char* stat_name(Stat s) {
 // main Stats class
 //------------------------------------------------------------------------------
 
-Stats::Stats(dt::ColumnImpl* col) : column(col) {
+Stats::Stats(const dt::ColumnImpl* col) : column(col) {
   xassert(col);
 }
 
@@ -1044,7 +1044,7 @@ void BooleanStats::compute_all_stats() {
 // Column's API
 //------------------------------------------------------------------------------
 
-static std::unique_ptr<Stats> _make_stats(dt::ColumnImpl* col) {
+static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
   switch (col->stype()) {
     case SType::BOOL:    return StatsPtr(new BooleanStats(col));
@@ -1065,12 +1065,12 @@ static std::unique_ptr<Stats> _make_stats(dt::ColumnImpl* col) {
 }
 
 Stats* Column::stats() const {
-  if (!pcol->stats_) pcol->stats_ = _make_stats(pcol);
-  return pcol->stats_.get();
+  if (!impl_->stats_) impl_->stats_ = _make_stats(impl_);
+  return impl_->stats_.get();
 }
 
 Stats* Column::get_stats_if_exist() const {
-  return pcol->stats_.get();
+  return impl_->stats_.get();
 }
 
 
