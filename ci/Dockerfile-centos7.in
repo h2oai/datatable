@@ -35,7 +35,7 @@ RUN pip install wheel virtualenv && \
     \
     conda create -n datatable-py36-with-numpy python=3.6 && \
     . activate datatable-py36-with-numpy && \
-    pip install --no-cache-dir numpy==1.16.5 && \
+    pip install --no-cache-dir --default-timeout=100 numpy && \
     . deactivate && \
     \
     conda create -n datatable-py36 python=3.6 && \
