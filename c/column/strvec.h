@@ -52,7 +52,9 @@ class Strvec_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     ColumnImpl* clone() const override {
-      return new Strvec_ColumnImpl(vec);
+      auto res = new Strvec_ColumnImpl(vec);
+      res->nrows_ = nrows_;
+      return res;
     }
 };
 
