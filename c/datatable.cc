@@ -156,6 +156,12 @@ void DataTable::resize_rows(size_t new_nrows) {
 }
 
 
+void DataTable::resize_columns(const strvec& new_names) {
+  ncols_ = new_names.size();
+  columns.resize(ncols_);
+  set_names(new_names);
+}
+
 
 
 /**

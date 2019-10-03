@@ -327,9 +327,9 @@ void DataTable::set_names(const py::olist& names_list, bool warn) {
 
 
 void DataTable::set_names(const strvec& names_list, bool warn) {
+  xassert(names_list.size() == ncols_);
   strvecNP np(names_list);
   _set_names_impl(&np, warn);
-  columns.resize(names.size());
 }
 
 

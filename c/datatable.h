@@ -72,11 +72,9 @@ using dtptr  = std::unique_ptr<DataTable>;
  *     elements, and each column has the same number of rows: `nrows`.
  */
 class DataTable {
-  public:
+  private:
     size_t  nrows_;
     size_t  ncols_;
-
-  private:
     colvec  columns;
     size_t  nkeys;
     strvec  names;
@@ -99,6 +97,7 @@ class DataTable {
     void delete_columns(intvec&);
     void delete_all();
     void resize_rows(size_t n);
+    void resize_columns(const strvec& new_names);
     void apply_rowindex(const RowIndex&);
     void materialize();
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);

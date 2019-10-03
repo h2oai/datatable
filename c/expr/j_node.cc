@@ -243,8 +243,7 @@ void simplelist_jnode::update(EvalContext& ctx, repl_node* repl) {
           new_names.push_back(names[i]);
         }
       }
-      dt0->ncols_ = new_names.size();
-      dt0->set_names(new_names);
+      dt0->resize_columns(new_names);
     }
 
     if (ri0) {
@@ -254,8 +253,7 @@ void simplelist_jnode::update(EvalContext& ctx, repl_node* repl) {
     }
   } catch (...) {
     new_names.resize(ncols);
-    dt0->ncols_ = ncols;
-    dt0->set_names(new_names);
+    dt0->resize_columns(new_names);
     throw;
   }
 }

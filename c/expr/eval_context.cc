@@ -187,8 +187,7 @@ void EvalContext::create_placeholder_columns() {
   DataTable* dt0 = frames[0].dt;
   const strvec& oldnames = dt0->get_names();
   newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
-  dt0->ncols_ = newnames.size();
-  dt0->set_names(newnames);
+  dt0->resize_columns(newnames);
 }
 
 
@@ -376,8 +375,8 @@ py::oobj EvalContext::get_result() {
     if (result->ncols() == 0) {
       // When selecting a 0-column subset, make sure the number of rows is the
       // same as if some of the columns were selected.
-      result->nrows_ = frames[0].ri? frames[0].ri.size()
-                                  : frames[0].dt->nrows();
+      result->resize_rows(frames[0].ri? frames[0].ri.size()
+                                      : frames[0].dt->nrows());
     }
     return py::Frame::oframe(result);
   }
