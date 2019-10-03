@@ -408,15 +408,6 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
     jcols.push_back(i);
   }
 
-  // For now, we materialize the join columns. Later, we can add an ability
-  // to operate on the view columns as well, via the `as_view` flag (similar
-  // to the `group()` function). A frame can only be joined as a view if all
-  // its columns have the same rowindex (or at least all columns needed to
-  // compute the result).
-  for (size_t j : xcols) {
-    const_cast<DataTable*>(xdt)->get_column(j).materialize();
-  }
-
   arr32_t arr_result_indices(xdt->nrows);
   if (xdt->nrows) {
     int32_t* result_indices = arr_result_indices.data();
