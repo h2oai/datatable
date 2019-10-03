@@ -630,9 +630,10 @@ class Frame0:
             if mmask[i]: data[i] = None
 
         self.df.cbind(df)
-        self.names += names
         self.data += [data]
         self.types += [coltype]
+        self.names += names
+        self.dedup_names()
 
     #---------------------------------------------------------------------------
     # Helpers
