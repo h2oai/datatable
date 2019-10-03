@@ -238,9 +238,9 @@ class Attacker:
         print("[11] Cbinding frame with a numpy column -> ncols = %d"
               % (frame.ncols + 1))
 
-        if python_output:
-            python_output.write("DT = DT.cbind(DT_np)\n")
         frame.cbind_numpy_column()
+        if python_output:
+            python_output.write("DT.cbind(DTNP)\n")
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -626,6 +626,16 @@ class Frame0:
         np_data = np.ma.array(data, mask=mmask, dtype=np.dtype(coltype)).T
         names = self.random_names(1)
         df = dt.Frame(np_data, names=names)
+        if python_output:
+            python_output.write("DTNP = dt.Frame(np.ma.array(%s, "
+                                "mask=%s, "
+                                "dtype=np.dtype(%s)).T)\n"
+                                % (repr_data([data], 14),
+                                   repr_data([mmask], 14),
+                                   coltype.__name__))
+            python_output.write("assert DTNP.shape == (%d, %d)\n\n"
+                                % (self.nrows, 1))
+
         for i in range(self.nrows):
             if mmask[i]: data[i] = None
 
@@ -685,6 +695,7 @@ if __name__ == "__main__":
         python_output = open(outfile, "wt")
         python_output.write("#!/usr/bin/env python\n")
         python_output.write("import datatable as dt\n")
+        python_output.write("import numpy as np\n")
         python_output.write("from datatable import f\n")
         python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
