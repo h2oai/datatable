@@ -75,8 +75,8 @@ class DataTable {
   private:
     size_t  nrows_;
     size_t  ncols_;
+    size_t  nkeys_;
     colvec  columns;
-    size_t  nkeys;
     strvec  names;
     mutable py::otuple py_names;   // memoized tuple of column names
     mutable py::odict  py_inames;  // memoized dict of {column name: index}

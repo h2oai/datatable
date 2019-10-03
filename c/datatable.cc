@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 
 DataTable::DataTable()
-  : nrows_(0), ncols_(0), nkeys(0)
+  : nrows_(0), ncols_(0), nkeys_(0)
 {
   TRACK(this, sizeof(*this), "DataTable");
 }
@@ -92,7 +92,7 @@ size_t DataTable::xcolindex(int64_t index) const {
 DataTable* DataTable::copy() const {
   colvec newcols = columns;  // copy the vector
   DataTable* res = new DataTable(std::move(newcols), this);
-  res->nkeys = nkeys;
+  res->nkeys_ = nkeys_;
   return res;
 }
 
@@ -136,7 +136,7 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
 void DataTable::delete_all() {
   ncols_ = 0;
   nrows_ = 0;
-  nkeys = 0;
+  nkeys_ = 0;
   columns.resize(0);
   names.resize(0);
   py_names  = py::otuple();
@@ -146,7 +146,7 @@ void DataTable::delete_all() {
 
 void DataTable::resize_rows(size_t new_nrows) {
   if (new_nrows == nrows_) return;
-  if (new_nrows > nrows_ && nkeys > 0) {
+  if (new_nrows > nrows_ && nkeys_ > 0) {
     throw ValueError() << "Cannot increase the number of rows in a keyed frame";
   }
   for (Column& col : columns) {

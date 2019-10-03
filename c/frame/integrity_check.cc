@@ -85,27 +85,13 @@ void py::Frame::integrity_check() {
  */
 void DataTable::verify_integrity() const
 {
-  if (nkeys > ncols_) {
-    throw AssertionError()
-        << "Number of keys is greater than the number of columns in the Frame: "
-        << nkeys << " > " << ncols_;
-  }
+  XAssert(nkeys_ <= ncols_);
+  XAssert(columns.size() == ncols_);
+  XAssert(names.size() == ncols_);
 
   _integrity_check_names();
   _integrity_check_pynames();
 
-  // Check the number of columns; the number of allocated columns should be
-  // equal to `ncols`.
-  if (columns.size() != ncols_) {
-    throw AssertionError()
-        << "DataTable.columns array size is " << columns.size()
-        << " whereas ncols = " << ncols_;
-  }
-  if (names.size() != ncols_) {
-    throw AssertionError()
-        << "Number of column names, " << names.size() << ", is not equal "
-           "to the number of columns in the Frame: " << ncols_;
-  }
 
   /**
    * Check the structure and contents of the column array.

@@ -96,17 +96,17 @@ void Frame::_init_key(XTypeMaker& xt) {
 //------------------------------------------------------------------------------
 
 size_t DataTable::get_nkeys() const {
-  return nkeys;
+  return nkeys_;
 }
 
 void DataTable::clear_key() {
-  nkeys = 0;
+  nkeys_ = 0;
 }
 
 
 void DataTable::set_key(std::vector<size_t>& col_indices) {
   if (col_indices.empty()) {
-    nkeys = 0;
+    nkeys_ = 0;
     return;
   }
   // Check that col_indices are unique
@@ -160,10 +160,10 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
 
   materialize();
 
-  nkeys = K;
+  nkeys_ = K;
 }
 
 
 void DataTable::set_nkeys_unsafe(size_t K) {
-  nkeys = K;
+  nkeys_ = K;
 }

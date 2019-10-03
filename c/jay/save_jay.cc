@@ -78,7 +78,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
   auto frame = jay::CreateFrameDirect(fbb,
                   nrows_,
                   msg_columns.size(),
-                  static_cast<int>(nkeys),
+                  static_cast<int>(nkeys_),
                   &msg_columns);
   fbb.Finish(frame);
 
