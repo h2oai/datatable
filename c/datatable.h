@@ -75,7 +75,6 @@ class DataTable {
   public:
     size_t   nrows;
     size_t   ncols;
-    Groupby  groupby;
 
   private:
     colvec  columns;
@@ -98,7 +97,6 @@ class DataTable {
     void delete_all();
     void resize_rows(size_t n);
     void apply_rowindex(const RowIndex&);
-    void replace_groupby(const Groupby& newgb);
     void materialize();
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
     void cbind(const std::vector<DataTable*>&);

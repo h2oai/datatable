@@ -172,15 +172,6 @@ void DataTable::apply_rowindex(const RowIndex& rowindex) {
 }
 
 
-void DataTable::replace_groupby(const Groupby& newgb) {
-  int32_t last_offset = newgb.offsets_r()[newgb.ngroups()];
-  if (static_cast<size_t>(last_offset) != nrows) {
-    throw ValueError() << "Cannot apply Groupby of " << last_offset << " rows "
-      "to a Frame with " << nrows << " rows";
-  }
-  groupby = newgb;
-}
-
 
 
 /**

@@ -76,9 +76,6 @@ size_t DataTable::memory_footprint() const noexcept {
       sz += py_names[i].get_sizeof();
     }
   }
-  if (groupby) {
-    sz += (groupby.ngroups() + 1) * sizeof(int32_t);
-  }
   return sz;
 }
 
