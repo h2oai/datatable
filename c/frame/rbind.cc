@@ -23,7 +23,6 @@
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "column_impl.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 
@@ -350,14 +349,14 @@ void Column::rbind(colvec& columns) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
+void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows,
                                  bool col_empty)
 {
   // Determine the size of the memory to allocate
   size_t old_nrows = nrows_;
   size_t new_strbuf_size = 0;     // size of the string data region
   if (!col_empty) {
-    new_strbuf_size += strbuf.size();
+    new_strbuf_size += strbuf_.size();
   }
   for (size_t i = 0; i < columns.size(); ++i) {
     Column& col = columns[i];
@@ -370,10 +369,10 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
   size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
 
   // Reallocate the column
-  mbuf.resize(new_mbuf_size);
-  strbuf.resize(new_strbuf_size);
+  offbuf_.resize(new_mbuf_size);
+  strbuf_.resize(new_strbuf_size);
   nrows_ = new_nrows;
-  T* offs = offsets_w();
+  T* offs = static_cast<T*>(offbuf_.wptr()) + 1;
 
   // Move the original offsets
   size_t rows_to_fill = 0;  // how many rows need to be filled with NAs
@@ -417,7 +416,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
       const void* col_strdata = col.get_data_readonly(1);
       const size_t col_strsize = col.get_data_size(1);
       if (col_strsize) {
-        void* target = strbuf.wptr(static_cast<size_t>(curr_offset));
+        void* target = strbuf_.wptr(static_cast<size_t>(curr_offset));
         std::memcpy(target, col_strdata, col_strsize);
         curr_offset += col_strsize;
       }
@@ -437,7 +436,7 @@ void StringColumn<T>::rbind_impl(colvec& columns, size_t new_nrows,
 template<> inline py::robj GETNA() { return py::rnone(); }
 
 template <typename T>
-void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
+void dt::SentinelFw_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 {
   const T na = GETNA<T>();
   const void* naptr = static_cast<const void*>(&na);
@@ -446,11 +445,11 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
   size_t old_nrows = nrows_;
   size_t old_alloc_size = sizeof(T) * old_nrows;
   size_t new_alloc_size = sizeof(T) * new_nrows;
-  mbuf.resize(new_alloc_size);
+  mbuf_.resize(new_alloc_size);
   nrows_ = new_nrows;
 
   // Copy the data
-  char* resptr = static_cast<char*>(mbuf.wptr());
+  char* resptr = static_cast<char*>(mbuf_.wptr());
   char* resptr0 = resptr;
   size_t rows_to_fill = 0;
   if (col_empty) {
@@ -489,7 +488,7 @@ void FwColumn<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
 // rbind object columns
 //------------------------------------------------------------------------------
 
-void PyObjectColumn::rbind_impl(
+void dt::SentinelObj_ColumnImpl::rbind_impl(
   colvec& columns, size_t nnrows, bool col_empty)
 {
   size_t old_nrows = nrows_;
@@ -497,11 +496,11 @@ void PyObjectColumn::rbind_impl(
 
   // Reallocate the column's data buffer
   // `resize` fills all new elements with Py_None
-  mbuf.resize(sizeof(PyObject*) * new_nrows);
+  mbuf_.resize(sizeof(PyObject*) * new_nrows);
   nrows_ = nnrows;
 
   // Copy the data
-  PyObject** dest_data = static_cast<PyObject**>(mbuf.wptr());
+  PyObject** dest_data = static_cast<PyObject**>(mbuf_.wptr());
   PyObject** dest_data0 = dest_data;
   if (!col_empty) {
     dest_data += old_nrows;
@@ -529,12 +528,12 @@ void PyObjectColumn::rbind_impl(
 
 
 // Explicitly instantiate these templates:
-template class FwColumn<int8_t>;
-template class FwColumn<int16_t>;
-template class FwColumn<int32_t>;
-template class FwColumn<int64_t>;
-template class FwColumn<float>;
-template class FwColumn<double>;
-template class FwColumn<py::robj>;
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
+template class dt::SentinelFw_ColumnImpl<int8_t>;
+template class dt::SentinelFw_ColumnImpl<int16_t>;
+template class dt::SentinelFw_ColumnImpl<int32_t>;
+template class dt::SentinelFw_ColumnImpl<int64_t>;
+template class dt::SentinelFw_ColumnImpl<float>;
+template class dt::SentinelFw_ColumnImpl<double>;
+template class dt::SentinelFw_ColumnImpl<py::robj>;
+template class dt::SentinelStr_ColumnImpl<uint32_t>;
+template class dt::SentinelStr_ColumnImpl<uint64_t>;

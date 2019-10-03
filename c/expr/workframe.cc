@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/workframe.h"
-#include "column_impl.h"
 #include "datatable.h"
 namespace dt {
 namespace expr {

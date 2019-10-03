@@ -4,7 +4,6 @@
 #include "column/sentinel_str.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
-#include "column_impl.h"
 namespace py {
 
 
@@ -85,13 +84,13 @@ size_t DataTable::memory_footprint() const noexcept {
 
 
 template <typename T>
-size_t StringColumn<T>::memory_footprint() const noexcept {
+size_t dt::SentinelStr_ColumnImpl<T>::memory_footprint() const noexcept {
   return sizeof(*this)
-         + mbuf.memory_footprint()
-         + strbuf.memory_footprint()
+         + offbuf_.memory_footprint()
+         + strbuf_.memory_footprint()
          + (stats_? stats_->memory_footprint() : 0);
 }
 
 
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
+template class dt::SentinelStr_ColumnImpl<uint32_t>;
+template class dt::SentinelStr_ColumnImpl<uint64_t>;

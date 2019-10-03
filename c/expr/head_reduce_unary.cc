@@ -27,7 +27,6 @@
 #include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "column_impl.h"
 namespace dt {
 namespace expr {
 
@@ -68,7 +67,7 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
         groupby(grpby),
         reducer(fn) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new Reduced_ColumnImpl<T, U>(stype_, Column(arg), groupby,
                                           reducer);
     }
@@ -99,7 +98,7 @@ class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
         arg(std::move(col)),
         groupby(grpby) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new FirstLast_ColumnImpl<FIRST>(Column(arg), groupby);
     }
 
@@ -342,7 +341,7 @@ class Median_ColumnImpl : public Virtual_ColumnImpl {
         arg(std::move(col)),
         groupby(grpby) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       auto res = new Median_ColumnImpl<T, U>(Column(arg), groupby);
       return res;
     }

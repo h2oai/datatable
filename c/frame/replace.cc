@@ -27,7 +27,6 @@
 #include "python/dict.h"
 #include "python/list.h"
 #include "utils/assert.h"
-#include "column_impl.h"  // TODO: remove
 
 namespace py {
 

@@ -22,7 +22,7 @@
 #ifndef dt_COLUMN_SENTINEL_h
 #define dt_COLUMN_SENTINEL_h
 #include <memory>
-#include "column_impl.h"
+#include "column/column_impl.h"
 namespace dt {
 
 
@@ -33,11 +33,12 @@ namespace dt {
 class Sentinel_ColumnImpl : public ColumnImpl
 {
   public:
-  	static ColumnImpl* make_column(size_t nrows, SType);
-    static ColumnImpl* make_fw_column(size_t nrows, SType, Buffer&&);
-    static ColumnImpl* make_str_column(size_t nrows, Buffer&&, Buffer&&);
+    static Column make_column(size_t nrows, SType);
+    static Column make_fw_column(size_t nrows, SType, Buffer&&);
+    static Column make_str_column(size_t nrows, Buffer&&, Buffer&&);
 
     bool is_virtual() const noexcept override;
+    void materialize(Column&) override {}
     NaStorage get_na_storage_method() const noexcept override;
 
   protected:

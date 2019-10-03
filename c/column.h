@@ -27,13 +27,14 @@
 #include "stats.h"       // Stat (enum), Stats
 #include "types.h"       // SType (enum), LType (enum), CString
 
-class BitMask;
 class Column;
-class ColumnImpl;
 class Groupby;
 class Buffer;
 using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
+namespace dt {
+  class ColumnImpl;
+}
 
 enum class NaStorage : uint8_t {
   NONE,
@@ -118,7 +119,7 @@ class Column
     // reference count reaches 0, the object is deleted.
     // We do not use std::shared_ptr<> here primarily because it makes it much
     // harder to inspect the object in GDB / LLDB.
-    ColumnImpl* pcol;
+    dt::ColumnImpl* pcol;
 
   public:
     static constexpr size_t MAX_ARR32_SIZE = 0x7FFFFFFF;
@@ -149,7 +150,7 @@ class Column
 
     // Move-semantics for the pointer here indicates to the user that
     // the class overtakes ownership of that pointer.
-    explicit Column(ColumnImpl*&& col);
+    explicit Column(dt::ColumnImpl*&& col);
 
   //------------------------------------
   // Properties
@@ -165,7 +166,7 @@ class Column
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 
-    ColumnImpl* release() && noexcept;
+    dt::ColumnImpl* release() && noexcept;
 
   //------------------------------------
   // Element access

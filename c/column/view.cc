@@ -40,7 +40,7 @@ SliceView_ColumnImpl::SliceView_ColumnImpl(
 }
 
 
-ColumnImpl* SliceView_ColumnImpl::shallowcopy() const {
+ColumnImpl* SliceView_ColumnImpl::clone() const {
   return new SliceView_ColumnImpl(
                 Column(arg), RowIndex(start, nrows_, step));
 }
@@ -86,7 +86,7 @@ void ArrayView_ColumnImpl<T>::set_rowindex(const RowIndex& ri) {
 
 
 template <typename T>
-ColumnImpl* ArrayView_ColumnImpl<T>::shallowcopy() const {
+ColumnImpl* ArrayView_ColumnImpl<T>::clone() const {
   return new ArrayView_ColumnImpl<T>(Column(arg), rowindex_container, nrows_);
 }
 
@@ -161,7 +161,6 @@ template class ArrayView_ColumnImpl<int64_t>;
 
 
 
-}  // namespace dt
 
 //------------------------------------------------------------------------------
 // base ColumnImpl
@@ -196,3 +195,7 @@ void ColumnImpl::apply_rowindex(const RowIndex& rowindex, Column& out) {
   if (!rowindex) return;
   out = _make_view(std::move(out), rowindex);
 }
+
+
+
+}  // namespace dt

@@ -15,7 +15,6 @@
 #include "utils/file.h"
 #include "utils/misc.h"
 #include "column.h"
-#include "column_impl.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "sort.h"
@@ -58,7 +57,7 @@ void swap(Column& lhs, Column& rhs) {
 Column::Column()
   : pcol(nullptr) {}
 
-Column::Column(ColumnImpl*&& col)
+Column::Column(dt::ColumnImpl*&& col)
   : pcol(col) {}
 
 Column::Column(const Column& other)
@@ -88,8 +87,8 @@ Column::~Column() {
 }
 
 
-ColumnImpl* Column::release() && noexcept {
-  ColumnImpl* tmp = pcol;
+dt::ColumnImpl* Column::release() && noexcept {
+  dt::ColumnImpl* tmp = pcol;
   pcol = nullptr;
   return tmp;
 }
@@ -263,7 +262,7 @@ Buffer Column::get_data_buffer(size_t k) const {
 
 void Column::materialize() const {
   auto self = const_cast<Column*>(this);
-  self->pcol = self->pcol->materialize();
+  self->pcol->materialize(*self);
 }
 
 void Column::replace_values(const RowIndex& replace_at,

@@ -27,7 +27,6 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
-#include "column_impl.h"
 #include "datatablemodule.h"
 namespace dt {
 namespace expr {
@@ -48,7 +47,7 @@ class re_match_vcol : public Virtual_ColumnImpl {
         arg(std::move(col)),
         regex(rx) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new re_match_vcol(Column(arg), regex);
     }
 

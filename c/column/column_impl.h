@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_IMPL_h
-#define dt_COLUMN_IMPL_h
+#ifndef dt_COLUMN_COLUMN_IMPL_h
+#define dt_COLUMN_COLUMN_IMPL_h
 #include <memory>        // std::unique_ptr
 #include "python/obj.h"  // py::robj
 #include "column.h"      // Column, NaStorage, colvec
@@ -28,14 +28,27 @@
 #include "buffer.h"      // Buffer
 #include "stats.h"       // Stats
 #include "types.h"       // SType, CString
+namespace dt {
+
 
 
 /**
- * A single column within a DataTable.
- *
- * This class serves as the base in the hierarchy of different
- * column implementation classes.
- */
+  * "Column Implementation": this class realizes the Pimpl idiom for
+  * the `Column` class, and serves as the base in the hierarchy of
+  * different column implementation classes.
+  *
+  * The derived classes are required to implement the following
+  * required methods:
+  *
+  *   - `clone()` : creates a copy of the object;
+  *   - `get_element()` : the class may implement one or more of these
+  *       methods, depending on which stypes it supports;
+  *   - `memory_footprint()` : compute the size of class and its data;
+  *
+  * In addition, the derived class may reimplement any other virtual
+  * methods, depending on its capabilities.
+  *
+  */
 class ColumnImpl
 {
   protected:
@@ -56,8 +69,8 @@ class ColumnImpl
     ColumnImpl* acquire_instance() const;
     void release_instance() noexcept;
 
-    virtual ColumnImpl* shallowcopy() const = 0;
-    virtual ColumnImpl* materialize();
+    virtual ColumnImpl* clone() const = 0;
+    virtual void materialize(Column& out);
     virtual void verify_integrity() const;
 
 
@@ -115,20 +128,25 @@ class ColumnImpl
     virtual void pre_materialize_hook() {}
 
 
-  protected:
+  //------------------------------------
+  // Private helpers
+  //------------------------------------
+  private:
+    // TODO: this should really be materializer for RBound column impl
     virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
 
-    template <typename T> ColumnImpl* _materialize_fw();
-    ColumnImpl* _materialize_str();
-    ColumnImpl* _materialize_obj();
+    template <typename T> void _materialize_fw(Column&);
+    void _materialize_str(Column&);
+    void _materialize_obj(Column&);
 
     template <typename T>
     void _fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
-    friend class Column;
+    friend class ::Column;
 };
 
 
 
 
+} // namespace dt
 #endif

@@ -18,7 +18,6 @@
 #include "frame/py_frame.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"      // repr_utf8
-#include "column_impl.h"
 #include "datatable.h"
 #include "encodings.h"
 
@@ -153,11 +152,16 @@ void DataTable::verify_integrity() const
 
 
 
+
+namespace dt {
+
 //------------------------------------------------------------------------------
-// Column
+// ColumnImpl
 //------------------------------------------------------------------------------
 
 void ColumnImpl::verify_integrity() const {
+  XAssert(static_cast<int64_t>(nrows_) >= 0);
+  XAssert(static_cast<size_t>(stype_) < DT_STYPES_COUNT);
   if (stats_) { // Stats are allowed to be null
     stats_->verify_integrity();
   }
@@ -165,16 +169,33 @@ void ColumnImpl::verify_integrity() const {
 
 
 
+
 //------------------------------------------------------------------------------
-// BoolColumn
+// SentinelFw_ColumnImpl<T>
 //------------------------------------------------------------------------------
 
-void BoolColumn::verify_integrity() const {
-  FwColumn<int8_t>::verify_integrity();
+template <typename T>
+void SentinelFw_ColumnImpl<T>::verify_integrity() const {
+  ColumnImpl::verify_integrity();
+  assert_compatible_type<T>(stype_);
+  XAssert(mbuf_.size() >= sizeof(T) * nrows_);
+  mbuf_.verify_integrity();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// SentinelBool_ColumnImpl
+//------------------------------------------------------------------------------
+
+void SentinelBool_ColumnImpl::verify_integrity() const {
+  SentinelFw_ColumnImpl<int8_t>::verify_integrity();
+  XAssert(stype_ == SType::BOOL);
 
   // Check that all elements in column are either 0, 1, or NA_I1
-  size_t mbuf_nrows = mbuf.size();
-  const int8_t* vals = elements_r();
+  size_t mbuf_nrows = mbuf_.size();
+  const int8_t* vals = static_cast<const int8_t*>(mbuf_.rptr());
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     int8_t val = vals[i];
     if (!(val == 0 || val == 1 || val == NA_I1)) {
@@ -188,19 +209,19 @@ void BoolColumn::verify_integrity() const {
 
 
 //------------------------------------------------------------------------------
-// StringColumn
+// SentinelStr_ColumnImpl
 //------------------------------------------------------------------------------
 
 template <typename T>
-void StringColumn<T>::verify_integrity() const {
+void SentinelStr_ColumnImpl<T>::verify_integrity() const {
   Sentinel_ColumnImpl::verify_integrity();
-  mbuf.verify_integrity();
-  strbuf.verify_integrity();
+  offbuf_.verify_integrity();
+  strbuf_.verify_integrity();
 
   size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
-  const uint8_t* cdata = reinterpret_cast<const uint8_t*>(strdata());
-  const T* str_offsets = offsets();
+  const uint8_t* cdata = static_cast<const uint8_t*>(strbuf_.rptr());
+  const T* str_offsets = static_cast<const T*>(offbuf_.rptr()) + 1;
 
   // Check that the offsets section is preceded by a -1
   if (str_offsets[-1] != 0) {
@@ -208,7 +229,7 @@ void StringColumn<T>::verify_integrity() const {
         << "Offsets section in string column does not start with 0";
   }
 
-  size_t mbuf_nrows = mbuf.size()/sizeof(T) - 1;
+  size_t mbuf_nrows = offbuf_.size()/sizeof(T) - 1;
   strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
 
   // Check for the validity of each offset
@@ -245,17 +266,17 @@ void StringColumn<T>::verify_integrity() const {
 // PyObjColumn
 //------------------------------------------------------------------------------
 
-void PyObjectColumn::verify_integrity() const {
-  FwColumn<py::robj>::verify_integrity();
+void SentinelObj_ColumnImpl::verify_integrity() const {
+  SentinelFw_ColumnImpl<py::robj>::verify_integrity();
 
-  if (!mbuf.is_pyobjects()) {
+  if (!mbuf_.is_pyobjects()) {
     throw AssertionError() << "obj64 column's internal buffer is "
         "not marked as containing PyObjects";
   }
 
   // Check that all elements are valid pyobjects
-  size_t mbuf_nrows = mbuf.size() / sizeof(PyObject*);
-  const py::robj* vals = elements_r();
+  size_t mbuf_nrows = mbuf_.size() / sizeof(PyObject*);
+  const py::robj* vals = static_cast<const py::robj*>(mbuf_.rptr());
   for (size_t i = 0; i < mbuf_nrows; ++i) {
     py::robj val = vals[i];
     if (!val) {
@@ -270,5 +291,14 @@ void PyObjectColumn::verify_integrity() const {
 
 
 // Explicit instantiation of templates
-template class StringColumn<uint32_t>;
-template class StringColumn<uint64_t>;
+template class SentinelFw_ColumnImpl<int8_t>;
+template class SentinelFw_ColumnImpl<int16_t>;
+template class SentinelFw_ColumnImpl<int32_t>;
+template class SentinelFw_ColumnImpl<int64_t>;
+template class SentinelFw_ColumnImpl<float>;
+template class SentinelFw_ColumnImpl<double>;
+template class SentinelFw_ColumnImpl<py::robj>;
+template class SentinelStr_ColumnImpl<uint32_t>;
+template class SentinelStr_ColumnImpl<uint64_t>;
+
+} // namespace dt

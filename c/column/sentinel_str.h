@@ -22,56 +22,47 @@
 #ifndef dt_COLUMN_SENTINEL_STR_h
 #define dt_COLUMN_SENTINEL_STR_h
 #include "column/sentinel.h"
-// namespace dt {
+namespace dt {
 
 
 template <typename T>
-class StringColumn : public dt::Sentinel_ColumnImpl
+class SentinelStr_ColumnImpl : public Sentinel_ColumnImpl
 {
   private:
-    Buffer mbuf;
-    Buffer strbuf;
+    Buffer offbuf_;
+    Buffer strbuf_;
 
   public:
-    StringColumn();
-    StringColumn(size_t nrows);
-    StringColumn(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
+    SentinelStr_ColumnImpl();
+    SentinelStr_ColumnImpl(size_t nrows);
+    SentinelStr_ColumnImpl(size_t nrows, Buffer&& offbuf, Buffer&& strbuf);
 
-    ColumnImpl* shallowcopy() const override;
-    ColumnImpl* materialize() override;
+    ColumnImpl* clone() const override;
+    void verify_integrity() const override;
+    size_t memory_footprint() const noexcept override;
 
     bool get_element(size_t i, CString* out) const override;
 
-    size_t get_num_data_buffers() const noexcept override;
-    bool is_data_editable(size_t k) const override;
-    size_t get_data_size(size_t k) const override;
+    size_t      get_num_data_buffers() const noexcept override;
+    bool        is_data_editable(size_t k) const override;
+    size_t      get_data_size(size_t k) const override;
     const void* get_data_readonly(size_t k) const override;
-    void* get_data_editable(size_t k) override;
-    Buffer get_data_buffer(size_t k) const override;
+    void*       get_data_editable(size_t k) override;
+    Buffer      get_data_buffer(size_t k) const override;
 
-    size_t datasize() const;
-    const char* strdata() const;
-    const uint8_t* ustrdata() const;
-    const T* offsets() const;
-    T* offsets_w();
-    size_t memory_footprint() const noexcept override;
-
-    void replace_values(const RowIndex& at, const Column& with, Column&) override;
-
-    void verify_integrity() const override;
+    void replace_values(const RowIndex& at, const Column& with,
+                        Column& out) override;
 
   protected:
     void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
-
-    friend ColumnImpl;
-    friend Column;
 };
 
 
-extern template class StringColumn<uint32_t>;
-extern template class StringColumn<uint64_t>;
+extern template class SentinelStr_ColumnImpl<uint32_t>;
+extern template class SentinelStr_ColumnImpl<uint64_t>;
 
 
 
-// }  // namespace dt
+
+}  // namespace dt
 #endif

@@ -38,7 +38,7 @@ class SliceView_ColumnImpl : public Virtual_ColumnImpl {
 
   public:
     SliceView_ColumnImpl(Column&& col, const RowIndex& ri);
-    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* clone() const override;
 
     bool get_element(size_t i, int8_t* out)   const override;
     bool get_element(size_t i, int16_t* out)  const override;
@@ -67,7 +67,7 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
 
   public:
     ArrayView_ColumnImpl(Column&& col, const RowIndex& ri, size_t nrows);
-    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* clone() const override;
 
     // defined in sort.cc
     void sort_grouped(const Groupby& gby, Column& out) override;
