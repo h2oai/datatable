@@ -376,7 +376,7 @@ class Frame0:
                 return name
 
 
-    def random_column(self, nrows, ttype, missing, ma=False):
+    def random_column(self, nrows, ttype, missing_fraction, missing_nones=True):
         mmask = [False] * nrows
         if ttype == bool:
             data = self.random_bool_column(nrows)
@@ -386,12 +386,12 @@ class Frame0:
             data = self.random_float_column(nrows)
         else:
             data = self.random_str_column(nrows)
-        if missing:
+        if missing_fraction:
             for i in range(nrows):
-                if random.random() < missing:
+                if random.random() < missing_fraction:
                     mmask[i] = True
 
-        if not ma:
+        if missing_nones:
             for i in range(nrows):
                 if mmask[i]: data[i] = None
 
@@ -622,7 +622,7 @@ class Frame0:
 
         coltype = self.random_type()
         mfraction = random.random()
-        data, mmask = self.random_column(self.nrows, coltype, mfraction, True)
+        data, mmask = self.random_column(self.nrows, coltype, mfraction, False)
         np_data = np.ma.array(data, mask=mmask, dtype=np.dtype(coltype)).T
         names = self.random_names(1)
         df = dt.Frame(np_data, names=names)
