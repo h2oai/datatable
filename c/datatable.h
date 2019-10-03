@@ -78,8 +78,8 @@ class DataTable {
     size_t  nkeys_;
     colvec  columns_;
     strvec  names_;
-    mutable py::otuple py_names;   // memoized tuple of column names
-    mutable py::odict  py_inames;  // memoized dict of {column name: index}
+    mutable py::otuple py_names_;   // memoized tuple of column names
+    mutable py::odict  py_inames_;  // memoized dict of {column name: index}
 
   public:
     static struct DefaultNamesTag {} default_names;

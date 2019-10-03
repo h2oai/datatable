@@ -145,8 +145,8 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
   ncols_ = j;
   columns_.resize(j);
   names_.resize(j);
-  py_names  = py::otuple();
-  py_inames = py::odict();
+  py_names_  = py::otuple();
+  py_inames_ = py::odict();
 }
 
 
@@ -156,8 +156,8 @@ void DataTable::delete_all() {
   nkeys_ = 0;
   columns_.resize(0);
   names_.resize(0);
-  py_names  = py::otuple();
-  py_inames = py::odict();
+  py_names_  = py::otuple();
+  py_inames_ = py::odict();
 }
 
 

@@ -69,11 +69,11 @@ size_t DataTable::memory_footprint() const noexcept {
     sz += columns_[i].memory_footprint();
     sz += names_[i].size();
   }
-  if (py_names) {
-    sz += py_names.get_sizeof();
-    sz += py_inames.get_sizeof();
+  if (py_names_) {
+    sz += py_names_.get_sizeof();
+    sz += py_inames_.get_sizeof();
     for (size_t i = 0; i < ncols_; ++i) {
-      sz += py_names[i].get_sizeof();
+      sz += py_names_[i].get_sizeof();
     }
   }
   return sz;

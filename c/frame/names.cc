@@ -261,8 +261,8 @@ const strvec& DataTable::get_names() const {
  * Return DataTable column names as a python tuple.
  */
 py::otuple DataTable::get_pynames() const {
-  if (!py_names) _init_pynames();
-  return py_names;
+  if (!py_names_) _init_pynames();
+  return py_names_;
 }
 
 
@@ -271,8 +271,8 @@ py::otuple DataTable::get_pynames() const {
  * exist in the DataTable.
  */
 int64_t DataTable::colindex(const py::_obj& pyname) const {
-  if (!py_names) _init_pynames();
-  py::robj pyindex = py_inames.get(pyname);
+  if (!py_names_) _init_pynames();
+  py::robj pyindex = py_inames_.get(pyname);
   return pyindex? pyindex.to_int64_strict() : -1;
 }
 
@@ -282,8 +282,8 @@ int64_t DataTable::colindex(const py::_obj& pyname) const {
  * column does not exist in the DataTable.
  */
 size_t DataTable::xcolindex(const py::_obj& pyname) const {
-  if (!py_names) _init_pynames();
-  py::robj pyindex = py_inames.get(pyname);
+  if (!py_names_) _init_pynames();
+  py::robj pyindex = py_inames_.get(pyname);
   if (!pyindex) {
     throw _name_not_found_error(this, pyname.to_string());
   }
@@ -298,8 +298,8 @@ size_t DataTable::xcolindex(const py::_obj& pyname) const {
 void DataTable::copy_names_from(const DataTable* other) {
   xassert(other);
   names_ = other->names_;
-  py_names = other->py_names;
-  py_inames = other->py_inames;
+  py_names_ = other->py_names_;
+  py_inames_ = other->py_inames_;
 }
 
 
@@ -308,8 +308,8 @@ void DataTable::copy_names_from(const DataTable* other) {
  */
 void DataTable::set_names_to_default() {
   auto index0 = static_cast<size_t>(names_auto_index);
-  py_names  = py::otuple();
-  py_inames = py::odict();
+  py_names_  = py::otuple();
+  py_inames_ = py::odict();
   names_.clear();
   names_.reserve(ncols_);
   for (size_t i = 0; i < ncols_; ++i) {
@@ -337,12 +337,12 @@ void DataTable::replace_names(py::odict replacements, bool warn) {
   py::olist newnames(ncols_);
 
   for (size_t i = 0; i < ncols_; ++i) {
-    newnames.set(i, py_names[i]);
+    newnames.set(i, py_names_[i]);
   }
   for (auto kv : replacements) {
     py::robj key = kv.first;
     py::robj val = kv.second;
-    py::robj idx = py_inames.get(key);
+    py::robj idx = py_inames_.get(key);
     if (idx.is_undefined()) {
       throw ValueError() << "Cannot find column `" << key.str()
         << "` in the Frame";
@@ -366,14 +366,14 @@ void DataTable::reorder_names(const std::vector<size_t>& col_indices) {
     newnames.push_back(std::move(names_[col_indices[i]]));
   }
   names_ = std::move(newnames);
-  if (py_names) {
+  if (py_names_) {
     py::otuple new_py_names(ncols_);
     for (size_t i = 0; i < ncols_; ++i) {
-      py::robj pyname = py_names[col_indices[i]];
+      py::robj pyname = py_names_[col_indices[i]];
       new_py_names.set(i, pyname);
-      py_inames.set(pyname, py::oint(i));
+      py_inames_.set(pyname, py::oint(i));
     }
-    py_names = std::move(new_py_names);
+    py_names_ = std::move(new_py_names);
   }
 }
 
@@ -385,15 +385,15 @@ void DataTable::reorder_names(const std::vector<size_t>& col_indices) {
 //------------------------------------------------------------------------------
 
 void DataTable::_init_pynames() const {
-  if (py_names) return;
+  if (py_names_) return;
   xassert(names_.size() == ncols_);
 
-  py_names = py::otuple(ncols_);
-  py_inames = py::odict();
+  py_names_ = py::otuple(ncols_);
+  py_inames_ = py::odict();
   for (size_t i = 0; i < ncols_; ++i) {
     py::ostring pyname(names_[i]);
-    py_inames.set(pyname, py::oint(i));
-    py_names.set(i, std::move(pyname));
+    py_inames_.set(pyname, py::oint(i));
+    py_names_.set(i, std::move(pyname));
   }
 }
 
@@ -499,8 +499,8 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
   }
 
   // Prepare the containers for placing the new column names there
-  py_names  = py::otuple(ncols_);
-  py_inames = py::odict();
+  py_names_  = py::otuple(ncols_);
+  py_inames_ = py::odict();
   names_.clear();
   names_.reserve(ncols_);
   std::unordered_map<std::string, std::unordered_set<size_t>> stems;
@@ -531,18 +531,18 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
     // Check for name duplicates. If the name was already seen before, we
     // replace it with a modified name (by incrementing the name's digital
     // suffix if it has one, or otherwise by adding such a suffix).
-    if (py_inames.has(newname)) {
+    if (py_inames_.has(newname)) {
       size_t k = std::min(n_duplicates, MAX_DUPLICATES - 1);
       duplicates[k] = resname;
-      _deduplicate(&resname, &newname, py_inames, stems);
+      _deduplicate(&resname, &newname, py_inames_, stems);
       replacements[k] = resname;
       n_duplicates++;
     }
 
     // Store the name in all containers
     names_.push_back(resname);
-    py_inames.set(newname, py::oint(i));
-    py_names.set(i, std::move(newname));
+    py_inames_.set(newname, py::oint(i));
+    py_names_.set(i, std::move(newname));
   }
 
   // If during the processing we discovered any empty names, they must be
@@ -579,8 +579,8 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
       if (!names_[i].empty()) continue;
       names_[i] = prefix + std::to_string(index0);
       py::oobj newname = py::ostring(names_[i]);
-      py_inames.set(newname, py::oint(i));
-      py_names.set(i, std::move(newname));
+      py_inames_.set(newname, py::oint(i));
+      py_names_.set(i, std::move(newname));
       index0++;
     }
   }
@@ -605,8 +605,8 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
   }
 
   xassert(ncols_ == names_.size());
-  xassert(ncols_ == py_names.size());
-  xassert(ncols_ == py_inames.size());
+  xassert(ncols_ == py_names_.size());
+  xassert(ncols_ == py_inames_.size());
 }
 
 
@@ -636,20 +636,20 @@ void DataTable::_integrity_check_names() const {
 
 
 void DataTable::_integrity_check_pynames() const {
-  if (!py_names) {
-    XAssert(py_inames.size() == 0);
+  if (!py_names_) {
+    XAssert(py_inames_.size() == 0);
     return;
   }
-  XAssert(py_names.is_tuple());
-  XAssert(py_inames.is_dict());
-  XAssert(py_names.size() == ncols_);
-  XAssert(py_inames.size() == ncols_);
+  XAssert(py_names_.is_tuple());
+  XAssert(py_inames_.is_dict());
+  XAssert(py_names_.size() == ncols_);
+  XAssert(py_inames_.size() == ncols_);
   for (size_t i = 0; i < ncols_; ++i) {
-    py::robj elem = py_names[i];
+    py::robj elem = py_names_[i];
     XAssert(elem.is_string());
     XAssert(elem.to_string() == names_[i]);
-    py::robj res = py_inames.get(elem);
-    XAssert(bool(res) && "column in py_inames dict");
+    py::robj res = py_inames_.get(elem);
+    XAssert(bool(res) && "column in py_inames_ dict");
     XAssert(res.to_int64_strict() == static_cast<int64_t>(i));
   }
 }
@@ -697,32 +697,32 @@ namespace dttest {
 
     auto check2 = [dt]() { dt->_integrity_check_pynames(); };
     py::oobj q = py::None();
-    dt->py_inames.set(q, q);
-    test_assert(check2, "Assertion 'py_inames.size() == 0' failed");
-    dt->py_inames.del(q);
+    dt->py_inames_.set(q, q);
+    test_assert(check2, "Assertion 'py_inames_.size() == 0' failed");
+    dt->py_inames_.del(q);
 
-    dt->py_names = *reinterpret_cast<const py::otuple*>(&q);
-    test_assert(check2, "Assertion 'py_names.is_tuple()' failed");
-    dt->py_inames = *reinterpret_cast<const py::odict*>(&q);
-    dt->py_names = py::otuple(1);
-    test_assert(check2, "Assertion 'py_inames.is_dict()' failed");
-    dt->py_inames = py::odict();
-    test_assert(check2, "Assertion 'py_names.size() == ncols_' failed");
-    dt->py_names = py::otuple(2);
-    test_assert(check2, "Assertion 'py_inames.size() == ncols_' failed");
-    dt->py_inames.set(py::ostring("one"), py::oint(0));
-    dt->py_inames.set(py::ostring("TWO"), py::oint(2));
-    dt->py_names.set(0, py::oint(1));
-    dt->py_names.set(1, py::ostring("two"));
+    dt->py_names_ = *reinterpret_cast<const py::otuple*>(&q);
+    test_assert(check2, "Assertion 'py_names_.is_tuple()' failed");
+    dt->py_inames_ = *reinterpret_cast<const py::odict*>(&q);
+    dt->py_names_ = py::otuple(1);
+    test_assert(check2, "Assertion 'py_inames_.is_dict()' failed");
+    dt->py_inames_ = py::odict();
+    test_assert(check2, "Assertion 'py_names_.size() == ncols_' failed");
+    dt->py_names_ = py::otuple(2);
+    test_assert(check2, "Assertion 'py_inames_.size() == ncols_' failed");
+    dt->py_inames_.set(py::ostring("one"), py::oint(0));
+    dt->py_inames_.set(py::ostring("TWO"), py::oint(2));
+    dt->py_names_.set(0, py::oint(1));
+    dt->py_names_.set(1, py::ostring("two"));
     test_assert(check2, "Assertion 'elem.is_string()' failed");
-    dt->py_names.set(0, py::ostring("1"));
+    dt->py_names_.set(0, py::ostring("1"));
     test_assert(check2, "Assertion 'elem.to_string() == names_[i]' failed");
-    dt->py_names.set(0, py::ostring("one"));
-    test_assert(check2, "Assertion 'bool(res) && \"column in py_inames dict\"' failed");
-    dt->py_inames.del(py::ostring("TWO"));
-    dt->py_inames.set(py::ostring("two"), py::oint(2));
+    dt->py_names_.set(0, py::ostring("one"));
+    test_assert(check2, "Assertion 'bool(res) && \"column in py_inames_ dict\"' failed");
+    dt->py_inames_.del(py::ostring("TWO"));
+    dt->py_inames_.set(py::ostring("two"), py::oint(2));
     test_assert(check2, "Assertion 'res.to_int64_strict() == static_cast<int64_t>(i)' failed");
-    dt->py_inames.set(py::ostring("two"), py::oint(1));
+    dt->py_inames_.set(py::ostring("two"), py::oint(1));
     dt->verify_integrity();
   }
 
