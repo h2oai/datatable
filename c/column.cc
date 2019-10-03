@@ -22,7 +22,7 @@
 
 
 Column Column::new_data_column(size_t nrows, SType stype) {
-  return Column(dt::Sentinel_ColumnImpl::make_column(nrows, stype));
+  return dt::Sentinel_ColumnImpl::make_column(nrows, stype);
 }
 
 
@@ -32,16 +32,15 @@ Column Column::new_na_column(size_t nrows, SType stype) {
 
 
 Column Column::new_mbuf_column(size_t nrows, SType stype, Buffer&& mbuf) {
-  return Column(dt::Sentinel_ColumnImpl::make_fw_column(
-                    nrows, stype, std::move(mbuf)));
+  return dt::Sentinel_ColumnImpl::make_fw_column(nrows, stype, std::move(mbuf));
 }
 
 
 Column Column::new_string_column(
     size_t nrows, Buffer&& data, Buffer&& str)
 {
-  return Column(dt::Sentinel_ColumnImpl::make_str_column(
-                      nrows, std::move(data), std::move(str)));
+  return dt::Sentinel_ColumnImpl::make_str_column(
+                      nrows, std::move(data), std::move(str));
 }
 
 
