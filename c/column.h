@@ -108,18 +108,18 @@ template <> inline SType stype_from<py::robj>() { return SType::OBJ; }
  * and eventually bundled into a new DataTable.
  *
  * The class implements the Pimpl idiom: its implementation details
- * are hidden as a pointer `pcol` to a ColumnImpl instance. This
+ * are hidden as a pointer `impl_` to a ColumnImpl instance. This
  * object is polymorphic, uses shared-ptr-like mechanics, and may be
  * replaced with some other instance on the fly.
  */
 class Column
 {
   private:
-    // shared pointer; its lifetime is governed by `pcol->refcount`: when the
+    // shared pointer; its lifetime is governed by `impl_->refcount`: when the
     // reference count reaches 0, the object is deleted.
-    // We do not use std::shared_ptr<> here primarily because it makes it much
+    // We do not use std::shared_ptr<> here primarily because it makes it
     // harder to inspect the object in GDB / LLDB.
-    dt::ColumnImpl* pcol;
+    const dt::ColumnImpl* impl_;
 
   public:
     static constexpr size_t MAX_ARR32_SIZE = 0x7FFFFFFF;
@@ -131,8 +131,8 @@ class Column
   // `std::vector<Column>` will be copying Columns instead of moving
   // when the vector if resized.
   public:
-    Column();
-    Column(const Column&);
+    Column() noexcept;
+    Column(const Column&) noexcept;
     Column(Column&&) noexcept;
     Column& operator=(const Column&);
     Column& operator=(Column&&) noexcept;
@@ -150,7 +150,7 @@ class Column
 
     // Move-semantics for the pointer here indicates to the user that
     // the class overtakes ownership of that pointer.
-    explicit Column(dt::ColumnImpl*&& col);
+    explicit Column(dt::ColumnImpl*&& col) noexcept;
 
   //------------------------------------
   // Properties
@@ -166,7 +166,7 @@ class Column
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 
-    dt::ColumnImpl* release() && noexcept;
+    dt::ColumnImpl* release() &&;
 
   //------------------------------------
   // Element access
@@ -266,8 +266,8 @@ class Column
   // ColumnImpl manipulation
   //------------------------------------
   public:
+    void materialize();
     void rbind(colvec& columns);
-    void materialize() const;
     void cast_inplace(SType stype);
     Column cast(SType stype) const;
     Column cast(SType stype, Buffer&& mr) const;
@@ -290,19 +290,33 @@ class Column
     // using the provided RowIndex.
     void apply_rowindex(const RowIndex&);
 
-    // "npmask" is a boolean array containing of the same length as
-    // the column, the true/false values in this mask indicate whether
-    // each element of the column is NA (true) or not (false).
+    // `npmask` is a boolean array of the same length as the column,
+    // the true/false values in this mask indicate whether each
+    // element of the column is NA (true) or not (false).
     //
-    // This method requires such `out_mask` array to be filled from
-    // `out_mask[row0]` to `out_mask[row1 - 1]`. This method is
-    // single-threaded (it is designed to run from multiple threads).
-    void fill_npmask(bool* out_mask, size_t row0, size_t row1) const;
+    // The `npmask` is the output, not input parameter. This method
+    // must fill part of the array from `npmask[row0]` to
+    // `npmask[row1 - 1]`. This method is single-threaded (it is
+    // designed to be called from multiple threads).
+    void fill_npmask(bool* npmask, size_t row0, size_t row1) const;
 
     // Checks internal integrity of the column. An `AssertionError`
     // exception will be raised if the column's data is in an
     // erroneous state.
     void verify_integrity() const;
+
+  private:
+    void _acquire_impl(const dt::ColumnImpl*);
+    void _release_impl(const dt::ColumnImpl*);
+
+    // This method returns const-casted `impl_` pointer. However, it
+    // also checks the reference counter on that pointer, and if the
+    // count > 1, makes a "shallow" copy of the `impl_`. Thus, it
+    // ensures proper copy-on-write semantics.
+    //
+    // This method should be called from any Column method that
+    // intends to modify the `impl_` variable.
+    dt::ColumnImpl* _get_mutable_impl();
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;
