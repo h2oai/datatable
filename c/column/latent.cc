@@ -29,35 +29,36 @@ namespace dt {
 #define CHECK_SIZE(cls) \
   static_assert(sizeof(Latent_ColumnImpl) >= sizeof(cls), \
                 "Size of Latent_ColumnImpl is smaller than size of " #cls)
-CHECK_SIZE(BoolColumn);
-CHECK_SIZE(IntColumn<int8_t>);
-CHECK_SIZE(IntColumn<int16_t>);
-CHECK_SIZE(IntColumn<int32_t>);
-CHECK_SIZE(IntColumn<int64_t>);
-CHECK_SIZE(FwColumn<float>);
-CHECK_SIZE(FwColumn<double>);
-CHECK_SIZE(StringColumn<uint32_t>);
-CHECK_SIZE(StringColumn<uint64_t>);
-CHECK_SIZE(PyObjectColumn);
+CHECK_SIZE(SentinelBool_ColumnImpl);
+CHECK_SIZE(SentinelFw_ColumnImpl<int8_t>);
+CHECK_SIZE(SentinelFw_ColumnImpl<int16_t>);
+CHECK_SIZE(SentinelFw_ColumnImpl<int32_t>);
+CHECK_SIZE(SentinelFw_ColumnImpl<int64_t>);
+CHECK_SIZE(SentinelFw_ColumnImpl<float>);
+CHECK_SIZE(SentinelFw_ColumnImpl<double>);
+CHECK_SIZE(SentinelStr_ColumnImpl<uint32_t>);
+CHECK_SIZE(SentinelStr_ColumnImpl<uint64_t>);
+CHECK_SIZE(SentinelObj_ColumnImpl);
 
 
 
 Latent_ColumnImpl::Latent_ColumnImpl(ColumnImpl* pcol)
-  : ColumnImpl(pcol->nrows(), pcol->stype()),
-    column(pcol) {}
+  : Virtual_ColumnImpl(pcol->nrows(), pcol->stype()),
+    column_(std::move(pcol)) {}
 
 
-bool Latent_ColumnImpl::is_virtual() const noexcept {
-  return true;
+Latent_ColumnImpl::Latent_ColumnImpl(const Column& col)
+  : Virtual_ColumnImpl(col.nrows(), col.stype()),
+    column_(col) {}
+
+
+
+ColumnImpl* Latent_ColumnImpl::clone() const {
+  return new Latent_ColumnImpl(column_);
 }
 
-
-ColumnImpl* Latent_ColumnImpl::shallowcopy() const {
-  return new Latent_ColumnImpl(column->shallowcopy());
-}
-
-ColumnImpl* Latent_ColumnImpl::materialize() {
-  return vivify();
+void Latent_ColumnImpl::materialize(Column&) {
+  vivify();
 }
 
 
@@ -93,16 +94,18 @@ ColumnImpl* Latent_ColumnImpl::vivify() const {
   // This will work, provided that `sizeof(*this)` is >= the size
   // of the class of the materialized column.
   auto ptr = const_cast<void*>(static_cast<const void*>(this));
-  ColumnImpl* new_pcol = column->materialize();
+  column_.materialize();
+  ColumnImpl* new_pcol = std::move(column_).release();
   SType stype = new_pcol->stype();
+
   switch (stype) {
-    case SType::BOOL:    new (ptr) BoolColumn(std::move(new_pcol)); break;
-    case SType::INT8:    new (ptr) IntColumn<int8_t>(std::move(new_pcol)); break;
-    case SType::INT16:   new (ptr) IntColumn<int16_t>(std::move(new_pcol)); break;
-    case SType::INT32:   new (ptr) IntColumn<int32_t>(std::move(new_pcol)); break;
-    case SType::INT64:   new (ptr) IntColumn<int64_t>(std::move(new_pcol)); break;
-    case SType::FLOAT32: new (ptr) FwColumn<float>(std::move(new_pcol)); break;
-    case SType::FLOAT64: new (ptr) FwColumn<double>(std::move(new_pcol)); break;
+    case SType::BOOL:    new (ptr) SentinelBool_ColumnImpl(std::move(new_pcol)); break;
+    case SType::INT8:    new (ptr) SentinelFw_ColumnImpl<int8_t>(std::move(new_pcol)); break;
+    case SType::INT16:   new (ptr) SentinelFw_ColumnImpl<int16_t>(std::move(new_pcol)); break;
+    case SType::INT32:   new (ptr) SentinelFw_ColumnImpl<int32_t>(std::move(new_pcol)); break;
+    case SType::INT64:   new (ptr) SentinelFw_ColumnImpl<int64_t>(std::move(new_pcol)); break;
+    case SType::FLOAT32: new (ptr) SentinelFw_ColumnImpl<float>(std::move(new_pcol)); break;
+    case SType::FLOAT64: new (ptr) SentinelFw_ColumnImpl<double>(std::move(new_pcol)); break;
     default:
       throw NotImplError() << "Cannot vivify column of type " << stype;
   }

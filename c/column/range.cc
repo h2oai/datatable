@@ -63,7 +63,7 @@ Range_ColumnImpl::Range_ColumnImpl(SType stype, size_t nrows, int64_t start,
 
 
 
-ColumnImpl* Range_ColumnImpl::shallowcopy() const {
+ColumnImpl* Range_ColumnImpl::clone() const {
   return new Range_ColumnImpl(stype_, nrows_, start_, step_);
 }
 

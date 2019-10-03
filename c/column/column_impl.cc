@@ -19,34 +19,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/column_impl.h"
 #include "column/nafilled.h"
 #include "column/sentinel_fw.h"
 #include "parallel/api.h"
 #include "parallel/string_utils.h"
-#include "column_impl.h"
+namespace dt {
 
 
 
 //------------------------------------------------------------------------------
-// Basic constructors
+// Constructor
 //------------------------------------------------------------------------------
 
 ColumnImpl::ColumnImpl(size_t nrows, SType stype)
   : nrows_(nrows),
-    stype_(stype) {}
-
-ColumnImpl::~ColumnImpl() {}
-
-
-// TODO: replace these with ref-counting semantics
-
-ColumnImpl* ColumnImpl::acquire_instance() const {
-  return this->shallowcopy();
-}
-
-void ColumnImpl::release_instance() noexcept {
-  delete this;
-}
+    stype_(stype),
+    refcount_(1) {}
 
 
 
@@ -55,20 +44,20 @@ void ColumnImpl::release_instance() noexcept {
 // Data access
 //------------------------------------------------------------------------------
 
-[[noreturn]] static void _notimpl(const ColumnImpl* col, const char* type) {
+[[noreturn]] static void err(SType col_stype, const char* type) {
   throw NotImplError()
       << "Cannot retrieve " << type
-      << " values from a column of type " << col->stype();
+      << " values from a column of type " << col_stype;
 }
 
-bool ColumnImpl::get_element(size_t, int8_t*)   const { _notimpl(this, "int8"); }
-bool ColumnImpl::get_element(size_t, int16_t*)  const { _notimpl(this, "int16"); }
-bool ColumnImpl::get_element(size_t, int32_t*)  const { _notimpl(this, "int32"); }
-bool ColumnImpl::get_element(size_t, int64_t*)  const { _notimpl(this, "int64"); }
-bool ColumnImpl::get_element(size_t, float*)    const { _notimpl(this, "float32"); }
-bool ColumnImpl::get_element(size_t, double*)   const { _notimpl(this, "float64"); }
-bool ColumnImpl::get_element(size_t, CString*)  const { _notimpl(this, "string"); }
-bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object"); }
+bool ColumnImpl::get_element(size_t, int8_t*)  const { err(stype_, "int8"); }
+bool ColumnImpl::get_element(size_t, int16_t*) const { err(stype_, "int16"); }
+bool ColumnImpl::get_element(size_t, int32_t*) const { err(stype_, "int32"); }
+bool ColumnImpl::get_element(size_t, int64_t*) const { err(stype_, "int64"); }
+bool ColumnImpl::get_element(size_t, float*)   const { err(stype_, "float32"); }
+bool ColumnImpl::get_element(size_t, double*)  const { err(stype_, "float64"); }
+bool ColumnImpl::get_element(size_t, CString*) const { err(stype_, "string"); }
+bool ColumnImpl::get_element(size_t, py::robj*)const { err(stype_, "object"); }
 
 
 
@@ -78,86 +67,63 @@ bool ColumnImpl::get_element(size_t, py::robj*) const { _notimpl(this, "object")
 //------------------------------------------------------------------------------
 
 template <typename T>
-ColumnImpl* ColumnImpl::_materialize_fw() {
-  size_t inp_nrows = this->nrows();
-  SType inp_stype = this->stype();
-  assert_compatible_type<T>(inp_stype);
-  ColumnImpl* output_column
-      = dt::Sentinel_ColumnImpl::make_column(inp_nrows, inp_stype);
-  auto out_data = static_cast<T*>(output_column->mbuf.wptr());
+void ColumnImpl::_materialize_fw(Column& out) {
+  assert_compatible_type<T>(stype_);
+  auto out_column = Sentinel_ColumnImpl::make_column(nrows_, stype_);
+  auto out_data = static_cast<T*>(out_column.get_data_editable(0));
 
-  dt::parallel_for_static(
-    inp_nrows,
+  parallel_for_static(
+    nrows_,
     [=](size_t i) {
       T value;
       bool isvalid = this->get_element(i, &value);
       out_data[i] = isvalid? value : GETNA<T>();
     });
-  return output_column;
+  out = std::move(out_column);
 }
 
 
-ColumnImpl* ColumnImpl::_materialize_obj() {
-  size_t inp_nrows = this->nrows();
-  SType inp_stype = this->stype();
-  assert_compatible_type<py::robj>(inp_stype);
+void ColumnImpl::_materialize_obj(Column& out) {
+  xassert(stype_ == SType::OBJ);
+  auto out_column = Sentinel_ColumnImpl::make_column(nrows_, stype_);
+  auto out_data = static_cast<py::oobj*>(out_column.get_data_editable(0));
 
-  ColumnImpl* output_column
-      = dt::Sentinel_ColumnImpl::make_column(inp_nrows, SType::OBJ);
-  auto out_data = static_cast<py::oobj*>(output_column->mbuf.wptr());
-
-  // Writing output array as `py::oobj` will ensure that the elements
+  // Treating output array as `py::oobj[]` will ensure that the elements
   // will be properly INCREF-ed.
-  for (size_t i = 0; i < inp_nrows; ++i) {
+  for (size_t i = 0; i < nrows_; ++i) {
     py::robj value;
     bool isvalid = this->get_element(i, &value);
     out_data[i] = isvalid? py::oobj(value) : py::None();
   }
-  return output_column;
+  out = std::move(out_column);
 }
 
 
-ColumnImpl* ColumnImpl::_materialize_str() {
-  Column inp(const_cast<ColumnImpl*>(this));
-  try {
-    Column rescol = dt::map_str2str(inp,
-      [=](size_t, CString& value, dt::string_buf* sb) {
-        sb->write(value);
-      });
-    std::move(inp).release();
-    return std::move(rescol).release();
-  }
-  catch (...) {
-    // prevent this from being deleted in case materialization
-    // fails.
-    std::move(inp).release();
-    throw;
-  }
+void ColumnImpl::_materialize_str(Column& out) {
+  out = map_str2str(out,
+    [=](size_t, CString& value, string_buf* sb) {
+      sb->write(value);
+    });
 }
 
 
-// TODO: fix semantics of materialization...
-//
-ColumnImpl* ColumnImpl::materialize() {
-  const_cast<ColumnImpl*>(this)->pre_materialize_hook();
-  ColumnImpl* out = nullptr;
+void ColumnImpl::materialize(Column& out) {
+  this->pre_materialize_hook();
   switch (stype_) {
     case SType::BOOL:
-    case SType::INT8:    out = _materialize_fw<int8_t> (); break;
-    case SType::INT16:   out = _materialize_fw<int16_t>(); break;
-    case SType::INT32:   out = _materialize_fw<int32_t>(); break;
-    case SType::INT64:   out = _materialize_fw<int64_t>(); break;
-    case SType::FLOAT32: out = _materialize_fw<float>  (); break;
-    case SType::FLOAT64: out = _materialize_fw<double> (); break;
+    case SType::INT8:    return _materialize_fw<int8_t> (out);
+    case SType::INT16:   return _materialize_fw<int16_t>(out);
+    case SType::INT32:   return _materialize_fw<int32_t>(out);
+    case SType::INT64:   return _materialize_fw<int64_t>(out);
+    case SType::FLOAT32: return _materialize_fw<float>  (out);
+    case SType::FLOAT64: return _materialize_fw<double> (out);
     case SType::STR32:
-    case SType::STR64:   out = _materialize_str(); break;
-    case SType::OBJ:     out = _materialize_obj(); break;
+    case SType::STR64:   return _materialize_str(out);
+    case SType::OBJ:     return _materialize_obj(out);
     default:
       throw NotImplError() << "Cannot materialize column of stype `"
                            << stype_ << "`";
   }
-  delete this;
-  return out;
 }
 
 
@@ -176,7 +142,7 @@ void ColumnImpl::_fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 }
 
 void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
-  if (stats && stats->is_computed(Stat::NaCount) && stats->nacount() == 0) {
+  if (stats_ && stats_->is_computed(Stat::NaCount) && stats_->nacount() == 0) {
     std::fill(outmask + row0, outmask + row1, false);
     return;
   }
@@ -203,7 +169,7 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 // Misc
 //------------------------------------------------------------------------------
 
-void ColumnImpl::replace_values(Column&, const RowIndex&, const Column&) {
+void ColumnImpl::replace_values(const RowIndex&, const Column&, Column&) {
   throw NotImplError() << "Method ColumnImpl::replace_values() not implemented";
 }
 
@@ -214,10 +180,15 @@ void ColumnImpl::rbind_impl(colvec&, size_t, bool) {
 
 void ColumnImpl::na_pad(size_t new_nrows, Column& out) {
   xassert(new_nrows > nrows());
-  out = Column(new dt::NaFilled_ColumnImpl(std::move(out), new_nrows));
+  out = Column(new NaFilled_ColumnImpl(std::move(out), new_nrows));
 }
 
 void ColumnImpl::truncate(size_t new_nrows, Column&) {
   xassert(new_nrows < nrows());
   nrows_ = new_nrows;
 }
+
+
+
+
+}  // namespace dt

@@ -10,7 +10,6 @@
 #include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
-#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "types.h"
 namespace dt {
@@ -75,7 +74,7 @@ class unary_vcol : public Virtual_ColumnImpl {
         arg(std::move(col)),
         func(f) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new unary_vcol<TI, TO>(Column(arg), stype_, func);
     }
 
@@ -102,7 +101,7 @@ class unary_vcol<TI, int8_t> : public Virtual_ColumnImpl {
         arg(std::move(col)),
         func(f) {}
 
-    ColumnImpl* shallowcopy() const override {
+    ColumnImpl* clone() const override {
       return new unary_vcol<TI, int8_t>(Column(arg), stype_, func);
     }
 

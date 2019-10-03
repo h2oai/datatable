@@ -30,7 +30,7 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 Repeated_ColumnImpl::Repeated_ColumnImpl(Column&& col, size_t ntimes)
-  : ColumnImpl(col.nrows() * ntimes, col.stype()),
+  : Virtual_ColumnImpl(col.nrows() * ntimes, col.stype()),
     mod(col.nrows()),
     arg(std::move(col))
 {
@@ -38,12 +38,10 @@ Repeated_ColumnImpl::Repeated_ColumnImpl(Column&& col, size_t ntimes)
 }
 
 
-bool Repeated_ColumnImpl::is_virtual() const noexcept {
-  return true;
-}
-
-ColumnImpl* Repeated_ColumnImpl::shallowcopy() const {
-  return new Repeated_ColumnImpl(Column(arg), nrows_ / mod);
+ColumnImpl* Repeated_ColumnImpl::clone() const {
+  auto res = new Repeated_ColumnImpl(Column(arg), nrows_ / mod);
+  res->nrows_ = nrows_;
+  return res;
 }
 
 void Repeated_ColumnImpl::repeat(size_t ntimes, Column&) {
@@ -64,8 +62,6 @@ bool Repeated_ColumnImpl::get_element(size_t i, py::robj* out) const { return ar
 
 
 
-}  // namespace dt
-
 // This is the base implementation of the virtual
 // `ColumnImpl::repeat()` method.
 //
@@ -84,3 +80,7 @@ void ColumnImpl::repeat(size_t ntimes, Column& out) {
     out = Column(new dt::Repeated_ColumnImpl(std::move(out), ntimes));
   }
 }
+
+
+
+}  // namespace dt

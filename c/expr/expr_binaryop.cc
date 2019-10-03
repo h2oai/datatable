@@ -45,7 +45,6 @@
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "column.h"
-#include "column_impl.h"  // TODO: remove
 #include "types.h"
 namespace dt {
 namespace expr {

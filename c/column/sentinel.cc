@@ -26,18 +26,18 @@ namespace dt {
 
 
 
-ColumnImpl* Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
+Column Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
   switch (stype) {
-    case SType::BOOL:    return new BoolColumn(nrows);
-    case SType::INT8:    return new IntColumn<int8_t>(nrows);
-    case SType::INT16:   return new IntColumn<int16_t>(nrows);
-    case SType::INT32:   return new IntColumn<int32_t>(nrows);
-    case SType::INT64:   return new IntColumn<int64_t>(nrows);
-    case SType::FLOAT32: return new FwColumn<float>(nrows);
-    case SType::FLOAT64: return new FwColumn<double>(nrows);
-    case SType::STR32:   return new StringColumn<uint32_t>(nrows);
-    case SType::STR64:   return new StringColumn<uint64_t>(nrows);
-    case SType::OBJ:     return new PyObjectColumn(nrows);
+    case SType::BOOL:    return Column(new SentinelBool_ColumnImpl(nrows));
+    case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows));
+    case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows));
+    case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows));
+    case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows));
+    case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows));
+    case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows));
+    case SType::STR32:   return Column(new SentinelStr_ColumnImpl<uint32_t>(nrows));
+    case SType::STR64:   return Column(new SentinelStr_ColumnImpl<uint64_t>(nrows));
+    case SType::OBJ:     return Column(new SentinelObj_ColumnImpl(nrows));
     default:
       throw ValueError()
           << "Unable to create a column of stype `" << stype << "`";
@@ -45,19 +45,19 @@ ColumnImpl* Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
 }
 
 
-ColumnImpl* Sentinel_ColumnImpl::make_fw_column(
+Column Sentinel_ColumnImpl::make_fw_column(
     size_t nrows, SType stype, Buffer&& buf)
 {
   xassert(buf.size() >= nrows * info(stype).elemsize());
   switch (stype) {
-    case SType::BOOL:    return new BoolColumn(nrows, std::move(buf));
-    case SType::INT8:    return new IntColumn<int8_t>(nrows, std::move(buf));
-    case SType::INT16:   return new IntColumn<int16_t>(nrows, std::move(buf));
-    case SType::INT32:   return new IntColumn<int32_t>(nrows, std::move(buf));
-    case SType::INT64:   return new IntColumn<int64_t>(nrows, std::move(buf));
-    case SType::FLOAT32: return new FwColumn<float>(nrows, std::move(buf));
-    case SType::FLOAT64: return new FwColumn<double>(nrows, std::move(buf));
-    case SType::OBJ:     return new PyObjectColumn(nrows, std::move(buf));
+    case SType::BOOL:    return Column(new SentinelBool_ColumnImpl(nrows, std::move(buf)));
+    case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows, std::move(buf)));
+    case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows, std::move(buf)));
+    case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows, std::move(buf)));
+    case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows, std::move(buf)));
+    case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows, std::move(buf)));
+    case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows, std::move(buf)));
+    case SType::OBJ:     return Column(new SentinelObj_ColumnImpl(nrows, std::move(buf)));
     default:
       throw ValueError()
           << "Unable to create a column of stype `" << stype << "`";
@@ -87,7 +87,7 @@ static Buffer _recode_offsets_to_u64(const Buffer& offsets) {
 }
 
 
-ColumnImpl* Sentinel_ColumnImpl::make_str_column(
+Column Sentinel_ColumnImpl::make_str_column(
     size_t nrows, Buffer&& offsets, Buffer&& strdata)
 {
   size_t data_size = offsets.size();
@@ -96,14 +96,16 @@ ColumnImpl* Sentinel_ColumnImpl::make_str_column(
   if (data_size == sizeof(uint32_t) * (nrows + 1)) {
     if (strb_size <= Column::MAX_ARR32_SIZE &&
         nrows <= Column::MAX_ARR32_SIZE) {
-      return new StringColumn<uint32_t>(
-                      nrows, std::move(offsets), std::move(strdata));
+      return Column(new SentinelStr_ColumnImpl<uint32_t>(
+                      nrows, std::move(offsets), std::move(strdata)));
     }
     // Otherwise, offsets need to be recoded into a uint64_t array
     offsets = _recode_offsets_to_u64(offsets);
   }
-  return new StringColumn<uint64_t>(
-                      nrows, std::move(offsets), std::move(strdata));
+  return Column(
+      new SentinelStr_ColumnImpl<uint64_t>(
+                      nrows, std::move(offsets), std::move(strdata))
+  );
 }
 
 
@@ -114,6 +116,12 @@ Sentinel_ColumnImpl::Sentinel_ColumnImpl(size_t nrows, SType stype)
 bool Sentinel_ColumnImpl::is_virtual() const noexcept {
   return false;
 }
+
+NaStorage Sentinel_ColumnImpl::get_na_storage_method() const noexcept {
+  return NaStorage::SENTINEL;
+}
+
+
 
 
 

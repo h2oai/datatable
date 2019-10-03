@@ -24,7 +24,6 @@
 #include "utils/array.h"
 
 class Column;
-class BoolColumn;
 class RowIndexImpl;
 
 

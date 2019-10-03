@@ -21,14 +21,13 @@
 //------------------------------------------------------------------------------
 #include <functional>
 #include <tuple>
-#include "datatablemodule.h"
-#include "datatable.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/args.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "column_impl.h"  // TODO: remove
+#include "datatable.h"
+#include "datatablemodule.h"
 namespace dt {
 namespace set {
 

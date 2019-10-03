@@ -37,7 +37,7 @@ class Rbound_ColumnImpl : public Virtual_ColumnImpl {
   public:
     Rbound_ColumnImpl(const colvec& columns);
 
-    ColumnImpl* shallowcopy() const override;
+    ColumnImpl* clone() const override;
     // ColumnImpl* materialize() override;
 
     bool get_element(size_t i, int8_t* out)   const override;

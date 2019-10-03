@@ -34,38 +34,43 @@ NpMasked_ColumnImpl::NpMasked_ColumnImpl(Column&& arg, Buffer&& mask)
 }
 
 
-ColumnImpl* NpMasked_ColumnImpl::shallowcopy() const {
-  return new NpMasked_ColumnImpl(Column(arg_), Buffer(mask_));
+ColumnImpl* NpMasked_ColumnImpl::clone() const {
+  auto res = new NpMasked_ColumnImpl(Column(arg_), Buffer(mask_));
+  res->nrows_ = nrows_;
+  return res;
 }
+
 
 
 template <typename T>
-static void _apply_mask(T* data, const bool* mask, size_t nrows) {
-  parallel_for_static(nrows,
+void NpMasked_ColumnImpl::_apply_mask() {
+  assert_compatible_type<T>(arg_.stype());
+  auto mask_data = static_cast<const bool*>(mask_.rptr());
+  auto col_data = static_cast<T*>(arg_.get_data_editable());
+
+  parallel_for_static(nrows_,
     [=](size_t i) {
-      if (mask[i]) data[i] = GETNA<T>();
+      if (mask_data[i]) col_data[i] = GETNA<T>();
     });
 }
 
-ColumnImpl* NpMasked_ColumnImpl::materialize() {
-  if (!arg_.is_virtual() && arg_.is_fixedwidth() && arg_.is_data_editable()) {
-    auto mask_data = static_cast<const bool*>(mask_.rptr());
-    void* arg_data = arg_.get_data_editable();
+void NpMasked_ColumnImpl::materialize(Column& out) {
+  if (arg_.get_na_storage_method() == NaStorage::SENTINEL &&
+      arg_.is_fixedwidth() &&
+      arg_.is_data_editable())
+  {
     switch (stype_) {
       case SType::BOOL:
-      case SType::INT8:    _apply_mask(static_cast<int8_t*>(arg_data), mask_data, nrows_); break;
-      case SType::INT16:   _apply_mask(static_cast<int16_t*>(arg_data), mask_data, nrows_); break;
-      case SType::INT32:   _apply_mask(static_cast<int32_t*>(arg_data), mask_data, nrows_); break;
-      case SType::INT64:   _apply_mask(static_cast<int64_t*>(arg_data), mask_data, nrows_); break;
-      case SType::FLOAT32: _apply_mask(static_cast<float*>(arg_data), mask_data, nrows_); break;
-      case SType::FLOAT64: _apply_mask(static_cast<double*>(arg_data), mask_data, nrows_); break;
-      default: return ColumnImpl::materialize();
+      case SType::INT8:    return _apply_mask<int8_t>();
+      case SType::INT16:   return _apply_mask<int16_t>();
+      case SType::INT32:   return _apply_mask<int32_t>();
+      case SType::INT64:   return _apply_mask<int64_t>();
+      case SType::FLOAT32: return _apply_mask<float>();
+      case SType::FLOAT64: return _apply_mask<double>();
+      default: break;
     }
-    return std::move(arg_).release();
   }
-  else {
-    return ColumnImpl::materialize();
-  }
+  ColumnImpl::materialize(out);
 }
 
 

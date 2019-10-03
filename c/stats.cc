@@ -9,6 +9,7 @@
 #include <cmath>        // std::isinf, std::sqrt
 #include <limits>       // std::numeric_limits
 #include <type_traits>  // std::is_floating_point
+#include "column/column_impl.h"
 #include "lib/parallel_hashmap/phmap.h"
 #include "models/murmurhash.h"
 #include "parallel/api.h"
@@ -17,7 +18,6 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "column.h"
-#include "column_impl.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "stats.h"
@@ -53,7 +53,7 @@ static const char* stat_name(Stat s) {
 // main Stats class
 //------------------------------------------------------------------------------
 
-Stats::Stats(ColumnImpl* col) : column(col) {
+Stats::Stats(const dt::ColumnImpl* col) : column(col) {
   xassert(col);
 }
 
@@ -480,7 +480,7 @@ void StringStats::set_mode(CString value, bool isvalid) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-static size_t _compute_nacount(const ColumnImpl* col) {
+static size_t _compute_nacount(const dt::ColumnImpl* col) {
   assert_compatible_type<T>(col->stype());
   std::atomic<size_t> total_countna { 0 };
   dt::parallel_region(
@@ -893,7 +893,7 @@ void Stats::compute_sorted_stats() {
 template <typename T>
 void NumericStats<T>::compute_sorted_stats() {
   Groupby grpby;
-  RowIndex ri = column->_sort(&grpby);
+  RowIndex ri = column->sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
   xassert(n_groups >= 1);
@@ -932,7 +932,7 @@ void NumericStats<T>::compute_sorted_stats() {
 
 void StringStats::compute_sorted_stats() {
   Groupby grpby;
-  RowIndex ri = column->_sort(&grpby);
+  RowIndex ri = column->sort(&grpby);
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
   xassert(n_groups >= 1);
@@ -1044,7 +1044,7 @@ void BooleanStats::compute_all_stats() {
 // Column's API
 //------------------------------------------------------------------------------
 
-static std::unique_ptr<Stats> _make_stats(ColumnImpl* col) {
+static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
   switch (col->stype()) {
     case SType::BOOL:    return StatsPtr(new BooleanStats(col));
@@ -1065,12 +1065,12 @@ static std::unique_ptr<Stats> _make_stats(ColumnImpl* col) {
 }
 
 Stats* Column::stats() const {
-  if (!pcol->stats) pcol->stats = _make_stats(pcol);
-  return pcol->stats.get();
+  if (!impl_->stats_) impl_->stats_ = _make_stats(impl_);
+  return impl_->stats_.get();
 }
 
 Stats* Column::get_stats_if_exist() const {
-  return pcol->stats.get();
+  return impl_->stats_.get();
 }
 
 

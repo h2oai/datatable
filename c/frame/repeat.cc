@@ -22,7 +22,6 @@
 #include "column/repeated.h"
 #include "frame/py_frame.h"
 #include "python/args.h"
-#include "column_impl.h"  // TODO: remove
 #include "datatablemodule.h"
 #include "rowindex.h"
 namespace py {

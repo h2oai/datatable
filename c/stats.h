@@ -11,7 +11,9 @@
 #include <vector>
 #include "types.h"
 
-class ColumnImpl;
+namespace dt {
+  class ColumnImpl;
+}
 class Column;
 
 
@@ -59,7 +61,7 @@ constexpr uint8_t NSTATS = 14;
  * `IntegerStats` are used with `IntegerColumn<T>`s.
  * `BooleanStats` are used for `BooleanColumn`.
  * `RealStats` are used for floating-point-valued classes.
- * `StringStats` are used with `StringColumn<T>`s.
+ * `StringStats` are used with `SentinelStr_ColumnImpl<T>`s.
  *
  * Each stat can be in one of the 3 states: not computed, computed&invalid,
  * and computed&valid. When a stat is not computed, its value is not known.
@@ -121,7 +123,7 @@ constexpr uint8_t NSTATS = 14;
 class Stats
 {
   protected:
-    ColumnImpl* column;
+    const dt::ColumnImpl* column;
     std::bitset<NSTATS> _computed;
     std::bitset<NSTATS> _valid;
     size_t _countna;
@@ -130,7 +132,7 @@ class Stats
 
   //---- Generic properties ------------
   public:
-    explicit Stats(ColumnImpl* col);
+    explicit Stats(const dt::ColumnImpl* col);
     Stats(const Stats&) = delete;
     Stats(Stats&&) = delete;
     virtual ~Stats();

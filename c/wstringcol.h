@@ -22,7 +22,7 @@
 #include "utils/array.h"    // dt::array
 #include "writebuf.h"       // WritableBuffer
 
-template <typename T> class StringColumn;
+template <typename T> class SentinelStr_ColumnImpl;
 
 namespace dt {
 

@@ -15,7 +15,6 @@
 #include "utils/file.h"
 #include "utils/misc.h"
 #include "column.h"
-#include "column_impl.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "sort.h"
@@ -23,7 +22,7 @@
 
 
 Column Column::new_data_column(size_t nrows, SType stype) {
-  return Column(dt::Sentinel_ColumnImpl::make_column(nrows, stype));
+  return dt::Sentinel_ColumnImpl::make_column(nrows, stype);
 }
 
 
@@ -33,16 +32,15 @@ Column Column::new_na_column(size_t nrows, SType stype) {
 
 
 Column Column::new_mbuf_column(size_t nrows, SType stype, Buffer&& mbuf) {
-  return Column(dt::Sentinel_ColumnImpl::make_fw_column(
-                    nrows, stype, std::move(mbuf)));
+  return dt::Sentinel_ColumnImpl::make_fw_column(nrows, stype, std::move(mbuf));
 }
 
 
 Column Column::new_string_column(
     size_t nrows, Buffer&& data, Buffer&& str)
 {
-  return Column(dt::Sentinel_ColumnImpl::make_str_column(
-                      nrows, std::move(data), std::move(str)));
+  return dt::Sentinel_ColumnImpl::make_str_column(
+                      nrows, std::move(data), std::move(str));
 }
 
 
@@ -52,46 +50,69 @@ Column Column::new_string_column(
 //------------------------------------------------------------------------------
 
 void swap(Column& lhs, Column& rhs) {
-  std::swap(lhs.pcol, rhs.pcol);
+  std::swap(lhs.impl_, rhs.impl_);
 }
 
-Column::Column()
-  : pcol(nullptr) {}
+Column::Column() noexcept
+  : impl_(nullptr) {}
 
-Column::Column(ColumnImpl*&& col)
-  : pcol(col) {}
+Column::Column(dt::ColumnImpl*&& col) noexcept
+  : impl_(col) {}
 
-Column::Column(const Column& other)
-  : pcol(other.pcol->acquire_instance()) {}
+Column::Column(const Column& other) noexcept {
+  _acquire_impl(other.impl_);
+}
 
 Column::Column(Column&& other) noexcept : Column() {
-  std::swap(pcol, other.pcol);
+  std::swap(impl_, other.impl_);
 }
 
 Column& Column::operator=(const Column& other) {
-  auto old = pcol;
-  pcol = other.pcol->acquire_instance();
-  if (old) old->release_instance();
+  auto old = impl_;
+  _acquire_impl(other.impl_);
+  _release_impl(old);
   return *this;
 }
 
 Column& Column::operator=(Column&& other) noexcept {
-  auto old = pcol;
-  pcol = other.pcol;
-  other.pcol = nullptr;
-  if (old) old->release_instance();
+  auto old = impl_;
+  impl_ = other.impl_;
+  other.impl_ = nullptr;
+  _release_impl(old);
   return *this;
 }
 
 Column::~Column() {
-  if (pcol) pcol->release_instance();
+  _release_impl(impl_);
 }
 
 
-ColumnImpl* Column::release() && noexcept {
-  ColumnImpl* tmp = pcol;
-  pcol = nullptr;
+dt::ColumnImpl* Column::release() && {
+  xassert(impl_->refcount_ == 1);
+  dt::ColumnImpl* tmp = _get_mutable_impl();
+  impl_ = nullptr;
   return tmp;
+}
+
+void Column::_acquire_impl(const dt::ColumnImpl* impl) {
+  impl_ = impl;
+  ++impl->refcount_;
+}
+
+void Column::_release_impl(const dt::ColumnImpl* impl) {
+  if (!impl) return;
+  if ((--impl->refcount_) == 0) {
+    delete impl;
+  }
+}
+
+dt::ColumnImpl* Column::_get_mutable_impl() {
+  if (impl_->refcount_ > 1) {
+    --impl_->refcount_;
+    impl_ = impl_->clone();
+  }
+  xassert(impl_->refcount_ == 1);
+  return const_cast<dt::ColumnImpl*>(impl_);
 }
 
 
@@ -101,7 +122,7 @@ ColumnImpl* Column::release() && noexcept {
 //------------------------------------------------------------------------------
 
 size_t Column::nrows() const noexcept {
-  return pcol->nrows_;
+  return impl_->nrows_;
 }
 
 size_t Column::na_count() const {
@@ -109,31 +130,31 @@ size_t Column::na_count() const {
 }
 
 SType Column::stype() const noexcept {
-  return pcol->stype_;
+  return impl_->stype_;
 }
 
 LType Column::ltype() const noexcept {
-  return info(pcol->stype_).ltype();
+  return info(impl_->stype_).ltype();
 }
 
 bool Column::is_fixedwidth() const noexcept {
-  return !info(pcol->stype_).is_varwidth();
+  return !info(impl_->stype_).is_varwidth();
 }
 
 bool Column::is_virtual() const noexcept {
-  return pcol->is_virtual();
+  return impl_->is_virtual();
 }
 
 size_t Column::elemsize() const noexcept {
-  return info(pcol->stype_).elemsize();
+  return info(impl_->stype_).elemsize();
 }
 
 Column::operator bool() const noexcept {
-  return (pcol != nullptr);
+  return (impl_ != nullptr);
 }
 
 size_t Column::memory_footprint() const noexcept {
-  return sizeof(Column) + (pcol? pcol->memory_footprint() : 0);
+  return sizeof(Column) + (impl_? impl_->memory_footprint() : 0);
 }
 
 
@@ -144,42 +165,42 @@ size_t Column::memory_footprint() const noexcept {
 
 bool Column::get_element(size_t i, int8_t* out) const {
   xassert(i < nrows());
-  return pcol->get_element(i, out);
+  return impl_->get_element(i, out);
 }
 
 bool Column::get_element(size_t i, int16_t* out) const {
   xassert(i < nrows());
-  return pcol->get_element(i, out);
+  return impl_->get_element(i, out);
 }
 
 bool Column::get_element(size_t i, int32_t* out) const {
   xassert(i < nrows());
-  return pcol->get_element(i, out);
+  return impl_->get_element(i, out);
 }
 
 bool Column::get_element(size_t i, int64_t* out) const {
   xassert(i < nrows());
-  return pcol->get_element(i, out);
+  return impl_->get_element(i, out);
 }
 
 bool Column::get_element(size_t i, float* out) const {
   xassert(i < nrows());
-  return pcol->get_element(i, out);
+  return impl_->get_element(i, out);
 }
 
 bool Column::get_element(size_t i, double* out) const {
   xassert(i < nrows());
-  return pcol->get_element(i, out);
+  return impl_->get_element(i, out);
 }
 
 bool Column::get_element(size_t i, CString* out) const {
   xassert(i < nrows());
-  return pcol->get_element(i, out);
+  return impl_->get_element(i, out);
 }
 
 bool Column::get_element(size_t i, py::robj* out) const {
   xassert(i < nrows());
-  return pcol->get_element(i, out);
+  return impl_->get_element(i, out);
 }
 
 
@@ -219,32 +240,41 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 // Column : data buffers
 //------------------------------------------------------------------------------
 
+NaStorage Column::get_na_storage_method() const noexcept {
+  return impl_->get_na_storage_method();
+}
+
+
+size_t Column::get_num_data_buffers() const noexcept {
+  return impl_->get_num_data_buffers();
+}
+
+
 bool Column::is_data_editable(size_t k) const {
-  if (k != 0) return false;
-  return pcol->mbuf.is_writable();
+  return impl_->is_data_editable(k);
 }
 
-const void* Column::get_data_readonly(size_t k) const {
-  if (is_virtual()) materialize();
-  return k == 0 ? pcol->mbuf.rptr()
-                : pcol->data2();
-}
-
-void* Column::get_data_editable(size_t) {
-  if (is_virtual()) materialize();
-  return pcol->mbuf.wptr();
-}
-
-Buffer Column::get_data_buffer(size_t) const {
-  if (is_virtual()) materialize();
-  return pcol->mbuf;
-}
 
 size_t Column::get_data_size(size_t k) const {
-  if (is_virtual()) materialize();
-  return k == 0 ? pcol->mbuf.size()
-                : pcol->data2_size();
+  return impl_->get_data_size(k);
 }
+
+
+const void* Column::get_data_readonly(size_t k) const {
+  return impl_->get_data_readonly(k);
+}
+
+
+void* Column::get_data_editable(size_t k) {
+  auto pcol = _get_mutable_impl();
+  return pcol->get_data_editable(k);
+}
+
+
+Buffer Column::get_data_buffer(size_t k) const {
+  return impl_->get_data_buffer(k);
+}
+
 
 
 
@@ -252,29 +282,33 @@ size_t Column::get_data_size(size_t k) const {
 // Column : manipulation
 //------------------------------------------------------------------------------
 
-void Column::materialize() const {
-  auto self = const_cast<Column*>(this);
-  self->pcol = self->pcol->materialize();
+void Column::materialize() {
+  auto pcol = _get_mutable_impl();
+  pcol->materialize(*this);
 }
 
 void Column::replace_values(const RowIndex& replace_at,
-                             const Column& replace_with)
+                            const Column& replace_with)
 {
   materialize();
-  pcol->replace_values(*this, replace_at, replace_with);
+  auto pcol = _get_mutable_impl();
+  pcol->replace_values(replace_at, replace_with, *this);
 }
 
 
 void Column::repeat(size_t ntimes) {
+  auto pcol = _get_mutable_impl();
   pcol->repeat(ntimes, *this);
 }
 
 void Column::apply_rowindex(const RowIndex& ri) {
   if (!ri) return;
+  auto pcol = _get_mutable_impl();
   pcol->apply_rowindex(ri, *this);  // modifies in-place
 }
 
 void Column::resize(size_t new_nrows) {
+  auto pcol = _get_mutable_impl();
   size_t curr_nrows = nrows();
   if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, *this);
   if (new_nrows < curr_nrows) pcol->truncate(new_nrows, *this);
@@ -282,15 +316,16 @@ void Column::resize(size_t new_nrows) {
 
 
 void Column::sort_grouped(const Groupby& grps) {
+  auto pcol = _get_mutable_impl();
   pcol->sort_grouped(grps, *this);
 }
 
 
 void Column::verify_integrity() const {
-  pcol->verify_integrity();
+  impl_->verify_integrity();
 }
 
 
 void Column::fill_npmask(bool* out_mask, size_t row0, size_t row1) const {
-  pcol->fill_npmask(out_mask, row0, row1);
+  impl_->fill_npmask(out_mask, row0, row1);
 }

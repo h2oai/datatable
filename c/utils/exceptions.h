@@ -63,7 +63,8 @@ public:
     Error& operator<<(ssize_t);
   #endif
 
-  void to_stderr();
+  void to_stderr() const;
+  std::string to_string() const;
 
   /**
    * Translate this exception into a Python error by calling PyErr_SetString

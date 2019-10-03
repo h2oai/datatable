@@ -27,17 +27,18 @@
 #include "stats.h"       // Stat (enum), Stats
 #include "types.h"       // SType (enum), LType (enum), CString
 
-class BitMask;
 class Column;
-class ColumnImpl;
 class Groupby;
 class Buffer;
 using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
+namespace dt {
+  class ColumnImpl;
+}
 
 enum class NaStorage : uint8_t {
   NONE,
-  INLINE,
+  SENTINEL,
   BITMASK,
   VIRTUAL,
 };
@@ -107,18 +108,18 @@ template <> inline SType stype_from<py::robj>() { return SType::OBJ; }
  * and eventually bundled into a new DataTable.
  *
  * The class implements the Pimpl idiom: its implementation details
- * are hidden as a pointer `pcol` to a ColumnImpl instance. This
+ * are hidden as a pointer `impl_` to a ColumnImpl instance. This
  * object is polymorphic, uses shared-ptr-like mechanics, and may be
  * replaced with some other instance on the fly.
  */
 class Column
 {
   private:
-    // shared pointer; its lifetime is governed by `pcol->refcount`: when the
+    // shared pointer; its lifetime is governed by `impl_->refcount`: when the
     // reference count reaches 0, the object is deleted.
-    // We do not use std::shared_ptr<> here primarily because it makes it much
+    // We do not use std::shared_ptr<> here primarily because it makes it
     // harder to inspect the object in GDB / LLDB.
-    ColumnImpl* pcol;
+    const dt::ColumnImpl* impl_;
 
   public:
     static constexpr size_t MAX_ARR32_SIZE = 0x7FFFFFFF;
@@ -130,8 +131,8 @@ class Column
   // `std::vector<Column>` will be copying Columns instead of moving
   // when the vector if resized.
   public:
-    Column();
-    Column(const Column&);
+    Column() noexcept;
+    Column(const Column&) noexcept;
     Column(Column&&) noexcept;
     Column& operator=(const Column&);
     Column& operator=(Column&&) noexcept;
@@ -149,7 +150,7 @@ class Column
 
     // Move-semantics for the pointer here indicates to the user that
     // the class overtakes ownership of that pointer.
-    explicit Column(ColumnImpl*&& col);
+    explicit Column(dt::ColumnImpl*&& col) noexcept;
 
   //------------------------------------
   // Properties
@@ -165,7 +166,7 @@ class Column
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 
-    ColumnImpl* release() && noexcept;
+    dt::ColumnImpl* release() &&;
 
   //------------------------------------
   // Element access
@@ -207,11 +208,11 @@ class Column
   public:
     // Return the method that this column uses to encode NAs. See
     // the description of `NaStorage` enum for details.
-    NaStorage get_na_storage_method() const;
+    NaStorage get_na_storage_method() const noexcept;
 
     // A Column may be comprised of multiple data buffers. For virtual
     // columns this property returns 0.
-    size_t get_num_data_buffers() const;
+    size_t get_num_data_buffers() const noexcept;
 
     // Since the Column contains `n = get_n_data_buffers()` buffers,
     // each of the methods below takes the parameter `k < n` that
@@ -228,10 +229,10 @@ class Column
     // "editable" method will allow the data to be both read and
     // written. The latter method may need to create a copy of the
     // data buffer.
-    size_t get_data_size(size_t k = 0) const;
+    size_t      get_data_size(size_t k = 0) const;
     const void* get_data_readonly(size_t k = 0) const;
     void*       get_data_editable(size_t k = 0);
-    Buffer      get_data_buffer(size_t  k = 0) const;
+    Buffer      get_data_buffer(size_t k = 0) const;
 
 
   //------------------------------------
@@ -265,8 +266,8 @@ class Column
   // ColumnImpl manipulation
   //------------------------------------
   public:
+    void materialize();
     void rbind(colvec& columns);
-    void materialize() const;
     void cast_inplace(SType stype);
     Column cast(SType stype) const;
     Column cast(SType stype, Buffer&& mr) const;
@@ -289,19 +290,33 @@ class Column
     // using the provided RowIndex.
     void apply_rowindex(const RowIndex&);
 
-    // "npmask" is a boolean array containing of the same length as
-    // the column, the true/false values in this mask indicate whether
-    // each element of the column is NA (true) or not (false).
+    // `npmask` is a boolean array of the same length as the column,
+    // the true/false values in this mask indicate whether each
+    // element of the column is NA (true) or not (false).
     //
-    // This method requires such `out_mask` array to be filled from
-    // `out_mask[row0]` to `out_mask[row1 - 1]`. This method is
-    // single-threaded (it is designed to run from multiple threads).
-    void fill_npmask(bool* out_mask, size_t row0, size_t row1) const;
+    // The `npmask` is the output, not input parameter. This method
+    // must fill part of the array from `npmask[row0]` to
+    // `npmask[row1 - 1]`. This method is single-threaded (it is
+    // designed to be called from multiple threads).
+    void fill_npmask(bool* npmask, size_t row0, size_t row1) const;
 
     // Checks internal integrity of the column. An `AssertionError`
     // exception will be raised if the column's data is in an
     // erroneous state.
     void verify_integrity() const;
+
+  private:
+    void _acquire_impl(const dt::ColumnImpl*);
+    void _release_impl(const dt::ColumnImpl*);
+
+    // This method returns const-casted `impl_` pointer. However, it
+    // also checks the reference counter on that pointer, and if the
+    // count > 1, makes a "shallow" copy of the `impl_`. Thus, it
+    // ensures proper copy-on-write semantics.
+    //
+    // This method should be called from any Column method that
+    // intends to modify the `impl_` variable.
+    dt::ColumnImpl* _get_mutable_impl();
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;

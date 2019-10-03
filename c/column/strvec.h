@@ -51,8 +51,10 @@ class Strvec_ColumnImpl : public Virtual_ColumnImpl {
       return true;
     }
 
-    ColumnImpl* shallowcopy() const override {
-      return new Strvec_ColumnImpl(vec);
+    ColumnImpl* clone() const override {
+      auto res = new Strvec_ColumnImpl(vec);
+      res->nrows_ = nrows_;
+      return res;
     }
 };
 
