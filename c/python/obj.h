@@ -150,12 +150,14 @@ class _obj {
     bool operator==(const _obj& other) const noexcept;
     bool operator!=(const _obj& other) const noexcept;
 
-    explicit operator int8_t() { throw RuntimeError(); }
+    // These operators are needed for SentinelFw_ColumnImpl<T>::get_element()
+    // methods to compile
+    explicit operator int8_t()  { throw RuntimeError(); }
     explicit operator int16_t() { throw RuntimeError(); }
     explicit operator int32_t() { throw RuntimeError(); }
     explicit operator int64_t() { throw RuntimeError(); }
-    explicit operator float() { throw RuntimeError(); }
-    explicit operator double() { throw RuntimeError(); }
+    explicit operator float()   { throw RuntimeError(); }
+    explicit operator double()  { throw RuntimeError(); }
 
     //--------------------------------------------------------------------------
     // Type tests

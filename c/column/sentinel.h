@@ -33,7 +33,7 @@ namespace dt {
 class Sentinel_ColumnImpl : public ColumnImpl
 {
   public:
-  	static Column make_column(size_t nrows, SType);
+    static Column make_column(size_t nrows, SType);
     static Column make_fw_column(size_t nrows, SType, Buffer&&);
     static Column make_str_column(size_t nrows, Buffer&&, Buffer&&);
 
