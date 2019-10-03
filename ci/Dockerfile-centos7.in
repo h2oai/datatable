@@ -25,24 +25,24 @@ RUN pip install wheel virtualenv && \
     \
     conda create -n datatable-py35-with-pandas python=3.5 && \
     . activate datatable-py35-with-pandas && \
-    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
+    pip install --no-cache-dir --default-timeout=100 pandas==${PANDAS_VERSION} && \
     . deactivate && \
     \
     conda create -n datatable-py36-with-pandas python=3.6 && \
     . activate datatable-py36-with-pandas && \
-    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
+    pip install --no-cache-dir --default-timeout=100 pandas==${PANDAS_VERSION} && \
     . deactivate && \
     \
     conda create -n datatable-py36-with-numpy python=3.6 && \
     . activate datatable-py36-with-numpy && \
-    pip install --no-cache-dir --default-timeout=100 numpy && \
+    pip install --no-cache-dir numpy && \
     . deactivate && \
     \
     conda create -n datatable-py36 python=3.6 && \
     \
     conda create -n datatable-py37-with-pandas python=3.7 && \
     . activate datatable-py37-with-pandas && \
-    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
+    pip install --no-cache-dir --default-timeout=100 pandas==${PANDAS_VERSION} && \
     . deactivate && \
     \
     chmod -R a+w /opt/h2oai/dai/python/envs
