@@ -62,7 +62,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
   flatbuffers::FlatBufferBuilder fbb(1024);
 
   std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     const Column& col = get_column(i);
     if (col.stype() == SType::OBJ) {
       auto w = DatatableWarning();
@@ -76,7 +76,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
   xassert((wb->size() & 7) == 0);
 
   auto frame = jay::CreateFrameDirect(fbb,
-                  nrows,
+                  nrows_,
                   msg_columns.size(),
                   static_cast<int>(nkeys),
                   &msg_columns);

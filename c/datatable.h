@@ -73,13 +73,13 @@ using dtptr  = std::unique_ptr<DataTable>;
  */
 class DataTable {
   public:
-    size_t   nrows;
-    size_t   ncols;
+    size_t  nrows_;
+    size_t  ncols_;
 
   private:
     colvec  columns;
-    size_t   nkeys;
-    strvec   names;
+    size_t  nkeys;
+    strvec  names;
     mutable py::otuple py_names;   // memoized tuple of column names
     mutable py::odict  py_inames;  // memoized dict of {column name: index}
 
@@ -92,6 +92,9 @@ class DataTable {
     DataTable(colvec&& cols, const py::olist&, bool warn_duplicates = true);
     DataTable(colvec&& cols, const DataTable*);
     ~DataTable();
+
+    size_t nrows() const noexcept { return nrows_; }
+    size_t ncols() const noexcept { return ncols_; }
 
     void delete_columns(intvec&);
     void delete_all();
@@ -114,7 +117,7 @@ class DataTable {
     }
     void set_column(size_t i, Column&& newcol) {
       xassert(i < columns.size());
-      xassert(newcol.nrows() == nrows);
+      xassert(newcol.nrows() == nrows_);
       columns[i] = std::move(newcol);
     }
 

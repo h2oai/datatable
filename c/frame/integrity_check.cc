@@ -38,11 +38,11 @@ void py::Frame::integrity_check() {
       throw AssertionError() << "py::Frame.stypes is not a tuple";
     }
     auto stypes_tuple = py::robj(stypes).to_otuple();
-    if (stypes_tuple.size() != dt->ncols) {
+    if (stypes_tuple.size() != dt->ncols()) {
       throw AssertionError() << "len(.stypes) = " << stypes_tuple.size()
-          << " is different from .ncols = " << dt->ncols;
+          << " is different from .ncols = " << dt->ncols();
     }
-    for (size_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols(); ++i) {
       SType col_stype = dt->get_column(i).stype();
       auto elem = stypes_tuple[i];
       auto eexp = info(col_stype).py_stype();
@@ -57,11 +57,11 @@ void py::Frame::integrity_check() {
       throw AssertionError() << "py::Frame.ltypes is not a tuple";
     }
     auto ltypes_tuple = py::robj(ltypes).to_otuple();
-    if (ltypes_tuple.size() != dt->ncols) {
+    if (ltypes_tuple.size() != dt->ncols()) {
       throw AssertionError() << "len(.ltypes) = " << ltypes_tuple.size()
-          << " is different from .ncols = " << dt->ncols;
+          << " is different from .ncols = " << dt->ncols();
     }
-    for (size_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols(); ++i) {
       SType col_stype = dt->get_column(i).stype();
       auto elem = ltypes_tuple[i];
       auto eexp = info(col_stype).py_ltype();
@@ -85,10 +85,10 @@ void py::Frame::integrity_check() {
  */
 void DataTable::verify_integrity() const
 {
-  if (nkeys > ncols) {
+  if (nkeys > ncols_) {
     throw AssertionError()
         << "Number of keys is greater than the number of columns in the Frame: "
-        << nkeys << " > " << ncols;
+        << nkeys << " > " << ncols_;
   }
 
   _integrity_check_names();
@@ -96,15 +96,15 @@ void DataTable::verify_integrity() const
 
   // Check the number of columns; the number of allocated columns should be
   // equal to `ncols`.
-  if (columns.size() != ncols) {
+  if (columns.size() != ncols_) {
     throw AssertionError()
         << "DataTable.columns array size is " << columns.size()
-        << " whereas ncols = " << ncols;
+        << " whereas ncols = " << ncols_;
   }
-  if (names.size() != ncols) {
+  if (names.size() != ncols_) {
     throw AssertionError()
         << "Number of column names, " << names.size() << ", is not equal "
-           "to the number of columns in the Frame: " << ncols;
+           "to the number of columns in the Frame: " << ncols_;
   }
 
   /**
@@ -114,17 +114,17 @@ void DataTable::verify_integrity() const
    * nrows of each column, so we will just check that the datatable's values
    * are equal to those of each column.
    */
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     const std::string& col_name = names[i];
     const Column& col = columns[i];
     if (!col) {
       throw AssertionError() << col_name << " of Frame is empty";
     }
     // Make sure the column and the datatable have the same value for `nrows`
-    if (nrows != col.nrows()) {
+    if (nrows_ != col.nrows()) {
       throw AssertionError()
           << "Mismatch in `nrows`: " << col_name << ".nrows = " << col.nrows()
-          << ", while the Frame has nrows=" << nrows;
+          << ", while the Frame has nrows=" << nrows_;
     }
     try {
       col.verify_integrity();
@@ -136,7 +136,7 @@ void DataTable::verify_integrity() const
     }
   }
 
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     const std::string& name = names[i];
     if (name.empty()) {
       throw AssertionError() << "Column " << i << " has empty name";

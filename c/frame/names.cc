@@ -311,8 +311,8 @@ void DataTable::set_names_to_default() {
   py_names  = py::otuple();
   py_inames = py::odict();
   names.clear();
-  names.reserve(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
+  names.reserve(ncols_);
+  for (size_t i = 0; i < ncols_; ++i) {
     names.push_back(names_auto_prefix + std::to_string(i + index0));
   }
 }
@@ -334,9 +334,9 @@ void DataTable::set_names(const strvec& names_list, bool warn) {
 
 
 void DataTable::replace_names(py::odict replacements, bool warn) {
-  py::olist newnames(ncols);
+  py::olist newnames(ncols_);
 
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     newnames.set(i, py_names[i]);
   }
   for (auto kv : replacements) {
@@ -359,16 +359,16 @@ void DataTable::replace_names(py::odict replacements, bool warn) {
 
 
 void DataTable::reorder_names(const std::vector<size_t>& col_indices) {
-  xassert(col_indices.size() == ncols);
+  xassert(col_indices.size() == ncols_);
   strvec newnames;
-  newnames.reserve(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
+  newnames.reserve(ncols_);
+  for (size_t i = 0; i < ncols_; ++i) {
     newnames.push_back(std::move(names[col_indices[i]]));
   }
   names = std::move(newnames);
   if (py_names) {
-    py::otuple new_py_names(ncols);
-    for (size_t i = 0; i < ncols; ++i) {
+    py::otuple new_py_names(ncols_);
+    for (size_t i = 0; i < ncols_; ++i) {
       py::robj pyname = py_names[col_indices[i]];
       new_py_names.set(i, pyname);
       py_inames.set(pyname, py::oint(i));
@@ -386,11 +386,11 @@ void DataTable::reorder_names(const std::vector<size_t>& col_indices) {
 
 void DataTable::_init_pynames() const {
   if (py_names) return;
-  xassert(names.size() == ncols);
+  xassert(names.size() == ncols_);
 
-  py_names = py::otuple(ncols);
+  py_names = py::otuple(ncols_);
   py_inames = py::odict();
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     py::ostring pyname(names[i]);
     py_inames.set(pyname, py::oint(i));
     py_names.set(i, std::move(pyname));
@@ -491,18 +491,18 @@ static void _deduplicate(std::string* name, py::oobj* pyname,
  * such constraints.
  */
 void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
-  if (nameslist->size() != ncols) {
+  if (nameslist->size() != ncols_) {
     throw ValueError() << "The `names` list has length " << nameslist->size()
         << ", while the Frame has "
-        << (ncols < nameslist->size() && ncols? "only " : "")
-        << ncols << " column" << (ncols == 1? "" : "s");
+        << (ncols_ < nameslist->size() && ncols_? "only " : "")
+        << ncols_ << " column" << (ncols_ == 1? "" : "s");
   }
 
   // Prepare the containers for placing the new column names there
-  py_names  = py::otuple(ncols);
+  py_names  = py::otuple(ncols_);
   py_inames = py::odict();
   names.clear();
-  names.reserve(ncols);
+  names.reserve(ncols_);
   std::unordered_map<std::string, std::unordered_set<size_t>> stems;
   static constexpr size_t MAX_DUPLICATES = 3;
   size_t n_duplicates = 0;
@@ -515,7 +515,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
   // user-specified names somewhere later in the list.
   bool fill_default_names = false;
 
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     // Convert to a C-style name object. Note that if `name` is python None,
     // then the resulting `cname` will be `{nullptr, 0}`.
     CString cname = nameslist->item_as_cstring(i);
@@ -557,7 +557,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
     // Within the existing names, find ones with the pattern "{prefix}<num>".
     // If such names exist, we'll start autonaming with 1 + max(<num>), where
     // the maximum is taken among all such names.
-    for (size_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols_; ++i) {
       size_t namelen = names[i].size();
       const char* nameptr = names[i].data();
       if (namelen <= prefixlen) continue;
@@ -575,7 +575,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
     }
 
     // Now actually fill the empty names
-    for (size_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols_; ++i) {
       if (!names[i].empty()) continue;
       names[i] = prefix + std::to_string(index0);
       py::oobj newname = py::ostring(names[i]);
@@ -604,17 +604,17 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
     w.emit();
   }
 
-  xassert(ncols == names.size());
-  xassert(ncols == py_names.size());
-  xassert(ncols == py_inames.size());
+  xassert(ncols_ == names.size());
+  xassert(ncols_ == py_names.size());
+  xassert(ncols_ == py_inames.size());
 }
 
 
 
 void DataTable::_integrity_check_names() const {
-  if (names.size() != ncols) {
+  if (names.size() != ncols_) {
     throw AssertionError() << "DataTable.names has size " << names.size()
-      << ", however there are " << ncols << " columns in the Frame";
+      << ", however there are " << ncols_ << " columns in the Frame";
   }
   std::unordered_set<std::string> seen_names;
   for (size_t i = 0; i < names.size(); ++i) {
@@ -646,15 +646,15 @@ void DataTable::_integrity_check_pynames() const {
   if (!py_inames.is_dict()) {
     throw AssertionError() << "DataTable.py_inames is not a dict";
   }
-  if (py_names.size() != ncols) {
+  if (py_names.size() != ncols_) {
     throw AssertionError() << "len(.py_names) is " << py_names.size()
-        << ", whereas .ncols = " << ncols;
+        << ", whereas .ncols = " << ncols_;
   }
-  if (py_inames.size() != ncols) {
+  if (py_inames.size() != ncols_) {
     throw AssertionError() << ".py_inames has " << py_inames.size()
-      << " elements, while the Frame has " << ncols << " columns";
+      << " elements, while the Frame has " << ncols_ << " columns";
   }
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     py::robj elem = py_names[i];
     if (!elem.is_string()) {
       throw AssertionError() << "Element " << i << " of .py_names is a "

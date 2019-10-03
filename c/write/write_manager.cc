@@ -88,7 +88,7 @@ void write_manager::write_main()
   chronicler.checkpoint_preamble_done();
   job.add_done_amount(WRITE_PREPARE);
 
-  if (dt->nrows > 0 && dt->ncols > 0) {
+  if (dt->nrows() > 0 && dt->ncols() > 0) {
     job.add_tentative_amount(WRITE_MAIN);
     write_rows();
   }
@@ -109,13 +109,13 @@ void write_manager::write_main()
 void write_manager::write_rows()
 {
   // Check that `nchunks * nrows` doesn't overflow
-  size_t nrows = dt->nrows;
+  size_t nrows = dt->nrows();
   xassert(nchunks <= size_t(-1) / nrows);
 
   parallel_for_ordered(
     nchunks,  // number of iterations
     [&](ordered* o) {
-      size_t nrows_per_chunk =  dt->nrows / nchunks;
+      size_t nrows_per_chunk =  dt->nrows() / nchunks;
       writing_context ctx(fixed_size_per_row, nrows_per_chunk,
                           options.compress_zlib);
       size_t th_write_at = 0;
@@ -161,7 +161,7 @@ py::oobj write_manager::get_result() {
 //------------------------------------------------------------------------------
 
 void write_manager::create_column_writers() {
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     const Column& col = dt->get_column(i);
     columns.push_back(value_writer::create(col, options));
   }
@@ -183,8 +183,8 @@ void write_manager::create_output_target() {
  */
 void write_manager::determine_chunking_strategy()
 {
-  size_t nrows = dt->nrows;
-  if (nrows == 0 || dt->ncols == 0) return;
+  size_t nrows = dt->nrows();
+  if (nrows == 0 || dt->ncols() == 0) return;
   xassert(estimated_output_size > 0)
   const double bytes_per_row = 1.0 * estimated_output_size / nrows;
 

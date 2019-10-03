@@ -46,7 +46,7 @@ Workframe Head_Literal_Int::evaluate_f(
 {
   auto df = ctx.get_datatable(frame_id);
   Workframe outputs(ctx);
-  int64_t icols = static_cast<int64_t>(df->ncols);
+  int64_t icols = static_cast<int64_t>(df->ncols());
   if (value < -icols || value >= icols) {
     if (!(allow_new && value > 0)) {
       throw ValueError()

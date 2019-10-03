@@ -43,7 +43,7 @@ Return the first `n` rows of the frame, same as ``self[:n, :]``.
 
 oobj Frame::head(const PKArgs& args) {
   size_t n = std::min(args.get<size_t>(0, 10),
-                      dt->nrows);
+                      dt->nrows());
   return m__getitem__(otuple(oslice(0, static_cast<int64_t>(n), 1),
                              None()));
 }
@@ -61,9 +61,9 @@ Return the last `n` rows of the frame, same as ``self[-n:, :]``.
 
 oobj Frame::tail(const PKArgs& args) {
   size_t n = std::min(args.get<size_t>(0, 10),
-                      dt->nrows);
+                      dt->nrows());
   // Note: usual slice `-n::` doesn't work as expected when `n = 0`
-  int64_t start = static_cast<int64_t>(dt->nrows - n);
+  int64_t start = static_cast<int64_t>(dt->nrows() - n);
   return m__getitem__(otuple(oslice(start, oslice::NA, 1),
                              None()));
 }
@@ -136,7 +136,7 @@ void Frame::export_names(const PKArgs&) {
   py::oobj f = py::oobj::import("datatable", "f");
   py::odict globals = py::robj(PyEval_GetGlobals()).to_pydict();
   py::otuple names = dt->get_pynames();
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     py::robj name = names[i];
     globals.set(name, f.get_item(name));
   }
@@ -221,7 +221,7 @@ static GSArgs args_ncols(
   "Number of columns in the Frame\n");
 
 oobj Frame::get_ncols() const {
-  return py::oint(dt->ncols);
+  return py::oint(dt->ncols());
 }
 
 
@@ -237,7 +237,7 @@ Increasing the number of rows of a keyed Frame is not allowed.
 )");
 
 oobj Frame::get_nrows() const {
-  return py::oint(dt->nrows);
+  return py::oint(dt->nrows());
 }
 
 void Frame::set_nrows(const Arg& nr) {
@@ -278,7 +278,7 @@ static GSArgs args_stypes(
 
 oobj Frame::get_stypes() const {
   if (stypes == nullptr) {
-    py::otuple ostypes(dt->ncols);
+    py::otuple ostypes(dt->ncols());
     for (size_t i = 0; i < ostypes.size(); ++i) {
       SType st = dt->get_column(i).stype();
       ostypes.set(i, info(st).py_stype());
@@ -298,9 +298,9 @@ static GSArgs args_stype(
   "returns None.\n");
 
 oobj Frame::get_stype() const {
-  if (dt->ncols == 0) return None();
+  if (dt->ncols() == 0) return None();
   SType stype = dt->get_column(0).stype();
-  for (size_t i = 1; i < dt->ncols; ++i) {
+  for (size_t i = 1; i < dt->ncols(); ++i) {
     SType col_stype = dt->get_column(i).stype();
     if (col_stype != stype) {
       throw ValueError() << "The stype of column '" << dt->get_names()[i]
@@ -319,7 +319,7 @@ static GSArgs args_ltypes(
 
 oobj Frame::get_ltypes() const {
   if (ltypes == nullptr) {
-    py::otuple oltypes(dt->ncols);
+    py::otuple oltypes(dt->ncols());
     for (size_t i = 0; i < oltypes.size(); ++i) {
       SType st = dt->get_column(i).stype();
       oltypes.set(i, info(st).py_ltype());

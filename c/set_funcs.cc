@@ -66,10 +66,10 @@ static named_colvec columns_from_args(const py::PKArgs& args) {
   std::function<void(py::robj)> process_arg = [&](py::robj arg) {
     if (arg.is_frame()) {
       DataTable* dt = arg.to_datatable();
-      if (dt->ncols == 0) return;
-      if (dt->ncols > 1) {
+      if (dt->ncols() == 0) return;
+      if (dt->ncols() > 1) {
         throw ValueError() << "Only single-column Frames are allowed, "
-            "but received a Frame with " << dt->ncols << " columns";
+            "but received a Frame with " << dt->ncols() << " columns";
       }
       Column col = dt->get_column(0);  // copy
       col.materialize();
@@ -170,10 +170,10 @@ static py::oobj unique(const py::PKArgs& args) {
   DataTable* dt = args[0].to_datatable();
 
   named_colvec ncv;
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     ncv.columns.push_back(dt->get_column(i));
   }
-  if (dt->ncols == 1) {
+  if (dt->ncols() == 1) {
     ncv.name = dt->get_names()[0];
   }
   return _union(std::move(ncv));

@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <algorithm>
 #include <limits>
@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 
 DataTable::DataTable()
-  : nrows(0), ncols(0), nkeys(0)
+  : nrows_(0), ncols_(0), nkeys(0)
 {
   TRACK(this, sizeof(*this), "DataTable");
 }
@@ -33,11 +33,11 @@ DataTable::DataTable(colvec&& cols) : DataTable()
 {
   if (cols.empty()) return;
   columns = std::move(cols);
-  ncols = columns.size();
-  nrows = columns[0].nrows();
+  ncols_ = columns.size();
+  nrows_ = columns[0].nrows();
   #if DTDEBUG
     for (const auto& col : columns) {
-      xassert(col && col.nrows() == nrows);
+      xassert(col && col.nrows() == nrows_);
     }
   #endif
 }
@@ -75,10 +75,10 @@ DataTable::DataTable(colvec&& cols, const DataTable* nn)
 //------------------------------------------------------------------------------
 
 size_t DataTable::xcolindex(int64_t index) const {
-  int64_t incols = static_cast<int64_t>(ncols);
+  int64_t incols = static_cast<int64_t>(ncols_);
   if (index < -incols || index >= incols) {
     throw ValueError() << "Column index `" << index << "` is invalid "
-        "for a frame with " << ncols << " column" << (ncols == 1? "" : "s");
+        "for a frame with " << ncols_ << " column" << (ncols_ == 1? "" : "s");
   }
   if (index < 0) index += incols;
   xassert(index >= 0 && index < incols);
@@ -98,7 +98,7 @@ DataTable* DataTable::copy() const {
 
 
 DataTable* DataTable::extract_column(size_t i) const {
-  xassert(i < ncols);
+  xassert(i < ncols_);
   return new DataTable({columns[i]}, {names[i]});
 }
 
@@ -109,7 +109,7 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
   cols_to_remove.push_back(size_t(-1));  // guardian value
 
   size_t j = 0;
-  for (size_t i = 0, k = 0; i < ncols; ++i) {
+  for (size_t i = 0, k = 0; i < ncols_; ++i) {
     if (i == cols_to_remove[k]) {
       // cols_to_remove[] array may contain duplicate values of `i`, so we
       // skip them. This loop will always terminate, since the last entry
@@ -125,7 +125,7 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
     }
     ++j;
   }
-  ncols = j;
+  ncols_ = j;
   columns.resize(j);
   names.resize(j);
   py_names  = py::otuple();
@@ -134,8 +134,8 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
 
 
 void DataTable::delete_all() {
-  ncols = 0;
-  nrows = 0;
+  ncols_ = 0;
+  nrows_ = 0;
   nkeys = 0;
   columns.resize(0);
   names.resize(0);
@@ -145,14 +145,14 @@ void DataTable::delete_all() {
 
 
 void DataTable::resize_rows(size_t new_nrows) {
-  if (new_nrows == nrows) return;
-  if (new_nrows > nrows && nkeys > 0) {
+  if (new_nrows == nrows_) return;
+  if (new_nrows > nrows_ && nkeys > 0) {
     throw ValueError() << "Cannot increase the number of rows in a keyed frame";
   }
   for (Column& col : columns) {
     col.resize(new_nrows);
   }
-  nrows = new_nrows;
+  nrows_ = new_nrows;
 }
 
 
@@ -168,7 +168,7 @@ void DataTable::apply_rowindex(const RowIndex& rowindex) {
   for (Column& col : columns) {
     col.apply_rowindex(rowindex);
   }
-  nrows = rowindex.size();
+  nrows_ = rowindex.size();
 }
 
 

@@ -408,15 +408,15 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
     jcols.push_back(i);
   }
 
-  arr32_t arr_result_indices(xdt->nrows);
-  if (xdt->nrows) {
+  arr32_t arr_result_indices(xdt->nrows());
+  if (xdt->nrows()) {
     int32_t* result_indices = arr_result_indices.data();
-    size_t nchunks = std::min(std::max(xdt->nrows / 200, size_t(1)),
+    size_t nchunks = std::min(std::max(xdt->nrows() / 200, size_t(1)),
                               dt::num_threads_in_pool());
     xassert(nchunks);
 
-    if (jdt->nrows == 0) {
-      dt::parallel_for_static(xdt->nrows,
+    if (jdt->nrows() == 0) {
+      dt::parallel_for_static(xdt->nrows(),
         [&](size_t i) {
           result_indices[i] = -1;
         });
@@ -427,11 +427,11 @@ RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
           // Creating the comparator may fail if xcols and jcols are incompatible
           cmpptr comparator = _make_comparator(xdt, jdt, xcols, jcols);
 
-          dt::nested_for_static(xdt->nrows,
+          dt::nested_for_static(xdt->nrows(),
             [&](size_t i) {
               int r = comparator->set_xrow(i);
               if (r == 0) {
-                size_t j = binsearch(comparator.get(), jdt->nrows);
+                size_t j = binsearch(comparator.get(), jdt->nrows());
                 result_indices[i] = static_cast<int32_t>(j);
               } else {
                 result_indices[i] = -1;

@@ -191,7 +191,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
 
   // If we only got NA targets, return to stop training.
   if (dt_labels_in == nullptr) return;
-  size_t nlabels_in = dt_labels_in->nrows;
+  size_t nlabels_in = dt_labels_in->nrows();
 
   if (nlabels_in > 2) {
     throw ValueError() << "For binomial regression target column should have "
@@ -206,7 +206,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
   } else {
 
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
-    size_t nlabels = dt_labels->nrows;
+    size_t nlabels = dt_labels->nrows();
     xassert(nlabels != 0 && nlabels < 3);
     auto data_label_ids_in = static_cast<int8_t*>(
                               dt_labels_in->get_column(1).get_data_editable());
@@ -286,7 +286,7 @@ inline U itarget(U y, size_t label_indicator) {
 template <typename T>
 template <typename U>
 FtrlFitOutput Ftrl<T>::fit_regression() {
-  xassert(dt_y_train->ncols == 1);
+  xassert(dt_y_train->ncols() == 1);
   if (is_model_trained() && model_type != FtrlModelType::REGRESSION) {
     throw TypeError() << "This model has already been trained in a "
                          "mode different from regression. To train it "
@@ -393,7 +393,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
 
   auto data_label_ids_in = static_cast<const int32_t*>(
                               dt_labels_in->get_column(1).get_data_readonly());
-  size_t nlabels_in = dt_labels_in->nrows;
+  size_t nlabels_in = dt_labels_in->nrows();
 
   // When we only start training, all the incoming labels become the model
   // labels. Mapping is trivial in this case.
@@ -411,7 +411,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     auto data_label_ids = static_cast<const int32_t*>(
                             dt_labels->get_column(1).get_data_readonly());
     RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
-    size_t nlabels = dt_labels->nrows;
+    size_t nlabels = dt_labels->nrows();
 
     for (size_t i = 0; i < nlabels; ++i) {
       label_ids.push_back(std::numeric_limits<size_t>::max());
@@ -448,7 +448,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       new_label_indices.resize(n_new_labels);
       RowIndex ri_labels(std::move(new_label_indices));
       dt_labels_in->apply_rowindex(ri_labels);
-      set_ids(dt_labels_in->get_column(1), static_cast<int32_t>(dt_labels->nrows));
+      set_ids(dt_labels_in->get_column(1), static_cast<int32_t>(dt_labels->nrows()));
       dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
 
       // It is necessary to re-key the column, because there is no guarantee
@@ -488,7 +488,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   // Training settings. By default each training iteration consists of
   // `dt_X_train->nrows` rows.
   size_t niterations = nepochs;
-  size_t iteration_nrows = dt_X_train->nrows;
+  size_t iteration_nrows = dt_X_train->nrows();
   size_t total_nrows = niterations * iteration_nrows;
   size_t iteration_end;
 
@@ -505,7 +505,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                                             : target_col0_train;  // whatever
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows);
+    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows());
     niterations = total_nrows / iteration_nrows;
     loss_history.resize(val_niters, 0.0);
   }
@@ -518,7 +518,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   // validation.
   size_t work_total = (niterations - 1) * get_work_amount(iteration_nrows);
   work_total += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows);
-  if (validation) work_total += niterations * get_work_amount(dt_X_val->nrows);
+  if (validation) work_total += niterations * get_work_amount(dt_X_val->nrows());
 
   // Set work amount to be reported by the zero thread.
   dt::progress::work job(work_total);
@@ -540,7 +540,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
         // Training.
         dt::nested_for_static(iteration_size, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
-          size_t ii = (iteration_start + i) % dt_X_train->nrows;
+          size_t ii = (iteration_start + i) % dt_X_train->nrows();
           U value;
           bool isvalid = target_col0_train.get_element(ii, &value);
 
@@ -577,7 +577,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           dt::atomic<T> loss_global {0.0};
           T loss_local = 0.0;
 
-          dt::nested_for_static(dt_X_val->nrows, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
+          dt::nested_for_static(dt_X_val->nrows(), ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
             V value;
             bool isvalid = target_col0_val.get_element(i, &value);
 
@@ -607,7 +607,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           // more than `val_error`, sets `loss_old` to `NaN` -> this will stop
           // all the threads after `barrier()`.
           if (dt::this_thread_index() == 0) {
-            T loss_current = loss_global.load() / (dt_X_val->nrows * dt_y_val->ncols);
+            T loss_current = loss_global.load() / (dt_X_val->nrows() * dt_y_val->ncols());
             loss_history[iter % val_niters] = loss_current / val_niters;
             loss = std::accumulate(loss_history.begin(), loss_history.end(), T_ZERO);
             T loss_diff = (loss_old - loss) / loss_old;
@@ -642,7 +642,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   // in `py::Validator::has_negatives()` during unpickling.
   reset_model_stats();
 
-  double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows;
+  double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows();
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
 
   return res;
@@ -734,12 +734,12 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   auto hashers = create_hashers(dt_X);
 
   // Create datatable for predictions and obtain column data pointers.
-  size_t nlabels = dt_labels->nrows;
+  size_t nlabels = dt_labels->nrows();
 
   auto data_label_ids = static_cast<const U*>(
                             dt_labels->get_column(1).get_data_readonly());
 
-  dtptr dt_p = create_p(dt_X->nrows);
+  dtptr dt_p = create_p(dt_X->nrows());
   std::vector<T*> data_p(nlabels);
   for (size_t i = 0; i < nlabels; ++i) {
     data_p[i] = static_cast<T*>(dt_p->get_column(i).get_data_editable());
@@ -757,12 +757,12 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
                                  << "the model was trained in an unknown mode";
   }
 
-  size_t nthreads = get_nthreads(dt_X->nrows);
+  size_t nthreads = get_nthreads(dt_X->nrows());
   nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
   bool k_binomial;
 
   // Set progress reporting
-  size_t work_total = dt_X->nrows / nthreads;
+  size_t work_total = dt_X->nrows() / nthreads;
   dt::progress::work job(work_total);
   job.set_message("Predicting");
 
@@ -770,7 +770,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 
-    dt::nested_for_static(dt_X->nrows, [&](size_t i) {
+    dt::nested_for_static(dt_X->nrows(), [&](size_t i) {
       // Predicting for all the `nlabels`
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
@@ -792,7 +792,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   job.done();
 
   if (model_type == FtrlModelType::BINOMIAL) {
-    dt::parallel_for_static(dt_X->nrows, [&](size_t i){
+    dt::parallel_for_static(dt_X->nrows(), [&](size_t i){
       data_p[k_binomial][i] = T_ONE - data_p[!k_binomial][i];
     });
   }
@@ -811,8 +811,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
  */
 template <typename T>
 void Ftrl<T>::normalize_rows(dtptr& dt) {
-  size_t nrows = dt->nrows;
-  size_t ncols = dt->ncols;
+  size_t nrows = dt->nrows();
+  size_t ncols = dt->ncols();
 
   std::vector<T*> data(ncols);
   for (size_t j = 0; j < ncols; ++j) {
@@ -837,7 +837,7 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
  */
 template <typename T>
 void Ftrl<T>::create_model() {
-  size_t nlabels = (dt_labels == nullptr)? 0 : dt_labels->nrows;
+  size_t nlabels = (dt_labels == nullptr)? 0 : dt_labels->nrows();
   size_t ncols = (model_type == FtrlModelType::BINOMIAL)? 2 : 2 * nlabels;
 
   colvec cols;
@@ -859,8 +859,8 @@ void Ftrl<T>::create_model() {
  */
 template <typename T>
 void Ftrl<T>::adjust_model() {
-  size_t ncols_model = dt_model->ncols;
-  size_t ncols_model_new = 2 * dt_labels->nrows;
+  size_t ncols_model = dt_model->ncols();
+  size_t ncols_model_new = 2 * dt_labels->nrows();
   xassert(ncols_model_new > ncols_model)
 
   colvec cols;
@@ -901,7 +901,7 @@ void Ftrl<T>::adjust_model() {
  */
 template <typename T>
 dtptr Ftrl<T>::create_p(size_t nrows) {
-  size_t nlabels = dt_labels->nrows;
+  size_t nlabels = dt_labels->nrows();
   xassert(nlabels > 0);
 
   Column col0_str64 = dt_labels->get_column(0).cast(SType::STR64);
@@ -947,7 +947,7 @@ void Ftrl<T>::reset() {
 template <typename T>
 void Ftrl<T>::init_model() {
   if (dt_model == nullptr) return;
-  for (size_t i = 0; i < dt_model->ncols; ++i) {
+  for (size_t i = 0; i < dt_model->ncols(); ++i) {
     auto data = static_cast<T*>(dt_model->get_column(i).get_data_editable());
     std::memset(data, 0, nbins * sizeof(T));
   }
@@ -960,7 +960,7 @@ void Ftrl<T>::init_model() {
  template <typename T>
  void Ftrl<T>::reset_model_stats() {
   if (dt_model == nullptr) return;
-  for (size_t i = 0; i < dt_model->ncols; ++i) {
+  for (size_t i = 0; i < dt_model->ncols(); ++i) {
     (dt_model->get_column(i)).reset_stats();
   }
 }
@@ -971,7 +971,7 @@ void Ftrl<T>::init_model() {
  */
 template <typename T>
 void Ftrl<T>::init_weights() {
-  size_t model_ncols = dt_model->ncols;
+  size_t model_ncols = dt_model->ncols();
   xassert(model_ncols % 2 == 0);
   size_t nlabels = model_ncols / 2;
   z.clear();
@@ -1039,7 +1039,7 @@ void Ftrl<T>::init_fi() {
  */
 template <typename T>
 void Ftrl<T>::define_features() {
-  nfeatures = dt_X_train->ncols + interactions.size();
+  nfeatures = dt_X_train->ncols() + interactions.size();
 }
 
 
@@ -1050,10 +1050,10 @@ template <typename T>
 std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
   std::vector<hasherptr> hashers;
   hashers.clear();
-  hashers.reserve(dt->ncols);
+  hashers.reserve(dt->ncols());
 
   // Create hashers.
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     const Column& col = dt->get_column(i);
     hashers.push_back(create_hasher(col));
   }
@@ -1061,8 +1061,8 @@ std::vector<hasherptr> Ftrl<T>::create_hashers(const DataTable* dt) {
   // Hash column names.
   const std::vector<std::string>& c_names = dt->get_names();
   colname_hashes.clear();
-  colname_hashes.reserve(dt->ncols);
-  for (size_t i = 0; i < dt->ncols; i++) {
+  colname_hashes.reserve(dt->ncols());
+  for (size_t i = 0; i < dt->ncols(); i++) {
     uint64_t h = hash_murmur2(c_names[i].c_str(),
                              c_names[i].length() * sizeof(char));
     colname_hashes.push_back(h);
@@ -1281,7 +1281,7 @@ DataTable* Ftrl<T>::get_labels() {
 template <typename T>
 void Ftrl<T>::set_model(DataTable* dt_model_in) {
   dt_model = dtptr(dt_model_in->copy());
-  set_nbins(dt_model->nrows);
+  set_nbins(dt_model->nrows());
   nfeatures = 0;
 }
 
@@ -1301,7 +1301,7 @@ void Ftrl<T>::set_model_type_trained(FtrlModelType model_type_trained_in) {
 template <typename T>
 void Ftrl<T>::set_fi(DataTable* dt_fi_in) {
   dt_fi = dtptr(dt_fi_in->copy());
-  nfeatures = dt_fi->nrows;
+  nfeatures = dt_fi->nrows();
 }
 
 

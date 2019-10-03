@@ -1341,14 +1341,14 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
 
   // For a 0-row Frame we return a rowindex of size 0, and the
   // Groupby containing a single group (also of size 0).
-  if (nrows <= 1) {
-    arr32_t indices(nrows);
-    if (nrows) {
+  if (nrows_ <= 1) {
+    arr32_t indices(nrows_);
+    if (nrows_) {
       indices[0] = 0;
     }
     result.first = RowIndex(std::move(indices), true);
     if (!spec[0].sort_only) {
-      result.second = Groupby::single_group(nrows);
+      result.second = Groupby::single_group(nrows_);
     }
     return result;
   }
@@ -1359,7 +1359,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
 
   bool do_groups = n > 1 || !spec[0].sort_only;
   xassert(!col0.is_virtual());
-  SortContext sc(nrows, RowIndex(), do_groups);
+  SortContext sc(nrows_, RowIndex(), do_groups);
   sc.start_sort(col0, spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
     if (spec[j].sort_only && !spec[j - 1].sort_only) {
@@ -1474,8 +1474,8 @@ py::oobj py::Frame::sort(const PKArgs& args) {
   dt::EvalContext ctx(dt, dt::EvalMode::SELECT);
 
   if (args.num_vararg_args() == 0) {
-    py::otuple all_cols(dt->ncols);
-    for (size_t i = 0; i < dt->ncols; ++i) {
+    py::otuple all_cols(dt->ncols());
+    for (size_t i = 0; i < dt->ncols(); ++i) {
       all_cols.set(i, py::oint(i));
     }
     ctx.add_sortby(py::osort(all_cols));

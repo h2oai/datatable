@@ -31,7 +31,7 @@ extern "C" {
 //------------------------------------------------------------------------------
 
 static int _column_index_oob(DataTable* dt, size_t i) {
-  if (i < dt->ncols) return 0;
+  if (i < dt->ncols()) return 0;
   PyErr_Format(PyExc_IndexError, "Column %zu does not exist in the Frame", i);
   return -1;
 }
@@ -64,12 +64,12 @@ int DtFrame_Check(PyObject* ob) {
 
 size_t DtFrame_NColumns(PyObject* pydt) {
   auto dt = _extract_dt(pydt);
-  return dt->ncols;
+  return dt->ncols();
 }
 
 size_t DtFrame_NRows(PyObject* pydt) {
   auto dt = _extract_dt(pydt);
-  return dt->nrows;
+  return dt->nrows();
 }
 
 

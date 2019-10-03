@@ -47,8 +47,8 @@ class frame_rn : public repl_node {
 
 
 void frame_rn::check_compatibility(size_t lrows, size_t lcols) const {
-  size_t rrows = dtr->nrows;
-  size_t rcols = dtr->ncols;
+  size_t rrows = dtr->nrows();
+  size_t rcols = dtr->ncols();
   if ((rrows == lrows || rrows == 1) && (rcols == lcols || rcols == 1)) return;
   if (rcols == 0 && lcols == 0 && rrows == 0) return;
   throw ValueError() << "Invalid replacement Frame: expected [" <<
@@ -58,13 +58,13 @@ void frame_rn::check_compatibility(size_t lrows, size_t lcols) const {
 
 
 void frame_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
-  size_t rcols = dtr->ncols;
-  size_t rrows = dtr->nrows;
+  size_t rcols = dtr->ncols();
+  size_t rrows = dtr->nrows();
   if (rcols == 0) return;
 
   DataTable* dt0 = ctx.get_datatable(0);
   size_t lcols = indices.size();
-  size_t lrows = dt0->nrows;
+  size_t lrows = dt0->nrows();
   xassert(rcols == 1 || rcols == lcols);  // enforced in `check_compatibility()`
 
   Column col0;
@@ -87,8 +87,8 @@ void frame_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
 
 
 void frame_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
-  size_t rcols = dtr->ncols;
-  size_t rrows = dtr->nrows;
+  size_t rcols = dtr->ncols();
+  size_t rrows = dtr->nrows();
   if (rcols == 0 || rrows == 0) return;
 
   DataTable* dt0 = ctx.get_datatable(0);
@@ -101,7 +101,7 @@ void frame_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
     const Column& coli = dtr->get_column(rcols == 1? 0 : i);
     if (!dt0->get_column(j)) {
       dt0->set_column(j,
-          Column::new_na_column(dt0->nrows, coli.stype()));
+          Column::new_na_column(dt0->nrows(), coli.stype()));
     }
     Column& colj = dt0->get_column(j);
     colj.replace_values(ri0, coli);
@@ -159,7 +159,7 @@ void scalar_rn::replace_columns(EvalContext& ctx, const intvec& indices) const {
     const Column& col = dt0->get_column(j);
     SType stype = col? col.stype() : SType::VOID;
     if (new_columns.count(stype) == 0) {
-      new_columns[stype] = make_column(stype, dt0->nrows);
+      new_columns[stype] = make_column(stype, dt0->nrows());
     }
     Column newcol = new_columns[stype];  // copy
     dt0->set_column(j, std::move(newcol));
@@ -178,7 +178,7 @@ void scalar_rn::replace_values(EvalContext& ctx, const intvec& indices) const {
     Column replcol = make_column(stype, 1);
     stype = replcol.stype();  // may change from VOID to BOOL, FIXME!
     if (!colj) {
-      dt0->set_column(j, Column::new_na_column(dt0->nrows, stype));
+      dt0->set_column(j, Column::new_na_column(dt0->nrows(), stype));
     }
     else if (colj.stype() != stype) {
       dt0->set_column(j, colj.cast(stype));
@@ -405,7 +405,7 @@ void exprlist_rn::replace_columns(EvalContext& ctx, const intvec& indices) const
     size_t j = indices[i];
     Column col = (i < rcols)? exprs[i]->evaluate(ctx)
                             : dt0->get_column(indices[0]);
-    xassert(col.nrows() == dt0->nrows);
+    xassert(col.nrows() == dt0->nrows());
     dt0->set_column(j, std::move(col));
   }
 }

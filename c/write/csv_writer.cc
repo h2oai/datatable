@@ -53,8 +53,8 @@ std::string csv_writer::get_job_name() const {
  *
  */
 void csv_writer::estimate_output_size() {
-  size_t nrows = dt->nrows;
-  size_t ncols = dt->ncols;
+  size_t nrows = dt->nrows();
+  size_t ncols = dt->ncols();
   const strvec& column_names = dt->get_names();
 
   size_t total_columns_size = 0;
@@ -84,15 +84,15 @@ void csv_writer::write_preamble() {
 
   Column names_as_col = Column(new Strvec_ColumnImpl(column_names));
   auto writer = value_writer::create(names_as_col, options);
-  writing_context ctx { 3*dt->ncols, 1, options.compress_zlib };
+  writing_context ctx { 3*dt->ncols(), 1, options.compress_zlib };
 
   if (options.quoting_mode == Quoting::ALL) {
-    for (size_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols(); ++i) {
       writer->write_quoted(i, ctx);
       *ctx.ch++ = ',';
     }
   } else {
-    for (size_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols(); ++i) {
       writer->write_normal(i, ctx);
       *ctx.ch++ = ',';
     }

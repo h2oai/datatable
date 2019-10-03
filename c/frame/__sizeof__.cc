@@ -65,14 +65,14 @@ size_t DataTable::memory_footprint() const noexcept {
   sz += sizeof(*this);
   sz += sizeof(Column) * columns.capacity();
   sz += sizeof(std::string) * names.capacity();
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     sz += columns[i].memory_footprint();
     sz += names[i].size();
   }
   if (py_names) {
     sz += py_names.get_sizeof();
     sz += py_inames.get_sizeof();
-    for (size_t i = 0; i < ncols; ++i) {
+    for (size_t i = 0; i < ncols_; ++i) {
       sz += py_names[i].get_sizeof();
     }
   }

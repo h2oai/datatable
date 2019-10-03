@@ -49,12 +49,12 @@ static oobj repeat(const PKArgs& args) {
   size_t n = args[1].to_size_t();
 
   // Empty Frame: repeating is a noop
-  if (dt->ncols == 0 || dt->nrows == 0) {
+  if (dt->ncols() == 0 || dt->nrows() == 0) {
     return Frame::oframe(dt->copy());
   }
 
-  colvec newcols(dt->ncols);
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  colvec newcols(dt->ncols());
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     newcols[i] = dt->get_column(i);  // copy
     newcols[i].repeat(n);
   }

@@ -36,7 +36,7 @@ static bool datatable_has_nas(DataTable* dt, size_t force_col) {
   if (force_col != size_t(-1)) {
     return dt->get_column(force_col).na_count() > 0;
   }
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     if (dt->get_column(i).na_count() > 0) {
       return true;
     }
@@ -118,15 +118,15 @@ oobj Frame::to_numpy(const PKArgs& args) {
   // numpy.ma.masked_array
   if (datatable_has_nas(dt, force_col)) {
     bool one_col = force_col != size_t(-1);
-    size_t ncols = one_col? 1 : dt->ncols;
+    size_t ncols = one_col? 1 : dt->ncols();
     size_t i0 = one_col? force_col : 0;
 
-    size_t dtsize = ncols * dt->nrows;
+    size_t dtsize = ncols * dt->nrows();
     Column mask_col = Column::new_data_column(dtsize, SType::BOOL);
     bool* mask_data = static_cast<bool*>(mask_col.get_data_editable());
 
-    size_t n_row_chunks = std::max(dt->nrows / 100, size_t(1));
-    size_t rows_per_chunk = dt->nrows / n_row_chunks;
+    size_t n_row_chunks = std::max(dt->nrows() / 100, size_t(1));
+    size_t rows_per_chunk = dt->nrows() / n_row_chunks;
     size_t n_chunks = ncols * n_row_chunks;
     // precompute `countna` for all columns
     for (size_t j = 0; j < ncols; ++j) dt->get_column(j).na_count();
@@ -136,8 +136,8 @@ oobj Frame::to_numpy(const PKArgs& args) {
         size_t icol = j / n_row_chunks;
         size_t irow = j - (icol * n_row_chunks);
         size_t row0 = irow * rows_per_chunk;
-        size_t row1 = irow == n_row_chunks-1? dt->nrows : row0 + rows_per_chunk;
-        bool* mask_ptr = mask_data + icol * dt->nrows;
+        size_t row1 = irow == n_row_chunks-1? dt->nrows() : row0 + rows_per_chunk;
+        bool* mask_ptr = mask_data + icol * dt->nrows();
         const Column& col = dt->get_column(icol + i0);
         col.fill_npmask(mask_ptr, row0, row1);
       });
@@ -147,7 +147,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
     oobj mask_frame = Frame::oframe(mask_dt);
     oobj mask_array = nparray.call({mask_frame});
 
-    mask_array = mask_array.invoke("reshape", {oint(ncols), oint(dt->nrows)})
+    mask_array = mask_array.invoke("reshape", {oint(ncols), oint(dt->nrows())})
                  .get_attr("T");
 
     res = numpy.get_attr("ma").get_attr("masked_array")
@@ -191,7 +191,7 @@ oobj Frame::to_pandas(const PKArgs&) {
   odict cols;
   otuple np_call_args(2);
   np_call_args.set(0, py::None());
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     np_call_args.replace(1, oint(i));
     args_to_numpy.bind(np_call_args.to_borrowed_ref(), nullptr);
     cols.set(names[i],

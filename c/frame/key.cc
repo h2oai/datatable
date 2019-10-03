@@ -127,9 +127,9 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   }
   auto res = group(ss);
   RowIndex ri = res.first;
-  xassert(ri.size() == nrows);
+  xassert(ri.size() == nrows_);
   // Note: it's possible to have ngroups > nrows, when grouping a 0-row Frame
-  if (res.second.ngroups() < nrows) {
+  if (res.second.ngroups() < nrows_) {
     throw ValueError() << "Cannot set a key: the values are not unique";
   }
 
@@ -140,17 +140,17 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
     }
     return false;
   };
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     if (!is_key_column(i)) {
       col_indices.push_back(i);
     }
   }
-  xassert(col_indices.size() == ncols);
+  xassert(col_indices.size() == ncols_);
 
   // Reorder the columns
   colvec new_columns;
-  new_columns.reserve(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
+  new_columns.reserve(ncols_);
+  for (size_t i = 0; i < ncols_; ++i) {
     Column col = columns[col_indices[i]];  // copy
     col.apply_rowindex(ri);  // apply sort key
     new_columns.emplace_back(std::move(col));

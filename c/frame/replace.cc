@@ -157,7 +157,7 @@ void Frame::replace(const PKArgs& args) {
   ra.parse_x_y(x, y);
   ra.split_x_y_by_type();
 
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     // If a column is a view, then: for a fixed-width column it gets
     // materialized when we request `col->elements_w()`; on the other hand,
     // a string column remains a view, however the iterator `dt::map_str2str`
@@ -260,7 +260,7 @@ void ReplaceAgent::split_x_y_by_type() {
        done_real = false,
        done_bool = false,
        done_str = false;
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     SType s = dt->get_column(i).stype();
     switch (s) {
       case SType::BOOL: {
