@@ -53,16 +53,14 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   nepochs_val(T_NAN),
   val_error(T_NAN),
   val_niters(0)
-{
-}
+{}
 
 
 /**
  *  Constructor with default parameters.
  */
 template <typename T>
-Ftrl<T>::Ftrl() : Ftrl(FtrlParams()) {
-}
+Ftrl<T>::Ftrl() : Ftrl(FtrlParams()) {}
 
 
 /**
@@ -474,6 +472,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                            V(*targetfn_val)(V, size_t),
                            T(*lossfn)(T, V))
 {
+  // Initialize helper parameters for prediction formula.
+  init_helper_params();
+
   // Define features, weight pointers, feature importances storage,
   // as well as column hashers.
   define_features();
@@ -655,14 +656,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 template <typename T>
 template <typename F>
 T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
-  T zero = static_cast<T>(0.0);
-  T wTx = zero;
-  T ia = 1 / alpha;
-  T rr = beta * ia + lambda2;
+  T wTx = T_ZERO;
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    T absw = std::max(std::abs(z[k][j]) - lambda1, zero) /
-             (std::sqrt(n[k][j]) * ia + rr);
+    T absw = std::max(std::abs(z[k][j]) - lambda1, T_ZERO) /
+             (std::sqrt(n[k][j]) * ialpha + gamma);
     w[i] = -std::copysign(absw, z[k][j]);
     wTx += w[i];
     fifn(i, absw);
@@ -726,6 +724,9 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     throw ValueError() << "To make predictions, the model should be trained "
                           "first";
   }
+
+  // Initialize helper parameters for prediction formula.
+  init_helper_params();
 
   // Re-acquire model weight pointers.
   init_weights();
@@ -1189,7 +1190,7 @@ DataTable* Ftrl<T>::get_fi(bool normalize /* = true */) {
 
 
 /**
- *  Other getters and setters.
+ *  Other getters, setters and initializers.
  *  Here we assume that all the validation for setters is done by py::Ftrl.
  */
 template <typename T>
@@ -1302,6 +1303,14 @@ template <typename T>
 void Ftrl<T>::set_fi(DataTable* dt_fi_in) {
   dt_fi = dtptr(dt_fi_in->copy());
   nfeatures = dt_fi->nrows;
+}
+
+
+
+template <typename T>
+void Ftrl<T>::init_helper_params() {
+  ialpha = T_ONE / alpha;
+  gamma = beta * ialpha + lambda2;
 }
 
 
