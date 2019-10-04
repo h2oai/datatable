@@ -53,18 +53,14 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   nepochs_val(T_NAN),
   val_error(T_NAN),
   val_niters(0)
-{
-  init_ialpha();
-  init_gamma(); // Depends on ialpha
-}
+{}
 
 
 /**
  *  Constructor with default parameters.
  */
 template <typename T>
-Ftrl<T>::Ftrl() : Ftrl(FtrlParams()) {
-}
+Ftrl<T>::Ftrl() : Ftrl(FtrlParams()) {}
 
 
 /**
@@ -476,6 +472,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                            V(*targetfn_val)(V, size_t),
                            T(*lossfn)(T, V))
 {
+  // Initialize helper parameters for prediction formula.
+  init_helper_params();
+
   // Define features, weight pointers, feature importances storage,
   // as well as column hashers.
   define_features();
@@ -725,6 +724,9 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     throw ValueError() << "To make predictions, the model should be trained "
                           "first";
   }
+
+  // Initialize helper parameters for prediction formula.
+  init_helper_params();
 
   // Re-acquire model weight pointers.
   init_weights();
@@ -1304,18 +1306,18 @@ void Ftrl<T>::set_fi(DataTable* dt_fi_in) {
 }
 
 
+
 template <typename T>
-void Ftrl<T>::set_alpha(double alpha_in) {
-  params.alpha = alpha_in;
-  alpha = static_cast<T>(alpha_in);
-  init_ialpha();
-  init_gamma(); // Depends on ialpha
+void Ftrl<T>::init_helper_params() {
+  ialpha = T_ONE / alpha;
+  gamma = beta * ialpha + lambda2;
 }
 
 
 template <typename T>
-void Ftrl<T>::init_ialpha() {
-  ialpha = T_ONE / alpha;
+void Ftrl<T>::set_alpha(double alpha_in) {
+  params.alpha = alpha_in;
+  alpha = static_cast<T>(alpha_in);
 }
 
 
@@ -1323,13 +1325,6 @@ template <typename T>
 void Ftrl<T>::set_beta(double beta_in) {
   params.beta = beta_in;
   beta = static_cast<T>(beta_in);
-  init_gamma();
-}
-
-
-template <typename T>
-void Ftrl<T>::init_gamma() {
-  gamma = beta * ialpha + lambda2;
 }
 
 
@@ -1344,7 +1339,6 @@ template <typename T>
 void Ftrl<T>::set_lambda2(double lambda2_in) {
   params.lambda2 = lambda2_in;
   lambda2 = static_cast<T>(lambda2_in);
-  init_gamma();
 }
 
 

@@ -137,8 +137,7 @@ class Ftrl : public dt::FtrlBase {
     void normalize_rows(dtptr&);
 
     // Parameter helper methods.
-    void init_ialpha();
-    void init_gamma();
+    void init_helper_params();
 
   public:
     Ftrl();
