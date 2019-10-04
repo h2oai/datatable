@@ -93,12 +93,12 @@ template <typename T> class array
 
     // Standard operators
     T& operator[](size_t i) {
-      xassert(i < nrows);
+      xassert(i < n);
       return x[i];
     }
 
     const T& operator[](size_t i) const {
-      xassert(i < nrows);
+      xassert(i < n);
       return x[i];
     }
 

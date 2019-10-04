@@ -84,8 +84,7 @@ std::string Head_Literal_Range::_repr_range() const {
   auto start = value.start();
   auto stop  = value.stop();
   auto step  = value.step();
-  std::string res(30, '\0');
-  res += "range(";
+  std::string res = "range(";
   if (start != 0 || step != 1) {
     res += std::to_string(start) + ", ";
   }
