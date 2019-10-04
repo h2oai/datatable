@@ -78,6 +78,7 @@ class EvalContext {
     // Inputs
     by_node       byexpr;
     i_node_ptr    iexpr;
+    expr::Expr    iexpr2;
     j_node_ptr    jexpr;
     expr::Expr    jexpr2;
     repl_node_ptr repl;

@@ -56,6 +56,11 @@ Workframe Head_Literal_None::evaluate_f(EvalContext& ctx, size_t, bool) const {
 }
 
 
+// When used in i, `None` means select all rows
+RowIndex Head_Literal_None::evaluate_i(const vecExpr&, EvalContext&) const {
+  return RowIndex();
+}
+
 
 
 }}  // namespace dt::expr

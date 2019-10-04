@@ -30,46 +30,48 @@ namespace expr {
 
 
 /**
- * `Head` is the part of an `Expr`. It can be thought as a function
- * without the arguments. For example:
- *
- *    Expr            Head            Arguments
- *    --------------  --------------  ----------
- *    fn(a, b, c)     fn              (a, b, c)
- *    x + y           binary_plus     (x, y)
- *    3               literal_int     ()
- *    [p, q, ..., z]  list            (p, q, ..., z)
- *
- * Each Head object may be parametrized. Generally, the distinction
- * between arguments and parameters is that the arguments in an Expr
- * may only be fully resolved when that Expr is evaluated in a
- * EvalContext. On the contrary, the parameters are known at the time
- * when the Expr is created.
- *
- * The main API of Head class consists of 3 `evaluate()` methods. Each
- * of them takes a vector of arguments (if any) and the EvalContext, and
- * produces a list of named `Column`s. The difference between these
- * methods is the context in which the expression is to be evaluated:
- *
- * - evaluate_n() is the "standard" mode of evaluation;
- *
- * - evaluate_j() computes the expression when it is the root node in
- *     j- or by-expr of DT[i,j,...]. The flag `assignment` is true
- *     when the j-expression is used in an assignment statement
- *     `DT[i,j] = smth`.
- *
- * - evaluate_f() computes the expression when it is used as an
- *     f-selector, i.e. f[expr], or g[expr].
- *
- */
+  * `Head` is the part of an `Expr`. It can be thought as a function
+  * without the arguments. For example:
+  *
+  *    Expr            Head            Arguments
+  *    --------------  --------------  ----------
+  *    fn(a, b, c)     fn              (a, b, c)
+  *    x + y           binary_plus     (x, y)
+  *    3               literal_int     ()
+  *    [p, q, ..., z]  list            (p, q, ..., z)
+  *
+  * Each Head object may be parametrized. Generally, the distinction
+  * between arguments and parameters is that the arguments in an Expr
+  * may only be fully resolved when that Expr is evaluated in a
+  * EvalContext. On the contrary, the parameters are known at the time
+  * when the Expr is created.
+  *
+  * The main API of Head class consists of 3 `evaluate()` methods. Each
+  * of them takes a vector of arguments (if any) and the EvalContext, and
+  * produces a list of named `Column`s. The difference between these
+  * methods is the context in which the expression is to be evaluated:
+  *
+  * - evaluate_n() is the "standard" mode of evaluation;
+  *
+  * - evaluate_j() computes the expression when it is the root node in
+  *     j- or by-expr of DT[i,j,...]. The flag `assignment` is true
+  *     when the j-expression is used in an assignment statement
+  *     `DT[i,j] = smth`.
+  *
+  * - evaluate_f() computes the expression when it is used as an
+  *     f-selector, i.e. f[expr], or g[expr].
+  *
+  * - evaluate_i() computes the expression when it is used as the
+  *     i-node in DT[i,j,...].
+  *
+  */
 class Head {
   public:
     virtual ~Head();
     virtual Workframe evaluate_n(const vecExpr& args, EvalContext& ctx) const = 0;
-    virtual Workframe evaluate_j(const vecExpr& args, EvalContext& ctx,
-                                 bool allow_new) const = 0;
-    virtual Workframe evaluate_f(EvalContext& ctx, size_t frame_id,
-                                 bool allow_new) const = 0;
+    virtual Workframe evaluate_j(const vecExpr& args, EvalContext& ctx, bool allow_new) const = 0;
+    virtual Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new) const = 0;
+    virtual RowIndex  evaluate_i(const vecExpr&, EvalContext&) const = 0;
 
     virtual Kind get_expr_kind() const = 0;
 };

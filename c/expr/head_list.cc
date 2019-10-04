@@ -158,6 +158,85 @@ Workframe Head_List::evaluate_j(
 
 
 
+//------------------------------------------------------------------------------
+// i-evaluation
+//------------------------------------------------------------------------------
+
+static RowIndex _evaluate_i_other(const vecExpr& inputs, size_t nrows) {
+  (void) inputs;
+  (void) nrows;
+  throw NotImplError();
+}
+
+
+static RowIndex _evaluate_i_bools(const vecExpr& inputs, size_t nrows) {
+  if (inputs.size() != nrows) {
+    throw ValueError()
+        << "The length of boolean list in i selector does not match the "
+           "number of rows in the Frame: " << inputs.size() << " vs " << nrows;
+  }
+  arr32_t data(nrows);
+  size_t data_index = 0;
+  for (size_t i = 0; i < nrows; ++i) {
+    if (inputs[i].get_expr_kind() != Kind::Bool) {
+      throw TypeError() << "Element " << i << " in the i-selector list is "
+          << _name_type(inputs[i].get_expr_kind()) << ", whereas the previous "
+          "elements were boolean";
+    }
+    bool x = inputs[i].evaluate_bool();
+    if (x) {
+      data[data_index++] = static_cast<int32_t>(i);
+    }
+  }
+  data.resize(data_index);
+  return RowIndex(std::move(data), /*sorted=*/true);
+}
+
+
+static RowIndex _evaluate_i_ints(const vecExpr& inputs, size_t nrows) {
+  auto inrows = static_cast<int64_t>(nrows);
+  arr32_t data(inputs.size());
+  size_t data_index = 0;
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    auto ikind = inputs[i].get_expr_kind();
+    if (ikind == Kind::Int) {
+      int64_t x = inputs[i].evaluate_int();
+      if (x < -inrows || x >= inrows) {
+        throw ValueError() << "Index " << x << " is invalid for a Frame with "
+            << inrows << " rows";
+      }
+      data[data_index++] = static_cast<int32_t>((x >= 0)? x : x + inrows);
+    }
+    else if (ikind == Kind::None) {}  // skip
+    else if (ikind == Kind::SliceAll || ikind == Kind::SliceInt) {
+      return _evaluate_i_other(inputs, nrows);
+    }
+    else {
+      throw TypeError() << "Invalid selector of type " << _name_type(ikind)
+          << " at index " << i << " in the i-selector list";
+    }
+  }
+  data.resize(data_index);
+  return RowIndex(std::move(data), /*sorted=*/false);
+}
+
+
+
+
+RowIndex Head_List::evaluate_i(const vecExpr& inputs, EvalContext& ctx) const
+{
+  if (inputs.empty()) {
+    return RowIndex(0, 0, 1);  // Select-nothing rowindex
+  }
+  auto nrows = ctx.nrows();
+  auto kind0 = inputs[0].get_expr_kind();
+  if (kind0 == Kind::Bool) return _evaluate_i_bools(inputs, nrows);
+  if (kind0 == Kind::Int)  return _evaluate_i_ints(inputs, nrows);
+  return _evaluate_i_other(inputs, nrows);
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Head_NamedList
@@ -194,6 +273,10 @@ Workframe Head_NamedList::evaluate_j(
   return evaluate_n(inputs, ctx);
 }
 
+
+RowIndex Head_NamedList::evaluate_i(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A dictionary cannot be used as an i-selector";
+}
 
 
 

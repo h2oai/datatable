@@ -59,6 +59,7 @@ void EvalContext::add_sortby(py::osort obj) {
 
 void EvalContext::add_i(py::oobj oi) {
   xassert(!iexpr);
+  iexpr2 = dt::expr::Expr(oi);
   iexpr = i_node::make(oi, *this);
 }
 
@@ -117,7 +118,9 @@ void EvalContext::evaluate() {
   if (has_groupby()) {
     iexpr->execute_grouped(*this);
   } else {
-    iexpr->execute(*this);
+    RowIndex rowindex = iexpr2.evaluate_i(*this);
+    apply_rowindex(rowindex);
+    // iexpr->execute(*this);
   }
 
   switch (mode) {

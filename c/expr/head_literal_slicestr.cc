@@ -69,5 +69,11 @@ Workframe Head_Literal_SliceStr::evaluate_j(
 }
 
 
+RowIndex Head_Literal_SliceStr::evaluate_i(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A string slice cannot be used as a row selector";
+}
+
+
+
 
 }}  // namespace dt::expr

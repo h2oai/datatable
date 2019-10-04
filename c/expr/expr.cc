@@ -62,6 +62,7 @@ Expr::Expr(py::robj src) {
   else if (src.is_generator())     _init_from_iterable(src);
   else if (src.is_none())          _init_from_none();
   else if (src.is_frame())         _init_from_frame(src);
+  else if (src.is_range())         _init_from_range(src);
   else if (src.is_pandas_frame() ||
            src.is_pandas_series()) _init_from_pandas(src);
   else if (src.is_numpy_array() ||
@@ -169,6 +170,12 @@ void Expr::_init_from_pandas(py::robj src) {
 }
 
 
+void Expr::_init_from_range(py::robj src) {
+  py::orange rr = src.to_orange();
+  head = ptrHead(new Head_Literal_Range(std::move(rr)));
+}
+
+
 void Expr::_init_from_slice(py::robj src) {
   auto src_as_slice = src.to_oslice();
   if (src_as_slice.is_trivial()) {
@@ -225,12 +232,22 @@ Workframe Expr::evaluate_f(
 }
 
 
+RowIndex Expr::evaluate_i(EvalContext& ctx) const {
+  return head->evaluate_i(inputs, ctx);
+}
+
+
 bool Expr::evaluate_bool() const {
   auto boolhead = dynamic_cast<Head_Literal_Bool*>(head.get());
   xassert(boolhead);
   return boolhead->get_value();
 }
 
+int64_t Expr::evaluate_int() const {
+  auto inthead = dynamic_cast<Head_Literal_Int*>(head.get());
+  xassert(inthead);
+  return inthead->get_value();
+}
 
 
 

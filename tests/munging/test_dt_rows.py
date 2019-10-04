@@ -188,10 +188,14 @@ def test_rows_slice3(dt0):
     assert dt0[-3:7:0, 2].to_list()[0] == [-14.0] * 7
 
 
-def test_rows_slice_errors(dt0):
+def test_rows_slice_errors0(dt0):
     # noinspection PyTypeChecker
     assert_typeerror(dt0, slice(3, 5.7),
-                     "slice(3, 5.7, None) is not integer-valued")
+                     "slice(3, 5.7, None) is neither integer- nor "
+                     "string- valued")
+
+
+def test_rows_slice_errors1(dt0):
     # noinspection PyTypeChecker
     assert_typeerror(dt0, slice("colA", "colC"),
                      "slice('colA', 'colC', None) is not integer-valued")
@@ -527,13 +531,19 @@ def test_rows_int_numpy_array_shapes(dt0, numpy):
                                  [-14, 1, 5, 0.1]]
 
 
-def test_rows_int_numpy_array_errors(dt0, numpy):
+def test_rows_int_numpy_array_errors1(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([[1, 2], [2, 1], [3, 3]]),
         "Only a single-dimensional numpy array is allowed as `i` selector")
+
+
+def test_rows_int_numpy_array_errors2(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([[[4, 0, 1]]]),
-        "Only a single-dimensional numpy array is allowed as `i` selector")
+        "Cannot create Frame from a 3-D numpy array")
+
+
+def test_rows_int_numpy_array_errors3(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([5, 11, 3]),
         "An integer column used as an `i` selector contains index 11 which is "

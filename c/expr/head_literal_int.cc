@@ -33,6 +33,11 @@ Kind Head_Literal_Int::get_expr_kind() const {
   return Kind::Int;
 }
 
+int64_t Head_Literal_Int::get_value() const {
+  return value;
+}
+
+
 
 
 Workframe Head_Literal_Int::evaluate_n(const vecExpr&, EvalContext& ctx) const {
@@ -67,6 +72,18 @@ Workframe Head_Literal_Int::evaluate_j(
     const vecExpr&, EvalContext& ctx, bool allow_new) const
 {
   return evaluate_f(ctx, 0, allow_new);
+}
+
+
+
+RowIndex Head_Literal_Int::evaluate_i(const vecExpr&, EvalContext& ctx) const {
+  int64_t inrows = static_cast<int64_t>(ctx.nrows());
+  if (value < -inrows || value >= inrows) {
+    throw ValueError() << "Row `" << value << "` is invalid for a frame with "
+        << inrows << " row" << (inrows == 1? "" : "s");
+  }
+  auto irow = static_cast<size_t>((value >= 0)? value : value + inrows);
+  return RowIndex(irow, 1, 1);
 }
 
 

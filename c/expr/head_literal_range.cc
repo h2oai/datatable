@@ -26,28 +26,33 @@ namespace dt {
 namespace expr {
 
 
-Head_Literal_SliceInt::Head_Literal_SliceInt(py::oslice x)
+
+Head_Literal_Range::Head_Literal_Range(py::orange x)
   : value(x) {}
 
 
-Kind Head_Literal_SliceInt::get_expr_kind() const {
+Kind Head_Literal_Range::get_expr_kind() const {
   return Kind::SliceInt;
 }
 
 
 
-Workframe Head_Literal_SliceInt::evaluate_n(const vecExpr&, EvalContext&) const {
-  throw TypeError() << "A slice expression cannot appear in this context";
+Workframe Head_Literal_Range::evaluate_n(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A range expression cannot appear in this context";
 }
 
 
 
-Workframe Head_Literal_SliceInt::evaluate_f(
+Workframe Head_Literal_Range::evaluate_f(
     EvalContext& ctx, size_t frame_id, bool) const
 {
   size_t len = ctx.get_datatable(frame_id)->ncols();
   size_t start, count, step;
-  value.normalize(len, &start, &count, &step);
+  bool ok = value.normalize(len, &start, &count, &step);
+  if (!ok) {
+    throw ValueError() << _repr_range() << " is not valid for a Frame with "
+        << len << " columns";
+  }
   Workframe outputs(ctx);
   for (size_t i = 0; i < count; ++i) {
     outputs.add_ref_column(frame_id, start + i * step);
@@ -56,20 +61,41 @@ Workframe Head_Literal_SliceInt::evaluate_f(
 }
 
 
-Workframe Head_Literal_SliceInt::evaluate_j(
+Workframe Head_Literal_Range::evaluate_j(
     const vecExpr&, EvalContext& ctx, bool allow_new) const
 {
   return evaluate_f(ctx, 0, allow_new);
 }
 
 
-RowIndex Head_Literal_SliceInt::evaluate_i(const vecExpr&, EvalContext& ctx) const {
+RowIndex Head_Literal_Range::evaluate_i(const vecExpr&, EvalContext& ctx) const {
   size_t len = ctx.nrows();
   size_t start, count, step;
-  value.normalize(len, &start, &count, &step);
+  bool ok = value.normalize(len, &start, &count, &step);
+  if (!ok) {
+    throw ValueError() << _repr_range() << " is not valid for a Frame with "
+        << len << " rows";
+  }
   return RowIndex(start, count, step);
 }
 
+
+std::string Head_Literal_Range::_repr_range() const {
+  auto start = value.start();
+  auto stop  = value.stop();
+  auto step  = value.step();
+  std::string res(30, '\0');
+  res += "range(";
+  if (start != 0 || step != 1) {
+    res += std::to_string(start) + ", ";
+  }
+  res += std::to_string(stop);
+  if (step != 1) {
+    res += ", " + std::to_string(step);
+  }
+  res += ')';
+  return res;
+}
 
 
 

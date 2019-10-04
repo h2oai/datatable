@@ -126,6 +126,11 @@ Workframe Head_Literal_Type::evaluate_j(
 }
 
 
+RowIndex Head_Literal_Type::evaluate_i(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A type cannot be used as a row selector";
+}
+
+
 
 
 }}  // namespace dt::expr

@@ -27,6 +27,7 @@
 
 class Column;
 class DataTable;
+class RowIndex;
 
 namespace dt {
 namespace expr {
