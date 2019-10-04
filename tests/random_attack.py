@@ -651,7 +651,7 @@ class Frame0:
 
         # Save random numpy arrays to make sure they don't change with
         # munging. Arrays that are not saved here will be eventually deleted
-        # by Python, in this case we also test datatable behaviour.
+        # by Python, in such a case we also test datatable behaviour.
         if random.random() > 0.5:
             self.np_data += [np_data]
             self.np_data_deepcopy += [copy.deepcopy(np_data)]
