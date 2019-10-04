@@ -380,7 +380,7 @@ class Frame0:
 
 
     def random_column(self, nrows, ttype, missing_fraction, missing_nones=True):
-        mmask = [False] * nrows
+        missing_mask = [False] * nrows
         if ttype == bool:
             data = self.random_bool_column(nrows)
         elif ttype == int:
@@ -392,13 +392,13 @@ class Frame0:
         if missing_fraction:
             for i in range(nrows):
                 if random.random() < missing_fraction:
-                    mmask[i] = True
+                    missing_mask[i] = True
 
         if missing_nones:
             for i in range(nrows):
-                if mmask[i]: data[i] = None
+                if missing_mask[i]: data[i] = None
 
-        return data, mmask
+        return data, missing_mask
 
 
     def random_bool_column(self, nrows):
@@ -532,16 +532,15 @@ class Frame0:
             assert len(np_col1) == len(np_col2), "Numpy column shape check failed..."
             if np.array_equal(np_col1, np_col2):
                 continue
-            print("ERROR: numpy data mismatch at column %d"
-                  % i)
+            print("ERROR: numpy data mismatch at column %d" % i)
             for j, np_val1 in enumerate(np_col1):
                 np_val2 = np_col2[j]
                 if np_val1 == np_val2:
                     continue
-                print("  first difference: np_data1[%d]=%r != np_data2[%d]=%r"
+                print("  first difference: np_col1[%d]=%r != np_col2[%d]=%r"
                       % (j, np_val1, j, np_val2))
-                print("  np_data1 data: %s" % repr_row(list(np_col1), j))
-                print("  np_data2 data: %s" % repr_row(list(np_col2), j))
+                print("  np_col1 data: %s" % repr_row(list(np_col1), j))
+                print("  np_col2 data: %s" % repr_row(list(np_col2), j))
                 sys.exit(1)
             assert False, "Numpy data check failed..."
 
@@ -649,6 +648,10 @@ class Frame0:
         mfraction = random.random()
         data, mmask = self.random_column(self.nrows, coltype, mfraction, False)
         np_data = np.ma.array(data, mask=mmask, dtype=np.dtype(coltype))
+
+        # Save random numpy arrays to make sure they don't change with
+        # munging. Arrays that are not saved here will be eventually deleted
+        # by Python, in this case we also test datatable behaviour.
         if random.random() > 0.5:
             self.np_data += [np_data]
             self.np_data_deepcopy += [copy.deepcopy(np_data)]
