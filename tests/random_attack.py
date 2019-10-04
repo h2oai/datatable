@@ -8,6 +8,7 @@ import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')
 import copy
 import datatable as dt
 import itertools
+import numpy as np
 import os
 import random
 import textwrap
@@ -333,6 +334,8 @@ class Frame0:
         self.data = data
         self.names = names
         self.types = types
+        self.np_data = []
+        self.np_data_deepcopy = []
         self.df = dt.Frame(data, names=names, stypes=types)
         if python_output:
             python_output.write("DT = dt.Frame(%s,\n"
@@ -473,6 +476,7 @@ class Frame0:
                   "       py.names=%r" % (self.df.names, tuple(self.names)))
             sys.exit(1)
         self.check_data()
+        self.check_np_data()
 
     def check_shape(self):
         df_nrows = self.df.nrows
@@ -517,6 +521,29 @@ class Frame0:
                     sys.exit(1)
             assert False, "Data check failed..."
 
+
+    def check_np_data(self):
+        np_data1 = self.np_data
+        np_data2 = self.np_data_deepcopy
+
+        assert len(np_data1) == len(np_data2), "Numpy data shape check failed..."
+        for i, np_col1 in enumerate(np_data1):
+            np_col2 = np_data2[i]
+            assert len(np_col1) == len(np_col2), "Numpy column shape check failed..."
+            if np.array_equal(np_col1, np_col2):
+                continue
+            print("ERROR: numpy data mismatch at column %d"
+                  % i)
+            for j, np_val1 in enumerate(np_col1):
+                np_val2 = np_col2[j]
+                if np_val1 == np_val2:
+                    continue
+                print("  first difference: np_data1[%d]=%r != np_data2[%d]=%r"
+                      % (j, np_val1, j, np_val2))
+                print("  np_data1 data: %s" % repr_row(list(np_col1), j))
+                print("  np_data2 data: %s" % repr_row(list(np_col2), j))
+                sys.exit(1)
+            assert False, "Numpy data check failed..."
 
     #---------------------------------------------------------------------------
     # Operations
@@ -618,14 +645,16 @@ class Frame0:
             self.data = list(map(list, zip(*data)))
 
     def cbind_numpy_column(self):
-        import numpy as np
-
         coltype = self.random_type()
         mfraction = random.random()
         data, mmask = self.random_column(self.nrows, coltype, mfraction, False)
-        np_data = np.ma.array(data, mask=mmask, dtype=np.dtype(coltype)).T
+        np_data = np.ma.array(data, mask=mmask, dtype=np.dtype(coltype))
+        if random.random() > 0.5:
+            self.np_data += [np_data]
+            self.np_data_deepcopy += [copy.deepcopy(np_data)]
+
         names = self.random_names(1)
-        df = dt.Frame(np_data, names=names)
+        df = dt.Frame(np_data.T, names=names)
         if python_output:
             python_output.write("DTNP = dt.Frame(np.ma.array(%s, "
                                 "mask=%s, "
