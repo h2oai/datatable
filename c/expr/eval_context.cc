@@ -104,7 +104,7 @@ void EvalContext::evaluate() {
   DataTable* xdt = frames[0].dt;
   for (size_t i = 1; i < frames.size(); ++i) {
     DataTable* jdt = frames[i].dt;
-    frames[i].ri = natural_join(xdt, jdt);
+    frames[i].ri = natural_join(*xdt, *jdt);
   }
 
   // Compute groupby

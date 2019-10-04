@@ -45,7 +45,7 @@ static DataTable* _make_frame(DataTable* dt, Stat stat) {
     const Column& dtcol = dt->get_column(i);
     out_cols.push_back(dtcol.stats()->get_stat_as_column(stat));
   }
-  return new DataTable(std::move(out_cols), dt);
+  return new DataTable(std::move(out_cols), *dt);
 }
 
 

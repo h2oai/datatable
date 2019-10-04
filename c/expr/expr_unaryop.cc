@@ -348,7 +348,7 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
 
   py::oobj res = frame->m__getitem__(py::otuple{ py::None(), columns });
   DataTable* res_dt = res.to_datatable();
-  res_dt->copy_names_from(dt);
+  res_dt->copy_names_from(*dt);
   return res;
 }
 

@@ -59,7 +59,7 @@ static oobj repeat(const PKArgs& args) {
     newcols[i].repeat(n);
   }
   DataTable* newdt = new DataTable(std::move(newcols),
-                                   dt);  // copy names from dt
+                                   *dt);  // copy names from dt
   return Frame::oframe(newdt);
 }
 

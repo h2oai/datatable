@@ -205,7 +205,7 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     dt_labels = std::move(dt_labels_in);
   } else {
 
-    RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
+    RowIndex ri_join = natural_join(*dt_labels_in.get(), *dt_labels.get());
     size_t nlabels = dt_labels->nrows();
     xassert(nlabels != 0 && nlabels < 3);
     auto data_label_ids_in = static_cast<int8_t*>(
@@ -410,7 +410,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     // on all the negatives.
     auto data_label_ids = static_cast<const int32_t*>(
                             dt_labels->get_column(1).get_data_readonly());
-    RowIndex ri_join = natural_join(dt_labels_in.get(), dt_labels.get());
+    RowIndex ri_join = natural_join(*dt_labels_in.get(), *dt_labels.get());
     size_t nlabels = dt_labels->nrows();
 
     for (size_t i = 0; i < nlabels; ++i) {

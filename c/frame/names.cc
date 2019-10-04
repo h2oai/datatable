@@ -295,11 +295,10 @@ size_t DataTable::xcolindex(const py::_obj& pyname) const {
  * Copy names without checking for validity, since we know they were already
  * verified in DataTable `other`.
  */
-void DataTable::copy_names_from(const DataTable* other) {
-  xassert(other);
-  names_ = other->names_;
-  py_names_ = other->py_names_;
-  py_inames_ = other->py_inames_;
+void DataTable::copy_names_from(const DataTable& other) {
+  names_ = other.names_;
+  py_names_ = other.py_names_;
+  py_inames_ = other.py_inames_;
 }
 
 

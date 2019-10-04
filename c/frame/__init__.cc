@@ -648,7 +648,7 @@ class FrameInitializationManager {
     }
 
     void make_datatable(const DataTable* names_src) {
-      frame->dt = new DataTable(std::move(cols), names_src);
+      frame->dt = new DataTable(std::move(cols), *names_src);
     }
 
 

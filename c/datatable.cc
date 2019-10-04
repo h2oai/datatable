@@ -61,7 +61,7 @@ DataTable::DataTable(colvec&& cols, const strvec& nn, bool warn)
   set_names(nn, warn);
 }
 
-DataTable::DataTable(colvec&& cols, const DataTable* nn)
+DataTable::DataTable(colvec&& cols, const DataTable& nn)
   : DataTable(std::move(cols))
 {
   copy_names_from(nn);
@@ -108,7 +108,7 @@ size_t DataTable::xcolindex(int64_t index) const {
  */
 DataTable* DataTable::copy() const {
   colvec newcols = columns_;  // copy the vector
-  DataTable* res = new DataTable(std::move(newcols), this);
+  DataTable* res = new DataTable(std::move(newcols), *this);
   res->nkeys_ = nkeys_;
   return res;
 }

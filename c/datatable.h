@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_DATATABLE_h
 #define dt_DATATABLE_h
@@ -88,7 +88,7 @@ class DataTable {
     DataTable(colvec&& cols, DefaultNamesTag);
     DataTable(colvec&& cols, const strvec&, bool warn_duplicates = true);
     DataTable(colvec&& cols, const py::olist&, bool warn_duplicates = true);
-    DataTable(colvec&& cols, const DataTable*);
+    DataTable(colvec&& cols, const DataTable&);
     ~DataTable();
 
     size_t nrows() const noexcept { return nrows_; }
@@ -124,7 +124,7 @@ class DataTable {
     int64_t colindex(const py::_obj& pyname) const;
     size_t xcolindex(const py::_obj& pyname) const;
     size_t xcolindex(int64_t index) const;
-    void copy_names_from(const DataTable* other);
+    void copy_names_from(const DataTable& other);
     void set_names_to_default();
     void set_names(const py::olist& names_list, bool warn = true);
     void set_names(const strvec& names_list, bool warn = true);
@@ -162,7 +162,7 @@ DataTable* open_jay_from_file(const std::string& path);
 DataTable* open_jay_from_bytes(const char* ptr, size_t len);
 DataTable* open_jay_from_mbuf(const Buffer&);
 
-RowIndex natural_join(const DataTable* xdt, const DataTable* jdt);
+RowIndex natural_join(const DataTable& xdt, const DataTable& jdt);
 
 
 #endif
