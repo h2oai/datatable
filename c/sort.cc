@@ -491,7 +491,7 @@ class SortContext {
               bool make_groups)
     : SortContext(nrows, rowindex, make_groups)
   {
-    groups = arr32_t(groupby.ngroups(), groupby.offsets_r(), false);
+    groups = arr32_t(groupby.ngroups() + 1, groupby.offsets_r(), false);
     gg.init(nullptr, 0, groupby.ngroups());
     if (!rowindex) {
       dt::parallel_for_static(n,
