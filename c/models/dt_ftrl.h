@@ -62,6 +62,10 @@ class Ftrl : public dt::FtrlBase {
     size_t nepochs;
     std::vector<intvec> interactions;
 
+    // Helper parameters.
+    T ialpha;
+    T gamma;
+
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as
     //   index 0: negative label
@@ -132,6 +136,10 @@ class Ftrl : public dt::FtrlBase {
     void define_features();
     void normalize_rows(dtptr&);
 
+    // Parameter helper methods.
+    void init_ialpha();
+    void init_gamma();
+
   public:
     Ftrl();
     Ftrl(FtrlParams);
@@ -191,6 +199,10 @@ class Ftrl : public dt::FtrlBase {
     static constexpr T T_ONE = static_cast<T>(1.0);
 };
 
+template<class T> constexpr T Ftrl<T>::T_NAN;
+template<class T> constexpr T Ftrl<T>::T_EPSILON;
+template<class T> constexpr T Ftrl<T>::T_ZERO;
+template<class T> constexpr T Ftrl<T>::T_ONE;
 
 extern template class Ftrl<float>;
 extern template class Ftrl<double>;

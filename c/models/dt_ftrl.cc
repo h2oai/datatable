@@ -54,6 +54,8 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   val_error(T_NAN),
   val_niters(0)
 {
+  init_ialpha();
+  init_gamma(); // Depends on ialpha
 }
 
 
@@ -655,14 +657,11 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 template <typename T>
 template <typename F>
 T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
-  T zero = static_cast<T>(0.0);
-  T wTx = zero;
-  T ia = 1 / alpha;
-  T rr = beta * ia + lambda2;
+  T wTx = T_ZERO;
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    T absw = std::max(std::abs(z[k][j]) - lambda1, zero) /
-             (std::sqrt(n[k][j]) * ia + rr);
+    T absw = std::max(std::abs(z[k][j]) - lambda1, T_ZERO) /
+             (std::sqrt(n[k][j]) * ialpha + gamma);
     w[i] = -std::copysign(absw, z[k][j]);
     wTx += w[i];
     fifn(i, absw);
@@ -1189,7 +1188,7 @@ DataTable* Ftrl<T>::get_fi(bool normalize /* = true */) {
 
 
 /**
- *  Other getters and setters.
+ *  Other getters, setters and initializers.
  *  Here we assume that all the validation for setters is done by py::Ftrl.
  */
 template <typename T>
@@ -1309,6 +1308,14 @@ template <typename T>
 void Ftrl<T>::set_alpha(double alpha_in) {
   params.alpha = alpha_in;
   alpha = static_cast<T>(alpha_in);
+  init_ialpha();
+  init_gamma(); // Depends on ialpha
+}
+
+
+template <typename T>
+void Ftrl<T>::init_ialpha() {
+  ialpha = T_ONE / alpha;
 }
 
 
@@ -1316,6 +1323,13 @@ template <typename T>
 void Ftrl<T>::set_beta(double beta_in) {
   params.beta = beta_in;
   beta = static_cast<T>(beta_in);
+  init_gamma();
+}
+
+
+template <typename T>
+void Ftrl<T>::init_gamma() {
+  gamma = beta * ialpha + lambda2;
 }
 
 
@@ -1330,6 +1344,7 @@ template <typename T>
 void Ftrl<T>::set_lambda2(double lambda2_in) {
   params.lambda2 = lambda2_in;
   lambda2 = static_cast<T>(lambda2_in);
+  init_gamma();
 }
 
 
