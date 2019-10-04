@@ -1138,7 +1138,7 @@ bool Ftrl<T>::is_model_trained() {
 template <typename T>
 py::oobj Ftrl<T>::get_model() {
   if (dt_model == nullptr) return py::None();
-  return py::Frame::oframe(dt_model->copy());
+  return py::Frame::oframe(new DataTable(*dt_model));
 }
 
 
@@ -1171,7 +1171,7 @@ template <typename T>
 py::oobj Ftrl<T>::get_fi(bool normalize /* = true */) {
   if (dt_fi == nullptr) return py::None();
 
-  auto dt_fi_copy = dt_fi->copy();
+  DataTable dt_fi_copy { *dt_fi };  // copy
   if (normalize) {
     Column& col = dt_fi_copy.get_column(1);
     bool max_isna;
@@ -1274,13 +1274,13 @@ FtrlParams Ftrl<T>::get_params() {
 template <typename T>
 py::oobj Ftrl<T>::get_labels() {
   if (dt_labels == nullptr) return py::None();
-  return py::Frame::oframe(dt_labels->copy());
+  return py::Frame::oframe(new DataTable(*dt_labels));
 }
 
 
 template <typename T>
-void Ftrl<T>::set_model(DataTable* dt_model_in) {
-  dt_model = dtptr(new DataTable(dt_model_in->copy()));
+void Ftrl<T>::set_model(const DataTable& dt_model_in) {
+  dt_model = dtptr(new DataTable(dt_model_in));
   set_nbins(dt_model->nrows());
   nfeatures = 0;
 }
@@ -1299,8 +1299,8 @@ void Ftrl<T>::set_model_type_trained(FtrlModelType model_type_trained_in) {
 
 
 template <typename T>
-void Ftrl<T>::set_fi(DataTable* dt_fi_in) {
-  dt_fi = dtptr(new DataTable(dt_fi_in->copy()));
+void Ftrl<T>::set_fi(const DataTable& dt_fi_in) {
+  dt_fi = dtptr(new DataTable(dt_fi_in));
   nfeatures = dt_fi->nrows();
 }
 
@@ -1369,8 +1369,8 @@ void Ftrl<T>::set_negative_class(bool negative_class_in) {
 
 
 template <typename T>
-void Ftrl<T>::set_labels(DataTable* dt_labels_in) {
-  dt_labels = dtptr(new DataTable(dt_labels_in->copy()));
+void Ftrl<T>::set_labels(const DataTable& dt_labels_in) {
+  dt_labels = dtptr(new DataTable(dt_labels_in));
 }
 
 

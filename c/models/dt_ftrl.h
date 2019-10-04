@@ -169,8 +169,8 @@ class Ftrl : public dt::FtrlBase {
     py::oobj get_labels() override;
 
     // Setters
-    void set_model(DataTable*) override;
-    void set_fi(DataTable*) override;
+    void set_model(const DataTable&) override;
+    void set_fi(const DataTable&) override;
     void set_model_type(FtrlModelType) override;
     void set_model_type_trained(FtrlModelType) override;
     void set_alpha(double) override;
@@ -182,7 +182,7 @@ class Ftrl : public dt::FtrlBase {
     void set_nepochs(size_t) override;
     void set_interactions(std::vector<intvec>) override;
     void set_negative_class(bool) override;
-    void set_labels(DataTable*) override;
+    void set_labels(const DataTable&) override;
 
     // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();

@@ -36,10 +36,6 @@ struct sort_spec {
     : col_index(i), descending(desc), na_last(nalast), sort_only(sort) {}
 };
 
-struct RowColIndex {
-  RowIndex rowindex;
-  std::vector<size_t> colindices;
-};
 
 using colvec = std::vector<Column>;
 using intvec = std::vector<size_t>;
@@ -49,27 +45,27 @@ using strvec = std::vector<std::string>;
 //==============================================================================
 
 /**
- * The DataTable
- *
- * Properties
- * ----------
- * nrows_
- * ncols_
- *     Data dimensions: number of rows and columns in the datatable. We do not
- *     support more than 2 dimensions (as Numpy or TensorFlow do).
- *     The maximum number of rows is 2**63 - 1. The maximum number of columns
- *     is 2**31 - 1 (even though `ncols_` is declared as `size_t`).
- *
- * nkeys_
- *     The number of columns that together constitute the primary key of this
- *     data frame. The key columns are always located at the beginning of the
- *     `columns_` list. The key values are unique, and the frame is sorted by
- *     these values.
- *
- * columns_
- *     The array of columns within the datatable. This array contains `ncols_`
- *     elements, and each column has the same number of rows: `nrows_`.
- */
+  * The DataTable
+  *
+  * Properties
+  * ----------
+  * nrows_
+  * ncols_
+  *     Data dimensions: number of rows and columns in the datatable. We do not
+  *     support more than 2 dimensions (as Numpy or TensorFlow do).
+  *     The maximum number of rows is 2**63 - 1. The maximum number of columns
+  *     is 2**31 - 1 (even though `ncols_` is declared as `size_t`).
+  *
+  * nkeys_
+  *     The number of columns that together constitute the primary key of this
+  *     data frame. The key columns are always located at the beginning of the
+  *     `columns_` list. The key values are unique, and the frame is sorted by
+  *     these values.
+  *
+  * columns_
+  *     The array of columns within the datatable. This array contains `ncols_`
+  *     elements, and each column has the same number of rows: `nrows_`.
+  */
 class DataTable {
   private:
     size_t  nrows_;
@@ -84,7 +80,7 @@ class DataTable {
     static struct DefaultNamesTag {} default_names;
 
     DataTable();
-    DataTable(const DataTable&) = delete;
+    DataTable(const DataTable&) = default;
     DataTable(DataTable&&) = default;
     DataTable(colvec&& cols, DefaultNamesTag);
     DataTable(colvec&& cols, const strvec&, bool warn_duplicates = true);
@@ -104,7 +100,6 @@ class DataTable {
     void materialize();
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
     void cbind(const std::vector<DataTable*>&);
-    DataTable copy() const;
     DataTable extract_column(size_t i) const;
     size_t memory_footprint() const noexcept;
 

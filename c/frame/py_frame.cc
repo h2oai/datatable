@@ -91,7 +91,7 @@ it was deep-copied.)"
 );
 
 oobj Frame::copy(const PKArgs&) {
-  oobj res = Frame::oframe(dt->copy());
+  oobj res = Frame::oframe(new DataTable(*dt));  // copy dt
   Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);

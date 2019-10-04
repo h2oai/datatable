@@ -550,7 +550,7 @@ void Ftrl::set_model(robj model) {
       throw ValueError() << "Column " << i << " cannot have negative values";
     }
   }
-  dtft->set_model(dt_model);
+  dtft->set_model(*dt_model);
 }
 
 
@@ -1104,11 +1104,11 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   set_params_tuple(pickle[1]);
   set_model(pickle[2]);
   if (pickle[3].is_frame()) {
-    dtft->set_fi(pickle[3].to_datatable());
+    dtft->set_fi(*pickle[3].to_datatable());
   }
 
   if (pickle[4].is_frame()) {
-    dtft->set_labels(pickle[4].to_datatable());
+    dtft->set_labels(*pickle[4].to_datatable());
   }
   set_colnames(pickle[5]);
 

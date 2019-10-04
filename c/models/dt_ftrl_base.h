@@ -116,8 +116,8 @@ class FtrlBase {
     static size_t get_work_amount(size_t);
 
     // Setters
-    virtual void set_model(DataTable*) = 0;
-    virtual void set_fi(DataTable*) = 0;
+    virtual void set_model(const DataTable&) = 0;
+    virtual void set_fi(const DataTable&) = 0;
     virtual void set_model_type(FtrlModelType) = 0;
     virtual void set_model_type_trained(FtrlModelType) = 0;
     virtual void set_alpha(double) = 0;
@@ -129,7 +129,7 @@ class FtrlBase {
     virtual void set_nepochs(size_t) = 0;
     virtual void set_interactions(std::vector<intvec>) = 0;
     virtual void set_negative_class(bool) = 0;
-    virtual void set_labels(DataTable*) = 0;
+    virtual void set_labels(const DataTable&) = 0;
 
     // Number of mantissa bits in a double number.
     static constexpr unsigned char DOUBLE_MANTISSA_NBITS = 52;

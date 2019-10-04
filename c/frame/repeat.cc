@@ -50,7 +50,7 @@ static oobj repeat(const PKArgs& args) {
 
   // Empty Frame: repeating is a noop
   if (dt->ncols() == 0 || dt->nrows() == 0) {
-    return Frame::oframe(dt->copy());
+    return Frame::oframe(new DataTable(*dt));
   }
 
   colvec newcols(dt->ncols());
