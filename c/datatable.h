@@ -85,6 +85,8 @@ class DataTable {
     static struct DefaultNamesTag {} default_names;
 
     DataTable();
+    DataTable(const DataTable&) = delete;
+    DataTable(DataTable&&) = default;
     DataTable(colvec&& cols, DefaultNamesTag);
     DataTable(colvec&& cols, const strvec&, bool warn_duplicates = true);
     DataTable(colvec&& cols, const py::olist&, bool warn_duplicates = true);
@@ -103,8 +105,8 @@ class DataTable {
     void materialize();
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
     void cbind(const std::vector<DataTable*>&);
-    DataTable* copy() const;
-    DataTable* extract_column(size_t i) const;
+    DataTable copy() const;
+    DataTable extract_column(size_t i) const;
     size_t memory_footprint() const noexcept;
 
     const Column& get_column(size_t i) const;

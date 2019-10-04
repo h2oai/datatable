@@ -106,17 +106,17 @@ size_t DataTable::xcolindex(int64_t index) const {
 /**
  * Make a shallow copy of the current DataTable.
  */
-DataTable* DataTable::copy() const {
+DataTable DataTable::copy() const {
   colvec newcols = columns_;  // copy the vector
-  DataTable* res = new DataTable(std::move(newcols), *this);
-  res->nkeys_ = nkeys_;
+  DataTable res(std::move(newcols), *this);
+  res.nkeys_ = nkeys_;
   return res;
 }
 
 
-DataTable* DataTable::extract_column(size_t i) const {
+DataTable DataTable::extract_column(size_t i) const {
   xassert(i < ncols_);
-  return new DataTable({columns_[i]}, {names_[i]});
+  return DataTable({columns_[i]}, {names_[i]});
 }
 
 

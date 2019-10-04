@@ -93,10 +93,10 @@ class FtrlBase {
     virtual bool is_model_trained() = 0;
 
     // Getters
-    virtual DataTable* get_model() = 0;
+    virtual py::oobj get_model() = 0;
     virtual FtrlModelType get_model_type() = 0;
     virtual FtrlModelType get_model_type_trained() = 0;
-    virtual DataTable* get_fi(bool normaliza = true) = 0;
+    virtual py::oobj get_fi(bool normaliza = true) = 0;
     virtual size_t get_nfeatures() = 0;
     virtual size_t get_ncols() = 0;
     virtual const std::vector<uint64_t>& get_colname_hashes() = 0;
@@ -110,7 +110,7 @@ class FtrlBase {
     virtual const std::vector<intvec>& get_interactions() = 0;
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
-    virtual DataTable* get_labels() = 0;
+    virtual py::oobj get_labels() = 0;
     static size_t get_nthreads(size_t);
     static size_t get_work_amount(size_t);
 

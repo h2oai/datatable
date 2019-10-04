@@ -162,6 +162,10 @@ oobj Frame::oframe(DataTable* dt) {
   return oobj::from_new_reference(frame);
 }
 
+oobj Frame::oframe(DataTable&& dt) {
+  return oframe(new DataTable(std::move(dt)));
+}
+
 
 oobj Frame::oframe(robj src) {
   return robj(Frame_Type).call(otuple{src});

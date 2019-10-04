@@ -310,7 +310,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
 
   // Do not aggregate `dt` in-place, instead, make a shallow copy
   // and apply rowindex based on the `exemplar_id`s gathered in `dt_members`.
-  dt_exemplars = dtptr(dt->copy());
+  dt_exemplars = dtptr(new DataTable(dt->copy()));
   {
     job.set_message("Finalizing");
     dt::progress::subtask subjob(job, WORK_FINALIZE);

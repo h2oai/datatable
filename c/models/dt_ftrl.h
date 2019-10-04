@@ -149,8 +149,8 @@ class Ftrl : public dt::FtrlBase {
     bool is_model_trained() override;
 
     // Getters
-    DataTable* get_model() override;
-    DataTable* get_fi(bool normalize = true) override;
+    py::oobj get_model() override;
+    py::oobj get_fi(bool normalize = true) override;
     FtrlModelType get_model_type() override;
     FtrlModelType get_model_type_trained() override;
     size_t get_nfeatures() override;
@@ -166,7 +166,7 @@ class Ftrl : public dt::FtrlBase {
     const std::vector<intvec>& get_interactions() override;
     bool get_negative_class() override;
     FtrlParams get_params() override;
-    DataTable* get_labels() override;
+    py::oobj get_labels() override;
 
     // Setters
     void set_model(DataTable*) override;

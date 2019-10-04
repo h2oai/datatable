@@ -495,10 +495,7 @@ static GSArgs args_labels(
 
 
 oobj Ftrl::get_labels() const {
-  DataTable* dt_labels = dtft->get_labels();
-  if (dt_labels ==nullptr) return py::None();
-  py::oobj df_labels = py::Frame::oframe(dt_labels);
-  return df_labels;
+  return dtft->get_labels();
 }
 
 
@@ -515,10 +512,7 @@ contain z model coefficients, and even columns n model coefficients.)");
 
 oobj Ftrl::get_model() const {
   if (!dtft->is_model_trained()) return py::None();
-
-  DataTable* dt_model = dtft->get_model();
-  py::oobj df_model = py::Frame::oframe(dt_model);
-  return df_model;
+  return dtft->get_model();
 }
 
 
@@ -575,10 +569,7 @@ oobj Ftrl::get_fi() const {
 
 oobj Ftrl::get_normalized_fi(bool normalize) const {
   if (!dtft->is_model_trained()) return py::None();
-
-  DataTable* dt_fi = dtft->get_fi(normalize);
-  py::oobj df_fi = py::Frame::oframe(dt_fi);
-  return df_fi;
+  return dtft->get_fi(normalize);
 }
 
 
