@@ -54,22 +54,22 @@ using dtptr  = std::unique_ptr<DataTable>;
  *
  * Properties
  * ----------
- * nrows
- * ncols
+ * nrows_
+ * ncols_
  *     Data dimensions: number of rows and columns in the datatable. We do not
  *     support more than 2 dimensions (as Numpy or TensorFlow do).
  *     The maximum number of rows is 2**63 - 1. The maximum number of columns
- *     is 2**31 - 1 (even though `ncols` is declared as `size_t`).
+ *     is 2**31 - 1 (even though `ncols_` is declared as `size_t`).
  *
- * nkeys
+ * nkeys_
  *     The number of columns that together constitute the primary key of this
  *     data frame. The key columns are always located at the beginning of the
- *     `column` list. The key values are unique, and the frame is sorted by
+ *     `columns_` list. The key values are unique, and the frame is sorted by
  *     these values.
  *
- * columns
- *     The array of columns within the datatable. This array contains `ncols`
- *     elements, and each column has the same number of rows: `nrows`.
+ * columns_
+ *     The array of columns within the datatable. This array contains `ncols_`
+ *     elements, and each column has the same number of rows: `nrows_`.
  */
 class DataTable {
   private:
@@ -93,6 +93,7 @@ class DataTable {
 
     size_t nrows() const noexcept { return nrows_; }
     size_t ncols() const noexcept { return ncols_; }
+    size_t nkeys() const noexcept { return nkeys_; }
 
     void delete_columns(intvec&);
     void delete_all();
@@ -131,7 +132,6 @@ class DataTable {
     void reorder_names(const intvec& col_indices);
 
     // Key
-    size_t get_nkeys() const;
     void set_key(intvec& col_indices);
     void clear_key();
     void set_nkeys_unsafe(size_t K);

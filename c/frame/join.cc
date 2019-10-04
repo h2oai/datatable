@@ -392,7 +392,7 @@ static size_t binsearch(Cmp* cmp, size_t nrows) {
 
 // declared in datatable.h
 RowIndex natural_join(const DataTable* xdt, const DataTable* jdt) {
-  size_t k = jdt->get_nkeys();  // Number of join columns
+  size_t k = jdt->nkeys();  // Number of join columns
   xassert(k > 0);
 
   // Determine how key columns in `jdt` match the columns in `xdt`

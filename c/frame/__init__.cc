@@ -350,8 +350,8 @@ class FrameInitializationManager {
       } else {
         make_datatable(srcdt);
       }
-      if (srcdt->get_nkeys()) {
-        frame->dt->set_nkeys_unsafe(srcdt->get_nkeys());
+      if (srcdt->nkeys()) {
+        frame->dt->set_nkeys_unsafe(srcdt->nkeys());
       }
     }
 

@@ -43,7 +43,7 @@ will be sorted. The values in the key columns must be unique.
 
 
 oobj Frame::get_key() const {
-  otuple key(dt->get_nkeys());
+  otuple key(dt->nkeys());
   otuple names = get_names().to_otuple();
   for (size_t i = 0; i < key.size(); ++i) {
     key.set(i, names[i]);
@@ -94,10 +94,6 @@ void Frame::_init_key(XTypeMaker& xt) {
 //------------------------------------------------------------------------------
 // DataTable API
 //------------------------------------------------------------------------------
-
-size_t DataTable::get_nkeys() const {
-  return nkeys_;
-}
 
 void DataTable::clear_key() {
   nkeys_ = 0;

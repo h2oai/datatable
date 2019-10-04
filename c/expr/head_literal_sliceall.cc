@@ -62,7 +62,7 @@ Workframe Head_Literal_SliceAll::evaluate_j(
   Workframe outputs(ctx);
   for (size_t i = 0; i < ctx.nframes(); ++i) {
     const DataTable* dti = ctx.get_datatable(i);
-    size_t j0 = ctx.is_naturally_joined(i)? dti->get_nkeys() : 0;
+    size_t j0 = ctx.is_naturally_joined(i)? dti->nkeys() : 0;
     const by_node& by = ctx.get_by_node();
     for (size_t j = j0; j < dti->ncols(); ++j) {
       if (by.has_group_column(j)) continue;

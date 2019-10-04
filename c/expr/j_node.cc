@@ -84,7 +84,7 @@ void allcols_jnode::select(EvalContext& ctx) {
     const strvec& dti_column_names = dti->get_names();
     size_t ncolsi = dti->ncols();
 
-    size_t j0 = ctx.is_naturally_joined(i)? dti->get_nkeys() : 0;
+    size_t j0 = ctx.is_naturally_joined(i)? dti->nkeys() : 0;
     ctx.reserve(ncolsi - j0);
     const by_node& by = ctx.get_by_node();
     for (size_t j = j0; j < ncolsi; ++j) {
