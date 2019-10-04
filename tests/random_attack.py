@@ -8,6 +8,7 @@ import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')
 import copy
 import datatable as dt
 import itertools
+import numpy as np
 import os
 import random
 import textwrap
@@ -232,7 +233,15 @@ class Attacker:
         print("[10] Sorting column %d ASC" % icol)
         if python_output:
             python_output.write("DT = DT.sort(f[%d])\n" % icol)
-        frame.sort(icol)
+        frame.sort_column(icol)
+
+    def cbind_numpy_column(self, frame):
+        print("[11] Cbinding frame with a numpy column -> ncols = %d"
+              % (frame.ncols + 1))
+
+        frame.cbind_numpy_column()
+        if python_output:
+            python_output.write("DT.cbind(DTNP)\n")
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -274,6 +283,7 @@ class Attacker:
         select_rows_with_boolean_column: 1,
         replace_nas_in_column: 1,
         sort_column: 1,
+        cbind_numpy_column: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -319,11 +329,13 @@ class Frame0:
         print("  types: bool=%d, int=%d, float=%d, str=%d"
               % (tt[bool], tt[int], tt[float], tt[str]))
         print("  missing values: %.3f" % missing_fraction)
-        data = [self.random_column(nrows, types[i], missing_fraction)
+        data = [self.random_column(nrows, types[i], missing_fraction)[0]
                 for i in range(ncols)]
         self.data = data
         self.names = names
         self.types = types
+        self.np_data = []
+        self.np_data_deepcopy = []
         self.df = dt.Frame(data, names=names, stypes=types)
         if python_output:
             python_output.write("DT = dt.Frame(%s,\n"
@@ -367,7 +379,8 @@ class Frame0:
                 return name
 
 
-    def random_column(self, nrows, ttype, missing):
+    def random_column(self, nrows, ttype, missing_fraction, missing_nones=True):
+        missing_mask = [False] * nrows
         if ttype == bool:
             data = self.random_bool_column(nrows)
         elif ttype == int:
@@ -376,11 +389,16 @@ class Frame0:
             data = self.random_float_column(nrows)
         else:
             data = self.random_str_column(nrows)
-        if missing:
+        if missing_fraction:
             for i in range(nrows):
-                if random.random() < missing:
-                    data[i] = None
-        return data
+                if random.random() < missing_fraction:
+                    missing_mask[i] = True
+
+        if missing_nones:
+            for i in range(nrows):
+                if missing_mask[i]: data[i] = None
+
+        return data, missing_mask
 
 
     def random_bool_column(self, nrows):
@@ -458,6 +476,7 @@ class Frame0:
                   "       py.names=%r" % (self.df.names, tuple(self.names)))
             sys.exit(1)
         self.check_data()
+        self.check_np_data()
 
     def check_shape(self):
         df_nrows = self.df.nrows
@@ -502,6 +521,28 @@ class Frame0:
                     sys.exit(1)
             assert False, "Data check failed..."
 
+
+    def check_np_data(self):
+        np_data1 = self.np_data
+        np_data2 = self.np_data_deepcopy
+
+        assert len(np_data1) == len(np_data2), "Numpy data shape check failed..."
+        for i, np_col1 in enumerate(np_data1):
+            np_col2 = np_data2[i]
+            assert len(np_col1) == len(np_col2), "Numpy column shape check failed..."
+            if np.array_equal(np_col1, np_col2):
+                continue
+            print("ERROR: numpy data mismatch at column %d" % i)
+            for j, np_val1 in enumerate(np_col1):
+                np_val2 = np_col2[j]
+                if np_val1 == np_val2:
+                    continue
+                print("  first difference: np_col1[%d]=%r != np_col2[%d]=%r"
+                      % (j, np_val1, j, np_val2))
+                print("  np_col1 data: %s" % repr_row(list(np_col1), j))
+                print("  np_col2 data: %s" % repr_row(list(np_col2), j))
+                sys.exit(1)
+            assert False, "Numpy data check failed..."
 
     #---------------------------------------------------------------------------
     # Operations
@@ -595,12 +636,46 @@ class Frame0:
                 column[i] = replacement_value
         self.df[f[icol] == None, f[icol]] = replacement_value
 
-    def sort(self, icol):
+    def sort_column(self, icol):
         self.df = self.df.sort(icol)
         if (len(self.data[0])):
             data = list(zip(*self.data))
             data.sort(key=lambda x: (x[icol] is not None, x[icol]))
             self.data = list(map(list, zip(*data)))
+
+    def cbind_numpy_column(self):
+        coltype = self.random_type()
+        mfraction = random.random()
+        data, mmask = self.random_column(self.nrows, coltype, mfraction, False)
+        np_data = np.ma.array(data, mask=mmask, dtype=np.dtype(coltype))
+
+        # Save random numpy arrays to make sure they don't change with
+        # munging. Arrays that are not saved here will be eventually deleted
+        # by Python, in such a case we also test datatable behaviour.
+        if random.random() > 0.5:
+            self.np_data += [np_data]
+            self.np_data_deepcopy += [copy.deepcopy(np_data)]
+
+        names = self.random_names(1)
+        df = dt.Frame(np_data.T, names=names)
+        if python_output:
+            python_output.write("DTNP = dt.Frame(np.ma.array(%s, "
+                                "mask=%s, "
+                                "dtype=np.dtype(%s)).T)\n"
+                                % (repr_data([data], 14),
+                                   repr_data([mmask], 14),
+                                   coltype.__name__))
+            python_output.write("assert DTNP.shape == (%d, %d)\n\n"
+                                % (self.nrows, 1))
+
+        for i in range(self.nrows):
+            if mmask[i]: data[i] = None
+
+        self.df.cbind(df)
+        self.data += [data]
+        self.types += [coltype]
+        self.names += names
+        self.dedup_names()
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -652,6 +727,7 @@ if __name__ == "__main__":
         python_output = open(outfile, "wt")
         python_output.write("#!/usr/bin/env python\n")
         python_output.write("import datatable as dt\n")
+        python_output.write("import numpy as np\n")
         python_output.write("from datatable import f\n")
         python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
