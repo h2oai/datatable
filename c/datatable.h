@@ -44,7 +44,6 @@ struct RowColIndex {
 using colvec = std::vector<Column>;
 using intvec = std::vector<size_t>;
 using strvec = std::vector<std::string>;
-using dtptr  = std::unique_ptr<DataTable>;
 
 
 //==============================================================================

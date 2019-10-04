@@ -223,7 +223,8 @@ std::unique_ptr<DataTable> Workframe::convert_to_datatable() && {
     columns.emplace_back(std::move(record.column));
     names.emplace_back(std::move(record.name));
   }
-  return dtptr(new DataTable(std::move(columns), std::move(names), false));
+  return std::unique_ptr<DataTable>(
+            new DataTable(std::move(columns), std::move(names), false));
 }
 
 

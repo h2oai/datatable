@@ -73,6 +73,7 @@ struct FtrlFitOutput {
     double loss;
 };
 
+using dtptr = std::unique_ptr<DataTable>;
 
 /**
  *  An abstract dt::FtrlBase class that declares all the virtual functions
