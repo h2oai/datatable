@@ -50,7 +50,7 @@ Workframe Head_Literal_SliceStr::evaluate_f(
 {
   DataTable* df = ctx.get_datatable(frame_id);
   size_t istart = start.is_none()? 0 : df->xcolindex(start);
-  size_t iend = end.is_none()? df->ncols - 1 : df->xcolindex(end);
+  size_t iend = end.is_none()? df->ncols() - 1 : df->xcolindex(end);
 
   Workframe outputs(ctx);
   size_t di = (istart <= iend)? 1 : size_t(-1);

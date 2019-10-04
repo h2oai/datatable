@@ -40,12 +40,12 @@ static std::unordered_map<const PKArgs*, Stat> stat_from_args;
 
 static DataTable* _make_frame(DataTable* dt, Stat stat) {
   colvec out_cols;
-  out_cols.reserve(dt->ncols);
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  out_cols.reserve(dt->ncols());
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     const Column& dtcol = dt->get_column(i);
     out_cols.push_back(dtcol.stats()->get_stat_as_column(stat));
   }
-  return new DataTable(std::move(out_cols), dt);
+  return new DataTable(std::move(out_cols), *dt);
 }
 
 
@@ -82,7 +82,7 @@ static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", nullptr);
 static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", nullptr);
 
 oobj Frame::stat1(const PKArgs& args) {
-  if (dt->ncols != 1) {
+  if (dt->ncols() != 1) {
     throw ValueError() << "This method can only be applied to a 1-column Frame";
   }
   const Column& col0 = dt->get_column(0);

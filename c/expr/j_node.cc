@@ -82,9 +82,9 @@ void allcols_jnode::select(EvalContext& ctx) {
     const DataTable* dti = ctx.get_datatable(i);
     const RowIndex& rii = ctx.get_rowindex(i);
     const strvec& dti_column_names = dti->get_names();
-    size_t ncolsi = dti->ncols;
+    size_t ncolsi = dti->ncols();
 
-    size_t j0 = ctx.is_naturally_joined(i)? dti->get_nkeys() : 0;
+    size_t j0 = ctx.is_naturally_joined(i)? dti->nkeys() : 0;
     ctx.reserve(ncolsi - j0);
     const by_node& by = ctx.get_by_node();
     for (size_t j = j0; j < ncolsi; ++j) {
@@ -101,7 +101,7 @@ void allcols_jnode::delete_(EvalContext& ctx) {
   DataTable* dt0 = ctx.get_datatable(0);
   const RowIndex& ri0 = ctx.get_rowindex(0);
   if (ri0) {
-    RowIndex ri_neg = ri0.negate(dt0->nrows);
+    RowIndex ri_neg = ri0.negate(dt0->nrows());
     dt0->apply_rowindex(ri_neg);
   } else {
     dt0->delete_all();
@@ -112,8 +112,8 @@ void allcols_jnode::delete_(EvalContext& ctx) {
 void allcols_jnode::update(EvalContext& ctx, repl_node* repl) {
   DataTable* dt0 = ctx.get_datatable(0);
   const RowIndex& ri0 = ctx.get_rowindex(0);
-  size_t ncols = dt0->ncols;
-  size_t nrows = ri0? ri0.size() : dt0->nrows;
+  size_t ncols = dt0->ncols();
+  size_t nrows = ri0? ri0.size() : dt0->nrows();
   repl->check_compatibility(nrows, ncols);
 
   std::vector<size_t> indices(ncols);
@@ -223,10 +223,10 @@ void simplelist_jnode::update(EvalContext& ctx, repl_node* repl) {
   DataTable* dt0 = ctx.get_datatable(0);
   const RowIndex& ri0 = ctx.get_rowindex(0);
   size_t lcols = indices.size();
-  size_t lrows = ri0? ri0.size() : dt0->nrows;
+  size_t lrows = ri0? ri0.size() : dt0->nrows();
   repl->check_compatibility(lrows, lcols);
 
-  size_t ncols = dt0->ncols;
+  size_t ncols = dt0->ncols();
   strvec new_names{ dt0->get_names() };  // copy names
   try {
     size_t num_new_columns = 0;
@@ -243,8 +243,7 @@ void simplelist_jnode::update(EvalContext& ctx, repl_node* repl) {
           new_names.push_back(names[i]);
         }
       }
-      dt0->ncols = new_names.size();
-      dt0->set_names(new_names);
+      dt0->resize_columns(new_names);
     }
 
     if (ri0) {
@@ -254,8 +253,7 @@ void simplelist_jnode::update(EvalContext& ctx, repl_node* repl) {
     }
   } catch (...) {
     new_names.resize(ncols);
-    dt0->ncols = ncols;
-    dt0->set_names(new_names);
+    dt0->resize_columns(new_names);
     throw;
   }
 }

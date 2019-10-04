@@ -338,8 +338,8 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
   auto frame = static_cast<py::Frame*>(arg.to_borrowed_ref());
   DataTable* dt = frame->get_datatable();
 
-  py::olist columns(dt->ncols);
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  py::olist columns(dt->ncols());
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     py::oobj col_selector = make_pyexpr(Op::COL,
                                         py::otuple{py::oint(i)},
                                         py::otuple{py::oint(0)});
@@ -348,7 +348,7 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
 
   py::oobj res = frame->m__getitem__(py::otuple{ py::None(), columns });
   DataTable* res_dt = res.to_datatable();
-  res_dt->copy_names_from(dt);
+  res_dt->copy_names_from(*dt);
   return res;
 }
 

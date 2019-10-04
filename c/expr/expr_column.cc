@@ -57,7 +57,7 @@ size_t expr_column::get_col_index(const EvalContext& ctx, bool strict) {
     const DataTable* dt = ctx.get_datatable(get_col_frame(ctx));
     if (col_selector.is_int()) {
       int64_t icolid = col_selector.to_int64_strict();
-      int64_t incols = static_cast<int64_t>(dt->ncols);
+      int64_t incols = static_cast<int64_t>(dt->ncols());
       if (icolid < -incols || icolid >= incols) {
         if (strict) {
           throw ValueError() << "Column index " << icolid << " is invalid for "
@@ -67,7 +67,7 @@ size_t expr_column::get_col_index(const EvalContext& ctx, bool strict) {
       } else {
         if (icolid < 0) icolid += incols;
         col_id = static_cast<size_t>(icolid);
-        xassert(col_id < dt->ncols);
+        xassert(col_id < dt->ncols());
       }
     }
     else {

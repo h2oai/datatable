@@ -44,7 +44,7 @@ static Workframe _select_types(
 {
   const DataTable* df = ctx.get_datatable(frame_id);
   Workframe outputs(ctx);
-  for (size_t i = 0; i < df->ncols; ++i) {
+  for (size_t i = 0; i < df->ncols(); ++i) {
     SType st = df->get_column(i).stype();
     for (SType s : stypes) {
       if (s == st) {
@@ -61,7 +61,7 @@ static Workframe _select_type(EvalContext& ctx, size_t frame_id, SType stype0)
 {
   const DataTable* df = ctx.get_datatable(frame_id);
   Workframe outputs(ctx);
-  for (size_t i = 0; i < df->ncols; ++i) {
+  for (size_t i = 0; i < df->ncols(); ++i) {
     SType stypei = df->get_column(i).stype();
     if (stypei == stype0) {
       outputs.add_ref_column(frame_id, i);

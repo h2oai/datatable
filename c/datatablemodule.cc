@@ -58,7 +58,7 @@ _unpack_frame_column_args(const py::PKArgs& args)
   size_t col    = args[1].to_size_t();
 
   if (!dt) throw TypeError() << "First parameter should be a Frame";
-  if (col >= dt->ncols) throw ValueError() << "Index out of bounds";
+  if (col >= dt->ncols()) throw ValueError() << "Index out of bounds";
   return std::make_pair(dt, col);
 }
 
@@ -74,8 +74,8 @@ Return the tuple of which columns in the Frame are virtual.
 
 static py::oobj frame_columns_virtual(const py::PKArgs& args) {
   DataTable* dt = args[0].to_datatable();
-  py::otuple virtuals(dt->ncols);
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  py::otuple virtuals(dt->ncols());
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     virtuals.set(i, py::obool(dt->get_column(i).is_virtual()));
   }
   return std::move(virtuals);

@@ -61,6 +61,7 @@ class Frame : public XObject<Frame> {
     // Internal "constructor" of Frame objects. We do not use real constructors
     // because Frame objects must be allocated/initialized by Python.
     static oobj oframe(DataTable* dt);
+    static oobj oframe(DataTable&& dt);
 
     // Convert python object `src` into a py::Frame object. This is exactly
     // equivalent to calling `dt.Frame(src)` in python.

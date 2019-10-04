@@ -234,13 +234,13 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt = dt_in;
   bool was_sampled = false;
 
-  Column col0 = Column::new_data_column(dt->nrows, SType::INT32);
+  Column col0 = Column::new_data_column(dt->nrows(), SType::INT32);
   dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
 
-  if (dt->nrows >= min_rows) {
+  if (dt->nrows() >= min_rows) {
     colvec catcols;
     size_t ncols, max_bins;
-    contconvs.reserve(dt->ncols);
+    contconvs.reserve(dt->ncols());
     ccptr<T> contconv;
 
     // Number of possible `N/A` bins for a particular aggregator.
@@ -248,7 +248,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
 
     // Create a column convertor for each numeric columns,
     // and create a vector of categoricals.
-    for (size_t i = 0; i < dt->ncols; ++i) {
+    for (size_t i = 0; i < dt->ncols(); ++i) {
       bool is_continuous = true;
       const Column& col = dt->get_column(i);
       switch (col.stype()) {
@@ -259,7 +259,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
         case SType::INT64:   contconv = ccptr<T>(new ColumnConvertorReal<int64_t, T>(col)); break;
         case SType::FLOAT32: contconv = ccptr<T>(new ColumnConvertorReal<float, T>(col)); break;
         case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorReal<double, T>(col)); break;
-        default:             if (dt->ncols < 3) {
+        default:             if (dt->ncols() < 3) {
                                is_continuous = false;
                                catcols.push_back(dt->get_column(i));
                              }
@@ -270,7 +270,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     }
 
     dt_cat = dtptr(new DataTable(std::move(catcols), DataTable::default_names));
-    ncols = contconvs.size() + dt_cat->ncols;
+    ncols = contconvs.size() + dt_cat->ncols();
     job.add_done_amount(WORK_PREPARE);
 
     // Depending on number of columns call a corresponding aggregating method.
@@ -310,7 +310,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
 
   // Do not aggregate `dt` in-place, instead, make a shallow copy
   // and apply rowindex based on the `exemplar_id`s gathered in `dt_members`.
-  dt_exemplars = dtptr(dt->copy());
+  dt_exemplars = dtptr(new DataTable(*dt));
   {
     job.set_message("Finalizing");
     dt::progress::subtask subjob(job, WORK_FINALIZE);
@@ -352,7 +352,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
 
     // First, set all `exemplar_id`s to `N/A`.
-    for (size_t i = 0; i < dt_members->nrows; ++i) {
+    for (size_t i = 0; i < dt_members->nrows(); ++i) {
       d_members[i] = GETNA<int32_t>();
     }
 
@@ -452,13 +452,13 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
  */
 template <typename T>
 void Aggregator<T>::group_0d() {
-  if (dt->ncols > 0) {
+  if (dt->ncols() > 0) {
     std::vector<sort_spec> spec = {sort_spec(0, false, false, true)};
     auto res = dt->group(spec);
     RowIndex ri_exemplars = std::move(res.first);
 
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
-    ri_exemplars.iterate(0, dt->nrows, 1,
+    ri_exemplars.iterate(0, dt->nrows(), 1,
       [&](size_t i, size_t j) {
         d_members[j] = static_cast<int32_t>(i);
       });
@@ -900,7 +900,7 @@ void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
       map[i] = (ids[i] == i) ? i : calculate_map(ids, i);
     });
 
-  dt::parallel_for_static(dt_members->nrows,
+  dt::parallel_for_static(dt_members->nrows(),
     [&](size_t i) {
       auto j = static_cast<size_t>(d_members[i]);
       d_members[i] = static_cast<int32_t>(map[j]);

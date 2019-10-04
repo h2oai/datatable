@@ -42,7 +42,7 @@ void ojoin::pyobj::m__init__(const PKArgs& args) {
     throw TypeError() << "The argument to join() must be a Frame";
   }
   DataTable* jdt = join_frame.to_datatable();
-  if (jdt->get_nkeys() == 0) {
+  if (jdt->nkeys() == 0) {
     throw ValueError() << "The join frame is not keyed";
   }
 }

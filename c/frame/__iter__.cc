@@ -50,16 +50,16 @@ class FrameIterator : public XObject<FrameIterator>
     // See PEP-424
     // Note: the underlying DataTable may get modified while iterating
     oobj m__length_hint__() {
-      if (iteration_index >= dt->ncols) return oint(0);
-      return oint(dt->ncols - iteration_index);
+      if (iteration_index >= dt->ncols()) return oint(0);
+      return oint(dt->ncols() - iteration_index);
     }
 
     oobj m__next__() {
-      if (iteration_index >= dt->ncols) {
+      if (iteration_index >= dt->ncols()) {
         return oobj();
       }
       size_t i = (iteration_index++);
-      if (reverse) i = dt->ncols - i - 1;
+      if (reverse) i = dt->ncols() - i - 1;
       return Frame::oframe(dt->extract_column(i));
     }
 

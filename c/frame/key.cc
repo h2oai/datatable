@@ -43,7 +43,7 @@ will be sorted. The values in the key columns must be unique.
 
 
 oobj Frame::get_key() const {
-  otuple key(dt->get_nkeys());
+  otuple key(dt->nkeys());
   otuple names = get_names().to_otuple();
   for (size_t i = 0; i < key.size(); ++i) {
     key.set(i, names[i]);
@@ -95,18 +95,14 @@ void Frame::_init_key(XTypeMaker& xt) {
 // DataTable API
 //------------------------------------------------------------------------------
 
-size_t DataTable::get_nkeys() const {
-  return nkeys;
-}
-
 void DataTable::clear_key() {
-  nkeys = 0;
+  nkeys_ = 0;
 }
 
 
 void DataTable::set_key(std::vector<size_t>& col_indices) {
   if (col_indices.empty()) {
-    nkeys = 0;
+    nkeys_ = 0;
     return;
   }
   // Check that col_indices are unique
@@ -114,7 +110,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   for (size_t i = 0; i < K; ++i) {
     for (size_t j = i + 1; j < K; ++j) {
       if (col_indices[i] == col_indices[j]) {
-        throw ValueError() << "Column `" << names[col_indices[i]] << "` is "
+        throw ValueError() << "Column `" << names_[col_indices[i]] << "` is "
           "specified multiple times within the key";
       }
     }
@@ -127,9 +123,9 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   }
   auto res = group(ss);
   RowIndex ri = res.first;
-  xassert(ri.size() == nrows);
+  xassert(ri.size() == nrows_);
   // Note: it's possible to have ngroups > nrows, when grouping a 0-row Frame
-  if (res.second.ngroups() < nrows) {
+  if (res.second.ngroups() < nrows_) {
     throw ValueError() << "Cannot set a key: the values are not unique";
   }
 
@@ -140,30 +136,30 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
     }
     return false;
   };
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < ncols_; ++i) {
     if (!is_key_column(i)) {
       col_indices.push_back(i);
     }
   }
-  xassert(col_indices.size() == ncols);
+  xassert(col_indices.size() == ncols_);
 
   // Reorder the columns
   colvec new_columns;
-  new_columns.reserve(ncols);
-  for (size_t i = 0; i < ncols; ++i) {
-    Column col = columns[col_indices[i]];  // copy
+  new_columns.reserve(ncols_);
+  for (size_t i = 0; i < ncols_; ++i) {
+    Column col = columns_[col_indices[i]];  // copy
     col.apply_rowindex(ri);  // apply sort key
     new_columns.emplace_back(std::move(col));
   }
-  columns = std::move(new_columns);
+  columns_ = std::move(new_columns);
   reorder_names(col_indices);
 
   materialize();
 
-  nkeys = K;
+  nkeys_ = K;
 }
 
 
 void DataTable::set_nkeys_unsafe(size_t K) {
-  nkeys = K;
+  nkeys_ = K;
 }

@@ -335,7 +335,7 @@ class FrameInitializationManager {
 
     void init_from_frame() {
       DataTable* srcdt = src.to_datatable();
-      size_t ncols = srcdt->ncols;
+      size_t ncols = srcdt->ncols();
       check_names_count(ncols);
       if (stypes_arg || stype_arg) {
         // TODO: allow this use case
@@ -350,8 +350,8 @@ class FrameInitializationManager {
       } else {
         make_datatable(srcdt);
       }
-      if (srcdt->get_nkeys()) {
-        frame->dt->set_nkeys_unsafe(srcdt->get_nkeys());
+      if (srcdt->nkeys()) {
+        frame->dt->set_nkeys_unsafe(srcdt->nkeys());
       }
     }
 
@@ -592,9 +592,9 @@ class FrameInitializationManager {
       Column col;
       if (colsrc.is_frame()) {
         DataTable* srcdt = colsrc.to_datatable();
-        if (srcdt->ncols != 1) {
+        if (srcdt->ncols() != 1) {
           throw ValueError() << "A column cannot be constructed from a Frame "
-              "with " << srcdt->ncols << " columns";
+              "with " << srcdt->ncols() << " columns";
         }
         col = srcdt->get_column(0);
       }
@@ -648,7 +648,7 @@ class FrameInitializationManager {
     }
 
     void make_datatable(const DataTable* names_src) {
-      frame->dt = new DataTable(std::move(cols), names_src);
+      frame->dt = new DataTable(std::move(cols), *names_src);
     }
 
 

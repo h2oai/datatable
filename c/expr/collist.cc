@@ -127,11 +127,11 @@ class collist_maker
       }
 
       // Finalize
-      if (type == list_type::BOOL && k != dt0->ncols) {
+      if (type == list_type::BOOL && k != dt0->ncols()) {
         throw ValueError()
             << "The length of boolean list in " << srcname
             << " does not match the number of columns in the Frame: "
-            << k << " vs " << dt0->ncols;
+            << k << " vs " << dt0->ncols();
       }
     }
 
@@ -176,7 +176,7 @@ class collist_maker
     void _process_element_int(py::robj elem) {
       _set_type(list_type::INT);
       int64_t i = elem.to_int64_strict();
-      int64_t icols = static_cast<int64_t>(dt0->ncols);
+      int64_t icols = static_cast<int64_t>(dt0->ncols());
       if (i < -icols || i >= icols) {
         throw ValueError()
             << "Column index `" << i << "` is invalid for a Frame with "
@@ -241,7 +241,7 @@ class collist_maker
 
     void _process_element_numslice(py::oslice ssrc) {
       _set_type(list_type::INT);
-      size_t len = dt0->ncols;
+      size_t len = dt0->ncols();
       size_t start, count, step;
       ssrc.normalize(len, &start, &count, &step);
       indices.reserve(indices.size() + count);
@@ -258,7 +258,7 @@ class collist_maker
       size_t start, end;
       if (strict) {
         start = ostart.is_none()? 0 : dt0->xcolindex(ostart);
-        end = ostop.is_none()? dt0->ncols - 1 : dt0->xcolindex(ostop);
+        end = ostop.is_none()? dt0->ncols() - 1 : dt0->xcolindex(ostop);
       } else {
         // Note: colindex() may return -1 indicating the column was not found
         int64_t s = ostart.is_none()? -2 : dt0->colindex(ostart);
@@ -266,7 +266,7 @@ class collist_maker
         // If both ends of a range are not valid, the slice is considered empty
         if ((s + e == -3) || (s == e && s == -1)) return;
         start = (s < 0)? 0 : static_cast<size_t>(s);
-        end = (e < 0)? dt0->ncols - 1 : static_cast<size_t>(e);
+        end = (e < 0)? dt0->ncols() - 1 : static_cast<size_t>(e);
       }
       size_t len = start <= end? end - start + 1 : start - end + 1;
       indices.reserve(len);
@@ -318,7 +318,7 @@ class collist_maker
     }
 
     void _select_types(const std::vector<SType>& stypes) {
-      size_t ncols = dt0->ncols;
+      size_t ncols = dt0->ncols();
       for (size_t i = 0; i < ncols; ++i) {
         SType st = dt0->get_column(i).stype();
         for (SType s : stypes) {

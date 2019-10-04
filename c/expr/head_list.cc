@@ -121,11 +121,11 @@ static Kind _resolve_list_kind(const vecExpr& inputs) {
 
 static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
   DataTable* df = ctx.get_datatable(0);
-  if (inputs.size() != df->ncols) {
+  if (inputs.size() != df->ncols()) {
     throw ValueError()
         << "The length of boolean list in j selector does not match the "
            "number of columns in the Frame: "
-        << inputs.size() << " vs " << df->ncols;
+        << inputs.size() << " vs " << df->ncols();
   }
   Workframe outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {

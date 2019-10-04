@@ -348,8 +348,8 @@ static void getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags)
 
 void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   XInfo* xinfo = nullptr;
-  size_t ncols = dt->ncols;
-  size_t nrows = dt->nrows;
+  size_t ncols = dt->ncols();
+  size_t nrows = dt->nrows();
   size_t i0 = 0;
   bool one_col = (pybuffers::single_col != size_t(-1));
   if (one_col) {

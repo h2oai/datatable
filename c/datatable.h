@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_DATATABLE_h
 #define dt_DATATABLE_h
@@ -36,89 +36,76 @@ struct sort_spec {
     : col_index(i), descending(desc), na_last(nalast), sort_only(sort) {}
 };
 
-struct RowColIndex {
-  RowIndex rowindex;
-  std::vector<size_t> colindices;
-};
 
 using colvec = std::vector<Column>;
 using intvec = std::vector<size_t>;
 using strvec = std::vector<std::string>;
-using dtptr  = std::unique_ptr<DataTable>;
 
 
 //==============================================================================
 
 /**
- * The DataTable
- *
- * Properties
- * ----------
- * nrows
- * ncols
- *     Data dimensions: number of rows and columns in the datatable. We do not
- *     support more than 2 dimensions (as Numpy or TensorFlow do).
- *     The maximum number of rows is 2**63 - 1. The maximum number of columns
- *     is 2**31 - 1 (even though `ncols` is declared as `size_t`).
- *
- * nkeys
- *     The number of columns that together constitute the primary key of this
- *     data frame. The key columns are always located at the beginning of the
- *     `column` list. The key values are unique, and the frame is sorted by
- *     these values.
- *
- * columns
- *     The array of columns within the datatable. This array contains `ncols`
- *     elements, and each column has the same number of rows: `nrows`.
- */
+  * The DataTable
+  *
+  * Properties
+  * ----------
+  * nrows_
+  * ncols_
+  *     Data dimensions: number of rows and columns in the datatable. We do not
+  *     support more than 2 dimensions (as Numpy or TensorFlow do).
+  *     The maximum number of rows is 2**63 - 1. The maximum number of columns
+  *     is 2**31 - 1 (even though `ncols_` is declared as `size_t`).
+  *
+  * nkeys_
+  *     The number of columns that together constitute the primary key of this
+  *     data frame. The key columns are always located at the beginning of the
+  *     `columns_` list. The key values are unique, and the frame is sorted by
+  *     these values.
+  *
+  * columns_
+  *     The array of columns within the datatable. This array contains `ncols_`
+  *     elements, and each column has the same number of rows: `nrows_`.
+  */
 class DataTable {
-  public:
-    size_t   nrows;
-    size_t   ncols;
-    Groupby  groupby;
-
   private:
-    colvec  columns;
-    size_t   nkeys;
-    strvec   names;
-    mutable py::otuple py_names;   // memoized tuple of column names
-    mutable py::odict  py_inames;  // memoized dict of {column name: index}
+    size_t  nrows_;
+    size_t  ncols_;
+    size_t  nkeys_;
+    colvec  columns_;
+    strvec  names_;
+    mutable py::otuple py_names_;   // memoized tuple of column names
+    mutable py::odict  py_inames_;  // memoized dict of {column name: index}
 
   public:
     static struct DefaultNamesTag {} default_names;
 
     DataTable();
+    DataTable(const DataTable&) = default;
+    DataTable(DataTable&&) = default;
     DataTable(colvec&& cols, DefaultNamesTag);
     DataTable(colvec&& cols, const strvec&, bool warn_duplicates = true);
     DataTable(colvec&& cols, const py::olist&, bool warn_duplicates = true);
-    DataTable(colvec&& cols, const DataTable*);
+    DataTable(colvec&& cols, const DataTable&);
     ~DataTable();
+
+    size_t nrows() const noexcept { return nrows_; }
+    size_t ncols() const noexcept { return ncols_; }
+    size_t nkeys() const noexcept { return nkeys_; }
 
     void delete_columns(intvec&);
     void delete_all();
     void resize_rows(size_t n);
+    void resize_columns(const strvec& new_names);
     void apply_rowindex(const RowIndex&);
-    void replace_groupby(const Groupby& newgb);
     void materialize();
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
     void cbind(const std::vector<DataTable*>&);
-    DataTable* copy() const;
-    DataTable* extract_column(size_t i) const;
+    DataTable extract_column(size_t i) const;
     size_t memory_footprint() const noexcept;
 
-    const Column& get_column(size_t i) const {
-      xassert(i < columns.size());
-      return columns[i];
-    }
-    Column& get_column(size_t i) {
-      xassert(i < columns.size());
-      return columns[i];
-    }
-    void set_column(size_t i, Column&& newcol) {
-      xassert(i < columns.size());
-      xassert(newcol.nrows() == nrows);
-      columns[i] = std::move(newcol);
-    }
+    const Column& get_column(size_t i) const;
+    Column& get_column(size_t i);
+    void set_column(size_t i, Column&& newcol);
 
     /**
      * Sort the DataTable by specified columns, and return the corresponding
@@ -133,7 +120,7 @@ class DataTable {
     int64_t colindex(const py::_obj& pyname) const;
     size_t xcolindex(const py::_obj& pyname) const;
     size_t xcolindex(int64_t index) const;
-    void copy_names_from(const DataTable* other);
+    void copy_names_from(const DataTable& other);
     void set_names_to_default();
     void set_names(const py::olist& names_list, bool warn = true);
     void set_names(const strvec& names_list, bool warn = true);
@@ -141,7 +128,6 @@ class DataTable {
     void reorder_names(const intvec& col_indices);
 
     // Key
-    size_t get_nkeys() const;
     void set_key(intvec& col_indices);
     void clear_key();
     void set_nkeys_unsafe(size_t K);
@@ -172,7 +158,7 @@ DataTable* open_jay_from_file(const std::string& path);
 DataTable* open_jay_from_bytes(const char* ptr, size_t len);
 DataTable* open_jay_from_mbuf(const Buffer&);
 
-RowIndex natural_join(const DataTable* xdt, const DataTable* jdt);
+RowIndex natural_join(const DataTable& xdt, const DataTable& jdt);
 
 
 #endif

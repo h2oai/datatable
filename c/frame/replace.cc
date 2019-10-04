@@ -157,7 +157,7 @@ void Frame::replace(const PKArgs& args) {
   ra.parse_x_y(x, y);
   ra.split_x_y_by_type();
 
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     // If a column is a view, then: for a fixed-width column it gets
     // materialized when we request `col->elements_w()`; on the other hand,
     // a string column remains a view, however the iterator `dt::map_str2str`
@@ -260,7 +260,7 @@ void ReplaceAgent::split_x_y_by_type() {
        done_real = false,
        done_bool = false,
        done_str = false;
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     SType s = dt->get_column(i).stype();
     switch (s) {
       case SType::BOOL: {
@@ -565,12 +565,12 @@ void ReplaceAgent::process_real_column(size_t colidx) {
 
 void ReplaceAgent::process_str_column(size_t colidx) {
   if (x_str.empty()) return;
-  Column& col = dt->get_column(colidx);
+  const Column& col = dt->get_column(colidx);
   if (x_str.size() == 1 && x_str[0].isna()) {
     if (col.na_count() == 0) return;
   }
   Column newcol = replace_str(x_str.size(), x_str.data(), y_str.data(), col);
-  columns_cast = (newcol.stype() != col.stype());
+  columns_cast |= (newcol.stype() != col.stype());
   dt->set_column(colidx, std::move(newcol));
 }
 

@@ -41,7 +41,7 @@ Workframe Head_Literal_None::evaluate_n(const vecExpr&, EvalContext& ctx) const 
 Workframe Head_Literal_None::evaluate_j(
     const vecExpr&, EvalContext& ctx, bool) const
 {
-  size_t n = ctx.get_datatable(0)->ncols;
+  size_t n = ctx.get_datatable(0)->ncols();
   Workframe outputs(ctx);
   for (size_t i = 0; i < n; ++i) {
     outputs.add_ref_column(0, i);

@@ -60,15 +60,15 @@ Workframe Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
   (void) args;
   xassert(args.size() == 0);
 
-  if (!(dt->nrows == ctx.nrows() || dt->nrows == 1)) {
-    throw ValueError() << "Frame has " << dt->nrows << " rows, and "
+  if (!(dt->nrows() == ctx.nrows() || dt->nrows() == 1)) {
+    throw ValueError() << "Frame has " << dt->nrows() << " rows, and "
         "cannot be used in an expression where " << ctx.nrows()
         << " are expected";
   }
-  Grouping grouplevel = (dt->nrows == 1)? Grouping::GtoONE
-                                        : Grouping::GtoALL;
+  Grouping grouplevel = (dt->nrows() == 1)? Grouping::GtoONE
+                                          : Grouping::GtoALL;
   Workframe res(ctx);
-  for (size_t i = 0; i < dt->ncols; ++i) {
+  for (size_t i = 0; i < dt->ncols(); ++i) {
     res.add_column(
         Column(dt->get_column(i)),
         ignore_names? std::string() : std::string(dt->get_names()[i]),

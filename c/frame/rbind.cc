@@ -112,7 +112,7 @@ void Frame::rbind(const PKArgs& args) {
     std::function<void(py::robj)> process_arg = [&](py::robj arg) {
       if (arg.is_frame()) {
         DataTable* df = arg.to_datatable();
-        if (df->nrows) dts.push_back(df);
+        if (df->nrows()) dts.push_back(df);
         ++j;
       }
       else if (arg.is_iterable()) {
@@ -136,7 +136,7 @@ void Frame::rbind(const PKArgs& args) {
   if (dts.empty()) return;
 
   strvec final_names = dt->get_names();  // copy the names
-  size_t n = dt->ncols;
+  size_t n = dt->ncols();
   if (n == 0) {
     final_names = dts[0]->get_names();
     n = final_names.size();
@@ -160,7 +160,7 @@ void Frame::rbind(const PKArgs& args) {
     }
     i = 0;
     for (DataTable* df : dts) {
-      if (!force) _check_ncols(n, df->ncols);
+      if (!force) _check_ncols(n, df->ncols());
       const strvec& dfnames = df->get_names();
       size_t j = 0;
       for (const auto& name : dfnames) {
@@ -193,18 +193,18 @@ void Frame::rbind(const PKArgs& args) {
   else {
     size_t i = 0;
     for (DataTable* df : dts) {
-      if (n != df->ncols) {
-        if (!force) _check_ncols(n, df->ncols);
-        if (n < df->ncols) {
+      if (n != df->ncols()) {
+        if (!force) _check_ncols(n, df->ncols());
+        if (n < df->ncols()) {
           const strvec& dfnames = df->get_names();
-          for (size_t j = n; j < df->ncols; ++j) {
+          for (size_t j = n; j < df->ncols(); ++j) {
             final_names.push_back(dfnames[j]);
             cols.push_back(intvec(dts.size(), INVALID_INDEX));
           }
-          n = df->ncols;
+          n = df->ncols();
         }
       }
-      for (size_t j = 0; j < df->ncols; ++j) {
+      for (size_t j = 0; j < df->ncols(); ++j) {
         cols[j][i] = j;
       }
       ++i;
@@ -270,16 +270,16 @@ void DataTable::rbind(
     const std::vector<intvec>& col_indices)
 {
   size_t new_ncols = col_indices.size();
-  xassert(new_ncols >= ncols);
+  xassert(new_ncols >= ncols_);
 
-  columns.reserve(new_ncols);
-  for (size_t i = ncols; i < new_ncols; ++i) {
-    columns.push_back(Column::new_na_column(nrows));
+  columns_.reserve(new_ncols);
+  for (size_t i = ncols_; i < new_ncols; ++i) {
+    columns_.push_back(Column::new_na_column(nrows_));
   }
 
-  size_t new_nrows = this->nrows;
+  size_t new_nrows = nrows_;
   for (auto dt : dts) {
-    new_nrows += dt->nrows;
+    new_nrows += dt->nrows();
   }
 
   colvec cols_to_append(dts.size());
@@ -287,14 +287,14 @@ void DataTable::rbind(
     for (size_t j = 0; j < dts.size(); ++j) {
       size_t k = col_indices[i][j];
       Column col = (k == INVALID_INDEX)
-                      ? Column::new_na_column(dts[j]->nrows)
+                      ? Column::new_na_column(dts[j]->nrows())
                       : dts[j]->get_column(k);
       cols_to_append[j] = std::move(col);
     }
-    columns[i].rbind(cols_to_append);
+    columns_[i].rbind(cols_to_append);
   }
-  ncols = new_ncols;
-  nrows = new_nrows;
+  ncols_ = new_ncols;
+  nrows_ = new_nrows;
 }
 
 

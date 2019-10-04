@@ -54,17 +54,17 @@ Examples
 
 oobj Frame::to_tuples(const PKArgs&) {
   std::vector<py::otuple> list_of_tuples;
-  for (size_t i = 0; i < dt->nrows; ++i) {
-    list_of_tuples.push_back(py::otuple(dt->ncols));
+  for (size_t i = 0; i < dt->nrows(); ++i) {
+    list_of_tuples.push_back(py::otuple(dt->ncols()));
   }
-  for (size_t j = 0; j < dt->ncols; ++j) {
+  for (size_t j = 0; j < dt->ncols(); ++j) {
     const Column& col = dt->get_column(j);
-    for (size_t i = 0; i < dt->nrows; ++i) {
+    for (size_t i = 0; i < dt->nrows(); ++i) {
       list_of_tuples[i].set(j, col.get_element_as_pyobject(i));
     }
   }
-  py::olist res(dt->nrows);
-  for (size_t i = 0; i < dt->nrows; ++i) {
+  py::olist res(dt->nrows());
+  for (size_t i = 0; i < dt->nrows(); ++i) {
     res.set(i, std::move(list_of_tuples[i]));
   }
   return std::move(res);
@@ -92,11 +92,11 @@ Examples
 )");
 
 oobj Frame::to_list(const PKArgs&) {
-  py::olist res(dt->ncols);
-  for (size_t j = 0; j < dt->ncols; ++j) {
-    py::olist pycol(dt->nrows);
+  py::olist res(dt->ncols());
+  for (size_t j = 0; j < dt->ncols(); ++j) {
+    py::olist pycol(dt->nrows());
     const Column& col = dt->get_column(j);
-    for (size_t i = 0; i < dt->nrows; ++i) {
+    for (size_t i = 0; i < dt->nrows(); ++i) {
       pycol.set(i, col.get_element_as_pyobject(i));
     }
     res.set(j, std::move(pycol));
@@ -128,10 +128,10 @@ Examples
 oobj Frame::to_dict(const PKArgs&) {
   py::otuple names = dt->get_pynames();
   py::odict res;
-  for (size_t j = 0; j < dt->ncols; ++j) {
-    py::olist pycol(dt->nrows);
+  for (size_t j = 0; j < dt->ncols(); ++j) {
+    py::olist pycol(dt->nrows());
     const Column& col = dt->get_column(j);
-    for (size_t i = 0; i < dt->nrows; ++i) {
+    for (size_t i = 0; i < dt->nrows(); ++i) {
       pycol.set(i, col.get_element_as_pyobject(i));
     }
     res.set(names[j], pycol);

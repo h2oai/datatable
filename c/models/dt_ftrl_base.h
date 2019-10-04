@@ -73,6 +73,7 @@ struct FtrlFitOutput {
     double loss;
 };
 
+using dtptr = std::unique_ptr<DataTable>;
 
 /**
  *  An abstract dt::FtrlBase class that declares all the virtual functions
@@ -93,10 +94,10 @@ class FtrlBase {
     virtual bool is_model_trained() = 0;
 
     // Getters
-    virtual DataTable* get_model() = 0;
+    virtual py::oobj get_model() = 0;
     virtual FtrlModelType get_model_type() = 0;
     virtual FtrlModelType get_model_type_trained() = 0;
-    virtual DataTable* get_fi(bool normaliza = true) = 0;
+    virtual py::oobj get_fi(bool normaliza = true) = 0;
     virtual size_t get_nfeatures() = 0;
     virtual size_t get_ncols() = 0;
     virtual const std::vector<uint64_t>& get_colname_hashes() = 0;
@@ -110,13 +111,13 @@ class FtrlBase {
     virtual const std::vector<intvec>& get_interactions() = 0;
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
-    virtual DataTable* get_labels() = 0;
+    virtual py::oobj get_labels() = 0;
     static size_t get_nthreads(size_t);
     static size_t get_work_amount(size_t);
 
     // Setters
-    virtual void set_model(DataTable*) = 0;
-    virtual void set_fi(DataTable*) = 0;
+    virtual void set_model(const DataTable&) = 0;
+    virtual void set_fi(const DataTable&) = 0;
     virtual void set_model_type(FtrlModelType) = 0;
     virtual void set_model_type_trained(FtrlModelType) = 0;
     virtual void set_alpha(double) = 0;
@@ -128,7 +129,7 @@ class FtrlBase {
     virtual void set_nepochs(size_t) = 0;
     virtual void set_interactions(std::vector<intvec>) = 0;
     virtual void set_negative_class(bool) = 0;
-    virtual void set_labels(DataTable*) = 0;
+    virtual void set_labels(const DataTable&) = 0;
 
     // Number of mantissa bits in a double number.
     static constexpr unsigned char DOUBLE_MANTISSA_NBITS = 52;

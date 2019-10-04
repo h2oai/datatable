@@ -1336,30 +1336,30 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
   size_t n = spec.size();
   xassert(n > 0);
 
-  const Column& col0 = columns[spec[0].col_index];
+  const Column& col0 = columns_[spec[0].col_index];
   col0.stats();  // instantiate Stats object; TODO: remove this
 
   // For a 0-row Frame we return a rowindex of size 0, and the
   // Groupby containing a single group (also of size 0).
-  if (nrows <= 1) {
-    arr32_t indices(nrows);
-    if (nrows) {
+  if (nrows_ <= 1) {
+    arr32_t indices(nrows_);
+    if (nrows_) {
       indices[0] = 0;
     }
     result.first = RowIndex(std::move(indices), true);
     if (!spec[0].sort_only) {
-      result.second = Groupby::single_group(nrows);
+      result.second = Groupby::single_group(nrows_);
     }
     return result;
   }
 
   for (auto& s : spec) {
-    const_cast<DataTable*>(this)->columns[s.col_index].materialize();
+    const_cast<DataTable*>(this)->columns_[s.col_index].materialize();
   }
 
   bool do_groups = n > 1 || !spec[0].sort_only;
   xassert(!col0.is_virtual());
-  SortContext sc(nrows, RowIndex(), do_groups);
+  SortContext sc(nrows_, RowIndex(), do_groups);
   sc.start_sort(col0, spec[0].descending);
   for (size_t j = 1; j < n; ++j) {
     if (spec[j].sort_only && !spec[j - 1].sort_only) {
@@ -1368,7 +1368,7 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
     if (j == n - 1 && spec[j].sort_only) {
       do_groups = false;
     }
-    const Column& colj = columns[spec[j].col_index];
+    const Column& colj = columns_[spec[j].col_index];
     colj.stats();  // TODO: remove this
     sc.continue_sort(colj, spec[j].descending, do_groups);
   }
@@ -1474,8 +1474,8 @@ py::oobj py::Frame::sort(const PKArgs& args) {
   dt::EvalContext ctx(dt, dt::EvalMode::SELECT);
 
   if (args.num_vararg_args() == 0) {
-    py::otuple all_cols(dt->ncols);
-    for (size_t i = 0; i < dt->ncols; ++i) {
+    py::otuple all_cols(dt->ncols());
+    for (size_t i = 0; i < dt->ncols(); ++i) {
       all_cols.set(i, py::oint(i));
     }
     ctx.add_sortby(py::osort(all_cols));

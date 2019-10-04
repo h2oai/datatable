@@ -88,8 +88,8 @@ class HtmlWidget {
       const size_t maxcols = 15;  // TODO: make configurable
       const size_t maxrows = 15;
       dt = dt_;
-      ncols = dt->ncols;
-      nrows = dt->nrows;
+      ncols = dt->ncols();
+      nrows = dt->nrows();
       cols0 = ncols <= maxcols ? ncols : maxcols * 2 / 3;
       cols1 = ncols <= maxcols ? 0 : maxcols - cols0;
       rows0 = nrows <= maxrows ? nrows : maxrows * 2 / 3;
@@ -396,8 +396,8 @@ bool HtmlWidget::styles_emitted = false;
 namespace py {
 
 oobj Frame::m__repr__() const {
-  size_t nrows = dt->nrows;
-  size_t ncols = dt->ncols;
+  size_t nrows = dt->nrows();
+  size_t ncols = dt->ncols();
   std::ostringstream out;
   out << "<Frame [" << nrows << " row" << (nrows == 1? "" : "s")
       << " x " << ncols << " col" << (ncols == 1? "" : "s") << "]>";

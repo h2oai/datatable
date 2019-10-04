@@ -96,7 +96,7 @@ class EvalContext {
     strvec colnames;
     struct ritriple { RowIndex ab, bc, ac; };
     std::vector<ritriple> all_ri;
-    dtptr  out_datatable;
+    std::unique_ptr<DataTable> out_datatable;
 
   public:
     EvalContext(DataTable*, EvalMode);

@@ -77,7 +77,7 @@ void Frame::cbind(const PKArgs& args)
   std::function<void(robj)> collect_arg = [&](robj item) -> void {
     if (item.is_frame()) {
       DataTable* idt = item.to_datatable();
-      if (idt->ncols == 0) return;
+      if (idt->ncols() == 0) return;
       frame_objs.emplace_back(item);
       datatables.push_back(idt);
     }
@@ -99,9 +99,9 @@ void Frame::cbind(const PKArgs& args)
 
   bool force = args[0]? args[0].to_bool_strict() : false;
   if (!force) {
-    size_t nrows = (dt->nrows == 0 && dt->ncols == 0)? 1 : dt->nrows;
+    size_t nrows = (dt->nrows() == 0 && dt->ncols() == 0)? 1 : dt->nrows();
     for (DataTable* idt : datatables) {
-      size_t inrows = idt->nrows;
+      size_t inrows = idt->nrows();
       if (nrows == 1) nrows = inrows;
       if (nrows == inrows || inrows == 1) continue;
       throw ValueError() << "Cannot cbind frame with " << inrows << " rows to "
@@ -158,16 +158,16 @@ void DatatableModule::init_methods_cbind() {
  */
 void DataTable::cbind(const std::vector<DataTable*>& datatables)
 {
-  size_t final_ncols = ncols;
-  size_t final_nrows = nrows;
+  size_t final_ncols = ncols_;
+  size_t final_nrows = nrows_;
   for (DataTable* dt : datatables) {
-    final_ncols += dt->ncols;
-    if (final_nrows < dt->nrows) final_nrows = dt->nrows;
+    final_ncols += dt->ncols();
+    if (final_nrows < dt->nrows()) final_nrows = dt->nrows();
   }
 
-  bool fix_columns = (nrows < final_nrows);
-  strvec newnames = names;
-  columns.reserve(final_ncols);
+  bool fix_columns = (nrows_ < final_nrows);
+  strvec newnames = names_;
+  columns_.reserve(final_ncols);
 
   // NOTE: when appending a DataTable to itself, the following happens:
   // we start changing `this->columns` vector, which thus becomes
@@ -176,20 +176,20 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
   // `dt`, it is important NOT to use `for (col : dt->columns)` iterator.
   //
   for (auto dt : datatables) {
-    fix_columns |= (dt->nrows < final_nrows);
-    for (size_t ii = 0; ii < dt->ncols; ++ii) {
-      columns.push_back(dt->columns[ii]);
+    fix_columns |= (dt->nrows() < final_nrows);
+    for (size_t ii = 0; ii < dt->ncols(); ++ii) {
+      columns_.push_back(dt->columns_[ii]);
     }
-    const auto& namesi = dt->names;
-    xassert(namesi.size() == dt->ncols);
+    const strvec& namesi = dt->get_names();
+    xassert(namesi.size() == dt->ncols());
     newnames.insert(newnames.end(), namesi.begin(), namesi.end());
   }
-  xassert(columns.size() == final_ncols);
+  xassert(columns_.size() == final_ncols);
   xassert(newnames.size() == final_ncols);
 
   // Fix up the DataTable's columns if they have different number of rows
   if (fix_columns) {
-    for (Column& col : columns) {
+    for (Column& col : columns_) {
       if (col.nrows() == 1) {
         col.repeat(final_nrows);
       } else {
@@ -199,8 +199,8 @@ void DataTable::cbind(const std::vector<DataTable*>& datatables)
   }
 
   // Done.
-  nrows = final_nrows;
-  ncols = final_ncols;
+  nrows_ = final_nrows;
+  ncols_ = final_ncols;
   set_names(newnames);
 }
 

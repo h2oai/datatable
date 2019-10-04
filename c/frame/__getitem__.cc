@@ -152,7 +152,7 @@ oobj Frame::_main_getset(robj item, robj value) {
     bool a1int = arg1.is_int();
     if (a0int && (a1int || arg1.is_string())) {
       int64_t irow = arg0.to_int64_strict();
-      int64_t nrows = static_cast<int64_t>(dt->nrows);
+      int64_t nrows = static_cast<int64_t>(dt->nrows());
       if (irow < -nrows || irow >= nrows) {
         throw ValueError() << "Row `" << irow << "` is invalid for a frame "
             "with " << nrows << " row" << (nrows == 1? "" : "s");

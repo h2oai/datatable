@@ -269,19 +269,19 @@ oobj Ftrl::fit(const PKArgs& args) {
 
   if (dt_X_train == nullptr || dt_y == nullptr) return py::None();
 
-  if (dt_X_train->ncols == 0) {
+  if (dt_X_train->ncols() == 0) {
     throw ValueError() << "Training frame must have at least one column";
   }
 
-  if (dt_X_train->nrows == 0) {
+  if (dt_X_train->nrows() == 0) {
     throw ValueError() << "Training frame cannot be empty";
   }
 
-  if (dt_y->ncols != 1) {
+  if (dt_y->ncols() != 1) {
     throw ValueError() << "Target frame must have exactly one column";
   }
 
-  if (dt_X_train->nrows != dt_y->nrows) {
+  if (dt_X_train->nrows() != dt_y->nrows()) {
     throw ValueError() << "Target column must have the same number of rows "
                        << "as the training frame";
   }
@@ -312,7 +312,7 @@ oobj Ftrl::fit(const PKArgs& args) {
     dt_X_val = arg_X_validation.to_datatable();
     dt_y_val = arg_y_validation.to_datatable();
 
-    if (dt_X_val->ncols != dt_X_train->ncols) {
+    if (dt_X_val->ncols() != dt_X_train->ncols()) {
       throw ValueError() << "Validation frame must have the same number of "
                          << "columns as the training frame";
     }
@@ -322,11 +322,11 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "names as the training frame";
     }
 
-    if (dt_X_val->nrows == 0) {
+    if (dt_X_val->nrows() == 0) {
       throw ValueError() << "Validation frame cannot be empty";
     }
 
-    if (dt_y_val->ncols != 1) {
+    if (dt_y_val->ncols() != 1) {
       throw ValueError() << "Validation target frame must have exactly "
                          << "one column";
     }
@@ -341,7 +341,7 @@ oobj Ftrl::fit(const PKArgs& args) {
                         << "` and `" << info::ltype_name(ltype_val) << "`";
     }
 
-    if (dt_X_val->nrows != dt_y_val->nrows) {
+    if (dt_X_val->nrows() != dt_y_val->nrows()) {
       throw ValueError() << "Validation target frame must have the same "
                          << "number of rows as the validation frame itself";
     }
@@ -428,7 +428,7 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 
   size_t ncols = dtft->get_ncols();
-  if (dt_X->ncols != ncols && ncols != 0) {
+  if (dt_X->ncols() != ncols && ncols != 0) {
     throw ValueError() << "Can only predict on a frame that has " << ncols
                        << " column" << (ncols == 1? "" : "s")
                        << ", i.e. has the same number of features as "
@@ -495,10 +495,7 @@ static GSArgs args_labels(
 
 
 oobj Ftrl::get_labels() const {
-  DataTable* dt_labels = dtft->get_labels();
-  if (dt_labels ==nullptr) return py::None();
-  py::oobj df_labels = py::Frame::oframe(dt_labels);
-  return df_labels;
+  return dtft->get_labels();
 }
 
 
@@ -515,10 +512,7 @@ contain z model coefficients, and even columns n model coefficients.)");
 
 oobj Ftrl::get_model() const {
   if (!dtft->is_model_trained()) return py::None();
-
-  DataTable* dt_model = dtft->get_model();
-  py::oobj df_model = py::Frame::oframe(dt_model);
-  return df_model;
+  return dtft->get_model();
 }
 
 
@@ -526,16 +520,16 @@ void Ftrl::set_model(robj model) {
   DataTable* dt_model = model.to_datatable();
   if (dt_model == nullptr) return;
 
-  size_t ncols = dt_model->ncols;
-  if (dt_model->nrows != dtft->get_nbins() || dt_model->ncols%2 != 0) {
+  size_t ncols = dt_model->ncols();
+  if (dt_model->nrows() != dtft->get_nbins() || dt_model->ncols()%2 != 0) {
     throw ValueError() << "Model frame must have " << dtft->get_nbins()
                        << " rows, and an even number of columns, "
                        << "whereas your frame has "
-                       << dt_model->nrows << " row"
-                       << (dt_model->nrows == 1? "": "s")
+                       << dt_model->nrows() << " row"
+                       << (dt_model->nrows() == 1? "": "s")
                        << " and "
-                       << dt_model->ncols << " column"
-                       << (dt_model->ncols == 1? "": "s");
+                       << dt_model->ncols() << " column"
+                       << (dt_model->ncols() == 1? "": "s");
 
   }
 
@@ -556,7 +550,7 @@ void Ftrl::set_model(robj model) {
       throw ValueError() << "Column " << i << " cannot have negative values";
     }
   }
-  dtft->set_model(dt_model);
+  dtft->set_model(*dt_model);
 }
 
 
@@ -575,10 +569,7 @@ oobj Ftrl::get_fi() const {
 
 oobj Ftrl::get_normalized_fi(bool normalize) const {
   if (!dtft->is_model_trained()) return py::None();
-
-  DataTable* dt_fi = dtft->get_fi(normalize);
-  py::oobj df_fi = py::Frame::oframe(dt_fi);
-  return df_fi;
+  return dtft->get_fi(normalize);
 }
 
 
@@ -1113,11 +1104,11 @@ void Ftrl::m__setstate__(const PKArgs& args) {
   set_params_tuple(pickle[1]);
   set_model(pickle[2]);
   if (pickle[3].is_frame()) {
-    dtft->set_fi(pickle[3].to_datatable());
+    dtft->set_fi(*pickle[3].to_datatable());
   }
 
   if (pickle[4].is_frame()) {
-    dtft->set_labels(pickle[4].to_datatable());
+    dtft->set_labels(*pickle[4].to_datatable());
   }
   set_colnames(pickle[5]);
 

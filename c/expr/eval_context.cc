@@ -104,7 +104,7 @@ void EvalContext::evaluate() {
   DataTable* xdt = frames[0].dt;
   for (size_t i = 1; i < frames.size(); ++i) {
     DataTable* jdt = frames[i].dt;
-    frames[i].ri = natural_join(xdt, jdt);
+    frames[i].ri = natural_join(*xdt, *jdt);
   }
 
   // Compute groupby
@@ -170,7 +170,7 @@ intvec EvalContext::evaluate_j_as_column_index() {
     if (jres.is_placeholder_column(i)) {
       // If allow_new is false, no placeholder columns should be generated
       xassert(allow_new);
-      indices[i] = dt0->ncols + newnames.size();
+      indices[i] = dt0->ncols() + newnames.size();
       newnames.emplace_back(jres.retrieve_name(i));
     }
     if (jres.is_computed_column(i)) {
@@ -187,8 +187,7 @@ void EvalContext::create_placeholder_columns() {
   DataTable* dt0 = frames[0].dt;
   const strvec& oldnames = dt0->get_names();
   newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
-  dt0->ncols = newnames.size();
-  dt0->set_names(newnames);
+  dt0->resize_columns(newnames);
 }
 
 
@@ -222,7 +221,7 @@ void EvalContext::evaluate_delete_rows() {
   DataTable* dt0 = frames[0].dt;
   const RowIndex& ri0 = frames[0].ri;
   if (ri0) {
-    RowIndex ri_neg = ri0.negate(dt0->nrows);
+    RowIndex ri_neg = ri0.negate(dt0->nrows());
     dt0->apply_rowindex(ri_neg);
   } else {
     dt0->delete_all();
@@ -373,11 +372,11 @@ py::oobj EvalContext::get_result() {
     DataTable* result =
         out_datatable? out_datatable.release()
                      : new DataTable(std::move(columns), std::move(colnames));
-    if (result->ncols == 0) {
+    if (result->ncols() == 0) {
       // When selecting a 0-column subset, make sure the number of rows is the
       // same as if some of the columns were selected.
-      result->nrows = frames[0].ri? frames[0].ri.size()
-                                  : frames[0].dt->nrows;
+      result->resize_rows(frames[0].ri? frames[0].ri.size()
+                                      : frames[0].dt->nrows());
     }
     return py::Frame::oframe(result);
   }
@@ -421,7 +420,7 @@ size_t EvalContext::nframes() const {
 
 size_t EvalContext::nrows() const {
   const RowIndex& ri0 = frames[0].ri;
-  return ri0? ri0.size() : frames[0].dt->nrows;
+  return ri0? ri0.size() : frames[0].dt->nrows();
 }
 
 

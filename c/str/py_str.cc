@@ -40,10 +40,10 @@ static oobj split_into_nhot(const PKArgs& args) {
   std::string sep = args[1]? args[1].to_string() : ",";
   bool sort = args[2]? args[2].to_bool_strict() : false;
 
-  if (dt->ncols != 1) {
+  if (dt->ncols() != 1) {
     throw ValueError() << "Function split_into_nhot() may only be applied to "
       "a single-column Frame of type string;" << " got frame with "
-      << dt->ncols << " columns";
+      << dt->ncols() << " columns";
   }
   const Column& col0 = dt->get_column(0);
   SType st = col0.stype();

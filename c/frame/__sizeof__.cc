@@ -63,21 +63,18 @@ void Frame::_init_sizeof(XTypeMaker& xt) {
 size_t DataTable::memory_footprint() const noexcept {
   size_t sz = 0;
   sz += sizeof(*this);
-  sz += sizeof(Column) * columns.capacity();
-  sz += sizeof(std::string) * names.capacity();
-  for (size_t i = 0; i < ncols; ++i) {
-    sz += columns[i].memory_footprint();
-    sz += names[i].size();
+  sz += sizeof(Column) * columns_.capacity();
+  sz += sizeof(std::string) * names_.capacity();
+  for (size_t i = 0; i < ncols_; ++i) {
+    sz += columns_[i].memory_footprint();
+    sz += names_[i].size();
   }
-  if (py_names) {
-    sz += py_names.get_sizeof();
-    sz += py_inames.get_sizeof();
-    for (size_t i = 0; i < ncols; ++i) {
-      sz += py_names[i].get_sizeof();
+  if (py_names_) {
+    sz += py_names_.get_sizeof();
+    sz += py_inames_.get_sizeof();
+    for (size_t i = 0; i < ncols_; ++i) {
+      sz += py_names_[i].get_sizeof();
     }
-  }
-  if (groupby) {
-    sz += (groupby.ngroups() + 1) * sizeof(int32_t);
   }
   return sz;
 }

@@ -156,8 +156,8 @@ class Ftrl : public dt::FtrlBase {
     bool is_model_trained() override;
 
     // Getters
-    DataTable* get_model() override;
-    DataTable* get_fi(bool normalize = true) override;
+    py::oobj get_model() override;
+    py::oobj get_fi(bool normalize = true) override;
     FtrlModelType get_model_type() override;
     FtrlModelType get_model_type_trained() override;
     size_t get_nfeatures() override;
@@ -173,11 +173,11 @@ class Ftrl : public dt::FtrlBase {
     const std::vector<intvec>& get_interactions() override;
     bool get_negative_class() override;
     FtrlParams get_params() override;
-    DataTable* get_labels() override;
+    py::oobj get_labels() override;
 
     // Setters
-    void set_model(DataTable*) override;
-    void set_fi(DataTable*) override;
+    void set_model(const DataTable&) override;
+    void set_fi(const DataTable&) override;
     void set_model_type(FtrlModelType) override;
     void set_model_type_trained(FtrlModelType) override;
     void set_alpha(double) override;
@@ -189,7 +189,7 @@ class Ftrl : public dt::FtrlBase {
     void set_nepochs(size_t) override;
     void set_interactions(std::vector<intvec>) override;
     void set_negative_class(bool) override;
-    void set_labels(DataTable*) override;
+    void set_labels(const DataTable&) override;
 
     // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();
