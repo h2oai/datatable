@@ -28,7 +28,6 @@
 #include "column.h"
 #include "wstringcol.h"
 
-
 namespace dt {
 
 
@@ -39,10 +38,10 @@ template <typename T>
 Ftrl<T>::Ftrl(FtrlParams params_in) :
   model_type(FtrlModelType::NONE), // `NONE` means model was not trained
   params(params_in),
-  alpha(static_cast<T>(params_in.alpha)),
-  beta(static_cast<T>(params_in.beta)),
-  lambda1(static_cast<T>(params_in.lambda1)),
-  lambda2(static_cast<T>(params_in.lambda2)),
+  alpha(T(params_in.alpha)),
+  beta(T(params_in.beta)),
+  lambda1(T(params_in.lambda1)),
+  lambda2(T(params_in.lambda2)),
   nbins(params_in.nbins),
   mantissa_nbits(params_in.mantissa_nbits),
   nepochs(params_in.nepochs),
@@ -81,8 +80,8 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
   dt_y_train = dt_y_train_in;
   dt_X_val = dt_X_val_in;
   dt_y_val = dt_y_val_in;
-  nepochs_val = static_cast<T>(nepochs_val_in);
-  val_error = static_cast<T>(val_error_in);
+  nepochs_val = T(nepochs_val_in);
+  val_error = T(val_error_in);
   val_niters = val_niters_in;
   label_ids_train.clear();
   label_ids_val.clear();
@@ -500,7 +499,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   // `val_error`.
   bool validation = !std::isnan(nepochs_val);
   T loss = T_NAN; // This value is returned when validation is not enabled
-  T loss_old = T_ZERO; // Value of `loss` for a previous iteraction
+  T loss_old = T(0); // Value of `loss` for a previous iteraction
   std::vector<T> loss_history;
   std::vector<hasherptr> hashers_val;
   const Column& target_col0_val = validation? dt_y_val->get_column(0)
@@ -611,7 +610,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           if (dt::this_thread_index() == 0) {
             T loss_current = loss_global.load() / (dt_X_val->nrows() * dt_y_val->ncols());
             loss_history[iter % val_niters] = loss_current / val_niters;
-            loss = std::accumulate(loss_history.begin(), loss_history.end(), T_ZERO);
+            loss = std::accumulate(loss_history.begin(), loss_history.end(), T(0));
             T loss_diff = (loss_old - loss) / loss_old;
             bool is_loss_bad = (iter >= val_niters) && (loss < T_EPSILON || loss_diff < val_error);
             loss_old = is_loss_bad? T_NAN : loss;
@@ -657,10 +656,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 template <typename T>
 template <typename F>
 T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
-  T wTx = T_ZERO;
+  T wTx = T(0);
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    T absw = std::max(std::abs(z[k][j]) - lambda1, T_ZERO) /
+    T absw = std::max(std::abs(z[k][j]) - lambda1, T(0)) /
              (std::sqrt(n[k][j]) * ialpha + gamma);
     w[i] = -std::copysign(absw, z[k][j]);
     wTx += w[i];
@@ -677,12 +676,11 @@ template <typename T>
 template <typename U /* column data type */>
 void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
                          T p, U y, size_t k) {
-  T ia = 1 / alpha;
-  T g = p - static_cast<T>(y);
+  T g = p - T(y);
   T gsq = g * g;
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    T sigma = (std::sqrt(n[k][j] + gsq) - std::sqrt(n[k][j])) * ia;
+    T sigma = (std::sqrt(n[k][j] + gsq) - std::sqrt(n[k][j])) * ialpha;
     z[k][j] += g - sigma * w[i];
     n[k][j] += gsq;
   }
@@ -795,7 +793,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
 
   if (model_type == FtrlModelType::BINOMIAL) {
     dt::parallel_for_static(dt_X->nrows(), [&](size_t i){
-      data_p[k_binomial][i] = T_ONE - data_p[!k_binomial][i];
+      data_p[k_binomial][i] = T(1) - data_p[!k_binomial][i];
     });
   }
 
@@ -822,7 +820,7 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
   }
 
   dt::parallel_for_static(nrows, [&](size_t i){
-    T sum = static_cast<T>(0.0);
+    T sum = T(0);
     for (size_t j = 0; j < ncols; ++j) {
       sum += data[j][i];
     }
@@ -1176,9 +1174,9 @@ py::oobj Ftrl<T>::get_fi(bool normalize /* = true */) {
   if (normalize) {
     Column& col = dt_fi_copy.get_column(1);
     bool max_isna;
-    T max = static_cast<T>(col.stats()->max_double(&max_isna));
+    T max = T(col.stats()->max_double(&max_isna));
     T* data = static_cast<T*>(col.get_data_editable());
-    T norm_factor = static_cast<T>(1.0);
+    T norm_factor = T(1);
 
     if (!max_isna && std::fabs(max) > T_EPSILON) norm_factor /= max;
     for (size_t i = 0; i < col.nrows(); ++i) {
@@ -1309,7 +1307,7 @@ void Ftrl<T>::set_fi(const DataTable& dt_fi_in) {
 
 template <typename T>
 void Ftrl<T>::init_helper_params() {
-  ialpha = T_ONE / alpha;
+  ialpha = T(1) / alpha;
   gamma = beta * ialpha + lambda2;
 }
 
@@ -1317,28 +1315,28 @@ void Ftrl<T>::init_helper_params() {
 template <typename T>
 void Ftrl<T>::set_alpha(double alpha_in) {
   params.alpha = alpha_in;
-  alpha = static_cast<T>(alpha_in);
+  alpha = T(alpha_in);
 }
 
 
 template <typename T>
 void Ftrl<T>::set_beta(double beta_in) {
   params.beta = beta_in;
-  beta = static_cast<T>(beta_in);
+  beta = T(beta_in);
 }
 
 
 template <typename T>
 void Ftrl<T>::set_lambda1(double lambda1_in) {
   params.lambda1 = lambda1_in;
-  lambda1 = static_cast<T>(lambda1_in);
+  lambda1 = T(lambda1_in);
 }
 
 
 template <typename T>
 void Ftrl<T>::set_lambda2(double lambda2_in) {
   params.lambda2 = lambda2_in;
-  lambda2 = static_cast<T>(lambda2_in);
+  lambda2 = T(lambda2_in);
 }
 
 

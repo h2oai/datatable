@@ -856,7 +856,7 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
   }
 
   // Use `delta_merge` for merging exemplars.
-  T delta_merge = pow(static_cast<T>(0.5) * total_distance / n_distances, static_cast<T>(2));
+  T delta_merge = pow(T(0.5) * total_distance / n_distances, T(2));
 
   // When exemplars are merged, all members will be within their `delta`,
   // not `delta_merge`. For that, update delta by taking into account size
@@ -1029,8 +1029,8 @@ void Aggregator<T>::set_norm_coeffs(T& norm_factor, T& norm_shift,
     norm_factor = c_bins * (1 - epsilon) / (c_max - c_min);
     norm_shift = -norm_factor * c_min;
   } else {
-    norm_factor = static_cast<T>(0.0);
-    norm_shift =  static_cast<T>(0.5) * c_bins;
+    norm_factor = T(0.0);
+    norm_shift =  T(0.5) * c_bins;
   }
 }
 
