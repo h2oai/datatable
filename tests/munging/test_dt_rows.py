@@ -255,13 +255,13 @@ def test_rows_range1(dt0, rangeobj):
 def test_rows_range2(dt0):
     assert_valueerror(
         dt.Frame(range(1)), range(5),
-        "range(0, 5, 1) cannot be applied to a Frame with 1 row")
+        "range(5) cannot be applied to a Frame with 1 row")
     assert_valueerror(
         dt0, range(15),
-        "range(0, 15, 1) cannot be applied to a Frame with 10 rows")
+        "range(15) cannot be applied to a Frame with 10 rows")
     assert_valueerror(
         dt0, range(-5, 5),
-        "range(-5, 5, 1) cannot be applied to a Frame with 10 rows")
+        "range(-5, 5) cannot be applied to a Frame with 10 rows")
 
 
 
@@ -284,7 +284,7 @@ def test_rows_generator(dt0):
 def test_rows_generator_bad(dt0):
     assert_typeerror(
         dt0, (i if i % 3 < 2 else str(-i) for i in range(10)),
-        "Invalid item '-2' at index 2 in the `i` selector list")
+        "Invalid item of type string at index 2 in the i-selector list")
 
 
 
@@ -300,7 +300,7 @@ def test_rows_generator_bad(dt0):
 
 @pytest.mark.parametrize("selector, nrows",
                          [([2, 7, 0, 9], 4),
-                          ({1, -1, 0}, 3),
+                          ([1, -1, 0], 3),
                           ((-1, -1, -1, -1), 4),
                           ([slice(5, None), slice(None, 5)], 10),
                           ([0, 2, range(4), -1], 7),
@@ -519,7 +519,7 @@ def test_rows_numpy_array_big(numpy):
 
 def test_rows_int_numpy_array_shapes(dt0, numpy):
     arr1 = numpy.array([7, 1, 0, 3])
-    arr2 = numpy.array([[7, 1, 0, 3]])
+    arr2 = numpy.array([[7, 1, 0, 3]]).T
     arr3 = numpy.array([[7], [1], [0], [3]])
     for arr in [arr1, arr2, arr3]:
         dt1 = dt0[arr, :]

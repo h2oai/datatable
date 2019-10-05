@@ -212,7 +212,7 @@ static RowIndex _evaluate_i_ints(const vecExpr& inputs, size_t nrows) {
       return _evaluate_i_other(inputs, nrows);
     }
     else {
-      throw TypeError() << "Invalid selector of type " << _name_type(ikind)
+      throw TypeError() << "Invalid item of type " << _name_type(ikind)
           << " at index " << i << " in the i-selector list";
     }
   }

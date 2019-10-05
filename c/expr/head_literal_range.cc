@@ -50,7 +50,7 @@ Workframe Head_Literal_Range::evaluate_f(
   size_t start, count, step;
   bool ok = value.normalize(len, &start, &count, &step);
   if (!ok) {
-    throw ValueError() << _repr_range() << " is not valid for a Frame with "
+    throw ValueError() << _repr_range() << " cannot be applied to a Frame with "
         << len << " columns";
   }
   Workframe outputs(ctx);
@@ -73,8 +73,8 @@ RowIndex Head_Literal_Range::evaluate_i(const vecExpr&, EvalContext& ctx) const 
   size_t start, count, step;
   bool ok = value.normalize(len, &start, &count, &step);
   if (!ok) {
-    throw ValueError() << _repr_range() << " is not valid for a Frame with "
-        << len << " rows";
+    throw ValueError() << _repr_range() << " cannot be applied to a Frame with "
+        << len << " row" << ((len == 1)? "" : "s");
   }
   return RowIndex(start, count, step);
 }
