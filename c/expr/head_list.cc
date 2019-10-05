@@ -162,14 +162,27 @@ Workframe Head_List::evaluate_j(
 // i-evaluation
 //------------------------------------------------------------------------------
 
-static RowIndex _evaluate_i_other(const vecExpr& inputs, size_t nrows) {
-  (void) inputs;
-  (void) nrows;
-  throw NotImplError();
+static RowIndex _evaluate_i_other(const vecExpr& inputs, EvalContext& ctx) {
+  std::vector<RowIndex> rowindices;
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    auto ikind = inputs[i].get_expr_kind();
+    if (ikind == Kind::None) continue;
+    if (!(ikind == Kind::Int || ikind == Kind::SliceInt ||
+          ikind == Kind::SliceAll || ikind == Kind::Func ||
+          ikind == Kind::Frame)) {
+      throw TypeError() << "Invalid expression of type " << _name_type(ikind)
+          << " at index " << i << " in the i-selector list";
+    }
+    RowIndex ri = inputs[i].evaluate_i(ctx);
+    if (!ri) ri = RowIndex(0, ctx.nrows(), 1);
+    rowindices.push_back(std::move(ri));
+  }
+  return RowIndex::concat(rowindices);
 }
 
 
-static RowIndex _evaluate_i_bools(const vecExpr& inputs, size_t nrows) {
+static RowIndex _evaluate_i_bools(const vecExpr& inputs, EvalContext& ctx) {
+  size_t nrows = ctx.nrows();
   if (inputs.size() != nrows) {
     throw ValueError()
         << "The length of boolean list in i selector does not match the "
@@ -193,8 +206,8 @@ static RowIndex _evaluate_i_bools(const vecExpr& inputs, size_t nrows) {
 }
 
 
-static RowIndex _evaluate_i_ints(const vecExpr& inputs, size_t nrows) {
-  auto inrows = static_cast<int64_t>(nrows);
+static RowIndex _evaluate_i_ints(const vecExpr& inputs, EvalContext& ctx) {
+  auto inrows = static_cast<int64_t>(ctx.nrows());
   arr32_t data(inputs.size());
   size_t data_index = 0;
   for (size_t i = 0; i < inputs.size(); ++i) {
@@ -209,7 +222,7 @@ static RowIndex _evaluate_i_ints(const vecExpr& inputs, size_t nrows) {
     }
     else if (ikind == Kind::None) {}  // skip
     else if (ikind == Kind::SliceAll || ikind == Kind::SliceInt) {
-      return _evaluate_i_other(inputs, nrows);
+      return _evaluate_i_other(inputs, ctx);
     }
     else {
       throw TypeError() << "Invalid item of type " << _name_type(ikind)
@@ -228,11 +241,10 @@ RowIndex Head_List::evaluate_i(const vecExpr& inputs, EvalContext& ctx) const
   if (inputs.empty()) {
     return RowIndex(0, 0, 1);  // Select-nothing rowindex
   }
-  auto nrows = ctx.nrows();
   auto kind0 = inputs[0].get_expr_kind();
-  if (kind0 == Kind::Bool) return _evaluate_i_bools(inputs, nrows);
-  if (kind0 == Kind::Int)  return _evaluate_i_ints(inputs, nrows);
-  return _evaluate_i_other(inputs, nrows);
+  if (kind0 == Kind::Bool) return _evaluate_i_bools(inputs, ctx);
+  if (kind0 == Kind::Int)  return _evaluate_i_ints(inputs, ctx);
+  return _evaluate_i_other(inputs, ctx);
 }
 
 
