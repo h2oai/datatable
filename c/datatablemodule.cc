@@ -290,9 +290,10 @@ void UNTRACK(void* ptr) {
 
   if (tracked_objects.count(ptr) == 0) {
     // UNTRACK() is usually called from a destructor, so cannot throw any
-    // exceptions there :(
-    std::cerr << "ERROR: Trying to remove pointer " << ptr
-              << " which is not tracked\n";
+    // exceptions there. However, calling PyErr_*() will cause the python
+    // to raise SystemError once the control reaches python.
+    PyErr_SetString(PyExc_RuntimeError,
+                    "ERROR: Trying to remove pointer which is not tracked");
   }
   tracked_objects.erase(ptr);
 }

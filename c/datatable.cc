@@ -19,14 +19,8 @@
 //------------------------------------------------------------------------------
 
 DataTable::DataTable()
-  : nrows_(0), ncols_(0), nkeys_(0)
-{
-  TRACK(this, sizeof(*this), "DataTable");
-}
+  : nrows_(0), ncols_(0), nkeys_(0) {}
 
-DataTable::~DataTable() {
-  UNTRACK(this);
-}
 
 // Private constructor, initializes only columns but not names_
 DataTable::DataTable(colvec&& cols) : DataTable()

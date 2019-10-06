@@ -86,7 +86,6 @@ class DataTable {
     DataTable(colvec&& cols, const strvec&, bool warn_duplicates = true);
     DataTable(colvec&& cols, const py::olist&, bool warn_duplicates = true);
     DataTable(colvec&& cols, const DataTable&);
-    ~DataTable();
 
     size_t nrows() const noexcept { return nrows_; }
     size_t ncols() const noexcept { return ncols_; }

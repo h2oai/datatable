@@ -270,6 +270,13 @@ def test_dt_getitem2(dt0):
     assert_equals(dt0[1], dt0[:, 1])
 
 
+def test_dt_getitem3():
+    DT = dt.Frame([3])
+    a = DT[0]
+    assert a.to_list() == [[3]]
+    del a  # should not emit an error
+
+
 def test_frame_as_iterable(dt0):
     assert iter(dt0)
     assert iter(dt0).__length_hint__() == dt0.ncols
