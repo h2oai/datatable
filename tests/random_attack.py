@@ -17,6 +17,7 @@ import warnings
 from datatable import f
 from datatable.internal import frame_integrity_check
 from datatable.utils.terminal import term
+from datatable.utils.misc import plural_form as plural
 
 exhaustive_checks = False
 python_output = None
@@ -226,14 +227,17 @@ class Attacker:
                                 % (icol, icol, replacement_value))
         frame.replace_nas_in_column(icol, replacement_value)
 
-    def sort_column(self, frame):
+    def sort_columns(self, frame):
         if frame.ncols == 0:
             return
-        icol = random.randint(0, frame.ncols - 1)
-        print("[10] Sorting column %d ASC" % icol)
+        ncols_sort = random.randint(1,5)
+        a = self.random_array(frame.ncols, newn=ncols_sort, positive=True)
+
+        print("[10] Sorting %s: %r in ascending order"
+              % (plural(len(a), "column"), a))
         if python_output:
-            python_output.write("DT = DT.sort(f[%d])\n" % icol)
-        frame.sort_column(icol)
+            python_output.write("DT = DT.sort(%r)\n" % a)
+        frame.sort_columns(a)
 
     def cbind_numpy_column(self, frame):
         print("[11] Cbinding frame with a numpy column -> ncols = %d"
@@ -281,9 +285,10 @@ class Attacker:
             if newn > 0 or n == 0:
                 return res
 
-    def random_array(self, n, positive=False):
+    def random_array(self, n, newn=0, positive=False):
         assert n > 0
-        newn = max(5, random.randint(n // 2, 3 * n // 2))
+        if newn == 0:
+            newn = max(5, random.randint(n // 2, 3 * n // 2))
         lb = 0 if positive else -n
         ub = n - 1
         return [random.randint(lb, ub) for i in range(newn)]
@@ -299,7 +304,7 @@ class Attacker:
         delete_rows_array: 1,
         select_rows_with_boolean_column: 1,
         replace_nas_in_column: 1,
-        sort_column: 1,
+        sort_columns: 1,
         cbind_numpy_column: 1,
         add_range_column: 1,
     }
@@ -654,11 +659,11 @@ class Frame0:
                 column[i] = replacement_value
         self.df[f[icol] == None, f[icol]] = replacement_value
 
-    def sort_column(self, icol):
-        self.df = self.df.sort(icol)
+    def sort_columns(self, a):
+        self.df = self.df.sort(a)
         if (len(self.data[0])):
             data = list(zip(*self.data))
-            data.sort(key=lambda x: (x[icol] is not None, x[icol]))
+            data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
             self.data = list(map(list, zip(*data)))
 
     def cbind_numpy_column(self):
