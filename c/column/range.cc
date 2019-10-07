@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <memory>
 #include "column/range.h"
+#include "parallel/api.h"
 #include "utils/exceptions.h"
 namespace dt {
 
@@ -100,9 +101,29 @@ bool Range_ColumnImpl::get_element(size_t i, double* out)  const { return _get(i
 // Materialization
 //------------------------------------------------------------------------------
 
-// void Range_ColumnImpl::materialize(Column& out) {
+template <typename T>
+void Range_ColumnImpl::_materialize(Column& out) const {
+  Column newcol = Column::new_data_column(nrows_, stype_);
+  T* data = static_cast<T*>(newcol.get_data_editable(0));
+  parallel_for_static(nrows_,
+    [&](size_t i) {
+      data[i] = static_cast<T>(start_ + static_cast<int64_t>(i) * step_);
+    });
+  out = newcol;
+}
 
-// }
+void Range_ColumnImpl::materialize(Column& out) {
+  switch (stype_) {
+    case SType::INT8:    return _materialize<int8_t>(out);
+    case SType::INT16:   return _materialize<int16_t>(out);
+    case SType::INT32:   return _materialize<int32_t>(out);
+    case SType::INT64:   return _materialize<int64_t>(out);
+    case SType::FLOAT32: return _materialize<float>(out);
+    case SType::FLOAT64: return _materialize<double>(out);
+    default:
+      throw RuntimeError() << "Invalid stype for a Range column";
+  }
+}
 
 
 

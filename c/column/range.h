@@ -46,7 +46,7 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
                      SType stype = SType::VOID);
 
     ColumnImpl* clone() const override;
-    // void materialize(Column&) override;
+    void materialize(Column&) override;
 
     bool get_element(size_t, int8_t*)  const override;
     bool get_element(size_t, int16_t*) const override;
@@ -60,6 +60,9 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
 
     // Helper for get_element() accessors
     template <typename T> inline bool _get(size_t, T*) const;
+
+    // Helper for materialize()
+    template <typename T> void _materialize(Column&) const;
 };
 
 
