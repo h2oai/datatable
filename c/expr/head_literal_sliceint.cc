@@ -74,6 +74,7 @@ RowIndex Head_Literal_SliceInt::evaluate_i(const vecExpr&, EvalContext& ctx) con
 static size_t _estimate_iby_nrows(size_t nrows, size_t ngroups,
                                   int64_t istart, int64_t istop, int64_t istep)
 {
+  (void) istart;
   // if (istep < 0) istep = -istep;
   // if (istep == 1) {
   //   if (istart == py::oslice::NA) istart = 0;

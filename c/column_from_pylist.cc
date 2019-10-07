@@ -584,7 +584,9 @@ Column Column::from_pylist_of_dicts(
 Column Column::from_range(
     int64_t start, int64_t stop, int64_t step, SType stype)
 {
-  if (stype == SType::STR32 || stype == SType::STR64 || stype == SType::OBJ) {
+  if (stype == SType::STR32 || stype == SType::STR64 ||
+      stype == SType::OBJ || stype == SType::BOOL)
+  {
     Column col = Column(new dt::Range_ColumnImpl(start, stop, step));
     col.cast_inplace(stype);
     return col;
