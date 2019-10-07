@@ -74,7 +74,7 @@ try {
         }
     }
 
-    node('ibm-power') {
+    node('mr-0xp1') {
         buildSummary.stageWithSummary("Build image for ppc64le") {
             dir('centos7') {
                 checkout scm
