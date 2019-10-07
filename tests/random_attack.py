@@ -233,7 +233,8 @@ class Attacker:
         ncols_sort = random.randint(1,5)
         a = self.random_array(frame.ncols, newn=ncols_sort, positive=True)
 
-        print("[10] Sorting %s: %r in ascending order" % (plural(len(a), "column"), a))
+        print("[10] Sorting %s: %r in ascending order"
+              % (plural(len(a), "column"), a))
         if python_output:
             python_output.write("DT = DT.sort(%r)\n" % a)
         frame.sort_columns(a)
@@ -284,9 +285,9 @@ class Attacker:
             if newn > 0 or n == 0:
                 return res
 
-    def random_array(self, n, newn=False, positive=False):
+    def random_array(self, n, newn=0, positive=False):
         assert n > 0
-        if not newn:
+        if newn == 0:
             newn = max(5, random.randint(n // 2, 3 * n // 2))
         lb = 0 if positive else -n
         ub = n - 1
