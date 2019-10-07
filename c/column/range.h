@@ -46,7 +46,9 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
                      SType stype = SType::VOID);
 
     ColumnImpl* clone() const override;
+    size_t memory_footprint() const noexcept override;
     void materialize(Column&) override;
+    void verify_integrity() const override;
 
     bool get_element(size_t, int8_t*)  const override;
     bool get_element(size_t, int16_t*) const override;
@@ -54,6 +56,9 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, int64_t*) const override;
     bool get_element(size_t, float*)   const override;
     bool get_element(size_t, double*)  const override;
+
+    void fill_npmask(bool* outmask, size_t row0, size_t row1) const override;
+    void apply_rowindex(const RowIndex& ri, Column& out) override;
 
   private:
     Range_ColumnImpl(size_t, SType, int64_t, int64_t);  // for cloning

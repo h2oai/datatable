@@ -127,4 +127,52 @@ void Range_ColumnImpl::materialize(Column& out) {
 
 
 
+//------------------------------------------------------------------------------
+// Misc
+//------------------------------------------------------------------------------
+
+void Range_ColumnImpl::verify_integrity() const {
+  Virtual_ColumnImpl::verify_integrity();
+  auto ltype = info(stype_).ltype();
+  XAssert(ltype == LType::INT || ltype == LType::REAL);
+}
+
+
+size_t Range_ColumnImpl::memory_footprint() const noexcept {
+  return sizeof(*this) + (stats_? stats_->memory_footprint() : 0);
+}
+
+
+void Range_ColumnImpl::fill_npmask(
+    bool* outmask, size_t row0, size_t row1) const
+{
+  std::fill(outmask + row0, outmask + row1, false);
+}
+
+
+void Range_ColumnImpl::apply_rowindex(const RowIndex& ri, Column& out) {
+  if (ri.size() == 0) {
+    nrows_ = 0;
+  }
+  else if (ri.isslice()) {
+    auto ri_start  = static_cast<int64_t>(ri.slice_start());
+    auto ri_step   = static_cast<int64_t>(ri.slice_step());
+    xassert(ri.min() < nrows_);
+    xassert(ri.max() < nrows_);
+    start_ = start_ + ri_start * step_;
+    step_ = step_ * ri_step;
+    nrows_ = ri.size();
+  }
+  else {
+    Virtual_ColumnImpl::apply_rowindex(ri, out);
+  }
+}
+
+
+// TODO: also implement sort(): we want to return a simple SLICE RowIndex
+//       since this column is already sorted.
+
+
+
+
 }  // namespace dt
