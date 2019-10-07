@@ -38,10 +38,10 @@ template <typename T>
 Ftrl<T>::Ftrl(FtrlParams params_in) :
   model_type(FtrlModelType::NONE), // `NONE` means model was not trained
   params(params_in),
-  alpha(T(params_in.alpha)),
-  beta(T(params_in.beta)),
-  lambda1(T(params_in.lambda1)),
-  lambda2(T(params_in.lambda2)),
+  alpha(static_cast<T>(params_in.alpha)),
+  beta(static_cast<T>(params_in.beta)),
+  lambda1(static_cast<T>(params_in.lambda1)),
+  lambda2(static_cast<T>(params_in.lambda2)),
   nbins(params_in.nbins),
   mantissa_nbits(params_in.mantissa_nbits),
   nepochs(params_in.nepochs),
@@ -80,8 +80,8 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
   dt_y_train = dt_y_train_in;
   dt_X_val = dt_X_val_in;
   dt_y_val = dt_y_val_in;
-  nepochs_val = T(nepochs_val_in);
-  val_error = T(val_error_in);
+  nepochs_val = static_cast<T>(nepochs_val_in);
+  val_error = static_cast<T>(val_error_in);
   val_niters = val_niters_in;
   label_ids_train.clear();
   label_ids_val.clear();
@@ -676,7 +676,7 @@ template <typename T>
 template <typename U /* column data type */>
 void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
                          T p, U y, size_t k) {
-  T g = p - T(y);
+  T g = p - static_cast<T>(y);
   T gsq = g * g;
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
@@ -737,7 +737,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   size_t nlabels = dt_labels->nrows();
 
   auto data_label_ids = static_cast<const U*>(
-                            dt_labels->get_column(1).get_data_readonly());
+                          dt_labels->get_column(1).get_data_readonly()
+                        );
 
   dtptr dt_p = create_p(dt_X->nrows());
   std::vector<T*> data_p(nlabels);
@@ -1174,7 +1175,7 @@ py::oobj Ftrl<T>::get_fi(bool normalize /* = true */) {
   if (normalize) {
     Column& col = dt_fi_copy.get_column(1);
     bool max_isna;
-    T max = T(col.stats()->max_double(&max_isna));
+    T max = static_cast<T>(col.stats()->max_double(&max_isna));
     T* data = static_cast<T*>(col.get_data_editable());
     T norm_factor = T(1);
 
@@ -1315,28 +1316,28 @@ void Ftrl<T>::init_helper_params() {
 template <typename T>
 void Ftrl<T>::set_alpha(double alpha_in) {
   params.alpha = alpha_in;
-  alpha = T(alpha_in);
+  alpha = static_cast<T>(alpha_in);
 }
 
 
 template <typename T>
 void Ftrl<T>::set_beta(double beta_in) {
   params.beta = beta_in;
-  beta = T(beta_in);
+  beta = static_cast<T>(beta_in);
 }
 
 
 template <typename T>
 void Ftrl<T>::set_lambda1(double lambda1_in) {
   params.lambda1 = lambda1_in;
-  lambda1 = T(lambda1_in);
+  lambda1 = static_cast<T>(lambda1_in);
 }
 
 
 template <typename T>
 void Ftrl<T>::set_lambda2(double lambda2_in) {
   params.lambda2 = lambda2_in;
-  lambda2 = T(lambda2_in);
+  lambda2 = static_cast<T>(lambda2_in);
 }
 
 
