@@ -380,21 +380,21 @@ class GenericReader(object):
 
         elif ext == ".bz2":
             import bz2
-            zf = bz2.open(filename, mode="rb")
-            if self._verbose:
-                self.logger.debug("Extracting %s into memory" % filename)
-            self._text = zf.read()
-            if self._verbose:
-                self.logger.debug("Extracted: size = %d" % len(self._text))
+            with bz2.open(filename, mode="rb") as zf:
+                if self._verbose:
+                    self.logger.debug("Extracting %s into memory" % filename)
+                self._text = zf.read()
+                if self._verbose:
+                    self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xz":
             import lzma
-            zf = lzma.open(filename, mode="rb")
-            if self._verbose:
-                self.logger.debug("Extracting %s into memory" % filename)
-            self._text = zf.read()
-            if self._verbose:
-                self.logger.debug("Extracted: size = %d" % len(self._text))
+            with lzma.open(filename, mode="rb") as zf:
+                if self._verbose:
+                    self.logger.debug("Extracting %s into memory" % filename)
+                self._text = zf.read()
+                if self._verbose:
+                    self.logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xlsx" or ext == ".xls":
             self._result = read_xls_workbook(filename, subpath)

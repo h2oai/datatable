@@ -37,7 +37,8 @@ except ImportError:
     verfile = os.path.abspath(os.path.join(os.path.dirname(__file__),
                               "../datatable/__version__.py"))
     if os.path.isfile(verfile):
-        txt = open(verfile, "rt").read()
+        with open(verfile, "rt") as inp:
+            txt = inp.read()
     else:
         txt = ""
     mm = re.search(r'version = "(.*)"', txt)

@@ -684,7 +684,8 @@ def test_strXX_large6(st):
     for dirname, _, files in os.walk(rootdir):
         for filename in files:
             f = os.path.join(dirname, filename)
-            txt = open(f, "r", encoding="utf-8").read()
+            with open(f, "r", encoding="utf-8") as inp:
+                txt = inp.read()
             words.extend(txt.split())
     dt0 = dt.Frame(words, stype=st)
     assert dt0.stypes == (st, )
