@@ -27,7 +27,14 @@ namespace dt {
 
 
 /**
-  * Virtual column representing the `arg` column repeated n times.
+  * Virtual column corresponding to Python `range()` object. This
+  * column is created when a `range` object is passed into Frame
+  * constructor.
+  *
+  * By default, this column will take stype INT32. However, if the
+  * range is sufficiently large, the stype will become INT64. However,
+  * we do not support further promotion into FLOAT64 stype for even
+  * larger integers.
   */
 class Range_ColumnImpl : public Virtual_ColumnImpl {
   private:
@@ -39,6 +46,9 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
                      SType stype = SType::VOID);
 
     ColumnImpl* clone() const override;
+    size_t memory_footprint() const noexcept override;
+    void materialize(Column&) override;
+    void verify_integrity() const override;
 
     bool get_element(size_t, int8_t*)  const override;
     bool get_element(size_t, int16_t*) const override;
@@ -47,8 +57,17 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, float*)   const override;
     bool get_element(size_t, double*)  const override;
 
+    void fill_npmask(bool* outmask, size_t row0, size_t row1) const override;
+    void apply_rowindex(const RowIndex& ri, Column& out) override;
+
   private:
-    Range_ColumnImpl(SType, size_t, int64_t, int64_t);  // for cloning
+    Range_ColumnImpl(size_t, SType, int64_t, int64_t);  // for cloning
+
+    // Helper for get_element() accessors
+    template <typename T> inline bool _get(size_t, T*) const;
+
+    // Helper for materialize()
+    template <typename T> void _materialize(Column&) const;
 };
 
 

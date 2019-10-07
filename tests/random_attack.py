@@ -243,6 +243,23 @@ class Attacker:
         if python_output:
             python_output.write("DT.cbind(DTNP)\n")
 
+    def add_range_column(self, frame):
+        start = int(random.expovariate(0.05) - 5)
+        step = 0
+        while step == 0:
+            step = int(1 + random.random() * 3)
+        stop = start + step * frame.nrows
+        rangeobj = range(start, stop, step)
+        print("[12] Adding a range column %r -> ncols = %d"
+              % (rangeobj, frame.ncols + 1))
+        name = Frame0.random_name()
+        if python_output:
+            python_output.write("DT.cbind(dt.Frame(%s=%r))\n"
+                                % (name, rangeobj))
+        frame.add_range_column(name, rangeobj)
+
+
+
     #---------------------------------------------------------------------------
     # Helpers
     #---------------------------------------------------------------------------
@@ -284,6 +301,7 @@ class Attacker:
         replace_nas_in_column: 1,
         sort_column: 1,
         cbind_numpy_column: 1,
+        add_range_column: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -676,6 +694,14 @@ class Frame0:
         self.types += [coltype]
         self.names += names
         self.dedup_names()
+
+    def add_range_column(self, name, rangeobj):
+        self.data += [list(rangeobj)]
+        self.names += [name]
+        self.types += [int]
+        self.dedup_names()
+        self.df.cbind(dt.Frame(rangeobj, names=[name]))
+
 
     #---------------------------------------------------------------------------
     # Helpers
