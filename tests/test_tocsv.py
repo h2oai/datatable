@@ -107,7 +107,8 @@ def test_issue507(tempfile, col, scol):
     d = dt.Frame({col: [-0.006492080633259916]})
     d.to_csv(tempfile)
     exp_text = scol + "\n-0.006492080633259916\n"
-    assert open(tempfile, "rb").read() == exp_text.encode()
+    with open(tempfile, "rb") as inp:
+        assert inp.read() == exp_text.encode()
 
 
 def test_view_to_csv():

@@ -82,7 +82,8 @@ def get_file_list(*path, skip=None):
                 if f + ".gz" in out:
                     out.remove(f + ".gz")
                 try:
-                    open(f, "rb")
+                    with open(f, "rb"):
+                        pass
                     out.add(param(f))
                 except Exception as e:
                     out.add(skipped("%s: '%s'" % (e.__class__.__name__, f), id=f))

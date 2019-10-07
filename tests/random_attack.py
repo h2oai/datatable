@@ -731,5 +731,9 @@ if __name__ == "__main__":
         python_output.write("from datatable import f\n")
         python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
-    ra = Attacker(args.seed)
-    ra.attack()
+    try:
+        ra = Attacker(args.seed)
+        ra.attack()
+    finally:
+        if python_output:
+            python_output.close()
