@@ -93,6 +93,10 @@ class RowIndex {
     RowIndex(const Column& col);
 
 
+    // Create a new rowindex by concatenating the supplied list of rowindices.
+    static RowIndex concat(const std::vector<RowIndex>&);
+
+
     bool operator==(const RowIndex& other) { return impl == other.impl; }
     bool operator!=(const RowIndex& other) { return impl != other.impl; }
     operator bool() const { return impl != nullptr; }
@@ -116,6 +120,7 @@ class RowIndex {
     size_t slice_step() const noexcept;
 
     void extract_into(arr32_t&) const;
+    void extract_into(arr64_t&) const;
 
     /**
      * Convert the RowIndex into an array `int8_t[nrows]`, where each entry

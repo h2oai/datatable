@@ -41,14 +41,27 @@ Workframe Head_Literal_Float::evaluate_n(const vecExpr&, EvalContext& ctx) const
 
 Workframe Head_Literal_Float::evaluate_f(EvalContext&, size_t, bool) const {
   throw TypeError() << "A floating-point value cannot be used as a "
-      "column selector";
+                       "column selector";
 }
 
 
 Workframe Head_Literal_Float::evaluate_j(const vecExpr&, EvalContext&, bool) const {
   throw TypeError() << "A floating-point value cannot be used as a "
-      "column selector";
+                       "column selector";
 }
+
+
+RowIndex Head_Literal_Float::evaluate_i(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A floating-point value cannot be used as a "
+                       "row selector";
+}
+
+
+RiGb Head_Literal_Float::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A floating-point value cannot be used as a "
+                       "row selector";
+}
+
 
 
 

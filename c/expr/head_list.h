@@ -34,6 +34,8 @@ class Head_List : public Head {
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
+    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -48,6 +50,8 @@ class Head_NamedList : public Head {
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
+    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 

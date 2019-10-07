@@ -37,8 +37,6 @@ Workframe Head_Literal::_wrap_column(EvalContext& ctx, Column&& col) {
   return outputs;
 }
 
-Head_Literal::~Head_Literal() {}
-
 
 
 

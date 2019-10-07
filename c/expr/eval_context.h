@@ -24,7 +24,6 @@
 #include <vector>            // std::vector
 #include "expr/by_node.h"    // py::oby, by_node_ptr
 #include "expr/expr.h"
-#include "expr/i_node.h"     // i_node_ptr
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "expr/repl_node.h"  // repl_node_ptr
@@ -77,7 +76,7 @@ class EvalContext {
   private:
     // Inputs
     by_node       byexpr;
-    i_node_ptr    iexpr;
+    expr::Expr    iexpr;
     j_node_ptr    jexpr;
     expr::Expr    jexpr2;
     repl_node_ptr repl;

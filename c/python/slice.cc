@@ -102,6 +102,16 @@ void oslice::normalize(
     int64_t istart, int64_t istop, int64_t istep,
     size_t* ostart, size_t* ocount, size_t* ostep)
 {
+  if (istep == 0) {
+    if (istop == oslice::NA || istart == oslice::NA) {
+      throw ValueError() << "When a slice's step is 0, the first and the "
+                            "second parameters may not be missing";
+    }
+    if (istop <= 0) {
+      throw ValueError() << "When a slice's step is 0, the second parameter "
+                            "(count) must be positive";
+    }
+  }
   if (len == 0) {
     *ostart = 0;
     *ocount = 0;
@@ -118,10 +128,6 @@ void oslice::normalize(
   xassert(istart >= 0 && istart <= ilen);
 
   if (istep == 0) {
-    if (istop == oslice::NA || istop < 0) {
-      throw ValueError() <<
-          "When slice step is zero, the count must be non-negative";
-    }
     *ostart = static_cast<size_t>(istart);
     *ocount = static_cast<size_t>(istop);
     *ostep = 0;

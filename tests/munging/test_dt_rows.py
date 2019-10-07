@@ -188,27 +188,31 @@ def test_rows_slice3(dt0):
     assert dt0[-3:7:0, 2].to_list()[0] == [-14.0] * 7
 
 
-def test_rows_slice_errors(dt0):
+def test_rows_slice_errors0(dt0):
     # noinspection PyTypeChecker
     assert_typeerror(dt0, slice(3, 5.7),
-                     "slice(3, 5.7, None) is not integer-valued")
+                     "slice(3, 5.7, None) is neither integer- nor "
+                     "string- valued")
+
+
+def test_rows_slice_errors1(dt0):
     # noinspection PyTypeChecker
     assert_typeerror(dt0, slice("colA", "colC"),
-                     "slice('colA', 'colC', None) is not integer-valued")
+                     "A string slice cannot be used as a row selector")
 
 
 def test_slice_errors2(dt0):
     assert_valueerror(dt0, slice(None, 2, 0),
-                      "When a slice's step is 0, the `start` and `stop` "
+                      "When a slice's step is 0, the first and the second "
                       "parameters may not be missing")
     assert_valueerror(dt0, slice(-1, None, 0),
-                      "When a slice's step is 0, the `start` and `stop` "
+                      "When a slice's step is 0, the first and the second "
                       "parameters may not be missing")
     assert_valueerror(dt0, slice(0, 0, 0),
-                      "When a slice's step is 0, the `stop` parameter "
+                      "When a slice's step is 0, the second parameter (count) "
                       "must be positive")
     assert_valueerror(dt0, slice(1, -2, 0),
-                      "When a slice's step is 0, the `stop` parameter "
+                      "When a slice's step is 0, the second parameter (count) "
                       "must be positive")
 
 
@@ -251,13 +255,13 @@ def test_rows_range1(dt0, rangeobj):
 def test_rows_range2(dt0):
     assert_valueerror(
         dt.Frame(range(1)), range(5),
-        "range(0, 5, 1) cannot be applied to a Frame with 1 row")
+        "range(5) cannot be applied to a Frame with 1 row")
     assert_valueerror(
         dt0, range(15),
-        "range(0, 15, 1) cannot be applied to a Frame with 10 rows")
+        "range(15) cannot be applied to a Frame with 10 rows")
     assert_valueerror(
         dt0, range(-5, 5),
-        "range(-5, 5, 1) cannot be applied to a Frame with 10 rows")
+        "range(-5, 5) cannot be applied to a Frame with 10 rows")
 
 
 
@@ -280,7 +284,7 @@ def test_rows_generator(dt0):
 def test_rows_generator_bad(dt0):
     assert_typeerror(
         dt0, (i if i % 3 < 2 else str(-i) for i in range(10)),
-        "Invalid item '-2' at index 2 in the `i` selector list")
+        "Invalid item of type string at index 2 in the i-selector list")
 
 
 
@@ -296,7 +300,7 @@ def test_rows_generator_bad(dt0):
 
 @pytest.mark.parametrize("selector, nrows",
                          [([2, 7, 0, 9], 4),
-                          ({1, -1, 0}, 3),
+                          ([1, -1, 0], 3),
                           ((-1, -1, -1, -1), 4),
                           ([slice(5, None), slice(None, 5)], 10),
                           ([0, 2, range(4), -1], 7),
@@ -353,36 +357,38 @@ def test_rows_multislice7():
 def test_rows_multislice_invalid1(dt0):
     assert_typeerror(
         dt0, [1, "hey"],
-        "Invalid item 'hey' at index 1 in the `i` selector list")
+        "Invalid item of type string at index 1 in the i-selector list")
 
 
 def test_rows_multislice_invalid2(dt0):
     assert_valueerror(
         dt0, [1, -1, 5, -11],
-        "`i` selector is not valid for a Frame with 10 rows")
+        "Index -11 is invalid for a Frame with 10 rows")
 
 
 def test_rows_multislice_invalid3(dt0):
     assert_valueerror(
         dt0, [0, range(4, -4, -1)],
-        "Invalid wrap-around range(4, -4, -1) for an `i` selector")
+        "range(4, -4, -1) cannot be applied to a Frame with 10 rows")
 
 
 def test_rows_multislice_invalid4(dt0):
     assert_typeerror(
         dt0, [slice("A", "Z")],
-        "Only integer-valued slices are allowed")
+        "Invalid expression of type string-slice at index 0 in the "
+        "i-selector list")
 
 
 def test_rows_multislice_invalid5(dt0):
-    s = "when step is 0, both start and stop must " \
-        "be present, and stop must be non-negative"
     assert_valueerror(
-        dt0, [slice(3, -1, 0)], "Invalid slice(3, -1, 0): " + s)
+        dt0, [slice(3, -1, 0)], "When a slice's step is 0, the second "
+                                "parameter (count) must be positive")
     assert_valueerror(
-        dt0, [slice(3, None, 0)], "Invalid slice(3, None, 0): " + s)
+        dt0, [slice(3, None, 0)], "When a slice's step is 0, the first and "
+                                  "the second parameters may not be missing")
     assert_valueerror(
-        dt0, [slice(None, 6, 0)], "Invalid slice(None, 6, 0): " + s)
+        dt0, [slice(None, 6, 0)], "When a slice's step is 0, the first and "
+                                  "the second parameters may not be missing")
 
 
 
@@ -515,7 +521,7 @@ def test_rows_numpy_array_big(numpy):
 
 def test_rows_int_numpy_array_shapes(dt0, numpy):
     arr1 = numpy.array([7, 1, 0, 3])
-    arr2 = numpy.array([[7, 1, 0, 3]])
+    arr2 = numpy.array([[7, 1, 0, 3]]).T
     arr3 = numpy.array([[7], [1], [0], [3]])
     for arr in [arr1, arr2, arr3]:
         dt1 = dt0[arr, :]
@@ -527,13 +533,20 @@ def test_rows_int_numpy_array_shapes(dt0, numpy):
                                  [-14, 1, 5, 0.1]]
 
 
-def test_rows_int_numpy_array_errors(dt0, numpy):
+def test_rows_int_numpy_array_errors1(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([[1, 2], [2, 1], [3, 3]]),
-        "Only a single-dimensional numpy array is allowed as `i` selector")
+        "Only a single-column Frame may be used as `i` selector, "
+        "instead got a Frame with 2 columns")
+
+
+def test_rows_int_numpy_array_errors2(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([[[4, 0, 1]]]),
-        "Only a single-dimensional numpy array is allowed as `i` selector")
+        "Cannot create Frame from a 3-D numpy array")
+
+
+def test_rows_int_numpy_array_errors3(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([5, 11, 3]),
         "An integer column used as an `i` selector contains index 11 which is "
@@ -561,8 +574,8 @@ def test_rows_bool_numpy_array_error(dt0, numpy):
 def test_rows_bool_numpy_array_error2(dt0, numpy):
     assert_typeerror(
         dt0, numpy.array([1.7, 3.4, 0.5] + [0.0] * 7),
-        "Either a boolean or an integer numpy array expected for an `i` "
-        "selector, got array of dtype `float64`")
+        "A Frame which is used as an `i` selector should be either boolean "
+        "or integer, instead got `float64`")
 
 
 
@@ -858,13 +871,13 @@ def test_rows_bad_arguments(dt0):
     Test row selectors that are invalid (i.e. not of the types listed above).
     """
     assert_typeerror(
-        dt0, 0.5, "Unsupported `i` selector of type <class 'float'>")
+        dt0, 0.5, "A floating-point value cannot be used as a row selector")
     assert_typeerror(
-        dt0, "59", "String value cannot be used as an `i` expression")
+        dt0, "59", "A string value cannot be used as a row selector")
     assert_typeerror(
-        dt0, True, "Boolean value cannot be used as an `i` expression")
+        dt0, True, "A boolean value cannot be used as a row selector")
     assert_typeerror(
-        dt0, False, "Boolean value cannot be used as an `i` expression")
+        dt0, False, "A boolean value cannot be used as a row selector")
 
 
 def test_issue689(tempfile):

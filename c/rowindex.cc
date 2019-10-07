@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>     // std::memcpy
+#include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "parallel/api.h"     // dt::parallel_for_static
@@ -105,6 +106,34 @@ RowIndex::RowIndex(const Column& col) {
   impl = (new ArrayRowIndexImpl(col))->acquire();
   TRACK(this, sizeof(*this), "RowIndex");
 }
+
+
+
+template <typename T>
+static RowIndex _concat(size_t n, const std::vector<RowIndex>& parts) {
+  dt::array<T> data(n);
+  size_t offset = 0;
+  for (const RowIndex& ri : parts) {
+    dt::array<T> subdata(ri.size(), data.data() + offset, /*owned=*/false);
+    ri.extract_into(subdata);
+    offset += ri.size();
+  }
+  return RowIndex(std::move(data));
+}
+
+
+RowIndex RowIndex::concat(const std::vector<RowIndex>& parts) {
+  size_t total_size = 0;
+  for (const RowIndex& ri : parts) {
+    total_size += ri.size();
+  }
+  if (total_size <= std::numeric_limits<int32_t>::max()) {
+    return _concat<int32_t>(total_size, parts);
+  } else {
+    return _concat<int64_t>(total_size, parts);
+  }
+}
+
 
 
 
@@ -199,29 +228,58 @@ void RowIndex::resize(size_t nrows) {
 }
 
 
-void RowIndex::extract_into(arr32_t& target) const {
-  if (!impl) return;
-  size_t szlen = size();
-  xassert(target.size() >= szlen);
-  switch (impl->type) {
+template <typename T>
+static void _extract_into(const RowIndex& ri, dt::array<T>& target) {
+  if (!ri) return;
+  size_t ri_size = ri.size();
+  xassert(target.size() >= ri_size);
+  switch (ri.type()) {
     case RowIndexType::ARR32: {
-      std::memcpy(target.data(), indices32(), szlen * sizeof(int32_t));
+      const int32_t* ri_data = ri.indices32();
+      if (sizeof(T) == 4) {
+        std::memcpy(target.data(), ri_data, ri_size * sizeof(T));
+      }
+      else {
+        dt::parallel_for_static(ri_size,
+          [&](size_t i) {
+            target[i] = static_cast<T>(ri_data[i]);
+          });
+      }
+      break;
+    }
+    case RowIndexType::ARR64: {
+      const int64_t* ri_data = ri.indices64();
+      if (sizeof(T) == 8) {
+        std::memcpy(target.data(), ri_data, ri_size * sizeof(T));
+      }
+      else {
+        dt::parallel_for_static(ri_size,
+          [&](size_t i) {
+            target[i] = static_cast<T>(ri_data[i]);
+          });
+      }
       break;
     }
     case RowIndexType::SLICE: {
-      if (szlen <= INT32_MAX && max() <= INT32_MAX) {
-        size_t start = slice_start();
-        size_t step = slice_step();
-        dt::parallel_for_static(szlen,
-          [&](size_t i) {
-            target[i] = static_cast<int32_t>(start + i * step);
-          });
-      }
+      size_t start = ri.slice_start();
+      size_t step = ri.slice_step();
+      dt::parallel_for_static(ri_size,
+        [&](size_t i) {
+          target[i] = static_cast<T>(start + i * step);
+        });
       break;
     }
     default:
       break;
   }
+}
+
+void RowIndex::extract_into(arr32_t& target) const {
+  _extract_into<int32_t>(*this, target);
+}
+
+void RowIndex::extract_into(arr64_t& target) const {
+  _extract_into<int64_t>(*this, target);
 }
 
 

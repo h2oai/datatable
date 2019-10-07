@@ -67,6 +67,17 @@ Workframe Head_Literal_String::evaluate_j(
 }
 
 
+RowIndex Head_Literal_String::evaluate_i(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A string value cannot be used as a row selector";
+}
+
+
+RiGb Head_Literal_String::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A string value cannot be used as a row selector";
+}
+
+
+
 
 
 }}  // namespace dt::expr

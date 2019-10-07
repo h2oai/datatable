@@ -73,6 +73,10 @@ namespace expr {
   *   `f[<Expr>]`. In this mode `frame_id` is also passed to the Expr,
   *   allowing to disambiguate between symbols `f`, `g`, etc.
   *
+  * evaluate_i()
+  *   The expression is used as the root i node: `DT[<Expr>, :]`.
+  *   This function will only be called if there is no `by` node.
+  *
   * evaluate_bool()
   *   This is not a "proper" evaluation mode: it is only applied to
   *   boolean expressions (i.e. an expression with `get_expr_kind()`
@@ -97,7 +101,10 @@ class Expr {
     Workframe evaluate_n(EvalContext& ctx) const;
     Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new = false) const;
     Workframe evaluate_j(EvalContext& ctx, bool allow_new = false) const;
+    RowIndex  evaluate_i(EvalContext& ctx) const;
+    RiGb      evaluate_iby(EvalContext& ctx) const;
     bool evaluate_bool() const;
+    int64_t evaluate_int() const;
 
   private:
     // Construction helpers
@@ -113,6 +120,7 @@ class Expr {
     void _init_from_none();
     void _init_from_numpy(py::robj);
     void _init_from_pandas(py::robj);
+    void _init_from_range(py::robj);
     void _init_from_slice(py::robj);
     void _init_from_string(py::robj);
     void _init_from_type(py::robj);

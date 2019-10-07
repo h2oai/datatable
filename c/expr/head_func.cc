@@ -63,6 +63,24 @@ Workframe Head_Func::evaluate_j(
 }
 
 
+RowIndex Head_Func::evaluate_i(const vecExpr& args, EvalContext& ctx) const {
+  Workframe wf = evaluate_n(args, ctx);
+  if (wf.ncols() != 1) {
+    throw TypeError() << "i-expression evaluated into " << wf.ncols()
+        << " columns";
+  }
+  Column col = wf.retrieve_column(0);
+  if (col.stype() != SType::BOOL) {
+    throw TypeError() << "Filter expression must be boolean, instead it "
+        "was of type " << col.stype();
+  }
+  return RowIndex(std::move(col));
+}
+
+
+RiGb Head_Func::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw NotImplError() << "Head_Func::evaluate_iby() not implemented yet";
+}
 
 
 

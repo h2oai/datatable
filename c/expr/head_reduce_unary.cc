@@ -232,6 +232,62 @@ static Column compute_mean(Column&& arg, const Groupby& gby) {
 
 
 //------------------------------------------------------------------------------
+// sd(A)
+//------------------------------------------------------------------------------
+
+template <typename T, typename U>
+bool sd_reducer(const Column& col, size_t i0, size_t i1, U* out) {
+  U mean = 0;
+  U m2 = 0;
+  T value;
+  int64_t count = 0;
+  for (size_t i = i0; i < i1; ++i) {
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) {
+      count++;
+      U tmp1 = static_cast<U>(value) - mean;
+      mean += tmp1 / count;
+      U tmp2 = static_cast<U>(value) - mean;
+      m2 += tmp1 * tmp2;
+    }
+  }
+  if (count <= 1) return false;
+  // In theory, m2 should always be positive, but perhaps it could
+  // occasionally become negative due to round-off errors?
+  *out = (m2 >= 0)? std::sqrt(m2/(count - 1)) : U(0);
+  return true;  // *out is not NA
+}
+
+
+
+template <typename T>
+static Column _sd(Column&& arg, const Groupby& gby) {
+  using U = typename std::conditional<std::is_same<T, float>::value,
+                                      float, double>::type;
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, U>(
+                 stype_from<U>(), std::move(arg), gby, sd_reducer<T, U>
+            )));
+}
+
+static Column compute_sd(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _sd<int8_t> (std::move(arg), gby);
+    case SType::INT16:   return _sd<int16_t>(std::move(arg), gby);
+    case SType::INT32:   return _sd<int32_t>(std::move(arg), gby);
+    case SType::INT64:   return _sd<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _sd<float>  (std::move(arg), gby);
+    case SType::FLOAT64: return _sd<double> (std::move(arg), gby);
+    default: throw _error("sd", arg.stype());
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // count(A)
 //------------------------------------------------------------------------------
 
@@ -423,6 +479,7 @@ Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) c
     case Op::MEAN:   fn = compute_mean; break;
     case Op::MIN:    fn = compute_minmax<true>; break;
     case Op::MAX:    fn = compute_minmax<false>; break;
+    case Op::STDEV:  fn = compute_sd; break;
     case Op::FIRST:  fn = compute_firstlast<true>; break;
     case Op::LAST:   fn = compute_firstlast<false>; break;
     case Op::SUM:    fn = compute_sum; break;

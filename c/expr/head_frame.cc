@@ -88,4 +88,51 @@ Workframe Head_Frame::evaluate_f(EvalContext&, size_t, bool) const {
 }
 
 
+RowIndex Head_Frame::evaluate_i(const vecExpr&, EvalContext& ctx) const {
+  if (dt->ncols() != 1) {
+    throw ValueError() << "Only a single-column Frame may be used as `i` "
+        "selector, instead got a Frame with " << dt->ncols() << " columns";
+  }
+  SType st = dt->get_column(0).stype();
+  if (!(st == SType::BOOL || info(st).ltype() == LType::INT)) {
+    throw TypeError() << "A Frame which is used as an `i` selector should be "
+        "either boolean or integer, instead got `" << st << "`";
+  }
+
+  const Column& col = dt->get_column(0);
+  size_t nrows = ctx.nrows();
+  if (col.stype() == SType::BOOL) {
+    if (col.nrows() != nrows) {
+      throw ValueError() << "A boolean column used as `i` selector has "
+          << col.nrows() << " row" << (col.nrows() == 1? "" : "s")
+          << ", but applied to a Frame with "
+           << nrows << " row" << (nrows == 1? "" : "s");
+    }
+  }
+  else if (col.nrows() != 0) {
+    int64_t min = col.stats()->min_int();
+    int64_t max = col.stats()->max_int();
+    if (min < -1) {
+      throw ValueError() << "An integer column used as an `i` selector "
+          "contains an invalid negative index: " << min;
+    }
+    if (max >= static_cast<int64_t>(nrows)) {
+      throw ValueError() << "An integer column used as an `i` selector "
+          "contains index " << max << " which is not valid for a Frame with "
+          << nrows << " row" << (nrows == 1? "" : "s");
+    }
+  }
+
+  return RowIndex(col);
+}
+
+
+RiGb Head_Frame::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A Frame cannot be used as an i-selector "
+                       "in the presence of a groupby";
+}
+
+
+
+
 }}  // namespace dt::expr

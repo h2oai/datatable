@@ -21,12 +21,15 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_DECLARATIONS_h
 #define dt_EXPR_DECLARATIONS_h
-#include <vector>
-#include <string>
 #include <memory>
+#include <string>
+#include <utility>    // std::pair
+#include <vector>
 
 class Column;
 class DataTable;
+class Groupby;
+class RowIndex;
 
 namespace dt {
 namespace expr {
@@ -39,6 +42,7 @@ namespace expr {
   using strvec = std::vector<std::string>;
   using ptrHead = std::unique_ptr<Head>;
   using vecExpr = std::vector<Expr>;
+  using RiGb = std::pair<RowIndex, Groupby>;
 
   // TODO: remove
   class base_expr;

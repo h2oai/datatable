@@ -73,6 +73,17 @@ Workframe Head_Literal_SliceAll::evaluate_j(
 }
 
 
+// When `:` is used as i-node, it means all rows are selected.
+RowIndex Head_Literal_SliceAll::evaluate_i(const vecExpr&, EvalContext&) const {
+  return RowIndex();
+}
+
+
+RiGb Head_Literal_SliceAll::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
+  return std::make_pair(RowIndex(), ctx.get_groupby());
+}
+
+
 
 
 }}  // namespace dt::expr

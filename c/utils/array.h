@@ -92,8 +92,15 @@ template <typename T> class array
     }
 
     // Standard operators
-    T& operator[](size_t i) { return x[i]; }
-    const T& operator[](size_t i) const { return x[i]; }
+    T& operator[](size_t i) {
+      xassert(i < n);
+      return x[i];
+    }
+
+    const T& operator[](size_t i) const {
+      xassert(i < n);
+      return x[i];
+    }
 
     operator bool() const { return x; }
 
