@@ -237,6 +237,11 @@ RowIndex Expr::evaluate_i(EvalContext& ctx) const {
 }
 
 
+RiGb Expr::evaluate_iby(EvalContext& ctx) const {
+  return head->evaluate_iby(inputs, ctx);
+}
+
+
 bool Expr::evaluate_bool() const {
   auto boolhead = dynamic_cast<Head_Literal_Bool*>(head.get());
   xassert(boolhead);
@@ -248,13 +253,6 @@ int64_t Expr::evaluate_int() const {
   xassert(inthead);
   return inthead->get_value();
 }
-
-
-
-
-
-
-
 
 
 

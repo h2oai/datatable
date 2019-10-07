@@ -87,6 +87,11 @@ RowIndex Head_Literal_Int::evaluate_i(const vecExpr&, EvalContext& ctx) const {
 }
 
 
+RiGb Head_Literal_Int::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw NotImplError() << "Head_Literal_Int::evaluate_iby() not implemented yet";
+}
+
+
 
 
 }}  // namespace dt::expr

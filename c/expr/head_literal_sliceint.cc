@@ -71,6 +71,121 @@ RowIndex Head_Literal_SliceInt::evaluate_i(const vecExpr&, EvalContext& ctx) con
 }
 
 
+static size_t _estimate_iby_nrows(size_t nrows, size_t ngroups,
+                                  int64_t istart, int64_t istop, int64_t istep)
+{
+  // if (istep < 0) istep = -istep;
+  // if (istep == 1) {
+  //   if (istart == py::oslice::NA) istart = 0;
+  //   if (istop  == py::oslice::NA) istop = static_cast<int64_t>(nrows);
+  //   return std::min(nrows, ngroups * static_cast<size_t>(istop - istart));
+  // }
+  if (istep == 0) {
+    return ngroups * static_cast<size_t>(istop);
+  }
+  return nrows;
+}
+
+
+RiGb Head_Literal_SliceInt::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
+  int64_t istart = value.start();
+  int64_t istop = value.stop();
+  int64_t istep = value.step();
+  if (istep == py::oslice::NA) istep = 1;
+
+  const Groupby& gb = ctx.get_groupby();
+  size_t ngroups = gb.ngroups();
+  const int32_t* group_offsets = gb.offsets_r() + 1;
+  size_t ri_size = _estimate_iby_nrows(ctx.nrows(), ngroups, istart, istop, istep);
+  arr32_t out_ri_array(ri_size);
+
+  Buffer out_groups = Buffer::mem((ngroups + 1) * sizeof(int32_t));
+  int32_t* out_rowindices = out_ri_array.data();
+  int32_t* out_offsets = static_cast<int32_t*>(out_groups.xptr()) + 1;
+  out_offsets[-1] = 0;
+  size_t j = 0;  // Counter for the row indices
+  size_t k = 0;  // Counter for the number of groups written
+
+  int32_t step = static_cast<int32_t>(istep);
+  if (step > 0) {
+    if (istart == py::oslice::NA) istart = 0;
+    if (istop == py::oslice::NA) istop = static_cast<int64_t>(ctx.nrows());
+    for (size_t g = 0; g < ngroups; ++g) {
+      auto off0 = group_offsets[g - 1];
+      auto off1 = group_offsets[g];
+      auto group_size = off1 - off0;
+      auto start = static_cast<int32_t>(istart);
+      auto stop  = static_cast<int32_t>(istop);
+      if (start < 0) start += group_size;
+      if (start < 0) start = 0;
+      start += off0;
+      xassert(start >= off0);
+      if (stop < 0) stop += group_size;
+      stop += off0;
+      if (stop > off1) stop = off1;
+      if (start < stop) {
+        for (int32_t i = start; i < stop; i += step) {
+          out_rowindices[j++] = i;
+        }
+        out_offsets[k++] = static_cast<int32_t>(j);
+      }
+    }
+  }
+  else if (step < 0) {
+    for (size_t g = 0; g < ngroups; ++g) {
+      int32_t off0 = group_offsets[g - 1];
+      int32_t off1 = group_offsets[g];
+      int32_t n = off1 - off0;
+      int32_t start, stop;
+      start = istart == py::oslice::NA || istart >= n
+              ? n - 1 : static_cast<int32_t>(istart);
+      if (start < 0) start += n;
+      start += off0;
+      if (istop == py::oslice::NA) {
+        stop = off0 - 1;
+      } else {
+        stop = static_cast<int32_t>(istop);
+        if (stop < 0) stop += n;
+        if (stop < 0) stop = -1;
+        stop += off0;
+      }
+      if (start > stop) {
+        for (int32_t i = start; i > stop; i += step) {
+          out_rowindices[j++] = i;
+        }
+        out_offsets[k++] = static_cast<int32_t>(j);
+      }
+    }
+  }
+  else {
+    xassert(istep == 0);
+    xassert(istart != py::oslice::NA);
+    xassert(istop != py::oslice::NA && istop > 0);
+    for (size_t g = 0; g < ngroups; ++g) {
+      int32_t off0 = group_offsets[g - 1];
+      int32_t off1 = group_offsets[g];
+      int32_t n = off1 - off0;
+      int32_t start = static_cast<int32_t>(istart);
+      if (start < 0) start += n;
+      if (start < 0 || start >= n) continue;
+      start += off0;
+      for (int t = 0; t < istop; ++t) {
+        out_rowindices[j++] = start;
+      }
+      out_offsets[k++] = static_cast<int32_t>(j);
+    }
+  }
+
+  xassert(j <= ri_size);
+  out_ri_array.resize(j);
+  out_groups.resize((k + 1) * sizeof(int32_t));
+  return std::make_pair(
+            RowIndex(std::move(out_ri_array), /* sorted = */ (step >= 0)),
+            Groupby(k, std::move(out_groups))
+          );
+}
+
+
 
 
 }}  // namespace dt::expr

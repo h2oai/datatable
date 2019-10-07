@@ -25,8 +25,7 @@
 //     DT[i, j, by(), join(), ...]
 //
 // Here `i` can be either an int, a slice, a range, a list of ints, a generator
-// expression, a boolean or integer Frame, a numpy array, etc. We convert all
-// of these various forms into an `i_node` object.
+// expression, a boolean or integer Frame, a numpy array, etc.
 //
 // Similarly, the `j` item can also be an int, a string, a slice, a range,
 // an expression, a type, an stype, a list/tuple/iterator of any of these, etc.
@@ -49,7 +48,7 @@
 // refer to columns from the join frames, and therefore in order to check their
 // correctness we need to know which frames are joined.
 //
-// Next, we construct `i_node` and `j_node` from arguments `i` and `j`.
+// Next, we construct `iexpr` and `jexpr` from arguments `i` and `j`.
 //
 // Once all nodes of the evaluation graph are initialized, we compute all joins
 // (if any). After this step all subframes within the evaluation frame will
@@ -59,7 +58,6 @@
 //------------------------------------------------------------------------------
 #include "expr/by_node.h"
 #include "expr/expr.h"
-#include "expr/i_node.h"
 #include "expr/j_node.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
@@ -202,7 +200,7 @@ oobj Frame::_main_getset(robj item, robj value) {
         << " in DT[i, j, ...] call";
   }
 
-  // 3. Instantiate `i_node` and `j_node`.
+  // 3. Instantiate `i` and `j` nodes.
   xassert(nargs >= 2);
   ctx.add_i(targs[0]);
   ctx.add_j(targs[1]);

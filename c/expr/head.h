@@ -72,6 +72,7 @@ class Head {
     virtual Workframe evaluate_j(const vecExpr& args, EvalContext& ctx, bool allow_new) const = 0;
     virtual Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new) const = 0;
     virtual RowIndex  evaluate_i(const vecExpr&, EvalContext&) const = 0;
+    virtual RiGb      evaluate_iby(const vecExpr&, EvalContext&) const = 0;
 
     virtual Kind get_expr_kind() const = 0;
 };

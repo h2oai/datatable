@@ -59,10 +59,13 @@ static const char* _name_type(Kind t) {
     case Kind::None:     return "None";
     case Kind::Bool:     return "bool";
     case Kind::Int:      return "integer";
+    case Kind::Float:    return "float";
     case Kind::Str:      return "string";
     case Kind::Func:     return "expression";
     case Kind::Type:     return "type";
     case Kind::SliceAll: return "slice";
+    case Kind::SliceInt: return "integer slice";
+    case Kind::SliceStr: return "string-slice";
     default:             return "?";
   }
 }
@@ -248,6 +251,11 @@ RowIndex Head_List::evaluate_i(const vecExpr& inputs, EvalContext& ctx) const
 }
 
 
+RiGb Head_List::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw NotImplError() << "Head_List::evaluate_iby() not implemented yet";
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -287,6 +295,11 @@ Workframe Head_NamedList::evaluate_j(
 
 
 RowIndex Head_NamedList::evaluate_i(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A dictionary cannot be used as an i-selector";
+}
+
+
+RiGb Head_NamedList::evaluate_iby(const vecExpr&, EvalContext&) const {
   throw TypeError() << "A dictionary cannot be used as an i-selector";
 }
 

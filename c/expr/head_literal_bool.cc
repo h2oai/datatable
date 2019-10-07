@@ -62,6 +62,11 @@ RowIndex Head_Literal_Bool::evaluate_i(const vecExpr&, EvalContext&) const {
 }
 
 
+RiGb Head_Literal_Bool::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A boolean value cannot be used as a row selector";
+}
+
+
 
 
 }}  // namespace dt::expr

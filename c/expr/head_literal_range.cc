@@ -80,6 +80,13 @@ RowIndex Head_Literal_Range::evaluate_i(const vecExpr&, EvalContext& ctx) const 
 }
 
 
+RiGb Head_Literal_Range::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw NotImplError() << "A range selector cannot yet be used in i in the "
+                          "presence of by clause";
+}
+
+
+
 std::string Head_Literal_Range::_repr_range() const {
   auto start = value.start();
   auto stop  = value.stop();

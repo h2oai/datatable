@@ -59,6 +59,7 @@ class Head_Literal_None : public Head_Literal {
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -77,6 +78,7 @@ class Head_Literal_Bool : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -94,6 +96,7 @@ class Head_Literal_Int : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -109,6 +112,7 @@ class Head_Literal_Float : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -124,6 +128,7 @@ class Head_Literal_String : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -135,6 +140,7 @@ class Head_Literal_SliceAll : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -150,6 +156,7 @@ class Head_Literal_SliceInt : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -166,6 +173,7 @@ class Head_Literal_SliceStr : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -181,6 +189,7 @@ class Head_Literal_Range : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 
   private:
     std::string _repr_range() const;
@@ -199,6 +208,7 @@ class Head_Literal_Type : public Head_Literal {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
+    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
 
 

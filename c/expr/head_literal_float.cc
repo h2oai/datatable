@@ -57,5 +57,12 @@ RowIndex Head_Literal_Float::evaluate_i(const vecExpr&, EvalContext&) const {
 }
 
 
+RiGb Head_Literal_Float::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A floating-point value cannot be used as a "
+                       "row selector";
+}
+
+
+
 
 }}  // namespace dt::expr

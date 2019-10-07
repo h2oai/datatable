@@ -78,6 +78,10 @@ RowIndex Head_Func::evaluate_i(const vecExpr& args, EvalContext& ctx) const {
 }
 
 
+RiGb Head_Func::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw NotImplError() << "Head_Func::evaluate_iby() not implemented yet";
+}
+
 
 
 //------------------------------------------------------------------------------

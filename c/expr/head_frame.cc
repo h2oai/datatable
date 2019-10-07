@@ -127,6 +127,12 @@ RowIndex Head_Frame::evaluate_i(const vecExpr&, EvalContext& ctx) const {
 }
 
 
+RiGb Head_Frame::evaluate_iby(const vecExpr&, EvalContext&) const {
+  throw TypeError() << "A Frame cannot be used as an i-selector "
+                       "in the presence of a groupby";
+}
+
+
 
 
 }}  // namespace dt::expr
