@@ -230,14 +230,13 @@ class Attacker:
     def sort_columns(self, frame):
         if frame.ncols == 0:
             return
-        ncols_sort = random.randint(1,5)
-        a = self.random_array(frame.ncols, newn=ncols_sort, positive=True)
+        ncols_sort = random.randint(1, frame.ncols)
+        a = random.sample(range(0, frame.ncols), ncols_sort)
 
-        print("[10] Sorting %s: %r in ascending order"
+        print("[10] Sorting %s in ascending order: %r"
               % (plural(len(a), "column"), a))
         if python_output:
             python_output.write("DT = DT.sort(%r)\n" % a)
-        frame.sort_columns(a)
 
     def cbind_numpy_column(self, frame):
         print("[11] Cbinding frame with a numpy column -> ncols = %d"
@@ -261,6 +260,18 @@ class Attacker:
             python_output.write("DT.cbind(dt.Frame(%s=%r))\n"
                                 % (name, rangeobj))
         frame.add_range_column(name, rangeobj)
+
+    def set_key_columns(self, frame):
+        if frame.ncols == 0:
+            return
+        ncols_key = random.randint(1, frame.ncols)
+        a = random.sample(range(0, frame.ncols), ncols_key)
+
+        print("[13] Setting %s: %r"
+              % (plural(len(a), "key column"), a))
+        if python_output:
+            python_output.write("DT = DT.key(%r)\n" % a)
+        frame.set_key_columns(a)
 
 
 
@@ -307,6 +318,8 @@ class Attacker:
         sort_columns: 1,
         cbind_numpy_column: 1,
         add_range_column: 1,
+        set_key_columns: 0,
+        # cbind_unique_columns: 0,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -707,6 +720,14 @@ class Frame0:
         self.dedup_names()
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
 
+    def set_key_columns(self, a):
+        colnames = self.df.names
+        key_colnames = [colnames[i] for i in a]
+        self.df.key = key_colnames
+        if (len(self.data[0])):
+            data = list(zip(*self.data))
+            data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
+            self.data = list(map(list, zip(*data)))
 
     #---------------------------------------------------------------------------
     # Helpers
