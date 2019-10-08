@@ -32,6 +32,7 @@ class olist : public oobj {
     size_t : 56;
 
   public:
+    olist();
     olist(int n);
     olist(size_t n);
     olist(int64_t n);

@@ -65,6 +65,17 @@ void GenericReader::init_options() {
 // GenericReader initialization
 //------------------------------------------------------------------------------
 
+GenericReader::GenericReader()
+{
+  skip_to_string = nullptr;
+  na_strings = nullptr;
+  sof = nullptr;
+  eof = nullptr;
+  line = 0;
+  cr_is_newline = 0;
+}
+
+
 GenericReader::GenericReader(const py::robj& pyrdr)
 {
   job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
@@ -79,20 +90,20 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   fileno   = pyrdr.get_attr("fileno").to_int32();
   logger   = pyrdr.get_attr("logger");
 
-  init_verbose();
-  init_nthreads();
-  init_fill();
-  init_maxnrows();
-  init_skiptoline();
-  init_sep();
-  init_dec();
-  init_quote();
-  init_header();
-  init_nastrings();
-  init_skipstring();
-  init_stripwhite();
-  init_skipblanklines();
-  init_overridecolumntypes();
+  init_verbose(freader.get_attr("verbose"));
+  init_nthreads(freader.get_attr("nthreads"));
+  init_fill(freader.get_attr("fill"));
+  init_maxnrows(freader.get_attr("max_nrows"));
+  init_skiptoline(freader.get_attr("skip_to_line"));
+  init_sep(freader.get_attr("sep"));
+  init_dec(freader.get_attr("dec"));
+  init_quote(freader.get_attr("quotechar"));
+  init_header(freader.get_attr("header"));
+  init_nastrings(freader.get_attr("na_strings"));
+  init_skipstring(freader.get_attr("skip_to_string"));
+  init_stripwhite(freader.get_attr("strip_whitespace"));
+  init_skipblanklines(freader.get_attr("skip_blank_lines"));
+  init_overridecolumntypes(freader.get_attr("_columns"));
 }
 
 // Copy-constructor will copy only the essential parts
@@ -129,13 +140,13 @@ GenericReader::GenericReader(const GenericReader& g)
 GenericReader::~GenericReader() {}
 
 
-void GenericReader::init_verbose() {
-  int8_t v = freader.get_attr("verbose").to_bool();
+void GenericReader::init_verbose(const py::oobj& arg) {
+  int8_t v = arg.to_bool();
   verbose = (v > 0);
 }
 
-void GenericReader::init_nthreads() {
-  int32_t nth = freader.get_attr("nthreads").to_int32();
+void GenericReader::init_nthreads(const py::oobj& arg) {
+  int32_t nth = arg.to_int32();
   int maxth = static_cast<int>(dt::num_threads_in_pool());
   if (ISNA<int32_t>(nth)) {
     nthreads = maxth;
@@ -150,14 +161,14 @@ void GenericReader::init_nthreads() {
   }
 }
 
-void GenericReader::init_fill() {
-  int8_t v = freader.get_attr("fill").to_bool();
+void GenericReader::init_fill(const py::oobj& arg) {
+  int8_t v = arg.to_bool();
   fill = (v > 0);
   if (fill) trace("fill=True (incomplete lines will be padded with NAs)");
 }
 
-void GenericReader::init_maxnrows() {
-  int64_t n = freader.get_attr("max_nrows").to_int64();
+void GenericReader::init_maxnrows(const py::oobj& arg) {
+  int64_t n = arg.to_int64();
   if (n < 0) {
     max_nrows = std::numeric_limits<size_t>::max();
   } else {
@@ -166,14 +177,14 @@ void GenericReader::init_maxnrows() {
   }
 }
 
-void GenericReader::init_skiptoline() {
-  int64_t n = freader.get_attr("skip_to_line").to_int64();
+void GenericReader::init_skiptoline(const py::oobj& arg) {
+  int64_t n = arg.to_int64();
   skip_to_line = (n < 0)? 0 : static_cast<size_t>(n);
   if (n > 1) trace("skip_to_line = %zu", n);
 }
 
-void GenericReader::init_sep() {
-  CString cstr = freader.get_attr("sep").to_cstring();
+void GenericReader::init_sep(const py::oobj& arg) {
+  CString cstr = arg.to_cstring();
   size_t size = static_cast<size_t>(cstr.size);
   const char* ch = cstr.ch;
   if (ch == nullptr) {
@@ -193,8 +204,8 @@ void GenericReader::init_sep() {
   }
 }
 
-void GenericReader::init_dec() {
-  CString cstr = freader.get_attr("dec").to_cstring();
+void GenericReader::init_dec(const py::oobj& arg) {
+  CString cstr = arg.to_cstring();
   size_t size = static_cast<size_t>(cstr.size);
   const char* ch = cstr.ch;
   if (ch == nullptr || size == 0) {  // None | ""
@@ -211,8 +222,8 @@ void GenericReader::init_dec() {
   }
 }
 
-void GenericReader::init_quote() {
-  CString cstr = freader.get_attr("quotechar").to_cstring();
+void GenericReader::init_quote(const py::oobj& arg) {
+  CString cstr = arg.to_cstring();
   size_t size = static_cast<size_t>(cstr.size);
   const char* ch = cstr.ch;
   if (ch == nullptr) {
@@ -231,14 +242,14 @@ void GenericReader::init_quote() {
   }
 }
 
-void GenericReader::init_header() {
-  header = freader.get_attr("header").to_bool();
+void GenericReader::init_header(const py::oobj& arg) {
+  header = arg.to_bool();
   if (header >= 0) trace("header = %s", header? "True" : "False");
 }
 
-void GenericReader::init_nastrings() {
+void GenericReader::init_nastrings(const py::oobj& arg) {
   // TODO: `na_strings` should be properly destroyed in the end
-  na_strings = freader.get_attr("na_strings").to_cstringlist();
+  na_strings = arg.to_cstringlist();
   blank_is_na = false;
   number_is_na = false;
   const char* const* ptr = na_strings;
@@ -286,9 +297,8 @@ void GenericReader::init_nastrings() {
   }
 }
 
-void GenericReader::init_skipstring() {
-  skipstring_arg = freader.get_attr("skip_to_string");
-  skip_to_string = skipstring_arg.to_cstring().ch;
+void GenericReader::init_skipstring(const py::oobj& arg) {
+  skip_to_string = arg.to_cstring().ch;
   if (skip_to_string && skip_to_string[0]=='\0') skip_to_string = nullptr;
   if (skip_to_string && skip_to_line) {
     throw ValueError() << "Parameters `skip_to_line` and `skip_to_string` "
@@ -297,18 +307,18 @@ void GenericReader::init_skipstring() {
   if (skip_to_string) trace("skip_to_string = \"%s\"", skip_to_string);
 }
 
-void GenericReader::init_stripwhite() {
-  strip_whitespace = freader.get_attr("strip_whitespace").to_bool();
+void GenericReader::init_stripwhite(const py::oobj& arg) {
+  strip_whitespace = arg.to_bool();
   trace("strip_whitespace = %s", strip_whitespace? "True" : "False");
 }
 
-void GenericReader::init_skipblanklines() {
-  skip_blank_lines = freader.get_attr("skip_blank_lines").to_bool();
+void GenericReader::init_skipblanklines(const py::oobj& arg) {
+  skip_blank_lines = arg.to_bool();
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
-void GenericReader::init_overridecolumntypes() {
-  override_column_types = !freader.get_attr("_columns").is_none();
+void GenericReader::init_overridecolumntypes(const py::oobj& arg) {
+  override_column_types = !arg.is_none();
 }
 
 
@@ -798,9 +808,15 @@ void GenericReader::report_columns_to_python() {
       colDescriptorList.set(i, columns[i].py_descriptor());
     }
 
-    py::olist newTypesList =
-      freader.invoke("_override_columns0", "(O)",
-                     std::move(colDescriptorList).release()).to_pylist();
+    py::otuple newColumns =
+      freader.get_attr("_override_columns0")
+        .call({std::move(colDescriptorList)}).to_otuple();
+
+    column_names = newColumns[0].to_pylist();
+    py::olist newTypesList = newColumns[1].to_pylist();
+    // py::olist newTypesList =
+    //   freader.invoke("_override_columns0", "(O)",
+    //                  std::move(colDescriptorList).release()).to_pylist();
 
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
@@ -809,12 +825,12 @@ void GenericReader::report_columns_to_python() {
       }
     }
   } else {
-    py::olist colNamesList(ncols);
+    column_names = py::olist(ncols);
     for (size_t i = 0; i < ncols; ++i) {
-      colNamesList.set(i, py::ostring(columns[i].get_name()));
+      column_names.set(i, py::ostring(columns[i].get_name()));
     }
-    freader.invoke("_set_column_names", "(O)",
-                   std::move(colNamesList).release());
+    // freader.invoke("_set_column_names", "(O)",
+    //                std::move(colNamesList).release());
   }
 }
 
@@ -837,6 +853,6 @@ dtptr GenericReader::makeDatatable() {
       : Column::new_mbuf_column(nrows, stype, std::move(databuf))
     );
   }
-  py::olist names = freader.get_attr("_colnames").to_pylist();
-  return dtptr(new DataTable(std::move(ccols), names));
+  // py::olist names = freader.get_attr("_colnames").to_pylist();
+  return dtptr(new DataTable(std::move(ccols), column_names));
 }

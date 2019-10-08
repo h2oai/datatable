@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_ARG_h
 #define dt_PYTHON_ARG_h
@@ -40,6 +40,7 @@ class Arg : public _obj::error_manager {
     //---- Type checks -----------------
     bool is_bool() const;
     bool is_bytes() const;
+    bool is_defined() const;
     bool is_dict() const;
     bool is_ellipsis() const;
     bool is_float() const;
@@ -108,6 +109,7 @@ class Arg : public _obj::error_manager {
     // std::vector<std::string> to_list_of_strs() const;
 
     const std::string& name() const;
+    const char* short_name() const;
 
   private:
     void _check_list_or_tuple() const;

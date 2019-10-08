@@ -11,6 +11,7 @@
 #include "buffer.h"       // Buffer
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
+#include "python/list.h"    // py::olist
 #include "read/columns.h"   // dt::read::Columns
 
 class DataTable;
@@ -101,6 +102,7 @@ class GenericReader
     py::oobj text_arg;
     py::oobj skipstring_arg;
     py::oobj tempstr;
+    py::olist column_names;
 
     // If `trace()` cannot display a message immediately (because it was not
     // sent from the main thread), it will be temporarily stored in this
@@ -111,6 +113,7 @@ class GenericReader
 
   //---- Public API ----
   public:
+    GenericReader();
     GenericReader(const py::robj& pyreader);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
@@ -153,20 +156,20 @@ class GenericReader
 
   // Helper functions
   private:
-    void init_verbose();
-    void init_nthreads();
-    void init_fill();
-    void init_maxnrows();
-    void init_skiptoline();
-    void init_sep();
-    void init_dec();
-    void init_quote();
-    void init_header();
-    void init_nastrings();
-    void init_skipstring();
-    void init_stripwhite();
-    void init_skipblanklines();
-    void init_overridecolumntypes();
+    void init_verbose(const py::oobj&);
+    void init_nthreads(const py::oobj&);
+    void init_fill(const py::oobj&);
+    void init_maxnrows(const py::oobj&);
+    void init_skiptoline(const py::oobj&);
+    void init_sep(const py::oobj&);
+    void init_dec(const py::oobj&);
+    void init_quote(const py::oobj&);
+    void init_header(const py::oobj&);
+    void init_nastrings(const py::oobj&);
+    void init_skipstring(const py::oobj&);
+    void init_stripwhite(const py::oobj&);
+    void init_skipblanklines(const py::oobj&);
+    void init_overridecolumntypes(const py::oobj&);
 
   protected:
     void open_input();

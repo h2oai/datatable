@@ -16,6 +16,8 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
+olist::olist() : oobj(nullptr) {}
+
 olist::olist(size_t n) {
   is_list = true;
   v = PyList_New(static_cast<Py_ssize_t>(n));

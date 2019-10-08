@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cstdio>
 #include "python/arg.h"
@@ -54,6 +54,10 @@ const std::string& Arg::name() const {
   return cached_name;
 }
 
+const char* Arg::short_name() const {
+  return parent->get_arg_short_name(pos);
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -64,6 +68,8 @@ bool Arg::is_undefined()         const { return pyobj.is_undefined(); }
 bool Arg::is_none()              const { return pyobj.is_none(); }
 bool Arg::is_none_or_undefined() const { return pyobj.is_none() ||
                                                 pyobj.is_undefined(); }
+bool Arg::is_defined()           const { return !is_none_or_undefined(); }
+
 bool Arg::is_ellipsis()          const { return pyobj.is_ellipsis(); }
 bool Arg::is_bool()              const { return pyobj.is_bool(); }
 bool Arg::is_bytes()             const { return pyobj.is_bytes(); }

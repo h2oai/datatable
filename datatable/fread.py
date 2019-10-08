@@ -103,7 +103,6 @@ class GenericReader(object):
         self._nthreads = nthreads
         self._logger = None
 
-        self._colnames = None
         self._bar_ends = None
         self._bar_symbols = None
         self._result = None
@@ -678,7 +677,6 @@ class GenericReader(object):
                     self._file = filename
                     self._fileno = fileno
                     self._txt = txt
-                    self._colnames = None
                     try:
                         res[src] = core.gread(self)
                     except Exception as e:
@@ -762,16 +760,6 @@ class GenericReader(object):
     # Process `columns` argument
     #---------------------------------------------------------------------------
 
-    def _set_column_names(self, colnames):
-        """
-        Invoked by `gread` from C++ to inform the class about the detected
-        column names. This method is a simplified version of
-        `_override_columns`, and will only be invoked if `self._columns` is
-        None.
-        """
-        self._colnames = colnames
-
-
     def _override_columns0(self, coldescs):
         return self._override_columns1(self._columns, coldescs)
 
@@ -822,8 +810,7 @@ class GenericReader(object):
             i = start + j * step
             colnames[j] = colsdesc[i].name
             coltypes[i] = rtype.rauto.value
-        self._colnames = colnames
-        return coltypes
+        return (colnames, coltypes)
 
 
     def _apply_columns_set(self, colset, colsdesc):
@@ -843,8 +830,7 @@ class GenericReader(object):
         if requested_cols:
             self.logger.warning("Column(s) %r not found in the input file"
                                 % list(requested_cols))
-        self._colnames = colnames
-        return coltypes
+        return (colnames, coltypes)
 
 
     def _apply_columns_list(self, collist, colsdesc):
@@ -879,8 +865,7 @@ class GenericReader(object):
             else:
                 raise TTypeError("Entry `columns[%d]` has invalid type %r"
                                  % (i, entry.__class__.__name__))
-        self._colnames = colnames
-        return coltypes
+        return (colnames, coltypes)
 
 
     def _apply_columns_dict(self, colsdict, colsdesc):
@@ -938,8 +923,7 @@ class GenericReader(object):
             else:
                 raise TTypeError("Unknown value %r for column '%s' in "
                                  "columns descriptor" % (entry, name))
-        self._colnames = colnames
-        return coltypes
+        return (colnames, coltypes)
 
 
     def _apply_columns_function(self, colsfn, colsdesc):
