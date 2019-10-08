@@ -86,7 +86,7 @@ class GenericReader(object):
         self._tempdir_own = False   # type: bool
         self._text = None           # type: Union[str, bytes]
         self._sep = sep             # type: str
-        self._dec = None            # type: str
+        self._dec = dec             # type: str
         self._maxnrows = None       # type: int
         self._header = None         # type: bool
         self._nastrings = []        # type: List[str]
@@ -98,7 +98,7 @@ class GenericReader(object):
         self._skip_blank_lines = True
         self._skip_to_string = None
         self._strip_whitespace = True
-        self._columns = None
+        self._columns = columns
         self._save_to = save_to
         self._nthreads = nthreads
         self._logger = None
@@ -116,8 +116,6 @@ class GenericReader(object):
         if verbose:
             self.logger.debug("[1] Prepare for reading")
         self._resolve_source(anysource, file, text, cmd, url)
-        self.columns = columns
-        self.dec = dec
         self.max_nrows = max_nrows
         self.header = header
         self.na_strings = na_strings
@@ -407,69 +405,6 @@ class GenericReader(object):
     #---------------------------------------------------------------------------
 
     @property
-    def src(self) -> str:
-        """
-        Name of the source of the data.
-
-        This is a "portmanteau" value, intended mostly for displaying in error
-        messages or verbose output. This value contains one of:
-          - the name of the file requested by the user (possibly with minor
-            modifications such as user/glob expansion). This never gives the
-            name of a temporary file created by FRead internally.
-          - URL text, if the user provided a url to fread.
-          - special token "<file>" if an open file object was provided, but
-            its file name is not known.
-          - "<text>" if the input was a raw text.
-
-        In order to determine the actual data source, the caller should query
-        properties `.file`, `.text` and `.fileno`. One and only one of them
-        will be non-None.
-        """
-        return self._src
-
-
-    @property
-    def file(self) -> Optional[str]:
-        """
-        Name of the file to be read.
-
-        This always refers to the actual file, on a file system, that the
-        underlying C code is expected to open and read. In particular, if the
-        "original" source (as provided by the user) required processing the
-        content and saving it into a temporary file, then this property will
-        return the name of that temporary file. On the other hand, if the
-        source is not a file, this property will return None. The returned value
-        is always a string, even if the user passed a `bytes` object as `file=`
-        argument to the constructor.
-        """
-        return self._file
-
-
-    @property
-    def text(self) -> Union[str, bytes, None]:
-        """
-        String/bytes object with the content to read.
-
-        The returned value is None if the content should be read from file or
-        some other source.
-        """
-        return self._text
-
-
-    @property
-    def fileno(self) -> Optional[int]:
-        """
-        File descriptor of an open file that should be read.
-
-        This property is an equivalent way of specifying a file source. However
-        instead of providing a file name, this property gives a file descriptor
-        of a file that was already opened. The caller should not attempt to
-        close this file.
-        """
-        return self._fileno
-
-
-    @property
     def tempdir(self):
         if self._tempdir is None:
             self._tempdir = tempfile.mkdtemp()
@@ -481,27 +416,6 @@ class GenericReader(object):
     def tempdir(self, tempdir):
         self._tempdir = tempdir
         self._tempdir_own = False
-
-
-    @property
-    def columns(self):
-        return self._columns
-
-    @columns.setter
-    def columns(self, columns):
-        self._columns = columns or None
-
-
-    @property
-    def dec(self):
-        return self._dec
-
-    @dec.setter
-    def dec(self, v):
-        if v == "." or v == ",":
-            self._dec = v
-        else:
-            raise ValueError("Only dec='.' or ',' are allowed")
 
 
     @property

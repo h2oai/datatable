@@ -594,9 +594,9 @@ def test_fread_columns_fn3():
     assert d2.to_list() == [["1"], ["2"]]
 
 
-@pytest.mark.parametrize("columns", [None, list(), set(), dict()])
+@pytest.mark.parametrize("columns", [None, dict()])
 def test_fread_columns_empty(columns):
-    # empty column selector should select all columns
+    # `None` column selector should select all columns
     d0 = dt.fread("A,B,C\n1,2,3", columns=columns)
     assert d0.shape == (1, 3)
     assert d0.names == ("A", "B", "C")

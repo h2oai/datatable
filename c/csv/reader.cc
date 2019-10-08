@@ -83,10 +83,10 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   eof = nullptr;
   line = 0;
   cr_is_newline = 0;
-  src_arg  = pyrdr.get_attr("src");
-  file_arg = pyrdr.get_attr("file");
-  text_arg = pyrdr.get_attr("text");
-  fileno   = pyrdr.get_attr("fileno").to_int32();
+  src_arg  = pyrdr.get_attr("_src");
+  file_arg = pyrdr.get_attr("_file");
+  text_arg = pyrdr.get_attr("_text");
+  fileno   = pyrdr.get_attr("_fileno").to_int32();
   logger   = pyrdr.get_attr("logger");
 
   init_verbose(   pyrdr.get_attr("verbose"));
@@ -95,7 +95,7 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   init_maxnrows(  pyrdr.get_attr("max_nrows"));
   init_skiptoline(pyrdr.get_attr("skip_to_line"));
   init_sep(       py::Arg(pyrdr.get_attr("_sep"), "Parameter `sep`"));
-  init_dec(       pyrdr.get_attr("dec"));
+  init_dec(       py::Arg(pyrdr.get_attr("_dec"), "Parameter `dec`"));
   init_quote(     pyrdr.get_attr("quotechar"));
   init_header(    pyrdr.get_attr("header"));
   init_nastrings( pyrdr.get_attr("na_strings"));
@@ -205,21 +205,24 @@ void GenericReader::init_sep(const py::Arg& arg) {
   }
 }
 
-void GenericReader::init_dec(const py::oobj& arg) {
-  CString cstr = arg.to_cstring();
-  size_t size = static_cast<size_t>(cstr.size);
-  const char* ch = cstr.ch;
-  if (ch == nullptr || size == 0) {  // None | ""
+void GenericReader::init_dec(const py::Arg& arg) {
+  if (arg.is_none()) {
     // TODO: switch to auto-detect mode
     dec = '.';
-  } else if (size > 1) {
+    return;
+  }
+  auto str = arg.to_string();
+  if (str.size() > 1) {
     throw ValueError() << "Multi-character decimal separator is not allowed: '"
-                       << ch << "'";
-  } else if (*ch == '.' || *ch == ',') {
-    dec = *ch;
+                       << str << "'";
+  }
+  // If `str` is empty, then `c` will become '\0'
+  const char c = str[0];
+  if (c == '.' || c == ',') {
+    dec = c;
     trace("Decimal separator = '%c'", dec);
   } else {
-    throw ValueError() << "dec = '" << ch << "' is not allowed";
+    throw ValueError() << "Only dec='.' or ',' are allowed";
   }
 }
 

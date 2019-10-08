@@ -162,7 +162,7 @@ class GenericReader
     void init_skiptoline(const py::oobj&);
     void init_sep(const py::oobj&);
     void init_sep(const py::Arg&);
-    void init_dec(const py::oobj&);
+    void init_dec(const py::Arg&);
     void init_quote(const py::oobj&);
     void init_header(const py::oobj&);
     void init_nastrings(const py::oobj&);
