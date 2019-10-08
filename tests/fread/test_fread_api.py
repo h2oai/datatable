@@ -640,17 +640,32 @@ def test_sep_selection(sep):
     assert d0.names == tuple("A;B;C|D,E".split(sep))
 
 
-def test_sep_invalid():
+def test_sep_invalid1():
     with pytest.raises(TypeError) as e:
         dt.fread("A,,B\n", sep=12)
-    assert ("Parameter `sep` of type `Optional[str]` received value 12 "
-            "of type int" in str(e.value))
+    assert ("Parameter `sep` should be a string, instead got <class 'int'>"
+            in str(e.value))
+
+
+def test_sep_invalid2():
     with pytest.raises(Exception) as e:
         dt.fread("A,,B\n", sep=",,")
-    assert "Multi-character separator ',,' not supported" in str(e.value)
+    assert ("Multi-character or unicode separators are not supported: ',,'"
+            in str(e.value))
+
+
+def test_sep_invalid3():
     with pytest.raises(Exception) as e:
         dt.fread("A,,B\n", sep="⌘")
-    assert "The separator should be an ASCII character, got '⌘'" in str(e.value)
+    assert ("Multi-character or unicode separators are not supported: '⌘'"
+            in str(e.value))
+
+
+@pytest.mark.parametrize('c', list('019\'`"aAzZoQ'))
+def test_sep_invalid4(c):
+    with pytest.raises(Exception) as e:
+        dt.fread("A,,B\n", sep=c)
+    assert "Separator `%s` is not allowed" % c == str(e.value)
 
 
 

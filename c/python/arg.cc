@@ -137,6 +137,11 @@ Error Arg::error_not_integer(PyObject* src) const {
       << Py_TYPE(src);
 }
 
+Error Arg::error_not_string(PyObject* src) const {
+  return TypeError() << name() << " should be a string, instead got "
+      << Py_TYPE(src);
+}
+
 Error Arg::error_int_negative(PyObject* src) const {
   return ValueError() << name() << " cannot be negative: " << src;
 }

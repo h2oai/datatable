@@ -89,20 +89,20 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   fileno   = pyrdr.get_attr("fileno").to_int32();
   logger   = pyrdr.get_attr("logger");
 
-  init_verbose(pyrdr.get_attr("verbose"));
-  init_nthreads(pyrdr.get_attr("nthreads"));
-  init_fill(pyrdr.get_attr("fill"));
-  init_maxnrows(pyrdr.get_attr("max_nrows"));
+  init_verbose(   pyrdr.get_attr("verbose"));
+  init_nthreads(  pyrdr.get_attr("nthreads"));
+  init_fill(      pyrdr.get_attr("fill"));
+  init_maxnrows(  pyrdr.get_attr("max_nrows"));
   init_skiptoline(pyrdr.get_attr("skip_to_line"));
-  init_sep(pyrdr.get_attr("sep"));
-  init_dec(pyrdr.get_attr("dec"));
-  init_quote(pyrdr.get_attr("quotechar"));
-  init_header(pyrdr.get_attr("header"));
-  init_nastrings(pyrdr.get_attr("na_strings"));
+  init_sep(       py::Arg(pyrdr.get_attr("_sep"), "Parameter `sep`"));
+  init_dec(       pyrdr.get_attr("dec"));
+  init_quote(     pyrdr.get_attr("quotechar"));
+  init_header(    pyrdr.get_attr("header"));
+  init_nastrings( pyrdr.get_attr("na_strings"));
   init_skipstring(pyrdr.get_attr("skip_to_string"));
   init_stripwhite(pyrdr.get_attr("strip_whitespace"));
   init_skipblanklines(pyrdr.get_attr("skip_blank_lines"));
-  init_columns(pyrdr.get_attr("_columns"));
+  init_columns(   pyrdr.get_attr("_columns"));
 }
 
 // Copy-constructor will copy only the essential parts
@@ -181,24 +181,27 @@ void GenericReader::init_skiptoline(const py::oobj& arg) {
   if (n > 1) trace("skip_to_line = %zu", n);
 }
 
-void GenericReader::init_sep(const py::oobj& arg) {
-  CString cstr = arg.to_cstring();
-  size_t size = static_cast<size_t>(cstr.size);
-  const char* ch = cstr.ch;
-  if (ch == nullptr) {
+void GenericReader::init_sep(const py::Arg& arg) {
+  if (arg.is_none()) {
     sep = '\xFF';
     trace("sep = <auto-detect>");
-  } else if (size == 0 || *ch == '\n' || *ch == '\r') {
+    return;
+  }
+  auto str = arg.to_string();
+  size_t size = str.size();
+  const char c = size? str[0] : '\n';
+  if (c == '\n' || c == '\r') {
     sep = '\n';
     trace("sep = <single-column mode>");
   } else if (size > 1) {
-    throw ValueError() << "Multi-character sep is not allowed: '" << ch << "'";
+    throw NotImplError() << "Multi-character or unicode separators are not "
+                            "supported: '" << str << "'";
   } else {
-    if (*ch=='"' || *ch=='\'' || *ch=='`' || ('0' <= *ch && *ch <= '9') ||
-        ('a' <= *ch && *ch <= 'z') || ('A' <= *ch && *ch <= 'Z')) {
-      throw ValueError() << "sep = '" << ch << "' is not allowed";
+    if (c=='"' || c=='\'' || c=='`' || ('0' <= c && c <= '9') ||
+        ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
+      throw ValueError() << "Separator `" << c << "` is not allowed";
     }
-    sep = *ch;
+    sep = c;
   }
 }
 

@@ -85,7 +85,7 @@ class GenericReader(object):
         self._tempdir = None        # type: str
         self._tempdir_own = False   # type: bool
         self._text = None           # type: Union[str, bytes]
-        self._sep = None            # type: str
+        self._sep = sep             # type: str
         self._dec = None            # type: str
         self._maxnrows = None       # type: int
         self._header = None         # type: bool
@@ -117,7 +117,6 @@ class GenericReader(object):
             self.logger.debug("[1] Prepare for reading")
         self._resolve_source(anysource, file, text, cmd, url)
         self.columns = columns
-        self.sep = sep
         self.dec = dec
         self.max_nrows = max_nrows
         self.header = header
@@ -130,7 +129,7 @@ class GenericReader(object):
         self.quotechar = quotechar
 
         if "separator" in args:
-            self.sep = args.pop("separator")
+            self._sep = args.pop("separator")
         if "show_progress" in args:
             dtwarn("Parameter `show_progress` is ignored")
             args.pop("show_progress")
@@ -491,27 +490,6 @@ class GenericReader(object):
     @columns.setter
     def columns(self, columns):
         self._columns = columns or None
-
-
-    @property
-    def sep(self):
-        return self._sep
-
-    @sep.setter
-    @typed(sep=U(str, None))
-    def sep(self, sep):
-        if sep == "":
-            self._sep = "\n"
-        elif not sep:
-            self._sep = None
-        else:
-            if len(sep) > 1:
-                raise TValueError("Multi-character separator %r not supported"
-                                  % sep)
-            if ord(sep) > 127:
-                raise TValueError("The separator should be an ASCII character, "
-                                  "got %r" % sep)
-            self._sep = sep
 
 
     @property
@@ -919,7 +897,7 @@ def _apply_columns_dict(colsdict, colsdesc):
 
 def _apply_columns_function(colsfn, colsdesc):
     res = colsfn(colsdesc)
-    return _override_columns1(res, colsdesc)
+    return _override_columns(res, colsdesc)
 
 
 
