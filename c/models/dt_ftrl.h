@@ -191,17 +191,15 @@ class Ftrl : public dt::FtrlBase {
     void set_negative_class(bool) override;
     void set_labels(const DataTable&) override;
 
+    void test(const T&);
+
     // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();
     static constexpr T T_EPSILON = std::numeric_limits<T>::epsilon();
-    static constexpr T T_ZERO = static_cast<T>(0.0);
-    static constexpr T T_ONE = static_cast<T>(1.0);
 };
 
 template<class T> constexpr T Ftrl<T>::T_NAN;
 template<class T> constexpr T Ftrl<T>::T_EPSILON;
-template<class T> constexpr T Ftrl<T>::T_ZERO;
-template<class T> constexpr T Ftrl<T>::T_ONE;
 
 extern template class Ftrl<float>;
 extern template class Ftrl<double>;
