@@ -46,6 +46,15 @@ void Columns::add_columns(size_t n) {
   }
 }
 
+std::vector<std::string> Columns::get_names() const {
+  std::vector<std::string> names;
+  names.reserve(cols.size());
+  for (const Column& col : cols) {
+    names.push_back(col.get_name());
+  }
+  return names;
+}
+
 
 //----- Columns types ----------------------------------------------------------
 

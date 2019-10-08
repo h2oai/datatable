@@ -34,6 +34,7 @@ class Columns {
 
     Column& operator[](size_t i) &;
     const Column& operator[](size_t i) const &;
+    std::vector<std::string> get_names() const;
 
     void add_columns(size_t n);
 

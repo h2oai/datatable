@@ -814,9 +814,6 @@ void GenericReader::report_columns_to_python() {
 
     column_names = newColumns[0].to_pylist();
     py::olist newTypesList = newColumns[1].to_pylist();
-    // py::olist newTypesList =
-    //   freader.invoke("_override_columns0", "(O)",
-    //                  std::move(colDescriptorList).release()).to_pylist();
 
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
@@ -824,13 +821,6 @@ void GenericReader::report_columns_to_python() {
         columns[i].set_rtype(elem.to_int64());
       }
     }
-  } else {
-    column_names = py::olist(ncols);
-    for (size_t i = 0; i < ncols; ++i) {
-      column_names.set(i, py::ostring(columns[i].get_name()));
-    }
-    // freader.invoke("_set_column_names", "(O)",
-    //                std::move(colNamesList).release());
   }
 }
 
@@ -853,6 +843,9 @@ dtptr GenericReader::makeDatatable() {
       : Column::new_mbuf_column(nrows, stype, std::move(databuf))
     );
   }
-  // py::olist names = freader.get_attr("_colnames").to_pylist();
-  return dtptr(new DataTable(std::move(ccols), column_names));
+  if (column_names) {
+    return dtptr(new DataTable(std::move(ccols), column_names));
+  } else {
+    return dtptr(new DataTable(std::move(ccols), columns.get_names()));
+  }
 }
