@@ -67,7 +67,6 @@ void GenericReader::init_options() {
 
 GenericReader::GenericReader()
 {
-  skip_to_string = nullptr;
   na_strings = nullptr;
   sof = nullptr;
   eof = nullptr;
@@ -96,10 +95,10 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   init_skiptoline(py::Arg(pyrdr.get_attr("_skip_to_line"), "Parameter `skip_to_line`"));
   init_sep(       py::Arg(pyrdr.get_attr("_sep"), "Parameter `sep`"));
   init_dec(       py::Arg(pyrdr.get_attr("_dec"), "Parameter `dec`"));
-  init_quote(     pyrdr.get_attr("quotechar"));
-  init_header(    pyrdr.get_attr("header"));
-  init_nastrings( pyrdr.get_attr("na_strings"));
-  init_skipstring(pyrdr.get_attr("skip_to_string"));
+  init_quote(     py::Arg(pyrdr.get_attr("_quotechar"), "Parameter `quotechar`"));
+  init_header(    py::Arg(pyrdr.get_attr("_header"), "Parameter `header`"));
+  init_nastrings( py::Arg(pyrdr.get_attr("_nastrings"), "Parameter `na_strings`"));
+  init_skipstring(py::Arg(pyrdr.get_attr("_skip_to_string"), "Parameter `skip_to_string`"));
   init_stripwhite(pyrdr.get_attr("strip_whitespace"));
   init_skipblanklines(pyrdr.get_attr("skip_blank_lines"));
   init_columns(   pyrdr.get_attr("_columns"));
@@ -116,7 +115,6 @@ GenericReader::GenericReader(const GenericReader& g)
   quote            = g.quote;
   max_nrows        = g.max_nrows;
   skip_to_line     = 0;  // this parameter was already applied
-  skip_to_string   = nullptr;
   na_strings       = g.na_strings;
   header           = g.header;
   strip_whitespace = g.strip_whitespace;
@@ -227,34 +225,39 @@ void GenericReader::init_dec(const py::Arg& arg) {
   }
 }
 
-void GenericReader::init_quote(const py::oobj& arg) {
-  CString cstr = arg.to_cstring();
-  size_t size = static_cast<size_t>(cstr.size);
-  const char* ch = cstr.ch;
-  if (ch == nullptr) {
-    // TODO: switch to auto-detect mode
-    quote = '"';
-  } else if (size == 0) {
+void GenericReader::init_quote(const py::Arg& arg) {
+  auto str = arg.to<std::string>("\"");
+  if (str.size() == 0) {
     quote = '\0';
-  } else if (size > 1) {
+  } else if (str.size() > 1) {
     throw ValueError() << "Multi-character quote is not allowed: '"
-                       << ch << "'";
-  } else if (*ch == '"' || *ch == '\'' || *ch == '`') {
-    quote = *ch;
+                       << str << "'";
+  } else if (str[0] == '"' || str[0] == '\'' || str[0] == '`') {
+    quote = str[0];
     trace("Quote char = (%c)", quote);
   } else {
-    throw ValueError() << "quotechar = (" << ch << ") is not allowed";
+    throw ValueError() << "quotechar = (" << str << ") is not allowed";
   }
 }
 
-void GenericReader::init_header(const py::oobj& arg) {
-  header = arg.to_bool();
-  if (header >= 0) trace("header = %s", header? "True" : "False");
+void GenericReader::init_header(const py::Arg& arg) {
+  if (arg.is_none_or_undefined()) {
+    header = GETNA<int8_t>();
+  } else {
+    header = arg.to_bool_strict();
+    trace("header = %s", header? "True" : "False");
+  }
 }
 
-void GenericReader::init_nastrings(const py::oobj& arg) {
-  // TODO: `na_strings` should be properly destroyed in the end
-  na_strings = arg.to_cstringlist();
+void GenericReader::init_nastrings(const py::Arg& arg) {
+  na_strings_container = arg.to<strvec>({"NA"});
+  size_t n = na_strings_container.size();
+  na_strings_ptr = std::unique_ptr<const char*[]>(new const char*[n+1]);
+  na_strings = na_strings_ptr.get();
+  for (size_t i = 0; i < n; ++i) {
+    na_strings[i] = na_strings_container[i].data();
+  }
+  na_strings[n] = nullptr;
   blank_is_na = false;
   number_is_na = false;
   const char* const* ptr = na_strings;
@@ -302,14 +305,15 @@ void GenericReader::init_nastrings(const py::oobj& arg) {
   }
 }
 
-void GenericReader::init_skipstring(const py::oobj& arg) {
-  skip_to_string = arg.to_cstring().ch;
-  if (skip_to_string && skip_to_string[0]=='\0') skip_to_string = nullptr;
-  if (skip_to_string && skip_to_line) {
-    throw ValueError() << "Parameters `skip_to_line` and `skip_to_string` "
-                       << "cannot be provided simultaneously";
+void GenericReader::init_skipstring(const py::Arg& arg) {
+  skip_to_string = arg.to<std::string>("");
+  if (!skip_to_string.empty()) {
+    if (skip_to_line) {
+      throw ValueError() << "Parameters `skip_to_line` and `skip_to_string` "
+                         << "cannot be provided simultaneously";
+    }
+    trace("skip_to_string = \"%s\"", skip_to_string.data());
   }
-  if (skip_to_string) trace("skip_to_string = \"%s\"", skip_to_string);
 }
 
 void GenericReader::init_stripwhite(const py::oobj& arg) {
@@ -716,8 +720,8 @@ void GenericReader::skip_to_line_number() {
 
 
 void GenericReader::skip_to_line_with_string() {
-  const char* const ss = skip_to_string;
-  if (!ss) return;
+  if (skip_to_string.empty()) return;
+  const char* const ss = skip_to_string.data();
   const char* ch = sof;
   const char* line_start = sof;
   while (ch < eof) {

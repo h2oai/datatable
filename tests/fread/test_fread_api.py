@@ -749,7 +749,7 @@ def test_fread_quotechar_bad():
     for c in "~!@#$%abcd*()-_+=^&:;{}[]\\|,.></?0123456789":
         with pytest.raises(ValueError) as e:
             dt.fread("A,B\n1,2", quotechar=c)
-        assert "quotechar should be one of [\"'`] or '' or None" in str(e.value)
+        assert "quotechar = (%s) is not allowed" % c in str(e.value)
     # Multi-character raises as well
     with pytest.raises(ValueError):
         dt.fread("A,B\n1,2", quotechar="''")

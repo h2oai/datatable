@@ -16,7 +16,7 @@
 
 class DataTable;
 using dtptr = std::unique_ptr<DataTable>;
-
+using strvec = std::vector<std::string>;
 
 /**
  * GenericReader: base class for reading text files in multiple formats. This
@@ -69,8 +69,10 @@ class GenericReader
     bool    blank_is_na;
     bool    number_is_na;
     int : 16;
-    const char* skip_to_string;
-    const char* const* na_strings;
+    std::string skip_to_string;
+    const char** na_strings;
+    strvec  na_strings_container;
+    std::unique_ptr<const char*[]> na_strings_ptr;
 
   //---- Runtime parameters ----
   // line:
@@ -98,7 +100,6 @@ class GenericReader
     py::oobj src_arg;
     py::oobj file_arg;
     py::oobj text_arg;
-    py::oobj skipstring_arg;
     py::oobj tempstr;
     py::oobj columns_arg;
     py::olist column_names;
@@ -162,10 +163,10 @@ class GenericReader
     void init_skiptoline    (const py::Arg&);
     void init_sep           (const py::Arg&);
     void init_dec           (const py::Arg&);
-    void init_quote         (const py::oobj&);
-    void init_header        (const py::oobj&);
-    void init_nastrings     (const py::oobj&);
-    void init_skipstring    (const py::oobj&);
+    void init_quote         (const py::Arg&);
+    void init_header        (const py::Arg&);
+    void init_nastrings     (const py::Arg&);
+    void init_skipstring    (const py::Arg&);
     void init_stripwhite    (const py::oobj&);
     void init_skipblanklines(const py::oobj&);
     void init_columns       (const py::oobj&);

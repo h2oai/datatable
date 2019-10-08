@@ -88,15 +88,15 @@ class GenericReader(object):
         self._sep = sep             # type: str
         self._dec = dec             # type: str
         self._maxnrows = max_nrows  # type: int
-        self._header = None         # type: bool
-        self._nastrings = []        # type: List[str]
+        self._header = header       # type: bool
+        self._nastrings = na_strings  # type: List[str]
         self._verbose = verbose     # type: bool
         self._fill = fill           # type: bool
         self._encoding = encoding   # type: str
-        self._quotechar = None      # type: str
+        self._quotechar = quotechar # type: str
         self._skip_to_line = skip_to_line
         self._skip_blank_lines = True
-        self._skip_to_string = None
+        self._skip_to_string = skip_to_string
         self._strip_whitespace = True
         self._columns = columns
         self._save_to = save_to
@@ -107,20 +107,14 @@ class GenericReader(object):
         self._bar_symbols = None
         self._result = None
 
-        if na_strings is None:
-            na_strings = ["NA"]
         if "_tempdir" in args:
             self.tempdir = args.pop("_tempdir")
         self.logger = logger
         if verbose:
             self.logger.debug("[1] Prepare for reading")
         self._resolve_source(anysource, file, text, cmd, url)
-        self.header = header
-        self.na_strings = na_strings
-        self.skip_to_string = skip_to_string
         self.skip_blank_lines = skip_blank_lines
         self.strip_whitespace = strip_whitespace
-        self.quotechar = quotechar
 
         if "separator" in args:
             self._sep = args.pop("separator")
@@ -415,37 +409,6 @@ class GenericReader(object):
 
 
     @property
-    def header(self):
-        return self._header
-
-    @header.setter
-    @typed(header=U(bool, None))
-    def header(self, header):
-        self._header = header
-
-
-    @property
-    def na_strings(self):
-        return self._nastrings
-
-    @na_strings.setter
-    @typed()
-    def na_strings(self, na_strings: List[str]):
-        self._nastrings = na_strings
-
-
-    @property
-    def skip_to_string(self):
-        return self._skip_to_string
-
-    @skip_to_string.setter
-    @typed(s=U(str, None))
-    def skip_to_string(self, s):
-        self._skip_to_string = s or None
-
-
-
-    @property
     def skip_blank_lines(self) -> bool:
         return self._skip_blank_lines
 
@@ -463,29 +426,6 @@ class GenericReader(object):
     @typed()
     def strip_whitespace(self, v: bool):
         self._strip_whitespace = v
-
-
-    @property
-    def quotechar(self):
-        return self._quotechar
-
-    @quotechar.setter
-    @typed()
-    def quotechar(self, v: Optional[str]):
-        if v not in {None, "", "'", '"', "`"}:
-            raise ValueError("quotechar should be one of [\"'`] or '' or None")
-        self._quotechar = v
-
-    # @property
-    # def nthreads(self):
-    #     """Number of threads to use when reading the file."""
-    #     return self._nthreads
-
-    # @nthreads.setter
-    # @typed(nth=U(int, None))
-    # def nthreads(self, nth):
-    #     self._nthreads = nth
-
 
     @property
     def logger(self):

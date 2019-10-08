@@ -520,29 +520,22 @@ char** _obj::to_cstringlist(const error_manager&) const {
 
 
 strvec _obj::to_stringlist(const error_manager&) const {
-  strvec res;
-  if (PyList_Check(v) || PyTuple_Check(v)) {
-    bool islist = PyList_Check(v);
-    Py_ssize_t count = Py_SIZE(v);
-    res.reserve(static_cast<size_t>(count));
-    for (Py_ssize_t i = 0; i < count; ++i) {
-      PyObject* item = islist? PyList_GET_ITEM(v, i)
-                             : PyTuple_GET_ITEM(v, i);
-      if (PyUnicode_Check(item)) {
-        PyObject* y = PyUnicode_AsEncodedString(item, "utf-8", "strict");
-        if (!y) throw PyError();
-        res.push_back(PyBytes_AsString(y));
-        Py_DECREF(y);
-      } else
-      if (PyBytes_Check(item)) {
-        res.push_back(PyBytes_AsString(item));
-      } else {
-        throw TypeError() << "Item " << i << " in the list is not a string: "
-                          << item  << " (" << PyObject_Type(item) << ")";
-      }
-    }
-  } else if (v != Py_None) {
+  if (!is_list_or_tuple()) {
     throw TypeError() << "A list of strings is expected, got " << v;
+  }
+  auto vlist = to_pylist();
+  size_t count = vlist.size();
+
+  strvec res;
+  res.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    robj item = vlist[i];
+    if (item.is_string() || item.is_bytes()) {
+      res.push_back(item.to_string());
+    } else {
+      throw TypeError() << "Item " << i << " in the list is not a string: "
+                        << item.typeobj();
+    }
   }
   return res;
 }
