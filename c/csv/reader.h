@@ -155,21 +155,20 @@ class GenericReader
 
   // Helper functions
   private:
-    void init_verbose(const py::oobj&);
-    void init_nthreads(const py::oobj&);
-    void init_fill(const py::oobj&);
-    void init_maxnrows(const py::Arg&);
-    void init_skiptoline(const py::Arg&);
-    void init_sep(const py::oobj&);
-    void init_sep(const py::Arg&);
-    void init_dec(const py::Arg&);
-    void init_quote(const py::oobj&);
-    void init_header(const py::oobj&);
-    void init_nastrings(const py::oobj&);
-    void init_skipstring(const py::oobj&);
-    void init_stripwhite(const py::oobj&);
+    void init_verbose       (const py::Arg&);
+    void init_nthreads      (const py::Arg&);
+    void init_fill          (const py::Arg&);
+    void init_maxnrows      (const py::Arg&);
+    void init_skiptoline    (const py::Arg&);
+    void init_sep           (const py::Arg&);
+    void init_dec           (const py::Arg&);
+    void init_quote         (const py::oobj&);
+    void init_header        (const py::oobj&);
+    void init_nastrings     (const py::oobj&);
+    void init_skipstring    (const py::oobj&);
+    void init_stripwhite    (const py::oobj&);
     void init_skipblanklines(const py::oobj&);
-    void init_columns(const py::oobj&);
+    void init_columns       (const py::oobj&);
 
   protected:
     void open_input();

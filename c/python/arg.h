@@ -135,6 +135,11 @@ inline int64_t Arg::to(int64_t deflt) const {
 }
 
 template <>
+inline double Arg::to(double deflt) const {
+  return is_none_or_undefined()? deflt : to_double();
+}
+
+template <>
 inline oobj Arg::to(oobj deflt) const {
   return is_none_or_undefined()? deflt : to_oobj();
 }

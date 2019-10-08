@@ -89,9 +89,9 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   fileno   = pyrdr.get_attr("_fileno").to_int32();
   logger   = pyrdr.get_attr("logger");
 
-  init_verbose(   pyrdr.get_attr("verbose"));
-  init_nthreads(  pyrdr.get_attr("nthreads"));
-  init_fill(      pyrdr.get_attr("fill"));
+  init_verbose(   py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
+  init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
+  init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));
   init_maxnrows(  py::Arg(pyrdr.get_attr("_maxnrows"), "Parameter `max_nrows`"));
   init_skiptoline(py::Arg(pyrdr.get_attr("_skip_to_line"), "Parameter `skip_to_line`"));
   init_sep(       py::Arg(pyrdr.get_attr("_sep"), "Parameter `sep`"));
@@ -138,15 +138,15 @@ GenericReader::GenericReader(const GenericReader& g)
 GenericReader::~GenericReader() {}
 
 
-void GenericReader::init_verbose(const py::oobj& arg) {
-  int8_t v = arg.to_bool();
-  verbose = (v > 0);
+void GenericReader::init_verbose(const py::Arg& arg) {
+  verbose = arg.to<bool>(false);
 }
 
-void GenericReader::init_nthreads(const py::oobj& arg) {
-  int32_t nth = arg.to_int32();
+void GenericReader::init_nthreads(const py::Arg& arg) {
+  int32_t DEFAULT = -(1 << 30);
+  int32_t nth = arg.to<int32_t>(DEFAULT);
   int maxth = static_cast<int>(dt::num_threads_in_pool());
-  if (ISNA<int32_t>(nth)) {
+  if (nth == DEFAULT) {
     nthreads = maxth;
     trace("Using default %d thread%s", nthreads, (nthreads==1? "" : "s"));
   } else {
@@ -159,10 +159,11 @@ void GenericReader::init_nthreads(const py::oobj& arg) {
   }
 }
 
-void GenericReader::init_fill(const py::oobj& arg) {
-  int8_t v = arg.to_bool();
-  fill = (v > 0);
-  if (fill) trace("fill=True (incomplete lines will be padded with NAs)");
+void GenericReader::init_fill(const py::Arg& arg) {
+  fill = arg.to<bool>(false);
+  if (fill) {
+    trace("fill=True (incomplete lines will be padded with NAs)");
+  }
 }
 
 void GenericReader::init_maxnrows(const py::Arg& arg) {

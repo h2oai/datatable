@@ -90,8 +90,8 @@ class GenericReader(object):
         self._maxnrows = max_nrows  # type: int
         self._header = None         # type: bool
         self._nastrings = []        # type: List[str]
-        self._verbose = False       # type: bool
-        self._fill = False          # type: bool
+        self._verbose = verbose     # type: bool
+        self._fill = fill           # type: bool
         self._encoding = encoding   # type: str
         self._quotechar = None      # type: str
         self._skip_to_line = skip_to_line
@@ -111,14 +111,12 @@ class GenericReader(object):
             na_strings = ["NA"]
         if "_tempdir" in args:
             self.tempdir = args.pop("_tempdir")
-        self.verbose = verbose
         self.logger = logger
         if verbose:
             self.logger.debug("[1] Prepare for reading")
         self._resolve_source(anysource, file, text, cmd, url)
         self.header = header
         self.na_strings = na_strings
-        self.fill = fill
         self.skip_to_string = skip_to_string
         self.skip_blank_lines = skip_blank_lines
         self.strip_whitespace = strip_whitespace
@@ -177,7 +175,7 @@ class GenericReader(object):
             # If there are any control characters (such as \n or \r) in the
             # text of `src`, then its type is "text".
             if len(src) >= 4096:
-                if self.verbose:
+                if self._verbose:
                     self.logger.debug("Input is a string of length %d, "
                                       "treating it as raw text" % len(src))
                 self._resolve_source_text(src)
@@ -186,21 +184,21 @@ class GenericReader(object):
                 for ch in src:
                     ccode = fn(ch)
                     if ccode < 0x20:
-                        if self.verbose:
+                        if self._verbose:
                             self.logger.debug("Input contains '\\x%02X', "
                                               "treating it as raw text" % ccode)
                         self._resolve_source_text(src)
                         return
                 if is_str and re.match(_url_regex, src):
-                    if self.verbose:
+                    if self._verbose:
                         self.logger.debug("Input is a URL.")
                     self._resolve_source_url(src)
                 elif is_str and re.search(_glob_regex, src):
-                    if self.verbose:
+                    if self._verbose:
                         self.logger.debug("Input is a glob pattern.")
                     self._resolve_source_list_of_files(glob.glob(src))
                 else:
-                    if self.verbose:
+                    if self._verbose:
                         self.logger.debug("Input is assumed to be a "
                                           "file name.")
                     self._resolve_source_file(src)
@@ -437,26 +435,6 @@ class GenericReader(object):
 
 
     @property
-    def verbose(self):
-        return self._verbose
-
-    @verbose.setter
-    @typed(verbose=bool)
-    def verbose(self, verbose):
-        self._verbose = verbose
-
-
-    @property
-    def fill(self):
-        return self._fill
-
-    @fill.setter
-    @typed(fill=bool)
-    def fill(self, fill):
-        self._fill = fill
-
-
-    @property
     def skip_to_string(self):
         return self._skip_to_string
 
@@ -498,15 +476,15 @@ class GenericReader(object):
             raise ValueError("quotechar should be one of [\"'`] or '' or None")
         self._quotechar = v
 
-    @property
-    def nthreads(self):
-        """Number of threads to use when reading the file."""
-        return self._nthreads
+    # @property
+    # def nthreads(self):
+    #     """Number of threads to use when reading the file."""
+    #     return self._nthreads
 
-    @nthreads.setter
-    @typed(nth=U(int, None))
-    def nthreads(self, nth):
-        self._nthreads = nth
+    # @nthreads.setter
+    # @typed(nth=U(int, None))
+    # def nthreads(self, nth):
+    #     self._nthreads = nth
 
 
     @property
@@ -520,7 +498,7 @@ class GenericReader(object):
             l = _DefaultLogger()
         else:
             # If custom logger is provided, turn on the verbose mode
-            self.verbose = True
+            self._verbose = True
         if not(hasattr(l, "debug") and callable(l.debug) and
                (hasattr(l.debug, "__func__") and
                 l.debug.__func__.__code__.co_argcount >= 2 or
@@ -575,19 +553,19 @@ class GenericReader(object):
             except ImportError:
                 psutil = None
 
-        if self.verbose and estimated_size > 1:
+        if self._verbose and estimated_size > 1:
             self.logger.debug("The Frame is estimated to require %s bytes"
                               % humanize_bytes(estimated_size))
         if estimated_size < 1024 or psutil is None:
             return None
         vm = psutil.virtual_memory()
-        if self.verbose:
+        if self._verbose:
             self.logger.debug("Memory available = %s (out of %s)"
                               % (humanize_bytes(vm.available),
                                  humanize_bytes(vm.total)))
         if (estimated_size < vm.available and self._save_to is None or
                 self._save_to == "memory"):
-            if self.verbose:
+            if self._verbose:
                 self.logger.debug("Frame will be loaded into memory")
             return None
         else:
@@ -597,12 +575,12 @@ class GenericReader(object):
             else:
                 tmpdir = tempfile.mkdtemp()
             du = psutil.disk_usage(tmpdir)
-            if self.verbose:
+            if self._verbose:
                 self.logger.debug("Free disk space on drive %s = %s"
                                   % (os.path.splitdrive(tmpdir)[0] or "/",
                                      humanize_bytes(du.free)))
             if du.free > estimated_size or self._save_to:
-                if self.verbose:
+                if self._verbose:
                     self.logger.debug("Frame will be stored in %s"
                                       % tmpdir)
                 return tmpdir
