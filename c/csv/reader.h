@@ -68,8 +68,7 @@ class GenericReader
     bool    fill;
     bool    blank_is_na;
     bool    number_is_na;
-    bool    override_column_types;
-    int : 8;
+    int : 16;
     const char* skip_to_string;
     const char* const* na_strings;
 
@@ -96,12 +95,12 @@ class GenericReader
 
   private:
     py::oobj logger;
-    py::oobj freader;
     py::oobj src_arg;
     py::oobj file_arg;
     py::oobj text_arg;
     py::oobj skipstring_arg;
     py::oobj tempstr;
+    py::oobj columns_arg;
     py::olist column_names;
 
     // If `trace()` cannot display a message immediately (because it was not
@@ -169,7 +168,7 @@ class GenericReader
     void init_skipstring(const py::oobj&);
     void init_stripwhite(const py::oobj&);
     void init_skipblanklines(const py::oobj&);
-    void init_overridecolumntypes(const py::oobj&);
+    void init_columns(const py::oobj&);
 
   protected:
     void open_input();

@@ -756,179 +756,170 @@ class GenericReader(object):
 
 
 
-    #---------------------------------------------------------------------------
-    # Process `columns` argument
-    #---------------------------------------------------------------------------
-
-    def _override_columns0(self, coldescs):
-        return self._override_columns1(self._columns, coldescs)
 
 
-    def _override_columns1(self, colspec, coldescs):
-        if isinstance(colspec, (slice, range)):
-            return self._apply_columns_slice(colspec, coldescs)
+#-------------------------------------------------------------------------------
+# Process `columns` argument
+#-------------------------------------------------------------------------------
 
-        if isinstance(colspec, set):
-            return self._apply_columns_set(colspec, coldescs)
-
-        if isinstance(colspec, (list, tuple)):
-            return self._apply_columns_list(colspec, coldescs)
-
-        if isinstance(colspec, dict):
-            return self._apply_columns_dict(colspec, coldescs)
-
-        if isinstance(colspec, (type, stype, ltype)):
-            newcs = {colspec: slice(None)}
-            return self._apply_columns_dict(newcs, coldescs)
-
-        if callable(colspec):
-            return self._apply_columns_function(colspec, coldescs)
-
-        print(colspec, coldescs)
-        raise RuntimeError("Unknown colspec: %r"  # pragma: no cover
-                           % colspec)
+def _override_columns(colspec, coldescs):
+    if isinstance(colspec, (slice, range)):
+        return _apply_columns_slice(colspec, coldescs)
+    if isinstance(colspec, set):
+        return _apply_columns_set(colspec, coldescs)
+    if isinstance(colspec, (list, tuple)):
+        return _apply_columns_list(colspec, coldescs)
+    if isinstance(colspec, dict):
+        return _apply_columns_dict(colspec, coldescs)
+    if isinstance(colspec, (type, stype, ltype)):
+        newcs = {colspec: slice(None)}
+        return _apply_columns_dict(newcs, coldescs)
+    if callable(colspec):
+        return _apply_columns_function(colspec, coldescs)
+    raise RuntimeError("Unknown colspec: %r" % colspec)  # pragma: no cover
 
 
-    def _apply_columns_slice(self, colslice, colsdesc):
-        n = len(colsdesc)
 
-        if isinstance(colslice, slice):
-            start, count, step = normalize_slice(colslice, n)
-        else:
-            t = normalize_range(colslice, n)
-            if t is None:
-                raise TValueError("Invalid range iterator for a file with "
-                                  "%d columns: %r" % (n, colslice))
-            start, count, step = t
-        if step <= 0:
-            raise TValueError("Cannot use slice/range with negative step "
-                              "for column filter: %r" % colslice)
+def _apply_columns_slice(colslice, colsdesc):
+    n = len(colsdesc)
 
-        colnames = [None] * count
-        coltypes = [rtype.rdrop.value] * n
-        for j in range(count):
-            i = start + j * step
-            colnames[j] = colsdesc[i].name
+    if isinstance(colslice, slice):
+        start, count, step = normalize_slice(colslice, n)
+    else:
+        t = normalize_range(colslice, n)
+        if t is None:
+            raise TValueError("Invalid range iterator for a file with "
+                              "%d columns: %r" % (n, colslice))
+        start, count, step = t
+    if step <= 0:
+        raise TValueError("Cannot use slice/range with negative step "
+                          "for column filter: %r" % colslice)
+
+    colnames = [None] * count
+    coltypes = [rtype.rdrop.value] * n
+    for j in range(count):
+        i = start + j * step
+        colnames[j] = colsdesc[i].name
+        coltypes[i] = rtype.rauto.value
+    return (colnames, coltypes)
+
+
+def _apply_columns_set(colset, colsdesc):
+    n = len(colsdesc)
+    # Make a copy of the `colset` in order to check whether all the
+    # columns requested by the user were found, and issue a warning
+    # otherwise.
+    requested_cols = colset.copy()
+    colnames = []
+    coltypes = [rtype.rdrop.value] * n
+    for i in range(n):
+        colname = colsdesc[i][0]
+        if colname in colset:
+            requested_cols.discard(colname)
+            colnames.append(colname)
             coltypes[i] = rtype.rauto.value
-        return (colnames, coltypes)
+    if requested_cols:
+        warnings.warn("Column(s) %r not found in the input file"
+                      % list(requested_cols), category=FreadWarning)
+    return (colnames, coltypes)
 
 
-    def _apply_columns_set(self, colset, colsdesc):
-        n = len(colsdesc)
-        # Make a copy of the `colset` in order to check whether all the
-        # columns requested by the user were found, and issue a warning
-        # otherwise.
-        requested_cols = colset.copy()
-        colnames = []
-        coltypes = [rtype.rdrop.value] * n
-        for i in range(n):
-            colname = colsdesc[i][0]
-            if colname in colset:
-                requested_cols.discard(colname)
-                colnames.append(colname)
-                coltypes[i] = rtype.rauto.value
-        if requested_cols:
-            self.logger.warning("Column(s) %r not found in the input file"
-                                % list(requested_cols))
-        return (colnames, coltypes)
+def _apply_columns_list(collist, colsdesc):
+    n = len(colsdesc)
+    nn = len(collist)
+    if n != nn:
+        raise TValueError("Input contains %s, whereas `columns` "
+                          "parameter specifies only %s"
+                          % (plural(n, "column"), plural(nn, "column")))
+    colnames = []
+    coltypes = [rtype.rdrop.value] * n
+    for i in range(n):
+        entry = collist[i]
+        if entry is None or entry is False:
+            pass
+        elif entry is True or entry is Ellipsis:
+            colnames.append(colsdesc[i].name)
+            coltypes[i] = rtype.rauto.value
+        elif isinstance(entry, str):
+            colnames.append(entry)
+            coltypes[i] = rtype.rauto.value
+        elif isinstance(entry, (stype, ltype, type)):
+            colnames.append(colsdesc[i].name)
+            coltypes[i] = _rtypes_map[entry].value
+        elif isinstance(entry, tuple):
+            newname, newtype = entry
+            if newtype not in _rtypes_map:
+                raise TValueError("Unknown type %r used as an override "
+                                  "for column %r" % (newtype, newname))
+            colnames.append(newname)
+            coltypes[i] = _rtypes_map[newtype].value
+        else:
+            raise TTypeError("Entry `columns[%d]` has invalid type %r"
+                             % (i, entry.__class__.__name__))
+    return (colnames, coltypes)
 
 
-    def _apply_columns_list(self, collist, colsdesc):
-        n = len(colsdesc)
-        nn = len(collist)
-        if n != nn:
-            raise TValueError("Input contains %s, whereas `columns` "
-                              "parameter specifies only %s"
-                              % (plural(n, "column"), plural(nn, "column")))
-        colnames = []
-        coltypes = [rtype.rdrop.value] * n
-        for i in range(n):
-            entry = collist[i]
-            if entry is None or entry is False:
-                pass
-            elif entry is True or entry is Ellipsis:
-                colnames.append(colsdesc[i].name)
-                coltypes[i] = rtype.rauto.value
-            elif isinstance(entry, str):
-                colnames.append(entry)
-                coltypes[i] = rtype.rauto.value
-            elif isinstance(entry, (stype, ltype, type)):
-                colnames.append(colsdesc[i].name)
-                coltypes[i] = _rtypes_map[entry].value
-            elif isinstance(entry, tuple):
-                newname, newtype = entry
-                if newtype not in _rtypes_map:
-                    raise TValueError("Unknown type %r used as an override "
-                                      "for column %r" % (newtype, newname))
-                colnames.append(newname)
-                coltypes[i] = _rtypes_map[newtype].value
+def _apply_columns_dict(colsdict, colsdesc):
+    default_entry = colsdict.get(..., ...)
+    colnames = []
+    coltypes = [rtype.rdrop.value] * len(colsdesc)
+    new_entries = {}
+    for key, val in colsdict.items():
+        if isinstance(key, (type, stype, ltype)):
+            if isinstance(val, str):
+                val = [val]
+            if isinstance(val, slice):
+                val = [colsdesc[i].name
+                       for i in range(*val.indices(len(colsdesc)))]
+            if isinstance(val, range):
+                val = [colsdesc[i].name for i in val]
+            if isinstance(val, (list, tuple, set)):
+                for entry in val:
+                    if not isinstance(entry, str):
+                        raise TTypeError(
+                            "Type %s in the `columns` parameter should map"
+                            " to a string or list of strings (column names)"
+                            "; however it contains an entry %r"
+                            % (key, entry))
+                    if entry in colsdict:
+                        continue
+                    new_entries[entry] = key
             else:
-                raise TTypeError("Entry `columns[%d]` has invalid type %r"
-                                 % (i, entry.__class__.__name__))
-        return (colnames, coltypes)
+                raise TTypeError(
+                    "Unknown entry %r for %s in `columns`" % (val, key))
+    if new_entries:
+        colsdict = {**colsdict, **new_entries}
+    for i, desc in enumerate(colsdesc):
+        name = desc.name
+        entry = colsdict.get(name, default_entry)
+        if entry is None:
+            pass  # coltype is already "drop"
+        elif entry is Ellipsis:
+            colnames.append(name)
+            coltypes[i] = rtype.rauto.value
+        elif isinstance(entry, str):
+            colnames.append(entry)
+            coltypes[i] = rtype.rauto.value
+        elif isinstance(entry, (stype, ltype, type)):
+            colnames.append(name)
+            coltypes[i] = _rtypes_map[entry].value
+        elif isinstance(entry, tuple):
+            newname, newtype = entry
+            colnames.append(newname)
+            coltypes[i] = _rtypes_map[newtype].value
+            assert isinstance(newname, str)
+            if not coltypes[i]:
+                raise TValueError("Unknown type %r used as an override "
+                                  "for column %r" % (newtype, newname))
+        else:
+            raise TTypeError("Unknown value %r for column '%s' in "
+                             "columns descriptor" % (entry, name))
+    return (colnames, coltypes)
 
 
-    def _apply_columns_dict(self, colsdict, colsdesc):
-        default_entry = colsdict.get(..., ...)
-        colnames = []
-        coltypes = [rtype.rdrop.value] * len(colsdesc)
-        new_entries = {}
-        for key, val in colsdict.items():
-            if isinstance(key, (type, stype, ltype)):
-                if isinstance(val, str):
-                    val = [val]
-                if isinstance(val, slice):
-                    val = [colsdesc[i].name
-                           for i in range(*val.indices(len(colsdesc)))]
-                if isinstance(val, range):
-                    val = [colsdesc[i].name for i in val]
-                if isinstance(val, (list, tuple, set)):
-                    for entry in val:
-                        if not isinstance(entry, str):
-                            raise TTypeError(
-                                "Type %s in the `columns` parameter should map"
-                                " to a string or list of strings (column names)"
-                                "; however it contains an entry %r"
-                                % (key, entry))
-                        if entry in colsdict:
-                            continue
-                        new_entries[entry] = key
-                else:
-                    raise TTypeError(
-                        "Unknown entry %r for %s in `columns`" % (val, key))
-        if new_entries:
-            colsdict = {**colsdict, **new_entries}
-        for i, desc in enumerate(colsdesc):
-            name = desc.name
-            entry = colsdict.get(name, default_entry)
-            if entry is None:
-                pass  # coltype is already "drop"
-            elif entry is Ellipsis:
-                colnames.append(name)
-                coltypes[i] = rtype.rauto.value
-            elif isinstance(entry, str):
-                colnames.append(entry)
-                coltypes[i] = rtype.rauto.value
-            elif isinstance(entry, (stype, ltype, type)):
-                colnames.append(name)
-                coltypes[i] = _rtypes_map[entry].value
-            elif isinstance(entry, tuple):
-                newname, newtype = entry
-                colnames.append(newname)
-                coltypes[i] = _rtypes_map[newtype].value
-                assert isinstance(newname, str)
-                if not coltypes[i]:
-                    raise TValueError("Unknown type %r used as an override "
-                                      "for column %r" % (newtype, newname))
-            else:
-                raise TTypeError("Unknown value %r for column '%s' in "
-                                 "columns descriptor" % (entry, name))
-        return (colnames, coltypes)
-
-
-    def _apply_columns_function(self, colsfn, colsdesc):
-        res = colsfn(colsdesc)
-        return self._override_columns1(res, colsdesc)
+def _apply_columns_function(colsfn, colsdesc):
+    res = colsfn(colsdesc)
+    return _override_columns1(res, colsdesc)
 
 
 

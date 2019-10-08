@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <stdlib.h>             // strtod
 #include <strings.h>            // strcasecmp
@@ -83,32 +83,30 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   eof = nullptr;
   line = 0;
   cr_is_newline = 0;
-  freader  = pyrdr;
   src_arg  = pyrdr.get_attr("src");
   file_arg = pyrdr.get_attr("file");
   text_arg = pyrdr.get_attr("text");
   fileno   = pyrdr.get_attr("fileno").to_int32();
   logger   = pyrdr.get_attr("logger");
 
-  init_verbose(freader.get_attr("verbose"));
-  init_nthreads(freader.get_attr("nthreads"));
-  init_fill(freader.get_attr("fill"));
-  init_maxnrows(freader.get_attr("max_nrows"));
-  init_skiptoline(freader.get_attr("skip_to_line"));
-  init_sep(freader.get_attr("sep"));
-  init_dec(freader.get_attr("dec"));
-  init_quote(freader.get_attr("quotechar"));
-  init_header(freader.get_attr("header"));
-  init_nastrings(freader.get_attr("na_strings"));
-  init_skipstring(freader.get_attr("skip_to_string"));
-  init_stripwhite(freader.get_attr("strip_whitespace"));
-  init_skipblanklines(freader.get_attr("skip_blank_lines"));
-  init_overridecolumntypes(freader.get_attr("_columns"));
+  init_verbose(pyrdr.get_attr("verbose"));
+  init_nthreads(pyrdr.get_attr("nthreads"));
+  init_fill(pyrdr.get_attr("fill"));
+  init_maxnrows(pyrdr.get_attr("max_nrows"));
+  init_skiptoline(pyrdr.get_attr("skip_to_line"));
+  init_sep(pyrdr.get_attr("sep"));
+  init_dec(pyrdr.get_attr("dec"));
+  init_quote(pyrdr.get_attr("quotechar"));
+  init_header(pyrdr.get_attr("header"));
+  init_nastrings(pyrdr.get_attr("na_strings"));
+  init_skipstring(pyrdr.get_attr("skip_to_string"));
+  init_stripwhite(pyrdr.get_attr("strip_whitespace"));
+  init_skipblanklines(pyrdr.get_attr("skip_blank_lines"));
+  init_columns(pyrdr.get_attr("_columns"));
 }
 
 // Copy-constructor will copy only the essential parts
 GenericReader::GenericReader(const GenericReader& g)
-  : freader(g.freader)  // for progress function / override columns
 {
   // Input parameters
   nthreads         = g.nthreads;
@@ -126,8 +124,8 @@ GenericReader::GenericReader(const GenericReader& g)
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
-  override_column_types = g.override_column_types;
-  t_open_input = g.t_open_input;
+  columns_arg      = g.columns_arg;
+  t_open_input     = g.t_open_input;
   // Runtime parameters
   job     = g.job;
   input_mbuf = g.input_mbuf;
@@ -317,8 +315,10 @@ void GenericReader::init_skipblanklines(const py::oobj& arg) {
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
-void GenericReader::init_overridecolumntypes(const py::oobj& arg) {
-  override_column_types = !arg.is_none();
+void GenericReader::init_columns(const py::oobj& arg) {
+  if (arg && !arg.is_none()) {
+    columns_arg = arg;
+  }
 }
 
 
@@ -802,15 +802,15 @@ void GenericReader::decode_utf16() {
 void GenericReader::report_columns_to_python() {
   size_t ncols = columns.size();
 
-  if (override_column_types) {
+  if (columns_arg) {
     py::olist colDescriptorList(ncols);
     for (size_t i = 0; i < ncols; i++) {
       colDescriptorList.set(i, columns[i].py_descriptor());
     }
 
     py::otuple newColumns =
-      freader.get_attr("_override_columns0")
-        .call({std::move(colDescriptorList)}).to_otuple();
+      py::oobj::import("datatable.fread", "_override_columns")
+        .call({columns_arg, colDescriptorList}).to_otuple();
 
     column_names = newColumns[0].to_pylist();
     py::olist newTypesList = newColumns[1].to_pylist();
