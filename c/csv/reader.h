@@ -158,8 +158,8 @@ class GenericReader
     void init_verbose(const py::oobj&);
     void init_nthreads(const py::oobj&);
     void init_fill(const py::oobj&);
-    void init_maxnrows(const py::oobj&);
-    void init_skiptoline(const py::oobj&);
+    void init_maxnrows(const py::Arg&);
+    void init_skiptoline(const py::Arg&);
     void init_sep(const py::oobj&);
     void init_sep(const py::Arg&);
     void init_dec(const py::Arg&);

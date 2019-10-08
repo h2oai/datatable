@@ -92,8 +92,8 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   init_verbose(   pyrdr.get_attr("verbose"));
   init_nthreads(  pyrdr.get_attr("nthreads"));
   init_fill(      pyrdr.get_attr("fill"));
-  init_maxnrows(  pyrdr.get_attr("max_nrows"));
-  init_skiptoline(pyrdr.get_attr("skip_to_line"));
+  init_maxnrows(  py::Arg(pyrdr.get_attr("_maxnrows"), "Parameter `max_nrows`"));
+  init_skiptoline(py::Arg(pyrdr.get_attr("_skip_to_line"), "Parameter `skip_to_line`"));
   init_sep(       py::Arg(pyrdr.get_attr("_sep"), "Parameter `sep`"));
   init_dec(       py::Arg(pyrdr.get_attr("_dec"), "Parameter `dec`"));
   init_quote(     pyrdr.get_attr("quotechar"));
@@ -165,8 +165,8 @@ void GenericReader::init_fill(const py::oobj& arg) {
   if (fill) trace("fill=True (incomplete lines will be padded with NAs)");
 }
 
-void GenericReader::init_maxnrows(const py::oobj& arg) {
-  int64_t n = arg.to_int64();
+void GenericReader::init_maxnrows(const py::Arg& arg) {
+  int64_t n = arg.to<int64_t>(-1);
   if (n < 0) {
     max_nrows = std::numeric_limits<size_t>::max();
   } else {
@@ -175,8 +175,8 @@ void GenericReader::init_maxnrows(const py::oobj& arg) {
   }
 }
 
-void GenericReader::init_skiptoline(const py::oobj& arg) {
-  int64_t n = arg.to_int64();
+void GenericReader::init_skiptoline(const py::Arg& arg) {
+  int64_t n = arg.to<int64_t>(-1);
   skip_to_line = (n < 0)? 0 : static_cast<size_t>(n);
   if (n > 1) trace("skip_to_line = %zu", n);
 }

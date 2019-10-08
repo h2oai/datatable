@@ -87,14 +87,14 @@ class GenericReader(object):
         self._text = None           # type: Union[str, bytes]
         self._sep = sep             # type: str
         self._dec = dec             # type: str
-        self._maxnrows = None       # type: int
+        self._maxnrows = max_nrows  # type: int
         self._header = None         # type: bool
         self._nastrings = []        # type: List[str]
         self._verbose = False       # type: bool
         self._fill = False          # type: bool
         self._encoding = encoding   # type: str
         self._quotechar = None      # type: str
-        self._skip_to_line = None
+        self._skip_to_line = skip_to_line
         self._skip_blank_lines = True
         self._skip_to_string = None
         self._strip_whitespace = True
@@ -116,12 +116,10 @@ class GenericReader(object):
         if verbose:
             self.logger.debug("[1] Prepare for reading")
         self._resolve_source(anysource, file, text, cmd, url)
-        self.max_nrows = max_nrows
         self.header = header
         self.na_strings = na_strings
         self.fill = fill
         self.skip_to_string = skip_to_string
-        self.skip_to_line = skip_to_line
         self.skip_blank_lines = skip_blank_lines
         self.strip_whitespace = strip_whitespace
         self.quotechar = quotechar
@@ -419,18 +417,6 @@ class GenericReader(object):
 
 
     @property
-    def max_nrows(self):
-        return self._maxnrows
-
-    @max_nrows.setter
-    @typed(max_nrows=U(int, None))
-    def max_nrows(self, max_nrows):
-        if max_nrows is None or max_nrows < 0:
-            max_nrows = -1
-        self._maxnrows = max_nrows
-
-
-    @property
     def header(self):
         return self._header
 
@@ -479,15 +465,6 @@ class GenericReader(object):
     def skip_to_string(self, s):
         self._skip_to_string = s or None
 
-
-    @property
-    def skip_to_line(self):
-        return self._skip_to_line
-
-    @skip_to_line.setter
-    @typed(n=U(int, None))
-    def skip_to_line(self, n):
-        self._skip_to_line = n
 
 
     @property
