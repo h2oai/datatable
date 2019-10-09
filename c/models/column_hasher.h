@@ -43,8 +43,9 @@ using hasherptr = std::unique_ptr<Hasher>;
 
 
 /**
- *  Template class to hash booleans & integers.
+ *  Template class to hash booleans and integers.
  */
+template <typename T>
 class HasherInt : public Hasher {
   public:
     using Hasher::Hasher;
@@ -55,6 +56,7 @@ class HasherInt : public Hasher {
 /**
  *  Template class to hash floats.
  */
+template <typename T>
 class HasherFloat : public Hasher {
   private:
     const int shift_nbits;
@@ -74,5 +76,11 @@ class HasherString : public Hasher {
     uint64_t hash(size_t row) const override;
 };
 
+extern template class HasherInt<int8_t>;
+extern template class HasherInt<int16_t>;
+extern template class HasherInt<int32_t>;
+extern template class HasherInt<int64_t>;
+extern template class HasherFloat<float>;
+extern template class HasherFloat<double>;
 
 #endif
