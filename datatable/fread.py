@@ -95,9 +95,9 @@ class GenericReader(object):
         self._encoding = encoding   # type: str
         self._quotechar = quotechar # type: str
         self._skip_to_line = skip_to_line
-        self._skip_blank_lines = True
+        self._skip_blank_lines = skip_blank_lines
         self._skip_to_string = skip_to_string
-        self._strip_whitespace = True
+        self._strip_whitespace = strip_whitespace
         self._columns = columns
         self._save_to = save_to
         self._nthreads = nthreads
@@ -113,8 +113,6 @@ class GenericReader(object):
         if verbose:
             self.logger.debug("[1] Prepare for reading")
         self._resolve_source(anysource, file, text, cmd, url)
-        self.skip_blank_lines = skip_blank_lines
-        self.strip_whitespace = strip_whitespace
 
         if "separator" in args:
             self._sep = args.pop("separator")
@@ -406,26 +404,6 @@ class GenericReader(object):
     def tempdir(self, tempdir):
         self._tempdir = tempdir
         self._tempdir_own = False
-
-
-    @property
-    def skip_blank_lines(self) -> bool:
-        return self._skip_blank_lines
-
-    @skip_blank_lines.setter
-    @typed()
-    def skip_blank_lines(self, v: bool):
-        self._skip_blank_lines = v
-
-
-    @property
-    def strip_whitespace(self) -> bool:
-        return self._strip_whitespace
-
-    @strip_whitespace.setter
-    @typed()
-    def strip_whitespace(self, v: bool):
-        self._strip_whitespace = v
 
     @property
     def logger(self):

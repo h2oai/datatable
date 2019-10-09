@@ -99,9 +99,9 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   init_header(    py::Arg(pyrdr.get_attr("_header"), "Parameter `header`"));
   init_nastrings( py::Arg(pyrdr.get_attr("_nastrings"), "Parameter `na_strings`"));
   init_skipstring(py::Arg(pyrdr.get_attr("_skip_to_string"), "Parameter `skip_to_string`"));
-  init_stripwhite(pyrdr.get_attr("strip_whitespace"));
-  init_skipblanklines(pyrdr.get_attr("skip_blank_lines"));
-  init_columns(   pyrdr.get_attr("_columns"));
+  init_stripwhite(py::Arg(pyrdr.get_attr("_strip_whitespace"), "Parameter `strip_whitespace`"));
+  init_skipblanks(py::Arg(pyrdr.get_attr("_skip_blank_lines"), "Parameter `skip_blank_lines`"));
+  init_columns(   py::Arg(pyrdr.get_attr("_columns"), "Parameter `columns`"));
 }
 
 // Copy-constructor will copy only the essential parts
@@ -316,19 +316,19 @@ void GenericReader::init_skipstring(const py::Arg& arg) {
   }
 }
 
-void GenericReader::init_stripwhite(const py::oobj& arg) {
-  strip_whitespace = arg.to_bool();
+void GenericReader::init_stripwhite(const py::Arg& arg) {
+  strip_whitespace = arg.to<bool>(true);
   trace("strip_whitespace = %s", strip_whitespace? "True" : "False");
 }
 
-void GenericReader::init_skipblanklines(const py::oobj& arg) {
-  skip_blank_lines = arg.to_bool();
+void GenericReader::init_skipblanks(const py::Arg& arg) {
+  skip_blank_lines = arg.to<bool>(true);
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
-void GenericReader::init_columns(const py::oobj& arg) {
-  if (arg && !arg.is_none()) {
-    columns_arg = arg;
+void GenericReader::init_columns(const py::Arg& arg) {
+  if (arg.is_defined()) {
+    columns_arg = arg.to_oobj();
   }
 }
 
