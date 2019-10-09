@@ -1342,6 +1342,7 @@ def test_html_repr_joined_frame():
     DT = L_dt[:, :, dt.join(R_dt)]
     html = DT._repr_html_()
     hr = parse_html_repr(html)
+    print(hr)
     assert hr.names == ("A", "B", "yhat")
     assert hr.shape == (4, 3)
     assert hr.data == [['5', '7', '1'],

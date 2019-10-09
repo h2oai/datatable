@@ -195,8 +195,8 @@ class HtmlWidget {
         const Column& col = dt->get_column(j);
         switch (col.stype()) {
           case SType::BOOL:
-          case SType::INT8:
-          case SType::INT16:
+          case SType::INT8:    render_fw_value<int8_t>(col, i); break;
+          case SType::INT16:   render_fw_value<int16_t>(col, i); break;
           case SType::INT32:   render_fw_value<int32_t>(col, i); break;
           case SType::INT64:   render_fw_value<int64_t>(col, i); break;
           case SType::FLOAT32: render_fw_value<float>(col, i); break;
@@ -261,7 +261,8 @@ class HtmlWidget {
           html << "&minus;";
           val = -val;
         }
-        html << val;
+        html << +val; // "+" ensures that `int8_t` vals are rendered as numbers
+
       } else {
         render_na();
       }
