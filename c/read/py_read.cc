@@ -23,6 +23,7 @@
 #include <vector>
 #include "csv/reader.h"
 #include "python/_all.h"
+#include "read/read_source.h"
 #include "datatablemodule.h"
 namespace dt {
 namespace read {
@@ -32,8 +33,8 @@ static void _check_src_args(const py::PKArgs&);
 
 
 //------------------------------------------------------------------------------
+// zread()
 //------------------------------------------------------------------------------
-
 
 static py::PKArgs args_zread(
   1, 0, 21, false, false,
@@ -99,13 +100,13 @@ static py::oobj zread(const py::PKArgs& args)
   (void) arg_save_to;
   (void) arg_encoding;
 
-  (void) src_any;
-  (void) src_file;
-  (void) src_text;
-  (void) src_cmd;
-  (void) src_url;
-
-  return py::None();
+  ReadSource source =
+      src_any.is_defined() ? _resolve_source_any(src_any, gr) :
+      src_file.is_defined()? _resolve_source_file(src_file, gr) :
+      src_text.is_defined()? _resolve_source_text(src_text, gr) :
+      src_cmd.is_defined() ? _resolve_source_cmd(src_cmd, gr) :
+                             _resolve_source_url(src_url, gr);
+  return source.read_one();
 }
 
 
@@ -145,6 +146,39 @@ static void _check_src_args(const py::PKArgs& args) {
         << "` cannot be passed to fread simultaneously";
   }
 }
+
+
+static ReadSource _resolve_source_any(const py::Arg& src, GenericReader& gr) {
+  xassert(src.is_defined());
+  if (src.is_string() || src.is_bytes()) {
+
+  }
+  #if 0
+    if isinstance(src, (str, bytes)):
+        if len(src) >= 4096 or _has_control_characters(src):
+            return FreadSource_Text(src, "<text>", params)
+        if isinstance(src, str):
+            if _url_regex.match(src):
+                return FreadSource_Url(src, src, params)
+            if _glob_regex.search(src):
+                return FreadSource_Glob(src, src, params)
+        p = pathlib.Path(src)
+        return FreadSource_Path(p, params)
+
+    if isinstance(src, os.PathLike):
+        return FreadSource_Path(src, params)
+
+    if hasattr(src, "read"):
+        return FreadSource.from_fileobj(src)
+
+    if isinstance(src, (list, tuple)):
+        return FreadSource.from_list(src)
+
+    raise TTypeError("Unknown type for the first argument in fread: %r"
+                     % type(src))
+  #endif
+}
+
 
 
 
