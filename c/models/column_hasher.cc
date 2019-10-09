@@ -31,12 +31,11 @@ Hasher::~Hasher() {}
 /**
  *  Hash integers by casting them to `uint64_t`.
  */
-template <typename T>
-uint64_t HasherInt<T>::hash(size_t row) const {
-  T value;
+uint64_t HasherInt::hash(size_t row) const {
+  int64_t value;
   bool isvalid = column.get_element(row, &value);
   return isvalid? static_cast<uint64_t>(value)
-                : static_cast<uint64_t>(GETNA<T>());
+                : GETNA<uint64_t>();
 }
 
 
@@ -44,20 +43,19 @@ uint64_t HasherInt<T>::hash(size_t row) const {
  *  Hash floats by interpreting their bit representation as `uint64_t`,
  *  also do mantissa binning here.
  */
-template <typename T>
-HasherFloat<T>::HasherFloat(const Column& col, int shift_nbits_in)
+HasherFloat::HasherFloat(const Column& col, int shift_nbits_in)
   : Hasher(col), shift_nbits(shift_nbits_in) {}
 
 
-template <typename T>
-uint64_t HasherFloat<T>::hash(size_t row) const {
-  T value;  // float or double
-  uint64_t h;
+uint64_t HasherFloat::hash(size_t row) const {
+  double value;  // float or double
+  uint64_t h = GETNA<uint64_t>();
   bool isvalid = column.get_element(row, &value);
-  if (!isvalid) value = GETNA<T>();
-  double x = static_cast<double>(value);
-  std::memcpy(&h, &x, sizeof(double));
-  h >>= shift_nbits;
+  if (isvalid) {
+    double x = static_cast<double>(value);
+    std::memcpy(&h, &x, sizeof(double));
+    h >>= shift_nbits;
+  }
   return h;
 }
 
@@ -71,10 +69,3 @@ uint64_t HasherString::hash(size_t row) const {
   return isvalid? hash_murmur2(value.ch, static_cast<size_t>(value.size))
                 : GETNA<uint64_t>();
 }
-
-
-
-template class HasherInt<int32_t>;
-template class HasherInt<int64_t>;
-template class HasherFloat<float>;
-template class HasherFloat<double>;

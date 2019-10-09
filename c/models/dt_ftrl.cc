@@ -923,7 +923,6 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
     cols.push_back(Column::new_data_column(nrows, stype));
   }
 
-  // dtptr dt_p = dtptr(new DataTable(std::move(cols), labels));
   dtptr dt_p = dtptr(new DataTable(std::move(cols), std::move(labels_vec)));
   return dt_p;
 }
@@ -1083,10 +1082,10 @@ hasherptr Ftrl<T>::create_hasher(const Column& col) {
     case SType::BOOL:
     case SType::INT8:
     case SType::INT16:
-    case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
-    case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
-    case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, shift_nbits));
-    case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, shift_nbits));
+    case SType::INT32:
+    case SType::INT64:   return hasherptr(new HasherInt(col));
+    case SType::FLOAT32:
+    case SType::FLOAT64: return hasherptr(new HasherFloat(col, shift_nbits));
     case SType::STR32:
     case SType::STR64:   return hasherptr(new HasherString(col));
     default:             throw  TypeError() << "Cannot hash a column of type "
