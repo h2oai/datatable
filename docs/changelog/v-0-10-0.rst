@@ -86,6 +86,17 @@ Frame
   did not (#2050).
 
 
+
+General
+-------
+
+- |api| We no longer export symbols `open`, `abs`, `min`, `max` and `sum`
+  from datatable module when doing `from datatable import *`. They are
+  still available when looked up explicitly, i.e. `dt.open()` still works
+  as before.
+
+
+
 Internal
 --------
 
