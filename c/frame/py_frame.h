@@ -156,7 +156,6 @@ class Frame : public XObject<Frame> {
 };
 
 extern PyObject* Frame_Type;
-extern PyObject* fread_fn;
 
 }  // namespace py
 

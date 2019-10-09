@@ -29,7 +29,7 @@ from datatable.xls import read_xls_workbook
 
 _url_regex = re.compile(r"(?:https?|ftp|file)://")
 _glob_regex = re.compile(r"[\*\?\[\]]")
-_psutil_load_attempted = False
+# _psutil_load_attempted = False
 
 
 def fread(
@@ -101,7 +101,7 @@ class GenericReader(object):
         self._skip_to_string = skip_to_string
         self._strip_whitespace = strip_whitespace
         self._columns = columns
-        self._save_to = save_to
+        # self._save_to = save_to
         self._nthreads = nthreads
         self._tempdir = args.pop("_tempdir", None)
         self._logger = logger
@@ -407,57 +407,57 @@ class GenericReader(object):
 
     #---------------------------------------------------------------------------
 
-    def _get_destination(self, estimated_size):
-        """
-        Invoked from the C level, this function will return either the name of
-        the folder where the datatable is to be saved; or None, indicating that
-        the datatable should be read into RAM. This function may also raise an
-        exception if it determines that it cannot find a good strategy to
-        handle a dataset of the requested size.
-        """
-        global _psutil_load_attempted
-        if not _psutil_load_attempted:
-            _psutil_load_attempted = True
-            try:
-                import psutil
-            except ImportError:
-                psutil = None
-
-        if self._verbose and estimated_size > 1:
-            self._logger.debug("The Frame is estimated to require %s bytes"
-                              % humanize_bytes(estimated_size))
-        if estimated_size < 1024 or psutil is None:
-            return None
-        vm = psutil.virtual_memory()
-        if self._verbose:
-            self._logger.debug("Memory available = %s (out of %s)"
-                              % (humanize_bytes(vm.available),
-                                 humanize_bytes(vm.total)))
-        if (estimated_size < vm.available and self._save_to is None or
-                self._save_to == "memory"):
-            if self._verbose:
-                self._logger.debug("Frame will be loaded into memory")
-            return None
-        else:
-            if self._save_to:
-                tmpdir = self._save_to
-                os.makedirs(tmpdir)
-            else:
-                tmpdir = tempfile.mkdtemp()
-            du = psutil.disk_usage(tmpdir)
-            if self._verbose:
-                self._logger.debug("Free disk space on drive %s = %s"
-                                  % (os.path.splitdrive(tmpdir)[0] or "/",
-                                     humanize_bytes(du.free)))
-            if du.free > estimated_size or self._save_to:
-                if self._verbose:
-                    self._logger.debug("Frame will be stored in %s"
-                                      % tmpdir)
-                return tmpdir
-        raise RuntimeError("The Frame is estimated to require at lest %s "
-                           "of memory, and you don't have that much available "
-                           "either in RAM or on a hard drive."
-                           % humanize_bytes(estimated_size))
+    # def _get_destination(self, estimated_size):
+    #     """
+    #     Invoked from the C level, this function will return either the name of
+    #     the folder where the datatable is to be saved; or None, indicating that
+    #     the datatable should be read into RAM. This function may also raise an
+    #     exception if it determines that it cannot find a good strategy to
+    #     handle a dataset of the requested size.
+    #     """
+    #     global _psutil_load_attempted
+    #     if not _psutil_load_attempted:
+    #         _psutil_load_attempted = True
+    #         try:
+    #             import psutil
+    #         except ImportError:
+    #             psutil = None
+    #
+    #     if self._verbose and estimated_size > 1:
+    #         self._logger.debug("The Frame is estimated to require %s bytes"
+    #                           % humanize_bytes(estimated_size))
+    #     if estimated_size < 1024 or psutil is None:
+    #         return None
+    #     vm = psutil.virtual_memory()
+    #     if self._verbose:
+    #         self._logger.debug("Memory available = %s (out of %s)"
+    #                           % (humanize_bytes(vm.available),
+    #                              humanize_bytes(vm.total)))
+    #     if (estimated_size < vm.available and self._save_to is None or
+    #             self._save_to == "memory"):
+    #         if self._verbose:
+    #             self._logger.debug("Frame will be loaded into memory")
+    #         return None
+    #     else:
+    #         if self._save_to:
+    #             tmpdir = self._save_to
+    #             os.makedirs(tmpdir)
+    #         else:
+    #             tmpdir = tempfile.mkdtemp()
+    #         du = psutil.disk_usage(tmpdir)
+    #         if self._verbose:
+    #             self._logger.debug("Free disk space on drive %s = %s"
+    #                               % (os.path.splitdrive(tmpdir)[0] or "/",
+    #                                  humanize_bytes(du.free)))
+    #         if du.free > estimated_size or self._save_to:
+    #             if self._verbose:
+    #                 self._logger.debug("Frame will be stored in %s"
+    #                                   % tmpdir)
+    #             return tmpdir
+    #     raise RuntimeError("The Frame is estimated to require at lest %s "
+    #                        "of memory, and you don't have that much available "
+    #                        "either in RAM or on a hard drive."
+    #                        % humanize_bytes(estimated_size))
 
 
     def _clear_temporary_files(self):
@@ -663,7 +663,6 @@ class _DefaultLogger:
 _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
             (str, bytes)
 
-core._register_function(8, fread)
 
 
 

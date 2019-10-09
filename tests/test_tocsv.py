@@ -530,8 +530,8 @@ def test_compress_invalid():
     DT = dt.Frame()
     with pytest.raises(TypeError) as e:
         DT.to_csv(compression=0)
-    assert ("Expected a string, instead got <class 'int'>"
-            in str(e.value))
+    assert ("Argument `compression` in Frame.to_csv() should be a string, "
+            "instead got <class 'int'>" in str(e.value))
     with pytest.raises(ValueError) as e:
         DT.to_csv(compression="rar")
     assert ("Unsupported compression method 'rar' in Frame.to_csv()"
