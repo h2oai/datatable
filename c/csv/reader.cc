@@ -181,7 +181,7 @@ void GenericReader::init_skiptoline(const py::Arg& arg) {
 }
 
 void GenericReader::init_sep(const py::Arg& arg) {
-  if (arg.is_none()) {
+  if (arg.is_none_or_undefined()) {
     sep = '\xFF';
     trace("sep = <auto-detect>");
     return;
@@ -205,7 +205,7 @@ void GenericReader::init_sep(const py::Arg& arg) {
 }
 
 void GenericReader::init_dec(const py::Arg& arg) {
-  if (arg.is_none()) {
+  if (arg.is_none_or_undefined()) {
     // TODO: switch to auto-detect mode
     dec = '.';
     return;

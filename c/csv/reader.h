@@ -155,7 +155,7 @@ class GenericReader
     static void init_options();
 
   // Helper functions
-  private:
+  public:
     void init_verbose   (const py::Arg&);
     void init_nthreads  (const py::Arg&);
     void init_fill      (const py::Arg&);

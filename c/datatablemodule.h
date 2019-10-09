@@ -35,6 +35,7 @@ class DatatableModule : public ExtModule<DatatableModule> {
     void init_methods_buffers();   // py_buffers.cc
     void init_methods_cbind();     // frame/cbind.cc
     void init_methods_csv();       // csv/py_csv.cc
+    void init_methods_zread();
     void init_methods_jay();       // open_jay.cc
     void init_methods_join();      // frame/join.cc
     void init_methods_kfold();     // models/kfold.cc
