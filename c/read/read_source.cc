@@ -19,40 +19,56 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ_READ_SOURCE_h
-#define dt_READ_READ_SOURCE_h
-#include <memory>
-#include "python/_all.h"
+#include "read/read_source.h"
 namespace dt {
 namespace read {
 
 
-class ReadSourceImpl;
+class ReadSourceImpl {
+  public:
+    ReadSourceImpl() = default;
+    virtual ~ReadSourceImpl() = default;
+};
 
 
-class ReadSource {
+class Text_ReadSource : public ReadSourceImpl {
   private:
-    std::unique_ptr<ReadSourceImpl> impl_;
+    py::oobj src_;
+    CString  text_;
 
   public:
-    ReadSource();
-    ReadSource(const ReadSource&) = delete;
-    ReadSource(ReadSource&&);
-    ~ReadSource();
-
-    static ReadSource from_file(py::oobj src);
-    static ReadSource from_glob(py::oobj src);
-    static ReadSource from_text(py::oobj src);
-    static ReadSource from_url(py::oobj src);
-
-    py::oobj read_one();
-    py::oobj read_all();
-
-  private:
-    ReadSource(ReadSourceImpl*);
+    Text_ReadSource(py::oobj src)
+      : src_(src), text_(src.to_cstring()) {}
 };
 
 
 
+
+//------------------------------------------------------------------------------
+// ReadSource
+//------------------------------------------------------------------------------
+
+ReadSource::ReadSource() = default;
+ReadSource::ReadSource(ReadSource&&) = default;
+ReadSource::~ReadSource() = default;
+
+ReadSource::ReadSource(ReadSourceImpl* impl)
+  : impl_(std::move(impl)) {}
+
+
+ReadSource ReadSource::from_text(py::oobj src) {
+  return ReadSource(new Text_ReadSource(src));
+}
+
+
+py::oobj ReadSource::read_one() {
+  return py::None();
+}
+
+py::oobj ReadSource::read_all() {
+  return py::None();
+}
+
+
+
 }}  // namespace dt::read
-#endif

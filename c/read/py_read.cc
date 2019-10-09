@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>   // std::memcmp
 #include <string>
 #include <vector>
 #include "csv/reader.h"
@@ -30,6 +31,15 @@ namespace read {
 
 // forward-declare
 static void _check_src_args(const py::PKArgs&);
+static ReadSource _resolve_source_any(const py::Arg&, GenericReader&);
+static ReadSource _resolve_source_file(const py::Arg&, GenericReader&);
+static ReadSource _resolve_source_text(const py::Arg&, GenericReader&);
+static ReadSource _resolve_source_cmd(const py::Arg&, GenericReader&);
+static ReadSource _resolve_source_url(const py::Arg&, GenericReader&);
+static bool _has_control_characters(const CString& str);
+static bool _looks_like_glob(const CString& str);
+static bool _looks_like_url(const CString& str);
+
 
 
 //------------------------------------------------------------------------------
@@ -148,10 +158,55 @@ static void _check_src_args(const py::PKArgs& args) {
 }
 
 
+// Return true if `text` has any characters from C0 range.
+static bool _has_control_characters(const CString& text) {
+  size_t n = static_cast<size_t>(text.size);
+  const char* ch = text.ch;
+  for (size_t i = 0; i < n; ++i) {
+    if (static_cast<unsigned char>(ch[i]) < 0x20) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+static bool _looks_like_url(const CString& text) {
+  size_t n = static_cast<size_t>(text.size);
+  const char* ch = text.ch;
+  if (n >= 8) {
+    if (std::memcmp(ch, "https://", 8) == 0) return true;
+    if (std::memcmp(ch, "http://", 7) == 0) return true;
+    if (std::memcmp(ch, "file://", 7) == 0) return true;
+    if (std::memcmp(ch, "ftp://", 6) == 0) return true;
+  }
+  return false;
+}
+
+
+static bool _looks_like_glob(const CString& text) {
+  size_t n = static_cast<size_t>(text.size);
+  const char* ch = text.ch;
+  for (size_t i = 0; i < n; ++i) {
+    char c = ch[i];
+    if (c == '*' || c == '?' || c == '[' || c == ']') return true;
+  }
+  return false;
+}
+
+
+
 static ReadSource _resolve_source_any(const py::Arg& src, GenericReader& gr) {
   xassert(src.is_defined());
+  auto srcobj = src.to_oobj();
   if (src.is_string() || src.is_bytes()) {
-
+    CString cstr = src.to_cstring();
+    if (cstr.size >= 4096 || _has_control_characters(cstr)) {
+      return ReadSource::from_text(srcobj);
+    }
+    // if (_looks_like_url(cstr)) {
+    //   return ReadSource::from_url(srcobj);
+    // }
   }
   #if 0
     if isinstance(src, (str, bytes)):
@@ -174,10 +229,28 @@ static ReadSource _resolve_source_any(const py::Arg& src, GenericReader& gr) {
     if isinstance(src, (list, tuple)):
         return FreadSource.from_list(src)
 
-    raise TTypeError("Unknown type for the first argument in fread: %r"
-                     % type(src))
   #endif
+  throw TypeError() << "Unknown type for the first argument in fread: "
+                    << src.typeobj();
 }
+
+
+static ReadSource _resolve_source_file(const py::Arg&, GenericReader&) {
+  throw NotImplError();
+}
+
+static ReadSource _resolve_source_text(const py::Arg&, GenericReader&) {
+  throw NotImplError();
+}
+
+static ReadSource _resolve_source_cmd(const py::Arg&, GenericReader&) {
+  throw NotImplError();
+}
+
+static ReadSource _resolve_source_url(const py::Arg&, GenericReader&) {
+  throw NotImplError();
+}
+
 
 
 

@@ -12,6 +12,7 @@
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
+#include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -350,7 +351,7 @@ void GenericReader::init_logger(const py::Arg& arg) {
 // Main read_all() function
 //------------------------------------------------------------------------------
 
-std::unique_ptr<DataTable> GenericReader::read_all()
+py::oobj GenericReader::read_all()
 {
   open_input();
   detect_and_skip_bom();
@@ -360,16 +361,16 @@ std::unique_ptr<DataTable> GenericReader::read_all()
   skip_trailing_whitespace();
   job->add_done_amount(WORK_PREPARE);
 
-  std::unique_ptr<DataTable> dt(nullptr);
-  if (!dt) dt = read_empty_input();
-  if (!dt) detect_improper_files();
-  if (!dt) dt = FreadReader(*this).read_all();
-  // if (!dt) dt = ArffReader(*this).read_all();
-  if (!dt) {
+  read_empty_input() ||
+  detect_improper_files() ||
+  read_csv();
+
+  if (outputs.empty()) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
   }
+
   job->done();
-  return dt;
+  return outputs[0];
 }
 
 
@@ -560,6 +561,7 @@ const char* GenericReader::repr_binary(
 //------------------------------------------------------------------------------
 
 void GenericReader::open_input() {
+  if (input_mbuf) return;
   double t0 = wallclock();
   CString text;
   const char* filename = nullptr;
@@ -764,14 +766,15 @@ void GenericReader::skip_to_line_with_string() {
 }
 
 
-std::unique_ptr<DataTable> GenericReader::read_empty_input() {
+bool GenericReader::read_empty_input() {
   size_t size = datasize();
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
     job->add_done_amount(WORK_READ);
-    return std::unique_ptr<DataTable>(new DataTable());
+    outputs.push_back(py::Frame::oframe(new DataTable()));
+    return true;
   }
-  return nullptr;
+  return false;
 }
 
 
@@ -780,7 +783,7 @@ std::unique_ptr<DataTable> GenericReader::read_empty_input() {
  * of the unsupported formats (such as HTML). If so, an exception will be
  * thrown.
  */
-void GenericReader::detect_improper_files() {
+bool GenericReader::detect_improper_files() {
   const char* ch = sof;
   // --- detect HTML ---
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
@@ -794,7 +797,19 @@ void GenericReader::detect_improper_files() {
     throw RuntimeError() << src_arg.to_string() << " is a feather file, it "
         "cannot be read with fread.";
   }
+  return false;
 }
+
+
+bool GenericReader::read_csv() {
+  auto dt = FreadReader(*this).read_all();
+  if (dt) {
+    outputs.push_back(py::Frame::oframe(dt.release()));
+    return true;
+  }
+  return false;
+}
+
 
 
 void GenericReader::decode_utf16() {

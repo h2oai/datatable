@@ -93,6 +93,7 @@ bool Arg::is_numpy_array()       const { return pyobj.is_numpy_array(); }
 //------------------------------------------------------------------------------
 
 bool        Arg::to_bool_strict()  const { return pyobj.to_bool_strict(*this); }
+CString     Arg::to_cstring()      const { return pyobj.to_cstring(*this); }
 int32_t     Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
 int64_t     Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
 size_t      Arg::to_size_t()       const { return pyobj.to_size_t(*this); }

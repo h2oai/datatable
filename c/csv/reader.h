@@ -95,6 +95,8 @@ class GenericReader
     dt::read::Columns columns;
     double t_open_input{ 0 };
 
+    std::vector<py::oobj> outputs;
+
   private:
     py::oobj logger;
     py::oobj src_arg;
@@ -118,7 +120,7 @@ class GenericReader
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
-    dtptr read_all();
+    py::oobj read_all();
 
     /**
      * Return the pointer to the input data buffer and its size. The method
@@ -184,8 +186,9 @@ class GenericReader
 
     void _message(const char* method, const char* format, va_list args) const;
 
-    dtptr read_empty_input();
-    void detect_improper_files();
+    bool read_empty_input();
+    bool detect_improper_files();
+    bool read_csv();
 
   //---- Inherited API ----
   protected:
