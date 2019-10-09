@@ -86,9 +86,9 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   file_arg = pyrdr.get_attr("_file");
   text_arg = pyrdr.get_attr("_text");
   fileno   = pyrdr.get_attr("_fileno").to_int32();
-  logger   = pyrdr.get_attr("logger");
 
   init_verbose(   py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
+  init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"));
   init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
   init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));
   init_maxnrows(  py::Arg(pyrdr.get_attr("_maxnrows"), "Parameter `max_nrows`"));
@@ -331,6 +331,18 @@ void GenericReader::init_columns(const py::Arg& arg) {
     columns_arg = arg.to_oobj();
   }
 }
+
+void GenericReader::init_logger(const py::Arg& arg) {
+  if (arg.is_none_or_undefined()) {
+    if (verbose) {
+      logger = py::oobj::import("datatable.fread", "_DefaultLogger").call();
+    }
+  } else {
+    logger = arg.to_oobj();
+    verbose = true;
+  }
+}
+
 
 
 

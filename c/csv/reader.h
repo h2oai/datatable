@@ -170,6 +170,7 @@ class GenericReader
     void init_stripwhite(const py::Arg&);
     void init_skipblanks(const py::Arg&);
     void init_columns   (const py::Arg&);
+    void init_logger    (const py::Arg&);
 
   protected:
     void open_input();
