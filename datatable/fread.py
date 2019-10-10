@@ -12,13 +12,10 @@ import re
 import shutil
 import tempfile
 import warnings
-from typing import List, Union, Optional
 
 from datatable.lib import core
-from datatable.frame import Frame
-from datatable.options import options
-from datatable.utils.typechecks import (typed, U, TValueError, TTypeError,
-                                        DatatableWarning, dtwarn)
+from datatable.utils.typechecks import (TValueError, TTypeError,
+                                        DatatableWarning)
 from datatable.utils.terminal import term
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
@@ -41,23 +38,23 @@ def fread(
         url=None,
 
         columns=None,
-        sep: str = None,
-        dec: str = ".",
-        max_nrows: int = None,
-        header: bool = None,
-        na_strings: List[str] = None,
-        verbose: bool = False,
-        fill: bool = False,
-        encoding: str = None,
-        skip_to_string: str = None,
-        skip_to_line: int = None,
-        skip_blank_lines: bool = False,
-        strip_whitespace: bool = True,
-        quotechar: Optional[str] = '"',
-        save_to: str = None,
-        nthreads: int = None,
+        sep=None,
+        dec=".",
+        max_nrows=None,
+        header=None,
+        na_strings=None,
+        verbose=False,
+        fill=False,
+        encoding=None,
+        skip_to_string=None,
+        skip_to_line=None,
+        skip_blank_lines=False,
+        strip_whitespace=True,
+        quotechar='"',
+        save_to=None,
+        nthreads=None,
         logger=None,
-        **extra) -> Frame:
+        **extra):
     params = {**locals(), **extra}
     del params["extra"]
     freader = GenericReader(**params)
@@ -78,24 +75,24 @@ class GenericReader(object):
                  nthreads=None, logger=None, skip_blank_lines=True,
                  strip_whitespace=True, quotechar='"', **args):
         self._src = (anysource, file, text, cmd, url)
-        self._file = None           # type: str
-        self._files = None          # type: List[str]
-        self._fileno = None         # type: int
-        self._tempfiles = []        # type: List[str]
-        self._tempdir = None        # type: str
-        self._tempdir_own = False   # type: bool
-        self._text = None           # type: Union[str, bytes]
+        self._file = None
+        self._files = None
+        self._fileno = None
+        self._tempfiles = []
+        self._tempdir = None
+        self._tempdir_own = False
+        self._text = None
         self._result = None
 
         self._sep = args.pop("separator", sep)
-        self._dec = dec             # type: str
-        self._maxnrows = max_nrows  # type: int
-        self._header = header       # type: bool
-        self._nastrings = na_strings  # type: List[str]
-        self._verbose = verbose     # type: bool
-        self._fill = fill           # type: bool
-        self._encoding = encoding   # type: str
-        self._quotechar = quotechar # type: str
+        self._dec = dec
+        self._maxnrows = max_nrows
+        self._header = header
+        self._nastrings = na_strings
+        self._verbose = verbose
+        self._fill = fill
+        self._encoding = encoding
+        self._quotechar = quotechar
         self._skip_to_line = skip_to_line
         self._skip_blank_lines = skip_blank_lines
         self._skip_to_string = skip_to_string
