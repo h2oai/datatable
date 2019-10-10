@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -48,14 +48,11 @@ __all__ = (
     "__git_revision__",
     "__version__",
     "Frame",
-    "max",
     "mean",
     "median",
-    "min",
-    "open", "sd", "sum", "count", "first", "last",
+    "sd", "count", "first", "last",
     "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
-    "join", "by", "abs", "exp", "log", "log10",
-    "TypeError", "ValueError", "DatatableWarning", "FreadWarning",
+    "join", "by", "exp", "log", "log10",
     "options",
     "bool8", "int8", "int16", "int32", "int64",
     "float32", "float64", "str32", "str64", "obj64",

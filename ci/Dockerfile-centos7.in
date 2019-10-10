@@ -30,7 +30,7 @@ RUN pip install wheel virtualenv && \
     \
     conda create -n datatable-py36-with-pandas python=3.6 && \
     . activate datatable-py36-with-pandas && \
-    pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
+     pip install --no-cache-dir pandas==${PANDAS_VERSION}&& \
     . deactivate && \
     \
     conda create -n datatable-py36-with-numpy python=3.6 && \

@@ -28,7 +28,6 @@
 #include "column.h"
 #include "wstringcol.h"
 
-
 namespace dt {
 
 
@@ -500,7 +499,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   // `val_error`.
   bool validation = !std::isnan(nepochs_val);
   T loss = T_NAN; // This value is returned when validation is not enabled
-  T loss_old = T_ZERO; // Value of `loss` for a previous iteraction
+  T loss_old = T(0); // Value of `loss` for a previous iteraction
   std::vector<T> loss_history;
   std::vector<hasherptr> hashers_val;
   const Column& target_col0_val = validation? dt_y_val->get_column(0)
@@ -611,7 +610,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           if (dt::this_thread_index() == 0) {
             T loss_current = loss_global.load() / (dt_X_val->nrows() * dt_y_val->ncols());
             loss_history[iter % val_niters] = loss_current / val_niters;
-            loss = std::accumulate(loss_history.begin(), loss_history.end(), T_ZERO);
+            loss = std::accumulate(loss_history.begin(), loss_history.end(), T(0));
             T loss_diff = (loss_old - loss) / loss_old;
             bool is_loss_bad = (iter >= val_niters) && (loss < T_EPSILON || loss_diff < val_error);
             loss_old = is_loss_bad? T_NAN : loss;
@@ -657,10 +656,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 template <typename T>
 template <typename F>
 T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
-  T wTx = T_ZERO;
+  T wTx = T(0);
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    T absw = std::max(std::abs(z[k][j]) - lambda1, T_ZERO) /
+    T absw = std::max(std::abs(z[k][j]) - lambda1, T(0)) /
              (std::sqrt(n[k][j]) * ialpha + gamma);
     w[i] = -std::copysign(absw, z[k][j]);
     wTx += w[i];
@@ -677,12 +676,11 @@ template <typename T>
 template <typename U /* column data type */>
 void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
                          T p, U y, size_t k) {
-  T ia = 1 / alpha;
   T g = p - static_cast<T>(y);
   T gsq = g * g;
   for (size_t i = 0; i < nfeatures; ++i) {
     size_t j = x[i];
-    T sigma = (std::sqrt(n[k][j] + gsq) - std::sqrt(n[k][j])) * ia;
+    T sigma = (std::sqrt(n[k][j] + gsq) - std::sqrt(n[k][j])) * ialpha;
     z[k][j] += g - sigma * w[i];
     n[k][j] += gsq;
   }
@@ -739,7 +737,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   size_t nlabels = dt_labels->nrows();
 
   auto data_label_ids = static_cast<const U*>(
-                            dt_labels->get_column(1).get_data_readonly());
+                          dt_labels->get_column(1).get_data_readonly()
+                        );
 
   dtptr dt_p = create_p(dt_X->nrows());
   std::vector<T*> data_p(nlabels);
@@ -795,7 +794,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
 
   if (model_type == FtrlModelType::BINOMIAL) {
     dt::parallel_for_static(dt_X->nrows(), [&](size_t i){
-      data_p[k_binomial][i] = T_ONE - data_p[!k_binomial][i];
+      data_p[k_binomial][i] = T(1) - data_p[!k_binomial][i];
     });
   }
 
@@ -822,7 +821,7 @@ void Ftrl<T>::normalize_rows(dtptr& dt) {
   }
 
   dt::parallel_for_static(nrows, [&](size_t i){
-    T sum = static_cast<T>(0.0);
+    T sum = T(0);
     for (size_t j = 0; j < ncols; ++j) {
       sum += data[j][i];
     }
@@ -924,7 +923,6 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
     cols.push_back(Column::new_data_column(nrows, stype));
   }
 
-  // dtptr dt_p = dtptr(new DataTable(std::move(cols), labels));
   dtptr dt_p = dtptr(new DataTable(std::move(cols), std::move(labels_vec)));
   return dt_p;
 }
@@ -1082,8 +1080,8 @@ hasherptr Ftrl<T>::create_hasher(const Column& col) {
   int shift_nbits = DOUBLE_MANTISSA_NBITS - mantissa_nbits;
   switch (col.stype()) {
     case SType::BOOL:
-    case SType::INT8:
-    case SType::INT16:
+    case SType::INT8:    return hasherptr(new HasherInt<int8_t>(col));
+    case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
     case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
     case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
     case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, shift_nbits));
@@ -1178,7 +1176,7 @@ py::oobj Ftrl<T>::get_fi(bool normalize /* = true */) {
     bool max_isna;
     T max = static_cast<T>(col.stats()->max_double(&max_isna));
     T* data = static_cast<T*>(col.get_data_editable());
-    T norm_factor = static_cast<T>(1.0);
+    T norm_factor = T(1);
 
     if (!max_isna && std::fabs(max) > T_EPSILON) norm_factor /= max;
     for (size_t i = 0; i < col.nrows(); ++i) {
@@ -1309,7 +1307,7 @@ void Ftrl<T>::set_fi(const DataTable& dt_fi_in) {
 
 template <typename T>
 void Ftrl<T>::init_helper_params() {
-  ialpha = T_ONE / alpha;
+  ialpha = T(1) / alpha;
   gamma = beta * ialpha + lambda2;
 }
 

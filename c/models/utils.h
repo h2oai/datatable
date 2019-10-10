@@ -60,8 +60,7 @@ intvec sort_index(const std::vector<T> &v) {
  */
 template<typename T>
 inline T sigmoid(T x) {
-  constexpr T one = static_cast<T>(1.0);
-  return one / (one + std::exp(-x));
+  return T(1) / (T(1) + std::exp(-x));
 }
 
 /**
