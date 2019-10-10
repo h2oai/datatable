@@ -312,6 +312,7 @@ void Column::resize(size_t new_nrows) {
   size_t curr_nrows = nrows();
   if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, *this);
   if (new_nrows < curr_nrows) pcol->truncate(new_nrows, *this);
+  if (new_nrows != curr_nrows) reset_stats();
 }
 
 
