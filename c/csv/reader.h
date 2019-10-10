@@ -122,6 +122,9 @@ class GenericReader
 
     py::oobj read_all();
 
+    bool has_next() const;
+    py::oobj read_next();
+
     /**
      * Return the pointer to the input data buffer and its size. The method
      * `open_input()` must be called first. The pointer returned may be null
