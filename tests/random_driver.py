@@ -10,7 +10,7 @@
 #     python tests/random_driver.py --help
 #
 #-------------------------------------------------------------------------------
-import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')
+import sys; sys.path += ('.', '..')
 import os
 import subprocess
 import random

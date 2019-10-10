@@ -4,7 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')
+import sys; sys.path += ('.', '..')
 import copy
 import datatable as dt
 import itertools
@@ -141,7 +141,8 @@ class Attacker:
             python_output.write("\ntry:\n"
                                 "   DT.nrows = %d\n"
                                 "except ValueError as e:\n"
-                                "   assert str(e) == 'Cannot increase the number of rows in a keyed frame'\n\n"
+                                "   assert str(e) == 'Cannot increase the "
+                                "number of rows in a keyed frame'\n"
                                 % new_nrows)
 
         frame.resize_rows(new_nrows)
@@ -280,7 +281,8 @@ class Attacker:
             python_output.write("\ntry:\n"
                                 "   DT.key = %r\n"
                                 "except ValueError as e:\n"
-                                "   assert str(e) == 'Cannot set a key: the values are not unique'\n"
+                                "   assert str(e) == 'Cannot set a key: the "
+                                "values are not unique'\n"
                                 % names)
 
         frame.set_key_columns(keys, names)
@@ -388,7 +390,7 @@ class Frame0:
                                 "              names=%r,\n"
                                 "              stypes=%s)\n"
                                 % (repr_data(data, 14), names, repr_types(types)))
-            python_output.write("assert DT.shape == (%d, %d)\n\n" % (nrows, ncols))
+            python_output.write("assert DT.shape == (%d, %d)\n" % (nrows, ncols))
 
 
     def random_type(self):
@@ -599,7 +601,7 @@ class Frame0:
         try:
             self.df.nrows = nrows
         except ValueError as e:
-            assert(str(e) == "Cannot increase the number of rows in a keyed frame")
+            assert str(e) == "Cannot increase the number of rows in a keyed frame"
             return
 
         if curr_nrows < nrows:
@@ -713,12 +715,12 @@ class Frame0:
             python_output.write("DTNP = dt.Frame(np.ma.array(%s,\n"
                                 "                mask=%s,\n"
                                 "                dtype=np.dtype(%s)).T,\n"
-                                "                names=%r)\n\n"
+                                "                names=%r)\n"
                                 % (repr_data([data], 14),
                                    repr_data([mmask], 14),
                                    coltype.__name__,
                                    names))
-            python_output.write("assert DTNP.shape == (%d, %d)\n\n"
+            python_output.write("assert DTNP.shape == (%d, %d)\n"
                                 % (self.nrows, 1))
 
         for i in range(self.nrows):
@@ -741,11 +743,10 @@ class Frame0:
         try:
             self.df.key = names
         except ValueError as e:
-            assert(str(e) == "Cannot set a key: the values are not unique")
+            assert str(e) == "Cannot set a key: the values are not unique"
             return
 
-        nonkeys = list(set(range(len(self.data))) - set(keys))
-        nonkeys.sort()
+        nonkeys = sorted(list(set(range(len(self.data))) - set(keys)))
 
         self.types = [self.types[i] for i in keys] + [self.types[i] for i in nonkeys]
         self.names = [self.names[i] for i in keys] + [self.names[i] for i in nonkeys]
@@ -805,11 +806,11 @@ if __name__ == "__main__":
                                str(args.seed) + ".py")
         python_output = open(outfile, "wt")
         python_output.write("#!/usr/bin/env python\n")
-        python_output.write("import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')\n")
+        python_output.write("import sys; sys.path += ('.', '..')\n")
         python_output.write("import datatable as dt\n")
         python_output.write("import numpy as np\n")
         python_output.write("from datatable import f\n")
-        python_output.write("from datatable.internal import frame_integrity_check\n\n")
+        python_output.write("from datatable.internal import frame_integrity_check\n")
 
     try:
         ra = Attacker(args.seed)
