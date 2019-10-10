@@ -270,20 +270,20 @@ class Attacker:
         if frame.ncols == 0:
             return
         nkeys = random.randint(1, frame.ncols)
-        colids = random.sample(range(0, frame.ncols), nkeys)
-        colnames = [frame.names[i] for i in colids]
+        keys = random.sample(range(0, frame.ncols), nkeys)
+        names = [frame.names[i] for i in keys]
 
         print("[13] Setting %s: %r"
-              % (plural(nkeys, "key column"), colids))
+              % (plural(nkeys, "key column"), keys))
 
         if python_output:
             python_output.write("\ntry:\n"
                                 "   DT.key = %r\n"
                                 "except ValueError as e:\n"
                                 "   assert str(e) == 'Cannot set a key: the values are not unique'\n"
-                                % colnames)
+                                % names)
 
-        frame.set_key_columns(colids, colnames)
+        frame.set_key_columns(keys, names)
 
 
 
@@ -330,7 +330,6 @@ class Attacker:
         cbind_numpy_column: 1,
         add_range_column: 1,
         set_key_columns: 1,
-        # cbind_unique_columns: 0,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -600,7 +599,6 @@ class Frame0:
         try:
             self.df.nrows = nrows
         except ValueError as e:
-            pass
             assert(str(e) == "Cannot increase the number of rows in a keyed frame")
             return
 
@@ -749,14 +747,14 @@ class Frame0:
         nonkeys = list(set(range(len(self.data))) - set(keys))
         nonkeys.sort()
 
+        self.types = [self.types[i] for i in keys] + [self.types[i] for i in nonkeys]
+        self.names = [self.names[i] for i in keys] + [self.names[i] for i in nonkeys]
+
         if (len(self.data[0])):
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
             self.data = list(map(list, zip(*data)))
             self.data = [self.data[i] for i in keys] + [self.data[i] for i in nonkeys]
-
-        self.types = [self.types[i] for i in keys] + [self.types[i] for i in nonkeys]
-        self.names = [self.names[i] for i in keys] + [self.names[i] for i in nonkeys]
 
     #---------------------------------------------------------------------------
     # Helpers
