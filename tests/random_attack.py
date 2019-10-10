@@ -138,7 +138,12 @@ class Attacker:
         new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
         print("[01] Setting nrows to %d" % (new_nrows, ))
         if python_output:
-            python_output.write("DT.nrows = %d\n" % new_nrows)
+            python_output.write("\ntry:\n"
+                                "   DT.nrows = %d\n"
+                                "except ValueError as e:\n"
+                                "   assert str(e) == 'Cannot increase the number of rows in a keyed frame'\n\n"
+                                % new_nrows)
+
         frame.resize_rows(new_nrows)
 
     def slice_rows(self, frame):
@@ -264,14 +269,21 @@ class Attacker:
     def set_key_columns(self, frame):
         if frame.ncols == 0:
             return
-        ncols_key = random.randint(1, frame.ncols)
-        a = random.sample(range(0, frame.ncols), ncols_key)
+        nkeys = random.randint(1, frame.ncols)
+        colids = random.sample(range(0, frame.ncols), nkeys)
+        colnames = [frame.names[i] for i in colids]
 
         print("[13] Setting %s: %r"
-              % (plural(len(a), "key column"), a))
+              % (plural(nkeys, "key column"), colids))
+
         if python_output:
-            python_output.write("DT = DT.key(%r)\n" % a)
-        frame.set_key_columns(a)
+            python_output.write("\ntry:\n"
+                                "   DT.key = %r\n"
+                                "except ValueError as e:\n"
+                                "   assert str(e) == 'Cannot set a key: the values are not unique'\n"
+                                % colnames)
+
+        frame.set_key_columns(colids, colnames)
 
 
 
@@ -296,10 +308,9 @@ class Attacker:
             if newn > 0 or n == 0:
                 return res
 
-    def random_array(self, n, newn=0, positive=False):
+    def random_array(self, n, positive=False):
         assert n > 0
-        if newn == 0:
-            newn = max(5, random.randint(n // 2, 3 * n // 2))
+        newn = max(5, random.randint(n // 2, 3 * n // 2))
         lb = 0 if positive else -n
         ub = n - 1
         return [random.randint(lb, ub) for i in range(newn)]
@@ -318,7 +329,7 @@ class Attacker:
         sort_columns: 1,
         cbind_numpy_column: 1,
         add_range_column: 1,
-        set_key_columns: 0,
+        set_key_columns: 1,
         # cbind_unique_columns: 0,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
@@ -586,7 +597,13 @@ class Frame0:
 
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
-        self.df.nrows = nrows
+        try:
+            self.df.nrows = nrows
+        except ValueError as e:
+            pass
+            assert(str(e) == "Cannot increase the number of rows in a keyed frame")
+            return
+
         if curr_nrows < nrows:
             append = [None] * (nrows - curr_nrows)
             for i, elem in enumerate(self.data):
@@ -695,12 +712,14 @@ class Frame0:
         names = self.random_names(1)
         df = dt.Frame(np_data.T, names=names)
         if python_output:
-            python_output.write("DTNP = dt.Frame(np.ma.array(%s, "
-                                "mask=%s, "
-                                "dtype=np.dtype(%s)).T)\n"
+            python_output.write("DTNP = dt.Frame(np.ma.array(%s,\n"
+                                "                mask=%s,\n"
+                                "                dtype=np.dtype(%s)).T,\n"
+                                "                names=%r)\n\n"
                                 % (repr_data([data], 14),
                                    repr_data([mmask], 14),
-                                   coltype.__name__))
+                                   coltype.__name__,
+                                   names))
             python_output.write("assert DTNP.shape == (%d, %d)\n\n"
                                 % (self.nrows, 1))
 
@@ -720,14 +739,24 @@ class Frame0:
         self.dedup_names()
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
 
-    def set_key_columns(self, a):
-        colnames = self.df.names
-        key_colnames = [colnames[i] for i in a]
-        self.df.key = key_colnames
+    def set_key_columns(self, keys, names):
+        try:
+            self.df.key = names
+        except ValueError as e:
+            assert(str(e) == "Cannot set a key: the values are not unique")
+            return
+
+        nonkeys = list(set(range(len(self.data))) - set(keys))
+        nonkeys.sort()
+
         if (len(self.data[0])):
             data = list(zip(*self.data))
-            data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
+            data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
             self.data = list(map(list, zip(*data)))
+            self.data = [self.data[i] for i in keys] + [self.data[i] for i in nonkeys]
+
+        self.types = [self.types[i] for i in keys] + [self.types[i] for i in nonkeys]
+        self.names = [self.names[i] for i in keys] + [self.names[i] for i in nonkeys]
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -778,6 +807,7 @@ if __name__ == "__main__":
                                str(args.seed) + ".py")
         python_output = open(outfile, "wt")
         python_output.write("#!/usr/bin/env python\n")
+        python_output.write("import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')\n")
         python_output.write("import datatable as dt\n")
         python_output.write("import numpy as np\n")
         python_output.write("from datatable import f\n")
@@ -788,4 +818,5 @@ if __name__ == "__main__":
         ra.attack()
     finally:
         if python_output:
+            python_output.write("frame_integrity_check(DT)\n")
             python_output.close()
