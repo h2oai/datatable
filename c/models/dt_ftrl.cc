@@ -923,7 +923,6 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
     cols.push_back(Column::new_data_column(nrows, stype));
   }
 
-  // dtptr dt_p = dtptr(new DataTable(std::move(cols), labels));
   dtptr dt_p = dtptr(new DataTable(std::move(cols), std::move(labels_vec)));
   return dt_p;
 }
@@ -1081,8 +1080,8 @@ hasherptr Ftrl<T>::create_hasher(const Column& col) {
   int shift_nbits = DOUBLE_MANTISSA_NBITS - mantissa_nbits;
   switch (col.stype()) {
     case SType::BOOL:
-    case SType::INT8:
-    case SType::INT16:
+    case SType::INT8:    return hasherptr(new HasherInt<int8_t>(col));
+    case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
     case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
     case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
     case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, shift_nbits));

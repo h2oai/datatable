@@ -215,7 +215,7 @@ static inline py::oobj getelem(const Column& col, size_t i) {
 py::oobj Column::get_element_as_pyobject(size_t i) const {
   switch (stype()) {
     case SType::BOOL: {
-      int32_t x;
+      int8_t x;
       bool isvalid = get_element(i, &x);
       return isvalid? py::obool(x) : py::None();
     }
