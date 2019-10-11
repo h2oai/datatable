@@ -752,7 +752,7 @@ class Frame0:
 
     def set_key_columns(self, keys, names):
         key_data = [self.data[i] for i in keys]
-        unique_rows = set(list(zip(*key_data)))
+        unique_rows = set(zip(*key_data))
         if len(unique_rows) == self.nrows:
             self.df.key = names
         else:
