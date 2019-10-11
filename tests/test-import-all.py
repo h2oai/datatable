@@ -29,8 +29,13 @@
 # In particular, we also test that we DO NOT overwrite built-in
 # symbols.
 #-------------------------------------------------------------------------------
-import datatable as dt
 from datatable import *
+
+
+def test_dt():
+    assert dt
+    assert str(type(dt)) == "<class 'module'>"
+    assert dt.__name__ == "datatable"
 
 
 def test_common_symbols():

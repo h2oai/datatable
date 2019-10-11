@@ -47,6 +47,7 @@ except ImportError:
 __all__ = (
     "__git_revision__",
     "__version__",
+    "dt",
     "Frame",
     "mean",
     "median",
@@ -71,3 +72,4 @@ float64 = stype.float64
 str32 = stype.str32
 str64 = stype.str64
 obj64 = stype.obj64
+dt = datatable
