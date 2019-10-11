@@ -608,6 +608,12 @@ def test_resize_issue1527(patched_terminal, capsys):
             in out)
 
 
+def test_resize_invalidates_stats():
+    f0 = dt.Frame([3, 1, 4, 1, 5, 9, 2, 6])
+    assert_equals(f0.max(), dt.Frame([9]))
+    f0.nrows = 3
+    frame_integrity_check(f0)
+    assert_equals(f0.max(), dt.Frame([4]))
 
 
 #-------------------------------------------------------------------------------
