@@ -130,6 +130,14 @@ def test_group_empty_frame3():
     assert D2.stypes == (DT.stype, dt.int64)
 
 
+def test_group_empty_frame4():
+    DT = dt.Frame(A=[], stype=dt.float32)
+    D2 = DT[:, sum(f.A), by(f.A)]
+    frame_integrity_check(D2)
+    assert D2.shape == (0, 2)
+    assert D2.stypes == (dt.float32, dt.float32)
+
+
 def test_groups_small1():
     f0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
                    "B": [0, 1, 2, 3, 4, 5, 6, 7]})
