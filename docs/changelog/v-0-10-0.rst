@@ -63,11 +63,11 @@ Frame
   where all columns have the same stype, or there is only one column.
 
 - |api| The name deduplication algorithm now starts looking for candidate names
-  starting from `name + dt.options.frame.name_auto_index`. For example, if
+  starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
-  will be modified to ensure uniqueness. Before, they were changed into `["A",
-  "A.1", "A.2"]`; now they are changed into `["A", "A.0", "A.1"]` (assuming
-  the value of option `frame.name_auto_index` is `0`).
+  will be modified to ensure uniqueness. Before, they were changed into ``["A",
+  "A.1", "A.2"]``; now they are changed into ``["A", "A.0", "A.1"]`` (assuming
+  the value of option ``frame.name_auto_index`` is ``0``).
 
 - |fix| Fixed a bug where creating a new column via assignment would crash if
   the RHS of the assignment contained an expression that tried to use the
@@ -90,18 +90,26 @@ Frame
 General
 -------
 
-- |api| We no longer export symbols `open`, `abs`, `min`, `max` and `sum`
-  from datatable module when doing `from datatable import *`. They are
-  still available when looked up explicitly, i.e. `dt.open()` still works
-  as before.
+- |api| We no longer export symbols :meth:`open`, :meth:`abs`, :meth:`min`,
+  :meth:`max` and :meth:`sum` from datatable module when doing
+  ``from datatable import *``. They are still available when looked up
+  explicitly, i.e. ``dt.open()`` still works as before.
+
+- |new| Datatable module now exports symbol ``dt``, which is the handle to
+  the module itself. For example, you can now write
+
+    from datatable import dt, f, by, join
+
+  The symbol ``dt`` is also exported by default, i.e. it will be available if
+  you do ``from datatable import *``.
 
 
 
 Internal
 --------
 
-- |api| Function `dt.internal.frame_column_rowindex(DT, i)` was removed and
-  replaced with `dt.internal.frame_columns_virtual(DT)`. The latter returns
+- |api| Function ``dt.internal.frame_column_rowindex(DT, i)`` was removed and
+  replaced with ``dt.internal.frame_columns_virtual(DT)``. The latter returns
   a tuple of True/False indicators of whether each column in a Frame is
   virtual or not.
 
@@ -109,16 +117,17 @@ Internal
 
 - |api| Removed C API methods and macros related to retrieval of a column's
   rowindex:
-  - `DtFrame_ColumnRowindex()`,
-  - `DtRowindex_Check()`,
-  - `DtRowindex_Type()`,
-  - `DtRowindex_Size()`,
-  - `DtRowindex_UnpackSlice()`,
-  - `DtRowindex_ArrayData()`,
-  - `DtRowindex_NONE`,
-  - `DtRowindex_ARR32`,
-  - `DtRowindex_ARR64`,
-  - `DtRowindex_SLICE`
 
-- |api| Added C API method `DtFrame_ColumnIsVirtual()` which returns a boolean
+  - ``DtFrame_ColumnRowindex()``,
+  - ``DtRowindex_Check()``,
+  - ``DtRowindex_Type()``,
+  - ``DtRowindex_Size()``,
+  - ``DtRowindex_UnpackSlice()``,
+  - ``DtRowindex_ArrayData()``,
+  - ``DtRowindex_NONE``,
+  - ``DtRowindex_ARR32``,
+  - ``DtRowindex_ARR64``,
+  - ``DtRowindex_SLICE``
+
+- |api| Added C API method ``DtFrame_ColumnIsVirtual()`` which returns a boolean
   indicator whether the column in a Frame is virtual or not.
