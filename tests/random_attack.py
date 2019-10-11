@@ -605,7 +605,6 @@ class Frame0:
     #---------------------------------------------------------------------------
 
     def resize_rows(self, nrows):
-        import unittest
         curr_nrows = self.nrows
         if len(self.df.key) and nrows > curr_nrows:
             with pytest.raises(ValueError, match="Cannot increase the number "
