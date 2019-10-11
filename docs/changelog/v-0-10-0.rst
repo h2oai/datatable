@@ -96,11 +96,11 @@ General
   explicitly, i.e. ``dt.open()`` still works as before.
 
 - |new| Datatable module now exports symbol ``dt``, which is the handle to
-  the itself. For example, you can now write
+  the module itself. For example, you can now write
 
     from datatable import dt, f, by, join
 
-  The symbol ``dt`` is also import by default, i.e. it will be available if
+  The symbol ``dt`` is also exported by default, i.e. it will be available if
   you do ``from datatable import *``.
 
 
