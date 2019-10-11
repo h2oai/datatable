@@ -504,10 +504,12 @@ class Frame0:
 
     @property
     def nrows(self):
+        assert self.df.nrows == len(self.data[0])
         return self.df.nrows
 
     @property
     def ncols(self):
+        assert self.df.ncols == len(self.data)
         return self.df.ncols
 
 
@@ -691,7 +693,7 @@ class Frame0:
 
     def sort_columns(self, a):
         self.df = self.df.sort(a)
-        if (len(self.data[0])):
+        if (self.nrows):
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
             self.data = list(map(list, zip(*data)))
@@ -746,13 +748,13 @@ class Frame0:
             assert str(e) == "Cannot set a key: the values are not unique"
             return
 
-        nonkeys = sorted(set(range(len(self.data))) - set(keys))
+        nonkeys = sorted(set(range(self.ncols)) - set(keys))
         new_col_order = keys + nonkeys
 
         self.types = [self.types[i] for i in new_col_order]
         self.names = [self.names[i] for i in new_col_order]
 
-        if (len(self.data[0])):
+        if (self.nrows):
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
             self.data = list(map(list, zip(*data)))
