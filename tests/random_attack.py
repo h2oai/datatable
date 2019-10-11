@@ -4,12 +4,13 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-import sys; sys.path.insert(0, '.'); sys.path.insert(0, '..')
+import sys; sys.path = ['.', '..'] + sys.path
 import copy
 import datatable as dt
 import itertools
 import numpy as np
 import os
+import pytest
 import random
 import textwrap
 import time
@@ -109,7 +110,6 @@ class Attacker:
             frame = Frame0()
         print("Launching an attack for %d rounds" % rounds)
         for _ in range(rounds):
-            print(":", end='', flush=True)
             self.attack_frame(frame)
             if exhaustive_checks:
                 frame.check()
@@ -137,9 +137,18 @@ class Attacker:
         curr_nrows = frame.nrows
         new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
         print("[01] Setting nrows to %d" % (new_nrows, ))
+
+        res = frame.resize_rows(new_nrows)
+
         if python_output:
-            python_output.write("DT.nrows = %d\n" % new_nrows)
-        frame.resize_rows(new_nrows)
+            if res:
+                python_output.write("DT.nrows = %d\n" % new_nrows)
+            else:
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='Cannot increase the number of rows "
+                                    "in a keyed frame'):\n"
+                                    "    DT.nrows = %d\n\n"
+                                    % new_nrows)
 
     def slice_rows(self, frame):
         s = self.random_slice(frame.nrows)
@@ -230,14 +239,13 @@ class Attacker:
     def sort_columns(self, frame):
         if frame.ncols == 0:
             return
-        ncols_sort = random.randint(1,5)
-        a = self.random_array(frame.ncols, newn=ncols_sort, positive=True)
+        ncols_sort = min(int(random.expovariate(1.0)) + 1, frame.ncols)
+        a = random.sample(range(0, frame.ncols), ncols_sort)
 
-        print("[10] Sorting %s: %r in ascending order"
+        print("[10] Sorting %s in ascending order: %r"
               % (plural(len(a), "column"), a))
         if python_output:
             python_output.write("DT = DT.sort(%r)\n" % a)
-        frame.sort_columns(a)
 
     def cbind_numpy_column(self, frame):
         print("[11] Cbinding frame with a numpy column -> ncols = %d"
@@ -262,6 +270,27 @@ class Attacker:
                                 % (name, rangeobj))
         frame.add_range_column(name, rangeobj)
 
+    def set_key_columns(self, frame):
+        if frame.ncols == 0:
+            return
+        nkeys = min(int(random.expovariate(1.0)) + 1, frame.ncols)
+        keys = random.sample(range(0, frame.ncols), nkeys)
+        names = [frame.names[i] for i in keys]
+
+        print("[13] Setting %s: %r"
+              % (plural(nkeys, "key column"), keys))
+
+        res = frame.set_key_columns(keys, names)
+
+        if python_output:
+            if res:
+                python_output.write("DT.key = %r\n" % names)
+            else:
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='Cannot set a key: the values are "
+                                    "not unique'):\n"
+                                    "    DT.key = %r\n\n"
+                                    % names)
 
 
     #---------------------------------------------------------------------------
@@ -285,10 +314,9 @@ class Attacker:
             if newn > 0 or n == 0:
                 return res
 
-    def random_array(self, n, newn=0, positive=False):
+    def random_array(self, n, positive=False):
         assert n > 0
-        if newn == 0:
-            newn = max(5, random.randint(n // 2, 3 * n // 2))
+        newn = max(5, random.randint(n // 2, 3 * n // 2))
         lb = 0 if positive else -n
         ub = n - 1
         return [random.randint(lb, ub) for i in range(newn)]
@@ -307,6 +335,7 @@ class Attacker:
         sort_columns: 1,
         cbind_numpy_column: 1,
         add_range_column: 1,
+        set_key_columns: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -365,7 +394,7 @@ class Frame0:
                                 "              names=%r,\n"
                                 "              stypes=%s)\n"
                                 % (repr_data(data, 14), names, repr_types(types)))
-            python_output.write("assert DT.shape == (%d, %d)\n\n" % (nrows, ncols))
+            python_output.write("assert DT.shape == (%d, %d)\n" % (nrows, ncols))
 
 
     def random_type(self):
@@ -479,11 +508,15 @@ class Frame0:
 
     @property
     def nrows(self):
-        return self.df.nrows
+        nrows = len(self.data[0]) if self.data else 0
+        assert self.df.nrows == nrows
+        return nrows
 
     @property
     def ncols(self):
-        return self.df.ncols
+        ncols = len(self.data)
+        assert self.df.ncols == ncols
+        return ncols
 
 
     #---------------------------------------------------------------------------
@@ -573,7 +606,14 @@ class Frame0:
 
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
-        self.df.nrows = nrows
+        if len(self.df.key) and nrows > curr_nrows:
+            with pytest.raises(ValueError, match="Cannot increase the number "
+                               "of rows in a keyed frame"):
+                self.df.nrows = nrows
+            return False
+        else:
+            self.df.nrows = nrows
+
         if curr_nrows < nrows:
             append = [None] * (nrows - curr_nrows)
             for i, elem in enumerate(self.data):
@@ -581,6 +621,7 @@ class Frame0:
         elif curr_nrows > nrows:
             for i, elem in enumerate(self.data):
                 self.data[i] = elem[:nrows]
+        return True
 
     def slice_rows(self, s):
         self.df = self.df[s, :]
@@ -661,7 +702,7 @@ class Frame0:
 
     def sort_columns(self, a):
         self.df = self.df.sort(a)
-        if (len(self.data[0])):
+        if self.nrows:
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
             self.data = list(map(list, zip(*data)))
@@ -682,13 +723,15 @@ class Frame0:
         names = self.random_names(1)
         df = dt.Frame(np_data.T, names=names)
         if python_output:
-            python_output.write("DTNP = dt.Frame(np.ma.array(%s, "
-                                "mask=%s, "
-                                "dtype=np.dtype(%s)).T)\n"
+            python_output.write("DTNP = dt.Frame(np.ma.array(%s,\n"
+                                "                mask=%s,\n"
+                                "                dtype=np.dtype(%s)).T,\n"
+                                "                names=%r)\n"
                                 % (repr_data([data], 14),
                                    repr_data([mmask], 14),
-                                   coltype.__name__))
-            python_output.write("assert DTNP.shape == (%d, %d)\n\n"
+                                   coltype.__name__,
+                                   names))
+            python_output.write("assert DTNP.shape == (%d, %d)\n"
                                 % (self.nrows, 1))
 
         for i in range(self.nrows):
@@ -707,6 +750,30 @@ class Frame0:
         self.dedup_names()
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
 
+    def set_key_columns(self, keys, names):
+        key_data = [self.data[i] for i in keys]
+        unique_rows = set(zip(*key_data))
+        if len(unique_rows) == self.nrows:
+            self.df.key = names
+        else:
+            with pytest.raises(ValueError, match="Cannot set a key: the values "
+                               "are not unique"):
+                self.df.key = names
+            return False
+
+        nonkeys = sorted(set(range(self.ncols)) - set(keys))
+        new_column_order = keys + nonkeys
+
+        self.types = [self.types[i] for i in new_column_order]
+        self.names = [self.names[i] for i in new_column_order]
+
+        if self.nrows:
+            data = list(zip(*self.data))
+            data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
+            self.data = list(map(list, zip(*data)))
+            self.data = [self.data[i] for i in new_column_order]
+
+        return True
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -757,8 +824,10 @@ if __name__ == "__main__":
                                str(args.seed) + ".py")
         python_output = open(outfile, "wt")
         python_output.write("#!/usr/bin/env python\n")
+        python_output.write("import sys; sys.path = ['.', '..'] + sys.path\n")
         python_output.write("import datatable as dt\n")
         python_output.write("import numpy as np\n")
+        python_output.write("import pytest\n")
         python_output.write("from datatable import f\n")
         python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
@@ -767,4 +836,5 @@ if __name__ == "__main__":
         ra.attack()
     finally:
         if python_output:
+            python_output.write("frame_integrity_check(DT)\n")
             python_output.close()

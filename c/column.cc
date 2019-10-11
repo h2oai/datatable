@@ -112,6 +112,7 @@ dt::ColumnImpl* Column::_get_mutable_impl() {
     impl_ = impl_->clone();
   }
   xassert(impl_->refcount_ == 1);
+  reset_stats();
   return const_cast<dt::ColumnImpl*>(impl_);
 }
 
@@ -308,8 +309,9 @@ void Column::apply_rowindex(const RowIndex& ri) {
 }
 
 void Column::resize(size_t new_nrows) {
-  auto pcol = _get_mutable_impl();
   size_t curr_nrows = nrows();
+  if (new_nrows == curr_nrows) return;
+  auto pcol = _get_mutable_impl();
   if (new_nrows > curr_nrows) pcol->na_pad(new_nrows, *this);
   if (new_nrows < curr_nrows) pcol->truncate(new_nrows, *this);
 }
