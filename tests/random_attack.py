@@ -510,12 +510,12 @@ class Frame0:
     @property
     def nrows(self):
         assert self.df.nrows == len(self.data[0])
-        return self.df.nrows
+        return len(self.data[0])
 
     @property
     def ncols(self):
         assert self.df.ncols == len(self.data)
-        return self.df.ncols
+        return len(self.data)
 
 
     #---------------------------------------------------------------------------
@@ -751,19 +751,14 @@ class Frame0:
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
 
     def set_key_columns(self, keys, names):
-        # from datatable import by, count
-        # ngroups = self.df[:, count(f[0]), by(*names)].nrows
-        # if ngroups == self.nrows:
-        #     self.df.key = names
-        # else:
-        #     with pytest.raises(ValueError, match="Cannot set a key: the "
-        #                        "values are not unique"):
-        #         self.df.key = names
-        #     return False
-        try:
+        key_data = [self.data[i] for i in keys]
+        unique_rows = set(list(zip(*key_data)))
+        if len(unique_rows) == self.nrows:
             self.df.key = names
-        except ValueError as e:
-            assert str(e) == "Cannot set a key: the values are not unique"
+        else:
+            with pytest.raises(ValueError, match="Cannot set a key: the values "
+                               "are not unique"):
+                self.df.key = names
             return False
 
         nonkeys = sorted(set(range(self.ncols)) - set(keys))
