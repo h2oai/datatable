@@ -110,7 +110,6 @@ class Attacker:
             frame = Frame0()
         print("Launching an attack for %d rounds" % rounds)
         for _ in range(rounds):
-            print(":", end='', flush=True)
             self.attack_frame(frame)
             if exhaustive_checks:
                 frame.check()
