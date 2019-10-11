@@ -117,9 +117,17 @@ def test_group_empty_frame1():
 def test_group_empty_frame2():
     DT = dt.Frame(A=[])
     D1 = DT[:, count(), by(f.A)]
-    D2 = DT[:, count(f.A), by(f.A)]
     frame_integrity_check(D1)
+    assert D1.shape == (1, 0)
+    assert D1.stype == dt.int64
+
+
+def test_group_empty_frame3():
+    DT = dt.Frame(A=[])
+    D2 = DT[:, count(f.A), by(f.A)]
     frame_integrity_check(D2)
+    assert D2.shape == (1, 0)
+    assert D2.stype == dt.int64
 
 
 def test_groups_small1():
