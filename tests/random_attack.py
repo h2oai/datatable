@@ -515,8 +515,9 @@ class Frame0:
 
     @property
     def ncols(self):
-        assert self.df.ncols == len(self.data)
-        return len(self.data)
+        ncols = len(self.data)
+        assert self.df.ncols == ncols
+        return ncols
 
 
     #---------------------------------------------------------------------------
