@@ -168,14 +168,11 @@ void ArffReader::read_data_decl() {
 
 //------------------------------------------------------------------------------
 
+// keyword should contain only lowercase letters
 bool ArffReader::read_keyword(const char* keyword) {
   const char* ch0 = ch;
   while (*keyword) {
-    uint8_t chl = static_cast<uint8_t>(*ch - 'a');
-    uint8_t chu = static_cast<uint8_t>(*ch - 'A');
-    uint8_t kwl = static_cast<uint8_t>(*keyword - 'a');
-    uint8_t kwu = static_cast<uint8_t>(*keyword - 'A');
-    if (kwl == chl || (kwl < 26 && kwl == chu) || (kwu < 26 && kwu == chl)) {
+    if (((*keyword - *ch) & ~32) == 0) {
       ch++;
       keyword++;
     } else {

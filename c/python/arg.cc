@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cstdio>
 #include "python/arg.h"
@@ -54,6 +54,10 @@ const std::string& Arg::name() const {
   return cached_name;
 }
 
+const char* Arg::short_name() const {
+  return parent->get_arg_short_name(pos);
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -64,6 +68,8 @@ bool Arg::is_undefined()         const { return pyobj.is_undefined(); }
 bool Arg::is_none()              const { return pyobj.is_none(); }
 bool Arg::is_none_or_undefined() const { return pyobj.is_none() ||
                                                 pyobj.is_undefined(); }
+bool Arg::is_defined()           const { return !is_none_or_undefined(); }
+
 bool Arg::is_ellipsis()          const { return pyobj.is_ellipsis(); }
 bool Arg::is_bool()              const { return pyobj.is_bool(); }
 bool Arg::is_bytes()             const { return pyobj.is_bytes(); }
@@ -87,6 +93,7 @@ bool Arg::is_numpy_array()       const { return pyobj.is_numpy_array(); }
 //------------------------------------------------------------------------------
 
 bool        Arg::to_bool_strict()  const { return pyobj.to_bool_strict(*this); }
+CString     Arg::to_cstring()      const { return pyobj.to_cstring(*this); }
 int32_t     Arg::to_int32_strict() const { return pyobj.to_int32_strict(*this); }
 int64_t     Arg::to_int64_strict() const { return pyobj.to_int64_strict(*this); }
 size_t      Arg::to_size_t()       const { return pyobj.to_size_t(*this); }
@@ -128,6 +135,11 @@ Error Arg::error_not_boolean(PyObject* src) const {
 
 Error Arg::error_not_integer(PyObject* src) const {
   return TypeError() << name() << " should be an integer, instead got "
+      << Py_TYPE(src);
+}
+
+Error Arg::error_not_string(PyObject* src) const {
+  return TypeError() << name() << " should be a string, instead got "
       << Py_TYPE(src);
 }
 

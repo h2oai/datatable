@@ -207,6 +207,11 @@ std::string PKArgs::make_arg_name(size_t i) const {
   return res;
 }
 
+const char* PKArgs::get_arg_short_name(size_t i) const {
+  return arg_names[i];
+}
+
+
 
 size_t PKArgs::_find_kwd(PyObject* kwd) {
   try {

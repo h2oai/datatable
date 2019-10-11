@@ -357,7 +357,7 @@ class FrameInitializationManager {
 
 
     void init_from_string() {
-      py::oobj res = py::robj(py::fread_fn).call({src.to_robj()});
+      auto res = py::oobj::import("datatable", "fread").call({src.to_robj()});
       if (res.is_frame()) {
         Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
         std::swap(frame->dt,      resframe->dt);

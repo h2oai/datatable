@@ -282,6 +282,13 @@ struct XObject : public PyObject {
     return (ret == 1);
   }
 
+  // Returns borrowed ref
+  static Derived* cast_from(robj obj) {
+    PyObject* v = obj.to_borrowed_ref();
+    return check(v)? reinterpret_cast<Derived*>(v)
+                   : nullptr;
+  }
+
   template <typename... Args>
   static oobj make(Args... args) {
     robj rtype(reinterpret_cast<PyObject*>(&type));

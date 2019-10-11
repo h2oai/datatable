@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include "read/columns.h"
 #include "csv/reader_parsers.h"
@@ -44,6 +44,15 @@ void Columns::add_columns(size_t n) {
   for (size_t i = 0; i < n; ++i) {
     cols.push_back(Column());
   }
+}
+
+std::vector<std::string> Columns::get_names() const {
+  std::vector<std::string> names;
+  names.reserve(cols.size());
+  for (const Column& col : cols) {
+    names.push_back(col.get_name());
+  }
+  return names;
 }
 
 

@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_READ_COLUMNS_h
 #define dt_READ_COLUMNS_h
@@ -34,6 +34,7 @@ class Columns {
 
     Column& operator[](size_t i) &;
     const Column& operator[](size_t i) const &;
+    std::vector<std::string> get_names() const;
 
     void add_columns(size_t n);
 

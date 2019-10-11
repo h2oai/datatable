@@ -11,11 +11,12 @@
 #include "buffer.h"       // Buffer
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
+#include "python/list.h"    // py::olist
 #include "read/columns.h"   // dt::read::Columns
 
 class DataTable;
 using dtptr = std::unique_ptr<DataTable>;
-
+using strvec = std::vector<std::string>;
 
 /**
  * GenericReader: base class for reading text files in multiple formats. This
@@ -67,10 +68,11 @@ class GenericReader
     bool    fill;
     bool    blank_is_na;
     bool    number_is_na;
-    bool    override_column_types;
-    int : 8;
-    const char* skip_to_string;
-    const char* const* na_strings;
+    int : 16;
+    std::string skip_to_string;
+    const char** na_strings;
+    strvec  na_strings_container;
+    std::unique_ptr<const char*[]> na_strings_ptr;
 
   //---- Runtime parameters ----
   // line:
@@ -93,14 +95,16 @@ class GenericReader
     dt::read::Columns columns;
     double t_open_input{ 0 };
 
+    std::vector<py::oobj> outputs;
+
   private:
     py::oobj logger;
-    py::oobj freader;
     py::oobj src_arg;
     py::oobj file_arg;
     py::oobj text_arg;
-    py::oobj skipstring_arg;
     py::oobj tempstr;
+    py::oobj columns_arg;
+    py::olist column_names;
 
     // If `trace()` cannot display a message immediately (because it was not
     // sent from the main thread), it will be temporarily stored in this
@@ -111,11 +115,15 @@ class GenericReader
 
   //---- Public API ----
   public:
+    GenericReader();
     GenericReader(const py::robj& pyreader);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
-    dtptr read_all();
+    py::oobj read_all();
+
+    bool has_next() const;
+    py::oobj read_next();
 
     /**
      * Return the pointer to the input data buffer and its size. The method
@@ -152,21 +160,22 @@ class GenericReader
     static void init_options();
 
   // Helper functions
-  private:
-    void init_verbose();
-    void init_nthreads();
-    void init_fill();
-    void init_maxnrows();
-    void init_skiptoline();
-    void init_sep();
-    void init_dec();
-    void init_quote();
-    void init_header();
-    void init_nastrings();
-    void init_skipstring();
-    void init_stripwhite();
-    void init_skipblanklines();
-    void init_overridecolumntypes();
+  public:
+    void init_verbose   (const py::Arg&);
+    void init_nthreads  (const py::Arg&);
+    void init_fill      (const py::Arg&);
+    void init_maxnrows  (const py::Arg&);
+    void init_skiptoline(const py::Arg&);
+    void init_sep       (const py::Arg&);
+    void init_dec       (const py::Arg&);
+    void init_quote     (const py::Arg&);
+    void init_header    (const py::Arg&);
+    void init_nastrings (const py::Arg&);
+    void init_skipstring(const py::Arg&);
+    void init_stripwhite(const py::Arg&);
+    void init_skipblanks(const py::Arg&);
+    void init_columns   (const py::Arg&);
+    void init_logger    (const py::Arg&);
 
   protected:
     void open_input();
@@ -180,8 +189,9 @@ class GenericReader
 
     void _message(const char* method, const char* format, va_list args) const;
 
-    dtptr read_empty_input();
-    void detect_improper_files();
+    bool read_empty_input();
+    bool detect_improper_files();
+    bool read_csv();
 
   //---- Inherited API ----
   protected:

@@ -134,6 +134,7 @@ class PKArgs {
      *    args[i].name()
      */
     std::string make_arg_name(size_t i) const;
+    const char* get_arg_short_name(size_t i) const;
 
     //---- User API --------------------
     const Arg& operator[](size_t i) const;

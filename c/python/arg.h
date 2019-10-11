@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_ARG_h
 #define dt_PYTHON_ARG_h
@@ -14,7 +14,7 @@
 namespace py {
 
 class PKArgs;
-
+using strvec = std::vector<std::string>;
 
 /**
  * The argument may be in "undefined" state, meaning the user did not provide
@@ -40,6 +40,7 @@ class Arg : public _obj::error_manager {
     //---- Type checks -----------------
     bool is_bool() const;
     bool is_bytes() const;
+    bool is_defined() const;
     bool is_dict() const;
     bool is_ellipsis() const;
     bool is_float() const;
@@ -59,6 +60,7 @@ class Arg : public _obj::error_manager {
 
     //---- Type conversions ------------
     bool        to_bool_strict        () const;
+    CString     to_cstring            () const;
     int32_t     to_int32_strict       () const;
     int64_t     to_int64_strict       () const;
     size_t      to_size_t             () const;
@@ -84,6 +86,7 @@ class Arg : public _obj::error_manager {
     virtual Error error_not_integer        (PyObject*) const override;
     virtual Error error_int_negative       (PyObject*) const override;
     virtual Error error_not_double         (PyObject*) const override;
+    virtual Error error_not_string         (PyObject*) const override;
     virtual Error error_not_iterable       (PyObject*) const override;
 
     // ?
@@ -99,7 +102,7 @@ class Arg : public _obj::error_manager {
     operator SType() const;
 
     // This template is specialized for different types below
-    template <typename T> T to(T deflt) const;
+    template <typename T> T to(const T& deflt) const;
 
     /**
      * Convert argument to different list objects.
@@ -108,6 +111,7 @@ class Arg : public _obj::error_manager {
     // std::vector<std::string> to_list_of_strs() const;
 
     const std::string& name() const;
+    const char* short_name() const;
 
   private:
     void _check_list_or_tuple() const;
@@ -117,28 +121,38 @@ class Arg : public _obj::error_manager {
 
 
 template <>
-inline bool Arg::to(bool deflt) const {
+inline bool Arg::to(const bool& deflt) const {
   return is_none_or_undefined()? deflt : to_bool_strict();
 }
 
 template <>
-inline int32_t Arg::to(int32_t deflt) const {
+inline int32_t Arg::to(const int32_t& deflt) const {
   return is_none_or_undefined()? deflt : to_int32_strict();
 }
 
 template <>
-inline int64_t Arg::to(int64_t deflt) const {
+inline int64_t Arg::to(const int64_t& deflt) const {
   return is_none_or_undefined()? deflt : to_int64_strict();
 }
 
 template <>
-inline oobj Arg::to(oobj deflt) const {
+inline double Arg::to(const double& deflt) const {
+  return is_none_or_undefined()? deflt : to_double();
+}
+
+template <>
+inline oobj Arg::to(const oobj& deflt) const {
   return is_none_or_undefined()? deflt : to_oobj();
 }
 
 template <>
-inline std::string Arg::to(std::string deflt) const {
+inline std::string Arg::to(const std::string& deflt) const {
   return is_none_or_undefined()? deflt : to_string();
+}
+
+template <>
+inline strvec Arg::to(const strvec& deflt) const {
+  return is_none_or_undefined()? deflt : to_stringlist();
 }
 
 

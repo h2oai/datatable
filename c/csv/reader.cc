@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <stdlib.h>             // strtod
 #include <strings.h>            // strcasecmp
@@ -12,6 +12,7 @@
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
+#include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -65,6 +66,16 @@ void GenericReader::init_options() {
 // GenericReader initialization
 //------------------------------------------------------------------------------
 
+GenericReader::GenericReader()
+{
+  na_strings = nullptr;
+  sof = nullptr;
+  eof = nullptr;
+  line = 0;
+  cr_is_newline = 0;
+}
+
+
 GenericReader::GenericReader(const py::robj& pyrdr)
 {
   job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
@@ -72,32 +83,30 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   eof = nullptr;
   line = 0;
   cr_is_newline = 0;
-  freader  = pyrdr;
-  src_arg  = pyrdr.get_attr("src");
-  file_arg = pyrdr.get_attr("file");
-  text_arg = pyrdr.get_attr("text");
-  fileno   = pyrdr.get_attr("fileno").to_int32();
-  logger   = pyrdr.get_attr("logger");
+  src_arg  = pyrdr.get_attr("_src");
+  file_arg = pyrdr.get_attr("_file");
+  text_arg = pyrdr.get_attr("_text");
+  fileno   = pyrdr.get_attr("_fileno").to_int32();
 
-  init_verbose();
-  init_nthreads();
-  init_fill();
-  init_maxnrows();
-  init_skiptoline();
-  init_sep();
-  init_dec();
-  init_quote();
-  init_header();
-  init_nastrings();
-  init_skipstring();
-  init_stripwhite();
-  init_skipblanklines();
-  init_overridecolumntypes();
+  init_verbose(   py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
+  init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"));
+  init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
+  init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));
+  init_maxnrows(  py::Arg(pyrdr.get_attr("_maxnrows"), "Parameter `max_nrows`"));
+  init_skiptoline(py::Arg(pyrdr.get_attr("_skip_to_line"), "Parameter `skip_to_line`"));
+  init_sep(       py::Arg(pyrdr.get_attr("_sep"), "Parameter `sep`"));
+  init_dec(       py::Arg(pyrdr.get_attr("_dec"), "Parameter `dec`"));
+  init_quote(     py::Arg(pyrdr.get_attr("_quotechar"), "Parameter `quotechar`"));
+  init_header(    py::Arg(pyrdr.get_attr("_header"), "Parameter `header`"));
+  init_nastrings( py::Arg(pyrdr.get_attr("_nastrings"), "Parameter `na_strings`"));
+  init_skipstring(py::Arg(pyrdr.get_attr("_skip_to_string"), "Parameter `skip_to_string`"));
+  init_stripwhite(py::Arg(pyrdr.get_attr("_strip_whitespace"), "Parameter `strip_whitespace`"));
+  init_skipblanks(py::Arg(pyrdr.get_attr("_skip_blank_lines"), "Parameter `skip_blank_lines`"));
+  init_columns(   py::Arg(pyrdr.get_attr("_columns"), "Parameter `columns`"));
 }
 
 // Copy-constructor will copy only the essential parts
 GenericReader::GenericReader(const GenericReader& g)
-  : freader(g.freader)  // for progress function / override columns
 {
   // Input parameters
   nthreads         = g.nthreads;
@@ -107,7 +116,6 @@ GenericReader::GenericReader(const GenericReader& g)
   quote            = g.quote;
   max_nrows        = g.max_nrows;
   skip_to_line     = 0;  // this parameter was already applied
-  skip_to_string   = nullptr;
   na_strings       = g.na_strings;
   header           = g.header;
   strip_whitespace = g.strip_whitespace;
@@ -115,8 +123,8 @@ GenericReader::GenericReader(const GenericReader& g)
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
-  override_column_types = g.override_column_types;
-  t_open_input = g.t_open_input;
+  columns_arg      = g.columns_arg;
+  t_open_input     = g.t_open_input;
   // Runtime parameters
   job     = g.job;
   input_mbuf = g.input_mbuf;
@@ -129,15 +137,15 @@ GenericReader::GenericReader(const GenericReader& g)
 GenericReader::~GenericReader() {}
 
 
-void GenericReader::init_verbose() {
-  int8_t v = freader.get_attr("verbose").to_bool();
-  verbose = (v > 0);
+void GenericReader::init_verbose(const py::Arg& arg) {
+  verbose = arg.to<bool>(false);
 }
 
-void GenericReader::init_nthreads() {
-  int32_t nth = freader.get_attr("nthreads").to_int32();
+void GenericReader::init_nthreads(const py::Arg& arg) {
+  int32_t DEFAULT = -(1 << 30);
+  int32_t nth = arg.to<int32_t>(DEFAULT);
   int maxth = static_cast<int>(dt::num_threads_in_pool());
-  if (ISNA<int32_t>(nth)) {
+  if (nth == DEFAULT) {
     nthreads = maxth;
     trace("Using default %d thread%s", nthreads, (nthreads==1? "" : "s"));
   } else {
@@ -150,14 +158,15 @@ void GenericReader::init_nthreads() {
   }
 }
 
-void GenericReader::init_fill() {
-  int8_t v = freader.get_attr("fill").to_bool();
-  fill = (v > 0);
-  if (fill) trace("fill=True (incomplete lines will be padded with NAs)");
+void GenericReader::init_fill(const py::Arg& arg) {
+  fill = arg.to<bool>(false);
+  if (fill) {
+    trace("fill=True (incomplete lines will be padded with NAs)");
+  }
 }
 
-void GenericReader::init_maxnrows() {
-  int64_t n = freader.get_attr("max_nrows").to_int64();
+void GenericReader::init_maxnrows(const py::Arg& arg) {
+  int64_t n = arg.to<int64_t>(-1);
   if (n < 0) {
     max_nrows = std::numeric_limits<size_t>::max();
   } else {
@@ -166,79 +175,90 @@ void GenericReader::init_maxnrows() {
   }
 }
 
-void GenericReader::init_skiptoline() {
-  int64_t n = freader.get_attr("skip_to_line").to_int64();
+void GenericReader::init_skiptoline(const py::Arg& arg) {
+  int64_t n = arg.to<int64_t>(-1);
   skip_to_line = (n < 0)? 0 : static_cast<size_t>(n);
   if (n > 1) trace("skip_to_line = %zu", n);
 }
 
-void GenericReader::init_sep() {
-  CString cstr = freader.get_attr("sep").to_cstring();
-  size_t size = static_cast<size_t>(cstr.size);
-  const char* ch = cstr.ch;
-  if (ch == nullptr) {
+void GenericReader::init_sep(const py::Arg& arg) {
+  if (arg.is_none_or_undefined()) {
     sep = '\xFF';
     trace("sep = <auto-detect>");
-  } else if (size == 0 || *ch == '\n' || *ch == '\r') {
+    return;
+  }
+  auto str = arg.to_string();
+  size_t size = str.size();
+  const char c = size? str[0] : '\n';
+  if (c == '\n' || c == '\r') {
     sep = '\n';
     trace("sep = <single-column mode>");
   } else if (size > 1) {
-    throw ValueError() << "Multi-character sep is not allowed: '" << ch << "'";
+    throw NotImplError() << "Multi-character or unicode separators are not "
+                            "supported: '" << str << "'";
   } else {
-    if (*ch=='"' || *ch=='\'' || *ch=='`' || ('0' <= *ch && *ch <= '9') ||
-        ('a' <= *ch && *ch <= 'z') || ('A' <= *ch && *ch <= 'Z')) {
-      throw ValueError() << "sep = '" << ch << "' is not allowed";
+    if (c=='"' || c=='\'' || c=='`' || ('0' <= c && c <= '9') ||
+        ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
+      throw ValueError() << "Separator `" << c << "` is not allowed";
     }
-    sep = *ch;
+    sep = c;
   }
 }
 
-void GenericReader::init_dec() {
-  CString cstr = freader.get_attr("dec").to_cstring();
-  size_t size = static_cast<size_t>(cstr.size);
-  const char* ch = cstr.ch;
-  if (ch == nullptr || size == 0) {  // None | ""
+void GenericReader::init_dec(const py::Arg& arg) {
+  if (arg.is_none_or_undefined()) {
     // TODO: switch to auto-detect mode
     dec = '.';
-  } else if (size > 1) {
+    return;
+  }
+  auto str = arg.to_string();
+  if (str.size() > 1) {
     throw ValueError() << "Multi-character decimal separator is not allowed: '"
-                       << ch << "'";
-  } else if (*ch == '.' || *ch == ',') {
-    dec = *ch;
+                       << str << "'";
+  }
+  // If `str` is empty, then `c` will become '\0'
+  const char c = str[0];
+  if (c == '.' || c == ',') {
+    dec = c;
     trace("Decimal separator = '%c'", dec);
   } else {
-    throw ValueError() << "dec = '" << ch << "' is not allowed";
+    throw ValueError() << "Only dec='.' or ',' are allowed";
   }
 }
 
-void GenericReader::init_quote() {
-  CString cstr = freader.get_attr("quotechar").to_cstring();
-  size_t size = static_cast<size_t>(cstr.size);
-  const char* ch = cstr.ch;
-  if (ch == nullptr) {
-    // TODO: switch to auto-detect mode
-    quote = '"';
-  } else if (size == 0) {
+void GenericReader::init_quote(const py::Arg& arg) {
+  auto str = arg.to<std::string>("\"");
+  if (str.size() == 0) {
     quote = '\0';
-  } else if (size > 1) {
+  } else if (str.size() > 1) {
     throw ValueError() << "Multi-character quote is not allowed: '"
-                       << ch << "'";
-  } else if (*ch == '"' || *ch == '\'' || *ch == '`') {
-    quote = *ch;
+                       << str << "'";
+  } else if (str[0] == '"' || str[0] == '\'' || str[0] == '`') {
+    quote = str[0];
     trace("Quote char = (%c)", quote);
   } else {
-    throw ValueError() << "quotechar = (" << ch << ") is not allowed";
+    throw ValueError() << "quotechar = (" << str << ") is not allowed";
   }
 }
 
-void GenericReader::init_header() {
-  header = freader.get_attr("header").to_bool();
-  if (header >= 0) trace("header = %s", header? "True" : "False");
+void GenericReader::init_header(const py::Arg& arg) {
+  if (arg.is_none_or_undefined()) {
+    header = GETNA<int8_t>();
+  } else {
+    header = arg.to_bool_strict();
+    trace("header = %s", header? "True" : "False");
+  }
 }
 
-void GenericReader::init_nastrings() {
-  // TODO: `na_strings` should be properly destroyed in the end
-  na_strings = freader.get_attr("na_strings").to_cstringlist();
+void GenericReader::init_nastrings(const py::Arg& arg) {
+  na_strings_container = arg.to<strvec>({"NA"});
+  size_t n = na_strings_container.size();
+  na_strings_ptr = std::unique_ptr<const char*[]>(new const char*[n+1]);
+  na_strings = na_strings_ptr.get();
+  for (size_t i = 0; i < n; ++i) {
+    na_strings[i] = na_strings_container[i].data();
+  }
+  na_strings[n] = nullptr;
   blank_is_na = false;
   number_is_na = false;
   const char* const* ptr = na_strings;
@@ -286,30 +306,44 @@ void GenericReader::init_nastrings() {
   }
 }
 
-void GenericReader::init_skipstring() {
-  skipstring_arg = freader.get_attr("skip_to_string");
-  skip_to_string = skipstring_arg.to_cstring().ch;
-  if (skip_to_string && skip_to_string[0]=='\0') skip_to_string = nullptr;
-  if (skip_to_string && skip_to_line) {
-    throw ValueError() << "Parameters `skip_to_line` and `skip_to_string` "
-                       << "cannot be provided simultaneously";
+void GenericReader::init_skipstring(const py::Arg& arg) {
+  skip_to_string = arg.to<std::string>("");
+  if (!skip_to_string.empty()) {
+    if (skip_to_line) {
+      throw ValueError() << "Parameters `skip_to_line` and `skip_to_string` "
+                         << "cannot be provided simultaneously";
+    }
+    trace("skip_to_string = \"%s\"", skip_to_string.data());
   }
-  if (skip_to_string) trace("skip_to_string = \"%s\"", skip_to_string);
 }
 
-void GenericReader::init_stripwhite() {
-  strip_whitespace = freader.get_attr("strip_whitespace").to_bool();
+void GenericReader::init_stripwhite(const py::Arg& arg) {
+  strip_whitespace = arg.to<bool>(true);
   trace("strip_whitespace = %s", strip_whitespace? "True" : "False");
 }
 
-void GenericReader::init_skipblanklines() {
-  skip_blank_lines = freader.get_attr("skip_blank_lines").to_bool();
+void GenericReader::init_skipblanks(const py::Arg& arg) {
+  skip_blank_lines = arg.to<bool>(true);
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
-void GenericReader::init_overridecolumntypes() {
-  override_column_types = !freader.get_attr("_columns").is_none();
+void GenericReader::init_columns(const py::Arg& arg) {
+  if (arg.is_defined()) {
+    columns_arg = arg.to_oobj();
+  }
 }
+
+void GenericReader::init_logger(const py::Arg& arg) {
+  if (arg.is_none_or_undefined()) {
+    if (verbose) {
+      logger = py::oobj::import("datatable.fread", "_DefaultLogger").call();
+    }
+  } else {
+    logger = arg.to_oobj();
+    verbose = true;
+  }
+}
+
 
 
 
@@ -317,7 +351,7 @@ void GenericReader::init_overridecolumntypes() {
 // Main read_all() function
 //------------------------------------------------------------------------------
 
-std::unique_ptr<DataTable> GenericReader::read_all()
+py::oobj GenericReader::read_all()
 {
   open_input();
   detect_and_skip_bom();
@@ -327,16 +361,16 @@ std::unique_ptr<DataTable> GenericReader::read_all()
   skip_trailing_whitespace();
   job->add_done_amount(WORK_PREPARE);
 
-  std::unique_ptr<DataTable> dt(nullptr);
-  if (!dt) dt = read_empty_input();
-  if (!dt) detect_improper_files();
-  if (!dt) dt = FreadReader(*this).read_all();
-  // if (!dt) dt = ArffReader(*this).read_all();
-  if (!dt) {
+  read_empty_input() ||
+  detect_improper_files() ||
+  read_csv();
+
+  if (outputs.empty()) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
   }
+
   job->done();
-  return dt;
+  return outputs[0];
 }
 
 
@@ -527,6 +561,7 @@ const char* GenericReader::repr_binary(
 //------------------------------------------------------------------------------
 
 void GenericReader::open_input() {
+  if (input_mbuf) return;
   double t0 = wallclock();
   CString text;
   const char* filename = nullptr;
@@ -699,8 +734,8 @@ void GenericReader::skip_to_line_number() {
 
 
 void GenericReader::skip_to_line_with_string() {
-  const char* const ss = skip_to_string;
-  if (!ss) return;
+  if (skip_to_string.empty()) return;
+  const char* const ss = skip_to_string.data();
   const char* ch = sof;
   const char* line_start = sof;
   while (ch < eof) {
@@ -731,14 +766,15 @@ void GenericReader::skip_to_line_with_string() {
 }
 
 
-std::unique_ptr<DataTable> GenericReader::read_empty_input() {
+bool GenericReader::read_empty_input() {
   size_t size = datasize();
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
     job->add_done_amount(WORK_READ);
-    return std::unique_ptr<DataTable>(new DataTable());
+    outputs.push_back(py::Frame::oframe(new DataTable()));
+    return true;
   }
-  return nullptr;
+  return false;
 }
 
 
@@ -747,7 +783,7 @@ std::unique_ptr<DataTable> GenericReader::read_empty_input() {
  * of the unsupported formats (such as HTML). If so, an exception will be
  * thrown.
  */
-void GenericReader::detect_improper_files() {
+bool GenericReader::detect_improper_files() {
   const char* ch = sof;
   // --- detect HTML ---
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
@@ -761,7 +797,19 @@ void GenericReader::detect_improper_files() {
     throw RuntimeError() << src_arg.to_string() << " is a feather file, it "
         "cannot be read with fread.";
   }
+  return false;
 }
+
+
+bool GenericReader::read_csv() {
+  auto dt = FreadReader(*this).read_all();
+  if (dt) {
+    outputs.push_back(py::Frame::oframe(dt.release()));
+    return true;
+  }
+  return false;
+}
+
 
 
 void GenericReader::decode_utf16() {
@@ -792,15 +840,18 @@ void GenericReader::decode_utf16() {
 void GenericReader::report_columns_to_python() {
   size_t ncols = columns.size();
 
-  if (override_column_types) {
+  if (columns_arg) {
     py::olist colDescriptorList(ncols);
     for (size_t i = 0; i < ncols; i++) {
       colDescriptorList.set(i, columns[i].py_descriptor());
     }
 
-    py::olist newTypesList =
-      freader.invoke("_override_columns0", "(O)",
-                     std::move(colDescriptorList).release()).to_pylist();
+    py::otuple newColumns =
+      py::oobj::import("datatable.fread", "_override_columns")
+        .call({columns_arg, colDescriptorList}).to_otuple();
+
+    column_names = newColumns[0].to_pylist();
+    py::olist newTypesList = newColumns[1].to_pylist();
 
     if (newTypesList) {
       for (size_t i = 0; i < ncols; i++) {
@@ -808,13 +859,6 @@ void GenericReader::report_columns_to_python() {
         columns[i].set_rtype(elem.to_int64());
       }
     }
-  } else {
-    py::olist colNamesList(ncols);
-    for (size_t i = 0; i < ncols; ++i) {
-      colNamesList.set(i, py::ostring(columns[i].get_name()));
-    }
-    freader.invoke("_set_column_names", "(O)",
-                   std::move(colNamesList).release());
   }
 }
 
@@ -837,6 +881,9 @@ dtptr GenericReader::makeDatatable() {
       : Column::new_mbuf_column(nrows, stype, std::move(databuf))
     );
   }
-  py::olist names = freader.get_attr("_colnames").to_pylist();
-  return dtptr(new DataTable(std::move(ccols), names));
+  if (column_names) {
+    return dtptr(new DataTable(std::move(ccols), column_names));
+  } else {
+    return dtptr(new DataTable(std::move(ccols), columns.get_names()));
+  }
 }

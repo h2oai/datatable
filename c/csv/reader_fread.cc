@@ -769,7 +769,7 @@ void FreadReader::detect_lf() {
  * at the top of the file), and if so skip them.
  */
 void FreadReader::skip_preamble() {
-  if (skip_to_line || skip_to_string) {
+  if (skip_to_line || !skip_to_string.empty()) {
     // If the user has explicitly requested skip then do not try to detect
     // any other comment section.
     return;
