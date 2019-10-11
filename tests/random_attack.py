@@ -10,6 +10,7 @@ import datatable as dt
 import itertools
 import numpy as np
 import os
+import pytest
 import random
 import textwrap
 import time
@@ -137,15 +138,18 @@ class Attacker:
         curr_nrows = frame.nrows
         new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
         print("[01] Setting nrows to %d" % (new_nrows, ))
-        if python_output:
-            python_output.write("\ntry:\n"
-                                "   DT.nrows = %d\n"
-                                "except ValueError as e:\n"
-                                "   assert str(e) == 'Cannot increase the "
-                                "number of rows in a keyed frame'\n"
-                                % new_nrows)
 
-        frame.resize_rows(new_nrows)
+        res = frame.resize_rows(new_nrows)
+
+        if python_output:
+            if res:
+                python_output.write("DT.nrows = %d\n" % new_nrows)
+            else:
+                python_output.write("with pytest.raises(ValueError) as e:\n"
+                                    "    DT.nrows = %d\n"
+                                    "assert str(e.value) == 'Cannot increase the "
+                                    "number of rows in a keyed frame'\n\n"
+                                    % new_nrows)
 
     def slice_rows(self, frame):
         s = self.random_slice(frame.nrows)
@@ -277,16 +281,17 @@ class Attacker:
         print("[13] Setting %s: %r"
               % (plural(nkeys, "key column"), keys))
 
+        res = frame.set_key_columns(keys, names)
+
         if python_output:
-            python_output.write("\ntry:\n"
-                                "   DT.key = %r\n"
-                                "except ValueError as e:\n"
-                                "   assert str(e) == 'Cannot set a key: the "
-                                "values are not unique'\n"
-                                % names)
-
-        frame.set_key_columns(keys, names)
-
+            if res:
+                python_output.write("DT.key = %r\n" % names)
+            else:
+                python_output.write("with pytest.raises(ValueError) as e:\n"
+                                    "    DT.key = %r\n"
+                                    "assert str(e.value) == 'Cannot set a key: "
+                                    "the values are not unique'\n\n"
+                                    % names)
 
 
     #---------------------------------------------------------------------------
@@ -600,11 +605,13 @@ class Frame0:
 
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
-        try:
+        if len(self.df.key) and nrows > curr_nrows:
+            with pytest.raises(ValueError) as e:
+                self.df.nrows = nrows
+            assert str(e.value) == "Cannot increase the number of rows in a keyed frame"
+            return False
+        else:
             self.df.nrows = nrows
-        except ValueError as e:
-            assert str(e) == "Cannot increase the number of rows in a keyed frame"
-            return
 
         if curr_nrows < nrows:
             append = [None] * (nrows - curr_nrows)
@@ -613,6 +620,7 @@ class Frame0:
         elif curr_nrows > nrows:
             for i, elem in enumerate(self.data):
                 self.data[i] = elem[:nrows]
+        return True
 
     def slice_rows(self, s):
         self.df = self.df[s, :]
@@ -693,7 +701,7 @@ class Frame0:
 
     def sort_columns(self, a):
         self.df = self.df.sort(a)
-        if (self.nrows):
+        if self.nrows:
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
             self.data = list(map(list, zip(*data)))
@@ -742,23 +750,34 @@ class Frame0:
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
 
     def set_key_columns(self, keys, names):
+        # from datatable import by, count
+        # ngroups = self.df[:, count(f[0]), by(*names)].nrows
+        # if ngroups == self.nrows:
+        #     self.df.key = names
+        # else:
+        #     with pytest.raises(ValueError) as e:
+        #         self.df.key = names
+        #     assert str(e.value) == "Cannot set a key: the values are not unique"
+        #     return False
         try:
             self.df.key = names
         except ValueError as e:
             assert str(e) == "Cannot set a key: the values are not unique"
-            return
+            return False
 
         nonkeys = sorted(set(range(self.ncols)) - set(keys))
-        new_col_order = keys + nonkeys
+        new_column_order = keys + nonkeys
 
-        self.types = [self.types[i] for i in new_col_order]
-        self.names = [self.names[i] for i in new_col_order]
+        self.types = [self.types[i] for i in new_column_order]
+        self.names = [self.names[i] for i in new_column_order]
 
-        if (self.nrows):
+        if self.nrows:
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
             self.data = list(map(list, zip(*data)))
-            self.data = [self.data[i] for i in new_col_order]
+            self.data = [self.data[i] for i in new_column_order]
+
+        return True
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -812,6 +831,7 @@ if __name__ == "__main__":
         python_output.write("import sys; sys.path = ['.', '..'] + sys.path\n")
         python_output.write("import datatable as dt\n")
         python_output.write("import numpy as np\n")
+        python_output.write("import pytest\n")
         python_output.write("from datatable import f\n")
         python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
