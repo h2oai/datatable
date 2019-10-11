@@ -145,10 +145,10 @@ class Attacker:
             if res:
                 python_output.write("DT.nrows = %d\n" % new_nrows)
             else:
-                python_output.write("with pytest.raises(ValueError) as e:\n"
-                                    "    DT.nrows = %d\n"
-                                    "assert str(e.value) == 'Cannot increase the "
-                                    "number of rows in a keyed frame'\n\n"
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='Cannot increase the number of rows "
+                                    "in a keyed frame'):\n"
+                                    "    DT.nrows = %d\n\n"
                                     % new_nrows)
 
     def slice_rows(self, frame):
@@ -287,10 +287,10 @@ class Attacker:
             if res:
                 python_output.write("DT.key = %r\n" % names)
             else:
-                python_output.write("with pytest.raises(ValueError) as e:\n"
-                                    "    DT.key = %r\n"
-                                    "assert str(e.value) == 'Cannot set a key: "
-                                    "the values are not unique'\n\n"
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='Cannot set a key: the values are "
+                                    "not unique'):\n"
+                                    "    DT.key = %r\n\n"
                                     % names)
 
 
@@ -604,11 +604,12 @@ class Frame0:
     #---------------------------------------------------------------------------
 
     def resize_rows(self, nrows):
+        import unittest
         curr_nrows = self.nrows
         if len(self.df.key) and nrows > curr_nrows:
-            with pytest.raises(ValueError) as e:
+            with pytest.raises(ValueError, match="Cannot increase the number "
+                               "of rows in a keyed frame"):
                 self.df.nrows = nrows
-            assert str(e.value) == "Cannot increase the number of rows in a keyed frame"
             return False
         else:
             self.df.nrows = nrows
@@ -755,9 +756,9 @@ class Frame0:
         # if ngroups == self.nrows:
         #     self.df.key = names
         # else:
-        #     with pytest.raises(ValueError) as e:
+        #     with pytest.raises(ValueError, match="Cannot set a key: the "
+        #                        "values are not unique"):
         #         self.df.key = names
-        #     assert str(e.value) == "Cannot set a key: the values are not unique"
         #     return False
         try:
             self.df.key = names
