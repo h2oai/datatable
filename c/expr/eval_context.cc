@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -434,7 +434,7 @@ void EvalContext::apply_rowindex(const RowIndex& ri) {
 
 
 void EvalContext::apply_groupby(const Groupby& gb_) {
-  xassert(static_cast<size_t>(gb_.offsets_r()[gb_.ngroups()]) == nrows());
+  xassert(gb_.last_offset() == nrows());
   gb = gb_;
 }
 

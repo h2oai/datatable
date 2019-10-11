@@ -118,16 +118,16 @@ def test_group_empty_frame2():
     DT = dt.Frame(A=[])
     D1 = DT[:, count(), by(f.A)]
     frame_integrity_check(D1)
-    assert D1.shape == (1, 0)
-    assert D1.stype == dt.int64
+    assert D1.shape == (0, 2)
+    assert D1.stypes == (DT.stype, dt.int64)
 
 
 def test_group_empty_frame3():
-    DT = dt.Frame(A=[])
+    DT = dt.Frame(A=[], stype=dt.float32)
     D2 = DT[:, count(f.A), by(f.A)]
     frame_integrity_check(D2)
-    assert D2.shape == (1, 0)
-    assert D2.stype == dt.int64
+    assert D2.shape == (0, 2)
+    assert D2.stypes == (DT.stype, dt.int64)
 
 
 def test_groups_small1():
@@ -322,6 +322,6 @@ def test_groupby_with_sort():
     R2 = DT[:, count(), by(f.A, f.B), sort(f.C)]
     R0 = dt.Frame(A=[1, 1, 2, 2, 3, 3],
                   B=[1, 2, 1, 2, 1, 2],
-                  C0=[2] * 6, stypes={"C0": dt.int32})
+                  C0=[2] * 6, stypes={"C0": dt.int64})
     assert_equals(R1, R0)
     assert_equals(R2, R0)

@@ -153,11 +153,18 @@ void by_node::create_columns(EvalContext& ctx) {
 
 
 void by_node::execute(EvalContext& ctx) const {
-  if (cols.empty()) return;
+  if (cols.empty()) {
+    ctx.gb = Groupby::single_group(ctx.nrows());
+    return;
+  }
   const DataTable* dt0 = ctx.get_datatable(0);
   const RowIndex& ri0 = ctx.get_rowindex(0);
   if (ri0) {
     throw NotImplError() << "Groupby/sort cannot be combined with i expression";
+  }
+  if (dt0->nrows() == 0) {
+    // When grouping a Frame with 0 rows, produce a no-groups Groupby
+    return;
   }
   std::vector<sort_spec> spec;
   spec.reserve(cols.size());
