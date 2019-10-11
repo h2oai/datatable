@@ -4,7 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-import sys; sys.path += ('.', '..')
+import sys; sys.path = ['.', '..'] + sys.path
 import copy
 import datatable as dt
 import itertools
@@ -236,7 +236,7 @@ class Attacker:
     def sort_columns(self, frame):
         if frame.ncols == 0:
             return
-        ncols_sort = random.randint(1, frame.ncols)
+        ncols_sort = min(int(random.expovariate(1.0)) + 1, frame.ncols)
         a = random.sample(range(0, frame.ncols), ncols_sort)
 
         print("[10] Sorting %s in ascending order: %r"
@@ -270,7 +270,7 @@ class Attacker:
     def set_key_columns(self, frame):
         if frame.ncols == 0:
             return
-        nkeys = random.randint(1, frame.ncols)
+        nkeys = min(int(random.expovariate(1.0)) + 1, frame.ncols)
         keys = random.sample(range(0, frame.ncols), nkeys)
         names = [frame.names[i] for i in keys]
 
@@ -746,16 +746,17 @@ class Frame0:
             assert str(e) == "Cannot set a key: the values are not unique"
             return
 
-        nonkeys = sorted(list(set(range(len(self.data))) - set(keys)))
+        nonkeys = sorted(set(range(len(self.data))) - set(keys))
+        new_col_order = keys + nonkeys
 
-        self.types = [self.types[i] for i in keys] + [self.types[i] for i in nonkeys]
-        self.names = [self.names[i] for i in keys] + [self.names[i] for i in nonkeys]
+        self.types = [self.types[i] for i in new_col_order]
+        self.names = [self.names[i] for i in new_col_order]
 
         if (len(self.data[0])):
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
             self.data = list(map(list, zip(*data)))
-            self.data = [self.data[i] for i in keys] + [self.data[i] for i in nonkeys]
+            self.data = [self.data[i] for i in new_col_order]
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -806,11 +807,11 @@ if __name__ == "__main__":
                                str(args.seed) + ".py")
         python_output = open(outfile, "wt")
         python_output.write("#!/usr/bin/env python\n")
-        python_output.write("import sys; sys.path += ('.', '..')\n")
+        python_output.write("import sys; sys.path = ['.', '..'] + sys.path\n")
         python_output.write("import datatable as dt\n")
         python_output.write("import numpy as np\n")
         python_output.write("from datatable import f\n")
-        python_output.write("from datatable.internal import frame_integrity_check\n")
+        python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
     try:
         ra = Attacker(args.seed)

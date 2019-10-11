@@ -10,10 +10,11 @@
 #     python tests/random_driver.py --help
 #
 #-------------------------------------------------------------------------------
-import sys; sys.path += ('.', '..')
+import sys; sys.path = ['.', '..'] + sys.path
 import os
 import subprocess
 import random
+import datatable
 from datatable.utils.terminal import term
 
 skip_successful_seeds = False
