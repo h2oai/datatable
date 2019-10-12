@@ -300,7 +300,7 @@ class Attacker:
         print("[14] Removing columns %r -> ncols = %d"
               % (s, frame.ncols - len(s)))
         if python_output:
-            python_output.write("del DT[:, %r]\n" % (s,))
+            python_output.write("del DT[:, %r]\n" % s)
         frame.delete_columns(s)
 
 
