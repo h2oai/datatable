@@ -85,6 +85,16 @@ Frame
   incorrectly when some columns in the frame contained NAs, while others
   did not (#2050).
 
+- |fix| Groupby operation on an empty (0-rows) frame now works correctly,
+  returning a 0-row result frame (#2078). For example:
+
+    DT = dt.Frame(Id=[], Value=[])  # create a 0x2 frame
+    DT[:, sum(f.Value), by(f.Id)]   # produces a 0x2 frame
+    DT[:, sum(f.Value)]             # produces a 1x1 frame
+
+- |fix| The :meth:`count` reducer now always produces a column with stype
+  ``int64``. Before, it sometimes produced an ``int32`` column, and sometimes
+  an ``int64`` column.
 
 
 General
