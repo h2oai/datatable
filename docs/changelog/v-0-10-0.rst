@@ -85,6 +85,8 @@ Frame
   incorrectly when some columns in the frame contained NAs, while others
   did not (#2050).
 
+- |fix| Deleting columns from a keyed Frame no longer results in a crash
+  when the deleted columns are part of the key (#2083).
 
 
 General

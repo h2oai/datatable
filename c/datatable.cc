@@ -103,10 +103,21 @@ DataTable DataTable::extract_column(size_t i) const {
 }
 
 
+// Remove columns at the specified indices
 void DataTable::delete_columns(intvec& cols_to_remove) {
   if (cols_to_remove.empty()) return;
   std::sort(cols_to_remove.begin(), cols_to_remove.end());
   cols_to_remove.push_back(size_t(-1));  // guardian value
+
+  // If deleting one of the columns that contains a key, the "keyed" status
+  // of the frame is cleared entirely. This is because even if one column
+  // out of multi-column key is removed, the remaining columns may no longer
+  // provide unique key values.
+  // On the other hand, if the DataTable is keyed, it is still safe to remove
+  // any non-key columns without affecting the DataTable "keyed" property.
+  if (cols_to_remove[0] < nkeys_) {
+    nkeys_ = 0;
+  }
 
   size_t j = 0;
   for (size_t i = 0, k = 0; i < ncols_; ++i) {
