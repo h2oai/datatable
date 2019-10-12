@@ -248,6 +248,17 @@ void EvalContext::evaluate_delete_subframe() {
   DataTable* dt0 = frames[0].dt;
   const RowIndex& ri0 = frames[0].ri;
   auto indices = evaluate_j_as_column_index();
+  if (indices.empty()) return;
+  if (dt0->nkeys()) {
+    // Check whether replacing values with NAs would be legal before trying
+    // to actually do any replacements.
+    for (size_t i : indices) {
+      if (i < dt0->nkeys()) {
+        throw ValueError()
+          << "Cannot delete values from key columns in the Frame";
+      }
+    }
+  }
   for (size_t i : indices) {
     dt0->get_column(i).replace_values(ri0, Column());
   }
