@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -30,81 +30,76 @@ from tests import same_iterables, assert_equals, isview
 
 
 
-def test_groups_internal2():
-    d0 = dt.Frame([[1,   5,   3,   2,   1,    3,   1,   1,   None],
+def test_groups1():
+    DT = dt.Frame([[1,   5,   3,   2,   1,    3,   1,   1,   None],
                    ["a", "b", "c", "a", None, "f", "b", "h", "d"]],
                   names=["A", "B"])
-    d1 = d0[:, :, by("A")]
-    # gb = d1.internal.groupby
-    # assert gb.ngroups == 5
-    # assert gb.group_sizes == [1, 4, 1, 2, 1]
+    d1 = DT[:, :, by("A")]
     assert_equals(
         d1, dt.Frame(A=[None, 1, 1, 1, 1, 2, 3, 3, 5],
                      B=["d", "a", None, "b", "h", "a", "c", "f", "b"]))
-    d2 = d0[:, :, by("B")]
-    # gb = d2.internal.groupby
-    # assert gb.ngroups == 7
-    # assert gb.group_sizes == [1, 2, 2, 1, 1, 1, 1]
+
+    d2 = DT[:, :, by("B")]
     assert_equals(
         d2, dt.Frame(B=[None, "a", "a", "b", "b", "c", "d", "f", "h"],
                      A=[1, 1, 2, 5, 1, 3, None, 3, 1]))
 
 
-def test_groups_internal3():
+def test_groups2():
     f0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
     f1 = f0[:, [f.B, f.A + f.B], by(f.A)]
     frame_integrity_check(f1)
     assert f1.to_list() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
                             [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
                             [1, 3, 8, 10, 3, 6, 7, 8, 6, 11]]
-    # gb = f1.internal.groupby
-    # assert gb
-    # assert gb.ngroups == 3
-    # assert gb.group_sizes == [4, 4, 2]
-    # assert gb.group_offsets == [0, 4, 8, 10]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
-def test_groups_internal4(seed):
+def test_groups3(seed):
     random.seed(seed)
     n = 100000
     src = [random.getrandbits(10) for _ in range(n)]
-    f0 = dt.Frame({"A": src})
+    f0 = dt.Frame(A=src, B=range(n))
     f1 = f0[:, :, by("A")]
     frame_integrity_check(f1)
-    # gb = f1.internal.groupby
-    # assert gb
-    # grp_offsets = gb.group_offsets
-    # ssrc = sorted(src)
-    # x_prev = -1
-    # for i in range(gb.ngroups):
-    #     s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
-    #     assert len(s) == 1
-    #     x = list(s)[0]
-    #     assert x != x_prev
-    #     x_prev = x
+    assert f1.shape == (n, 2)
+    assert f1.names == ("A", "B")
+    f1A, f1B = f1.to_list()
+    f1A.append(None)
+    curr_value = f1A[0]
+    group_start = 0
+    for i in range(n + 1):
+        if f1A[i] != curr_value:
+            group = f1B[group_start:i]
+            assert group == sorted(group)
+            curr_value = f1A[i]
+            group_start = i
+    assert group_start == n
+    assert curr_value is None
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
-def test_groups_internal5_strs(seed):
+def test_groups4(seed):
     random.seed(seed)
     n = 1000
     src = ["%x" % random.getrandbits(8) for _ in range(n)]
-    f0 = dt.Frame({"A": src})
+    f0 = dt.Frame(A=src, B=range(n))
     f1 = f0[:, :, by("A")]
     frame_integrity_check(f1)
-    # gb = f1.internal.groupby
-    # assert gb
-    # grp_offsets = gb.group_offsets
-    # ssrc = sorted(src)
-    # assert f1.to_list() == [ssrc]
-    # x_prev = None
-    # for i in range(gb.ngroups):
-    #     s = set(ssrc[grp_offsets[i]:grp_offsets[i + 1]])
-    #     assert len(s) == 1
-    #     x = list(s)[0]
-    #     assert x != x_prev
-    #     x_prev = x
+    assert f1.shape == (n, 2)
+    assert f1.names == ("A", "B")
+    f1A, f1B = f1.to_list()
+    f1A.append(None)
+    curr_value = f1A[0]
+    group_start = 0
+    for i in range(n + 1):
+        if f1A[i] != curr_value:
+            group = f1B[group_start:i]
+            assert group == sorted(group)
+            curr_value = f1A[i]
+            group_start = i
+    assert group_start == n
+    assert curr_value is None
 
 
 
@@ -112,7 +107,38 @@ def test_groups_internal5_strs(seed):
 # Groupby on small datasets
 #-------------------------------------------------------------------------------
 
-def test_groups1():
+def test_group_empty_frame1():
+    DT = dt.Frame(A=[])
+    assert DT.shape == (0, 1)
+    D1 = DT[:, :, by(f.A)]
+    frame_integrity_check(D1)
+
+
+def test_group_empty_frame2():
+    DT = dt.Frame(A=[])
+    D1 = DT[:, count(), by(f.A)]
+    frame_integrity_check(D1)
+    assert D1.shape == (0, 2)
+    assert D1.stypes == (DT.stype, dt.int64)
+
+
+def test_group_empty_frame3():
+    DT = dt.Frame(A=[], stype=dt.float32)
+    D2 = DT[:, count(f.A), by(f.A)]
+    frame_integrity_check(D2)
+    assert D2.shape == (0, 2)
+    assert D2.stypes == (DT.stype, dt.int64)
+
+
+def test_group_empty_frame4():
+    DT = dt.Frame(A=[], stype=dt.float32)
+    D2 = DT[:, sum(f.A), by(f.A)]
+    frame_integrity_check(D2)
+    assert D2.shape == (0, 2)
+    assert D2.stypes == (dt.float32, dt.float32)
+
+
+def test_groups_small1():
     f0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
                    "B": [0, 1, 2, 3, 4, 5, 6, 7]})
     f1 = f0[:, mean(f.B), by(f.A)]
@@ -141,14 +167,14 @@ def test_groups_autoexpand():
                             [2, 7, 0, 5, 13]]
 
 
-@pytest.mark.skip(reason="Issue #1586")
+@pytest.mark.xfail(reason="Issue #1586")
 def test_groupby_with_filter1():
-    f0 = dt.Frame({"KEY": [1, 2, 1, 2, 1, 2], "X": [-10, 2, 3, 0, 1, -7]})
+    f0 = dt.Frame(KEY=[1, 2, 1, 2, 1, 2], X=[-10, 2, 3, 0, 1, -7])
     f1 = f0[f.X > 0, sum(f.X), f.KEY]
     assert f1.to_list() == [[1, 2], [4, 2]]
 
 
-@pytest.mark.skip(reason="Issue #1586")
+@pytest.mark.xfail(reason="Issue #1586")
 def test_groupby_with_filter2():
     # Check that rowindex works even when applied to a view
     n = 10000
@@ -304,6 +330,6 @@ def test_groupby_with_sort():
     R2 = DT[:, count(), by(f.A, f.B), sort(f.C)]
     R0 = dt.Frame(A=[1, 1, 2, 2, 3, 3],
                   B=[1, 2, 1, 2, 1, 2],
-                  C0=[2] * 6, stypes={"C0": dt.int32})
+                  C0=[2] * 6, stypes={"C0": dt.int64})
     assert_equals(R1, R0)
     assert_equals(R2, R0)

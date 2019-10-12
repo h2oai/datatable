@@ -28,6 +28,7 @@ class Groupby {
     const int32_t* offsets_r() const;
     size_t ngroups() const;
     size_t size() const noexcept;  // same as ngroups()
+    size_t last_offset() const noexcept;
     explicit operator bool() const;
     void get_group(size_t i, size_t* i0, size_t* i1) const;
 
