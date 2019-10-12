@@ -646,15 +646,26 @@ class Frame0:
                 self.data[i] = [col[j] for j in s]
 
     def delete_rows(self, s):
+        assert isinstance(s, slice) or isinstance(s, list)
         nrows = self.nrows
         del self.df[s, :]
         if isinstance(s, slice):
             s = list(range(nrows))[s]
-        if isinstance(s, list):
-            index = sorted(set(range(nrows)) - set(s))
-            for i in range(self.ncols):
-                col = self.data[i]
-                self.data[i] = [col[j] for j in index]
+        index = sorted(set(range(nrows)) - set(s))
+        for i in range(self.ncols):
+            col = self.data[i]
+            self.data[i] = [col[j] for j in index]
+
+    def delete_columns(self, s):
+        assert isinstance(s, slice) or isinstance(s, list)
+        ncols = self.ncols
+        del self.df[:, s]
+        if isinstance(s, slice):
+            s = list(range(ncols))[s]
+        index = sorted(set(range(ncols)) - set(s))
+        self.data = [self.data[i] for i in index]
+        self.names = [self.names[i] for i in index]
+        self.types = [self.types[i] for i in index]
 
     def slice_cols(self, s):
         self.df = self.df[:, s]
@@ -695,16 +706,6 @@ class Frame0:
         self.data = [[value for i, value in enumerate(column) if filter_col[i]]
                      for column in self.data]
         self.df = self.df[f[icol], :]
-
-    def delete_columns(self, s):
-        ncols = self.ncols
-        del self.df[:, s]
-        if isinstance(s, slice):
-            s = list(range(ncols))[s]
-        new_column_ids = sorted(set(range(ncols)) - set(s))
-        self.data = [self.data[i] for i in new_column_ids]
-        self.names = [self.names[i] for i in new_column_ids]
-        self.types = [self.types[i] for i in new_column_ids]
 
     def replace_nas_in_column(self, icol, replacement_value):
         assert 0 <= icol < self.ncols
