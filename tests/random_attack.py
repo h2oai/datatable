@@ -296,7 +296,6 @@ class Attacker:
         if frame.ncols < 2:
             return
         s = self.random_array(frame.ncols - 1, positive=True)
-        s = sorted(set(s))
         print("[14] Removing columns %r -> ncols = %d"
               % (s, frame.ncols - len(s)))
         if python_output:
