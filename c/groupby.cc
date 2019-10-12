@@ -47,6 +47,11 @@ size_t Groupby::size() const noexcept {
   return n;
 }
 
+size_t Groupby::last_offset() const noexcept {
+  auto offs = offsets_r();
+  return offs? static_cast<size_t>(offs[n]) : 0;
+}
+
 Groupby::operator bool() const {
   return n != 0;
 }
@@ -60,6 +65,7 @@ void Groupby::get_group(size_t i, size_t* i0, size_t* i1) const {
 
 RowIndex Groupby::ungroup_rowindex() {
   const int32_t* offs = offsets_r();
+  if (!offs) return RowIndex();
   int32_t nrows = offs[n];
   arr32_t indices(static_cast<size_t>(nrows));
   int32_t* data = indices.data();

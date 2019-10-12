@@ -310,10 +310,7 @@ Column expr_reduce1::evaluate(EvalContext& ctx)
 {
   auto input_col = arg->evaluate(ctx);
   Groupby gb = ctx.get_groupby();
-  if (!gb) gb = Groupby::single_group(input_col.nrows());
-
   size_t out_nrows = gb.ngroups();
-  if (!out_nrows) out_nrows = 1;  // only when input_col has 0 rows
 
   if (opcode == Op::FIRST) {
     return reduce_first(input_col, gb);
@@ -374,10 +371,10 @@ Column expr_reduce0::evaluate(EvalContext& ctx) {
       const Groupby& grpby = ctx.get_groupby();
       size_t ng = grpby.ngroups();
       const int32_t* offsets = grpby.offsets_r();
-      res = Column::new_data_column(ng, SType::INT32);
-      auto d_res = static_cast<int32_t*>(res.get_data_editable());
+      res = Column::new_data_column(ng, SType::INT64);
+      auto d_res = static_cast<int64_t*>(res.get_data_editable());
       for (size_t i = 0; i < ng; ++i) {
-        d_res[i] = offsets[i + 1] - offsets[i];
+        d_res[i] = static_cast<int64_t>(offsets[i + 1] - offsets[i]);
       }
     } else {
       res = Column::new_data_column(1, SType::INT64);
