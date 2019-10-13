@@ -352,7 +352,7 @@ def test_names_deduplication():
 
 # To pick up attacks based on the corresponding weights, random attacker
 # uses random.choices(), introduced in Python 3.6.
-@pytest.mark.usefixtures("py36")
+@pytest.mark.usefixtures("py36", "numpy")
 def test_random_attack():
     import subprocess
     cmd_run = "./tests/random_driver.py"

@@ -215,9 +215,7 @@ class Attacker:
               % (filter_column, frame.names[filter_column]))
         if python_output:
             python_output.write("DT = DT[f[%d], :]\n" % filter_column)
-            python_output.write("del DT[:, %d]\n" % filter_column)
         frame.filter_on_bool_column(filter_column)
-        frame.delete_column(filter_column)
 
     def replace_nas_in_column(self, frame):
         icol = random.randint(0, frame.ncols - 1)
@@ -292,6 +290,18 @@ class Attacker:
                                     "    DT.key = %r\n\n"
                                     % names)
 
+    def delete_columns_array(self, frame):
+        # datatable supports a shape of n x 0 for non-zero n's, while
+        # python doesn't, so we never remove all the columns from a Frame.
+        if frame.ncols < 2:
+            return
+        s = self.random_array(frame.ncols - 1, positive=True)
+        print("[14] Removing columns %r -> ncols = %d"
+              % (s, frame.ncols - len(s)))
+        if python_output:
+            python_output.write("del DT[:, %r]\n" % s)
+        frame.delete_columns(s)
+
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -336,6 +346,7 @@ class Attacker:
         cbind_numpy_column: 1,
         add_range_column: 1,
         set_key_columns: 1,
+        delete_columns_array: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -634,16 +645,26 @@ class Frame0:
                 self.data[i] = [col[j] for j in s]
 
     def delete_rows(self, s):
-        self.check_shape()
+        assert isinstance(s, slice) or isinstance(s, list)
         nrows = self.nrows
         del self.df[s, :]
         if isinstance(s, slice):
             s = list(range(nrows))[s]
-        if isinstance(s, list):
-            index = sorted(set(range(nrows)) - set(s))
-            for i in range(self.ncols):
-                col = self.data[i]
-                self.data[i] = [col[j] for j in index]
+        index = sorted(set(range(nrows)) - set(s))
+        for i in range(self.ncols):
+            col = self.data[i]
+            self.data[i] = [col[j] for j in index]
+
+    def delete_columns(self, s):
+        assert isinstance(s, slice) or isinstance(s, list)
+        ncols = self.ncols
+        del self.df[:, s]
+        if isinstance(s, slice):
+            s = list(range(ncols))[s]
+        index = sorted(set(range(ncols)) - set(s))
+        self.data = [self.data[i] for i in index]
+        self.names = [self.names[i] for i in index]
+        self.types = [self.types[i] for i in index]
 
     def slice_cols(self, s):
         self.df = self.df[:, s]
@@ -684,12 +705,6 @@ class Frame0:
         self.data = [[value for i, value in enumerate(column) if filter_col[i]]
                      for column in self.data]
         self.df = self.df[f[icol], :]
-
-    def delete_column(self, icol):
-        del self.data[icol]
-        del self.names[icol]
-        del self.types[icol]
-        del self.df[icol]
 
     def replace_nas_in_column(self, icol, replacement_value):
         assert 0 <= icol < self.ncols
@@ -824,6 +839,7 @@ if __name__ == "__main__":
                                str(args.seed) + ".py")
         python_output = open(outfile, "wt")
         python_output.write("#!/usr/bin/env python\n")
+        python_output.write("#seed: %s\n" % args.seed)
         python_output.write("import sys; sys.path = ['.', '..'] + sys.path\n")
         python_output.write("import datatable as dt\n")
         python_output.write("import numpy as np\n")
