@@ -85,6 +85,9 @@ Frame
   incorrectly when some columns in the frame contained NAs, while others
   did not (#2050).
 
+- |fix| Deleting columns from a keyed Frame no longer results in a crash
+  when the deleted columns are part of the key (#2083).
+
 - |fix| Groupby operation on an empty (0-rows) frame now works correctly,
   returning a 0-row result frame (#2078). For example:
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -236,6 +236,46 @@ def test_del_cols_from_view():
     assert_equals(d1, dt.Frame([[1, 3], [True, None]], names=["A", "C"]))
 
 
+def test_del_cols_from_keyed1():
+    DT = dt.Frame(A=[3], B=[14])
+    DT.key = "A"
+    del DT["A"]
+    frame_integrity_check(DT)
+    assert not DT.key
+    assert DT.names == ("B",)
+    assert DT.to_list() == [[14]]
+
+
+def test_del_cols_from_keyed2A():
+    DT = dt.Frame(A=[3], B=[14])
+    DT.key = ("A", "B")
+    del DT["A"]
+    frame_integrity_check(DT)
+    assert not DT.key
+    assert DT.names == ("B",)
+    assert DT.to_list() == [[14]]
+
+
+def test_del_cols_from_keyed2B():
+    DT = dt.Frame(A=[3], B=[14])
+    DT.key = ("A", "B")
+    del DT["B"]
+    frame_integrity_check(DT)
+    assert not DT.key
+    assert DT.names == ("A",)
+    assert DT.to_list() == [[3]]
+
+
+def test_del_cols_from_keyed3():
+    DT = dt.Frame(A=[3], B=[14], C=[15])
+    DT.key = ("A", "B")
+    del DT["C"]
+    frame_integrity_check(DT)
+    assert DT.key == ("A", "B")
+    assert DT.names == ("A", "B")
+    assert DT.to_list() == [[3], [14]]
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -347,6 +387,14 @@ def test_del_rows_from_view2():
     assert f1.to_list() == [[2]]
 
 
+def test_del_rows_from_keyed():
+    # Deleting rows from a keyed frame should be perfectly fine
+    DT = dt.Frame(A=range(5), B=list("ABCDE"))
+    DT.key = "A"
+    del DT[2, :]
+    assert DT.key == ("A",)
+    assert DT.to_list() == [[0, 1, 3, 4], ["A", "B", "D", "E"]]
+
 
 
 #-------------------------------------------------------------------------------
@@ -368,3 +416,19 @@ def test_del_rows_and_cols():
                                B=[None, 7.4178, None, .2999, None],
                                C=["what", "if not", None, None, "zaqve"],
                                stypes={"A": "int16"}))
+
+
+def test_del_rows_and_cols_keyed():
+    DT = dt.Frame([range(10),
+                   range(0, 20, 2),
+                   list("abcdefghij")], names=["A", "B", "C"])
+    DT.key = "A"
+    list0 = DT.to_list()
+    with pytest.raises(ValueError, match="Cannot delete values from key "
+                                         "columns in the Frame"):
+        del DT[:3, ["C", "A"]]
+    # Check that the Frame is not garbled by partial deletion
+    frame_integrity_check(DT)
+    assert DT.shape == (10, 3)
+    assert DT.names == ("A", "B", "C")
+    assert DT.to_list() == list0
