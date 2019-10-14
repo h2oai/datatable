@@ -157,17 +157,24 @@ class Widget {
     DataTable* dt_;
     std::vector<size_t> colindices_;
     std::vector<size_t> rowindices_;
+    bool render_row_indices_;
+    size_t : 56;
+
+  private:
+    explicit Widget(DataTable* dt) {
+      dt_ = dt;
+      ncols_ = dt->ncols();
+      nrows_ = dt->nrows();
+      nkeys_ = dt->nkeys();
+      render_row_indices_ = true;
+    }
 
   public:
     static struct SplitViewTag {} split_view_tag;
     static struct WindowedTag {} windowed_tag;
 
-    Widget(DataTable* dt, SplitViewTag) {
-      dt_ = dt;
-      ncols_ = dt->ncols();
-      nrows_ = dt->nrows();
-      nkeys_ = dt->nkeys();
-
+    Widget(DataTable* dt, SplitViewTag) : Widget(dt)
+    {
       startcol_ = NA_index;
       startrow_ = NA_index;
 
@@ -182,10 +189,8 @@ class Widget {
       rows1_ = (nrows_ > max_nrows) ? display_tail_nrows : 0;
     }
 
-    Widget(DataTable* dt, WindowedTag) {
-      dt_ = dt;
-      ncols_ = dt->ncols();
-      nrows_ = dt->nrows();
+    Widget(DataTable* dt, WindowedTag) : Widget(dt)
+    {
       startcol_ = 0;
       startrow_ = 0;
       cols0_ = 15;
@@ -260,6 +265,9 @@ class Widget {
 // HtmlWidget
 //------------------------------------------------------------------------------
 
+/**
+  * This class is responsible for rendering a Frame into HTML.
+  */
 class HtmlWidget : public Widget {
   private:
     std::ostringstream html;
@@ -269,7 +277,7 @@ class HtmlWidget : public Widget {
     explicit HtmlWidget(DataTable* dt)
       : Widget(dt, split_view_tag) {}
 
-    py::oobj to_pystring() {
+    py::oobj to_python() {
       render_all();
       const std::string htmlstr = html.str();
       return py::ostring(htmlstr);
@@ -281,56 +289,57 @@ class HtmlWidget : public Widget {
       _render_styles();
       html << "<div class='datatable'>\n";
       html << "  <table class='frame'>\n";
-      _render_table_header();
-      _render_table_body();
+      html << "  <thead>\n";
+      _render_column_names();
+      _render_column_types();
+      html << "  </thead>\n";
+      html << "  <tbody>\n";
+      _render_data_rows();
+      html << "  </tbody>\n";
       html << "  </table>\n";
       _render_table_footer();
       html << "</div>\n";
     }
 
-    void _render_table_header() {
-      html << "  <thead>\n";
-      _render_column_names();
-      _render_column_types();
-      html << "  </thead>\n";
-    }
-
     void _render_column_names() {
-      const std::vector<std::string>& colnames = dt_->get_names();
+      const strvec& colnames = dt_->get_names();
       html << "    <tr class='colnames'>";
-      html << "<td class='row_index'></td>";
+      if (render_row_indices_) {
+        html << "<td class='row_index'></td>";
+      }
       for (size_t j : colindices_) {
         if (j == NA_index) {
           html << "<th class='vellipsis'>&hellip;</th>";
-          continue;
+        } else {
+          html << "<th>";
+          _render_escaped_string(colnames[j].data(), colnames[j].size());
+          html << "</th>";
         }
-        html << "<th>";
-        _render_escaped_string(colnames[j].data(), colnames[j].size());
-        html << "</th>";
       }
       html << "</tr>\n";
     }
 
     void _render_column_types() {
       html << "    <tr class='coltypes'>";
-      html << "<td class='row_index'></td>";
+      if (render_row_indices_) {
+        html << "<td class='row_index'></td>";
+      }
       for (size_t j : colindices_) {
         if (j == NA_index) {
           html << "<td></td>";
-          continue;
+        } else {
+          auto stype_info = info(dt_->get_column(j).stype());
+          size_t elemsize = stype_info.elemsize();
+          html << "<td class='" << stype_info.ltype_name()
+               << "' title='" << stype_info.name() << "'>";
+          for (size_t k = 0; k < elemsize; ++k) html << "&#x25AA;";
+          html << "</td>";
         }
-        auto stype_info = info(dt_->get_column(j).stype());
-        size_t elemsize = stype_info.elemsize();
-        html << "<td class='" << stype_info.ltype_name()
-             << "' title='" << stype_info.name() << "'>";
-        for (size_t k = 0; k < elemsize; ++k) html << "&#x25AA;";
-        html << "</td>";
       }
       html << "</tr>\n";
     }
 
-    void _render_table_body() {
-      html << "  <tbody>\n";
+    void _render_data_rows() {
       for (size_t i : rowindices_) {
         if (i == NA_index) {
           _render_ellipsis_row();
@@ -338,12 +347,13 @@ class HtmlWidget : public Widget {
           _render_data_row(i);
         }
       }
-      html << "  </tbody>\n";
     }
 
     void _render_ellipsis_row() {
       html << "    <tr>";
-      html << "<td class='row_index'>&#x22EE;</td>";
+      if (render_row_indices_) {
+        html << "<td class='row_index'>&#x22EE;</td>";
+      }
       for (size_t j : colindices_) {
         if (j == NA_index) {
           html << "<td class='hellipsis'>&#x22F1;</td>";
@@ -356,9 +366,11 @@ class HtmlWidget : public Widget {
 
     void _render_data_row(size_t i) {
       html << "    <tr>";
-      html << "<td class='row_index'>";
-      _render_comma_separated(i);
-      html << "</td>";
+      if (render_row_indices_) {
+        html << "<td class='row_index'>";
+        _render_comma_separated(i);
+        html << "</td>";
+      }
       for (size_t j : colindices_) {
         if (j == NA_index) {
           html << "<td class=vellipsis>&hellip;</td>";
@@ -387,20 +399,16 @@ class HtmlWidget : public Widget {
 
 
     void _render_table_footer() {
-      html << "  <div class='footer'>\n";
-      _render_frame_dimensions();
-      html << "  </div>\n";
-    }
-
-    void _render_frame_dimensions() {
       size_t nrows = dt_->nrows();
       size_t ncols = dt_->ncols();
+      html << "  <div class='footer'>\n";
       html << "    <div class='frame_dimensions'>";
       _render_comma_separated(nrows);
       html << " row" << (nrows == 1? "" : "s") << " &times; ";
       _render_comma_separated(ncols);
       html << " column" << (ncols == 1? "" : "s");
       html << "</div>\n";
+      html << "  </div>\n";
     }
 
 
@@ -593,7 +601,7 @@ static PKArgs args__repr_html_(
 
 oobj Frame::_repr_html_(const PKArgs&) {
   HtmlWidget widget(dt);
-  return widget.to_pystring();
+  return widget.to_python();
 }
 
 
