@@ -239,6 +239,7 @@ static void initialize_options(const py::PKArgs& args) {
   dt::thread_pool::init_options();
   dt::progress::init_options();
   py::Frame::init_names_options();
+  py::Frame::init_display_options();
   GenericReader::init_options();
   sort_init_options();
 }

@@ -132,6 +132,7 @@ class Frame : public XObject<Frame> {
 
     // Called once during module start-up
     static void init_names_options();
+    static void init_display_options();
 
   private:
     static bool internal_construction;

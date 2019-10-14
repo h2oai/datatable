@@ -23,7 +23,72 @@
 #include <sstream>
 #include "frame/py_frame.h"
 #include "python/string.h"
+#include "options.h"
 #include "types.h"
+
+
+//------------------------------------------------------------------------------
+// Display options
+//------------------------------------------------------------------------------
+
+static constexpr size_t NA_size_t = size_t(-1);
+static size_t display_max_nrows = 50;
+static size_t display_head_nrows = 20;
+static size_t display_tail_nrows = 10;
+
+void py::Frame::init_display_options()
+{
+  dt::register_option(
+    "display.max_nrows",
+    []{
+      return (display_max_nrows == NA_size_t)? py::None()
+                                             : py::oint(display_max_nrows);
+    },
+    [](const py::Arg& value) {
+      if (value.is_none()) {
+        display_max_nrows = NA_size_t;
+      } else {
+        int64_t n = value.to_int64_strict();
+        display_max_nrows = (n < 0)? NA_size_t : static_cast<size_t>(n);
+      }
+    },
+    "A frame with more rows than this will be displayed truncated\n"
+    "when the frame is printed to the console: only its first `head_nrows`\n"
+    "and last `tail_nrows` rows will be printed. It is recommended to have\n"
+    "`head_nrows + tail_nrows <= max_nrows`.\n"
+    "Setting this option to None (or a negative value) will cause all\n"
+    "rows in a frame to be printed, which may cause the console to become\n"
+    "unresponsive.\n"
+  );
+
+  dt::register_option(
+    "display.head_nrows",
+    []{
+      return py::oint(display_head_nrows);
+    },
+    [](const py::Arg& value) {
+      display_head_nrows = value.to_size_t();
+    },
+    "The number of rows from the top of a frame to be displayed when\n"
+    "the frame's output is truncated due to the total number of frame's\n"
+    "rows exceeding `max_nrows` value.\n"
+  );
+
+  dt::register_option(
+    "display.tail_nrows",
+    []{
+      return py::oint(display_tail_nrows);
+    },
+    [](const py::Arg& value) {
+      display_tail_nrows = value.to_size_t();
+    },
+    "The number of rows from the bottom of a frame to be displayed when\n"
+    "the frame's output is truncated due to the total number of frame's\n"
+    "rows exceeding `max_nrows` value.\n"
+  );
+}
+
+
 
 static const char* imgx =
     "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAA4CAYAAADuMJi0AAA"
@@ -75,26 +140,134 @@ static bool in_jupyter() {
 
 
 
-class HtmlWidget {
+//------------------------------------------------------------------------------
+// Abstract class Widget
+//------------------------------------------------------------------------------
+static constexpr size_t NA_index = size_t(-1);
+
+
+class Widget {
+  private:
+    size_t ncols_, nrows_, nkeys_;
+    size_t startcol_, startrow_;
+    size_t cols0_, cols1_;
+    size_t rows0_, rows1_;
+
+  protected:
+    DataTable* dt_;
+    std::vector<size_t> colindices_;
+    std::vector<size_t> rowindices_;
+
+  public:
+    static struct SplitViewTag {} split_view_tag;
+    static struct WindowedTag {} windowed_tag;
+
+    Widget(DataTable* dt, SplitViewTag) {
+      dt_ = dt;
+      ncols_ = dt->ncols();
+      nrows_ = dt->nrows();
+      nkeys_ = dt->nkeys();
+
+      startcol_ = NA_index;
+      startrow_ = NA_index;
+
+      constexpr size_t maxcols = 15;
+      cols0_ = (ncols_ <= maxcols) ? ncols_ : maxcols * 2 / 3;
+      cols1_ = (ncols_ <= maxcols) ? 0 : maxcols - cols0_;
+      cols0_ = std::max(cols0_, dt->nkeys());
+
+      size_t max_nrows = std::max(display_max_nrows,
+                                  display_head_nrows + display_tail_nrows);
+      rows0_ = (nrows_ > max_nrows) ? display_head_nrows : nrows_;
+      rows1_ = (nrows_ > max_nrows) ? display_tail_nrows : 0;
+    }
+
+    Widget(DataTable* dt, WindowedTag) {
+      dt_ = dt;
+      ncols_ = dt->ncols();
+      nrows_ = dt->nrows();
+      startcol_ = 0;
+      startrow_ = 0;
+      cols0_ = 15;
+      rows0_ = 30;
+    }
+
+    virtual ~Widget() = default;
+
+    void render_all() {
+      _generate_column_indices();
+      _generate_row_indices();
+      _render();
+    }
+
+  protected:
+    virtual void _render() = 0;
+
+
+  private:
+    // Populate array `colindices_` with indices of the columns that shall be
+    // rendered. The array may also contain `NA_index`, which indicates an
+    // "ellipsis" column.
+    void _generate_column_indices() {
+      colindices_.clear();
+      if (startcol_ == NA_index) {
+        colindices_.reserve(cols0_ + cols1_ + 1);
+        for (size_t i = 0; i < ncols_; ++i) {
+          if (i == cols0_) {
+            colindices_.push_back(NA_index);
+            i = ncols_ - cols1_;
+          }
+          colindices_.push_back(i);
+        }
+      } else {
+        colindices_.reserve(nkeys_ + cols0_);
+        for (size_t i = 0; i < nkeys_; ++i) {
+          colindices_.push_back(i);
+        }
+        for (size_t i = 0; i < cols0_; ++i) {
+          colindices_.push_back(i + startcol_);
+        }
+      }
+    }
+
+    // Populate array `rowindices_` with indices of the rows that shall be
+    // rendered. The array may also contain `NA_index`, which indicates an
+    // "ellipsis" row.
+    void _generate_row_indices() {
+      rowindices_.clear();
+      if (startrow_ == NA_index) {
+        rowindices_.reserve(rows0_ + rows1_ + 1);
+        for (size_t i = 0; i < nrows_; ++i) {
+          if (i == rows0_) {
+            rowindices_.push_back(NA_index);
+            i = nrows_ - rows1_;
+          }
+          rowindices_.push_back(i);
+        }
+      } else {
+        rowindices_.reserve(rows0_);
+        for (size_t i = 0; i < rows0_; ++i) {
+          rowindices_.push_back(i + startrow_);
+        }
+      }
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// HtmlWidget
+//------------------------------------------------------------------------------
+
+class HtmlWidget : public Widget {
   private:
     std::ostringstream html;
-    DataTable* dt;
-    size_t ncols, cols0, cols1;
-    size_t nrows, rows0, rows1;
     static bool styles_emitted;
 
   public:
-    explicit HtmlWidget(DataTable* dt_) {
-      const size_t maxcols = 15;  // TODO: make configurable
-      const size_t maxrows = 15;
-      dt = dt_;
-      ncols = dt->ncols();
-      nrows = dt->nrows();
-      cols0 = ncols <= maxcols ? ncols : maxcols * 2 / 3;
-      cols1 = ncols <= maxcols ? 0 : maxcols - cols0;
-      rows0 = nrows <= maxrows ? nrows : maxrows * 2 / 3;
-      rows1 = nrows <= maxrows ? 0 : maxrows - rows0;
-    }
+    explicit HtmlWidget(DataTable* dt)
+      : Widget(dt, split_view_tag) {}
 
     py::oobj to_pystring() {
       render_all();
@@ -103,107 +276,107 @@ class HtmlWidget {
     }
 
 
-  private:
-    void render_all() {
-      render_styles();
+  protected:
+    void _render() override {
+      _render_styles();
       html << "<div class='datatable'>\n";
       html << "  <table class='frame'>\n";
-      render_table_header();
-      render_table_body();
+      _render_table_header();
+      _render_table_body();
       html << "  </table>\n";
-      render_table_footer();
+      _render_table_footer();
       html << "</div>\n";
     }
 
-    void render_table_header() {
+    void _render_table_header() {
       html << "  <thead>\n";
-      render_column_names();
-      render_column_types();
+      _render_column_names();
+      _render_column_types();
       html << "  </thead>\n";
     }
 
-    void render_column_names() {
-      const std::vector<std::string>& colnames = dt->get_names();
+    void _render_column_names() {
+      const std::vector<std::string>& colnames = dt_->get_names();
       html << "    <tr class='colnames'>";
       html << "<td class='row_index'></td>";
-      for (size_t j = 0; j < ncols; ++j) {
-        if (j == cols0) {
-          j = ncols - cols1;
+      for (size_t j : colindices_) {
+        if (j == NA_index) {
           html << "<th class='vellipsis'>&hellip;</th>";
+          continue;
         }
         html << "<th>";
-        render_escaped_string(colnames[j].data(), colnames[j].size());
+        _render_escaped_string(colnames[j].data(), colnames[j].size());
         html << "</th>";
       }
       html << "</tr>\n";
     }
 
-    void render_column_types() {
+    void _render_column_types() {
       html << "    <tr class='coltypes'>";
       html << "<td class='row_index'></td>";
-      for (size_t j = 0; j < ncols; ++j) {
-        if (j == cols0) {
-          j = ncols - cols1;
+      for (size_t j : colindices_) {
+        if (j == NA_index) {
           html << "<td></td>";
+          continue;
         }
-        SType stype = dt->get_column(j).stype();
-        size_t elemsize = info(stype).elemsize();
-        html << "<td class='" << info(stype).ltype_name()
-             << "' title='" << info(stype).name() << "'>";
+        auto stype_info = info(dt_->get_column(j).stype());
+        size_t elemsize = stype_info.elemsize();
+        html << "<td class='" << stype_info.ltype_name()
+             << "' title='" << stype_info.name() << "'>";
         for (size_t k = 0; k < elemsize; ++k) html << "&#x25AA;";
         html << "</td>";
       }
       html << "</tr>\n";
     }
 
-    void render_table_body() {
+    void _render_table_body() {
       html << "  <tbody>\n";
-      for (size_t i = 0; i < nrows; ++i) {
-        if (i == rows0) {
-          i = nrows - rows1;
-          render_ellipsis_row();
+      for (size_t i : rowindices_) {
+        if (i == NA_index) {
+          _render_ellipsis_row();
+        } else {
+          _render_data_row(i);
         }
-        render_data_row(i);
       }
       html << "  </tbody>\n";
     }
 
-    void render_ellipsis_row() {
+    void _render_ellipsis_row() {
       html << "    <tr>";
       html << "<td class='row_index'>&#x22EE;</td>";
-      for (size_t j = 0; j < ncols; ++j) {
-        if (j == cols0) {
-          j = ncols - cols1;
+      for (size_t j : colindices_) {
+        if (j == NA_index) {
           html << "<td class='hellipsis'>&#x22F1;</td>";
+        } else {
+          html << "<td class='hellipsis'>&#x22EE;</td>";
         }
-        html << "<td class='hellipsis'>&#x22EE;</td>";
       }
       html << "</tr>\n";
     }
 
-    void render_data_row(size_t i) {
+    void _render_data_row(size_t i) {
       html << "    <tr>";
       html << "<td class='row_index'>";
-      render_comma_separated(i);
+      _render_comma_separated(i);
       html << "</td>";
-      for (size_t j = 0; j < ncols; ++j) {
-        if (j == cols0) {
-          j = ncols - cols1;
+      for (size_t j : colindices_) {
+        if (j == NA_index) {
           html << "<td class=vellipsis>&hellip;</td>";
+          continue;
         }
         html << "<td>";
-        const Column& col = dt->get_column(j);
+        const Column& col = dt_->get_column(j);
         switch (col.stype()) {
           case SType::BOOL:
-          case SType::INT8:    render_fw_value<int8_t>(col, i); break;
-          case SType::INT16:   render_fw_value<int16_t>(col, i); break;
-          case SType::INT32:   render_fw_value<int32_t>(col, i); break;
-          case SType::INT64:   render_fw_value<int64_t>(col, i); break;
-          case SType::FLOAT32: render_fw_value<float>(col, i); break;
-          case SType::FLOAT64: render_fw_value<double>(col, i); break;
+          case SType::INT8:    _render_fw_value<int8_t>(col, i); break;
+          case SType::INT16:   _render_fw_value<int16_t>(col, i); break;
+          case SType::INT32:   _render_fw_value<int32_t>(col, i); break;
+          case SType::INT64:   _render_fw_value<int64_t>(col, i); break;
+          case SType::FLOAT32: _render_fw_value<float>(col, i); break;
+          case SType::FLOAT64: _render_fw_value<double>(col, i); break;
           case SType::STR32:
-          case SType::STR64:   render_str_value(col, i); break;
-          case SType::OBJ:     render_obj_value(col, i); break;
+          case SType::STR64:   _render_str_value(col, i); break;
+          case SType::OBJ:     _render_obj_value(col, i); break;
           default:
             html << "(unknown stype)";
         }
@@ -213,23 +386,25 @@ class HtmlWidget {
     }
 
 
-    void render_table_footer() {
+    void _render_table_footer() {
       html << "  <div class='footer'>\n";
-      render_frame_dimensions();
+      _render_frame_dimensions();
       html << "  </div>\n";
     }
 
-    void render_frame_dimensions() {
+    void _render_frame_dimensions() {
+      size_t nrows = dt_->nrows();
+      size_t ncols = dt_->ncols();
       html << "    <div class='frame_dimensions'>";
-      render_comma_separated(nrows);
+      _render_comma_separated(nrows);
       html << " row" << (nrows == 1? "" : "s") << " &times; ";
-      render_comma_separated(ncols);
+      _render_comma_separated(ncols);
       html << " column" << (ncols == 1? "" : "s");
       html << "</div>\n";
     }
 
 
-    void render_escaped_string(const char* ch, size_t len) {
+    void _render_escaped_string(const char* ch, size_t len) {
       size_t maxi = std::min(len, size_t(50));
       uint8_t uc;
       for (size_t i = 0; i < maxi; ++i) {
@@ -253,7 +428,7 @@ class HtmlWidget {
     }
 
     template <typename T>
-    void render_fw_value(const Column& col, size_t row) {
+    void _render_fw_value(const Column& col, size_t row) {
       T val;
       bool isvalid = col.get_element(row, &val);
       if (isvalid) {
@@ -264,38 +439,38 @@ class HtmlWidget {
         html << +val; // "+" ensures that `int8_t` vals are rendered as numbers
 
       } else {
-        render_na();
+        _render_na();
       }
     }
 
-    void render_str_value(const Column& col, size_t row) {
+    void _render_str_value(const Column& col, size_t row) {
       CString val;
       bool isvalid = col.get_element(row, &val);
       if (isvalid) {
-        render_escaped_string(val.ch, static_cast<size_t>(val.size));
+        _render_escaped_string(val.ch, static_cast<size_t>(val.size));
       } else {
-        render_na();
+        _render_na();
       }
     }
 
-    void render_obj_value(const Column& col, size_t row) {
+    void _render_obj_value(const Column& col, size_t row) {
       py::robj val;
       bool isvalid = col.get_element(row, &val);
       if (isvalid) {
         // Should we use repr() here instead?
         py::ostring strval = val.to_pystring_force();
         CString cstr = strval.to_cstring();
-        render_escaped_string(cstr.ch, static_cast<size_t>(cstr.size));
+        _render_escaped_string(cstr.ch, static_cast<size_t>(cstr.size));
       } else {
-        render_na();
+        _render_na();
       }
     }
 
-    void render_na() {
+    void _render_na() {
       html << "<span class=na>NA</span>";
     }
 
-    void render_styles() {
+    void _render_styles() {
       if (styles_emitted) return;
       std::time_t now = std::time(nullptr);
       std::tm* t = std::localtime(&now);
@@ -358,7 +533,7 @@ class HtmlWidget {
       styles_emitted = true;
     }
 
-    void render_comma_separated(size_t n) {
+    void _render_comma_separated(size_t n) {
       // It is customary not to display commas in 4-digit numbers
       if (n < 10000) {
         html << n;
