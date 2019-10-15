@@ -15,7 +15,7 @@ import random
 import textwrap
 import time
 import warnings
-from datatable import f
+from datatable import f, join
 from datatable.internal import frame_integrity_check
 from datatable.utils.terminal import term
 from datatable.utils.misc import plural_form as plural
@@ -303,6 +303,19 @@ class Attacker:
         frame.delete_columns(s)
 
 
+    def join_self(self, frame):
+        if frame.ncols > 1000:
+            return self.slice_cols(frame)
+        if frame.nkeys == 0:
+            return
+
+        print("[15] Joining frame with itself -> ncols = %d"
+              % (2 * frame.ncols - frame.nkeys))
+        if python_output:
+            python_output.write("DT = DT[:, :, join(DT)]\n")
+        frame.join_self()
+
+
     #---------------------------------------------------------------------------
     # Helpers
     #---------------------------------------------------------------------------
@@ -347,6 +360,7 @@ class Attacker:
         add_range_column: 1,
         set_key_columns: 1,
         delete_columns_array: 1,
+        join_self: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -397,6 +411,7 @@ class Frame0:
         self.data = data
         self.names = names
         self.types = types
+        self.nkeys = 0
         self.np_data = []
         self.np_data_deepcopy = []
         self.df = dt.Frame(data, names=names, stypes=types)
@@ -538,6 +553,7 @@ class Frame0:
         frame_integrity_check(self.df)
         self.check_shape()
         self.check_types()
+        self.check_keys()
         if self.df.names != tuple(self.names):
             print("ERROR: df.names=%r ≠\n"
                   "       py.names=%r" % (self.df.names, tuple(self.names)))
@@ -555,6 +571,15 @@ class Frame0:
         py_ncols = len(self.data)
         if df_ncols != py_ncols:
             print("ERROR: df.ncols=%r != py.ncols=%r" % (df_ncols, py_ncols))
+            sys.exit(1)
+
+    def check_keys(self):
+        dt_nkeys = len(self.df.key)
+        py_nkeys = self.nkeys
+        if dt_nkeys != py_nkeys:
+            print("ERROR: number of key columns doesn't match")
+            print("  dt keys: %r" % dt_nkeys)
+            print("  py keys: %r" % py_nkeys)
             sys.exit(1)
 
     def check_types(self):
@@ -617,7 +642,7 @@ class Frame0:
 
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
-        if len(self.df.key) and nrows > curr_nrows:
+        if self.nkeys and nrows > curr_nrows:
             with pytest.raises(ValueError, match="Cannot increase the number "
                                "of rows in a keyed frame"):
                 self.df.nrows = nrows
@@ -643,6 +668,7 @@ class Frame0:
             for i in range(self.ncols):
                 col = self.data[i]
                 self.data[i] = [col[j] for j in s]
+        self.nkeys = 0
 
     def delete_rows(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
@@ -661,16 +687,20 @@ class Frame0:
         del self.df[:, s]
         if isinstance(s, slice):
             s = list(range(ncols))[s]
-        index = sorted(set(range(ncols)) - set(s))
-        self.data = [self.data[i] for i in index]
-        self.names = [self.names[i] for i in index]
-        self.types = [self.types[i] for i in index]
+        new_column_order = sorted(set(range(ncols)) - set(s))
+        self.data = [self.data[i] for i in new_column_order]
+        self.names = [self.names[i] for i in new_column_order]
+        self.types = [self.types[i] for i in new_column_order]
+
+        if (min(s) < self.nkeys):
+            self.nkeys = 0
 
     def slice_cols(self, s):
         self.df = self.df[:, s]
         self.data = self.data[s]
         self.names = self.names[s]
         self.types = self.types[s]
+        self.nkeys = 0
 
     def cbind(self, frames):
         with warnings.catch_warnings():
@@ -705,6 +735,7 @@ class Frame0:
         self.data = [[value for i, value in enumerate(column) if filter_col[i]]
                      for column in self.data]
         self.df = self.df[f[icol], :]
+        self.nkeys = 0
 
     def replace_nas_in_column(self, icol, replacement_value):
         assert 0 <= icol < self.ncols
@@ -781,14 +812,29 @@ class Frame0:
 
         self.types = [self.types[i] for i in new_column_order]
         self.names = [self.names[i] for i in new_column_order]
+        self.nkeys = len(keys)
 
         if self.nrows:
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
             self.data = list(map(list, zip(*data)))
             self.data = [self.data[i] for i in new_column_order]
-
         return True
+
+    def join_self(self):
+        ncols = self.ncols
+        self.df = self.df[:, :, join(self.df)]
+
+        s = slice(self.nkeys, ncols)
+        join_data = copy.deepcopy(self.data[s])
+        join_types = self.types[s].copy()
+        join_names = self.names[s].copy()
+
+        self.data += join_data
+        self.types += join_types
+        self.names += join_names
+        self.nkeys = 0
+        self.dedup_names()
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -844,7 +890,7 @@ if __name__ == "__main__":
         python_output.write("import datatable as dt\n")
         python_output.write("import numpy as np\n")
         python_output.write("import pytest\n")
-        python_output.write("from datatable import f\n")
+        python_output.write("from datatable import f, join\n")
         python_output.write("from datatable.internal import frame_integrity_check\n\n")
 
     try:
