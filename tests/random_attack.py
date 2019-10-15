@@ -308,14 +308,17 @@ class Attacker:
     def join_self(self, frame):
         if frame.ncols > 1000:
             return self.slice_cols(frame)
-        if frame.nkeys == 0:
-            return
 
+        res = frame.join_self()
         print("[15] Joining frame with itself -> ncols = %d"
-              % (2 * frame.ncols - frame.nkeys))
+              % (2 * frame.ncols - frame.nkeys if res else frame.ncols))
         if python_output:
-            python_output.write("DT = DT[:, :, join(DT)]\n")
-        frame.join_self()
+            if res:
+                python_output.write("DT = DT[:, :, join(DT)]\n")
+            else:
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='The join frame is not keyed'):\n"
+                                    "    DT = DT[:, :, join(DT)]\n\n")
 
 
     #---------------------------------------------------------------------------
@@ -829,7 +832,12 @@ class Frame0:
 
     def join_self(self):
         ncols = self.ncols
-        self.df = self.df[:, :, join(self.df)]
+        if self.nkeys:
+            self.df = self.df[:, :, join(self.df)]
+        else:
+            with pytest.raises(ValueError, match="The join frame is not keyed"):
+                self.df = self.df[:, :, join(self.df)]
+            return False
 
         s = slice(self.nkeys, ncols)
         join_data = copy.deepcopy(self.data[s])
@@ -841,6 +849,7 @@ class Frame0:
         self.names += join_names
         self.nkeys = 0
         self.dedup_names()
+        return True
 
     #---------------------------------------------------------------------------
     # Helpers
