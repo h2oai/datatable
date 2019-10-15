@@ -27,6 +27,16 @@ namespace dt {
 using std::size_t;
 
 
+/**
+  * Class that controls adorned output to a terminal. This class
+  * supports setting basic text attributes (such as bold/italic),
+  * and printing in different colors.
+  *
+  * In addition, this class has setting to fall back to regular
+  * (non-colored) output if the terminal does not support it.
+  *
+  * This is a replacement for "terminal.py"
+  */
 class Terminal {
   using string = std::string;
   private:
@@ -41,23 +51,28 @@ class Terminal {
   public:
     static Terminal& get_instance();
 
-    string blue    (const string&) const;
-    string blueB   (const string&) const;
-    string bold    (const string&) const;
-    string cyan    (const string&) const;
-    string cyanB   (const string&) const;
-    string dim     (const string&) const;
-    string green   (const string&) const;
-    string greenB  (const string&) const;
-    string grey    (const string&) const;
-    string magenta (const string&) const;
-    string magentaB(const string&) const;
-    string red     (const string&) const;
-    string redB    (const string&) const;
-    string white   (const string&) const;
-    string whiteB  (const string&) const;
-    string yellow  (const string&) const;
-    string yellowB (const string&) const;
+    string bold     (const string&) const;
+    string dim      (const string&) const;
+    string italic   (const string&) const;
+    string underline(const string&) const;
+    string invert   (const string&) const;
+
+    string blue     (const string&) const;
+    string blueB    (const string&) const;
+    string cyan     (const string&) const;
+    string cyanB    (const string&) const;
+    string cyanD    (const string&) const;
+    string green    (const string&) const;
+    string greenB   (const string&) const;
+    string grey     (const string&) const;
+    string magenta  (const string&) const;
+    string magentaB (const string&) const;
+    string red      (const string&) const;
+    string redB     (const string&) const;
+    string white    (const string&) const;
+    string whiteB   (const string&) const;
+    string yellow   (const string&) const;
+    string yellowB  (const string&) const;
 
     inline bool is_jupyter() const { return is_jupyter_; }
     inline bool is_ipython() const { return is_ipython_; }

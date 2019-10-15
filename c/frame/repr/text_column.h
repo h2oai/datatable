@@ -35,10 +35,6 @@ using sstrvec = std::vector<sstring>;
 
 static constexpr size_t NA_index = size_t(-1);
 
-enum Align : int { LEFT, RIGHT, DOT };
-
-
-
 
 
 class TextColumn {
@@ -46,10 +42,10 @@ class TextColumn {
     sstrvec data_;
     sstring name_;
     size_t  width_;
-    Align   alignment_;
+    bool    align_right_;
     bool    margin_left_;
     bool    margin_right_;
-    int : 16;
+    size_t : 40;
 
     static const Terminal& term;
 
@@ -68,6 +64,14 @@ class TextColumn {
     void _print_aligned_value(ostringstream&, const sstring& value) const;
     void _print_whitespace(ostringstream&, size_t n) const;
     void _align_at_dot();
+
+    sstring _render_value(const Column&, size_t i) const;
+    template <typename T>
+    sstring _render_value_float(const Column& col, size_t i) const;
+    template <typename T>
+    sstring _render_value_int(const Column& col, size_t i) const;
+    sstring _render_value_bool(const Column&, size_t i) const;
+    sstring _render_value_string(const Column&, size_t i) const;
 };
 
 

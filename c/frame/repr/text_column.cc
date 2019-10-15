@@ -36,10 +36,9 @@ TextColumn::TextColumn(const std::string& name, const Column& col,
 {
   width_ = std::max(name_.size(), size_t(2));
   LType ltype = col.ltype();
-  alignment_ = (ltype == LType::BOOL)? Align::RIGHT :
-               (ltype == LType::INT) ? Align::RIGHT :
-               (ltype == LType::REAL)? Align::DOT :
-                                       Align::LEFT;
+  align_right_ = (ltype == LType::BOOL) ||
+                 (ltype == LType::INT) ||
+                 (ltype == LType::REAL);
   margin_left_ = true;
   margin_right_ = true;
   _render_all_data(col, indices);
@@ -75,24 +74,14 @@ void TextColumn::print_value(ostringstream& out, size_t i) const {
 void TextColumn::_print_aligned_value(ostringstream& out,
                                       const sstring& value) const
 {
-  const auto& value_str = value.str();
   if (margin_left_) out << ' ';
-  if (alignment_ == Align::LEFT) {
-    out << value_str;
+  if (align_right_) {
     _print_whitespace(out, width_ - value.size());
+    out << value.str();
   }
-  if (alignment_ == Align::RIGHT) {
+  else {
+    out << value.str();
     _print_whitespace(out, width_ - value.size());
-    out << value_str;
-  }
-  if (alignment_ == Align::DOT) {
-    _print_whitespace(out, width_ - value.size());
-    out << value_str;
-    // size_t i = 0;
-    // for (; i < value_str.size() && value_str[i] != '.'; ++i) {}
-    // _print_whitespace(out, width_left_ - i);
-    // out << value_str;
-    // _print_whitespace(out, width_ - value.size() - width_left_ + i);
   }
   if (margin_right_) out << ' ';
 }
@@ -109,7 +98,7 @@ void TextColumn::_print_whitespace(ostringstream& out, size_t n) const {
 // Data rendering
 //------------------------------------------------------------------------------
 
-static sstring _render_value_bool(const Column& col, size_t i) {
+sstring TextColumn::_render_value_bool(const Column& col, size_t i) const {
   int8_t value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return sstring();
@@ -118,7 +107,7 @@ static sstring _render_value_bool(const Column& col, size_t i) {
 }
 
 template <typename T>
-static sstring _render_value_int(const Column& col, size_t i) {
+sstring TextColumn::_render_value_int(const Column& col, size_t i) const {
   T value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return sstring();
@@ -126,7 +115,7 @@ static sstring _render_value_int(const Column& col, size_t i) {
 }
 
 template <typename T>
-static sstring _render_value_float(const Column& col, size_t i) {
+sstring TextColumn::_render_value_float(const Column& col, size_t i) const {
   T value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return sstring();
@@ -135,15 +124,15 @@ static sstring _render_value_float(const Column& col, size_t i) {
   return sstring(out.str());
 }
 
-static sstring _render_value_string(const Column& col, size_t i) {
+sstring TextColumn::_render_value_string(const Column& col, size_t i) const {
   CString value;
   bool isvalid = col.get_element(i, &value);
-  if (!isvalid) return sstring("NA", 2);
+  if (!isvalid) return sstring(term.dim("NA"), 2);
   return sstring(std::string(value.ch, static_cast<size_t>(value.size)));
 }
 
 
-static sstring _render_value(const Column& col, size_t i) {
+sstring TextColumn::_render_value(const Column& col, size_t i) const {
   switch (col.stype()) {
     case SType::BOOL:    return _render_value_bool(col, i);
     case SType::INT8:    return _render_value_int<int8_t>(col, i);

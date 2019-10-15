@@ -48,16 +48,42 @@ Terminal::~Terminal() = default;
 
 
 
+//------------------------------------------------------------------------------
+// Text formatting
+//------------------------------------------------------------------------------
+
+std::string Terminal::bold(const std::string& s) const {
+  return enable_colors_? "\x1B[1m" + s + "\x1B[m" : s;
+}
+
+std::string Terminal::dim(const std::string& s) const {
+  return enable_colors_? "\x1B[2m" + s + "\x1B[m" : s;
+}
+
+std::string Terminal::italic(const std::string& s) const {
+  return enable_colors_? "\x1B[3m" + s + "\x1B[m" : s;
+}
+
+std::string Terminal::underline(const std::string& s) const {
+  return enable_colors_? "\x1B[4m" + s + "\x1B[m" : s;
+}
+
+std::string Terminal::invert(const std::string& s) const {
+  return enable_colors_? "\x1B[7m" + s + "\x1B[m" : s;
+}
+
+
+
+//------------------------------------------------------------------------------
+// Colors
+//------------------------------------------------------------------------------
+
 std::string Terminal::blue(const std::string& s) const {
   return enable_colors_? "\x1B[34m" + s + "\x1B[m" : s;
 }
 
 std::string Terminal::blueB(const std::string& s) const {
   return enable_colors_? "\x1B[94m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::bold(const std::string& s) const {
-  return enable_colors_? "\x1B[1m" + s + "\x1B[m" : s;
 }
 
 std::string Terminal::cyan(const std::string& s) const {
@@ -68,8 +94,8 @@ std::string Terminal::cyanB(const std::string& s) const {
   return enable_colors_? "\x1B[96m" + s + "\x1B[m" : s;
 }
 
-std::string Terminal::dim(const std::string& s) const {
-  return enable_colors_? "\x1B[2m" + s + "\x1B[m" : s;
+std::string Terminal::cyanD(const std::string& s) const {
+  return enable_colors_? "\x1B[2;96m" + s + "\x1B[m" : s;
 }
 
 std::string Terminal::green(const std::string& s) const {
