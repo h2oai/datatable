@@ -19,50 +19,50 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iostream>
 #include <string>
-#include <vector>
-#include "column.h"
+#ifndef dt_FRAME_REPR_SSTRING_h
+#define dt_FRAME_REPR_SSTRING_h
 namespace dt {
 using std::size_t;
-using std::string;
-using std::ostringstream;
-using intvec = std::vector<size_t>;
-
-enum Align : int { LEFT, RIGHT, DOT };
-
-static constexpr size_t NA_index = size_t(-1);
 
 
-class TextColumn {
+/**
+  * This class represents a string whose display size in terminal
+  * is different from the string's byte-size. The difference could
+  * be due to:
+  *
+  *   - string containing unicode characters which are encoded as
+  *     multi-byte UTF-8 sequences, yet are displayed as a single
+  *     character on screen;
+  *
+  *   - string containing special terminal codes that affect the
+  *     color of the text, yet are not visible in the output;
+  *
+  */
+class sstring {
   private:
-    strvec data_;
-    string name_;
-    size_t width_;
-    size_t width_left_;
-    Align  alignment_;
-    bool   margin_left_;
-    bool   margin_right_;
-    int : 16;
+    std::string str_;
+    size_t      size_;
 
   public:
-    TextColumn(const string& name, const Column& col, const intvec& indices);
-    TextColumn(const TextColumn&) = default;
-    TextColumn(TextColumn&&) = default;
+    sstring();
+    sstring(const sstring&) = default;
+    sstring(sstring&&) noexcept = default;
+    sstring& operator=(sstring&&) = default;
 
-    void print_name(ostringstream&) const;
-    void print_separator(ostringstream&) const;
-    void print_value(ostringstream&, size_t i) const;
+    sstring(const std::string&);
+    sstring(std::string&&);
+    sstring(const std::string&, size_t n);
+    sstring(std::string&&, size_t n);
+
+    inline size_t size() const noexcept { return size_; }
+    inline const std::string& str() const noexcept { return str_; }
 
   private:
-    void _render_all_data(const Column& col, const intvec& indices);
-    void _print_aligned_value(ostringstream&, const string& value) const;
-    void _print_whitespace(ostringstream&, size_t n) const;
-    void _align_at_dot();
+    static size_t _compute_string_size(const std::string&);
 };
 
 
 
-
-
 }  // namespace dt
+#endif

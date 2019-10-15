@@ -22,7 +22,7 @@
 #include <ctime>
 #include <sstream>
 #include "frame/py_frame.h"
-#include "frame/repr/repr.h"
+#include "frame/repr/text_column.h"
 #include "python/string.h"
 #include "options.h"
 #include "types.h"
