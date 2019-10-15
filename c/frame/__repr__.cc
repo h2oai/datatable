@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,6 +22,7 @@
 #include <ctime>
 #include <sstream>
 #include "frame/py_frame.h"
+#include "frame/repr/repr.h"
 #include "python/string.h"
 #include "options.h"
 #include "types.h"
@@ -574,6 +575,86 @@ bool HtmlWidget::styles_emitted = false;
 
 
 
+
+//------------------------------------------------------------------------------
+// TerminalWidget
+//------------------------------------------------------------------------------
+
+/**
+  * This class is responsible for rendering a Frame into a terminal
+  * as a text.
+  */
+class TerminalWidget : public Widget {
+  private:
+    std::ostringstream out_;
+    std::vector<dt::TextColumn> text_columns_;
+
+  public:
+    TerminalWidget(DataTable* dt, SplitViewTag)
+      : Widget(dt, split_view_tag) {}
+
+    py::oobj to_python() {
+      render_all();
+      const std::string outstr = out_.str();
+      return py::ostring(outstr);
+    }
+
+  protected:
+    void _render() override {
+      _prerender_columns();
+      _render_column_names();
+      _render_header_separator();
+      _render_data();
+      _render_footer();
+    }
+
+  private:
+    void _prerender_columns() {
+      // size_t nkeys = dt_->nkeys();
+      const auto& names = dt_->get_names();
+      text_columns_.reserve(colindices_.size());
+      for (size_t j : colindices_) {
+        text_columns_.emplace_back(names[j], dt_->get_column(j), rowindices_);
+      }
+    }
+
+    void _render_column_names() {
+      for (const auto& col : text_columns_) {
+        col.print_name(out_);
+      }
+      out_ << '\n';
+    }
+
+    void _render_header_separator() {
+      for (const auto& col : text_columns_) {
+        col.print_separator(out_);
+      }
+      out_ << '\n';
+    }
+
+    void _render_data() {
+      for (size_t k = 0; k < rowindices_.size(); ++k) {
+        for (const auto& col : text_columns_) {
+          col.print_value(out_, k);
+        }
+        out_ << '\n';
+      }
+    }
+
+    void _render_footer() {
+      size_t nrows = dt_->nrows();
+      size_t ncols = dt_->ncols();
+      out_ << '\n';
+      out_ << "[" << nrows << " row" << (nrows==1? "" : "s") << " x ";
+      out_ << ncols << " column" << (ncols==1? "" : "s") << "]";
+      out_ << '\n';
+    }
+};
+
+
+
+
+
 //------------------------------------------------------------------------------
 // py::Frame interface
 //------------------------------------------------------------------------------
@@ -629,6 +710,13 @@ void Frame::view(const PKArgs& args) {
 }
 
 
+static PKArgs args_newview(0,0,0,false,false,{},"v",nullptr);
+
+oobj Frame::newview(const PKArgs& args) {
+  TerminalWidget widget(dt, Widget::split_view_tag);
+  return widget.to_python();
+}
+
 
 void Frame::_init_repr(XTypeMaker& xt) {
   xt.add(METHOD__REPR__(&Frame::m__repr__));
@@ -636,6 +724,7 @@ void Frame::_init_repr(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::_repr_html_, args__repr_html_));
   xt.add(METHOD(&Frame::_repr_pretty_, args__repr_pretty_));
   xt.add(METHOD(&Frame::view, args_view));
+  xt.add(METHOD(&Frame::newview, args_newview));
 }
 
 
