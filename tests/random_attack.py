@@ -244,6 +244,7 @@ class Attacker:
               % (plural(len(a), "column"), a))
         if python_output:
             python_output.write("DT = DT.sort(%r)\n" % a)
+        frame.sort_columns(a)
 
     def cbind_numpy_column(self, frame):
         print("[11] Cbinding frame with a numpy column -> ncols = %d"
