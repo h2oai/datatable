@@ -295,7 +295,7 @@ void DataTable::rbind(
   }
   ncols_ = new_ncols;
   nrows_ = new_nrows;
-  nkeys_ = 0; // this will drop keys, if they was previously set
+  nkeys_ = 0; // this will drop all the keys, if there were any
 }
 
 
