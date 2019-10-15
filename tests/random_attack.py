@@ -272,6 +272,7 @@ class Attacker:
     def set_key_columns(self, frame):
         if frame.ncols == 0:
             return
+
         nkeys = min(int(random.expovariate(1.0)) + 1, frame.ncols)
         keys = random.sample(range(0, frame.ncols), nkeys)
         names = [frame.names[i] for i in keys]
@@ -754,6 +755,7 @@ class Frame0:
             data = list(zip(*self.data))
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
             self.data = list(map(list, zip(*data)))
+        self.nkeys = 0
 
     def cbind_numpy_column(self):
         coltype = self.random_type()
