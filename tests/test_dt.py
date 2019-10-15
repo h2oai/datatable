@@ -352,6 +352,7 @@ def test_names_deduplication():
 
 # To pick up attacks based on the corresponding weights, random attacker
 # uses random.choices(), introduced in Python 3.6.
+@pytest.mark.skip(reason="See #2090")
 @pytest.mark.usefixtures("py36", "numpy")
 def test_random_attack():
     import subprocess
