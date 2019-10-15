@@ -731,7 +731,8 @@ class Frame0:
                 assert self.names[j] == iframe.names[j]
                 newdata[j] += iframe.data[j]
         self.data = newdata
-        self.nkeys = 0
+        if self.nrows:
+            self.nkeys = 0
 
     def filter_on_bool_column(self, icol):
         assert self.types[icol] is bool
