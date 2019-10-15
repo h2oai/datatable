@@ -687,13 +687,14 @@ class Frame0:
         del self.df[:, s]
         if isinstance(s, slice):
             s = list(range(ncols))[s]
-        new_column_order = sorted(set(range(ncols)) - set(s))
-        self.data = [self.data[i] for i in new_column_order]
-        self.names = [self.names[i] for i in new_column_order]
-        self.types = [self.types[i] for i in new_column_order]
 
+        new_column_ids = sorted(set(range(ncols)) - set(s))
+        self.data = [self.data[i] for i in new_column_ids]
+        self.names = [self.names[i] for i in new_column_ids]
+        self.types = [self.types[i] for i in new_column_ids]
         if (min(s) < self.nkeys):
             self.nkeys = 0
+
 
     def slice_cols(self, s):
         self.df = self.df[:, s]
