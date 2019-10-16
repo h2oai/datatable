@@ -93,15 +93,15 @@ RowIndex Head_Frame::evaluate_i(const vecExpr&, EvalContext& ctx) const {
     throw ValueError() << "Only a single-column Frame may be used as `i` "
         "selector, instead got a Frame with " << dt->ncols() << " columns";
   }
-  SType st = dt->get_column(0).stype();
+  const Column& col = dt->get_column(0);
+  SType st = col.stype();
   if (!(st == SType::BOOL || info(st).ltype() == LType::INT)) {
     throw TypeError() << "A Frame which is used as an `i` selector should be "
         "either boolean or integer, instead got `" << st << "`";
   }
 
-  const Column& col = dt->get_column(0);
   size_t nrows = ctx.nrows();
-  if (col.stype() == SType::BOOL) {
+  if (st == SType::BOOL) {
     if (col.nrows() != nrows) {
       throw ValueError() << "A boolean column used as `i` selector has "
           << col.nrows() << " row" << (col.nrows() == 1? "" : "s")
