@@ -716,7 +716,7 @@ def test_rename_frame_copy():
 
 def test_setkey_frame_copy():
     # See issue #2095
-    DT = dt.Frame(id1=[3] * 5, id2=range(5))
+    DT = dt.Frame([[3] * 5, range(5)], names=["id1", "id2"])
     assert DT.colindex("id1") == 0
     assert DT.colindex("id2") == 1
     X = DT.copy()
