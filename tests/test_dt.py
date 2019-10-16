@@ -714,6 +714,18 @@ def test_rename_frame_copy():
         d0.colindex("ha!")
 
 
+def test_setkey_frame_copy():
+    # See issue #2095
+    DT = dt.Frame(id1=[3] * 5, id2=range(5))
+    assert DT.colindex("id1") == 0
+    assert DT.colindex("id2") == 1
+    X = DT.copy()
+    X.key = "id2"
+    assert DT.colindex("id1") == 0
+    assert DT.colindex("id2") == 1
+    frame_integrity_check(DT)
+
+
 def test_rename_bad1():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(TypeError):
