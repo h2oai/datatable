@@ -62,6 +62,14 @@ Frame
   a single stype instead of a tuple. This method can only be used on a frame
   where all columns have the same stype, or there is only one column.
 
+- |new| When a frame is displayed in a console, it will now display the first
+  15 + the last 5 rows, similarly to how it is rendered in Jupyter notebook.
+  Also, if the frame is 30 rows or less, it will be shown in full.
+
+  These parameters are configurable via the options
+  ``dt.options.display.head_nrows``, ``dt.options.display.tail_nrows`` and
+  ``dt.options.display.max_nrows``.
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names

@@ -28,9 +28,9 @@ namespace dt {
 
 
 static constexpr size_t NA_size_t = size_t(-1);
-size_t display_max_nrows = 50;
-size_t display_head_nrows = 20;
-size_t display_tail_nrows = 10;
+size_t display_max_nrows = 30;
+size_t display_head_nrows = 15;
+size_t display_tail_nrows = 5;
 bool   display_interactive = false;
 
 
