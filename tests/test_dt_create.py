@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -1053,6 +1053,59 @@ def test_create_from_datetime_array(numpy):
     assert df.shape == (10, 1)
     assert df.stypes == (stype.str32,)
     assert df.to_list() == [["1970-01-01T00:00:00"] * 10]
+
+
+def test_create_from_numpy_ints(numpy):
+    DT = dt.Frame(A=[numpy.int32(3), numpy.int32(78), numpy.int32(0)])
+    frame_integrity_check(DT)
+    assert DT.shape == (3, 1)
+    assert DT.stype == dt.int32
+    assert DT.to_list() == [[3, 78, 0]]
+
+
+def test_create_from_numpy_ints2(numpy):
+    DT = dt.Frame([[numpy.int8(55), numpy.int8(7), numpy.int8(4)],
+                   [None, numpy.int16(16), numpy.int16(-3)],
+                   [numpy.int32(356), numpy.int32(2), numpy.int32(0)],
+                   [numpy.int64(7), numpy.int64(34871), numpy.int64(66)]])
+    frame_integrity_check(DT)
+    assert DT.shape == (3, 4)
+    assert DT.stypes == (dt.int8, dt.int16, dt.int32, dt.int64)
+    assert DT.to_list() == [[55, 7, 4], [None, 16, -3], [356, 2, 0],
+                            [7, 34871, 66]]
+
+
+def test_create_from_numpy_ints_mixed(numpy):
+    np = numpy
+    DT = dt.Frame([[np.int8(1), np.int16(2), np.int32(3), np.int64(4)],
+                   [np.int64(1), np.int32(2), np.int16(3), np.int8(4)],
+                   [np.int8(3), np.int32(3), np.int16(3), np.int8(3)]])
+    frame_integrity_check(DT)
+    assert DT.shape == (4, 3)
+    assert DT.stypes == (dt.int64, dt.int64, dt.int32)
+    assert DT.to_list() == [[1, 2, 3, 4], [1, 2, 3, 4], [3, 3, 3, 3]]
+
+
+def test_create_from_numpy_floats(numpy):
+    np = numpy
+    DT = dt.Frame([[np.float32(4), np.float32(3.7), np.float32(88.5)],
+                   [np.float16(2), np.float16(2.5), np.float16(7.75)],
+                   [np.float64(0), np.float64(4.4), np.float64(99.999)]])
+    frame_integrity_check(DT)
+    assert DT.shape == (3, 3)
+    assert DT.stypes == (dt.float32, dt.float32, dt.float64)
+    assert DT.to_list() == [[4.0, float(np.float32(3.7)), 88.5],
+                            [2.0, 2.5, 7.75],
+                            [0.0, 4.4, 99.999]]
+
+
+def test_create_from_numpy_floats_mixed(numpy):
+    np = numpy
+    DT = dt.Frame([np.float32(4), np.float16(3.5), None, np.float64(9.33)])
+    frame_integrity_check(DT)
+    assert DT.shape == (4, 1)
+    assert DT.stype == dt.float64
+    assert DT.to_list() == [[4.0, 3.5, None, 9.33]]
 
 
 

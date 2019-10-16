@@ -93,6 +93,11 @@ class FrameInitializationManager {
           return init_empty_frame();
         }
         py::robj item0 = collist[0];
+        // This check should come first, because numpy ints implement
+        // buffer protocol...
+        if (item0.is_numpy_int() || item0.is_numpy_float()) {
+          return init_from_list_of_primitives();
+        }
         if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
           return init_from_list_of_lists();
         }

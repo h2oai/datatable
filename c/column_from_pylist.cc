@@ -204,6 +204,11 @@ static bool parse_as_int(const iterable* list, Buffer& membuf, size_t& from)
         outdata[i] = litem.ovalue<T>(&overflow);
         if (!overflow) continue;
       }
+      int r = item.is_numpy_int();
+      if (r && r <= int(sizeof(T))) {
+        outdata[i] = static_cast<T>(item.to_int64());
+        continue;
+      }
       from = i;
       return false;
     }
@@ -250,11 +255,12 @@ static void force_as_int(const iterable* list, Buffer& membuf)
  * as doubles, and it's extremely hard to determine whether that number should
  * have been a float instead...
  */
-static bool parse_as_double(const iterable* list, Buffer& membuf, size_t& from)
+template <typename T>
+static bool parse_as_real(const iterable* list, Buffer& membuf, size_t& from)
 {
   size_t nrows = list->size();
-  membuf.resize(nrows * sizeof(double));
-  double* outdata = static_cast<double*>(membuf.wptr());
+  membuf.resize(nrows * sizeof(T));
+  T* outdata = static_cast<T*>(membuf.wptr());
 
   int overflow = 0;
   for (int j = 0; j < 2; ++j) {
@@ -264,16 +270,23 @@ static bool parse_as_double(const iterable* list, Buffer& membuf, size_t& from)
       py::robj item = list->item(i);
 
       if (item.is_none()) {
-        outdata[i] = GETNA<double>();
+        outdata[i] = GETNA<T>();
         continue;
       }
-      if (item.is_int()) {
-        py::oint litem = item.to_pyint();
-        outdata[i] = litem.ovalue<double>(&overflow);
-        continue;
+      if (std::is_same<T, double>::value) {
+        if (item.is_int()) {
+          py::oint litem = item.to_pyint();
+          outdata[i] = static_cast<T>(litem.ovalue<double>(&overflow));
+          continue;
+        }
+        if (item.is_float()) {
+          outdata[i] = static_cast<T>(item.to_double());
+          continue;
+        }
       }
-      if (item.is_float()) {
-        outdata[i] = item.to_double();
+      int r = item.is_numpy_float();
+      if (r && r <= int(sizeof(T))) {
+        outdata[i] = static_cast<T>(item.to_double());
         continue;
       }
       from = i;
@@ -530,7 +543,8 @@ static Column ocolumn_from_iterable(const iterable* il, int stype0)
         case SType::INT16:   ret = parse_as_int<int16_t>(il, membuf, i); break;
         case SType::INT32:   ret = parse_as_int<int32_t>(il, membuf, i); break;
         case SType::INT64:   ret = parse_as_int<int64_t>(il, membuf, i); break;
-        case SType::FLOAT64: ret = parse_as_double(il, membuf, i); break;
+        case SType::FLOAT32: ret = parse_as_real<float>(il, membuf, i); break;
+        case SType::FLOAT64: ret = parse_as_real<double>(il, membuf, i); break;
         case SType::STR32:   ret = parse_as_str<uint32_t>(il, membuf, strbuf); break;
         case SType::STR64:   ret = parse_as_str<uint64_t>(il, membuf, strbuf); break;
         case SType::OBJ:     ret = parse_as_pyobj(il, membuf); break;
