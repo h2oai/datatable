@@ -49,6 +49,7 @@ class sstring {
     sstring(const sstring&) = default;
     sstring(sstring&&) noexcept = default;
     sstring& operator=(sstring&&) = default;
+    sstring& operator=(const sstring&) = default;
 
     sstring(const std::string&);
     sstring(std::string&&);

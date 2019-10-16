@@ -59,12 +59,18 @@ void TerminalWidget::_prerender_columns() {
   text_columns_.reserve(colindices_.size() + 1);
   if (nkeys == 0) {
     Column ri_col(new Range_ColumnImpl(0, static_cast<int64_t>(nrows), 1));
-    TextColumn ri_textcol("", ri_col, rowindices_, /*is_key_column=*/true);
-    text_columns_.emplace_back(std::move(ri_textcol));
+    TextColumn textcol("", ri_col, rowindices_, /*is_key_column=*/true);
+    textcol.set_right_border();
+    text_columns_.emplace_back(std::move(textcol));
   }
   for (size_t j : colindices_) {
-    text_columns_.emplace_back(names[j], dt_->get_column(j), rowindices_);
+    const auto& col = dt_->get_column(j);
+    bool iskey = (j < nkeys);
+    TextColumn textcol(names[j], col, rowindices_, iskey);
+    if (j == nkeys - 1) textcol.set_right_border();
+    text_columns_.emplace_back(std::move(textcol));
   }
+  text_columns_.front().unset_left_margin();
 }
 
 

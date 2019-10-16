@@ -24,10 +24,13 @@
 namespace dt {
 
 
+
 //------------------------------------------------------------------------------
 // Construction
 //------------------------------------------------------------------------------
 const Terminal& TextColumn::term = Terminal::get_instance();
+sstring TextColumn::ellipsis_(term.dim("\xE2\x80\xA6"));  // '…'
+sstring TextColumn::na_value_(term.dim("NA"));
 
 
 TextColumn::TextColumn(const std::string& name, const Column& col,
@@ -41,6 +44,7 @@ TextColumn::TextColumn(const std::string& name, const Column& col,
                  (ltype == LType::REAL);
   margin_left_ = true;
   margin_right_ = true;
+  border_right_ = false;
   is_key_column_ = is_key_column;
   _render_all_data(col, indices);
   if (ltype == LType::REAL) {
@@ -48,6 +52,14 @@ TextColumn::TextColumn(const std::string& name, const Column& col,
   }
 }
 
+
+void TextColumn::unset_left_margin() {
+  margin_left_ = false;
+}
+
+void TextColumn::set_right_border() {
+  border_right_ = true;
+}
 
 
 
@@ -63,7 +75,11 @@ void TextColumn::print_name(ostringstream& out) const {
 void TextColumn::print_separator(ostringstream& out) const {
   if (margin_left_) out << ' ';
   out << term.grey(std::string(width_, '-'));
-  if (margin_right_) out << ' ';
+  if (border_right_) {
+    out << term.grey(margin_right_? "-+" : "+");
+  } else {
+    if (margin_right_) out << ' ';
+  }
 }
 
 
@@ -85,6 +101,7 @@ void TextColumn::_print_aligned_value(ostringstream& out,
     _print_whitespace(out, width_ - value.size());
   }
   if (margin_right_) out << ' ';
+  if (border_right_) out << term.grey("|");
 }
 
 
@@ -102,7 +119,7 @@ void TextColumn::_print_whitespace(ostringstream& out, size_t n) const {
 sstring TextColumn::_render_value_bool(const Column& col, size_t i) const {
   int8_t value;
   bool isvalid = col.get_element(i, &value);
-  if (!isvalid) return sstring();
+  if (!isvalid) return na_value_;
   return value? sstring("1", 1)
               : sstring("0", 1);
 }
@@ -111,7 +128,7 @@ template <typename T>
 sstring TextColumn::_render_value_int(const Column& col, size_t i) const {
   T value;
   bool isvalid = col.get_element(i, &value);
-  if (!isvalid) return sstring();
+  if (!isvalid) return na_value_;
   return sstring(std::to_string(value));
 }
 
@@ -119,7 +136,7 @@ template <typename T>
 sstring TextColumn::_render_value_float(const Column& col, size_t i) const {
   T value;
   bool isvalid = col.get_element(i, &value);
-  if (!isvalid) return sstring();
+  if (!isvalid) return na_value_;
   ostringstream out;
   out << value;
   return sstring(out.str());
@@ -128,7 +145,7 @@ sstring TextColumn::_render_value_float(const Column& col, size_t i) const {
 sstring TextColumn::_render_value_string(const Column& col, size_t i) const {
   CString value;
   bool isvalid = col.get_element(i, &value);
-  if (!isvalid) return sstring(term.dim("NA"), 2);
+  if (!isvalid) return na_value_;
   return sstring(std::string(value.ch, static_cast<size_t>(value.size)));
 }
 
@@ -155,7 +172,7 @@ void TextColumn::_render_all_data(const Column& col, const intvec& indices) {
   data_.reserve(indices.size());
   for (size_t i : indices) {
     if (i == NA_index) {
-      data_.push_back(sstring("...", 3));
+      data_.push_back(ellipsis_);
     } else {
       auto rendered_value = _render_value(col, i);
       if (is_key_column_) {
@@ -178,15 +195,21 @@ void TextColumn::_align_at_dot() {
   for (size_t i = 0; i < n; ++i) {
     const auto& str = data_[i].str();
     size_t k = str.size();
-    for (; k > 0 && str[k-1] != '.'; --k) {}
-    k = str.size() - k;
-    if (k > max_right_width) max_right_width = k;
+    if (k == data_[i].size()) {
+      for (; k > 0 && str[k-1] != '.'; --k) {}
+      k = str.size() - k;
+      if (k > max_right_width) max_right_width = k;
+    } else {
+      k = NA_index;
+    }
     right_widths.push_back(k);
   }
 
   for (size_t i = 0; i < n; ++i) {
-    if (right_widths[i] < max_right_width) {
-      size_t nspaces = max_right_width - right_widths[i];
+    size_t w = right_widths[i];
+    if (w == NA_index) continue;
+    if (w < max_right_width) {
+      size_t nspaces = max_right_width - w;
       data_[i] = sstring(std::string(data_[i].str())
                          .insert(data_[i].str().size(), nspaces, ' '));
       width_ = std::max(width_, data_[i].size());

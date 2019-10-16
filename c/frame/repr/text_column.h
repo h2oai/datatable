@@ -45,10 +45,13 @@ class TextColumn {
     bool    align_right_;
     bool    margin_left_;
     bool    margin_right_;
+    bool    border_right_;
     bool    is_key_column_;
-    int : 32;
+    int : 24;
 
     static const Terminal& term;
+    static sstring ellipsis_;
+    static sstring na_value_;
 
   public:
     TextColumn(const std::string& name,
@@ -57,6 +60,9 @@ class TextColumn {
                bool is_key_column = false);
     TextColumn(const TextColumn&) = default;
     TextColumn(TextColumn&&) = default;
+
+    void unset_left_margin();
+    void set_right_border();
 
     void print_name(ostringstream&) const;
     void print_separator(ostringstream&) const;
