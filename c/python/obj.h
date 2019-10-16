@@ -184,6 +184,8 @@ class _obj {
     bool is_none()          const noexcept;
     bool is_numeric()       const noexcept;
     bool is_numpy_array()   const noexcept;
+    int  is_numpy_int()     const noexcept;
+    int  is_numpy_float()   const noexcept;
     bool is_numpy_marray()  const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;

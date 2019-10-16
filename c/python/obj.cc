@@ -35,6 +35,13 @@ static PyObject* pandas_DataFrame_type = nullptr;
 static PyObject* pandas_Series_type = nullptr;
 static PyObject* numpy_Array_type = nullptr;
 static PyObject* numpy_MaskedArray_type = nullptr;
+static PyObject* numpy_int8 = nullptr;
+static PyObject* numpy_int16 = nullptr;
+static PyObject* numpy_int32 = nullptr;
+static PyObject* numpy_int64 = nullptr;
+static PyObject* numpy_float16 = nullptr;
+static PyObject* numpy_float32 = nullptr;
+static PyObject* numpy_float64 = nullptr;
 static void init_pandas();
 static void init_numpy();
 
@@ -235,6 +242,25 @@ bool _obj::is_numpy_array() const noexcept {
   return PyObject_IsInstance(v, numpy_Array_type);
 }
 
+int _obj::is_numpy_int() const noexcept {
+  if (!numpy_int64) init_numpy();
+  if (!v || !numpy_int64) return 0;
+  if (PyObject_IsInstance(v, numpy_int64)) return 8;
+  if (PyObject_IsInstance(v, numpy_int32)) return 4;
+  if (PyObject_IsInstance(v, numpy_int16)) return 2;
+  if (PyObject_IsInstance(v, numpy_int8))  return 1;
+  return 0;
+}
+
+int _obj::is_numpy_float() const noexcept {
+  if (!numpy_int64) init_numpy();
+  if (!v || !numpy_float64) return 0;
+  if (PyObject_IsInstance(v, numpy_float64)) return 8;
+  if (PyObject_IsInstance(v, numpy_float32)) return 4;
+  if (PyObject_IsInstance(v, numpy_float16)) return 4;
+  return 0;
+}
+
 bool _obj::is_numpy_marray() const noexcept {
   if (!numpy_MaskedArray_type) init_numpy();
   if (!v || !numpy_MaskedArray_type) return false;
@@ -320,16 +346,19 @@ int32_t _obj::to_int32_strict(const error_manager& em) const {
 int64_t _obj::to_int64(const error_manager& em) const {
   constexpr int64_t MAX = std::numeric_limits<int64_t>::max();
   if (is_none()) return GETNA<int64_t>();
-  if (!PyLong_Check(v)) {
-    throw em.error_not_integer(v);
+  if (PyLong_Check(v)) {
+    int overflow;
+    long value = PyLong_AsLongAndOverflow(v, &overflow);
+    int64_t res = static_cast<int64_t>(value);
+    if (overflow ) {
+      res = overflow == 1 ? MAX : -MAX;
+    }
+    return res;
   }
-  int overflow;
-  long value = PyLong_AsLongAndOverflow(v, &overflow);
-  int64_t res = static_cast<int64_t>(value);
-  if (overflow ) {
-    res = overflow == 1 ? MAX : -MAX;
+  if (PyNumber_Check(v)) {
+    return static_cast<int64_t>(PyNumber_AsSsize_t(v, nullptr));
   }
-  return res;
+  throw em.error_not_integer(v);
 }
 
 
@@ -388,6 +417,15 @@ double _obj::to_double(const error_manager& em) const {
       throw em.error_double_overflow(v);
     }
     return res;
+  }
+  if (PyNumber_Check(v)) {
+    PyObject* num = PyNumber_Float(v); // new ref
+    if (num) {
+      double value = PyFloat_AsDouble(num);
+      Py_DECREF(num);
+      return value;
+    }
+    PyErr_Clear();
   }
   throw em.error_not_double(v);
 }
@@ -812,6 +850,13 @@ static void init_numpy() {
     numpy_Array_type = np.get_attr("ndarray").release();
     numpy_MaskedArray_type
       = np.get_attr("ma").get_attr("MaskedArray").release();
+    numpy_int8 = np.get_attr("int8").release();
+    numpy_int16 = np.get_attr("int16").release();
+    numpy_int32 = np.get_attr("int32").release();
+    numpy_int64 = np.get_attr("int64").release();
+    numpy_float16 = np.get_attr("float16").release();
+    numpy_float32 = np.get_attr("float32").release();
+    numpy_float64 = np.get_attr("float64").release();
   }
 }
 

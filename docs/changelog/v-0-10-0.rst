@@ -70,6 +70,15 @@ Frame
   ``dt.options.display.head_nrows``, ``dt.options.display.tail_nrows`` and
   ``dt.options.display.max_nrows``.
 
+- |new| It is now possible to create a Frame from a list of numpy integers/
+  floats. The resulting Frame will have the stype corresponding to the largest
+  dtype among all elements in the list::
+
+    import numpy as np
+    DT = dt.Frame([np.int32(1), np.int32(3), np.int64(8)])
+    assert DT.shape == (3, 1)
+    assert DT.stype == dt.int64
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
@@ -117,7 +126,7 @@ General
   explicitly, i.e. ``dt.open()`` still works as before.
 
 - |new| Datatable module now exports symbol ``dt``, which is the handle to
-  the module itself. For example, you can now write
+  the module itself. For example, you can now write::
 
     from datatable import dt, f, by, join
 
