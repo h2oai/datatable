@@ -24,21 +24,22 @@
 namespace dt {
 
 
-
-//------------------------------------------------------------------------------
-// Construction
-//------------------------------------------------------------------------------
-Terminal* TextColumn::term_ = nullptr;
+const Terminal* TextColumn::term_ = nullptr;
 sstring TextColumn::ellipsis_;
 sstring TextColumn::na_value_;
 
 void TextColumn::setup(const Terminal* terminal) {
   term_ = terminal;
+  na_value_ = term_->dim("NA");
   ellipsis_ = term_->unicode_allowed()? term_->dim("\xE2\x80\xA6")  // '…'
                                       : term_->dim("...");
-  na_value_ = term_->dim("NA");
 }
 
+
+
+//------------------------------------------------------------------------------
+// Construction
+//------------------------------------------------------------------------------
 
 TextColumn::TextColumn(const std::string& name, const Column& col,
                        const intvec& indices, bool is_key_column)

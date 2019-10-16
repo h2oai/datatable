@@ -29,7 +29,7 @@ using std::size_t;
 extern size_t display_max_nrows;
 extern size_t display_head_nrows;
 extern size_t display_tail_nrows;
-
+extern bool   display_interactive;
 
 } // namespace dt
 #endif

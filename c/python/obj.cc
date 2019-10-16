@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/obj.h"
+#include <iostream>
 #include <cstdint>         // INT32_MAX
 #include "expr/by_node.h"
 #include "expr/join_node.h"
@@ -27,6 +27,7 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/list.h"
+#include "python/obj.h"
 #include "python/string.h"
 
 namespace py {
@@ -39,6 +40,9 @@ static void init_numpy();
 
 // Set from datatablemodule.cc
 PyObject* Expr_Type = nullptr;
+
+_Py_IDENTIFIER(stdout);
+_Py_IDENTIFIER(write);
 
 
 
@@ -807,8 +811,39 @@ oobj None()     { return oobj(Py_None); }
 oobj True()     { return oobj(Py_True); }
 oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
-robj stdout()   { return robj(PySys_GetObject("stdout")); }
 robj rnone()    { return robj(Py_None); }
+
+robj stdout() {
+  return robj(
+    #ifndef Py_LIMITED_API
+      _PySys_GetObjectId(&PyId_stdout)  // borrowed ref
+    #else
+      PySys_GetObject("stdout")         // borrowed ref
+    #endif
+  );
+}
+
+void write_to_stdout(const std::string& str) {
+  PyObject* py_stdout = stdout().to_borrowed_ref();
+  oobj writer;
+  if (py_stdout && py_stdout != Py_None) {
+    writer = oobj::from_new_reference(
+      #ifndef Py_LIMITED_API
+        _PyObject_GetAttrId(py_stdout, &PyId_write)  // new ref
+      #else
+        PyObject_GetAttrString(py_stdout, "write")   // new ref
+      #endif
+    );
+    if (!writer) PyErr_Clear();
+  }
+  if (writer) {
+    writer.call({ ostring(str) });
+  }
+  else {
+    std::cout << str;
+  }
+}
+
 
 
 //------------------------------------------------------------------------------

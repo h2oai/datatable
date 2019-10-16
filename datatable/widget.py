@@ -557,8 +557,3 @@ options.register_option(
     doc="Display navigation hint at the bottom of a Frame when viewing "
         "its contents in the console.")
 
-options.register_option(
-    name="display.interactive",
-    default=False,
-    xtype=bool,
-    doc="Show datatable Frame interactively in a Python console.")

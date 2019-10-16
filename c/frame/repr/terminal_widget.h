@@ -40,7 +40,9 @@ class TerminalWidget : public Widget {
 
   public:
     TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag);
+
     py::oobj to_python();
+    void     to_stdout();
 
   protected:
     void _render() override;

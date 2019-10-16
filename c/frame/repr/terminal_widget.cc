@@ -39,6 +39,11 @@ py::oobj TerminalWidget::to_python() {
   return py::ostring(outstr);
 }
 
+void TerminalWidget::to_stdout() {
+  render_all();
+  const std::string outstr = out_.str();
+  py::write_to_stdout(outstr);
+}
 
 
 

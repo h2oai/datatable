@@ -446,11 +446,23 @@ static PKArgs args_view(
   0, 1, 0, false, false, {"interactive"}, "view", nullptr);
 
 void Frame::view(const PKArgs& args) {
-  oobj interactive = args[0].is_undefined()? obool(true) : args[0].to_oobj();
-  oobj DFWidget = oobj::import("datatable")
-                  .get_attr("widget")
-                  .get_attr("DataFrameWidget");
-  DFWidget.call({oobj(this), interactive}).invoke("render");
+  bool interactive = true;  // default when `interactive` is omitted entirely
+  if (args[0].is_none()) interactive = dt::display_interactive;
+  if (args[0].is_bool()) interactive = args[0].to_bool_strict();
+  if (interactive && !dt::Terminal::standard_terminal().is_jupyter()) {
+    interactive = false;
+  }
+  if (interactive) {
+    oobj DFWidget = oobj::import("datatable")
+                    .get_attr("widget")
+                    .get_attr("DataFrameWidget");
+    DFWidget.call({oobj(this), obool(interactive)}).invoke("render");
+  } else {
+    dt::TerminalWidget widget(dt,
+                              &dt::Terminal::standard_terminal(),
+                              dt::Widget::split_view_tag);
+    widget.to_stdout();
+  }
 }
 
 

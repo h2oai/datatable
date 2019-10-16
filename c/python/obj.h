@@ -335,14 +335,21 @@ class oobj : public _obj {
 
 
 /**
- * Return python constants None, True, False wrapped as `oobj`s.
- */
+  * Return python constants None, True, False wrapped as `oobj`s.
+  */
 oobj None();
 oobj True();
 oobj False();
 oobj Ellipsis();
 robj stdout();
 robj rnone();
+
+
+/**
+  * Write the string to python's `sys.stdout`, or if it is absent,
+  * write to the standard C++ output stream `sys::cout`.
+  */
+void write_to_stdout(const std::string& str);
 
 
 extern PyObject* Expr_Type;

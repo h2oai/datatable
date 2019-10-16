@@ -31,11 +31,25 @@ static constexpr size_t NA_size_t = size_t(-1);
 size_t display_max_nrows = 50;
 size_t display_head_nrows = 20;
 size_t display_tail_nrows = 10;
+bool   display_interactive = false;
 
 
+static void _init_options()
+{
+  register_option(
+    "display.interactive",
+    []{ return py::obool(display_interactive); },
+    [](const py::Arg& value) {
+      display_interactive = value.to_bool_strict();
+    },
+    "This option controls the behavior of a Frame when it is viewed in a\n"
+    "text console. When True, the Frame will be shown in the interactove\n"
+    "mode, allowing you to navigate the rows/columns with keyboard.\n"
+    "When False, the Frame will be shown in regular, non-interactive mode\n"
+    "(you can still call DT.view() to enter the interactive mode manually.\n"
+  );
 
-static void _init_options() {
-  dt::register_option(
+  register_option(
     "display.max_nrows",
     []{
       return (display_max_nrows == NA_size_t)? py::None()
