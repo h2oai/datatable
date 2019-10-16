@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_ROWINDEX_IMPL_h
 #define dt_ROWINDEX_IMPL_h
+#include "buffer.h"
 #include "rowindex.h"
 
 
@@ -127,9 +128,7 @@ bool slice_rowindex_increasing(const RowIndexImpl*) noexcept;
 
 class ArrayRowIndexImpl : public RowIndexImpl {
   private:
-    void* data;
-    bool owned;
-    size_t : 56;
+    Buffer buf_;
 
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
@@ -139,7 +138,6 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
                       const arr64_t& steps);
     ArrayRowIndexImpl(const Column&);
-    ~ArrayRowIndexImpl() override;
 
     const int32_t* indices32() const noexcept;
     const int64_t* indices64() const noexcept;
