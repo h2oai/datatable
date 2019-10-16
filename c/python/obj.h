@@ -144,6 +144,7 @@ class _obj {
     oobj call(otuple args, odict kws) const;
     ostring str() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
+    std::string typestr() const;
     size_t get_sizeof() const;
 
     explicit operator bool() const noexcept;  // opposite of is_undefined()
@@ -341,6 +342,7 @@ oobj None();
 oobj True();
 oobj False();
 oobj Ellipsis();
+robj stdin();
 robj stdout();
 robj rnone();
 
@@ -350,6 +352,9 @@ robj rnone();
   * write to the standard C++ output stream `sys::cout`.
   */
 void write_to_stdout(const std::string& str);
+
+
+oobj get_module(const char* name);
 
 
 extern PyObject* Expr_Type;

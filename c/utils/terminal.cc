@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include "utils/assert.h"
 #include "utils/terminal.h"
 namespace dt {
@@ -50,6 +51,47 @@ Terminal::Terminal(bool is_plain) {
 }
 
 Terminal::~Terminal() = default;
+
+
+void Terminal::initialize() {
+  py::robj stdin = py::stdin();
+  py::robj stdout = py::stdout();
+  if (!stdout || !stdin || stdout.is_none() || stdin.is_none()) {
+    enable_keyboard_ = false;
+    enable_colors_ = false;
+    enable_ecma48_ = false;
+    allow_unicode_ = true;
+  }
+  else {
+    // allow_unicode_ = false;
+    enable_keyboard_ = true;
+    enable_colors_ = true;
+    enable_ecma48_ = true;
+    // check  encoding?
+    _check_ipython();
+  }
+}
+
+/**
+  * When running inside a Jupyter notebook, IPython and ipykernel will
+  * already be preloaded (in sys.modules). We don't want to try to
+  * import them, because it adds unnecessary startup delays.
+  */
+void Terminal::_check_ipython() {
+  py::oobj ipython = py::get_module("IPython");
+  if (ipython) {
+    auto ipy = ipython.invoke("get_ipython");
+    std::string ipy_type = ipy.typestr();
+    if (ipy_type.find("ZMQInteractiveShell") != std::string::npos) {
+      allow_unicode_ = true;
+      is_jupyter_ = true;
+    }
+    if (ipy_type.find("TerminalInteractiveShell") != std::string::npos) {
+      is_ipython_ = true;
+    }
+  }
+}
+
 
 
 

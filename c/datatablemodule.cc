@@ -33,6 +33,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
+#include "utils/terminal.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
@@ -383,6 +384,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     py::oby::init(m);
     py::ojoin::init(m);
     py::osort::init(m);
+    dt::Terminal::standard_terminal().initialize();
 
   } catch (const std::exception& e) {
     exception_to_python(e);

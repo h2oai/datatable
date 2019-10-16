@@ -41,6 +41,7 @@ static void init_numpy();
 // Set from datatablemodule.cc
 PyObject* Expr_Type = nullptr;
 
+_Py_IDENTIFIER(stdin);
 _Py_IDENTIFIER(stdout);
 _Py_IDENTIFIER(write);
 
@@ -747,6 +748,10 @@ PyTypeObject* _obj::typeobj() const noexcept {
   return Py_TYPE(v);
 }
 
+std::string _obj::typestr() const {
+  return std::string(Py_TYPE(v)->tp_name);
+}
+
 
 size_t _obj::get_sizeof() const {
   return _PySys_GetSizeOf(v);
@@ -763,6 +768,10 @@ PyObject* oobj::release() && {
 oobj get_module(const char* modname) {
   py::ostring pyname(modname);
   #if PY_VERSION_HEX >= 0x03070000
+    // PyImport_GetModule(name)
+    //   Return the already imported module with the given name. If the module
+    //   has not been imported yet then returns NULL but does not set an error.
+    //   Returns NULL and sets an error if the lookup failed.
     PyObject* res = PyImport_GetModule(pyname.v);
     if (!res && PyErr_Occurred()) PyErr_Clear();
     return oobj::from_new_reference(res);
@@ -812,6 +821,16 @@ oobj True()     { return oobj(Py_True); }
 oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
 robj rnone()    { return robj(Py_None); }
+
+robj stdin() {
+  return robj(
+    #ifndef Py_LIMITED_API
+      _PySys_GetObjectId(&PyId_stdin)  // borrowed ref
+    #else
+      PySys_GetObject("stdin")         // borrowed ref
+    #endif
+  );
+}
 
 robj stdout() {
   return robj(

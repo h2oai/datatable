@@ -51,6 +51,7 @@ class Terminal {
   public:
     static Terminal& standard_terminal();
     static Terminal& plain_terminal();
+    void initialize();
 
     string bold     (const string&) const;
     string dim      (const string&) const;
@@ -87,6 +88,8 @@ class Terminal {
     Terminal(const Terminal&) = delete;
     Terminal(Terminal&&) = delete;
     ~Terminal();
+
+    void _check_ipython();
 };
 
 

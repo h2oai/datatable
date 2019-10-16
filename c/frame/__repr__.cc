@@ -443,10 +443,11 @@ oobj Frame::_repr_pretty_(const PKArgs&) {
 
 
 static PKArgs args_view(
-  0, 1, 0, false, false, {"interactive"}, "view", nullptr);
+  0, 2, 0, false, false, {"interactive", "plain"}, "view", nullptr);
 
 void Frame::view(const PKArgs& args) {
   bool interactive = true;  // default when `interactive` is omitted entirely
+  bool plain = args[1].to<bool>(false);
   if (args[0].is_none()) interactive = dt::display_interactive;
   if (args[0].is_bool()) interactive = args[0].to_bool_strict();
   if (interactive && !dt::Terminal::standard_terminal().is_jupyter()) {
@@ -458,9 +459,9 @@ void Frame::view(const PKArgs& args) {
                     .get_attr("DataFrameWidget");
     DFWidget.call({oobj(this), obool(interactive)}).invoke("render");
   } else {
-    dt::TerminalWidget widget(dt,
-                              &dt::Terminal::standard_terminal(),
-                              dt::Widget::split_view_tag);
+    auto terminal = plain? &dt::Terminal::plain_terminal()
+                         : &dt::Terminal::standard_terminal();
+    dt::TerminalWidget widget(dt, terminal, dt::Widget::split_view_tag);
     widget.to_stdout();
   }
 }
