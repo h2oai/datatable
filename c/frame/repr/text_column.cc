@@ -31,7 +31,7 @@ const Terminal& TextColumn::term = Terminal::get_instance();
 
 
 TextColumn::TextColumn(const std::string& name, const Column& col,
-                       const intvec& indices)
+                       const intvec& indices, bool is_key_column)
   : name_(name)
 {
   width_ = std::max(name_.size(), size_t(2));
@@ -41,6 +41,7 @@ TextColumn::TextColumn(const std::string& name, const Column& col,
                  (ltype == LType::REAL);
   margin_left_ = true;
   margin_right_ = true;
+  is_key_column_ = is_key_column;
   _render_all_data(col, indices);
   if (ltype == LType::REAL) {
     _align_at_dot();
@@ -156,7 +157,11 @@ void TextColumn::_render_all_data(const Column& col, const intvec& indices) {
     if (i == NA_index) {
       data_.push_back(sstring("...", 3));
     } else {
-      data_.push_back(_render_value(col, i));
+      auto rendered_value = _render_value(col, i);
+      if (is_key_column_) {
+        rendered_value = sstring(term.grey(rendered_value.str()));
+      }
+      data_.push_back(std::move(rendered_value));
     }
     size_t w = data_.back().size();
     if (width_ < w) width_ = w;

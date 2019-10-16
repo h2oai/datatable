@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/range.h"
 #include "frame/repr/terminal_widget.h"
 #include "python/string.h"
 namespace dt {
@@ -52,9 +53,15 @@ void TerminalWidget::_render() {
 
 
 void TerminalWidget::_prerender_columns() {
-  // size_t nkeys = dt_->nkeys();
+  size_t nkeys = dt_->nkeys();
+  size_t nrows = dt_->nrows();
   const auto& names = dt_->get_names();
-  text_columns_.reserve(colindices_.size());
+  text_columns_.reserve(colindices_.size() + 1);
+  if (nkeys == 0) {
+    Column ri_col(new Range_ColumnImpl(0, static_cast<int64_t>(nrows), 1));
+    TextColumn ri_textcol("", ri_col, rowindices_, /*is_key_column=*/true);
+    text_columns_.emplace_back(std::move(ri_textcol));
+  }
   for (size_t j : colindices_) {
     text_columns_.emplace_back(names[j], dt_->get_column(j), rowindices_);
   }

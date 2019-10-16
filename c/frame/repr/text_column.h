@@ -45,13 +45,16 @@ class TextColumn {
     bool    align_right_;
     bool    margin_left_;
     bool    margin_right_;
-    size_t : 40;
+    bool    is_key_column_;
+    int : 32;
 
     static const Terminal& term;
 
   public:
-    TextColumn(const std::string& name, const Column& col,
-               const intvec& indices);
+    TextColumn(const std::string& name,
+               const Column& col,
+               const intvec& indices,
+               bool is_key_column = false);
     TextColumn(const TextColumn&) = default;
     TextColumn(TextColumn&&) = default;
 
