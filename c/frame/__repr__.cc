@@ -22,7 +22,9 @@
 #include <ctime>
 #include <sstream>
 #include "frame/py_frame.h"
+#include "frame/repr/repr_options.h"
 #include "frame/repr/text_column.h"
+#include "frame/repr/widget.h"
 #include "python/string.h"
 #include "options.h"
 #include "types.h"
@@ -32,62 +34,6 @@
 // Display options
 //------------------------------------------------------------------------------
 
-static constexpr size_t NA_size_t = size_t(-1);
-static size_t display_max_nrows = 50;
-static size_t display_head_nrows = 20;
-static size_t display_tail_nrows = 10;
-
-void py::Frame::init_display_options()
-{
-  dt::register_option(
-    "display.max_nrows",
-    []{
-      return (display_max_nrows == NA_size_t)? py::None()
-                                             : py::oint(display_max_nrows);
-    },
-    [](const py::Arg& value) {
-      if (value.is_none()) {
-        display_max_nrows = NA_size_t;
-      } else {
-        int64_t n = value.to_int64_strict();
-        display_max_nrows = (n < 0)? NA_size_t : static_cast<size_t>(n);
-      }
-    },
-    "A frame with more rows than this will be displayed truncated\n"
-    "when the frame is printed to the console: only its first `head_nrows`\n"
-    "and last `tail_nrows` rows will be printed. It is recommended to have\n"
-    "`head_nrows + tail_nrows <= max_nrows`.\n"
-    "Setting this option to None (or a negative value) will cause all\n"
-    "rows in a frame to be printed, which may cause the console to become\n"
-    "unresponsive.\n"
-  );
-
-  dt::register_option(
-    "display.head_nrows",
-    []{
-      return py::oint(display_head_nrows);
-    },
-    [](const py::Arg& value) {
-      display_head_nrows = value.to_size_t();
-    },
-    "The number of rows from the top of a frame to be displayed when\n"
-    "the frame's output is truncated due to the total number of frame's\n"
-    "rows exceeding `max_nrows` value.\n"
-  );
-
-  dt::register_option(
-    "display.tail_nrows",
-    []{
-      return py::oint(display_tail_nrows);
-    },
-    [](const py::Arg& value) {
-      display_tail_nrows = value.to_size_t();
-    },
-    "The number of rows from the bottom of a frame to be displayed when\n"
-    "the frame's output is truncated due to the total number of frame's\n"
-    "rows exceeding `max_nrows` value.\n"
-  );
-}
 
 
 
@@ -141,126 +87,6 @@ static bool in_jupyter() {
 
 
 
-//------------------------------------------------------------------------------
-// Abstract class Widget
-//------------------------------------------------------------------------------
-static constexpr size_t NA_index = size_t(-1);
-
-
-class Widget {
-  private:
-    size_t ncols_, nrows_, nkeys_;
-    size_t startcol_, startrow_;
-    size_t cols0_, cols1_;
-    size_t rows0_, rows1_;
-
-  protected:
-    DataTable* dt_;
-    std::vector<size_t> colindices_;
-    std::vector<size_t> rowindices_;
-    bool render_row_indices_;
-    size_t : 56;
-
-  private:
-    explicit Widget(DataTable* dt) {
-      dt_ = dt;
-      ncols_ = dt->ncols();
-      nrows_ = dt->nrows();
-      nkeys_ = dt->nkeys();
-      render_row_indices_ = true;
-    }
-
-  public:
-    static struct SplitViewTag {} split_view_tag;
-    static struct WindowedTag {} windowed_tag;
-
-    Widget(DataTable* dt, SplitViewTag) : Widget(dt)
-    {
-      startcol_ = NA_index;
-      startrow_ = NA_index;
-
-      constexpr size_t maxcols = 15;
-      cols0_ = (ncols_ <= maxcols) ? ncols_ : maxcols * 2 / 3;
-      cols1_ = (ncols_ <= maxcols) ? 0 : maxcols - cols0_;
-      cols0_ = std::max(cols0_, dt->nkeys());
-
-      size_t max_nrows = std::max(display_max_nrows,
-                                  display_head_nrows + display_tail_nrows);
-      rows0_ = (nrows_ > max_nrows) ? display_head_nrows : nrows_;
-      rows1_ = (nrows_ > max_nrows) ? display_tail_nrows : 0;
-    }
-
-    Widget(DataTable* dt, WindowedTag) : Widget(dt)
-    {
-      startcol_ = 0;
-      startrow_ = 0;
-      cols0_ = 15;
-      rows0_ = 30;
-    }
-
-    virtual ~Widget() = default;
-
-    void render_all() {
-      _generate_column_indices();
-      _generate_row_indices();
-      _render();
-    }
-
-  protected:
-    virtual void _render() = 0;
-
-
-  private:
-    // Populate array `colindices_` with indices of the columns that shall be
-    // rendered. The array may also contain `NA_index`, which indicates an
-    // "ellipsis" column.
-    void _generate_column_indices() {
-      colindices_.clear();
-      if (startcol_ == NA_index) {
-        colindices_.reserve(cols0_ + cols1_ + 1);
-        for (size_t i = 0; i < ncols_; ++i) {
-          if (i == cols0_) {
-            colindices_.push_back(NA_index);
-            i = ncols_ - cols1_;
-          }
-          colindices_.push_back(i);
-        }
-      } else {
-        colindices_.reserve(nkeys_ + cols0_);
-        for (size_t i = 0; i < nkeys_; ++i) {
-          colindices_.push_back(i);
-        }
-        for (size_t i = 0; i < cols0_; ++i) {
-          colindices_.push_back(i + startcol_);
-        }
-      }
-    }
-
-    // Populate array `rowindices_` with indices of the rows that shall be
-    // rendered. The array may also contain `NA_index`, which indicates an
-    // "ellipsis" row.
-    void _generate_row_indices() {
-      rowindices_.clear();
-      if (startrow_ == NA_index) {
-        rowindices_.reserve(rows0_ + rows1_ + 1);
-        for (size_t i = 0; i < nrows_; ++i) {
-          if (i == rows0_) {
-            rowindices_.push_back(NA_index);
-            i = nrows_ - rows1_;
-          }
-          rowindices_.push_back(i);
-        }
-      } else {
-        rowindices_.reserve(rows0_);
-        for (size_t i = 0; i < rows0_; ++i) {
-          rowindices_.push_back(i + startrow_);
-        }
-      }
-    }
-};
-
-
-
 
 //------------------------------------------------------------------------------
 // HtmlWidget
@@ -269,14 +95,14 @@ class Widget {
 /**
   * This class is responsible for rendering a Frame into HTML.
   */
-class HtmlWidget : public Widget {
+class HtmlWidget : public dt::Widget {
   private:
     std::ostringstream html;
     static bool styles_emitted;
 
   public:
     explicit HtmlWidget(DataTable* dt)
-      : Widget(dt, split_view_tag) {}
+      : dt::Widget(dt, split_view_tag) {}
 
     py::oobj to_python() {
       render_all();
@@ -309,7 +135,7 @@ class HtmlWidget : public Widget {
         html << "<td class='row_index'></td>";
       }
       for (size_t j : colindices_) {
-        if (j == NA_index) {
+        if (j == dt::NA_index) {
           html << "<th class='vellipsis'>&hellip;</th>";
         } else {
           html << "<th>";
@@ -326,7 +152,7 @@ class HtmlWidget : public Widget {
         html << "<td class='row_index'></td>";
       }
       for (size_t j : colindices_) {
-        if (j == NA_index) {
+        if (j == dt::NA_index) {
           html << "<td></td>";
         } else {
           auto stype_info = info(dt_->get_column(j).stype());
@@ -342,7 +168,7 @@ class HtmlWidget : public Widget {
 
     void _render_data_rows() {
       for (size_t i : rowindices_) {
-        if (i == NA_index) {
+        if (i == dt::NA_index) {
           _render_ellipsis_row();
         } else {
           _render_data_row(i);
@@ -356,7 +182,7 @@ class HtmlWidget : public Widget {
         html << "<td class='row_index'>&#x22EE;</td>";
       }
       for (size_t j : colindices_) {
-        if (j == NA_index) {
+        if (j == dt::NA_index) {
           html << "<td class='hellipsis'>&#x22F1;</td>";
         } else {
           html << "<td class='hellipsis'>&#x22EE;</td>";
@@ -373,7 +199,7 @@ class HtmlWidget : public Widget {
         html << "</td>";
       }
       for (size_t j : colindices_) {
-        if (j == NA_index) {
+        if (j == dt::NA_index) {
           html << "<td class=vellipsis>&hellip;</td>";
           continue;
         }
@@ -584,13 +410,13 @@ bool HtmlWidget::styles_emitted = false;
   * This class is responsible for rendering a Frame into a terminal
   * as a text.
   */
-class TerminalWidget : public Widget {
+class TerminalWidget : public dt::Widget {
   private:
     std::ostringstream out_;
     std::vector<dt::TextColumn> text_columns_;
 
   public:
-    TerminalWidget(DataTable* dt, SplitViewTag)
+    TerminalWidget(DataTable* dt, dt::Widget::SplitViewTag)
       : Widget(dt, split_view_tag) {}
 
     py::oobj to_python() {
@@ -713,7 +539,7 @@ void Frame::view(const PKArgs& args) {
 static PKArgs args_newview(0,0,0,false,false,{},"v",nullptr);
 
 oobj Frame::newview(const PKArgs& args) {
-  TerminalWidget widget(dt, Widget::split_view_tag);
+  TerminalWidget widget(dt, dt::Widget::split_view_tag);
   return widget.to_python();
 }
 
