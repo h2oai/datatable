@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -289,8 +289,6 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
     min = static_cast<size_t>(imin);
     max = static_cast<size_t>(imax);
   }
-  Column col2 = col;  // copy
-  col2.materialize();
 
   length = col.nrows();
   if (length <= INT32_MAX && max <= INT32_MAX) {
@@ -302,13 +300,13 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
     // the column is destructed.
     Buffer xbuf = Buffer::view(buf_, buf_.size(), 0);
     xassert(xbuf.is_writable());
-    auto col3 = col2.cast(SType::INT32, std::move(xbuf));
+    auto col3 = col.cast(SType::INT32, std::move(xbuf));
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
     Buffer xbuf = Buffer::view(buf_, buf_.size(), 0);
     xassert(xbuf.is_writable());
-    auto col3 = col2.cast(SType::INT64, std::move(xbuf));
+    auto col3 = col.cast(SType::INT64, std::move(xbuf));
   }
 }
 
