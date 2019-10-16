@@ -26,8 +26,11 @@ namespace dt {
 
 
 
-TerminalWidget::TerminalWidget(DataTable* dt, SplitViewTag)
-  : Widget(dt, split_view_tag) {}
+TerminalWidget::TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag)
+  : Widget(dt, split_view_tag)
+{
+  TextColumn::setup(term);
+}
 
 
 py::oobj TerminalWidget::to_python() {
@@ -71,6 +74,7 @@ void TerminalWidget::_prerender_columns() {
     text_columns_.emplace_back(std::move(textcol));
   }
   text_columns_.front().unset_left_margin();
+  text_columns_.back().unset_right_margin();
 }
 
 

@@ -29,15 +29,20 @@ namespace dt {
 // Constructors
 //------------------------------------------------------------------------------
 
-Terminal& Terminal::get_instance() {
-  static Terminal term;
+Terminal& Terminal::standard_terminal() {
+  static Terminal term(false);
   return term;
 }
 
-Terminal::Terminal() {
+Terminal& Terminal::plain_terminal() {
+  static Terminal term(true);
+  return term;
+}
+
+Terminal::Terminal(bool is_plain) {
   allow_unicode_ = true;
-  enable_colors_ = true; // false;
-  enable_ecma48_ = true; // false;
+  enable_colors_ = !is_plain;
+  enable_ecma48_ = !is_plain;
   enable_keyboard_ = false;
   is_jupyter_ = false;
   is_ipython_ = false;
@@ -45,6 +50,34 @@ Terminal::Terminal() {
 }
 
 Terminal::~Terminal() = default;
+
+
+
+//------------------------------------------------------------------------------
+// Properties
+//------------------------------------------------------------------------------
+
+bool Terminal::is_jupyter() const noexcept {
+  return is_jupyter_;
+}
+
+bool Terminal::is_ipython() const noexcept {
+  return is_ipython_;
+}
+
+bool Terminal::colors_enabled() const noexcept {
+  return enable_colors_;
+}
+
+bool Terminal::unicode_allowed() const noexcept {
+  return allow_unicode_;
+}
+
+
+void Terminal::use_colors(bool f) {
+  enable_colors_ = f;
+}
+
 
 
 

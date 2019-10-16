@@ -138,16 +138,6 @@ class DataFrameWidget(object):
             self._interact()
 
 
-    def as_string(self):
-        self._interactive = False
-        self._show_navbar = False
-        colors = term.using_colors()
-        term.use_colors(False)
-        out = self._draw(to_string=True)
-        term.use_colors(colors)
-        return out
-
-
     #---------------------------------------------------------------------------
     # Private
     #---------------------------------------------------------------------------

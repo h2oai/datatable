@@ -49,7 +49,8 @@ class Terminal {
     int : 16;
 
   public:
-    static Terminal& get_instance();
+    static Terminal& standard_terminal();
+    static Terminal& plain_terminal();
 
     string bold     (const string&) const;
     string dim      (const string&) const;
@@ -74,11 +75,15 @@ class Terminal {
     string yellow   (const string&) const;
     string yellowB  (const string&) const;
 
-    inline bool is_jupyter() const { return is_jupyter_; }
-    inline bool is_ipython() const { return is_ipython_; }
+    bool is_jupyter() const noexcept;
+    bool is_ipython() const noexcept;
+    bool colors_enabled() const noexcept;
+    bool unicode_allowed() const noexcept;
+
+    void use_colors(bool f);
 
   private:
-    Terminal();
+    Terminal(bool is_plain);
     Terminal(const Terminal&) = delete;
     Terminal(Terminal&&) = delete;
     ~Terminal();

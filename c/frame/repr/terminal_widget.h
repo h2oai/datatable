@@ -39,7 +39,7 @@ class TerminalWidget : public Widget {
     std::vector<TextColumn> text_columns_;
 
   public:
-    TerminalWidget(DataTable* dt, SplitViewTag);
+    TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag);
     py::oobj to_python();
 
   protected:

@@ -402,6 +402,7 @@ bool HtmlWidget::styles_emitted = false;
 //------------------------------------------------------------------------------
 namespace py {
 
+
 oobj Frame::m__repr__() const {
   size_t nrows = dt->nrows();
   size_t ncols = dt->ncols();
@@ -411,11 +412,12 @@ oobj Frame::m__repr__() const {
   return ostring(out.str());
 }
 
+
 oobj Frame::m__str__() const {
-  oobj DFWidget = oobj::import("datatable")
-                  .get_attr("widget")
-                  .get_attr("DataFrameWidget");
-  return DFWidget.call({oobj(this)}).invoke("as_string");
+  dt::TerminalWidget widget(dt,
+                            &dt::Terminal::plain_terminal(),
+                            dt::Widget::split_view_tag);
+  return widget.to_python();
 }
 
 
@@ -452,12 +454,6 @@ void Frame::view(const PKArgs& args) {
 }
 
 
-static PKArgs args_newview(0,0,0,false,false,{},"v",nullptr);
-
-oobj Frame::newview(const PKArgs& args) {
-  dt::TerminalWidget widget(dt, dt::Widget::split_view_tag);
-  return widget.to_python();
-}
 
 
 void Frame::_init_repr(XTypeMaker& xt) {
@@ -466,7 +462,6 @@ void Frame::_init_repr(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::_repr_html_, args__repr_html_));
   xt.add(METHOD(&Frame::_repr_pretty_, args__repr_pretty_));
   xt.add(METHOD(&Frame::view, args_view));
-  xt.add(METHOD(&Frame::newview, args_newview));
 }
 
 

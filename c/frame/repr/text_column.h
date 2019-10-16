@@ -49,11 +49,13 @@ class TextColumn {
     bool    is_key_column_;
     int : 24;
 
-    static const Terminal& term;
+    static const Terminal* term_;
     static sstring ellipsis_;
     static sstring na_value_;
 
   public:
+    static void setup(const Terminal*);
+
     TextColumn(const std::string& name,
                const Column& col,
                const intvec& indices,
@@ -62,6 +64,7 @@ class TextColumn {
     TextColumn(TextColumn&&) = default;
 
     void unset_left_margin();
+    void unset_right_margin();
     void set_right_border();
 
     void print_name(ostringstream&) const;

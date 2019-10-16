@@ -240,12 +240,12 @@ def test_dt_view_keyed(patched_terminal, capsys):
 
 
 def test_stringify(dt0):
-    assert ("     A   B   C     D   E   F  G    \n"
-            "--  --  --  --  ----  --  --  -----\n"
-            " 0   2   1   1   0.1       0  1    \n"
-            " 1   7   0   1   2         0  2    \n"
-            " 2   0   0   1  -4         0  hello\n"
-            " 3   0   1   1   4.4       0  world\n"
+    assert ("   |  A   B   C     D   E   F  G    \n"
+            "---+ --  --  --  ----  --  --  -----\n"
+            " 0 |  2   1   1   0.1  NA   0  1    \n"
+            " 1 |  7   0   1   2    NA   0  2    \n"
+            " 2 |  0   0   1  -4    NA   0  hello\n"
+            " 3 |  0   1   1   4.4  NA   0  world\n"
             "\n"
             "[4 rows x 7 columns]\n"
             == str(dt0))

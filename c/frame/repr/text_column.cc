@@ -28,9 +28,16 @@ namespace dt {
 //------------------------------------------------------------------------------
 // Construction
 //------------------------------------------------------------------------------
-const Terminal& TextColumn::term = Terminal::get_instance();
-sstring TextColumn::ellipsis_(term.dim("\xE2\x80\xA6"));  // '…'
-sstring TextColumn::na_value_(term.dim("NA"));
+Terminal* TextColumn::term_ = nullptr;
+sstring TextColumn::ellipsis_;
+sstring TextColumn::na_value_;
+
+void TextColumn::setup(const Terminal* terminal) {
+  term_ = terminal;
+  ellipsis_ = term_->unicode_allowed()? term_->dim("\xE2\x80\xA6")  // '…'
+                                      : term_->dim("...");
+  na_value_ = term_->dim("NA");
+}
 
 
 TextColumn::TextColumn(const std::string& name, const Column& col,
@@ -57,6 +64,10 @@ void TextColumn::unset_left_margin() {
   margin_left_ = false;
 }
 
+void TextColumn::unset_right_margin() {
+  margin_right_ = false;
+}
+
 void TextColumn::set_right_border() {
   border_right_ = true;
 }
@@ -68,15 +79,15 @@ void TextColumn::set_right_border() {
 //------------------------------------------------------------------------------
 
 void TextColumn::print_name(ostringstream& out) const {
-  _print_aligned_value(out, term.bold(name_.str()));
+  _print_aligned_value(out, term_->bold(name_.str()));
 }
 
 
 void TextColumn::print_separator(ostringstream& out) const {
   if (margin_left_) out << ' ';
-  out << term.grey(std::string(width_, '-'));
+  out << term_->grey(std::string(width_, '-'));
   if (border_right_) {
-    out << term.grey(margin_right_? "-+" : "+");
+    out << term_->grey(margin_right_? "-+" : "+");
   } else {
     if (margin_right_) out << ' ';
   }
@@ -101,7 +112,7 @@ void TextColumn::_print_aligned_value(ostringstream& out,
     _print_whitespace(out, width_ - value.size());
   }
   if (margin_right_) out << ' ';
-  if (border_right_) out << term.grey("|");
+  if (border_right_) out << term_->grey("|");
 }
 
 
@@ -176,7 +187,7 @@ void TextColumn::_render_all_data(const Column& col, const intvec& indices) {
     } else {
       auto rendered_value = _render_value(col, i);
       if (is_key_column_) {
-        rendered_value = sstring(term.grey(rendered_value.str()));
+        rendered_value = sstring(term_->grey(rendered_value.str()));
       }
       data_.push_back(std::move(rendered_value));
     }
@@ -197,7 +208,7 @@ void TextColumn::_align_at_dot() {
     size_t k = str.size();
     if (k == data_[i].size()) {
       for (; k > 0 && str[k-1] != '.'; --k) {}
-      k = str.size() - k;
+      if (k) k = str.size() - k;
       if (k > max_right_width) max_right_width = k;
     } else {
       k = NA_index;
@@ -209,7 +220,7 @@ void TextColumn::_align_at_dot() {
     size_t w = right_widths[i];
     if (w == NA_index) continue;
     if (w < max_right_width) {
-      size_t nspaces = max_right_width - w;
+      size_t nspaces = max_right_width - w + (w == 0);
       data_[i] = sstring(std::string(data_[i].str())
                          .insert(data_[i].str().size(), nspaces, ' '));
       width_ = std::max(width_, data_[i].size());
