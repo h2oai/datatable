@@ -428,8 +428,7 @@ class Frame0:
         self.np_data = []
         self.np_data_deepcopy = []
         self.df = dt.Frame(data, names=names, stypes=types)
-        self.df_shallow_copy = self.df.copy()
-        self.df_deep_copy = copy.deepcopy(self.df)
+        self.df_shallow_copy = self.df_deep_copy = None
         if python_output:
             python_output.write("DT = dt.Frame(%s,\n"
                                 "              names=%r,\n"
