@@ -37,8 +37,14 @@ odict::odict() {
 }
 
 // private constructors
+odict::odict(oobj&& src) : oobj(std::move(src)) {}
 odict::odict(const robj& src) : oobj(src) {}
 rdict::rdict(const robj& src) : robj(src) {}
+
+
+odict odict::copy() const {
+  return odict(oobj::from_new_reference(PyDict_Copy(v)));
+}
 
 
 

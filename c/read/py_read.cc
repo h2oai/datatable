@@ -171,6 +171,7 @@ static bool _has_control_characters(const CString& text) {
 }
 
 
+#if 0
 static bool _looks_like_url(const CString& text) {
   size_t n = static_cast<size_t>(text.size);
   const char* ch = text.ch;
@@ -193,10 +194,11 @@ static bool _looks_like_glob(const CString& text) {
   }
   return false;
 }
-
+#endif
 
 
 static ReadSource _resolve_source_any(const py::Arg& src, GenericReader& gr) {
+  (void)gr;
   xassert(src.is_defined());
   auto srcobj = src.to_oobj();
   if (src.is_string() || src.is_bytes()) {

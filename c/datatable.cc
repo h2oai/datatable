@@ -22,6 +22,20 @@ DataTable::DataTable()
   : nrows_(0), ncols_(0), nkeys_(0) {}
 
 
+// Default copy is not suitable because `py_inames` has no CoW semantics, and
+// its default copy-by-reference will cause shared state between Frames.
+DataTable::DataTable(const DataTable& other)
+  : nrows_(other.nrows_),
+    ncols_(other.ncols_),
+    nkeys_(other.nkeys_),
+    columns_(other.columns_),
+    names_(other.names_)
+{
+  if (other.py_names_)  py_names_ = other.py_names_;
+  if (other.py_inames_) py_inames_ = other.py_inames_.copy();
+}
+
+
 // Private constructor, initializes only columns but not names_
 DataTable::DataTable(colvec&& cols) : DataTable()
 {
