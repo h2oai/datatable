@@ -282,7 +282,6 @@ class Attacker:
               % (plural(nkeys, "key column"), keys))
 
         res = frame.set_key_columns(keys, names)
-
         if python_output:
             if res:
                 python_output.write("DT.key = %r\n" % names)
@@ -322,11 +321,11 @@ class Attacker:
                                     "    DT = DT[:, :, join(DT)]\n\n")
 
     def shallow_copy(self, frame):
-        frame.shallow_copy()
         print("[16] Creating a shallow copy of a frame")
         if python_output:
             python_output.write("DT_shallow_copy = DT.copy()\n")
             python_output.write("DT_deep_copy = copy.deepcopy(DT)\n")
+        frame.shallow_copy()
 
 
     #---------------------------------------------------------------------------
