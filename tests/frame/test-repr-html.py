@@ -27,74 +27,7 @@ import re
 from collections import namedtuple
 
 
-
-#-------------------------------------------------------------------------------
-# Text repr
-#-------------------------------------------------------------------------------
-
-def test_dt_view(capsys):
-    dt0 = dt.Frame([
-        [2, 7, 0, 0],
-        [True, False, False, True],
-        [1, 1, 1, 1],
-        [0.1, 2, -4, 4.4],
-        [None, None, None, None],
-        [0, 0, 0, 0],
-        ["1", "2", "hello", "world"],
-    ], names=list("ABCDEFG"))
-    dt0_str = ("   |  A   B   C     D   E   F  G    \n"
-               "---+ --  --  --  ----  --  --  -----\n"
-               " 0 |  2   1   1   0.1  NA   0  1    \n"
-               " 1 |  7   0   1   2    NA   0  2    \n"
-               " 2 |  0   0   1  -4    NA   0  hello\n"
-               " 3 |  0   1   1   4.4  NA   0  world\n"
-               "\n"
-               "[4 rows x 7 columns]\n")
-    dt0.view(interactive=False, plain=True)
-    out, err = capsys.readouterr()
-    assert not err
-    assert out == dt0_str
-    assert str(dt0) == dt0_str
-
-
-def test_dt_view_keyed(capsys):
-    DT = dt.Frame(A=range(5), B=list("cdbga"))
-    DT.key = "B"
-    DT.view(interactive=False, plain=True)
-    out, err = capsys.readouterr()
-    assert not err
-    assert ("B  |  A\n"
-            "---+ --\n"
-            "a  |  4\n"
-            "b  |  2\n"
-            "c  |  0\n"
-            "d  |  1\n"
-            "g  |  3\n"
-            "\n"
-            "[5 rows x 2 columns]\n"
-            in out)
-
-
-def test_str_after_resize():
-    # See issue #1527
-    DT = dt.Frame(A=[])
-    DT.nrows = 5
-    assert ("   |  A\n"
-            "---+ --\n"
-            " 0 | NA\n"
-            " 1 | NA\n"
-            " 2 | NA\n"
-            " 3 | NA\n"
-            " 4 | NA\n"
-            "\n"
-            "[5 rows x 1 column]\n"
-            == str(DT))
-
-
-
-#-------------------------------------------------------------------------------
-# HTML repr
-#-------------------------------------------------------------------------------
+HtmlRepr = namedtuple("HtmlRepr", ["names", "stypes", "shape", "data"])
 
 def parse_html_repr(html):
     # Here `re.S` means "single-line mode", i.e. allow '.' to match any
@@ -127,12 +60,16 @@ def parse_html_repr(html):
             if elem == "<span class=na>NA</span>":
                 row[i] = None
         rows.append(row)
-    html_repr = namedtuple("html_repr", ["names", "stypes", "shape", "data"])
-    return html_repr(names=tuple(colnames),
-                     stypes=tuple(dt.stype(s) for s in coltypes),
-                     shape=shape,
-                     data=rows)
+    return HtmlRepr(names=tuple(colnames),
+                    stypes=tuple(dt.stype(s) for s in coltypes),
+                    shape=shape,
+                    data=rows)
 
+
+
+#-------------------------------------------------------------------------------
+# Tests
+#-------------------------------------------------------------------------------
 
 def test_html_repr():
     DT = dt.Frame(A=range(5))
