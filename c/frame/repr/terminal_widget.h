@@ -37,6 +37,7 @@ class TerminalWidget : public Widget {
   private:
     std::ostringstream out_;
     std::vector<TextColumn> text_columns_;
+    dt::Terminal* terminal_;
 
   public:
     TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag);
