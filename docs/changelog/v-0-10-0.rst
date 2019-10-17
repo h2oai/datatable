@@ -108,6 +108,9 @@ Frame
   ``int64``. Before, it sometimes produced an ``int32`` column, and sometimes
   an ``int64`` column.
 
+- |fix| Setting a key on a copied frame no longer affects the original
+  frame (#2095).
+
 
 General
 -------

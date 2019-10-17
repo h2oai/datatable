@@ -80,7 +80,7 @@ class DataTable {
     static struct DefaultNamesTag {} default_names;
 
     DataTable();
-    DataTable(const DataTable&) = default;
+    DataTable(const DataTable&);
     DataTable(DataTable&&) = default;
     DataTable(colvec&& cols, DefaultNamesTag);
     DataTable(colvec&& cols, const strvec&, bool warn_duplicates = true);

@@ -81,6 +81,8 @@ class odict : public oobj {
     odict& operator=(const odict&) = default;
     odict& operator=(odict&&) = default;
 
+    odict copy() const;
+
     size_t size() const;
     bool empty() const;
     bool has(_obj key) const;
@@ -93,6 +95,7 @@ class odict : public oobj {
     dict_iterator end() const;
 
   private:
+    odict(oobj&&);
     odict(const robj&);
     friend class _obj;
 };
