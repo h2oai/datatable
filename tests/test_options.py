@@ -32,8 +32,11 @@ def test_options_all():
     }
     assert set(dir(dt.options.display)) == {
         "allow_unicode",
+        "head_nrows",
         "interactive",
         "interactive_hint",
+        "max_nrows",
+        "tail_nrows",
         "use_colors"
     }
     assert set(dir(dt.options.frame)) == {

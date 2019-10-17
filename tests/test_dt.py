@@ -60,14 +60,6 @@ def dt0():
     ], names=list("ABCDEFG"))
 
 
-@pytest.fixture()
-def patched_terminal():
-    dt.utils.terminal.term._width = 100
-    dt.utils.terminal.term.use_colors(False)
-    dt.utils.terminal.term.use_keyboard(False)
-    dt.utils.terminal.term.use_terminal_codes(False)
-
-
 def assert_valueerror(frame, rows, error_message):
     with pytest.raises(ValueError) as e:
         noop(frame[rows, :])
@@ -206,25 +198,25 @@ def test_internal_compiler_version():
     assert ver != "Unknown"
 
 
-def test_dt_view(dt0, patched_terminal, capsys):
-    dt0.view(interactive=False)
+def test_dt_view(dt0, capsys):
+    dt0.view(interactive=False, plain=True)
     out, err = capsys.readouterr()
     assert not err
-    assert ("     A   B   C     D   E   F  G    \n"
-            "--  --  --  --  ----  --  --  -----\n"
-            " 0   2   1   1   0.1       0  1    \n"
-            " 1   7   0   1   2         0  2    \n"
-            " 2   0   0   1  -4         0  hello\n"
-            " 3   0   1   1   4.4       0  world\n"
+    assert ("   |  A   B   C     D   E   F  G    \n"
+            "---+ --  --  --  ----  --  --  -----\n"
+            " 0 |  2   1   1   0.1  NA   0  1    \n"
+            " 1 |  7   0   1   2    NA   0  2    \n"
+            " 2 |  0   0   1  -4    NA   0  hello\n"
+            " 3 |  0   1   1   4.4  NA   0  world\n"
             "\n"
             "[4 rows x 7 columns]\n"
-            in out)
+            == out)
 
 
-def test_dt_view_keyed(patched_terminal, capsys):
+def test_dt_view_keyed(capsys):
     DT = dt.Frame(A=range(5), B=list("cdbga"))
     DT.key = "B"
-    DT.view(interactive=False)
+    DT.view(interactive=False, plain=True)
     out, err = capsys.readouterr()
     assert not err
     assert ("B  |  A\n"
@@ -240,12 +232,12 @@ def test_dt_view_keyed(patched_terminal, capsys):
 
 
 def test_stringify(dt0):
-    assert ("     A   B   C     D   E   F  G    \n"
-            "--  --  --  --  ----  --  --  -----\n"
-            " 0   2   1   1   0.1       0  1    \n"
-            " 1   7   0   1   2         0  2    \n"
-            " 2   0   0   1  -4         0  hello\n"
-            " 3   0   1   1   4.4       0  world\n"
+    assert ("   |  A   B   C     D   E   F  G    \n"
+            "---+ --  --  --  ----  --  --  -----\n"
+            " 0 |  2   1   1   0.1  NA   0  1    \n"
+            " 1 |  7   0   1   2    NA   0  2    \n"
+            " 2 |  0   0   1  -4    NA   0  hello\n"
+            " 3 |  0   1   1   4.4  NA   0  world\n"
             "\n"
             "[4 rows x 7 columns]\n"
             == str(dt0))
@@ -586,26 +578,26 @@ def test_resize_bad():
             in str(e.value))
 
 
-def test_resize_issue1527(patched_terminal, capsys):
+def test_resize_issue1527(capsys):
     f0 = dt.Frame(A=[])
     assert f0.nrows == 0
     f0.nrows = 5
     assert f0.nrows == 5
     assert f0.to_list() == [[None] * 5]
 
-    f0.view(interactive=False)
+    f0.view(interactive=False, plain=True)
     out, err = capsys.readouterr()
     assert not err
-    assert ("     A\n"
-            "--  --\n"
-            " 0    \n"
-            " 1    \n"
-            " 2    \n"
-            " 3    \n"
-            " 4    \n"
+    assert ("   |  A\n"
+            "---+ --\n"
+            " 0 | NA\n"
+            " 1 | NA\n"
+            " 2 | NA\n"
+            " 3 | NA\n"
+            " 4 | NA\n"
             "\n"
             "[5 rows x 1 column]\n"
-            in out)
+            == out)
 
 
 def test_resize_invalidates_stats():

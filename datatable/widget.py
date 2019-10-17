@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
+# © H2O.ai 2018-2019; -*- encoding: utf-8 -*-
 #   This Source Code Form is subject to the terms of the Mozilla Public
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -114,7 +114,7 @@ class DataFrameWidget(object):
         self._view_col0 = 0
         self._view_row0 = 0
         self._view_ncols = 30
-        self._view_nrows = DataFrameWidget.VIEW_NROWS_MAX
+        self._view_nrows = options.display.max_nrows
 
         # Largest allowed values for ``self._view_(col|row)0``
         self._max_row0 = 0
@@ -136,16 +136,6 @@ class DataFrameWidget(object):
         self._draw()
         if self._interactive:
             self._interact()
-
-
-    def as_string(self):
-        self._interactive = False
-        self._show_navbar = False
-        colors = term.using_colors()
-        term.use_colors(False)
-        out = self._draw(to_string=True)
-        term.use_colors(colors)
-        return out
 
 
     #---------------------------------------------------------------------------
@@ -567,8 +557,3 @@ options.register_option(
     doc="Display navigation hint at the bottom of a Frame when viewing "
         "its contents in the console.")
 
-options.register_option(
-    name="display.interactive",
-    default=False,
-    xtype=bool,
-    doc="Show datatable Frame interactively in a Python console.")

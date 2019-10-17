@@ -87,6 +87,7 @@ class Frame : public XObject<Frame> {
     oobj _repr_html_(const PKArgs&);
     oobj _repr_pretty_(const PKArgs&);
     void view(const PKArgs&);
+    oobj newview(const PKArgs&);
 
     oobj get_ncols() const;
     oobj get_nrows() const;
@@ -132,6 +133,7 @@ class Frame : public XObject<Frame> {
 
     // Called once during module start-up
     static void init_names_options();
+    static void init_display_options();
 
   private:
     static bool internal_construction;

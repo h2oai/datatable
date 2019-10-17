@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,8 +22,15 @@
 #include <ctime>
 #include <sstream>
 #include "frame/py_frame.h"
+#include "frame/repr/repr_options.h"
+#include "frame/repr/terminal_widget.h"
+#include "frame/repr/text_column.h"
+#include "frame/repr/widget.h"
 #include "python/string.h"
+#include "options.h"
 #include "types.h"
+
+
 
 static const char* imgx =
     "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAA4CAYAAADuMJi0AAA"
@@ -75,135 +82,135 @@ static bool in_jupyter() {
 
 
 
-class HtmlWidget {
+
+//------------------------------------------------------------------------------
+// HtmlWidget
+//------------------------------------------------------------------------------
+
+/**
+  * This class is responsible for rendering a Frame into HTML.
+  */
+class HtmlWidget : public dt::Widget {
   private:
     std::ostringstream html;
-    DataTable* dt;
-    size_t ncols, cols0, cols1;
-    size_t nrows, rows0, rows1;
     static bool styles_emitted;
 
   public:
-    explicit HtmlWidget(DataTable* dt_) {
-      const size_t maxcols = 15;  // TODO: make configurable
-      const size_t maxrows = 15;
-      dt = dt_;
-      ncols = dt->ncols();
-      nrows = dt->nrows();
-      cols0 = ncols <= maxcols ? ncols : maxcols * 2 / 3;
-      cols1 = ncols <= maxcols ? 0 : maxcols - cols0;
-      rows0 = nrows <= maxrows ? nrows : maxrows * 2 / 3;
-      rows1 = nrows <= maxrows ? 0 : maxrows - rows0;
-    }
+    explicit HtmlWidget(DataTable* dt)
+      : dt::Widget(dt, split_view_tag) {}
 
-    py::oobj to_pystring() {
+    py::oobj to_python() {
       render_all();
       const std::string htmlstr = html.str();
       return py::ostring(htmlstr);
     }
 
 
-  private:
-    void render_all() {
-      render_styles();
+  protected:
+    void _render() override {
+      _render_styles();
       html << "<div class='datatable'>\n";
       html << "  <table class='frame'>\n";
-      render_table_header();
-      render_table_body();
+      html << "  <thead>\n";
+      _render_column_names();
+      _render_column_types();
+      html << "  </thead>\n";
+      html << "  <tbody>\n";
+      _render_data_rows();
+      html << "  </tbody>\n";
       html << "  </table>\n";
-      render_table_footer();
+      _render_table_footer();
       html << "</div>\n";
     }
 
-    void render_table_header() {
-      html << "  <thead>\n";
-      render_column_names();
-      render_column_types();
-      html << "  </thead>\n";
-    }
-
-    void render_column_names() {
-      const std::vector<std::string>& colnames = dt->get_names();
+    void _render_column_names() {
+      const strvec& colnames = dt_->get_names();
       html << "    <tr class='colnames'>";
-      html << "<td class='row_index'></td>";
-      for (size_t j = 0; j < ncols; ++j) {
-        if (j == cols0) {
-          j = ncols - cols1;
+      if (render_row_indices_) {
+        html << "<td class='row_index'></td>";
+      }
+      for (size_t j : colindices_) {
+        if (j == dt::NA_index) {
           html << "<th class='vellipsis'>&hellip;</th>";
+        } else {
+          html << "<th>";
+          _render_escaped_string(colnames[j].data(), colnames[j].size());
+          html << "</th>";
         }
-        html << "<th>";
-        render_escaped_string(colnames[j].data(), colnames[j].size());
-        html << "</th>";
       }
       html << "</tr>\n";
     }
 
-    void render_column_types() {
+    void _render_column_types() {
       html << "    <tr class='coltypes'>";
-      html << "<td class='row_index'></td>";
-      for (size_t j = 0; j < ncols; ++j) {
-        if (j == cols0) {
-          j = ncols - cols1;
+      if (render_row_indices_) {
+        html << "<td class='row_index'></td>";
+      }
+      for (size_t j : colindices_) {
+        if (j == dt::NA_index) {
           html << "<td></td>";
+        } else {
+          auto stype_info = info(dt_->get_column(j).stype());
+          size_t elemsize = stype_info.elemsize();
+          html << "<td class='" << stype_info.ltype_name()
+               << "' title='" << stype_info.name() << "'>";
+          for (size_t k = 0; k < elemsize; ++k) html << "&#x25AA;";
+          html << "</td>";
         }
-        SType stype = dt->get_column(j).stype();
-        size_t elemsize = info(stype).elemsize();
-        html << "<td class='" << info(stype).ltype_name()
-             << "' title='" << info(stype).name() << "'>";
-        for (size_t k = 0; k < elemsize; ++k) html << "&#x25AA;";
+      }
+      html << "</tr>\n";
+    }
+
+    void _render_data_rows() {
+      for (size_t i : rowindices_) {
+        if (i == dt::NA_index) {
+          _render_ellipsis_row();
+        } else {
+          _render_data_row(i);
+        }
+      }
+    }
+
+    void _render_ellipsis_row() {
+      html << "    <tr>";
+      if (render_row_indices_) {
+        html << "<td class='row_index'>&#x22EE;</td>";
+      }
+      for (size_t j : colindices_) {
+        if (j == dt::NA_index) {
+          html << "<td class='hellipsis'>&#x22F1;</td>";
+        } else {
+          html << "<td class='hellipsis'>&#x22EE;</td>";
+        }
+      }
+      html << "</tr>\n";
+    }
+
+    void _render_data_row(size_t i) {
+      html << "    <tr>";
+      if (render_row_indices_) {
+        html << "<td class='row_index'>";
+        _render_comma_separated(i);
         html << "</td>";
       }
-      html << "</tr>\n";
-    }
-
-    void render_table_body() {
-      html << "  <tbody>\n";
-      for (size_t i = 0; i < nrows; ++i) {
-        if (i == rows0) {
-          i = nrows - rows1;
-          render_ellipsis_row();
-        }
-        render_data_row(i);
-      }
-      html << "  </tbody>\n";
-    }
-
-    void render_ellipsis_row() {
-      html << "    <tr>";
-      html << "<td class='row_index'>&#x22EE;</td>";
-      for (size_t j = 0; j < ncols; ++j) {
-        if (j == cols0) {
-          j = ncols - cols1;
-          html << "<td class='hellipsis'>&#x22F1;</td>";
-        }
-        html << "<td class='hellipsis'>&#x22EE;</td>";
-      }
-      html << "</tr>\n";
-    }
-
-    void render_data_row(size_t i) {
-      html << "    <tr>";
-      html << "<td class='row_index'>";
-      render_comma_separated(i);
-      html << "</td>";
-      for (size_t j = 0; j < ncols; ++j) {
-        if (j == cols0) {
-          j = ncols - cols1;
+      for (size_t j : colindices_) {
+        if (j == dt::NA_index) {
           html << "<td class=vellipsis>&hellip;</td>";
+          continue;
         }
         html << "<td>";
-        const Column& col = dt->get_column(j);
+        const Column& col = dt_->get_column(j);
         switch (col.stype()) {
           case SType::BOOL:
-          case SType::INT8:    render_fw_value<int8_t>(col, i); break;
-          case SType::INT16:   render_fw_value<int16_t>(col, i); break;
-          case SType::INT32:   render_fw_value<int32_t>(col, i); break;
-          case SType::INT64:   render_fw_value<int64_t>(col, i); break;
-          case SType::FLOAT32: render_fw_value<float>(col, i); break;
-          case SType::FLOAT64: render_fw_value<double>(col, i); break;
+          case SType::INT8:    _render_fw_value<int8_t>(col, i); break;
+          case SType::INT16:   _render_fw_value<int16_t>(col, i); break;
+          case SType::INT32:   _render_fw_value<int32_t>(col, i); break;
+          case SType::INT64:   _render_fw_value<int64_t>(col, i); break;
+          case SType::FLOAT32: _render_fw_value<float>(col, i); break;
+          case SType::FLOAT64: _render_fw_value<double>(col, i); break;
           case SType::STR32:
-          case SType::STR64:   render_str_value(col, i); break;
-          case SType::OBJ:     render_obj_value(col, i); break;
+          case SType::STR64:   _render_str_value(col, i); break;
+          case SType::OBJ:     _render_obj_value(col, i); break;
           default:
             html << "(unknown stype)";
         }
@@ -213,23 +220,21 @@ class HtmlWidget {
     }
 
 
-    void render_table_footer() {
+    void _render_table_footer() {
+      size_t nrows = dt_->nrows();
+      size_t ncols = dt_->ncols();
       html << "  <div class='footer'>\n";
-      render_frame_dimensions();
+      html << "    <div class='frame_dimensions'>";
+      _render_comma_separated(nrows);
+      html << " row" << (nrows == 1? "" : "s") << " &times; ";
+      _render_comma_separated(ncols);
+      html << " column" << (ncols == 1? "" : "s");
+      html << "</div>\n";
       html << "  </div>\n";
     }
 
-    void render_frame_dimensions() {
-      html << "    <div class='frame_dimensions'>";
-      render_comma_separated(nrows);
-      html << " row" << (nrows == 1? "" : "s") << " &times; ";
-      render_comma_separated(ncols);
-      html << " column" << (ncols == 1? "" : "s");
-      html << "</div>\n";
-    }
 
-
-    void render_escaped_string(const char* ch, size_t len) {
+    void _render_escaped_string(const char* ch, size_t len) {
       size_t maxi = std::min(len, size_t(50));
       uint8_t uc;
       for (size_t i = 0; i < maxi; ++i) {
@@ -253,7 +258,7 @@ class HtmlWidget {
     }
 
     template <typename T>
-    void render_fw_value(const Column& col, size_t row) {
+    void _render_fw_value(const Column& col, size_t row) {
       T val;
       bool isvalid = col.get_element(row, &val);
       if (isvalid) {
@@ -264,38 +269,38 @@ class HtmlWidget {
         html << +val; // "+" ensures that `int8_t` vals are rendered as numbers
 
       } else {
-        render_na();
+        _render_na();
       }
     }
 
-    void render_str_value(const Column& col, size_t row) {
+    void _render_str_value(const Column& col, size_t row) {
       CString val;
       bool isvalid = col.get_element(row, &val);
       if (isvalid) {
-        render_escaped_string(val.ch, static_cast<size_t>(val.size));
+        _render_escaped_string(val.ch, static_cast<size_t>(val.size));
       } else {
-        render_na();
+        _render_na();
       }
     }
 
-    void render_obj_value(const Column& col, size_t row) {
+    void _render_obj_value(const Column& col, size_t row) {
       py::robj val;
       bool isvalid = col.get_element(row, &val);
       if (isvalid) {
         // Should we use repr() here instead?
         py::ostring strval = val.to_pystring_force();
         CString cstr = strval.to_cstring();
-        render_escaped_string(cstr.ch, static_cast<size_t>(cstr.size));
+        _render_escaped_string(cstr.ch, static_cast<size_t>(cstr.size));
       } else {
-        render_na();
+        _render_na();
       }
     }
 
-    void render_na() {
+    void _render_na() {
       html << "<span class=na>NA</span>";
     }
 
-    void render_styles() {
+    void _render_styles() {
       if (styles_emitted) return;
       std::time_t now = std::time(nullptr);
       std::tm* t = std::localtime(&now);
@@ -358,7 +363,7 @@ class HtmlWidget {
       styles_emitted = true;
     }
 
-    void render_comma_separated(size_t n) {
+    void _render_comma_separated(size_t n) {
       // It is customary not to display commas in 4-digit numbers
       if (n < 10000) {
         html << n;
@@ -391,10 +396,12 @@ bool HtmlWidget::styles_emitted = false;
 
 
 
+
 //------------------------------------------------------------------------------
 // py::Frame interface
 //------------------------------------------------------------------------------
 namespace py {
+
 
 oobj Frame::m__repr__() const {
   size_t nrows = dt->nrows();
@@ -405,11 +412,12 @@ oobj Frame::m__repr__() const {
   return ostring(out.str());
 }
 
+
 oobj Frame::m__str__() const {
-  oobj DFWidget = oobj::import("datatable")
-                  .get_attr("widget")
-                  .get_attr("DataFrameWidget");
-  return DFWidget.call({oobj(this)}).invoke("as_string");
+  dt::TerminalWidget widget(dt,
+                            &dt::Terminal::plain_terminal(),
+                            dt::Widget::split_view_tag);
+  return widget.to_python();
 }
 
 
@@ -418,7 +426,7 @@ static PKArgs args__repr_html_(
 
 oobj Frame::_repr_html_(const PKArgs&) {
   HtmlWidget widget(dt);
-  return widget.to_pystring();
+  return widget.to_python();
 }
 
 
@@ -435,15 +443,29 @@ oobj Frame::_repr_pretty_(const PKArgs&) {
 
 
 static PKArgs args_view(
-  0, 1, 0, false, false, {"interactive"}, "view", nullptr);
+  0, 2, 0, false, false, {"interactive", "plain"}, "view", nullptr);
 
 void Frame::view(const PKArgs& args) {
-  oobj interactive = args[0].is_undefined()? obool(true) : args[0].to_oobj();
-  oobj DFWidget = oobj::import("datatable")
-                  .get_attr("widget")
-                  .get_attr("DataFrameWidget");
-  DFWidget.call({oobj(this), interactive}).invoke("render");
+  bool interactive = true;  // default when `interactive` is omitted entirely
+  bool plain = args[1].to<bool>(false);
+  if (args[0].is_none()) interactive = dt::display_interactive;
+  if (args[0].is_bool()) interactive = args[0].to_bool_strict();
+  if (interactive && !dt::Terminal::standard_terminal().is_jupyter()) {
+    interactive = false;
+  }
+  if (interactive) {
+    oobj DFWidget = oobj::import("datatable")
+                    .get_attr("widget")
+                    .get_attr("DataFrameWidget");
+    DFWidget.call({oobj(this), obool(interactive)}).invoke("render");
+  } else {
+    auto terminal = plain? &dt::Terminal::plain_terminal()
+                         : &dt::Terminal::standard_terminal();
+    dt::TerminalWidget widget(dt, terminal, dt::Widget::split_view_tag);
+    widget.to_stdout();
+  }
 }
+
 
 
 
