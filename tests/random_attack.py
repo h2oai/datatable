@@ -864,7 +864,7 @@ class Frame0:
         self.dedup_names()
         return True
 
-    # This is a noop operation for the python data
+    # This is a noop for the python data
     def shallow_copy(self):
         self.df_shallow_copy = self.df.copy()
         self.df_deep_copy = copy.deepcopy(self.df)
