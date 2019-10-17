@@ -71,6 +71,14 @@ Frame
     assert DT.shape == (3, 1)
     assert DT.stype == dt.int64
 
+- |new| When an integer column is used to select rows from a Frame, that column
+  is now allowed to contain values `-1` which indicate selection of an NA
+  value::
+
+    DT = dt.Frame(A=['a', 'b', 'c', 'd', 'e'])
+    rows = dt.Frame([2, 0, -1, 1, 2])
+    assert DT[rows, :].to_list() == [['c', 'a', None, 'b', 'c']]
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
