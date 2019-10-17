@@ -286,12 +286,28 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
     if (col.na_count()) {
       throw ValueError() << "RowIndex source column contains NA values.";
     }
+    if (imin == -1) imin = 0;
     min = static_cast<size_t>(imin);
     max = static_cast<size_t>(imax);
   }
-
   length = col.nrows();
-  if (length <= INT32_MAX && max <= INT32_MAX) {
+  bool allow_arr32 = (length <= Column::MAX_ARR32_SIZE) &&
+                     (max <= Column::MAX_ARR32_SIZE);
+
+  if (!col.is_virtual()) {
+    if (col.stype() == SType::INT32 && allow_arr32) {
+      type = RowIndexType::ARR32;
+      buf_ = col.get_data_buffer();
+      return;
+    }
+    if (col.stype() == SType::INT64) {
+      type = RowIndexType::ARR64;
+      buf_ = col.get_data_buffer();
+      return;
+    }
+  }
+
+  if (allow_arr32) {
     type = RowIndexType::ARR32;
     _resize_data();
     // Column cast either converts the data, or memcpy-es it. The `col3`s data
@@ -522,7 +538,8 @@ static void verify_integrity_helper(
     throw AssertionError()
         << "ArrrayRowIndex is marked as sorted, but actually it isn't.";
   }
-  if (static_cast<size_t>(tmin) != min || static_cast<size_t>(tmax) != max) {
+  if (!((static_cast<size_t>(tmin) == min || min == 0) &&
+        static_cast<size_t>(tmax) == max)) {
     throw AssertionError()
         << "Mismatching min/max values in the ArrayRowIndex min=" << min
         << "/max=" << max << " compared to the computed min=" << tmin
