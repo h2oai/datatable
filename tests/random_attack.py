@@ -326,7 +326,7 @@ class Attacker:
         print("[16] Creating a shallow copy of a frame")
         if python_output:
             python_output.write("DT_shallow_copy = DT.copy()\n")
-            python_output.write("DT_deep_copy = copy.deepcopy(DT).copy()\n")
+            python_output.write("DT_deep_copy = copy.deepcopy(DT)\n")
 
 
     #---------------------------------------------------------------------------
@@ -436,11 +436,8 @@ class Frame0:
                                 "              names=%r,\n"
                                 "              stypes=%s)\n"
                                 % (repr_data(data, 14), names, repr_types(types)))
-            python_output.write("DT_shallow_copy = DT.copy()\n")
-            python_output.write("DT_deep_copy = DT.copy()\n")
             python_output.write("assert DT.shape == (%d, %d)\n" % (nrows, ncols))
-            python_output.write("assert DT_shallow_copy.shape == (%d, %d)\n" % (nrows, ncols))
-            python_output.write("assert DT_deep_copy.shape == (%d, %d)\n" % (nrows, ncols))
+            python_output.write("DT_shallow_copy = DT_deep_copy = None\n")
 
     def random_type(self):
         return random.choice([bool, int, float, str])
@@ -570,9 +567,10 @@ class Frame0:
 
     def check(self):
         frame_integrity_check(self.df)
-        frame_integrity_check(self.df_shallow_copy)
-        frame_integrity_check(self.df_deep_copy)
-        assert_equals(self.df_shallow_copy, self.df_deep_copy)
+        if self.df_shallow_copy:
+            frame_integrity_check(self.df_shallow_copy)
+            frame_integrity_check(self.df_deep_copy)
+            assert_equals(self.df_shallow_copy, self.df_deep_copy)
         self.check_shape()
         self.check_types()
         self.check_keys()
@@ -939,7 +937,8 @@ if __name__ == "__main__":
     finally:
         if python_output:
             python_output.write("frame_integrity_check(DT)\n")
-            python_output.write("frame_integrity_check(DT_shallow_copy)\n")
-            python_output.write("frame_integrity_check(DT_deep_copy)\n")
-            python_output.write("assert_equals(DT_shallow_copy, DT_deep_copy)\n")
+            python_output.write("if DT_shallow_copy:\n")
+            python_output.write("    frame_integrity_check(DT_shallow_copy)\n")
+            python_output.write("    frame_integrity_check(DT_deep_copy)\n")
+            python_output.write("    assert_equals(DT_shallow_copy, DT_deep_copy)\n")
             python_output.close()
