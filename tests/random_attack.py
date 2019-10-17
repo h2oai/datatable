@@ -19,6 +19,7 @@ from datatable import f, join
 from datatable.internal import frame_integrity_check
 from datatable.utils.terminal import term
 from datatable.utils.misc import plural_form as plural
+from tests import assert_equals
 
 exhaustive_checks = False
 python_output = None
@@ -320,6 +321,13 @@ class Attacker:
                                     "match='The join frame is not keyed'):\n"
                                     "    DT = DT[:, :, join(DT)]\n\n")
 
+    def shallow_copy(self, frame):
+        frame.shallow_copy()
+        print("[16] Creating a shallow copy of a frame")
+        if python_output:
+            python_output.write("DT_shallow_copy = DT.copy()\n")
+            python_output.write("DT_deep_copy = copy.deepcopy(DT).copy()\n")
+
 
     #---------------------------------------------------------------------------
     # Helpers
@@ -366,6 +374,7 @@ class Attacker:
         set_key_columns: 1,
         delete_columns_array: 1,
         join_self: 1,
+        shallow_copy: 1,
     }
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
@@ -420,13 +429,18 @@ class Frame0:
         self.np_data = []
         self.np_data_deepcopy = []
         self.df = dt.Frame(data, names=names, stypes=types)
+        self.df_shallow_copy = self.df.copy()
+        self.df_deep_copy = copy.deepcopy(self.df)
         if python_output:
             python_output.write("DT = dt.Frame(%s,\n"
                                 "              names=%r,\n"
                                 "              stypes=%s)\n"
                                 % (repr_data(data, 14), names, repr_types(types)))
+            python_output.write("DT_shallow_copy = DT.copy()\n")
+            python_output.write("DT_deep_copy = DT.copy()\n")
             python_output.write("assert DT.shape == (%d, %d)\n" % (nrows, ncols))
-
+            python_output.write("assert DT_shallow_copy.shape == (%d, %d)\n" % (nrows, ncols))
+            python_output.write("assert DT_deep_copy.shape == (%d, %d)\n" % (nrows, ncols))
 
     def random_type(self):
         return random.choice([bool, int, float, str])
@@ -556,6 +570,9 @@ class Frame0:
 
     def check(self):
         frame_integrity_check(self.df)
+        frame_integrity_check(self.df_shallow_copy)
+        frame_integrity_check(self.df_deep_copy)
+        assert_equals(self.df_shallow_copy, self.df_deep_copy)
         self.check_shape()
         self.check_types()
         self.check_keys()
@@ -851,6 +868,12 @@ class Frame0:
         self.dedup_names()
         return True
 
+    # This is a noop operation for the python data
+    def shallow_copy(self):
+        self.df_shallow_copy = self.df.copy()
+        self.df_deep_copy = copy.deepcopy(self.df)
+
+
     #---------------------------------------------------------------------------
     # Helpers
     #---------------------------------------------------------------------------
@@ -906,7 +929,8 @@ if __name__ == "__main__":
         python_output.write("import numpy as np\n")
         python_output.write("import pytest\n")
         python_output.write("from datatable import f, join\n")
-        python_output.write("from datatable.internal import frame_integrity_check\n\n")
+        python_output.write("from datatable.internal import frame_integrity_check\n")
+        python_output.write("from tests import assert_equals\n\n")
 
     try:
         ra = Attacker(args.seed)
@@ -914,4 +938,7 @@ if __name__ == "__main__":
     finally:
         if python_output:
             python_output.write("frame_integrity_check(DT)\n")
+            python_output.write("frame_integrity_check(DT_shallow_copy\n")
+            python_output.write("frame_integrity_check(DT_deep_copy\n")
+            python_output.write("assert_equals(DT_shallow_copy, DT_deep_copy)\n")
             python_output.close()
