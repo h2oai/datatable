@@ -925,6 +925,7 @@ if __name__ == "__main__":
         python_output.write("#!/usr/bin/env python\n")
         python_output.write("#seed: %s\n" % args.seed)
         python_output.write("import sys; sys.path = ['.', '..'] + sys.path\n")
+        python_output.write("import copy\n")
         python_output.write("import datatable as dt\n")
         python_output.write("import numpy as np\n")
         python_output.write("import pytest\n")
@@ -938,7 +939,7 @@ if __name__ == "__main__":
     finally:
         if python_output:
             python_output.write("frame_integrity_check(DT)\n")
-            python_output.write("frame_integrity_check(DT_shallow_copy\n")
-            python_output.write("frame_integrity_check(DT_deep_copy\n")
+            python_output.write("frame_integrity_check(DT_shallow_copy)\n")
+            python_output.write("frame_integrity_check(DT_deep_copy)\n")
             python_output.write("assert_equals(DT_shallow_copy, DT_deep_copy)\n")
             python_output.close()
