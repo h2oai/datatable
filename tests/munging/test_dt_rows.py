@@ -454,7 +454,6 @@ def test_rows_int_column(dt0):
                              [5, 0.1, 5, 1]]
 
 
-@pytest.mark.skip(reason="See #1496")
 def test_rows_int_column2():
     DT = dt.Frame(range(10))
     col = dt.Frame([3, 4, -1, 0, -1])
