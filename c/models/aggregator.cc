@@ -459,7 +459,8 @@ void Aggregator<T>::group_0d() {
 
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
     ri_exemplars.iterate(0, dt->nrows(), 1,
-      [&](size_t i, size_t j) {
+      [&](size_t i, size_t j, bool jvalid) {
+        if (!jvalid) return;
         d_members[j] = static_cast<int32_t>(i);
       });
   }

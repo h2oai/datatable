@@ -136,11 +136,6 @@ bool RowIndex::isslice() const {
   return impl && impl->type == RowIndexType::SLICE;
 }
 
-bool RowIndex::is_simple_slice() const {
-  return impl && impl->type == RowIndexType::SLICE &&
-         slice_rowindex_get_step(impl) == 1;
-}
-
 bool RowIndex::isarr32() const {
   return impl && impl->type == RowIndexType::ARR32;
 }
@@ -255,8 +250,8 @@ Buffer RowIndex::as_boolean_mask(size_t nrows) const {
   } else {
     std::memset(data, 0, nrows);
     iterate(0, size(), 1,
-      [&](size_t, size_t j) {
-        data[j] = 1;
+      [&](size_t, size_t j, bool jvalid) {
+        if (jvalid) data[j] = 1;
       });
   }
   return res;
@@ -269,8 +264,8 @@ Buffer RowIndex::as_integer_mask(size_t nrows) const {
   // NA index is -1 in byte, and also -1 in int32
   std::memset(data, -1, nrows * 4);
   iterate(0, size(), 1,
-    [&](size_t i, size_t j) {
-      data[j] = static_cast<int32_t>(i);
+    [&](size_t i, size_t j, bool jvalid) {
+      if (jvalid) data[j] = static_cast<int32_t>(i);
     });
   return res;
 }

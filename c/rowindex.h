@@ -91,10 +91,8 @@ class RowIndex {
     RowIndexType type() const noexcept;
     bool isabsent() const;
     bool isslice() const;
-    bool is_simple_slice() const;  // is this a slice with step==1?
     bool isarr32() const;
     bool isarr64() const;
-    const void* ptr() const;
 
     size_t size() const;
     size_t min() const;
@@ -176,21 +174,23 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
   switch (type()) {
     case RowIndexType::UNKNOWN: {
       for (size_t i = i0; i < i1; i += di) {
-        f(i, i);
+        f(i, i, true);
       }
       break;
     }
     case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
       for (size_t i = i0; i < i1; i += di) {
-        f(i, static_cast<size_t>(ridata[i]));
+        auto j = static_cast<size_t>(ridata[i]);
+        f(i, j, j != RowIndex::NA);
       }
       break;
     }
     case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
       for (size_t i = i0; i < i1; i += di) {
-        f(i, static_cast<size_t>(ridata[i]));
+        auto j = static_cast<size_t>(ridata[i]);
+        f(i, j, j != RowIndex::NA);
       }
       break;
     }
@@ -200,7 +200,7 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
       size_t jstep = slice_step() * di;
       size_t j = slice_start() + i0 * slice_step();
       for (size_t i = i0; i < i1; i += di) {
-        f(i, j);
+        f(i, j, true);
         j += jstep;
       }
       break;

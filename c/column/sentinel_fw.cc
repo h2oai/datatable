@@ -227,7 +227,8 @@ template <typename T>
 void SentinelFw_ColumnImpl<T>::replace_values(const RowIndex& replace_at, T replace_with) {
   T* data = static_cast<T*>(mbuf_.wptr());
   replace_at.iterate(0, replace_at.size(), 1,
-    [&](size_t, size_t j) {
+    [&](size_t, size_t j, bool jvalid) {
+      if (!jvalid) return;
       data[j] = replace_with;
     });
   if (stats_) stats_->reset();
@@ -257,8 +258,8 @@ void SentinelFw_ColumnImpl<T>::replace_values(
   xassert(with.nrows() == replace_n);
 
   replace_at.iterate(0, replace_n, 1,
-    [&](size_t i, size_t j) {
-      if (j == RowIndex::NA) return;
+    [&](size_t i, size_t j, bool jvalid) {
+      if (!jvalid) return;
       T value;
       bool isvalid = replace_with.get_element(i, &value);
       data_dest[j] = isvalid? value : GETNA<T>();
