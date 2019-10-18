@@ -45,8 +45,12 @@ class RowIndex {
     RowIndexImpl* impl;  // Shared reference semantics
 
   public:
+    static constexpr int32_t NA_ARR32 = -1;
+    static constexpr int64_t NA_ARR64 = -1;
     static constexpr size_t NA = size_t(-1);
     static constexpr size_t MAX = size_t(-1) >> 1;
+    static_assert(int32_t(size_t(NA_ARR32)) == NA_ARR32, "Bad NA_ARR32");
+    static_assert(int64_t(size_t(NA_ARR64)) == NA_ARR64, "Bad NA_ARR64");
 
     RowIndex();
     RowIndex(const RowIndex&);
@@ -93,6 +97,7 @@ class RowIndex {
     bool isslice() const;
     bool isarr32() const;
     bool isarr64() const;
+    bool is_all_missing() const { return max() == RowIndex::NA; }
 
     size_t size() const;
     size_t min() const;

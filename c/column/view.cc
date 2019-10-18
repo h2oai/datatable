@@ -169,7 +169,7 @@ template class ArrayView_ColumnImpl<int64_t>;
 // factory function
 static Column _make_view(Column&& col, const RowIndex& ri) {
   // This covers the case when ri.size()==0, and when all elements are NAs
-  if (ri.max() == RowIndex::NA) {
+  if (ri.is_all_missing()) {
     return Column::new_na_column(ri.size(), col.stype());
   }
   switch (ri.type()) {
