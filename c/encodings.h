@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_ENCODINGS_H
 #define dt_ENCODINGS_H
+#include <cstddef>
 #include <cstdint>
 using std::size_t;
 
@@ -21,5 +22,8 @@ int decode_sbcs(const uint8_t* src, int len, uint8_t* dest, uint32_t *map);
 
 int64_t utf32_to_utf8(uint32_t* buf, size_t maxchars, char* ch);
 
+
+// Defined in utils/wcwidth.cc
+int mk_wcwidth(int ucp);
 
 #endif

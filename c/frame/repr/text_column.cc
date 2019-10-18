@@ -23,7 +23,6 @@
 #include "utils/assert.h"
 namespace dt {
 
-
 const Terminal* TextColumn::term_ = nullptr;
 sstring TextColumn::ellipsis_;
 sstring TextColumn::na_value_;
@@ -154,11 +153,44 @@ sstring TextColumn::_render_value_float(const Column& col, size_t i) const {
   return sstring(out.str());
 }
 
+
+bool TextColumn::_needs_escaping(const CString& str) {
+  size_t n = static_cast<size_t>(str.size);
+  for (size_t i = 0; i < n; ++i) {
+    if (static_cast<unsigned char>(str.ch[i]) < 0x20) return true;
+  }
+  return false;
+}
+
+
+std::string TextColumn::_escape_string(const CString& str) {
+  ostringstream out;
+  size_t n = static_cast<size_t>(str.size);
+  for (size_t i = 0; i < n; ++i) {
+    char c = str.ch[i];
+    if (static_cast<unsigned char>(c) >= 0x20) {
+      out << c;
+    } else {
+      std::string escaped = (c == '\n')? "\\n" :
+                            (c == '\t')? "\\t" :
+                            (c == '\r')? "\\r" : "\\x00";
+      if (escaped[1] == 'x') {
+        int lo = c & 15;
+        escaped[2] = static_cast<char>('0' + (c >> 4));
+        escaped[3] = static_cast<char>((lo >= 10)? 'A' + lo - 10 : '0' + lo);
+      }
+      out << term_->dim(escaped);
+    }
+  }
+  return out.str();
+}
+
 sstring TextColumn::_render_value_string(const Column& col, size_t i) const {
   CString value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
-  return sstring(std::string(value.ch, static_cast<size_t>(value.size)));
+  return _needs_escaping(value)? sstring(_escape_string(value))
+                               : sstring(value.to_string());
 }
 
 
