@@ -246,24 +246,24 @@ def test_del_cols_from_keyed1():
     assert DT.to_list() == [[14]]
 
 
-def test_del_cols_from_keyed2A():
-    DT = dt.Frame(A=[3], B=[14])
-    DT.key = ("A", "B")
-    del DT["A"]
-    frame_integrity_check(DT)
-    assert not DT.key
-    assert DT.names == ("B",)
-    assert DT.to_list() == [[14]]
+# def test_del_cols_from_keyed2A():
+#     DT = dt.Frame(A=[3], B=[14])
+#     DT.key = ("A", "B")
+#     del DT["A"]
+#     frame_integrity_check(DT)
+#     assert not DT.key
+#     assert DT.names == ("B",)
+#     assert DT.to_list() == [[14]]
 
 
-def test_del_cols_from_keyed2B():
-    DT = dt.Frame(A=[3], B=[14])
-    DT.key = ("A", "B")
-    del DT["B"]
-    frame_integrity_check(DT)
-    assert not DT.key
-    assert DT.names == ("A",)
-    assert DT.to_list() == [[3]]
+# def test_del_cols_from_keyed2B():
+#     DT = dt.Frame(A=[3], B=[14])
+#     DT.key = ("A", "B")
+#     del DT["B"]
+#     frame_integrity_check(DT)
+#     assert not DT.key
+#     assert DT.names == ("A",)
+#     assert DT.to_list() == [[3]]
 
 
 def test_del_cols_from_keyed3():

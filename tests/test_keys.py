@@ -181,60 +181,75 @@ def test_setnrows_for_keyed_frame():
     assert DT.to_list() == [list(range(50))]
 
 
-def test_rbind_keyed_frame():
+#-------------------------------------------------------------------------------
+# Rbind
+#-------------------------------------------------------------------------------
+
+def test_rbind_empty_frame():
     DT = dt.Frame(A=range(100))
     DT1 = dt.Frame({"A" : []})
-    DT2 = dt.Frame(A=range(10))
     DT.key = "A"
     DT.rbind(DT1)
-    assert len(DT.key) == 1
+    assert DT.key == ("A",)
     frame_integrity_check(DT)
     assert DT.to_list() == [list(range(100))]
 
+
+def test_rbind_filled_frame():
+    DT = dt.Frame(A=range(100))
+    DT1 = dt.Frame(A=range(10))
+    DT.key = "A"
     with pytest.raises(ValueError, match = "Cannot rbind to a keyed frame"):
-        DT.rbind(DT2)
-    assert len(DT.key) == 1
+        DT.rbind(DT1)
     frame_integrity_check(DT)
+    assert DT.key == ("A",)
     assert DT.to_list() == [list(range(100))]
 
 
-def test_del_rows_keyed_frame():
+#-------------------------------------------------------------------------------
+# Delete rows and columns
+#-------------------------------------------------------------------------------
+
+def test_del_rows_from_keyed_frame():
     DT = dt.Frame(A=range(100))
     DT.key = "A"
-    del DT[50, :]
     del DT[range(20), :]
-    assert len(DT.key) == 1
     frame_integrity_check(DT)
+    assert DT.key == ("A",)
+    assert DT.to_list() == [list(range(20,100))]
 
 
-def test_del_key_column_from_single_column_keyed_frame():
+def test_del_column_key_from_single_key():
     DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
     DT.key = ["A"]
     del DT[:, ["A"]]
-    assert len(DT.key) == 0
     frame_integrity_check(DT)
+    assert not DT.key
 
 
-def test_del_key_column_from_multi_column_keyed_frame():
+def test_del_column_key_from_multi_key_empty_frame():
+    DT = dt.Frame(A=[], B=[], C=[])
+    DT.key = ["A", "B"]
+    del DT[:, ["B", "B"]]
+    frame_integrity_check(DT)
+    assert DT.key == ("A",)
+
+
+def test_del_column_key_from_multi_key_filled_frame():
     DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
     DT.key = ["A", "B"]
     with pytest.raises(ValueError, match = "Cannot delete a column that "
                        "is a part of a multi-column key"):
-        del DT[:, ["B", "B", "B"]]
-    assert len(DT.key) == 2
+        del DT[:, ["A", "A"]]
     frame_integrity_check(DT)
-
-    DT.nrows = 0
-    del DT[:, ["B", "B", "B"]]
-    assert len(DT.key) == 1
-    frame_integrity_check(DT)
+    assert DT.key == ("A", "B")
 
 
 def test_del_column_from_keyed_frame():
     DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
     DT.key = ["A"]
     del DT[:, ["B", "C", "C"]]
-    assert len(DT.key) == 1
     frame_integrity_check(DT)
+    assert DT.key == ("A",)
 
 
