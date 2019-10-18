@@ -460,7 +460,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       dt_labels->clear_key();
       dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
       intvec keys{ 0 };
-      dt_labels->set_key({ keys });
+      dt_labels->set_key(keys);
 
       // Add new models for the new labels.
       if (n_new_labels) adjust_model();
