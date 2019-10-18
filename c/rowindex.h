@@ -108,6 +108,8 @@ class RowIndex {
     size_t slice_start() const noexcept;
     size_t slice_step() const noexcept;
 
+    bool get_element(size_t i, size_t* out) const;
+
     void extract_into(arr32_t&) const;
     void extract_into(arr64_t&) const;
 

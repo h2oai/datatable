@@ -903,7 +903,10 @@ void NumericStats<T>::compute_sorted_stats() {
   // checking whether the elements in the first group are NA or not.
   if (!is_computed(Stat::NaCount)) {
     T x0;
-    bool isvalid = ri.size() > 0? column->get_element(ri[0], &x0) : true;
+    size_t ri0;
+    bool isvalid = (ri.size() == 0) ||
+                   (ri.get_element(0, &ri0) &&
+                    column->get_element(ri0, &x0));
     set_nacount(isvalid? 0 : static_cast<size_t>(groups[1]));
   }
 
@@ -923,8 +926,10 @@ void NumericStats<T>::compute_sorted_stats() {
 
   size_t ig = static_cast<size_t>(groups[largest_group_index]);
   T mode_value {};
-  bool mode_valid = max_group_size ? column->get_element(ri[ig], &mode_value)
-                                   : false;
+  size_t ri_ig;
+  bool mode_valid = max_group_size &&
+                    ri.get_element(ig, &ri_ig) &&
+                    column->get_element(ri_ig, &mode_value);
   set_mode(static_cast<V>(mode_value), mode_valid);
   set_nmodal(max_group_size, true);
 }
@@ -942,7 +947,10 @@ void StringStats::compute_sorted_stats() {
   // checking whether the elements in the first group are NA or not.
   if (!is_computed(Stat::NaCount)) {
     CString x0;
-    bool isvalid = ri.size() > 0? column->get_element(ri[0], &x0) : true;
+    size_t ri0;
+    bool isvalid = (ri.size() == 0) ||
+                   (ri.get_element(0, &ri0) &&
+                    column->get_element(ri0, &x0));
     set_nacount(isvalid? 0 : static_cast<size_t>(groups[1]));
   }
 
@@ -962,8 +970,10 @@ void StringStats::compute_sorted_stats() {
 
   size_t ig = static_cast<size_t>(groups[largest_group_index]);
   CString mode_value;
-  bool mode_valid = max_group_size ? column->get_element(ri[ig], &mode_value)
-                                   : false;
+  size_t ri_ig;
+  bool mode_valid = max_group_size &&
+                    ri.get_element(ig, &ri_ig) &&
+                    column->get_element(ri_ig, &mode_value);
   set_mode(mode_value, mode_valid);
   set_nmodal(max_group_size, true);
 }

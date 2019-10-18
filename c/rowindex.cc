@@ -160,6 +160,15 @@ size_t RowIndex::operator[](size_t i) const {
   return impl? impl->nth(i) : i;
 }
 
+bool RowIndex::get_element(size_t i, size_t* out) const {
+  if (!impl) {
+    *out = i;
+    return true;
+  }
+  *out = impl->nth(i);
+  return *out != RowIndex::NA;
+}
+
 const int32_t* RowIndex::indices32() const noexcept {
   auto a = dynamic_cast<ArrayRowIndexImpl*>(impl);
   return a? a->indices32() : nullptr;
