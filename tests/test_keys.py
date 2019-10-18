@@ -169,8 +169,40 @@ def test_setnrows_for_keyed_frame():
     DT = dt.Frame(A=range(100))
     DT.key = "A"
     DT.nrows = 50
+    assert len(DT.key) == 1
     frame_integrity_check(DT)
     assert DT.to_list() == [list(range(50))]
+
     with pytest.raises(ValueError) as e:
         DT.nrows = 70
-    assert "Cannot increase the number of rows" in str(e.value)
+    assert "Cannot increase number of rows" in str(e.value)
+    assert len(DT.key) == 1
+    frame_integrity_check(DT)
+    assert DT.to_list() == [list(range(50))]
+
+
+@pytest.mark.xfail
+def test_rbind_keyed_frame():
+    DT = dt.Frame(A=range(100))
+    DT1 = dt.Frame({"A" : []})
+    DT2 = dt.Frame(A=range(10))
+    DT.key = "A"
+    DT.rbind(DT1)
+    assert len(DT.key) == 1
+    frame_integrity_check(DT)
+    assert DT.to_list() == [list(range(100))]
+
+    with pytest.raises(ValueError, match = "Cannot rbind a keyed frame"):
+        DT.rbind(DT2)
+    assert len(DT.key) == 1
+    frame_integrity_check(DT)
+    assert DT.to_list() == [list(range(100))]
+
+
+def test_del_rows_keyed_frame():
+    DT = dt.Frame(A=range(100))
+    DT.key = "A"
+    del DT[50, :]
+    del DT[range(20), :]
+    assert len(DT.key) == 1
+    frame_integrity_check(DT)

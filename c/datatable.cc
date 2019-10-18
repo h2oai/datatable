@@ -172,7 +172,7 @@ void DataTable::delete_all() {
 void DataTable::resize_rows(size_t new_nrows) {
   if (new_nrows == nrows_) return;
   if (new_nrows > nrows_ && nkeys_ > 0) {
-    throw ValueError() << "Cannot increase the number of rows in a keyed frame";
+    throw ValueError() << "Cannot increase number of rows in a keyed frame";
   }
   for (Column& col : columns_) {
     col.resize(new_nrows);
