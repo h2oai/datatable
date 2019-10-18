@@ -29,6 +29,7 @@ namespace dt {
 TerminalWidget::TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag)
   : Widget(dt, split_view_tag)
 {
+  terminal_ = term;
   TextColumn::setup(term);
 }
 
@@ -40,8 +41,17 @@ py::oobj TerminalWidget::to_python() {
 }
 
 void TerminalWidget::to_stdout() {
+  // In IPython, we insert an extra newline in front, because IPython
+  // prints "Out [X]: " in front of the output value, which causes all
+  // column headers to become misaligned.
+  // Likewise, IPython tends to insert an extra newline at the end of
+  // the output, so we remove our own extra newline.
+  if (terminal_->is_ipython()) out_ << '\n';
   render_all();
-  const std::string outstr = out_.str();
+  std::string outstr = out_.str();
+  if (terminal_->is_ipython() && outstr.back() == '\n') {
+    outstr.back() = '\0';
+  }
   py::write_to_stdout(outstr);
 }
 
