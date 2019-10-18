@@ -210,7 +210,7 @@ def test_del_rows_keyed_frame():
 def test_del_key_column_from_single_column_keyed_frame():
     DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
     DT.key = ["A"]
-    del DT[:, "A"]
+    del DT[:, ["A"]]
     assert len(DT.key) == 0
     frame_integrity_check(DT)
 
@@ -220,12 +220,12 @@ def test_del_key_column_from_multi_column_keyed_frame():
     DT.key = ["A", "B"]
     with pytest.raises(ValueError, match = "Cannot delete a column that "
                        "is a part of a multi-column key"):
-        del DT[:, "B"]
+        del DT[:, ["B", "B", "B"]]
     assert len(DT.key) == 2
     frame_integrity_check(DT)
 
     DT.nrows = 0
-    del DT[:, "B"]
+    del DT[:, ["B", "B", "B"]]
     assert len(DT.key) == 1
     frame_integrity_check(DT)
 
@@ -233,7 +233,7 @@ def test_del_key_column_from_multi_column_keyed_frame():
 def test_del_column_from_keyed_frame():
     DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
     DT.key = ["A"]
-    del DT[:, ["B", "C"]]
+    del DT[:, ["B", "C", "C"]]
     assert len(DT.key) == 1
     frame_integrity_check(DT)
 

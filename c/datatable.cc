@@ -137,12 +137,19 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
 
   // Calculate how many key columns we need to remove and adjust `nkeys_`
   size_t nkeys_remove = 0;
-  while (cols_to_remove[nkeys_remove] < nkeys_) {
+  size_t j = 0;
+  while (cols_to_remove[j] < nkeys_) {
     nkeys_remove++;
+    // We may have duplicated column ids in `cols_to_remove[]`, in such a case
+    // we ignore these duplicates.
+    size_t col_id = cols_to_remove[j];
+    while (col_id == cols_to_remove[j]){
+      j++;
+    }
   }
   nkeys_ -= nkeys_remove;
 
-  size_t j = 0;
+  j = 0;
   for (size_t i = 0, k = 0; i < ncols_; ++i) {
     if (i == cols_to_remove[k]) {
       // cols_to_remove[] array may contain duplicate values of `i`, so we
