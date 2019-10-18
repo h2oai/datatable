@@ -79,11 +79,14 @@ class TextColumn {
 
     sstring _render_value(const Column&, size_t i) const;
     template <typename T>
-    sstring _render_value_float(const Column& col, size_t i) const;
+    sstring _render_value_float(const Column&, size_t i) const;
     template <typename T>
-    sstring _render_value_int(const Column& col, size_t i) const;
+    sstring _render_value_int(const Column&, size_t i) const;
     sstring _render_value_bool(const Column&, size_t i) const;
     sstring _render_value_string(const Column&, size_t i) const;
+
+    static bool _needs_escaping(const CString&);
+    static std::string _escape_string(const CString&);
 };
 
 

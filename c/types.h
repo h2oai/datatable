@@ -38,6 +38,10 @@ struct CString {
            ((ch == other.ch) ||  // This ensures NAs are properly handled too
             (std::strncmp(ch, other.ch, static_cast<size_t>(size)) == 0));
   }
+
+  std::string to_string() const {
+    return std::string(ch, static_cast<size_t>(size));
+  }
 };
 
 
