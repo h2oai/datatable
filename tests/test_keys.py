@@ -165,20 +165,28 @@ def test_key_after_group():
     assert sum(tmp.to_list()[1]) == n
 
 
-def test_setnrows_for_keyed_frame():
+#-------------------------------------------------------------------------------
+# Resize
+#-------------------------------------------------------------------------------
+
+def test_reduce_nrows_for_keyed_frame():
     DT = dt.Frame(A=range(100))
     DT.key = "A"
     DT.nrows = 50
-    assert len(DT.key) == 1
+    assert DT.key == ("A",)
     frame_integrity_check(DT)
     assert DT.to_list() == [list(range(50))]
 
+
+def test_increase_nrows_for_keyed_frame():
+    DT = dt.Frame(A=range(100))
+    DT.key = "A"
     with pytest.raises(ValueError) as e:
-        DT.nrows = 70
+        DT.nrows = 150
     assert "Cannot increase number of rows" in str(e.value)
-    assert len(DT.key) == 1
+    assert DT.key == ("A",)
     frame_integrity_check(DT)
-    assert DT.to_list() == [list(range(50))]
+    assert DT.to_list() == [list(range(100))]
 
 
 #-------------------------------------------------------------------------------
