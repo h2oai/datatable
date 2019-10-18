@@ -447,14 +447,6 @@ def test_rbind_modulefn():
     assert f3.to_list()[0] == f0.to_list()[0] + f1.to_list()[0]
 
 
-def test_rbind_keyed_frame():
-    f0 = dt.Frame([1, 2, 3])
-    f1 = dt.Frame([100, 500, 900])
-    f0.key = "C0"
-    f0.rbind(f1)
-    assert len(f0.key) == 0
-    assert f0.shape == (6, 1)
-
 #-------------------------------------------------------------------------------
 # Issues
 #-------------------------------------------------------------------------------
