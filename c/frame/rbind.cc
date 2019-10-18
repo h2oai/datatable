@@ -25,6 +25,7 @@
 #include "utils/misc.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include <iostream>
 
 
 static void _check_ncols(size_t n0, size_t n1) {
@@ -134,6 +135,9 @@ void Frame::rbind(const PKArgs& args) {
 
   // Ignore trivial case
   if (dts.empty()) return;
+  if (dt->nkeys() > 0) {
+    throw ValueError() << "Cannot rbind to a keyed frame";
+  }
 
   strvec final_names = dt->get_names();  // copy the names
   size_t n = dt->ncols();

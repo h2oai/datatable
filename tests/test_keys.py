@@ -181,7 +181,6 @@ def test_setnrows_for_keyed_frame():
     assert DT.to_list() == [list(range(50))]
 
 
-@pytest.mark.xfail
 def test_rbind_keyed_frame():
     DT = dt.Frame(A=range(100))
     DT1 = dt.Frame({"A" : []})
@@ -192,7 +191,7 @@ def test_rbind_keyed_frame():
     frame_integrity_check(DT)
     assert DT.to_list() == [list(range(100))]
 
-    with pytest.raises(ValueError, match = "Cannot rbind a keyed frame"):
+    with pytest.raises(ValueError, match = "Cannot rbind to a keyed frame"):
         DT.rbind(DT2)
     assert len(DT.key) == 1
     frame_integrity_check(DT)
