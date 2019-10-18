@@ -110,7 +110,6 @@ size_t sstring::_compute_string_size(const std::string& str) {
         ucp = ((c - 0xF0) << 18) + (c1 << 12) + (c2 << 6) + c3;
       }
       int w = mk_wcwidth(ucp);
-      xassert(w >= 0);
       sz += static_cast<size_t>(w);
     }
   }
