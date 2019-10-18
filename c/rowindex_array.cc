@@ -66,31 +66,6 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted) {
 }
 
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, size_t _min, size_t _max)
-{
-  xassert(array.size() <= Column::MAX_ARR32_SIZE);
-  type = RowIndexType::ARR32;
-  ascending = false;
-  length = array.size();
-  buf_ = array.to_memoryrange();
-  min = _min;
-  max = _max;
-  test(this);
-}
-
-
-ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, size_t _min, size_t _max)
-{
-  type = RowIndexType::ARR64;
-  ascending = false;
-  length = array.size();
-  buf_ = array.to_memoryrange();
-  min = _min;
-  max = _max;
-  test(this);
-}
-
-
 // Construct from a list of slices
 ArrayRowIndexImpl::ArrayRowIndexImpl(
     const arr64_t& starts, const arr64_t& counts, const arr64_t& steps)
@@ -465,35 +440,6 @@ RowIndexImpl* ArrayRowIndexImpl::negate(size_t nrows) const {
       return negate_impl<int64_t, int32_t>(nrows);
     else
       return negate_impl<int64_t, int64_t>(nrows);
-  }
-}
-
-
-void ArrayRowIndexImpl::resize(size_t n) {
-  size_t oldlen = length;
-  length = n;
-  _resize_data();
-  if (n <= oldlen) {
-    set_min_max();
-  } else {
-    size_t elemsize = (type == RowIndexType::ARR32)? 4 : 8;
-    std::memset(static_cast<char*>(buf_.xptr()) + oldlen * elemsize,
-                -1, elemsize * (n - oldlen));
-  }
-}
-
-RowIndexImpl* ArrayRowIndexImpl::resized(size_t n) {
-  size_t ncopy = std::min(n, length);
-  if (type == RowIndexType::ARR32) {
-    arr32_t new_ind32(n);
-    std::memcpy(new_ind32.data(), buf_.rptr(), ncopy * 4);
-    std::memset(new_ind32.data() + ncopy, -1, (n - ncopy) * 4);
-    return new ArrayRowIndexImpl(std::move(new_ind32), ascending);
-  } else {
-    arr64_t new_ind64(n);
-    std::memcpy(new_ind64.data(), buf_.rptr(), ncopy * 8);
-    std::memset(new_ind64.data() + ncopy, -1, (n - ncopy) * 8);
-    return new ArrayRowIndexImpl(std::move(new_ind64), ascending);
   }
 }
 

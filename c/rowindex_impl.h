@@ -78,9 +78,6 @@ class RowIndexImpl {
     virtual RowIndexImpl* uplift_from(const RowIndexImpl*) const = 0;
     virtual RowIndexImpl* negate(size_t nrows) const = 0;
 
-    virtual void resize(size_t n) = 0;
-    virtual RowIndexImpl* resized(size_t n) = 0;
-
     virtual size_t memory_footprint() const noexcept = 0;
     virtual void verify_integrity() const;
 };
@@ -102,9 +99,6 @@ class SliceRowIndexImpl : public RowIndexImpl {
     size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
-
-    void resize(size_t n) override;
-    RowIndexImpl* resized(size_t n) override;
 
     size_t memory_footprint() const noexcept override;
     void verify_integrity() const override;
@@ -133,8 +127,6 @@ class ArrayRowIndexImpl : public RowIndexImpl {
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
     ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
-    ArrayRowIndexImpl(arr32_t&& indices, size_t min, size_t max);
-    ArrayRowIndexImpl(arr64_t&& indices, size_t min, size_t max);
     ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
                       const arr64_t& steps);
     ArrayRowIndexImpl(const Column&);
@@ -145,9 +137,6 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     size_t nth(size_t i) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
-
-    void resize(size_t n) override;
-    RowIndexImpl* resized(size_t n) override;
 
     size_t memory_footprint() const noexcept override;
     void verify_integrity() const override;

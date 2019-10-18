@@ -61,8 +61,6 @@ class RowIndex {
      */
     RowIndex(arr32_t&& arr, bool sorted = false);
     RowIndex(arr64_t&& arr, bool sorted = false);
-    RowIndex(arr32_t&& arr, size_t min, size_t max);
-    RowIndex(arr64_t&& arr, size_t min, size_t max);
 
     /**
      * Construct a "slice" RowIndex from triple `(start, count, step)`.
@@ -75,17 +73,6 @@ class RowIndex {
      *   - there is no difference in handling positive/negative steps.
      */
     RowIndex(size_t start, size_t count, size_t step);
-
-    /**
-     * Construct an "array" `RowIndex` object from a series of triples
-     * `(start, count, step)`. The triples are given as 3 separate arrays of
-     * starts, of counts and of steps.
-     *
-     * This will create either an RowIndexType::ARR32 or RowIndexType::ARR64
-     * object, depending on which one is sufficient to hold all the indices.
-     */
-    RowIndex(const arr64_t& starts, const arr64_t& counts, const arr64_t& steps);
-
 
     /**
      * Create RowIndex from either a boolean or an integer column.
@@ -107,7 +94,6 @@ class RowIndex {
     bool is_simple_slice() const;  // is this a slice with step==1?
     bool isarr32() const;
     bool isarr64() const;
-    bool isarray() const;
     const void* ptr() const;
 
     size_t size() const;
@@ -159,22 +145,6 @@ class RowIndex {
      * Note that the product is not commutative: `ab * bc` != `bc * ab`.
      */
     friend RowIndex operator *(const RowIndex& ab, const RowIndex& bc);
-
-    void clear();
-
-    /**
-     * Modifies the RowIndex so that its new size becomes `nrows`. This will
-     * either throw out the existing elements at the tail, or append "NA"
-     * indices.
-     *
-     * This method either modifies the existing `impl` in-place if its refcount
-     * is 1, or replaces it with a new "modified" impl. Additionally, a "slice"
-     * impl will be replaced with an "array" impl if `nrows` is greater than
-     * the current size of the RowIndex.
-     *
-     * This method should not be called on an "empty" RowIndex.
-     */
-    void resize(size_t nrows);
 
     /**
      * Template function that allows looping through the RowIndex. This

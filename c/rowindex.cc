@@ -75,13 +75,6 @@ RowIndex::RowIndex(size_t start, size_t count, size_t step) {
   TRACK(this, sizeof(*this), "RowIndex");
 }
 
-RowIndex::RowIndex(const arr64_t& starts,
-                   const arr64_t& counts,
-                   const arr64_t& steps) {
-  impl = (new ArrayRowIndexImpl(starts, counts, steps))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
-}
-
 RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
   TRACK(this, sizeof(*this), "RowIndex");
@@ -89,16 +82,6 @@ RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
 
 RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
-}
-
-RowIndex::RowIndex(arr32_t&& arr, size_t min, size_t max) {
-  impl = (new ArrayRowIndexImpl(std::move(arr), min, max))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
-}
-
-RowIndex::RowIndex(arr64_t&& arr, size_t min, size_t max) {
-  impl = (new ArrayRowIndexImpl(std::move(arr), min, max))->acquire();
   TRACK(this, sizeof(*this), "RowIndex");
 }
 
@@ -166,14 +149,6 @@ bool RowIndex::isarr64() const {
   return impl && impl->type == RowIndexType::ARR64;
 }
 
-bool RowIndex::isarray() const {
-  return isarr32() || isarr64();
-}
-
-const void* RowIndex::ptr() const {
-  return static_cast<const void*>(impl);
-}
-
 size_t RowIndex::size() const {
   return impl? impl->length : 0;
 }
@@ -206,26 +181,6 @@ size_t RowIndex::slice_step() const noexcept {
   return slice_rowindex_get_step(impl);
 }
 
-
-
-void RowIndex::clear() {
-  if (impl) impl->release();
-  impl = nullptr;
-}
-
-
-void RowIndex::resize(size_t nrows) {
-  xassert(impl);
-  if (impl->refcount > 1 || (impl->type == RowIndexType::SLICE &&
-                             impl->length < nrows)) {
-    auto newimpl = impl->resized(nrows);
-    xassert(newimpl->refcount == 0);
-    impl->release();
-    impl = newimpl->acquire();
-  } else {
-    impl->resize(nrows);
-  }
-}
 
 
 template <typename T>
