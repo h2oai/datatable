@@ -67,6 +67,7 @@ SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
   step   = di;
   if (length == 0) {
     min = max = RowIndex::NA;
+    all_missing = true;
   } else {
     min = start;
     max = start + step * (n - 1);
@@ -75,8 +76,9 @@ SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
 }
 
 
-size_t SliceRowIndexImpl::nth(size_t i) const {
-  return start + i * step;
+bool SliceRowIndexImpl::get_element(size_t i, size_t* out) const {
+  *out = start + i * step;
+  return true;
 }
 
 
@@ -100,7 +102,7 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
     size_t start_new =
       (uptype == RowIndexType::ARR32)? static_cast<size_t>(arii->indices32()[start]) :
       (uptype == RowIndexType::ARR64)? static_cast<size_t>(arii->indices64()[start]) :
-      RowIndex::NA;
+      size_t(-1);
     return new SliceRowIndexImpl(start_new, length, 0);
   }
 
@@ -243,7 +245,7 @@ void SliceRowIndexImpl::verify_integrity() const {
 
 size_t slice_rowindex_get_start(const RowIndexImpl* impl) noexcept {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return simpl? simpl->start : RowIndex::NA;
+  return simpl? simpl->start : 0;
 }
 size_t slice_rowindex_get_step(const RowIndexImpl* impl) noexcept {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);

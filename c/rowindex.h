@@ -97,12 +97,10 @@ class RowIndex {
     bool isslice() const;
     bool isarr32() const;
     bool isarr64() const;
-    bool is_all_missing() const { return max() == RowIndex::NA; }
+    bool is_all_missing() const;
 
     size_t size() const;
-    size_t min() const;
     size_t max() const;
-    size_t operator[](size_t i) const;
     const int32_t* indices32() const noexcept;
     const int64_t* indices64() const noexcept;
     size_t slice_start() const noexcept;

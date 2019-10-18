@@ -61,7 +61,8 @@ class RowIndexImpl {
     uint32_t refcount;
     RowIndexType type;
     bool ascending;
-    int : 16;
+    bool all_missing;
+    int : 8;
 
   public:
     RowIndexImpl();
@@ -74,7 +75,7 @@ class RowIndexImpl {
     RowIndexImpl* acquire();
     RowIndexImpl* release();
 
-    virtual size_t nth(size_t i) const = 0;
+    virtual bool get_element(size_t i, size_t* out) const = 0;
     virtual RowIndexImpl* uplift_from(const RowIndexImpl*) const = 0;
     virtual RowIndexImpl* negate(size_t nrows) const = 0;
 
@@ -96,7 +97,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
   public:
     SliceRowIndexImpl(size_t start, size_t count, size_t step);
 
-    size_t nth(size_t i) const override;
+    bool get_element(size_t i, size_t* out) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
 
@@ -134,7 +135,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     const int32_t* indices32() const noexcept;
     const int64_t* indices64() const noexcept;
 
-    size_t nth(size_t i) const override;
+    bool get_element(size_t i, size_t* out) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
 

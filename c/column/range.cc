@@ -157,7 +157,6 @@ void Range_ColumnImpl::apply_rowindex(const RowIndex& ri, Column& out) {
   else if (ri.isslice()) {
     auto ri_start  = static_cast<int64_t>(ri.slice_start());
     auto ri_step   = static_cast<int64_t>(ri.slice_step());
-    xassert(ri.min() < nrows_);
     xassert(ri.max() < nrows_);
     start_ = start_ + ri_start * step_;
     step_ = step_ * ri_step;

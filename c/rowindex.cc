@@ -148,25 +148,23 @@ size_t RowIndex::size() const {
   return impl? impl->length : 0;
 }
 
-size_t RowIndex::min() const {
-  return impl? impl->min : RowIndex::NA;
-}
-
 size_t RowIndex::max() const {
   return impl? impl->max : RowIndex::NA;
 }
 
-size_t RowIndex::operator[](size_t i) const {
-  return impl? impl->nth(i) : i;
+bool RowIndex::is_all_missing() const {
+  return impl && (impl->all_missing || impl->max == RowIndex::NA);
 }
+
+
 
 bool RowIndex::get_element(size_t i, size_t* out) const {
   if (!impl) {
     *out = i;
     return true;
   }
-  *out = impl->nth(i);
-  return *out != RowIndex::NA;
+  xassert(i < impl->length);
+  return impl->get_element(i, out);
 }
 
 const int32_t* RowIndex::indices32() const noexcept {
@@ -324,9 +322,10 @@ RowIndexImpl::RowIndexImpl()
       max(RowIndex::NA),
       refcount(0),
       type(RowIndexType::UNKNOWN),
-      ascending(false) {}
+      ascending(false),
+      all_missing(false) {}
 
-RowIndexImpl::~RowIndexImpl() {}
+RowIndexImpl::~RowIndexImpl() = default;
 
 
 RowIndexImpl* RowIndexImpl::acquire() {

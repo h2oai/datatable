@@ -445,11 +445,17 @@ RowIndexImpl* ArrayRowIndexImpl::negate(size_t nrows) const {
 
 
 
-size_t ArrayRowIndexImpl::nth(size_t i) const {
-  if (type == RowIndexType::ARR32)
-    return static_cast<size_t>(indices32()[i]);
-  else
-    return static_cast<size_t>(indices64()[i]);
+bool ArrayRowIndexImpl::get_element(size_t i, size_t* out) const {
+  if (type == RowIndexType::ARR32) {
+    int32_t x = indices32()[i];
+    *out = static_cast<size_t>(x);
+    return (x != RowIndex::NA_ARR32);
+  }
+  else {
+    int64_t x = indices64()[i];
+    *out = static_cast<size_t>(x);
+    return (x != RowIndex::NA_ARR64);
+  }
 }
 
 
