@@ -119,3 +119,28 @@ def test_str_sanitize():
         r"[7 rows x 4 columns]",
         r""
     ])
+
+
+def test_str_sanitize_C0():
+    DT = dt.Frame(C0=[chr(i) for i in range(32)])
+    with dt.options.context(**{"display.max_nrows": 40}):
+        assert str(DT) == "".join(
+            ["   | C0  \n",
+             "---+ ----\n"] +
+            [" 9 | \\t  \n" if i == 9 else
+             "10 | \\n  \n" if i == 10 else
+             "13 | \\r  \n" if i == 13 else
+             "%2d | \\x%02X\n" % (i, i)
+             for i in range(32)] +
+            ["\n[32 rows x 1 column]\n"])
+
+
+def test_str_sanitize_C1():
+    DT = dt.Frame(C1=[chr(i) for i in range(0x7F, 0xA0)])
+    with dt.options.context(**{"display.max_nrows": 40}):
+        assert str(DT) == "".join(
+            ["   | C1  \n",
+             "---+ ----\n"] +
+            ["%2d | \\x%2X\n" % (i - 0x7F, i)
+             for i in range(0x7F, 0xA0)] +
+            ["\n[33 rows x 1 column]\n"])

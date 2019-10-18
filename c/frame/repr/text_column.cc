@@ -157,9 +157,23 @@ sstring TextColumn::_render_value_float(const Column& col, size_t i) const {
 bool TextColumn::_needs_escaping(const CString& str) {
   size_t n = static_cast<size_t>(str.size);
   for (size_t i = 0; i < n; ++i) {
-    if (static_cast<unsigned char>(str.ch[i]) < 0x20) return true;
+    auto c = static_cast<unsigned char>(str.ch[i]);
+    if (c < 0x20 || c >= 0x7E) return true;
   }
   return false;
+}
+
+
+static std::string _escaped_char(uint8_t a) {
+  std::string escaped = (a == '\n')? "\\n" :
+                        (a == '\t')? "\\t" :
+                        (a == '\r')? "\\r" : "\\x00";
+  if (escaped[1] == 'x') {
+    int lo = a & 15;
+    escaped[2] = static_cast<char>('0' + (a >> 4));
+    escaped[3] = static_cast<char>((lo >= 10)? 'A' + lo - 10 : '0' + lo);
+  }
+  return escaped;
 }
 
 
@@ -167,19 +181,20 @@ std::string TextColumn::_escape_string(const CString& str) {
   ostringstream out;
   size_t n = static_cast<size_t>(str.size);
   for (size_t i = 0; i < n; ++i) {
-    char c = str.ch[i];
-    if (static_cast<unsigned char>(c) >= 0x20) {
+    auto c = static_cast<unsigned char>(str.ch[i]);
+    if ((c >= 0x20 && c <= 0x7E) ||  // printable ASCII
+        (c >= 0x80 && c <= 0xBF)) {  // UTF8 continuation bytes
       out << c;
-    } else {
-      std::string escaped = (c == '\n')? "\\n" :
-                            (c == '\t')? "\\t" :
-                            (c == '\r')? "\\r" : "\\x00";
-      if (escaped[1] == 'x') {
-        int lo = c & 15;
-        escaped[2] = static_cast<char>('0' + (c >> 4));
-        escaped[3] = static_cast<char>((lo >= 10)? 'A' + lo - 10 : '0' + lo);
+    } else if (c <= 0x1F || c == 0x7F) {  // C0 block + \x7F (DEL) character
+      out << term_->dim(_escaped_char(c));
+    } else {  // unicode start byte
+      auto cc = static_cast<unsigned char>(str.ch[i + 1]);
+      if (c == 0xC2 && cc >= 0x80 && cc <= 0x9F) {  // C1 block
+        out << term_->dim(_escaped_char(cc));
+        i++;
+      } else {
+        out << c;
       }
-      out << term_->dim(escaped);
     }
   }
   return out.str();
