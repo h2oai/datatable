@@ -36,10 +36,11 @@ class RowIndexImpl {
      * length
      *     The number of elements in the RowIndex.
      *
-     * min, max
-     *     Smallest / largest entry in the RowIndex. If the RowIndex is empty
-     *     (length 0), or if all entries in the RowIndex are NAs, then
-     *     min = max = RowIndex::NA.
+     * max + max_valid
+     *     Largest entry in the RowIndex, assuming `max_valid == true`. If the
+     *     RowIndex is empty (length 0), or if all entries in the RowIndex are
+     *     NAs, then `max_valid == false`, and the value of variable `max` is
+     *     indeterminate.
      *
      * refcount
      *     Ref-counter for this RowIndexImpl object. A RowIndexImpl* object

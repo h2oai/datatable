@@ -66,10 +66,10 @@ SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
   length = n;
   step   = di;
   if (length == 0) {
-    max = RowIndex::NA;
     max_valid = false;
   } else {
     max = ascending? start + step * (n - 1) : start;
+    max_valid = true;
   }
 }
 

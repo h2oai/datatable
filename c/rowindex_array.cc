@@ -82,15 +82,12 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     size_t start = static_cast<size_t>(starts[i]);
     size_t step  = static_cast<size_t>(steps[i]);
     size_t len   = static_cast<size_t>(counts[i]);
-    if (start == RowIndex::NA && step == 0 && len <= RowIndex::MAX) {}
-    else {
-      SliceRowIndexImpl tmp(start, len, step);  // check triple's validity
-      if (tmp.ascending && start >= max) {
-        xassert(tmp.max >= max);
-        max = tmp.max;
-      } else {
-        ascending = false;
-      }
+    SliceRowIndexImpl tmp(start, len, step);  // check triple's validity
+    if (tmp.ascending && start >= max) {
+      xassert(tmp.max >= max);
+      max = tmp.max;
+    } else {
+      ascending = false;
     }
     length += len;
   }
@@ -162,20 +159,21 @@ void ArrayRowIndexImpl::set_min_max() {
 
 template <typename T>
 void ArrayRowIndexImpl::_set_min_max() {
+  constexpr T NA = std::is_same<T, int32_t>::value? T(RowIndex::NA_ARR32)
+                                                  : T(RowIndex::NA_ARR64);
   constexpr T TMAX = std::numeric_limits<T>::max();
   const T* idata = static_cast<const T*>(buf_.rptr());
   if (length == 1) ascending = true;
   if (length == 0) {
-    max = RowIndex::NA;
     max_valid = false;
   }
   else if (ascending) {
-    for (size_t j = length - 1; j < length; --j) {
-      max = static_cast<size_t>(idata[j]);
-      if (max != RowIndex::NA) break;
-    }
-    if (max == RowIndex::NA) {
-      max_valid = false;
+    max_valid = false;
+    for (size_t j = length - 1; j < length && !max_valid; --j) {
+      T x = idata[j];
+      if (x == NA) continue;
+      max = static_cast<size_t>(x);
+      max_valid = true;
     }
   }
   else {
@@ -192,14 +190,10 @@ void ArrayRowIndexImpl::_set_min_max() {
         dt::atomic_fetch_max(&amax, local_max);
       });
     T tmax = amax.load();
-    if (tmax == -TMAX) {
-      max = RowIndex::NA;
-      max_valid = false;
-    } else {
-      max = static_cast<size_t>(tmax);
-    }
+    max_valid = (tmax != -TMAX);
+    max = static_cast<size_t>(tmax);
   }
-  xassert(max == RowIndex::NA || max <= RowIndex::MAX);
+  xassert(max_valid? max <= RowIndex::MAX : true);
 }
 
 
@@ -245,7 +239,6 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
 
 void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
   if (col.nrows() == 0) {
-    max = RowIndex::NA;
     max_valid = false;
   } else {
     int64_t imin = col.stats()->min_int();
@@ -257,6 +250,7 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
       throw ValueError() << "RowIndex source column contains NA values.";
     }
     max = static_cast<size_t>(imax);
+    max_valid = true;
   }
   length = col.nrows();
   bool allow_arr32 = (length <= Column::MAX_ARR32_SIZE) &&
@@ -328,7 +322,7 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
     res->compactify();
     return res;
   }
-  xassert(max < rii->length || max == RowIndex::NA);
+  xassert(max_valid? max < rii->length : true);
   if (uptype == RowIndexType::ARR32 && type == RowIndexType::ARR32) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
     arr32_t rowsres(length);
