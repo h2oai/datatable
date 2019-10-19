@@ -166,10 +166,24 @@ def test_key_after_group():
 
 
 #-------------------------------------------------------------------------------
+# Replace
+#-------------------------------------------------------------------------------
+
+def test_replace_in_keyed_frame():
+    DT = dt.Frame(A=range(100))
+    DT.key = "A"
+    with pytest.raises(ValueError, match = "Cannot replace values in a keyed frame"):
+        DT.replace(1, 101)
+    assert DT.key == ("A",)
+    frame_integrity_check(DT)
+    assert DT.to_list() == [list(range(100))]
+
+
+#-------------------------------------------------------------------------------
 # Resize
 #-------------------------------------------------------------------------------
 
-def test_reduce_nrows_for_keyed_frame():
+def test_reduce_nrows_in_keyed_frame():
     DT = dt.Frame(A=range(100))
     DT.key = "A"
     DT.nrows = 50
@@ -178,12 +192,11 @@ def test_reduce_nrows_for_keyed_frame():
     assert DT.to_list() == [list(range(50))]
 
 
-def test_increase_nrows_for_keyed_frame():
+def test_increase_nrows_in_keyed_frame():
     DT = dt.Frame(A=range(100))
     DT.key = "A"
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match = "Cannot increase number of rows in a keyed frame"):
         DT.nrows = 150
-    assert "Cannot increase number of rows" in str(e.value)
     assert DT.key == ("A",)
     frame_integrity_check(DT)
     assert DT.to_list() == [list(range(100))]
