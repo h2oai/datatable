@@ -56,7 +56,6 @@ class RowIndexImpl {
      *     elements are descending, they may also be non-monotonous.
      */
     size_t length;
-    size_t min;
     size_t max;
     uint32_t refcount;
     RowIndexType type;

@@ -77,7 +77,6 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
   // Compute the total number of elements, and the largest index that needs
   // to be stored. Also check for potential overflows / invalid values.
   length = 0;
-  min = std::numeric_limits<size_t>::max();
   max = 0;
   for (size_t i = 0; i < n; ++i) {
     size_t start = static_cast<size_t>(starts[i]);
@@ -86,16 +85,19 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     if (start == RowIndex::NA && step == 0 && len <= RowIndex::MAX) {}
     else {
       SliceRowIndexImpl tmp(start, len, step);  // check triple's validity
-      if (!tmp.ascending || tmp.min < max) ascending = false;
-      if (tmp.min < min) min = tmp.min;
-      if (tmp.max > max) max = tmp.max;
+      if (tmp.ascending && start >= max) {
+        xassert(tmp.max >= max);
+        max = tmp.max;
+      } else {
+        ascending = false;
+      }
     }
     length += len;
   }
-  if (min > max) {
-    min = max = RowIndex::NA;
+  if (length == 0) {
+    max = RowIndex::NA;
+    all_missing = true;
   }
-  xassert(min >= 0 && min <= max);
 
   if (length <= INT32_MAX && max <= INT32_MAX) {
     type = RowIndexType::ARR32;
@@ -165,48 +167,40 @@ void ArrayRowIndexImpl::_set_min_max() {
   const T* idata = static_cast<const T*>(buf_.rptr());
   if (length == 1) ascending = true;
   if (length == 0) {
-    min = max = RowIndex::NA;
+    max = RowIndex::NA;
+    all_missing = true;
   }
   else if (ascending) {
-    for (size_t j = 0; j < length; ++j) {
-      min = static_cast<size_t>(idata[j]);
-      if (min != RowIndex::NA) break;
+    for (size_t j = length - 1; j < length; --j) {
+      max = static_cast<size_t>(idata[j]);
+      if (max != RowIndex::NA) break;
     }
-    if (min == RowIndex::NA) {
-      max = min;
-    } else {
-      for (size_t j = length - 1; j < length; --j) {
-        max = static_cast<size_t>(idata[j]);
-        if (max != RowIndex::NA) break;
-      }
+    if (max == RowIndex::NA) {
+      all_missing = true;
     }
   }
   else {
-    std::atomic<T> amin { TMAX };
     std::atomic<T> amax { -TMAX };
     dt::parallel_region(
       [&] {
-        T local_min = TMAX;
         T local_max = -TMAX;
         dt::nested_for_static(length,
           [&](size_t i) {
             T t = idata[i];
             if (t == -1) return;
-            if (t < local_min) local_min = t;
             if (t > local_max) local_max = t;
           });
-        dt::atomic_fetch_min(&amin, local_min);
         dt::atomic_fetch_max(&amax, local_max);
       });
-    T tmin = amin.load();
     T tmax = amax.load();
-    if (tmin == TMAX && tmax == -TMAX) tmin = tmax = -1;
-    min = static_cast<size_t>(tmin);
-    max = static_cast<size_t>(tmax);
+    if (tmax == -TMAX) {
+      max = RowIndex::NA;
+      all_missing = true;
+    } else {
+      max = static_cast<size_t>(tmax);
+    }
   }
-  xassert(max >= min);
   xassert(max == RowIndex::NA || max <= RowIndex::MAX);
-  xassert(min == RowIndex::NA || min <= RowIndex::MAX);
 }
 
 
@@ -251,7 +245,8 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
 
 void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
   if (col.nrows() == 0) {
-    min = max = RowIndex::NA;
+    max = RowIndex::NA;
+    all_missing = true;
   } else {
     int64_t imin = col.stats()->min_int();
     int64_t imax = col.stats()->max_int();
@@ -261,8 +256,6 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
     if (col.na_count()) {
       throw ValueError() << "RowIndex source column contains NA values.";
     }
-    if (imin == -1) imin = 0;
-    min = static_cast<size_t>(imin);
     max = static_cast<size_t>(imax);
   }
   length = col.nrows();
@@ -467,11 +460,10 @@ size_t ArrayRowIndexImpl::memory_footprint() const noexcept {
 
 template <typename T>
 static void verify_integrity_helper(
-    const void* data, size_t len, size_t min, size_t max, bool sorted)
+    const void* data, size_t len, size_t max, bool sorted)
 {
   constexpr T TMAX = std::numeric_limits<T>::max();
   auto ind = static_cast<const T*>(data);
-  T tmin = TMAX;
   T tmax = -TMAX;
   bool check_sorted = sorted;
   for (size_t i = 0; i < len; ++i) {
@@ -481,21 +473,18 @@ static void verify_integrity_helper(
       throw AssertionError()
           << "Element " << i << " in the ArrayRowIndex is negative: " << x;
     }
-    if (x < tmin) tmin = x;
     if (x > tmax) tmax = x;
     if (check_sorted && i > 0 && x < ind[i-1]) check_sorted = false;
   }
-  if (tmin == TMAX && tmax == -TMAX) tmin = tmax = -1;
+  if (tmax == -TMAX) tmax = -1;
   if (check_sorted != sorted) {
     throw AssertionError()
         << "ArrrayRowIndex is marked as sorted, but actually it isn't.";
   }
-  if (!((static_cast<size_t>(tmin) == min || min == 0) &&
-        static_cast<size_t>(tmax) == max)) {
+  if (static_cast<size_t>(tmax) != max) {
     throw AssertionError()
-        << "Mismatching min/max values in the ArrayRowIndex min=" << min
-        << "/max=" << max << " compared to the computed min=" << tmin
-        << "/max=" << tmax;
+        << "Mismatching max value in the ArrayRowIndex max="
+        << max << " compared to the computed max=" << tmax;
   }
 }
 
@@ -504,9 +493,9 @@ void ArrayRowIndexImpl::verify_integrity() const {
   buf_.verify_integrity();
 
   if (type == RowIndexType::ARR32) {
-    verify_integrity_helper<int32_t>(buf_.rptr(), length, min, max, ascending);
+    verify_integrity_helper<int32_t>(buf_.rptr(), length, max, ascending);
   } else if (type == RowIndexType::ARR64) {
-    verify_integrity_helper<int64_t>(buf_.rptr(), length, min, max, ascending);
+    verify_integrity_helper<int64_t>(buf_.rptr(), length, max, ascending);
   } else {
     throw AssertionError() << "Invalid type = " << static_cast<int>(type)
         << " in ArrayRowIndex";

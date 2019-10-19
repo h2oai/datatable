@@ -318,7 +318,6 @@ void RowIndex::verify_integrity() const {
 
 RowIndexImpl::RowIndexImpl()
     : length(0),
-      min(RowIndex::NA),
       max(RowIndex::NA),
       refcount(0),
       type(RowIndexType::UNKNOWN),
@@ -343,23 +342,7 @@ RowIndexImpl* RowIndexImpl::release() {
 
 
 void RowIndexImpl::verify_integrity() const {
-  if (refcount == 0) {
-    throw AssertionError() << "RowIndex has refcount of 0";
-  }
-  if (length == 0 && (min != RowIndex::NA || max != RowIndex::NA)) {
-    throw AssertionError() << "RowIndex has length 0, but either min = " << min
-        << " or max = " << max << " are non-NA";
-  }
-  if (min > RowIndex::MAX && min != RowIndex::NA) {
-    int64_t imin = static_cast<int64_t>(min);
-    throw AssertionError() << "min value in RowIndex is negative: " << imin;
-  }
-  if (max > RowIndex::MAX && max != RowIndex::NA) {
-    int64_t imax = static_cast<int64_t>(max);
-    throw AssertionError() << "max value in RowIndex is negative: " << imax;
-  }
-  if (min > max && min != RowIndex::NA) {
-    throw AssertionError() << "min value in RowIndex is larger than max: min = "
-        << min << ", max = " << max;
-  }
+  XAssert(refcount > 0);
+  XAssert(length == 0? (max == RowIndex::NA) : true);
+  XAssert(max <= RowIndex::MAX || max == RowIndex::NA);
 }

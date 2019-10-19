@@ -66,12 +66,10 @@ SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
   length = n;
   step   = di;
   if (length == 0) {
-    min = max = RowIndex::NA;
+    max = RowIndex::NA;
     all_missing = true;
   } else {
-    min = start;
-    max = start + step * (n - 1);
-    if (!ascending) std::swap(min, max);
+    max = ascending? start + step * (n - 1) : start;
   }
 }
 
@@ -229,11 +227,11 @@ void SliceRowIndexImpl::verify_integrity() const {
     size_t minrow = start;
     size_t maxrow = start + step * (length - 1);
     if (!ascending) std::swap(minrow, maxrow);
-    if (min != minrow || max != maxrow) {
+    if (max != maxrow) {
       int64_t istep = static_cast<int64_t>(step);
       throw AssertionError()
-          << "Invalid min/max values in a Slice RowIndex " << start << "/"
-          << length << "/" << istep << ": min = " << min << ", max = " << max;
+          << "Invalid max value in a Slice RowIndex " << start << "/"
+          << length << "/" << istep << ": max = " << max;
     }
     if (ascending != (step <= RowIndex::MAX)) {
       throw AssertionError()
