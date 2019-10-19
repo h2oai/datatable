@@ -80,11 +80,11 @@ Frame
     assert DT.stype == dt.int64
 
 - |new| When an integer column is used to select rows from a Frame, that column
-  is now allowed to contain values `-1` which indicate selection of an NA
-  value::
+  is now allowed to contain NA values, which indicate that a row filled with
+  missing values has to be produced::
 
     DT = dt.Frame(A=['a', 'b', 'c', 'd', 'e'])
-    rows = dt.Frame([2, 0, -1, 1, 2])
+    rows = dt.Frame([2, 0, None, 1, 2])
     assert DT[rows, :].to_list() == [['c', 'a', None, 'b', 'c']]
 
 - |api| The name deduplication algorithm now starts looking for candidate names
