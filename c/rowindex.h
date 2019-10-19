@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_ROWINDEX_h
 #define dt_ROWINDEX_h
+#include <cstdint>
 #include "utils/array.h"
 
 class Column;
@@ -45,8 +46,8 @@ class RowIndex {
     RowIndexImpl* impl;  // Shared reference semantics
 
   public:
-    static constexpr int32_t NA_ARR32 = -1;
-    static constexpr int64_t NA_ARR64 = -1;
+    static constexpr int32_t NA_ARR32 = INT32_MIN;
+    static constexpr int64_t NA_ARR64 = INT64_MIN;
     static constexpr size_t MAX = size_t(-1) >> 1;
     static_assert(int32_t(size_t(NA_ARR32)) == NA_ARR32, "Bad NA_ARR32");
     static_assert(int64_t(size_t(NA_ARR64)) == NA_ARR64, "Bad NA_ARR64");

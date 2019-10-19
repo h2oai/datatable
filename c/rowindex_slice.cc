@@ -96,12 +96,11 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
   // repeated `length` times, and hence can be created as a slice even
   // if `rii` is an ArrayRowIndex.
   if (step == 0) {
-    auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    size_t start_new =
-      (uptype == RowIndexType::ARR32)? static_cast<size_t>(arii->indices32()[start]) :
-      (uptype == RowIndexType::ARR64)? static_cast<size_t>(arii->indices64()[start]) :
-      size_t(-1);
-    return new SliceRowIndexImpl(start_new, length, 0);
+    size_t start_new;
+    bool start_valid = rii->get_element(start, &start_new);
+    if (start_valid) {
+      return new SliceRowIndexImpl(start_new, length, 0);
+    }
   }
 
   // if C->B is ARR32, then all row indices in C are int32, and thus any

@@ -29,13 +29,16 @@
 #include "rowindex_impl.h"
 
 
+constexpr int32_t RowIndex::NA_ARR32;
+constexpr int64_t RowIndex::NA_ARR64;
+
+
 //------------------------------------------------------------------------------
 // Construction
 //------------------------------------------------------------------------------
 
 RowIndex::RowIndex() {
   impl = nullptr;
-  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 // copy-constructor, performs shallow copying
@@ -54,40 +57,33 @@ RowIndex& RowIndex::operator=(const RowIndex& other) {
 RowIndex::RowIndex(RowIndex&& other) {
   impl = other.impl;
   other.impl = nullptr;
-  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::~RowIndex() {
   if (impl) impl = impl->release();
-  UNTRACK(this);
 }
 
 
 // Private constructor
 RowIndex::RowIndex(RowIndexImpl* rii) {
   impl = rii? rii->acquire() : nullptr;
-  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 
 RowIndex::RowIndex(size_t start, size_t count, size_t step) {
   impl = (new SliceRowIndexImpl(start, count, step))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 RowIndex::RowIndex(const Column& col) {
   impl = (new ArrayRowIndexImpl(col))->acquire();
-  TRACK(this, sizeof(*this), "RowIndex");
 }
 
 
@@ -149,7 +145,7 @@ size_t RowIndex::size() const {
 }
 
 size_t RowIndex::max() const {
-  return impl? impl->max : size_t(-1);
+  return impl? impl->max : 0;
 }
 
 bool RowIndex::is_all_missing() const {
@@ -268,8 +264,7 @@ Buffer RowIndex::as_boolean_mask(size_t nrows) const {
 Buffer RowIndex::as_integer_mask(size_t nrows) const {
   Buffer res = Buffer::mem(nrows * 4);
   int32_t* data = static_cast<int32_t*>(res.xptr());
-  // NA index is -1 in byte, and also -1 in int32
-  std::memset(data, -1, nrows * 4);
+  std::fill(data, data + nrows, RowIndex::NA_ARR32);
   iterate(0, size(), 1,
     [&](size_t i, size_t j, bool jvalid) {
       if (jvalid) data[j] = static_cast<int32_t>(i);
