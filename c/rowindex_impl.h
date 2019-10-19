@@ -60,7 +60,7 @@ class RowIndexImpl {
     uint32_t refcount;
     RowIndexType type;
     bool ascending;
-    bool all_missing;
+    bool max_valid;
     int : 8;
 
   public:

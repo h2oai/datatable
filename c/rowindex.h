@@ -186,16 +186,16 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
     case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
       for (size_t i = i0; i < i1; i += di) {
-        auto j = static_cast<size_t>(ridata[i]);
-        f(i, j, j != RowIndex::NA);
+        int32_t x = ridata[i];
+        f(i, static_cast<size_t>(x), x != RowIndex::NA_ARR32);
       }
       break;
     }
     case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
       for (size_t i = i0; i < i1; i += di) {
-        auto j = static_cast<size_t>(ridata[i]);
-        f(i, j, j != RowIndex::NA);
+        int64_t x = ridata[i];
+        f(i, static_cast<size_t>(x), x != RowIndex::NA_ARR64);
       }
       break;
     }

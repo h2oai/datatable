@@ -95,8 +95,7 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(
     length += len;
   }
   if (length == 0) {
-    max = RowIndex::NA;
-    all_missing = true;
+    max_valid = false;
   }
 
   if (length <= INT32_MAX && max <= INT32_MAX) {
@@ -168,7 +167,7 @@ void ArrayRowIndexImpl::_set_min_max() {
   if (length == 1) ascending = true;
   if (length == 0) {
     max = RowIndex::NA;
-    all_missing = true;
+    max_valid = false;
   }
   else if (ascending) {
     for (size_t j = length - 1; j < length; --j) {
@@ -176,7 +175,7 @@ void ArrayRowIndexImpl::_set_min_max() {
       if (max != RowIndex::NA) break;
     }
     if (max == RowIndex::NA) {
-      all_missing = true;
+      max_valid = false;
     }
   }
   else {
@@ -195,7 +194,7 @@ void ArrayRowIndexImpl::_set_min_max() {
     T tmax = amax.load();
     if (tmax == -TMAX) {
       max = RowIndex::NA;
-      all_missing = true;
+      max_valid = false;
     } else {
       max = static_cast<size_t>(tmax);
     }
@@ -212,6 +211,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
   if (length == 0) {
     // no need to do anything: the data arrays already have 0 length
     type = RowIndexType::ARR32;
+    max_valid = false;
     return;
   }
   int32_t value;
@@ -246,7 +246,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
 void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
   if (col.nrows() == 0) {
     max = RowIndex::NA;
-    all_missing = true;
+    max_valid = false;
   } else {
     int64_t imin = col.stats()->min_int();
     int64_t imax = col.stats()->max_int();
@@ -460,32 +460,25 @@ size_t ArrayRowIndexImpl::memory_footprint() const noexcept {
 
 template <typename T>
 static void verify_integrity_helper(
-    const void* data, size_t len, size_t max, bool sorted)
+    const void* data, size_t len, size_t max, bool max_valid, bool sorted)
 {
+  constexpr T NA = std::is_same<T, int32_t>::value? T(RowIndex::NA_ARR32)
+                                                  : T(RowIndex::NA_ARR64);
   constexpr T TMAX = std::numeric_limits<T>::max();
   auto ind = static_cast<const T*>(data);
   T tmax = -TMAX;
   bool check_sorted = sorted;
   for (size_t i = 0; i < len; ++i) {
     T x = ind[i];
-    if (x == -1) continue;
-    if (x < 0) {
-      throw AssertionError()
-          << "Element " << i << " in the ArrayRowIndex is negative: " << x;
-    }
+    if (x == NA) continue;
+    XAssert(x >= 0);
     if (x > tmax) tmax = x;
     if (check_sorted && i > 0 && x < ind[i-1]) check_sorted = false;
   }
-  if (tmax == -TMAX) tmax = -1;
-  if (check_sorted != sorted) {
-    throw AssertionError()
-        << "ArrrayRowIndex is marked as sorted, but actually it isn't.";
-  }
-  if (static_cast<size_t>(tmax) != max) {
-    throw AssertionError()
-        << "Mismatching max value in the ArrayRowIndex max="
-        << max << " compared to the computed max=" << tmax;
-  }
+  bool tmax_valid = (tmax != -TMAX);
+  XAssert(check_sorted == sorted);
+  XAssert(max_valid == tmax_valid);
+  XAssert(max_valid? static_cast<size_t>(tmax) == max : true);
 }
 
 void ArrayRowIndexImpl::verify_integrity() const {
@@ -493,9 +486,9 @@ void ArrayRowIndexImpl::verify_integrity() const {
   buf_.verify_integrity();
 
   if (type == RowIndexType::ARR32) {
-    verify_integrity_helper<int32_t>(buf_.rptr(), length, max, ascending);
+    verify_integrity_helper<int32_t>(buf_.rptr(), length, max, max_valid, ascending);
   } else if (type == RowIndexType::ARR64) {
-    verify_integrity_helper<int64_t>(buf_.rptr(), length, max, ascending);
+    verify_integrity_helper<int64_t>(buf_.rptr(), length, max, max_valid, ascending);
   } else {
     throw AssertionError() << "Invalid type = " << static_cast<int>(type)
         << " in ArrayRowIndex";

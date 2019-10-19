@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -149,11 +149,11 @@ size_t RowIndex::size() const {
 }
 
 size_t RowIndex::max() const {
-  return impl? impl->max : RowIndex::NA;
+  return impl? impl->max : size_t(-1);
 }
 
 bool RowIndex::is_all_missing() const {
-  return impl && (impl->all_missing || impl->max == RowIndex::NA);
+  return impl && !impl->max_valid;
 }
 
 
@@ -318,11 +318,10 @@ void RowIndex::verify_integrity() const {
 
 RowIndexImpl::RowIndexImpl()
     : length(0),
-      max(RowIndex::NA),
       refcount(0),
       type(RowIndexType::UNKNOWN),
       ascending(false),
-      all_missing(false) {}
+      max_valid(true) {}
 
 RowIndexImpl::~RowIndexImpl() = default;
 
@@ -340,9 +339,8 @@ RowIndexImpl* RowIndexImpl::release() {
 }
 
 
-
 void RowIndexImpl::verify_integrity() const {
   XAssert(refcount > 0);
-  XAssert(length == 0? (max == RowIndex::NA) : true);
-  XAssert(max <= RowIndex::MAX || max == RowIndex::NA);
+  XAssert(length == 0? !max_valid : true);
+  XAssert(max_valid? max <= RowIndex::MAX : true);
 }
