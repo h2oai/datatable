@@ -127,6 +127,13 @@ Frame
 - |fix| Setting a key on a copied frame no longer affects the original
   frame (#2095).
 
+- |fix| When a Frame has a string column containing special characters (such
+  as newlines, tabs, or others from C0/C1 blocks), they will now be properly
+  escaped when the frame is printed in a console. In addition, we now attempt
+  to detect and properly handle 0-width and double-width characters in strings,
+  so that when a column containing such unicode characters is displayed, it
+  should not cause mis-alignment issues.
+
 
 General
 -------
