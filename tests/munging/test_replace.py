@@ -400,6 +400,18 @@ def test_replace_in_view2():
     assert DT.to_list() == [names]
 
 
+#-------------------------------------------------------------------------------
+# Replacing in a keyed frame
+#-------------------------------------------------------------------------------
+
+def test_replace_in_keyed_frame():
+    DT = dt.Frame(A=range(100))
+    DT.key = "A"
+    with pytest.raises(ValueError, match = "Cannot replace values in a keyed frame"):
+        DT.replace(1, 101)
+    assert DT.key == ("A",)
+    frame_integrity_check(DT)
+    assert DT.to_list() == [list(range(100))]
 
 
 #-------------------------------------------------------------------------------
