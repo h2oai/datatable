@@ -366,10 +366,15 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
     while (k < max_bins) {
       int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
       size_t off_i = static_cast<size_t>(offsets[i]);
-      if (ISNA<int32_t>(d_members[ri_members[off_i]])) {
+      size_t ri;
+      bool rii_valid = ri_members.get_element(off_i, &ri);
+      xassert(rii_valid);  (void) rii_valid;
+      if (ISNA<int32_t>(d_members[ri])) {
         size_t off_i1 = static_cast<size_t>(offsets[i + 1]);
         for (size_t j = off_i; j < off_i1; ++j) {
-          d_members[ri_members[j]] = static_cast<int32_t>(k);
+          rii_valid = ri_members.get_element(j, &ri);
+          xassert(rii_valid);  (void) rii_valid;
+          d_members[ri] = static_cast<int32_t>(k);
         }
         k++;
       }
@@ -419,7 +424,10 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   for (size_t i = was_sampled; i < ngroups; ++i) {
     size_t i_sampled = i - was_sampled;
     size_t off_i = static_cast<size_t>(offsets[i]);
-    exemplar_indices[i_sampled] = static_cast<int32_t>(ri_members[off_i]);
+    size_t rii;
+    bool rii_valid = ri_members.get_element(off_i, &rii);
+    xassert(rii_valid);  (void) rii_valid;
+    exemplar_indices[i_sampled] = static_cast<int32_t>(rii);
     d_counts[i_sampled] = offsets[i+1] - offsets[i];
   }
 
@@ -434,7 +442,10 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
       size_t member_shift = static_cast<size_t>(offsets[i_sampled + was_sampled]);
       size_t jmax = static_cast<size_t>(d_counts[i_sampled]);
       for (size_t j = 0; j < jmax; ++j) {
-        d_members[ri_members[member_shift + j]] = static_cast<int32_t>(i_sampled);
+        size_t rii;
+        bool rii_valid = ri_members.get_element(member_shift + j, &rii);
+        xassert(rii_valid);  (void) rii_valid;
+        d_members[rii] = static_cast<int32_t>(i_sampled);
       }
     });
   dt_members->get_column(0).reset_stats();
@@ -459,7 +470,8 @@ void Aggregator<T>::group_0d() {
 
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
     ri_exemplars.iterate(0, dt->nrows(), 1,
-      [&](size_t i, size_t j) {
+      [&](size_t i, size_t j, bool jvalid) {
+        if (!jvalid) return;
         d_members[j] = static_cast<int32_t>(i);
       });
   }
@@ -572,7 +584,10 @@ void Aggregator<T>::group_1d_categorical() {
       size_t off_i = static_cast<size_t>(offsets0[i]);
       size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
       for (size_t j = off_i; j < off_i1; ++j) {
-        d_members[ri0[j]] = static_cast<int32_t>(i);
+        size_t rij;
+        bool rij_valid = ri0.get_element(j, &rij);
+        xassert(rij_valid); (void)rij_valid;
+        d_members[rij] = static_cast<int32_t>(i);
       }
     });
 }
@@ -608,7 +623,9 @@ void Aggregator<T>::group_2d_categorical()
       auto group_i_start = static_cast<size_t>(offsets[i]);
       auto group_i_end = static_cast<size_t>(offsets[i+1]);
       for (size_t j = group_i_start; j < group_i_end; ++j) {
-        size_t gi = ri[j];
+        size_t gi;
+        bool gi_valid = ri.get_element(j, &gi);
+        xassert(gi_valid); (void)gi_valid;
         bool val0_isna = !col0.get_element(gi, &tmp);
         bool val1_isna = !col1.get_element(gi, &tmp);
         int na_case = val0_isna + 2 * val1_isna;
@@ -654,7 +671,9 @@ void Aggregator<T>::group_2d_mixed()
       auto group_i_start = static_cast<size_t>(offsets_cat[i]);
       auto group_i_end = static_cast<size_t>(offsets_cat[i+1]);
       for (size_t j = group_i_start; j < group_i_end; ++j) {
-        size_t gi = ri_cat[j];
+        size_t gi;
+        bool gi_valid = ri_cat.get_element(j, &gi);
+        xassert(gi_valid); (void)gi_valid;
         bool val0_isna = !col0.get_element(gi, &tmp);
         bool val1_isna = ISNA<T>(col1[gi]);
         int32_t na_case = val1_isna + 2 * val0_isna;

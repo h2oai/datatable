@@ -211,10 +211,13 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     auto data_label_ids = static_cast<const int8_t*>(
                               dt_labels->get_column(1).get_data_readonly());
 
+    size_t ri0_index = 0, ri1_index;
+    bool ri0_valid = (ri_join.size() >= 1) && ri_join.get_element(0, &ri0_index);
+    bool ri1_valid = (ri_join.size() >= 2) && ri_join.get_element(1, &ri1_index);
 
     switch (nlabels) {
       case 1: switch (nlabels_in) {
-                 case 1: if (ri_join[0] == RowIndex::NA) {
+                 case 1: if (!ri0_valid) {
                            // The new label we got was encoded with zeros,
                            // so we train the model on all negatives: 1 == 0
                            label_ids[0] = 1;
@@ -224,14 +227,14 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                            dt_labels->set_key(keys);
                          }
                          break;
-                 case 2: if (ri_join[0] == RowIndex::NA && ri_join[1] == RowIndex::NA) {
+                 case 2: if (!ri0_valid && !ri1_valid) {
                            throw ValueError() << "Got two new labels in the target column, "
                                               << "however, positive label is already set";
                          }
                          // If the new label is the zero label,
                          // then we need to train on the existing label indicator
                          // i.e. the first one.
-                         label_ids[0] = static_cast<size_t>(data_label_ids_in[ri_join[0] == RowIndex::NA]);
+                         label_ids[0] = static_cast<size_t>(data_label_ids_in[!ri0_valid]);
                          // Reverse labels id order if the new label comes first.
                          if (label_ids[0] == 1) {
                            data_label_ids_in[0] = 1;
@@ -242,17 +245,17 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
               break;
 
       case 2: switch (nlabels_in) {
-                case 1: if (ri_join[0] == RowIndex::NA) {
+                case 1: if (!ri0_valid) {
                           throw ValueError() << "Got a new label in the target column, however, both "
                                              << "positive and negative labels are already set";
                         }
-                        label_ids[0] = (data_label_ids[ri_join[0]] == 1);
+                        label_ids[0] = (data_label_ids[ri0_index] == 1);
                         break;
-                case 2: if (ri_join[0] == RowIndex::NA || ri_join[1] == RowIndex::NA) {
+                case 2: if (!ri0_valid || !ri1_valid) {
                           throw ValueError() << "Got a new label in the target column, however, both "
                                              << "positive and negative labels are already set";
                         }
-                        size_t label_id = static_cast<size_t>(data_label_ids[ri_join[0]] != 0);
+                        size_t label_id = static_cast<size_t>(data_label_ids[ri0_index] != 0);
                         label_ids[0] = static_cast<size_t>(data_label_ids_in[label_id]);
 
                         break;
@@ -421,10 +424,11 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     int64_t* data = new_label_indices.data();
     size_t n_new_labels = 0;
     for (size_t i = 0; i < nlabels_in; ++i) {
-      size_t ri = ri_join[i];
+      size_t rii;
+      bool rii_valid = ri_join.get_element(i, &rii);
       size_t label_id_in = static_cast<size_t>(data_label_ids_in[i]);
-      if (ri != RowIndex::NA) {
-        size_t label_id = static_cast<size_t>(data_label_ids[ri]);
+      if (rii_valid) {
+        size_t label_id = static_cast<size_t>(data_label_ids[rii]);
         label_ids[label_id] = label_id_in;
       } else {
         // If there is no corresponding label already set,

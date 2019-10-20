@@ -66,17 +66,17 @@ SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
   length = n;
   step   = di;
   if (length == 0) {
-    min = max = RowIndex::NA;
+    max_valid = false;
   } else {
-    min = start;
-    max = start + step * (n - 1);
-    if (!ascending) std::swap(min, max);
+    max = ascending? start + step * (n - 1) : start;
+    max_valid = true;
   }
 }
 
 
-size_t SliceRowIndexImpl::nth(size_t i) const {
-  return start + i * step;
+bool SliceRowIndexImpl::get_element(size_t i, size_t* out) const {
+  *out = start + i * step;
+  return true;
 }
 
 
@@ -96,12 +96,11 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
   // repeated `length` times, and hence can be created as a slice even
   // if `rii` is an ArrayRowIndex.
   if (step == 0) {
-    auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    size_t start_new =
-      (uptype == RowIndexType::ARR32)? static_cast<size_t>(arii->indices32()[start]) :
-      (uptype == RowIndexType::ARR64)? static_cast<size_t>(arii->indices64()[start]) :
-      RowIndex::NA;
-    return new SliceRowIndexImpl(start_new, length, 0);
+    size_t start_new;
+    bool start_valid = rii->get_element(start, &start_new);
+    if (start_valid) {
+      return new SliceRowIndexImpl(start_new, length, 0);
+    }
   }
 
   // if C->B is ARR32, then all row indices in C are int32, and thus any
@@ -199,29 +198,6 @@ RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
 }
 
 
-void SliceRowIndexImpl::resize(size_t n) {
-  xassert(n <= length);
-  length = n;
-  min = start;
-  max = start + step*(n - 1);
-  if (!ascending) std::swap(min, max);
-}
-
-RowIndexImpl* SliceRowIndexImpl::resized(size_t n) {
-  if (n <= length) {
-    return new SliceRowIndexImpl(start, n, step);
-  } else {
-    arr64_t starts(2), counts(2), steps(2);
-    starts[0] = static_cast<int64_t>(start);
-    counts[0] = static_cast<int64_t>(length);
-    steps[0]  = static_cast<int64_t>(step);
-    starts[1] = -1;
-    counts[1] = static_cast<int64_t>(n - length);
-    steps[1]  = 0;
-    return new ArrayRowIndexImpl(starts, counts, steps);
-  }
-}
-
 
 
 size_t SliceRowIndexImpl::memory_footprint() const noexcept {
@@ -250,11 +226,11 @@ void SliceRowIndexImpl::verify_integrity() const {
     size_t minrow = start;
     size_t maxrow = start + step * (length - 1);
     if (!ascending) std::swap(minrow, maxrow);
-    if (min != minrow || max != maxrow) {
+    if (max != maxrow) {
       int64_t istep = static_cast<int64_t>(step);
       throw AssertionError()
-          << "Invalid min/max values in a Slice RowIndex " << start << "/"
-          << length << "/" << istep << ": min = " << min << ", max = " << max;
+          << "Invalid max value in a Slice RowIndex " << start << "/"
+          << length << "/" << istep << ": max = " << max;
     }
     if (ascending != (step <= RowIndex::MAX)) {
       throw AssertionError()
@@ -266,7 +242,7 @@ void SliceRowIndexImpl::verify_integrity() const {
 
 size_t slice_rowindex_get_start(const RowIndexImpl* impl) noexcept {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);
-  return simpl? simpl->start : RowIndex::NA;
+  return simpl? simpl->start : 0;
 }
 size_t slice_rowindex_get_step(const RowIndexImpl* impl) noexcept {
   auto simpl = dynamic_cast<const SliceRowIndexImpl*>(impl);

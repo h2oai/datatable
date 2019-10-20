@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_ROWINDEX_h
 #define dt_ROWINDEX_h
+#include <cstdint>
 #include "utils/array.h"
 
 class Column;
@@ -45,8 +46,11 @@ class RowIndex {
     RowIndexImpl* impl;  // Shared reference semantics
 
   public:
-    static constexpr size_t NA = size_t(-1);
+    static constexpr int32_t NA_ARR32 = INT32_MIN;
+    static constexpr int64_t NA_ARR64 = INT64_MIN;
     static constexpr size_t MAX = size_t(-1) >> 1;
+    static_assert(int32_t(size_t(NA_ARR32)) == NA_ARR32, "Bad NA_ARR32");
+    static_assert(int64_t(size_t(NA_ARR64)) == NA_ARR64, "Bad NA_ARR64");
 
     RowIndex();
     RowIndex(const RowIndex&);
@@ -61,8 +65,6 @@ class RowIndex {
      */
     RowIndex(arr32_t&& arr, bool sorted = false);
     RowIndex(arr64_t&& arr, bool sorted = false);
-    RowIndex(arr32_t&& arr, size_t min, size_t max);
-    RowIndex(arr64_t&& arr, size_t min, size_t max);
 
     /**
      * Construct a "slice" RowIndex from triple `(start, count, step)`.
@@ -75,17 +77,6 @@ class RowIndex {
      *   - there is no difference in handling positive/negative steps.
      */
     RowIndex(size_t start, size_t count, size_t step);
-
-    /**
-     * Construct an "array" `RowIndex` object from a series of triples
-     * `(start, count, step)`. The triples are given as 3 separate arrays of
-     * starts, of counts and of steps.
-     *
-     * This will create either an RowIndexType::ARR32 or RowIndexType::ARR64
-     * object, depending on which one is sufficient to hold all the indices.
-     */
-    RowIndex(const arr64_t& starts, const arr64_t& counts, const arr64_t& steps);
-
 
     /**
      * Create RowIndex from either a boolean or an integer column.
@@ -104,20 +95,18 @@ class RowIndex {
     RowIndexType type() const noexcept;
     bool isabsent() const;
     bool isslice() const;
-    bool is_simple_slice() const;  // is this a slice with step==1?
     bool isarr32() const;
     bool isarr64() const;
-    bool isarray() const;
-    const void* ptr() const;
+    bool is_all_missing() const;
 
     size_t size() const;
-    size_t min() const;
     size_t max() const;
-    size_t operator[](size_t i) const;
     const int32_t* indices32() const noexcept;
     const int64_t* indices64() const noexcept;
     size_t slice_start() const noexcept;
     size_t slice_step() const noexcept;
+
+    bool get_element(size_t i, size_t* out) const;
 
     void extract_into(arr32_t&) const;
     void extract_into(arr64_t&) const;
@@ -160,22 +149,6 @@ class RowIndex {
      */
     friend RowIndex operator *(const RowIndex& ab, const RowIndex& bc);
 
-    void clear();
-
-    /**
-     * Modifies the RowIndex so that its new size becomes `nrows`. This will
-     * either throw out the existing elements at the tail, or append "NA"
-     * indices.
-     *
-     * This method either modifies the existing `impl` in-place if its refcount
-     * is 1, or replaces it with a new "modified" impl. Additionally, a "slice"
-     * impl will be replaced with an "array" impl if `nrows` is greater than
-     * the current size of the RowIndex.
-     *
-     * This method should not be called on an "empty" RowIndex.
-     */
-    void resize(size_t nrows);
-
     /**
      * Template function that allows looping through the RowIndex. This
      * method will run the equivalent of
@@ -206,21 +179,23 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
   switch (type()) {
     case RowIndexType::UNKNOWN: {
       for (size_t i = i0; i < i1; i += di) {
-        f(i, i);
+        f(i, i, true);
       }
       break;
     }
     case RowIndexType::ARR32: {
       const int32_t* ridata = indices32();
       for (size_t i = i0; i < i1; i += di) {
-        f(i, static_cast<size_t>(ridata[i]));
+        int32_t x = ridata[i];
+        f(i, static_cast<size_t>(x), x != RowIndex::NA_ARR32);
       }
       break;
     }
     case RowIndexType::ARR64: {
       const int64_t* ridata = indices64();
       for (size_t i = i0; i < i1; i += di) {
-        f(i, static_cast<size_t>(ridata[i]));
+        int64_t x = ridata[i];
+        f(i, static_cast<size_t>(x), x != RowIndex::NA_ARR64);
       }
       break;
     }
@@ -230,7 +205,7 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
       size_t jstep = slice_step() * di;
       size_t j = slice_start() + i0 * slice_step();
       for (size_t i = i0; i < i1; i += di) {
-        f(i, j);
+        f(i, j, true);
         j += jstep;
       }
       break;

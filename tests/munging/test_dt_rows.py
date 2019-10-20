@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -454,10 +454,9 @@ def test_rows_int_column(dt0):
                              [5, 0.1, 5, 1]]
 
 
-@pytest.mark.skip(reason="See #1496")
 def test_rows_int_column2():
     DT = dt.Frame(range(10))
-    col = dt.Frame([3, 4, -1, 0, -1])
+    col = dt.Frame([3, 4, None, 0, None])
     res = DT[col, :]
     frame_integrity_check(res)
     assert res.shape == (5, 1)
@@ -478,13 +477,6 @@ def test_rows_int_column_large(dt0):
         dt0, col,
         "An integer column used as an `i` selector contains index 93 which is "
         "not valid for a Frame with 10 rows")
-
-
-def test_rows_int_column_nas(dt0):
-    col = dt.Frame([3, None, 2, 4])
-    assert_valueerror(
-        dt0, col,
-        "RowIndex source column contains NA values")
 
 
 def test_rows_int_column_0rows(dt0):

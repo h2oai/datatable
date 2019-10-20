@@ -61,6 +61,8 @@ bool SliceView_ColumnImpl::get_element(size_t i, py::robj* out) const { return a
 //------------------------------------------------------------------------------
 // ArrayView_ColumnImpl
 //------------------------------------------------------------------------------
+static_assert(RowIndex::NA_ARR32 < 0, "Unexpected RowIndex::NA_ARR32");
+static_assert(RowIndex::NA_ARR64 < 0, "Unexpected RowIndex::NA_ARR64");
 
 template <typename T> const T* get_indices(const RowIndex&) { return nullptr; }
 template <> const int32_t* get_indices(const RowIndex& ri) { return ri.indices32(); }
@@ -169,7 +171,7 @@ template class ArrayView_ColumnImpl<int64_t>;
 // factory function
 static Column _make_view(Column&& col, const RowIndex& ri) {
   // This covers the case when ri.size()==0, and when all elements are NAs
-  if (ri.max() == RowIndex::NA) {
+  if (ri.is_all_missing()) {
     return Column::new_na_column(ri.size(), col.stype());
   }
   switch (ri.type()) {

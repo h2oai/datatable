@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_ROWINDEX_IMPL_h
 #define dt_ROWINDEX_IMPL_h
+#include "buffer.h"
 #include "rowindex.h"
 
 
@@ -35,10 +36,11 @@ class RowIndexImpl {
      * length
      *     The number of elements in the RowIndex.
      *
-     * min, max
-     *     Smallest / largest entry in the RowIndex. If the RowIndex is empty
-     *     (length 0), or if all entries in the RowIndex are NAs, then
-     *     min = max = RowIndex::NA.
+     * max + max_valid
+     *     Largest entry in the RowIndex, assuming `max_valid == true`. If the
+     *     RowIndex is empty (length 0), or if all entries in the RowIndex are
+     *     NAs, then `max_valid == false`, and the value of variable `max` is
+     *     indeterminate.
      *
      * refcount
      *     Ref-counter for this RowIndexImpl object. A RowIndexImpl* object
@@ -55,12 +57,12 @@ class RowIndexImpl {
      *     elements are descending, they may also be non-monotonous.
      */
     size_t length;
-    size_t min;
     size_t max;
     uint32_t refcount;
     RowIndexType type;
     bool ascending;
-    int : 16;
+    bool max_valid;
+    int : 8;
 
   public:
     RowIndexImpl();
@@ -73,12 +75,9 @@ class RowIndexImpl {
     RowIndexImpl* acquire();
     RowIndexImpl* release();
 
-    virtual size_t nth(size_t i) const = 0;
+    virtual bool get_element(size_t i, size_t* out) const = 0;
     virtual RowIndexImpl* uplift_from(const RowIndexImpl*) const = 0;
     virtual RowIndexImpl* negate(size_t nrows) const = 0;
-
-    virtual void resize(size_t n) = 0;
-    virtual RowIndexImpl* resized(size_t n) = 0;
 
     virtual size_t memory_footprint() const noexcept = 0;
     virtual void verify_integrity() const;
@@ -98,12 +97,9 @@ class SliceRowIndexImpl : public RowIndexImpl {
   public:
     SliceRowIndexImpl(size_t start, size_t count, size_t step);
 
-    size_t nth(size_t i) const override;
+    bool get_element(size_t i, size_t* out) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
-
-    void resize(size_t n) override;
-    RowIndexImpl* resized(size_t n) override;
 
     size_t memory_footprint() const noexcept override;
     void verify_integrity() const override;
@@ -127,29 +123,21 @@ bool slice_rowindex_increasing(const RowIndexImpl*) noexcept;
 
 class ArrayRowIndexImpl : public RowIndexImpl {
   private:
-    void* data;
-    bool owned;
-    size_t : 56;
+    Buffer buf_;
 
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
     ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
-    ArrayRowIndexImpl(arr32_t&& indices, size_t min, size_t max);
-    ArrayRowIndexImpl(arr64_t&& indices, size_t min, size_t max);
     ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
                       const arr64_t& steps);
     ArrayRowIndexImpl(const Column&);
-    ~ArrayRowIndexImpl() override;
 
     const int32_t* indices32() const noexcept;
     const int64_t* indices64() const noexcept;
 
-    size_t nth(size_t i) const override;
+    bool get_element(size_t i, size_t* out) const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
-
-    void resize(size_t n) override;
-    RowIndexImpl* resized(size_t n) override;
 
     size_t memory_footprint() const noexcept override;
     void verify_integrity() const override;

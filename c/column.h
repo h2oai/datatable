@@ -122,6 +122,8 @@ class Column
     const dt::ColumnImpl* impl_;
 
   public:
+    // Maximum size for an array that can be addressed using `int32_t`
+    // indices. This bound is inclusive.
     static constexpr size_t MAX_ARR32_SIZE = 0x7FFFFFFF;
 
   //------------------------------------
