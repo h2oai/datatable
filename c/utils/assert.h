@@ -23,6 +23,7 @@
   #undef DTDEBUG
   #define DTDEBUG 1
 #else
+  #define DTDEBUG 0
   #define NDEBUG 1
 #endif
 

@@ -6,6 +6,7 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "column/func_unary.h"
 #include "column/virtual.h"
 #include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
@@ -61,40 +62,13 @@ void map_str_isna(size_t nrows, const T* inp, int8_t* out) {
 // Virtual-column functions
 //------------------------------------------------------------------------------
 
-template <typename TI, typename TO>
-class unary_vcol : public Virtual_ColumnImpl {
-  using operator_t = TO(*)(TI);
-  private:
-    Column arg;
-    operator_t func;
-
-  public:
-    unary_vcol(Column&& col, SType stype, operator_t f)
-      : Virtual_ColumnImpl(col.nrows(), stype),
-        arg(std::move(col)),
-        func(f) {}
-
-    ColumnImpl* clone() const override {
-      return new unary_vcol<TI, TO>(Column(arg), stype_, func);
-    }
-
-    bool get_element(size_t i, TO* out) const override {
-      TI x;
-      bool isvalid = arg.get_element(i, &x);
-      (void) isvalid;  // FIXME
-      TO value = func(x);
-      *out = value;
-      return !ISNA<TO>(value);
-    }
-};
-
-
-
 
 template <SType SI, SType SO, element_t<SO>(*FN)(element_t<SI>)>
 Column vcol_factory(Column&& arg) {
+  size_t nrows = arg.nrows();
   return Column(
-      new unary_vcol<element_t<SI>, element_t<SO>>(std::move(arg), SO, FN)
+      new FuncUnary1_ColumnImpl<element_t<SI>, element_t<SO>>(
+              std::move(arg), FN, nrows, SO)
   );
 }
 
@@ -102,17 +76,21 @@ Column vcol_factory(Column&& arg) {
 template <SType SI, bool(*FN)(element_t<SI>)>
 Column vcol_factory_bool(Column&& arg) {
   using TI = element_t<SI>;
+  size_t nrows = arg.nrows();
   return Column(
-      new unary_vcol<TI, int8_t>(std::move(arg), SType::BOOL,
-                                 reinterpret_cast<int8_t(*)(TI)>(FN))
+      new FuncUnary1_ColumnImpl<TI, int8_t>(
+              std::move(arg), reinterpret_cast<int8_t(*)(TI)>(FN),
+              nrows, SType::BOOL)
   );
 }
 
 
 template <SType SO, element_t<SO>(*FN)(CString)>
 Column vcol_factory_str(Column&& arg) {
+  size_t nrows = arg.nrows();
   return Column(
-      new unary_vcol<CString, element_t<SO>>(std::move(arg), SO, FN)
+      new FuncUnary1_ColumnImpl<CString, element_t<SO>>(
+              std::move(arg), FN, nrows, SO)
   );
 }
 
