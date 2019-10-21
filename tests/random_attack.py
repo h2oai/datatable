@@ -190,7 +190,7 @@ class Attacker:
                                     "match='Cannot rbind to a keyed frame'):\n"
                                     "    DT.rbind([DT] * %d)\n" % t)
         print("[05] Rbinding frame with itself %d times -> nrows = %d"
-              % (t, frame.nrows * (t + 1) if res else frame.nrows))
+              % (t, frame.nrows))
 
     def select_rows_array(self, frame):
         if frame.nrows == 0:
@@ -303,11 +303,19 @@ class Attacker:
         if frame.ncols < 2:
             return
         s = self.random_array(frame.ncols - 1, positive=True)
-        print("[14] Removing columns %r -> ncols = %d"
-              % (s, frame.ncols - len(s)))
+        res = frame.delete_columns(s)
+        print("[14] Removing columns %r -> ncols = %d" % (s, frame.ncols))
         if python_output:
-            python_output.write("del DT[:, %r]\n" % s)
-        frame.delete_columns(s)
+            if res:
+                python_output.write("del DT[:, %r]\n" % s)
+            else:
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='Cannot delete a column that is "
+                                    "a part of a multi-column key'):\n"
+                                    "    del DT[:, %r]\n\n"
+                                    % s)
+
+
 
 
     def join_self(self, frame):
@@ -315,8 +323,7 @@ class Attacker:
             return self.slice_cols(frame)
 
         res = frame.join_self()
-        print("[15] Joining frame with itself -> ncols = %d"
-              % (2 * frame.ncols - frame.nkeys if res else frame.ncols))
+        print("[15] Joining frame with itself -> ncols = %d" % frame.ncols)
         if python_output:
             if res:
                 python_output.write("DT = DT[:, :, join(DT)]\n")
@@ -706,17 +713,23 @@ class Frame0:
 
     def delete_columns(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
-        ncols = self.ncols
-        del self.df[:, s]
         if isinstance(s, slice):
             s = list(range(ncols))[s]
 
-        new_column_ids = sorted(set(range(ncols)) - set(s))
-        self.data = [self.data[i] for i in new_column_ids]
-        self.names = [self.names[i] for i in new_column_ids]
-        self.types = [self.types[i] for i in new_column_ids]
-        if (min(s) < self.nkeys):
-            self.nkeys = 0
+        if (self.nrows > 0) and (self.nkeys > 1) and (min(s) < self.nkeys):
+            with pytest.raises(ValueError, match="Cannot delete a column that "
+                               "is a part of a multi-column key"):
+                del self.df[:, s]
+            return False
+        else:
+            ncols = self.ncols
+            del self.df[:, s]
+            new_column_ids = sorted(set(range(ncols)) - set(s))
+            self.data = [self.data[i] for i in new_column_ids]
+            self.names = [self.names[i] for i in new_column_ids]
+            self.types = [self.types[i] for i in new_column_ids]
+            self.nkeys = len(set(range(self.nkeys)) - set(s))
+            return True
 
 
     def slice_cols(self, s):
@@ -743,7 +756,7 @@ class Frame0:
         self.dedup_names()
 
     def rbind(self, frames):
-        if self.nkeys:
+        if (self.nkeys > 0) and (self.nrows > 0):
             with pytest.raises(ValueError, match="Cannot rbind to a keyed frame"):
                 self.df.rbind(*[iframe.df for iframe in frames])
             return False
