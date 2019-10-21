@@ -146,7 +146,7 @@ class Attacker:
                 python_output.write("DT.nrows = %d\n" % new_nrows)
             else:
                 python_output.write("with pytest.raises(ValueError, "
-                                    "match='Cannot increase the number of rows "
+                                    "match='Cannot increase number of rows "
                                     "in a keyed frame'):\n"
                                     "    DT.nrows = %d\n\n"
                                     % new_nrows)
@@ -181,11 +181,16 @@ class Attacker:
 
     def rbind_self(self, frame):
         t = random.randint(1, min(5, 1000 // (1 + frame.nrows)) + 1)
-        print("[05] Rbinding frame with itself %d times -> nrows = %d"
-              % (t, frame.nrows * (t + 1)))
+        res = frame.rbind([frame] * t)
         if python_output:
-            python_output.write("DT.rbind([DT] * %d)\n" % t)
-        frame.rbind([frame] * t)
+            if res:
+                python_output.write("DT.rbind([DT] * %d)\n" % t)
+            else:
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='Cannot rbind to a keyed frame'):\n"
+                                    "    DT.rbind([DT] * %d)\n" % t)
+        print("[05] Rbinding frame with itself %d times -> nrows = %d"
+              % (t, frame.nrows * (t + 1) if res else frame.nrows))
 
     def select_rows_array(self, frame):
         if frame.nrows == 0:
@@ -661,7 +666,7 @@ class Frame0:
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
         if self.nkeys and nrows > curr_nrows:
-            with pytest.raises(ValueError, match="Cannot increase the number "
+            with pytest.raises(ValueError, match="Cannot increase number "
                                "of rows in a keyed frame"):
                 self.df.nrows = nrows
             return False
@@ -738,7 +743,13 @@ class Frame0:
         self.dedup_names()
 
     def rbind(self, frames):
-        self.df.rbind(*[iframe.df for iframe in frames])
+        if self.nkeys:
+            with pytest.raises(ValueError, match="Cannot rbind to a keyed frame"):
+                self.df.rbind(*[iframe.df for iframe in frames])
+            return False
+        else:
+            self.df.rbind(*[iframe.df for iframe in frames])
+
         newdata = [col.copy() for col in self.data]
         for iframe in frames:
             assert iframe.ncols == self.ncols
@@ -747,8 +758,7 @@ class Frame0:
                 assert self.names[j] == iframe.names[j]
                 newdata[j] += iframe.data[j]
         self.data = newdata
-        if self.nrows:
-            self.nkeys = 0
+        return True
 
     def filter_on_bool_column(self, icol):
         assert self.types[icol] is bool
