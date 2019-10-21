@@ -25,7 +25,7 @@ import math
 import pytest
 import random
 import datatable as dt
-from datatable import f, stype, ltype
+from datatable import f, g, stype, ltype, join
 from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, noop
 
@@ -158,6 +158,20 @@ def test_dt_isna2():
     assert dt1.stypes == DT.stypes
     assert dt1.names == DT.names
     assert dt1.to_list() == [[1.0, 2.0, 5.0, 3.6, -4.899]]
+
+
+def test_dt_isna_joined():
+    # See issue #2109
+    DT = dt.Frame(A=[None, 4, 3, 2, 1])
+    JDT = dt.Frame(A=[0, 1, 3, 7],
+                   B=['a', 'b', 'c', 'd'],
+                   C=[0.25, 0.5, 0.75, 1.0],
+                   D=[22, 33, 44, 55],
+                   E=[True, False, True, False])
+    JDT.key = 'A'
+    RES = DT[:, [dt.isna(g[1:])], join(JDT)]
+    frame_integrity_check(RES)
+    assert RES.to_list() == [[True, True, False, True, False]] * 3
 
 
 
