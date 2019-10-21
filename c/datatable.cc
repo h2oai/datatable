@@ -123,19 +123,7 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
   std::sort(cols_to_remove.begin(), cols_to_remove.end());
   cols_to_remove.push_back(size_t(-1));  // guardian value
 
-  // If deleting one of the columns that contains a key and number of rows
-  // is not zero, an exception is thrown. This is because even if one column
-  // out of multi-column key is removed, the remaining columns may no longer
-  // provide unique key values.
-  // On the other hand, if the DataTable is keyed, it is still safe
-  // to remove any non-key columns without affecting the DataTable "keyed"
-  // property or to remove a key column if there is no other keys.
-  if (cols_to_remove[0] < nkeys_ && nkeys_ > 1 && nrows_ > 0) {
-    throw ValueError() << "Cannot delete a column that is a part of a "
-        "multi-column key";
-  }
-
-  // Calculate how many key columns we need to remove and adjust `nkeys_`
+  // Calculate number of key columns to remove.
   size_t nkeys_remove = 0;
   size_t j = 0;
   while (cols_to_remove[j] < nkeys_) {
@@ -146,6 +134,17 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
     while (col_id == cols_to_remove[j]){
       j++;
     }
+  }
+
+  // Deleting key columns will throw an exception, unless number of rows
+  // is zero or all the key columns are deleted at once. This is because
+  // even if one out of multi-column key is removed, the remaining columns
+  // may no longer provide unique key values. On the other hand, if the
+  // DataTable is keyed, it is still safe to remove any non-key columns
+  // without affecting the DataTable "keyed" property.
+  if (nkeys_remove > 0 && nkeys_remove < nkeys_ && nrows_ > 0) {
+    throw ValueError() << "Cannot delete a column that is a part of a "
+        "multi-column key";
   }
   nkeys_ -= nkeys_remove;
 
@@ -188,7 +187,7 @@ void DataTable::delete_all() {
 void DataTable::resize_rows(size_t new_nrows) {
   if (new_nrows == nrows_) return;
   if (new_nrows > nrows_ && nkeys_ > 0) {
-    throw ValueError() << "Cannot increase number of rows in a keyed frame";
+    throw ValueError() << "Cannot increase the number of rows in a keyed frame";
   }
   for (Column& col : columns_) {
     col.resize(new_nrows);

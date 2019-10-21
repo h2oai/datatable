@@ -465,6 +465,17 @@ def test_del_column_key_from_multi_key_filled_frame2():
     assert DT.to_list() == [list(range(100)), list(range(50))*2, list(range(25))*4]
 
 
+def test_del_column_key_from_multi_key_filled_frame3():
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A", "B"]
+    del DT[:, ["B", "A", "B"]]
+    frame_integrity_check(DT)
+    assert not DT.key
+    assert DT.names == ("C",)
+    assert DT.to_list() == [list(range(25))*4]
+
+
 def test_del_column_from_keyed_frame():
     DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
                   names = ["A", "B", "C"])
