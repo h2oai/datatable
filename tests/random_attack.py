@@ -717,9 +717,9 @@ class Frame0:
             s = list(range(ncols))[s]
         set_keys = set(range(self.nkeys))
         set_delcols = set(s)
-        nkeys_del = len(set_keys.intersection(set_delcols))
+        nkeys_remove = len(set_keys.intersection(set_delcols))
 
-        if (self.nrows > 0) and (nkeys_del != self.nkeys and nkeys_del > 0):
+        if (nkeys_remove > 0 and nkeys_remove < self.nkeys and self.nrows > 0):
             with pytest.raises(ValueError, match="Cannot delete a column that "
                                "is a part of a multi-column key"):
                 del self.df[:, s]
@@ -731,7 +731,7 @@ class Frame0:
             self.data = [self.data[i] for i in new_column_ids]
             self.names = [self.names[i] for i in new_column_ids]
             self.types = [self.types[i] for i in new_column_ids]
-            self.nkeys -= nkeys_del
+            self.nkeys -= nkeys_remove
             return True
 
 

@@ -135,6 +135,7 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
       j++;
     }
   }
+  xassert(nkeys_remove <= nkeys_);
 
   // Deleting key columns will throw an exception, unless number of rows
   // is zero or all the key columns are deleted at once. This is because

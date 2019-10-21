@@ -162,9 +162,10 @@ void Frame::replace(const PKArgs& args) {
 
   for (size_t i = 0; i < dt->ncols(); ++i) {
     // If a column is a view, then: for a fixed-width column it gets
-    // materialized when we request `col->elements_w()`; on the other hand,
-    // a string column remains a view, however the iterator `dt::map_str2str`
-    // takes the rowindex into account when iterating.
+    // materialized when we request `col.get_data_editable()`;
+    // on the other hand, a string column remains a view, however the
+    // iterator `dt::map_str2str`  takes the rowindex into account
+    // when iterating.
     //
     const Column& col = dt->get_column(i);
     switch (col.stype()) {
