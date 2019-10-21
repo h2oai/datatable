@@ -23,6 +23,7 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/arg.h"
+#include "utils/terminal.h"
 #include "options.h"
 namespace dt {
 
@@ -32,10 +33,26 @@ size_t display_max_nrows = 30;
 size_t display_head_nrows = 15;
 size_t display_tail_nrows = 5;
 bool   display_interactive = false;
+bool   display_use_colors = true;
 
 
 static void _init_options()
 {
+  register_option(
+    "display.use_colors",
+    []{ return py::obool(display_use_colors); },
+    [](const py::Arg& value) {
+      display_use_colors = value.to_bool_strict();
+      Terminal::standard_terminal().use_colors(display_use_colors);
+      py::oobj::import("datatable.utils.terminal", "term")
+        .invoke("use_colors", {py::obool(display_use_colors)});
+    },
+    "Whether to use colors when printing various messages into\n"
+    "the console. Turn this off if your terminal is unable to\n"
+    "display ANSI escape sequences, or if the colors make output\n"
+    "not legible."
+  );
+
   register_option(
     "display.interactive",
     []{ return py::obool(display_interactive); },

@@ -53,6 +53,11 @@ class Terminal {
     static Terminal& plain_terminal();
     void initialize();
 
+    string reset() const;
+    string bold() const;
+    string dim() const;
+    string italic() const;
+
     string bold     (const string&) const;
     string dim      (const string&) const;
     string italic   (const string&) const;

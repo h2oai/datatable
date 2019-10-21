@@ -123,8 +123,10 @@ void TerminalWidget::_render_footer() {
   size_t nrows = dt_->nrows();
   size_t ncols = dt_->ncols();
   out_ << '\n';
+  out_ << terminal_->dim();
   out_ << "[" << nrows << " row" << (nrows==1? "" : "s") << " x ";
   out_ << ncols << " column" << (ncols==1? "" : "s") << "]";
+  out_ << terminal_->reset();
   out_ << '\n';
 }
 

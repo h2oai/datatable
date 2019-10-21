@@ -160,13 +160,6 @@ class Terminal:
 
     def initialize_options(self, options):
         options.register_option(
-            "display.use_colors", True, xtype=bool,
-            onchange=self.use_colors,
-            doc="Whether to use colors when printing various messages into\n"
-                "the console. Turn this off if your terminal is unable to\n"
-                "display ANSI escape sequences, or if the colors make output\n"
-                "not legible.")
-        options.register_option(
             "display.allow_unicode",
             self.is_utf8,
             xtype=bool,

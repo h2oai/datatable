@@ -177,3 +177,43 @@ def test_chinese():
         " 2 | 風向轉變時,有人築牆,有人造風車  # \n"
         " 3 | 師傅領進門，修行在個人          # \n"
         "\n[4 rows x 2 columns]\n")
+
+
+@pytest.mark.usefixtures("py36")
+def test_colored_output(capsys):
+    DT = dt.Frame([[2, 7, 0, 0],
+                   ["cogito", "ergo", "sum", None]],
+                  names=["int", "str"])
+    assert dt.options.display.use_colors == True
+    DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    bold = lambda s: "\x1b[1m" + s + "\x1b[m"
+    dim = lambda s: "\x1b[2m" + s + "\x1b[m"
+    grey = lambda s: "\x1b[90m" + s + "\x1b[m"
+    assert out == (
+        f"  {bold('')} {grey('|')} {bold('int')}  {bold('str')}   \n"
+        f"{grey('--')}{grey('-+')} {grey('---')}  {grey('------')}\n"
+        f" {grey('0')} {grey('|')}   2  cogito\n"
+        f" {grey('1')} {grey('|')}   7  ergo  \n"
+        f" {grey('2')} {grey('|')}   0  sum   \n"
+        f" {grey('3')} {grey('|')}   0  {dim('NA')}    \n"
+        f"\n"
+        f"{dim('[4 rows x 2 columns]')}\n")
+
+
+def test_option_use_colors(capsys):
+    DT = dt.Frame(A=range(4))
+    with dt.options.context(**{"display.use_colors": False}):
+        DT.view(interactive=False)
+        out, err = capsys.readouterr()
+        assert err == ''
+        assert out == (
+            "   |  A\n"
+            "---+ --\n"
+            " 0 |  0\n"
+            " 1 |  1\n"
+            " 2 |  2\n"
+            " 3 |  3\n"
+            "\n"
+            "[4 rows x 1 column]\n")
