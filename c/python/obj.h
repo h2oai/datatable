@@ -136,7 +136,7 @@ class _obj {
     oobj get_item(const py::_obj& key) const;
     oobj get_iter() const;
     oobj invoke(const char* fn) const;
-    oobj invoke(const char* fn, const otuple& args) const;
+    oobj invoke(const char* fn, otuple&& args) const;
     oobj invoke(const char* fn, const oobj& arg1) const;
     oobj invoke(const char* fn, const char* format, ...) const;
     oobj call() const;

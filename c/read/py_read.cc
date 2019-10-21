@@ -37,9 +37,10 @@ static ReadSource _resolve_source_text(const py::Arg&, GenericReader&);
 static ReadSource _resolve_source_cmd(const py::Arg&, GenericReader&);
 static ReadSource _resolve_source_url(const py::Arg&, GenericReader&);
 static bool _has_control_characters(const CString& str);
+/*
 static bool _looks_like_glob(const CString& str);
 static bool _looks_like_url(const CString& str);
-
+*/
 
 
 //------------------------------------------------------------------------------

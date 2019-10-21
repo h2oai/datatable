@@ -111,7 +111,7 @@ void register_option(const char* name,
   p->getter = std::move(getter);
   p->setter = std::move(setter);
   p->arg = new py::Arg(name);
-  dt_options.invoke("register", py::otuple{ opt });
+  dt_options.invoke("register", opt);
 }
 
 

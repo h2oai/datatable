@@ -13,6 +13,7 @@
 #include "column/view.h"
 #include "frame/py_frame.h"
 #include "python/obj.h"
+#include "python/string.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "column.h"
@@ -57,11 +58,11 @@ Column Column::from_pybuffer(const py::robj& pyobj)
     auto dtype = pyobj.get_attr("dtype");
     auto kind = dtype.get_attr("kind").to_string();
     if (kind == "M" || kind == "m") {
-      return Column::from_pybuffer(pyobj.invoke("astype", "(s)", "str"));
+      return Column::from_pybuffer(pyobj.invoke("astype", py::ostring("str")));
     }
     auto fmt = dtype.get_attr("char").to_string();
     if (kind == "f" && fmt == "e") {  // float16
-      return Column::from_pybuffer(pyobj.invoke("astype", "(s)", "float32"));
+      return Column::from_pybuffer(pyobj.invoke("astype", py::ostring("float32")));
     }
   }
 
