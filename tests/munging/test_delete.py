@@ -418,7 +418,8 @@ def test_del_rows_from_keyed_frame():
 
 
 def test_del_column_key_from_single_key():
-    DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
     DT.key = ["A"]
     del DT[:, ["A"]]
     frame_integrity_check(DT)
@@ -428,7 +429,8 @@ def test_del_column_key_from_single_key():
 
 
 def test_del_column_key_from_multi_key_empty_frame():
-    DT = dt.Frame(A=[], B=[], C=[])
+    DT = dt.Frame([[], [], []],
+                  names = ["A", "B", "C"])
     DT.key = ["A", "B"]
     del DT[:, ["B", "B"]]
     frame_integrity_check(DT)
@@ -438,7 +440,8 @@ def test_del_column_key_from_multi_key_empty_frame():
 
 
 def test_del_column_key_from_multi_key_filled_frame1():
-    DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
     DT.key = ["A", "B"]
     with pytest.raises(ValueError, match = "Cannot delete a column that "
                        "is a part of a multi-column key"):
@@ -450,7 +453,8 @@ def test_del_column_key_from_multi_key_filled_frame1():
 
 
 def test_del_column_key_from_multi_key_filled_frame2():
-    DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
     DT.key = ["A", "B"]
     with pytest.raises(ValueError, match = "Cannot delete a column that "
                        "is a part of a multi-column key"):
@@ -462,7 +466,8 @@ def test_del_column_key_from_multi_key_filled_frame2():
 
 
 def test_del_column_from_keyed_frame():
-    DT = dt.Frame(A=range(100), B=list(range(50))*2, C=list(range(25))*4)
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
     DT.key = ["A"]
     del DT[:, ["B", "C", "C"]]
     frame_integrity_check(DT)
