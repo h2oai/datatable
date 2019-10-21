@@ -146,7 +146,7 @@ class Attacker:
                 python_output.write("DT.nrows = %d\n" % new_nrows)
             else:
                 python_output.write("with pytest.raises(ValueError, "
-                                    "match='Cannot increase number of rows "
+                                    "match='Cannot increase the number of rows "
                                     "in a keyed frame'):\n"
                                     "    DT.nrows = %d\n\n"
                                     % new_nrows)
