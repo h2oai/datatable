@@ -45,7 +45,7 @@ static void _init_options()
       display_use_colors = value.to_bool_strict();
       Terminal::standard_terminal().use_colors(display_use_colors);
       py::oobj::import("datatable.utils.terminal", "term")
-        .invoke("use_colors", {py::obool(display_use_colors)});
+        .invoke("use_colors", py::otuple{ py::obool(display_use_colors) });
     },
     "Whether to use colors when printing various messages into\n"
     "the console. Turn this off if your terminal is unable to\n"
