@@ -208,7 +208,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     max_valid = false;
     return;
   }
-  int32_t value;
+  int8_t value;
   if (length <= INT32_MAX && col.nrows() <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();

@@ -1012,7 +1012,7 @@ void BooleanStats::compute_all_stats() {
 
       dt::nested_for_static(nrows,
         [&](size_t i) {
-          int32_t x;
+          int8_t x;
           bool isvalid = column->get_element(i, &x);
           if (!isvalid) return;
           t_count_all++;

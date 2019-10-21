@@ -88,41 +88,6 @@ class unary_vcol : public Virtual_ColumnImpl {
     }
 };
 
-template <typename TI>
-class unary_vcol<TI, int8_t> : public Virtual_ColumnImpl {
-  using operator_t = int8_t(*)(TI);
-  private:
-    Column arg;
-    operator_t func;
-
-  public:
-    unary_vcol(Column&& col, SType stype, operator_t f)
-      : Virtual_ColumnImpl(col.nrows(), stype),
-        arg(std::move(col)),
-        func(f) {}
-
-    ColumnImpl* clone() const override {
-      return new unary_vcol<TI, int8_t>(Column(arg), stype_, func);
-    }
-
-    bool get_element(size_t i, int8_t* out) const override {
-      TI x;
-      bool isvalid = arg.get_element(i, &x);
-      (void) isvalid;  // FIXME
-      int8_t value = func(x);
-      *out = value;
-      return !ISNA<int8_t>(value);
-    }
-
-    bool get_element(size_t i, int32_t* out) const override {
-      TI x;
-      bool isvalid = arg.get_element(i, &x);
-      (void) isvalid;  // FIXME
-      int8_t value = func(x);
-      *out = static_cast<int32_t>(value);
-      return !ISNA<int8_t>(value);
-    }
-};
 
 
 

@@ -169,7 +169,7 @@ def test_dt_isna_joined():
                    D=[22, 33, 44, 55],
                    E=[True, False, True, False])
     JDT.key = 'A'
-    RES = DT[:, [dt.isna(g[1:])], join(JDT)]
+    RES = DT[:, dt.isna(g[1:]), join(JDT)]
     frame_integrity_check(RES)
     assert RES.to_list() == [[True, True, False, True, False]] * 3
 
