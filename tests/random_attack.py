@@ -673,7 +673,7 @@ class Frame0:
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
         if self.nkeys and nrows > curr_nrows:
-            with pytest.raises(ValueError, match="Cannot increase number "
+            with pytest.raises(ValueError, match="Cannot increase the number "
                                "of rows in a keyed frame"):
                 self.df.nrows = nrows
             return False
@@ -715,8 +715,11 @@ class Frame0:
         assert isinstance(s, slice) or isinstance(s, list)
         if isinstance(s, slice):
             s = list(range(ncols))[s]
+        set_keys = set(range(self.nkeys))
+        set_delcols = set(s)
+        nkeys_del = len(set_keys.intersection(set_delcols))
 
-        if (self.nrows > 0) and (self.nkeys > 1) and (min(s) < self.nkeys):
+        if (self.nrows > 0) and (nkeys_del != self.nkeys and nkeys_del > 0):
             with pytest.raises(ValueError, match="Cannot delete a column that "
                                "is a part of a multi-column key"):
                 del self.df[:, s]
@@ -728,7 +731,7 @@ class Frame0:
             self.data = [self.data[i] for i in new_column_ids]
             self.names = [self.names[i] for i in new_column_ids]
             self.types = [self.types[i] for i in new_column_ids]
-            self.nkeys = len(set(range(self.nkeys)) - set(s))
+            self.nkeys -= nkeys_del
             return True
 
 
