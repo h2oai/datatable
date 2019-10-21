@@ -38,16 +38,13 @@ static constexpr size_t NA_index = size_t(-1);
 
 
 class TextColumn {
-  private:
-    sstrvec data_;
-    sstring name_;
+  protected:
     size_t  width_;
     bool    align_right_;
     bool    margin_left_;
     bool    margin_right_;
-    bool    border_right_;
     bool    is_key_column_;
-    int : 24;
+    int : 32;
 
     static const Terminal* term_;
     static sstring ellipsis_;
@@ -56,20 +53,37 @@ class TextColumn {
   public:
     static void setup(const Terminal*);
 
-    TextColumn(const std::string& name,
-               const Column& col,
-               const intvec& indices,
-               bool is_key_column = false);
+    TextColumn();
     TextColumn(const TextColumn&) = default;
-    TextColumn(TextColumn&&) = default;
+    TextColumn(TextColumn&&) noexcept = default;
+    virtual ~TextColumn();
 
     void unset_left_margin();
     void unset_right_margin();
-    void set_right_border();
 
-    void print_name(ostringstream&) const;
-    void print_separator(ostringstream&) const;
-    void print_value(ostringstream&, size_t i) const;
+    virtual void print_name(ostringstream&) const = 0;
+    virtual void print_separator(ostringstream&) const = 0;
+    virtual void print_value(ostringstream&, size_t i) const = 0;
+};
+
+
+
+class Data_TextColumn : public TextColumn {
+  private:
+    sstrvec data_;
+    sstring name_;
+
+  public:
+    Data_TextColumn(const std::string& name,
+                    const Column& col,
+                    const intvec& indices,
+                    bool is_key_column = false);
+    Data_TextColumn(const Data_TextColumn&) = default;
+    Data_TextColumn(Data_TextColumn&&) noexcept = default;
+
+    void print_name(ostringstream&) const override;
+    void print_separator(ostringstream&) const override;
+    void print_value(ostringstream&, size_t i) const override;
 
   private:
     void _render_all_data(const Column& col, const intvec& indices);
@@ -89,6 +103,18 @@ class TextColumn {
     static std::string _escape_string(const CString&);
 };
 
+
+
+class VSep_TextColumn : public TextColumn {
+  public:
+    VSep_TextColumn() = default;
+    VSep_TextColumn(const VSep_TextColumn&) = default;
+    VSep_TextColumn(VSep_TextColumn&&) noexcept = default;
+
+    void print_name(ostringstream&) const override;
+    void print_separator(ostringstream&) const override;
+    void print_value(ostringstream&, size_t i) const override;
+};
 
 
 

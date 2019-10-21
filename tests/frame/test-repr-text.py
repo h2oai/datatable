@@ -24,6 +24,11 @@
 import datatable as dt
 import pytest
 
+bold = lambda s: "\x1b[1m" + s + "\x1b[m"
+dim = lambda s: "\x1b[2m" + s + "\x1b[m"
+grey = lambda s: "\x1b[90m" + s + "\x1b[m"
+vsep = grey('|')
+na = dim('NA')
 
 
 
@@ -38,7 +43,7 @@ def test_dt_view(capsys):
         ["1", "2", "hello", "world"],
     ], names=list("ABCDEFG"))
     dt0_str = ("   |  A   B   C     D   E   F  G    \n"
-               "---+ --  --  --  ----  --  --  -----\n"
+               "-- + --  --  --  ----  --  --  -----\n"
                " 0 |  2   1   1   0.1  NA   0  1    \n"
                " 1 |  7   0   1   2    NA   0  2    \n"
                " 2 |  0   0   1  -4    NA   0  hello\n"
@@ -59,7 +64,7 @@ def test_dt_view_keyed(capsys):
     out, err = capsys.readouterr()
     assert not err
     assert ("B  |  A\n"
-            "---+ --\n"
+            "-- + --\n"
             "a  |  4\n"
             "b  |  2\n"
             "c  |  0\n"
@@ -75,7 +80,7 @@ def test_str_after_resize():
     DT = dt.Frame(A=[])
     DT.nrows = 5
     assert ("   |  A\n"
-            "---+ --\n"
+            "-- + --\n"
             " 0 | NA\n"
             " 1 | NA\n"
             " 2 | NA\n"
@@ -90,7 +95,7 @@ def test_str_unicode():
     DT = dt.Frame([["møøse"], ["𝔘𝔫𝔦𝔠𝔬𝔡𝔢"], ["J̲o̲s̲é̲"], ["🚑🐧💚💥✅"]])
     assert str(DT) == (
         "   | C0     C1       C2    C3        \n"
-        "---+ -----  -------  ----  ----------\n"
+        "-- + -----  -------  ----  ----------\n"
         " 0 | møøse  𝔘𝔫𝔦𝔠𝔬𝔡𝔢  J̲o̲s̲é̲  🚑🐧💚💥✅\n"
         "\n"
         "[1 row x 4 columns]\n")
@@ -107,7 +112,7 @@ def test_str_sanitize():
     ], names=["тиждень", "numbers", "random", "*"])
     assert str(DT) == "\n".join([
         r"   | тиждень    numbers  random                * ",
-        r"---+ ---------  -------  --------------------  --",
+        r"-- + ---------  -------  --------------------  --",
         r" 0 | понеділок        3  NA                    | ",
         r" 1 | вівторок        15  Ab\ncd                | ",
         r" 2 | середа          NA  \x00\x01\x02\x03\x04  | ",
@@ -126,7 +131,7 @@ def test_str_sanitize_C0():
     with dt.options.context(**{"display.max_nrows": 40}):
         assert str(DT) == "".join(
             ["   | C0  \n",
-             "---+ ----\n"] +
+             "-- + ----\n"] +
             [" 9 | \\t  \n" if i == 9 else
              "10 | \\n  \n" if i == 10 else
              "13 | \\r  \n" if i == 13 else
@@ -140,7 +145,7 @@ def test_str_sanitize_C1():
     with dt.options.context(**{"display.max_nrows": 40}):
         assert str(DT) == "".join(
             ["   | C1  \n",
-             "---+ ----\n"] +
+             "-- + ----\n"] +
             ["%2d | \\x%2X\n" % (i - 0x7F, i)
              for i in range(0x7F, 0xA0)] +
             ["\n[33 rows x 1 column]\n"])
@@ -155,7 +160,7 @@ def test_tamil_script():
     # Despite how it might look in a text editor, these align well in a console
     assert str(DT) == (
         "   | தமிழ் வாக்கியங்கள்         # \n"
-        "---+ -------------------  --\n"
+        "-- + -------------------  --\n"
         " 0 | உங்களுக்கு வணக்கம்         # \n"
         " 1 | நீங்கள் எப்படி இருக்கிறீர்கள்?  # \n"
         " 2 | நல்வரவு                # \n"
@@ -171,7 +176,7 @@ def test_chinese():
                   names=["中文", "#"])
     assert str(DT) == (
         "   | 中文                            # \n"
-        "---+ ------------------------------  --\n"
+        "-- + ------------------------------  --\n"
         " 0 | 蒙蒂·蟒蛇                       # \n"
         " 1 | 小洞不补，大洞吃苦              # \n"
         " 2 | 風向轉變時,有人築牆,有人造風車  # \n"
@@ -179,7 +184,6 @@ def test_chinese():
         "\n[4 rows x 2 columns]\n")
 
 
-@pytest.mark.usefixtures("py36")
 def test_colored_output(capsys):
     DT = dt.Frame([[2, 7, 0, 0],
                    ["cogito", "ergo", "sum", None]],
@@ -188,18 +192,15 @@ def test_colored_output(capsys):
     DT.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
-    bold = lambda s: "\x1b[1m" + s + "\x1b[m"
-    dim = lambda s: "\x1b[2m" + s + "\x1b[m"
-    grey = lambda s: "\x1b[90m" + s + "\x1b[m"
+
     assert out == (
-        f"  {bold('')} {grey('|')} {bold('int')}  {bold('str')}   \n"
-        f"{grey('--')}{grey('-+')} {grey('---')}  {grey('------')}\n"
-        f" {grey('0')} {grey('|')}   2  cogito\n"
-        f" {grey('1')} {grey('|')}   7  ergo  \n"
-        f" {grey('2')} {grey('|')}   0  sum   \n"
-        f" {grey('3')} {grey('|')}   0  {dim('NA')}    \n"
-        f"\n"
-        f"{dim('[4 rows x 2 columns]')}\n")
+        bold('   ') + vsep + bold(" int  str   ") + "\n" +
+        grey("-- + ---  ------") + "\n" +
+        grey(' 0 ') + vsep + "   2  cogito\n" +
+        grey(' 1 ') + vsep + "   7  ergo  \n" +
+        grey(' 2 ') + vsep + "   0  sum   \n" +
+        grey(' 3 ') + vsep + "   0  " + na + "    \n\n" +
+        dim('[4 rows x 2 columns]') + "\n")
 
 
 def test_option_use_colors(capsys):
@@ -210,10 +211,25 @@ def test_option_use_colors(capsys):
         assert err == ''
         assert out == (
             "   |  A\n"
-            "---+ --\n"
+            "-- + --\n"
             " 0 |  0\n"
             " 1 |  1\n"
             " 2 |  2\n"
             " 3 |  3\n"
             "\n"
             "[4 rows x 1 column]\n")
+
+
+def test_colored_keyed(capsys):
+    DT = dt.Frame(A=[1, 2, 1], B=[None, 'd', 'a'], C=[3.2, -7.7, 14.1])
+    DT.key = ('A', 'B')
+    DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == (
+        bold(' A  B  ') + vsep + bold("    C") + "\n" +
+        grey("--  -- + ----") + "\n" +
+        " 1  " + na + " " + vsep + "  3.2\n" +
+        " 1  a  "         + vsep + " 14.1\n" +
+        " 2  d  "         + vsep + " -7.7\n" +
+        "\n" + dim('[3 rows x 3 columns]') + "\n")
