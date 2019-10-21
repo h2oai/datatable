@@ -236,36 +236,6 @@ def test_del_cols_from_view():
     assert_equals(d1, dt.Frame([[1, 3], [True, None]], names=["A", "C"]))
 
 
-def test_del_cols_from_keyed1():
-    DT = dt.Frame(A=[3], B=[14])
-    DT.key = "A"
-    del DT["A"]
-    frame_integrity_check(DT)
-    assert not DT.key
-    assert DT.names == ("B",)
-    assert DT.to_list() == [[14]]
-
-
-# def test_del_cols_from_keyed2A():
-#     DT = dt.Frame(A=[3], B=[14])
-#     DT.key = ("A", "B")
-#     del DT["A"]
-#     frame_integrity_check(DT)
-#     assert not DT.key
-#     assert DT.names == ("B",)
-#     assert DT.to_list() == [[14]]
-
-
-# def test_del_cols_from_keyed2B():
-#     DT = dt.Frame(A=[3], B=[14])
-#     DT.key = ("A", "B")
-#     del DT["B"]
-#     frame_integrity_check(DT)
-#     assert not DT.key
-#     assert DT.names == ("A",)
-#     assert DT.to_list() == [[3]]
-
-
 def test_del_cols_from_keyed3():
     DT = dt.Frame(A=[3], B=[14], C=[15])
     DT.key = ("A", "B")
@@ -453,6 +423,8 @@ def test_del_column_key_from_single_key():
     del DT[:, ["A"]]
     frame_integrity_check(DT)
     assert not DT.key
+    assert DT.names == ("B", "C")
+    assert DT.to_list() == [list(range(50))*2, list(range(25))*4]
 
 
 def test_del_column_key_from_multi_key_empty_frame():
@@ -461,6 +433,8 @@ def test_del_column_key_from_multi_key_empty_frame():
     del DT[:, ["B", "B"]]
     frame_integrity_check(DT)
     assert DT.key == ("A",)
+    assert DT.names == ("A", "C")
+    assert DT.to_list() == [[], []]
 
 
 def test_del_column_key_from_multi_key_filled_frame1():
@@ -471,6 +445,8 @@ def test_del_column_key_from_multi_key_filled_frame1():
         del DT[:, ["A", "A"]]
     frame_integrity_check(DT)
     assert DT.key == ("A", "B")
+    assert DT.names == ("A", "B", "C")
+    assert DT.to_list() == [list(range(100)), list(range(50))*2, list(range(25))*4]
 
 
 def test_del_column_key_from_multi_key_filled_frame2():
@@ -481,6 +457,8 @@ def test_del_column_key_from_multi_key_filled_frame2():
         del DT["A"]
     frame_integrity_check(DT)
     assert DT.key == ("A", "B")
+    assert DT.names == ("A", "B", "C")
+    assert DT.to_list() == [list(range(100)), list(range(50))*2, list(range(25))*4]
 
 
 def test_del_column_from_keyed_frame():
@@ -489,3 +467,5 @@ def test_del_column_from_keyed_frame():
     del DT[:, ["B", "C", "C"]]
     frame_integrity_check(DT)
     assert DT.key == ("A",)
+    assert DT.names == ("A",)
+    assert DT.to_list() == [list(range(100))]
