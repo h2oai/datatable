@@ -22,21 +22,6 @@ unary_infos unary_library;
 
 
 //------------------------------------------------------------------------------
-// Vector functions
-//------------------------------------------------------------------------------
-
-template<typename TI, typename TO, TO(*OP)(TI)>
-void mapfw(size_t nrows, const TI* inp, TO* out) {
-  dt::parallel_for_static(nrows,
-    [=](size_t i) {
-      out[i] = OP(inp[i]);
-    });
-}
-
-
-
-
-//------------------------------------------------------------------------------
 // Virtual-column functions
 //------------------------------------------------------------------------------
 
@@ -587,12 +572,9 @@ void unary_infos::add_op(Op opcode, const char* name, const py::PKArgs* args) {
 
 template <Op OP, SType SI, SType SO, read_t<SO>(*FN)(read_t<SI>)>
 void unary_infos::add() {
-  using TI = read_t<SI>;
-  using TO = read_t<SO>;
   constexpr size_t entry_id = id(OP, SI);
   xassert(info.count(entry_id) == 0);
   info[entry_id] = {
-    /* vectorfn = */ reinterpret_cast<unary_func_t>(mapfw<TI, TO, FN>),
     /* scalarfn = */ reinterpret_cast<erased_func_t>(FN),
     /* vcolfn =   */ vcol_factory<SI, SO, FN>,
     /* outstype = */ SO,
@@ -606,7 +588,6 @@ void unary_infos::add() {
   constexpr size_t entry_id = id(OP, SI);
   xassert(info.count(entry_id) == 0);
   info[entry_id] = {
-    /* vectorfn = */ nullptr,
     /* scalarfn = */ nullptr,
     /* vcolfn =   */ vcol_factory2<SI, SO, FN>,
     /* outstype = */ SO,
@@ -619,7 +600,7 @@ void unary_infos::add_copy(Op op, SType input_stype, SType output_stype) {
   size_t entry_id = id(op, input_stype);
   xassert(info.count(entry_id) == 0);
   SType cast_stype = (input_stype == output_stype)? SType::VOID : output_stype;
-  info[entry_id] = {nullptr, nullptr, vcol_id, output_stype, cast_stype};
+  info[entry_id] = {nullptr, vcol_id, output_stype, cast_stype};
 }
 
 
@@ -629,8 +610,6 @@ inline void unary_infos::add_math(
 {
   static SType integer_stypes[] = {SType::BOOL, SType::INT8, SType::INT16,
                                    SType::INT32, SType::INT64};
-  auto m32 = reinterpret_cast<unary_func_t>(mapfw<float,  float,  F32>);
-  auto m64 = reinterpret_cast<unary_func_t>(mapfw<double, double, F64>);
   auto s32 = reinterpret_cast<erased_func_t>(F32);
   auto s64 = reinterpret_cast<erased_func_t>(F64);
   auto v32 = vcol_factory<SType::FLOAT32, SType::FLOAT32, F32>;
@@ -640,13 +619,13 @@ inline void unary_infos::add_math(
   for (size_t i = 0; i < 5; ++i) {
     size_t entry_id = id(opcode, integer_stypes[i]);
     xassert(info.count(entry_id) == 0);
-    info[entry_id] = {m64, s64, v64, SType::FLOAT64, SType::FLOAT64};
+    info[entry_id] = {s64, v64, SType::FLOAT64, SType::FLOAT64};
   }
   size_t id_f32 = id(opcode, SType::FLOAT32);
   size_t id_f64 = id(opcode, SType::FLOAT64);
   xassert(info.count(id_f32) == 0 && info.count(id_f64) == 0);
-  info[id_f32] = {m32, s32, v32, SType::FLOAT32, SType::VOID};
-  info[id_f64] = {m64, s64, v64, SType::FLOAT64, SType::VOID};
+  info[id_f32] = {s32, v32, SType::FLOAT32, SType::VOID};
+  info[id_f64] = {s64, v64, SType::FLOAT64, SType::VOID};
 }
 
 
