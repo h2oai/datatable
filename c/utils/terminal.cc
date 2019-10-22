@@ -19,11 +19,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <csignal>
 #include <iostream>
+#include <sys/ioctl.h>
 #include "frame/repr/repr_options.h"
 #include "utils/assert.h"
 #include "utils/terminal.h"
 namespace dt {
+
+static void sigwinch_handler(int) {
+  Terminal::standard_terminal().forget_window_size();
+}
 
 
 
@@ -42,6 +48,8 @@ Terminal& Terminal::plain_terminal() {
 }
 
 Terminal::Terminal(bool is_plain) {
+  width_ = is_plain? 160 : 0;
+  height_ = is_plain? 45 : 0;
   display_allow_unicode = true;
   enable_colors_ = !is_plain;
   enable_ecma48_ = !is_plain;
@@ -49,6 +57,9 @@ Terminal::Terminal(bool is_plain) {
   is_jupyter_ = false;
   is_ipython_ = false;
   if (!enable_ecma48_) xassert(!enable_colors_);
+  if (!is_plain) {
+    std::signal(SIGWINCH, sigwinch_handler);
+  }
 }
 
 Terminal::~Terminal() = default;
@@ -118,9 +129,31 @@ bool Terminal::unicode_allowed() const noexcept {
   return display_allow_unicode;
 }
 
+int Terminal::get_width() {
+  if (!width_) _detect_window_size();
+  return width_;
+}
+
+int Terminal::get_height() {
+  if (!height_) _detect_window_size();
+  return height_;
+}
+
 
 void Terminal::use_colors(bool f) {
   enable_colors_ = f;
+}
+
+void Terminal::forget_window_size() {
+  width_ = 0;
+  height_ = 0;
+}
+
+void Terminal::_detect_window_size() {
+  struct winsize w;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+  width_ = w.ws_col;
+  height_ = w.ws_row;
 }
 
 void Terminal::use_unicode(bool f) {
