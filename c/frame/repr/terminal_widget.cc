@@ -30,6 +30,7 @@ namespace dt {
 TerminalWidget::TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag)
   : Widget(dt, split_view_tag)
 {
+  has_rowindex_column_ = false;
   terminal_ = term;
   TextColumn::setup(term);
 }
@@ -77,15 +78,19 @@ void TerminalWidget::_prerender_columns() {
   const auto& names = dt_->get_names();
   text_columns_.reserve(colindices_.size() + 2);
   if (nkeys == 0) {
-    Column ri_col(new Range_ColumnImpl(0, static_cast<int64_t>(nrows), 1));
+    auto irows = static_cast<int64_t>(nrows);
     text_columns_.emplace_back(
-      dt::make_unique<Data_TextColumn>("", ri_col, rowindices_, true));
+      new Data_TextColumn("",
+                          Column(new Range_ColumnImpl(0, irows, 1)),
+                          rowindices_)
+    );
     text_columns_.emplace_back(dt::make_unique<VSep_TextColumn>());
+    has_rowindex_column_ = true;
   }
   for (size_t j : colindices_) {
     const auto& col = dt_->get_column(j);
     text_columns_.emplace_back(
-      dt::make_unique<Data_TextColumn>(names[j], col, rowindices_, false));
+      dt::make_unique<Data_TextColumn>(names[j], col, rowindices_));
     if (j == nkeys - 1) {
       text_columns_.emplace_back(dt::make_unique<VSep_TextColumn>());
     }
@@ -117,8 +122,13 @@ void TerminalWidget::_render_header_separator() {
 
 void TerminalWidget::_render_data() {
   for (size_t k = 0; k < rowindices_.size(); ++k) {
-    for (const auto& col : text_columns_) {
-      col->print_value(out_, k);
+    if (has_rowindex_column_) {
+      out_ << terminal_->grey();
+      text_columns_[0]->print_value(out_, k);
+      out_ << terminal_->reset();
+    }
+    for (size_t i = has_rowindex_column_; i < text_columns_.size(); ++i) {
+      text_columns_[i]->print_value(out_, k);
     }
     out_ << '\n';
   }

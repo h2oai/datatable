@@ -45,7 +45,6 @@ TextColumn::TextColumn() {
   width_ = 2;
   margin_left_ = true;
   margin_right_ = true;
-  is_key_column_ = false;
 }
 
 TextColumn::~TextColumn() = default;
@@ -69,8 +68,7 @@ void TextColumn::unset_right_margin() {
 
 Data_TextColumn::Data_TextColumn(const std::string& name,
                                  const Column& col,
-                                 const intvec& indices,
-                                 bool is_key_column)
+                                 const intvec& indices)
   : TextColumn(), name_(name)
 {
   width_ = std::max(width_, name_.size());
@@ -80,7 +78,6 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
                  (ltype == LType::REAL);
   margin_left_ = true;
   margin_right_ = true;
-  is_key_column_ = is_key_column;
   _render_all_data(col, indices);
   if (ltype == LType::REAL) {
     _align_at_dot();
@@ -101,9 +98,7 @@ void Data_TextColumn::print_separator(ostringstream& out) const {
 
 
 void Data_TextColumn::print_value(ostringstream& out, size_t i) const {
-  if (is_key_column_) out << term_->grey();
   _print_aligned_value(out, data_[i].str());
-  if (is_key_column_) out << term_->reset();
 }
 
 
@@ -277,9 +272,6 @@ void Data_TextColumn::_render_all_data(const Column& col, const intvec& indices)
       data_.push_back(ellipsis_);
     } else {
       auto rendered_value = _render_value(col, i);
-      // if (is_key_column_) {
-      //   rendered_value = sstring(term_->grey(rendered_value.str()));
-      // }
       data_.push_back(std::move(rendered_value));
     }
     size_t w = data_.back().size();

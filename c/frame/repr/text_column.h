@@ -37,14 +37,23 @@ static constexpr size_t NA_index = size_t(-1);
 
 
 
+/**
+  * Base class for a single column in TerminalWidget. The column has
+  * to be pre-rendered before it can be properly layed out.
+  *
+  * `width_` is the computed width of the column, measured in terminal
+  * columns (i.e. how many characters it will visually occupy after
+  * being printed to the console). This property doesn't include
+  * column's margins.
+  *
+  */
 class TextColumn {
   protected:
     size_t  width_;
     bool    align_right_;
     bool    margin_left_;
     bool    margin_right_;
-    bool    is_key_column_;
-    int : 32;
+    size_t : 40;
 
     static const Terminal* term_;
     static sstring ellipsis_;
@@ -76,8 +85,7 @@ class Data_TextColumn : public TextColumn {
   public:
     Data_TextColumn(const std::string& name,
                     const Column& col,
-                    const intvec& indices,
-                    bool is_key_column = false);
+                    const intvec& indices);
     Data_TextColumn(const Data_TextColumn&) = default;
     Data_TextColumn(Data_TextColumn&&) noexcept = default;
 
