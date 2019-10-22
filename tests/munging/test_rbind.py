@@ -447,13 +447,32 @@ def test_rbind_modulefn():
     assert f3.to_list()[0] == f0.to_list()[0] + f1.to_list()[0]
 
 
-def test_rbind_keyed_frame():
-    f0 = dt.Frame([1, 2, 3])
-    f1 = dt.Frame([100, 500, 900])
-    f0.key = "C0"
-    f0.rbind(f1)
-    assert len(f0.key) == 0
-    assert f0.shape == (6, 1)
+
+#-------------------------------------------------------------------------------
+# Rbind to a keyed frame
+#-------------------------------------------------------------------------------
+
+def test_rbind_empty_frame():
+    DT = dt.Frame(A=range(100))
+    DT1 = dt.Frame({"A" : []})
+    DT.key = "A"
+    DT.rbind(DT1)
+    assert DT.key == ("A",)
+    frame_integrity_check(DT)
+    assert DT.to_list() == [list(range(100))]
+
+
+def test_rbind_filled_frame():
+    DT = dt.Frame(A=range(100))
+    DT1 = dt.Frame(A=range(10))
+    DT.key = "A"
+    with pytest.raises(ValueError, match = "Cannot rbind to a keyed frame"):
+        DT.rbind(DT1)
+    frame_integrity_check(DT)
+    assert DT.key == ("A",)
+    assert DT.to_list() == [list(range(100))]
+
+
 
 #-------------------------------------------------------------------------------
 # Issues

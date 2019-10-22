@@ -236,36 +236,6 @@ def test_del_cols_from_view():
     assert_equals(d1, dt.Frame([[1, 3], [True, None]], names=["A", "C"]))
 
 
-def test_del_cols_from_keyed1():
-    DT = dt.Frame(A=[3], B=[14])
-    DT.key = "A"
-    del DT["A"]
-    frame_integrity_check(DT)
-    assert not DT.key
-    assert DT.names == ("B",)
-    assert DT.to_list() == [[14]]
-
-
-def test_del_cols_from_keyed2A():
-    DT = dt.Frame(A=[3], B=[14])
-    DT.key = ("A", "B")
-    del DT["A"]
-    frame_integrity_check(DT)
-    assert not DT.key
-    assert DT.names == ("B",)
-    assert DT.to_list() == [[14]]
-
-
-def test_del_cols_from_keyed2B():
-    DT = dt.Frame(A=[3], B=[14])
-    DT.key = ("A", "B")
-    del DT["B"]
-    frame_integrity_check(DT)
-    assert not DT.key
-    assert DT.names == ("A",)
-    assert DT.to_list() == [[3]]
-
-
 def test_del_cols_from_keyed3():
     DT = dt.Frame(A=[3], B=[14], C=[15])
     DT.key = ("A", "B")
@@ -432,3 +402,86 @@ def test_del_rows_and_cols_keyed():
     assert DT.shape == (10, 3)
     assert DT.names == ("A", "B", "C")
     assert DT.to_list() == list0
+
+
+#-------------------------------------------------------------------------------
+# Delete rows or columns from a keyed frame
+#-------------------------------------------------------------------------------
+
+def test_del_rows_from_keyed_frame():
+    DT = dt.Frame(A=range(100))
+    DT.key = "A"
+    del DT[range(20), :]
+    frame_integrity_check(DT)
+    assert DT.key == ("A",)
+    assert DT.to_list() == [list(range(20,100))]
+
+
+def test_del_column_key_from_single_key():
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A"]
+    del DT[:, ["A"]]
+    frame_integrity_check(DT)
+    assert not DT.key
+    assert DT.names == ("B", "C")
+    assert DT.to_list() == [list(range(50))*2, list(range(25))*4]
+
+
+def test_del_column_key_from_multi_key_empty_frame():
+    DT = dt.Frame([[], [], []],
+                  names = ["A", "B", "C"])
+    DT.key = ["A", "B"]
+    del DT[:, ["B", "B"]]
+    frame_integrity_check(DT)
+    assert DT.key == ("A",)
+    assert DT.names == ("A", "C")
+    assert DT.to_list() == [[], []]
+
+
+def test_del_column_key_from_multi_key_filled_frame1():
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A", "B"]
+    with pytest.raises(ValueError, match = "Cannot delete a column that "
+                       "is a part of a multi-column key"):
+        del DT[:, ["A", "A"]]
+    frame_integrity_check(DT)
+    assert DT.key == ("A", "B")
+    assert DT.names == ("A", "B", "C")
+    assert DT.to_list() == [list(range(100)), list(range(50))*2, list(range(25))*4]
+
+
+def test_del_column_key_from_multi_key_filled_frame2():
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A", "B"]
+    with pytest.raises(ValueError, match = "Cannot delete a column that "
+                       "is a part of a multi-column key"):
+        del DT["A"]
+    frame_integrity_check(DT)
+    assert DT.key == ("A", "B")
+    assert DT.names == ("A", "B", "C")
+    assert DT.to_list() == [list(range(100)), list(range(50))*2, list(range(25))*4]
+
+
+def test_del_column_key_from_multi_key_filled_frame3():
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A", "B"]
+    del DT[:, ["B", "A", "B"]]
+    frame_integrity_check(DT)
+    assert not DT.key
+    assert DT.names == ("C",)
+    assert DT.to_list() == [list(range(25))*4]
+
+
+def test_del_column_from_keyed_frame():
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A"]
+    del DT[:, ["B", "C", "C"]]
+    frame_integrity_check(DT)
+    assert DT.key == ("A",)
+    assert DT.names == ("A",)
+    assert DT.to_list() == [list(range(100))]

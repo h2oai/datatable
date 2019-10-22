@@ -134,6 +134,9 @@ void Frame::rbind(const PKArgs& args) {
 
   // Ignore trivial case
   if (dts.empty()) return;
+  if (dt->nkeys() > 0) {
+    throw ValueError() << "Cannot rbind to a keyed frame";
+  }
 
   strvec final_names = dt->get_names();  // copy the names
   size_t n = dt->ncols();
@@ -271,6 +274,7 @@ void DataTable::rbind(
 {
   size_t new_ncols = col_indices.size();
   xassert(new_ncols >= ncols_);
+  xassert(nkeys_ == 0);
 
   columns_.reserve(new_ncols);
   for (size_t i = ncols_; i < new_ncols; ++i) {
@@ -295,7 +299,6 @@ void DataTable::rbind(
   }
   ncols_ = new_ncols;
   nrows_ = new_nrows;
-  nkeys_ = 0; // this will drop all the keys, if there were any
 }
 
 

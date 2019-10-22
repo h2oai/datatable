@@ -152,6 +152,9 @@ void Frame::replace(const PKArgs& args) {
     throw TypeError() << "Missing the required argument `replace_what` in "
         "method Frame.replace()";
   }
+  if (dt->nkeys()) {
+    throw ValueError() << "Cannot replace values in a keyed frame";
+  }
 
   ReplaceAgent ra(dt);
   ra.parse_x_y(x, y);
@@ -159,9 +162,10 @@ void Frame::replace(const PKArgs& args) {
 
   for (size_t i = 0; i < dt->ncols(); ++i) {
     // If a column is a view, then: for a fixed-width column it gets
-    // materialized when we request `col->elements_w()`; on the other hand,
-    // a string column remains a view, however the iterator `dt::map_str2str`
-    // takes the rowindex into account when iterating.
+    // materialized when we request `col.get_data_editable()`;
+    // on the other hand, a string column remains a view, however the
+    // iterator `dt::map_str2str`  takes the rowindex into account
+    // when iterating.
     //
     const Column& col = dt->get_column(i);
     switch (col.stype()) {
@@ -252,7 +256,8 @@ void ReplaceAgent::parse_x_y(const Arg& x, const Arg& y) {
 //
 // Here we analyze the input lists `vx`, `vy` and split them into 4 sublists
 // according to their elements types. We also do further verification that the
-// types of elements in vectors `vx`, `vy` match, and that there no duplicates.
+// types of elements in vectors `vx`, `vy` match, and that there are no
+// duplicates.
 //------------------------------------------------------------------------------
 
 void ReplaceAgent::split_x_y_by_type() {

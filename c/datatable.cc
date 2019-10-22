@@ -123,17 +123,33 @@ void DataTable::delete_columns(intvec& cols_to_remove) {
   std::sort(cols_to_remove.begin(), cols_to_remove.end());
   cols_to_remove.push_back(size_t(-1));  // guardian value
 
-  // If deleting one of the columns that contains a key, the "keyed" status
-  // of the frame is cleared entirely. This is because even if one column
-  // out of multi-column key is removed, the remaining columns may no longer
-  // provide unique key values.
-  // On the other hand, if the DataTable is keyed, it is still safe to remove
-  // any non-key columns without affecting the DataTable "keyed" property.
-  if (cols_to_remove[0] < nkeys_) {
-    nkeys_ = 0;
-  }
-
+  // Calculate number of key columns to remove.
+  size_t nkeys_remove = 0;
   size_t j = 0;
+  while (cols_to_remove[j] < nkeys_) {
+    nkeys_remove++;
+    // We may have duplicated column ids in `cols_to_remove[]`, in such a case
+    // we ignore these duplicates.
+    size_t col_id = cols_to_remove[j];
+    while (col_id == cols_to_remove[j]){
+      j++;
+    }
+  }
+  xassert(nkeys_remove <= nkeys_);
+
+  // Deleting key columns will throw an exception, unless number of rows
+  // is zero or all the key columns are deleted at once. This is because
+  // even if one out of multi-column key is removed, the remaining columns
+  // may no longer provide unique key values. On the other hand, if the
+  // DataTable is keyed, it is still safe to remove any non-key columns
+  // without affecting the DataTable "keyed" property.
+  if (nkeys_remove > 0 && nkeys_remove < nkeys_ && nrows_ > 0) {
+    throw ValueError() << "Cannot delete a column that is a part of a "
+        "multi-column key";
+  }
+  nkeys_ -= nkeys_remove;
+
+  j = 0;
   for (size_t i = 0, k = 0; i < ncols_; ++i) {
     if (i == cols_to_remove[k]) {
       // cols_to_remove[] array may contain duplicate values of `i`, so we

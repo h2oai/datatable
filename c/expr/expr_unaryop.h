@@ -106,38 +106,12 @@ py::oobj unary_pyfn(const py::PKArgs&);
  * Information about each valid unary function is stored in the
  * `uinfo` struct, which has the following fields:
  *
- * - vectorfn (unary_func_t)
- *
- *     Function that can be applied to a vector of inputs in order
- *     to produce the outputs. The signature of this function is
- *     `void(*)(size_t nrows, const void* input, void* output)`.
- *
- *     The `input` and `output` arrays are type-erased in the
- *     function's signature, but internally it is expected to know
- *     what the actual types are. Often, `vectorfn` will be declared
- *     as a function with concrete types, and then reinterpret-casted
- *     into `unary_func_t` in order to store in the `uinfo` struct.
- *
- *     This function will be called with `input` pointing to an
- *     existing contiguous input data array, and likewise `output`
- *     will be pre-allocated for `nrows` elements too, according to
- *     the `output_stype` field.
- *
- *     This field could be `nullptr`, indicating that no transform
- *     is necessary: the output can be simply copied from the input.
- *
- *     If the input column is of string type, then only the offsets
- *     will be passed in the `input` field. More precisely, the
- *     starting offsets of each string, and the array will be
- *     `nrows + 1` elements long. There is no support for output
- *     string columns. [Note: this may change in the future]
- *
  * - scalarfn (erased_func_t)
  *
  *     Function that can be applied to a single (scalar) input. This
- *     function is even more type-erased than `vectorfn`, but
- *     generally it has signature `TO(*)(TI)`. The caller is expected
- *     to know the actual signature in order to use this function.
+ *     function is type-erased than, but generally it has signature
+ *     `TO(*)(TI)`. The caller is expected to know the actual
+ *     signature in order to use this function.
  *
  * - vcolfn (vcol_func_t)
  *
@@ -155,18 +129,15 @@ py::oobj unary_pyfn(const py::PKArgs&);
  *
  *     If this field is non-empty (empty being SType::VOID), then the
  *     input column must be cast into this stype before being passed
- *     to `vectorfn` (or before being returned, if `vectorfn` is
- *     nullptr).
+ *     to `vcolfn`.
  *
  */
 class unary_infos {
   using vcol_func_t = Column(*)(Column&& arg);
-  using unary_func_t = void(*)(size_t nrows, const void* inp, void* out);
   using erased_func_t = void(*)();
 
   public:
     struct uinfo {
-      unary_func_t  vectorfn;
       erased_func_t scalarfn;
       vcol_func_t   vcolfn;
       SType output_stype;
@@ -189,10 +160,10 @@ class unary_infos {
 
     void add_op(Op op, const char* name, const py::PKArgs* args);
     void add_copy(Op op, SType input_stype, SType output_stype);
-    template <Op OP, SType SI, SType SO, element_t<SO>(*)(element_t<SI>)>
+    template <Op OP, SType SI, SType SO, read_t<SO>(*)(read_t<SI>)>
     void add();
-    template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(CString)>
-    void add_str(unary_func_t mapfn);
+    template <Op OP, SType SI, SType SO, bool(*)(read_t<SI>, bool, read_t<SO>*)>
+    void add();
     template <float(*F32)(float), double(*F64)(double)>
     void add_math(Op, const char*, const py::PKArgs&);
 };

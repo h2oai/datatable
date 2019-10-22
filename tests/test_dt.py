@@ -550,6 +550,26 @@ def test_resize_invalidates_stats():
     assert_equals(f0.max(), dt.Frame([4]))
 
 
+def test_resize_reduce_nrows_in_keyed_frame():
+    DT = dt.Frame(A=range(100))
+    DT.key = "A"
+    DT.nrows = 50
+    assert DT.key == ("A",)
+    frame_integrity_check(DT)
+    assert DT.to_list() == [list(range(50))]
+
+
+def test_resize_increase_nrows_in_keyed_frame():
+    DT = dt.Frame(A=range(100))
+    DT.key = "A"
+    with pytest.raises(ValueError, match = "Cannot increase the number of rows "
+                       "in a keyed frame"):
+        DT.nrows = 150
+    assert DT.key == ("A",)
+    frame_integrity_check(DT)
+    assert DT.to_list() == [list(range(100))]
+
+
 #-------------------------------------------------------------------------------
 # Frame.repeat()
 #-------------------------------------------------------------------------------

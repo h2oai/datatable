@@ -181,11 +181,16 @@ class Attacker:
 
     def rbind_self(self, frame):
         t = random.randint(1, min(5, 1000 // (1 + frame.nrows)) + 1)
-        print("[05] Rbinding frame with itself %d times -> nrows = %d"
-              % (t, frame.nrows * (t + 1)))
+        res = frame.rbind([frame] * t)
         if python_output:
-            python_output.write("DT.rbind([DT] * %d)\n" % t)
-        frame.rbind([frame] * t)
+            if res:
+                python_output.write("DT.rbind([DT] * %d)\n" % t)
+            else:
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='Cannot rbind to a keyed frame'):\n"
+                                    "    DT.rbind([DT] * %d)\n" % t)
+        print("[05] Rbinding frame with itself %d times -> nrows = %d"
+              % (t, frame.nrows))
 
     def select_rows_array(self, frame):
         if frame.nrows == 0:
@@ -298,11 +303,19 @@ class Attacker:
         if frame.ncols < 2:
             return
         s = self.random_array(frame.ncols - 1, positive=True)
-        print("[14] Removing columns %r -> ncols = %d"
-              % (s, frame.ncols - len(s)))
+        res = frame.delete_columns(s)
+        print("[14] Removing columns %r -> ncols = %d" % (s, frame.ncols))
         if python_output:
-            python_output.write("del DT[:, %r]\n" % s)
-        frame.delete_columns(s)
+            if res:
+                python_output.write("del DT[:, %r]\n" % s)
+            else:
+                python_output.write("with pytest.raises(ValueError, "
+                                    "match='Cannot delete a column that is "
+                                    "a part of a multi-column key'):\n"
+                                    "    del DT[:, %r]\n\n"
+                                    % s)
+
+
 
 
     def join_self(self, frame):
@@ -310,8 +323,7 @@ class Attacker:
             return self.slice_cols(frame)
 
         res = frame.join_self()
-        print("[15] Joining frame with itself -> ncols = %d"
-              % (2 * frame.ncols - frame.nkeys if res else frame.ncols))
+        print("[15] Joining frame with itself -> ncols = %d" % frame.ncols)
         if python_output:
             if res:
                 python_output.write("DT = DT[:, :, join(DT)]\n")
@@ -701,17 +713,26 @@ class Frame0:
 
     def delete_columns(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
-        ncols = self.ncols
-        del self.df[:, s]
         if isinstance(s, slice):
             s = list(range(ncols))[s]
+        set_keys = set(range(self.nkeys))
+        set_delcols = set(s)
+        nkeys_remove = len(set_keys.intersection(set_delcols))
 
-        new_column_ids = sorted(set(range(ncols)) - set(s))
-        self.data = [self.data[i] for i in new_column_ids]
-        self.names = [self.names[i] for i in new_column_ids]
-        self.types = [self.types[i] for i in new_column_ids]
-        if (min(s) < self.nkeys):
-            self.nkeys = 0
+        if (nkeys_remove > 0 and nkeys_remove < self.nkeys and self.nrows > 0):
+            with pytest.raises(ValueError, match="Cannot delete a column that "
+                               "is a part of a multi-column key"):
+                del self.df[:, s]
+            return False
+        else:
+            ncols = self.ncols
+            del self.df[:, s]
+            new_column_ids = sorted(set(range(ncols)) - set(s))
+            self.data = [self.data[i] for i in new_column_ids]
+            self.names = [self.names[i] for i in new_column_ids]
+            self.types = [self.types[i] for i in new_column_ids]
+            self.nkeys -= nkeys_remove
+            return True
 
 
     def slice_cols(self, s):
@@ -738,7 +759,13 @@ class Frame0:
         self.dedup_names()
 
     def rbind(self, frames):
-        self.df.rbind(*[iframe.df for iframe in frames])
+        if (self.nkeys > 0) and (self.nrows > 0):
+            with pytest.raises(ValueError, match="Cannot rbind to a keyed frame"):
+                self.df.rbind(*[iframe.df for iframe in frames])
+            return False
+        else:
+            self.df.rbind(*[iframe.df for iframe in frames])
+
         newdata = [col.copy() for col in self.data]
         for iframe in frames:
             assert iframe.ncols == self.ncols
@@ -747,8 +774,7 @@ class Frame0:
                 assert self.names[j] == iframe.names[j]
                 newdata[j] += iframe.data[j]
         self.data = newdata
-        if self.nrows:
-            self.nkeys = 0
+        return True
 
     def filter_on_bool_column(self, icol):
         assert self.types[icol] is bool
