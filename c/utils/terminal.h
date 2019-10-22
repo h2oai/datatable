@@ -42,13 +42,12 @@ class Terminal {
   private:
     int  width_;
     int  height_;
-    bool allow_unicode_;
     bool enable_colors_;
     bool enable_ecma48_;
     bool enable_keyboard_;
     bool is_jupyter_;
     bool is_ipython_;
-    int : 16;
+    int : 24;
 
   public:
     static Terminal& standard_terminal();
@@ -91,6 +90,7 @@ class Terminal {
     int get_height();
 
     void use_colors(bool f);
+    void use_unicode(bool f);
 
     void forget_window_size();
 

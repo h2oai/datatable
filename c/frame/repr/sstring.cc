@@ -95,20 +95,8 @@ size_t sstring::_compute_string_size(const std::string& str) {
       sz++;
     }
     else {   // UTF-8 continuation sequences
-      auto c1 = (*ch++) - 0x80;
-      int ucp;
-      if ((c & 0xE0) == 0xC0) {
-        ucp = ((c - 0xC0) << 6) + c1;
-      }
-      else if ((c & 0xF0) == 0xE0) {
-        auto c2 = (*ch++) - 0x80;
-        ucp = ((c - 0xE0) << 12) + (c1 << 6) + c2;
-      }
-      else {
-        auto c2 = (*ch++) - 0x80;
-        auto c3 = (*ch++) - 0x80;
-        ucp = ((c - 0xF0) << 18) + (c1 << 12) + (c2 << 6) + c3;
-      }
+      ch--;
+      int ucp = read_codepoint_from_utf8(&ch);
       int w = mk_wcwidth(ucp);
       sz += static_cast<size_t>(w);
     }
