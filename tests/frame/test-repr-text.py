@@ -233,3 +233,32 @@ def test_colored_keyed(capsys):
         " 1  a  "         + vsep + " 14.1\n" +
         " 2  d  "         + vsep + " -7.7\n" +
         "\n" + dim('[3 rows x 3 columns]') + "\n")
+
+
+def test_option_allow_unicode(capsys):
+    DT = dt.Frame(uni=["møøse", "𝔘𝔫𝔦𝔠𝔬𝔡𝔢", "J̲o̲s̲é̲", "🚑💥✅"])
+    with dt.options.display.context(allow_unicode=False):
+        DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == (
+        bold("   ") + vsep + bold(" uni" + " "*67) + "\n" +
+        grey("-- + " + "-"*70) + "\n" +
+        grey(" 0 ") + vsep + " m" + dim("\\xF8")*2 + "se" + " "*59 + "\n" +
+        grey(" 1 ") + vsep + " " + "".join(dim("\\U%08X") % ord(c) for c in '𝔘𝔫𝔦𝔠𝔬𝔡𝔢') + "\n" +
+        grey(" 2 ") + vsep + " " + dim("\\u0332").join(["J", "o", "s", dim("\\xE9"), ""]) + " "*39 + "\n" +
+        grey(" 3 ") + vsep + " " + dim("\\U0001F691") + dim("\\U0001F4A5") + dim("\\u2705") + " "*44 + "\n" +
+        "\n" + dim("[4 rows x 1 column]") + "\n")
+
+
+def test_option_allow_unicode_long_frame():
+    DT = dt.Frame(A=range(100))
+    with dt.options.display.context(allow_unicode=False):
+        assert str(DT) == (
+            "    |   A\n"
+            "--- + ---\n" +
+            "".join(" %2d |  %2d\n" % (i, i) for i in range(15)) +
+            "... | ...\n" +
+            "".join(" %2d |  %2d\n" % (i, i) for i in range(95, 100)) +
+            "\n" +
+            "[100 rows x 1 column]\n")

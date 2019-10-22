@@ -40,13 +40,13 @@ using std::size_t;
 class Terminal {
   using string = std::string;
   private:
-    bool allow_unicode_;
+    // bool allow_unicode_;
     bool enable_colors_;
     bool enable_ecma48_;
     bool enable_keyboard_;
     bool is_jupyter_;
     bool is_ipython_;
-    int : 16;
+    int : 24;
 
   public:
     static Terminal& standard_terminal();
