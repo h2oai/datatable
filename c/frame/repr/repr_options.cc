@@ -34,6 +34,7 @@ size_t display_head_nrows = 15;
 size_t display_tail_nrows = 5;
 bool   display_interactive = false;
 bool   display_use_colors = true;
+bool   display_allow_unicode = true;
 
 
 static void _init_options()
@@ -51,6 +52,21 @@ static void _init_options()
     "the console. Turn this off if your terminal is unable to\n"
     "display ANSI escape sequences, or if the colors make output\n"
     "not legible."
+  );
+
+  register_option(
+    "display.allow_unicode",
+    []{ return py::obool(display_allow_unicode); },
+    [](const py::Arg& value) {
+      display_allow_unicode = value.to_bool_strict();
+      Terminal::standard_terminal().use_unicode(display_allow_unicode);
+      py::oobj::import("datatable.utils.terminal", "term")
+        .invoke("set_allow_unicode", py::obool(display_allow_unicode));
+    },
+    "If True, datatable will allow unicode characters (encoded as\n"
+    "UTF-8) to be printed into the output.\n"
+    "If False, then unicode characters will either be avoided, or\n"
+    "hex-escaped as necessary."
   );
 
   register_option(

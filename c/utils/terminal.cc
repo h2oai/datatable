@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <iostream>
+#include "frame/repr/repr_options.h"
 #include "utils/assert.h"
 #include "utils/terminal.h"
 namespace dt {
@@ -41,7 +42,7 @@ Terminal& Terminal::plain_terminal() {
 }
 
 Terminal::Terminal(bool is_plain) {
-  allow_unicode_ = true;
+  display_allow_unicode = true;
   enable_colors_ = !is_plain;
   enable_ecma48_ = !is_plain;
   enable_keyboard_ = false;
@@ -60,7 +61,7 @@ void Terminal::initialize() {
     enable_keyboard_ = false;
     enable_colors_ = false;
     enable_ecma48_ = false;
-    allow_unicode_ = true;
+    display_allow_unicode = true;
   }
   else {
     // allow_unicode_ = false;
@@ -70,6 +71,8 @@ void Terminal::initialize() {
     // check  encoding?
     _check_ipython();
   }
+  // Set options
+  display_use_colors = enable_colors_;
 }
 
 /**
@@ -83,7 +86,7 @@ void Terminal::_check_ipython() {
     auto ipy = ipython.invoke("get_ipython");
     std::string ipy_type = ipy.typestr();
     if (ipy_type.find("ZMQInteractiveShell") != std::string::npos) {
-      allow_unicode_ = true;
+      display_allow_unicode = true;
       is_jupyter_ = true;
     }
     if (ipy_type.find("TerminalInteractiveShell") != std::string::npos) {
@@ -112,7 +115,7 @@ bool Terminal::colors_enabled() const noexcept {
 }
 
 bool Terminal::unicode_allowed() const noexcept {
-  return allow_unicode_;
+  return display_allow_unicode;
 }
 
 
@@ -120,6 +123,9 @@ void Terminal::use_colors(bool f) {
   enable_colors_ = f;
 }
 
+void Terminal::use_unicode(bool f) {
+  display_allow_unicode = f;
+}
 
 
 

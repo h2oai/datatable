@@ -88,10 +88,6 @@ class Terminal:
     def height(self):
         return self._height or self._blessed_term.height
 
-    @property
-    def is_utf8(self):
-        return self._allow_unicode
-
     def length(self, x):
         return self._blessed_term.length(x)
 
@@ -157,17 +153,6 @@ class Terminal:
         with self._blessed_term.cbreak():
             while True:
                 yield self._blessed_term.inkey(timeout=refresh_rate)
-
-    def initialize_options(self, options):
-        options.register_option(
-            "display.allow_unicode",
-            self.is_utf8,
-            xtype=bool,
-            onchange=self.set_allow_unicode,
-            doc="If True, datatable will allow unicode characters (encoded as\n"
-                "UTF-8) to be printed into the output.\n"
-                "If False, then unicode characters will either be avoided, or\n"
-                "hex-escaped as necessary.")
 
 
 

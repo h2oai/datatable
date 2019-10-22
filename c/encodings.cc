@@ -220,6 +220,26 @@ static void write_utf8_codepoint(int32_t cp, uint8_t** dest) {
 }
 
 
+int read_codepoint_from_utf8(const uint8_t** src) {
+  int cp;
+  auto ch = *src;
+  auto c0 = *ch++;
+  auto c1 = (*ch++) - 0x80;
+  if ((c0 & 0xE0) == 0xC0) {
+    cp = ((c0 - 0xC0) << 6) + c1;
+  }
+  else if ((c0 & 0xF0) == 0xE0) {
+    auto c2 = (*ch++) - 0x80;
+    cp = ((c0 - 0xE0) << 12) + (c1 << 6) + c2;
+  }
+  else {
+    auto c2 = (*ch++) - 0x80;
+    auto c3 = (*ch++) - 0x80;
+    cp = ((c0 - 0xF0) << 18) + (c1 << 12) + (c2 << 6) + c3;
+  }
+  *src = ch;
+  return cp;
+}
 
 /**
  * Decode a csv-encoded string. This function supports 2 encodings: either the

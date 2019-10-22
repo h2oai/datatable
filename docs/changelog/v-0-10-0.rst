@@ -134,6 +134,10 @@ Frame
   so that when a column containing such unicode characters is displayed, it
   should not cause mis-alignment issues.
 
+- |fix| Option ``dt.options.display.allow_unicode`` is now respected when
+  printing a Frame containing string columns with unicode data. These values
+  will now be properly escaped if the option value is ``False``.
+
 - |fix| Function :meth:`isna` now returns correct result for a column
   obtained from joining another frame, provided that the join was only
   partially successful (#2109).
