@@ -53,11 +53,15 @@ class Terminal {
     static Terminal& plain_terminal();
     void initialize();
 
+    string bold     ()              const;
     string bold     (const string&) const;
+    string dim      ()              const;
     string dim      (const string&) const;
-    string italic   (const string&) const;
-    string underline(const string&) const;
     string invert   (const string&) const;
+    string italic   ()              const;
+    string italic   (const string&) const;
+    string reset    ()              const;
+    string underline(const string&) const;
 
     string blue     (const string&) const;
     string blueB    (const string&) const;
@@ -66,6 +70,7 @@ class Terminal {
     string cyanD    (const string&) const;
     string green    (const string&) const;
     string greenB   (const string&) const;
+    string grey     ()              const;
     string grey     (const string&) const;
     string magenta  (const string&) const;
     string magentaB (const string&) const;

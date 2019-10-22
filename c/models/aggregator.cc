@@ -159,11 +159,11 @@ static oobj aggregate(const PKArgs& args) {
   dtptr dt_members, dt_exemplars;
   std::unique_ptr<AggregatorBase> agg;
   if (double_precision) {
-    agg = make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins,
+    agg = dt::make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins,
                                           nd_max_bins, max_dimensions, seed,
                                           nthreads);
   } else {
-    agg = make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
+    agg = dt::make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
                                          nd_max_bins, max_dimensions, seed,
                                          nthreads);
   }

@@ -22,11 +22,14 @@
 #ifndef dt_FRAME_REPR_TERMINAL_WIDGET_h
 #define dt_FRAME_REPR_TERMINAL_WIDGET_h
 #include <iostream>
+#include <memory>
 #include <vector>
 #include "frame/repr/text_column.h"
 #include "frame/repr/widget.h"
 #include "python/_all.h"
 namespace dt {
+
+using text_column = std::unique_ptr<TextColumn>;
 
 
 /**
@@ -36,7 +39,7 @@ namespace dt {
 class TerminalWidget : public Widget {
   private:
     std::ostringstream out_;
-    std::vector<TextColumn> text_columns_;
+    std::vector<text_column> text_columns_;
     dt::Terminal* terminal_;
 
   public:

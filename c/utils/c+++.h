@@ -2,6 +2,7 @@
 #define dt_UTILS_CPLUSES_h
 #include <memory>     // std::unique_ptr
 #include <utility>    // std::forward
+namespace dt {
 
 
 // Defined in C++14, but not in C++11
@@ -12,4 +13,5 @@ std::unique_ptr<T> make_unique(Args&&... args) {
 }
 
 
+}
 #endif

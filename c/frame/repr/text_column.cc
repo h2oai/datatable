@@ -23,6 +23,11 @@
 #include "utils/assert.h"
 namespace dt {
 
+
+//------------------------------------------------------------------------------
+// TextColumn
+//------------------------------------------------------------------------------
+
 const Terminal* TextColumn::term_ = nullptr;
 sstring TextColumn::ellipsis_;
 sstring TextColumn::na_value_;
@@ -35,29 +40,15 @@ void TextColumn::setup(const Terminal* terminal) {
 }
 
 
-
-//------------------------------------------------------------------------------
-// Construction
-//------------------------------------------------------------------------------
-
-TextColumn::TextColumn(const std::string& name, const Column& col,
-                       const intvec& indices, bool is_key_column)
-  : name_(name)
-{
-  width_ = std::max(name_.size(), size_t(2));
-  LType ltype = col.ltype();
-  align_right_ = (ltype == LType::BOOL) ||
-                 (ltype == LType::INT) ||
-                 (ltype == LType::REAL);
+TextColumn::TextColumn() {
+  width_ = 2;
   margin_left_ = true;
   margin_right_ = true;
-  border_right_ = false;
-  is_key_column_ = is_key_column;
-  _render_all_data(col, indices);
-  if (ltype == LType::REAL) {
-    _align_at_dot();
-  }
+  is_key_column_ = false;
 }
+
+TextColumn::~TextColumn() = default;
+
 
 
 void TextColumn::unset_left_margin() {
@@ -68,39 +59,60 @@ void TextColumn::unset_right_margin() {
   margin_right_ = false;
 }
 
-void TextColumn::set_right_border() {
-  border_right_ = true;
-}
 
 
 
 //------------------------------------------------------------------------------
-// Print data to the output stream
+// Data_TextColumn : public
 //------------------------------------------------------------------------------
 
-void TextColumn::print_name(ostringstream& out) const {
-  _print_aligned_value(out, term_->bold(name_.str()));
-}
-
-
-void TextColumn::print_separator(ostringstream& out) const {
-  if (margin_left_) out << ' ';
-  out << term_->grey(std::string(width_, '-'));
-  if (border_right_) {
-    out << term_->grey(margin_right_? "-+" : "+");
-  } else {
-    if (margin_right_) out << ' ';
+Data_TextColumn::Data_TextColumn(const std::string& name,
+                                 const Column& col,
+                                 const intvec& indices,
+                                 bool is_key_column)
+  : TextColumn(), name_(name)
+{
+  width_ = std::max(width_, name_.size());
+  LType ltype = col.ltype();
+  align_right_ = (ltype == LType::BOOL) ||
+                 (ltype == LType::INT) ||
+                 (ltype == LType::REAL);
+  margin_left_ = true;
+  margin_right_ = true;
+  is_key_column_ = is_key_column;
+  _render_all_data(col, indices);
+  if (ltype == LType::REAL) {
+    _align_at_dot();
   }
 }
 
 
-void TextColumn::print_value(ostringstream& out, size_t i) const {
-  _print_aligned_value(out, data_[i].str());
+void Data_TextColumn::print_name(ostringstream& out) const {
+  _print_aligned_value(out, name_.str());
 }
 
 
-void TextColumn::_print_aligned_value(ostringstream& out,
-                                      const sstring& value) const
+void Data_TextColumn::print_separator(ostringstream& out) const {
+  if (margin_left_) out << ' ';
+  out << std::string(width_, '-');
+  if (margin_right_) out << ' ';
+}
+
+
+void Data_TextColumn::print_value(ostringstream& out, size_t i) const {
+  if (is_key_column_) out << term_->grey();
+  _print_aligned_value(out, data_[i].str());
+  if (is_key_column_) out << term_->reset();
+}
+
+
+
+//------------------------------------------------------------------------------
+// Data_TextColumn : private
+//------------------------------------------------------------------------------
+
+void Data_TextColumn::_print_aligned_value(ostringstream& out,
+                                           const sstring& value) const
 {
   if (margin_left_) out << ' ';
   if (align_right_) {
@@ -112,22 +124,16 @@ void TextColumn::_print_aligned_value(ostringstream& out,
     _print_whitespace(out, width_ - value.size());
   }
   if (margin_right_) out << ' ';
-  if (border_right_) out << term_->grey("|");
 }
 
 
-void TextColumn::_print_whitespace(ostringstream& out, size_t n) const {
+void Data_TextColumn::_print_whitespace(ostringstream& out, size_t n) const {
   xassert(n < 10000);
   for (size_t i = 0; i < n; ++i) out << ' ';
 }
 
 
-
-//------------------------------------------------------------------------------
-// Data rendering
-//------------------------------------------------------------------------------
-
-sstring TextColumn::_render_value_bool(const Column& col, size_t i) const {
+sstring Data_TextColumn::_render_value_bool(const Column& col, size_t i) const {
   int8_t value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
@@ -136,7 +142,7 @@ sstring TextColumn::_render_value_bool(const Column& col, size_t i) const {
 }
 
 template <typename T>
-sstring TextColumn::_render_value_int(const Column& col, size_t i) const {
+sstring Data_TextColumn::_render_value_int(const Column& col, size_t i) const {
   T value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
@@ -144,7 +150,8 @@ sstring TextColumn::_render_value_int(const Column& col, size_t i) const {
 }
 
 template <typename T>
-sstring TextColumn::_render_value_float(const Column& col, size_t i) const {
+sstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
+{
   T value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
@@ -154,7 +161,7 @@ sstring TextColumn::_render_value_float(const Column& col, size_t i) const {
 }
 
 
-bool TextColumn::_needs_escaping(const CString& str) {
+bool Data_TextColumn::_needs_escaping(const CString& str) {
   size_t n = static_cast<size_t>(str.size);
   for (size_t i = 0; i < n; ++i) {
     auto c = static_cast<unsigned char>(str.ch[i]);
@@ -177,7 +184,7 @@ static std::string _escaped_char(uint8_t a) {
 }
 
 
-std::string TextColumn::_escape_string(const CString& str) {
+std::string Data_TextColumn::_escape_string(const CString& str) {
   ostringstream out;
   size_t n = static_cast<size_t>(str.size);
   for (size_t i = 0; i < n; ++i) {
@@ -200,7 +207,8 @@ std::string TextColumn::_escape_string(const CString& str) {
   return out.str();
 }
 
-sstring TextColumn::_render_value_string(const Column& col, size_t i) const {
+sstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
+{
   CString value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
@@ -209,7 +217,7 @@ sstring TextColumn::_render_value_string(const Column& col, size_t i) const {
 }
 
 
-sstring TextColumn::_render_value(const Column& col, size_t i) const {
+sstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
   switch (col.stype()) {
     case SType::BOOL:    return _render_value_bool(col, i);
     case SType::INT8:    return _render_value_int<int8_t>(col, i);
@@ -226,17 +234,17 @@ sstring TextColumn::_render_value(const Column& col, size_t i) const {
 
 
 
-
-void TextColumn::_render_all_data(const Column& col, const intvec& indices) {
+void Data_TextColumn::_render_all_data(const Column& col, const intvec& indices)
+{
   data_.reserve(indices.size());
   for (size_t i : indices) {
     if (i == NA_index) {
       data_.push_back(ellipsis_);
     } else {
       auto rendered_value = _render_value(col, i);
-      if (is_key_column_) {
-        rendered_value = sstring(term_->grey(rendered_value.str()));
-      }
+      // if (is_key_column_) {
+      //   rendered_value = sstring(term_->grey(rendered_value.str()));
+      // }
       data_.push_back(std::move(rendered_value));
     }
     size_t w = data_.back().size();
@@ -245,7 +253,7 @@ void TextColumn::_render_all_data(const Column& col, const intvec& indices) {
 }
 
 
-void TextColumn::_align_at_dot() {
+void Data_TextColumn::_align_at_dot() {
   size_t n = data_.size();
   std::vector<size_t> right_widths;
   right_widths.reserve(n);
@@ -274,6 +282,24 @@ void TextColumn::_align_at_dot() {
       width_ = std::max(width_, data_[i].size());
     }
   }
+}
+
+
+
+//------------------------------------------------------------------------------
+// VSep_TextColumn
+//------------------------------------------------------------------------------
+
+void VSep_TextColumn::print_name(ostringstream& out) const {
+  out << term_->reset() << term_->grey("|") << term_->bold();
+}
+
+void VSep_TextColumn::print_separator(ostringstream& out) const {
+  out << '+';
+}
+
+void VSep_TextColumn::print_value(ostringstream& out, size_t) const {
+  out << term_->grey("|");
 }
 
 

@@ -724,15 +724,15 @@ oobj _obj::invoke(const char* fn) const {
 }
 
 
-oobj _obj::invoke(const char* fn, const py::otuple& args) const {
+oobj _obj::invoke(const char* fn, otuple&& args) const {
   oobj method = get_attr(fn);
   PyObject* res = PyObject_CallObject(method.v, args.v);  // new ref
   if (!res) throw PyError();
   return oobj::from_new_reference(res);
 }
 
-oobj _obj::invoke(const char* fn, const py::oobj& arg1) const {
-  return invoke(fn, py::otuple(arg1));
+oobj _obj::invoke(const char* fn, const oobj& arg1) const {
+  return invoke(fn, otuple(arg1));
 }
 
 

@@ -22,6 +22,7 @@
 #include "column/range.h"
 #include "frame/repr/terminal_widget.h"
 #include "python/string.h"
+#include "utils/c+++.h"
 namespace dt {
 
 
@@ -74,37 +75,42 @@ void TerminalWidget::_prerender_columns() {
   size_t nkeys = dt_->nkeys();
   size_t nrows = dt_->nrows();
   const auto& names = dt_->get_names();
-  text_columns_.reserve(colindices_.size() + 1);
+  text_columns_.reserve(colindices_.size() + 2);
   if (nkeys == 0) {
     Column ri_col(new Range_ColumnImpl(0, static_cast<int64_t>(nrows), 1));
-    TextColumn textcol("", ri_col, rowindices_, /*is_key_column=*/true);
-    textcol.set_right_border();
-    text_columns_.emplace_back(std::move(textcol));
+    text_columns_.emplace_back(
+      dt::make_unique<Data_TextColumn>("", ri_col, rowindices_, true));
+    text_columns_.emplace_back(dt::make_unique<VSep_TextColumn>());
   }
   for (size_t j : colindices_) {
     const auto& col = dt_->get_column(j);
-    bool iskey = (j < nkeys);
-    TextColumn textcol(names[j], col, rowindices_, iskey);
-    if (j == nkeys - 1) textcol.set_right_border();
-    text_columns_.emplace_back(std::move(textcol));
+    text_columns_.emplace_back(
+      dt::make_unique<Data_TextColumn>(names[j], col, rowindices_, false));
+    if (j == nkeys - 1) {
+      text_columns_.emplace_back(dt::make_unique<VSep_TextColumn>());
+    }
   }
-  text_columns_.front().unset_left_margin();
-  text_columns_.back().unset_right_margin();
+  text_columns_.front()->unset_left_margin();
+  text_columns_.back()->unset_right_margin();
 }
 
 
 void TerminalWidget::_render_column_names() {
+  out_ << terminal_->bold();
   for (const auto& col : text_columns_) {
-    col.print_name(out_);
+    col->print_name(out_);
   }
+  out_ << terminal_->reset();
   out_ << '\n';
 }
 
 
 void TerminalWidget::_render_header_separator() {
+  out_ << terminal_->grey();
   for (const auto& col : text_columns_) {
-    col.print_separator(out_);
+    col->print_separator(out_);
   }
+  out_ << terminal_->reset();
   out_ << '\n';
 }
 
@@ -112,7 +118,7 @@ void TerminalWidget::_render_header_separator() {
 void TerminalWidget::_render_data() {
   for (size_t k = 0; k < rowindices_.size(); ++k) {
     for (const auto& col : text_columns_) {
-      col.print_value(out_, k);
+      col->print_value(out_, k);
     }
     out_ << '\n';
   }
@@ -123,8 +129,10 @@ void TerminalWidget::_render_footer() {
   size_t nrows = dt_->nrows();
   size_t ncols = dt_->ncols();
   out_ << '\n';
+  out_ << terminal_->dim();
   out_ << "[" << nrows << " row" << (nrows==1? "" : "s") << " x ";
   out_ << ncols << " column" << (ncols==1? "" : "s") << "]";
+  out_ << terminal_->reset();
   out_ << '\n';
 }
 
