@@ -112,6 +112,7 @@ void Widget::_generate_row_indices() {
     for (size_t i = 0; i < nrows_; ++i) {
       if (i == rows0_) {
         rowindices_.push_back(NA_index);
+        if (rows1_ == 0) break;
         i = nrows_ - rows1_;
       }
       rowindices_.push_back(i);
