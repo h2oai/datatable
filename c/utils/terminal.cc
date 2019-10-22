@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <iostream>
+#include "frame/repr/repr_options.h"
 #include "utils/assert.h"
 #include "utils/terminal.h"
 namespace dt {
@@ -70,6 +71,9 @@ void Terminal::initialize() {
     // check  encoding?
     _check_ipython();
   }
+  // Set options
+  display_allow_unicode = allow_unicode_;
+  display_use_colors = enable_colors_;
 }
 
 /**
@@ -120,6 +124,9 @@ void Terminal::use_colors(bool f) {
   enable_colors_ = f;
 }
 
+void Terminal::use_unicode(bool f) {
+  allow_unicode_ = f;
+}
 
 
 

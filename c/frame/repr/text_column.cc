@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "frame/repr/text_column.h"
 #include "utils/assert.h"
+#include "encodings.h"
 namespace dt {
 
 
@@ -183,29 +184,60 @@ static std::string _escaped_char(uint8_t a) {
   return escaped;
 }
 
+static std::string _escape_unicode(int cp) {
+  std::string escaped = (cp <= 0xFF)?   "\\x00" :
+                        (cp <= 0xFFFF)? "\\u0000"
+                                      : "\\U00000000";
+  size_t i = escaped.size() - 1;
+  while (cp) {
+    int digit = cp & 15;
+    escaped[i] = static_cast<char>((digit >= 10)? 'A' + digit - 10
+                                                : '0' + digit);
+    --i;
+    cp >>= 4;
+  }
+  return escaped;
+}
+
 
 std::string Data_TextColumn::_escape_string(const CString& str) {
   ostringstream out;
+  bool allow_unicode = term_->unicode_allowed();
+
   size_t n = static_cast<size_t>(str.size);
-  for (size_t i = 0; i < n; ++i) {
-    auto c = static_cast<unsigned char>(str.ch[i]);
+  auto ch = reinterpret_cast<const unsigned char*>(str.ch);
+  auto end = ch + n;
+  for (;ch < end;) {
+    auto c = *ch;
     if ((c >= 0x20 && c <= 0x7E) ||  // printable ASCII
         (c >= 0x80 && c <= 0xBF)) {  // UTF8 continuation bytes
       out << c;
-    } else if (c <= 0x1F || c == 0x7F) {  // C0 block + \x7F (DEL) character
+      ch++;
+    }
+    // C0 block + \x7F (DEL) character
+    else if (c <= 0x1F || c == 0x7F) {
       out << term_->dim(_escaped_char(c));
-    } else {  // unicode start byte
-      auto cc = static_cast<unsigned char>(str.ch[i + 1]);
+      ch++;
+    }
+    // unicode start byte
+    else if (allow_unicode) {
+      auto cc = ch[1];
       if (c == 0xC2 && cc >= 0x80 && cc <= 0x9F) {  // C1 block
         out << term_->dim(_escaped_char(cc));
-        i++;
+        ch += 2;
       } else {
         out << c;
+        ch++;
       }
+    }
+    else {
+      int codepoint = read_codepoint_from_utf8(&ch);
+      out << term_->dim(_escape_unicode(codepoint));
     }
   }
   return out.str();
 }
+
 
 sstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
 {

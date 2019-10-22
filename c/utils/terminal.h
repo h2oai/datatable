@@ -87,6 +87,7 @@ class Terminal {
     bool unicode_allowed() const noexcept;
 
     void use_colors(bool f);
+    void use_unicode(bool f);
 
   private:
     Terminal(bool is_plain);
