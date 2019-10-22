@@ -6,6 +6,7 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "column/func_unary.h"
 #include "column/virtual.h"
 #include "expr/expr_unaryop.h"
 #include "frame/py_frame.h"
@@ -21,115 +22,26 @@ unary_infos unary_library;
 
 
 //------------------------------------------------------------------------------
-// Vector functions
-//------------------------------------------------------------------------------
-
-template<typename TI, typename TO, TO(*OP)(TI)>
-void mapfw(size_t nrows, const TI* inp, TO* out) {
-  dt::parallel_for_static(nrows,
-    [=](size_t i) {
-      out[i] = OP(inp[i]);
-    });
-}
-
-
-template<typename TI, typename TO>
-void map_str_len(size_t nrows, const TI* inp, TO* out) {
-  inp++;
-  dt::parallel_for_static(nrows,
-    [=](size_t i) {
-      out[i] = ISNA<TI>(inp[i])
-                  ? GETNA<TO>()
-                  : static_cast<TO>((inp[i] - inp[i-1]) & ~GETNA<TI>());
-    });
-}
-
-
-template<typename T>
-void map_str_isna(size_t nrows, const T* inp, int8_t* out) {
-  inp++;
-  dt::parallel_for_static(nrows,
-    [=](size_t i) {
-      out[i] = ISNA<T>(inp[i]);
-    });
-}
-
-
-
-
-//------------------------------------------------------------------------------
 // Virtual-column functions
 //------------------------------------------------------------------------------
-
-template <typename TI, typename TO>
-class unary_vcol : public Virtual_ColumnImpl {
-  using operator_t = TO(*)(TI);
-  private:
-    Column arg;
-    operator_t func;
-
-  public:
-    unary_vcol(Column&& col, SType stype, operator_t f)
-      : Virtual_ColumnImpl(col.nrows(), stype),
-        arg(std::move(col)),
-        func(f) {}
-
-    ColumnImpl* clone() const override {
-      return new unary_vcol<TI, TO>(Column(arg), stype_, func);
-    }
-
-    bool get_element(size_t i, TO* out) const override {
-      TI x;
-      bool isvalid = arg.get_element(i, &x);
-      (void) isvalid;  // FIXME
-      TO value = func(x);
-      *out = value;
-      return !ISNA<TO>(value);
-    }
-};
-
-template <typename TI>
-class unary_vcol<TI, int8_t> : public Virtual_ColumnImpl {
-  using operator_t = int8_t(*)(TI);
-  private:
-    Column arg;
-    operator_t func;
-
-  public:
-    unary_vcol(Column&& col, SType stype, operator_t f)
-      : Virtual_ColumnImpl(col.nrows(), stype),
-        arg(std::move(col)),
-        func(f) {}
-
-    ColumnImpl* clone() const override {
-      return new unary_vcol<TI, int8_t>(Column(arg), stype_, func);
-    }
-
-    bool get_element(size_t i, int8_t* out) const override {
-      TI x;
-      bool isvalid = arg.get_element(i, &x);
-      (void) isvalid;  // FIXME
-      int8_t value = func(x);
-      *out = value;
-      return !ISNA<int8_t>(value);
-    }
-
-    bool get_element(size_t i, int32_t* out) const override {
-      TI x;
-      bool isvalid = arg.get_element(i, &x);
-      (void) isvalid;  // FIXME
-      int8_t value = func(x);
-      *out = static_cast<int32_t>(value);
-      return !ISNA<int8_t>(value);
-    }
-};
-
 
 
 template <SType SI, SType SO, element_t<SO>(*FN)(element_t<SI>)>
 Column vcol_factory(Column&& arg) {
+  size_t nrows = arg.nrows();
   return Column(
-      new unary_vcol<element_t<SI>, element_t<SO>>(std::move(arg), SO, FN)
+      new FuncUnary1_ColumnImpl<element_t<SI>, element_t<SO>>(
+              std::move(arg), FN, nrows, SO)
+  );
+}
+
+
+template <SType SI, SType SO, bool(*FN)(read_t<SI>, bool, read_t<SO>*)>
+Column vcol_factory2(Column&& arg) {
+  size_t nrows = arg.nrows();
+  return Column(
+      new FuncUnary2_ColumnImpl<read_t<SI>, read_t<SO>>(
+              std::move(arg), FN, nrows, SO)
   );
 }
 
@@ -137,17 +49,11 @@ Column vcol_factory(Column&& arg) {
 template <SType SI, bool(*FN)(element_t<SI>)>
 Column vcol_factory_bool(Column&& arg) {
   using TI = element_t<SI>;
+  size_t nrows = arg.nrows();
   return Column(
-      new unary_vcol<TI, int8_t>(std::move(arg), SType::BOOL,
-                                 reinterpret_cast<int8_t(*)(TI)>(FN))
-  );
-}
-
-
-template <SType SO, element_t<SO>(*FN)(CString)>
-Column vcol_factory_str(Column&& arg) {
-  return Column(
-      new unary_vcol<CString, element_t<SO>>(std::move(arg), SO, FN)
+      new FuncUnary1_ColumnImpl<TI, int8_t>(
+              std::move(arg), reinterpret_cast<int8_t(*)(TI)>(FN),
+              nrows, SType::BOOL)
   );
 }
 
@@ -171,11 +77,20 @@ inline static T op_minus(T x) {
   return -x;
 }
 
-template <typename T>
-inline static int8_t op_isna(T x) { return ISNA<T>(x); }
 
 template <typename T>
-inline static int8_t op_notna(T x) { return !ISNA<T>(x); }
+inline static bool op_isna(T, bool isvalid, int8_t* out) {
+  *out = !isvalid;
+  return true;
+}
+
+
+template <typename T>
+inline static bool op_notna(T, bool isvalid, int8_t* out) {
+  *out = isvalid;
+  return true;
+}
+
 
 template <typename T>
 inline static int8_t op_false(T) { return false; }
@@ -205,16 +120,13 @@ inline static int8_t op_invert_bool(int8_t x) {
 
 template <typename T>
 inline static T op_inverse(T x) {
-  return ISNA<T>(x)? x : ~x;
+  return ~x;
 }
 
-inline static int8_t op_str_isna(CString str) {
-  return (str.ch == nullptr);
-}
 
-template <typename T>
-inline static T op_str_len(CString str) {
-  return (str.ch == nullptr)? GETNA<T>() : static_cast<T>(str.size);
+inline static bool op_str_len(CString str, bool isvalid, int64_t* out) {
+  *out = str.size;
+  return isvalid;
 }
 
 
@@ -287,42 +199,20 @@ GroupbyMode expr_unaryop::get_groupby_mode(const EvalContext& ctx) const {
 
 Column expr_unaryop::evaluate(EvalContext& ctx) {
   Column input_column = arg->evaluate(ctx);
-
-  auto input_stype = input_column.stype();
+  SType input_stype = input_column.stype();
   const auto& ui = unary_library.get_infox(opcode, input_stype);
   if (ui.cast_stype != SType::VOID) {
     input_column.cast_inplace(ui.cast_stype);
+    input_stype = ui.cast_stype;
   }
-  if (ui.vectorfn == nullptr) {
-    return input_column;
+  if (!ui.vcolfn) {
+    throw NotImplError() << "Cannot create a virtual column for input_stype = "
+        << input_stype << " and op = " << static_cast<size_t>(opcode);
   }
-  input_column.materialize();
-
-  size_t nrows = input_column.nrows();
-  const void* inp =  input_column.get_data_readonly();
-  Column output_column = Column::new_data_column(nrows, ui.output_stype);
-  void* out = output_column.get_data_editable();
-
-  ui.vectorfn(nrows, inp, out);
-
-  return output_column;
+  Column res = ui.vcolfn(std::move(input_column));
+  res.materialize();
+  return res;
 }
-
-
-// Column expr_unaryop::evaluate(EvalContext& ctx) {
-//   Column varg = arg->evaluate(ctx);
-//   SType input_stype = varg.stype();
-//   const auto& ui = unary_library.get_infox(opcode, input_stype);
-//   if (ui.cast_stype != SType::VOID) {
-//     varg = std::move(varg).cast(ui.cast_stype);
-//     input_stype = ui.cast_stype;
-//   }
-//   if (!ui.vcolfn) {
-//     throw NotImplError() << "Cannot create a virtual column for input_stype = "
-//         << input_stype << " and op = " << static_cast<size_t>(opcode);
-//   }
-//   return ui.vcolfn(std::move(varg));
-// }
 
 
 
@@ -680,14 +570,11 @@ void unary_infos::add_op(Op opcode, const char* name, const py::PKArgs* args) {
 }
 
 
-template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(element_t<SI>)>
+template <Op OP, SType SI, SType SO, read_t<SO>(*FN)(read_t<SI>)>
 void unary_infos::add() {
-  using TI = element_t<SI>;
-  using TO = element_t<SO>;
   constexpr size_t entry_id = id(OP, SI);
   xassert(info.count(entry_id) == 0);
   info[entry_id] = {
-    /* vectorfn = */ reinterpret_cast<unary_func_t>(mapfw<TI, TO, FN>),
     /* scalarfn = */ reinterpret_cast<erased_func_t>(FN),
     /* vcolfn =   */ vcol_factory<SI, SO, FN>,
     /* outstype = */ SO,
@@ -695,25 +582,25 @@ void unary_infos::add() {
   };
 }
 
-template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(CString)>
-void unary_infos::add_str(unary_func_t mapfn)
-{
+
+template <Op OP, SType SI, SType SO, bool(*FN)(read_t<SI>, bool, read_t<SO>*)>
+void unary_infos::add() {
   constexpr size_t entry_id = id(OP, SI);
   xassert(info.count(entry_id) == 0);
   info[entry_id] = {
-    mapfn,
-    reinterpret_cast<erased_func_t>(FN),
-    vcol_factory_str<SO, FN>,
-    SO,
-    SType::VOID
+    /* scalarfn = */ nullptr,
+    /* vcolfn =   */ vcol_factory2<SI, SO, FN>,
+    /* outstype = */ SO,
+    /* caststype= */ SType::VOID
   };
 }
+
 
 void unary_infos::add_copy(Op op, SType input_stype, SType output_stype) {
   size_t entry_id = id(op, input_stype);
   xassert(info.count(entry_id) == 0);
   SType cast_stype = (input_stype == output_stype)? SType::VOID : output_stype;
-  info[entry_id] = {nullptr, nullptr, vcol_id, output_stype, cast_stype};
+  info[entry_id] = {nullptr, vcol_id, output_stype, cast_stype};
 }
 
 
@@ -723,8 +610,6 @@ inline void unary_infos::add_math(
 {
   static SType integer_stypes[] = {SType::BOOL, SType::INT8, SType::INT16,
                                    SType::INT32, SType::INT64};
-  auto m32 = reinterpret_cast<unary_func_t>(mapfw<float,  float,  F32>);
-  auto m64 = reinterpret_cast<unary_func_t>(mapfw<double, double, F64>);
   auto s32 = reinterpret_cast<erased_func_t>(F32);
   auto s64 = reinterpret_cast<erased_func_t>(F64);
   auto v32 = vcol_factory<SType::FLOAT32, SType::FLOAT32, F32>;
@@ -734,19 +619,17 @@ inline void unary_infos::add_math(
   for (size_t i = 0; i < 5; ++i) {
     size_t entry_id = id(opcode, integer_stypes[i]);
     xassert(info.count(entry_id) == 0);
-    info[entry_id] = {m64, s64, v64, SType::FLOAT64, SType::FLOAT64};
+    info[entry_id] = {s64, v64, SType::FLOAT64, SType::FLOAT64};
   }
   size_t id_f32 = id(opcode, SType::FLOAT32);
   size_t id_f64 = id(opcode, SType::FLOAT64);
   xassert(info.count(id_f32) == 0 && info.count(id_f64) == 0);
-  info[id_f32] = {m32, s32, v32, SType::FLOAT32, SType::VOID};
-  info[id_f64] = {m64, s64, v64, SType::FLOAT64, SType::VOID};
+  info[id_f32] = {s32, v32, SType::FLOAT32, SType::VOID};
+  info[id_f64] = {s64, v64, SType::FLOAT64, SType::VOID};
 }
 
 
 unary_infos::unary_infos() {
-  #define U reinterpret_cast<unary_func_t>
-
   constexpr SType bool8 = SType::BOOL;
   constexpr SType int8  = SType::INT8;
   constexpr SType int16 = SType::INT16;
@@ -799,8 +682,8 @@ unary_infos::unary_infos() {
   add<Op::ISNA, int64, bool8, op_isna<int64_t>>();
   add<Op::ISNA, flt32, bool8, op_isna<float>>();
   add<Op::ISNA, flt64, bool8, op_isna<double>>();
-  add_str<Op::ISNA, str32, bool8, op_str_isna>(U(map_str_isna<uint32_t>));
-  add_str<Op::ISNA, str64, bool8, op_str_isna>(U(map_str_isna<uint64_t>));
+  add<Op::ISNA, str32, bool8, op_isna<CString>>();
+  add<Op::ISNA, str64, bool8, op_isna<CString>>();
 
   add_op(Op::ISFINITE, "isfinite", &args_isfinite);
   add<Op::ISFINITE, bool8, bool8, op_notna<int8_t>>();
@@ -848,8 +731,8 @@ unary_infos::unary_infos() {
   add<Op::TRUNC, flt64, flt64, std::trunc>();
 
   add_op(Op::LEN, "len", &args_len);
-  add_str<Op::LEN, str32, int32, op_str_len<int32_t>>(U(map_str_len<uint32_t, int32_t>));
-  add_str<Op::LEN, str64, int64, op_str_len<int64_t>>(U(map_str_len<uint64_t, int64_t>));
+  add<Op::LEN, str32, int64, op_str_len>();
+  add<Op::LEN, str64, int64, op_str_len>();
 
   add_math<&std::acos,  &std::acos> (Op::ARCCOS,  "arccos",  args_arccos);
   add_math<&std::acosh, &std::acosh>(Op::ARCOSH,  "arcosh",  args_arcosh);
@@ -884,8 +767,6 @@ unary_infos::unary_infos() {
 
   add_math<&std::fabs, &std::fabs>(Op::FABS, "fabs", args_fabs);
   add_math<&fn_sign,   &fn_sign>  (Op::SIGN, "sign", args_sign);
-
-  #undef U
 }
 
 }}  // namespace dt::expr
