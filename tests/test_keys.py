@@ -164,3 +164,28 @@ def test_key_after_group():
     assert tmp.to_list()[0] == ["a", "b", "c", "d"]
     assert sum(tmp.to_list()[1]) == n
 
+
+#-------------------------------------------------------------------------------
+# Test if a key was dropped or kept after certain operations
+#-------------------------------------------------------------------------------
+
+def test_key_dropped_after_single_column_selector():
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A", "B"]
+    DT_A = DT["A"]
+    frame_integrity_check(DT_A)
+    assert not DT_A.key
+    assert DT_A.names == ("A",)
+    assert DT_A.to_list() == [list(range(100))]
+
+
+def test_key_kept_after_single_column_selector():
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A"]
+    DT_A = DT["A"]
+    frame_integrity_check(DT_A)
+    assert DT_A.key == ("A",)
+    assert DT_A.names == ("A",)
+    assert DT_A.to_list() == [list(range(100))]
