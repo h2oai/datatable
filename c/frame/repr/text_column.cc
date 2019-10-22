@@ -207,10 +207,10 @@ std::string Data_TextColumn::_escape_string(const CString& str) {
   size_t n = static_cast<size_t>(str.size);
   auto ch = reinterpret_cast<const unsigned char*>(str.ch);
   auto end = ch + n;
-  for (;ch < end;) {
+  while (ch < end) {
     auto c = *ch;
-    if ((c >= 0x20 && c <= 0x7E) ||  // printable ASCII
-        (c >= 0x80 && c <= 0xBF)) {  // UTF8 continuation bytes
+    // printable ASCII + UTF8 continuation bytes
+    if ((c >= 0x20 && c <= 0x7E) || (c >= 0x80 && c <= 0xBF)) {
       out << c;
       ch++;
     }
@@ -219,10 +219,12 @@ std::string Data_TextColumn::_escape_string(const CString& str) {
       out << term_->dim(_escaped_char(c));
       ch++;
     }
-    // unicode start byte
+    // unicode start byte, when unicode output allowed
     else if (allow_unicode) {
       auto cc = ch[1];
-      if (c == 0xC2 && cc >= 0x80 && cc <= 0x9F) {  // C1 block
+      // C1 block still has to be escaped (codepoints 0x80 .. 0x9F, encoded
+      // in utf8 as 2-byte sequences C2 80 .. C2 9F)
+      if (c == 0xC2 && cc >= 0x80 && cc <= 0x9F) {
         out << term_->dim(_escaped_char(cc));
         ch += 2;
       } else {
@@ -230,8 +232,9 @@ std::string Data_TextColumn::_escape_string(const CString& str) {
         ch++;
       }
     }
+    // unicode start byte, the codepoint needs to be hex-escaped
     else {
-      int codepoint = read_codepoint_from_utf8(&ch);
+      int codepoint = read_codepoint_from_utf8(&ch);  // advances `ch`
       out << term_->dim(_escape_unicode(codepoint));
     }
   }
