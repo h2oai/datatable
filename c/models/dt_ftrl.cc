@@ -222,6 +222,11 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
                            // so we train the model on all negatives: 1 == 0
                            label_ids[0] = 1;
                            data_label_ids_in[0] = 1;
+                           // Since we cannot rbind anything to a keyed frame, we
+                           // - clear the key;
+                           // - rbind new labels;
+                           // - set the key back, this will sort the resulting `dt_labels`.
+                           dt_labels->clear_key();
                            dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }, { 1 }});
                            intvec keys{ 0 };
                            dt_labels->set_key(keys);
@@ -451,10 +456,13 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       RowIndex ri_labels(std::move(new_label_indices));
       dt_labels_in->apply_rowindex(ri_labels);
       set_ids(dt_labels_in->get_column(1), static_cast<int32_t>(dt_labels->nrows()));
-      dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
 
-      // It is necessary to re-key the column, because there is no guarantee
-      // that rbind didn't break data ordering.
+      // Since we cannot rbind anything to a keyed frame, we
+      // - clear the key;
+      // - rbind new labels;
+      // - set the key back, this will sort the resulting `dt_labels`.
+      dt_labels->clear_key();
+      dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
       intvec keys{ 0 };
       dt_labels->set_key(keys);
 
