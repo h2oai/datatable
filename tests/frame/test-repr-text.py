@@ -306,8 +306,7 @@ def test_option_allow_unicode_long_frame():
 def test_max_nrows_large():
     # Using large `max_nrows` produces all rows of the frame
     DT = dt.Frame(A=["A%03d" % (i+1) for i in range(200)])
-    with dt.options.display.context(max_nrows=-1):
-        assert dt.options.display.max_nrows is None
+    with dt.options.display.context(max_nrows=None):
         assert str(DT) == (
             "    | A   \n" +
             "--- + ----\n" +
@@ -316,15 +315,35 @@ def test_max_nrows_large():
             "[200 rows x 1 column]\n")
 
 
+def test_max_nrows_exact():
+    # Check that if a frame has more than `max_nrows` rows it gets truncated,
+    # but if it has equal or less than `max_nrows` then it is displayed fully.
+    DT = dt.Frame(R=range(17))
+    with dt.options.display.context(head_nrows=1, tail_nrows=1, max_nrows=16):
+        assert str(DT) == (
+            "   |  R\n"
+            "-- + --\n"
+            " 0 |  0\n"
+            " … |  …\n"
+            "16 | 16\n"
+            "\n[17 rows x 1 column]\n")
+
+        assert str(DT[:-1, :]) == (
+            "   |  R\n" +
+            "-- + --\n" +
+            "".join("%2d | %2d\n" % (i, i) for i in range(16)) +
+            "\n[16 rows x 1 column]\n")
+
+
+
 def test_max_nrows_small():
     # If `max_nrows` is set below `nht = head_nrows + tail_nrows`,
     # then any frame with less rows than `nht` will still be rendered
     # in full.
     DT = dt.Frame(A=range(5))
-    nht = dt.options.display.head_nrows + dt.options.display.tail_nrows
+    assert dt.options.display.head_nrows + dt.options.display.tail_nrows > 5
     with dt.options.display.context(max_nrows=0):
         assert dt.options.display.max_nrows == 0
-        assert nht > 5
         assert str(DT) == (
             "   |  A\n"
             "-- + --\n"
@@ -334,6 +353,12 @@ def test_max_nrows_small():
             " 3 |  3\n"
             " 4 |  4\n"
             "\n[5 rows x 1 column]\n")
+
+
+def test_max_nrows_negative():
+    for t in [-1, -5, -1000000, None]:
+        with dt.options.display.context(max_nrows=t):
+            assert dt.options.display.max_nrows is None
 
 
 def test_max_nrows_invalid():
