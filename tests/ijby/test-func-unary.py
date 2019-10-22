@@ -171,7 +171,7 @@ def test_dt_isna_joined():
     JDT.key = 'A'
     RES = DT[:, dt.isna(g[1:]), join(JDT)]
     frame_integrity_check(RES)
-    assert RES.to_list() == [[True, True, False, True, False]] * 3
+    assert RES.to_list() == [[True, True, False, True, False]] * 4
 
 
 
@@ -302,3 +302,29 @@ def test_log_srcs(src, fn):
              mathlog(x)
              for x in src]
     assert dt1.to_list()[0] == pyans
+
+
+
+#-------------------------------------------------------------------------------
+# len()
+#-------------------------------------------------------------------------------
+
+def test_len():
+    DT = dt.Frame(A=["", "one", "2", "three", "four", None, "six", "seventy"])
+    RES = DT[:, f.A.len()]
+    assert RES.stype == dt.stype.int64
+    assert RES.to_list() == [[0, 3, 1, 5, 4, None, 3, 7]]
+
+
+def test_len2():
+    DT = dt.Frame([None, "", "mooo" * 10000], stype="str64")
+    RES = DT[:, f[0].len()]
+    assert RES.stype == dt.stype.int64
+    assert RES.to_list() == [[None, 0, 40000]]
+
+
+def test_len_wrong_col():
+    DT = dt.Frame(range(34))
+    with pytest.raises(TypeError, match=r"Cannot apply function `len\(\)` to a "
+                                        r"column with stype `int32`"):
+        assert DT[:, f[0].len()]

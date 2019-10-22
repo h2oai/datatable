@@ -189,10 +189,10 @@ class unary_infos {
 
     void add_op(Op op, const char* name, const py::PKArgs* args);
     void add_copy(Op op, SType input_stype, SType output_stype);
-    template <Op OP, SType SI, SType SO, element_t<SO>(*)(element_t<SI>)>
+    template <Op OP, SType SI, SType SO, read_t<SO>(*)(read_t<SI>)>
     void add();
-    template <Op OP, SType SI, SType SO, element_t<SO>(*FN)(CString)>
-    void add_str(unary_func_t mapfn);
+    template <Op OP, SType SI, SType SO, bool(*)(read_t<SI>, bool, read_t<SO>*)>
+    void add();
     template <float(*F32)(float), double(*F64)(double)>
     void add_math(Op, const char*, const py::PKArgs&);
 };
