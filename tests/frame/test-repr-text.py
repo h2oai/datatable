@@ -344,6 +344,11 @@ def test_max_nrows_invalid():
 
 
 
+
+#-------------------------------------------------------------------------------
+# dt.options.display.[head|tail]_nrows
+#-------------------------------------------------------------------------------
+
 def test_long_frame_head_tail():
     DT = dt.Frame(A=["A%03d" % (i+1) for i in range(200)])
     with dt.options.display.context(head_nrows=5, tail_nrows=3):
@@ -361,3 +366,66 @@ def test_long_frame_head_tail():
             "199 | A200\n"
             "\n"
             "[200 rows x 1 column]\n")
+
+
+def test_small_head_tail():
+    DT = dt.Frame(boo=range(10))
+    with dt.options.display.context(head_nrows=1, tail_nrows=1, max_nrows=1):
+        assert str(DT) == (
+            "   | boo\n"
+            "-- + ---\n"
+            " 0 |   0\n"
+            " … |   …\n"
+            " 9 |   9\n"
+            "\n"
+            "[10 rows x 1 column]\n")
+
+
+def test_head_0():
+    DT = dt.Frame(T1=range(100))
+    with dt.options.display.context(head_nrows=0, tail_nrows=3):
+        assert str(DT) == (
+            "   | T1\n"
+            "-- + --\n"
+            " … |  …\n"
+            "97 | 97\n"
+            "98 | 98\n"
+            "99 | 99\n"
+            "\n"
+            "[100 rows x 1 column]\n")
+
+
+def test_tail_0():
+    DT = dt.Frame(T2=range(100))
+    with dt.options.display.context(head_nrows=3, tail_nrows=0):
+        assert str(DT) == (
+            "   | T2\n"
+            "-- + --\n"
+            " 0 |  0\n"
+            " 1 |  1\n"
+            " 2 |  2\n"
+            " … |  …\n"
+            "\n"
+            "[100 rows x 1 column]\n")
+
+
+def test_headtail_0():
+    DT = dt.Frame(T3=range(100))
+    with dt.options.display.context(head_nrows=0, tail_nrows=0):
+        assert str(DT) == (
+            "   | T3\n"
+            "-- + --\n"
+            " … |  …\n"
+            "\n"
+            "[100 rows x 1 column]\n")
+
+
+@pytest.mark.parametrize('opt', ['head_nrows', 'tail_nrows'])
+def test_headtail_nrows_invalid(opt):
+    with pytest.raises(ValueError, match="display.%s cannot be negative" % opt):
+        setattr(dt.options.display, opt, -3)
+
+    for t in [3.4, False, dt]:
+        with pytest.raises(TypeError, match="display.%s should be "
+                                            "an integer" % opt):
+            setattr(dt.options.display, opt, t)
