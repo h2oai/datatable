@@ -75,6 +75,39 @@ def test_dt_view_keyed(capsys):
             in out)
 
 
+def test_long_frame():
+    DT = dt.Frame(A=["A%03d" % (i+1) for i in range(200)])
+    assert dt.options.display.max_nrows < 100
+    assert dt.options.display.head_nrows == 15
+    assert dt.options.display.tail_nrows == 5
+    assert str(DT) == (
+        "    | A   \n"
+        "--- + ----\n"
+        "  0 | A001\n"
+        "  1 | A002\n"
+        "  2 | A003\n"
+        "  3 | A004\n"
+        "  4 | A005\n"
+        "  5 | A006\n"
+        "  6 | A007\n"
+        "  7 | A008\n"
+        "  8 | A009\n"
+        "  9 | A010\n"
+        " 10 | A011\n"
+        " 11 | A012\n"
+        " 12 | A013\n"
+        " 13 | A014\n"
+        " 14 | A015\n"
+        "  … | …   \n"
+        "195 | A196\n"
+        "196 | A197\n"
+        "197 | A198\n"
+        "198 | A199\n"
+        "199 | A200\n"
+        "\n"
+        "[200 rows x 1 column]\n")
+
+
 def test_str_after_resize():
     # See issue #1527
     DT = dt.Frame(A=[])
@@ -262,3 +295,69 @@ def test_option_allow_unicode_long_frame():
             "".join(" %2d |  %2d\n" % (i, i) for i in range(95, 100)) +
             "\n" +
             "[100 rows x 1 column]\n")
+
+
+
+
+#-------------------------------------------------------------------------------
+# dt.options.display.max_nrows
+#-------------------------------------------------------------------------------
+
+def test_max_nrows_large():
+    # Using large `max_nrows` produces all rows of the frame
+    DT = dt.Frame(A=["A%03d" % (i+1) for i in range(200)])
+    with dt.options.display.context(max_nrows=-1):
+        assert dt.options.display.max_nrows is None
+        assert str(DT) == (
+            "    | A   \n" +
+            "--- + ----\n" +
+            "".join("%3d | %s\n" % (i, DT[i, 0]) for i in range(200)) +
+            "\n" +
+            "[200 rows x 1 column]\n")
+
+
+def test_max_nrows_small():
+    # If `max_nrows` is set below `nht = head_nrows + tail_nrows`,
+    # then any frame with less rows than `nht` will still be rendered
+    # in full.
+    DT = dt.Frame(A=range(5))
+    nht = dt.options.display.head_nrows + dt.options.display.tail_nrows
+    with dt.options.display.context(max_nrows=0):
+        assert dt.options.display.max_nrows == 0
+        assert nht > 5
+        assert str(DT) == (
+            "   |  A\n"
+            "-- + --\n"
+            " 0 |  0\n"
+            " 1 |  1\n"
+            " 2 |  2\n"
+            " 3 |  3\n"
+            " 4 |  4\n"
+            "\n[5 rows x 1 column]\n")
+
+
+def test_max_nrows_invalid():
+    for t in [3.4, False, dt]:
+        with pytest.raises(TypeError, match="display.max_nrows should be "
+                                            "an integer"):
+            dt.options.display.max_nrows = t
+
+
+
+def test_long_frame_head_tail():
+    DT = dt.Frame(A=["A%03d" % (i+1) for i in range(200)])
+    with dt.options.display.context(head_nrows=5, tail_nrows=3):
+        assert str(DT) == (
+            "    | A   \n"
+            "--- + ----\n"
+            "  0 | A001\n"
+            "  1 | A002\n"
+            "  2 | A003\n"
+            "  3 | A004\n"
+            "  4 | A005\n"
+            "  … | …   \n"
+            "197 | A198\n"
+            "198 | A199\n"
+            "199 | A200\n"
+            "\n"
+            "[200 rows x 1 column]\n")

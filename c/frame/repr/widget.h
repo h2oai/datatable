@@ -29,7 +29,7 @@ using std::size_t;
 
 
 class Widget {
-  private:
+  protected:
     size_t ncols_, nrows_, nkeys_;
     size_t startcol_, startrow_;
     size_t cols0_, cols1_;
@@ -54,13 +54,11 @@ class Widget {
     void render_all();
 
   protected:
-    virtual void _render() = 0;
-
-  private:
     explicit Widget(DataTable* dt);
 
-    void _generate_column_indices();
-    void _generate_row_indices();
+    virtual void _render() = 0;
+    virtual void _generate_column_indices();
+    virtual void _generate_row_indices();
 };
 
 
