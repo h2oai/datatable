@@ -54,7 +54,9 @@ class TerminalWidget : public Widget {
     void _render() override;
 
   private:
-    void _prerender_columns();
+    void _prerender_columns(int terminal_width);
+    std::vector<size_t> _order_colindices() const;
+
     void _render_column_names();
     void _render_header_separator();
     void _render_data();

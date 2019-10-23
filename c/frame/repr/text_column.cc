@@ -59,6 +59,10 @@ void TextColumn::unset_right_margin() {
   margin_right_ = false;
 }
 
+int TextColumn::get_width() const {
+  return static_cast<int>(width_) + margin_left_ + margin_right_;
+}
+
 
 
 
@@ -68,7 +72,8 @@ void TextColumn::unset_right_margin() {
 
 Data_TextColumn::Data_TextColumn(const std::string& name,
                                  const Column& col,
-                                 const intvec& indices)
+                                 const intvec& indices,
+                                 int max_width)
   : TextColumn(), name_(name)
 {
   width_ = std::max(width_, name_.size());
@@ -317,6 +322,13 @@ void Data_TextColumn::_align_at_dot() {
 // VSep_TextColumn
 //------------------------------------------------------------------------------
 
+VSep_TextColumn::VSep_TextColumn() : TextColumn() {
+  width_ = 1;
+  margin_left_ = false;
+  margin_right_ = false;
+}
+
+
 void VSep_TextColumn::print_name(ostringstream& out) const {
   out << term_->reset() << term_->grey("|") << term_->bold();
 }
@@ -329,6 +341,38 @@ void VSep_TextColumn::print_value(ostringstream& out, size_t) const {
   out << term_->grey("|");
 }
 
+
+
+//------------------------------------------------------------------------------
+// Ellipsis_TextColumn
+//------------------------------------------------------------------------------
+
+Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
+  ell_ = term_->unicode_allowed()? sstring("\xE2\x80\xA6")  // ...
+                                 : sstring("~");
+  width_ = 1;
+  margin_left_ = true;
+  margin_right_ = true;
+}
+
+
+void Ellipsis_TextColumn::print_name(ostringstream& out) const {
+  if (margin_left_) out << ' ';
+  out << ell_.str();
+  if (margin_right_) out << ' ';
+}
+
+void Ellipsis_TextColumn::print_separator(ostringstream& out) const {
+  if (margin_left_) out << ' ';
+  out << ell_.str();
+  if (margin_right_) out << ' ';
+}
+
+void Ellipsis_TextColumn::print_value(ostringstream& out, size_t) const {
+  if (margin_left_) out << ' ';
+  out << term_->dim(ell_.str());
+  if (margin_right_) out << ' ';
+}
 
 
 

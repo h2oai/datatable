@@ -69,6 +69,7 @@ class TextColumn {
 
     void unset_left_margin();
     void unset_right_margin();
+    int get_width() const;
 
     virtual void print_name(ostringstream&) const = 0;
     virtual void print_separator(ostringstream&) const = 0;
@@ -85,7 +86,8 @@ class Data_TextColumn : public TextColumn {
   public:
     Data_TextColumn(const std::string& name,
                     const Column& col,
-                    const intvec& indices);
+                    const intvec& indices,
+                    int max_width);
     Data_TextColumn(const Data_TextColumn&) = default;
     Data_TextColumn(Data_TextColumn&&) noexcept = default;
 
@@ -115,7 +117,7 @@ class Data_TextColumn : public TextColumn {
 
 class VSep_TextColumn : public TextColumn {
   public:
-    VSep_TextColumn() = default;
+    VSep_TextColumn();
     VSep_TextColumn(const VSep_TextColumn&) = default;
     VSep_TextColumn(VSep_TextColumn&&) noexcept = default;
 
@@ -124,6 +126,21 @@ class VSep_TextColumn : public TextColumn {
     void print_value(ostringstream&, size_t i) const override;
 };
 
+
+
+class Ellipsis_TextColumn : public TextColumn {
+  private:
+    sstring ell_;
+
+  public:
+    Ellipsis_TextColumn();
+    Ellipsis_TextColumn(const Ellipsis_TextColumn&) = default;
+    Ellipsis_TextColumn(Ellipsis_TextColumn&&) noexcept = default;
+
+    void print_name(ostringstream&) const override;
+    void print_separator(ostringstream&) const override;
+    void print_value(ostringstream&, size_t i) const override;
+};
 
 
 
