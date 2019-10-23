@@ -112,9 +112,9 @@ void TerminalWidget::_prerender_columns(int terminal_width)
     text_columns_[k] = (j == NA_index || remaining_width <= 3)
         ? text_column(new Ellipsis_TextColumn())
         : text_column(new Data_TextColumn(names[j],
-                              dt_->get_column(j),
-                              rowindices_,
-                              remaining_width));
+                                          dt_->get_column(j),
+                                          rowindices_,
+                                          remaining_width - 3));
     remaining_width -= text_columns_[k]->get_width();
     if (remaining_width <= 3) break;
 
