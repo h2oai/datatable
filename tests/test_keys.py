@@ -189,3 +189,15 @@ def test_key_kept_after_single_column_selector():
     assert DT_A.key == ("A",)
     assert DT_A.names == ("A",)
     assert DT_A.to_list() == [list(range(100))]
+
+
+def test_key_kept_after_trivial_sort():
+    from datatable import f
+    DT = dt.Frame([range(100), list(range(50))*2, list(range(25))*4],
+                  names = ["A", "B", "C"])
+    DT.key = ["A"]
+    DT_sorted = DT.sort("A")
+    frame_integrity_check(DT_sorted)
+    # assert DT_sorted.key == ("A",)
+    assert DT_sorted.names == DT.names
+    assert DT_sorted.to_list() == DT.to_list()

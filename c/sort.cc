@@ -1336,6 +1336,23 @@ RiGb DataTable::group(const std::vector<sort_spec>& spec) const
   size_t n = spec.size();
   xassert(n > 0);
 
+  // Quick exit in the case when we sort by key columns asc,
+  // in such a case these are already sorted.
+  if (n == nkeys_) {
+    bool is_sorted = true;
+
+    for (size_t i = 0; i < n; ++i) {
+      const sort_spec s = spec.at(i);
+      if (s.col_index != i || s.descending || s.na_last || !s.sort_only) {
+        is_sorted = false;
+        break;
+      }
+    }
+    if (is_sorted) {
+      return result;
+    }
+  }
+
   const Column& col0 = columns_[spec[0].col_index];
   col0.stats();  // instantiate Stats object; TODO: remove this
 
