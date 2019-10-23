@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "frame/repr/repr_options.h"
 #include "frame/repr/text_column.h"
 #include "utils/assert.h"
 #include "encodings.h"
@@ -35,9 +36,9 @@ sstring TextColumn::na_value_;
 
 void TextColumn::setup(const Terminal* terminal) {
   term_ = terminal;
-  na_value_ = term_->dim("NA");
-  ellipsis_ = term_->unicode_allowed()? term_->dim("\xE2\x80\xA6")  // '…'
-                                      : term_->dim("...");
+  na_value_ = sstring(term_->dim("NA"));
+  ellipsis_ = term_->unicode_allowed()? sstring(term_->dim("\xE2\x80\xA6"))
+                                      : sstring(term_->dim("..."));
 }
 
 
@@ -74,8 +75,9 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
                                  const Column& col,
                                  const intvec& indices,
                                  int max_width)
-  : TextColumn(), name_(name)
 {
+  max_width = std::min(max_width, display_max_column_width);
+  name_ = sstring(_escape_string(name));
   width_ = std::max(width_, name_.size());
   LType ltype = col.ltype();
   align_right_ = (ltype == LType::BOOL) ||
@@ -91,7 +93,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
 
 
 void Data_TextColumn::print_name(ostringstream& out) const {
-  _print_aligned_value(out, name_.str());
+  _print_aligned_value(out, name_);
 }
 
 
@@ -103,7 +105,7 @@ void Data_TextColumn::print_separator(ostringstream& out) const {
 
 
 void Data_TextColumn::print_value(ostringstream& out, size_t i) const {
-  _print_aligned_value(out, data_[i].str());
+  _print_aligned_value(out, data_[i]);
 }
 
 

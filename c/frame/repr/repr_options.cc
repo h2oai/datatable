@@ -29,9 +29,12 @@ namespace dt {
 
 
 static constexpr size_t NA_size_t = size_t(-1);
+static constexpr int    MAX_int = 0x7FFFFFFF;
+
 size_t display_max_nrows = 30;
 size_t display_head_nrows = 15;
 size_t display_tail_nrows = 5;
+int    display_max_column_width = 100;
 bool   display_interactive = false;
 bool   display_use_colors = true;
 bool   display_allow_unicode = true;
@@ -129,6 +132,28 @@ static void _init_options()
     "The number of rows from the bottom of a frame to be displayed when\n"
     "the frame's output is truncated due to the total number of frame's\n"
     "rows exceeding `max_nrows` value.\n"
+  );
+
+  register_option(
+    "display.max_column_width",
+    []{
+      return (display_max_column_width == MAX_int)
+              ? py::None()
+              : py::oint(display_max_column_width);
+    },
+    [](const py::Arg& value) {
+      if (value.is_none()) {
+        display_max_column_width = MAX_int;
+      } else {
+        int n = value.to_int32_strict();
+        display_max_column_width = (n < 0)? MAX_int : n;
+      }
+    },
+    "A column's name or values that exceed `max_column_width` in size\n"
+    "will be truncated. This option applies both to rendering a frame\n"
+    "in a terminal, and to rendering in a Jupyter notebook.\n"
+    "Setting the value to `None` (or negative) indicates that the\n"
+    "column's content should never be truncated.\n"
   );
 }
 

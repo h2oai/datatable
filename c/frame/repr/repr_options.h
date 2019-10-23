@@ -29,6 +29,7 @@ using std::size_t;
 extern size_t display_max_nrows;
 extern size_t display_head_nrows;
 extern size_t display_tail_nrows;
+extern int    display_max_column_width;
 extern bool   display_interactive;
 extern bool   display_use_colors;
 extern bool   display_allow_unicode;
