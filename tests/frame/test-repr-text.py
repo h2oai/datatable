@@ -268,6 +268,12 @@ def test_colored_keyed(capsys):
         "\n" + dim('[3 rows x 3 columns]') + "\n")
 
 
+
+
+#-------------------------------------------------------------------------------
+# dt.options.display.max_nrows
+#-------------------------------------------------------------------------------
+
 def test_option_allow_unicode(capsys):
     DT = dt.Frame(uni=["møøse", "𝔘𝔫𝔦𝔠𝔬𝔡𝔢", "J̲o̲s̲é̲", "🚑💥✅"])
     with dt.options.display.context(allow_unicode=False):
@@ -295,6 +301,16 @@ def test_option_allow_unicode_long_frame():
             "".join(" %2d |  %2d\n" % (i, i) for i in range(95, 100)) +
             "\n" +
             "[100 rows x 1 column]\n")
+
+
+def test_allow_unicode_column_name():
+    # See issue #2118
+    DT = dt.Frame(names=["тест"])
+    with dt.options.display.context(allow_unicode=False):
+        assert str(DT) == (
+            "   | \\u0442\\u0435\\u0441\\u0442\n"
+            "-- + ------------------------\n"
+            "\n[0 rows x 1 column]\n")
 
 
 
