@@ -159,6 +159,7 @@ General
   The symbol ``dt`` is also exported by default, i.e. it will be available if
   you do ``from datatable import *``.
 
+- |fix| Fixed a memory leak when writing a Frame into a CSV file (#2119).
 
 
 Internal
