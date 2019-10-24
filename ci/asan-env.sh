@@ -10,8 +10,7 @@ if [ ! -d ".asan" ]; then
     DT_ASAN_TARGETDIR=$TARGET \
         python ci/asan-pip.py
 
-    LLVM="$LLVM4$LLVM5$LLVM6"
-    CC="$LLVM/bin/clang"
+    CC="clang"
     PYCONF="python$PYVER-config"
     LDFLAGS="$LDFLAGS $($PYCONF --ldflags)"
     CFLAGS="$CFLAGS $($PYCONF --cflags) -fsanitize=address"

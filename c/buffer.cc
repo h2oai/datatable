@@ -287,6 +287,7 @@ class External_BufferImpl : public BufferImpl
       if (pybufinfo_) {
         PyBuffer_Release(pybufinfo_);
       }
+      delete pybufinfo_;
     }
 
     size_t memory_footprint() const noexcept override {

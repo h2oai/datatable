@@ -196,13 +196,11 @@ MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
   : ThreadsafeWritableBuffer()
 {
   this->realloc(size);
-  TRACK(this, sizeof(*this), "MemoryWritableBuffer");
 }
 
 
 MemoryWritableBuffer::~MemoryWritableBuffer() {
   dt::free(buffer);
-  UNTRACK(this);
 }
 
 
@@ -213,19 +211,11 @@ void MemoryWritableBuffer::realloc(size_t newsize)
 }
 
 
-void* MemoryWritableBuffer::get_cptr()
-{
-  void* buf = buffer;
+Buffer MemoryWritableBuffer::get_mbuf() {
+  Buffer buf = Buffer::acquire(buffer, allocsize);
   buffer = nullptr;
   allocsize = 0;
   return buf;
-}
-
-
-Buffer MemoryWritableBuffer::get_mbuf() {
-  size_t size = allocsize;
-  void* ptr = get_cptr();
-  return Buffer::acquire(ptr, size);
 }
 
 
