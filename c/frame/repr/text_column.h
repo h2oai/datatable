@@ -82,6 +82,8 @@ class Data_TextColumn : public TextColumn {
   private:
     sstrvec data_;
     sstring name_;
+    int max_width_;
+    int : 32;
 
   public:
     Data_TextColumn(const std::string& name,
@@ -109,8 +111,8 @@ class Data_TextColumn : public TextColumn {
     sstring _render_value_bool(const Column&, size_t i) const;
     sstring _render_value_string(const Column&, size_t i) const;
 
-    static bool _needs_escaping(const CString&);
-    static std::string _escape_string(const CString&);
+    bool _needs_escaping(const CString&) const;
+    std::string _escape_string(const CString&) const;
 };
 
 

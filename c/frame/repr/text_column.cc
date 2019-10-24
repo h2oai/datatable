@@ -76,7 +76,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
                                  const intvec& indices,
                                  int max_width)
 {
-  max_width = std::min(max_width, display_max_column_width);
+  max_width_ = std::min(max_width, display_max_column_width);
   name_ = sstring(_escape_string(name));
   width_ = std::max(width_, name_.size());
   LType ltype = col.ltype();
@@ -131,7 +131,6 @@ void Data_TextColumn::_print_aligned_value(ostringstream& out,
 
 
 void Data_TextColumn::_print_whitespace(ostringstream& out, size_t n) const {
-  xassert(n < 10000);
   for (size_t i = 0; i < n; ++i) out << ' ';
 }
 
@@ -164,7 +163,8 @@ sstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
 }
 
 
-bool Data_TextColumn::_needs_escaping(const CString& str) {
+bool Data_TextColumn::_needs_escaping(const CString& str) const {
+  if (str.size > max_width_) return true;
   size_t n = static_cast<size_t>(str.size);
   for (size_t i = 0; i < n; ++i) {
     auto c = static_cast<unsigned char>(str.ch[i]);
@@ -202,8 +202,24 @@ static std::string _escape_unicode(int cp) {
 }
 
 
-std::string Data_TextColumn::_escape_string(const CString& str) {
+/**
+  * This function takes `str` as an input, and produces a formatted
+  * output string, suitable for printing into the terminal. The
+  * following transformations are applied:
+  *
+  *   - C0 & C1 control characters (including U+007F) are \-escaped;
+  *   - any unicode characters are also escaped if the global option
+  *     `allow_unicode` is false;
+  *   - the output is limited to `max_width_` in size; if the input
+  *     exceeds this limit, an ellipsis character would be added.
+  */
+std::string Data_TextColumn::_escape_string(const CString& str) const
+{
   ostringstream out;
+  // -1 because we leave 1 char space for the ellipsis character.
+  // On the other hand, when we reach the end of `str` we'll
+  // increase the `remaining_width` by 1 once again.
+  int remaining_width = max_width_ - 1;
   bool allow_unicode = term_->unicode_allowed();
 
   size_t n = static_cast<size_t>(str.size);
@@ -211,34 +227,51 @@ std::string Data_TextColumn::_escape_string(const CString& str) {
   auto end = ch + n;
   while (ch < end) {
     auto c = *ch;
-    // printable ASCII + UTF8 continuation bytes
-    if ((c >= 0x20 && c <= 0x7E) || (c >= 0x80 && c <= 0xBF)) {
-      out << c;
+    // printable ASCII
+    if (c >= 0x20 && c <= 0x7E) {
       ch++;
+      if (ch == end) remaining_width++;
+      if (!remaining_width) break;
+      out << c;
+      remaining_width--;
     }
     // C0 block + \x7F (DEL) character
     else if (c <= 0x1F || c == 0x7F) {
-      out << term_->dim(_escaped_char(c));
       ch++;
+      if (ch == end) remaining_width++;
+      auto escaped = _escaped_char(c);
+      if (static_cast<int>(escaped.size()) > remaining_width) break;
+      out << term_->dim() << escaped << term_->reset();
     }
-    // unicode start byte, when unicode output allowed
-    else if (allow_unicode) {
-      auto cc = ch[1];
-      // C1 block still has to be escaped (codepoints 0x80 .. 0x9F, encoded
-      // in utf8 as 2-byte sequences C2 80 .. C2 9F)
-      if (c == 0xC2 && cc >= 0x80 && cc <= 0x9F) {
-        out << term_->dim(_escaped_char(cc));
-        ch += 2;
+    // unicode character
+    else {
+      auto ch0 = ch;
+      int cp = read_codepoint_from_utf8(&ch);  // advances `ch`
+      if (ch == end) remaining_width++;
+      if (allow_unicode && cp >= 0xA0) {  // excluding the C1 block
+        int w = mk_wcwidth(cp);
+        if (w > remaining_width) {
+          ch = ch0;
+          break;
+        }
+        for (; ch0 < ch; ++ch0) out << *ch0;
+        remaining_width -= w;
       } else {
-        out << c;
-        ch++;
+        auto escaped = _escape_unicode(cp);
+        if (static_cast<int>(escaped.size()) > remaining_width) {
+          ch = ch0;
+          break;
+        }
+        out << term_->dim() << escaped << term_->reset();
+        remaining_width -= escaped.size();
       }
     }
-    // unicode start byte, the codepoint needs to be hex-escaped
-    else {
-      int codepoint = read_codepoint_from_utf8(&ch);  // advances `ch`
-      out << term_->dim(_escape_unicode(codepoint));
-    }
+  }
+  // If we broke out of loop earlty, ellipsis needs to be added
+  if (ch < end) {
+    out << term_->dim();
+    out << (allow_unicode? "\xE2\x80\xA6" : "~");
+    out << term_->reset();
   }
   return out.str();
 }

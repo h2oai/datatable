@@ -454,3 +454,117 @@ def test_headtail_nrows_invalid(opt):
         with pytest.raises(TypeError, match="display.%s should be "
                                             "an integer" % opt):
             setattr(dt.options.display, opt, t)
+
+
+
+#-------------------------------------------------------------------------------
+# dt.options.display.max_column_width
+#-------------------------------------------------------------------------------
+
+def test_max_width_name():
+    assert dt.options.display.max_column_width == 100
+    DT = dt.Frame(names=["a" * 1234])
+    assert str(DT) == (
+        "   | " + "a" * 99 + "…\n" +
+        "-- + " + "-" * 100 + "\n" +
+        "\n[0 rows x 1 column]\n")
+
+
+def test_max_width_data():
+    DT = dt.Frame(A=['foo', None, 'bazinga', '', '12345'])
+    with dt.options.display.context(max_column_width=5):
+        assert str(DT) == (
+            "   | A    \n"
+            "-- + -----\n"
+            " 0 | foo  \n"
+            " 1 | NA   \n"
+            " 2 | bazi…\n"
+            " 3 |      \n"
+            " 4 | 12345\n"
+            "\n[5 rows x 1 column]\n")
+
+
+@pytest.mark.parametrize('uni', [True, False])
+def test_max_width_colored(capsys, uni):
+    DT = dt.Frame(S=['abcdefg'])
+    with dt.options.display.context(max_column_width=4, allow_unicode=uni):
+        DT.view(interactive=False)
+        out, err = capsys.readouterr()
+        symbol = "…" if uni else "~"
+        assert not err
+        assert out == (
+            bold("   ") + vsep + bold(" S   ") + "\n" +
+            grey("-- + ----") + "\n" +
+            grey(" 0 ") + vsep + " abc" + dim(symbol) + "\n" +
+            "\n" + dim("[1 row x 1 column]") + "\n")
+
+
+def test_max_width1():
+    DT = dt.Frame(A=['foo', None, 'z'])
+    with dt.options.display.context(max_column_width=1):
+        assert dt.options.display.max_column_width == 2
+        dt.options.display.max_column_width = 0
+        assert dt.options.display.max_column_width == 2
+        assert str(DT) == (
+            "   | A \n"
+            "-- + --\n"
+            " 0 | f…\n"
+            " 1 | NA\n"
+            " 2 | z \n"
+            "\n[3 rows x 1 column]\n")
+
+
+def test_max_width_unicode():
+    # A unicode string consists of 3 emoji characters, however all
+    # characters are double-width, so the string is effectively
+    # 6 terminal places in size.
+    DT = dt.Frame(A=["👽👽👽"])
+
+    # The width of 6 is just enough to fit the entire string
+    with dt.options.display.context(max_column_width=6):
+        assert str(DT) == (
+            "   | A     \n"
+            "-- + ------\n"
+            " 0 | 👽👽👽\n"
+            "\n[1 row x 1 column]\n")
+
+    # Under the width of 5 the last character doesn't fit, so it is
+    # replaced with a single-width ellipsis character
+    with dt.options.display.context(max_column_width=5):
+        assert str(DT) == (
+            "   | A    \n"
+            "-- + -----\n"
+            " 0 | 👽👽…\n"
+            "\n[1 row x 1 column]\n")
+
+    # If max_column_width is 4 then we must truncate after the first
+    # character, since truncating after the second and adding the
+    # ellipsis makes the string of length 5.
+    with dt.options.display.context(max_column_width=4):
+        assert str(DT) == (
+            "   | A  \n"
+            "-- + ---\n"
+            " 0 | 👽…\n"
+            "\n[1 row x 1 column]\n")
+
+
+def test_max_width_invalid():
+    for t in [3.4, False, dt]:
+        with pytest.raises(TypeError, match="display.max_column_width "
+                                            "should be an integer"):
+            dt.options.display.max_column_width = t
+
+
+
+def test_max_width_none():
+    with dt.options.display.context(max_column_width=None):
+        assert dt.options.display.max_column_width is None
+        dt.options.display.max_column_width = -1
+        assert dt.options.display.max_column_width is None
+        DT = dt.Frame(Long=["a" * 12321])
+        assert str(DT) == (
+            "   | Long" + " "*12317 + "\n" +
+            "-- + " + "-" * 12321 + "\n" +
+            " 0 | " + "a" * 12321 + "\n" +
+            "\n[1 row x 1 column]\n")
+    assert dt.options.display.max_column_width == 100

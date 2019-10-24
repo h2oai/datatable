@@ -146,12 +146,13 @@ static void _init_options()
         display_max_column_width = MAX_int;
       } else {
         int n = value.to_int32_strict();
-        display_max_column_width = (n < 0)? MAX_int : n;
+        display_max_column_width = (n < 0)? MAX_int : std::max(n, 2);
       }
     },
     "A column's name or values that exceed `max_column_width` in size\n"
     "will be truncated. This option applies both to rendering a frame\n"
-    "in a terminal, and to rendering in a Jupyter notebook.\n"
+    "in a terminal, and to rendering in a Jupyter notebook. The\n"
+    "smallest allowed `max_column_width` is 2.\n"
     "Setting the value to `None` (or negative) indicates that the\n"
     "column's content should never be truncated.\n"
   );
