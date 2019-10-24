@@ -568,3 +568,27 @@ def test_max_width_none():
             " 0 | " + "a" * 12321 + "\n" +
             "\n[1 row x 1 column]\n")
     assert dt.options.display.max_column_width == 100
+
+
+def test_max_width_nounicode():
+    DT = dt.Frame(A=["👽👽"])
+    with dt.options.display.context(max_column_width=10, allow_unicode=False):
+        assert str(DT) == (
+            "   | A \n"
+            "-- + --\n"
+            " 0 | ~ \n"
+            "\n[1 row x 1 column]\n")
+
+    with dt.options.display.context(max_column_width=15, allow_unicode=False):
+        assert str(DT) == (
+            "   | A          \n"
+            "-- + -----------\n"
+            " 0 | \\U0001F47D~\n"
+            "\n[1 row x 1 column]\n")
+
+    with dt.options.display.context(max_column_width=20, allow_unicode=False):
+        assert str(DT) == (
+            "   | A                   \n"
+            "-- + --------------------\n"
+            " 0 | \\U0001F47D\\U0001F47D\n"
+            "\n[1 row x 1 column]\n")
