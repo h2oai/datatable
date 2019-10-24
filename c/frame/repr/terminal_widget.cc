@@ -119,7 +119,8 @@ void TerminalWidget::_prerender_columns(int terminal_width)
     if (remaining_width <= 3) break;
 
     if (nkeys && j == nkeys-1) {
-      text_columns_.insert(text_columns_.cbegin() + static_cast<long>(k) + 1,
+      // NB: cannot use .cbegin() here because of gcc4.8
+      text_columns_.insert(text_columns_.begin() + static_cast<long>(k) + 1,
                            text_column(new VSep_TextColumn()));
       k0++;
       remaining_width -= text_columns_[k+1]->get_width();
