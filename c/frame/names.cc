@@ -723,6 +723,7 @@ namespace dttest {
     test_assert(check2, "Assertion 'res.to_int64_strict() == static_cast<int64_t>(i)' failed");
     dt->py_inames_.set(py::ostring("two"), py::oint(1));
     dt->verify_integrity();
+    delete dt;
   }
 
 }
