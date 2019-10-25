@@ -128,8 +128,8 @@ def test_progress_interrupt(parallel_type, nthreads):
     import signal
     # In some cases `core.test_progress_*` may not start immediately
     # after the `print()` statement, that we catch with
-    # `proc.stdout.readline()`, in such a case we retry with twice
-    # larger `sleep_time`.
+    # `proc.stdout.readline()`, in such a case we retry and increase
+    # `sleep_time` by a factor of `delay_coeff`.
     max_tries = 5
     niterations = 100000
     sleep_time = 0.01
