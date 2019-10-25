@@ -235,14 +235,14 @@ void write_manager::finalize_output()
     // C string, then convert the output buffer `wb` into a pyobject and
     // save in the `result`.
     size_t len = wb->size();
-
     char c = '\0';
     wb->write(1, &c);
     wb->finalize();
 
     MemoryWritableBuffer* mb = dynamic_cast<MemoryWritableBuffer*>(wb.get());
     xassert(mb);
-    char* str = static_cast<char*>(mb->get_cptr());
+    Buffer buf = mb->get_mbuf();
+    auto str = static_cast<const char*>(buf.rptr());
     if (options.compress_zlib) {
       auto size = static_cast<Py_ssize_t>(len);
       PyObject* obj = PyBytes_FromStringAndSize(str, size);
