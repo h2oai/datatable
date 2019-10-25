@@ -30,8 +30,8 @@ namespace expr {
 
 
 /**
-  * `Head` is the part of an `Expr`. It can be thought as a function
-  * without the arguments. For example:
+  * `Head` is the part of an `Expr`. It can be thought of as a
+  * function without the arguments. For example:
   *
   *    Expr            Head            Arguments
   *    --------------  --------------  ----------
@@ -43,15 +43,17 @@ namespace expr {
   * Each Head object may be parametrized. Generally, the distinction
   * between arguments and parameters is that the arguments in an Expr
   * may only be fully resolved when that Expr is evaluated in a
-  * EvalContext. On the contrary, the parameters are known at the time
-  * when the Expr is created.
+  * EvalContext, whereas the parameters are known at the time when
+  * the Expr is created.
   *
-  * The main API of Head class consists of 3 `evaluate()` methods. Each
-  * of them takes a vector of arguments (if any) and the EvalContext, and
-  * produces a list of named `Column`s. The difference between these
-  * methods is the context in which the expression is to be evaluated:
+  * The main API of Head class consists of several `evaluate()`
+  * methods. Each of them takes a vector of arguments (if any) and the
+  * `EvalContext`, and produces the result which is appropriate for
+  * that particular evaluation mode. All of these methods must be
+  * implemented by subclasses:
   *
-  * - evaluate_n() is the "standard" mode of evaluation;
+  * - evaluate_n() is the "standard" mode of evaluation, producing
+  *     a `Workframe`;
   *
   * - evaluate_j() computes the expression when it is the root node in
   *     j- or by-expr of DT[i,j,...]. The flag `assignment` is true
@@ -63,6 +65,14 @@ namespace expr {
   *
   * - evaluate_i() computes the expression when it is used as the
   *     i-node in DT[i,j,...].
+  *
+  * - evaluate_iby()
+  *
+  *
+  * The hierarchy of Head subclasses is the following:
+  *
+  *   Head
+  *     +-- Head_Frame
   *
   */
 class Head {
