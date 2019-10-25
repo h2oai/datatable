@@ -278,8 +278,9 @@ def test_bool8_small():
 
 
 def test_bool8_small_stable():
-    d0 = dt.Frame(A = [True, False, False, None, True, True, None],
-                  B = [1, 2, 3, 4, 5, 6, 7], stypes={"B": "int8"})
+    d0 = dt.Frame([[True, False, False, None, True, True, None],
+                   [1, 2, 3, 4, 5, 6, 7]],
+                  names=["A", "B"], stypes={"B": "int8"})
     assert d0.stypes == (stype.bool8, stype.int8)
     d1 = d0[:, :, sort("A")]
     assert d1.stypes == d0.stypes
@@ -328,8 +329,9 @@ def test_int16_small():
 
 
 def test_int16_small_stable():
-    d0 = dt.Frame(A=[0, 1000, 0, 0, 1000, 0, 0, 1000, 0],
-                  B=[1, 2, 3, 4, 5, 6, 7, 8, 9], stypes={"A": "int16"})
+    d0 = dt.Frame([[0, 1000, 0, 0, 1000, 0, 0, 1000, 0],
+                   [1, 2, 3, 4, 5, 6, 7, 8, 9]],
+                  names=["A", "B"], stypes={"A": "int16"})
     assert d0.stypes[0] == stype.int16
     d1 = d0.sort(0)
     frame_integrity_check(d1)
