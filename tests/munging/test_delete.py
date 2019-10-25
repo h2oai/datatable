@@ -384,8 +384,7 @@ def test_del_rows_and_cols():
     del d0[[-1, 0], "A":"B"]
     assert_equals(d0, dt.Frame(A=[None, 3, None, 7, None],
                                B=[None, 7.4178, None, .2999, None],
-                               C=["what", "if not", None, None, "zaqve"],
-                               stypes={"A": "int16"}))
+                               C=["what", "if not", None, None, "zaqve"]))
 
 
 def test_del_rows_and_cols_keyed():
@@ -485,3 +484,4 @@ def test_del_column_from_keyed_frame():
     assert DT.key == ("A",)
     assert DT.names == ("A",)
     assert DT.to_list() == [list(range(100))]
+

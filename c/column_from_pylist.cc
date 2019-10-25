@@ -539,8 +539,8 @@ static Column ocolumn_from_iterable(const iterable* il, int stype0)
       bool ret = false;
       switch (stype) {
         case SType::BOOL:    ret = parse_as_bool(il, membuf, i); break;
-        case SType::INT8:    ret = parse_as_int<int8_t>(il, membuf, i); break;
-        case SType::INT16:   ret = parse_as_int<int16_t>(il, membuf, i); break;
+        case SType::INT8:    parse_as_int<int32_t>(il, membuf, i); break;
+        case SType::INT16:   parse_as_int<int32_t>(il, membuf, i); break;
         case SType::INT32:   ret = parse_as_int<int32_t>(il, membuf, i); break;
         case SType::INT64:   ret = parse_as_int<int64_t>(il, membuf, i); break;
         case SType::FLOAT32: ret = parse_as_real<float>(il, membuf, i); break;

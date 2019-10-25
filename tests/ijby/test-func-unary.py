@@ -94,7 +94,7 @@ def test_dt_neg(src):
     RES = DT[:, -f[0]]
     frame_integrity_check(RES)
     assert RES.stype == dt.int8 if DT.stype == dt.bool8 else DT.stype
-    assert_equals(RES, dt.Frame([neg(x) for x in src]))
+    assert_equals(RES, dt.Frame([neg(x) for x in src]), stype=RES.stype)
 
 
 @pytest.mark.parametrize("src", srcs_str)

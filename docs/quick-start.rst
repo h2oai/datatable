@@ -5,60 +5,259 @@ Getting started
 Install datatable
 -----------------
 
-Let's begin by installing the latest stable version of ``datatable`` from PyPI:
+Let’s begin by installing the latest stable version of ``datatable`` from PyPI:
 
-.. code-block:: bash
+.. code:: bash
 
     $ pip install datatable
 
-If this didn't work for you, or if you want to install the bleeding edge
+If this didn’t work for you, or if you want to install the bleeding edge
 version of the library, please check the :doc:`Installation </install>` page.
+
 
 Assuming the installation was successful, you can now import the library in
 a JupyterLab notebook or in a Python console:
 
 ::
 
-  import datatable as dt
-  print(dt.__version__)
+    import datatable as dt
+
+    dt.__version__
+
 
 .. raw:: html
 
-  <div class="output-cell"><div class='highlight'>
-    <pre>0.7.0</pre>
-  </div></div>
+    <div class="output-cell">
+    <div class='highlight'>
+      <pre>0.8.0</pre>
+    </div>
+  </div>
 
 
 
-Loading data
+Create Frame
 ------------
 
-The fundamental unit of analysis in datatable is a data ``Frame``. It is the
+The fundamental unit of analysis in datatable is a ``Frame``. It is the
 same notion as a pandas DataFrame or SQL table: data arranged in a
 two-dimensional array with rows and columns.
 
-You can create a ``Frame`` object from a variety of data sources: from a python
-list or dictionary, from a numpy array, or from a pandas DataFrame.
+You can create a ``Frame`` object from a variety of data sources:
+
+-  from a python ``list`` or ``dictionary``:
 
 ::
 
-  DT1 = dt.Frame(A=range(5), B=[1.7, 3.4, 0, None, -math.inf],
-                 stypes={"A": dt.int64})
-  DT2 = dt.Frame(pandas_dataframe)
-  DT3 = dt.Frame(numpy_array)
+    import datatable as dt
+    import math
 
-You can also load a CSV/text/Excel file, or open a previously saved binary
-``.jay`` file:
+    DT = dt.Frame(A=range(5), B=[1.7, 3.4, 0, None, -math.inf],
+                  C = ['two','one','one','two','two'],
+                     stypes={"A": dt.int64})
+    DT
+
+
+.. raw:: html
+
+    <div class=output-cell>
+    <div class='datatable'>
+      <table class="frame">
+      <thead>
+        <tr class="colnames"><td class="row_index"></td><th>A</th><th>B</th><th>C</th></tr>
+        <tr class="coltypes"><td class="row_index"></td>
+        <td class="int" title="int64">▪▪▪▪▪▪▪▪</td>
+        <td class="real" title="float64">▪▪▪▪▪▪▪▪</td><td class="str" title="str32">▪▪▪▪</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class="row_index">0</td><td>0</td><td>1.7</td><td>two</td></tr>
+        <tr><td class="row_index">1</td><td>1</td><td>3.4</td><td>one</td></tr>
+        <tr><td class="row_index">2</td><td>2</td><td>0</td><td>one</td></tr>
+        <tr><td class="row_index">3</td><td>3</td><td><span class="na">NA</span></td><td>two</td></tr>
+        <tr><td class="row_index">4</td><td>4</td><td>−inf</td><td>two</td></tr>
+      </tbody>
+      </table>
+      <div class="footer">
+        <div class="frame_dimensions">5 rows × 3 columns</div>
+      </div>
+    </div>
+    </div>
+
+
+
+
+-  from a ``numpy array``
 
 ::
 
-  DT4 = dt.fread("~/Downloads/dataset_01.csv")
-  DT5 = dt.open("data.jay")
+    import numpy as np
 
-The ``fread()`` function shown above is both powerful and extremely fast. It can
-automatically detect parse parameters for the majority of text files, load data
-from .zip archives or URLs, read Excel files, and much more.
+    np.random.seed(1)
+    DT2 = dt.Frame(np.random.randn(3))
+    DT2
 
+
+.. raw:: html
+
+    <div class=output-cell>
+    <div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>C0</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>1.62435</td></tr>
+        <tr><td class='row_index'>1</td><td>&minus;0.611756</td></tr>
+        <tr><td class='row_index'>2</td><td>&minus;0.528172</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>3 rows &times; 1 column</div>
+      </div>
+    </div>
+    </div>
+
+
+
+
+-  from a ``pandas DataFrame``
+
+::
+
+    import pandas as pd
+
+    DT3 = dt.Frame(pd.DataFrame({"A": range(3)}))
+    DT3
+
+
+
+
+.. raw:: html
+
+    <div class=output-cell>
+      <div class='datatable'>
+        <table class='frame'>
+        <thead>
+          <tr class='colnames'><td class='row_index'></td><th>A</th></tr>
+          <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+        </thead>
+        <tbody>
+          <tr><td class='row_index'>0</td><td>0</td></tr>
+          <tr><td class='row_index'>1</td><td>1</td></tr>
+          <tr><td class='row_index'>2</td><td>2</td></tr>
+        </tbody>
+        </table>
+        <div class='footer'>
+          <div class='frame_dimensions'>3 rows &times; 1 column</div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+Convert Frame
+-------------
+
+Convert an existing ``Frame`` into a numpy array, a pandas DataFrame -
+requires ``pandas`` and ``numpy``:
+
+::
+
+    DT_numpy = DT.to_numpy()
+    DT_pandas = DT.to_pandas()
+
+A frame can also be converted into python native data structures: a
+dictionary, keyed by the column names; a list of columns, where each
+column is itself a list of values; or a list of rows, where each row is
+a tuple of values:
+
+::
+
+    DT_list = DT.to_list()
+    DT_dict = DT.to_dict()
+    DT_tuple = DT.to_tuples()
+
+Read data
+---------
+
+You can also load a CSV/text/Excel file, or open a previously saved
+binary ``.jay`` file:
+
+::
+
+    DT4 = dt.fread("dataset_01.xlsx")
+    DT5 = dt.fread("dataset_02.csv")
+    DT6 = dt.open("data.jay")
+
+``fread()`` function shown above is both powerful and extremely fast. It
+can automatically detect parse parameters for the majority of text
+files, load data from .zip archives or URLs, read Excel files, and much
+more.
+
+-  Automatically detects separators, headers, column types, quoting
+   rules, etc.
+-  Reads from majority of text files, load data from ``.zip`` archives or
+   URLs, read Excel files, URL, shell, raw text, \* archives, glob
+-  Provides multi-threaded file reading for maximum speed
+-  Includes a progress indicator when reading large files
+-  Reads both RFC4180-compliant and non-compliant files
+
+Write data
+----------
+
+Write the Frame’s content into a ``.csv`` file in a multi-threaded way:
+
+::
+
+    DT.to_csv("out.csv")
+
+You can also save a frame into a binary ``.jay`` file:
+
+::
+
+    DT.to_jay("data.jay")
+
+Frame Properties
+----------------
+
+Investigate your Frame using descripting operators
+
+::
+
+    DT.shape # number of rows and columns
+
+.. raw:: html
+
+    <div class="output-cell">
+    <div class='highlight'>
+      <pre>(5, 3)</pre>
+    </div>
+    </div>
+
+::
+
+    DT.names # column names
+
+.. raw:: html
+
+    <div class="output-cell">
+    <div class='highlight'>
+      <pre>('A', 'B', 'C')</pre>
+    </div>
+    </div>
+
+::
+
+    DT.stypes # column types
+
+.. raw:: html
+
+    <div class="output-cell">
+    <div class='highlight'>
+      <pre>(stype.int64, stype.float64, stype.str32)</pre>
+    </div>
+    </div>
 
 
 Data manipulation
@@ -126,79 +325,531 @@ for the columns being selected.) The :raw-html:`<b class="j">j</b>`
 expression can even be a python type (such as ``int`` or ``dt.float32``),
 selecting all columns matching that type.
 
-In addition to the selector expression shown above, we support the update and
-delete statements too:
+::
+
+    DT[:, "A"]         # select 1 column
+
+.. raw:: html
+
+  <div class="output-cell">
+    <div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td></tr>
+        <tr><td class='row_index'>1</td><td>1</td></tr>
+        <tr><td class='row_index'>2</td><td>2</td></tr>
+        <tr><td class='row_index'>3</td><td>3</td></tr>
+        <tr><td class='row_index'>4</td><td>4</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 1 column</div>
+      </div>
+    </div>
+  </div>
 
 ::
 
-  DT[i, j] = r
-  del DT[i, j]
+    DT[:3, :]         # first 3 rows
 
-The first expression will replace values in the subset ``[i, j]`` of Frame
-``DT`` with the values from ``r``, which could be either a constant, or a
-suitably-sized Frame, or an expression that operates on frame ``DT``.
+.. raw:: html
+
+  <div class="output-cell">
+    <div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td><td>1.7</td><td>two</td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>3.4</td><td>one</td></tr>
+        <tr><td class='row_index'>2</td><td>2</td><td>0</td><td>one</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>3 rows &times; 3 columns</div>
+      </div>
+    </div>
+  </div>
+
+::
+
+    DT[::-1, "A":"C"]  # reverse rows order, columns from A to C
+
+.. raw:: html
+
+  <div class="output-cell">
+    <div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>4</td><td>&minus;inf</td><td>two</td></tr>
+        <tr><td class='row_index'>1</td><td>3</td><td><span class=na>NA</span></td><td>two</td></tr>
+        <tr><td class='row_index'>2</td><td>2</td><td>0</td><td>one</td></tr>
+        <tr><td class='row_index'>3</td><td>1</td><td>3.4</td><td>one</td></tr>
+        <tr><td class='row_index'>4</td><td>0</td><td>1.7</td><td>two</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 3 columns</div>
+      </div>
+    </div>
+  </div>
+
+::
+
+    DT[3, 2]          # single element in row 3, column 2 (0-based)
+
+.. raw:: html
+
+    <div class="output-cell">
+    <div class='highlight'>
+      <pre>'two'</pre>
+    </div>
+    </div>
+
+
+
+
+In addition to the selector expression shown above, we support the
+update and delete statements too:
+
+.. code:: python
+
+      DT[i, j] = r # update value in subset [i,j] with r
+
+      del DT[i, j] # delete subset [i,j] from DT
+
+The first expression will replace values in the subset ``[i, j]`` of
+Frame ``DT`` with the values from ``r``, which could be either a
+constant, or a suitably-sized Frame, or an expression that operates on
+frame ``DT``.
 
 The second expression deletes values in the subset ``[i, j]``. This is
-interpreted as follows: if ``i`` selects all rows, then the columns given by
-``j`` are removed from the Frame; if ``j`` selects all columns, then the rows
-given by ``i`` are removed; if neither ``i`` nor ``j`` span all rows/columns
-of the Frame, then the elements in the subset ``[i, j]`` are replaced with
-NAs.
+interpreted as follows: if :raw-html:`<b class="i">i</b>` selects all rows,
+then the columns given by :raw-html:`<b class="j">j</b>` are removed from the
+Frame; if :raw-html:`<b class="j">j</b>` selects all columns, then the rows
+given by :raw-html:`<b class="i">i</b>` are removed; if neither
+:raw-html:`<b class="i">i</b>` nor :raw-html:`<b class="j">j</b>` span all
+rows/columns of the Frame, then the elements in the subset ``[i, j]`` are
+replaced with NAs.
 
+::
 
+    DT[:,"X"] = 53    # create new column and assign it value
+    DT
+
+.. raw:: html
+
+  <div class="output-cell">
+    <div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>X</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td><td>1.7</td><td>two</td><td>53</td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>3.4</td><td>one</td><td>53</td></tr>
+        <tr><td class='row_index'>2</td><td>2</td><td>0</td><td>one</td><td>53</td></tr>
+        <tr><td class='row_index'>3</td><td>3</td><td><span class=na>NA</span></td><td>two</td><td>53</td></tr>
+        <tr><td class='row_index'>4</td><td>4</td><td>&minus;inf</td><td>two</td><td>53</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    DT[1:3,["X","Z"]] = 55  # update existing and create new column with new value
+    DT
+
+.. raw:: html
+
+  <div class="output-cell">
+    <div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>X</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td><td>1.7</td><td>two</td><td>53</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>3.4</td><td>one</td><td>55</td><td>55</td></tr>
+        <tr><td class='row_index'>2</td><td>2</td><td>0</td><td>one</td><td>55</td><td>55</td></tr>
+        <tr><td class='row_index'>3</td><td>3</td><td><span class=na>NA</span></td><td>two</td><td>53</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>4</td><td>4</td><td>&minus;inf</td><td>two</td><td>53</td><td><span class=na>NA</span></td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 5 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    del DT[:,"X"]
+    DT
+
+.. raw:: html
+
+ <div class="output-cell">
+    <div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td><td>1.7</td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>3.4</td><td>one</td><td>55</td></tr>
+        <tr><td class='row_index'>2</td><td>2</td><td>0</td><td>one</td><td>55</td></tr>
+        <tr><td class='row_index'>3</td><td>3</td><td><span class=na>NA</span></td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>4</td><td>4</td><td>&minus;inf</td><td>two</td><td><span class=na>NA</span></td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+Compute Per-Column Summary Stats
+--------------------------------
+
+Detailed description of Frame functions can be found in :doc:`Frame
+documentation </api/frame>`
+
+::
+
+    DT.sum()
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>10</td><td>&minus;inf</td><td><span class=na>NA</span></td><td>110</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>1 row &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    DT.max()
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>4</td><td>3.4</td><td><span class=na>NA</span></td><td>55</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>1 row &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    DT.min()
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td><td>&minus;inf</td><td><span class=na>NA</span></td><td>55</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>1 row &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    DT.mean()
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>2</td><td>&minus;inf</td><td><span class=na>NA</span></td><td>55</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>1 row &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    DT.sd()
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>1.58114</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td>0</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>1 row &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    DT.mode()
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td><td>&minus;inf</td><td>two</td><td>55</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>1 row &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    DT.nmodal()
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>1</td><td>1</td><td>3</td><td>2</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>1 row &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    DT.nunique()
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>5</td><td>4</td><td>2</td><td>1</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>1 row &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
 
 What the f.?
 ------------
 
-You may have noticed already that we mentioned several times the possibility
-of using expressions in :raw-html:`<span class="i">i</span>` or
-:raw-html:`<span class="j">j</span>` and in other places. In the simplest form
-an expression looks like
+You may have noticed already that we mentioned several times the
+possibility of using expressions in :raw-html:`<b class="i">i</b>`
+or :raw-html:`<b class="j">j</b>` and in other places.
+In the simplest form an expression looks like
 
-::
+.. code:: python
 
-  f.ColA
+      f.ColA
 
-which indicates a column ``ColA`` in some Frame. Here ``f`` is a variable that
-has to be imported from the datatable module. This variable provides a convenient
-way to reference any column in a Frame. In addition to the notation above, the
-following is also supported:
+which indicates a column ``ColA`` in some Frame. Here ``f`` is a
+variable that has to be imported from the datatable module. This
+variable provides a convenient way to reference any column in a Frame.
+In addition to the notation above, the following is also supported:
 
-::
+.. code:: python
 
-  f[3]
-  f["ColB"]
+      f[3]
+      f["ColB"]
 
 denoting the fourth column and the column ``ColB`` respectively.
 
-These f-expression support arithmetic operations as well as various mathematical and
-aggregate functions. For example, in order to select the values from column
-``A`` normalized to range ``[0; 1]`` we can write the following:
+Compute columnar expressions using:
+
+.. code:: python
+
+    df[:, {"x": f.x, "y": f.y, "x+y": f.x + f.y, "x-y": f.x - f.y}]
+
+These f-expressions support arithmetic operations as well as various
+mathematical and aggregate functions. For example, in order to select
+the values from column ``A`` normalized to range ``[0; 1]`` we can write
+the following:
 
 ::
 
-  from datatable import f, min, max
-  DT[:, (f.A - min(f.A))/(max(f.A) - min(f.A))]
+    from datatable import f, min, max
+
+    DT[:, {"A_normalized":(f.A - min(f.A))/(max(f.A) - min(f.A))}]
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A_normalized</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td></tr>
+        <tr><td class='row_index'>1</td><td>0.25</td></tr>
+        <tr><td class='row_index'>2</td><td>0.5</td></tr>
+        <tr><td class='row_index'>3</td><td>0.75</td></tr>
+        <tr><td class='row_index'>4</td><td>1</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 1 column</div>
+      </div>
+    </div>
+    </div>
+
+
+
 
 This is equivalent to the following SQL query:
 
-.. code:: SQL
+.. code:: sql
 
-  SELECT (f.A - MIN(f.A))/(MAX(f.A) - MIN(f.A)) FROM DT AS f
+      SELECT (f.A - MIN(f.A))/(MAX(f.A) - MIN(f.A)) FROM DT AS f
 
-So, what exactly is ``f``? We call it a "frame proxy", as it becomes a
-simple way to refer to the Frame that we currently operate on. More precisely,
-whenever ``DT[i, j]`` is evaluated and we encounter an ``f``-expression there,
-that ``f`` becomes replaced with the frame ``DT``, and the columns are looked
-up on that Frame. The same expression can later on be applied to a different
-Frame, and it will refer to the columns in that other Frame.
+So, what exactly is ``f``? We call it a "**frame proxy**", as it becomes
+a simple way to refer to the Frame that we currently operate on. More
+precisely, whenever ``DT[i, j]`` is evaluated and we encounter an
+``f``-expression there, that ``f`` becomes replaced with the frame
+``DT``, and the columns are looked up on that Frame. The same expression
+can later on be applied to a different Frame, and it will refer to the
+columns in that other Frame.
 
-At some point you may notice that that datatable also exports symbol ``g``. This
-``g`` is also a frame proxy; however it already refers to the *second* frame in
-the evaluated expression. This second frame appears when you are *joining* two
-or more frames together (more on that later). When that happens, symbol ``g`` is
-used to refer to the columns of the joined frame.
+At some point you may notice that that datatable also exports symbol
+``g``. This ``g`` is also a frame proxy; however it already refers to
+the *second* frame in the evaluated expression. This second frame
+appears when you are *joining* two or more frames together (more on that
+later). When that happens, symbol ``g`` is used to refer to the columns
+of the joined frame.
 
+This syntax allows do comlex filtering in user friendly way:
+
+::
+
+    DT[f.A > 1,"A":"B"]  # conditional selecting
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>2</td><td>0</td></tr>
+        <tr><td class='row_index'>1</td><td>3</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>2</td><td>4</td><td>&minus;inf</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>3 rows &times; 2 columns</div>
+      </div>
+    </div>
+    </div>
+
+::
+
+    from datatable import sd, mean
+
+    DT[(f.A > mean(f.B) + 2.5 * sd(f.A)) | (f.A < -mean(f.Z) - sd(f.B)), #which rows to select
+       ["A","C"]] #which columns to select
+
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>C</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td><td>two</td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>one</td></tr>
+        <tr><td class='row_index'>2</td><td>2</td><td>one</td></tr>
+        <tr><td class='row_index'>3</td><td>3</td><td>two</td></tr>
+        <tr><td class='row_index'>4</td><td>4</td><td>two</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 2 columns</div>
+      </div>
+    </div>
+    </div>
 
 
 Groupbys / joins
@@ -230,79 +881,471 @@ if :raw-html:`<b class="i">i</b>` is a slice that takes the first 5 rows of a fr
 then in the presence of the ``by()`` modifier it will take the first 5 rows of
 each group.
 
-For example, in order to find the total amount of each product sold, write::
+For example, in order to find the total amount of each product sold, write:
+
+
+::
 
     from datatable import f, by, sum
-    DT = dt.fread("transactions.csv")
 
-    DT[:, sum(f.quantity), by(f.product_id)]
+    DT[:, {"sum_A":sum(f.A)}, by(f.C)]
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>C</th><th>sum_A</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>one</td><td>3</td></tr>
+        <tr><td class='row_index'>1</td><td>two</td><td>7</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>2 rows &times; 2 columns</div>
+      </div>
+    </div>
+    </div>
+
+
+
+
+or calculate mean value by groups in colums
+
+::
+
+    from datatable import mean
+
+    DT[:, {"mean_A" : mean(f.A)}, by("C")]
+
+
+
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>C</th><th>mean_A</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>one</td><td>1.5</td></tr>
+        <tr><td class='row_index'>1</td><td>two</td><td>2.33333</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>2 rows &times; 2 columns</div>
+      </div>
+    </div>
+    </div>
+
+
 
 
 sort(...)
 ~~~~~~~~~
 
-This modifier controls the order of the rows in the result, much like SQL clause
-``ORDER BY``. If used in conjunction with ``by()``, it will order the rows
-within each group.
+This modifier controls the order of the rows in the result, much like
+SQL clause ``ORDER BY``. If used in conjunction with ``by()``, it will
+order the rows within each group.
+
+::
+
+    from datatable import sort
+
+    DT[:,:,sort(f.B)]
+
+
+
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>3</td><td><span class=na>NA</span></td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>1</td><td>4</td><td>&minus;inf</td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>2</td><td>2</td><td>0</td><td>one</td><td>55</td></tr>
+        <tr><td class='row_index'>3</td><td>0</td><td>1.7</td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>4</td><td>1</td><td>3.4</td><td>one</td><td>55</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+
+
+
+::
+
+    DT.sort("Z")
+
+
+
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>0</td><td>1.7</td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>1</td><td>3</td><td><span class=na>NA</span></td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>2</td><td>4</td><td>&minus;inf</td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>3</td><td>1</td><td>3.4</td><td>one</td><td>55</td></tr>
+        <tr><td class='row_index'>4</td><td>2</td><td>0</td><td>one</td><td>55</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>5 rows &times; 4 columns</div>
+      </div>
+    </div>
+    </div>
+
+
 
 
 join(...)
 ~~~~~~~~~
 
-As the name suggests, this operator allows you to join another frame to the
-current, equivalent to the SQL ``JOIN`` operator. Currently we support only
-left outer joins.
+As the name suggests, this operator allows you to join another frame to
+the current, equivalent to the SQL ``JOIN`` operator. Currently we
+support only left outer joins.
 
-In order to join frame ``X``, it must be keyed. A keyed frame is conceptually
-similar to a SQL table with a unique primary key. This key may be either a
-single column, or several columns::
+In order to join frame ``X``, it must be keyed. A keyed frame is
+conceptually similar to a SQL table with a unique primary key. This key
+may be either a single column, or several columns:
+
+.. code:: python
 
     X.key = "id"
 
-Once a frame is keyed, it can be joined to another frame ``DT``, provided that
-``DT`` has the column(s) with the same name(s) as the key in ``X``::
+Once a frame is keyed, it can be joined to another frame ``DT``,
+provided that ``DT`` has the column(s) with the same name(s) as the key
+in ``X``:
+
+.. code:: python
 
     DT[:, :, join(X)]
 
-This has the semantics of a natural left outer join. The ``X`` frame can be
-considered as a dictionary, where the key column contains the keys, and all
-other columns are the corresponding values. Then during the join each row of
-``DT`` will be matched against the row of ``X`` with the same value of the
-key column, and if there are no such value in ``X``, with an all-NA row.
+This has the semantics of a natural left outer join. The ``X`` frame can
+be considered as a dictionary, where the key column contains the keys,
+and all other columns are the corresponding values. Then during the join
+each row of ``DT`` will be matched against the row of ``X`` with the
+same value of the key column, and if there are no such value in ``X``,
+with an all-NA row.
 
-The columns of the joined frame can be used in expressions using the ``g.``
-prefix, for example::
+The columns of the joined frame can be used in expressions using the
+``g.`` prefix.
 
-    DT[:, sum(f.quantity * g.price), join(products)]
+**NOTE:** In the future, we will expand the syntax of the join operator
+to allow other kinds of joins and also to remove the limitation that
+only keyed frames can be joined.
 
-.. note:: In the future, we will expand the syntax of the join operator to
-          allow other kinds of joins and also to remove the limitation that
-          only keyed frames can be joined.
+::
+
+    DT1 = dt.Frame(product_id = [1, 1, 1, 2, 2, 2, 3, 3, 3],
+                   quantity = [11, 22, 16, 45, 65, 60, 33, 37, 39],
+                   stypes={"quantity": dt.int64})
+    DT1
 
 
 
-Offloading data
----------------
 
-Just as our work has started with loading some data into ``datatable``, eventually
-you will want to do the opposite: store or move the data somewhere else. We
-support multiple mechanisms for this.
+.. raw:: html
 
-First, the data can be converted into a pandas DataFrame or into a numpy array.
-(Obviously, you have to have pandas or numpy libraries installed.)::
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>product_id</th><th>quantity</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int8'>&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>1</td><td>11</td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>22</td></tr>
+        <tr><td class='row_index'>2</td><td>1</td><td>16</td></tr>
+        <tr><td class='row_index'>3</td><td>2</td><td>45</td></tr>
+        <tr><td class='row_index'>4</td><td>2</td><td>65</td></tr>
+        <tr><td class='row_index'>5</td><td>2</td><td>60</td></tr>
+        <tr><td class='row_index'>6</td><td>3</td><td>33</td></tr>
+        <tr><td class='row_index'>7</td><td>3</td><td>37</td></tr>
+        <tr><td class='row_index'>8</td><td>3</td><td>39</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>9 rows &times; 2 columns</div>
+      </div>
+    </div>
+    </div>
 
-    DT.to_pandas()
-    DT.to_numpy()
+::
 
-A frame can also be converted into python native data structures: a dictionary,
-keyed by the column names; a list of columns, where each column is itself a
-list of values; or a list of rows, where each row is a tuple of values::
+    DT2 = dt.Frame(product_id = [1, 2, 3], price = [1, 2, 3],
+                   stypes={"price": dt.int64})
+    DT2
 
-    DT.to_dict()
-    DT.to_list()
-    DT.to_tuples()
+.. raw:: html
 
-You can also save a frame into a CSV file, or into a binary .jay file::
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>product_id</th><th>price</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int8'>&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>1</td><td>1</td></tr>
+        <tr><td class='row_index'>1</td><td>2</td><td>2</td></tr>
+        <tr><td class='row_index'>2</td><td>3</td><td>3</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>3 rows &times; 2 columns</div>
+      </div>
+    </div>
+    </div>
 
-    DT.to_csv("out.csv")
-    DT.to_jay("data.jay")
+::
+
+    from datatable import g, join
+
+    DT2.key = "product_id"
+    DT3 = DT1[:, {"sales": f.quantity * g.price}, by(f.product_id), join(DT2)]
+    DT3
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>product_id</th><th>sales</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int8'>&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>1</td><td>11</td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>22</td></tr>
+        <tr><td class='row_index'>2</td><td>1</td><td>16</td></tr>
+        <tr><td class='row_index'>3</td><td>2</td><td>90</td></tr>
+        <tr><td class='row_index'>4</td><td>2</td><td>130</td></tr>
+        <tr><td class='row_index'>5</td><td>2</td><td>120</td></tr>
+        <tr><td class='row_index'>6</td><td>3</td><td>99</td></tr>
+        <tr><td class='row_index'>7</td><td>3</td><td>111</td></tr>
+        <tr><td class='row_index'>8</td><td>3</td><td>117</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>9 rows &times; 2 columns</div>
+      </div>
+    </div>
+    </div>
+
+
+
+
+Append
+------
+
+Append rows / columns to a Frame using:
+
+.. code:: python
+
+    df1.cbind(df2, df3)
+    df1.rbind(df4, force = True)
+
+::
+
+    DT1.cbind(DT3[:,"sales"])
+    DT1
+
+
+
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>product_id</th><th>quantity</th><th>sales</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int8'>&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>1</td><td>11</td><td>11</td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>22</td><td>22</td></tr>
+        <tr><td class='row_index'>2</td><td>1</td><td>16</td><td>16</td></tr>
+        <tr><td class='row_index'>3</td><td>2</td><td>45</td><td>90</td></tr>
+        <tr><td class='row_index'>4</td><td>2</td><td>65</td><td>130</td></tr>
+        <tr><td class='row_index'>5</td><td>2</td><td>60</td><td>120</td></tr>
+        <tr><td class='row_index'>6</td><td>3</td><td>33</td><td>99</td></tr>
+        <tr><td class='row_index'>7</td><td>3</td><td>37</td><td>111</td></tr>
+        <tr><td class='row_index'>8</td><td>3</td><td>39</td><td>117</td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>9 rows &times; 3 columns</div>
+      </div>
+    </div>
+    </div>
+
+
+
+
+::
+
+    DT1.rbind(DT, force = True)
+    DT1
+
+
+
+
+.. raw:: html
+
+    <div class="output-cell"><div class='datatable'>
+      <table class='frame'>
+      <thead>
+        <tr class='colnames'><td class='row_index'></td><th>product_id</th><th>quantity</th><th>sales</th><th>A</th><th>B</th><th>C</th><th>Z</th></tr>
+        <tr class='coltypes'><td class='row_index'></td><td class='int' title='int8'>&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='real' title='float64'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='str' title='str32'>&#x25AA;&#x25AA;&#x25AA;&#x25AA;</td><td class='int' title='int8'>&#x25AA;</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class='row_index'>0</td><td>1</td><td>11</td><td>11</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>1</td><td>1</td><td>22</td><td>22</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>2</td><td>1</td><td>16</td><td>16</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>3</td><td>2</td><td>45</td><td>90</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>4</td><td>2</td><td>65</td><td>130</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>5</td><td>2</td><td>60</td><td>120</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>6</td><td>3</td><td>33</td><td>99</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>7</td><td>3</td><td>37</td><td>111</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>8</td><td>3</td><td>39</td><td>117</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>9</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td>0</td><td>1.7</td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>10</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td>1</td><td>3.4</td><td>one</td><td>55</td></tr>
+        <tr><td class='row_index'>11</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td>2</td><td>0</td><td>one</td><td>55</td></tr>
+        <tr><td class='row_index'>12</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td>3</td><td><span class=na>NA</span></td><td>two</td><td><span class=na>NA</span></td></tr>
+        <tr><td class='row_index'>13</td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td><span class=na>NA</span></td><td>4</td><td>&minus;inf</td><td>two</td><td><span class=na>NA</span></td></tr>
+      </tbody>
+      </table>
+      <div class='footer'>
+        <div class='frame_dimensions'>14 rows &times; 7 columns</div>
+      </div>
+    </div>
+    </div>
+
+
+Chaining
+--------
+
+Chaining is used to make your code shorter by removing intermediate operations and joining several commands together.
+
+Without chaining:
+
+::
+
+    DT = dt.Frame(V1=[1, 2, 1, 2], V4=[16, 18, 20, 22])
+    DT
+
+.. raw:: html
+
+    <div class="output-cell">
+        <div class="datatable">
+          <table class="frame">
+          <thead>
+            <tr class="colnames"><td class="row_index"></td><th>V1</th><th>V4</th></tr>
+            <tr class="coltypes"><td class="row_index"></td><td class="int" title="int8">▪</td><td class="int" title="int8">▪</td></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row_index">0</td><td>1</td><td>16</td></tr>
+            <tr><td class="row_index">1</td><td>2</td><td>18</td></tr>
+            <tr><td class="row_index">2</td><td>1</td><td>20</td></tr>
+            <tr><td class="row_index">3</td><td>2</td><td>22</td></tr>
+          </tbody>
+          </table>
+          <div class="footer">
+            <div class="frame_dimensions">4 rows × 2 columns</div>
+          </div>
+        </div>
+    </div>
+
+
+::
+
+    DT1 = DT[:, {"sum": sum(f.V4)}, by(f.V1)]
+    DT1
+
+.. raw:: html
+
+    <div class="output-cell">
+        <div class="datatable">
+          <table class="frame">
+          <thead>
+            <tr class="colnames"><td class="row_index"></td><th>V1</th><th>sum</th></tr>
+            <tr class="coltypes"><td class="row_index"></td><td class="int" title="int8">▪</td><td class="int" title="int64">▪▪▪▪▪▪▪▪</td></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row_index">0</td><td>1</td><td>36</td></tr>
+            <tr><td class="row_index">1</td><td>2</td><td>40</td></tr>
+          </tbody>
+          </table>
+          <div class="footer">
+            <div class="frame_dimensions">2 rows × 2 columns</div>
+          </div>
+        </div>
+    </div>
+
+::
+
+    DT1[f.sum >= 40,:]
+
+.. raw:: html
+
+    <div class="output-cell">
+        <div class="datatable">
+          <table class="frame">
+          <thead>
+            <tr class="colnames"><td class="row_index"></td><th>V1</th><th>sum</th></tr>
+            <tr class="coltypes"><td class="row_index"></td><td class="int" title="int8">▪</td><td class="int" title="int64">▪▪▪▪▪▪▪▪</td></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row_index">0</td><td>2</td><td>40</td></tr>
+          </tbody>
+          </table>
+          <div class="footer">
+            <div class="frame_dimensions">1 row × 2 columns</div>
+          </div>
+        </div>
+    </div>
+
+with chaining:
+
+::
+
+    DT[:, {"sum": sum(f.V4)}, by(f.V1)][f.sum >= 40, :]
+
+
+.. raw:: html
+
+    <div class="output-cell">
+        <div class="datatable">
+          <table class="frame">
+          <thead>
+            <tr class="colnames"><td class="row_index"></td><th>V1</th><th>sum</th></tr>
+            <tr class="coltypes"><td class="row_index"></td><td class="int" title="int8">▪</td><td class="int" title="int64">▪▪▪▪▪▪▪▪</td></tr>
+          </thead>
+          <tbody>
+            <tr><td class="row_index">0</td><td>2</td><td>40</td></tr>
+          </tbody>
+          </table>
+          <div class="footer">
+            <div class="frame_dimensions">1 row × 2 columns</div>
+          </div>
+        </div>
+    </div>
