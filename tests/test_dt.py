@@ -317,7 +317,7 @@ def test_random_attack():
 #-------------------------------------------------------------------------------
 
 def test_dt_stype(dt0):
-    assert dt0[0].stype == stype.int8
+    assert dt0[0].stype == stype.int32
     assert dt0[1].stype == stype.bool8
     assert dt0[:, [1, 2, 4, 5]].stype == stype.bool8
     assert dt0[-1].stype == stype.str32
