@@ -87,6 +87,10 @@ Frame
     rows = dt.Frame([2, 0, None, 1, 2])
     assert DT[rows, :].to_list() == [['c', 'a', None, 'b', 'c']]
 
+- |new| Added option ``display.max_column_width``. Cells whose content is larger
+  than this value will be automatically truncated when a Frame is rendered into
+  a terminal.
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
@@ -159,7 +163,12 @@ General
   The symbol ``dt`` is also exported by default, i.e. it will be available if
   you do ``from datatable import *``.
 
-- |fix| Fixed a memory leak when writing a Frame into a CSV file (#2119).
+- |fix| Fixed memory leak when writing a Frame into a CSV file (#2119).
+
+- |fix| Fixed memory leak when converting a numpy array with string values
+  into a Frame (#2123).
+
+- |fix| Fixed memory leak during reduce operations (#2125).
 
 
 Internal
