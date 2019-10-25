@@ -161,7 +161,6 @@ public:
    * after `finalize()`. This class surrenders ownership of the buffer, and
    * it will be the responsibility of the caller to handle it.
    */
-  void* get_cptr();
   Buffer get_mbuf();
   std::string get_string();
 
