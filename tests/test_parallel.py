@@ -116,8 +116,7 @@ def test_progress(parallel_type, nthreads):
         exec(cmd_run)
 
 
-# Send interrupt signal and make sure process throws KeyboardInterrupt
-@pytest.mark.skip(reason="Disabled temporarily")
+# Send interrupt signal and make sure process throws `KeyboardInterrupt`.
 @cpp_test
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
@@ -127,36 +126,51 @@ def test_progress(parallel_type, nthreads):
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
+    # In some cases `core.test_progress_*` may not start immediately
+    # after the `print()` statement, that we catch with
+    # `proc.stdout.readline()`, in such a case we retry with twice
+    # larger `sleep_time`.
+    max_tries = 5
     niterations = 10000
     sleep_time = 0.01
     exception = "KeyboardInterrupt\n"
-    cmd_settings = "import datatable as dt; from datatable.lib import core;"
-    cmd_settings += "dt.options.progress.enabled = True;"
-    cmd_settings += "dt.options.progress.min_duration = 0;"
-    cmd_settings += "print('%s start', flush = True); " % parallel_type;
+    cmd = "import datatable as dt; from datatable.lib import core;"
+    cmd += "dt.options.progress.enabled = True;"
+    cmd += "dt.options.progress.min_duration = 0;"
+    cmd += "print('%s start', flush = True); " % parallel_type;
 
     if parallel_type is None:
-        cmd_settings += "import time; "
-        cmd_settings += "dt.options.nthreads = %s; " % nthreads
-        cmd_run = "time.sleep(%s);" % sleep_time * 10
+        cmd += "import time; "
+        cmd += "dt.options.nthreads = %s; " % nthreads
+        cmd += "time.sleep(%s);" % sleep_time * 10
     else:
         if parallel_type is "ordered":
             niterations //= 10
-        cmd_run = "core.test_progress_%s(%s, %s)" % (
+        cmd += "core.test_progress_%s(%s, %s)" % (
                   parallel_type, niterations, nthreads)
 
-    proc = subprocess.Popen(["python", "-c", cmd_settings + cmd_run],
-                            stdout = subprocess.PIPE,
-                            stderr = subprocess.PIPE)
+    i = 0
+    while i < max_tries:
+        proc = subprocess.Popen(["python", "-c", cmd],
+                                stdout = subprocess.PIPE,
+                                stderr = subprocess.PIPE)
 
-    line = proc.stdout.readline()
-    time.sleep(sleep_time);
+        line = proc.stdout.readline()
+        assert line.decode() == str(parallel_type) + " start\n"
+        time.sleep(sleep_time);
 
-    proc.send_signal(signal.Signals.SIGINT)
-    (stdout, stderr) = proc.communicate()
+        proc.send_signal(signal.Signals.SIGINT)
+        (stdout, stderr) = proc.communicate()
 
-    if (parallel_type) :
-        assert stdout.decode().endswith("[cancelled]\x1b[m\x1b[K\n")
-    assert stderr.decode().endswith(exception)
+        is_cancelled = stdout.decode().endswith("[cancelled]\x1b[m\x1b[K\n")
+        is_exception = stderr.decode().endswith(exception)
+        if is_exception:
+            break
+
+        sleep_time *= 2
+        i += 1
+
+    assert is_cancelled if parallel_type else not is_cancelled
+    assert is_exception
 
 
