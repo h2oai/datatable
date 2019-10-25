@@ -133,6 +133,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     max_tries = 5
     niterations = 10000
     sleep_time = 0.01
+    delay_coeff = 1.5
     exception = "KeyboardInterrupt\n"
     cmd = "import datatable as dt; from datatable.lib import core;"
     cmd += "dt.options.progress.enabled = True;"
@@ -142,7 +143,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     if parallel_type is None:
         cmd += "import time; "
         cmd += "dt.options.nthreads = %s; " % nthreads
-        cmd += "time.sleep(%s);" % sleep_time * 10
+        cmd += "time.sleep(%s);" % (sleep_time * 10 * (delay_coeff ** max_tries))
     else:
         if parallel_type is "ordered":
             niterations //= 10
@@ -167,7 +168,8 @@ def test_progress_interrupt(parallel_type, nthreads):
         if is_exception:
             break
 
-        sleep_time *= 2
+        sleep_time *= delay_coeff
+        print(sleep_time)
         i += 1
 
     assert is_cancelled if parallel_type else not is_cancelled
