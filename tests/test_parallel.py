@@ -130,10 +130,10 @@ def test_progress_interrupt(parallel_type, nthreads):
     # after the `print()` statement, that we catch with
     # `proc.stdout.readline()`, in such a case we retry and increase
     # `sleep_time` by a factor of `delay_coeff`.
-    max_tries = 5
-    niterations = 10000
+    max_tries = 10
+    niterations = 100000
     sleep_time = 0.01
-    delay_coeff = 3
+    delay_coeff = 2
     exception = "KeyboardInterrupt\n"
     cmd = "import datatable as dt; from datatable.lib import core;"
     cmd += "dt.options.progress.enabled = True;"
@@ -166,6 +166,7 @@ def test_progress_interrupt(parallel_type, nthreads):
         out = stdout.decode()
         err = stderr.decode()
         print("\ni: ", i)
+        print("sleep_time: ", sleep_time)
         print("stdout [\n", out, "]")
         print("stderr [\n", err, "]")
 
