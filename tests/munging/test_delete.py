@@ -484,4 +484,3 @@ def test_del_column_from_keyed_frame():
     assert DT.key == ("A",)
     assert DT.names == ("A",)
     assert DT.to_list() == [list(range(100))]
-

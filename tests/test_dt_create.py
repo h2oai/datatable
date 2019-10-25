@@ -603,7 +603,7 @@ def test_auto_int8():
     src = [0, 3, 12, None, -5]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
-    assert d0.stypes == (stype.int32,)
+    assert d0.stype == dt.int32
     assert d0.to_list()[0] == src
 
 
@@ -611,7 +611,7 @@ def test_auto_int16():
     src = [50, 2303, None, -45]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
-    assert d0.stypes == (stype.int32,)
+    assert d0.stype == dt.int32
     assert d0.to_list()[0] == src
 
 
@@ -619,7 +619,7 @@ def test_auto_int32():
     src = [None, 0, 1, 44, 9548, 428570247, -12]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
-    assert d0.stypes == (stype.int32,)
+    assert d0.stype == dt.int32
     assert d0.to_list()[0] == src
 
 
@@ -627,7 +627,7 @@ def test_auto_int64():
     src = [None, 0, 1, 44, 9548, 145928450, 2245982454589145, 333, 2]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
-    assert d0.stypes == (stype.int64,)
+    assert d0.stype == dt.int64
     assert d0.to_list()[0] == src
 
 
@@ -635,7 +635,7 @@ def test_auto_float64():
     src = [5, 12, 5.2, None, 11, 0.998, -1]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
-    assert d0.stypes == (stype.float64,)
+    assert d0.stype == dt.float64
     assert d0.to_list()[0] == src
 
 

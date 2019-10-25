@@ -7,31 +7,27 @@ Install datatable
 
 Let’s begin by installing the latest stable version of ``datatable`` from PyPI:
 
-.. code:: bash
+.. code-block:: bash
 
     $ pip install datatable
 
 If this didn’t work for you, or if you want to install the bleeding edge
 version of the library, please check the :doc:`Installation </install>` page.
 
-
 Assuming the installation was successful, you can now import the library in
 a JupyterLab notebook or in a Python console:
 
 ::
 
-    import datatable as dt
-
-    dt.__version__
+  import datatable as dt
+  print(dt.__version__)
 
 
 .. raw:: html
 
-    <div class="output-cell">
-    <div class='highlight'>
-      <pre>0.8.0</pre>
-    </div>
-  </div>
+  <div class="output-cell"><div class='highlight'>
+    <pre>0.10.0</pre>
+  </div></div>
 
 
 
@@ -44,7 +40,7 @@ two-dimensional array with rows and columns.
 
 You can create a ``Frame`` object from a variety of data sources:
 
--  from a python ``list`` or ``dictionary``:
+- from a python list or dictionary:
 
 ::
 
@@ -52,8 +48,8 @@ You can create a ``Frame`` object from a variety of data sources:
     import math
 
     DT = dt.Frame(A=range(5), B=[1.7, 3.4, 0, None, -math.inf],
-                  C = ['two','one','one','two','two'],
-                     stypes={"A": dt.int64})
+                  C=['two', 'one', 'one', 'two', 'two'],
+                  stypes={"A": dt.int64})
     DT
 
 

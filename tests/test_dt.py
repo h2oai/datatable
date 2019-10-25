@@ -808,8 +808,7 @@ def test_topandas_nas():
                    [4587074, None, 109348, 1394, -343],
                    [None, None, None, None, 134918374091834]])
     frame_integrity_check(d0)
-    assert d0.stypes == (dt.stype.bool8, dt.stype.int32, dt.stype.int32,
-                         dt.stype.int32, dt.stype.int64)
+    assert d0.stypes == (dt.bool8, dt.int32, dt.int32, dt.int32, dt.int64)
     p0 = d0.to_pandas()
     # Check that each column in Pandas DataFrame has the correct number of NAs
     assert p0.count().tolist() == [2, 4, 3, 4, 1]
@@ -848,7 +847,7 @@ def test_topandas_bool_nas():
 
 def test_tonumpy0(numpy):
     d0 = dt.Frame([1, 3, 5, 7, 9])
-    assert d0.stypes == (stype.int32, )
+    assert d0.stype == dt.int32
     a0 = d0.to_numpy()
     assert a0.shape == d0.shape
     assert a0.dtype == numpy.dtype("int32")
@@ -895,7 +894,7 @@ def test_numpy_constructor_multi_types(numpy):
            [30498, 1349810, -134308],
            [1.454, 4.9e-23, 10000000]]
     d0 = dt.Frame(tbl)
-    assert d0.stypes == (stype.int32, stype.bool8, stype.int32, stype.float64)
+    assert d0.stypes == (dt.int32, dt.bool8, dt.int32, dt.float64)
     n0 = numpy.array(d0)
     assert n0.dtype == numpy.dtype("float64")
     assert n0.T.tolist() == [[1.0, 5.0, 10.0],
@@ -918,7 +917,7 @@ def test_numpy_constructor_view(numpy):
 
 def test_numpy_constructor_single_col(numpy):
     d0 = dt.Frame([1, 1, 3, 5, 8, 13, 21, 34, 55])
-    assert d0.stypes == (stype.int32, )
+    assert d0.stype == dt.int32
     n0 = numpy.array(d0)
     assert n0.shape == d0.shape
     assert n0.dtype == numpy.dtype("int32")
