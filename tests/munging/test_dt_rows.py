@@ -488,6 +488,14 @@ def test_rows_int_column_0rows(dt0):
     assert res.shape == (0, dt0.ncols)
 
 
+def test_issue1970():
+    DT = dt.Frame(A=[], stype=dt.float32)
+    DT.nrows = 2
+    RES = DT[dt.Frame([None], stype=int), :]
+    frame_integrity_check(RES)
+    assert_equals(RES, dt.Frame(A=[None], stype=DT.stype))
+
+
 
 #-------------------------------------------------------------------------------
 # Numpy-array selectors
