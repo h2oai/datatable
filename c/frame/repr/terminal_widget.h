@@ -41,6 +41,8 @@ class TerminalWidget : public Widget {
     std::ostringstream out_;
     std::vector<text_column> text_columns_;
     dt::Terminal* terminal_;
+    bool has_rowindex_column_;
+    size_t : 56;
 
   public:
     TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag);
@@ -52,7 +54,9 @@ class TerminalWidget : public Widget {
     void _render() override;
 
   private:
-    void _prerender_columns();
+    void _prerender_columns(int terminal_width);
+    std::vector<size_t> _order_colindices() const;
+
     void _render_column_names();
     void _render_header_separator();
     void _render_data();

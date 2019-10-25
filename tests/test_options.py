@@ -36,6 +36,7 @@ def test_options_all():
         "interactive",
         "interactive_hint",
         "max_nrows",
+        "max_column_width",
         "tail_nrows",
         "use_colors"
     }

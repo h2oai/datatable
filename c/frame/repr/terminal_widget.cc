@@ -30,6 +30,7 @@ namespace dt {
 TerminalWidget::TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag)
   : Widget(dt, split_view_tag)
 {
+  has_rowindex_column_ = false;
   terminal_ = term;
   TextColumn::setup(term);
 }
@@ -63,7 +64,7 @@ void TerminalWidget::to_stdout() {
 //------------------------------------------------------------------------------
 
 void TerminalWidget::_render() {
-  _prerender_columns();
+  _prerender_columns(terminal_->get_width());
   _render_column_names();
   _render_header_separator();
   _render_data();
@@ -71,27 +72,142 @@ void TerminalWidget::_render() {
 }
 
 
-void TerminalWidget::_prerender_columns() {
+void TerminalWidget::_prerender_columns(int terminal_width)
+{
+  // +2 because we'll be removing left+right margins in the end
+  int remaining_width = terminal_width + 2;
   size_t nkeys = dt_->nkeys();
-  size_t nrows = dt_->nrows();
   const auto& names = dt_->get_names();
-  text_columns_.reserve(colindices_.size() + 2);
+
+  // +2 for row indices and the vertical separator
+  text_columns_.resize(colindices_.size() + 2);
+
+  // how many extra columns were added into `text_columns_`
+  size_t k0 = 0;
+
+  // If there are no keys, we add a "row numbers" column + a vertical
+  // separator column.
   if (nkeys == 0) {
-    Column ri_col(new Range_ColumnImpl(0, static_cast<int64_t>(nrows), 1));
-    text_columns_.emplace_back(
-      dt::make_unique<Data_TextColumn>("", ri_col, rowindices_, true));
-    text_columns_.emplace_back(dt::make_unique<VSep_TextColumn>());
+    auto irows = static_cast<int64_t>(dt_->nrows());
+    text_columns_[0] = text_column(
+      new Data_TextColumn("",
+                          Column(new Range_ColumnImpl(0, irows, 1)),
+                          rowindices_,
+                          remaining_width)
+    );
+    text_columns_[1] = text_column(new VSep_TextColumn());
+    remaining_width -= text_columns_[0]->get_width();
+    remaining_width -= text_columns_[1]->get_width();
+    has_rowindex_column_ = true;
+    k0 = 2;
   }
-  for (size_t j : colindices_) {
-    const auto& col = dt_->get_column(j);
-    text_columns_.emplace_back(
-      dt::make_unique<Data_TextColumn>(names[j], col, rowindices_, false));
-    if (j == nkeys - 1) {
-      text_columns_.emplace_back(dt::make_unique<VSep_TextColumn>());
+
+  // Render all other columns in the order of priority
+  auto order = _order_colindices();
+  for (size_t i : order) {
+    size_t j = colindices_[i];  // column index within `dt_`
+    size_t k = i + k0;          // column index within `text_columns_`
+    xassert(!text_columns_[k]);
+
+    text_columns_[k] = (j == NA_index || remaining_width <= 3)
+        ? text_column(new Ellipsis_TextColumn())
+        : text_column(new Data_TextColumn(names[j],
+                                          dt_->get_column(j),
+                                          rowindices_,
+                                          remaining_width - 3));
+    remaining_width -= text_columns_[k]->get_width();
+    if (remaining_width <= 3) break;
+
+    if (nkeys && j == nkeys-1) {
+      // NB: cannot use .cbegin() here because of gcc4.8
+      text_columns_.insert(text_columns_.begin() + static_cast<long>(k) + 1,
+                           text_column(new VSep_TextColumn()));
+      k0++;
+      remaining_width -= text_columns_[k+1]->get_width();
     }
   }
+
+  // Remove all empty columns from `text_columns_`
+  size_t j = 0;
+  for (size_t i = 0; i < text_columns_.size(); ++i) {
+    if (!text_columns_[i]) continue;
+    if (i != j) {
+      std::swap(text_columns_[j], text_columns_[i]);
+    }
+    ++j;
+  }
+  text_columns_.resize(j);
   text_columns_.front()->unset_left_margin();
   text_columns_.back()->unset_right_margin();
+}
+
+
+/**
+  * Establish the order in which the columns in `colindices_` has to
+  * be rendered. This is a helper function for `_prerender_columns()`.
+  *
+  * Generally, the `colindices_` have the following structure:
+  *
+  *   i0, i1, i2, ... ik, <...>, ikk, ..., in
+  *   [    left_cols    ]      [ right_cols ]
+  *
+  * The "ellipsis" column may or may not be present. If it is present,
+  * we call all columns before the ellipsis "left columns", and all
+  * columns after are "right columns". If there is no ellipsis column
+  * then all columns are considered "left".
+  *
+  * When the columns will be rendered we want to prioritze them in
+  * such order that:
+  *
+  *   - first we render the key columns, if any (they will always be
+  *     at the start of colindices);
+  *
+  *   - then we alternate rendering columns from the left and from
+  *     the right, with columns further away from the place of
+  *     ellipsis having more priority;
+  *
+  *   - the order in which columns from the left and from the right
+  *     are taken is such the taken and the remaining columns on both
+  *     sides are roughly proportional to their initial counts.
+  *
+  *   - the ellipsis column is rendered lsat, if present.
+  *
+  */
+std::vector<size_t> TerminalWidget::_order_colindices() const {
+  size_t nkeys  = dt_->nkeys();
+  size_t n = colindices_.size();
+  std::vector<size_t> order;
+  order.reserve(n);
+
+  size_t i = 0;
+  for (; i < n && colindices_[i] < nkeys; i++) {}
+  size_t ncols_key = i;
+  for (; i < n && colindices_[i] != NA_index; i++) {}
+  size_t i_ellipsis = i;
+  size_t ncols_left = i - ncols_key;
+  size_t ncols_right = i < n? n - i - 1 : 0;
+
+  for (i = 0; i < ncols_key; ++i) order.push_back(i);
+  size_t weight_left = 0;
+  size_t weight_right = 0;
+  size_t ileft = ncols_key;
+  size_t iright = ncols_right? n - 1 : i_ellipsis;
+  while (true) {
+    bool has_left = (ileft != i_ellipsis);
+    bool has_right = (iright != i_ellipsis);
+    if (has_left && (weight_left <= weight_right || !has_right)) {
+      order.push_back(ileft++);
+      weight_left += ncols_right;
+    } else if (has_right) {
+      order.push_back(iright--);
+      weight_right += ncols_left;
+    } else {
+      xassert(!has_left && !has_right);
+      if (i_ellipsis < n) order.push_back(i_ellipsis);
+      break;
+    }
+  }
+  return order;
 }
 
 
@@ -117,8 +233,13 @@ void TerminalWidget::_render_header_separator() {
 
 void TerminalWidget::_render_data() {
   for (size_t k = 0; k < rowindices_.size(); ++k) {
-    for (const auto& col : text_columns_) {
-      col->print_value(out_, k);
+    if (has_rowindex_column_) {
+      out_ << terminal_->grey();
+      text_columns_[0]->print_value(out_, k);
+      out_ << terminal_->reset();
+    }
+    for (size_t i = has_rowindex_column_; i < text_columns_.size(); ++i) {
+      text_columns_[i]->print_value(out_, k);
     }
     out_ << '\n';
   }
