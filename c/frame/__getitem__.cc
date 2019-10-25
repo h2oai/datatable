@@ -58,7 +58,6 @@
 //------------------------------------------------------------------------------
 #include "expr/by_node.h"
 #include "expr/expr.h"
-#include "expr/j_node.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "expr/eval_context.h"

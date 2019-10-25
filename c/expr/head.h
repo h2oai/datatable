@@ -73,6 +73,29 @@ namespace expr {
   *
   *   Head
   *     +-- Head_Frame
+  *     +-- Head_Func
+  *     |     +-- Head_Func_Binary
+  *     |     +-- Head_Func_Cast
+  *     |     +-- Head_Func_Colset
+  *     |     +-- Head_Func_Column
+  *     |     +-- Head_Func_Unary
+  *     |     +-- Head_Reduce
+  *     |           +-- Head_Reduce_Binary
+  *     |           +-- Head_Reduce_Nullary
+  *     |           +-- Head_Reduce_Unary
+  *     +-- Head_List
+  *     +-- Head_Literal
+  *     |     +-- Head_Literal_Bool
+  *     |     +-- Head_Literal_Float
+  *     |     +-- Head_Literal_Int
+  *     |     +-- Head_Literal_None
+  *     |     +-- Head_Literal_Range
+  *     |     +-- Head_Literal_SliceAll
+  *     |     +-- Head_Literal_SliceInt
+  *     |     +-- Head_Literal_SliceStr
+  *     |     +-- Head_Literal_String
+  *     |     +-- Head_Literal_Type
+  *     +-- Head_NamedList
   *
   */
 class Head {
