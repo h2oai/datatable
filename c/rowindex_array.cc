@@ -242,12 +242,11 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
     max_valid = false;
   } else {
     int64_t imin = col.stats()->min_int();
-    int64_t imax = col.stats()->max_int();
+    int64_t imax = col.stats()->max_int(&max_valid);
     if (imin < 0) {
       throw ValueError() << "Row indices in integer column cannot be negative";
     }
     max = static_cast<size_t>(imax);
-    max_valid = true;
   }
   length = col.nrows();
   bool allow_arr32 = (length <= Column::MAX_ARR32_SIZE) &&
