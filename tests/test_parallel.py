@@ -124,12 +124,6 @@ def test_progress(parallel_type, nthreads):
                             [1, dt.options.nthreads//2, dt.options.nthreads]
                          )
                         )
-# @pytest.mark.parametrize('parallel_type, nthreads',
-#                          itertools.product(
-#                             ["static"],
-#                             [1]
-#                          )
-#                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
     # In some cases `core.test_progress_*` may not start immediately
@@ -171,9 +165,6 @@ def test_progress_interrupt(parallel_type, nthreads):
 
         out = stdout.decode()
         err = stderr.decode()
-        print("i: ", i)
-        print("\nstdout: [\n", out, "]")
-        print("\nstderr: [\n", err, "]")
         is_cancelled = out.endswith("[cancelled]\x1b[m\x1b[K\n")
         is_exception = err.endswith(exception)
         if is_exception:
