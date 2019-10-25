@@ -131,8 +131,8 @@ def test_progress_interrupt(parallel_type, nthreads):
     # `proc.stdout.readline()`, in such a case we retry and increase
     # `sleep_time` by a factor of `delay_coeff`.
     max_tries = 5
-    niterations = 100000
-    sleep_time = 0.1
+    niterations = 10000
+    sleep_time = 0.01
     delay_coeff = 3
     exception = "KeyboardInterrupt\n"
     cmd = "import datatable as dt; from datatable.lib import core;"
@@ -169,15 +169,16 @@ def test_progress_interrupt(parallel_type, nthreads):
         print("stdout [\n", out, "]")
         print("stderr [\n", err, "]")
 
-        is_cancelled = out.endswith("[cancelled]\x1b[m\x1b[K\n")
         is_exception = err.endswith(exception)
-        if is_exception:
+        is_cancelled = out.endswith("[cancelled]\x1b[m\x1b[K\n") if parallel_type else is_exception
+
+        if is_exception and is_cancelled:
             break
 
         sleep_time *= delay_coeff
         i += 1
 
-    assert is_cancelled if parallel_type else not is_cancelled
+    assert is_cancelled
     assert is_exception
 
 
