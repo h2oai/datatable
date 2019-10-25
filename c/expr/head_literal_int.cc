@@ -76,6 +76,41 @@ Workframe Head_Literal_Int::evaluate_j(
 
 
 
+// An integer value is assigned to a DT[i,j] expression:
+//
+//   DT[:, j] = -1
+//
+// This is allowed provided that the columns in `j` are either
+// integer or float.
+//
+Workframe Head_Literal_Int::evaluate_r(
+    const vecExpr&, EvalContext& ctx, const std::vector<SType>& stypes) const
+{
+  Workframe outputs(ctx);
+  for (SType stype : stypes) {
+    LType ltype = ::info(stype).ltype();
+    Column newcol;
+    if (ltype == LType::INT) {
+      // This creates a column with the requested `stype`, but only
+      // if the `value` fits inside the range of that stype. If not,
+      // the column will be auto-promoted to the next smallest integer
+      // stype.
+      newcol = Const_ColumnImpl::make_int_column(1, value, stype);
+    }
+    else if (ltype == LType::REAL) {
+      newcol = Const_ColumnImpl::make_float_column(1, value);
+    }
+    else {
+      throw TypeError() << "An integer value cannot be assigned to a column "
+                           "of stype `" << stype << "`";
+    }
+    outputs.add_column(std::move(newcol), std::string(), Grouping::SCALAR);
+  }
+  return outputs;
+}
+
+
+
 RowIndex Head_Literal_Int::evaluate_i(const vecExpr&, EvalContext& ctx) const {
   int64_t inrows = static_cast<int64_t>(ctx.nrows());
   if (value < -inrows || value >= inrows) {

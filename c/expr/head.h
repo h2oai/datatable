@@ -60,6 +60,9 @@ namespace expr {
   *     when the j-expression is used in an assignment statement
   *     `DT[i,j] = smth`.
   *
+  * - evaluate_r() computes the expression when it is used as a
+  *     replacement value, i.e. compute R in `DT[i,j] = R`.
+  *
   * - evaluate_f() computes the expression when it is used as an
   *     f-selector, i.e. f[expr], or g[expr].
   *
@@ -101,11 +104,27 @@ namespace expr {
 class Head {
   public:
     virtual ~Head();
-    virtual Workframe evaluate_n(const vecExpr& args, EvalContext& ctx) const = 0;
-    virtual Workframe evaluate_j(const vecExpr& args, EvalContext& ctx, bool allow_new) const = 0;
-    virtual Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new) const = 0;
-    virtual RowIndex  evaluate_i(const vecExpr&, EvalContext&) const = 0;
-    virtual RiGb      evaluate_iby(const vecExpr&, EvalContext&) const = 0;
+
+    virtual Workframe evaluate_n(const vecExpr& args,
+                                 EvalContext& ctx) const = 0;
+
+    virtual Workframe evaluate_j(const vecExpr& args,
+                                 EvalContext& ctx,
+                                 bool allow_new) const = 0;
+
+    virtual Workframe evaluate_r(const vecExpr& args,
+                                 EvalContext& ctx,
+                                 const std::vector<SType>& stypes) const = 0;
+
+    virtual Workframe evaluate_f(EvalContext& ctx,
+                                 size_t frame_id,
+                                 bool allow_new) const = 0;
+
+    virtual RowIndex evaluate_i(const vecExpr& args,
+                                EvalContext& ctx) const = 0;
+
+    virtual RiGb evaluate_iby(const vecExpr& args,
+                              EvalContext& ctx) const = 0;
 
     virtual Kind get_expr_kind() const = 0;
 };

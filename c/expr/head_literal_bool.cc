@@ -43,6 +43,27 @@ Workframe Head_Literal_Bool::evaluate_n(const vecExpr&, EvalContext& ctx) const 
 }
 
 
+
+// A boolean value is used as a replacement target. This is valid
+// only if `j` column(s) have stype BOOL.:
+//
+//   DT[:, j] = True
+//
+Workframe Head_Literal_Bool::evaluate_r(
+    const vecExpr& args, EvalContext& ctx,
+    const std::vector<SType>& stypes) const
+{
+  for (SType stype : stypes) {
+    if (stype != SType::BOOL) {
+      throw TypeError() << "A boolean value cannot be assigned to a column "
+                           "of stype `" << stype << "`";
+    }
+  }
+  return evaluate_n(args, ctx);
+}
+
+
+
 Workframe Head_Literal_Bool::evaluate_f(EvalContext&, size_t, bool) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";

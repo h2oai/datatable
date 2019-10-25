@@ -63,6 +63,17 @@ Workframe Head_Func::evaluate_j(
 }
 
 
+// When used as a replacement target, a Func expression behaves the
+// same as during evaluation in "normal" mode.
+//
+Workframe Head_Func::evaluate_r(
+    const vecExpr& args, EvalContext& ctx, const std::vector<SType>&) const
+{
+  return evaluate_n(args, ctx);
+}
+
+
+
 RowIndex Head_Func::evaluate_i(const vecExpr& args, EvalContext& ctx) const {
   Workframe wf = evaluate_n(args, ctx);
   if (wf.ncols() != 1) {

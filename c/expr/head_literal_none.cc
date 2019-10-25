@@ -50,6 +50,29 @@ Workframe Head_Literal_None::evaluate_j(
 }
 
 
+// None value is used as a replacement target:
+//
+//  DT[:, j] = None
+//
+// In this case we replace columns in `j` with NA columns, but keep
+// their stypes.
+//
+Workframe Head_Literal_None::evaluate_r(
+    const vecExpr&, EvalContext& ctx, const std::vector<SType>& stypes) const
+{
+  Workframe outputs(ctx);
+  for (SType stype : stypes) {
+    outputs.add_column(
+      Column(new ConstNa_ColumnImpl(1, stype)),
+      std::string(),
+      Grouping::SCALAR
+    );
+  }
+  return outputs;
+}
+
+
+
 // When used in f, `None` means select nothing
 Workframe Head_Literal_None::evaluate_f(EvalContext& ctx, size_t, bool) const {
   return Workframe(ctx);

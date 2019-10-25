@@ -224,6 +224,12 @@ Workframe Expr::evaluate_j(EvalContext& ctx, bool allow_new) const
   return head->evaluate_j(inputs, ctx, allow_new);
 }
 
+Workframe Expr::evaluate_r(
+    EvalContext& ctx, const std::vector<SType>& stypes) const
+{
+  return head->evaluate_r(inputs, ctx, stypes);
+}
+
 
 Workframe Expr::evaluate_f(
     EvalContext& ctx, size_t frame_id, bool allow_new) const

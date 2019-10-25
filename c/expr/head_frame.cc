@@ -113,6 +113,22 @@ Workframe Head_Frame::evaluate_j(
 }
 
 
+// If X is a Frame, and it is used in the expression
+//
+//   DT[:, j] = X
+//
+// Then the columns of X are used as-is, i.e. use "normal" evaluation
+// mode. The stypes of the RHS can be ignored, since the stypes of X
+// take precedence in this case.
+//
+Workframe Head_Frame::evaluate_r(
+    const vecExpr& args, EvalContext& ctx, const std::vector<SType>&) const
+{
+  return evaluate_n(args, ctx);
+}
+
+
+
 // If X is a Frame, then the expression f[X] (as in DT[:, f[X]]) just
 // doesn't make much sense, so we disallow it.
 //
