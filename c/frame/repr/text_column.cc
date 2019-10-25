@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "frame/repr/repr_options.h"
 #include "frame/repr/text_column.h"
 #include "utils/assert.h"
 #include "encodings.h"
@@ -35,9 +36,9 @@ sstring TextColumn::na_value_;
 
 void TextColumn::setup(const Terminal* terminal) {
   term_ = terminal;
-  na_value_ = term_->dim("NA");
-  ellipsis_ = term_->unicode_allowed()? term_->dim("\xE2\x80\xA6")  // '…'
-                                      : term_->dim("...");
+  na_value_ = sstring(term_->dim("NA"));
+  ellipsis_ = term_->unicode_allowed()? sstring(term_->dim("\xE2\x80\xA6"))
+                                      : sstring(term_->dim("..."));
 }
 
 
@@ -45,7 +46,6 @@ TextColumn::TextColumn() {
   width_ = 2;
   margin_left_ = true;
   margin_right_ = true;
-  is_key_column_ = false;
 }
 
 TextColumn::~TextColumn() = default;
@@ -60,6 +60,10 @@ void TextColumn::unset_right_margin() {
   margin_right_ = false;
 }
 
+int TextColumn::get_width() const {
+  return static_cast<int>(width_) + margin_left_ + margin_right_;
+}
+
 
 
 
@@ -70,9 +74,10 @@ void TextColumn::unset_right_margin() {
 Data_TextColumn::Data_TextColumn(const std::string& name,
                                  const Column& col,
                                  const intvec& indices,
-                                 bool is_key_column)
-  : TextColumn(), name_(name)
+                                 int max_width)
 {
+  max_width_ = std::min(max_width, display_max_column_width);
+  name_ = sstring(_escape_string(name));
   width_ = std::max(width_, name_.size());
   LType ltype = col.ltype();
   align_right_ = (ltype == LType::BOOL) ||
@@ -80,7 +85,6 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
                  (ltype == LType::REAL);
   margin_left_ = true;
   margin_right_ = true;
-  is_key_column_ = is_key_column;
   _render_all_data(col, indices);
   if (ltype == LType::REAL) {
     _align_at_dot();
@@ -89,7 +93,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
 
 
 void Data_TextColumn::print_name(ostringstream& out) const {
-  _print_aligned_value(out, name_.str());
+  _print_aligned_value(out, name_);
 }
 
 
@@ -101,9 +105,7 @@ void Data_TextColumn::print_separator(ostringstream& out) const {
 
 
 void Data_TextColumn::print_value(ostringstream& out, size_t i) const {
-  if (is_key_column_) out << term_->grey();
-  _print_aligned_value(out, data_[i].str());
-  if (is_key_column_) out << term_->reset();
+  _print_aligned_value(out, data_[i]);
 }
 
 
@@ -129,7 +131,6 @@ void Data_TextColumn::_print_aligned_value(ostringstream& out,
 
 
 void Data_TextColumn::_print_whitespace(ostringstream& out, size_t n) const {
-  xassert(n < 10000);
   for (size_t i = 0; i < n; ++i) out << ' ';
 }
 
@@ -162,7 +163,8 @@ sstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
 }
 
 
-bool Data_TextColumn::_needs_escaping(const CString& str) {
+bool Data_TextColumn::_needs_escaping(const CString& str) const {
+  if (str.size > max_width_) return true;
   size_t n = static_cast<size_t>(str.size);
   for (size_t i = 0; i < n; ++i) {
     auto c = static_cast<unsigned char>(str.ch[i]);
@@ -200,8 +202,24 @@ static std::string _escape_unicode(int cp) {
 }
 
 
-std::string Data_TextColumn::_escape_string(const CString& str) {
+/**
+  * This function takes `str` as an input, and produces a formatted
+  * output string, suitable for printing into the terminal. The
+  * following transformations are applied:
+  *
+  *   - C0 & C1 control characters (including U+007F) are \-escaped;
+  *   - any unicode characters are also escaped if the global option
+  *     `allow_unicode` is false;
+  *   - the output is limited to `max_width_` in size; if the input
+  *     exceeds this limit, an ellipsis character would be added.
+  */
+std::string Data_TextColumn::_escape_string(const CString& str) const
+{
   ostringstream out;
+  // -1 because we leave 1 char space for the ellipsis character.
+  // On the other hand, when we reach the end of `str` we'll
+  // increase the `remaining_width` by 1 once again.
+  int remaining_width = max_width_ - 1;
   bool allow_unicode = term_->unicode_allowed();
 
   size_t n = static_cast<size_t>(str.size);
@@ -209,34 +227,51 @@ std::string Data_TextColumn::_escape_string(const CString& str) {
   auto end = ch + n;
   while (ch < end) {
     auto c = *ch;
-    // printable ASCII + UTF8 continuation bytes
-    if ((c >= 0x20 && c <= 0x7E) || (c >= 0x80 && c <= 0xBF)) {
-      out << c;
+    // printable ASCII
+    if (c >= 0x20 && c <= 0x7E) {
       ch++;
+      if (ch == end) remaining_width++;
+      if (!remaining_width) break;
+      out << c;
+      remaining_width--;
     }
     // C0 block + \x7F (DEL) character
     else if (c <= 0x1F || c == 0x7F) {
-      out << term_->dim(_escaped_char(c));
       ch++;
+      if (ch == end) remaining_width++;
+      auto escaped = _escaped_char(c);
+      if (static_cast<int>(escaped.size()) > remaining_width) break;
+      out << term_->dim() << escaped << term_->reset();
     }
-    // unicode start byte, when unicode output allowed
-    else if (allow_unicode) {
-      auto cc = ch[1];
-      // C1 block still has to be escaped (codepoints 0x80 .. 0x9F, encoded
-      // in utf8 as 2-byte sequences C2 80 .. C2 9F)
-      if (c == 0xC2 && cc >= 0x80 && cc <= 0x9F) {
-        out << term_->dim(_escaped_char(cc));
-        ch += 2;
+    // unicode character
+    else {
+      auto ch0 = ch;
+      int cp = read_codepoint_from_utf8(&ch);  // advances `ch`
+      if (ch == end) remaining_width++;
+      if (allow_unicode && cp >= 0xA0) {  // excluding the C1 block
+        int w = mk_wcwidth(cp);
+        if (w > remaining_width) {
+          ch = ch0;
+          break;
+        }
+        for (; ch0 < ch; ++ch0) out << *ch0;
+        remaining_width -= w;
       } else {
-        out << c;
-        ch++;
+        auto escaped = _escape_unicode(cp);
+        if (static_cast<int>(escaped.size()) > remaining_width) {
+          ch = ch0;
+          break;
+        }
+        out << term_->dim() << escaped << term_->reset();
+        remaining_width -= escaped.size();
       }
     }
-    // unicode start byte, the codepoint needs to be hex-escaped
-    else {
-      int codepoint = read_codepoint_from_utf8(&ch);  // advances `ch`
-      out << term_->dim(_escape_unicode(codepoint));
-    }
+  }
+  // If we broke out of loop earlty, ellipsis needs to be added
+  if (ch < end) {
+    out << term_->dim();
+    out << (allow_unicode? "\xE2\x80\xA6" : "~");
+    out << term_->reset();
   }
   return out.str();
 }
@@ -277,9 +312,6 @@ void Data_TextColumn::_render_all_data(const Column& col, const intvec& indices)
       data_.push_back(ellipsis_);
     } else {
       auto rendered_value = _render_value(col, i);
-      // if (is_key_column_) {
-      //   rendered_value = sstring(term_->grey(rendered_value.str()));
-      // }
       data_.push_back(std::move(rendered_value));
     }
     size_t w = data_.back().size();
@@ -325,6 +357,13 @@ void Data_TextColumn::_align_at_dot() {
 // VSep_TextColumn
 //------------------------------------------------------------------------------
 
+VSep_TextColumn::VSep_TextColumn() : TextColumn() {
+  width_ = 1;
+  margin_left_ = false;
+  margin_right_ = false;
+}
+
+
 void VSep_TextColumn::print_name(ostringstream& out) const {
   out << term_->reset() << term_->grey("|") << term_->bold();
 }
@@ -337,6 +376,38 @@ void VSep_TextColumn::print_value(ostringstream& out, size_t) const {
   out << term_->grey("|");
 }
 
+
+
+//------------------------------------------------------------------------------
+// Ellipsis_TextColumn
+//------------------------------------------------------------------------------
+
+Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
+  ell_ = term_->unicode_allowed()? sstring("\xE2\x80\xA6")  // ...
+                                 : sstring("~");
+  width_ = 1;
+  margin_left_ = true;
+  margin_right_ = true;
+}
+
+
+void Ellipsis_TextColumn::print_name(ostringstream& out) const {
+  if (margin_left_) out << ' ';
+  out << ell_.str();
+  if (margin_right_) out << ' ';
+}
+
+void Ellipsis_TextColumn::print_separator(ostringstream& out) const {
+  if (margin_left_) out << ' ';
+  out << ell_.str();
+  if (margin_right_) out << ' ';
+}
+
+void Ellipsis_TextColumn::print_value(ostringstream& out, size_t) const {
+  if (margin_left_) out << ' ';
+  out << term_->dim(ell_.str());
+  if (margin_right_) out << ' ';
+}
 
 
 

@@ -87,6 +87,10 @@ Frame
     rows = dt.Frame([2, 0, None, 1, 2])
     assert DT[rows, :].to_list() == [['c', 'a', None, 'b', 'c']]
 
+- |new| Added option ``display.max_column_width``. Cells whose content is larger
+  than this value will be automatically truncated when a Frame is rendered into
+  a terminal.
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
