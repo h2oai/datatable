@@ -136,31 +136,32 @@ def test_dt_pos_invalid(src):
 
 
 #-------------------------------------------------------------------------------
-# isna()
+# isna(): both dt.isna and dt.math.isna
 #-------------------------------------------------------------------------------
 
+@pytest.mark.parametrize("isna_fn", [dt.isna, dt.math.isna])
 @pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float + srcs_str)
-def test_dt_isna(src):
-    from datatable import isna
+def test_dt_isna(isna_fn, src):
     DT = dt.Frame(src)
-    DT1 = DT[:, isna(f[0])]
+    DT1 = DT[:, isna_fn(f[0])]
     frame_integrity_check(DT1)
     assert DT1.stypes == (stype.bool8,)
     pyans = [x is None for x in src]
     assert DT1.to_list()[0] == pyans
 
 
-def test_dt_isna2():
-    from datatable import isna
+@pytest.mark.parametrize("isna_fn", [dt.isna, dt.math.isna])
+def test_dt_isna2(isna_fn):
     from math import nan
     DT = dt.Frame(A=[1, None, 2, 5, None, 3.6, nan, -4.899])
-    DT1 = DT[~isna(f.A), :]
+    DT1 = DT[~isna_fn(f.A), :]
     assert DT1.stypes == DT.stypes
     assert DT1.names == DT.names
     assert DT1.to_list() == [[1.0, 2.0, 5.0, 3.6, -4.899]]
 
 
-def test_dt_isna_joined():
+@pytest.mark.parametrize("isna_fn", [dt.isna, dt.math.isna])
+def test_dt_isna_joined(isna_fn):
     # See issue #2109
     DT = dt.Frame(A=[None, 4, 3, 2, 1])
     JDT = dt.Frame(A=[0, 1, 3, 7],
@@ -169,13 +170,20 @@ def test_dt_isna_joined():
                    D=[22, 33, 44, 55],
                    E=[True, False, True, False])
     JDT.key = 'A'
-    RES = DT[:, dt.isna(g[1:]), join(JDT)]
+    RES = DT[:, isna_fn(g[1:]), join(JDT)]
     frame_integrity_check(RES)
     assert RES.to_list() == [[True, True, False, True, False]] * 4
 
 
+
+@pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float + srcs_str)
+def test_dt_isna_scalar(src):
+    for val in src:
+        assert dt.isna(val) == (val is None)
+
+
 @pytest.mark.parametrize("src", srcs_int + srcs_float)
-def test_dt_isna_scalar_not_implemented(src):
+def test_dt_math_isna_scalar_not_implemented(src):
     for val in src:
         with pytest.raises(NotImplementedError,
                            match = "This operation is not implemented yet"):
@@ -183,7 +191,7 @@ def test_dt_isna_scalar_not_implemented(src):
 
 
 @pytest.mark.parametrize("src", [srcs_bool[0], srcs_str[0]])
-def test_dt_isna_scalar_wrong_arg(src):
+def test_dt_math_isna_scalar_wrong_arg(src):
     for val in src:
         with pytest.raises(TypeError,
                            match = r"Function `isna\(\)` cannot be applied "
