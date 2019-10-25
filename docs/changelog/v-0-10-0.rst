@@ -164,6 +164,7 @@ General
 - |fix| Fixed memory leak when converting a numpy array with string values
   into a Frame (#2123).
 
+- |fix| Fixed memory leak during reduce operations (#2125).
 
 
 Internal
