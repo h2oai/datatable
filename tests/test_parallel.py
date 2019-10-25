@@ -124,6 +124,12 @@ def test_progress(parallel_type, nthreads):
                             [1, dt.options.nthreads//2, dt.options.nthreads]
                          )
                         )
+# @pytest.mark.parametrize('parallel_type, nthreads',
+#                          itertools.product(
+#                             ["static"],
+#                             [1]
+#                          )
+#                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
     # In some cases `core.test_progress_*` may not start immediately
@@ -131,9 +137,9 @@ def test_progress_interrupt(parallel_type, nthreads):
     # `proc.stdout.readline()`, in such a case we retry with twice
     # larger `sleep_time`.
     max_tries = 5
-    niterations = 10000
+    niterations = 100000
     sleep_time = 0.01
-    delay_coeff = 2
+    delay_coeff = 3
     exception = "KeyboardInterrupt\n"
     cmd = "import datatable as dt; from datatable.lib import core;"
     cmd += "dt.options.progress.enabled = True;"
@@ -165,6 +171,7 @@ def test_progress_interrupt(parallel_type, nthreads):
 
         out = stdout.decode()
         err = stderr.decode()
+        print("i: ", i)
         print("\nstdout: [\n", out, "]")
         print("\nstderr: [\n", err, "]")
         is_cancelled = out.endswith("[cancelled]\x1b[m\x1b[K\n")
