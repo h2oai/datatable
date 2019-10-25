@@ -169,7 +169,6 @@ def test_progress_interrupt(parallel_type, nthreads):
             break
 
         sleep_time *= delay_coeff
-        print(sleep_time)
         i += 1
 
     assert is_cancelled if parallel_type else not is_cancelled
