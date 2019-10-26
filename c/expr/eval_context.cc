@@ -337,13 +337,8 @@ void EvalContext::typecheck_for_update(
       auto llt = lcol.ltype();
       auto rlt = rcol.ltype();
       bool ok = (llt == rlt) ||
-                (llt == LType::INT && rlt == LType::BOOL) ||
                 (llt == LType::REAL && rlt == LType::INT);
-      if (ok) {
-        Column newcol = replframe.retrieve_column(i);
-        newcol.cast_inplace(lcol.stype());
-        replframe.replace_column(i, std::move(newcol));
-      } else {
+      if (!ok) {
         throw TypeError() << "Cannot assign " << rlt
           << " value to column `" << dt0->get_names()[indices[i]]
           << "` of type " << lcol.stype();
