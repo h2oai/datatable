@@ -151,9 +151,11 @@ def test_assign_integer_out_of_range_to_subset():
 
 def test_assign_int_overflow():
     # When integer overflows, it becomes a float64 value
-    DT = dt.Frame(A=range(5))
-    DT[:, "A"] = 10**100
-    assert_equals(DT, dt.Frame(A=[2**63 - 1] * 5))
+    DT = dt.Frame(A=range(5), B=[0.0]*5)
+    with pytest.raises(TypeError, match="Cannot assign float value"):
+        DT[:, "A"] = 10**100
+    DT[:, "B"] = 10**100
+    assert_equals(DT["B"], dt.Frame(B=[1e100] * 5))
 
 
 @pytest.mark.parametrize("stype", [dt.bool8] + stypes_str)
