@@ -141,23 +141,21 @@ def test_dt_pos_invalid(src):
 
 @pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float + srcs_str)
 def test_dt_isna(src):
-    from datatable import isna
     DT = dt.Frame(src)
-    dt1 = DT[:, isna(f[0])]
-    frame_integrity_check(dt1)
-    assert dt1.stypes == (stype.bool8,)
+    DT1 = DT[:, dt.math.isna(f[0])]
+    frame_integrity_check(DT1)
+    assert DT1.stypes == (stype.bool8,)
     pyans = [x is None for x in src]
-    assert dt1.to_list()[0] == pyans
+    assert DT1.to_list()[0] == pyans
 
 
 def test_dt_isna2():
-    from datatable import isna
     from math import nan
     DT = dt.Frame(A=[1, None, 2, 5, None, 3.6, nan, -4.899])
-    dt1 = DT[~isna(f.A), :]
-    assert dt1.stypes == DT.stypes
-    assert dt1.names == DT.names
-    assert dt1.to_list() == [[1.0, 2.0, 5.0, 3.6, -4.899]]
+    DT1 = DT[~dt.math.isna(f.A), :]
+    assert DT1.stypes == DT.stypes
+    assert DT1.names == DT.names
+    assert DT1.to_list() == [[1.0, 2.0, 5.0, 3.6, -4.899]]
 
 
 def test_dt_isna_joined():
@@ -169,11 +167,56 @@ def test_dt_isna_joined():
                    D=[22, 33, 44, 55],
                    E=[True, False, True, False])
     JDT.key = 'A'
-    RES = DT[:, dt.isna(g[1:]), join(JDT)]
+    RES = DT[:, dt.math.isna(g[1:]), join(JDT)]
     frame_integrity_check(RES)
     assert RES.to_list() == [[True, True, False, True, False]] * 4
 
 
+@pytest.mark.parametrize("src", srcs_int + srcs_float)
+def test_dt_math_isna_scalar_not_implemented(src):
+    for val in src:
+        with pytest.raises(NotImplementedError,
+                           match = "This operation is not implemented yet"):
+            dt.math.isna(val)
+
+
+@pytest.mark.parametrize("src", [srcs_bool[0], srcs_str[0]])
+def test_dt_math_isna_scalar_wrong_arg(src):
+    for val in src:
+        with pytest.raises(TypeError,
+                           match = r"Function `isna\(\)` cannot be applied "
+                           "to an argument of type " + str(type(val))):
+            dt.math.isna(val)
+
+
+#-------------------------------------------------------------------------------
+# math.isfinite()
+#-------------------------------------------------------------------------------
+@pytest.mark.parametrize("src", srcs_int + srcs_float)
+def test_dt_isfinite(src):
+    DT = dt.Frame(src)
+    DT1 = DT[:, dt.math.isfinite(f[0])]
+    frame_integrity_check(DT1)
+    assert DT1.stypes == (stype.bool8,)
+    pyans = [(False if x is None else math.isfinite(x)) for x in src]
+    assert DT1.to_list()[0] == pyans
+
+
+@pytest.mark.parametrize("src", srcs_int + srcs_float)
+def test_dt_isfinite_scalar_not_implemented(src):
+    for val in src:
+        with pytest.raises(NotImplementedError,
+                           match = "This operation is not implemented yet"):
+            dt.math.isfinite(val)
+
+
+@pytest.mark.parametrize("src", [srcs_bool[0], srcs_str[0]])
+def test_dt_isfinite_scalar_wrong_arg(src):
+    for val in src:
+        with pytest.raises(TypeError,
+                           match = r"Function `isfinite\(\)` cannot be applied "
+                           "to an argument of type " + str(type(val))):
+            dt.math.isfinite(val)
 
 
 #-------------------------------------------------------------------------------
@@ -191,11 +234,11 @@ def test_abs():
 @pytest.mark.parametrize("src", srcs_int + srcs_float)
 def test_abs_srcs(src):
     DT = dt.Frame(src)
-    dt1 = dt.abs(DT)
-    frame_integrity_check(dt1)
-    assert DT.stypes == dt1.stypes
+    DT1 = dt.abs(DT)
+    frame_integrity_check(DT1)
+    assert DT.stypes == DT1.stypes
     pyans = [None if x is None else abs(x) for x in src]
-    assert dt1.to_list()[0] == pyans
+    assert DT1.to_list()[0] == pyans
 
 
 def test_abs_all_stypes():
@@ -205,9 +248,9 @@ def test_abs_all_stypes():
            [-2147483647, -1000, 3, -589, 2147483647, 0],
            [-2**63 + 1, 2**63 - 1, 0, -2**32, 2**32, -793]]
     DT = dt.Frame(src, stypes=[dt.int8, dt.int16, dt.int32, dt.int64])
-    dt1 = DT[:, [abs(f[i]) for i in range(4)]]
-    frame_integrity_check(dt1)
-    assert dt1.to_list() == [[abs(x) for x in col] for col in src]
+    DT1 = DT[:, [abs(f[i]) for i in range(4)]]
+    frame_integrity_check(DT1)
+    assert DT1.to_list() == [[abs(x) for x in col] for col in src]
 
 
 
@@ -229,9 +272,9 @@ def test_exp():
 def test_exp_srcs(src):
     from math import exp, inf
     DT = dt.Frame(src)
-    dt1 = dt.exp(DT)
-    frame_integrity_check(dt1)
-    assert all([st == stype.float64 for st in dt1.stypes])
+    DT1 = dt.exp(DT)
+    frame_integrity_check(DT1)
+    assert all([st == stype.float64 for st in DT1.stypes])
     pyans = []
     for x in src:
         if x is None:
@@ -241,7 +284,7 @@ def test_exp_srcs(src):
                 pyans.append(exp(x))
             except OverflowError:
                 pyans.append(inf)
-    assert dt1.to_list()[0] == pyans
+    assert DT1.to_list()[0] == pyans
 
 
 def test_exp_all_stypes():
@@ -251,8 +294,8 @@ def test_exp_all_stypes():
            [-2147483647, -1000, 3, -589, 2147483647, 0],
            [-2 ** 63 + 1, 2 ** 63 - 1, 0, -2 ** 32, 2 ** 32, -793]]
     DT = dt.Frame(src, stypes=[dt.int8, dt.int16, dt.int32, dt.int64])
-    dt1 = DT[:, [exp(f[i]) for i in range(4)]]
-    frame_integrity_check(dt1)
+    DT1 = DT[:, [exp(f[i]) for i in range(4)]]
+    frame_integrity_check(DT1)
     pyans = []
     for col in src:
         l = []
@@ -265,7 +308,7 @@ def test_exp_all_stypes():
                 except OverflowError:
                     l.append(math.inf)
         pyans.append(l)
-    assert dt1.to_list() == pyans
+    assert DT1.to_list() == pyans
 
 
 
@@ -294,14 +337,14 @@ def test_log_srcs(src, fn):
     dtlog = getattr(dt, fn)
     mathlog = getattr(math, fn)
     DT = dt.Frame(src)
-    dt1 = dtlog(DT)
-    frame_integrity_check(dt1)
-    assert all([st == stype.float64 for st in dt1.stypes])
+    DT1 = dtlog(DT)
+    frame_integrity_check(DT1)
+    assert all([st == stype.float64 for st in DT1.stypes])
     pyans = [None if x is None or x < 0 else
              -math.inf if x == 0 else
              mathlog(x)
              for x in src]
-    assert dt1.to_list()[0] == pyans
+    assert DT1.to_list()[0] == pyans
 
 
 
