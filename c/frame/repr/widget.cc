@@ -81,16 +81,21 @@ void Widget::render_all() {
 
 void Widget::_generate_column_indices() {
   colindices_.clear();
+
+  // Split view mode
   if (startcol_ == NA_index) {
     colindices_.reserve(cols0_ + cols1_ + 1);
     for (size_t i = 0; i < ncols_; ++i) {
       if (i == cols0_) {
         colindices_.push_back(NA_index);
+        if (cols1_ == 0) break;
         i = ncols_ - cols1_;
       }
       colindices_.push_back(i);
     }
-  } else {
+  }
+  // Windowed mode
+  else {
     colindices_.reserve(nkeys_ + cols0_);
     for (size_t i = 0; i < nkeys_; ++i) {
       colindices_.push_back(i);
@@ -107,20 +112,27 @@ void Widget::_generate_column_indices() {
 // "ellipsis" row.
 void Widget::_generate_row_indices() {
   rowindices_.clear();
+
+  // Split view mode
   if (startrow_ == NA_index) {
     rowindices_.reserve(rows0_ + rows1_ + 1);
     for (size_t i = 0; i < nrows_; ++i) {
       if (i == rows0_) {
         rowindices_.push_back(NA_index);
+        if (rows1_ == 0) break;
         i = nrows_ - rows1_;
       }
       rowindices_.push_back(i);
     }
-  } else {
-    rowindices_.reserve(rows0_);
+  }
+  // Windowed mode
+  else {
+    rowindices_.reserve(rows0_ + 2);
+    if (startrow_ > 0) rowindices_.push_back(NA_index);
     for (size_t i = 0; i < rows0_; ++i) {
       rowindices_.push_back(i + startrow_);
     }
+    if (rows0_ + startrow_ < nrows_) rowindices_.push_back(NA_index);
   }
 }
 

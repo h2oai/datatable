@@ -14,6 +14,7 @@
 #include "frame/py_frame.h"
 #include "python/obj.h"
 #include "python/string.h"
+#include "python/pybuffer.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "column.h"
@@ -27,9 +28,8 @@ namespace pybuffers {
 
 // Forward declarations
 static void try_to_resolve_object_column(Column& col);
-static SType stype_from_format(const char *format, int64_t itemsize);
 static const char* format_from_stype(SType stype);
-static Column convert_fwchararray_to_column(Py_buffer* view);
+static Column convert_fwchararray_to_column(py::buffer&& view);
 
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
 #define REQ_FORMAT(flags)   ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
@@ -50,9 +50,6 @@ static char strB[] = "B";
 
 Column Column::from_pybuffer(const py::robj& pyobj)
 {
-  auto pview = std::unique_ptr<Py_buffer>(new Py_buffer());
-  Py_buffer* view = pview.get();
-
   // Check if this is a datetime64 column, in which case it must be converted
   if (pyobj.is_numpy_array()) {
     auto dtype = pyobj.get_attr("dtype");
@@ -66,62 +63,26 @@ Column Column::from_pybuffer(const py::robj& pyobj)
     }
   }
 
-  // Request the buffer (not writeable). Flag PyBUF_FORMAT indicates that
-  // the `view->format` field should be filled; and PyBUF_ND will fill the
-  // `view->shape` information (while `strides` and `suboffsets` will be
-  // nullptr).
-  int ret = PyObject_GetBuffer(pyobj.to_borrowed_ref(), view,
-                               PyBUF_FORMAT | PyBUF_ND);
-  if (ret != 0) {
-    PyErr_Clear();  // otherwise system functions may fail later on
-    ret = PyObject_GetBuffer(pyobj.to_borrowed_ref(), view,
-                             PyBUF_FORMAT | PyBUF_STRIDES);
-    if (ret != 0) throw PyError();
-  }
-  if (view->ndim != 1) {
-    int num_nontrivial_dimensions = view->ndim;
-    if (view->shape && !view->strides) {
-      for (int i = 0; i < view->ndim; ++i) {
-        num_nontrivial_dimensions -= (view->shape[i] == 1);
-      }
-    }
-    if (num_nontrivial_dimensions > 1) {
-      throw ValueError() << "Source buffer has " << num_nontrivial_dimensions
-        << " non-trivial dimensions, however only 1-D buffers are supported";
-    }
-  }
-
-  SType stype = stype_from_format(view->format, view->itemsize);
-  size_t nrows = static_cast<size_t>(view->len / view->itemsize);
+  py::buffer view(pyobj);
+  SType stype = view.stype();
+  size_t nrows = view.nelements();
 
   Column res;
   if (stype == SType::STR32) {
-    res = convert_fwchararray_to_column(view);
+    res = convert_fwchararray_to_column(std::move(view));
   }
   else {
-    bool strided = (view->strides != nullptr);
-    size_t stride_len = strided? static_cast<size_t>(view->strides[0] /
-                                                     view->itemsize) : 1;
-    size_t buffer_len = static_cast<size_t>(pview->len);
-    size_t buffer_len_expected = nrows * info(stype).elemsize();
-    if (buffer_len != buffer_len_expected) {
-      throw RuntimeError()
-                << "PyBuffer cannot be used to create a column of " << nrows
-                << " rows: buffer length is " << buffer_len
-                << ", expected " << buffer_len_expected;
-    }
-
-    void* ptr = pview->buf;
+    size_t stride_len = view.stride();
     res = Column::new_mbuf_column(nrows * stride_len, stype,
-              Buffer::external(ptr, buffer_len * stride_len, std::move(pview))
-          );
-    if (strided) {
+                                  std::move(view).as_dtbuffer());
+    if (stride_len != 1) {
       res = Column(
               new dt::SliceView_ColumnImpl(std::move(res),
                                            RowIndex(0, nrows, stride_len))
             );
     }
   }
+
   if (res.stype() == SType::OBJ) {
     try_to_resolve_object_column(res);
   }
@@ -129,23 +90,24 @@ Column Column::from_pybuffer(const py::robj& pyobj)
 }
 
 
-static Column convert_fwchararray_to_column(Py_buffer* view)
+static Column convert_fwchararray_to_column(py::buffer&& view)
 {
-  // Number of characters in each element
-  size_t k = static_cast<size_t>(view->itemsize / 4);
-  size_t nrows = static_cast<size_t>(view->len / view->itemsize);
-  size_t stride = view->strides? static_cast<size_t>(view->strides[0])/4 : k;
-  size_t maxsize = static_cast<size_t>(view->len);
-  auto input = reinterpret_cast<uint32_t*>(view->buf);
+  // Number of characters in each element (each Unicode character is 4 bytes
+  // in numpy).
+  size_t k = view.itemsize() / 4;
+  size_t nrows = view.nelements();
+  size_t stride = view.stride() * k;
+  size_t maxsize = nrows * k;
+  auto input = static_cast<uint32_t*>(view.data());
 
   Buffer strbuf = Buffer::mem(maxsize);
   Buffer offbuf = Buffer::mem((nrows + 1) * 4);
-  char* strptr = static_cast<char*>(strbuf.wptr());
-  uint32_t* offptr = static_cast<uint32_t*>(offbuf.wptr());
+  auto strptr = static_cast<char*>(strbuf.wptr());
+  auto offptr = static_cast<uint32_t*>(offbuf.wptr());
   *offptr++ = 0;
   uint32_t offset = 0;
   for (size_t j = 0; j < nrows; ++j) {
-    uint32_t* start = input + j*stride;
+    uint32_t* start = input + j*stride;  // note: stride can be negative!
     int64_t bytes_len = utf32_to_utf8(start, k, strptr);
     offset += bytes_len;
     strptr += bytes_len;
@@ -484,47 +446,6 @@ void py::DatatableModule::init_methods_buffers() {
 //==============================================================================
 // Buffers utility functions
 //==============================================================================
-
-static SType stype_from_format(const char* format, int64_t itemsize)
-{
-  SType stype = SType::VOID;
-  char c = format[0];
-  if (c == '@' || c == '=') c = format[1];
-
-  if (c == 'b' || c == 'h' || c == 'i' || c == 'l' || c == 'q' || c == 'n') {
-    // These are all various integer types
-    stype = itemsize == 1 ? SType::INT8 :
-            itemsize == 2 ? SType::INT16 :
-            itemsize == 4 ? SType::INT32 :
-            itemsize == 8 ? SType::INT64 : SType::VOID;
-  }
-  else if (c == 'd' || c == 'f') {
-    stype = itemsize == 4 ? SType::FLOAT32 :
-            itemsize == 8 ? SType::FLOAT64 : SType::VOID;
-  }
-  else if (c == '?') {
-    stype = itemsize == 1 ? SType::BOOL : SType::VOID;
-  }
-  else if (c == 'O') {
-    stype = SType::OBJ;
-  }
-  else if (c >= '1' && c <= '9') {
-    if (format[strlen(format) - 1] == 'w') {
-      int numeral = atoi(format);
-      if (itemsize == numeral * 4) {
-        stype = SType::STR32;
-      }
-    }
-  }
-  if (stype == SType::VOID) {
-    throw ValueError()
-        << "Unknown format '" << format << "' with itemsize " << itemsize;
-  }
-  if (!info(stype).is_varwidth()) {
-    xassert(info(stype).elemsize() == static_cast<size_t>(itemsize));
-  }
-  return stype;
-}
 
 static const char* format_from_stype(SType stype)
 {

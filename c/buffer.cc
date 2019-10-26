@@ -8,7 +8,9 @@
 #include <algorithm>           // std::min
 #include <cerrno>              // errno
 #include <mutex>               // std::mutex, std::lock_guard
+#include "python/pybuffer.h"   // py::buffer
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
+#include "utils/c+++.h"        // dt::make_unique
 #include "utils/exceptions.h"  // ValueError, MemoryError
 #include "utils/macros.h"
 #include "utils/misc.h"        // malloc_size
@@ -260,39 +262,43 @@ class Memory_BufferImpl : public BufferImpl
 class External_BufferImpl : public BufferImpl
 {
   private:
-    Py_buffer* pybufinfo_;
+    std::unique_ptr<py::buffer> pybufinfo_;
 
   public:
     External_BufferImpl(const void* ptr, size_t n,
-                        std::unique_ptr<Py_buffer>&& pybuf)
+                        std::unique_ptr<py::buffer>&& pybuf)
     {
       XAssert(ptr || n == 0);
       data_ = const_cast<void*>(ptr);
       size_ = n;
-      pybufinfo_ = pybuf.release();
+      pybufinfo_ = std::move(pybuf);
       resizable_ = false;
       writable_ = false;
     }
 
-    External_BufferImpl(const void* ptr, size_t n)
-      : External_BufferImpl(ptr, n, nullptr) {}
+    External_BufferImpl(const void* ptr, size_t n) {
+      XAssert(ptr || n == 0);
+      data_ = const_cast<void*>(ptr);
+      size_ = n;
+      resizable_ = false;
+      writable_ = false;
+    }
 
     External_BufferImpl(void* ptr, size_t n)
-      : External_BufferImpl(ptr, n, nullptr) { writable_ = true; }
+      : External_BufferImpl(static_cast<const void*>(ptr), n)
+    {
+      writable_ = true;
+    }
 
     ~External_BufferImpl() override {
       // If the buffer contained pyobjects, leave them as-is and
       // do not attempt to DECREF (since the memory is not freed).
       contains_pyobjects_ = false;
-      if (pybufinfo_) {
-        PyBuffer_Release(pybufinfo_);
-      }
-      delete pybufinfo_;
     }
 
     size_t memory_footprint() const noexcept override {
       // All memory is owned externally
-      return sizeof(External_BufferImpl);
+      return sizeof(External_BufferImpl) + sizeof(py::buffer);
     }
 };
 
@@ -751,10 +757,9 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
     return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  Buffer Buffer::external(const void* ptr, size_t n,
-                          std::unique_ptr<Py_buffer>&& pb)
-  {
-    return Buffer(new External_BufferImpl(ptr, n, std::move(pb)));
+  Buffer Buffer::external(const void* ptr, size_t n, py::buffer&& pb) {
+    return Buffer(new External_BufferImpl(
+              ptr, n, dt::make_unique<py::buffer>(std::move(pb))));
   }
 
   Buffer Buffer::view(const Buffer& src, size_t n, size_t offset) {

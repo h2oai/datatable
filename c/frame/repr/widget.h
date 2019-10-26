@@ -28,6 +28,29 @@ using std::size_t;
 
 
 
+/**
+  * Base class for various widgets responsible for rendering a frame.
+  * `TerminalWidget` outputs the frame into the terminal (text mode),
+  * while `HtmlWidget` generates an HTML table, suitable for Jupyter
+  * notebook.
+  *
+  * The widget normally represents only a subset of Frame's data. Two
+  * modes are supported:
+  *   - "split view", when the first + the last rows/columns are
+  *     rendered, with an ellipsis row/column in the middle; and
+  *   - "window view", which renders a simple sub-range of both rows
+  *     and columns.
+  *
+  * The "split view" mode is indicated by `startcol_ == startrow_ ==
+  * NA_index`. In this mode we generate first `cols0_` / last `cols1_`
+  * columns, and first `rows0` / last `rows1` rows.
+  *
+  * The "windowed" mode is indicated by `startcol_ != NA_index` and
+  * `startrow_ != NA_index`. In this mode we render a subrange of
+  * `cols0_` columns starting at `startcol_`, and a subrange of
+  * `rows0_` rows starting at index `startrow_`.
+  *
+  */
 class Widget {
   private:
     size_t ncols_, nrows_, nkeys_;
@@ -53,12 +76,10 @@ class Widget {
 
     void render_all();
 
-  protected:
-    virtual void _render() = 0;
-
   private:
     explicit Widget(DataTable* dt);
 
+    virtual void _render() = 0;
     void _generate_column_indices();
     void _generate_row_indices();
 };

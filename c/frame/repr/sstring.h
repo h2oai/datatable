@@ -51,8 +51,8 @@ class sstring {
     sstring& operator=(sstring&&) = default;
     sstring& operator=(const sstring&) = default;
 
-    sstring(const std::string&);
-    sstring(std::string&&);
+    explicit sstring(const std::string&);
+    explicit sstring(std::string&&);
     sstring(const std::string&, size_t n);
     sstring(std::string&&, size_t n);
 

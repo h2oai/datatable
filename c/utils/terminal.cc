@@ -48,7 +48,7 @@ Terminal& Terminal::plain_terminal() {
 }
 
 Terminal::Terminal(bool is_plain) {
-  width_ = is_plain? 160 : 0;
+  width_ = is_plain? (1 << 20) : 0;
   height_ = is_plain? 45 : 0;
   display_allow_unicode = true;
   enable_colors_ = !is_plain;

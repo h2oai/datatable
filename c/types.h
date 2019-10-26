@@ -21,10 +21,10 @@ struct CString {
 
   CString() : ch(nullptr), size(0) {}
   CString(const char* ptr, int64_t sz) : ch(ptr), size(sz) {}
-  CString(const CString&) = default;
-  CString& operator=(const CString&) = default;
   CString(const std::string& str)
     : ch(str.data()), size(static_cast<int64_t>(str.size())) {}
+  CString(const CString&) = default;
+  CString& operator=(const CString&) = default;
   CString& operator=(const std::string& str) {
     ch = str.data();
     size = static_cast<int64_t>(str.size());
