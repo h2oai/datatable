@@ -50,7 +50,10 @@ def test_assign_column_array():
     f0[:, "C"] = "foo"
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
     assert f0.to_list() == [list(range(10)), [3.5] * 10, ["foo"] * 10]
-    f0[:, ["B", "A"]] = False
+    with pytest.raises(TypeError, match="A boolean value cannot be assigned "
+                                        "to a column of stype `float64`"):
+        f0[:, ["B", "A"]] = False
+    f0[:, ["B", "A"]] = 0
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
     assert f0.to_list() == [[0] * 10, [0.0] * 10, ["foo"] * 10]
     f0[:, "A"] = None

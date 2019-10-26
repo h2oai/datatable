@@ -54,10 +54,9 @@ Workframe Head_Literal_Bool::evaluate_r(
     const std::vector<SType>& stypes) const
 {
   for (SType stype : stypes) {
-    if (stype != SType::BOOL) {
-      throw TypeError() << "A boolean value cannot be assigned to a column "
-                           "of stype `" << stype << "`";
-    }
+    if (stype == SType::BOOL || stype == SType::VOID) continue;
+    throw TypeError() << "A boolean value cannot be assigned to a column "
+                         "of stype `" << stype << "`";
   }
   return evaluate_n(args, ctx);
 }

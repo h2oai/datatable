@@ -286,11 +286,18 @@ void EvalContext::evaluate_update() {
 
 
 void EvalContext::evaluate_update_columns() {
-  jexpr->update(*this, repl.get());
-  /*
   auto dt0 = get_datatable(0);
-  auto replacement = repl2.evaluate_n(*this);
+  auto ncols = dt0->ncols();
   auto indices = evaluate_j_as_column_index();
+
+  std::vector<SType> stypes;
+  stypes.reserve(indices.size());
+  for (size_t i : indices) {
+    stypes.push_back(i < ncols? dt0->get_column(i).stype()
+                              : SType::VOID);
+  }
+
+  expr::Workframe replacement = repl2.evaluate_r(*this, stypes);
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);
@@ -300,7 +307,6 @@ void EvalContext::evaluate_update_columns() {
   for (size_t i = 0; i < lcols; ++i) {
     dt0->set_column(indices[i], replacement.retrieve_column(i));
   }
-  */
 }
 
 

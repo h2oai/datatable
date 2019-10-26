@@ -62,6 +62,8 @@ Workframe Head_Literal_None::evaluate_r(
 {
   Workframe outputs(ctx);
   for (SType stype : stypes) {
+    // At some point in the future we may allow VOID columns to be created too
+    if (stype == SType::VOID) stype = SType::BOOL;
     outputs.add_column(
       Column(new ConstNa_ColumnImpl(1, stype)),
       std::string(),

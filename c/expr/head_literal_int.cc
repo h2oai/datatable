@@ -90,7 +90,7 @@ Workframe Head_Literal_Int::evaluate_r(
   for (SType stype : stypes) {
     LType ltype = ::info(stype).ltype();
     Column newcol;
-    if (ltype == LType::INT) {
+    if (ltype == LType::INT || ltype == LType::MU) {
       // This creates a column with the requested `stype`, but only
       // if the `value` fits inside the range of that stype. If not,
       // the column will be auto-promoted to the next smallest integer
@@ -98,11 +98,10 @@ Workframe Head_Literal_Int::evaluate_r(
       newcol = Const_ColumnImpl::make_int_column(1, value, stype);
     }
     else if (ltype == LType::REAL) {
-      newcol = Const_ColumnImpl::make_float_column(1, value);
+      newcol = Const_ColumnImpl::make_float_column(1, value, stype);
     }
     else {
-      throw TypeError() << "An integer value cannot be assigned to a column "
-                           "of stype `" << stype << "`";
+      newcol = Const_ColumnImpl::make_int_column(1, value);
     }
     outputs.add_column(std::move(newcol), std::string(), Grouping::SCALAR);
   }
