@@ -98,6 +98,18 @@ def test_assign_to_empty_frame_0x3():
 # Assign boolean values
 #-------------------------------------------------------------------------------
 
+def test_assign_boolean():
+    DT = dt.Frame(A=[None])
+    DT[:, "A"] = True
+    assert_equals(DT, dt.Frame(A=[True]))
+
+
+def test_assign_boolean2():
+    DT = dt.Frame(A=[True, False, True])
+    DT[:, "A"] = False
+    assert_equals(DT, dt.Frame(A=[False] * 3))
+
+
 @pytest.mark.parametrize("stype", stypes_int + stypes_float + stypes_str)
 def test_assign_boolean_to_wrong_type(stype):
     DT = dt.Frame(A=[5], stype=stype)
@@ -105,6 +117,12 @@ def test_assign_boolean_to_wrong_type(stype):
     with pytest.raises(TypeError, match="Cannot assign boolean value to column "
                                         "`A` of type " + stype.name):
         DT[:, "A"] = False
+
+
+def test_assign_boolean_partial():
+    DT = dt.Frame(A=range(5))
+    DT[2, "B"] = False
+    assert_equals(DT, dt.Frame(A=range(5), B=[None, None, False, None, None]))
 
 
 
