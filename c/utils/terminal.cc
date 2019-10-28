@@ -164,9 +164,13 @@ void Terminal::forget_window_size() {
 
 void Terminal::_detect_window_size() {
   struct winsize w;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+  int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
   width_ = w.ws_col;
   height_ = w.ws_row;
+  if (ret == -1 || width_ == 0) {
+    width_ = 120;
+    height_ = 45;
+  }
 }
 
 void Terminal::use_unicode(bool f) {
