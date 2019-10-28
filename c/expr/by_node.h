@@ -63,7 +63,7 @@ class by_node {
     explicit operator bool() const;
     bool has_group_column(size_t i) const;
     void create_columns(EvalContext&);
-    void execute(EvalContext&) const;
+    bool execute(EvalContext&) const;
 
   private:
     void _add_columns(EvalContext& ctx, collist_ptr&& cl, bool isgrp);

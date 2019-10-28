@@ -87,7 +87,8 @@ class EvalContext {
     Groupby       gb;
     EvalMode      mode;
     GroupbyMode   groupby_mode;
-    size_t : 48;
+    bool is_sort_trivial;
+    size_t : 40;
 
     // Result
     colvec columns;

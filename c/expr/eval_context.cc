@@ -110,7 +110,7 @@ void EvalContext::evaluate() {
   if (byexpr) {
     groupby_mode = jexpr->get_groupby_mode(*this);
   }
-  byexpr.execute(*this);
+  is_sort_trivial = !byexpr.execute(*this);
 
   // Compute i filter
   if (has_groupby()) {
@@ -385,6 +385,7 @@ py::oobj EvalContext::get_result() {
     DataTable* result =
         out_datatable? out_datatable.release()
                      : new DataTable(std::move(columns), std::move(colnames));
+    if (is_sort_trivial) result->set_nkeys_unsafe(frames[0].dt->nkeys());
     if (result->ncols() == 0) {
       // When selecting a 0-column subset, make sure the number of rows is the
       // same as if some of the columns were selected.
