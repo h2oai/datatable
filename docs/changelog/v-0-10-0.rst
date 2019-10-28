@@ -98,6 +98,17 @@ Frame
   "A.1", "A.2"]``; now they are changed into ``["A", "A.0", "A.1"]`` (assuming
   the value of option ``frame.name_auto_index`` is ``0``).
 
+- |api| Frame created from a python list of small integers will now have stype
+  ``int32``, instead of ``int8`` or ``int16`` as before. One can still create
+  a column of type ``int8`` by requesting this stype explicitly::
+
+    DT1 = dt.Frame([1, 2, 3])
+    DT2 = dt.Frame([1, 2, 3], stype=dt.int8)
+    assert DT1.stype == dt.int32
+    assert DT2.stype == dt.int8
+
+  Thanks to @Viktor-Demin for the contribution (#2127).
+
 - |fix| Fixed a bug where creating a new column via assignment would crash if
   the RHS of the assignment contained an expression that tried to use the
   column that was being created (#1983).

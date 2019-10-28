@@ -199,7 +199,7 @@ static bool parse_as_int(const iterable* list, Buffer& membuf, size_t& from)
         outdata[i] = GETNA<T>();
         continue;
       }
-      if (item.is_int()) {
+      if (item.is_int() && sizeof(T) >= sizeof(int32_t)) {
         py::oint litem = item.to_pyint();
         outdata[i] = litem.ovalue<T>(&overflow);
         if (!overflow) continue;
