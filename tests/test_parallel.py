@@ -117,7 +117,6 @@ def test_progress(parallel_type, nthreads):
 
 
 # Send interrupt signal and make sure process throws KeyboardInterrupt
-@pytest.mark.skip(reason="Disabled temporarily")
 @cpp_test
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
