@@ -290,27 +290,33 @@ def test_option_allow_unicode(capsys):
         "\n" + dim("[4 rows x 1 column]") + "\n")
 
 
-def test_option_allow_unicode_long_frame():
+def test_option_allow_unicode_long_frame(capsys):
     DT = dt.Frame(A=range(100))
-    with dt.options.display.context(allow_unicode=False):
-        assert str(DT) == (
-            "    |   A\n"
-            "--- + ---\n" +
-            "".join(" %2d |  %2d\n" % (i, i) for i in range(15)) +
-            "... | ...\n" +
-            "".join(" %2d |  %2d\n" % (i, i) for i in range(95, 100)) +
-            "\n" +
-            "[100 rows x 1 column]\n")
+    with dt.options.display.context(allow_unicode=False, use_colors=False):
+        DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == (
+        "    |   A\n"
+        "--- + ---\n" +
+        "".join(" %2d |  %2d\n" % (i, i) for i in range(15)) +
+        "... | ...\n" +
+        "".join(" %2d |  %2d\n" % (i, i) for i in range(95, 100)) +
+        "\n" +
+        "[100 rows x 1 column]\n")
 
 
-def test_allow_unicode_column_name():
+def test_allow_unicode_column_name(capsys):
     # See issue #2118
     DT = dt.Frame(names=["тест"])
-    with dt.options.display.context(allow_unicode=False):
-        assert str(DT) == (
-            "   | \\u0442\\u0435\\u0441\\u0442\n"
-            "-- + ------------------------\n"
-            "\n[0 rows x 1 column]\n")
+    with dt.options.display.context(allow_unicode=False, use_colors=False):
+        DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == (
+        "   | \\u0442\\u0435\\u0441\\u0442\n"
+        "-- + ------------------------\n"
+        "\n[0 rows x 1 column]\n")
 
 
 
@@ -586,25 +592,60 @@ def test_max_width_none():
     assert dt.options.display.max_column_width == 100
 
 
-def test_max_width_nounicode():
+def test_max_width_nounicode(capsys):
     DT = dt.Frame(A=["👽👽"])
-    with dt.options.display.context(max_column_width=10, allow_unicode=False):
-        assert str(DT) == (
-            "   | A \n"
-            "-- + --\n"
-            " 0 | ~ \n"
-            "\n[1 row x 1 column]\n")
+    with dt.options.display.context(use_colors=False, allow_unicode=False):
+        with dt.options.display.context(max_column_width=10):
+            DT.view(interactive=False)
+            out, _ = capsys.readouterr()
+            assert out == (
+                "   | A \n"
+                "-- + --\n"
+                " 0 | ~ \n"
+                "\n[1 row x 1 column]\n")
 
-    with dt.options.display.context(max_column_width=15, allow_unicode=False):
-        assert str(DT) == (
-            "   | A          \n"
-            "-- + -----------\n"
-            " 0 | \\U0001F47D~\n"
-            "\n[1 row x 1 column]\n")
+        with dt.options.display.context(max_column_width=15):
+            DT.view(interactive=False)
+            out, _ = capsys.readouterr()
+            assert out == (
+                "   | A          \n"
+                "-- + -----------\n"
+                " 0 | \\U0001F47D~\n"
+                "\n[1 row x 1 column]\n")
 
-    with dt.options.display.context(max_column_width=20, allow_unicode=False):
-        assert str(DT) == (
-            "   | A                   \n"
-            "-- + --------------------\n"
-            " 0 | \\U0001F47D\\U0001F47D\n"
-            "\n[1 row x 1 column]\n")
+        with dt.options.display.context(max_column_width=20):
+            DT.view(interactive=False)
+            out, _ = capsys.readouterr()
+            assert out == (
+                "   | A                   \n"
+                "-- + --------------------\n"
+                " 0 | \\U0001F47D\\U0001F47D\n"
+                "\n[1 row x 1 column]\n")
+
+
+
+
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+
+def test_encoding_autodetection(tempfile):
+    # Check that if `sys.stdout` doesn't have UTF-8 encoding then
+    # datatable can detect it and set display.allow_unicode option
+    # to False automatically.
+    import subprocess
+    cmd = ("import sys; " +
+           "sys.stdout = open('%s', 'w', encoding='ascii'); " % tempfile +
+           "import datatable as dt; " +
+           "assert dt.options.display.allow_unicode is False; " +
+           "DT = dt.Frame(A=['✨']); " +
+           "dt.options.display.use_colors = False; " +
+           "DT.view(False)")
+    out = subprocess.check_output(["python", "-c", cmd])
+    assert not out
+    with open(tempfile, "r", encoding='ascii') as f:
+        out = f.read()
+        assert out == ("   | A     \n"
+                       "-- + ------\n"
+                       " 0 | \\u2728\n"
+                       "\n[1 row x 1 column]\n")

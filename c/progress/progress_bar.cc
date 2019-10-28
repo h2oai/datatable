@@ -17,6 +17,7 @@
 #include "progress/progress_bar.h"
 #include "python/string.h"          // py::ostring
 #include "utils/assert.h"
+#include "utils/terminal.h"
 #include "options.h"                // dt::get_option
 namespace dt {
 namespace progress {
@@ -51,8 +52,8 @@ progress_bar_enabled::progress_bar_enabled() {
   // Parameters
   bar_width = 50;
   clear_on_success = dt::progress::clear_on_success;
-  use_colors = dt::get_option("display.use_colors").to_bool_strict();
-  use_unicode = dt::get_option("display.allow_unicode").to_bool_strict();
+  use_colors = dt::Terminal::standard_terminal().colors_enabled();
+  use_unicode = dt::Terminal::standard_terminal().unicode_allowed();
 
   // Runtime support
   rtime_t freq { 1.0/updates_per_second };

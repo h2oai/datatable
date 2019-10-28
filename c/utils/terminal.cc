@@ -50,7 +50,7 @@ Terminal& Terminal::plain_terminal() {
 Terminal::Terminal(bool is_plain) {
   width_ = is_plain? (1 << 20) : 0;
   height_ = is_plain? 45 : 0;
-  display_allow_unicode = true;
+  allow_unicode_ = true;
   enable_colors_ = !is_plain;
   enable_ecma48_ = !is_plain;
   enable_keyboard_ = false;
@@ -65,6 +65,10 @@ Terminal::Terminal(bool is_plain) {
 Terminal::~Terminal() = default;
 
 
+/**
+  * This is called for 'standard' terminal only from "datatablemodule.cc",
+  * once during module initialization.
+  */
 void Terminal::initialize() {
   py::robj stdin = py::stdin();
   py::robj stdout = py::stdout();
@@ -75,16 +79,25 @@ void Terminal::initialize() {
     display_allow_unicode = true;
   }
   else {
-    // allow_unicode_ = false;
+    allow_unicode_ = false;
+    try {
+      std::string encoding = stdout.get_attr("encoding").to_string();
+      if (encoding == "UTF-8" || encoding == "UTF8" ||
+          encoding == "utf-8" || encoding == "utf8") {
+        allow_unicode_ = true;
+      }
+    } catch (...) {}
     enable_keyboard_ = true;
     enable_colors_ = true;
     enable_ecma48_ = true;
-    // check  encoding?
     _check_ipython();
   }
   // Set options
   display_use_colors = enable_colors_;
+  display_allow_unicode = allow_unicode_;
 }
+
+
 
 /**
   * When running inside a Jupyter notebook, IPython and ipykernel will
@@ -126,7 +139,7 @@ bool Terminal::colors_enabled() const noexcept {
 }
 
 bool Terminal::unicode_allowed() const noexcept {
-  return display_allow_unicode;
+  return allow_unicode_;
 }
 
 int Terminal::get_width() {
@@ -157,7 +170,7 @@ void Terminal::_detect_window_size() {
 }
 
 void Terminal::use_unicode(bool f) {
-  display_allow_unicode = f;
+  allow_unicode_ = f;
 }
 
 
