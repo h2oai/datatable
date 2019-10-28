@@ -89,8 +89,11 @@ def test_assign_to_empty_frame_3x0():
 
 def test_assign_to_empty_frame_0x3():
     DT = dt.Frame(A=[], B=[], C=[])
-    DT[:, "A":"C"] = 0
-    assert_equals(DT, dt.Frame(A=[], B=[], C=[]))
+    DT[:, "A":"C"] = False
+    with pytest.raises(TypeError):
+        DT[:, "A":"C"] = 3
+    DT[:, "A":"C"] = True
+    assert_equals(DT, dt.Frame(A=[], B=[], C=[], stype=bool))
 
 
 

@@ -60,6 +60,33 @@ Workframe Head_Literal_String::evaluate_f(
 
 
 
+// A string value is assigned to a DT[i,j] expression:
+//
+//   DT[:, j] = 'RESIST'
+//
+// The columns in `j` must be str32 or str64, and the replacement
+// columns will try to match the stypes of the LHS.
+//
+Workframe Head_Literal_String::evaluate_r(
+    const vecExpr&, EvalContext& ctx, const std::vector<SType>& stypes) const
+{
+  Workframe outputs(ctx);
+  for (SType stype : stypes) {
+    if (!(stype == SType::STR32 || stype == SType::STR64)) {
+      // Either type mismatch (the caller will throw an error then),
+      // or stype is VOID
+      stype = SType::STR32;
+    }
+    outputs.add_column(
+        Const_ColumnImpl::make_string_column(1, pystr.to_string(), stype),
+        std::string(),
+        Grouping::SCALAR);
+  }
+  return outputs;
+}
+
+
+
 Workframe Head_Literal_String::evaluate_j(
     const vecExpr&, EvalContext& ctx, bool allow_new) const
 {

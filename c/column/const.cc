@@ -121,10 +121,15 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
 
   public:
     ConstFloat_ColumnImpl(size_t nrows, float x, SType stype = SType::FLOAT32)
-      : Const_ColumnImpl(nrows, stype), value(static_cast<double>(x)) {}
+      : Const_ColumnImpl(nrows, stype),
+        value(static_cast<double>(x))
+    {
+      xassert(stype == SType::FLOAT32 || stype == SType::FLOAT64);
+    }
 
     ConstFloat_ColumnImpl(size_t nrows, double x, SType stype = SType::FLOAT64)
-      : Const_ColumnImpl(nrows, stype), value(x) {}
+      : Const_ColumnImpl(nrows, normalize_stype(stype, x)),
+        value(x) {}
 
     ColumnImpl* clone() const override {
       return new ConstFloat_ColumnImpl(nrows_, value, stype_);
@@ -138,6 +143,24 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
     bool get_element(size_t, double* out) const override {
       *out = value;
       return true;
+    }
+
+
+  private:
+    static SType normalize_stype(SType stype0, double x) {
+      constexpr double MAXF32 = double(std::numeric_limits<float>::max());
+      switch (stype0) {
+        case SType::FLOAT32:
+          if (std::abs(x) <= MAXF32) return SType::FLOAT32;
+          FALLTHROUGH;
+
+        case SType::FLOAT64:
+        case SType::VOID:
+          return SType::FLOAT64;
+
+        default:
+          xassert(0 && "Invalid stype for float constant");  // LCOV_EXCL
+      }
     }
 };
 
@@ -159,7 +182,10 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
 
     ConstString_ColumnImpl(size_t nrows, CString x, SType stype)
       : Const_ColumnImpl(nrows, stype),
-        value(x.ch, static_cast<size_t>(x.size)) {}
+        value(x.ch, static_cast<size_t>(x.size))
+    {
+      xassert(stype == SType::STR32 || stype == SType::STR64);
+    }
 
     ConstString_ColumnImpl(size_t nrows, std::string x)
       : Const_ColumnImpl(nrows, SType::STR32),

@@ -115,6 +115,7 @@ class Head_Literal_Float : public Head_Literal {
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_r(const vecExpr&, EvalContext&, const std::vector<SType>&) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
@@ -131,6 +132,7 @@ class Head_Literal_String : public Head_Literal {
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_r(const vecExpr&, EvalContext&, const std::vector<SType>&) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };
