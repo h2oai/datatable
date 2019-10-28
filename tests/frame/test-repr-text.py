@@ -638,7 +638,7 @@ def test_encoding_autodetection(tempfile):
            "sys.stdout = open('%s', 'w', encoding='ascii'); " % tempfile +
            "import datatable as dt; " +
            "assert dt.options.display.allow_unicode is False; " +
-           "DT = dt.Frame(A=['✨']); " +
+           "DT = dt.Frame(A=['\\u2728']); " +
            "dt.options.display.use_colors = False; " +
            "DT.view(False)")
     out = subprocess.check_output(["python", "-c", cmd])
