@@ -30,7 +30,7 @@ def test_columns_rows():
 
 
 def test_issue1225():
-    f0 = dt.Frame(A=[1, 2, 3], B=[5, 6, 8])
+    f0 = dt.Frame(A=[1, 2, 3], B=[5, 6, 8], stypes = {"B": "int8"})
     f1 = f0[::-1, :][:, [dt.float64(f.A), f.B]]
     assert frame_columns_virtual(f1) == (False, True)
     f1.materialize()

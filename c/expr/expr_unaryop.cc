@@ -69,6 +69,12 @@ static Column vcol_id(Column&& arg) {
 // Operator implementations
 //------------------------------------------------------------------------------
 
+
+[[ noreturn ]] inline static void op_notimpl() {
+  throw NotImplError() << "This operation is not implemented yet";
+}
+
+
 // If `x` is integer NA, then (-(INT_MIN)) == INT_MIN due to overflow.
 // If `x` is floating-point NA, then (-NaN) == NaN by rules of IEEE754.
 // Thus, in both cases (-NA)==NA, as desired.
@@ -111,8 +117,13 @@ inline static T op_abs(T x) {
 template <typename T>
 inline static int8_t op_isinf(T x) { return std::isinf(x); }
 
+
 template <typename T>
-inline static int8_t op_isfinite(T x) { return std::isfinite(x); }
+inline static bool op_isfinite(T x, bool isvalid, int8_t* out) {
+  *out = isvalid && std::isfinite(x);
+  return true;
+}
+
 
 inline static int8_t op_invert_bool(int8_t x) {
   return ISNA<int8_t>(x)? x : !x;
@@ -588,7 +599,7 @@ void unary_infos::add() {
   constexpr size_t entry_id = id(OP, SI);
   xassert(info.count(entry_id) == 0);
   info[entry_id] = {
-    /* scalarfn = */ nullptr,
+    /* scalarfn = */ op_notimpl,
     /* vcolfn =   */ vcol_factory2<SI, SO, FN>,
     /* outstype = */ SO,
     /* caststype= */ SType::VOID

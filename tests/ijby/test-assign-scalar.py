@@ -39,7 +39,7 @@ stypes_str = dt.ltype.str.stypes
 def test_assign_to_one_column():
     DT = dt.Frame(A=range(5), B=[4, 3, 9, 11, -1], stype=dt.int32)
     DT[:, "B"] = 100
-    assert_equals(DT, dt.Frame(A=range(5), B=[100]*5, stype=dt.int32))
+    assert_equals(DT, dt.Frame(A=range(5), B=[100]*5))
 
 
 def test_assign_to_new_column():
@@ -53,7 +53,7 @@ def test_assign_to_all():
     DT[:, :] = 12
     frame_integrity_check(DT)
     assert DT.names == ("A", "B")
-    assert DT.stypes == (dt.int32, dt.int8)
+    assert DT.stypes == (dt.int32, dt.int32)
     assert DT.to_list() == [[12] * 5] * 2
 
 
@@ -63,7 +63,7 @@ def test_assign_to_list_of_columns():
     DT[:, ["A", "C"]] = 35
     frame_integrity_check(DT)
     assert DT.names == ("A", "B", "C")
-    assert DT.stypes == (dt.int8, dt.float64, dt.float64)
+    assert DT.stypes == (dt.int32, dt.float64, dt.float64)
     assert DT.to_list() == [[35] * 3, [2.5, 17.3, None], [35.0] * 3]
 
 

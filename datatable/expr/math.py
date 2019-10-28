@@ -21,30 +21,9 @@ import math
 
 __all__ = ("abs", "exp", "log", "log10", "isna")
 
-
-def abs(x):
-    if isinstance(x, Expr):
-        return Expr(OpCodes.ABS, (x,))
-    if isinstance(x, core.Frame):
-        # TODO: change into x[:, abs(f[:])]
-        return x[:, {x.names[i]: Expr(OpCodes.ABS, (f[i],))
-                     for i in range(x.ncols)}]
-    if x is None:
-        return None
-    return _builtin_abs(x)
-
-
-def isna(x):
-    if isinstance(x, Expr):
-        return Expr(OpCodes.ISNA, (x,))
-    if isinstance(x, core.Frame):
-        # TODO: change into x[:, isna(f[:])]
-        return x[:, {x.names[i]: Expr(OpCodes.EXP, f[i])
-                     for i in range(x.ncols)}]
-    return (x is None) or (isinstance(x, float) and math.isnan(x))
-
-
 # Deprecated, use math namespace instead
+isna = core.isna
+abs = core.abs
 exp = core.exp
 log = core.log
 log10 = core.log10
