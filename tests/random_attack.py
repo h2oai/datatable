@@ -12,6 +12,7 @@ import numpy as np
 import os
 import pytest
 import random
+import re
 import textwrap
 import time
 import warnings
@@ -235,10 +236,18 @@ class Attacker:
             replacement_value = Frame0.random_name()
         print("[09] Replacing NA values in column %d with %r"
               % (icol, replacement_value))
+        res = frame.replace_nas_in_column(icol, replacement_value)
+
         if python_output:
-            python_output.write("DT[f[%d] == None, f[%d]] = %r\n"
-                                % (icol, icol, replacement_value))
-        frame.replace_nas_in_column(icol, replacement_value)
+            if res:
+                python_output.write("DT[f[%d] == None, f[%d]] = %r\n"
+                                    % (icol, icol, replacement_value))
+            else:
+                msg = 'Cannot change values in a key column `%s`' % frame.names[icol]
+                msg = re.escape(msg)
+                python_output.write("with pytest.raises(TypeError, match='%s'):\n"
+                                    "    DT[f[%d] == None, f[%d]] = %r\n"
+                                    % (msg, icol, icol, replacement_value))
 
     def sort_columns(self, frame):
         if frame.ncols == 0:
@@ -787,11 +796,20 @@ class Frame0:
     def replace_nas_in_column(self, icol, replacement_value):
         assert 0 <= icol < self.ncols
         assert isinstance(replacement_value, self.types[icol])
-        column = self.data[icol]
-        for i, value in enumerate(column):
-            if value is None:
-                column[i] = replacement_value
-        self.df[f[icol] == None, f[icol]] = replacement_value
+
+        if icol < self.nkeys:
+            msg = 'Cannot change values in a key column `%s`' % self.names[icol]
+            msg = re.escape(msg)
+            with pytest.raises(TypeError, match = msg):
+                self.df[f[icol] == None, f[icol]] = replacement_value
+            return False
+        else:
+            self.df[f[icol] == None, f[icol]] = replacement_value
+            column = self.data[icol]
+            for i, value in enumerate(column):
+                if value is None:
+                    column[i] = replacement_value
+            return True
 
     def sort_columns(self, a):
         self.df = self.df.sort(a)
