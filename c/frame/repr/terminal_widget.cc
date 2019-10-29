@@ -23,6 +23,7 @@
 #include "frame/repr/terminal_widget.h"
 #include "python/string.h"
 #include "utils/c+++.h"
+#include "utils/terminal_stream.h"
 namespace dt {
 
 
