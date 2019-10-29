@@ -27,6 +27,7 @@
 #include "frame/repr/text_column.h"
 #include "frame/repr/widget.h"
 #include "python/_all.h"
+#include "utils/terminal_stream.h"
 namespace dt {
 
 using text_column = std::unique_ptr<TextColumn>;
@@ -38,7 +39,7 @@ using text_column = std::unique_ptr<TextColumn>;
   */
 class TerminalWidget : public Widget {
   private:
-    std::ostringstream out_;
+    TerminalStream out_;
     std::vector<text_column> text_columns_;
     dt::Terminal* terminal_;
     bool has_rowindex_column_;

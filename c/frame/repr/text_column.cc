@@ -92,19 +92,19 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
 }
 
 
-void Data_TextColumn::print_name(ostringstream& out) const {
+void Data_TextColumn::print_name(TerminalStream& out) const {
   _print_aligned_value(out, name_);
 }
 
 
-void Data_TextColumn::print_separator(ostringstream& out) const {
+void Data_TextColumn::print_separator(TerminalStream& out) const {
   if (margin_left_) out << ' ';
   out << std::string(width_, '-');
   if (margin_right_) out << ' ';
 }
 
 
-void Data_TextColumn::print_value(ostringstream& out, size_t i) const {
+void Data_TextColumn::print_value(TerminalStream& out, size_t i) const {
   _print_aligned_value(out, data_[i]);
 }
 
@@ -114,7 +114,7 @@ void Data_TextColumn::print_value(ostringstream& out, size_t i) const {
 // Data_TextColumn : private
 //------------------------------------------------------------------------------
 
-void Data_TextColumn::_print_aligned_value(ostringstream& out,
+void Data_TextColumn::_print_aligned_value(TerminalStream& out,
                                            const sstring& value) const
 {
   if (margin_left_) out << ' ';
@@ -130,8 +130,9 @@ void Data_TextColumn::_print_aligned_value(ostringstream& out,
 }
 
 
-void Data_TextColumn::_print_whitespace(ostringstream& out, size_t n) const {
-  for (size_t i = 0; i < n; ++i) out << ' ';
+void Data_TextColumn::_print_whitespace(TerminalStream& out, size_t n) const {
+  if (n == 0) return;
+  out << std::string(n, ' ');
 }
 
 
@@ -157,7 +158,7 @@ sstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
   T value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
-  ostringstream out;
+  std::ostringstream out;
   out << value;
   return sstring(out.str());
 }
@@ -215,7 +216,7 @@ static std::string _escape_unicode(int cp) {
   */
 std::string Data_TextColumn::_escape_string(const CString& str) const
 {
-  ostringstream out;
+  TerminalStream out(term_->colors_enabled());
   // -1 because we leave 1 char space for the ellipsis character.
   // On the other hand, when we reach the end of `str` we'll
   // increase the `remaining_width` by 1 once again.
@@ -241,7 +242,7 @@ std::string Data_TextColumn::_escape_string(const CString& str) const
       if (ch == end) remaining_width++;
       auto escaped = _escaped_char(c);
       if (static_cast<int>(escaped.size()) > remaining_width) break;
-      out << term_->dim() << escaped << term_->reset();
+      out << style::dim << escaped << style::end;
     }
     // unicode character
     else {
@@ -262,16 +263,16 @@ std::string Data_TextColumn::_escape_string(const CString& str) const
           ch = ch0;
           break;
         }
-        out << term_->dim() << escaped << term_->reset();
+        out << style::dim << escaped << style::end;
         remaining_width -= escaped.size();
       }
     }
   }
   // If we broke out of loop earlty, ellipsis needs to be added
   if (ch < end) {
-    out << term_->dim();
-    out << (allow_unicode? "\xE2\x80\xA6" : "~");
-    out << term_->reset();
+    out << style::dim
+        << (allow_unicode? "\xE2\x80\xA6" : "~")
+        << style::end;
   }
   return out.str();
 }
@@ -364,16 +365,18 @@ VSep_TextColumn::VSep_TextColumn() : TextColumn() {
 }
 
 
-void VSep_TextColumn::print_name(ostringstream& out) const {
-  out << term_->reset() << term_->grey("|") << term_->bold();
+void VSep_TextColumn::print_name(TerminalStream& out) const {
+  out << style::nobold
+          << style::grey << "|" << style::end
+      << style::end;
 }
 
-void VSep_TextColumn::print_separator(ostringstream& out) const {
+void VSep_TextColumn::print_separator(TerminalStream& out) const {
   out << '+';
 }
 
-void VSep_TextColumn::print_value(ostringstream& out, size_t) const {
-  out << term_->grey("|");
+void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
+  out << style::grey << "|" << style::end;
 }
 
 
@@ -391,21 +394,21 @@ Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
 }
 
 
-void Ellipsis_TextColumn::print_name(ostringstream& out) const {
+void Ellipsis_TextColumn::print_name(TerminalStream& out) const {
   if (margin_left_) out << ' ';
   out << ell_.str();
   if (margin_right_) out << ' ';
 }
 
-void Ellipsis_TextColumn::print_separator(ostringstream& out) const {
+void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
   if (margin_left_) out << ' ';
   out << ell_.str();
   if (margin_right_) out << ' ';
 }
 
-void Ellipsis_TextColumn::print_value(ostringstream& out, size_t) const {
+void Ellipsis_TextColumn::print_value(TerminalStream& out, size_t) const {
   if (margin_left_) out << ' ';
-  out << term_->dim(ell_.str());
+  out << style::dim << ell_.str() << style::end;
   if (margin_right_) out << ' ';
 }
 

@@ -26,6 +26,7 @@
 #include <vector>
 #include "frame/repr/sstring.h"
 #include "utils/terminal.h"
+#include "utils/terminal_stream.h"
 #include "column.h"
 namespace dt {
 using std::size_t;
@@ -71,9 +72,9 @@ class TextColumn {
     void unset_right_margin();
     int get_width() const;
 
-    virtual void print_name(ostringstream&) const = 0;
-    virtual void print_separator(ostringstream&) const = 0;
-    virtual void print_value(ostringstream&, size_t i) const = 0;
+    virtual void print_name(TerminalStream&) const = 0;
+    virtual void print_separator(TerminalStream&) const = 0;
+    virtual void print_value(TerminalStream&, size_t i) const = 0;
 };
 
 
@@ -93,14 +94,14 @@ class Data_TextColumn : public TextColumn {
     Data_TextColumn(const Data_TextColumn&) = default;
     Data_TextColumn(Data_TextColumn&&) noexcept = default;
 
-    void print_name(ostringstream&) const override;
-    void print_separator(ostringstream&) const override;
-    void print_value(ostringstream&, size_t i) const override;
+    void print_name(TerminalStream&) const override;
+    void print_separator(TerminalStream&) const override;
+    void print_value(TerminalStream&, size_t i) const override;
 
   private:
     void _render_all_data(const Column& col, const intvec& indices);
-    void _print_aligned_value(ostringstream&, const sstring& value) const;
-    void _print_whitespace(ostringstream&, size_t n) const;
+    void _print_aligned_value(TerminalStream&, const sstring& value) const;
+    void _print_whitespace(TerminalStream&, size_t n) const;
     void _align_at_dot();
 
     sstring _render_value(const Column&, size_t i) const;
@@ -123,9 +124,9 @@ class VSep_TextColumn : public TextColumn {
     VSep_TextColumn(const VSep_TextColumn&) = default;
     VSep_TextColumn(VSep_TextColumn&&) noexcept = default;
 
-    void print_name(ostringstream&) const override;
-    void print_separator(ostringstream&) const override;
-    void print_value(ostringstream&, size_t i) const override;
+    void print_name(TerminalStream&) const override;
+    void print_separator(TerminalStream&) const override;
+    void print_value(TerminalStream&, size_t i) const override;
 };
 
 
@@ -139,9 +140,9 @@ class Ellipsis_TextColumn : public TextColumn {
     Ellipsis_TextColumn(const Ellipsis_TextColumn&) = default;
     Ellipsis_TextColumn(Ellipsis_TextColumn&&) noexcept = default;
 
-    void print_name(ostringstream&) const override;
-    void print_separator(ostringstream&) const override;
-    void print_value(ostringstream&, size_t i) const override;
+    void print_name(TerminalStream&) const override;
+    void print_separator(TerminalStream&) const override;
+    void print_value(TerminalStream&, size_t i) const override;
 };
 
 

@@ -25,6 +25,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include "utils/assert.h"
 namespace dt {
 using std::size_t;
 
@@ -32,8 +33,6 @@ using std::size_t;
 
 class TerminalStream {
   private:
-    std::ostringstream out_;
-
     struct TerminalStyle {
       int8_t bold;
       int8_t dim;
@@ -48,8 +47,23 @@ class TerminalStream {
       TerminalStyle& operator=(const TerminalStyle&) = default;
     };
 
+    std::ostringstream out_;
     std::stack<TerminalStyle, std::vector<TerminalStyle>> stack_;
     TerminalStyle current_;
+    bool use_colors_;
+    size_t : 56;
+
+  public:
+    TerminalStream(bool use_colors);
+
+    template <typename T>
+    TerminalStream& operator<<(const T& value) {
+      _emit_pending_styles();
+      out_ << value;
+      return *this;
+    }
+
+    std::string str();
 
   public:
     enum Modifier : int8_t {
@@ -79,119 +93,10 @@ class TerminalStream {
       BYELLOW,
     };
 
-    TerminalStream();
-
-    template <typename T>
-    TerminalStream& operator<<(const T& value) {
-      _emit_pending_styles();
-      out_ << value;
-    }
-
-    std::string to_string() const;
-
   private:
     void _emit_pending_styles();
 };
 
-
-TerminalStream::TerminalStyle::TerminalStyle() {
-  bold = 0;
-  dim = 0;
-  italic = 0;
-  underln = 0;
-  fgcolor = 0;
-  bgcolor = 0;
-}
-
-
-
-TerminalStream::TerminalStream() {
-  stack_.push(TerminalStyle());
-}
-
-std::string TerminalStream::to_string() const {
-  return out_.str();
-}
-
-
-template <>
-TerminalStream& TerminalStream::operator<<(const Modifier& style) {
-  TerminalStyle newsty = stack_.top();  // copy
-  switch (style) {
-    case Modifier::END: {
-      xassert(stack_.size() >= 2);
-      stack_.pop();
-      return *this;
-    }
-    case Modifier::BOLD:      newsty.bold = 1; break;
-    case Modifier::NOBOLD:    newsty.bold = -1; break;
-    case Modifier::DIM:       newsty.dim = 1; break;
-    case Modifier::NODIM:     newsty.dim = -1; break;
-    case Modifier::ITALIC:    newsty.italic = 1; break;
-    case Modifier::NOITALIC:  newsty.italic = -1; break;
-    case Modifier::UNDERLN:   newsty.underln = 1; break;
-    case Modifier::NOUNDERLN: newsty.underln = -1; break;
-
-    case Modifier::BLUE:      newsty.fgcolor = 34; break;
-    case Modifier::BBLUE:     newsty.fgcolor = 94; break;
-    case Modifier::CYAN:      newsty.fgcolor = 36; break;
-    case Modifier::BCYAN:     newsty.fgcolor = 96; break;
-    case Modifier::GREEN:     newsty.fgcolor = 32; break;
-    case Modifier::BGREEN:    newsty.fgcolor = 92; break;
-    case Modifier::GREY:      newsty.fgcolor = 90; break;
-    case Modifier::MAGENTA:   newsty.fgcolor = 35; break;
-    case Modifier::BMAGENTA:  newsty.fgcolor = 95; break;
-    case Modifier::RED:       newsty.fgcolor = 31; break;
-    case Modifier::BRED:      newsty.fgcolor = 91; break;
-    case Modifier::WHITE:     newsty.fgcolor = 37; break;
-    case Modifier::BWHITE:    newsty.fgcolor = 97; break;
-    case Modifier::YELLOW:    newsty.fgcolor = 33; break;
-    case Modifier::BYELLOW:   newsty.fgcolor = 93; break;
-  }
-  stack_.push(newsty);
-  return *this;
-}
-
-
-void TerminalStream::_emit_pending_styles() {
-  TerminalStyle newsty = stack_.top();
-  TerminalStyle oldsty = current_;
-  bool reset = (newsty.bold == -1    && oldsty.bold == 1) ||
-               (newsty.dim == -1     && oldsty.dim == 1) ||
-               (newsty.italic == -1  && oldsty.italic == 1) ||
-               (newsty.underln == -1 && oldsty.underln == 1) ||
-               (newsty.fgcolor == -1 && oldsty.fgcolor != 0) ||
-               (newsty.bgcolor == -1 && oldsty.bgcolor != 0);
-  bool add_bold    = (newsty.bold == 1)    && (reset || oldsty.bold == 0);
-  bool add_dim     = (newsty.dim == 1)     && (reset || oldsty.dim == 0);
-  bool add_italic  = (newsty.italic == 1)  && (reset || oldsty.italic == 0);
-  bool add_underln = (newsty.underln == 1) && (reset || oldsty.underln == 0);
-  bool add_fgcolor = (newsty.fgcolor > 0) &&
-                     (reset || oldsty.fgcolor != newsty.fgcolor);
-  bool add_bgcolor = (newsty.bgcolor > 0) &&
-                     (reset || oldsty.bgcolor != newsty.bgcolor);
-
-  if (reset || add_bold || add_dim || add_italic || add_underln ||
-      add_fgcolor || add_bgcolor)
-  {
-    out_ << "\x1B[";
-    if (reset)       { out_ << "0;"; current_ = TerminalStyle(); }
-    if (add_bold)    { out_ << "1;"; current_.bold = 1; }
-    if (add_dim)     { out_ << "2;"; current_.dim = 1; }
-    if (add_italic)  { out_ << "3;"; current_.italic = 1; }
-    if (add_underln) { out_ << "4;"; current_.underln = 1; }
-    if (add_fgcolor) {
-      out_ << newsty.fgcolor << ';';
-      current_.fgcolor = newsty.fgcolor;
-    }
-    if (add_bgcolor) {
-      out_ << newsty.bgcolor << ';';
-      current_.bgcolor = newsty.bgcolor;
-    }
-    out_.seekp(-1, out_.cur);  // overwrite the last ';'
-    out_ << 'm';
-  }
-}
 
 
 namespace style {
