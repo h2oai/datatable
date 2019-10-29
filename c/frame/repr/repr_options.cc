@@ -59,7 +59,9 @@ static void _init_options()
 
   register_option(
     "display.allow_unicode",
-    []{ return py::obool(display_allow_unicode); },
+    []{
+      return py::obool(display_allow_unicode);
+    },
     [](const py::Arg& value) {
       display_allow_unicode = value.to_bool_strict();
       Terminal::standard_terminal().use_unicode(display_allow_unicode);
