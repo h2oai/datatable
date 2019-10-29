@@ -152,10 +152,10 @@ void by_node::create_columns(EvalContext& ctx) {
 }
 
 
-bool by_node::execute(EvalContext& ctx) const {
+void by_node::execute(EvalContext& ctx) const {
   if (cols.empty()) {
     ctx.gb = Groupby::single_group(ctx.nrows());
-    return false;
+    return;
   }
   const DataTable* dt0 = ctx.get_datatable(0);
   const RowIndex& ri0 = ctx.get_rowindex(0);
@@ -164,7 +164,7 @@ bool by_node::execute(EvalContext& ctx) const {
   }
   if (dt0->nrows() == 0) {
     // When grouping a Frame with 0 rows, produce a no-groups Groupby
-    return false;
+    return;
   }
   std::vector<sort_spec> spec;
   spec.reserve(cols.size());
@@ -180,11 +180,14 @@ bool by_node::execute(EvalContext& ctx) const {
       spec.emplace_back(col.index, col.descending, false, true);
     }
   }
-
-  auto res = dt0->group(spec);
-  ctx.gb = std::move(res.second);
-  ctx.apply_rowindex(res.first);
-  return res.first;
+  // if (n_group_columns) {
+    auto res = dt0->group(spec);
+    ctx.gb = std::move(res.second);
+    ctx.apply_rowindex(res.first);
+  // } else {
+  //   auto res = dt0->sort(spec);
+  //   ctx.apply_rowindex(res);
+  // }
 }
 
 
