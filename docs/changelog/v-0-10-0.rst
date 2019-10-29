@@ -157,6 +157,12 @@ Frame
   obtained from joining another frame, provided that the join was only
   partially successful (#2109).
 
+- |fix| In Jupyter notebook Frame's stylesheets are now injected during
+  the datatable import. This makes it less likely that the stylesheets will
+  get accidentally removed from the page. However, if it still does occur,
+  there is now also a method to load those styles directly:
+  :meth:`init_styles` (#1871).
+
 
 General
 -------

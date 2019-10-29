@@ -157,7 +157,21 @@ namespace py {
 
 
 static PKArgs args_init_styles(
-  0, 0, 0, false, false, {}, "init_styles", "");
+  0, 0, 0, false, false, {}, "init_styles",
+  "Inject datatable's stylesheets into the Jupyter notebook. This\n"
+  "method does nothing when it runs in a normal Python environment\n"
+  "outside of Jupyter.\n"
+  "\n"
+  "When datatable runs in a Jupyter notebook, it renders its Frames\n"
+  "as HTML tables. The appearance of these tables is enhanced using\n"
+  "a custom stylesheet, which must be injected into the notebook at\n"
+  "any point on the page. This is exactly what this function does.\n"
+  "\n"
+  "Normally, this function is called automatically when datatable\n"
+  "is imported. However, in some circumstances Jupyter erases these\n"
+  "stylesheets (for example if you run ``import datatable`` cell\n"
+  "twice). In such cases, you may need to call this method manually.\n"
+);
 
 static void init_styles(const PKArgs&) {
   dt::emit_stylesheet();
