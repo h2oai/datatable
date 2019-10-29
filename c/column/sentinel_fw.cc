@@ -28,6 +28,7 @@ SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(ColumnImpl*&& other)
   xassert(fwother != nullptr);
   mbuf_ = std::move(fwother->mbuf_);
   stats_ = std::move(fwother->stats_);
+  delete other;
 }
 
 SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(ColumnImpl*&& other)

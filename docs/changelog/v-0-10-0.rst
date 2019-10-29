@@ -87,12 +87,27 @@ Frame
     rows = dt.Frame([2, 0, None, 1, 2])
     assert DT[rows, :].to_list() == [['c', 'a', None, 'b', 'c']]
 
+- |new| Added option ``display.max_column_width``. Cells whose content is larger
+  than this value will be automatically truncated when a Frame is rendered into
+  a terminal.
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
   will be modified to ensure uniqueness. Before, they were changed into ``["A",
   "A.1", "A.2"]``; now they are changed into ``["A", "A.0", "A.1"]`` (assuming
   the value of option ``frame.name_auto_index`` is ``0``).
+
+- |api| Frame created from a python list of small integers will now have stype
+  ``int32``, instead of ``int8`` or ``int16`` as before. One can still create
+  a column of type ``int8`` by requesting this stype explicitly::
+
+    DT1 = dt.Frame([1, 2, 3])
+    DT2 = dt.Frame([1, 2, 3], stype=dt.int8)
+    assert DT1.stype == dt.int32
+    assert DT2.stype == dt.int8
+
+  Thanks to @Viktor-Demin for the contribution (#2127).
 
 - |fix| Fixed a bug where creating a new column via assignment would crash if
   the RHS of the assignment contained an expression that tried to use the
@@ -134,6 +149,20 @@ Frame
   so that when a column containing such unicode characters is displayed, it
   should not cause mis-alignment issues.
 
+- |fix| Option ``dt.options.display.allow_unicode`` is now respected when
+  printing a Frame containing string columns with unicode data. These values
+  will now be properly escaped if the option value is ``False``.
+
+- |fix| Function :meth:`isna` now returns correct result for a column
+  obtained from joining another frame, provided that the join was only
+  partially successful (#2109).
+
+- |fix| In Jupyter notebook Frame's stylesheets are now injected during
+  the datatable import. This makes it less likely that the stylesheets will
+  get accidentally removed from the page. However, if it still does occur,
+  there is now also a method to load those styles directly:
+  :meth:`init_styles` (#1871).
+
 
 General
 -------
@@ -151,6 +180,12 @@ General
   The symbol ``dt`` is also exported by default, i.e. it will be available if
   you do ``from datatable import *``.
 
+- |fix| Fixed memory leak when writing a Frame into a CSV file (#2119).
+
+- |fix| Fixed memory leak when converting a numpy array with string values
+  into a Frame (#2123).
+
+- |fix| Fixed memory leak during reduce operations (#2125).
 
 
 Internal

@@ -37,14 +37,23 @@ static constexpr size_t NA_index = size_t(-1);
 
 
 
+/**
+  * Base class for a single column in TerminalWidget. The column has
+  * to be pre-rendered before it can be properly layed out.
+  *
+  * `width_` is the computed width of the column, measured in terminal
+  * columns (i.e. how many characters it will visually occupy after
+  * being printed to the console). This property doesn't include
+  * column's margins.
+  *
+  */
 class TextColumn {
   protected:
     size_t  width_;
     bool    align_right_;
     bool    margin_left_;
     bool    margin_right_;
-    bool    is_key_column_;
-    int : 32;
+    size_t : 40;
 
     static const Terminal* term_;
     static sstring ellipsis_;
@@ -60,6 +69,7 @@ class TextColumn {
 
     void unset_left_margin();
     void unset_right_margin();
+    int get_width() const;
 
     virtual void print_name(ostringstream&) const = 0;
     virtual void print_separator(ostringstream&) const = 0;
@@ -72,12 +82,14 @@ class Data_TextColumn : public TextColumn {
   private:
     sstrvec data_;
     sstring name_;
+    int max_width_;
+    int : 32;
 
   public:
     Data_TextColumn(const std::string& name,
                     const Column& col,
                     const intvec& indices,
-                    bool is_key_column = false);
+                    int max_width);
     Data_TextColumn(const Data_TextColumn&) = default;
     Data_TextColumn(Data_TextColumn&&) noexcept = default;
 
@@ -99,15 +111,15 @@ class Data_TextColumn : public TextColumn {
     sstring _render_value_bool(const Column&, size_t i) const;
     sstring _render_value_string(const Column&, size_t i) const;
 
-    static bool _needs_escaping(const CString&);
-    static std::string _escape_string(const CString&);
+    bool _needs_escaping(const CString&) const;
+    std::string _escape_string(const CString&) const;
 };
 
 
 
 class VSep_TextColumn : public TextColumn {
   public:
-    VSep_TextColumn() = default;
+    VSep_TextColumn();
     VSep_TextColumn(const VSep_TextColumn&) = default;
     VSep_TextColumn(VSep_TextColumn&&) noexcept = default;
 
@@ -116,6 +128,21 @@ class VSep_TextColumn : public TextColumn {
     void print_value(ostringstream&, size_t i) const override;
 };
 
+
+
+class Ellipsis_TextColumn : public TextColumn {
+  private:
+    sstring ell_;
+
+  public:
+    Ellipsis_TextColumn();
+    Ellipsis_TextColumn(const Ellipsis_TextColumn&) = default;
+    Ellipsis_TextColumn(Ellipsis_TextColumn&&) noexcept = default;
+
+    void print_name(ostringstream&) const override;
+    void print_separator(ostringstream&) const override;
+    void print_value(ostringstream&, size_t i) const override;
+};
 
 
 

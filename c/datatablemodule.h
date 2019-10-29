@@ -43,6 +43,7 @@ class DatatableModule : public ExtModule<DatatableModule> {
     void init_methods_repeat();    // frame/repeat.cc
     void init_methods_sets();      // set_funcs.cc
     void init_methods_str();       // str/py_str.cc
+    void init_methods_styles();    // frame/repr/html_styles.cc
     void init_casts();             // frame/cast.cc
     void init_fuzzy();             // utils/fuzzy.cc
     void init_unops();             // expr/expr_unaryop.cc

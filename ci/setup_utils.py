@@ -450,16 +450,16 @@ def get_extra_compile_flags():
         # dynamically-linked library.
         flags += ["-fPIC"]
 
-        if "DTDEBUG" in os.environ:
-            flags += ["-g3", "-ggdb", "-O0"]
-            flags += ["-DDTTEST", "-DDTDEBUG"]
-        elif "DTASAN" in os.environ:
+        if "DTASAN" in os.environ:
             flags += ["-g3", "-ggdb", "-O0",
-                      "-DDTDEBUG",
+                      "-DDTTEST", "-DDTDEBUG",
                       "-fsanitize=address",
                       "-fno-omit-frame-pointer",
                       "-fsanitize-address-use-after-scope",
                       "-shared-libasan"]
+        elif "DTDEBUG" in os.environ:
+            flags += ["-g3", "-ggdb", "-O0"]
+            flags += ["-DDTTEST", "-DDTDEBUG"]
         elif "DTCOVERAGE" in os.environ:
             flags += ["-g2", "--coverage", "-O0"]
             flags += ["-DDTTEST", "-DDTDEBUG"]

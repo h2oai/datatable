@@ -76,7 +76,7 @@ def test_dt0_properties(dt0):
     assert dt0.shape == (10, 3)  # must be a tuple, not a list!
     assert dt0.names == ("colA", "colB", "colC")
     assert dt0.ltypes == (ltype.bool, ltype.int, ltype.real)
-    assert dt0.stypes == (stype.bool8, stype.int16, stype.float64)
+    assert dt0.stypes == (stype.bool8, stype.int32, stype.float64)
     assert not any(frame_columns_virtual(dt0))
     frame_integrity_check(dt0)
 
@@ -486,6 +486,14 @@ def test_rows_int_column_0rows(dt0):
     res = dt0[col, :]
     frame_integrity_check(res)
     assert res.shape == (0, dt0.ncols)
+
+
+def test_issue1970():
+    DT = dt.Frame(A=[], stype=dt.float32)
+    DT.nrows = 2
+    RES = DT[dt.Frame([None], stype=int), :]
+    frame_integrity_check(RES)
+    assert_equals(RES, dt.Frame(A=[None], stype=DT.stype))
 
 
 

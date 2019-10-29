@@ -19,22 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_FRAME_REPR_OPTIONS_h
-#define dt_FRAME_REPR_OPTIONS_h
-#include <cstddef>
+#ifndef dt_FRAME_REPR_HTML_WIDGET_h
+#define dt_FRAME_REPR_HTML_WIDGET_h
+#include "frame/repr/widget.h"
+#include "python/_all.h"
 namespace dt {
-using std::size_t;
 
 
-extern size_t display_max_nrows;
-extern size_t display_head_nrows;
-extern size_t display_tail_nrows;
-extern int    display_max_column_width;
-extern bool   display_interactive;
-extern bool   display_use_colors;
-extern bool   display_allow_unicode;
+void emit_stylesheet();
 
 
-
-} // namespace dt
+}  // namespace dt
 #endif

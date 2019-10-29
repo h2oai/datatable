@@ -40,6 +40,8 @@ using std::size_t;
 class Terminal {
   using string = std::string;
   private:
+    int  width_;
+    int  height_;
     bool allow_unicode_;
     bool enable_colors_;
     bool enable_ecma48_;
@@ -85,8 +87,13 @@ class Terminal {
     bool is_ipython() const noexcept;
     bool colors_enabled() const noexcept;
     bool unicode_allowed() const noexcept;
+    int get_width();
+    int get_height();
 
     void use_colors(bool f);
+    void use_unicode(bool f);
+
+    void forget_window_size();
 
   private:
     Terminal(bool is_plain);
@@ -95,6 +102,7 @@ class Terminal {
     ~Terminal();
 
     void _check_ipython();
+    void _detect_window_size();
 };
 
 

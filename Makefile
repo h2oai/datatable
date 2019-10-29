@@ -104,20 +104,11 @@ debug:
 
 
 # In order to run with Address Sanitizer:
-#	$ make clean
-#   $ make asan_env
-#   $ source .asan/bin/activate
 #   $ make asan
-#   $ make install
-#   $ make test
-# (note that `make test_install` doesn't work due to py-cpuinfo crashing
-# in Asan).
-
-asan_env:
-	$(MAKE) clean
-	bash -x ci/asan-env.sh
-
+#   $ DYLD_INSERT_LIBRARIES=/usr/local/opt/llvm/lib/clang/7.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib ASAN_OPTIONS=detect_leaks=1 python -m pytest
+#
 asan:
+	$(MAKE) clean
 	DTASAN=1 $(MAKE) fast
 
 bi:
