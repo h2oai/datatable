@@ -86,9 +86,6 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   margin_left_ = true;
   margin_right_ = true;
   _render_all_data(col, indices);
-  if (ltype == LType::REAL) {
-    _align_at_dot();
-  }
 }
 
 
@@ -312,6 +309,9 @@ void Data_TextColumn::_render_all_data(const Column& col, const intvec& indices)
     }
     size_t w = data_.back().size();
     if (width_ < w) width_ = w;
+  }
+  if (col.ltype() == LType::REAL) {
+    _align_at_dot();
   }
 }
 

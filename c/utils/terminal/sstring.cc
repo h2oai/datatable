@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "frame/repr/sstring.h"
 #include "utils/assert.h"
+#include "utils/terminal/sstring.h"
 #include "encodings.h"
 namespace dt {
 using std::size_t;
