@@ -25,8 +25,8 @@
 #include <string>
 #include <vector>
 #include "frame/repr/sstring.h"
-#include "utils/terminal.h"
-#include "utils/terminal_stream.h"
+#include "utils/terminal/terminal.h"
+#include "utils/terminal/terminal_stream.h"
 #include "column.h"
 namespace dt {
 using std::size_t;

@@ -27,7 +27,7 @@
 #include "frame/repr/text_column.h"
 #include "frame/repr/widget.h"
 #include "python/_all.h"
-#include "utils/terminal_stream.h"
+#include "utils/terminal/terminal_stream.h"
 namespace dt {
 
 using text_column = std::unique_ptr<TextColumn>;

@@ -34,7 +34,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
-#include "utils/terminal.h"
+#include "utils/terminal/terminal.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"

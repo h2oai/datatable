@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "utils/terminal_stream.h"
+#include "utils/terminal/terminal_stream.h"
 namespace dt {
 
 

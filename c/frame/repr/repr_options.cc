@@ -23,7 +23,7 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/arg.h"
-#include "utils/terminal.h"
+#include "utils/terminal/terminal.h"
 #include "options.h"
 namespace dt {
 

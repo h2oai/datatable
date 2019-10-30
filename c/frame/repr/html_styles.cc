@@ -23,7 +23,7 @@
 #include <sstream>
 #include "frame/repr/html_widget.h"
 #include "python/string.h"
-#include "utils/terminal.h"
+#include "utils/terminal/terminal.h"
 #include "datatablemodule.h"
 namespace dt {
 

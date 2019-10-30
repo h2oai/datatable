@@ -24,7 +24,7 @@
 #include <sys/ioctl.h>
 #include "frame/repr/repr_options.h"
 #include "utils/assert.h"
-#include "utils/terminal.h"
+#include "utils/terminal/terminal.h"
 namespace dt {
 
 static void sigwinch_handler(int) {
