@@ -98,9 +98,9 @@ void Data_TextColumn::print_name(TerminalStream& out) const {
 
 
 void Data_TextColumn::print_separator(TerminalStream& out) const {
-  if (margin_left_) out << ' ';
-  out << std::string(width_, '-');
-  if (margin_right_) out << ' ';
+  out << std::string(margin_left_, ' ')
+      << std::string(width_, '-')
+      << std::string(margin_right_, ' ');
 }
 
 
@@ -117,22 +117,17 @@ void Data_TextColumn::print_value(TerminalStream& out, size_t i) const {
 void Data_TextColumn::_print_aligned_value(TerminalStream& out,
                                            const sstring& value) const
 {
-  if (margin_left_) out << ' ';
+  xassert(width_ >= value.size());
+  out << std::string(margin_left_, ' ');
   if (align_right_) {
-    _print_whitespace(out, width_ - value.size());
+    out << std::string(width_ - value.size(), ' ');
     out << value.str();
   }
   else {
     out << value.str();
-    _print_whitespace(out, width_ - value.size());
+    out << std::string(width_ - value.size(), ' ');
   }
-  if (margin_right_) out << ' ';
-}
-
-
-void Data_TextColumn::_print_whitespace(TerminalStream& out, size_t n) const {
-  if (n == 0) return;
-  out << std::string(n, ' ');
+  out << std::string(margin_right_, ' ');
 }
 
 
@@ -395,21 +390,21 @@ Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
 
 
 void Ellipsis_TextColumn::print_name(TerminalStream& out) const {
-  if (margin_left_) out << ' ';
+  out << std::string(margin_left_, ' ');
   out << ell_.str();
-  if (margin_right_) out << ' ';
+  out << std::string(margin_right_, ' ');
 }
 
 void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
-  if (margin_left_) out << ' ';
-  out << ell_.str();
-  if (margin_right_) out << ' ';
+  out << std::string(margin_left_, ' ');
+  out << ' ';
+  out << std::string(margin_right_, ' ');
 }
 
 void Ellipsis_TextColumn::print_value(TerminalStream& out, size_t) const {
-  if (margin_left_) out << ' ';
+  out << std::string(margin_left_, ' ');
   out << style::dim << ell_.str() << style::end;
-  if (margin_right_) out << ' ';
+  out << std::string(margin_right_, ' ');
 }
 
 

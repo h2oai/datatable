@@ -50,37 +50,41 @@ std::string TerminalStream::str() {
 template <>
 TerminalStream& TerminalStream::operator<<(const Modifier& style) {
   if (!use_colors_) return *this;
-  TerminalStyle newsty = stack_.top();  // copy
-  switch (style) {
-    case Modifier::END: {
-      xassert(stack_.size() >= 2);
-      stack_.pop();
-      return *this;
-    }
-    case Modifier::BOLD:      newsty.bold = 1; break;
-    case Modifier::NOBOLD:    newsty.bold = 0; break;
-    case Modifier::DIM:       newsty.dim = 1; break;
-    case Modifier::NODIM:     newsty.dim = 0; break;
-    case Modifier::ITALIC:    newsty.italic = 1; break;
-    case Modifier::NOITALIC:  newsty.italic = 0; break;
-    case Modifier::UNDERLN:   newsty.underln = 1; break;
-    case Modifier::NOUNDERLN: newsty.underln = 0; break;
+  if (style == Modifier::END) {
+    xassert(stack_.size() >= 2);
+    stack_.pop();
+    return *this;
+  }
 
-    case Modifier::BLUE:      newsty.fgcolor = 34; break;
-    case Modifier::BBLUE:     newsty.fgcolor = 94; break;
-    case Modifier::CYAN:      newsty.fgcolor = 36; break;
-    case Modifier::BCYAN:     newsty.fgcolor = 96; break;
-    case Modifier::GREEN:     newsty.fgcolor = 32; break;
-    case Modifier::BGREEN:    newsty.fgcolor = 92; break;
-    case Modifier::GREY:      newsty.fgcolor = 90; break;
-    case Modifier::MAGENTA:   newsty.fgcolor = 35; break;
-    case Modifier::BMAGENTA:  newsty.fgcolor = 95; break;
-    case Modifier::RED:       newsty.fgcolor = 31; break;
-    case Modifier::BRED:      newsty.fgcolor = 91; break;
-    case Modifier::WHITE:     newsty.fgcolor = 37; break;
-    case Modifier::BWHITE:    newsty.fgcolor = 97; break;
-    case Modifier::YELLOW:    newsty.fgcolor = 33; break;
-    case Modifier::BYELLOW:   newsty.fgcolor = 93; break;
+  TerminalStyle newsty = stack_.top();  // copy
+  if (style & 255) {  // font styles
+    if (style & Modifier::BOLD)      newsty.bold = 1;
+    if (style & Modifier::NOBOLD)    newsty.bold = 0;
+    if (style & Modifier::DIM)       newsty.dim = 1;
+    if (style & Modifier::NODIM)     newsty.dim = 0;
+    if (style & Modifier::ITALIC)    newsty.italic = 1;
+    if (style & Modifier::NOITALIC)  newsty.italic = 0;
+    if (style & Modifier::UNDERLN)   newsty.underln = 1;
+    if (style & Modifier::NOUNDERLN) newsty.underln = 0;
+  }
+  if (style & (255<<8)) {
+    switch (style & (255<<8)) {
+      case Modifier::BLUE:      newsty.fgcolor = 34; break;
+      case Modifier::BBLUE:     newsty.fgcolor = 94; break;
+      case Modifier::CYAN:      newsty.fgcolor = 36; break;
+      case Modifier::BCYAN:     newsty.fgcolor = 96; break;
+      case Modifier::GREEN:     newsty.fgcolor = 32; break;
+      case Modifier::BGREEN:    newsty.fgcolor = 92; break;
+      case Modifier::GREY:      newsty.fgcolor = 90; break;
+      case Modifier::MAGENTA:   newsty.fgcolor = 35; break;
+      case Modifier::BMAGENTA:  newsty.fgcolor = 95; break;
+      case Modifier::RED:       newsty.fgcolor = 31; break;
+      case Modifier::BRED:      newsty.fgcolor = 91; break;
+      case Modifier::WHITE:     newsty.fgcolor = 37; break;
+      case Modifier::BWHITE:    newsty.fgcolor = 97; break;
+      case Modifier::YELLOW:    newsty.fgcolor = 33; break;
+      case Modifier::BYELLOW:   newsty.fgcolor = 93; break;
+    }
   }
   stack_.push(newsty);
   return *this;

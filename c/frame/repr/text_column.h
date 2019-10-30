@@ -101,7 +101,6 @@ class Data_TextColumn : public TextColumn {
   private:
     void _render_all_data(const Column& col, const intvec& indices);
     void _print_aligned_value(TerminalStream&, const sstring& value) const;
-    void _print_whitespace(TerminalStream&, size_t n) const;
     void _align_at_dot();
 
     sstring _render_value(const Column&, size_t i) const;
