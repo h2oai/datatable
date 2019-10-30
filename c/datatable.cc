@@ -113,7 +113,11 @@ size_t DataTable::xcolindex(int64_t index) const {
 
 DataTable DataTable::extract_column(size_t i) const {
   xassert(i < ncols_);
-  return DataTable({columns_[i]}, {names_[i]});
+  DataTable dt({columns_[i]}, {names_[i]});
+  if (i == 0 && nkeys_ == 1) {
+    dt.set_nkeys_unsafe(1);
+  }
+  return dt;
 }
 
 

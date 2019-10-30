@@ -91,6 +91,9 @@ Frame
   than this value will be automatically truncated when a Frame is rendered into
   a terminal.
 
+- |new| A frame returned by the single-column selector is now keyed
+  if and only if the original frame key consisted of the selected column only.
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
