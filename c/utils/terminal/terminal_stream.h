@@ -34,7 +34,7 @@ class tstring;
 
 class TerminalStream {
   private:
-    struct TerminalStyle {
+    struct TStyle {
       int8_t bold;
       int8_t dim;
       int8_t italic;
@@ -43,14 +43,14 @@ class TerminalStream {
       int8_t bgcolor;
       int : 16;
 
-      TerminalStyle();
-      TerminalStyle(const TerminalStyle&) = default;
-      TerminalStyle& operator=(const TerminalStyle&) = default;
+      TStyle();
+      TStyle(const TStyle&) = default;
+      TStyle& operator=(const TStyle&) = default;
     };
 
     std::ostringstream out_;
-    std::stack<TerminalStyle, std::vector<TerminalStyle>> stack_;
-    TerminalStyle current_;
+    std::stack<TStyle, std::vector<TStyle>> stack_;
+    TStyle current_;
     bool use_colors_;
     size_t : 56;
 
@@ -66,68 +66,12 @@ class TerminalStream {
 
     std::string str();
 
-  public:
-    enum Modifier : size_t {
-      END       =       0,
-      BOLD      = (1 << 0),
-      NOBOLD    = (1 << 1),
-      DIM       = (1 << 2),
-      NODIM     = (1 << 3),
-      ITALIC    = (1 << 4),
-      NOITALIC  = (1 << 5),
-      UNDERLN   = (1 << 6),
-      NOUNDERLN = (1 << 7),
-      // colors
-      BLUE      = (1 << 8),
-      BBLUE     = (2 << 8),
-      CYAN      = (3 << 8),
-      BCYAN     = (4 << 8),
-      GREEN     = (5 << 8),
-      BGREEN    = (6 << 8),
-      GREY      = (7 << 8),
-      MAGENTA   = (8 << 8),
-      BMAGENTA  = (9 << 8),
-      RED       = (10 << 8),
-      BRED      = (11 << 8),
-      WHITE     = (12 << 8),
-      BWHITE    = (13 << 8),
-      YELLOW    = (14 << 8),
-      BYELLOW   = (15 << 8),
-    };
-
   private:
     void _emit_pending_styles();
 };
 
 template <> TerminalStream& TerminalStream::operator<<(const tstring& value);
 
-
-namespace style {
-  static constexpr TerminalStream::Modifier end       = TerminalStream::Modifier::END;
-  static constexpr TerminalStream::Modifier bold      = TerminalStream::Modifier::BOLD;
-  static constexpr TerminalStream::Modifier nobold    = TerminalStream::Modifier::NOBOLD;
-  static constexpr TerminalStream::Modifier dim       = TerminalStream::Modifier::DIM;
-  static constexpr TerminalStream::Modifier nodim     = TerminalStream::Modifier::NODIM;
-  static constexpr TerminalStream::Modifier italic    = TerminalStream::Modifier::ITALIC;
-  static constexpr TerminalStream::Modifier noitalic  = TerminalStream::Modifier::NOITALIC;
-  static constexpr TerminalStream::Modifier underln   = TerminalStream::Modifier::UNDERLN;
-  static constexpr TerminalStream::Modifier nounderln = TerminalStream::Modifier::NOUNDERLN;
-  static constexpr TerminalStream::Modifier blue      = TerminalStream::Modifier::BLUE;
-  static constexpr TerminalStream::Modifier bblue     = TerminalStream::Modifier::BBLUE;
-  static constexpr TerminalStream::Modifier cyan      = TerminalStream::Modifier::CYAN;
-  static constexpr TerminalStream::Modifier bcyan     = TerminalStream::Modifier::BCYAN;
-  static constexpr TerminalStream::Modifier green     = TerminalStream::Modifier::GREEN;
-  static constexpr TerminalStream::Modifier bgreen    = TerminalStream::Modifier::BGREEN;
-  static constexpr TerminalStream::Modifier grey      = TerminalStream::Modifier::GREY;
-  static constexpr TerminalStream::Modifier magenta   = TerminalStream::Modifier::MAGENTA;
-  static constexpr TerminalStream::Modifier bmagenta  = TerminalStream::Modifier::BMAGENTA;
-  static constexpr TerminalStream::Modifier red       = TerminalStream::Modifier::RED;
-  static constexpr TerminalStream::Modifier bred      = TerminalStream::Modifier::BRED;
-  static constexpr TerminalStream::Modifier white     = TerminalStream::Modifier::WHITE;
-  static constexpr TerminalStream::Modifier bwhite    = TerminalStream::Modifier::BWHITE;
-  static constexpr TerminalStream::Modifier yellow    = TerminalStream::Modifier::YELLOW;
-  static constexpr TerminalStream::Modifier byellow   = TerminalStream::Modifier::BYELLOW;
-}
 
 
 

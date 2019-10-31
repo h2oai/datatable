@@ -62,7 +62,7 @@ inline TerminalStyle operator|(TerminalStyle a, TerminalStyle b) {
 
 
 
-namespace style2 {
+namespace style {
   static constexpr TerminalStyle end       = TerminalStyle::END;
   static constexpr TerminalStyle bold      = TerminalStyle::BOLD;
   static constexpr TerminalStyle nobold    = TerminalStyle::NOBOLD;

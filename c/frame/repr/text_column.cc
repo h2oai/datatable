@@ -39,9 +39,9 @@ tstring TextColumn::false_value_;
 
 void TextColumn::setup(const Terminal* terminal) {
   term_ = terminal;
-  na_value_ = tstring("NA", style2::dim);
+  na_value_ = tstring("NA", style::dim);
   ellipsis_ = tstring(term_->unicode_allowed()? "\xE2\x80\xA6" : "...",
-                      style2::dim);
+                      style::dim);
   true_value_ = tstring("1");
   false_value_ = tstring("0");
 }
@@ -179,7 +179,7 @@ static tstring _escaped_char(uint8_t a) {
     escaped[2] = static_cast<char>('0' + (a >> 4));
     escaped[3] = static_cast<char>((lo >= 10)? 'A' + lo - 10 : '0' + lo);
   }
-  return tstring(escaped, style2::dim);
+  return tstring(escaped, style::dim);
 }
 
 static tstring _escape_unicode(int cp) {
@@ -194,7 +194,7 @@ static tstring _escape_unicode(int cp) {
     --i;
     cp >>= 4;
   }
-  return tstring(escaped, style2::dim);
+  return tstring(escaped, style::dim);
 }
 
 
@@ -266,7 +266,7 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
   // If we broke out of loop earlty, ellipsis needs to be added
   if (ch < end) {
     out << tstring(allow_unicode? "\xE2\x80\xA6" : "~",
-                   style2::dim);
+                   style::dim);
   }
   return tstring(out.str());
 }
@@ -363,7 +363,7 @@ VSep_TextColumn::VSep_TextColumn() : TextColumn() {
 
 
 void VSep_TextColumn::print_name(TerminalStream& out) const {
-  out << tstring("|", style2::nobold|style2::grey);
+  out << tstring("|", style::nobold|style::grey);
 }
 
 void VSep_TextColumn::print_separator(TerminalStream& out) const {
@@ -371,7 +371,7 @@ void VSep_TextColumn::print_separator(TerminalStream& out) const {
 }
 
 void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
-  out << tstring("|", style2::grey);
+  out << tstring("|", style::grey);
 }
 
 
@@ -382,7 +382,7 @@ void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
 
 Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
   ell_ = tstring(term_->unicode_allowed()? "\xE2\x80\xA6" : "~",
-                 style2::dim|style2::nobold);
+                 style::dim|style::nobold);
   width_ = 1;
   margin_left_ = true;
   margin_right_ = true;
