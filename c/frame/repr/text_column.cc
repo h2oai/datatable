@@ -41,7 +41,7 @@ void TextColumn::setup(const Terminal* terminal) {
   term_ = terminal;
   na_value_ = tstring("NA", style::dim);
   ellipsis_ = tstring(term_->unicode_allowed()? "\xE2\x80\xA6" : "...",
-                      style::dim);
+                      style::dim|style::nocolor);
   true_value_ = tstring("1");
   false_value_ = tstring("0");
 }

@@ -26,12 +26,18 @@ import pytest
 import re
 
 
-def color_special(s):
+def color_line(s):
     return re.sub(r"((?:NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
                   "\x1b[2m\\1\x1b[0m", s)
 
+
+def color_header(s):
+    return re.sub(r"((?:NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
+                  "\x1b[2m\\1\x1b[0;1m", s)
+
+
 def check_colored_output(actual, header, separator, *body, keyed=False):
-    header1, header2 = header.split('|', 2)
+    header1, header2 = color_header(header).split('|', 2)
     footer = body[-1]
     out = ''
     out += "\x1b[1m" + header1
@@ -39,9 +45,7 @@ def check_colored_output(actual, header, separator, *body, keyed=False):
     out += "\x1b[0;1m" + header2 + "\x1b[0m" + '\n'
     out += "\x1b[90m" + separator + "\x1b[0m" + '\n'
     for line in body[:-1]:
-        line1, line2 = line.split('|', 2)
-        line1 = color_special(line1)
-        line2 = color_special(line2)
+        line1, line2 = color_line(line).split('|', 2)
         if keyed:
             out += line1 + "\x1b[90m|"
         else:
@@ -294,6 +298,17 @@ def test_colored_keyed(capsys):
         " 2  d  | -7.7",
         "[3 rows x 3 columns]",
         keyed=True)
+
+
+def test_colored_escaped_name(capsys):
+    DT = dt.Frame(names=["#(\x80)#"])  # U+0080 is always escaped in the output
+    DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    check_colored_output(out,
+        "   | #(\\x80)#",
+        "-- + --------",
+        "[0 rows x 1 column]")
 
 
 
