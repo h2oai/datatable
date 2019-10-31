@@ -24,7 +24,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "utils/terminal/sstring.h"
+#include "utils/terminal/tstring.h"
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
 #include "column.h"
@@ -32,7 +32,7 @@ namespace dt {
 using std::size_t;
 using std::ostringstream;
 using intvec = std::vector<size_t>;
-using sstrvec = std::vector<sstring>;
+using sstrvec = std::vector<tstring>;
 
 static constexpr size_t NA_index = size_t(-1);
 
@@ -57,8 +57,8 @@ class TextColumn {
     size_t : 40;
 
     static const Terminal* term_;
-    static sstring ellipsis_;
-    static sstring na_value_;
+    static tstring ellipsis_;
+    static tstring na_value_;
 
   public:
     static void setup(const Terminal*);
@@ -82,7 +82,7 @@ class TextColumn {
 class Data_TextColumn : public TextColumn {
   private:
     sstrvec data_;
-    sstring name_;
+    tstring name_;
     int max_width_;
     int : 32;
 
@@ -100,16 +100,16 @@ class Data_TextColumn : public TextColumn {
 
   private:
     void _render_all_data(const Column& col, const intvec& indices);
-    void _print_aligned_value(TerminalStream&, const sstring& value) const;
+    void _print_aligned_value(TerminalStream&, const tstring& value) const;
     void _align_at_dot();
 
-    sstring _render_value(const Column&, size_t i) const;
+    tstring _render_value(const Column&, size_t i) const;
     template <typename T>
-    sstring _render_value_float(const Column&, size_t i) const;
+    tstring _render_value_float(const Column&, size_t i) const;
     template <typename T>
-    sstring _render_value_int(const Column&, size_t i) const;
-    sstring _render_value_bool(const Column&, size_t i) const;
-    sstring _render_value_string(const Column&, size_t i) const;
+    tstring _render_value_int(const Column&, size_t i) const;
+    tstring _render_value_bool(const Column&, size_t i) const;
+    tstring _render_value_string(const Column&, size_t i) const;
 
     bool _needs_escaping(const CString&) const;
     std::string _escape_string(const CString&) const;
@@ -132,7 +132,7 @@ class VSep_TextColumn : public TextColumn {
 
 class Ellipsis_TextColumn : public TextColumn {
   private:
-    sstring ell_;
+    tstring ell_;
 
   public:
     Ellipsis_TextColumn();

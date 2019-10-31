@@ -41,9 +41,9 @@ using std::size_t;
   *     color of the text, yet are not visible in the output;
   *
   */
-class sstring {
+class tstring {
   private:
-    friend class sstring_plain;
+    friend class tstring_plain;
     friend class sstring_stream;
     class impl {
       public:
@@ -55,14 +55,14 @@ class sstring {
     std::shared_ptr<impl> impl_;
 
   public:
-    sstring() = default;
-    sstring(const sstring&) = default;
-    sstring(sstring&&) noexcept = default;
-    sstring& operator=(sstring&&) = default;
-    sstring& operator=(const sstring&) = default;
+    tstring() = default;
+    tstring(const tstring&) = default;
+    tstring(tstring&&) noexcept = default;
+    tstring& operator=(tstring&&) = default;
+    tstring& operator=(const tstring&) = default;
 
-    explicit sstring(const std::string&);
-    explicit sstring(std::string&&);
+    explicit tstring(const std::string&);
+    explicit tstring(std::string&&);
 
     size_t size() const;
     void write_to(TerminalStream&) const;
@@ -77,7 +77,7 @@ class sstring {
 
 
 
-class sstring_stream : public sstring::impl {
+class sstring_stream : public tstring::impl {
 
 };
 

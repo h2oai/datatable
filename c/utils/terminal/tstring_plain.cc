@@ -20,21 +20,21 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "utils/assert.h"
-#include "utils/terminal/sstring.h"
+#include "utils/terminal/tstring.h"
 #include "encodings.h"
 namespace dt {
 using std::size_t;
 
 
-class sstring_plain : public sstring::impl {
+class tstring_plain : public tstring::impl {
   private:
     std::string str_;
     size_t      size_;
 
   public:
-    sstring_plain();
-    explicit sstring_plain(const std::string&);
-    explicit sstring_plain(std::string&&);
+    tstring_plain();
+    explicit tstring_plain(const std::string&);
+    explicit tstring_plain(std::string&&);
 
     size_t size() const override;
     void write(TerminalStream&) const override;
@@ -42,44 +42,50 @@ class sstring_plain : public sstring::impl {
 };
 
 
-sstring_plain::sstring_plain()
+
+
+//------------------------------------------------------------------------------
+// tstring_plain implementation
+//------------------------------------------------------------------------------
+
+tstring_plain::tstring_plain()
   : str_(),
     size_(0) {}
 
 
-sstring_plain::sstring_plain(const std::string& s)
+tstring_plain::tstring_plain(const std::string& s)
   : str_(s),
-    size_(sstring::_compute_display_size(str_)) {}
+    size_(tstring::_compute_display_size(str_)) {}
 
 
-sstring_plain::sstring_plain(std::string&& s)
+tstring_plain::tstring_plain(std::string&& s)
   : str_(std::move(s)),
-    size_(sstring::_compute_display_size(str_)) {}
+    size_(tstring::_compute_display_size(str_)) {}
 
 
 
-size_t sstring_plain::size() const {
+size_t tstring_plain::size() const {
   return size_;
 }
 
 
-void sstring_plain::write(TerminalStream& out) const {
+void tstring_plain::write(TerminalStream& out) const {
   out << str_;
 }
 
 
-const std::string& sstring_plain::str() {
+const std::string& tstring_plain::str() {
   return str_;
 }
 
 
 
-sstring::sstring(const std::string& str)
-  : impl_{ std::make_shared<sstring_plain>(str) }
+tstring::tstring(const std::string& str)
+  : impl_{ std::make_shared<tstring_plain>(str) }
 {}
 
-sstring::sstring(std::string&& str)
-  : impl_{ std::make_shared<sstring_plain>(std::move(str)) }
+tstring::tstring(std::string&& str)
+  : impl_{ std::make_shared<tstring_plain>(std::move(str)) }
 {}
 
 

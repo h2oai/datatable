@@ -20,13 +20,13 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "utils/assert.h"
-#include "utils/terminal/sstring.h"
+#include "utils/terminal/tstring.h"
 #include "encodings.h"
 namespace dt {
 using std::size_t;
 
 
-sstring::impl::~impl() = default;
+tstring::impl::~impl() = default;
 
 
 
@@ -34,17 +34,17 @@ sstring::impl::~impl() = default;
 // Constructors
 //------------------------------------------------------------------------------
 
-size_t sstring::size() const {
+size_t tstring::size() const {
   return impl_->size();
 }
 
 
-const std::string& sstring::str() const {
+const std::string& tstring::str() const {
   return impl_->str();
 }
 
 
-void sstring::write_to(TerminalStream& out) const {
+void tstring::write_to(TerminalStream& out) const {
   impl_->write(out);
 }
 
@@ -66,7 +66,7 @@ static inline bool isalpha(unsigned char c) {
 }
 
 
-size_t sstring::_compute_display_size(const std::string& str) {
+size_t tstring::_compute_display_size(const std::string& str) {
   size_t n = str.size();
   size_t sz = 0;
   auto ch = reinterpret_cast<const unsigned char*>(str.data());

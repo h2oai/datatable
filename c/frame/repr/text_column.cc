@@ -31,14 +31,14 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 const Terminal* TextColumn::term_ = nullptr;
-sstring TextColumn::ellipsis_;
-sstring TextColumn::na_value_;
+tstring TextColumn::ellipsis_;
+tstring TextColumn::na_value_;
 
 void TextColumn::setup(const Terminal* terminal) {
   term_ = terminal;
-  na_value_ = sstring(term_->dim("NA"));
-  ellipsis_ = term_->unicode_allowed()? sstring(term_->dim("\xE2\x80\xA6"))
-                                      : sstring(term_->dim("..."));
+  na_value_ = tstring(term_->dim("NA"));
+  ellipsis_ = term_->unicode_allowed()? tstring(term_->dim("\xE2\x80\xA6"))
+                                      : tstring(term_->dim("..."));
 }
 
 
@@ -77,7 +77,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
                                  int max_width)
 {
   max_width_ = std::min(max_width, display_max_column_width);
-  name_ = sstring(_escape_string(name));
+  name_ = tstring(_escape_string(name));
   width_ = std::max(width_, name_.size());
   LType ltype = col.ltype();
   align_right_ = (ltype == LType::BOOL) ||
@@ -112,7 +112,7 @@ void Data_TextColumn::print_value(TerminalStream& out, size_t i) const {
 //------------------------------------------------------------------------------
 
 void Data_TextColumn::_print_aligned_value(TerminalStream& out,
-                                           const sstring& value) const
+                                           const tstring& value) const
 {
   xassert(width_ >= value.size());
   out << std::string(margin_left_, ' ');
@@ -128,30 +128,30 @@ void Data_TextColumn::_print_aligned_value(TerminalStream& out,
 }
 
 
-sstring Data_TextColumn::_render_value_bool(const Column& col, size_t i) const {
+tstring Data_TextColumn::_render_value_bool(const Column& col, size_t i) const {
   int8_t value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
-  return value? sstring("1") : sstring("0");
+  return value? tstring("1") : tstring("0");
 }
 
 template <typename T>
-sstring Data_TextColumn::_render_value_int(const Column& col, size_t i) const {
+tstring Data_TextColumn::_render_value_int(const Column& col, size_t i) const {
   T value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
-  return sstring(std::to_string(value));
+  return tstring(std::to_string(value));
 }
 
 template <typename T>
-sstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
+tstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
 {
   T value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
   std::ostringstream out;
   out << value;
-  return sstring(out.str());
+  return tstring(out.str());
 }
 
 
@@ -269,17 +269,17 @@ std::string Data_TextColumn::_escape_string(const CString& str) const
 }
 
 
-sstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
+tstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
 {
   CString value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
-  return _needs_escaping(value)? sstring(_escape_string(value))
-                               : sstring(value.to_string());
+  return _needs_escaping(value)? tstring(_escape_string(value))
+                               : tstring(value.to_string());
 }
 
 
-sstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
+tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
   switch (col.stype()) {
     case SType::BOOL:    return _render_value_bool(col, i);
     case SType::INT8:    return _render_value_int<int8_t>(col, i);
@@ -290,7 +290,7 @@ sstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
     case SType::FLOAT64: return _render_value_float<double>(col, i);
     case SType::STR32:
     case SType::STR64:   return _render_value_string(col, i);
-    default: return sstring("");
+    default: return tstring("");
   }
 }
 
@@ -339,7 +339,7 @@ void Data_TextColumn::_align_at_dot() {
     if (w == NA_index) continue;
     if (w < max_right_width) {
       size_t nspaces = max_right_width - w + (w == 0);
-      data_[i] = sstring(std::string(data_[i].str())
+      data_[i] = tstring(std::string(data_[i].str())
                          .insert(data_[i].str().size(), nspaces, ' '));
       width_ = std::max(width_, data_[i].size());
     }
@@ -380,8 +380,8 @@ void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
 //------------------------------------------------------------------------------
 
 Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
-  ell_ = term_->unicode_allowed()? sstring("\xE2\x80\xA6")  // ...
-                                 : sstring("~");
+  ell_ = term_->unicode_allowed()? tstring("\xE2\x80\xA6")  // ...
+                                 : tstring("~");
   width_ = 1;
   margin_left_ = true;
   margin_right_ = true;
