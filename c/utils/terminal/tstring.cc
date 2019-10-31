@@ -34,7 +34,6 @@ tstring::impl::~impl() = default;
 //------------------------------------------------------------------------------
 
 class tstring_empty : public tstring::impl {
-  static std::string empty_;
   public:
     tstring_empty() = default;
     size_t size() const override;
@@ -42,14 +41,13 @@ class tstring_empty : public tstring::impl {
     const std::string& str() override;
 };
 
-std::string tstring_empty::empty_;
 static std::shared_ptr<tstring_empty> EMPTY = std::make_shared<tstring_empty>();
 
 size_t tstring_empty::size() const { return 0; }
 
 void tstring_empty::write(TerminalStream&) const {}
 
-const std::string& tstring_empty::str() { return empty_; }
+const std::string& tstring_empty::str() { return tstring::empty_; }
 
 
 
@@ -57,9 +55,15 @@ const std::string& tstring_empty::str() { return empty_; }
 //------------------------------------------------------------------------------
 // tstring
 //------------------------------------------------------------------------------
+std::string tstring::empty_;
 
 tstring::tstring()
   : impl_(EMPTY) {}
+
+
+bool tstring::empty() const {
+  return impl_ == EMPTY;
+}
 
 
 size_t tstring::size() const {

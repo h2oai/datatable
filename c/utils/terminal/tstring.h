@@ -62,6 +62,7 @@ class tstring
 {
   class impl;
   private:
+    static std::string empty_;
     std::shared_ptr<impl> impl_;
 
   public:
@@ -79,13 +80,17 @@ class tstring
     size_t size() const;
     void write_to(TerminalStream&) const;
     const std::string& str() const;
+    bool empty() const;
+
+    tstring& operator<<(tstring&&);
+    tstring& operator<<(const tstring&);
 
   private:
     static size_t _compute_display_size(const std::string&);
 
     friend class tstring_empty;
     friend class tstring_plain;
-    friend class tstring_stream;
+    friend class tstring_mixed;
     friend class tstring_styled;
     class impl {
       public:
