@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "utils/terminal/tstring.h"
 #include "utils/terminal/terminal_stream.h"
+#include "utils/terminal/terminal_style.h"
 namespace dt {
 
 
@@ -96,6 +97,12 @@ template <>
 TerminalStream& TerminalStream::operator<<(const tstring& s) {
   s.write_to(*this);
   return *this;
+}
+
+
+template <>
+TerminalStream& TerminalStream::operator<<(const dt::TerminalStyle& style) {
+  return *this << static_cast<Modifier>(style);
 }
 
 

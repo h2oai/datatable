@@ -21,24 +21,22 @@
 //------------------------------------------------------------------------------
 #include "utils/assert.h"
 #include "utils/terminal/tstring.h"
+#include "utils/terminal/terminal_style.h"
 #include "encodings.h"
 namespace dt {
 using std::size_t;
 
 
-/**
-  * Simplest kind of tstring that is a wrapper around a plain
-  * std::string.
-  */
-class tstring_plain : public tstring::impl {
+
+class tstring_styled : public tstring::impl {
   private:
-    std::string str_;
-    size_t      size_;
+    std::string   str_;
+    size_t        size_;
+    TerminalStyle style_;
 
   public:
-    tstring_plain();
-    explicit tstring_plain(const std::string&);
-    explicit tstring_plain(std::string&&);
+    tstring_styled(const std::string&, TerminalStyle);
+    tstring_styled(std::string&&, TerminalStyle);
 
     size_t size() const override;
     void write(TerminalStream&) const override;
@@ -49,48 +47,51 @@ class tstring_plain : public tstring::impl {
 
 
 //------------------------------------------------------------------------------
-// tstring_plain implementation
+// tstring_styled implementation
 //------------------------------------------------------------------------------
 
-tstring_plain::tstring_plain()
-  : str_(),
-    size_(0) {}
-
-
-tstring_plain::tstring_plain(const std::string& s)
+tstring_styled::tstring_styled(const std::string& s, TerminalStyle style)
   : str_(s),
-    size_(tstring::_compute_display_size(str_)) {}
+    size_(tstring::_compute_display_size(str_)),
+    style_(style) {}
 
 
-tstring_plain::tstring_plain(std::string&& s)
+tstring_styled::tstring_styled(std::string&& s, TerminalStyle style)
   : str_(std::move(s)),
-    size_(tstring::_compute_display_size(str_)) {}
+    size_(tstring::_compute_display_size(str_)),
+    style_(style) {}
 
 
-
-size_t tstring_plain::size() const {
+size_t tstring_styled::size() const {
   return size_;
 }
 
 
-void tstring_plain::write(TerminalStream& out) const {
-  out << str_;
+void tstring_styled::write(TerminalStream& out) const {
+  out << style_ << str_ << TerminalStyle::END;
 }
 
 
-const std::string& tstring_plain::str() {
+const std::string& tstring_styled::str() {
   return str_;
 }
 
 
 
-tstring::tstring(const std::string& str)
-  : impl_{ std::make_shared<tstring_plain>(str) }
+
+//------------------------------------------------------------------------------
+// tstring constructors
+//------------------------------------------------------------------------------
+
+tstring::tstring(const std::string& str, TerminalStyle style)
+  : impl_{ std::make_shared<tstring_styled>(str, style) }
 {}
 
-tstring::tstring(std::string&& str)
-  : impl_{ std::make_shared<tstring_plain>(std::move(str)) }
+tstring::tstring(std::string&& str, TerminalStyle style)
+  : impl_{ std::make_shared<tstring_styled>(std::move(str), style) }
 {}
+
+
 
 
 }  // namespace dt

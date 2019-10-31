@@ -22,6 +22,7 @@
 #include <memory>
 #include <string>
 #include "utils/terminal/terminal_stream.h"
+#include "utils/terminal/terminal_style.h"
 #ifndef dt_UTILS_TERMINAL_TSTRING_h
 #define dt_UTILS_TERMINAL_TSTRING_h
 namespace dt {
@@ -72,6 +73,8 @@ class tstring
 
     explicit tstring(const std::string&);
     explicit tstring(std::string&&);
+    tstring(const std::string&, TerminalStyle);
+    tstring(std::string&&, TerminalStyle);
 
     size_t size() const;
     void write_to(TerminalStream&) const;
