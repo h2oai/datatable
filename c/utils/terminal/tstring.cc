@@ -32,12 +32,34 @@ static auto EMPTY_IMPL = std::make_shared<tstring_impl>();
 
 
 //------------------------------------------------------------------------------
-// tstring
+// Constructors
 //------------------------------------------------------------------------------
 
 tstring::tstring()
   : impl_(EMPTY_IMPL) {}
 
+
+tstring::tstring(const std::string& str)
+  : impl_(std::make_shared<tstring_plain>(str)) {}
+
+
+tstring::tstring(std::string&& str)
+  : impl_(std::make_shared<tstring_plain>(std::move(str))) {}
+
+
+tstring::tstring(const std::string& str, TerminalStyle style)
+  : impl_(std::make_shared<tstring_styled>(str, style)) {}
+
+
+tstring::tstring(std::string&& str, TerminalStyle style)
+  : impl_(std::make_shared<tstring_styled>(std::move(str), style)) {}
+
+
+
+
+//------------------------------------------------------------------------------
+// Properties
+//------------------------------------------------------------------------------
 
 bool tstring::empty() const {
   return impl_ == EMPTY_IMPL;
@@ -59,20 +81,40 @@ void tstring::write_to(TerminalStream& out) const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Appending strings
+//------------------------------------------------------------------------------
+
 tstring& tstring::operator<<(char c) {
+  (void) c;
   return *this;
 }
+
+
+tstring& tstring::operator<<(tstring&& str) {
+  auto mix = dynamic_cast<tstring_mixed*>(impl_.get());
+  if (mix == nullptr) {
+    mix = new tstring_mixed();
+    if (!empty()) {
+      mix->append(std::move(*this));
+    }
+    impl_ = std::shared_ptr<tstring_impl>(mix);
+  }
+  mix->append(std::move(str));
+  return *this;
+}
+
 
 tstring& tstring::operator<<(unsigned char c) {
   return (*this << static_cast<char>(c));
 }
 
 
+tstring& tstring::operator<<(const tstring& str) {
+  return (*this << tstring(str));
+}
 
-
-//------------------------------------------------------------------------------
-// tstring_impl
-//------------------------------------------------------------------------------
 
 
 

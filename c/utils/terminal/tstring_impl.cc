@@ -30,9 +30,15 @@ std::string tstring_impl::empty_;
 
 tstring_impl::~tstring_impl() = default;
 
-size_t tstring_impl::size() const { return 0; }
 
-void tstring_impl::write(TerminalStream&) const {}
+size_t tstring_impl::size() const {
+  return 0;
+}
+
+
+void tstring_impl::write(TerminalStream&) const {
+}
+
 
 const std::string& tstring_impl::str() {
   return tstring_impl::empty_;

@@ -81,17 +81,10 @@ class tstring
     const std::string& str() const;
     bool empty() const;
 
-    // These operators are defined in `tstring_mixed.cc`
     tstring& operator<<(tstring&&);
     tstring& operator<<(const tstring&);
     tstring& operator<<(char c);
     tstring& operator<<(unsigned char c);
-
-
-    friend class tstring_empty;
-    friend class tstring_plain;
-    friend class tstring_mixed;
-    friend class tstring_styled;
 };
 
 

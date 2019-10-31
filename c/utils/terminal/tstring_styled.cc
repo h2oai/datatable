@@ -28,10 +28,6 @@ using std::size_t;
 
 
 
-//------------------------------------------------------------------------------
-// tstring_styled implementation
-//------------------------------------------------------------------------------
-
 tstring_styled::tstring_styled(const std::string& s, TerminalStyle style)
   : str_(s),
     size_(_compute_display_size(str_)),
@@ -57,21 +53,6 @@ void tstring_styled::write(TerminalStream& out) const {
 const std::string& tstring_styled::str() {
   return str_;
 }
-
-
-
-
-//------------------------------------------------------------------------------
-// tstring constructors
-//------------------------------------------------------------------------------
-
-tstring::tstring(const std::string& str, TerminalStyle style)
-  : impl_{ std::make_shared<tstring_styled>(str, style) }
-{}
-
-tstring::tstring(std::string&& str, TerminalStyle style)
-  : impl_{ std::make_shared<tstring_styled>(std::move(str), style) }
-{}
 
 
 

@@ -26,11 +26,6 @@ namespace dt {
 
 
 
-
-//------------------------------------------------------------------------------
-// tstring_mixed implementation
-//------------------------------------------------------------------------------
-
 tstring_mixed::tstring_mixed() : size_(0) {}
 
 
@@ -50,34 +45,13 @@ const std::string& tstring_mixed::str() {
   return tstring_impl::empty_;
 }
 
+
 void  tstring_mixed::append(tstring&& str) {
   size_ += str.size();
   parts_.emplace_back(std::move(str));
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// tstring operators
-//------------------------------------------------------------------------------
-
-tstring& tstring::operator<<(const tstring& str) {
-  return *this << tstring(str);
-}
-
-tstring& tstring::operator<<(tstring&& str) {
-  auto mix = dynamic_cast<tstring_mixed*>(impl_.get());
-  if (mix == nullptr) {
-    mix = new tstring_mixed();
-    if (!empty()) {
-      mix->append(std::move(*this));
-    }
-    impl_ = std::shared_ptr<tstring_impl>(mix);
-  }
-  mix->append(std::move(str));
-  return *this;
-}
 
 
 

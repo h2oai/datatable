@@ -25,10 +25,6 @@ namespace dt {
 
 
 
-//------------------------------------------------------------------------------
-// tstring_plain implementation
-//------------------------------------------------------------------------------
-
 tstring_plain::tstring_plain()
   : str_(),
     size_(0) {}
@@ -58,21 +54,6 @@ void tstring_plain::write(TerminalStream& out) const {
 const std::string& tstring_plain::str() {
   return str_;
 }
-
-
-
-
-//------------------------------------------------------------------------------
-// tstring constructors
-//------------------------------------------------------------------------------
-
-tstring::tstring(const std::string& str)
-  : impl_{ std::make_shared<tstring_plain>(str) }
-{}
-
-tstring::tstring(std::string&& str)
-  : impl_{ std::make_shared<tstring_plain>(std::move(str)) }
-{}
 
 
 
