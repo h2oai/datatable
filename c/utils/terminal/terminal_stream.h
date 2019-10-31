@@ -56,7 +56,8 @@ class TerminalStream {
     void _emit_pending_styles();
 };
 
-template <> TerminalStream& TerminalStream::operator<<(const tstring& value);
+template <> TerminalStream& TerminalStream::operator<<(const tstring&);
+template <> TerminalStream& TerminalStream::operator<<(const TerminalStyle&);
 
 
 
