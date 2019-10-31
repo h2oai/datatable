@@ -21,58 +21,69 @@
 //------------------------------------------------------------------------------
 #include "utils/assert.h"
 #include "utils/terminal/tstring.h"
-#include "utils/terminal/tstring_impl.h"
 #include "encodings.h"
 namespace dt {
-using std::size_t;
 
 
-static auto EMPTY_IMPL = std::make_shared<tstring_impl>();
+std::string tstring_impl::empty_;
 
 
+tstring_impl::~tstring_impl() = default;
 
-//------------------------------------------------------------------------------
-// tstring
-//------------------------------------------------------------------------------
+size_t tstring_impl::size() const { return 0; }
 
-tstring::tstring()
-  : impl_(EMPTY_IMPL) {}
+void tstring_impl::write(TerminalStream&) const {}
 
-
-bool tstring::empty() const {
-  return impl_ == EMPTY_IMPL;
-}
-
-
-size_t tstring::size() const {
-  return impl_->size();
-}
-
-
-const std::string& tstring::str() const {
-  return impl_->str();
-}
-
-
-void tstring::write_to(TerminalStream& out) const {
-  impl_->write(out);
-}
-
-
-tstring& tstring::operator<<(char c) {
-  return *this;
-}
-
-tstring& tstring::operator<<(unsigned char c) {
-  return (*this << static_cast<char>(c));
+const std::string& tstring_impl::str() {
+  return tstring_impl::empty_;
 }
 
 
 
 
-//------------------------------------------------------------------------------
-// tstring_impl
-//------------------------------------------------------------------------------
+static inline bool isdigit(unsigned char c) {
+  // Compiles to: (uint8_t)(c - '0') <= 9;
+  return (c >= '0') && (c <= '9');
+}
+
+static inline bool isalpha(unsigned char c) {
+  // Compiles to: (uint8_t)((c&~32) - 'A') <= 25;
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+
+size_t tstring_impl::_compute_display_size(const std::string& str) {
+  size_t n = str.size();
+  size_t sz = 0;
+  auto ch = reinterpret_cast<const unsigned char*>(str.data());
+  auto end = ch + n;
+  for (; ch < end; ) {
+    auto c = *ch++;
+    // ECMA-48 terminal control sequences
+    if (c == 0x1B && ch < end && *ch == '[') {
+      auto ch0 = ch;
+      ch++;
+      while (ch < end && isdigit(*ch)) ch++;
+      if (ch < end && isalpha(*ch)) {
+        ch++;
+        continue;
+      }
+      ch = ch0;
+    }
+
+    if (c < 0x80) {
+      sz++;
+    }
+    else {   // UTF-8 continuation sequences
+      ch--;
+      int ucp = read_codepoint_from_utf8(&ch);
+      int w = mk_wcwidth(ucp);
+      sz += static_cast<size_t>(w);
+    }
+  }
+  return sz;
+}
+
 
 
 

@@ -25,29 +25,6 @@
 namespace dt {
 
 
-/**
-  * `tstring_mixed` is a string composed of multiple styled
-  * fragments.
-  *
-  */
-class tstring_mixed : public tstring::impl {
-  private:
-    std::vector<tstring> parts_;
-    size_t size_;
-
-  public:
-    tstring_mixed();
-    tstring_mixed(const tstring_mixed&) = default;
-    tstring_mixed(tstring_mixed&&) noexcept = default;
-
-    size_t size() const override;
-    void write(TerminalStream&) const override;
-    const std::string& str() override;
-
-    void append(tstring&& str);
-};
-
-
 
 
 //------------------------------------------------------------------------------
@@ -70,7 +47,7 @@ void tstring_mixed::write(TerminalStream& out) const {
 
 
 const std::string& tstring_mixed::str() {
-  return tstring::empty_;
+  return tstring_impl::empty_;
 }
 
 void  tstring_mixed::append(tstring&& str) {
@@ -96,7 +73,7 @@ tstring& tstring::operator<<(tstring&& str) {
     if (!empty()) {
       mix->append(std::move(*this));
     }
-    impl_ = std::shared_ptr<impl>(mix);
+    impl_ = std::shared_ptr<tstring_impl>(mix);
   }
   mix->append(std::move(str));
   return *this;

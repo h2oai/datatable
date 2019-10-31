@@ -27,31 +27,6 @@ namespace dt {
 using std::size_t;
 
 
-/**
-  * `tstring_styled` represents a string that has a certain
-  * `TerminalStyle` applied. Multiple styles can be applied
-  * simultaneously too:
-  *
-  *   tstring("TEST", style::bold|style::italic);
-  *
-  */
-class tstring_styled : public tstring::impl {
-  private:
-    std::string   str_;
-    size_t        size_;
-    TerminalStyle style_;
-
-  public:
-    tstring_styled(const std::string&, TerminalStyle);
-    tstring_styled(std::string&&, TerminalStyle);
-
-    size_t size() const override;
-    void write(TerminalStream&) const override;
-    const std::string& str() override;
-};
-
-
-
 
 //------------------------------------------------------------------------------
 // tstring_styled implementation
@@ -59,13 +34,13 @@ class tstring_styled : public tstring::impl {
 
 tstring_styled::tstring_styled(const std::string& s, TerminalStyle style)
   : str_(s),
-    size_(tstring::_compute_display_size(str_)),
+    size_(_compute_display_size(str_)),
     style_(style) {}
 
 
 tstring_styled::tstring_styled(std::string&& s, TerminalStyle style)
   : str_(std::move(s)),
-    size_(tstring::_compute_display_size(str_)),
+    size_(_compute_display_size(str_)),
     style_(style) {}
 
 

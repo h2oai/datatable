@@ -23,6 +23,7 @@
 #include <string>
 #include "utils/terminal/terminal_stream.h"
 #include "utils/terminal/terminal_style.h"
+#include "utils/terminal/tstring_impl.h"
 #ifndef dt_UTILS_TERMINAL_TSTRING_h
 #define dt_UTILS_TERMINAL_TSTRING_h
 namespace dt {
@@ -60,10 +61,8 @@ using std::size_t;
   */
 class tstring
 {
-  class impl;
   private:
-    static std::string empty_;
-    std::shared_ptr<impl> impl_;
+    std::shared_ptr<tstring_impl> impl_;
 
   public:
     tstring();
@@ -82,23 +81,17 @@ class tstring
     const std::string& str() const;
     bool empty() const;
 
+    // These operators are defined in `tstring_mixed.cc`
     tstring& operator<<(tstring&&);
     tstring& operator<<(const tstring&);
+    tstring& operator<<(char c);
+    tstring& operator<<(unsigned char c);
 
-  private:
-    static size_t _compute_display_size(const std::string&);
 
     friend class tstring_empty;
     friend class tstring_plain;
     friend class tstring_mixed;
     friend class tstring_styled;
-    class impl {
-      public:
-        virtual ~impl();
-        virtual size_t size() const = 0;
-        virtual void write(TerminalStream&) const = 0;
-        virtual const std::string& str() = 0;
-    };
 };
 
 

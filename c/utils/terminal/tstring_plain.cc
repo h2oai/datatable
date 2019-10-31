@@ -21,30 +21,7 @@
 //------------------------------------------------------------------------------
 #include "utils/assert.h"
 #include "utils/terminal/tstring.h"
-#include "encodings.h"
 namespace dt {
-using std::size_t;
-
-
-/**
-  * Simplest kind of tstring that is a wrapper around a plain
-  * std::string.
-  */
-class tstring_plain : public tstring::impl {
-  private:
-    std::string str_;
-    size_t      size_;
-
-  public:
-    tstring_plain();
-    explicit tstring_plain(const std::string&);
-    explicit tstring_plain(std::string&&);
-
-    size_t size() const override;
-    void write(TerminalStream&) const override;
-    const std::string& str() override;
-};
-
 
 
 
@@ -59,12 +36,12 @@ tstring_plain::tstring_plain()
 
 tstring_plain::tstring_plain(const std::string& s)
   : str_(s),
-    size_(tstring::_compute_display_size(str_)) {}
+    size_(_compute_display_size(str_)) {}
 
 
 tstring_plain::tstring_plain(std::string&& s)
   : str_(std::move(s)),
-    size_(tstring::_compute_display_size(str_)) {}
+    size_(_compute_display_size(str_)) {}
 
 
 
