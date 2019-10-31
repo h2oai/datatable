@@ -65,6 +65,7 @@ class sstring {
     explicit sstring(std::string&&);
 
     size_t size() const;
+    void write_to(TerminalStream&) const;
     const std::string& str() const;
 
   protected:
@@ -73,20 +74,6 @@ class sstring {
 
 
 
-class sstring_plain : public sstring::impl {
-  private:
-    std::string str_;
-    size_t      size_;
-
-  public:
-    sstring_plain();
-    explicit sstring_plain(const std::string&);
-    explicit sstring_plain(std::string&&);
-
-    size_t size() const override;
-    void write(TerminalStream&) const override;
-    const std::string& str() override;
-};
 
 
 

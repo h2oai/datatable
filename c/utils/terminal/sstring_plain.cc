@@ -26,6 +26,21 @@ namespace dt {
 using std::size_t;
 
 
+class sstring_plain : public sstring::impl {
+  private:
+    std::string str_;
+    size_t      size_;
+
+  public:
+    sstring_plain();
+    explicit sstring_plain(const std::string&);
+    explicit sstring_plain(std::string&&);
+
+    size_t size() const override;
+    void write(TerminalStream&) const override;
+    const std::string& str() override;
+};
+
 
 sstring_plain::sstring_plain()
   : str_(),
@@ -58,6 +73,14 @@ const std::string& sstring_plain::str() {
 }
 
 
+
+sstring::sstring(const std::string& str)
+  : impl_{ std::make_shared<sstring_plain>(str) }
+{}
+
+sstring::sstring(std::string&& str)
+  : impl_{ std::make_shared<sstring_plain>(std::move(str)) }
+{}
 
 
 }  // namespace dt

@@ -29,6 +29,7 @@
 namespace dt {
 using std::size_t;
 
+class sstring;
 
 
 class TerminalStream {
@@ -98,6 +99,7 @@ class TerminalStream {
     void _emit_pending_styles();
 };
 
+template <> TerminalStream& TerminalStream::operator<<(const sstring& value);
 
 
 namespace style {

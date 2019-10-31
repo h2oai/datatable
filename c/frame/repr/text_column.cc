@@ -390,7 +390,7 @@ Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
 
 void Ellipsis_TextColumn::print_name(TerminalStream& out) const {
   out << std::string(margin_left_, ' ');
-  out << ell_.str();
+  out << ell_;
   out << std::string(margin_right_, ' ');
 }
 
@@ -402,7 +402,7 @@ void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
 
 void Ellipsis_TextColumn::print_value(TerminalStream& out, size_t) const {
   out << std::string(margin_left_, ' ');
-  out << style::dim << ell_.str() << style::end;
+  out << style::dim << ell_ << style::end;
   out << std::string(margin_right_, ' ');
 }
 

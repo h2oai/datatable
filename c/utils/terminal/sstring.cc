@@ -34,15 +34,6 @@ sstring::impl::~impl() = default;
 // Constructors
 //------------------------------------------------------------------------------
 
-sstring::sstring(const std::string& str)
-  : impl_{ std::make_shared<sstring_plain>(str) }
-{}
-
-sstring::sstring(std::string&& str)
-  : impl_{ std::make_shared<sstring_plain>(std::move(str)) }
-{}
-
-
 size_t sstring::size() const {
   return impl_->size();
 }
@@ -50,6 +41,11 @@ size_t sstring::size() const {
 
 const std::string& sstring::str() const {
   return impl_->str();
+}
+
+
+void sstring::write_to(TerminalStream& out) const {
+  impl_->write(out);
 }
 
 

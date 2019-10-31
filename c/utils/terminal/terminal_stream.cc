@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "utils/terminal/sstring.h"
 #include "utils/terminal/terminal_stream.h"
 namespace dt {
 
@@ -89,6 +90,14 @@ TerminalStream& TerminalStream::operator<<(const Modifier& style) {
   stack_.push(newsty);
   return *this;
 }
+
+
+template <>
+TerminalStream& TerminalStream::operator<<(const sstring& s) {
+  s.write_to(*this);
+  return *this;
+}
+
 
 
 void TerminalStream::_emit_pending_styles() {
