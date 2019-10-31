@@ -44,6 +44,7 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   lambda2(static_cast<T>(params_in.lambda2)),
   nbins(params_in.nbins),
   mantissa_nbits(params_in.mantissa_nbits),
+  negative_class(params_in.negative_class),
   nepochs(params_in.nepochs),
   nfeatures(0),
   dt_X_train(nullptr),
@@ -557,8 +558,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           U value;
           bool isvalid = target_col0_train.get_element(ii, &value);
 
-          if (isvalid && std::isfinite(value))
-          {
+          if (isvalid && std::isfinite(value)) {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < label_ids_train.size(); ++k) {
               T p = linkfn(predict_row(
@@ -1384,6 +1384,7 @@ void Ftrl<T>::set_nepochs(size_t nepochs_in) {
 template <typename T>
 void Ftrl<T>::set_negative_class(bool negative_class_in) {
   params.negative_class = negative_class_in;
+  negative_class = negative_class_in;
 }
 
 

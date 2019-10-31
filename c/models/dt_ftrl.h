@@ -58,7 +58,8 @@ class Ftrl : public dt::FtrlBase {
     T lambda2;
     uint64_t nbins;
     unsigned char mantissa_nbits;
-    size_t: 56;
+    bool negative_class;
+    size_t: 48;
     size_t nepochs;
     std::vector<intvec> interactions;
 
