@@ -31,7 +31,7 @@ std::string tstring_impl::empty_;
 tstring_impl::~tstring_impl() = default;
 
 
-size_t tstring_impl::size() const {
+size_t tstring_impl::size() {
   return 0;
 }
 
@@ -45,7 +45,23 @@ const std::string& tstring_impl::str() {
 }
 
 
+void tstring_impl::append(const std::string& str, tstring& parent) {
+  xassert(size() == 0);
+  parent = tstring(str);
+}
 
+
+void tstring_impl::append(tstring&& str, tstring& parent) {
+  xassert(size() == 0);
+  parent = std::move(str);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// String size calculation
+//------------------------------------------------------------------------------
 
 static inline bool isdigit(unsigned char c) {
   // Compiles to: (uint8_t)(c - '0') <= 9;

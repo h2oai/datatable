@@ -83,8 +83,16 @@ class tstring
 
     tstring& operator<<(tstring&&);
     tstring& operator<<(const tstring&);
+    tstring& operator<<(const std::string&);
     tstring& operator<<(char c);
     tstring& operator<<(unsigned char c);
+
+  private:
+    void convert_to_mixed();
+
+    friend class tstring_mixed;
+    friend class tstring_plain;
+    friend class tstring_styled;
 };
 
 

@@ -24,12 +24,18 @@
 #include "utils/terminal/tstring.h"
 namespace dt {
 
+static size_t UNKNOWN = size_t(-1);
+
 
 
 tstring_mixed::tstring_mixed() : size_(0) {}
 
 
-size_t tstring_mixed::size() const {
+size_t tstring_mixed::size() {
+  if (size_ == UNKNOWN) {
+    size_ = 0;
+    for (const auto& part : parts_) size_ += part.size();
+  }
   return size_;
 }
 
@@ -46,11 +52,26 @@ const std::string& tstring_mixed::str() {
 }
 
 
-void  tstring_mixed::append(tstring&& str) {
-  size_ += str.size();
+void tstring_mixed::append(tstring&& str, tstring&) {
+  size_ = UNKNOWN;
   parts_.emplace_back(std::move(str));
 }
 
+
+void tstring_mixed::append(const std::string& str, tstring&) {
+  size_ = UNKNOWN;
+  if (parts_.empty()) {
+    parts_.emplace_back(str);
+  }
+  else {
+    tstring& lastpart = parts_.back();
+    if (dynamic_cast<const tstring_plain*>(lastpart.impl_.get())) {
+      lastpart << str;
+    } else {
+      parts_.emplace_back(str);
+    }
+  }
+}
 
 
 

@@ -26,21 +26,26 @@
 namespace dt {
 using std::size_t;
 
+static size_t UNKNOWN = size_t(-1);
+
 
 
 tstring_styled::tstring_styled(const std::string& s, TerminalStyle style)
   : str_(s),
-    size_(_compute_display_size(str_)),
+    size_(UNKNOWN),
     style_(style) {}
 
 
 tstring_styled::tstring_styled(std::string&& s, TerminalStyle style)
   : str_(std::move(s)),
-    size_(_compute_display_size(str_)),
+    size_(UNKNOWN),
     style_(style) {}
 
 
-size_t tstring_styled::size() const {
+size_t tstring_styled::size() {
+  if (size_ == UNKNOWN) {
+    size_ = _compute_display_size(str_);
+  }
   return size_;
 }
 
@@ -52,6 +57,24 @@ void tstring_styled::write(TerminalStream& out) const {
 
 const std::string& tstring_styled::str() {
   return str_;
+}
+
+
+void tstring_styled::append(const std::string& str, tstring& parent) {
+  parent.convert_to_mixed();
+  parent << str;
+}
+
+
+void tstring_styled::append(tstring&& str, tstring& parent) {
+  auto styledstr = dynamic_cast<tstring_styled*>(str.impl_.get());
+  if (styledstr && styledstr->style_ == style_) {
+    str_ += styledstr->str_;
+    size_ = UNKNOWN;
+  } else {
+    parent.convert_to_mixed();
+    parent.impl_->append(std::move(str), parent);
+  }
 }
 
 

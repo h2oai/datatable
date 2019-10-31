@@ -39,9 +39,13 @@ class tstring_impl {
   public:
     tstring_impl() = default;
     virtual ~tstring_impl();
-    virtual size_t size() const;
+
+    virtual size_t size();
     virtual void write(TerminalStream&) const;
     virtual const std::string& str();
+
+    virtual void append(const std::string& str, tstring& parent);
+    virtual void append(tstring&& str, tstring& parent);
 
   protected:
     static std::string empty_;
@@ -64,9 +68,12 @@ class tstring_plain : public tstring_impl {
     explicit tstring_plain(const std::string&);
     explicit tstring_plain(std::string&&);
 
-    size_t size() const override;
+    size_t size() override;
     void write(TerminalStream&) const override;
     const std::string& str() override;
+
+    void append(const std::string& str, tstring& parent) override;
+    void append(tstring&& str, tstring& parent) override;
 };
 
 
@@ -85,11 +92,12 @@ class tstring_mixed : public tstring_impl {
     tstring_mixed(const tstring_mixed&) = default;
     tstring_mixed(tstring_mixed&&) noexcept = default;
 
-    size_t size() const override;
+    size_t size() override;
     void write(TerminalStream&) const override;
     const std::string& str() override;
 
-    void append(tstring&& str);
+    void append(const std::string& str, tstring& parent) override;
+    void append(tstring&& str, tstring& parent) override;
 };
 
 
@@ -112,9 +120,12 @@ class tstring_styled : public tstring_impl {
     tstring_styled(const std::string&, TerminalStyle);
     tstring_styled(std::string&&, TerminalStyle);
 
-    size_t size() const override;
+    size_t size() override;
     void write(TerminalStream&) const override;
     const std::string& str() override;
+
+    void append(const std::string& str, tstring& parent) override;
+    void append(tstring&& str, tstring& parent) override;
 };
 
 

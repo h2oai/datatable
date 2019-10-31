@@ -87,34 +87,42 @@ void tstring::write_to(TerminalStream& out) const {
 //------------------------------------------------------------------------------
 
 tstring& tstring::operator<<(char c) {
-  (void) c;
+  impl_->append(std::string(1, c), *this);
   return *this;
 }
 
 
-tstring& tstring::operator<<(tstring&& str) {
-  auto mix = dynamic_cast<tstring_mixed*>(impl_.get());
-  if (mix == nullptr) {
-    mix = new tstring_mixed();
-    if (!empty()) {
-      mix->append(std::move(*this));
-    }
-    impl_ = std::shared_ptr<tstring_impl>(mix);
-  }
-  mix->append(std::move(str));
+tstring& tstring::operator<<(const std::string& str) {
+  impl_->append(str, *this);
   return *this;
 }
 
 
 tstring& tstring::operator<<(unsigned char c) {
-  return (*this << static_cast<char>(c));
+  impl_->append(std::string(1, static_cast<char>(c)), *this);
+  return *this;
+}
+
+
+tstring& tstring::operator<<(tstring&& str) {
+  impl_->append(std::move(str), *this);
+  return *this;
 }
 
 
 tstring& tstring::operator<<(const tstring& str) {
-  return (*this << tstring(str));
+  impl_->append(tstring(str), *this);
+  return *this;
 }
 
+
+void tstring::convert_to_mixed() {
+  auto newimpl = new tstring_mixed;
+  if (!empty()) {
+    newimpl->append(std::move(*this), *this);
+  }
+  impl_ = std::shared_ptr<tstring_impl>(newimpl);
+}
 
 
 

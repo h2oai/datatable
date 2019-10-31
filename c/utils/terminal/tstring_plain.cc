@@ -23,6 +23,7 @@
 #include "utils/terminal/tstring.h"
 namespace dt {
 
+static size_t UNKNOWN = size_t(-1);
 
 
 tstring_plain::tstring_plain()
@@ -32,16 +33,17 @@ tstring_plain::tstring_plain()
 
 tstring_plain::tstring_plain(const std::string& s)
   : str_(s),
-    size_(_compute_display_size(str_)) {}
+    size_(UNKNOWN) {}
 
 
 tstring_plain::tstring_plain(std::string&& s)
   : str_(std::move(s)),
-    size_(_compute_display_size(str_)) {}
+    size_(UNKNOWN) {}
 
 
 
-size_t tstring_plain::size() const {
+size_t tstring_plain::size() {
+  if (size_ == UNKNOWN) size_ = _compute_display_size(str_);
   return size_;
 }
 
@@ -53,6 +55,24 @@ void tstring_plain::write(TerminalStream& out) const {
 
 const std::string& tstring_plain::str() {
   return str_;
+}
+
+
+void tstring_plain::append(const std::string& str, tstring&) {
+  str_ += str;
+  size_ = UNKNOWN;
+}
+
+
+void tstring_plain::append(tstring&& str, tstring& parent) {
+  auto plainstr = dynamic_cast<tstring_plain*>(str.impl_.get());
+  if (plainstr) {
+    str_ += plainstr->str_;
+    size_ = UNKNOWN;
+  } else {
+    parent.convert_to_mixed();
+    parent.impl_->append(std::move(str), parent);
+  }
 }
 
 
