@@ -24,7 +24,6 @@
 #include <stack>
 #include <string>
 #include <sstream>
-#include <vector>
 #include "utils/assert.h"
 namespace dt {
 using std::size_t;
@@ -34,7 +33,7 @@ class tstring;
 
 class TerminalStream {
   private:
-    struct TStyle {
+    struct TStyle {  // TODO: replace with TerminalStyle
       int8_t bold;
       int8_t dim;
       int8_t italic;
@@ -49,7 +48,7 @@ class TerminalStream {
     };
 
     std::ostringstream out_;
-    std::stack<TStyle, std::vector<TStyle>> stack_;
+    std::stack<TStyle> stack_;
     TStyle current_;
     bool use_colors_;
     size_t : 56;

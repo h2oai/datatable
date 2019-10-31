@@ -27,7 +27,14 @@ namespace dt {
 using std::size_t;
 
 
-
+/**
+  * `tstring_styled` represents a string that has a certain
+  * `TerminalStyle` applied. Multiple styles can be applied
+  * simultaneously too:
+  *
+  *   tstring("TEST", style::bold|style::italic);
+  *
+  */
 class tstring_styled : public tstring::impl {
   private:
     std::string   str_;

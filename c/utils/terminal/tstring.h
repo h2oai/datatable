@@ -65,7 +65,7 @@ class tstring
     std::shared_ptr<impl> impl_;
 
   public:
-    tstring() = default;
+    tstring();
     tstring(const tstring&) = default;
     tstring(tstring&&) noexcept = default;
     tstring& operator=(tstring&&) = default;
@@ -83,6 +83,7 @@ class tstring
   private:
     static size_t _compute_display_size(const std::string&);
 
+    friend class tstring_empty;
     friend class tstring_plain;
     friend class tstring_stream;
     friend class tstring_styled;
