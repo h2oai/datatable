@@ -84,6 +84,11 @@ const std::string& tstring_plain::str() {
 
 
 
+
+//------------------------------------------------------------------------------
+// tstring constructors
+//------------------------------------------------------------------------------
+
 tstring::tstring(const std::string& str)
   : impl_{ std::make_shared<tstring_plain>(str) }
 {}
@@ -91,6 +96,8 @@ tstring::tstring(const std::string& str)
 tstring::tstring(std::string&& str)
   : impl_{ std::make_shared<tstring_plain>(std::move(str)) }
 {}
+
+
 
 
 }  // namespace dt
