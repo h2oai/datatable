@@ -59,6 +59,8 @@ class TextColumn {
     static const Terminal* term_;
     static tstring ellipsis_;
     static tstring na_value_;
+    static tstring true_value_;
+    static tstring false_value_;
 
   public:
     static void setup(const Terminal*);
@@ -112,7 +114,7 @@ class Data_TextColumn : public TextColumn {
     tstring _render_value_string(const Column&, size_t i) const;
 
     bool _needs_escaping(const CString&) const;
-    std::string _escape_string(const CString&) const;
+    tstring _escape_string(const CString&) const;
 };
 
 

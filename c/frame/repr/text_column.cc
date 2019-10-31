@@ -33,12 +33,17 @@ namespace dt {
 const Terminal* TextColumn::term_ = nullptr;
 tstring TextColumn::ellipsis_;
 tstring TextColumn::na_value_;
+tstring TextColumn::true_value_;
+tstring TextColumn::false_value_;
+
 
 void TextColumn::setup(const Terminal* terminal) {
   term_ = terminal;
-  na_value_ = tstring(term_->dim("NA"));
-  ellipsis_ = term_->unicode_allowed()? tstring(term_->dim("\xE2\x80\xA6"))
-                                      : tstring(term_->dim("..."));
+  na_value_ = tstring("NA", style2::dim);
+  ellipsis_ = tstring(term_->unicode_allowed()? "\xE2\x80\xA6" : "...",
+                      style2::dim);
+  true_value_ = tstring("1");
+  false_value_ = tstring("0");
 }
 
 
@@ -77,7 +82,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
                                  int max_width)
 {
   max_width_ = std::min(max_width, display_max_column_width);
-  name_ = tstring(_escape_string(name));
+  name_ = _escape_string(name);
   width_ = std::max(width_, name_.size());
   LType ltype = col.ltype();
   align_right_ = (ltype == LType::BOOL) ||
@@ -115,14 +120,13 @@ void Data_TextColumn::_print_aligned_value(TerminalStream& out,
                                            const tstring& value) const
 {
   xassert(width_ >= value.size());
+  auto indent = std::string(width_ - value.size(), ' ');
   out << std::string(margin_left_, ' ');
   if (align_right_) {
-    out << std::string(width_ - value.size(), ' ');
-    out << value.str();
+    out << indent << value;
   }
   else {
-    out << value.str();
-    out << std::string(width_ - value.size(), ' ');
+    out << value << indent;
   }
   out << std::string(margin_right_, ' ');
 }
@@ -132,7 +136,7 @@ tstring Data_TextColumn::_render_value_bool(const Column& col, size_t i) const {
   int8_t value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
-  return value? tstring("1") : tstring("0");
+  return value? true_value_ : false_value_;
 }
 
 template <typename T>
@@ -166,7 +170,7 @@ bool Data_TextColumn::_needs_escaping(const CString& str) const {
 }
 
 
-static std::string _escaped_char(uint8_t a) {
+static tstring _escaped_char(uint8_t a) {
   std::string escaped = (a == '\n')? "\\n" :
                         (a == '\t')? "\\t" :
                         (a == '\r')? "\\r" : "\\x00";
@@ -175,7 +179,7 @@ static std::string _escaped_char(uint8_t a) {
     escaped[2] = static_cast<char>('0' + (a >> 4));
     escaped[3] = static_cast<char>((lo >= 10)? 'A' + lo - 10 : '0' + lo);
   }
-  return escaped;
+  return tstring(escaped, style2::dim);
 }
 
 static std::string _escape_unicode(int cp) {
@@ -205,7 +209,7 @@ static std::string _escape_unicode(int cp) {
   *   - the output is limited to `max_width_` in size; if the input
   *     exceeds this limit, an ellipsis character would be added.
   */
-std::string Data_TextColumn::_escape_string(const CString& str) const
+tstring Data_TextColumn::_escape_string(const CString& str) const
 {
   TerminalStream out(term_->colors_enabled());
   // -1 because we leave 1 char space for the ellipsis character.
@@ -233,7 +237,7 @@ std::string Data_TextColumn::_escape_string(const CString& str) const
       if (ch == end) remaining_width++;
       auto escaped = _escaped_char(c);
       if (static_cast<int>(escaped.size()) > remaining_width) break;
-      out << style::dim << escaped << style::end;
+      out << escaped;
     }
     // unicode character
     else {
@@ -265,7 +269,7 @@ std::string Data_TextColumn::_escape_string(const CString& str) const
         << (allow_unicode? "\xE2\x80\xA6" : "~")
         << style::end;
   }
-  return out.str();
+  return tstring(out.str());
 }
 
 
@@ -274,7 +278,7 @@ tstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
   CString value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
-  return _needs_escaping(value)? tstring(_escape_string(value))
+  return _needs_escaping(value)? _escape_string(value)
                                : tstring(value.to_string());
 }
 
