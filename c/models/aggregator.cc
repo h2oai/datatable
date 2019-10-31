@@ -948,20 +948,24 @@ size_t Aggregator<T>::calculate_map(std::vector<size_t>& ids, size_t id) {
 template <typename T>
 T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
                                     size_t ndims, T delta,
-                                    bool early_exit /*=true*/) {
-  T sum = 0.0;
-  int32_t n = 0;
+                                    bool early_exit /* = true */) {
+  T distance = 0;
+  size_t n = 0;
 
   for (size_t i = 0; i < ndims; ++i) {
     if (ISNA<T>(e1[i]) || ISNA<T>(e2[i])) {
       continue;
     }
     ++n;
-    sum += (e1[i] - e2[i]) * (e1[i] - e2[i]);
-    if (early_exit && sum > delta) return sum; // i/n normalization here?
+    distance += (e1[i] - e2[i]) * (e1[i] - e2[i]);
+    if (early_exit && distance > delta) return distance; // i/n normalization here?
   }
 
-  return sum * ndims / n;
+  if (n != 0) {
+    distance *= static_cast<T>(ndims) / n;
+  }
+
+  return distance;
 }
 
 
@@ -986,12 +990,16 @@ template <typename T>
 void Aggregator<T>::project_row(tptr<T>& r, size_t row, size_t ncols, tptr<T>& pmatrix)
 {
   std::memset(r.get(), 0, max_dimensions * sizeof(T));
-  int32_t n = 0;
+  size_t n = 0;
   for (size_t i = 0; i < ncols; ++i) {
     T value = (*contconvs[i])[row];
     if (!ISNA<T>(value)) {
       T norm_factor, norm_shift;
-      set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).get_min(), (*contconvs[i]).get_max(), 1);
+      set_norm_coeffs(norm_factor,
+                      norm_shift,
+                      (*contconvs[i]).get_min(),
+                      (*contconvs[i]).get_max(),
+                      1);
       T norm_row = norm_factor * value + norm_shift;
       for (size_t j = 0; j < max_dimensions; ++j) {
         r[j] +=  pmatrix[i * max_dimensions + j] * norm_row;
@@ -999,6 +1007,8 @@ void Aggregator<T>::project_row(tptr<T>& r, size_t row, size_t ncols, tptr<T>& p
       ++n;
     }
   }
+  if (n == 0) return;
+
   for (size_t j = 0; j < max_dimensions; ++j) {
     r[j] /= n;
   }
