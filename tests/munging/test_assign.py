@@ -368,3 +368,15 @@ def test_assign_str_to_empty_frame():
     DT = dt.Frame(W=[], stype=dt.str32)
     DT[f.W == '', f.W] = 'yay!'
     assert_equals(DT, dt.Frame(W=[], stype=dt.str32))
+
+
+def test_assign_key_column():
+    DT = dt.Frame(range(100))
+    DT.key = "C0"
+    with pytest.raises(TypeError, match="Cannot change values in a key "
+                       "column `C0`"):
+        DT[0, 0] = 99
+    frame_integrity_check(DT)
+    assert DT.key == ("C0",)
+    assert DT.to_list() == [list(range(100))]
+    assert DT.names == ("C0",)
