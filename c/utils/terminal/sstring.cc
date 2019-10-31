@@ -26,34 +26,32 @@ namespace dt {
 using std::size_t;
 
 
+sstring::impl::~impl() = default;
+
+
 
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
 
-sstring::sstring()
-  : str_(),
-    size_(0) {}
+sstring::sstring(const std::string& str)
+  : impl_{ std::make_shared<sstring_plain>(str) }
+{}
+
+sstring::sstring(std::string&& str)
+  : impl_{ std::make_shared<sstring_plain>(std::move(str)) }
+{}
 
 
-sstring::sstring(const std::string& s)
-  : str_(s),
-    size_(_compute_string_size(str_)) {}
+size_t sstring::size() const {
+  return impl_->size();
+}
 
 
-sstring::sstring(std::string&& s)
-  : str_(std::move(s)),
-    size_(_compute_string_size(str_)) {}
+const std::string& sstring::str() const {
+  return impl_->str();
+}
 
-
-sstring::sstring(const std::string& s, size_t n)
-  : str_(s),
-    size_(n) {}
-
-
-sstring::sstring(std::string&& s, size_t n)
-  : str_(std::move(s)),
-    size_(n) {}
 
 
 
@@ -72,7 +70,7 @@ static inline bool isalpha(unsigned char c) {
 }
 
 
-size_t sstring::_compute_string_size(const std::string& str) {
+size_t sstring::_compute_display_size(const std::string& str) {
   size_t n = str.size();
   size_t sz = 0;
   auto ch = reinterpret_cast<const unsigned char*>(str.data());

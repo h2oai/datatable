@@ -19,9 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <memory>
 #include <string>
-#ifndef dt_FRAME_REPR_SSTRING_h
-#define dt_FRAME_REPR_SSTRING_h
+#include "utils/terminal/terminal_stream.h"
+#ifndef dt_UTILS_TERMINAL_SSTRING_h
+#define dt_UTILS_TERMINAL_SSTRING_h
 namespace dt {
 using std::size_t;
 
@@ -41,11 +43,19 @@ using std::size_t;
   */
 class sstring {
   private:
-    std::string str_;
-    size_t      size_;
+    friend class sstring_plain;
+    friend class sstring_stream;
+    class impl {
+      public:
+        virtual ~impl();
+        virtual size_t size() const = 0;
+        virtual void write(TerminalStream&) const = 0;
+        virtual const std::string& str() = 0;
+    };
+    std::shared_ptr<impl> impl_;
 
   public:
-    sstring();
+    sstring() = default;
     sstring(const sstring&) = default;
     sstring(sstring&&) noexcept = default;
     sstring& operator=(sstring&&) = default;
@@ -53,15 +63,37 @@ class sstring {
 
     explicit sstring(const std::string&);
     explicit sstring(std::string&&);
-    sstring(const std::string&, size_t n);
-    sstring(std::string&&, size_t n);
 
-    inline size_t size() const noexcept { return size_; }
-    inline const std::string& str() const noexcept { return str_; }
+    size_t size() const;
+    const std::string& str() const;
 
-  private:
-    static size_t _compute_string_size(const std::string&);
+  protected:
+    static size_t _compute_display_size(const std::string&);
 };
+
+
+
+class sstring_plain : public sstring::impl {
+  private:
+    std::string str_;
+    size_t      size_;
+
+  public:
+    sstring_plain();
+    explicit sstring_plain(const std::string&);
+    explicit sstring_plain(std::string&&);
+
+    size_t size() const override;
+    void write(TerminalStream&) const override;
+    const std::string& str() override;
+};
+
+
+
+class sstring_stream : public sstring::impl {
+
+};
+
 
 
 

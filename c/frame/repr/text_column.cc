@@ -132,8 +132,7 @@ sstring Data_TextColumn::_render_value_bool(const Column& col, size_t i) const {
   int8_t value;
   bool isvalid = col.get_element(i, &value);
   if (!isvalid) return na_value_;
-  return value? sstring("1", 1)
-              : sstring("0", 1);
+  return value? sstring("1") : sstring("0");
 }
 
 template <typename T>
@@ -291,7 +290,7 @@ sstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
     case SType::FLOAT64: return _render_value_float<double>(col, i);
     case SType::STR32:
     case SType::STR64:   return _render_value_string(col, i);
-    default: return sstring("", 0);
+    default: return sstring("");
   }
 }
 
