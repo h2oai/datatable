@@ -29,29 +29,38 @@ using std::size_t;
 
 
 /**
-  * This class represents a string whose display size in terminal
-  * is different from the string's byte-size. The difference could
-  * be due to:
+  * `tstring` is a string that we want to later display in a terminal.
+  * This class is different from a regular string in two respects:
   *
-  *   - string containing unicode characters which are encoded as
-  *     multi-byte UTF-8 sequences, yet are displayed as a single
-  *     character on screen;
+  *   - The `size()` method returns the display size of the string.
+  *     This will not be equal to string's byte-size if the string
+  *     contains Unicode characters, some of which may even be
+  *     double-width or zero-width;
   *
-  *   - string containing special terminal codes that affect the
-  *     color of the text, yet are not visible in the output;
+  *   - The string may be styled, i.e. it may have a font effect
+  *     (such as bold/italic) or a color applied. We even allow a
+  *     `tstring` to contain multiple different-styled fragments.
+  *
+  * The class uses standard Pimpl idiom, allowing different
+  * implementations depending on the complexity of the underlying
+  * string. The following API is exposed:
+  *
+  *   - size() : returns the display width of this string, taking
+  *       into account characters that may have double or zero display
+  *       width;
+  *
+  *   - write_to(out) : write the content of this string into the
+  *       provided output stream. Alternatively you can also write
+  *       `out << tstr`;
+  *
+  *   - str() : access the underlying raw string. This function is
+  *       only available for "simple" sstrings.
   *
   */
-class tstring {
+class tstring
+{
+  class impl;
   private:
-    friend class tstring_plain;
-    friend class tstring_stream;
-    class impl {
-      public:
-        virtual ~impl();
-        virtual size_t size() const = 0;
-        virtual void write(TerminalStream&) const = 0;
-        virtual const std::string& str() = 0;
-    };
     std::shared_ptr<impl> impl_;
 
   public:
@@ -68,8 +77,19 @@ class tstring {
     void write_to(TerminalStream&) const;
     const std::string& str() const;
 
-  protected:
+  private:
     static size_t _compute_display_size(const std::string&);
+
+    friend class tstring_plain;
+    friend class tstring_stream;
+    friend class tstring_styled;
+    class impl {
+      public:
+        virtual ~impl();
+        virtual size_t size() const = 0;
+        virtual void write(TerminalStream&) const = 0;
+        virtual const std::string& str() = 0;
+    };
 };
 
 
