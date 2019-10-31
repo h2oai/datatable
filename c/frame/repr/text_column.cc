@@ -211,7 +211,8 @@ static tstring _escape_unicode(int cp) {
   */
 tstring Data_TextColumn::_escape_string(const CString& str) const
 {
-  TerminalStream out(term_->colors_enabled());
+  tstring out;
+
   // -1 because we leave 1 char space for the ellipsis character.
   // On the other hand, when we reach the end of `str` we'll
   // increase the `remaining_width` by 1 once again.
@@ -237,7 +238,7 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
       if (ch == end) remaining_width++;
       auto escaped = _escaped_char(c);
       if (static_cast<int>(escaped.size()) > remaining_width) break;
-      out << escaped;
+      out << std::move(escaped);
     }
     // unicode character
     else {
@@ -258,8 +259,8 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
           ch = ch0;
           break;
         }
-        out << escaped;
         remaining_width -= escaped.size();
+        out << std::move(escaped);
       }
     }
   }
@@ -268,7 +269,7 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
     out << tstring(allow_unicode? "\xE2\x80\xA6" : "~",
                    style::dim);
   }
-  return tstring(out.str());
+  return out;
 }
 
 
