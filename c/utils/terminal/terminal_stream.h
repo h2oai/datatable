@@ -25,6 +25,7 @@
 #include <string>
 #include <sstream>
 #include "utils/assert.h"
+#include "utils/terminal/terminal_style.h"
 namespace dt {
 using std::size_t;
 
@@ -33,23 +34,9 @@ class tstring;
 
 class TerminalStream {
   private:
-    struct TStyle {  // TODO: replace with TerminalStyle
-      int8_t bold;
-      int8_t dim;
-      int8_t italic;
-      int8_t underln;
-      int8_t fgcolor;
-      int8_t bgcolor;
-      int : 16;
-
-      TStyle();
-      TStyle(const TStyle&) = default;
-      TStyle& operator=(const TStyle&) = default;
-    };
-
     std::ostringstream out_;
-    std::stack<TStyle> stack_;
-    TStyle current_;
+    std::stack<TerminalStyle> stack_;
+    TerminalStyle current_;
     bool use_colors_;
     size_t : 56;
 

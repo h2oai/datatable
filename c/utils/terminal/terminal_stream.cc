@@ -26,20 +26,11 @@ namespace dt {
 
 
 
-TerminalStream::TStyle::TStyle() {
-  bold = 0;
-  dim = 0;
-  italic = 0;
-  underln = 0;
-  fgcolor = 0;
-  bgcolor = 0;
-}
-
-
 
 TerminalStream::TerminalStream(bool use_colors) {
   use_colors_ = use_colors;
-  stack_.push(TStyle());
+  stack_.push(style::reset);
+  current_ = style::reset;
 }
 
 std::string TerminalStream::str() {
@@ -50,43 +41,30 @@ std::string TerminalStream::str() {
 
 
 template <>
-TerminalStream& TerminalStream::operator<<(const TerminalStyle& style) {
+TerminalStream& TerminalStream::operator<<(const TerminalStyle& sty) {
   if (!use_colors_) return *this;
-  if (style == TerminalStyle::END) {
+  if (sty == TerminalStyle::END) {
     xassert(stack_.size() >= 2);
     stack_.pop();
     return *this;
   }
 
-  auto newsty = stack_.top();  // copy
-  if (style & 255) {  // font styles
-    if (style & TerminalStyle::BOLD)      newsty.bold = 1;
-    if (style & TerminalStyle::NOBOLD)    newsty.bold = 0;
-    if (style & TerminalStyle::DIM)       newsty.dim = 1;
-    if (style & TerminalStyle::NODIM)     newsty.dim = 0;
-    if (style & TerminalStyle::ITALIC)    newsty.italic = 1;
-    if (style & TerminalStyle::NOITALIC)  newsty.italic = 0;
-    if (style & TerminalStyle::UNDERLN)   newsty.underln = 1;
-    if (style & TerminalStyle::NOUNDERLN) newsty.underln = 0;
+  TerminalStyle newsty = stack_.top();
+  if (style::has_style(sty)) {
+    if (style::is_bold(sty))      style::set_bold(newsty);
+    if (style::is_nobold(sty))    style::clear_bold(newsty);
+    if (style::is_dim(sty))       style::set_dim(newsty);
+    if (style::is_nodim(sty))     style::clear_dim(newsty);
+    if (style::is_italic(sty))    style::set_italic(newsty);
+    if (style::is_noitalic(sty))  style::clear_italic(newsty);
+    if (style::is_underln(sty))   style::set_underln(newsty);
+    if (style::is_nounderln(sty)) style::clear_underln(newsty);
   }
-  if (style & (255<<8)) {
-    switch (style & (255<<8)) {
-      case TerminalStyle::BLUE:      newsty.fgcolor = 34; break;
-      case TerminalStyle::BBLUE:     newsty.fgcolor = 94; break;
-      case TerminalStyle::CYAN:      newsty.fgcolor = 36; break;
-      case TerminalStyle::BCYAN:     newsty.fgcolor = 96; break;
-      case TerminalStyle::GREEN:     newsty.fgcolor = 32; break;
-      case TerminalStyle::BGREEN:    newsty.fgcolor = 92; break;
-      case TerminalStyle::GREY:      newsty.fgcolor = 90; break;
-      case TerminalStyle::MAGENTA:   newsty.fgcolor = 35; break;
-      case TerminalStyle::BMAGENTA:  newsty.fgcolor = 95; break;
-      case TerminalStyle::RED:       newsty.fgcolor = 31; break;
-      case TerminalStyle::BRED:      newsty.fgcolor = 91; break;
-      case TerminalStyle::WHITE:     newsty.fgcolor = 37; break;
-      case TerminalStyle::BWHITE:    newsty.fgcolor = 97; break;
-      case TerminalStyle::YELLOW:    newsty.fgcolor = 33; break;
-      case TerminalStyle::BYELLOW:   newsty.fgcolor = 93; break;
-    }
+  if (style::is_nocolor(sty)) {
+    style::clear_color(newsty);
+  }
+  if (style::has_color(sty)) {
+    style::set_color(newsty, sty);
   }
   stack_.push(newsty);
   return *this;
@@ -104,39 +82,31 @@ TerminalStream& TerminalStream::operator<<(const tstring& s) {
 
 void TerminalStream::_emit_pending_styles() {
   if (!use_colors_) return;
-  TStyle newsty = stack_.top();
-  TStyle oldsty = current_;
-  bool reset = (newsty.bold == 0    && oldsty.bold == 1) ||
-               (newsty.dim == 0     && oldsty.dim == 1) ||
-               (newsty.italic == 0  && oldsty.italic == 1) ||
-               (newsty.underln == 0 && oldsty.underln == 1) ||
-               (newsty.fgcolor == 0 && oldsty.fgcolor != 0) ||
-               (newsty.bgcolor == 0 && oldsty.bgcolor != 0);
-  bool add_bold    = (newsty.bold == 1)    && (reset || oldsty.bold == 0);
-  bool add_dim     = (newsty.dim == 1)     && (reset || oldsty.dim == 0);
-  bool add_italic  = (newsty.italic == 1)  && (reset || oldsty.italic == 0);
-  bool add_underln = (newsty.underln == 1) && (reset || oldsty.underln == 0);
-  bool add_fgcolor = (newsty.fgcolor > 0) &&
-                     (reset || oldsty.fgcolor != newsty.fgcolor);
-  bool add_bgcolor = (newsty.bgcolor > 0) &&
-                     (reset || oldsty.bgcolor != newsty.bgcolor);
+  TerminalStyle newsty = stack_.top();
+  TerminalStyle oldsty = current_;
+  bool reset = (!style::is_bold(newsty)    && style::is_bold(oldsty)) ||
+               (!style::is_dim(newsty)     && style::is_dim(oldsty)) ||
+               (!style::is_italic(newsty)  && style::is_italic(oldsty)) ||
+               (!style::is_underln(newsty) && style::is_underln(oldsty)) ||
+               (!style::has_color(newsty)  && style::has_color(oldsty));
+  bool add_bold    = style::is_bold(newsty)    && (reset || !style::is_bold(oldsty));
+  bool add_dim     = style::is_dim(newsty)     && (reset || !style::is_dim(oldsty));
+  bool add_italic  = style::is_italic(newsty)  && (reset || !style::is_italic(oldsty));
+  bool add_underln = style::is_underln(newsty) && (reset || !style::is_underln(oldsty));
+  bool add_fgcolor = style::has_color(newsty) &&
+                     (reset || style::get_color(oldsty) != style::get_color(newsty));
 
-  if (reset || add_bold || add_dim || add_italic || add_underln ||
-      add_fgcolor || add_bgcolor)
+  if (reset || add_bold || add_dim || add_italic || add_underln || add_fgcolor)
   {
     out_ << "\x1B[";
-    if (reset)       { out_ << "0;"; current_ = TStyle(); }
-    if (add_bold)    { out_ << "1;"; current_.bold = 1; }
-    if (add_dim)     { out_ << "2;"; current_.dim = 1; }
-    if (add_italic)  { out_ << "3;"; current_.italic = 1; }
-    if (add_underln) { out_ << "4;"; current_.underln = 1; }
+    if (reset)       { out_ << "0;"; current_ = style::reset; }
+    if (add_bold)    { out_ << "1;"; style::set_bold(current_); }
+    if (add_dim)     { out_ << "2;"; style::set_dim(current_); }
+    if (add_italic)  { out_ << "3;"; style::set_italic(current_); }
+    if (add_underln) { out_ << "4;"; style::set_underln(current_); }
     if (add_fgcolor) {
-      out_ << static_cast<int>(newsty.fgcolor) << ';';
-      current_.fgcolor = newsty.fgcolor;
-    }
-    if (add_bgcolor) {
-      out_ << static_cast<int>(newsty.bgcolor) << ';';
-      current_.bgcolor = newsty.bgcolor;
+      out_ << style::get_color(newsty) << ';';
+      style::set_color(current_, newsty);
     }
     out_.seekp(-1, out_.cur);  // overwrite the last ';'
     out_ << 'm';
