@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_TERMINAL_h
-#define dt_UTILS_TERMINAL_h
+#ifndef dt_UTILS_TERMINAL_TERMINAL_h
+#define dt_UTILS_TERMINAL_TERMINAL_h
 #include <memory>
 #include <string>
 namespace dt {

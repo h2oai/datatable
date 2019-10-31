@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_TERMINAL_STREAM_h
-#define dt_UTILS_TERMINAL_STREAM_h
+#ifndef dt_UTILS_TERMINAL_TERMINAL_STREAM_h
+#define dt_UTILS_TERMINAL_TERMINAL_STREAM_h
 #include <stack>
 #include <string>
 #include <sstream>

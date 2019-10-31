@@ -22,8 +22,8 @@
 #include <memory>
 #include <string>
 #include "utils/terminal/terminal_stream.h"
-#ifndef dt_UTILS_TERMINAL_SSTRING_h
-#define dt_UTILS_TERMINAL_SSTRING_h
+#ifndef dt_UTILS_TERMINAL_TSTRING_h
+#define dt_UTILS_TERMINAL_TSTRING_h
 namespace dt {
 using std::size_t;
 
@@ -44,7 +44,7 @@ using std::size_t;
 class tstring {
   private:
     friend class tstring_plain;
-    friend class sstring_stream;
+    friend class tstring_stream;
     class impl {
       public:
         virtual ~impl();
@@ -70,15 +70,6 @@ class tstring {
 
   protected:
     static size_t _compute_display_size(const std::string&);
-};
-
-
-
-
-
-
-class sstring_stream : public tstring::impl {
-
 };
 
 
