@@ -55,6 +55,11 @@ enum TerminalStyle : size_t {
   BYELLOW   = (15 << 8),
 };
 
+inline TerminalStyle operator|(TerminalStyle a, TerminalStyle b) {
+  return static_cast<TerminalStyle>(static_cast<size_t>(a) |
+                                    static_cast<size_t>(b));
+}
+
 
 
 namespace style2 {

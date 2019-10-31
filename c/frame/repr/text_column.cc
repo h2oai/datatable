@@ -182,7 +182,7 @@ static tstring _escaped_char(uint8_t a) {
   return tstring(escaped, style2::dim);
 }
 
-static std::string _escape_unicode(int cp) {
+static tstring _escape_unicode(int cp) {
   std::string escaped = (cp <= 0xFF)?   "\\x00" :
                         (cp <= 0xFFFF)? "\\u0000"
                                       : "\\U00000000";
@@ -194,7 +194,7 @@ static std::string _escape_unicode(int cp) {
     --i;
     cp >>= 4;
   }
-  return escaped;
+  return tstring(escaped, style2::dim);
 }
 
 
@@ -258,16 +258,15 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
           ch = ch0;
           break;
         }
-        out << style::dim << escaped << style::end;
+        out << escaped;
         remaining_width -= escaped.size();
       }
     }
   }
   // If we broke out of loop earlty, ellipsis needs to be added
   if (ch < end) {
-    out << style::dim
-        << (allow_unicode? "\xE2\x80\xA6" : "~")
-        << style::end;
+    out << tstring(allow_unicode? "\xE2\x80\xA6" : "~",
+                   style2::dim);
   }
   return tstring(out.str());
 }
@@ -364,9 +363,7 @@ VSep_TextColumn::VSep_TextColumn() : TextColumn() {
 
 
 void VSep_TextColumn::print_name(TerminalStream& out) const {
-  out << style::nobold
-          << style::grey << "|" << style::end
-      << style::end;
+  out << tstring("|", style2::nobold|style2::grey);
 }
 
 void VSep_TextColumn::print_separator(TerminalStream& out) const {
@@ -374,7 +371,7 @@ void VSep_TextColumn::print_separator(TerminalStream& out) const {
 }
 
 void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
-  out << style::grey << "|" << style::end;
+  out << tstring("|", style2::grey);
 }
 
 
@@ -384,8 +381,8 @@ void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
 //------------------------------------------------------------------------------
 
 Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
-  ell_ = term_->unicode_allowed()? tstring("\xE2\x80\xA6")  // ...
-                                 : tstring("~");
+  ell_ = tstring(term_->unicode_allowed()? "\xE2\x80\xA6" : "~",
+                 style2::dim|style2::nobold);
   width_ = 1;
   margin_left_ = true;
   margin_right_ = true;
@@ -406,7 +403,7 @@ void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
 
 void Ellipsis_TextColumn::print_value(TerminalStream& out, size_t) const {
   out << std::string(margin_left_, ' ');
-  out << style::dim << ell_ << style::end;
+  out << ell_;
   out << std::string(margin_right_, ' ');
 }
 
