@@ -30,6 +30,7 @@ from datatable import ltype
 from datatable.models import aggregate
 from tests import assert_equals
 from datatable.internal import frame_columns_virtual, frame_integrity_check
+import pytest
 
 
 #-------------------------------------------------------------------------------
@@ -478,24 +479,16 @@ def test_aggregate_3d_real():
     assert_equals(d_in, d_in_copy)
 
 
-
-def test_aggregate_nd_direct():
-    max_dimensions = 50
-    aggregate_nd(max_dimensions // 2)
-
-
-def test_aggregate_nd_projection():
-    max_dimensions = 50
-    aggregate_nd(max_dimensions * 2)
-
-
-def aggregate_nd(nd):
+# Since the default number of `max_dimensions` parameter is 50,
+# this will test both the direct and projected methods.
+@pytest.mark.parametrize("ncols", [25, 100])
+def test_aggregate_nd(ncols):
     nrows = 1000
     div = 50
     column = [i % div for i in range(nrows)]
-    matrix = [column] * nd
-    out_types = [ltype.int] * nd + [ltype.int]
-    out_value = [list(range(div))] * nd + \
+    matrix = [column] * ncols
+    out_types = [ltype.int] * ncols + [ltype.int]
+    out_value = [list(range(div))] * ncols + \
                 [[nrows // div] * div]
 
     d_in = dt.Frame(matrix)
@@ -532,10 +525,22 @@ def aggregate_nd(nd):
         assert(i % div == d_exemplars[d_members[i, 0], 0])
 
     frame_integrity_check(d_exemplars)
-    assert d_exemplars.shape == (div, nd + 1)
+    assert d_exemplars.shape == (div, ncols + 1)
     assert d_exemplars.ltypes == tuple(out_types)
     assert d_exemplars.sort("C0").to_list() == out_value
     assert_equals(d_in, d_in_copy)
+
+
+@pytest.mark.parametrize("ncols", [25, 100])
+def test_aggregate_nd_none(ncols):
+    nrows = 10000
+    DT = dt.Frame([[None] * nrows] * ncols)
+    [DTE, DTM] = aggregate(DT)
+    frame_integrity_check(DT)
+    frame_integrity_check(DTE)
+    frame_integrity_check(DTM)
+    assert DTE.to_list() ==  [[None]] * ncols + [[nrows]]
+    assert DTM.to_list() == [[0] * nrows]
 
 
 #-------------------------------------------------------------------------------
