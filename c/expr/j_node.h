@@ -40,7 +40,6 @@ class j_node {
     virtual ~j_node();
     virtual GroupbyMode get_groupby_mode(EvalContext&) = 0;
     virtual void select(EvalContext&) = 0;
-    virtual void delete_(EvalContext&) = 0;
     virtual void update(EvalContext&, repl_node*) = 0;
 };
 

@@ -28,11 +28,22 @@ namespace dt {
 namespace expr {
 
 
+/**
+  * Head corresponding to a datatable Frame being used in a DT[i,j]
+  * expression. This class is also used when there is a numpy array
+  * or a pandas DataFrame.
+  *
+  * The field `container_` holds python object that owns the Frame,
+  * thus ensuring that the `DataTable*` pointer `dt_` remains valid.
+  *
+  * The flag `ignore_names_` is set when the class is create from a
+  * numpy array, since the numpy array has no column names.
+  */
 class Head_Frame : public Head {
   private:
-    py::oobj container;
-    DataTable* dt;
-    bool ignore_names;
+    py::oobj container_;
+    DataTable* dt_;
+    bool ignore_names_;
     size_t : 56;
 
   public:
@@ -45,6 +56,7 @@ class Head_Frame : public Head {
 
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_r(const vecExpr&, EvalContext&, const std::vector<SType>&) const override;
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;

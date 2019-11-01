@@ -44,6 +44,10 @@ class Head_Func : public Head {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
+
+    Workframe evaluate_r(const vecExpr& args,
+                         EvalContext& ctx,
+                         const std::vector<SType>& stypes) const override;
 };
 
 
@@ -109,18 +113,6 @@ class Head_Func_Binary : public Head_Func {
     explicit Head_Func_Binary(Op);
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
-
-
-
-class Head_Func_Reduce : public Head_Func {
-  private:
-    Op op;
-
-  public:
-    explicit Head_Func_Reduce(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-};
-
 
 
 

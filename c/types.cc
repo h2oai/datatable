@@ -320,13 +320,13 @@ LType info::ltype() const {
 const char* info::ltype_name(LType lt) {
   switch (lt) {
     case LType::MU:       return "void";
-    case LType::BOOL:     return "bool";
-    case LType::INT:      return "int";
-    case LType::REAL:     return "real";
-    case LType::STRING:   return "str";
+    case LType::BOOL:     return "boolean";
+    case LType::INT:      return "integer";
+    case LType::REAL:     return "float";
+    case LType::STRING:   return "string";
     case LType::DATETIME: return "time";
     case LType::DURATION: return "duration";
-    case LType::OBJECT:   return "obj";
+    case LType::OBJECT:   return "object";
   }
   throw RuntimeError() << "Unknown ltype " << int(lt); // LCOV_EXCL_LINE
 }

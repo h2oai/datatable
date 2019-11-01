@@ -270,32 +270,34 @@ void EvalContext::evaluate_delete_subframe() {
 // UPDATE
 //------------------------------------------------------------------------------
 
-// Similarly to DELETE, there are 4 conceptual cases here:
-//   - evaluate_update_everything(): `DT[:, :] = R`
-//   - evaluate_update_columns():    `DT[:, j] = R`
+// Similarly to DELETE, there are 3 cases to consider here:
+//   - evaluate_update_columns():    `DT[:, j] = R` or `DT[:, :] = R`
 //   - evaluate_update_rows():       `DT[i, :] = R`
 //   - evaluate_update_subframe():   `DT[i, j] = R`
 //
 void EvalContext::evaluate_update() {
-  jexpr->update(*this, repl.get());
-  /*
   bool allrows = !(frames[0].ri);
   bool allcols = (jexpr2.get_expr_kind() == expr::Kind::SliceAll);
-  if (allcols) {
-    if (allrows) evaluate_update_everything();
-    else         evaluate_update_rows();
-  } else {
-    if (allrows) evaluate_update_columns();
-    else         evaluate_update_subframe();
-  }
-  */
+
+  if (allrows)      evaluate_update_columns();
+  else if (allcols) evaluate_update_rows();
+  else              evaluate_update_subframe();
 }
 
 
 void EvalContext::evaluate_update_columns() {
   auto dt0 = get_datatable(0);
-  auto replacement = repl2.evaluate_n(*this);
+  auto ncols = dt0->ncols();
   auto indices = evaluate_j_as_column_index();
+
+  std::vector<SType> stypes;
+  stypes.reserve(indices.size());
+  for (size_t i : indices) {
+    stypes.push_back(i < ncols? dt0->get_column(i).stype()
+                              : SType::VOID);
+  }
+
+  expr::Workframe replacement = repl2.evaluate_r(*this, stypes);
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);
@@ -307,9 +309,6 @@ void EvalContext::evaluate_update_columns() {
   }
 }
 
-void EvalContext::evaluate_update_everything() {
-  jexpr->update(*this, repl.get());
-}
 
 void EvalContext::evaluate_update_rows() {
   jexpr->update(*this, repl.get());
@@ -338,13 +337,8 @@ void EvalContext::typecheck_for_update(
       auto llt = lcol.ltype();
       auto rlt = rcol.ltype();
       bool ok = (llt == rlt) ||
-                (llt == LType::INT && rlt == LType::BOOL) ||
                 (llt == LType::REAL && rlt == LType::INT);
-      if (ok) {
-        Column newcol = replframe.retrieve_column(i);
-        newcol.cast_inplace(lcol.stype());
-        replframe.replace_column(i, std::move(newcol));
-      } else {
+      if (!ok) {
         throw TypeError() << "Cannot assign " << rlt
           << " value to column `" << dt0->get_names()[indices[i]]
           << "` of type " << lcol.stype();

@@ -51,23 +51,12 @@ namespace dt {
  *   When 2 or more frames are joined, this selector will select all columns
  *   from all joined Frames, with the exception of natural joins, where the key
  *   columns of joined Frames will be excluded from the result.
- *
- * delete_()
- *   Even if several frames are joined, the delete() operator applies only to
- *   the "main" subframe.
- *   When `j` expression selects all columns, the delete() operator removes
- *   the rows from a Frame. This is achieved by computing the Rowindex implied
- *   by the `i` expression, then negating that Rowindex and applying it to the
- *   source frame.
- *   However, when `i` is "all rows", then deleting all rows + all columns
- *   completely empties the Frame: its shape becomes [0 x 0].
  */
 class allcols_jnode : public j_node {
   public:
     allcols_jnode() = default;
     GroupbyMode get_groupby_mode(EvalContext&) override;
     void select(EvalContext&) override;
-    void delete_(EvalContext&) override;
     void update(EvalContext&, repl_node*) override;
 };
 
@@ -93,18 +82,6 @@ void allcols_jnode::select(EvalContext& ctx) {
                     rii,
                     std::string(dti_column_names[j]));
     }
-  }
-}
-
-
-void allcols_jnode::delete_(EvalContext& ctx) {
-  DataTable* dt0 = ctx.get_datatable(0);
-  const RowIndex& ri0 = ctx.get_rowindex(0);
-  if (ri0) {
-    RowIndex ri_neg = ri0.negate(dt0->nrows());
-    dt0->apply_rowindex(ri_neg);
-  } else {
-    dt0->delete_all();
   }
 }
 
@@ -142,12 +119,6 @@ void allcols_jnode::update(EvalContext& ctx, repl_node* repl) {
  *   RowIndex, if any, is applied to all these columns. The joined frames are
  *   ignored, as well as any groupby information.
  *
- * delete_()
- *   When `i` node is `allrows_in`, then the columns at given indices are
- *   deleted (the indices should also be deduplicated). Otherwise, the
- *   deletion region is a subset of rows/columns, and we just set the values
- *   at those places to NA.
- *
  */
 class simplelist_jnode : public j_node {
   private:
@@ -158,7 +129,6 @@ class simplelist_jnode : public j_node {
     explicit simplelist_jnode(collist&&);
     GroupbyMode get_groupby_mode(EvalContext&) override;
     void select(EvalContext&) override;
-    void delete_(EvalContext&) override;
     void update(EvalContext&, repl_node*) override;
 
   private:
@@ -192,19 +162,6 @@ void simplelist_jnode::select(EvalContext& ctx) {
     size_t j = indices[i];
     Column newcol = dt0->get_column(j);  // copy
     ctx.add_column(std::move(newcol), ri0, std::move(names[i]));
-  }
-}
-
-
-void simplelist_jnode::delete_(EvalContext& ctx) {
-  DataTable* dt0 = ctx.get_datatable(0);
-  const RowIndex& ri0 = ctx.get_rowindex(0);
-  if (ri0) {
-    for (size_t i : indices) {
-      dt0->get_column(i).replace_values(ri0, Column());
-    }
-  } else {
-    dt0->delete_columns(indices);
   }
 }
 
@@ -275,7 +232,6 @@ class exprlist_jn : public j_node {
     explicit exprlist_jn(collist&&);
     GroupbyMode get_groupby_mode(EvalContext&) override;
     void select(EvalContext&) override;
-    void delete_(EvalContext&) override;
     void update(EvalContext&, repl_node*) override;
 
   private:
@@ -314,24 +270,6 @@ void exprlist_jn::select(EvalContext& ctx) {
     auto col = exprs[i]->evaluate(ctx);
     ctx.add_column(std::move(col), ri0, std::move(names[i]));
   }
-}
-
-
-void exprlist_jn::delete_(EvalContext& ctx) {
-  for (size_t i = 0; i < exprs.size(); ++i) {
-    auto colexpr = dynamic_cast<dt::expr::expr_column*>(exprs[i].get());
-    if (!colexpr) {
-      throw TypeError() << "Item " << i << " in the `j` selector list is a "
-        "computed expression and cannot be deleted";
-    }
-    if (colexpr->get_col_frame(ctx) > 0) {
-      throw TypeError() << "Item " << i << " in the `j` selector list is a "
-        "column from a joined frame and cannot be deleted";
-    }
-  }
-  // An `exprlist_jn` cannot contain all exprs that are `expr_column`s and their
-  // frame_id is 0. Such node should have been created as `simplelist_jnode` instead.
-  xassert(false);  // LCOV_EXCL_LINE
 }
 
 

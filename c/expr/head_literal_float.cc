@@ -39,6 +39,30 @@ Workframe Head_Literal_Float::evaluate_n(const vecExpr&, EvalContext& ctx) const
 }
 
 
+// A float value is assigned to a DT[i,j] expression:
+//
+//   DT[:, j] = -1
+//
+// The `j` columns must be float.
+//
+Workframe Head_Literal_Float::evaluate_r(
+    const vecExpr&, EvalContext& ctx, const std::vector<SType>& stypes) const
+{
+  Workframe outputs(ctx);
+  for (SType stype : stypes) {
+    if (!(stype == SType::FLOAT32 || stype == SType::FLOAT64)) {
+      // Either type mismatch (the caller will throw an error then),
+      // or stype is VOID, in which case we default to FLOAT64
+      stype = SType::FLOAT64;
+    }
+    outputs.add_column(
+        Const_ColumnImpl::make_float_column(1, value, stype),
+        "", Grouping::SCALAR);
+  }
+  return outputs;
+}
+
+
 Workframe Head_Literal_Float::evaluate_f(EvalContext&, size_t, bool) const {
   throw TypeError() << "A floating-point value cannot be used as a "
                        "column selector";
