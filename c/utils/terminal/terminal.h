@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_UTILS_TERMINAL_h
-#define dt_UTILS_TERMINAL_h
+#ifndef dt_UTILS_TERMINAL_TERMINAL_h
+#define dt_UTILS_TERMINAL_TERMINAL_h
 #include <memory>
 #include <string>
 namespace dt {
@@ -54,34 +54,6 @@ class Terminal {
     static Terminal& standard_terminal();
     static Terminal& plain_terminal();
     void initialize();
-
-    string bold     ()              const;
-    string bold     (const string&) const;
-    string dim      ()              const;
-    string dim      (const string&) const;
-    string invert   (const string&) const;
-    string italic   ()              const;
-    string italic   (const string&) const;
-    string reset    ()              const;
-    string underline(const string&) const;
-
-    string blue     (const string&) const;
-    string blueB    (const string&) const;
-    string cyan     (const string&) const;
-    string cyanB    (const string&) const;
-    string cyanD    (const string&) const;
-    string green    (const string&) const;
-    string greenB   (const string&) const;
-    string grey     ()              const;
-    string grey     (const string&) const;
-    string magenta  (const string&) const;
-    string magentaB (const string&) const;
-    string red      (const string&) const;
-    string redB     (const string&) const;
-    string white    (const string&) const;
-    string whiteB   (const string&) const;
-    string yellow   (const string&) const;
-    string yellowB  (const string&) const;
 
     bool is_jupyter() const noexcept;
     bool is_ipython() const noexcept;

@@ -17,7 +17,7 @@
 #include "progress/progress_bar.h"
 #include "python/string.h"          // py::ostring
 #include "utils/assert.h"
-#include "utils/terminal.h"
+#include "utils/terminal/terminal.h"
 #include "options.h"                // dt::get_option
 namespace dt {
 namespace progress {

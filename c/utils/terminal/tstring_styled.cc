@@ -19,53 +19,65 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_FRAME_REPR_TERMINAL_WIDGET_h
-#define dt_FRAME_REPR_TERMINAL_WIDGET_h
-#include <iostream>
-#include <memory>
-#include <vector>
-#include "frame/repr/text_column.h"
-#include "frame/repr/widget.h"
-#include "python/_all.h"
-#include "utils/terminal/terminal_stream.h"
+#include "utils/assert.h"
+#include "utils/terminal/tstring.h"
+#include "utils/terminal/terminal_style.h"
+#include "encodings.h"
 namespace dt {
+using std::size_t;
 
-using text_column = std::unique_ptr<TextColumn>;
+static size_t UNKNOWN = size_t(-1);
 
 
-/**
-  * This class is responsible for rendering a Frame into a terminal
-  * as a text.
-  */
-class TerminalWidget : public Widget {
-  private:
-    TerminalStream out_;
-    std::vector<text_column> text_columns_;
-    dt::Terminal* terminal_;
-    bool has_rowindex_column_;
-    size_t : 56;
 
-  public:
-    TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag);
+tstring_styled::tstring_styled(const std::string& s, TerminalStyle style)
+  : str_(s),
+    size_(UNKNOWN),
+    style_(style) {}
 
-    py::oobj to_python();
-    void     to_stdout();
 
-  protected:
-    void _render() override;
+tstring_styled::tstring_styled(std::string&& s, TerminalStyle style)
+  : str_(std::move(s)),
+    size_(UNKNOWN),
+    style_(style) {}
 
-  private:
-    void _prerender_columns(int terminal_width);
-    std::vector<size_t> _order_colindices() const;
 
-    void _render_column_names();
-    void _render_header_separator();
-    void _render_data();
-    void _render_footer();
-};
+size_t tstring_styled::size() {
+  if (size_ == UNKNOWN) {
+    size_ = _compute_display_size(str_);
+  }
+  return size_;
+}
+
+
+void tstring_styled::write(TerminalStream& out) const {
+  out << style_ << str_ << TerminalStyle::END;
+}
+
+
+const std::string& tstring_styled::str() {
+  return str_;
+}
+
+
+void tstring_styled::append(const std::string& str, tstring& parent) {
+  parent.convert_to_mixed();
+  parent << str;
+}
+
+
+void tstring_styled::append(tstring&& str, tstring& parent) {
+  auto styledstr = dynamic_cast<tstring_styled*>(str.impl_.get());
+  if (styledstr && styledstr->style_ == style_) {
+    str_ += styledstr->str_;
+    size_ = UNKNOWN;
+  } else {
+    parent.convert_to_mixed();
+    parent.impl_->append(std::move(str), parent);
+  }
+}
 
 
 
 
 }  // namespace dt
-#endif

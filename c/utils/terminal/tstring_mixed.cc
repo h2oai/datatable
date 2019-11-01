@@ -19,53 +19,61 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_FRAME_REPR_TERMINAL_WIDGET_h
-#define dt_FRAME_REPR_TERMINAL_WIDGET_h
-#include <iostream>
-#include <memory>
 #include <vector>
-#include "frame/repr/text_column.h"
-#include "frame/repr/widget.h"
-#include "python/_all.h"
-#include "utils/terminal/terminal_stream.h"
+#include "utils/assert.h"
+#include "utils/terminal/tstring.h"
 namespace dt {
 
-using text_column = std::unique_ptr<TextColumn>;
+static size_t UNKNOWN = size_t(-1);
 
 
-/**
-  * This class is responsible for rendering a Frame into a terminal
-  * as a text.
-  */
-class TerminalWidget : public Widget {
-  private:
-    TerminalStream out_;
-    std::vector<text_column> text_columns_;
-    dt::Terminal* terminal_;
-    bool has_rowindex_column_;
-    size_t : 56;
 
-  public:
-    TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag);
+tstring_mixed::tstring_mixed() : size_(0) {}
 
-    py::oobj to_python();
-    void     to_stdout();
 
-  protected:
-    void _render() override;
+size_t tstring_mixed::size() {
+  if (size_ == UNKNOWN) {
+    size_ = 0;
+    for (const auto& part : parts_) size_ += part.size();
+  }
+  return size_;
+}
 
-  private:
-    void _prerender_columns(int terminal_width);
-    std::vector<size_t> _order_colindices() const;
 
-    void _render_column_names();
-    void _render_header_separator();
-    void _render_data();
-    void _render_footer();
-};
+void tstring_mixed::write(TerminalStream& out) const {
+  for (const tstring& part : parts_) {
+    out << part;
+  }
+}
+
+
+const std::string& tstring_mixed::str() {
+  return tstring_impl::empty_;
+}
+
+
+void tstring_mixed::append(tstring&& str, tstring&) {
+  size_ = UNKNOWN;
+  parts_.emplace_back(std::move(str));
+}
+
+
+void tstring_mixed::append(const std::string& str, tstring&) {
+  size_ = UNKNOWN;
+  if (parts_.empty()) {
+    parts_.emplace_back(str);
+  }
+  else {
+    tstring& lastpart = parts_.back();
+    if (dynamic_cast<const tstring_plain*>(lastpart.impl_.get())) {
+      lastpart << str;
+    } else {
+      parts_.emplace_back(str);
+    }
+  }
+}
 
 
 
 
 }  // namespace dt
-#endif
