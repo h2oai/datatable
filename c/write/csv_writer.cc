@@ -81,6 +81,7 @@ void csv_writer::estimate_output_size() {
 void csv_writer::write_preamble() {
   const strvec& column_names = dt->get_names();
   if (column_names.empty()) return;
+  if (!write_header_) return;
 
   Column names_as_col = Column(new Strvec_ColumnImpl(column_names));
   auto writer = value_writer::create(names_as_col, options);

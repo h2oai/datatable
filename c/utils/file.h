@@ -24,6 +24,7 @@ class File
   int flags;
 
 public:
+  static const int APPEND;
   static const int READ;
   static const int READWRITE;
   static const int CREATE;
