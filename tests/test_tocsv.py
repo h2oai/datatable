@@ -536,3 +536,41 @@ def test_compress_invalid():
         DT.to_csv(compression="rar")
     assert ("Unsupported compression method 'rar' in Frame.to_csv()"
             == str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# Parameter header=
+#-------------------------------------------------------------------------------
+
+def test_header():
+    DT = dt.Frame(A=[5])
+    assert DT.to_csv() == "A\n5\n"
+    assert DT.to_csv(header=True) == "A\n5\n"
+    assert DT.to_csv(header=False) == "5\n"
+
+
+def test_header2():
+    DT = dt.Frame(A=range(3), B=[5]*3, ZZZ=['yes', 'no', None])
+    DT = DT[:, ["A", "B", "ZZZ"]]  # for py3.5
+    assert DT.to_csv(header=False) == ("0,5,yes\n"
+                                       "1,5,no\n"
+                                       "2,5,\n")
+
+
+def test_header_valid():
+    DT = dt.Frame(names=["Q"])
+    assert DT.to_csv(header=False) == ''
+    assert DT.to_csv(header=True) == 'Q\n'
+    assert DT.to_csv(header=None) == 'Q\n'
+
+
+def test_header_invalid():
+    msg = r"Argument `header` in Frame\.to_csv\(\) should be a boolean"
+    DT = dt.Frame()
+    with pytest.raises(TypeError, match=msg):
+        DT.to_csv(header=1)
+    with pytest.raises(TypeError, match=msg):
+        DT.to_csv(header="yes")
+    with pytest.raises(TypeError, match=msg):
+        DT.to_csv(header=[])
