@@ -38,7 +38,8 @@ WritableBuffer::~WritableBuffer() {}
 // a CSV by a factor of 2 (on a 4GB file).
 //
 std::unique_ptr<WritableBuffer> WritableBuffer::create_target(
-    const std::string& path, size_t size, WritableBuffer::Strategy strategy)
+    const std::string& path, size_t size, WritableBuffer::Strategy strategy,
+    bool append)
 {
   WritableBuffer* res = nullptr;
   if (path.empty()) {
@@ -52,10 +53,10 @@ std::unique_ptr<WritableBuffer> WritableBuffer::create_target(
       #endif
     }
     if (strategy == Strategy::Write) {
-      res = new FileWritableBuffer(path);
+      res = new FileWritableBuffer(path, append);
     }
     if (strategy == Strategy::Mmap) {
-      res = new MmapWritableBuffer(path, size);
+      res = new MmapWritableBuffer(path, size, append);
     }
   }
   return std::unique_ptr<WritableBuffer>(res);
@@ -67,8 +68,9 @@ std::unique_ptr<WritableBuffer> WritableBuffer::create_target(
 // FileWritableBuffer
 //==============================================================================
 
-FileWritableBuffer::FileWritableBuffer(const std::string& path) {
-  file = new File(path, File::OVERWRITE);
+FileWritableBuffer::FileWritableBuffer(const std::string& path, bool append) {
+  file = new File(path, append? File::APPEND
+                              : File::OVERWRITE);
   TRACK(this, sizeof(*this), "FileWritableBuffer");
 }
 
@@ -231,7 +233,8 @@ std::string MemoryWritableBuffer::get_string() {
 // MmapWritableBuffer
 //==============================================================================
 
-MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size)
+MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size,
+                                       bool append)
   : ThreadsafeWritableBuffer(), filename(path)
 {
   File file(path, File::CREATE);

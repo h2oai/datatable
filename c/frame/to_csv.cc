@@ -41,12 +41,14 @@ static void change_to_lowercase(std::string& str) {
 //------------------------------------------------------------------------------
 
 static PKArgs args_to_csv(
-    0, 1, 5, false, false,
-    {"path", "quoting", "hex", "compression", "verbose", "_strategy"},
+    0, 1, 7, false, false,
+    {"path", "quoting", "append", "header", "hex", "compression", "verbose",
+     "_strategy"},
     "to_csv",
 
-R"(to_csv(self, path=None, *, quoting="minimal", hex=False,
-       compression=None, verbose=False, _strategy="auto")
+R"(to_csv(self, path=None, *, quoting="minimal", append=False,
+       header=..., hex=False, compression=None, verbose=False,
+       _strategy="auto")
 --
 
 Write the Frame into the provided file in CSV format.
@@ -75,6 +77,17 @@ quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
     csv.QUOTE_NONE (3)
         none of the fields will be quoted. This option must be used
         at user's own risk: the file produced may not be valid CSV.
+
+append: bool
+    If True, the file given in the `path` parameter will be opened
+    for appending (i.e. mode="a"), or created if it doesn't exist.
+    If False (default), the file given in the `path` will be
+    overwritten if it already exists.
+
+header: bool | ...
+    This option controls whether or not to write headers into the
+    output file. If this option is omitted, then the headers will be
+    written if `append` is False, and not written if `append` is True.
 
 hex: bool
     If True, then all floating-point values will be printed in hex
@@ -111,8 +124,17 @@ a bytes object will be returned instead.
 
 oobj Frame::to_csv(const PKArgs& args)
 {
+  const Arg& arg_path     = args[0];
+  const Arg& arg_quoting  = args[1];
+  const Arg& arg_append   = args[2];
+  const Arg& arg_header   = args[3];
+  const Arg& arg_hex      = args[4];
+  const Arg& arg_compress = args[5];
+  const Arg& arg_verbose  = args[6];
+  const Arg& arg_strategy = args[7];
+
   // path
-  oobj path = args[0].to<oobj>(ostring(""));
+  oobj path = arg_path.to<oobj>(ostring(""));
   if (!path.is_string()) {
     throw TypeError() << "Parameter `path` in Frame.to_csv() should be a "
         "string, instead got " << path.typeobj();
@@ -122,8 +144,8 @@ oobj Frame::to_csv(const PKArgs& args)
 
   // quoting
   int quoting;
-  if (args[1].is_string()) {
-    auto quoting_str = args[1].to_string();
+  if (arg_quoting.is_string()) {
+    auto quoting_str = arg_quoting.to_string();
     change_to_lowercase(quoting_str);
     if (quoting_str == "minimal") quoting = 0;
     else if (quoting_str == "all") quoting = 1;
@@ -134,18 +156,29 @@ oobj Frame::to_csv(const PKArgs& args)
           "Frame.to_csv(): '" << quoting_str << "'";
     }
   } else {
-    quoting = args[1].to<int>(0);
+    quoting = arg_quoting.to<int>(0);
     if (quoting < 0 || quoting > 3) {
       throw ValueError() << "Invalid value of the `quoting` parameter in "
           "Frame.to_csv(): " << quoting;
     }
   }
 
+  // append
+  bool append = arg_append.to<bool>(false);
+  if (append && filename.empty()) {
+    throw ValueError() << "`append` parameter is set to True, but the "
+        "output file is not specified";
+  }
+
+  // header
+  bool header = arg_header.is_ellipsis()? !append
+                                        : arg_header.to<bool>(!append);
+
   // hex
-  bool hex = args[2].to<bool>(false);
+  bool hex = arg_hex.to<bool>(false);
 
   // compress
-  auto compress_str = args[3].to<std::string>("infer");
+  auto compress_str = arg_compress.to<std::string>("infer");
   bool compress = false;  // eventually this will be an Enum
   if (compress_str == "infer") {
     size_t n = filename.size();
@@ -160,19 +193,21 @@ oobj Frame::to_csv(const PKArgs& args)
   }
 
   // verbose
-  bool verbose = args[4].to<bool>(false);
+  bool verbose = arg_verbose.to<bool>(false);
   oobj logger;
   if (verbose) {
     logger = oobj::import("datatable", "_DefaultLogger").call();
   }
 
-  auto strategy = args[5].to<std::string>("");
+  auto strategy = arg_strategy.to<std::string>("");
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
                    (strategy == "write") ? WritableBuffer::Strategy::Write :
                                            WritableBuffer::Strategy::Auto;
 
   // Create the CsvWriter object
   dt::write::csv_writer writer(dt, filename);
+  writer.set_append(append);
+  writer.set_header(header);
   writer.set_strategy(sstrategy);
   writer.set_usehex(hex);
   writer.set_logger(logger);

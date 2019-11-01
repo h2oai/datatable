@@ -75,7 +75,9 @@ class write_manager {
     std::string path;
     output_options options;
     WritableBuffer::Strategy strategy;
-    size_t : 56;
+    bool append_;
+    bool write_header_;
+    size_t : 40;
 
     // Runtime parameters
     write_chronicler chronicler;
@@ -96,6 +98,8 @@ class write_manager {
     write_manager(write_manager&&) = delete;
     virtual ~write_manager();
 
+    void set_append(bool);
+    void set_header(bool);
     void set_strategy(WritableBuffer::Strategy);
     void set_logger(py::oobj logger);
     void set_usehex(bool);

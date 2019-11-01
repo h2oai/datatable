@@ -46,6 +46,14 @@ write_manager::~write_manager() {}
 
 //---- Deferred initialization of certain parameters ----
 
+void write_manager::set_append(bool f) {
+  append_ = f;
+}
+
+void write_manager::set_header(bool f) {
+  write_header_ = f;
+}
+
 void write_manager::set_strategy(WritableBuffer::Strategy strategy_) {
   strategy = strategy_;
 }
