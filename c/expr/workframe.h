@@ -104,6 +104,7 @@ class Workframe {
     bool is_reference_column(size_t i, size_t* iframe, size_t* icol) const;
     bool is_placeholder_column(size_t i) const;
 
+    void repeat_columns(size_t n);
     void reshape_for_update(size_t target_nrows, size_t target_ncols);
     const Column& get_column(size_t i) const;
     std::string retrieve_name(size_t i);

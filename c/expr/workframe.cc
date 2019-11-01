@@ -154,6 +154,13 @@ bool Workframe::is_reference_column(
 }
 
 
+void Workframe::repeat_columns(size_t n) {
+  xassert(ncols() == 1);
+  if (n == 1) return;
+  entries.resize(n, entries[0]);
+}
+
+
 // Ensure that this workframe is suitable for updating a region
 // of the requested shape [target_nrows x target_ncols].
 //
