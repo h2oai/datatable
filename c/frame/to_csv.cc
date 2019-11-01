@@ -86,8 +86,11 @@ append: bool
 
 header: bool | ...
     This option controls whether or not to write headers into the
-    output file. If this option is omitted, then the headers will be
-    written if `append` is False, and not written if `append` is True.
+    output file. If this option is not given (or equal to ...), then
+    the headers will be written unless the option `append` is True
+    and the file `path` already exists. Thus, by default the headers
+    will be written in all cases except when appending content into
+    an existing file.
 
 hex: bool
     If True, then all floating-point values will be printed in hex
