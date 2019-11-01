@@ -23,14 +23,46 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
-
-bold = lambda s: "\x1b[1m" + s + "\x1b[m"
-dim = lambda s: "\x1b[2m" + s + "\x1b[m"
-grey = lambda s: "\x1b[90m" + s + "\x1b[m"
-vsep = grey('|')
-na = dim('NA')
+import re
 
 
+def color_line(s):
+    return re.sub(r"((?:NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
+                  "\x1b[2m\\1\x1b[0m", s)
+
+
+def color_header(s):
+    return re.sub(r"((?:NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
+                  "\x1b[2m\\1\x1b[0;1m", s)
+
+
+def check_colored_output(actual, header, separator, *body, keyed=False):
+    header1, header2 = color_header(header).split('|', 2)
+    footer = body[-1]
+    out = ''
+    out += "\x1b[1m" + header1
+    out += "\x1b[0;90m" + "|"
+    out += "\x1b[0;1m" + header2 + "\x1b[0m" + '\n'
+    out += "\x1b[90m" + separator + "\x1b[0m" + '\n'
+    for line in body[:-1]:
+        line1, line2 = color_line(line).split('|', 2)
+        if keyed:
+            out += line1 + "\x1b[90m|"
+        else:
+            out += "\x1b[90m" + line1 + '|'
+        out += "\x1b[0m" + line2 + '\n'
+    out += '\n'
+    out += "\x1b[2m" + footer + "\x1b[0m\n"
+    if out != actual:
+        raise AssertionError("Invalid Frame display:\n"
+                             "expected = %r\n"
+                             "actual   = %r\n" % (out, actual))
+
+
+
+#-------------------------------------------------------------------------------
+# Tests
+#-------------------------------------------------------------------------------
 
 def test_dt_view(capsys):
     dt0 = dt.Frame([
@@ -225,15 +257,14 @@ def test_colored_output(capsys):
     DT.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
-
-    assert out == (
-        bold('   ') + vsep + bold(" int  str   ") + "\n" +
-        grey("-- + ---  ------") + "\n" +
-        grey(' 0 ') + vsep + "   2  cogito\n" +
-        grey(' 1 ') + vsep + "   7  ergo  \n" +
-        grey(' 2 ') + vsep + "   0  sum   \n" +
-        grey(' 3 ') + vsep + "   0  " + na + "    \n\n" +
-        dim('[4 rows x 2 columns]') + "\n")
+    check_colored_output(out,
+        "   | int  str   ",
+        "-- + ---  ------",
+        " 0 |   2  cogito",
+        " 1 |   7  ergo  ",
+        " 2 |   0  sum   ",
+        " 3 |   0  NA    ",
+        "[4 rows x 2 columns]")
 
 
 def test_option_use_colors(capsys):
@@ -259,13 +290,25 @@ def test_colored_keyed(capsys):
     DT.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
-    assert out == (
-        bold(' A  B  ') + vsep + bold("    C") + "\n" +
-        grey("--  -- + ----") + "\n" +
-        " 1  " + na + " " + vsep + "  3.2\n" +
-        " 1  a  "         + vsep + " 14.1\n" +
-        " 2  d  "         + vsep + " -7.7\n" +
-        "\n" + dim('[3 rows x 3 columns]') + "\n")
+    check_colored_output(out,
+        " A  B  |    C",
+        "--  -- + ----",
+        " 1  NA |  3.2",
+        " 1  a  | 14.1",
+        " 2  d  | -7.7",
+        "[3 rows x 3 columns]",
+        keyed=True)
+
+
+def test_colored_escaped_name(capsys):
+    DT = dt.Frame(names=["#(\x80)#"])  # U+0080 is always escaped in the output
+    DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    check_colored_output(out,
+        "   | #(\\x80)#",
+        "-- + --------",
+        "[0 rows x 1 column]")
 
 
 
@@ -280,37 +323,43 @@ def test_option_allow_unicode(capsys):
         DT.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
-    assert out == (
-        bold("   ") + vsep + bold(" uni" + " "*67) + "\n" +
-        grey("-- + " + "-"*70) + "\n" +
-        grey(" 0 ") + vsep + " m" + dim("\\xF8")*2 + "se" + " "*59 + "\n" +
-        grey(" 1 ") + vsep + " " + "".join(dim("\\U%08X") % ord(c) for c in '𝔘𝔫𝔦𝔠𝔬𝔡𝔢') + "\n" +
-        grey(" 2 ") + vsep + " " + dim("\\u0332").join(["J", "o", "s", dim("\\xE9"), ""]) + " "*39 + "\n" +
-        grey(" 3 ") + vsep + " " + dim("\\U0001F691") + dim("\\U0001F4A5") + dim("\\u2705") + " "*44 + "\n" +
-        "\n" + dim("[4 rows x 1 column]") + "\n")
+    check_colored_output(out,
+        "   | uni" + ' '*67,
+        "-- + ---" + '-'*67,
+        " 0 | m" + "\\xF8"*2 + "se" + " "*59,
+        " 1 | " + "".join("\\U%08X" % ord(c) for c in '𝔘𝔫𝔦𝔠𝔬𝔡𝔢'),
+        " 2 | " + "\\u0332".join(["J", "o", "s", "\\xE9", ""]) + " "*39,
+        " 3 | \\U0001F691\\U0001F4A5\\u2705" + " "*44,
+        "[4 rows x 1 column]")
 
 
-def test_option_allow_unicode_long_frame():
+def test_option_allow_unicode_long_frame(capsys):
     DT = dt.Frame(A=range(100))
-    with dt.options.display.context(allow_unicode=False):
-        assert str(DT) == (
-            "    |   A\n"
-            "--- + ---\n" +
-            "".join(" %2d |  %2d\n" % (i, i) for i in range(15)) +
-            "... | ...\n" +
-            "".join(" %2d |  %2d\n" % (i, i) for i in range(95, 100)) +
-            "\n" +
-            "[100 rows x 1 column]\n")
+    with dt.options.display.context(allow_unicode=False, use_colors=False):
+        DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == (
+        "    |   A\n"
+        "--- + ---\n" +
+        "".join(" %2d |  %2d\n" % (i, i) for i in range(15)) +
+        "... | ...\n" +
+        "".join(" %2d |  %2d\n" % (i, i) for i in range(95, 100)) +
+        "\n" +
+        "[100 rows x 1 column]\n")
 
 
-def test_allow_unicode_column_name():
+def test_allow_unicode_column_name(capsys):
     # See issue #2118
     DT = dt.Frame(names=["тест"])
-    with dt.options.display.context(allow_unicode=False):
-        assert str(DT) == (
-            "   | \\u0442\\u0435\\u0441\\u0442\n"
-            "-- + ------------------------\n"
-            "\n[0 rows x 1 column]\n")
+    with dt.options.display.context(allow_unicode=False, use_colors=False):
+        DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    assert out == (
+        "   | \\u0442\\u0435\\u0441\\u0442\n"
+        "-- + ------------------------\n"
+        "\n[0 rows x 1 column]\n")
 
 
 
@@ -508,11 +557,11 @@ def test_max_width_colored(capsys, uni):
         out, err = capsys.readouterr()
         symbol = "…" if uni else "~"
         assert not err
-        assert out == (
-            bold("   ") + vsep + bold(" S   ") + "\n" +
-            grey("-- + ----") + "\n" +
-            grey(" 0 ") + vsep + " abc" + dim(symbol) + "\n" +
-            "\n" + dim("[1 row x 1 column]") + "\n")
+        check_colored_output(out,
+            "   | S   ",
+            "-- + ----",
+            " 0 | abc\x1b[2m" + symbol + "\x1b[0m",
+            "[1 row x 1 column]")
 
 
 def test_max_width1():
@@ -586,25 +635,60 @@ def test_max_width_none():
     assert dt.options.display.max_column_width == 100
 
 
-def test_max_width_nounicode():
+def test_max_width_nounicode(capsys):
     DT = dt.Frame(A=["👽👽"])
-    with dt.options.display.context(max_column_width=10, allow_unicode=False):
-        assert str(DT) == (
-            "   | A \n"
-            "-- + --\n"
-            " 0 | ~ \n"
-            "\n[1 row x 1 column]\n")
+    with dt.options.display.context(use_colors=False, allow_unicode=False):
+        with dt.options.display.context(max_column_width=10):
+            DT.view(interactive=False)
+            out, _ = capsys.readouterr()
+            assert out == (
+                "   | A \n"
+                "-- + --\n"
+                " 0 | ~ \n"
+                "\n[1 row x 1 column]\n")
 
-    with dt.options.display.context(max_column_width=15, allow_unicode=False):
-        assert str(DT) == (
-            "   | A          \n"
-            "-- + -----------\n"
-            " 0 | \\U0001F47D~\n"
-            "\n[1 row x 1 column]\n")
+        with dt.options.display.context(max_column_width=15):
+            DT.view(interactive=False)
+            out, _ = capsys.readouterr()
+            assert out == (
+                "   | A          \n"
+                "-- + -----------\n"
+                " 0 | \\U0001F47D~\n"
+                "\n[1 row x 1 column]\n")
 
-    with dt.options.display.context(max_column_width=20, allow_unicode=False):
-        assert str(DT) == (
-            "   | A                   \n"
-            "-- + --------------------\n"
-            " 0 | \\U0001F47D\\U0001F47D\n"
-            "\n[1 row x 1 column]\n")
+        with dt.options.display.context(max_column_width=20):
+            DT.view(interactive=False)
+            out, _ = capsys.readouterr()
+            assert out == (
+                "   | A                   \n"
+                "-- + --------------------\n"
+                " 0 | \\U0001F47D\\U0001F47D\n"
+                "\n[1 row x 1 column]\n")
+
+
+
+
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+
+def test_encoding_autodetection(tempfile):
+    # Check that if `sys.stdout` doesn't have UTF-8 encoding then
+    # datatable can detect it and set display.allow_unicode option
+    # to False automatically.
+    import subprocess
+    cmd = ("import sys; " +
+           "sys.stdout = open('%s', 'w', encoding='ascii'); " % tempfile +
+           "import datatable as dt; " +
+           "assert dt.options.display.allow_unicode is False; " +
+           "DT = dt.Frame(A=['\\u2728']); " +
+           "dt.options.display.use_colors = False; " +
+           "DT.view(False)")
+    out = subprocess.check_output(["python", "-c", cmd])
+    assert not out
+    with open(tempfile, "r", encoding='ascii') as f:
+        out = f.read()
+        assert out == ("   | A     \n"
+                       "-- + ------\n"
+                       " 0 | \\u2728\n"
+                       "\n[1 row x 1 column]\n")

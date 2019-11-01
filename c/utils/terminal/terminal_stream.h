@@ -19,49 +19,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#ifndef dt_UTILS_TERMINAL_TERMINAL_STREAM_h
+#define dt_UTILS_TERMINAL_TERMINAL_STREAM_h
+#include <stack>
 #include <string>
-#ifndef dt_FRAME_REPR_SSTRING_h
-#define dt_FRAME_REPR_SSTRING_h
+#include <sstream>
+#include "utils/assert.h"
+#include "utils/terminal/terminal_style.h"
 namespace dt {
 using std::size_t;
 
+class tstring;
 
-/**
-  * This class represents a string whose display size in terminal
-  * is different from the string's byte-size. The difference could
-  * be due to:
-  *
-  *   - string containing unicode characters which are encoded as
-  *     multi-byte UTF-8 sequences, yet are displayed as a single
-  *     character on screen;
-  *
-  *   - string containing special terminal codes that affect the
-  *     color of the text, yet are not visible in the output;
-  *
-  */
-class sstring {
+
+class TerminalStream {
   private:
-    std::string str_;
-    size_t      size_;
+    std::ostringstream out_;
+    std::stack<TerminalStyle> stack_;
+    TerminalStyle current_;
+    bool use_colors_;
+    size_t : 56;
 
   public:
-    sstring();
-    sstring(const sstring&) = default;
-    sstring(sstring&&) noexcept = default;
-    sstring& operator=(sstring&&) = default;
-    sstring& operator=(const sstring&) = default;
+    TerminalStream(bool use_colors);
 
-    explicit sstring(const std::string&);
-    explicit sstring(std::string&&);
-    sstring(const std::string&, size_t n);
-    sstring(std::string&&, size_t n);
+    template <typename T>
+    TerminalStream& operator<<(const T& value) {
+      _emit_pending_styles();
+      out_ << value;
+      return *this;
+    }
 
-    inline size_t size() const noexcept { return size_; }
-    inline const std::string& str() const noexcept { return str_; }
+    std::string str();
 
   private:
-    static size_t _compute_string_size(const std::string&);
+    void _emit_pending_styles();
 };
+
+template <> TerminalStream& TerminalStream::operator<<(const tstring&);
+template <> TerminalStream& TerminalStream::operator<<(const TerminalStyle&);
+
 
 
 

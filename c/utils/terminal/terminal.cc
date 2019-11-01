@@ -24,7 +24,7 @@
 #include <sys/ioctl.h>
 #include "frame/repr/repr_options.h"
 #include "utils/assert.h"
-#include "utils/terminal.h"
+#include "utils/terminal/terminal.h"
 namespace dt {
 
 static void sigwinch_handler(int) {
@@ -50,7 +50,7 @@ Terminal& Terminal::plain_terminal() {
 Terminal::Terminal(bool is_plain) {
   width_ = is_plain? (1 << 20) : 0;
   height_ = is_plain? 45 : 0;
-  display_allow_unicode = true;
+  allow_unicode_ = true;
   enable_colors_ = !is_plain;
   enable_ecma48_ = !is_plain;
   enable_keyboard_ = false;
@@ -65,6 +65,10 @@ Terminal::Terminal(bool is_plain) {
 Terminal::~Terminal() = default;
 
 
+/**
+  * This is called for 'standard' terminal only from "datatablemodule.cc",
+  * once during module initialization.
+  */
 void Terminal::initialize() {
   py::robj stdin = py::stdin();
   py::robj stdout = py::stdout();
@@ -75,16 +79,25 @@ void Terminal::initialize() {
     display_allow_unicode = true;
   }
   else {
-    // allow_unicode_ = false;
+    allow_unicode_ = false;
+    try {
+      std::string encoding = stdout.get_attr("encoding").to_string();
+      if (encoding == "UTF-8" || encoding == "UTF8" ||
+          encoding == "utf-8" || encoding == "utf8") {
+        allow_unicode_ = true;
+      }
+    } catch (...) {}
     enable_keyboard_ = true;
     enable_colors_ = true;
     enable_ecma48_ = true;
-    // check  encoding?
     _check_ipython();
   }
   // Set options
   display_use_colors = enable_colors_;
+  display_allow_unicode = allow_unicode_;
 }
+
+
 
 /**
   * When running inside a Jupyter notebook, IPython and ipykernel will
@@ -126,7 +139,7 @@ bool Terminal::colors_enabled() const noexcept {
 }
 
 bool Terminal::unicode_allowed() const noexcept {
-  return display_allow_unicode;
+  return allow_unicode_;
 }
 
 int Terminal::get_width() {
@@ -151,136 +164,20 @@ void Terminal::forget_window_size() {
 
 void Terminal::_detect_window_size() {
   struct winsize w;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+  int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
   width_ = w.ws_col;
   height_ = w.ws_row;
+  if (ret == -1 || width_ == 0) {
+    width_ = 120;
+    height_ = 45;
+  }
 }
 
 void Terminal::use_unicode(bool f) {
-  display_allow_unicode = f;
+  allow_unicode_ = f;
 }
 
 
-
-//------------------------------------------------------------------------------
-// Text formatting
-//------------------------------------------------------------------------------
-
-std::string Terminal::bold() const {
-  return enable_colors_? "\x1B[1m" : "";
-}
-
-std::string Terminal::bold(const std::string& s) const {
-  return enable_colors_? "\x1B[1m" + s + "\x1B[m" : s;
-}
-
-
-std::string Terminal::dim() const {
-  return enable_colors_? "\x1B[2m" : "";
-}
-
-std::string Terminal::dim(const std::string& s) const {
-  return enable_colors_? "\x1B[2m" + s + "\x1B[m" : s;
-}
-
-
-std::string Terminal::invert(const std::string& s) const {
-  return enable_colors_? "\x1B[7m" + s + "\x1B[m" : s;
-}
-
-
-std::string Terminal::italic() const {
-  return enable_colors_? "\x1B[3m" : "";
-}
-
-std::string Terminal::italic(const std::string& s) const {
-  return enable_colors_? "\x1B[3m" + s + "\x1B[m" : s;
-}
-
-
-std::string Terminal::reset() const {
-  return enable_colors_? "\x1B[m" : "";
-}
-
-
-std::string Terminal::underline(const std::string& s) const {
-  return enable_colors_? "\x1B[4m" + s + "\x1B[m" : s;
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// Colors
-//------------------------------------------------------------------------------
-
-std::string Terminal::blue(const std::string& s) const {
-  return enable_colors_? "\x1B[34m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::blueB(const std::string& s) const {
-  return enable_colors_? "\x1B[94m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::cyan(const std::string& s) const {
-  return enable_colors_? "\x1B[36m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::cyanB(const std::string& s) const {
-  return enable_colors_? "\x1B[96m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::cyanD(const std::string& s) const {
-  return enable_colors_? "\x1B[2;96m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::green(const std::string& s) const {
-  return enable_colors_? "\x1B[32m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::greenB(const std::string& s) const {
-  return enable_colors_? "\x1B[92m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::grey() const {
-  return enable_colors_? "\x1B[90m" : "";
-}
-
-std::string Terminal::grey(const std::string& s) const {
-  return enable_colors_? "\x1B[90m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::magenta(const std::string& s) const {
-  return enable_colors_? "\x1B[35m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::magentaB(const std::string& s) const {
-  return enable_colors_? "\x1B[95m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::red(const std::string& s) const {
-  return enable_colors_? "\x1B[31m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::redB(const std::string& s) const {
-  return enable_colors_? "\x1B[91m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::white(const std::string& s) const {
-  return enable_colors_? "\x1B[37m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::whiteB(const std::string& s) const {
-  return enable_colors_? "\x1B[97m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::yellow(const std::string& s) const {
-  return enable_colors_? "\x1B[33m" + s + "\x1B[m" : s;
-}
-
-std::string Terminal::yellowB(const std::string& s) const {
-  return enable_colors_? "\x1B[93m" + s + "\x1B[m" : s;
-}
 
 
 

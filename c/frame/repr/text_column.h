@@ -24,14 +24,15 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "frame/repr/sstring.h"
-#include "utils/terminal.h"
+#include "utils/terminal/tstring.h"
+#include "utils/terminal/terminal.h"
+#include "utils/terminal/terminal_stream.h"
 #include "column.h"
 namespace dt {
 using std::size_t;
 using std::ostringstream;
 using intvec = std::vector<size_t>;
-using sstrvec = std::vector<sstring>;
+using sstrvec = std::vector<tstring>;
 
 static constexpr size_t NA_index = size_t(-1);
 
@@ -56,8 +57,10 @@ class TextColumn {
     size_t : 40;
 
     static const Terminal* term_;
-    static sstring ellipsis_;
-    static sstring na_value_;
+    static tstring ellipsis_;
+    static tstring na_value_;
+    static tstring true_value_;
+    static tstring false_value_;
 
   public:
     static void setup(const Terminal*);
@@ -71,9 +74,9 @@ class TextColumn {
     void unset_right_margin();
     int get_width() const;
 
-    virtual void print_name(ostringstream&) const = 0;
-    virtual void print_separator(ostringstream&) const = 0;
-    virtual void print_value(ostringstream&, size_t i) const = 0;
+    virtual void print_name(TerminalStream&) const = 0;
+    virtual void print_separator(TerminalStream&) const = 0;
+    virtual void print_value(TerminalStream&, size_t i) const = 0;
 };
 
 
@@ -81,7 +84,7 @@ class TextColumn {
 class Data_TextColumn : public TextColumn {
   private:
     sstrvec data_;
-    sstring name_;
+    tstring name_;
     int max_width_;
     int : 32;
 
@@ -93,26 +96,25 @@ class Data_TextColumn : public TextColumn {
     Data_TextColumn(const Data_TextColumn&) = default;
     Data_TextColumn(Data_TextColumn&&) noexcept = default;
 
-    void print_name(ostringstream&) const override;
-    void print_separator(ostringstream&) const override;
-    void print_value(ostringstream&, size_t i) const override;
+    void print_name(TerminalStream&) const override;
+    void print_separator(TerminalStream&) const override;
+    void print_value(TerminalStream&, size_t i) const override;
 
   private:
     void _render_all_data(const Column& col, const intvec& indices);
-    void _print_aligned_value(ostringstream&, const sstring& value) const;
-    void _print_whitespace(ostringstream&, size_t n) const;
+    void _print_aligned_value(TerminalStream&, const tstring& value) const;
     void _align_at_dot();
 
-    sstring _render_value(const Column&, size_t i) const;
+    tstring _render_value(const Column&, size_t i) const;
     template <typename T>
-    sstring _render_value_float(const Column&, size_t i) const;
+    tstring _render_value_float(const Column&, size_t i) const;
     template <typename T>
-    sstring _render_value_int(const Column&, size_t i) const;
-    sstring _render_value_bool(const Column&, size_t i) const;
-    sstring _render_value_string(const Column&, size_t i) const;
+    tstring _render_value_int(const Column&, size_t i) const;
+    tstring _render_value_bool(const Column&, size_t i) const;
+    tstring _render_value_string(const Column&, size_t i) const;
 
     bool _needs_escaping(const CString&) const;
-    std::string _escape_string(const CString&) const;
+    tstring _escape_string(const CString&) const;
 };
 
 
@@ -123,25 +125,25 @@ class VSep_TextColumn : public TextColumn {
     VSep_TextColumn(const VSep_TextColumn&) = default;
     VSep_TextColumn(VSep_TextColumn&&) noexcept = default;
 
-    void print_name(ostringstream&) const override;
-    void print_separator(ostringstream&) const override;
-    void print_value(ostringstream&, size_t i) const override;
+    void print_name(TerminalStream&) const override;
+    void print_separator(TerminalStream&) const override;
+    void print_value(TerminalStream&, size_t i) const override;
 };
 
 
 
 class Ellipsis_TextColumn : public TextColumn {
   private:
-    sstring ell_;
+    tstring ell_;
 
   public:
     Ellipsis_TextColumn();
     Ellipsis_TextColumn(const Ellipsis_TextColumn&) = default;
     Ellipsis_TextColumn(Ellipsis_TextColumn&&) noexcept = default;
 
-    void print_name(ostringstream&) const override;
-    void print_separator(ostringstream&) const override;
-    void print_value(ostringstream&, size_t i) const override;
+    void print_name(TerminalStream&) const override;
+    void print_separator(TerminalStream&) const override;
+    void print_value(TerminalStream&, size_t i) const override;
 };
 
 

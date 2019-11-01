@@ -91,6 +91,17 @@ Frame
   than this value will be automatically truncated when a Frame is rendered into
   a terminal.
 
+- |new| A frame returned by the single-column selector is now keyed
+  if and only if the original frame key consisted of the selected column only.
+
+- |new| Method :meth:`.to_csv() <datatable.Frame.to_csv>` gains two new boolean
+  parameters: ``header=`` and ``append=``. The ``header=`` parameter controls
+  whether or not to write into the output the header row with column names. The
+  ``append=`` parameter allows the CSV content to be appended to an existing
+  file instead of overwriting it::
+
+    DT.to_csv("out.log", append=True)  # infer that header=False if file exists
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
@@ -156,6 +167,12 @@ Frame
 - |fix| Function :meth:`isna` now returns correct result for a column
   obtained from joining another frame, provided that the join was only
   partially successful (#2109).
+
+- |fix| In Jupyter notebook Frame's stylesheets are now injected during
+  the datatable import. This makes it less likely that the stylesheets will
+  get accidentally removed from the page. However, if it still does occur,
+  there is now also a method to load those styles directly:
+  :meth:`init_styles` (#1871).
 
 
 General

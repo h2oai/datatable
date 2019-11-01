@@ -19,46 +19,48 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "frame/repr/sstring.h"
 #include "utils/assert.h"
+#include "utils/terminal/tstring.h"
 #include "encodings.h"
 namespace dt {
-using std::size_t;
+
+
+std::string tstring_impl::empty_;
+
+
+tstring_impl::~tstring_impl() = default;
+
+
+size_t tstring_impl::size() {
+  return 0;
+}
+
+
+void tstring_impl::write(TerminalStream&) const {
+}
+
+
+const std::string& tstring_impl::str() {
+  return tstring_impl::empty_;
+}
+
+
+void tstring_impl::append(const std::string& str, tstring& parent) {
+  xassert(size() == 0);
+  parent = tstring(str);
+}
+
+
+void tstring_impl::append(tstring&& str, tstring& parent) {
+  xassert(size() == 0);
+  parent = std::move(str);
+}
+
 
 
 
 //------------------------------------------------------------------------------
-// Constructors
-//------------------------------------------------------------------------------
-
-sstring::sstring()
-  : str_(),
-    size_(0) {}
-
-
-sstring::sstring(const std::string& s)
-  : str_(s),
-    size_(_compute_string_size(str_)) {}
-
-
-sstring::sstring(std::string&& s)
-  : str_(std::move(s)),
-    size_(_compute_string_size(str_)) {}
-
-
-sstring::sstring(const std::string& s, size_t n)
-  : str_(s),
-    size_(n) {}
-
-
-sstring::sstring(std::string&& s, size_t n)
-  : str_(std::move(s)),
-    size_(n) {}
-
-
-
-//------------------------------------------------------------------------------
-// Private helpers
+// String size calculation
 //------------------------------------------------------------------------------
 
 static inline bool isdigit(unsigned char c) {
@@ -72,7 +74,7 @@ static inline bool isalpha(unsigned char c) {
 }
 
 
-size_t sstring::_compute_string_size(const std::string& str) {
+size_t tstring_impl::_compute_display_size(const std::string& str) {
   size_t n = str.size();
   size_t sz = 0;
   auto ch = reinterpret_cast<const unsigned char*>(str.data());

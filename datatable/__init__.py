@@ -27,7 +27,7 @@ from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
 from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
     unique, union, intersect, setdiff, symdiff,
-    repeat, by, join, sort, cbind, rbind
+    repeat, by, join, sort, cbind, rbind, init_styles
 )
 from .nff import open
 from .options import options
@@ -47,11 +47,15 @@ except ImportError:
 __all__ = (
     "__git_revision__",
     "__version__",
-    "dt",
     "Frame",
+    "count",
+    "dt",
+    "first",
+    "init_styles",
+    "last",
     "mean",
     "median",
-    "sd", "count", "first", "last",
+    "sd",
     "isna", "fread", "GenericReader", "stype", "ltype", "f", "g",
     "join", "by", "exp", "log", "log10",
     "options",
@@ -59,7 +63,7 @@ __all__ = (
     "float32", "float64", "str32", "str64", "obj64",
     "cbind", "rbind", "repeat", "sort",
     "unique", "union", "intersect", "setdiff", "symdiff",
-    "split_into_nhot"
+    "split_into_nhot",
 )
 
 bool8 = stype.bool8
@@ -73,3 +77,6 @@ str32 = stype.str32
 str64 = stype.str64
 obj64 = stype.obj64
 dt = datatable
+
+# This will run only in Jupyter notebook
+init_styles()

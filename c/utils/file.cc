@@ -19,6 +19,7 @@ const int File::READ = O_RDONLY;
 const int File::READWRITE = O_RDWR;
 const int File::CREATE = O_RDWR | O_CREAT;
 const int File::OVERWRITE = O_RDWR | O_CREAT | O_TRUNC;
+const int File::APPEND = O_WRONLY | O_CREAT | O_APPEND;
 const int File::EXTERNALFD = -1;
 
 

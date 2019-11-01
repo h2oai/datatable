@@ -47,9 +47,14 @@ public:
    *     Which subclass of `WritableBuffer` to construct. This could be `Auto`
    *     (choose the best subclass automatically), while all  other values
    *     force the choice of a particular subclass.
+   *
+   * @param append
+   *     If true, the file will be opened in append mode ("a"); if false, the
+   *     file will be opened in overwrite mode ("w").
    */
   static std::unique_ptr<WritableBuffer> create_target(
-    const std::string& path, size_t size, Strategy strategy = Strategy::Auto
+    const std::string& path, size_t size, Strategy strategy = Strategy::Auto,
+    bool append = false
   );
 
   /**
@@ -116,7 +121,7 @@ class FileWritableBuffer : public WritableBuffer
   File* file;
 
 public:
-  FileWritableBuffer(const std::string& path);
+  FileWritableBuffer(const std::string& path, bool append = false);
   virtual ~FileWritableBuffer() override;
 
   virtual size_t prep_write(size_t n, const void* src) override;
@@ -177,7 +182,7 @@ class MmapWritableBuffer : public ThreadsafeWritableBuffer
   std::string filename;
 
 public:
-  MmapWritableBuffer(const std::string& path, size_t size);
+  MmapWritableBuffer(const std::string& path, size_t size, bool append = false);
   ~MmapWritableBuffer() override;
 
   void finalize() override;

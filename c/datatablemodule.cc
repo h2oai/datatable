@@ -24,6 +24,7 @@
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
+#include "frame/repr/html_widget.h"
 #include "models/aggregator.h"
 #include "models/py_ftrl.h"
 #include "parallel/api.h"
@@ -33,7 +34,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
-#include "utils/terminal.h"
+#include "utils/terminal/terminal.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
@@ -343,6 +344,7 @@ void py::DatatableModule::init_methods() {
   init_methods_repeat();
   init_methods_sets();
   init_methods_str();
+  init_methods_styles();
   init_methods_zread();
 
   init_casts();

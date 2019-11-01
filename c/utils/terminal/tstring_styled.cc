@@ -19,44 +19,65 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/expr.h"
-#include "expr/expr_binaryop.h"  // TODO: merge into this file
-#include "expr/head_func.h"
-#include "expr/workframe.h"
 #include "utils/assert.h"
-#include "utils/exceptions.h"
+#include "utils/terminal/tstring.h"
+#include "utils/terminal/terminal_style.h"
+#include "encodings.h"
 namespace dt {
-namespace expr {
+using std::size_t;
+
+static size_t UNKNOWN = size_t(-1);
 
 
-Head_Func_Binary::Head_Func_Binary(Op op_) : op(op_) {}
+
+tstring_styled::tstring_styled(const std::string& s, TerminalStyle style)
+  : str_(s),
+    size_(UNKNOWN),
+    style_(style) {}
 
 
-Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
-  xassert(args.size() == 2);
-  Workframe lhs = args[0].evaluate_n(ctx);
-  Workframe rhs = args[1].evaluate_n(ctx);
-  if (lhs.ncols() == 1) lhs.repeat_columns(rhs.ncols());
-  if (rhs.ncols() == 1) rhs.repeat_columns(lhs.ncols());
-  if (lhs.ncols() != rhs.ncols()) {
-    throw ValueError() << "Incompatible column vectors in a binary operation: "
-      "LHS contains " << lhs.ncols() << " items, while RHS has " << rhs.ncols()
-      << " items";
+tstring_styled::tstring_styled(std::string&& s, TerminalStyle style)
+  : str_(std::move(s)),
+    size_(UNKNOWN),
+    style_(style) {}
+
+
+size_t tstring_styled::size() {
+  if (size_ == UNKNOWN) {
+    size_ = _compute_display_size(str_);
   }
-  lhs.sync_grouping_mode(rhs);
-  auto gmode = lhs.get_grouping_mode();
-  Workframe outputs(ctx);
-  for (size_t i = 0; i < lhs.ncols(); ++i) {
-    Column lhscol = lhs.retrieve_column(i);
-    Column rhscol = rhs.retrieve_column(i);
-    outputs.add_column(binaryop(op, lhscol, rhscol),
-                       std::string(),
-                       gmode);
+  return size_;
+}
+
+
+void tstring_styled::write(TerminalStream& out) const {
+  out << style_ << str_ << TerminalStyle::END;
+}
+
+
+const std::string& tstring_styled::str() {
+  return str_;
+}
+
+
+void tstring_styled::append(const std::string& str, tstring& parent) {
+  parent.convert_to_mixed();
+  parent << str;
+}
+
+
+void tstring_styled::append(tstring&& str, tstring& parent) {
+  auto styledstr = dynamic_cast<tstring_styled*>(str.impl_.get());
+  if (styledstr && styledstr->style_ == style_) {
+    str_ += styledstr->str_;
+    size_ = UNKNOWN;
+  } else {
+    parent.convert_to_mixed();
+    parent.impl_->append(std::move(str), parent);
   }
-  return outputs;
 }
 
 
 
 
-}}  // namespace dt::expr
+}  // namespace dt

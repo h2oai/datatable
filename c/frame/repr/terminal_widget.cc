@@ -28,7 +28,8 @@ namespace dt {
 
 
 TerminalWidget::TerminalWidget(DataTable* dt, Terminal* term, SplitViewTag)
-  : Widget(dt, split_view_tag)
+  : Widget(dt, split_view_tag),
+    out_(term->colors_enabled())
 {
   has_rowindex_column_ = false;
   terminal_ = term;
@@ -212,21 +213,21 @@ std::vector<size_t> TerminalWidget::_order_colindices() const {
 
 
 void TerminalWidget::_render_column_names() {
-  out_ << terminal_->bold();
+  out_ << style::bold;
   for (const auto& col : text_columns_) {
     col->print_name(out_);
   }
-  out_ << terminal_->reset();
+  out_ << style::end;
   out_ << '\n';
 }
 
 
 void TerminalWidget::_render_header_separator() {
-  out_ << terminal_->grey();
+  out_ << style::grey;
   for (const auto& col : text_columns_) {
     col->print_separator(out_);
   }
-  out_ << terminal_->reset();
+  out_ << style::end;
   out_ << '\n';
 }
 
@@ -234,9 +235,9 @@ void TerminalWidget::_render_header_separator() {
 void TerminalWidget::_render_data() {
   for (size_t k = 0; k < rowindices_.size(); ++k) {
     if (has_rowindex_column_) {
-      out_ << terminal_->grey();
+      out_ << style::grey;
       text_columns_[0]->print_value(out_, k);
-      out_ << terminal_->reset();
+      out_ << style::end;
     }
     for (size_t i = has_rowindex_column_; i < text_columns_.size(); ++i) {
       text_columns_[i]->print_value(out_, k);
@@ -250,10 +251,10 @@ void TerminalWidget::_render_footer() {
   size_t nrows = dt_->nrows();
   size_t ncols = dt_->ncols();
   out_ << '\n';
-  out_ << terminal_->dim();
+  out_ << style::dim;
   out_ << "[" << nrows << " row" << (nrows==1? "" : "s") << " x ";
   out_ << ncols << " column" << (ncols==1? "" : "s") << "]";
-  out_ << terminal_->reset();
+  out_ << style::end;
   out_ << '\n';
 }
 

@@ -19,44 +19,63 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/expr.h"
-#include "expr/expr_binaryop.h"  // TODO: merge into this file
-#include "expr/head_func.h"
-#include "expr/workframe.h"
 #include "utils/assert.h"
-#include "utils/exceptions.h"
+#include "utils/terminal/tstring.h"
 namespace dt {
-namespace expr {
+
+static size_t UNKNOWN = size_t(-1);
 
 
-Head_Func_Binary::Head_Func_Binary(Op op_) : op(op_) {}
+tstring_plain::tstring_plain()
+  : str_(),
+    size_(0) {}
 
 
-Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
-  xassert(args.size() == 2);
-  Workframe lhs = args[0].evaluate_n(ctx);
-  Workframe rhs = args[1].evaluate_n(ctx);
-  if (lhs.ncols() == 1) lhs.repeat_columns(rhs.ncols());
-  if (rhs.ncols() == 1) rhs.repeat_columns(lhs.ncols());
-  if (lhs.ncols() != rhs.ncols()) {
-    throw ValueError() << "Incompatible column vectors in a binary operation: "
-      "LHS contains " << lhs.ncols() << " items, while RHS has " << rhs.ncols()
-      << " items";
+tstring_plain::tstring_plain(const std::string& s)
+  : str_(s),
+    size_(UNKNOWN) {}
+
+
+tstring_plain::tstring_plain(std::string&& s)
+  : str_(std::move(s)),
+    size_(UNKNOWN) {}
+
+
+
+size_t tstring_plain::size() {
+  if (size_ == UNKNOWN) size_ = _compute_display_size(str_);
+  return size_;
+}
+
+
+void tstring_plain::write(TerminalStream& out) const {
+  out << str_;
+}
+
+
+const std::string& tstring_plain::str() {
+  return str_;
+}
+
+
+void tstring_plain::append(const std::string& str, tstring&) {
+  str_ += str;
+  size_ = UNKNOWN;
+}
+
+
+void tstring_plain::append(tstring&& str, tstring& parent) {
+  auto plainstr = dynamic_cast<tstring_plain*>(str.impl_.get());
+  if (plainstr) {
+    str_ += plainstr->str_;
+    size_ = UNKNOWN;
+  } else {
+    parent.convert_to_mixed();
+    parent.impl_->append(std::move(str), parent);
   }
-  lhs.sync_grouping_mode(rhs);
-  auto gmode = lhs.get_grouping_mode();
-  Workframe outputs(ctx);
-  for (size_t i = 0; i < lhs.ncols(); ++i) {
-    Column lhscol = lhs.retrieve_column(i);
-    Column rhscol = rhs.retrieve_column(i);
-    outputs.add_column(binaryop(op, lhscol, rhscol),
-                       std::string(),
-                       gmode);
-  }
-  return outputs;
 }
 
 
 
 
-}}  // namespace dt::expr
+}  // namespace dt
