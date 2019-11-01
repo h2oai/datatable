@@ -132,6 +132,11 @@ def test_equal_strings(st1, st2):
     assert df2.to_list() == [[False, True, False, False, True, True]]
 
 
+def test_equal_columnset():
+    DT = dt.Frame([[1, 2, 3], [5, 4, 1]], names=["A", "B"])
+    DT2 = DT[:, f[:] == 1]
+    assert_equals(DT2, dt.Frame(A=[True, False, False], B=[False, False, True]))
+
 
 
 #-------------------------------------------------------------------------------
