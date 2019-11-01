@@ -238,6 +238,11 @@ MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size,
   : ThreadsafeWritableBuffer(), filename(path)
 {
   File file(path, File::CREATE);
+  if (append) {
+    size_t filesize = file.size();
+    size += filesize;
+    bytes_written = filesize;
+  }
   if (size) {
     file.resize(size);
     allocsize = size;

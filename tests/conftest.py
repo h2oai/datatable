@@ -103,7 +103,8 @@ def tempfile():
     fd, fname = mod_tempfile.mkstemp()
     os.close(fd)
     yield fname
-    os.unlink(fname)
+    if os.path.exists(fname):
+        os.unlink(fname)
 
 
 @pytest.fixture(scope="function")

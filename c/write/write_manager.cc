@@ -177,7 +177,8 @@ void write_manager::create_column_writers() {
 
 
 void write_manager::create_output_target() {
-  wb = WritableBuffer::create_target(path, estimated_output_size, strategy);
+  wb = WritableBuffer::create_target(path, estimated_output_size, strategy,
+                                     append_);
 }
 
 

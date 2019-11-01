@@ -139,7 +139,7 @@ oobj Frame::to_csv(const PKArgs& args)
     throw TypeError() << "Parameter `path` in Frame.to_csv() should be a "
         "string, instead got " << path.typeobj();
   }
-  path = oobj::import("os", "path", "expanduser").call({path});
+  path = oobj::import("os", "path", "expanduser").call(path);
   std::string filename = path.to_string();
 
   // quoting
@@ -171,8 +171,14 @@ oobj Frame::to_csv(const PKArgs& args)
   }
 
   // header
-  bool header = arg_header.is_ellipsis()? !append
-                                        : arg_header.to<bool>(!append);
+  bool header;
+  if (arg_header.is_none_or_undefined() || arg_header.is_ellipsis()) {
+    header = !(append &&
+               oobj::import("os", "path", "exists").call(path)
+                  .to_bool_strict());
+  } else {
+    header = arg_header.to<bool>(true);
+  }
 
   // hex
   bool hex = arg_hex.to<bool>(false);

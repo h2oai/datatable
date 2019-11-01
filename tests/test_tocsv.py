@@ -563,6 +563,7 @@ def test_header_valid():
     assert DT.to_csv(header=False) == ''
     assert DT.to_csv(header=True) == 'Q\n'
     assert DT.to_csv(header=None) == 'Q\n'
+    assert DT.to_csv(header=...) == 'Q\n'
 
 
 def test_header_invalid():
@@ -574,3 +575,96 @@ def test_header_invalid():
         DT.to_csv(header="yes")
     with pytest.raises(TypeError, match=msg):
         DT.to_csv(header=[])
+
+
+
+#-------------------------------------------------------------------------------
+# Parameter append=
+#-------------------------------------------------------------------------------
+
+def readfile(file):
+    with open(file, "r") as tmp:
+        return tmp.read()
+
+
+def test_append_to_new_file(tempfile):
+    os.unlink(tempfile)
+    DT = dt.Frame(A=[5])
+    DT.to_csv(tempfile, append=True)
+    assert readfile(tempfile) == "A\n5\n"
+    # Write again: the old content should remain in the file
+    DT[0, 0] = 3
+    DT.to_csv(tempfile, append=True)
+    assert readfile(tempfile) == "A\n5\n3\n"
+
+
+def test_append_to_existing_file(tempfile):
+    with open(tempfile, "w") as tmp:
+        tmp.write("# text/csv\n")
+    DT = dt.Frame(XYZ=range(5))
+    DT.to_csv(tempfile, append=True)
+    assert readfile(tempfile) == "# text/csv\n0\n1\n2\n3\n4\n"
+
+
+def test_append_no_file_given():
+    DT = dt.Frame(A=[5])
+    with pytest.raises(ValueError, match="`append` parameter is set to True, "
+                                         "but the output file is not specifi"):
+        DT.to_csv(append=True)
+
+
+def test_append_valid(tempfile):
+    with open(tempfile, "w") as tmp:
+        tmp.write("@")
+    DT = dt.Frame(A=[7])
+    DT.to_csv(tempfile, append=True)
+    assert readfile(tempfile) == "@7\n"  # auto-detects header=False
+    DT.to_csv(tempfile, append=False)
+    assert readfile(tempfile) == "A\n7\n"
+    DT.to_csv(tempfile, append=None)     # None is same as False
+    assert readfile(tempfile) == "A\n7\n"
+
+
+def test_append_invalid(tempfile):
+    os.unlink(tempfile)
+    msg = r"Argument `append` in Frame\.to_csv\(\) should be a boolean"
+    DT = dt.Frame()
+    with pytest.raises(TypeError, match=msg):
+        DT.to_csv('tmp', append=1)
+    with pytest.raises(TypeError, match=msg):
+        DT.to_csv('tmp', append="yes")
+    with pytest.raises(TypeError, match=msg):
+        DT.to_csv('tmp', append=[])
+    assert not os.path.exists(tempfile)
+
+
+def test_append_with_headers(tempfile):
+    DT = dt.Frame(A=[7])
+    DT.to_csv(tempfile)
+    assert readfile(tempfile) == "A\n7\n"
+    DT.to_csv(tempfile, append=True)
+    assert readfile(tempfile) == "A\n7\n7\n"
+    DT.to_csv(tempfile, append=True, header=True)
+    assert readfile(tempfile) == "A\n7\n7\nA\n7\n"
+    DT.to_csv(tempfile, append=True, header=False)
+    assert readfile(tempfile) == "A\n7\n7\nA\n7\n7\n"
+
+
+def test_append_strategy(tempfile):
+    DT = dt.Frame(D=[3])
+    DT.to_csv(tempfile)
+    DT.to_csv(tempfile, append=True, _strategy="write")
+    assert readfile(tempfile) == "D\n3\n3\n"
+    DT.to_csv(tempfile, append=True, _strategy="mmap")
+    assert readfile(tempfile) == "D\n3\n3\n3\n"
+
+
+def test_append_large(tempfile):
+    word = "supercalifragilisticexpialidocious"
+    n = 10000
+    DT = dt.Frame([word] * n, names=["..."])
+    DT.to_csv(tempfile)
+    DT.to_csv(tempfile, append=True, _strategy="write")
+    assert readfile(tempfile) == "...\n" + (word + "\n") * (2*n)
+    DT.to_csv(tempfile, append=True, _strategy="mmap")
+    assert readfile(tempfile) == "...\n" + (word + "\n") * (3*n)
