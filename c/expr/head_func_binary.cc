@@ -36,20 +36,19 @@ Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) co
   xassert(args.size() == 2);
   Workframe lhs = args[0].evaluate_n(ctx);
   Workframe rhs = args[1].evaluate_n(ctx);
-  size_t lmask = (lhs.ncols() == 1)? 0 : size_t(-1);
-  size_t rmask = (rhs.ncols() == 1)? 0 : size_t(-1);
-  if (lmask && rmask && lhs.ncols() != rhs.ncols()) {
+  if (lhs.ncols() == 1) lhs.repeat_columns(rhs.ncols());
+  if (rhs.ncols() == 1) rhs.repeat_columns(lhs.ncols());
+  if (lhs.ncols() != rhs.ncols()) {
     throw ValueError() << "Incompatible column vectors in a binary operation: "
       "LHS contains " << lhs.ncols() << " items, while RHS has " << rhs.ncols()
       << " items";
   }
-  size_t size = lmask? lhs.ncols() : rmask? rhs.ncols() : 1;
   lhs.sync_grouping_mode(rhs);
   auto gmode = lhs.get_grouping_mode();
   Workframe outputs(ctx);
-  for (size_t i = 0; i < size; ++i) {
-    Column lhscol = lhs.retrieve_column(i & lmask);
-    Column rhscol = rhs.retrieve_column(i & rmask);
+  for (size_t i = 0; i < lhs.ncols(); ++i) {
+    Column lhscol = lhs.retrieve_column(i);
+    Column rhscol = rhs.retrieve_column(i);
     outputs.add_column(binaryop(op, lhscol, rhscol),
                        std::string(),
                        gmode);
