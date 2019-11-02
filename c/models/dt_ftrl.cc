@@ -399,10 +399,12 @@ void Ftrl<T>::add_negative_class() {
   negative_class_id = dt_labels->nrows();
   d_ids[0] = int32_t(negative_class_id);
 
-  dtptr dt_nc = dtptr(new DataTable({
-                       std::move(c_labels).to_ocolumn(),
-                       std::move(c_ids)
-                     }, dt_labels->get_names()));
+  dtptr dt_nc = dtptr(
+                  new DataTable(
+                    {std::move(c_labels).to_ocolumn(), std::move(c_ids)},
+                    dt_labels->get_names()
+                  )
+                );
 
   dt_labels->clear_key();
   dt_labels->rbind({dt_nc.get()}, {{ 0 } , { 1 }});
