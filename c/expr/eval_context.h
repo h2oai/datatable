@@ -140,10 +140,6 @@ class EvalContext {
     void evaluate_delete_rows();
     void evaluate_delete_subframe();
     void evaluate_update();
-    void evaluate_update_columns();
-    void evaluate_update_everything();
-    void evaluate_update_rows();
-    void evaluate_update_subframe();
     intvec evaluate_j_as_column_index();
     void create_placeholder_columns();
     void typecheck_for_update(expr::Workframe&, const intvec&);

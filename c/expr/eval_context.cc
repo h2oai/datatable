@@ -266,27 +266,28 @@ void EvalContext::evaluate_delete_subframe() {
 
 
 
+
 //------------------------------------------------------------------------------
 // UPDATE
 //------------------------------------------------------------------------------
 
-// Similarly to DELETE, there are 3 cases to consider here:
-//   - evaluate_update_columns():    `DT[:, j] = R` or `DT[:, :] = R`
-//   - evaluate_update_rows():       `DT[i, :] = R`
-//   - evaluate_update_subframe():   `DT[i, j] = R`
-//
+/**
+  * When updating a Frame, there are two main cases to consider:
+  *
+  *   - `DT[:, j] = R` or `DT[:, :] = R`
+  *   - `DT[i, j] = R` or `DT[i, :] = R`
+  *
+  * In the first case the entire columns are replaced, which means we
+  * can allow their stypes to change.
+  *
+  * In the second case we only replace the values in a subset of rows,
+  * and therefore the replacement frame must (loosely) have the same
+  * types as the LHS (we *may* relax this requirement in the future).
+  *
+  */
 void EvalContext::evaluate_update() {
-  bool allrows = !(frames[0].ri);
-  bool allcols = (jexpr2.get_expr_kind() == expr::Kind::SliceAll);
-
-  if (allrows)      evaluate_update_columns();
-  else if (allcols) evaluate_update_rows();
-  else              evaluate_update_subframe();
-}
-
-
-void EvalContext::evaluate_update_columns() {
   auto dt0 = get_datatable(0);
+  auto ri0 = get_rowindex(0);
   auto ncols = dt0->ncols();
   auto indices = evaluate_j_as_column_index();
 
@@ -304,18 +305,24 @@ void EvalContext::evaluate_update_columns() {
   create_placeholder_columns();
   typecheck_for_update(replacement, indices);
 
-  for (size_t i = 0; i < lcols; ++i) {
-    dt0->set_column(indices[i], replacement.retrieve_column(i));
+  if (ri0) {
+    for (size_t i = 0; i < lcols; ++i) {
+      Column rcol = replacement.retrieve_column(i);
+      size_t j = indices[i];
+      if (j >= ncols) {  // new column
+        dt0->set_column(j, Column::new_na_column(dt0->nrows(), rcol.stype()));
+      }
+      Column& colj = dt0->get_column(j);
+      if (colj.stype() != rcol.stype()) {
+        colj.cast_inplace(rcol.stype());
+      }
+      colj.replace_values(ri0, rcol);
+    }
+  } else {
+    for (size_t i = 0; i < lcols; ++i) {
+      dt0->set_column(indices[i], replacement.retrieve_column(i));
+    }
   }
-}
-
-
-void EvalContext::evaluate_update_rows() {
-  jexpr->update(*this, repl.get());
-}
-
-void EvalContext::evaluate_update_subframe() {
-  jexpr->update(*this, repl.get());
 }
 
 
