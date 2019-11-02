@@ -239,3 +239,9 @@ def test_assign_wrong_type():
     with pytest.raises(TypeError):
         DT[:, ["A", "B"]] = 3.3
     frame_integrity_check(DT)
+
+
+def test_assign_exprs_with_i():
+    DT = dt.Frame(A=range(10))
+    DT[f.A < 5, f.A] = f.A + 10
+    assert_equals(DT, dt.Frame(A=[10, 11, 12, 13, 14, 5, 6, 7, 8, 9]))

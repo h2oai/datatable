@@ -107,6 +107,7 @@ void Column::_release_impl(const dt::ColumnImpl* impl) {
 }
 
 dt::ColumnImpl* Column::_get_mutable_impl() {
+  xassert(impl_);
   if (impl_->refcount_ > 1) {
     --impl_->refcount_;
     impl_ = impl_->clone();

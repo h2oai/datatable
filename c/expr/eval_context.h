@@ -26,7 +26,6 @@
 #include "expr/expr.h"
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
-#include "expr/repl_node.h"  // repl_node_ptr
 #include "expr/sort_node.h"  // py::osort
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
@@ -75,12 +74,11 @@ enum class EvalMode : uint8_t {
 class EvalContext {
   private:
     // Inputs
-    by_node       byexpr;
-    expr::Expr    iexpr;
-    j_node_ptr    jexpr;
-    expr::Expr    jexpr2;
-    repl_node_ptr repl;
-    expr::Expr    repl2;
+    by_node       byexpr;  // old
+    j_node_ptr    jexpr;   // old
+    expr::Expr    iexpr_;
+    expr::Expr    jexpr_;
+    expr::Expr    repl_;
 
     // Runtime
     frvec         frames;
@@ -140,10 +138,6 @@ class EvalContext {
     void evaluate_delete_rows();
     void evaluate_delete_subframe();
     void evaluate_update();
-    void evaluate_update_columns();
-    void evaluate_update_everything();
-    void evaluate_update_rows();
-    void evaluate_update_subframe();
     intvec evaluate_j_as_column_index();
     void create_placeholder_columns();
     void typecheck_for_update(expr::Workframe&, const intvec&);

@@ -48,7 +48,7 @@
 // refer to columns from the join frames, and therefore in order to check their
 // correctness we need to know which frames are joined.
 //
-// Next, we construct `iexpr` and `jexpr` from arguments `i` and `j`.
+// Next, we construct `iexpr_` and `jexpr` from arguments `i` and `j`.
 //
 // Once all nodes of the evaluation graph are initialized, we compute all joins
 // (if any). After this step all subframes within the evaluation frame will
