@@ -57,7 +57,7 @@ class allcols_jnode : public j_node {
     allcols_jnode() = default;
     GroupbyMode get_groupby_mode(EvalContext&) override;
     void select(EvalContext&) override;
-    void update(EvalContext&, repl_node*) override;
+    // void update(EvalContext&, repl_node*) override;
 };
 
 
@@ -86,21 +86,21 @@ void allcols_jnode::select(EvalContext& ctx) {
 }
 
 
-void allcols_jnode::update(EvalContext& ctx, repl_node* repl) {
-  DataTable* dt0 = ctx.get_datatable(0);
-  const RowIndex& ri0 = ctx.get_rowindex(0);
-  size_t ncols = dt0->ncols();
-  size_t nrows = ri0? ri0.size() : dt0->nrows();
-  repl->check_compatibility(nrows, ncols);
+// void allcols_jnode::update(EvalContext& ctx, repl_node* repl) {
+//   DataTable* dt0 = ctx.get_datatable(0);
+//   const RowIndex& ri0 = ctx.get_rowindex(0);
+//   size_t ncols = dt0->ncols();
+//   size_t nrows = ri0? ri0.size() : dt0->nrows();
+//   repl->check_compatibility(nrows, ncols);
 
-  std::vector<size_t> indices(ncols);
-  std::iota(indices.begin(), indices.end(), 0);
-  if (ri0) {
-    repl->replace_values(ctx, indices);
-  } else {
-    repl->replace_columns(ctx, indices);
-  }
-}
+//   std::vector<size_t> indices(ncols);
+//   std::iota(indices.begin(), indices.end(), 0);
+//   if (ri0) {
+//     repl->replace_values(ctx, indices);
+//   } else {
+//     repl->replace_columns(ctx, indices);
+//   }
+// }
 
 
 
@@ -129,7 +129,7 @@ class simplelist_jnode : public j_node {
     explicit simplelist_jnode(collist&&);
     GroupbyMode get_groupby_mode(EvalContext&) override;
     void select(EvalContext&) override;
-    void update(EvalContext&, repl_node*) override;
+    // void update(EvalContext&, repl_node*) override;
 
   private:
     void _init_names(EvalContext&);
@@ -176,44 +176,44 @@ void simplelist_jnode::_init_names(EvalContext& ctx) {
 }
 
 
-void simplelist_jnode::update(EvalContext& ctx, repl_node* repl) {
-  DataTable* dt0 = ctx.get_datatable(0);
-  const RowIndex& ri0 = ctx.get_rowindex(0);
-  size_t lcols = indices.size();
-  size_t lrows = ri0? ri0.size() : dt0->nrows();
-  repl->check_compatibility(lrows, lcols);
+// void simplelist_jnode::update(EvalContext& ctx, repl_node* repl) {
+//   DataTable* dt0 = ctx.get_datatable(0);
+//   const RowIndex& ri0 = ctx.get_rowindex(0);
+//   size_t lcols = indices.size();
+//   size_t lrows = ri0? ri0.size() : dt0->nrows();
+//   repl->check_compatibility(lrows, lcols);
 
-  size_t ncols = dt0->ncols();
-  strvec new_names{ dt0->get_names() };  // copy names
-  try {
-    size_t num_new_columns = 0;
-    for (size_t j : indices) {
-      num_new_columns += (j == size_t(-1));
-    }
-    if (num_new_columns) {
-      // Resolve the `repl` node before any changes to `dt0` are committed.
-      repl->resolve(ctx);
-      new_names.reserve(ncols + num_new_columns);
-      for (size_t i = 0; i < indices.size(); ++i) {
-        if (indices[i] == size_t(-1)) {
-          indices[i] = new_names.size();
-          new_names.push_back(names[i]);
-        }
-      }
-      dt0->resize_columns(new_names);
-    }
+//   size_t ncols = dt0->ncols();
+//   strvec new_names{ dt0->get_names() };  // copy names
+//   try {
+//     size_t num_new_columns = 0;
+//     for (size_t j : indices) {
+//       num_new_columns += (j == size_t(-1));
+//     }
+//     if (num_new_columns) {
+//       // Resolve the `repl` node before any changes to `dt0` are committed.
+//       repl->resolve(ctx);
+//       new_names.reserve(ncols + num_new_columns);
+//       for (size_t i = 0; i < indices.size(); ++i) {
+//         if (indices[i] == size_t(-1)) {
+//           indices[i] = new_names.size();
+//           new_names.push_back(names[i]);
+//         }
+//       }
+//       dt0->resize_columns(new_names);
+//     }
 
-    if (ri0) {
-      repl->replace_values(ctx, indices);
-    } else {
-      repl->replace_columns(ctx, indices);
-    }
-  } catch (...) {
-    new_names.resize(ncols);
-    dt0->resize_columns(new_names);
-    throw;
-  }
-}
+//     if (ri0) {
+//       repl->replace_values(ctx, indices);
+//     } else {
+//       repl->replace_columns(ctx, indices);
+//     }
+//   } catch (...) {
+//     new_names.resize(ncols);
+//     dt0->resize_columns(new_names);
+//     throw;
+//   }
+// }
 
 
 
@@ -232,7 +232,7 @@ class exprlist_jn : public j_node {
     explicit exprlist_jn(collist&&);
     GroupbyMode get_groupby_mode(EvalContext&) override;
     void select(EvalContext&) override;
-    void update(EvalContext&, repl_node*) override;
+    // void update(EvalContext&, repl_node*) override;
 
   private:
     void _init_names(EvalContext&);
@@ -280,9 +280,9 @@ void exprlist_jn::_init_names(EvalContext&) {
 }
 
 
-void exprlist_jn::update(EvalContext&, repl_node*) {
-  throw ValueError() << "Cannot execute an update on computed columns";
-}
+// void exprlist_jn::update(EvalContext&, repl_node*) {
+//   throw ValueError() << "Cannot execute an update on computed columns";
+// }
 
 
 

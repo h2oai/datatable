@@ -75,12 +75,11 @@ enum class EvalMode : uint8_t {
 class EvalContext {
   private:
     // Inputs
-    by_node       byexpr;
-    expr::Expr    iexpr;
-    j_node_ptr    jexpr;
-    expr::Expr    jexpr2;
-    repl_node_ptr repl;
-    expr::Expr    repl2;
+    by_node       byexpr;  // old
+    j_node_ptr    jexpr;   // old
+    expr::Expr    iexpr_;
+    expr::Expr    jexpr_;
+    expr::Expr    repl_;
 
     // Runtime
     frvec         frames;

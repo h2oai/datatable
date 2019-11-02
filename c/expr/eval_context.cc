@@ -58,21 +58,19 @@ void EvalContext::add_sortby(py::osort obj) {
 
 
 void EvalContext::add_i(py::oobj oi) {
-  iexpr = dt::expr::Expr(oi);
+  iexpr_ = dt::expr::Expr(oi);
 }
 
 
 void EvalContext::add_j(py::oobj oj) {
   xassert(!jexpr);
-  jexpr2 = dt::expr::Expr(oj);
+  jexpr_ = dt::expr::Expr(oj);
   jexpr = j_node::make(oj, *this);
 }
 
 
 void EvalContext::add_replace(py::oobj obj) {
-  xassert(!repl);
-  repl2 = dt::expr::Expr(obj);
-  repl = repl_node::make(*this, obj);
+  repl_ = dt::expr::Expr(obj);
 }
 
 
@@ -114,11 +112,11 @@ void EvalContext::evaluate() {
 
   // Compute i filter
   if (has_groupby()) {
-    auto rigb = iexpr.evaluate_iby(*this);
+    auto rigb = iexpr_.evaluate_iby(*this);
     apply_rowindex(rigb.first);
     apply_groupby(rigb.second);
   } else {
-    RowIndex rowindex = iexpr.evaluate_i(*this);
+    RowIndex rowindex = iexpr_.evaluate_i(*this);
     apply_rowindex(rowindex);
   }
 
@@ -130,7 +128,7 @@ void EvalContext::evaluate() {
         fix_columns();
       }
       else {
-        auto res = jexpr2.evaluate_j(*this);
+        auto res = jexpr_.evaluate_j(*this);
         out_datatable = std::move(res).convert_to_datatable();
       }
       break;
@@ -155,7 +153,7 @@ void EvalContext::evaluate() {
 intvec EvalContext::evaluate_j_as_column_index() {
   bool allow_new = (mode == EvalMode::UPDATE);
   DataTable* dt0 = frames[0].dt;
-  auto jres = jexpr2.evaluate_j(*this, allow_new);
+  auto jres = jexpr_.evaluate_j(*this, allow_new);
   size_t n = jres.ncols();
   intvec indices(n);
 
@@ -207,7 +205,7 @@ void EvalContext::create_placeholder_columns() {
 //   - delete all rows & all columns (i.e. delete the entire frame).
 //
 void EvalContext::evaluate_delete() {
-  if (jexpr2.get_expr_kind() == expr::Kind::SliceAll) {
+  if (jexpr_.get_expr_kind() == expr::Kind::SliceAll) {
     evaluate_delete_rows();
   } else if (frames[0].ri) {
     evaluate_delete_subframe();
@@ -298,7 +296,7 @@ void EvalContext::evaluate_update() {
                               : SType::VOID);
   }
 
-  expr::Workframe replacement = repl2.evaluate_r(*this, stypes);
+  expr::Workframe replacement = repl_.evaluate_r(*this, stypes);
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);
