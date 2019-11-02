@@ -66,6 +66,7 @@ class Ftrl : public dt::FtrlBase {
     // Helper parameters.
     T ialpha;
     T gamma;
+    size_t negative_class_id;
 
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as
@@ -121,6 +122,7 @@ class Ftrl : public dt::FtrlBase {
     void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model helper methods
+    void add_negative_class();
     void create_model();
     void adjust_model();
     void init_model();

@@ -383,6 +383,35 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
 
 
 /**
+ *  Add negative class label and save its model id.
+ */
+template <typename T>
+void Ftrl<T>::add_negative_class() {
+  dt::writable_string_col c_labels(1);
+  dt::writable_string_col::buffer_impl<uint32_t> sb(c_labels);
+  sb.commit_and_start_new_chunk(0);
+  sb.write("_negative_class");
+  sb.order();
+  sb.commit_and_start_new_chunk(1);
+
+  Column c_ids = Column::new_data_column(1, SType::INT32);
+  auto d_ids = static_cast<int32_t*>(c_ids.get_data_editable());
+  negative_class_id = dt_labels->nrows();
+  d_ids[0] = int32_t(negative_class_id);
+
+  dtptr dt_nc = dtptr(new DataTable({
+                       std::move(c_labels).to_ocolumn(),
+                       std::move(c_ids)
+                     }, dt_labels->get_names()));
+
+  dt_labels->clear_key();
+  dt_labels->rbind({dt_nc.get()}, {{ 0 } , { 1 }});
+  intvec keys{ 0 };
+  dt_labels->set_key(keys);
+}
+
+
+/**
  *  Encode target column with the integer labels, and set up mapping
  *  between models and the incoming label indicators.
  */
@@ -399,13 +428,16 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
   if (dt_labels_in == nullptr) return;
 
   auto data_label_ids_in = static_cast<const int32_t*>(
-                              dt_labels_in->get_column(1).get_data_readonly());
+                              dt_labels_in->get_column(1).get_data_readonly()
+                           );
   size_t nlabels_in = dt_labels_in->nrows();
 
-  // When we only start training, all the incoming labels become the model
-  // labels. Mapping is trivial in this case.
+  // When we start training for the first time, all the incoming labels
+  // become the model labels. Mapping is trivial in this case.
   if (dt_labels == nullptr) {
     dt_labels = std::move(dt_labels_in);
+    if (negative_class) add_negative_class();
+
     label_ids.resize(nlabels_in);
     for (size_t i = 0; i < nlabels_in; ++i) {
       label_ids[i] = i;
@@ -416,7 +448,9 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
     // set up mapping in such a way, so that models will train
     // on all the negatives.
     auto data_label_ids = static_cast<const int32_t*>(
-                            dt_labels->get_column(1).get_data_readonly());
+                            dt_labels->get_column(1).get_data_readonly()
+                          );
+
     RowIndex ri_join = natural_join(*dt_labels_in.get(), *dt_labels.get());
     size_t nlabels = dt_labels->nrows();
 
@@ -594,8 +628,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
             V value;
             bool isvalid = target_col0_val.get_element(i, &value);
 
-            if (isvalid && std::isfinite(value))
-            {
+            if (isvalid && std::isfinite(value)) {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < label_ids_val.size(); ++k) {
                 T p = linkfn(predict_row(
@@ -686,8 +719,12 @@ T Ftrl<T>::predict_row(const uint64ptr& x, tptr<T>& w, size_t k, F fifn) {
  */
 template <typename T>
 template <typename U /* column data type */>
-void Ftrl<T>::update(const uint64ptr& x, const tptr<T>& w,
-                         T p, U y, size_t k) {
+void Ftrl<T>::update(const uint64ptr& x,
+                     const tptr<T>& w,
+                     T p,
+                     U y,
+                     size_t k)
+{
   T g = p - static_cast<T>(y);
   T gsq = g * g;
   for (size_t i = 0; i < nfeatures; ++i) {
@@ -882,27 +919,25 @@ void Ftrl<T>::adjust_model() {
     cols.push_back(dt_model->get_column(i));
   }
 
-  Column newcol0, newcol1;
-  // If we have a negative class, then all the new classes
-  // get a copy of its weights to start learning from.
+  Column zcol, ncol;
+  // If `negative_class` parameter is set to `True`, all the new classes
+  // get a copy of `z` and `n` weights of the `_negative_class`.
   // Otherwise, new classes start learning from zero weights.
-  // if (params.negative_class) {
-  //   newcol0 = dt_model->get_column(0);
-  //   cols_new[1] = dt_model->get_column(1);
-  // } else
-  {
-    constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
+  if (negative_class) {
+    zcol = dt_model->get_column(2 * negative_class_id);
+    ncol = dt_model->get_column(2 * negative_class_id + 1);
+  } else {
+    const SType stype = dt_model->get_column(0).stype();
     Column col = Column::new_data_column(nbins, stype);
     auto data = static_cast<T*>(col.get_data_editable());
     std::memset(data, 0, nbins * sizeof(T));
-    newcol0 = col;
-    newcol1 = col;
+    zcol = col;
+    ncol = col;
   }
 
-
   for (size_t i = ncols_model; i < ncols_model_new; i+=2) {
-    cols.push_back(newcol0);
-    cols.push_back(newcol1);
+    cols.push_back(zcol);
+    cols.push_back(ncol);
   }
 
   dt_model = dtptr(new DataTable(std::move(cols), DataTable::default_names));
