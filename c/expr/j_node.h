@@ -25,7 +25,6 @@ namespace dt {
 
 
 class j_node;
-class repl_node;
 class EvalContext;
 using j_node_ptr = std::unique_ptr<dt::j_node>;
 
@@ -40,7 +39,6 @@ class j_node {
     virtual ~j_node();
     virtual GroupbyMode get_groupby_mode(EvalContext&) = 0;
     virtual void select(EvalContext&) = 0;
-    // virtual void update(EvalContext&, repl_node*) = 0;
 };
 
 
