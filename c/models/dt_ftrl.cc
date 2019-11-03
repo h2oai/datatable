@@ -986,6 +986,7 @@ void Ftrl<T>::reset() {
   model_type = FtrlModelType::NONE;
   dt_labels = nullptr;
   colname_hashes.clear();
+  negative_class_id = NA_U8;
 }
 
 
