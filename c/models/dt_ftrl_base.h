@@ -134,8 +134,7 @@ class FtrlBase {
     // Number of mantissa bits in a double number.
     static constexpr unsigned char DOUBLE_MANTISSA_NBITS = 52;
 
-    // Separator for nhot encoding splitter.
-    // Can also be useful for multilabel regression.
+    // TODO: separator for multilabel regression.
     static constexpr char SEPARATOR = ',';
 
     // Minimum number of rows a thread will get for fitting and predicting.

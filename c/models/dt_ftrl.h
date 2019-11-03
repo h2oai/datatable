@@ -56,16 +56,17 @@ class Ftrl : public dt::FtrlBase {
     T beta;
     T lambda1;
     T lambda2;
-    uint64_t nbins;
-    unsigned char mantissa_nbits;
-    bool negative_class;
-    size_t: 48;
-    size_t nepochs;
+
+    // Vector of feature interactions.
     std::vector<intvec> interactions;
 
     // Helper parameters.
     T ialpha;
     T gamma;
+
+    // When problem type is multinomial regression and `params.negative_class`
+    // is `true`, this property represents a label (model) id of the
+    // negative class.
     size_t negative_class_id;
 
     // Labels that are automatically extracted from the target column.
