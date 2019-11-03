@@ -473,16 +473,5 @@ void EvalContext::add_column(
 }
 
 
-RowIndex& EvalContext::_product(const RowIndex& ra, const RowIndex& rb) {
-  for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
-    if (it->ab == ra && it->bc == rb) {
-      return it->ac;
-    }
-  }
-  all_ri.push_back({ra, rb, ra * rb});
-  return all_ri.back().ac;
-}
-
-
 
 } // namespace dt

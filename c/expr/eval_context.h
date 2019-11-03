@@ -129,7 +129,6 @@ class EvalContext {
     void reserve(size_t n);
     void add_column(Column&&, const RowIndex&, std::string&&);
 
-    RowIndex& _product(const RowIndex& ra, const RowIndex& rb);
     void fix_columns();
 
   private:
@@ -142,7 +141,6 @@ class EvalContext {
     void create_placeholder_columns();
     void typecheck_for_update(expr::Workframe&, const intvec&);
 
-    friend class dt::expr::expr_column;  // Use _product
     friend class by_node;  // Allow access to `gb`
 };
 
