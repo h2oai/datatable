@@ -21,6 +21,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+#
+# Assign to various [i,j] targets
+#
+#-------------------------------------------------------------------------------
 import datatable as dt
 import math
 import pytest
@@ -30,7 +34,86 @@ from tests import assert_equals
 
 
 
-def test_assign_column_slice():
+#-------------------------------------------------------------------------------
+# Assign to small (degenerate) frames
+#-------------------------------------------------------------------------------
+
+def test_assign_to_empty_frame_0x0():
+    DT = dt.Frame()
+    DT[:, "A"] = 'foo!'
+    DT["B"] = 0xF00D
+    assert_equals(DT, dt.Frame(A=[], B=[], stypes=[dt.str32, dt.int32]))
+
+
+def test_assign_to_empty_frame_3x0():
+    DT = dt.Frame()
+    DT.nrows = 3
+    DT[:, "A"] = 'foo!'
+    assert_equals(DT, dt.Frame(A=['foo!']*3))
+
+
+def test_assign_to_empty_frame_0x3():
+    DT = dt.Frame(A=[], B=[], C=[])
+    DT[:, "A":"C"] = False
+    with pytest.raises(TypeError):
+        DT[:, "A":"C"] = 3
+    DT[:, "A":"C"] = True
+    assert_equals(DT, dt.Frame(A=[], B=[], C=[], stype=bool))
+
+
+
+
+#-------------------------------------------------------------------------------
+# Assign to all rows DT[:, j] = R
+#-------------------------------------------------------------------------------
+
+def test_assign_to_one_column():
+    DT = dt.Frame(A=range(5), B=[4, 3, 9, 11, -1])
+    DT[:, "B"] = 100
+    assert_equals(DT, dt.Frame(A=range(5), B=[100]*5))
+
+
+def test_assign_to_one_column2():
+    DT = dt.Frame([range(3)] * 5, names=list("ABCDE"))
+    DT[:, 2] = 3
+    DT[:, -1] = -1
+    assert_equals(DT, dt.Frame(A=range(3), B=range(3), C=[3]*3,
+                               D=range(3), E=[-1]*3))
+
+
+def test_assign_to_new_column():
+    DT = dt.Frame(A=range(7))
+    DT["Z"] = 2.5
+    assert_equals(DT, dt.Frame(A=range(7), Z=[2.5]*7))
+
+
+def test_assign_to_all():
+    DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
+    DT[:, :] = 12
+    assert_equals(DT, dt.Frame(A=[12]*5, B=[12]*5))
+
+
+def test_assign_to_list_of_columns():
+    DT = dt.Frame(A=[1, 3, 4], B=[2.5, 17.3, None], C=[4.99, -12, 2.22])
+    DT[:, ["A", "C"]] = 35
+    assert_equals(DT, dt.Frame(A=[35]*3, B=[2.5, 17.3, None], C=[35.0]*3))
+
+
+
+
+#-------------------------------------------------------------------------------
+# Assign to subset of rows
+#-------------------------------------------------------------------------------
+
+def test_assign_to_row_slice_single_column():
+    DT = dt.Frame(A=range(8))
+    DT[::2, "A"] = 100
+    assert_equals(DT, dt.Frame(A=[100, 1, 100, 3, 100, 5, 100, 7]))
+
+
+
+
+def test_assign_to_column_slice():
     src = [[1, 5, 10, 100], [7.3, 14, -2, 1.2e5], ["foo", None, None, "g"]]
     f0 = dt.Frame(src)
     assert f0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.str)
