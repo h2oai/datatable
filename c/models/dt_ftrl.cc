@@ -42,7 +42,6 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   beta(static_cast<T>(params_in.beta)),
   lambda1(static_cast<T>(params_in.lambda1)),
   lambda2(static_cast<T>(params_in.lambda2)),
-  negative_class_id(NA_U8),
   nfeatures(0),
   dt_X_train(nullptr),
   dt_y_train(nullptr),
@@ -384,8 +383,6 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
  */
 template <typename T>
 void Ftrl<T>::add_negative_class() {
-  xassert(ISNA(negative_class_id));
-
   dt::writable_string_col c_labels(1);
   dt::writable_string_col::buffer_impl<uint32_t> sb(c_labels);
   sb.commit_and_start_new_chunk(0);
@@ -395,8 +392,7 @@ void Ftrl<T>::add_negative_class() {
 
   Column c_ids = Column::new_data_column(1, SType::INT32);
   auto d_ids = static_cast<int32_t*>(c_ids.get_data_editable());
-  negative_class_id = dt_labels->nrows();
-  d_ids[0] = int32_t(negative_class_id);
+  d_ids[0] = 0;
 
   dtptr dt_nc = dtptr(
                   new DataTable(
@@ -406,6 +402,7 @@ void Ftrl<T>::add_negative_class() {
                 );
 
   dt_labels->clear_key();
+  increase_ids(dt_labels->get_column(1), int32_t(1));
   dt_labels->rbind({dt_nc.get()}, {{ 0 } , { 1 }});
   intvec keys{ 0 };
   dt_labels->set_key(keys);
@@ -437,11 +434,14 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
   // become the model labels. Mapping is trivial in this case.
   if (dt_labels == nullptr) {
     dt_labels = std::move(dt_labels_in);
-    if (params.negative_class) add_negative_class();
+    if (params.negative_class) {
+      add_negative_class();
+      ++nlabels_in;
+    }
 
     label_ids.resize(nlabels_in);
     for (size_t i = 0; i < nlabels_in; ++i) {
-      label_ids[i] = i;
+      label_ids[i] = i - params.negative_class;
     }
 
   } else {
@@ -925,8 +925,8 @@ void Ftrl<T>::adjust_model() {
   // get a copy of `z` and `n` weights of the `_negative_class`.
   // Otherwise, new classes start learning from zero weights.
   if (params.negative_class) {
-    zcol = dt_model->get_column(2 * negative_class_id);
-    ncol = dt_model->get_column(2 * negative_class_id + 1);
+    zcol = dt_model->get_column(0);
+    ncol = dt_model->get_column(1);
   } else {
     const SType stype = dt_model->get_column(0).stype();
     Column col = Column::new_data_column(params.nbins, stype);
@@ -986,7 +986,6 @@ void Ftrl<T>::reset() {
   model_type = FtrlModelType::NONE;
   dt_labels = nullptr;
   colname_hashes.clear();
-  negative_class_id = NA_U8;
 }
 
 

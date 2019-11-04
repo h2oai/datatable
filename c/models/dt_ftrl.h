@@ -64,11 +64,6 @@ class Ftrl : public dt::FtrlBase {
     T ialpha;
     T gamma;
 
-    // When problem type is multinomial regression and `params.negative_class`
-    // is `true`, this property represents a label (model) id of the
-    // negative class.
-    size_t negative_class_id;
-
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as
     //   index 0: negative label

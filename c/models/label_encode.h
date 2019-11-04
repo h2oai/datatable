@@ -82,6 +82,7 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
          ));
 }
 
+
 /**
  *  Fill column with the sequential ids starting from `i0`.
  *  Used in the multinomial case when we encounter new labels.
@@ -92,6 +93,20 @@ void set_ids(Column& col, T i0) {
   auto data = static_cast<T*>(col.get_data_editable());
   for (T i = 0; i < static_cast<T>(col.nrows()); ++i) {
     data[i] = i0 + i;
+  }
+}
+
+
+/**
+ *  Increase column values by `i0`.
+ *  Used in the multinomial case when we need to add a negative class.
+ */
+template <typename T>
+void increase_ids(Column& col, T i0) {
+  col.materialize();
+  auto data = static_cast<T*>(col.get_data_editable());
+  for (T i = 0; i < static_cast<T>(col.nrows()); ++i) {
+    data[i] += i0;
   }
 }
 

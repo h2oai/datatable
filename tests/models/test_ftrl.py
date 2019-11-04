@@ -898,10 +898,13 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
     assert_equals(p_binomial[:, 0], p_multinomial[:, 0])
 
 
-def test_ftrl_fit_predict_multinomial():
+@pytest.mark.parametrize('negative_class', [False, True])
+def test_ftrl_fit_predict_multinomial(negative_class):
+    negative_class_label = ["_negative_class"] if negative_class else []
     nepochs = 1000
     ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
-    labels = ("blue", "green", "red")
+    ft.negative_class = negative_class
+    labels = ["blue", "green", "red"]
 
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
@@ -926,7 +929,7 @@ def test_ftrl_fit_predict_multinomial():
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
-    assert p.names == labels
+    assert list(p.names) == negative_class_label + labels
 
 
 @pytest.mark.parametrize('negative_class', [False, True])
@@ -943,6 +946,10 @@ def test_ftrl_fit_predict_multinomial_online(negative_class):
     assert ft.model_type_trained == "multinomial"
     assert ft.labels[:, 0].to_list() == [negative_class_label + ["green"]]
     assert ft.model.shape == (ft.nbins, 2 * ft.labels.nrows)
+
+    # Also do pickling unpickling in the middle.
+    ft_pickled = pickle.dumps(ft)
+    ft = pickle.loads(ft_pickled)
 
     # Show one more
     df_train = dt.Frame(["cucumber", None])
