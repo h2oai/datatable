@@ -491,7 +491,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       new_label_indices.resize(n_new_labels);
       RowIndex ri_labels(std::move(new_label_indices));
       dt_labels_in->apply_rowindex(ri_labels);
-      set_ids(dt_labels_in->get_column(1), static_cast<int32_t>(dt_labels->nrows()));
+      fill_ids(dt_labels_in->get_column(1), static_cast<int32_t>(dt_labels->nrows()));
 
       // Since we cannot rbind anything to a keyed frame, we
       // - clear the key;
