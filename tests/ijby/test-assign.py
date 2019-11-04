@@ -181,7 +181,7 @@ def test_assign_list_of_exprs():
 
 
 #-------------------------------------------------------------------------------
-# Assign to subset of rows
+# Assign to subset of rows:  DT[i, j] = R
 #-------------------------------------------------------------------------------
 
 def test_assign_single_cell():
