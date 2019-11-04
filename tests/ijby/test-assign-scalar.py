@@ -21,14 +21,46 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import math
 import pytest
 from datatable import f, dt
-from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
 stypes_int = dt.ltype.int.stypes
 stypes_float = dt.ltype.real.stypes
 stypes_str = dt.ltype.str.stypes
+
+
+
+#-------------------------------------------------------------------------------
+# Assign None
+#-------------------------------------------------------------------------------
+
+def test_assign_none_single():
+    DT = dt.Frame(A=range(5))
+    DT[:, f.A] = None
+    assert_equals(DT, dt.Frame(A=[None]*5, stype=dt.int32))
+
+
+def test_assign_none_new():
+    DT = dt.Frame(A=range(5))
+    DT[:, "B"] = None
+    assert_equals(DT, dt.Frame(A=range(5), B=[None]*5,
+                               stypes={"A": dt.int32, "B": dt.bool8}))
+
+
+def test_assign_none_all():
+    DT = dt.Frame([[True, False], [1, 5], [999, -12], [34.2, math.inf],
+                   [0.001, 1e-100], ['foo', 'bar'], ['buzz', '?']],
+                  names=list("ABCDEFG"),
+                  stypes=['bool', 'int8', 'int64', 'float32', 'float64',
+                          'str32', 'str64'])
+    DT[:, :] = None
+    assert_equals(DT, dt.Frame([[None, None]] * 7,
+                               names=tuple("ABCDEFG"),
+                               stypes=(dt.bool8, dt.int8, dt.int64, dt.float32,
+                                       dt.float64, dt.str32, dt.str64)))
+
 
 
 
