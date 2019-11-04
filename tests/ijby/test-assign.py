@@ -267,16 +267,6 @@ def test_stats_after_assign():
     assert DT.countna1() == 0
 
 
-def test_assign_nonexisting_column():
-    # See #1983: if column `B` is created at a wrong moment in the evaluation
-    # sequence, this may seg.fault
-    DT = dt.Frame(A=range(5))
-    with pytest.raises(ValueError) as e:
-        DT[:, "B"] = f.B + 1
-    assert ("Column `B` does not exist in the Frame" in str(e.value))
-    frame_integrity_check(DT)
-
-
 @pytest.mark.xfail
 def test_assign_wrong_type():
     # Check that if one assignment was correct, the exception during the
