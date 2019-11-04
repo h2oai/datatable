@@ -34,30 +34,80 @@ void label_encode(const Column& col, dtptr& dt_labels, dtptr& dt_encoded,
   if (is_binomial) {
     switch (stype) {
       case SType::BOOL:    label_encode_bool(col, dt_labels, dt_encoded); break;
-      case SType::INT8:    label_encode_fw<SType::INT8, SType::BOOL>(col, dt_labels, dt_encoded); break;
-      case SType::INT16:   label_encode_fw<SType::INT16, SType::BOOL>(col, dt_labels, dt_encoded); break;
-      case SType::INT32:   label_encode_fw<SType::INT32, SType::BOOL>(col, dt_labels, dt_encoded); break;
-      case SType::INT64:   label_encode_fw<SType::INT64, SType::BOOL>(col, dt_labels, dt_encoded); break;
-      case SType::FLOAT32: label_encode_fw<SType::FLOAT32, SType::BOOL>(col, dt_labels, dt_encoded); break;
-      case SType::FLOAT64: label_encode_fw<SType::FLOAT64, SType::BOOL>(col, dt_labels, dt_encoded); break;
-      case SType::STR32:   label_encode_str<uint32_t, SType::BOOL>(col, dt_labels, dt_encoded); break;
-      case SType::STR64:   label_encode_str<uint64_t, SType::BOOL>(col, dt_labels, dt_encoded); break;
+      case SType::INT8:    label_encode_fw<SType::INT8, SType::BOOL>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::INT16:   label_encode_fw<SType::INT16, SType::BOOL>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::INT32:   label_encode_fw<SType::INT32, SType::BOOL>(
+                             col, dt_labels, dt_encoded
+                            );
+                           break;
+      case SType::INT64:   label_encode_fw<SType::INT64, SType::BOOL>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::FLOAT32: label_encode_fw<SType::FLOAT32, SType::BOOL>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::FLOAT64: label_encode_fw<SType::FLOAT64, SType::BOOL>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::STR32:   label_encode_str<uint32_t, SType::BOOL>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::STR64:   label_encode_str<uint64_t, SType::BOOL>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
 
-      default:             throw TypeError() << "Column type `" << stype << "` is not supported";
+      default:             throw TypeError() << "Column type `" << stype
+                                             << "` is not supported";
     }
   } else {
     switch (stype) {
       case SType::BOOL:    label_encode_bool(col, dt_labels, dt_encoded); break;
-      case SType::INT8:    label_encode_fw<SType::INT8, SType::INT32>(col, dt_labels, dt_encoded); break;
-      case SType::INT16:   label_encode_fw<SType::INT16, SType::INT32>(col, dt_labels, dt_encoded); break;
-      case SType::INT32:   label_encode_fw<SType::INT32, SType::INT32>(col, dt_labels, dt_encoded); break;
-      case SType::INT64:   label_encode_fw<SType::INT64, SType::INT32>(col, dt_labels, dt_encoded); break;
-      case SType::FLOAT32: label_encode_fw<SType::FLOAT32, SType::INT32>(col, dt_labels, dt_encoded); break;
-      case SType::FLOAT64: label_encode_fw<SType::FLOAT64, SType::INT32>(col, dt_labels, dt_encoded); break;
-      case SType::STR32:   label_encode_str<uint32_t, SType::INT32>(col, dt_labels, dt_encoded); break;
-      case SType::STR64:   label_encode_str<uint64_t, SType::INT32>(col, dt_labels, dt_encoded); break;
+      case SType::INT8:    label_encode_fw<SType::INT8, SType::INT32>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::INT16:   label_encode_fw<SType::INT16, SType::INT32>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::INT32:   label_encode_fw<SType::INT32, SType::INT32>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::INT64:   label_encode_fw<SType::INT64, SType::INT32>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::FLOAT32: label_encode_fw<SType::FLOAT32, SType::INT32>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::FLOAT64: label_encode_fw<SType::FLOAT64, SType::INT32>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::STR32:   label_encode_str<uint32_t, SType::INT32>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
+      case SType::STR64:   label_encode_str<uint64_t, SType::INT32>(
+                             col, dt_labels, dt_encoded
+                           );
+                           break;
 
-      default:             throw TypeError() << "Column type `" << stype << "` is not supported";
+      default:             throw TypeError() << "Column type `" << stype
+                                             << "` is not supported";
     }
   }
 
@@ -74,7 +124,9 @@ void label_encode(const Column& col, dtptr& dt_labels, dtptr& dt_encoded,
  *  false/true. No encoding in this case is necessary, so `dt_encoded`
  *  just uses a shallow copy of `col`.
  */
-static void label_encode_bool(const Column& col, dtptr& dt_labels, dtptr& dt_encoded)
+static void label_encode_bool(const Column& col,
+                              dtptr& dt_labels,
+                              dtptr& dt_encoded)
 {
   // If we only got NA's, return
   if (col.na_count() == col.nrows()) return;
