@@ -56,10 +56,8 @@ class Ftrl : public dt::FtrlBase {
     T beta;
     T lambda1;
     T lambda2;
-    uint64_t nbins;
-    unsigned char mantissa_nbits;
-    size_t: 56;
-    size_t nepochs;
+
+    // Vector of feature interactions.
     std::vector<intvec> interactions;
 
     // Helper parameters.
@@ -120,6 +118,7 @@ class Ftrl : public dt::FtrlBase {
     void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model helper methods
+    void add_negative_class();
     void create_model();
     void adjust_model();
     void init_model();

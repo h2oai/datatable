@@ -898,10 +898,13 @@ def test_ftrl_fit_predict_multinomial_vs_binomial():
     assert_equals(p_binomial[:, 0], p_multinomial[:, 0])
 
 
-def test_ftrl_fit_predict_multinomial():
+@pytest.mark.parametrize('negative_class', [False, True])
+def test_ftrl_fit_predict_multinomial(negative_class):
+    negative_class_label = ["_negative_class"] if negative_class else []
     nepochs = 1000
     ft = Ftrl(alpha = 0.2, nepochs = nepochs, double_precision = True)
-    labels = ("blue", "green", "red")
+    ft.negative_class = negative_class
+    labels = ["blue", "green", "red"]
 
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
@@ -926,11 +929,14 @@ def test_ftrl_fit_predict_multinomial():
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
-    assert p.names == labels
+    assert list(p.names) == negative_class_label + labels
 
 
-def test_ftrl_fit_predict_multinomial_online():
+@pytest.mark.parametrize('negative_class', [False, True])
+def test_ftrl_fit_predict_multinomial_online(negative_class):
     ft = Ftrl(alpha = 0.2, nepochs = 1000, double_precision = True)
+    ft.negative_class = negative_class
+    negative_class_label = ["_negative_class"] if negative_class else []
     labels = ["green", "red", "blue"]
 
     # Show only 1 label to the model
@@ -938,24 +944,28 @@ def test_ftrl_fit_predict_multinomial_online():
     df_target = dt.Frame(["green"])
     ft.fit(df_train, df_target)
     assert ft.model_type_trained == "multinomial"
-    assert(ft.labels[:, 0].to_list() == [["green"]])
-    assert(ft.model.shape == (ft.nbins, 2))
+    assert ft.labels[:, 0].to_list() == [negative_class_label + ["green"]]
+    assert ft.model.shape == (ft.nbins, 2 * ft.labels.nrows)
+
+    # Also do pickling unpickling in the middle.
+    ft_pickled = pickle.dumps(ft)
+    ft = pickle.loads(ft_pickled)
 
     # Show one more
     df_train = dt.Frame(["cucumber", None])
     df_target = dt.Frame(["green", "red"])
     ft.fit(df_train, df_target)
     assert ft.model_type_trained == "multinomial"
-    assert(ft.labels[:, 0].to_list() == [["green", "red"]])
-    assert(ft.model.shape == (ft.nbins, 4))
+    assert ft.labels[:, 0].to_list() == [negative_class_label + ["green", "red"]]
+    assert ft.model.shape == (ft.nbins, 2 * ft.labels.nrows)
 
     # And one more
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
     ft.fit(df_train, df_target)
     assert ft.model_type_trained == "multinomial"
-    assert(ft.labels[:, 0].to_list() == [["blue", "green", "red"]])
-    assert(ft.model.shape == (ft.nbins, 6))
+    assert ft.labels[:, 0].to_list() == [negative_class_label + ["blue", "green", "red"]]
+    assert ft.model.shape == (ft.nbins, 2 * ft.labels.nrows)
 
     # Do not add any new labels
     df_train = dt.Frame(["cucumber", None, "shift", "sky", "day", "orange", "ocean"])
@@ -963,8 +973,8 @@ def test_ftrl_fit_predict_multinomial_online():
 
     ft.fit(df_train, df_target)
     assert ft.model_type_trained == "multinomial"
-    assert(ft.labels[:, 0].to_list() == [["blue", "green", "red"]])
-    assert(ft.model.shape == (ft.nbins, 6))
+    assert ft.labels[:, 0].to_list() == [negative_class_label + ["blue", "green", "red"]]
+    assert ft.model.shape == (ft.nbins, 2 * ft.labels.nrows)
 
     # Test predictions
     p = ft.predict(df_train)
@@ -986,7 +996,7 @@ def test_ftrl_fit_predict_multinomial_online():
     assert max(delta_red)   < epsilon
     assert max(delta_green) < epsilon
     assert max(delta_blue)  < epsilon
-    assert list(p.names) == ["blue", "green", "red"]
+    assert list(p.names) == negative_class_label + ["blue", "green", "red"]
 
 
 #-------------------------------------------------------------------------------

@@ -30,11 +30,29 @@ void label_encode(const Column&, dtptr&, dtptr&, bool is_binomial = false);
 
 
 /**
+ *  Apply a function `adjustfn()` to all the column values.
+ *  NB: this function doesn't do any NA checks and can only be applied
+ *  to FW columns. It is used by FTRL to adjust label ids for the multinomial
+ *  regression.
+ */
+template <typename T, typename F>
+void adjust_values(Column& col, F adjustfn) {
+  col.materialize();
+  T* data = static_cast<T*>(col.get_data_editable());
+  for (size_t i = 0; i < col.nrows(); ++i) {
+    adjustfn(data[i], i);
+  }
+}
+
+
+/**
  *  Create labels datatable from unordered map for fixed width columns.
  */
 template <SType stype_from, SType stype_to>
-dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>,
-                                                   element_t<stype_to>>& labels_map)
+dtptr create_dt_labels_fw(const std::unordered_map<
+                            element_t<stype_from>,
+                            element_t<stype_to>
+                          >& labels_map)
 {
   using Tfrom = element_t<stype_from>;
   using Tto = element_t<stype_to>;
@@ -59,10 +77,16 @@ dtptr create_dt_labels_fw(const std::unordered_map<element_t<stype_from>,
  *  Create labels datatable from unordered map for string columns.
  */
 template <typename T, SType stype_to>
-dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype_to>>& labels_map) {
+dtptr create_dt_labels_str(const std::unordered_map<
+                             std::string,
+                             element_t<stype_to>
+                           >& labels_map)
+{
   size_t nlabels = labels_map.size();
   Column ids_col = Column::new_data_column(nlabels, stype_to);
-  auto ids_data = static_cast<element_t<stype_to>*>(ids_col.get_data_editable());
+  auto ids_data = static_cast<element_t<stype_to>*>(
+                    ids_col.get_data_editable()
+                  );
   dt::writable_string_col c_label_names(nlabels);
   dt::writable_string_col::buffer_impl<T> sb(c_label_names);
   sb.commit_and_start_new_chunk(0);
@@ -82,18 +106,6 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
          ));
 }
 
-/**
- *  Fill column with the sequential ids starting from `i0`.
- *  Used in the multinomial case when we encounter new labels.
- */
-template <typename T>
-void set_ids(Column& col, T i0) {
-  col.materialize();
-  auto data = static_cast<T*>(col.get_data_editable());
-  for (T i = 0; i < static_cast<T>(col.nrows()); ++i) {
-    data[i] = i0 + i;
-  }
-}
 
 
 /**
