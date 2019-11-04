@@ -29,6 +29,20 @@ namespace dt {
 void label_encode(const Column&, dtptr&, dtptr&, bool is_binomial = false);
 
 
+
+/**
+ *  Apply a function `adjustfn()` to all the column values.
+ */
+template <typename T, typename F>
+void adjust_values(Column& col, F adjustfn) {
+  col.materialize();
+  T* data = static_cast<T*>(col.get_data_editable());
+  for (size_t i = 0; i < col.nrows(); ++i) {
+    adjustfn(data[i], i);
+  }
+}
+
+
 /**
  *  Create labels datatable from unordered map for fixed width columns.
  */
@@ -82,33 +96,6 @@ dtptr create_dt_labels_str(const std::unordered_map<std::string, element_t<stype
          ));
 }
 
-
-/**
- *  Fill column with the sequential ids starting from `i0`.
- *  Used in the multinomial case when we encounter new labels.
- */
-template <typename T>
-void fill_ids(Column& col, T i0) {
-  col.materialize();
-  auto data = static_cast<T*>(col.get_data_editable());
-  for (T i = 0; i < static_cast<T>(col.nrows()); ++i) {
-    data[i] = i0 + i;
-  }
-}
-
-
-/**
- *  Increase column values by `i0`.
- *  Used in the multinomial case when we need to add a negative class.
- */
-template <typename T>
-void increase_ids(Column& col, T i0) {
-  col.materialize();
-  auto data = static_cast<T*>(col.get_data_editable());
-  for (T i = 0; i < static_cast<T>(col.nrows()); ++i) {
-    data[i] += i0;
-  }
-}
 
 
 /**

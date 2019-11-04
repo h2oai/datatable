@@ -402,7 +402,16 @@ void Ftrl<T>::add_negative_class() {
                 );
 
   dt_labels->clear_key();
-  increase_ids(dt_labels->get_column(1), int32_t(1));
+
+  // Increment all the exiting label ids, and then insert
+  // a `_negative_class` label with the zero id.
+  adjust_values<int32_t>(
+    dt_labels->get_column(1),
+    [](int32_t& value, size_t) {
+      ++value;
+    }
+  );
+
   dt_labels->rbind({dt_nc.get()}, {{ 0 } , { 1 }});
   intvec keys{ 0 };
   dt_labels->set_key(keys);
@@ -491,7 +500,17 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       new_label_indices.resize(n_new_labels);
       RowIndex ri_labels(std::move(new_label_indices));
       dt_labels_in->apply_rowindex(ri_labels);
-      fill_ids(dt_labels_in->get_column(1), static_cast<int32_t>(dt_labels->nrows()));
+
+      // Set new ids for the incoming labels, so that they can be rbinded
+      // to the existing ones. NB: this operation won't affect the relation
+      // between the models and label indicators, because at this point
+      // it has been already set in `label_ids`.
+      adjust_values<int32_t>(
+        dt_labels_in->get_column(1),
+        [&] (int32_t& value, size_t irow) {
+          value = static_cast<int32_t>(irow + dt_labels->nrows());
+        }
+      );
 
       // Since we cannot rbind anything to a keyed frame, we
       // - clear the key;
