@@ -141,7 +141,6 @@ def test_assign_frame_to_subframe_with_upcast():
     assert_equals(DT, dt.Frame(A=[3, 4, 2, 3, 4], stype=dt.int64))
 
 
-@pytest.mark.xfail()
 def test_assign_frame_to_subframe_with_downcast():
     DT = dt.Frame(A=range(5), stype=dt.int32)
     DT[:2, "A"] = dt.Frame([13, 14], stype=dt.int8)

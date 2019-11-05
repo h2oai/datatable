@@ -316,8 +316,14 @@ void EvalContext::evaluate_update() {
         dt0->set_column(j, Column::new_na_column(dt0->nrows(), rcol.stype()));
       }
       Column& colj = dt0->get_column(j);
-      if (colj.stype() != rcol.stype()) {
-        colj.cast_inplace(rcol.stype());
+      SType jst = colj.stype();
+      SType rst = rcol.stype();
+      if (jst != rst) {
+        if (static_cast<size_t>(jst) < static_cast<size_t>(rst)) {
+          colj.cast_inplace(rst);
+        } else {
+          rcol.cast_inplace(jst);
+        }
       }
       colj.replace_values(ri0, rcol);
     }
