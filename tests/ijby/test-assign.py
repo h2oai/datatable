@@ -283,4 +283,34 @@ def test_assign_key_column():
     with pytest.raises(ValueError, match="Cannot change values in a key "
                                          "column `C0`"):
         DT[0, 0] = 99
+    with pytest.raises(ValueError):
+        DT[:, :] = 3
     assert_equals(DT, dt.Frame(range(100)))
+
+
+def test_assign_key_column2():
+    msg = "Cannot change values in a key column `%s`"
+    DT = dt.Frame(A=range(10), B=[3]*10)
+    DT.key = ("A", "B")
+    with pytest.raises(ValueError, match=msg % "A"):
+        DT["A"] = 17
+    with pytest.raises(ValueError, match=msg % "A"):
+        DT["A"] = range(10)
+    with pytest.raises(ValueError, match=msg % "B"):
+        DT[:5, "B"] = None
+
+
+def test_assign_key_column3():
+    DT = dt.Frame(A=range(5))
+    DT.key = "A"
+    with pytest.raises(ValueError):
+        DT[:, "A"] = dt.Frame([5, 4, 3, 2, 1])
+
+
+def test_assign_in_keyed_frame():
+    DT = dt.Frame(A=range(5), B=[0, 1, -1, 3, 4])
+    DT.key = "A"
+    DT[2, "B"] = 2
+    assert DT.key == ("A",)
+    DT.key = None
+    assert_equals(DT, dt.Frame(A=range(5), B=range(5)))
