@@ -39,6 +39,13 @@ also in functions that operate on lists of columns, such as ``rowsum()``,
 Frame
 -----
 
+- |new| Added function `update()`, which can be used to in a ``DT[i, j]``
+  expression. This function can be used in the ``j`` place, and it allows the
+  user to create new columns in a Frame, or update the existing ones::
+
+    DT = dt.Frame(A=range(5))
+    DT[:, update(A=f.A * 2, B=dt.str32(f.A), Z=0)]
+
 - |new| Added method :meth:`.export_names() <datatable.Frame.export_names>`
   which creates a set of global variables referencing each column in the Frame.
   This is recommended for interactive use only::
@@ -91,8 +98,8 @@ Frame
   than this value will be automatically truncated when a Frame is rendered into
   a terminal.
 
-- |new| A frame returned by the single-column selector is now keyed
-  if and only if the original frame key consisted of the selected column only.
+- |new| When selecting the key column from a keyed frame ``DT[key]``, the
+  resulting single-column frame will now retain its "keyed" property.
 
 - |new| Method :meth:`.to_csv() <datatable.Frame.to_csv>` gains two new boolean
   parameters: ``header=`` and ``append=``. The ``header=`` parameter controls
