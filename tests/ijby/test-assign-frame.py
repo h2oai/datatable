@@ -141,11 +141,23 @@ def test_assign_frame_to_subframe_with_upcast():
     assert_equals(DT, dt.Frame(A=[3, 4, 2, 3, 4], stype=dt.int64))
 
 
-@pytest.mark.xfail()
 def test_assign_frame_to_subframe_with_downcast():
     DT = dt.Frame(A=range(5), stype=dt.int32)
     DT[:2, "A"] = dt.Frame([13, 14], stype=dt.int8)
     assert_equals(DT, dt.Frame(A=[13, 14, 2, 3, 4], stype=dt.int32))
+
+
+@pytest.mark.parametrize("st1, st2",
+    [(dt.int16, dt.int8), (dt.int32, dt.int8), (dt.int32, dt.int16),
+     (dt.int64, dt.int8), (dt.int64, dt.int16), (dt.int64, dt.int32),
+     (dt.float32, dt.int8), (dt.float32, dt.int16), (dt.float32, dt.int32),
+     (dt.float32, dt.int64), (dt.float64, dt.int8), (dt.float64, dt.int16),
+     (dt.float64, dt.int32), (dt.float64, dt.int64), (dt.float64, dt.float32)])
+def test_assign_downcasts(st1, st2):
+    DT = dt.Frame(A=range(5), stype=st1)
+    assert DT.stype == st1
+    DT[:2, 0] = dt.Frame([-1, None], stype=st2)
+    assert_equals(DT, dt.Frame(A=[-1, None, 2, 3, 4], stype=st1))
 
 
 def test_assign_frame_to_subframe_wrong_ltype():
