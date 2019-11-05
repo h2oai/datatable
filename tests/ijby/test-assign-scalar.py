@@ -21,9 +21,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import math
 import pytest
 from datatable import f, dt
-from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
 stypes_int = dt.ltype.int.stypes
@@ -33,67 +33,34 @@ stypes_str = dt.ltype.str.stypes
 
 
 #-------------------------------------------------------------------------------
-# Assign to various [i,j] targets
+# Assign None
 #-------------------------------------------------------------------------------
 
-def test_assign_to_one_column():
-    DT = dt.Frame(A=range(5), B=[4, 3, 9, 11, -1], stype=dt.int32)
-    DT[:, "B"] = 100
-    assert_equals(DT, dt.Frame(A=range(5), B=[100]*5))
+def test_assign_none_single():
+    DT = dt.Frame(A=range(5))
+    DT[:, f.A] = None
+    assert_equals(DT, dt.Frame(A=[None]*5, stype=dt.int32))
 
 
-def test_assign_to_new_column():
-    DT = dt.Frame(A=range(7))
-    DT["Z"] = 2.5
-    assert_equals(DT, dt.Frame(A=range(7), Z=[2.5]*7))
+def test_assign_none_new():
+    DT = dt.Frame(A=range(5))
+    DT[:, "B"] = None
+    assert_equals(DT, dt.Frame(A=range(5), B=[None]*5,
+                               stypes={"A": dt.int32, "B": dt.bool8}))
 
 
-def test_assign_to_all():
-    DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
-    DT[:, :] = 12
-    frame_integrity_check(DT)
-    assert DT.names == ("A", "B")
-    assert DT.stypes == (dt.int32, dt.int32)
-    assert DT.to_list() == [[12] * 5] * 2
+def test_assign_none_all():
+    DT = dt.Frame([[True, False], [1, 5], [999, -12], [34.2, math.inf],
+                   [0.001, 1e-100], ['foo', 'bar'], ['buzz', '?']],
+                  names=list("ABCDEFG"),
+                  stypes=['bool', 'int8', 'int64', 'float32', 'float64',
+                          'str32', 'str64'])
+    DT[:, :] = None
+    assert_equals(DT, dt.Frame([[None, None]] * 7,
+                               names=tuple("ABCDEFG"),
+                               stypes=(dt.bool8, dt.int8, dt.int64, dt.float32,
+                                       dt.float64, dt.str32, dt.str64)))
 
-
-def test_assign_to_list_of_columns():
-    DT = dt.Frame([[1, 3, 4], [2.5, 17.3, None], [4.99, -12, 2.22]],
-                  names=("A", "B", "C"))
-    DT[:, ["A", "C"]] = 35
-    frame_integrity_check(DT)
-    assert DT.names == ("A", "B", "C")
-    assert DT.stypes == (dt.int32, dt.float64, dt.float64)
-    assert DT.to_list() == [[35] * 3, [2.5, 17.3, None], [35.0] * 3]
-
-
-def test_assign_to_subset_of_rows():
-    DT = dt.Frame(A=range(8))
-    DT[::2, "A"] = 100
-    assert_equals(DT, dt.Frame(A=[100, 1, 100, 3, 100, 5, 100, 7],
-                               stype=dt.int32))
-
-
-def test_assign_to_empty_frame_0x0():
-    DT = dt.Frame()
-    DT[:, "A"] = 'foo!'
-    assert_equals(DT, dt.Frame(A=[], stype=dt.str32))
-
-
-def test_assign_to_empty_frame_3x0():
-    DT = dt.Frame()
-    DT.nrows = 3
-    DT[:, "A"] = 'foo!'
-    assert_equals(DT, dt.Frame(A=['foo!'] * 3, stype=dt.str32))
-
-
-def test_assign_to_empty_frame_0x3():
-    DT = dt.Frame(A=[], B=[], C=[])
-    DT[:, "A":"C"] = False
-    with pytest.raises(TypeError):
-        DT[:, "A":"C"] = 3
-    DT[:, "A":"C"] = True
-    assert_equals(DT, dt.Frame(A=[], B=[], C=[], stype=bool))
 
 
 

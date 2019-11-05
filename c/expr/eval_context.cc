@@ -287,6 +287,7 @@ void EvalContext::evaluate_update() {
   auto dt0 = get_datatable(0);
   auto ri0 = get_rowindex(0);
   auto ncols = dt0->ncols();
+  auto nkeys = dt0->nkeys();
   auto indices = evaluate_j_as_column_index();
 
   std::vector<SType> stypes;
@@ -294,6 +295,10 @@ void EvalContext::evaluate_update() {
   for (size_t i : indices) {
     stypes.push_back(i < ncols? dt0->get_column(i).stype()
                               : SType::VOID);
+    if (i < nkeys) {
+      throw ValueError() << "Cannot change values in a key column "
+                         << "`" << dt0->get_names()[i] << "`";
+    }
   }
 
   expr::Workframe replacement = repl_.evaluate_r(*this, stypes);
@@ -470,17 +475,6 @@ void EvalContext::add_column(
   col.apply_rowindex(ri);
   columns.push_back(std::move(col));
   colnames.push_back(std::move(name));
-}
-
-
-RowIndex& EvalContext::_product(const RowIndex& ra, const RowIndex& rb) {
-  for (auto it = all_ri.rbegin(); it != all_ri.rend(); ++it) {
-    if (it->ab == ra && it->bc == rb) {
-      return it->ac;
-    }
-  }
-  all_ri.push_back({ra, rb, ra * rb});
-  return all_ri.back().ac;
 }
 
 
