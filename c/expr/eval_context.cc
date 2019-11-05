@@ -23,6 +23,7 @@
 #include "expr/expr.h"
 #include "expr/workframe.h"
 #include "expr/eval_context.h"
+#include "expr/py_update.h"
 #include "frame/py_frame.h"
 namespace dt {
 
@@ -64,8 +65,23 @@ void EvalContext::add_i(py::oobj oi) {
 
 void EvalContext::add_j(py::oobj oj) {
   xassert(!jexpr);
-  jexpr_ = dt::expr::Expr(oj);
-  jexpr = j_node::make(oj, *this);
+  py::oupdate arg_update = oj.to_oupdate_lax();
+  if (arg_update) {
+    if (mode == EvalMode::DELETE) {
+      throw ValueError() << "update() clause cannot be used with a "
+                            "delete expression";
+    }
+    if (mode == EvalMode::UPDATE) {
+      throw ValueError() << "update() clause cannot be used with an "
+                            "assignment expression";
+    }
+    jexpr_ = dt::expr::Expr(arg_update.get_names());
+    repl_ = dt::expr::Expr(arg_update.get_exprs());
+    mode = EvalMode::UPDATE;
+  } else {
+    jexpr_ = dt::expr::Expr(oj);
+    jexpr = j_node::make(oj, *this);
+  }
 }
 
 
