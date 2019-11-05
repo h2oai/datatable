@@ -323,9 +323,8 @@ class FrameInitializationManager {
       newnames.reserve(ncols);
       for (auto kv: all_args.varkwds()) {
         size_t i = newnames.size();
-        const py::ostring oname(kv.first);
-        SType stype = get_stype_for_column(i, &oname);
-        newnames.push_back(std::move(kv.first));
+        SType stype = get_stype_for_column(i, &kv.first);
+        newnames.push_back(kv.first.to_string());
         make_column(kv.second, stype);
       }
       make_datatable(newnames);
@@ -574,7 +573,7 @@ class FrameInitializationManager {
       if (n == 1) {
         err << "an unexpected keyword argument ";
         for (auto kv: all_args.varkwds()) {
-          err << '\'' << kv.first << '\'';
+          err << '\'' << kv.first.to_string() << '\'';
         }
       } else {
         err << n << " unexpected keyword arguments: ";
@@ -582,7 +581,7 @@ class FrameInitializationManager {
         for (auto kv: all_args.varkwds()) {
           ++i;
           if (i <= 2 || i == n) {
-            err << '\'' << kv.first << '\'';
+            err << '\'' << kv.first.to_string() << '\'';
             err << (i == n ? "" :
                     i == n - 1 ? " and " :
                     i == 1 ? ", " : ", ..., ");

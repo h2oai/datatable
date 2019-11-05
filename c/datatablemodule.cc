@@ -22,6 +22,7 @@
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
 #include "expr/join_node.h"
+#include "expr/py_update.h"          // py::oupdate
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"
 #include "frame/repr/html_widget.h"
@@ -386,6 +387,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     py::oby::init(m);
     py::ojoin::init(m);
     py::osort::init(m);
+    py::oupdate::init(m);
     dt::Terminal::standard_terminal().initialize();
 
   } catch (const std::exception& e) {

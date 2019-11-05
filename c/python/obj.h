@@ -35,6 +35,7 @@ class orange;
 class osort;
 class otuple;
 class rtuple;
+class oupdate;
 class robj;
 class rdict;
 class oobj;
@@ -198,6 +199,7 @@ class _obj {
     bool is_tuple()         const noexcept;
     bool is_type()          const noexcept;
     bool is_undefined()     const noexcept;
+    bool is_update_node()   const noexcept;
 
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;
@@ -236,6 +238,7 @@ class _obj {
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;
     py::osort   to_osort_lax      () const;
+    py::oupdate to_oupdate_lax    () const;
     // Defined in expr/base_expr.cc
     std::unique_ptr<dt::expr::base_expr> to_dtexpr() const;
 

@@ -24,6 +24,7 @@
 #include "expr/by_node.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
+#include "expr/py_update.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/list.h"
@@ -222,6 +223,10 @@ bool _obj::is_by_node() const noexcept {
 
 bool _obj::is_sort_node() const noexcept {
   return py::osort::check(v);
+}
+
+bool _obj::is_update_node() const noexcept {
+  return py::oupdate::check(v);
 }
 
 bool _obj::is_pandas_frame() const noexcept {
@@ -626,6 +631,11 @@ py::oby _obj::to_oby_lax() const {
 
 py::osort _obj::to_osort_lax() const {
   return is_sort_node()? osort(robj(v)) : osort();
+}
+
+
+py::oupdate _obj::to_oupdate_lax() const {
+  return is_update_node()? oupdate(robj(v)) : oupdate();
 }
 
 

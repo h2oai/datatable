@@ -90,6 +90,7 @@ class Expr {
 
   public:
     explicit Expr(py::robj src);
+    Expr(ptrHead&&, vecExpr&&);
     Expr() = default;
     Expr(Expr&&) = default;
     Expr(const Expr&) = delete;

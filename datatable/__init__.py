@@ -26,8 +26,19 @@ from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median)
 from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
-    unique, union, intersect, setdiff, symdiff,
-    repeat, by, join, sort, cbind, rbind, init_styles
+    by,
+    cbind,
+    init_styles,
+    intersect,
+    join,
+    rbind,
+    repeat,
+    setdiff,
+    sort,
+    symdiff,
+    union,
+    unique,
+    update,
 )
 from .nff import open
 from .options import options
