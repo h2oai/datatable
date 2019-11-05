@@ -245,7 +245,7 @@ class Attacker:
             else:
                 msg = 'Cannot change values in a key column `%s`' % frame.names[icol]
                 msg = re.escape(msg)
-                python_output.write("with pytest.raises(TypeError, match='%s'):\n"
+                python_output.write("with pytest.raises(ValueError, match='%s'):\n"
                                     "    DT[f[%d] == None, f[%d]] = %r\n"
                                     % (msg, icol, icol, replacement_value))
 
@@ -800,7 +800,7 @@ class Frame0:
         if icol < self.nkeys:
             msg = 'Cannot change values in a key column `%s`' % self.names[icol]
             msg = re.escape(msg)
-            with pytest.raises(TypeError, match = msg):
+            with pytest.raises(ValueError, match = msg):
                 self.df[f[icol] == None, f[icol]] = replacement_value
             return False
         else:

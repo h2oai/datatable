@@ -275,3 +275,12 @@ def test_assign_wrong_type():
     with pytest.raises(TypeError):
         DT[::2, ["A", "B"]] = 3.3
     frame_integrity_check(DT)
+
+
+def test_assign_key_column():
+    DT = dt.Frame(range(100))
+    DT.key = "C0"
+    with pytest.raises(ValueError, match="Cannot change values in a key "
+                                         "column `C0`"):
+        DT[0, 0] = 99
+    assert_equals(DT, dt.Frame(range(100)))
