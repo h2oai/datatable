@@ -168,19 +168,23 @@ void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
   size_t this_nrows = nrows();
   size_t this_ncols = ncols();
   if (this_ncols == 0 && target_ncols == 0 && this_nrows == 0) return;
-  bool ok = (this_nrows == target_nrows || this_nrows == 1) &&
+  if (grouping_mode != Grouping::GtoALL) {
+    increase_grouping_mode(Grouping::GtoALL);
+    this_nrows = nrows();
+  }
+  bool ok = (this_nrows == target_nrows) &&
             (this_ncols == target_ncols || this_ncols == 1);
   if (!ok) {
     throw ValueError() << "Invalid replacement Frame: expected ["
         << target_nrows << " x " << target_ncols << "], but received ["
         << this_nrows << " x " << this_ncols << "]";
   }
-  if (this_nrows != target_nrows) {
-    xassert(this_nrows == 1);
-    for (auto& item : entries) {
-      item.column.repeat(target_nrows);  // modifies the column in-place
-    }
-  }
+  // if (this_nrows != target_nrows) {
+  //   xassert(this_nrows == 1);
+  //   for (auto& item : entries) {
+  //     item.column.repeat(target_nrows);  // modifies the column in-place
+  //   }
+  // }
   if (this_ncols != target_ncols) {
     xassert(this_ncols == 1);
     entries.resize(target_ncols, entries[0]);

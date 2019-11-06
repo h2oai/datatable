@@ -56,8 +56,9 @@ def test_assign_to_empty_frame_3x0():
 def test_assign_to_empty_frame_0x3():
     DT = dt.Frame(A=[], B=[], C=[])
     DT[:, "A":"C"] = False
-    with pytest.raises(TypeError):
-        DT[:, "A":"C"] = 3
+    assert_equals(DT, dt.Frame(A=[], B=[], C=[], stype=bool))
+    DT[:, "A":"C"] = 3
+    assert_equals(DT, dt.Frame(A=[], B=[], C=[], stype=dt.int32))
     DT[:, "A":"C"] = True
     assert_equals(DT, dt.Frame(A=[], B=[], C=[], stype=bool))
 
@@ -156,10 +157,6 @@ def test_assign_multiple():
     assert_equals(DT, dt.Frame(A=range(10), B=[3.5]*10))
     DT[:, "C"] = "foo"
     assert_equals(DT, dt.Frame(A=range(10), B=[3.5]*10, C=["foo"]*10))
-
-    with pytest.raises(TypeError, match="Cannot assign boolean value to "
-                                        "column `B` of type float64"):
-        DT[:, ["B", "A"]] = False
 
     DT[:, ["B", "A"]] = 0
     assert_equals(DT, dt.Frame([[0]*10, [0.0]*10, ["foo"]*10],
