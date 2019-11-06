@@ -56,6 +56,24 @@ def test_update_multiple_dependents():
     assert_equals(DT, dt.Frame(A=range(2, 7), B=range(1, 6), D=range(3, 8)))
 
 
+def test_update_mixed_dimensions():
+    DT = dt.Frame(A=range(5))
+    DT[:, update(B=f.A * 2, C=10)]
+    assert_equals(DT, dt.Frame(A=range(5), B=range(0, 10, 2), C=[10]*5))
+
+
+def test_update_mixed_2():
+    DT = dt.Frame(A=range(5))
+    DT[:, update(B=3, C=f.A)]
+    assert_equals(DT, dt.Frame(A=range(5), B=[3]*5, C=range(5)))
+
+
+def test_update_with_groupby():
+    DT = dt.Frame(A=range(5), B=[1, 1, 2, 2, 2])
+    DT[:, update(C=7, D=dt.mean(f.A), E=f.A+1), by(f.B)]
+    assert_equals(DT, dt.Frame(A=range(5), B=[1, 1, 2, 2, 2], C=[7]*5,
+                               D=[0.5, 0.5, 3.0, 3.0, 3.0], E=range(1, 6)))
+
 
 def test_update_with_delete():
     DT = dt.Frame(A=range(5))

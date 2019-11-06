@@ -111,7 +111,6 @@ def test_assign_expr_partial_with_type_change():
 # Assign complex combos
 #-------------------------------------------------------------------------------
 
-@pytest.mark.xfail()
 def test_assign_with_groupby():
     DT = dt.Frame(A=range(5), B=[1, 1, 2, 2, 2])
     DT[:, "C", by(f.B)] = dt.mean(f.A)
@@ -119,7 +118,6 @@ def test_assign_with_groupby():
                                C=[0.5, 0.5, 3.0, 3.0, 3.0]))
 
 
-@pytest.mark.xfail()
 def test_assign_with_groupby2():
     DT = dt.Frame(A=range(5), B=[1, 1, 2, 2, 2])
     DT[:, "C", by(f.B)] = f.A - dt.mean(f.A)

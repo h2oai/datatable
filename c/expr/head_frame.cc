@@ -86,7 +86,7 @@ Workframe Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
         "cannot be used in an expression where " << ctx.nrows()
         << " are expected";
   }
-  Grouping grouplevel = (nrows == 1)? Grouping::GtoONE
+  Grouping grouplevel = (nrows == 1)? Grouping::SCALAR
                                     : Grouping::GtoALL;
   Workframe res(ctx);
   for (size_t i = 0; i < dt_->ncols(); ++i) {
