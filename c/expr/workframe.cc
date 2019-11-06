@@ -179,12 +179,6 @@ void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
         << target_nrows << " x " << target_ncols << "], but received ["
         << this_nrows << " x " << this_ncols << "]";
   }
-  // if (this_nrows != target_nrows) {
-  //   xassert(this_nrows == 1);
-  //   for (auto& item : entries) {
-  //     item.column.repeat(target_nrows);  // modifies the column in-place
-  //   }
-  // }
   if (this_ncols != target_ncols) {
     xassert(this_ncols == 1);
     entries.resize(target_ncols, entries[0]);
@@ -298,6 +292,7 @@ void Workframe::column_increase_grouping_mode(
     throw RuntimeError() << "Unexpected Grouping mode";  // LCOV_EXCL_LINE
   }
 }
+
 
 
 
