@@ -104,6 +104,12 @@ GroupbyMode EvalContext::get_groupby_mode() const {
   return groupby_mode;
 }
 
+const RowIndex& EvalContext::get_ungroup_rowindex() {
+  if (!ungroup_rowindex_) {
+    ungroup_rowindex_ = gb.ungroup_rowindex();
+  }
+  return ungroup_rowindex_;
+}
 
 
 

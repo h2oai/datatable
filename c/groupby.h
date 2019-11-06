@@ -38,8 +38,9 @@ class Groupby {
     // Where the first 1 is located at offset `offsets[1]`, the first 2 at the
     // offset `offsets[2]`, and so on, and the total length of the RowIndex is
     // equal to `offsets[n]`.
-    // This RowIndex will be cached within the Groupby, so that it can be
-    // reused across multiple calls.
+    //
+    // This RowIndex will not be cached within the Groupby, we recommend the
+    // caller to do that.
     //
     RowIndex ungroup_rowindex();
 };
