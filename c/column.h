@@ -165,6 +165,7 @@ class Column
     size_t elemsize() const noexcept;
     bool   is_fixedwidth() const noexcept;
     bool   is_virtual() const noexcept;
+    bool   is_constant() const noexcept;
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 

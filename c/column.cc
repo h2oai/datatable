@@ -147,6 +147,10 @@ bool Column::is_virtual() const noexcept {
   return impl_->is_virtual();
 }
 
+bool Column::is_constant() const noexcept {
+  return bool(dynamic_cast<const dt::Const_ColumnImpl*>(impl_));
+}
+
 size_t Column::elemsize() const noexcept {
   return info(impl_->stype_).elemsize();
 }

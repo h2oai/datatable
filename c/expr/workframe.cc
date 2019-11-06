@@ -168,18 +168,16 @@ void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
   size_t this_nrows = nrows();
   size_t this_ncols = ncols();
   if (this_ncols == 0 && target_ncols == 0 && this_nrows == 0) return;
-  bool ok = (this_nrows == target_nrows || this_nrows == 1) &&
+  if (grouping_mode != Grouping::GtoALL) {
+    increase_grouping_mode(Grouping::GtoALL);
+    this_nrows = nrows();
+  }
+  bool ok = (this_nrows == target_nrows) &&
             (this_ncols == target_ncols || this_ncols == 1);
   if (!ok) {
     throw ValueError() << "Invalid replacement Frame: expected ["
         << target_nrows << " x " << target_ncols << "], but received ["
         << this_nrows << " x " << this_ncols << "]";
-  }
-  if (this_nrows != target_nrows) {
-    xassert(this_nrows == 1);
-    for (auto& item : entries) {
-      item.column.repeat(target_nrows);  // modifies the column in-place
-    }
   }
   if (this_ncols != target_ncols) {
     xassert(this_ncols == 1);
@@ -262,6 +260,7 @@ void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
 
 void Workframe::increase_grouping_mode(Grouping gmode) {
   for (auto& item : entries) {
+    if (!item.column) continue;  // placeholder column
     column_increase_grouping_mode(item.column, grouping_mode, gmode);
   }
   grouping_mode = gmode;
@@ -271,8 +270,27 @@ void Workframe::increase_grouping_mode(Grouping gmode) {
 void Workframe::column_increase_grouping_mode(
     Column& col, Grouping gfrom, Grouping gto)
 {
-  // TODO
-  (void)col; (void) gfrom; (void) gto;
+  xassert(gfrom != Grouping::GtoFEW && gfrom != Grouping::GtoANY);
+  xassert(gto != Grouping::GtoFEW && gto != Grouping::GtoANY);
+  xassert(static_cast<int>(gfrom) < static_cast<int>(gto));
+  if (gfrom == Grouping::SCALAR && gto == Grouping::GtoONE) {
+    col.repeat(ctx.get_groupby().size());
+  }
+  else if (gfrom == Grouping::SCALAR && gto == Grouping::GtoALL) {
+    col.repeat(ctx.nrows());
+  }
+  else if (gfrom == Grouping::GtoONE && gto == Grouping::GtoALL) {
+    if (col.is_constant()) {
+      col.resize(1);
+      col.repeat(ctx.nrows());
+    } else {
+      col.apply_rowindex(ctx.get_ungroup_rowindex());
+    }
+    xassert(col.nrows() == ctx.nrows());
+  }
+  else {
+    throw RuntimeError() << "Unexpected Grouping mode";  // LCOV_EXCL_LINE
+  }
 }
 
 

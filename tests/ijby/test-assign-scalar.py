@@ -81,12 +81,11 @@ def test_assign_boolean2():
 
 
 @pytest.mark.parametrize("stype", stypes_int + stypes_float + stypes_str)
-def test_assign_boolean_to_wrong_type(stype):
-    DT = dt.Frame(A=[5], stype=stype)
+def test_assign_boolean_to_different_type(stype):
+    DT = dt.Frame(A=[5, 7], stype=stype)
     assert DT.stype == stype
-    with pytest.raises(TypeError, match="Cannot assign boolean value to column "
-                                        "`A` of type " + stype.name):
-        DT[:, "A"] = False
+    DT[:, "A"] = False
+    assert_equals(DT, dt.Frame(A=[False, False], stype=bool))
 
 
 def test_assign_boolean_partial():
@@ -122,19 +121,17 @@ def test_assign_integer_out_of_range_to_subset():
 def test_assign_int_overflow():
     # When integer overflows, it becomes a float64 value
     DT = dt.Frame(A=range(5), B=[0.0]*5)
-    with pytest.raises(TypeError, match="Cannot assign float value"):
-        DT[:, "A"] = 10**100
+    DT[:, "A"] = 10**100
     DT[:, "B"] = 10**100
-    assert_equals(DT["B"], dt.Frame(B=[1e100] * 5))
+    assert_equals(DT, dt.Frame(A=[1.0e100]*5, B=[1.0e100]*5))
 
 
 @pytest.mark.parametrize("stype", [dt.bool8] + stypes_str)
-def test_assign_integer_to_wrong_type(stype):
+def test_assign_integer_to_different_type(stype):
     DT = dt.Frame(A=[5], stype=stype)
     assert DT.stype == stype
-    with pytest.raises(TypeError, match="Cannot assign integer value to column "
-                                        "`A` of type " + stype.name):
-        DT[:, "A"] = 777
+    DT[:, "A"] = 777
+    assert_equals(DT, dt.Frame(A=[777], stype=dt.int32))
 
 
 
@@ -163,12 +160,12 @@ def test_assign_to_float32_column():
 
 
 @pytest.mark.parametrize("stype", [dt.bool8] + stypes_int + stypes_str)
-def test_assign_float_to_wrong_type(stype):
+def test_assign_float_to_different_type(stype):
     DT = dt.Frame(A=[5], stype=stype)
     assert DT.stype == stype
-    with pytest.raises(TypeError, match="Cannot assign float value to column "
-                                        "`A` of type " + stype.name):
-        DT[:, "A"] = 3.14159265
+    DT[:, "A"] = 3.14159265
+    assert_equals(DT, dt.Frame(A=[3.14159265]))
+
 
 
 
@@ -183,12 +180,11 @@ def test_assign_string_to_str64():
 
 
 @pytest.mark.parametrize("stype", [dt.bool8] + stypes_int + stypes_float)
-def test_assign_string_to_wrong_type(stype):
+def test_assign_string_to_different_type(stype):
     DT = dt.Frame(A=[5], stype=stype)
     assert DT.stype == stype
-    with pytest.raises(TypeError, match="Cannot assign string value to column "
-                                        "`A` of type " + stype.name):
-        DT[:, "A"] = 'what?'
+    DT[:, "A"] = 'what?'
+    assert_equals(DT, dt.Frame(A=['what?']))
 
 
 def test_assign_str_to_empty_frame():
