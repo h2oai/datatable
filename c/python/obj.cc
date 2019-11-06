@@ -21,9 +21,9 @@
 //------------------------------------------------------------------------------
 #include <iostream>
 #include <cstdint>         // INT32_MAX
-#include "expr/by_node.h"
 #include "expr/join_node.h"
 #include "expr/sort_node.h"
+#include "expr/py_by.h"
 #include "expr/py_update.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"

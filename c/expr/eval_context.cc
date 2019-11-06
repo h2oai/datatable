@@ -23,6 +23,7 @@
 #include "expr/expr.h"
 #include "expr/workframe.h"
 #include "expr/eval_context.h"
+#include "expr/py_by.h"
 #include "expr/py_update.h"
 #include "frame/py_frame.h"
 namespace dt {

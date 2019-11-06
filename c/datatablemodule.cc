@@ -14,7 +14,6 @@
 #include <utility>         // std::pair, std::make_pair, std::move
 #include "../datatable/include/datatable.h"
 #include "csv/reader.h"
-#include "expr/by_node.h"
 #include "expr/expr.h"
 #include "expr/expr_binaryop.h"
 #include "expr/expr_reduce.h"
@@ -22,6 +21,7 @@
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
 #include "expr/join_node.h"
+#include "expr/py_by.h"              // py::oby
 #include "expr/py_update.h"          // py::oupdate
 #include "expr/sort_node.h"
 #include "frame/py_frame.h"

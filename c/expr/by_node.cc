@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,12 +24,14 @@
 #include "expr/collist.h"
 #include "expr/expr_column.h"
 #include "expr/eval_context.h"
+#include "expr/py_by.h"
 #include "python/arg.h"
 #include "python/tuple.h"
 #include "utils/exceptions.h"
 #include "datatablemodule.h"
 #include "sort.h"
 namespace dt {
+
 
 
 //------------------------------------------------------------------------------
@@ -186,89 +188,12 @@ void by_node::execute(EvalContext& ctx) const {
                            | SortFlag::SORT_ONLY);
     }
   }
-  // if (n_group_columns) {
-    auto res = group(sort_cols, sort_flags);
-    ctx.gb = std::move(res.second);
-    ctx.apply_rowindex(res.first);
-  // } else {
-  //   auto res = dt0->sort(spec);
-  //   ctx.apply_rowindex(res);
-  // }
+  auto res = group(sort_cols, sort_flags);
+  ctx.gb = std::move(res.second);
+  ctx.apply_rowindex(res.first);
 }
 
 
 
 
 }  // namespace dt
-//------------------------------------------------------------------------------
-// py::oby
-//------------------------------------------------------------------------------
-namespace py {
-
-
-oby::oby(const robj& src) : oobj(src) {}
-oby::oby(const oobj& src) : oobj(src) {}
-
-
-oby oby::make(const robj& r) {
-  return oby(oby::oby_pyobject::make(r));
-}
-
-
-bool oby::check(PyObject* v) {
-  return oby::oby_pyobject::check(v);
-}
-
-
-void oby::init(PyObject* m) {
-  oby::oby_pyobject::init_type(m);
-}
-
-
-dt::collist_ptr oby::cols(dt::EvalContext& ctx) const {
-  // robj cols = reinterpret_cast<const pyobj*>(v)->cols;
-  robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
-  return dt::collist_ptr(new dt::collist(ctx, cols, dt::collist::BY_NODE));
-}
-
-
-
-
-static PKArgs args___init__(0, 0, 0, true, false, {}, "__init__", nullptr);
-
-
-void oby::oby_pyobject::impl_init_type(XTypeMaker& xt) {
-  xt.set_class_name("datatable.by");
-  xt.set_class_doc("by() clause for use in DT[i, j, ...]");
-  xt.set_subclassable(true);
-
-  xt.add(CONSTRUCTOR(&oby::oby_pyobject::m__init__, args___init__));
-  xt.add(DESTRUCTOR(&oby::oby_pyobject::m__dealloc__));
-
-  static GSArgs args__cols("_cols");
-  xt.add(GETTER(&oby::oby_pyobject::get_cols, args__cols));
-}
-
-
-void oby::oby_pyobject::m__init__(const PKArgs& args) {
-  olist colslist(args.num_vararg_args());
-  size_t i = 0;
-  for (robj arg : args.varargs()) {
-    colslist.set(i++, arg);
-  }
-  cols = std::move(colslist);
-}
-
-
-void oby::oby_pyobject::m__dealloc__() {
-  cols = nullptr;  // Releases the stored oobj
-}
-
-
-oobj oby::oby_pyobject::get_cols() const {
-  return cols;
-}
-
-
-
-}  // namespace py
