@@ -75,12 +75,13 @@ void EvalContext::add_j(py::oobj oj) {
       throw ValueError() << "update() clause cannot be used with an "
                             "assignment expression";
     }
-    jexpr_ = dt::expr::Expr(arg_update.get_names());
-    repl_ = dt::expr::Expr(arg_update.get_exprs());
     mode = EvalMode::UPDATE;
+    jexpr_ = dt::expr::Expr(arg_update.get_names());
+    jexpr = j_node::make(arg_update.get_names(), *this);  // remove
+    repl_ = dt::expr::Expr(arg_update.get_exprs());
   } else {
     jexpr_ = dt::expr::Expr(oj);
-    jexpr = j_node::make(oj, *this);
+    jexpr = j_node::make(oj, *this);   // remove
   }
 }
 
