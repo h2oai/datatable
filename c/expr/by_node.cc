@@ -28,6 +28,7 @@
 #include "python/tuple.h"
 #include "utils/exceptions.h"
 #include "datatablemodule.h"
+#include "sort.h"
 namespace dt {
 
 
@@ -166,22 +167,27 @@ void by_node::execute(EvalContext& ctx) const {
     // When grouping a Frame with 0 rows, produce a no-groups Groupby
     return;
   }
-  std::vector<sort_spec> spec;
-  spec.reserve(cols.size());
+  std::vector<Column> sort_cols;
+  std::vector<SortFlag> sort_flags;
+  sort_cols.reserve(cols.size());
+  sort_flags.reserve(cols.size());
   if (n_group_columns > 0) {
-    for (auto& col : cols) {
+    for (const auto& col : cols) {
       if (col.sort_only) continue;
-      spec.emplace_back(col.index, col.descending, false, false);
+      sort_cols.push_back(dt0->get_column(col.index));
+      sort_flags.push_back(col.descending? SortFlag::DESCENDING : SortFlag::NONE);
     }
   }
   if (n_group_columns < cols.size()) {
     for (auto& col : cols) {
       if (!col.sort_only) continue;
-      spec.emplace_back(col.index, col.descending, false, true);
+      sort_cols.push_back(dt0->get_column(col.index));
+      sort_flags.push_back((col.descending? SortFlag::DESCENDING : SortFlag::NONE)
+                           | SortFlag::SORT_ONLY);
     }
   }
   // if (n_group_columns) {
-    auto res = dt0->group(spec);
+    auto res = group(sort_cols, sort_flags);
     ctx.gb = std::move(res.second);
     ctx.apply_rowindex(res.first);
   // } else {

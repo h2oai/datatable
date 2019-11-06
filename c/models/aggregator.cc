@@ -28,6 +28,7 @@
 #include "utils/c+++.h"
 #include "datatablemodule.h"
 #include "options.h"
+#include "sort.h"
 namespace py {
 
 
@@ -340,8 +341,8 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
   bool was_sampled = false;
 
   // Sorting `dt_members` to calculate total number of exemplars.
-  std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt_members->group(spec);
+  auto res = group({dt_members->get_column(0)},
+                   {SortFlag::NONE});
   RowIndex ri_members = std::move(res.first);
   Groupby gb_members = std::move(res.second);
 
@@ -398,8 +399,8 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
 template <typename T>
 void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   // Setting up offsets and members row index.
-  std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt_members->group(spec);
+  auto res = group({dt_members->get_column(0)}, {SortFlag::NONE});
+
   RowIndex ri_members = std::move(res.first);
   Groupby gb_members = std::move(res.second);
   size_t ngroups = gb_members.ngroups();
@@ -464,10 +465,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 template <typename T>
 void Aggregator<T>::group_0d() {
   if (dt->ncols() > 0) {
-    std::vector<sort_spec> spec = {sort_spec(0, false, false, true)};
-    auto res = dt->group(spec);
-    RowIndex ri_exemplars = std::move(res.first);
-
+    RowIndex ri_exemplars = group({dt->get_column(0)}, {SortFlag::SORT_ONLY}).first;
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
     ri_exemplars.iterate(0, dt->nrows(), 1,
       [&](size_t i, size_t j, bool jvalid) {
@@ -571,8 +569,7 @@ void Aggregator<T>::group_2d_continuous() {
  */
 template <typename T>
 void Aggregator<T>::group_1d_categorical() {
-  std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt_cat->group(spec);
+  auto res = group({dt_cat->get_column(0)}, {SortFlag::NONE});
   RowIndex ri0 = std::move(res.first);
   Groupby grpby0 = std::move(res.second);
 
@@ -601,8 +598,8 @@ void Aggregator<T>::group_1d_categorical() {
 template <typename T>
 void Aggregator<T>::group_2d_categorical()
 {
-  std::vector<sort_spec> spec = {sort_spec(0), sort_spec(1)};
-  auto res = dt_cat->group(spec);
+  auto res = group({dt_cat->get_column(0), dt_cat->get_column(1)},
+                   {SortFlag::NONE, SortFlag::NONE});
   RowIndex ri = std::move(res.first);
   Groupby grpby = std::move(res.second);
 
@@ -653,8 +650,7 @@ void Aggregator<T>::group_2d_mixed()
                          "type should be either `str32` or `str64`";
   }
 
-  std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt_cat->group(spec);
+  auto res = group({dt_cat->get_column(0)}, {SortFlag::NONE});
   RowIndex ri_cat = std::move(res.first);
   Groupby grpby = std::move(res.second);
 

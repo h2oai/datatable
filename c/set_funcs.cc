@@ -28,6 +28,7 @@
 #include "utils/exceptions.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "sort.h"
 namespace dt {
 namespace set {
 
@@ -111,8 +112,9 @@ static sort_result sort_columns(named_colvec&& ncv) {
     res.column = Column::new_na_column(0);
     res.column.rbind(ncv.columns);
   }
-  res.ri = res.column.sort(&res.gb);
-
+  auto r = group({res.column}, {SortFlag::NONE});
+  res.ri = std::move(r.first);
+  res.gb = std::move(r.second);
   return res;
 }
 

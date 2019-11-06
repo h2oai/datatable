@@ -23,19 +23,6 @@ class Stats;
 class DataTable;
 class NameProvider;
 
-struct sort_spec {
-  size_t col_index;
-  bool descending;
-  bool na_last;
-  bool sort_only;
-  size_t : 40;
-
-  sort_spec(size_t i)
-    : col_index(i), descending(false), na_last(false), sort_only(false) {}
-  sort_spec(size_t i, bool desc, bool nalast, bool sort)
-    : col_index(i), descending(desc), na_last(nalast), sort_only(sort) {}
-};
-
 
 using colvec = std::vector<Column>;
 using intvec = std::vector<size_t>;
@@ -105,13 +92,6 @@ class DataTable {
     const Column& get_column(size_t i) const;
     Column& get_column(size_t i);
     void set_column(size_t i, Column&& newcol);
-
-    /**
-     * Sort the DataTable by specified columns, and return the corresponding
-     * RowIndex+Groupby.
-     */
-    std::pair<RowIndex, Groupby>
-    group(const std::vector<sort_spec>& spec) const;
 
     // Names
     const strvec& get_names() const;

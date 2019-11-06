@@ -144,7 +144,7 @@ void EvalContext::evaluate() {
         fix_columns();
       }
       else {
-        auto res = jexpr_.evaluate_j(*this);
+        expr::Workframe res = jexpr_.evaluate_j(*this);
         out_datatable = std::move(res).convert_to_datatable();
       }
       break;

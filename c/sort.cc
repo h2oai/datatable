@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -1327,53 +1327,58 @@ class SortContext {
 //==============================================================================
 // Main sorting routines
 //==============================================================================
-using RiGb = std::pair<RowIndex, Groupby>;
 
-
-RiGb DataTable::group(const std::vector<sort_spec>& spec) const
+RiGb group(const std::vector<Column>& columns,
+           const std::vector<SortFlag>& flags)
 {
   RiGb result;
-  size_t n = spec.size();
+  size_t n = columns.size();
   xassert(n > 0);
+  xassert(n == flags.size());
 
-  const Column& col0 = columns_[spec[0].col_index];
+  const Column& col0 = columns[0];
   col0.stats();  // instantiate Stats object; TODO: remove this
+
+  size_t nrows = col0.nrows();
+  #if DTDEBUG
+    for (const Column& col : columns) xassert(col.nrows() == nrows);
+  #endif
 
   // For a 0-row Frame we return a rowindex of size 0, and the
   // Groupby containing a single group (also of size 0).
-  if (nrows_ <= 1) {
-    arr32_t indices(nrows_);
-    if (nrows_) {
+  if (nrows <= 1) {
+    arr32_t indices(nrows);
+    if (nrows) {
       indices[0] = 0;
     }
     result.first = RowIndex(std::move(indices), true);
-    if (!spec[0].sort_only) {
-      result.second = Groupby::single_group(nrows_);
-    }
+    result.second = Groupby::single_group(nrows);
     return result;
   }
 
-  for (auto& s : spec) {
-    const_cast<DataTable*>(this)->columns_[s.col_index].materialize();
+  // TODO: avoid materialization
+  for (const Column& col : columns) {
+    const_cast<Column&>(col).materialize();
   }
 
-  bool do_groups = n > 1 || !spec[0].sort_only;
-  xassert(!col0.is_virtual());
-  SortContext sc(nrows_, RowIndex(), do_groups);
-  sc.start_sort(col0, spec[0].descending);
+  bool do_groups = n > 1 || !(flags[0] & SortFlag::SORT_ONLY);
+  SortContext sc(nrows, RowIndex(), do_groups);
+  sc.start_sort(col0, bool(flags[0] & SortFlag::DESCENDING));
   for (size_t j = 1; j < n; ++j) {
-    if (spec[j].sort_only && !spec[j - 1].sort_only) {
+    bool j_sort_only = (flags[j] & SortFlag::SORT_ONLY);
+    bool j_descending = (flags[j] & SortFlag::DESCENDING);
+    if (j_sort_only && !(flags[j - 1] & SortFlag::SORT_ONLY)) {
       result.second = sc.copy_groups();
     }
-    if (j == n - 1 && spec[j].sort_only) {
+    if (j == n - 1 && j_sort_only) {
       do_groups = false;
     }
-    const Column& colj = columns_[spec[j].col_index];
+    const Column& colj = columns[j];
     colj.stats();  // TODO: remove this
-    sc.continue_sort(colj, spec[j].descending, do_groups);
+    sc.continue_sort(colj, j_descending, do_groups);
   }
   result.first = sc.get_result_rowindex();
-  if (!spec[0].sort_only && !result.second) {
+  if (!(flags[0] & SortFlag::SORT_ONLY) && !result.second) {
     result.second = sc.extract_groups();
   }
   return result;
