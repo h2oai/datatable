@@ -1386,48 +1386,6 @@ RiGb group(const std::vector<Column>& columns,
 
 
 
-static RowIndex sort_tiny(const Column& col, Groupby* out_grps) {
-  if (col.nrows() == 0) {
-    if (out_grps) *out_grps = Groupby::single_group(0);
-    return RowIndex(arr32_t(0), true);
-  }
-  xassert(col.nrows() == 1);
-  if (out_grps) {
-    *out_grps = Groupby::single_group(1);
-  }
-  arr32_t indices(1);
-  indices[0] = 0;
-  return RowIndex(std::move(indices), true);
-}
-
-
-RowIndex dt::ColumnImpl::sort(Groupby* out_grps) const {
-  Column ocol(this->clone());
-  return ocol.sort(out_grps);
-}
-
-RowIndex Column::sort(Groupby* out_grps) const {
-  (void) stats();  // temporary: instantiate stats object
-  if (nrows() <= 1) {
-    return sort_tiny(*this, out_grps);
-  }
-
-  if (is_virtual()) {  // temporary
-    const_cast<Column*>(this)->materialize();
-  }
-  SortContext sc(nrows(), RowIndex(), (out_grps != nullptr));
-
-  sc.start_sort(*this, false);
-  if (out_grps) {
-    auto res = sc.get_result_groups();
-    *out_grps = std::move(res.second);
-    return res.first;
-  } else {
-    return sc.get_result_rowindex();
-  }
-}
-
-
 void dt::ColumnImpl::sort_grouped(const Groupby& grps, Column& out) {
   (void) out.stats();
   SortContext sc(nrows(), RowIndex(), grps, /* make_groups = */ false);

@@ -114,7 +114,6 @@ class ColumnImpl
   //------------------------------------
   public:
     virtual void fill_npmask(bool* outmask, size_t row0, size_t row1) const;
-    virtual RowIndex sort(Groupby* out_groups) const;
     virtual void sort_grouped(const Groupby&, Column& out);
 
     virtual void repeat(size_t ntimes, Column& out);

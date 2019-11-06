@@ -21,6 +21,7 @@
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "stats.h"
+#include "sort.h"
 
 
 //------------------------------------------------------------------------------
@@ -892,8 +893,10 @@ void Stats::compute_sorted_stats() {
 
 template <typename T>
 void NumericStats<T>::compute_sorted_stats() {
-  Groupby grpby;
-  RowIndex ri = column->sort(&grpby);
+  auto r = group({Column(column->clone())}, {SortFlag::NONE});
+  RowIndex ri   = std::move(r.first);
+  Groupby grpby = std::move(r.second);
+
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
   xassert(n_groups >= 1);
@@ -936,8 +939,10 @@ void NumericStats<T>::compute_sorted_stats() {
 
 
 void StringStats::compute_sorted_stats() {
-  Groupby grpby;
-  RowIndex ri = column->sort(&grpby);
+  auto r = group({Column(column->clone())}, {SortFlag::NONE});
+  RowIndex ri   = std::move(r.first);
+  Groupby grpby = std::move(r.second);
+
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.ngroups();
   xassert(n_groups >= 1);
