@@ -25,6 +25,7 @@
 #include "expr/eval_context.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include "sort.h"
 namespace dt {
 namespace expr {
 
@@ -95,31 +96,32 @@ static Kind _resolve_list_kind(const vecExpr& inputs) {
     auto kind = inputs[i].get_expr_kind();
     xassert(kind != Kind::Unknown);
     if (kind == listkind) continue;
-    if (kind != Kind::Bool && listkind != Kind::Bool) {
-      if (kind == Kind::None) continue;
-      if (kind == Kind::SliceAll &&
-          (listkind == Kind::Int ||
-           listkind == Kind::Str)) continue;
-      if (kind == Kind::Frame)    kind = Kind::Func;
-      if (kind == Kind::SliceInt) kind = Kind::Int;
-      if (kind == Kind::SliceStr) kind = Kind::Str;
-      if (kind == Kind::Float) {
-        throw TypeError()
-          << "A floating value cannot be used as a column selector";
-      }
-      if (kind == Kind::List) {
-          throw TypeError()
-            << "Nested lists are not supported as a column selector";
-      }
-      if (listkind == Kind::Unknown) listkind = kind;
-      if (listkind == Kind::SliceAll &&
-          (kind == Kind::Int || kind == Kind::Str)) listkind = kind;
-      if (kind == listkind) continue;
-    }
-    if (kind == Kind::Bool && listkind == Kind::Unknown) {
+    if (kind == Kind::Bool) {
+      if (listkind != Kind::Unknown) goto error;
       listkind = Kind::Bool;
       continue;
     }
+    if (listkind == Kind::Bool) goto error;
+    if (kind == Kind::None) continue;
+    if (kind == Kind::SliceAll &&
+        (listkind == Kind::Int || listkind == Kind::Str)) continue;
+    if (kind == Kind::Frame)    kind = Kind::Func;
+    if (kind == Kind::SliceInt) kind = Kind::Int;
+    if (kind == Kind::SliceStr) kind = Kind::Str;
+    if (kind == Kind::Float) {
+      throw TypeError()
+        << "A floating value cannot be used as a column selector";
+    }
+    if (kind == Kind::List) {
+      throw TypeError()
+        << "Nested lists are not supported as a column selector";
+    }
+    if (listkind == Kind::Unknown) listkind = kind;
+    if (listkind == Kind::SliceAll &&
+        (kind == Kind::Int || kind == Kind::Str)) listkind = kind;
+    if (kind == listkind) continue;
+
+    error:
     throw TypeError() << "Mixed selector types are not allowed. Element "
         << i << " is of type " << _name_type(kind) << ", whereas the "
         "previous element(s) were of type " << _name_type(listkind);
@@ -261,6 +263,38 @@ RowIndex Head_List::evaluate_i(const vecExpr& inputs, EvalContext& ctx) const
 
 RiGb Head_List::evaluate_iby(const vecExpr&, EvalContext&) const {
   throw NotImplError() << "Head_List::evaluate_iby() not implemented yet";
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// evaluate_by
+//------------------------------------------------------------------------------
+
+RiGb Head_List::evaluate_by(const vecExpr& inputs, EvalContext& ctx) const {
+  if (inputs.empty()) {
+    return RiGb{ RowIndex(), Groupby() };
+  }
+  auto kind = _resolve_list_kind(inputs);
+  if (kind == Kind::Str || kind == Kind::Func) {
+    Workframe wf = (kind == Kind::Str)? _evaluate_f_list(inputs, ctx, false)
+                                      : evaluate_n(inputs, ctx);
+    size_t n = wf.ncols();
+    std::vector<Column> columns;
+    std::vector<SortFlag> flags;
+    columns.reserve(n);
+    flags.reserve(n);
+    for (size_t i = 0; i < n; ++i) {
+      auto col = wf.retrieve_column(i);
+      col.materialize();
+      columns.push_back(std::move(col));
+      flags.push_back(SortFlag::NONE);
+    }
+    return group(columns, flags);
+  }
+  throw TypeError() << "Sequence of " << _name_type(kind) << " expressions "
+      "cannot be used in a by() clause";
 }
 
 

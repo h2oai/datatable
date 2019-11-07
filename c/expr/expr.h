@@ -104,6 +104,7 @@ class Expr {
     Workframe evaluate_j(EvalContext& ctx, bool allow_new = false) const;
     Workframe evaluate_r(EvalContext& ctx, const std::vector<SType>&) const;
     RowIndex  evaluate_i(EvalContext& ctx) const;
+    RiGb      evaluate_by(EvalContext& ctx) const;
     RiGb      evaluate_iby(EvalContext& ctx) const;
     bool evaluate_bool() const;
     int64_t evaluate_int() const;

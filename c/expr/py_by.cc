@@ -112,7 +112,11 @@ void oby::oby_pyobject::m__init__(const PKArgs& args)
     colslist.set(i++, arg);
   }
   xassert(i == n);
-  cols_ = std::move(colslist);
+  if (n == 1 && colslist[0].is_list_or_tuple()) {
+    cols_ = colslist[0];
+  } else {
+    cols_ = std::move(colslist);
+  }
 }
 
 

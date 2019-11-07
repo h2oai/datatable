@@ -123,6 +123,12 @@ class Head {
     virtual RowIndex evaluate_i(const vecExpr& args,
                                 EvalContext& ctx) const = 0;
 
+    // Evaluate the expression when it is used as the by() node. The
+    // result of the evaluation is a RowIndex+Groupby pair that
+    // describes how the Frame can be split into groups.
+    //
+    virtual RiGb evaluate_by(const vecExpr& args, EvalContext& ctx) const;
+
     virtual RiGb evaluate_iby(const vecExpr& args,
                               EvalContext& ctx) const = 0;
 

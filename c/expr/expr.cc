@@ -41,8 +41,6 @@ namespace dt {
 namespace expr {
 
 
-Head::~Head() {}
-
 
 
 //------------------------------------------------------------------------------
@@ -240,6 +238,11 @@ Workframe Expr::evaluate_f(
 
 RowIndex Expr::evaluate_i(EvalContext& ctx) const {
   return head->evaluate_i(inputs, ctx);
+}
+
+
+RiGb Expr::evaluate_by(EvalContext& ctx) const {
+  return head->evaluate_by(inputs, ctx);
 }
 
 
