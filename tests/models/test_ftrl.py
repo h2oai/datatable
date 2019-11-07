@@ -46,7 +46,7 @@ Params = collections.namedtuple("FtrlParams",["alpha", "beta", "lambda1", "lambd
                                           "interactions", "model_type"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
                  mantissa_nbits = 6, nepochs = 7, double_precision = True,
-                 negative_class = True, interactions = [["C0"]],
+                 negative_class = True, interactions = (("C0",),),
                  model_type = 'binomial')
 
 tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
@@ -1308,6 +1308,7 @@ def test_ftrl_interactions_formats(interactions):
     assert (ft.feature_importances[:, 0].to_list() ==
            [["feature1", "feature2", "feature3",
              "feature1:feature2:feature3", "feature3:feature2"]])
+    assert ft.interactions == tuple(tuple(interaction) for interaction in interactions)
 
 
 @pytest.mark.parametrize("struct", [list, tuple])
@@ -1331,10 +1332,10 @@ def test_ftrl_interactions_from_itertools(struct):
 def test_ftrl_interactions():
     nrows = 10**4
     feature_names = ['unique', 'boolean', 'mod100']
-    feature_interactions = [["unique", "boolean"],
-                            ["unique", "mod100"],
-                            ["boolean", "mod100"],
-                            ["boolean", "boolean", "boolean"]]
+    feature_interactions = (("unique", "boolean"),
+                            ("unique", "mod100"),
+                            ("boolean", "mod100"),
+                            ("boolean", "boolean", "boolean"))
     interaction_names = ["unique:boolean", "unique:mod100",
                          "boolean:mod100", "boolean:boolean:boolean"]
     ft = Ftrl(interactions = feature_interactions)

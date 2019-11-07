@@ -881,6 +881,9 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
                       << arg_interactions.typeobj();
 
   auto py_interactions = arg_interactions.to_oiter();
+  py::otuple params_interactions(py_interactions.size());
+  size_t i = 0;
+
   for (auto py_interaction_robj : py_interactions) {
     if (!py_interaction_robj.is_list() && !py_interaction_robj.is_tuple())
       throw TypeError() << arg_interactions.name()
@@ -892,14 +895,19 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
       throw TypeError() << "Interaction cannot have zero features, encountered: "
                         << py_interaction_robj;
 
-    for (auto py_feature : py_interaction) {
-      if (!py_feature.is_string())
+    py::otuple params_interaction(py_interaction.size());
+    size_t j = 0;
+    for (auto py_feature_robj : py_interaction) {
+      if (!py_feature_robj.is_string())
         throw TypeError() << "Interaction features should be strings, "
-                          << "instead encountered: " << py_feature;
+                          << "instead encountered: " << py_feature_robj;
+      params_interaction.set(j++, py::oobj(py_feature_robj));
     }
+
+    params_interactions.set(i++, std::move(params_interaction));
   }
 
-  py_params.replace(9, arg_interactions.to_robj());
+  py_params.replace(9, std::move(params_interactions));
 }
 
 
