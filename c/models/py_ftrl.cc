@@ -870,6 +870,10 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
                        << " for a trained model, reset this model or"
                        << " create a new one";
 
+  if (arg_interactions.is_none()) {
+    py_params.replace(9, arg_interactions.to_robj());
+    return;
+  }
 
   if (!arg_interactions.is_list() && !arg_interactions.is_tuple())
     throw TypeError() << arg_interactions.name() << " should be a "
