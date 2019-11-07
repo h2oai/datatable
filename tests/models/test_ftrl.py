@@ -121,14 +121,20 @@ def test_ftrl_construct_wrong_double_precision_type():
 
 
 def test_ftrl_construct_wrong_interactions_type():
+    import itertools
     with pytest.raises(TypeError) as e:
         noop(Ftrl(interactions = 2))
-    assert ("Argument `interactions` in Ftrl() constructor should be an iterable, "
-            "instead got <class 'int'>" == str(e.value))
+    assert ("Argument `interactions` in Ftrl() constructor should be a list or a tuple "
+            "of lists or tuples, instead got: <class 'int'>" == str(e.value))
     with pytest.raises(TypeError) as e:
         noop(Ftrl(interactions = ["C0"]))
-    assert ("Argument `interactions` in Ftrl() constructor should be a list of "
-            "lists, instead encountered: 'C0'" == str(e.value))
+    assert ("Argument `interactions` in Ftrl() constructor should be a list or a tuple "
+            "of lists or tuples, instead encountered: 'C0'" == str(e.value))
+    with pytest.raises(TypeError) as e:
+        noop(Ftrl(interactions = itertools.combinations(["C0", "C1"], 2)))
+    assert ("Argument `interactions` in Ftrl() constructor should be a list or a tuple "
+            "of lists or tuples, instead got: <class 'itertools.combinations'>"
+            == str(e.value))
 
 
 def test_ftrl_construct_wrong_combination():
@@ -270,9 +276,9 @@ def test_ftrl_create_individual():
 def test_ftrl_get_parameters():
     ft = Ftrl(tparams)
     assert ft.params == tparams
-    assert ((ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.mantissa_nbits,
-            ft.nepochs, ft.double_precision, ft.negative_class, ft.interactions,
-            ft.model_type) == tparams)
+    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.mantissa_nbits,
+           ft.nepochs, ft.double_precision, ft.negative_class, ft.interactions,
+           ft.model_type) == tparams
 
 
 def test_ftrl_set_individual():
@@ -347,7 +353,7 @@ def test_ftrl_set_wrong_interactions_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.interactions = True
-    assert ("`.interactions` should be an iterable, instead got <class 'bool'>"
+    assert ("`.interactions` should be a list or a tuple of lists or tuples, instead got: <class 'bool'>"
             == str(e.value))
 
 
@@ -355,15 +361,15 @@ def test_ftrl_set_wrong_interactions_empty():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.interactions = [["C0"], []]
-    assert ("Interaction lists cannot be empty" == str(e.value))
+    assert ("Interaction cannot be empty" == str(e.value))
 
 
 def test_ftrl_set_wrong_interactions_not_list():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.interactions = ["a", [1, 2]]
-    assert ("`.interactions` should be a list of lists, instead "
-            "encountered: 'a'" == str(e.value))
+    assert ("`.interactions` should be a list or a tuple of lists or tuples, "
+           "instead encountered: 'a'" == str(e.value))
 
 
 def test_ftrl_set_wrong_interactions_not_string():
@@ -699,7 +705,8 @@ def test_ftrl_fit_predict_view():
 @pytest.mark.parametrize('parameter, value',
                          [("nbins", 100),
                          ("interactions", [["C0", "C0"]]),
-                         ("mantissa_nbits", 46)])
+                         ("mantissa_nbits", 46),
+                         ("negative_class", True)])
 def test_ftrl_disable_setters_after_fit(parameter, value):
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))
@@ -709,7 +716,7 @@ def test_ftrl_disable_setters_after_fit(parameter, value):
     assert ft.model_type_trained == "binomial"
     with pytest.raises(ValueError) as e:
         setattr(ft, parameter, value)
-    assert ("Cannot change `"+parameter+"` for a trained model, "
+    assert ("Cannot change `."+parameter+"` for a trained model, "
             "reset this model or create a new one"
             == str(e.value))
     ft.reset()
@@ -1272,8 +1279,8 @@ def test_ftrl_interactions_wrong_features():
     df_target = dt.Frame([False, True] * (nrows // 2))
     with pytest.raises(ValueError) as e:
         ft.fit(df_train, df_target)
-    assert ("Feature 'mod1000' is used for interactions, however, it is "
-            "missing in the training frame" == str(e.value))
+    assert ("Feature `mod1000` is used in the interactions, however, column "
+            "`mod1000` is missing in the training frame" == str(e.value))
 
 
 def test_ftrl_interactions():
@@ -1406,4 +1413,42 @@ def test_ftrl_pickling_multinomial():
     target_unpickled = ft_unpickled.predict(df_train)
     assert_equals(ft.model, ft_unpickled.model)
     assert_equals(target, target_unpickled)
+
+
+@pytest.mark.parametrize("interactions", [
+                         [["feature1", "feature2", "feature3"], ["feature3", "feature2"]],
+                         [("feature1", "feature2", "feature3"), ("feature3", "feature2")],
+                         (["feature1", "feature2", "feature3"], ["feature3", "feature2"]),
+                         (("feature1", "feature2", "feature3"), ("feature3", "feature2")),
+                        ])
+def test_ftrl_interactions_formats(interactions):
+    ft = Ftrl(interactions = interactions)
+    df_train = dt.Frame(
+                 feature1 = range(10),
+                 feature2 = [False, True] * 5,
+                 feature3 = range(1, 100, 10)
+               )
+    df_target = dt.Frame(target = [True, False] * 5)
+
+    ft.fit(df_train, df_target)
+    assert (ft.feature_importances[:, 0].to_list() ==
+           [["feature1", "feature2", "feature3",
+             "feature1:feature2:feature3", "feature3:feature2"]])
+
+
+def test_ftrl_interactions_from_itertools():
+    import itertools
+    df_train = dt.Frame(
+                 feature1 = range(10),
+                 feature2 = [False, True] * 5,
+                 feature3 = range(1, 100, 10)
+               )
+    df_target = dt.Frame(target = [True, False] * 5)
+    interactions = list(itertools.combinations(df_train.names, 2))
+
+    ft = Ftrl(interactions = interactions)
+    ft.fit(df_train, df_target)
+    assert (ft.feature_importances[:, 0].to_list() ==
+           [["feature1", "feature2", "feature3",
+             "feature1:feature2", "feature1:feature3", "feature2:feature3"]])
 

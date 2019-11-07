@@ -165,34 +165,36 @@ void Ftrl::m__dealloc__() {
 
 /**
  *  Check if provided interactions are consistent with the column names
- *  of the training frame.
+ *  of the training frame. If yes, set up interactions for `dtft`.
  */
 void Ftrl::init_dt_interactions() {
-  std::vector<intvec> interactions;
-  auto py_iter = py_params.get_attr("interactions").to_oiter();
-  interactions.reserve(py_iter.size());
+  std::vector<intvec> dt_interactions;
+  auto py_interactions = py_params.get_attr("interactions").to_oiter();
+  dt_interactions.reserve(py_interactions.size());
 
-  for (auto py_interaction : py_iter) {
-    size_t nfeatures = py_interaction.to_pylist().size();
-    intvec interaction;
-    interaction.reserve(nfeatures);
-    for (auto py_feature : py_interaction.to_oiter()) {
-      std::string feature = py_feature.to_string();
+  for (auto py_interaction_robj : py_interactions) {
+    intvec dt_interaction;
+    auto py_interaction = py_interaction_robj.to_oiter();
+    size_t nfeatures = py_interaction.size();
+    dt_interaction.reserve(nfeatures);
 
-      auto it = find(colnames.begin(), colnames.end(), feature);
+    for (auto py_feature : py_interaction) {
+      std::string feature_name = py_feature.to_string();
+
+      auto it = find(colnames.begin(), colnames.end(), feature_name);
       if (it == colnames.end()) {
-        throw ValueError() << "Feature " << py_feature << " is used for "
-                              "interactions, however, it is missing in the "
-                              "training frame";
+        throw ValueError() << "Feature `" << feature_name
+          << "` is used in the interactions, however, column "
+          << "`" << feature_name << "` is missing in the training frame";
       }
 
-      auto pos = static_cast<size_t>(std::distance(colnames.begin(), it));
-      interaction.push_back(pos);
+      auto feature_id = std::distance(colnames.begin(), it);
+      dt_interaction.push_back(static_cast<size_t>(feature_id));
     }
 
-    interactions.push_back(std::move(interaction));
+    dt_interactions.push_back(std::move(dt_interaction));
   }
-  dtft->set_interactions(std::move(interactions));
+  dtft->set_interactions(std::move(dt_interactions));
 }
 
 
@@ -735,16 +737,17 @@ oobj Ftrl::get_nbins() const {
 }
 
 
-void Ftrl::set_nbins(const Arg& py_nbins) {
+void Ftrl::set_nbins(const Arg& arg_nbins) {
   if (dtft->is_model_trained()) {
-    throw ValueError() << "Cannot change `nbins` for a trained model, "
+    throw ValueError() << "Cannot change " << arg_nbins.name()
+                       << " for a trained model, "
                        << "reset this model or create a new one";
   }
 
-  size_t nbins = py_nbins.to_size_t();
-  py::Validator::check_positive(nbins, py_nbins);
+  size_t nbins = arg_nbins.to_size_t();
+  py::Validator::check_positive(nbins, arg_nbins);
   dtft->set_nbins(static_cast<uint64_t>(nbins));
-  py_params.replace(4, py_nbins.to_robj());
+  py_params.replace(4, arg_nbins.to_robj());
 }
 
 
@@ -761,21 +764,22 @@ oobj Ftrl::get_mantissa_nbits() const {
 }
 
 
-void Ftrl::set_mantissa_nbits(const Arg& py_mantissa_nbits) {
+void Ftrl::set_mantissa_nbits(const Arg& arg_mantissa_nbits) {
   if (dtft->is_model_trained()) {
 
-    throw ValueError() << "Cannot change `mantissa_nbits` for a trained model, "
+    throw ValueError() << "Cannot change " << arg_mantissa_nbits.name()
+                       << " for a trained model, "
                        << "reset this model or create a new one";
   }
 
-  size_t mantissa_nbits = py_mantissa_nbits.to_size_t();
+  size_t mantissa_nbits = arg_mantissa_nbits.to_size_t();
   py::Validator::check_less_than_or_equal_to<uint64_t>(
     mantissa_nbits,
     dt::FtrlBase::DOUBLE_MANTISSA_NBITS,
-    py_mantissa_nbits
+    arg_mantissa_nbits
   );
   dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
-  py_params.replace(5, py_mantissa_nbits.to_robj());
+  py_params.replace(5, arg_mantissa_nbits.to_robj());
 }
 
 
@@ -811,13 +815,14 @@ oobj Ftrl::get_double_precision() const {
   return py_params.get_attr("double_precision");
 }
 
-void Ftrl::set_double_precision(const Arg& py_double_precision) {
+void Ftrl::set_double_precision(const Arg& arg_double_precision) {
   if (dtft->is_model_trained()) {
-    throw ValueError() << "Cannot change `double_precision` for a trained model, "
+    throw ValueError() << "Cannot change " << arg_double_precision.name()
+                       << "for a trained model, "
                        << "reset this model or create a new one";
   }
-  double_precision = py_double_precision.to_bool_strict();
-  py_params.replace(7, py_double_precision.to_robj());
+  double_precision = arg_double_precision.to_bool_strict();
+  py_params.replace(7, arg_double_precision.to_robj());
 }
 
 
@@ -834,14 +839,15 @@ oobj Ftrl::get_negative_class() const {
 }
 
 
-void Ftrl::set_negative_class(const Arg& py_negative_class) {
+void Ftrl::set_negative_class(const Arg& arg_negative_class) {
   if (dtft->is_model_trained()) {
-    throw ValueError() << "Cannot change `negative_class` for a trained model, "
+    throw ValueError() << "Cannot change " << arg_negative_class.name()
+                       << " for a trained model, "
                        << "reset this model or create a new one";
   }
-  bool negative_class = py_negative_class.to_bool_strict();
+  bool negative_class = arg_negative_class.to_bool_strict();
   dtft->set_negative_class(negative_class);
-  py_params.replace(8, py_negative_class.to_robj());
+  py_params.replace(8, arg_negative_class.to_robj());
 }
 
 
@@ -860,21 +866,28 @@ oobj Ftrl::get_interactions() const {
 
 void Ftrl::set_interactions(const Arg& arg_interactions) {
   if (dtft->is_model_trained())
-    throw ValueError() << "Cannot change `interactions` for a trained model, "
-                       << "reset this model or create a new one";
+    throw ValueError() << "Cannot change " << arg_interactions.name()
+                       << " for a trained model, reset this model or"
+                       << " create a new one";
 
-  auto py_interactions_in = arg_interactions.to_oiter();
-  for (auto py_interaction : py_interactions_in) {
-    if (!py_interaction.is_list())
+
+  if (!arg_interactions.is_list() && !arg_interactions.is_tuple())
+    throw TypeError() << arg_interactions.name() << " should be a "
+                      << "list or a tuple of lists or tuples, instead got: "
+                      << arg_interactions.typeobj();
+
+  auto py_interactions = arg_interactions.to_oiter();
+  for (auto py_interaction_robj : py_interactions) {
+    if (!py_interaction_robj.is_list() && !py_interaction_robj.is_tuple())
       throw TypeError() << arg_interactions.name()
-                        << " should be a list of lists, "
-                        << "instead encountered: " << py_interaction;
+                        << " should be a list or a tuple of lists or tuples, "
+                        << "instead encountered: " << py_interaction_robj;
 
-    auto py_interaction_iter = py_interaction.to_oiter();
-    if (!py_interaction_iter.size())
-      throw TypeError() << "Interaction lists cannot be empty";
+    auto py_interaction = py_interaction_robj.to_oiter();
+    if (!py_interaction.size())
+      throw TypeError() << "Interaction cannot be empty";
 
-    for (auto py_feature : py_interaction_iter) {
+    for (auto py_feature : py_interaction) {
       if (!py_feature.is_string())
         throw TypeError() << "Interaction features should be strings, "
                           << "instead encountered: " << py_feature;
