@@ -58,16 +58,16 @@ by_node::~by_node() {
 }
 
 
-void by_node::add_groupby_columns(EvalContext& ctx, collist_ptr&& cl) {
+void by_node::add_groupby_columns(expr::EvalContext& ctx, collist_ptr&& cl) {
   _add_columns(ctx, std::move(cl), true);
 }
 
-void by_node::add_sortby_columns(EvalContext& ctx, collist_ptr&& cl) {
+void by_node::add_sortby_columns(expr::EvalContext& ctx, collist_ptr&& cl) {
   _add_columns(ctx, std::move(cl), false);
 }
 
 
-void by_node::_add_columns(EvalContext& ctx, collist_ptr&& cl, bool isgrp) {
+void by_node::_add_columns(expr::EvalContext& ctx, collist_ptr&& cl, bool isgrp) {
   strvec names = cl->release_names();
   bool has_names = !names.empty();
   if (cl->is_simple_list()) {
@@ -136,7 +136,7 @@ bool by_node::has_group_column(size_t i) const {
 }
 
 
-void by_node::create_columns(EvalContext& ctx) {
+void by_node::create_columns(expr::EvalContext& ctx) {
   DataTable* dt0 = ctx.get_datatable(0);
   RowIndex ri0 = ctx.get_rowindex(0);
   if (ctx.get_groupby_mode() == GroupbyMode::GtoONE) {
@@ -155,7 +155,7 @@ void by_node::create_columns(EvalContext& ctx) {
 }
 
 
-void by_node::execute(EvalContext& ctx) const {
+void by_node::execute(expr::EvalContext& ctx) const {
   if (cols.empty()) {
     ctx.gb = Groupby::single_group(ctx.nrows());
     return;

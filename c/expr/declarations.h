@@ -38,6 +38,7 @@ namespace expr {
   class Head;
   class Expr;
   class Workframe;
+  class EvalContext;
 
   using strvec = std::vector<std::string>;
   using ptrHead = std::unique_ptr<Head>;
@@ -125,7 +126,6 @@ namespace expr {
 // OBSOLETE
 //
 namespace dt {
-  class EvalContext;
   class by_node;
   class collist;
 

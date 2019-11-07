@@ -25,7 +25,7 @@ namespace dt {
 
 
 class j_node;
-class EvalContext;
+namespace expr { class EvalContext; }
 using j_node_ptr = std::unique_ptr<dt::j_node>;
 
 /**
@@ -33,12 +33,12 @@ using j_node_ptr = std::unique_ptr<dt::j_node>;
  */
 class j_node {
   public:
-    static j_node_ptr make(py::robj src, EvalContext& ctx);
+    static j_node_ptr make(py::robj src, expr::EvalContext& ctx);
 
     j_node();
     virtual ~j_node();
-    virtual GroupbyMode get_groupby_mode(EvalContext&) = 0;
-    virtual void select(EvalContext&) = 0;
+    virtual GroupbyMode get_groupby_mode(expr::EvalContext&) = 0;
+    virtual void select(expr::EvalContext&) = 0;
 };
 
 

@@ -54,17 +54,17 @@ namespace dt {
 class allcols_jnode : public j_node {
   public:
     allcols_jnode() = default;
-    GroupbyMode get_groupby_mode(EvalContext&) override;
-    void select(EvalContext&) override;
+    GroupbyMode get_groupby_mode(expr::EvalContext&) override;
+    void select(expr::EvalContext&) override;
 };
 
 
-GroupbyMode allcols_jnode::get_groupby_mode(EvalContext&) {
+GroupbyMode allcols_jnode::get_groupby_mode(expr::EvalContext&) {
   return GroupbyMode::GtoALL;
 }
 
 
-void allcols_jnode::select(EvalContext& ctx) {
+void allcols_jnode::select(expr::EvalContext& ctx) {
   for (size_t i = 0; i < ctx.nframes(); ++i) {
     const DataTable* dti = ctx.get_datatable(i);
     const RowIndex& rii = ctx.get_rowindex(i);
@@ -108,11 +108,11 @@ class simplelist_jnode : public j_node {
 
   public:
     explicit simplelist_jnode(collist&&);
-    GroupbyMode get_groupby_mode(EvalContext&) override;
-    void select(EvalContext&) override;
+    GroupbyMode get_groupby_mode(expr::EvalContext&) override;
+    void select(expr::EvalContext&) override;
 
   private:
-    void _init_names(EvalContext&);
+    void _init_names(expr::EvalContext&);
 };
 
 
@@ -124,12 +124,12 @@ simplelist_jnode::simplelist_jnode(collist&& x)
 }
 
 
-GroupbyMode simplelist_jnode::get_groupby_mode(EvalContext&) {
+GroupbyMode simplelist_jnode::get_groupby_mode(expr::EvalContext&) {
   return GroupbyMode::GtoALL;
 }
 
 
-void simplelist_jnode::select(EvalContext& ctx) {
+void simplelist_jnode::select(expr::EvalContext& ctx) {
   const DataTable* dt0 = ctx.get_datatable(0);
   const RowIndex& ri0 = ctx.get_rowindex(0);
   size_t n = indices.size();
@@ -146,7 +146,7 @@ void simplelist_jnode::select(EvalContext& ctx) {
 }
 
 
-void simplelist_jnode::_init_names(EvalContext& ctx) {
+void simplelist_jnode::_init_names(expr::EvalContext& ctx) {
   if (!names.empty()) return;
   const strvec& dt0_names = ctx.get_datatable(0)->get_names();
   names.reserve(indices.size());
@@ -170,11 +170,11 @@ class exprlist_jn : public j_node {
 
   public:
     explicit exprlist_jn(collist&&);
-    GroupbyMode get_groupby_mode(EvalContext&) override;
-    void select(EvalContext&) override;
+    GroupbyMode get_groupby_mode(expr::EvalContext&) override;
+    void select(expr::EvalContext&) override;
 
   private:
-    void _init_names(EvalContext&);
+    void _init_names(expr::EvalContext&);
 };
 
 
@@ -186,7 +186,7 @@ exprlist_jn::exprlist_jn(collist&& x)
 }
 
 
-GroupbyMode exprlist_jn::get_groupby_mode(EvalContext& ctx) {
+GroupbyMode exprlist_jn::get_groupby_mode(expr::EvalContext& ctx) {
   for (auto& expr : exprs) {
     GroupbyMode gm = expr->get_groupby_mode(ctx);
     if (gm == GroupbyMode::GtoALL) return gm;
@@ -195,7 +195,7 @@ GroupbyMode exprlist_jn::get_groupby_mode(EvalContext& ctx) {
 }
 
 
-void exprlist_jn::select(EvalContext& ctx) {
+void exprlist_jn::select(expr::EvalContext& ctx) {
   _init_names(ctx);
   for (auto& expr : exprs) {
     expr->resolve(ctx);
@@ -212,7 +212,7 @@ void exprlist_jn::select(EvalContext& ctx) {
 }
 
 
-void exprlist_jn::_init_names(EvalContext&) {
+void exprlist_jn::_init_names(expr::EvalContext&) {
   if (!names.empty()) return;
   // For now, use empty names. TODO: do something smarter?
   names.resize(exprs.size());
@@ -225,7 +225,7 @@ void exprlist_jn::_init_names(EvalContext&) {
 // j_node
 //------------------------------------------------------------------------------
 
-j_node_ptr j_node::make(py::robj src, EvalContext& ctx) {
+j_node_ptr j_node::make(py::robj src, expr::EvalContext& ctx) {
   // The most common case is ":", a trivial slice
   if ((src.is_slice() && src.to_oslice().is_trivial())
       || src.is_none() || src.is_ellipsis()) {

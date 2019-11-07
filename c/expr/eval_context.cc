@@ -27,13 +27,14 @@
 #include "expr/py_update.h"
 #include "frame/py_frame.h"
 namespace dt {
+namespace expr {
 
 
 //------------------------------------------------------------------------------
 // EvalContext
 //------------------------------------------------------------------------------
 
-EvalContext::EvalContext(DataTable* dt, expr::EvalMode evalmode) {
+EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
@@ -60,7 +61,7 @@ void EvalContext::add_sortby(py::osort obj) {
 
 
 void EvalContext::add_i(py::oobj oi) {
-  iexpr_ = dt::expr::Expr(oi);
+  iexpr_ = Expr(oi);
 }
 
 
@@ -68,27 +69,27 @@ void EvalContext::add_j(py::oobj oj) {
   xassert(!jexpr);
   py::oupdate arg_update = oj.to_oupdate_lax();
   if (arg_update) {
-    if (mode == expr::EvalMode::DELETE) {
+    if (mode == EvalMode::DELETE) {
       throw ValueError() << "update() clause cannot be used with a "
                             "delete expression";
     }
-    if (mode == expr::EvalMode::UPDATE) {
+    if (mode == EvalMode::UPDATE) {
       throw ValueError() << "update() clause cannot be used with an "
                             "assignment expression";
     }
-    mode = expr::EvalMode::UPDATE;
-    jexpr_ = dt::expr::Expr(arg_update.get_names());
+    mode = EvalMode::UPDATE;
+    jexpr_ = Expr(arg_update.get_names());
     jexpr = j_node::make(arg_update.get_names(), *this);  // remove
-    repl_ = dt::expr::Expr(arg_update.get_exprs());
+    repl_ = Expr(arg_update.get_exprs());
   } else {
-    jexpr_ = dt::expr::Expr(oj);
+    jexpr_ = Expr(oj);
     jexpr = j_node::make(oj, *this);   // remove
   }
 }
 
 
 void EvalContext::add_replace(py::oobj obj) {
-  repl_ = dt::expr::Expr(obj);
+  repl_ = Expr(obj);
 }
 
 
@@ -98,7 +99,7 @@ void EvalContext::add_replace(py::oobj obj) {
 // Properties
 //------------------------------------------------------------------------------
 
-expr::EvalMode EvalContext::get_mode() const {
+EvalMode EvalContext::get_mode() const {
   return mode;
 }
 
@@ -145,20 +146,20 @@ void EvalContext::evaluate() {
   }
 
   switch (mode) {
-    case expr::EvalMode::SELECT:
+    case EvalMode::SELECT:
       if (byexpr) {
         byexpr.create_columns(*this);
         jexpr->select(*this);
         fix_columns();
       }
       else {
-        expr::Workframe res = jexpr_.evaluate_j(*this);
+        Workframe res = jexpr_.evaluate_j(*this);
         out_datatable = std::move(res).convert_to_datatable();
       }
       break;
 
-    case expr::EvalMode::DELETE: evaluate_delete(); break;
-    case expr::EvalMode::UPDATE: evaluate_update(); break;
+    case EvalMode::DELETE: evaluate_delete(); break;
+    case EvalMode::UPDATE: evaluate_update(); break;
   }
 }
 
@@ -175,7 +176,7 @@ void EvalContext::evaluate() {
 // will contain the location of these columns in the updated `dt0`.
 //
 intvec EvalContext::evaluate_j_as_column_index() {
-  bool allow_new = (mode == expr::EvalMode::UPDATE);
+  bool allow_new = (mode == EvalMode::UPDATE);
   DataTable* dt0 = frames[0].dt;
   auto jres = jexpr_.evaluate_j(*this, allow_new);
   size_t n = jres.ncols();
@@ -229,7 +230,7 @@ void EvalContext::create_placeholder_columns() {
 //   - delete all rows & all columns (i.e. delete the entire frame).
 //
 void EvalContext::evaluate_delete() {
-  if (jexpr_.get_expr_kind() == expr::Kind::SliceAll) {
+  if (jexpr_.get_expr_kind() == Kind::SliceAll) {
     evaluate_delete_rows();
   } else if (frames[0].ri) {
     evaluate_delete_subframe();
@@ -325,7 +326,7 @@ void EvalContext::evaluate_update() {
     }
   }
 
-  expr::Workframe replacement = repl_.evaluate_r(*this, stypes);
+  Workframe replacement = repl_.evaluate_r(*this, stypes);
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);
@@ -360,11 +361,11 @@ void EvalContext::evaluate_update() {
 
 
 void EvalContext::typecheck_for_update(
-    expr::Workframe& replframe, const intvec& indices)
+    Workframe& replframe, const intvec& indices)
 {
   DataTable* dt0 = get_datatable(0);
   bool allrows = !(frames[0].ri);
-  bool repl_1row = replframe.get_grouping_mode() == expr::Grouping::SCALAR;
+  bool repl_1row = replframe.get_grouping_mode() == Grouping::SCALAR;
   size_t n = indices.size();
   xassert(replframe.ncols() == indices.size());
 
@@ -415,7 +416,7 @@ void EvalContext::fix_columns() {
 
 
 py::oobj EvalContext::get_result() {
-  if (mode == expr::EvalMode::SELECT) {
+  if (mode == EvalMode::SELECT) {
     DataTable* result =
         out_datatable? out_datatable.release()
                      : new DataTable(std::move(columns), std::move(colnames));
@@ -509,4 +510,4 @@ void EvalContext::add_column(
 
 
 
-} // namespace dt
+}} // namespace dt::expr

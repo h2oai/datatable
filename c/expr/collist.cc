@@ -62,7 +62,7 @@ class collist_maker
       UNKNOWN, BOOL, INT, STR, EXPR, TYPE
     };
 
-    EvalContext& ctx;
+    expr::EvalContext& ctx;
     const DataTable* dt0;
     const char* srcname;
     list_type type;
@@ -73,7 +73,7 @@ class collist_maker
     size_t  flags;
 
   public:
-    collist_maker(EvalContext& ctx_, size_t dt_index, size_t flags_,
+    collist_maker(expr::EvalContext& ctx_, size_t dt_index, size_t flags_,
                   const char* srcname_)
       : ctx(ctx_)
     {
@@ -337,7 +337,7 @@ class collist_maker
 // collist
 //------------------------------------------------------------------------------
 
-collist::collist(EvalContext& ctx, py::robj src, size_t flags, size_t dt_index)
+collist::collist(expr::EvalContext& ctx, py::robj src, size_t flags, size_t dt_index)
 {
   const char* srcname = (flags & J_NODE)? "`j` selector" :
                         (flags & BY_NODE)? "`by`" :
@@ -457,7 +457,7 @@ void collist::exclude(collist_ptr&& other) {
       }
     }
     if (!exprs.empty()) {
-      EvalContext ctx(nullptr, expr::EvalMode::SELECT);
+      expr::EvalContext ctx(nullptr, expr::EvalMode::SELECT);
       xassert(indices.empty());
       for (size_t j = 0; j < exprs.size(); ++j) {
         auto colexpr = dynamic_cast<expr::expr_column*>(exprs[j].get());

@@ -286,7 +286,7 @@ expr_reduce1::expr_reduce1(pexpr&& a, Op op)
   : arg(std::move(a)), opcode(op) {}
 
 
-SType expr_reduce1::resolve(const dt::EvalContext& ctx) {
+SType expr_reduce1::resolve(const EvalContext& ctx) {
   SType arg_stype = arg->resolve(ctx);
   if (opcode == Op::FIRST) {
     return arg_stype;

@@ -31,6 +31,7 @@
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
 namespace dt {
+namespace expr {
 
 
 
@@ -66,18 +67,18 @@ class EvalContext
 
   private:
     // Inputs
-    by_node       byexpr;  // old
+    dt::by_node   byexpr;  // old
     j_node_ptr    jexpr;   // old
-    expr::Expr    iexpr_;
-    expr::Expr    jexpr_;
-    expr::Expr    repl_;
+    Expr  iexpr_;
+    Expr  jexpr_;
+    Expr  repl_;
 
     // Runtime
     std::vector<subframe> frames;
-    Groupby               gb;
-    RowIndex              ungroup_rowindex_;
-    expr::EvalMode        mode;
-    GroupbyMode   groupby_mode;
+    Groupby      gb;
+    RowIndex     ungroup_rowindex_;
+    EvalMode     mode;
+    GroupbyMode  groupby_mode;
     size_t : 48;
 
     // Result
@@ -89,11 +90,11 @@ class EvalContext
     std::unique_ptr<DataTable> out_datatable;
 
   public:
-    EvalContext(DataTable*, expr::EvalMode = expr::EvalMode::SELECT);
+    EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
     EvalContext(const EvalContext&) = delete;
     EvalContext(EvalContext&&) = delete;
 
-    expr::EvalMode get_mode() const;
+    EvalMode get_mode() const;
     GroupbyMode get_groupby_mode() const;
 
     void add_join(py::ojoin);
@@ -110,7 +111,7 @@ class EvalContext
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby();
     const RowIndex& get_ungroup_rowindex();
-    const by_node& get_by_node() const;
+    const dt::by_node& get_by_node() const;
     bool is_naturally_joined(size_t i) const;
     bool has_groupby() const;
     size_t nframes() const;
@@ -133,12 +134,12 @@ class EvalContext
     void evaluate_update();
     intvec evaluate_j_as_column_index();
     void create_placeholder_columns();
-    void typecheck_for_update(expr::Workframe&, const intvec&);
+    void typecheck_for_update(Workframe&, const intvec&);
 
-    friend class by_node;  // Allow access to `gb`
+    friend class dt::by_node;  // Allow access to `gb`
 };
 
 
 
-}  // namespace dt
+}}  // namespace dt::expr
 #endif

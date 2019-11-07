@@ -57,16 +57,16 @@ class by_node {
     by_node();
     ~by_node();
 
-    void add_groupby_columns(EvalContext&, collist_ptr&&);
-    void add_sortby_columns(EvalContext&, collist_ptr&&);
+    void add_groupby_columns(expr::EvalContext&, collist_ptr&&);
+    void add_sortby_columns(expr::EvalContext&, collist_ptr&&);
 
     explicit operator bool() const;
     bool has_group_column(size_t i) const;
-    void create_columns(EvalContext&);
-    void execute(EvalContext&) const;
+    void create_columns(expr::EvalContext&);
+    void execute(expr::EvalContext&) const;
 
   private:
-    void _add_columns(EvalContext& ctx, collist_ptr&& cl, bool isgrp);
+    void _add_columns(expr::EvalContext& ctx, collist_ptr&& cl, bool isgrp);
 };
 
 

@@ -168,7 +168,7 @@ oobj Frame::_main_getset(robj item, robj value) {
   auto mode = value == GETITEM? dt::expr::EvalMode::SELECT :
               value == DELITEM? dt::expr::EvalMode::DELETE :
                                 dt::expr::EvalMode::UPDATE;
-  dt::EvalContext ctx(dt, mode);
+  dt::expr::EvalContext ctx(dt, mode);
 
   // 2. Search for join nodes in order to bind all aliases and
   //    to know which frames participate in `DT[...]`.

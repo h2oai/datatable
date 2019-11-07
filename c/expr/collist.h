@@ -29,7 +29,7 @@ namespace dt {
 
 class collist;
 class base_expr;
-class EvalContext;
+namespace expr { class EvalContext; }
 
 using strvec = std::vector<std::string>;
 using exprvec = std::vector<std::unique_ptr<dt::expr::base_expr>>;
@@ -52,7 +52,7 @@ class collist {
     static constexpr size_t ALLOW_NEW_COLUMNS = 256;
     static constexpr size_t FORBID_SRC_DICT = 512;
 
-    collist(EvalContext& ctx, py::robj src, size_t flags, size_t dt_index = 0);
+    collist(expr::EvalContext& ctx, py::robj src, size_t flags, size_t dt_index = 0);
     collist(exprvec&& exprs_, intvec&& indices_, strvec&& names_);
 
     bool is_simple_list() const;

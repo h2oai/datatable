@@ -61,7 +61,7 @@ class oby : public oobj
     static void init(PyObject* m);
 
     // TODO: remove
-    dt::collist_ptr cols(dt::EvalContext&) const;
+    dt::collist_ptr cols(dt::expr::EvalContext&) const;
 
     oobj get_arguments() const;
     bool get_add_columns() const;

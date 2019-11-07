@@ -93,7 +93,7 @@ void osort::init(PyObject* m) {
 }
 
 
-dt::collist_ptr osort::cols(dt::EvalContext& ctx) const {
+dt::collist_ptr osort::cols(dt::expr::EvalContext& ctx) const {
   robj cols = reinterpret_cast<const _sort*>(v)->cols;
   return dt::collist_ptr(
             new dt::collist(ctx, cols, dt::collist::SORT_NODE));
