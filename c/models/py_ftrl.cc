@@ -877,7 +877,7 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
 
   if (!arg_interactions.is_list() && !arg_interactions.is_tuple())
     throw TypeError() << arg_interactions.name() << " should be a "
-                      << "list or a tuple of lists or tuples, instead got: "
+                      << "list or a tuple, instead got: "
                       << arg_interactions.typeobj();
 
   auto py_interactions = arg_interactions.to_oiter();
@@ -889,7 +889,8 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
 
     auto py_interaction = py_interaction_robj.to_oiter();
     if (!py_interaction.size())
-      throw TypeError() << "Interaction cannot be empty";
+      throw TypeError() << "Interaction cannot have zero features, encountered: "
+                        << py_interaction_robj;
 
     for (auto py_feature : py_interaction) {
       if (!py_feature.is_string())
