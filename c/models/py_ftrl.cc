@@ -207,8 +207,8 @@ static PKArgs args_fit(2, 5, 0, false, false, {"X_train", "y_train",
                        "nepochs_validation", "validation_error",
                        "validation_average_niterations"}, "fit",
 R"(fit(self, X_train, y_train, X_validation=None, y_validation=None,
-       nepochs_validation=1, validation_error=0.01,
-       validation_average_niterations=1)
+    nepochs_validation=1, validation_error=0.01,
+    validation_average_niterations=1)
 --
 
 Train FTRL model on a dataset.
@@ -580,7 +580,7 @@ oobj Ftrl::get_normalized_fi(bool normalize) const {
  */
 static GSArgs args_colnames(
   "colnames",
-  "Column names"
+  "Column names."
 );
 
 
@@ -616,7 +616,7 @@ void Ftrl::set_colnames(robj py_colnames) {
  */
 static GSArgs args_colname_hashes(
   "colname_hashes",
-  "Column name hashes"
+  "Column name hashes."
 );
 
 
@@ -641,7 +641,7 @@ oobj Ftrl::get_colname_hashes() const {
  */
 static GSArgs args_alpha(
   "alpha",
-  "`alpha` in per-coordinate FTRL-Proximal algorithm");
+  "`alpha` in per-coordinate learning rate formula.");
 
 
 oobj Ftrl::get_alpha() const {
@@ -663,7 +663,7 @@ void Ftrl::set_alpha(const Arg& py_alpha) {
  */
 static GSArgs args_beta(
   "beta",
-  "`beta` in per-coordinate FTRL-Proximal algorithm");
+  "`beta` in per-coordinate learning rate formula.");
 
 
 oobj Ftrl::get_beta() const {
@@ -685,7 +685,7 @@ void Ftrl::set_beta(const Arg& py_beta) {
  */
 static GSArgs args_lambda1(
   "lambda1",
-  "L1 regularization parameter");
+  "L1 regularization parameter.");
 
 
 oobj Ftrl::get_lambda1() const {
@@ -707,7 +707,7 @@ void Ftrl::set_lambda1(const Arg& py_lambda1) {
  */
 static GSArgs args_lambda2(
   "lambda2",
-  "L2 regularization parameter");
+  "L2 regularization parameter.");
 
 
 oobj Ftrl::get_lambda2() const {
@@ -729,7 +729,7 @@ void Ftrl::set_lambda2(const Arg& py_lambda2) {
  */
 static GSArgs args_nbins(
   "nbins",
-  "Number of bins for the hashing trick");
+  "Number of bins to be used for the hashing trick.");
 
 
 oobj Ftrl::get_nbins() const {
@@ -756,7 +756,7 @@ void Ftrl::set_nbins(const Arg& arg_nbins) {
  */
 static GSArgs args_mantissa_nbits(
   "mantissa_nbits",
-  "Number of bits from mantissa to be used for hashing float values");
+  "Number of bits from mantissa to be used for hashing floats.");
 
 
 oobj Ftrl::get_mantissa_nbits() const {
@@ -788,7 +788,7 @@ void Ftrl::set_mantissa_nbits(const Arg& arg_mantissa_nbits) {
  */
 static GSArgs args_nepochs(
   "nepochs",
-  "Number of epochs to train a model");
+  "Number of training epochs.");
 
 
 oobj Ftrl::get_nepochs() const {
@@ -808,7 +808,7 @@ void Ftrl::set_nepochs(const Arg& py_nepochs) {
  */
 static GSArgs args_double_precision(
   "double_precision",
-  "Whether to use double precision arithmetic for modeling");
+  "Whether to use double precision arithmetic or not.");
 
 
 oobj Ftrl::get_double_precision() const {
@@ -831,7 +831,8 @@ void Ftrl::set_double_precision(const Arg& arg_double_precision) {
  */
 static GSArgs args_negative_class(
   "negative_class",
-  "Whether to train on negatives in the case of multinomial classification.");
+R"(Whether to create and train on a 'negative' class in the case of
+multinomial classification.)");
 
 
 oobj Ftrl::get_negative_class() const {
@@ -856,7 +857,9 @@ void Ftrl::set_negative_class(const Arg& arg_negative_class) {
  */
 static GSArgs args_interactions(
   "interactions",
-  "List of feature lists to do interactions for");
+R"(A list or a tuple of interactions. In turn, each interaction
+should be a list or a tuple of feature names, where each feature
+name is a column name from the training frame.)");
 
 
 oobj Ftrl::get_interactions() const {
@@ -880,6 +883,7 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
                       << "list or a tuple, instead got: "
                       << arg_interactions.typeobj();
 
+  // Convert the input into a tuple of tuples.
   auto py_interactions = arg_interactions.to_oiter();
   py::otuple params_interactions(py_interactions.size());
   size_t i = 0;
@@ -897,6 +901,7 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
 
     py::otuple params_interaction(py_interaction.size());
     size_t j = 0;
+
     for (auto py_feature_robj : py_interaction) {
       if (!py_feature_robj.is_string())
         throw TypeError() << "Interaction features should be strings, "
@@ -916,7 +921,11 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
  */
 static GSArgs args_model_type(
   "model_type",
-  "FTRL model type: 'auto', 'regression', 'binomial' or 'multinomial.");
+R"(Model type can be one of the following: 'binomial' for binomial
+classification, 'multinomial' for multinomial classificatio, and
+'regression' for numeric regression. Defaults to 'auto', meaning
+that the model type will be automatically detected based on
+the target column `stype`.)");
 
 
 oobj Ftrl::get_model_type() const {
@@ -945,7 +954,8 @@ void Ftrl::set_model_type(const Arg& py_model_type) {
  */
 static GSArgs args_model_type_trained(
   "model_type_trained",
-  "FTRL trained model type: 'none', 'regression', 'binomial' or 'multinomial.");
+R"(Model type in which FTRL was trained: 'regression', 'binomial', 'multinomial'
+or 'none' for untrained model.)");
 
 
 oobj Ftrl::get_model_type_trained() const {
@@ -960,7 +970,7 @@ oobj Ftrl::get_model_type_trained() const {
  */
 static GSArgs args_params(
   "params",
-  "FTRL model parameters");
+  "FTRL model parameters.");
 
 
 oobj Ftrl::get_params_namedtuple() const {
@@ -1156,8 +1166,8 @@ void Ftrl::impl_init_type(XTypeMaker& xt) {
 FTRL model is a datatable implementation of the FTRL-Proximal online
 learning algorithm for binomial logistic regression. It uses a hashing
 trick for feature vectorization and the Hogwild approach
-for parallelization. FTRL for multinomial classification and continuous
-targets are implemented experimentally.
+for parallelization. Multinomial classification and regression for
+continuous targets are implemented experimentally.
 
 See this reference for more details:
 https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
@@ -1165,10 +1175,10 @@ https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 Parameters
 ----------
 alpha : float
-    `alpha` in per-coordinate learning rate algorithm, defaults to `0.005`.
+    `alpha` in per-coordinate learning rate formula, defaults to `0.005`.
 
 beta : float
-    `beta` in per-coordinate learning rate algorithm, defaults to `1`.
+    `beta` in per-coordinate learning rate formula, defaults to `1`.
 
 lambda1 : float
     L1 regularization parameter, defaults to `0`.
@@ -1180,7 +1190,8 @@ nbins : int
     Number of bins to be used for the hashing trick, defaults to `10**6`.
 
 mantissa_nbits : int
-    Number of bits from mantissa to be used for hashing, defaults to `10`.
+    Number of bits from mantissa to be used for hashing floats,
+    defaults to `10`.
 
 nepochs : int
     Number of training epochs, defaults to `1`.
@@ -1189,7 +1200,20 @@ double_precision : bool
     Whether to use double precision arithmetic or not, defaults to `False`.
 
 negative_class : bool
-    Whether to create and train on a "negative" class in the case of multinomial classification.
+    Whether to create and train on a 'negative' class in the case of
+    multinomial classification.
+
+interactions : list or tuple
+    A list or a tuple of interactions. In turn, each interaction
+    should be a list or a tuple of feature names, where each feature
+    name is a column name from the training frame.
+
+model_type: str
+    Model type can be one of the following: 'binomial' for binomial
+    classification, 'multinomial' for multinomial classificatio, and
+    'regression' for numeric regression. Defaults to 'auto', meaning
+    that the model type will be automatically detected based on
+    the target column `stype`.
 )");
 
   xt.add(CONSTRUCTOR(&Ftrl::m__init__, args___init__));
