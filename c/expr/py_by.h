@@ -32,7 +32,9 @@ class oby : public oobj
 {
   class oby_pyobject : public XObject<oby_pyobject> {
     private:
-      oobj cols;
+      oobj cols_;
+      bool add_columns_;
+      size_t : 56;
 
       void m__init__(const PKArgs&);
       void m__dealloc__();
@@ -40,6 +42,7 @@ class oby : public oobj
     public:
       static void impl_init_type(XTypeMaker& xt);
       oobj get_cols() const;
+      bool get_add_columns() const;
   };
 
   public:

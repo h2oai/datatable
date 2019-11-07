@@ -96,25 +96,37 @@ not arithmetic, for example "A" could be a string column here.
 )";
 
 
-static PKArgs args___init__(0, 0, 0, true, false, {}, "__init__", nullptr);
+static PKArgs args___init__(
+  0, 0, 1, true, false, {"add_columns"}, "__init__", nullptr
+);
 
-void oby::oby_pyobject::m__init__(const PKArgs& args) {
-  olist colslist(args.num_vararg_args());
+void oby::oby_pyobject::m__init__(const PKArgs& args)
+{
+  const Arg& arg_add_columns = args[0];
+  add_columns_ = arg_add_columns.to<bool>(true);
+
+  size_t n = args.num_vararg_args();
   size_t i = 0;
+  olist colslist(n);
   for (robj arg : args.varargs()) {
     colslist.set(i++, arg);
   }
-  cols = std::move(colslist);
+  xassert(i == n);
+  cols_ = std::move(colslist);
 }
 
 
 void oby::oby_pyobject::m__dealloc__() {
-  cols = nullptr;  // Releases the stored oobj
+  cols_ = nullptr;  // Releases the stored oobj
 }
 
 
 oobj oby::oby_pyobject::get_cols() const {
-  return cols;
+  return cols_;
+}
+
+bool oby::oby_pyobject::get_add_columns() const {
+  return add_columns_;
 }
 
 
@@ -125,9 +137,6 @@ void oby::oby_pyobject::impl_init_type(XTypeMaker& xt) {
 
   xt.add(CONSTRUCTOR(&oby::oby_pyobject::m__init__, args___init__));
   xt.add(DESTRUCTOR(&oby::oby_pyobject::m__dealloc__));
-
-  static GSArgs args__cols("_cols");
-  xt.add(GETTER(&oby::oby_pyobject::get_cols, args__cols));
 }
 
 
@@ -157,7 +166,6 @@ void oby::init(PyObject* m) {
 
 
 dt::collist_ptr oby::cols(dt::EvalContext& ctx) const {
-  // robj cols = reinterpret_cast<const pyobj*>(v)->cols;
   robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
   return dt::collist_ptr(new dt::collist(ctx, cols, dt::collist::BY_NODE));
 }
