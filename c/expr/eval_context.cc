@@ -30,8 +30,9 @@ namespace dt {
 namespace expr {
 
 
+
 //------------------------------------------------------------------------------
-// EvalContext
+// EvalContext: construction
 //------------------------------------------------------------------------------
 
 EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
@@ -40,6 +41,7 @@ EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
   frames_.emplace_back(dt, RowIndex(), false);
   mode_ = evalmode;
   groupby_mode_ = GroupbyMode::NONE;
+  add_groupby_columns_ = true;
 }
 
 
@@ -52,6 +54,8 @@ void EvalContext::add_join(py::ojoin oj) {
 
 void EvalContext::add_groupby(py::oby og) {
   byexpr.add_groupby_columns(*this, og.cols(*this));
+  byexpr_ = Expr(og.get_arguments());
+  add_groupby_columns_ = og.get_add_columns();
 }
 
 

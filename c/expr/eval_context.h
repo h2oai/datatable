@@ -75,7 +75,10 @@ class EvalContext
     j_node_ptr    jexpr;   // old
     Expr  iexpr_;
     Expr  jexpr_;
+    Expr  byexpr_;
     Expr  rexpr_;
+    bool  add_groupby_columns_;
+    size_t : 56;
 
     // Runtime
     frameVec     frames_;
