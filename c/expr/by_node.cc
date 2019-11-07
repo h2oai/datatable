@@ -140,7 +140,7 @@ void by_node::create_columns(expr::EvalContext& ctx) {
   DataTable* dt0 = ctx.get_datatable(0);
   RowIndex ri0 = ctx.get_rowindex(0);
   if (ctx.get_groupby_mode() == GroupbyMode::GtoONE) {
-    ri0 = RowIndex(arr32_t(ctx.gb.ngroups(), ctx.gb.offsets_r()), true) * ri0;
+    ri0 = RowIndex(arr32_t(ctx.groupby_.ngroups(), ctx.groupby_.offsets_r()), true) * ri0;
   }
 
   auto dt0_names = dt0->get_names();
@@ -157,7 +157,7 @@ void by_node::create_columns(expr::EvalContext& ctx) {
 
 void by_node::execute(expr::EvalContext& ctx) const {
   if (cols.empty()) {
-    ctx.gb = Groupby::single_group(ctx.nrows());
+    ctx.groupby_ = Groupby::single_group(ctx.nrows());
     return;
   }
   const DataTable* dt0 = ctx.get_datatable(0);
@@ -189,7 +189,7 @@ void by_node::execute(expr::EvalContext& ctx) const {
     }
   }
   auto res = group(sort_cols, sort_flags);
-  ctx.gb = std::move(res.second);
+  ctx.groupby_ = std::move(res.second);
   ctx.apply_rowindex(res.first);
 }
 

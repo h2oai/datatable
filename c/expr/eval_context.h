@@ -63,7 +63,11 @@ class EvalContext
     RowIndex ri;
     bool natural;  // was this frame joined naturally?
     size_t : 56;
+
+    subframe(DataTable* _dt, const RowIndex& _ri, bool n)
+      : dt(_dt), ri(_ri), natural(n) {}
   };
+  using frameVec = std::vector<subframe>;
 
   private:
     // Inputs
@@ -71,22 +75,20 @@ class EvalContext
     j_node_ptr    jexpr;   // old
     Expr  iexpr_;
     Expr  jexpr_;
-    Expr  repl_;
+    Expr  rexpr_;
 
     // Runtime
-    std::vector<subframe> frames;
-    Groupby      gb;
+    frameVec     frames_;
+    Groupby      groupby_;
     RowIndex     ungroup_rowindex_;
-    EvalMode     mode;
-    GroupbyMode  groupby_mode;
+    EvalMode     mode_;
+    GroupbyMode  groupby_mode_;
     size_t : 48;
 
     // Result
     colvec columns;
     strvec newnames;
     strvec colnames;
-    struct ritriple { RowIndex ab, bc, ac; };
-    std::vector<ritriple> all_ri;
     std::unique_ptr<DataTable> out_datatable;
 
   public:
