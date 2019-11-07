@@ -165,9 +165,9 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
 
   // 1. Create the EvalContext
-  auto mode = value == GETITEM? dt::EvalMode::SELECT :
-              value == DELITEM? dt::EvalMode::DELETE :
-                                dt::EvalMode::UPDATE;
+  auto mode = value == GETITEM? dt::expr::EvalMode::SELECT :
+              value == DELITEM? dt::expr::EvalMode::DELETE :
+                                dt::expr::EvalMode::UPDATE;
   dt::EvalContext ctx(dt, mode);
 
   // 2. Search for join nodes in order to bind all aliases and
@@ -204,12 +204,12 @@ oobj Frame::_main_getset(robj item, robj value) {
   ctx.add_i(targs[0]);
   ctx.add_j(targs[1]);
 
-  if (mode == dt::EvalMode::UPDATE) {
+  if (mode == dt::expr::EvalMode::UPDATE) {
     ctx.add_replace(value);
   }
 
   ctx.evaluate();
-  if (mode != dt::EvalMode::SELECT) {
+  if (mode != dt::expr::EvalMode::SELECT) {
     _clear_types();
   }
   return ctx.get_result();

@@ -1434,7 +1434,7 @@ remains unmodified.
 )");
 
 py::oobj py::Frame::sort(const PKArgs& args) {
-  dt::EvalContext ctx(dt, dt::EvalMode::SELECT);
+  dt::EvalContext ctx(dt);
 
   if (args.num_vararg_args() == 0) {
     py::otuple all_cols(dt->ncols());

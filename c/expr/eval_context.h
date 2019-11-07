@@ -23,6 +23,7 @@
 #define dt_EXPR_EVAL_CONTEXT_h
 #include <vector>            // std::vector
 #include "expr/by_node.h"    // py::oby, by_node_ptr
+#include "expr/declarations.h"
 #include "expr/expr.h"
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
@@ -30,23 +31,6 @@
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
 namespace dt {
-
-namespace expr { class expr_column; }
-
-
-struct subframe {
-  DataTable* dt;
-  RowIndex ri;
-  bool natural;  // was this frame joined naturally?
-  size_t : 56;
-};
-using frvec = std::vector<subframe>;
-
-enum class EvalMode : uint8_t {
-  SELECT,
-  UPDATE,
-  DELETE
-};
 
 
 
@@ -71,7 +55,15 @@ enum class EvalMode : uint8_t {
  * there is a non-empty Groupby, the `i_node` must apply within each group, and
  * then update the Groupby to account for the new configuration of the rows.
  */
-class EvalContext {
+class EvalContext
+{
+  struct subframe {
+    DataTable* dt;
+    RowIndex ri;
+    bool natural;  // was this frame joined naturally?
+    size_t : 56;
+  };
+
   private:
     // Inputs
     by_node       byexpr;  // old
@@ -81,10 +73,10 @@ class EvalContext {
     expr::Expr    repl_;
 
     // Runtime
-    frvec         frames;
-    Groupby       gb;
-    RowIndex      ungroup_rowindex_;
-    EvalMode      mode;
+    std::vector<subframe> frames;
+    Groupby               gb;
+    RowIndex              ungroup_rowindex_;
+    expr::EvalMode        mode;
     GroupbyMode   groupby_mode;
     size_t : 48;
 
@@ -97,11 +89,11 @@ class EvalContext {
     std::unique_ptr<DataTable> out_datatable;
 
   public:
-    EvalContext(DataTable*, EvalMode);
+    EvalContext(DataTable*, expr::EvalMode = expr::EvalMode::SELECT);
     EvalContext(const EvalContext&) = delete;
     EvalContext(EvalContext&&) = delete;
 
-    EvalMode get_mode() const;
+    expr::EvalMode get_mode() const;
     GroupbyMode get_groupby_mode() const;
 
     void add_join(py::ojoin);

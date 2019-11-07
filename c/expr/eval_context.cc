@@ -33,7 +33,7 @@ namespace dt {
 // EvalContext
 //------------------------------------------------------------------------------
 
-EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
+EvalContext::EvalContext(DataTable* dt, expr::EvalMode evalmode) {
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames.push_back(subframe {dt, RowIndex(), false});
@@ -68,15 +68,15 @@ void EvalContext::add_j(py::oobj oj) {
   xassert(!jexpr);
   py::oupdate arg_update = oj.to_oupdate_lax();
   if (arg_update) {
-    if (mode == EvalMode::DELETE) {
+    if (mode == expr::EvalMode::DELETE) {
       throw ValueError() << "update() clause cannot be used with a "
                             "delete expression";
     }
-    if (mode == EvalMode::UPDATE) {
+    if (mode == expr::EvalMode::UPDATE) {
       throw ValueError() << "update() clause cannot be used with an "
                             "assignment expression";
     }
-    mode = EvalMode::UPDATE;
+    mode = expr::EvalMode::UPDATE;
     jexpr_ = dt::expr::Expr(arg_update.get_names());
     jexpr = j_node::make(arg_update.get_names(), *this);  // remove
     repl_ = dt::expr::Expr(arg_update.get_exprs());
@@ -98,7 +98,7 @@ void EvalContext::add_replace(py::oobj obj) {
 // Properties
 //------------------------------------------------------------------------------
 
-EvalMode EvalContext::get_mode() const {
+expr::EvalMode EvalContext::get_mode() const {
   return mode;
 }
 
@@ -145,7 +145,7 @@ void EvalContext::evaluate() {
   }
 
   switch (mode) {
-    case EvalMode::SELECT:
+    case expr::EvalMode::SELECT:
       if (byexpr) {
         byexpr.create_columns(*this);
         jexpr->select(*this);
@@ -157,8 +157,8 @@ void EvalContext::evaluate() {
       }
       break;
 
-    case EvalMode::DELETE: evaluate_delete(); break;
-    case EvalMode::UPDATE: evaluate_update(); break;
+    case expr::EvalMode::DELETE: evaluate_delete(); break;
+    case expr::EvalMode::UPDATE: evaluate_update(); break;
   }
 }
 
@@ -175,7 +175,7 @@ void EvalContext::evaluate() {
 // will contain the location of these columns in the updated `dt0`.
 //
 intvec EvalContext::evaluate_j_as_column_index() {
-  bool allow_new = (mode == EvalMode::UPDATE);
+  bool allow_new = (mode == expr::EvalMode::UPDATE);
   DataTable* dt0 = frames[0].dt;
   auto jres = jexpr_.evaluate_j(*this, allow_new);
   size_t n = jres.ncols();
@@ -415,7 +415,7 @@ void EvalContext::fix_columns() {
 
 
 py::oobj EvalContext::get_result() {
-  if (mode == EvalMode::SELECT) {
+  if (mode == expr::EvalMode::SELECT) {
     DataTable* result =
         out_datatable? out_datatable.release()
                      : new DataTable(std::move(columns), std::move(colnames));

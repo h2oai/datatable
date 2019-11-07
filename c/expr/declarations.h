@@ -48,6 +48,19 @@ namespace expr {
   class base_expr;
 
 
+  // Evaluation mode, this distinguishes between expressions of the
+  // form
+  //     DT[i, j]        # SELECT
+  //     DT[i, j] = R    # UPDATE
+  //     del DT[i, j]    # DELETE
+  //
+  enum class EvalMode : uint8_t {
+    SELECT,
+    UPDATE,
+    DELETE
+  };
+
+
   // The `Grouping` enum describes how a column or a set of columns
   // behave wrt a group-by structure on the frame.
   //

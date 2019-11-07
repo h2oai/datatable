@@ -21,11 +21,12 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_PY_BY_h
 #define dt_EXPR_PY_BY_h
-#include "expr/collist.h"       // dt::collist_ptr
+#include "expr/collist.h"       // dt::collist_ptr  (TODO: REMOVE)
 #include "expr/eval_context.h"
 #include "python/obj.h"
 #include "python/xobject.h"
 namespace py {
+
 
 
 class oby : public oobj
@@ -59,7 +60,11 @@ class oby : public oobj
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
+    // TODO: remove
     dt::collist_ptr cols(dt::EvalContext&) const;
+
+    oobj get_arguments() const;
+    bool get_add_columns() const;
 
   private:
     // This private constructor will reinterpret the object `r` as an

@@ -344,8 +344,8 @@ collist::collist(EvalContext& ctx, py::robj src, size_t flags, size_t dt_index)
                         (flags & SORT_NODE)? "`sort`" :
                         (flags & REPL_NODE)? "replacement" : "columnset";
   if (flags & J_NODE) {
-    if (ctx.get_mode() == EvalMode::UPDATE) flags |= ALLOW_NEW_COLUMNS;
-    if (ctx.get_mode() == EvalMode::DELETE) flags |= FORBID_SRC_DICT;
+    if (ctx.get_mode() == expr::EvalMode::UPDATE) flags |= ALLOW_NEW_COLUMNS;
+    if (ctx.get_mode() == expr::EvalMode::DELETE) flags |= FORBID_SRC_DICT;
   }
   collist_maker maker(ctx, dt_index, flags, srcname);
   maker.process(src);
@@ -457,7 +457,7 @@ void collist::exclude(collist_ptr&& other) {
       }
     }
     if (!exprs.empty()) {
-      EvalContext ctx(nullptr, EvalMode::SELECT);
+      EvalContext ctx(nullptr, expr::EvalMode::SELECT);
       xassert(indices.empty());
       for (size_t j = 0; j < exprs.size(); ++j) {
         auto colexpr = dynamic_cast<expr::expr_column*>(exprs[j].get());

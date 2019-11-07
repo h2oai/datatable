@@ -165,6 +165,16 @@ void oby::init(PyObject* m) {
 }
 
 
+oobj oby::get_arguments() const {
+  return reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
+}
+
+bool oby::get_add_columns() const {
+  return reinterpret_cast<const oby::oby_pyobject*>(v)->get_add_columns();
+}
+
+
+// TODO: remove
 dt::collist_ptr oby::cols(dt::EvalContext& ctx) const {
   robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
   return dt::collist_ptr(new dt::collist(ctx, cols, dt::collist::BY_NODE));
