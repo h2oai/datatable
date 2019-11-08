@@ -146,6 +146,7 @@ void Ftrl::m__init__(const PKArgs& args) {
 
 
 void Ftrl::init_dt_ftrl() {
+  delete dtft;
   if (double_precision) {
     dtft = new dt::Ftrl<double>();
   } else {
@@ -1077,6 +1078,7 @@ void Ftrl::init_py_params() {
   );
 
   dt::FtrlParams params;
+  delete py_params;
   py_params = new py::onamedtuple(py_params_ntt);
 
   py_params->replace(0, py::ofloat(params.alpha));
