@@ -293,6 +293,7 @@ oobj Ftrl::fit(const PKArgs& args) {
   }
 
   if (!dtft->is_model_trained()) {
+    delete colnames;
     colnames = new strvec(dt_X_train->get_names());
   }
 
@@ -606,6 +607,8 @@ void Ftrl::set_colnames(robj py_colnames) {
   if (py_colnames.is_list()) {
     py::olist py_colnames_list = py_colnames.to_pylist();
     size_t ncolnames = py_colnames_list.size();
+
+    delete colnames;
     colnames = new strvec();
     colnames->reserve(ncolnames);
     for (size_t i = 0; i < ncolnames; ++i) {
