@@ -286,11 +286,12 @@ RiGb Head_List::evaluate_by(const vecExpr& inputs, EvalContext& ctx) const {
     columns.reserve(n);
     flags.reserve(n);
     for (size_t i = 0; i < n; ++i) {
-      auto col = wf.retrieve_column(i);
-      col.materialize();
-      columns.push_back(std::move(col));
+      const Column& col = wf.get_column(i);
+      const_cast<Column&>(col).materialize();
+      columns.push_back(col);  // copy
       flags.push_back(SortFlag::NONE);
     }
+    ctx.set_groupby_columns(std::move(wf));
     return group(columns, flags);
   }
   throw TypeError() << "Sequence of " << _name_type(kind) << " expressions "

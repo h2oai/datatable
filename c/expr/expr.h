@@ -98,6 +98,7 @@ class Expr {
     Expr& operator=(const Expr&) = delete;
 
     Kind get_expr_kind() const;
+    operator bool() const noexcept;  // Check whether the Expr is empty or not
 
     Workframe evaluate_n(EvalContext& ctx) const;
     Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new = false) const;

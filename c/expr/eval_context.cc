@@ -21,10 +21,10 @@
 //------------------------------------------------------------------------------
 #include "expr/collist.h"
 #include "expr/expr.h"
-#include "expr/workframe.h"
 #include "expr/eval_context.h"
 #include "expr/py_by.h"
 #include "expr/py_update.h"
+#include "expr/workframe.h"
 #include "frame/py_frame.h"
 namespace dt {
 namespace expr {
@@ -35,12 +35,13 @@ namespace expr {
 // EvalContext: construction
 //------------------------------------------------------------------------------
 
-EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
+EvalContext::EvalContext(DataTable* dt, EvalMode evalmode)
+  : groupby_columns_(*this)
+{
   // The source frame must have flag `natural=false` so that `allcols_jn`
   // knows to select all columns from it.
   frames_.emplace_back(dt, RowIndex(), false);
-  mode_ = evalmode;
-  groupby_mode_ = GroupbyMode::NONE;
+  eval_mode_ = evalmode;
   add_groupby_columns_ = true;
 }
 
@@ -53,14 +54,17 @@ void EvalContext::add_join(py::ojoin oj) {
 
 
 void EvalContext::add_groupby(py::oby og) {
-  byexpr.add_groupby_columns(*this, og.cols(*this));
+  if (byexpr_) {
+    throw TypeError() << "Multiple by()'s are not allowed";
+  }
   byexpr_ = Expr(og.get_arguments());
   add_groupby_columns_ = og.get_add_columns();
 }
 
 
 void EvalContext::add_sortby(py::osort obj) {
-  byexpr.add_sortby_columns(*this, obj.cols(*this));
+  (void) obj;
+  throw NotImplError();
 }
 
 
@@ -70,24 +74,21 @@ void EvalContext::add_i(py::oobj oi) {
 
 
 void EvalContext::add_j(py::oobj oj) {
-  xassert(!jexpr);
   py::oupdate arg_update = oj.to_oupdate_lax();
   if (arg_update) {
-    if (mode_ == EvalMode::DELETE) {
+    if (eval_mode_ == EvalMode::DELETE) {
       throw ValueError() << "update() clause cannot be used with a "
                             "delete expression";
     }
-    if (mode_ == EvalMode::UPDATE) {
+    if (eval_mode_ == EvalMode::UPDATE) {
       throw ValueError() << "update() clause cannot be used with an "
                             "assignment expression";
     }
-    mode_ = EvalMode::UPDATE;
+    eval_mode_ = EvalMode::UPDATE;
     jexpr_ = Expr(arg_update.get_names());
-    jexpr  = j_node::make(arg_update.get_names(), *this);  // TODO: remove
     rexpr_ = Expr(arg_update.get_exprs());
   } else {
     jexpr_ = Expr(oj);
-    jexpr = j_node::make(oj, *this);   // TODO: remove
   }
 }
 
@@ -104,11 +105,11 @@ void EvalContext::add_replace(py::oobj obj) {
 //------------------------------------------------------------------------------
 
 EvalMode EvalContext::get_mode() const {
-  return mode_;
+  return eval_mode_;
 }
 
 GroupbyMode EvalContext::get_groupby_mode() const {
-  return groupby_mode_;
+  return GroupbyMode::NONE;
 }
 
 const RowIndex& EvalContext::get_ungroup_rowindex() {
@@ -134,34 +135,24 @@ void EvalContext::evaluate() {
   }
 
   // Compute groupby
-  if (byexpr) {
-    groupby_mode_ = jexpr->get_groupby_mode(*this);
+  if (byexpr_) {
+    auto rigb = byexpr_.evaluate_by(*this);
+    apply_rowindex(std::move(rigb.first));
+    apply_groupby(std::move(rigb.second));
   }
-  byexpr.execute(*this);
 
   // Compute i filter
-  if (has_groupby()) {
+  if (byexpr_) {
     auto rigb = iexpr_.evaluate_iby(*this);
-    apply_rowindex(rigb.first);
-    apply_groupby(rigb.second);
+    apply_rowindex(std::move(rigb.first));
+    apply_groupby(std::move(rigb.second));
   } else {
     RowIndex rowindex = iexpr_.evaluate_i(*this);
     apply_rowindex(rowindex);
   }
 
-  switch (mode_) {
-    case EvalMode::SELECT:
-      if (byexpr) {
-        byexpr.create_columns(*this);
-        jexpr->select(*this);
-        fix_columns();
-      }
-      else {
-        Workframe res = jexpr_.evaluate_j(*this);
-        out_datatable = std::move(res).convert_to_datatable();
-      }
-      break;
-
+  switch (eval_mode_) {
+    case EvalMode::SELECT: evaluate_select(); break;
     case EvalMode::DELETE: evaluate_delete(); break;
     case EvalMode::UPDATE: evaluate_update(); break;
   }
@@ -180,7 +171,7 @@ void EvalContext::evaluate() {
 // will contain the location of these columns in the updated `dt0`.
 //
 intvec EvalContext::evaluate_j_as_column_index() {
-  bool allow_new = (mode_ == EvalMode::UPDATE);
+  bool allow_new = (eval_mode_ == EvalMode::UPDATE);
   DataTable* dt0 = get_datatable(0);
   auto jres = jexpr_.evaluate_j(*this, allow_new);
   size_t n = jres.ncols();
@@ -394,33 +385,45 @@ void EvalContext::typecheck_for_update(
 
 
 
+
+//------------------------------------------------------------------------------
+// SELECT
+//------------------------------------------------------------------------------
+
+void EvalContext::update_groupby_columns(Grouping gmode) {
+  auto ri0 = get_rowindex(0);
+  if (gmode == Grouping::GtoONE) {
+    ri0 = RowIndex(arr32_t(groupby_.ngroups(), groupby_.offsets_r()), true)
+          * ri0;
+  }
+  size_t n = groupby_columns_.ncols();
+  for (size_t i = 0; i < n; ++i) {
+    Column col = groupby_columns_.retrieve_column(i);
+    col.apply_rowindex(ri0);
+    groupby_columns_.replace_column(i, std::move(col));
+  }
+  groupby_columns_.grouping_mode_ = gmode;
+}
+
+
+void EvalContext::evaluate_select() {
+  Workframe res = jexpr_.evaluate_j(*this);
+  if (add_groupby_columns_) {
+    update_groupby_columns(res.get_grouping_mode());
+    res.cbind(std::move(groupby_columns_), /* at_end= */ false);
+  }
+  out_datatable = std::move(res).convert_to_datatable();
+}
+
+
+
+
 //------------------------------------------------------------------------------
 // Other
 //------------------------------------------------------------------------------
 
-// After evaluation of the j node, the columns in `columns` may have different
-// sizes: some are aggregated to group level, others have same number of rows
-// as dt0. If this happens, we need to expand the "short" columns to the full
-// size.
-void EvalContext::fix_columns() {
-  if (groupby_mode_ != GroupbyMode::GtoALL) return;
-  xassert(byexpr);
-  // size_t nrows0 = get_datatable(0)->nrows;
-  size_t ngrps = groupby_.ngroups();
-  RowIndex ungroup_ri;
-
-  for (size_t i = 0; i < columns.size(); ++i) {
-    if (columns[i].nrows() != ngrps) continue;
-    if (!ungroup_ri) {
-      ungroup_ri = groupby_.ungroup_rowindex();
-    }
-    columns[i].apply_rowindex(ungroup_ri);
-  }
-}
-
-
 py::oobj EvalContext::get_result() {
-  if (mode_ == EvalMode::SELECT) {
+  if (eval_mode_ == EvalMode::SELECT) {
     DataTable* result =
         out_datatable? out_datatable.release()
                      : new DataTable(std::move(columns), std::move(colnames));
@@ -450,17 +453,24 @@ const Groupby& EvalContext::get_groupby() {
 }
 
 
-const by_node& EvalContext::get_by_node() const {
-  return byexpr;
-}
-
-
 bool EvalContext::is_naturally_joined(size_t i) const {
   return frames_[i].natural;
 }
 
 bool EvalContext::has_groupby() const {
-  return bool(byexpr);
+  return bool(byexpr_);
+}
+
+
+bool EvalContext::has_group_column(size_t i) const {
+  size_t n = groupby_columns_.ncols();
+  size_t iframe, icol;
+  for (size_t j = 0; j < n; ++j) {
+    if (groupby_columns_.is_reference_column(j, &iframe, &icol)) {
+      if (iframe == 0 && icol == i) return true;
+    }
+  }
+  return false;
 }
 
 
@@ -485,6 +495,11 @@ void EvalContext::apply_rowindex(const RowIndex& ri) {
 void EvalContext::apply_groupby(const Groupby& gb) {
   xassert(gb.last_offset() == nrows());
   groupby_ = gb;
+}
+
+
+void EvalContext::set_groupby_columns(Workframe&& wf) {
+  groupby_columns_.cbind(std::move(wf));
 }
 
 

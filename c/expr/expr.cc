@@ -211,6 +211,10 @@ Kind Expr::get_expr_kind() const {
   return head->get_expr_kind();
 }
 
+Expr::operator bool() const noexcept {
+  return bool(head);
+}
+
 
 Workframe Expr::evaluate_n(EvalContext& ctx) const {
   return head->evaluate_n(inputs, ctx);

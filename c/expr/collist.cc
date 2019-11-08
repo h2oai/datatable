@@ -24,6 +24,7 @@
 #include "expr/expr_column.h"
 #include "expr/expr_columnset.h"
 #include "expr/eval_context.h"
+#include "expr/workframe.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
 namespace dt {

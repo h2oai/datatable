@@ -19,27 +19,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/eval_context.h"
-#include "expr/expr.h"
-#include "expr/head_func.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
+#include "expr/head.h"
+#include "groupby.h"
+#include "rowindex.h"
 namespace dt {
 namespace expr {
 
 
-Head_Func_Column::Head_Func_Column(size_t f) : frame_id(f) {}
+Head::~Head() {}
 
 
-Workframe Head_Func_Column::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
-  xassert(args.size() == 1);
-  if (frame_id >= ctx.nframes()) {
-    throw ValueError()
-        << "Column expression references a non-existing join frame";
-  }
-  return args[0].evaluate_f(ctx, frame_id);
-}
+
+// by() function transforms its arguments into a Head_List Expr,
+// thus the method `evaluate_by()` should only be defined there.
+//
+RiGb Head::evaluate_by(const vecExpr&, EvalContext&) const {  // LCOV_EXCL_LINE
+  throw RuntimeError() << "Unexpected evaluate_by() call";    // LCOV_EXCL_LINE
+}                                                             // LCOV_EXCL_LINE
+
 
 
 

@@ -28,6 +28,7 @@
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "expr/sort_node.h"  // py::osort
+#include "expr/workframe.h"
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
 namespace dt {
@@ -71,22 +72,20 @@ class EvalContext
 
   private:
     // Inputs
-    dt::by_node   byexpr;  // old
-    j_node_ptr    jexpr;   // old
-    Expr  iexpr_;
-    Expr  jexpr_;
-    Expr  byexpr_;
-    Expr  rexpr_;
-    bool  add_groupby_columns_;
-    size_t : 56;
+    Expr      iexpr_;
+    Expr      jexpr_;
+    Expr      byexpr_;
+    Expr      sortexpr_;
+    Expr      rexpr_;
+    EvalMode  eval_mode_;
+    bool      add_groupby_columns_;
+    size_t : 48;
 
     // Runtime
-    frameVec     frames_;
-    Groupby      groupby_;
-    RowIndex     ungroup_rowindex_;
-    EvalMode     mode_;
-    GroupbyMode  groupby_mode_;
-    size_t : 48;
+    frameVec   frames_;
+    Groupby    groupby_;
+    RowIndex   ungroup_rowindex_;
+    Workframe  groupby_columns_;
 
     // Result
     colvec columns;
@@ -116,30 +115,31 @@ class EvalContext
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby();
     const RowIndex& get_ungroup_rowindex();
-    const dt::by_node& get_by_node() const;
     bool is_naturally_joined(size_t i) const;
     bool has_groupby() const;
+    bool has_group_column(size_t i) const;
     size_t nframes() const;
     size_t nrows() const;
 
     void apply_rowindex(const RowIndex& ri);
     void apply_groupby(const Groupby& gb_);
+    void set_groupby_columns(Workframe&&);
 
     size_t size() const noexcept;
     void reserve(size_t n);
     void add_column(Column&&, const RowIndex&, std::string&&);
-
-    void fix_columns();
 
   private:
     void evaluate_delete();
     void evaluate_delete_columns();
     void evaluate_delete_rows();
     void evaluate_delete_subframe();
+    void evaluate_select();
     void evaluate_update();
     intvec evaluate_j_as_column_index();
     void create_placeholder_columns();
     void typecheck_for_update(Workframe&, const intvec&);
+    void update_groupby_columns(Grouping gmode);
 
     friend class dt::by_node;  // Allow access to `gb`
 };

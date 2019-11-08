@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 #include "expr/declarations.h"
-#include "expr/eval_context.h"
+#include "column.h"
 namespace dt {
 namespace expr {
 
@@ -81,19 +81,21 @@ class Workframe {
       Record(Column&&, const std::string&, size_t, size_t);
     };
 
-    std::vector<Record> entries;
-    EvalContext& ctx;
-    Grouping grouping_mode;
+    std::vector<Record> entries_;
+    EvalContext& ctx_;
+    Grouping grouping_mode_;
 
   public:
     Workframe(EvalContext&);
-    Workframe(const Workframe&) = delete;
     Workframe(Workframe&&) = default;
+    Workframe& operator=(Workframe&&) = default;
+    Workframe(const Workframe&) = delete;
+    Workframe& operator=(const Workframe&) = delete;
 
     void add_column(Column&& col, std::string&& name, Grouping grp);
     void add_ref_column(size_t iframe, size_t icol);
     void add_placeholder(const std::string& name, size_t iframe);
-    void cbind(Workframe&&);
+    void cbind(Workframe&&, bool at_end = true);
     void rename(const std::string& name);
 
     size_t ncols() const noexcept;
@@ -123,6 +125,8 @@ class Workframe {
   private:
     void increase_grouping_mode(Grouping g);
     void column_increase_grouping_mode(Column&, Grouping from, Grouping to);
+
+    friend class EvalContext;
 };
 
 

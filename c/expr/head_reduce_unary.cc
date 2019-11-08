@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include "column/latent.h"
 #include "column/virtual.h"
+#include "expr/eval_context.h"
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
 #include "expr/workframe.h"
