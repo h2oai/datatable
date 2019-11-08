@@ -27,7 +27,6 @@
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
-#include "utils/c+++.h"        // dt::make_unique
 
 namespace py {
 
