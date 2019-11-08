@@ -64,24 +64,26 @@ void Workframe::add_column(Column&& col, std::string&& name, Grouping gmode) {
 }
 
 
-void Workframe::add_ref_column(size_t iframe, size_t icol) {
-  const DataTable* df = ctx_.get_datatable(iframe);
-  const RowIndex& rowindex = ctx_.get_rowindex(iframe);
-  Column column { df->get_column(icol) };  // copy
+void Workframe::add_ref_column(size_t ifr, size_t icol) {
+  const DataTable* df = ctx_.get_datatable(ifr);
+  const RowIndex& rowindex = ctx_.get_rowindex(ifr);
+  Column column = df->get_column(icol);  // copy
   column.apply_rowindex(rowindex);
   const std::string& name = df->get_names()[icol];
 
-  auto gmode = (grouping_mode_ <= Grouping::GtoONE &&
-                iframe == 0 &&
-                ctx_.has_group_column(icol)) ? Grouping::GtoONE
-                                            : Grouping::GtoALL;
+  // Detect whether the column participates in a groupby
+  Grouping gmode = Grouping::GtoALL;
+  if (grouping_mode_ <= Grouping::GtoONE && ctx_.has_group_column(ifr, icol)) {
+    gmode = Grouping::GtoONE;
+    column.apply_rowindex(ctx_.get_group_rowindex());
+  }
   sync_grouping_mode(column, gmode);
-  entries_.emplace_back(std::move(column), name, iframe, icol);
+  entries_.emplace_back(std::move(column), name, ifr, icol);
 }
 
 
-void Workframe::add_placeholder(const std::string& name, size_t iframe) {
-  entries_.emplace_back(Column(), std::string(name), iframe, 0);
+void Workframe::add_placeholder(const std::string& name, size_t ifr) {
+  entries_.emplace_back(Column(), std::string(name), ifr, 0);
 }
 
 
@@ -252,10 +254,7 @@ void Workframe::sync_grouping_mode(Workframe& other) {
     if (g1 < g2) increase_grouping_mode(other.grouping_mode_);
     else         other.increase_grouping_mode(grouping_mode_);
   }
-  if (!entries_.empty() && !other.entries_.empty()) {
-    xassert(entries_.back().column.nrows() ==
-            other.entries_.back().column.nrows());
-  }
+  xassert(ncols() == 0 || other.ncols() == 0 || nrows() == other.nrows());
 }
 
 
@@ -266,9 +265,7 @@ void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
     if (g1 < g2) increase_grouping_mode(gmode);
     else         column_increase_grouping_mode(col, gmode, grouping_mode_);
   }
-  if (!entries_.empty()) {
-    xassert(entries_.back().column.nrows() == col.nrows());
-  }
+  xassert(ncols() == 0 || nrows() == col.nrows());
 }
 
 

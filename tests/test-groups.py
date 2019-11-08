@@ -33,7 +33,7 @@ from tests import same_iterables, assert_equals, isview
 def test_groups1a():
     DT0 = dt.Frame(A=[1, 2, 1])
     DT1 = DT0[:, "A", by("A")]
-    assert_equals(DT1, dt.Frame([[1, 1, 2], [1, 1, 2]], names=["A", "A.0"]))
+    assert_equals(DT1, dt.Frame([[1, 2], [1, 2]], names=["A", "A.0"]))
 
 
 def test_groups1b():

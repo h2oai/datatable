@@ -88,9 +88,8 @@ SType expr_column::resolve(const EvalContext& ctx) {
 
 
 GroupbyMode expr_column::get_groupby_mode(const EvalContext& ctx) const {
-  return (frame_id == 0 &&
-          ctx.has_group_column(col_id))? GroupbyMode::GtoONE
-                                                    : GroupbyMode::GtoALL;
+  return ctx.has_group_column(frame_id, col_id)? GroupbyMode::GtoONE
+                                               : GroupbyMode::GtoALL;
 }
 
 

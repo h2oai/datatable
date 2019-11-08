@@ -119,6 +119,18 @@ const RowIndex& EvalContext::get_ungroup_rowindex() {
   return ungroup_rowindex_;
 }
 
+const RowIndex& EvalContext::get_group_rowindex() {
+  if (!group_rowindex_) {
+    // TODO: when RowIndex supports Buffers, this could be replaced by a
+    //       simple buffer copy from groupby_ into the RowIndex
+    size_t n = groupby_.ngroups();
+    arr32_t offsets(n);
+    std::memcpy(offsets.data(), groupby_.offsets_r(), n * sizeof(int32_t));
+    group_rowindex_ = RowIndex(std::move(offsets), true);
+  }
+  return group_rowindex_;
+}
+
 
 
 
@@ -393,8 +405,7 @@ void EvalContext::typecheck_for_update(
 void EvalContext::update_groupby_columns(Grouping gmode) {
   auto ri0 = get_rowindex(0);
   if (gmode == Grouping::GtoONE) {
-    ri0 = RowIndex(arr32_t(groupby_.ngroups(), groupby_.offsets_r()), true)
-          * ri0;
+    ri0 = get_group_rowindex() * ri0;
   }
   size_t n = groupby_columns_.ncols();
   for (size_t i = 0; i < n; ++i) {
@@ -462,12 +473,13 @@ bool EvalContext::has_groupby() const {
 }
 
 
-bool EvalContext::has_group_column(size_t i) const {
+bool EvalContext::has_group_column(size_t frame_index, size_t col_index) const
+{
   size_t n = groupby_columns_.ncols();
   size_t iframe, icol;
-  for (size_t j = 0; j < n; ++j) {
-    if (groupby_columns_.is_reference_column(j, &iframe, &icol)) {
-      if (iframe == 0 && icol == i) return true;
+  for (size_t i = 0; i < n; ++i) {
+    if (groupby_columns_.is_reference_column(i, &iframe, &icol)) {
+      if (iframe == frame_index && icol == col_index) return true;
     }
   }
   return false;

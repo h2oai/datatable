@@ -74,7 +74,7 @@ void allcols_jnode::select(expr::EvalContext& ctx) {
     size_t j0 = ctx.is_naturally_joined(i)? dti->nkeys() : 0;
     ctx.reserve(ncolsi - j0);
     for (size_t j = j0; j < ncolsi; ++j) {
-      if (ctx.has_group_column(j)) continue;
+      if (ctx.has_group_column(i, j)) continue;
       ctx.add_column(Column(dti->get_column(j)),  // copy
                     rii,
                     std::string(dti_column_names[j]));

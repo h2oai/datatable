@@ -85,6 +85,7 @@ class EvalContext
     frameVec   frames_;
     Groupby    groupby_;
     RowIndex   ungroup_rowindex_;
+    RowIndex   group_rowindex_;
     Workframe  groupby_columns_;
 
     // Result
@@ -115,9 +116,10 @@ class EvalContext
     const RowIndex& get_rowindex(size_t i) const;
     const Groupby& get_groupby();
     const RowIndex& get_ungroup_rowindex();
+    const RowIndex& get_group_rowindex();
     bool is_naturally_joined(size_t i) const;
     bool has_groupby() const;
-    bool has_group_column(size_t i) const;
+    bool has_group_column(size_t frame_index, size_t column_index) const;
     size_t nframes() const;
     size_t nrows() const;
 
