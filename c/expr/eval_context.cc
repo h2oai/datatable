@@ -121,9 +121,10 @@ const RowIndex& EvalContext::get_ungroup_rowindex() {
 
 const RowIndex& EvalContext::get_group_rowindex() {
   if (!group_rowindex_) {
+    size_t n = groupby_.ngroups();
+    if (n == 1 && groupby_.last_offset() == 0) n = 0;
     // TODO: when RowIndex supports Buffers, this could be replaced by a
     //       simple buffer copy from groupby_ into the RowIndex
-    size_t n = groupby_.ngroups();
     arr32_t offsets(n);
     std::memcpy(offsets.data(), groupby_.offsets_r(), n * sizeof(int32_t));
     group_rowindex_ = RowIndex(std::move(offsets), true);
@@ -151,6 +152,9 @@ void EvalContext::evaluate() {
     auto rigb = byexpr_.evaluate_by(*this);
     apply_rowindex(std::move(rigb.first));
     apply_groupby(std::move(rigb.second));
+  }
+  else {
+    apply_groupby(Groupby::single_group(xdt->nrows()));
   }
 
   // Compute i filter
