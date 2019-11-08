@@ -20,8 +20,15 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/tuple.h"
+#include "utils/assert.h"
 
 namespace py {
+
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
+
+otuple::~otuple() {}
 
 
 //------------------------------------------------------------------------------
@@ -107,10 +114,19 @@ void otuple::replace(size_t i, const _obj& value) {
   PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), value.to_pyobject_newref());
 }
 
+
 void otuple::replace(size_t i, oobj&& value) {
+  if (v->ob_refcnt > 1) copy_v();
+  xassert(v->ob_refcnt == 1);
   PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), std::move(value).release());
 }
 
+
+void otuple::copy_v() {
+  PyObject* v1 = PyTuple_GetSlice(v, 0, PyTuple_Size(v));
+  Py_DECREF(v);
+  v = v1;
+}
 
 
 //------------------------------------------------------------------------------

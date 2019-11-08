@@ -71,6 +71,10 @@ class otuple : public oobj {
      */
     void replace(size_t i,  const _obj& value);
     void replace(size_t i,  oobj&& value);
+    virtual ~otuple();
+
+    // Replaces `v` with a copy of `v`, that has `ob_refcnt == 1`.
+    virtual void copy_v();
 
   private:
     // Private constructors, used from `_obj`. If you need to construct

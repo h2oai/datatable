@@ -83,6 +83,7 @@ class onamedtuple : public otuple {
     onamedtuple(onamedtuple&&) = default;
     onamedtuple& operator=(const onamedtuple&) = default;
     onamedtuple& operator=(onamedtuple&&) = default;
+    void copy_v() override;
 
     // TODO: create from an existing namedtuple PyObject, extract fields, etc.
 };

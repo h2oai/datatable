@@ -289,17 +289,34 @@ def test_ftrl_get_parameters():
 
 def test_ftrl_set_individual():
     ft = Ftrl(double_precision = tparams.double_precision)
+    for i in range(5):
+        ft.alpha = tparams.alpha
+        ft.beta = tparams.beta
+        ft.lambda1 = tparams.lambda1
+        ft.lambda2 = tparams.lambda2
+        ft.nbins = tparams.nbins
+        ft.mantissa_nbits = tparams.mantissa_nbits
+        ft.nepochs = tparams.nepochs
+        ft.negative_class = tparams.negative_class
+        ft.interactions = tparams.interactions
+        ft.model_type = tparams.model_type
+        assert ft.params == tparams
+        # Also test what happens if we store some random parameters
+        params = ft.params
+        alpha = ft.alpha
+        interactions = ft.interactions
+        model_type = ft.model_type
+
+
+def test_ftrl_set_individual_after_params():
+    ft = Ftrl()
+    params = ft.params
     ft.alpha = tparams.alpha
-    ft.beta = tparams.beta
-    ft.lambda1 = tparams.lambda1
-    ft.lambda2 = tparams.lambda2
-    ft.nbins = tparams.nbins
-    ft.mantissa_nbits = tparams.mantissa_nbits
-    ft.nepochs = tparams.nepochs
-    ft.negative_class = tparams.negative_class
-    ft.interactions = tparams.interactions
-    ft.model_type = tparams.model_type
-    assert ft.params == tparams
+    assert params == Ftrl().params
+    assert (ft.alpha, params.beta, params.lambda1, params.lambda2, params.nbins,
+           params.mantissa_nbits, params.nepochs, params.double_precision,
+           params.negative_class, params.interactions,
+           params.model_type) == ft.params
 
 
 #-------------------------------------------------------------------------------
