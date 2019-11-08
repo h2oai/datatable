@@ -279,7 +279,7 @@ def test_ftrl_create_individual():
 # Test getters and setters for valid FTRL parameters
 #-------------------------------------------------------------------------------
 
-def test_ftrl_get_parameters():
+def test_ftrl_get_params():
     ft = Ftrl(tparams)
     assert ft.params == tparams
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.mantissa_nbits,
