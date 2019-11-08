@@ -72,7 +72,7 @@ static PKArgs args___init__(0, 1, 11, false, false,
  *  Initialize Ftrl object with the provided parameters.
  */
 void Ftrl::m__init__(const PKArgs& args) {
-  dtft = nullptr;
+  m__dealloc__();
   double_precision = dt::FtrlParams().double_precision;
 
   const Arg& arg_params           = args[0];
@@ -148,9 +148,9 @@ void Ftrl::m__init__(const PKArgs& args) {
 
 void Ftrl::init_dt_ftrl() {
   if (double_precision) {
-    dtft = dt::make_unique<dt::Ftrl<double>>();
+    dtft = new dt::Ftrl<double>();
   } else {
-    dtft = dt::make_unique<dt::Ftrl<float>>();
+    dtft = new dt::Ftrl<float>();
   }
 }
 
@@ -158,7 +158,14 @@ void Ftrl::init_dt_ftrl() {
 /**
  *  Deallocate underlying data for an Ftrl object.
  */
-void Ftrl::m__dealloc__() {}
+void Ftrl::m__dealloc__() {
+  delete dtft;
+  delete py_params;
+  delete colnames;
+  dtft = nullptr;
+  py_params = nullptr;
+  colnames = nullptr;
+}
 
 
 /**
@@ -179,14 +186,14 @@ void Ftrl::init_dt_interactions() {
     for (auto py_feature : py_interaction) {
       std::string feature_name = py_feature.to_string();
 
-      auto it = find(colnames.begin(), colnames.end(), feature_name);
-      if (it == colnames.end()) {
+      auto it = find(colnames->begin(), colnames->end(), feature_name);
+      if (it == colnames->end()) {
         throw ValueError() << "Feature `" << feature_name
           << "` is used in the interactions, however, column "
           << "`" << feature_name << "` is missing in the training frame";
       }
 
-      auto feature_id = std::distance(colnames.begin(), it);
+      auto feature_id = std::distance(colnames->begin(), it);
       dt_interaction.push_back(static_cast<size_t>(feature_id));
     }
 
@@ -287,10 +294,10 @@ oobj Ftrl::fit(const PKArgs& args) {
   }
 
   if (!dtft->is_model_trained()) {
-    colnames = dt_X_train->get_names();
+    colnames = new strvec(dt_X_train->get_names());
   }
 
-  if (dtft->is_model_trained() && dt_X_train->get_names() != colnames) {
+  if (dtft->is_model_trained() && dt_X_train->get_names() != *colnames) {
     throw ValueError() << "Training frame names cannot change for a trained "
                        << "model";
   }
@@ -317,7 +324,7 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "columns as the training frame";
     }
 
-    if (dt_X_val->get_names() != colnames) {
+    if (dt_X_val->get_names() != *colnames) {
       throw ValueError() << "Validation frame must have the same column "
                          << "names as the training frame";
     }
@@ -435,7 +442,7 @@ oobj Ftrl::predict(const PKArgs& args) {
                           "was used for model training";
   }
 
-  if (dt_X->get_names() != colnames) {
+  if (dt_X->get_names() != *colnames) {
     throw ValueError() << "Frames used for training and predictions "
                        << "should have the same column names";
   }
@@ -482,7 +489,7 @@ None
 
 void Ftrl::reset(const PKArgs&) {
   dtft->reset();
-  colnames.clear();
+  colnames->clear();
 }
 
 
@@ -584,10 +591,10 @@ static GSArgs args_colnames(
 
 oobj Ftrl::get_colnames() const {
   if (dtft->is_model_trained()) {
-    size_t ncols = colnames.size();
+    size_t ncols = colnames->size();
     py::olist py_colnames(ncols);
     for (size_t i = 0; i < ncols; ++i) {
-      py_colnames.set(i, py::ostring(colnames[i]));
+      py_colnames.set(i, py::ostring((*colnames)[i]));
     }
     return std::move(py_colnames);
   } else {
@@ -600,10 +607,10 @@ void Ftrl::set_colnames(robj py_colnames) {
   if (py_colnames.is_list()) {
     py::olist py_colnames_list = py_colnames.to_pylist();
     size_t ncolnames = py_colnames_list.size();
-
-    colnames.reserve(ncolnames);
+    colnames = new strvec();
+    colnames->reserve(ncolnames);
     for (size_t i = 0; i < ncolnames; ++i) {
-      colnames.push_back(py_colnames_list[i].to_string());
+      colnames->push_back(py_colnames_list[i].to_string());
     }
   }
 }
@@ -1068,7 +1075,7 @@ void Ftrl::init_py_params() {
   );
 
   dt::FtrlParams params;
-  py_params = dt::make_unique<py::onamedtuple>(py_params_ntt);
+  py_params = new py::onamedtuple(py_params_ntt);
 
   py_params->replace(0, py::ofloat(params.alpha));
   py_params->replace(1, py::ofloat(params.beta));
