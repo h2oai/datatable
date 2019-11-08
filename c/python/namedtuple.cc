@@ -137,8 +137,7 @@ void onamedtuple::copy_v() {
   PyTypeObject* type = Py_TYPE(v);
   Py_TYPE(v1) = type;
   Py_INCREF(type);
-  Py_DECREF(v);
-  v = v1;
+  Py_SETREF(v, v1);
 }
 
 

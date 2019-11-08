@@ -127,8 +127,7 @@ void otuple::replace(size_t i, oobj&& value) {
 
 void otuple::copy_v() {
   PyObject* v1 = PyTuple_GetSlice(v, 0, PyTuple_Size(v));
-  Py_DECREF(v);
-  v = v1;
+  Py_SETREF(v, v1);
 }
 
 

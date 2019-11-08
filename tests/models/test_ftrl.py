@@ -281,10 +281,14 @@ def test_ftrl_create_individual():
 
 def test_ftrl_get_params():
     ft = Ftrl(tparams)
-    assert ft.params == tparams
+    params = ft.params
+    assert params == tparams
     assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2, ft.nbins, ft.mantissa_nbits,
            ft.nepochs, ft.double_precision, ft.negative_class, ft.interactions,
            ft.model_type) == tparams
+    assert (params.alpha, params.beta, params.lambda1, params.lambda2, params.nbins,
+           params.mantissa_nbits, params.nepochs, params.double_precision,
+           params.negative_class, params.interactions, params.model_type) == tparams
 
 
 def test_ftrl_set_individual():
@@ -305,12 +309,16 @@ def test_ftrl_set_individual_after_params():
     ft = Ftrl()
     params = ft.params
     ft.alpha = tparams.alpha
+    params_new = ft.params
     assert params == Ftrl().params
-    assert (ft.alpha, params.beta, params.lambda1, params.lambda2, params.nbins,
-           params.mantissa_nbits, params.nepochs, params.double_precision,
-           params.negative_class, params.interactions,
-           params.model_type) == ft.params
-
+    assert (params_new.alpha, params_new.beta, params_new.lambda1, params_new.lambda2,
+           params_new.nbins, params_new.mantissa_nbits, params_new.nepochs,
+           params_new.double_precision, params_new.negative_class,
+           params_new.interactions, params_new.model_type) == params_new
+    assert (ft.alpha, ft.beta, ft.lambda1, ft.lambda2,
+           ft.nbins, ft.mantissa_nbits, ft.nepochs,
+           ft.double_precision, ft.negative_class,
+           ft.interactions, ft.model_type) == params_new
 
 #-------------------------------------------------------------------------------
 # Test getters and setters for wrong types / names of FTRL parameters
