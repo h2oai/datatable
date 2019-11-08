@@ -111,6 +111,8 @@ void otuple::set(size_t i, oobj&& value) {
 
 
 void otuple::replace(size_t i, const _obj& value) {
+  if (v->ob_refcnt > 1) copy_v();
+  xassert(v->ob_refcnt == 1);
   // PyTuple_SetItem "steals" a reference to the last argument
   PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), value.to_pyobject_newref());
 }

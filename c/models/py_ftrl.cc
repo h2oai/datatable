@@ -1205,11 +1205,11 @@ interactions : list or tuple
     should be a list or a tuple of feature names, where each feature
     name is a column name from the training frame.
 
-model_type: str
+model_type : str
     Model type can be one of the following: 'binomial' for binomial
-    classification, 'multinomial' for multinomial classificatio, and
+    classification, 'multinomial' for multinomial classification, and
     'regression' for numeric regression. Defaults to 'auto', meaning
-    that the model type will be automatically detected based on
+    that the model type will be automatically selected based on
     the target column `stype`.
 )");
 
