@@ -124,7 +124,7 @@ class EvalContext
     size_t nrows() const;
 
     void apply_rowindex(const RowIndex& ri);
-    void apply_groupby(const Groupby& gb_);
+    void replace_groupby(Groupby&& gb_);
     void set_groupby_columns(Workframe&&);
 
     size_t size() const noexcept;

@@ -147,21 +147,23 @@ void EvalContext::evaluate() {
     frames_[i].ri = natural_join(*xdt, *jdt);
   }
 
-  // Compute groupby
+  // Compute groupby: either from the `byexpr_`, or fall-back to
+  // single group that encompasses the entire frame. Note that this
+  // single group might be empty if the frame has 0 rows.
   if (byexpr_) {
     auto rigb = byexpr_.evaluate_by(*this);
     apply_rowindex(std::move(rigb.first));
-    apply_groupby(std::move(rigb.second));
+    replace_groupby(std::move(rigb.second));
   }
-  else {
-    apply_groupby(Groupby::single_group(xdt->nrows()));
+  if (!groupby_) {
+    replace_groupby(Groupby::single_group(xdt->nrows()));
   }
 
   // Compute i filter
   if (byexpr_) {
     auto rigb = iexpr_.evaluate_iby(*this);
     apply_rowindex(std::move(rigb.first));
-    apply_groupby(std::move(rigb.second));
+    replace_groupby(std::move(rigb.second));
   } else {
     RowIndex rowindex = iexpr_.evaluate_i(*this);
     apply_rowindex(rowindex);
@@ -508,9 +510,11 @@ void EvalContext::apply_rowindex(const RowIndex& ri) {
 }
 
 
-void EvalContext::apply_groupby(const Groupby& gb) {
-  xassert(gb.last_offset() == nrows());
-  groupby_ = gb;
+void EvalContext::replace_groupby(Groupby&& gb) {
+  if (gb) {
+    xassert(gb.last_offset() == nrows());
+    groupby_ = std::move(gb);
+  }
 }
 
 
