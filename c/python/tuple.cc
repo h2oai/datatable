@@ -128,7 +128,7 @@ void otuple::replace(size_t i, oobj&& value) {
  * reference count for the new object is one. This method is useful
  * when we need to replace values in a tuple that has the reference count
  * greater than one. If a copy of `v` is not made in such a case,
- a call to `PyTuple_SetItem()` will resulst in a SystemError.
+ a call to `PyTuple_SetItem()` will resulst in a `SystemError`.
  */
 void otuple::make_editable() {
   if (v->ob_refcnt == 1) return;
