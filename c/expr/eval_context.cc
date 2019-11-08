@@ -158,6 +158,7 @@ void EvalContext::evaluate() {
   if (!groupby_) {
     replace_groupby(Groupby::single_group(xdt->nrows()));
   }
+  xassert(groupby_);
 
   // Compute i filter
   if (byexpr_) {

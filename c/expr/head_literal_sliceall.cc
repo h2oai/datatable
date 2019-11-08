@@ -78,7 +78,7 @@ RowIndex Head_Literal_SliceAll::evaluate_i(const vecExpr&, EvalContext&) const {
 }
 
 
-RiGb Head_Literal_SliceAll::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
+RiGb Head_Literal_SliceAll::evaluate_iby(const vecExpr&, EvalContext&) const {
   return std::make_pair(RowIndex(), Groupby());
 }
 

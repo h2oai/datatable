@@ -49,6 +49,7 @@ class Groupby {
     Groupby(Groupby&&) = default;
     Groupby& operator=(const Groupby&) = default;
     Groupby& operator=(Groupby&&) = default;
+    static Groupby zero_groups();
     static Groupby single_group(size_t nrows);
 
     explicit operator bool() const;

@@ -1345,12 +1345,14 @@ RiGb group(const std::vector<Column>& columns,
   #endif
 
   // For a 0-row Frame we return a rowindex of size 0, and the
-  // Groupby containing a single group (also of size 0).
-  if (nrows <= 1) {
+  // Groupby containing zero groups.
+  if (nrows == 0) {
+    result.second = Groupby::zero_groups();
+    return result;
+  }
+  if (nrows == 1) {
     arr32_t indices(nrows);
-    if (nrows) {
-      indices[0] = 0;
-    }
+    indices[0] = 0;
     result.first = RowIndex(std::move(indices), true);
     result.second = Groupby::single_group(nrows);
     return result;

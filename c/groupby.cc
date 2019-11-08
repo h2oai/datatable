@@ -47,6 +47,13 @@ Groupby::Groupby(size_t n, Buffer&& buf) {
 }
 
 
+Groupby Groupby::zero_groups() {
+  Buffer mr = Buffer::mem(sizeof(int32_t));
+  mr.set_element<int32_t>(0, 0);
+  return Groupby(0, std::move(mr));
+}
+
+
 Groupby Groupby::single_group(size_t nrows) {
   XAssert(nrows <= Column::MAX_ARR32_SIZE);
   Buffer mr = Buffer::mem(2 * sizeof(int32_t));
