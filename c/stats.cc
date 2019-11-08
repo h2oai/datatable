@@ -898,7 +898,7 @@ void NumericStats<T>::compute_sorted_stats() {
   Groupby grpby = std::move(r.second);
 
   const int32_t* groups = grpby.offsets_r();
-  size_t n_groups = grpby.ngroups();
+  size_t n_groups = grpby.size();
   xassert(n_groups >= 1);
 
   // Sorting gathers all NA elements at the top (in the first group). Thus if
@@ -944,7 +944,7 @@ void StringStats::compute_sorted_stats() {
   Groupby grpby = std::move(r.second);
 
   const int32_t* groups = grpby.offsets_r();
-  size_t n_groups = grpby.ngroups();
+  size_t n_groups = grpby.size();
   xassert(n_groups >= 1);
 
   // Sorting gathers all NA elements at the top (in the first group). Thus if

@@ -40,7 +40,7 @@ static Column _count0(EvalContext& ctx)
   if (ctx.has_groupby()) {
     // TODO: convert this into a virtual column
     const Groupby& grpby = ctx.get_groupby();
-    size_t ng = grpby.ngroups();
+    size_t ng = grpby.size();
     const int32_t* offsets = grpby.offsets_r();
     Column col = Column::new_data_column(ng, SType::INT64);
     auto d_res = static_cast<int64_t*>(col.get_data_editable());

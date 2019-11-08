@@ -140,7 +140,7 @@ void by_node::create_columns(expr::EvalContext& ctx) {
   DataTable* dt0 = ctx.get_datatable(0);
   RowIndex ri0 = ctx.get_rowindex(0);
   if (ctx.get_groupby_mode() == GroupbyMode::GtoONE) {
-    ri0 = RowIndex(arr32_t(ctx.groupby_.ngroups(), ctx.groupby_.offsets_r()), true) * ri0;
+    ri0 = RowIndex(arr32_t(ctx.groupby_.size(), ctx.groupby_.offsets_r()), true) * ri0;
   }
 
   auto dt0_names = dt0->get_names();

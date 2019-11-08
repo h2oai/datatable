@@ -121,7 +121,7 @@ const RowIndex& EvalContext::get_ungroup_rowindex() {
 
 const RowIndex& EvalContext::get_group_rowindex() {
   if (!group_rowindex_) {
-    size_t n = groupby_.ngroups();
+    size_t n = groupby_.size();
     if (n == 1 && groupby_.last_offset() == 0) n = 0;
     // TODO: when RowIndex supports Buffers, this could be replaced by a
     //       simple buffer copy from groupby_ into the RowIndex
@@ -504,6 +504,7 @@ size_t EvalContext::nrows() const {
 
 
 void EvalContext::apply_rowindex(const RowIndex& ri) {
+  if (!ri) return;
   for (size_t i = 0; i < nframes(); ++i) {
     frames_[i].ri = ri * get_rowindex(i);
   }

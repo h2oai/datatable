@@ -127,7 +127,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   RowIndex ri = res.first;
   xassert(ri.size() == nrows_);
   // Note: it's possible to have ngroups > nrows, when grouping a 0-row Frame
-  if (res.second.ngroups() < nrows_) {
+  if (res.second.size() < nrows_) {
     throw ValueError() << "Cannot set a key: the values are not unique";
   }
 

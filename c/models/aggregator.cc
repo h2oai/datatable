@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -348,7 +348,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
 
   // Do random sampling if there is too many exemplars, `n_na_bins` accounts
   // for the additional N/A bins that may appear during grouping.
-  if (gb_members.ngroups() > max_bins + n_na_bins) {
+  if (gb_members.size() > max_bins + n_na_bins) {
     const int32_t* offsets = gb_members.offsets_r();
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
 
@@ -365,7 +365,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
     srand(seed);
     size_t k = 0;
     while (k < max_bins) {
-      int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
+      int32_t i = rand() % static_cast<int32_t>(gb_members.size());
       size_t off_i = static_cast<size_t>(offsets[i]);
       size_t ri;
       bool rii_valid = ri_members.get_element(off_i, &ri);
@@ -403,7 +403,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 
   RowIndex ri_members = std::move(res.first);
   Groupby gb_members = std::move(res.second);
-  size_t ngroups = gb_members.ngroups();
+  size_t ngroups = gb_members.size();
   const int32_t* offsets = gb_members.offsets_r();
   // If the input was an empty frame, then treat this case as if no
   // groups are present
@@ -576,7 +576,7 @@ void Aggregator<T>::group_1d_categorical() {
   auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
   const int32_t* offsets0 = grpby0.offsets_r();
 
-  dt::parallel_for_dynamic(grpby0.ngroups(),
+  dt::parallel_for_dynamic(grpby0.size(),
     [&](size_t i) {
       size_t off_i = static_cast<size_t>(offsets0[i]);
       size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
@@ -613,7 +613,7 @@ void Aggregator<T>::group_2d_categorical()
                          "should be either `str32` or `str64`";
   }
 
-  dt::parallel_for_dynamic(grpby.ngroups(),
+  dt::parallel_for_dynamic(grpby.size(),
     [&](size_t i) {
       CString tmp;
       auto group_id = static_cast<int32_t>(i);
@@ -660,7 +660,7 @@ void Aggregator<T>::group_2d_mixed()
   T normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, col1.get_min(), col1.get_max(), nx_bins);
 
-  dt::parallel_for_dynamic(grpby.ngroups(),
+  dt::parallel_for_dynamic(grpby.size(),
     [&](size_t i) {
       CString tmp;
       auto group_cat_id = static_cast<int32_t>(nx_bins * i);
