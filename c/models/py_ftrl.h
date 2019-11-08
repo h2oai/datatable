@@ -36,9 +36,9 @@ namespace py {
  */
 class Ftrl : public XObject<Ftrl> {
   private:
-    dt::FtrlBase* dtft;
+    std::unique_ptr<dt::FtrlBase> dtft;
     strvec colnames;
-    py::onamedtuple py_params;
+    std::unique_ptr<py::onamedtuple> py_params;
     bool double_precision;
     size_t: 56;
 

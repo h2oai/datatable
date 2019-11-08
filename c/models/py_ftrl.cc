@@ -27,6 +27,7 @@
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
+#include "utils/c+++.h"        // dt::make_unique
 
 namespace py {
 
@@ -147,20 +148,17 @@ void Ftrl::m__init__(const PKArgs& args) {
 
 void Ftrl::init_dt_ftrl() {
   if (double_precision) {
-    dtft = new dt::Ftrl<double>();
+    dtft = dt::make_unique<dt::Ftrl<double>>();
   } else {
-    dtft = new dt::Ftrl<float>();
+    dtft = dt::make_unique<dt::Ftrl<float>>();
   }
 }
 
 
 /**
- *  Deallocate underlying data for an Ftrl object
+ *  Deallocate underlying data for an Ftrl object.
  */
-void Ftrl::m__dealloc__() {
-  delete dtft;
-  dtft = nullptr;
-}
+void Ftrl::m__dealloc__() {}
 
 
 /**
@@ -169,7 +167,7 @@ void Ftrl::m__dealloc__() {
  */
 void Ftrl::init_dt_interactions() {
   std::vector<intvec> dt_interactions;
-  auto py_interactions = py_params.get_attr("interactions").to_oiter();
+  auto py_interactions = py_params->get_attr("interactions").to_oiter();
   dt_interactions.reserve(py_interactions.size());
 
   for (auto py_interaction_robj : py_interactions) {
@@ -297,7 +295,7 @@ oobj Ftrl::fit(const PKArgs& args) {
                        << "model";
   }
 
-  if (!py_params.get_attr("interactions").is_none()
+  if (!py_params->get_attr("interactions").is_none()
       && !dtft->get_interactions().size()) {
     init_dt_interactions();
   }
@@ -442,13 +440,13 @@ oobj Ftrl::predict(const PKArgs& args) {
                        << "should have the same column names";
   }
 
-  if (!py_params.get_attr("interactions").is_none()
+  if (!py_params->get_attr("interactions").is_none()
       && !dtft->get_interactions().size()) {
     init_dt_interactions();
   }
 
 
-  if (!py_params.get_attr("interactions").is_none()
+  if (!py_params->get_attr("interactions").is_none()
       && !dtft->get_interactions().size()) {
     init_dt_interactions();
   }
@@ -645,7 +643,7 @@ static GSArgs args_alpha(
 
 
 oobj Ftrl::get_alpha() const {
-  return py_params.get_attr("alpha");
+  return py_params->get_attr("alpha");
 }
 
 
@@ -654,7 +652,7 @@ void Ftrl::set_alpha(const Arg& py_alpha) {
   py::Validator::check_finite(alpha, py_alpha);
   py::Validator::check_positive(alpha, py_alpha);
   dtft->set_alpha(alpha);
-  py_params.replace(0, py_alpha.robj());
+  py_params->replace(0, py_alpha.robj());
 }
 
 
@@ -667,7 +665,7 @@ static GSArgs args_beta(
 
 
 oobj Ftrl::get_beta() const {
-  return py_params.get_attr("beta");
+  return py_params->get_attr("beta");
 }
 
 
@@ -676,7 +674,7 @@ void Ftrl::set_beta(const Arg& py_beta) {
   py::Validator::check_finite(beta, py_beta);
   py::Validator::check_not_negative(beta, py_beta);
   dtft->set_beta(beta);
-  py_params.replace(1, py_beta.to_robj());
+  py_params->replace(1, py_beta.to_robj());
 }
 
 
@@ -689,7 +687,7 @@ static GSArgs args_lambda1(
 
 
 oobj Ftrl::get_lambda1() const {
-  return py_params.get_attr("lambda1");
+  return py_params->get_attr("lambda1");
 }
 
 
@@ -698,7 +696,7 @@ void Ftrl::set_lambda1(const Arg& py_lambda1) {
   py::Validator::check_finite(lambda1, py_lambda1);
   py::Validator::check_not_negative(lambda1, py_lambda1);
   dtft->set_lambda1(lambda1);
-  py_params.replace(2, py_lambda1.to_robj());
+  py_params->replace(2, py_lambda1.to_robj());
 }
 
 
@@ -711,7 +709,7 @@ static GSArgs args_lambda2(
 
 
 oobj Ftrl::get_lambda2() const {
-  return py_params.get_attr("lambda2");
+  return py_params->get_attr("lambda2");
 }
 
 
@@ -720,7 +718,7 @@ void Ftrl::set_lambda2(const Arg& py_lambda2) {
   py::Validator::check_finite(lambda2, py_lambda2);
   py::Validator::check_not_negative(lambda2, py_lambda2);
   dtft->set_lambda2(lambda2);
-  py_params.replace(3, py_lambda2.to_robj());
+  py_params->replace(3, py_lambda2.to_robj());
 }
 
 
@@ -733,7 +731,7 @@ static GSArgs args_nbins(
 
 
 oobj Ftrl::get_nbins() const {
-  return py_params.get_attr("nbins");
+  return py_params->get_attr("nbins");
 }
 
 
@@ -747,7 +745,7 @@ void Ftrl::set_nbins(const Arg& arg_nbins) {
   size_t nbins = arg_nbins.to_size_t();
   py::Validator::check_positive(nbins, arg_nbins);
   dtft->set_nbins(static_cast<uint64_t>(nbins));
-  py_params.replace(4, arg_nbins.to_robj());
+  py_params->replace(4, arg_nbins.to_robj());
 }
 
 
@@ -760,7 +758,7 @@ static GSArgs args_mantissa_nbits(
 
 
 oobj Ftrl::get_mantissa_nbits() const {
-  return py_params.get_attr("mantissa_nbits");
+  return py_params->get_attr("mantissa_nbits");
 }
 
 
@@ -779,7 +777,7 @@ void Ftrl::set_mantissa_nbits(const Arg& arg_mantissa_nbits) {
     arg_mantissa_nbits
   );
   dtft->set_mantissa_nbits(static_cast<unsigned char>(mantissa_nbits));
-  py_params.replace(5, arg_mantissa_nbits.to_robj());
+  py_params->replace(5, arg_mantissa_nbits.to_robj());
 }
 
 
@@ -792,14 +790,14 @@ static GSArgs args_nepochs(
 
 
 oobj Ftrl::get_nepochs() const {
-  return py_params.get_attr("nepochs");
+  return py_params->get_attr("nepochs");
 }
 
 
 void Ftrl::set_nepochs(const Arg& py_nepochs) {
   size_t nepochs = py_nepochs.to_size_t();
   dtft->set_nepochs(nepochs);
-  py_params.replace(6, py_nepochs.to_robj());
+  py_params->replace(6, py_nepochs.to_robj());
 }
 
 
@@ -812,7 +810,7 @@ static GSArgs args_double_precision(
 
 
 oobj Ftrl::get_double_precision() const {
-  return py_params.get_attr("double_precision");
+  return py_params->get_attr("double_precision");
 }
 
 void Ftrl::set_double_precision(const Arg& arg_double_precision) {
@@ -822,7 +820,7 @@ void Ftrl::set_double_precision(const Arg& arg_double_precision) {
                        << "reset this model or create a new one";
   }
   double_precision = arg_double_precision.to_bool_strict();
-  py_params.replace(7, arg_double_precision.to_robj());
+  py_params->replace(7, arg_double_precision.to_robj());
 }
 
 
@@ -836,7 +834,7 @@ multinomial classification.)");
 
 
 oobj Ftrl::get_negative_class() const {
-  return py_params.get_attr("negative_class");
+  return py_params->get_attr("negative_class");
 }
 
 
@@ -848,7 +846,7 @@ void Ftrl::set_negative_class(const Arg& arg_negative_class) {
   }
   bool negative_class = arg_negative_class.to_bool_strict();
   dtft->set_negative_class(negative_class);
-  py_params.replace(8, arg_negative_class.to_robj());
+  py_params->replace(8, arg_negative_class.to_robj());
 }
 
 
@@ -863,7 +861,7 @@ name is a column name from the training frame.)");
 
 
 oobj Ftrl::get_interactions() const {
-  return py_params.get_attr("interactions");
+  return py_params->get_attr("interactions");
 }
 
 
@@ -874,7 +872,7 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
                        << " create a new one";
 
   if (arg_interactions.is_none()) {
-    py_params.replace(9, arg_interactions.to_robj());
+    py_params->replace(9, arg_interactions.to_robj());
     return;
   }
 
@@ -912,7 +910,7 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
     params_interactions.set(i++, std::move(params_interaction));
   }
 
-  py_params.replace(9, std::move(params_interactions));
+  py_params->replace(9, std::move(params_interactions));
 }
 
 
@@ -929,7 +927,7 @@ the target column `stype`.)");
 
 
 oobj Ftrl::get_model_type() const {
-  return py_params.get_attr("model_type");
+  return py_params->get_attr("model_type");
 }
 
 
@@ -945,7 +943,7 @@ void Ftrl::set_model_type(const Arg& py_model_type) {
   }
 
   dtft->set_model_type(it->second);
-  py_params.replace(10, py_model_type.to_robj());
+  py_params->replace(10, py_model_type.to_robj());
 }
 
 
@@ -974,7 +972,7 @@ static GSArgs args_params(
 
 
 oobj Ftrl::get_params_namedtuple() const {
-  return py_params;
+  return *py_params;
 }
 
 
@@ -1070,20 +1068,19 @@ void Ftrl::init_py_params() {
   );
 
   dt::FtrlParams params;
-  py::onamedtuple py_params_temp(py_params_ntt);
-  py_params = std::move(py_params_temp);
+  py_params = dt::make_unique<py::onamedtuple>(py_params_ntt);
 
-  py_params.replace(0, py::ofloat(params.alpha));
-  py_params.replace(1, py::ofloat(params.beta));
-  py_params.replace(2, py::ofloat(params.lambda1));
-  py_params.replace(3, py::ofloat(params.lambda2));
-  py_params.replace(4, py::oint(static_cast<size_t>(params.nbins)));
-  py_params.replace(5, py::oint(params.mantissa_nbits));
-  py_params.replace(6, py::oint(params.nepochs));
-  py_params.replace(7, py::obool(params.double_precision));
-  py_params.replace(8, py::obool(params.negative_class));
-  py_params.replace(9, py::None());
-  py_params.replace(10, py::ostring("auto"));
+  py_params->replace(0, py::ofloat(params.alpha));
+  py_params->replace(1, py::ofloat(params.beta));
+  py_params->replace(2, py::ofloat(params.lambda1));
+  py_params->replace(3, py::ofloat(params.lambda2));
+  py_params->replace(4, py::oint(static_cast<size_t>(params.nbins)));
+  py_params->replace(5, py::oint(params.mantissa_nbits));
+  py_params->replace(6, py::oint(params.nepochs));
+  py_params->replace(7, py::obool(params.double_precision));
+  py_params->replace(8, py::obool(params.negative_class));
+  py_params->replace(9, py::None());
+  py_params->replace(10, py::ostring("auto"));
 }
 
 
