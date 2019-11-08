@@ -310,14 +310,11 @@ def test_groupby_on_view():
                   C=['b', 'd', 'b', 'b', 'd', 'b'])
     V = DT[f.A != 1, :]
     assert isview(V)
-    assert V.shape == (4, 3)
-    assert V.to_dict() == {'A': [2, 3, 2, 3],
-                           'B': [6, 2, 3, 1],
-                           'C': ['d', 'b', 'd', 'b']}
+    assert_equals(V, dt.Frame(A=[2, 3, 2, 3],
+                              B=[6, 2, 3, 1],
+                              C=['d', 'b', 'd', 'b']))
     RES = V[:, max(f.B), by(f.C)]
-    assert RES.shape == (2, 2)
-    assert RES.to_dict() == {'C': ['b', 'd'],
-                             'C0': [2, 6]}
+    assert_equals(RES, dt.Frame(C=['b', 'd'], B=[2, 6]))
 
 
 def test_groupby_empty():
