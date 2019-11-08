@@ -132,13 +132,4 @@ onamedtuple::onamedtuple(const onamedtupletype& type) {
 }
 
 
-void onamedtuple::copy_v() {
-  PyObject* v1 = PyTuple_GetSlice(v, 0, PyTuple_Size(v));
-  PyTypeObject* type = Py_TYPE(v);
-  Py_TYPE(v1) = type;
-  Py_INCREF(type);
-  Py_SETREF(v, v1);
-}
-
-
 }  // namespace py
