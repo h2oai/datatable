@@ -1308,9 +1308,8 @@ def test_ftrl_interactions_wrong_features():
 def test_ftrl_interactions_formats(interactions):
     ft = Ftrl(interactions = interactions)
     df_train = dt.Frame(
-                 feature1 = range(10),
-                 feature2 = [False, True] * 5,
-                 feature3 = range(1, 100, 10)
+                 [range(10), [False, True] * 5, range(1, 100, 10)],
+                 names = ["feature1", "feature2", "feature3"]
                )
     df_target = dt.Frame(target = [True, False] * 5)
 
@@ -1325,9 +1324,8 @@ def test_ftrl_interactions_formats(interactions):
 def test_ftrl_interactions_from_itertools(struct):
     import itertools
     df_train = dt.Frame(
-                 feature1 = range(10),
-                 feature2 = [False, True] * 5,
-                 feature3 = range(1, 100, 10)
+                 [range(10), [False, True] * 5, range(1, 100, 10)],
+                 names = ["feature1", "feature2", "feature3"]
                )
     df_target = dt.Frame(target = [True, False] * 5)
     interactions = struct(itertools.combinations(df_train.names, 2))
