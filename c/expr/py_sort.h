@@ -19,31 +19,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_SORT_NODE_h
-#define dt_EXPR_SORT_NODE_h
-#include <memory>
-#include "expr/collist.h"
+#ifndef dt_EXPR_PY_SORT_h
+#define dt_EXPR_PY_SORT_h
+#include <vector>
 #include "python/obj.h"
 #include "python/xobject.h"
 namespace py {
 
 
-class _sort : public XObject<_sort> {
-  private:
-    oobj cols;
-    friend class osort;
 
-  public:
-    void m__init__(const PKArgs&);
-    void m__dealloc__();
-    oobj get_cols() const;
+class osort : public oobj
+{
+  class osort_pyobject : public XObject<osort_pyobject> {
+    private:
+      oobj cols_;
+      std::vector<bool>* reverse_;
 
-    static void impl_init_type(XTypeMaker&);
-};
+    public:
+      void m__init__(const PKArgs&);
+      void m__dealloc__();
+      oobj get_cols() const;
+      const std::vector<bool>& get_reverse() const;
 
+      static void impl_init_type(XTypeMaker&);
+  };
 
-
-class osort : public oobj {
   public:
     osort() = default;
     osort(const osort&) = default;
@@ -56,7 +56,8 @@ class osort : public oobj {
     static bool check(PyObject* v);
     static void init(PyObject* m);
 
-    dt::collist_ptr cols(dt::expr::EvalContext&) const;
+    oobj get_arguments() const;
+    const std::vector<bool>& get_reverse() const;
 
   private:
     // This private constructor will reinterpret the object `r` as an

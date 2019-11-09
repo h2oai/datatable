@@ -21,8 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_PY_BY_h
 #define dt_EXPR_PY_BY_h
-#include "expr/collist.h"       // dt::collist_ptr  (TODO: REMOVE)
-#include "expr/eval_context.h"
 #include "python/obj.h"
 #include "python/xobject.h"
 namespace py {
@@ -37,13 +35,13 @@ class oby : public oobj
       bool add_columns_;
       size_t : 56;
 
+    public:
       void m__init__(const PKArgs&);
       void m__dealloc__();
-
-    public:
-      static void impl_init_type(XTypeMaker& xt);
       oobj get_cols() const;
       bool get_add_columns() const;
+
+      static void impl_init_type(XTypeMaker& xt);
   };
 
   public:
@@ -59,9 +57,6 @@ class oby : public oobj
 
     static bool check(PyObject* v);
     static void init(PyObject* m);
-
-    // TODO: remove
-    dt::collist_ptr cols(dt::expr::EvalContext&) const;
 
     oobj get_arguments() const;
     bool get_add_columns() const;

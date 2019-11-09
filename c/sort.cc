@@ -128,7 +128,7 @@
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
 #include "column/view.h"
-#include "expr/sort_node.h"
+#include "expr/py_sort.h"
 #include "expr/eval_context.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"

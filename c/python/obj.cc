@@ -22,9 +22,9 @@
 #include <iostream>
 #include <cstdint>         // INT32_MAX
 #include "expr/join_node.h"
-#include "expr/sort_node.h"
-#include "expr/py_by.h"
-#include "expr/py_update.h"
+#include "expr/py_by.h"       // py::oby
+#include "expr/py_sort.h"     // py::osort
+#include "expr/py_update.h"   // py::oupdate
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/list.h"

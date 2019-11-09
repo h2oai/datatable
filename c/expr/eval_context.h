@@ -27,7 +27,6 @@
 #include "expr/expr.h"
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
-#include "expr/sort_node.h"  // py::osort
 #include "expr/workframe.h"
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex

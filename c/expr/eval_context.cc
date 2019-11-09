@@ -19,10 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/collist.h"
 #include "expr/expr.h"
 #include "expr/eval_context.h"
 #include "expr/py_by.h"
+#include "expr/py_sort.h"
 #include "expr/py_update.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
@@ -38,9 +38,7 @@ namespace expr {
 EvalContext::EvalContext(DataTable* dt, EvalMode evalmode)
   : groupby_columns_(*this)
 {
-  // The source frame must have flag `natural=false` so that `allcols_jn`
-  // knows to select all columns from it.
-  frames_.emplace_back(dt, RowIndex(), false);
+  frames_.emplace_back(dt, RowIndex(), /* natural_join= */ false);
   eval_mode_ = evalmode;
   add_groupby_columns_ = true;
 }
@@ -49,22 +47,24 @@ EvalContext::EvalContext(DataTable* dt, EvalMode evalmode)
 
 void EvalContext::add_join(py::ojoin oj) {
   DataTable* dt = oj.get_datatable();
-  frames_.emplace_back(dt, RowIndex(), true);
+  frames_.emplace_back(dt, RowIndex(), /* natural_join= */ true);
 }
 
 
-void EvalContext::add_groupby(py::oby og) {
+void EvalContext::add_groupby(py::oby obj) {
   if (byexpr_) {
     throw TypeError() << "Multiple by()'s are not allowed";
   }
-  byexpr_ = Expr(og.get_arguments());
-  add_groupby_columns_ = og.get_add_columns();
+  byexpr_ = Expr(obj.get_arguments());
+  add_groupby_columns_ = obj.get_add_columns();
 }
 
 
 void EvalContext::add_sortby(py::osort obj) {
-  (void) obj;
-  throw NotImplError();
+  if (sortexpr_) {
+    throw TypeError() << "Multiple sort()'s are not allowed";
+  }
+  sortexpr_ = Expr(obj);
 }
 
 
