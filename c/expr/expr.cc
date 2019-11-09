@@ -245,8 +245,8 @@ RowIndex Expr::evaluate_i(EvalContext& ctx) const {
 }
 
 
-RiGb Expr::evaluate_by(EvalContext& ctx) const {
-  return head->evaluate_by(inputs, ctx);
+Workframe Expr::prepare_by(EvalContext& ctx) const {
+  return head->prepare_by(inputs, ctx);
 }
 
 

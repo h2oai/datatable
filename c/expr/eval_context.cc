@@ -26,6 +26,7 @@
 #include "expr/py_update.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
+#include "sort.h"
 namespace dt {
 namespace expr {
 
@@ -147,17 +148,7 @@ void EvalContext::evaluate() {
     frames_[i].ri = natural_join(*xdt, *jdt);
   }
 
-  // Compute groupby: either from the `byexpr_`, or fall-back to
-  // single group that encompasses the entire frame. Note that this
-  // single group might be empty if the frame has 0 rows.
-  if (byexpr_) {
-    auto rigb = byexpr_.evaluate_by(*this);
-    apply_rowindex(std::move(rigb.first));
-    replace_groupby(std::move(rigb.second));
-  }
-  if (!groupby_) {
-    replace_groupby(Groupby::single_group(xdt->nrows()));
-  }
+  compute_groupby_and_sort();
   xassert(groupby_);
 
   // Compute i filter
@@ -227,6 +218,46 @@ void EvalContext::create_placeholder_columns() {
   const strvec& oldnames = dt0->get_names();
   newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
   dt0->resize_columns(newnames);
+}
+
+
+
+//------------------------------------------------------------------------------
+// Groupby
+//------------------------------------------------------------------------------
+
+// Compute groupby: either from the `byexpr_`, or fall-back to
+// single group that encompasses the entire frame. Note that this
+// single group might be empty if the frame has 0 rows.
+//
+void EvalContext::compute_groupby_and_sort() {
+  size_t nr = nrows();
+  Workframe wf(*this);
+  if (byexpr_) {
+    wf.cbind(byexpr_.prepare_by(*this));
+  }
+  if (wf.ncols()) {
+    size_t ncols = wf.ncols();
+    std::vector<Column> columns;
+    std::vector<SortFlag> flags;
+    columns.reserve(ncols);
+    flags.reserve(ncols);
+    for (size_t i = 0; i < ncols; ++i) {
+      const Column& col = wf.get_column(i);
+      const_cast<Column&>(col).materialize();
+      columns.push_back(col);  // copy
+      flags.push_back(SortFlag::NONE);
+    }
+    set_groupby_columns(std::move(wf));
+
+    auto rigb = group(columns, flags);
+    apply_rowindex(std::move(rigb.first));
+    groupby_ = std::move(rigb.second);
+  }
+  if (!groupby_) {
+    groupby_ = Groupby::single_group(nr);
+  }
+  xassert(groupby_.last_offset() == nr);
 }
 
 

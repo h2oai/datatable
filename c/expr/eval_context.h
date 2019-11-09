@@ -131,6 +131,8 @@ class EvalContext
     void add_column(Column&&, const RowIndex&, std::string&&);
 
   private:
+    void compute_groupby_and_sort();
+
     void evaluate_delete();
     void evaluate_delete_columns();
     void evaluate_delete_rows();

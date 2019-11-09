@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/head.h"
+#include "expr/workframe.h"
 #include "groupby.h"
 #include "rowindex.h"
 namespace dt {
@@ -33,9 +34,9 @@ Head::~Head() {}
 // by() function transforms its arguments into a Head_List Expr,
 // thus the method `evaluate_by()` should only be defined there.
 //
-RiGb Head::evaluate_by(const vecExpr&, EvalContext&) const {  // LCOV_EXCL_LINE
-  throw RuntimeError() << "Unexpected evaluate_by() call";    // LCOV_EXCL_LINE
-}                                                             // LCOV_EXCL_LINE
+Workframe Head::prepare_by(const vecExpr&, EvalContext&) const {  // LCOV_EXCL_LINE
+  throw RuntimeError() << "Unexpected prepare_by() call";         // LCOV_EXCL_LINE
+}                                                                 // LCOV_EXCL_LINE
 
 
 

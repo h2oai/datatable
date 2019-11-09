@@ -124,10 +124,10 @@ class Head {
                                 EvalContext& ctx) const = 0;
 
     // Evaluate the expression when it is used as the by() node. The
-    // result of the evaluation is a RowIndex+Groupby pair that
-    // describes how the Frame can be split into groups.
+    // result of the evaluation is a Workframe that will be later used
+    // in the group() operation.
     //
-    virtual RiGb evaluate_by(const vecExpr& args, EvalContext& ctx) const;
+    virtual Workframe prepare_by(const vecExpr& args, EvalContext& ctx) const;
 
     virtual RiGb evaluate_iby(const vecExpr& args,
                               EvalContext& ctx) const = 0;
