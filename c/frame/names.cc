@@ -700,9 +700,9 @@ namespace dttest {
     test_assert(check2, "Assertion 'py_inames_.size() == 0' failed");
     dt->py_inames_.del(q);
 
-    dt->py_names_ = *reinterpret_cast<const py::otuple*>(&q);
+    dt->py_names_ = *static_cast<const py::otuple*>(&q);
     test_assert(check2, "Assertion 'py_names_.is_tuple()' failed");
-    dt->py_inames_ = *reinterpret_cast<const py::odict*>(&q);
+    dt->py_inames_ = *static_cast<const py::odict*>(&q);
     dt->py_names_ = py::otuple(1);
     test_assert(check2, "Assertion 'py_inames_.is_dict()' failed");
     dt->py_inames_ = py::odict();
