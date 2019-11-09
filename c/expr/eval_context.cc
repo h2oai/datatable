@@ -64,7 +64,7 @@ void EvalContext::add_sortby(py::osort obj) {
   if (sortexpr_) {
     throw TypeError() << "Multiple sort()'s are not allowed";
   }
-  sortexpr_ = Expr(obj);
+  sortexpr_ = Expr(obj.get_arguments());
 }
 
 

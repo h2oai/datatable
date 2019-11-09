@@ -338,6 +338,6 @@ def test_groupby_with_sort():
     R2 = DT[:, count(), by(f.A, f.B), sort(f.C)]
     R0 = dt.Frame(A=[1, 1, 2, 2, 3, 3],
                   B=[1, 2, 1, 2, 1, 2],
-                  C0=[2] * 6, stypes={"C0": dt.int64})
+                  count=[2] * 6, stypes={"count": dt.int64})
     assert_equals(R1, R0)
     assert_equals(R2, R0)
