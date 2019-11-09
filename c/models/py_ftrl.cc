@@ -1130,7 +1130,6 @@ static PKArgs args___setstate__(
     1, 0, 0, false, false, {"state"}, "__setstate__", nullptr);
 
 void Ftrl::m__setstate__(const PKArgs& args) {
-  m__dealloc__();
   py::otuple pickle = args[0].to_otuple();
 
   if (!pickle[0].is_int()) {
