@@ -192,10 +192,37 @@ SType buffer::stype() const {
 }
 
 
-Buffer buffer::as_dtbuffer() && {
-  auto ptr = data();
-  auto size = nelements() * itemsize() * stride();
-  return Buffer::external(ptr, size, std::move(*this));
+Column buffer::to_column() &&
+{
+  SType  stype = this->stype();
+  size_t nrows = this->nelements();
+  void*  ptr   = this->data();
+  if (stride_ == 1) {
+    size_t datasize = itemsize() * nrows;
+    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    return Column::new_mbuf_column(nrows, stype, std::move(databuf));
+  }
+  else if (static_cast<int64_t>(stride_) > 0) {
+    size_t datasize = itemsize() * nrows * stride_;
+    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    Column internal_col = Column::new_mbuf_column(nrows * stride_, stype,
+                                                  std::move(databuf));
+    return Column(new dt::SliceView_ColumnImpl(
+                          std::move(internal_col),
+                          RowIndex(0, nrows, stride_)
+                  ));
+  }
+  else {
+    size_t datasize = itemsize() * nrows * (-stride_);
+    ptr = static_cast<char*>(ptr) - itemsize() * (nrows - 1) * (-stride_);
+    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    Column internal_col = Column::new_mbuf_column(nrows * (-stride_), stype,
+                                                  std::move(databuf));
+    return Column(new dt::SliceView_ColumnImpl(
+                          std::move(internal_col),
+                          RowIndex((nrows - 1) * (-stride_), nrows, stride_)
+                  ));
+  }
 }
 
 

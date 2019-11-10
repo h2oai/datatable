@@ -1106,6 +1106,10 @@ def test_create_from_numpy_floats_mixed(numpy):
     assert DT.to_list() == [[4.0, 3.5, None, 9.33]]
 
 
+def test_create_from_numpy_reversed(numpy):
+    DT = dt.Frame(numpy.array(range(10))[::-1])
+    assert_equals(DT, dt.Frame(range(9, -1, -1), stype=dt.int64))
+
 
 #-------------------------------------------------------------------------------
 # Issues

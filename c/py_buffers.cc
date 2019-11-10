@@ -64,23 +64,13 @@ Column Column::from_pybuffer(const py::robj& pyobj)
   }
 
   py::buffer view(pyobj);
-  SType stype = view.stype();
-  size_t nrows = view.nelements();
 
   Column res;
-  if (stype == SType::STR32) {
+  if (view.stype() == SType::STR32) {
     res = convert_fwchararray_to_column(std::move(view));
   }
   else {
-    size_t stride_len = view.stride();
-    res = Column::new_mbuf_column(nrows * stride_len, stype,
-                                  std::move(view).as_dtbuffer());
-    if (stride_len != 1) {
-      res = Column(
-              new dt::SliceView_ColumnImpl(std::move(res),
-                                           RowIndex(0, nrows, stride_len))
-            );
-    }
+    res = std::move(view).to_column();
   }
 
   if (res.stype() == SType::OBJ) {
