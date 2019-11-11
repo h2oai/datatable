@@ -28,6 +28,7 @@
 import math
 import os
 import pytest
+import random
 import datatable as dt
 from datatable import ltype, stype, DatatableWarning
 from datatable.internal import frame_integrity_check
@@ -1109,6 +1110,20 @@ def test_create_from_numpy_floats_mixed(numpy):
 def test_create_from_numpy_reversed(numpy):
     DT = dt.Frame(numpy.array(range(10))[::-1])
     assert_equals(DT, dt.Frame(range(9, -1, -1), stype=dt.int64))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(100)])
+def test_create_from_numpy_sliced(numpy, seed):
+    random.seed(seed)
+    start = random.randint(-20, 20)
+    end = random.randint(-20, 20)
+    step = 0
+    while step == 0:
+        step = random.randint(-5, 5)
+    arr = numpy.arange(20)[start:end:step]
+    DT = dt.Frame(arr)
+    assert_equals(DT, dt.Frame(arr.tolist(), stype=dt.int64))
+
 
 
 #-------------------------------------------------------------------------------

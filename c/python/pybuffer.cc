@@ -197,7 +197,10 @@ Column buffer::to_column() &&
   SType  stype = this->stype();
   size_t nrows = this->nelements();
   void*  ptr   = this->data();
-  if (stride_ == 1) {
+  if (nrows == 0) {
+    return Column::new_data_column(0, stype);
+  }
+  else if (stride_ == 1) {
     size_t datasize = itemsize() * nrows;
     Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
     return Column::new_mbuf_column(nrows, stype, std::move(databuf));
