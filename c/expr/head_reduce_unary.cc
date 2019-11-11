@@ -66,7 +66,11 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
       : Virtual_ColumnImpl(grpby.size(), stype),
         arg(std::move(col)),
         groupby(grpby),
-        reducer(fn) {}
+        reducer(fn)
+    {
+      assert_compatible_type<T>(arg.stype());
+      assert_compatible_type<U>(stype);
+    }
 
     ColumnImpl* clone() const override {
       return new Reduced_ColumnImpl<T, U>(stype_, Column(arg), groupby,
@@ -447,22 +451,42 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
 // count(A:grouped)
 //------------------------------------------------------------------------------
 
+// T is the type of the input column
 template <typename T>
-bool count_greducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
-  T value;
-  bool isvalid = col.get_element(i0, &value);
-  *out = isvalid? static_cast<int64_t>(i1 - i0) : 0;
-  return true;  // *out is not NA
-}
+class CountGrouped_ColumnImpl : public Virtual_ColumnImpl
+{
+  private:
+    Column arg;
+    Groupby groupby;
 
+  public:
+    CountGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), SType::INT64),
+        arg(std::move(col)),
+        groupby(grpby) {}
+
+    ColumnImpl* clone() const override {
+      return new CountGrouped_ColumnImpl<T>(Column(arg), groupby);
+    }
+
+    bool get_element(size_t i, int64_t* out) const override {
+      T value;
+      bool isvalid = arg.get_element(i, &value);
+      if (isvalid) {
+        size_t i0, i1;
+        groupby.get_group(i, &i0, &i1);
+        *out = static_cast<int64_t>(i1 - i0);
+      } else {
+        *out = 0;
+      }
+      return true;
+    }
+};
 
 
 template <typename T>
 static Column _gcount(Column&& arg, const Groupby& gby) {
-  return Column(
-            new Reduced_ColumnImpl<T, int64_t>(
-                 SType::INT64, std::move(arg), gby, count_greducer<T>
-            ));
+  return Column(new CountGrouped_ColumnImpl<T>(std::move(arg), gby));
 }
 
 static Column compute_gcount(Column&& arg, const Groupby& gby) {
