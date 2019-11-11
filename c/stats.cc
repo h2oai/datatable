@@ -896,6 +896,9 @@ void NumericStats<T>::compute_sorted_stats() {
   auto r = group({Column(column->clone())}, {SortFlag::NONE});
   RowIndex ri   = std::move(r.first);
   Groupby grpby = std::move(r.second);
+  if (column->nrows() == 0) {
+    grpby = Groupby::single_group(0);
+  }
 
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.size();
@@ -942,6 +945,9 @@ void StringStats::compute_sorted_stats() {
   auto r = group({Column(column->clone())}, {SortFlag::NONE});
   RowIndex ri   = std::move(r.first);
   Groupby grpby = std::move(r.second);
+  if (column->nrows() == 0) {
+    grpby = Groupby::single_group(0);
+  }
 
   const int32_t* groups = grpby.offsets_r();
   size_t n_groups = grpby.size();
