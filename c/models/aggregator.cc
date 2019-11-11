@@ -237,7 +237,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   Column col0 = Column::new_data_column(dt->nrows(), SType::INT32);
   dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
 
-  if (dt->nrows() >= min_rows) {
+  if (dt->nrows() >= min_rows && dt->nrows() != 0) {
     colvec catcols;
     size_t max_bins;
     contconvs.reserve(dt->ncols());
@@ -265,11 +265,9 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       if (is_continuous && contconv != nullptr) {
         contconvs.push_back(std::move(contconv));
       }
-      size_t amount = WORK_PREPARE * (i + 1) / ncols;
+      size_t amount = (WORK_PREPARE * (i + 1)) / ncols;
       job.set_done_amount(amount);
     }
-    job.set_done_amount(WORK_PREPARE);
-
     dt_cat = dtptr(new DataTable(std::move(catcols), DataTable::default_names));
     ncols = contconvs.size() + dt_cat->ncols();
 
@@ -323,7 +321,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt_members_in = std::move(dt_members);
 
   // We do not need a pointer to the original datatable anymore,
-  // also clear vector of column convertors and datatable with categoricals
+  // also clear vector of column convertors and datatable with categoricals.
   dt = nullptr;
   contconvs.clear();
   dt_cat = nullptr;
@@ -350,9 +348,9 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
 
     // First, set all `exemplar_id`s to `N/A`.
-    for (size_t i = 0; i < dt_members->nrows(); ++i) {
+    dt::parallel_for_static(dt_members->nrows(), [&](size_t i) {
       d_members[i] = GETNA<int32_t>();
-    }
+    });
 
     // Second, randomly select `max_bins` groups.
     if (!seed) {
@@ -361,6 +359,7 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
     }
     srand(seed);
     size_t k = 0;
+    dt::progress::work job(max_bins);
     while (k < max_bins) {
       int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
       size_t off_i = static_cast<size_t>(offsets[i]);
@@ -369,15 +368,18 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
       xassert(rii_valid);  (void) rii_valid;
       if (ISNA<int32_t>(d_members[ri])) {
         size_t off_i1 = static_cast<size_t>(offsets[i + 1]);
-        for (size_t j = off_i; j < off_i1; ++j) {
-          rii_valid = ri_members.get_element(j, &ri);
+        dt::parallel_for_static(off_i1 - off_i, [&](size_t j) {
+          rii_valid = ri_members.get_element(j + off_i, &ri);
           xassert(rii_valid);  (void) rii_valid;
           d_members[ri] = static_cast<int32_t>(k);
-        }
+        });
+
         k++;
+        job.add_done_amount(1);
       }
     }
     dt_members->get_column(0).reset_stats();
+    job.done();
   }
 }
 
@@ -400,7 +402,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   size_t ngroups = gb_members.ngroups();
   const int32_t* offsets = gb_members.offsets_r();
   // If the input was an empty frame, then treat this case as if no
-  // groups are present
+  // groups are present.
   if (offsets[ngroups] == 0) ngroups = 0;
 
   size_t n_exemplars = ngroups - was_sampled;
@@ -414,7 +416,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   auto d_counts = static_cast<int32_t*>(dt_counts->get_column(0).get_data_editable());
   std::memset(d_counts, 0, n_exemplars * sizeof(int32_t));
 
-  // Setting up exemplar indices and counts
+  // Setting up exemplar indices and counts.
   auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
   for (size_t i = was_sampled; i < ngroups; ++i) {
     size_t i_sampled = i - was_sampled;
@@ -432,7 +434,8 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   // - for ND we first generate exemplar_id's based on the exemplar row ids
   //   from the original dataset, so those should be replaced with the
   //   actual exemplar_id's from the exemplar column.
-  dt::parallel_for_dynamic(ngroups - was_sampled,
+  dt::progress::work job(n_exemplars);
+  dt::parallel_for_dynamic(n_exemplars,
     [&](size_t i_sampled) {
       size_t member_shift = static_cast<size_t>(offsets[i_sampled + was_sampled]);
       size_t jmax = static_cast<size_t>(d_counts[i_sampled]);
@@ -442,7 +445,11 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
         xassert(rii_valid);  (void) rii_valid;
         d_members[rii] = static_cast<int32_t>(i_sampled);
       }
+      if (dt::this_thread_index() == 0) {
+        job.set_done_amount(i_sampled);
+      }
     });
+  job.set_done_amount(n_exemplars);
   dt_members->get_column(0).reset_stats();
 
   // Applying exemplars row index and binding exemplars with the counts.
@@ -450,6 +457,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   dt_exemplars->apply_rowindex(ri_exemplars);
   std::vector<DataTable*> dts = { dt_counts.release() };
   dt_exemplars->cbind(dts);
+  job.done();
 }
 
 
@@ -842,11 +850,12 @@ bool Aggregator<T>::group_nd() {
         }
 
         if (ith == 0) {
-          job.set_done_amount(i - i0);
+          job.set_done_amount(i - i0 + 1);
         }
       } // End main loop over all the rows
     });
   adjust_members(ids);
+  job.done();
   return false;
 }
 
