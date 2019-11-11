@@ -278,7 +278,7 @@ Workframe Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx) const
     return Workframe(ctx); // RiGb{ RowIndex(), Groupby() };
   }
   auto kind = _resolve_list_kind(inputs);
-  if (kind == Kind::Str) {
+  if (kind == Kind::Str || kind == Kind::Int) {
     return _evaluate_f_list(inputs, ctx, false);
   }
   if (kind == Kind::Func) {

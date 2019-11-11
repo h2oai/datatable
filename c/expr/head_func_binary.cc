@@ -36,8 +36,8 @@ Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) co
   xassert(args.size() == 2);
   Workframe lhs = args[0].evaluate_n(ctx);
   Workframe rhs = args[1].evaluate_n(ctx);
-  if (lhs.ncols() == 1) lhs.repeat_columns(rhs.ncols());
-  if (rhs.ncols() == 1) rhs.repeat_columns(lhs.ncols());
+  if (lhs.ncols() == 1) lhs.repeat_column(rhs.ncols());
+  if (rhs.ncols() == 1) rhs.repeat_column(lhs.ncols());
   if (lhs.ncols() != rhs.ncols()) {
     throw ValueError() << "Incompatible column vectors in a binary operation: "
       "LHS contains " << lhs.ncols() << " items, while RHS has " << rhs.ncols()

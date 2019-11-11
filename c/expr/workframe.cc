@@ -161,10 +161,16 @@ bool Workframe::is_reference_column(
 }
 
 
-void Workframe::repeat_columns(size_t n) {
+void Workframe::repeat_column(size_t n) {
   xassert(ncols() == 1);
   if (n == 1) return;
   entries_.resize(n, entries_[0]);
+}
+
+
+void Workframe::truncate_columns(size_t n) {
+  xassert(ncols() >= n);
+  entries_.resize(n);
 }
 
 
