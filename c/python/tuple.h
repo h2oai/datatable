@@ -72,11 +72,13 @@ class otuple : public oobj {
     void replace(size_t i,  const _obj& value);
     void replace(size_t i,  oobj&& value);
 
+
   private:
     // Private constructors, used from `_obj`. If you need to construct
     // `otuple` from `_obj`, use `_obj.to_otuple()` instead.
     otuple(const robj&);
     friend class _obj;
+    void make_editable();
 };
 
 

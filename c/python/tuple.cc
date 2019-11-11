@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/tuple.h"
+#include "utils/assert.h"
 
 namespace py {
 
@@ -103,14 +104,45 @@ void otuple::set(size_t i, oobj&& value) {
 
 
 void otuple::replace(size_t i, const _obj& value) {
+  // Ensure `v->ob_refcnt == 1`, otherwise a call to `PyTuple_SetItem()`
+  // will result in a `SystemError`.
+  make_editable();
+
   // PyTuple_SetItem "steals" a reference to the last argument
   PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), value.to_pyobject_newref());
 }
 
+
 void otuple::replace(size_t i, oobj&& value) {
+  // Ensure `v->ob_refcnt == 1`, otherwise a call to `PyTuple_SetItem()`
+  // will result in a `SystemError`.
+  make_editable();
+
   PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), std::move(value).release());
 }
 
+
+/**
+ * When the reference count of `v` is one, this method is a noop.
+ * Otherwise, it will replace `v` with its copy, ensuring that the
+ * reference count for the new object is one. This method is useful
+ * when we need to replace values in a tuple that has the reference count
+ * greater than one. If a copy of `v` is not made in such a case,
+ a call to `PyTuple_SetItem()` will resulst in a `SystemError`.
+ */
+void otuple::make_editable() {
+  if (v->ob_refcnt == 1) return;
+  PyObject* v_new = PyTuple_GetSlice(v, 0, PyTuple_Size(v)); // new ref
+  if (Py_TYPE(v) != Py_TYPE(v_new)) {
+    // When `v` is a namedtuple, we need to adjust python type for `v_new`.
+    // This is because `PyTuple_GetSlice()` always returns a regular tuple.
+    PyTypeObject* v_type = Py_TYPE(v);
+    Py_TYPE(v_new) = v_type;
+    Py_INCREF(v_type);
+  }
+  Py_SETREF(v, v_new);
+  xassert(v->ob_refcnt == 1);
+}
 
 
 //------------------------------------------------------------------------------
