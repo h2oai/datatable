@@ -184,7 +184,7 @@ ifeq ($(PLATFORM),x86_64_centos7)
     ARCH_SUBST = $(ARCH)
 endif
 ifeq ($(PLATFORM),ppc64le_centos7)
-    FROM_SUBST = ibmcom\/centos-ppc64le
+    FROM_SUBST = ppc64le\/centos:7
     ARCH_SUBST = $(ARCH)
 endif
 ifeq ($(PLATFORM),x86_64_ubuntu)
