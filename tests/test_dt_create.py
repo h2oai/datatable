@@ -1112,15 +1112,25 @@ def test_create_from_numpy_reversed(numpy):
     assert_equals(DT, dt.Frame(range(9, -1, -1), stype=dt.int64))
 
 
+def test_create_from_numpy_masked_and_sliced(numpy):
+    arr = numpy.ma.array([1, 2, 3], mask=[False, True, False])
+    DT = dt.Frame(arr[::2])
+    assert_equals(DT, dt.Frame([1, 3], stype=dt.int64))
+
+
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
-def test_create_from_numpy_sliced(numpy, seed):
+def test_from_random_numpy_masked_and_sliced(numpy, seed):
     random.seed(seed)
     start = random.randint(-20, 20)
     end = random.randint(-20, 20)
     step = 0
     while step == 0:
         step = random.randint(-5, 5)
-    arr = numpy.arange(20)[start:end:step]
+    arr = numpy.arange(20)
+    if random.random() < 0.5:
+        arr = numpy.ma.array(arr, mask=[random.random() < 0.5
+                                        for _ in range(arr.shape[0])])
+    arr = arr[start:end:step]
     DT = dt.Frame(arr)
     assert_equals(DT, dt.Frame(C0=arr.tolist(), stype=dt.int64))
 

@@ -79,53 +79,20 @@ void NpMasked_ColumnImpl::materialize(Column& out) {
 // Element access
 //------------------------------------------------------------------------------
 
-bool NpMasked_ColumnImpl::get_element(size_t i, int8_t* out)  const {
+template <typename T>
+inline bool NpMasked_ColumnImpl::_get(size_t i, T* out) const {
   if (static_cast<const bool*>(mask_.rptr())[i]) return false;
   return arg_.get_element(i, out);
 }
 
-
-bool NpMasked_ColumnImpl::get_element(size_t i, int16_t* out) const {
-  if (static_cast<const bool*>(mask_.rptr())[i]) return false;
-  return arg_.get_element(i, out);
-}
-
-
-bool NpMasked_ColumnImpl::get_element(size_t i, int32_t* out) const {
-  if (static_cast<const bool*>(mask_.rptr())[i]) return false;
-  return arg_.get_element(i, out);
-}
-
-
-bool NpMasked_ColumnImpl::get_element(size_t i, int64_t* out) const {
-  if (static_cast<const bool*>(mask_.rptr())[i]) return false;
-  return arg_.get_element(i, out);
-}
-
-
-bool NpMasked_ColumnImpl::get_element(size_t i, float* out)   const {
-  if (static_cast<const bool*>(mask_.rptr())[i]) return false;
-  return arg_.get_element(i, out);
-}
-
-
-bool NpMasked_ColumnImpl::get_element(size_t i, double* out)  const {
-  if (static_cast<const bool*>(mask_.rptr())[i]) return false;
-  return arg_.get_element(i, out);
-}
-
-
-bool NpMasked_ColumnImpl::get_element(size_t i, CString* out) const {
-  if (static_cast<const bool*>(mask_.rptr())[i]) return false;
-  return arg_.get_element(i, out);
-}
-
-
-bool NpMasked_ColumnImpl::get_element(size_t i, py::robj* out) const {
-  if (static_cast<const bool*>(mask_.rptr())[i]) return false;
-  return arg_.get_element(i, out);
-}
-
+bool NpMasked_ColumnImpl::get_element(size_t i, int8_t* out)   const { return _get(i, out); }
+bool NpMasked_ColumnImpl::get_element(size_t i, int16_t* out)  const { return _get(i, out); }
+bool NpMasked_ColumnImpl::get_element(size_t i, int32_t* out)  const { return _get(i, out); }
+bool NpMasked_ColumnImpl::get_element(size_t i, int64_t* out)  const { return _get(i, out); }
+bool NpMasked_ColumnImpl::get_element(size_t i, float* out)    const { return _get(i, out); }
+bool NpMasked_ColumnImpl::get_element(size_t i, double* out)   const { return _get(i, out); }
+bool NpMasked_ColumnImpl::get_element(size_t i, CString* out)  const { return _get(i, out); }
+bool NpMasked_ColumnImpl::get_element(size_t i, py::robj* out) const { return _get(i, out); }
 
 
 
