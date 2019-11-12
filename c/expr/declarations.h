@@ -37,6 +37,7 @@ namespace dt {
 namespace expr {
   using std::size_t;
 
+
   class Head;
   class Expr;
   class Workframe;
@@ -120,18 +121,7 @@ namespace expr {
     SliceStr
   };
 
+
+
 }}
-
-
-//
-// OBSOLETE
-//
-namespace dt {
-  enum class GroupbyMode : uint8_t {
-    NONE   = 0,
-    GtoONE = 1,
-    GtoALL = 2,
-    GtoANY = 3
-  };
-}
 #endif

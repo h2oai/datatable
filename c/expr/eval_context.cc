@@ -110,10 +110,6 @@ EvalMode EvalContext::get_mode() const {
   return eval_mode_;
 }
 
-GroupbyMode EvalContext::get_groupby_mode() const {
-  return GroupbyMode::NONE;
-}
-
 const RowIndex& EvalContext::get_ungroup_rowindex() {
   if (!ungroup_rowindex_) {
     ungroup_rowindex_ = groupby_.ungroup_rowindex();

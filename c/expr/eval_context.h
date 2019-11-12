@@ -97,7 +97,6 @@ class EvalContext
     EvalContext(EvalContext&&) = delete;
 
     EvalMode get_mode() const;
-    GroupbyMode get_groupby_mode() const;
 
     void add_join(py::ojoin);
     void add_groupby(py::oby);
