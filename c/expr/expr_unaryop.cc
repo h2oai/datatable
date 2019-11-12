@@ -177,58 +177,6 @@ static float fn_sign(float x) {
 
 
 //------------------------------------------------------------------------------
-// expr_unaryop
-//------------------------------------------------------------------------------
-
-expr_unaryop::expr_unaryop(pexpr&& a, Op op)
-  : arg(std::move(a)), opcode(op) {}
-
-
-bool expr_unaryop::is_negated_expr() const {
-  return opcode == Op::UMINUS;
-}
-
-pexpr expr_unaryop::get_negated_expr() {
-  pexpr res;
-  if (opcode == Op::UMINUS) {
-    res = std::move(arg);
-  }
-  return res;
-}
-
-
-SType expr_unaryop::resolve(const EvalContext& ctx) {
-  SType input_stype = arg->resolve(ctx);
-  return unary_library.get_infox(opcode, input_stype).output_stype;
-}
-
-
-GroupbyMode expr_unaryop::get_groupby_mode(const EvalContext& ctx) const {
-  return arg->get_groupby_mode(ctx);
-}
-
-
-Column expr_unaryop::evaluate(EvalContext& ctx) {
-  Column input_column = arg->evaluate(ctx);
-  SType input_stype = input_column.stype();
-  const auto& ui = unary_library.get_infox(opcode, input_stype);
-  if (ui.cast_stype != SType::VOID) {
-    input_column.cast_inplace(ui.cast_stype);
-    input_stype = ui.cast_stype;
-  }
-  if (!ui.vcolfn) {
-    throw NotImplError() << "Cannot create a virtual column for input_stype = "
-        << input_stype << " and op = " << static_cast<size_t>(opcode);
-  }
-  Column res = ui.vcolfn(std::move(input_column));
-  res.materialize();
-  return res;
-}
-
-
-
-
-//------------------------------------------------------------------------------
 // unary_pyfn
 //------------------------------------------------------------------------------
 
