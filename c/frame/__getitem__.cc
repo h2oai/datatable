@@ -31,8 +31,8 @@
 //------------------------------------------------------------------------------
 #include "expr/eval_context.h"
 #include "expr/expr.h"
-#include "expr/join_node.h"     // py::ojoin
 #include "expr/py_by.h"         // py::oby
+#include "expr/py_join.h"       // py::ojoin
 #include "expr/py_sort.h"       // py::osort
 #include "frame/py_frame.h"
 #include "python/_all.h"

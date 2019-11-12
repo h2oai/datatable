@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/join_node.h"
+#include "expr/py_join.h"
 #include "datatable.h"
 #include "python/arg.h"
 namespace py {

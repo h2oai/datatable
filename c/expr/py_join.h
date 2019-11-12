@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,11 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_JOIN_NODE_h
-#define dt_EXPR_JOIN_NODE_h
+#ifndef dt_EXPR_PY_JOIN_h
+#define dt_EXPR_PY_JOIN_h
 #include "python/obj.h"
 #include "python/xobject.h"
-
 namespace py {
 
 
