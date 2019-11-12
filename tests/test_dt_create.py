@@ -1110,12 +1110,21 @@ def test_create_from_numpy_floats_mixed(numpy):
 def test_create_from_numpy_reversed(numpy):
     DT = dt.Frame(numpy.array(range(10))[::-1])
     assert_equals(DT, dt.Frame(range(9, -1, -1), stype=dt.int64))
+    assert DT.to_jay()
 
 
 def test_create_from_numpy_masked_and_sliced(numpy):
     arr = numpy.ma.array([1, 2, 3], mask=[False, True, False])
     DT = dt.Frame(arr[::2])
     assert_equals(DT, dt.Frame([1, 3], stype=dt.int64))
+    assert DT.to_jay()
+
+
+def test_create_from_0size_masked_array(numpy):
+    arr = numpy.ma.array([1, 2, 3], mask=[False, True, False])
+    DT = dt.Frame(arr[2:0])
+    assert_equals(DT, dt.Frame(C0=[], stype=dt.int64))
+    assert DT.to_jay()
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
@@ -1133,6 +1142,7 @@ def test_from_random_numpy_masked_and_sliced(numpy, seed):
     arr = arr[start:end:step]
     DT = dt.Frame(arr)
     assert_equals(DT, dt.Frame(C0=arr.tolist(), stype=dt.int64))
+    assert DT.to_jay()
 
 
 
