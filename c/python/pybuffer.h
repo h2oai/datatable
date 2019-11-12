@@ -21,8 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_PYBUFFER_h
 #define dt_PYTHON_PYBUFFER_h
+#include "column/view.h"
 #include "python/obj.h"
 #include "buffer.h"
+#include "column.h"
 namespace py {
 
 
@@ -76,7 +78,7 @@ class buffer
 
     SType stype() const;
 
-    Buffer as_dtbuffer() &&;
+    Column to_column() &&;
 
 
   private:
