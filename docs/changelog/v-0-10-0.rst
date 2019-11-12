@@ -181,6 +181,9 @@ Frame
   there is now also a method to load those styles directly:
   :meth:`init_styles` (#1871).
 
+- |fix| Fix creation of a Frame from a numpy array which was obtained from
+  another numpy array as a slice with a negative stride (#2163).
+
 
 General
 -------
