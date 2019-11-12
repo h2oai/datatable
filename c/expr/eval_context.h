@@ -24,7 +24,6 @@
 #include <vector>            // std::vector
 #include "expr/declarations.h"
 #include "expr/expr.h"
-#include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
 #include "expr/py_by.h"      // py::oby
 #include "expr/workframe.h"
