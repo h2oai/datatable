@@ -22,11 +22,11 @@
 #ifndef dt_EXPR_EVAL_CONTEXT_h
 #define dt_EXPR_EVAL_CONTEXT_h
 #include <vector>            // std::vector
-#include "expr/by_node.h"    // py::oby, by_node_ptr
 #include "expr/declarations.h"
 #include "expr/expr.h"
 #include "expr/j_node.h"     // j_node_ptr
 #include "expr/join_node.h"  // py::ojoin
+#include "expr/py_by.h"      // py::oby
 #include "expr/workframe.h"
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
@@ -47,7 +47,7 @@ namespace expr {
  * Later, `join_node`(s) may append additional DataTable* objects, with all
  * `RowIndex`es specifying how they merge together.
  *
- * The `by_node` will attach a `Groupby` object. The Groupby will specify how
+ * The `byexpr_` will attach a `Groupby` object. The Groupby will specify how
  * the rows are split into groups, and it applies to all `DataTable*`s in the
  * EvalContext. The shape of the Groupby must be compatible with all current
  * `RowIndex`es.
@@ -143,8 +143,6 @@ class EvalContext
     void create_placeholder_columns();
     void typecheck_for_update(Workframe&, const intvec&);
     void update_groupby_columns(Grouping gmode);
-
-    friend class dt::by_node;  // Allow access to `gb`
 };
 
 

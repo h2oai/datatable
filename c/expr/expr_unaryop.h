@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_UNARYOP_h
 #define dt_EXPR_EXPR_UNARYOP_h
-#include "expr/by_node.h"
 #include "expr/expr.h"
 #include "python/_all.h"
 #include "python/args.h"

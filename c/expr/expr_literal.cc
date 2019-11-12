@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/expr_literal.h"
+#include "python/list.h"
 namespace dt {
 namespace expr {
 

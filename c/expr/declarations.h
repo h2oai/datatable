@@ -129,10 +129,8 @@ namespace expr {
 // OBSOLETE
 //
 namespace dt {
-  class by_node;
   class collist;
 
-  using by_node_ptr = std::unique_ptr<by_node>;
   using collist_ptr = std::unique_ptr<collist>;
 
   enum class GroupbyMode : uint8_t {

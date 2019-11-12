@@ -20,40 +20,13 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 //
-// This is a main file dedicated to computing the pythonic expression
+// This file implements `Frame.__getitem__()` and `Frame.__setitem__()` methods,
+// which are used for the []-functionality:
 //
 //     DT[i, j, by(), join(), ...]
 //
-// Here `i` can be either an int, a slice, a range, a list of ints, a generator
-// expression, a boolean or integer Frame, a numpy array, etc.
-//
-// Similarly, the `j` item can also be an int, a string, a slice, a range,
-// an expression, a type, an stype, a list/tuple/iterator of any of these, etc.
-// We build a `j_node` object out of the `j` expression.
-//
-// On the contrary, the python `by()` function already creates a "by_node"
-// object, so there is no need to instantiate anything. The only thing remaining
-// is to verify the correctness of columns / column expressions used in this
-// `by_node`.
-//
-// Likewise, each `join()` call in python creates a "join_node" object, and we
-// only need to collect these objects into the EvalContext.
-//
-//
-// The "EvalContext" object gathers all the information necessary to evaluate the
-// expression `DT[i, j, ...]` above.
-//
-// We begin evaluation with checking the by- and join- nodes and inserting them
-// into the EvalContext. This has to be done first, because `i` and `j` nodes can
-// refer to columns from the join frames, and therefore in order to check their
-// correctness we need to know which frames are joined.
-//
-// Next, we construct `iexpr_` and `jexpr` from arguments `i` and `j`.
-//
-// Once all nodes of the evaluation graph are initialized, we compute all joins
-// (if any). After this step all subframes within the evaluation frame will
-// become conformant, i.e. they'll have the same number of rows (after applying
-// each subframe's RowIndex).
+// In this file we mainly gather all the python arguments into an `EvalContext`
+// object, and then allow that object to calculate the result.
 //
 //------------------------------------------------------------------------------
 #include "expr/eval_context.h"
