@@ -41,7 +41,6 @@
 #include <type_traits>         // std::is_integral
 #include "expr/expr_binaryop.h"
 #include "expr/expr_cast.h"
-#include "expr/expr_literal.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "column.h"
