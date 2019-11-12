@@ -54,7 +54,7 @@ class NpMasked_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, py::robj*) const override;
 
   private:
-    template <typename T> void _apply_mask();
+    template <typename T> void _apply_mask(Column& out);
     template <typename T> inline bool _get(size_t, T*) const;
 };
 
