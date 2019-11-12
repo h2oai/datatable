@@ -1127,7 +1127,7 @@ def test_create_from_0size_masked_array(numpy):
     assert DT.to_jay()
 
 
-@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(1000)])
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
 def test_from_random_numpy_masked_and_sliced(numpy, seed):
     random.seed(seed)
     start = random.randint(-20, 20)
