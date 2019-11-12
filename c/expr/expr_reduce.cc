@@ -82,7 +82,7 @@ static Column reduce_first(const Column& col, const Groupby& groupby)
   if (col.nrows() == 0) {
     return Column::new_data_column(0, col.stype());
   }
-  size_t ngrps = groupby.ngroups();
+  size_t ngrps = groupby.size();
   // groupby.offsets array has length `ngrps + 1` and contains offsets of the
   // beginning of each group. We will take this array and reinterpret it as a
   // RowIndex (taking only the first `ngrps` elements). Applying this rowindex
@@ -286,7 +286,7 @@ expr_reduce1::expr_reduce1(pexpr&& a, Op op)
   : arg(std::move(a)), opcode(op) {}
 
 
-SType expr_reduce1::resolve(const dt::EvalContext& ctx) {
+SType expr_reduce1::resolve(const EvalContext& ctx) {
   SType arg_stype = arg->resolve(ctx);
   if (opcode == Op::FIRST) {
     return arg_stype;
@@ -310,7 +310,7 @@ Column expr_reduce1::evaluate(EvalContext& ctx)
 {
   auto input_col = arg->evaluate(ctx);
   Groupby gb = ctx.get_groupby();
-  size_t out_nrows = gb.ngroups();
+  size_t out_nrows = gb.size();
 
   if (opcode == Op::FIRST) {
     return reduce_first(input_col, gb);
@@ -369,7 +369,7 @@ Column expr_reduce0::evaluate(EvalContext& ctx) {
   if (opcode == Op::COUNT0) {  // COUNT
     if (ctx.has_groupby()) {
       const Groupby& grpby = ctx.get_groupby();
-      size_t ng = grpby.ngroups();
+      size_t ng = grpby.size();
       const int32_t* offsets = grpby.offsets_r();
       res = Column::new_data_column(ng, SType::INT64);
       auto d_res = static_cast<int64_t*>(res.get_data_editable());

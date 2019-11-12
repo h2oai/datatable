@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "datatable.h"
 namespace dt {
@@ -26,7 +27,7 @@ namespace expr {
 
 
 //------------------------------------------------------------------------------
-// Workframe::Record
+// Workframe::Record (helper struct)
 //------------------------------------------------------------------------------
 
 Workframe::Record::Record()
@@ -37,8 +38,8 @@ Workframe::Record::Record(Column&& col, std::string&& name_)
     name(std::move(name_)),
     frame_id(INVALID_FRAME) {}
 
-Workframe::Record::Record(Column&& col, const std::string& name_, size_t fid,
-                          size_t cid)
+Workframe::Record::Record(Column&& col, const std::string& name_,
+                          size_t fid, size_t cid)
   : column(std::move(col)),
     name(name_),
     frame_id(static_cast<uint32_t>(fid)),
@@ -51,60 +52,66 @@ Workframe::Record::Record(Column&& col, const std::string& name_, size_t fid,
 // Workframe
 //------------------------------------------------------------------------------
 
-Workframe::Workframe(EvalContext& ctx_)
-  : ctx(ctx_),
-    grouping_mode(Grouping::SCALAR) {}
+Workframe::Workframe(EvalContext& ctx)
+  : ctx_(ctx),
+    grouping_mode_(Grouping::SCALAR) {}
 
 
 
 void Workframe::add_column(Column&& col, std::string&& name, Grouping gmode) {
   sync_grouping_mode(col, gmode);
-  entries.emplace_back(std::move(col), std::move(name));
+  entries_.emplace_back(std::move(col), std::move(name));
 }
 
 
-void Workframe::add_ref_column(size_t iframe, size_t icol) {
-  const DataTable* df = ctx.get_datatable(iframe);
-  const RowIndex& rowindex = ctx.get_rowindex(iframe);
-  Column column { df->get_column(icol) };  // copy
+void Workframe::add_ref_column(size_t ifr, size_t icol) {
+  const DataTable* df = ctx_.get_datatable(ifr);
+  const RowIndex& rowindex = ctx_.get_rowindex(ifr);
+  Column column = df->get_column(icol);  // copy
   column.apply_rowindex(rowindex);
   const std::string& name = df->get_names()[icol];
 
-  auto gmode = (grouping_mode <= Grouping::GtoONE &&
-                iframe == 0 &&
-                ctx.has_groupby() &&
-                ctx.get_by_node().has_group_column(icol)) ? Grouping::GtoONE
-                                                          : Grouping::GtoALL;
+  // Detect whether the column participates in a groupby
+  Grouping gmode = Grouping::GtoALL;
+  if (grouping_mode_ <= Grouping::GtoONE && ctx_.has_group_column(ifr, icol)) {
+    gmode = Grouping::GtoONE;
+    column.apply_rowindex(ctx_.get_group_rowindex());
+  }
   sync_grouping_mode(column, gmode);
-  entries.emplace_back(std::move(column), name, iframe, icol);
+  entries_.emplace_back(std::move(column), name, ifr, icol);
 }
 
 
-void Workframe::add_placeholder(const std::string& name, size_t iframe) {
-  entries.emplace_back(Column(), std::string(name), iframe, 0);
+void Workframe::add_placeholder(const std::string& name, size_t ifr) {
+  entries_.emplace_back(Column(), std::string(name), ifr, 0);
 }
 
 
-void Workframe::cbind(Workframe&& other) {
+void Workframe::cbind(Workframe&& other, bool at_end) {
   sync_grouping_mode(other);
-  if (entries.size() == 0) {
-    entries = std::move(other.entries);
+  if (at_end && !entries_.empty()) {
+    entries_.reserve(entries_.size() + other.entries_.size());
+    for (auto& item : other.entries_) {
+      entries_.emplace_back(std::move(item));
+    }
   }
   else {
-    for (auto& item : other.entries) {
-      entries.emplace_back(std::move(item));
+    other.entries_.reserve(entries_.size() + other.entries_.size());
+    for (auto& item : entries_) {
+      other.entries_.emplace_back(std::move(item));
     }
+    entries_ = std::move(other.entries_);
   }
 }
 
 
 void Workframe::rename(const std::string& newname) {
-  if (entries.size() == 1) {
-    entries[0].name = newname;
+  if (entries_.size() == 1) {
+    entries_[0].name = newname;
   }
   else {
     size_t len = newname.size();
-    for (auto& info : entries) {
+    for (auto& info : entries_) {
       if (info.name.empty()) {
         info.name = newname;
       }
@@ -125,39 +132,47 @@ void Workframe::rename(const std::string& newname) {
 
 
 size_t Workframe::ncols() const noexcept {
-  return entries.size();
+  return entries_.size();
 }
 
 size_t Workframe::nrows() const noexcept {
-  return entries.empty()? 0 : entries[0].column.nrows();
+  if (entries_.empty()) return 0;
+  if (!entries_[0].column) return 0;
+  return entries_[0].column.nrows();
 }
 
 EvalContext& Workframe::get_context() const noexcept {
-  return ctx;
+  return ctx_;
 }
 
 bool Workframe::is_computed_column(size_t i) const {
-  return entries[i].frame_id == Record::INVALID_FRAME;
+  return entries_[i].frame_id == Record::INVALID_FRAME;
 }
 
 bool Workframe::is_placeholder_column(size_t i) const {
-  return !entries[i].column;
+  return !entries_[i].column;
 }
 
 bool Workframe::is_reference_column(
     size_t i, size_t* iframe, size_t* icol) const
 {
   xassert(is_computed_column(i) + is_placeholder_column(i) <= 1);
-  *iframe = entries[i].frame_id;
-  *icol  = entries[i].column_id;
+  *iframe = entries_[i].frame_id;
+  *icol  = entries_[i].column_id;
   return !(is_computed_column(i) || is_placeholder_column(i));
 }
 
 
-void Workframe::repeat_columns(size_t n) {
+void Workframe::repeat_column(size_t n) {
   xassert(ncols() == 1);
   if (n == 1) return;
-  entries.resize(n, entries[0]);
+  entries_.resize(n, entries_[0]);
+}
+
+
+void Workframe::truncate_columns(size_t n) {
+  xassert(ncols() >= n);
+  entries_.resize(n);
 }
 
 
@@ -168,7 +183,7 @@ void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
   size_t this_nrows = nrows();
   size_t this_ncols = ncols();
   if (this_ncols == 0 && target_ncols == 0 && this_nrows == 0) return;
-  if (grouping_mode != Grouping::GtoALL) {
+  if (grouping_mode_ != Grouping::GtoALL) {
     increase_grouping_mode(Grouping::GtoALL);
     this_nrows = nrows();
   }
@@ -181,7 +196,7 @@ void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
   }
   if (this_ncols != target_ncols) {
     xassert(this_ncols == 1);
-    entries.resize(target_ncols, entries[0]);
+    entries_.resize(target_ncols, entries_[0]);
   }
   xassert(nrows() == target_nrows);
   xassert(ncols() == target_ncols);
@@ -189,32 +204,32 @@ void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
 
 
 const Column& Workframe::get_column(size_t i) const {
-  return entries[i].column;
+  return entries_[i].column;
 }
 
 
 std::string Workframe::retrieve_name(size_t i) {
-  xassert(i < entries.size());
-  return std::move(entries[i].name);
+  xassert(i < entries_.size());
+  return std::move(entries_[i].name);
 }
 
 
 Column Workframe::retrieve_column(size_t i) {
-  xassert(i < entries.size());
-  return std::move(entries[i].column);
+  xassert(i < entries_.size());
+  return std::move(entries_[i].column);
 }
 
 
 void Workframe::replace_column(size_t i, Column&& col) {
-  xassert(i < entries.size());
-  xassert(!entries[i].column);
-  entries[i].column = std::move(col);
-  entries[i].frame_id = Record::INVALID_FRAME;
+  xassert(i < entries_.size());
+  xassert(!entries_[i].column);
+  entries_[i].column = std::move(col);
+  entries_[i].frame_id = Record::INVALID_FRAME;
 }
 
 
 Grouping Workframe::get_grouping_mode() const {
-  return grouping_mode;
+  return grouping_mode_;
 }
 
 
@@ -222,9 +237,9 @@ Grouping Workframe::get_grouping_mode() const {
 std::unique_ptr<DataTable> Workframe::convert_to_datatable() && {
   colvec columns;
   strvec names;
-  names.reserve(entries.size());
-  columns.reserve(entries.size());
-  for (auto& record : entries) {
+  names.reserve(entries_.size());
+  columns.reserve(entries_.size());
+  for (auto& record : entries_) {
     columns.emplace_back(std::move(record.column));
     names.emplace_back(std::move(record.name));
   }
@@ -241,29 +256,33 @@ std::unique_ptr<DataTable> Workframe::convert_to_datatable() && {
 //------------------------------------------------------------------------------
 
 void Workframe::sync_grouping_mode(Workframe& other) {
-  if (grouping_mode == other.grouping_mode) return;
-  size_t g1 = static_cast<size_t>(grouping_mode);
-  size_t g2 = static_cast<size_t>(other.grouping_mode);
-  if (g1 < g2) increase_grouping_mode(other.grouping_mode);
-  else         other.increase_grouping_mode(grouping_mode);
+  if (grouping_mode_ != other.grouping_mode_) {
+    size_t g1 = static_cast<size_t>(grouping_mode_);
+    size_t g2 = static_cast<size_t>(other.grouping_mode_);
+    if (g1 < g2) increase_grouping_mode(other.grouping_mode_);
+    else         other.increase_grouping_mode(grouping_mode_);
+  }
+  // xassert(ncols() == 0 || other.ncols() == 0 || nrows() == other.nrows());
 }
 
 
 void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
-  if (grouping_mode == gmode) return;
-  size_t g1 = static_cast<size_t>(grouping_mode);
-  size_t g2 = static_cast<size_t>(gmode);
-  if (g1 < g2) increase_grouping_mode(gmode);
-  else         column_increase_grouping_mode(col, gmode, grouping_mode);
+  if (grouping_mode_ != gmode) {
+    size_t g1 = static_cast<size_t>(grouping_mode_);
+    size_t g2 = static_cast<size_t>(gmode);
+    if (g1 < g2) increase_grouping_mode(gmode);
+    else         column_increase_grouping_mode(col, gmode, grouping_mode_);
+  }
+  xassert(ncols() == 0 || nrows() == col.nrows());
 }
 
 
 void Workframe::increase_grouping_mode(Grouping gmode) {
-  for (auto& item : entries) {
+  for (auto& item : entries_) {
     if (!item.column) continue;  // placeholder column
-    column_increase_grouping_mode(item.column, grouping_mode, gmode);
+    column_increase_grouping_mode(item.column, grouping_mode_, gmode);
   }
-  grouping_mode = gmode;
+  grouping_mode_ = gmode;
 }
 
 
@@ -274,19 +293,19 @@ void Workframe::column_increase_grouping_mode(
   xassert(gto != Grouping::GtoFEW && gto != Grouping::GtoANY);
   xassert(static_cast<int>(gfrom) < static_cast<int>(gto));
   if (gfrom == Grouping::SCALAR && gto == Grouping::GtoONE) {
-    col.repeat(ctx.get_groupby().size());
+    col.repeat(ctx_.get_groupby().size());
   }
   else if (gfrom == Grouping::SCALAR && gto == Grouping::GtoALL) {
-    col.repeat(ctx.nrows());
+    col.repeat(ctx_.nrows());
   }
   else if (gfrom == Grouping::GtoONE && gto == Grouping::GtoALL) {
     if (col.is_constant()) {
       col.resize(1);
-      col.repeat(ctx.nrows());
+      col.repeat(ctx_.nrows());
     } else {
-      col.apply_rowindex(ctx.get_ungroup_rowindex());
+      col.apply_rowindex(ctx_.get_ungroup_rowindex());
     }
-    xassert(col.nrows() == ctx.nrows());
+    xassert(col.nrows() == ctx_.nrows());
   }
   else {
     throw RuntimeError() << "Unexpected Grouping mode";  // LCOV_EXCL_LINE

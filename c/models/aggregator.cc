@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@
 #include "utils/c+++.h"
 #include "datatablemodule.h"
 #include "options.h"
+#include "sort.h"
 namespace py {
 
 
@@ -340,14 +341,14 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
   bool was_sampled = false;
 
   // Sorting `dt_members` to calculate total number of exemplars.
-  std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt_members->group(spec);
+  auto res = group({dt_members->get_column(0)},
+                   {SortFlag::NONE});
   RowIndex ri_members = std::move(res.first);
   Groupby gb_members = std::move(res.second);
 
   // Do random sampling if there is too many exemplars, `n_na_bins` accounts
   // for the additional N/A bins that may appear during grouping.
-  if (gb_members.ngroups() > max_bins + n_na_bins) {
+  if (gb_members.size() > max_bins + n_na_bins) {
     const int32_t* offsets = gb_members.offsets_r();
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
 
@@ -364,7 +365,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
     srand(seed);
     size_t k = 0;
     while (k < max_bins) {
-      int32_t i = rand() % static_cast<int32_t>(gb_members.ngroups());
+      int32_t i = rand() % static_cast<int32_t>(gb_members.size());
       size_t off_i = static_cast<size_t>(offsets[i]);
       size_t ri;
       bool rii_valid = ri_members.get_element(off_i, &ri);
@@ -398,11 +399,11 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins, size_t n_na_bins)
 template <typename T>
 void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   // Setting up offsets and members row index.
-  std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt_members->group(spec);
+  auto res = group({dt_members->get_column(0)}, {SortFlag::NONE});
+
   RowIndex ri_members = std::move(res.first);
   Groupby gb_members = std::move(res.second);
-  size_t ngroups = gb_members.ngroups();
+  size_t ngroups = gb_members.size();
   const int32_t* offsets = gb_members.offsets_r();
   // If the input was an empty frame, then treat this case as if no
   // groups are present
@@ -464,10 +465,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 template <typename T>
 void Aggregator<T>::group_0d() {
   if (dt->ncols() > 0) {
-    std::vector<sort_spec> spec = {sort_spec(0, false, false, true)};
-    auto res = dt->group(spec);
-    RowIndex ri_exemplars = std::move(res.first);
-
+    RowIndex ri_exemplars = group({dt->get_column(0)}, {SortFlag::SORT_ONLY}).first;
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
     ri_exemplars.iterate(0, dt->nrows(), 1,
       [&](size_t i, size_t j, bool jvalid) {
@@ -571,15 +569,14 @@ void Aggregator<T>::group_2d_continuous() {
  */
 template <typename T>
 void Aggregator<T>::group_1d_categorical() {
-  std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt_cat->group(spec);
+  auto res = group({dt_cat->get_column(0)}, {SortFlag::NONE});
   RowIndex ri0 = std::move(res.first);
   Groupby grpby0 = std::move(res.second);
 
   auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
   const int32_t* offsets0 = grpby0.offsets_r();
 
-  dt::parallel_for_dynamic(grpby0.ngroups(),
+  dt::parallel_for_dynamic(grpby0.size(),
     [&](size_t i) {
       size_t off_i = static_cast<size_t>(offsets0[i]);
       size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
@@ -601,8 +598,8 @@ void Aggregator<T>::group_1d_categorical() {
 template <typename T>
 void Aggregator<T>::group_2d_categorical()
 {
-  std::vector<sort_spec> spec = {sort_spec(0), sort_spec(1)};
-  auto res = dt_cat->group(spec);
+  auto res = group({dt_cat->get_column(0), dt_cat->get_column(1)},
+                   {SortFlag::NONE, SortFlag::NONE});
   RowIndex ri = std::move(res.first);
   Groupby grpby = std::move(res.second);
 
@@ -616,7 +613,7 @@ void Aggregator<T>::group_2d_categorical()
                          "should be either `str32` or `str64`";
   }
 
-  dt::parallel_for_dynamic(grpby.ngroups(),
+  dt::parallel_for_dynamic(grpby.size(),
     [&](size_t i) {
       CString tmp;
       auto group_id = static_cast<int32_t>(i);
@@ -653,8 +650,7 @@ void Aggregator<T>::group_2d_mixed()
                          "type should be either `str32` or `str64`";
   }
 
-  std::vector<sort_spec> spec = {sort_spec(0)};
-  auto res = dt_cat->group(spec);
+  auto res = group({dt_cat->get_column(0)}, {SortFlag::NONE});
   RowIndex ri_cat = std::move(res.first);
   Groupby grpby = std::move(res.second);
 
@@ -664,7 +660,7 @@ void Aggregator<T>::group_2d_mixed()
   T normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, col1.get_min(), col1.get_max(), nx_bins);
 
-  dt::parallel_for_dynamic(grpby.ngroups(),
+  dt::parallel_for_dynamic(grpby.size(),
     [&](size_t i) {
       CString tmp;
       auto group_cat_id = static_cast<int32_t>(nx_bins * i);

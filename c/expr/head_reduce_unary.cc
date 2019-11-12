@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include "column/latent.h"
 #include "column/virtual.h"
+#include "expr/eval_context.h"
 #include "expr/expr.h"
 #include "expr/head_reduce.h"
 #include "expr/workframe.h"
@@ -65,7 +66,11 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
       : Virtual_ColumnImpl(grpby.size(), stype),
         arg(std::move(col)),
         groupby(grpby),
-        reducer(fn) {}
+        reducer(fn)
+    {
+      assert_compatible_type<T>(arg.stype());
+      assert_compatible_type<U>(stype);
+    }
 
     ColumnImpl* clone() const override {
       return new Reduced_ColumnImpl<T, U>(stype_, Column(arg), groupby,
@@ -134,6 +139,12 @@ static Column compute_firstlast(Column&& arg, const Groupby& gby) {
 }
 
 
+static Column compute_gfirstlast(Column&& arg, const Groupby&) {
+  return (arg.nrows() == 0)? Column::new_na_column(1, arg.stype())
+                           : std::move(arg);
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -174,6 +185,45 @@ static Column compute_sum(Column&& arg, const Groupby& gby) {
     case SType::INT64:   return _sum<int64_t, int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _sum<float, float>(std::move(arg), gby);
     case SType::FLOAT64: return _sum<double, double>(std::move(arg), gby);
+    default: throw _error("sum", arg.stype());
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// sum(A:grouped)
+//------------------------------------------------------------------------------
+
+template <typename T, typename U>
+bool sum_greducer(const Column& col, size_t i0, size_t i1, U* out) {
+  T value;
+  bool isvalid = col.get_element(i0, &value);
+  *out = isvalid? static_cast<U>(i1 - i0) * static_cast<U>(value)
+                : U(0);
+  return true;  // *out is not NA
+}
+
+
+
+template <typename T, typename U>
+static Column _gsum(Column&& arg, const Groupby& gby) {
+  return Column(
+            new Reduced_ColumnImpl<T, U>(
+                 stype_from<U>(), std::move(arg), gby, sum_greducer<T, U>
+            ));
+}
+
+static Column compute_gsum(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _gsum<int8_t,  int64_t>(std::move(arg), gby);
+    case SType::INT16:   return _gsum<int16_t, int64_t>(std::move(arg), gby);
+    case SType::INT32:   return _gsum<int32_t, int64_t>(std::move(arg), gby);
+    case SType::INT64:   return _gsum<int64_t, int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _gsum<float,   float>  (std::move(arg), gby);
+    case SType::FLOAT64: return _gsum<double,  double> (std::move(arg), gby);
     default: throw _error("sum", arg.stype());
   }
 }
@@ -226,6 +276,20 @@ static Column compute_mean(Column&& arg, const Groupby& gby) {
     case SType::FLOAT64: return _mean<double> (std::move(arg), gby);
     default: throw _error("mean", arg.stype());
   }
+}
+
+static Column compute_gmean(Column&& arg, const Groupby&) {
+  SType arg_stype = arg.stype();
+  if (arg_stype == SType::STR32 || arg_stype == SType::STR64) {
+    throw _error("mean", arg_stype);
+  }
+  SType res_stype = (arg_stype == SType::FLOAT32)? SType::FLOAT32
+                                                 : SType::FLOAT64;
+  if (arg.nrows() == 0) {
+    return Column::new_na_column(1, res_stype);
+  }
+  arg.cast_inplace(res_stype);
+  return std::move(arg);
 }
 
 
@@ -288,6 +352,57 @@ static Column compute_sd(Column&& arg, const Groupby& gby) {
 
 
 //------------------------------------------------------------------------------
+// sd(A:grouped)
+//------------------------------------------------------------------------------
+
+class SdGrouped_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column arg;
+    Groupby groupby;
+
+  public:
+    SdGrouped_ColumnImpl(SType stype, Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), stype),
+        arg(std::move(col)),
+        groupby(grpby) {}
+
+    ColumnImpl* clone() const override {
+      return new SdGrouped_ColumnImpl(stype_, Column(arg), groupby);
+    }
+
+    bool get_element(size_t i, float* out) const override {
+      *out = 0.0f;
+      size_t i0, i1;
+      groupby.get_group(i, &i0, &i1);
+      return (i1 - i0 > 1);
+    }
+
+    bool get_element(size_t i, double* out) const override {
+      *out = 0.0;
+      size_t i0, i1;
+      groupby.get_group(i, &i0, &i1);
+      return (i1 - i0 > 1);
+    }
+};
+
+
+static Column compute_gsd(Column&& arg, const Groupby& gby) {
+  SType arg_stype = arg.stype();
+  if (arg_stype == SType::STR32 || arg_stype == SType::STR64) {
+    throw _error("sd", arg_stype);
+  }
+  SType res_stype = (arg_stype == SType::FLOAT32)? SType::FLOAT32
+                                                 : SType::FLOAT64;
+  if (arg.nrows() == 0) {
+    return Column::new_na_column(1, res_stype);
+  }
+  return Column(new SdGrouped_ColumnImpl(res_stype, std::move(arg), gby));
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // count(A)
 //------------------------------------------------------------------------------
 
@@ -325,6 +440,66 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
     case SType::FLOAT64: return _count<double>(std::move(arg), gby);
     case SType::STR32:
     case SType::STR64:   return _count<CString>(std::move(arg), gby);
+    default: throw _error("count", arg.stype());
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// count(A:grouped)
+//------------------------------------------------------------------------------
+
+// T is the type of the input column
+template <typename T>
+class CountGrouped_ColumnImpl : public Virtual_ColumnImpl
+{
+  private:
+    Column arg;
+    Groupby groupby;
+
+  public:
+    CountGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), SType::INT64),
+        arg(std::move(col)),
+        groupby(grpby) {}
+
+    ColumnImpl* clone() const override {
+      return new CountGrouped_ColumnImpl<T>(Column(arg), groupby);
+    }
+
+    bool get_element(size_t i, int64_t* out) const override {
+      T value;
+      bool isvalid = arg.get_element(i, &value);
+      if (isvalid) {
+        size_t i0, i1;
+        groupby.get_group(i, &i0, &i1);
+        *out = static_cast<int64_t>(i1 - i0);
+      } else {
+        *out = 0;
+      }
+      return true;
+    }
+};
+
+
+template <typename T>
+static Column _gcount(Column&& arg, const Groupby& gby) {
+  return Column(new CountGrouped_ColumnImpl<T>(std::move(arg), gby));
+}
+
+static Column compute_gcount(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _gcount<int8_t>(std::move(arg), gby);
+    case SType::INT16:   return _gcount<int16_t>(std::move(arg), gby);
+    case SType::INT32:   return _gcount<int32_t>(std::move(arg), gby);
+    case SType::INT64:   return _gcount<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _gcount<float>(std::move(arg), gby);
+    case SType::FLOAT64: return _gcount<double>(std::move(arg), gby);
+    case SType::STR32:
+    case SType::STR64:   return _gcount<CString>(std::move(arg), gby);
     default: throw _error("count", arg.stype());
   }
 }
@@ -460,6 +635,21 @@ static Column compute_median(Column&& arg, const Groupby& gby) {
 }
 
 
+static Column compute_gmedian(Column&& arg, const Groupby&) {
+  SType arg_stype = arg.stype();
+  if (arg_stype == SType::STR32 || arg_stype == SType::STR64) {
+    throw _error("median", arg_stype);
+  }
+  SType res_stype = (arg_stype == SType::FLOAT32)? SType::FLOAT32
+                                                 : SType::FLOAT64;
+  if (arg.nrows() == 0) {
+    return Column::new_na_column(1, res_stype);
+  }
+  arg.cast_inplace(res_stype);
+  return std::move(arg);
+}
+
+
 
 
 
@@ -467,7 +657,8 @@ static Column compute_median(Column&& arg, const Groupby& gby) {
 // Head_Reduce_Unary
 //------------------------------------------------------------------------------
 
-Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
+Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args,
+                                        EvalContext& ctx) const
 {
   xassert(args.size() == 1);
   Workframe inputs = args[0].evaluate_n(ctx);
@@ -475,18 +666,34 @@ Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) c
   if (!gby) gby = Groupby::single_group(ctx.nrows());
 
   maker_fn fn = nullptr;
-  switch (op) {
-    case Op::MEAN:   fn = compute_mean; break;
-    case Op::MIN:    fn = compute_minmax<true>; break;
-    case Op::MAX:    fn = compute_minmax<false>; break;
-    case Op::STDEV:  fn = compute_sd; break;
-    case Op::FIRST:  fn = compute_firstlast<true>; break;
-    case Op::LAST:   fn = compute_firstlast<false>; break;
-    case Op::SUM:    fn = compute_sum; break;
-    case Op::COUNT:  fn = compute_count; break;
-    case Op::MEDIAN: fn = compute_median; break;
-    default: throw TypeError() << "Unknown reducer function: "
-                               << static_cast<size_t>(op);
+  if (inputs.get_grouping_mode() == Grouping::GtoALL) {
+    switch (op) {
+      case Op::MEAN:   fn = compute_mean; break;
+      case Op::MIN:    fn = compute_minmax<true>; break;
+      case Op::MAX:    fn = compute_minmax<false>; break;
+      case Op::STDEV:  fn = compute_sd; break;
+      case Op::FIRST:  fn = compute_firstlast<true>; break;
+      case Op::LAST:   fn = compute_firstlast<false>; break;
+      case Op::SUM:    fn = compute_sum; break;
+      case Op::COUNT:  fn = compute_count; break;
+      case Op::MEDIAN: fn = compute_median; break;
+      default: throw TypeError() << "Unknown reducer function: "
+                                 << static_cast<size_t>(op);
+    }
+  } else {
+    switch (op) {
+      case Op::MEAN:   fn = compute_gmean; break;
+      case Op::STDEV:  fn = compute_gsd; break;
+      case Op::MIN:
+      case Op::MAX:
+      case Op::FIRST:
+      case Op::LAST:   fn = compute_gfirstlast; break;
+      case Op::SUM:    fn = compute_gsum; break;
+      case Op::COUNT:  fn = compute_gcount; break;
+      case Op::MEDIAN: fn = compute_gmedian; break;
+      default: throw TypeError() << "Unknown reducer function: "
+                                 << static_cast<size_t>(op);
+    }
   }
 
   Workframe outputs(ctx);

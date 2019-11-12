@@ -25,6 +25,7 @@
 #include "expr/eval_context.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include "sort.h"
 namespace dt {
 namespace expr {
 
@@ -95,31 +96,32 @@ static Kind _resolve_list_kind(const vecExpr& inputs) {
     auto kind = inputs[i].get_expr_kind();
     xassert(kind != Kind::Unknown);
     if (kind == listkind) continue;
-    if (kind != Kind::Bool && listkind != Kind::Bool) {
-      if (kind == Kind::None) continue;
-      if (kind == Kind::SliceAll &&
-          (listkind == Kind::Int ||
-           listkind == Kind::Str)) continue;
-      if (kind == Kind::Frame)    kind = Kind::Func;
-      if (kind == Kind::SliceInt) kind = Kind::Int;
-      if (kind == Kind::SliceStr) kind = Kind::Str;
-      if (kind == Kind::Float) {
-        throw TypeError()
-          << "A floating value cannot be used as a column selector";
-      }
-      if (kind == Kind::List) {
-          throw TypeError()
-            << "Nested lists are not supported as a column selector";
-      }
-      if (listkind == Kind::Unknown) listkind = kind;
-      if (listkind == Kind::SliceAll &&
-          (kind == Kind::Int || kind == Kind::Str)) listkind = kind;
-      if (kind == listkind) continue;
-    }
-    if (kind == Kind::Bool && listkind == Kind::Unknown) {
+    if (kind == Kind::Bool) {
+      if (listkind != Kind::Unknown) goto error;
       listkind = Kind::Bool;
       continue;
     }
+    if (listkind == Kind::Bool) goto error;
+    if (kind == Kind::None) continue;
+    if (kind == Kind::SliceAll &&
+        (listkind == Kind::Int || listkind == Kind::Str)) continue;
+    if (kind == Kind::Frame)    kind = Kind::Func;
+    if (kind == Kind::SliceInt) kind = Kind::Int;
+    if (kind == Kind::SliceStr) kind = Kind::Str;
+    if (kind == Kind::Float) {
+      throw TypeError()
+        << "A floating value cannot be used as a column selector";
+    }
+    if (kind == Kind::List || kind == Kind::NamedList) {
+      throw TypeError()
+        << "Nested lists are not supported as a column selector";
+    }
+    if (listkind == Kind::Unknown) listkind = kind;
+    if (listkind == Kind::SliceAll &&
+        (kind == Kind::Int || kind == Kind::Str)) listkind = kind;
+    if (kind == listkind) continue;
+
+    error:
     throw TypeError() << "Mixed selector types are not allowed. Element "
         << i << " is of type " << _name_type(kind) << ", whereas the "
         "previous element(s) were of type " << _name_type(listkind);
@@ -134,7 +136,7 @@ static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
   DataTable* df = ctx.get_datatable(0);
   if (inputs.size() != df->ncols()) {
     throw ValueError()
-        << "The length of boolean list in j selector does not match the "
+        << "The length of boolean list in `j` selector does not match the "
            "number of columns in the Frame: "
         << inputs.size() << " vs " << df->ncols();
   }
@@ -267,6 +269,44 @@ RiGb Head_List::evaluate_iby(const vecExpr&, EvalContext&) const {
 
 
 //------------------------------------------------------------------------------
+// prepare_by
+//------------------------------------------------------------------------------
+
+void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
+                           Workframe& outwf, std::vector<SortFlag>& outflags)
+                          const
+{
+  if (inputs.empty()) return;
+
+  auto kind = _resolve_list_kind(inputs);
+  if (kind == Kind::Str || kind == Kind::Int) {
+    for (const Expr& arg : inputs) {
+      outwf.cbind( arg.evaluate_f(ctx, 0, false) );
+      outflags.push_back(SortFlag::NONE);
+    }
+  }
+  else if (kind == Kind::Func) {
+    size_t iframe, icol;
+    for (const Expr& arg : inputs) {
+      if (arg.is_negated_column(ctx, &iframe, &icol)) {
+        outwf.add_ref_column(iframe, icol);
+        outflags.push_back(SortFlag::DESCENDING);
+      } else {
+        outwf.cbind( arg.evaluate_n(ctx) );
+        outflags.push_back(SortFlag::NONE);
+      }
+    }
+  }
+  else {
+    throw TypeError() << "Sequence of " << _name_type(kind) << " expressions "
+        "cannot be used in a by() clause";
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // Head_NamedList
 //------------------------------------------------------------------------------
 
@@ -274,7 +314,7 @@ Head_NamedList::Head_NamedList(strvec&& names_)
   : names(std::move(names_)) {}
 
 Kind Head_NamedList::get_expr_kind() const {
-  return Kind::List;
+  return Kind::NamedList;
 }
 
 

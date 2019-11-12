@@ -56,11 +56,11 @@
 // each subframe's RowIndex).
 //
 //------------------------------------------------------------------------------
-#include "expr/by_node.h"
-#include "expr/expr.h"
-#include "expr/join_node.h"
-#include "expr/sort_node.h"
 #include "expr/eval_context.h"
+#include "expr/expr.h"
+#include "expr/join_node.h"     // py::ojoin
+#include "expr/py_by.h"         // py::oby
+#include "expr/py_sort.h"       // py::osort
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -165,10 +165,10 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
 
   // 1. Create the EvalContext
-  auto mode = value == GETITEM? dt::EvalMode::SELECT :
-              value == DELITEM? dt::EvalMode::DELETE :
-                                dt::EvalMode::UPDATE;
-  dt::EvalContext ctx(dt, mode);
+  auto mode = value == GETITEM? dt::expr::EvalMode::SELECT :
+              value == DELITEM? dt::expr::EvalMode::DELETE :
+                                dt::expr::EvalMode::UPDATE;
+  dt::expr::EvalContext ctx(dt, mode);
 
   // 2. Search for join nodes in order to bind all aliases and
   //    to know which frames participate in `DT[...]`.
@@ -204,12 +204,12 @@ oobj Frame::_main_getset(robj item, robj value) {
   ctx.add_i(targs[0]);
   ctx.add_j(targs[1]);
 
-  if (mode == dt::EvalMode::UPDATE) {
+  if (mode == dt::expr::EvalMode::UPDATE) {
     ctx.add_replace(value);
   }
 
   ctx.evaluate();
-  if (mode != dt::EvalMode::SELECT) {
+  if (mode != dt::expr::EvalMode::SELECT) {
     _clear_types();
   }
   return ctx.get_result();

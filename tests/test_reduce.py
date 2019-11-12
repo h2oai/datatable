@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -152,10 +152,7 @@ def test_first_array():
 def test_first_dt():
     df_in = dt.Frame([9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     df_reduce = df_in[:, first(f.C0)]
-    frame_integrity_check(df_reduce)
-    assert df_reduce.shape == (1, 1)
-    assert df_reduce.ltypes == (ltype.int,)
-    assert df_reduce.to_list() == [[9]]
+    assert_equals(df_reduce, dt.Frame(C0=[9]))
 
 
 def test_first_empty_frame():
@@ -167,20 +164,15 @@ def test_first_empty_frame():
 def test_first_dt_range():
     df_in = dt.Frame(A=range(10))[3::3, :]
     df_reduce = df_in[:, first(f.A)]
-    frame_integrity_check(df_reduce)
-    assert df_reduce.shape == (1, 1)
-    assert df_reduce.ltypes == (ltype.int,)
-    assert df_reduce.to_list() == [[3]]
+    assert_equals(df_reduce, dt.Frame(A=[3]))
 
 
 def test_first_dt_groupby():
     df_in = dt.Frame([9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     df_reduce = df_in[:, first(f.C0), "C0"]
-    frame_integrity_check(df_reduce)
-    assert df_reduce.shape == (8, 2)
-    assert df_reduce.ltypes == (ltype.int, ltype.int,)
-    assert df_reduce.to_list() == [[None, 0, 1, 2, 3, 5, 8, 9],
-                                   [None, 0, 1, 2, 3, 5, 8, 9]]
+    assert_equals(df_reduce, dt.Frame([[None, 0, 1, 2, 3, 5, 8, 9],
+                                       [None, 0, 1, 2, 3, 5, 8, 9]],
+                                      names=["C0", "C1"]))
 
 
 def test_first_dt_integer_large(numpy):
@@ -188,21 +180,17 @@ def test_first_dt_integer_large(numpy):
     a_in = numpy.random.randint(2**20, size=n, dtype=numpy.int32)
     df_in = dt.Frame(a_in)
     df_reduce = df_in[:, first(f.C0)]
-    assert df_reduce.shape == (1, 1)
-    assert df_reduce.ltypes == (ltype.int,)
-    assert df_reduce.to_list() == [[a_in[0]]]
+    assert_equals(df_reduce, dt.Frame(C0=[a_in[0]]))
 
 
 def test_first_2d_dt():
     df_in = dt.Frame([[9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1],
                       [0, 1, 0, 5, 3, 8, 1, 0, 2, 5, 8, None, 1]])
     df_reduce = df_in[:, [first(f.C0), first(f.C1)], "C0"]
-    frame_integrity_check(df_reduce)
-    assert df_reduce.shape == (8, 3)
-    assert df_reduce.ltypes == (ltype.int, ltype.int, ltype.int,)
-    assert df_reduce.to_list() == [[None, 0, 1, 2, 3, 5, 8, 9],
-                                   [None, 0, 1, 2, 3, 5, 8, 9],
-                                   [3, 0, 1, 0, 5, 2, 1, 0]]
+    assert_equals(df_reduce, dt.Frame([[None, 0, 1, 2, 3, 5, 8, 9],
+                                       [None, 0, 1, 2, 3, 5, 8, 9],
+                                       [3, 0, 1, 0, 5, 2, 1, 0]],
+                                      names=["C0", "C1", "C2"]))
 
 
 def test_first_2d_array():

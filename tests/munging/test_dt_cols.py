@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables, noop, isview
+from tests import same_iterables, noop, isview, assert_equals
 from datatable import ltype, stype, f
 from datatable.internal import frame_integrity_check
 
@@ -58,7 +58,7 @@ def dt1():
 
 def assert_valueerror(frame, cols, error_message):
     with pytest.raises(ValueError) as e:
-        noop(frame[:, cols])
+        assert frame[:, cols]
     assert str(e.type) == "<class 'datatable.ValueError'>"
     assert error_message in str(e.value)
 
@@ -127,9 +127,9 @@ def test_j_integer_wrong(dt0):
     assert_valueerror(
         dt0, -5,
         "Column index `-5` is invalid for a Frame with 4 columns")
-    assert_valueerror(
+    assert_typeerror(
         dt0, 10**30,
-        "Value is too large to fit in an int64")
+        "A floating-point value cannot be used as a column selector")
 
 
 
@@ -300,7 +300,7 @@ def test_j_stype(t, dt1):
 def test_j_type_bad(dt0):
     assert_valueerror(
         dt0, type,
-        "Unknown type <class 'type'> used as `j` selector")
+        "Unknown type <class 'type'> used as a column selector")
 
 
 
@@ -338,8 +338,8 @@ def test_j_intlist3(dt0, tbl0):
 def test_j_intlist_mixed(dt0):
     assert_typeerror(
         dt0, [2, "A"],
-        "Mixed selector types in `j` selector are not allowed. Element 1 is "
-        "of type string, whereas the previous element(s) were of type integer")
+        "Mixed selector types are not allowed. Element 1 is of type string, "
+        "whereas the previous element(s) were of type integer")
 
 
 
@@ -366,8 +366,8 @@ def test_j_strlist2(dt0, tbl0):
 def test_j_strlist_mixed(dt0):
     assert_typeerror(
         dt0, ["A", f.B],
-        "Mixed selector types in `j` selector are not allowed. Element 1 is "
-        "of type expr, whereas the previous element(s) were of type string")
+        "Mixed selector types are not allowed. Element 1 is of type expression,"
+        " whereas the previous element(s) were of type string")
 
 
 
@@ -392,8 +392,8 @@ def test_j_list_bools_error1(dt0):
 def test_j_list_bools_mixed(dt0):
     assert_typeerror(
         dt0, [True, False, [], True],
-        "Element 2 in `j` selector list has type `<class 'list'>`, which is "
-        "not supported")
+        "Mixed selector types are not allowed. Element 2 is of type ?, whereas "
+        "the previous element(s) were of type bool")
 
 
 
@@ -439,11 +439,9 @@ def test_j_dict_bad1(dt0):
         "Keys in the dictionary must be strings")
 
 
-def test_j_dict_bad2(dt0):
-    assert_typeerror(
-        dt0, {"a": "A", "b": "B"},
-        "The values in `j` selector dictionary must be expressions, not "
-        "strings")
+def test_j_dict_of_literals(dt0):
+    DT1 = dt0[:, {"a": "A", "b": "B", "c": 7.5}]
+    assert_equals(DT1, dt.Frame(a=["A"], b=["B"], c=[7.5]))
 
 
 
@@ -530,19 +528,19 @@ def test_j_bad_arguments(dt0):
     """
     assert_typeerror(
         dt0, 1.000001,
-        "Unsupported `j` selector of type <class 'float'>")
+        "A floating-point value cannot be used as a column selector")
     assert_typeerror(dt0,
         slice(1, 2, "A"),
         "slice(1, 2, 'A') is neither integer- nor string- valued")
     assert_typeerror(
         dt0, [0, 0.5, 1],
-        "Element 1 in `j` selector list has type `<class 'float'>`")
+        "A floating value cannot be used as a column selector")
     assert_typeerror(
         dt0, True,
-        "Unsupported `j` selector of type <class 'bool'>")
+        "A boolean value cannot be used as a column selector")
     assert_typeerror(
         dt0, False,
-        "Unsupported `j` selector of type <class 'bool'>")
+        "A boolean value cannot be used as a column selector")
 
 
 def test_j_from_view(dt0):

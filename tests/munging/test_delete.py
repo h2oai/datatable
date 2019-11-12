@@ -169,25 +169,22 @@ def test_del_cols_exprlist():
 
 def test_delcols_invalid_selector1():
     d0 = smalldt()
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(TypeError, match="A floating-point value cannot be used "
+                                        "as a column selector"):
         del d0[:, 0.5]
-    assert "Unsupported `j` selector of type <class 'float'>" in str(e.value)
 
 
 def test_del_cols_invalid_selector2():
     d0 = smalldt()
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(TypeError, match="cannot be deleted"):
         del d0[:, d0]
-    assert ("Unsupported `j` selector of type <class 'datatable.Frame'>"
-            in str(e.value))
 
 
 def test_del_cols_invalid_selector3():
     d0 = smalldt()
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(TypeError, match="A floating value cannot be used as a "
+                                        "column selector"):
         del d0[:, [1, 2, 1, 0.7]]
-    assert ("Element 3 in `j` selector list has type `<class 'float'>`, "
-            "which is not supported" in str(e.value))
 
 
 def test_del_cols_computed1():

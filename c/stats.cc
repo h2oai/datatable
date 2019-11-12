@@ -21,6 +21,7 @@
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "stats.h"
+#include "sort.h"
 
 
 //------------------------------------------------------------------------------
@@ -892,10 +893,15 @@ void Stats::compute_sorted_stats() {
 
 template <typename T>
 void NumericStats<T>::compute_sorted_stats() {
-  Groupby grpby;
-  RowIndex ri = column->sort(&grpby);
+  auto r = group({Column(column->clone())}, {SortFlag::NONE});
+  RowIndex ri   = std::move(r.first);
+  Groupby grpby = std::move(r.second);
+  if (column->nrows() == 0) {
+    grpby = Groupby::single_group(0);
+  }
+
   const int32_t* groups = grpby.offsets_r();
-  size_t n_groups = grpby.ngroups();
+  size_t n_groups = grpby.size();
   xassert(n_groups >= 1);
 
   // Sorting gathers all NA elements at the top (in the first group). Thus if
@@ -936,10 +942,15 @@ void NumericStats<T>::compute_sorted_stats() {
 
 
 void StringStats::compute_sorted_stats() {
-  Groupby grpby;
-  RowIndex ri = column->sort(&grpby);
+  auto r = group({Column(column->clone())}, {SortFlag::NONE});
+  RowIndex ri   = std::move(r.first);
+  Groupby grpby = std::move(r.second);
+  if (column->nrows() == 0) {
+    grpby = Groupby::single_group(0);
+  }
+
   const int32_t* groups = grpby.offsets_r();
-  size_t n_groups = grpby.ngroups();
+  size_t n_groups = grpby.size();
   xassert(n_groups >= 1);
 
   // Sorting gathers all NA elements at the top (in the first group). Thus if

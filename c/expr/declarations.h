@@ -25,11 +25,13 @@
 #include <string>
 #include <utility>    // std::pair
 #include <vector>
+#include "sort.h"
 
 class Column;
 class DataTable;
 class Groupby;
 class RowIndex;
+
 
 namespace dt {
 namespace expr {
@@ -38,6 +40,7 @@ namespace expr {
   class Head;
   class Expr;
   class Workframe;
+  class EvalContext;
 
   using strvec = std::vector<std::string>;
   using ptrHead = std::unique_ptr<Head>;
@@ -46,6 +49,19 @@ namespace expr {
 
   // TODO: remove
   class base_expr;
+
+
+  // Evaluation mode, this distinguishes between expressions of the
+  // form
+  //     DT[i, j]        # SELECT
+  //     DT[i, j] = R    # UPDATE
+  //     del DT[i, j]    # DELETE
+  //
+  enum class EvalMode : uint8_t {
+    SELECT,
+    UPDATE,
+    DELETE
+  };
 
 
   // The `Grouping` enum describes how a column or a set of columns
@@ -99,6 +115,7 @@ namespace expr {
     Type,
     Func,
     List,
+    NamedList,
     Frame,
     SliceAll,
     SliceInt,
@@ -112,7 +129,6 @@ namespace expr {
 // OBSOLETE
 //
 namespace dt {
-  class EvalContext;
   class by_node;
   class collist;
 

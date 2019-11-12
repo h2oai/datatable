@@ -19,75 +19,83 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/collist.h"
 #include "expr/expr.h"
-#include "expr/workframe.h"
 #include "expr/eval_context.h"
+#include "expr/py_by.h"
+#include "expr/py_sort.h"
 #include "expr/py_update.h"
+#include "expr/workframe.h"
 #include "frame/py_frame.h"
+#include "sort.h"
 namespace dt {
+namespace expr {
+
 
 
 //------------------------------------------------------------------------------
-// EvalContext
+// EvalContext: construction
 //------------------------------------------------------------------------------
 
-EvalContext::EvalContext(DataTable* dt, EvalMode evalmode) {
-  // The source frame must have flag `natural=false` so that `allcols_jn`
-  // knows to select all columns from it.
-  frames.push_back(subframe {dt, RowIndex(), false});
-  mode = evalmode;
-  groupby_mode = GroupbyMode::NONE;
+EvalContext::EvalContext(DataTable* dt, EvalMode evalmode)
+  : groupby_columns_(*this)
+{
+  frames_.emplace_back(dt, RowIndex(), /* natural_join= */ false);
+  eval_mode_ = evalmode;
+  add_groupby_columns_ = true;
 }
 
 
 
 void EvalContext::add_join(py::ojoin oj) {
   DataTable* dt = oj.get_datatable();
-  frames.push_back(subframe {dt, RowIndex(), true});
+  frames_.emplace_back(dt, RowIndex(), /* natural_join= */ true);
 }
 
 
-void EvalContext::add_groupby(py::oby og) {
-  byexpr.add_groupby_columns(*this, og.cols(*this));
+void EvalContext::add_groupby(py::oby obj) {
+  if (byexpr_) {
+    throw TypeError() << "Multiple by()'s are not allowed";
+  }
+  byexpr_ = Expr(obj.get_arguments());
+  add_groupby_columns_ = obj.get_add_columns();
 }
 
 
 void EvalContext::add_sortby(py::osort obj) {
-  byexpr.add_sortby_columns(*this, obj.cols(*this));
+  if (sortexpr_) {
+    throw TypeError() << "Multiple sort()'s are not allowed";
+  }
+  sortexpr_ = Expr(obj.get_arguments());
 }
 
 
 void EvalContext::add_i(py::oobj oi) {
-  iexpr_ = dt::expr::Expr(oi);
+  iexpr_ = Expr(oi);
 }
 
 
 void EvalContext::add_j(py::oobj oj) {
-  xassert(!jexpr);
   py::oupdate arg_update = oj.to_oupdate_lax();
   if (arg_update) {
-    if (mode == EvalMode::DELETE) {
+    if (eval_mode_ == EvalMode::DELETE) {
       throw ValueError() << "update() clause cannot be used with a "
                             "delete expression";
     }
-    if (mode == EvalMode::UPDATE) {
+    if (eval_mode_ == EvalMode::UPDATE) {
       throw ValueError() << "update() clause cannot be used with an "
                             "assignment expression";
     }
-    mode = EvalMode::UPDATE;
-    jexpr_ = dt::expr::Expr(arg_update.get_names());
-    jexpr = j_node::make(arg_update.get_names(), *this);  // remove
-    repl_ = dt::expr::Expr(arg_update.get_exprs());
+    eval_mode_ = EvalMode::UPDATE;
+    jexpr_ = Expr(arg_update.get_names());
+    rexpr_ = Expr(arg_update.get_exprs());
   } else {
-    jexpr_ = dt::expr::Expr(oj);
-    jexpr = j_node::make(oj, *this);   // remove
+    jexpr_ = Expr(oj);
   }
 }
 
 
 void EvalContext::add_replace(py::oobj obj) {
-  repl_ = dt::expr::Expr(obj);
+  rexpr_ = Expr(obj);
 }
 
 
@@ -98,18 +106,31 @@ void EvalContext::add_replace(py::oobj obj) {
 //------------------------------------------------------------------------------
 
 EvalMode EvalContext::get_mode() const {
-  return mode;
+  return eval_mode_;
 }
 
 GroupbyMode EvalContext::get_groupby_mode() const {
-  return groupby_mode;
+  return GroupbyMode::NONE;
 }
 
 const RowIndex& EvalContext::get_ungroup_rowindex() {
   if (!ungroup_rowindex_) {
-    ungroup_rowindex_ = gb.ungroup_rowindex();
+    ungroup_rowindex_ = groupby_.ungroup_rowindex();
   }
   return ungroup_rowindex_;
+}
+
+const RowIndex& EvalContext::get_group_rowindex() {
+  if (!group_rowindex_) {
+    size_t n = groupby_.size();
+    if (n == 1 && groupby_.last_offset() == 0) n = 0;
+    // TODO: when RowIndex supports Buffers, this could be replaced by a
+    //       simple buffer copy from groupby_ into the RowIndex
+    arr32_t offsets(n);
+    std::memcpy(offsets.data(), groupby_.offsets_r(), n * sizeof(int32_t));
+    group_rowindex_ = RowIndex(std::move(offsets), true);
+  }
+  return group_rowindex_;
 }
 
 
@@ -121,41 +142,27 @@ const RowIndex& EvalContext::get_ungroup_rowindex() {
 
 void EvalContext::evaluate() {
   // Compute joins
-  DataTable* xdt = frames[0].dt;
-  for (size_t i = 1; i < frames.size(); ++i) {
-    DataTable* jdt = frames[i].dt;
-    frames[i].ri = natural_join(*xdt, *jdt);
+  DataTable* xdt = get_datatable(0);
+  for (size_t i = 1; i < nframes(); ++i) {
+    DataTable* jdt = get_datatable(i);
+    frames_[i].ri = natural_join(*xdt, *jdt);
   }
 
-  // Compute groupby
-  if (byexpr) {
-    groupby_mode = jexpr->get_groupby_mode(*this);
-  }
-  byexpr.execute(*this);
+  compute_groupby_and_sort();
+  xassert(groupby_);
 
   // Compute i filter
-  if (has_groupby()) {
+  if (byexpr_) {
     auto rigb = iexpr_.evaluate_iby(*this);
-    apply_rowindex(rigb.first);
-    apply_groupby(rigb.second);
+    apply_rowindex(std::move(rigb.first));
+    replace_groupby(std::move(rigb.second));
   } else {
     RowIndex rowindex = iexpr_.evaluate_i(*this);
     apply_rowindex(rowindex);
   }
 
-  switch (mode) {
-    case EvalMode::SELECT:
-      if (byexpr) {
-        byexpr.create_columns(*this);
-        jexpr->select(*this);
-        fix_columns();
-      }
-      else {
-        auto res = jexpr_.evaluate_j(*this);
-        out_datatable = std::move(res).convert_to_datatable();
-      }
-      break;
-
+  switch (eval_mode_) {
+    case EvalMode::SELECT: evaluate_select(); break;
     case EvalMode::DELETE: evaluate_delete(); break;
     case EvalMode::UPDATE: evaluate_update(); break;
   }
@@ -174,8 +181,8 @@ void EvalContext::evaluate() {
 // will contain the location of these columns in the updated `dt0`.
 //
 intvec EvalContext::evaluate_j_as_column_index() {
-  bool allow_new = (mode == EvalMode::UPDATE);
-  DataTable* dt0 = frames[0].dt;
+  bool allow_new = (eval_mode_ == EvalMode::UPDATE);
+  DataTable* dt0 = get_datatable(0);
   auto jres = jexpr_.evaluate_j(*this, allow_new);
   size_t n = jres.ncols();
   intvec indices(n);
@@ -207,10 +214,59 @@ intvec EvalContext::evaluate_j_as_column_index() {
 
 void EvalContext::create_placeholder_columns() {
   if (newnames.empty()) return;
-  DataTable* dt0 = frames[0].dt;
+  DataTable* dt0 = get_datatable(0);
   const strvec& oldnames = dt0->get_names();
   newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
   dt0->resize_columns(newnames);
+}
+
+
+
+//------------------------------------------------------------------------------
+// Groupby
+//------------------------------------------------------------------------------
+
+// Compute groupby: either from the `byexpr_`, or fall-back to
+// single group that encompasses the entire frame. Note that this
+// single group might be empty if the frame has 0 rows.
+//
+void EvalContext::compute_groupby_and_sort() {
+  size_t nr = nrows();
+  size_t n_group_cols = 0;
+  if (byexpr_ || sortexpr_) {
+    Workframe wf(*this);
+    std::vector<Column> cols;
+    std::vector<SortFlag> flags;
+    if (byexpr_) {
+      byexpr_.prepare_by(*this, wf, flags);
+      n_group_cols = wf.ncols();
+    }
+    if (sortexpr_) {
+      sortexpr_.prepare_by(*this, wf, flags);
+    }
+    size_t ncols = wf.ncols();
+    xassert(flags.size() == ncols);
+    if (ncols) {
+      for (size_t i = 0; i < ncols; ++i) {
+        const Column& col = wf.get_column(i);
+        const_cast<Column&>(col).materialize();
+        cols.push_back(col);  // copy
+        if (i >= n_group_cols) {
+          flags[i] = flags[i] | SortFlag::SORT_ONLY;
+        }
+      }
+      wf.truncate_columns(n_group_cols);
+      set_groupby_columns(std::move(wf));
+
+      auto rigb = group(cols, flags);
+      apply_rowindex(std::move(rigb.first));
+      groupby_ = std::move(rigb.second);
+    }
+  }
+  if (!groupby_) {
+    groupby_ = Groupby::single_group(nr);
+  }
+  xassert(groupby_.last_offset() == nr);
 }
 
 
@@ -228,9 +284,14 @@ void EvalContext::create_placeholder_columns() {
 //   - delete all rows & all columns (i.e. delete the entire frame).
 //
 void EvalContext::evaluate_delete() {
-  if (jexpr_.get_expr_kind() == expr::Kind::SliceAll) {
+  Kind jkind = jexpr_.get_expr_kind();
+  if (jkind == Kind::SliceAll) {
     evaluate_delete_rows();
-  } else if (frames[0].ri) {
+  } else if (jkind == Kind::NamedList) {
+    throw TypeError() << "When del operator is applied, `j` selector cannot "
+                         "be a dictionary";
+  }
+  else if (get_rowindex(0)) {
     evaluate_delete_subframe();
   } else {
     evaluate_delete_columns();
@@ -241,8 +302,8 @@ void EvalContext::evaluate_delete() {
 // Delete a subset of rows from the frame: `del DT[i, :]`
 //
 void EvalContext::evaluate_delete_rows() {
-  DataTable* dt0 = frames[0].dt;
-  const RowIndex& ri0 = frames[0].ri;
+  DataTable* dt0 = get_datatable(0);
+  const RowIndex& ri0 = get_rowindex(0);
   if (ri0) {
     RowIndex ri_neg = ri0.negate(dt0->nrows());
     dt0->apply_rowindex(ri_neg);
@@ -255,7 +316,7 @@ void EvalContext::evaluate_delete_rows() {
 // Delete columns from the frame: `del DT[:, j]`
 //
 void EvalContext::evaluate_delete_columns() {
-  DataTable* dt0 = frames[0].dt;
+  DataTable* dt0 = get_datatable(0);
   auto indices = evaluate_j_as_column_index();
   dt0->delete_columns(indices);
 }
@@ -266,8 +327,8 @@ void EvalContext::evaluate_delete_columns() {
 // replaces them with NAs.
 //
 void EvalContext::evaluate_delete_subframe() {
-  DataTable* dt0 = frames[0].dt;
-  const RowIndex& ri0 = frames[0].ri;
+  DataTable* dt0 = get_datatable(0);
+  const RowIndex& ri0 = get_rowindex(0);
   auto indices = evaluate_j_as_column_index();
   if (indices.empty()) return;
   if (dt0->nkeys()) {
@@ -324,7 +385,7 @@ void EvalContext::evaluate_update() {
     }
   }
 
-  expr::Workframe replacement = repl_.evaluate_r(*this, stypes);
+  Workframe replacement = rexpr_.evaluate_r(*this, stypes);
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);
@@ -359,11 +420,11 @@ void EvalContext::evaluate_update() {
 
 
 void EvalContext::typecheck_for_update(
-    expr::Workframe& replframe, const intvec& indices)
+    Workframe& replframe, const intvec& indices)
 {
   DataTable* dt0 = get_datatable(0);
-  bool allrows = !(frames[0].ri);
-  bool repl_1row = replframe.get_grouping_mode() == expr::Grouping::SCALAR;
+  bool allrows = !(get_rowindex(0));
+  bool repl_1row = replframe.get_grouping_mode() == Grouping::SCALAR;
   size_t n = indices.size();
   xassert(replframe.ncols() == indices.size());
 
@@ -388,41 +449,85 @@ void EvalContext::typecheck_for_update(
 
 
 
+
 //------------------------------------------------------------------------------
-// Other
+// SELECT
 //------------------------------------------------------------------------------
 
-// After evaluation of the j node, the columns in `columns` may have different
-// sizes: some are aggregated to group level, others have same number of rows
-// as dt0. If this happens, we need to expand the "short" columns to the full
-// size.
-void EvalContext::fix_columns() {
-  if (groupby_mode != GroupbyMode::GtoALL) return;
-  xassert(byexpr);
-  // size_t nrows0 = get_datatable(0)->nrows;
-  size_t ngrps = gb.ngroups();
-  RowIndex ungroup_ri;
+void EvalContext::update_groupby_columns(Grouping gmode) {
+  auto ri0 = get_rowindex(0);
+  if (gmode == Grouping::GtoONE) {
+    ri0 = get_group_rowindex() * ri0;
+  }
+  size_t n = groupby_columns_.ncols();
+  for (size_t i = 0; i < n; ++i) {
+    Column col = groupby_columns_.retrieve_column(i);
+    col.apply_rowindex(ri0);
+    groupby_columns_.replace_column(i, std::move(col));
+  }
+  groupby_columns_.grouping_mode_ = gmode;
+}
 
-  for (size_t i = 0; i < columns.size(); ++i) {
-    if (columns[i].nrows() != ngrps) continue;
-    if (!ungroup_ri) {
-      ungroup_ri = gb.ungroup_rowindex();
+
+template <typename T>
+static void _vivify_column(const Column& col) {
+  T value;
+  col.get_element(0, &value);
+}
+
+// Ensure that any "Latent" columns are resolved before we return
+// the Frame to the user.
+// Strictly speaking we don't have to resolve them, but then we'd
+// have to be careful about accessing columns' data in parallel.
+//
+static void _vivify_workframe(const Workframe& wf) {
+  if (wf.nrows() == 0) return;
+  for (size_t i = 0; i < wf.ncols(); ++i) {
+    const Column& col = wf.get_column(i);
+    switch (col.stype()) {
+      case SType::BOOL:
+      case SType::INT8:    _vivify_column<int8_t>(col); break;
+      case SType::INT16:   _vivify_column<int16_t>(col); break;
+      case SType::INT32:   _vivify_column<int32_t>(col); break;
+      case SType::INT64:   _vivify_column<int64_t>(col); break;
+      case SType::FLOAT32: _vivify_column<float>(col); break;
+      case SType::FLOAT64: _vivify_column<double>(col); break;
+      case SType::STR32:
+      case SType::STR64:   _vivify_column<CString>(col); break;
+      case SType::OBJ:     _vivify_column<py::robj>(col); break;
+      default:
+        throw RuntimeError() << "Unknown stype " << col.stype();  // LCOV_EXCL_LINE
     }
-    columns[i].apply_rowindex(ungroup_ri);
   }
 }
 
 
+void EvalContext::evaluate_select() {
+  Workframe res = jexpr_.evaluate_j(*this);
+  if (add_groupby_columns_) {
+    update_groupby_columns(res.get_grouping_mode());
+    res.cbind(std::move(groupby_columns_), /* at_end= */ false);
+  }
+  _vivify_workframe(res);
+  out_datatable = std::move(res).convert_to_datatable();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Other
+//------------------------------------------------------------------------------
+
 py::oobj EvalContext::get_result() {
-  if (mode == EvalMode::SELECT) {
+  if (eval_mode_ == EvalMode::SELECT) {
     DataTable* result =
         out_datatable? out_datatable.release()
                      : new DataTable(std::move(columns), std::move(colnames));
     if (result->ncols() == 0) {
       // When selecting a 0-column subset, make sure the number of rows is the
       // same as if some of the columns were selected.
-      result->resize_rows(frames[0].ri? frames[0].ri.size()
-                                      : frames[0].dt->nrows());
+      result->resize_rows(nrows());
     }
     return py::Frame::oframe(result);
   }
@@ -431,55 +536,71 @@ py::oobj EvalContext::get_result() {
 
 
 DataTable* EvalContext::get_datatable(size_t i) const {
-  return frames[i].dt;
+  return frames_[i].dt;
 }
 
 
 const RowIndex& EvalContext::get_rowindex(size_t i) const {
-  return frames[i].ri;
+  return frames_[i].ri;
 }
 
 
 const Groupby& EvalContext::get_groupby() {
-  return gb;
-}
-
-
-const by_node& EvalContext::get_by_node() const {
-  return byexpr;
+  return groupby_;
 }
 
 
 bool EvalContext::is_naturally_joined(size_t i) const {
-  return frames[i].natural;
+  return frames_[i].natural;
 }
 
 bool EvalContext::has_groupby() const {
-  return bool(byexpr);
+  return bool(byexpr_);
+}
+
+
+bool EvalContext::has_group_column(size_t frame_index, size_t col_index) const
+{
+  size_t n = groupby_columns_.ncols();
+  size_t iframe, icol;
+  for (size_t i = 0; i < n; ++i) {
+    if (groupby_columns_.is_reference_column(i, &iframe, &icol)) {
+      if (iframe == frame_index && icol == col_index) return true;
+    }
+  }
+  return false;
 }
 
 
 size_t EvalContext::nframes() const {
-  return frames.size();
+  return frames_.size();
 }
 
 
 size_t EvalContext::nrows() const {
-  const RowIndex& ri0 = frames[0].ri;
-  return ri0? ri0.size() : frames[0].dt->nrows();
+  const RowIndex& ri0 = get_rowindex(0);
+  return ri0? ri0.size() : get_datatable(0)->nrows();
 }
 
 
 void EvalContext::apply_rowindex(const RowIndex& ri) {
-  for (size_t i = 0; i < frames.size(); ++i) {
-    frames[i].ri = ri * frames[i].ri;
+  if (!ri) return;
+  for (size_t i = 0; i < nframes(); ++i) {
+    frames_[i].ri = ri * get_rowindex(i);
   }
 }
 
 
-void EvalContext::apply_groupby(const Groupby& gb_) {
-  xassert(gb_.last_offset() == nrows());
-  gb = gb_;
+void EvalContext::replace_groupby(Groupby&& gb) {
+  if (gb) {
+    xassert(gb.last_offset() == nrows());
+    groupby_ = std::move(gb);
+  }
+}
+
+
+void EvalContext::set_groupby_columns(Workframe&& wf) {
+  groupby_columns_.cbind(std::move(wf));
 }
 
 
@@ -508,4 +629,4 @@ void EvalContext::add_column(
 
 
 
-} // namespace dt
+}} // namespace dt::expr
