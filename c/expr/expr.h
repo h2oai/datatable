@@ -166,9 +166,6 @@ class base_expr {
 };
 
 
-// Initialize once
-void init_expr();
-
 
 py::oobj make_pyexpr(Op opcode, py::oobj arg);
 py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params);

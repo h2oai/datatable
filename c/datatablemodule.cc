@@ -376,7 +376,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     if (!init_py_encodings(m)) return nullptr;
 
     init_types();
-    dt::expr::init_expr();
     dt::expr::init_reducers();
     dt::expr::init_binops();
     dt::expr::Head_Func::init();

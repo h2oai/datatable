@@ -129,10 +129,6 @@ namespace expr {
 // OBSOLETE
 //
 namespace dt {
-  class collist;
-
-  using collist_ptr = std::unique_ptr<collist>;
-
   enum class GroupbyMode : uint8_t {
     NONE   = 0,
     GtoONE = 1,
