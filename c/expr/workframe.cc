@@ -136,7 +136,9 @@ size_t Workframe::ncols() const noexcept {
 }
 
 size_t Workframe::nrows() const noexcept {
-  return entries_.empty()? 0 : entries_[0].column.nrows();
+  if (entries_.empty()) return 0;
+  if (!entries_[0].column) return 0;
+  return entries_[0].column.nrows();
 }
 
 EvalContext& Workframe::get_context() const noexcept {
@@ -260,7 +262,7 @@ void Workframe::sync_grouping_mode(Workframe& other) {
     if (g1 < g2) increase_grouping_mode(other.grouping_mode_);
     else         other.increase_grouping_mode(grouping_mode_);
   }
-  xassert(ncols() == 0 || other.ncols() == 0 || nrows() == other.nrows());
+  // xassert(ncols() == 0 || other.ncols() == 0 || nrows() == other.nrows());
 }
 
 

@@ -136,7 +136,7 @@ static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
   DataTable* df = ctx.get_datatable(0);
   if (inputs.size() != df->ncols()) {
     throw ValueError()
-        << "The length of boolean list in j selector does not match the "
+        << "The length of boolean list in `j` selector does not match the "
            "number of columns in the Frame: "
         << inputs.size() << " vs " << df->ncols();
   }

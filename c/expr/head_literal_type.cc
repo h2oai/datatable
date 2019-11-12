@@ -114,7 +114,8 @@ Workframe Head_Literal_Type::evaluate_f(
     auto st = static_cast<SType>(value.get_attr("value").to_size_t());
     return _select_type(ctx, fid, st);
   }
-  throw ValueError() << "Unknown type " << value << " used as a selector";
+  throw ValueError() << "Unknown type " << value
+                     << " used as a column selector";
 }
 
 
