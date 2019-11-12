@@ -139,22 +139,5 @@ class Expr {
 
 
 
-
-//------------------------------------------------------------------------------
-//
-// |  Obsolete
-// V
-//------------------------------------------------------------------------------
-
-
-py::oobj make_pyexpr(Op opcode, py::oobj arg);
-py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params);
-
-
-
 }}  // namespace dt::expr
-
-
-
-
 #endif

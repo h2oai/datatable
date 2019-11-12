@@ -284,24 +284,4 @@ int64_t Expr::evaluate_int() const {
 
 
 
-
-//------------------------------------------------------------------------------
-// Factory function for creating `base_expr` objects from python
-//------------------------------------------------------------------------------
-
-py::oobj make_pyexpr(Op opcode, py::oobj arg) {
-  size_t op = static_cast<size_t>(opcode);
-  return py::robj(py::Expr_Type).call({ py::oint(op),
-                                        py::otuple(arg) });
-}
-
-
-py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params) {
-  size_t op = static_cast<size_t>(opcode);
-  return py::robj(py::Expr_Type).call({ py::oint(op), args, params });
-}
-
-
-
-
 }}  // namespace dt::expr

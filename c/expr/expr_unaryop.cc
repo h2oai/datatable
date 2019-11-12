@@ -180,6 +180,18 @@ static float fn_sign(float x) {
 // unary_pyfn
 //------------------------------------------------------------------------------
 
+static py::oobj make_pyexpr(Op opcode, py::oobj arg) {
+  size_t op = static_cast<size_t>(opcode);
+  return py::robj(py::Expr_Type).call({ py::oint(op),
+                                        py::otuple(arg) });
+}
+
+static py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params) {
+  size_t op = static_cast<size_t>(opcode);
+  return py::robj(py::Expr_Type).call({ py::oint(op), args, params });
+}
+
+
 // This helper function will apply `opcode` to the entire frame, and
 // return the resulting frame (same shape as the original).
 static py::oobj process_frame(Op opcode, py::robj arg) {
