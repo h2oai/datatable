@@ -23,7 +23,6 @@
 #include "expr/expr_binaryop.h"
 #include "expr/expr_cast.h"
 #include "expr/expr_column.h"
-#include "expr/expr_columnset.h"
 #include "expr/expr_literal.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_str.h"
@@ -304,7 +303,6 @@ base_expr::~base_expr() {
   UNTRACK(this);
 }
 
-bool base_expr::is_columnset_expr() const { return false; }
 bool base_expr::is_literal_expr() const { return false; }
 
 bool base_expr::is_negated_expr() const { return false; }

@@ -158,7 +158,6 @@ class base_expr {
     virtual GroupbyMode get_groupby_mode(const EvalContext&) const = 0;
     virtual Column evaluate(EvalContext&) = 0;
 
-    virtual bool is_columnset_expr() const;
     virtual bool is_literal_expr() const;
     virtual bool is_negated_expr() const;
     virtual pexpr get_negated_expr();

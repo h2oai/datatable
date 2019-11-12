@@ -22,7 +22,6 @@
 #include "expr/collist.h"
 #include "expr/expr.h"
 #include "expr/expr_column.h"
-#include "expr/expr_columnset.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "utils/exceptions.h"
@@ -213,14 +212,14 @@ class collist_maker
     void _process_element_expr(py::robj elem) {
       _set_type(list_type::EXPR);
       auto expr = elem.to_dtexpr();
-      if (expr->is_columnset_expr()) {
-        auto csexpr = dynamic_cast<expr::expr_columnset*>(expr.get());
-        auto collist = csexpr->convert_to_collist(ctx, flags);
-        concat_vectors(names,   collist->release_names());
-        concat_vectors(indices, collist->release_indices());
-        concat_vectors(exprs,   collist->release_exprs());
-        return;
-      }
+      // if (expr->is_columnset_expr()) {
+      //   auto csexpr = dynamic_cast<expr::expr_columnset*>(expr.get());
+      //   auto collist = csexpr->convert_to_collist(ctx, flags);
+      //   concat_vectors(names,   collist->release_names());
+      //   concat_vectors(indices, collist->release_indices());
+      //   concat_vectors(exprs,   collist->release_exprs());
+      //   return;
+      // }
       auto colexpr = dynamic_cast<expr::expr_column*>(expr.get());
       if (colexpr) {
         bool strict = !(flags & collist::ALLOW_NEW_COLUMNS);
