@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -455,6 +455,7 @@ class FrameInitializationManager {
           auto masksrc = npsrc.get_attr("mask").get_item(col_key);
           Column datacol = Column::from_pybuffer(colsrc);
           Column maskcol = Column::from_pybuffer(masksrc);
+          maskcol.materialize();  // otherwise .get_data_buffer() could fail
           check_nrows(datacol.nrows());
           cols.push_back(Column(
             new dt::NpMasked_ColumnImpl(std::move(datacol),
