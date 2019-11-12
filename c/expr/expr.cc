@@ -20,11 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
-#include "expr/expr_binaryop.h"
-#include "expr/expr_cast.h"
-#include "expr/expr_literal.h"
-#include "expr/expr_reduce.h"
-#include "expr/expr_unaryop.h"
 #include "expr/head.h"
 #include "expr/head_frame.h"
 #include "expr/head_func.h"

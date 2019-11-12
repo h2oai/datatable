@@ -30,32 +30,6 @@ namespace dt {
 namespace expr {
 
 
-class expr_binaryop : public base_expr {
-  private:
-    pexpr lhs;
-    pexpr rhs;
-    Op opcode;
-
-  public:
-    expr_binaryop(pexpr&& l, pexpr&& r, Op op);
-    SType resolve(const EvalContext& ctx) override;
-    GroupbyMode get_groupby_mode(const EvalContext&) const override;
-    Column evaluate(EvalContext& ctx) override;
-
-  private:
-    /**
-     * Check whether one of the operands is a literal NA. If yes, then
-     * adjust its stype to match the stype of the other operand.
-     * Returns true if such adjustment was made, or false otherwise.
-     */
-    bool check_for_operation_with_literal_na(const EvalContext&);
-};
-
-
-
-//------------------------------------------------------------------------------
-// binary_infos
-//------------------------------------------------------------------------------
 
 class _binary_infos {
   public:
