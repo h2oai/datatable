@@ -40,7 +40,6 @@
 #include <cmath>               // std::fmod
 #include <type_traits>         // std::is_integral
 #include "expr/expr_binaryop.h"
-#include "expr/expr_cast.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "column.h"

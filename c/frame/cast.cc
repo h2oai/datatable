@@ -19,9 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-//
-// See also: `expr_cast` in "exprs/base_expr.cc"
-//
 #include <unordered_map>
 #include "csv/toa.h"
 #include "parallel/api.h"           // dt::parallel_for_static
