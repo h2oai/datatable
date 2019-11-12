@@ -493,7 +493,8 @@ bool Aggregator<T>::group_1d() {
   bool res;
   if (ncont) {
     res = group_1d_continuous();
-  } else {
+  }
+  else {
     res = group_1d_categorical();
   }
   return res;
@@ -520,9 +521,11 @@ bool Aggregator<T>::group_2d() {
   bool res;
   if (ncont == 0) {
     res = group_2d_categorical();
-  } else if (ncont == 1) {
+  }
+  else if (ncont == 1) {
     res = group_2d_mixed();
-  } else {
+  }
+  else {
     res = group_2d_continuous();
   }
   return res;
