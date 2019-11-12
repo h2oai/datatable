@@ -31,7 +31,6 @@ template <typename T>
 using ccptr = typename std::unique_ptr<ColumnConvertor<T>>;
 template <typename T>
 using ccptrvec = typename std::vector<ccptr<T>>;
-
 using dtptr = std::unique_ptr<DataTable>;
 
 /**

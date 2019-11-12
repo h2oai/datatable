@@ -293,7 +293,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       subjob.done();
     }
     if (needs_sampling) {
-      // Sample members if we gathered too many exempalrs.
+      // Sample exemplars if we gathered too many.
       job.set_message("Sampling");
       dt::progress::subtask subjob(job, WORK_SAMPLE);
       sample_exemplars(max_bins);
@@ -348,9 +348,10 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
 
     // First, set all `exemplar_id`s to `N/A`.
-    dt::parallel_for_static(dt_members->nrows(), [&](size_t i) {
-      d_members[i] = GETNA<int32_t>();
-    });
+    dt::parallel_for_static(dt_members->nrows(),
+      [&](size_t i) {
+        d_members[i] = GETNA<int32_t>();
+      });
 
     // Second, randomly select `max_bins` groups.
     if (!seed) {
@@ -368,11 +369,12 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
       xassert(rii_valid);  (void) rii_valid;
       if (ISNA<int32_t>(d_members[ri])) {
         size_t off_i1 = static_cast<size_t>(offsets[i + 1]);
-        dt::parallel_for_static(off_i1 - off_i, [&](size_t j) {
-          rii_valid = ri_members.get_element(j + off_i, &ri);
-          xassert(rii_valid);  (void) rii_valid;
-          d_members[ri] = static_cast<int32_t>(k);
-        });
+        dt::parallel_for_static(off_i1 - off_i,
+          [&](size_t j) {
+            rii_valid = ri_members.get_element(j + off_i, &ri);
+            xassert(rii_valid);  (void) rii_valid;
+            d_members[ri] = static_cast<int32_t>(k);
+          });
 
         k++;
         job.add_done_amount(1);
@@ -662,19 +664,6 @@ bool Aggregator<T>::group_2d_categorical()
 
 
 /**
- *  Calculate how many na groups were merged together.
- */
-template <typename T>
-size_t Aggregator<T>::n_merged_nas(const intvec& n_nas) {
-  size_t n_merged_nas = 0;
-  for (size_t i = 0; i < n_nas.size(); ++i) {
-    n_merged_nas += (n_nas[i] > 0)? n_nas[i] - 1 : 0;
-  }
-  return n_merged_nas;
-}
-
-
-/**
  *  Group one continuous and one categorical column.
  */
 template <typename T>
@@ -726,6 +715,19 @@ bool Aggregator<T>::group_2d_mixed()
   bool cont_na = n_nas[0] > 0;
   bool res = (nx_bins + cont_na) * grpby.ngroups() - n_merged > nx_bins * ny_bins;
   return res;
+}
+
+
+/**
+ *  Calculate how many NA groups were merged together.
+ */
+template <typename T>
+size_t Aggregator<T>::n_merged_nas(const intvec& n_nas) {
+  size_t n_merged_nas = 0;
+  for (size_t i = 0; i < n_nas.size(); ++i) {
+    n_merged_nas += (n_nas[i] > 0)? n_nas[i] - 1 : 0;
+  }
+  return n_merged_nas;
 }
 
 
@@ -952,7 +954,6 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
  */
 template <typename T>
 void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
-
   auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
   auto map = std::unique_ptr<size_t[]>(new size_t[ids.size()]);
   auto nids = ids.size();
