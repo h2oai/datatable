@@ -113,6 +113,7 @@ namespace expr {
     Type,
     Func,
     List,
+    NamedList,
     Frame,
     SliceAll,
     SliceInt,

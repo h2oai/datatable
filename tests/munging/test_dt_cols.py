@@ -23,7 +23,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables, noop, isview
+from tests import same_iterables, noop, isview, assert_equals
 from datatable import ltype, stype, f
 from datatable.internal import frame_integrity_check
 
@@ -366,8 +366,8 @@ def test_j_strlist2(dt0, tbl0):
 def test_j_strlist_mixed(dt0):
     assert_typeerror(
         dt0, ["A", f.B],
-        "Mixed selector types are not allowed. Element 1 is of type expr, "
-        "whereas the previous element(s) were of type string")
+        "Mixed selector types are not allowed. Element 1 is of type expression,"
+        " whereas the previous element(s) were of type string")
 
 
 
@@ -439,11 +439,9 @@ def test_j_dict_bad1(dt0):
         "Keys in the dictionary must be strings")
 
 
-def test_j_dict_bad2(dt0):
-    assert_typeerror(
-        dt0, {"a": "A", "b": "B"},
-        "The values in `j` selector dictionary must be expressions, not "
-        "strings")
+def test_j_dict_of_literals(dt0):
+    DT1 = dt0[:, {"a": "A", "b": "B", "c": 7.5}]
+    assert_equals(DT1, dt.Frame(a=["A"], b=["B"], c=[7.5]))
 
 
 

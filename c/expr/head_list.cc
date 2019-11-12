@@ -112,7 +112,7 @@ static Kind _resolve_list_kind(const vecExpr& inputs) {
       throw TypeError()
         << "A floating value cannot be used as a column selector";
     }
-    if (kind == Kind::List) {
+    if (kind == Kind::List || kind == Kind::NamedList) {
       throw TypeError()
         << "Nested lists are not supported as a column selector";
     }
@@ -299,7 +299,7 @@ Head_NamedList::Head_NamedList(strvec&& names_)
   : names(std::move(names_)) {}
 
 Kind Head_NamedList::get_expr_kind() const {
-  return Kind::List;
+  return Kind::NamedList;
 }
 
 

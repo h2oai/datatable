@@ -281,9 +281,14 @@ void EvalContext::compute_groupby_and_sort() {
 //   - delete all rows & all columns (i.e. delete the entire frame).
 //
 void EvalContext::evaluate_delete() {
-  if (jexpr_.get_expr_kind() == Kind::SliceAll) {
+  Kind jkind = jexpr_.get_expr_kind();
+  if (jkind == Kind::SliceAll) {
     evaluate_delete_rows();
-  } else if (get_rowindex(0)) {
+  } else if (jkind == Kind::NamedList) {
+    throw TypeError() << "When del operator is applied, `j` selector cannot "
+                         "be a dictionary";
+  }
+  else if (get_rowindex(0)) {
     evaluate_delete_subframe();
   } else {
     evaluate_delete_columns();
@@ -461,12 +466,46 @@ void EvalContext::update_groupby_columns(Grouping gmode) {
 }
 
 
+template <typename T>
+static void _vivify_column(const Column& col) {
+  T value;
+  col.get_element(0, &value);
+}
+
+// Ensure that any "Latent" columns are resolved before we return
+// the Frame to the user.
+// Strictly speaking we don't have to resolve them, but then we'd
+// have to be careful about accessing columns' data in parallel.
+//
+static void _vivify_workframe(const Workframe& wf) {
+  if (wf.nrows() == 0) return;
+  for (size_t i = 0; i < wf.ncols(); ++i) {
+    const Column& col = wf.get_column(i);
+    switch (col.stype()) {
+      case SType::BOOL:
+      case SType::INT8:    _vivify_column<int8_t>(col); break;
+      case SType::INT16:   _vivify_column<int16_t>(col); break;
+      case SType::INT32:   _vivify_column<int32_t>(col); break;
+      case SType::INT64:   _vivify_column<int64_t>(col); break;
+      case SType::FLOAT32: _vivify_column<float>(col); break;
+      case SType::FLOAT64: _vivify_column<double>(col); break;
+      case SType::STR32:
+      case SType::STR64:   _vivify_column<CString>(col); break;
+      case SType::OBJ:     _vivify_column<py::robj>(col); break;
+      default:
+        throw RuntimeError() << "Unknown stype " << col.stype();  // LCOV_EXCL_LINE
+    }
+  }
+}
+
+
 void EvalContext::evaluate_select() {
   Workframe res = jexpr_.evaluate_j(*this);
   if (add_groupby_columns_) {
     update_groupby_columns(res.get_grouping_mode());
     res.cbind(std::move(groupby_columns_), /* at_end= */ false);
   }
+  _vivify_workframe(res);
   out_datatable = std::move(res).convert_to_datatable();
 }
 
