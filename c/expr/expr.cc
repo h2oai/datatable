@@ -245,8 +245,10 @@ RowIndex Expr::evaluate_i(EvalContext& ctx) const {
 }
 
 
-Workframe Expr::prepare_by(EvalContext& ctx) const {
-  return head->prepare_by(inputs, ctx);
+void Expr::prepare_by(EvalContext& ctx, Workframe& wf,
+                      std::vector<SortFlag>& flags) const
+{
+  head->prepare_by(inputs, ctx, wf, flags);
 }
 
 
@@ -260,6 +262,26 @@ bool Expr::evaluate_bool() const {
   xassert(boolhead);
   return boolhead->get_value();
 }
+
+
+bool Expr::is_negated_column(EvalContext& ctx, size_t* iframe,
+                             size_t* icol) const
+{
+  auto unaryfn_head = dynamic_cast<Head_Func_Unary*>(head.get());
+  if (unaryfn_head) {
+    if (unaryfn_head->get_op() == Op::UMINUS) {
+      xassert(inputs.size() == 1);
+      auto column_head = dynamic_cast<Head_Func_Column*>(inputs[0].head.get());
+      if (column_head) {
+        Workframe wf = inputs[0].evaluate_n(ctx);
+        xassert(wf.ncols() == 1);
+        return wf.is_reference_column(0, iframe, icol);
+      }
+    }
+  }
+  return false;
+}
+
 
 int64_t Expr::evaluate_int() const {
   auto inthead = dynamic_cast<Head_Literal_Int*>(head.get());

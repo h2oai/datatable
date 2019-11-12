@@ -9,6 +9,7 @@
 #define dt_SORT_h
 #include <vector>
 #include <cstddef>
+#include "types.h"
 using std::size_t;
 
 class Column;

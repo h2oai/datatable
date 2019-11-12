@@ -34,7 +34,9 @@ Head::~Head() {}
 // by() function transforms its arguments into a Head_List Expr,
 // thus the method `evaluate_by()` should only be defined there.
 //
-Workframe Head::prepare_by(const vecExpr&, EvalContext&) const {  // LCOV_EXCL_LINE
+void Head::prepare_by(const vecExpr&, EvalContext&, Workframe&,
+                      std::vector<SortFlag>&) const
+{
   throw RuntimeError() << "Unexpected prepare_by() call";         // LCOV_EXCL_LINE
 }                                                                 // LCOV_EXCL_LINE
 

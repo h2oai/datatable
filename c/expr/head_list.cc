@@ -269,23 +269,38 @@ RiGb Head_List::evaluate_iby(const vecExpr&, EvalContext&) const {
 
 
 //------------------------------------------------------------------------------
-// evaluate_by
+// prepare_by
 //------------------------------------------------------------------------------
 
-Workframe Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx) const
+void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
+                           Workframe& outwf, std::vector<SortFlag>& outflags)
+                          const
 {
-  if (inputs.empty()) {
-    return Workframe(ctx); // RiGb{ RowIndex(), Groupby() };
-  }
+  if (inputs.empty()) return;
+
   auto kind = _resolve_list_kind(inputs);
   if (kind == Kind::Str || kind == Kind::Int) {
-    return _evaluate_f_list(inputs, ctx, false);
+    for (const Expr& arg : inputs) {
+      outwf.cbind( arg.evaluate_f(ctx, 0, false) );
+      outflags.push_back(SortFlag::NONE);
+    }
   }
-  if (kind == Kind::Func) {
-    return evaluate_n(inputs, ctx);
+  else if (kind == Kind::Func) {
+    size_t iframe, icol;
+    for (const Expr& arg : inputs) {
+      if (arg.is_negated_column(ctx, &iframe, &icol)) {
+        outwf.add_ref_column(iframe, icol);
+        outflags.push_back(SortFlag::DESCENDING);
+      } else {
+        outwf.cbind( arg.evaluate_n(ctx) );
+        outflags.push_back(SortFlag::NONE);
+      }
+    }
   }
-  throw TypeError() << "Sequence of " << _name_type(kind) << " expressions "
-      "cannot be used in a by() clause";
+  else {
+    throw TypeError() << "Sequence of " << _name_type(kind) << " expressions "
+        "cannot be used in a by() clause";
+  }
 }
 
 

@@ -127,7 +127,8 @@ class Head {
     // result of the evaluation is a Workframe that will be later used
     // in the group() operation.
     //
-    virtual Workframe prepare_by(const vecExpr& args, EvalContext& ctx) const;
+    virtual void prepare_by(const vecExpr& args, EvalContext& ctx,
+                            Workframe& wf, std::vector<SortFlag>& flags) const;
 
     virtual RiGb evaluate_iby(const vecExpr& args,
                               EvalContext& ctx) const = 0;

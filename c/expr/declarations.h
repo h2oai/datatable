@@ -25,11 +25,13 @@
 #include <string>
 #include <utility>    // std::pair
 #include <vector>
+#include "sort.h"
 
 class Column;
 class DataTable;
 class Groupby;
 class RowIndex;
+
 
 namespace dt {
 namespace expr {

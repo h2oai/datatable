@@ -233,32 +233,35 @@ void EvalContext::create_placeholder_columns() {
 void EvalContext::compute_groupby_and_sort() {
   size_t nr = nrows();
   size_t n_group_cols = 0;
-  Workframe wf(*this);
-  if (byexpr_) {
-    wf.cbind(byexpr_.prepare_by(*this));
-    n_group_cols = wf.ncols();
-  }
-  if (sortexpr_) {
-    wf.cbind(sortexpr_.prepare_by(*this));
-  }
-  if (wf.ncols()) {
-    size_t ncols = wf.ncols();
+  if (byexpr_ || sortexpr_) {
+    Workframe wf(*this);
     std::vector<Column> cols;
     std::vector<SortFlag> flags;
-    cols.reserve(ncols);
-    flags.reserve(ncols);
-    for (size_t i = 0; i < ncols; ++i) {
-      const Column& col = wf.get_column(i);
-      const_cast<Column&>(col).materialize();
-      cols.push_back(col);  // copy
-      flags.push_back((i < n_group_cols)? SortFlag::NONE : SortFlag::SORT_ONLY);
+    if (byexpr_) {
+      byexpr_.prepare_by(*this, wf, flags);
+      n_group_cols = wf.ncols();
     }
-    wf.truncate_columns(n_group_cols);
-    set_groupby_columns(std::move(wf));
+    if (sortexpr_) {
+      sortexpr_.prepare_by(*this, wf, flags);
+    }
+    size_t ncols = wf.ncols();
+    xassert(flags.size() == ncols);
+    if (ncols) {
+      for (size_t i = 0; i < ncols; ++i) {
+        const Column& col = wf.get_column(i);
+        const_cast<Column&>(col).materialize();
+        cols.push_back(col);  // copy
+        if (i >= n_group_cols) {
+          flags[i] = flags[i] | SortFlag::SORT_ONLY;
+        }
+      }
+      wf.truncate_columns(n_group_cols);
+      set_groupby_columns(std::move(wf));
 
-    auto rigb = group(cols, flags);
-    apply_rowindex(std::move(rigb.first));
-    groupby_ = std::move(rigb.second);
+      auto rigb = group(cols, flags);
+      apply_rowindex(std::move(rigb.first));
+      groupby_ = std::move(rigb.second);
+    }
   }
   if (!groupby_) {
     groupby_ = Groupby::single_group(nr);
