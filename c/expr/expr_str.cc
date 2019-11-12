@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
-#include "expr/expr_column.h"
 #include "expr/expr_str.h"
 #include "parallel/api.h"
 #include "utils/exceptions.h"

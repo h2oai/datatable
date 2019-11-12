@@ -239,8 +239,6 @@ class _obj {
     py::oby     to_oby_lax        () const;
     py::osort   to_osort_lax      () const;
     py::oupdate to_oupdate_lax    () const;
-    // Defined in expr/base_expr.cc
-    std::unique_ptr<dt::expr::base_expr> to_dtexpr() const;
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }

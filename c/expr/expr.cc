@@ -22,7 +22,6 @@
 #include "expr/expr.h"
 #include "expr/expr_binaryop.h"
 #include "expr/expr_cast.h"
-#include "expr/expr_column.h"
 #include "expr/expr_literal.h"
 #include "expr/expr_reduce.h"
 #include "expr/expr_str.h"
@@ -340,19 +339,3 @@ py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params) {
 
 
 }}  // namespace dt::expr
-
-
-using namespace dt::expr;
-pexpr py::_obj::to_dtexpr() const {
-  if (!is_dtexpr()) {
-    return pexpr(new expr_literal(py::robj(v)));
-  }
-  size_t op = get_attr("_op").to_size_t();
-  py::otuple args = get_attr("_args").to_otuple();
-  py::otuple params = get_attr("_params").to_otuple();
-
-  if (factory.count(op) == 0) {
-    throw ValueError() << "Unknown opcode in Expr(): " << op;
-  }
-  return factory[op](static_cast<Op>(op), args, params);
-}
