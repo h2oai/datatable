@@ -94,17 +94,21 @@ size_t FileWritableBuffer::prep_write(size_t src_size, const void* src)
   // See: https://linux.die.net/man/2/write
   //
   int fd = file->descriptor();
+  int attempts_remaining = 5;
   size_t written_to_file = 0;
   while (written_to_file < src_size) {
-    size_t count = std::min(src_size, CHUNK_SIZE);
+    size_t bytes_to_write = std::min(src_size - written_to_file, CHUNK_SIZE);
     const void* buf = static_cast<const char*>(src) + written_to_file;
-    ssize_t r = ::write(fd, buf, count);
-    if (r == -1) {
-      throw RuntimeError() << "Cannot write to file: " << Errno
-          << " (bytes already written: " << bytes_written << ")";
+    ssize_t r = ::write(fd, buf, bytes_to_write);
+    if (r < 0) {
+      throw IOError() << "Cannot write to file: " << Errno
+          << " (started at offset " << pos
+          << ", written " << written_to_file << " out of " << src_size
+          << " bytes)";
     }
     if (r == 0) {
-      throw RuntimeError() << "Output to file truncated: "
+      if (attempts_remaining--) continue;  // Retry several times
+      throw IOError() << "Output to file truncated: "
           << written_to_file << " out of " << src_size << " bytes written";
     }
     // Normally, `r` contains the number of bytes written to file. This could
@@ -115,7 +119,7 @@ size_t FileWritableBuffer::prep_write(size_t src_size, const void* src)
     // written.
     written_to_file += static_cast<size_t>(r);
   }
-  xassert(written_to_file == src_size);
+  XAssert(written_to_file == src_size);
   bytes_written += written_to_file;
   return pos;
 }

@@ -11,10 +11,36 @@
 #include "rowindex.h"
 
 
+/**
+  * Groupby object describes how a Frame can be split into groups.
+  *
+  * This object does not carry a reference to the Frame it is
+  * splitting, in fact the same Groupby can be applied to multiple
+  * Frames provided they have the same number of rows. This
+  * possibility is actually used in EvalContext, where a single
+  * Groupby may operate on multiple joined frames.
+  *
+  * The object contains fields `ngroups_` (which could be 0 or more),
+  * and `offsets_`, which is an array of cumulative offsets of each
+  * subsequent group. The `offsets_` array has `ngroups_ + 1` elements
+  * and the first offset is always 0. The last offset (available via
+  * `.last_offset()`) is equal to the number of rows that in a Frame
+  * that this Groupby applies to.
+  *
+  * If the target Frame has 0 rows, then it can be described as either
+  * 0 groups, or as 1 group of size 0. In all other cases offsets are
+  * strictly increasing: groups of size 0 are not allowed.
+  *
+  * An empty Groupby can be created using the default constructor:
+  * `Groupby()`. Unlike any "normal" Groupby, in this case the
+  * `offsets_` array will be empty. Use `operator bool()` to test
+  * whether a Groupby object is empty or not.
+  *
+  */
 class Groupby {
   private:
-    Buffer offsets;
-    size_t n;
+    Buffer offsets_;
+    size_t ngroups_;
 
   public:
     Groupby();
@@ -23,13 +49,14 @@ class Groupby {
     Groupby(Groupby&&) = default;
     Groupby& operator=(const Groupby&) = default;
     Groupby& operator=(Groupby&&) = default;
+    static Groupby zero_groups();
     static Groupby single_group(size_t nrows);
 
-    const int32_t* offsets_r() const;
-    size_t ngroups() const;
-    size_t size() const noexcept;  // same as ngroups()
-    size_t last_offset() const noexcept;
     explicit operator bool() const;
+
+    size_t size() const noexcept;
+    size_t last_offset() const noexcept;
+    const int32_t* offsets_r() const;
     void get_group(size_t i, size_t* i0, size_t* i1) const;
 
     // Return a RowIndex which can be used to perform "ungrouping" operation.

@@ -28,6 +28,7 @@
 import math
 import os
 import pytest
+import random
 import datatable as dt
 from datatable import ltype, stype, DatatableWarning
 from datatable.internal import frame_integrity_check
@@ -1104,6 +1105,34 @@ def test_create_from_numpy_floats_mixed(numpy):
     assert DT.shape == (4, 1)
     assert DT.stype == dt.float64
     assert DT.to_list() == [[4.0, 3.5, None, 9.33]]
+
+
+def test_create_from_numpy_reversed(numpy):
+    DT = dt.Frame(numpy.array(range(10))[::-1])
+    assert_equals(DT, dt.Frame(range(9, -1, -1), stype=dt.int64))
+
+
+def test_create_from_numpy_masked_and_sliced(numpy):
+    arr = numpy.ma.array([1, 2, 3], mask=[False, True, False])
+    DT = dt.Frame(arr[::2])
+    assert_equals(DT, dt.Frame([1, 3], stype=dt.int64))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
+def test_from_random_numpy_masked_and_sliced(numpy, seed):
+    random.seed(seed)
+    start = random.randint(-20, 20)
+    end = random.randint(-20, 20)
+    step = 0
+    while step == 0:
+        step = random.randint(-5, 5)
+    arr = numpy.arange(20)
+    if random.random() < 0.5:
+        arr = numpy.ma.array(arr, mask=[random.random() < 0.5
+                                        for _ in range(arr.shape[0])])
+    arr = arr[start:end:step]
+    DT = dt.Frame(arr)
+    assert_equals(DT, dt.Frame(C0=arr.tolist(), stype=dt.int64))
 
 
 

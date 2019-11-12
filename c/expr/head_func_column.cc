@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/eval_context.h"
 #include "expr/expr.h"
 #include "expr/head_func.h"
 #include "expr/workframe.h"

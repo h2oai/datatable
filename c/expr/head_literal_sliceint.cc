@@ -95,7 +95,7 @@ RiGb Head_Literal_SliceInt::evaluate_iby(const vecExpr&, EvalContext& ctx) const
   if (istep == py::oslice::NA) istep = 1;
 
   const Groupby& gb = ctx.get_groupby();
-  size_t ngroups = gb.ngroups();
+  size_t ngroups = gb.size();
   const int32_t* group_offsets = gb.offsets_r() + 1;
   size_t ri_size = _estimate_iby_nrows(ctx.nrows(), ngroups, istart, istop, istep);
   arr32_t out_ri_array(ri_size);

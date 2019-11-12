@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,11 +24,14 @@
 #include "expr/collist.h"
 #include "expr/expr_column.h"
 #include "expr/eval_context.h"
+#include "expr/py_by.h"
 #include "python/arg.h"
 #include "python/tuple.h"
 #include "utils/exceptions.h"
 #include "datatablemodule.h"
+#include "sort.h"
 namespace dt {
+
 
 
 //------------------------------------------------------------------------------
@@ -55,16 +58,16 @@ by_node::~by_node() {
 }
 
 
-void by_node::add_groupby_columns(EvalContext& ctx, collist_ptr&& cl) {
+void by_node::add_groupby_columns(expr::EvalContext& ctx, collist_ptr&& cl) {
   _add_columns(ctx, std::move(cl), true);
 }
 
-void by_node::add_sortby_columns(EvalContext& ctx, collist_ptr&& cl) {
+void by_node::add_sortby_columns(expr::EvalContext& ctx, collist_ptr&& cl) {
   _add_columns(ctx, std::move(cl), false);
 }
 
 
-void by_node::_add_columns(EvalContext& ctx, collist_ptr&& cl, bool isgrp) {
+void by_node::_add_columns(expr::EvalContext& ctx, collist_ptr&& cl, bool isgrp) {
   strvec names = cl->release_names();
   bool has_names = !names.empty();
   if (cl->is_simple_list()) {
@@ -133,11 +136,11 @@ bool by_node::has_group_column(size_t i) const {
 }
 
 
-void by_node::create_columns(EvalContext& ctx) {
+void by_node::create_columns(expr::EvalContext& ctx) {
   DataTable* dt0 = ctx.get_datatable(0);
   RowIndex ri0 = ctx.get_rowindex(0);
   if (ctx.get_groupby_mode() == GroupbyMode::GtoONE) {
-    ri0 = RowIndex(arr32_t(ctx.gb.ngroups(), ctx.gb.offsets_r()), true) * ri0;
+    ri0 = RowIndex(arr32_t(ctx.groupby_.size(), ctx.groupby_.offsets_r()), true) * ri0;
   }
 
   auto dt0_names = dt0->get_names();
@@ -152,9 +155,9 @@ void by_node::create_columns(EvalContext& ctx) {
 }
 
 
-void by_node::execute(EvalContext& ctx) const {
+void by_node::execute(expr::EvalContext& ctx) const {
   if (cols.empty()) {
-    ctx.gb = Groupby::single_group(ctx.nrows());
+    ctx.groupby_ = Groupby::single_group(ctx.nrows());
     return;
   }
   const DataTable* dt0 = ctx.get_datatable(0);
@@ -166,103 +169,31 @@ void by_node::execute(EvalContext& ctx) const {
     // When grouping a Frame with 0 rows, produce a no-groups Groupby
     return;
   }
-  std::vector<sort_spec> spec;
-  spec.reserve(cols.size());
+  std::vector<Column> sort_cols;
+  std::vector<SortFlag> sort_flags;
+  sort_cols.reserve(cols.size());
+  sort_flags.reserve(cols.size());
   if (n_group_columns > 0) {
-    for (auto& col : cols) {
+    for (const auto& col : cols) {
       if (col.sort_only) continue;
-      spec.emplace_back(col.index, col.descending, false, false);
+      sort_cols.push_back(dt0->get_column(col.index));
+      sort_flags.push_back(col.descending? SortFlag::DESCENDING : SortFlag::NONE);
     }
   }
   if (n_group_columns < cols.size()) {
     for (auto& col : cols) {
       if (!col.sort_only) continue;
-      spec.emplace_back(col.index, col.descending, false, true);
+      sort_cols.push_back(dt0->get_column(col.index));
+      sort_flags.push_back((col.descending? SortFlag::DESCENDING : SortFlag::NONE)
+                           | SortFlag::SORT_ONLY);
     }
   }
-  // if (n_group_columns) {
-    auto res = dt0->group(spec);
-    ctx.gb = std::move(res.second);
-    ctx.apply_rowindex(res.first);
-  // } else {
-  //   auto res = dt0->sort(spec);
-  //   ctx.apply_rowindex(res);
-  // }
+  auto res = group(sort_cols, sort_flags);
+  ctx.groupby_ = std::move(res.second);
+  ctx.apply_rowindex(res.first);
 }
 
 
 
 
 }  // namespace dt
-//------------------------------------------------------------------------------
-// py::oby
-//------------------------------------------------------------------------------
-namespace py {
-
-
-oby::oby(const robj& src) : oobj(src) {}
-oby::oby(const oobj& src) : oobj(src) {}
-
-
-oby oby::make(const robj& r) {
-  return oby(oby::oby_pyobject::make(r));
-}
-
-
-bool oby::check(PyObject* v) {
-  return oby::oby_pyobject::check(v);
-}
-
-
-void oby::init(PyObject* m) {
-  oby::oby_pyobject::init_type(m);
-}
-
-
-dt::collist_ptr oby::cols(dt::EvalContext& ctx) const {
-  // robj cols = reinterpret_cast<const pyobj*>(v)->cols;
-  robj cols = reinterpret_cast<const oby::oby_pyobject*>(v)->get_cols();
-  return dt::collist_ptr(new dt::collist(ctx, cols, dt::collist::BY_NODE));
-}
-
-
-
-
-static PKArgs args___init__(0, 0, 0, true, false, {}, "__init__", nullptr);
-
-
-void oby::oby_pyobject::impl_init_type(XTypeMaker& xt) {
-  xt.set_class_name("datatable.by");
-  xt.set_class_doc("by() clause for use in DT[i, j, ...]");
-  xt.set_subclassable(true);
-
-  xt.add(CONSTRUCTOR(&oby::oby_pyobject::m__init__, args___init__));
-  xt.add(DESTRUCTOR(&oby::oby_pyobject::m__dealloc__));
-
-  static GSArgs args__cols("_cols");
-  xt.add(GETTER(&oby::oby_pyobject::get_cols, args__cols));
-}
-
-
-void oby::oby_pyobject::m__init__(const PKArgs& args) {
-  olist colslist(args.num_vararg_args());
-  size_t i = 0;
-  for (robj arg : args.varargs()) {
-    colslist.set(i++, arg);
-  }
-  cols = std::move(colslist);
-}
-
-
-void oby::oby_pyobject::m__dealloc__() {
-  cols = nullptr;  // Releases the stored oobj
-}
-
-
-oobj oby::oby_pyobject::get_cols() const {
-  return cols;
-}
-
-
-
-}  // namespace py

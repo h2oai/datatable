@@ -28,6 +28,7 @@
 #include "utils/exceptions.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "sort.h"
 namespace dt {
 namespace set {
 
@@ -111,8 +112,9 @@ static sort_result sort_columns(named_colvec&& ncv) {
     res.column = Column::new_na_column(0);
     res.column.rbind(ncv.columns);
   }
-  res.ri = res.column.sort(&res.gb);
-
+  auto r = group({res.column}, {SortFlag::NONE});
+  res.ri = std::move(r.first);
+  res.gb = std::move(r.second);
   return res;
 }
 
@@ -123,7 +125,7 @@ static py::oobj _union(named_colvec&& ncv) {
   }
   sort_result sorted = sort_columns(std::move(ncv));
 
-  size_t ngrps = sorted.gb.ngroups();
+  size_t ngrps = sorted.gb.size();
   const int32_t* goffsets = sorted.gb.offsets_r();
   if (goffsets[ngrps] == 0) ngrps = 0;
 
@@ -221,7 +223,7 @@ template <bool TWO>
 static py::oobj _intersect(named_colvec&& cv) {
   size_t K = cv.columns.size();
   sort_result sorted = sort_columns(std::move(cv));
-  size_t ngrps = sorted.gb.ngroups();
+  size_t ngrps = sorted.gb.size();
   const int32_t* goffsets = sorted.gb.offsets_r();
   if (goffsets[ngrps] == 0) ngrps = 0;
 
@@ -319,7 +321,7 @@ static py::oobj intersect(const py::PKArgs& args) {
 static py::oobj _setdiff(named_colvec&& cv) {
   xassert(cv.columns.size() >= 2);
   sort_result sorted = sort_columns(std::move(cv));
-  size_t ngrps = sorted.gb.ngroups();
+  size_t ngrps = sorted.gb.size();
   const int32_t* goffsets = sorted.gb.offsets_r();
   if (goffsets[ngrps] == 0) ngrps = 0;
 
@@ -380,7 +382,7 @@ template <bool TWO>
 static py::oobj _symdiff(named_colvec&& cv) {
   size_t K = cv.columns.size();
   sort_result sr = sort_columns(std::move(cv));
-  size_t ngrps = sr.gb.ngroups();
+  size_t ngrps = sr.gb.size();
   const int32_t* goffsets = sr.gb.offsets_r();
   if (goffsets[ngrps] == 0) ngrps = 0;
 

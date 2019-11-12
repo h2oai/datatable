@@ -30,7 +30,13 @@ from tests import same_iterables, assert_equals, isview
 
 
 
-def test_groups1():
+def test_groups1a():
+    DT0 = dt.Frame(A=[1, 2, 1])
+    DT1 = DT0[:, "A", by("A")]
+    assert_equals(DT1, dt.Frame([[1, 2], [1, 2]], names=["A", "A.0"]))
+
+
+def test_groups1b():
     DT = dt.Frame([[1,   5,   3,   2,   1,    3,   1,   1,   None],
                    ["a", "b", "c", "a", None, "f", "b", "h", "d"]],
                   names=["A", "B"])
@@ -45,13 +51,20 @@ def test_groups1():
                      A=[1, 1, 2, 5, 1, 3, None, 3, 1]))
 
 
-def test_groups2():
-    f0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
-    f1 = f0[:, [f.B, f.A + f.B], by(f.A)]
-    frame_integrity_check(f1)
-    assert f1.to_list() == [[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
-                            [0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
-                            [1, 3, 8, 10, 3, 6, 7, 8, 6, 11]]
+def test_groups2a():
+    DT0 = dt.Frame(A=[1, 2, 1], B=[3, 4, 5])
+    DT1 = DT0[:, [f.A, f.B, f.A + f.B], by("A")]
+    assert_equals(DT0, dt.Frame(A=[1, 2, 1], B=[3, 4, 5]))
+    assert_equals(DT1, dt.Frame([[1, 1, 2], [1, 1, 2], [3, 5, 4], [4, 6, 6]],
+                                names=["A", "A.0", "B", "C0"]))
+
+
+def test_groups2b():
+    DT0 = dt.Frame(A=[1, 2, 1, 3, 2, 2, 2, 1, 3, 1], B=range(10))
+    DT1 = DT0[:, [f.B, f.A + f.B], by(f.A)]
+    assert_equals(DT1, dt.Frame(A=[1, 1, 1, 1, 2, 2, 2, 2, 3, 3],
+                                B=[0, 2, 7, 9, 1, 4, 5, 6, 3, 8],
+                                C0=[1, 3, 8, 10, 3, 6, 7, 8, 6, 11]))
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -139,14 +152,12 @@ def test_group_empty_frame4():
 
 
 def test_groups_small1():
-    f0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
-                   "B": [0, 1, 2, 3, 4, 5, 6, 7]})
-    f1 = f0[:, mean(f.B), by(f.A)]
-    assert f1.stypes == (dt.int32, dt.float64,)
-    assert f1.to_list() == [[1, 2, 3], [3.8, 2.0, 5.0]]
-    f2 = f0[:, mean(f.B), "A"]
-    assert f2.stypes == f1.stypes
-    assert f2.to_list() == f1.to_list()
+    DT0 = dt.Frame({"A": [1, 2, 1, 2, 1, 3, 1, 1],
+                    "B": [0, 1, 2, 3, 4, 5, 6, 7]})
+    DT1 = DT0[:, mean(f.B), by(f.A)]
+    assert_equals(DT1, dt.Frame(A=[1, 2, 3], B=[3.8, 2.0, 5.0]))
+    DT2 = DT0[:, mean(f.B), "A"]
+    assert_equals(DT2, DT1)
 
 
 def test_groups_multiple():
@@ -299,14 +310,11 @@ def test_groupby_on_view():
                   C=['b', 'd', 'b', 'b', 'd', 'b'])
     V = DT[f.A != 1, :]
     assert isview(V)
-    assert V.shape == (4, 3)
-    assert V.to_dict() == {'A': [2, 3, 2, 3],
-                           'B': [6, 2, 3, 1],
-                           'C': ['d', 'b', 'd', 'b']}
+    assert_equals(V, dt.Frame(A=[2, 3, 2, 3],
+                              B=[6, 2, 3, 1],
+                              C=['d', 'b', 'd', 'b']))
     RES = V[:, max(f.B), by(f.C)]
-    assert RES.shape == (2, 2)
-    assert RES.to_dict() == {'C': ['b', 'd'],
-                             'C0': [2, 6]}
+    assert_equals(RES, dt.Frame(C=['b', 'd'], B=[2, 6]))
 
 
 def test_groupby_empty():
@@ -330,6 +338,6 @@ def test_groupby_with_sort():
     R2 = DT[:, count(), by(f.A, f.B), sort(f.C)]
     R0 = dt.Frame(A=[1, 1, 2, 2, 3, 3],
                   B=[1, 2, 1, 2, 1, 2],
-                  C0=[2] * 6, stypes={"C0": dt.int64})
+                  count=[2] * 6, stypes={"count": dt.int64})
     assert_equals(R1, R0)
     assert_equals(R2, R0)

@@ -37,6 +37,7 @@ class Head_List : public Head {
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
+    void prepare_by(const vecExpr&, EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
 };
 
 

@@ -23,6 +23,7 @@
 #define dt_EXPR_HEAD_LITERAL_h
 #include <string>
 #include <vector>
+#include "expr/eval_context.h"
 #include "expr/head.h"
 #include "python/slice.h"
 #include "python/range.h"

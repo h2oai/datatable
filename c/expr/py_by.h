@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,57 +19,59 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_BY_NODE_h
-#define dt_EXPR_BY_NODE_h
-#include "expr/declarations.h"
+#ifndef dt_EXPR_PY_BY_h
+#define dt_EXPR_PY_BY_h
 #include "python/obj.h"
 #include "python/xobject.h"
-#include "datatable.h"
-#include "groupby.h"         // Groupby
-namespace dt {
+namespace py {
 
 
 
+class oby : public oobj
+{
+  class oby_pyobject : public XObject<oby_pyobject> {
+    private:
+      oobj cols_;
+      bool add_columns_;
+      size_t : 56;
 
-//------------------------------------------------------------------------------
-// dt::by_node
-//------------------------------------------------------------------------------
+    public:
+      void m__init__(const PKArgs&);
+      void m__dealloc__();
+      oobj get_cols() const;
+      bool get_add_columns() const;
 
-class by_node {
-  private:
-    using exprptr = std::unique_ptr<dt::expr::base_expr>;
-    struct column_descriptor {
-      size_t      index;
-      exprptr     expr;
-      std::string name;
-      bool        descending;
-      bool        sort_only;
-      size_t : 48;
-
-      column_descriptor(size_t i, std::string&& name_, bool desc, bool sort);
-      column_descriptor(exprptr&& e, std::string&& name_, bool desc, bool sort);
-    };
-
-    std::vector<column_descriptor> cols;
-    size_t n_group_columns;
+      static void impl_init_type(XTypeMaker& xt);
+  };
 
   public:
-    by_node();
-    ~by_node();
+    oby() = default;
+    oby(const oby&) = default;
+    oby(oby&&) = default;
+    oby& operator=(const oby&) = default;
+    oby& operator=(oby&&) = default;
 
-    void add_groupby_columns(expr::EvalContext&, collist_ptr&&);
-    void add_sortby_columns(expr::EvalContext&, collist_ptr&&);
+    // This static constructor is the equivalent of python call `by(r)`.
+    // It creates a new `by` object from the column descriptor `r`.
+    static oby make(const robj& r);
 
-    explicit operator bool() const;
-    bool has_group_column(size_t i) const;
-    void create_columns(expr::EvalContext&);
-    void execute(expr::EvalContext&) const;
+    static bool check(PyObject* v);
+    static void init(PyObject* m);
+
+    oobj get_arguments() const;
+    bool get_add_columns() const;
 
   private:
-    void _add_columns(expr::EvalContext& ctx, collist_ptr&& cl, bool isgrp);
+    // This private constructor will reinterpret the object `r` as an
+    // `oby` object. This constructor does not create any new python objects,
+    // as opposed to the static `oby::make(r)` constructor.
+    oby(const robj& r);
+    oby(const oobj&);
+    friend class _obj;
 };
 
 
 
-}  // namespace dt
+
+} // namespace py
 #endif

@@ -3,18 +3,44 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_h
 #define dt_SORT_h
-#include "utils/array.h"  // arr32_t
+#include <vector>
+#include <cstddef>
+#include "types.h"
+using std::size_t;
 
 class Column;
+class RowIndex;
+class Groupby;
+using RiGb = std::pair<RowIndex, Groupby>;
 
 struct radix_range {
   size_t size;
   size_t offset;
 };
+
+
+// Sort flags (can be OR-ed together)
+enum SortFlag : int {
+  NONE =  0,
+  NA_LAST = 1,
+  DESCENDING = 2,
+  SORT_ONLY = 4,
+};
+
+static inline SortFlag operator|(SortFlag a, SortFlag b) {
+  return static_cast<SortFlag>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+
+// Main sorting function
+RiGb group(const std::vector<Column>& columns,
+           const std::vector<SortFlag>& flags);
+
+
 
 // Called during module initialization
 void sort_init_options();

@@ -98,6 +98,7 @@ class Expr {
     Expr& operator=(const Expr&) = delete;
 
     Kind get_expr_kind() const;
+    operator bool() const noexcept;  // Check whether the Expr is empty or not
 
     Workframe evaluate_n(EvalContext& ctx) const;
     Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new = false) const;
@@ -105,7 +106,15 @@ class Expr {
     Workframe evaluate_r(EvalContext& ctx, const std::vector<SType>&) const;
     RowIndex  evaluate_i(EvalContext& ctx) const;
     RiGb      evaluate_iby(EvalContext& ctx) const;
+
+    // Evaluate the internal part of the by()/sort() nodes, and return
+    // the resulting Workframe, allowing the caller to perform a
+    // groupby/sort operation on this Workframe.
+    //
+    void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const;
+
     bool evaluate_bool() const;
+    bool is_negated_column(EvalContext&, size_t* iframe, size_t* icol) const;
     int64_t evaluate_int() const;
 
   private:

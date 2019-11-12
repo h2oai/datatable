@@ -101,6 +101,8 @@ class Head_Func_Unary : public Head_Func {
   public:
     explicit Head_Func_Unary(Op);
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+
+    Op get_op() const { return op; }
 };
 
 

@@ -22,6 +22,7 @@
 #include <numeric>
 #include "frame/py_frame.h"
 #include "python/list.h"
+#include "sort.h"
 
 
 
@@ -117,15 +118,16 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   }
 
   // Sort the table by the keys
-  std::vector<sort_spec> ss;
+  std::vector<Column> sort_cols;
+  std::vector<SortFlag> sort_flags(K, SortFlag::NONE);
   for (size_t i : col_indices) {
-    ss.push_back(sort_spec(i));
+    sort_cols.push_back(columns_[i]);
   }
-  auto res = group(ss);
+  auto res = group(sort_cols, sort_flags);
   RowIndex ri = res.first;
   xassert(ri.size() == nrows_);
   // Note: it's possible to have ngroups > nrows, when grouping a 0-row Frame
-  if (res.second.ngroups() < nrows_) {
+  if (res.second.size() < nrows_) {
     throw ValueError() << "Cannot set a key: the values are not unique";
   }
 

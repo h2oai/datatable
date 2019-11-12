@@ -24,6 +24,7 @@
 #include "expr/expr_column.h"
 #include "expr/expr_columnset.h"
 #include "expr/eval_context.h"
+#include "expr/workframe.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
 namespace dt {
@@ -62,7 +63,7 @@ class collist_maker
       UNKNOWN, BOOL, INT, STR, EXPR, TYPE
     };
 
-    EvalContext& ctx;
+    expr::EvalContext& ctx;
     const DataTable* dt0;
     const char* srcname;
     list_type type;
@@ -73,7 +74,7 @@ class collist_maker
     size_t  flags;
 
   public:
-    collist_maker(EvalContext& ctx_, size_t dt_index, size_t flags_,
+    collist_maker(expr::EvalContext& ctx_, size_t dt_index, size_t flags_,
                   const char* srcname_)
       : ctx(ctx_)
     {
@@ -337,15 +338,15 @@ class collist_maker
 // collist
 //------------------------------------------------------------------------------
 
-collist::collist(EvalContext& ctx, py::robj src, size_t flags, size_t dt_index)
+collist::collist(expr::EvalContext& ctx, py::robj src, size_t flags, size_t dt_index)
 {
   const char* srcname = (flags & J_NODE)? "`j` selector" :
                         (flags & BY_NODE)? "`by`" :
                         (flags & SORT_NODE)? "`sort`" :
                         (flags & REPL_NODE)? "replacement" : "columnset";
   if (flags & J_NODE) {
-    if (ctx.get_mode() == EvalMode::UPDATE) flags |= ALLOW_NEW_COLUMNS;
-    if (ctx.get_mode() == EvalMode::DELETE) flags |= FORBID_SRC_DICT;
+    if (ctx.get_mode() == expr::EvalMode::UPDATE) flags |= ALLOW_NEW_COLUMNS;
+    if (ctx.get_mode() == expr::EvalMode::DELETE) flags |= FORBID_SRC_DICT;
   }
   collist_maker maker(ctx, dt_index, flags, srcname);
   maker.process(src);
@@ -457,7 +458,7 @@ void collist::exclude(collist_ptr&& other) {
       }
     }
     if (!exprs.empty()) {
-      EvalContext ctx(nullptr, EvalMode::SELECT);
+      expr::EvalContext ctx(nullptr, expr::EvalMode::SELECT);
       xassert(indices.empty());
       for (size_t j = 0; j < exprs.size(); ++j) {
         auto colexpr = dynamic_cast<expr::expr_column*>(exprs[j].get());

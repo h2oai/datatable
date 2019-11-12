@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 #include "expr/declarations.h"
-#include "expr/eval_context.h"
+#include "column.h"
 namespace dt {
 namespace expr {
 
@@ -81,19 +81,21 @@ class Workframe {
       Record(Column&&, const std::string&, size_t, size_t);
     };
 
-    std::vector<Record> entries;
-    EvalContext& ctx;
-    Grouping grouping_mode;
+    std::vector<Record> entries_;
+    EvalContext& ctx_;
+    Grouping grouping_mode_;
 
   public:
     Workframe(EvalContext&);
-    Workframe(const Workframe&) = delete;
     Workframe(Workframe&&) = default;
+    Workframe& operator=(Workframe&&) = default;
+    Workframe(const Workframe&) = delete;
+    Workframe& operator=(const Workframe&) = delete;
 
     void add_column(Column&& col, std::string&& name, Grouping grp);
     void add_ref_column(size_t iframe, size_t icol);
     void add_placeholder(const std::string& name, size_t iframe);
-    void cbind(Workframe&&);
+    void cbind(Workframe&&, bool at_end = true);
     void rename(const std::string& name);
 
     size_t ncols() const noexcept;
@@ -104,7 +106,12 @@ class Workframe {
     bool is_reference_column(size_t i, size_t* iframe, size_t* icol) const;
     bool is_placeholder_column(size_t i) const;
 
-    void repeat_columns(size_t n);
+    // For a single-column workframe: repeat the column `n` times
+    void repeat_column(size_t n);
+
+    // Reduce the number of columns down to `n`
+    void truncate_columns(size_t n);
+
     void reshape_for_update(size_t target_nrows, size_t target_ncols);
     const Column& get_column(size_t i) const;
     std::string retrieve_name(size_t i);
@@ -123,6 +130,8 @@ class Workframe {
   private:
     void increase_grouping_mode(Grouping g);
     void column_increase_grouping_mode(Column&, Grouping from, Grouping to);
+
+    friend class EvalContext;
 };
 
 
