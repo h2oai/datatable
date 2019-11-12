@@ -16,8 +16,6 @@
 class DataTable;
 class RowIndex;
 
-namespace dt { namespace expr { class base_expr; }}
-
 namespace py {
 
 // Forward declarations

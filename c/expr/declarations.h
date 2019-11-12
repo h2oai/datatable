@@ -47,8 +47,6 @@ namespace expr {
   using vecExpr = std::vector<Expr>;
   using RiGb = std::pair<RowIndex, Groupby>;
 
-  // TODO: remove
-  class base_expr;
 
 
   // Evaluation mode, this distinguishes between expressions of the

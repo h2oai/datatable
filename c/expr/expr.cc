@@ -284,38 +284,10 @@ int64_t Expr::evaluate_int() const {
 
 
 
-//------------------------------------------------------------------------------
-// base_expr
-//------------------------------------------------------------------------------
-
-base_expr::base_expr() {
-  TRACK(this, sizeof(*this), "dt::base_expr");
-}
-
-base_expr::~base_expr() {
-  UNTRACK(this);
-}
-
-bool base_expr::is_literal_expr() const { return false; }
-
-bool base_expr::is_negated_expr() const { return false; }
-
-pexpr base_expr::get_negated_expr() { return pexpr(); }
-
-py::oobj base_expr::get_literal_arg() { return py::oobj(); }
-
-
-
-
 
 //------------------------------------------------------------------------------
 // Factory function for creating `base_expr` objects from python
 //------------------------------------------------------------------------------
-
-using expr_maker_t = pexpr(*)(Op, const py::otuple&, const py::otuple&);
-static std::unordered_map<size_t, expr_maker_t> factory;
-
-
 
 py::oobj make_pyexpr(Op opcode, py::oobj arg) {
   size_t op = static_cast<size_t>(opcode);
