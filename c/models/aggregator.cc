@@ -487,8 +487,11 @@ bool Aggregator<T>::group_0d() {
  */
 template <typename T>
 bool Aggregator<T>::group_1d() {
+  size_t ncont = contconvs.size();
+  xassert(ncont < 2);
+
   bool res;
-  if (contconvs.size()) {
+  if (ncont) {
     res = group_1d_continuous();
   } else {
     res = group_1d_categorical();
@@ -511,14 +514,17 @@ bool Aggregator<T>::group_1d() {
  */
 template <typename T>
 bool Aggregator<T>::group_2d() {
-  bool res;
   size_t ncont = contconvs.size();
   xassert(ncont < 3);
 
-  if (ncont == 0)      res = group_2d_categorical();
-  else if (ncont == 1) res = group_2d_mixed();
-  else                 res = group_2d_continuous();
-
+  bool res;
+  if (ncont == 0) {
+    res = group_2d_categorical();
+  } else if (ncont == 1) {
+    res = group_2d_mixed();
+  } else {
+    res = group_2d_continuous();
+  }
   return res;
 }
 
