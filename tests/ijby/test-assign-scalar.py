@@ -192,3 +192,26 @@ def test_assign_str_to_empty_frame():
     DT = dt.Frame(W=[], stype=dt.str32)
     DT[f.W == '', f.W] = 'yay!'
     assert_equals(DT, dt.Frame(W=[], stype=dt.str32))
+
+
+
+#-------------------------------------------------------------------------------
+# Assign types
+#-------------------------------------------------------------------------------
+
+def test_assign_type_simple():
+    DT = dt.Frame(A=range(5))
+    DT["A"] = dt.float64
+    assert_equals(DT, dt.Frame(A=range(5), stype=dt.float64))
+
+
+def test_assign_type_to_many_columns():
+    DT = dt.Frame(A=[True, False], B=[3, 7], C=[2.4, 9.9])
+    DT[:, :] = dt.int64
+    assert_equals(DT, dt.Frame(A=[1, 0], B=[3, 7], C=[2, 9], stype=dt.int64))
+
+
+def test_assign_type_to_some_columns():
+    DT = dt.Frame(A=['bii', 'doo'], B=[3, 5], C=[4, 4])
+    DT[:, int] = float
+    assert_equals(DT, dt.Frame(A=['bii', 'doo'], B=[3.0, 5.0], C=[4.0, 4.0]))
