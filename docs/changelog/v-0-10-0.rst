@@ -117,6 +117,11 @@ Frame
   If the index is invalid for some of the groups, those groups will be
   discarded.
 
+- |new| Now a column's type can be changed via a simple assignment::
+
+    DT["A"] = int            # Column A in frame DT will become integer
+    DT[:, int] = dt.float64  # All integer columns will be converted to float64
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
