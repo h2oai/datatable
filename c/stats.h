@@ -8,6 +8,7 @@
 #ifndef dt_STATS_h
 #define dt_STATS_h
 #include <bitset>
+#include <memory>
 #include <vector>
 #include "types.h"
 
@@ -142,6 +143,8 @@ class Stats
     bool is_valid(Stat s) const;
 
     virtual size_t memory_footprint() const noexcept = 0;
+    virtual std::unique_ptr<Stats> clone() const = 0;
+    const dt::ColumnImpl* get_column() const;
     void verify_integrity();
 
   protected:
@@ -307,6 +310,7 @@ template <typename T>
 class RealStats : public NumericStats<T> {
   public:
     using NumericStats<T>::NumericStats;
+    std::unique_ptr<Stats> clone() const override;
 };
 
 extern template class RealStats<float>;
@@ -325,6 +329,7 @@ template <typename T>
 class IntegerStats : public NumericStats<T> {
   public:
     using NumericStats<T>::NumericStats;
+    std::unique_ptr<Stats> clone() const override;
 };
 
 extern template class IntegerStats<int8_t>;
@@ -348,6 +353,8 @@ class BooleanStats : public NumericStats<int64_t> {
     using NumericStats<int64_t>::NumericStats;
 
   protected:
+    std::unique_ptr<Stats> clone() const override;
+
     void compute_nacount() override;
     void compute_nunique() override;
     void compute_minmax() override;
@@ -374,6 +381,7 @@ class StringStats : public Stats {
   public:
     using Stats::Stats;
     size_t memory_footprint() const noexcept override;
+    std::unique_ptr<Stats> clone() const override;
 
     CString mode_string(bool* isvalid) override;
     void set_mode(CString value, bool isvalid) override;
@@ -395,6 +403,7 @@ class PyObjectStats : public Stats {
   public:
     using Stats::Stats;
     size_t memory_footprint() const noexcept override;
+    std::unique_ptr<Stats> clone() const override;
 
   protected:
     void compute_nacount() override;

@@ -36,6 +36,23 @@ DataTable::DataTable(const DataTable& other)
 }
 
 
+DataTable::DataTable(const DataTable& other, DeepCopyTag)
+  : DataTable(other)
+{
+  for (Column& col : columns_) {
+    std::unique_ptr<Stats> stats_copy = col.clone_stats();
+    col.materialize();
+    size_t nbuf = col.get_num_data_buffers();
+    for (size_t k = 0; k < nbuf; ++k) {
+      col.get_data_editable(k);
+    }
+    if (stats_copy) {
+      col.replace_stats(std::move(stats_copy));
+    }
+  }
+}
+
+
 // Private constructor, initializes only columns but not names_
 DataTable::DataTable(colvec&& cols) : DataTable()
 {

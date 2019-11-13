@@ -289,8 +289,10 @@ Buffer Column::get_data_buffer(size_t k) const {
 //------------------------------------------------------------------------------
 
 void Column::materialize() {
+  auto stats_copy = clone_stats();
   auto pcol = _get_mutable_impl();
   pcol->materialize(*this);
+  if (stats_copy) replace_stats(std::move(stats_copy));
 }
 
 void Column::replace_values(const RowIndex& replace_at,

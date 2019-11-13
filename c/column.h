@@ -262,6 +262,8 @@ class Column
     Stats* stats() const;
     Stats* get_stats_if_exist() const;
     void reset_stats();
+    std::unique_ptr<Stats> clone_stats() const;
+    void replace_stats(std::unique_ptr<Stats>&&);
     bool is_stat_computed(Stat) const;
 
 
