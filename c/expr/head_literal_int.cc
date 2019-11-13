@@ -121,8 +121,50 @@ RowIndex Head_Literal_Int::evaluate_i(const vecExpr&, EvalContext& ctx) const {
 }
 
 
-RiGb Head_Literal_Int::evaluate_iby(const vecExpr&, EvalContext&) const {
-  throw NotImplError() << "Head_Literal_Int::evaluate_iby() not implemented yet";
+RiGb Head_Literal_Int::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
+  const int32_t ivalue = static_cast<int32_t>(value);
+  if (ivalue != value) {
+    return RiGb{ RowIndex(arr32_t(0)), Groupby::zero_groups() };
+  }
+
+  const Groupby& inp_groupby = ctx.get_groupby();
+  const int32_t* inp_group_offsets = inp_groupby.offsets_r();
+  size_t ngroups = inp_groupby.size();
+
+  arr32_t out_ri_array(ngroups);
+  int32_t* out_rowindices = out_ri_array.data();
+
+  int32_t k = 0;  // index for output groups
+  if (ivalue >= 0) {
+    for (size_t g = 0; g < ngroups; ++g) {
+      int32_t group_start = inp_group_offsets[g];
+      int32_t group_end   = inp_group_offsets[g + 1];
+      int32_t group_ith   = group_start + ivalue;
+      if (group_ith < group_end) {
+        out_rowindices[k++] = group_ith;
+      }
+    }
+  } else {
+    for (size_t g = 0; g < ngroups; ++g) {
+      int32_t group_start = inp_group_offsets[g];
+      int32_t group_end   = inp_group_offsets[g + 1];
+      int32_t group_ith = group_end + ivalue;
+      if (group_ith >= group_start) {
+        out_rowindices[k++] = group_ith;
+      }
+    }
+  }
+
+  size_t zk = static_cast<size_t>(k);
+  Buffer out_groups = Buffer::mem((zk + 1) * sizeof(int32_t));
+  int32_t* out_group_offsets = static_cast<int32_t*>(out_groups.xptr());
+  for (int32_t i = 0; i <= k; i++) {
+    out_group_offsets[i] = i;
+  }
+
+  out_ri_array.resize(zk);
+  return RiGb{ RowIndex(std::move(out_ri_array), /* sorted= */ true),
+               Groupby(zk, std::move(out_groups)) };
 }
 
 
