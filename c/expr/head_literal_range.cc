@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/const.h"
+#include "column/range.h"
 #include "expr/head_literal.h"
 #include "expr/workframe.h"
 namespace dt {
@@ -37,8 +37,13 @@ Kind Head_Literal_Range::get_expr_kind() const {
 
 
 
-Workframe Head_Literal_Range::evaluate_n(const vecExpr&, EvalContext&) const {
-  throw TypeError() << "A range expression cannot appear in this context";
+Workframe Head_Literal_Range::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+  Workframe out(ctx);
+  out.add_column(Column(new Range_ColumnImpl(value.start(),
+                                             value.stop(),
+                                             value.step())),
+                 "", Grouping::GtoALL);
+  return out;
 }
 
 
