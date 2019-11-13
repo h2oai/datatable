@@ -23,12 +23,13 @@
 #-------------------------------------------------------------------------------
 import math
 import pytest
-from datatable import f, dt
+from datatable import f, dt, update
 from tests import assert_equals
 
 stypes_int = dt.ltype.int.stypes
 stypes_float = dt.ltype.real.stypes
 stypes_str = dt.ltype.str.stypes
+stypes_all = [dt.bool8, dt.obj64] + stypes_int + stypes_float + stypes_str
 
 
 
@@ -215,3 +216,51 @@ def test_assign_type_to_some_columns():
     DT = dt.Frame(A=['bii', 'doo'], B=[3, 5], C=[4, 4])
     DT[:, int] = float
     assert_equals(DT, dt.Frame(A=['bii', 'doo'], B=[3.0, 5.0], C=[4.0, 4.0]))
+
+
+@pytest.mark.parametrize("st", stypes_all)
+def test_assign_stypes(st):
+    DT = dt.Frame(A=[1])
+    DT["A"] = st
+    assert DT.stype == st
+
+
+@pytest.mark.parametrize("pt", [bool, int, float, str, object])
+def test_assign_python_type(pt):
+    DT = dt.Frame(A=[7])
+    DT["A"] = pt
+    if pt is object:
+        assert DT.stype == dt.obj64
+    else:
+        assert type(DT[0, 0]) is pt
+
+
+@pytest.mark.parametrize("lt", [dt.ltype.bool, dt.ltype.int, dt.ltype.real,
+                                dt.ltype.str, dt.ltype.obj])
+def test_assign_ltype(lt):
+    DT = dt.Frame(A=[7])
+    DT["A"] = lt
+    assert DT.ltypes[0] == lt
+
+
+def test_assign_stype_to_new_column():
+    DT = dt.Frame(S=range(5))
+    DT["N"] = dt.float64
+    DT["M"] = dt.float32
+    assert_equals(DT, dt.Frame(S=range(5), N=[None]*5, M=[None]*5,
+                               stypes=dict(N=dt.float64, M=dt.float32)))
+
+
+def test_assign_bad_type():
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError, match="Unknown type <class 'type'> used in "
+                                         "the replacement expression"):
+        DT["A"] = type
+
+
+def test_assign_different_types():
+    DT = dt.Frame(A=range(5), B=list("ABCDE"))
+    assert DT.stypes == (dt.int32, dt.str32)
+    DT[:, update(A=dt.float32, B=dt.str64)]
+    assert_equals(DT, dt.Frame(A=range(5), B=list("ABCDE"),
+                               stypes=dict(A=dt.float32, B=dt.str64)))
