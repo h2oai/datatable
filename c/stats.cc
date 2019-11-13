@@ -1112,6 +1112,7 @@ std::unique_ptr<Stats> Column::clone_stats() const {
 
 
 void Column::replace_stats(std::unique_ptr<Stats>&& new_stats) {
+  new_stats->column = impl_;
   impl_->stats_ = std::move(new_stats);
 }
 

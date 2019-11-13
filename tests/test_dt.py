@@ -1146,6 +1146,12 @@ def test_copy_keyed_frame():
     assert d2.to_list() == d1.to_list() == d0.to_list()
 
 
+def test_deep_copy():
+    DT = dt.Frame(A=range(5), B=["alpha", "beta", "gamma", "delta", "epsilon"])
+    D2 = DT.copy(deep=True)
+    assert_equals(DT, D2)
+
+
 
 #-------------------------------------------------------------------------------
 # head / tail
