@@ -163,6 +163,10 @@ static void _resolve_stype(py::robj value, SType* out_stype, LType* out_ltype)
 Workframe Head_Literal_Type::evaluate_r(
       const vecExpr&, EvalContext& ctx, const intvec& indices) const
 {
+  if (ctx.get_rowindex(0)) {
+    throw ValueError()
+        << "Partial reassignment of Column's type is not possible";
+  }
   SType target_stype;
   LType target_ltype;
   _resolve_stype(value, &target_stype, &target_ltype);

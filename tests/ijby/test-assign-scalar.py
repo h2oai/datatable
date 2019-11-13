@@ -264,3 +264,10 @@ def test_assign_different_types():
     DT[:, update(A=dt.float32, B=dt.str64)]
     assert_equals(DT, dt.Frame(A=range(5), B=list("ABCDE"),
                                stypes=dict(A=dt.float32, B=dt.str64)))
+
+
+def test_assign_types_partial():
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError, match="Partial reassignment of Column's "
+                                         "type is not possible"):
+        DT[:2, "A"] = str
