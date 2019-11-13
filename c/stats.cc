@@ -1185,9 +1185,20 @@ static void check_stat(Stat stat, Stats* curr_stats, Stats* new_stats) {
   }
 }
 
-void Stats::verify_integrity() {
-  if (!column) {
-    throw AssertionError() << "Column object in Stats is missing";
+void Stats::verify_integrity(const dt::ColumnImpl* col) {
+  XAssert(column == col);
+  switch (col->stype()) {
+    case SType::BOOL:    XAssert(dynamic_cast<BooleanStats*>(this)); break;
+    case SType::INT8:    XAssert(dynamic_cast<IntegerStats<int8_t>*>(this)); break;
+    case SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;
+    case SType::INT32:   XAssert(dynamic_cast<IntegerStats<int32_t>*>(this)); break;
+    case SType::INT64:   XAssert(dynamic_cast<IntegerStats<int64_t>*>(this)); break;
+    case SType::FLOAT32: XAssert(dynamic_cast<RealStats<float>*>(this)); break;
+    case SType::FLOAT64: XAssert(dynamic_cast<RealStats<double>*>(this)); break;
+    case SType::STR32:
+    case SType::STR64:   XAssert(dynamic_cast<StringStats*>(this)); break;
+    case SType::OBJ:     XAssert(dynamic_cast<PyObjectStats*>(this)); break;
+    default: throw AssertionError() << "Unknown column type " << col->stype();
   }
   auto new_stats = _make_stats(column);
   check_stat<size_t>(Stat::NaCount, this, new_stats.get());

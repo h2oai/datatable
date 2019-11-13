@@ -1302,3 +1302,11 @@ def test_issue2036():
     assert DT.nrows == 14
     DT = DT.copy()
     assert DT.nrows == 14
+
+
+def test_issue2179(numpy):
+    import copy
+    DT = dt.Frame(numpy.ma.array([False], mask=[True]), names=['A'])
+    DT1 = copy.deepcopy(DT)
+    DT2 = copy.deepcopy(DT)
+    frame_integrity_check(DT2)

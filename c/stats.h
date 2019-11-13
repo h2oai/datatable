@@ -145,7 +145,7 @@ class Stats
     virtual size_t memory_footprint() const noexcept = 0;
     virtual std::unique_ptr<Stats> clone() const = 0;
     const dt::ColumnImpl* get_column() const;
-    void verify_integrity();
+    void verify_integrity(const dt::ColumnImpl*);
 
   protected:
     // Also sets the `computed` flag

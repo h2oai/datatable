@@ -150,7 +150,7 @@ void ColumnImpl::verify_integrity() const {
   XAssert(static_cast<size_t>(stype_) < DT_STYPES_COUNT);
   XAssert(refcount_ > 0 && refcount_ < uint32_t(-100));
   if (stats_) { // Stats are allowed to be null
-    stats_->verify_integrity();
+    stats_->verify_integrity(this);
   }
 }
 
