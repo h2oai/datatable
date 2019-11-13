@@ -50,7 +50,7 @@ Workframe Head_Literal_Bool::evaluate_n(const vecExpr&, EvalContext& ctx) const 
 //   DT[:, j] = True
 //
 Workframe Head_Literal_Bool::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const std::vector<SType>&) const
+    const vecExpr& args, EvalContext& ctx, const intvec&) const
 {
   return evaluate_n(args, ctx);
 }

@@ -123,11 +123,10 @@ Workframe Head_Frame::evaluate_j(
 // take precedence in this case.
 //
 Workframe Head_Frame::evaluate_r(
-    const vecExpr& args, EvalContext& ctx,
-    const std::vector<SType>& stypes) const
+    const vecExpr& args, EvalContext& ctx, const intvec& indices) const
 {
   // Allow to assign an empty frame to an empty column set (see issue #1544)
-  if (stypes.size() == 0 && dt_->nrows() == 0 && dt_->ncols() == 0) {
+  if (indices.size() == 0 && dt_->nrows() == 0 && dt_->ncols() == 0) {
     return Workframe(ctx);
   }
   return evaluate_n(args, ctx);

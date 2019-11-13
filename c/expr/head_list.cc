@@ -48,7 +48,7 @@ Workframe Head_List::evaluate_n(const vecExpr& inputs, EvalContext& ctx) const {
 
 
 Workframe Head_List::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const std::vector<SType>&) const
+    const vecExpr& args, EvalContext& ctx, const intvec&) const
 {
   return evaluate_n(args, ctx);
 }
@@ -331,7 +331,7 @@ Workframe Head_NamedList::evaluate_n(const vecExpr& inputs, EvalContext& ctx) co
 
 
 Workframe Head_NamedList::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const std::vector<SType>&) const
+    const vecExpr& args, EvalContext& ctx, const intvec&) const
 {
   return evaluate_n(args, ctx);
 }

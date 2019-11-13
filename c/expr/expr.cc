@@ -218,10 +218,9 @@ Workframe Expr::evaluate_j(EvalContext& ctx, bool allow_new) const
   return head->evaluate_j(inputs, ctx, allow_new);
 }
 
-Workframe Expr::evaluate_r(
-    EvalContext& ctx, const std::vector<SType>& stypes) const
+Workframe Expr::evaluate_r(EvalContext& ctx, const intvec& indices) const
 {
-  return head->evaluate_r(inputs, ctx, stypes);
+  return head->evaluate_r(inputs, ctx, indices);
 }
 
 

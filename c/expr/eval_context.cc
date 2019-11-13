@@ -369,20 +369,16 @@ void EvalContext::evaluate_update() {
   auto ri0 = get_rowindex(0);
   auto ncols = dt0->ncols();
   auto nkeys = dt0->nkeys();
-  auto indices = evaluate_j_as_column_index();
+  intvec indices = evaluate_j_as_column_index();
 
-  std::vector<SType> stypes;
-  stypes.reserve(indices.size());
   for (size_t i : indices) {
-    stypes.push_back(i < ncols? dt0->get_column(i).stype()
-                              : SType::VOID);
     if (i < nkeys) {
       throw ValueError() << "Cannot change values in a key column "
                          << "`" << dt0->get_names()[i] << "`";
     }
   }
 
-  Workframe replacement = rexpr_.evaluate_r(*this, stypes);
+  Workframe replacement = rexpr_.evaluate_r(*this, indices);
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);

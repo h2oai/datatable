@@ -46,15 +46,20 @@ Workframe Head_Literal_Float::evaluate_n(const vecExpr&, EvalContext& ctx) const
 // The `j` columns must be float.
 //
 Workframe Head_Literal_Float::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const std::vector<SType>& stypes) const
+    const vecExpr&, EvalContext& ctx, const intvec& indices) const
 {
+  auto dt0 = ctx.get_datatable(0);
+
   Workframe outputs(ctx);
-  for (SType stype : stypes) {
-    if (!(stype == SType::FLOAT32 || stype == SType::FLOAT64)) {
-      // Either type mismatch (the caller will throw an error then),
-      // or stype is VOID, in which case we default to FLOAT64
-      stype = SType::FLOAT64;
+  for (size_t i : indices) {
+    SType stype;
+    if (i < dt0->ncols()) {
+      const Column& col = dt0->get_column(i);
+      stype = (col.ltype() == LType::REAL)? col.stype() : SType::FLOAT64;
+    } else {
+      stype = SType::VOID;
     }
+
     outputs.add_column(
         Const_ColumnImpl::make_float_column(1, value, stype),
         "", Grouping::SCALAR);

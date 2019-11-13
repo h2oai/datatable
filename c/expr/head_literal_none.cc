@@ -58,12 +58,14 @@ Workframe Head_Literal_None::evaluate_j(
 // their stypes.
 //
 Workframe Head_Literal_None::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const std::vector<SType>& stypes) const
+    const vecExpr&, EvalContext& ctx, const intvec& indices) const
 {
+  auto dt0 = ctx.get_datatable(0);
   Workframe outputs(ctx);
-  for (SType stype : stypes) {
+  for (size_t i : indices) {
     // At some point in the future we may allow VOID columns to be created too
-    if (stype == SType::VOID) stype = SType::BOOL;
+    SType stype = (i < dt0->ncols())? dt0->get_column(i).stype()
+                                    : SType::BOOL;
     outputs.add_column(
       Column(new ConstNa_ColumnImpl(1, stype)),
       std::string(),

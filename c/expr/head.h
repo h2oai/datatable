@@ -114,7 +114,7 @@ class Head {
 
     virtual Workframe evaluate_r(const vecExpr& args,
                                  EvalContext& ctx,
-                                 const std::vector<SType>& stypes) const = 0;
+                                 const intvec& column_indices) const = 0;
 
     virtual Workframe evaluate_f(EvalContext& ctx,
                                  size_t frame_id,
