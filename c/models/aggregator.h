@@ -31,7 +31,6 @@ template <typename T>
 using ccptr = typename std::unique_ptr<ColumnConvertor<T>>;
 template <typename T>
 using ccptrvec = typename std::vector<ccptr<T>>;
-
 using dtptr = std::unique_ptr<DataTable>;
 
 /**
@@ -63,6 +62,7 @@ class Aggregator : public AggregatorBase {
     void aggregate(DataTable*, dtptr&, dtptr&) override;
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
+    static size_t n_merged_nas(const intvec&);
 
   private:
     // Input parameters and datatable
@@ -85,27 +85,27 @@ class Aggregator : public AggregatorBase {
     dtptr dt_cat;
 
     // Progress reporting constants
-    static constexpr size_t WORK_PREPARE = 1;
-    static constexpr size_t WORK_AGGREGATE = 100;
-    static constexpr size_t WORK_SAMPLE = 20;
-    static constexpr size_t WORK_FINALIZE = 20;
+    static constexpr size_t WORK_PREPARE = 10;
+    static constexpr size_t WORK_AGGREGATE = 70;
+    static constexpr size_t WORK_SAMPLE = 10;
+    static constexpr size_t WORK_FINALIZE = 10;
 
     // Final aggregation method
     void aggregate_exemplars(bool);
 
     // Grouping methods, `0d` means no grouping is done
-    void group_0d();
-    void group_1d();
-    void group_1d_continuous();
-    void group_1d_categorical();
-    void group_2d();
-    void group_2d_continuous();
-    void group_2d_categorical();
-    void group_2d_mixed();
-    void group_nd();
+    bool group_0d();
+    bool group_1d();
+    bool group_1d_continuous();
+    bool group_1d_categorical();
+    bool group_2d();
+    bool group_2d_continuous();
+    bool group_2d_categorical();
+    bool group_2d_mixed();
+    bool group_nd();
 
     // Random sampling and modular quasi-random generator
-    bool sample_exemplars(size_t, size_t);
+    void sample_exemplars(size_t);
 
     // Helper methods
     size_t get_nthreads(size_t nrows);
