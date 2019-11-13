@@ -37,6 +37,7 @@ namespace dt {
 namespace expr {
   using std::size_t;
 
+
   class Head;
   class Expr;
   class Workframe;
@@ -47,8 +48,6 @@ namespace expr {
   using vecExpr = std::vector<Expr>;
   using RiGb = std::pair<RowIndex, Groupby>;
 
-  // TODO: remove
-  class base_expr;
 
 
   // Evaluation mode, this distinguishes between expressions of the
@@ -122,24 +121,7 @@ namespace expr {
     SliceStr
   };
 
+
+
 }}
-
-
-//
-// OBSOLETE
-//
-namespace dt {
-  class by_node;
-  class collist;
-
-  using by_node_ptr = std::unique_ptr<by_node>;
-  using collist_ptr = std::unique_ptr<collist>;
-
-  enum class GroupbyMode : uint8_t {
-    NONE   = 0,
-    GtoONE = 1,
-    GtoALL = 2,
-    GtoANY = 3
-  };
-}
 #endif

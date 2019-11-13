@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -40,8 +40,6 @@
 #include <cmath>               // std::fmod
 #include <type_traits>         // std::is_integral
 #include "expr/expr_binaryop.h"
-#include "expr/expr_cast.h"
-#include "expr/expr_literal.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "column.h"
@@ -542,86 +540,6 @@ Column binaryop(Op opcode, Column& lhs, Column& rhs)
   (*mapfn)(0, nrows, cols);
 
   return std::move(cols[2]);
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// expr_binaryop
-//------------------------------------------------------------------------------
-
-expr_binaryop::expr_binaryop(pexpr&& l, pexpr&& r, Op op)
-  : lhs(std::move(l)),
-    rhs(std::move(r)),
-    opcode(op) {}
-
-
-SType expr_binaryop::resolve(const EvalContext& ctx) {
-  SType lhs_stype = lhs->resolve(ctx);
-  SType rhs_stype = rhs->resolve(ctx);
-  size_t triple = id(opcode, lhs_stype, rhs_stype);
-  if (binop_rules.count(triple) == 0) {
-    if (check_for_operation_with_literal_na(ctx)) {
-      return resolve(ctx);  // Try resolving again, one of lhs/rhs has changed
-    }
-    throw TypeError() << "Binary operator `"
-        << binop_names[id(opcode)]
-        << "` cannot be applied to columns with stypes `" << lhs_stype
-        << "` and `" << rhs_stype << "`";
-  }
-  return binop_rules.at(triple);
-}
-
-
-GroupbyMode expr_binaryop::get_groupby_mode(const EvalContext& ctx) const {
-  auto lmode = static_cast<uint8_t>(lhs->get_groupby_mode(ctx));
-  auto rmode = static_cast<uint8_t>(rhs->get_groupby_mode(ctx));
-  return static_cast<GroupbyMode>(std::max(lmode, rmode));
-}
-
-
-Column expr_binaryop::evaluate(EvalContext& ctx) {
-  auto lhs_res = lhs->evaluate(ctx);
-  auto rhs_res = rhs->evaluate(ctx);
-  return expr::binaryop(opcode, lhs_res, rhs_res);
-}
-
-
-// This function tries to solve the problem described in issue #1912: when
-// a literal `None` is present in an expression, its type is ambiguous. We
-// instantiate it into an stype BOOL, but that may not be correct: the
-// expression may demand a different stype in that place.
-//
-// The "solution" created by this function is to detect the situations where
-// one of the operands of a binary expression is literal `None`, and replace
-// that expression with a cast into the stype of the other operand.
-//
-// A more robust approach would be to create a separate type (VOID) for a
-// column created out of None values only, and have that type convert into
-// any other stype as necessary.
-//
-bool expr_binaryop::check_for_operation_with_literal_na(const EvalContext& ctx) {
-  auto check_operand = [&](pexpr& arg) -> bool {
-    auto pliteral = dynamic_cast<expr_literal*>(arg.get());
-    if (!pliteral) return false;
-    if (pliteral->resolve(ctx) != SType::BOOL) return false;
-    Column ocol = pliteral->evaluate(const_cast<EvalContext&>(ctx));
-    if (ocol.nrows() != 1) return false;
-    int8_t tmp;
-    return !ocol.get_element(0, &tmp);
-  };
-  if (check_operand(rhs)) {
-    SType lhs_stype = lhs->resolve(ctx);
-    rhs = pexpr(new expr_cast(std::move(rhs), lhs_stype));
-    return true;
-  }
-  if (check_operand(lhs)) {
-    SType rhs_stype = rhs->resolve(ctx);
-    lhs = pexpr(new expr_cast(std::move(lhs), rhs_stype));
-    return true;
-  }
-  return false;
 }
 
 

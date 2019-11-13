@@ -43,7 +43,7 @@ ColumnImpl* NpMasked_ColumnImpl::clone() const {
 
 
 template <typename T>
-void NpMasked_ColumnImpl::_apply_mask() {
+void NpMasked_ColumnImpl::_apply_mask(Column& out) {
   assert_compatible_type<T>(arg_.stype());
   auto mask_data = static_cast<const bool*>(mask_.rptr());
   auto col_data = static_cast<T*>(arg_.get_data_editable());
@@ -52,6 +52,7 @@ void NpMasked_ColumnImpl::_apply_mask() {
     [=](size_t i) {
       if (mask_data[i]) col_data[i] = GETNA<T>();
     });
+  out = std::move(arg_);
 }
 
 void NpMasked_ColumnImpl::materialize(Column& out) {
@@ -61,12 +62,12 @@ void NpMasked_ColumnImpl::materialize(Column& out) {
   {
     switch (stype_) {
       case SType::BOOL:
-      case SType::INT8:    return _apply_mask<int8_t>();
-      case SType::INT16:   return _apply_mask<int16_t>();
-      case SType::INT32:   return _apply_mask<int32_t>();
-      case SType::INT64:   return _apply_mask<int64_t>();
-      case SType::FLOAT32: return _apply_mask<float>();
-      case SType::FLOAT64: return _apply_mask<double>();
+      case SType::INT8:    return _apply_mask<int8_t>(out);
+      case SType::INT16:   return _apply_mask<int16_t>(out);
+      case SType::INT32:   return _apply_mask<int32_t>(out);
+      case SType::INT64:   return _apply_mask<int64_t>(out);
+      case SType::FLOAT32: return _apply_mask<float>(out);
+      case SType::FLOAT64: return _apply_mask<double>(out);
       default: break;
     }
   }

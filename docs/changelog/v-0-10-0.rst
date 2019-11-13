@@ -109,6 +109,14 @@ Frame
 
     DT.to_csv("out.log", append=True)  # infer that header=False if file exists
 
+- |new| Implemented ability to select a specific row within each group, using
+  the syntax
+
+    DT[2, :, by(f.GRP)]
+
+  If the index is invalid for some of the groups, those groups will be
+  discarded.
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names

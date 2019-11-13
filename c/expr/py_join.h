@@ -19,27 +19,51 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_EXPR_CAST_h
-#define dt_EXPR_EXPR_CAST_h
-#include "expr/expr.h"
-#include "python/_all.h"
-namespace dt {
-namespace expr {
+#ifndef dt_EXPR_PY_JOIN_h
+#define dt_EXPR_PY_JOIN_h
+#include "python/obj.h"
+#include "python/xobject.h"
+namespace py {
 
 
-class expr_cast : public base_expr {
-  private:
-    pexpr arg;
-    SType stype;
-    size_t : 56;
+
+class ojoin : public oobj
+{
+  class pyobj : public XObject<pyobj> {
+    public:
+      oobj join_frame;
+
+      void m__init__(const PKArgs&);
+      void m__dealloc__();
+      oobj get_joinframe() const;
+
+      static void impl_init_type(XTypeMaker& xt);
+
+    private:
+      // The class does not use traditional constructor/destructor mechanism.
+      // Instead, the objects are created/deleted by Python C backend.
+      pyobj();
+      ~pyobj();
+  };
 
   public:
-    expr_cast(pexpr&& a, SType s);
-    SType resolve(const EvalContext& ctx) override;
-    GroupbyMode get_groupby_mode(const EvalContext&) const override;
-    Column evaluate(EvalContext& ctx) override;
+    ojoin() = default;
+    ojoin(const ojoin&) = default;
+    ojoin(ojoin&&) = default;
+    ojoin& operator=(const ojoin&) = default;
+    ojoin& operator=(ojoin&&) = default;
+
+    DataTable* get_datatable() const;
+
+    static bool check(PyObject* v);
+    static void init(PyObject* m);
+
+  private:
+    friend class _obj;
+    ojoin(const robj&);
 };
 
 
-}}
+
+}  // namespace py
 #endif

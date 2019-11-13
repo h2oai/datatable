@@ -24,7 +24,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "expr/by_node.h"
 #include "expr/head.h"
 #include "expr/op.h"
 #include "expr/declarations.h"
@@ -140,45 +139,5 @@ class Expr {
 
 
 
-
-//------------------------------------------------------------------------------
-//
-// |  Obsolete
-// V
-//------------------------------------------------------------------------------
-
-class base_expr;
-using pexpr = std::unique_ptr<base_expr>;
-
-
-class base_expr {
-  public:
-    base_expr();
-    virtual ~base_expr();
-    virtual SType resolve(const EvalContext&) = 0;
-    virtual GroupbyMode get_groupby_mode(const EvalContext&) const = 0;
-    virtual Column evaluate(EvalContext&) = 0;
-
-    virtual bool is_columnset_expr() const;
-    virtual bool is_literal_expr() const;
-    virtual bool is_negated_expr() const;
-    virtual pexpr get_negated_expr();
-    virtual py::oobj get_literal_arg();
-};
-
-
-// Initialize once
-void init_expr();
-
-
-py::oobj make_pyexpr(Op opcode, py::oobj arg);
-py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params);
-
-
-
 }}  // namespace dt::expr
-
-
-
-
 #endif

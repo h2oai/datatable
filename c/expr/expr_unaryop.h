@@ -21,33 +21,12 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_EXPR_UNARYOP_h
 #define dt_EXPR_EXPR_UNARYOP_h
-#include "expr/by_node.h"
 #include "expr/expr.h"
 #include "python/_all.h"
 #include "python/args.h"
 #include "utils/function.h"
 namespace dt {
 namespace expr {
-
-
-/**
- * `base_expr` class that implements computation of unary operators
- * and single-argument functions.
- */
-class expr_unaryop : public base_expr {
-  private:
-    pexpr arg;
-    Op opcode;
-
-  public:
-    expr_unaryop(pexpr&& a, Op op);
-    SType resolve(const EvalContext& ctx) override;
-    GroupbyMode get_groupby_mode(const EvalContext&) const override;
-    Column evaluate(EvalContext& ctx) override;
-
-    bool is_negated_expr() const override;
-    pexpr get_negated_expr() override;
-};
 
 
 

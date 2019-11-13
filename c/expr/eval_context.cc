@@ -22,6 +22,7 @@
 #include "expr/expr.h"
 #include "expr/eval_context.h"
 #include "expr/py_by.h"
+#include "expr/py_join.h"
 #include "expr/py_sort.h"
 #include "expr/py_update.h"
 #include "expr/workframe.h"
@@ -107,10 +108,6 @@ void EvalContext::add_replace(py::oobj obj) {
 
 EvalMode EvalContext::get_mode() const {
   return eval_mode_;
-}
-
-GroupbyMode EvalContext::get_groupby_mode() const {
-  return GroupbyMode::NONE;
 }
 
 const RowIndex& EvalContext::get_ungroup_rowindex() {
