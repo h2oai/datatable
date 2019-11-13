@@ -243,6 +243,18 @@ def test_assign_ltype(lt):
     assert DT.ltypes[0] == lt
 
 
+def test_assign_type_without_stype_change():
+    # Verify that if a column already has same ltype, then that ltype will
+    # not change upon the assignment
+    DT = dt.Frame([[0], [1], [2], [3], [4], [5]],
+                  stypes=[dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64,
+                          dt.float32])
+    DT[:, "C0":"C5"] = int
+    assert_equals(DT, dt.Frame([[0], [1], [2], [3], [4], [5]],
+                               stypes=[dt.int32, dt.int8, dt.int16, dt.int32,
+                                       dt.int64, dt.int32]))
+
+
 def test_assign_stype_to_new_column():
     DT = dt.Frame(S=range(5))
     DT["N"] = dt.float64
