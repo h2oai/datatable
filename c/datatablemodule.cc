@@ -16,12 +16,11 @@
 #include "csv/reader.h"
 #include "expr/expr.h"
 #include "expr/expr_binaryop.h"
-#include "expr/expr_reduce.h"
 #include "expr/expr_unaryop.h"
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
-#include "expr/join_node.h"
 #include "expr/py_by.h"              // py::oby
+#include "expr/py_join.h"            // py::ojoin
 #include "expr/py_sort.h"            // py::osort
 #include "expr/py_update.h"          // py::oupdate
 #include "frame/py_frame.h"
@@ -376,8 +375,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     if (!init_py_encodings(m)) return nullptr;
 
     init_types();
-    dt::expr::init_expr();
-    dt::expr::init_reducers();
     dt::expr::init_binops();
     dt::expr::Head_Func::init();
 
