@@ -40,7 +40,6 @@ from .lib._datatable import (
     unique,
     update,
 )
-from .nff import open
 from .options import options
 from .str import split_into_nhot
 from .types import stype, ltype
@@ -91,3 +90,16 @@ dt = datatable
 
 # This will run only in Jupyter notebook
 init_styles()
+
+
+def open(path):
+    """
+    .. deprecated:: 0.10.0
+        Use :func:`fread` instead.
+    """
+    import warnings
+    warnings.warn("Function dt.open() is deprecated since 0.10.0, and "
+                  "will be removed in version 0.12.\n"
+                  "Please use dt.fread(file), or dt.Frame(file) instead",
+                  category=FutureWarning)
+    return fread(path)

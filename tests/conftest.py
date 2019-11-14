@@ -108,6 +108,15 @@ def tempfile():
 
 
 @pytest.fixture(scope="function")
+def tempfile_jay():
+    fd, fname = mod_tempfile.mkstemp(suffix=".jay")
+    os.close(fd)
+    yield fname
+    if os.path.exists(fname):
+        os.unlink(fname)
+
+
+@pytest.fixture(scope="function")
 def tempdir():
     dirname = mod_tempfile.mkdtemp()
     yield dirname

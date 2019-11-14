@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -922,11 +922,11 @@ def test_sort_expr():
                   dt.Frame(A=[1, 1, 2, 2], B=[0.1, 3.9, 2.7, 4.5]))
 
 
-def test_h2oai7014(tempfile):
+def test_h2oai7014(tempfile_jay):
     data = dt.Frame([[None, 't'], [3580, 1047]], names=["ID", "count"])
-    data.to_jay(tempfile)
+    data.to_jay(tempfile_jay)
     # The data has to be opened from file
-    counts = dt.open(tempfile)
+    counts = dt.fread(tempfile_jay)
     counts = counts[1:, :]
     counts = counts[:, :, sort("count")]
     counts.materialize()

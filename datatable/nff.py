@@ -14,6 +14,7 @@ _builtin_open = open
 
 
 def open(path):
+    return dt.fread(path)
     if isinstance(path, bytes):
         return core.open_jay(path)
     if not isinstance(path, str):

@@ -204,7 +204,11 @@ General
 - |api| We no longer export symbols :meth:`open`, :meth:`abs`, :meth:`min`,
   :meth:`max` and :meth:`sum` from datatable module when doing
   ``from datatable import *``. They are still available when looked up
-  explicitly, i.e. ``dt.open()`` still works as before.
+  explicitly, i.e. ``dt.open()`` will still work.
+
+- |api| Function :func:`open` is marked as deprecated, scheduled to be
+  removed in version 0.12. Instead we recommend to use :func:`fread`
+  function to open Jay files.
 
 - |new| Datatable module now exports symbol ``dt``, which is the handle to
   the module itself. For example, you can now write::
