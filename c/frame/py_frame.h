@@ -115,7 +115,7 @@ class Frame : public XObject<Frame> {
     void replace(const PKArgs&);
     oobj sort(const PKArgs&);
     oobj tail(const PKArgs&);
-    void export_names(const PKArgs&);
+    oobj export_names(const PKArgs&);
 
     // Conversion methods
     oobj to_csv(const PKArgs&);

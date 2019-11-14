@@ -139,35 +139,31 @@ static PKArgs args_export_names(
 R"(export_names(self)
 --
 
-Create local variables for each column of this frame.
+Return f-variables for each column of this frame.
 
-This method inserts into `globals()` as many new variables as there are
-columns in this frame. Each variable is an f-expression referring to
-its column. For example, if the frame has columns A, B, and C, then
-three new variables will be created A = f.A, B = f.B and C = f.C.
-After calling this method you will be able to write column expressions
-using the column names directly, without using the f symbol:
+For example, if the frame has columns A, B, and C, then this method
+will return a tuple of expressions ``(f.A, f.B, f.C)``. If you assign
+these expressions to variables A, B, and C, then you will be able to
+write column expressions using the column names directly, without
+using the f symbol::
 
+    A, B, C = DT.export_names()
     DT[A + B > C, :]
 
-If a variable with the same name's as one of the columns already
-exists in the globals, it will be overwritten. If the same variable
-exists locally, it will remain as-is.
+This method is effectively equivalent to::
 
-This method is effectively equivalent to
+    return tuple(f[name] for name in self.names)
 
-    for name in self.names:
-        globals()[name] = f[name]
 )");
 
-void Frame::export_names(const PKArgs&) {
+oobj Frame::export_names(const PKArgs&) {
   py::oobj f = py::oobj::import("datatable", "f");
-  py::odict globals = py::robj(PyEval_GetGlobals()).to_pydict();
   py::otuple names = dt->get_pynames();
+  py::otuple out_vars(names.size());
   for (size_t i = 0; i < dt->ncols(); ++i) {
-    py::robj name = names[i];
-    globals.set(name, f.get_item(name));
+    out_vars.set(i, f.get_item(names[i]));
   }
+  return std::move(out_vars);
 }
 
 

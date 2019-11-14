@@ -34,10 +34,10 @@ will refer to the frame to which it is being applied::
 
 The simple expression ``f.price`` can be saved in a variable too. In fact,
 there is a Frame helper method ``.export_names()`` which does exactly that:
-creates a local variable for each column name in the frame, allowing you to
+returns a tuple of variables for each column name in the frame, allowing you to
 omit the ``f.`` prefix::
 
-    DT.export_names()  # create variables Id, Price and Quantity
+    Id, Price, Quantity = DT.export_names()
     DT[:, [Id, Price, Quantity, Price * Quantity]]
 
 
