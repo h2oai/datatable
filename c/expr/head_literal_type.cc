@@ -137,6 +137,75 @@ RiGb Head_Literal_Type::evaluate_iby(const vecExpr&, EvalContext&) const {
 }
 
 
+static void _resolve_stype(py::robj value, SType* out_stype, LType* out_ltype)
+{
+  *out_stype = SType::VOID;
+  *out_ltype = LType::MU;
+  if (value.is_type()) {
+    auto et = reinterpret_cast<PyTypeObject*>(value.to_borrowed_ref());
+    *out_ltype = (et == &PyLong_Type)?       LType::INT :
+                 (et == &PyFloat_Type)?      LType::REAL :
+                 (et == &PyUnicode_Type)?    LType::STRING :
+                 (et == &PyBool_Type)?       LType::BOOL :
+                 (et == &PyBaseObject_Type)? LType::OBJECT :
+                 LType::MU;
+  }
+  else if (value.is_ltype()) {
+    auto lt = value.get_attr("value").to_size_t();
+    *out_ltype = (lt < DT_LTYPES_COUNT)? static_cast<LType>(lt) : LType::MU;
+  }
+  else if (value.is_stype()) {
+    auto st = value.get_attr("value").to_size_t();
+    *out_stype = (st < DT_STYPES_COUNT)? static_cast<SType>(st) : SType::VOID;
+  }
+}
+
+Workframe Head_Literal_Type::evaluate_r(
+      const vecExpr&, EvalContext& ctx, const intvec& indices) const
+{
+  if (ctx.get_rowindex(0)) {
+    throw ValueError()
+        << "Partial reassignment of Column's type is not possible";
+  }
+  SType target_stype;
+  LType target_ltype;
+  _resolve_stype(value, &target_stype, &target_ltype);
+  if (target_stype == SType::VOID && target_ltype == LType::MU) {
+    throw ValueError() << "Unknown type " << value
+                       << " used in the replacement expression";
+  }
+  if (target_stype == SType::VOID) {
+    target_stype = (target_ltype == LType::BOOL)? SType::BOOL :
+                   (target_ltype == LType::INT)? SType::INT32 :
+                   (target_ltype == LType::REAL)? SType::FLOAT64 :
+                   (target_ltype == LType::STRING)? SType::STR32 :
+                   (target_ltype == LType::OBJECT)? SType::OBJ : SType::VOID;
+  }
+
+  auto dt0 = ctx.get_datatable(0);
+  Workframe res(ctx);
+  for (size_t i : indices) {
+    Column newcol;
+    if (i < dt0->ncols()) {
+      newcol = dt0->get_column(i);  // copy
+      if (target_ltype != LType::MU) {
+        if (newcol.ltype() != target_ltype) {
+          newcol.cast_inplace(target_stype);
+        }
+      } else if (target_stype != SType::VOID) {
+        newcol.cast_inplace(target_stype);
+      }
+    }
+    else {
+      newcol = Column::new_na_column(dt0->nrows(), target_stype);
+    }
+
+    res.add_column(std::move(newcol), "", Grouping::GtoALL);
+  }
+  return res;
+}
+
+
 
 
 }}  // namespace dt::expr

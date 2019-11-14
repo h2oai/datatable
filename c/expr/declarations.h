@@ -44,6 +44,7 @@ namespace expr {
   class EvalContext;
 
   using strvec = std::vector<std::string>;
+  using intvec = std::vector<size_t>;
   using ptrHead = std::unique_ptr<Head>;
   using vecExpr = std::vector<Expr>;
   using RiGb = std::pair<RowIndex, Groupby>;

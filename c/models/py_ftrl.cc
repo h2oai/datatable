@@ -929,11 +929,11 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
  */
 static GSArgs args_model_type(
   "model_type",
-R"(Model type can be one of the following: 'binomial' for binomial
-classification, 'multinomial' for multinomial classificatio, and
-'regression' for numeric regression. Defaults to 'auto', meaning
-that the model type will be automatically detected based on
-the target column `stype`.)");
+R"(The type of the model FTRL should build: 'binomial' for binomial
+classification, 'multinomial' for multinomial classification,
+'regression' for numeric regression or 'auto' for automatic
+model type detection based on the target column `stype`.
+Default value is 'auto'.)");
 
 
 oobj Ftrl::get_model_type() const {
@@ -962,7 +962,7 @@ void Ftrl::set_model_type(const Arg& py_model_type) {
  */
 static GSArgs args_model_type_trained(
   "model_type_trained",
-R"(Model type in which FTRL was trained: 'regression', 'binomial', 'multinomial'
+R"(The model type FTRL has built: 'regression', 'binomial', 'multinomial'
 or 'none' for untrained model.)");
 
 

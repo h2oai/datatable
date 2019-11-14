@@ -47,10 +47,29 @@ Workframe Head_List::evaluate_n(const vecExpr& inputs, EvalContext& ctx) const {
 }
 
 
+// Evaluate list as a replacement target when replacing columns at
+// `indices` within the "root" Frame.
+//
 Workframe Head_List::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const std::vector<SType>&) const
+    const vecExpr& inputs, EvalContext& ctx, const intvec& indices) const
 {
-  return evaluate_n(args, ctx);
+  Workframe outputs(ctx);
+  if (inputs.size() == indices.size()) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      outputs.cbind( inputs[i].evaluate_r(ctx, {indices[i]}) );
+    }
+  }
+  else if (inputs.size() == 1) {
+    for (size_t i = 0; i < indices.size(); ++i) {
+      outputs.cbind( inputs[0].evaluate_r(ctx, {indices[i]}) );
+    }
+  }
+  else {
+    throw ValueError() << "The LHS of the replacement has " << indices.size()
+        << " columns, while the RHS has " << inputs.size()
+        << " replacement expressions";
+  }
+  return outputs;
 }
 
 
@@ -331,7 +350,7 @@ Workframe Head_NamedList::evaluate_n(const vecExpr& inputs, EvalContext& ctx) co
 
 
 Workframe Head_NamedList::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const std::vector<SType>&) const
+    const vecExpr& args, EvalContext& ctx, const intvec&) const
 {
   return evaluate_n(args, ctx);
 }

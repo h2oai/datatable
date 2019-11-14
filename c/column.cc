@@ -89,31 +89,39 @@ Column::~Column() {
 
 dt::ColumnImpl* Column::release() && {
   xassert(impl_->refcount_ == 1);
-  dt::ColumnImpl* tmp = _get_mutable_impl();
+  auto tmp = const_cast<dt::ColumnImpl*>(impl_);
   impl_ = nullptr;
   return tmp;
 }
 
 void Column::_acquire_impl(const dt::ColumnImpl* impl) {
   impl_ = impl;
-  ++impl->refcount_;
+  impl_->refcount_ += 1;
 }
 
 void Column::_release_impl(const dt::ColumnImpl* impl) {
   if (!impl) return;
-  if ((--impl->refcount_) == 0) {
+  impl->refcount_ -= 1;
+  if (impl->refcount_ == 0) {
     delete impl;
   }
 }
 
-dt::ColumnImpl* Column::_get_mutable_impl() {
+dt::ColumnImpl* Column::_get_mutable_impl(bool keep_stats) {
   xassert(impl_);
   if (impl_->refcount_ > 1) {
-    --impl_->refcount_;
-    impl_ = impl_->clone();
+    auto newimpl = impl_->clone();
+    xassert(!newimpl->stats_);
+    if (keep_stats && impl_->stats_) {
+      newimpl->stats_ = impl_->stats_->clone();
+      newimpl->stats_->column = newimpl;
+    }
+    impl_->refcount_ -= 1;
+    impl_ = newimpl;
+  } else {
+    if (!keep_stats) reset_stats();
   }
   xassert(impl_->refcount_ == 1);
-  reset_stats();
   return const_cast<dt::ColumnImpl*>(impl_);
 }
 
@@ -289,7 +297,7 @@ Buffer Column::get_data_buffer(size_t k) const {
 //------------------------------------------------------------------------------
 
 void Column::materialize() {
-  auto pcol = _get_mutable_impl();
+  auto pcol = _get_mutable_impl(/* keep_stats= */ true);
   pcol->materialize(*this);
 }
 

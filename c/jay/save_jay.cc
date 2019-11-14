@@ -201,9 +201,10 @@ static flatbuffers::Offset<void> saveStats(
   if (!(stats && stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
     return 0;
   R min, max;
-  stats->get_stat(Stat::Min, &min);
-  stats->get_stat(Stat::Max, &max);
-  StatBuilder ss(static_cast<T>(min), static_cast<T>(max));
+  bool min_valid = stats->get_stat(Stat::Min, &min);
+  bool max_valid = stats->get_stat(Stat::Max, &max);
+  StatBuilder ss(min_valid? static_cast<T>(min) : GETNA<T>(),
+                 max_valid? static_cast<T>(max) : GETNA<T>());
   flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
   return o;
 }

@@ -77,6 +77,13 @@ Frame
   ``dt.options.display.head_nrows``, ``dt.options.display.tail_nrows`` and
   ``dt.options.display.max_nrows``.
 
+- |new| Method :meth:`Frame.copy() <datatable.Frame.copy>` now has a new
+  parameter ``deep=False``. When set to ``True``, it will create a deep copy
+  of the frame instead of the usual shallow one.
+
+  In addition, standard python functions ``copy.copy()`` and ``copy.deepcopy()``
+  will now defer to the ``Frame.copy()`` method too.
+
 - |new| It is now possible to create a Frame from a list of numpy integers/
   floats. The resulting Frame will have the stype corresponding to the largest
   dtype among all elements in the list::
@@ -121,6 +128,11 @@ Frame
 
   If the index is invalid for some of the groups, those groups will be
   discarded.
+
+- |new| Now a column's type can be changed via a simple assignment::
+
+    DT["A"] = int            # Column A in frame DT will become integer
+    DT[:, int] = dt.float64  # All integer columns will be converted to float64
 
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if

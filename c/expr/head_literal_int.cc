@@ -84,23 +84,30 @@ Workframe Head_Literal_Int::evaluate_j(
 // integer or float.
 //
 Workframe Head_Literal_Int::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const std::vector<SType>& stypes) const
+    const vecExpr&, EvalContext& ctx, const intvec& indices) const
 {
+  auto dt0 = ctx.get_datatable(0);
+
   Workframe outputs(ctx);
-  for (SType stype : stypes) {
-    LType ltype = ::info(stype).ltype();
+  for (size_t i : indices) {
     Column newcol;
-    if (ltype == LType::INT || ltype == LType::MU) {
-      // This creates a column with the requested `stype`, but only
-      // if the `value` fits inside the range of that stype. If not,
-      // the column will be auto-promoted to the next smallest integer
-      // stype.
-      newcol = Const_ColumnImpl::make_int_column(1, value, stype);
-    }
-    else if (ltype == LType::REAL) {
-      newcol = Const_ColumnImpl::make_float_column(1, value, stype);
-    }
-    else {
+    if (i < dt0->ncols()) {
+      const Column& col = dt0->get_column(i);
+      LType ltype = col.ltype();
+      if (ltype == LType::INT) {
+        // This creates a column with the requested `stype`, but only
+        // if the `value` fits inside the range of that stype. If not,
+        // the column will be auto-promoted to the next smallest integer
+        // stype.
+        newcol = Const_ColumnImpl::make_int_column(1, value, col.stype());
+      }
+      else if (ltype == LType::REAL) {
+        newcol = Const_ColumnImpl::make_float_column(1, value, col.stype());
+      }
+      else {
+        newcol = Const_ColumnImpl::make_int_column(1, value);
+      }
+    } else {
       newcol = Const_ColumnImpl::make_int_column(1, value);
     }
     outputs.add_column(std::move(newcol), std::string(), Grouping::SCALAR);

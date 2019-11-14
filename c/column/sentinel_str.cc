@@ -102,7 +102,7 @@ const void* SentinelStr_ColumnImpl<T>::get_data_readonly(size_t k) const {
 template <typename T>
 void* SentinelStr_ColumnImpl<T>::get_data_editable(size_t k) {
   xassert(k <= 1);
-  return (k == 0)? offbuf_.xptr() : strbuf_.xptr();
+  return (k == 0)? offbuf_.wptr() : strbuf_.wptr();
 }
 
 

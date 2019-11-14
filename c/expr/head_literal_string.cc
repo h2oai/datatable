@@ -68,13 +68,17 @@ Workframe Head_Literal_String::evaluate_f(
 // columns will try to match the stypes of the LHS.
 //
 Workframe Head_Literal_String::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const std::vector<SType>& stypes) const
+    const vecExpr&, EvalContext& ctx, const intvec& indices) const
 {
+  auto dt0 = ctx.get_datatable(0);
+
   Workframe outputs(ctx);
-  for (SType stype : stypes) {
-    if (!(stype == SType::STR32 || stype == SType::STR64)) {
-      // Either type mismatch (the caller will throw an error then),
-      // or stype is VOID
+  for (size_t i : indices) {
+    SType stype;
+    if (i < dt0->ncols()) {
+      const Column& col = dt0->get_column(i);
+      stype = (col.ltype() == LType::STRING)? col.stype() : SType::STR32;
+    } else {
       stype = SType::STR32;
     }
     outputs.add_column(
