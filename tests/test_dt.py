@@ -1148,8 +1148,14 @@ def test_copy_keyed_frame():
 
 def test_deep_copy():
     DT = dt.Frame(A=range(5), B=["alpha", "beta", "gamma", "delta", "epsilon"])
+    D1 = DT.copy(deep=False)
     D2 = DT.copy(deep=True)
+    assert_equals(DT, D1)
     assert_equals(DT, D2)
+    dt_ptr = dt.internal.frame_column_data_r(DT, 1)
+    assert dt.internal.frame_column_data_r(D1, 1).value == dt_ptr.value
+    assert dt.internal.frame_column_data_r(D2, 1).value != dt_ptr.value
+
 
 
 
