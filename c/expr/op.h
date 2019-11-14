@@ -98,6 +98,8 @@ enum class Op : size_t {
   COUNT,
   COUNT0,
   MEDIAN = REDUCER_LAST,
+  COV,
+  CORR,
 
   // Math: trigonometric
   SIN = MATH_FIRST,

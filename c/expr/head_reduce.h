@@ -29,6 +29,19 @@ namespace dt {
 namespace expr {
 
 
+/**
+  * A reduction function operates on a group of data and produces a
+  * single number as a result. Thus, the columns created by the
+  * reduction function have GroupingMode == GtoONE.
+  *
+  * We further subdivide the reduction functions according to their
+  * arity (i.e. how many arguments they take):
+  *   - Head_Reduce_Nullary: no arguments, e.g. `count()`
+  *   - Head_Reduce_Unary:   single argument, e.g. `mean(X)`
+  *   - Head_Reduce_Binary:  two arguments, e.g. `corr(X, Y)`
+  *
+  * Most reducers fall into the "unary" category.
+  */
 class Head_Reduce : public Head_Func {
   protected:
     Op op;
@@ -65,7 +78,6 @@ class Head_Reduce_Binary : public Head_Reduce {
     using Head_Reduce::Head_Reduce;
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
-
 
 
 
