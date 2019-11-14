@@ -182,7 +182,7 @@ oobj Frame::_main_getset(robj item, robj value) {
   }
 
   ctx.evaluate();
-  if (mode != dt::expr::EvalMode::SELECT) {
+  if (ctx.get_mode() != dt::expr::EvalMode::SELECT) {
     _clear_types();
   }
   return ctx.get_result();

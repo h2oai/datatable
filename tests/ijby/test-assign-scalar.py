@@ -23,12 +23,13 @@
 #-------------------------------------------------------------------------------
 import math
 import pytest
-from datatable import f, dt
+from datatable import f, dt, update
 from tests import assert_equals
 
 stypes_int = dt.ltype.int.stypes
 stypes_float = dt.ltype.real.stypes
 stypes_str = dt.ltype.str.stypes
+stypes_all = [dt.bool8, dt.obj64] + stypes_int + stypes_float + stypes_str
 
 
 
@@ -192,6 +193,98 @@ def test_assign_str_to_empty_frame():
     DT = dt.Frame(W=[], stype=dt.str32)
     DT[f.W == '', f.W] = 'yay!'
     assert_equals(DT, dt.Frame(W=[], stype=dt.str32))
+
+
+
+
+#-------------------------------------------------------------------------------
+# Assign types
+#-------------------------------------------------------------------------------
+
+def test_assign_type_simple():
+    DT = dt.Frame(A=range(5))
+    DT["A"] = dt.float64
+    assert_equals(DT, dt.Frame(A=range(5), stype=dt.float64))
+
+
+def test_assign_type_to_many_columns():
+    DT = dt.Frame(A=[True, False], B=[3, 7], C=[2.4, 9.9])
+    DT[:, :] = dt.int64
+    assert_equals(DT, dt.Frame(A=[1, 0], B=[3, 7], C=[2, 9], stype=dt.int64))
+
+
+def test_assign_type_to_some_columns():
+    DT = dt.Frame(A=['bii', 'doo'], B=[3, 5], C=[4, 4])
+    DT[:, int] = float
+    assert_equals(DT, dt.Frame(A=['bii', 'doo'], B=[3.0, 5.0], C=[4.0, 4.0]))
+
+
+@pytest.mark.parametrize("st", stypes_all)
+def test_assign_stypes(st):
+    DT = dt.Frame(A=[1])
+    DT["A"] = st
+    assert DT.stype == st
+
+
+@pytest.mark.parametrize("pt", [bool, int, float, str, object])
+def test_assign_python_type(pt):
+    DT = dt.Frame(A=[7])
+    DT["A"] = pt
+    if pt is object:
+        assert DT.stype == dt.obj64
+    else:
+        assert type(DT[0, 0]) is pt
+
+
+@pytest.mark.parametrize("lt", [dt.ltype.bool, dt.ltype.int, dt.ltype.real,
+                                dt.ltype.str, dt.ltype.obj])
+def test_assign_ltype(lt):
+    DT = dt.Frame(A=[7])
+    DT["A"] = lt
+    assert DT.ltypes[0] == lt
+
+
+def test_assign_type_without_stype_change():
+    # Verify that if a column already has same ltype, then that ltype will
+    # not change upon the assignment
+    DT = dt.Frame([[0], [1], [2], [3], [4], [5]],
+                  stypes=[dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64,
+                          dt.float32])
+    DT[:, "C0":"C5"] = int
+    assert_equals(DT, dt.Frame([[0], [1], [2], [3], [4], [5]],
+                               stypes=[dt.int32, dt.int8, dt.int16, dt.int32,
+                                       dt.int64, dt.int32]))
+
+
+def test_assign_stype_to_new_column():
+    DT = dt.Frame(S=range(5))
+    DT["N"] = dt.float64
+    DT["M"] = dt.float32
+    assert_equals(DT, dt.Frame(S=range(5), N=[None]*5, M=[None]*5,
+                               stypes=dict(N=dt.float64, M=dt.float32)))
+
+
+def test_assign_bad_type():
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError, match="Unknown type <class 'type'> used in "
+                                         "the replacement expression"):
+        DT["A"] = type
+
+
+def test_assign_different_types():
+    DT = dt.Frame(A=range(5), B=list("ABCDE"))
+    DT = DT[:, ["A", "B"]]  # for py35
+    assert DT.stypes == (dt.int32, dt.str32)
+    DT[:, update(A=dt.float32, B=dt.str64)]
+    assert_equals(DT, dt.Frame(A=range(5), B=list("ABCDE"),
+                               stypes=dict(A=dt.float32, B=dt.str64)))
+
+
+def test_assign_types_partial():
+    DT = dt.Frame(A=range(5))
+    with pytest.raises(ValueError, match="Partial reassignment of Column's "
+                                         "type is not possible"):
+        DT[:2, "A"] = str
 
 
 

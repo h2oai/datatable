@@ -47,7 +47,7 @@ class Head_Func : public Head {
 
     Workframe evaluate_r(const vecExpr& args,
                          EvalContext& ctx,
-                         const std::vector<SType>& stypes) const override;
+                         const intvec& column_indices) const override;
 };
 
 
