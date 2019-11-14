@@ -80,6 +80,8 @@ class Frame : public XObject<Frame> {
     void m__releasebuffer__(Py_buffer* view);
     oobj m__iter__();
     oobj m__reversed__();
+    oobj m__copy__();
+    oobj m__deepcopy__(const PKArgs&);
 
     // Frame display
     oobj m__repr__() const;

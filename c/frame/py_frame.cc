@@ -22,6 +22,7 @@
 #include <iostream>
 #include "frame/py_frame.h"
 #include "python/_all.h"
+#include "python/string.h"
 namespace py {
 
 PyObject* Frame_Type = nullptr;
@@ -106,6 +107,24 @@ oobj Frame::copy(const PKArgs& args) {
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
   return res;
 }
+
+
+oobj Frame::m__copy__() {
+  args_copy.bind(nullptr, nullptr);
+  return copy(args_copy);
+}
+
+
+static PKArgs args___deepcopy__(
+  0, 1, 0, false, false, {"memo"}, "__deepcopy__", nullptr);
+
+oobj Frame::m__deepcopy__(const PKArgs&) {
+  py::odict dict_arg;
+  dict_arg.set(py::ostring("deep"), py::True());
+  args_copy.bind(nullptr, dict_arg.to_borrowed_ref());
+  return copy(args_copy);
+}
+
 
 
 
@@ -403,6 +422,8 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::materialize, args_materialize));
   xt.add(METHOD(&Frame::export_names, args_export_names));
   xt.add(METHOD0(&Frame::get_names, "keys"));
+  xt.add(METHOD0(&Frame::m__copy__, "__copy__"));
+  xt.add(METHOD(&Frame::m__deepcopy__, args___deepcopy__));
 }
 
 
