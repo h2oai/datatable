@@ -1157,6 +1157,21 @@ def test_deep_copy():
     assert dt.internal.frame_column_data_r(D2, 1).value != dt_ptr.value
 
 
+def test_copy_copy():
+    import copy
+    DT = dt.Frame(A=range(5))
+    D1 = copy.copy(DT)
+    assert_equals(DT, D1)
+
+
+def test_copy_deepcopy():
+    import copy
+    DT = dt.Frame(A=[5.6, 4.4, 9.3, None])
+    D1 = copy.deepcopy(DT)
+    assert_equals(DT, D1)
+    assert (dt.internal.frame_column_data_r(D1, 0).value !=
+            dt.internal.frame_column_data_r(DT, 0).value)
+
 
 
 #-------------------------------------------------------------------------------
