@@ -27,13 +27,14 @@ import re
 
 
 def color_line(s):
-    return re.sub(r"((?:NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
+    return re.sub(r"((?:…|~|NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
                   "\x1b[2m\\1\x1b[0m", s)
 
 
 def color_header(s):
     return re.sub(r"((?:NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
-                  "\x1b[2m\\1\x1b[0;1m", s)
+                  "\x1b[2m\\1\x1b[0;1m",
+                  re.sub("…", "\x1b[0;2m…\x1b[0;1m", s))
 
 
 def check_colored_output(actual, header, separator, *body, keyed=False):
@@ -311,6 +312,20 @@ def test_colored_escaped_name(capsys):
         "[0 rows x 1 column]")
 
 
+def test_horizontal_elision(capsys):
+    DT = dt.Frame([["1234567890" * 3]] * 20)
+    with dt.options.display.context(allow_unicode=True, use_colors=True):
+        DT.view(interactive=False)
+    out, err = capsys.readouterr()
+    assert not err
+    # The output is truncated to 120 width (default terminal width for non-tty)
+    check_colored_output(out,
+        "   | C0                              C1                              C2                …  C19                           ",
+        "-- + ------------------------------  ------------------------------  ----------------     ------------------------------",
+        " 0 | 123456789012345678901234567890  123456789012345678901234567890  123456789012345…  …  123456789012345678901234567890",
+        "[1 row x 20 columns]")
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -560,7 +575,7 @@ def test_max_width_colored(capsys, uni):
         check_colored_output(out,
             "   | S   ",
             "-- + ----",
-            " 0 | abc\x1b[2m" + symbol + "\x1b[0m",
+            " 0 | abc" + symbol,
             "[1 row x 1 column]")
 
 

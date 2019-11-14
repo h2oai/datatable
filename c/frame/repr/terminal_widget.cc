@@ -105,19 +105,39 @@ void TerminalWidget::_prerender_columns(int terminal_width)
 
   // Render all other columns in the order of priority
   auto order = _order_colindices();
+  bool make_ellipsis_column = false;
   for (size_t i : order) {
     size_t j = colindices_[i];  // column index within `dt_`
     size_t k = i + k0;          // column index within `text_columns_`
     xassert(!text_columns_[k]);
 
-    text_columns_[k] = (j == NA_index || remaining_width <= 3)
-        ? text_column(new Ellipsis_TextColumn())
-        : text_column(new Data_TextColumn(names[j],
-                                          dt_->get_column(j),
-                                          rowindices_,
-                                          remaining_width - 3));
+    if (j == NA_index) {
+      make_ellipsis_column = true;
+    }
+    else if (i == order.back()) {
+      // Min.width required to render a data column is 4. If we are
+      // on the last column to render, but there's not enough
+      // remaining width, then render the ellipsis column instead.
+      if (remaining_width <= 4) make_ellipsis_column = true;
+    }
+    else {
+      // If this is not the last column, then in order for it to be
+      // rendered, there must be enough available width for this
+      // column (4), and for an ellipsis column (3).
+      if (remaining_width <= 4 + 3) make_ellipsis_column = true;
+    }
+
+    if (make_ellipsis_column) {
+      text_columns_[k] = text_column(new Ellipsis_TextColumn());
+      break;
+    }
+
+    int target_width = remaining_width - 3 * (i != order.back());
+    text_columns_[k] = text_column(new Data_TextColumn(names[j],
+                                                       dt_->get_column(j),
+                                                       rowindices_,
+                                                       target_width));
     remaining_width -= text_columns_[k]->get_width();
-    if (remaining_width <= 3) break;
 
     if (nkeys && j == nkeys-1) {
       // NB: cannot use .cbegin() here because of gcc4.8
