@@ -77,6 +77,13 @@ Frame
   ``dt.options.display.head_nrows``, ``dt.options.display.tail_nrows`` and
   ``dt.options.display.max_nrows``.
 
+- |new| Method :meth:`Frame.copy() <datatable.Frame.copy>` now has a new
+  parameter ``deep=False``. When set to ``True``, it will create a deep copy
+  of the frame instead of the usual shallow one.
+
+  In addition, standard python functions ``copy.copy()`` and ``copy.deepcopy()``
+  will now defer to the ``Frame.copy()`` method too.
+
 - |new| It is now possible to create a Frame from a list of numpy integers/
   floats. The resulting Frame will have the stype corresponding to the largest
   dtype among all elements in the list::
