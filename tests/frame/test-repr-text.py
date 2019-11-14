@@ -314,7 +314,8 @@ def test_colored_escaped_name(capsys):
 
 def test_horizontal_elision(capsys):
     DT = dt.Frame([["1234567890" * 3]] * 20)
-    DT.view(interactive=False)
+    with dt.options.display.context(allow_unicode=True, use_colors=True):
+        DT.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
     # The output is truncated to 120 width (default terminal width for non-tty)
