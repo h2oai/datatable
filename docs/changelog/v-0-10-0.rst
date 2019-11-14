@@ -47,22 +47,16 @@ Frame
     DT[:, update(A=f.A * 2, B=dt.str32(f.A), Z=0)]
 
 - |new| Added method :meth:`.export_names() <datatable.Frame.export_names>`
-  which creates a set of global variables referencing each column in the Frame.
-  This is recommended for interactive use only::
+  which returns a tuple of variables referencing each column in the Frame::
 
-    DT.export_names()
-    # Now DT's columns 'PROC_ID' and 'SORT_NR' can be referenced as variables,
-    # without the f. syntax:
+    PROC_ID, SORT_NR, *other = DT.export_names()
     DT[(PROC_ID == "A") & (SORT_NR > 2), :]
 
   If you need to export only a subset of columns, you can select those columns
   first via the standard ``DT[i,j]`` syntax::
 
     # Only create variables for the first 5 columns
-    DT[:, :5].export_names()
-
-  The variables are created in the global scope because python's locals cannot
-  be manipulated programmatically.
+    A, B, C, D, E = DT[:, :5].export_names()
 
 - |new| Added frame property :meth:`.stype <datatable.Frame.stype>` which is
   similar to :meth:`.stypes <datatable.Frame.stypes>` except that it returns

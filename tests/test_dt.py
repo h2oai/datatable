@@ -1267,12 +1267,12 @@ def test_materialize_object_col():
 #-------------------------------------------------------------------------------
 
 def test_export_names(dt0):
-    assert "A" not in locals()
-    dt0.export_names()
-    all = [A, B, C, D, E, F, G]
-    assert_equals(dt0[:, all], dt0)
+    A, B, C, D, E, F, G = dt0.export_names()
+    all_names = [A, B, C, D, E, F, G]
+    assert_equals(dt0[:, all_names], dt0)
     assert_equals(dt0[A > 0, :], dt0[:2, :])
     assert str(A + B <= C + D) == str(dt.f.A + dt.f.B <= dt.f.C + dt.f.D)
+    assert "A" not in globals()
 
 
 
