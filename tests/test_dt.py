@@ -1309,4 +1309,5 @@ def test_issue2179(numpy):
     DT = dt.Frame(numpy.ma.array([False], mask=[True]), names=['A'])
     DT1 = copy.deepcopy(DT)
     DT2 = copy.deepcopy(DT)
+    frame_integrity_check(DT1)
     frame_integrity_check(DT2)

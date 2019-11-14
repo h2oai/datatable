@@ -93,10 +93,6 @@ size_t PyObjectStats::memory_footprint() const noexcept {
   return sizeof(PyObjectStats);
 }
 
-const dt::ColumnImpl* Stats::get_column() const {
-  return column;
-}
-
 
 
 
@@ -1130,22 +1126,24 @@ bool Column::is_stat_computed(Stat stat) const {
 //------------------------------------------------------------------------------
 
 template <typename S>
-std::unique_ptr<Stats> _clone(const S* inp) {
-  S* out = new S(inp->get_column());
+std::unique_ptr<Stats> Stats::_clone(const S* inp) const {
+  S* out = new S(inp->column);
   std::memcpy(static_cast<void*>(out),
               static_cast<const void*>(inp),
               sizeof(S));
+  xassert(out->_valid == inp->_valid);
+  xassert(out->_computed == inp->_computed);
   return std::unique_ptr<Stats>(out);
 }
 
 
 template <typename T>
-std::unique_ptr<Stats> RealStats<T>::clone()    const { return _clone(this); }
+std::unique_ptr<Stats> RealStats<T>::clone()    const { return this->_clone(this); }
 template <typename T>
-std::unique_ptr<Stats> IntegerStats<T>::clone() const { return _clone(this); }
-std::unique_ptr<Stats> BooleanStats::clone()    const { return _clone(this); }
-std::unique_ptr<Stats> StringStats::clone()     const { return _clone(this); }
-std::unique_ptr<Stats> PyObjectStats::clone()   const { return _clone(this); }
+std::unique_ptr<Stats> IntegerStats<T>::clone() const { return this->_clone(this); }
+std::unique_ptr<Stats> BooleanStats::clone()    const { return this->_clone(this); }
+std::unique_ptr<Stats> StringStats::clone()     const { return this->_clone(this); }
+std::unique_ptr<Stats> PyObjectStats::clone()   const { return this->_clone(this); }
 
 
 

@@ -320,7 +320,7 @@ class Column
     //
     // This method should be called from any Column method that
     // intends to modify the `impl_` variable.
-    dt::ColumnImpl* _get_mutable_impl();
+    dt::ColumnImpl* _get_mutable_impl(bool keep_stats=false);
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;

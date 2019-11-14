@@ -144,7 +144,6 @@ class Stats
 
     virtual size_t memory_footprint() const noexcept = 0;
     virtual std::unique_ptr<Stats> clone() const = 0;
-    const dt::ColumnImpl* get_column() const;
     void verify_integrity(const dt::ColumnImpl*);
 
   protected:
@@ -217,6 +216,7 @@ class Stats
     virtual void compute_moments34();
     virtual void compute_sorted_stats();
     void _fill_validity_flag(Stat stat, bool* isvalid);
+    template <typename S> std::unique_ptr<Stats> _clone(const S* inp) const;
 
 
   private:

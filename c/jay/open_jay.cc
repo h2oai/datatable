@@ -132,8 +132,10 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
     using R = typename std::conditional<std::is_integral<T>::value,
                                         int64_t, double>::type;
     stats->set_nacount(static_cast<size_t>(jcol->nullcount()));
-    stats->set_min(static_cast<R>(jstats->min()));
-    stats->set_max(static_cast<R>(jstats->max()));
+    T min = jstats->min();
+    T max = jstats->max();
+    stats->set_min(static_cast<R>(min), (min != GETNA<T>()));
+    stats->set_max(static_cast<R>(max), (max != GETNA<T>()));
   }
 }
 
