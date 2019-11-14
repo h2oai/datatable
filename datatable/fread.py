@@ -363,6 +363,9 @@ class GenericReader(object):
         elif ext == ".xlsx" or ext == ".xls":
             self._result = read_xls_workbook(filename, subpath)
 
+        elif ext == ".jay":
+            self._result = core.open_jay(filename)
+
         else:
             self._file = filename
 

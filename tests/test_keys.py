@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -145,12 +145,12 @@ def test_set_empty_key():
     assert dt0.names == ("A", "B")
 
 
-def test_key_save(tempfile):
+def test_key_save(tempfile_jay):
     dt0 = dt.Frame(D=range(6), A=[3, 7, 5, 2, 2, 3], B=[1, 2, 2, 3, 4, 4])
     dt0.key = ["A", "B"]
     frame_integrity_check(dt0)
-    dt0.to_jay(tempfile)
-    dt1 = dt.open(tempfile)
+    dt0.to_jay(tempfile_jay)
+    dt1 = dt.fread(tempfile_jay)
     assert dt1.key == ("A", "B")
     frame_integrity_check(dt1)
 

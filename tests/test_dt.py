@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -1302,11 +1302,11 @@ def test_issue898():
     del res
 
 
-def test_issue1728(tempfile):
+def test_issue1728(tempfile_jay):
     data = dt.Frame({'department1': [None, 't'], 'C0': [3580, 1047]})
-    data.to_jay(tempfile)
+    data.to_jay(tempfile_jay)
     del data
-    counts = dt.open(tempfile)
+    counts = dt.fread(tempfile_jay)
     counts = counts[1:, :]
     counts = counts[:, :, dt.sort(-1)]
     counts.materialize()

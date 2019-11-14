@@ -880,13 +880,13 @@ def test_rows_bad_arguments(dt0):
         dt0, False, "A boolean value cannot be used as a row selector")
 
 
-def test_issue689(tempfile):
+def test_issue689(tempfile_jay):
     n = 300000  # Must be > 65536
     data = [i % 8 for i in range(n)]
     d0 = dt.Frame(data, names=["A"])
-    d0.to_jay(tempfile)
+    d0.to_jay(tempfile_jay)
     del d0
-    d1 = dt.open(tempfile)
+    d1 = dt.fread(tempfile_jay)
     # Do not check d1! we want it to be lazy at this point
     d2 = d1[f[0] == 1, :]
     frame_integrity_check(d2)

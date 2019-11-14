@@ -262,11 +262,11 @@ def test_rbind_self():
     assert_equals(dt0, dtr)
 
 
-def test_rbind_mmapped(tempfile):
+def test_rbind_mmapped(tempfile_jay):
     dt0 = dt.Frame({"A": [1, 5, 7], "B": ["one", "two", None]})
-    dt0.to_jay(tempfile)
+    dt0.to_jay(tempfile_jay)
     del dt0
-    dt1 = dt.open(tempfile)
+    dt1 = dt.fread(tempfile_jay)
     dt2 = dt.Frame({"A": [-1], "B": ["zero"]})
     dt1.rbind(dt2)
     dtr = dt.Frame({"A": [1, 5, 7, -1], "B": ["one", "two", None, "zero"]})
