@@ -65,10 +65,12 @@ class DataTable {
 
   public:
     static struct DefaultNamesTag {} default_names;
+    static struct DeepCopyTag {} deep_copy;
 
     DataTable();
     DataTable(const DataTable&);
     DataTable(DataTable&&) = default;
+    DataTable(const DataTable&, DeepCopyTag);
     DataTable(colvec&& cols, DefaultNamesTag);
     DataTable(colvec&& cols, const strvec&, bool warn_duplicates = true);
     DataTable(colvec&& cols, const py::olist&, bool warn_duplicates = true);

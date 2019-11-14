@@ -262,6 +262,8 @@ class Column
     Stats* stats() const;
     Stats* get_stats_if_exist() const;
     void reset_stats();
+    std::unique_ptr<Stats> clone_stats() const;
+    void replace_stats(std::unique_ptr<Stats>&&);
     bool is_stat_computed(Stat) const;
 
 
@@ -318,7 +320,7 @@ class Column
     //
     // This method should be called from any Column method that
     // intends to modify the `impl_` variable.
-    dt::ColumnImpl* _get_mutable_impl();
+    dt::ColumnImpl* _get_mutable_impl(bool keep_stats=false);
 
     friend void swap(Column& lhs, Column& rhs);
     friend class ColumnImpl;

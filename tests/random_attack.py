@@ -959,9 +959,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     exhaustive_checks = args.exhaustive
     if args.python:
-        outfile = os.path.join(os.path.dirname(__file__), "random_attack_logs",
-                               str(args.seed) + ".py")
-        python_output = open(outfile, "wt")
+        ra_dir = os.path.join(os.path.dirname(__file__), "random_attack_logs")
+        os.makedirs(ra_dir, exist_ok=True)
+        outfile = os.path.join(ra_dir, str(args.seed) + ".py")
+        python_output = open(outfile, "wt", encoding="UTF-8")
         python_output.write("#!/usr/bin/env python\n")
         python_output.write("#seed: %s\n" % args.seed)
         python_output.write("import sys; sys.path = ['.', '..'] + sys.path\n")

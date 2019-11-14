@@ -22,6 +22,7 @@
 #include <iostream>
 #include "frame/py_frame.h"
 #include "python/_all.h"
+#include "python/string.h"
 namespace py {
 
 PyObject* Frame_Type = nullptr;
@@ -75,28 +76,55 @@ oobj Frame::tail(const PKArgs& args) {
 //------------------------------------------------------------------------------
 
 static PKArgs args_copy(
-  0, 0, 0, false, false,
-  {}, "copy",
+  0, 0, 1, false, false,
+  {"deep"}, "copy",
 
-R"(copy(self)
+R"(copy(self, deep=False)
 --
 
 Make a copy of this frame.
 
-This method creates a shallow copy of the current frame: only references
-are copied, not the data itself. However, due to copy-on-write semantics
-any changes made to one of the frames will not propagate to the other.
-Thus, for all intents and purposes the copied frame will behave as if
-it was deep-copied.)"
-);
+By default, this method creates a shallow copy of the current frame:
+only references are copied, not the data itself. However, due to
+copy-on-write semantics any changes made to one of the frames will not
+propagate to the other. Thus, for most intents and purposes the copied
+frame will behave as if it was deep-copied.
 
-oobj Frame::copy(const PKArgs&) {
-  oobj res = Frame::oframe(new DataTable(*dt));  // copy dt
+Still, it is possible to explicitly request a deep copy of the frame,
+using the parameter `deep=True`. Even though it is not needed most of
+the time, there still could be situations where you may want to use
+this parameter: for example for auditing purposes, or if you want to
+explicitly control the moment when the copying is made.
+)");
+
+oobj Frame::copy(const PKArgs& args) {
+  bool deepcopy = args[0].to<bool>(false);
+
+  oobj res = Frame::oframe(deepcopy? new DataTable(*dt, DataTable::deep_copy)
+                                   : new DataTable(*dt));
   Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
   return res;
 }
+
+
+oobj Frame::m__copy__() {
+  args_copy.bind(nullptr, nullptr);
+  return copy(args_copy);
+}
+
+
+static PKArgs args___deepcopy__(
+  0, 1, 0, false, false, {"memo"}, "__deepcopy__", nullptr);
+
+oobj Frame::m__deepcopy__(const PKArgs&) {
+  py::odict dict_arg;
+  dict_arg.set(py::ostring("deep"), py::True());
+  args_copy.bind(nullptr, dict_arg.to_borrowed_ref());
+  return copy(args_copy);
+}
+
 
 
 
@@ -394,6 +422,8 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::materialize, args_materialize));
   xt.add(METHOD(&Frame::export_names, args_export_names));
   xt.add(METHOD0(&Frame::get_names, "keys"));
+  xt.add(METHOD0(&Frame::m__copy__, "__copy__"));
+  xt.add(METHOD(&Frame::m__deepcopy__, args___deepcopy__));
 }
 
 
