@@ -223,6 +223,7 @@ void progress_bar_enabled::_render_message(std::stringstream& out) {
   out << ' ' << message << ' ';
   switch (status) {
     case Status::RUNNING:
+      out << "\x1B[K"; // clear till the end of the terminal line
       return;
 
     case Status::FINISHED:

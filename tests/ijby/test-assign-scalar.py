@@ -196,6 +196,7 @@ def test_assign_str_to_empty_frame():
 
 
 
+
 #-------------------------------------------------------------------------------
 # Assign types
 #-------------------------------------------------------------------------------
@@ -283,3 +284,33 @@ def test_assign_types_partial():
     with pytest.raises(ValueError, match="Partial reassignment of Column's "
                                          "type is not possible"):
         DT[:2, "A"] = str
+
+
+
+
+#-------------------------------------------------------------------------------
+# Assign range
+#-------------------------------------------------------------------------------
+
+def test_assign_range():
+    DT = dt.Frame(A=[3, 4, 0])
+    DT["B"] = range(3)
+    assert_equals(DT, dt.Frame(A=[3, 4, 0], B=[0, 1, 2]))
+
+
+def test_assign_range2():
+    DT = dt.Frame(A=[7]*7, stype=dt.float32)
+    DT["A"] = range(3, 10)
+    assert_equals(DT, dt.Frame(A=range(3, 10)))
+
+
+def test_assign_range_subframe():
+    DT = dt.Frame(A=range(20))
+    DT[10:, "A"] = range(10)
+    assert_equals(DT, dt.Frame(A=list(range(10))*2))
+
+
+def test_assign_range_compute():
+    DT = dt.Frame(A=[5, 10, 100])
+    DT["B"] = f.A * range(3)
+    assert_equals(DT, dt.Frame(A=[5, 10, 100], B=[0, 10, 200]))

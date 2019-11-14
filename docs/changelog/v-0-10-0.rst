@@ -109,6 +109,11 @@ Frame
 
     DT.to_csv("out.log", append=True)  # infer that header=False if file exists
 
+- |new| Range objects can now be used directly in ``DT[i,j]`` expressions in any
+  place where a column could be expected::
+
+    DT["id"] = range(1000)
+
 - |new| Implemented ability to select a specific row within each group, using
   the syntax
 
