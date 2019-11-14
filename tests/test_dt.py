@@ -1148,6 +1148,7 @@ def test_copy_keyed_frame():
 
 def test_deep_copy():
     DT = dt.Frame(A=range(5), B=["alpha", "beta", "gamma", "delta", "epsilon"])
+    DT = DT[:, ["A", "B"]]  # for py35
     D1 = DT.copy(deep=False)
     D2 = DT.copy(deep=True)
     assert_equals(DT, D1)
