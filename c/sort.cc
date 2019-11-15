@@ -1467,8 +1467,7 @@ py::oobj py::Frame::sort(const PKArgs& args) {
 
   ctx.add_i(py::None());
   ctx.add_j(py::None());
-  ctx.evaluate();
-  return ctx.get_result();
+  return ctx.evaluate();
 }
 
 

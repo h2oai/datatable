@@ -34,49 +34,79 @@ namespace expr {
 
 
 /**
- * This is a main class used to evaluate the expression `DT[i, j, ...]`. This
- * class is essentially a "work-in-progress Frame", hence the name. It is not
- * a real frame, however, in the sense that it may be misshapen, or violate
- * other Frame constraints at some point in its lifetime.
- *
- * Initially, a EvalContext is created using the DataTable* object `DT` which is
- * at the root of the expression `DT[i, j, ...]`.
- *
- * Later, `join_node`(s) may append additional DataTable* objects, with all
- * `RowIndex`es specifying how they merge together.
- *
- * The `byexpr_` will attach a `Groupby` object. The Groupby will specify how
- * the rows are split into groups, and it applies to all `DataTable*`s in the
- * EvalContext. The shape of the Groupby must be compatible with all current
- * `RowIndex`es.
- *
- * An `i_node` applies a new row filter to all Frames in the EvalContext. If
- * there is a non-empty Groupby, the `i_node` must apply within each group, and
- * then update the Groupby to account for the new configuration of the rows.
- */
+  * This is a main class used to evaluate expressions `DT[i, j, ...]`,
+  * its purpose is to orchestrate the evaluation of all parts, and to
+  * hold the information produced in the process.
+  *
+  * For inputs, this class holds `Expr` objects corresponding to each
+  * part of the `DT[i,j]`: there is `iexpr_`, `jexpr_`, `byexpr_`,
+  * `sortexpr_` and `rexpr_` (replacement). There are no join nodes
+  * however: the join frames are stored into the `frames_` vector
+  * directly. This may be expanded in the future when we allow joins
+  * on arbitrary conditions.
+  *
+  * The `frames_` vector contains the list of frames that participate
+  * in the evaluation. The first element of this vector is the root
+  * frame (`DT`), and all subsequent elements are joined frames. Each
+  * element in the `frames_` vector also contains a rowindex
+  * describing which rows of that frame must be selected. The length
+  * (nrows) of all these rowindices must be equal.
+  *
+  * The `groupby_` object specifies how the rows are split into
+  * groups. This object may not be "empty", and as a fallback will
+  * contain a single-group-all-rows Groupby.
+  *
+  * Additional elements:
+  *
+  * ungroup_rowindex_
+  *   Can be used to take an existing grouped column (e.g. such as
+  *   produced by a reducer), and expand it into a full-size column.
+  *   This RowIndex is computed only on demand.
+  *
+  * group_rowindex_
+  *   Can be used to take an existing full-size column and apply a
+  *   a `first()` function to it, producing a "grouped" column.
+  *
+  * groupby_columns_
+  *   Columns on which the frame was grouped. These columns may be
+  *   either computed or "reference" columns. This Workframe is used
+  *   for two purposes: (1) in order to detect whether a particular
+  *   column is "group" column, and (2) in order to add the group
+  *   columns at the beginning of the result frame.
+  *
+  * newnames_
+  *   When a frame is updated, this vector will temporarily hold the
+  *   names of the columns being created.
+  *
+  * eval_mode_
+  *   Three conceptual operations are supported: SELECT, UPDATE and
+  *   DELETE.
+  *
+  * add_groupby_columns_
+  *   If this flag is false (it's true by default), then the groupby
+  *   columns would not be added to the resulting frame.
+  *
+  */
 class EvalContext
 {
   struct subframe {
-    DataTable* dt;
-    RowIndex ri;
-    bool natural;  // was this frame joined naturally?
+    DataTable* dt_;
+    RowIndex   ri_;
+    bool       natural_;  // was this frame joined naturally?
     size_t : 56;
 
-    subframe(DataTable* _dt, const RowIndex& _ri, bool n)
-      : dt(_dt), ri(_ri), natural(n) {}
+    subframe(DataTable* dt, const RowIndex& ri, bool n)
+      : dt_(dt), ri_(ri), natural_(n) {}
   };
   using frameVec = std::vector<subframe>;
 
   private:
     // Inputs
-    Expr      iexpr_;
-    Expr      jexpr_;
-    Expr      byexpr_;
-    Expr      sortexpr_;
-    Expr      rexpr_;
-    EvalMode  eval_mode_;
-    bool      add_groupby_columns_;
-    size_t : 48;
+    Expr  iexpr_;
+    Expr  jexpr_;
+    Expr  byexpr_;
+    Expr  sortexpr_;
+    Expr  rexpr_;
 
     // Runtime
     frameVec   frames_;
@@ -84,12 +114,10 @@ class EvalContext
     RowIndex   ungroup_rowindex_;
     RowIndex   group_rowindex_;
     Workframe  groupby_columns_;
-
-    // Result
-    colvec columns;
-    strvec newnames;
-    strvec colnames;
-    std::unique_ptr<DataTable> out_datatable;
+    strvec     newnames_;
+    EvalMode   eval_mode_;
+    bool       add_groupby_columns_;
+    size_t : 48;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
@@ -105,8 +133,7 @@ class EvalContext
     void add_j(py::oobj);
     void add_replace(py::oobj);
 
-    void evaluate();
-    py::oobj get_result();
+    py::oobj evaluate();
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
@@ -123,19 +150,15 @@ class EvalContext
     void replace_groupby(Groupby&& gb_);
     void set_groupby_columns(Workframe&&);
 
-    size_t size() const noexcept;
-    void reserve(size_t n);
-    void add_column(Column&&, const RowIndex&, std::string&&);
-
   private:
     void compute_groupby_and_sort();
 
-    void evaluate_delete();
+    py::oobj evaluate_delete();
+    py::oobj evaluate_select();
+    py::oobj evaluate_update();
     void evaluate_delete_columns();
     void evaluate_delete_rows();
     void evaluate_delete_subframe();
-    void evaluate_select();
-    void evaluate_update();
     intvec evaluate_j_as_column_index();
     void create_placeholder_columns();
     void typecheck_for_update(Workframe&, const intvec&);
