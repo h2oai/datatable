@@ -52,9 +52,11 @@ class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
     FuncUnary1_ColumnImpl(Column&&, OP, size_t nrows, SType stype);
 
     ColumnImpl* clone() const override;
+    void verify_integrity() const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
+
 
 
 /**
@@ -77,6 +79,7 @@ class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
     FuncUnary2_ColumnImpl(Column&&, OP, size_t nrows, SType stype);
 
     ColumnImpl* clone() const override;
+    void verify_integrity() const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -88,12 +91,12 @@ class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
 // FuncUnary1_ColumnImpl
 //------------------------------------------------------------------------------
 
-template<typename TI, typename TO>
+template <typename TI, typename TO>
 FuncUnary1_ColumnImpl<TI, TO>::FuncUnary1_ColumnImpl(Column&& col, OP f)
   : FuncUnary1_ColumnImpl(std::move(col), f, col.nrows(), stype_from<TO>) {}
 
 
-template<typename TI, typename TO>
+template <typename TI, typename TO>
 FuncUnary1_ColumnImpl<TI, TO>::FuncUnary1_ColumnImpl(
     Column&& col, OP f, size_t nrows, SType stype
 )
@@ -105,21 +108,35 @@ FuncUnary1_ColumnImpl<TI, TO>::FuncUnary1_ColumnImpl(
 }
 
 
-template<typename TI, typename TO>
+template <typename TI, typename TO>
 ColumnImpl* FuncUnary1_ColumnImpl<TI, TO>::clone() const {
   return new FuncUnary1_ColumnImpl<TI, TO>(
                 Column(arg_), func_, nrows_, stype_);
 }
 
 
-template<typename TI, typename TO>
+template <typename T> inline bool _notnan(T) { return true; }
+template <> inline bool _notnan(float x) { return !std::isnan(x); }
+template <> inline bool _notnan(double x) { return !std::isnan(x); }
+
+template <typename TI, typename TO>
 bool FuncUnary1_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
   TI x;
   bool xvalid = arg_.get_element(i, &x);
   if (!xvalid) return false;
   TO value = func_(x);
   *out = value;
-  return !std::isnan(value);
+  return _notnan(value);
+}
+
+
+template <typename TI, typename TO>
+void FuncUnary1_ColumnImpl<TI, TO>::verify_integrity() const {
+  arg_.verify_integrity();
+  assert_compatible_type<TO>(stype_);
+  assert_compatible_type<TI>(arg_.stype());
+  XAssert(nrows_ <= arg_.nrows());
+  XAssert(func_ != nullptr);
 }
 
 
@@ -129,12 +146,12 @@ bool FuncUnary1_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
 // FuncUnary2_ColumnImpl
 //------------------------------------------------------------------------------
 
-template<typename TI, typename TO>
+template <typename TI, typename TO>
 FuncUnary2_ColumnImpl<TI, TO>::FuncUnary2_ColumnImpl(Column&& col, OP f)
   : FuncUnary2_ColumnImpl(std::move(col), f, col.nrows(), stype_from<TO>) {}
 
 
-template<typename TI, typename TO>
+template <typename TI, typename TO>
 FuncUnary2_ColumnImpl<TI, TO>::FuncUnary2_ColumnImpl(
     Column&& col, OP f, size_t nrows, SType stype
 )
@@ -146,17 +163,27 @@ FuncUnary2_ColumnImpl<TI, TO>::FuncUnary2_ColumnImpl(
 }
 
 
-template<typename TI, typename TO>
+template <typename TI, typename TO>
 ColumnImpl* FuncUnary2_ColumnImpl<TI, TO>::clone() const {
   return new FuncUnary2_ColumnImpl<TI, TO>(
                 Column(arg_), func_, nrows_, stype_);
 }
 
-template<typename TI, typename TO>
+template <typename TI, typename TO>
 bool FuncUnary2_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
   TI x;
   bool xvalid = arg_.get_element(i, &x);
   return func_(x, xvalid, out);
+}
+
+
+template <typename TI, typename TO>
+void FuncUnary2_ColumnImpl<TI, TO>::verify_integrity() const {
+  arg_.verify_integrity();
+  assert_compatible_type<TO>(stype_);
+  assert_compatible_type<TI>(arg_.stype());
+  XAssert(nrows_ <= arg_.nrows());
+  XAssert(func_ != nullptr);
 }
 
 
