@@ -42,6 +42,13 @@ static const char* _name(Op op) {
 }
 
 
+static Column make_na_result(Column&& arg1, Column&& arg2, const Groupby& gby) {
+  SType st = (arg1.stype() == SType::FLOAT32 && arg2.stype() == SType::FLOAT32)
+             ? SType::FLOAT32 : SType::FLOAT64;
+  return Column::new_na_column(gby.size(), st);
+}
+
+
 
 //------------------------------------------------------------------------------
 // BinaryReduced_ColumnImpl
@@ -141,10 +148,59 @@ static Column compute_cov(Column&& arg1, Column&& arg2, const Groupby& gby) {
 // corr(X, Y)
 //------------------------------------------------------------------------------
 
+template <typename T>
+static bool corr_reducer(const Column& col1, const Column& col2,
+                         size_t i0, size_t i1, T* out)
+{
+  T mean1 = 0, mean2 = 0;
+  T var1 = 0, var2 = 0;
+  T cov = 0;
+  T value1, value2;
+  int64_t n = 0;
+  for (size_t i = i0; i < i1; ++i) {
+    bool isvalid1 = col1.get_element(i, &value1);
+    bool isvalid2 = col2.get_element(i, &value2);
+    if (isvalid1 && isvalid2) {
+      n++;
+      T delta1 = value1 - mean1;
+      T delta2 = value2 - mean2;
+      mean1 += delta1 / n;
+      mean2 += delta2 / n;
+      T tmp1 = value1 - mean1;  // effectively, this is delta1*(n-1)/n
+      T tmp2 = value2 - mean2;
+      cov += tmp1 * delta2;
+      var1 += tmp1 * delta1;
+      var2 += tmp2 * delta2;
+    }
+  }
+  T var1var2 = var1 * var2;
+  if (n > 1 && var1var2 > 0) {
+    *out = cov / std::sqrt(var1var2);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
+template <typename T>
+static Column _corr(Column&& arg1, Column&& arg2, const Groupby& gby) {
+  const SType st = stype_from<T>();
+  arg1.cast_inplace(st);
+  arg2.cast_inplace(st);
+  return Column(
+          new Latent_ColumnImpl(
+            new BinaryReduced_ColumnImpl<T>(
+                 st, std::move(arg1), std::move(arg2), gby, corr_reducer<T>
+            )));
+}
+
+
 static Column compute_corr(Column&& arg1, Column&& arg2, const Groupby& gby) {
   xassert(arg1.nrows() == arg2.nrows());
-  (void) gby;
-  return Column();
+  return (arg1.stype() == SType::FLOAT32 && arg2.stype() == SType::FLOAT64)
+          ? _corr<float>(std::move(arg1), std::move(arg2), gby)
+          : _corr<double>(std::move(arg1), std::move(arg2), gby);
 }
 
 
@@ -174,6 +230,7 @@ Workframe Head_Reduce_Binary::evaluate_n(const vecExpr& args,
                                  << static_cast<size_t>(op);
     }
   } else {
+    fn = make_na_result;
   }
 
   size_t n1 = inputs1.ncols();
