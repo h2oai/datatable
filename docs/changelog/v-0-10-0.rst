@@ -224,6 +224,13 @@ General
   The symbol ``dt`` is also exported by default, i.e. it will be available if
   you do ``from datatable import *``.
 
+- |new| Added functions :func:`cov` and :func:`corr` to compute the covariance
+  and Pearson correlation coefficient between columns of a Frame. These
+  functions can be used in a group-by too::
+
+    # Compute correlation of columns A and B, group-wise by ID
+    DT[:, corr(f.A, f.B), by(f.ID)]
+
 - |fix| Fixed memory leak when writing a Frame into a CSV file (#2119).
 
 - |fix| Fixed memory leak when converting a numpy array with string values
