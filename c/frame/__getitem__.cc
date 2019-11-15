@@ -181,11 +181,11 @@ oobj Frame::_main_getset(robj item, robj value) {
     ctx.add_replace(value);
   }
 
-  ctx.evaluate();
+  auto res = ctx.evaluate();
   if (ctx.get_mode() != dt::expr::EvalMode::SELECT) {
     _clear_types();
   }
-  return ctx.get_result();
+  return res;
 }
 
 

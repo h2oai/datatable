@@ -84,12 +84,7 @@ class EvalContext
     RowIndex   ungroup_rowindex_;
     RowIndex   group_rowindex_;
     Workframe  groupby_columns_;
-
-    // Result
-    colvec columns;
-    strvec newnames;
-    strvec colnames;
-    std::unique_ptr<DataTable> out_datatable;
+    strvec     newnames_;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
@@ -105,8 +100,7 @@ class EvalContext
     void add_j(py::oobj);
     void add_replace(py::oobj);
 
-    void evaluate();
-    py::oobj get_result();
+    py::oobj evaluate();
 
     DataTable* get_datatable(size_t i) const;
     const RowIndex& get_rowindex(size_t i) const;
@@ -123,19 +117,15 @@ class EvalContext
     void replace_groupby(Groupby&& gb_);
     void set_groupby_columns(Workframe&&);
 
-    size_t size() const noexcept;
-    void reserve(size_t n);
-    void add_column(Column&&, const RowIndex&, std::string&&);
-
   private:
     void compute_groupby_and_sort();
 
-    void evaluate_delete();
+    py::oobj evaluate_delete();
+    py::oobj evaluate_select();
+    py::oobj evaluate_update();
     void evaluate_delete_columns();
     void evaluate_delete_rows();
     void evaluate_delete_subframe();
-    void evaluate_select();
-    void evaluate_update();
     intvec evaluate_j_as_column_index();
     void create_placeholder_columns();
     void typecheck_for_update(Workframe&, const intvec&);

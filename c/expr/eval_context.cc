@@ -137,7 +137,7 @@ const RowIndex& EvalContext::get_group_rowindex() {
 // Main evaluation
 //------------------------------------------------------------------------------
 
-void EvalContext::evaluate() {
+py::oobj EvalContext::evaluate() {
   // Compute joins
   DataTable* xdt = get_datatable(0);
   for (size_t i = 1; i < nframes(); ++i) {
@@ -160,9 +160,9 @@ void EvalContext::evaluate() {
   }
 
   switch (eval_mode_) {
-    case EvalMode::SELECT: evaluate_select(); break;
-    case EvalMode::DELETE: evaluate_delete(); break;
-    case EvalMode::UPDATE: evaluate_update(); break;
+    case EvalMode::SELECT: return evaluate_select();
+    case EvalMode::DELETE: return evaluate_delete();
+    case EvalMode::UPDATE: return evaluate_update();
   }
 }
 
@@ -198,8 +198,8 @@ intvec EvalContext::evaluate_j_as_column_index() {
     if (jres.is_placeholder_column(i)) {
       // If allow_new is false, no placeholder columns should be generated
       xassert(allow_new);
-      indices[i] = dt0->ncols() + newnames.size();
-      newnames.emplace_back(jres.retrieve_name(i));
+      indices[i] = dt0->ncols() + newnames_.size();
+      newnames_.emplace_back(jres.retrieve_name(i));
     }
     if (jres.is_computed_column(i)) {
       throw TypeError() << "Item " << i << " in the `j` selector list is a "
@@ -211,11 +211,11 @@ intvec EvalContext::evaluate_j_as_column_index() {
 
 
 void EvalContext::create_placeholder_columns() {
-  if (newnames.empty()) return;
+  if (newnames_.empty()) return;
   DataTable* dt0 = get_datatable(0);
   const strvec& oldnames = dt0->get_names();
-  newnames.insert(newnames.begin(), oldnames.begin(), oldnames.end());
-  dt0->resize_columns(newnames);
+  newnames_.insert(newnames_.begin(), oldnames.begin(), oldnames.end());
+  dt0->resize_columns(newnames_);
 }
 
 
@@ -281,7 +281,7 @@ void EvalContext::compute_groupby_and_sort() {
 //   - delete subset of both rows & columns;
 //   - delete all rows & all columns (i.e. delete the entire frame).
 //
-void EvalContext::evaluate_delete() {
+py::oobj EvalContext::evaluate_delete() {
   Kind jkind = jexpr_.get_expr_kind();
   if (jkind == Kind::SliceAll) {
     evaluate_delete_rows();
@@ -294,6 +294,7 @@ void EvalContext::evaluate_delete() {
   } else {
     evaluate_delete_columns();
   }
+  return py::None();
 }
 
 
@@ -365,7 +366,7 @@ void EvalContext::evaluate_delete_subframe() {
   * types as the LHS (we *may* relax this requirement in the future).
   *
   */
-void EvalContext::evaluate_update() {
+py::oobj EvalContext::evaluate_update() {
   auto dt0 = get_datatable(0);
   auto ri0 = get_rowindex(0);
   auto ncols = dt0->ncols();
@@ -410,6 +411,7 @@ void EvalContext::evaluate_update() {
       dt0->set_column(indices[i], replacement.retrieve_column(i));
     }
   }
+  return py::None();
 }
 
 
@@ -496,14 +498,21 @@ static void _vivify_workframe(const Workframe& wf) {
 }
 
 
-void EvalContext::evaluate_select() {
+py::oobj EvalContext::evaluate_select() {
   Workframe res = jexpr_.evaluate_j(*this);
   if (add_groupby_columns_) {
     update_groupby_columns(res.get_grouping_mode());
     res.cbind(std::move(groupby_columns_), /* at_end= */ false);
   }
   _vivify_workframe(res);
-  out_datatable = std::move(res).convert_to_datatable();
+
+  auto result = std::move(res).convert_to_datatable();
+  if (result->ncols() == 0) {
+    // When selecting a 0-column subset, make sure the number of rows is the
+    // same as if some of the columns were selected.
+    result->resize_rows(nrows());
+  }
+  return py::Frame::oframe(result.release());
 }
 
 
@@ -512,22 +521,6 @@ void EvalContext::evaluate_select() {
 //------------------------------------------------------------------------------
 // Other
 //------------------------------------------------------------------------------
-
-py::oobj EvalContext::get_result() {
-  if (eval_mode_ == EvalMode::SELECT) {
-    DataTable* result =
-        out_datatable? out_datatable.release()
-                     : new DataTable(std::move(columns), std::move(colnames));
-    if (result->ncols() == 0) {
-      // When selecting a 0-column subset, make sure the number of rows is the
-      // same as if some of the columns were selected.
-      result->resize_rows(nrows());
-    }
-    return py::Frame::oframe(result);
-  }
-  return py::None();
-}
-
 
 DataTable* EvalContext::get_datatable(size_t i) const {
   return frames_[i].dt;
@@ -597,29 +590,6 @@ void EvalContext::set_groupby_columns(Workframe&& wf) {
   groupby_columns_.cbind(std::move(wf));
 }
 
-
-
-//---- Construct the resulting frame -------------
-
-size_t EvalContext::size() const noexcept {
-  return columns.size();
-}
-
-
-void EvalContext::reserve(size_t n) {
-  size_t nn = n + columns.size();
-  columns.reserve(nn);
-  colnames.reserve(nn);
-}
-
-
-void EvalContext::add_column(
-  Column&& col, const RowIndex& ri, std::string&& name)
-{
-  col.apply_rowindex(ri);
-  columns.push_back(std::move(col));
-  colnames.push_back(std::move(name));
-}
 
 
 
