@@ -19,41 +19,56 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <unordered_map>
 #include "expr/fbinary/fbinary.h"
-#include "expr/expr.h"
-#include "expr/expr_binaryop.h"  // TODO: merge into this file
-#include "expr/head_func.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
+#include "column.h"
 namespace dt {
 namespace expr {
 
 
-Head_Func_Binary::Head_Func_Binary(Op op_) : op(op_) {}
+//------------------------------------------------------------------------------
+// Helpers
+//------------------------------------------------------------------------------
+
+bimaker::~bimaker() = default;
 
 
-Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
-  xassert(args.size() == 2);
-  Workframe lhs = args[0].evaluate_n(ctx);
-  Workframe rhs = args[1].evaluate_n(ctx);
-  if (lhs.ncols() == 1) lhs.repeat_column(rhs.ncols());
-  if (rhs.ncols() == 1) rhs.repeat_column(lhs.ncols());
-  if (lhs.ncols() != rhs.ncols()) {
-    throw ValueError() << "Incompatible column vectors in a binary operation: "
-      "LHS contains " << lhs.ncols() << " items, while RHS has " << rhs.ncols()
-      << " items";
+static constexpr size_t make_id(Op opcode, SType st1, SType st2) noexcept {
+  return ((static_cast<size_t>(opcode) - BINOP_FIRST) << 16) +
+         (static_cast<size_t>(st1) << 8) +
+         (static_cast<size_t>(st2));
+}
+
+static std::unordered_map<size_t, bimaker_ptr> bimakers_library;
+
+
+bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
+  // switch (opcode) {
+  // }
+  (void) opcode; (void) stype1; (void) stype2;
+  return bimaker_ptr();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Main binaryop function
+//------------------------------------------------------------------------------
+
+Column new_binaryop(Op opcode, Column&& col1, Column&& col2)
+{
+  // Find the maker function
+  auto id = make_id(opcode, col1.stype(), col2.stype());
+  if (bimakers_library.count(id) == 0) {
+    bimakers_library[id] = resolve_op(opcode, col1.stype(), col2.stype());
   }
-  lhs.sync_grouping_mode(rhs);
-  auto gmode = lhs.get_grouping_mode();
-  Workframe outputs(ctx);
-  for (size_t i = 0; i < lhs.ncols(); ++i) {
-    Column lhscol = lhs.retrieve_column(i);
-    Column rhscol = rhs.retrieve_column(i);
-    Column rescol = new_binaryop(op, std::move(lhscol), std::move(rhscol));
-    outputs.add_column(std::move(rescol), std::string(), gmode);
-  }
-  return outputs;
+  const bimaker_ptr& maker = bimakers_library[id];
+
+  // temporary: fall back to old code
+  if (!maker) return binaryop(opcode, col1, col2);
+
+  return maker->compute(std::move(col1), std::move(col2));
 }
 
 
