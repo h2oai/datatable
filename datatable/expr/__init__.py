@@ -22,12 +22,15 @@
 #-------------------------------------------------------------------------------
 from .expr import f, g, Expr
 from .math import abs, log, log10, exp, isna
-from .reduce import sum, count, first, last, mean, median, min, max, sd
+from .reduce import (
+    sum, count, first, last, mean, median, min, max, sd, cov, corr)
 
 __all__ = (
     "Expr",
     "abs",
+    "corr",
     "count",
+    "cov",
     "exp",
     "f",
     "first",
