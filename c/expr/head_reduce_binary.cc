@@ -30,6 +30,7 @@
 namespace dt {
 namespace expr {
 
+
 template <typename T>
 using reducer_fn = bool(*)(const Column&, const Column&, size_t, size_t, T*);
 
@@ -136,7 +137,7 @@ static Column _cov(Column&& arg1, Column&& arg2, const Groupby& gby) {
 
 static Column compute_cov(Column&& arg1, Column&& arg2, const Groupby& gby) {
   xassert(arg1.nrows() == arg2.nrows());
-  return (arg1.stype() == SType::FLOAT32 && arg2.stype() == SType::FLOAT64)
+  return (arg1.stype() == SType::FLOAT32 && arg2.stype() == SType::FLOAT32)
           ? _cov<float>(std::move(arg1), std::move(arg2), gby)
           : _cov<double>(std::move(arg1), std::move(arg2), gby);
 }
@@ -198,7 +199,7 @@ static Column _corr(Column&& arg1, Column&& arg2, const Groupby& gby) {
 
 static Column compute_corr(Column&& arg1, Column&& arg2, const Groupby& gby) {
   xassert(arg1.nrows() == arg2.nrows());
-  return (arg1.stype() == SType::FLOAT32 && arg2.stype() == SType::FLOAT64)
+  return (arg1.stype() == SType::FLOAT32 && arg2.stype() == SType::FLOAT32)
           ? _corr<float>(std::move(arg1), std::move(arg2), gby)
           : _corr<double>(std::move(arg1), std::move(arg2), gby);
 }

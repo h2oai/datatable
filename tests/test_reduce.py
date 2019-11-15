@@ -21,10 +21,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-import datatable as dt
 import math
 import pytest
-from datatable import f, by, ltype, first, last, count, median, sum, mean
+import random
+from datatable import (
+    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr)
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
 
@@ -431,3 +432,108 @@ def test_median_wrong_stype():
         noop(DT[:, median(f.B)])
     assert ("Unable to apply reduce function `median()` to a column of "
             "type `str64`" in str(e.value))
+
+
+
+#-------------------------------------------------------------------------------
+# Cov
+#-------------------------------------------------------------------------------
+
+def test_cov_simple():
+    DT = dt.Frame(A=range(5), B=range(5))
+    D1 = DT[:, cov(f.A, f.B)]
+    assert_equals(D1, dt.Frame([2.5]))
+
+
+def test_cov_small_frame():
+    D1 = dt.Frame(A=[1], B=[2])[:, cov(f.A, f.B)]
+    D2 = dt.Frame(A=[], B=[])[:, cov(f.A, f.B)]
+    assert_equals(D1, dt.Frame([None], stype=dt.float64))
+    assert_equals(D2, dt.Frame([None], stype=dt.float64))
+
+
+def test_cov_subframe():
+    DT = dt.Frame(A=range(100))
+    D1 = DT[37:40, cov(f.A, f.A)]
+    assert D1[0, 0] == 1.0
+
+
+def test_cov_float32():
+    DT = dt.Frame(A=[1.0, 2.0, 3.0], B=[7.5, 7.0, 6.5], stype=dt.float32)
+    assert DT.stype == dt.float32
+    D1 = DT[:, cov(f.A, f.B)]
+    assert_equals(D1, dt.Frame([-0.5], stype=dt.float32))
+
+
+def test_cov_bygroup():
+    DT = dt.Frame(ID=[1, 2, 1, 2, 1, 2], A=[0, 5, 10, 20, 2, 8])
+    D1 = DT[:, cov(f.A, f.A), by(f.ID)]
+    assert_equals(D1, dt.Frame(ID=[1, 2], C0=[28.0, 63.0]))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_cov_random(numpy, seed):
+    numpy.random.seed(seed)
+    arr1 = numpy.random.rand(100)
+    arr2 = numpy.random.rand(100)
+    np_cov = numpy.cov(arr1, arr2)[0, 1]
+
+    DT = dt.Frame([arr1, arr2])
+    dt_cov = DT[:, cov(f[0], f[1])][0, 0]
+    assert numpy.isclose(np_cov, dt_cov, atol=0, rtol=1e-12)
+
+
+
+
+#-------------------------------------------------------------------------------
+# Corr
+#-------------------------------------------------------------------------------
+
+def test_corr_simple():
+    DT = dt.Frame(A=range(5), B=range(5))
+    D1 = DT[:, corr(f.A, f.B)]
+    assert_equals(D1, dt.Frame([1.0]))
+
+
+def test_corr_simple2():
+    DT = dt.Frame(A=range(5), B=range(5, 0, -1))
+    D1 = DT[:, corr(f.A, f.B)]
+    assert_equals(D1, dt.Frame([-1.0]))
+
+
+def test_corr_small_frame():
+    D1 = dt.Frame(A=[1], B=[2])[:, corr(f.A, f.B)]
+    D2 = dt.Frame(A=[], B=[])[:, corr(f.A, f.B)]
+    assert_equals(D1, dt.Frame([None], stype=dt.float64))
+    assert_equals(D2, dt.Frame([None], stype=dt.float64))
+
+
+def test_corr_with_constant():
+    DT = dt.Frame(A=range(23), B=[2.5] * 23)
+    D1 = DT[:, corr(f.A, f.B)]
+    assert_equals(D1, dt.Frame([math.nan]))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_corr_random(numpy, seed):
+    numpy.random.seed(seed)
+    arr1 = numpy.random.rand(100)
+    arr2 = numpy.random.rand(100)
+    np_corr = numpy.corrcoef(arr1, arr2)[0, 1]
+
+    DT = dt.Frame([arr1, arr2])
+    dt_corr = DT[:, corr(f[0], f[1])][0, 0]
+    assert numpy.isclose(np_corr, dt_corr, atol=0, rtol=1e-12)
+
+
+def test_corr_multiple():
+    DT = dt.Frame(A=[3, 5, 9, 1], B=[4, 7, 0, 0], C=[3, 2, 1, 0], D=range(4))
+    D1 = DT[:, corr(f.A, f[:])]
+    D2 = DT[:, corr(f[:], f.D)]
+    D3 = DT[:, corr(f[:], f[:])]
+    a = -0.07168504827326534
+    b = 0.07559289460184544
+    c = 0.7207110797203374
+    assert_equals(D1, dt.Frame([[1.0], [a], [b], [-b]]))
+    assert_equals(D2, dt.Frame([[-b], [-c], [-1.0], [1.0]]))
+    assert_equals(D3, dt.Frame([[1.0], [1.0], [1.0], [1.0]]))
