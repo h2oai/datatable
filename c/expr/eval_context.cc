@@ -149,13 +149,14 @@ void EvalContext::evaluate() {
   xassert(groupby_);
 
   // Compute i filter
-  if (byexpr_) {
+  if (byexpr_ || sortexpr_) {
     auto rigb = iexpr_.evaluate_iby(*this);
     apply_rowindex(std::move(rigb.first));
     replace_groupby(std::move(rigb.second));
   } else {
     RowIndex rowindex = iexpr_.evaluate_i(*this);
-    apply_rowindex(rowindex);
+    apply_rowindex(std::move(rowindex));
+    replace_groupby(Groupby::single_group(nrows()));
   }
 
   switch (eval_mode_) {
@@ -229,11 +230,11 @@ void EvalContext::create_placeholder_columns() {
 //
 void EvalContext::compute_groupby_and_sort() {
   size_t nr = nrows();
-  size_t n_group_cols = 0;
   if (byexpr_ || sortexpr_) {
     Workframe wf(*this);
     std::vector<Column> cols;
     std::vector<SortFlag> flags;
+    size_t n_group_cols = 0;
     if (byexpr_) {
       byexpr_.prepare_by(*this, wf, flags);
       n_group_cols = wf.ncols();
