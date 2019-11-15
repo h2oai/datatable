@@ -238,6 +238,10 @@ General
 
 - |fix| Fixed memory leak during reduce operations (#2125).
 
+- |fix| Column method ``.len()`` for computing string length now handles
+  unicode strings correctly and returns the number of codepoints in the
+  string instead of the number of bytes (#2160).
+
 
 Internal
 --------

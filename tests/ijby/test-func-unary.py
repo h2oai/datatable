@@ -371,3 +371,9 @@ def test_len_wrong_col():
     with pytest.raises(TypeError, match=r"Cannot apply function `len\(\)` to a "
                                         r"column with stype `int32`"):
         assert DT[:, f[0].len()]
+
+
+def test_len_unicode():
+    DT = dt.Frame(["майдан", "蒙蒂巨蟒", "🤥", "𝔘𝔫𝔦𝔠𝔬𝔡𝔢"])
+    RES = DT[:, f[0].len()]
+    assert_equals(RES, dt.Frame([6, 4, 1, 7], stype=dt.int64))

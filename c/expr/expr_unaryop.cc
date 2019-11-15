@@ -135,8 +135,27 @@ inline static T op_inverse(T x) {
 }
 
 
-inline static bool op_str_len(CString str, bool isvalid, int64_t* out) {
+/*
+inline static bool op_str_len_ascii(CString str, bool isvalid, int64_t* out) {
   *out = str.size;
+  return isvalid;
+}
+*/
+
+static bool op_str_len_unicode(CString str, bool isvalid, int64_t* out) {
+  if (isvalid) {
+    int64_t len = 0;
+    const uint8_t* ch = reinterpret_cast<const uint8_t*>(str.ch);
+    const uint8_t* end = ch + str.size;
+    while (ch < end) {
+      uint8_t c = *ch;
+      ch += (c < 0x80)? 1 :
+            ((c & 0xE0) == 0xC0)? 2 :
+            ((c & 0xF0) == 0xE0)? 3 :  4;
+      len++;
+    }
+    *out = len;
+  }
   return isvalid;
 }
 
@@ -702,8 +721,8 @@ unary_infos::unary_infos() {
   add<Op::TRUNC, flt64, flt64, std::trunc>();
 
   add_op(Op::LEN, "len", &args_len);
-  add<Op::LEN, str32, int64, op_str_len>();
-  add<Op::LEN, str64, int64, op_str_len>();
+  add<Op::LEN, str32, int64, op_str_len_unicode>();
+  add<Op::LEN, str64, int64, op_str_len_unicode>();
 
   add_math<&std::acos,  &std::acos> (Op::ARCCOS,  "arccos",  args_arccos);
   add_math<&std::acosh, &std::acosh>(Op::ARCOSH,  "arcosh",  args_arcosh);
