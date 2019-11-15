@@ -27,7 +27,9 @@ from builtins import min as _builtin_min
 from builtins import max as _builtin_max
 
 __all__ = (
+    "corr",
     "count",
+    "cov",
     "first",
     "last",
     "max",
@@ -82,6 +84,17 @@ def sd(expr):
 
 def median(expr):
     return Expr(OpCodes.MEDIAN, (expr,))
+
+
+def cov(expr1, expr2):
+    return Expr(OpCodes.COV, (expr1, expr2))
+
+
+def corr(col1, col2):
+    """
+    Compute Pearson correlation coefficient between two columns.
+    """
+    return Expr(OpCodes.CORR, (col1, col2))
 
 
 # noinspection PyShadowingBuiltins

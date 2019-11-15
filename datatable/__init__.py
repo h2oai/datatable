@@ -23,7 +23,7 @@
 from .__version__ import version as __version__
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
-                   last, log, log10, f, g, median)
+                   last, log, log10, f, g, median, cov, corr)
 from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
     by,
@@ -59,7 +59,9 @@ __all__ = (
     "__git_revision__",
     "__version__",
     "Frame",
+    "corr",
     "count",
+    "cov",
     "dt",
     "first",
     "init_styles",
