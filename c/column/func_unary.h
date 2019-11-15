@@ -48,7 +48,6 @@ class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
     OP func_;
 
   public:
-    FuncUnary1_ColumnImpl(Column&&, OP);
     FuncUnary1_ColumnImpl(Column&&, OP, size_t nrows, SType stype);
 
     ColumnImpl* clone() const override;
@@ -75,7 +74,6 @@ class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
     OP func_;
 
   public:
-    FuncUnary2_ColumnImpl(Column&&, OP);
     FuncUnary2_ColumnImpl(Column&&, OP, size_t nrows, SType stype);
 
     ColumnImpl* clone() const override;
@@ -90,11 +88,6 @@ class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
 //------------------------------------------------------------------------------
 // FuncUnary1_ColumnImpl
 //------------------------------------------------------------------------------
-
-template <typename TI, typename TO>
-FuncUnary1_ColumnImpl<TI, TO>::FuncUnary1_ColumnImpl(Column&& col, OP f)
-  : FuncUnary1_ColumnImpl(std::move(col), f, col.nrows(), stype_from<TO>) {}
-
 
 template <typename TI, typename TO>
 FuncUnary1_ColumnImpl<TI, TO>::FuncUnary1_ColumnImpl(
@@ -145,11 +138,6 @@ void FuncUnary1_ColumnImpl<TI, TO>::verify_integrity() const {
 //------------------------------------------------------------------------------
 // FuncUnary2_ColumnImpl
 //------------------------------------------------------------------------------
-
-template <typename TI, typename TO>
-FuncUnary2_ColumnImpl<TI, TO>::FuncUnary2_ColumnImpl(Column&& col, OP f)
-  : FuncUnary2_ColumnImpl(std::move(col), f, col.nrows(), stype_from<TO>) {}
-
 
 template <typename TI, typename TO>
 FuncUnary2_ColumnImpl<TI, TO>::FuncUnary2_ColumnImpl(
