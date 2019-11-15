@@ -142,7 +142,7 @@ py::oobj EvalContext::evaluate() {
   DataTable* xdt = get_datatable(0);
   for (size_t i = 1; i < nframes(); ++i) {
     DataTable* jdt = get_datatable(i);
-    frames_[i].ri = natural_join(*xdt, *jdt);
+    frames_[i].ri_ = natural_join(*xdt, *jdt);
   }
 
   compute_groupby_and_sort();
@@ -523,12 +523,12 @@ py::oobj EvalContext::evaluate_select() {
 //------------------------------------------------------------------------------
 
 DataTable* EvalContext::get_datatable(size_t i) const {
-  return frames_[i].dt;
+  return frames_[i].dt_;
 }
 
 
 const RowIndex& EvalContext::get_rowindex(size_t i) const {
-  return frames_[i].ri;
+  return frames_[i].ri_;
 }
 
 
@@ -538,7 +538,7 @@ const Groupby& EvalContext::get_groupby() {
 
 
 bool EvalContext::is_naturally_joined(size_t i) const {
-  return frames_[i].natural;
+  return frames_[i].natural_;
 }
 
 bool EvalContext::has_groupby() const {
@@ -573,7 +573,7 @@ size_t EvalContext::nrows() const {
 void EvalContext::apply_rowindex(const RowIndex& ri) {
   if (!ri) return;
   for (size_t i = 0; i < nframes(); ++i) {
-    frames_[i].ri = ri * get_rowindex(i);
+    frames_[i].ri_ = ri * get_rowindex(i);
   }
 }
 
