@@ -53,3 +53,16 @@ void calculate_coprimes(size_t n, intvec& coprimes) {
     }
   }
 }
+
+
+/**
+ *  Given `nrows` and `min_rows_per_thread` calculate how many threads
+ *  a parallel process should request from the thread pool.
+ */
+size_t calculate_nthreads(size_t nrows, size_t min_rows_per_thread) {
+  size_t nth = 1;
+  if (nrows > min_rows_per_thread) {
+    nth = std::min(nrows / min_rows_per_thread, dt::num_threads_in_pool());
+  }
+  return nth;
+}

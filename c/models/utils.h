@@ -26,6 +26,7 @@
 #include <numeric>
 #include <cmath>
 #include "datatable.h"
+#include "parallel/api.h"
 
 template <typename T>
 using tptr = typename std::unique_ptr<T[]>;
@@ -96,5 +97,6 @@ inline T1 squared_loss(T1 p, T2 y) {
   return (p - y_T1) * (p - y_T1);
 }
 
+size_t calculate_nthreads(size_t nrows, size_t min_rows_per_thread);
 
 #endif

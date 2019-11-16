@@ -34,16 +34,15 @@ namespace py {
 
 
 static PKArgs args_aggregate(
-  1, 0, 9, false, false,
+  1, 0, 8, false, false,
   {
     "frame", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
-    "max_dimensions", "seed", "nthreads", "double_precision"
+    "max_dimensions", "seed", "double_precision"
   },
   "aggregate",
 
 R"(aggregate(frame, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-nd_max_bins=500, max_dimensions=50, seed=0, progress_fn=None,
-nthreads=0, double_precision=False)
+nd_max_bins=500, max_dimensions=50, seed=0, double_precision=False)
 --
 
 Aggregate frame into a set of clusters. Each cluster is represented by
@@ -69,9 +68,6 @@ max_dimensions: int
     Number of columns at which start using the projection method.
 seed: int
     Seed to be used for the projection method.
-nthreads: int
-    Number of threads aggregator should use. `0` means
-    use all the threads.
 double_precision: bool
     Whether to use double precision arithmetic or not.
 
@@ -108,7 +104,6 @@ static oobj aggregate(const PKArgs& args) {
   size_t nd_max_bins = 500;
   size_t max_dimensions = 50;
   unsigned int seed = 0;
-  unsigned int nthreads = 0;
   bool double_precision = false;
 
   bool defined_min_rows = !args[1].is_none_or_undefined();
@@ -118,8 +113,7 @@ static oobj aggregate(const PKArgs& args) {
   bool defined_nd_max_bins = !args[5].is_none_or_undefined();
   bool defined_max_dimensions = !args[6].is_none_or_undefined();
   bool defined_seed = !args[7].is_none_or_undefined();
-  bool defined_nthreads = !args[8].is_none_or_undefined();
-  bool defined_double_precision = !args[9].is_none_or_undefined();
+  bool defined_double_precision = !args[8].is_none_or_undefined();
 
   if (defined_min_rows) {
     min_rows = args[1].to_size_t();
@@ -149,24 +143,18 @@ static oobj aggregate(const PKArgs& args) {
     seed = static_cast<unsigned int>(args[7].to_size_t());
   }
 
-  if (defined_nthreads) {
-    nthreads = static_cast<unsigned int>(args[8].to_size_t());
-  }
-
   if (defined_double_precision) {
-    double_precision = args[9].to_bool_strict();
+    double_precision = args[8].to_bool_strict();
   }
 
   dtptr dt_members, dt_exemplars;
   std::unique_ptr<AggregatorBase> agg;
   if (double_precision) {
     agg = dt::make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins,
-                                          nd_max_bins, max_dimensions, seed,
-                                          nthreads);
+                                              nd_max_bins, max_dimensions, seed);
   } else {
     agg = dt::make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
-                                         nd_max_bins, max_dimensions, seed,
-                                         nthreads);
+                                             nd_max_bins, max_dimensions, seed);
   }
 
   agg->aggregate(dt, dt_exemplars, dt_members);
@@ -203,7 +191,7 @@ template <typename T>
 Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
                           size_t nx_bins_in, size_t ny_bins_in,
                           size_t nd_max_bins_in, size_t max_dimensions_in,
-                          unsigned int seed_in, unsigned int nthreads_in) :
+                          unsigned int seed_in) :
   dt(nullptr),
   min_rows(min_rows_in),
   n_bins(n_bins_in),
@@ -211,8 +199,7 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
   ny_bins(ny_bins_in),
   nd_max_bins(nd_max_bins_in),
   max_dimensions(max_dimensions_in),
-  seed(seed_in),
-  nthreads(nthreads_in)
+  seed(seed_in)
 {
 }
 
@@ -234,6 +221,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   job.set_message("Preparing");
   dt = dt_in;
   bool needs_sampling;
+  nthreads = calculate_nthreads(dt->nrows(), MIN_ROWS_PER_THREAD);
 
   Column col0 = Column::new_data_column(dt->nrows(), SType::INT32);
   dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
@@ -349,7 +337,7 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
 
     // First, set all `exemplar_id`s to `N/A`.
-    dt::parallel_for_static(dt_members->nrows(),
+    dt::parallel_for_static(dt_members->nrows(), dt::NThreads(nthreads),
       [&](size_t i) {
         d_members[i] = GETNA<int32_t>();
       });
@@ -770,9 +758,8 @@ bool Aggregator<T>::group_nd() {
   bool do_projection = ncols > max_dimensions;
   if (do_projection) pmatrix = generate_pmatrix(ncols);
 
-  // Figuring out how many threads to use.
-  size_t nth = std::min(get_nthreads(nrows), dt::num_threads_in_pool());
-  size_t nrows_per_thread = nrows / nth;
+  // Figuring out how many rows a thread will get.
+  size_t nrows_per_thread = nrows / nthreads;
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   T delta = epsilon;
@@ -782,11 +769,11 @@ bool Aggregator<T>::group_nd() {
   size_t ecounter = 0;
 
   dt::progress::work job(nrows_per_thread);
-  dt::parallel_region(nth,
+  dt::parallel_region(nthreads,
     [&] {
       size_t ith = dt::this_thread_index();
       size_t i0 = ith * nrows_per_thread;
-      size_t i1 = (ith == nth - 1)? nrows : i0 + nrows_per_thread;
+      size_t i1 = (ith == nthreads - 1)? nrows : i0 + nrows_per_thread;
 
       T distance;
       auto member = tptr<T>(new T[ndims]);
@@ -865,22 +852,6 @@ bool Aggregator<T>::group_nd() {
   return false;
 }
 
-
-/**
- *  Figure out how many threads we need to run ND groupping.
- */
-template <typename T>
-size_t Aggregator<T>::get_nthreads(size_t nrows) {
-  constexpr size_t min_nrows_per_thread = 100;
-  size_t nth = 1;
-  if (nthreads) {
-    nth = nthreads;
-  } else if (nrows > min_nrows_per_thread) {
-    nth = std::min(dt::num_threads_in_pool(),
-                   nrows / min_nrows_per_thread);
-  }
-  return nth;
-}
 
 /**
  *  Adjust `delta` (i.e. `radius^2`) based on the mean distance between
