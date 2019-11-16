@@ -60,6 +60,10 @@ using bimaker_ptr = std::unique_ptr<bimaker>;
 bimaker_ptr resolve_op(Op, SType, SType);
 bimaker_ptr resolve_op_eq(SType, SType);
 bimaker_ptr resolve_op_ne(SType, SType);
+bimaker_ptr resolve_op_lt(SType, SType);
+bimaker_ptr resolve_op_gt(SType, SType);
+bimaker_ptr resolve_op_le(SType, SType);
+bimaker_ptr resolve_op_ge(SType, SType);
 bimaker_ptr resolve_op_relational(Op, SType, SType);
 
 
