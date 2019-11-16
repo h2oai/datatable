@@ -90,6 +90,7 @@ bool is_monitor_enabled() noexcept;
  * Call function `f` exactly once in each thread.
  */
 void parallel_region(size_t nthreads, function<void()> f);
+void parallel_region(NThreads nthreads, function<void()> f);
 void parallel_region(function<void()> f);
 
 

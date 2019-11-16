@@ -121,9 +121,9 @@ void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   auto outdata = static_cast<T_to*>(outcol.get_data_editable());
   std::unordered_map<T_from, T_to> labels_map;
   dt::shared_mutex shmutex;
-  size_t nthreads = calculate_nthreads(nrows, dt::FtrlBase::MIN_ROWS_PER_THREAD);
+  NThreads nthreads(nrows, dt::FtrlBase::MIN_ROWS_PER_THREAD);
 
-  dt::parallel_for_static(nrows, NThreads(nthreads),
+  dt::parallel_for_static(nrows, nthreads,
     [&](size_t irow) {
       T_from v;
       bool isvalid = ocol.get_element(irow, &v);
@@ -173,9 +173,9 @@ void label_encode_str(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   auto outdata = static_cast<T_to*>(outcol.get_data_editable());
   std::unordered_map<std::string, T_to> labels_map;
   dt::shared_mutex shmutex;
-  size_t nthreads = calculate_nthreads(nrows, dt::FtrlBase::MIN_ROWS_PER_THREAD);
+  NThreads nthreads(nrows, dt::FtrlBase::MIN_ROWS_PER_THREAD);
 
-  dt::parallel_for_static(nrows, NThreads(nthreads),
+  dt::parallel_for_static(nrows, nthreads,
     [&](size_t irow) {
       CString str;
       bool isvalid = ocol.get_element(irow, &str);

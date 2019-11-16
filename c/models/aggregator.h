@@ -58,7 +58,7 @@ class Aggregator : public AggregatorBase {
     };
     using exptr = std::unique_ptr<exemplar>;
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
-               unsigned int);
+               unsigned int, size_t);
     void aggregate(DataTable*, dtptr&, dtptr&) override;
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
@@ -68,9 +68,6 @@ class Aggregator : public AggregatorBase {
     static constexpr size_t MIN_ROWS_PER_THREAD = 1000;
 
   private:
-    // Number of threads used for parallelization.
-    size_t nthreads;
-
     // Input parameters and datatable
     const DataTable* dt;
     size_t min_rows;
@@ -82,6 +79,8 @@ class Aggregator : public AggregatorBase {
     unsigned int seed;
     size_t: 32;
 
+    // Number of threads used for parallelization.
+    dt::NThreads nthreads;
 
     // Output exemplar and member datatables
     dtptr dt_exemplars;

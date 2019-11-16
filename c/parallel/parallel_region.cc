@@ -82,6 +82,12 @@ void parallel_region(function<void()> fn) {
   parallel_region(0, fn);
 }
 
+
+void parallel_region(NThreads nthreads, function<void()> fn) {
+  parallel_region(nthreads.get(), fn);
+}
+
+
 void parallel_region(size_t nthreads, function<void()> fn) {
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();

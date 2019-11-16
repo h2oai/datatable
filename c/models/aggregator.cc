@@ -149,12 +149,15 @@ static oobj aggregate(const PKArgs& args) {
 
   dtptr dt_members, dt_exemplars;
   std::unique_ptr<AggregatorBase> agg;
+  size_t nrows = dt->nrows();
   if (double_precision) {
     agg = dt::make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins,
-                                              nd_max_bins, max_dimensions, seed);
+                                              nd_max_bins, max_dimensions, seed,
+                                              nrows);
   } else {
     agg = dt::make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
-                                             nd_max_bins, max_dimensions, seed);
+                                             nd_max_bins, max_dimensions, seed,
+                                             nrows);
   }
 
   agg->aggregate(dt, dt_exemplars, dt_members);
@@ -191,7 +194,7 @@ template <typename T>
 Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
                           size_t nx_bins_in, size_t ny_bins_in,
                           size_t nd_max_bins_in, size_t max_dimensions_in,
-                          unsigned int seed_in) :
+                          unsigned int seed_in, size_t nrows_in) :
   dt(nullptr),
   min_rows(min_rows_in),
   n_bins(n_bins_in),
@@ -199,7 +202,8 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
   ny_bins(ny_bins_in),
   nd_max_bins(nd_max_bins_in),
   max_dimensions(max_dimensions_in),
-  seed(seed_in)
+  seed(seed_in),
+  nthreads(nrows_in, MIN_ROWS_PER_THREAD)
 {
 }
 
@@ -221,7 +225,6 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   job.set_message("Preparing");
   dt = dt_in;
   bool needs_sampling;
-  nthreads = calculate_nthreads(dt->nrows(), MIN_ROWS_PER_THREAD);
 
   Column col0 = Column::new_data_column(dt->nrows(), SType::INT32);
   dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
@@ -337,7 +340,7 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
     auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
 
     // First, set all `exemplar_id`s to `N/A`.
-    dt::parallel_for_static(dt_members->nrows(), dt::NThreads(nthreads),
+    dt::parallel_for_static(dt_members->nrows(), nthreads,
       [&](size_t i) {
         d_members[i] = GETNA<int32_t>();
       });
@@ -759,7 +762,7 @@ bool Aggregator<T>::group_nd() {
   if (do_projection) pmatrix = generate_pmatrix(ncols);
 
   // Figuring out how many rows a thread will get.
-  size_t nrows_per_thread = nrows / nthreads;
+  size_t nrows_per_thread = nrows / nthreads.get();
 
   // Start with a very small `delta`, that is Euclidean distance squared.
   T delta = epsilon;
@@ -773,7 +776,7 @@ bool Aggregator<T>::group_nd() {
     [&] {
       size_t ith = dt::this_thread_index();
       size_t i0 = ith * nrows_per_thread;
-      size_t i1 = (ith == nthreads - 1)? nrows : i0 + nrows_per_thread;
+      size_t i1 = (ith == nthreads.get() - 1)? nrows : i0 + nrows_per_thread;
 
       T distance;
       auto member = tptr<T>(new T[ndims]);
