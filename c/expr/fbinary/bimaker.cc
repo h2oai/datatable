@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
-#include "expr/fbinary/fbinary.h"
+#include "expr/fbinary/bimaker.h"
 #include "column.h"
 namespace dt {
 namespace expr {
@@ -43,10 +43,27 @@ static std::unordered_map<size_t, bimaker_ptr> bimakers_library;
 
 
 bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
-  // switch (opcode) {
-  // }
-  (void) opcode; (void) stype1; (void) stype2;
-  return bimaker_ptr();
+  switch (opcode) {
+    case Op::PLUS:
+    case Op::MINUS:
+    case Op::MULTIPLY:
+    case Op::DIVIDE:
+    case Op::INTDIV:
+    case Op::MODULO:
+    case Op::POWER:
+    case Op::AND:
+    case Op::XOR:
+    case Op::OR:
+    case Op::LSHIFT:
+    case Op::RSHIFT:  return bimaker_ptr();
+    case Op::EQ:      return resolve_op_eq(stype1, stype2);
+    case Op::NE:      return resolve_op_ne(stype1, stype2);
+    case Op::LT:
+    case Op::GT:
+    case Op::LE:
+    case Op::GE:      return bimaker_ptr();  //resolve_op_relational(opcode, stype1, stype2);
+    default: throw RuntimeError() << "Unknown binary op " << int(opcode);
+  }
 }
 
 

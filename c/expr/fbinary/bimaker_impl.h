@@ -19,44 +19,49 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#ifndef dt_EXPR_FBINARY_BIMAKER_IMPL_h
+#define dt_EXPR_FBINARY_BIMAKER_IMPL_h
+#include "column/func_binary.h"
 #include "expr/fbinary/bimaker.h"
-#include "expr/expr.h"
-#include "expr/expr_binaryop.h"  // TODO: merge into this file
-#include "expr/head_func.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
+#include "column.h"
 namespace dt {
 namespace expr {
 
 
-Head_Func_Binary::Head_Func_Binary(Op op_) : op(op_) {}
 
+template <typename T1, typename T2, typename TO>
+class bimaker2 : public bimaker {
+  using R1 = typename _ref<T1>::t;
+  using R2 = typename _ref<T2>::t;
+  using func_t = bool(*)(R1, bool, R2, bool, TO*);
+  private:
+    func_t func_;
+    SType uptype1_;
+    SType uptype2_;
+    SType outtype_;
+    size_t : 40;
 
-Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
-  xassert(args.size() == 2);
-  Workframe lhs = args[0].evaluate_n(ctx);
-  Workframe rhs = args[1].evaluate_n(ctx);
-  if (lhs.ncols() == 1) lhs.repeat_column(rhs.ncols());
-  if (rhs.ncols() == 1) rhs.repeat_column(lhs.ncols());
-  if (lhs.ncols() != rhs.ncols()) {
-    throw ValueError() << "Incompatible column vectors in a binary operation: "
-      "LHS contains " << lhs.ncols() << " items, while RHS has " << rhs.ncols()
-      << " items";
-  }
-  lhs.sync_grouping_mode(rhs);
-  auto gmode = lhs.get_grouping_mode();
-  Workframe outputs(ctx);
-  for (size_t i = 0; i < lhs.ncols(); ++i) {
-    Column lhscol = lhs.retrieve_column(i);
-    Column rhscol = rhs.retrieve_column(i);
-    Column rescol = new_binaryop(op, std::move(lhscol), std::move(rhscol));
-    outputs.add_column(std::move(rescol), std::string(), gmode);
-  }
-  return outputs;
-}
+  public:
+    bimaker2(func_t f, SType up1, SType up2, SType out)
+      : func_(f), uptype1_(up1), uptype2_(up2), outtype_(out) {}
+
+    static bimaker_ptr make(func_t f, SType up1, SType up2, SType out) {
+      return bimaker_ptr(new bimaker2(f, up1, up2, out));
+    }
+
+    Column compute(Column&& col1, Column&& col2) const override {
+      if (uptype1_ != SType::VOID) col1.cast_inplace(uptype1_);
+      if (uptype2_ != SType::VOID) col2.cast_inplace(uptype2_);
+      size_t nrows = col1.nrows();
+      return Column(new FuncBinary2_ColumnImpl<T1, T2, TO>(
+                        std::move(col1), std::move(col2),
+                        func_, nrows, outtype_
+                    ));
+    }
+};
 
 
 
 
 }}  // namespace dt::expr
+#endif

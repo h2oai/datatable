@@ -42,7 +42,9 @@ namespace dt {
   */
 template <typename T1, typename T2, typename TO>
 class FuncBinary1_ColumnImpl : public Virtual_ColumnImpl {
-  using func_t = TO(*)(T1, T2);
+  using R1 = typename _ref<T1>::t;
+  using R2 = typename _ref<T2>::t;
+  using func_t = TO(*)(R1, R2);
   protected:
     Column arg1_;
     Column arg2_;
@@ -69,7 +71,9 @@ class FuncBinary1_ColumnImpl : public Virtual_ColumnImpl {
   */
 template <typename T1, typename T2, typename TO>
 class FuncBinary2_ColumnImpl : public Virtual_ColumnImpl {
-  using func_t = bool(*)(T1, bool, T2, bool, TO*);
+  using R1 = typename _ref<T1>::t;
+  using R2 = typename _ref<T2>::t;
+  using func_t = bool(*)(R1, bool, R2, bool, TO*);
   protected:
     Column arg1_;
     Column arg2_;
@@ -148,7 +152,7 @@ void FuncBinary1_ColumnImpl<T1, T2, TO>::verify_integrity() const {
 //------------------------------------------------------------------------------
 
 template <typename T1, typename T2, typename TO>
-FuncBinary2_ColumnImpl<TI, TO>::FuncBinary2_ColumnImpl(
+FuncBinary2_ColumnImpl<T1, T2, TO>::FuncBinary2_ColumnImpl(
     Column&& col1, Column&& col2, func_t f, size_t nrows, SType stype
 )
   : Virtual_ColumnImpl(nrows, stype),
@@ -163,15 +167,15 @@ FuncBinary2_ColumnImpl<TI, TO>::FuncBinary2_ColumnImpl(
 
 
 template <typename T1, typename T2, typename TO>
-ColumnImpl* FuncBinary2_ColumnImpl<TI, TO>::clone() const {
-  return new FuncBinary2_ColumnImpl<TI, TO>(
+ColumnImpl* FuncBinary2_ColumnImpl<T1, T2, TO>::clone() const {
+  return new FuncBinary2_ColumnImpl<T1, T2, TO>(
                 Column(arg1_), Column(arg2_), func_, nrows_, stype_);
 }
 
 template <typename T1, typename T2, typename TO>
-bool FuncBinary2_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
-  T1 x1; bool x1valid = arg_.get_element(i, &x1);
-  T2 x2; bool x2valid = arg_.get_element(i, &x2);
+bool FuncBinary2_ColumnImpl<T1, T2, TO>::get_element(size_t i, TO* out) const {
+  T1 x1; bool x1valid = arg1_.get_element(i, &x1);
+  T2 x2; bool x2valid = arg2_.get_element(i, &x2);
   return func_(x1, x1valid, x2, x2valid, out);
 }
 

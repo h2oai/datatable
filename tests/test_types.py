@@ -44,6 +44,7 @@ def c_stypes():
     assert mm
     txt2 = mm.group(1)
     for name, i in re.findall(r"(\w+)\s*=\s*(\d+)", txt2):
+        if name == "INVALID": continue
         stypes[name] = {"sname": name, "itype": int(i)}
 
     # Load info from types.cc file

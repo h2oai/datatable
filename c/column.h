@@ -94,6 +94,10 @@ template <> inline SType stype_from<PyObject*>(){ return SType::OBJ; }
 template <> inline SType stype_from<py::robj>() { return SType::OBJ; }
 
 
+template <typename T> struct _ref { using t = T; };
+template <> struct _ref<CString> { using t = const CString&; };
+
+
 
 //------------------------------------------------------------------------------
 // Column

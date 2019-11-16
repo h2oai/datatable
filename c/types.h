@@ -324,6 +324,8 @@ enum class SType : uint8_t {
   DATE32  = 19,
   DATE16  = 20,
   OBJ     = 21,
+
+  INVALID = 99,
 };
 
 constexpr size_t DT_STYPES_COUNT = static_cast<size_t>(SType::OBJ) + 1;

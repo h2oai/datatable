@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_FBINARY_FBINARY_h
-#define dt_EXPR_FBINARY_FBINARY_h
+#ifndef dt_EXPR_FBINARY_BIMAKER_h
+#define dt_EXPR_FBINARY_BIMAKER_h
 #include <memory>
 #include "expr/declarations.h"
 #include "expr/op.h"
@@ -40,7 +40,7 @@ Column binaryop(Op opcode, Column& col1, Column& col2);
 
 
 //------------------------------------------------------------------------------
-// Helper classes
+// bimaker class
 //------------------------------------------------------------------------------
 
 class bimaker {
@@ -52,9 +52,16 @@ class bimaker {
 using bimaker_ptr = std::unique_ptr<bimaker>;
 
 
+
+//------------------------------------------------------------------------------
+// Resolvers
+//------------------------------------------------------------------------------
+
 bimaker_ptr resolve_op(Op, SType, SType);
-bimaker_ptr resolve_op_eq(Op, SType, SType);
+bimaker_ptr resolve_op_eq(SType, SType);
+bimaker_ptr resolve_op_ne(SType, SType);
 bimaker_ptr resolve_op_relational(Op, SType, SType);
+
 
 
 
