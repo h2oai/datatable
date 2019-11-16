@@ -79,13 +79,12 @@ thread_task* once_scheduler::get_next_task(size_t i) {
 //------------------------------------------------------------------------------
 
 void parallel_region(function<void()> fn) {
-  parallel_region(0, fn);
+  parallel_region(NThreads(0), fn);
 }
 
-void parallel_region(size_t nthreads, function<void()> fn) {
+void parallel_region(NThreads NThreads_, function<void()> fn) {
   xassert(!thpool->in_parallel_region());
-  size_t nthreads0 = thpool->size();
-  if (nthreads > nthreads0 || nthreads == 0) nthreads = nthreads0;
+  size_t nthreads = NThreads_.get();
   thread_team tt(nthreads, thpool);
 
   simple_task task(fn);
