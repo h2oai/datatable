@@ -155,6 +155,10 @@ bool Column::is_virtual() const noexcept {
   return impl_->is_virtual();
 }
 
+bool Column::allow_parallel_access() const {
+  return impl_->allow_parallel_access();
+}
+
 bool Column::is_constant() const noexcept {
   return bool(dynamic_cast<const dt::Const_ColumnImpl*>(impl_));
 }

@@ -592,7 +592,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   dt::progress::work job(work_total);
   job.set_message("Fitting");
 
-  dt::parallel_region(get_nthreads(iteration_nrows),
+  dt::parallel_region(
+    dt::NThreads(get_nthreads(iteration_nrows)),
     [&]() {
       // Each thread gets a private storage for hashes,
       // temporary weights and feature importances.
@@ -836,7 +837,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   dt::progress::work job(work_total);
   job.set_message("Predicting");
 
-  dt::parallel_region(nthreads, [&]() {
+  dt::parallel_region(dt::NThreads(nthreads), [&]() {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 

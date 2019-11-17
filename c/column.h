@@ -170,6 +170,7 @@ class Column
     bool   is_fixedwidth() const noexcept;
     bool   is_virtual() const noexcept;
     bool   is_constant() const noexcept;
+    bool   allow_parallel_access() const;
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 

@@ -200,6 +200,7 @@ void ArrayRowIndexImpl::_set_min_max() {
 void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
   xassert(col.stype() == SType::BOOL);
   // total # of 1s in the column
+  // Note: this may cause parallel computation over the entire column
   length = static_cast<size_t>(col.stats()->sum());
 
   if (length == 0) {

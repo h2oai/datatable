@@ -140,7 +140,7 @@ void parallel_for_static(size_t n_iterations,
   }
 
   parallel_region(
-    num_threads,
+    nthreads,
     [=] {
       size_t i0 = chunk_size_ * this_thread_index();
       size_t di = chunk_size_ * num_threads;

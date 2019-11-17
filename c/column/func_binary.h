@@ -55,6 +55,7 @@ class FuncBinary1_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
+    bool allow_parallel_access() const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -84,6 +85,7 @@ class FuncBinary2_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
+    bool allow_parallel_access() const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -145,6 +147,12 @@ void FuncBinary1_ColumnImpl<T1, T2, TO>::verify_integrity() const {
 }
 
 
+template <typename T1, typename T2, typename TO>
+bool FuncBinary1_ColumnImpl<T1, T2, TO>::allow_parallel_access() const {
+  return arg1_.allow_parallel_access() && arg2_.allow_parallel_access();
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -190,6 +198,12 @@ void FuncBinary2_ColumnImpl<T1, T2, TO>::verify_integrity() const {
   XAssert(nrows_ <= arg2_.nrows());
   XAssert(nrows_ <= arg1_.nrows());
   XAssert(func_ != nullptr);
+}
+
+
+template <typename T1, typename T2, typename TO>
+bool FuncBinary2_ColumnImpl<T1, T2, TO>::allow_parallel_access() const {
+  return arg1_.allow_parallel_access() && arg2_.allow_parallel_access();
 }
 
 

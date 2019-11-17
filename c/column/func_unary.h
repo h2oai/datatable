@@ -52,6 +52,7 @@ class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
+    bool allow_parallel_access() const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -78,6 +79,7 @@ class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
+    bool allow_parallel_access() const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -133,6 +135,12 @@ void FuncUnary1_ColumnImpl<TI, TO>::verify_integrity() const {
 }
 
 
+template <typename TI, typename TO>
+bool FuncUnary1_ColumnImpl<TI, TO>::allow_parallel_access() const {
+  return arg_.allow_parallel_access();
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -172,6 +180,12 @@ void FuncUnary2_ColumnImpl<TI, TO>::verify_integrity() const {
   assert_compatible_type<TI>(arg_.stype());
   XAssert(nrows_ <= arg_.nrows());
   XAssert(func_ != nullptr);
+}
+
+
+template <typename TI, typename TO>
+bool FuncUnary2_ColumnImpl<TI, TO>::allow_parallel_access() const {
+  return arg_.allow_parallel_access();
 }
 
 
