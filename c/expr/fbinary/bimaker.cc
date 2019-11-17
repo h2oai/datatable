@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <unordered_map>
 #include "expr/fbinary/bimaker.h"
+#include "utils/assert.h"
 #include "column.h"
 namespace dt {
 namespace expr {
@@ -75,6 +76,10 @@ bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
 
 Column new_binaryop(Op opcode, Column&& col1, Column&& col2)
 {
+  xassert(col1.nrows() == col2.nrows());
+  xassert(static_cast<size_t>(opcode) >= BINOP_FIRST &&
+          static_cast<size_t>(opcode) <= BINOP_LAST);
+
   // Find the maker function
   auto id = make_id(opcode, col1.stype(), col2.stype());
   if (bimakers_library.count(id) == 0) {

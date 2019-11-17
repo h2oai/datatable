@@ -30,17 +30,37 @@ namespace expr {
 
 
 /**
-  * Main function for computing binary operations between columns.
+  * Main method for computing binary operators between columns.
+  *
+  * The signature of this function is that it takes an opcode (one of
+  * BINOP_FIRST..BINOP_LAST) and a pair of columns, and returns a new
+  * virtual column that is the result of application of the op to the
+  * given columns.
+  *
+  * ----------
+  * Internally, this method relies on a collection of `bimaker`
+  * singleton objects. Each such object implements "binaryop"
+  * functionality for a specific opcode and specific stypes of `col1`
+  * and `col2`.
+  *
+  * Thus, this method works in 2 steps: (1) find the `bimaker` object
+  * corresponding to the given opcode and the stypes of both columns,
+  * and (2) invoke `.compute()` method on that object to produce the
+  * result. The first step also has 2 levels: first we look up the
+  * bimaker object in the memoized dictionary of all bimaker objects
+  * seen so far, or otherwise resolve the bimaker object using a
+  * network of `resolve_op_*()` methods (storing the resolved object
+  * in the memoized dictionary for later use).
   */
 Column new_binaryop(Op opcode, Column&& col1, Column&& col2);
 
-// OLD, defined in expr_binaryop.cc
+// TODO REMOVE [defined in expr_binaryop.cc]
 Column binaryop(Op opcode, Column& col1, Column& col2);
 
 
 
 //------------------------------------------------------------------------------
-// bimaker class
+// bimaker class [private]
 //------------------------------------------------------------------------------
 
 class bimaker {
@@ -54,7 +74,7 @@ using bimaker_ptr = std::unique_ptr<bimaker>;
 
 
 //------------------------------------------------------------------------------
-// Resolvers
+// Resolvers [private]
 //------------------------------------------------------------------------------
 
 bimaker_ptr resolve_op(Op, SType, SType);
