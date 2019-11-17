@@ -89,7 +89,7 @@ bool is_monitor_enabled() noexcept;
 /**
  * Call function `f` exactly once in each thread.
  */
-void parallel_region(size_t nthreads, function<void()> f);
+void parallel_region(NThreads, function<void()> f);
 void parallel_region(function<void()> f);
 
 
@@ -108,7 +108,7 @@ void barrier();
  * Run parallel loop `for i in range(nrows): f(i)`, with dynamic scheduling.
  */
 void parallel_for_dynamic(size_t nrows, std::function<void(size_t)> fn);
-void parallel_for_dynamic(size_t nrows, NThreads NThreads_,
+void parallel_for_dynamic(size_t nrows, NThreads,
                           std::function<void(size_t)> fn);
 
 

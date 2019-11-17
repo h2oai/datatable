@@ -57,7 +57,7 @@ void test_progress_nested(size_t n, size_t nth) {
   size_t niterations= n * nthreads.get();
   std::vector<size_t> data(niterations, 0);
 
-  dt::parallel_region(nthreads.get(),
+  dt::parallel_region(nthreads,
     [&]() {
       if (dt::this_thread_index() == 0) {
         job.set_message("Running test_progress_nested...");
