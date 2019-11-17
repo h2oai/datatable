@@ -134,7 +134,7 @@ DataTable* split_into_nhot(const Column& col, char sep,
   dt::shared_mutex shmutex;
 
   dt::parallel_region(
-    dt::NThreads(nrows),
+    NThreads(nrows),
     [&] {
       std::vector<std::string> chunks;
 

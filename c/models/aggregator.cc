@@ -782,8 +782,7 @@ bool Aggregator<T>::group_nd() {
   size_t ecounter = 0;
 
   dt::progress::work job(nrows_per_thread);
-  dt::parallel_region(
-    dt::NThreads(nth),
+  dt::parallel_region(dt::NThreads(nth),
     [&] {
       size_t ith = dt::this_thread_index();
       size_t i0 = ith * nrows_per_thread;
