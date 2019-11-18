@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_FUNC_BINARY_h
 #define dt_COLUMN_FUNC_BINARY_h
-#include <cmath>
+#include <cmath>              // std::isnan
 #include "column/virtual.h"
 #include "column.h"
 namespace dt {

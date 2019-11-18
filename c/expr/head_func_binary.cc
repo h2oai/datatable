@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <string>
 #include "expr/fbinary/bimaker.h"
 #include "expr/expr.h"
 #include "expr/head_func.h"

@@ -19,6 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cmath>                          // std::pow, std::powf
+#include <limits>                         // std::numeric_limits
 #include "expr/fbinary/bimaker.h"
 #include "expr/fbinary/bimaker_impl.h"
 namespace dt {
