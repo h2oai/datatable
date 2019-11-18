@@ -122,6 +122,8 @@ static inline bimaker_ptr _eq(SType uptype1, SType uptype2) {
 }
 
 
+// TODO: add specialization for SType::VOID (i.e. `f.X == None` should
+//       be equivalent to `isna(f.X)`).
 bimaker_ptr resolve_op_eq(SType stype1, SType stype2)
 {
   SType uptype1, uptype2;
@@ -161,6 +163,8 @@ static inline bimaker_ptr _ne(SType uptype1, SType uptype2) {
 }
 
 
+// TODO: add specialization for SType::VOID (i.e. `f.X != None` should
+//       be equivalent to `~isna(f.X)`).
 bimaker_ptr resolve_op_ne(SType stype1, SType stype2)
 {
   SType uptype1, uptype2;
