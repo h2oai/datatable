@@ -49,8 +49,8 @@ bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
     case Op::MINUS:    return resolve_op_minus(stype1, stype2);
     case Op::MULTIPLY: return resolve_op_multiply(stype1, stype2);
     case Op::DIVIDE:   return resolve_op_divide(stype1, stype2);
-    case Op::INTDIV:
-    case Op::MODULO:
+    case Op::INTDIV:   return resolve_op_intdiv(stype1, stype2);
+    case Op::MODULO:   return resolve_op_modulo(stype1, stype2);
     case Op::POWER:    return bimaker_ptr();
     case Op::AND:      return resolve_op_and(stype1, stype2);
     case Op::OR:       return resolve_op_or(stype1, stype2);
