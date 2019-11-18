@@ -69,6 +69,27 @@ static SType _find_types_for_andor(
 }
 
 
+/**
+  * Find suitable stype(s) for bitwise shift operation. The stype of
+  * the result is always equal to `stype1` (which may only be integer)
+  * and the first argument is never promoted. The second argument can
+  * be either integer or boolean, and is always promoted into INT32.
+  */
+static void _find_types_for_shifts(
+    SType stype1, SType stype2, SType* uptype2, const char* name)
+{
+  LType ltype1 = ::info(stype1).ltype();
+  LType ltype2 = ::info(stype2).ltype();
+  if (ltype1 == LType::INT && (ltype2 == LType::INT || ltype2 == LType::BOOL)) {
+    *uptype2 = (stype2 == SType::INT32)? SType::VOID : SType::INT32;
+  }
+  else {
+    throw TypeError() << "Operator `" << name << "` cannot be applied to "
+        "columns with types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -330,6 +351,72 @@ bimaker_ptr resolve_op_xor(SType stype1, SType stype2)
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// Op::LSHIFT  (<<)
+//------------------------------------------------------------------------------
+
+template <typename T>
+inline static T op_lshift(T x, int32_t y) {
+  return (y >= 0)? static_cast<T>(x << y) : static_cast<T>(x >> -y);
+}
+
+
+template <typename T>
+static inline bimaker_ptr _lshift(SType outtype, SType uptype2) {
+  assert_compatible_type<T>(outtype);
+  return bimaker1<T, int32_t, T>::make(op_lshift<T>, SType::VOID,
+                                       uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_op_lshift(SType stype1, SType stype2)
+{
+  SType uptype2;
+  _find_types_for_shifts(stype1, stype2, &uptype2, "<<");
+  switch (stype1) {
+    case SType::INT8:  return _lshift<int8_t>(stype1, uptype2);
+    case SType::INT16: return _lshift<int16_t>(stype1, uptype2);
+    case SType::INT32: return _lshift<int32_t>(stype1, uptype2);
+    case SType::INT64: return _lshift<int64_t>(stype1, uptype2);
+    default:           return bimaker_ptr();
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Op::RSHIFT  (>>)
+//------------------------------------------------------------------------------
+
+template <typename T>
+inline static T op_rshift(T x, int32_t y) {
+  return (y >= 0)? static_cast<T>(x >> y) : static_cast<T>(x << -y);
+}
+
+
+template <typename T>
+static inline bimaker_ptr _rshift(SType outtype, SType uptype2) {
+  assert_compatible_type<T>(outtype);
+  return bimaker1<T, int32_t, T>::make(op_rshift<T>, SType::VOID,
+                                       uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_op_rshift(SType stype1, SType stype2)
+{
+  SType uptype2;
+  _find_types_for_shifts(stype1, stype2, &uptype2, ">>");
+  switch (stype1) {
+    case SType::INT8:  return _rshift<int8_t>(stype1, uptype2);
+    case SType::INT16: return _rshift<int16_t>(stype1, uptype2);
+    case SType::INT32: return _rshift<int32_t>(stype1, uptype2);
+    case SType::INT64: return _rshift<int64_t>(stype1, uptype2);
+    default:           return bimaker_ptr();
+  }
+}
 
 
 }}  // namespace dt::expr
