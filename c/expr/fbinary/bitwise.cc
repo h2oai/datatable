@@ -293,7 +293,7 @@ template <typename T>
 static inline bimaker_ptr _or(SType uptype1, SType uptype2, SType outtype) {
   assert_compatible_type<T>(outtype);
   if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype2);
+  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
   return bimaker1<T, T, T>::make(op_or<T>, uptype1, uptype2, outtype);
 }
 
@@ -331,7 +331,7 @@ template <typename T>
 static inline bimaker_ptr _xor(SType uptype1, SType uptype2, SType outtype) {
   assert_compatible_type<T>(outtype);
   if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype2);
+  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
   return bimaker1<T, T, T>::make(op_xor<T>, uptype1, uptype2, outtype);
 }
 

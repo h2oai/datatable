@@ -29,10 +29,38 @@ namespace expr {
 
 
 
-template <typename T1, typename T2, typename TO>
+/**
+  * Trivial "bimaker" class that always returns an NA column.
+  */
+class bimaker_nacol : public bimaker {
+  public:
+    static bimaker_ptr make() { return bimaker_ptr(new bimaker_nacol()); }
+
+    Column compute(Column&& col1, Column&& col2) const override {
+      if (col1.stype() == SType::VOID) return std::move(col1);
+      if (col2.stype() == SType::VOID) return std::move(col2);
+      return Column::new_na_column(col1.nrows());
+    }
+};
+
+
+
+
+/**
+  * "bimaker" class which optionally upcasts its arguments into
+  * `uptype1_` and `uptype2_`, and then creates a
+  * `FuncBinary1_ColumnImpl` column (see "column/func_binary.h").
+  *
+  * Basically, this class is used to wrap binary operations with
+  * trivial handling of NAs: if either of the arguments is NA then
+  * the result is NA, if neither argument is NA then the result is
+  * not NA either (except when TR is floating-point, in which case
+  * it is allowed for non-NA arguments to produce NA result).
+  */
+template <typename TX, typename TY, typename TR>
 class bimaker1 : public bimaker
 {
-  using func_t = TO(*)(typename _ref<T1>::t, typename _ref<T2>::t);
+  using func_t = TR(*)(typename _ref<TX>::t, typename _ref<TY>::t);
   private:
     func_t func_;
     SType uptype1_;
@@ -52,7 +80,7 @@ class bimaker1 : public bimaker
       if (uptype1_ != SType::VOID) col1.cast_inplace(uptype1_);
       if (uptype2_ != SType::VOID) col2.cast_inplace(uptype2_);
       size_t nrows = col1.nrows();
-      return Column(new FuncBinary1_ColumnImpl<T1, T2, TO>(
+      return Column(new FuncBinary1_ColumnImpl<TX, TY, TR>(
                         std::move(col1), std::move(col2),
                         func_, nrows, outtype_
                     ));
@@ -60,12 +88,25 @@ class bimaker1 : public bimaker
 };
 
 
-template <typename T1, typename T2, typename TO>
+
+
+/**
+  * "bimaker" class which optionally upcasts its arguments into
+  * `uptype1_` and `uptype2_`, and then creates a
+  * `FuncBinary2_ColumnImpl` column (see "column/func_binary.h").
+  *
+  * The primary difference with the previous class is the handling
+  * of NAs: this class wraps a function which explicitly deals with
+  * NAs both in the inputs and in the output:
+  *
+  *     (TX x, bool xvalid, TY y, bool yvalid, TR* out) -> bool
+  *
+  */
+template <typename TX, typename TY, typename TR>
 class bimaker2 : public bimaker
 {
-  using R1 = typename _ref<T1>::t;
-  using R2 = typename _ref<T2>::t;
-  using func_t = bool(*)(R1, bool, R2, bool, TO*);
+  using func_t = bool(*)(typename _ref<TX>::t, bool,
+                         typename _ref<TY>::t, bool, TR*);
   private:
     func_t func_;
     SType uptype1_;
@@ -85,7 +126,7 @@ class bimaker2 : public bimaker
       if (uptype1_ != SType::VOID) col1.cast_inplace(uptype1_);
       if (uptype2_ != SType::VOID) col2.cast_inplace(uptype2_);
       size_t nrows = col1.nrows();
-      return Column(new FuncBinary2_ColumnImpl<T1, T2, TO>(
+      return Column(new FuncBinary2_ColumnImpl<TX, TY, TR>(
                         std::move(col1), std::move(col2),
                         func_, nrows, outtype_
                     ));
