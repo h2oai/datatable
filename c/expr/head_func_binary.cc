@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #include "expr/fbinary/bimaker.h"
 #include "expr/expr.h"
-#include "expr/expr_binaryop.h"  // TODO: merge into this file
 #include "expr/head_func.h"
 #include "expr/workframe.h"
 #include "utils/assert.h"
@@ -50,7 +49,7 @@ Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) co
   for (size_t i = 0; i < lhs.ncols(); ++i) {
     Column lhscol = lhs.retrieve_column(i);
     Column rhscol = rhs.retrieve_column(i);
-    Column rescol = new_binaryop(op, std::move(lhscol), std::move(rhscol));
+    Column rescol = binaryop(op, std::move(lhscol), std::move(rhscol));
     outputs.add_column(std::move(rescol), std::string(), gmode);
   }
   return outputs;

@@ -52,10 +52,7 @@ namespace expr {
   * network of `resolve_op_*()` methods (storing the resolved object
   * in the memoized dictionary for later use).
   */
-Column new_binaryop(Op opcode, Column&& col1, Column&& col2);
-
-// TODO REMOVE [defined in expr_binaryop.cc]
-Column binaryop(Op opcode, Column& col1, Column& col2);
+Column binaryop(Op opcode, Column&& col1, Column&& col2);
 
 
 

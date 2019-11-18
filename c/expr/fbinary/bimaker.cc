@@ -74,7 +74,7 @@ bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
 // Main binaryop function
 //------------------------------------------------------------------------------
 
-Column new_binaryop(Op opcode, Column&& col1, Column&& col2)
+Column binaryop(Op opcode, Column&& col1, Column&& col2)
 {
   xassert(col1.nrows() == col2.nrows());
   xassert(static_cast<size_t>(opcode) >= BINOP_FIRST &&
@@ -86,10 +86,7 @@ Column new_binaryop(Op opcode, Column&& col1, Column&& col2)
     bimakers_library[id] = resolve_op(opcode, col1.stype(), col2.stype());
   }
   const bimaker_ptr& maker = bimakers_library[id];
-
-  // temporary: fall back to old code
-  if (!maker) return binaryop(opcode, col1, col2);
-
+  xassert(maker);
   return maker->compute(std::move(col1), std::move(col2));
 }
 

@@ -250,6 +250,8 @@ static inline bimaker_ptr _div(SType uptype1, SType uptype2, SType outtype) {
   *   FLOAT64 / FLOAT32 -> FLOAT64
   *
   */
+// TODO: add specialization for INT32 and INT64 so that they won't
+//       need to be upcasted
 bimaker_ptr resolve_op_divide(SType stype1, SType stype2)
 {
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
