@@ -126,7 +126,7 @@ template <> inline bool _notnan2(double x) { return !std::isnan(x); }
 template <typename T1, typename T2, typename TO>
 bool FuncBinary1_ColumnImpl<T1, T2, TO>::get_element(size_t i, TO* out) const {
   T1 x1; bool x1valid = arg1_.get_element(i, &x1);
-  T2 x2; bool x2valid = arg1_.get_element(i, &x2);
+  T2 x2; bool x2valid = arg2_.get_element(i, &x2);
   if (!x1valid || !x2valid) return false;
   TO value = func_(x1, x2);
   *out = value;

@@ -30,7 +30,39 @@ namespace expr {
 
 
 template <typename T1, typename T2, typename TO>
-class bimaker2 : public bimaker {
+class bimaker1 : public bimaker
+{
+  using func_t = TO(*)(typename _ref<T1>::t, typename _ref<T2>::t);
+  private:
+    func_t func_;
+    SType uptype1_;
+    SType uptype2_;
+    SType outtype_;
+    size_t : 40;
+
+  public:
+    bimaker1(func_t f, SType up1, SType up2, SType out)
+      : func_(f), uptype1_(up1), uptype2_(up2), outtype_(out) {}
+
+    static bimaker_ptr make(func_t f, SType up1, SType up2, SType out) {
+      return bimaker_ptr(new bimaker1(f, up1, up2, out));
+    }
+
+    Column compute(Column&& col1, Column&& col2) const override {
+      if (uptype1_ != SType::VOID) col1.cast_inplace(uptype1_);
+      if (uptype2_ != SType::VOID) col2.cast_inplace(uptype2_);
+      size_t nrows = col1.nrows();
+      return Column(new FuncBinary1_ColumnImpl<T1, T2, TO>(
+                        std::move(col1), std::move(col2),
+                        func_, nrows, outtype_
+                    ));
+    }
+};
+
+
+template <typename T1, typename T2, typename TO>
+class bimaker2 : public bimaker
+{
   using R1 = typename _ref<T1>::t;
   using R2 = typename _ref<T2>::t;
   using func_t = bool(*)(R1, bool, R2, bool, TO*);

@@ -51,18 +51,18 @@ bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
     case Op::DIVIDE:
     case Op::INTDIV:
     case Op::MODULO:
-    case Op::POWER:
-    case Op::AND:
-    case Op::XOR:
-    case Op::OR:
+    case Op::POWER:    return bimaker_ptr();
+    case Op::AND:      return resolve_op_and(stype1, stype2);
+    case Op::OR:       return resolve_op_or(stype1, stype2);
+    case Op::XOR:      return resolve_op_xor(stype1, stype2);
     case Op::LSHIFT:
-    case Op::RSHIFT:  return bimaker_ptr();
-    case Op::EQ:      return resolve_op_eq(stype1, stype2);
-    case Op::NE:      return resolve_op_ne(stype1, stype2);
-    case Op::LT:      return resolve_op_lt(stype1, stype2);
-    case Op::GT:      return resolve_op_gt(stype1, stype2);
-    case Op::LE:      return resolve_op_le(stype1, stype2);
-    case Op::GE:      return resolve_op_ge(stype1, stype2);
+    case Op::RSHIFT:   return bimaker_ptr();
+    case Op::EQ:       return resolve_op_eq(stype1, stype2);
+    case Op::NE:       return resolve_op_ne(stype1, stype2);
+    case Op::LT:       return resolve_op_lt(stype1, stype2);
+    case Op::GT:       return resolve_op_gt(stype1, stype2);
+    case Op::LE:       return resolve_op_le(stype1, stype2);
+    case Op::GE:       return resolve_op_ge(stype1, stype2);
     default: throw RuntimeError() << "Unknown binary op " << int(opcode);
   }
 }

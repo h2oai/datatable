@@ -49,6 +49,12 @@ static SType _find_common_stype(SType stype1, SType stype2) {
 }
 
 
+/**
+  * SType adjustment for operators `==` and `!=`. Numeric types are
+  * promoted to the highest common stype, and string types to STR32.
+  * Throws an error if `stype1` and `stype2` are incompatible (e.g.
+  * a string and a number).
+  */
 static SType _find_types_for_eq(
     SType stype1, SType stype2, SType* uptype1, SType* uptype2,
     const char* name)
@@ -69,6 +75,11 @@ static SType _find_types_for_eq(
 }
 
 
+/**
+  * SType adjustment for comparison operators `<`, `>`, `<=` and `>=`.
+  * Numeric types are promoted to largest among `stype1`, `stype2` and
+  * INT32. String types are not supported.
+  */
 static SType _find_types_for_ltgt(
     SType stype1, SType stype2, SType* uptype1, SType* uptype2,
     const char* name)
