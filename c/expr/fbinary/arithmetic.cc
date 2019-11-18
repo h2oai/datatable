@@ -405,7 +405,7 @@ inline T op_power(T x, T y) {
 
 template <>
 inline float op_power(float x, float y) {
-  return std::powf(x, y);
+  return std::pow(x, y);
 }
 
 
