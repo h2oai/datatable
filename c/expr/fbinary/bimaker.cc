@@ -47,8 +47,8 @@ bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
   switch (opcode) {
     case Op::PLUS:     return resolve_op_plus(stype1, stype2);
     case Op::MINUS:    return resolve_op_minus(stype1, stype2);
-    case Op::MULTIPLY:
-    case Op::DIVIDE:
+    case Op::MULTIPLY: return resolve_op_multiply(stype1, stype2);
+    case Op::DIVIDE:   return resolve_op_divide(stype1, stype2);
     case Op::INTDIV:
     case Op::MODULO:
     case Op::POWER:    return bimaker_ptr();

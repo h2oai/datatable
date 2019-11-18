@@ -161,5 +161,118 @@ bimaker_ptr resolve_op_minus(SType stype1, SType stype2)
 
 
 
+//------------------------------------------------------------------------------
+// Op::MULTIPLY (*)
+//------------------------------------------------------------------------------
+
+template <typename T>
+inline static T op_mul(T x, T y) {
+  return (x * y);
+}
+
+
+template <typename T>
+static inline bimaker_ptr _mul(SType uptype1, SType uptype2, SType outtype) {
+  assert_compatible_type<T>(outtype);
+  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
+  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  return bimaker1<T, T, T>::make(op_mul<T>, uptype1, uptype2, outtype);
+}
+
+
+/**
+  * Operator `*` implements the following rules:
+  *
+  *   VOID * {*} -> VOID
+  *   {BOOL, INT8, INT16, INT32} * {BOOL, INT8, INT16, INT32} -> INT32
+  *   INT64 * {BOOL, INT8, INT16, INT32, INT64} -> INT64
+  *   FLOAT32 * {BOOL, INT*, FLOAT32} -> FLOAT32
+  *   FLOAT64 * {BOOL, INT*, FLOAT*} -> FLOAT64
+  *   {STR32, STR64} * {BOOL, INT*} -> STR32  [not implemented yet]
+  *
+  */
+bimaker_ptr resolve_op_multiply(SType stype1, SType stype2)
+{
+  if (stype1 == SType::VOID || stype2 == SType::VOID) {
+    return bimaker_nacol::make();
+  }
+  if ((stype1 == SType::STR32 || stype1 == SType::STR64) &&
+      (stype2 == SType::BOOL || ::info(stype2).ltype() == LType::INT)) {
+    throw NotImplError() << "Operator `*` is not implemented for columns "
+        "of types `" << stype1 << "` and `" << stype2 << "`";
+  }
+  SType stype0 = _find_common_stype(stype1, stype2);
+  if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
+    stype0 = SType::INT32;
+  }
+  SType uptype1 = (stype1 == stype0)? SType::VOID : stype0;
+  SType uptype2 = (stype2 == stype0)? SType::VOID : stype0;
+  switch (stype0) {
+    case SType::INT32:   return _mul<int32_t>(uptype1, uptype2, stype0);
+    case SType::INT64:   return _mul<int64_t>(uptype1, uptype2, stype0);
+    case SType::FLOAT32: return _mul<float>(uptype1, uptype2, stype0);
+    case SType::FLOAT64: return _mul<double>(uptype1, uptype2, stype0);
+    default:
+      throw TypeError() << "Operator `*` cannot be applied to columns of "
+        "types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
+
+
+
+
+
+//------------------------------------------------------------------------------
+// Op::DIVIDE (/)
+//------------------------------------------------------------------------------
+
+template <typename T>
+inline static T op_div(T x, T y) {
+  return (y == 0)? std::numeric_limits<T>::quiet_NaN() : (x / y);
+}
+
+
+template <typename T>
+static inline bimaker_ptr _div(SType uptype1, SType uptype2, SType outtype) {
+  assert_compatible_type<T>(outtype);
+  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
+  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  return bimaker1<T, T, T>::make(op_div<T>, uptype1, uptype2, outtype);
+}
+
+
+/**
+  * Operator `/` implements the following rules:
+  *
+  *   VOID / {*} -> VOID
+  *   {BOOL, INT*, FLOAT64} / {BOOL, INT*, FLOAT64} -> FLOAT64
+  *   FLOAT32 / {BOOL, INT*, FLOAT32} -> FLOAT32
+  *   FLOAT64 / FLOAT32 -> FLOAT64
+  *
+  */
+bimaker_ptr resolve_op_divide(SType stype1, SType stype2)
+{
+  if (stype1 == SType::VOID || stype2 == SType::VOID) {
+    return bimaker_nacol::make();
+  }
+  SType stype0 = _find_common_stype(stype1, stype2);
+  if (stype0 == SType::BOOL || ::info(stype0).ltype() == LType::INT) {
+    stype0 = SType::FLOAT64;
+  }
+  SType uptype1 = (stype1 == stype0)? SType::VOID : stype0;
+  SType uptype2 = (stype2 == stype0)? SType::VOID : stype0;
+  switch (stype0) {
+    case SType::FLOAT32: return _div<float>(uptype1, uptype2, stype0);
+    case SType::FLOAT64: return _div<double>(uptype1, uptype2, stype0);
+    default:
+      throw TypeError() << "Operator `/` cannot be applied to columns of "
+        "types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
+
+
+
+
+
 
 }}  // namespace dt::expr
