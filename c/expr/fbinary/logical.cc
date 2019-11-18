@@ -71,7 +71,6 @@ static SType _find_types_for_andor(
 
 
 
-
 //------------------------------------------------------------------------------
 // Op::AND (boolean)
 //------------------------------------------------------------------------------
@@ -184,6 +183,82 @@ bimaker_ptr resolve_op_and(SType stype1, SType stype2)
 
 
 //------------------------------------------------------------------------------
+// Op::OR (boolean)
+//------------------------------------------------------------------------------
+
+/**
+  * Virtual column implementing short-circuit boolean-OR evalation.
+  * Specifically, if columns X and Y are boolean, then each value
+  * x and y can be in one of 3 possible states: 0, 1 and NA. The
+  * result of (x | y) is given by this table:
+  *              y
+  *     OR |  0 | 1 | NA
+  *    ----+----+---+---
+  *      0 |  0 | 1 | NA
+  *  x   1 |  1 | 1 |  1   <-- short-circuit
+  *     NA | NA | 1 | NA
+  *
+  * In particular, notice that `(1 | y) == 1` no matter what the
+  * value of `y` is, including NA.
+  *
+  * Also, the evaluation uses short-circuit semantics: if `x`
+  * evaluates to 1 (True), then `y` is not computed at all.
+  */
+class BooleanOr_ColumnImpl : public Virtual_ColumnImpl {
+  protected:
+    Column arg1_;
+    Column arg2_;
+
+  public:
+    BooleanOr_ColumnImpl(Column&& col1, Column&& col2, size_t nrows)
+      : Virtual_ColumnImpl(nrows, SType::BOOL),
+        arg1_(std::move(col1)), arg2_(std::move(col2)) {}
+
+    ColumnImpl* clone() const override {
+      return new BooleanOr_ColumnImpl(Column(arg1_), Column(arg2_), nrows_);
+    }
+
+    void verify_integrity() const override {
+      XAssert(arg1_.stype() == SType::BOOL);
+      XAssert(arg2_.stype() == SType::BOOL);
+    }
+
+    bool allow_parallel_access() const override {
+      return arg1_.allow_parallel_access() && arg2_.allow_parallel_access();
+    }
+
+    bool get_element(size_t i, int8_t* out) const override {
+      int8_t x, y;
+      bool xvalid = arg1_.get_element(i, &x);
+      if (x == 1 && xvalid) {  // short-circuit
+        *out = 1;
+        return true;
+      }
+      bool yvalid = arg2_.get_element(i, &y);
+      if (!yvalid) return false;
+      if (y == 1) {
+        *out = 1;
+        return true;
+      }
+      *out = 0;
+      return xvalid;
+    }
+};
+
+
+class BooleanOr_bimaker : public bimaker {
+  public:
+    Column compute(Column&& col1, Column&& col2) const override {
+      size_t nrows = col1.nrows();
+      return Column(
+          new BooleanOr_ColumnImpl(std::move(col1), std::move(col2), nrows));
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
 // Op::OR  (|)
 //------------------------------------------------------------------------------
 
@@ -204,10 +279,12 @@ static inline bimaker_ptr _or(SType uptype1, SType uptype2, SType outtype) {
 
 bimaker_ptr resolve_op_or(SType stype1, SType stype2)
 {
+  if (stype1 == SType::BOOL && stype2 == SType::BOOL) {
+    return bimaker_ptr(new BooleanOr_bimaker());
+  }
   SType uptype1, uptype2;
   SType stype0 = _find_types_for_andor(stype1, stype2, &uptype1, &uptype2, "|");
   switch (stype0) {
-    case SType::BOOL:  return _or<int8_t>(uptype1, uptype2, stype0);
     case SType::INT8:  return _or<int8_t>(uptype1, uptype2, stype0);
     case SType::INT16: return _or<int16_t>(uptype1, uptype2, stype0);
     case SType::INT32: return _or<int32_t>(uptype1, uptype2, stype0);
