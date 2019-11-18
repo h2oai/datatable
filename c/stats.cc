@@ -485,6 +485,7 @@ static size_t _compute_nacount(const dt::ColumnImpl* col) {
   assert_compatible_type<T>(col->stype());
   std::atomic<size_t> total_countna { 0 };
   dt::parallel_region(
+    dt::NThreads(col->allow_parallel_access()),
     [&] {
       T target;
       size_t thread_countna = 0;
@@ -549,6 +550,7 @@ void NumericStats<T>::compute_minmax() {
   T max = -infinity<T>();
   std::mutex mutex;
   dt::parallel_region(
+    dt::NThreads(column->allow_parallel_access()),
     [&] {
       size_t t_count_notna = 0;
       T t_min = infinity<T>();
@@ -694,6 +696,7 @@ void NumericStats<T>::compute_moments12() {
 
   std::mutex mutex;
   dt::parallel_region(
+    dt::NThreads(column->allow_parallel_access()),
     [&] {
       size_t t_count = 0;
       bool t_has_pos_inf = false;
@@ -805,6 +808,7 @@ void NumericStats<T>::compute_moments34() {
 
   std::mutex mutex;
   dt::parallel_region(
+    dt::NThreads(column->allow_parallel_access()),
     [&] {
       size_t t_count = 0;
       double t_sum = 0.0;
@@ -1017,6 +1021,7 @@ void BooleanStats::compute_all_stats() {
   std::atomic<size_t> count_1 { 0 };
 
   dt::parallel_region(
+    dt::NThreads(column->allow_parallel_access()),
     [&] {
       size_t t_count_all = 0;
       size_t t_count_1 = 0;

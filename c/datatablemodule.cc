@@ -14,8 +14,6 @@
 #include <utility>         // std::pair, std::make_pair, std::move
 #include "../datatable/include/datatable.h"
 #include "csv/reader.h"
-#include "expr/expr.h"
-#include "expr/expr_binaryop.h"
 #include "expr/expr_unaryop.h"
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
@@ -375,7 +373,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     if (!init_py_encodings(m)) return nullptr;
 
     init_types();
-    dt::expr::init_binops();
     dt::expr::Head_Func::init();
 
     py::Frame::init_type(m);

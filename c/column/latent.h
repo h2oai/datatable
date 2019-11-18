@@ -51,6 +51,7 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void materialize(Column&) override;
+    bool allow_parallel_access() const override;
 
     bool get_element(size_t, int8_t*)   const override;
     bool get_element(size_t, int16_t*)  const override;

@@ -94,6 +94,10 @@ template <> inline SType stype_from<PyObject*>(){ return SType::OBJ; }
 template <> inline SType stype_from<py::robj>() { return SType::OBJ; }
 
 
+template <typename T> struct _ref { using t = T; };
+template <> struct _ref<CString> { using t = const CString&; };
+
+
 
 //------------------------------------------------------------------------------
 // Column
@@ -166,6 +170,7 @@ class Column
     bool   is_fixedwidth() const noexcept;
     bool   is_virtual() const noexcept;
     bool   is_constant() const noexcept;
+    bool   allow_parallel_access() const;
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
 

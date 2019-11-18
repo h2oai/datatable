@@ -70,6 +70,7 @@ class ColumnImpl
     virtual ColumnImpl* clone() const = 0;
     virtual void materialize(Column& out);
     virtual void verify_integrity() const;
+    virtual bool allow_parallel_access() const;
 
 
   //------------------------------------

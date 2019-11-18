@@ -90,8 +90,9 @@ def test_logical_and2(seed):
     df0 = dt.Frame(A=src1, B=src2)
     df1 = df0[:, f.A & f.B]
     assert df1.to_list()[0] == \
-        [None if (src1[i] is None or src2[i] is None) else
-         src1[i] and src2[i]
+        [False if (src1[i] is False or src2[i] is False) else
+         None if (src1[i] is None or src2[i] is None) else
+         True
          for i in range(n)]
 
 
@@ -105,8 +106,9 @@ def test_logical_or2(seed):
     df0 = dt.Frame(A=src1, B=src2)
     df1 = df0[:, f.A | f.B]
     assert df1.to_list()[0] == \
-        [None if (src1[i] is None or src2[i] is None) else
-         src1[i] or src2[i]
+        [True if (src1[i] is True or src2[i] is True) else
+         None if (src1[i] is None or src2[i] is None) else
+         False
          for i in range(n)]
 
 

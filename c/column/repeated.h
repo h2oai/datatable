@@ -39,6 +39,7 @@ class Repeated_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void repeat(size_t ntimes, Column& out) override;
+    bool allow_parallel_access() const override;
 
     bool get_element(size_t, int8_t*)   const override;
     bool get_element(size_t, int16_t*)  const override;

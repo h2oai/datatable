@@ -499,7 +499,6 @@ def test_j_expression(dt0, tbl0):
     assert same_iterables(dt3.names, ("foo", "a", "b", "c"))
     assert same_iterables(dt3.ltypes,
                           (ltype.real, ltype.int, ltype.int, ltype.real))
-    assert not isview(dt3)
     assert dt3[:, "foo"].to_list() == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
                                        for i in range(6)]]
 

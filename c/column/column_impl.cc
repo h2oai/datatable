@@ -127,6 +127,10 @@ void ColumnImpl::materialize(Column& out) {
 }
 
 
+bool ColumnImpl::allow_parallel_access() const {
+  return (stype_ != SType::OBJ);
+}
+
 
 
 //------------------------------------------------------------------------------

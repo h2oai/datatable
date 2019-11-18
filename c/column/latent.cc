@@ -62,6 +62,11 @@ void Latent_ColumnImpl::materialize(Column&) {
 }
 
 
+bool Latent_ColumnImpl::allow_parallel_access() const {
+  return vivify()->allow_parallel_access();
+}
+
+
 bool Latent_ColumnImpl::get_element(size_t i, int8_t* out)   const { return vivify()->get_element(i, out); }
 bool Latent_ColumnImpl::get_element(size_t i, int16_t* out)  const { return vivify()->get_element(i, out); }
 bool Latent_ColumnImpl::get_element(size_t i, int32_t* out)  const { return vivify()->get_element(i, out); }

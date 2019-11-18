@@ -27,7 +27,8 @@ namespace dt {
 
 
 /**
-  * Virtual column representing the `arg` column repeated n times.
+  * Virtual column representing the `arg` column padded with NAs
+  * up to `nrows_ > arg.nrows()`.
   */
 class NaFilled_ColumnImpl : public Virtual_ColumnImpl {
   private:
