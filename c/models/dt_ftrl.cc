@@ -836,7 +836,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   dt::progress::work job(work_total);
   job.set_message("Predicting");
 
-  dt::parallel_region(nthreads, [&]() {
+  dt::parallel_region(NThreads(nthreads), [&]() {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 

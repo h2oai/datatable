@@ -804,7 +804,7 @@ class SortContext {
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 
     dt::parallel_region(
-      /* nthreads= */ nth,
+      dt::NThreads(nth),
       [&] {
         bool len_gt_1 = false;
         dt::nested_for_static(n, dt::ChunkSize(1024),
@@ -1015,7 +1015,7 @@ class SortContext {
     const int64_t sstart = static_cast<int64_t>(strstart) + 1;
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 
-    dt::parallel_region(nth,
+    dt::parallel_region(dt::NThreads(nth),
       [&] {
         bool tlong = false;
         dt::nested_for_static(nchunks, dt::ChunkSize(1),
@@ -1221,7 +1221,7 @@ class SortContext {
       // }
     }
 
-    dt::parallel_region(nth,
+    dt::parallel_region(dt::NThreads(nth),
       [&] {
         size_t tnum = dt::this_thread_index();
         int32_t* oo = tmp + tnum * size0;

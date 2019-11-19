@@ -422,7 +422,7 @@ RowIndex natural_join(const DataTable& xdt, const DataTable& jdt) {
         });
     }
     else {
-      dt::parallel_region(nchunks,
+      dt::parallel_region(dt::NThreads(nchunks),
         [&] {
           // Creating the comparator may fail if xcols and jcols are incompatible
           cmpptr comparator = _make_comparator(xdt, jdt, xcols, jcols);
