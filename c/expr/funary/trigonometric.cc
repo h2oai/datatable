@@ -26,56 +26,14 @@
 namespace dt {
 namespace expr {
 
+
 using func32_t = float(*)(float);
 using func64_t = double(*)(double);
-
-
-//------------------------------------------------------------------------------
-// Op::SIN/COS/TAN/ARCSIN/ARCCOS/ARCTAN
-//------------------------------------------------------------------------------
-
-py::PKArgs args_arccos(
-  1, 0, 0, false, false, {"x"}, "arccos",
-R"(Inverse trigonometric cosine of x.
-
-The returned value is in the interval [0, pi], or NA for those values of
-x that lie outside the interval [-1, 1]. This function is the inverse of
-cos() in the sense that `cos(arccos(x)) == x`.
-)");
-
-
-py::PKArgs args_arcsin(
-  1, 0, 0, false, false, {"x"}, "arcsin",
-R"(Inverse trigonometric sine of x.
-
-The returned value is in the interval [-pi/2, pi/2], or NA for those values of
-x that lie outside the interval [-1, 1]. This function is the inverse of
-sin() in the sense that `sin(arcsin(x)) == x`.
-)");
-
-
-py::PKArgs args_arctan(
-  1, 0, 0, false, false, {"x"}, "arctan",
-R"(Inverse trigonometric tangent of x.)");
-
-
-py::PKArgs args_cos(
-  1, 0, 0, false, false, {"x"}, "cos", "Trigonometric cosine of x.");
-
-
-py::PKArgs args_sin(
-  1, 0, 0, false, false, {"x"}, "sin", "Trigonometric sine of x.");
-
-
-py::PKArgs args_tan(
-  1, 0, 0, false, false, {"x"}, "tan", "Trigonometric tangent of x.");
-
-
 
 /**
   * All standard trigonometric functions have the same signature:
   * all numeric types map into FLOAT64, except for FLOAT32 which maps
-  * into itself.
+  * into FLOAT32.
   */
 static umaker_ptr _resolve_trig(SType stype, const char* name,
                                 func32_t fn32, func64_t fn64)
@@ -95,25 +53,134 @@ static umaker_ptr _resolve_trig(SType stype, const char* name,
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// Op::SIN
+//------------------------------------------------------------------------------
+
+static const char* doc_sin =
+R"(sin(x)
+--
+
+Trigonometric sine of x.
+)";
+
+py::PKArgs args_sin(1, 0, 0, false, false, {"x"}, "sin", doc_sin);
+
+
 umaker_ptr resolve_op_sin(SType stype) {
   return _resolve_trig(stype, "sin", &std::sin, &std::sin);
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// Op::COS
+//------------------------------------------------------------------------------
+
+static const char* doc_cos =
+R"(cos(x)
+--
+
+Trigonometric cosine of x.
+)";
+
+py::PKArgs args_cos(1, 0, 0, false, false, {"x"}, "cos", doc_cos);
+
 
 umaker_ptr resolve_op_cos(SType stype) {
   return _resolve_trig(stype, "cos", &std::cos, &std::cos);
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Op::TAN
+//------------------------------------------------------------------------------
+
+static const char* doc_tan =
+R"(tan(x)
+--
+
+Trigonometric tangent of x.
+)";
+
+py::PKArgs args_tan(1, 0, 0, false, false, {"x"}, "tan", doc_tan);
+
+
 umaker_ptr resolve_op_tan(SType stype) {
   return _resolve_trig(stype, "tan", &std::tan, &std::tan);
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// Op::ARCSIN
+//------------------------------------------------------------------------------
+
+static const char* doc_arcsin =
+R"(arcsin(x)
+--
+
+Inverse trigonometric sine of x.
+
+The returned value is in the interval [-tau/4, tau/4], or NA for
+those values of x that lie outside the interval [-1, 1]. This function
+is the inverse of sin() in the sense that `sin(arcsin(x)) == x`.
+)";
+
+py::PKArgs args_arcsin(1, 0, 0, false, false, {"x"}, "arcsin", doc_arcsin);
+
 
 umaker_ptr resolve_op_arcsin(SType stype) {
   return _resolve_trig(stype, "arcsin", &std::asin, &std::asin);
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Op::ARCCOS
+//------------------------------------------------------------------------------
+
+static const char* doc_arccos =
+R"(arccos(x)
+--
+
+Inverse trigonometric cosine of x.
+
+The returned value is in the interval [0, tau/2], or NA for those
+values of x that lie outside the interval [-1, 1]. This function
+is the inverse of cos() in the sense that ``cos(arccos(x)) == x``.
+)";
+
+py::PKArgs args_arccos(1, 0, 0, false, false, {"x"}, "arccos", doc_arccos);
+
+
 umaker_ptr resolve_op_arccos(SType stype) {
   return _resolve_trig(stype, "arccos", &std::acos, &std::acos);
 }
+
+
+
+
+//------------------------------------------------------------------------------
+// Op::ARCTAN
+//------------------------------------------------------------------------------
+
+static const char* doc_arctan =
+R"(arctan(x)
+--
+
+Inverse trigonometric tangent of x.
+)";
+
+py::PKArgs args_arctan(1, 0, 0, false, false, {"x"}, "arctan", doc_arctan);
+
 
 umaker_ptr resolve_op_arctan(SType stype) {
   return _resolve_trig(stype, "arctan", &std::atan, &std::atan);
@@ -126,9 +193,14 @@ umaker_ptr resolve_op_arctan(SType stype) {
 // Op::DEG2RAD
 //------------------------------------------------------------------------------
 
-py::PKArgs args_deg2rad(
-  1, 0, 0, false, false, {"x"}, "deg2rad",
-  "Convert angle measured in degrees into radians.");
+static const char* doc_deg2rad =
+R"(deg2rad(x)
+--
+
+Convert angle measured in degrees into radians.
+)";
+
+py::PKArgs args_deg2rad(1, 0, 0, false, false, {"x"}, "deg2rad", doc_deg2rad);
 
 
 static double f64_deg2rad(double x) {
@@ -153,9 +225,14 @@ umaker_ptr resolve_op_deg2rad(SType stype) {
 // Op::RAD2DEG
 //------------------------------------------------------------------------------
 
-py::PKArgs args_rad2deg(
-  1, 0, 0, false, false, {"x"}, "rad2deg",
-  "Convert angle measured in radians into degrees.");
+static const char* doc_rad2deg =
+R"(rad2deg(x)
+--
+
+Convert angle measured in radians into degrees.
+)";
+
+py::PKArgs args_rad2deg(1, 0, 0, false, false, {"x"}, "rad2deg", doc_rad2deg);
 
 
 static double f64_rad2deg(double x) {
