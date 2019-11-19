@@ -62,8 +62,6 @@ umaker_ptr resolve_op(Op opcode, SType stype) {
     case Op::ARCSIN:
     case Op::ARCCOS:
     case Op::ARCTAN:
-    case Op::ARCTAN2:
-    case Op::HYPOT:
     case Op::DEG2RAD:
     case Op::RAD2DEG:
 
