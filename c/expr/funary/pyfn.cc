@@ -151,6 +151,7 @@ void py::DatatableModule::init_funary()
     ADD_FN(&pyfn, dt::expr::ARGS); \
     register_args(dt::expr::ARGS, dt::expr::OP);
 
+  // Trigonometric
   FUNARY(args_sin,     Op::SIN);
   FUNARY(args_cos,     Op::COS);
   FUNARY(args_tan,     Op::TAN);
@@ -159,4 +160,12 @@ void py::DatatableModule::init_funary()
   FUNARY(args_arctan,  Op::ARCTAN);
   FUNARY(args_deg2rad, Op::DEG2RAD);
   FUNARY(args_rad2deg, Op::RAD2DEG);
+
+  // Hyperbolic
+  FUNARY(args_sinh,    Op::SINH);
+  FUNARY(args_cosh,    Op::COSH);
+  FUNARY(args_tanh,    Op::TANH);
+  FUNARY(args_arsinh,  Op::ARSINH);
+  FUNARY(args_arcosh,  Op::ARCOSH);
+  FUNARY(args_artanh,  Op::ARTANH);
 }

@@ -75,14 +75,6 @@ static Column vcol_id(Column&& arg) {
 }
 
 
-// If `x` is integer NA, then (-(INT_MIN)) == INT_MIN due to overflow.
-// If `x` is floating-point NA, then (-NaN) == NaN by rules of IEEE754.
-// Thus, in both cases (-NA)==NA, as desired.
-template <typename T>
-inline static T op_minus(T x) {
-  return -x;
-}
-
 
 template <typename T>
 inline static bool op_isna(T, bool isvalid, int8_t* out) {
@@ -124,15 +116,6 @@ inline static bool op_isfinite(T x, bool isvalid, int8_t* out) {
   return true;
 }
 
-
-inline static int8_t op_invert_bool(int8_t x) {
-  return ISNA<int8_t>(x)? x : !x;
-}
-
-template <typename T>
-inline static T op_inverse(T x) {
-  return ~x;
-}
 
 
 /*
@@ -274,14 +257,6 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
 // Trigonometric/hyperbolic functions
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_arcosh(
-  1, 0, 0, false, false, {"x"}, "arcosh",
-R"(Inverse hyperbolic cosine of x.)");
-
-static py::PKArgs args_arsinh(
-  1, 0, 0, false, false, {"x"}, "arsinh",
-R"(Inverse hyperbolic sine of x.)");
-
 static py::PKArgs args_arctan2(
   2, 0, 0, false, false, {"x", "y"}, "arctan2",
 R"(Arc-tangent of y/x, taking into account the signs of x and y.
@@ -289,19 +264,6 @@ R"(Arc-tangent of y/x, taking into account the signs of x and y.
 This function returns the measure of the angle between the ray O(x,y)
 and the horizontal abscissae Ox. When both x and y are zero, this
 function returns zero.)");
-
-static py::PKArgs args_artanh(
-  1, 0, 0, false, false, {"x"}, "artanh",
-R"(Inverse hyperbolic tangent of x.)");
-
-static py::PKArgs args_cosh(
-  1, 0, 0, false, false, {"x"}, "cosh", "Hyperbolic cosine of x.");
-
-static py::PKArgs args_sinh(
-  1, 0, 0, false, false, {"x"}, "sinh", "Hyperbolic sine of x.");
-
-static py::PKArgs args_tanh(
-  1, 0, 0, false, false, {"x"}, "tanh", "Hyperbolic tangent of x.");
 
 static py::PKArgs args_hypot(
   2, 0, 0, false, false, {"x", "y"}, "hypot",
@@ -573,31 +535,6 @@ unary_infos::unary_infos() {
   constexpr SType str32 = SType::STR32;
   constexpr SType str64 = SType::STR64;
 
-  add_op(Op::UPLUS, "+", nullptr);
-  add_copy(Op::UPLUS, bool8, int8);
-  add_copy(Op::UPLUS, int8,  int8);
-  add_copy(Op::UPLUS, int16, int16);
-  add_copy(Op::UPLUS, int32, int32);
-  add_copy(Op::UPLUS, int64, int64);
-  add_copy(Op::UPLUS, flt32, flt32);
-  add_copy(Op::UPLUS, flt64, flt64);
-
-  add_op(Op::UMINUS, "-", nullptr);
-  add<Op::UMINUS, bool8, int8,  op_minus<int8_t>>();
-  add<Op::UMINUS, int8,  int8,  op_minus<int8_t>>();
-  add<Op::UMINUS, int16, int16, op_minus<int16_t>>();
-  add<Op::UMINUS, int32, int32, op_minus<int32_t>>();
-  add<Op::UMINUS, int64, int64, op_minus<int64_t>>();
-  add<Op::UMINUS, flt32, flt32, op_minus<float>>();
-  add<Op::UMINUS, flt64, flt64, op_minus<double>>();
-
-  add_op(Op::UINVERT, "~", nullptr);
-  add<Op::UINVERT, bool8, bool8, op_invert_bool>();
-  add<Op::UINVERT, int8,  int8,  op_inverse<int8_t>>();
-  add<Op::UINVERT, int16, int16, op_inverse<int16_t>>();
-  add<Op::UINVERT, int32, int32, op_inverse<int32_t>>();
-  add<Op::UINVERT, int64, int64, op_inverse<int64_t>>();
-
   add_op(Op::ABS, "abs", &args_abs);
   add_copy(Op::ABS, bool8, int8);
   add<Op::ABS, int8,  int8,  op_abs<int8_t>>();
@@ -667,13 +604,6 @@ unary_infos::unary_infos() {
   add<Op::LEN, str32, int64, op_str_len_unicode>();
   add<Op::LEN, str64, int64, op_str_len_unicode>();
 
-  add_math<&std::acosh, &std::acosh>(Op::ARCOSH,  "arcosh",  args_arcosh);
-  add_math<&std::asinh, &std::asinh>(Op::ARSINH,  "arsinh",  args_arsinh);
-  add_math<&std::atanh, &std::atanh>(Op::ARTANH,  "artanh",  args_artanh);
-  add_math<&std::cosh,  &std::cosh> (Op::COSH,    "cosh",    args_cosh);
-  add_math<&std::sinh,  &std::sinh> (Op::SINH,    "sinh",    args_sinh);
-  add_math<&std::tanh,  &std::tanh> (Op::TANH,    "tanh",    args_tanh);
-
   add_math<&std::cbrt,  &std::cbrt> (Op::CBRT,    "cbrt",    args_cbrt);
   add_math<&std::exp,   &std::exp>  (Op::EXP,     "exp",     args_exp);
   add_math<&std::exp2,  &std::exp2> (Op::EXP2,    "exp2",    args_exp2);
@@ -700,12 +630,8 @@ unary_infos::unary_infos() {
 void py::DatatableModule::init_unops() {
   using namespace dt::expr;
   ADD_FN(&unary_pyfn, args_abs);
-  ADD_FN(&unary_pyfn, args_arcosh);
-  ADD_FN(&unary_pyfn, args_arsinh);
-  ADD_FN(&unary_pyfn, args_artanh);
   ADD_FN(&unary_pyfn, args_cbrt);
   ADD_FN(&unary_pyfn, args_ceil);
-  ADD_FN(&unary_pyfn, args_cosh);
   ADD_FN(&unary_pyfn, args_erf);
   ADD_FN(&unary_pyfn, args_erfc);
   ADD_FN(&unary_pyfn, args_exp);
@@ -723,9 +649,7 @@ void py::DatatableModule::init_unops() {
   ADD_FN(&unary_pyfn, args_log1p);
   ADD_FN(&unary_pyfn, args_log2);
   ADD_FN(&unary_pyfn, args_sign);
-  ADD_FN(&unary_pyfn, args_sinh);
   ADD_FN(&unary_pyfn, args_sqrt);
   ADD_FN(&unary_pyfn, args_square);
-  ADD_FN(&unary_pyfn, args_tanh);
   ADD_FN(&unary_pyfn, args_trunc);
 }

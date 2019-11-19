@@ -62,12 +62,12 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::RAD2DEG:    return resolve_op_rad2deg(stype);
 
     // Math: hyperbolic
-    case Op::SINH:       return umaker_ptr();
-    case Op::COSH:       return umaker_ptr();
-    case Op::TANH:       return umaker_ptr();
-    case Op::ARSINH:     return umaker_ptr();
-    case Op::ARCOSH:     return umaker_ptr();
-    case Op::ARTANH:     return umaker_ptr();
+    case Op::SINH:       return resolve_op_sinh(stype);
+    case Op::COSH:       return resolve_op_cosh(stype);
+    case Op::TANH:       return resolve_op_tanh(stype);
+    case Op::ARSINH:     return resolve_op_arsinh(stype);
+    case Op::ARCOSH:     return resolve_op_arcosh(stype);
+    case Op::ARTANH:     return resolve_op_artanh(stype);
 
     // Math: exponential/power
     case Op::CBRT:       return umaker_ptr();

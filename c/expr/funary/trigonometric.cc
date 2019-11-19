@@ -32,13 +32,18 @@ using func64_t = double(*)(double);
 
 /**
   * All standard trigonometric functions have the same signature:
-  * all numeric types map into FLOAT64, except for FLOAT32 which maps
-  * into FLOAT32.
+  *
+  *     VOID -> VOID
+  *     {BOOL, INT*, FLOAT64} -> FLOAT64
+  *     FLOAT32 -> FLOAT32
+  *
   */
 static umaker_ptr _resolve_trig(SType stype, const char* name,
                                 func32_t fn32, func64_t fn64)
 {
-  if (stype == SType::VOID) return umaker_ptr(new umaker_copy());
+  if (stype == SType::VOID) {
+    return umaker_ptr(new umaker_copy());
+  }
   if (stype == SType::FLOAT64) {
     return umaker1<double, double>::make(fn64, SType::VOID, SType::FLOAT64);
   }
