@@ -23,6 +23,7 @@
 #include <memory>     // std::unique_ptr
 #include <vector>     // std::vector
 #include "models/column_convertor.h"
+#include "parallel/api.h"
 #include "python/obj.h"
 
 

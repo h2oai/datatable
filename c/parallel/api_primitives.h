@@ -49,8 +49,8 @@ class NThreads {
       size_t n0 = num_threads_in_pool();
       value = (nth == 0 || nth >= n0) ? n0 : nth;
     }
-    // Deduce number of threads from the number of iterations
-    // and minimum iterations per thread.
+    // Calculate number of threads from the number of iterations
+    // and the minimum number of iterations per thread.
     explicit NThreads(size_t niters, size_t min_iters_per_thread) {
       if (niters > min_iters_per_thread) {
         size_t n0 = num_threads_in_pool();

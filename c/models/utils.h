@@ -26,7 +26,6 @@
 #include <numeric>
 #include <cmath>
 #include "datatable.h"
-#include "parallel/api.h"
 
 template <typename T>
 using tptr = typename std::unique_ptr<T[]>;
