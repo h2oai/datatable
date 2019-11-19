@@ -346,6 +346,7 @@ void py::DatatableModule::init_methods() {
   init_methods_zread();
 
   init_casts();
+  init_funary();
   init_fuzzy();
   init_unops();
 

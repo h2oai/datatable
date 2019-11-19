@@ -160,24 +160,6 @@ static bool op_str_len_unicode(CString str, bool isvalid, int64_t* out) {
 }
 
 
-static double fn_rad2deg(double x) {
-  static constexpr double DEGREES_IN_RADIAN = 57.295779513082323;
-  return x * DEGREES_IN_RADIAN;
-}
-static float fn_rad2deg(float x) {
-  static constexpr float DEGREES_IN_RADIAN = 57.2957802f;
-  return x * DEGREES_IN_RADIAN;
-}
-
-static double fn_deg2rad(double x) {
-  static constexpr double RADIANS_IN_DEGREE = 0.017453292519943295;
-  return x * RADIANS_IN_DEGREE;
-}
-static float fn_deg2rad(float x) {
-  static constexpr float RADIANS_IN_DEGREE = 0.0174532924f;
-  return x * RADIANS_IN_DEGREE;
-}
-
 static float fn_square(float x) {
   return x * x;
 }
@@ -292,35 +274,13 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
 // Trigonometric/hyperbolic functions
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_arccos(
-  1, 0, 0, false, false, {"x"}, "arccos",
-R"(Inverse trigonometric cosine of x.
-
-The returned value is in the interval [0, pi], or NA for those values of
-x that lie outside the interval [-1, 1]. This function is the inverse of
-cos() in the sense that `cos(arccos(x)) == x`.
-)");
-
 static py::PKArgs args_arcosh(
   1, 0, 0, false, false, {"x"}, "arcosh",
 R"(Inverse hyperbolic cosine of x.)");
 
-static py::PKArgs args_arcsin(
-  1, 0, 0, false, false, {"x"}, "arcsin",
-R"(Inverse trigonometric sine of x.
-
-The returned value is in the interval [-pi/2, pi/2], or NA for those values of
-x that lie outside the interval [-1, 1]. This function is the inverse of
-sin() in the sense that `sin(arcsin(x)) == x`.
-)");
-
 static py::PKArgs args_arsinh(
   1, 0, 0, false, false, {"x"}, "arsinh",
 R"(Inverse hyperbolic sine of x.)");
-
-static py::PKArgs args_arctan(
-  1, 0, 0, false, false, {"x"}, "arctan",
-R"(Inverse trigonometric tangent of x.)");
 
 static py::PKArgs args_arctan2(
   2, 0, 0, false, false, {"x", "y"}, "arctan2",
@@ -334,31 +294,14 @@ static py::PKArgs args_artanh(
   1, 0, 0, false, false, {"x"}, "artanh",
 R"(Inverse hyperbolic tangent of x.)");
 
-static py::PKArgs args_cos(
-  1, 0, 0, false, false, {"x"}, "cos", "Trigonometric cosine of x.");
-
 static py::PKArgs args_cosh(
   1, 0, 0, false, false, {"x"}, "cosh", "Hyperbolic cosine of x.");
-
-static py::PKArgs args_sin(
-  1, 0, 0, false, false, {"x"}, "sin", "Trigonometric sine of x.");
 
 static py::PKArgs args_sinh(
   1, 0, 0, false, false, {"x"}, "sinh", "Hyperbolic sine of x.");
 
-static py::PKArgs args_tan(
-  1, 0, 0, false, false, {"x"}, "tan", "Trigonometric tangent of x.");
-
 static py::PKArgs args_tanh(
   1, 0, 0, false, false, {"x"}, "tanh", "Hyperbolic tangent of x.");
-
-static py::PKArgs args_rad2deg(
-  1, 0, 0, false, false, {"x"}, "rad2deg",
-  "Convert angle measured in radians into degrees.");
-
-static py::PKArgs args_deg2rad(
-  1, 0, 0, false, false, {"x"}, "deg2rad",
-  "Convert angle measured in degrees into radians.");
 
 static py::PKArgs args_hypot(
   2, 0, 0, false, false, {"x", "y"}, "hypot",
@@ -724,19 +667,11 @@ unary_infos::unary_infos() {
   add<Op::LEN, str32, int64, op_str_len_unicode>();
   add<Op::LEN, str64, int64, op_str_len_unicode>();
 
-  add_math<&std::acos,  &std::acos> (Op::ARCCOS,  "arccos",  args_arccos);
   add_math<&std::acosh, &std::acosh>(Op::ARCOSH,  "arcosh",  args_arcosh);
-  add_math<&std::asin,  &std::asin> (Op::ARCSIN,  "arcsin",  args_arcsin);
   add_math<&std::asinh, &std::asinh>(Op::ARSINH,  "arsinh",  args_arsinh);
-  add_math<&std::atan,  &std::atan> (Op::ARCTAN,  "arctan",  args_arctan);
   add_math<&std::atanh, &std::atanh>(Op::ARTANH,  "artanh",  args_artanh);
-  add_math<&std::cos,   &std::cos>  (Op::COS,     "cos",     args_cos);
   add_math<&std::cosh,  &std::cosh> (Op::COSH,    "cosh",    args_cosh);
-  add_math<&fn_deg2rad, &fn_deg2rad>(Op::DEG2RAD, "deg2rad", args_deg2rad);
-  add_math<&fn_rad2deg, &fn_rad2deg>(Op::RAD2DEG, "rad2deg", args_rad2deg);
-  add_math<&std::sin,   &std::sin>  (Op::SIN,     "sin",     args_sin);
   add_math<&std::sinh,  &std::sinh> (Op::SINH,    "sinh",    args_sinh);
-  add_math<&std::tan,   &std::tan>  (Op::TAN,     "tan",     args_tan);
   add_math<&std::tanh,  &std::tanh> (Op::TANH,    "tanh",    args_tanh);
 
   add_math<&std::cbrt,  &std::cbrt> (Op::CBRT,    "cbrt",    args_cbrt);
@@ -765,17 +700,12 @@ unary_infos::unary_infos() {
 void py::DatatableModule::init_unops() {
   using namespace dt::expr;
   ADD_FN(&unary_pyfn, args_abs);
-  ADD_FN(&unary_pyfn, args_arccos);
   ADD_FN(&unary_pyfn, args_arcosh);
-  ADD_FN(&unary_pyfn, args_arcsin);
-  ADD_FN(&unary_pyfn, args_arctan);
   ADD_FN(&unary_pyfn, args_arsinh);
   ADD_FN(&unary_pyfn, args_artanh);
   ADD_FN(&unary_pyfn, args_cbrt);
   ADD_FN(&unary_pyfn, args_ceil);
-  ADD_FN(&unary_pyfn, args_cos);
   ADD_FN(&unary_pyfn, args_cosh);
-  ADD_FN(&unary_pyfn, args_deg2rad);
   ADD_FN(&unary_pyfn, args_erf);
   ADD_FN(&unary_pyfn, args_erfc);
   ADD_FN(&unary_pyfn, args_exp);
@@ -792,13 +722,10 @@ void py::DatatableModule::init_unops() {
   ADD_FN(&unary_pyfn, args_log10);
   ADD_FN(&unary_pyfn, args_log1p);
   ADD_FN(&unary_pyfn, args_log2);
-  ADD_FN(&unary_pyfn, args_rad2deg);
   ADD_FN(&unary_pyfn, args_sign);
-  ADD_FN(&unary_pyfn, args_sin);
   ADD_FN(&unary_pyfn, args_sinh);
   ADD_FN(&unary_pyfn, args_sqrt);
   ADD_FN(&unary_pyfn, args_square);
-  ADD_FN(&unary_pyfn, args_tan);
   ADD_FN(&unary_pyfn, args_tanh);
   ADD_FN(&unary_pyfn, args_trunc);
 }

@@ -20,18 +20,57 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
 namespace dt {
 namespace expr {
 
+using func32_t = float(*)(float);
+using func64_t = double(*)(double);
 
 
 //------------------------------------------------------------------------------
 // Op::SIN/COS/TAN/ARCSIN/ARCCOS/ARCTAN
 //------------------------------------------------------------------------------
-using func32_t = float(*)(float);
-using func64_t = double(*)(double);
+
+py::PKArgs args_arccos(
+  1, 0, 0, false, false, {"x"}, "arccos",
+R"(Inverse trigonometric cosine of x.
+
+The returned value is in the interval [0, pi], or NA for those values of
+x that lie outside the interval [-1, 1]. This function is the inverse of
+cos() in the sense that `cos(arccos(x)) == x`.
+)");
+
+
+py::PKArgs args_arcsin(
+  1, 0, 0, false, false, {"x"}, "arcsin",
+R"(Inverse trigonometric sine of x.
+
+The returned value is in the interval [-pi/2, pi/2], or NA for those values of
+x that lie outside the interval [-1, 1]. This function is the inverse of
+sin() in the sense that `sin(arcsin(x)) == x`.
+)");
+
+
+py::PKArgs args_arctan(
+  1, 0, 0, false, false, {"x"}, "arctan",
+R"(Inverse trigonometric tangent of x.)");
+
+
+py::PKArgs args_cos(
+  1, 0, 0, false, false, {"x"}, "cos", "Trigonometric cosine of x.");
+
+
+py::PKArgs args_sin(
+  1, 0, 0, false, false, {"x"}, "sin", "Trigonometric sine of x.");
+
+
+py::PKArgs args_tan(
+  1, 0, 0, false, false, {"x"}, "tan", "Trigonometric tangent of x.");
+
+
 
 /**
   * All standard trigonometric functions have the same signature:
@@ -87,6 +126,11 @@ umaker_ptr resolve_op_arctan(SType stype) {
 // Op::DEG2RAD
 //------------------------------------------------------------------------------
 
+py::PKArgs args_deg2rad(
+  1, 0, 0, false, false, {"x"}, "deg2rad",
+  "Convert angle measured in degrees into radians.");
+
+
 static double f64_deg2rad(double x) {
   static constexpr double RADIANS_IN_DEGREE = 0.017453292519943295;
   return x * RADIANS_IN_DEGREE;
@@ -108,6 +152,11 @@ umaker_ptr resolve_op_deg2rad(SType stype) {
 //------------------------------------------------------------------------------
 // Op::RAD2DEG
 //------------------------------------------------------------------------------
+
+py::PKArgs args_rad2deg(
+  1, 0, 0, false, false, {"x"}, "rad2deg",
+  "Convert angle measured in radians into degrees.");
+
 
 static double f64_rad2deg(double x) {
   static constexpr double DEGREES_IN_RADIAN = 57.295779513082323;
