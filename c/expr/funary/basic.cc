@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
-#include "assert.h"
+#include "utils/assert.h"
 namespace dt {
 namespace expr {
 

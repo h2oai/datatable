@@ -78,6 +78,14 @@ umaker_ptr resolve_op(Op, SType);
 umaker_ptr resolve_op_uplus(SType);
 umaker_ptr resolve_op_uminus(SType);
 umaker_ptr resolve_op_uinvert(SType);
+umaker_ptr resolve_op_sin(SType);
+umaker_ptr resolve_op_cos(SType);
+umaker_ptr resolve_op_tan(SType);
+umaker_ptr resolve_op_arcsin(SType);
+umaker_ptr resolve_op_arccos(SType);
+umaker_ptr resolve_op_arctan(SType);
+umaker_ptr resolve_op_deg2rad(SType);
+umaker_ptr resolve_op_rad2deg(SType);
 
 
 

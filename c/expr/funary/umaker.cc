@@ -52,14 +52,14 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::UINVERT:    return resolve_op_uinvert(stype);
 
     // Math: trigonometric
-    case Op::SIN:        return umaker_ptr();
-    case Op::COS:        return umaker_ptr();
-    case Op::TAN:        return umaker_ptr();
-    case Op::ARCSIN:     return umaker_ptr();
-    case Op::ARCCOS:     return umaker_ptr();
-    case Op::ARCTAN:     return umaker_ptr();
-    case Op::DEG2RAD:    return umaker_ptr();
-    case Op::RAD2DEG:    return umaker_ptr();
+    case Op::SIN:        return resolve_op_sin(stype);
+    case Op::COS:        return resolve_op_cos(stype);
+    case Op::TAN:        return resolve_op_tan(stype);
+    case Op::ARCSIN:     return resolve_op_arcsin(stype);
+    case Op::ARCCOS:     return resolve_op_arccos(stype);
+    case Op::ARCTAN:     return resolve_op_arctan(stype);
+    case Op::DEG2RAD:    return resolve_op_deg2rad(stype);
+    case Op::RAD2DEG:    return resolve_op_rad2deg(stype);
 
     // Math: hyperbolic
     case Op::SINH:       return umaker_ptr();
