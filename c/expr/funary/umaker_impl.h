@@ -44,6 +44,37 @@ class umaker_nacol : public umaker {
 
 
 
+/**
+  * Simple "umaker" class that returns the column unchanged.
+  */
+class umaker_copy : public umaker {
+  public:
+    Column compute(Column&& col) const override {
+      return std::move(col);
+    }
+};
+
+
+
+/**
+  * "umaker" class that casts its column into the given stype.
+  */
+class umaker_cast : public umaker {
+  private:
+    SType outtype_;
+    size_t : 56;
+
+  public:
+    umaker_cast(SType out) : outtype_(out) {}
+
+    Column compute(Column&& col) const override {
+      col.cast_inplace(outtype_);
+      return std::move(col);
+    }
+};
+
+
+
 
 /**
   * "umaker" class which optionally upcasts its argument into
@@ -110,7 +141,7 @@ class umaker2 : public umaker
 
   public:
     umaker2(func_t f, SType up, SType out)
-      : func_(f), uptype1_(up), outtype_(out) {}
+      : func_(f), uptype_(up), outtype_(out) {}
 
     static umaker_ptr make(func_t f, SType up, SType out) {
       return umaker_ptr(new umaker2(f, up, out));

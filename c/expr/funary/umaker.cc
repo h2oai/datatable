@@ -43,11 +43,11 @@ static constexpr size_t make_id(Op opcode, SType stype) noexcept {
 static std::unordered_map<size_t, umaker_ptr> umakers_library;
 
 
-umaker_ptr resolve_op(Op opcode, SType stype) {
-  (void) stype;
+umaker_ptr resolve_op(Op opcode, SType stype)
+{
   switch (opcode) {
-    case Op::UPLUS:      return umaker_ptr();
-    case Op::UMINUS:     return umaker_ptr();
+    case Op::UPLUS:      return resolve_op_uplus(stype);
+    case Op::UMINUS:     return resolve_op_uminus(stype);
     case Op::UINVERT:    return umaker_ptr();
     case Op::ISFINITE:   return umaker_ptr();
     case Op::ISINF:      return umaker_ptr();

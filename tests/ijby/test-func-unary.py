@@ -93,7 +93,9 @@ def test_dt_neg(src):
     DT = dt.Frame(src)
     RES = DT[:, -f[0]]
     frame_integrity_check(RES)
-    assert RES.stype == dt.int8 if DT.stype == dt.bool8 else DT.stype
+    stype0 = dt.int32 if DT.stype in [dt.bool8, dt.int8, dt.int16] else \
+             DT.stype
+    assert RES.stype == stype0
     assert_equals(RES, dt.Frame([neg(x) for x in src], stype=RES.stype))
 
 
@@ -118,8 +120,8 @@ def test_dt_pos(src):
     dtr = DT[:, +f[0]]
     frame_integrity_check(dtr)
     stype0 = DT.stype
-    if stype0 == stype.bool8:
-        stype0 = stype.int8
+    if stype0 in [stype.bool8, stype.int8, stype.int16]:
+        stype0 = stype.int32
     assert dtr.stype == stype0
     assert list_equals(dtr.to_list()[0], list(src))
 
