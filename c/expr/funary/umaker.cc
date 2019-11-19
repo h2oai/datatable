@@ -46,67 +46,68 @@ static std::unordered_map<size_t, umaker_ptr> umakers_library;
 umaker_ptr resolve_op(Op opcode, SType stype)
 {
   switch (opcode) {
+    // Basic
     case Op::UPLUS:      return resolve_op_uplus(stype);
     case Op::UMINUS:     return resolve_op_uminus(stype);
-    case Op::UINVERT:    return umaker_ptr();
+    case Op::UINVERT:    return resolve_op_uinvert(stype);
+
+    // Math: trigonometric
+    case Op::SIN:        return umaker_ptr();
+    case Op::COS:        return umaker_ptr();
+    case Op::TAN:        return umaker_ptr();
+    case Op::ARCSIN:     return umaker_ptr();
+    case Op::ARCCOS:     return umaker_ptr();
+    case Op::ARCTAN:     return umaker_ptr();
+    case Op::DEG2RAD:    return umaker_ptr();
+    case Op::RAD2DEG:    return umaker_ptr();
+
+    // Math: hyperbolic
+    case Op::SINH:       return umaker_ptr();
+    case Op::COSH:       return umaker_ptr();
+    case Op::TANH:       return umaker_ptr();
+    case Op::ARSINH:     return umaker_ptr();
+    case Op::ARCOSH:     return umaker_ptr();
+    case Op::ARTANH:     return umaker_ptr();
+
+    // Math: exponential/power
+    case Op::CBRT:       return umaker_ptr();
+    case Op::EXP:        return umaker_ptr();
+    case Op::EXP2:       return umaker_ptr();
+    case Op::EXPM1:      return umaker_ptr();
+    case Op::LOG:        return umaker_ptr();
+    case Op::LOG10:      return umaker_ptr();
+    case Op::LOG1P:      return umaker_ptr();
+    case Op::LOG2:       return umaker_ptr();
+    case Op::LOGADDEXP:  return umaker_ptr();
+    case Op::LOGADDEXP2: return umaker_ptr();
+    case Op::SQRT:       return umaker_ptr();
+    case Op::SQUARE:     return umaker_ptr();
+
+    // Math: special
+    case Op::ERF:        return umaker_ptr();
+    case Op::ERFC:       return umaker_ptr();
+    case Op::GAMMA:      return umaker_ptr();
+    case Op::LGAMMA:     return umaker_ptr();
+
+    // Math: floating-point
     case Op::ISFINITE:   return umaker_ptr();
     case Op::ISINF:      return umaker_ptr();
     case Op::ISNA:       return umaker_ptr();
+    case Op::CEIL:       return umaker_ptr();
+    case Op::COPYSIGN:   return umaker_ptr();
     case Op::ABS:        return umaker_ptr();
+    case Op::FABS:       return umaker_ptr();
+    case Op::FLOOR:      return umaker_ptr();
+    case Op::NEXTAFTER:  return umaker_ptr();
+    case Op::SIGN:       return umaker_ptr();
+    case Op::SIGNBIT:    return umaker_ptr();
+    case Op::TRUNC:      return umaker_ptr();
+
+    // Misc
     case Op::LEN:        return umaker_ptr();
-
-    // Math: trigonometric
-    case Op::SIN:
-    case Op::COS:
-    case Op::TAN:
-    case Op::ARCSIN:
-    case Op::ARCCOS:
-    case Op::ARCTAN:
-    case Op::DEG2RAD:
-    case Op::RAD2DEG:
-
-    // Math: hyperbolic
-    case Op::SINH:
-    case Op::COSH:
-    case Op::TANH:
-    case Op::ARSINH:
-    case Op::ARCOSH:
-    case Op::ARTANH:
-
-    // Math: exponential/power
-    case Op::CBRT:
-    case Op::EXP:
-    case Op::EXP2:
-    case Op::EXPM1:
-    case Op::LOG:
-    case Op::LOG10:
-    case Op::LOG1P:
-    case Op::LOG2:
-    case Op::LOGADDEXP:
-    case Op::LOGADDEXP2:
-    case Op::SQRT:
-    case Op::SQUARE:
-
-    // Math: special
-    case Op::ERF:
-    case Op::ERFC:
-    case Op::GAMMA:
-    case Op::LGAMMA:
-
-    // Math: floating-point
-    case Op::CEIL:
-    case Op::COPYSIGN:
-    case Op::FABS:
-    case Op::FLOOR:
-    case Op::NEXTAFTER:
-    case Op::SIGN:
-    case Op::SIGNBIT:
-    case Op::TRUNC:
-
-    // Math: misc
-    case Op::CLIP:
-    case Op::MAXIMUM:
-    case Op::MINIMUM:   return umaker_ptr();
+    case Op::CLIP:       return umaker_ptr();
+    case Op::MAXIMUM:    return umaker_ptr();
+    case Op::MINIMUM:    return umaker_ptr();
 
     default: throw RuntimeError() << "Unknown unary op " << int(opcode);
   }

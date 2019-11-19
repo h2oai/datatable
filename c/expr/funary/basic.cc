@@ -93,4 +93,48 @@ umaker_ptr resolve_op_uminus(SType stype)
 
 
 
+//------------------------------------------------------------------------------
+// Op::UINVERT (~)
+//------------------------------------------------------------------------------
+
+template <typename T>
+static inline T op_invert(T x) {
+  return ~x;
+}
+
+static inline int8_t op_invert_bool(int8_t x) {
+  return !x;
+}
+
+
+template <typename T>
+static umaker_ptr _uinvert() {
+  return umaker1<T, T>::make(op_invert<T>, SType::VOID, stype_from<T>());
+}
+
+
+/**
+  * Unary operator `~` acts as logical NOT on a boolean column,
+  * and as a bitwise inverse on integer columns. Integer promotions
+  * are not applied. The operator is not applicable to floating-point
+  * or string columns.
+  */
+umaker_ptr resolve_op_uinvert(SType stype)
+{
+  switch (stype) {
+    case SType::VOID:    return umaker_ptr(new umaker_copy());
+    case SType::BOOL:    return umaker1<int8_t, int8_t>::make(op_invert_bool, SType::VOID, SType::BOOL);
+    case SType::INT8:    return _uinvert<int8_t>();
+    case SType::INT16:   return _uinvert<int16_t>();
+    case SType::INT32:   return _uinvert<int32_t>();
+    case SType::INT64:   return _uinvert<int64_t>();
+    default:
+      throw TypeError() << "Cannot apply unary `operator ~` to a column with "
+                           "stype `" << stype << "`";
+  }
+}
+
+
+
+
 }}  // namespace dt::expr
