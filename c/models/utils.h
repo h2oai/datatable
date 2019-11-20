@@ -96,5 +96,4 @@ inline T1 squared_loss(T1 p, T2 y) {
   return (p - y_T1) * (p - y_T1);
 }
 
-
 #endif

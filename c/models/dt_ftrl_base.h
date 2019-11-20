@@ -22,7 +22,6 @@
 #ifndef dt_MODELS_FTRL_BASE_h
 #define dt_MODELS_FTRL_BASE_h
 #include "options.h"
-#include "models/utils.h"
 #include "str/py_str.h"
 namespace dt {
 
@@ -112,7 +111,6 @@ class FtrlBase {
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
     virtual py::oobj get_labels() = 0;
-    static size_t get_nthreads(size_t);
     static size_t get_work_amount(size_t);
 
     // Setters

@@ -591,8 +591,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   // Set work amount to be reported by the zero thread.
   dt::progress::work job(work_total);
   job.set_message("Fitting");
+  NThreads nthreads = nthreads_from_niters(iteration_nrows, MIN_ROWS_PER_THREAD);
 
-  dt::parallel_region(NThreads(get_nthreads(iteration_nrows)),
+  dt::parallel_region(nthreads,
     [&]() {
       // Each thread gets a private storage for hashes,
       // temporary weights and feature importances.
@@ -827,12 +828,11 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
                                  << "the model was trained in an unknown mode";
   }
 
-  size_t nthreads = get_nthreads(dt_X->nrows());
-  nthreads = std::min(std::max(nthreads, 1lu), dt::num_threads_in_pool());
+  NThreads nthreads = nthreads_from_niters(dt_X->nrows(), MIN_ROWS_PER_THREAD);
   bool k_binomial;
 
   // Set progress reporting
-  size_t work_total = dt_X->nrows() / nthreads;
+  size_t work_total = dt_X->nrows() / nthreads.get();
   dt::progress::work job(work_total);
   job.set_message("Predicting");
 

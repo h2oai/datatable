@@ -33,25 +33,16 @@ FtrlBase::~FtrlBase() {}
 
 
 /**
- *  Calculate how many threads we need to run FTRL on.
- */
-size_t FtrlBase::get_nthreads(size_t nrows) {
-  size_t nth = (nrows > MIN_ROWS_PER_THREAD)?
-               std::min(dt::num_threads_in_pool(), nrows / MIN_ROWS_PER_THREAD) :
-               1;
-  return nth;
-}
-
-
-/**
  *  Calculate work amount, i.e. number of rows, to be processed
  *  by the zero thread for a MIN_ROWS_PER_THREAD chunk size.
  */
 size_t FtrlBase::get_work_amount(size_t nrows) {
   size_t chunk_size = MIN_ROWS_PER_THREAD;
-  size_t nthreads = get_nthreads(nrows);
-  size_t chunk_rows = chunk_size * (nrows / (nthreads * chunk_size));
-  size_t residual_rows = std::min(nrows - chunk_rows * nthreads, chunk_size);
+  NThreads nthreads(nthreads_from_niters(nrows, MIN_ROWS_PER_THREAD));
+  size_t nth = nthreads.get();
+
+  size_t chunk_rows = chunk_size * (nrows / (nth * chunk_size));
+  size_t residual_rows = std::min(nrows - chunk_rows * nth, chunk_size);
   return chunk_rows + residual_rows;
 }
 

@@ -49,6 +49,7 @@ class NThreads {
       size_t n0 = num_threads_in_pool();
       value = (nth == 0 || nth >= n0) ? n0 : nth;
     }
+
     NThreads(const NThreads&) = default;
 
     size_t get() const {
@@ -57,6 +58,15 @@ class NThreads {
     }
 };
 
+
+
+/**
+ * Create NThreads object with the number of threads calculated
+ * from the number of iterations and the minimum number of
+ * iterations per thread.
+ */
+NThreads nthreads_from_niters(size_t niters,
+                              size_t min_iters_per_thread = 1000);
 
 
 }  // namespace dt

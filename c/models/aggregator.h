@@ -23,6 +23,7 @@
 #include <memory>     // std::unique_ptr
 #include <vector>     // std::vector
 #include "models/column_convertor.h"
+#include "parallel/api.h"
 #include "python/obj.h"
 
 
@@ -58,11 +59,14 @@ class Aggregator : public AggregatorBase {
     };
     using exptr = std::unique_ptr<exemplar>;
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
-               unsigned int, unsigned int);
+               unsigned int, size_t);
     void aggregate(DataTable*, dtptr&, dtptr&) override;
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
     static size_t n_merged_nas(const intvec&);
+
+    // Minimum number of rows a thread will get for an aggregation.
+    static constexpr size_t MIN_ROWS_PER_THREAD = 1000;
 
   private:
     // Input parameters and datatable
@@ -74,7 +78,10 @@ class Aggregator : public AggregatorBase {
     size_t nd_max_bins;
     size_t max_dimensions;
     unsigned int seed;
-    unsigned int nthreads;
+    size_t: 32;
+
+    // Number of threads used for parallelization.
+    dt::NThreads nthreads;
 
     // Output exemplar and member datatables
     dtptr dt_exemplars;

@@ -53,14 +53,14 @@ Column map_str2str(const Column& input_col, F f) {
   writable_string_col output_col(nrows, use_str64);
 
   // Do not allow the case of nrows==0 here, because then `nrows-1` overflows
-  constexpr size_t min_nrows_per_thread = 100;
-  size_t nthreads = nrows / min_nrows_per_thread;
   size_t nchunks = 1 + (nrows - 1)/1000;
   size_t chunksize = 1 + (nrows - 1)/nchunks;
 
+  constexpr size_t min_nrows_per_thread = 100;
+  NThreads nthreads = nthreads_from_niters(nrows, min_nrows_per_thread);
   dt::parallel_for_ordered(
     nchunks,
-    NThreads(nthreads),  // will be truncated to pool size if necessary
+    nthreads,
     [&](ordered* o) {
       auto sb = output_col.make_buffer();
 
