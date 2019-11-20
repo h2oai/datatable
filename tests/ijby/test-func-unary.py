@@ -185,21 +185,19 @@ def test_dt_isfinite(src):
     assert DT1.to_list()[0] == pyans
 
 
-@pytest.mark.parametrize("src", srcs_int + srcs_float)
-def test_dt_isfinite_scalar_not_implemented(src):
+@pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float)
+def test_dt_isfinite_scalar(src):
     for val in src:
-        with pytest.raises(NotImplementedError,
-                           match = "This operation is not implemented yet"):
-            dt.math.isfinite(val)
+        exp = not (val is None or abs(val) == math.inf)
+        assert dt.math.isfinite(val) == exp
 
 
-@pytest.mark.parametrize("src", [srcs_bool[0], srcs_str[0]])
-def test_dt_isfinite_scalar_wrong_arg(src):
-    for val in src:
-        with pytest.raises(TypeError,
-                           match = r"Function `isfinite\(\)` cannot be applied "
-                           "to an argument of type " + str(type(val))):
-            dt.math.isfinite(val)
+def test_dt_isfinite_scalar_wrong_arg():
+    with pytest.raises(TypeError, match="Function `isfinite` cannot be applied "
+                                        "to a column of type `str32`"):
+        dt.math.isfinite("hello")
+
+
 
 
 #-------------------------------------------------------------------------------

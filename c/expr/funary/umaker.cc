@@ -99,7 +99,7 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::LGAMMA:    return resolve_op_lgamma(stype);
 
     // Math: floating-point
-    case Op::ISFINITE:  return umaker_ptr();  // resolve_op_isfinite(stype);
+    case Op::ISFINITE:  return resolve_op_isfinite(stype);
     case Op::ISINF:     return resolve_op_isinf(stype);
     case Op::ISNA:      return resolve_op_isna(stype);
     case Op::CEIL:      return umaker_ptr();  // resolve_op_ceil(stype);

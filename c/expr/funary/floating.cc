@@ -247,7 +247,7 @@ py::PKArgs args_isinf(1, 0, 0, false, false, {"x"}, "isinf", doc_isinf);
 // library implementation is not that standard: in some implementation the
 // return value is `bool`, in others it's `int`.
 template <typename T>
-inline static int8_t op_isinf(T x) { return std::isinf(x); }
+static int8_t op_isinf(T x) { return std::isinf(x); }
 
 template <typename T>
 static inline umaker_ptr _isinf() {
@@ -273,6 +273,66 @@ umaker_ptr resolve_op_isinf(SType stype) {
   }
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Op::ISFINITE
+//------------------------------------------------------------------------------
+
+static const char* doc_isfinite =
+R"(isfinite(x)
+--
+
+Returns True if x has a finite value, and False if x is infinity
+or NaN. This function is equivalent to ``!(isna(x) or isinf(x))``.
+)";
+
+py::PKArgs args_isfinite(1, 0, 0, false, false, {"x"}, "isfinite", doc_isfinite);
+
+
+template <typename T>
+static bool op_isfinite(T x, bool xvalid, int8_t* out) {
+  *out = xvalid && std::isfinite(x);
+  return true;
+}
+
+template <typename T>
+static bool op_notna(T, bool xvalid, int8_t* out) {
+  *out = xvalid;
+  return true;
+}
+
+
+template <typename T>
+static umaker_ptr _isfinite_int(SType uptype = SType::VOID) {
+  return umaker2<T, int8_t>::make(op_notna<T>, uptype, SType::BOOL);
+}
+
+template <typename T>
+static umaker_ptr _isfinite_float() {
+  return umaker2<T, int8_t>::make(op_isfinite<T>, SType::VOID, SType::BOOL);
+}
+
+
+umaker_ptr resolve_op_isfinite(SType stype) {
+  switch (stype) {
+    case SType::VOID: {
+      return umaker_ptr(new umaker_const(
+                            Const_ColumnImpl::make_bool_column(1, false)));
+    }
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:   return _isfinite_int<int32_t>(SType::INT32);
+    case SType::INT32:   return _isfinite_int<int32_t>();
+    case SType::INT64:   return _isfinite_int<int64_t>();
+    case SType::FLOAT32: return _isfinite_float<float>();
+    case SType::FLOAT64: return _isfinite_float<double>();
+    default:
+      throw TypeError() << "Function `isfinite` cannot be applied to a "
+                           "column of type `" << stype << "`";
+  }
+}
 
 
 

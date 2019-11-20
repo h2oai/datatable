@@ -76,23 +76,6 @@ static Column vcol_id(Column&& arg) {
 
 
 
-template <typename T>
-inline static bool op_notna(T, bool isvalid, int8_t* out) {
-  *out = isvalid;
-  return true;
-}
-
-
-
-
-template <typename T>
-inline static bool op_isfinite(T x, bool isvalid, int8_t* out) {
-  *out = isvalid && std::isfinite(x);
-  return true;
-}
-
-
-
 /*
 inline static bool op_str_len_ascii(CString str, bool isvalid, int64_t* out) {
   *out = str.size;
@@ -217,12 +200,6 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 // Floating-point functions
 //------------------------------------------------------------------------------
-
-static py::PKArgs args_isfinite(
-  1, 0, 0, false, false, {"x"}, "isfinite",
-R"(Returns True if the argument has a finite value, and
-False if the argument is +/- infinity or NaN.)");
-
 
 static py::PKArgs args_ceil(
   1, 0, 0, false, false, {"x"}, "ceil",
@@ -362,15 +339,6 @@ unary_infos::unary_infos() {
   constexpr SType str32 = SType::STR32;
   constexpr SType str64 = SType::STR64;
 
-  add_op(Op::ISFINITE, "isfinite", &args_isfinite);
-  add<Op::ISFINITE, bool8, bool8, op_notna<int8_t>>();
-  add<Op::ISFINITE, int8,  bool8, op_notna<int8_t>>();
-  add<Op::ISFINITE, int16, bool8, op_notna<int16_t>>();
-  add<Op::ISFINITE, int32, bool8, op_notna<int32_t>>();
-  add<Op::ISFINITE, int64, bool8, op_notna<int64_t>>();
-  add<Op::ISFINITE, flt32, bool8, op_isfinite<float>>();
-  add<Op::ISFINITE, flt64, bool8, op_isfinite<double>>();
-
   add_op(Op::CEIL, "ceil", &args_ceil);
   add_copy(Op::CEIL, bool8, flt64);
   add_copy(Op::CEIL, int8,  flt64);
@@ -410,6 +378,5 @@ void py::DatatableModule::init_unops() {
   using namespace dt::expr;
   ADD_FN(&unary_pyfn, args_ceil);
   ADD_FN(&unary_pyfn, args_floor);
-  ADD_FN(&unary_pyfn, args_isfinite);
   ADD_FN(&unary_pyfn, args_trunc);
 }
