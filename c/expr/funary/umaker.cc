@@ -106,6 +106,7 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::ABS:       return resolve_op_abs(stype);
     case Op::FABS:      return resolve_op_fabs(stype);
     case Op::FLOOR:     return resolve_op_floor(stype);
+    case Op::RINT:      return resolve_op_rint(stype);
     case Op::SIGN:      return resolve_op_sign(stype);
     case Op::SIGNBIT:   return resolve_op_signbit(stype);
     case Op::TRUNC:     return resolve_op_trunc(stype);

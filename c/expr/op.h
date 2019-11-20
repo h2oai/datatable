@@ -78,7 +78,7 @@ enum class Op : size_t {
 
   // String
   RE_MATCH = STRING_FIRST,  // head_func_other.cc
-  LEN,
+  LEN,                      // funary/basic.cc
 
   // Reducers
   MEAN = REDUCER_FIRST,     // head_reduce_unary.cc
@@ -148,7 +148,7 @@ enum class Op : size_t {
   ISNA,                     // funary/floating.cc
   LDEXP,
   NEXTAFTER,
-  RINT,
+  RINT,                     // fumary/floating.cc
   SIGN,                     // funary/floating.cc
   SIGNBIT,                  // funary/floating.cc
   SPACING,

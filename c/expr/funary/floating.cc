@@ -414,6 +414,44 @@ umaker_ptr resolve_op_floor(SType stype) {
 
 
 //------------------------------------------------------------------------------
+// Op::RINT
+//------------------------------------------------------------------------------
+
+static const char* doc_rint =
+R"(rint(x)
+--
+
+Round the value `x` to the nearest integer.
+)";
+
+py::PKArgs args_rint(1, 0, 0, false, false, {"x"}, "rint", doc_rint);
+
+
+template <typename T>
+static umaker_ptr _rint() {
+  return umaker1<T, T>::make(std::rint, SType::VOID, stype_from<T>());
+}
+
+umaker_ptr resolve_op_rint(SType stype) {
+  switch (stype) {
+    case SType::VOID:    return umaker_ptr(new umaker_nacol());
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64:   return umaker_ptr(new umaker_cast(SType::FLOAT64));
+    case SType::FLOAT32: return _rint<float>();
+    case SType::FLOAT64: return _rint<double>();
+    default:
+      throw TypeError() << "Function `rint` cannot be applied to a "
+                           "column of type `" << stype << "`";
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // Op::TRUNC
 //------------------------------------------------------------------------------
 

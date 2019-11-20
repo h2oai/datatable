@@ -50,6 +50,7 @@ from .lib._datatable import (
     log1p,
     log2,
     rad2deg,
+    rint,
     sign,
     signbit,
     sin,

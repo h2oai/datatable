@@ -75,6 +75,7 @@ extern py::PKArgs args_abs;
 extern py::PKArgs args_fabs;
 extern py::PKArgs args_floor;
 extern py::PKArgs args_nextafter;
+extern py::PKArgs args_rint;
 extern py::PKArgs args_sign;
 extern py::PKArgs args_signbit;
 extern py::PKArgs args_trunc;
