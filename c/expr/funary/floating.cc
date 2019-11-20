@@ -456,4 +456,48 @@ umaker_ptr resolve_op_trunc(SType stype) {
 
 
 
+//------------------------------------------------------------------------------
+// Op::SIGNBIT
+//------------------------------------------------------------------------------
+
+static const char* doc_signbit =
+R"(signbit(x)
+--
+
+Returns True if x is negative (its sign bit is set), and False if
+x is positive. This function is able to distinguish between -0.0 and
++0.0, returning True/False respectively. If x is an NA value, this
+function will also return NA.
+)";
+
+py::PKArgs args_signbit(1, 0, 0, false, false, {"x"}, "signbit", doc_signbit);
+
+
+template <typename T>
+static int8_t op_signbit(T x) { return std::signbit(x); }
+
+template <typename T>
+static umaker_ptr _signbit(SType uptype = SType::VOID) {
+  return umaker1<T, int8_t>::make(op_signbit<T>, uptype, SType::BOOL);
+}
+
+umaker_ptr resolve_op_signbit(SType stype) {
+  switch (stype) {
+    case SType::VOID:    return umaker_ptr(new umaker_nacol());
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64:   return _signbit<double>(SType::FLOAT64);
+    case SType::FLOAT32: return _signbit<float>();
+    case SType::FLOAT64: return _signbit<double>();
+    default:
+      throw TypeError() << "Function `signbit` cannot be applied to a "
+                           "column of type `" << stype << "`";
+  }
+}
+
+
+
+
 }}  // namespace dt::expr

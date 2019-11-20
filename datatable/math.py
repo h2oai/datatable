@@ -51,6 +51,7 @@ from .lib._datatable import (
     log2,
     rad2deg,
     sign,
+    signbit,
     sin,
     sinh,
     sqrt,
