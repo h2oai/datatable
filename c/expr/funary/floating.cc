@@ -336,4 +336,43 @@ umaker_ptr resolve_op_isfinite(SType stype) {
 
 
 
+
+//------------------------------------------------------------------------------
+// Op::CEIL
+//------------------------------------------------------------------------------
+
+static const char* doc_ceil =
+R"(ceil(x)
+--
+
+The smallest integer value not less than `x`, returned as float.
+)";
+
+py::PKArgs args_ceil(1, 0, 0, false, false, {"x"}, "ceil", doc_ceil);
+
+
+template <typename T>
+static umaker_ptr _ceil() {
+  return umaker1<T, T>::make(std::ceil, SType::VOID, stype_from<T>());
+}
+
+umaker_ptr resolve_op_ceil(SType stype) {
+  switch (stype) {
+    case SType::VOID:    return umaker_ptr(new umaker_nacol());
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64:   return umaker_ptr(new umaker_cast(SType::FLOAT64));
+    case SType::FLOAT32: return _ceil<float>();
+    case SType::FLOAT64: return _ceil<double>();
+    default:
+      throw TypeError() << "Function `ceil` cannot be applied to a "
+                           "column of type `" << stype << "`";
+  }
+}
+
+
+
+
 }}  // namespace dt::expr

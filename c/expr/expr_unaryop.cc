@@ -201,10 +201,6 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
 // Floating-point functions
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_ceil(
-  1, 0, 0, false, false, {"x"}, "ceil",
-  "The smallest integer value not less than `x`.");
-
 static py::PKArgs args_floor(
   1, 0, 0, false, false, {"x"}, "floor",
   "The largest integer value not greater than `x`.");
@@ -339,15 +335,6 @@ unary_infos::unary_infos() {
   constexpr SType str32 = SType::STR32;
   constexpr SType str64 = SType::STR64;
 
-  add_op(Op::CEIL, "ceil", &args_ceil);
-  add_copy(Op::CEIL, bool8, flt64);
-  add_copy(Op::CEIL, int8,  flt64);
-  add_copy(Op::CEIL, int16, flt64);
-  add_copy(Op::CEIL, int32, flt64);
-  add_copy(Op::CEIL, int64, flt64);
-  add<Op::CEIL, flt32, flt32, std::ceil>();
-  add<Op::CEIL, flt64, flt64, std::ceil>();
-
   add_op(Op::FLOOR, "floor", &args_floor);
   add_copy(Op::FLOOR, bool8, flt64);
   add_copy(Op::FLOOR, int8,  flt64);
@@ -376,7 +363,6 @@ unary_infos::unary_infos() {
 
 void py::DatatableModule::init_unops() {
   using namespace dt::expr;
-  ADD_FN(&unary_pyfn, args_ceil);
   ADD_FN(&unary_pyfn, args_floor);
   ADD_FN(&unary_pyfn, args_trunc);
 }
