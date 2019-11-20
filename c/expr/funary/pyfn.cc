@@ -174,7 +174,6 @@ void py::DatatableModule::init_funary()
   FUNARY(args_abs,       Op::ABS);
   FUNARY(args_fabs,      Op::FABS);
   FUNARY(args_floor,     Op::FLOOR);
-  // FUNARY(args_nextafter, Op::NEXTAFTER);
   FUNARY(args_sign,      Op::SIGN);
   FUNARY(args_signbit,   Op::SIGNBIT);
   FUNARY(args_trunc,     Op::TRUNC);

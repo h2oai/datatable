@@ -131,7 +131,6 @@ umaker_ptr resolve_op_ceil(SType);
 umaker_ptr resolve_op_abs(SType);
 umaker_ptr resolve_op_fabs(SType);
 umaker_ptr resolve_op_floor(SType);
-umaker_ptr resolve_op_nextafter(SType);
 umaker_ptr resolve_op_sign(SType);
 umaker_ptr resolve_op_signbit(SType);
 umaker_ptr resolve_op_trunc(SType);
