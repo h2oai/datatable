@@ -30,8 +30,8 @@ namespace expr {
 // Op::ARCTAN2
 //------------------------------------------------------------------------------
 
-static const char* doc_atan2 =
-R"(atan2(x, y)
+static const char* doc_arctan2 =
+R"(arctan2(x, y)
 --
 
 Arc-tangent of y/x, taking into account the signs of x and y.
@@ -41,7 +41,7 @@ and the horizontal abscissae Ox. When both x and y are zero, the
 return value is zero.)";
 
 static
-py::PKArgs args_arctan2(2, 0, 0, false, false, {"x", "y"}, "atan2", doc_atan2);
+py::PKArgs args_arctan2(2, 0, 0, false, false, {"x", "y"}, "arctan2", doc_arctan2);
 
 
 

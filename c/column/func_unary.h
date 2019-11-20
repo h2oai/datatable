@@ -69,7 +69,7 @@ class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
   */
 template <typename TI, typename TO>
 class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
-  using func_t = bool(*)(TI, bool, TO*);
+  using func_t = bool(*)(typename _ref<TI>::t, bool, TO*);
   protected:
     Column arg_;
     func_t func_;

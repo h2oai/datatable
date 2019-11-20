@@ -22,7 +22,6 @@
 #include <unordered_map>
 #include "column/const.h"
 #include "expr/funary/umaker.h"
-#include "expr/expr_unaryop.h"   // TODO: remove
 #include "utils/assert.h"
 #include "column.h"
 namespace dt {
@@ -61,6 +60,7 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::UPLUS:     return resolve_op_uplus(stype);
     case Op::UMINUS:    return resolve_op_uminus(stype);
     case Op::UINVERT:   return resolve_op_uinvert(stype);
+    case Op::LEN:       return resolve_op_len(stype);
 
     // Math: trigonometric
     case Op::SIN:       return resolve_op_sin(stype);
@@ -110,12 +110,6 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::SIGNBIT:   return resolve_op_signbit(stype);
     case Op::TRUNC:     return resolve_op_trunc(stype);
 
-    // Misc
-    case Op::LEN:       return umaker_ptr();
-    case Op::CLIP:      return umaker_ptr();
-    case Op::MAXIMUM:   return umaker_ptr();
-    case Op::MINIMUM:   return umaker_ptr();
-
     default: throw RuntimeError() << "Unknown unary op " << int(opcode);
   }
 }
@@ -124,22 +118,11 @@ umaker_ptr resolve_op(Op opcode, SType stype)
 
 
 //------------------------------------------------------------------------------
-// Main unaryop function
+// Main unaryop functions
 //------------------------------------------------------------------------------
 
-Column unaryop(Op opcode, Column&& col)
-{
+Column unaryop(Op opcode, Column&& col) {
   const auto& maker = get_umaker(opcode, col.stype());
-
-  if (!maker) {  // fallback to OLD code
-    const auto& info = unary_library.get_infox(opcode, col.stype());
-    if (info.cast_stype != SType::VOID) {
-      col.cast_inplace(info.cast_stype);
-    }
-    return info.vcolfn(std::move(col));
-  }
-
-  xassert(maker);
   return maker->compute(std::move(col));
 }
 

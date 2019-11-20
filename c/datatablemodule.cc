@@ -14,7 +14,6 @@
 #include <utility>         // std::pair, std::make_pair, std::move
 #include "../datatable/include/datatable.h"
 #include "csv/reader.h"
-#include "expr/expr_unaryop.h"
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
 #include "expr/py_by.h"              // py::oby

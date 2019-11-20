@@ -86,6 +86,7 @@ umaker_ptr resolve_op(Op, SType);
 umaker_ptr resolve_op_uplus(SType);
 umaker_ptr resolve_op_uminus(SType);
 umaker_ptr resolve_op_uinvert(SType);
+umaker_ptr resolve_op_len(SType);
 
 // Trigonometric
 umaker_ptr resolve_op_sin(SType);

@@ -37,14 +37,6 @@ class OpCodes(enum.Enum):
     UPLUS = 101
     UMINUS = 102
     UINVERT = 103
-    ISFINITE = 104
-    ISINF = 105
-    ISNA = 106
-    ABS = 107
-    CEIL = 108
-    FLOOR = 109
-    TRUNC = 110
-    LEN = 111
 
     # Binary
     PLUS = 201
@@ -53,7 +45,7 @@ class OpCodes(enum.Enum):
     DIVIDE = 204
     INTDIV = 205
     MODULO = 206
-    POWER = 207
+    POWEROP = 207
     AND = 208
     XOR = 209
     OR = 210
@@ -68,6 +60,7 @@ class OpCodes(enum.Enum):
 
     # String
     RE_MATCH = 301
+    LEN = 302
 
     # Reducers
     MEAN = 401
@@ -114,26 +107,43 @@ class OpCodes(enum.Enum):
     LOG2 = 524
     LOGADDEXP = 525
     LOGADDEXP2 = 526
-    SQRT = 527
-    SQUARE = 528
+    POWERFN = 527
+    SQRT = 528
+    SQUARE = 529
 
     # Math: special
-    ERF = 529
-    ERFC = 530
-    GAMMA = 531
-    LGAMMA = 532
+    ERF = 530
+    ERFC = 531
+    GAMMA = 532
+    LGAMMA = 533
+
+    # Math: floating-point
+    ABS = 534
+    CEIL = 535
+    COPYSIGN = 536
+    FABS = 537
+    FLOOR = 538
+    FREXP = 539
+    ISCLOSE = 540
+    ISFINITE = 541
+    ISINF = 542
+    ISNA = 543
+    LDEXP = 544
+    NEXTAFTER = 545
+    RINT = 546
+    SIGN = 547
+    SIGNBIT = 548
+    SPACING = 549
+    TRUNC = 550
 
     # Math: misc
-    COPYSIGN = 533
-    FABS = 534
-    LDEXP = 535
-    NEXTAFTER = 536
-    SIGN = 537
-    SIGNBIT = 538
-    CLIP = 539
-    MAXIMUM = 540
-    MINIMUM = 541
-    FMOD = 542
+    CLIP = 551
+    DIVMOD = 552
+    FMOD = 553
+    MAXIMUM = 554
+    MINIMUM = 555
+    MODF = 556
+
 
 
 #-------------------------------------------------------------------------------
@@ -203,7 +213,7 @@ class Expr:
         return Expr(OpCodes.MODULO, (self, other))
 
     def __pow__(self, other):
-        return Expr(OpCodes.POWER, (self, other))
+        return Expr(OpCodes.POWEROP, (self, other))
 
     def __and__(self, other):
         return Expr(OpCodes.AND, (self, other))
@@ -240,7 +250,7 @@ class Expr:
         return Expr(OpCodes.MODULO, (other, self))
 
     def __rpow__(self, other):
-        return Expr(OpCodes.POWER, (other, self))
+        return Expr(OpCodes.POWEROP, (other, self))
 
     def __rand__(self, other):
         return Expr(OpCodes.AND, (other, self))

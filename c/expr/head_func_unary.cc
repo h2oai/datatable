@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #include "expr/funary/umaker.h"
 #include "expr/expr.h"
-#include "expr/expr_unaryop.h"  // TODO: merge into this file
 #include "expr/head_func.h"
 #include "expr/workframe.h"
 #include "utils/assert.h"

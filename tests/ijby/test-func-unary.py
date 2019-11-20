@@ -349,8 +349,8 @@ def test_len2():
 
 def test_len_wrong_col():
     DT = dt.Frame(range(34))
-    with pytest.raises(TypeError, match=r"Cannot apply function `len\(\)` to a "
-                                        r"column with stype `int32`"):
+    with pytest.raises(TypeError, match="Function `len` cannot be applied to "
+                                        "a column of type `int32`"):
         assert DT[:, f[0].len()]
 
 
