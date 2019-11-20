@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/fbinary/bimaker.h"
 #include "expr/fbinary/bimaker_impl.h"
+#include "python/args.h"
 namespace dt {
 namespace expr {
 
@@ -76,6 +77,10 @@ equivalent to ``log(exp(x) + exp(y))``, but does not suffer from
 catastrophic precision loss for small values of x and y.
 )";
 
+static
+py::PKArgs args_logaddexp(2, 0, 0, false, false, {"x", "y"}, "logaddexp",
+                          doc_logaddexp);
+
 
 
 
@@ -92,6 +97,10 @@ function is equivalent to ``log2(exp2(x) + exp2(y))``, but does
 not suffer from catastrophic precision loss for small values of
 x and y.
 )";
+
+static
+py::PKArgs args_logaddexp2(2, 0, 0, false, false, {"x", "y"}, "logaddexp2",
+                           doc_logaddexp2);
 
 
 

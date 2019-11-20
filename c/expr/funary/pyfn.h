@@ -56,6 +56,12 @@ extern py::PKArgs args_log2;
 extern py::PKArgs args_sqrt;
 extern py::PKArgs args_square;
 
+// Special
+extern py::PKArgs args_erf;
+extern py::PKArgs args_erfc;
+extern py::PKArgs args_gamma;
+extern py::PKArgs args_lgamma;
+
 
 
 

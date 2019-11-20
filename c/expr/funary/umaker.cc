@@ -82,10 +82,10 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::SQUARE:    return resolve_op_square(stype);
 
     // Math: special
-    case Op::ERF:       return umaker_ptr();
-    case Op::ERFC:      return umaker_ptr();
-    case Op::GAMMA:     return umaker_ptr();
-    case Op::LGAMMA:    return umaker_ptr();
+    case Op::ERF:       return resolve_op_erf(stype);
+    case Op::ERFC:      return resolve_op_erfc(stype);
+    case Op::GAMMA:     return resolve_op_gamma(stype);
+    case Op::LGAMMA:    return resolve_op_lgamma(stype);
 
     // Math: floating-point
     case Op::ISFINITE:  return umaker_ptr();

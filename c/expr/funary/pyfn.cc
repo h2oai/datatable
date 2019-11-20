@@ -180,4 +180,10 @@ void py::DatatableModule::init_funary()
   FUNARY(args_log2,    Op::LOG2);
   FUNARY(args_sqrt,    Op::SQRT);
   FUNARY(args_square,  Op::SQUARE);
+
+  // Special
+  FUNARY(args_erf,     Op::ERF);
+  FUNARY(args_erfc,    Op::ERFC);
+  FUNARY(args_gamma,   Op::GAMMA);
+  FUNARY(args_lgamma,  Op::LGAMMA);
 }

@@ -248,52 +248,6 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
 
 
 //------------------------------------------------------------------------------
-// Special mathematical functions
-//------------------------------------------------------------------------------
-
-static py::PKArgs args_erf(
-  1, 0, 0, false, false, {"x"}, "erf",
-R"(Error function erf(x).
-
-The error function is defined as the integral
-  erf(x) = 2/sqrt(pi) * Integrate[exp(-t**2), {t, 0, x}]
-)");
-
-static py::PKArgs args_erfc(
-  1, 0, 0, false, false, {"x"}, "erfc",
-R"(Complementary error function `erfc(x) = 1 - erf(x)`.
-
-The complementary error function is defined as the integral
-  erfc(x) = 2/sqrt(pi) * Integrate[exp(-t**2), {t, x, +inf}]
-
-Although mathematically `erfc(x) = 1-erf(x)`, in practice the RHS
-suffers catastrophic loss of precision at large values of `x`. This
-function, however, does not have such drawback.
-)");
-
-static py::PKArgs args_gamma(
-  1, 0, 0, false, false, {"x"}, "gamma",
-R"(Euler Gamma function of x.
-
-The gamma function is defined for all positive `x` as the integral
-  gamma(x) = Integrate[t**(x-1) * exp(-t), {t, 0, +inf}]
-
-In addition, for non-integer negative `x` the function is defined
-via the relationship
-  gamma(x) = gamma(x + k)/[x*(x+1)*...*(x+k-1)]
-  where k = ceil(|x|)
-
-If `x` is a positive integer, then `gamma(x) = (x - 1)!`.
-)");
-
-static py::PKArgs args_lgamma(
-  1, 0, 0, false, false, {"x"}, "lgamma",
-R"(Natural logarithm of absolute value of gamma function of x.)");
-
-
-
-
-//------------------------------------------------------------------------------
 // Floating-point functions
 //------------------------------------------------------------------------------
 
@@ -311,11 +265,6 @@ static py::PKArgs args_isinf(
   "Returns True if the argument is +/- infinity, and False otherwise.");
 
 
-
-
-//------------------------------------------------------------------------------
-// Miscellaneous functions
-//------------------------------------------------------------------------------
 
 static py::PKArgs args_fabs(
   1, 0, 0, false, false, {"x"}, "fabs",
@@ -540,12 +489,6 @@ unary_infos::unary_infos() {
   add<Op::LEN, str32, int64, op_str_len_unicode>();
   add<Op::LEN, str64, int64, op_str_len_unicode>();
 
-
-  add_math<&std::erf,    &std::erf>   (Op::ERF,    "erf",    args_erf);
-  add_math<&std::erfc,   &std::erfc>  (Op::ERFC,   "erfc",   args_erfc);
-  add_math<&std::tgamma, &std::tgamma>(Op::GAMMA,  "gamma",  args_gamma);
-  add_math<&std::lgamma, &std::lgamma>(Op::LGAMMA, "lgamma", args_lgamma);
-
   add_math<&std::fabs, &std::fabs>(Op::FABS, "fabs", args_fabs);
   add_math<&fn_sign,   &fn_sign>  (Op::SIGN, "sign", args_sign);
 }
@@ -557,15 +500,11 @@ void py::DatatableModule::init_unops() {
   using namespace dt::expr;
   ADD_FN(&unary_pyfn, args_abs);
   ADD_FN(&unary_pyfn, args_ceil);
-  ADD_FN(&unary_pyfn, args_erf);
-  ADD_FN(&unary_pyfn, args_erfc);
   ADD_FN(&unary_pyfn, args_fabs);
   ADD_FN(&unary_pyfn, args_floor);
-  ADD_FN(&unary_pyfn, args_gamma);
   ADD_FN(&unary_pyfn, args_isfinite);
   ADD_FN(&unary_pyfn, args_isinf);
   ADD_FN(&unary_pyfn, args_isna);
-  ADD_FN(&unary_pyfn, args_lgamma);
   ADD_FN(&unary_pyfn, args_sign);
   ADD_FN(&unary_pyfn, args_trunc);
 }

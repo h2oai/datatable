@@ -68,6 +68,7 @@ using umaker_ptr = std::unique_ptr<umaker>;
 
 
 
+
 //------------------------------------------------------------------------------
 // Resolvers [private]
 //------------------------------------------------------------------------------
@@ -109,6 +110,12 @@ umaker_ptr resolve_op_log1p(SType);
 umaker_ptr resolve_op_log2(SType);
 umaker_ptr resolve_op_sqrt(SType);
 umaker_ptr resolve_op_square(SType);
+
+// Special
+umaker_ptr resolve_op_erf(SType);
+umaker_ptr resolve_op_erfc(SType);
+umaker_ptr resolve_op_gamma(SType);
+umaker_ptr resolve_op_lgamma(SType);
 
 
 
