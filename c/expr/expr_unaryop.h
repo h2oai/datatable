@@ -30,16 +30,6 @@ namespace expr {
 
 
 
-/**
- * Python-facing function that implements an unary operator / single-
- * argument function. This function can take as an argument either a
- * python scalar, or an f-expression, or a Frame (in which case the
- * function is applied to all elements of the frame).
- */
-py::oobj unary_pyfn(const py::PKArgs&);
-
-
-
 
 //------------------------------------------------------------------------------
 // unary_infos
@@ -125,26 +115,19 @@ class unary_infos {
     };
 
     unary_infos();
-    const uinfo* get_infon(Op opcode, SType input_stype) const;
     const uinfo& get_infox(Op opcode, SType input_stype) const;
-    Op get_opcode_from_args(const py::PKArgs&) const;
 
   private:
     std::unordered_map<size_t /* Op, SType */, uinfo> info;
     std::unordered_map<size_t /* Op */, std::string> names;
-    std::unordered_map<const py::PKArgs*, Op> opcodes;
 
     static constexpr size_t id(Op) noexcept;
     static constexpr size_t id(Op, SType) noexcept;
 
-    void add_op(Op op, const char* name, const py::PKArgs* args);
-    void add_copy(Op op, SType input_stype, SType output_stype);
     template <Op OP, SType SI, SType SO, read_t<SO>(*)(read_t<SI>)>
     void add();
     template <Op OP, SType SI, SType SO, bool(*)(read_t<SI>, bool, read_t<SO>*)>
     void add();
-    template <float(*F32)(float), double(*F64)(double)>
-    void add_math(Op, const char*, const py::PKArgs&);
 };
 
 

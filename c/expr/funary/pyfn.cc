@@ -84,6 +84,13 @@ static py::oobj process_frame(dt::expr::Op opcode, py::robj arg) {
   return res;
 }
 
+
+/**
+  * Python-facing function that implements an unary operator / single-
+  * argument function. This function can take as an argument either a
+  * python scalar, or an f-expression, or a Frame (in which case the
+  * function is applied to all elements of the frame).
+  */
 static py::oobj pyfn(const py::PKArgs& args)
 {
   dt::expr::Op opcode = get_opcode_from_args(args);
@@ -167,9 +174,9 @@ void py::DatatableModule::init_funary()
   // FUNARY(args_copysign,  Op::COPYSIGN);
   FUNARY(args_abs,       Op::ABS);
   FUNARY(args_fabs,      Op::FABS);
-  // FUNARY(args_floor,     Op::FLOOR);
+  FUNARY(args_floor,     Op::FLOOR);
   // FUNARY(args_nextafter, Op::NEXTAFTER);
   FUNARY(args_sign,      Op::SIGN);
   // FUNARY(args_signbit,   Op::SIGNBIT);
-  // FUNARY(args_trunc,     Op::TRUNC);
+  FUNARY(args_trunc,     Op::TRUNC);
 }

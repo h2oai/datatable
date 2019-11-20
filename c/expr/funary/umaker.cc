@@ -106,11 +106,11 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::COPYSIGN:  return umaker_ptr();  // resolve_op_copysign(stype);
     case Op::ABS:       return resolve_op_abs(stype);
     case Op::FABS:      return resolve_op_fabs(stype);
-    case Op::FLOOR:     return umaker_ptr();  // resolve_op_floor(stype);
+    case Op::FLOOR:     return resolve_op_floor(stype);
     case Op::NEXTAFTER: return umaker_ptr();  // resolve_op_nextafter(stype);
     case Op::SIGN:      return resolve_op_sign(stype);
     case Op::SIGNBIT:   return umaker_ptr();  // resolve_op_signbit(stype);
-    case Op::TRUNC:     return umaker_ptr();  // resolve_op_trunc(stype);
+    case Op::TRUNC:     return resolve_op_trunc(stype);
 
     // Misc
     case Op::LEN:       return umaker_ptr();

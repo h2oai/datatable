@@ -375,4 +375,85 @@ umaker_ptr resolve_op_ceil(SType stype) {
 
 
 
+//------------------------------------------------------------------------------
+// Op::FLOOR
+//------------------------------------------------------------------------------
+
+static const char* doc_floor =
+R"(floor(x)
+--
+
+The largest integer value not greater than `x`, returned as float.
+)";
+
+py::PKArgs args_floor(1, 0, 0, false, false, {"x"}, "floor", doc_floor);
+
+
+template <typename T>
+static umaker_ptr _floor() {
+  return umaker1<T, T>::make(std::floor, SType::VOID, stype_from<T>());
+}
+
+umaker_ptr resolve_op_floor(SType stype) {
+  switch (stype) {
+    case SType::VOID:    return umaker_ptr(new umaker_nacol());
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64:   return umaker_ptr(new umaker_cast(SType::FLOAT64));
+    case SType::FLOAT32: return _floor<float>();
+    case SType::FLOAT64: return _floor<double>();
+    default:
+      throw TypeError() << "Function `floor` cannot be applied to a "
+                           "column of type `" << stype << "`";
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Op::TRUNC
+//------------------------------------------------------------------------------
+
+static const char* doc_trunc =
+R"(trunc(x)
+--
+
+The nearest integer value not greater than `x` in magnitude.
+
+If x is integer or boolean, then trunc() will return this value
+converted to float64. If x is floating-point, then trunc(x) acts as
+floor(x) for positive values of x, and as ceil(x) for negative values
+of x. This rounding mode is known as rounding towards zero.
+)";
+
+py::PKArgs args_trunc(1, 0, 0, false, false, {"x"}, "trunc", doc_trunc);
+
+
+template <typename T>
+static umaker_ptr _trunc() {
+  return umaker1<T, T>::make(std::trunc, SType::VOID, stype_from<T>());
+}
+
+umaker_ptr resolve_op_trunc(SType stype) {
+  switch (stype) {
+    case SType::VOID:    return umaker_ptr(new umaker_nacol());
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64:   return umaker_ptr(new umaker_cast(SType::FLOAT64));
+    case SType::FLOAT32: return _trunc<float>();
+    case SType::FLOAT64: return _trunc<double>();
+    default:
+      throw TypeError() << "Function `trunc` cannot be applied to a "
+                           "column of type `" << stype << "`";
+  }
+}
+
+
+
+
 }}  // namespace dt::expr
