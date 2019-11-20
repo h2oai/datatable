@@ -168,4 +168,16 @@ void py::DatatableModule::init_funary()
   FUNARY(args_arsinh,  Op::ARSINH);
   FUNARY(args_arcosh,  Op::ARCOSH);
   FUNARY(args_artanh,  Op::ARTANH);
+
+  // Exponential/power
+  FUNARY(args_cbrt,    Op::CBRT);
+  FUNARY(args_exp,     Op::EXP);
+  FUNARY(args_exp2,    Op::EXP2);
+  FUNARY(args_expm1,   Op::EXPM1);
+  FUNARY(args_log,     Op::LOG);
+  FUNARY(args_log10,   Op::LOG10);
+  FUNARY(args_log1p,   Op::LOG1P);
+  FUNARY(args_log2,    Op::LOG2);
+  FUNARY(args_sqrt,    Op::SQRT);
+  FUNARY(args_square,  Op::SQUARE);
 }

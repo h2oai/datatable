@@ -143,13 +143,6 @@ static bool op_str_len_unicode(CString str, bool isvalid, int64_t* out) {
 }
 
 
-static float fn_square(float x) {
-  return x * x;
-}
-static double fn_square(double x) {
-  return x * x;
-}
-
 static double fn_sign(double x) {
   return (x > 0)? 1.0 : (x < 0)? -1.0 : (x == 0)? 0.0 : GETNA<double>();
 }
@@ -251,63 +244,6 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
       "be applied to an argument of type " << x.typeobj();
 }
 
-
-
-//------------------------------------------------------------------------------
-// Trigonometric/hyperbolic functions
-//------------------------------------------------------------------------------
-
-static py::PKArgs args_arctan2(
-  2, 0, 0, false, false, {"x", "y"}, "arctan2",
-R"(Arc-tangent of y/x, taking into account the signs of x and y.
-
-This function returns the measure of the angle between the ray O(x,y)
-and the horizontal abscissae Ox. When both x and y are zero, this
-function returns zero.)");
-
-static py::PKArgs args_hypot(
-  2, 0, 0, false, false, {"x", "y"}, "hypot",
-  "The length of the hypotenuse of a right triangle with sides x and y.");
-
-
-
-//------------------------------------------------------------------------------
-// Power/exponent functions
-//------------------------------------------------------------------------------
-
-static py::PKArgs args_cbrt(
-  1, 0, 0, false, false, {"x"}, "cbrt", "Cubic root of x.");
-
-static py::PKArgs args_exp(
-  1, 0, 0, false, false, {"x"}, "exp",
-"The Euler's constant (e = 2.71828...) raised to the power of x.");
-
-static py::PKArgs args_exp2(
-  1, 0, 0, false, false, {"x"}, "exp2", "Compute 2 raised to the power of x.");
-
-static py::PKArgs args_expm1(
-  1, 0, 0, false, false, {"x"}, "expm1",
-R"(Compute e raised to the power of x, minus 1. This function is
-equivalent to `exp(x) - 1`, but it is more accurate for arguments
-`x` close to zero.)");
-
-static py::PKArgs args_log(
-  1, 0, 0, false, false, {"x"}, "log", "Natural logarithm of x.");
-
-static py::PKArgs args_log10(
-  1, 0, 0, false, false, {"x"}, "log10", "Base-10 logarithm of x.");
-
-static py::PKArgs args_log1p(
-  1, 0, 0, false, false, {"x"}, "log1p", "Natural logarithm of (1 + x).");
-
-static py::PKArgs args_log2(
-  1, 0, 0, false, false, {"x"}, "log2", "Base-2 logarithm of x.");
-
-static py::PKArgs args_sqrt(
-  1, 0, 0, false, false, {"x"}, "sqrt", "Square root of x.");
-
-static py::PKArgs args_square(
-  1, 0, 0, false, false, {"x"}, "square", "Square of x, i.e. same as x**2.");
 
 
 
@@ -604,16 +540,6 @@ unary_infos::unary_infos() {
   add<Op::LEN, str32, int64, op_str_len_unicode>();
   add<Op::LEN, str64, int64, op_str_len_unicode>();
 
-  add_math<&std::cbrt,  &std::cbrt> (Op::CBRT,    "cbrt",    args_cbrt);
-  add_math<&std::exp,   &std::exp>  (Op::EXP,     "exp",     args_exp);
-  add_math<&std::exp2,  &std::exp2> (Op::EXP2,    "exp2",    args_exp2);
-  add_math<&std::expm1, &std::expm1>(Op::EXPM1,   "expm1",   args_expm1);
-  add_math<&std::log,   &std::log>  (Op::LOG,     "log",     args_log);
-  add_math<&std::log10, &std::log10>(Op::LOG10,   "log10",   args_log10);
-  add_math<&std::log1p, &std::log1p>(Op::LOG1P,   "log1p",   args_log1p);
-  add_math<&std::log2,  &std::log2> (Op::LOG2,    "log2",    args_log2);
-  add_math<&std::sqrt,  &std::sqrt> (Op::SQRT,    "sqrt",    args_sqrt);
-  add_math<&fn_square,  &fn_square> (Op::SQUARE,  "square",  args_square);
 
   add_math<&std::erf,    &std::erf>   (Op::ERF,    "erf",    args_erf);
   add_math<&std::erfc,   &std::erfc>  (Op::ERFC,   "erfc",   args_erfc);
@@ -630,13 +556,9 @@ unary_infos::unary_infos() {
 void py::DatatableModule::init_unops() {
   using namespace dt::expr;
   ADD_FN(&unary_pyfn, args_abs);
-  ADD_FN(&unary_pyfn, args_cbrt);
   ADD_FN(&unary_pyfn, args_ceil);
   ADD_FN(&unary_pyfn, args_erf);
   ADD_FN(&unary_pyfn, args_erfc);
-  ADD_FN(&unary_pyfn, args_exp);
-  ADD_FN(&unary_pyfn, args_exp2);
-  ADD_FN(&unary_pyfn, args_expm1);
   ADD_FN(&unary_pyfn, args_fabs);
   ADD_FN(&unary_pyfn, args_floor);
   ADD_FN(&unary_pyfn, args_gamma);
@@ -644,12 +566,6 @@ void py::DatatableModule::init_unops() {
   ADD_FN(&unary_pyfn, args_isinf);
   ADD_FN(&unary_pyfn, args_isna);
   ADD_FN(&unary_pyfn, args_lgamma);
-  ADD_FN(&unary_pyfn, args_log);
-  ADD_FN(&unary_pyfn, args_log10);
-  ADD_FN(&unary_pyfn, args_log1p);
-  ADD_FN(&unary_pyfn, args_log2);
   ADD_FN(&unary_pyfn, args_sign);
-  ADD_FN(&unary_pyfn, args_sqrt);
-  ADD_FN(&unary_pyfn, args_square);
   ADD_FN(&unary_pyfn, args_trunc);
 }

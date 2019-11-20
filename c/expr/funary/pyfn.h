@@ -44,6 +44,19 @@ extern py::PKArgs args_arsinh;
 extern py::PKArgs args_arcosh;
 extern py::PKArgs args_artanh;
 
+// Exponential/power
+extern py::PKArgs args_cbrt;
+extern py::PKArgs args_exp;
+extern py::PKArgs args_exp2;
+extern py::PKArgs args_expm1;
+extern py::PKArgs args_log;
+extern py::PKArgs args_log10;
+extern py::PKArgs args_log1p;
+extern py::PKArgs args_log2;
+extern py::PKArgs args_sqrt;
+extern py::PKArgs args_square;
+
+
 
 
 }}  // namespace dt::expr

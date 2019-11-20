@@ -75,9 +75,12 @@ using umaker_ptr = std::unique_ptr<umaker>;
 // Main resolver, calls individual-op resolvers below
 umaker_ptr resolve_op(Op, SType);
 
+// Basic
 umaker_ptr resolve_op_uplus(SType);
 umaker_ptr resolve_op_uminus(SType);
 umaker_ptr resolve_op_uinvert(SType);
+
+// Trigonometric
 umaker_ptr resolve_op_sin(SType);
 umaker_ptr resolve_op_cos(SType);
 umaker_ptr resolve_op_tan(SType);
@@ -86,12 +89,26 @@ umaker_ptr resolve_op_arccos(SType);
 umaker_ptr resolve_op_arctan(SType);
 umaker_ptr resolve_op_deg2rad(SType);
 umaker_ptr resolve_op_rad2deg(SType);
+
+// Hyperbolic
 umaker_ptr resolve_op_sinh(SType);
 umaker_ptr resolve_op_cosh(SType);
 umaker_ptr resolve_op_tanh(SType);
 umaker_ptr resolve_op_arsinh(SType);
 umaker_ptr resolve_op_arcosh(SType);
 umaker_ptr resolve_op_artanh(SType);
+
+// Exponential/power
+umaker_ptr resolve_op_cbrt(SType);
+umaker_ptr resolve_op_exp(SType);
+umaker_ptr resolve_op_exp2(SType);
+umaker_ptr resolve_op_expm1(SType);
+umaker_ptr resolve_op_log(SType);
+umaker_ptr resolve_op_log10(SType);
+umaker_ptr resolve_op_log1p(SType);
+umaker_ptr resolve_op_log2(SType);
+umaker_ptr resolve_op_sqrt(SType);
+umaker_ptr resolve_op_square(SType);
 
 
 
