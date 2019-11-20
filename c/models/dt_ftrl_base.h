@@ -22,7 +22,6 @@
 #ifndef dt_MODELS_FTRL_BASE_h
 #define dt_MODELS_FTRL_BASE_h
 #include "options.h"
-#include "models/utils.h"
 #include "str/py_str.h"
 namespace dt {
 

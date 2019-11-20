@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/dt_ftrl_base.h"
-#include "models/utils.h"
 #include "parallel/api.h"
 
 
