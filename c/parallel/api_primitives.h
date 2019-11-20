@@ -49,16 +49,6 @@ class NThreads {
       size_t n0 = num_threads_in_pool();
       value = (nth == 0 || nth >= n0) ? n0 : nth;
     }
-    // Calculate number of threads from the number of iterations
-    // and the minimum number of iterations per thread.
-    explicit NThreads(size_t niters, size_t min_iters_per_thread) {
-      if (niters > min_iters_per_thread) {
-        size_t n0 = num_threads_in_pool();
-        value = std::min(niters / min_iters_per_thread, n0);
-      } else {
-        value = 1;
-      }
-    }
 
     NThreads(const NThreads&) = default;
 
@@ -68,6 +58,15 @@ class NThreads {
     }
 };
 
+
+
+/**
+ * Create NThreads object with the number of threads calculated
+ * from the number of iterations and the minimum number of
+ * iterations per thread.
+ */
+NThreads nthreads_from_niters(size_t niters,
+                              size_t min_iters_per_thread = 1000);
 
 
 }  // namespace dt

@@ -203,7 +203,7 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
   nd_max_bins(nd_max_bins_in),
   max_dimensions(max_dimensions_in),
   seed(seed_in),
-  nthreads(nrows_in, MIN_ROWS_PER_THREAD)
+  nthreads(dt::nthreads_from_niters(nrows_in, MIN_ROWS_PER_THREAD))
 {
 }
 

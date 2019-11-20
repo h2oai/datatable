@@ -39,7 +39,7 @@ FtrlBase::~FtrlBase() {}
  */
 size_t FtrlBase::get_work_amount(size_t nrows) {
   size_t chunk_size = MIN_ROWS_PER_THREAD;
-  NThreads nthreads(nrows, MIN_ROWS_PER_THREAD);
+  NThreads nthreads(nthreads_from_niters(nrows, MIN_ROWS_PER_THREAD));
   size_t nth = nthreads.get();
 
   size_t chunk_rows = chunk_size * (nrows / (nth * chunk_size));

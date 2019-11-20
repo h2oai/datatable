@@ -32,16 +32,19 @@ Column generate_string_column(function<void(size_t, string_buf*)> fn,
                               bool force_str64,
                               bool force_single_threaded)
 {
-  constexpr size_t min_nrows_per_thread = 100;
-  size_t nthreads = force_single_threaded? 0 : nrows / min_nrows_per_thread;
   size_t nchunks = 1 + (nrows - 1)/1000;
   size_t chunksize = 1 + (nrows - 1)/nchunks;
 
   writable_string_col outcol(std::move(offsets_buffer), nrows, force_str64);
 
+  constexpr size_t min_nrows_per_thread = 100;
+  NThreads nthreads = force_single_threaded
+    ? NThreads(1)
+    : nthreads_from_niters(nchunks, min_nrows_per_thread);
+
   dt::parallel_for_ordered(
     nchunks,
-    NThreads(nthreads),  // will be truncated to pool size if necessary
+    nthreads,
     [&](ordered* o) {
       using sbptr = std::unique_ptr<string_buf>;
       auto sb = force_str64
