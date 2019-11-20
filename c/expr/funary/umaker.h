@@ -52,6 +52,12 @@ namespace expr {
   */
 Column unaryop(Op opcode, Column&& col);
 
+py::oobj unaryop(Op opcode, std::nullptr_t);
+py::oobj unaryop(Op opcode, bool value);
+py::oobj unaryop(Op opcode, int64_t value);
+py::oobj unaryop(Op opcode, double value);
+py::oobj unaryop(Op opcode, CString value);
+
 
 
 //------------------------------------------------------------------------------

@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
+#include "column/const.h"
 #include "expr/funary/umaker.h"
 #include "expr/expr_unaryop.h"   // TODO: remove
 #include "utils/assert.h"
@@ -28,20 +29,30 @@ namespace dt {
 namespace expr {
 
 
-//------------------------------------------------------------------------------
-// Helpers
-//------------------------------------------------------------------------------
-
 umaker::~umaker() = default;
 
 
-static constexpr size_t make_id(Op opcode, SType stype) noexcept {
-  return ((static_cast<size_t>(opcode) - UNOP_FIRST) << 8) +
-         static_cast<size_t>(stype);
-}
+//------------------------------------------------------------------------------
+// (Op, SType) -> umaker
+//------------------------------------------------------------------------------
 
 static std::unordered_map<size_t, umaker_ptr> umakers_library;
 
+static const umaker_ptr& get_umaker(Op opcode, SType stype) {
+  size_t id = ((static_cast<size_t>(opcode) - UNOP_FIRST) << 8) +
+              static_cast<size_t>(stype);
+  if (umakers_library.count(id) == 0) {
+    umakers_library[id] = resolve_op(opcode, stype);
+  }
+  return umakers_library[id];
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Resolver main factory function
+//------------------------------------------------------------------------------
 
 umaker_ptr resolve_op(Op opcode, SType stype)
 {
@@ -120,12 +131,7 @@ umaker_ptr resolve_op(Op opcode, SType stype)
 
 Column unaryop(Op opcode, Column&& col)
 {
-  // Find the maker function
-  auto id = make_id(opcode, col.stype());
-  if (umakers_library.count(id) == 0) {
-    umakers_library[id] = resolve_op(opcode, col.stype());
-  }
-  const umaker_ptr& maker = umakers_library[id];
+  const auto& maker = get_umaker(opcode, col.stype());
 
   if (!maker) {  // fallback to OLD code
     const auto& info = unary_library.get_infox(opcode, col.stype());
@@ -137,6 +143,41 @@ Column unaryop(Op opcode, Column&& col)
 
   xassert(maker);
   return maker->compute(std::move(col));
+}
+
+
+py::oobj unaryop(Op opcode, std::nullptr_t) {
+  const auto& maker = get_umaker(opcode, SType::VOID);
+  Column arg = ConstNa_ColumnImpl::make_na_column(1);
+  return maker->compute(std::move(arg)).get_element_as_pyobject(0);
+}
+
+
+py::oobj unaryop(Op opcode, bool value) {
+  const auto& maker = get_umaker(opcode, SType::BOOL);
+  Column arg = ConstNa_ColumnImpl::make_bool_column(1, value);
+  return maker->compute(std::move(arg)).get_element_as_pyobject(0);
+}
+
+
+py::oobj unaryop(Op opcode, int64_t value) {
+  const auto& maker = get_umaker(opcode, SType::INT64);
+  Column arg = ConstNa_ColumnImpl::make_int_column(1, value, SType::INT64);
+  return maker->compute(std::move(arg)).get_element_as_pyobject(0);
+}
+
+
+py::oobj unaryop(Op opcode, double value) {
+  const auto& maker = get_umaker(opcode, SType::FLOAT64);
+  Column arg = ConstNa_ColumnImpl::make_float_column(1, value);
+  return maker->compute(std::move(arg)).get_element_as_pyobject(0);
+}
+
+
+py::oobj unaryop(Op opcode, CString value) {
+  const auto& maker = get_umaker(opcode, SType::STR32);
+  Column arg = ConstNa_ColumnImpl::make_string_column(1, value);
+  return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 

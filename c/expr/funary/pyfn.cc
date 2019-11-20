@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <unordered_map>
 #include "expr/funary/pyfn.h"
+#include "expr/funary/umaker.h"
 #include "expr/op.h"
 #include "frame/py_frame.h"
 #include "utils/assert.h"
@@ -93,40 +94,11 @@ static py::oobj pyfn(const py::PKArgs& args)
   if (x.is_frame()) {
     return process_frame(opcode, x);
   }
-  // if (x.is_int()) {
-  //   int64_t v = x.to_int64_strict();
-  //   const uinfo* info = unary_library.get_infon(opcode, SType::INT64);
-  //   if (info && info->output_stype == SType::INT64) {
-  //     auto res = reinterpret_cast<int64_t(*)(int64_t)>(info->scalarfn)(v);
-  //     return py::oint(res);
-  //   }
-  //   if (info && info->output_stype == SType::BOOL) {
-  //     auto res = reinterpret_cast<bool(*)(int64_t)>(info->scalarfn)(v);
-  //     return py::obool(res);
-  //   }
-  //   goto process_as_float;
-  // }
-  // if (x.is_float() || x.is_none()) {
-  //   process_as_float:
-  //   double v = x.to_double();
-  //   const uinfo* info = unary_library.get_infon(opcode, SType::FLOAT64);
-  //   if (info && info->output_stype == SType::FLOAT64) {
-  //     auto res = reinterpret_cast<double(*)(double)>(info->scalarfn)(v);
-  //     return py::ofloat(res);
-  //   }
-  //   if (info && info->output_stype == SType::BOOL) {
-  //     auto res = reinterpret_cast<bool(*)(double)>(info->scalarfn)(v);
-  //     return py::obool(res);
-  //   }
-  //   if (!x.is_none()) {
-  //     throw TypeError() << "Function `" << args.get_short_name()
-  //       << "` cannot be applied to a numeric argument";
-  //   }
-  //   // Fall-through if x is None
-  // }
-  if (x.is_string() || x.is_none()) {
-
-  }
+  if (x.is_int())   return unaryop(opcode, x.to_int64_strict());
+  if (x.is_float()) return unaryop(opcode, x.to_double());
+  if (x.is_none())  return unaryop(opcode, nullptr);
+  if (x.is_bool())  return unaryop(opcode, static_cast<bool>(x.to_bool_strict()));
+  if (x.is_string())return unaryop(opcode, x.to_cstring());
   if (!x) {
     throw TypeError() << "Function `" << args.get_short_name() << "()` takes "
         "exactly one argument, 0 given";

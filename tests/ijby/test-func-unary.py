@@ -36,12 +36,10 @@ srcs_bool = [[False, True, False, False, True],
 
 srcs_int = [[5, -3, 6, 3, 0],
             [None, -1, 0, 26, -3],
-            # TODO: currently ~ operation fails on v = 2**31 - 1. Should we
-            #       promote the resulting column to int64 in such case?
             [2**31 - 2, -(2**31 - 1), 0, -1, 1]]
 
 srcs_float = [[9.5, 0.2, 5.4857301, -3.14159265338979],
-              [1.1, 2.3e12, -.5, None, float("inf"), 0.0]]
+              [1.1, 2.3e12, -.5, None, math.inf, 0.0]]
 
 srcs_str = [["foo", "bbar", "baz"],
             [None, "", " ", "  ", None, "\x00"],
@@ -92,11 +90,9 @@ def neg(t):
 def test_dt_neg(src):
     DT = dt.Frame(src)
     RES = DT[:, -f[0]]
-    frame_integrity_check(RES)
     stype0 = dt.int32 if DT.stype in [dt.bool8, dt.int8, dt.int16] else \
              DT.stype
-    assert RES.stype == stype0
-    assert_equals(RES, dt.Frame([neg(x) for x in src], stype=RES.stype))
+    assert_equals(RES, dt.Frame([neg(x) for x in src], stype=stype0))
 
 
 @pytest.mark.parametrize("src", srcs_str)
@@ -117,13 +113,10 @@ def test_dt_neg_invalid(src):
 @pytest.mark.parametrize("src", srcs_int + srcs_float + srcs_bool)
 def test_dt_pos(src):
     DT = dt.Frame(src)
-    dtr = DT[:, +f[0]]
-    frame_integrity_check(dtr)
-    stype0 = DT.stype
-    if stype0 in [stype.bool8, stype.int8, stype.int16]:
-        stype0 = stype.int32
-    assert dtr.stype == stype0
-    assert list_equals(dtr.to_list()[0], list(src))
+    RES = DT[:, +f[0]]
+    stype0 = stype.int32 if DT.stype in [dt.bool8, dt.int8, dt.int16] else \
+             DT.stype
+    assert_equals(RES, dt.Frame(src, stype=stype0))
 
 
 @pytest.mark.parametrize("src", srcs_str)
@@ -144,11 +137,8 @@ def test_dt_pos_invalid(src):
 @pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float + srcs_str)
 def test_dt_isna(src):
     DT = dt.Frame(src)
-    DT1 = DT[:, dt.math.isna(f[0])]
-    frame_integrity_check(DT1)
-    assert DT1.stypes == (stype.bool8,)
-    pyans = [x is None for x in src]
-    assert DT1.to_list()[0] == pyans
+    RES = DT[:, dt.math.isna(f[0])]
+    assert_equals(RES, dt.Frame([(x is None) for x in src]))
 
 
 def test_dt_isna2():
@@ -174,21 +164,12 @@ def test_dt_isna_joined():
     assert RES.to_list() == [[True, True, False, True, False]] * 4
 
 
-@pytest.mark.parametrize("src", srcs_int + srcs_float)
-def test_dt_math_isna_scalar_not_implemented(src):
+@pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float + srcs_str)
+def test_dt_math_isna_scalar(src):
     for val in src:
-        with pytest.raises(NotImplementedError,
-                           match = "This operation is not implemented yet"):
-            dt.math.isna(val)
+        assert dt.math.isna(val) == (val is None or val is math.nan)
 
 
-@pytest.mark.parametrize("src", [srcs_bool[0], srcs_str[0]])
-def test_dt_math_isna_scalar_wrong_arg(src):
-    for val in src:
-        with pytest.raises(TypeError,
-                           match = r"Function `isna\(\)` cannot be applied "
-                           "to an argument of type " + str(type(val))):
-            dt.math.isna(val)
 
 
 #-------------------------------------------------------------------------------
