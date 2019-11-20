@@ -227,4 +227,53 @@ umaker_ptr resolve_op_isna(SType stype) {
 
 
 
+
+//------------------------------------------------------------------------------
+// Op::ISINF
+//------------------------------------------------------------------------------
+
+static const char* doc_isinf =
+R"(isinf(x)
+--
+
+Returns True if the argument is +/- infinity, and False otherwise.
+Note that `isinf(NA) == False`.
+)";
+
+py::PKArgs args_isinf(1, 0, 0, false, false, {"x"}, "isinf", doc_isinf);
+
+
+// Redefine functions isinf / isfinite here, because apparently the standard
+// library implementation is not that standard: in some implementation the
+// return value is `bool`, in others it's `int`.
+template <typename T>
+inline static int8_t op_isinf(T x) { return std::isinf(x); }
+
+template <typename T>
+static inline umaker_ptr _isinf() {
+  return umaker1<T, int8_t>::make(op_isinf<T>, SType::VOID, SType::BOOL);
+}
+
+umaker_ptr resolve_op_isinf(SType stype) {
+  switch (stype) {
+    case SType::VOID:
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64: {
+      return umaker_ptr(new umaker_const(
+                            Const_ColumnImpl::make_bool_column(1, false)));
+    }
+    case SType::FLOAT32: return _isinf<float>();
+    case SType::FLOAT64: return _isinf<double>();
+    default:
+      throw TypeError() << "Function `isinf` cannot be applied to a "
+                           "column of type `" << stype << "`";
+  }
+}
+
+
+
+
 }}  // namespace dt::expr

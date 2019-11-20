@@ -83,16 +83,6 @@ inline static bool op_notna(T, bool isvalid, int8_t* out) {
 }
 
 
-template <typename T>
-inline static int8_t op_false(T) { return false; }
-
-
-
-// Redefine functions isinf / isfinite here, because apparently the standard
-// library implementation is not that standard: in some implementation the
-// return value is `bool`, in others it's `int`.
-template <typename T>
-inline static int8_t op_isinf(T x) { return std::isinf(x); }
 
 
 template <typename T>
@@ -232,10 +222,6 @@ static py::PKArgs args_isfinite(
   1, 0, 0, false, false, {"x"}, "isfinite",
 R"(Returns True if the argument has a finite value, and
 False if the argument is +/- infinity or NaN.)");
-
-static py::PKArgs args_isinf(
-  1, 0, 0, false, false, {"x"}, "isinf",
-  "Returns True if the argument is +/- infinity, and False otherwise.");
 
 
 static py::PKArgs args_ceil(
@@ -385,15 +371,6 @@ unary_infos::unary_infos() {
   add<Op::ISFINITE, flt32, bool8, op_isfinite<float>>();
   add<Op::ISFINITE, flt64, bool8, op_isfinite<double>>();
 
-  add_op(Op::ISINF, "isinf", &args_isinf);
-  add<Op::ISINF, bool8, bool8, op_false<int8_t>>();
-  add<Op::ISINF, int8,  bool8, op_false<int8_t>>();
-  add<Op::ISINF, int16, bool8, op_false<int16_t>>();
-  add<Op::ISINF, int32, bool8, op_false<int32_t>>();
-  add<Op::ISINF, int64, bool8, op_false<int64_t>>();
-  add<Op::ISINF, flt32, bool8, op_isinf<float>>();
-  add<Op::ISINF, flt64, bool8, op_isinf<double>>();
-
   add_op(Op::CEIL, "ceil", &args_ceil);
   add_copy(Op::CEIL, bool8, flt64);
   add_copy(Op::CEIL, int8,  flt64);
@@ -434,6 +411,5 @@ void py::DatatableModule::init_unops() {
   ADD_FN(&unary_pyfn, args_ceil);
   ADD_FN(&unary_pyfn, args_floor);
   ADD_FN(&unary_pyfn, args_isfinite);
-  ADD_FN(&unary_pyfn, args_isinf);
   ADD_FN(&unary_pyfn, args_trunc);
 }
