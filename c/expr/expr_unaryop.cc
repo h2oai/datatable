@@ -94,14 +94,6 @@ template <typename T>
 inline static int8_t op_false(T) { return false; }
 
 
-template <typename T>
-inline static T op_abs(T x) {
-  // If T is floating point and x is NA, then (x < 0) will evaluate to false;
-  // If T is integer and x is NA, then (x < 0) will be true, but -x will be
-  // equal to x.
-  // Thus, in all cases we'll have `abs(NA) == NA`.
-  return (x < 0) ? -x : x;
-}
 
 // Redefine functions isinf / isfinite here, because apparently the standard
 // library implementation is not that standard: in some implementation the
@@ -140,14 +132,6 @@ static bool op_str_len_unicode(CString str, bool isvalid, int64_t* out) {
     *out = len;
   }
   return isvalid;
-}
-
-
-static double fn_sign(double x) {
-  return (x > 0)? 1.0 : (x < 0)? -1.0 : (x == 0)? 0.0 : GETNA<double>();
-}
-static float fn_sign(float x) {
-  return (x > 0)? 1.0f : (x < 0)? -1.0f : (x == 0)? 0.0f : GETNA<float>();
 }
 
 
@@ -264,23 +248,6 @@ static py::PKArgs args_isinf(
   1, 0, 0, false, false, {"x"}, "isinf",
   "Returns True if the argument is +/- infinity, and False otherwise.");
 
-
-
-static py::PKArgs args_fabs(
-  1, 0, 0, false, false, {"x"}, "fabs",
-  "Absolute value of x, returned as float64.");
-
-static py::PKArgs args_sign(
-  1, 0, 0, false, false, {"x"}, "sign",
-R"(The sign of x, returned as float64.
-
-This function returns 1 if x is positive (including positive
-infinity), -1 if x is negative, 0 if x is zero, and NA if
-x is NA.)");
-
-static py::PKArgs args_abs(
-  1, 0, 0, false, false, {"x"}, "abs",
-  "Absolute value of a number.");
 
 static py::PKArgs args_ceil(
   1, 0, 0, false, false, {"x"}, "ceil",
@@ -420,15 +387,6 @@ unary_infos::unary_infos() {
   constexpr SType str32 = SType::STR32;
   constexpr SType str64 = SType::STR64;
 
-  add_op(Op::ABS, "abs", &args_abs);
-  add_copy(Op::ABS, bool8, int8);
-  add<Op::ABS, int8,  int8,  op_abs<int8_t>>();
-  add<Op::ABS, int16, int16, op_abs<int16_t>>();
-  add<Op::ABS, int32, int32, op_abs<int32_t>>();
-  add<Op::ABS, int64, int64, op_abs<int64_t>>();
-  add<Op::ABS, flt32, flt32, std::abs>();
-  add<Op::ABS, flt64, flt64, std::abs>();
-
   add_op(Op::ISNA, "isna", &args_isna);
   add<Op::ISNA, bool8, bool8, op_isna<int8_t>>();
   add<Op::ISNA, int8,  bool8, op_isna<int8_t>>();
@@ -488,9 +446,6 @@ unary_infos::unary_infos() {
   add_op(Op::LEN, "len", &args_len);
   add<Op::LEN, str32, int64, op_str_len_unicode>();
   add<Op::LEN, str64, int64, op_str_len_unicode>();
-
-  add_math<&std::fabs, &std::fabs>(Op::FABS, "fabs", args_fabs);
-  add_math<&fn_sign,   &fn_sign>  (Op::SIGN, "sign", args_sign);
 }
 
 }}  // namespace dt::expr
@@ -498,13 +453,10 @@ unary_infos::unary_infos() {
 
 void py::DatatableModule::init_unops() {
   using namespace dt::expr;
-  ADD_FN(&unary_pyfn, args_abs);
   ADD_FN(&unary_pyfn, args_ceil);
-  ADD_FN(&unary_pyfn, args_fabs);
   ADD_FN(&unary_pyfn, args_floor);
   ADD_FN(&unary_pyfn, args_isfinite);
   ADD_FN(&unary_pyfn, args_isinf);
   ADD_FN(&unary_pyfn, args_isna);
-  ADD_FN(&unary_pyfn, args_sign);
   ADD_FN(&unary_pyfn, args_trunc);
 }

@@ -88,18 +88,18 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     case Op::LGAMMA:    return resolve_op_lgamma(stype);
 
     // Math: floating-point
-    case Op::ISFINITE:  return umaker_ptr();
-    case Op::ISINF:     return umaker_ptr();
-    case Op::ISNA:      return umaker_ptr();
-    case Op::CEIL:      return umaker_ptr();
-    case Op::COPYSIGN:  return umaker_ptr();
-    case Op::ABS:       return umaker_ptr();
-    case Op::FABS:      return umaker_ptr();
-    case Op::FLOOR:     return umaker_ptr();
-    case Op::NEXTAFTER: return umaker_ptr();
-    case Op::SIGN:      return umaker_ptr();
-    case Op::SIGNBIT:   return umaker_ptr();
-    case Op::TRUNC:     return umaker_ptr();
+    case Op::ISFINITE:  return umaker_ptr();  // resolve_op_isfinite(stype);
+    case Op::ISINF:     return umaker_ptr();  // resolve_op_isinf(stype);
+    case Op::ISNA:      return umaker_ptr();  // resolve_op_isna(stype);
+    case Op::CEIL:      return umaker_ptr();  // resolve_op_ceil(stype);
+    case Op::COPYSIGN:  return umaker_ptr();  // resolve_op_copysign(stype);
+    case Op::ABS:       return resolve_op_abs(stype);
+    case Op::FABS:      return resolve_op_fabs(stype);
+    case Op::FLOOR:     return umaker_ptr();  // resolve_op_floor(stype);
+    case Op::NEXTAFTER: return umaker_ptr();  // resolve_op_nextafter(stype);
+    case Op::SIGN:      return resolve_op_sign(stype);
+    case Op::SIGNBIT:   return umaker_ptr();  // resolve_op_signbit(stype);
+    case Op::TRUNC:     return umaker_ptr();  // resolve_op_trunc(stype);
 
     // Misc
     case Op::LEN:       return umaker_ptr();
