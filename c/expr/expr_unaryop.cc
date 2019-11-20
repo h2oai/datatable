@@ -77,13 +77,6 @@ static Column vcol_id(Column&& arg) {
 
 
 template <typename T>
-inline static bool op_isna(T, bool isvalid, int8_t* out) {
-  *out = !isvalid;
-  return true;
-}
-
-
-template <typename T>
 inline static bool op_notna(T, bool isvalid, int8_t* out) {
   *out = isvalid;
   return true;
@@ -235,10 +228,6 @@ py::oobj unary_pyfn(const py::PKArgs& args) {
 // Floating-point functions
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_isna(
-  1, 0, 0, false, false, {"x"}, "isna",
-  "Returns True if the argument is NA, and False otherwise.");
-
 static py::PKArgs args_isfinite(
   1, 0, 0, false, false, {"x"}, "isfinite",
 R"(Returns True if the argument has a finite value, and
@@ -387,17 +376,6 @@ unary_infos::unary_infos() {
   constexpr SType str32 = SType::STR32;
   constexpr SType str64 = SType::STR64;
 
-  add_op(Op::ISNA, "isna", &args_isna);
-  add<Op::ISNA, bool8, bool8, op_isna<int8_t>>();
-  add<Op::ISNA, int8,  bool8, op_isna<int8_t>>();
-  add<Op::ISNA, int16, bool8, op_isna<int16_t>>();
-  add<Op::ISNA, int32, bool8, op_isna<int32_t>>();
-  add<Op::ISNA, int64, bool8, op_isna<int64_t>>();
-  add<Op::ISNA, flt32, bool8, op_isna<float>>();
-  add<Op::ISNA, flt64, bool8, op_isna<double>>();
-  add<Op::ISNA, str32, bool8, op_isna<CString>>();
-  add<Op::ISNA, str64, bool8, op_isna<CString>>();
-
   add_op(Op::ISFINITE, "isfinite", &args_isfinite);
   add<Op::ISFINITE, bool8, bool8, op_notna<int8_t>>();
   add<Op::ISFINITE, int8,  bool8, op_notna<int8_t>>();
@@ -457,6 +435,5 @@ void py::DatatableModule::init_unops() {
   ADD_FN(&unary_pyfn, args_floor);
   ADD_FN(&unary_pyfn, args_isfinite);
   ADD_FN(&unary_pyfn, args_isinf);
-  ADD_FN(&unary_pyfn, args_isna);
   ADD_FN(&unary_pyfn, args_trunc);
 }

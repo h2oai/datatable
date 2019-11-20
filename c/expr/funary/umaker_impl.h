@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_FUNARY_UMAKER_IMPL_h
 #define dt_EXPR_FUNARY_UMAKER_IMPL_h
+#include "column/const.h"
 #include "column/func_unary.h"
 #include "expr/funary/umaker.h"
 #include "utils/assert.h"
@@ -40,6 +41,24 @@ class umaker_nacol : public umaker {
     Column compute(Column&& col) const override {
       if (col.stype() == SType::VOID) return std::move(col);
       return Column::new_na_column(col.nrows());
+    }
+};
+
+
+/**
+  * "umaker" class that always returns a constant column.
+  */
+class umaker_const : public umaker {
+  private:
+    Column res_;
+
+  public:
+    umaker_const(Column&& res) : res_(std::move(res)) {}
+
+    Column compute(Column&& col) const override {
+      Column out = res_;
+      out.resize(col.nrows());
+      return out;
     }
 };
 
