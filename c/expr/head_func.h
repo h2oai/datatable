@@ -118,6 +118,17 @@ class Head_Func_Binary : public Head_Func {
 
 
 
+class Head_Func_Nary : public Head_Func {
+  private:
+    Op op_;
+
+  public:
+    explicit Head_Func_Nary(Op);
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+};
+
+
+
 
 }}  // namespace dt::expr
 #endif
