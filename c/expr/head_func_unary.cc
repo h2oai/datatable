@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/funary/umaker.h"
 #include "expr/expr.h"
-#include "expr/expr_unaryop.h"  // TODO: merge into this file
 #include "expr/head_func.h"
 #include "expr/workframe.h"
 #include "utils/assert.h"
@@ -38,11 +38,8 @@ Workframe Head_Func_Unary::evaluate_n(const vecExpr& args, EvalContext& ctx) con
   size_t n = outputs.ncols();
   for (size_t i = 0; i < n; ++i) {
     Column col = outputs.retrieve_column(i);
-    const auto& info = unary_library.get_infox(op, col.stype());
-    if (info.cast_stype != SType::VOID) {
-      col.cast_inplace(info.cast_stype);
-    }
-    outputs.replace_column(i, info.vcolfn(std::move(col)));
+    Column res = unaryop(op, std::move(col));
+    outputs.replace_column(i, std::move(res));
   }
   return outputs;
 }

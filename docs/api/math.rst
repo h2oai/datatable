@@ -67,11 +67,11 @@ math                numpy                 datatable
 ``isinf(x)``        ``isinf(x)``          :func:`isinf(x) <isinf>`
 ``isnan(x)``        ``isnan(x)``          :func:`isna(x) <isna>`
 ``ldexp(x, n)``     ``ldexp(x, n)``
-\                   ``nextafter(x)``
-\                   ``rint(x)``
+\                   ``nextafter(x, y)``
+\                   ``rint(x)``           :func:`rint(x) <rint>`
 \                   ``sign(x)``           :func:`sign(x) <sign>`
 \                   ``spacing(x)``
-\                   ``signbit(x)``
+\                   ``signbit(x)``        :func:`signbit(x) <signbit>`
 ``trunc(x)``        ``trunc(x)``          :func:`trunc(x) <trunc>`
 
 **Miscellaneous**

@@ -42,13 +42,13 @@ namespace dt {
   */
 template <typename TI, typename TO>
 class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
-  using OP = TO(*)(TI);
+  using func_t = TO(*)(typename _ref<TI>::t);
   protected:
     Column arg_;
-    OP func_;
+    func_t func_;
 
   public:
-    FuncUnary1_ColumnImpl(Column&&, OP, size_t nrows, SType stype);
+    FuncUnary1_ColumnImpl(Column&&, func_t, size_t nrows, SType stype);
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
@@ -69,13 +69,13 @@ class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
   */
 template <typename TI, typename TO>
 class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
-  using OP = bool(*)(TI, bool, TO*);
+  using func_t = bool(*)(typename _ref<TI>::t, bool, TO*);
   protected:
     Column arg_;
-    OP func_;
+    func_t func_;
 
   public:
-    FuncUnary2_ColumnImpl(Column&&, OP, size_t nrows, SType stype);
+    FuncUnary2_ColumnImpl(Column&&, func_t, size_t nrows, SType stype);
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
@@ -93,7 +93,7 @@ class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
 
 template <typename TI, typename TO>
 FuncUnary1_ColumnImpl<TI, TO>::FuncUnary1_ColumnImpl(
-    Column&& col, OP f, size_t nrows, SType stype
+    Column&& col, func_t f, size_t nrows, SType stype
 )
   : Virtual_ColumnImpl(nrows, stype),
     arg_(std::move(col)),
@@ -149,7 +149,7 @@ bool FuncUnary1_ColumnImpl<TI, TO>::allow_parallel_access() const {
 
 template <typename TI, typename TO>
 FuncUnary2_ColumnImpl<TI, TO>::FuncUnary2_ColumnImpl(
-    Column&& col, OP f, size_t nrows, SType stype
+    Column&& col, func_t f, size_t nrows, SType stype
 )
   : Virtual_ColumnImpl(nrows, stype),
     arg_(std::move(col)),

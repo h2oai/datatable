@@ -14,7 +14,6 @@
 #include <utility>         // std::pair, std::make_pair, std::move
 #include "../datatable/include/datatable.h"
 #include "csv/reader.h"
-#include "expr/expr_unaryop.h"
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
 #include "expr/py_by.h"              // py::oby
@@ -346,8 +345,8 @@ void py::DatatableModule::init_methods() {
   init_methods_zread();
 
   init_casts();
+  init_funary();
   init_fuzzy();
-  init_unops();
 
   #ifdef DTTEST
     init_tests();

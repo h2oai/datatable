@@ -166,6 +166,7 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::COV)]      = make_reduce2;
   factory[static_cast<size_t>(Op::CORR)]     = make_reduce2;
   factory[static_cast<size_t>(Op::RE_MATCH)] = &Head_Func_Re_Match::make;
+  factory[static_cast<size_t>(Op::LEN)]      = make_unop;
   // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;
   // factory[static_cast<size_t>(Op::ARCTAN2)]  = make_math21;
   // factory[static_cast<size_t>(Op::POWER)]    = make_math21;

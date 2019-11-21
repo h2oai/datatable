@@ -246,6 +246,7 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
     case SType::STR32:
     case SType::STR64:   return getelem<CString>(*this, i);
     case SType::OBJ:     return getelem<py::robj>(*this, i);
+    case SType::VOID:    return py::None();
     default:
       throw NotImplError() << "Unable to convert elements of stype "
           << stype() << " into python objects";

@@ -28,14 +28,14 @@ using size_t = std::size_t;
 
 
 static constexpr size_t UNOP_FIRST    = 101;
-static constexpr size_t UNOP_LAST     = 111;
+static constexpr size_t UNOP_LAST     = 103;
 static constexpr size_t BINOP_FIRST   = 201;
 static constexpr size_t BINOP_LAST    = 218;
 static constexpr size_t STRING_FIRST  = 301;
 static constexpr size_t REDUCER_FIRST = 401;
-static constexpr size_t REDUCER_LAST  = 410;
+static constexpr size_t REDUCER_LAST  = 412;
 static constexpr size_t MATH_FIRST    = 501;
-static constexpr size_t MATH_LAST     = 542;
+static constexpr size_t MATH_LAST     = 556;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
 static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
@@ -52,118 +52,115 @@ enum class Op : size_t {
   SETMINUS = 4,
 
   // Unary
-  UPLUS = UNOP_FIRST,
-  UMINUS,
-  UINVERT,
-  ISFINITE,
-  ISINF,
-  ISNA,
-  ABS,
-  CEIL,
-  FLOOR,
-  TRUNC,
-  LEN = UNOP_LAST,
+  UPLUS = UNOP_FIRST,       // funary/basic.cc
+  UMINUS,                   // funary/basic.cc
+  UINVERT = UNOP_LAST,      // funary/basic.cc
 
   // Binary
-  PLUS = BINOP_FIRST,
-  MINUS,
-  MULTIPLY,
-  DIVIDE,
-  INTDIV,
-  MODULO,
-  POWER,
-  AND,
-  XOR,
-  OR,
-  LSHIFT,
-  RSHIFT,
-  EQ,
-  NE,
-  LT,
-  GT,
-  LE,
-  GE = BINOP_LAST,
+  PLUS = BINOP_FIRST,       // fbinary/arithmetic.cc
+  MINUS,                    // fbinary/arithmetic.cc
+  MULTIPLY,                 // fbinary/arithmetic.cc
+  DIVIDE,                   // fbinary/arithmetic.cc
+  INTDIV,                   // fbinary/arithmetic.cc
+  MODULO,                   // fbinary/arithmetic.cc
+  POWEROP,                  // fbinary/arithmetic.cc
+  AND,                      // fbinary/bitwise.cc
+  XOR,                      // fbinary/bitwise.cc
+  OR,                       // fbinary/bitwise.cc
+  LSHIFT,                   // fbinary/bitwise.cc
+  RSHIFT,                   // fbinary/bitwise.cc
+  EQ,                       // fbinary/relational.cc
+  NE,                       // fbinary/relational.cc
+  LT,                       // fbinary/relational.cc
+  GT,                       // fbinary/relational.cc
+  LE,                       // fbinary/relational.cc
+  GE = BINOP_LAST,          // fbinary/relational.cc
 
   // String
-  RE_MATCH = STRING_FIRST,
+  RE_MATCH = STRING_FIRST,  // head_func_other.cc
+  LEN,                      // funary/basic.cc
 
   // Reducers
-  MEAN = REDUCER_FIRST,
-  MIN,
-  MAX,
-  STDEV,
-  FIRST,
-  LAST,
-  SUM,
-  COUNT,
-  COUNT0,
-  MEDIAN = REDUCER_LAST,
-  COV,
-  CORR,
+  MEAN = REDUCER_FIRST,     // head_reduce_unary.cc
+  MIN,                      // head_reduce_unary.cc
+  MAX,                      // head_reduce_unary.cc
+  STDEV,                    // head_reduce_unary.cc
+  FIRST,                    // head_reduce_unary.cc
+  LAST,                     // head_reduce_unary.cc
+  SUM,                      // head_reduce_unary.cc
+  COUNT,                    // head_reduce_unary.cc
+  COUNT0,                   // head_reduce_nullary.cc
+  MEDIAN,                   // head_reduce_unary.cc
+  COV,                      // head_reduce_binary.cc
+  CORR = REDUCER_LAST,      // head_reduce_binary.cc
 
   // Math: trigonometric
-  SIN = MATH_FIRST,
-  COS,
-  TAN,
-  ARCSIN,
-  ARCCOS,
-  ARCTAN,
+  SIN = MATH_FIRST,         // funary/trigonometric.cc
+  COS,                      // funary/trigonometric.cc
+  TAN,                      // funary/trigonometric.cc
+  ARCSIN,                   // funary/trigonometric.cc
+  ARCCOS,                   // funary/trigonometric.cc
+  ARCTAN,                   // funary/trigonometric.cc
   ARCTAN2,
   HYPOT,
-  DEG2RAD,
-  RAD2DEG,
+  DEG2RAD,                  // funary/trigonometric.cc
+  RAD2DEG,                  // funary/trigonometric.cc
 
   // Math: hyperbolic
-  SINH,
-  COSH,
-  TANH,
-  ARSINH,
-  ARCOSH,
-  ARTANH,
+  SINH,                     // funary/hyperbolic.cc
+  COSH,                     // funary/hyperbolic.cc
+  TANH,                     // funary/hyperbolic.cc
+  ARSINH,                   // funary/hyperbolic.cc
+  ARCOSH,                   // funary/hyperbolic.cc
+  ARTANH,                   // funary/hyperbolic.cc
 
   // Math: exponential/power
-  CBRT,
-  EXP,
-  EXP2,
-  EXPM1,
-  LOG,
-  LOG10,
-  LOG1P,
-  LOG2,
+  CBRT,                     // funary/exponential.cc
+  EXP,                      // funary/exponential.cc
+  EXP2,                     // funary/exponential.cc
+  EXPM1,                    // funary/exponential.cc
+  LOG,                      // funary/exponential.cc
+  LOG10,                    // funary/exponential.cc
+  LOG1P,                    // funary/exponential.cc
+  LOG2,                     // funary/exponential.cc
   LOGADDEXP,
   LOGADDEXP2,
-  // POWER,
-  SQRT,
-  SQUARE,
+  POWERFN,
+  SQRT,                     // funary/exponential.cc
+  SQUARE,                   // funary/exponential.cc
 
   // Math: special
-  ERF,
-  ERFC,
-  GAMMA,
-  LGAMMA,
+  ERF,                      // funary/special.cc
+  ERFC,                     // funary/special.cc
+  GAMMA,                    // funary/special.cc
+  LGAMMA,                   // funary/special.cc
 
   // Math: floating-point
-  // CEIL,
+  ABS,                      // funary/floating.cc
+  CEIL,                     // funary/floating.cc
   COPYSIGN,
-  FABS,
-  // FLOOR,
-  // FREXP: double->(double, int)
-  // ISCLOSE: non-trivial signature
+  FABS,                     // funary/floating.cc
+  FLOOR,                    // funary/floating.cc
+  FREXP,
+  ISCLOSE,
+  ISFINITE,                 // funary/floating.cc
+  ISINF,                    // funary/floating.cc
+  ISNA,                     // funary/floating.cc
   LDEXP,
   NEXTAFTER,
-  // RINT ?
-  SIGN,
-  SIGNBIT,
-  // SPACING ?
-  // TRUNC,
+  RINT,                     // fumary/floating.cc
+  SIGN,                     // funary/floating.cc
+  SIGNBIT,                  // funary/floating.cc
+  SPACING,
+  TRUNC,                    // funary/floating.cc
 
   // Math: misc
   CLIP,
-  // DIVMOD (double,double)->(double,double)
-  // MODF double->(double,double)
+  DIVMOD,
+  FMOD,
   MAXIMUM,
   MINIMUM,
-  FMOD = MATH_LAST,
+  MODF = MATH_LAST,
 };
 
 
