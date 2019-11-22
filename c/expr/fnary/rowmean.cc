@@ -28,58 +28,65 @@ namespace expr {
 
 
 
-static const char* doc_rowsum =
-R"(rowsum(x1, x2, ...)
+static const char* doc_rowmean =
+R"(rowmean(x1, x2, ...)
 --
 
-For each row, find the sum of values in columns x1, x2, ... The
+For each row, find the mean of values in columns x1, x2, ... The
 columns must be all numeric (boolean, integer or float). The result
-will be a single column with the same number of rows as all input
+will be a single column with the same number of rows as the input
 columns.
 
 If any column contains an NA value, it will be skipped during the
-calculation. Thus, NAs are treated as if they were zeros.
+calculation. Thus, NAs are treated as if they were zeros. If a row
+contains only NA values, this function will produce an NA too.
 )";
 
-py::PKArgs args_rowsum(0, 0, 0, true, false, {}, "rowsum", doc_rowsum);
+py::PKArgs args_rowmean(0, 0, 0, true, false, {}, "rowmean", doc_rowmean);
 
 
 
 template <typename T>
-static bool op_rowsum(size_t i, T* out, const colvec& columns) {
+static bool op_rowmean(size_t i, T* out, const colvec& columns) {
   T sum = 0;
+  int count = 0;
   for (const auto& col : columns) {
     T x;
     bool xvalid = col.get_element(i, &x);
-    if (xvalid) {
-      sum += x;
-    }
+    if (!xvalid) continue;
+    sum += x;
+    count++;
   }
-  *out = sum;
-  return !std::isnan(sum);
+  if (count && !std::isnan(sum)) {
+    *out = sum/count;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 
 template <typename T>
-static inline Column _rowsum(colvec&& columns) {
+static inline Column _rowmean(colvec&& columns) {
   size_t nrows = columns[0].nrows();
   return Column(new FuncNary_ColumnImpl<T>(
-                    std::move(columns), op_rowsum<T>, nrows, stype_from<T>()));
+                    std::move(columns), op_rowmean<T>, nrows, stype_from<T>()));
 }
 
 
-Column naryop_rowsum(colvec&& columns) {
+Column naryop_rowmean(colvec&& columns) {
   if (columns.empty()) {
-    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
+    return Const_ColumnImpl::make_na_column(1);
   }
-  SType res_stype = detect_common_numeric_stype(columns, "rowsum");
+  SType res_stype = detect_common_numeric_stype(columns, "rowmean");
+  if (res_stype == SType::INT32 || res_stype == SType::INT64) {
+    res_stype = SType::FLOAT64;
+  }
   promote_columns(columns, res_stype);
 
   switch (res_stype) {
-    case SType::INT32:   return _rowsum<int32_t>(std::move(columns));
-    case SType::INT64:   return _rowsum<int64_t>(std::move(columns));
-    case SType::FLOAT32: return _rowsum<float>(std::move(columns));
-    case SType::FLOAT64: return _rowsum<double>(std::move(columns));
+    case SType::FLOAT32: return _rowmean<float>(std::move(columns));
+    case SType::FLOAT64: return _rowmean<double>(std::move(columns));
     default: xassert(0);
   }
 }

@@ -39,6 +39,7 @@ from .lib._datatable import (
     rowfirst,
     rowlast,
     rowmax,
+    rowmean,
     rowmin,
     rowsum,
     setdiff,

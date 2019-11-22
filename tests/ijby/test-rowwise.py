@@ -27,7 +27,7 @@ import random
 import datatable as dt
 from datatable import f, g, stype, ltype, join
 from datatable import rowall, rowany, rowsum, rowcount, rowmin, rowmax, \
-                      rowfirst, rowlast
+                      rowfirst, rowlast, rowmean
 from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, noop
 
@@ -207,6 +207,34 @@ def test_rowminmax_floats():
     RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
     assert_equals(RES, dt.Frame([[7.5, math.inf, +math.inf, math.inf],
                                  [4.1, math.inf, -math.inf, -maxflt]]))
+
+
+
+
+#-------------------------------------------------------------------------------
+# rowmean()
+#-------------------------------------------------------------------------------
+
+def test_rowmean_simple():
+    DT = dt.Frame(A=range(5))
+    assert_equals(rowmean(DT), dt.Frame(range(5), stype=dt.float64))
+
+
+def test_rowmean_floats():
+    DT = dt.Frame([(1.5, 6.4, 0.0, None, 7.22),
+                   (2.0, -1.1, math.inf, 4.0, 3.2),
+                   (1.5, 9.9, None, None, math.nan),
+                   (math.inf, -math.inf, None, 0.0)])
+    RES = DT[:, rowmean(f[:])]
+    x = (1.5 + 6.4 + 7.22) / 4
+    assert_equals(RES, dt.Frame([x, math.inf, 5.7, None]))
+
+
+def test_rowmean_wrong_types():
+    DT = dt.Frame(A=[3, 5, 6], B=["a", "d", "e"])
+    with pytest.raises(TypeError, match="Function `rowmean` expects a sequence "
+                                        "of numeric columns"):
+        assert rowmean(DT)
 
 
 

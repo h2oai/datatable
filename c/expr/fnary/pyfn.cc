@@ -134,6 +134,7 @@ void py::DatatableModule::init_fnary()
   FNARY(args_rowfirst, Op::ROWFIRST);
   FNARY(args_rowlast,  Op::ROWLAST);
   FNARY(args_rowmax,   Op::ROWMAX);
+  FNARY(args_rowmean,  Op::ROWMEAN);
   FNARY(args_rowmin,   Op::ROWMIN);
   FNARY(args_rowsum,   Op::ROWSUM);
 }

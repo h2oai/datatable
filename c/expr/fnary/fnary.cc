@@ -36,7 +36,7 @@ Column naryop(Op opcode, colvec&& columns) {
     case Op::ROWFIRST: return naryop_rowfirstlast(std::move(columns), true);
     case Op::ROWLAST:  return naryop_rowfirstlast(std::move(columns), false);
     case Op::ROWMAX:   return naryop_rowminmax(std::move(columns), false);
-    case Op::ROWMEAN:
+    case Op::ROWMEAN:  return naryop_rowmean(std::move(columns));
     case Op::ROWMIN:   return naryop_rowminmax(std::move(columns), true);
     case Op::ROWSD:
     default:
