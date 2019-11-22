@@ -96,7 +96,7 @@ Column naryop_rowminmax(colvec&& columns, bool MIN) {
   }
   const char* fnname = MIN? "rowmin" : "rowmax";
   SType res_stype = detect_common_numeric_stype(columns, fnname);
-  promote_numeric_columns(columns, res_stype);
+  promote_columns(columns, res_stype);
 
   switch (res_stype) {
     case SType::INT32:   return _rowminmax<int32_t>(std::move(columns), MIN);

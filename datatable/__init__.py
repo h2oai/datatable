@@ -36,6 +36,8 @@ from .lib._datatable import (
     rowall,
     rowany,
     rowcount,
+    rowfirst,
+    rowlast,
     rowmax,
     rowmin,
     rowsum,

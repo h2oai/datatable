@@ -90,7 +90,7 @@ struct STypeInfo {
 
 
 static STypeInfo stype_info[DT_STYPES_COUNT];
-static SType stype_upcast_map[DT_STYPES_COUNT][DT_STYPES_COUNT];
+static SType stype_upcast_map[DT_STYPES_COUNT + 1][DT_STYPES_COUNT + 1];
 
 void init_types(void)
 {
@@ -124,15 +124,22 @@ void init_types(void)
       stype_upcast_map[int(stype1)][int(stype2)] = stypeR; \
       stype_upcast_map[int(stype2)][int(stype1)] = stypeR;
 
-  for (size_t i = 1; i < DT_STYPES_COUNT; i++) {
-    SType i_stype = static_cast<SType>(i);
-    stype_upcast_map[i][0] = stype_info[i].varwidth? SType::OBJ : i_stype;
-    stype_upcast_map[0][i] = stype_info[i].varwidth? SType::OBJ : i_stype;
-    for (size_t j = 1; j < DT_STYPES_COUNT; j++) {
-      stype_upcast_map[i][j] =
-        stype_info[i].varwidth || i != j ? SType::OBJ : i_stype;
+  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
+    for (size_t j = 0; j < DT_STYPES_COUNT; j++) {
+      stype_upcast_map[i][j] = SType::INVALID;
     }
+    stype_upcast_map[i][i] = static_cast<SType>(i);
+    UPCAST(SType::INVALID, i, SType::INVALID)
   }
+  UPCAST(SType::VOID,  SType::BOOL,    SType::BOOL)
+  UPCAST(SType::VOID,  SType::INT8,    SType::INT8)
+  UPCAST(SType::VOID,  SType::INT16,   SType::INT16)
+  UPCAST(SType::VOID,  SType::INT32,   SType::INT32)
+  UPCAST(SType::VOID,  SType::INT64,   SType::INT64)
+  UPCAST(SType::VOID,  SType::FLOAT32, SType::FLOAT32)
+  UPCAST(SType::VOID,  SType::FLOAT64, SType::FLOAT64)
+  UPCAST(SType::VOID,  SType::STR32,   SType::STR32)
+  UPCAST(SType::VOID,  SType::STR64,   SType::STR64)
   UPCAST(SType::BOOL,  SType::INT8,    SType::INT8)
   UPCAST(SType::BOOL,  SType::INT16,   SType::INT16)
   UPCAST(SType::BOOL,  SType::INT32,   SType::INT32)
@@ -154,8 +161,9 @@ void init_types(void)
   UPCAST(SType::INT64, SType::FLOAT32, SType::FLOAT32)
   UPCAST(SType::INT64, SType::FLOAT64, SType::FLOAT64)
   UPCAST(SType::FLOAT32, SType::FLOAT64, SType::FLOAT64)
+  UPCAST(SType::STR32, SType::STR64,   SType::STR64)
   #undef UPCAST
-  // In py_datatable.c we use 64-bit mask over stypes
+  // In py_datatable.c we use 64-bit mask over stypes [???]
   xassert(DT_STYPES_COUNT <= 64);
 
   //---- More static asserts -------------------------------------------------
@@ -171,82 +179,6 @@ void init_types(void)
 }
 
 
-/**
- * Helper function to convert SType from string representation into the numeric
- * constant. The string `s` must have length 3. If the stype is invalid, this
- * function will return SType::VOID.
- */
-SType stype_from_string(const std::string& str)
-{
-  xassert(str.length() == 3 || str.length() == 2);
-  char s0 = str[0], s1 = str[1], s2 = str[2];
-  if (s0 == 'i') {
-    if (s2 == 'i' || s2 == '\0') {
-      if (s1 == '1') return SType::INT8;
-      if (s1 == '2') return SType::INT16;
-      if (s1 == '4') return SType::INT32;
-      if (s1 == '8') return SType::INT64;
-    } else if (s2 == 'b') {
-      if (s1 == '1') return SType::BOOL;
-    } else if (s2 == 'r') {
-      if (s1 == '2') return SType::DEC16;
-      if (s1 == '4') return SType::DEC32;
-      if (s1 == '8') return SType::DEC64;
-    } else if (s2 == 's') {
-      if (s1 == '4') return SType::STR32;
-      if (s1 == '8') return SType::STR64;
-    } else if (s2 == 'd') {
-      if (s1 == '2') return SType::DATE16;
-      if (s1 == '4') return SType::DATE32;
-      if (s1 == '8') return SType::DATE64;
-    } else if (s2 == 't') {
-      if (s1 == '4') return SType::TIME32;
-    }
-  } else if (s0 == 'r' && s2 == '\0') {
-    if (s1 == '4') return SType::FLOAT32;
-    if (s1 == '8') return SType::FLOAT64;
-  } else if (s0 == 'b' && s2 == '\0') {
-    if (s1 == '1' && s2 == '\0') return SType::BOOL;
-  } else if (s0 == 'o') {
-    if (s1 == '8' && s2 == '\0') return SType::OBJ;
-  } else if (s0 == 's') {
-    if (s2 == '\0') {
-      if (s1 == '4') return SType::STR32;
-      if (s1 == '8') return SType::STR64;
-      if (s1 == 'x') return SType::FSTR;
-    }
-  } else if (s0 == 'f') {
-    if (s2 == 'r') {
-      if (s1 == '4') return SType::FLOAT32;
-      if (s1 == '8') return SType::FLOAT64;
-    }
-  } else if (s0 == 'u') {
-    if (s2 == 'e') {
-      if (s1 == '1') return SType::CAT8;
-      if (s1 == '2') return SType::CAT16;
-      if (s1 == '4') return SType::CAT32;
-    }
-  } else if (s0 == 'c') {
-    if (s1 == '#' && s2 == 's') return SType::FSTR;
-  } else if (s0 == 'p') {
-    if (s1 == '8' && s2 == 'p') return SType::OBJ;
-  } else if (s0 == 'd' && s2 == '\0') {
-    if (s1 == '2') return SType::DEC16;
-    if (s1 == '4') return SType::DEC32;
-    if (s1 == '8') return SType::DEC64;
-  } else if (s0 == 'e' && s2 == '\0') {
-    if (s1 == '1') return SType::CAT8;
-    if (s1 == '2') return SType::CAT16;
-    if (s1 == '4') return SType::CAT32;
-  } else if (s0 == 't' && s2 == '\0') {
-    if (s1 == '2') return SType::DATE16;
-    if (s1 == '4') return SType::DATE32;
-    if (s1 == '8') return SType::DATE64;
-  } else if (s0 == 'T' && s1 == '4' && s2 == '\0') {
-    return SType::TIME32;
-  }
-  return SType::VOID;
-}
 
 
 int stype_from_pyobject(PyObject* s) {
@@ -262,7 +194,7 @@ int stype_from_pyobject(PyObject* s) {
 }
 
 
-SType common_stype_for_buffer(SType stype1, SType stype2) {
+SType common_stype(SType stype1, SType stype2) {
   return stype_upcast_map[int(stype1)][int(stype2)];
 }
 

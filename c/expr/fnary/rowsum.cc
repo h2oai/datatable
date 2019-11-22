@@ -73,7 +73,7 @@ Column naryop_rowsum(colvec&& columns) {
     return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
   }
   SType res_stype = detect_common_numeric_stype(columns, "rowsum");
-  promote_numeric_columns(columns, res_stype);
+  promote_columns(columns, res_stype);
 
   switch (res_stype) {
     case SType::INT32:   return _rowsum<int32_t>(std::move(columns));

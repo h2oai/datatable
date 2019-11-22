@@ -46,8 +46,7 @@ Column naryop(Op opcode, colvec&& columns);
 Column naryop_rowall(colvec&&);
 Column naryop_rowany(colvec&&);
 Column naryop_rowcount(colvec&&);
-Column naryop_rowfirst(colvec&&);
-Column naryop_rowlast(colvec&&);
+Column naryop_rowfirstlast(colvec&&, bool FIRST);
 Column naryop_rowmean(colvec&&);
 Column naryop_rowminmax(colvec&&, bool MIN);
 Column naryop_rowsd(colvec&&);
@@ -65,7 +64,7 @@ SType detect_common_numeric_stype(const colvec&, const char* fnname);
 /**
   * Convert all columns in the list into a common stype.
   */
-void promote_numeric_columns(colvec& columns, SType target_stype);
+void promote_columns(colvec& columns, SType target_stype);
 
 
 

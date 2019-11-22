@@ -33,8 +33,8 @@ Column naryop(Op opcode, colvec&& columns) {
     case Op::ROWANY:   return naryop_rowany(std::move(columns));
     case Op::ROWCOUNT: return naryop_rowcount(std::move(columns));
     case Op::ROWSUM:   return naryop_rowsum(std::move(columns));
-    case Op::ROWFIRST:
-    case Op::ROWLAST:
+    case Op::ROWFIRST: return naryop_rowfirstlast(std::move(columns), true);
+    case Op::ROWLAST:  return naryop_rowfirstlast(std::move(columns), false);
     case Op::ROWMAX:   return naryop_rowminmax(std::move(columns), false);
     case Op::ROWMEAN:
     case Op::ROWMIN:   return naryop_rowminmax(std::move(columns), true);
@@ -90,7 +90,7 @@ SType detect_common_numeric_stype(const colvec& columns, const char* fnname)
 
 
 
-void promote_numeric_columns(colvec& columns, SType target_stype) {
+void promote_columns(colvec& columns, SType target_stype) {
   for (auto& col : columns) {
     col.cast_inplace(target_stype);
   }

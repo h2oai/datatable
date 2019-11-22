@@ -325,10 +325,10 @@ enum class SType : uint8_t {
   DATE16  = 20,
   OBJ     = 21,
 
-  INVALID = 99,
+  INVALID = 22,
 };
 
-constexpr size_t DT_STYPES_COUNT = static_cast<size_t>(SType::OBJ) + 1;
+constexpr size_t DT_STYPES_COUNT = static_cast<size_t>(SType::INVALID);
 
 
 
@@ -437,8 +437,7 @@ extern PyTypeObject* py_stype;
 extern PyTypeObject* py_ltype;
 
 int stype_from_pyobject(PyObject* s);
-SType stype_from_string(const std::string&);
-SType common_stype_for_buffer(SType stype1, SType stype2);
+SType common_stype(SType stype1, SType stype2);
 
 
 #endif

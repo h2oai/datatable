@@ -26,7 +26,8 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, g, stype, ltype, join
-from datatable import rowall, rowany, rowsum, rowcount, rowmin, rowmax
+from datatable import rowall, rowany, rowsum, rowcount, rowmin, rowmax, \
+                      rowfirst, rowlast
 from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, noop
 
@@ -115,6 +116,55 @@ def test_rowcount_different_types():
                    ["A", "", None, None, "NaN", "None"]])
     RES = DT[:, rowcount(f[:])]
     assert_equals(RES, dt.Frame([4, 2, 0, 3, 4, 3], stype=dt.int32))
+
+
+
+
+#-------------------------------------------------------------------------------
+# rowfirst(), rowlast()
+#-------------------------------------------------------------------------------
+
+def test_rowfirstlast_bools():
+    DT = dt.Frame([(None, True, False),
+                   (False, None, None),
+                   (None, None, None)])
+    RES = DT[:, [rowfirst(f[:]), rowlast(f[:])]]
+    assert_equals(RES, dt.Frame([[True, False, None], [False, False, None]]))
+
+
+@pytest.mark.parametrize("st", stypes_int)
+def test_rowfirstlast_ints(st):
+    DT = dt.Frame([(7, 5, 19, 22),
+                   (None, 1, 2, None),
+                   (None, None, None, None)], stype=st)
+    RES = DT[:, [rowfirst(f[:]), rowlast(f[:])]]
+    assert_equals(RES, dt.Frame([[7, 1, None], [22, 2, None]], stype=st))
+
+
+@pytest.mark.parametrize("st", stypes_float)
+def test_rowfirstlast_floats(st):
+    DT = dt.Frame([(3.0, 7.0, math.nan),
+                   (math.inf, None, None),
+                   (math.nan, 2.5, -111)], stype=st)
+    RES = DT[:, [rowfirst(f[:]), rowlast(f[:])]]
+    assert_equals(RES, dt.Frame([[3.0, math.inf, 2.5],
+                                 [7.0, math.inf, -111.0]], stype=st))
+
+
+@pytest.mark.parametrize("st", stypes_str)
+def test_rowfirstlast_strs(st):
+    DT = dt.Frame([("a", None, "b", None),
+                   (None, None, "x", None),
+                   ("", "", "AHA!", "last")], stype=st)
+    RES = DT[:, [rowfirst(f[:]), rowlast(f[:])]]
+    assert_equals(RES, dt.Frame([["a", "x", ""],
+                                 ["b", "x", "last"]], stype=st))
+
+
+def test_rowfirstlast_incompatible():
+    DT = dt.Frame(A=["a", "b", "c"], B=[1, 3, 4])
+    with pytest.raises(TypeError, match="Incompatible column types"):
+        assert DT[:, rowfirst(f[:])]
 
 
 
