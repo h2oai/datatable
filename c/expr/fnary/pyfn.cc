@@ -130,4 +130,5 @@ void py::DatatableModule::init_fnary()
 
   FNARY(args_rowall, Op::ROWALL);
   FNARY(args_rowany, Op::ROWANY);
+  FNARY(args_rowsum, Op::ROWSUM);
 }

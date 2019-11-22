@@ -54,6 +54,20 @@ Column naryop_rowmin(colvec&&);
 Column naryop_rowsd(colvec&&);
 Column naryop_rowsum(colvec&&);
 
+/**
+  * For a list of numeric columns, find the largest common stype.
+  * Possible return values are: INT32, INT64, FLOAT32 or FLOAT64.
+  * If any column in the list is not numeric, then an exception will
+  * be thrown. The error message will use `fnname`.
+  */
+SType detect_common_numeric_stype(const colvec&, const char* fnname);
+
+
+/**
+  * Convert all columns in the list into a common stype.
+  */
+void promote_numeric_columns(colvec& columns, SType target_stype);
+
 
 
 

@@ -26,7 +26,7 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, g, stype, ltype, join
-from datatable import rowall, rowany
+from datatable import rowall, rowany, rowsum
 from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, noop
 
@@ -94,3 +94,55 @@ def test_rowany_simple():
     assert_equals(RES, dt.Frame([True, True, True, False, True, False]))
 
 
+@pytest.mark.parametrize('st', stypes_int + stypes_float + stypes_str)
+def test_rowany_wrong_type(st):
+    DT = dt.Frame(A=[], stype=st)
+    with pytest.raises(TypeError, match="Function `rowany` requires a sequence "
+                                        "of boolean columns"):
+        assert DT[:, rowany(f.A)]
+
+
+
+
+#-------------------------------------------------------------------------------
+# rowsum()
+#-------------------------------------------------------------------------------
+
+def test_rowsum_bools():
+    DT = dt.Frame([[True, True, False, False, None,  None],
+                   [True, False, True, False, True,  None],
+                   [True, True,  True, False, False, None]])
+    RES = DT[:, rowsum(f[:])]
+    assert_equals(RES, dt.Frame([3, 2, 2, 0, 1, 0], stype=dt.int32))
+
+
+
+def test_rowsum_int8():
+    DT = dt.Frame([[3, 7, -1, 0, None],
+                   [15, 19, 1, None, 1],
+                   [0, 111, 88, 3, 4]], stype=dt.int8)
+    RES = DT[:, rowsum(f[int])]
+    assert_equals(RES, dt.Frame([18, 137, 88, 3, 5], stype=dt.int32))
+
+
+def test_rowsum_different_types():
+    DT = dt.Frame([[3, 4, 6, 9, None, 1],
+                   [True, False, False, None, True, True],
+                   [14, 15, -1, 2, 7, -11],
+                   [4, 10, 3, None, 0, -8]],
+                  stypes=[dt.int8, dt.bool8, dt.int64, dt.int32])
+    RES = DT[:, rowsum(f[:])]
+    assert_equals(RES, dt.Frame([22, 29, 8, 11, 8, -17], stype=dt.int64))
+
+
+def test_rowsum_promote_to_float32():
+    DT = dt.Frame([[2], [7], [11]], stypes=[dt.int32, dt.float32, dt.int64])
+    assert_equals(rowsum(DT),
+                  dt.Frame([20], stype=dt.float32))
+
+
+def test_rowsum_promote_to_float64():
+    DT = dt.Frame([[2], [3], [1], [5], [None]],
+                  stypes=[dt.int8, dt.float64, dt.int64, dt.float32, dt.int16])
+    assert_equals(rowsum(DT),
+                  dt.Frame([11], stype=dt.float64))

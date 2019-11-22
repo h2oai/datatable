@@ -65,7 +65,7 @@ static bool op_rowany(size_t i, int8_t* out, const colvec& columns) {
 
 Column naryop_rowany(colvec&& columns) {
   if (columns.empty()) {
-    return ConstNa_ColumnImpl::make_bool_column(1, true);
+    return Const_ColumnImpl::make_bool_column(1, true);
   }
   size_t nrows = columns[0].nrows();
   for (size_t i = 0; i < columns.size(); ++i) {

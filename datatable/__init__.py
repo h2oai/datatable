@@ -35,6 +35,7 @@ from .lib._datatable import (
     repeat,
     rowall,
     rowany,
+    rowsum,
     setdiff,
     sort,
     symdiff,
