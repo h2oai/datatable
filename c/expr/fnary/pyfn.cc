@@ -128,6 +128,6 @@ void py::DatatableModule::init_fnary()
     ADD_FN(&fnary_pyfn, dt::expr::ARGS); \
     register_args(dt::expr::ARGS, dt::expr::OP);
 
-  // Basic
   FNARY(args_rowall, Op::ROWALL);
+  FNARY(args_rowany, Op::ROWANY);
 }

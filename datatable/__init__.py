@@ -34,6 +34,7 @@ from .lib._datatable import (
     rbind,
     repeat,
     rowall,
+    rowany,
     setdiff,
     sort,
     symdiff,

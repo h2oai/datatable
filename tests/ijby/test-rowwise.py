@@ -26,13 +26,14 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, g, stype, ltype, join
-from datatable import rowall
+from datatable import rowall, rowany
 from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, noop
 
 stypes_int = ltype.int.stypes
 stypes_float = ltype.real.stypes
 stypes_str = ltype.str.stypes
+
 
 
 #-------------------------------------------------------------------------------
@@ -77,3 +78,19 @@ def test_rowall_wrong_type(st):
     with pytest.raises(TypeError, match="Function `rowall` requires a sequence "
                                         "of boolean columns"):
         assert DT[:, rowall(f.A)]
+
+
+
+
+#-------------------------------------------------------------------------------
+# rowany()
+#-------------------------------------------------------------------------------
+
+def test_rowany_simple():
+    DT = dt.Frame([[True, True, False, False, None,  False],
+                   [True, False, True, False, True,  None],
+                   [True, True,  True, False, False, None]])
+    RES = DT[:, rowany(f[:])]
+    assert_equals(RES, dt.Frame([True, True, True, False, True, False]))
+
+

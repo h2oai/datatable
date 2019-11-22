@@ -30,7 +30,7 @@ namespace expr {
 Column naryop(Op opcode, colvec&& columns) {
   switch (opcode) {
     case Op::ROWALL:   return naryop_rowall(std::move(columns));
-    case Op::ROWANY:
+    case Op::ROWANY:   return naryop_rowany(std::move(columns));
     case Op::ROWCOUNT:
     case Op::ROWFIRST:
     case Op::ROWLAST:
