@@ -128,7 +128,10 @@ void py::DatatableModule::init_fnary()
     ADD_FN(&fnary_pyfn, dt::expr::ARGS); \
     register_args(dt::expr::ARGS, dt::expr::OP);
 
-  FNARY(args_rowall, Op::ROWALL);
-  FNARY(args_rowany, Op::ROWANY);
-  FNARY(args_rowsum, Op::ROWSUM);
+  FNARY(args_rowall,   Op::ROWALL);
+  FNARY(args_rowany,   Op::ROWANY);
+  FNARY(args_rowcount, Op::ROWCOUNT);
+  FNARY(args_rowmax,   Op::ROWMAX);
+  FNARY(args_rowmin,   Op::ROWMIN);
+  FNARY(args_rowsum,   Op::ROWSUM);
 }

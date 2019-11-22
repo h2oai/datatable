@@ -31,13 +31,13 @@ Column naryop(Op opcode, colvec&& columns) {
   switch (opcode) {
     case Op::ROWALL:   return naryop_rowall(std::move(columns));
     case Op::ROWANY:   return naryop_rowany(std::move(columns));
+    case Op::ROWCOUNT: return naryop_rowcount(std::move(columns));
     case Op::ROWSUM:   return naryop_rowsum(std::move(columns));
-    case Op::ROWCOUNT:
     case Op::ROWFIRST:
     case Op::ROWLAST:
-    case Op::ROWMAX:
+    case Op::ROWMAX:   return naryop_rowminmax(std::move(columns), false);
     case Op::ROWMEAN:
-    case Op::ROWMIN:
+    case Op::ROWMIN:   return naryop_rowminmax(std::move(columns), true);
     case Op::ROWSD:
     default:
       throw TypeError() << "Unknown n-ary op " << static_cast<int>(opcode);

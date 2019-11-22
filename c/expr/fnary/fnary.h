@@ -48,9 +48,8 @@ Column naryop_rowany(colvec&&);
 Column naryop_rowcount(colvec&&);
 Column naryop_rowfirst(colvec&&);
 Column naryop_rowlast(colvec&&);
-Column naryop_rowmax(colvec&&);
 Column naryop_rowmean(colvec&&);
-Column naryop_rowmin(colvec&&);
+Column naryop_rowminmax(colvec&&, bool MIN);
 Column naryop_rowsd(colvec&&);
 Column naryop_rowsum(colvec&&);
 

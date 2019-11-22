@@ -26,7 +26,7 @@ import pytest
 import random
 import datatable as dt
 from datatable import f, g, stype, ltype, join
-from datatable import rowall, rowany, rowsum
+from datatable import rowall, rowany, rowsum, rowcount, rowmin, rowmax
 from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, noop
 
@@ -105,6 +105,63 @@ def test_rowany_wrong_type(st):
 
 
 #-------------------------------------------------------------------------------
+# rowcount()
+#-------------------------------------------------------------------------------
+
+def test_rowcount_different_types():
+    DT = dt.Frame([[1, 4, None, 7, 0, None],
+                   [True, None, None, False, False, False],
+                   [7.4, math.nan, None, math.inf, -math.inf, 1.6e300],
+                   ["A", "", None, None, "NaN", "None"]])
+    RES = DT[:, rowcount(f[:])]
+    assert_equals(RES, dt.Frame([4, 2, 0, 3, 4, 3], stype=dt.int32))
+
+
+
+
+#-------------------------------------------------------------------------------
+# rowmax(), rowmin()
+#-------------------------------------------------------------------------------
+
+def test_rowminmax_simple():
+    DT = dt.Frame([[3], [-6], [17], [0], [5.4]])
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[17.0], [-6.0]]))
+
+
+def test_rowminmax_int8():
+    DT = dt.Frame([[4], [None], [1], [3]], stype=dt.int8)
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[4], [1]], stype=dt.int32))
+
+
+def test_rowminmax_nas():
+    DT = dt.Frame([[None]] * 3, stype=dt.int64)
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[None], [None]], stype=dt.int64))
+
+
+def test_rowminmax_almost_nas():
+    DT = dt.Frame([[None], [None], [1], [None]], stype=dt.float64)
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[1.0], [1.0]]))
+
+
+def test_rowminmax_floats():
+    import sys
+    maxflt = sys.float_info.max
+    DT = dt.Frame([(7.5, math.nan, 4.1),
+                   (math.nan, math.inf, None),
+                   (math.inf, -math.inf, None),
+                   (maxflt, math.inf, -maxflt)])
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[7.5, math.inf, +math.inf, math.inf],
+                                 [4.1, math.inf, -math.inf, -maxflt]]))
+
+
+
+
+#-------------------------------------------------------------------------------
 # rowsum()
 #-------------------------------------------------------------------------------
 
@@ -146,3 +203,7 @@ def test_rowsum_promote_to_float64():
                   stypes=[dt.int8, dt.float64, dt.int64, dt.float32, dt.int16])
     assert_equals(rowsum(DT),
                   dt.Frame([11], stype=dt.float64))
+
+
+
+
