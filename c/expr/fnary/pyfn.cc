@@ -55,6 +55,14 @@ static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args_tuple) {
   return py::robj(py::Expr_Type).call({ py::oint(op), args_tuple });
 }
 
+static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args_tuple,
+                            py::otuple params_tuple)
+{
+  size_t op = static_cast<size_t>(opcode);
+  return py::robj(py::Expr_Type)
+            .call({ py::oint(op), args_tuple, params_tuple });
+}
+
 /**
   * This helper function will apply `opcode` to an entire frame.
   */

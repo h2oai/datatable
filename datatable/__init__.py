@@ -33,6 +33,7 @@ from .lib._datatable import (
     join,
     rbind,
     repeat,
+    rowall,
     setdiff,
     sort,
     symdiff,
