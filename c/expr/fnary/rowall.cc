@@ -28,6 +28,23 @@ namespace expr {
 
 
 
+static const char* doc_rowall =
+R"(rowall(x1, x2, ...)
+--
+
+For each row in a frame formed by concatenating columns x1, x2, ...
+return True if all values in that row are True, or otherwise return
+False.
+
+This is a row-wise function: it applies to a sequence of 0 or more
+boolean columns and produces a single boolean column of the same
+shape.
+)";
+
+py::PKArgs args_rowall(0, 0, 0, true, false, {}, "rowall", doc_rowall);
+
+
+
 static bool op_rowall(size_t i, int8_t* out, const colvec& columns) {
   for (const auto& col : columns) {
     int8_t x;

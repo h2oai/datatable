@@ -47,6 +47,7 @@ class DatatableModule : public ExtModule<DatatableModule> {
     void init_casts();             // frame/cast.cc
     void init_fuzzy();             // utils/fuzzy.cc
     void init_funary();            // expr/funary/pyfn.cc
+    void init_fnary();             // expr/fnary/pyfn.cc
 
     #ifdef DTTEST
       void init_tests();
