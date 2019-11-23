@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import os
 import pytest
 import re
 
@@ -312,6 +313,8 @@ def test_colored_escaped_name(capsys):
         "[0 rows x 1 column]")
 
 
+@pytest.mark.skipif(os.environ.get("TRAVIS"),
+                    reason="Terminal width is 80 on Travis")
 def test_horizontal_elision(capsys):
     DT = dt.Frame([["1234567890" * 3]] * 20)
     with dt.options.display.context(allow_unicode=True, use_colors=True):
