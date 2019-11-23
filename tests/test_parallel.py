@@ -40,7 +40,7 @@ cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
 # Test parallel infrastructure
 #-------------------------------------------------------------------------------
 
-posargs_error_message = "Positional argument 1 can not be `None` or undefined"
+posargs_error_message = "Positional argument 1 is missing"
 
 def test_multiprocessing_threadpool():
     # Verify that threads work properly after forking (#1758)

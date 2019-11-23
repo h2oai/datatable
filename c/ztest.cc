@@ -25,9 +25,8 @@ namespace py {
  */
 static void check_posonly_args(const PKArgs& args_spec, const PKArgs& args) {
   for (size_t i = 0; i < args_spec.num_posonly_args(); ++i) {
-    if (args[i].is_none_or_undefined()) {
-      throw ValueError() << "Positional argument " << i + 1
-                         << " can not be `None` or undefined";
+    if (args[i].is_undefined()) {
+      throw ValueError() << "Positional argument " << i + 1 << " is missing";
     }
   }
 }
