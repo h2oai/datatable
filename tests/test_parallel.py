@@ -40,6 +40,8 @@ cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
 # Test parallel infrastructure
 #-------------------------------------------------------------------------------
 
+posargs_error_message = "Positional argument 1 can not be `None` or undefined"
+
 def test_multiprocessing_threadpool():
     # Verify that threads work properly after forking (#1758)
     import multiprocessing as mp
@@ -56,6 +58,8 @@ def test_multiprocessing_threadpool():
 
 @cpp_test
 def test_internal_shared_mutex():
+    with pytest.raises(ValueError, match = posargs_error_message):
+        core.test_shmutex()
     core.test_shmutex(500, dt.options.nthreads * 2, 1)
 
 
@@ -71,21 +75,29 @@ def test_internal_atomic():
 
 @cpp_test
 def test_internal_barrier():
+    with pytest.raises(ValueError, match = posargs_error_message):
+        core.test_barrier()
     core.test_barrier(100)
 
 
 @cpp_test
 def test_internal_parallel_for_static():
+    with pytest.raises(ValueError, match = posargs_error_message):
+        core.test_parallel_for_static()
     core.test_parallel_for_static(1000)
 
 
 @cpp_test
 def test_internal_parallel_for_dynamic():
+    with pytest.raises(ValueError, match = posargs_error_message):
+        core.test_parallel_for_dynamic()
     core.test_parallel_for_dynamic(1000)
 
 
 @cpp_test
 def test_internal_parallel_for_ordered1():
+    with pytest.raises(ValueError, match = posargs_error_message):
+        core.test_parallel_for_ordered()
     core.test_parallel_for_ordered(1723)
 
 
@@ -110,6 +122,10 @@ def test_internal_parallel_for_ordered2():
 def test_progress(parallel_type, nthreads):
     niterations = 1000
     ntimes = 2
+    with pytest.raises(ValueError, match = posargs_error_message):
+        cmd = "core.test_progress_%s()" % parallel_type
+        exec(cmd)
+
     cmd = "core.test_progress_%s(%s, %s);" % (
               parallel_type, niterations, nthreads)
     for _ in range(ntimes) :

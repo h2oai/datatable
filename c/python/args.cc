@@ -257,6 +257,10 @@ const Arg& PKArgs::operator[](size_t i) const {
   return bound_args[i];
 }
 
+size_t PKArgs::num_posonly_args() const noexcept {
+  return n_posonly_args;
+}
+
 size_t PKArgs::num_vararg_args() const noexcept {
   return n_varargs;
 }
