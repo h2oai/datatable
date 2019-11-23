@@ -50,6 +50,5 @@ void test_progress_ordered(size_t, size_t);
 
 }  // namespace dttest
 
-
 #endif
 #endif
