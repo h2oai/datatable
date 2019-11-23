@@ -18,7 +18,6 @@
 #ifdef DTTEST
 #include <functional>
 #include <string>
-#include "python/args.h"
 
 namespace dttest {
 
