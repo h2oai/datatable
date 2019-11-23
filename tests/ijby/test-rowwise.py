@@ -61,6 +61,7 @@ def test_rowall_sequence_of_columns():
                   C=[True, None, False],
                   D=[True, True, True],
                   E=['ha', 'nope', None])
+    DT = DT[:, list("ABCDE")]  # force correct column order for py3.5
     RES = DT[:, rowall(f.A, f["C":"D"])]
     assert_equals(RES, dt.Frame([True, False, False]))
 
