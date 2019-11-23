@@ -313,20 +313,29 @@ def test_colored_escaped_name(capsys):
         "[0 rows x 1 column]")
 
 
-@pytest.mark.skipif(os.environ.get("TRAVIS"),
-                    reason="Terminal width is 80 on Travis")
 def test_horizontal_elision(capsys):
     DT = dt.Frame([["1234567890" * 3]] * 20)
     with dt.options.display.context(allow_unicode=True, use_colors=True):
         DT.view(interactive=False)
     out, err = capsys.readouterr()
     assert not err
-    # The output is truncated to 120 width (default terminal width for non-tty)
-    check_colored_output(out,
-        "   | C0                              C1                              C2                …  C19                           ",
-        "-- + ------------------------------  ------------------------------  ----------------     ------------------------------",
-        " 0 | 123456789012345678901234567890  123456789012345678901234567890  123456789012345…  …  123456789012345678901234567890",
-        "[1 row x 20 columns]")
+    if os.environ.get("TRAVIS"):
+        # On Travis the output is truncated to 80 width
+        check_colored_output(out,
+            "   | C0                              C1        …  C19                           ",
+            "-- + ------------------------------  --------     ------------------------------",
+            " 0 | 123456789012345678901234567890  1234567…  …  123456789012345678901234567890",
+            "[1 row x 20 columns]"
+            )
+    else:
+        # Normally the output is truncated to 120 width (default terminal width for non-tty)
+        check_colored_output(out,
+            "   | C0                              C1                              C2                …  C19                           ",
+            "-- + ------------------------------  ------------------------------  ----------------     ------------------------------",
+            " 0 | 123456789012345678901234567890  123456789012345678901234567890  123456789012345…  …  123456789012345678901234567890",
+            "[1 row x 20 columns]")
+
+
 
 
 
