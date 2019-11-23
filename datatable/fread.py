@@ -281,13 +281,13 @@ class GenericReader(object):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         ret = proc.wait()
+        msgout, msgerr = proc.communicate()
         if ret:
-            msg = proc.stderr.read()
-            msg = msg.decode("utf-8", errors="replace").strip()
+            msgerr = msgerr.decode("utf-8", errors="replace").strip()
             raise TValueError("Shell command returned error code %r: `%s`"
-                              % (ret, msg))
+                              % (ret, msgerr))
         else:
-            self._text = proc.stdout.read()
+            self._text = msgout
             self._src = cmd
 
 
