@@ -333,15 +333,14 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   SType stype = pybuffers::force_stype;
   if (stype == SType::VOID) {
     // Auto-detect common stype
-    uint64_t stypes_mask = 0;
     for (size_t i = 0; i < ncols; ++i) {
       SType next_stype = dt->get_column(i + i0).stype();
-      uint64_t unstype = static_cast<uint64_t>(next_stype);
-      if (stypes_mask & (1 << unstype)) continue;
-      stypes_mask |= 1 << unstype;
-      stype = common_stype_for_buffer(stype, next_stype);
+      stype = common_stype(stype, next_stype);
     }
   }
+  if (stype == SType::INVALID ||
+      stype == SType::STR32 ||
+      stype == SType::STR64) stype = SType::OBJ;
 
   // Allocate the final buffer
   xassert(!info(stype).is_varwidth());

@@ -36,6 +36,8 @@ static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 412;
 static constexpr size_t MATH_FIRST    = 501;
 static constexpr size_t MATH_LAST     = 556;
+static constexpr size_t ROWFNS_FIRST  = 601;
+static constexpr size_t ROWFNS_LAST   = 610;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
 static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
@@ -161,6 +163,18 @@ enum class Op : size_t {
   MAXIMUM,
   MINIMUM,
   MODF = MATH_LAST,
+
+  // Row-functions
+  ROWALL = ROWFNS_FIRST,
+  ROWANY,
+  ROWCOUNT,
+  ROWFIRST,
+  ROWLAST,
+  ROWMAX,
+  ROWMEAN,
+  ROWMIN,
+  ROWSD,
+  ROWSUM = ROWFNS_LAST,
 };
 
 

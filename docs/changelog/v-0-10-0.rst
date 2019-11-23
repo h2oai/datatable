@@ -31,9 +31,31 @@ selection of columns::
     f[:10].extend(f[-1])      # first 10, plus the last column
 
 The columnsets can be used in places where a list/sequence of columns is
-expected, such as the ``i`` node of ``DT[i,j,...]``, the ``by()`` function;
-also in functions that operate on lists of columns, such as ``rowsum()``,
-``rowmin()``, etc.
+expected, such as the ``j`` node of ``DT[i,j,...]``, the ``by()`` function, etc.
+
+
+Row-functions |new|
+-------------------
+
+We added a family of new "row-wise" aggregation functions, which operate on
+any number of columns in a frame, producing a single column as a result. These
+function aggregate across rows instead of columns (like traditional reducers),
+and therefore they all have prefix ``row``::
+
+    rowall()    # are all values True?
+    rowany()    # is there any True value?
+    rowcount()  # count non-missing values in a row
+    rowfirst()  # find the first non-missing value
+    rowlast()   # the last non-missing value
+    rowmax()    # largest value in a row
+    rowmean()   # mean of all values in a row
+    rowmin()    # smallest value in a row
+    rowsd()     # standard deviation of all row values
+    rowsum()    # the sum of values in a row
+
+These functions are equivalent to pandas' aggregation functions with parameter
+``(axis=1)``. In addition, the first two of these functions (``rowall()`` and
+``rowany()``) use short-circuit evaluation.
 
 
 Frame
@@ -88,8 +110,8 @@ Frame
     assert DT.stype == dt.int64
 
 - |new| When an integer column is used to select rows from a Frame, that column
-  is now allowed to contain NA values, which indicate that a row filled with
-  missing values has to be produced::
+  is now allowed to contain NA values, which produces a row filled with missing
+  values::
 
     DT = dt.Frame(A=['a', 'b', 'c', 'd', 'e'])
     rows = dt.Frame([2, 0, None, 1, 2])

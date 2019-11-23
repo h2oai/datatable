@@ -149,6 +149,11 @@ static ptrHead make_reduce2(Op op, const py::otuple& params) {
 }
 
 
+static ptrHead make_rowfn(Op op, const py::otuple& params) {
+  xassert(params.size() == 0);
+  return ptrHead(new Head_Func_Nary(op));
+}
+
 
 std::unordered_map<size_t, Head_Func::maker_t> Head_Func::factory;
 
@@ -158,6 +163,7 @@ void Head_Func::init() {
   for (size_t i = BINOP_FIRST;   i <= BINOP_LAST;   ++i) factory[i] = make_binop;
   for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce1;
   for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
+  for (size_t i = ROWFNS_FIRST;  i <= ROWFNS_LAST;  ++i) factory[i] = make_rowfn;
   factory[static_cast<size_t>(Op::COL)]      = make_col;
   factory[static_cast<size_t>(Op::CAST)]     = make_cast;
   factory[static_cast<size_t>(Op::SETPLUS)]  = make_colsetop;
