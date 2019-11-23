@@ -41,6 +41,7 @@ from .lib._datatable import (
     rowmax,
     rowmean,
     rowmin,
+    rowsd,
     rowsum,
     setdiff,
     sort,
