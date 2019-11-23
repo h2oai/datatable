@@ -31,6 +31,7 @@ from .lib._datatable import (
     arctan,
     artanh,
     cbrt,
+    ceil,
     cos,
     cosh,
     deg2rad,
@@ -40,6 +41,7 @@ from .lib._datatable import (
     exp2,
     expm1,
     fabs,
+    floor,
     gamma,
     isna,
     isfinite,
@@ -59,6 +61,7 @@ from .lib._datatable import (
     square,
     tan,
     tanh,
+    trunc,
 )
 
 e = 2.718281828459045

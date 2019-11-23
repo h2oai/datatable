@@ -32,6 +32,7 @@ class OpCodes(enum.Enum):
     CAST = 2
     SETPLUS = 3
     SETMINUS = 4
+    SHIFTFN = 5
 
     # Unary
     UPLUS = 101
