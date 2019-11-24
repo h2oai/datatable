@@ -222,7 +222,7 @@ setuptools.setup(
 
     ext_modules=[
         setuptools.Extension(
-            "datatable/lib/_datatable",
+            "_datatable",
             include_dirs=["c", "include"],
             sources=cpp_files,
             extra_compile_args=extra_compile_args,
