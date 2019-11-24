@@ -57,9 +57,31 @@ def test_multiprocessing_threadpool():
 
 
 @cpp_test
+@pytest.mark.parametrize('test_name, nargs',
+                         [
+                            ["shmutex", 3],
+                            ["barrier", 1],
+                            ["parallel_for_static", 1],
+                            ["parallel_for_dynamic", 1],
+                            ["parallel_for_ordered", 1],
+                            ["progress_static", 2],
+                            ["progress_nested", 2],
+                            ["progress_dynamic", 2],
+                            ["progress_ordered", 2]
+                         ]
+                        )
+def test_parameters(test_name, nargs):
+    for i in range(nargs - 1):
+        args = list(range(i))
+        message = ("In %s the number of arguments required is %d, "
+                   "got: %d" % ("test_" + test_name + r"\(\)", nargs, i))
+        with pytest.raises(ValueError, match = message):
+            testfn = "test_%s" % test_name
+            getattr(core, testfn)(*args)
+
+
+@cpp_test
 def test_internal_shared_mutex():
-    with pytest.raises(ValueError, match = posargs_error_message):
-        core.test_shmutex()
     core.test_shmutex(500, dt.options.nthreads * 2, 1)
 
 
@@ -75,29 +97,21 @@ def test_internal_atomic():
 
 @cpp_test
 def test_internal_barrier():
-    with pytest.raises(ValueError, match = posargs_error_message):
-        core.test_barrier()
     core.test_barrier(100)
 
 
 @cpp_test
 def test_internal_parallel_for_static():
-    with pytest.raises(ValueError, match = posargs_error_message):
-        core.test_parallel_for_static()
     core.test_parallel_for_static(1000)
 
 
 @cpp_test
 def test_internal_parallel_for_dynamic():
-    with pytest.raises(ValueError, match = posargs_error_message):
-        core.test_parallel_for_dynamic()
     core.test_parallel_for_dynamic(1000)
 
 
 @cpp_test
 def test_internal_parallel_for_ordered1():
-    with pytest.raises(ValueError, match = posargs_error_message):
-        core.test_parallel_for_ordered()
     core.test_parallel_for_ordered(1723)
 
 
@@ -122,10 +136,6 @@ def test_internal_parallel_for_ordered2():
 def test_progress(parallel_type, nthreads):
     niterations = 1000
     ntimes = 2
-    with pytest.raises(ValueError, match = posargs_error_message):
-        cmd = "core.test_progress_%s()" % parallel_type
-        exec(cmd)
-
     cmd = "core.test_progress_%s(%s, %s);" % (
               parallel_type, niterations, nthreads)
     for _ in range(ntimes) :

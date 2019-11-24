@@ -137,6 +137,8 @@ class PKArgs {
     const char* get_arg_short_name(size_t i) const;
 
     //---- User API --------------------
+    void check_required_args() const;
+    void check_required_args(size_t n_required_args) const;
     const Arg& operator[](size_t i) const;
 
     size_t num_posonly_args() const noexcept;
