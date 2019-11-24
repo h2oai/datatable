@@ -185,6 +185,7 @@ size_t SentinelFw_ColumnImpl<T>::get_num_data_buffers() const noexcept {
 template <typename T>
 bool SentinelFw_ColumnImpl<T>::is_data_editable(size_t k) const {
   xassert(k == 0);
+  (void) k;
   return mbuf_.is_writable();
 }
 
@@ -192,6 +193,7 @@ bool SentinelFw_ColumnImpl<T>::is_data_editable(size_t k) const {
 template <typename T>
 size_t SentinelFw_ColumnImpl<T>::get_data_size(size_t k) const {
   xassert(k == 0);
+  (void) k;
   xassert(mbuf_.size() >= nrows_ * sizeof(T));
   return nrows_ * sizeof(T);
 }
@@ -200,6 +202,7 @@ size_t SentinelFw_ColumnImpl<T>::get_data_size(size_t k) const {
 template <typename T>
 const void* SentinelFw_ColumnImpl<T>::get_data_readonly(size_t k) const {
   xassert(k == 0);
+  (void) k;
   return mbuf_.rptr();
 }
 
@@ -207,6 +210,7 @@ const void* SentinelFw_ColumnImpl<T>::get_data_readonly(size_t k) const {
 template <typename T>
 void* SentinelFw_ColumnImpl<T>::get_data_editable(size_t k) {
   xassert(k == 0);
+  (void) k;
   return mbuf_.wptr();
 }
 
@@ -214,6 +218,7 @@ void* SentinelFw_ColumnImpl<T>::get_data_editable(size_t k) {
 template <typename T>
 Buffer SentinelFw_ColumnImpl<T>::get_data_buffer(size_t k) const {
   xassert(k == 0);
+  (void) k;
   return Buffer(mbuf_);
 }
 
