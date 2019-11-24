@@ -11,13 +11,17 @@ before_install:
 
 env:
   global:
-  - LLVM7=$HOME/LLVM7 LLVM_CONFIG=$LLVM7/bin/llvm-config CLANG=$LLVM7/bin/clang LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
+    - TRAVIS=1
+    - LLVM7=$HOME/LLVM7
+    - LLVM_CONFIG=$LLVM7/bin/llvm-config
+    - CLANG=$LLVM7/bin/clang
+    - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
 
 cache:
   pip: true
   ccache: true
   directories:
-      - $LLVM7
+    - $LLVM7
 
 python:
   - "3.5"
