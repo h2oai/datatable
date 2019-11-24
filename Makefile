@@ -68,7 +68,7 @@ mrproper: clean
 
 build:
 	$(PYTHON) setup.py build
-	cp build/lib.*/datatable/lib/_datatable.* datatable/lib/
+	cp build/lib.*/_datatable.* datatable/lib/
 
 
 install:
