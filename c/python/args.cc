@@ -253,7 +253,7 @@ size_t PKArgs::_find_kwd(PyObject* kwd) {
 
 
 /**
- * Check for missing positional arguments.
+ * Check if any required arguments are missing.
  */
 void PKArgs::check_required_args() const {
   check_required_args(n_posonly_args);
@@ -274,10 +274,6 @@ void PKArgs::check_required_args(size_t n_required_args) const {
 
 const Arg& PKArgs::operator[](size_t i) const {
   return bound_args[i];
-}
-
-size_t PKArgs::num_posonly_args() const noexcept {
-  return n_posonly_args;
 }
 
 size_t PKArgs::num_vararg_args() const noexcept {

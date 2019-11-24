@@ -141,7 +141,6 @@ class PKArgs {
     void check_required_args(size_t n_required_args) const;
     const Arg& operator[](size_t i) const;
 
-    size_t num_posonly_args() const noexcept;
     size_t num_vararg_args() const noexcept;
     size_t num_varkwd_args() const noexcept;
     VarKwdsIterable varkwds() const noexcept;
