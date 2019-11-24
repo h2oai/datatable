@@ -5,10 +5,11 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
-#include <cstring>     // std::memcpy
-#include <errno.h>     // errno
-#include <sys/mman.h>  // mmap
-#include <unistd.h>    // write
+#include <algorithm>       // std::min
+#include <cstring>         // std::memcpy
+#include <errno.h>         // errno
+#include <sys/mman.h>      // mmap
+#include <unistd.h>        // write
 #include "utils/alloc.h"   // dt::realloc
 #include "utils/assert.h"
 #include "utils/misc.h"

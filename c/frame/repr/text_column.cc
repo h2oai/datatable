@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <algorithm>                  // std::min, std::max
 #include "frame/repr/repr_options.h"
 #include "frame/repr/text_column.h"
 #include "utils/assert.h"
