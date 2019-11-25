@@ -55,6 +55,30 @@ def test_multiprocessing_threadpool():
 
 
 @cpp_test
+@pytest.mark.parametrize('test_name, nargs',
+                         [
+                            ["shmutex", 3],
+                            ["barrier", 1],
+                            ["parallel_for_static", 1],
+                            ["parallel_for_dynamic", 1],
+                            ["parallel_for_ordered", 1],
+                            ["progress_static", 2],
+                            ["progress_nested", 2],
+                            ["progress_dynamic", 2],
+                            ["progress_ordered", 2]
+                         ]
+                        )
+def test_parameters(test_name, nargs):
+    for i in range(nargs - 1):
+        args = list(range(i))
+        message = ("In %s the number of arguments required is %d, "
+                   "got: %d" % ("test_" + test_name + r"\(\)", nargs, i))
+        with pytest.raises(ValueError, match = message):
+            testfn = "test_%s" % test_name
+            getattr(core, testfn)(*args)
+
+
+@cpp_test
 def test_internal_shared_mutex():
     core.test_shmutex(500, dt.options.nthreads * 2, 1)
 

@@ -1,13 +1,20 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2019 H2O.ai
 //
-// © H2O.ai 2018
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //------------------------------------------------------------------------------
 #ifdef DTTEST
 #include "datatablemodule.h"
-#include "python/args.h"
 #include "utils/exceptions.h"
 #include "ztest.h"
 namespace py {
@@ -27,6 +34,7 @@ static PKArgs arg_test_shmutex(3, 0, 0, false, false,
   "test_shmutex");
 
 static void test_shmutex(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n_iters = args[0].to_size_t();
   size_t n_threads = args[1].to_size_t();
   int impl = args[2].to_int32_strict();
@@ -45,6 +53,7 @@ static PKArgs arg_test_barrier(
   1, 0, 0, false, false, {"n"}, "test_barrier");
 
 static void test_barrier(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n = args[0].to_size_t();
   dttest::test_barrier(n);
 }
@@ -54,6 +63,7 @@ static PKArgs arg_test_parallel_for_static(
   1, 0, 0, false, false, {"n"}, "test_parallel_for_static");
 
 static void test_parallel_for_static(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n = args[0].to_size_t();
   dttest::test_parallel_for_static(n);
 }
@@ -63,6 +73,7 @@ static PKArgs arg_test_parallel_for_dynamic(
   1, 0, 0, false, false, {"n"}, "test_parallel_for_dynamic");
 
 static void test_parallel_for_dynamic(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n = args[0].to_size_t();
   dttest::test_parallel_for_dynamic(n);
   dttest::test_parallel_for_dynamic_nested(n);
@@ -73,6 +84,7 @@ static PKArgs arg_test_parallel_for_ordered(
   1, 0, 0, false, false, {"n"}, "test_parallel_for_ordered");
 
 static void test_parallel_for_ordered(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n = args[0].to_size_t();
   dttest::test_parallel_for_ordered(n);
 }
@@ -84,6 +96,7 @@ static PKArgs arg_test_progress_static(2, 0, 0, false, false,
   "test_progress_static");
 
 static void test_progress_static(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n_iters = args[0].to_size_t();
   size_t n_threads = args[1].to_size_t();
   dttest::test_progress_static(n_iters, n_threads);
@@ -95,6 +108,7 @@ static PKArgs arg_test_progress_nested(2, 0, 0, false, false,
   "test_progress_nested");
 
 static void test_progress_nested(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n_iters = args[0].to_size_t();
   size_t n_threads = args[1].to_size_t();
   dttest::test_progress_nested(n_iters, n_threads);
@@ -106,6 +120,7 @@ static PKArgs arg_test_progress_dynamic(2, 0, 0, false, false,
   "test_progress_dynamic");
 
 static void test_progress_dynamic(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n_iters = args[0].to_size_t();
   size_t n_threads = args[1].to_size_t();
   dttest::test_progress_dynamic(n_iters, n_threads);
@@ -117,6 +132,7 @@ static PKArgs arg_test_progress_ordered(2, 0, 0, false, false,
   "test_progress_ordered");
 
 static void test_progress_ordered(const PKArgs& args) {
+  args.check_posonly_args();
   size_t n_iters = args[0].to_size_t();
   size_t n_threads = args[1].to_size_t();
   dttest::test_progress_ordered(n_iters, n_threads);

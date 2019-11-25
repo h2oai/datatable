@@ -253,6 +253,28 @@ size_t PKArgs::_find_kwd(PyObject* kwd) {
 }
 
 
+/**
+ * Check if any of the positional arguments are missing.
+ */
+void PKArgs::check_posonly_args() const {
+  check_required_args(n_posonly_args);
+}
+
+
+/**
+ * Check if any of the `n_required_args` arguments are missing.
+ */
+void PKArgs::check_required_args(size_t n_required_args) const {
+  xassert(n_required_args <= n_all_args);
+  for (size_t i = 0; i < n_posonly_args; ++i) {
+    if (bound_args[i].is_undefined()) {
+      throw ValueError() << "In " << get_long_name()
+        << " the number of arguments required is " << n_required_args
+        << ", got: " << i;
+    }
+  }
+}
+
 
 const Arg& PKArgs::operator[](size_t i) const {
   return bound_args[i];
