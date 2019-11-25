@@ -86,18 +86,6 @@ py::oobj pyfn_shift(const py::PKArgs& args)
 }
 
 
-template <typename T>
-class Shifted_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    Column arg_;
-    size_t shift_;
-
-  public:
-    bool get_element(size_t i, T* out) {
-      if (i < shift_) return false;
-      return arg_.get_element(i - shift_, out);
-    }
-};
 
 
 
