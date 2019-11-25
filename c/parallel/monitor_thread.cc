@@ -23,7 +23,6 @@
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "utils/exceptions.h"
 #include "parallel/api.h"
-#include "utils/macros.h"
 
 
 namespace dt {
