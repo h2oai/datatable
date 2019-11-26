@@ -180,6 +180,7 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::COPYSIGN)]   = make_binop;
   factory[static_cast<size_t>(Op::LOGADDEXP)]  = make_binop;
   factory[static_cast<size_t>(Op::LOGADDEXP2)] = make_binop;
+  factory[static_cast<size_t>(Op::FMOD)]       = make_binop;
 }
 
 

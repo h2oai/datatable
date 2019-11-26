@@ -44,6 +44,7 @@ from .lib._datatable import (
     expm1,
     fabs,
     floor,
+    fmod,
     gamma,
     hypot,
     isna,

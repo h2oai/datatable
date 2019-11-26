@@ -287,5 +287,43 @@ bimaker_ptr resolve_fn_logaddexp2(SType stype1, SType stype2) {
 
 
 
+//------------------------------------------------------------------------------
+// Op::FMOD
+//------------------------------------------------------------------------------
+
+static const char* doc_fmod =
+R"(fmod(x, y)
+--
+
+Floating-point remainder of the division x/y. The result is always
+a float, even if the arguments are integers. This function uses
+``std::fmod()`` from the standard C++ library, its convention for
+handling of negative numbers may be different than the Python's.
+)";
+
+py::PKArgs args_fmod(2, 0, 0, false, false, {"x", "y"}, "fmod", doc_fmod);
+
+
+template <typename T>
+static bimaker_ptr _fmod(SType uptype1, SType uptype2, SType outtype) {
+  return bimaker1<T, T, T>::make(std::fmod, uptype1, uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_fn_fmod(SType stype1, SType stype2) {
+  SType uptype1, uptype2;
+  SType stype0 = _resolve_math_stypes(stype1, stype2, &uptype1, &uptype2);
+  switch (stype0) {
+    case SType::FLOAT32:  return _fmod<float>(uptype1, uptype2, stype0);
+    case SType::FLOAT64:  return _fmod<double>(uptype1, uptype2, stype0);
+    default:
+      throw TypeError() << "Cannot apply function `fmod()` to columns with "
+          "types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
+
+
+
+
 
 }}  // namespace dt::expr

@@ -87,4 +87,5 @@ void py::DatatableModule::init_fbinary()
   FBINARY(args_copysign,   Op::COPYSIGN);
   FBINARY(args_logaddexp,  Op::LOGADDEXP);
   FBINARY(args_logaddexp2, Op::LOGADDEXP2);
+  FBINARY(args_fmod,       Op::FMOD);
 }
