@@ -96,4 +96,12 @@ inline T1 squared_loss(T1 p, T2 y) {
   return (p - y_T1) * (p - y_T1);
 }
 
+
+/**
+ *  Portable implementation of std::isfinite.
+ */
+template <typename T> inline bool _isfinite(T) { return true; }
+template <> inline bool _isfinite(float x) { return std::isfinite(x); }
+template <> inline bool _isfinite(double x) { return std::isfinite(x); }
+
 #endif

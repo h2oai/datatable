@@ -110,6 +110,9 @@ ColumnImpl* FuncUnary1_ColumnImpl<TI, TO>::clone() const {
 }
 
 
+/**
+ * Portable implementation of !std::isnan.
+ */
 template <typename T> inline bool _notnan(T) { return true; }
 template <> inline bool _notnan(float x) { return !std::isnan(x); }
 template <> inline bool _notnan(double x) { return !std::isnan(x); }
