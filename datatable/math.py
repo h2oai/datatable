@@ -33,6 +33,7 @@ from .lib._datatable import (
     atan2,
     cbrt,
     ceil,
+    copysign,
     cos,
     cosh,
     deg2rad,

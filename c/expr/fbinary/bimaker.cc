@@ -67,6 +67,7 @@ bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
     case Op::ARCTAN2:  return resolve_fn_atan2(stype1, stype2);
     case Op::HYPOT:    return resolve_fn_hypot(stype1, stype2);
     case Op::POWERFN:  return resolve_fn_pow(stype1, stype2);
+    case Op::COPYSIGN: return resolve_fn_copysign(stype1, stype2);
 
     default: throw RuntimeError() << "Unknown binary op " << int(opcode);
   }

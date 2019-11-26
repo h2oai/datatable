@@ -102,7 +102,8 @@ void py::DatatableModule::init_fbinary()
     ADD_FN(&dt::expr::fbinary_pyfn, dt::expr::ARGS); \
     register_args(dt::expr::ARGS, dt::expr::OP);
 
-  FBINARY(args_atan2,   Op::ARCTAN2);
-  FBINARY(args_hypot,   Op::HYPOT);
-  FBINARY(args_pow,     Op::POWERFN);
+  FBINARY(args_atan2,    Op::ARCTAN2);
+  FBINARY(args_hypot,    Op::HYPOT);
+  FBINARY(args_pow,      Op::POWERFN);
+  FBINARY(args_copysign, Op::COPYSIGN);
 }

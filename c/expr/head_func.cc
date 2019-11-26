@@ -177,7 +177,7 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::ARCTAN2)]  = make_binop;
   factory[static_cast<size_t>(Op::HYPOT)]    = make_binop;
   factory[static_cast<size_t>(Op::POWERFN)]  = make_binop;
-  // factory[static_cast<size_t>(Op::COPYSIGN)] = make_binop;
+  factory[static_cast<size_t>(Op::COPYSIGN)] = make_binop;
 }
 
 
