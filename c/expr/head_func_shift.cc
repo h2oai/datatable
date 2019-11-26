@@ -51,12 +51,12 @@ static RowIndex compute_lag_rowindex(const Groupby& groupby, int shift) {
       int32_t j = j0;
       if (LAG) {
         int32_t j1 = std::min(j2, j0 + shift);
-        for (; j < j1; ++j) indices[j] = -1;
+        for (; j < j1; ++j) indices[j] = RowIndex::NA_ARR32;
         for (; j < j2; ++j) indices[j] = j - shift;
       } else {
         int32_t j1 = std::max(j0, j2 - shift);
         for (; j < j1; ++j) indices[j] = j + shift;
-        for (; j < j2; ++j) indices[j] = -1;
+        for (; j < j2; ++j) indices[j] = RowIndex::NA_ARR32;
       }
     });
 
