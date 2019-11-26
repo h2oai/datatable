@@ -117,6 +117,62 @@ bimaker_ptr resolve_fn_hypot(SType stype1, SType stype2) {
 
 
 //------------------------------------------------------------------------------
+// Op::POWERFN
+//------------------------------------------------------------------------------
+
+static const char* doc_pow =
+R"(pow(x, y)
+--
+
+Number x raised to the power y. The return value will be float, even
+if the arguments x and y are integers.
+
+This function is equivalent to `x ** y`.
+)";
+
+py::PKArgs args_pow(2, 0, 0, false, false, {"x", "y"}, "pow", doc_pow);
+
+
+template <typename T>
+static bimaker_ptr _pow(SType uptype1, SType uptype2, SType outtype) {
+  return bimaker1<T, T, T>::make(std::pow, uptype1, uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_fn_pow(SType stype1, SType stype2) {
+  SType uptype1, uptype2;
+  SType stype0 = _resolve_math_stypes(stype1, stype2, &uptype1, &uptype2);
+  switch (stype0) {
+    case SType::FLOAT32:  return _pow<float>(uptype1, uptype2, stype0);
+    case SType::FLOAT64:  return _pow<double>(uptype1, uptype2, stype0);
+    default:
+      throw TypeError() << "Cannot apply function `pow()` to columns with "
+          "types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Op::COPYSIGN
+//------------------------------------------------------------------------------
+
+static const char* doc_copysign =
+R"(copysign(x, y)
+--
+
+Return a float with the magnitude of x and the sign of y.
+)";
+
+static
+py::PKArgs args_copysign(2, 0, 0, false, false, {"x", "y"}, "copysign",
+                         doc_copysign);
+
+
+
+
+//------------------------------------------------------------------------------
 // Op::LOGADDEXP
 //------------------------------------------------------------------------------
 
@@ -153,24 +209,6 @@ x and y.
 static
 py::PKArgs args_logaddexp2(2, 0, 0, false, false, {"x", "y"}, "logaddexp2",
                            doc_logaddexp2);
-
-
-
-
-//------------------------------------------------------------------------------
-// Op::COPYSIGN
-//------------------------------------------------------------------------------
-
-static const char* doc_copysign =
-R"(copysign(x, y)
---
-
-Return a float with the magnitude of x and the sign of y.
-)";
-
-static
-py::PKArgs args_copysign(2, 0, 0, false, false, {"x", "y"}, "copysign",
-                         doc_copysign);
 
 
 

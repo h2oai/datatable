@@ -53,6 +53,7 @@ from .lib._datatable import (
     log10,
     log1p,
     log2,
+    pow,
     rad2deg,
     rint,
     sign,

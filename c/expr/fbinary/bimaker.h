@@ -99,6 +99,8 @@ bimaker_ptr resolve_op_ge(SType, SType);
 
 bimaker_ptr resolve_fn_atan2(SType, SType);
 bimaker_ptr resolve_fn_hypot(SType, SType);
+bimaker_ptr resolve_fn_pow(SType, SType);
+// bimaker_ptr resolve_fn_copysign(SType, SType);
 
 
 
@@ -108,6 +110,8 @@ bimaker_ptr resolve_fn_hypot(SType, SType);
 
 extern py::PKArgs args_atan2;
 extern py::PKArgs args_hypot;
+extern py::PKArgs args_pow;
+// extern py::PKArgs args_copysign;
 
 
 

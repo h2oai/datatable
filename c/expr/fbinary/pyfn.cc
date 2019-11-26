@@ -104,4 +104,5 @@ void py::DatatableModule::init_fbinary()
 
   FBINARY(args_atan2,   Op::ARCTAN2);
   FBINARY(args_hypot,   Op::HYPOT);
+  FBINARY(args_pow,     Op::POWERFN);
 }
