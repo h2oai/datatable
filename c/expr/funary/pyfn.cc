@@ -26,20 +26,22 @@
 #include "frame/py_frame.h"
 #include "utils/assert.h"
 #include "datatablemodule.h"
+namespace dt {
+namespace expr {
 
 
 //------------------------------------------------------------------------------
 // PKArgs -> Op
 //------------------------------------------------------------------------------
 
-static std::unordered_map<const py::PKArgs*, dt::expr::Op> args2opcodes;
+static std::unordered_map<const py::PKArgs*, Op> args2opcodes;
 
-static void register_args(const py::PKArgs& args, dt::expr::Op opcode) {
+static void register_args(const py::PKArgs& args, Op opcode) {
   xassert(args2opcodes.count(&args) == 0);
   args2opcodes[&args] = opcode;
 }
 
-static dt::expr::Op get_opcode_from_args(const py::PKArgs& args) {
+static Op get_opcode_from_args(const py::PKArgs& args) {
   xassert(args2opcodes.count(&args) == 1);
   return args2opcodes.at(&args);
 }
@@ -51,13 +53,13 @@ static dt::expr::Op get_opcode_from_args(const py::PKArgs& args) {
 // Main pyfn() function
 //------------------------------------------------------------------------------
 
-static py::oobj make_pyexpr(dt::expr::Op opcode, py::oobj arg) {
+static py::oobj make_pyexpr(Op opcode, py::oobj arg) {
   size_t op = static_cast<size_t>(opcode);
   return py::robj(py::Expr_Type).call({ py::oint(op),
                                         py::otuple(arg) });
 }
 
-static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args, py::otuple params) {
+static py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params) {
   size_t op = static_cast<size_t>(opcode);
   return py::robj(py::Expr_Type).call({ py::oint(op), args, params });
 }
@@ -65,14 +67,14 @@ static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args, py::otuple par
 
 // This helper function will apply `opcode` to the entire frame, and
 // return the resulting frame (same shape as the original).
-static py::oobj process_frame(dt::expr::Op opcode, py::robj arg) {
+static py::oobj process_frame(Op opcode, py::robj arg) {
   xassert(arg.is_frame());
   auto frame = static_cast<py::Frame*>(arg.to_borrowed_ref());
   DataTable* dt = frame->get_datatable();
 
   py::olist columns(dt->ncols());
   for (size_t i = 0; i < dt->ncols(); ++i) {
-    py::oobj col_selector = make_pyexpr(dt::expr::Op::COL,
+    py::oobj col_selector = make_pyexpr(Op::COL,
                                         py::otuple{py::oint(i)},
                                         py::otuple{py::oint(0)});
     columns.set(i, make_pyexpr(opcode, col_selector));
@@ -93,7 +95,7 @@ static py::oobj process_frame(dt::expr::Op opcode, py::robj arg) {
   */
 static py::oobj pyfn(const py::PKArgs& args)
 {
-  dt::expr::Op opcode = get_opcode_from_args(args);
+  Op opcode = get_opcode_from_args(args);
   py::robj x = args[0].to_robj();
   if (x.is_dtexpr()) {
     return make_pyexpr(opcode, x);
@@ -117,6 +119,7 @@ static py::oobj pyfn(const py::PKArgs& args)
 
 
 
+}}  // namespace dt::expr
 //------------------------------------------------------------------------------
 // Static initialization
 //------------------------------------------------------------------------------
@@ -127,7 +130,7 @@ static py::oobj pyfn(const py::PKArgs& args)
 void py::DatatableModule::init_funary()
 {
   #define FUNARY(ARGS, OP) \
-    ADD_FN(&pyfn, dt::expr::ARGS); \
+    ADD_FN(&dt::expr::pyfn, dt::expr::ARGS); \
     register_args(dt::expr::ARGS, dt::expr::OP);
 
   // Basic
