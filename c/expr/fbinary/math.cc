@@ -26,6 +26,20 @@ namespace dt {
 namespace expr {
 
 
+static SType _resolve_math_stypes(SType stype1, SType stype2,
+                                  SType* uptype1, SType* uptype2)
+{
+  SType stype0 = common_stype(stype1, stype2);
+  if (stype0 == SType::BOOL || ::info(stype0).ltype() == LType::INT) {
+    stype0 = SType::FLOAT64;
+  }
+  *uptype1 = (stype0 == stype1)? SType::VOID : stype0;
+  *uptype2 = (stype0 == stype2)? SType::VOID : stype0;
+  return stype0;
+}
+
+
+
 //------------------------------------------------------------------------------
 // Op::ARCTAN2
 //------------------------------------------------------------------------------
@@ -51,12 +65,8 @@ static bimaker_ptr _atan2(SType uptype1, SType uptype2, SType outtype) {
 
 
 bimaker_ptr resolve_fn_atan2(SType stype1, SType stype2) {
-  SType stype0 = common_stype(stype1, stype2);
-  if (stype0 == SType::BOOL || ::info(stype0).ltype() == LType::INT) {
-    stype0 = SType::FLOAT64;
-  }
-  SType uptype1 = (stype0 == stype1)? SType::VOID : stype0;
-  SType uptype2 = (stype0 == stype2)? SType::VOID : stype0;
+  SType uptype1, uptype2;
+  SType stype0 = _resolve_math_stypes(stype1, stype2, &uptype1, &uptype2);
 
   switch (stype0) {
     case SType::FLOAT32:  return _atan2<float>(uptype1, uptype2, stype0);
@@ -83,6 +93,25 @@ Equivalent to ``sqrt(x*x + y*y)``.
 )";
 
 py::PKArgs args_hypot(2, 0, 0, false, false, {"x", "y"}, "hypot", doc_hypot);
+
+
+template <typename T>
+static bimaker_ptr _hypot(SType uptype1, SType uptype2, SType outtype) {
+  return bimaker1<T, T, T>::make(std::hypot, uptype1, uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_fn_hypot(SType stype1, SType stype2) {
+  SType uptype1, uptype2;
+  SType stype0 = _resolve_math_stypes(stype1, stype2, &uptype1, &uptype2);
+  switch (stype0) {
+    case SType::FLOAT32:  return _hypot<float>(uptype1, uptype2, stype0);
+    case SType::FLOAT64:  return _hypot<double>(uptype1, uptype2, stype0);
+    default:
+      throw TypeError() << "Cannot apply function `hypot()` to columns with "
+          "types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
 
 
 

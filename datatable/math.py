@@ -44,6 +44,7 @@ from .lib._datatable import (
     fabs,
     floor,
     gamma,
+    hypot,
     isna,
     isfinite,
     isinf,
