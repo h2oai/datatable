@@ -30,6 +30,7 @@ from .lib._datatable import (
     arsinh,
     arctan,
     artanh,
+    atan2,
     cbrt,
     ceil,
     cos,

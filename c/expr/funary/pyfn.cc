@@ -19,33 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <unordered_map>
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
+#include "expr/args_registry.h"
 #include "expr/op.h"
 #include "frame/py_frame.h"
 #include "utils/assert.h"
 #include "datatablemodule.h"
 namespace dt {
 namespace expr {
-
-
-//------------------------------------------------------------------------------
-// PKArgs -> Op
-//------------------------------------------------------------------------------
-
-static std::unordered_map<const py::PKArgs*, Op> args2opcodes;
-
-static void register_args(const py::PKArgs& args, Op opcode) {
-  xassert(args2opcodes.count(&args) == 0);
-  args2opcodes[&args] = opcode;
-}
-
-static Op get_opcode_from_args(const py::PKArgs& args) {
-  xassert(args2opcodes.count(&args) == 1);
-  return args2opcodes.at(&args);
-}
-
 
 
 
@@ -93,7 +75,7 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
   * python scalar, or an f-expression, or a Frame (in which case the
   * function is applied to all elements of the frame).
   */
-static py::oobj pyfn(const py::PKArgs& args)
+static py::oobj funary_pyfn(const py::PKArgs& args)
 {
   Op opcode = get_opcode_from_args(args);
   py::robj x = args[0].to_robj();
@@ -130,7 +112,7 @@ static py::oobj pyfn(const py::PKArgs& args)
 void py::DatatableModule::init_funary()
 {
   #define FUNARY(ARGS, OP) \
-    ADD_FN(&dt::expr::pyfn, dt::expr::ARGS); \
+    ADD_FN(&dt::expr::funary_pyfn, dt::expr::ARGS); \
     register_args(dt::expr::ARGS, dt::expr::OP);
 
   // Basic

@@ -30,18 +30,42 @@ namespace expr {
 // Op::ARCTAN2
 //------------------------------------------------------------------------------
 
-static const char* doc_arctan2 =
-R"(arctan2(x, y)
+static const char* doc_atan2 =
+R"(atan2(x, y)
 --
 
 Arc-tangent of y/x, taking into account the signs of x and y.
 
-This function returns the measure of the angle between the ray O(x,y)
-and the horizontal abscissae Ox. When both x and y are zero, the
-return value is zero.)";
+This function returns the angle between the ray O(x,y) and the
+horizontal abscissa Ox. When both x and y are zero, the return value
+is zero.
+)";
 
-static
-py::PKArgs args_arctan2(2, 0, 0, false, false, {"x", "y"}, "arctan2", doc_arctan2);
+py::PKArgs args_atan2(2, 0, 0, false, false, {"x", "y"}, "atan2", doc_atan2);
+
+
+template <typename T>
+static bimaker_ptr _atan2(SType uptype1, SType uptype2, SType outtype) {
+  return bimaker1<T, T, T>::make(std::atan2, uptype1, uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_fn_atan2(SType stype1, SType stype2) {
+  SType stype0 = common_stype(stype1, stype2);
+  if (stype0 == SType::BOOL || ::info(stype0).ltype() == LType::INT) {
+    stype0 = SType::FLOAT64;
+  }
+  SType uptype1 = (stype0 == stype1)? SType::VOID : stype0;
+  SType uptype2 = (stype0 == stype2)? SType::VOID : stype0;
+
+  switch (stype0) {
+    case SType::FLOAT32:  return _atan2<float>(uptype1, uptype2, stype0);
+    case SType::FLOAT64:  return _atan2<double>(uptype1, uptype2, stype0);
+    default:
+      throw TypeError() << "Cannot apply function `atan2()` to columns with "
+          "types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
 
 
 
@@ -58,7 +82,6 @@ The length of the hypotenuse of a right triangle with sides x and y.
 Equivalent to ``sqrt(x*x + y*y)``.
 )";
 
-static
 py::PKArgs args_hypot(2, 0, 0, false, false, {"x", "y"}, "hypot", doc_hypot);
 
 
