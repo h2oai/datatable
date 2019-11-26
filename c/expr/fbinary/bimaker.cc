@@ -70,6 +70,7 @@ bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
     case Op::COPYSIGN:   return resolve_fn_copysign(stype1, stype2);
     case Op::LOGADDEXP:  return resolve_fn_logaddexp(stype1, stype2);
     case Op::FMOD:       return resolve_fn_fmod(stype1, stype2);
+    case Op::LDEXP:      return resolve_fn_ldexp(stype1, stype2);
 
     default: throw RuntimeError() << "Unknown binary op " << int(opcode);
   }

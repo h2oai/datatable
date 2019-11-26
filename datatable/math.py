@@ -50,6 +50,7 @@ from .lib._datatable import (
     isna,
     isfinite,
     isinf,
+    ldexp,
     lgamma,
     log,
     log10,

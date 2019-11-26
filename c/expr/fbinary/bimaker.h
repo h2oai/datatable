@@ -104,6 +104,7 @@ bimaker_ptr resolve_fn_copysign(SType, SType);
 bimaker_ptr resolve_fn_logaddexp(SType, SType);
 bimaker_ptr resolve_fn_logaddexp2(SType, SType);
 bimaker_ptr resolve_fn_fmod(SType, SType);
+bimaker_ptr resolve_fn_ldexp(SType, SType);
 
 
 
@@ -118,6 +119,7 @@ extern py::PKArgs args_copysign;
 extern py::PKArgs args_logaddexp;
 extern py::PKArgs args_logaddexp2;
 extern py::PKArgs args_fmod;
+extern py::PKArgs args_ldexp;
 
 
 

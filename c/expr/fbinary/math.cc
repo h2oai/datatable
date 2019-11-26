@@ -325,5 +325,45 @@ bimaker_ptr resolve_fn_fmod(SType stype1, SType stype2) {
 
 
 
+//------------------------------------------------------------------------------
+// Op::LDEXP
+//------------------------------------------------------------------------------
+
+static const char* doc_ldexp =
+R"(ldexp(x, y)
+--
+
+Multiply x by 2 raised to the power y, i.e. compute ``x * 2**y``.
+Column x is expected to be float, and y integer.
+)";
+
+py::PKArgs args_ldexp(2, 0, 0, false, false, {"x", "y"}, "ldexp", doc_ldexp);
+
+
+template <typename T>
+static bimaker_ptr _ldexp(SType uptype1, SType uptype2, SType outtype) {
+  return bimaker1<T, int32_t, T>::make(std::ldexp, uptype1, uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_fn_ldexp(SType stype1, SType stype2) {
+  SType out_stype = stype1;
+  if (::info(out_stype).ltype() == LType::INT) out_stype = SType::FLOAT64;
+  if (::info(stype2).ltype() != LType::INT) out_stype = SType::INVALID;
+  SType uptype1 = (stype1 == out_stype)? SType::VOID : out_stype;
+  SType uptype2 = (stype2 == SType::INT32)? SType::VOID : SType::INT32;
+
+  switch (out_stype) {
+    case SType::FLOAT32:  return _ldexp<float>(uptype1, uptype2, out_stype);
+    case SType::FLOAT64:  return _ldexp<double>(uptype1, uptype2, out_stype);
+    default: break;
+  }
+  throw TypeError() << "Cannot apply function `ldexp()` to columns with "
+      "types `" << stype1 << "` and `" << stype2 << "`";
+}
+
+
+
+
 
 }}  // namespace dt::expr
