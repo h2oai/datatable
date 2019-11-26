@@ -160,8 +160,7 @@ void thread_pool::enable_monitor(bool a) noexcept {
 
 
 bool thread_pool::is_monitor_enabled() noexcept {
-  init_monitor_thread();
-  return monitor->get_active();
+  return monitor? monitor->get_active() : false;
 }
 
 
