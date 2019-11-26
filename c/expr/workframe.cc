@@ -278,6 +278,7 @@ void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
 
 
 void Workframe::increase_grouping_mode(Grouping gmode) {
+  if (grouping_mode_ == gmode) return;
   for (auto& item : entries_) {
     if (!item.column) continue;  // placeholder column
     column_increase_grouping_mode(item.column, grouping_mode_, gmode);

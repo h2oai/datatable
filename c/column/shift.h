@@ -66,7 +66,7 @@ class Shift_ColumnImpl : public Virtual_ColumnImpl {
 
   private:
     template <typename T>
-    inline bool _elem(size_t i, T* out) {
+    inline bool _elem(size_t i, T* out) const {
       if (LAG) {
         if (i < shift_) return false;
         return arg_.get_element(i - shift_, out);

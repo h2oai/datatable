@@ -129,6 +129,20 @@ class Head_Func_Nary : public Head_Func {
 
 
 
+class Head_Func_Shift : public Head_Func {
+  private:
+    int shift_;
+    int : 32;
+
+  public:
+    static ptrHead make(Op, const py::otuple& params);
+
+    Head_Func_Shift(int shift);
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+};
+
+
+
 
 }}  // namespace dt::expr
 #endif
