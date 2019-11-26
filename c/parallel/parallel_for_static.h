@@ -25,7 +25,6 @@ namespace dt {
 size_t this_thread_index();
 size_t num_threads_in_pool();
 size_t num_threads_in_team();
-bool is_monitor_enabled() noexcept;
 
 
 /**
