@@ -35,7 +35,7 @@ static constexpr size_t STRING_FIRST  = 301;
 static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 412;
 static constexpr size_t MATH_FIRST    = 501;
-static constexpr size_t MATH_LAST     = 556;
+static constexpr size_t MATH_LAST     = 554;
 static constexpr size_t ROWFNS_FIRST  = 601;
 static constexpr size_t ROWFNS_LAST   = 610;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
@@ -52,7 +52,7 @@ enum class Op : size_t {
   CAST = 2,
   SETPLUS = 3,
   SETMINUS = 4,
-  SHIFTFN,
+  SHIFTFN,                  // head_func_shift.cc
 
   // Unary
   UPLUS = UNOP_FIRST,       // funary/basic.cc
@@ -104,8 +104,8 @@ enum class Op : size_t {
   ARCSIN,                   // funary/trigonometric.cc
   ARCCOS,                   // funary/trigonometric.cc
   ARCTAN,                   // funary/trigonometric.cc
-  ARCTAN2,
-  HYPOT,
+  ARCTAN2,                  // fbinary/math.cc
+  HYPOT,                    // fbinary/math.cc
   DEG2RAD,                  // funary/trigonometric.cc
   RAD2DEG,                  // funary/trigonometric.cc
 
@@ -126,9 +126,9 @@ enum class Op : size_t {
   LOG10,                    // funary/exponential.cc
   LOG1P,                    // funary/exponential.cc
   LOG2,                     // funary/exponential.cc
-  LOGADDEXP,
-  LOGADDEXP2,
-  POWERFN,
+  LOGADDEXP,                // fbinary/math.cc
+  LOGADDEXP2,               // fbinary/math.cc
+  POWERFN,                  // fbinary/math.cc
   SQRT,                     // funary/exponential.cc
   SQUARE,                   // funary/exponential.cc
 
@@ -141,7 +141,7 @@ enum class Op : size_t {
   // Math: floating-point
   ABS,                      // funary/floating.cc
   CEIL,                     // funary/floating.cc
-  COPYSIGN,
+  COPYSIGN,                 // fbinary/math.cc
   FABS,                     // funary/floating.cc
   FLOOR,                    // funary/floating.cc
   FREXP,
@@ -150,11 +150,10 @@ enum class Op : size_t {
   ISINF,                    // funary/floating.cc
   ISNA,                     // funary/floating.cc
   LDEXP,
-  NEXTAFTER,
+  MODF,
   RINT,                     // fumary/floating.cc
   SIGN,                     // funary/floating.cc
   SIGNBIT,                  // funary/floating.cc
-  SPACING,
   TRUNC,                    // funary/floating.cc
 
   // Math: misc
@@ -162,20 +161,19 @@ enum class Op : size_t {
   DIVMOD,
   FMOD,
   MAXIMUM,
-  MINIMUM,
-  MODF = MATH_LAST,
+  MINIMUM = MATH_LAST,
 
   // Row-functions
-  ROWALL = ROWFNS_FIRST,
-  ROWANY,
-  ROWCOUNT,
-  ROWFIRST,
-  ROWLAST,
-  ROWMAX,
-  ROWMEAN,
-  ROWMIN,
-  ROWSD,
-  ROWSUM = ROWFNS_LAST,
+  ROWALL = ROWFNS_FIRST,    // fnary/rowall.cc
+  ROWANY,                   // fnary/rowany.cc
+  ROWCOUNT,                 // fnary/rowcount.cc
+  ROWFIRST,                 // fnary/rowfirst.cc
+  ROWLAST,                  // fnary/rowlast.cc
+  ROWMAX,                   // fnary/rowmax.cc
+  ROWMEAN,                  // fnary/rowmean.cc
+  ROWMIN,                   // fnary/rowmin.cc
+  ROWSD,                    // fnary/rowsd.cc
+  ROWSUM = ROWFNS_LAST,     // fnary/rowsum.cc
 };
 
 

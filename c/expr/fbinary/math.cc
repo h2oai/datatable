@@ -288,25 +288,4 @@ bimaker_ptr resolve_fn_logaddexp2(SType stype1, SType stype2) {
 
 
 
-
-//------------------------------------------------------------------------------
-// Op::NEXTAFTER
-//------------------------------------------------------------------------------
-
-static const char* doc_nextafter =
-R"(nextafter(x, y)
---
-
-Returns the next representable value of x in the direction of y.
-If any argument is integer (or boolean), it is converted to float64
-first.
-)";
-
-static
-py::PKArgs args_nextafter(2, 0, 0, false, false, {"x", "y"}, "nextafter",
-                          doc_nextafter);
-
-
-
-
 }}  // namespace dt::expr
