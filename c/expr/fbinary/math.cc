@@ -203,9 +203,37 @@ equivalent to ``log(exp(x) + exp(y))``, but does not suffer from
 catastrophic precision loss for small values of x and y.
 )";
 
-static
 py::PKArgs args_logaddexp(2, 0, 0, false, false, {"x", "y"}, "logaddexp",
                           doc_logaddexp);
+
+
+template <typename T>
+static T op_logaddexp(T x, T y) {
+  static constexpr T LN2 = T(0.6931471805599453);
+  if (x == y) return x + LN2;
+  T delta = x - y;
+  return (delta >= 0)? x + std::log1p(std::exp(-delta))
+                     : y + std::log1p(std::exp(delta));
+}
+
+
+template <typename T>
+static bimaker_ptr _logaddexp(SType uptype1, SType uptype2, SType outtype) {
+  return bimaker1<T, T, T>::make(op_logaddexp<T>, uptype1, uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_fn_logaddexp(SType stype1, SType stype2) {
+  SType uptype1, uptype2;
+  SType stype0 = _resolve_math_stypes(stype1, stype2, &uptype1, &uptype2);
+  switch (stype0) {
+    case SType::FLOAT32:  return _logaddexp<float>(uptype1, uptype2, stype0);
+    case SType::FLOAT64:  return _logaddexp<double>(uptype1, uptype2, stype0);
+    default:
+      throw TypeError() << "Cannot apply function `logaddexp()` to columns with "
+          "types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
 
 
 
@@ -224,9 +252,39 @@ not suffer from catastrophic precision loss for small values of
 x and y.
 )";
 
-static
 py::PKArgs args_logaddexp2(2, 0, 0, false, false, {"x", "y"}, "logaddexp2",
                            doc_logaddexp2);
+
+
+template <typename T>
+static T op_logaddexp2(T x, T y) {
+  static constexpr T LN2INV = T(1.4426950408889634);
+  if (x == y) return x + 1;
+  T delta = x - y;
+  return (delta >= 0)? x + std::log1p(std::exp2(-delta)) * LN2INV
+                     : y + std::log1p(std::exp2(delta)) * LN2INV;
+}
+
+
+template <typename T>
+static bimaker_ptr _logaddexp2(SType uptype1, SType uptype2, SType outtype) {
+  return bimaker1<T, T, T>::make(op_logaddexp2<T>, uptype1, uptype2, outtype);
+}
+
+
+bimaker_ptr resolve_fn_logaddexp2(SType stype1, SType stype2) {
+  SType uptype1, uptype2;
+  SType stype0 = _resolve_math_stypes(stype1, stype2, &uptype1, &uptype2);
+  switch (stype0) {
+    case SType::FLOAT32:  return _logaddexp2<float>(uptype1, uptype2, stype0);
+    case SType::FLOAT64:  return _logaddexp2<double>(uptype1, uptype2, stype0);
+    default:
+      throw TypeError() << "Cannot apply function `logaddexp2()` to columns with "
+          "types `" << stype1 << "` and `" << stype2 << "`";
+  }
+}
+
+
 
 
 

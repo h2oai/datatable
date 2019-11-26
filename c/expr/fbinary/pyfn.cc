@@ -36,11 +36,6 @@ namespace expr {
 // Main pyfn() function
 //------------------------------------------------------------------------------
 
-// static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args_tuple) {
-//   size_t op = static_cast<size_t>(opcode);
-//   return py::robj(py::Expr_Type).call({ py::oint(op), args_tuple });
-// }
-
 static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args_tuple,
                             py::otuple params_tuple)
 {
@@ -48,22 +43,6 @@ static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args_tuple,
   return py::robj(py::Expr_Type)
             .call({ py::oint(op), args_tuple, params_tuple });
 }
-
-// /**
-//   * This helper function will apply `opcode` to an entire frame.
-//   */
-// static py::oobj apply_to_frame(dt::expr::Op opcode, py::robj arg) {
-//   xassert(arg.is_frame());
-
-//   auto slice_all = py::oslice(py::oslice::NA, py::oslice::NA, py::oslice::NA);
-//   auto f_all = make_pyexpr(dt::expr::Op::COL,
-//                            py::otuple{ slice_all },
-//                            py::otuple{ py::oint(0) });
-//   auto rowfn = make_pyexpr(opcode, py::otuple{ f_all });
-
-//   auto frame = static_cast<py::Frame*>(arg.to_borrowed_ref());
-//   return frame->m__getitem__(py::otuple{ slice_all, rowfn });
-// }
 
 
 /**
@@ -102,8 +81,10 @@ void py::DatatableModule::init_fbinary()
     ADD_FN(&dt::expr::fbinary_pyfn, dt::expr::ARGS); \
     register_args(dt::expr::ARGS, dt::expr::OP);
 
-  FBINARY(args_atan2,    Op::ARCTAN2);
-  FBINARY(args_hypot,    Op::HYPOT);
-  FBINARY(args_pow,      Op::POWERFN);
-  FBINARY(args_copysign, Op::COPYSIGN);
+  FBINARY(args_atan2,      Op::ARCTAN2);
+  FBINARY(args_hypot,      Op::HYPOT);
+  FBINARY(args_pow,        Op::POWERFN);
+  FBINARY(args_copysign,   Op::COPYSIGN);
+  FBINARY(args_logaddexp,  Op::LOGADDEXP);
+  FBINARY(args_logaddexp2, Op::LOGADDEXP2);
 }
