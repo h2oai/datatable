@@ -13,6 +13,7 @@
 #include "types.h"
 
 
+DataTable::DefaultNamesTag DataTable::default_names;
 
 //------------------------------------------------------------------------------
 // Constructors

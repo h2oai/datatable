@@ -25,7 +25,8 @@
 namespace dt {
 
 constexpr size_t Widget::NA_index;
-
+Widget::SplitViewTag Widget::split_view_tag;
+Widget::WindowedTag Widget::windowed_tag;
 
 //------------------------------------------------------------------------------
 // Construction
