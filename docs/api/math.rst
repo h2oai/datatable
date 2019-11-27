@@ -1,3 +1,4 @@
+.. _`math`:
 
 math module
 ===========
