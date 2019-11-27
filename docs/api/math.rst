@@ -7,18 +7,18 @@ standard `math module`_, or `numpy math functions`_. Below is the comparison
 table showing which functions are available:
 
 
-==================  ====================  ================================
+==================  ====================  =====================================
 math                numpy                 datatable
-==================  ====================  ================================
+==================  ====================  =====================================
 **Trigonometric/hyperbolic functions**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``sin(x)``          ``sin(x)``            :func:`sin(x) <sin>`
 ``cos(x)``          ``cos(x)``            :func:`cos(x) <cos>`
 ``tan(x)``          ``tan(x)``            :func:`tan(x) <tan>`
 ``asin(x)``         ``arcsin(x)``         :func:`arcsin(x) <arcsin>`
 ``acos(x)``         ``arccos(x)``         :func:`arccos(x) <arccos>`
 ``atan(x)``         ``arctan(x)``         :func:`arctan(x) <arctan>`
-``atan2(y, x)``     ``arctan2(y, x)``     :func:`arctan2(y, x) <arctan2>`
+``atan2(y, x)``     ``arctan2(y, x)``     :func:`atan2(y, x) <atan2>`
 ``sinh(x)``         ``sinh(x)``           :func:`sinh(x) <sinh>`
 ``cosh(x)``         ``cosh(x)``           :func:`cosh(x) <cosh>`
 ``tanh(x)``         ``tanh(x)``           :func:`tanh(x) <tanh>`
@@ -30,7 +30,7 @@ math                numpy                 datatable
 ``degrees(x)``      ``rad2deg(x)``        :func:`rad2deg(x) <rad2deg>`
 
 **Exponential/logarithmic/power functions**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``exp(x)``          ``exp(x)``            :func:`exp(x) <exp>`
 \                   ``exp2(x)``           :func:`exp2(x) <exp2>`
 ``expm1(x)``        ``expm1(x)``          :func:`expm1(x) <expm1>`
@@ -38,15 +38,15 @@ math                numpy                 datatable
 ``log10(x)``        ``log10(x)``          :func:`log10(x) <log10>`
 ``log1p(x)``        ``log1p(x)``          :func:`log1p(x) <log1p>`
 ``log2(x)``         ``log2(x)``           :func:`log2(x) <log2>`
-\                   ``logaddexp(x, y)``
-\                   ``logaddexp2(x, y)``
+\                   ``logaddexp(x, y)``   :func:`logaddexp(x, y) <logaddexp>`
+\                   ``logaddexp2(x, y)``  :func:`logaddexp2(x, y) <logaddexp2>`
 \                   ``cbrt(x)``           :func:`cbrt(x) <cbrt>`
-``pow(x, a)``       ``power(x, a)``       :func:`power(x, a) <power>`
+``pow(x, a)``       ``power(x, a)``       :func:`pow(x, a) <pow>`
 ``sqrt(x)``         ``sqrt(x)``           :func:`sqrt(x) <sqrt>`
 \                   ``square(x)``         :func:`square(x) <square>`
 
 **Special mathematical functions**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``erf(x)``                                :func:`erf(x) <erf>`
 ``erfc(x)``                               :func:`erfc(x) <erfc>`
 ``gamma(x)``                              :func:`gamma(x) <gamma>`
@@ -56,17 +56,18 @@ math                numpy                 datatable
 \                   ``sinc(x)``
 
 **Floating-point functions**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``ceil(x)``         ``ceil(x)``           :func:`ceil(x) <ceil>`
-``copysign(x, y)``  ``copysign(x, y)``
+``copysign(x, y)``  ``copysign(x, y)``    :func:`copysign(x, y) <copysign>`
 ``fabs(x)``         ``fabs(x)``           :func:`fabs(x) <fabs>`
 ``floor(x)``        ``floor(x)``          :func:`floor(x) <floor>`
+``fmod(x, y)``      ``fmod(x, y)``        :func:`fmod(x) <fmod>`
 ``frexp(x)``        ``frexp(x)``
-``isclose(x, y)``   ``isclose(x, y)``
+``isclose(x, y)``   ``isclose(x, y)``     :func:`isclose(x, y) <isclose>`
 ``isfinite(x)``     ``isfinite(x)``       :func:`isfinite(x) <isfinite>`
 ``isinf(x)``        ``isinf(x)``          :func:`isinf(x) <isinf>`
 ``isnan(x)``        ``isnan(x)``          :func:`isna(x) <isna>`
-``ldexp(x, n)``     ``ldexp(x, n)``
+``ldexp(x, n)``     ``ldexp(x, n)``       :func:`ldexp(x, n) <ldexp>`
 \                   ``nextafter(x, y)``
 \                   ``rint(x)``           :func:`rint(x) <rint>`
 \                   ``sign(x)``           :func:`sign(x) <sign>`
@@ -75,26 +76,25 @@ math                numpy                 datatable
 ``trunc(x)``        ``trunc(x)``          :func:`trunc(x) <trunc>`
 
 **Miscellaneous**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``abs(x)``          ``abs(x)``            :func:`abs(x) <abs>`
 \                   ``clip(x, a, b)``
 \                   ``divmod(x, y)``
 ``factorial(n)``
-``fmod(x, y)``      ``fmod(x, y)``
 ``gcd(a, b)``       ``gcd(a, b)``
 \                   ``maximum(x, y)``
 \                   ``minimum(x, y)``
 ``modf(x)``         ``modf(x)``
 
 **Mathematical constants**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``e``               ``e``                 :const:`e`
 \                   \                     :const:`golden`
 ``inf``             ``inf``               :const:`inf`
 ``nan``             ``nan``               :const:`nan`
 ``pi``              ``pi``                :const:`pi`
 ``tau``                                   :const:`tau`
-==================  ====================  ================================
+==================  ====================  =====================================
 
 
 Trigonometric/hyperbolic functions
