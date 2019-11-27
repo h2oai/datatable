@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_NAFILLED_h
-#define dt_COLUMN_NAFILLED_h
+#ifndef dt_COLUMN_SHIFT_h
+#define dt_COLUMN_SHIFT_h
 #include <memory>
 #include "column/virtual.h"
 namespace dt {

@@ -164,20 +164,25 @@ void Head_Func::init() {
   for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce1;
   for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   for (size_t i = ROWFNS_FIRST;  i <= ROWFNS_LAST;  ++i) factory[i] = make_rowfn;
-  factory[static_cast<size_t>(Op::COL)]      = make_col;
-  factory[static_cast<size_t>(Op::CAST)]     = make_cast;
-  factory[static_cast<size_t>(Op::SETPLUS)]  = make_colsetop;
-  factory[static_cast<size_t>(Op::SETMINUS)] = make_colsetop;
-  factory[static_cast<size_t>(Op::SHIFTFN)]  = &Head_Func_Shift::make;
-  factory[static_cast<size_t>(Op::COUNT0)]   = make_reduce0;
-  factory[static_cast<size_t>(Op::COV)]      = make_reduce2;
-  factory[static_cast<size_t>(Op::CORR)]     = make_reduce2;
-  factory[static_cast<size_t>(Op::RE_MATCH)] = &Head_Func_Re_Match::make;
-  factory[static_cast<size_t>(Op::LEN)]      = make_unop;
-  // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;
-  // factory[static_cast<size_t>(Op::ARCTAN2)]  = make_math21;
-  // factory[static_cast<size_t>(Op::POWER)]    = make_math21;
-  // factory[static_cast<size_t>(Op::COPYSIGN)] = make_math21;
+  factory[static_cast<size_t>(Op::COL)]        = make_col;
+  factory[static_cast<size_t>(Op::CAST)]       = make_cast;
+  factory[static_cast<size_t>(Op::SETPLUS)]    = make_colsetop;
+  factory[static_cast<size_t>(Op::SETMINUS)]   = make_colsetop;
+  factory[static_cast<size_t>(Op::SHIFTFN)]    = &Head_Func_Shift::make;
+  factory[static_cast<size_t>(Op::COUNT0)]     = make_reduce0;
+  factory[static_cast<size_t>(Op::COV)]        = make_reduce2;
+  factory[static_cast<size_t>(Op::CORR)]       = make_reduce2;
+  factory[static_cast<size_t>(Op::RE_MATCH)]   = &Head_Func_Re_Match::make;
+  factory[static_cast<size_t>(Op::LEN)]        = make_unop;
+  factory[static_cast<size_t>(Op::ARCTAN2)]    = make_binop;
+  factory[static_cast<size_t>(Op::HYPOT)]      = make_binop;
+  factory[static_cast<size_t>(Op::POWERFN)]    = make_binop;
+  factory[static_cast<size_t>(Op::COPYSIGN)]   = make_binop;
+  factory[static_cast<size_t>(Op::LOGADDEXP)]  = make_binop;
+  factory[static_cast<size_t>(Op::LOGADDEXP2)] = make_binop;
+  factory[static_cast<size_t>(Op::FMOD)]       = make_binop;
+  factory[static_cast<size_t>(Op::LDEXP)]      = make_binop;
+  factory[static_cast<size_t>(Op::ISCLOSE)]    = &Head_Func_IsClose::make;
 }
 
 

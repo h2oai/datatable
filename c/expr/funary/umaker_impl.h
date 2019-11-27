@@ -57,7 +57,7 @@ class umaker_const : public umaker {
 
     Column compute(Column&& col) const override {
       Column out = res_;
-      out.resize(col.nrows());
+      out.repeat(col.nrows());
       return out;
     }
 };

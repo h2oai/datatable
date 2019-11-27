@@ -131,113 +131,7 @@ def test_dt_pos_invalid(src):
 
 
 #-------------------------------------------------------------------------------
-# math.isna()
-#-------------------------------------------------------------------------------
-
-@pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float + srcs_str)
-def test_dt_isna(src):
-    DT = dt.Frame(src)
-    RES = DT[:, dt.math.isna(f[0])]
-    assert_equals(RES, dt.Frame([(x is None) for x in src]))
-
-
-def test_dt_isna2():
-    from math import nan
-    DT = dt.Frame(A=[1, None, 2, 5, None, 3.6, nan, -4.899])
-    DT1 = DT[~dt.math.isna(f.A), :]
-    assert DT1.stypes == DT.stypes
-    assert DT1.names == DT.names
-    assert DT1.to_list() == [[1.0, 2.0, 5.0, 3.6, -4.899]]
-
-
-def test_dt_isna_joined():
-    # See issue #2109
-    DT = dt.Frame(A=[None, 4, 3, 2, 1])
-    JDT = dt.Frame(A=[0, 1, 3, 7],
-                   B=['a', 'b', 'c', 'd'],
-                   C=[0.25, 0.5, 0.75, 1.0],
-                   D=[22, 33, 44, 55],
-                   E=[True, False, True, False])
-    JDT.key = 'A'
-    RES = DT[:, dt.math.isna(g[1:]), join(JDT)]
-    frame_integrity_check(RES)
-    assert RES.to_list() == [[True, True, False, True, False]] * 4
-
-
-@pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float + srcs_str)
-def test_dt_math_isna_scalar(src):
-    for val in src:
-        assert dt.math.isna(val) == (val is None or val is math.nan)
-
-
-
-
-#-------------------------------------------------------------------------------
-# math.isfinite()
-#-------------------------------------------------------------------------------
-@pytest.mark.parametrize("src", srcs_int + srcs_float)
-def test_dt_isfinite(src):
-    DT = dt.Frame(src)
-    DT1 = DT[:, dt.math.isfinite(f[0])]
-    frame_integrity_check(DT1)
-    assert DT1.stypes == (stype.bool8,)
-    pyans = [(False if x is None else math.isfinite(x)) for x in src]
-    assert DT1.to_list()[0] == pyans
-
-
-@pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float)
-def test_dt_isfinite_scalar(src):
-    for val in src:
-        exp = not (val is None or abs(val) == math.inf)
-        assert dt.math.isfinite(val) == exp
-
-
-def test_dt_isfinite_scalar_wrong_arg():
-    with pytest.raises(TypeError, match="Function `isfinite` cannot be applied "
-                                        "to a column of type `str32`"):
-        dt.math.isfinite("hello")
-
-
-
-
-#-------------------------------------------------------------------------------
-# math.abs()
-#-------------------------------------------------------------------------------
-
-def test_abs():
-    from datatable import abs
-    assert abs(1) == 1
-    assert abs(-5) == 5
-    assert abs(-2.5e12) == 2.5e12
-    assert abs(None) is None
-
-
-@pytest.mark.parametrize("src", srcs_int + srcs_float)
-def test_abs_srcs(src):
-    DT = dt.Frame(src)
-    DT1 = dt.abs(DT)
-    frame_integrity_check(DT1)
-    assert DT.stypes == DT1.stypes
-    pyans = [None if x is None else abs(x) for x in src]
-    assert DT1.to_list()[0] == pyans
-
-
-def test_abs_all_stypes():
-    from datatable import abs
-    src = [[-127, -5, -1, 0, 2, 127],
-           [-32767, -299, -7, 32767, 12, -543],
-           [-2147483647, -1000, 3, -589, 2147483647, 0],
-           [-2**63 + 1, 2**63 - 1, 0, -2**32, 2**32, -793]]
-    DT = dt.Frame(src, stypes=[dt.int8, dt.int16, dt.int32, dt.int64])
-    DT1 = DT[:, [abs(f[i]) for i in range(4)]]
-    frame_integrity_check(DT1)
-    assert DT1.to_list() == [[abs(x) for x in col] for col in src]
-
-
-
-
-#-------------------------------------------------------------------------------
-# exp()
+# math.exp()
 #-------------------------------------------------------------------------------
 
 def test_exp():
@@ -295,7 +189,7 @@ def test_exp_all_stypes():
 
 
 #-------------------------------------------------------------------------------
-# log(), log10()
+# math.log(), math.log10()
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("fn", ["log", "log10"])

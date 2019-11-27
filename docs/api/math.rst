@@ -1,3 +1,4 @@
+.. _`math`:
 
 math module
 ===========
@@ -7,18 +8,18 @@ standard `math module`_, or `numpy math functions`_. Below is the comparison
 table showing which functions are available:
 
 
-==================  ====================  ================================
+==================  ====================  =====================================
 math                numpy                 datatable
-==================  ====================  ================================
+==================  ====================  =====================================
 **Trigonometric/hyperbolic functions**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``sin(x)``          ``sin(x)``            :func:`sin(x) <sin>`
 ``cos(x)``          ``cos(x)``            :func:`cos(x) <cos>`
 ``tan(x)``          ``tan(x)``            :func:`tan(x) <tan>`
 ``asin(x)``         ``arcsin(x)``         :func:`arcsin(x) <arcsin>`
 ``acos(x)``         ``arccos(x)``         :func:`arccos(x) <arccos>`
 ``atan(x)``         ``arctan(x)``         :func:`arctan(x) <arctan>`
-``atan2(y, x)``     ``arctan2(y, x)``     :func:`arctan2(y, x) <arctan2>`
+``atan2(y, x)``     ``arctan2(y, x)``     :func:`atan2(y, x) <atan2>`
 ``sinh(x)``         ``sinh(x)``           :func:`sinh(x) <sinh>`
 ``cosh(x)``         ``cosh(x)``           :func:`cosh(x) <cosh>`
 ``tanh(x)``         ``tanh(x)``           :func:`tanh(x) <tanh>`
@@ -30,7 +31,7 @@ math                numpy                 datatable
 ``degrees(x)``      ``rad2deg(x)``        :func:`rad2deg(x) <rad2deg>`
 
 **Exponential/logarithmic/power functions**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``exp(x)``          ``exp(x)``            :func:`exp(x) <exp>`
 \                   ``exp2(x)``           :func:`exp2(x) <exp2>`
 ``expm1(x)``        ``expm1(x)``          :func:`expm1(x) <expm1>`
@@ -38,15 +39,15 @@ math                numpy                 datatable
 ``log10(x)``        ``log10(x)``          :func:`log10(x) <log10>`
 ``log1p(x)``        ``log1p(x)``          :func:`log1p(x) <log1p>`
 ``log2(x)``         ``log2(x)``           :func:`log2(x) <log2>`
-\                   ``logaddexp(x, y)``
-\                   ``logaddexp2(x, y)``
+\                   ``logaddexp(x, y)``   :func:`logaddexp(x, y) <logaddexp>`
+\                   ``logaddexp2(x, y)``  :func:`logaddexp2(x, y) <logaddexp2>`
 \                   ``cbrt(x)``           :func:`cbrt(x) <cbrt>`
-``pow(x, a)``       ``power(x, a)``       :func:`power(x, a) <power>`
+``pow(x, a)``       ``power(x, a)``       :func:`pow(x, a) <pow>`
 ``sqrt(x)``         ``sqrt(x)``           :func:`sqrt(x) <sqrt>`
 \                   ``square(x)``         :func:`square(x) <square>`
 
 **Special mathematical functions**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``erf(x)``                                :func:`erf(x) <erf>`
 ``erfc(x)``                               :func:`erfc(x) <erfc>`
 ``gamma(x)``                              :func:`gamma(x) <gamma>`
@@ -56,45 +57,45 @@ math                numpy                 datatable
 \                   ``sinc(x)``
 
 **Floating-point functions**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+``abs(x)``          ``abs(x)``            :func:`abs(x) <abs>`
 ``ceil(x)``         ``ceil(x)``           :func:`ceil(x) <ceil>`
-``copysign(x, y)``  ``copysign(x, y)``
+``copysign(x, y)``  ``copysign(x, y)``    :func:`copysign(x, y) <copysign>`
 ``fabs(x)``         ``fabs(x)``           :func:`fabs(x) <fabs>`
 ``floor(x)``        ``floor(x)``          :func:`floor(x) <floor>`
+``fmod(x, y)``      ``fmod(x, y)``        :func:`fmod(x) <fmod>`
 ``frexp(x)``        ``frexp(x)``
-``isclose(x, y)``   ``isclose(x, y)``
+``isclose(x, y)``   ``isclose(x, y)``     :func:`isclose(x, y) <isclose>`
 ``isfinite(x)``     ``isfinite(x)``       :func:`isfinite(x) <isfinite>`
 ``isinf(x)``        ``isinf(x)``          :func:`isinf(x) <isinf>`
 ``isnan(x)``        ``isnan(x)``          :func:`isna(x) <isna>`
-``ldexp(x, n)``     ``ldexp(x, n)``
+``ldexp(x, n)``     ``ldexp(x, n)``       :func:`ldexp(x, n) <ldexp>`
+``modf(x)``         ``modf(x)``
 \                   ``nextafter(x, y)``
 \                   ``rint(x)``           :func:`rint(x) <rint>`
 \                   ``sign(x)``           :func:`sign(x) <sign>`
-\                   ``spacing(x)``
 \                   ``signbit(x)``        :func:`signbit(x) <signbit>`
+\                   ``spacing(x)``
 ``trunc(x)``        ``trunc(x)``          :func:`trunc(x) <trunc>`
 
 **Miscellaneous**
---------------------------------------------------------------------------
-``abs(x)``          ``abs(x)``            :func:`abs(x) <abs>`
+-------------------------------------------------------------------------------
 \                   ``clip(x, a, b)``
 \                   ``divmod(x, y)``
 ``factorial(n)``
-``fmod(x, y)``      ``fmod(x, y)``
 ``gcd(a, b)``       ``gcd(a, b)``
 \                   ``maximum(x, y)``
 \                   ``minimum(x, y)``
-``modf(x)``         ``modf(x)``
 
 **Mathematical constants**
---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 ``e``               ``e``                 :const:`e`
 \                   \                     :const:`golden`
 ``inf``             ``inf``               :const:`inf`
 ``nan``             ``nan``               :const:`nan`
 ``pi``              ``pi``                :const:`pi`
 ``tau``                                   :const:`tau`
-==================  ====================  ================================
+==================  ====================  =====================================
 
 
 Trigonometric/hyperbolic functions
@@ -153,7 +154,7 @@ Trigonometric/hyperbolic functions
     property that ``tan(arctan(x)) == x``.
 
 
-.. function:: arctan2(y, x)
+.. function:: atan2(y, x)
 
     The inverse trigonometric tangent of ``y/x``, taking into account the signs
     of ``x`` and ``y`` to produce the correct result.
@@ -269,12 +270,26 @@ Exponential/logarithmic functions
     The base-2 logarithm of ``x``, this function is the inverse of ``exp2(x)``.
 
 
+.. function:: logaddexp(x, y)
+
+    Logarithm of the sum of exponents of ``x`` and ``y``:
+    :math:`\ln(e^x + e^y)`. The result avoids loss of precision from
+    exponentiating small numbers.
+
+
+.. function:: logaddexp2(x, y)
+
+    Binary logarithm of the sum of binary exponents of ``x`` and ``y``:
+    :math:`\log_2(2^x + 2^y)`. The result avoids loss of precision from
+    exponentiating small numbers.
+
+
 .. function:: cbrt(x)
 
     Compute the cubic root of ``x``, i.e. :math:`\sqrt[3]{x}`.
 
 
-.. function:: power(x, a)
+.. function:: pow(x, a)
 
     Raise ``x`` to the power ``a``, i.e. calculate :math:`x^a`.
 
@@ -338,46 +353,6 @@ Special mathemetical functions
 Floating-point functions
 ------------------------
 
-.. function:: isna(x)
-
-    Returns True if ``x`` is an NA value, and False otherwise.
-
-    - If ``x`` is a :class:`Frame`, the function is applied separately to each
-      element in the frame. The result is a new Frame where all columns are
-      boolean, and with the same shape as ``x``. Each element in this new frame
-      is a boolean indicator of whether the corresponding element in ``x`` is
-      an NA value or not.
-
-    - If ``x`` is a column-expression, then ``isna(x)`` is also an expression.
-      The argument column ``x`` can be of any stype, and the result is a column
-      with stype `bool8`. When evaluated within ``DT[i, j, ...]``, the expression
-      ``isna(x)`` produces a column where each element is an indicator of whether
-      the corresponding value in ``x`` is NA or not.
-
-    - When ``x`` is a python integer, ``isna(x)`` returns False.
-
-    - When ``x`` is a python float, ``isna(x)`` returns False for all values of
-      ``x`` except for the float ``nan`` value.
-
-    - ``isna(None)`` produces True.
-
-
-.. function:: isfinite(x)
-
-    Returns True if ``x`` is a finite value, and False if ``x`` is a
-    positive/negative infinity of NA.
-
-
-.. function:: isinf(x)
-
-    Returns True if ``x`` is a positive or negative infinity, and False
-    otherwise.
-
-
-
-Miscellaneous functions
------------------------
-
 .. function:: abs(x)
 
     Return the absolute value of ``x``. This function can only be applied
@@ -419,6 +394,119 @@ Miscellaneous functions
     - :func:`fabs`
 
 
+.. function:: ceil(x)
+
+    The smallest integer not less than ``x``.
+
+
+.. function:: copysign(x, y)
+
+    Return a float with the magnitude of ``x`` and the sign of ``y``.
+
+
+.. function:: fabs(x)
+
+    The absolute value of ``x``, returned as a float.
+
+
+.. function:: floor(x)
+
+    The largest integer not greater than ``x``.
+
+
+.. function:: fmod(x, y)
+
+    Return the remainder of a floating-point division ``x/y``.
+
+
+.. function:: isclose(x, y, *, rtol=1e-5, atol=1e-8)
+
+    Return True if ``x ≈ y``, and False otherwise.
+
+    The comparison is done using the relative tolerance ``rtol`` and the
+    absolute tolerance ``atol`` parameters. The numbers ``x`` and ``y`` are
+    considered close if :math:`|x-y| \le atol + rtol|y|`. Note that this
+    relationship is not symmetric: it is possible to have ``x`` "close" to
+    ``y``, while ``y`` not "close" to ``x``.
+
+
+.. function:: isfinite(x)
+
+    Returns True if ``x`` is a finite value, and False if ``x`` is a
+    positive/negative infinity of NA.
+
+
+.. function:: isinf(x)
+
+    Returns True if ``x`` is a positive or negative infinity, and False
+    otherwise.
+
+
+.. function:: isna(x)
+
+    Returns True if ``x`` is an NA value, and False otherwise.
+
+    - If ``x`` is a :class:`Frame`, the function is applied separately to each
+      element in the frame. The result is a new Frame where all columns are
+      boolean, and with the same shape as ``x``. Each element in this new frame
+      is a boolean indicator of whether the corresponding element in ``x`` is
+      an NA value or not.
+
+    - If ``x`` is a column-expression, then ``isna(x)`` is also an expression.
+      The argument column ``x`` can be of any stype, and the result is a column
+      with stype `bool8`. When evaluated within ``DT[i, j, ...]``, the expression
+      ``isna(x)`` produces a column where each element is an indicator of whether
+      the corresponding value in ``x`` is NA or not.
+
+    - When ``x`` is a python integer, ``isna(x)`` returns False.
+
+    - When ``x`` is a python float, ``isna(x)`` returns False for all values of
+      ``x`` except for the float ``nan`` value.
+
+    - ``isna(None)`` produces True.
+
+
+.. function:: ldexp(x, n)
+
+    Multiply ``x`` by 2 raised to the power ``y``, i.e. compute
+    :math:`x \cdot 2^y`. Column ``x`` is expected to be float, and ``y`` integer.
+
+
+.. function:: rint(x)
+
+    Round ``x`` to the nearest integer.
+
+
+.. function:: sign(x)
+
+    The sign of ``x``, returned as float.
+
+    This function returns 1.0 if ``x`` is positive (including positive
+    infinity), -1.0 if ``x`` is negative, 0.0 if ``x`` is zero, and NA if
+    ``x`` is NA.
+
+
+.. function:: signbit(x)
+
+    Returns True if ``x`` is negative (its sign bit is set), and False if
+    ``x`` is positive. This function is able to distinguish between -0.0 and
+    +0.0, returning True/False respectively. If ``x`` is an NA value, this
+    function will also return NA.
+
+
+.. function:: trunc(x)
+
+    The nearest integer value not greater than ``x`` in magnitude.
+
+    If ``x`` is integer or boolean, then ``trunc()`` will return this value
+    converted to float64. If ``x`` is floating-point, then ``trunc(x)`` acts as
+    ``floor(x)`` for positive values of ``x``, and as ``ceil(x)`` for negative
+    values of ``x``. This rounding mode is also called rounding towards zero.
+
+
+
+Miscellaneous functions
+-----------------------
 
 
 

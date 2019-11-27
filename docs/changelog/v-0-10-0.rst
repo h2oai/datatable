@@ -58,6 +58,20 @@ These functions are equivalent to pandas' aggregation functions with parameter
 ``rowany()``) use short-circuit evaluation.
 
 
+Mathematical functions |new|
+----------------------------
+
+.. seealso:: :ref:`math`
+
+New module ``datatable.math`` now has implementations of most mathematical
+functions found in numpy or in standard Python math module. These functions
+work with Frame objects, and can be used in ``DT[i,j,...]`` expressions::
+
+    DT[:, f.X * dt.math.cos(f.Phi) + f.Y * dt.math.sin(f.Phi)]
+
+There are 48 functions in total.
+
+
 Frame
 -----
 
