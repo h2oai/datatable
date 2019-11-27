@@ -212,29 +212,58 @@ void Frame::_clear_types() const {
 }
 
 
-static PKArgs args_materialize(
-  0, 0, 0, false, false, {}, "materialize",
 
-R"(materialize(self)
+
+//------------------------------------------------------------------------------
+// Materialize
+//------------------------------------------------------------------------------
+
+static const char* doc_materialize =
+R"(materialize(self, to_memory=False)
 --
 
-Convert a "view" frame into a regular data frame.
+Force all data in the Frame to be laid out physically.
 
-Certain datatable operation produce frames that contain "view"
-columns. These columns refer to the data in some other column, via
-a RowIndex object that describes which values from the other column
-should be picked. This is done in order to improve performance and
-reduce memory usage of certain operations: a view column avoids
-copying data from its parent column.
+In datatable, a Frame may contain "virtual" columns, i.e. columns
+whose data is computed on-the-fly. This allows us to have better
+performance for certain types of computations, while also reduce
+the total memory footprint. The use of virtual columns is generally
+transparent to the user, and datatable will materialize them as
+needed.
 
-Usually view columns are created transparently to the user, and they
-are materialized by datatable when necessary. This method, on the
-other hand, will force all view columns in the frame to be
-materialized immediately.
-)");
+However there could be situations where you might want to materialize
+your Frame explicitly. In particular, materialization will carry out
+all delayed computations and break internal references on other
+Frames' data. Thus, for example if you subset a large frame to create
+a smaller subset, then the new frame will carry an internal reference
+to the original, preventing it from being garbage-collected. However,
+if you materialize the small frame, then the data will be physically
+copied, allowing the original frame's memory to be freed.
 
-void Frame::materialize(const PKArgs&) {
-  dt->materialize();
+Parameters
+----------
+to_memory: bool
+    If True, then, in addition to de-virtualizing all columns, this
+    method will also copy all memory-mapped columns into the RAM.
+
+    When you open a Jay file, the Frame that is created will contain
+    memory-mapped columns whose data still resides on disk. Calling
+    ``.materialize(to_memory=True)`` will force the data to be loaded
+    into the main memory. This may be beneficial if you are concerned
+    about the disk speed, or if the file is on a removable drive, or
+    if you want to delete the source file.
+
+Returns
+-------
+None, this operation applies to the Frame and modifies it in-place.
+)";
+
+static PKArgs args_materialize(
+  0, 1, 0, false, false, {"to_memory"}, "materialize", doc_materialize);
+
+void Frame::materialize(const PKArgs& args) {
+  bool to_memory = args[0].to<bool>(false);
+  dt->materialize(to_memory);
 }
 
 

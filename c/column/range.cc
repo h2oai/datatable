@@ -112,7 +112,7 @@ void Range_ColumnImpl::_materialize(Column& out) const {
   out = newcol;
 }
 
-void Range_ColumnImpl::materialize(Column& out) {
+void Range_ColumnImpl::materialize(Column& out, bool) {
   switch (stype_) {
     case SType::INT8:    return _materialize<int8_t>(out);
     case SType::INT16:   return _materialize<int16_t>(out);

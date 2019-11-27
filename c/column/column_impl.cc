@@ -107,7 +107,8 @@ void ColumnImpl::_materialize_str(Column& out) {
 }
 
 
-void ColumnImpl::materialize(Column& out) {
+void ColumnImpl::materialize(Column& out, bool to_memory) {
+  (void) to_memory;  // default materialization is always to memory
   this->pre_materialize_hook();
   switch (stype_) {
     case SType::BOOL:

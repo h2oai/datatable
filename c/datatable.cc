@@ -244,11 +244,12 @@ void DataTable::apply_rowindex(const RowIndex& rowindex) {
 
 
 /**
- * Materialize all columns in the DataTable.
- */
-void DataTable::materialize() {
+  * Materialize all columns in the DataTable. The flag `to_memory`
+  * also forces the data to be brought from disk into the RAM.
+  */
+void DataTable::materialize(bool to_memory) {
   for (Column& col : columns_) {
-    col.materialize();
+    col.materialize(to_memory);
   }
 }
 

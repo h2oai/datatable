@@ -85,7 +85,7 @@ class DataTable {
     void resize_rows(size_t n);
     void resize_columns(const strvec& new_names);
     void apply_rowindex(const RowIndex&);
-    void materialize();
+    void materialize(bool to_memory);
     void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
     void cbind(const std::vector<DataTable*>&);
     DataTable extract_column(size_t i) const;

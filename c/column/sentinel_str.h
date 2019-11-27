@@ -39,6 +39,7 @@ class SentinelStr_ColumnImpl : public Sentinel_ColumnImpl
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
+    void materialize(Column&, bool) override;
     size_t memory_footprint() const noexcept override;
 
     bool get_element(size_t i, CString* out) const override;

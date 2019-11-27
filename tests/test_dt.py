@@ -23,6 +23,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import math
+import os
 import pytest
 import random
 import re
@@ -1259,6 +1260,24 @@ def test_materialize_object_col():
     assert DT.stypes == (dt.obj64,)
     assert all(isinstance(x, A) and sys.getrefcount(x) > 0
                for x in DT.to_list()[0])
+
+
+def test_materialize_to_memory(tempfile_jay):
+    DT = dt.Frame(A=["red", "orange", "yellow"], B=[5, 2, 8])
+    DT.to_jay(tempfile_jay)
+    del DT
+    DT = dt.fread(tempfile_jay)
+    DT.materialize(to_memory=True)
+    os.unlink(tempfile_jay)
+    dt.Frame([5]).to_jay(tempfile_jay)
+    assert_equals(DT, dt.Frame(A=["red", "orange", "yellow"], B=[5, 2, 8]))
+
+
+def test_materialize_to_memory_bad_type():
+    DT = dt.Frame(range(5))
+    msg = r"Argument `to_memory` in Frame.materialize\(\) should be a boolean"
+    with pytest.raises(TypeError, match=msg):
+        DT.materialize(to_memory=0)
 
 
 

@@ -102,6 +102,16 @@ ColumnImpl* SentinelObj_ColumnImpl::clone() const {
 
 
 template <typename T>
+void SentinelFw_ColumnImpl<T>::materialize(Column&, bool to_memory) {
+  if (to_memory) {
+    mbuf_.to_memory();
+  }
+}
+
+
+
+
+template <typename T>
 size_t SentinelFw_ColumnImpl<T>::memory_footprint() const noexcept {
   return sizeof(*this) + (stats_? stats_->memory_footprint() : 0)
                        + mbuf_.memory_footprint();
@@ -184,16 +194,14 @@ size_t SentinelFw_ColumnImpl<T>::get_num_data_buffers() const noexcept {
 
 template <typename T>
 bool SentinelFw_ColumnImpl<T>::is_data_editable(size_t k) const {
-  xassert(k == 0);
-  (void) k;
+  xassert(k == 0); (void) k;
   return mbuf_.is_writable();
 }
 
 
 template <typename T>
 size_t SentinelFw_ColumnImpl<T>::get_data_size(size_t k) const {
-  xassert(k == 0);
-  (void) k;
+  xassert(k == 0); (void) k;
   xassert(mbuf_.size() >= nrows_ * sizeof(T));
   return nrows_ * sizeof(T);
 }
@@ -201,24 +209,21 @@ size_t SentinelFw_ColumnImpl<T>::get_data_size(size_t k) const {
 
 template <typename T>
 const void* SentinelFw_ColumnImpl<T>::get_data_readonly(size_t k) const {
-  xassert(k == 0);
-  (void) k;
+  xassert(k == 0); (void) k;
   return mbuf_.rptr();
 }
 
 
 template <typename T>
 void* SentinelFw_ColumnImpl<T>::get_data_editable(size_t k) {
-  xassert(k == 0);
-  (void) k;
+  xassert(k == 0); (void) k;
   return mbuf_.wptr();
 }
 
 
 template <typename T>
 Buffer SentinelFw_ColumnImpl<T>::get_data_buffer(size_t k) const {
-  xassert(k == 0);
-  (void) k;
+  xassert(k == 0); (void) k;
   return Buffer(mbuf_);
 }
 

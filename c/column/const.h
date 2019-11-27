@@ -59,7 +59,7 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     bool get_element(size_t, py::robj*) const override;
 
     ColumnImpl* clone() const override;
-    void materialize(Column&) override;
+    void materialize(Column&, bool) override;
     void na_pad(size_t nrows, Column&) override;
 };
 

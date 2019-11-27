@@ -42,6 +42,14 @@
   * `release()` call when the pointer is no longer needed. The
   * object will self-destruct when its refcount reaches 0.
   *
+  * There are actually two reference-counting semantics in use. Under
+  * the "normal" rules (i.e. `acquire()/release()`) having more than
+  * one "owner" of the data will cause the data to become readonly:
+  * neither of the co-owners will be allowed to modify the data, only
+  * read. At the same time, under the "shared" rules
+  * (`acquire_shared()/release_shared()`) each owner is allowed to
+  * modify the data contents, just not resize.
+  *
   * The BufferImpl may be marked as containing PyObjects. They will
   * be incref'd when copied, and decref'd when the buffer is resized
   * or destructed.
@@ -191,6 +199,9 @@ class BufferImpl
         }
       }
     }
+
+    // Default implementation of `to_memory()` does nothing
+    virtual void to_memory(Buffer&) {}
 };
 
 
@@ -300,6 +311,10 @@ class External_BufferImpl : public BufferImpl
       // All memory is owned externally
       return sizeof(External_BufferImpl) + sizeof(py::buffer);
     }
+
+    void to_memory(Buffer& out) override {
+      if (pybufinfo_) out = Buffer::copy(data_, size_);
+    }
 };
 
 
@@ -346,6 +361,10 @@ class View_BufferImpl : public BufferImpl
 
     size_t memory_footprint() const noexcept override {
       return sizeof(View_BufferImpl) + size_;
+    }
+
+    void to_memory(Buffer& out) override {
+      out = Buffer::copy(data_, size_);
     }
 
     void verify_integrity() const override {
@@ -431,6 +450,10 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
 
     size_t memory_footprint() const noexcept override {
       return sizeof(Mmap_BufferImpl) + filename_.size() + (mapped_? size_ : 0);
+    }
+
+    void to_memory(Buffer& out) override {
+      out = Buffer::copy(data_, size_);
     }
 
     void verify_integrity() const override {
@@ -745,6 +768,12 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
     return Buffer(new Memory_BufferImpl(static_cast<size_t>(n)));
   }
 
+  Buffer Buffer::copy(const void* ptr, size_t n) {
+    Buffer out(new Memory_BufferImpl(n));
+    if (n) std::memcpy(out.xptr(), ptr, n);
+    return out;
+  }
+
   Buffer Buffer::acquire(void* ptr, size_t n) {
     return Buffer(new Memory_BufferImpl(std::move(ptr), n));
   }
@@ -853,6 +882,7 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
     return *this;
   }
 
+
   Buffer& Buffer::resize(size_t newsize, bool keep_data) {
     size_t oldsize = impl_->size();
     if (newsize != oldsize) {
@@ -879,6 +909,11 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
       }
     }
     return *this;
+  }
+
+
+  void Buffer::to_memory() {
+    impl_->to_memory(*this);
   }
 
 

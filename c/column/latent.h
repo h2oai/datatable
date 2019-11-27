@@ -50,7 +50,7 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
     explicit Latent_ColumnImpl(const Column&);
 
     ColumnImpl* clone() const override;
-    void materialize(Column&) override;
+    void materialize(Column&, bool) override;
     bool allow_parallel_access() const override;
 
     bool get_element(size_t, int8_t*)   const override;
@@ -63,7 +63,7 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, py::robj*) const override;
 
   private:
-    ColumnImpl* vivify() const;
+    ColumnImpl* vivify(bool to_memory = false) const;
 };
 
 

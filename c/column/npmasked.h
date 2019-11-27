@@ -42,7 +42,7 @@ class NpMasked_ColumnImpl : public Virtual_ColumnImpl {
     NpMasked_ColumnImpl(Column&& arg, Buffer&& mask);
 
     ColumnImpl* clone() const override;
-    void materialize(Column&) override;
+    void materialize(Column&, bool) override;
 
     bool get_element(size_t, int8_t*)  const override;
     bool get_element(size_t, int16_t*) const override;
