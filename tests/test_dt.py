@@ -1273,6 +1273,12 @@ def test_materialize_to_memory(tempfile_jay):
     assert_equals(DT, dt.Frame(A=["red", "orange", "yellow"], B=[5, 2, 8]))
 
 
+def test_materialize_to_memory_bad_type():
+    DT = dt.Frame(range(5))
+    msg = r"Argument `to_memory` in Frame.materialize\(\) should be a boolean"
+    with pytest.raises(TypeError, match=msg):
+        DT.materialize(to_memory=0)
+
 
 
 #-------------------------------------------------------------------------------
