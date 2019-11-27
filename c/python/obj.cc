@@ -882,7 +882,7 @@ oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
 robj rnone()    { return robj(Py_None); }
 
-robj stdin() {
+robj rstdin() {
   return robj(
     #ifndef Py_LIMITED_API
       _PySys_GetObjectId(&PyId_stdin)  // borrowed ref
@@ -892,7 +892,7 @@ robj stdin() {
   );
 }
 
-robj stdout() {
+robj rstdout() {
   return robj(
     #ifndef Py_LIMITED_API
       _PySys_GetObjectId(&PyId_stdout)  // borrowed ref
@@ -903,7 +903,7 @@ robj stdout() {
 }
 
 void write_to_stdout(const std::string& str) {
-  PyObject* py_stdout = stdout().to_borrowed_ref();
+  PyObject* py_stdout = rstdout().to_borrowed_ref();
   oobj writer;
   if (py_stdout && py_stdout != Py_None) {
     writer = oobj::from_new_reference(

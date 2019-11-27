@@ -46,9 +46,9 @@ bool enabled = true;
 
 
 static bool stdout_is_a_terminal() {
-  auto stdout = py::stdout();
-  if (stdout.is_none()) return false;
-  py::oobj isatty = stdout.get_attrx("isatty");
+  auto rstdout = py::rstdout();
+  if (rstdout.is_none()) return false;
+  py::oobj isatty = rstdout.get_attrx("isatty");
   if (!isatty) return false;
   py::oobj res = isatty.call();
   return res.is_bool()? res.to_bool_strict() : false;

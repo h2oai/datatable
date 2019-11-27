@@ -67,9 +67,9 @@ progress_bar_enabled::progress_bar_enabled() {
     pyfn_external = py::oobj(dt::progress::progress_fn);
   }
   else {
-    auto stdout = py::stdout();
-    pyfn_write = stdout.get_attr("write");
-    pyfn_flush = stdout.get_attr("flush");
+    auto rstdout = py::rstdout();
+    pyfn_write = rstdout.get_attr("write");
+    pyfn_flush = rstdout.get_attr("flush");
   }
 
   visible = false;
