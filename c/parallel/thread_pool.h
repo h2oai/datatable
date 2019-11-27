@@ -47,6 +47,9 @@ class thread_team;
 class thread_pool {
   friend class thread_team;
   friend std::mutex& python_mutex();
+  public:
+    std::unique_ptr<monitor_thread> monitor;
+
   private:
     // Worker instances, each running on its own thread. Each thread has a
     // reference to its own worker, so these workers must be alive as long
@@ -76,6 +79,9 @@ class thread_pool {
     // TODO: merge thread_team functionality into the pool?
     thread_team* current_team;
 
+    // Create the monitor thread, if it was not created yet.
+    void init_monitor_thread() noexcept;
+
   public:
     thread_pool();
     thread_pool(const thread_pool&) = delete;
@@ -83,6 +89,7 @@ class thread_pool {
     thread_pool(thread_pool&&) = delete;
 
     static thread_team* get_team_unchecked() noexcept;
+
 
     void instantiate_threads();
     void execute_job(thread_scheduler*);
@@ -92,8 +99,10 @@ class thread_pool {
 
     bool in_parallel_region() const noexcept;
     size_t n_threads_in_team() const noexcept;
-    void enable_monitor(bool) const noexcept;
-    bool is_monitor_enabled() const noexcept;
+
+    // Monitor thread control.
+    void enable_monitor(bool) noexcept;
+    bool is_monitor_enabled() noexcept;
 
     static void init_options();
 };

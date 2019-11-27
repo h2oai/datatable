@@ -44,6 +44,7 @@ from .lib._datatable import (
     rowsd,
     rowsum,
     setdiff,
+    shift,
     sort,
     symdiff,
     union,

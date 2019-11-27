@@ -52,6 +52,7 @@ enum class Op : size_t {
   CAST = 2,
   SETPLUS = 3,
   SETMINUS = 4,
+  SHIFTFN,
 
   // Unary
   UPLUS = UNOP_FIRST,       // funary/basic.cc

@@ -126,9 +126,9 @@ class Workframe {
     void sync_grouping_mode(Workframe& other);
     void sync_grouping_mode(Column& col, Grouping gmode);
     Grouping get_grouping_mode() const;
+    void increase_grouping_mode(Grouping g);
 
   private:
-    void increase_grouping_mode(Grouping g);
     void column_increase_grouping_mode(Column&, Grouping from, Grouping to);
 
     friend class EvalContext;

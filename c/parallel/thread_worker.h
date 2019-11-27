@@ -148,8 +148,6 @@ class idle_job : public thread_scheduler {
     // Thread-worker object corresponding to the master thread.
     thread_worker* master_worker;
 
-    std::unique_ptr<monitor_thread> monitor;
-
   public:
     idle_job();
 
@@ -183,8 +181,6 @@ class idle_job : public thread_scheduler {
     // This callback should be called before a thread is removed from the
     // threadpool.
     void on_before_thread_removed();
-    void enable_monitor(bool) const noexcept;
-    bool is_monitor_enabled() const noexcept;
 };
 
 

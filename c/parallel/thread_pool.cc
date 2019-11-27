@@ -14,7 +14,6 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <thread>      // std::thread::hardware_concurrency
-#include <pthread.h>   // pthread_atfork
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_team.h"
@@ -23,6 +22,12 @@
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "options.h"
+#include "utils/macros.h"
+#if !DT_OS_WINDOWS
+  #include <pthread.h>   // pthread_atfork
+#endif
+
+
 namespace dt {
 
 
@@ -45,16 +50,22 @@ static void _child_cleanup_after_fork() {
 //------------------------------------------------------------------------------
 // thread_pool
 //------------------------------------------------------------------------------
-static bool after_fork_handler_registered = false;
+#if !DT_OS_WINDOWS
+  // no fork on Windows
+  static bool after_fork_handler_registered = false;
+#endif
 
 thread_pool::thread_pool()
   : num_threads_requested(0),
     current_team(nullptr)
 {
+#if !DT_OS_WINDOWS
+  // no fork on Windows
   if (!after_fork_handler_registered) {
     pthread_atfork(nullptr, nullptr, _child_cleanup_after_fork);
     after_fork_handler_registered = true;
   }
+#endif
 }
 
 // In the current implementation the thread_pool instance never gets deleted
@@ -78,6 +89,7 @@ void thread_pool::resize(size_t n) {
 
 void thread_pool::instantiate_threads() {
   size_t n = num_threads_requested;
+  init_monitor_thread();
   if (workers.size() == n) return;
   if (workers.size() < n) {
     workers.reserve(n);
@@ -108,6 +120,15 @@ void thread_pool::instantiate_threads() {
 }
 
 
+void thread_pool::init_monitor_thread() noexcept {
+  if (!monitor) {
+    monitor = std::unique_ptr<monitor_thread>(
+                new monitor_thread(&controller)
+              );
+  }
+}
+
+
 void thread_pool::execute_job(thread_scheduler* job) {
   xassert(current_team);
   if (workers.empty()) instantiate_threads();
@@ -132,28 +153,32 @@ thread_team* thread_pool::get_team_unchecked() noexcept {
 }
 
 
-void thread_pool::enable_monitor(bool a) const noexcept {
-  controller.enable_monitor(a);
+void thread_pool::enable_monitor(bool a) noexcept {
+  init_monitor_thread();
+  monitor->set_active(a);
 }
 
 
-bool thread_pool::is_monitor_enabled() const noexcept {
-  return controller.is_monitor_enabled();
+bool thread_pool::is_monitor_enabled() noexcept {
+  return monitor? monitor->get_active() : false;
+}
+
+
+//------------------------------------------------------------------------------
+// Monitor thread control.
+//------------------------------------------------------------------------------
+void enable_monitor(bool a) noexcept {
+  thpool->enable_monitor(a);
+}
+
+bool is_monitor_enabled() noexcept {
+  return thpool->is_monitor_enabled();
 }
 
 
 //------------------------------------------------------------------------------
 // Misc
 //------------------------------------------------------------------------------
-
-bool is_monitor_enabled() noexcept {
-  return thpool->is_monitor_enabled();
-}
-
-void enable_monitor(bool a) noexcept {
-  thpool->enable_monitor(a);
-}
-
 size_t num_threads_in_pool() {
   return thpool->size();
 }
@@ -184,7 +209,7 @@ size_t get_hardware_concurrency() noexcept {
 
 
 std::mutex& python_mutex() {
-  return thpool->controller.monitor->mutex;
+  return thpool->monitor->mutex;
 }
 
 

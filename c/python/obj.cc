@@ -49,6 +49,11 @@ static void init_numpy();
 // Set from datatablemodule.cc
 PyObject* Expr_Type = nullptr;
 
+// `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
+// a designated initializer, that is not supported by the C++11 standard.
+// Redefine `_Py_static_string_init` here to use a regular initializer.
+#undef _Py_static_string_init
+#define _Py_static_string_init(value) { NULL, value, NULL }
 _Py_IDENTIFIER(stdin);
 _Py_IDENTIFIER(stdout);
 _Py_IDENTIFIER(write);
