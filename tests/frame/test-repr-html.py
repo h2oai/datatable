@@ -112,3 +112,12 @@ def test_html_repr_joined_frame():
                        ['6', '8', None],
                        ['7', '9', '2'],
                        ['9', '10', None]]
+
+
+def test_html_repr_keyed():
+    DT = dt.Frame(A=range(5), B=list("abcde"))
+    DT.key = "B"
+    html = DT._repr_html_()
+    assert "<th class='row_index'>B</th>" in html
+    for i in range(5):
+        assert ("<td class='row_index'>%s</td>" % "abcde"[i]) in html

@@ -80,7 +80,7 @@ class HtmlWidget : public dt::Widget {
         if (j == dt::NA_index) {
           html << "<th class='vellipsis'>&hellip;</th>";
         } else {
-          html << "<th>";
+          html << (j < nkeys_? "<th class='row_index'>" : "<th>");
           _render_escaped_string(colnames[j].data(), colnames[j].size());
           html << "</th>";
         }
@@ -145,7 +145,7 @@ class HtmlWidget : public dt::Widget {
           html << "<td class=vellipsis>&hellip;</td>";
           continue;
         }
-        html << "<td>";
+        html << (j < nkeys_? "<td class='row_index'>" : "<td>");
         const Column& col = dt_->get_column(j);
         switch (col.stype()) {
           case SType::BOOL:

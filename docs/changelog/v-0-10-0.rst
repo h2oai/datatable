@@ -239,6 +239,9 @@ Frame
 - |fix| Fix creation of a Frame from a numpy array which was obtained from
   another numpy array as a slice with a negative stride (#2163).
 
+- |fix| Keyed columns are now styled distinctly from regular columns when
+  rendering the Frame into a Jupyter notebook (#1636).
+
 
 General
 -------

@@ -37,7 +37,7 @@ Widget::Widget(DataTable* dt) {
   ncols_ = dt->ncols();
   nrows_ = dt->nrows();
   nkeys_ = dt->nkeys();
-  render_row_indices_ = true;
+  render_row_indices_ = (nkeys_ == 0);
 }
 
 
