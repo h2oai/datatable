@@ -163,7 +163,7 @@ Error Arg::error_not_iterable(PyObject* src) const {
 //------------------------------------------------------------------------------
 
 void Arg::print() const {
-  PyObject_Print(pyobj.v, ::stdout, Py_PRINT_RAW);
+  PyObject_Print(pyobj.v, stdout, Py_PRINT_RAW);
   std::printf("\n");
 }
 
