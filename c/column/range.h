@@ -47,7 +47,7 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     size_t memory_footprint() const noexcept override;
-    void materialize(Column&) override;
+    void materialize(Column&, bool) override;
     void verify_integrity() const override;
 
     bool get_element(size_t, int8_t*)  const override;

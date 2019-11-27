@@ -164,6 +164,13 @@ Frame
     DT["A"] = int            # Column A in frame DT will become integer
     DT[:, int] = dt.float64  # All integer columns will be converted to float64
 
+- |new| Method ``Frame.materialize()`` gains a new option ``to_memory=False``.
+  If set to True, it will force the Frame's data to be lifted from disk into
+  the main memory (if the frame was opened from disk)::
+
+    DT = dt.fread("data.jay")
+    DT.materialize(to_memory=True)
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names

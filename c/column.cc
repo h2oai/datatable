@@ -301,9 +301,9 @@ Buffer Column::get_data_buffer(size_t k) const {
 // Column : manipulation
 //------------------------------------------------------------------------------
 
-void Column::materialize() {
+void Column::materialize(bool to_memory) {
   auto pcol = _get_mutable_impl(/* keep_stats= */ true);
-  pcol->materialize(*this);
+  pcol->materialize(*this, to_memory);
 }
 
 void Column::replace_values(const RowIndex& replace_at,

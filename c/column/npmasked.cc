@@ -55,7 +55,7 @@ void NpMasked_ColumnImpl::_apply_mask(Column& out) {
   out = std::move(arg_);
 }
 
-void NpMasked_ColumnImpl::materialize(Column& out) {
+void NpMasked_ColumnImpl::materialize(Column& out, bool to_memory) {
   if (arg_.get_na_storage_method() == NaStorage::SENTINEL &&
       arg_.is_fixedwidth() &&
       arg_.is_data_editable())
@@ -71,7 +71,7 @@ void NpMasked_ColumnImpl::materialize(Column& out) {
       default: break;
     }
   }
-  ColumnImpl::materialize(out);
+  ColumnImpl::materialize(out, to_memory);
 }
 
 

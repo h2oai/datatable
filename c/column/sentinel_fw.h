@@ -43,6 +43,7 @@ class SentinelFw_ColumnImpl : public Sentinel_ColumnImpl
 
     virtual ColumnImpl* clone() const override;
     void verify_integrity() const override;
+    void materialize(Column&, bool) override;
     size_t memory_footprint() const noexcept override;
 
     virtual bool get_element(size_t i, int8_t* out) const override;

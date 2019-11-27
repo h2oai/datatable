@@ -38,7 +38,6 @@ class Sentinel_ColumnImpl : public ColumnImpl
     static Column make_str_column(size_t nrows, Buffer&&, Buffer&&);
 
     bool is_virtual() const noexcept override;
-    void materialize(Column&) override {}
     NaStorage get_na_storage_method() const noexcept override;
 
   protected:
