@@ -53,7 +53,6 @@ using std::size_t;
   */
 class Widget {
   private:
-    size_t ncols_, nrows_, nkeys_;
     size_t startcol_, startrow_;
     size_t cols0_, cols1_;
     size_t rows0_, rows1_;
@@ -62,6 +61,7 @@ class Widget {
     DataTable* dt_;
     std::vector<size_t> colindices_;
     std::vector<size_t> rowindices_;
+    size_t ncols_, nrows_, nkeys_;
     bool render_row_indices_;
     size_t : 56;
 
