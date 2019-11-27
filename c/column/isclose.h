@@ -47,8 +47,8 @@ class IsClose_ColumnImpl : public Virtual_ColumnImpl {
         rtol_(rtol),
         atol_(atol)
     {
-      assert_compatible_type<T>(xcol.stype());
-      assert_compatible_type<T>(ycol.stype());
+      assert_compatible_type<T>(argx_.stype());
+      assert_compatible_type<T>(argy_.stype());
     }
 
     ColumnImpl* clone() const override {
@@ -65,8 +65,11 @@ class IsClose_ColumnImpl : public Virtual_ColumnImpl {
       T x, y;
       bool xvalid = argx_.get_element(i, &x);
       bool yvalid = argy_.get_element(i, &y);
-      if (!xvalid || !yvalid) return xvalid == yvalid;
-      *out = (x == y) || (std::abs(x - y) <= atol_ + rtol_ * std::abs(y));
+      if (!xvalid || !yvalid) {
+        *out = (xvalid == yvalid);
+      } else {
+        *out = (x == y) || (std::abs(x - y) <= atol_ + rtol_ * std::abs(y));
+      }
       return true;
     }
 };

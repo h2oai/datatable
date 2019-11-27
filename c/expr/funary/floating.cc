@@ -243,15 +243,15 @@ Note that `isinf(NA) == False`.
 py::PKArgs args_isinf(1, 0, 0, false, false, {"x"}, "isinf", doc_isinf);
 
 
-// Redefine functions isinf / isfinite here, because apparently the standard
-// library implementation is not that standard: in some implementation the
-// return value is `bool`, in others it's `int`.
 template <typename T>
-static int8_t op_isinf(T x) { return std::isinf(x); }
+static bool op_isinf(T x, bool isvalid, int8_t* out) {
+  *out = isvalid && std::isinf(x);
+  return true;
+}
 
 template <typename T>
 static inline umaker_ptr _isinf() {
-  return umaker1<T, int8_t>::make(op_isinf<T>, SType::VOID, SType::BOOL);
+  return umaker2<T, int8_t>::make(op_isinf<T>, SType::VOID, SType::BOOL);
 }
 
 umaker_ptr resolve_op_isinf(SType stype) {

@@ -238,8 +238,67 @@ def test_floor_random(numpy):
 
 
 #-------------------------------------------------------------------------------
+# math.fmod()
+#-------------------------------------------------------------------------------
+
+def test_fmod():
+    DT = dt.Frame([(1.5, 7.7),
+                   (3.1, 2.0),
+                   (1.0, None),
+                   (None, 1.0),
+                   (None, None),
+                   (0.0, 0.0),
+                   (3.4, 0.0),
+                   (222.5, math.inf),
+                   (-1.1, 3.4)], names=["A", "B"])
+    RES = DT[:, dt.math.fmod(f.A, f.B)]
+    assert_equals(RES, dt.Frame([1.5, 1.1, None, None, None, None, None,
+                                 222.5, -1.1]))
+
+
+def test_fmod_random(numpy):
+    arr1 = numpy.random.randn(100)
+    arr2 = numpy.random.randn(100)
+    RES_DT = dt.Frame(A=arr1, B=arr2)[:, dt.math.fmod(f.A, f.B)]
+    RES_NP = numpy.fmod(arr1, arr2)
+    assert_equals(RES_DT, dt.Frame(RES_NP))
+
+
+
+
+#-------------------------------------------------------------------------------
+# math.isclose()
+#-------------------------------------------------------------------------------
+
+def test_isclose():
+    DT = dt.Frame([(1.0, 1.0000001),
+                   (1e10, 1.000001e10),
+                   (1e-11, 1e-12),
+                   (1.1, -1.3),
+                   (3e-9, -3e-9),
+                   (None, None),
+                   (None, 0.0),
+                   (0.0, 1e-10)], names=["A", "B"])
+    RES_DT = DT[:, dt.math.isclose(f.A, f.B)]
+    assert_equals(RES_DT,
+                  dt.Frame([True, True, True, False, True, True, False, True]))
+
+
+def test_isclose_random(numpy):
+    arr1 = numpy.random.randn(100)
+    arr2 = numpy.random.randn(100)
+    DT = dt.Frame(A=arr1, B=arr2)
+    RES_DT = DT[:, dt.math.isclose(f.A, f.B, rtol=0.5, atol=0.1)]
+    RES_NP = numpy.isclose(arr1, arr2, rtol=0.5, atol=0.1)
+    assert_equals(RES_DT, dt.Frame(RES_NP))
+
+
+
+
+#-------------------------------------------------------------------------------
 # math.isfinite()
 #-------------------------------------------------------------------------------
+
 @pytest.mark.parametrize("src", srcs_int + srcs_float)
 def test_dt_isfinite(src):
     DT = dt.Frame(src)
@@ -261,6 +320,30 @@ def test_dt_isfinite_scalar_wrong_arg():
     with pytest.raises(TypeError, match="Function `isfinite` cannot be applied "
                                         "to a column of type `str32`"):
         dt.math.isfinite("hello")
+
+
+
+
+#-------------------------------------------------------------------------------
+# math.isinf()
+#-------------------------------------------------------------------------------
+
+def test_isinf():
+    assert dt.math.isinf(1) is False
+    assert dt.math.isinf(1.5) is False
+    assert dt.math.isinf(math.inf) is True
+    assert dt.math.isinf(-math.inf) is True
+    assert dt.math.isinf(math.nan) is False
+    assert dt.math.isinf(False) is False
+    assert dt.math.isinf(None) is False
+
+
+@pytest.mark.parametrize("src", srcs_int + srcs_float)
+def test_isinf_srcs(src):
+    DT = dt.Frame(src)
+    RES = DT[:, dt.math.isinf(f[0])]
+    assert_equals(RES, dt.Frame([x == math.inf or x == -math.inf
+                                 for x in src]))
 
 
 
