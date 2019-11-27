@@ -57,6 +57,10 @@ static py::oobj fbinary_pyfn(const py::PKArgs& args)
   py::robj x = args[0].to_robj();
   py::robj y = args[1].to_robj();
   py::otuple params(0);
+  if (!x || !y) {
+    throw TypeError() << "Function `" << args.get_short_name() << "()` takes "
+        "2 positional arguments";
+  }
 
   return make_pyexpr(opcode,
                      py::otuple{ x, y },
