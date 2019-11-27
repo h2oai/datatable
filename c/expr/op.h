@@ -145,7 +145,7 @@ enum class Op : size_t {
   FABS,                     // funary/floating.cc
   FLOOR,                    // funary/floating.cc
   FREXP,
-  ISCLOSE,
+  ISCLOSE,                  // head_func_isclose.cc
   ISFINITE,                 // funary/floating.cc
   ISINF,                    // funary/floating.cc
   ISNA,                     // funary/floating.cc

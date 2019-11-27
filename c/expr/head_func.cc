@@ -182,6 +182,7 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::LOGADDEXP2)] = make_binop;
   factory[static_cast<size_t>(Op::FMOD)]       = make_binop;
   factory[static_cast<size_t>(Op::LDEXP)]      = make_binop;
+  factory[static_cast<size_t>(Op::ISCLOSE)]    = &Head_Func_IsClose::make;
 }
 
 

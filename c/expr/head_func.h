@@ -143,6 +143,20 @@ class Head_Func_Shift : public Head_Func {
 
 
 
+class Head_Func_IsClose : public Head_Func {
+  private:
+    double rtol_;
+    double atol_;
+
+  public:
+    static ptrHead make(Op, const py::otuple& params);
+
+    Head_Func_IsClose(double rtol, double atol);
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+};
+
+
+
 
 }}  // namespace dt::expr
 #endif
