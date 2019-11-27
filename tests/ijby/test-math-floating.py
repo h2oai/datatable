@@ -397,7 +397,22 @@ def test_ldexp():
     DT = dt.Frame(A=[1.5, 3.5, 100.1, None, 0.0],
                   B=[-1, 14, 5, 9, -5])
     RES = DT[:, dt.math.ldexp(f.A, f.B)]
-    assert_equals(RES, dt.Frame([0.75, 57344.0, 3202.2, None, 0.0]))
+    assert_equals(RES, dt.Frame([0.75, 57344.0, 3203.2, None, 0.0]))
+
+
+def test_ldexp_wrong_types():
+    DT = dt.Frame(A=[True, False], B=[3.4, 5.6], C=[2, 1])
+    with pytest.raises(TypeError):
+        assert DT[:, dt.math.ldexp(f.A, f.C)]
+    with pytest.raises(TypeError):
+        assert DT[:, dt.math.ldexp(f.A, f.B)]
+    with pytest.raises(TypeError):
+        assert DT[:, dt.math.ldexp(f.B, f.A)]
+    with pytest.raises(TypeError):
+        assert DT[:, dt.math.ldexp(f.C, f.A)]
+    with pytest.raises(TypeError):
+        assert DT[:, dt.math.ldexp(f.C, f.B)]
+
 
 
 
@@ -405,16 +420,146 @@ def test_ldexp():
 # math.rint()
 #-------------------------------------------------------------------------------
 
+def test_rint():
+    assert dt.math.rint(1) == 1.0
+    assert isinstance(dt.math.rint(1), float)
+    assert dt.math.rint(True) == 1.0
+    assert dt.math.rint(3.5) == 4.0
+    assert dt.math.rint(3.49) == 3.0
+    assert dt.math.rint(3.51) == 4.0
+    assert dt.math.rint(1e100) == 1e100
+    assert dt.math.rint(None) is None
+    assert dt.math.rint(math.nan) is None
+    with pytest.raises(TypeError):
+        assert dt.math.rint("---")
+
+
+@pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float)
+def test_rint_srcs(src):
+    DT = dt.Frame(src)
+    RES = dt.math.rint(DT)
+    assert_equals(RES, dt.Frame([None if x is None else
+                                 x if x == math.inf or x == -math.inf else
+                                 round(x)
+                                 for x in src],
+                                stype=dt.float64))
+
+
+def test_rint_wrong_type():
+    msg = "Function `rint` cannot be applied to a column of type `str32`"
+    with pytest.raises(TypeError, match=msg):
+        DT = dt.Frame(['foo'])
+        assert DT[:, dt.math.rint(f.C0)]
+
+
+def test_rint_random(numpy):
+    arr = numpy.random.randn(100)
+    RES_DT = dt.math.rint(dt.Frame(arr))
+    RES_NP = numpy.rint(arr)
+    assert_equals(RES_DT, dt.Frame(RES_NP))
+
+
+
 
 #-------------------------------------------------------------------------------
 # math.sign()
 #-------------------------------------------------------------------------------
 
+def test_sign():
+    assert isinstance(dt.math.sign(1), float)
+    assert dt.math.sign(1) == 1.0
+    assert dt.math.sign(-1) == -1.0
+    assert dt.math.sign(0) == 0.0
+    assert dt.math.sign(+0.0) == 0.0
+    assert dt.math.sign(-0.0) == 0.0
+    assert dt.math.sign(-math.inf) == -1.0
+    assert dt.math.sign(+math.inf) == 1.0
+    assert dt.math.sign(math.nan) is None
+    assert dt.math.sign(None) is None
+    assert dt.math.sign(False) == 0.0
+    assert dt.math.sign(True) == 1.0
+
+
+def test_sign_frame():
+    DT = dt.Frame(A=[3.3, -5.4, 0.1, 0.0, None],
+                  B=[12, 5, -111, None, 0])
+    RES = DT[:, dt.math.sign(f[:])]
+    assert_equals(RES, dt.Frame(A=[1.0, -1.0, 1.0, 0.0, None],
+                                B=[1.0, 1.0, -1.0, None, 0.0]))
+
+
+
+
 #-------------------------------------------------------------------------------
 # math.signbit()
 #-------------------------------------------------------------------------------
+
+def test_signbit():
+    assert isinstance(dt.math.signbit(1), bool)
+    assert dt.math.signbit(1) is False
+    assert dt.math.signbit(-1) is True
+    assert dt.math.signbit(0) is False
+    assert dt.math.signbit(+0.0) is False
+    assert dt.math.signbit(-0.0) is True
+    assert dt.math.signbit(-math.inf) is True
+    assert dt.math.signbit(+math.inf) is False
+    assert dt.math.signbit(math.nan) is None
+    assert dt.math.signbit(None) is None
+    assert dt.math.signbit(False) is False
+    assert dt.math.signbit(True) is False
+
+
+def test_signbit_frame():
+    DT = dt.Frame(A=[3.3, -5.4, 0.1, 0.0, None],
+                  B=[12, 5, -111, None, 0])
+    RES = DT[:, dt.math.signbit(f[:])]
+    assert_equals(RES, dt.Frame(A=[False, True, False, False, None],
+                                B=[False, False, True, None, False]))
+
+
+
 
 #-------------------------------------------------------------------------------
 # math.trunc()
 #-------------------------------------------------------------------------------
 
+def test_trunc():
+    assert dt.math.trunc(1) == 1.0
+    assert isinstance(dt.math.trunc(1), float)
+    assert dt.math.trunc(True) == 1.0
+    assert dt.math.trunc(3.5) == 3.0
+    assert dt.math.trunc(3.49) == 3.0
+    assert dt.math.trunc(3.51) == 3.0
+    assert dt.math.trunc(-3.51) == -3.0
+    assert dt.math.trunc(-3.50) == -3.0
+    assert dt.math.trunc(-3.49) == -3.0
+    assert dt.math.trunc(1e100) == 1e100
+    assert dt.math.trunc(None) is None
+    assert dt.math.trunc(math.nan) is None
+    with pytest.raises(TypeError):
+        assert dt.math.trunc("+++")
+
+
+@pytest.mark.parametrize("src", srcs_bool + srcs_int + srcs_float)
+def test_trunc_srcs(src):
+    DT = dt.Frame(src)
+    RES = dt.math.trunc(DT)
+    assert_equals(RES, dt.Frame([None if x is None else
+                                 x if x == math.inf or x == -math.inf else
+                                 math.trunc(x)
+                                 for x in src],
+                                stype=dt.float64))
+
+
+def test_trunc_wrong_type():
+    msg = "Function `trunc` cannot be applied to a column of type `str32`"
+    with pytest.raises(TypeError, match=msg):
+        DT = dt.Frame(['foo'])
+        assert DT[:, dt.math.trunc(f.C0)]
+
+
+def test_trunc_random(numpy):
+    arr = numpy.random.randn(100)
+    RES_DT = dt.math.trunc(dt.Frame(arr))
+    RES_NP = numpy.trunc(arr)
+    assert_equals(RES_DT, dt.Frame(RES_NP))

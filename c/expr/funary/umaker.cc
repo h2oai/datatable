@@ -130,35 +130,36 @@ Column unaryop(Op opcode, Column&& col) {
 
 py::oobj unaryop(Op opcode, std::nullptr_t) {
   const auto& maker = get_umaker(opcode, SType::VOID);
-  Column arg = ConstNa_ColumnImpl::make_na_column(1);
+  Column arg = Const_ColumnImpl::make_na_column(1);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 
 py::oobj unaryop(Op opcode, bool value) {
   const auto& maker = get_umaker(opcode, SType::BOOL);
-  Column arg = ConstNa_ColumnImpl::make_bool_column(1, value);
+  Column arg = Const_ColumnImpl::make_bool_column(1, value);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 
 py::oobj unaryop(Op opcode, int64_t value) {
   const auto& maker = get_umaker(opcode, SType::INT64);
-  Column arg = ConstNa_ColumnImpl::make_int_column(1, value, SType::INT64);
+  Column arg = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 
 py::oobj unaryop(Op opcode, double value) {
   const auto& maker = get_umaker(opcode, SType::FLOAT64);
-  Column arg = ConstNa_ColumnImpl::make_float_column(1, value);
+  Column arg = std::isnan(value)? Const_ColumnImpl::make_na_column(1)
+                                : Const_ColumnImpl::make_float_column(1, value);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 
 py::oobj unaryop(Op opcode, CString value) {
   const auto& maker = get_umaker(opcode, SType::STR32);
-  Column arg = ConstNa_ColumnImpl::make_string_column(1, value);
+  Column arg = Const_ColumnImpl::make_string_column(1, value);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
