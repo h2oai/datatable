@@ -51,15 +51,13 @@ Workframe Head_Func_Colset::evaluate_n(const vecExpr& args, EvalContext& ctx) co
 
 
 Workframe Head_Func_Colset::_extend(Workframe&& lhs, Workframe&& rhs) const {
-  Workframe outputs(lhs.get_context());
-  outputs.cbind(std::move(lhs));
-  outputs.cbind(std::move(rhs));
-  return outputs;
+  lhs.cbind(std::move(rhs));
+  return std::move(lhs);
 }
 
 
 Workframe Head_Func_Colset::_remove(Workframe&& lhs, Workframe&& rhs) const {
-  (void) rhs;
+  lhs.remove(rhs);
   return std::move(lhs);
 }
 
