@@ -77,7 +77,9 @@ Kind Head_Frame::get_expr_kind() const {
 // more advanced types of joins, an explicit `join()` clause has to
 // be used.
 //
-Workframe Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Frame::evaluate_n(
+    const vecExpr& args, EvalContext& ctx, bool) const
+{
   (void) args;
   xassert(args.size() == 0);
 
@@ -108,9 +110,9 @@ Workframe Head_Frame::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
 // DT[<i>, X] is thus equivalent to X[DT[:, <i>], :].
 //
 Workframe Head_Frame::evaluate_j(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx, bool allow_new) const
 {
-  return evaluate_n(args, ctx);
+  return evaluate_n(args, ctx, allow_new);
 }
 
 
@@ -129,7 +131,7 @@ Workframe Head_Frame::evaluate_r(
   if (indices.size() == 0 && dt_->nrows() == 0 && dt_->ncols() == 0) {
     return Workframe(ctx);
   }
-  return evaluate_n(args, ctx);
+  return evaluate_n(args, ctx, false);
 }
 
 

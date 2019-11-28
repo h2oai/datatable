@@ -57,8 +57,8 @@ ColumnImpl* Latent_ColumnImpl::clone() const {
   return new Latent_ColumnImpl(column_);
 }
 
-void Latent_ColumnImpl::materialize(Column&) {
-  vivify();
+void Latent_ColumnImpl::materialize(Column&, bool to_memory) {
+  vivify(to_memory);
 }
 
 
@@ -91,7 +91,7 @@ bool Latent_ColumnImpl::get_element(size_t i, py::robj* out) const { return vivi
 // Thus, a better approach is needed: some mechanism to inform the
 // caller that this column must be "prepared" first.
 
-ColumnImpl* Latent_ColumnImpl::vivify() const {
+ColumnImpl* Latent_ColumnImpl::vivify(bool to_memory) const {
   xassert(num_threads_in_team() == 0);
   // Note: we're using placement-materialize to overwrite `this` with
   // the materialized `column` object. Effectively, the current object
@@ -99,7 +99,7 @@ ColumnImpl* Latent_ColumnImpl::vivify() const {
   // This will work, provided that `sizeof(*this)` is >= the size
   // of the class of the materialized column.
   auto ptr = const_cast<void*>(static_cast<const void*>(this));
-  column_.materialize();
+  column_.materialize(to_memory);
   ColumnImpl* new_pcol = std::move(column_).release();
   SType stype = new_pcol->stype();
 

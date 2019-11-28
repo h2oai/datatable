@@ -24,38 +24,38 @@ namespace py { class buffer; }
 //==============================================================================
 
 /**
- * Buffer class represents a contiguous chunk of memory. This memory
- * chunk may be shared across multiple Buffer instances: this allows
- * Buffer objects to be copied with negligible overhead.
- *
- * The class implements Copy-on-Write semantics: if a user wants to
- * write into the memory buffer contained in a Buffer object, and
- * that memory buffer is currently shared with other Buffer instances,
- * then the class will first replace its internal impl with a
- * writable copy of the memory buffer.
- *
- * The class may also be marked as "containing PyObjects". In this
- * case the contents of the buffer will receive special treatment:
- *   - The length of the data buffer must be a multiple of
- *     sizeof(PyObject*).
- *   - Each element in the data buffer must be a valid PyObject*
- *     pointer at all times: this is why `set_contains_pyobjects()`
- *     has a boolean flag whether the data needs to be initialized
- *     to contain `Py_None`s, or whether the buffer already contains
- *      valid `PyObject*`s.
- *   - When such array is deallocated, all its elements are DECREFed.
- *   - When the array is copied for the purpose of CoW semantics, the
- *     elements in the copied array are INCREFed.
- *   - When the array is resized upwards, the newly added elements
- *     are initialized to `Py_None`s.
- *   - When the array is resized downwards, the elements that
- *     disappear will be DECREFed.
- *   - get_element() returns a borrowed reference to the requested
- *     element.
- *   - set_element() takes a new reference and stores it into the
- *     array, DECREFing the element being overwritten.
- *
- */
+  * Buffer class represents a contiguous chunk of memory. This memory
+  * chunk may be shared across multiple Buffer instances: this allows
+  * Buffer objects to be copied with negligible overhead.
+  *
+  * The class implements Copy-on-Write semantics: if a user wants to
+  * write into the memory buffer contained in a Buffer object, and
+  * that memory buffer is currently shared with other Buffer instances,
+  * then the class will first replace its internal impl with a
+  * writable copy of the memory buffer.
+  *
+  * The class may also be marked as "containing PyObjects". In this
+  * case the contents of the buffer will receive special treatment:
+  *   - The length of the data buffer must be a multiple of
+  *     sizeof(PyObject*).
+  *   - Each element in the data buffer must be a valid PyObject*
+  *     pointer at all times: this is why `set_contains_pyobjects()`
+  *     has a boolean flag whether the data needs to be initialized
+  *     to contain `Py_None`s, or whether the buffer already contains
+  *      valid `PyObject*`s.
+  *   - When such array is deallocated, all its elements are DECREFed.
+  *   - When the array is copied for the purpose of CoW semantics, the
+  *     elements in the copied array are INCREFed.
+  *   - When the array is resized upwards, the newly added elements
+  *     are initialized to `Py_None`s.
+  *   - When the array is resized downwards, the elements that
+  *     disappear will be DECREFed.
+  *   - get_element() returns a borrowed reference to the requested
+  *     element.
+  *   - set_element() takes a new reference and stores it into the
+  *     array, DECREFing the element being overwritten.
+  *
+  */
 class Buffer
 {
   private:
@@ -80,6 +80,10 @@ class Buffer
     //   Allocate memory region of size `n` in memory (on the heap). The memory
     //   will be freed when the Buffer object goes out of scope (assuming
     //   no shallow copies were created).
+    //
+    // Buffer::copy(ptr, n)
+    //   Allocate a memory region of size `n` in memory, and copy the contents
+    //   of pointer `ptr` there.
     //
     // Buffer::acquire(ptr, n)
     //   Create Buffer from an existing pointer `ptr` to a memory buffer
@@ -118,6 +122,7 @@ class Buffer
     //
     static Buffer mem(size_t n);
     static Buffer mem(int64_t n);
+    static Buffer copy(const void* ptr, size_t n);
     static Buffer acquire(void* ptr, size_t n);
     static Buffer external(void* ptr, size_t n);
     static Buffer external(const void* ptr, size_t n);
@@ -224,8 +229,13 @@ class Buffer
     //   (default is true) then the implementation *may* replace the current
     //   data with garbage bytes or it may leave them intact.
     //
+    // to_memory()
+    //   Force a memory-mapped buffer into the main memory; noop for other
+    //   buffer types.
+    //
     Buffer& set_pyobjects(bool clear_data);
     Buffer& resize(size_t newsize, bool keep_data = true);
+    void to_memory();
 
     // Utility functions
     //
@@ -252,12 +262,16 @@ class Buffer
 // Template definitions
 //------------------------------------------------------------------------------
 
-inline void buffer_oob_check(size_t i, size_t size, size_t elemsize) {
-  if ((i + 1) * elemsize > size) {
-    throw ValueError() << "Index " << i << " is out of bounds for a buffer "
-      "of size " << size << " bytes when each element's size is " << elemsize;
+#if DTDEBUG
+  inline void buffer_oob_check(size_t i, size_t size, size_t elemsize) {
+    if ((i + 1) * elemsize > size) {
+      throw ValueError() << "Index " << i << " is out of bounds for a buffer "
+        "of size " << size << " bytes when each element's size is " << elemsize;
+    }
   }
-}
+#else
+  inline void buffer_oob_check(size_t, size_t, size_t) {}
+#endif
 
 template <typename T>
 T Buffer::get_element(size_t i) const {
@@ -270,9 +284,8 @@ template <>
 inline void Buffer::set_element(size_t i, PyObject* value) {
   buffer_oob_check(i, size(), sizeof(PyObject*));
   xassert(this->is_pyobjects());
-  PyObject** data = static_cast<PyObject**>(this->wptr());
-  Py_DECREF(data[i]);
-  data[i] = value;
+  auto data = static_cast<PyObject**>(this->wptr());
+  Py_SETREF(data[i], value);
 }
 
 template <typename T>

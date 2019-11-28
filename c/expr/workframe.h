@@ -96,6 +96,7 @@ class Workframe {
     void add_ref_column(size_t iframe, size_t icol);
     void add_placeholder(const std::string& name, size_t iframe);
     void cbind(Workframe&&, bool at_end = true);
+    void remove(const Workframe&);
     void rename(const std::string& name);
 
     size_t ncols() const noexcept;
@@ -126,9 +127,9 @@ class Workframe {
     void sync_grouping_mode(Workframe& other);
     void sync_grouping_mode(Column& col, Grouping gmode);
     Grouping get_grouping_mode() const;
+    void increase_grouping_mode(Grouping g);
 
   private:
-    void increase_grouping_mode(Grouping g);
     void column_increase_grouping_mode(Column&, Grouping from, Grouping to);
 
     friend class EvalContext;

@@ -85,7 +85,9 @@ Kind Head_Literal_Type::get_expr_kind() const {
 }
 
 
-Workframe Head_Literal_Type::evaluate_n(const vecExpr&, EvalContext&) const {
+Workframe Head_Literal_Type::evaluate_n(
+    const vecExpr&, EvalContext&, bool) const
+{
   throw TypeError() << value << " cannot appear in this context";
 }
 

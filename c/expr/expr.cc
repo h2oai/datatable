@@ -208,8 +208,8 @@ Expr::operator bool() const noexcept {
 }
 
 
-Workframe Expr::evaluate_n(EvalContext& ctx) const {
-  return head->evaluate_n(inputs, ctx);
+Workframe Expr::evaluate_n(EvalContext& ctx, bool allow_new) const {
+  return head->evaluate_n(inputs, ctx, allow_new);
 }
 
 

@@ -276,7 +276,7 @@ class Column
   // ColumnImpl manipulation
   //------------------------------------
   public:
-    void materialize();
+    void materialize(bool to_memory = false);
     void rbind(colvec& columns);
     void cast_inplace(SType stype);
     Column cast(SType stype) const;

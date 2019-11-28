@@ -83,6 +83,7 @@ void Workframe::add_ref_column(size_t ifr, size_t icol) {
 
 
 void Workframe::add_placeholder(const std::string& name, size_t ifr) {
+  xassert(ifr != Record::INVALID_FRAME);
   entries_.emplace_back(Column(), std::string(name), ifr, 0);
 }
 
@@ -102,6 +103,43 @@ void Workframe::cbind(Workframe&& other, bool at_end) {
     }
     entries_ = std::move(other.entries_);
   }
+}
+
+
+void Workframe::remove(const Workframe& other) {
+  constexpr uint32_t DELETED_COLUMN = Record::INVALID_FRAME - 1;
+  for (const auto& entry : other.entries_) {
+    if (entry.frame_id == Record::INVALID_FRAME) {
+      throw TypeError() << "Computed columns cannot be used in `.remove()`";
+    }
+    if (entry.column) {  // "Reference" column
+      auto frid = entry.frame_id;
+      auto colid = entry.column_id;
+      for (auto& e : entries_) {
+        if (e.frame_id == frid && e.column_id == colid) {
+          e.frame_id = DELETED_COLUMN;
+          break;
+        }
+      }
+    }
+    else {  // "Placeholder" column
+      const auto& name = entry.name;
+      for (auto& e : entries_) {
+        if (!e.column && e.name == name) {
+          e.frame_id = DELETED_COLUMN;
+          break;
+        }
+      }
+    }
+  }
+  // Clean up deleted columns
+  size_t j = 0;
+  for (size_t i = 0; i < entries_.size(); ++i) {
+    if (entries_[i].frame_id == DELETED_COLUMN) continue;
+    if (i != j) entries_[j] = std::move(entries_[i]);
+    j++;
+  }
+  entries_.resize(j);
 }
 
 
@@ -278,6 +316,7 @@ void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
 
 
 void Workframe::increase_grouping_mode(Grouping gmode) {
+  if (grouping_mode_ == gmode) return;
   for (auto& item : entries_) {
     if (!item.column) continue;  // placeholder column
     column_increase_grouping_mode(item.column, grouping_mode_, gmode);

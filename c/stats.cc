@@ -733,8 +733,8 @@ void NumericStats<T>::compute_moments12() {
         sum += t_sum;
         mean += delta21 * n2 / n;
         M2 += t_M2 + delta21 * delta21 * n1 / n * n2;
-        has_pos_inf += t_has_pos_inf;
-        has_neg_inf += t_has_neg_inf;
+        has_pos_inf |= t_has_pos_inf;
+        has_neg_inf |= t_has_neg_inf;
       }
     });
 

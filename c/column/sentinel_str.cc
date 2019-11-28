@@ -113,6 +113,15 @@ Buffer SentinelStr_ColumnImpl<T>::get_data_buffer(size_t k) const {
 }
 
 
+template <typename T>
+void SentinelStr_ColumnImpl<T>::materialize(Column&, bool to_memory) {
+  if (to_memory) {
+    offbuf_.to_memory();
+    strbuf_.to_memory();
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------

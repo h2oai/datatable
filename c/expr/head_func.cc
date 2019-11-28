@@ -58,9 +58,9 @@ Workframe Head_Func::evaluate_f(EvalContext&, size_t, bool) const {
 // evaluating this expression in "normal" mode.
 //
 Workframe Head_Func::evaluate_j(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx, bool allow_new) const
 {
-  return evaluate_n(args, ctx);
+  return evaluate_n(args, ctx, allow_new);
 }
 
 
@@ -70,13 +70,13 @@ Workframe Head_Func::evaluate_j(
 Workframe Head_Func::evaluate_r(
     const vecExpr& args, EvalContext& ctx, const intvec&) const
 {
-  return evaluate_n(args, ctx);
+  return evaluate_n(args, ctx, false);
 }
 
 
 
 RowIndex Head_Func::evaluate_i(const vecExpr& args, EvalContext& ctx) const {
-  Workframe wf = evaluate_n(args, ctx);
+  Workframe wf = evaluate_n(args, ctx, false);
   if (wf.ncols() != 1) {
     throw TypeError() << "i-expression evaluated into " << wf.ncols()
         << " columns";
@@ -164,19 +164,25 @@ void Head_Func::init() {
   for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce1;
   for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   for (size_t i = ROWFNS_FIRST;  i <= ROWFNS_LAST;  ++i) factory[i] = make_rowfn;
-  factory[static_cast<size_t>(Op::COL)]      = make_col;
-  factory[static_cast<size_t>(Op::CAST)]     = make_cast;
-  factory[static_cast<size_t>(Op::SETPLUS)]  = make_colsetop;
-  factory[static_cast<size_t>(Op::SETMINUS)] = make_colsetop;
-  factory[static_cast<size_t>(Op::COUNT0)]   = make_reduce0;
-  factory[static_cast<size_t>(Op::COV)]      = make_reduce2;
-  factory[static_cast<size_t>(Op::CORR)]     = make_reduce2;
-  factory[static_cast<size_t>(Op::RE_MATCH)] = &Head_Func_Re_Match::make;
-  factory[static_cast<size_t>(Op::LEN)]      = make_unop;
-  // factory[static_cast<size_t>(Op::HYPOT)]    = make_math21;
-  // factory[static_cast<size_t>(Op::ARCTAN2)]  = make_math21;
-  // factory[static_cast<size_t>(Op::POWER)]    = make_math21;
-  // factory[static_cast<size_t>(Op::COPYSIGN)] = make_math21;
+  factory[static_cast<size_t>(Op::COL)]        = make_col;
+  factory[static_cast<size_t>(Op::CAST)]       = make_cast;
+  factory[static_cast<size_t>(Op::SETPLUS)]    = make_colsetop;
+  factory[static_cast<size_t>(Op::SETMINUS)]   = make_colsetop;
+  factory[static_cast<size_t>(Op::SHIFTFN)]    = &Head_Func_Shift::make;
+  factory[static_cast<size_t>(Op::COUNT0)]     = make_reduce0;
+  factory[static_cast<size_t>(Op::COV)]        = make_reduce2;
+  factory[static_cast<size_t>(Op::CORR)]       = make_reduce2;
+  factory[static_cast<size_t>(Op::RE_MATCH)]   = &Head_Func_Re_Match::make;
+  factory[static_cast<size_t>(Op::LEN)]        = make_unop;
+  factory[static_cast<size_t>(Op::ARCTAN2)]    = make_binop;
+  factory[static_cast<size_t>(Op::HYPOT)]      = make_binop;
+  factory[static_cast<size_t>(Op::POWERFN)]    = make_binop;
+  factory[static_cast<size_t>(Op::COPYSIGN)]   = make_binop;
+  factory[static_cast<size_t>(Op::LOGADDEXP)]  = make_binop;
+  factory[static_cast<size_t>(Op::LOGADDEXP2)] = make_binop;
+  factory[static_cast<size_t>(Op::FMOD)]       = make_binop;
+  factory[static_cast<size_t>(Op::LDEXP)]      = make_binop;
+  factory[static_cast<size_t>(Op::ISCLOSE)]    = &Head_Func_IsClose::make;
 }
 
 

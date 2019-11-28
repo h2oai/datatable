@@ -62,7 +62,7 @@ class Head_Func_Column : public Head_Func {
 
   public:
     explicit Head_Func_Column(size_t);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
 };
 
 
@@ -74,7 +74,7 @@ class Head_Func_Cast : public Head_Func {
 
   public:
     explicit Head_Func_Cast(SType);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
 };
 
 
@@ -85,11 +85,7 @@ class Head_Func_Colset : public Head_Func {
 
   public:
     explicit Head_Func_Colset(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-
-  private:
-    Workframe _extend(Workframe&& lhs, Workframe&& rhs) const;
-    Workframe _remove(Workframe&& lhs, Workframe&& rhs) const;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
 };
 
 
@@ -100,7 +96,7 @@ class Head_Func_Unary : public Head_Func {
 
   public:
     explicit Head_Func_Unary(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
 
     Op get_op() const { return op; }
 };
@@ -113,7 +109,7 @@ class Head_Func_Binary : public Head_Func {
 
   public:
     explicit Head_Func_Binary(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
 };
 
 
@@ -124,7 +120,35 @@ class Head_Func_Nary : public Head_Func {
 
   public:
     explicit Head_Func_Nary(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+};
+
+
+
+class Head_Func_Shift : public Head_Func {
+  private:
+    int shift_;
+    int : 32;
+
+  public:
+    static ptrHead make(Op, const py::otuple& params);
+
+    Head_Func_Shift(int shift);
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+};
+
+
+
+class Head_Func_IsClose : public Head_Func {
+  private:
+    double rtol_;
+    double atol_;
+
+  public:
+    static ptrHead make(Op, const py::otuple& params);
+
+    Head_Func_IsClose(double rtol, double atol);
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
 };
 
 

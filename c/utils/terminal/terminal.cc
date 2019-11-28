@@ -70,9 +70,9 @@ Terminal::~Terminal() = default;
   * once during module initialization.
   */
 void Terminal::initialize() {
-  py::robj stdin = py::stdin();
-  py::robj stdout = py::stdout();
-  if (!stdout || !stdin || stdout.is_none() || stdin.is_none()) {
+  py::robj rstdin = py::rstdin();
+  py::robj rstdout = py::rstdout();
+  if (!rstdout || !rstdin || rstdout.is_none() || rstdin.is_none()) {
     enable_keyboard_ = false;
     enable_colors_ = false;
     enable_ecma48_ = false;
@@ -81,7 +81,7 @@ void Terminal::initialize() {
   else {
     allow_unicode_ = false;
     try {
-      std::string encoding = stdout.get_attr("encoding").to_string();
+      std::string encoding = rstdout.get_attr("encoding").to_string();
       if (encoding == "UTF-8" || encoding == "UTF8" ||
           encoding == "utf-8" || encoding == "utf8") {
         allow_unicode_ = true;

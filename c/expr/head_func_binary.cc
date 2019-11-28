@@ -33,7 +33,9 @@ namespace expr {
 Head_Func_Binary::Head_Func_Binary(Op op_) : op(op_) {}
 
 
-Workframe Head_Func_Binary::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func_Binary::evaluate_n(
+    const vecExpr& args, EvalContext& ctx, bool) const
+{
   xassert(args.size() == 2);
   Workframe lhs = args[0].evaluate_n(ctx);
   Workframe rhs = args[1].evaluate_n(ctx);

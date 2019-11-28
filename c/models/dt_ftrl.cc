@@ -614,7 +614,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           U value;
           bool isvalid = target_col0_train.get_element(ii, &value);
 
-          if (isvalid && std::isfinite(value)) {
+          if (isvalid && _isfinite(value)) {
             hash_row(x, hashers, ii);
             for (size_t k = 0; k < label_ids_train.size(); ++k) {
               T p = linkfn(predict_row(
@@ -650,7 +650,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
             V value;
             bool isvalid = target_col0_val.get_element(i, &value);
 
-            if (isvalid && std::isfinite(value)) {
+            if (isvalid && _isfinite(value)) {
               hash_row(x, hashers_val, i);
               for (size_t k = 0; k < label_ids_val.size(); ++k) {
                 T p = linkfn(predict_row(

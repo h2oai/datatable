@@ -49,6 +49,11 @@ static void init_numpy();
 // Set from datatablemodule.cc
 PyObject* Expr_Type = nullptr;
 
+// `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
+// a designated initializer, that is not supported by the C++11 standard.
+// Redefine `_Py_static_string_init` here to use a regular initializer.
+#undef _Py_static_string_init
+#define _Py_static_string_init(value) { NULL, value, NULL }
 _Py_IDENTIFIER(stdin);
 _Py_IDENTIFIER(stdout);
 _Py_IDENTIFIER(write);
@@ -877,7 +882,7 @@ oobj False()    { return oobj(Py_False); }
 oobj Ellipsis() { return oobj(Py_Ellipsis); }
 robj rnone()    { return robj(Py_None); }
 
-robj stdin() {
+robj rstdin() {
   return robj(
     #ifndef Py_LIMITED_API
       _PySys_GetObjectId(&PyId_stdin)  // borrowed ref
@@ -887,7 +892,7 @@ robj stdin() {
   );
 }
 
-robj stdout() {
+robj rstdout() {
   return robj(
     #ifndef Py_LIMITED_API
       _PySys_GetObjectId(&PyId_stdout)  // borrowed ref
@@ -898,7 +903,7 @@ robj stdout() {
 }
 
 void write_to_stdout(const std::string& str) {
-  PyObject* py_stdout = stdout().to_borrowed_ref();
+  PyObject* py_stdout = rstdout().to_borrowed_ref();
   oobj writer;
   if (py_stdout && py_stdout != Py_None) {
     writer = oobj::from_new_reference(

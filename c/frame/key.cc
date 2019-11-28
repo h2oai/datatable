@@ -156,7 +156,7 @@ void DataTable::set_key(std::vector<size_t>& col_indices) {
   columns_ = std::move(new_columns);
   reorder_names(col_indices);
 
-  materialize();
+  materialize(false);
 
   nkeys_ = K;
 }

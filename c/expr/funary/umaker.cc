@@ -41,7 +41,11 @@ static const umaker_ptr& get_umaker(Op opcode, SType stype) {
   size_t id = ((static_cast<size_t>(opcode) - UNOP_FIRST) << 8) +
               static_cast<size_t>(stype);
   if (umakers_library.count(id) == 0) {
-    umakers_library[id] = resolve_op(opcode, stype);
+    // Note: these operations must be separate, otherwise if `resolve_op`
+    //       throws an exception, there could be an empty entry in the
+    //       umakers_library map, which later will lead to a seg.fault
+    auto res = resolve_op(opcode, stype);
+    umakers_library[id] = std::move(res);
   }
   return umakers_library[id];
 }
@@ -130,35 +134,36 @@ Column unaryop(Op opcode, Column&& col) {
 
 py::oobj unaryop(Op opcode, std::nullptr_t) {
   const auto& maker = get_umaker(opcode, SType::VOID);
-  Column arg = ConstNa_ColumnImpl::make_na_column(1);
+  Column arg = Const_ColumnImpl::make_na_column(1);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 
 py::oobj unaryop(Op opcode, bool value) {
   const auto& maker = get_umaker(opcode, SType::BOOL);
-  Column arg = ConstNa_ColumnImpl::make_bool_column(1, value);
+  Column arg = Const_ColumnImpl::make_bool_column(1, value);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 
 py::oobj unaryop(Op opcode, int64_t value) {
   const auto& maker = get_umaker(opcode, SType::INT64);
-  Column arg = ConstNa_ColumnImpl::make_int_column(1, value, SType::INT64);
+  Column arg = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 
 py::oobj unaryop(Op opcode, double value) {
   const auto& maker = get_umaker(opcode, SType::FLOAT64);
-  Column arg = ConstNa_ColumnImpl::make_float_column(1, value);
+  Column arg = std::isnan(value)? Const_ColumnImpl::make_na_column(1)
+                                : Const_ColumnImpl::make_float_column(1, value);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 
 
 py::oobj unaryop(Op opcode, CString value) {
   const auto& maker = get_umaker(opcode, SType::STR32);
-  Column arg = ConstNa_ColumnImpl::make_string_column(1, value);
+  Column arg = Const_ColumnImpl::make_string_column(1, value);
   return maker->compute(std::move(arg)).get_element_as_pyobject(0);
 }
 

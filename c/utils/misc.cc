@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include "utils/macros.h"
 #include "utils/misc.h"
 #include <stdint.h>
 
@@ -80,7 +81,13 @@ void set_value(void* ptr, const void* value, size_t sz, size_t count) {
  * most suitable for profiling a piece of code: difference between two
  * consecutive calls to `wallclock()` will give the time elapsed in seconds.
  */
-#if defined(CLOCK_REALTIME) && !defined(DISABLE_CLOCK_REALTIME)
+#if DT_OS_WINDOWS
+  #include <time.h>
+  double wallclock(void) {
+    clock_t tv = clock();
+    return tv == clock_t(-1)? 0 : static_cast<double>(tv) / CLOCKS_PER_SEC;
+  }
+#elif defined(CLOCK_REALTIME) && !defined(DISABLE_CLOCK_REALTIME)
   #include <time.h>
   double wallclock(void) {
     struct timespec tp;

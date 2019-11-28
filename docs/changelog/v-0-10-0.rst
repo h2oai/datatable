@@ -58,6 +58,20 @@ These functions are equivalent to pandas' aggregation functions with parameter
 ``rowany()``) use short-circuit evaluation.
 
 
+Mathematical functions |new|
+----------------------------
+
+.. seealso:: :ref:`math`
+
+New module ``datatable.math`` now has implementations of most mathematical
+functions found in numpy or in standard Python math module. These functions
+work with Frame objects, and can be used in ``DT[i,j,...]`` expressions::
+
+    DT[:, f.X * dt.math.cos(f.Phi) + f.Y * dt.math.sin(f.Phi)]
+
+There are 48 functions in total.
+
+
 Frame
 -----
 
@@ -150,6 +164,13 @@ Frame
     DT["A"] = int            # Column A in frame DT will become integer
     DT[:, int] = dt.float64  # All integer columns will be converted to float64
 
+- |new| Method ``Frame.materialize()`` gains a new option ``to_memory=False``.
+  If set to True, it will force the Frame's data to be lifted from disk into
+  the main memory (if the frame was opened from disk)::
+
+    DT = dt.fread("data.jay")
+    DT.materialize(to_memory=True)
+
 - |api| The name deduplication algorithm now starts looking for candidate names
   starting from ``name + dt.options.frame.name_auto_index``. For example, if
   you're creating a Frame with column names `["A", "A", "A"]`, then those names
@@ -225,6 +246,9 @@ Frame
 - |fix| Fix creation of a Frame from a numpy array which was obtained from
   another numpy array as a slice with a negative stride (#2163).
 
+- |fix| Keyed columns are now styled distinctly from regular columns when
+  rendering the Frame into a Jupyter notebook (#1636).
+
 
 General
 -------
@@ -252,6 +276,19 @@ General
 
     # Compute correlation of columns A and B, group-wise by ID
     DT[:, corr(f.A, f.B), by(f.ID)]
+
+- |new| Added function :func:`shift` which can be used to generate lags/leads
+  of a column. For example:
+
+    DT[:, {"lag2": shift(f.A, n=2),
+           "lag1": shift(f.A),       # same as shift(f.A, n=1)
+           "lag0": f.A,              # same as shift(f.A, n=0)
+           "lead1": shift(f.A, -1),
+           "lead2": shift(f.A, -2),
+           }]
+
+  This function is group-aware: when used in an expression containing a groupby,
+  it will apply the shift separately within each group.
 
 - |fix| Fixed memory leak when writing a Frame into a CSV file (#2119).
 

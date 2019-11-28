@@ -37,7 +37,9 @@ Kind Head_Literal_Range::get_expr_kind() const {
 
 
 
-Workframe Head_Literal_Range::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Range::evaluate_n(
+    const vecExpr&, EvalContext& ctx, bool) const
+{
   Workframe out(ctx);
   out.add_column(Column(new Range_ColumnImpl(value.start(),
                                              value.stop(),

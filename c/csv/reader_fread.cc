@@ -43,21 +43,22 @@ FreadReader::~FreadReader() {}
 dt::read::FreadTokenizer FreadReader::makeTokenizer(
     dt::read::field64* target, const char* anchor) const
 {
-  return {
-    .ch = nullptr,
-    .target = target,
-    .anchor = anchor,
-    .eof = eof,
-    .NAstrings = na_strings,
-    .whiteChar = whiteChar,
-    .dec = dec,
-    .sep = sep,
-    .quote = quote,
-    .quoteRule = quoteRule,
-    .strip_whitespace = strip_whitespace,
-    .blank_is_na = blank_is_na,
-    .cr_is_newline = cr_is_newline,
-  };
+  dt::read::FreadTokenizer res;
+  res.ch = nullptr;
+  res.target = target;
+  res.anchor = anchor;
+  res.eof = eof;
+  res.NAstrings = na_strings;
+  res.whiteChar = whiteChar;
+  res.dec = dec;
+  res.sep = sep;
+  res.quote = quote;
+  res.quoteRule = quoteRule;
+  res.strip_whitespace = strip_whitespace;
+  res.blank_is_na = blank_is_na;
+  res.cr_is_newline = cr_is_newline;
+
+  return res;
 }
 
 

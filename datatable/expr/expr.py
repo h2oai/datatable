@@ -32,6 +32,7 @@ class OpCodes(enum.Enum):
     CAST = 2
     SETPLUS = 3
     SETMINUS = 4
+    SHIFTFN = 5
 
     # Unary
     UPLUS = 101
@@ -129,20 +130,18 @@ class OpCodes(enum.Enum):
     ISINF = 542
     ISNA = 543
     LDEXP = 544
-    NEXTAFTER = 545
+    MODF = 545
     RINT = 546
     SIGN = 547
     SIGNBIT = 548
-    SPACING = 549
-    TRUNC = 550
+    TRUNC = 549
 
     # Math: misc
-    CLIP = 551
-    DIVMOD = 552
-    FMOD = 553
-    MAXIMUM = 554
-    MINIMUM = 555
-    MODF = 556
+    CLIP = 550
+    DIVMOD = 551
+    FMOD = 552
+    MAXIMUM = 553
+    MINIMUM = 554
 
 
 

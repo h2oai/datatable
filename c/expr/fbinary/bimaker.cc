@@ -45,24 +45,33 @@ static std::unordered_map<size_t, bimaker_ptr> bimakers_library;
 
 bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
   switch (opcode) {
-    case Op::PLUS:     return resolve_op_plus(stype1, stype2);
-    case Op::MINUS:    return resolve_op_minus(stype1, stype2);
-    case Op::MULTIPLY: return resolve_op_multiply(stype1, stype2);
-    case Op::DIVIDE:   return resolve_op_divide(stype1, stype2);
-    case Op::INTDIV:   return resolve_op_intdiv(stype1, stype2);
-    case Op::MODULO:   return resolve_op_modulo(stype1, stype2);
-    case Op::POWEROP:  return resolve_op_power(stype1, stype2);
-    case Op::AND:      return resolve_op_and(stype1, stype2);
-    case Op::OR:       return resolve_op_or(stype1, stype2);
-    case Op::XOR:      return resolve_op_xor(stype1, stype2);
-    case Op::LSHIFT:   return resolve_op_lshift(stype1, stype2);
-    case Op::RSHIFT:   return resolve_op_rshift(stype1, stype2);
-    case Op::EQ:       return resolve_op_eq(stype1, stype2);
-    case Op::NE:       return resolve_op_ne(stype1, stype2);
-    case Op::LT:       return resolve_op_lt(stype1, stype2);
-    case Op::GT:       return resolve_op_gt(stype1, stype2);
-    case Op::LE:       return resolve_op_le(stype1, stype2);
-    case Op::GE:       return resolve_op_ge(stype1, stype2);
+    case Op::PLUS:       return resolve_op_plus(stype1, stype2);
+    case Op::MINUS:      return resolve_op_minus(stype1, stype2);
+    case Op::MULTIPLY:   return resolve_op_multiply(stype1, stype2);
+    case Op::DIVIDE:     return resolve_op_divide(stype1, stype2);
+    case Op::INTDIV:     return resolve_op_intdiv(stype1, stype2);
+    case Op::MODULO:     return resolve_op_modulo(stype1, stype2);
+    case Op::POWEROP:    return resolve_op_power(stype1, stype2);
+    case Op::AND:        return resolve_op_and(stype1, stype2);
+    case Op::OR:         return resolve_op_or(stype1, stype2);
+    case Op::XOR:        return resolve_op_xor(stype1, stype2);
+    case Op::LSHIFT:     return resolve_op_lshift(stype1, stype2);
+    case Op::RSHIFT:     return resolve_op_rshift(stype1, stype2);
+    case Op::EQ:         return resolve_op_eq(stype1, stype2);
+    case Op::NE:         return resolve_op_ne(stype1, stype2);
+    case Op::LT:         return resolve_op_lt(stype1, stype2);
+    case Op::GT:         return resolve_op_gt(stype1, stype2);
+    case Op::LE:         return resolve_op_le(stype1, stype2);
+    case Op::GE:         return resolve_op_ge(stype1, stype2);
+
+    case Op::ARCTAN2:    return resolve_fn_atan2(stype1, stype2);
+    case Op::HYPOT:      return resolve_fn_hypot(stype1, stype2);
+    case Op::POWERFN:    return resolve_fn_pow(stype1, stype2);
+    case Op::COPYSIGN:   return resolve_fn_copysign(stype1, stype2);
+    case Op::LOGADDEXP:  return resolve_fn_logaddexp(stype1, stype2);
+    case Op::FMOD:       return resolve_fn_fmod(stype1, stype2);
+    case Op::LDEXP:      return resolve_fn_ldexp(stype1, stype2);
+
     default: throw RuntimeError() << "Unknown binary op " << int(opcode);
   }
 }
@@ -77,13 +86,15 @@ bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
 Column binaryop(Op opcode, Column&& col1, Column&& col2)
 {
   xassert(col1.nrows() == col2.nrows());
-  xassert(static_cast<size_t>(opcode) >= BINOP_FIRST &&
-          static_cast<size_t>(opcode) <= BINOP_LAST);
 
   // Find the maker function
   auto id = make_id(opcode, col1.stype(), col2.stype());
   if (bimakers_library.count(id) == 0) {
-    bimakers_library[id] = resolve_op(opcode, col1.stype(), col2.stype());
+    // Note: these operations must be separate, otherwise if `resolve_op`
+    //       throws an exception, there could be an empty entry in the
+    //       bimakers_library map, which later will lead to a seg.fault
+    auto res = resolve_op(opcode, col1.stype(), col2.stype());
+    bimakers_library[id] = std::move(res);
   }
   const bimaker_ptr& maker = bimakers_library[id];
   xassert(maker);

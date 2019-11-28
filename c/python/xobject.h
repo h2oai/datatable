@@ -54,171 +54,55 @@ class XTypeMaker {
     static struct IterTag {} iter_tag;
     static struct NextTag {} next_tag;
 
-    XTypeMaker(PyTypeObject* t, size_t objsize) : type(t) {
-      std::memset(type, 0, sizeof(PyTypeObject));
-      Py_INCREF(type);
-      type->tp_basicsize = static_cast<Py_ssize_t>(objsize);
-      type->tp_itemsize = 0;
-      type->tp_flags = Py_TPFLAGS_DEFAULT;
-      type->tp_alloc = &PyType_GenericAlloc;
-      type->tp_new   = &PyType_GenericNew;
-    }
-
-    void attach_to_module(PyObject* module) {
-      xassert(type->tp_dealloc);
-      xassert(type->tp_init);
-      xassert(type->tp_name);
-
-      if (get_defs.size()) {
-        type->tp_getset = finalize_getsets();
-      }
-      if (meth_defs.size()) {
-        type->tp_methods = finalize_methods();
-      }
-
-      int r = PyType_Ready(type);
-      if (r < 0) throw PyError();
-
-      if (module) {
-        const char* dot = std::strrchr(type->tp_name, '.');
-        const char* name = dot? dot + 1 : type->tp_name;
-        r = PyModule_AddObject(module, name, reinterpret_cast<PyObject*>(type));
-        if (r < 0) throw PyError();
-      }
-    }
-
-    void set_class_name(const char* name) {
-      xassert(meth_defs.size() == 0);
-      xassert(type->tp_init == nullptr);
-      type->tp_name = name;
-    }
-
-    void set_class_doc(const char* doc) {
-      type->tp_doc = doc;
-    }
-
-    void set_base_class(PyTypeObject* base_type) {
-      type->tp_base = base_type;
-    }
-
-    void set_subclassable(bool flag = true) {
-      if (flag) {
-        type->tp_flags |= Py_TPFLAGS_BASETYPE;
-      } else {
-        type->tp_flags &= ~Py_TPFLAGS_BASETYPE;
-      }
-    }
+    XTypeMaker(PyTypeObject* t, size_t objsize);
+    void attach_to_module(PyObject* module);
+    void set_class_name(const char* name);
+    void set_class_doc(const char* doc);
+    void set_base_class(PyTypeObject* base_type);
+    void set_subclassable(bool flag = true);
 
     // initproc = int(*)(PyObject*, PyObject*, PyObject*)
-    void add(initproc _init, PKArgs& args, ConstructorTag) {
-      args.set_class_name(type->tp_name);
-      type->tp_init = _init;
-    }
+    void add(initproc _init, PKArgs& args, ConstructorTag);
 
     // destructor = void(*)(PyObject*)
-    void add(destructor _dealloc, DestructorTag) {
-      type->tp_dealloc = _dealloc;
-    }
+    void add(destructor _dealloc, DestructorTag);
 
     // getter = PyObject*(*)(PyObject*, void*)
     // setter = int(*)(PyObject*, PyObject*, void*)
-    void add(getter getfunc, setter setfunc, GSArgs& args, GetSetTag) {
-      get_defs.push_back(PyGetSetDef {
-        const_cast<char*>(args.name),
-        getfunc, setfunc,
-        const_cast<char*>(args.doc),
-        nullptr  // closure
-      });
-    }
+    void add(getter getfunc, setter setfunc, GSArgs& args, GetSetTag);
 
     // PyCFunctionWithKeywords = PyObject*(*)(PyObject*, PyObject*, PyObject*)
-    void add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag) {
-      args.set_class_name(type->tp_name);
-      meth_defs.push_back(PyMethodDef {
-        args.get_short_name(),
-        reinterpret_cast<PyCFunction>(meth),
-        METH_VARARGS | METH_KEYWORDS,
-        args.get_docstring()
-      });
-    }
+    void add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag);
 
     // unaryfunc = PyObject*(*)(PyObject*)
-    void add(unaryfunc meth, const char* name, Method0Tag) {
-      meth_defs.push_back(PyMethodDef {
-        name, reinterpret_cast<PyCFunction>(meth),
-        METH_NOARGS, nullptr
-      });
-    }
+    void add(unaryfunc meth, const char* name, Method0Tag);
 
     // reprfunc = PyObject*(*)(PyObject*)
-    void add(reprfunc _repr, ReprTag) {
-      type->tp_repr = _repr;
-    }
+    void add(reprfunc _repr, ReprTag);
 
     // reprfunc = PyObject*(*)(PyObject*)
-    void add(reprfunc _str, StrTag) {
-      type->tp_str = _str;
-    }
+    void add(reprfunc _str, StrTag);
 
     // binaryfunc = PyObject*(*)(PyObject*, PyObject*)
-    void add(binaryfunc _getitem, GetitemTag) {
-      init_tp_as_mapping();
-      type->tp_as_mapping->mp_subscript = _getitem;
-    }
+    void add(binaryfunc _getitem, GetitemTag);
 
     // objobjargproc = int(*)(PyObject*, PyObject*, PyObject*)
-    void add(objobjargproc _setitem, SetitemTag) {
-      init_tp_as_mapping();
-      type->tp_as_mapping->mp_ass_subscript = _setitem;
-    }
+    void add(objobjargproc _setitem, SetitemTag);
 
     // getbufferproc = int(*)(PyObject*, Py_buffer*, int)
     // releasebufferproc = void(*)(PyObject*, Py_buffer*)
-    void add(getbufferproc _get, releasebufferproc _del, BuffersTag) {
-      xassert(type->tp_as_buffer == nullptr);
-      PyBufferProcs* bufs = new PyBufferProcs();
-      bufs->bf_getbuffer = _get;
-      bufs->bf_releasebuffer = _del;
-      type->tp_as_buffer = bufs;
-    }
+    void add(getbufferproc _get, releasebufferproc _del, BuffersTag);
 
     // getiterfunc = PyObject*(*)(PyObject*)
-    void add(getiterfunc _iter, IterTag) {
-      type->tp_iter = _iter;
-    }
+    void add(getiterfunc _iter, IterTag);
 
     // iternextfunc = PyObject*(*)(PyObject*)
-    void add(iternextfunc _next, NextTag) {
-      if (!type->tp_iter) {
-        type->tp_iter = PyObject_SelfIter;
-      }
-      type->tp_iternext = _next;
-    }
+    void add(iternextfunc _next, NextTag);
 
   private:
-    PyGetSetDef* finalize_getsets() {
-      size_t n = get_defs.size();
-      PyGetSetDef* res = new PyGetSetDef[n + 1];
-      std::memcpy(res, get_defs.data(), n * sizeof(PyGetSetDef));
-      std::memset(res + n, 0, sizeof(PyGetSetDef));
-      return res;
-    }
-
-    PyMethodDef* finalize_methods() {
-      size_t n = meth_defs.size();
-      PyMethodDef* res = new PyMethodDef[n + 1];
-      std::memcpy(res, meth_defs.data(), n * sizeof(PyMethodDef));
-      std::memset(res + n, 0, sizeof(PyMethodDef));
-      return res;
-    }
-
-    void init_tp_as_mapping() {
-      if (type->tp_as_mapping) return;
-      type->tp_as_mapping = new PyMappingMethods;
-      type->tp_as_mapping->mp_length = nullptr;
-      type->tp_as_mapping->mp_subscript = nullptr;
-      type->tp_as_mapping->mp_ass_subscript = nullptr;
-    }
+    PyGetSetDef* finalize_getsets();
+    PyMethodDef* finalize_methods();
+    void init_tp_as_mapping();
 
 };
 
@@ -484,8 +368,10 @@ int _call_setter(void(T::*fn)(const Arg&), Arg& ARG,
 // Helper macros
 //------------------------------------------------------------------------------
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-template"
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wunused-template"
+#endif
 
 template <typename T, typename R, typename... Args>
 static T _class_of_impl(R(T::*)(Args...));
@@ -495,8 +381,9 @@ static T _class_of_impl(R(T::*)(Args...) const);
 
 #define CLASS_OF(METH) decltype(_class_of_impl(METH))
 
-#pragma clang diagnostic pop
-
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#endif
 
 
 #define CONSTRUCTOR(METH, ARGS)                                                \

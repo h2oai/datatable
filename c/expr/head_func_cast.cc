@@ -31,7 +31,9 @@ namespace expr {
 Head_Func_Cast::Head_Func_Cast(SType s) : stype(s) {}
 
 
-Workframe Head_Func_Cast::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func_Cast::evaluate_n(
+    const vecExpr& args, EvalContext& ctx, bool) const
+{
   xassert(args.size() == 1);
   Workframe outputs = args[0].evaluate_n(ctx);
   size_t n = outputs.ncols();
