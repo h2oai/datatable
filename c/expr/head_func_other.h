@@ -40,7 +40,7 @@ class Head_Func_Re_Match : public Head_Func {
     static ptrHead make(Op, const py::otuple& params);
 
     Head_Func_Re_Match(py::robj, py::robj);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
 };
 
 

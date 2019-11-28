@@ -106,7 +106,8 @@ class Head {
     virtual ~Head();
 
     virtual Workframe evaluate_n(const vecExpr& args,
-                                 EvalContext& ctx) const = 0;
+                                 EvalContext& ctx,
+                                 bool allow_new) const = 0;
 
     virtual Workframe evaluate_j(const vecExpr& args,
                                  EvalContext& ctx,

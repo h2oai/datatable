@@ -38,7 +38,9 @@ bool Head_Literal_Bool::get_value() const {
 
 
 
-Workframe Head_Literal_Bool::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Bool::evaluate_n(
+    const vecExpr&, EvalContext& ctx, bool) const
+{
   return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
 }
 
@@ -50,9 +52,9 @@ Workframe Head_Literal_Bool::evaluate_n(const vecExpr&, EvalContext& ctx) const 
 //   DT[:, j] = True
 //
 Workframe Head_Literal_Bool::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const intvec&) const
+    const vecExpr&, EvalContext& ctx, const intvec&) const
 {
-  return evaluate_n(args, ctx);
+  return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
 }
 
 

@@ -182,9 +182,8 @@ def test_columnset_sum(DT):
     assert_equals(DT[:, f[int].extend(f[float])], DT[:, [int, float]])
     assert_equals(DT[:, f[:3].extend(f[-3:])], DT[:, [0, 1, 2, -3, -2, -1]])
     assert_equals(DT[:, f.A.extend(f.B)], DT[:, ['A', 'B']])
-    # FIXME:
-    # assert_equals(DT[:, f[:].extend({"extra": f.A + f.C})],
-    #               dt.cbind(DT, DT[:, {"extra": f.A + f.C}]))
+    assert_equals(DT[:, f[:].extend({"extra": f.A + f.C})],
+                  dt.cbind(DT, DT[:, {"extra": f.A + f.C}]))
 
 
 def test_columnset_diff(DT):
@@ -194,14 +193,4 @@ def test_columnset_diff(DT):
     assert_equals(DT[:, f[:].remove(f.Z)], DT)
     assert_equals(DT[:, f[:].remove([f.Z, f.Y])], DT)
     assert_equals(DT[:, f[:].remove(f[100:])], DT)
-
-
-def test_columnset_diff2(DT):
-    # DT has column names {ABCDEFG}.
-    # Check that removing column ranges that are partially or completely outside
-    # of column names domain work as expected.
     assert_equals(DT[:, f[:].remove(f["F":])], DT[:, :"E"])
-    assert_equals(DT[:, f[:].remove(f["F":"Z"])], DT[:, :"E"])
-    assert_equals(DT[:, f[:].remove(f["Q":"Z"])], DT)
-    assert_equals(DT[:, f[:].remove(f["Q":])], DT)
-    assert_equals(DT[:, f[:].remove(f[:"Q"])], DT)

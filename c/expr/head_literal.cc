@@ -41,7 +41,7 @@ Workframe Head_Literal::_wrap_column(EvalContext& ctx, Column&& col) {
 Workframe Head_Literal::evaluate_r(const vecExpr& args, EvalContext& ctx,
                                    const intvec&) const
 {
-  return evaluate_n(args, ctx);
+  return evaluate_n(args, ctx, false);
 }
 
 

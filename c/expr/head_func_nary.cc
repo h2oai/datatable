@@ -32,7 +32,8 @@ namespace expr {
 Head_Func_Nary::Head_Func_Nary(Op op) : op_(op) {}
 
 
-Workframe Head_Func_Nary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
+Workframe Head_Func_Nary::evaluate_n(
+    const vecExpr& args, EvalContext& ctx, bool) const
 {
   Workframe inputs(ctx);
   for (const auto& arg : args) {

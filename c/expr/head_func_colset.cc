@@ -33,32 +33,24 @@ Head_Func_Colset::Head_Func_Colset(Op op_) : op(op_) {
 }
 
 
-Workframe Head_Func_Colset::evaluate_n(const vecExpr& args, EvalContext& ctx) const {
+Workframe Head_Func_Colset::evaluate_n(
+    const vecExpr& args, EvalContext& ctx, bool) const
+{
   xassert(args.size() == 2);
-  Workframe lhs = args[0].evaluate_n(ctx);
-  Workframe rhs = args[1].evaluate_n(ctx);
-  return (op == Op::SETPLUS)? _extend(std::move(lhs), std::move(rhs))
-                            : _remove(std::move(lhs), std::move(rhs));
-  // for (auto& out : outputs.get_items()) {
-  //   const auto& info = unary_library.get_infox(op, out.column.stype());
-  //   if (info.cast_stype != SType::VOID) {
-  //     out.column.cast_inplace(info.cast_stype);
-  //   }
-  //   out.column = info.vcolfn(std::move(out.column));
-  // }
-  // return outputs;
-}
-
-
-Workframe Head_Func_Colset::_extend(Workframe&& lhs, Workframe&& rhs) const {
-  lhs.cbind(std::move(rhs));
-  return std::move(lhs);
-}
-
-
-Workframe Head_Func_Colset::_remove(Workframe&& lhs, Workframe&& rhs) const {
-  lhs.remove(rhs);
-  return std::move(lhs);
+  if (op == Op::SETPLUS) {
+    Workframe lhs = args[0].evaluate_n(ctx);
+    Workframe rhs = args[1].evaluate_n(ctx);
+    lhs.cbind(std::move(rhs));
+    return lhs;
+  }
+  else {
+    Workframe lhs = args[0].evaluate_n(ctx);
+    // RHS must be evaluated with `allow_new = true`, so that removing
+    // a column which is not in the frame would not throw an error.
+    Workframe rhs = args[1].evaluate_n(ctx, true);
+    lhs.remove(rhs);
+    return lhs;
+  }
 }
 
 
