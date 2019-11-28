@@ -23,32 +23,14 @@ environment for that Python. For example:
 
 
 
-Install on Mac OS X
--------------------
+Install on Mac OS X and Linux
+-----------------------------
 
-Run the following command to install ``datatable`` on Mac OS X.
+Run the following command to install ``datatable`` on Mac OS X and Linux:
 
 .. code-block:: bash
 
   $ pip install datatable
-
-
-
-Install on Linux
-----------------
-
-Run one of the following commands to retrieve the ``datatable`` wheel file for Linux environments.
-
-.. code-block:: bash
-
-  # Python 3.5
-  $ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.8.0/datatable-0.8.0-cp35-cp35m-linux_x86_64.whl
-
-  # Python 3.6
-  $ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.8.0/datatable-0.8.0-cp36-cp36m-linux_x86_64.whl
-
-  # Python 3.7
-  $ pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.8.0/datatable-0.8.0-cp37-cp37m-linux_x86_64.whl
 
 
 

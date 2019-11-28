@@ -48,10 +48,12 @@ namely:
 -  ``mantissa_nbits`` – the number of bits from mantissa to be used for hashing, defaults to ``10``.
 -  ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
 -  ``negative_class`` – whether to create and train on a "negative" class in the case of multinomial classification, defaults to ``False``.
-- ``interactions`` — list of feature lists to do interactions for, defaults to ``None``.
-- ``model_type`` — training mode that can be one of the following: "``auto``" to automatically set model type based on the target column type, "``binomial``" for binomial classification, "``multinomial``" for multinomial classification or "``regression``" for continuous targets. This setting defaults to "``auto``".
+- ``interactions`` — a list or a tuple of interactions. In turn, each interaction
+should be a list or a tuple of feature names, where each feature name is a column name
+from the training frame. This setting defaults to ``None``.
+- ``model_type`` — training mode that can be one of the following: "``auto``" to automatically set model type based on the target column data, "``binomial``" for binomial classification, "``multinomial``" for multinomial classification or "``regression``" for continuous targets. This setting defaults to "``auto``".
 
-If some parameters need to be changed, this can be done either
+If some parameters need to be changed from their default values, this can be done either
 when creating the model, as
 
 ::
@@ -155,7 +157,7 @@ Feature Interactions
 
 By default each column of a training dataset is considered as a feature
 by FTRL model. User can provide additional features by specifying
-a list of feature interactions, for instance as
+a list or a tuple of feature interactions, for instance as
 
 ::
 
