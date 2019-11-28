@@ -10,9 +10,17 @@
 #include <stdio.h>      // remove
 #include <string.h>     // strerror
 #include <sys/stat.h>   // fstat
-#include <unistd.h>     // close, write, ftruncate
 #include "utils/file.h"
+#include "utils/macros.h"
 #include "utils/misc.h"
+
+#if DT_OS_WINDOWS
+  #include <io.h>               // close, write, _chsize
+  #define FTRUNCATE _chsize
+#else
+  #include <unistd.h>           // close, write, ftruncate
+  #define FTRUNCATE ftruncate
+#endif
 
 
 const int File::READ = O_RDONLY;
@@ -83,7 +91,7 @@ const char* File::cname() const {
 
 
 void File::resize(size_t newsize) {
-  int ret = ftruncate(fd, static_cast<off_t>(newsize));
+  int ret = FTRUNCATE(fd, static_cast<off_t>(newsize));
   if (ret == -1) {
     throw IOError() << "Unable to truncate() file " << name
                     << " to size " << newsize << ": " << Errno;
