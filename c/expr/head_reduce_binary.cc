@@ -211,8 +211,8 @@ static Column compute_corr(Column&& arg1, Column&& arg2, const Groupby& gby) {
 // Head_Reduce_Binary factory function
 //------------------------------------------------------------------------------
 
-Workframe Head_Reduce_Binary::evaluate_n(const vecExpr& args,
-                                         EvalContext& ctx) const
+Workframe Head_Reduce_Binary::evaluate_n(
+    const vecExpr& args, EvalContext& ctx, bool) const
 {
   xassert(args.size() == 2);
   Workframe inputs1 = args[0].evaluate_n(ctx);

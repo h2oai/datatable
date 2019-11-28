@@ -69,7 +69,8 @@ static Workframe _wrap_column(EvalContext& ctx, Column&& col, std::string&& name
 }
 
 
-Workframe Head_Reduce_Nullary::evaluate_n(const vecExpr& args, EvalContext& ctx) const
+Workframe Head_Reduce_Nullary::evaluate_n(
+    const vecExpr& args, EvalContext& ctx, bool) const
 {
   xassert(args.size() == 0);
   (void) args;

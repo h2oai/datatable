@@ -96,6 +96,7 @@ class Workframe {
     void add_ref_column(size_t iframe, size_t icol);
     void add_placeholder(const std::string& name, size_t iframe);
     void cbind(Workframe&&, bool at_end = true);
+    void remove(const Workframe&);
     void rename(const std::string& name);
 
     size_t ncols() const noexcept;

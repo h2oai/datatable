@@ -657,8 +657,8 @@ static Column compute_gmedian(Column&& arg, const Groupby&) {
 // Head_Reduce_Unary
 //------------------------------------------------------------------------------
 
-Workframe Head_Reduce_Unary::evaluate_n(const vecExpr& args,
-                                        EvalContext& ctx) const
+Workframe Head_Reduce_Unary::evaluate_n(
+    const vecExpr& args, EvalContext& ctx, bool) const
 {
   xassert(args.size() == 1);
   Workframe inputs = args[0].evaluate_n(ctx);

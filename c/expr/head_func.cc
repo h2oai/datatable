@@ -58,9 +58,9 @@ Workframe Head_Func::evaluate_f(EvalContext&, size_t, bool) const {
 // evaluating this expression in "normal" mode.
 //
 Workframe Head_Func::evaluate_j(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx, bool allow_new) const
 {
-  return evaluate_n(args, ctx);
+  return evaluate_n(args, ctx, allow_new);
 }
 
 
@@ -70,13 +70,13 @@ Workframe Head_Func::evaluate_j(
 Workframe Head_Func::evaluate_r(
     const vecExpr& args, EvalContext& ctx, const intvec&) const
 {
-  return evaluate_n(args, ctx);
+  return evaluate_n(args, ctx, false);
 }
 
 
 
 RowIndex Head_Func::evaluate_i(const vecExpr& args, EvalContext& ctx) const {
-  Workframe wf = evaluate_n(args, ctx);
+  Workframe wf = evaluate_n(args, ctx, false);
   if (wf.ncols() != 1) {
     throw TypeError() << "i-expression evaluated into " << wf.ncols()
         << " columns";

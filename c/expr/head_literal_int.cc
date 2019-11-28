@@ -40,7 +40,9 @@ int64_t Head_Literal_Int::get_value() const {
 
 
 
-Workframe Head_Literal_Int::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Int::evaluate_n(
+    const vecExpr&, EvalContext& ctx, bool) const
+{
   return _wrap_column(ctx, Const_ColumnImpl::make_int_column(1, value));
 }
 

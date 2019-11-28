@@ -34,7 +34,9 @@ Kind Head_Literal_Float::get_expr_kind() const {
 
 
 
-Workframe Head_Literal_Float::evaluate_n(const vecExpr&, EvalContext& ctx) const {
+Workframe Head_Literal_Float::evaluate_n(
+    const vecExpr&, EvalContext& ctx, bool) const
+{
   return _wrap_column(ctx, Const_ColumnImpl::make_float_column(1, value));
 }
 

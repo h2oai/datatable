@@ -31,7 +31,7 @@ namespace expr {
 class Head_List : public Head {
   public:
     Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     Workframe evaluate_r(const vecExpr&, EvalContext&, const intvec&) const override;
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;
@@ -49,7 +49,7 @@ class Head_NamedList : public Head {
   public:
     Head_NamedList(strvec&&);
     Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
     Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
     Workframe evaluate_r(const vecExpr&, EvalContext&, const intvec&) const override;
     Workframe evaluate_f(EvalContext&, size_t, bool) const override;

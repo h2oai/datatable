@@ -38,10 +38,12 @@ Kind Head_List::get_expr_kind() const {
   return Kind::List;
 }
 
-Workframe Head_List::evaluate_n(const vecExpr& inputs, EvalContext& ctx) const {
+Workframe Head_List::evaluate_n(
+    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+{
   Workframe outputs(ctx);
   for (const Expr& arg : inputs) {
-    outputs.cbind( arg.evaluate_n(ctx) );
+    outputs.cbind( arg.evaluate_n(ctx, allow_new) );
   }
   return outputs;
 }
@@ -184,7 +186,7 @@ Workframe Head_List::evaluate_j(
 {
   auto kind = _resolve_list_kind(inputs);
   if (kind == Kind::Bool) return _evaluate_bool_list(inputs, ctx);
-  if (kind == Kind::Func) return evaluate_n(inputs, ctx);
+  if (kind == Kind::Func) return evaluate_n(inputs, ctx, allow_new);
   return _evaluate_f_list(inputs, ctx, allow_new);
 }
 
@@ -337,11 +339,13 @@ Kind Head_NamedList::get_expr_kind() const {
 }
 
 
-Workframe Head_NamedList::evaluate_n(const vecExpr& inputs, EvalContext& ctx) const {
+Workframe Head_NamedList::evaluate_n(
+    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+{
   xassert(inputs.size() == names.size());
   Workframe outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
-    Workframe arg_out = inputs[i].evaluate_n(ctx);
+    Workframe arg_out = inputs[i].evaluate_n(ctx, allow_new);
     arg_out.rename(names[i]);
     outputs.cbind( std::move(arg_out) );
   }
@@ -352,7 +356,7 @@ Workframe Head_NamedList::evaluate_n(const vecExpr& inputs, EvalContext& ctx) co
 Workframe Head_NamedList::evaluate_r(
     const vecExpr& args, EvalContext& ctx, const intvec&) const
 {
-  return evaluate_n(args, ctx);
+  return evaluate_n(args, ctx, false);
 }
 
 
@@ -362,9 +366,9 @@ Workframe Head_NamedList::evaluate_f(EvalContext&, size_t, bool) const {
 
 
 Workframe Head_NamedList::evaluate_j(
-    const vecExpr& inputs, EvalContext& ctx, bool) const
+    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
 {
-  return evaluate_n(inputs, ctx);
+  return evaluate_n(inputs, ctx, allow_new);
 }
 
 
