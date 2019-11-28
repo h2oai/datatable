@@ -41,7 +41,11 @@ static const umaker_ptr& get_umaker(Op opcode, SType stype) {
   size_t id = ((static_cast<size_t>(opcode) - UNOP_FIRST) << 8) +
               static_cast<size_t>(stype);
   if (umakers_library.count(id) == 0) {
-    umakers_library[id] = resolve_op(opcode, stype);
+    // Note: these operations must be separate, otherwise if `resolve_op`
+    //       throws an exception, there could be an empty entry in the
+    //       umakers_library map, which later will lead to a seg.fault
+    auto res = resolve_op(opcode, stype);
+    umakers_library[id] = std::move(res);
   }
   return umakers_library[id];
 }
