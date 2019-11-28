@@ -90,7 +90,11 @@ Column binaryop(Op opcode, Column&& col1, Column&& col2)
   // Find the maker function
   auto id = make_id(opcode, col1.stype(), col2.stype());
   if (bimakers_library.count(id) == 0) {
-    bimakers_library[id] = resolve_op(opcode, col1.stype(), col2.stype());
+    // Note: these operations must be separate, otherwise if `resolve_op`
+    //       throws an exception, there could be an empty entry in the
+    //       bimakers_library map, which later will lead to a seg.fault
+    auto res = resolve_op(opcode, col1.stype(), col2.stype());
+    bimakers_library[id] = std::move(res);
   }
   const bimaker_ptr& maker = bimakers_library[id];
   xassert(maker);
