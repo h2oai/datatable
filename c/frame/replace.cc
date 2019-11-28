@@ -586,9 +586,10 @@ void ReplaceAgent::process_str_column(size_t colidx) {
 // Step 4: perform actual data replacement
 //------------------------------------------------------------------------------
 // Ignore warnings in auto-generated lambda code
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wpadded"
-
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wpadded"
+#endif
 
 template <typename T>
 void ReplaceAgent::replace_fw(T* x, T* y, size_t nrows, T* data, size_t n)
@@ -715,7 +716,8 @@ Column ReplaceAgent::replace_strN(CString* x, CString* y,
 }
 
 
-
-#pragma clang diagnostic pop
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#endif
 
 }  // namespace py

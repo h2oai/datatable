@@ -17,13 +17,14 @@
 #ifndef FLATBUFFERS_H_
 #define FLATBUFFERS_H_
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdocumentation"
-#pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
-#pragma clang diagnostic ignored "-Wsign-conversion"
-#pragma clang diagnostic ignored "-Wold-style-cast"
-#pragma clang diagnostic ignored "-Wpadded"
-
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wdocumentation"
+  #pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
+  #pragma clang diagnostic ignored "-Wsign-conversion"
+  #pragma clang diagnostic ignored "-Wold-style-cast"
+  #pragma clang diagnostic ignored "-Wpadded"
+#endif
 
 #include "lib/flatbuffers/base.h"
 
@@ -2288,7 +2289,8 @@ volatile __attribute__((weak)) const char *flatbuffer_version_string =
 #endif
 // clang-format on
 
-
-#pragma clang diagnostic pop
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#endif
 
 #endif  // FLATBUFFERS_H_
