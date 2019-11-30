@@ -332,7 +332,7 @@ void Frame::view(const PKArgs& args) {
   bool plain = args[1].to<bool>(false);
   if (args[0].is_none()) interactive = dt::display_interactive;
   if (args[0].is_bool()) interactive = args[0].to_bool_strict();
-  if (interactive && !dt::Terminal::standard_terminal().is_jupyter()) {
+  if (dt::Terminal::standard_terminal().is_jupyter()) {
     interactive = false;
   }
   if (interactive) {
