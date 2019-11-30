@@ -96,7 +96,7 @@ void Frame::view(const PKArgs& args) {
   } else {
     if (is_jupyter) {
       auto htmlstr = _repr_html_(args__repr_html_);
-      dt::HtmlWidget::write_to_jupyter(htmlstr, py::odict());
+      dt::HtmlWidget::write_to_jupyter(htmlstr);
     }
     else {
       auto terminal = plain? &dt::Terminal::plain_terminal()

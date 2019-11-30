@@ -51,6 +51,11 @@ class HtmlWidget : public dt::Widget {
       return py::ostring(htmlstr);
     }
 
+    static void write_to_jupyter(const py::oobj& htmlstr) {
+    	auto kwds = py::odict();
+    	write_to_jupyter(htmlstr, kwds);
+    }
+
     static void write_to_jupyter(const py::oobj& htmlstr, const py::odict& kwds) {
       if (!dt::Terminal::standard_terminal().is_jupyter()) {
         return;
