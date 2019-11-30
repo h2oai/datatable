@@ -134,19 +134,10 @@ static py::oobj generate_stylesheet() {
 
 
 void emit_stylesheet() {
-  if (!dt::Terminal::standard_terminal().is_jupyter()) {
-    return;
-  }
   auto html = generate_stylesheet();
-
-  auto HTML = py::oobj::import("IPython.core.display", "HTML");
-  auto display = py::oobj::import("IPython.core.display", "display");
-  auto update = py::oobj::import("IPython.core.display", "update_display");
-
   py::odict kwds;
   kwds.set(py::ostring("display_id"), py::ostring("datatable:css"));
-  update.call(HTML.call(), kwds);
-  display.call(HTML.call(html), kwds);
+  HtmlWidget::write_to_jupyter(html, kwds);
 }
 
 
