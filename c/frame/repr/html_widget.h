@@ -52,23 +52,25 @@ class HtmlWidget : public dt::Widget {
     }
 
     static void write_to_jupyter(const py::oobj& htmlstr) {
-    	auto kwds = py::odict();
-    	write_to_jupyter(htmlstr, kwds);
+    	auto update_kwds = py::odict();
+    	write_to_jupyter(htmlstr, update_kwds);
     }
 
-    static void write_to_jupyter(const py::oobj& htmlstr, const py::odict& kwds) {
+    static void write_to_jupyter(const py::oobj& htmlstr,
+                                 const py::odict& update_kwds)
+    {
       if (!dt::Terminal::standard_terminal().is_jupyter()) {
         return;
       }
 
       auto HTML = py::oobj::import("IPython.core.display", "HTML");
       auto display = py::oobj::import("IPython.core.display", "display");
-      if (!kwds.empty()) {
+      if (!update_kwds.empty()) {
         auto update = py::oobj::import("IPython.core.display", "update_display");
-        update.call(HTML.call(), kwds);
+        update.call(HTML.call(), update_kwds);
       }
 
-      display.call(HTML.call(htmlstr), kwds);
+      display.call(HTML.call(htmlstr), update_kwds);
     }
 
   protected:

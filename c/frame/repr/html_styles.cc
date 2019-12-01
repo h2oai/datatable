@@ -135,9 +135,9 @@ static py::oobj generate_stylesheet() {
 
 void emit_stylesheet() {
   auto html = generate_stylesheet();
-  py::odict kwds;
-  kwds.set(py::ostring("display_id"), py::ostring("datatable:css"));
-  HtmlWidget::write_to_jupyter(html, kwds);
+  py::odict update_kwds;
+  update_kwds.set(py::ostring("display_id"), py::ostring("datatable:css"));
+  HtmlWidget::write_to_jupyter(html, update_kwds);
 }
 
 
