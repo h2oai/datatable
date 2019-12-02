@@ -25,28 +25,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
-## [Unreleased][]
-
-### Fixed
-
-- Fixed error when displaying `help(dt)` (#1931).
-
-- `fread(cmd=)` now throws an error if it occurred while running the provided
-  command `cmd` in the shell. Previously the error was silently discarded
-  (#1935).
-
-- datatable now correctly handles the case of a degenerate range, producing
-  an empty Frame instead of a 1-row Frame (#1942).
-
-- Fixed crash when computing mode stat for a view frame (#1953).
-
-
-### Changed
-
-- Support for NFF format was removed. This was an old datatable's format for
-  storing data frames on disk, and it was deprecated in favor of Jay over a
-  year ago. If you still have any data stored in NFF format, we recommend to
-  re-save in Jay using datatable 0.9.
+This is an archive of Changelog up to and including version 0.9.0. For
+more recent changes, visit the
+[ReadTheDocs](https://datatable.readthedocs.io/en/latest/changelog.html)
+website.
 
 
 ## [0.9.0][] — 2019-06-15
