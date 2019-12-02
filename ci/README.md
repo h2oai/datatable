@@ -37,26 +37,21 @@ update applies.
 - In the `__version__.py` modify the version to `{MAJOR}.{MINOR+1}.0` (call
   this `MN0` for short).
 
-- Update the `CHANGELOG.md`: add line
-    ```md
-    ## [{MN0}][] — {DATE}
-    ```
-  below the line `## [Unreleased][]`. Here `DATE` is the today's date. Note
-  that the date is separated from the version by an em-dash (—), not the
-  simple dash (-).
+- Update the `docs/changelog.rst` file to include the current DATE of the
+  release.
 
-- Scroll to the bottom of the file and add a line with the definition of the
-  `[{MN0}]` link.
+- Look through the changelog entries in `docs/changelog/v-{MN0}.rst` file,
+  and fix any grammar, style or spelling mistakes, also check for omissions.
 
-- Look through the changelog entries being released, and fix any grammar,
-  style or spelling mistakes, also check for omissions.
+- In the `docs/quick-start.rst` update the version of datatable printed to
+  the new version.
 
 - Update the "Installation" section in `README.md` to point to the new
   latest version of the package. (This step can be removed after #952 is
   implemented).
 
-- Commit the changes with commit message `Release v{MN0}` and push the branch.
-  On GitHub, create a new pull request from this branch.
+- Commit the changes and push the branch. On GitHub, create a new pull request
+  from this branch.
 
 - Wait for the PR to finish all (but one) tests / checks successfully. If not,
   push additional commits into this branch to fix any emergent problems. One
