@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('../datatable'))
 # -- Project information -----------------------------------------------------
 
 project = 'datatable'
-copyright = '2018, H2O.ai'
+copyright = '2018-2019, H2O.ai'
 author = 'Pasha Stetsenko'
 
 try:
@@ -56,6 +56,7 @@ needs_sphinx = '1.8'
 # ones.
 extensions = [
     'sphinxext.dtframe_directive',
+    'sphinxext.dtfunction_directive',
     'nbsphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
@@ -108,6 +109,9 @@ html_theme_options = {
     "sticky_navigation": True,
     "titles_only": False,
 }
+
+html_show_sphinx = False
+html_show_copyright = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

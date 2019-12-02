@@ -1,0 +1,90 @@
+
+.dt-single-source {
+    margin-bottom: 18pt;
+}
+
+.dt-single-source h1 {
+    display: none;
+}
+
+.sig-container {
+    background-color: #2b639c;
+    display: flex;
+    font-family: "SF Mono", Menlo, monospace;
+    padding: 1pt 5pt 3pt 6pt;
+}
+
+.sig-container a, .sig-container a:visited {
+    color: #68c;
+    font-size: 75%;
+}
+
+.sig-container a:hover {
+    color: white;
+}
+
+.sig-body {
+    flex: 1;
+}
+
+.code-links {
+    font-size: 90%;
+}
+
+.code-links a:after {
+    content: "\f08e";
+    font-family: "FontAwesome";
+    font-size: 85%;
+    padding-left: 3px;
+    -webkit-font-smoothing: antialiased;
+}
+
+
+.sig-main {
+    display: flex;
+}
+
+.sig-main .sig-name {
+    color: #ffe810;
+    font-weight: bold;
+}
+
+.sig-main .sig-open-paren:before {
+    color: #68c;
+    content: "(";
+}
+
+.sig-main .sig-close-paren {
+    display: inline-block;
+}
+.sig-main .sig-close-paren:before {
+    color: #68c;
+    content: ")";
+}
+
+
+.sig-parameters {
+    flex: 1;
+}
+.sig-parameters .param {
+    color: #dff;
+    display: inline-block;
+}
+.sig-parameters .param.self {
+    color: #68c;
+}
+.sig-parameters .param:not(.final):after {
+    color: #68c;
+    content: ",";
+    padding-right: 6pt;
+}
+.sig-parameters .param .default {
+    color: #68c;
+    display: inline;
+    font-style: normal;
+}
+.sig-parameters .param .default:before {
+    color: #68c;
+    content: "=";
+    padding: 0 2pt;
+}

@@ -27,10 +27,7 @@ namespace py {
 // Frame::cbind
 //------------------------------------------------------------------------------
 
-static PKArgs args_cbind(
-  0, 0, 1, true, false,
-  {"force"}, "cbind",
-
+static const char* doc_cbind =
 R"(cbind(self, *frames, force=False)
 --
 
@@ -65,7 +62,9 @@ force: boolean
     than the largest number of rows, will be padded with NAs (with the
     exception of Frames having just 1 row, which will be replicated
     instead of filling with NAs).
-)");
+)";
+
+static PKArgs args_cbind(0, 0, 1, true, false, {"force"}, "cbind", doc_cbind);
 
 
 
