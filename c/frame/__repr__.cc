@@ -85,25 +85,19 @@ void Frame::view(const PKArgs& args) {
   bool plain = args[1].to<bool>(false);
   if (args[0].is_none()) interactive = dt::display_interactive;
   if (args[0].is_bool()) interactive = args[0].to_bool_strict();
+
   if (is_jupyter) {
-    interactive = false;
+    auto htmlstr = _repr_html_(args__repr_html_);
+    dt::HtmlWidget::write_to_jupyter(htmlstr);
   }
-  if (interactive) {
-    oobj DFWidget = oobj::import("datatable")
-                    .get_attr("widget")
-                    .get_attr("DataFrameWidget");
+  else if (interactive) {
+    oobj DFWidget = oobj::import("datatable.widget", "DataFrameWidget");
     DFWidget.call({oobj(this), obool(interactive)}).invoke("render");
   } else {
-    if (is_jupyter) {
-      auto htmlstr = _repr_html_(args__repr_html_);
-      dt::HtmlWidget::write_to_jupyter(htmlstr);
-    }
-    else {
-      auto terminal = plain? &dt::Terminal::plain_terminal()
-                           : &dt::Terminal::standard_terminal();
-      dt::TerminalWidget widget(dt, terminal, dt::Widget::split_view_tag);
-      widget.to_stdout();
-    }
+    auto terminal = plain? &dt::Terminal::plain_terminal()
+                         : &dt::Terminal::standard_terminal();
+    dt::TerminalWidget widget(dt, terminal, dt::Widget::split_view_tag);
+    widget.to_stdout();
   }
 }
 
