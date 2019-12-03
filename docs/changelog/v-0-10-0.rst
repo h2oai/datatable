@@ -189,6 +189,26 @@ Frame
 
   Thanks to @Viktor-Demin for the contribution (#2127).
 
+- |fix| Keyed columns are now styled distinctly from regular columns when
+  rendering the Frame into a Jupyter notebook (#1636).
+
+- |fix| In Jupyter notebook Frame's stylesheets are now injected during
+  the datatable import. This makes it less likely that the stylesheets will
+  get accidentally removed from the page. However, if it still does occur,
+  there is now also a method to load those styles directly:
+  :meth:`init_styles` (#1871).
+
+- |fix| Fixed error when displaying `help(dt)` (#1931).
+
+- |fix| `fread(cmd=)` now throws an error if it occurred while running the
+  provided command `cmd` in the shell. Previously the error was silently
+  discarded (#1935).
+
+- |fix| Creating a Frame from a degenerate range now produces an empty Frame
+  instead of a 1-row Frame (#1942).
+
+- |fix| Fixed crash when computing mode stat for a view frame (#1953).
+
 - |fix| Fixed a bug where creating a new column via assignment would crash if
   the RHS of the assignment contained an expression that tried to use the
   column that was being created (#1983).
@@ -205,15 +225,15 @@ Frame
   incorrectly when some columns in the frame contained NAs, while others
   did not (#2050).
 
-- |fix| Deleting columns from a keyed Frame no longer results in a crash
-  when the deleted columns are part of the key (#2083).
-
 - |fix| Groupby operation on an empty (0-rows) frame now works correctly,
-  returning a 0-row result frame (#2078). For example:
+  returning a 0-row result frame (#2078). For example::
 
     DT = dt.Frame(Id=[], Value=[])  # create a 0x2 frame
     DT[:, sum(f.Value), by(f.Id)]   # produces a 0x2 frame
     DT[:, sum(f.Value)]             # produces a 1x1 frame
+
+- |fix| Deleting columns from a keyed Frame no longer results in a crash
+  when the deleted columns are part of the key (#2083).
 
 - |fix| The :meth:`count` reducer now always produces a column with stype
   ``int64``. Before, it sometimes produced an ``int32`` column, and sometimes
@@ -237,17 +257,8 @@ Frame
   obtained from joining another frame, provided that the join was only
   partially successful (#2109).
 
-- |fix| In Jupyter notebook Frame's stylesheets are now injected during
-  the datatable import. This makes it less likely that the stylesheets will
-  get accidentally removed from the page. However, if it still does occur,
-  there is now also a method to load those styles directly:
-  :meth:`init_styles` (#1871).
-
 - |fix| Fix creation of a Frame from a numpy array which was obtained from
   another numpy array as a slice with a negative stride (#2163).
-
-- |fix| Keyed columns are now styled distinctly from regular columns when
-  rendering the Frame into a Jupyter notebook (#1636).
 
 
 General
@@ -261,6 +272,11 @@ General
 - |api| Function :func:`open` is marked as deprecated, scheduled to be
   removed in version 0.12. Instead we recommend to use :func:`fread`
   function to open Jay files.
+
+- |api| Support for NFF format was removed. This was an old datatable's format
+  for storing data frames on disk, and it was deprecated in favor of Jay over a
+  year ago. If you still have any data stored in NFF format, we recommend to
+  re-save in Jay using datatable 0.9.
 
 - |new| Datatable module now exports symbol ``dt``, which is the handle to
   the module itself. For example, you can now write::
