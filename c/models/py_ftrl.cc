@@ -576,7 +576,7 @@ oobj Ftrl::get_fi() const {
 }
 
 oobj Ftrl::get_normalized_fi(bool normalize) const {
-  // if (!dtft->is_model_trained()) return py::None();
+  if (!dtft->is_model_trained()) return py::None();
   return dtft->get_fi(normalize);
 }
 
