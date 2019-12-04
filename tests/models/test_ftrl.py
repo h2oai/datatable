@@ -1266,11 +1266,28 @@ def test_ftrl_feature_importances():
     df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
+    assert fi[1].max1() == 1
+    assert fi[1].min1() >= 0
     assert fi.stypes == (stype.str32, stype.float32)
     assert fi.names == ("feature_name", "feature_importance")
     assert fi[:, 0].to_list() == [feature_names]
     assert fi[0, 1] < fi[2, 1]
     assert fi[2, 1] < fi[1, 1]
+
+
+def test_ftrl_feature_importances_none():
+    ft = Ftrl()
+    assert ft.feature_importances == None
+
+
+def test_ftrl_feature_importances_empty():
+    ft = Ftrl(nepochs = 0, double_precision = True)
+    ft.fit(dt.Frame(range(10)), dt.Frame(range(10)))
+    DT = dt.Frame(
+      [["C0"], [0.0]],
+      names = ("feature_name", "feature_importance")
+    )
+    assert_equals(ft.feature_importances, DT)
 
 
 def test_ftrl_fi_shallowcopy():

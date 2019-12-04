@@ -1242,16 +1242,17 @@ py::oobj Ftrl<T>::get_fi(bool normalize /* = true */) {
   DataTable dt_fi_copy { *dt_fi };  // copy
   if (normalize) {
     Column& col = dt_fi_copy.get_column(1);
-    bool max_isna;
-    T max = static_cast<T>(col.stats()->max_double(&max_isna));
+    bool max_isvalid;
+    T max = static_cast<T>(col.stats()->max_double(&max_isvalid));
     T* data = static_cast<T*>(col.get_data_editable());
-    T norm_factor = T(1);
 
-    if (!max_isna && std::fabs(max) > T_EPSILON) norm_factor /= max;
-    for (size_t i = 0; i < col.nrows(); ++i) {
-      data[i] *= norm_factor;
+    if (max_isvalid && std::fabs(max) > T_EPSILON) {
+      T norm_factor = T(1) / max;
+      for (size_t i = 0; i < col.nrows(); ++i) {
+        data[i] *= norm_factor;
+      }
+      col.reset_stats();
     }
-    col.reset_stats();
   }
   return py::Frame::oframe(std::move(dt_fi_copy));
 }
