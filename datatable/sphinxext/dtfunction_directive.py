@@ -63,6 +63,8 @@ rx_param = re.compile(r"(?:"
                       r"))?"
                       r"|([\*/]|\*\*?\w+)"
                       r")\s*(?:,\s*|$)")
+rx_header = re.compile(r"(\-+)\s*$")
+
 
 def file_ok(filename):
     return os.path.isfile(os.path.join(project_root, filename))
@@ -311,6 +313,7 @@ class DtobjectDirective(Directive):
                              % (self.obj_name, signature))
         signature = signature[(len(self.obj_name) + 1):-1]
         self._parse_parameters(signature)
+        self._parse_body(tmp[1])
 
 
     def _parse_parameters(self, sig):
@@ -339,6 +342,34 @@ class DtobjectDirective(Directive):
                                  % (sig, i, parsed))
         self.parsed_params = parsed
         logger.info("Result = %r" % (parsed,))
+
+
+    def _parse_body(self, body):
+        body = body.strip()
+        logger.info("\nParsing body = %r\n" % body)
+        parsed = [[]]
+        headers = [None]
+        last_line = None
+        for line in  body.split("\n"):
+            mm = rx_header.fullmatch(line)
+            if mm:
+                header = last_line.strip()
+                if len(header) != len(mm.group(1)):
+                    raise self.error("Incorrect header `%s` in a doc string "
+                                     "for %s: it has %d characters, while the "
+                                     "underline has %d characters"
+                                     % (header, self.obj_name, len(header),
+                                        len(mm.group(1))))
+                parsed[-1].pop()
+                parsed.append([])
+                headers.append(header)
+                last_line = None
+            else:
+                parsed[-1].append(line)
+                last_line = line
+
+        self.parsed_body = list(zip(headers, parsed))
+        logger.info("Result = %r" % (self.parsed_body,))
 
 
 
