@@ -490,7 +490,7 @@ None
 
 void Ftrl::reset(const PKArgs&) {
   dtft->reset();
-  colnames->clear();
+  if (colnames) colnames->clear();
 }
 
 
