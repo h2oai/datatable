@@ -1266,11 +1266,11 @@ def test_ftrl_feature_importances():
     df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
-    assert fi[1].max1() == 1
     assert fi[1].min1() >= 0
+    assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
     assert fi.stypes == (stype.str32, stype.float32)
     assert fi.names == ("feature_name", "feature_importance")
-    assert fi[:, 0].to_list() == [feature_names]
+    assert fi[0].to_list() == [feature_names]
     assert fi[0, 1] < fi[2, 1]
     assert fi[2, 1] < fi[1, 1]
 
@@ -1297,6 +1297,10 @@ def test_ftrl_fi_shallowcopy():
     df_target = dt.Frame([bool(random.getrandbits(1)) for _ in range(ft.nbins)])
     ft.fit(df_train, df_target)
     fi1 = ft.feature_importances
+    fi1 = ft.feature_importances
+    assert fi1[1].min1() >= 0
+    assert math.isclose(fi1[1].max1(), 1, abs_tol = 1e-7)
+
     fi2 = copy.deepcopy(ft.feature_importances)
     ft.reset()
     assert ft.feature_importances == None
@@ -1339,7 +1343,10 @@ def test_ftrl_interactions_formats(interactions):
     df_target = dt.Frame(target = [True, False] * 5)
 
     ft.fit(df_train, df_target)
-    assert (ft.feature_importances[:, 0].to_list() ==
+    fi = ft.feature_importances
+    assert fi[1].min1() >= 0
+    assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
+    assert (fi[0].to_list() ==
            [["feature1", "feature2", "feature3",
              "feature1:feature2:feature3", "feature3:feature2"]])
     assert ft.interactions == tuple(tuple(interaction) for interaction in interactions)
@@ -1357,7 +1364,10 @@ def test_ftrl_interactions_from_itertools(struct):
 
     ft = Ftrl(interactions = interactions)
     ft.fit(df_train, df_target)
-    assert (ft.feature_importances[:, 0].to_list() ==
+    fi = ft.feature_importances
+    assert fi[1].min1() >= 0
+    assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
+    assert (fi[0].to_list() ==
            [["feature1", "feature2", "feature3",
              "feature1:feature2", "feature1:feature3", "feature2:feature3"]])
 
@@ -1379,9 +1389,12 @@ def test_ftrl_interactions():
     df_target = dt.Frame([False, True] * (nrows // 2))
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
+
+    assert fi[1].min1() >= 0
+    assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
     assert fi.stypes == (stype.str32, stype.float32)
     assert fi.names == ("feature_name", "feature_importance")
-    assert fi[:, 0].to_list() == [feature_names + interaction_names]
+    assert fi[0].to_list() == [feature_names + interaction_names]
     assert fi[0, 1] < fi[2, 1]
     assert fi[2, 1] < fi[1, 1]
     assert fi[3, 1] < fi[1, 1]
@@ -1400,7 +1413,9 @@ def test_ftrl_interactions():
     ft.interactions = None
     ft.fit(df_train, df_target)
     fi = ft.feature_importances
-    assert fi[:, 0].to_list() == [feature_names]
+    assert fi[1].min1() >= 0
+    assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
+    assert fi[0].to_list() == [feature_names]
 
 
 #-------------------------------------------------------------------------------
