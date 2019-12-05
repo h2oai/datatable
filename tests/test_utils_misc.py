@@ -163,3 +163,20 @@ def test_normalize_range():
             stop = random.choice(stop_choices)
             step = random.choice(step_choices)
             check.range(start, stop, step)
+
+
+def test_humanize_bytes():
+    assert utils_misc.humanize_bytes(0) == "0"
+    assert utils_misc.humanize_bytes(None) == ""
+    assert utils_misc.humanize_bytes(100) == "100B"
+    assert utils_misc.humanize_bytes(2 ** 10) == "1KB"
+    assert utils_misc.humanize_bytes(10 * 2 ** 10 - 1) == "10.00KB"
+    assert utils_misc.humanize_bytes(100 * 2 ** 10 - 1) == "100.0KB"
+    assert utils_misc.humanize_bytes(2 ** 20) == "1MB"
+    assert utils_misc.humanize_bytes(2 ** 30) == "1GB"
+    assert utils_misc.humanize_bytes(2 ** 40) == "1TB"
+    try:
+        utils_misc.humanize_bytes(-1)
+    except AssertionError:
+        pass
+
