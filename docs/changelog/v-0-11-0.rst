@@ -1,0 +1,11 @@
+
+.. include:: definitions.rst
+
+
+Version 0.11.0
+==============
+
+Frame
+-----
+
+- |fix| A list of frames now displays properly in a Jupyter lab (#2222).

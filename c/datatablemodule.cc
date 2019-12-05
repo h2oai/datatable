@@ -388,6 +388,7 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
 
     // Initialize submodules
     if (!init_py_encodings(m)) return nullptr;
+    dt::Terminal::standard_terminal().initialize();
 
     init_types();
     dt::expr::Head_Func::init();
@@ -399,7 +400,6 @@ PyMODINIT_FUNC PyInit__datatable() noexcept
     py::ojoin::init(m);
     py::osort::init(m);
     py::oupdate::init(m);
-    dt::Terminal::standard_terminal().initialize();
 
   } catch (const std::exception& e) {
     exception_to_python(e);
