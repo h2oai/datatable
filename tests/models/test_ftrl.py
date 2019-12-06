@@ -594,10 +594,24 @@ def test_ftrl_predict_wrong_frame():
 # Test reset
 #-------------------------------------------------------------------------------
 
-def test_ftrl_reset():
+def test_ftrl_reset_untrained():
     ft = Ftrl(tparams)
     ft.reset()
     assert ft.params == tparams
+
+
+def test_ftrl_reset_trained():
+    ft = Ftrl(tparams)
+    ft.fit(dt.Frame(range(10)), dt.Frame([False, True] * 5))
+    model_ref = dt.Frame([[0.0] * tparams.nbins, [7.0] * tparams.nbins])
+    assert_equals(ft.model, model_ref)
+    ft.reset()
+    assert ft.model == None
+    assert ft.params == tparams
+    ft.nepochs = 0
+    ft.fit(dt.Frame(range(10)), dt.Frame([False, True] * 5))
+    assert_equals(ft.model, dt.Frame([[0.0] * tparams.nbins] * 2))
+
 
 
 #-------------------------------------------------------------------------------
