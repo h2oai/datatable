@@ -9,4 +9,5 @@ Frame
 -----
 
 - |fix| A list of frames now displays properly in a Jupyter lab (#2222).
-- |fix| Resetting an untrained FTRL model now doesn't result in a segfault (2226).
+- |fix| Fix feature importance normalization to [0, 1] in FTRL (#2224).
+- |fix| Resetting an untrained FTRL model now doesn't result in a segfault (#2226).
