@@ -9,3 +9,4 @@ Frame
 -----
 
 - |fix| A list of frames now displays properly in a Jupyter lab (#2222).
+- |fix| Resetting an untrained FTRL model now doesn't result in a segfault (2226).
