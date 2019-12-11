@@ -139,4 +139,4 @@ if __name__ == "__main__":
     with open("datatable/lib/.xbuild-cmd", "wt") as out:
         out.write(args.cmd)
 
-    build_extension(cmd=args.cmd)
+    build_extension(cmd=args.cmd, verbosity=3)

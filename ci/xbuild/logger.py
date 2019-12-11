@@ -37,7 +37,8 @@ class Logger0:
     def report_abi_mismatch(self, v1, v2): pass
     def report_build_dir(self, dd): pass
     def report_compile_cmd_mismatch(self, cmd1, cmd2): pass
-    def report_compile_file(self, filename, cmd): pass
+    def report_compile_start(self, filename, cmd): pass
+    def report_compile_finish(self, filename, has_errors): pass
     def report_compiler(self, cc): pass
     def report_compiler_executable(self, cc, env=None): pass
     def report_dead_files(self, files): pass
@@ -81,6 +82,68 @@ class Logger0:
 
 
 #-------------------------------------------------------------------------------
+# Logger1
+#-------------------------------------------------------------------------------
+
+class Logger1(Logger0):
+    """
+    Minimal logger, uses a progress bar
+    """
+
+    def __init__(self):
+        self._msg = ""
+        self._n_started = 0
+        self._n_finished = 0
+        self._n_total = 0
+        self._output_file = None
+        self._progress_bar_size = 60
+
+    def step_compile(self, files):
+        self._n_total = len(files)
+        self._progress_bar_size = min(60, self._n_total)
+        self._msg = "Compiling"
+        if self._n_total:
+            self._redraw()
+
+    def step_link(self, dolink):
+        self._msg = "Linking..."
+        if dolink:
+            self._n_total = 1
+            self._redraw()
+
+    def step_build_done(self, time):
+        if self._n_total:
+            self._msg = "File %s rebuilt in %.3fs" % (self._output_file, time)
+            self._redraw()
+            print()
+
+    def report_compile_start(self, filename, cmd):
+        self._n_started += 1
+        self._redraw()
+
+    def report_compile_finish(self, filename, has_errors):
+        self._n_finished += 1
+        self._redraw()
+
+    def report_output_file(self, filename):
+        self._output_file = filename
+
+    def _redraw(self):
+        line = "\r\x1B[90m" + self._msg
+        if self._msg == "Compiling":
+            sz = self._progress_bar_size
+            ch_done = round(sz * self._n_finished / self._n_total)
+            ch_queued = round(sz * self._n_started / self._n_total) - ch_done
+            ch_future = sz - ch_queued - ch_done
+            line += " [%s\x1B[1;97m%s\x1B[0;90m%s]" \
+                    % ("#" * ch_done, "#" * ch_queued, "." * ch_future)
+        line += "\x1B[m\x1B[K"  # clear the rest of the line
+        print(line, end="", flush=True)
+
+
+
+
+#-------------------------------------------------------------------------------
 # Logger3
 #-------------------------------------------------------------------------------
 
@@ -106,7 +169,7 @@ class Logger3(Logger0):
     def report_compile_cmd_mismatch(self, cmd1, cmd2):
         self.info("Compiler flags changed")
 
-    def report_compile_file(self, filename, cmd):
+    def report_compile_start(self, filename, cmd):
         self.info("Compiling `%s`: %s" % (filename, " ".join(cmd)))
 
     def report_compiler(self, cc):

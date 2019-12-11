@@ -484,7 +484,7 @@ class Extension:
         if srcfile not in self._files_modified:
             self._files_modified[srcfile] = (
                 srcfile not in self._src_includes or
-                os.path.getmtime(srcfile) > self._t0 or
+                int(os.path.getmtime(srcfile) > self._t0) or
                 any(self._is_modified(hfile)
                     for hfile in self._src_includes[srcfile])
             )
@@ -641,6 +641,7 @@ class Extension:
         has_errors = False
         for proc in compile_queue():
             stdout, stderr = proc.communicate()
+            self.log.report_compile_finish(proc.source, (proc.returncode != 0))
             if proc.returncode:
                 has_errors = True
             out = (stdout + stderr).decode("utf-8")
@@ -664,7 +665,7 @@ class Extension:
         need_to_link = (self._force_link or
                         self._files_to_compile or
                         not os.path.exists(self.output_file) or
-                        os.path.getmtime(self.output_file) > self._t0)
+                        int(os.path.getmtime(self.output_file)) > self._t0)
         self.log.step_link(need_to_link)
         if need_to_link:
             obj_files = list(self._src2obj.values())

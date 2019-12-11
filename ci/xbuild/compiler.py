@@ -215,10 +215,12 @@ class Compiler:
         os.makedirs(os.path.dirname(obj), exist_ok=True)
         cmd = self.get_compile_command(src, obj)
         if not silent:
-            self.log.report_compile_file(src, cmd)
+            self.log.report_compile_start(src, cmd)
 
-        return subprocess.Popen(cmd, stdout=subprocess.PIPE,
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
+        proc.source = src
+        return proc
 
 
 

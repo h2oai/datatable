@@ -23,11 +23,12 @@
 #-------------------------------------------------------------------------------
 from .compiler import Compiler
 from .extension import Extension
-from .logger import Logger0, Logger3
+from .logger import Logger0, Logger1, Logger3
 
 __all__ = (
 	"Compiler",
 	"Extension",
 	"Logger0",
+	"Logger1",
 	"Logger3",
 )
