@@ -23,18 +23,27 @@
 #-------------------------------------------------------------------------------
 import os
 import subprocess
+import sys
 import sysconfig
+import tempfile
 from .logger import Logger0
 
 
 class Compiler:
 
     def __init__(self):
-        self._executable = "gcc"
-        self._parent = None
-        self._compiler_flags = []
-        self._include_dirs = []
-        self._linker_flags = []
+        # Name of the compiler executable
+        self._executable = None    # str
+
+        # The "flavor" of the executable, determines how the flags are
+        # passed.
+        self._flavor = None        # 'msvc'|'gcc'|'clang'|'unknown'
+
+        # Parent `Extension` class
+        self._parent = None        # xbuild.extension.Extension
+        self._compiler_flags = []  # List[str]
+        self._include_dirs = []    # List[str]
+        self._linker_flags = []    # List[str]
 
 
     @property
@@ -46,8 +55,104 @@ class Compiler:
 
 
     @property
+    def executable(self):
+        if self._executable is None:
+            self._detect_compiler_executable()
+        return self._executable
+
+    @executable.setter
+    def executable(self, value):
+        assert isinstance(value, str)
+        self._executable = value
+        self._flavor = "msvc" if "msvc" in value else \
+                       "clang" if "clang" in value else \
+                       "gcc" if "gcc" in value or "g++" in value else \
+                       "unknown"
+
+
+    @property
+    def flavor(self):
+        if self._flavor is None:
+            self._detect_compiler_executable()
+        return self._flavor
+
+
+    @property
     def include_dirs(self):
         return self._include_dirs
+
+
+    def is_clang(self):
+        return self.flavor == "clang"
+
+    def is_msvc(self):
+        return self.flavor == "msvc"
+
+    def is_gcc(self):
+        return self.flavor == "gcc"
+
+
+
+    #---------------------------------------------------------------------------
+    # Setup
+    #---------------------------------------------------------------------------
+
+    def _check_compiler(self, cc, source, target):
+        """
+        Check whether the given compiler is viable, i.e. whether it
+        can compile a simple example file. Returns True if the
+        compiler works, and False otherwise.
+        """
+        e = self._executable
+        f = self._flavor
+        self.executable = cc
+        proc = self.compile(source, target, silent=True)
+        ret = proc.wait()
+        self._executable = e
+        self._flavor = f
+        return (ret == 0)
+
+
+    def _detect_compiler_executable(self):
+        fd, srcname = tempfile.mkstemp(suffix=".cc")
+        outname = srcname + ".out"
+        os.close(fd)
+        assert os.path.isfile(srcname)
+        try:
+            for envvar in ["CC", "CXX"]:
+                compiler = os.environ.get(envvar)
+                if not compiler:
+                    continue
+                if os.path.isabs(compiler) and not os.path.exists(compiler):
+                    raise ValueError("The compiler `%s` from environment "
+                                     "variable `%s` does not exist"
+                                     % (compiler, envvar))
+                if not self._check_compiler(compiler, srcname, outname):
+                    raise  ValueError("The compiler `%s` from environment "
+                                     "variable `%s` failed to compile an "
+                                     "empty file" % (compiler, envvar))
+                self.executable = compiler
+                self.log.report_compiler_executable(compiler, env=envvar)
+                return
+
+            candidates = ["/usr/local/opt/llvm/bin/clang", "gcc", "clang", "cc"]
+            if sys.platform == "win32":
+                candidates = ["msvc.exe"] + [cc + ".exe" for cc in candidates]
+
+            for cc in candidates:
+                if self._check_compiler(cc, srcname, outname):
+                    self.executable = cc
+                    self.log.report_compiler_executable(cc)
+                    return
+
+            raise RuntimeError("Suitable C++ compiler cannot be determined. "
+                               "Please specify a compiler executable in the "
+                               "`CXX` environment variable.")
+        finally:
+            if srcname and os.path.isfile(srcname):
+                os.remove(srcname)
+            if outname and os.path.isfile(outname):
+                os.remove(outname)
 
 
 
@@ -55,14 +160,23 @@ class Compiler:
     # Compiling
     #---------------------------------------------------------------------------
 
-    def add_include_dir(self, path):
+    def _flags_for_include_dir(self, path, as_system):
+        if self.is_msvc():
+            return ["/I" + path]
+        elif as_system:
+            return ["-isystem", path]
+        else:
+            return ["-I" + path]
+
+
+    def add_include_dir(self, path, system=False):
         if not path:
             return
         assert isinstance(path, str)
         if not os.path.isdir(path):
             raise ValueError("Include directory %s not found" % path)
         self._include_dirs.append(path)
-        self._compiler_flags += ["-I" + path]
+        self._compiler_flags += self._flags_for_include_dir(path, system)
         self.log.report_include_dir(path)
 
 
@@ -74,7 +188,7 @@ class Compiler:
         elif not os.path.exists(os.path.join(dd, "Python.h")):
             self._log.warn("Python include directory `%s` is missing the file "
                            "Python.h, compilation may fail" % dd)
-        self.add_include_dir(dd)
+        self.add_include_dir(dd, system=True)
 
 
     def add_compiler_flag(self, *flags):
@@ -89,16 +203,19 @@ class Compiler:
 
 
     def get_compile_command(self, source, target):
-        cmd = [self._executable] + self._compiler_flags
-        cmd += ["-c", source]
-        cmd += ["-o", target]
+        cmd = [self.executable] + self._compiler_flags
+        if self.is_msvc():
+            cmd += ["/c" + source, "/Fo" + target]
+        else:
+            cmd += ["-c", source, "-o", target]
         return cmd
 
 
-    def compile(self, src, obj):
+    def compile(self, src, obj, silent=False):
         os.makedirs(os.path.dirname(obj), exist_ok=True)
         cmd = self.get_compile_command(src, obj)
-        self.log.report_compile_file(src, cmd)
+        if not silent:
+            self.log.report_compile_file(src, cmd)
 
         return subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
@@ -117,9 +234,12 @@ class Compiler:
 
 
     def get_link_command(self, sources, target):
-        cmd = [self._executable] + self._linker_flags
+        cmd = [self.executable] + self._linker_flags
         cmd += sources
-        cmd += ["-o", target]
+        if self.is_msvc():
+            cmd += ["/Fe:", target]
+        else:
+            cmd += ["-o", target]
         return cmd
 
 

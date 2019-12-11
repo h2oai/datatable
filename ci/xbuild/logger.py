@@ -39,6 +39,7 @@ class Logger0:
     def report_compile_cmd_mismatch(self, cmd1, cmd2): pass
     def report_compile_file(self, filename, cmd): pass
     def report_compiler(self, cc): pass
+    def report_compiler_executable(self, cc, env=None): pass
     def report_dead_files(self, files): pass
     def report_deduplicated(self, files): pass
     def report_destdir(self, dd): pass
@@ -111,6 +112,12 @@ class Logger3(Logger0):
     def report_compiler(self, cc):
         self.info("Using compiler of class %s.%s"
                   % (cc.__class__.__module__, cc.__class__.__qualname__))
+
+    def report_compiler_executable(self, cc, env=None):
+        msg = "Using compiler `%s`" % cc
+        if env:
+            msg += " from environment variable `%s`" % env
+        self.info(msg)
 
     def report_dead_files(self, files):
         if files:
