@@ -23,9 +23,9 @@
 #-------------------------------------------------------------------------------
 
 try:
-	from . import _datatable_builder
+    from . import _datatable_builder
 except ImportError:
-	pass
+    pass
 
 # noinspection PyUnresolvedReferences
 from . import _datatable as core
