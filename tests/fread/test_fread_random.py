@@ -227,6 +227,18 @@ def generate_str_column(allparams):
     if rmode < 0:
         pass
     else:
-        # Generate simple alphanumeric strings
-        return [rr(random_string(int(random.expovariate(0.01))))
-                for _ in range(nrows)]
+        # Generate simple alphanumeric strings and make sure
+        # the resulting column is not fully populated with numeric values.
+        is_numeric = nrows > 0
+        col = []
+        while is_numeric:
+            col = [rr(random_string(int(random.expovariate(0.01))))
+                    for _ in range(nrows)]
+            for row in col:
+                try:
+                    if row:
+                        i = float(row)
+                except:
+                    is_numeric = False
+                    break
+        return col
