@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('../datatable'))
 # -- Project information -----------------------------------------------------
 
 project = 'datatable'
-copyright = '2018, H2O.ai'
+copyright = '2018-2019, H2O.ai'
 author = 'Pasha Stetsenko'
 
 try:
