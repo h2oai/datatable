@@ -237,7 +237,7 @@ def generate_str_column(allparams):
             for row in col:
                 try:
                     if row:
-                        i = float(row)
+                        float(row)
                 except:
                     is_numeric = False
                     break
