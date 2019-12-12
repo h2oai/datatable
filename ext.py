@@ -61,12 +61,12 @@ def build_extension(cmd, verbosity=3):
         ext.compiler.add_compiler_flag("-fPIC")
 
         # Common link flags
-        ext.compiler.add_linker_flag("-bundle")
-        ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
+        ext.compiler.add_linker_flag("-shared")
         ext.compiler.add_linker_flag("-g")
         ext.compiler.add_linker_flag("-m64")
+        if macos:
+            ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
         # "-lc++"    (linux & clang ???)
-        # "-shared"  (linux ???)
         # "-lstdc++" (gcc ???)
         # "-lm"      (gcc ???)
         # "-lz"      (???)

@@ -105,12 +105,16 @@ class Compiler:
         """
         e = self._executable
         f = self._flavor
-        self.executable = cc
-        proc = self.compile(source, target, silent=True)
-        ret = proc.wait()
-        self._executable = e
-        self._flavor = f
-        return (ret == 0)
+        try:
+            self.executable = cc
+            proc = self.compile(source, target, silent=True)
+            ret = proc.wait()
+            return (ret == 0)
+        except:
+            return False
+        finally:
+            self._executable = e
+            self._flavor = f
 
 
     def _detect_compiler_executable(self):
@@ -135,9 +139,13 @@ class Compiler:
                 self.log.report_compiler_executable(compiler, env=envvar)
                 return
 
-            candidates = ["/usr/local/opt/llvm/bin/clang", "gcc", "clang", "cc"]
             if sys.platform == "win32":
-                candidates = ["msvc.exe"] + [cc + ".exe" for cc in candidates]
+                candidates = ["msvc.exe", "clang.exe", "gcc.exe"]
+            elif sys.platform == "darwin":
+                candidates = ["/usr/local/opt/llvm/bin/clang", "clang"]
+            else:
+                candidates = ["gcc", "/usr/local/opt/llvm/bin/clang",
+                              "clang", "cc"]
 
             for cc in candidates:
                 if self._check_compiler(cc, srcname, outname):
