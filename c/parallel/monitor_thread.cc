@@ -17,12 +17,17 @@
 #define _XOPEN_SOURCE
 #include <iostream>
 #include <csignal> // std::signal
-#include <unistd.h>
 #include "parallel/monitor_thread.h"
 #include "parallel/thread_worker.h"     // idle_job
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "utils/exceptions.h"
 #include "parallel/api.h"
+#include "utils/macros.h"
+
+
+#if !DT_OS_WINDOWS
+  #include <unistd.h>        // nice
+#endif
 
 
 namespace dt {
@@ -49,13 +54,24 @@ monitor_thread::~monitor_thread() {
 void monitor_thread::run() noexcept {
   sigint_handler_prev = std::signal(SIGINT, sigint_handler);
   constexpr auto SLEEP_TIME = std::chrono::milliseconds(20);
+
   // Reduce this thread's priority to a minimum.
-  // See http://man7.org/linux/man-pages/man2/nice.2.html
-  int ret = nice(+19);
-  if (ret == -1) {
-    std::cout << "[errno " << errno << "] "
-              << "when setting nice value of monitor thread\n";
-  }
+  #if DT_OS_WINDOWS
+    HANDLE th = thread.native_handle();
+    int ret = SetThreadPriority(th, THREAD_PRIORITY_LOWEST);
+    if (!ret) {
+      std::cout << "[errno " << GetLastError() << "] "
+                << "when setting monitor thread priority\r\n";
+    }
+  #else
+    // See http://man7.org/linux/man-pages/man2/nice.2.html
+    int ret = nice(+19);
+    if (ret == -1) {
+      std::cout << "[errno " << errno << "] "
+                << "when setting nice value of monitor thread\n";
+    }
+  #endif
+
   _set_thread_num(size_t(-1));
 
   std::unique_lock<std::mutex> lock(mutex);
