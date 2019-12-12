@@ -211,7 +211,7 @@ class LightweightSemaphore {
         // the "real" work arrives, the thread may receive a priority penalty
         // from the OS (especially when the total number of threads is equal
         // to the number of cores in the system).
-        #if DT_ARCH_X86_64
+        #if DT_ARCH_X86_64 && !DT_OS_WINDOWS
           __asm__ volatile(".byte 0xf3,0x90");
         #else
           std::this_thread::yield();
