@@ -138,7 +138,7 @@ static py::PKArgs args_in_debug_mode(
     "Return True if datatable was compiled in debug mode");
 
 static py::oobj in_debug_mode(const py::PKArgs&) {
-  #ifdef DTDEBUG
+  #if DTDEBUG
     return py::True();
   #else
     return py::False();

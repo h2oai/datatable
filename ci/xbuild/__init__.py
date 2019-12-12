@@ -21,13 +21,14 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+from .compiler import Compiler
+from .extension import Extension
+from .logger import Logger0, Logger1, Logger3
 
-try:
-    from . import _datatable_builder
-except ImportError:
-    pass
-
-# noinspection PyUnresolvedReferences
-from . import _datatable as core
-
-__all__ = ("core", )
+__all__ = (
+	"Compiler",
+	"Extension",
+	"Logger0",
+	"Logger1",
+	"Logger3",
+)
