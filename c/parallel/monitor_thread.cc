@@ -23,8 +23,6 @@
 #include "utils/exceptions.h"
 #include "parallel/api.h"
 #include "utils/macros.h"
-
-
 #if !DT_OS_WINDOWS
   #include <unistd.h>        // nice
 #endif
