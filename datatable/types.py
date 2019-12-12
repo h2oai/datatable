@@ -247,7 +247,7 @@ _stype_2_ctype = {
 }
 
 _stype_extrema = {
-    stype.bool8: (0, 1),
+    stype.bool8: (False, True),
     stype.int8: (-127, 127),
     stype.int16: (-32767, 32767),
     stype.int32: (-2147483647, 2147483647),
