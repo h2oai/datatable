@@ -15,7 +15,7 @@ Frame
 General
 -------
 
-- |api| Properties ``dt.stype.min`` and ``dt.stype.max`` are now equal to
+- |api| Properties ``dt.bool8.min`` and ``dt.bool8.max`` are now equal to
   ``False`` and ``True`` respectively, instead of integers 0 and 1 (#2231).
 
 
