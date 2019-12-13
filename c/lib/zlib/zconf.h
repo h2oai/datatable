@@ -9,14 +9,15 @@
 //   STDC
 //
 // Undefined:
+//   ASMV
+//   FASTEST
+//   MAKECRCH
+//   MAXSEG_64K
 //   MSDOS
 //   OS2
 //   SYS16BIT
-//   MAXSEG_64K
 //   UNALIGNED_OK
-//   ASMV
 //   ZLIB_DEBUG
-//   FASTEST
 //
 
 #if defined(_WINDOWS) && !defined(WINDOWS)

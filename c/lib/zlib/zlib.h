@@ -418,7 +418,6 @@ extern int deflateInit2_ OF((z_stream* strm, int  level, int  method,
 
 
 extern const char* zError(int);
-extern const z_crc_t* get_crc_table();
 
 #ifdef __cplusplus
 }
