@@ -21,17 +21,22 @@
 //------------------------------------------------------------------------------
 #include <csignal>
 #include <iostream>
-#include <sys/ioctl.h>
 #include "frame/repr/repr_options.h"
 #include "utils/assert.h"
+#include "utils/macros.h"
 #include "utils/terminal/terminal.h"
+
+#if DT_OS_WINDOWS
+  #include <windows.h>
+#else
+  #include <sys/ioctl.h>
+
+  static void sigwinch_handler(int) {
+    dt::Terminal::standard_terminal().forget_window_size();
+  }
+#endif
+
 namespace dt {
-
-static void sigwinch_handler(int) {
-  Terminal::standard_terminal().forget_window_size();
-}
-
-
 
 //------------------------------------------------------------------------------
 // Constructors
@@ -57,9 +62,12 @@ Terminal::Terminal(bool is_plain) {
   is_jupyter_ = false;
   is_ipython_ = false;
   if (!enable_ecma48_) xassert(!enable_colors_);
+
+#if !DT_OS_WINDOWS
   if (!is_plain) {
     std::signal(SIGWINCH, sigwinch_handler);
   }
+#endif
 }
 
 Terminal::~Terminal() = default;
@@ -163,11 +171,22 @@ void Terminal::forget_window_size() {
 }
 
 void Terminal::_detect_window_size() {
+#if DT_OS_WINDOWS
+  CONSOLE_SCREEN_BUFFER_INFO csbi;
+  HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+  int ret = GetConsoleScreenBufferInfo(h, &csbi);
+  bool is_size_detected = ret > 0;
+  width_ = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+  height_ = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+#else
   struct winsize w;
   int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+  bool is_size_detected = ret != -1;
   width_ = w.ws_col;
   height_ = w.ws_row;
-  if (ret == -1 || width_ == 0) {
+#endif
+
+  if (!is_size_detected || width_ == 0) {
     width_ = 120;
     height_ = 45;
   }
