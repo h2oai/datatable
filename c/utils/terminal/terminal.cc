@@ -63,6 +63,10 @@ Terminal::Terminal(bool is_plain) {
   is_ipython_ = false;
   if (!enable_ecma48_) xassert(!enable_colors_);
 
+  // Note: there is no simple way to catch the terminal re-size event on
+  // Windows, because there is no `SIGWINCH` signal there.
+  // For such a reason, on Windows we just re-check the terminal size
+  // everytime the `get_width()` or `get_height()` are called.
 #if !DT_OS_WINDOWS
   if (!is_plain) {
     std::signal(SIGWINCH, sigwinch_handler);
@@ -151,12 +155,20 @@ bool Terminal::unicode_allowed() const noexcept {
 }
 
 int Terminal::get_width() {
+#if DT_OS_WINDOWS
+  _detect_window_size();
+#else
   if (!width_) _detect_window_size();
+#endif
   return width_;
 }
 
 int Terminal::get_height() {
+#if DT_OS_WINDOWS
+  _detect_window_size();
+#else
   if (!height_) _detect_window_size();
+#endif
   return height_;
 }
 
@@ -195,8 +207,6 @@ void Terminal::_detect_window_size() {
 void Terminal::use_unicode(bool f) {
   allow_unicode_ = f;
 }
-
-
 
 
 
