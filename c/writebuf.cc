@@ -18,9 +18,10 @@
 #include "writebuf.h"
 
 #if DT_OS_WINDOWS
+  #include <io.h>            // _write
+
   // The POSIX `write()` function is deprecated on Windows,
   // so we use the ISO C++ conformant `_write()` instead.
-  #include <io.h>            // write
   #define WRITE _write
 #else
   #include <unistd.h>        // write
