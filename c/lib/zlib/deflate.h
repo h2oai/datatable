@@ -87,7 +87,7 @@ typedef struct tree_desc_s {
     ct_data *dyn_tree;           /* the dynamic tree */
     int     max_code;            /* largest code with non zero frequency */
     const static_tree_desc *stat_desc;  /* the corresponding static tree */
-} FAR tree_desc;
+} tree_desc;
 
 typedef ush Pos;
 typedef Pos FAR Posf;
@@ -105,7 +105,7 @@ typedef struct internal_state {
     Bytef *pending_out;  /* next pending byte to output to the stream */
     ulg   pending;       /* nb of bytes in the pending buffer */
     int   wrap;          /* bit 0 true for zlib, bit 1 true for gzip */
-    gz_headerp  gzhead;  /* gzip header information to write */
+    gz_header* gzhead;   /* gzip header information to write */
     ulg   gzindex;       /* where in extra, name, or comment */
     Byte  method;        /* can only be DEFLATED */
     int   last_flush;    /* value of flush param for previous deflate call */

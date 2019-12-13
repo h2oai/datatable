@@ -1,32 +1,33 @@
-/* zlib.h -- interface of the 'zlib' general purpose compression library
-  version 1.2.11, January 15th, 2017
-
-  Copyright (C) 1995-2017 Jean-loup Gailly and Mark Adler
-
-  This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
-  arising from the use of this software.
-
-  Permission is granted to anyone to use this software for any purpose,
-  including commercial applications, and to alter it and redistribute it
-  freely, subject to the following restrictions:
-
-  1. The origin of this software must not be misrepresented; you must not
-     claim that you wrote the original software. If you use this software
-     in a product, an acknowledgment in the product documentation would be
-     appreciated but is not required.
-  2. Altered source versions must be plainly marked as such, and must not be
-     misrepresented as being the original software.
-  3. This notice may not be removed or altered from any source distribution.
-
-  Jean-loup Gailly        Mark Adler
-  jloup@gzip.org          madler@alumni.caltech.edu
-
-
-  The data format used by the zlib library is described by RFCs (Request for
-  Comments) 1950 to 1952 in the files http://tools.ietf.org/html/rfc1950
-  (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
-*/
+//------------------------------------------------------------------------------
+// zlib.h -- interface of the 'zlib' general purpose compression library
+// version 1.2.11, January 15th, 2017
+//
+// Copyright (C) 1995-2017 Jean-loup Gailly and Mark Adler
+//
+// This software is provided 'as-is', without any express or implied
+// warranty.  In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//    claim that you wrote the original software. If you use this software
+//    in a product, an acknowledgment in the product documentation would be
+//    appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+//
+// Jean-loup Gailly        Mark Adler
+// jloup@gzip.org          madler@alumni.caltech.edu
+//
+//
+// The data format used by the zlib library is described by RFCs (Request for
+// Comments) 1950 to 1952 in the files http://tools.ietf.org/html/rfc1950
+// (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
+//
 //------------------------------------------------------------------------------
 // This is a modified version of the original zlib.h:
 //   - fix many warnings
@@ -37,11 +38,7 @@
 #define ZLIB_H
 
 #include "lib/zlib/zconf.h"
-#ifdef __APPLE__
-#include <Availability.h>
-#else /* !__APPLE__ */
-#define __OSX_AVAILABLE_STARTING(x,y)	/* nothing */
-#endif /* !__APPLE__ */
+
 
 #if defined(__clang__)
   #pragma clang diagnostic push
@@ -144,40 +141,6 @@ typedef struct gz_header_s {
                            when writing a gzip file) */
 } gz_header;
 
-typedef gz_header FAR *gz_headerp;
-
-/*
-     The application must update next_in and avail_in when avail_in has dropped
-   to zero.  It must update next_out and avail_out when avail_out has dropped
-   to zero.  The application must initialize zalloc, zfree and opaque before
-   calling the init function.  All other fields are set by the compression
-   library and must not be updated by the application.
-
-     The opaque value provided by the application will be passed as the first
-   parameter for calls of zalloc and zfree.  This can be useful for custom
-   memory management.  The compression library attaches no meaning to the
-   opaque value.
-
-     zalloc must return Z_NULL if there is not enough memory for the object.
-   If zlib is used in a multi-threaded application, zalloc and zfree must be
-   thread safe.  In that case, zlib is thread-safe.  When zalloc and zfree are
-   Z_NULL on entry to the initialization function, they are set to internal
-   routines that use the standard library functions malloc() and free().
-
-     On 16-bit systems, the functions zalloc and zfree must be able to allocate
-   exactly 65536 bytes, but will not be required to allocate more than this if
-   the symbol MAXSEG_64K is defined (see zconf.h).  WARNING: On MSDOS, pointers
-   returned by zalloc for objects of exactly 65536 bytes *must* have their
-   offset normalized to zero.  The default allocation function provided by this
-   library ensures this (see zutil.c).  To reduce memory requirements and avoid
-   any allocation of 64K objects, at the expense of compression ratio, compile
-   the library with -DMAX_WBITS=14 (see zconf.h).
-
-     The fields total_in and total_out can be used for statistics or progress
-   reports.  After compression, total_in holds the total size of the
-   uncompressed data and may be saved for use by the decompressor (particularly
-   if the decompressor wants to decompress everything in a single step).
-*/
 
                         /* constants */
 
