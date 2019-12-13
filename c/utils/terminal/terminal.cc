@@ -63,8 +63,8 @@ Terminal::Terminal(bool is_plain) {
   is_ipython_ = false;
   if (!enable_ecma48_) xassert(!enable_colors_);
 
-  // Note: there is no simple way to catch the terminal re-size event on
-  // Windows, because there is no `SIGWINCH` signal there.
+  // Note: there is no simple way to catch the terminal re-size event
+  // on Windows, because there is no `SIGWINCH` signal there.
   // For such a reason, on Windows we just re-check the terminal size
   // everytime the `get_width()` or `get_height()` are called.
 #if !DT_OS_WINDOWS
