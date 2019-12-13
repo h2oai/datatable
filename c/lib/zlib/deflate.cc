@@ -236,7 +236,7 @@ static void slide_hash(deflate_state *s)
 
 
 /* ========================================================================= */
-int ZEXPORT deflateInit_(
+int deflateInit_(
     z_streamp strm,
     int level,
     const char *version,
@@ -250,7 +250,7 @@ int ZEXPORT deflateInit_(
 
 
 /* ========================================================================= */
-int ZEXPORT deflateInit2_(
+int deflateInit2_(
     z_streamp strm,
     int  level,
     int  method,
@@ -390,7 +390,7 @@ static int deflateStateCheck(z_streamp strm)
 
 
 /* ========================================================================= */
-int ZEXPORT deflateResetKeep(z_streamp strm)
+static int deflateResetKeep(z_streamp strm)
 {
     deflate_state *s;
 
@@ -430,7 +430,7 @@ int ZEXPORT deflateResetKeep(z_streamp strm)
 
 
 /* ========================================================================= */
-int ZEXPORT deflateReset(z_streamp strm)
+int deflateReset(z_streamp strm)
 {
     int ret;
 
@@ -460,7 +460,7 @@ int ZEXPORT deflateReset(z_streamp strm)
  * upper bound of about 14% expansion does not seem onerous for output buffer
  * allocation.
  */
-uLong ZEXPORT deflateBound(z_streamp strm, uLong sourceLen) {
+uLong deflateBound(z_streamp strm, uLong sourceLen) {
     deflate_state *s;
     uLong complen, wraplen;
 
@@ -575,7 +575,7 @@ static void flush_pending(z_streamp strm) {
 
 
 /* ========================================================================= */
-int ZEXPORT deflate(z_streamp strm, int flush)
+int deflate(z_streamp strm, int flush)
 {
     int old_flush; /* value of flush param for previous deflate call */
     deflate_state *s;
@@ -889,7 +889,7 @@ int ZEXPORT deflate(z_streamp strm, int flush)
 
 
 /* ========================================================================= */
-int ZEXPORT deflateEnd (z_streamp strm)
+int deflateEnd (z_streamp strm)
 {
     int status;
 
