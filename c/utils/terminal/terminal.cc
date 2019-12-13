@@ -53,8 +53,8 @@ Terminal& Terminal::plain_terminal() {
 }
 
 Terminal::Terminal(bool is_plain) {
-  width_ = is_plain? (1 << 20) : 0;
-  height_ = is_plain? 45 : 0;
+  size_.width = is_plain? (1 << 20) : 0;
+  size_.height = is_plain? 45 : 0;
   allow_unicode_ = true;
   enable_colors_ = !is_plain;
   enable_ecma48_ = !is_plain;
@@ -154,22 +154,14 @@ bool Terminal::unicode_allowed() const noexcept {
   return allow_unicode_;
 }
 
-int Terminal::get_width() {
-  #if DT_OS_WINDOWS
-    _detect_window_size();
-  #else
-    if (!width_) _detect_window_size();
-  #endif
-  return width_;
-}
 
-int Terminal::get_height() {
+TerminalSize Terminal::get_size() {
   #if DT_OS_WINDOWS
     _detect_window_size();
   #else
-    if (!height_) _detect_window_size();
+    if (!size_.width || !size_.height) _detect_window_size();
   #endif
-  return height_;
+  return size_;
 }
 
 
@@ -178,8 +170,8 @@ void Terminal::use_colors(bool f) {
 }
 
 void Terminal::forget_window_size() {
-  width_ = 0;
-  height_ = 0;
+  size_.width = 0;
+  size_.height = 0;
 }
 
 void Terminal::_detect_window_size() {
@@ -187,20 +179,20 @@ void Terminal::_detect_window_size() {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
     int ret = GetConsoleScreenBufferInfo(h, &csbi);
-    bool is_size_not_detected = (ret == 0);
-    width_ = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-    height_ = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    bool size_not_detected = (ret == 0);
+    size_.width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    size_.height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
   #else
     struct winsize w;
     int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    bool is_size_not_detected = (ret == -1);
-    width_ = w.ws_col;
-    height_ = w.ws_row;
+    bool size_not_detected = (ret == -1);
+    size_.width = w.ws_col;
+    size_.height = w.ws_row;
   #endif
 
-  if (is_size_not_detected || width_ == 0) {
-    width_ = 120;
-    height_ = 45;
+  if (size_not_detected || size_.width == 0) {
+    size_.width = 120;
+    size_.height = 45;
   }
 }
 

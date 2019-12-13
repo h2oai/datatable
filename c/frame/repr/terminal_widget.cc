@@ -65,7 +65,8 @@ void TerminalWidget::to_stdout() {
 //------------------------------------------------------------------------------
 
 void TerminalWidget::_render() {
-  _prerender_columns(terminal_->get_width());
+  const TerminalSize ts = terminal_->get_size();
+  _prerender_columns(ts.width);
   _render_column_names();
   _render_header_separator();
   _render_data();
