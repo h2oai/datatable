@@ -5,6 +5,7 @@
 #ifndef ZCONF_H
 #define ZCONF_H
 
+
 // Defined:
 //   STDC
 //
@@ -97,28 +98,32 @@
 #  define FAR
 #endif
 
-#if !defined(__MACTYPES__)
-typedef unsigned char  Byte;  /* 8 bits */
-#endif
-typedef unsigned int   uInt;  /* 16 bits or more */
-typedef unsigned long  uLong; /* 32 bits or more */
+namespace zlib {
 
-#ifdef SMALL_MEDIUM
-   /* Borland C/C++ and some old MSC versions ignore FAR inside typedef */
-#  define Bytef Byte FAR
-#else
-   typedef Byte  FAR Bytef;
-#endif
-typedef char  FAR charf;
-typedef int   FAR intf;
-typedef uInt  FAR uIntf;
-typedef uLong FAR uLongf;
+  #if !defined(__MACTYPES__)
+  typedef unsigned char  Byte;  /* 8 bits */
+  #endif
+  typedef unsigned int   uInt;  /* 16 bits or more */
+  typedef unsigned long  uLong; /* 32 bits or more */
 
-typedef void const *voidpc;
-typedef void FAR   *voidpf;
-typedef void       *voidp;
+  #ifdef SMALL_MEDIUM
+     /* Borland C/C++ and some old MSC versions ignore FAR inside typedef */
+  #  define Bytef Byte FAR
+  #else
+     typedef Byte  FAR Bytef;
+  #endif
+  typedef char  FAR charf;
+  typedef int   FAR intf;
+  typedef uInt  FAR uIntf;
+  typedef uLong FAR uLongf;
 
-typedef unsigned long z_crc_t;
+  typedef void const *voidpc;
+  typedef void FAR   *voidpf;
+  typedef void       *voidp;
+
+  typedef unsigned long z_crc_t;
+
+}  // namespace zlib
 
 
 #if defined(__APPLE__) /* avoid unistd.h on Win32 */
@@ -205,6 +210,7 @@ typedef unsigned long z_crc_t;
 #    define z_off64_t z_off_t
 #  endif
 #endif
+
 
 
 #endif /* ZCONF_H */

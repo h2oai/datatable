@@ -2,10 +2,8 @@
  * Copyright (C) 1995-2011, 2016 Mark Adler
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
-
-/* @(#) $Id$ */
-
 #include "zutil.h"
+namespace zlib {
 
 
 #define BASE 65521U     /* largest prime smaller than 65536 */
@@ -100,3 +98,6 @@ uLong adler32(uLong adler, const Bytef* buf, uInt len)
   return adler32_z(adler, buf, len);
 }
 
+
+
+} // namespace zlib

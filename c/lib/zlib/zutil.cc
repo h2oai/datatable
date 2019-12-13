@@ -2,13 +2,14 @@
  * Copyright (C) 1995-2017 Jean-loup Gailly
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
+#include "zutil.h"
+namespace zlib {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-qual"
 #pragma clang diagnostic ignored "-Wold-style-cast"
 
 
-#include "zutil.h"
 
 const char * const z_errmsg[10] = {
   (const char *)"need dictionary",      /* Z_NEED_DICT       2  */
@@ -43,7 +44,7 @@ const char* zError(int err)
 
 #ifndef HAVE_MEMCPY
 
-void ZLIB_INTERNAL zmemcpy(
+void zmemcpy(
   Bytef* dest,
   const Bytef* source,
   uInt  len
@@ -56,7 +57,7 @@ void ZLIB_INTERNAL zmemcpy(
 
 
 
-int ZLIB_INTERNAL zmemcmp(
+int zmemcmp(
   const Bytef* s1,
   const Bytef* s2,
   uInt  len
@@ -71,7 +72,7 @@ int ZLIB_INTERNAL zmemcmp(
 
 
 
-void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len)
+void zmemzero(Bytef* dest, uInt len)
 {
   if (len == 0) return;
   do {
@@ -87,7 +88,7 @@ void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len)
 
 
 
-voidpf ZLIB_INTERNAL zcalloc(
+voidpf zcalloc(
   voidpf opaque,
   unsigned items,
   unsigned size
@@ -98,7 +99,7 @@ voidpf ZLIB_INTERNAL zcalloc(
 }
 
 
-void ZLIB_INTERNAL zcfree (voidpf opaque, voidpf ptr)
+void zcfree (voidpf opaque, voidpf ptr)
 {
   (void)opaque;
   free(ptr);
@@ -110,3 +111,6 @@ void ZLIB_INTERNAL zcfree (voidpf opaque, voidpf ptr)
 
 #endif /* !Z_SOLO */
 #pragma clang diagnostic pop
+
+
+} // namespace zlib

@@ -7,13 +7,16 @@
    part of the implementation of the compression library and is
    subject to change. Applications should only use zlib.h.
  */
-
-/* @(#) $Id$ */
-
 #ifndef DEFLATE_H
 #define DEFLATE_H
-
 #include "zutil.h"
+namespace zlib {
+
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wpadded"
+#endif
+
 
 /* define NO_GZIP when compiling if you want to disable gzip header and
    trailer creation by deflate().  NO_GZIP would be used to avoid linking in
@@ -97,7 +100,7 @@ typedef unsigned IPos;
  * save space in the various tables. IPos is used only for parameter passing.
  */
 
-typedef struct internal_state {
+struct deflate_state {
     z_streamp strm;      /* pointer back to this zlib stream */
     int   status;        /* as the name implies */
     Bytef *pending_buf;  /* output still pending */
@@ -272,7 +275,9 @@ typedef struct internal_state {
      * longest match routines access bytes past the input.  This is then
      * updated to the new high water mark.
      */
-} FAR deflate_state;
+};
+
+
 
 /* Output a byte on the stream.
  * IN assertion: there is enough room in pending_buf.
@@ -295,14 +300,12 @@ typedef struct internal_state {
    memory checker errors from longest match routines */
 
         /* in trees.c */
-void ZLIB_INTERNAL _tr_init OF((deflate_state *s));
-int ZLIB_INTERNAL _tr_tally OF((deflate_state *s, unsigned dist, unsigned lc));
-void ZLIB_INTERNAL _tr_flush_block OF((deflate_state *s, charf *buf,
-                        ulg stored_len, int last));
-void ZLIB_INTERNAL _tr_flush_bits OF((deflate_state *s));
-void ZLIB_INTERNAL _tr_align OF((deflate_state *s));
-void ZLIB_INTERNAL _tr_stored_block OF((deflate_state *s, charf *buf,
-                        ulg stored_len, int last));
+void _tr_init(deflate_state *s);
+int _tr_tally(deflate_state *s, unsigned dist, unsigned lc);
+void _tr_flush_block(deflate_state *s, charf *buf, ulg stored_len, int last);
+void _tr_flush_bits(deflate_state *s);
+void _tr_align(deflate_state *s);
+void _tr_stored_block(deflate_state *s, charf *buf, ulg stored_len, int last);
 
 #define d_code(dist) \
    ((dist) < 256 ? _dist_code[dist] : _dist_code[256+((dist)>>7)])
@@ -311,25 +314,23 @@ void ZLIB_INTERNAL _tr_stored_block OF((deflate_state *s, charf *buf,
  * used.
  */
 
-#ifndef ZLIB_DEBUG
-/* Inline versions of _tr_tally for speed: */
 
 #if defined(GEN_TREES_H) || !defined(STDC)
-  extern uch ZLIB_INTERNAL _length_code[];
-  extern uch ZLIB_INTERNAL _dist_code[];
+  extern uch _length_code[];
+  extern uch _dist_code[];
 #else
-  extern const uch ZLIB_INTERNAL _length_code[];
-  extern const uch ZLIB_INTERNAL _dist_code[];
+  extern const uch _length_code[];
+  extern const uch _dist_code[];
 #endif
 
-# define _tr_tally_lit(s, c, flush) \
+#define _tr_tally_lit(s, c, flush) \
   { uch cc = (c); \
     s->d_buf[s->last_lit] = 0; \
     s->l_buf[s->last_lit++] = cc; \
     s->dyn_ltree[cc].Freq++; \
     flush = (s->last_lit == s->lit_bufsize-1); \
    }
-# define _tr_tally_dist(s, distance, length, flush) \
+#define _tr_tally_dist(s, distance, length, flush) \
   { uch len = (uch)(length); \
     ush dist = (ush)(distance); \
     s->d_buf[s->last_lit] = dist; \
@@ -339,10 +340,13 @@ void ZLIB_INTERNAL _tr_stored_block OF((deflate_state *s, charf *buf,
     s->dyn_dtree[d_code(dist)].Freq++; \
     flush = (s->last_lit == s->lit_bufsize-1); \
   }
-#else
-# define _tr_tally_lit(s, c, flush) flush = _tr_tally(s, 0, c)
-# define _tr_tally_dist(s, distance, length, flush) \
-              flush = _tr_tally(s, distance, length)
+
+
+
+
+#if defined(__clang__)
+  #pragma clang diagnostic pop
 #endif
 
+} // namespace zlib
 #endif /* DEFLATE_H */

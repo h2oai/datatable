@@ -1,34 +1,36 @@
-/* trees.c -- output deflated data using Huffman coding
- * Copyright (C) 1995-2017 Jean-loup Gailly
- * detect_data_type() function provided freely by Cosmin Truta, 2006
- * For conditions of distribution and use, see copyright notice in zlib.h
- */
-
-/*
- *  ALGORITHM
- *
- *      The "deflation" process uses several Huffman trees. The more
- *      common source values are represented by shorter bit sequences.
- *
- *      Each code tree is stored in a compressed form which is itself
- * a Huffman encoding of the lengths of all the code strings (in
- * ascending order by source values).  The actual code strings are
- * reconstructed from the lengths in the inflate process, as described
- * in the deflate specification.
- *
- *  REFERENCES
- *
- *      Deutsch, L.P.,"'Deflate' Compressed Data Format Specification".
- *      Available in ftp.uu.net:/pub/archiving/zip/doc/deflate-1.1.doc
- *
- *      Storer, James A.
- *          Data Compression:  Methods and Theory, pp. 49-50.
- *          Computer Science Press, 1988.  ISBN 0-7167-8156-5.
- *
- *      Sedgewick, R.
- *          Algorithms, p290.
- *          Addison-Wesley, 1983. ISBN 0-201-06672-6.
- */
+//------------------------------------------------------------------------------
+// trees.c -- output deflated data using Huffman coding
+// Copyright (C) 1995-2017 Jean-loup Gailly
+// detect_data_type() function provided freely by Cosmin Truta, 2006
+// For conditions of distribution and use, see copyright notice in zlib.h
+//
+//------------------------------------------------------------------------------
+//  ALGORITHM
+//
+//      The "deflation" process uses several Huffman trees. The more
+//      common source values are represented by shorter bit sequences.
+//
+//      Each code tree is stored in a compressed form which is itself
+// a Huffman encoding of the lengths of all the code strings (in
+// ascending order by source values).  The actual code strings are
+// reconstructed from the lengths in the inflate process, as described
+// in the deflate specification.
+//
+//  REFERENCES
+//
+//      Deutsch, L.P.,"'Deflate' Compressed Data Format Specification".
+//      Available in ftp.uu.net:/pub/archiving/zip/doc/deflate-1.1.doc
+//
+//      Storer, James A.
+//          Data Compression:  Methods and Theory, pp. 49-50.
+//          Computer Science Press, 1988.  ISBN 0-7167-8156-5.
+//
+//      Sedgewick, R.
+//          Algorithms, p290.
+//          Addison-Wesley, 1983. ISBN 0-201-06672-6.
+//------------------------------------------------------------------------------
+#include "deflate.h"
+namespace zlib {
 
 #ifdef __clang__
   #pragma clang diagnostic push
@@ -41,7 +43,6 @@
   #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
-#include "deflate.h"
 
 
 /* ===========================================================================
@@ -78,45 +79,16 @@ static const uch bl_order[BL_CODES]
  * probability, to avoid transmitting the lengths for unused bit length codes.
  */
 
+
+
 /* ===========================================================================
  * Local data. These are initialized only once.
  */
 
 #define DIST_CODE_LEN  512 /* see definition of array dist_code below */
 
-#if defined(GEN_TREES_H) || !defined(STDC)
-/* non ANSI compilers may not accept trees.h */
+#include "trees.h"
 
-static ct_data static_ltree[L_CODES+2];
-/* The static literal tree. Since the bit lengths are imposed, there is no
- * need for the L_CODES extra codes used during heap construction. However
- * The codes 286 and 287 are needed to build a canonical tree (see _tr_init
- * below).
- */
-
-static ct_data static_dtree[D_CODES];
-/* The static distance tree. (Actually a trivial tree since all codes use
- * 5 bits.)
- */
-
-uch _dist_code[DIST_CODE_LEN];
-/* Distance codes. The first 256 values correspond to the distances
- * 3 .. 258, the last 256 values correspond to the top 8 bits of
- * the 15 bit distances.
- */
-
-uch _length_code[MAX_MATCH-MIN_MATCH+1];
-/* length code for each normalized match length (0 == MIN_MATCH) */
-
-static int base_length[LENGTH_CODES];
-/* First normalized length for each code (0 = MIN_MATCH) */
-
-static int base_dist[D_CODES];
-/* First normalized distance for each code (0 = distance of 1) */
-
-#else
-#  include "trees.h"
-#endif /* GEN_TREES_H */
 
 struct static_tree_desc_s {
   const ct_data *static_tree;  /* static tree or NULL */
@@ -127,39 +99,37 @@ struct static_tree_desc_s {
 };
 
 static const static_tree_desc  static_l_desc =
-{static_ltree, extra_lbits, LITERALS+1, L_CODES, MAX_BITS};
+    {static_ltree, extra_lbits, LITERALS+1, L_CODES, MAX_BITS};
 
 static const static_tree_desc  static_d_desc =
-{static_dtree, extra_dbits, 0,          D_CODES, MAX_BITS};
+    {static_dtree, extra_dbits, 0,          D_CODES, MAX_BITS};
 
 static const static_tree_desc  static_bl_desc =
-{(const ct_data *)0, extra_blbits, 0,   BL_CODES, MAX_BL_BITS};
+    {(const ct_data *)0, extra_blbits, 0,   BL_CODES, MAX_BL_BITS};
+
+
 
 /* ===========================================================================
  * Local (static) routines in this file.
  */
 
-static void tr_static_init OF((void));
-static void init_block     OF((deflate_state *s));
-static void pqdownheap     OF((deflate_state *s, ct_data *tree, int k));
-static void gen_bitlen     OF((deflate_state *s, tree_desc *desc));
-static void gen_codes      OF((ct_data *tree, int max_code, ushf *bl_count));
-static void build_tree     OF((deflate_state *s, tree_desc *desc));
-static void scan_tree      OF((deflate_state *s, ct_data *tree, int max_code));
-static void send_tree      OF((deflate_state *s, ct_data *tree, int max_code));
-static int  build_bl_tree  OF((deflate_state *s));
-static void send_all_trees OF((deflate_state *s, int lcodes, int dcodes,
-                int blcodes));
-static void compress_block OF((deflate_state *s, const ct_data *ltree,
-                const ct_data *dtree));
-static int  detect_data_type OF((deflate_state *s));
-static unsigned bi_reverse OF((unsigned value, int length));
-static void bi_windup      OF((deflate_state *s));
-static void bi_flush       OF((deflate_state *s));
+static void init_block     (deflate_state *s);
+static void pqdownheap     (deflate_state *s, ct_data *tree, int k);
+static void gen_bitlen     (deflate_state *s, tree_desc *desc);
+static void gen_codes      (ct_data *tree, int max_code, ushf *bl_count);
+static void build_tree     (deflate_state *s, tree_desc *desc);
+static void scan_tree      (deflate_state *s, ct_data *tree, int max_code);
+static void send_tree      (deflate_state *s, ct_data *tree, int max_code);
+static int  build_bl_tree  (deflate_state *s);
+static void send_all_trees (deflate_state *s, int lcodes, int dcodes,
+                            int blcodes);
+static void compress_block (deflate_state *s, const ct_data *ltree,
+                            const ct_data *dtree);
+static int  detect_data_type(deflate_state *s);
+static unsigned bi_reverse (unsigned value, int length);
+static void bi_windup      (deflate_state *s);
+static void bi_flush       (deflate_state *s);
 
-#ifdef GEN_TREES_H
-  static void gen_trees_header OF((void));
-#endif
 
 #define send_code(s, c, tree) send_bits(s, tree[c].Code, tree[c].Len)
    /* Send a code of the given tree. c and tree must not have side effects */
@@ -199,165 +169,11 @@ static void bi_flush       OF((deflate_state *s));
 
 
 
-/* the arguments must not have side effects */
-/* ===========================================================================
- * Initialize the various 'constant' tables.
- */
-static void tr_static_init()
-{
-#if defined(GEN_TREES_H) || !defined(STDC)
-  static int static_init_done = 0;
-  int n;        /* iterates over tree elements */
-  int bits;     /* bit counter */
-  int length;   /* length value */
-  int code;     /* code value */
-  int dist;     /* distance index */
-  ush bl_count[MAX_BITS+1];
-  /* number of codes at each bit length for an optimal tree */
-
-  if (static_init_done) return;
-
-  /* For some embedded targets, global variables are not initialized: */
-  #ifdef NO_INIT_GLOBAL_POINTERS
-    static_l_desc.static_tree = static_ltree;
-    static_l_desc.extra_bits = extra_lbits;
-    static_d_desc.static_tree = static_dtree;
-    static_d_desc.extra_bits = extra_dbits;
-    static_bl_desc.extra_bits = extra_blbits;
-  #endif
-
-  /* Initialize the mapping length (0..255) -> length code (0..28) */
-  length = 0;
-  for (code = 0; code < LENGTH_CODES-1; code++) {
-    base_length[code] = length;
-    for (n = 0; n < (1<<extra_lbits[code]); n++) {
-      _length_code[length++] = (uch)code;
-    }
-  }
-  Assert (length == 256, "tr_static_init: length != 256");
-  /* Note that the length 255 (match length 258) can be represented
-   * in two different ways: code 284 + 5 bits or code 285, so we
-   * overwrite length_code[255] to use the best encoding:
-   */
-  _length_code[length-1] = (uch)code;
-
-  /* Initialize the mapping dist (0..32K) -> dist code (0..29) */
-  dist = 0;
-  for (code = 0 ; code < 16; code++) {
-    base_dist[code] = dist;
-    for (n = 0; n < (1<<extra_dbits[code]); n++) {
-      _dist_code[dist++] = (uch)code;
-    }
-  }
-  Assert (dist == 256, "tr_static_init: dist != 256");
-  dist >>= 7; /* from now on, all distances are divided by 128 */
-  for ( ; code < D_CODES; code++) {
-    base_dist[code] = dist << 7;
-    for (n = 0; n < (1<<(extra_dbits[code]-7)); n++) {
-      _dist_code[256 + dist++] = (uch)code;
-    }
-  }
-  Assert (dist == 256, "tr_static_init: 256+dist != 512");
-
-  /* Construct the codes of the static literal tree */
-  for (bits = 0; bits <= MAX_BITS; bits++) bl_count[bits] = 0;
-  n = 0;
-  while (n <= 143) static_ltree[n++].Len = 8, bl_count[8]++;
-  while (n <= 255) static_ltree[n++].Len = 9, bl_count[9]++;
-  while (n <= 279) static_ltree[n++].Len = 7, bl_count[7]++;
-  while (n <= 287) static_ltree[n++].Len = 8, bl_count[8]++;
-  /* Codes 286 and 287 do not exist, but we must include them in the
-   * tree construction to get a canonical Huffman tree (longest code
-   * all ones)
-   */
-  gen_codes((ct_data *)static_ltree, L_CODES+1, bl_count);
-
-  /* The static distance tree is trivial: */
-  for (n = 0; n < D_CODES; n++) {
-    static_dtree[n].Len = 5;
-    static_dtree[n].Code = bi_reverse((unsigned)n, 5);
-  }
-  static_init_done = 1;
-
-  #  ifdef GEN_TREES_H
-    gen_trees_header();
-  #  endif
-#endif /* defined(GEN_TREES_H) || !defined(STDC) */
-}
-
-
-
-/* ===========================================================================
- * Genererate the file trees.h describing the static trees.
- */
-#ifdef GEN_TREES_H
-#  ifndef ZLIB_DEBUG
-#    include <stdio.h>
-#  endif
-
-#  define SEPARATOR(i, last, width) \
-    ((i) == (last)? "\n};\n\n" :    \
-     ((i) % (width) == (width)-1 ? ",\n" : ", "))
-
-void gen_trees_header()
-{
-  FILE *header = fopen("trees.h", "w");
-  int i;
-
-  Assert (header != NULL, "Can't open trees.h");
-  fprintf(header,
-      "/* header created automatically with -DGEN_TREES_H */\n\n");
-
-  fprintf(header, "static const ct_data static_ltree[L_CODES+2] = {\n");
-  for (i = 0; i < L_CODES+2; i++) {
-    fprintf(header, "{{%3u},{%3u}}%s", static_ltree[i].Code,
-        static_ltree[i].Len, SEPARATOR(i, L_CODES+1, 5));
-  }
-
-  fprintf(header, "static const ct_data static_dtree[D_CODES] = {\n");
-  for (i = 0; i < D_CODES; i++) {
-    fprintf(header, "{{%2u},{%2u}}%s", static_dtree[i].Code,
-        static_dtree[i].Len, SEPARATOR(i, D_CODES-1, 5));
-  }
-
-  fprintf(header, "const uch ZLIB_INTERNAL _dist_code[DIST_CODE_LEN] = {\n");
-  for (i = 0; i < DIST_CODE_LEN; i++) {
-    fprintf(header, "%2u%s", _dist_code[i],
-        SEPARATOR(i, DIST_CODE_LEN-1, 20));
-  }
-
-  fprintf(header,
-    "const uch ZLIB_INTERNAL _length_code[MAX_MATCH-MIN_MATCH+1]= {\n");
-  for (i = 0; i < MAX_MATCH-MIN_MATCH+1; i++) {
-    fprintf(header, "%2u%s", _length_code[i],
-        SEPARATOR(i, MAX_MATCH-MIN_MATCH, 20));
-  }
-
-  fprintf(header, "static const int base_length[LENGTH_CODES] = {\n");
-  for (i = 0; i < LENGTH_CODES; i++) {
-    fprintf(header, "%1u%s", base_length[i],
-        SEPARATOR(i, LENGTH_CODES-1, 20));
-  }
-
-  fprintf(header, "static const int base_dist[D_CODES] = {\n");
-  for (i = 0; i < D_CODES; i++) {
-    fprintf(header, "%5u%s", base_dist[i],
-        SEPARATOR(i, D_CODES-1, 10));
-  }
-
-  fclose(header);
-}
-#endif /* GEN_TREES_H */
-
-
-
 /* ===========================================================================
  * Initialize the tree data structures for a new zlib stream.
  */
-void ZLIB_INTERNAL _tr_init(deflate_state *s)
+void _tr_init(deflate_state *s)
 {
-  tr_static_init();
-
   s->l_desc.dyn_tree = s->dyn_ltree;
   s->l_desc.stat_desc = &static_l_desc;
 
@@ -404,11 +220,11 @@ static void init_block(deflate_state *s)
  * one less element. Updates heap and heap_len.
  */
 #define pqremove(s, tree, top) \
-{\
-  top = s->heap[SMALLEST]; \
-  s->heap[SMALLEST] = s->heap[s->heap_len--]; \
-  pqdownheap(s, tree, SMALLEST); \
-}
+  {\
+    top = s->heap[SMALLEST]; \
+    s->heap[SMALLEST] = s->heap[s->heap_len--]; \
+    pqdownheap(s, tree, SMALLEST); \
+  }
 
 
 
@@ -842,7 +658,7 @@ static void send_all_trees(deflate_state *s, int lcodes, int dcodes, int blcodes
 /* ===========================================================================
  * Send a stored block
  */
-void ZLIB_INTERNAL _tr_stored_block(
+void _tr_stored_block(
   deflate_state *s,
   charf *buf,
   ulg stored_len,
@@ -861,7 +677,7 @@ void ZLIB_INTERNAL _tr_stored_block(
 /* ===========================================================================
  * Flush the bits in the bit buffer to pending output (leaves at most 7 bits)
  */
-void ZLIB_INTERNAL _tr_flush_bits(deflate_state *s)
+void _tr_flush_bits(deflate_state *s)
 {
   bi_flush(s);
 }
@@ -872,7 +688,7 @@ void ZLIB_INTERNAL _tr_flush_bits(deflate_state *s)
  * Send one empty static block to give enough lookahead for inflate.
  * This takes 10 bits, of which 7 may remain in the bit buffer.
  */
-void ZLIB_INTERNAL _tr_align(deflate_state *s)
+void _tr_align(deflate_state *s)
 {
   send_bits(s, STATIC_TREES<<1, 3);
   send_code(s, END_BLOCK, static_ltree);
@@ -885,7 +701,7 @@ void ZLIB_INTERNAL _tr_align(deflate_state *s)
  * Determine the best encoding for the current block: dynamic trees, static
  * trees or store, and write out the encoded block.
  */
-void ZLIB_INTERNAL _tr_flush_block(
+void _tr_flush_block(
   deflate_state *s,
   charf *buf,
   ulg stored_len,
@@ -981,7 +797,7 @@ void ZLIB_INTERNAL _tr_flush_block(
  * Save the match info and tally the frequency counts. Return true if
  * the current block must be flushed.
  */
-int ZLIB_INTERNAL _tr_tally (deflate_state *s, unsigned dist, unsigned lc)
+int _tr_tally (deflate_state *s, unsigned dist, unsigned lc)
 {
   s->d_buf[s->last_lit] = (ush)dist;
   s->l_buf[s->last_lit++] = (uch)lc;
@@ -1176,3 +992,4 @@ static void bi_windup(deflate_state *s)
 #ifdef __clang__
   #pragma clang diagnostic pop
 #endif
+}  // namespace zlib

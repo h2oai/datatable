@@ -18,9 +18,9 @@
 
   DYNAMIC_CRC_TABLE and MAKECRCH can be #defined to write out crc32.h.f
  */
-
-
 #include "zutil.h"      /* for STDC and definitions */
+namespace zlib {
+
 
 /* Definitions for doing the crc four data bytes at a time. */
 #if !defined(NOBYFOUR) && defined(Z_U4)
@@ -278,3 +278,7 @@ static unsigned long crc32_big(
 }
 
 #endif /* BYFOUR */
+
+
+
+} // namespace zlib

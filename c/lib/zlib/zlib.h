@@ -36,8 +36,8 @@
 //------------------------------------------------------------------------------
 #ifndef ZLIB_H
 #define ZLIB_H
-
 #include "lib/zlib/zconf.h"
+namespace zlib {
 
 
 #if defined(__clang__)
@@ -45,9 +45,6 @@
   #pragma clang diagnostic ignored "-Wpadded"
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define ZLIB_VERSION "1.2.11"
 #define ZLIB_VERNUM 0x12b0
@@ -93,7 +90,7 @@ extern "C" {
 typedef voidpf (*alloc_func) OF((voidpf opaque, uInt items, uInt size));
 typedef void   (*free_func)  OF((voidpf opaque, voidpf address));
 
-struct internal_state;
+struct deflate_state;
 
 struct z_stream {
     z_const Bytef *next_in;     /* next input byte */
@@ -105,7 +102,7 @@ struct z_stream {
     uLong    total_out; /* total number of bytes output so far */
 
     z_const char *msg;  /* last error message, NULL if no error */
-    struct internal_state FAR *state; /* not visible by applications */
+    deflate_state* state; /* not visible by applications */
 
     alloc_func zalloc;  /* used to allocate the internal state */
     free_func  zfree;   /* used to free the internal state */
@@ -306,7 +303,7 @@ typedef struct gz_header_s {
   * deflate() can be called again with more input and more output space to
   * continue compressing.
   */
-extern int deflate(z_stream* strm, int flush);
+int deflate(z_stream* strm, int flush);
 
 
 /**
@@ -320,7 +317,7 @@ extern int deflate(z_stream* strm, int flush);
   * may be set but then points to a static string (which must not be
   * deallocated).
   */
-extern int deflateEnd(z_stream* strm);
+int deflateEnd(z_stream* strm);
 
 
 /**
@@ -332,7 +329,7 @@ extern int deflateEnd(z_stream* strm);
   *   deflateReset returns Z_OK if success, or Z_STREAM_ERROR if the source
   * stream state was inconsistent (such as zalloc or state being Z_NULL).
   */
-extern int deflateReset(z_stream* strm);
+int deflateReset(z_stream* strm);
 
 
 /**
@@ -347,7 +344,7 @@ extern int deflateReset(z_stream* strm);
   * be larger than the value returned by deflateBound() if flush options other
   * than Z_FINISH or Z_NO_FLUSH are used.
   */
-extern uLong deflateBound(z_stream* strm, uLong sourceLen);
+uLong deflateBound(z_stream* strm, uLong sourceLen);
 
 
 
@@ -373,7 +370,7 @@ extern uLong deflateBound(z_stream* strm, uLong sourceLen);
   *   }
   *   if (adler != original_adler) error();
   */
-extern uLong adler32(uLong adler, const Bytef* buf, uInt len);
+uLong adler32(uLong adler, const Bytef* buf, uInt len);
 
 
 /**
@@ -391,7 +388,7 @@ extern uLong adler32(uLong adler, const Bytef* buf, uInt len);
   *   }
   *   if (crc != original_crc) error();
   */
-extern uLong crc32(uLong crc, const Bytef* buf, uInt len);
+uLong crc32(uLong crc, const Bytef* buf, uInt len);
 
 
 
@@ -403,12 +400,11 @@ extern uLong crc32(uLong crc, const Bytef* buf, uInt len);
 /* deflateInit and inflateInit are macros to allow checking the zlib version
  * and the compiler's view of z_stream:
  */
-extern int deflateInit_ OF((z_stream* strm, int level,
-                                     const char *version, int stream_size));
-extern int deflateInit2_ OF((z_stream* strm, int  level, int  method,
-                                      int windowBits, int memLevel,
-                                      int strategy, const char *version,
-                                      int stream_size));
+int deflateInit_(z_stream* strm, int level, const char *version,
+                 int stream_size);
+int deflateInit2_(z_stream* strm, int level, int method, int windowBits,
+                  int memLevel, int strategy, const char *version,
+                  int stream_size);
 
 #define deflateInit(strm, level) \
           deflateInit_((strm), (level), ZLIB_VERSION, z_stream_size)
@@ -417,14 +413,13 @@ extern int deflateInit2_ OF((z_stream* strm, int  level, int  method,
                         (strategy), ZLIB_VERSION, z_stream_size)
 
 
-extern const char* zError(int);
+const char* zError(int);
 
-#ifdef __cplusplus
-}
-#endif
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
 #endif
 
+
+} // namespace zlib
 #endif /* ZLIB_H */
