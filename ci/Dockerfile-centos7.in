@@ -18,7 +18,7 @@ RUN \
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
 ENV CFLAGS="-std=c99"
-ENV PANDAS_VERSION=0.23.2
+ENV PANDAS_VERSION=0.23.4
 ENV LD_LIBRARY_PATH=/opt/h2oai/dai/lib/:${LD_LIBRARY_PATH}
 
 RUN pip install wheel virtualenv && \
@@ -26,19 +26,19 @@ RUN pip install wheel virtualenv && \
     conda create -n datatable-py35-with-pandas python=3.5 && \
     . activate datatable-py35-with-pandas && \
     pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
-    pip install Cython && \
+    pip install --no-cache-dir cython && \
     . deactivate && \
     \
     conda create -n datatable-py36-with-pandas python=3.6 && \
     . activate datatable-py36-with-pandas && \
      pip install --no-cache-dir pandas==${PANDAS_VERSION}&& \
-     pip install Cython && \
+     pip install --no-cache-dir cython && \
     . deactivate && \
     \
     conda create -n datatable-py36-with-numpy python=3.6 && \
     . activate datatable-py36-with-numpy && \
     pip install --no-cache-dir numpy && \
-    pip install Cython && \
+    pip install --no-cache-dir cython && \
     . deactivate && \
     \
     conda create -n datatable-py36 python=3.6 && \
@@ -46,7 +46,7 @@ RUN pip install wheel virtualenv && \
     conda create -n datatable-py37-with-pandas python=3.7 && \
     . activate datatable-py37-with-pandas && \
     pip install --no-cache-dir pandas==${PANDAS_VERSION} && \
-    pip install Cython && \
+    pip install --no-cache-dir cython && \
     . deactivate && \
     \
     chmod -R a+w /opt/h2oai/dai/python/envs
