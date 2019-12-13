@@ -66,7 +66,7 @@ Terminal::Terminal(bool is_plain) {
   // Note: there is no simple way to catch the terminal re-size event
   // on Windows, because there is no `SIGWINCH` signal there.
   // For such a reason, on Windows we just re-check the terminal size
-  // everytime the `get_width()` or `get_height()` are called.
+  // everytime the `get_width()` and `get_height()` are called.
 #if !DT_OS_WINDOWS
   if (!is_plain) {
     std::signal(SIGWINCH, sigwinch_handler);
