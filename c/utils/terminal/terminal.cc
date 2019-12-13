@@ -187,18 +187,18 @@ void Terminal::_detect_window_size() {
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
   int ret = GetConsoleScreenBufferInfo(h, &csbi);
-  bool is_size_detected = ret > 0;
+  bool is_size_not_detected = (ret == 0);
   width_ = csbi.srWindow.Right - csbi.srWindow.Left + 1;
   height_ = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 #else
   struct winsize w;
   int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-  bool is_size_detected = ret != -1;
+  bool is_size_not_detected = (ret == -1);
   width_ = w.ws_col;
   height_ = w.ws_row;
 #endif
 
-  if (!is_size_detected || width_ == 0) {
+  if (is_size_not_detected || width_ == 0) {
     width_ = 120;
     height_ = 45;
   }
