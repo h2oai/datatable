@@ -67,11 +67,11 @@ Terminal::Terminal(bool is_plain) {
   // on Windows, because there is no `SIGWINCH` signal there.
   // For such a reason, on Windows we just re-check the terminal size
   // everytime the `get_width()` and `get_height()` are called.
-#if !DT_OS_WINDOWS
-  if (!is_plain) {
-    std::signal(SIGWINCH, sigwinch_handler);
-  }
-#endif
+  #if !DT_OS_WINDOWS
+    if (!is_plain) {
+      std::signal(SIGWINCH, sigwinch_handler);
+    }
+  #endif
 }
 
 Terminal::~Terminal() = default;
@@ -155,20 +155,20 @@ bool Terminal::unicode_allowed() const noexcept {
 }
 
 int Terminal::get_width() {
-#if DT_OS_WINDOWS
-  _detect_window_size();
-#else
-  if (!width_) _detect_window_size();
-#endif
+  #if DT_OS_WINDOWS
+    _detect_window_size();
+  #else
+    if (!width_) _detect_window_size();
+  #endif
   return width_;
 }
 
 int Terminal::get_height() {
-#if DT_OS_WINDOWS
-  _detect_window_size();
-#else
-  if (!height_) _detect_window_size();
-#endif
+  #if DT_OS_WINDOWS
+    _detect_window_size();
+  #else
+    if (!height_) _detect_window_size();
+  #endif
   return height_;
 }
 
@@ -183,20 +183,20 @@ void Terminal::forget_window_size() {
 }
 
 void Terminal::_detect_window_size() {
-#if DT_OS_WINDOWS
-  CONSOLE_SCREEN_BUFFER_INFO csbi;
-  HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-  int ret = GetConsoleScreenBufferInfo(h, &csbi);
-  bool is_size_not_detected = (ret == 0);
-  width_ = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-  height_ = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-#else
-  struct winsize w;
-  int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-  bool is_size_not_detected = (ret == -1);
-  width_ = w.ws_col;
-  height_ = w.ws_row;
-#endif
+  #if DT_OS_WINDOWS
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    int ret = GetConsoleScreenBufferInfo(h, &csbi);
+    bool is_size_not_detected = (ret == 0);
+    width_ = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    height_ = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+  #else
+    struct winsize w;
+    int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    bool is_size_not_detected = (ret == -1);
+    width_ = w.ws_col;
+    height_ = w.ws_row;
+  #endif
 
   if (is_size_not_detected || width_ == 0) {
     width_ = 120;
