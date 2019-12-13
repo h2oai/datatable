@@ -18,7 +18,7 @@ RUN \
 ENV PATH=/opt/h2oai/dai/python/bin:$PATH
 ENV PATH=/usr/local/bin:$PATH
 ENV CFLAGS="-std=c99"
-ENV PANDAS_VERSION=0.24.1
+ENV PANDAS_VERSION=0.23.2
 ENV LD_LIBRARY_PATH=/opt/h2oai/dai/lib/:${LD_LIBRARY_PATH}
 
 RUN pip install wheel virtualenv && \
