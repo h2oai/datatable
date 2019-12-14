@@ -77,6 +77,7 @@ def test_platform():
     # This test performs only minimal checks, and also outputs diagnostic
     # information about the platform being run.
     print()
+    print("argv           = %r" % sys.argv)
     print("executable     = %s" % sys.executable)
     print("platform       = %s" % sys.platform)
     print("version        = %s" % sys.version.replace("\n", " "))
@@ -305,7 +306,7 @@ def test_names_deduplication():
 def test_random_attack():
     import subprocess
     cmd_run = "./tests/random_driver.py"
-    proc = subprocess.Popen(["python", cmd_run,
+    proc = subprocess.Popen([sys.executable, cmd_run,
                             "-v", "-n 5"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate(timeout=100)
