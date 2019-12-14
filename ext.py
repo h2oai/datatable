@@ -66,10 +66,8 @@ def build_extension(cmd, verbosity=3):
         ext.compiler.add_linker_flag("-m64")
         if macos:
             ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
-        # "-lc++"    (linux & clang ???)
-        # "-lstdc++" (gcc ???)
-        # "-lm"      (gcc ???)
-        # "-lz"      (???)
+        if linux:
+            ext.compiler.add_linker_flag("-lstdc++")
 
         if cmd == "asan":
             ext.compiler.add_compiler_flag("-fsanitize=address")

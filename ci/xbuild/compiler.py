@@ -244,12 +244,16 @@ class Compiler:
 
 
     def get_link_command(self, sources, target):
-        cmd = [self.executable] + self._linker_flags
+        cmd = [self.executable]
         cmd += sources
         if self.is_msvc():
             cmd += ["/Fe:", target]
         else:
             cmd += ["-o", target]
+        # Certain linker flags (such as included libraries) must come AFTER the
+        # list of object files. Should we give the user a better control over
+        # the location of different flags?
+        cmd += self._linker_flags
         return cmd
 
 
