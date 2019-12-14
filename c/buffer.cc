@@ -903,7 +903,13 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
         } else {
           impl_->resize(newsize);
         }
-      } else {
+      }
+      else if (newsize < oldsize) {
+        auto tmp = impl_;
+        impl_ = new View_BufferImpl(impl_, newsize, 0);
+        tmp->release();
+      }
+      else {
         size_t copysize = keep_data? std::min(newsize, oldsize) : 0;
         materialize(newsize, copysize);
       }

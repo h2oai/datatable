@@ -59,6 +59,20 @@ def test_open(tempfile_jay):
     assert_equals(DT, DT2)
 
 
+def test_fread(tempfile_jay):
+    # Check that Jay format can be read even if the file's extension isn't "jay"
+    tempfile_joy = tempfile_jay[:-4] + ".joy"
+    try:
+        DT = dt.Frame(AA=range(1000000))
+        DT.to_jay(tempfile_jay)
+        DT.to_jay(tempfile_joy)
+        f1 = dt.fread(tempfile_jay)
+        f2 = dt.fread(tempfile_joy)
+        assert_equals(f1, f2)
+    finally:
+        os.remove(tempfile_joy)
+
+
 def test_jay_empty_string_col(tempfile_jay):
     dt0 = dt.Frame([[1, 2, 3], ["", "", ""]], names=["hogs", "warts"])
     dt0.to_jay(tempfile_jay)

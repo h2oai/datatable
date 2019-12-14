@@ -357,16 +357,20 @@ void GenericReader::init_logger(const py::Arg& arg) {
 py::oobj GenericReader::read_all()
 {
   open_input();
-  detect_and_skip_bom();
-  skip_to_line_number();
-  skip_to_line_with_string();
-  skip_initial_whitespace();
-  skip_trailing_whitespace();
-  job->add_done_amount(WORK_PREPARE);
+  bool done = read_jay();
 
-  read_empty_input() ||
-  detect_improper_files() ||
-  read_csv();
+  if (!done) {
+    detect_and_skip_bom();
+    skip_to_line_number();
+    skip_to_line_with_string();
+    skip_initial_whitespace();
+    skip_trailing_whitespace();
+    job->add_done_amount(WORK_PREPARE);
+
+    read_empty_input() ||
+    detect_improper_files() ||
+    read_csv();
+  }
 
   if (outputs.empty()) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
@@ -803,6 +807,23 @@ bool GenericReader::detect_improper_files() {
                     && std::memcmp(eof - 4, "FEA1", 4) == 0) {
     throw RuntimeError() << src_arg.to_string() << " is a feather file, it "
         "cannot be read with fread.";
+  }
+  return false;
+}
+
+
+bool GenericReader::read_jay() {
+  if (eof - sof >= 24 &&
+      sof[0] == 'J' && sof[1] == 'A' && sof[2] == 'Y' &&
+      sof[3] >= '1' && sof[3] <= '9')
+  {
+    job->add_done_amount(WORK_PREPARE);
+    // Buffer's size can be larger than the input
+    input_mbuf.resize(datasize());
+    DataTable* dt = open_jay_from_mbuf(input_mbuf);
+    job->add_done_amount(WORK_READ);
+    outputs.push_back(py::Frame::oframe(dt));
+    return true;
   }
   return false;
 }

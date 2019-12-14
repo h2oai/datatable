@@ -18,6 +18,9 @@ General
 - |api| Properties ``dt.bool8.min`` and ``dt.bool8.max`` are now equal to
   ``False`` and ``True`` respectively, instead of integers 0 and 1 (#2231).
 
+- |enh| :func:`fread` is now able to read Jay files even if the file doesn't
+  have the ``.jay`` extension.
+
 
 
 FTRL model
