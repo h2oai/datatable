@@ -166,6 +166,7 @@ def test_h2o3_bigdata(f):
         os.path.join("flights-nyc", "delays14.csv.zip"),
         os.path.join("flights-nyc", "flights14.csv.zip"),
         os.path.join("flights-nyc", "weather_delays14.csv.zip"),
+        os.path.join("images", "demo_disney_data.zip"),  # jpegs...
         os.path.join("jira", "la1s.wc.arff.txt.zip"),
         os.path.join("jira", "re0.wc.arff.txt.zip"),
         os.path.join("jira", "rotterdam.csv.zip"),
