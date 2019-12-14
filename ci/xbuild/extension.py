@@ -619,6 +619,11 @@ class Extension:
         """
         self.log.step_compile(self._files_to_compile)
 
+        # Sort files by size, from largest to smallest -- this reduces the
+        # total compilation time (on my machine from 50s down to 40s).
+        sizes = {src: os.path.getsize(src) for src in self._files_to_compile}
+        self._files_to_compile.sort(key=lambda s: -sizes[s])
+
         def compile_queue():
             # Given a queue of workers (`subprocess.Popen` processes),
             # wait until at least one of them finishes and return that

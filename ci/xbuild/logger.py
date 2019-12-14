@@ -75,6 +75,7 @@ class Logger0:
     def info(self, msg, indent=None): pass
 
     def report_errors_and_warnings(self, msgs, errors=False):
+        print()
         for msg in msgs:
             print(msg)
 
