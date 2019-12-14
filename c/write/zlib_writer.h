@@ -24,11 +24,7 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "types.h"
-namespace zlib {
-  extern "C" {
-    #include "lib/zlib/zlib.h"
-  }
-}
+#include "lib/zlib/zlib.h"
 namespace dt {
 namespace write {
 

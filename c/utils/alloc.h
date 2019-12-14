@@ -8,6 +8,7 @@
 #ifndef dt_UTILS_ALLLOC_h
 #define dt_UTILS_ALLLOC_h
 #include <cstdlib>
+#include <cstdint>
 
 namespace dt
 {

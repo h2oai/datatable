@@ -243,13 +243,20 @@ def test_stype_minmax(st):
         assert st.min is None
         assert st.max is None
     else:
-        vtype = float if st.ltype == ltype.real else int
+        vtype = float if st.ltype == ltype.real else \
+                bool  if st == stype.bool8 else \
+                int
         assert isinstance(st.min, vtype)
         assert isinstance(st.max, vtype)
         F = dt.Frame([st.min, st.max], stype=st)
         assert F.stypes == (st,)
         assert F[0, 0] == st.min
         assert F[1, 0] == st.max
+        # Check that they can be assigned too:
+        F[0, 0] = st.max
+        F[1, 0] = st.min
+        assert F[0, 0] == st.max
+        assert F[1, 0] == st.min
         if vtype is int:
             # Check that cannot store any larger value
             G = dt.Frame([st.min - 1, st.max + 1], stype=st)
