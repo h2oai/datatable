@@ -235,7 +235,7 @@ class Logger3(Logger0):
 
     def report_sources(self, sources, pattern=None):
         if pattern is None:
-            self.info("Added source file %s" + sources)
+            self.info("Added source file %s" % sources)
         else:
             assert isinstance(sources, list)
             self.info("Added %d source files from pattern `%s`: %s"

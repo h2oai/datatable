@@ -484,6 +484,7 @@ class Extension:
         if srcfile not in self._files_modified:
             self._files_modified[srcfile] = (
                 srcfile not in self._src_includes or
+                not os.path.exists(srcfile) or
                 int(os.path.getmtime(srcfile) > self._t0) or
                 any(self._is_modified(hfile)
                     for hfile in self._src_includes[srcfile])
@@ -570,6 +571,9 @@ class Extension:
         normalized paths, and stores the list into the
         `self._src_includes` map.
         """
+        # If a file was removed, then there's nothing to scan
+        if not os.path.exists(src_file):
+            return
         src_path = os.path.dirname(src_file)
         includes = []
         with open(src_file, "rt") as inp:
