@@ -21,6 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import io
 import os
 import subprocess
 import sys
@@ -225,9 +226,10 @@ class Compiler:
         if not silent:
             self.log.report_compile_start(src, cmd)
 
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        fd, srcname = tempfile.mkstemp(suffix=".out")
+        proc = subprocess.Popen(cmd, stdout=fd, stderr=fd)
         proc.source = src
+        proc.output = srcname
         return proc
 
 
@@ -262,5 +264,7 @@ class Compiler:
         cmd = self.get_link_command(obj_files, target)
         self.log.report_link_file(target, cmd)
 
-        return subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        fd, srcname = tempfile.mkstemp(suffix=".out")
+        proc = subprocess.Popen(cmd, stdout=fd, stderr=fd)
+        proc.output = srcname
+        return proc

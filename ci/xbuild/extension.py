@@ -649,11 +649,12 @@ class Extension:
         n_error_lines = 0
         has_errors = False
         for proc in compile_queue():
-            stdout, stderr = proc.communicate()
             self.log.report_compile_finish(proc.source, (proc.returncode != 0))
             if proc.returncode:
                 has_errors = True
-            out = (stdout + stderr).decode("utf-8")
+            with open(proc.output, "rt", encoding="utf-8") as proc_output:
+                out = proc_output.read()
+            os.remove(proc.output)
             if out:
                 errors_and_warnings.append(out)
                 n_error_lines += len(out.split("\n"))
@@ -678,10 +679,12 @@ class Extension:
         self.log.step_link(need_to_link)
         if need_to_link:
             obj_files = list(self._src2obj.values())
-            worker = self.compiler.link(obj_files, self.output_file)
-            stdout, stderr = worker.communicate()
-            msg = (stdout + stderr).decode("utf-8")
-            fail = (worker.returncode != 0)
+            proc = self.compiler.link(obj_files, self.output_file)
+            proc.wait()
+            with open(proc.output, "rt", encoding="utf-8") as proc_output:
+                msg = proc_output.read()
+            os.remove(proc.output)
+            fail = (proc.returncode != 0)
             if msg:
                 self.log.report_errors_and_warnings([msg], errors=fail)
             if fail:
