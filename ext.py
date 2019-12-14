@@ -132,9 +132,12 @@ if __name__ == "__main__":
                  "are supported: `asan` (built with Address Sanitizer), `build`"
                  " (standard build mode), `coverage` (suitable for coverage "
                  "testing), and `debug` (with full debug info).")
+    parser.add_argument("-v", dest="verbosity", action="count", default=1,
+            help="Verbosity level of the output, specify the parameter up to 3 "
+                 "times for maximum verbosity; the default level is 1")
 
     args = parser.parse_args()
     with open("datatable/lib/.xbuild-cmd", "wt") as out:
         out.write(args.cmd)
 
-    build_extension(cmd=args.cmd, verbosity=3)
+    build_extension(cmd=args.cmd, verbosity=args.verbosity)
