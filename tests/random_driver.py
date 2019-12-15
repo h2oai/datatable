@@ -50,7 +50,7 @@ def start_random_attack(n_attacks=None, maxfail=None):
 def try_seed(seed):
     utf8_env = os.environ
     utf8_env['PYTHONIOENCODING'] = 'utf-8'
-    proc = subprocess.Popen(["python", "random_attack.py", str(seed)],
+    proc = subprocess.Popen([sys.executable, "random_attack.py", str(seed)],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             env=utf8_env)
     try:

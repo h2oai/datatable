@@ -61,15 +61,13 @@ def build_extension(cmd, verbosity=3):
         ext.compiler.add_compiler_flag("-fPIC")
 
         # Common link flags
-        ext.compiler.add_linker_flag("-bundle")
-        ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
+        ext.compiler.add_linker_flag("-shared")
         ext.compiler.add_linker_flag("-g")
         ext.compiler.add_linker_flag("-m64")
-        # "-lc++"    (linux & clang ???)
-        # "-shared"  (linux ???)
-        # "-lstdc++" (gcc ???)
-        # "-lm"      (gcc ???)
-        # "-lz"      (???)
+        if macos:
+            ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
+        if linux:
+            ext.compiler.add_linker_flag("-lstdc++")
 
         if cmd == "asan":
             ext.compiler.add_compiler_flag("-fsanitize=address")
@@ -134,9 +132,12 @@ if __name__ == "__main__":
                  "are supported: `asan` (built with Address Sanitizer), `build`"
                  " (standard build mode), `coverage` (suitable for coverage "
                  "testing), and `debug` (with full debug info).")
+    parser.add_argument("-v", dest="verbosity", action="count", default=1,
+            help="Verbosity level of the output, specify the parameter up to 3 "
+                 "times for maximum verbosity; the default level is 1")
 
     args = parser.parse_args()
     with open("datatable/lib/.xbuild-cmd", "wt") as out:
         out.write(args.cmd)
 
-    build_extension(cmd=args.cmd, verbosity=3)
+    build_extension(cmd=args.cmd, verbosity=args.verbosity)
