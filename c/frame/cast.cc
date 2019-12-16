@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -111,6 +111,7 @@ static void cast_fw0(const Column& col, size_t start, void* out_data)
   auto inp = static_cast<const T*>(col.get_data_readonly()) + start;
   auto out = static_cast<U*>(out_data);
   dt::parallel_for_static(col.nrows(),
+    dt::NThreads(col.allow_parallel_access()),
     [=](size_t i) {
       out[i] = CAST_OP(inp[i]);
     });
@@ -122,6 +123,7 @@ static void cast_fw2(const Column& col, void* out_data)
 {
   auto out = static_cast<U*>(out_data);
   dt::parallel_for_static(col.nrows(),
+    dt::NThreads(col.allow_parallel_access()),
     [=](size_t i) {
       T value;
       bool isvalid = col.get_element(i, &value);
@@ -165,7 +167,7 @@ static Column cast_to_str(const Column& col, Buffer&& out_offsets,
       col.nrows(),
       std::move(out_offsets),
       /* force_str64 = */ (target_stype == SType::STR64),
-      /* force_single_threaded = */ (col.stype() == SType::OBJ)
+      /* force_single_threaded = */ !col.allow_parallel_access()
   );
 }
 
@@ -195,7 +197,8 @@ static Column cast_str_to_str(const Column& col, Buffer&& out_offsets,
       },
       col.nrows(),
       std::move(out_offsets),
-      (target_stype == SType::STR64)
+      /* force_str64 = */ (target_stype == SType::STR64),
+      /* force_single_threaded = */ !col.allow_parallel_access()
   );
 }
 

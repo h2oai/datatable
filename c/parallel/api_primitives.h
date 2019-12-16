@@ -49,6 +49,9 @@ class NThreads {
       size_t n0 = num_threads_in_pool();
       value = (nth == 0 || nth >= n0) ? n0 : nth;
     }
+    explicit NThreads(bool parallel_ok) {
+      value = parallel_ok? num_threads_in_pool() : 1;
+    }
 
     NThreads(const NThreads&) = default;
 
@@ -66,7 +69,8 @@ class NThreads {
  * iterations per thread.
  */
 NThreads nthreads_from_niters(size_t niters,
-                              size_t min_iters_per_thread = 1000);
+                              size_t min_iters_per_thread = 1000,
+                              bool parallel_ok = true);
 
 
 }  // namespace dt

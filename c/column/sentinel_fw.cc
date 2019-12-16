@@ -9,7 +9,6 @@
 #include "column/sentinel_fw.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "parallel/api.h"  // dt::parallel_for_static
 #include "column.h"
 template<> inline py::robj GETNA() { return py::rnone(); }
 namespace dt {
