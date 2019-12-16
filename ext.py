@@ -24,7 +24,7 @@
 import sys
 from ci import xbuild
 
-_valid_commands = ["asan", "build", "coverage", "debug"]
+_valid_commands = ["asan", "build", "coverage", "debug", "wheel"]
 
 
 def build_extension(cmd, verbosity=3):
@@ -124,6 +124,67 @@ def build_extension(cmd, verbosity=3):
     ext.build()
 
 
+def build_wheel():
+    so_file = "_datatable" + sysconfig.get_config_var("EXT_SUFFIX")
+    files = glob.glob("datatable/**/*.py", recursive=True)
+    files += ["datatable/include/datatable.h"]
+    files += ["datatable/lib/" + so_file]
+
+    wb = xbuild.Wheel(
+        name="datatable",
+        version="0.10.1",
+
+        summary="Python library for fast multi-threaded data manipulation and "
+                "munging.",
+        description="""
+            This is a Python package for manipulating 2-dimensional tabular data
+            structures (aka data frames). It is close in spirit to pandas or SFrame;
+            however we put specific emphasis on speed and big data support. As the
+            name suggests, the package is closely related to R's data.table and
+            attempts to mimic its core algorithms and API.
+
+            See https://github.com/h2oai/datatable for more details.
+        """,
+
+        # The homepage
+        url="https://github.com/h2oai/datatable",
+
+        # Author details
+        author="Pasha Stetsenko",
+        author_email="pasha.stetsenko@h2o.ai",
+
+        license="Mozilla Public License v2.0",
+
+        classifiers=[
+            "Development Status :: 4 - Beta",
+            "Intended Audience :: Developers",
+            "Intended Audience :: Science/Research",
+            "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+            "Operating System :: MacOS",
+            "Operating System :: Unix",
+            "Programming Language :: Python :: 3.5",
+            "Programming Language :: Python :: 3.6",
+            "Programming Language :: Python :: 3.7",
+            "Programming Language :: Python :: 3.8",
+            "Topic :: Scientific/Engineering :: Information Analysis",
+        ],
+        keywords=["datatable", "data", "dataframe", "frame", "data.table",
+                  "munging", "numpy", "pandas", "data processing", "ETL"],
+
+        sources=files,
+
+        # Runtime dependencies
+        install_requires=[
+            "typesentry (>=0.2.6)",
+            "blessed",
+        ],
+
+        python_requires=">=3.5",
+    )
+    wb.build_wheel()
+
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='Build _datatable module')
@@ -137,7 +198,10 @@ if __name__ == "__main__":
                  "times for maximum verbosity; the default level is 1")
 
     args = parser.parse_args()
-    with open("datatable/lib/.xbuild-cmd", "wt") as out:
-        out.write(args.cmd)
-
-    build_extension(cmd=args.cmd, verbosity=args.verbosity)
+    if args.cmd == "wheel":
+        build_extension(cmd="build", verbosity=3)
+        build_wheel()
+    else:
+        with open("datatable/lib/.xbuild-cmd", "wt") as out:
+            out.write(args.cmd)
+        build_extension(cmd=args.cmd, verbosity=args.verbosity)

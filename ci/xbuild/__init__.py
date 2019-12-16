@@ -24,6 +24,7 @@
 from .compiler import Compiler
 from .extension import Extension
 from .logger import Logger0, Logger1, Logger3
+from .wheel import Wheel
 
 __all__ = (
 	"Compiler",
@@ -31,4 +32,5 @@ __all__ = (
 	"Logger0",
 	"Logger1",
 	"Logger3",
+	"Wheel",
 )
