@@ -240,6 +240,19 @@ def test_groupby_large_random_integers(seed):
     assert f1.nunique1() == nuniques
 
 
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_issue_2242(seed):
+    n = 25000
+    X = dt.Frame(AGE=[random.randint(1, 50) for i in range(n)],
+                 PAY=[random.choice([True, False]) for i in range(n)])
+    RES = X[:, dt.math.log((count() + 1)/(sum(f.PAY) + 0.5) - 1), by(f.AGE)]
+    assert RES.shape == (50, 2)
+    data = RES.to_list()
+    assert data[0] == list(range(1, 51))
+    assert all(isinstance(x, float) for x in data[1])
+
+
+
 
 #-------------------------------------------------------------------------------
 # Groupby on multiple columns
