@@ -576,7 +576,7 @@ class Extension:
             return
         src_path = os.path.dirname(src_file)
         includes = []
-        with open(src_file, "rt") as inp:
+        with open(src_file, "rt", encoding = "utf-8") as inp:
             for line in inp:
                 mm = re.match(rx_include, line)
                 if mm:
@@ -632,6 +632,7 @@ class Extension:
                 while queue:
                     for i, worker in enumerate(queue):
                         if worker.poll() is not None:
+                            os.close(worker.fd)
                             del queue[i]
                             return worker
                     time.sleep(0.1)
@@ -683,6 +684,7 @@ class Extension:
             proc.wait()
             with open(proc.output, "rt", encoding="utf-8") as proc_output:
                 msg = proc_output.read()
+            os.close(proc.fd)
             os.remove(proc.output)
             fail = (proc.returncode != 0)
             if msg:

@@ -141,7 +141,7 @@ class Compiler:
                 return
 
             if sys.platform == "win32":
-                candidates = ["msvc.exe", "clang.exe", "gcc.exe"]
+                candidates = ["cl.exe", "clang.exe", "gcc.exe"]
             elif sys.platform == "darwin":
                 candidates = ["/usr/local/opt/llvm/bin/clang", "clang"]
             else:
@@ -190,7 +190,7 @@ class Compiler:
 
 
     def add_default_python_include_dir(self):
-        dd = sysconfig.get_config_var("CONFINCLUDEPY")
+        dd = sysconfig.get_config_var("INCLUDEPY")
         if not os.path.isdir(dd):
             self._log.warn("Python include directory `%s` does not exist, "
                            "compilation may fail" % dd)
@@ -208,13 +208,14 @@ class Compiler:
 
 
     def enable_colors(self):
-        self._compiler_flags.append("-fdiagnostics-color=always")
+        if not self.is_msvc():
+            self._compiler_flags.append("-fdiagnostics-color=always")
 
 
     def get_compile_command(self, source, target):
         cmd = [self.executable] + self._compiler_flags
         if self.is_msvc():
-            cmd += ["/c" + source, "/Fo" + target]
+            cmd += ["/c", source, "/Fo" + target]
         else:
             cmd += ["-c", source, "-o", target]
         return cmd
@@ -228,6 +229,7 @@ class Compiler:
 
         fd, srcname = tempfile.mkstemp(suffix=".out")
         proc = subprocess.Popen(cmd, stdout=fd, stderr=fd)
+        proc.fd = fd
         proc.source = src
         proc.output = srcname
         return proc
@@ -249,7 +251,7 @@ class Compiler:
         cmd = [self.executable]
         cmd += sources
         if self.is_msvc():
-            cmd += ["/Fe:", target]
+            cmd += ["/OUT:" + target]
         else:
             cmd += ["-o", target]
         # Certain linker flags (such as included libraries) must come AFTER the
@@ -266,5 +268,6 @@ class Compiler:
 
         fd, srcname = tempfile.mkstemp(suffix=".out")
         proc = subprocess.Popen(cmd, stdout=fd, stderr=fd)
+        proc.fd = fd
         proc.output = srcname
         return proc
