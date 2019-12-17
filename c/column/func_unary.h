@@ -21,9 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_FUNC_UNARY_h
 #define dt_COLUMN_FUNC_UNARY_h
-#include <cmath>
-#include "column/virtual.h"
 #include "column.h"
+#include "column/virtual.h"
 #include "models/utils.h"
 namespace dt {
 
