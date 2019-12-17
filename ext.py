@@ -21,7 +21,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import glob
 import sys
+import sysconfig
 from ci import xbuild
 
 _valid_commands = ["asan", "build", "coverage", "debug", "wheel"]
@@ -146,8 +148,11 @@ def build_wheel():
             See https://github.com/h2oai/datatable for more details.
         """,
 
+        keywords=["datatable", "data", "dataframe", "frame", "data.table",
+                  "munging", "numpy", "pandas", "data processing", "ETL"],
+
         # The homepage
-        url="https://github.com/h2oai/datatable",
+        home_page="https://github.com/h2oai/datatable",
 
         # Author details
         author="Pasha Stetsenko",
@@ -168,18 +173,18 @@ def build_wheel():
             "Programming Language :: Python :: 3.8",
             "Topic :: Scientific/Engineering :: Information Analysis",
         ],
-        keywords=["datatable", "data", "dataframe", "frame", "data.table",
-                  "munging", "numpy", "pandas", "data processing", "ETL"],
-
-        sources=files,
 
         # Runtime dependencies
-        install_requires=[
+        requirements=[
             "typesentry (>=0.2.6)",
             "blessed",
+            "pytest; extra == 'tests'",
+            "docutils; extra == 'tests'",
         ],
 
-        python_requires=">=3.5",
+        requires_python=">=3.5",
+
+        sources=files,
     )
     wb.build_wheel()
 
