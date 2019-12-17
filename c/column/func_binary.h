@@ -24,7 +24,6 @@
 #include <cmath>              // std::isnan
 #include "column/virtual.h"
 #include "column.h"
-#include "models/utils.h"
 namespace dt {
 
 
@@ -120,6 +119,10 @@ ColumnImpl* FuncBinary1_ColumnImpl<T1, T2, TO>::clone() const {
 }
 
 
+template <typename T> inline bool _notnan2(T) { return true; }
+template <> inline bool _notnan2(float x) { return !std::isnan(x); }
+template <> inline bool _notnan2(double x) { return !std::isnan(x); }
+
 template <typename T1, typename T2, typename TO>
 bool FuncBinary1_ColumnImpl<T1, T2, TO>::get_element(size_t i, TO* out) const {
   T1 x1; bool x1valid = arg1_.get_element(i, &x1);
@@ -127,7 +130,7 @@ bool FuncBinary1_ColumnImpl<T1, T2, TO>::get_element(size_t i, TO* out) const {
   if (!x1valid || !x2valid) return false;
   TO value = func_(x1, x2);
   *out = value;
-  return _notnan(value);
+  return _notnan2(value);
 }
 
 

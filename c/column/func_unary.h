@@ -24,7 +24,6 @@
 #include <cmath>
 #include "column/virtual.h"
 #include "column.h"
-#include "models/utils.h"
 namespace dt {
 
 
@@ -110,6 +109,13 @@ ColumnImpl* FuncUnary1_ColumnImpl<TI, TO>::clone() const {
                 Column(arg_), func_, nrows_, stype_);
 }
 
+
+/**
+ * Portable implementation of !std::isnan.
+ */
+template <typename T> inline bool _notnan(T) { return true; }
+template <> inline bool _notnan(float x) { return !std::isnan(x); }
+template <> inline bool _notnan(double x) { return !std::isnan(x); }
 
 template <typename TI, typename TO>
 bool FuncUnary1_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
