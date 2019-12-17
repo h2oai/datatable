@@ -2,7 +2,7 @@
  * Copyright (C) 1995-2011, 2016 Mark Adler
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
-#include "zutil.h"
+#include "lib/zlib/zutil.h"
 namespace zlib {
 
 
