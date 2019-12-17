@@ -190,8 +190,6 @@ class Ftrl : public dt::FtrlBase {
     void set_negative_class(bool) override;
     void set_labels(const DataTable&) override;
 
-    void test(const T&);
-
     // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();
     static constexpr T T_EPSILON = std::numeric_limits<T>::epsilon();
