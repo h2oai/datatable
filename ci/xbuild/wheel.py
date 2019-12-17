@@ -21,22 +21,27 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-# See Also
-# --------
+#
 #   [PEP-427](https://www.python.org/dev/peps/pep-0427/)
 #       The Wheel Binary Package Format 1.0
 #       Note: PEP-491 specifies wheel format 1.9, however the status of that
 #       PEP is "deferred".
+#
+#   [PEP-425](https://www.python.org/dev/peps/pep-0425/)
+#       Compatibility Tags for Built Distributions
+#       Describes how to name the wheel files.
 #
 #   [PyPA](https://packaging.python.org/specifications/)
 #       List of specification maintained by Python Packaging Authority.
 #
 #-------------------------------------------------------------------------------
 import base64
+import distutils.util
 import hashlib
 import io
 import os
 import re
+import sys
 import sysconfig
 import textwrap
 import time
@@ -137,11 +142,22 @@ class Wheel:
         self._sources = None
         self._check_meta(meta)
         self._meta = meta
+
         # Wheel creation time, will be used to timestamp individual files
         # inside the archive.
         self._wheel_time = time.gmtime()[:6]
+
+        # `RECORD` file is created on-the-go while we are adding sources and
+        # other files to the wheel archive.
         self._record_file = io.StringIO()
 
+        # Compatibility tag, as described in PEP-425
+        self._tag = None
+
+
+    #---------------------------------------------------------------------------
+    # Input parameters checking
+    #---------------------------------------------------------------------------
 
     def _check_meta(self, meta):
         self._check_sources(meta)
@@ -350,9 +366,45 @@ class Wheel:
         return "%s-%s.dist-info" % (self.name, self.version)
 
 
-    def build_wheel(self):
+
+    #---------------------------------------------------------------------------
+    # Tags
+    #---------------------------------------------------------------------------
+
+    def _get_python_tag(self):
+        impl = sys.implementation.name
+        assert impl == "cpython"
+        major = sys.version_info.major
+        minor = sys.version_info.minor
+        return "cp" + str(major) + str(minor)
+
+    def _get_abi_tag(self):
+        soabi = sysconfig.get_config_var("SOABI")
+        parts = soabi.split("-")
+        assert parts[0] == "cpython"
+        return "cp" + parts[1]
+
+    def get_tag(self):
+        if self._tag is None:
+            impl_tag = self._get_python_tag()
+            abi_tag = self._get_abi_tag()
+            plat_tag = distutils.util.get_platform() \
+                       .replace('.', '_').replace('-', '_')
+            self._tag = "%s-%s-%s" % (impl_tag, abi_tag, plat_tag)
+        return self._tag
+
+
+
+    #---------------------------------------------------------------------------
+    # Main functionality
+    #---------------------------------------------------------------------------
+
+    def build_wheel(self, wheel_dir):
+        if wheel_dir:
+            os.makedirs(wheel_dir, exist_ok=True)
         wheel_name = "%s-%s-%s.whl" % (self.name, self.version, self.get_tag())
-        with zipfile.ZipFile(wheel_name, "w", allowZip64=True,
+        full_name = os.path.join(wheel_dir, wheel_name)
+        with zipfile.ZipFile(full_name, "w", allowZip64=True,
                              compression=zipfile.ZIP_DEFLATED) as zipf:
             for filename in self.sources:
                 self._add_file_to_archive(zipf, filename)
@@ -360,7 +412,7 @@ class Wheel:
             self._add_METADATA_file(zipf)
             self._add_WHEEL_file(zipf)
             self._add_RECORD_file(zipf)  # must come last
-        print("Wheel file `%s` created" % wheel_name)
+        return wheel_name
 
 
     def _add_file_to_archive(self, zipf, src):
@@ -392,30 +444,6 @@ class Wheel:
         assert isinstance(hashstr, str)
         self._record_file.write("%s,%s,%d\n"
                                 % (target_file, hashstr, len(bcontent)))
-
-
-    def _get_abi_tag(self):
-        soabi = sysconfig.get_config_var("SOABI")
-        parts = soabi.split("-")
-        assert parts[0] == "cpython"
-        return "cp" + parts[1]
-
-    def get_tag(self):
-        from distutils.util import get_platform
-        abi_tag = self._get_abi_tag()
-        impl_tag = abi_tag[:4]
-        plat_tag = get_platform().replace('.', '_').replace('-', '_')
-        return "%s-%s-%s" % (impl_tag, abi_tag, plat_tag)
-
-
-
-    def _add_WHEEL_file(self, zipf):
-        out = "Wheel-Version: 1.0\n"
-        out += "Generator: xbuild (0.0.1)\n"
-        out += "Root-Is-Purelib: false\n"
-        out += "Tag: %s\n" % self.get_tag()
-        src = (out, self.info_dir + "/WHEEL")
-        self._add_file_to_archive(zipf, src)
 
 
     def _add_LICENSE_file(self, zipf):
@@ -473,6 +501,15 @@ class Wheel:
             out += self.description
             out += "\n"
         src = (out, self.info_dir + "/METADATA")
+        self._add_file_to_archive(zipf, src)
+
+
+    def _add_WHEEL_file(self, zipf):
+        out = "Wheel-Version: 1.0\n"
+        out += "Generator: xbuild (0.0.1)\n"
+        out += "Root-Is-Purelib: false\n"
+        out += "Tag: %s\n" % self.get_tag()
+        src = (out, self.info_dir + "/WHEEL")
         self._add_file_to_archive(zipf, src)
 
 

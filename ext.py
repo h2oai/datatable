@@ -126,7 +126,7 @@ def build_extension(cmd, verbosity=3):
     ext.build()
 
 
-def build_wheel():
+def build_wheel(target_dir=""):
     so_file = "_datatable" + sysconfig.get_config_var("EXT_SUFFIX")
     files = glob.glob("datatable/**/*.py", recursive=True)
     files += ["datatable/include/datatable.h"]
@@ -157,6 +157,8 @@ def build_wheel():
         # Author details
         author="Pasha Stetsenko",
         author_email="pasha.stetsenko@h2o.ai",
+        maintainer="Oleksiy Kononenko",
+        maintainer_email="oleksiy.kononenko@h2o.ai",
 
         license="Mozilla Public License v2.0",
 
@@ -178,15 +180,15 @@ def build_wheel():
         requirements=[
             "typesentry (>=0.2.6)",
             "blessed",
-            "pytest; extra == 'tests'",
-            "docutils; extra == 'tests'",
+            "pytest (>=3.1); extra == 'tests'",
+            "docutils (>=0.14); extra == 'tests'",
         ],
 
         requires_python=">=3.5",
 
         sources=files,
     )
-    wb.build_wheel()
+    return wb.build_wheel(target_dir)
 
 
 
@@ -205,7 +207,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.cmd == "wheel":
         build_extension(cmd="build", verbosity=3)
-        build_wheel()
+        wheel_file = build_wheel()
+        print("Wheel `%s` created" % wheel_file)
     else:
         with open("datatable/lib/.xbuild-cmd", "wt") as out:
             out.write(args.cmd)
