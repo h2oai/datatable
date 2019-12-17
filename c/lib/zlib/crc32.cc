@@ -18,7 +18,7 @@
 
   DYNAMIC_CRC_TABLE and MAKECRCH can be #defined to write out crc32.h.f
  */
-#include "zutil.h"      /* for STDC and definitions */
+#include "lib/zlib/zutil.h"      /* for STDC and definitions */
 namespace zlib {
 
 
@@ -123,7 +123,7 @@ static void make_crc_table()
  * Tables of CRC-32s of all single-byte values, made by make_crc_table().
  */
 #else /* !DYNAMIC_CRC_TABLE */
-  #include "crc32.h"
+  #include "lib/zlib/crc32.h"
 #endif /* DYNAMIC_CRC_TABLE */
 
 

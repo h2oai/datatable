@@ -47,7 +47,7 @@
 //
 //
 //------------------------------------------------------------------------------
-#include "deflate.h"
+#include "lib/zlib/deflate.h"
 namespace zlib {
 
 #pragma clang diagnostic push

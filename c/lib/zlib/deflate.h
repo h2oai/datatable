@@ -9,7 +9,7 @@
  */
 #ifndef DEFLATE_H
 #define DEFLATE_H
-#include "zutil.h"
+#include "lib/zlib/zutil.h"
 namespace zlib {
 
 #if defined(__clang__)

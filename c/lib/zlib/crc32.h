@@ -1,6 +1,7 @@
 /* crc32.h -- tables for rapid CRC calculation
  * Generated automatically by crc32.c
  */
+#include "lib/zlib/zlib.h"
 
 static const z_crc_t crc_table[TBLS][256] =
 {
