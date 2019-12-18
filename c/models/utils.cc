@@ -20,8 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <vector>
-#include <stdio.h>
 #include "models/utils.h"
+#include "utils/macros.h"
+#if DT_OS_WINDOWS
+  #undef copysign
+#endif
 
 
 /**
@@ -53,3 +56,17 @@ void calculate_coprimes(size_t n, intvec& coprimes) {
     }
   }
 }
+
+
+
+/**
+ *  A portable implementation of std::copysign.
+ *  NB: on Windows some standard headers define the `copysign` macro
+ *  that makes it impossible to directly use `std::copysign` function.
+ */
+template <typename T> T cpsign(T x, T y) {
+  return std::copysign(x, y);
+}
+
+template float cpsign(float, float);
+template double cpsign(double, double);

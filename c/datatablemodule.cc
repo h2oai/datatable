@@ -375,36 +375,41 @@ void py::DatatableModule::init_methods() {
 }
 
 
-/* Called when Python program imports the module */
-PyMODINIT_FUNC PyInit__datatable() noexcept
-{
-  static py::DatatableModule dtmod;
-  PyObject* m = nullptr;
+extern "C" {
 
-  try {
-    init_exceptions();
+  /* Called when Python program imports the module */
+  PyMODINIT_FUNC PyInit__datatable() noexcept
+  {
+    static py::DatatableModule dtmod;
+    PyObject* m = nullptr;
 
-    m = dtmod.init();
+    try {
+      init_exceptions();
 
-    // Initialize submodules
-    if (!init_py_encodings(m)) return nullptr;
-    dt::Terminal::standard_terminal().initialize();
+      m = dtmod.init();
 
-    init_types();
-    dt::expr::Head_Func::init();
+      // Initialize submodules
+      if (!init_py_encodings(m)) return nullptr;
+      dt::Terminal::standard_terminal().initialize();
 
-    py::Frame::init_type(m);
-    py::Ftrl::init_type(m);
-    dt::init_config_option(m);
-    py::oby::init(m);
-    py::ojoin::init(m);
-    py::osort::init(m);
-    py::oupdate::init(m);
+      init_types();
+      dt::expr::Head_Func::init();
 
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    m = nullptr;
+      py::Frame::init_type(m);
+      py::Ftrl::init_type(m);
+      dt::init_config_option(m);
+      py::oby::init(m);
+      py::ojoin::init(m);
+      py::osort::init(m);
+      py::oupdate::init(m);
+
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      m = nullptr;
+    }
+
+    return m;
   }
 
-  return m;
-}
+} // extern "C"
+
