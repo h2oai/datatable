@@ -20,9 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <vector>
-#include <stdio.h>
 #include "models/utils.h"
-
 
 /**
  *  For a given `n` calculate all the coprime numbers and return them
