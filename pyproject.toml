@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__ "
+requires = ["setuptools >= 42.0", "wheel"]
+build-backend = "setuptools.build_meta:__legacy__"
 # requires = ["pip >= 19.0"]
 # build-backend = "ext"
 # backend-path = ["."]
