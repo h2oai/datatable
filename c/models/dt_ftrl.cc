@@ -773,7 +773,8 @@ dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X) {
   SType label_id_stype = dt_labels->get_column(1).stype();
   dtptr dt_p;
   switch (label_id_stype) {
-    case SType::BOOL:  dt_p = predict<int8_t>(dt_X); break;
+    case SType::BOOL:
+    case SType::INT8:  dt_p = predict<int8_t>(dt_X); break;
     case SType::INT32: dt_p = predict<int32_t>(dt_X); break;
     default: throw TypeError() << "Label id type  `"
                                << label_id_stype << "` is not supported";

@@ -18,42 +18,45 @@
 #include "column.h"
 
 
+/**
+  * parse_as_X(inputcol, mbuf, i0)
+  *   A family of functions for converting an SType::OBJ input column
+  *   into one of the primitive types <X>, if possible. The converted
+  *   values will be written into the provided buffer `mbuf`, which
+  *   will be automatically reallocated to proper size.
+  *
+  *   Index `i0` indicates that elements before this index are known
+  *   to be convertible, whereas the elements starting from `i0` do
+  *   not carry such guarantee. This is a hint variable.
+  *
+  *   The return value is the index of the first entry that failed to
+  *   be converted. If all entries convert successfully, this will be
+  *   equal to `inputcol.nrows()`.
+  */
+static size_t parse_as_bool(const Column&, Buffer&, size_t);
+
+
+
 //------------------------------------------------------------------------------
 // Boolean
 //------------------------------------------------------------------------------
 
-/**
- * Convert Python list of objects into a column of boolean type, if possible.
- * The converted values will be written into the provided `membuf` (which will
- * be reallocated to proper size).
- *
- * Return true if conversion was successful, and false if it failed. Upon
- * failure, variable `from` will be set to the index of the variable that was
- * not parsed successfully.
- *
- * This converter recognizes pythonic `True` or number 1 as "true" values,
- * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
- * If any other value is encountered, the parse will fail.
- */
-static bool parse_as_bool(const Column& inputcol, Buffer& membuf, size_t& from)
+// Recognizes only pythonic `True`, `False` and `None`.
+static size_t parse_as_bool(const Column& inputcol, Buffer& membuf, size_t)
 {
   size_t nrows = inputcol.nrows();
   membuf.resize(nrows);
-  int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
+  auto outdata = static_cast<int8_t*>(membuf.xptr());
 
-  size_t i = 0;
-  try {
-    py::robj item;
-    for (; i < nrows; ++i) {
-      inputcol.get_element(i, &item);
-      // This will throw an exception if the value is not bool-like.
-      outdata[i] = item.to_bool();
-    }
-  } catch (const std::exception&) {
-    from = i;
-    return false;
+  py::robj item;
+  for (size_t i = 0; i < nrows; ++i) {
+    inputcol.get_element(i, &item);
+    if (item.is_none())       outdata[i] = GETNA<int8_t>();
+    else if (item.is_true())  outdata[i] = 1;
+    else if (item.is_false()) outdata[i] = 0;
+    else                      return i;
   }
-  return true;
+  return nrows;
 }
 
 
@@ -440,6 +443,7 @@ static Column resolve_column(const Column& inputcol, int stype0)
   Buffer membuf;
   Buffer strbuf;
   SType stype = find_next_stype(SType::VOID, stype0);
+  size_t nrows = inputcol.nrows();
   size_t i = 0;
   while (stype != SType::VOID) {
     SType next_stype = find_next_stype(stype, stype0);
@@ -463,7 +467,7 @@ static Column resolve_column(const Column& inputcol, int stype0)
     } else {
       bool ret = false;
       switch (stype) {
-        case SType::BOOL:    ret = parse_as_bool(inputcol, membuf, i); break;
+        case SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
         case SType::INT8:    ret = parse_as_int<int8_t>(inputcol, membuf, i); break;
         case SType::INT16:   ret = parse_as_int<int16_t>(inputcol, membuf, i); break;
         case SType::INT32:   ret = parse_as_int<int32_t>(inputcol, membuf, i); break;
@@ -475,11 +479,11 @@ static Column resolve_column(const Column& inputcol, int stype0)
         case SType::OBJ:     ret = parse_as_pyobj(inputcol, membuf); break;
         default: /* do nothing -- not all STypes are currently implemented. */ break;
       }
+      if (i == nrows) break;
       if (ret) break;
       stype = next_stype;
     }
   }
-  size_t nrows = inputcol.nrows();
   if (stype == SType::STR32 || stype == SType::STR64) {
     return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }

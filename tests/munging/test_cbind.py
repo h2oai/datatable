@@ -210,11 +210,12 @@ def test_cbind_multiple():
     d4 = dt.Frame({"E": [1]})[:0, :]
     dt_compute_stats(d0, d1, d2, d3, d4)
     d0.cbind(d1, d2, d3, d4, force=True)
-    dr = dt.Frame({"A": [1, 2, 3, None],
-                   "B": ["doo", "doo", "doo", "doo"],
-                   "C": [True, False, None, None],
-                   "D": [10, 9, 8, 7],
-                   "E": [None] * 4})
+    dr = dt.Frame(A=[1, 2, 3, None],
+                  B=["doo", "doo", "doo", "doo"],
+                  C=[True, False, None, None],
+                  D=[10, 9, 8, 7],
+                  E=[None] * 4,
+                  stypes={"E": dt.int32})
     assert_equals(d0, dr)
 
 

@@ -776,12 +776,14 @@ def test_ftrl_fit_predict_binomial_online_1_1():
     df_train_odd = dt.Frame([[1, 3, 7, 5, 9]])
     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
     ft.fit(df_train_odd, df_target_odd)
-    assert_equals(ft.labels, dt.Frame([["odd"], [0]], names = ["label", "id"]))
+    assert_equals(ft.labels,
+                  dt.Frame(label=["odd"], id=[0], stypes={"id": dt.int8}))
 
     df_train_even = dt.Frame([[2, 4, 8, 6]])
     df_target_even = dt.Frame([["even", "even", "even", "even"]])
     ft.fit(df_train_even, df_target_even)
-    assert_equals(ft.labels, dt.Frame([["even", "odd"], [1, 0]], names = ["label", "id"]))
+    assert_equals(ft.labels,
+                  dt.Frame(label=["even", "odd"], id=[1, 0], stypes={"id": dt.int8}))
 
     df_train_wrong = dt.Frame([[2, 4, None, 6]])
     df_target_wrong = dt.Frame([["even", "even", "none", "even"]])
@@ -813,7 +815,8 @@ def test_ftrl_fit_predict_binomial_online_1_2():
     df_train_odd = dt.Frame([[1, 3, 7, 5, 9]])
     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
     ft.fit(df_train_odd, df_target_odd)
-    assert_equals(ft.labels, dt.Frame([["odd"], [0]], names = ["label", "id"]))
+    assert_equals(ft.labels,
+                  dt.Frame(label=["odd"], id=[0], stypes={"id": dt.int8}))
 
     df_train_wrong = dt.Frame([[2, 4, None, 6]])
     df_target_wrong = dt.Frame([["even", "even", "none", "even"]])
@@ -826,7 +829,8 @@ def test_ftrl_fit_predict_binomial_online_1_2():
     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
     ft.fit(df_train_even_odd, df_target_even_odd)
-    assert_equals(ft.labels, dt.Frame([["even", "odd"], [1, 0]], names = ["label", "id"]))
+    assert_equals(ft.labels,
+                  dt.Frame(label=["even", "odd"], id=[1, 0], stypes={"id": dt.int8}))
 
     p = ft.predict(df_train_odd)
     p_dict = p.to_dict()
@@ -850,12 +854,14 @@ def test_ftrl_fit_predict_binomial_online_2_1():
     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
     ft.fit(df_train_even_odd, df_target_even_odd)
-    assert_equals(ft.labels, dt.Frame([["even", "odd"], [0, 1]], names = ["label", "id"]))
+    assert_equals(ft.labels,
+                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int8}))
 
     df_train_odd = dt.Frame([[1, 3, 7, 5, 9]])
     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
     ft.fit(df_train_odd, df_target_odd)
-    assert_equals(ft.labels, dt.Frame([["even", "odd"], [0, 1]], names = ["label", "id"]))
+    assert_equals(ft.labels,
+                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int8}))
 
     df_train_wrong = dt.Frame([[math.inf, math.inf, None, math.inf]])
     df_target_wrong = dt.Frame([["inf", "inf", "none", "inf"]])
@@ -888,12 +894,14 @@ def test_ftrl_fit_predict_binomial_online_2_2():
     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
     ft.fit(df_train_even_odd, df_target_even_odd)
-    assert_equals(ft.labels, dt.Frame([["even", "odd"], [0, 1]], names = ["label", "id"]))
+    assert_equals(ft.labels,
+                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int8}))
 
     df_train_odd_even = dt.Frame([[1, 2, 3, 8]])
     df_target_odd_even = dt.Frame([["odd", "even", "odd", "even"]])
     ft.fit(df_train_odd_even, df_target_odd_even)
-    assert_equals(ft.labels, dt.Frame([["even", "odd"], [0, 1]], names = ["label", "id"]))
+    assert_equals(ft.labels,
+                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int8}))
 
     df_train_wrong = dt.Frame([[math.inf, math.inf, None, math.inf]])
     df_target_wrong = dt.Frame([["inf", "inf", "none", "inf"]])
