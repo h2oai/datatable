@@ -8,6 +8,7 @@
 #include <cstdlib>         // std::abs
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
+#include "column/pysources.h"  // PyList_ColumnImpl, ...
 #include "column/range.h"
 #include "python/_all.h"
 #include "python/list.h"   // py::olist
@@ -15,91 +16,6 @@
 #include "utils/exceptions.h"
 #include "utils/misc.h"
 #include "column.h"
-
-
-//------------------------------------------------------------------------------
-// Helper iterator classes
-//------------------------------------------------------------------------------
-
-class iterable {
-  public:
-    virtual ~iterable();
-    virtual size_t size() const = 0;
-    virtual py::robj item(size_t i) const = 0;
-};
-
-
-class ilist : public iterable {
-  private:
-    const py::olist& list;
-
-  public:
-    explicit ilist(const py::olist& src);
-    size_t size() const override;
-    py::robj item(size_t i) const override;
-};
-
-
-class ituplist : public iterable {
-  private:
-    const py::olist& tuple_list;
-    const size_t j;
-
-  public:
-    ituplist(const py::olist& src, size_t index);
-    size_t size() const override;
-    py::robj item(size_t i) const override;
-};
-
-
-class idictlist : public iterable {
-  private:
-    const py::robj key;
-    std::vector<py::rdict> dict_list;
-
-  public:
-    idictlist(const py::olist& src, py::robj name);
-    size_t size() const override;
-    py::robj item(size_t i) const override;
-  };
-
-
-//------------------------------------------------------------------------------
-
-iterable::~iterable() {}
-
-
-ilist::ilist(const py::olist& src) : list(src) {}
-
-size_t ilist::size() const { return list.size(); }
-
-py::robj ilist::item(size_t i) const { return list[i]; }
-
-
-ituplist::ituplist(const py::olist& src, size_t index)
-    : tuple_list(src), j(index) {}
-
-size_t ituplist::size() const { return tuple_list.size(); }
-
-py::robj ituplist::item(size_t i) const {
-  return py::rtuple::unchecked(tuple_list[i])[j];
-}
-
-
-idictlist::idictlist(const py::olist& src, py::robj name) : key(name) {
-  for (size_t i = 0; i < src.size(); ++i) {
-    dict_list.push_back(src[i].to_rdict());
-  }
-}
-
-size_t idictlist::size() const {
-  return dict_list.size();
-}
-
-py::robj idictlist::item(size_t i) const {
-  return dict_list[i].get_or_none(key);
-}
-
 
 
 //------------------------------------------------------------------------------
@@ -119,16 +35,17 @@ py::robj idictlist::item(size_t i) const {
  * pythonic `False` or number 0 as "false" values, and pythonic `None` as NA.
  * If any other value is encountered, the parse will fail.
  */
-static bool parse_as_bool(const iterable* list, Buffer& membuf, size_t& from)
+static bool parse_as_bool(const Column& inputcol, Buffer& membuf, size_t& from)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   membuf.resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
   size_t i = 0;
   try {
+    py::robj item;
     for (; i < nrows; ++i) {
-      py::robj item = list->item(i);
+      inputcol.get_element(i, &item);
       // This will throw an exception if the value is not bool-like.
       outdata[i] = item.to_bool();
     }
@@ -151,14 +68,15 @@ static bool parse_as_bool(const iterable* list, Buffer& membuf, size_t& from)
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(const iterable* list, Buffer& membuf)
+static void force_as_bool(const Column& inputcol, Buffer& membuf)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   membuf.resize(nrows);
   int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
 
+  py::robj item;
   for (size_t i = 0; i < nrows; ++i) {
-    py::robj item = list->item(i);
+    inputcol.get_element(i, &item);
     outdata[i] = item.to_bool_force();
   }
 }
@@ -181,19 +99,20 @@ static void force_as_bool(const iterable* list, Buffer& membuf)
  * parser will fail if the `int` value does not fit into the range of type `T`.
  */
 template <typename T>
-static bool parse_as_int(const iterable* list, Buffer& membuf, size_t& from)
+static bool parse_as_int(const Column& inputcol, Buffer& membuf, size_t& from)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   membuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf.wptr());
 
   int overflow = 0;
+  py::robj item;
   for (int j = 0; j < 2; ++j) {
     size_t ifrom = j ? 0 : from;
     size_t ito   = j ? from : nrows;
 
     for (size_t i = ifrom; i < ito; ++i) {
-      py::robj item = list->item(i);
+      inputcol.get_element(i, &item);
 
       if (item.is_none()) {
         outdata[i] = GETNA<T>();
@@ -227,14 +146,15 @@ static bool parse_as_int(const iterable* list, Buffer& membuf, size_t& from)
  * as C++'s `static_cast<T>`).
  */
 template <typename T>
-static void force_as_int(const iterable* list, Buffer& membuf)
+static void force_as_int(const Column& inputcol, Buffer& membuf)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   membuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf.wptr());
 
+  py::robj item;
   for (size_t i = 0; i < nrows; ++i) {
-    py::robj item = list->item(i);
+    inputcol.get_element(i, &item);
     if (item.is_none()) {
       outdata[i] = GETNA<T>();
       continue;
@@ -256,18 +176,19 @@ static void force_as_int(const iterable* list, Buffer& membuf)
  * have been a float instead...
  */
 template <typename T>
-static bool parse_as_real(const iterable* list, Buffer& membuf, size_t& from)
+static bool parse_as_real(const Column& inputcol, Buffer& membuf, size_t& from)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   membuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf.wptr());
 
   int overflow = 0;
+  py::robj item;
   for (int j = 0; j < 2; ++j) {
     size_t ifrom = j ? 0 : from;
     size_t ito   = j ? from : nrows;
     for (size_t i = ifrom; i < ito; ++i) {
-      py::robj item = list->item(i);
+      inputcol.get_element(i, &item);
 
       if (item.is_none()) {
         outdata[i] = GETNA<T>();
@@ -299,15 +220,16 @@ static bool parse_as_real(const iterable* list, Buffer& membuf, size_t& from)
 
 
 template <typename T>
-static void force_as_real(const iterable* list, Buffer& membuf)
+static void force_as_real(const Column& inputcol, Buffer& membuf)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   membuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf.wptr());
 
   int overflow = 0;
+  py::robj item;
   for (size_t i = 0; i < nrows; ++i) {
-    py::robj item = list->item(i);
+    inputcol.get_element(i, &item);
 
     if (item.is_none()) {
       outdata[i] = GETNA<T>();
@@ -331,10 +253,10 @@ static void force_as_real(const iterable* list, Buffer& membuf)
 //------------------------------------------------------------------------------
 
 template <typename T>
-static bool parse_as_str(const iterable* list, Buffer& offbuf,
+static bool parse_as_str(const Column& inputcol, Buffer& offbuf,
                          Buffer& strbuf)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   offbuf.resize((nrows + 1) * sizeof(T));
   T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
   offsets[-1] = 0;
@@ -345,8 +267,9 @@ static bool parse_as_str(const iterable* list, Buffer& offbuf,
 
   T curr_offset = 0;
   size_t i = 0;
+  py::robj item;
   for (i = 0; i < nrows; ++i) {
-    py::robj item = list->item(i);
+    inputcol.get_element(i, &item);
 
     if (item.is_none()) {
       offsets[i] = curr_offset ^ GETNA<T>();
@@ -404,10 +327,10 @@ static bool parse_as_str(const iterable* list, Buffer& offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(const iterable* list, Buffer& offbuf,
+static void force_as_str(const Column& inputcol, Buffer& offbuf,
                          Buffer& strbuf)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   if (nrows > std::numeric_limits<T>::max()) {
     throw ValueError()
       << "Cannot store " << nrows << " elements in a str32 column";
@@ -421,8 +344,9 @@ static void force_as_str(const iterable* list, Buffer& offbuf,
   char* strptr = static_cast<char*>(strbuf.xptr());
 
   T curr_offset = 0;
+  py::robj item;
   for (size_t i = 0; i < nrows; ++i) {
-    py::oobj item = list->item(i);
+    inputcol.get_element(i, &item);
 
     if (item.is_none()) {
       offsets[i] = curr_offset ^ GETNA<T>();
@@ -467,18 +391,19 @@ static void force_as_str(const iterable* list, Buffer& offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static bool parse_as_pyobj(const iterable* list, Buffer& membuf)
+static bool parse_as_pyobj(const Column& inputcol, Buffer& membuf)
 {
-  size_t nrows = list->size();
+  size_t nrows = inputcol.nrows();
   membuf.resize(nrows * sizeof(PyObject*));
   PyObject** outdata = static_cast<PyObject**>(membuf.wptr());
 
+  py::robj item;
   for (size_t i = 0; i < nrows; ++i) {
-    py::oobj item = list->item(i);
+    inputcol.get_element(i, &item);
     if (item.is_float() && std::isnan(item.to_double())) {
       outdata[i] = py::None().release();
     } else {
-      outdata[i] = std::move(item).release();
+      outdata[i] = py::oobj(item).release();
     }
   }
   return true;
@@ -510,7 +435,7 @@ static SType find_next_stype(SType curr_stype, int stype0) {
 
 
 
-static Column ocolumn_from_iterable(const iterable* il, int stype0)
+static Column resolve_column(const Column& inputcol, int stype0)
 {
   Buffer membuf;
   Buffer strbuf;
@@ -520,16 +445,16 @@ static Column ocolumn_from_iterable(const iterable* il, int stype0)
     SType next_stype = find_next_stype(stype, stype0);
     if (stype == next_stype) {
       switch (stype) {
-        case SType::BOOL:    force_as_bool(il, membuf); break;
-        case SType::INT8:    force_as_int<int8_t>(il, membuf); break;
-        case SType::INT16:   force_as_int<int16_t>(il, membuf); break;
-        case SType::INT32:   force_as_int<int32_t>(il, membuf); break;
-        case SType::INT64:   force_as_int<int64_t>(il, membuf); break;
-        case SType::FLOAT32: force_as_real<float>(il, membuf); break;
-        case SType::FLOAT64: force_as_real<double>(il, membuf); break;
-        case SType::STR32:   force_as_str<uint32_t>(il, membuf, strbuf); break;
-        case SType::STR64:   force_as_str<uint64_t>(il, membuf, strbuf); break;
-        case SType::OBJ:     parse_as_pyobj(il, membuf); break;
+        case SType::BOOL:    force_as_bool(inputcol, membuf); break;
+        case SType::INT8:    force_as_int<int8_t>(inputcol, membuf); break;
+        case SType::INT16:   force_as_int<int16_t>(inputcol, membuf); break;
+        case SType::INT32:   force_as_int<int32_t>(inputcol, membuf); break;
+        case SType::INT64:   force_as_int<int64_t>(inputcol, membuf); break;
+        case SType::FLOAT32: force_as_real<float>(inputcol, membuf); break;
+        case SType::FLOAT64: force_as_real<double>(inputcol, membuf); break;
+        case SType::STR32:   force_as_str<uint32_t>(inputcol, membuf, strbuf); break;
+        case SType::STR64:   force_as_str<uint64_t>(inputcol, membuf, strbuf); break;
+        case SType::OBJ:     parse_as_pyobj(inputcol, membuf); break;
         default:
           throw RuntimeError()
             << "Unable to create Column of type " << stype << " from list";
@@ -538,23 +463,23 @@ static Column ocolumn_from_iterable(const iterable* il, int stype0)
     } else {
       bool ret = false;
       switch (stype) {
-        case SType::BOOL:    ret = parse_as_bool(il, membuf, i); break;
-        case SType::INT8:    ret = parse_as_int<int8_t>(il, membuf, i); break;
-        case SType::INT16:   ret = parse_as_int<int16_t>(il, membuf, i); break;
-        case SType::INT32:   ret = parse_as_int<int32_t>(il, membuf, i); break;
-        case SType::INT64:   ret = parse_as_int<int64_t>(il, membuf, i); break;
-        case SType::FLOAT32: ret = parse_as_real<float>(il, membuf, i); break;
-        case SType::FLOAT64: ret = parse_as_real<double>(il, membuf, i); break;
-        case SType::STR32:   ret = parse_as_str<uint32_t>(il, membuf, strbuf); break;
-        case SType::STR64:   ret = parse_as_str<uint64_t>(il, membuf, strbuf); break;
-        case SType::OBJ:     ret = parse_as_pyobj(il, membuf); break;
+        case SType::BOOL:    ret = parse_as_bool(inputcol, membuf, i); break;
+        case SType::INT8:    ret = parse_as_int<int8_t>(inputcol, membuf, i); break;
+        case SType::INT16:   ret = parse_as_int<int16_t>(inputcol, membuf, i); break;
+        case SType::INT32:   ret = parse_as_int<int32_t>(inputcol, membuf, i); break;
+        case SType::INT64:   ret = parse_as_int<int64_t>(inputcol, membuf, i); break;
+        case SType::FLOAT32: ret = parse_as_real<float>(inputcol, membuf, i); break;
+        case SType::FLOAT64: ret = parse_as_real<double>(inputcol, membuf, i); break;
+        case SType::STR32:   ret = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
+        case SType::STR64:   ret = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
+        case SType::OBJ:     ret = parse_as_pyobj(inputcol, membuf); break;
         default: /* do nothing -- not all STypes are currently implemented. */ break;
       }
       if (ret) break;
       stype = next_stype;
     }
   }
-  size_t nrows = il->size();
+  size_t nrows = inputcol.nrows();
   if (stype == SType::STR32 || stype == SType::STR64) {
     return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }
@@ -568,24 +493,24 @@ static Column ocolumn_from_iterable(const iterable* il, int stype0)
 
 
 Column Column::from_pylist(const py::olist& list, int stype0) {
-  ilist il(list);
-  return ocolumn_from_iterable(&il, stype0);
+  Column inputcol(new dt::PyList_ColumnImpl(list));
+  return resolve_column(inputcol, stype0);
 }
 
 
 Column Column::from_pylist_of_tuples(
     const py::olist& list, size_t index, int stype0)
 {
-  ituplist il(list, index);
-  return ocolumn_from_iterable(&il, stype0);
+  Column inputcol(new dt::PyTupleList_ColumnImpl(list, index));
+  return resolve_column(inputcol, stype0);
 }
 
 
 Column Column::from_pylist_of_dicts(
     const py::olist& list, py::robj name, int stype0)
 {
-  idictlist il(list, name);
-  return ocolumn_from_iterable(&il, stype0);
+  Column inputcol(new dt::PyDictList_ColumnImpl(list, name));
+  return resolve_column(inputcol, stype0);
 }
 
 
