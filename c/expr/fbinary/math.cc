@@ -23,6 +23,10 @@
 #include "expr/fbinary/bimaker_impl.h"
 #include "models/utils.h"
 #include "python/args.h"
+#include "utils/macros.h"
+#if DT_OS_WINDOWS
+  #undef copysign
+#endif
 
 
 namespace dt {
@@ -174,7 +178,7 @@ py::PKArgs args_copysign(2, 0, 0, false, false, {"x", "y"}, "copysign",
 
 template <typename T>
 static bimaker_ptr _copysign(SType uptype1, SType uptype2, SType outtype) {
-  return bimaker1<T, T, T>::make(cpsign, uptype1, uptype2, outtype);
+  return bimaker1<T, T, T>::make(std::copysign, uptype1, uptype2, outtype);
 }
 
 

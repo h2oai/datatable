@@ -24,7 +24,6 @@
 #include <limits>
 #include <memory>
 #include <numeric>
-#include <cmath>
 #include "datatable.h"
 
 template <typename T>
@@ -112,9 +111,5 @@ template <typename T> inline bool _notnan(T) { return true; }
 template <> inline bool _notnan(float x) { return !std::isnan(x); }
 template <> inline bool _notnan(double x) { return !std::isnan(x); }
 
-
-template <typename T> T cpsign(T, T);
-extern template float cpsign(float, float);
-extern template double cpsign(double, double);
 
 #endif

@@ -21,10 +21,6 @@
 //------------------------------------------------------------------------------
 #include <vector>
 #include "models/utils.h"
-#include "utils/macros.h"
-#if DT_OS_WINDOWS
-  #undef copysign
-#endif
 
 /**
  *  For a given `n` calculate all the coprime numbers and return them
@@ -55,19 +51,3 @@ void calculate_coprimes(size_t n, intvec& coprimes) {
     }
   }
 }
-
-
-
-/**
- *  A portable implementation of `std::copysign`.
- *  NB: on Windows `copysign` is not officially a member of std, though
- *  `std::copysign` works in the latest msvc compilers. However,
- *  some of the standard headers define a `copysign` macro and some don't,
- *  so that the situation becomes complicated.
- */
-template <typename T> T cpsign(T x, T y) {
-  return std::copysign(x, y);
-}
-
-template float cpsign(float, float);
-template double cpsign(double, double);
