@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #include "expr/fbinary/bimaker.h"
 #include "expr/fbinary/bimaker_impl.h"
-#include "models/utils.h"
 #include "python/args.h"
 #include "utils/macros.h"
 #if DT_OS_WINDOWS
