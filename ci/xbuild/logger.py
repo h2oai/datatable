@@ -33,8 +33,10 @@ class Logger0:
     The "silent" logger: it does not report any messages.
     """
     def cmd_build(self): pass
+    def cmd_wheel(self): pass
 
     def report_abi_mismatch(self, v1, v2): pass
+    def report_added_file_to_wheel(self, filename, size): pass
     def report_build_dir(self, dd): pass
     def report_compile_cmd_mismatch(self, cmd1, cmd2): pass
     def report_compile_start(self, filename, cmd): pass
@@ -62,8 +64,10 @@ class Logger0:
     def report_src_includes(self, filename, includes): pass
     def report_t0(self, t0): pass
     def report_version_mismatch(self, v1, v2): pass
+    def report_wheel_file(self, filename): pass
 
     def step_build_done(self, time): pass
+    def step_wheel_done(self, time, size): pass
     def step_compile(self, files): pass
     def step_find_rebuild_targets(self): pass
     def step_link(self, dolink): pass
@@ -160,10 +164,16 @@ class Logger3(Logger0):
     def cmd_build(self):
         self.info("==== BUILD ====")
 
+    def cmd_wheel(self):
+        self.info("==== WHEEL ====")
+
 
     def report_abi_mismatch(self, v1, v2):
         self.info("Config file contains abi=`%s`, whereas current abi is `%s`"
                   % (v1, v2))
+
+    def report_added_file_to_wheel(self, filename, size):
+        self.info("Added file `%s` of size %d" % (filename, size))
 
     def report_build_dir(self, dd):
         self.info("Build directory = %r" % dd)
@@ -263,11 +273,21 @@ class Logger3(Logger0):
         self.info("Config files contains version=%s, whereas the current "
                   "version is %s" % (v1, v2))
 
+    def report_wheel_file(self, filename):
+        self.info("Preparing to build wheel file `%s`" % filename)
+        self._indent = "    "
+
 
 
     def step_build_done(self, time):
         self._indent = ""
         self.info("==== Build finished in %.3fs" % time)
+
+    def step_wheel_done(self, time, size):
+        self._indent = ""
+        self.info("Final wheel size: %d bytes" % size)
+        self.info("==== Wheel built in %.3fs" % time)
+
 
     def step_compile(self, files):
         if files:
