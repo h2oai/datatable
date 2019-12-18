@@ -34,6 +34,12 @@ import textwrap
 from ci import xbuild
 
 
+def create_logger(verbosity):
+    return (xbuild.Logger0() if verbosity == 0 else \
+            xbuild.Logger1() if verbosity == 1 else \
+            xbuild.Logger2() if verbosity == 2 else \
+            xbuild.Logger3())
+
 
 def build_extension(cmd, verbosity=3):
     assert cmd in ["asan", "build", "coverage", "debug"]
@@ -45,10 +51,7 @@ def build_extension(cmd, verbosity=3):
         linux = True
 
     ext = xbuild.Extension()
-    ext.log = xbuild.Logger0() if verbosity == 0 else \
-              xbuild.Logger1() if verbosity == 1 else \
-              xbuild.Logger2() if verbosity == 2 else \
-              xbuild.Logger3()
+    ext.log = create_logger(verbosity)
     ext.name = "_datatable"
     ext.build_dir = "build/" + cmd
     ext.destination_dir = "datatable/lib/"
@@ -205,9 +208,12 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     files = glob.glob("datatable/**/*.py", recursive=True)
     files += ["datatable/include/datatable.h"]
     files += ["datatable/lib/" + so_file]
+    files = [f for f in files if "_datatable_builder.py" not in f]
+    files.sort()
 
     meta = get_meta()
     wb = xbuild.Wheel(files, **meta)
+    wb.log = create_logger(verbosity=3)
     wheel_file = wb.build_wheel(wheel_directory)
     return wheel_file
 
@@ -252,10 +258,10 @@ def main():
     args = parser.parse_args()
     if args.cmd == "wheel":
         wheel_file = build_wheel("dist/")
-        print("Wheel file `dist/%s` created" % wheel_file)
+        assert os.path.isfile(os.path.join("dist", wheel_file))
     elif args.cmd == "sdist":
         sdist_file = build_sdist("dist/")
-        print("Sdist file `dist/%s` created" % sdist_file)
+        assert os.path.isfile(os.path.join("dist", sdist_file))
     else:
         with open("datatable/lib/.xbuild-cmd", "wt") as out:
             out.write(args.cmd)

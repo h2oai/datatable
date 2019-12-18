@@ -46,6 +46,7 @@ import sysconfig
 import textwrap
 import time
 import zipfile
+from .logger import Logger0
 
 rx_name = re.compile(r"[a-zA-Z0-9]([\w\.\-]*[a-zA-Z0-9])?")
 
@@ -154,6 +155,9 @@ class Wheel:
 
         # Compatibility tag, as described in PEP-425
         self._tag = None
+
+        # Logger object
+        self._log = None
 
 
     #---------------------------------------------------------------------------
@@ -363,6 +367,23 @@ class Wheel:
         return "%s-%s.dist-info" % (self.name, self.version)
 
 
+    @property
+    def log(self):
+        """
+        A logger object which gets notified about different events
+        during the build process. This should be an instance of a
+        class derived from :class:`xbuild.logger.Logger0`.
+        """
+        if self._log is None:
+            self._log = Logger0()
+        return self._log
+
+    @log.setter
+    def log(self, value):
+        assert isinstance(value, Logger0)
+        self._log = value
+
+
 
     #---------------------------------------------------------------------------
     # Tags
@@ -397,10 +418,14 @@ class Wheel:
     #---------------------------------------------------------------------------
 
     def build_wheel(self, wheel_dir):
-        if wheel_dir:
-            os.makedirs(wheel_dir, exist_ok=True)
+        self.log.cmd_wheel()
+        t0 = time.time()
+        if wheel_dir and not os.path.isdir(wheel_dir):
+            os.makedirs(wheel_dir)
+            self.log.report_mkdir(wheel_dir)
         wheel_name = "%s-%s-%s.whl" % (self.name, self.version, self.get_tag())
         full_name = os.path.join(wheel_dir, wheel_name)
+        self.log.report_wheel_file(full_name)
         with zipfile.ZipFile(full_name, "w", allowZip64=True,
                              compression=zipfile.ZIP_DEFLATED) as zipf:
             for filename in self.sources:
@@ -409,6 +434,8 @@ class Wheel:
             self._add_METADATA_file(zipf)
             self._add_WHEEL_file(zipf)
             self._add_RECORD_file(zipf)  # must come last
+        assert os.path.isfile(full_name)
+        self.log.step_wheel_done(time.time() - t0, os.path.getsize(full_name))
         return wheel_name
 
 
@@ -441,6 +468,7 @@ class Wheel:
         assert isinstance(hashstr, str)
         self._record_file.write("%s,%s,%d\n"
                                 % (target_file, hashstr, len(bcontent)))
+        self.log.report_added_file_to_wheel(target_file, len(bcontent))
 
 
     def _add_LICENSE_file(self, zipf):
