@@ -52,6 +52,7 @@
 	#define MAP_TYPE        0xf
 	#define MAP_FIXED       0x10
 	#define MAP_ANONYMOUS   0x20
+	#define MAP_NORESERVE   0x00
 	#define MAP_ANON        MAP_ANONYMOUS
 
 	#define MAP_FAILED      ((void *)-1)

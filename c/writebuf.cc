@@ -8,7 +8,6 @@
 #include <algorithm>       // std::min
 #include <cstring>         // std::memcpy
 #include <errno.h>         // errno
-#include <sys/mman.h>      // mmap
 #include "utils/alloc.h"   // dt::realloc
 #include "utils/assert.h"
 #include "utils/macros.h"

@@ -19,7 +19,9 @@
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
 
 #if DT_OS_WINDOWS
+  #include <windows.h>
   #include "lib/mman/mman.h"   // mmap, munmap
+  #undef min
 #else
   #include <sys/mman.h>        // mmap, munmap
 #endif
@@ -687,7 +689,15 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
       // |   discarded.
       //
       size_t xn = xsize_;
-      size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
+
+      #if DT_OS_WINDOWS
+        SYSTEM_INFO sysInfo;
+        GetSystemInfo(&sysInfo);
+        size_t pagesize = sysInfo.dwPageSize;
+      #else
+        size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
+      #endif
+
       size_t filesize = size() - xn;
       // How much to add to filesize to align it to a page boundary
       size_t gapsize = (pagesize - filesize%pagesize) % pagesize;

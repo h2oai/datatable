@@ -19,15 +19,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "utils/macros.h"
+#include "lib/mman/mman.h"
 
 #if DT_OS_WINDOWS
 
   #include <windows.h>
   #include <errno.h>
   #include <io.h>
-
-  #include "lib/mman/mman.h"
 
   #ifndef FILE_MAP_EXECUTE
   #define FILE_MAP_EXECUTE    0x0020
