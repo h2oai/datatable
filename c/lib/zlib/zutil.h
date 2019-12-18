@@ -12,7 +12,7 @@
 
 
 
-#include "zlib.h"
+#include "lib/zlib/zlib.h"
 
 #if defined(STDC) && !defined(Z_SOLO)
 #  if !(defined(_WIN32_WCE) && defined(_MSC_VER))

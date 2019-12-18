@@ -10,6 +10,9 @@ Frame
 
 - |fix| A list of frames now displays properly in a Jupyter lab (#2222).
 
+- |fix| Mixing reduce and map operations should no longer produce error
+  "Unable to create a nested thread team" (#2242).
+
 
 
 General

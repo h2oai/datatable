@@ -29,7 +29,7 @@
 //          Algorithms, p290.
 //          Addison-Wesley, 1983. ISBN 0-201-06672-6.
 //------------------------------------------------------------------------------
-#include "deflate.h"
+#include "lib/zlib/deflate.h"
 namespace zlib {
 
 #ifdef __clang__
@@ -87,7 +87,7 @@ static const uch bl_order[BL_CODES]
 
 #define DIST_CODE_LEN  512 /* see definition of array dist_code below */
 
-#include "trees.h"
+#include "lib/zlib/trees.h"
 
 
 struct static_tree_desc_s {
