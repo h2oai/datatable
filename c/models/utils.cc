@@ -59,7 +59,7 @@ void calculate_coprimes(size_t n, intvec& coprimes) {
 
 
 /**
- *  A portable implementation of std::copysign.
+ *  A portable implementation of `std::copysign`.
  *  NB: on Windows `copysign` is not officially a member of std, though
  *  `std::copysign` works in the latest msvc compilers. However,
  *  some of the standard headers define a `copysign` macro and some don't,
