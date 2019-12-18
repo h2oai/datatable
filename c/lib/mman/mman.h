@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright kutuzov.viktor.84@gmail.com
+// Copyright 2010-2012, Viktor Kutuzov - kutuzov.viktor.84@gmail.com
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -18,6 +18,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
+//
+//------------------------------------------------------------------------------
+//
+// The code in this file is a slightly modified version of mman-win32, see
+// https://code.google.com/archive/p/mman-win32/
+//
 //------------------------------------------------------------------------------
 #include "utils/macros.h"
 
@@ -26,7 +32,7 @@
 	#ifndef _SYS_MMAN_H_
 	#define _SYS_MMAN_H_
 
-	#ifndef _WIN32_WINNT		// Allow use of features specific to Windows XP or later.
+	#ifndef _WIN32_WINNT		    // Allow use of features specific to Windows XP or later.
 	#define _WIN32_WINNT 0x0501	// Change this to the appropriate value to target other versions of Windows.
 	#endif
 

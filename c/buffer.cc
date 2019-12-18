@@ -19,7 +19,7 @@
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
 
 #if DT_OS_WINDOWS
-  #include <windows.h>
+  #include <windows.h>         // SYSTEM_INFO, GetSystemInfo
   #include "lib/mman/mman.h"   // mmap, munmap
   #undef min
 #else
