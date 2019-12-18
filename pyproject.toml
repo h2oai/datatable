@@ -1,0 +1,4 @@
+[build-system]
+requires = ["pip >= 19.0"]
+build-backend = "ext"
+backend-path = ["."]

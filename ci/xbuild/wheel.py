@@ -138,9 +138,10 @@ class Wheel:
         archive.
     """
 
-    def __init__(self, **meta):
-        self._sources = None
+    def __init__(self, sources, **meta):
+        self._check_sources(sources)
         self._check_meta(meta)
+        self._sources = sources
         self._meta = meta
 
         # Wheel creation time, will be used to timestamp individual files
@@ -160,7 +161,6 @@ class Wheel:
     #---------------------------------------------------------------------------
 
     def _check_meta(self, meta):
-        self._check_sources(meta)
         self._check_name(meta)
         self._check_version(meta)
         self._check_summary(meta)
@@ -179,9 +179,7 @@ class Wheel:
         self._check_unknown_fields(meta)
 
 
-    def _check_sources(self, meta):
-        assert "sources" in meta, "`sources` field is required"
-        sources = meta.pop("sources")
+    def _check_sources(self, sources):
         assert isinstance(sources, list)
         for src in sources:
             if isinstance(src, str):
@@ -194,7 +192,6 @@ class Wheel:
                 assert (isinstance(src, tuple) and len(src) == 2 and
                         isinstance(src[0], (str, bytes)) and
                         isinstance(src[1], str))
-        self._sources = sources
 
     def _check_name(self, meta):
         assert "name" in meta, "`name` field is required"

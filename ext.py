@@ -21,16 +21,22 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+#
+# [PEP-517](https://www.python.org/dev/peps/pep-0517/)
+#     A build-system independent format for source trees
+#     Specification for a build backend system.
+#
+#-------------------------------------------------------------------------------
 import glob
+import os
 import sys
-import sysconfig
+import textwrap
 from ci import xbuild
 
-_valid_commands = ["asan", "build", "coverage", "debug", "wheel"]
 
 
 def build_extension(cmd, verbosity=3):
-    assert cmd in _valid_commands
+    assert cmd in ["asan", "build", "coverage", "debug"]
     windows = (sys.platform == "win32")
     macos = (sys.platform == "darwin")
     linux = (sys.platform == "linux")
@@ -124,15 +130,12 @@ def build_extension(cmd, verbosity=3):
 
     # Setup is complete, ready to build
     ext.build()
+    return os.path.basename(ext.output_file)
 
 
-def build_wheel(target_dir=""):
-    so_file = "_datatable" + sysconfig.get_config_var("EXT_SUFFIX")
-    files = glob.glob("datatable/**/*.py", recursive=True)
-    files += ["datatable/include/datatable.h"]
-    files += ["datatable/lib/" + so_file]
 
-    wb = xbuild.Wheel(
+def get_meta():
+    return dict(
         name="datatable",
         version="0.10.1",
 
@@ -147,12 +150,8 @@ def build_wheel(target_dir=""):
 
             See https://github.com/h2oai/datatable for more details.
         """,
-
         keywords=["datatable", "data", "dataframe", "frame", "data.table",
                   "munging", "numpy", "pandas", "data processing", "ETL"],
-
-        # The homepage
-        home_page="https://github.com/h2oai/datatable",
 
         # Author details
         author="Pasha Stetsenko",
@@ -160,8 +159,8 @@ def build_wheel(target_dir=""):
         maintainer="Oleksiy Kononenko",
         maintainer_email="oleksiy.kononenko@h2o.ai",
 
+        home_page="https://github.com/h2oai/datatable",
         license="Mozilla Public License v2.0",
-
         classifiers=[
             "Development Status :: 4 - Beta",
             "Intended Audience :: Developers",
@@ -182,34 +181,86 @@ def build_wheel(target_dir=""):
             "blessed",
             "pytest (>=3.1); extra == 'tests'",
             "docutils (>=0.14); extra == 'tests'",
+            "numpy; extra == 'optional'",
+            "pandas; extra == 'optional'",
+            "xlrd; extra == 'optional'",
         ],
-
         requires_python=">=3.5",
-
-        sources=files,
     )
-    return wb.build_wheel(target_dir)
 
 
 
-if __name__ == "__main__":
+#-------------------------------------------------------------------------------
+# Standard hooks
+#-------------------------------------------------------------------------------
+
+def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
+    """
+    Function for building wheels, satisfies requirements of PEP-517.
+    """
+    assert isinstance(wheel_directory, str)
+    assert metadata_directory is None
+
+    so_file = build_extension(cmd="build", verbosity=3)
+    files = glob.glob("datatable/**/*.py", recursive=True)
+    files += ["datatable/include/datatable.h"]
+    files += ["datatable/lib/" + so_file]
+
+    meta = get_meta()
+    wb = xbuild.Wheel(files, **meta)
+    wheel_file = wb.build_wheel(wheel_directory)
+    return wheel_file
+
+
+
+def build_sdist(wheel_directory, config_settings=None):
+    """
+    Function for building source distributions, satisfies PEP-517.
+    """
+    raise NotImplementedError()
+
+
+
+#-------------------------------------------------------------------------------
+# Allow this script to run from command line
+#-------------------------------------------------------------------------------
+
+def main():
     import argparse
-    parser = argparse.ArgumentParser(description='Build _datatable module')
-    parser.add_argument("cmd", metavar="CMD", choices=_valid_commands,
-            help="Mode of the _datatable library to build. The following modes "
-                 "are supported: `asan` (built with Address Sanitizer), `build`"
-                 " (standard build mode), `coverage` (suitable for coverage "
-                 "testing), and `debug` (with full debug info).")
+    parser = argparse.ArgumentParser(
+        description='Build _datatable module',
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument("cmd", metavar="CMD",
+        choices=["asan", "build", "coverage", "debug", "sdist", "wheel"],
+        help=textwrap.dedent("""
+            Specify what this script should do:
+
+            asan     : build _datatable with Address Sanitizer enabled
+            build    : build _datatable normally, with full optimization
+            coverage : build _datatable in a mode suitable for coverage
+                       testing
+            debug    : build _datatable in debug mode, optimized for gdb
+                       on Linux and for lldb on MacOS
+            sdist    : create source distribution of datatable
+            wheel    : create wheel distribution of datatable
+            """).strip())
     parser.add_argument("-v", dest="verbosity", action="count", default=1,
-            help="Verbosity level of the output, specify the parameter up to 3 "
-                 "times for maximum verbosity; the default level is 1")
+            help="Verbosity level of the output, specify the parameter up to \n"
+                 "3 times for maximum verbosity; the default level is 1")
 
     args = parser.parse_args()
     if args.cmd == "wheel":
-        build_extension(cmd="build", verbosity=3)
-        wheel_file = build_wheel()
-        print("Wheel `%s` created" % wheel_file)
+        wheel_file = build_wheel("dist/")
+        print("Wheel file `dist/%s` created" % wheel_file)
+    elif args.cmd == "sdist":
+        sdist_file = build_sdist("dist/")
+        print("Sdist file `dist/%s` created" % sdist_file)
     else:
         with open("datatable/lib/.xbuild-cmd", "wt") as out:
             out.write(args.cmd)
         build_extension(cmd=args.cmd, verbosity=args.verbosity)
+
+
+if __name__ == "__main__":
+    main()
