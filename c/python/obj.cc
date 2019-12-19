@@ -294,10 +294,12 @@ static inline bool _parse_none(PyObject* v, T* out) {
   return false;
 }
 
-bool _obj::parse_none(int8_t* out) const  { return _parse_none(v, out); }
+bool _obj::parse_none(int8_t* out)  const { return _parse_none(v, out); }
 bool _obj::parse_none(int16_t* out) const { return _parse_none(v, out); }
 bool _obj::parse_none(int32_t* out) const { return _parse_none(v, out); }
 bool _obj::parse_none(int64_t* out) const { return _parse_none(v, out); }
+bool _obj::parse_none(float* out)   const { return _parse_none(v, out); }
+bool _obj::parse_none(double* out)  const { return _parse_none(v, out); }
 
 
 
@@ -312,6 +314,7 @@ bool _obj::parse_bool(int8_t* out) const  { return _parse_bool(v, out); }
 bool _obj::parse_bool(int16_t* out) const { return _parse_bool(v, out); }
 bool _obj::parse_bool(int32_t* out) const { return _parse_bool(v, out); }
 bool _obj::parse_bool(int64_t* out) const { return _parse_bool(v, out); }
+bool _obj::parse_bool(double* out)  const { return _parse_bool(v, out); }
 
 
 
@@ -362,10 +365,26 @@ bool _parse_int(PyObject* v, T* out) {
   }
 #endif
 
-bool _obj::parse_int_no_overflow(int8_t* out) const  { return _parse_int(v, out); }
-bool _obj::parse_int_no_overflow(int16_t* out) const { return _parse_int(v, out); }
-bool _obj::parse_int_no_overflow(int32_t* out) const { return _parse_int(v, out); }
-bool _obj::parse_int_no_overflow(int64_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int(int8_t* out) const  { return _parse_int(v, out); }
+bool _obj::parse_int(int16_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int(int32_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int(int64_t* out) const { return _parse_int(v, out); }
+
+bool _obj::parse_int(double* out) const {
+  if (PyLong_Check(v)) {
+    double value = PyLong_AsDouble(v);
+    if (value == -1.0 && PyErr_Occurred()) {
+      int sign = _PyLong_Sign(v);
+      value = sign > 0 ? std::numeric_limits<double>::infinity()
+                       : -std::numeric_limits<double>::infinity();
+      PyErr_Clear();
+    }
+    *out = value;
+    return true;
+  }
+  return false;
+}
+
 
 
 template <typename T>
@@ -388,6 +407,39 @@ bool _obj::parse_numpy_int(int8_t* out)  const { return _parse_npint(v, out); }
 bool _obj::parse_numpy_int(int16_t* out) const { return _parse_npint(v, out); }
 bool _obj::parse_numpy_int(int32_t* out) const { return _parse_npint(v, out); }
 bool _obj::parse_numpy_int(int64_t* out) const { return _parse_npint(v, out); }
+
+
+template <typename T>
+static bool _parse_npfloat(PyObject* v, T* out) {
+  if (!numpy_float64) init_numpy();
+  if (numpy_float64 && v) {
+    if ((sizeof(T) >= 8 && PyObject_IsInstance(v, numpy_float64)) ||
+        (sizeof(T) >= 4 && PyObject_IsInstance(v, numpy_float32)) ||
+        (sizeof(T) >= 2 && PyObject_IsInstance(v, numpy_float16)))
+    {
+      PyObject* num = PyNumber_Float(v);  // new ref
+      if (num) {
+        *out = static_cast<T>(PyFloat_AsDouble(num));
+        Py_DECREF(num);
+        return true;
+      }
+      PyErr_Clear();
+    }
+  }
+  return false;
+}
+
+bool _obj::parse_numpy_float(float*  out) const { return _parse_npfloat(v, out); }
+bool _obj::parse_numpy_float(double* out) const { return _parse_npfloat(v, out); }
+
+
+bool _obj::parse_double(double* out) const {
+  if (PyFloat_Check(v)) {
+    *out = PyFloat_AsDouble(v);
+    return true;
+  }
+  return false;
+}
 
 
 

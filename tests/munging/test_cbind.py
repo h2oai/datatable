@@ -215,7 +215,7 @@ def test_cbind_multiple():
                   C=[True, False, None, None],
                   D=[10, 9, 8, 7],
                   E=[None] * 4,
-                  stypes={"E": dt.int32})
+                  stypes={"E": dt.int8})
     assert_equals(d0, dr)
 
 

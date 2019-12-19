@@ -179,8 +179,8 @@ def test_dt_properties(dt0):
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.ltypes == (ltype.int, ltype.bool, ltype.int, ltype.real,
                           ltype.bool, ltype.int, ltype.str)
-    assert dt0.stypes == (stype.int32, stype.bool8, stype.int32, stype.float64,
-                          stype.bool8, stype.int32, stype.str32)
+    assert dt0.stypes == (stype.int32, stype.bool8, stype.int8, stype.float64,
+                          stype.bool8, stype.int8, stype.str32)
     assert sys.getsizeof(dt0) > 500
 
 

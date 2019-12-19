@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2019 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstdlib>         // std::abs
 #include <limits>          // std::numeric_limits
@@ -76,15 +90,15 @@ static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
 // Parse list of "weak" booleans, i.e. `True`, `False`, `1`, `0`
 // and `None`. These will be converted to SType::INT8 column.
 //
-static size_t parse_as_int01(const Column& inputcol, Buffer& mbuf, size_t i0)
-{
-  return parse_as_X<int8_t>(inputcol, mbuf, i0,
-            [](py::robj item, int8_t* out) {
-              return item.parse_bool(out) ||
-                     item.parse_none(out) ||
-                     item.parse_01(out);
-            });
-}
+// static size_t parse_as_int01(const Column& inputcol, Buffer& mbuf, size_t i0)
+// {
+//   return parse_as_X<int8_t>(inputcol, mbuf, i0,
+//             [](py::robj item, int8_t* out) {
+//               return item.parse_bool(out) ||
+//                      item.parse_none(out) ||
+//                      item.parse_01(out);
+//             });
+// }
 
 
 /**
@@ -117,23 +131,35 @@ static void force_as_bool(const Column& inputcol, Buffer& mbuf)
 // Integer
 //------------------------------------------------------------------------------
 
-/**
- * Convert Python list of objects into a column of integer<T> type, if possible.
- * The converted values will be written into the provided `membuf` (which will
- * be reallocated to proper size). Returns true if conversion was successful,
- * otherwise returns false and sets `from` to the index within the source list
- * of the element that could not be parsed.
- *
- * This converter recognizes either python `None`, or pythonic `int` object.
- * Any other pythonic object will cause the parser to fail. Likewise, the
- * parser will fail if the `int` value does not fit into the range of type `T`.
- */
+// Parse list of integers, accepting either regular python ints, or
+// python bools, or numpy ints, or `None`. The ints are parsed only
+// for T==int32_t or T==int64_t. This is because this function is
+// used for type autodetection, and we don't want small integers to
+// be detected as int8_t or int16_t. Thus, the only way to get an
+// auto-detected stype INT8 is to have int8 numpy integers in the
+// list, possibly mixed with Nones and booleans.
+//
+// Integers that are too large for int32/int64 will be promoted to
+// stype INT64/FLOAT64 respectively.
+//
 template <typename T>
 static size_t parse_as_int(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<T>(inputcol, mbuf, i0,
             [](py::robj item, T* out) {
-              return (sizeof(T) >= 4 && item.parse_int_no_overflow(out)) ||
+              return (sizeof(T) >= 4 && item.parse_int(out)) ||
+                     item.parse_none(out) ||
+                     item.parse_numpy_int(out) ||
+                     item.parse_bool(out);
+            });
+}
+
+
+static size_t parse_as_int8(const Column& inputcol, Buffer& mbuf, size_t i0)
+{
+  return parse_as_X<int8_t>(inputcol, mbuf, i0,
+            [](py::robj item, int8_t* out) {
+              return item.parse_01(out) ||
                      item.parse_none(out) ||
                      item.parse_numpy_int(out) ||
                      item.parse_bool(out);
@@ -175,52 +201,27 @@ static void force_as_int(const Column& inputcol, Buffer& membuf)
 // Float
 //------------------------------------------------------------------------------
 
-/**
- * We don't attempt to parse as float because Python internally stores numbers
- * as doubles, and it's extremely hard to determine whether that number should
- * have been a float instead...
- */
-template <typename T>
-static bool parse_as_real(const Column& inputcol, Buffer& membuf, size_t& from)
+static size_t parse_as_float32(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
-  size_t nrows = inputcol.nrows();
-  membuf.resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf.wptr());
+  return parse_as_X<float>(inputcol, mbuf, i0,
+            [](py::robj item, float* out) {
+              return item.parse_numpy_float(out) ||
+                     item.parse_none(out);
+            });
+}
 
-  int overflow = 0;
-  py::robj item;
-  for (int j = 0; j < 2; ++j) {
-    size_t ifrom = j ? 0 : from;
-    size_t ito   = j ? from : nrows;
-    for (size_t i = ifrom; i < ito; ++i) {
-      inputcol.get_element(i, &item);
 
-      if (item.is_none()) {
-        outdata[i] = GETNA<T>();
-        continue;
-      }
-      if (std::is_same<T, double>::value) {
-        if (item.is_int()) {
-          py::oint litem = item.to_pyint();
-          outdata[i] = static_cast<T>(litem.ovalue<double>(&overflow));
-          continue;
-        }
-        if (item.is_float()) {
-          outdata[i] = static_cast<T>(item.to_double());
-          continue;
-        }
-      }
-      int r = item.is_numpy_float();
-      if (r && r <= int(sizeof(T))) {
-        outdata[i] = static_cast<T>(item.to_double());
-        continue;
-      }
-      from = i;
-      return false;
-    }
-  }
-  PyErr_Clear();  // in case an overflow occurred
-  return true;
+static size_t parse_as_float64(const Column& inputcol, Buffer& mbuf, size_t i0)
+{
+  return parse_as_X<double>(inputcol, mbuf, i0,
+            [](py::robj item, double* out) {
+              return item.parse_double(out) ||
+                     item.parse_none(out) ||
+                     item.parse_int(out) ||
+                     item.parse_numpy_float(out) ||
+                     item.parse_bool(out) ||
+                     false;
+            });
 }
 
 
@@ -258,8 +259,8 @@ static void force_as_real(const Column& inputcol, Buffer& membuf)
 //------------------------------------------------------------------------------
 
 template <typename T>
-static bool parse_as_str(const Column& inputcol, Buffer& offbuf,
-                         Buffer& strbuf)
+static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
+                           Buffer& strbuf)
 {
   size_t nrows = inputcol.nrows();
   offbuf.resize((nrows + 1) * sizeof(T));
@@ -311,11 +312,10 @@ static bool parse_as_str(const Column& inputcol, Buffer& offbuf,
     if (std::is_same<T, int64_t>::value) {
       strbuf.resize(0);
     }
-    return false;
   } else {
     strbuf.resize(static_cast<size_t>(curr_offset));
-    return true;
   }
+  return i;
 }
 
 
@@ -396,7 +396,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static bool parse_as_pyobj(const Column& inputcol, Buffer& membuf)
+static size_t parse_as_pyobj(const Column& inputcol, Buffer& membuf)
 {
   size_t nrows = inputcol.nrows();
   membuf.resize(nrows * sizeof(PyObject*));
@@ -411,7 +411,7 @@ static bool parse_as_pyobj(const Column& inputcol, Buffer& membuf)
       outdata[i] = py::oobj(item).release();
     }
   }
-  return true;
+  return nrows;
 }
 
 
@@ -467,22 +467,20 @@ static Column resolve_column(const Column& inputcol, int stype0)
       }
       break; // while(stype)
     } else {
-      bool ret = false;
       switch (stype) {
         case SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
-        case SType::INT8:    i = parse_as_int<int8_t>(inputcol, membuf, i); break;
+        case SType::INT8:    i = parse_as_int8(inputcol, membuf, i); break;
         case SType::INT16:   i = parse_as_int<int16_t>(inputcol, membuf, i); break;
         case SType::INT32:   i = parse_as_int<int32_t>(inputcol, membuf, i); break;
         case SType::INT64:   i = parse_as_int<int64_t>(inputcol, membuf, i); break;
-        case SType::FLOAT32: ret = parse_as_real<float>(inputcol, membuf, i); break;
-        case SType::FLOAT64: ret = parse_as_real<double>(inputcol, membuf, i); break;
-        case SType::STR32:   ret = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
-        case SType::STR64:   ret = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
-        case SType::OBJ:     ret = parse_as_pyobj(inputcol, membuf); break;
+        case SType::FLOAT32: i = parse_as_float32(inputcol, membuf, i); break;
+        case SType::FLOAT64: i = parse_as_float64(inputcol, membuf, i); break;
+        case SType::STR32:   i = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
+        case SType::STR64:   i = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
+        case SType::OBJ:     i = parse_as_pyobj(inputcol, membuf); break;
         default: /* do nothing -- not all STypes are currently implemented. */ break;
       }
       if (i == nrows) break;
-      if (ret) break;
       stype = next_stype;
     }
   }

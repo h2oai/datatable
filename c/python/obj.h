@@ -203,19 +203,26 @@ class _obj {
     bool parse_none(int16_t*) const;
     bool parse_none(int32_t*) const;
     bool parse_none(int64_t*) const;
+    bool parse_none(float*) const;
+    bool parse_none(double*) const;
     bool parse_bool(int8_t*) const;
     bool parse_bool(int16_t*) const;
     bool parse_bool(int32_t*) const;
     bool parse_bool(int64_t*) const;
+    bool parse_bool(double*) const;
     bool parse_01(int8_t*) const;
-    bool parse_int_no_overflow(int8_t*) const;
-    bool parse_int_no_overflow(int16_t*) const;
-    bool parse_int_no_overflow(int32_t*) const;
-    bool parse_int_no_overflow(int64_t*) const;
+    bool parse_int(int8_t*) const;
+    bool parse_int(int16_t*) const;
+    bool parse_int(int32_t*) const;
+    bool parse_int(int64_t*) const;
+    bool parse_int(double*) const;
     bool parse_numpy_int(int8_t*) const;
     bool parse_numpy_int(int16_t*) const;
     bool parse_numpy_int(int32_t*) const;
     bool parse_numpy_int(int64_t*) const;
+    bool parse_numpy_float(float*) const;
+    bool parse_numpy_float(double*) const;
+    bool parse_double(double*) const;
 
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;
