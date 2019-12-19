@@ -13,6 +13,8 @@ Frame
 - |fix| Mixing reduce and map operations should no longer produce error
   "Unable to create a nested thread team" (#2242).
 
+- |fix| Fixed an error when a frame with a computed boolean column was
+  saved into csv (#2253).
 
 
 General
