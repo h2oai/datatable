@@ -92,16 +92,16 @@ test:
 		tests
 
 xasan:
-	$(PYTHON) ext.py asan
+	@$(PYTHON) ext.py asan
 
 xbuild:
-	$(PYTHON) ext.py build
+	@$(PYTHON) ext.py build
 
 xcoverage:
-	$(PYTHON) ext.py coverage
+	@$(PYTHON) ext.py coverage
 
 xdebug:
-	$(PYTHON) ext.py debug
+	@$(PYTHON) ext.py debug
 
 
 benchmark:

@@ -177,10 +177,10 @@ def test_dt_properties(dt0):
     assert dt0.shape == (4, 7)
     assert dt0.ndims == 2
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
-    assert dt0.ltypes == (ltype.int, ltype.bool, ltype.bool, ltype.real,
-                          ltype.bool, ltype.bool, ltype.str)
-    assert dt0.stypes == (stype.int32, stype.bool8, stype.bool8, stype.float64,
-                          stype.bool8, stype.bool8, stype.str32)
+    assert dt0.ltypes == (ltype.int, ltype.bool, ltype.int, ltype.real,
+                          ltype.bool, ltype.int, ltype.str)
+    assert dt0.stypes == (stype.int32, stype.bool8, stype.int8, stype.float64,
+                          stype.bool8, stype.int8, stype.str32)
     assert sys.getsizeof(dt0) > 500
 
 
@@ -321,7 +321,7 @@ def test_random_attack():
 def test_dt_stype(dt0):
     assert dt0[0].stype == stype.int32
     assert dt0[1].stype == stype.bool8
-    assert dt0[:, [1, 2, 4, 5]].stype == stype.bool8
+    assert dt0[:, [1, 4]].stype == stype.bool8
     assert dt0[-1].stype == stype.str32
 
 

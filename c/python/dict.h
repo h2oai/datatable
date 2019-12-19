@@ -109,6 +109,8 @@ class rdict : public robj {
   public:
     using robj::robj;
 
+    static rdict unchecked(const robj&);
+
     size_t size() const;
     bool empty() const;
     bool has(_obj key) const;

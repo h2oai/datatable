@@ -41,6 +41,9 @@ odict::odict(oobj&& src) : oobj(std::move(src)) {}
 odict::odict(const robj& src) : oobj(src) {}
 rdict::rdict(const robj& src) : robj(src) {}
 
+rdict rdict::unchecked(const robj& src) {
+  return rdict(src);
+}
 
 odict odict::copy() const {
   return odict(oobj::from_new_reference(PyDict_Copy(v)));
