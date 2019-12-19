@@ -47,7 +47,6 @@
   *   be converted. If all entries convert successfully, this will be
   *   equal to `inputcol.nrows()`.
   */
-
 template <typename T>
 static size_t parse_as_X(const Column& inputcol, Buffer& mbuf, size_t i0,
                          bool(*f)(py::robj, T*))
@@ -85,20 +84,6 @@ static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
                      item.parse_none(out);
             });
 }
-
-
-// Parse list of "weak" booleans, i.e. `True`, `False`, `1`, `0`
-// and `None`. These will be converted to SType::INT8 column.
-//
-// static size_t parse_as_int01(const Column& inputcol, Buffer& mbuf, size_t i0)
-// {
-//   return parse_as_X<int8_t>(inputcol, mbuf, i0,
-//             [](py::robj item, int8_t* out) {
-//               return item.parse_bool(out) ||
-//                      item.parse_none(out) ||
-//                      item.parse_01(out);
-//             });
-// }
 
 
 /**
@@ -162,6 +147,17 @@ static size_t parse_as_int8(const Column& inputcol, Buffer& mbuf, size_t i0)
               return item.parse_01(out) ||
                      item.parse_none(out) ||
                      item.parse_numpy_int(out) ||
+                     item.parse_bool(out);
+            });
+}
+
+static size_t parse_as_int16(const Column& inputcol, Buffer& mbuf, size_t i0)
+{
+  return parse_as_X<int16_t>(inputcol, mbuf, i0,
+            [](py::robj item, int16_t* out) {
+              return item.parse_numpy_int(out) ||
+                     item.parse_none(out) ||
+                     item.parse_01(out) ||
                      item.parse_bool(out);
             });
 }
@@ -470,7 +466,7 @@ static Column resolve_column(const Column& inputcol, int stype0)
       switch (stype) {
         case SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
         case SType::INT8:    i = parse_as_int8(inputcol, membuf, i); break;
-        case SType::INT16:   i = parse_as_int<int16_t>(inputcol, membuf, i); break;
+        case SType::INT16:   i = parse_as_int16(inputcol, membuf, i); break;
         case SType::INT32:   i = parse_as_int<int32_t>(inputcol, membuf, i); break;
         case SType::INT64:   i = parse_as_int<int64_t>(inputcol, membuf, i); break;
         case SType::FLOAT32: i = parse_as_float32(inputcol, membuf, i); break;

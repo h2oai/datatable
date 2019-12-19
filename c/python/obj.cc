@@ -318,18 +318,23 @@ bool _obj::parse_bool(double* out)  const { return _parse_bool(v, out); }
 
 
 
-bool _obj::parse_01(int8_t* out) const {
+template <typename T>
+static inline bool _parse_01(PyObject* v, T* out) {
   if (PyLong_CheckExact(v)) {
     int overflow;
     long x = PyLong_AsLongAndOverflow(v, &overflow);
     if (x == 0 || x == 1) {
-      *out = static_cast<int8_t>(x);
+      *out = static_cast<T>(x);
       return true;
     }
     // Fall-through for all other values of `x`, including overflow (x == -1)
   }
   return false;
 }
+
+bool _obj::parse_01(int8_t* out)  const { return _parse_01(v, out); }
+bool _obj::parse_01(int16_t* out) const { return _parse_01(v, out); }
+
 
 
 

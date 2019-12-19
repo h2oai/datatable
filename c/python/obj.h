@@ -211,6 +211,7 @@ class _obj {
     bool parse_bool(int64_t*) const;
     bool parse_bool(double*) const;
     bool parse_01(int8_t*) const;
+    bool parse_01(int16_t*) const;
     bool parse_int(int8_t*) const;
     bool parse_int(int16_t*) const;
     bool parse_int(int32_t*) const;
