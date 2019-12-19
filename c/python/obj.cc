@@ -368,6 +368,28 @@ bool _obj::parse_int_no_overflow(int32_t* out) const { return _parse_int(v, out)
 bool _obj::parse_int_no_overflow(int64_t* out) const { return _parse_int(v, out); }
 
 
+template <typename T>
+static bool _parse_npint(PyObject* v, T* out) {
+  if (!numpy_int64) init_numpy();
+  if (numpy_int64 && v) {
+    if ((sizeof(T) >= 8 && PyObject_IsInstance(v, numpy_int64)) ||
+        (sizeof(T) >= 4 && PyObject_IsInstance(v, numpy_int32)) ||
+        (sizeof(T) >= 2 && PyObject_IsInstance(v, numpy_int16)) ||
+        (sizeof(T) >= 1 && PyObject_IsInstance(v, numpy_int8)))
+    {
+      *out = static_cast<T>(PyNumber_AsSsize_t(v, nullptr));
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _obj::parse_numpy_int(int8_t* out)  const { return _parse_npint(v, out); }
+bool _obj::parse_numpy_int(int16_t* out) const { return _parse_npint(v, out); }
+bool _obj::parse_numpy_int(int32_t* out) const { return _parse_npint(v, out); }
+bool _obj::parse_numpy_int(int64_t* out) const { return _parse_npint(v, out); }
+
+
 
 
 //------------------------------------------------------------------------------

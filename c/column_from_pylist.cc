@@ -67,8 +67,8 @@ static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<int8_t>(inputcol, mbuf, i0,
             [](py::robj item, int8_t* out) {
-              return item.parse_none(out) ||
-                     item.parse_bool(out);
+              return item.parse_bool(out) ||
+                     item.parse_none(out);
             });
 }
 
@@ -80,8 +80,8 @@ static size_t parse_as_int01(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<int8_t>(inputcol, mbuf, i0,
             [](py::robj item, int8_t* out) {
-              return item.parse_none(out) ||
-                     item.parse_bool(out) ||
+              return item.parse_bool(out) ||
+                     item.parse_none(out) ||
                      item.parse_01(out);
             });
 }
@@ -133,16 +133,10 @@ static size_t parse_as_int(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<T>(inputcol, mbuf, i0,
             [](py::robj item, T* out) {
-              bool ok = item.parse_none(out) ||
-                        (sizeof(T) >= 4 && item.parse_int_no_overflow(out)) ||
-                        item.parse_bool(out);
-              if (ok) return true;
-              int r = item.is_numpy_int();
-              if (r && r <= int(sizeof(T))) {
-                *out = static_cast<T>(item.to_int64());
-                return true;
-              }
-              return false;
+              return (sizeof(T) >= 4 && item.parse_int_no_overflow(out)) ||
+                     item.parse_none(out) ||
+                     item.parse_numpy_int(out) ||
+                     item.parse_bool(out);
             });
 }
 

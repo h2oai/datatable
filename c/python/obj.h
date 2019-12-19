@@ -212,6 +212,10 @@ class _obj {
     bool parse_int_no_overflow(int16_t*) const;
     bool parse_int_no_overflow(int32_t*) const;
     bool parse_int_no_overflow(int64_t*) const;
+    bool parse_numpy_int(int8_t*) const;
+    bool parse_numpy_int(int16_t*) const;
+    bool parse_numpy_int(int32_t*) const;
+    bool parse_numpy_int(int64_t*) const;
 
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;
