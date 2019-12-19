@@ -300,7 +300,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
   if (!is_model_trained()) {
     const strvec& colnames = dt_y_train->get_names();
     std::unordered_map<std::string, int8_t> colnames_map = {{colnames[0], 0}};
-    dt_labels = create_dt_labels_str<uint32_t, SType::BOOL>(colnames_map);
+    dt_labels = create_dt_labels_str<uint32_t, SType::INT8>(colnames_map);
 
     create_model();
     model_type = FtrlModelType::REGRESSION;
@@ -773,7 +773,6 @@ dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X) {
   SType label_id_stype = dt_labels->get_column(1).stype();
   dtptr dt_p;
   switch (label_id_stype) {
-    case SType::BOOL:
     case SType::INT8:  dt_p = predict<int8_t>(dt_X); break;
     case SType::INT32: dt_p = predict<int32_t>(dt_X); break;
     default: throw TypeError() << "Label id type  `"

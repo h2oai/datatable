@@ -1072,6 +1072,8 @@ def test_ftrl_regression_fit_none():
     df_train = dt.Frame(range(ft.nbins))
     df_target = dt.Frame([None] * ft.nbins)
     res = ft.fit(df_train, df_target)
+    assert_equals(ft.labels,
+                  dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int8}))
     assert ft.model_type == "regression"
     assert ft.model_type_trained == "regression"
     assert res.epoch == 1.0
@@ -1085,6 +1087,8 @@ def test_ftrl_regression_fit():
     df_target = dt.Frame(r + [math.inf])
     ft.fit(df_train, df_target)
     p = ft.predict(df_train)
+    assert_equals(ft.labels,
+                  dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int8}))
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], r + [0])]
     assert ft.labels[:, 0].to_list() == [["C0"]]
     assert ft.model_type_trained == "regression"
