@@ -143,7 +143,7 @@ void label_encode_fw(const Column& ocol,
         if (labels_map.count(v) == 0) {
           if (is_binomial && labels_map.size() == 2) {
             throw ValueError() << "Target column for binomial problem cannot "
-                                  "contain more than two labels";
+                                  "contain more than two unique labels";
           }
           size_t nlabels = labels_map.size();
           labels_map[v] = static_cast<int32_t>(nlabels);
@@ -201,7 +201,7 @@ void label_encode_str(const Column& ocol,
         if (labels_map.count(v) == 0) {
           if (is_binomial && labels_map.size() == 2) {
             throw ValueError() << "Target column for binomial problem cannot "
-                                  "contain more than two labels";
+                                  "contain more than two unique labels";
           }
           size_t nlabels = labels_map.size();
           labels_map[v] = static_cast<int32_t>(nlabels);

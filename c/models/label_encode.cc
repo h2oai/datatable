@@ -68,7 +68,7 @@ void label_encode(const Column& col, dtptr& dt_labels, dtptr& dt_encoded,
                          break;
 
     default:             throw TypeError() << "Target column type `" << stype
-                                           << "` is not supported by FTRL";
+                                           << "` is not supported";
   }
 
   // Set key to the labels column for later joining with the new labels.
