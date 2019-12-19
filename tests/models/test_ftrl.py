@@ -777,13 +777,13 @@ def test_ftrl_fit_predict_binomial_online_1_1():
     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
     ft.fit(df_train_odd, df_target_odd)
     assert_equals(ft.labels,
-                  dt.Frame(label=["odd"], id=[0], stypes={"id": dt.int8}))
+                  dt.Frame(label=["odd"], id=[0], stypes={"id": dt.int32}))
 
     df_train_even = dt.Frame([[2, 4, 8, 6]])
     df_target_even = dt.Frame([["even", "even", "even", "even"]])
     ft.fit(df_train_even, df_target_even)
     assert_equals(ft.labels,
-                  dt.Frame(label=["even", "odd"], id=[1, 0], stypes={"id": dt.int8}))
+                  dt.Frame(label=["even", "odd"], id=[1, 0], stypes={"id": dt.int32}))
 
     df_train_wrong = dt.Frame([[2, 4, None, 6]])
     df_target_wrong = dt.Frame([["even", "even", "none", "even"]])
@@ -816,7 +816,7 @@ def test_ftrl_fit_predict_binomial_online_1_2():
     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
     ft.fit(df_train_odd, df_target_odd)
     assert_equals(ft.labels,
-                  dt.Frame(label=["odd"], id=[0], stypes={"id": dt.int8}))
+                  dt.Frame(label=["odd"], id=[0], stypes={"id": dt.int32}))
 
     df_train_wrong = dt.Frame([[2, 4, None, 6]])
     df_target_wrong = dt.Frame([["even", "even", "none", "even"]])
@@ -830,7 +830,7 @@ def test_ftrl_fit_predict_binomial_online_1_2():
     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
     ft.fit(df_train_even_odd, df_target_even_odd)
     assert_equals(ft.labels,
-                  dt.Frame(label=["even", "odd"], id=[1, 0], stypes={"id": dt.int8}))
+                  dt.Frame(label=["even", "odd"], id=[1, 0], stypes={"id": dt.int32}))
 
     p = ft.predict(df_train_odd)
     p_dict = p.to_dict()
@@ -855,13 +855,13 @@ def test_ftrl_fit_predict_binomial_online_2_1():
     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
     ft.fit(df_train_even_odd, df_target_even_odd)
     assert_equals(ft.labels,
-                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int8}))
+                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int32}))
 
     df_train_odd = dt.Frame([[1, 3, 7, 5, 9]])
     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
     ft.fit(df_train_odd, df_target_odd)
     assert_equals(ft.labels,
-                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int8}))
+                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int32}))
 
     df_train_wrong = dt.Frame([[math.inf, math.inf, None, math.inf]])
     df_target_wrong = dt.Frame([["inf", "inf", "none", "inf"]])
@@ -895,13 +895,13 @@ def test_ftrl_fit_predict_binomial_online_2_2():
     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
     ft.fit(df_train_even_odd, df_target_even_odd)
     assert_equals(ft.labels,
-                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int8}))
+                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int32}))
 
     df_train_odd_even = dt.Frame([[1, 2, 3, 8]])
     df_target_odd_even = dt.Frame([["odd", "even", "odd", "even"]])
     ft.fit(df_train_odd_even, df_target_odd_even)
     assert_equals(ft.labels,
-                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int8}))
+                  dt.Frame(label=["even", "odd"], id=[0, 1], stypes={"id": dt.int32}))
 
     df_train_wrong = dt.Frame([[math.inf, math.inf, None, math.inf]])
     df_target_wrong = dt.Frame([["inf", "inf", "none", "inf"]])
@@ -1073,7 +1073,7 @@ def test_ftrl_regression_fit_none():
     df_target = dt.Frame([None] * ft.nbins)
     res = ft.fit(df_train, df_target)
     assert_equals(ft.labels,
-                  dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int8}))
+                  dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32}))
     assert ft.model_type == "regression"
     assert ft.model_type_trained == "regression"
     assert res.epoch == 1.0
@@ -1088,7 +1088,7 @@ def test_ftrl_regression_fit():
     ft.fit(df_train, df_target)
     p = ft.predict(df_train)
     assert_equals(ft.labels,
-                  dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int8}))
+                  dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32}))
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], r + [0])]
     assert ft.labels[:, 0].to_list() == [["C0"]]
     assert ft.model_type_trained == "regression"

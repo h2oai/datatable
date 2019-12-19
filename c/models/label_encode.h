@@ -48,23 +48,22 @@ void adjust_values(Column& col, F adjustfn) {
 /**
  *  Create labels datatable from unordered map for fixed width columns.
  */
-template <SType stype_from, SType stype_to>
+template <SType stype_from>
 dtptr create_dt_labels_fw(const std::unordered_map<
                             element_t<stype_from>,
-                            element_t<stype_to>
+                            int32_t
                           >& labels_map)
 {
-  using Tfrom = element_t<stype_from>;
-  using Tto = element_t<stype_to>;
+  using T_from = element_t<stype_from>;
   size_t nlabels = labels_map.size();
   Column labels_col = Column::new_data_column(nlabels, stype_from);
-  Column ids_col = Column::new_data_column(nlabels, stype_to);
+  Column ids_col = Column::new_data_column(nlabels, SType::INT32);
 
-  auto labels_data = static_cast<Tfrom*>(labels_col.get_data_editable());
-  auto ids_data = static_cast<Tto*>(ids_col.get_data_editable());
+  auto labels_data = static_cast<T_from*>(labels_col.get_data_editable());
+  auto ids_data = static_cast<int32_t*>(ids_col.get_data_editable());
 
   for (auto& label : labels_map) {
-    labels_data[label.second] = static_cast<Tfrom>(label.first);
+    labels_data[label.second] = static_cast<T_from>(label.first);
     ids_data[label.second] = label.second;
   }
   return dtptr(new DataTable(
@@ -76,15 +75,15 @@ dtptr create_dt_labels_fw(const std::unordered_map<
 /**
  *  Create labels datatable from unordered map for string columns.
  */
-template <typename T, SType stype_to>
+template <typename T>
 dtptr create_dt_labels_str(const std::unordered_map<
                              std::string,
-                             element_t<stype_to>
+                             int32_t
                            >& labels_map)
 {
   size_t nlabels = labels_map.size();
-  Column ids_col = Column::new_data_column(nlabels, stype_to);
-  auto ids_data = static_cast<element_t<stype_to>*>(
+  Column ids_col = Column::new_data_column(nlabels, SType::INT32);
+  auto ids_data = static_cast<int32_t*>(
                     ids_col.get_data_editable()
                   );
   dt::writable_string_col c_label_names(nlabels);
@@ -111,15 +110,18 @@ dtptr create_dt_labels_str(const std::unordered_map<
 /**
  *  Encode fixed width columns.
  */
-template <SType stype_from, SType stype_to>
-void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
+template <SType stype_from>
+void label_encode_fw(const Column& ocol,
+                     dtptr& dt_labels,
+                     dtptr& dt_encoded,
+                     bool is_binomial)
+{
   using T_from = element_t<stype_from>;
-  using T_to = element_t<stype_to>;
   const size_t nrows = ocol.nrows();
 
-  Column outcol = Column::new_data_column(nrows, stype_to);
-  auto outdata = static_cast<T_to*>(outcol.get_data_editable());
-  std::unordered_map<T_from, T_to> labels_map;
+  Column outcol = Column::new_data_column(nrows, SType::INT32);
+  auto outdata = static_cast<int32_t*>(outcol.get_data_editable());
+  std::unordered_map<T_from, int32_t> labels_map;
   dt::shared_mutex shmutex;
   NThreads nthreads = nthreads_from_niters(nrows, dt::FtrlBase::MIN_ROWS_PER_THREAD,
                                            ocol.allow_parallel_access());
@@ -129,7 +131,7 @@ void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
       T_from v;
       bool isvalid = ocol.get_element(irow, &v);
       if (!isvalid) {
-        outdata[irow] = GETNA<T_to>();
+        outdata[irow] = GETNA<int32_t>();
         return;
       }
 
@@ -139,12 +141,12 @@ void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
       } else {
         lock.exclusive_start();
         if (labels_map.count(v) == 0) {
-          if (stype_to == SType::BOOL && labels_map.size() == 2) {
+          if (is_binomial && labels_map.size() == 2) {
             throw ValueError() << "Target column for binomial problem cannot "
                                   "contain more than two labels";
           }
           size_t nlabels = labels_map.size();
-          labels_map[v] = static_cast<T_to>(nlabels);
+          labels_map[v] = static_cast<int32_t>(nlabels);
           outdata[irow] = labels_map[v];
         } else {
           // In case the label was already added from another thread while
@@ -158,7 +160,7 @@ void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   // If we only got NA labels, return
   if (labels_map.size() == 0) return;
 
-  dt_labels = create_dt_labels_fw<stype_from, stype_to>(labels_map);
+  dt_labels = create_dt_labels_fw<stype_from>(labels_map);
   dt_encoded = dtptr(new DataTable({std::move(outcol)}, {"label_id"}));
 }
 
@@ -166,13 +168,16 @@ void label_encode_fw(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
 /**
  *  Encode string columns.
  */
-template <typename U, SType stype_to>
-void label_encode_str(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
-  using T_to = element_t<stype_to>;
+template <typename T>
+void label_encode_str(const Column& ocol,
+                      dtptr& dt_labels,
+                      dtptr& dt_encoded,
+                      bool is_binomial)
+{
   const size_t nrows = ocol.nrows();
-  Column outcol = Column::new_data_column(nrows, stype_to);
-  auto outdata = static_cast<T_to*>(outcol.get_data_editable());
-  std::unordered_map<std::string, T_to> labels_map;
+  Column outcol = Column::new_data_column(nrows, SType::INT32);
+  auto outdata = static_cast<int32_t*>(outcol.get_data_editable());
+  std::unordered_map<std::string, int32_t> labels_map;
   dt::shared_mutex shmutex;
   NThreads nthreads = nthreads_from_niters(nrows, dt::FtrlBase::MIN_ROWS_PER_THREAD,
                                            ocol.allow_parallel_access());
@@ -182,7 +187,7 @@ void label_encode_str(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
       CString str;
       bool isvalid = ocol.get_element(irow, &str);
       if (!isvalid || str.size == 0) {
-        outdata[irow] = GETNA<T_to>();
+        outdata[irow] = GETNA<int32_t>();
         return;
       }
 
@@ -194,12 +199,12 @@ void label_encode_str(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
       } else {
         lock.exclusive_start();
         if (labels_map.count(v) == 0) {
-          if (stype_to == SType::BOOL && labels_map.size() == 2) {
+          if (is_binomial && labels_map.size() == 2) {
             throw ValueError() << "Target column for binomial problem cannot "
                                   "contain more than two labels";
           }
           size_t nlabels = labels_map.size();
-          labels_map[v] = static_cast<T_to>(nlabels);
+          labels_map[v] = static_cast<int32_t>(nlabels);
           outdata[irow] = labels_map[v];
         } else {
           // In case the label was already added from another thread while
@@ -213,7 +218,7 @@ void label_encode_str(const Column& ocol, dtptr& dt_labels, dtptr& dt_encoded) {
   // If we only got NA labels, return
   if (labels_map.size() == 0) return;
 
-  dt_labels = create_dt_labels_str<U, stype_to>(labels_map);
+  dt_labels = create_dt_labels_str<T>(labels_map);
   dt_encoded = dtptr(new DataTable({std::move(outcol)}, {"label_id"}));
 }
 

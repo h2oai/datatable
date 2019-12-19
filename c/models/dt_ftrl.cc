@@ -204,9 +204,9 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     RowIndex ri_join = natural_join(*dt_labels_in.get(), *dt_labels.get());
     size_t nlabels = dt_labels->nrows();
     xassert(nlabels != 0 && nlabels < 3);
-    auto data_label_ids_in = static_cast<int8_t*>(
+    auto data_label_ids_in = static_cast<int32_t*>(
                               dt_labels_in->get_column(1).get_data_editable());
-    auto data_label_ids = static_cast<const int8_t*>(
+    auto data_label_ids = static_cast<const int32_t*>(
                               dt_labels->get_column(1).get_data_readonly());
 
     size_t ri0_index = 0, ri1_index;
@@ -299,8 +299,8 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
 
   if (!is_model_trained()) {
     const strvec& colnames = dt_y_train->get_names();
-    std::unordered_map<std::string, int8_t> colnames_map = {{colnames[0], 0}};
-    dt_labels = create_dt_labels_str<uint32_t, SType::INT8>(colnames_map);
+    std::unordered_map<std::string, int32_t> colnames_map = {{colnames[0], 0}};
+    dt_labels = create_dt_labels_str<uint32_t>(colnames_map);
 
     create_model();
     model_type = FtrlModelType::REGRESSION;
