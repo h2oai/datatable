@@ -64,12 +64,12 @@ class generic_writer : public value_writer {
 // boolean writers
 //------------------------------------------------------------------------------
 
-static void write_bool01(int32_t value, writing_context& ctx) {
+static void write_bool01(int8_t value, writing_context& ctx) {
   *ctx.ch = static_cast<char>(value + '0');
   ctx.ch++;
 }
 
-static void write_boolTF(int32_t value, writing_context& ctx) {
+static void write_boolTF(int8_t value, writing_context& ctx) {
   if (value) {
     std::memcpy(ctx.ch, "True", 4);
     ctx.ch += 4;
@@ -81,8 +81,8 @@ static void write_boolTF(int32_t value, writing_context& ctx) {
 
 // 0/1 -> 1
 // True/False -> 5
-using boolean01_writer = generic_writer<1, int32_t, write_bool01>;
-using booleanTF_writer = generic_writer<5, int32_t, write_boolTF>;
+using boolean01_writer = generic_writer<1, int8_t, write_bool01>;
+using booleanTF_writer = generic_writer<5, int8_t, write_boolTF>;
 
 
 
@@ -91,12 +91,12 @@ using booleanTF_writer = generic_writer<5, int32_t, write_boolTF>;
 // integer writers (decimal)
 //------------------------------------------------------------------------------
 
-static void write_int8(int32_t value, writing_context& ctx) {
-  toa<int8_t>(&ctx.ch, static_cast<int8_t>(value));
+static void write_int8(int8_t value, writing_context& ctx) {
+  toa<int8_t>(&ctx.ch, value);
 }
 
-static void write_int16(int32_t value, writing_context& ctx) {
-  toa<int16_t>(&ctx.ch, static_cast<int16_t>(value));
+static void write_int16(int16_t value, writing_context& ctx) {
+  toa<int16_t>(&ctx.ch, value);
 }
 
 static void write_int32(int32_t value, writing_context& ctx) {
@@ -112,8 +112,8 @@ static void write_int64(int64_t value, writing_context& ctx) {
 // -32767 -> 6
 // -2147483647 -> 11
 // -9223372036854775807 -> 20
-using int8_dec_writer  = generic_writer<4,  int32_t, write_int8>;
-using int16_dec_writer = generic_writer<6,  int32_t, write_int16>;
+using int8_dec_writer  = generic_writer<4,  int8_t,  write_int8>;
+using int16_dec_writer = generic_writer<6,  int16_t, write_int16>;
 using int32_dec_writer = generic_writer<11, int32_t, write_int32>;
 using int64_dec_writer = generic_writer<20, int64_t, write_int64>;
 
