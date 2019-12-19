@@ -199,6 +199,20 @@ class _obj {
     bool is_undefined()     const noexcept;
     bool is_update_node()   const noexcept;
 
+    bool parse_none(int8_t*) const;
+    bool parse_none(int16_t*) const;
+    bool parse_none(int32_t*) const;
+    bool parse_none(int64_t*) const;
+    bool parse_bool(int8_t*) const;
+    bool parse_bool(int16_t*) const;
+    bool parse_bool(int32_t*) const;
+    bool parse_bool(int64_t*) const;
+    bool parse_01(int8_t*) const;
+    bool parse_int_no_overflow(int8_t*) const;
+    bool parse_int_no_overflow(int16_t*) const;
+    bool parse_int_no_overflow(int32_t*) const;
+    bool parse_int_no_overflow(int64_t*) const;
+
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;
     int8_t      to_bool_strict    (const error_manager& = _em0) const;

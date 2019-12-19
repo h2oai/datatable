@@ -33,7 +33,28 @@
   *   be converted. If all entries convert successfully, this will be
   *   equal to `inputcol.nrows()`.
   */
-static size_t parse_as_bool(const Column&, Buffer&, size_t);
+
+template <typename T>
+static size_t parse_as_X(const Column& inputcol, Buffer& mbuf, size_t i0,
+                         bool(*f)(py::robj, T*))
+{
+  size_t nrows = inputcol.nrows();
+  mbuf.resize(nrows * sizeof(T));
+  T* outdata = static_cast<T*>(mbuf.xptr());
+
+  py::robj item;
+  for (size_t i = i0; i < nrows; ++i) {
+    inputcol.get_element(i, &item);
+    bool ok = f(item, outdata + i);
+    if (!ok) return i;
+  }
+  for (size_t i = 0; i < i0; ++i) {
+    inputcol.get_element(i, &item);
+    bool ok = f(item, outdata + i);
+    xassert(ok); (void)ok;
+  }
+  return nrows;
+}
 
 
 
@@ -41,22 +62,28 @@ static size_t parse_as_bool(const Column&, Buffer&, size_t);
 // Boolean
 //------------------------------------------------------------------------------
 
-// Recognizes only pythonic `True`, `False` and `None`.
-static size_t parse_as_bool(const Column& inputcol, Buffer& membuf, size_t)
+// Parse list of booleans, i.e. `True`, `False` and `None`.
+static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
-  size_t nrows = inputcol.nrows();
-  membuf.resize(nrows);
-  auto outdata = static_cast<int8_t*>(membuf.xptr());
+  return parse_as_X<int8_t>(inputcol, mbuf, i0,
+            [](py::robj item, int8_t* out) {
+              return item.parse_none(out) ||
+                     item.parse_bool(out);
+            });
+}
 
-  py::robj item;
-  for (size_t i = 0; i < nrows; ++i) {
-    inputcol.get_element(i, &item);
-    if (item.is_none())       outdata[i] = GETNA<int8_t>();
-    else if (item.is_true())  outdata[i] = 1;
-    else if (item.is_false()) outdata[i] = 0;
-    else                      return i;
-  }
-  return nrows;
+
+// Parse list of "weak" booleans, i.e. `True`, `False`, `1`, `0`
+// and `None`. These will be converted to SType::INT8 column.
+//
+static size_t parse_as_int01(const Column& inputcol, Buffer& mbuf, size_t i0)
+{
+  return parse_as_X<int8_t>(inputcol, mbuf, i0,
+            [](py::robj item, int8_t* out) {
+              return item.parse_none(out) ||
+                     item.parse_bool(out) ||
+                     item.parse_01(out);
+            });
 }
 
 
@@ -71,11 +98,11 @@ static size_t parse_as_bool(const Column& inputcol, Buffer& membuf, size_t)
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(const Column& inputcol, Buffer& membuf)
+static void force_as_bool(const Column& inputcol, Buffer& mbuf)
 {
   size_t nrows = inputcol.nrows();
-  membuf.resize(nrows);
-  int8_t* outdata = static_cast<int8_t*>(membuf.wptr());
+  mbuf.resize(nrows);
+  auto outdata = static_cast<int8_t*>(mbuf.xptr());
 
   py::robj item;
   for (size_t i = 0; i < nrows; ++i) {
@@ -102,40 +129,21 @@ static void force_as_bool(const Column& inputcol, Buffer& membuf)
  * parser will fail if the `int` value does not fit into the range of type `T`.
  */
 template <typename T>
-static bool parse_as_int(const Column& inputcol, Buffer& membuf, size_t& from)
+static size_t parse_as_int(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
-  size_t nrows = inputcol.nrows();
-  membuf.resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf.wptr());
-
-  int overflow = 0;
-  py::robj item;
-  for (int j = 0; j < 2; ++j) {
-    size_t ifrom = j ? 0 : from;
-    size_t ito   = j ? from : nrows;
-
-    for (size_t i = ifrom; i < ito; ++i) {
-      inputcol.get_element(i, &item);
-
-      if (item.is_none()) {
-        outdata[i] = GETNA<T>();
-        continue;
-      }
-      if (item.is_int() && sizeof(T) >= sizeof(int32_t)) {
-        py::oint litem = item.to_pyint();
-        outdata[i] = litem.ovalue<T>(&overflow);
-        if (!overflow) continue;
-      }
-      int r = item.is_numpy_int();
-      if (r && r <= int(sizeof(T))) {
-        outdata[i] = static_cast<T>(item.to_int64());
-        continue;
-      }
-      from = i;
-      return false;
-    }
-  }
-  return true;
+  return parse_as_X<T>(inputcol, mbuf, i0,
+            [](py::robj item, T* out) {
+              bool ok = item.parse_none(out) ||
+                        (sizeof(T) >= 4 && item.parse_int_no_overflow(out)) ||
+                        item.parse_bool(out);
+              if (ok) return true;
+              int r = item.is_numpy_int();
+              if (r && r <= int(sizeof(T))) {
+                *out = static_cast<T>(item.to_int64());
+                return true;
+              }
+              return false;
+            });
 }
 
 
@@ -468,10 +476,10 @@ static Column resolve_column(const Column& inputcol, int stype0)
       bool ret = false;
       switch (stype) {
         case SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
-        case SType::INT8:    ret = parse_as_int<int8_t>(inputcol, membuf, i); break;
-        case SType::INT16:   ret = parse_as_int<int16_t>(inputcol, membuf, i); break;
-        case SType::INT32:   ret = parse_as_int<int32_t>(inputcol, membuf, i); break;
-        case SType::INT64:   ret = parse_as_int<int64_t>(inputcol, membuf, i); break;
+        case SType::INT8:    i = parse_as_int<int8_t>(inputcol, membuf, i); break;
+        case SType::INT16:   i = parse_as_int<int16_t>(inputcol, membuf, i); break;
+        case SType::INT32:   i = parse_as_int<int32_t>(inputcol, membuf, i); break;
+        case SType::INT64:   i = parse_as_int<int64_t>(inputcol, membuf, i); break;
         case SType::FLOAT32: ret = parse_as_real<float>(inputcol, membuf, i); break;
         case SType::FLOAT64: ret = parse_as_real<double>(inputcol, membuf, i); break;
         case SType::STR32:   ret = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;

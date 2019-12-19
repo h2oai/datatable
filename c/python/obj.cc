@@ -285,6 +285,92 @@ bool _obj::is_dtexpr() const noexcept {
 
 
 //------------------------------------------------------------------------------
+// Value parsers
+//------------------------------------------------------------------------------
+
+template <typename T>
+static inline bool _parse_none(PyObject* v, T* out) {
+  if (v == Py_None) { *out = GETNA<T>(); return true; }
+  return false;
+}
+
+bool _obj::parse_none(int8_t* out) const  { return _parse_none(v, out); }
+bool _obj::parse_none(int16_t* out) const { return _parse_none(v, out); }
+bool _obj::parse_none(int32_t* out) const { return _parse_none(v, out); }
+bool _obj::parse_none(int64_t* out) const { return _parse_none(v, out); }
+
+
+
+template <typename T>
+static inline bool _parse_bool(PyObject* v, T* out) {
+  if (v == Py_True)  { *out = 1; return true; }
+  if (v == Py_False) { *out = 0; return true; }
+  return false;
+}
+
+bool _obj::parse_bool(int8_t* out) const  { return _parse_bool(v, out); }
+bool _obj::parse_bool(int16_t* out) const { return _parse_bool(v, out); }
+bool _obj::parse_bool(int32_t* out) const { return _parse_bool(v, out); }
+bool _obj::parse_bool(int64_t* out) const { return _parse_bool(v, out); }
+
+
+
+bool _obj::parse_01(int8_t* out) const {
+  if (PyLong_CheckExact(v)) {
+    int overflow;
+    long x = PyLong_AsLongAndOverflow(v, &overflow);
+    if (x == 0 || x == 1) {
+      *out = static_cast<int8_t>(x);
+      return true;
+    }
+    // Fall-through for all other values of `x`, including overflow (x == -1)
+  }
+  return false;
+}
+
+
+
+template <typename T>
+bool _parse_int(PyObject* v, T* out) {
+  static_assert(sizeof(T) <= sizeof(long), "Wrong size of T");
+  if (PyLong_Check(v)) {
+    int overflow;
+    long value = PyLong_AsLongAndOverflow(v, &overflow);
+    auto res = static_cast<T>(value);
+    if (!overflow && value == res) {
+      *out = res;
+      return true;
+    }
+  }
+  return false;
+}
+
+#if LONG_MAX != 9223372036854775807
+  template <>
+  bool _parse_int(PyObject* v, int64_t* out) {
+    static_assert(sizeof(int64_t) <= sizeof(long long), "Wrong size of long long");
+    if (PyLong_Check(v)) {
+      int overflow;
+      long long value = PyLong_AsLongLongAndOverflow(v, &overflow);
+      auto res = static_cast<int64_t>(value);
+      if (!overflow && value == res) {
+        *out = res;
+        return true;
+      }
+    }
+    return false;
+  }
+#endif
+
+bool _obj::parse_int_no_overflow(int8_t* out) const  { return _parse_int(v, out); }
+bool _obj::parse_int_no_overflow(int16_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int_no_overflow(int32_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int_no_overflow(int64_t* out) const { return _parse_int(v, out); }
+
+
+
+
+//------------------------------------------------------------------------------
 // Bool conversions
 //------------------------------------------------------------------------------
 
@@ -309,12 +395,12 @@ int8_t _obj::to_bool_strict(const error_manager& em) const {
 
 int8_t _obj::to_bool_force(const error_manager&) const noexcept {
   if (v == Py_None) return GETNA<int8_t>();
+  if (v == Py_True) return 1;
+  if (v == Py_False) return 0;
   int r = PyObject_IsTrue(v);
-  if (r == -1) {
-    PyErr_Clear();
-    return GETNA<int8_t>();
-  }
-  return static_cast<int8_t>(r);
+  if (r >= 0) return static_cast<int8_t>(r);
+  PyErr_Clear();
+  return GETNA<int8_t>();
 }
 
 
