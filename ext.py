@@ -234,6 +234,7 @@ def build_sdist(sdist_directory, config_settings=None):
               if "random_attack_logs" not in f]
     files += ["datatable/include/datatable.h"]
     files.sort()
+    files += ["ext.py"]
     files += ["pyproject.toml"]
     files += ["LICENSE"]
 
