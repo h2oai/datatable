@@ -144,7 +144,15 @@ coverage:
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
 	chmod +x ci/llvm-gcov.sh
-	lcov --gcov-tool ci/llvm-gcov.sh --capture --directory . --no-external --output-file build/coverage.info
+	# Note: running `lcov` we should pass an absolute path to
+	# `ci/llvm-gcov.sh`. The reason is that `lcov` invokes
+	# `geninfo` that is trying to detect the base directory in the
+	# `find_base_from_graph()` routine. This routine fails
+	# for source files that have no function definitions, because
+	# these files are excluded from the file graph,
+	# where `find_base_from_graph()` does the search. Passing
+	# `${CURDIR}/ci/llvm-gcov.sh` to `lcov` fixes the problem.
+	lcov --gcov-tool ${CURDIR}/ci/llvm-gcov.sh --capture --directory . --no-external --output-file build/coverage.info
 	genhtml --legend --output-directory build/coverage-c --demangle-cpp build/coverage.info
 	mv .coverage build/
 

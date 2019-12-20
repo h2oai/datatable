@@ -206,10 +206,3 @@
   }
 
 #endif
-
-
-namespace mman {
-
-  void foo() {}
-
-}
