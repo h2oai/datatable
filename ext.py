@@ -219,11 +219,31 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
 
 
-def build_sdist(wheel_directory, config_settings=None):
+def build_sdist(sdist_directory, config_settings=None):
     """
     Function for building source distributions, satisfies PEP-517.
     """
-    raise NotImplementedError()
+    assert isinstance(sdist_directory, str)
+
+    files = [f for f in glob.glob("datatable/**/*.py", recursive=True)
+             if "_datatable_builder.py" not in f]
+    files += glob.glob("c/**/*.cc", recursive=True)
+    files += glob.glob("c/**/*.h", recursive=True)
+    files += glob.glob("ci/xbuild/*.py")
+    files += [f for f in glob.glob("tests/**/*.py", recursive=True)
+              if "random_attack_logs" not in f]
+    files += ["datatable/include/datatable.h"]
+    files.sort()
+    files += ["ext.py"]
+    files += ["pyproject.toml"]
+    files += ["LICENSE"]
+
+    meta = get_meta()
+    wb = xbuild.Wheel(files, **meta)
+    wb.log = create_logger(verbosity=3)
+    sdist_file = wb.build_sdist(sdist_directory)
+    return sdist_file
+
 
 
 
