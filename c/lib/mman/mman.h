@@ -29,10 +29,12 @@
 // version of the original:
 // - added an operating system check, so that this code only builds on Windows;
 // - added MAP_NORESERVE;
+// - a fix to make it compatible with `make coverage`;
 // - minor changes to code format.
 //
 //------------------------------------------------------------------------------
 #include "utils/macros.h"
+
 
 #if DT_OS_WINDOWS
 
@@ -89,3 +91,12 @@
 	#endif /*  _SYS_MMAN_H_ */
 
 #endif
+
+
+// FIXME: this is a temporary fix, so that `make coverage` do not fail.
+// See a reason for this in `read/constants.h`
+namespace mman {
+
+	void foo();
+
+}
