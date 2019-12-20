@@ -14,6 +14,7 @@
 
 
 DataTable::DefaultNamesTag DataTable::default_names;
+DataTable::DeepCopyTag DataTable::deep_copy;
 
 //------------------------------------------------------------------------------
 // Constructors

@@ -22,8 +22,10 @@ template <typename T>
 int nlz(T x) {
   // The warning is spurious, because shifts triggering the warning are
   // within if() conditions that get statically ignored.
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wshift-count-overflow"
+  #if !DT_OS_WINDOWS
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wshift-count-overflow"
+  #endif
   T y;
   int n = sizeof(T) * 8;
   if (sizeof(T) >= 8) {
@@ -41,7 +43,9 @@ int nlz(T x) {
     y = x >> 1;  if (y != 0) return n - 2;
   }
   return n - static_cast<int>(x);
-  #pragma GCC diagnostic pop
+  #if !DT_OS_WINDOWS
+    #pragma GCC diagnostic pop
+  #endif
 }
 
 template int nlz(uint64_t);

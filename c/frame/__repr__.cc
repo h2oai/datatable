@@ -68,11 +68,8 @@ static PKArgs args__repr_pretty_(
     0, 2, 0, false, false, {"p", "cycle"}, "_repr_pretty_", nullptr);
 
 oobj Frame::_repr_pretty_(const PKArgs&) {
-  if (dt::Terminal::standard_terminal().is_jupyter()) {
-    return py::None();
-  } else {
-    return oobj(this).invoke("view", obool(false));
-  }
+  xassert(!dt::Terminal::standard_terminal().is_jupyter());
+  return oobj(this).invoke("view", obool(false));
 }
 
 
@@ -108,7 +105,13 @@ void Frame::_init_repr(XTypeMaker& xt) {
   xt.add(METHOD__REPR__(&Frame::m__repr__));
   xt.add(METHOD__STR__(&Frame::m__str__));
   xt.add(METHOD(&Frame::_repr_html_, args__repr_html_));
-  xt.add(METHOD(&Frame::_repr_pretty_, args__repr_pretty_));
+
+  // Jupyter may call this method at a wrong time, so just do not create it
+  // when datatable is running from a Jupyter notebook
+  if (!dt::Terminal::standard_terminal().is_jupyter()) {
+    xt.add(METHOD(&Frame::_repr_pretty_, args__repr_pretty_));
+  }
+
   xt.add(METHOD(&Frame::view, args_view));
 }
 

@@ -91,6 +91,18 @@ test:
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
 
+xasan:
+	@$(PYTHON) ext.py asan
+
+xbuild:
+	@$(PYTHON) ext.py build
+
+xcoverage:
+	@$(PYTHON) ext.py coverage
+
+xdebug:
+	@$(PYTHON) ext.py debug
+
 
 benchmark:
 	$(PYTHON) -m pytest -ra -x -v benchmarks

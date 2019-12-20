@@ -470,7 +470,8 @@ class GenericReader(object):
                 self._logger.warning("Failed to remove a temporary file: %r" % e)
         if self._tempdir_own:
             shutil.rmtree(self._tempdir, ignore_errors=True)
-
+        self._tempfiles = []
+        self._tempdir_own = False
 
 
 

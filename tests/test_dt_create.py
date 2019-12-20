@@ -600,28 +600,88 @@ def test_auto_bool8():
     assert d0.stypes == (stype.bool8,)
 
 
-def test_auto_int8():
-    src = [0, 3, 12, None, -5]
+
+def test_auto_int8_1():
+    src = [0, 1, 0, None, 0]
+    DT = dt.Frame(src)
+    frame_integrity_check(DT)
+    assert DT.stype == dt.int8
+    assert DT.to_list() == [src]
+
+
+def test_auto_int8_2():
+    src = [1, 0, False, True, None, 1, True]
+    DT = dt.Frame(src)
+    frame_integrity_check(DT)
+    assert DT.stype == dt.int8
+    assert DT.to_list() == [[1, 0, 0, 1, None, 1, 1]]
+
+
+def test_auto_int8_3(numpy):
+    i8 = numpy.int8
+    src = [i8(3), i8(5), None, 1, True, False, i8(-1)]
+    DT = dt.Frame(src)
+    frame_integrity_check(DT)
+    assert DT.stype == dt.int8
+    assert DT.to_list() == [[3, 5, None, 1, 1, 0, -1]]
+
+
+
+def test_auto_int16_1(numpy):
+    i16 = numpy.int16
+    src = [i16(50), i16(2303), None, i16(-45)]
+    d0 = dt.Frame(src)
+    frame_integrity_check(d0)
+    assert d0.stype == dt.int16
+    assert d0.to_list() == [[50, 2303, None, -45]]
+
+
+def test_auto_int16_2(numpy):
+    i16 = numpy.int16
+    src = [i16(1), i16(0)]
+    d0 = dt.Frame(src)
+    frame_integrity_check(d0)
+    assert d0.stype == dt.int16
+    assert d0.to_list() == [[1, 0]]
+
+
+def test_auto_int16_3(numpy):
+    i8 = numpy.int8
+    i16 = numpy.int16
+    src = [i16(1), i16(0), 1, 0, i8(1), i8(0), True, False, None]
+    d0 = dt.Frame(src)
+    frame_integrity_check(d0)
+    assert d0.stype == dt.int16
+    assert d0.to_list() == [[1, 0, 1, 0, 1, 0, 1, 0, None]]
+
+
+
+def test_auto_int32_1():
+    src = [0, 1, 2]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
     assert d0.stype == dt.int32
-    assert d0.to_list()[0] == src
+    assert d0.to_list() == [[0, 1, 2]]
 
 
-def test_auto_int16():
-    src = [50, 2303, None, -45]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int32
-    assert d0.to_list()[0] == src
-
-
-def test_auto_int32():
+def test_auto_int32_2():
     src = [None, 0, 1, 44, 9548, 428570247, -12]
     d0 = dt.Frame(src)
     frame_integrity_check(d0)
     assert d0.stype == dt.int32
     assert d0.to_list()[0] == src
+
+
+def test_auto_int32_3(numpy):
+    i8 = numpy.int8
+    i16 = numpy.int16
+    i32 = numpy.int32
+    src = [None, False, 0, i8(0), i16(0), i32(0)]
+    d0 = dt.Frame(src)
+    frame_integrity_check(d0)
+    assert d0.stype == dt.int32
+    assert d0.to_list() == [[None, 0, 0, 0, 0, 0]]
+
 
 
 def test_auto_int64():

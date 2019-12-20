@@ -23,9 +23,10 @@ namespace dt {
  * iterations per thread.
  */
 NThreads nthreads_from_niters(size_t niters,
-                              size_t min_iters_per_thread /* = 1000 */)
+                              size_t min_iters_per_thread /* = 1000 */,
+                              bool parallel_ok /* = true */)
 {
-  bool go_parallel = niters > min_iters_per_thread;
+  bool go_parallel = parallel_ok && (niters > min_iters_per_thread);
   size_t nthreads = go_parallel? niters / min_iters_per_thread : 1;
   return NThreads(nthreads);
 }

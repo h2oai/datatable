@@ -204,9 +204,9 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
     RowIndex ri_join = natural_join(*dt_labels_in.get(), *dt_labels.get());
     size_t nlabels = dt_labels->nrows();
     xassert(nlabels != 0 && nlabels < 3);
-    auto data_label_ids_in = static_cast<int8_t*>(
+    auto data_label_ids_in = static_cast<int32_t*>(
                               dt_labels_in->get_column(1).get_data_editable());
-    auto data_label_ids = static_cast<const int8_t*>(
+    auto data_label_ids = static_cast<const int32_t*>(
                               dt_labels->get_column(1).get_data_readonly());
 
     size_t ri0_index = 0, ri1_index;
@@ -299,8 +299,8 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
 
   if (!is_model_trained()) {
     const strvec& colnames = dt_y_train->get_names();
-    std::unordered_map<std::string, int8_t> colnames_map = {{colnames[0], 0}};
-    dt_labels = create_dt_labels_str<uint32_t, SType::BOOL>(colnames_map);
+    std::unordered_map<std::string, int32_t> colnames_map = {{colnames[0], 0}};
+    dt_labels = create_dt_labels_str<uint32_t>(colnames_map);
 
     create_model();
     model_type = FtrlModelType::REGRESSION;
@@ -759,36 +759,10 @@ void Ftrl<T>::update(const uint64ptr& x,
 
 
 /**
- *  This method calls `predict` with the proper label id type:
- *  - for binomial and numeric regression label ids are `int8`;
- *  - for multinomial regression label ids are `int32`.
- */
-template <typename T>
-dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X) {
-  if (!is_model_trained()) {
-    throw ValueError() << "To make predictions, the model should be trained "
-                          "first";
-  }
-
-  SType label_id_stype = dt_labels->get_column(1).stype();
-  dtptr dt_p;
-  switch (label_id_stype) {
-    case SType::BOOL:  dt_p = predict<int8_t>(dt_X); break;
-    case SType::INT32: dt_p = predict<int32_t>(dt_X); break;
-    default: throw TypeError() << "Label id type  `"
-                               << label_id_stype << "` is not supported";
-  }
-
-  return dt_p;
-}
-
-
-/**
  *  Predict on a datatable and return a new datatable with
  *  the predicted probabilities.
  */
 template <typename T>
-template <typename U /* label id type */>
 dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   if (!is_model_trained()) {
     throw ValueError() << "To make predictions, the model should be trained "
@@ -807,7 +781,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = dt_labels->nrows();
 
-  auto data_label_ids = static_cast<const U*>(
+  auto data_label_ids = static_cast<const int32_t*>(
                           dt_labels->get_column(1).get_data_readonly()
                         );
 
@@ -1242,16 +1216,17 @@ py::oobj Ftrl<T>::get_fi(bool normalize /* = true */) {
   DataTable dt_fi_copy { *dt_fi };  // copy
   if (normalize) {
     Column& col = dt_fi_copy.get_column(1);
-    bool max_isna;
-    T max = static_cast<T>(col.stats()->max_double(&max_isna));
+    bool max_isvalid;
+    T max = static_cast<T>(col.stats()->max_double(&max_isvalid));
     T* data = static_cast<T*>(col.get_data_editable());
-    T norm_factor = T(1);
 
-    if (!max_isna && std::fabs(max) > T_EPSILON) norm_factor /= max;
-    for (size_t i = 0; i < col.nrows(); ++i) {
-      data[i] *= norm_factor;
+    if (max_isvalid && std::fabs(max) > T_EPSILON) {
+      T norm_factor = T(1) / max;
+      for (size_t i = 0; i < col.nrows(); ++i) {
+        data[i] *= norm_factor;
+      }
+      col.reset_stats();
     }
-    col.reset_stats();
   }
   return py::Frame::oframe(std::move(dt_fi_copy));
 }

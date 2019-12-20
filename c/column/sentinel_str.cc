@@ -6,7 +6,6 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include "column/sentinel_str.h"
-#include "parallel/api.h"           // dt::parallel_for_static
 #include "parallel/string_utils.h"  // dt::map_str2str
 #include "python/string.h"
 #include "utils/assert.h"

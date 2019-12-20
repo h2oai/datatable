@@ -88,7 +88,7 @@ class FtrlBase {
     virtual FtrlFitOutput dispatch_fit(const DataTable*, const DataTable*,
                                        const DataTable*, const DataTable*,
                                        double, double, size_t) = 0;
-    virtual dtptr dispatch_predict(const DataTable*) = 0;
+    virtual dtptr predict(const DataTable*) = 0;
     virtual void reset() = 0;
     virtual bool is_model_trained() = 0;
 

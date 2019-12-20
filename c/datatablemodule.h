@@ -80,7 +80,10 @@ namespace pybuffers {
 
 const char* get_compiler_version_string();
 
-PyMODINIT_FUNC PyInit__datatable() noexcept;
+extern "C" {
 
+  PyMODINIT_FUNC PyInit__datatable() noexcept;
+
+}
 
 #endif
