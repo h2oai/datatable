@@ -33,9 +33,11 @@ class Logger0:
     The "silent" logger: it does not report any messages.
     """
     def cmd_build(self): pass
+    def cmd_sdist(self): pass
     def cmd_wheel(self): pass
 
     def report_abi_mismatch(self, v1, v2): pass
+    def report_added_file_to_sdist(self, filename, size): pass
     def report_added_file_to_wheel(self, filename, size): pass
     def report_build_dir(self, dd): pass
     def report_compile_cmd_mismatch(self, cmd1, cmd2): pass
@@ -58,6 +60,7 @@ class Logger0:
     def report_nworkers(self, nworkers): pass
     def report_output_file(self, filename): pass
     def report_removed_file(self, filename): pass
+    def report_sdist_file(self, filename): pass
     def report_sources(self, sources, pattern=None): pass
     def report_sources_modified(self, files): pass
     def report_stopped_compiling(self): pass
@@ -67,6 +70,7 @@ class Logger0:
     def report_wheel_file(self, filename): pass
 
     def step_build_done(self, time): pass
+    def step_sdist_done(self, time, size): pass
     def step_wheel_done(self, time, size): pass
     def step_compile(self, files): pass
     def step_find_rebuild_targets(self): pass
@@ -164,6 +168,9 @@ class Logger3(Logger0):
     def cmd_build(self):
         self.info("==== BUILD ====")
 
+    def cmd_sdist(self):
+        self.info("==== SDIST ====")
+
     def cmd_wheel(self):
         self.info("==== WHEEL ====")
 
@@ -171,6 +178,9 @@ class Logger3(Logger0):
     def report_abi_mismatch(self, v1, v2):
         self.info("Config file contains abi=`%s`, whereas current abi is `%s`"
                   % (v1, v2))
+
+    def report_added_file_to_sdist(self, filename, size):
+        self.info("Added file `%s` of size %d" % (filename, size))
 
     def report_added_file_to_wheel(self, filename, size):
         self.info("Added file `%s` of size %d" % (filename, size))
@@ -245,6 +255,10 @@ class Logger3(Logger0):
     def report_removed_file(self, filename):
         self.info("File `%s` deleted" % filename)
 
+    def report_sdist_file(self, filename):
+        self.info("Preparing to build sdist file `%s`" % filename)
+        self._indent = "    "
+
     def report_sources(self, sources, pattern=None):
         if pattern is None:
             self.info("Added source file %s" % sources)
@@ -282,6 +296,11 @@ class Logger3(Logger0):
     def step_build_done(self, time):
         self._indent = ""
         self.info("==== Build finished in %.3fs" % time)
+
+    def step_sdist_done(self, time, size):
+        self._indent = ""
+        self.info("Final sdist size: %d bytes" % size)
+        self.info("==== Sdist created in %.3fs" % time)
 
     def step_wheel_done(self, time, size):
         self._indent = ""

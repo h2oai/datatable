@@ -43,6 +43,7 @@ import os
 import re
 import sys
 import sysconfig
+import tarfile
 import textwrap
 import time
 import zipfile
@@ -158,6 +159,9 @@ class Wheel:
 
         # Logger object
         self._log = None
+
+        # True if we're building a wheel, False if building an sdist
+        self._building_wheel = None
 
 
     #---------------------------------------------------------------------------
@@ -307,6 +311,11 @@ class Wheel:
         return self._meta["version"]
 
     @property
+    def namever(self):
+        return self.name + '-' + self.version
+
+
+    @property
     def summary(self):
         return self._meta.get("summary")
 
@@ -418,18 +427,19 @@ class Wheel:
     #---------------------------------------------------------------------------
 
     def build_wheel(self, wheel_dir):
+        self._building_wheel = True
         self.log.cmd_wheel()
         t0 = time.time()
         if wheel_dir and not os.path.isdir(wheel_dir):
             os.makedirs(wheel_dir)
             self.log.report_mkdir(wheel_dir)
-        wheel_name = "%s-%s-%s.whl" % (self.name, self.version, self.get_tag())
+        wheel_name = "%s-%s.whl" % (self.namever, self.get_tag())
         full_name = os.path.join(wheel_dir, wheel_name)
         self.log.report_wheel_file(full_name)
         with zipfile.ZipFile(full_name, "w", allowZip64=True,
                              compression=zipfile.ZIP_DEFLATED) as zipf:
             for filename in self.sources:
-                self._add_file_to_archive(zipf, filename)
+                self._add_file_to_wheel(zipf, filename)
             self._add_LICENSE_file(zipf)
             self._add_METADATA_file(zipf)
             self._add_WHEEL_file(zipf)
@@ -439,7 +449,27 @@ class Wheel:
         return wheel_name
 
 
-    def _add_file_to_archive(self, zipf, src):
+    def build_sdist(self, sdist_dir):
+        self._building_wheel = False
+        self.log.cmd_sdist()
+        t0 = time.time()
+        if sdist_dir and not os.path.isdir(sdist_dir):
+            os.makedirs(sdist_dir)
+            self.log.report_mkdir(sdist_dir)
+        sdist_name = self.namever + ".tar.gz"
+        full_name = os.path.join(sdist_dir, sdist_name)
+        self.log.report_sdist_file(full_name)
+        with tarfile.TarFile.gzopen(full_name, "w",
+                                    format=tarfile.PAX_FORMAT) as tarf:
+            for filename in self.sources:
+                self._add_file_to_sdist(tarf, filename)
+            self._add_METADATA_file(tarf)
+        self.log.step_sdist_done(time.time() - t0, os.path.getsize(full_name))
+        return sdist_name
+
+
+    def _add_file_to_wheel(self, zipf, src):
+        assert self._building_wheel
         if isinstance(src, str):
             target_file = src
         else:
@@ -471,6 +501,33 @@ class Wheel:
         self.log.report_added_file_to_wheel(target_file, len(bcontent))
 
 
+    def _add_file_to_sdist(self, tarf, src):
+        assert not self._building_wheel
+        if isinstance(src, str):
+            target_file = src
+        else:
+            assert isinstance(src, tuple) and len(src) == 2
+            src, target_file = src
+
+        tinfo = tarfile.TarInfo(name=os.path.join(self.namever, target_file))
+        if os.path.exists(src):
+            tinfo.size = os.path.getsize(src)
+            fileobj = open(src, "rb")
+        elif isinstance(src, bytes):
+            tinfo.size = len(src)
+            fileobj = io.BytesIO(src)
+        elif isinstance(src, str) and "\n" in src:
+            src = src.encode("utf-8")
+            tinfo.size = len(src)
+            fileobj = io.BytesIO(src)
+        else:
+            raise FileNotFoundError("File `%s` does not exist" % src)
+
+        tarf.addfile(tinfo, fileobj)
+        fileobj.close()
+        self.log.report_added_file_to_wheel(target_file, tinfo.size)
+
+
     def _add_LICENSE_file(self, zipf):
         filename = self.info_dir + "/LICENSE"
         if os.path.exists("LICENSE"):
@@ -480,7 +537,7 @@ class Wheel:
         else:
             print("Warning: LICENSE file not found in the root directory")
             return
-        self._add_file_to_archive(zipf, src)
+        self._add_file_to_wheel(zipf, src)
 
 
     def _add_METADATA_file(self, zipf):
@@ -525,8 +582,13 @@ class Wheel:
             out += "\n"
             out += self.description
             out += "\n"
-        src = (out, self.info_dir + "/METADATA")
-        self._add_file_to_archive(zipf, src)
+
+        if self._building_wheel:
+            src = (out, self.info_dir + "/METADATA")
+            self._add_file_to_wheel(zipf, src)
+        else:
+            src = (out, "PKG-INFO")
+            self._add_file_to_sdist(zipf, src)
 
 
     def _add_WHEEL_file(self, zipf):
@@ -535,7 +597,7 @@ class Wheel:
         out += "Root-Is-Purelib: false\n"
         out += "Tag: %s\n" % self.get_tag()
         src = (out, self.info_dir + "/WHEEL")
-        self._add_file_to_archive(zipf, src)
+        self._add_file_to_wheel(zipf, src)
 
 
     def _add_RECORD_file(self, zipf):
@@ -543,4 +605,4 @@ class Wheel:
         record = self._record_file.getvalue()
         record += "%s,," % filename
         src = (record, filename)
-        self._add_file_to_archive(zipf, src)
+        self._add_file_to_wheel(zipf, src)
