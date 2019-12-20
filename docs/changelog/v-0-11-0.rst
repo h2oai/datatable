@@ -49,5 +49,5 @@ FTRL model
 
 - |fix| Resetting an untrained FTRL model now doesn't result in a segfault (#2226).
 
-- |enh| The ``id`` column in FTRL model ``.labels`` frame now has stype ``int8``
-  instead of ``bool`` for binomial models.
+- |enh| The ``id`` column in FTRL model ``.labels`` frame now has stype ``int32``
+  instead of ``bool`` for binomial and regression models.
