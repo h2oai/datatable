@@ -31,84 +31,44 @@ void label_encode(const Column& col, dtptr& dt_labels, dtptr& dt_encoded,
   xassert(dt_encoded == nullptr);
 
   SType stype = col.stype();
-  if (is_binomial) {
-    switch (stype) {
-      case SType::BOOL:    label_encode_bool(col, dt_labels, dt_encoded); break;
-      case SType::INT8:    label_encode_fw<SType::INT8, SType::INT8>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::INT16:   label_encode_fw<SType::INT16, SType::INT8>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::INT32:   label_encode_fw<SType::INT32, SType::INT8>(
-                             col, dt_labels, dt_encoded
-                            );
-                           break;
-      case SType::INT64:   label_encode_fw<SType::INT64, SType::INT8>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::FLOAT32: label_encode_fw<SType::FLOAT32, SType::INT8>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::FLOAT64: label_encode_fw<SType::FLOAT64, SType::INT8>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::STR32:   label_encode_str<uint32_t, SType::INT8>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::STR64:   label_encode_str<uint64_t, SType::INT8>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
+  switch (stype) {
+    case SType::BOOL:    label_encode_bool(col, dt_labels, dt_encoded);
+                         break;
+    case SType::INT8:    label_encode_fw<SType::INT8>(
+                           col, dt_labels, dt_encoded, is_binomial
+                         );
+                         break;
+    case SType::INT16:   label_encode_fw<SType::INT16>(
+                           col, dt_labels, dt_encoded, is_binomial
+                         );
+                         break;
+    case SType::INT32:   label_encode_fw<SType::INT32>(
+                           col, dt_labels, dt_encoded, is_binomial
+                          );
+                         break;
+    case SType::INT64:   label_encode_fw<SType::INT64>(
+                           col, dt_labels, dt_encoded, is_binomial
+                         );
+                         break;
+    case SType::FLOAT32: label_encode_fw<SType::FLOAT32>(
+                           col, dt_labels, dt_encoded, is_binomial
+                         );
+                         break;
+    case SType::FLOAT64: label_encode_fw<SType::FLOAT64>(
+                           col, dt_labels, dt_encoded, is_binomial
+                         );
+                         break;
+    case SType::STR32:   label_encode_str<uint32_t>(
+                           col, dt_labels, dt_encoded, is_binomial
+                         );
+                         break;
+    case SType::STR64:   label_encode_str<uint64_t>(
+                           col, dt_labels, dt_encoded, is_binomial
+                         );
+                         break;
 
-      default:             throw TypeError() << "Column type `" << stype
-                                             << "` is not supported";
-    }
-  } else {
-    switch (stype) {
-      case SType::BOOL:    label_encode_bool(col, dt_labels, dt_encoded); break;
-      case SType::INT8:    label_encode_fw<SType::INT8, SType::INT32>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::INT16:   label_encode_fw<SType::INT16, SType::INT32>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::INT32:   label_encode_fw<SType::INT32, SType::INT32>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::INT64:   label_encode_fw<SType::INT64, SType::INT32>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::FLOAT32: label_encode_fw<SType::FLOAT32, SType::INT32>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::FLOAT64: label_encode_fw<SType::FLOAT64, SType::INT32>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::STR32:   label_encode_str<uint32_t, SType::INT32>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-      case SType::STR64:   label_encode_str<uint64_t, SType::INT32>(
-                             col, dt_labels, dt_encoded
-                           );
-                           break;
-
-      default:             throw TypeError() << "Column type `" << stype
-                                             << "` is not supported";
-    }
+    default:             throw TypeError() << "Target column type `" << stype
+                                           << "` is not supported";
   }
 
   // Set key to the labels column for later joining with the new labels.
@@ -132,14 +92,15 @@ static void label_encode_bool(const Column& col,
   if (col.na_count() == col.nrows()) return;
 
   // Set up boolean labels and their corresponding ids.
-  Column ids_col = Column::new_data_column(2, SType::INT8);
   Column labels_col = Column::new_data_column(2, SType::BOOL);
-  auto ids_data = static_cast<int8_t*>(ids_col.get_data_editable());
   auto labels_data = static_cast<int8_t*>(labels_col.get_data_editable());
-  ids_data[0] = 0;
-  ids_data[1] = 1;
   labels_data[0] = 0;
   labels_data[1] = 1;
+
+  Column ids_col = Column::new_data_column(2, SType::INT32);
+  auto ids_data = static_cast<int32_t*>(ids_col.get_data_editable());
+  ids_data[0] = 0;
+  ids_data[1] = 1;
 
   dt_labels = dtptr(new DataTable({std::move(labels_col), std::move(ids_col)},
                                   {"label", "id"}));
