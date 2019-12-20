@@ -759,36 +759,10 @@ void Ftrl<T>::update(const uint64ptr& x,
 
 
 /**
- *  This method calls `predict` with the proper label id type:
- *  - for binomial and numeric regression label ids are `int8`;
- *  - for multinomial regression label ids are `int32`.
- */
-template <typename T>
-dtptr Ftrl<T>::dispatch_predict(const DataTable* dt_X) {
-  if (!is_model_trained()) {
-    throw ValueError() << "To make predictions, the model should be trained "
-                          "first";
-  }
-
-  SType label_id_stype = dt_labels->get_column(1).stype();
-  dtptr dt_p;
-  switch (label_id_stype) {
-    case SType::INT8:  dt_p = predict<int8_t>(dt_X); break;
-    case SType::INT32: dt_p = predict<int32_t>(dt_X); break;
-    default: throw TypeError() << "Label id type  `"
-                               << label_id_stype << "` is not supported";
-  }
-
-  return dt_p;
-}
-
-
-/**
  *  Predict on a datatable and return a new datatable with
  *  the predicted probabilities.
  */
 template <typename T>
-template <typename U /* label id type */>
 dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   if (!is_model_trained()) {
     throw ValueError() << "To make predictions, the model should be trained "
@@ -807,7 +781,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = dt_labels->nrows();
 
-  auto data_label_ids = static_cast<const U*>(
+  auto data_label_ids = static_cast<const int32_t*>(
                           dt_labels->get_column(1).get_data_readonly()
                         );
 

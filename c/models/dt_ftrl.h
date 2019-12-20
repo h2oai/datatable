@@ -106,9 +106,6 @@ class Ftrl : public dt::FtrlBase {
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
 
-    // Predicting methods
-    template <typename>
-    dtptr predict(const DataTable*);
     template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
     dtptr create_p(size_t);
 
@@ -148,7 +145,7 @@ class Ftrl : public dt::FtrlBase {
                                double, double, size_t) override;
 
     // Main predicting method
-    dtptr dispatch_predict(const DataTable*) override;
+    dtptr predict(const DataTable*) override;
 
     // Model methods
     void reset() override;
