@@ -92,14 +92,15 @@ static void label_encode_bool(const Column& col,
   if (col.na_count() == col.nrows()) return;
 
   // Set up boolean labels and their corresponding ids.
-  Column ids_col = Column::new_data_column(2, SType::INT8);
   Column labels_col = Column::new_data_column(2, SType::BOOL);
-  auto ids_data = static_cast<int8_t*>(ids_col.get_data_editable());
   auto labels_data = static_cast<int8_t*>(labels_col.get_data_editable());
-  ids_data[0] = 0;
-  ids_data[1] = 1;
   labels_data[0] = 0;
   labels_data[1] = 1;
+
+  Column ids_col = Column::new_data_column(2, SType::INT32);
+  auto ids_data = static_cast<int32_t*>(ids_col.get_data_editable());
+  ids_data[0] = 0;
+  ids_data[1] = 1;
 
   dt_labels = dtptr(new DataTable({std::move(labels_col), std::move(ids_col)},
                                   {"label", "id"}));
