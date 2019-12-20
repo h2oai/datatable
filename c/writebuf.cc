@@ -8,7 +8,6 @@
 #include <algorithm>       // std::min
 #include <cstring>         // std::memcpy
 #include <errno.h>         // errno
-#include <sys/mman.h>      // mmap
 #include "utils/alloc.h"   // dt::realloc
 #include "utils/assert.h"
 #include "utils/macros.h"
@@ -19,11 +18,13 @@
 
 #if DT_OS_WINDOWS
   #include <io.h>            // _write
+  #include "lib/mman/mman.h" // mmap, munmap
 
   // The POSIX `write()` function is deprecated on Windows,
   // so we use the ISO C++ conformant `_write()` instead.
   #define WRITE _write
 #else
+  #include <sys/mman.h>      // mmap
   #include <unistd.h>        // write
   #define WRITE write
 #endif

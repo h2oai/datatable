@@ -18,7 +18,11 @@
 #include "buffer.h"
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
 
-#if !DT_OS_WINDOWS
+#if DT_OS_WINDOWS
+  #include <windows.h>         // SYSTEM_INFO, GetSystemInfo
+  #include "lib/mman/mman.h"   // mmap, munmap
+  #undef min
+#else
   #include <sys/mman.h>        // mmap, munmap
 #endif
 
@@ -490,119 +494,114 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
   protected:
     virtual void memmap() {
       if (mapped_) return;
-      #if DT_OS_WINDOWS
-        throw NotImplError() << "Memory-mapping not supported on Windows yet";
 
-      #else
-        // Place a mutex lock to prevent multiple threads from trying
-        // to perform memory-mapping of different files (or same file)
-        // in parallel. If multiple threads called this method at the
-        // same time, then only one will proceed, while all others
-        // will wait until the lock is released, and then exit because
-        // flag `mapped_` will now be true.
-        static std::mutex mmp_mutex;
-        std::lock_guard<std::mutex> _(mmp_mutex);
-        if (mapped_) return;
+      // Place a mutex lock to prevent multiple threads from trying
+      // to perform memory-mapping of different files (or same file)
+      // in parallel. If multiple threads called this method at the
+      // same time, then only one will proceed, while all others
+      // will wait until the lock is released, and then exit because
+      // flag `mapped_` will now be true.
+      static std::mutex mmp_mutex;
+      std::lock_guard<std::mutex> _(mmp_mutex);
+      if (mapped_) return;
 
-        bool create = temporary_file_;
-        size_t n = size_;
+      bool create = temporary_file_;
+      size_t n = size_;
 
-        File file(filename_, create? File::CREATE : File::READ, fd_);
-        file.assert_is_not_dir();
-        if (create) {
-          file.resize(n);
-        }
-        size_t filesize = file.size();
-        if (filesize == 0) {
-          // Cannot memory-map 0-bytes file. However we shouldn't
-          // really need to: if memory size is 0 then mmp can be NULL
-          // as nobody is going to read from it anyways.
-          size_ = 0;
-          data_ = nullptr;
-          mapped_ = true;
-          return;
-        }
-        size_ = filesize + (create? 0 : n);
-
-        // Memory-map the file.
-        // In "open" mode if `n` is non-zero, then we will be opening
-        // a buffer with larger size than the actual file size. Also,
-        // the file is opened in "private, read-write" mode -- meaning
-        // that the user can write to that buffer if needed. From the
-        // man pages of `mmap`:
-        //
-        // | MAP_SHARED
-        // |   Share this mapping. Updates to the mapping are visible
-        // |   to other processes that map this file, and are carried
-        // |   through to the underlying file. The file may not
-        // |   actually be updated until msync(2) or munmap() is
-        // |   called.
-        // | MAP_PRIVATE
-        // |   Create a private copy-on-write mapping.  Updates to the
-        // |   mapping are not carried through to the underlying file.
-        // | MAP_NORESERVE
-        // |   Do not reserve swap space for this mapping.  When swap
-        // |   space is reserved, one has the guarantee that it is
-        // |   possible to modify the mapping.  When swap space is not
-        // |   reserved one might get SIGSEGV upon a write if no
-        // |   physical memory is available.
-        //
-        int attempts = 3;
-        while (attempts--) {
-          int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
-          data_ = mmap(/* address = */ nullptr,
-                         /* length = */ size_,
-                         /* protection = */ PROT_WRITE|PROT_READ,
-                         /* flags = */ flags,
-                         /* fd = */ file.descriptor(),
-                         /* offset = */ 0);
-          if (data_ == MAP_FAILED) {
-            data_ = nullptr;
-            if (errno == 12) {  // release some memory and try again
-              MemoryMapManager::get()->freeup_memory();
-              if (attempts) {
-                errno = 0;
-                continue;
-              }
-            }
-            // Exception is thrown from the constructor -> the base class'
-            // destructor will be called, which checks that `data_` is null.
-            throw IOError() << "Memory-map failed for file " << file.cname()
-                            << " of size " << filesize
-                            << " +" << size_ - filesize << Errno;
-          } else {
-            MemoryMapManager::get()->add_entry(this, size_);
-            break;
-          }
-        }
+      File file(filename_, create? File::CREATE : File::READ, fd_);
+      file.assert_is_not_dir();
+      if (create) {
+        file.resize(n);
+      }
+      size_t filesize = file.size();
+      if (filesize == 0) {
+        // Cannot memory-map 0-bytes file. However we shouldn't
+        // really need to: if memory size is 0 then mmp can be NULL
+        // as nobody is going to read from it anyways.
+        size_ = 0;
+        data_ = nullptr;
         mapped_ = true;
-        xassert(mmm_index_);
-      #endif
+        return;
+      }
+      size_ = filesize + (create? 0 : n);
+
+      // Memory-map the file.
+      // In "open" mode if `n` is non-zero, then we will be opening
+      // a buffer with larger size than the actual file size. Also,
+      // the file is opened in "private, read-write" mode -- meaning
+      // that the user can write to that buffer if needed. From the
+      // man pages of `mmap`:
+      //
+      // | MAP_SHARED
+      // |   Share this mapping. Updates to the mapping are visible
+      // |   to other processes that map this file, and are carried
+      // |   through to the underlying file. The file may not
+      // |   actually be updated until msync(2) or munmap() is
+      // |   called.
+      // | MAP_PRIVATE
+      // |   Create a private copy-on-write mapping.  Updates to the
+      // |   mapping are not carried through to the underlying file.
+      // | MAP_NORESERVE
+      // |   Do not reserve swap space for this mapping.  When swap
+      // |   space is reserved, one has the guarantee that it is
+      // |   possible to modify the mapping.  When swap space is not
+      // |   reserved one might get SIGSEGV upon a write if no
+      // |   physical memory is available.
+      //
+      int attempts = 3;
+      while (attempts--) {
+        int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
+        data_ = mmap(/* address = */ nullptr,
+                       /* length = */ size_,
+                       /* protection = */ PROT_WRITE|PROT_READ,
+                       /* flags = */ flags,
+                       /* fd = */ file.descriptor(),
+                       /* offset = */ 0);
+        if (data_ == MAP_FAILED) {
+          data_ = nullptr;
+          if (errno == 12) {  // release some memory and try again
+            MemoryMapManager::get()->freeup_memory();
+            if (attempts) {
+              errno = 0;
+              continue;
+            }
+          }
+          // Exception is thrown from the constructor -> the base class'
+          // destructor will be called, which checks that `data_` is null.
+          throw IOError() << "Memory-map failed for file " << file.cname()
+                          << " of size " << filesize
+                          << " +" << size_ - filesize << Errno;
+        } else {
+          MemoryMapManager::get()->add_entry(this, size_);
+          break;
+        }
+      }
+      mapped_ = true;
+      xassert(mmm_index_);
     }
 
     void memunmap() noexcept {
       if (!mapped_) return;
-      #if !DT_OS_WINDOWS
-        if (data_) {
-          int ret = munmap(data_, size_);
-          if (ret) {
-            // Cannot throw exceptions from a destructor, so just
-            // print a message
-            printf("Error unmapping the view of file: [errno %d] %s. "
-                   "Resources may have not been freed properly.",
-                   errno, std::strerror(errno));
-          }
-          data_ = nullptr;
+
+      if (data_) {
+        int ret = munmap(data_, size_);
+        if (ret) {
+          // Cannot throw exceptions from a destructor, so just
+          // print a message
+          printf("Error unmapping the view of file: [errno %d] %s. "
+                 "Resources may have not been freed properly.",
+                 errno, std::strerror(errno));
         }
-        mapped_ = false;
-        size_ = 0;
-        if (mmm_index_) {
-          try {
-            MemoryMapManager::get()->del_entry(mmm_index_);
-          } catch (...) {}
-          mmm_index_ = 0;
-        }
-      #endif
+        data_ = nullptr;
+      }
+      mapped_ = false;
+      size_ = 0;
+      if (mmm_index_) {
+        try {
+          MemoryMapManager::get()->del_entry(mmm_index_);
+        } catch (...) {}
+        mmm_index_ = 0;
+      }
     }
 };
 
@@ -629,13 +628,11 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
 
     ~Overmap_BufferImpl() override {
       if (!xbuf_) return;
-      #if !DT_OS_WINDOWS
-        int ret = munmap(xbuf_, xsize_);
-        if (ret) {
-          printf("Cannot unmap extra memory %p: [errno %d] %s",
-                 xbuf_, errno, std::strerror(errno));
-        }
-      #endif
+      int ret = munmap(xbuf_, xsize_);
+      if (ret) {
+        printf("Cannot unmap extra memory %p: [errno %d] %s",
+               xbuf_, errno, std::strerror(errno));
+      }
     }
 
     virtual size_t memory_footprint() const noexcept override {
@@ -648,74 +645,78 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
       Mmap_BufferImpl::memmap();
       if (xsize_ == 0) return;
       if (!data_) return;
-      #if DT_OS_WINDOWS
-        throw NotImplError() << "Memory-mapping not supported on Windows yet";
 
+      // The parent's constructor has opened a memory-mapped region
+      // of size `filesize + xn`. This, however, is not always
+      // enough:
+      // | A file is mapped in multiples of the page size. For a
+      // | file that is not a multiple of the page size, the
+      // | remaining memory is 0ed when mapped, and writes to that
+      // | region are not written out to the file.
+      //
+      // Thus, when `filesize` is *not* a multiple of pagesize,
+      // then the memory mapping will have some writable "scratch"
+      // space at the end, filled with '\0' bytes. We check -- if
+      // this space is large enough to hold `xn` bytes, then don't
+      // do anything extra. If not (for example when `filesize` is
+      // an exact multiple of `pagesize`), then attempt to read/
+      // write past physical end of file wil fail with a BUS error,
+      // despite the fact that the map was overallocated for the
+      // extra `xn` bytes:
+      // | Use of a mapped region can result in these signals:
+      // | SIGBUS:
+      // |   Attempted access to a portion of the buffer that does
+      // |   not correspond to the file (for example, beyond the
+      // |   end of the file)
+      //
+      // In order to circumvent this, we allocate a new memory-
+      // mapped region of size `xn` and placed at address `buf +
+      // filesize`. In theory, this should always succeed because
+      // we over-allocated `buf` by `xn` bytes; and even though
+      // those extra bytes are not readable/writable, at least
+      // there is a guarantee that it is not occupied by anyone
+      // else. Now, `mmap()` documentation explicitly allows to
+      // declare mappings that overlap each other:
+      // | MAP_ANONYMOUS:
+      // |   The mapping is not backed by any file; its contents are
+      // |   initialized to zero. The fd argument is ignored.
+      // | MAP_FIXED
+      // |   Don't interpret addr as a hint: place the mapping at
+      // |   exactly that address.  `addr` must be a multiple of
+      // |   the page size. If the memory region specified by addr
+      // |   and len overlaps pages of any existing mapping(s), then
+      // |   the overlapped part of the existing mapping(s) will be
+      // |   discarded.
+      //
+      size_t xn = xsize_;
+
+      #if DT_OS_WINDOWS
+        SYSTEM_INFO sysInfo;
+        GetSystemInfo(&sysInfo);
+        size_t pagesize = sysInfo.dwPageSize;
       #else
-        // The parent's constructor has opened a memory-mapped region
-        // of size `filesize + xn`. This, however, is not always
-        // enough:
-        // | A file is mapped in multiples of the page size. For a
-        // | file that is not a multiple of the page size, the
-        // | remaining memory is 0ed when mapped, and writes to that
-        // | region are not written out to the file.
-        //
-        // Thus, when `filesize` is *not* a multiple of pagesize,
-        // then the memory mapping will have some writable "scratch"
-        // space at the end, filled with '\0' bytes. We check -- if
-        // this space is large enough to hold `xn` bytes, then don't
-        // do anything extra. If not (for example when `filesize` is
-        // an exact multiple of `pagesize`), then attempt to read/
-        // write past physical end of file wil fail with a BUS error,
-        // despite the fact that the map was overallocated for the
-        // extra `xn` bytes:
-        // | Use of a mapped region can result in these signals:
-        // | SIGBUS:
-        // |   Attempted access to a portion of the buffer that does
-        // |   not correspond to the file (for example, beyond the
-        // |   end of the file)
-        //
-        // In order to circumvent this, we allocate a new memory-
-        // mapped region of size `xn` and placed at address `buf +
-        // filesize`. In theory, this should always succeed because
-        // we over-allocated `buf` by `xn` bytes; and even though
-        // those extra bytes are not readable/writable, at least
-        // there is a guarantee that it is not occupied by anyone
-        // else. Now, `mmap()` documentation explicitly allows to
-        // declare mappings that overlap each other:
-        // | MAP_ANONYMOUS:
-        // |   The mapping is not backed by any file; its contents are
-        // |   initialized to zero. The fd argument is ignored.
-        // | MAP_FIXED
-        // |   Don't interpret addr as a hint: place the mapping at
-        // |   exactly that address.  `addr` must be a multiple of
-        // |   the page size. If the memory region specified by addr
-        // |   and len overlaps pages of any existing mapping(s), then
-        // |   the overlapped part of the existing mapping(s) will be
-        // |   discarded.
-        //
-        size_t xn = xsize_;
         size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
-        size_t filesize = size() - xn;
-        // How much to add to filesize to align it to a page boundary
-        size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
-        if (xn > gapsize) {
-          void* target = static_cast<void*>(
-                            static_cast<char*>(data_) + filesize + gapsize);
-          xsize_ = xn - gapsize;
-          xbuf_ = mmap(/* address = */ target,
-                      /* size = */ xsize_,
-                      /* protection = */ PROT_WRITE|PROT_READ,
-                      /* flags = */ MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
-                      /* file descriptor, ignored */ -1,
-                      /* offset, ignored */ 0);
-          if (xbuf_ == MAP_FAILED) {
-            throw RuntimeError() << "Cannot allocate additional " << xsize_
-                                 << " bytes at address " << target << ": "
-                                 << Errno;
-          }
-        }
       #endif
+
+      size_t filesize = size() - xn;
+      // How much to add to filesize to align it to a page boundary
+      size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
+      if (xn > gapsize) {
+        void* target = static_cast<void*>(
+                          static_cast<char*>(data_) + filesize + gapsize);
+        xsize_ = xn - gapsize;
+        xbuf_ = mmap(/* address = */ target,
+                    /* size = */ xsize_,
+                    /* protection = */ PROT_WRITE|PROT_READ,
+                    /* flags = */ MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
+                    /* file descriptor, ignored */ -1,
+                    /* offset, ignored */ 0);
+        if (xbuf_ == MAP_FAILED) {
+          throw RuntimeError() << "Cannot allocate additional " << xsize_
+                               << " bytes at address " << target << ": "
+                               << Errno;
+        }
+      }
     }
 };
 
