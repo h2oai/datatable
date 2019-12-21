@@ -64,53 +64,6 @@ def build_extension(cmd, verbosity=3):
 
     if ext.compiler.is_msvc():
         ext.compiler.add_compiler_flag("/W4")
-        ext.compiler.add_compiler_flag("/EHsc")
-        ext.compiler.add_compiler_flag("/O2")
-        ext.compiler.add_compiler_flag("/nologo")
-
-        # C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.24.28314\bin\Hostx64\x64\cl.exe
-        # C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.24.28314\include;C:\Program Files (x86)\Windows Kits\10\include\10.0.18362.0\ucrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.18362.0\shared;C:\Program Files (x86)\Windows Kits\10\include\10.0.18362.0\um;C:\Program Files (x86)\Windows Kits\10\include\10.0.18362.0\winrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.18362.0\cppwinrt;
-        # C:\Users\jenkins\Anaconda3\Library\lib\;'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.24.28314\lib\x64\';'C:\Users\jenkins\AppData\Local\Programs\Python\Python36\libs\';'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.18362.0\um\x64\';
-
-        # ext.compiler.add_compiler_flag("/W3")
-        # ext.compiler.add_compiler_flag("/GL")
-        # ext.compiler.add_compiler_flag("/DNDEBUG")
-        # ext.compiler.add_compiler_flag("/MT")
-
-        # ext.compiler.add_compiler_flag("/c")
-        # ext.compiler.add_compiler_flag("/Ic")
-        # ext.compiler.add_compiler_flag("/Iinclude")
-
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Users\\jenkins\\AppData\\Local\\Programs\\Python\\Python36\\include ")
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.7.2\\include\\um")
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\ucrt")
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\shared")
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\um")
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\winrt")
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\cppwinrt")
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.24.28314\\include")
-        # ext.compiler.add_compiler_flag("/I" + "C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\cppwinrt")
-
-        # ext.compiler.add_linker_flag("/link")
-        ext.compiler.add_linker_flag("/nologo")
-        # ext.compiler.add_linker_flag("/INCREMENTAL:NO")
-        # ext.compiler.add_linker_flag("/LTCG")
-        # ext.compiler.add_linker_flag("/nodefaultlib:libucrt.lib ucrt.lib")
-        ext.compiler.add_linker_flag("/DLL")
-        # ext.compiler.add_linker_flag("/MANIFEST:EMBED,ID=2")
-        # ext.compiler.add_linker_flag("/MANIFESTUAC:NO")
-        ext.compiler.add_linker_flag("/EXPORT:PyInit__datatable")
-
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Users\\jenkins\\AppData\\Local\\Programs\\Python\\Python36\\libs")
-        # ext.compiler.add_linker_flag("/LIBPATH:C:\\Users\\jenkins\\AppData\\Local\\Programs\\Python\\Python36\\PCbuild\\amd64") 
-        # ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\NETFXSDK\\4.7.2\\lib\\um\\x64")
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.18362.0\\ucrt\\x64")
-        # ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.18362.0\\um\\x64")
-        # ext.compiler.add_linker_flag("/LIBPATH:C:\\Users\\jenkins\\Anaconda3\\Library\\lib\\")
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.24.28314\\lib\\x64")
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64\\")
-        # ext.compiler.add_linker_flag("/ENTRY:DllMain")
-        # ext.compiler.add_linker_flag("/SUBSYSTEM:CONSOLE")
 
     else:
         # Common compile flags
