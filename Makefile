@@ -14,7 +14,7 @@ endif
 
 # Platform details
 OS       := $(shell uname | tr A-Z a-z)
-ARCH     := $(shell uname -m)
+# ARCH     := $(shell uname -m)
 PLATFORM := $(ARCH)-$(OS)
 
 # Distribution directory

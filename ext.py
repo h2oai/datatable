@@ -76,7 +76,7 @@ def build_extension(cmd, verbosity=3):
         ext.compiler.add_linker_flag("/nologo")
         ext.compiler.add_linker_flag("/DLL")
         ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.24.28314\\lib\\x64")
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Users\\jenkins\\AppData\\Local\\Programs\\Python\\Python36\\libs")
+        ext.compiler.add_linker_flag("/LIBPATH:C:\\Users\\oleks\\AppData\\Local\\Programs\\Python\\Python37\\libs")
         ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.18362.0\\ucrt\\x64")
         ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64\\")
 
