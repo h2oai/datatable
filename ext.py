@@ -63,22 +63,21 @@ def build_extension(cmd, verbosity=3):
     ext.compiler.add_default_python_include_dir()
 
     if ext.compiler.is_msvc():
+        ext.compiler.add_default_python_lib_dir()
         ext.compiler.add_compiler_flag("/W4")
         ext.compiler.add_compiler_flag("/EHsc")
         ext.compiler.add_compiler_flag("/O2")
         ext.compiler.add_compiler_flag("/nologo")
-
-        ext.compiler.add_compiler_flag("/IC:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.24.28314\\include")
-        ext.compiler.add_compiler_flag("/IC:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\ucrt")
-        ext.compiler.add_compiler_flag("/IC:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\shared")
-        ext.compiler.add_compiler_flag("/IC:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\um")
+        ext.compiler.add_include_dir("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.24.28314\\include")
+        ext.compiler.add_include_dir("C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\ucrt")
+        ext.compiler.add_include_dir("C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\shared")
+        ext.compiler.add_include_dir("C:\\Program Files (x86)\\Windows Kits\\10\\include\\10.0.18362.0\\um")
 
         ext.compiler.add_linker_flag("/nologo")
         ext.compiler.add_linker_flag("/DLL")
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.24.28314\\lib\\x64")
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Users\\oleks\\AppData\\Local\\Programs\\Python\\Python37\\libs")
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.18362.0\\ucrt\\x64")
-        ext.compiler.add_linker_flag("/LIBPATH:C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64\\")
+        ext.compiler.add_lib_dir("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.24.28314\\lib\\x64")
+        ext.compiler.add_lib_dir("C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.18362.0\\ucrt\\x64")
+        ext.compiler.add_lib_dir("C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64\\")
 
     else:
         # Common compile flags

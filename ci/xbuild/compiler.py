@@ -44,6 +44,7 @@ class Compiler:
         self._parent = None        # xbuild.extension.Extension
         self._compiler_flags = []  # List[str]
         self._include_dirs = []    # List[str]
+        self._lib_dirs = []        # List[str]
         self._linker_flags = []    # List[str]
 
 
@@ -255,6 +256,39 @@ class Compiler:
     #---------------------------------------------------------------------------
     # Linking
     #---------------------------------------------------------------------------
+
+    def _flags_for_lib_dir(self, path):
+        if self.is_msvc():
+            return ["/LIBPATH:" + path]
+        else:
+            return ["-L" + path]
+
+
+    def add_lib_dir(self, path):
+        if not path:
+            return
+        assert isinstance(path, str)
+        if not os.path.isdir(path):
+            raise ValueError("Lib directory %s not found" % path)
+        self._lib_dirs.append(path)
+        self._linker_flags += self._flags_for_lib_dir(path)
+        self.log.report_lib_dir(path)
+
+
+    def add_default_python_lib_dir(self):
+        if not self.is_msvc():
+            return
+
+        dd = sysconfig.get_config_var("INCLUDEPY")
+        dd += "\\..\\libs"
+        if not os.path.isdir(dd):
+            self._log.warn("Python lib directory `%s` does not exist, "
+                           "linking may fail" % dd)
+        # elif not os.path.exists(os.path.join(dd, "Python.h")):
+        #     self._log.warn("Python include directory `%s` is missing the file "
+        #                    "Python.h, compilation may fail" % dd)
+        self.add_lib_dir(dd)
+
 
     def add_linker_flag(self, *flags):
         for flag in flags:

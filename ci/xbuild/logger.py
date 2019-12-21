@@ -51,6 +51,7 @@ class Logger0:
     def report_full_rebuild(self): pass
     def report_include_dir(self, dd): pass
     def report_includes(self, inlcudes): pass
+    def report_lib_dir(self, dd): pass
     def report_link_cmd_mismatch(self, cmd1, cmd2): pass
     def report_link_file(self, filename, cmd): pass
     def report_mkdir(self, dd): pass
@@ -226,6 +227,9 @@ class Logger3(Logger0):
     def report_includes(self, includes):
         self.info("Loaded information about %d source and header files"
                   % len(includes))
+
+    def report_lib_dir(self, dd):
+        self.info("Added library directory %r" % dd)
 
     def report_link_cmd_mismatch(self, cmd1, cmd2):
         self.info("Linker flags changed")
