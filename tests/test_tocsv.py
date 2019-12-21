@@ -409,6 +409,13 @@ def test_issue1921():
     assert out == "\n".join(["A,B"] + ["%d,hey" % i for i in range(n)] + [""])
 
 
+def test_issue2253():
+    X = dt.Frame(A=[10, 20])
+    X["B"] = dt.f.A > 15
+    assert X.to_csv() == "A,B\n" + "10,0\n" + "20,1\n"
+
+
+
 
 #-------------------------------------------------------------------------------
 # Test options

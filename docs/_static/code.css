@@ -177,6 +177,11 @@ span.tag.api {
   color: #FFFFFF;
 }
 
+span.tag.enh {
+  background-color: #00A0D0;
+  color: #FFFFFF;
+}
+
 h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
   font-family: sans-serif;
   font-size: 60%;
@@ -198,7 +203,7 @@ h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
   padding: 0;
 }
 
-.admonition.seealso p.first.admonition-title {
+.admonition.seealso p.admonition-title {
   background: inherit;
   color: #AAA;
   display: block;
@@ -207,15 +212,15 @@ h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
   padding: 0;
 }
 
-.admonition.seealso p.last {
+.admonition.seealso p {
   font-size: inherit;
 }
 
-.admonition.seealso p.first.admonition-title:before {
+.admonition.seealso p.admonition-title:before {
   content: "";
 }
 
-.admonition.seealso p.first.admonition-title:after {
+.admonition.seealso p.admonition-title:after {
   content: ":";
 }
 

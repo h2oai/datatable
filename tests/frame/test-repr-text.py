@@ -25,6 +25,8 @@ import datatable as dt
 import os
 import pytest
 import re
+import subprocess
+import sys
 
 
 def color_line(s):
@@ -703,7 +705,6 @@ def test_encoding_autodetection(tempfile):
     # Check that if `sys.stdout` doesn't have UTF-8 encoding then
     # datatable can detect it and set display.allow_unicode option
     # to False automatically.
-    import subprocess
     cmd = ("import sys; " +
            "sys.stdout = open('%s', 'w', encoding='ascii'); " % tempfile +
            "import datatable as dt; " +
@@ -711,7 +712,7 @@ def test_encoding_autodetection(tempfile):
            "DT = dt.Frame(A=['\\u2728']); " +
            "dt.options.display.use_colors = False; " +
            "DT.view(False)")
-    out = subprocess.check_output(["python", "-c", cmd])
+    out = subprocess.check_output([sys.executable, "-c", cmd])
     assert not out
     with open(tempfile, "r", encoding='ascii') as f:
         out = f.read()

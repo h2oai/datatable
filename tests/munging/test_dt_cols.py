@@ -34,11 +34,12 @@ from datatable.internal import frame_integrity_check
 
 @pytest.fixture()
 def tbl0():
+    T, F = True, False
     return [
         [1,   7,   9,    0,   -4,   3],  # int
         [2,   3,   2,    1,   10,   0],  # int
         [0.5, 0.1, 0.7, -0.3,  0.1, 1],  # real
-        [1,   0,   1,    1,    0,   1],  # bool
+        [T,   F,   T,    T,    F,   T],  # bool
     ]
 
 @pytest.fixture()

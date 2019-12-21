@@ -1,5 +1,5 @@
 <!---
-  Copyright 2018 H2O.ai
+  Copyright 2018-2019 H2O.ai
 
   Permission is hereby granted, free of charge, to any person obtaining a
   copy of this software and associated documentation files (the "Software"),
@@ -96,21 +96,9 @@ the following:
 
 ## Installation
 
-On MacOS systems installing datatable is as easy as
+On MacOS and Linux systems installing datatable is as easy as
 ```sh
 pip install datatable
-```
-
-On Linux you can install a binary distribution as
-```sh
-# If you have Python 3.5
-pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.10.0/datatable-0.10.0-cp35-cp35m-linux_x86_64.whl
-
-# If you have Python 3.6
-pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.10.0/datatable-0.10.0-cp36-cp36m-linux_x86_64.whl
-
-# If you have Python 3.7
-pip install https://s3.amazonaws.com/h2o-release/datatable/stable/datatable-0.10.0/datatable-0.10.0-cp37-cp37m-linux_x86_64.whl
 ```
 
 On all other platforms a source distribution will be needed. For more

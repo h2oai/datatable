@@ -2,8 +2,61 @@
 .. include:: definitions.rst
 
 
-Version 0.10.0
-==============
+Version 0.10.1 (Released 2019-12-20)
+====================================
+
+Frame
+-----
+
+- |api| A Python list of integers containing only 0s and 1s will now
+  produce an ``int8`` column instead of ``bool8``. In order to create a
+  boolean column supply a list of Trues and Falses, or force the
+  boolean stype with the constructor parameter ``stype=bool``::
+
+      assert dt.Frame([False, True]) == dt.bool8
+      assert dt.Frame([0, 1]).stype == dt.int8
+      assert dt.Frame([0, 1], stype=bool).stype == dt.bool8
+      assert dt.Frame([0, 1, 2]).stype == dt.int32
+
+- |fix| A list of frames now displays properly in a Jupyter lab (#2222).
+
+- |fix| Mixing reduce and map operations should no longer produce error
+  "Unable to create a nested thread team" (#2242).
+
+- |fix| Fix rare deadlock when creating a Frame from a python list. The
+  deadlock occurred only on ppc64le and datatable compiled with gcc version
+  4.8 or earlier (#2250).
+
+- |fix| Fixed an error when a frame with a computed boolean column was
+  saved into csv (#2253).
+
+
+General
+-------
+
+- |api| Properties ``dt.bool8.min`` and ``dt.bool8.max`` are now equal to
+  ``False`` and ``True`` respectively, instead of integers 0 and 1 (#2231).
+
+- |enh| :func:`fread` is now able to read Jay files even if the file doesn't
+  have the ``.jay`` extension.
+
+
+
+FTRL model
+----------
+
+- |fix| Fix feature importance normalization to [0, 1] in FTRL (#2224).
+
+- |fix| Resetting an untrained FTRL model now doesn't result in a segfault (#2226).
+
+- |enh| The ``id`` column in FTRL model ``.labels`` frame now has stype ``int32``
+  instead of ``bool`` for binomial and regression models.
+
+
+
+
+Version 0.10.0 (Released 2019-12-02)
+====================================
 
 Columnsets |new|
 ----------------
@@ -31,7 +84,8 @@ selection of columns::
     f[:10].extend(f[-1])      # first 10, plus the last column
 
 The columnsets can be used in places where a list/sequence of columns is
-expected, such as the ``j`` node of ``DT[i,j,...]``, the ``by()`` function, etc.
+expected, such as the ``j`` node of ``DT[i,j,...]``, the :func:`by` function,
+etc.
 
 
 Row-functions |new|
@@ -54,8 +108,8 @@ and therefore they all have prefix ``row``::
     rowsum()    # the sum of values in a row
 
 These functions are equivalent to pandas' aggregation functions with parameter
-``(axis=1)``. In addition, the first two of these functions (``rowall()`` and
-``rowany()``) use short-circuit evaluation.
+``(axis=1)``. In addition, the first two of these functions, :func:`rowall` and
+:func:`rowany`, use short-circuit evaluation.
 
 
 Mathematical functions |new|
@@ -75,7 +129,7 @@ There are 48 functions in total.
 Frame
 -----
 
-- |new| Added function `update()`, which can be used to in a ``DT[i, j]``
+- |new| Added function :func:`update`, which can be used in a ``DT[i, j]``
   expression. This function can be used in the ``j`` place, and it allows the
   user to create new columns in a Frame, or update the existing ones::
 
@@ -152,7 +206,7 @@ Frame
     DT["id"] = range(1000)
 
 - |new| Implemented ability to select a specific row within each group, using
-  the syntax
+  the syntax::
 
     DT[2, :, by(f.GRP)]
 
@@ -164,7 +218,7 @@ Frame
     DT["A"] = int            # Column A in frame DT will become integer
     DT[:, int] = dt.float64  # All integer columns will be converted to float64
 
-- |new| Method ``Frame.materialize()`` gains a new option ``to_memory=False``.
+- |new| Method :meth:`Frame.materialize` gains a new option ``to_memory=False``.
   If set to True, it will force the Frame's data to be lifted from disk into
   the main memory (if the frame was opened from disk)::
 
@@ -294,7 +348,7 @@ General
     DT[:, corr(f.A, f.B), by(f.ID)]
 
 - |new| Added function :func:`shift` which can be used to generate lags/leads
-  of a column. For example:
+  of a column. For example::
 
     DT[:, {"lag2": shift(f.A, n=2),
            "lag1": shift(f.A),       # same as shift(f.A, n=1)

@@ -26,6 +26,11 @@
 namespace dt {
 using std::size_t;
 
+struct TerminalSize {
+  int width;
+  int height;
+};
+
 
 /**
   * Class that controls adorned output to a terminal. This class
@@ -40,8 +45,7 @@ using std::size_t;
 class Terminal {
   using string = std::string;
   private:
-    int  width_;
-    int  height_;
+    TerminalSize size_;
     bool allow_unicode_;
     bool enable_colors_;
     bool enable_ecma48_;
@@ -59,8 +63,7 @@ class Terminal {
     bool is_ipython() const noexcept;
     bool colors_enabled() const noexcept;
     bool unicode_allowed() const noexcept;
-    int get_width();
-    int get_height();
+    TerminalSize get_size();
 
     void use_colors(bool f);
     void use_unicode(bool f);

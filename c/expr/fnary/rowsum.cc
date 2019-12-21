@@ -19,10 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <cmath>
-#include "expr/fnary/fnary.h"
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "expr/fnary/fnary.h"
+#include "models/utils.h"
 namespace dt {
 namespace expr {
 
@@ -56,7 +56,7 @@ static bool op_rowsum(size_t i, T* out, const colvec& columns) {
     }
   }
   *out = sum;
-  return !std::isnan(sum);
+  return _notnan(sum);
 }
 
 

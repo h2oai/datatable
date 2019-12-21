@@ -87,6 +87,7 @@ messages, and powerful API similar to R ``data.table``'s.
     :caption: User manual
     :maxdepth: 2
     :hidden:
+    :includehidden:
 
     f-expressions
     install
