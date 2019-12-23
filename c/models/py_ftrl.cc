@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -360,7 +360,7 @@ oobj Ftrl::fit(const PKArgs& args) {
       py::Validator::check_positive(nepochs_val, arg_nepochs_validation);
       py::Validator::check_less_than_or_equal_to(
         nepochs_val,
-        static_cast<double>(dtft->get_nepochs()),
+        dtft->get_nepochs(),
         arg_nepochs_validation
       );
     } else nepochs_val = 1;
@@ -804,10 +804,12 @@ oobj Ftrl::get_nepochs() const {
 }
 
 
-void Ftrl::set_nepochs(const Arg& py_nepochs) {
-  size_t nepochs = py_nepochs.to_size_t();
+void Ftrl::set_nepochs(const Arg& arg_nepochs) {
+  double nepochs = arg_nepochs.to_double();
+  py::Validator::check_finite(nepochs, arg_nepochs);
+  py::Validator::check_not_negative(nepochs, arg_nepochs);
   dtft->set_nepochs(nepochs);
-  py_params->replace(6, py_nepochs.to_robj());
+  py_params->replace(6, arg_nepochs.to_robj());
 }
 
 
@@ -1087,7 +1089,7 @@ void Ftrl::init_py_params() {
   py_params->replace(3, py::ofloat(params.lambda2));
   py_params->replace(4, py::oint(static_cast<size_t>(params.nbins)));
   py_params->replace(5, py::oint(params.mantissa_nbits));
-  py_params->replace(6, py::oint(params.nepochs));
+  py_params->replace(6, py::ofloat(params.nepochs));
   py_params->replace(7, py::obool(params.double_precision));
   py_params->replace(8, py::obool(params.negative_class));
   py_params->replace(9, py::None());
@@ -1200,7 +1202,7 @@ mantissa_nbits : int
     Number of bits from mantissa to be used for hashing floats,
     defaults to `10`.
 
-nepochs : int
+nepochs : float
     Number of training epochs, defaults to `1`.
 
 double_precision : bool

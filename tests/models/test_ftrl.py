@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -45,7 +45,7 @@ Params = collections.namedtuple("FtrlParams",["alpha", "beta", "lambda1", "lambd
                                           "double_precision", "negative_class",
                                           "interactions", "model_type"])
 tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
-                 mantissa_nbits = 6, nepochs = 7, double_precision = True,
+                 mantissa_nbits = 6, nepochs = 7.0, double_precision = True,
                  negative_class = True, interactions = (("C0",),),
                  model_type = 'binomial')
 
@@ -108,9 +108,9 @@ def test_ftrl_construct_wrong_mantissa_nbits_type():
 
 def test_ftrl_construct_wrong_nepochs_type():
     with pytest.raises(TypeError) as e:
-        noop(Ftrl(nepochs = 10.0))
-    assert ("Argument `nepochs` in Ftrl() constructor should be an integer, "
-            "instead got <class 'float'>" == str(e.value))
+        noop(Ftrl(nepochs = "10.0"))
+    assert ("Argument `nepochs` in Ftrl() constructor should be a float, "
+            "instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_double_precision_type():
@@ -228,7 +228,7 @@ def test_ftrl_construct_wrong_mantissa_nbits_value(value, message):
 def test_ftrl_construct_wrong_nepochs_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(nepochs = -1))
-    assert ("Argument `nepochs` in Ftrl() constructor cannot be negative: -1"
+    assert ("Argument `nepochs` in Ftrl() constructor should be greater than or equal to zero: -1"
             == str(e.value))
 
 
@@ -370,7 +370,7 @@ def test_ftrl_set_wrong_nepochs_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.nepochs = "-10.0"
-    assert ("`.nepochs` should be an integer, instead got <class 'str'>" == str(e.value))
+    assert ("`.nepochs` should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_interactions_type():
@@ -481,7 +481,7 @@ def test_ftrl_set_wrong_nepochs_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.nepochs = -10
-    assert ("`.nepochs` cannot be negative: -10" == str(e.value))
+    assert ("`.nepochs` should be greater than or equal to zero: -10" == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -1315,6 +1315,13 @@ def test_ftrl_early_stopping_float(validation_average_niterations):
             int(res.epoch / nepochs_validation))
     assert max(delta) < epsilon
 
+    # Re-create the same model without early stopping and also test
+    # training for a fractional number of epochs.
+    ft1 = Ftrl(alpha = 0.5, nbins = nbins, nepochs = res.epoch)
+    ft1.fit(df_X, df_y)
+    p1 = ft1.predict(df_X)
+    assert_equals(ft.model, ft1.model)
+    assert_equals(p, p1)
 
 @pytest.mark.parametrize('validation_average_niterations', [1,5,10])
 def test_ftrl_early_stopping_regression(validation_average_niterations):
