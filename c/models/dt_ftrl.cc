@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>            // std::max
-#include <cmath>                // std::floor
+#include <cmath>                // std::ceil
 #include "frame/py_frame.h"
 #include "models/dt_ftrl.h"
 #include "parallel/api.h"
@@ -558,11 +558,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   // Training settings. By default each training iteration consists of
   // `dt_X_train->nrows` rows.
-  size_t niterations = static_cast<size_t>(std::floor(nepochs));
-  T frac_nepochs = nepochs - niterations;
+  size_t niterations = static_cast<size_t>(std::ceil(nepochs));
+  T frac_nepochs = nepochs - niterations + 1;
   bool frac_training = frac_nepochs > 0;
 
-  if (frac_training) niterations++;
   size_t iteration_nrows = dt_X_train->nrows();
   size_t frac_nrows = static_cast<size_t>(frac_nepochs * iteration_nrows);
   size_t total_nrows = (niterations - frac_training) * iteration_nrows + frac_nrows;
@@ -581,8 +580,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                                             : target_col0_train;  // whatever
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows());
-    niterations = total_nrows / iteration_nrows;
+    iteration_nrows = static_cast<size_t>(nepochs_val * iteration_nrows);
+    niterations = total_nrows / iteration_nrows + (total_nrows % iteration_nrows > 0);
     loss_history.resize(val_niters, 0.0);
   }
 
