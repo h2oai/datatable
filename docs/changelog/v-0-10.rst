@@ -2,7 +2,7 @@
 .. include:: definitions.rst
 
 
-Version 0.10.1 (Released 2019-12-20)
+Version 0.10.1 (Released 2019-12-23)
 ====================================
 
 Frame

@@ -2,7 +2,7 @@
 Changelog
 =========
 
-- :doc:`Version 0.10.1 <changelog/v-0-10>` (released 2019-12-20)
+- :doc:`Version 0.10.1 <changelog/v-0-10>` (released 2019-12-23)
 
 
 
