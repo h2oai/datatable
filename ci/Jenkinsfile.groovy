@@ -33,7 +33,7 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 X86_64_BUILD_NODE_LABEL = "buildMachine"
 NODE_LABEL = 'docker && !mr-0xc8'
 OSX_NODE_LABEL = 'osx'
-PPC_NODE_LABEL = 'ibm-power-dt ibm-power-gpu-dt'
+PPC_NODE_LABEL = 'ibm-power-dt'
 RELEASE_NODE_LABEL = 'master'
 RELEASE_BRANCH_PREFIX = 'rel-'
 CREDS_ID = 'h2o-ops-personal-auth-token'
