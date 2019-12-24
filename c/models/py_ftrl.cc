@@ -1203,7 +1203,11 @@ mantissa_nbits : int
     defaults to `10`.
 
 nepochs : float
-    Number of training epochs, defaults to `1`.
+    Number of training epochs, defaults to `1`. When `nepochs` is
+    an integer number, the model will train on all the data provided
+    to `.fit()` method `nepochs` times. If `nepochs` has
+    a fractional component, the model's last iteration will only
+    be done on the fraction of data.
 
 double_precision : bool
     Whether to use double precision arithmetic or not, defaults to `False`.

@@ -556,21 +556,25 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   const Column& target_col0_train = dt_y_train->get_column(0);
   auto data_fi = static_cast<T*>(dt_fi->get_column(1).get_data_editable());
 
-  // Training settings. By default each training iteration consists of
-  // `dt_X_train->nrows` rows.
+  // Since `nepochs` can be a float value
+  // - the model is trained `niterations - 1` times on
+  //   `iteration_nrows` rows, where `iteration_nrows == dt_X_train->nrows()`;
+  // - then, the model is trained on the remaining `last_iteration_nrows` rows,
+  //   where `0 < last_iteration_nrows <= dt_X_train->nrows()`.
+  // If `nepochs` is an integer number, `last_iteration_nrows == dt_X_train->nrows()`,
+  // so that the last epoch becomes identical to all the others.
   size_t niterations = static_cast<size_t>(std::ceil(nepochs));
-  T frac_nepochs = nepochs - niterations + 1;
-  bool frac_training = frac_nepochs > 0;
+  T last_epoch = nepochs - niterations + 1;
 
   size_t iteration_nrows = dt_X_train->nrows();
-  size_t frac_nrows = static_cast<size_t>(frac_nepochs * iteration_nrows);
-  size_t total_nrows = (niterations - frac_training) * iteration_nrows + frac_nrows;
+  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * iteration_nrows);
+  size_t total_nrows = (niterations - 1) * iteration_nrows + last_iteration_nrows;
   size_t iteration_end;
 
-  // If a validation set is provided, we adjust batch size to `nepochs_val`.
-  // After each batch, we calculate loss on the validation dataset,
-  // and do early stopping if relative loss does not decrese by at least
-  // `val_error`.
+  // If a validation set is provided, we adjust the `iteration_nrows`
+  // to correspond to the `nepochs_val` epochs. After each iteration, we calculate
+  // the loss on the validation dataset, and trigger early stopping
+  // if relative loss does not decrese by at least `val_error`.
   bool validation = _notnan(nepochs_val);
   T loss = T_NAN; // This value is returned when validation is not enabled
   T loss_old = T(0); // Value of `loss` for a previous iteraction
