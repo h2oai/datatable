@@ -51,3 +51,6 @@ FTRL model
 
 - |enh| The ``id`` column in FTRL model ``.labels`` frame now has stype ``int32``
   instead of ``bool`` for binomial and regression models.
+
+- |enh| ``.nepochs``, the number of epochs to train the model, can now be a float
+  rather than an integer number.
