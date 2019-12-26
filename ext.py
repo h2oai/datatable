@@ -288,6 +288,10 @@ def main():
              "tag. Otherwise, an error will be raised.")
 
     args = parser.parse_args()
+    if args.audit and "linux" not in sys.platform:
+        raise ValueError("Argument --audit can be used on a Linux platform "
+                         "only, current platform is `%s`" % sys.platform)
+
     if args.cmd == "wheel":
         wheel_file = build_wheel("dist/", {"audit": args.audit})
         assert os.path.isfile(os.path.join("dist", wheel_file))
