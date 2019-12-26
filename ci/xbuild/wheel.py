@@ -41,6 +41,7 @@ import hashlib
 import io
 import os
 import re
+import subprocess
 import sys
 import sysconfig
 import tarfile
@@ -184,6 +185,7 @@ class Wheel:
         self._check_classifiers(meta)
         self._check_requirements(meta)
         self._check_requires_python(meta)
+        self._check_audit(meta)
         self._check_unknown_fields(meta)
 
 
@@ -286,12 +288,16 @@ class Wheel:
             req = meta["requires_python"]
             assert isinstance(req, str)
 
+    def _check_audit(self, meta):
+        if "audit" in meta:
+            assert isinstance(meta["audit"], bool)
+
     def _check_unknown_fields(self, meta):
         known_fields = {
             "name", "version", "summary", "keywords", "description",
             "description_content_type", "home_page", "author", "author_email",
             "maintainer", "maintainer_email", "license", "classifiers",
-            "requirements", "requires_python"}
+            "requirements", "requires_python", "audit"}
         unknown_fields = set(meta.keys()) - known_fields
         if unknown_fields:
             raise KeyError("Unknown meta parameters %r" % unknown_fields)
@@ -375,6 +381,10 @@ class Wheel:
     def info_dir(self):
         return "%s-%s.dist-info" % (self.name, self.version)
 
+    @property
+    def audit(self):
+        return self._meta.get("audit", False)
+
 
     @property
     def log(self):
@@ -446,6 +456,8 @@ class Wheel:
             self._add_RECORD_file(zipf)  # must come last
         assert os.path.isfile(full_name)
         self.log.step_wheel_done(time.time() - t0, os.path.getsize(full_name))
+        if self.audit:
+            wheel_name = self.audit_wheel(full_name)
         return wheel_name
 
 
@@ -466,6 +478,42 @@ class Wheel:
             self._add_METADATA_file(tarf)
         self.log.step_sdist_done(time.time() - t0, os.path.getsize(full_name))
         return sdist_name
+
+
+    def audit_wheel(self, path):
+        self.log.cmd_audit()
+        t0 = time.time()
+        try:
+            out = subprocess.check_output(["auditwheel", "show", path],
+                                          stderr=subprocess.STDOUT,
+                                          universal_newlines=True)
+            out = out.strip()
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError("Cannot perform audit: '%s'"
+                               % e.stdout.strip()) from None
+        except FileNotFoundError:
+            raise RuntimeError("Cannot perform audit: the `auditwheel` tool "
+                               "is not installed") from None
+
+        mm = re.search(r"is consistent with the following platform tag: "
+                       r"['\"](\w+)['\"]", out.replace('\n', ' '))
+        if not mm:
+            raise RuntimeError("Unexpected output from `auditwheel show` "
+                               "command:\n-------\n%s\n-------" % out)
+        tag = mm.group(1)
+        self.log.report_compatibility_tag(tag)
+        if not tag.startswith("manylinux"):
+            raise RuntimeError("The wheel is not compatible with manylinux "
+                               "specification:\n-------\n%s\n-------" % out)
+        dirname, filename = os.path.split(path)
+        stem, ext = os.path.splitext(filename)
+        assert ext == ".whl"
+        parts = stem.split('-')
+        newname = '-'.join(parts[:-1] + [tag]) + ext
+        newpath = os.path.join(dirname, newname)
+        os.rename(path, newpath)
+        self.log.step_audit_done(time.time() - t0, newpath)
+        return newname
 
 
     def _add_file_to_wheel(self, zipf, src):

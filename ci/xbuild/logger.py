@@ -32,6 +32,7 @@ class Logger0:
     """
     The "silent" logger: it does not report any messages.
     """
+    def cmd_audit(self): pass
     def cmd_build(self): pass
     def cmd_sdist(self): pass
     def cmd_wheel(self): pass
@@ -40,6 +41,7 @@ class Logger0:
     def report_added_file_to_sdist(self, filename, size): pass
     def report_added_file_to_wheel(self, filename, size): pass
     def report_build_dir(self, dd): pass
+    def report_compatibility_tag(self, tag): pass
     def report_compile_cmd_mismatch(self, cmd1, cmd2): pass
     def report_compile_start(self, filename, cmd): pass
     def report_compile_finish(self, filename, has_errors): pass
@@ -69,6 +71,7 @@ class Logger0:
     def report_version_mismatch(self, v1, v2): pass
     def report_wheel_file(self, filename): pass
 
+    def step_audit_done(self, time, newname): pass
     def step_build_done(self, time): pass
     def step_sdist_done(self, time, size): pass
     def step_wheel_done(self, time, size): pass
@@ -165,6 +168,9 @@ class Logger3(Logger0):
     def __init__(self):
         self._indent = ""
 
+    def cmd_audit(self):
+        self.info("==== AUDIT ====")
+
     def cmd_build(self):
         self.info("==== BUILD ====")
 
@@ -187,6 +193,9 @@ class Logger3(Logger0):
 
     def report_build_dir(self, dd):
         self.info("Build directory = %r" % dd)
+
+    def report_compatibility_tag(self, tag):
+        self.info("Wheel file compatible with tag `%s`" % tag)
 
     def report_compile_cmd_mismatch(self, cmd1, cmd2):
         self.info("Compiler flags changed")
@@ -292,6 +301,10 @@ class Logger3(Logger0):
         self._indent = "    "
 
 
+
+    def step_audit_done(self, time, newname):
+        self.info("Wheel file renamed into `%s`" % newname)
+        self.info("==== Audit finished in %.3fs" % time)
 
     def step_build_done(self, time):
         self._indent = ""
