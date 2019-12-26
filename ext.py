@@ -201,7 +201,10 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     """
     Function for building wheels, satisfies requirements of PEP-517.
     """
+    if config_settings is None:
+        config_settings = {}
     assert isinstance(wheel_directory, str)
+    assert isinstance(config_settings, dict)
     assert metadata_directory is None
 
     so_file = build_extension(cmd="build", verbosity=3)
@@ -212,7 +215,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     files.sort()
 
     meta = get_meta()
-    wb = xbuild.Wheel(files, **meta)
+    wb = xbuild.Wheel(files, **meta, **config_settings)
     wb.log = create_logger(verbosity=3)
     wheel_file = wb.build_wheel(wheel_directory)
     return wheel_file
@@ -224,6 +227,7 @@ def build_sdist(sdist_directory, config_settings=None):
     Function for building source distributions, satisfies PEP-517.
     """
     assert isinstance(sdist_directory, str)
+    assert config_settings is None or isinstance(config_settings, dict)
 
     files = [f for f in glob.glob("datatable/**/*.py", recursive=True)
              if "_datatable_builder.py" not in f]
@@ -272,12 +276,24 @@ def main():
             wheel    : create wheel distribution of datatable
             """).strip())
     parser.add_argument("-v", dest="verbosity", action="count", default=1,
-            help="Verbosity level of the output, specify the parameter up to \n"
-                 "3 times for maximum verbosity; the default level is 1")
+        help="Verbosity level of the output, specify the parameter up to 3\n"
+             "times for maximum verbosity; the default level is 1.")
+    parser.add_argument("--audit", action="store_true",
+        help="This flag can be used with cmd='wheel' only, on a Linux\n"
+             "platform, which must have the 'auditwheel' external tool\n"
+             "installed. If this flag is specified, then after building a\n"
+             "wheel, it will be tested with the auditwheel. If the test\n"
+             "succeeds, i.e. the wheel is found to be compatible with a\n"
+             "manylinux* tag, then the wheel will be renamed to use the new\n"
+             "tag. Otherwise, an error will be raised.")
 
     args = parser.parse_args()
+    if args.audit and "linux" not in sys.platform:
+        raise ValueError("Argument --audit can be used on a Linux platform "
+                         "only, current platform is `%s`" % sys.platform)
+
     if args.cmd == "wheel":
-        wheel_file = build_wheel("dist/")
+        wheel_file = build_wheel("dist/", {"audit": args.audit})
         assert os.path.isfile(os.path.join("dist", wheel_file))
     elif args.cmd == "sdist":
         sdist_file = build_sdist("dist/")
