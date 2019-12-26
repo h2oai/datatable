@@ -40,6 +40,8 @@ General
 - |enh| :func:`fread` is now able to read Jay files even if the file doesn't
   have the ``.jay`` extension.
 
+- |fix| :func:`frame_column_data_r` now works properly with virtual columns
+  (#2269).
 
 
 FTRL model
