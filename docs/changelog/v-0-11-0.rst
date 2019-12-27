@@ -43,6 +43,10 @@ General
 - |fix| :func:`frame_column_data_r` now works properly with virtual columns
   (#2269).
 
+- |fix| Avoid rare deadlock when creating a frame from pandas DataFrame in
+  a forked process, in the datatable compiled with gcc version before 7.0
+  (#2272).
+
 
 FTRL model
 ----------
