@@ -1353,3 +1353,10 @@ def test_issue2179(numpy):
     DT2 = copy.deepcopy(DT)
     frame_integrity_check(DT1)
     frame_integrity_check(DT2)
+
+
+def test_issue2269():
+    import ctypes
+    DT = dt.Frame(range(10000))
+    ptr = dt.internal.frame_column_data_r(DT, 0)
+    assert isinstance(ptr, ctypes.c_void_p)
