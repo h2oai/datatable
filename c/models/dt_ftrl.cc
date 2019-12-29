@@ -686,11 +686,14 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
-              job.set_message("Fitting: early stopping criteria is met");
+              job.set_message("Fitting: stopping due to " + std::to_string(loss) + " logloss");
               // In some cases this makes progress "jumping" to 100%.
               job.set_done_amount(work_total);
             }
             break;
+          }
+          if (dt::this_thread_index() == 0) {
+            job.set_message("Fitting: " + std::to_string(loss) + " logloss");
           }
         } // End validation
 
