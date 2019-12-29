@@ -591,7 +591,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   // Set work amount to be reported by the zero thread.
   dt::progress::work job(work_total);
-  job.set_message("Fitting");
+  job.set_message("Fitting...");
   NThreads nthreads = nthreads_from_niters(iteration_nrows, MIN_ROWS_PER_THREAD);
 
   dt::parallel_region(nthreads,
@@ -686,11 +686,14 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
-              job.set_message("Fitting: early stopping criteria is met");
+              job.set_message("Stopping due to the loss reaching " + std::to_string(loss));
               // In some cases this makes progress "jumping" to 100%.
               job.set_done_amount(work_total);
             }
             break;
+          }
+          if (dt::this_thread_index() == 0) {
+            job.set_message("Fitting... the loss is " + std::to_string(loss));
           }
         } // End validation
 
@@ -809,7 +812,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   // Set progress reporting
   size_t work_total = dt_X->nrows() / nthreads.get();
   dt::progress::work job(work_total);
-  job.set_message("Predicting");
+  job.set_message("Predicting...");
 
   dt::parallel_region(NThreads(nthreads), [&]() {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
