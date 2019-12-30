@@ -57,6 +57,10 @@ struct CString {
     return size > other.size;
   }
 
+  bool operator<=(const CString& other) const {
+    return !(*this > other);
+  }
+
   std::string to_string() const {
     return std::string(ch, static_cast<size_t>(size));
   }

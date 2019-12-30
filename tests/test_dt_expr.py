@@ -174,6 +174,20 @@ def test_greator_than_strings(st1, st2):
     assert df1.to_list() == [[False, True, False, False, False, True, False, False]]
 
 
+@pytest.mark.parametrize("st1, st2", [(dt.str32, dt.str32),
+                                      (dt.str32, dt.str64),
+                                      (dt.str64, dt.str32),
+                                      (dt.str64, dt.str64)])
+def test_less_than_or_equal_strings(st1, st2):
+    df0 = dt.Frame([["a", "aa", None, "a",  "aa", "ab", "aa", None],
+                    ["a", "a",  None, "aa", "ab", "aa", "aa", ""]],
+                   names=["A", "B"], stypes=[st1, st2])
+    assert df0.stypes == (st1, st2)
+    df1 = df0[:, f.A <= f.B]
+    assert df1.stypes == (dt.bool8,)
+    assert df1.to_list() == [[True, False, True, True, True, False, True, False]]
+
+
 
 #-------------------------------------------------------------------------------
 # Division
