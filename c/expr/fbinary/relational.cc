@@ -321,6 +321,7 @@ bimaker_ptr resolve_op_ge(SType stype1, SType stype2)
     case SType::INT64:   return _ge<int64_t>(uptype1, uptype2);
     case SType::FLOAT32: return _ge<float>(uptype1, uptype2);
     case SType::FLOAT64: return _ge<double>(uptype1, uptype2);
+    case SType::STR64:   return _ge<CString>(uptype1, uptype2);
     default:             return bimaker_ptr();
   }
 }
