@@ -86,9 +86,7 @@ static SType _find_types_for_ltgt(
     const char* name)
 {
   SType stype0 = _find_common_stype(stype1, stype2);
-  if (stype0 == SType::INVALID || stype0 == SType::STR32 ||
-      stype0 == SType::STR64)
-  {
+  if (stype0 == SType::INVALID) {
     throw TypeError() << "Operator `" << name << "` cannot be applied to "
         "columns with types `" << stype1 << "` and `" << stype2 << "`";
   }
@@ -96,8 +94,13 @@ static SType _find_types_for_ltgt(
       stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
-  *uptype1 = (stype1 == stype0)? SType::VOID : stype0;
-  *uptype2 = (stype2 == stype0)? SType::VOID : stype0;
+  if (stype0 == SType::STR32) stype0 = SType::STR64;
+  if (stype0 == SType::STR64) {
+    *uptype1 = *uptype2 = SType::VOID;
+  } else {
+    *uptype1 = (stype1 == stype0)? SType::VOID : stype0;
+    *uptype2 = (stype2 == stype0)? SType::VOID : stype0;
+  }
   return stype0;
 }
 
@@ -247,6 +250,7 @@ bimaker_ptr resolve_op_gt(SType stype1, SType stype2)
     case SType::INT64:   return _gt<int64_t>(uptype1, uptype2);
     case SType::FLOAT32: return _gt<float>(uptype1, uptype2);
     case SType::FLOAT64: return _gt<double>(uptype1, uptype2);
+    case SType::STR64:   return _gt<CString>(uptype1, uptype2);
     default:             return bimaker_ptr();
   }
 }
