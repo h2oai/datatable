@@ -216,6 +216,7 @@ bimaker_ptr resolve_op_lt(SType stype1, SType stype2)
     case SType::INT64:   return _lt<int64_t>(uptype1, uptype2);
     case SType::FLOAT32: return _lt<float>(uptype1, uptype2);
     case SType::FLOAT64: return _lt<double>(uptype1, uptype2);
+    case SType::STR64:   return _lt<CString>(uptype1, uptype2);
     default:             return bimaker_ptr();
   }
 }
