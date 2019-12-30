@@ -56,6 +56,7 @@ needs_sphinx = '1.8'
 # ones.
 extensions = [
     'sphinxext.dtframe_directive',
+    'sphinxext.dt_changelog',
     'nbsphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
@@ -88,6 +89,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
+
+
+changelog_issue_url = "https://github.com/h2oai/datatable/issues/{n}"
 
 
 # -- Options for HTML output -------------------------------------------------

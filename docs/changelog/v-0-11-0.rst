@@ -1,62 +1,60 @@
 
-.. include:: definitions.rst
+.. changelog::
+
+  Frame
+  -----
+
+  -[api] A Python list of integers containing only 0s and 1s will now
+    produce an ``int8`` column instead of ``bool8``. In order to create a
+    boolean column supply a list of Trues and Falses, or force the
+    boolean stype with the constructor parameter ``stype=bool``::
+
+        assert dt.Frame([False, True]) == dt.bool8
+        assert dt.Frame([0, 1]).stype == dt.int8
+        assert dt.Frame([0, 1], stype=bool).stype == dt.bool8
+        assert dt.Frame([0, 1, 2]).stype == dt.int32
+
+  -[fix] A list of frames now displays properly in a Jupyter lab (#2222).
+
+  -[fix] Mixing reduce and map operations should no longer produce error
+    "Unable to create a nested thread team" (#2242).
+
+  -[fix] Fix rare deadlock when creating a Frame from a python list. The
+    deadlock occurred only on ppc64le and datatable compiled with gcc
+    version 4.8 or earlier (#2250).
+
+  -[fix] Fixed an error when a frame with a computed boolean column was
+    saved into csv (#2253).
 
 
-Version 0.11.0
-==============
+  General
+  -------
 
-Frame
------
+  -[api] Properties ``dt.bool8.min`` and ``dt.bool8.max`` are now equal to
+    ``False`` and ``True`` respectively, instead of integers 0 and 1
+    (#2231).
 
-- |api| A Python list of integers containing only 0s and 1s will now
-  produce an ``int8`` column instead of ``bool8``. In order to create a
-  boolean column supply a list of Trues and Falses, or force the
-  boolean stype with the constructor parameter ``stype=bool``::
+  -[enh] :func:`fread` is now able to read Jay files even if the file doesn't
+    have the ``.jay`` extension.
 
-      assert dt.Frame([False, True]) == dt.bool8
-      assert dt.Frame([0, 1]).stype == dt.int8
-      assert dt.Frame([0, 1], stype=bool).stype == dt.bool8
-      assert dt.Frame([0, 1, 2]).stype == dt.int32
+  -[fix] :func:`frame_column_data_r` now works properly with virtual columns
+    (#2269).
 
-- |fix| A list of frames now displays properly in a Jupyter lab (#2222).
-
-- |fix| Mixing reduce and map operations should no longer produce error
-  "Unable to create a nested thread team" (#2242).
-
-- |fix| Fix rare deadlock when creating a Frame from a python list. The
-  deadlock occurred only on ppc64le and datatable compiled with gcc version
-  4.8 or earlier (#2250).
-
-- |fix| Fixed an error when a frame with a computed boolean column was
-  saved into csv (#2253).
+  -[fix] Avoid rare deadlock when creating a frame from pandas DataFrame in
+    a forked process, in the datatable compiled with gcc version before 7.0
+    (#2272).
 
 
-General
--------
+  FTRL model
+  ----------
 
-- |api| Properties ``dt.bool8.min`` and ``dt.bool8.max`` are now equal to
-  ``False`` and ``True`` respectively, instead of integers 0 and 1 (#2231).
+  -[fix] Fix feature importance normalization to [0, 1] in FTRL (#2224).
 
-- |enh| :func:`fread` is now able to read Jay files even if the file doesn't
-  have the ``.jay`` extension.
+  -[fix] Resetting an untrained FTRL model now doesn't result in a segfault
+    (#2226).
 
-- |fix| :func:`frame_column_data_r` now works properly with virtual columns
-  (#2269).
+  -[enh] The ``id`` column in FTRL model ``.labels`` frame now has stype
+    ``int32`` instead of ``bool`` for binomial and regression models.
 
-- |fix| Avoid rare deadlock when creating a frame from pandas DataFrame in
-  a forked process, in the datatable compiled with gcc version before 7.0
-  (#2272).
-
-
-FTRL model
-----------
-
-- |fix| Fix feature importance normalization to [0, 1] in FTRL (#2224).
-
-- |fix| Resetting an untrained FTRL model now doesn't result in a segfault (#2226).
-
-- |enh| The ``id`` column in FTRL model ``.labels`` frame now has stype ``int32``
-  instead of ``bool`` for binomial and regression models.
-
-- |enh| ``.nepochs``, the number of epochs to train the model, can now be a float
-  rather than an integer number.
+  -[enh] ``.nepochs``, the number of epochs to train the model, can now be a
+    float rather than an integer.
