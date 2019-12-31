@@ -21,7 +21,7 @@ PLATFORM := $(ARCH)-$(OS)
 DIST_DIR := dist/$(PLATFORM)
 
 .PHONY: all clean mrproper build install uninstall test_install test \
-		benchmark debug bi coverage dist fast
+		asan benchmark debug bi coverage dist fast xcoverage
 
 ifeq ($(MAKECMDGOALS), fast)
 -include ci/fast.mk
@@ -66,10 +66,6 @@ mrproper: clean
 	git clean -f -d -x
 
 
-build:
-	$(PYTHON) setup.py build
-	cp build/lib.*/_datatable.* datatable/lib/
-
 
 install:
 	$(PYTHON) -m pip install . --upgrade --no-cache-dir
@@ -80,7 +76,7 @@ uninstall:
 
 
 test_install:
-	$(PYTHON) -m pip install ${MODULE}[testing] --no-cache-dir
+	$(PYTHON) -m pip install ${MODULE}[tests] --no-cache-dir
 
 
 test:
@@ -91,55 +87,32 @@ test:
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
 
-xasan:
-	@$(PYTHON) ext.py asan
-
-xbuild:
-	@$(PYTHON) ext.py build
-
-xcoverage:
-	@$(PYTHON) ext.py coverage
-
-xdebug:
-	@$(PYTHON) ext.py debug
-
-
-benchmark:
-	$(PYTHON) -m pytest -ra -x -v benchmarks
-
-
-debug:
-	$(MAKE) clean
-	DTDEBUG=1 \
-	$(MAKE) build
-	$(MAKE) install
-
-
 # In order to run with Address Sanitizer:
 #   $ make asan
 #   $ DYLD_INSERT_LIBRARIES=/usr/local/opt/llvm/lib/clang/7.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib ASAN_OPTIONS=detect_leaks=1 python -m pytest
 #
 asan:
-	$(MAKE) clean
-	DTASAN=1 $(MAKE) fast
+	@$(PYTHON) ext.py asan
 
-bi:
-	$(MAKE) build
-	$(MAKE) install
+build:
+	@$(PYTHON) ext.py build
+
+xcoverage:
+	@$(PYTHON) ext.py coverage
+
+debug:
+	@$(PYTHON) ext.py debug
+
 
 
 coverage:
-	$(eval DTCOVERAGE := 1)
-	$(eval export DTCOVERAGE)
-	$(MAKE) clean
-	$(MAKE) build
-	$(MAKE) install
+	$(MAKE) xcoverage
 	$(MAKE) test_install
-	$(PYTHON) -m pytest -x \
+	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--benchmark-skip \
 		--cov=datatable --cov-report=html:build/coverage-py \
 		tests
-	$(PYTHON) -m pytest -x \
+	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--benchmark-skip \
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
@@ -156,11 +129,11 @@ coverage:
 	genhtml --legend --output-directory build/coverage-c --demangle-cpp build/coverage.info
 	mv .coverage build/
 
-dist: build
-	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
+dist:
+	@$(PYTHON) ext.py wheel -d $(DIST_DIR)
 
 sdist:
-	$(PYTHON) setup.py sdist
+	@$(PYTHON) ext.py sdist
 
 version:
 	@$(PYTHON) ci/setup_utils.py version

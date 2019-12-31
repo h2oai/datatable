@@ -32,6 +32,7 @@ import os
 import sys
 import textwrap
 from ci import xbuild
+from ci.setup_utils import get_datatable_version
 
 
 def create_logger(verbosity):
@@ -140,7 +141,7 @@ def build_extension(cmd, verbosity=3):
 def get_meta():
     return dict(
         name="datatable",
-        version="0.10.1",
+        version=get_datatable_version(),
 
         summary="Python library for fast multi-threaded data manipulation and "
                 "munging.",
@@ -278,6 +279,8 @@ def main():
     parser.add_argument("-v", dest="verbosity", action="count", default=1,
         help="Verbosity level of the output, specify the parameter up to 3\n"
              "times for maximum verbosity; the default level is 1.")
+    parser.add_argument("-d", dest="destination", default="dist",
+        help="Destination directory for `sdist` and `wheel` commands.")
     parser.add_argument("--audit", action="store_true",
         help="This flag can be used with cmd='wheel' only, on a Linux\n"
              "platform, which must have the 'auditwheel' external tool\n"
@@ -293,10 +296,10 @@ def main():
                          "only, current platform is `%s`" % sys.platform)
 
     if args.cmd == "wheel":
-        wheel_file = build_wheel("dist/", {"audit": args.audit})
+        wheel_file = build_wheel(args.destination, {"audit": args.audit})
         assert os.path.isfile(os.path.join("dist", wheel_file))
     elif args.cmd == "sdist":
-        sdist_file = build_sdist("dist/")
+        sdist_file = build_sdist(args.destination)
         assert os.path.isfile(os.path.join("dist", sdist_file))
     else:
         with open("datatable/lib/.xbuild-cmd", "wt") as out:
