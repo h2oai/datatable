@@ -138,8 +138,6 @@ sdist:
 version:
 	@$(PYTHON) ci/setup_utils.py version
 
-nothing:
-	@echo Nothing
 
 
 #-------------------------------------------------------------------------------
@@ -412,9 +410,6 @@ ubuntu_test_py36_with_numpy_in_docker:
 ubuntu_test_py36_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36 ubuntu_test_in_docker_impl
 
-# Note:  We don't actually need to run mrproper in docker (as root) because
-#        the build step runs as the user.  But keep the API for consistency.
-mrproper_in_docker: mrproper
 
 printvars:
 	@echo PLATFORM=$(PLATFORM)

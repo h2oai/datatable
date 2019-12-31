@@ -159,8 +159,9 @@ def get_datatable_version():
             log.info("Appending suffix from CI_VERSION_SUFFIX = " + suffix)
             mm = re.match(r"(?:master|dev)[.+_-]?(\d+)", suffix)
             if mm:
-                suffix = "dev" + str(mm.group(1))
-            version += "." + suffix
+                version += ".dev" + str(mm.group(1))
+            else:
+                log.warn("Invalid CI_VERSION_SUFFIX: `%s`" % suffix)
             log.info("Final version = " + version)
         else:
             log.info("Environment variable CI_VERSION_SUFFIX not present")
