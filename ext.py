@@ -32,7 +32,7 @@ import os
 import sys
 import textwrap
 from ci import xbuild
-from ci.setup_utils import get_datatable_version
+from ci.setup_utils import get_datatable_version, make_git_version_file
 
 
 def create_logger(verbosity):
@@ -291,6 +291,8 @@ def main():
              "tag. Otherwise, an error will be raised.")
 
     args = parser.parse_args()
+    if args.cmd in ["sdist", "wheel"]:
+        make_git_version_file(True)
     if args.audit and "linux" not in sys.platform:
         raise ValueError("Argument --audit can be used on a Linux platform "
                          "only, current platform is `%s`" % sys.platform)

@@ -163,7 +163,7 @@ def get_datatable_version():
             version += "." + suffix
             log.info("Final version = " + version)
         else:
-            log.info("Environment variable CI_VERSION_SUUFFIX not present")
+            log.info("Environment variable CI_VERSION_SUFFIX not present")
         return version
 
 
