@@ -187,60 +187,60 @@
       assert DT1.stype == dt.int32
       assert DT2.stype == dt.int8
 
-    Thanks to @Viktor-Demin for the contribution (#2127).
+    Thanks to @Viktor-Demin for the contribution. (#2127)
 
   -[fix] Keyed columns are now styled distinctly from regular columns when
-    rendering the Frame into a Jupyter notebook (#1636).
+    rendering the Frame into a Jupyter notebook. (#1636)
 
   -[fix] In Jupyter notebook Frame's stylesheets are now injected during
     the datatable import. This makes it less likely that the stylesheets will
     get accidentally removed from the page. However, if it still does occur,
     there is now also a method to load those styles directly:
-    :meth:`init_styles` (#1871).
+    :meth:`init_styles`. (#1871)
 
-  -[fix] Fixed error when displaying ``help(dt)`` (#1931).
+  -[fix] Fixed error when displaying ``help(dt)``. (#1931)
 
   -[fix] ``fread(cmd=)`` now throws an error if it occurred while running the
     provided command `cmd` in the shell. Previously the error was silently
-    discarded (#1935).
+    discarded. (#1935)
 
   -[fix] Creating a Frame from a degenerate range now produces an empty Frame
-    instead of a 1-row Frame (#1942).
+    instead of a 1-row Frame. (#1942)
 
-  -[fix] Fixed crash when computing mode stat for a view frame (#1953).
+  -[fix] Fixed crash when computing mode stat for a view frame. (#1953)
 
   -[fix] Fixed a bug where creating a new column via assignment would crash if
     the RHS of the assignment contained an expression that tried to use the
-    column that was being created (#1983).
+    column that was being created. (#1983)
 
-  -[fix] Fixed a crash when joining a frame that had 0 rows (#1988).
+  -[fix] Fixed a crash when joining a frame that had 0 rows. (#1988)
 
   -[fix] Increasing the number of rows in a keyed Frame was documented as
-    invalid, but didn't actually throw any errors. Now it does (#2021).
+    invalid, but didn't actually throw any errors. Now it does. (#2021)
 
   -[fix] Operations on a 0-row frame containing string columns will no
-    longer cause an infinite loop (#2043).
+    longer cause an infinite loop. (#2043)
 
   -[fix] Conversion of a Frame into a masked numpy array was sometimes done
     incorrectly when some columns in the frame contained NAs, while others
-    did not (#2050).
+    did not. (#2050)
 
   -[fix] Groupby operation on an empty (0-rows) frame now works correctly,
-    returning a 0-row result frame (#2078). For example::
+    returning a 0-row result frame. (#2078) For example::
 
       DT = dt.Frame(Id=[], Value=[])  # create a 0x2 frame
       DT[:, sum(f.Value), by(f.Id)]   # produces a 0x2 frame
       DT[:, sum(f.Value)]             # produces a 1x1 frame
 
   -[fix] Deleting columns from a keyed Frame no longer results in a crash
-    when the deleted columns are part of the key (#2083).
+    when the deleted columns are part of the key. (#2083)
 
   -[fix] The :meth:`count` reducer now always produces a column with stype
     ``int64``. Before, it sometimes produced an ``int32`` column, and sometimes
     an ``int64`` column.
 
   -[fix] Setting a key on a copied frame no longer affects the original
-    frame (#2095).
+    frame. (#2095)
 
   -[fix] When a Frame has a string column containing special characters (such
     as newlines, tabs, or others from C0/C1 blocks), they will now be properly
@@ -255,10 +255,10 @@
 
   -[fix] Function :meth:`isna` now returns correct result for a column
     obtained from joining another frame, provided that the join was only
-    partially successful (#2109).
+    partially successful. (#2109)
 
   -[fix] Fix creation of a Frame from a numpy array which was obtained from
-    another numpy array as a slice with a negative stride (#2163).
+    another numpy array as a slice with a negative stride. (#2163)
 
 
   General
@@ -306,16 +306,16 @@
     This function is group-aware: when used in an expression containing a groupby,
     it will apply the shift separately within each group.
 
-  -[fix] Fixed memory leak when writing a Frame into a CSV file (#2119).
+  -[fix] Fixed memory leak when writing a Frame into a CSV file. (#2119)
 
   -[fix] Fixed memory leak when converting a numpy array with string values
-    into a Frame (#2123).
+    into a Frame. (#2123)
 
-  -[fix] Fixed memory leak during reduce operations (#2125).
+  -[fix] Fixed memory leak during reduce operations. (#2125)
 
   -[fix] Column method ``.len()`` for computing string length now handles
     unicode strings correctly and returns the number of codepoints in the
-    string instead of the number of bytes (#2160).
+    string instead of the number of bytes. (#2160)
 
 
   Internal

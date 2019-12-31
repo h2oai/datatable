@@ -111,9 +111,6 @@ class ChangelogInfoboxDirective(SphinxDirective):
 
     def run(self):
         infobox = table_node(classes=["infobox"])
-        # tgroup = nodes.tgroup()
-        # for i in range(2):
-        #     tgroup += nodes.colspec(colwidth=1)
         tbody = nodes.tbody()
         title_row = nodes.row(classes=["title"])
         title_row += th_node(self.arguments[0], colspan=2)
@@ -134,15 +131,13 @@ class ChangelogInfoboxDirective(SphinxDirective):
 
 def issue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     url = inliner.document.settings.env.config.changelog_issue_url
+    node = nodes.inline(classes=["issue"])
     if url is None:
-        return [nodes.Text("(#%s)" % text)], []
+        node += nodes.Text("#" + text)
     else:
         url = url.replace("{n}", text)
-        node = nodes.inline(classes=["issue"])
-        node += nodes.Text("(")
-        node += nodes.reference(rawtext, "#"+text, refuri=url)
-        node += nodes.Text(")")
-        return [node], []
+        node += nodes.reference(rawtext, "#" + text, refuri=url)
+    return [node], []
 
 
 
@@ -153,7 +148,7 @@ def issue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
 
 class ChangelogContent:
     rx_list_item = re.compile(r"-\[(\w+)\]\s+")
-    rx_issue = re.compile(r"\(#(\d+)\)")
+    rx_issue = re.compile(r"[\(\[]#(\d+)[\)\]]")
 
     def __init__(self, lines, sources):
         self._in_lines = lines

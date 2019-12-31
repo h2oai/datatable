@@ -3,7 +3,17 @@
 /*----- :issue: role --------------------------*/
 
 .changelog span.issue {
-    font-size: 80%;
+    font-size: 65%;
+    position: relative;
+    top: -6px;
+}
+
+.changelog span.issue:before {
+    content: "[";
+}
+
+.changelog span.issue:after {
+    content: "]";
 }
 
 .changelog span.issue a:after {
