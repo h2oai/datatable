@@ -110,7 +110,7 @@ html_theme_options = {
     "style_external_links": True,
     "collapse_navigation": False,
     "sticky_navigation": True,
-    "titles_only": False,
+    "titles_only": True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
