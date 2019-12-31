@@ -28,6 +28,8 @@ from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
 from sphinx.util.docutils import SphinxDirective
 
+from .dtframe_directive import table_node, td_node, th_node
+
 
 #-------------------------------------------------------------------------------
 # Directives
@@ -53,7 +55,15 @@ class ChangelogDirective(SphinxDirective):
             title_text = "Unreleased"
         sect += nodes.title(title_text, title_text)
 
-        cc = ChangelogContent(self.content.data, self.content.items)
+        lines = []
+        lines += [".. changelog-infobox:: " + title_text]
+        lines += ["    :released: " + self.options.get("released", "")]
+        lines += [""]
+        lines.extend(self.content.data)
+        sources = [self.content.items[0]] * 3
+        sources.extend(self.content.items)
+
+        cc = ChangelogContent(lines, sources)
         new_content = cc.parse()
         self.state.nested_parse(new_content, self.content_offset, sect,
                                 match_titles=True)
@@ -88,6 +98,33 @@ class ChangelogListItemDirective(SphinxDirective):
         self.state.nested_parse(self.content, self.content_offset, li)
         return [li]
 
+
+
+class ChangelogInfoboxDirective(SphinxDirective):
+    has_content = False
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = True
+    option_spec = {
+        "released": directives.unchanged,
+    }
+
+    def run(self):
+        infobox = table_node(classes=["infobox"])
+        # tgroup = nodes.tgroup()
+        # for i in range(2):
+        #     tgroup += nodes.colspec(colwidth=1)
+        tbody = nodes.tbody()
+        title_row = nodes.row(classes=["title"])
+        title_row += th_node(self.arguments[0], colspan=2)
+        tbody += title_row
+        if self.options["released"]:
+            released_row = nodes.row()
+            released_row += td_node("Released:")
+            released_row += td_node(self.options["released"])
+            tbody += released_row
+        infobox += tbody
+        return [infobox]
 
 
 
@@ -211,6 +248,7 @@ class ChangelogContent:
 def setup(app):
     app.add_config_value("changelog_issue_url", None, "env")
     app.add_directive("changelog", ChangelogDirective)
+    app.add_directive("changelog-infobox", ChangelogInfoboxDirective)
     app.add_directive("changelog-list", ChangelogListDirective)
     app.add_directive("changelog-list-item", ChangelogListItemDirective)
     app.add_role("issue", issue_role)
