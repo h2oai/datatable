@@ -252,7 +252,7 @@
   -[gh]     :user:`Michal Raška <michal-raska>`
   -[gh]     :user:`Anmol Bal <abal5>`
 
-  People who contributed with bug reports, and feature requests:
+  People who contributed with bug reports and feature requests:
 
   -[gh]     :user:`Arno Candel <arnocandel>`
   -[gh.new] :user:`Antorsae <antorsae>`
