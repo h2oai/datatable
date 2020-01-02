@@ -344,3 +344,20 @@
 
   -[api] Added C API method ``DtFrame_ColumnIsVirtual()`` which returns a boolean
     indicator whether the column in a Frame is virtual or not.
+
+
+
+  Contributors
+  ------------
+
+  This release was made possible via the effort of a number of people, some who
+  contributed code, but also those who helped making the product better by
+  submitting bug reports and new feature requests.
+
+  People who contributed patches and pull requests (PRs):
+
+  - :user:`Pasha Stetsenko <st-pasha>`
+  - :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  - :user:`Viktor Demin <Viktor-Demin>`
+  - :user:`Anmol Bal <abal5>`
+  - :user:`Siddhesh Poyarekar <siddhesh>`

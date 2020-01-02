@@ -2,13 +2,18 @@
 Changelog
 =========
 
-- :doc:`changelog/v-0-11-0`
-- :doc:`changelog/v-0-10-0` (Released 2019-12-02)
+- :doc:`changelog/v0.11.0`
+- :doc:`changelog/v0.10.1`
+- :doc:`changelog/v0.10.0`
+- :doc:`changelog/v0.9.0`
+
 
 
 
 .. toctree::
     :hidden:
 
-    changelog/v-0-11-0
-    changelog/v-0-10-0
+    changelog/v0.11.0
+    changelog/v0.10.1
+    changelog/v0.10.0
+    changelog/v0.9.0

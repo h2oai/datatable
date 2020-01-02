@@ -1,20 +1,22 @@
 
 .. changelog::
+  :version: 0.10.1
+  :released: 2019-12-23
 
   Frame
   -----
 
-  -[api] A Python list of integers containing only 0s and 1s will now
-    produce an ``int8`` column instead of ``bool8``. In order to create a
-    boolean column supply a list of Trues and Falses, or force the
-    boolean stype with the constructor parameter ``stype=bool``::
+  -[api] A Python list of integers containing only 0s and 1s will now produce
+    an ``int8`` column instead of ``bool8``. In order to create a boolean
+    column supply a list of Trues and Falses, or force the boolean stype with
+    the constructor parameter ``stype=bool``::
 
         assert dt.Frame([False, True]) == dt.bool8
         assert dt.Frame([0, 1]).stype == dt.int8
         assert dt.Frame([0, 1], stype=bool).stype == dt.bool8
         assert dt.Frame([0, 1, 2]).stype == dt.int32
 
-  -[fix] A list of frames now displays properly in a Jupyter lab. (#2222)
+  -[fix] A list of frames now displays properly in Jupyter Lab. (#2222)
 
   -[fix] Mixing reduce and map operations should no longer produce error
     "Unable to create a nested thread team". (#2242)
@@ -31,18 +33,11 @@
   -------
 
   -[api] Properties ``dt.bool8.min`` and ``dt.bool8.max`` are now equal to
-    ``False`` and ``True`` respectively, instead of integers 0 and 1.
-    (#2231)
+    ``False`` and ``True`` respectively, instead of integers 0 and 1. (#2231)
 
   -[enh] :func:`fread` is now able to read Jay files even if the file doesn't
     have the ``.jay`` extension.
 
-  -[fix] :func:`frame_column_data_r` now works properly with virtual columns.
-    (#2269)
-
-  -[fix] Avoid rare deadlock when creating a frame from pandas DataFrame in
-    a forked process, in the datatable compiled with gcc version before 7.0.
-    (#2272)
 
 
   FTRL model
@@ -56,5 +51,17 @@
   -[enh] The ``id`` column in FTRL model ``.labels`` frame now has stype
     ``int32`` instead of ``bool`` for binomial and regression models.
 
-  -[enh] ``.nepochs``, the number of epochs to train the model, can now be a
-    float rather than an integer.
+
+
+  Contributors
+  ------------
+
+  This release was made possible via the effort of a number of people, some who
+  contributed code, but also those who helped making the product better by
+  submitting bug reports and new feature requests.
+
+  People who contributed patches and pull requests (PRs):
+
+  - :user:`Pasha Stetsenko <st-pasha>`
+  - :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  - :user:`Bijan Pourhamzeh <bpourhamzeh>`
