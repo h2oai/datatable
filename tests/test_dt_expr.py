@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2019 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -49,6 +49,9 @@ dt_str = [["foo", "bbar", "baz"],
 
 dt_obj = [[dt, pytest, random, f, dt_int, None],
           ["one", None, 3, 9.99, stype.int32, object, isinstance]]
+
+str_type_pairs = [(dt.str32, dt.str32), (dt.str32, dt.str64),
+                  (dt.str64, dt.str32), (dt.str64, dt.str64)]
 
 
 
@@ -117,10 +120,7 @@ def test_logical_or2(seed):
 # Equality operators
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("st1, st2", [(dt.str32, dt.str32),
-                                      (dt.str32, dt.str64),
-                                      (dt.str64, dt.str32),
-                                      (dt.str64, dt.str64)])
+@pytest.mark.parametrize("st1, st2", str_type_pairs)
 def test_equal_strings(st1, st2):
     df0 = dt.Frame([["foo", "gowebrt", None, "afdw", "req",  None],
                     ["foo", "goqer",   None, "afdw", "req?", ""]],
@@ -140,6 +140,55 @@ def test_equal_columnset():
     DT3 = DT[:, 2 < f[:]]
     assert_equals(DT2, dt.Frame([[True, False, False], [False, False, True]]))
     assert_equals(DT3, dt.Frame([[False, False, True], [True, True, False]]))
+
+
+
+#-------------------------------------------------------------------------------
+# Comparison operators
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("st1, st2", str_type_pairs)
+def test_less_than_strings(st1, st2):
+    df0 = dt.Frame([["a", "aa", None, "a",  "aa", "ab", "aa", None],
+                    ["a", "a",  None, "aa", "ab", "aa", "aa", ""]],
+                   names=["A", "B"], stypes=[st1, st2])
+    assert df0.stypes == (st1, st2)
+    df1 = df0[:, f.A < f.B]
+    assert df1.stypes == (dt.bool8,)
+    assert df1.to_list() == [[False, False, False, True, True, False, False, False]]
+
+
+@pytest.mark.parametrize("st1, st2", str_type_pairs)
+def test_greator_than_strings(st1, st2):
+    df0 = dt.Frame([["a", "aa", None, "a",  "aa", "ab", "aa", None],
+                    ["a", "a",  None, "aa", "ab", "aa", "aa", ""]],
+                   names=["A", "B"], stypes=[st1, st2])
+    assert df0.stypes == (st1, st2)
+    df1 = df0[:, f.A > f.B]
+    assert df1.stypes == (dt.bool8,)
+    assert df1.to_list() == [[False, True, False, False, False, True, False, False]]
+
+
+@pytest.mark.parametrize("st1, st2", str_type_pairs)
+def test_less_than_or_equal_strings(st1, st2):
+    df0 = dt.Frame([["a", "aa", None, "a",  "aa", "ab", "aa", None],
+                    ["a", "a",  None, "aa", "ab", "aa", "aa", ""]],
+                   names=["A", "B"], stypes=[st1, st2])
+    assert df0.stypes == (st1, st2)
+    df1 = df0[:, f.A <= f.B]
+    assert df1.stypes == (dt.bool8,)
+    assert df1.to_list() == [[True, False, True, True, True, False, True, False]]
+
+
+@pytest.mark.parametrize("st1, st2", str_type_pairs)
+def test_greator_than_or_equal_strings(st1, st2):
+    df0 = dt.Frame([["a", "aa", None, "a",  "aa", "ab", "aa", None],
+                    ["a", "a",  None, "aa", "ab", "aa", "aa", ""]],
+                   names=["A", "B"], stypes=[st1, st2])
+    assert df0.stypes == (st1, st2)
+    df1 = df0[:, f.A >= f.B]
+    assert df1.stypes == (dt.bool8,)
+    assert df1.to_list() == [[True, True, True, False, False, True, True, False]]
 
 
 
