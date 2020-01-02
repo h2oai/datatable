@@ -131,13 +131,35 @@ class ChangelogInfoboxDirective(SphinxDirective):
 
 def issue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     url = inliner.document.settings.env.config.changelog_issue_url
+    assert url
     node = nodes.inline(classes=["issue"])
     if url is None:
         node += nodes.Text("#" + text)
     else:
-        url = url.replace("{n}", text)
+        url = url.replace("{issue}", text)
         node += nodes.reference(rawtext, "#" + text, refuri=url)
     return [node], []
+
+
+def user_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    url = inliner.document.settings.env.config.changelog_user_url
+    assert url
+    mm = re.fullmatch(r"([\w\.\-]+)|([^<>]+)\s+<([\w\.\-]+)>", text)
+    if mm:
+        if mm.group(1):
+            username = displayname = mm.group(1)
+        else:
+            displayname = mm.group(2)
+            username = mm.group(3)
+        url = url.replace("{name}", username)
+        node = nodes.inline(classes=["user"])
+        node += nodes.reference(rawtext, displayname, refuri=url)
+        return [node], []
+    else:
+        msg = inliner.reporter.error("Invalid content of :user: role: `%s`"
+                                     % text, line=lineno)
+        prb = inliner.problematic(rawtext, rawtext, msg)
+        return [prb], [msg]
 
 
 
@@ -242,10 +264,12 @@ class ChangelogContent:
 
 def setup(app):
     app.add_config_value("changelog_issue_url", None, "env")
+    app.add_config_value("changelog_user_url", None, "env")
     app.add_directive("changelog", ChangelogDirective)
     app.add_directive("changelog-infobox", ChangelogInfoboxDirective)
     app.add_directive("changelog-list", ChangelogListDirective)
     app.add_directive("changelog-list-item", ChangelogListItemDirective)
     app.add_role("issue", issue_role)
+    app.add_role("user", user_role)
     app.add_css_file("changelog.css")
     return {"parallel_read_safe": True, "parallel_write_safe": True}

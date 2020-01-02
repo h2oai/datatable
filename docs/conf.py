@@ -91,7 +91,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
 pygments_style = 'sphinx'
 
 
-changelog_issue_url = "https://github.com/h2oai/datatable/issues/{n}"
+changelog_issue_url = "https://github.com/h2oai/datatable/issues/{issue}"
+changelog_user_url = "https://github.com/{name}"
 
 
 # -- Options for HTML output -------------------------------------------------
