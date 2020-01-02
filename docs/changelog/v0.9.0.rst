@@ -247,20 +247,20 @@
 
   People who contributed patches and pull requests (PRs):
 
-  - :user:`Pasha Stetsenko <st-pasha>`
-  - :user:`Oleksiy Kononenko <oleksiyskononenko>`
-  - :user:`Michal Raška <michal-raska>`
-  - :user:`Anmol Bal <abal5>`
+  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
+  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  -[gh]     :user:`Michal Raška <michal-raska>`
+  -[gh]     :user:`Anmol Bal <abal5>`
 
   People who contributed with bug reports, and feature requests:
 
-  - :user:`Arno Candel <arnocandel>`
-  - :user:`Antorsae <antorsae>`
-  - :user:`Hawk Berry <hawkberry>`
-  - :user:`Jonathan McKinney <pseudotensor>`
-  - :user:`Mateusz Dymczyk <mdymczyk>`
-  - :user:`NachiGithub <NachiGithub>`
-  - :user:`Olivier <goldentom42>`
-  - :user:`Pasha Stetsenko <st-pasha>`
-  - :user:`Tom Kraljevic <tomkraljevic>`
-  - :user:`Yu Zhu <XiaomoWu>`
+  -[gh]     :user:`Arno Candel <arnocandel>`
+  -[gh.new] :user:`Antorsae <antorsae>`
+  -[gh.new] :user:`Hawk Berry <hawkberry>`
+  -[gh]     :user:`Jonathan McKinney <pseudotensor>`
+  -[gh]     :user:`Mateusz Dymczyk <mdymczyk>`
+  -[gh.new] :user:`NachiGithub <NachiGithub>`
+  -[gh.new] :user:`Olivier <goldentom42>`
+  -[gh]     :user:`Pasha Stetsenko <st-pasha>`
+  -[gh]     :user:`Tom Kraljevic <tomkraljevic>`
+  -[gh.new] :user:`Yu Zhu <XiaomoWu>`
