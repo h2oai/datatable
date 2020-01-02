@@ -40,18 +40,20 @@ struct CString {
   }
 
   bool operator<(const CString& other) const {
-    if (ch == other.ch) // Short circuit test if they are the same in memory string.
+    if (ch == other.ch && size == other.size) // Short circuit test
       return false;
-    int comparison = std::strncmp(ch, other.ch, static_cast<size_t>(std::min(size, other.size)));
+    size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
+    int comparison = std::strncmp(ch, other.ch, cmpsize);
     if (comparison != 0)
       return comparison < 0;
     return size < other.size;
   }
 
   bool operator>(const CString& other) const {
-    if (ch == other.ch) // Short circuit test if they are the same in memory string.
+    if (ch == other.ch && size == other.size) // Short circuit test
       return false;
-    int comparison = std::strncmp(ch, other.ch, static_cast<size_t>(std::min(size, other.size)));
+    size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
+    int comparison = std::strncmp(ch, other.ch, cmpsize);
     if (comparison != 0)
       return comparison > 0;
     return size > other.size;
