@@ -28,6 +28,7 @@ python:
   - "3.6"
 
 script:
+  - pip install 'typesentry>=0.2.6' blessed
   - make test_install
   - make extra_install
   - make build
