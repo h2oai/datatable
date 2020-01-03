@@ -59,6 +59,12 @@ div.small-links div {
   content: '';
 }
 
+.rst-content.style-external-links a.reference.external:after {
+  position: relative;
+  top: -.5em;
+  vertical-align: inherit;
+}
+
 
 /* ------- All code highlighting -------------------------------------------- */
 

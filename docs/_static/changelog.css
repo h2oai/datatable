@@ -36,11 +36,12 @@
 }
 
 .changelog ul.changelog-list li.changelog-list-item {
+    background: 0 5px no-repeat;
     list-style-type: none;
     margin-left: 0;
     margin-bottom: 18px;
-    padding-left: 34px;
-    background: 0 5px no-repeat;
+    padding: 0 0 0 34px;
+    position: relative;
 }
 
 .changelog ul.changelog-list li.changelog-list-item.api {
@@ -61,6 +62,32 @@
 
 .changelog ul.changelog-list li.changelog-list-item.old {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 -2 40 22' width='25' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='40' height='20' fill='%23975' rx='3'/%3E%3Ctext x='50%25' y='50%25' fill='%23fff' style='font:16px sans-serif' dominant-baseline='middle' text-anchor='middle'%3Eold%3C/text%3E%3C/svg%3E");
+}
+
+.changelog ul.changelog-list li.changelog-list-item.note {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 -2 40 22' width='25' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='40' height='20' fill='%23aaa' rx='3'/%3E%3Ctext x='50%25' y='50%25' fill='%23fff' style='font:16px sans-serif' dominant-baseline='middle' text-anchor='middle'%3Enote%3C/text%3E%3C/svg%3E");
+}
+
+.changelog ul.changelog-list li.changelog-list-item.gh {
+    background-image: none;
+    margin-bottom: 0;
+}
+
+.changelog ul.changelog-list li.changelog-list-item.gh:before {
+    color: #2f43bb;
+    content: "\f09b";
+    font-family: FontAwesome;
+    left: 10px;
+    position: absolute;
+    top: 3px;
+}
+
+.changelog ul.changelog-list li.changelog-list-item.gh.old:before {
+    color: #f1b038;
+}
+
+.changelog ul.changelog-list li.changelog-list-item.gh.new:before {
+    color: #11b526;
 }
 
 

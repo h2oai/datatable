@@ -93,7 +93,7 @@ class ChangelogListItemDirective(SphinxDirective):
 
     def run(self):
         tag = self.arguments[0]
-        li = nodes.list_item(classes=["changelog-list-item", tag])
+        li = nodes.list_item(classes=["changelog-list-item"] + tag.split('.'))
         li.document = self.state.document
         self.state.nested_parse(self.content, self.content_offset, li)
         return [li]
@@ -169,7 +169,7 @@ def user_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
 #-------------------------------------------------------------------------------
 
 class ChangelogContent:
-    rx_list_item = re.compile(r"-\[(\w+)\]\s+")
+    rx_list_item = re.compile(r"-\[([\w\.]+)\]\s+")
     rx_issue = re.compile(r"[\(\[]#(\d+)[\)\]]")
 
     def __init__(self, lines, sources):
