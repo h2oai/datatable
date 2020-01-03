@@ -6,6 +6,7 @@ Changelog
 - :doc:`changelog/v0.10.1`
 - :doc:`changelog/v0.10.0`
 - :doc:`changelog/v0.9.0`
+- :doc:`changelog/v0.8.0`
 
 
 
@@ -17,3 +18,4 @@ Changelog
     changelog/v0.10.1
     changelog/v0.10.0
     changelog/v0.9.0
+    changelog/v0.8.0

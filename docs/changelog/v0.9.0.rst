@@ -260,7 +260,7 @@
   -[gh]     :user:`Jonathan McKinney <pseudotensor>`
   -[gh]     :user:`Mateusz Dymczyk <mdymczyk>`
   -[gh.new] :user:`NachiGithub <NachiGithub>`
-  -[gh.new] :user:`Olivier <goldentom42>`
+  -[gh]     :user:`Olivier <goldentom42>`
   -[gh]     :user:`Pasha Stetsenko <st-pasha>`
   -[gh]     :user:`Tom Kraljevic <tomkraljevic>`
   -[gh.new] :user:`Yu Zhu <XiaomoWu>`

@@ -1,0 +1,239 @@
+
+.. py::currentmodule:: datatable
+
+.. changelog::
+  :version: 0.8.0
+  :released: 2019-02-05
+
+  Frame
+  -----
+
+  -[new] Method :meth:`Frame.to_tuples` converts a Frame into a list of tuples,
+    each tuple representing a single row. [#1439]
+
+  -[new] Method :meth:`Frame.to_dict` converts the Frame into a dictionary where
+    the keys are column names and values are lists of elements in each
+    column. [#1439]
+
+  -[new] Methods :meth:`.head(n) <Frame.head>` and :meth:`.tail(n) <Frame.tail>`
+    added, returning the first/last ``n`` rows of the Frame respectively.
+    [#1307]
+
+  -[new] Frame objects can now be pickled using the standard Python ``pickle``
+    interface. [#1444] This also has an added benefit of reducing the potential
+    for a deadlock when using the ``multiprocessing`` module.
+
+  -[new] Added function :func:`repeat(frame, n) <repeat>` that creates a new
+    Frame by row-binding ``n`` copies of the ``frame``. [#1459]
+
+  -[new] Added functions :func:`log` and :func:`log10` for computing the natural
+    and base-10 logarithms of a column. [#1558]
+
+  -[new] Sorting functionality is now integrated into the ``DT[i, j, ...]`` call
+    via the function :func:`sort()`. If sorting is specified alongside a
+    groupby, the values will be sorted within each group. [#1531]
+
+  -[enh] The primary datatable expression ``DT[i, j, ...]`` is now evaluated
+    entirely in C++, improving performance and reliability.
+
+  -[enh] The column selector ``j`` in ``DT[i, j]`` can now be a list/iterator of
+    booleans. This list should have length ``DT.ncols``, and the entries in this
+    list will indicate whether to select the corresponding column of the Frame
+    or not. [#1503] This can be used to implement a simple column filter, for
+    example::
+
+      del DT[:, (name.endswith("_tmp") for name in DT.names)]
+
+  -[enh] A slice-valued ``i`` expression can now be combined with a :func:`by()`
+    operator in ``DT[i, j, by]``. The result is that the slice ``i`` is applied
+    to each group produced by ``by()``, before the ``j`` is evaluated. [#1585]
+
+  -[enh] Implemented sorting in reverse direction, via
+    :func:`sort(-col) <sort>`, where ``col`` is any regular column selector
+    such as ``f.A`` or ``f[column]``. The ``-`` sign is symbolic, no actual
+    negation occurs. As such, this works even for string columns. [#792]
+
+  -[enh] :meth:`Frame.copy()` now retains the frame's key, if any. [#1443]
+
+  -[enh] The equality operators ``==`` / ``!=`` can now be applied to string
+    columns too. [#1491]
+
+  -[enh] Partial column update (i.e. expression of the form ``DT[i, j] = R``)
+    now works for string columns as well. [#1523]
+
+  -[enh] Improved the performance of setting :attr:`Frame.nrows`. Now if the
+    frame has multiple columns, a view will be created.
+
+  -[fix] Fixed rendering of "view" Frames in a Jupyter notebook. This bug
+    caused the frame to display wrong data when viewed in a notebook. [#1448]
+
+  -[fix] Fixed crash when an int-column ``i`` selector is applied to a Frame
+    which already had another row filter applied. [#1437]
+
+  -[fix] When a ``g.``-column is used but there is no join frame, an appropriate
+    error message is now emitted. [#1481]
+
+  -[fix] :meth:`.replace()` now works correctly when the replacement list
+    contains ``+inf`` or ``1.7976931348623157e+308``. [#1510]
+
+  -[fix] :meth:`.replace()` now throws an error if called with 0 or 1 argument.
+    [#1525]
+
+  -[fix] Fixed crash when viewing a frame obtained by resizing a 0-row frame.
+    [#1527]
+
+  -[fix] Function :func:`count()` now returns correct result within the
+    ``DT[i, j]`` expression with non-trivial row filter ``i``. [#1316]
+
+  -[fix] Fixed groupby when it is applied to a Frame with view columns. [#1542]
+
+  -[fix] When replacing an empty set of columns, the replacement frame can now
+    be also empty (i.e. have shape ``[0 x 0]``). [#1544]
+
+  -[fix] Fixed join results when join is applied to a view frame. [#1540]
+
+  -[fix] Fixed :meth:`Frame.replace()` in view string columns. [#1549]
+
+  -[fix] A 0-row integer column can now be used as ``i`` in ``DT[i, j]``.
+    [#1551]
+
+  -[fix] A string column produced from a partial join now materializes
+    correctly. [#1556]
+
+  -[fix] Fixed incorrect result during "true division" of integer columns, when
+    one of the values was negative and the other positive. [#1562]
+
+  -[fix] :meth:`Frame.to_csv()` no longer crashes on Unix when writing an empty
+    frame. [#1565]
+
+  -[fix] Fixed crash when the RHS of assignment ``DT[i, j] = R`` was a list of
+    expressions. [#1539]
+
+  -[fix] Fixed crash when an empty :func:`by()` condition was used in
+    ``DT[i, j, by]``. [#1572]
+
+  -[fix] Expression ``DT[:, :, by(...)]`` no longer produces duplicates of
+    columns used in the by-clause. [#1576]
+
+  -[fix] In certain circumstances mixing computed and plain columns under
+    groupby caused incorrect result. [#1578]
+
+  -[fix] Fixed an internal error which was occurring when multiple row filters
+    were applied to a Frame in sequence. [#1592]
+
+  -[fix] Fixed rbinding of frames if one of them was a slice with a negative
+    step. [#1594]
+
+  -[fix] Fixed invalid result when cbinding several 0-row frames. [#1604]
+
+  -[api] Setting :attr:`.nrows` now always pads the frame with NAs, even if
+    the frame has only 1 row. Previously changing :attr:`.nrows` on a 1-row
+    frame caused its value to be repeated. Use :meth:`Frame.repeat()` in order
+    to expand the frame by copying its values.
+
+  -[api] When no columns are selected in ``DT[i, j]``, the returned frame will
+    now have the same number of rows as if at least 1 column was selected.
+    Previously an empty ``[0 x 0]`` frame was returned.
+
+  -[api] Assigning a value to a column ``DT[:, 'A'] = x`` will attempt to
+    preserve the column's stype; or if not possible, the column will be upcasted
+    within its logical type.
+
+  -[api] It is no longer possible to assign a value of an incompatible logical
+    type to an existing column. For example, an assignment ``DT[:, 'A'] = 3`` is
+    now legal only if column A is of integer or real type, but will raise an
+    exception if A is a boolean or string.
+
+  -[api] :meth:`Frame.rbind()` method no longer has a return value. The method
+    always updated the frame in-place, so it was confusing to both update
+    in-place and return the original frame. [#1610]
+
+  -[api] :func:`min()` / :func:`max()` over an empty or all-NA column now
+    returns ``None`` instead of ``+Inf`` / ``-Inf`` respectively. [#1624]
+
+  -[old] Frame methods ``.topython()``, ``.topandas()`` and ``.tonumpy()`` are
+    now deprecated, to be removed in version 0.9.0. Please use
+    :meth:`.to_list()`, :meth:`.to_pandas()` and :meth:`.to_numpy()` instead.
+
+  -[old] Calling a frame object
+    ``DT(rows=i, select=j, groupby=g, join=z, sort=s)`` is now deprecated. Use
+    the expression ``DT[i, j, by(g), join(z), sort(s)]`` instead, where symbols
+    :func:`by()`, :func:`join()` and :func:`sort()` can all be imported from the
+    ``datatable`` namespace. [#1579]
+
+  -[old] Single-item Frame selectors are now prohibited: ``DT[col]`` is an
+    error. In the future this expression will be interpreted as a row selector
+    instead. *Update:* in version 0.9.0 this "single-selector" syntax was
+    reinstated, but only for integer and string selectors.
+
+  -[note] Internally, we now allow each Column in a Frame to have its own separate
+    RowIndex. This will improve the performance, especially in join/cbind
+    operations. Applications that use the ``datatable``'s C API may need to be
+    updated to account for this. [#1188]
+
+
+
+  General
+  -------
+
+  -[new] Module ``datatable`` now exposes C API, to allow other C/C++ libraries
+    interact with datatable Frames natively. [#1469]
+    See "datatable/include/datatable.h" for the description of the API
+    functions.
+
+  -[fix] Installation from source distribution now works as expected. [#1451]
+
+  -[fix] Function :func:`dt.split_into_nhot()` now works correctly with view
+    Frames. [#1507]
+
+  -[fix] The build process on MacOS now ensures that the ``libomp.dylib`` is
+    properly referenced via ``@rpath``. This prevents installation problems
+    caused by the dynamic dependencies referenced by their absolute paths which
+    are not valid outside of the build machine. [#1559]
+
+  -[fix] Fixed a crash that occurred with the latest ``pandas`` 0.24.0. [#1600]
+
+  -[note] ``datatable`` now uses integration with Codacy_ to keep track of code
+    quality and potential errors.
+
+  .. _Codacy: https://app.codacy.com/project/st-pasha/datatable/dashboard
+
+
+
+  Models
+  ------
+
+  -[new] Added ability to train and fit an FTRL-Proximal (Follow The Regularized
+    Leader) online learning algorithm on a data frame. [#1389] The
+    implementation is multi-threaded and has high performance.
+
+  -[fix] FTRL algorithm now works correctly with view frames. [#1502]
+
+
+
+  Contributors
+  ------------
+
+  This release was made possible via the effort of a number of people, some who
+  contributed code, but also those who helped making the product better by
+  submitting bug reports and new feature requests.
+
+  People who contributed patches and pull requests (PRs):
+
+  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
+  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  -[gh]     :user:`Michal Raška <michal-raska>`
+  -[gh.new] :user:`Michael Frasco <mfrasco>`
+
+  People who contributed with bug reports and feature requests:
+
+  -[gh]     :user:`Arno Candel <arnocandel>`
+  -[gh.new] :user:`CarlosThinkBig <CarlosThinkBig>`
+  -[gh]     :user:`Jonathan McKinney <pseudotensor>`
+  -[gh.new] :user:`Joseph Granados <g-eoj>`
+  -[gh.new] :user:`Megan Kurka <meganjkurka>`
+  -[gh.new] :user:`Michael Frasco <mfrasco>`
+  -[gh]     :user:`Nishant Kalonia <nkalonia1>`
+  -[gh]     :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  -[gh.new] :user:`Olivier <goldentom42>`
+  -[gh]     :user:`Pasha Stetsenko <st-pasha>`
