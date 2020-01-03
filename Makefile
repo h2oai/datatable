@@ -108,12 +108,16 @@ xcoverage:
 debug:
 	@$(PYTHON) ext.py debug
 
+gitver:
+	@$(PYTHON) ext.py gitver
+
 
 
 coverage:
 	$(PYTHON) -m pip install 'typesentry>=0.2.6' blessed
 	$(MAKE) xcoverage
 	$(MAKE) test_install
+	$(MAKE) gitver
 	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--benchmark-skip \
 		--cov=datatable --cov-report=html:build/coverage-py \

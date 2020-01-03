@@ -263,7 +263,8 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("cmd", metavar="CMD",
-        choices=["asan", "build", "coverage", "debug", "sdist", "wheel"],
+        choices=["asan", "build", "coverage", "debug", "gitver", "sdist",
+                 "wheel"],
         help=textwrap.dedent("""
             Specify what this script should do:
 
@@ -273,6 +274,7 @@ def main():
                        testing
             debug    : build _datatable in debug mode, optimized for gdb
                        on Linux and for lldb on MacOS
+            gitver   : generate __git__.py file
             sdist    : create source distribution of datatable
             wheel    : create wheel distribution of datatable
             """).strip())
@@ -303,6 +305,8 @@ def main():
     elif args.cmd == "sdist":
         sdist_file = build_sdist(args.destination)
         assert os.path.isfile(os.path.join("dist", sdist_file))
+    elif args.cmd == "gitver":
+        make_git_version_file(True)
     else:
         with open("datatable/lib/.xbuild-cmd", "wt") as out:
             out.write(args.cmd)
