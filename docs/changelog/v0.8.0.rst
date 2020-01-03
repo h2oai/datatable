@@ -1,5 +1,5 @@
 
-.. py::currentmodule:: datatable
+.. currentmodule:: datatable
 
 .. changelog::
   :version: 0.8.0
