@@ -76,7 +76,10 @@ uninstall:
 
 
 test_install:
-	$(PYTHON) -m pip install ${MODULE}[tests] --no-cache-dir
+	$(PYTHON) -m pip install -r requirements_tests.txt
+
+docs_install:
+	$(PYTHON) -m pip install -r requirements_docs.txt
 
 
 test:
