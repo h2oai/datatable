@@ -45,7 +45,6 @@ endif
 all:
 	$(MAKE) clean
 	$(MAKE) build
-	$(MAKE) install
 	$(MAKE) test
 
 
@@ -74,6 +73,9 @@ install:
 uninstall:
 	$(PYTHON) -m pip uninstall datatable -y
 
+
+extra_install:
+	$(PYTHON) -m pip install -r requirements_extra.txt
 
 test_install:
 	$(PYTHON) -m pip install -r requirements_tests.txt
