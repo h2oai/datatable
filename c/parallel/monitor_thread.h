@@ -49,12 +49,11 @@ class monitor_thread {
      * set_active(false) puts the thread back to sleep.
      */
     void set_active(bool a) noexcept;
-    bool get_active();
+    bool get_active() const noexcept;
     void stop_running();
 
   private:
     void run() noexcept;
-    static void sigint_handler(int);
 };
 
 

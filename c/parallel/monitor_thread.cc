@@ -13,25 +13,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-/* enable nice() function in unistd.h */
-#define _XOPEN_SOURCE
-#include <iostream>
-#include <csignal> // std::signal
-#include "parallel/monitor_thread.h"
-#include "parallel/thread_worker.h"     // idle_job
-#include "progress/progress_manager.h"  // dt::progress::progress_manager
-#include "utils/exceptions.h"
-#include "parallel/api.h"
 #include "utils/macros.h"
 #if !DT_OS_WINDOWS
-  #include <unistd.h>        // nice
+  /* enable nice() function in unistd.h */
+  #define _XOPEN_SOURCE
+  #include <unistd.h>                   // nice
 #endif
+#include <iostream>
+#include <csignal>                      // std::signal
+#include "parallel/api.h"
+#include "parallel/monitor_thread.h"
+#include "progress/progress_manager.h"  // dt::progress::progress_manager
+#include "parallel/thread_worker.h"     // idle_job
+#include "utils/exceptions.h"
+
+// volatile std::sig_atomic_t gSignalStatus;
+using sig_handler_t = void(*)(int);
+static sig_handler_t sigint_handler_prev = nullptr;
+
+extern "C" {
+  static void sigint_handler(int signal) {
+    if (dt::is_monitor_enabled()) {
+      dt::progress::manager->set_interrupt();
+    } else {
+      sigint_handler_prev(signal);
+    }
+  }
+}
+
 
 
 namespace dt {
 
-using sig_handler_t = void(*)(int);
-static sig_handler_t sigint_handler_prev = nullptr;
 
 
 monitor_thread::monitor_thread(idle_job* wc)
@@ -99,15 +112,6 @@ void monitor_thread::run() noexcept {
 }
 
 
-void monitor_thread::sigint_handler(int signal) {
-  if (dt::is_monitor_enabled()) {
-    progress::manager->set_interrupt();
-  } else {
-    sigint_handler_prev(signal);
-  }
-}
-
-
 void monitor_thread::set_active(bool a) noexcept {
   try {
     std::lock_guard<std::mutex> lock(mutex);
@@ -117,7 +121,7 @@ void monitor_thread::set_active(bool a) noexcept {
 }
 
 
-bool monitor_thread::get_active() {
+bool monitor_thread::get_active() const noexcept {
   return is_active;
 }
 
