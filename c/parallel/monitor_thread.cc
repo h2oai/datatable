@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
   #include <unistd.h>                   // nice
 #endif
 #include <iostream>
-#include <csignal>                      // std::signal
+#include <csignal>                      // std::signal, sig_atomic_t
 #include "parallel/api.h"
 #include "parallel/monitor_thread.h"
 #include "progress/progress_manager.h"  // dt::progress::progress_manager

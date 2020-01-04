@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PROGRESS_MANAGER_h
 #define dt_PROGRESS_MANAGER_h
-#include <atomic>
+#include <csignal>    // sig_atomic_t
 #include <stack>      // std::stack
 #include <mutex>      // std::mutex, std::lock_guard
 namespace dt {
