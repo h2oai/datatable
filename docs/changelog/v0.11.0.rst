@@ -18,7 +18,9 @@
 
   -[fix] Avoid rare deadlock when creating a frame from pandas DataFrame in
     a forked process, in the datatable compiled with gcc version before 7.0.
-    (#2272)
+    [#2272]
+
+  -[fix] Fix rare crash in the interrupt signal handler. [#2282]
 
 
   FTRL model

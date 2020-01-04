@@ -102,7 +102,6 @@ class thread_pool {
 
     // Monitor thread control.
     void enable_monitor(bool) noexcept;
-    bool is_monitor_enabled() noexcept;
 
     static void init_options();
 };

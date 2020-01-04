@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,32 +13,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-/* enable nice() function in unistd.h */
-#define _XOPEN_SOURCE
-#include <iostream>
-#include <csignal> // std::signal
-#include "parallel/monitor_thread.h"
-#include "parallel/thread_worker.h"     // idle_job
-#include "progress/progress_manager.h"  // dt::progress::progress_manager
-#include "utils/exceptions.h"
-#include "parallel/api.h"
 #include "utils/macros.h"
 #if !DT_OS_WINDOWS
-  #include <unistd.h>        // nice
+  /* enable nice() function in unistd.h */
+  #define _XOPEN_SOURCE
+  #include <unistd.h>                   // nice
 #endif
+#include <iostream>
+#include <csignal>                      // std::signal, sig_atomic_t
+#include "parallel/api.h"
+#include "parallel/monitor_thread.h"
+#include "progress/progress_manager.h"  // dt::progress::progress_manager
+#include "parallel/thread_worker.h"     // idle_job
+#include "utils/exceptions.h"
+
+// volatile std::sig_atomic_t gSignalStatus;
+using sig_handler_t = void(*)(int);
+static sig_handler_t sigint_handler_prev = nullptr;
+
+static volatile std::sig_atomic_t monitor_thread_active = 0;
+
+extern "C" {
+  static void sigint_handler(int signal) {
+    if (monitor_thread_active) {
+      dt::progress::manager->set_interrupt();
+    }
+    else if (sigint_handler_prev) {
+      sigint_handler_prev(signal);
+    }
+  }
+}
+
 
 
 namespace dt {
 
-using sig_handler_t = void(*)(int);
-static sig_handler_t sigint_handler_prev = nullptr;
-
 
 monitor_thread::monitor_thread(idle_job* wc)
   : controller(wc),
-    running(true),
-    is_active(false)
+    running(true)
 {
+  monitor_thread_active = 0;
   thread = std::thread(&monitor_thread::run, this);
 }
 
@@ -75,12 +90,12 @@ void monitor_thread::run() noexcept {
   std::unique_lock<std::mutex> lock(mutex);
   while (running) {
     // Sleep state
-    while (!is_active && running) {
+    while (!monitor_thread_active && running) {
       sleep_state_cv.wait(lock);
     }
 
     // Wake state
-    while (is_active && running) {
+    while (monitor_thread_active && running) {
       try {
         // update_view() should run under the protection of a mutex. This way
         // when the master thread calls `set_active(false)`, it would have to
@@ -99,32 +114,17 @@ void monitor_thread::run() noexcept {
 }
 
 
-void monitor_thread::sigint_handler(int signal) {
-  if (dt::is_monitor_enabled()) {
-    progress::manager->set_interrupt();
-  } else {
-    sigint_handler_prev(signal);
-  }
-}
-
-
 void monitor_thread::set_active(bool a) noexcept {
-  try {
-    std::lock_guard<std::mutex> lock(mutex);
-    is_active = a;
-  } catch (...) {}
+  monitor_thread_active = a;
   sleep_state_cv.notify_one();  // noexcept
 }
 
-
-bool monitor_thread::get_active() {
-  return is_active;
-}
 
 
 void monitor_thread::stop_running() {
   std::lock_guard<std::mutex> lock(mutex);
   running = false;
+  monitor_thread_active = 0;
   sleep_state_cv.notify_one();
 }
 
