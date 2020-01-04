@@ -1,7 +1,0 @@
-blessed
-llvmlite
-numpy
-pandas
-psutil
-typesentry
-xlrd
