@@ -32,7 +32,7 @@ progress_manager* manager = new progress_manager;
 progress_manager::progress_manager()
   : pbar(nullptr)
 {
-  interrupt_status.store(InterruptStatus::RUN);
+  interrupt_status = InterruptStatus::RUN;
 }
 
 
@@ -67,7 +67,7 @@ void progress_manager::finish_work(work* task, bool successfully) {
     delete pbar;
     pbar = nullptr;
   }
-  interrupt_status.store(InterruptStatus::RUN);
+  interrupt_status = InterruptStatus::RUN;
 }
 
 
@@ -95,24 +95,24 @@ void progress_manager::set_error_status(bool cancelled) noexcept {
 }
 
 
-void progress_manager::set_interrupt() const {
-  interrupt_status.store(InterruptStatus::HANDLE_INTERRUPT);
+void progress_manager::set_interrupt() const noexcept {
+  interrupt_status = InterruptStatus::HANDLE_INTERRUPT;
 }
 
 
-bool progress_manager::is_interrupt_occurred() const {
+bool progress_manager::is_interrupt_occurred() const noexcept {
   return interrupt_status != InterruptStatus::RUN;
 }
 
 
-void progress_manager::reset_interrupt_status() const {
-  interrupt_status.store(InterruptStatus::RUN);
+void progress_manager::reset_interrupt_status() const noexcept {
+  interrupt_status = InterruptStatus::RUN;
 }
 
 
 void progress_manager::handle_interrupt() const {
   if (interrupt_status == InterruptStatus::HANDLE_INTERRUPT) {
-    interrupt_status.store(InterruptStatus::ABORT_EXECUTION);
+    interrupt_status = InterruptStatus::ABORT_EXECUTION;
     PyErr_SetNone(PyExc_KeyboardInterrupt);
     throw PyError();
   }

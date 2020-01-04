@@ -28,7 +28,7 @@ class progress_bar_enabled;
 class work;
 
 
-enum class InterruptStatus : unsigned char {
+enum InterruptStatus : unsigned char {
   RUN = 0,
   ABORT_EXECUTION = 1,
   HANDLE_INTERRUPT = 2
@@ -70,8 +70,8 @@ class progress_manager {
     // is set to InterruptStatus::ABORT_EXECUTION, meaning that
     // job execution should be aborted. When execution is aborted,
     // this flag is set back to InterruptStatus::RUN.
-    mutable std::atomic<InterruptStatus> interrupt_status;
-    size_t : 56;
+    mutable volatile sig_atomic_t interrupt_status;
+    int : 32;
 
   public:
     void update_view() const;
@@ -83,9 +83,9 @@ class progress_manager {
     void start_work(work* task);
     // called by `work.done()` / `~work()`
     void finish_work(work* task, bool successfully);
-    void set_interrupt() const;
-    bool is_interrupt_occurred() const;
-    void reset_interrupt_status() const;
+    void set_interrupt() const noexcept;
+    bool is_interrupt_occurred() const noexcept;
+    void reset_interrupt_status() const noexcept;
     void handle_interrupt() const;
 };
 
