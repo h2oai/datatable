@@ -31,11 +31,14 @@
 using sig_handler_t = void(*)(int);
 static sig_handler_t sigint_handler_prev = nullptr;
 
+static volatile std::sig_atomic_t monitor_thread_active = 0;
+
 extern "C" {
   static void sigint_handler(int signal) {
-    if (dt::is_monitor_enabled()) {
+    if (monitor_thread_active) {
       dt::progress::manager->set_interrupt();
-    } else {
+    }
+    else if (sigint_handler_prev) {
       sigint_handler_prev(signal);
     }
   }
@@ -46,12 +49,11 @@ extern "C" {
 namespace dt {
 
 
-
 monitor_thread::monitor_thread(idle_job* wc)
   : controller(wc),
-    running(true),
-    is_active(false)
+    running(true)
 {
+  monitor_thread_active = 0;
   thread = std::thread(&monitor_thread::run, this);
 }
 
@@ -88,12 +90,12 @@ void monitor_thread::run() noexcept {
   std::unique_lock<std::mutex> lock(mutex);
   while (running) {
     // Sleep state
-    while (!is_active && running) {
+    while (!monitor_thread_active && running) {
       sleep_state_cv.wait(lock);
     }
 
     // Wake state
-    while (is_active && running) {
+    while (monitor_thread_active && running) {
       try {
         // update_view() should run under the protection of a mutex. This way
         // when the master thread calls `set_active(false)`, it would have to
@@ -113,22 +115,16 @@ void monitor_thread::run() noexcept {
 
 
 void monitor_thread::set_active(bool a) noexcept {
-  try {
-    std::lock_guard<std::mutex> lock(mutex);
-    is_active = a;
-  } catch (...) {}
+  monitor_thread_active = a;
   sleep_state_cv.notify_one();  // noexcept
 }
 
-
-bool monitor_thread::get_active() const noexcept {
-  return is_active;
-}
 
 
 void monitor_thread::stop_running() {
   std::lock_guard<std::mutex> lock(mutex);
   running = false;
+  monitor_thread_active = 0;
   sleep_state_cv.notify_one();
 }
 
