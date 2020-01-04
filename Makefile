@@ -119,11 +119,9 @@ coverage:
 	$(MAKE) test_install
 	$(MAKE) gitver
 	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
-		--benchmark-skip \
 		--cov=datatable --cov-report=html:build/coverage-py \
 		tests
 	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
-		--benchmark-skip \
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
 	chmod +x ci/llvm-gcov.sh
