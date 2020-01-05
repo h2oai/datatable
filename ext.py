@@ -44,9 +44,11 @@ def create_logger(verbosity):
 
 def build_extension(cmd, verbosity=3):
     assert cmd in ["asan", "build", "coverage", "debug"]
+    arch = getattr(sys.implementation, "_multiarch", "unknown")
     windows = (sys.platform == "win32")
     macos = (sys.platform == "darwin")
     linux = (sys.platform == "linux")
+    ppc64 = ("ppc64" in arch or "powerpc64" in arch)
     if not (windows or macos or linux):
         print("\x1b[93mWarning: unknown platform %s\x1b[m" % sys.platform)
         linux = True
@@ -80,6 +82,8 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
         if linux:
             ext.compiler.add_linker_flag("-lstdc++")
+        if ppc64:
+            ext.compiler.add_linker_flag("-pthread")
 
         if cmd == "asan":
             ext.compiler.add_compiler_flag("-fsanitize=address")
