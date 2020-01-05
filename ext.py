@@ -44,7 +44,7 @@ def create_logger(verbosity):
 
 def build_extension(cmd, verbosity=3):
     assert cmd in ["asan", "build", "coverage", "debug"]
-    arch = sys.implementation._multiarch
+    arch = getattr(sys.implementation, "_multiarch", "unknown")
     windows = (sys.platform == "win32")
     macos = (sys.platform == "darwin")
     linux = (sys.platform == "linux")
