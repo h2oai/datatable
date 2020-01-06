@@ -29,6 +29,7 @@
 #-------------------------------------------------------------------------------
 import glob
 import os
+import platform
 import sys
 import textwrap
 from ci import xbuild
@@ -44,7 +45,7 @@ def create_logger(verbosity):
 
 def build_extension(cmd, verbosity=3):
     assert cmd in ["asan", "build", "coverage", "debug"]
-    arch = getattr(sys.implementation, "_multiarch", "unknown")
+    arch = platform.machine()  # 'x86_64' or 'ppc64le'
     windows = (sys.platform == "win32")
     macos = (sys.platform == "darwin")
     linux = (sys.platform == "linux")
