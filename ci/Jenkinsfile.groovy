@@ -1,8 +1,24 @@
 #!/usr/bin/groovy
 //------------------------------------------------------------------------------
-//  This Source Code Form is subject to the terms of the Mozilla Public
-//  License, v. 2.0. If a copy of the MPL was not distributed with this
-//  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +83,7 @@ LINK_MAP = [
 ]
 
 // Computed version suffix
-def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
+// def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
 // Global project build trigger filled in init stage
 def project
 // Needs invocation of larger tests
@@ -122,14 +138,14 @@ ansiColor('xterm') {
                         project = load 'ci/default.groovy'
 
                         if (isRelease()) {
-                            CI_VERSION_SUFFIX = ''
+                            env.DT_RELEASE = 'True'
                         }
-                        if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
-                            CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|_|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
-                        }
-                        env.CI_VERSION_SUFFIX = CI_VERSION_SUFFIX
+                        // if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
+                        //     CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|_|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
+                        // }
+                        env.DT_BUILD_NUMBER = env.BUILD_ID
 
-                        needsLargerTest = isModified("(py_)?fread\\..*|__version__\\.py")
+                        needsLargerTest = isModified("c/(read|csv)/.*")
                         if (needsLargerTest) {
                             env.DT_LARGE_TESTS_ROOT = TARGET_DIR
                             manager.addBadge("warning.gif", "Large tests required")
@@ -157,14 +173,14 @@ ansiColor('xterm') {
                         }
                     }
                     buildSummary.stageWithSummary('Generate version and git files', stageDir) {
-                        sh "make ${MAKE_OPTS} centos7_version_in_docker"
-                        stash name: 'VERSION', includes: "dist/VERSION.txt"
-                        stash name: 'GIT_HASH_FILE', includes: "datatable/__git__.py"
-                        arch "dist/VERSION.txt"
-                        arch "datatable/__git__.py"
-                        versionText = readFile('dist/VERSION.txt').trim()
-                        echo "Version is: ${versionText}"
-                        sh "make ${MAKE_OPTS} mrproper"
+                        sh "make geninfo"
+                        // stash name: 'VERSION', includes: "dist/VERSION.txt"
+                        // stash name: 'GIT_HASH_FILE', includes: "datatable/_build_info.py"
+                        // arch "dist/VERSION.txt"
+                        arch "datatable/_build_info.py"
+                        // versionText = readFile('dist/VERSION.txt').trim()
+                        // echo "Version is: ${versionText}"
+                        // sh "make ${MAKE_OPTS} mrproper"
                     }
                     stash 'datatable-sources'
                 }
@@ -179,18 +195,18 @@ ansiColor('xterm') {
                             dumpInfo()
                             dir(stageDir) {
                                 unstash 'datatable-sources'
-                                unstash 'VERSION'
-                                unstash 'GIT_HASH_FILE'
-                                sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
+                                // unstash 'VERSION'
+                                // unstash 'GIT_HASH_FILE'
+                                sh "make clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
                                 stash name: 'x86_64_centos7-py37-whl', includes: "dist/*.whl"
                                 arch "dist/*.whl"
-                                unstash 'VERSION'
-                                unstash 'GIT_HASH_FILE'
+                                // unstash 'VERSION'
+                                // unstash 'GIT_HASH_FILE'
                                 sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
                                 stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
                                 arch "dist/*.whl"
-                                unstash 'VERSION'
-                                unstash 'GIT_HASH_FILE'
+                                // unstash 'VERSION'
+                                // unstash 'GIT_HASH_FILE'
                                 sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
                                 stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
                                 arch "dist/*.whl"
@@ -207,8 +223,8 @@ ansiColor('xterm') {
                             dir(stageDir) {
                                 unstash 'datatable-sources'
                                 withEnv(OSX_ENV) {
-                                    unstash 'VERSION'
-                                    unstash 'GIT_HASH_FILE'
+                                    // unstash 'VERSION'
+                                    // unstash 'GIT_HASH_FILE'
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py37-with-pandas
                                         make ${MAKE_OPTS} clean
@@ -216,8 +232,8 @@ ansiColor('xterm') {
                                     """
                                     stash name: 'x86_64_osx-py37-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    unstash 'VERSION'
-                                    unstash 'GIT_HASH_FILE'
+                                    // unstash 'VERSION'
+                                    // unstash 'GIT_HASH_FILE'
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
                                         make ${MAKE_OPTS} clean
@@ -225,8 +241,8 @@ ansiColor('xterm') {
                                     """
                                     stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    unstash 'VERSION'
-                                    unstash 'GIT_HASH_FILE'
+                                    // unstash 'VERSION'
+                                    // unstash 'GIT_HASH_FILE'
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
                                         make ${MAKE_OPTS} clean
@@ -249,18 +265,18 @@ ansiColor('xterm') {
                                     dumpInfo()
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
-                                        unstash 'VERSION'
-                                        unstash 'GIT_HASH_FILE'
+                                        // unstash 'VERSION'
+                                        // unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
                                         stash name: 'ppc64le_centos7-py37-whl', includes: "dist/*.whl"
                                         arch "dist/*.whl"
-                                        unstash 'VERSION'
-                                        unstash 'GIT_HASH_FILE'
+                                        // unstash 'VERSION'
+                                        // unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
                                         stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
                                         arch "dist/*.whl"
-                                        unstash 'VERSION'
-                                        unstash 'GIT_HASH_FILE'
+                                        // unstash 'VERSION'
+                                        // unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
                                         stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
                                         arch "dist/*.whl"
