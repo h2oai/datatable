@@ -21,7 +21,7 @@
 #-------------------------------------------------------------------------------
 
 BUILDDIR := build/fast
-PYTHON   ?= python
+PYTHON   ?= python3
 MODULE   ?= .
 ifneq ($(CI),)
 PYTEST_FLAGS := -vv -s --showlocals
