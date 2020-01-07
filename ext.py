@@ -318,8 +318,7 @@ def shell_cmd(cmd, strict=False):
     except subprocess.CalledProcessError as e:
         if strict:
             raise SystemExit("Command `%s` failed with code %d: %s"
-                             % (" ".join(cmd), e.returncode, e.output)) \
-                  from None
+                             % (" ".join(cmd), e.returncode, e.output))
         return ""
 
 
