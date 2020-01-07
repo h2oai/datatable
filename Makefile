@@ -1,8 +1,23 @@
 #-------------------------------------------------------------------------------
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
 BUILDDIR := build/fast
@@ -20,26 +35,8 @@ PLATFORM := $(ARCH)-$(OS)
 # Distribution directory
 DIST_DIR := dist/$(PLATFORM)
 
-.PHONY: all clean mrproper build install uninstall test_install test \
+.PHONY: all clean mrproper build test_install test \
 		asan benchmark debug bi coverage dist fast xcoverage
-
-ifeq ($(MAKECMDGOALS), fast)
--include ci/fast.mk
-ci/fast.mk:
-	@echo • Regenerating ci/fast.mk
-	@$(PYTHON) ci/make_fast.py
-endif
-
-ifeq ($(MAKECMDGOALS), dfast)
--include ci/fast.mk
-ci/fast.mk:
-	@echo • Regenerating ci/fast.mk [debug mode]
-	@$(PYTHON) ci/make_fast.py debug
-endif
-
-ifeq ($(MAKECMDGOALS), main-fast)
--include ci/fast.mk
-endif
 
 
 all:
@@ -64,14 +61,6 @@ clean::
 mrproper: clean
 	git clean -f -d -x
 
-
-
-install:
-	$(PYTHON) -m pip install . --upgrade --no-cache-dir
-
-
-uninstall:
-	$(PYTHON) -m pip uninstall datatable -y
 
 
 extra_install:
@@ -108,8 +97,8 @@ xcoverage:
 debug:
 	@$(PYTHON) ext.py debug
 
-gitver:
-	@$(PYTHON) ext.py gitver
+geninfo:
+	@$(PYTHON) ext.py geninfo
 
 
 
@@ -117,7 +106,7 @@ coverage:
 	$(PYTHON) -m pip install 'typesentry>=0.2.6' blessed
 	$(MAKE) xcoverage
 	$(MAKE) test_install
-	$(MAKE) gitver
+	$(MAKE) geninfo
 	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--cov=datatable --cov-report=html:build/coverage-py \
 		tests
@@ -149,7 +138,7 @@ version:
 
 
 #-------------------------------------------------------------------------------
-# CentOS7 build
+#  OBSOLETE...
 #-------------------------------------------------------------------------------
 
 DIST_DIR = dist
@@ -162,13 +151,14 @@ DOCKER_REPO_NAME ?= harbor.h2o.ai
 CONTAINER_NAME_SUFFIX ?= -$(USER)
 CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_NAME_SUFFIX)
 
-PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
+# PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
 BUILD_ID ?= local
 BUILD_ID_SUFFIX = .$(BUILD_ID)
-VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_ID_SUFFIX)
-CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
+# VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_ID_SUFFIX)
+# CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
+CONTAINER_TAG := unknown
 
 CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
 
@@ -221,7 +211,6 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 		-c 'make dist'
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
 	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
-	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
 
 #
 # Ubuntu image - will be removed
@@ -286,10 +275,7 @@ centos7_version_in_docker:
 		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate datatable-py36-with-pandas && \
-			python --version && \
-			mkdir -p dist && \
-			make CI=$(CI) version > dist/VERSION.txt && \
-			cat dist/VERSION.txt"
+			python ext.py geninfo"
 
 centos7_test_in_docker_impl:
 	docker run \
@@ -421,8 +407,6 @@ ubuntu_test_py36_in_docker:
 
 printvars:
 	@echo PLATFORM=$(PLATFORM)
-	@echo PROJECT_VERSION=$(PROJECT_VERSION)
-	@echo VERSION=$(VERSION)
 	@echo CONTAINER_TAG=$(CONTAINER_TAG)
 	@echo CONTAINER_NAME=$(CONTAINER_NAME)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -145,9 +145,12 @@ def test_dt_dependencies():
 def test_dt_version():
     assert dt.__version__
     assert isinstance(dt.__version__, str)
-    assert dt.__git_revision__
-    assert isinstance(dt.__git_revision__, str)
-    assert len(dt.__git_revision__) == 40
+    assert dt.build_info
+    assert isinstance(dt.build_info.build_date, str)
+    assert isinstance(dt.build_info.git_revision, str)
+    assert isinstance(dt.build_info.git_branch, str)
+    assert isinstance(dt.build_info.version, str)
+    assert len(dt.build_info.git_revision) == 40
 
 
 def test_dt_help():
