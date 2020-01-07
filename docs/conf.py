@@ -57,6 +57,7 @@ needs_sphinx = '1.8'
 extensions = [
     'sphinxext.dtframe_directive',
     'sphinxext.dt_changelog',
+    'sphinxext.ref_context',
     'nbsphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
