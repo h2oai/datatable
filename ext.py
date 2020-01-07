@@ -79,10 +79,10 @@ def build_extension(cmd, verbosity=3):
 
         ext.compiler.add_linker_flag("/nologo")
         ext.compiler.add_linker_flag("/DLL")
+        ext.compiler.add_linker_flag("/EXPORT:PyInit__datatable")
         ext.compiler.add_lib_dir("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.24.28314\\lib\\x64")
         ext.compiler.add_lib_dir("C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.18362.0\\ucrt\\x64")
         ext.compiler.add_lib_dir("C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x64\\")
-
     else:
         # Common compile flags
         ext.compiler.add_compiler_flag("-std=c++11")

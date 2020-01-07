@@ -26,9 +26,12 @@
 #include "parallel/api.h"
 #include "parallel/atomic.h"
 #include "progress/work.h"      // dt::progress::work
-#include "utils/macros.h"
 #include "column.h"
 #include "wstringcol.h"
+#include "utils/macros.h"
+#if DT_OS_WINDOWS
+  #undef copysign
+#endif
 
 namespace dt {
 
