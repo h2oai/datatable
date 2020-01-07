@@ -50,8 +50,38 @@ def is_source_distribution():
     return not os.path.exists("VERSION.txt")
 
 
+# The primary source of datatable's release version is the file
+# VERSION.txt in the root of the repository.
+#
+# When building the release version of datatable, this file is
+# expected to contain the "release version" of the distribution,
+# i.e. have form
+#
+#     XX.YY.ZZ
+#
+# In all other cases, the file is expected to contain the main
+# version + suffix "a", "b" or "rc":
+#
+#     XX.YY.ZZa
+#
+# This procedure verifies that the content of VERSION.txt is in
+# the appropriate format, and returns the augmented version of the
+# datatable distribution:
+#
+# - In release mode (env.variable DT_RELEASE is set), the final
+#   release is the same as the content of VERSION.txt;
+#
+# - In development mode (ev.variable DT_BUILD_NUMBER is present),
+#   the version is equal to `VERSION.txt` `BUILD_NUMBER`;
+#
+# - When building from source distribution (file VERSION.txt is
+#   absent, the version is taken from datatable/_build_info.py) file;
+#
+# - In all other cases (local build), the final version consists of
+#   of `VERSION.txt` "+" `mode` "." `current_time` "." `username`.
+#
 def get_datatable_version(mode=None):
-    # In release mode, the version is just the {stem}
+    # In release mode, the version is just the content of VERSION.txt
     if os.environ.get("DT_RELEASE"):
         version = _get_version_txt("release")
         if not re.fullmatch(r"\d+(\.\d+)+", version):
