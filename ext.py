@@ -61,7 +61,10 @@ def is_source_distribution():
 # In all other cases, the file is expected to contain the main
 # version + suffix "a", "b" or "rc":
 #
-#     XX.YY.ZZa
+#     XX.YY.ZZ[a|b|rc]
+#
+# If the suffix is absent, then this is presumed to be the
+# "post-release" version, and suffix `.post` is automatically added.
 #
 # This procedure verifies that the content of VERSION.txt is in
 # the appropriate format, and returns the augmented version of the
@@ -96,9 +99,12 @@ def get_datatable_version(mode=None):
         if not re.fullmatch(r"\d+", build):
             raise SystemExit("Invalid build number `%s` from environment "
                              "variable DT_BUILD_NUMBER" % build)
-        if not re.fullmatch(r"\d+(\.\d+)+(a|b|rc|\.post)", version):
+        mm = re.fullmatch(r"\d+(\.\d+)+(a|b|rc)?", version)
+        if not mm:
             raise SystemExit("Invalid version `%s` in VERSION.txt when building"
                              " datatable in development mode" % version)
+        if not mm.group(2):
+            version += ".post"
         return version + build
 
     # Building from sdist (file VERSION.txt not included)
