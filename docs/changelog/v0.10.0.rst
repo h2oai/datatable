@@ -1,0 +1,363 @@
+
+
+.. changelog::
+  :version: 0.10.0
+  :released: 2019-12-02
+
+  Columnsets
+  ----------
+
+  .. seealso:: :ref:`columnsets`
+
+  The ``f``-symbol syntax has been extended to allow selecting multiple columns
+  from a frame at once, so-called *columnsets*. The primary use case here is to
+  select a slice of columns, or to select columns based on their type::
+
+      f[:]         # select all columns
+      f[:5]        # select the first 5 columns
+      f["A":"Z"]   # select columns from 'A' to 'Z'
+      f[float]     # select all floating point columns
+      f[dt.int32]  # select all columns with stype int32
+      f[int   if select_ints else
+        float if select_floats else
+        None]
+
+  In addition, columnsets can be added / subtracted, allowing to express a richer
+  selection of columns::
+
+      f[int].extend(f[float])   # all integers and floating point columns
+      f[:].remove(f[str])       # all columns except those of string type
+      f[:10].extend(f[-1])      # first 10, plus the last column
+
+  The columnsets can be used in places where a list/sequence of columns is
+  expected, such as the ``j`` node of ``DT[i,j,...]``, the ``by()`` function, etc.
+
+
+  Row-functions
+  -------------
+
+  We added a family of new "row-wise" aggregation functions, which operate on
+  any number of columns in a frame, producing a single column as a result. These
+  function aggregate across rows instead of columns (like traditional reducers),
+  and therefore they all have prefix ``row``::
+
+      rowall()    # are all values True?
+      rowany()    # is there any True value?
+      rowcount()  # count non-missing values in a row
+      rowfirst()  # find the first non-missing value
+      rowlast()   # the last non-missing value
+      rowmax()    # largest value in a row
+      rowmean()   # mean of all values in a row
+      rowmin()    # smallest value in a row
+      rowsd()     # standard deviation of all row values
+      rowsum()    # the sum of values in a row
+
+  These functions are equivalent to pandas' aggregation functions with parameter
+  ``(axis=1)``. In addition, the first two of these functions (``rowall()`` and
+  ``rowany()``) use short-circuit evaluation.
+
+
+  Mathematical functions
+  ----------------------
+
+  .. seealso:: :ref:`math`
+
+  New module ``datatable.math`` now has implementations of most mathematical
+  functions found in numpy or in standard Python math module. These functions
+  work with Frame objects, and can be used in ``DT[i,j,...]`` expressions::
+
+      DT[:, f.X * dt.math.cos(f.Phi) + f.Y * dt.math.sin(f.Phi)]
+
+  There are 48 functions in total.
+
+
+  Frame
+  -----
+
+  -[new] Added function :func:`update`, which can be used to in a ``DT[i, j]``
+    expression. This function can be used in the ``j`` place, and it allows the
+    user to create new columns in a Frame, or update the existing ones::
+
+      DT = dt.Frame(A=range(5))
+      DT[:, update(A=f.A * 2, B=dt.str32(f.A), Z=0)]
+
+  -[new] Added method :meth:`.export_names() <datatable.Frame.export_names>`
+    which returns a tuple of variables referencing each column in the Frame::
+
+      PROC_ID, SORT_NR, *other = DT.export_names()
+      DT[(PROC_ID == "A") & (SORT_NR > 2), :]
+
+    If you need to export only a subset of columns, you can select those columns
+    first via the standard ``DT[i,j]`` syntax::
+
+      # Only create variables for the first 5 columns
+      A, B, C, D, E = DT[:, :5].export_names()
+
+  -[new] Added frame property :meth:`.stype <datatable.Frame.stype>` which is
+    similar to :meth:`.stypes <datatable.Frame.stypes>` except that it returns
+    a single stype instead of a tuple. This method can only be used on a frame
+    where all columns have the same stype, or there is only one column.
+
+  -[enh] When a frame is displayed in a console, it will now display the first
+    15 + the last 5 rows, similarly to how it is rendered in Jupyter notebook.
+    Also, if the frame is 30 rows or less, it will be shown in full.
+
+    These parameters are configurable via the options
+    ``dt.options.display.head_nrows``, ``dt.options.display.tail_nrows`` and
+    ``dt.options.display.max_nrows``.
+
+  -[enh] Method :meth:`Frame.copy() <datatable.Frame.copy>` now has a new
+    parameter ``deep=False``. When set to ``True``, it will create a deep copy
+    of the frame instead of the usual shallow one.
+
+    In addition, standard python functions ``copy.copy()`` and ``copy.deepcopy()``
+    will now defer to the ``Frame.copy()`` method too.
+
+  -[enh] It is now possible to create a Frame from a list of numpy integers/
+    floats. The resulting Frame will have the stype corresponding to the largest
+    dtype among all elements in the list::
+
+      import numpy as np
+      DT = dt.Frame([np.int32(1), np.int32(3), np.int64(8)])
+      assert DT.shape == (3, 1)
+      assert DT.stype == dt.int64
+
+  -[enh] When an integer column is used to select rows from a Frame, that column
+    is now allowed to contain NA values, which produces a row filled with missing
+    values::
+
+      DT = dt.Frame(A=['a', 'b', 'c', 'd', 'e'])
+      rows = dt.Frame([2, 0, None, 1, 2])
+      assert DT[rows, :].to_list() == [['c', 'a', None, 'b', 'c']]
+
+  -[new] Added option ``display.max_column_width``. Cells whose content is larger
+    than this value will be automatically truncated when a Frame is rendered into
+    a terminal.
+
+  -[enh] When selecting the key column from a keyed frame ``DT[key]``, the
+    resulting single-column frame will now retain its "keyed" property.
+
+  -[enh] Method :meth:`.to_csv() <datatable.Frame.to_csv>` gains two new boolean
+    parameters: ``header=`` and ``append=``. The ``header=`` parameter controls
+    whether or not to write into the output the header row with column names. The
+    ``append=`` parameter allows the CSV content to be appended to an existing
+    file instead of overwriting it::
+
+      DT.to_csv("out.log", append=True)  # infer that header=False if file exists
+
+  -[enh] Range objects can now be used directly in ``DT[i,j]`` expressions in any
+    place where a column could be expected::
+
+      DT["id"] = range(1000)
+
+  -[enh] Implemented ability to select a specific row within each group, using
+    the syntax::
+
+      DT[2, :, by(f.GRP)]
+
+    If the index is invalid for some of the groups, those groups will be
+    discarded.
+
+  -[enh] Assigning a python type or an stype to a column or set of columns will
+    now perform a type-cast on those columns::
+
+      DT["A"] = int            # Column A in frame DT will become integer
+      DT[:, int] = dt.float64  # All integer columns will be converted to float64
+
+  -[enh] Method ``Frame.materialize()`` gains a new option ``to_memory=False``.
+    If set to True, it will force the Frame's data to be lifted from disk into
+    the main memory (if the frame was opened from disk)::
+
+      DT = dt.fread("data.jay")
+      DT.materialize(to_memory=True)
+
+  -[api] The name deduplication algorithm now starts looking for candidate names
+    starting from ``name + dt.options.frame.name_auto_index``. For example, if
+    you're creating a Frame with column names ``["A", "A", "A"]``, then those names
+    will be modified to ensure uniqueness. Before, they were changed into ``["A",
+    "A.1", "A.2"]``; now they are changed into ``["A", "A.0", "A.1"]`` (assuming
+    the value of option ``frame.name_auto_index`` is ``0``).
+
+  -[api] Frame created from a python list of small integers will now have stype
+    ``int32``, instead of ``int8`` or ``int16`` as before. One can still create
+    a column of type ``int8`` by requesting this stype explicitly::
+
+      DT1 = dt.Frame([1, 2, 3])
+      DT2 = dt.Frame([1, 2, 3], stype=dt.int8)
+      assert DT1.stype == dt.int32
+      assert DT2.stype == dt.int8
+
+    Thanks to @Viktor-Demin for the contribution. (#2127)
+
+  -[fix] Keyed columns are now styled distinctly from regular columns when
+    rendering the Frame into a Jupyter notebook. (#1636)
+
+  -[fix] In Jupyter notebook Frame's stylesheets are now injected during
+    the datatable import. This makes it less likely that the stylesheets will
+    get accidentally removed from the page. However, if it still does occur,
+    there is now also a method to load those styles directly:
+    :meth:`init_styles`. (#1871)
+
+  -[fix] Fixed error when displaying ``help(dt)``. (#1931)
+
+  -[fix] ``fread(cmd=)`` now throws an error if it occurred while running the
+    provided command `cmd` in the shell. Previously the error was silently
+    discarded. (#1935)
+
+  -[fix] Creating a Frame from a degenerate range now produces an empty Frame
+    instead of a 1-row Frame. (#1942)
+
+  -[fix] Fixed crash when computing mode stat for a view frame. (#1953)
+
+  -[fix] Fixed a bug where creating a new column via assignment would crash if
+    the RHS of the assignment contained an expression that tried to use the
+    column that was being created. (#1983)
+
+  -[fix] Fixed a crash when joining a frame that had 0 rows. (#1988)
+
+  -[fix] Increasing the number of rows in a keyed Frame was documented as
+    invalid, but didn't actually throw any errors. Now it does. (#2021)
+
+  -[fix] Operations on a 0-row frame containing string columns will no
+    longer cause an infinite loop. (#2043)
+
+  -[fix] Conversion of a Frame into a masked numpy array was sometimes done
+    incorrectly when some columns in the frame contained NAs, while others
+    did not. (#2050)
+
+  -[fix] Groupby operation on an empty (0-rows) frame now works correctly,
+    returning a 0-row result frame. (#2078) For example::
+
+      DT = dt.Frame(Id=[], Value=[])  # create a 0x2 frame
+      DT[:, sum(f.Value), by(f.Id)]   # produces a 0x2 frame
+      DT[:, sum(f.Value)]             # produces a 1x1 frame
+
+  -[fix] Deleting columns from a keyed Frame no longer results in a crash
+    when the deleted columns are part of the key. (#2083)
+
+  -[fix] The :meth:`count` reducer now always produces a column with stype
+    ``int64``. Before, it sometimes produced an ``int32`` column, and sometimes
+    an ``int64`` column.
+
+  -[fix] Setting a key on a copied frame no longer affects the original
+    frame. (#2095)
+
+  -[fix] When a Frame has a string column containing special characters (such
+    as newlines, tabs, or others from C0/C1 blocks), they will now be properly
+    escaped when the frame is printed in a console. In addition, we now attempt
+    to detect and properly handle 0-width and double-width characters in strings,
+    so that when a column containing such unicode characters is displayed, it
+    should not cause mis-alignment issues.
+
+  -[fix] Option ``dt.options.display.allow_unicode`` is now respected when
+    printing a Frame containing string columns with unicode data. These values
+    will now be properly escaped if the option value is ``False``.
+
+  -[fix] Function :meth:`isna` now returns correct result for a column
+    obtained from joining another frame, provided that the join was only
+    partially successful. (#2109)
+
+  -[fix] Fix creation of a Frame from a numpy array which was obtained from
+    another numpy array as a slice with a negative stride. (#2163)
+
+
+  General
+  -------
+
+  -[api] We no longer export symbols :meth:`open`, :meth:`abs`, :meth:`min`,
+    :meth:`max` and :meth:`sum` from datatable module when doing
+    ``from datatable import *``. They are still available when looked up
+    explicitly, i.e. ``dt.open()`` will still work.
+
+  -[api] Function :func:`open` is marked as deprecated, scheduled to be
+    removed in version 0.12. Instead we recommend to use :func:`fread`
+    function to open Jay files.
+
+  -[api] Support for NFF format was removed. This was an old datatable's format
+    for storing data frames on disk, and it was deprecated in favor of Jay over a
+    year ago. If you still have any data stored in NFF format, we recommend to
+    re-save in Jay using datatable 0.9.
+
+  -[enh] Datatable module now exports symbol ``dt``, which is the handle to
+    the module itself. For example, you can now write::
+
+      from datatable import dt, f, by, join
+
+    The symbol ``dt`` is also exported by default, i.e. it will be available if
+    you do ``from datatable import *``.
+
+  -[new] Added functions :func:`cov` and :func:`corr` to compute the covariance
+    and Pearson correlation coefficient between columns of a Frame. These
+    functions can be used in a group-by too::
+
+      # Compute correlation of columns A and B, group-wise by ID
+      DT[:, corr(f.A, f.B), by(f.ID)]
+
+  -[new] Added function :func:`shift` which can be used to generate lags/leads
+    of a column. For example::
+
+      DT[:, {"lag2": shift(f.A, n=2),
+             "lag1": shift(f.A),       # same as shift(f.A, n=1)
+             "lag0": f.A,              # same as shift(f.A, n=0)
+             "lead1": shift(f.A, -1),
+             "lead2": shift(f.A, -2),
+             }]
+
+    This function is group-aware: when used in an expression containing a groupby,
+    it will apply the shift separately within each group.
+
+  -[fix] Fixed memory leak when writing a Frame into a CSV file. (#2119)
+
+  -[fix] Fixed memory leak when converting a numpy array with string values
+    into a Frame. (#2123)
+
+  -[fix] Fixed memory leak during reduce operations. (#2125)
+
+  -[fix] Column method ``.len()`` for computing string length now handles
+    unicode strings correctly and returns the number of codepoints in the
+    string instead of the number of bytes. (#2160)
+
+
+  Internal
+  --------
+
+  -[api] Function ``dt.internal.frame_column_rowindex(DT, i)`` was removed and
+    replaced with ``dt.internal.frame_columns_virtual(DT)``. The latter returns
+    a tuple of True/False indicators of whether each column in a Frame is
+    virtual or not.
+
+  -[api] C API version increased to 2.
+
+  -[api] Removed C API methods and macros related to retrieval of a column's
+    rowindex:
+
+    - ``DtFrame_ColumnRowindex()``,
+    - ``DtRowindex_Check()``,
+    - ``DtRowindex_Type()``,
+    - ``DtRowindex_Size()``,
+    - ``DtRowindex_UnpackSlice()``,
+    - ``DtRowindex_ArrayData()``,
+    - ``DtRowindex_NONE``,
+    - ``DtRowindex_ARR32``,
+    - ``DtRowindex_ARR64``,
+    - ``DtRowindex_SLICE``
+
+  -[api] Added C API method ``DtFrame_ColumnIsVirtual()`` which returns a boolean
+    indicator whether the column in a Frame is virtual or not.
+
+
+
+  Contributors
+  ------------
+
+  This release was made possible via the effort of a number of people, some who
+  contributed code, but also those who helped making the product better by
+  submitting bug reports and new feature requests.
+
+  People who contributed patches and pull requests (PRs):
+
+  - :user:`Pasha Stetsenko <st-pasha>`
+  - :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  - :user:`Viktor Demin <Viktor-Demin>`
+  - :user:`Anmol Bal <abal5>`
+  - :user:`Siddhesh Poyarekar <siddhesh>`

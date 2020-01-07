@@ -105,9 +105,10 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
 
   auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
-  size_t col = u.second;
-  size_t iptr = reinterpret_cast<size_t>(
-                    dt->get_column(col).get_data_readonly());
+  size_t col_index = u.second;
+  Column& col = dt->get_column(col_index);
+  col.materialize();  // Needed for getting the column's data buffer
+  size_t iptr = reinterpret_cast<size_t>(col.get_data_readonly());
   return c_void_p.call({py::oint(iptr)});
 }
 

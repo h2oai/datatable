@@ -59,6 +59,12 @@ div.small-links div {
   content: '';
 }
 
+.rst-content.style-external-links a.reference.external:after {
+  position: relative;
+  top: -.5em;
+  vertical-align: inherit;
+}
+
 
 /* ------- All code highlighting -------------------------------------------- */
 
@@ -103,7 +109,8 @@ div.document div.notranslate.highlight-default:before {
   font-family: "Source Code Pro", monospace;
   font-weight: bold;
   font-size: 80%;
-  padding: .385em;
+  line-height: 24px;
+  padding: 0.2em 0.4em;
   text-align: right;
 }
 
@@ -151,46 +158,6 @@ div.document div.output-cell .highlight pre {
 
 
 
-/* ------- Changelog labels ------------------------------------------------- */
-
-span.tag {
-  border-radius: 4pt;
-  font-size: 75%;
-  margin-right: .3em;
-  padding: 0 .4em .1em .4em;
-  position: relative;
-  top: -2px;
-}
-
-span.tag.new {
-  background-color: #00A000;
-  color: #FFFFFF;
-}
-
-span.tag.fix {
-  background-color: #A00000;
-  color: #FFFFFF;
-}
-
-span.tag.api {
-  background-color: #A000A0;
-  color: #FFFFFF;
-}
-
-span.tag.enh {
-  background-color: #00A0D0;
-  color: #FFFFFF;
-}
-
-h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
-  font-family: sans-serif;
-  font-size: 60%;
-  position: relative;
-  top: -.6em;
-}
-
-
-
 /* ------- See also blocks -------------------------------------------------- */
 
 .admonition.seealso {
@@ -228,10 +195,16 @@ h2 span.tag, h3 span.tag, ul li.toctree-l3 span.tag {
 
 /* ------- Miscellaneous ---------------------------------------------------- */
 
+div[role=navigation] hr {
+  visibility: hidden;
+}
+
 h1 {
-  border-bottom: 4px solid #444;
+  border-bottom: 1px solid #ccc;
+  font-family: inherit;
 }
 
 h2 {
+  font-family: inherit;
   margin-top: 30pt;
 }

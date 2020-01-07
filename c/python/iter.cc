@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2019 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -42,20 +42,29 @@ iter_iterator oiter::end() const noexcept {
 
 
 size_t oiter::size() const noexcept {
-  size_t len = static_cast<size_t>(-1);
+  size_t len = size_t(-1);
   try {
-    // get_attr() may throw an exception if there is no such attribute
-    oobj method = get_attr("__length_hint__");
-    PyObject* mptr = method.to_borrowed_ref();
-    PyObject* res = PyObject_CallObject(mptr, nullptr);  // new ref
-    if (res) {
-      long long t = PyLong_AsLongLong(res);
-      Py_XDECREF(res);
-      len = static_cast<size_t>(t);
-    } else {
-      PyErr_Clear();
+    // See https://docs.python.org/3/reference/datamodel.html#object.__len__
+    // The .__len__() method is required to return a non-negative integer.
+    if (has_attr("__len__")) {
+      oobj res = get_attr("__len__").call();
+      if (res.is_int()) {
+        len = res.to_size_t();
+      }
     }
-  } catch (...) {}
+    // The .__length_hint__() method must return either a non-negative integer,
+    // or the NotImplemented value.
+    else if (has_attr("__length_hint__")) {
+      oobj res = get_attr("__length_hint__").call();
+      if (res.is_int()) {
+        len = res.to_size_t();
+      }
+    }
+  } catch (...) {
+    // If either .__len__() or .__length_hint__() throws an exception,
+    // we'll catch it here (since this method is declared noexcept).
+    PyErr_Clear();
+  }
   return len;
 }
 

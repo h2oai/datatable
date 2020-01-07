@@ -51,7 +51,7 @@ static SType _find_common_stype(SType stype1, SType stype2) {
 
 /**
   * SType adjustment for operators `==` and `!=`. Numeric types are
-  * promoted to the highest common stype, and string types to STR32.
+  * promoted to the highest common stype, and string types to STR64.
   * Throws an error if `stype1` and `stype2` are incompatible (e.g.
   * a string and a number).
   */
@@ -77,17 +77,16 @@ static SType _find_types_for_eq(
 
 /**
   * SType adjustment for comparison operators `<`, `>`, `<=` and `>=`.
-  * Numeric types are promoted to largest among `stype1`, `stype2` and
-  * INT32. String types are not supported.
+  * Numeric types are promoted to the highest common stype, and string
+  * types to STR64. Throws an error if `stype1` and `stype2` are
+  * incompatible (e.g. a string and a number).
   */
 static SType _find_types_for_ltgt(
     SType stype1, SType stype2, SType* uptype1, SType* uptype2,
     const char* name)
 {
   SType stype0 = _find_common_stype(stype1, stype2);
-  if (stype0 == SType::INVALID || stype0 == SType::STR32 ||
-      stype0 == SType::STR64)
-  {
+  if (stype0 == SType::INVALID) {
     throw TypeError() << "Operator `" << name << "` cannot be applied to "
         "columns with types `" << stype1 << "` and `" << stype2 << "`";
   }
@@ -95,8 +94,13 @@ static SType _find_types_for_ltgt(
       stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
-  *uptype1 = (stype1 == stype0)? SType::VOID : stype0;
-  *uptype2 = (stype2 == stype0)? SType::VOID : stype0;
+  if (stype0 == SType::STR32) stype0 = SType::STR64;
+  if (stype0 == SType::STR64) {
+    *uptype1 = *uptype2 = SType::VOID;
+  } else {
+    *uptype1 = (stype1 == stype0)? SType::VOID : stype0;
+    *uptype2 = (stype2 == stype0)? SType::VOID : stype0;
+  }
   return stype0;
 }
 
@@ -212,6 +216,7 @@ bimaker_ptr resolve_op_lt(SType stype1, SType stype2)
     case SType::INT64:   return _lt<int64_t>(uptype1, uptype2);
     case SType::FLOAT32: return _lt<float>(uptype1, uptype2);
     case SType::FLOAT64: return _lt<double>(uptype1, uptype2);
+    case SType::STR64:   return _lt<CString>(uptype1, uptype2);
     default:             return bimaker_ptr();
   }
 }
@@ -246,6 +251,7 @@ bimaker_ptr resolve_op_gt(SType stype1, SType stype2)
     case SType::INT64:   return _gt<int64_t>(uptype1, uptype2);
     case SType::FLOAT32: return _gt<float>(uptype1, uptype2);
     case SType::FLOAT64: return _gt<double>(uptype1, uptype2);
+    case SType::STR64:   return _gt<CString>(uptype1, uptype2);
     default:             return bimaker_ptr();
   }
 }
@@ -280,6 +286,7 @@ bimaker_ptr resolve_op_le(SType stype1, SType stype2)
     case SType::INT64:   return _le<int64_t>(uptype1, uptype2);
     case SType::FLOAT32: return _le<float>(uptype1, uptype2);
     case SType::FLOAT64: return _le<double>(uptype1, uptype2);
+    case SType::STR64:   return _le<CString>(uptype1, uptype2);
     default:             return bimaker_ptr();
   }
 }
@@ -314,6 +321,7 @@ bimaker_ptr resolve_op_ge(SType stype1, SType stype2)
     case SType::INT64:   return _ge<int64_t>(uptype1, uptype2);
     case SType::FLOAT32: return _ge<float>(uptype1, uptype2);
     case SType::FLOAT64: return _ge<double>(uptype1, uptype2);
+    case SType::STR64:   return _ge<CString>(uptype1, uptype2);
     default:             return bimaker_ptr();
   }
 }

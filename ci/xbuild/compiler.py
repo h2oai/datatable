@@ -66,7 +66,7 @@ class Compiler:
     def executable(self, value):
         assert isinstance(value, str)
         self._executable = value
-        self._flavor = "msvc" if "cl.exe" in value else \
+        self._flavor = "msvc" if "msvc" in value else \
                        "clang" if "clang" in value else \
                        "gcc" if "gcc" in value or "g++" in value else \
                        "unknown"
@@ -142,33 +142,17 @@ class Compiler:
                 return
 
             if sys.platform == "win32":
-                msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\"
-                bin_path = "\\bin\\Hostx64\\x64\\"
-                compiler_versions = next(os.walk(msvc_path))[1]
-
-                candidates = []
-                for cl_version in compiler_versions:
-                    path = msvc_path + cl_version + bin_path
-                    candidates += [{"compiler": path + "cl.exe", "linker": path + "link.exe"}]
-
+                candidates = ["cl.exe", "clang.exe", "gcc.exe"]
             elif sys.platform == "darwin":
-                candidates = [
-                    {"compiler": "/usr/local/opt/llvm/bin/clang"},
-                    {"compiler": "clang"}
-                ]
+                candidates = ["/usr/local/opt/llvm/bin/clang", "clang"]
             else:
-                candidates = [
-                    {"compiler": "gcc"},
-                    {"compiler": "/usr/local/opt/llvm/bin/clang"},
-                    {"compiler": "clang"},
-                    {"compiler": "cc"},
-                ]
+                candidates = ["gcc", "/usr/local/opt/llvm/bin/clang",
+                              "clang", "cc"]
 
-            for candidate in candidates:
-                if self._check_compiler(candidate["compiler"], srcname, outname):
-                    self.executable = candidate["compiler"]
-                    self.linker = candidate["linker"] if "linker" in candidate else candidate["compiler"]
-                    self.log.report_compiler_executable(candidate["compiler"])
+            for cc in candidates:
+                if self._check_compiler(cc, srcname, outname):
+                    self.executable = cc
+                    self.log.report_compiler_executable(cc)
                     return
 
             raise RuntimeError("Suitable C++ compiler cannot be determined. "
@@ -298,7 +282,7 @@ class Compiler:
 
 
     def get_link_command(self, sources, target):
-        cmd = [self.linker]
+        cmd = [self.executable]
         cmd += sources
         if self.is_msvc():
             cmd += ["/OUT:" + target]
