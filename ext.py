@@ -30,7 +30,6 @@
 #     Description of standard version formats.
 #
 #-------------------------------------------------------------------------------
-import getpass
 import glob
 import os
 import platform
@@ -124,9 +123,10 @@ def get_datatable_version(mode=None):
         version += "+"
         if mode:
             version += mode + "."
-        version += str(int(time.time())) + "."
-        user = re.sub(r"[^a-zA-Z0-9]+", "", getpass.getuser())
-        version += user
+        version += str(int(time.time()))
+        user = _get_user()
+        if user:
+            version += "." + user
         return version
 
 
@@ -137,6 +137,15 @@ def _get_version_txt(mode):
     with open("VERSION.txt", "r") as f:
         return f.read().strip()
 
+
+def _get_user():
+    import getpass
+    try:
+        user = getpass.getuser()
+        return re.sub(r"[^a-zA-Z0-9]+", "", user)
+    except KeyError:
+        # An exception may be raised if the user is not in /etc/passwd file
+        return ""
 
 
 
