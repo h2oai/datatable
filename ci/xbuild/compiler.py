@@ -143,13 +143,13 @@ class Compiler:
 
             if sys.platform == "win32":
                 msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\"
-                bin_path = "\\bin\\Hostx64\\x64\\"
                 compiler_versions = next(os.walk(msvc_path))[1]
 
                 candidates = []
                 for cl_version in compiler_versions:
-                    path = msvc_path + cl_version + bin_path
-                    candidates += [{"compiler": path + "cl.exe", "linker": path + "link.exe"}]
+                    path =  msvc_path + cl_version
+                    bin_path = path + "\\bin\\Hostx64\\x64\\"
+                    candidates += [{"compiler": bin_path + "cl.exe", "linker": bin_path + "link.exe", "path" : path}]
 
             elif sys.platform == "darwin":
                 candidates = [
@@ -168,6 +168,7 @@ class Compiler:
                 if self._check_compiler(candidate["compiler"], srcname, outname):
                     self.executable = candidate["compiler"]
                     self.linker = candidate["linker"] if "linker" in candidate else candidate["compiler"]
+                    self.path = candidate["path"] if "path" in candidate else ""
                     self.log.report_compiler_executable(candidate["compiler"])
                     return
 
