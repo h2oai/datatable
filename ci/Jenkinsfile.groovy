@@ -124,7 +124,7 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
                         def scmEnv = checkout scm
-                        env.DTBL_GIT_HASH = scmEnv.GIT_COMMIT
+                        // env.DTBL_GIT_HASH = scmEnv.GIT_COMMIT
                         env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '-')
 
                         if (doPPC()) {
@@ -140,10 +140,12 @@ ansiColor('xterm') {
                         if (isRelease()) {
                             env.DT_RELEASE = 'True'
                         }
-                        // if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
-                        //     CI_VERSION_SUFFIX = "${env.BRANCH_NAME.replaceAll('(/|_|\\ )', '-')}${CI_VERSION_SUFFIX.split('_').last()}"
-                        // }
-                        env.DT_BUILD_NUMBER = env.BUILD_ID
+                        else if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
+                            env.DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + env.BUILD_ID
+                        }
+                        else {
+                            env.DT_BUILD_NUMBER = env.BUILD_ID
+                        }
 
                         needsLargerTest = isModified("c/(read|csv)/.*")
                         if (needsLargerTest) {

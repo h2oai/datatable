@@ -59,7 +59,7 @@ def is_source_distribution():
 #     XX.YY.ZZ
 #
 # In all other cases, the file is expected to contain the main
-# version + suffix "a", "b" or "rc":
+# version + optional suffix "a", "b" or "rc":
 #
 #     XX.YY.ZZ[a|b|rc]
 #
@@ -73,14 +73,17 @@ def is_source_distribution():
 # - In release mode (env.variable DT_RELEASE is set), the final
 #   release is the same as the content of VERSION.txt;
 #
-# - In development mode (ev.variable DT_BUILD_NUMBER is present),
-#   the version is equal to `VERSION.txt` `BUILD_NUMBER`;
+# - In PR mode (env.variable DT_BUILD_SUFFIX is present), the final
+#   version is `VERSION.txt` "0+" `DT_BUILD_SUFFIX`
+#
+# - In dev-master mode (env.variable DT_BUILD_NUMBER is present),
+#   the version is equal to `VERSION.txt` BUILD_NUMBER;
 #
 # - When building from source distribution (file VERSION.txt is
 #   absent, the version is taken from datatable/_build_info.py) file;
 #
 # - In all other cases (local build), the final version consists of
-#   of `VERSION.txt` "+" `mode` "." `current_time` "." `username`.
+#   of `VERSION.txt` "0+" [buildmode "."] timestamp ["." username].
 #
 def get_datatable_version(mode=None):
     # In release mode, the version is just the content of VERSION.txt
@@ -92,7 +95,22 @@ def get_datatable_version(mode=None):
                              % version)
         return version
 
-    # In "dev" mode, the DT_BUILD_NUMBER is used
+    # In PR mode, the version is appended with DT_BUILD_SUFFIX
+    if os.environ.get("DT_BUILD_SUFFIX"):
+        version = _get_version_txt("PR")
+        suffix = os.environ.get("DT_BUILD_SUFFIX")
+        mm = re.fullmatch(r"\d+(\.\d+)+(a|b|rc)?", version)
+        if not mm:
+            raise SystemExit("Invalid version `%s` in VERSION.txt when building"
+                             " datatable in PR mode" % version)
+        if not re.fullmatch(r"\w([\w\.]*\w)?", suffix):
+            raise SystemExit("Invalid build suffix `%s` from environment "
+                             "variable DT_BUILD_SUFFIX" % suffix)
+        if not mm.group(2):
+            version += ".a"
+        return version + "0+" + suffix
+
+    # In "master-dev" mode, the DT_BUILD_NUMBER is used
     if os.environ.get("DT_BUILD_NUMBER"):
         version = _get_version_txt("dev")
         build = os.environ.get("DT_BUILD_NUMBER")
