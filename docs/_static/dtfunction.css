@@ -1,9 +1,9 @@
 
-.dt-single-source {
+.dt-function {
     margin-bottom: 18pt;
 }
 
-.dt-single-source h1 {
+.dt-function h1 {
     display: none;
 }
 
@@ -15,7 +15,7 @@
 }
 
 .sig-container a, .sig-container a:visited {
-    color: #68c;
+    color: #7dd;
     font-size: 75%;
 }
 
@@ -50,7 +50,7 @@
 }
 
 .sig-main .sig-open-paren:before {
-    color: #68c;
+    color: #79d;
     content: "(";
 }
 
@@ -58,7 +58,7 @@
     display: inline-block;
 }
 .sig-main .sig-close-paren:before {
-    color: #68c;
+    color: #79d;
     content: ")";
 }
 
@@ -71,7 +71,7 @@
     display: inline-block;
 }
 .sig-parameters .param.self {
-    color: #68c;
+    color: #79d;
 }
 .sig-parameters .param:not(.final):after {
     color: #68c;
@@ -79,7 +79,7 @@
     padding-right: 6pt;
 }
 .sig-parameters .param .default {
-    color: #68c;
+    color: #79d;
     display: inline;
     font-style: normal;
 }

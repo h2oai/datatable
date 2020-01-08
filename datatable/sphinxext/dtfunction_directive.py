@@ -48,7 +48,8 @@ import os
 import re
 from docutils import nodes
 from docutils.parsers.rst import directives
-from docutils.parsers.rst import Directive
+from sphinx import addnodes
+from sphinx.util.docutils import SphinxDirective
 
 project_root = ".."
 github_root = "https://github.com/h2oai/datatable"
@@ -82,7 +83,7 @@ logger = logging.getLogger(__name__)
 # DtobjectDirective
 #-------------------------------------------------------------------------------
 
-class DtobjectDirective(Directive):
+class DtobjectDirective(SphinxDirective):
     """
     Fields used by this class:
 
@@ -104,9 +105,14 @@ class DtobjectDirective(Directive):
     self.parsed_params -- list of parameters of this function; each entry is
                           either the parameter itself (str), or a tuple of
                           strings (parameter, default_value).
+
+    See also:
+        sphinx/directives/__init__.py::ObjectDescription
+        sphinx/domains/python.py::PyObject
     """
     has_content = False
-    optional_arguments = 2
+    required_arguments = 1
+    optional_arguments = 0
     option_spec = {
         "src": directives.unchanged_required,
         "doc": directives.unchanged,
@@ -378,7 +384,24 @@ class DtobjectDirective(Directive):
     #---------------------------------------------------------------------------
 
     def _generate_nodes(self):
-        return self._generate_signature()
+        title_text = self.qualifier + self.obj_name
+        sect = nodes.section(ids=[title_text], classes=["dt-function"])
+        sect += nodes.title("", title_text)
+        sect += self._index_node(title_text)
+        sect += self._generate_signature()
+        return [sect]
+
+
+    def _index_node(self, targetname):
+        text = self.obj_name
+        if self.name == "dtmethod":
+            text += " (%s method)" % self.qualifier[:-1]
+        if self.name == "dtfunction":
+            text += " (%s function)" % self.qualifier[:-1]
+        if self.name == "dtdata":
+            text += " (%s attribute)" % self.qualifier[:-1]
+        inode = addnodes.index(entries=[("single", text, targetname, "", None)])
+        return [inode]
 
 
     def _generate_signature(self):
