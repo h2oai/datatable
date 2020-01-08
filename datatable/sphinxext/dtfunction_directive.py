@@ -216,6 +216,13 @@ class DtobjectDirective(SphinxDirective):
     #---------------------------------------------------------------------------
 
     def _locate_sources(self, filename, funcname, docname):
+        """
+        Locate either the function body or the documentation string or
+        both in the source file `filename`.
+
+        See :meth:`_locate_fn_source` and :meth:`_locate_doc_source`
+        for details.
+        """
         full_filename = os.path.join(self.project_root, filename)
         with open(full_filename, "r", encoding="utf-8") as inp:
             lines = list(inp)
@@ -226,6 +233,14 @@ class DtobjectDirective(SphinxDirective):
 
 
     def _locate_fn_source(self, filename, fnname, lines):
+        """
+        Find the body of the function `fnname` within the `lines` that
+        were read from the file `filename`.
+
+        If successful, this function sets properties
+        `self.src_line_first`, `self.src_line_last`, and
+        `self.src_github_url`.
+        """
         rx_cc_function = re.compile(r"(\s*)"
                                     r"(?:static\s+|inline\s+)*"
                                     r"(?:void|oobj|py::oobj)\s+" +
@@ -268,6 +283,16 @@ class DtobjectDirective(SphinxDirective):
 
 
     def _locate_doc_source(self, filename, docname, lines):
+        """
+        Find the body of the function's docstring within the `lines`
+        of file `filename`. The docstring is expected to be in the
+        `const char* {docname}` variable. An error will be raised if
+        the docstring cannot be found.
+
+        Upon success, this function creates variable `self.doc_text`
+        containing the text of the docstring, and also the property
+        `self.doc_github_url`.
+        """
         rx_cc_docstring = re.compile(r"\s*(?:static\s+)?const\s+char\s*\*\s*" +
                                      docname +
                                      r"\s*=\s*(.*?)\s*")
