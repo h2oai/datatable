@@ -111,11 +111,8 @@ class strvecNP : public NameProvider {
 //------------------------------------------------------------------------------
 namespace py {
 
-static PKArgs args_colindex(
-    1, 0, 0, false, false,
-    {"name"}, "colindex",
 
-R"(colindex(self, name)
+static const char* doc_colindex = R"(colindex(self, name)
 --
 
 Return index of the column ``name``, or raises a `ValueError` if the
@@ -128,7 +125,11 @@ name: str or int
     also be a numeric index, in which case the index is checked that
     it doesn't go out-of-bounds, and negative index is replaced with a
     positive.
-)");
+)";
+
+static PKArgs args_colindex(
+    1, 0, 0, false, false, {"name"}, "colindex", doc_colindex
+);
 
 
 oobj Frame::colindex(const PKArgs& args) {
