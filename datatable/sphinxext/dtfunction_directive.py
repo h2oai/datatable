@@ -43,11 +43,13 @@ This makes several directives available for use in the .rst files:
         :doc: c/frame/cbind.cc::doc_cbind
 
 
+sphinx-build -P -b html . _build/html
 """
 import os
 import re
 from docutils import nodes
 from docutils.parsers.rst import directives
+from docutils.statemachine import StringList
 from sphinx import addnodes
 from sphinx.util.docutils import SphinxDirective
 
@@ -119,6 +121,7 @@ class DtobjectDirective(SphinxDirective):
     }
 
     def run(self):
+        self.objtype = self.name[2:]   # Remove 'dt' prefix
         self._parse_arguments()
         self._parse_option_src()
         self._parse_option_doc()
@@ -324,7 +327,6 @@ class DtobjectDirective(SphinxDirective):
 
     def _parse_parameters(self, sig):
         sig = sig.strip()
-        logger.info("\nParsing signature: %r" % sig)
         i = 0  # Location within the string where we currently parse
         parsed = []
         while i < len(sig):
@@ -347,12 +349,10 @@ class DtobjectDirective(SphinxDirective):
                                  "position %d; already parsed: %r"
                                  % (sig, i, parsed))
         self.parsed_params = parsed
-        logger.info("Result = %r" % (parsed,))
 
 
     def _parse_body(self, body):
         body = body.strip()
-        logger.info("\nParsing body = %r\n" % body)
         parsed = [[]]
         headers = [None]
         last_line = None
@@ -375,7 +375,6 @@ class DtobjectDirective(SphinxDirective):
                 last_line = line
 
         self.parsed_body = list(zip(headers, parsed))
-        logger.info("Result = %r" % (self.parsed_body,))
 
 
 
@@ -386,9 +385,10 @@ class DtobjectDirective(SphinxDirective):
     def _generate_nodes(self):
         title_text = self.qualifier + self.obj_name
         sect = nodes.section(ids=[title_text], classes=["dt-function"])
-        sect += nodes.title("", title_text)
+        sect += nodes.title("", self.obj_name)
         sect += self._index_node(title_text)
-        sect += self._generate_signature()
+        sect += self._generate_signature(title_text)
+        sect += self._generate_body()
         return [sect]
 
 
@@ -404,14 +404,19 @@ class DtobjectDirective(SphinxDirective):
         return [inode]
 
 
-    def _generate_signature(self):
-        sig_node = mydiv_node(classes=["sig-container"])
+    def _generate_signature(self, targetname):
+        sig_node = mydiv_node(classes=["sig-container"], ids=[targetname])
         sig_nodeL = mydiv_node(classes=["sig-body"])
         self._generate_sigbody(sig_nodeL)
         sig_node += sig_nodeL
         sig_nodeR = mydiv_node(classes=["code-links"])
         self._generate_siglinks(sig_nodeR)
         sig_node += sig_nodeR
+
+        # Tell Sphinx that this is a target for `:py:obj:` references
+        self.state.document.note_explicit_target(sig_node)
+        inv = self.env.domaindata["py"]["objects"]
+        inv[targetname] = (self.env.docname, self.objtype)
         return [sig_node]
 
 
@@ -456,6 +461,18 @@ class DtobjectDirective(SphinxDirective):
                     params += p
             params += mydiv_node(classes=["sig-close-paren"])
             node += params
+
+
+    def _generate_body(self):
+        out = mydiv_node(classes=["dt-function-body"])
+        for head, lines in self.parsed_body:
+            if head:
+                lines = [head, "="*len(head), ""] + lines
+            content = StringList(lines)
+            self.state.nested_parse(content, self.content_offset, out,
+                                    match_titles=True)
+        return out
+
 
 
 

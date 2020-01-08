@@ -6,9 +6,15 @@ Frame
     :members:
     :inherited-members:
     :undoc-members:
-    :exclude-members: cbind
+    :exclude-members: cbind, colindex
 
-Test: :meth:`datatable.Frame.cbind`
+
+.. ref-context:: datatable.Frame
+
+Test: :meth:`datatable.Frame.cbind`, :meth:`colindex`
 
 .. toctree::
-	.cbind() <frame/cbind>
+	:glob:
+	:hidden:
+
+	frame/*
