@@ -40,18 +40,23 @@ FTRL Model Parameters
 The FTRL model requires a list of parameters for training and making predictions,
 namely:
 
--  ``alpha`` – learning rate, defaults to ``0.005``.
--  ``beta`` – beta parameter, defaults to ``1.0``.
--  ``lambda1`` – L1 regularization parameter, defaults to ``0.0``.
--  ``lambda2`` – L2 regularization parameter, defaults to ``1.0``.
--  ``nbins`` – the number of bins for the hashing trick, defaults to ``10**6``.
--  ``mantissa_nbits`` – the number of bits from mantissa to be used for hashing, defaults to ``10``.
--  ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
--  ``negative_class`` – whether to create and train on a "negative" class in the case of multinomial classification, defaults to ``False``.
+- ``alpha`` – learning rate, defaults to ``0.005``.
+- ``beta`` – beta parameter, defaults to ``1.0``.
+- ``lambda1`` – L1 regularization parameter, defaults to ``0.0``.
+- ``lambda2`` – L2 regularization parameter, defaults to ``1.0``.
+- ``nbins`` – the number of bins for the hashing trick, defaults to ``10**6``.
+- ``mantissa_nbits`` – the number of bits from mantissa to be used for hashing,
+  defaults to ``10``.
+- ``nepochs`` – the number of epochs to train the model for, defaults to ``1``.
+- ``negative_class`` – whether to create and train on a "negative" class in the
+  case of multinomial classification, defaults to ``False``.
 - ``interactions`` — a list or a tuple of interactions. In turn, each interaction
-should be a list or a tuple of feature names, where each feature name is a column name
-from the training frame. This setting defaults to ``None``.
-- ``model_type`` — training mode that can be one of the following: "``auto``" to automatically set model type based on the target column data, "``binomial``" for binomial classification, "``multinomial``" for multinomial classification or "``regression``" for continuous targets. This setting defaults to "``auto``".
+  should be a list or a tuple of feature names, where each feature name is a
+  column name from the training frame. This setting defaults to ``None``.
+- ``model_type`` — training mode that can be one of the following: "``auto``" to
+  automatically set model type based on the target column data, "``binomial``"
+  for binomial classification, "``multinomial``" for multinomial classification
+  or "``regression``" for continuous targets. Defaults to ``"auto"``.
 
 If some parameters need to be changed from their default values, this can be done either
 when creating the model, as
@@ -91,7 +96,9 @@ not improve. For this the model should be fit as
 
 ::
 
-  res = ftrl_model.fit(X_train, y_train, X_validation, y_validation, nepochs_validation, validation_error, validation_average_niterations)
+  res = ftrl_model.fit(X_train, y_train, X_validation, y_validation,
+                       nepochs_validation, validation_error,
+                       validation_average_niterations)
 
 
 where ``X_train`` and ``y_train`` are training and target frames,

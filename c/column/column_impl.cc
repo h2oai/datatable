@@ -74,6 +74,7 @@ void ColumnImpl::_materialize_fw(Column& out) {
 
   parallel_for_static(
     nrows_,
+    NThreads(this->allow_parallel_access()),
     [=](size_t i) {
       T value;
       bool isvalid = this->get_element(i, &value);

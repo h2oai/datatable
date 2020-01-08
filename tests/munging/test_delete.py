@@ -31,7 +31,7 @@ from tests import assert_equals
 # Not a fixture: create a new datatable each time this function is called
 def smalldt():
     res = dt.Frame([[i] for i in range(16)], names=list("ABCDEFGHIJKLMNOP"))
-    assert res.ltypes == (ltype.bool, ltype.bool) + (ltype.int,) * 14
+    assert res.ltypes == (ltype.int,) * 16
     return res
 
 

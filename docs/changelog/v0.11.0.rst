@@ -1,0 +1,49 @@
+
+.. changelog::
+
+
+  Frame
+  -----
+
+  -[enh] String columns now support comparison operators ``<``, ``>``, ``<=``
+    and ``>=``. [#2274]
+
+
+
+  General
+  -------
+
+  -[fix] Internal function :func:`frame_column_data_r` now works properly with
+    virtual columns. [#2269]
+
+  -[fix] Avoid rare deadlock when creating a frame from pandas DataFrame in
+    a forked process, in the datatable compiled with gcc version before 7.0.
+    [#2272]
+
+  -[fix] Fix rare crash in the interrupt signal handler. [#2282]
+
+
+  FTRL model
+  ----------
+
+  -[enh] ``.nepochs``, the number of epochs to train the model, can now be a
+    float rather than an integer.
+
+
+  Contributors
+  ------------
+
+  This release was made possible via the effort of a number of people, some who
+  contributed code, but also those who helped making the product better by
+  submitting bug reports and new feature requests.
+
+  People who contributed patches and pull requests (PRs):
+
+  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
+  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  -[gh.new] :user:`Bryce Boe <bboe>`
+
+
+  People who contributed with bug reports and feature requests:
+
+  -[gh] :user:`Arno Candel <arnocandel>`

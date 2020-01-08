@@ -24,7 +24,6 @@
 #include <limits>
 #include <memory>
 #include <numeric>
-#include <cmath>
 #include "datatable.h"
 
 template <typename T>
@@ -103,5 +102,14 @@ inline T1 squared_loss(T1 p, T2 y) {
 template <typename T> inline bool _isfinite(T) { return true; }
 template <> inline bool _isfinite(float x) { return std::isfinite(x); }
 template <> inline bool _isfinite(double x) { return std::isfinite(x); }
+
+
+/**
+ * Portable implementation of !std::isnan.
+ */
+template <typename T> inline bool _notnan(T) { return true; }
+template <> inline bool _notnan(float x) { return !std::isnan(x); }
+template <> inline bool _notnan(double x) { return !std::isnan(x); }
+
 
 #endif

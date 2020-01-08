@@ -4,6 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
+import math
 import os
 import pytest
 import random
@@ -120,9 +121,31 @@ def assert_equals(frame1, frame2):
         assert frame1.stypes == frame2.stypes, (
             "The left frame has stypes %r, while the right has stypes %r"
             % (frame1.stypes, frame2.stypes))
-        assert frame1.to_list() == frame2.to_list(), (
-            "The frames have different data:\n"
-            "LHS = %r\nRHS = %r" % (frame1.to_list(), frame2.to_list()))
+        data1 = frame1.to_list()
+        data2 = frame2.to_list()
+        assert len(data1) == len(data2)  # shape check should ensure this
+        for i in range(len(data1)):
+            col1 = data1[i]
+            col2 = data2[i]
+            assert len(col1) == len(col2)
+            for j in range(len(col1)):
+                val1 = col1[j]
+                val2 = col2[j]
+                if val1 == val2: continue
+                if isinstance(val1, float) and isinstance(val2, float):
+                    if math.isclose(val1, val2): continue
+                if len(col1) > 16:
+                    arr1 = repr(col1[:16])[:-1] + ", ...]"
+                    arr2 = repr(col2[:16])[:-1] + ", ...]"
+                else:
+                    arr1 = repr(col1)
+                    arr2 = repr(col2)
+                raise AssertionError(
+                    "The frames have different data in column %d `%s` at "
+                    "index %d: LHS has %r, and RHS has %r\n"
+                    "  LHS = %s\n"
+                    "  RHS = %s\n"
+                    % (i, frame1.names[i], j, val1, val2, arr1, arr2))
     else:
         assert frame1.shape == frame2.shape
         assert same_iterables(frame1.names, frame2.names)

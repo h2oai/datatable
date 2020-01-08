@@ -39,6 +39,34 @@ struct CString {
             (std::strncmp(ch, other.ch, static_cast<size_t>(size)) == 0));
   }
 
+  bool operator<(const CString& other) const {
+    if (ch == other.ch && size == other.size) // Short circuit test
+      return false;
+    size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
+    int comparison = std::strncmp(ch, other.ch, cmpsize);
+    if (comparison != 0)
+      return comparison < 0;
+    return size < other.size;
+  }
+
+  bool operator>(const CString& other) const {
+    if (ch == other.ch && size == other.size) // Short circuit test
+      return false;
+    size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
+    int comparison = std::strncmp(ch, other.ch, cmpsize);
+    if (comparison != 0)
+      return comparison > 0;
+    return size > other.size;
+  }
+
+  bool operator<=(const CString& other) const {
+    return !(*this > other);
+  }
+
+  bool operator>=(const CString& other) const {
+    return !(*this < other);
+  }
+
   std::string to_string() const {
     return std::string(ch, static_cast<size_t>(size));
   }

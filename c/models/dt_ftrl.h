@@ -56,6 +56,8 @@ class Ftrl : public dt::FtrlBase {
     T beta;
     T lambda1;
     T lambda2;
+    T nepochs;
+    size_t: (sizeof(T) % 8) * 8;
 
     // Vector of feature interactions.
     std::vector<intvec> interactions;
@@ -106,9 +108,6 @@ class Ftrl : public dt::FtrlBase {
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
 
-    // Predicting methods
-    template <typename>
-    dtptr predict(const DataTable*);
     template <typename F> T predict_row(const uint64ptr&, tptr<T>&, size_t, F);
     dtptr create_p(size_t);
 
@@ -148,7 +147,7 @@ class Ftrl : public dt::FtrlBase {
                                double, double, size_t) override;
 
     // Main predicting method
-    dtptr dispatch_predict(const DataTable*) override;
+    dtptr predict(const DataTable*) override;
 
     // Model methods
     void reset() override;
@@ -168,7 +167,7 @@ class Ftrl : public dt::FtrlBase {
     double get_lambda2() override;
     uint64_t get_nbins() override;
     unsigned char get_mantissa_nbits() override;
-    size_t get_nepochs() override;
+    double get_nepochs() override;
     const std::vector<intvec>& get_interactions() override;
     bool get_negative_class() override;
     FtrlParams get_params() override;
@@ -185,12 +184,10 @@ class Ftrl : public dt::FtrlBase {
     void set_lambda2(double) override;
     void set_nbins(uint64_t) override;
     void set_mantissa_nbits(unsigned char) override;
-    void set_nepochs(size_t) override;
+    void set_nepochs(double) override;
     void set_interactions(std::vector<intvec>) override;
     void set_negative_class(bool) override;
     void set_labels(const DataTable&) override;
-
-    void test(const T&);
 
     // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();

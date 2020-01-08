@@ -76,11 +76,6 @@ size_t get_hardware_concurrency() noexcept;
 
 
 
-/**
- * Check if the monitor thread is running.
- */
-bool is_monitor_enabled() noexcept;
-
 
 //------------------------------------------------------------------------------
 // Parallel constructs

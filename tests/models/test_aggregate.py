@@ -94,7 +94,7 @@ def test_aggregate_1d_continuous_integer_tiny():
 
 def test_aggregate_1d_continuous_integer_equal():
     n_bins = 2
-    d_in = dt.Frame([0, 0, None, 0, None, 0, 0, 0, 0, 0])
+    d_in = dt.Frame([0, 0, None, 0, None, 0, 0, 0, 0, 0], stype=bool)
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins)
     frame_integrity_check(d_members)

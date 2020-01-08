@@ -194,7 +194,7 @@ def write_build_directories(realhdrs, realsrcs, out):
 
 def get_setup(cmd):
     import subprocess
-    out = subprocess.check_output(["python", "ci/setup_utils.py", cmd])
+    out = subprocess.check_output([sys.executable, "ci/setup_utils.py", cmd])
     out = out.decode()
     return out.strip().replace("$", "\\$")
 

@@ -159,11 +159,12 @@ def get_datatable_version():
             log.info("Appending suffix from CI_VERSION_SUFFIX = " + suffix)
             mm = re.match(r"(?:master|dev)[.+_-]?(\d+)", suffix)
             if mm:
-                suffix = "dev" + str(mm.group(1))
-            version += "." + suffix
+                version += ".dev" + str(mm.group(1))
+            else:
+                log.warn("Invalid CI_VERSION_SUFFIX: `%s`" % suffix)
             log.info("Final version = " + version)
         else:
-            log.info("Environment variable CI_VERSION_SUUFFIX not present")
+            log.info("Environment variable CI_VERSION_SUFFIX not present")
         return version
 
 
@@ -568,9 +569,7 @@ def get_extra_link_args():
         for lib in libs:
             flags += ["-L%s" % lib]
 
-        # link zlib compression library
-        flags += ["-lz"]
-        flags += ["-L" + sysconfig.get_config_var("LIBDIR")]
+        # flags += ["-L" + sysconfig.get_config_var("LIBDIR")]
 
         for flag in flags:
             log.info(flag)

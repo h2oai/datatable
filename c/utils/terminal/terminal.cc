@@ -21,17 +21,22 @@
 //------------------------------------------------------------------------------
 #include <csignal>
 #include <iostream>
-#include <sys/ioctl.h>
 #include "frame/repr/repr_options.h"
 #include "utils/assert.h"
+#include "utils/macros.h"
 #include "utils/terminal/terminal.h"
+
+#if DT_OS_WINDOWS
+  #include <windows.h>
+#else
+  #include <sys/ioctl.h>
+
+  static void sigwinch_handler(int) {
+    dt::Terminal::standard_terminal().forget_window_size();
+  }
+#endif
+
 namespace dt {
-
-static void sigwinch_handler(int) {
-  Terminal::standard_terminal().forget_window_size();
-}
-
-
 
 //------------------------------------------------------------------------------
 // Constructors
@@ -48,8 +53,8 @@ Terminal& Terminal::plain_terminal() {
 }
 
 Terminal::Terminal(bool is_plain) {
-  width_ = is_plain? (1 << 20) : 0;
-  height_ = is_plain? 45 : 0;
+  size_.width = is_plain? (1 << 20) : 0;
+  size_.height = is_plain? 45 : 0;
   allow_unicode_ = true;
   enable_colors_ = !is_plain;
   enable_ecma48_ = !is_plain;
@@ -57,9 +62,16 @@ Terminal::Terminal(bool is_plain) {
   is_jupyter_ = false;
   is_ipython_ = false;
   if (!enable_ecma48_) xassert(!enable_colors_);
-  if (!is_plain) {
-    std::signal(SIGWINCH, sigwinch_handler);
-  }
+
+  // Note: there is no simple way to catch the terminal re-size event
+  // on Windows, because there is no `SIGWINCH` signal there.
+  // For such a reason, on Windows we just re-check the terminal size
+  // everytime the `get_width()` and `get_height()` are called.
+  #if !DT_OS_WINDOWS
+    if (!is_plain) {
+      std::signal(SIGWINCH, sigwinch_handler);
+    }
+  #endif
 }
 
 Terminal::~Terminal() = default;
@@ -142,14 +154,14 @@ bool Terminal::unicode_allowed() const noexcept {
   return allow_unicode_;
 }
 
-int Terminal::get_width() {
-  if (!width_) _detect_window_size();
-  return width_;
-}
 
-int Terminal::get_height() {
-  if (!height_) _detect_window_size();
-  return height_;
+TerminalSize Terminal::get_size() {
+  #if DT_OS_WINDOWS
+    _detect_window_size();
+  #else
+    if (!size_.width || !size_.height) _detect_window_size();
+  #endif
+  return size_;
 }
 
 
@@ -158,26 +170,35 @@ void Terminal::use_colors(bool f) {
 }
 
 void Terminal::forget_window_size() {
-  width_ = 0;
-  height_ = 0;
+  size_.width = 0;
+  size_.height = 0;
 }
 
 void Terminal::_detect_window_size() {
-  struct winsize w;
-  int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-  width_ = w.ws_col;
-  height_ = w.ws_row;
-  if (ret == -1 || width_ == 0) {
-    width_ = 120;
-    height_ = 45;
+  #if DT_OS_WINDOWS
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    int ret = GetConsoleScreenBufferInfo(h, &csbi);
+    bool size_not_detected = (ret == 0);
+    size_.width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    size_.height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+  #else
+    struct winsize w;
+    int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    bool size_not_detected = (ret == -1);
+    size_.width = w.ws_col;
+    size_.height = w.ws_row;
+  #endif
+
+  if (size_not_detected || size_.width == 0) {
+    size_.width = 120;
+    size_.height = 45;
   }
 }
 
 void Terminal::use_unicode(bool f) {
   allow_unicode_ = f;
 }
-
-
 
 
 

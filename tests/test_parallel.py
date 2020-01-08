@@ -22,10 +22,11 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
-import subprocess
-import time
 import itertools
 import pytest
+import subprocess
+import sys
+import time
 from datatable.lib import core
 
 
@@ -169,7 +170,7 @@ def test_progress_interrupt(parallel_type, nthreads):
         cmd += "dt.options.nthreads = %s; " % nthreads
         cmd += "time.sleep(%s);" % sleep_time * 10
 
-    proc = subprocess.Popen(["python", "-c", cmd],
+    proc = subprocess.Popen([sys.executable, "-c", cmd],
                             stdout = subprocess.PIPE,
                             stderr = subprocess.PIPE)
 

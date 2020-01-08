@@ -159,9 +159,6 @@ void thread_pool::enable_monitor(bool a) noexcept {
 }
 
 
-bool thread_pool::is_monitor_enabled() noexcept {
-  return monitor? monitor->get_active() : false;
-}
 
 
 //------------------------------------------------------------------------------
@@ -171,9 +168,6 @@ void enable_monitor(bool a) noexcept {
   thpool->enable_monitor(a);
 }
 
-bool is_monitor_enabled() noexcept {
-  return thpool->is_monitor_enabled();
-}
 
 
 //------------------------------------------------------------------------------

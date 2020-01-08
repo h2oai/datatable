@@ -189,9 +189,10 @@ class GenericReader
 
     void _message(const char* method, const char* format, va_list args) const;
 
-    bool read_empty_input();
-    bool detect_improper_files();
     bool read_csv();
+    bool read_empty_input();
+    bool read_jay();
+    bool detect_improper_files();
 
   //---- Inherited API ----
   protected:

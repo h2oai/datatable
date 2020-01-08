@@ -21,7 +21,7 @@ PLATFORM := $(ARCH)-$(OS)
 DIST_DIR := dist/$(PLATFORM)
 
 .PHONY: all clean mrproper build install uninstall test_install test \
-		benchmark debug bi coverage dist fast
+		asan benchmark debug bi coverage dist fast xcoverage
 
 ifeq ($(MAKECMDGOALS), fast)
 -include ci/fast.mk
@@ -45,7 +45,6 @@ endif
 all:
 	$(MAKE) clean
 	$(MAKE) build
-	$(MAKE) install
 	$(MAKE) test
 
 
@@ -66,10 +65,6 @@ mrproper: clean
 	git clean -f -d -x
 
 
-build:
-	$(PYTHON) setup.py build
-	cp build/lib.*/_datatable.* datatable/lib/
-
 
 install:
 	$(PYTHON) -m pip install . --upgrade --no-cache-dir
@@ -79,8 +74,14 @@ uninstall:
 	$(PYTHON) -m pip uninstall datatable -y
 
 
+extra_install:
+	$(PYTHON) -m pip install -r requirements_extra.txt
+
 test_install:
-	$(PYTHON) -m pip install ${MODULE}[testing] --no-cache-dir
+	$(PYTHON) -m pip install -r requirements_tests.txt
+
+docs_install:
+	$(PYTHON) -m pip install -r requirements_docs.txt
 
 
 test:
@@ -91,62 +92,60 @@ test:
 		--junitxml=build/test-reports/TEST-datatable.xml \
 		tests
 
-
-benchmark:
-	$(PYTHON) -m pytest -ra -x -v benchmarks
-
-
-debug:
-	$(MAKE) clean
-	DTDEBUG=1 \
-	$(MAKE) build
-	$(MAKE) install
-
-
 # In order to run with Address Sanitizer:
 #   $ make asan
 #   $ DYLD_INSERT_LIBRARIES=/usr/local/opt/llvm/lib/clang/7.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib ASAN_OPTIONS=detect_leaks=1 python -m pytest
 #
 asan:
-	$(MAKE) clean
-	DTASAN=1 $(MAKE) fast
+	@$(PYTHON) ext.py asan
 
-bi:
-	$(MAKE) build
-	$(MAKE) install
+build:
+	@$(PYTHON) ext.py build
+
+xcoverage:
+	@$(PYTHON) ext.py coverage
+
+debug:
+	@$(PYTHON) ext.py debug
+
+gitver:
+	@$(PYTHON) ext.py gitver
+
 
 
 coverage:
-	$(eval DTCOVERAGE := 1)
-	$(eval export DTCOVERAGE)
-	$(MAKE) clean
-	$(MAKE) build
-	$(MAKE) install
+	$(PYTHON) -m pip install 'typesentry>=0.2.6' blessed
+	$(MAKE) xcoverage
 	$(MAKE) test_install
-	$(PYTHON) -m pytest -x \
-		--benchmark-skip \
+	$(MAKE) gitver
+	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--cov=datatable --cov-report=html:build/coverage-py \
 		tests
-	$(PYTHON) -m pytest -x \
-		--benchmark-skip \
+	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--cov=datatable --cov-report=xml:build/coverage.xml \
 		tests
 	chmod +x ci/llvm-gcov.sh
-	lcov --gcov-tool ci/llvm-gcov.sh --capture --directory . --no-external --output-file build/coverage.info
+	# Note: running `lcov` we should pass an absolute path to
+	# `ci/llvm-gcov.sh`. The reason is that `lcov` invokes
+	# `geninfo` that is trying to detect the base directory in the
+	# `find_base_from_graph()` routine. This routine fails
+	# for source files that have no function definitions, because
+	# these files are excluded from the file graph,
+	# where `find_base_from_graph()` does the search. Passing
+	# `${CURDIR}/ci/llvm-gcov.sh` to `lcov` fixes the problem.
+	lcov --gcov-tool ${CURDIR}/ci/llvm-gcov.sh --capture --directory . --no-external --output-file build/coverage.info
 	genhtml --legend --output-directory build/coverage-c --demangle-cpp build/coverage.info
 	mv .coverage build/
 
-dist: build
-	$(PYTHON) setup.py bdist_wheel -d $(DIST_DIR)
+dist:
+	@$(PYTHON) ext.py wheel -d $(DIST_DIR)
 
 sdist:
-	$(PYTHON) setup.py sdist
+	@$(PYTHON) ext.py sdist
 
 version:
 	@$(PYTHON) ci/setup_utils.py version
 
-nothing:
-	@echo Nothing
 
 
 #-------------------------------------------------------------------------------
@@ -419,9 +418,6 @@ ubuntu_test_py36_with_numpy_in_docker:
 ubuntu_test_py36_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36 ubuntu_test_in_docker_impl
 
-# Note:  We don't actually need to run mrproper in docker (as root) because
-#        the build step runs as the user.  But keep the API for consistency.
-mrproper_in_docker: mrproper
 
 printvars:
 	@echo PLATFORM=$(PLATFORM)

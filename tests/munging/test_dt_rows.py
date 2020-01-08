@@ -36,8 +36,9 @@ from tests import same_iterables, noop, assert_equals, isview
 @pytest.fixture(name="dt0")
 def _dt0():
     from math import nan
+    T, F = True, False
     return dt.Frame([
-        [0,   1,   1,  None,    0,  0,    1, None,   1,    1],  # bool
+        [F,   T,   T,  None,    F,  F,    T, None,   T,    T],  # bool
         [7, -11,   9, 10000, None,  0,    0,   -1,   1, None],  # int
         [5,   1, 1.3,   0.1,  1e5,  0, -2.6,  -14, nan,    2],  # real
     ], names=["colA", "colB", "colC"])
@@ -404,7 +405,7 @@ def test_rows_multislice_invalid5(dt0):
 #-------------------------------------------------------------------------------
 
 def test_rows_bool_column(dt0):
-    col = dt.Frame([1, 0, 1, 1, None, 0, None, 1, 1, 0])
+    col = dt.Frame([1, 0, 1, 1, None, 0, None, 1, 1, 0], stype=bool)
     dt1 = dt0[col, :]
     frame_integrity_check(dt1)
     assert dt1.shape == (5, 3)
@@ -416,7 +417,7 @@ def test_rows_bool_column(dt0):
 
 def test_rows_bool_column_error(dt0):
     assert_valueerror(
-        dt0, dt.Frame(list(i % 2 for i in range(20))),
+        dt0, dt.Frame(list(bool(i % 2) for i in range(20))),
         "`i` selector has 20 rows, but applied to a Frame with 10 rows")
 
 

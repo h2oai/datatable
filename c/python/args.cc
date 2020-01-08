@@ -229,24 +229,22 @@ const char* PKArgs::get_arg_short_name(size_t i) const {
 
 
 size_t PKArgs::_find_kwd(PyObject* kwd) {
-  try {
-    return kwd_map.at(kwd);
-  } catch (const std::out_of_range&) {
-    size_t i = 0;
-    for (const char* name : arg_names) {
-      if (PyUnicode_CompareWithASCIIString(kwd, name) == 0) {
-        // We store the reference to `kwd` and increase its refcount, making
-        // `kwd` effectively immortal. Usually this shouldn't matter -- strings
-        // that are used as keyword are normally static in the program. However
-        // in the extremely rare cases when the keywords are dynamic, we don't
-        // want a PyObject* to be gc-ed, then re-created with the content of
-        // another string while `kwd_map` would still map it to the original
-        // index...
-        Py_INCREF(kwd);
-        kwd_map[kwd] = i;
-        return i;
-      }
-      ++i;
+  auto item = kwd_map.find(kwd);
+  if (item != kwd_map.end()) {
+    return item->second;
+  }
+  for (size_t i = 0; i < arg_names.size(); ++i) {
+    if (PyUnicode_CompareWithASCIIString(kwd, arg_names[i]) == 0) {
+      // We store the reference to `kwd` and increase its refcount, making
+      // `kwd` effectively immortal. Usually this shouldn't matter -- strings
+      // that are used as keyword are normally static in the program. However
+      // in the extremely rare cases when the keywords are dynamic, we don't
+      // want a PyObject* to be gc-ed, then re-created with the content of
+      // another string while `kwd_map` would still map it to the original
+      // index...
+      Py_INCREF(kwd);
+      kwd_map[kwd] = i;
+      return i;
     }
   }
   return size_t(-1);

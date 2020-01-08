@@ -93,14 +93,20 @@ static void check_jay_signature(const uint8_t* sof, size_t size) {
 
   if (std::memcmp(sof, "JAY", 3) != 0) {
     // Note: non-printable chars will be properly escaped by `operator<<`
-    throw IOError() << "Invalid signature for a Jay file: first 3 bytes are `"
-        << sof[0] << sof[1] << sof[2] << "`";
+    throw IOError() << "Invalid signature for a Jay file: first 4 bytes are `"
+        << static_cast<char>(sof[0])
+        << static_cast<char>(sof[1])
+        << static_cast<char>(sof[2])
+        << static_cast<char>(sof[3]) << "`";
   }
   if (std::memcmp(eof - 3, "JAY", 3) != 0 &&
       std::memcmp(eof - 4, "JAY1", 4) != 0)
   {
-    throw IOError() << "Invalid signature for a Jay file: last 3 bytes are `"
-        << eof[-3] << eof[-2] << eof[-1] << "`";
+    throw IOError() << "Invalid signature for a Jay file: last 4 bytes are `"
+        << static_cast<char>(eof[-4])
+        << static_cast<char>(eof[-3])
+        << static_cast<char>(eof[-2])
+        << static_cast<char>(eof[-1]) << "`";
   }
 
   if (std::memcmp(sof, "JAY1\0\0\0\0", 8) != 0) {

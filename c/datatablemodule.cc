@@ -105,9 +105,10 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
 
   auto u = _unpack_frame_column_args(args);
   DataTable* dt = u.first;
-  size_t col = u.second;
-  size_t iptr = reinterpret_cast<size_t>(
-                    dt->get_column(col).get_data_readonly());
+  size_t col_index = u.second;
+  Column& col = dt->get_column(col_index);
+  col.materialize();  // Needed for getting the column's data buffer
+  size_t iptr = reinterpret_cast<size_t>(col.get_data_readonly());
   return c_void_p.call({py::oint(iptr)});
 }
 
@@ -138,7 +139,7 @@ static py::PKArgs args_in_debug_mode(
     "Return True if datatable was compiled in debug mode");
 
 static py::oobj in_debug_mode(const py::PKArgs&) {
-  #ifdef DTDEBUG
+  #if DTDEBUG
     return py::True();
   #else
     return py::False();
@@ -375,36 +376,41 @@ void py::DatatableModule::init_methods() {
 }
 
 
-/* Called when Python program imports the module */
-PyMODINIT_FUNC PyInit__datatable() noexcept
-{
-  static py::DatatableModule dtmod;
-  PyObject* m = nullptr;
+extern "C" {
 
-  try {
-    init_exceptions();
+  /* Called when Python program imports the module */
+  PyMODINIT_FUNC PyInit__datatable() noexcept
+  {
+    static py::DatatableModule dtmod;
+    PyObject* m = nullptr;
 
-    m = dtmod.init();
+    try {
+      init_exceptions();
 
-    // Initialize submodules
-    if (!init_py_encodings(m)) return nullptr;
+      m = dtmod.init();
 
-    init_types();
-    dt::expr::Head_Func::init();
+      // Initialize submodules
+      if (!init_py_encodings(m)) return nullptr;
+      dt::Terminal::standard_terminal().initialize();
 
-    py::Frame::init_type(m);
-    py::Ftrl::init_type(m);
-    dt::init_config_option(m);
-    py::oby::init(m);
-    py::ojoin::init(m);
-    py::osort::init(m);
-    py::oupdate::init(m);
-    dt::Terminal::standard_terminal().initialize();
+      init_types();
+      dt::expr::Head_Func::init();
 
-  } catch (const std::exception& e) {
-    exception_to_python(e);
-    m = nullptr;
+      py::Frame::init_type(m);
+      py::Ftrl::init_type(m);
+      dt::init_config_option(m);
+      py::oby::init(m);
+      py::ojoin::init(m);
+      py::osort::init(m);
+      py::oupdate::init(m);
+
+    } catch (const std::exception& e) {
+      exception_to_python(e);
+      m = nullptr;
+    }
+
+    return m;
   }
 
-  return m;
-}
+} // extern "C"
+
