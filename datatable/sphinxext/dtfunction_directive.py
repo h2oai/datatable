@@ -42,8 +42,6 @@ This makes several directives available for use in the .rst files:
         :src: c/frame/cbind.cc::Frame::cbind
         :doc: c/frame/cbind.cc::doc_cbind
 
-
-sphinx-build -P -b html . _build/html
 """
 import os
 import re
@@ -52,11 +50,9 @@ from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
 from sphinx import addnodes
 from sphinx.util.docutils import SphinxDirective
+from sphinx.util import logging
 
-project_root = ".."
-github_root = "https://github.com/h2oai/datatable"
-github_commit = "94decf5738e99941a709bfe33ae8aca2c943f35e"
-module_name = "datatable"
+logger = logging.getLogger(__name__)
 
 rx_cc_id = re.compile(r"(?:\w+::)*\w+")
 rx_py_id = re.compile(r"(?:\w+\.)*\w+")
@@ -68,17 +64,10 @@ rx_param = re.compile(r"(?:"
                       r")\s*(?:,\s*|$)")
 rx_header = re.compile(r"(\-+)\s*$")
 
-
-def file_ok(filename):
-    return os.path.isfile(os.path.join(project_root, filename))
-
-def src_permalink(filename, line1, line2):
-    return ("%s/blob/%s/%s#L%d-L%d"
-            % (github_root, github_commit, filename, line1, line2))
-
-
-from sphinx.util import logging
-logger = logging.getLogger(__name__)
+# Build with pdb on exceptions:
+#
+#     sphinx-build -P -b html . _build/html
+#
 
 
 #-------------------------------------------------------------------------------
@@ -115,13 +104,14 @@ class DtobjectDirective(SphinxDirective):
     has_content = False
     required_arguments = 1
     optional_arguments = 0
+    final_argument_whitespace = False
     option_spec = {
         "src": directives.unchanged_required,
         "doc": directives.unchanged,
     }
 
     def run(self):
-        self.objtype = self.name[2:]   # Remove 'dt' prefix
+        self._parse_config()
         self._parse_arguments()
         self._parse_option_src()
         self._parse_option_doc()
@@ -134,15 +124,26 @@ class DtobjectDirective(SphinxDirective):
         self._parse_docstring()
         return self._generate_nodes()
 
+
     #---------------------------------------------------------------------------
     # Initialization: parse input options
     #---------------------------------------------------------------------------
 
+    def _parse_config(self):
+        self.module_name = self.env.config.xf_module_name
+        self.project_root = self.env.config.xf_project_root
+        self.permalink = self.env.config.xf_permalink_fn
+        assert isinstance(self.module_name, str)
+        assert isinstance(self.project_root, str)
+        assert self.permalink is None or callable(self.permalink)
+
+
     def _parse_arguments(self):
-        if len(self.arguments) != 1:
-            raise self.error("Invalid %s directive: it requires a single "
-                             "argument which is the name of the object being "
-                             "documented" % self.name)
+        """
+        Process `self.arguments`, verify their validity, and extract fields
+        `self.obj_name` and `self.qualifier`.
+        """
+        assert len(self.arguments) == 1  # checked from required_arguments field
         fullname = self.arguments[0].strip()
         if not re.fullmatch(rx_py_id, fullname):
             raise self.error("Invalid argument to %s directive: must be a "
@@ -151,22 +152,26 @@ class DtobjectDirective(SphinxDirective):
         parts = fullname.rsplit('.', maxsplit=1)
         if len(parts) == 1:
             self.obj_name = parts[0]
-            self.qualifier = module_name + '.'
+            self.qualifier = self.module_name + '.'
         else:
             self.obj_name = parts[1]
-            if parts[0].startswith(module_name):
+            if parts[0].startswith(self.module_name):
                 self.qualifier = parts[0] + '.'
             else:
-                self.qualifier = module_name + '.' + parts[0] + '.'
+                self.qualifier = self.module_name + '.' + parts[0] + '.'
 
 
     def _parse_option_src(self):
+        """
+        Process the required option `:src:`, and extract fields
+        `self.src_file` and `self.src_fnname`.
+        """
         src = self.options["src"].strip()
         parts = src.split()
         if len(parts) != 2:
             raise self.error("Invalid :src: option: it must have form "
                              "'filename fnname'")
-        if not file_ok(parts[0]):
+        if not os.path.isfile(os.path.join(self.project_root, parts[0])):
             raise self.error("Invalid :src: option: file `%s` does not exist"
                              % parts[0])
         if not re.fullmatch(rx_cc_id, parts[1]):
@@ -177,12 +182,17 @@ class DtobjectDirective(SphinxDirective):
 
 
     def _parse_option_doc(self):
+        """
+        Process the nonmandatory option `:doc:`, and extract fields
+        `self.doc_file` and `self.doc_var`. If the option is not
+        provided, the fields are set to their default values.
+        """
         doc = self.options.get("doc", "").strip()
         parts = doc.split()
 
         if len(parts) == 0:
             self.doc_file = self.src_file
-        elif file_ok(parts[0]):
+        elif os.path.isfile(os.path.join(self.project_root, parts[0])):
             self.doc_file = parts[0]
         else:
             raise self.error("Invalid :doc: option: file `%s` does not exist"
@@ -205,12 +215,12 @@ class DtobjectDirective(SphinxDirective):
     # Processing: retrieve docstring / function source
     #---------------------------------------------------------------------------
 
-    def _locate_sources(self, filename, fnname, docname):
-        full_filename = os.path.join(project_root, filename)
+    def _locate_sources(self, filename, funcname, docname):
+        full_filename = os.path.join(self.project_root, filename)
         with open(full_filename, "r", encoding="utf-8") as inp:
             lines = list(inp)
-        if fnname:
-            self._locate_fn_source(filename, fnname, lines)
+        if funcname:
+            self._locate_fn_source(filename, funcname, lines)
         if docname:
             self._locate_doc_source(filename, docname, lines)
 
@@ -252,7 +262,9 @@ class DtobjectDirective(SphinxDirective):
 
         self.src_line_first = start_line
         self.src_line_last = finish_line
-        self.src_github_url = src_permalink(filename, start_line, finish_line)
+        if self.permalink:
+            self.src_github_url = self.permalink(filename, start_line,
+                                                 finish_line)
 
 
     def _locate_doc_source(self, filename, docname, lines):
@@ -302,7 +314,10 @@ class DtobjectDirective(SphinxDirective):
                              % (docname, filename, start_line))
 
         self.doc_text = doc_text.strip()
-        self.doc_github_url = src_permalink(filename, start_line, finish_line)
+        if self.permalink:
+            self.doc_github_url = self.permalink(filename, start_line,
+                                                 finish_line)
+
 
 
     #---------------------------------------------------------------------------
@@ -416,7 +431,7 @@ class DtobjectDirective(SphinxDirective):
         # Tell Sphinx that this is a target for `:py:obj:` references
         self.state.document.note_explicit_target(sig_node)
         inv = self.env.domaindata["py"]["objects"]
-        inv[targetname] = (self.env.docname, self.objtype)
+        inv[targetname] = (self.env.docname, self.name[2:])
         return [sig_node]
 
 
@@ -517,6 +532,9 @@ def depart_a(self, node):
 #-------------------------------------------------------------------------------
 
 def setup(app):
+    app.add_config_value("xf_module_name", None, "env")
+    app.add_config_value("xf_project_root", "..", "env")
+    app.add_config_value("xf_permalink_fn", None, "env")
     app.add_css_file("dtfunction.css")
     app.add_js_file("https://use.fontawesome.com/0f455d5fb2.js")
     app.add_directive("dtdata", DtobjectDirective)
