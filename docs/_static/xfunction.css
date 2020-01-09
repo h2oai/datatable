@@ -19,13 +19,13 @@
     padding: 1pt 5pt 3pt 6pt;
 }
 
-.x-function .sig-container a,
-.x-function .sig-container a:visited {
+.x-function .sig-container .sig-qualifier a,
+.x-function .sig-container .sig-qualifier a:visited {
     color: #7dd;
     font-size: 75%;
 }
 
-.x-function .sig-container a:hover {
+.x-function .sig-container .sig-qualifier a:hover {
     color: white;
 }
 
@@ -73,8 +73,14 @@
     flex: 1;
 }
 .x-function .sig-parameters .param {
-    color: #dff;
     display: inline-block;
+}
+.x-function .sig-parameters .param a,
+.x-function .sig-parameters .param a:visited {
+    color: #dff;
+}
+.x-function .sig-parameters .param a:hover {
+    color: #fff;
 }
 .x-function .sig-parameters .param.self,
 .x-function .sig-parameters .param.special {

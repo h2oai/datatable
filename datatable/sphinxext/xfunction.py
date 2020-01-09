@@ -563,13 +563,15 @@ class XobjectDirective(SphinxDirective):
                 if param == "*" or param == "/": classes += ["special"]
                 if i == last_i: classes += ["final"]
                 if isinstance(param, str):
-                    p = mydiv_node(classes=classes)
-                    p += nodes.Text(param)
-                    params += p
+                    if param in ["self", "*", "/"]:
+                        ref = nodes.Text(param)
+                    else:
+                        ref = a_node(text=param, href="#" + param)
+                    params += mydiv_node("", ref, classes=classes)
                 else:
                     assert isinstance(param, tuple)
-                    p = mydiv_node(classes=classes)
-                    p += nodes.Text(param[0])
+                    ref = a_node(text=param[0], href="#" + param[0])
+                    p = mydiv_node("", ref, classes=classes)
                     deflt = mydiv_node(classes=["default"])
                     deflt += nodes.Text(param[1])
                     p += deflt
@@ -605,11 +607,12 @@ class XparamDirective(SphinxDirective):
         self._parse_arguments()
         root = mydiv_node(classes=["xparam-box"])
         head = mydiv_node(classes=["xparam-head"])
-        param_node = mydiv_node(classes=["param"])
         if re.fullmatch(rx_return, self.param):
-            param_node.set_class("return")
+            param_node = mydiv_node(classes=["param", "return"], ids=["return"])
             param_node += nodes.Text("(return)")
         else:
+            id0 = self.param.strip("*/")
+            param_node = mydiv_node(classes=["param"], ids=[id0])
             param_node += nodes.Text(self.param)
         head += param_node
         types_node = mydiv_node(classes=["types"])
