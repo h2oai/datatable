@@ -57,19 +57,19 @@ path: str
     will be returned.
 
 quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
-    csv.QUOTE_MINIMAL (0)
+    `csv.QUOTE_MINIMAL`
         quote the string fields only as necessary, i.e. if the string
         starts or ends with the whitespace, or contains quote
         characters, separator, or any of the C0 control characters
         (including newlines, etc).
 
-    csv.QUOTE_ALL (1)
+    `csv.QUOTE_ALL`
         all fields will be quoted, both string, numeric, and boolean.
 
-    csv.QUOTE_NONNUMERIC (2)
+    `csv.QUOTE_NONNUMERIC`
         all string fields will be quoted.
 
-    csv.QUOTE_NONE (3)
+    `csv.QUOTE_NONE`
         none of the fields will be quoted. This option must be used
         at user's own risk: the file produced may not be valid CSV.
 
@@ -109,14 +109,13 @@ _strategy: "mmap" | "write" | "auto"
     gives a better performance; on other OSes 'mmap' may not work at
     all.
 
-Returns
--------
-None if `path` is non-empty. This is the most common case: the output
-is written to the file provided.
+(return): str | None
+    None if `path` is non-empty. This is the most common case: the
+    output is written to the file provided.
 
-String containing the CSV text as if it would have been written to a
-file, if the path is empty or None. If the compression is turned on,
-a bytes object will be returned instead.
+    String containing the CSV text as if it would have been written
+    to a file, if the path is empty or None. If the compression is
+    turned on, a bytes object will be returned instead.
 )";
 
 static PKArgs args_to_csv(

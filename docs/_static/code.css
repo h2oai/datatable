@@ -195,6 +195,10 @@ div.document div.output-cell .highlight pre {
 
 /* ------- Miscellaneous ---------------------------------------------------- */
 
+html {
+  font-size: 11pt;
+}
+
 div[role=navigation] hr {
   visibility: hidden;
 }
@@ -207,4 +211,8 @@ h1 {
 h2 {
   font-family: inherit;
   margin-top: 30pt;
+}
+
+p {
+  font-size: 100%;
 }

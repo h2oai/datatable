@@ -63,6 +63,7 @@ rx_param = re.compile(r"(?:"
                       r"|([\*/]|\*\*?\w+)"
                       r")\s*(?:,\s*|$)")
 rx_header = re.compile(r"(\-{3,})\s*")
+rx_return = re.compile(r"[\[\(]?returns?[\]\)]?")
 
 # Build with pdb on exceptions:
 #
@@ -427,6 +428,8 @@ class XobjectDirective(SphinxDirective):
         self.parsed_body = self._split_into_sections(body)
         for header, section in self.parsed_body:
             self._transform_codeblocks(section)
+            if header == "Parameters":
+                self._transform_parameters(section)
 
 
     def _split_into_sections(self, body):
@@ -470,6 +473,15 @@ class XobjectDirective(SphinxDirective):
             if '`' in line:
                 lines[i] = re.sub(rx_codeblock, replacefn, line)
 
+
+    def _transform_parameters(self, lines):
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if line and line[0] != " ":
+                lines[i] = ".. xparam:: " + line
+                lines.insert(i + 1, "")
+            i += 1
 
 
 
@@ -583,19 +595,21 @@ class XparamDirective(SphinxDirective):
     final_argument_whitespace = True
 
     def run(self):
-        import pdb
         self._parse_arguments()
         root = mydiv_node(classes=["xparam-box"])
         head = mydiv_node(classes=["xparam-head"])
         param_node = mydiv_node(classes=["param"])
-        param_node += nodes.Text(self.param)
+        if re.fullmatch(rx_return, self.param):
+            param_node.set_class("return")
+            param_node += nodes.Text("(return)")
+        else:
+            param_node += nodes.Text(self.param)
         head += param_node
         types_node = mydiv_node(classes=["types"])
         types_str = " | ".join("``%s``" % p for p in self.types)
         self.state.nested_parse(StringList([types_str]), self.content_offset,
                                 types_node)
         assert isinstance(types_node[0], nodes.paragraph)
-        # pdb.set_trace()
         types_node.children = types_node[0].children
         head += types_node
         root += head

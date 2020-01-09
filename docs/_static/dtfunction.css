@@ -116,13 +116,27 @@
 }
 
 
+.rst-content .dt-function-body dl.simple dt {
+    background: none;
+    border: none;
+    color: #000;
+    margin: 6pt 0 0 0;
+    padding: 0;
+}
+
+
+
 /*------------------------------------------------------------------------------
  * xparam
  *-----------------------------------------------------------------------------*/
 
-.xparam-box {}
+.xparam-box {
+    margin-bottom: 16pt;
+}
 
 .xparam-head {
+    align-items: baseline;
+    background: #f2f2f2;
     display: flex;
 }
 
@@ -132,11 +146,19 @@
     color: #d7ffff;
     display: inline-block;
     font-family: "SF Mono", Menlo, monospace;
-    padding: 1px 4px;
+    font-size: 85%;
+    padding: 2px 4px;
+}
+
+.xparam-head .param.return {
+    background-color: #000;
+    color: #FFF;
 }
 
 .xparam-head .types {
-    margin-left: 10px;
+    color: #ddd;  /* affects only the separators */
+    line-height: 14px;
+    padding: 2px 10px;
 }
 
 .xparam-body {
