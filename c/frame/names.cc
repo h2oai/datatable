@@ -115,7 +115,7 @@ namespace py {
 static const char* doc_colindex = R"(colindex(self, name)
 --
 
-Return index of the column ``name``, or raises a `ValueError` if the
+Return index of the column `name`, or raises a `ValueError` if the
 requested column does not exist.
 
 Parameters

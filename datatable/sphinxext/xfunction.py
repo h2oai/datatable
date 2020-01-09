@@ -459,7 +459,7 @@ class XobjectDirective(SphinxDirective):
 
 
     def _transform_codeblocks(self, lines):
-        fnparams = [p if isinstance(p, str) else p[0]
+        fnparams = [(p if isinstance(p, str) else p[0]).lstrip('*')
                     for p in self.parsed_params]
         rx_codeblock = re.compile(
             r"``([^`]+)``|"
@@ -610,14 +610,14 @@ class XparamDirective(SphinxDirective):
 
     def run(self):
         self._parse_arguments()
-        root = mydiv_node(classes=["xparam-box"])
+        id0 = self.param.strip("*/()[]")
+        root = mydiv_node(classes=["xparam-box"], ids=[id0])
         head = mydiv_node(classes=["xparam-head"])
-        if re.fullmatch(rx_return, self.param):
-            param_node = mydiv_node(classes=["param", "return"], ids=["return"])
+        if id0 == "return":
+            param_node = mydiv_node(classes=["param", "return"])
             param_node += nodes.Text("(return)")
         else:
-            id0 = self.param.strip("*/")
-            param_node = mydiv_node(classes=["param"], ids=[id0])
+            param_node = mydiv_node(classes=["param"])
             param_node += nodes.Text(self.param)
         head += param_node
         types_node = mydiv_node(classes=["types"])

@@ -9,10 +9,6 @@ Frame
     :exclude-members: cbind, colindex, replace, to_csv
 
 
-.. ref-context:: datatable.Frame
-
-Test: :meth:`datatable.Frame.cbind`, :meth:`colindex`, :meth:`replace()`
-
 .. toctree::
 	:glob:
 	:hidden:

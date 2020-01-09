@@ -158,6 +158,11 @@
     margin-bottom: 16pt;
 }
 
+.xparam-box:target {
+    outline: 1px dashed #ffdbae;
+    outline-offset: 5px;
+}
+
 .xparam-head {
     align-items: baseline;
     background: #f2f2f2;
