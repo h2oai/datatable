@@ -145,7 +145,8 @@ class Compiler:
                 msvc_default_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\"
                 msvc_path = os.environ.get("DT_MSVC_PATH", msvc_default_path)
                 if not os.path.isdir(msvc_path):
-                    raise ValueError("Microsoft Visual Studio directory %s not found" % msvc_path)
+                    raise ValueError("Microsoft Visual Studio directory %s not found. "
+                                     "Please specify the location in `DT_MSVC_PATH` " % msvc_path)
 
                 compiler_versions = next(os.walk(msvc_default_path))[1]
 
@@ -191,7 +192,9 @@ class Compiler:
         winsdk_default_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
         winsdk_path = os.environ.get("DT_WINSDK_PATH", winsdk_default_path)
         if not os.path.isdir(winsdk_path):
-            raise ValueError("Windows SDK directory %s not found" % msvc_path)
+            raise ValueError("Windows SDK directory %s not found. "
+                             "Please specify the location in `DT_WINSDK_PATH` environment variable." 
+                             % msvc_path)
 
         winsdk_version_dir = next(os.walk(winsdk_default_path + "\\include"))[1][-1] # Use the latest version available
         winsdk_include_path = winsdk_default_path + "\\Include\\" + winsdk_version_dir
