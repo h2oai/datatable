@@ -20,12 +20,15 @@
 }
 
 .x-function .sig-container .sig-qualifier a,
-.x-function .sig-container .sig-qualifier a:visited {
+.x-function .sig-container .sig-qualifier a:visited,
+.x-function .sig-container .code-links a,
+.x-function .sig-container .code-links a:visited {
     color: #7dd;
     font-size: 75%;
 }
 
-.x-function .sig-container .sig-qualifier a:hover {
+.x-function .sig-container .sig-qualifier a:hover,
+.x-function .sig-container .code-links a:hover {
     color: white;
 }
 
@@ -40,8 +43,10 @@
 .x-function .code-links a:after {
     content: "\f08e";
     font-family: "FontAwesome";
-    font-size: 85%;
+    font-size: 70%;
     padding-left: 3px;
+    position: relative;
+    top: -2px;
     -webkit-font-smoothing: antialiased;
 }
 
