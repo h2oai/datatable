@@ -45,7 +45,7 @@ makes it easy to create constant columns, or to append reduction results
 If Frame(s) being appended have different number of rows (with the
 exception of Frames having 1 row), then the operation will fail by
 default. You can force cbinding these Frames anyways by providing option
-`force=True`: this will fill all 'short' Frames with NAs. Thus there is
+`force` `=True`: this will fill all "short" Frames with NAs. Thus there is
 a difference in how Frames with 1 row are treated compared to Frames
 with any other number of rows.
 
