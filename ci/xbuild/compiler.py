@@ -150,6 +150,7 @@ class Compiler:
                     path =  msvc_path + cl_version
                     bin_path = path + "\\bin\\Hostx64\\x64\\"
                     candidates += [{"compiler": bin_path + "cl.exe", "linker": bin_path + "link.exe", "path" : path}]
+                self._detect_windows_kit()
 
             elif sys.platform == "darwin":
                 candidates = [
@@ -181,6 +182,19 @@ class Compiler:
             if outname and os.path.isfile(outname):
                 os.remove(outname)
 
+
+    def _detect_windows_kit(self):
+        winsdk_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
+        if not os.path.isdir(winsdk_path):
+            raise ValueError("Windows Kit directory %s not found" % winsdk_path)
+        winsdk_version_dir = next(os.walk(winsdk_path + "\\include"))[1][-1] # Use the latest version available
+        winsdk_include_path = winsdk_path + "\\Include\\" + winsdk_version_dir
+        winsdk_lib_path = winsdk_path + "\\Lib\\" + winsdk_version_dir
+
+        if not os.path.isdir(winsdk_lib_path):
+            raise ValueError("Windows Kit lib directory %s not found" % winsdk_path)
+        self.winsdk_include_path = winsdk_include_path
+        self.winsdk_lib_path = winsdk_lib_path
 
 
     #---------------------------------------------------------------------------
