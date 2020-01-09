@@ -309,7 +309,11 @@ class td_node(nodes.Element):
             self += nodes.Text(text)
 
 def visit_td(self, node):
-    self.body.append(self.starttag(node, "td", suffix=""))
+    attrs = {}
+    for key in ["rowspan", "colspan"]:
+        if key in node.attributes:
+            attrs[key] = node.attributes[key]
+    self.body.append(self.starttag(node, "td", suffix="", **attrs))
 
 def depart_td(self, node):
     self.body.append("</td>")
@@ -323,7 +327,11 @@ class th_node(nodes.Element):
             self += nodes.Text(text)
 
 def visit_th(self, node):
-    self.body.append(self.starttag(node, "th", suffix=""))
+    attrs = {}
+    for key in ["rowspan", "colspan"]:
+        if key in node.attributes:
+            attrs[key] = node.attributes[key]
+    self.body.append(self.starttag(node, "th", suffix="", **attrs))
 
 def depart_th(self, node):
     self.body.append("</th>")

@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>            // std::max
+#include <cmath>                // std::ceil
 #include "frame/py_frame.h"
 #include "models/dt_ftrl.h"
 #include "parallel/api.h"
@@ -43,6 +44,7 @@ Ftrl<T>::Ftrl(FtrlParams params_in) :
   beta(static_cast<T>(params_in.beta)),
   lambda1(static_cast<T>(params_in.lambda1)),
   lambda2(static_cast<T>(params_in.lambda2)),
+  nepochs(static_cast<T>(params_in.nepochs)),
   nfeatures(0),
   dt_X_train(nullptr),
   dt_y_train(nullptr),
@@ -141,7 +143,7 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
 template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
   dtptr dt_y_train_binomial, dt_y_val_binomial;
-  bool validation = !std::isnan(nepochs_val);
+  bool validation = _notnan(nepochs_val);
   create_y_binomial(dt_y_train, dt_y_train_binomial, label_ids_train);
 
   // NA values are ignored during training, so if we stop training right away,
@@ -310,7 +312,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
 
   FtrlFitOutput res;
 
-  if (!std::isnan(nepochs_val)) {
+  if (_notnan(nepochs_val)) {
     // If we got validation datasets, figure out stype of
     // the validation target column and make an appropriate call to `.fit()`.
     SType stype_y_val = dt_y_val->get_column(0).stype();
@@ -355,7 +357,7 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
 
   // Create validation targets if needed.
   dtptr dt_y_val_multinomial;
-  if (!std::isnan(nepochs_val)) {
+  if (_notnan(nepochs_val)) {
     create_y_multinomial(dt_y_val, dt_y_val_multinomial, label_ids_val, true);
     if (dt_y_val_multinomial == nullptr)
       throw ValueError() << "Cannot set early stopping criteria as validation "
@@ -554,18 +556,26 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   const Column& target_col0_train = dt_y_train->get_column(0);
   auto data_fi = static_cast<T*>(dt_fi->get_column(1).get_data_editable());
 
-  // Training settings. By default each training iteration consists of
-  // `dt_X_train->nrows` rows.
-  size_t niterations = params.nepochs;
+  // Since `nepochs` can be a float value
+  // - the model is trained `niterations - 1` times on
+  //   `iteration_nrows` rows, where `iteration_nrows == dt_X_train->nrows()`;
+  // - then, the model is trained on the remaining `last_iteration_nrows` rows,
+  //   where `0 < last_iteration_nrows <= dt_X_train->nrows()`.
+  // If `nepochs` is an integer number, `last_iteration_nrows == dt_X_train->nrows()`,
+  // so that the last epoch becomes identical to all the others.
+  size_t niterations = static_cast<size_t>(std::ceil(nepochs));
+  T last_epoch = nepochs - niterations + 1;
+
   size_t iteration_nrows = dt_X_train->nrows();
-  size_t total_nrows = niterations * iteration_nrows;
+  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * iteration_nrows);
+  size_t total_nrows = (niterations - 1) * iteration_nrows + last_iteration_nrows;
   size_t iteration_end;
 
-  // If a validation set is provided, we adjust batch size to `nepochs_val`.
-  // After each batch, we calculate loss on the validation dataset,
-  // and do early stopping if relative loss does not decrese by at least
-  // `val_error`.
-  bool validation = !std::isnan(nepochs_val);
+  // If a validation set is provided, we adjust the `iteration_nrows`
+  // to correspond to the `nepochs_val` epochs. After each iteration, we calculate
+  // the loss on the validation dataset, and trigger early stopping
+  // if relative loss does not decrese by at least `val_error`.
+  bool validation = _notnan(nepochs_val);
   T loss = T_NAN; // This value is returned when validation is not enabled
   T loss_old = T(0); // Value of `loss` for a previous iteraction
   std::vector<T> loss_history;
@@ -574,8 +584,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                                             : target_col0_train;  // whatever
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    iteration_nrows = static_cast<size_t>(nepochs_val * dt_X_train->nrows());
-    niterations = total_nrows / iteration_nrows;
+    iteration_nrows = static_cast<size_t>(nepochs_val * iteration_nrows);
+    niterations = total_nrows / iteration_nrows + (total_nrows % iteration_nrows > 0);
     loss_history.resize(val_niters, 0.0);
   }
 
@@ -1300,7 +1310,7 @@ const std::vector<intvec>& Ftrl<T>::get_interactions() {
 
 
 template <typename T>
-size_t Ftrl<T>::get_nepochs() {
+double Ftrl<T>::get_nepochs() {
   return params.nepochs;
 }
 
@@ -1408,8 +1418,9 @@ void Ftrl<T>::set_interactions(std::vector<intvec> interactions_in) {
 
 
 template <typename T>
-void Ftrl<T>::set_nepochs(size_t nepochs_in) {
+void Ftrl<T>::set_nepochs(double nepochs_in) {
   params.nepochs = nepochs_in;
+  nepochs = static_cast<T>(nepochs_in);
 }
 
 

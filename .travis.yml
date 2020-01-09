@@ -27,22 +27,13 @@ python:
   - "3.5"
   - "3.6"
 
-install:
-  - pip install --upgrade setuptools
-  - pip install --upgrade python-dateutil
-  - pip install --upgrade numpy
-  - pip install --upgrade colorama
-  - pip install --upgrade docutils
-  - pip install --upgrade typesentry
-  - pip install --upgrade blessed
-  - pip install --upgrade pandas
-  - pip install --upgrade pytest
-  - pip install --upgrade virtualenv
-  - pip install --upgrade wheel
-
 script:
+  - pip install 'typesentry>=0.2.6' blessed
   - make test_install
-  - make
+  - make extra_install
+  - make gitver
+  - make build
+  - make test
 
 git:
   depth: 2

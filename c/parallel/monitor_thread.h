@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,15 @@ class idle_job;
 void enable_monitor(bool) noexcept;
 
 
+/**
+  * This class represents a monitor thread, i.e. a low-priority
+  * background thread that periodically checks task progress and
+  * interrupt status, and sends status updates to python.
+  *
+  * There can only be one monitor_thread instance at a time, since
+  * at least part of the monitor_thread's state is kept in static
+  * variables that are also accessed from a signal handler.
+  */
 class monitor_thread {
   friend std::mutex& python_mutex();
   private:
@@ -34,8 +43,7 @@ class monitor_thread {
     std::mutex mutex;
     std::condition_variable sleep_state_cv;
     bool running;
-    bool is_active;
-    size_t : 48;
+    size_t : 56;
 
   public:
     monitor_thread(idle_job*);
@@ -49,12 +57,10 @@ class monitor_thread {
      * set_active(false) puts the thread back to sleep.
      */
     void set_active(bool a) noexcept;
-    bool get_active();
-    void stop_running();
 
   private:
     void run() noexcept;
-    static void sigint_handler(int);
+    void stop_running();
 };
 
 

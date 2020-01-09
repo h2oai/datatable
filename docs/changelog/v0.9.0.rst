@@ -1,0 +1,266 @@
+
+.. changelog::
+  :version: 0.9.0
+  :released: 2019-07-25
+
+  Frame
+  -----
+
+  -[new] Method :meth:`Frame.len()` can be applied to a string column to obtain
+    the lengths of strings in each row.
+
+  -[new] Method :meth:`.re_match` applies to a string column, and produces
+    boolean indicator whether each value matches the regular expression ``re``
+    or not. The method matches the entire string, not just the beginning. Thus,
+    it most closely resembles Python function ``re.fullmatch()``.
+
+  -[new] :meth:`Frame.__str__()` now returns a string containing the preview of
+    the frame's data. This allows datatable frames to be used with ``print()``.
+
+  -[new] New function :func:`median()` can be used to compute median of a
+    certain column or expression, either per group or for the entire Frame.
+    [#1530]
+
+  -[enh] ``Frame`` class is now defined fully in C++, improving code robustness
+    and performance. The property ``Frame.internal`` was removed, as it no
+    longer represents anything. Certain internal properties of ``Frame`` can be
+    accessed via functions declared in the ``dt.internal.`` module.
+
+  -[enh] :meth:`Frame.rbind()` can now also accept a list or tuple of frames
+    (previously only a vararg sequence was allowed).
+
+  -[enh] Frame can now be treated as an iterable over the columns. Thus, a Frame
+    object can now be used in a for-loop, producing its individual columns.
+
+  -[enh] A Frame can now be treated as a mapping; in particular both
+    ``dict(frame)`` and ``**frame`` are now valid.
+
+  -[enh] Single-column frames can be be used as sources for Frame construction.
+
+  -[enh] Added parameter ``quoting=`` to method :meth:`Frame.to_csv`. The
+    accepted values are the 4 constants from the standard ``csv`` module:
+    ``csv.QUOTE_MINIMAL`` (default), ``csv.QUOTE_ALL``, ``csv.QUOTE_NONNUMERIC``
+    and ``csv.QUOTE_NONE``.
+
+  -[enh] :meth:`Frame.to_csv` now quotes fields containing single-quote mark
+    (``'``).
+
+  -[enh] Added parameter ``compression=`` to method :meth:`Frame.to_csv()`, with
+    possibility to request gzip compression for the output file. By default the
+    compression method will be inferred from the file name.
+
+  -[enh] :meth:`.to_numpy() <datatable.Frame.to_numpy>` now returns a numpy
+    ``masked_array`` if the frame has any NA values. (#1619)
+
+  -[enh] A Frame will no longer be shown in "interactive" mode in console by
+    default. The previous behavior can be restored with
+    ``dt.options.display.interactive = True``. Alternatively, you can explore a
+    Frame interactively using ``frame.view(True)``.
+
+  -[enh] Improved performance of type-casting a view column: now the code avoids
+    materializing the column before performing the cast.
+
+  -[fix] Fixed crash in certain circumstances when a key was applied after a
+    groupby. (#1639)
+
+  -[fix] A keyed frame will now be rendered correctly when viewing it in python
+    console via :meth:`Frame.view()`. (#1672)
+
+  -[fix] ``str32`` column can no longer overflow during the
+    :meth:`.replace() <datatable.Frame.replace>` operation,
+    or when converting from python, numpy or pandas, etc. In all these cases
+    we will now transparently create a ``str64`` column instead. (#1694)
+
+  -[fix] The reported frame size (``sys.getsizeof(DT)``) is now more accurate;
+    in particular the content of string columns is no longer ignored. (#1697)
+
+  -[fix] Type casting into ``str32`` no longer produces an error if the
+    resulting column is larger than 2GB. Now a ``str64`` column will be returned
+    instead. (#1695)
+
+  -[fix] Fixed memory leak during computation of a generic ``DT[i, j]``
+    expression. Another memory leak was during generation of string columns, now
+    also fixed. (#1705)
+
+  -[fix] Pandas "boolean column with NAs" (of dtype ``object``) now converts
+    into datatable ``bool8`` column when pandas DataFrame is converted into a
+    datatable Frame. (#1730)
+
+  -[fix] Fixed conversion to numpy of a view Frame which contains NAs. (#1738)
+
+  -[fix] Fixed issue with mis-aligned frame headers in IPython, caused by IPython
+    inserting ``Out[X]:`` in front of the rendered Frame display. (#1793)
+
+  -[fix] Improved rendering of Frames in terminals with white background: we no
+    longer use ``'bright_white'`` color for emphasis, only ``'bold'``. (#1793)
+
+  -[fix] Fixed crash when a new column was created via partial assignment, i.e.
+    ``DT[i, "new_col"] = expr``. (#1800)
+
+  -[fix] Fixed memory leaks/crashes when materializing an object column. (#1805)
+
+  -[fix] Fixed creating a Frame from a pandas DataFrame that has duplicate
+    column names. (#1816)
+
+  -[fix] Fixed a UnicodeDecodeError that could be thrown when viewing a Frame
+    with unicode characters in Jupyter notebook. The error only manifested for
+    strings that were longer than 50 bytes in length. (#1825)
+
+  -[fix] Fixed crash when ``Frame.colindex()`` was used without any arguments,
+    now this properly raises an exception. (#1834)
+
+  -[fix] Fixed possible crash when writing to disk that doesn't have enough free
+    space on it. (#1837)
+
+  -[fix] Fixed invalid Frame being created when reading a large string column
+    (str64) with fread, and the column contains NA values.
+
+  -[fix] Fixed crash that occurred when sorting by multiple columns, and the
+    first column is of low cardinality. (#1857)
+
+  -[fix] Fixed display of NA values produced during a join, when a Frame was
+    displayed in Jupyter Lab. (#1872)
+
+  -[fix] Fixed a crash when replacing values in a str64 column. (#1890)
+
+  -[fix] :meth:`cbind() <datatable.Frame.cbind>` no longer throws an error when
+    passed a generator producing temporary frames. (#1905)
+
+  -[fix] Fixed comparison of string columns vs. value ``None``. (#1912)
+
+  -[fix] Fixed a crash when trying to select individual cells from a joined Frame,
+    for the cells that were un-matched during the join. (#1917)
+
+  -[fix] Fixed a crash when writing a joined frame into CSV. (#1919)
+
+  -[fix] Fixed a crash when writing into CSV string view columns, especially of
+    str64 type. (#1921)
+
+  -[api] Removed deprecated Frame methods ``.topython()``, ``.topandas()``,
+    ``.tonumpy()``, and ``Frame.__call__()``.
+
+  -[api] Syntax ``DT[col]`` has been restored (was previously deprecated in
+    0.7.0), however it works only for `col` an integer or a string. Support for
+    slices may be added in the future, or not: there is a potential to confuse
+    ``DT[a:b]`` for a row selection. A column slice may still be selected via
+    the i-j selector ``DT[:, a:b]``.
+
+  -[api] The ``nthreads=`` parameter in :meth:`Frame.to_csv()` was removed. If
+    needed, please set the global option ``dt.options.nthreads``.
+
+  -[old] Frame method ``.scalar()`` is now deprecated and will be removed in
+    release 0.10.0. Please use ``frame[0, 0]`` instead.
+
+  -[old] Frame method ``.append()`` is now deprecated and will be removed in
+    release 0.10.0. Please use :meth:`.rbind() <datatable.Frame.rbind>` instead.
+
+  -[old] Frame method ``.save()`` was renamed into
+    :meth:`.to_jay() <datatable.Frame.to_jay>` (for consistency with other
+    ``.to_*()`` methods). The old name is still usable, but marked as deprecated
+    and will be removed in 0.10.0.
+
+
+
+  General
+  -------
+
+  -[new] Added method ``dt.options.describe()``, which will print the available
+    options together with their values and descriptions.
+
+  -[new] Added ``dt.options.context(option=value)``, which can be used in a
+    with- statement to temporarily change the value of one or more options, and
+    then go back to their original values at the end of the with-block.
+
+  -[new] Added options ``fread.log.escape_unicode`` (controls treatment of
+    unicode characters in fread's verbose log); and ``display.use_colors``
+    (allows to turn on/off colored output in the console).
+
+  -[new] Some long-running operations in datatable will now show a progress
+    bar. Its behavior can be controlled via ``dt.options.progress`` set of
+    options.
+
+  -[new] Added an internal function ``dt.internal.compiler_version()`` which
+    reports the compiler version used for compiling the core ``_datatable``
+    library.
+
+  -[new] New ``datatable.math`` module is a library of various mathematical
+    functions that can be applied to datatable Frames. The set of functions is
+    close to what is available in the standard python ``math`` module. See
+    documentation for more details.
+
+  -[new] New module ``datatable.sphinxext.dtframe_directive``, which can be
+    used as a plugin for Sphinx. This module adds directive ``.. dtframe`` that
+    allows to easily include a Frame display in an .rst document.
+
+  -[enh] `datatable` no longer uses OpenMP for parallelism. Instead, we use our own
+    thread pool to perform multi-threaded computations (#1736).
+
+  -[enh] ``dt.options`` now helps the user when they make a typo: if an option
+    with a certain name does not exist, the error message will suggest the
+    correct spelling.
+
+  -[fix] Fixed crash upon exiting from a python terminal, if the user ever called
+    function ``frame_column_rowindex().type``. (#1703)
+
+  -[fix] ``datatable`` can now be safely used with ``multiprocessing``, or other
+    modules that perform fork-without-exec.(#1758) The child process will spawn
+    its own thread pool that will have the same number of threads as the parent.
+    Adjust ``dt.options.nthreads`` in the child process(es) if different number
+    of threads is required.
+
+  -[fix] The interactive mode is no longer improperly turned on in IPython.
+    (#1789)
+
+
+
+  Models
+  ------
+
+  -[new] Added function :func:`dt.models.kfold` to prepare indices for k-fold
+    splitting. This function will return ``nsplits`` pairs of row selectors
+    such that when these selectors are applied to an ``nrows``-rows frame, that
+    frame will be split into train and test part according to the K-fold
+    splitting scheme.
+
+  -[new] Added function :func:`dt.models.kfold_random`, which is similar to
+    :func:`dt.models.kfold`, except that the assignment of rows into folds is
+    randomized instead of being deterministic.
+
+  -[api] Parameter ``progress_fn`` in function ``dt.models.aggregate()`` is
+    removed. In its place you can set the global option
+    ``dt.options.progress.callback``.
+
+  -[enh] Added early stopping support to FTRL algo, that can now do binomial and
+    multinomial classification for categorical targets, as well as regression
+    for continuous targets.
+
+  -[fix] Fixed FTRL model not resuming properly after unpickling. (#1846)
+
+
+
+  Contributors
+  ------------
+
+  This release was made possible via the effort of a number of people, some who
+  contributed code, but also those who helped making the product better by
+  submitting bug reports and new feature requests.
+
+  People who contributed patches and pull requests (PRs):
+
+  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
+  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  -[gh]     :user:`Michal Raška <michal-raska>`
+  -[gh]     :user:`Anmol Bal <abal5>`
+
+  People who contributed with bug reports and feature requests:
+
+  -[gh]     :user:`Arno Candel <arnocandel>`
+  -[gh.new] :user:`Antorsae <antorsae>`
+  -[gh.new] :user:`Hawk Berry <hawkberry>`
+  -[gh]     :user:`Jonathan McKinney <pseudotensor>`
+  -[gh]     :user:`Mateusz Dymczyk <mdymczyk>`
+  -[gh.new] :user:`NachiGithub <NachiGithub>`
+  -[gh]     :user:`Olivier <goldentom42>`
+  -[gh]     :user:`Pasha Stetsenko <st-pasha>`
+  -[gh]     :user:`Tom Kraljevic <tomkraljevic>`
+  -[gh.new] :user:`Yu Zhu <XiaomoWu>`
