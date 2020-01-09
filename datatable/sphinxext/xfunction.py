@@ -491,7 +491,7 @@ class XobjectDirective(SphinxDirective):
 
     def _generate_nodes(self):
         title_text = self.qualifier + self.obj_name
-        sect = nodes.section(ids=[title_text], classes=["dt-function"])
+        sect = nodes.section(ids=[title_text], classes=["x-function"])
         sect += nodes.title("", self.obj_name)
         sect += self._index_node(title_text)
         sect += self._generate_signature(title_text)
@@ -572,7 +572,7 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_body(self):
-        out = mydiv_node(classes=["dt-function-body"])
+        out = mydiv_node(classes=["x-function-body"])
         for head, lines in self.parsed_body:
             if head:
                 lines = [head, "="*len(head), ""] + lines
@@ -670,7 +670,7 @@ def setup(app):
     app.add_config_value("xf_module_name", None, "env")
     app.add_config_value("xf_project_root", "..", "env")
     app.add_config_value("xf_permalink_fn", None, "env")
-    app.add_css_file("dtfunction.css")
+    app.add_css_file("xfunction.css")
     app.add_js_file("https://use.fontawesome.com/0f455d5fb2.js")
     app.add_directive("dtdata", XobjectDirective)
     app.add_directive("dtfunction", XobjectDirective)

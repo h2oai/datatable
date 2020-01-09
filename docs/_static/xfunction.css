@@ -1,9 +1,9 @@
 
-.dt-function {
+.x-function {
     margin-bottom: 18pt;
 }
 
-.dt-function h1 {
+.x-function h1 {
     display: none;
 }
 
@@ -12,32 +12,32 @@
  * Signature block
  *-----------------------------------------------------------------------------*/
 
-.dt-function .sig-container {
+.x-function .sig-container {
     background-color: #2b639c;
     display: flex;
     font-family: "SF Mono", Menlo, monospace;
     padding: 1pt 5pt 3pt 6pt;
 }
 
-.dt-function .sig-container a,
-.dt-function .sig-container a:visited {
+.x-function .sig-container a,
+.x-function .sig-container a:visited {
     color: #7dd;
     font-size: 75%;
 }
 
-.dt-function .sig-container a:hover {
+.x-function .sig-container a:hover {
     color: white;
 }
 
-.dt-function .sig-body {
+.x-function .sig-body {
     flex: 1;
 }
 
-.dt-function .code-links {
+.x-function .code-links {
     font-size: 90%;
 }
 
-.dt-function .code-links a:after {
+.x-function .code-links a:after {
     content: "\f08e";
     font-family: "FontAwesome";
     font-size: 85%;
@@ -46,51 +46,51 @@
 }
 
 
-.dt-function .sig-main {
+.x-function .sig-main {
     display: flex;
 }
 
-.dt-function .sig-main .sig-name {
+.x-function .sig-main .sig-name {
     color: #ffe810;
     font-weight: bold;
 }
 
-.dt-function .sig-main .sig-open-paren:before {
+.x-function .sig-main .sig-open-paren:before {
     color: #79d;
     content: "(";
 }
 
-.dt-function .sig-main .sig-close-paren {
+.x-function .sig-main .sig-close-paren {
     display: inline-block;
 }
-.dt-function .sig-main .sig-close-paren:before {
+.x-function .sig-main .sig-close-paren:before {
     color: #79d;
     content: ")";
 }
 
 
-.dt-function .sig-parameters {
+.x-function .sig-parameters {
     flex: 1;
 }
-.dt-function .sig-parameters .param {
+.x-function .sig-parameters .param {
     color: #dff;
     display: inline-block;
 }
-.dt-function .sig-parameters .param.self,
-.dt-function .sig-parameters .param.special {
+.x-function .sig-parameters .param.self,
+.x-function .sig-parameters .param.special {
     color: #79d;
 }
-.dt-function .sig-parameters .param:not(.final):after {
+.x-function .sig-parameters .param:not(.final):after {
     color: #68c;
     content: ",";
     padding-right: 6pt;
 }
-.dt-function .sig-parameters .param .default {
+.x-function .sig-parameters .param .default {
     color: #79d;
     display: inline;
     font-style: normal;
 }
-.dt-function .sig-parameters .param .default:before {
+.x-function .sig-parameters .param .default:before {
     color: #68c;
     content: "=";
     padding: 0 2pt;
@@ -102,21 +102,21 @@
  * Main function block
  *-----------------------------------------------------------------------------*/
 
-.dt-function .dt-function-body {
+.x-function .x-function-body {
     margin: 8pt 0 0 16pt;
 }
 
-.dt-function .dt-function-body p {
+.x-function .x-function-body p {
     margin: 0 0 16px 0;
     text-align: justify;
 }
 
-.dt-function .dt-function-body h2 {
+.x-function .x-function-body h2 {
     font-size: 130%;
 }
 
 
-.rst-content .dt-function-body dl.simple dt {
+.rst-content .x-function-body dl.simple dt {
     background: none;
     border: none;
     color: #000;
@@ -151,7 +151,7 @@
 }
 
 .xparam-head .param.return {
-    background-color: #000;
+    background-color: #469e36;
     color: #FFF;
 }
 
