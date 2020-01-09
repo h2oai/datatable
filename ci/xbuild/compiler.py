@@ -308,9 +308,6 @@ class Compiler:
         if not os.path.isdir(dd):
             self._log.warn("Python lib directory `%s` does not exist, "
                            "linking may fail" % dd)
-        # elif not os.path.exists(os.path.join(dd, "Python.h")):
-        #     self._log.warn("Python include directory `%s` is missing the file "
-        #                    "Python.h, compilation may fail" % dd)
         self.add_lib_dir(dd)
 
 

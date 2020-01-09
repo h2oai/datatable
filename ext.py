@@ -67,22 +67,38 @@ def build_extension(cmd, verbosity=3):
     ext.compiler.add_default_python_include_dir()
 
     if ext.compiler.is_msvc():
-        ext.compiler.add_default_python_lib_dir()
+        # Common compile flags
         ext.compiler.add_compiler_flag("/W4")
         ext.compiler.add_compiler_flag("/EHsc")
-        ext.compiler.add_compiler_flag("/O2")
         ext.compiler.add_compiler_flag("/nologo")
         ext.compiler.add_include_dir(ext.compiler.path + "\\include")
         ext.compiler.add_include_dir(ext.compiler.winsdk_include_path + "\\ucrt")
         ext.compiler.add_include_dir(ext.compiler.winsdk_include_path + "\\shared")
         ext.compiler.add_include_dir(ext.compiler.winsdk_include_path + "\\um")
 
+        # Common link flags
         ext.compiler.add_linker_flag("/nologo")
         ext.compiler.add_linker_flag("/DLL")
         ext.compiler.add_linker_flag("/EXPORT:PyInit__datatable")
+        ext.compiler.add_default_python_lib_dir()
         ext.compiler.add_lib_dir(ext.compiler.path + "\\lib\\x64")
         ext.compiler.add_lib_dir(ext.compiler.winsdk_lib_path + "\\ucrt\\x64")
         ext.compiler.add_lib_dir(ext.compiler.winsdk_lib_path + "\\um\\x64")
+
+
+        if cmd == "asan":
+            raise RuntimeError("`make asan` is not supported on Windows systems")
+
+        if cmd == "build":
+            ext.compiler.add_compiler_flag("/O2")   # full optimization
+
+        if cmd == "coverage":
+            raise RuntimeError("`make coverage` is not supported on Windows systems")
+            
+        if cmd == "debug":
+            xt.compiler.add_compiler_flag("/Od")    # no optimization
+            ext.compiler.add_compiler_flag("/Z7")
+            ext.compiler.add_linker_flag("/DEBUG:FULL")
     else:
         # Common compile flags
         ext.compiler.add_compiler_flag("-std=c++11")
