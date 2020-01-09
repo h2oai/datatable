@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -124,9 +124,9 @@ replace_with: single value, or list
     be either a single value, or a list of the same length. If `replace_what`
     is a dict, then this value should not be passed.
 
-Returns
--------
-Nothing, replacement is performed in-place.
+(return): None
+    Nothing is returned, the replacement is performed in-place.
+
 
 Examples
 --------
