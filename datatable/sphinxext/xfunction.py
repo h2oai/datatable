@@ -34,11 +34,11 @@ list of all extensions in the "conf.py" file:
 
 This makes several directives available for use in the .rst files:
 
-    .. dtdata: datatable.math.tau
+    .. xdata: datatable.math.tau
 
-    .. dtfunction: datatable.fread
+    .. xfunction: datatable.fread
 
-    .. dtmethod: datatable.Frame.cbind
+    .. xmethod: datatable.Frame.cbind
         :src: c/frame/cbind.cc::Frame::cbind
         :doc: c/frame/cbind.cc::doc_cbind
 
@@ -49,8 +49,9 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
 from sphinx import addnodes
-from sphinx.util.docutils import SphinxDirective
 from sphinx.util import logging
+from sphinx.util.docutils import SphinxDirective
+from sphinx.util.nodes import make_refnode
 
 logger = logging.getLogger(__name__)
 
@@ -501,11 +502,11 @@ class XobjectDirective(SphinxDirective):
 
     def _index_node(self, targetname):
         text = self.obj_name
-        if self.name == "dtmethod":
+        if self.name == "xmethod":
             text += " (%s method)" % self.qualifier[:-1]
-        if self.name == "dtfunction":
+        if self.name == "xfunction":
             text += " (%s function)" % self.qualifier[:-1]
-        if self.name == "dtdata":
+        if self.name == "xdata":
             text += " (%s attribute)" % self.qualifier[:-1]
         inode = addnodes.index(entries=[("single", text, targetname, "", None)])
         return [inode]
@@ -523,16 +524,22 @@ class XobjectDirective(SphinxDirective):
         # Tell Sphinx that this is a target for `:py:obj:` references
         self.state.document.note_explicit_target(sig_node)
         inv = self.env.domaindata["py"]["objects"]
-        inv[targetname] = (self.env.docname, self.name[2:])
+        inv[targetname] = (self.env.docname, self.name[1:])
         return [sig_node]
 
 
     def _generate_sigbody(self, node):
         row1 = mydiv_node(classes=["sig-qualifier"])
-        row1 += a_node(href="", text=self.qualifier)
+        ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
+                                    reftarget=self.qualifier[:-1],
+                                    reftype="class", refdomain="py")
+        # Note: `ref` cannot be added directly: docutils requires that
+        # <reference> nodes were nested inside <TextElement> nodes.
+        row1 += nodes.generated("", "", ref)
+        node += row1
+
         row2 = mydiv_node(classes=["sig-main"])
         self._generate_sigmain(row2)
-        node += row1
         node += row2
 
 
@@ -546,7 +553,7 @@ class XobjectDirective(SphinxDirective):
         div1 = mydiv_node(classes=["sig-name"])
         div1 += nodes.Text(self.obj_name)
         node += div1
-        if self.name != "dtdata":
+        if self.name != "xdata":
             node += mydiv_node(classes=["sig-open-paren"])
             params = mydiv_node(classes=["sig-parameters"])
             last_i = len(self.parsed_params) - 1
@@ -672,9 +679,9 @@ def setup(app):
     app.add_config_value("xf_permalink_fn", None, "env")
     app.add_css_file("xfunction.css")
     app.add_js_file("https://use.fontawesome.com/0f455d5fb2.js")
-    app.add_directive("dtdata", XobjectDirective)
-    app.add_directive("dtfunction", XobjectDirective)
-    app.add_directive("dtmethod", XobjectDirective)
+    app.add_directive("xdata", XobjectDirective)
+    app.add_directive("xfunction", XobjectDirective)
+    app.add_directive("xmethod", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
     app.add_node(mydiv_node, html=(visit_div, depart_div))
     app.add_node(a_node, html=(visit_a, depart_a))
