@@ -29,7 +29,7 @@ list of all extensions in the "conf.py" file:
 
     extensions = [
         ...,
-        'datatable.sphinxext.dtfunction_directive'
+        'datatable.sphinxext.xfunction_directive'
     ]
 
 This makes several directives available for use in the .rst files:
