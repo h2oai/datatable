@@ -459,16 +459,21 @@ class XobjectDirective(SphinxDirective):
 
 
     def _transform_codeblocks(self, lines):
+        fnparams = [p if isinstance(p, str) else p[0]
+                    for p in self.parsed_params]
         rx_codeblock = re.compile(
             r"``([^`]+)``|"
             r":`([^`]+)`|"
             r"`([^`]+)`"
         )
         def replacefn(match):
+            txt3 = match.group(3)
             if match.group(1) or match.group(2):
                 return match.group(0)
+            elif txt3 in fnparams:
+                return ":xparam-ref:`" + txt3 + "`"
             else:
-                return "`" + match.group(0) + "`"
+                return "``" + txt3 + "``"
 
         for i, line in enumerate(lines):
             if '`' in line:
@@ -635,6 +640,17 @@ class XparamDirective(SphinxDirective):
 
 
 
+#-------------------------------------------------------------------------------
+# :xparam-ref: role
+#-------------------------------------------------------------------------------
+
+def xparamref(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    node = a_node(href="#" + text, classes=["xparam-ref"])
+    node += nodes.literal("", "", nodes.Text(text))
+    return [node], []
+
+
+
 
 #-------------------------------------------------------------------------------
 # Nodes
@@ -652,7 +668,7 @@ def depart_div(self, node):
 
 
 
-class a_node(nodes.Element):
+class a_node(nodes.Element, nodes.Inline):
     def __init__(self, href, text="", new=False, **attrs):
         super().__init__(**attrs)
         self.href = href
@@ -661,11 +677,10 @@ class a_node(nodes.Element):
             self += nodes.Text(text)
 
 def visit_a(self, node):
-    html = "<a href=\"%s\"" % node.href
+    attrs = {"href": node.href}
     if node.new:
-        html += " target=_new"
-    html += ">"
-    self.body.append(html)
+        attrs["target"] = "_new"
+    self.body.append(self.starttag(node, "a", **attrs).strip())
 
 def depart_a(self, node):
     self.body.append("</a>")
@@ -688,4 +703,5 @@ def setup(app):
     app.add_directive("xparam", XparamDirective)
     app.add_node(mydiv_node, html=(visit_div, depart_div))
     app.add_node(a_node, html=(visit_a, depart_a))
+    app.add_role("xparam-ref", xparamref)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

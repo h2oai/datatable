@@ -135,6 +135,19 @@
     padding: 0;
 }
 
+.x-function a.xparam-ref code {
+    color: #89abcd;
+    font-weight: bold;
+    padding: 1px 4px;
+}
+
+.x-function a.xparam-ref:hover code {
+    background: #2a629c;
+    border-radius: 3px;
+    color: #d7ffff;
+    font-weight: normal;
+}
+
 
 
 /*------------------------------------------------------------------------------
@@ -155,6 +168,7 @@
     background-color: #2a629c;
     border-radius: 3px;
     color: #d7ffff;
+    cursor: default;
     display: inline-block;
     font-family: "SF Mono", Menlo, monospace;
     font-size: 85%;
