@@ -142,12 +142,16 @@ class Compiler:
                 return
 
             if sys.platform == "win32":
-                msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\"
-                compiler_versions = next(os.walk(msvc_path))[1]
+                msvc_default_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\"
+                msvc_path = os.environ.get("DT_MSVC_PATH", msvc_default_path)
+                if not os.path.isdir(msvc_path):
+                    raise ValueError("Microsoft Visual Studio directory %s not found" % msvc_path)
+
+                compiler_versions = next(os.walk(msvc_default_path))[1]
 
                 candidates = []
                 for cl_version in compiler_versions:
-                    path =  msvc_path + cl_version
+                    path =  msvc_default_path + cl_version
                     bin_path = path + "\\bin\\Hostx64\\x64\\"
                     candidates += [{"compiler": bin_path + "cl.exe", "linker": bin_path + "link.exe", "path" : path}]
                 self._detect_windows_kit()
@@ -184,15 +188,17 @@ class Compiler:
 
 
     def _detect_windows_kit(self):
-        winsdk_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
+        winsdk_default_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
+        winsdk_path = os.environ.get("DT_WINSDK_PATH", winsdk_default_path)
         if not os.path.isdir(winsdk_path):
-            raise ValueError("Windows Kit directory %s not found" % winsdk_path)
-        winsdk_version_dir = next(os.walk(winsdk_path + "\\include"))[1][-1] # Use the latest version available
-        winsdk_include_path = winsdk_path + "\\Include\\" + winsdk_version_dir
-        winsdk_lib_path = winsdk_path + "\\Lib\\" + winsdk_version_dir
+            raise ValueError("Windows SDK directory %s not found" % msvc_path)
+
+        winsdk_version_dir = next(os.walk(winsdk_default_path + "\\include"))[1][-1] # Use the latest version available
+        winsdk_include_path = winsdk_default_path + "\\Include\\" + winsdk_version_dir
+        winsdk_lib_path = winsdk_default_path + "\\Lib\\" + winsdk_version_dir
 
         if not os.path.isdir(winsdk_lib_path):
-            raise ValueError("Windows Kit lib directory %s not found" % winsdk_path)
+            raise ValueError("Windows Kit lib directory %s not found" % winsdk_default_path)
         self.winsdk_include_path = winsdk_include_path
         self.winsdk_lib_path = winsdk_lib_path
 
