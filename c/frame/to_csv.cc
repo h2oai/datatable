@@ -40,12 +40,7 @@ static void change_to_lowercase(std::string& str) {
 // Frame::to_csv()
 //------------------------------------------------------------------------------
 
-static PKArgs args_to_csv(
-    0, 1, 7, false, false,
-    {"path", "quoting", "append", "header", "hex", "compression", "verbose",
-     "_strategy"},
-    "to_csv",
-
+static const char* doc_to_csv =
 R"(to_csv(self, path=None, *, quoting="minimal", append=False,
        header=..., hex=False, compression=None, verbose=False,
        _strategy="auto")
@@ -122,7 +117,13 @@ is written to the file provided.
 String containing the CSV text as if it would have been written to a
 file, if the path is empty or None. If the compression is turned on,
 a bytes object will be returned instead.
-)");
+)";
+
+static PKArgs args_to_csv(
+    0, 1, 7, false, false,
+    {"path", "quoting", "append", "header", "hex", "compression", "verbose",
+     "_strategy"},
+    "to_csv", doc_to_csv);
 
 
 oobj Frame::to_csv(const PKArgs& args)

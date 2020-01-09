@@ -76,7 +76,8 @@
     color: #dff;
     display: inline-block;
 }
-.dt-function .sig-parameters .param.self {
+.dt-function .sig-parameters .param.self,
+.dt-function .sig-parameters .param.special {
     color: #79d;
 }
 .dt-function .sig-parameters .param:not(.final):after {
@@ -112,4 +113,32 @@
 
 .dt-function .dt-function-body h2 {
     font-size: 130%;
+}
+
+
+/*------------------------------------------------------------------------------
+ * xparam
+ *-----------------------------------------------------------------------------*/
+
+.xparam-box {}
+
+.xparam-head {
+    display: flex;
+}
+
+.xparam-head .param {
+    background-color: #2a629c;
+    border-radius: 3px;
+    color: #d7ffff;
+    display: inline-block;
+    font-family: "SF Mono", Menlo, monospace;
+    padding: 1px 4px;
+}
+
+.xparam-head .types {
+    margin-left: 10px;
+}
+
+.xparam-body {
+    margin-left: 24pt;
 }

@@ -86,11 +86,7 @@ class ReplaceAgent {
 // Frame::replace()
 //------------------------------------------------------------------------------
 
-static PKArgs args_replace(
-  2, 0, 0, false, false,
-  {"to_replace", "replace_with"},
-  "replace",
-
+static const char* doc_replace =
 R"(replace(self, replace_what, replace_with)
 --
 
@@ -142,7 +138,11 @@ Examples
 >>> df.replace({-1: 100, 2: 200, "foo": None})
 >>> df.to_list()
 [[100, 200, 3, 100, 200, 3, 100, 200, 3]]
-)");
+)";
+
+static PKArgs args_replace(
+  2, 0, 0, false, false,
+  {"to_replace", "replace_with"}, "replace", doc_replace);
 
 
 void Frame::replace(const PKArgs& args) {

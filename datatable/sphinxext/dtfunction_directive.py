@@ -62,7 +62,7 @@ rx_param = re.compile(r"(?:"
                       r"))?"
                       r"|([\*/]|\*\*?\w+)"
                       r")\s*(?:,\s*|$)")
-rx_header = re.compile(r"(\-+)\s*$")
+rx_header = re.compile(r"(\-{3,})\s*")
 
 # Build with pdb on exceptions:
 #
@@ -71,31 +71,37 @@ rx_header = re.compile(r"(\-+)\s*$")
 
 
 #-------------------------------------------------------------------------------
-# DtobjectDirective
+# XobjectDirective
 #-------------------------------------------------------------------------------
 
-class DtobjectDirective(SphinxDirective):
+class XobjectDirective(SphinxDirective):
     """
     Fields used by this class:
 
-    self.obj_name -- python name of the object being documented
-    self.qualifier -- object's qualifier, this string + obj_name give a fully-
-                      qualified object name.
-    self.src_file -- name of the file where the code is located
-    self.src_fnname -- name of the C++ function (possibly with a namespace)
-                       which corresponds to the object being documented
-    self.doc_file -- name of the file where the docstring is located
-    self.doc_var -- name of the C++ variable containing the docstring
+    ==[ Derived from config/arguments/options ]==
+        self.module_name -- config variable xf_module_name
+        self.project_root -- config variable xf_project_root
+        self.permalink_fn -- config variable xf_permalink_fn
+        self.obj_name -- python name of the object being documented
+        self.qualifier -- object's qualifier, this string + obj_name give a
+                          fully-qualified object name.
+        self.src_file -- name of the file where the code is located
+        self.src_fnname -- name of the C++ function (possibly with a namespace)
+                           which corresponds to the object being documented
+        self.doc_file -- name of the file where the docstring is located
+        self.doc_var -- name of the C++ variable containing the docstring
 
-    self.src_line_first -- starting line of the function in self.src_file
-    self.src_line_last -- final line of the function in self.src_file
-    self.src_github_url -- URL of the function's code on GitHub
-    self.doc_text -- text of the object's docstring
-    self.doc_github_url -- URL of the docstring on the GitHub
+    ==[ Parsed from the source files(s) ]==
+        self.src_line_first -- starting line of the function in self.src_file
+        self.src_line_last -- final line of the function in self.src_file
+        self.src_github_url -- URL of the function's code on GitHub
+        self.doc_text -- text of the object's docstring
+        self.doc_github_url -- URL of the docstring on the GitHub
 
-    self.parsed_params -- list of parameters of this function; each entry is
-                          either the parameter itself (str), or a tuple of
-                          strings (parameter, default_value).
+    ==[ Parsed from the docstring ]==
+        self.parsed_params -- list of parameters of this function; each entry
+                              is either the parameter itself (str), or a tuple
+                              of strings (parameter, default_value).
 
     See also:
         sphinx/directives/__init__.py::ObjectDescription
@@ -132,10 +138,10 @@ class DtobjectDirective(SphinxDirective):
     def _parse_config(self):
         self.module_name = self.env.config.xf_module_name
         self.project_root = self.env.config.xf_project_root
-        self.permalink = self.env.config.xf_permalink_fn
+        self.permalink_fn = self.env.config.xf_permalink_fn
         assert isinstance(self.module_name, str)
         assert isinstance(self.project_root, str)
-        assert self.permalink is None or callable(self.permalink)
+        assert self.permalink_fn is None or callable(self.permalink_fn)
 
 
     def _parse_arguments(self):
@@ -277,9 +283,9 @@ class DtobjectDirective(SphinxDirective):
 
         self.src_line_first = start_line
         self.src_line_last = finish_line
-        if self.permalink:
-            self.src_github_url = self.permalink(filename, start_line,
-                                                 finish_line)
+        if self.permalink_fn:
+            self.src_github_url = self.permalink_fn(filename, start_line,
+                                                    finish_line)
 
 
     def _locate_doc_source(self, filename, docname, lines):
@@ -339,9 +345,9 @@ class DtobjectDirective(SphinxDirective):
                              % (docname, filename, start_line))
 
         self.doc_text = doc_text.strip()
-        if self.permalink:
-            self.doc_github_url = self.permalink(filename, start_line,
-                                                 finish_line)
+        if self.permalink_fn:
+            self.doc_github_url = self.permalink_fn(filename, start_line,
+                                                    finish_line)
 
 
 
@@ -350,6 +356,12 @@ class DtobjectDirective(SphinxDirective):
     #---------------------------------------------------------------------------
 
     def _parse_docstring(self):
+        """
+        Split the docstring into two parts: the signature and the
+        body (the parts should be separated with a "--" line). After
+        that, defers parsing of each part to :meth:`_parse_parameters`
+        and :meth:`_parse_body` respectively.
+        """
         tmp = self.doc_text.split("--\n", 1)
         if len(tmp) == 1:
             raise self.error("Docstring for `%s` does not contain '--\\n'"
@@ -360,18 +372,35 @@ class DtobjectDirective(SphinxDirective):
             raise self.error("Unexpected docstring: should have started with "
                              "`%s(` and ended with `)`, instead found %r"
                              % (self.obj_name, signature))
+        # strip objname and the parentheses
         signature = signature[(len(self.obj_name) + 1):-1]
         self._parse_parameters(signature)
         self._parse_body(tmp[1])
 
 
     def _parse_parameters(self, sig):
+        """
+        Parse the *signature* part of the docstring, and extract the
+        list of parameters, together with their default values. The
+        extracted parameters are stored in the `self.parsed_params`
+        variable.
+
+        The entries in the `self.parsed_params` list can be any of
+        the following:
+          - varname             # regular parameter
+          - (varname, default)  # parameter with default
+          - "/"                 # separator for pos-only arguments
+          - "*"                 # separator for kw-only arguments
+          - "*" + varname       # positional varargs
+          - "**" + varname      # keyword varargs
+
+        Type annotations in the signature are not supported.
+        """
         sig = sig.strip()
         i = 0  # Location within the string where we currently parse
         parsed = []
         while i < len(sig):
             mm = re.match(rx_param, sig[i:])
-            # logger.info("%d: %r" % (i, mm))
             if mm:
                 if mm.group(1) is None:  # "special" variable
                     assert mm.group(3)
@@ -392,6 +421,15 @@ class DtobjectDirective(SphinxDirective):
 
 
     def _parse_body(self, body):
+        """
+        Parse/transform the body of the function's docstring.
+        """
+        self.parsed_body = self._split_into_sections(body)
+        for header, section in self.parsed_body:
+            self._transform_codeblocks(section)
+
+
+    def _split_into_sections(self, body):
         body = body.strip()
         parsed = [[]]
         headers = [None]
@@ -413,8 +451,25 @@ class DtobjectDirective(SphinxDirective):
             else:
                 parsed[-1].append(line)
                 last_line = line
+        return list(zip(headers, parsed))
 
-        self.parsed_body = list(zip(headers, parsed))
+
+    def _transform_codeblocks(self, lines):
+        rx_codeblock = re.compile(
+            r"``([^`]+)``|"
+            r":`([^`]+)`|"
+            r"`([^`]+)`"
+        )
+        def replacefn(match):
+            if match.group(1) or match.group(2):
+                return match.group(0)
+            else:
+                return "`" + match.group(0) + "`"
+
+        for i, line in enumerate(lines):
+            if '`' in line:
+                lines[i] = re.sub(rx_codeblock, replacefn, line)
+
 
 
 
@@ -486,6 +541,7 @@ class DtobjectDirective(SphinxDirective):
             for i, param in enumerate(self.parsed_params):
                 classes = ["param"]
                 if param == "self": classes += ["self"]
+                if param == "*" or param == "/": classes += ["special"]
                 if i == last_i: classes += ["final"]
                 if isinstance(param, str):
                     p = mydiv_node(classes=classes)
@@ -512,6 +568,46 @@ class DtobjectDirective(SphinxDirective):
             self.state.nested_parse(content, self.content_offset, out,
                                     match_titles=True)
         return out
+
+
+
+
+#-------------------------------------------------------------------------------
+# XparamDirective
+#-------------------------------------------------------------------------------
+
+class XparamDirective(SphinxDirective):
+    has_content = True
+    required_arguments = 2
+    optional_arguments = 0
+    final_argument_whitespace = True
+
+    def run(self):
+        import pdb
+        self._parse_arguments()
+        root = mydiv_node(classes=["xparam-box"])
+        head = mydiv_node(classes=["xparam-head"])
+        param_node = mydiv_node(classes=["param"])
+        param_node += nodes.Text(self.param)
+        head += param_node
+        types_node = mydiv_node(classes=["types"])
+        types_str = " | ".join("``%s``" % p for p in self.types)
+        self.state.nested_parse(StringList([types_str]), self.content_offset,
+                                types_node)
+        assert isinstance(types_node[0], nodes.paragraph)
+        # pdb.set_trace()
+        types_node.children = types_node[0].children
+        head += types_node
+        root += head
+        desc_node = mydiv_node(classes=["xparam-body"])
+        self.state.nested_parse(self.content, self.content_offset, desc_node)
+        root += desc_node
+        return [root]
+
+
+    def _parse_arguments(self):
+        self.param = self.arguments[0].rstrip(":")
+        self.types = re.split(r"(?:,?\s+or\s+|\s*[,\|]\s*)", self.arguments[1])
 
 
 
@@ -562,9 +658,10 @@ def setup(app):
     app.add_config_value("xf_permalink_fn", None, "env")
     app.add_css_file("dtfunction.css")
     app.add_js_file("https://use.fontawesome.com/0f455d5fb2.js")
-    app.add_directive("dtdata", DtobjectDirective)
-    app.add_directive("dtfunction", DtobjectDirective)
-    app.add_directive("dtmethod", DtobjectDirective)
+    app.add_directive("dtdata", XobjectDirective)
+    app.add_directive("dtfunction", XobjectDirective)
+    app.add_directive("dtmethod", XobjectDirective)
+    app.add_directive("xparam", XparamDirective)
     app.add_node(mydiv_node, html=(visit_div, depart_div))
     app.add_node(a_node, html=(visit_a, depart_a))
     return {"parallel_read_safe": True, "parallel_write_safe": True}
