@@ -51,11 +51,11 @@ with any other number of rows.
 
 Parameters
 ----------
-frames: sequence or list of Frames
+frames: Frame | List[Frame]
     One or more Frame to append. They should have the same number of
     rows (unless option `force` is also used).
 
-force: boolean
+force: bool
     If True, allows Frames to be appended even if they have unequal
     number of rows. The resulting Frame will have number of rows equal
     to the largest among all Frames. Those Frames which have less
