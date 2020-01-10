@@ -50,8 +50,8 @@ div.small-links div {
 .rst-content code.literal {
   background: none;
   border-style: none;
-  color: #7795BD;
-  font-size: 85%;
+  color: #a3b2c5;
+  font-size: 90%;
   padding: 0;
 }
 
@@ -195,8 +195,16 @@ div.document div.output-cell .highlight pre {
 
 /* ------- Miscellaneous ---------------------------------------------------- */
 
+html {
+  font-size: 11pt;
+}
+
 div[role=navigation] hr {
   visibility: hidden;
+}
+
+.wy-breadcrumbs {
+  display: none;
 }
 
 h1 {
@@ -206,5 +214,10 @@ h1 {
 
 h2 {
   font-family: inherit;
-  margin-top: 30pt;
+  margin-top: 24pt;
+}
+
+p {
+  font-size: 100%;
+  line-height: 22px;
 }

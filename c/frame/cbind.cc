@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,10 +27,7 @@ namespace py {
 // Frame::cbind
 //------------------------------------------------------------------------------
 
-static PKArgs args_cbind(
-  0, 0, 1, true, false,
-  {"force"}, "cbind",
-
+static const char* doc_cbind =
 R"(cbind(self, *frames, force=False)
 --
 
@@ -48,24 +45,26 @@ makes it easy to create constant columns, or to append reduction results
 If Frame(s) being appended have different number of rows (with the
 exception of Frames having 1 row), then the operation will fail by
 default. You can force cbinding these Frames anyways by providing option
-`force=True`: this will fill all 'short' Frames with NAs. Thus there is
+`force` `=True`: this will fill all "short" Frames with NAs. Thus there is
 a difference in how Frames with 1 row are treated compared to Frames
 with any other number of rows.
 
 Parameters
 ----------
-frames: sequence or list of Frames
+frames: Frame | List[Frame]
     One or more Frame to append. They should have the same number of
     rows (unless option `force` is also used).
 
-force: boolean
+force: bool
     If True, allows Frames to be appended even if they have unequal
     number of rows. The resulting Frame will have number of rows equal
     to the largest among all Frames. Those Frames which have less
     than the largest number of rows, will be padded with NAs (with the
     exception of Frames having just 1 row, which will be replicated
     instead of filling with NAs).
-)");
+)";
+
+static PKArgs args_cbind(0, 0, 1, true, false, {"force"}, "cbind", doc_cbind);
 
 
 

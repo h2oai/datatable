@@ -13,6 +13,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import subprocess
 import sys
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../datatable'))
@@ -21,7 +22,7 @@ sys.path.insert(0, os.path.abspath('../datatable'))
 # -- Project information -----------------------------------------------------
 
 project = 'datatable'
-copyright = '2018-2019, H2O.ai'
+copyright = '2018-2020, H2O.ai'
 author = 'Pasha Stetsenko'
 
 try:
@@ -56,6 +57,7 @@ needs_sphinx = '1.8'
 # ones.
 extensions = [
     'sphinxext.dtframe_directive',
+    'sphinxext.xfunction',
     'sphinxext.dt_changelog',
     'sphinxext.ref_context',
     'nbsphinx',
@@ -92,8 +94,30 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
 pygments_style = 'sphinx'
 
 
+# -- Options for Changelog extension -----------------------------------------
+
 changelog_issue_url = "https://github.com/h2oai/datatable/issues/{issue}"
+
 changelog_user_url = "https://github.com/{name}"
+
+
+# -- Options for XFunction extension -----------------------------------------
+
+xf_module_name = "datatable"
+
+xf_project_root = ".."
+
+try:
+    _ghcommit = subprocess.check_output(["git", "rev-parse", "master"],
+                                        universal_newlines=True).strip()
+
+    def xf_permalink_fn(filename, line1, line2):
+        return ("https://github.com/h2oai/datatable/blob/%s/%s#L%d-L%d"
+                % (_ghcommit, filename, line1, line2))
+
+except subprocess.CalledProcessError:
+    xf_permalink_fn = None
+
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -114,6 +138,10 @@ html_theme_options = {
     "sticky_navigation": True,
     "titles_only": True,
 }
+
+html_show_sphinx = False
+html_show_copyright = False
+html_show_sourcelink = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
