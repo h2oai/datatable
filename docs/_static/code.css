@@ -203,6 +203,10 @@ div[role=navigation] hr {
   visibility: hidden;
 }
 
+.wy-breadcrumbs {
+  display: none;
+}
+
 h1 {
   border-bottom: 1px solid #ccc;
   font-family: inherit;
