@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../datatable'))
 
 
 # -- Project information -----------------------------------------------------
@@ -56,10 +56,10 @@ needs_sphinx = '1.8'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'datatable.sphinxext.dtframe_directive',
-    'datatable.sphinxext.xfunction',
-    'datatable.sphinxext.dt_changelog',
-    'datatable.sphinxext.ref_context',
+    'sphinxext.dtframe_directive',
+    'sphinxext.xfunction',
+    'sphinxext.dt_changelog',
+    'sphinxext.ref_context',
     'nbsphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',

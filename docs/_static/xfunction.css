@@ -64,18 +64,6 @@
     color: #ffe810;
 }
 
-.x-function .sig-main .sig-open-paren:before {
-    content: "(";
-}
-
-.x-function .sig-main .sig-close-paren {
-    display: inline-block;
-}
-.x-function .sig-main .sig-close-paren:before {
-    content: ")";
-}
-
-
 .x-function .sig-parameters {
     flex: 1;
 }
@@ -90,18 +78,13 @@
     color: #fff;
 }
 
-.x-function .sig-parameters .param:not(.final):after {
-    color: #68c;
-    content: ", ";
-    white-space: pre;
-}
 .x-function .sig-parameters .param .default {
     display: inline;
     font-style: normal;
 }
-.x-function .sig-parameters .param .default:before {
-    color: #68c;
-    content: "=";
+.x-function .sig-parameters .param .default.literal {
+    color: #8da4d2;
+    font-size: inherit;
 }
 
 

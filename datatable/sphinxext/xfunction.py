@@ -559,7 +559,8 @@ class XobjectDirective(SphinxDirective):
         div1 += nodes.Text(self.obj_name)
         node += div1
         if self.name != "xdata":
-            node += mydiv_node(classes=["sig-open-paren"])
+            node += nodes.inline("", nodes.Text("("),
+                                 classes=["sig-open-paren"])
             params = mydiv_node(classes=["sig-parameters"])
             last_i = len(self.parsed_params) - 1
             for i, param in enumerate(self.parsed_params):
@@ -575,13 +576,18 @@ class XobjectDirective(SphinxDirective):
                     params += mydiv_node("", ref, classes=classes)
                 else:
                     assert isinstance(param, tuple)
-                    ref = a_node(text=param[0], href="#" + param[0])
-                    p = mydiv_node("", ref, classes=classes)
-                    deflt = mydiv_node(classes=["default"])
-                    deflt += nodes.Text(param[1])
-                    p += deflt
-                    params += p
-            params += mydiv_node(classes=["sig-close-paren"])
+                    param_node = a_node(text=param[0], href="#" + param[0])
+                    equal_sign_node = nodes.inline("", nodes.Text("="), classes=["punct"])
+                    # Add as nodes.literal, so that Sphinx wouldn't try to
+                    # "improve" quotation marks and ...s
+                    default_value_node = nodes.literal("", nodes.Text(param[1]),
+                                                      classes=["default"])
+                    params += mydiv_node("", param_node, equal_sign_node,
+                                         default_value_node, classes=classes)
+                if i < len(self.parsed_params) - 1:
+                    params += nodes.inline("", nodes.Text(", "), classes=["punct"])
+            params += nodes.inline("", nodes.Text(")"),
+                                   classes=["sig-close-paren"])
             node += params
 
 
