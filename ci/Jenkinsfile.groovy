@@ -184,7 +184,7 @@ ansiColor('xterm') {
                         // echo "Version is: ${versionText}"
                         // sh "make ${MAKE_OPTS} mrproper"
                     }
-                    stash 'datatable-sources'
+                    stash name: 'datatable-sources', useDefaultExcludes: false
                 }
             }
             // Build stages
