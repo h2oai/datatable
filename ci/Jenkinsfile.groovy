@@ -175,7 +175,7 @@ ansiColor('xterm') {
                         }
                     }
                     buildSummary.stageWithSummary('Generate version and git files', stageDir) {
-                        sh "make geninfo --strict"
+                        sh "make geninfo"
                         arch "datatable/_build_info.py"
                         // stash name: 'VERSION', includes: "dist/VERSION.txt"
                         // stash name: 'GIT_HASH_FILE', includes: "datatable/_build_info.py"

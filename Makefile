@@ -108,7 +108,7 @@ debug:
 
 .PHONY: geninfo
 geninfo:
-	@$(PYTHON) ext.py geninfo
+	@$(PYTHON) ext.py geninfo --strict
 
 
 .PHONY: coverage
