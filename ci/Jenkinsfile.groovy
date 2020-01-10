@@ -201,6 +201,7 @@ ansiColor('xterm') {
                                     docker run --rm --init \
                                         -u `id -u`:`id -g` \
                                         -v `pwd`:/dot \
+                                        --entrypoint /bin/bash \
                                         ${createDockerArgs()} \
                                         quay.io/pypa/manylinux2010_x86_64 \
                                         -c "cd /dot && \
