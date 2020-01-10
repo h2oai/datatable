@@ -584,7 +584,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                                             : target_col0_train;  // whatever
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    iteration_nrows = static_cast<size_t>(nepochs_val * iteration_nrows);
+    iteration_nrows = static_cast<size_t>(std::ceil(nepochs_val * iteration_nrows));
     niterations = total_nrows / iteration_nrows + (total_nrows % iteration_nrows > 0);
     loss_history.resize(val_niters, 0.0);
   }
@@ -694,16 +694,20 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           }
           barrier();
 
+          double epoch = static_cast<double>(iteration_end) / dt_X_train->nrows();
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
-              job.set_message("Stopping due to the loss reaching " + std::to_string(loss));
+              job.set_message("Stopping at epoch " + tostr(epoch) +
+                              ", loss = " + tostr(loss));
               // In some cases this makes progress "jumping" to 100%.
               job.set_done_amount(work_total);
             }
             break;
           }
           if (dt::this_thread_index() == 0) {
-            job.set_message("Fitting... the loss is " + std::to_string(loss));
+            job.set_message("Fitting... epoch " + tostr(epoch) +
+                            " of " + tostr(nepochs) +
+                            ", loss = " + tostr(loss));
           }
         } // End validation
 
@@ -728,6 +732,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   return res;
 }
+
 
 
 /**
