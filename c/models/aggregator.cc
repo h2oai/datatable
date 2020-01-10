@@ -449,7 +449,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   // Applying exemplars row index and binding exemplars with the counts.
   RowIndex ri_exemplars = RowIndex(std::move(exemplar_indices));
   dt_exemplars->apply_rowindex(ri_exemplars);
-  std::vector<DataTable*> dts = { dt_counts.release() };
+  std::vector<DataTable*> dts = { dt_counts.get() };
   dt_exemplars->cbind(dts);
   job.done();
 }
