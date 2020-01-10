@@ -46,7 +46,8 @@ from ci import xbuild
 #-------------------------------------------------------------------------------
 
 def is_source_distribution():
-    return not os.path.exists("VERSION.txt")
+    return not os.path.exists("VERSION.txt") and \
+           os.path.exists("datatable/_build_info.py")
 
 
 # The primary source of datatable's release version is the file
@@ -356,6 +357,24 @@ def shell_cmd(cmd, strict=False):
 
 
 def generate_build_info(mode=None, strict=False):
+    """
+    Gather the build information and write it into the
+    datatable/_build_info.py file.
+
+    Parameters
+    ----------
+    mode: str
+        Used only for local version tags, the mode is the first part
+        of such local tag.
+
+    strict: bool
+        If False, then the errors in git commands will be silently
+        ignored, and the produced _build_info.py file will contain
+        empty `git_revision` and `git_branch` fields.
+
+        If True, then the errors in git commands will terminate the
+        build process.
+    """
     version = get_datatable_version(mode)
     build_date = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     git_hash = shell_cmd(["git", "rev-parse", "HEAD"], strict=strict)
@@ -479,23 +498,23 @@ def build_sdist(sdist_directory, config_settings=None):
 def cmd_ext(args):
     with open("datatable/lib/.xbuild-cmd", "wt") as out:
         out.write(args.cmd)
-    generate_build_info(args.cmd)
+    generate_build_info(args.cmd, strict=args.strict)
     build_extension(cmd=args.cmd, verbosity=args.verbosity)
 
 
 def cmd_geninfo(args):
-    generate_build_info()
+    generate_build_info(strict=args.strict)
 
 
 def cmd_sdist(args):
-    generate_build_info("sdist")
+    generate_build_info("sdist", strict=True)
     sdist_file = build_sdist(args.destination)
     assert os.path.isfile(os.path.join("dist", sdist_file))
 
 
 def cmd_wheel(args):
     if not is_source_distribution():
-        generate_build_info("build")
+        generate_build_info("build", strict=True)
     so_file = build_extension(cmd="build", verbosity=3)
     wheel_file = build_wheel(args.destination, {"audit": args.audit})
     assert os.path.isfile(os.path.join("dist", wheel_file))
@@ -520,7 +539,7 @@ def main():
                        testing
             debug    : build _datatable in debug mode, optimized for gdb
                        on Linux and for lldb on MacOS
-            geninfo  : generate __git__.py file
+            geninfo  : generate _build_info.py file
             sdist    : create source distribution of datatable
             wheel    : create wheel distribution of datatable
             """).strip())
@@ -537,6 +556,12 @@ def main():
              "succeeds, i.e. the wheel is found to be compatible with a\n"
              "manylinux* tag, then the wheel will be renamed to use the new\n"
              "tag. Otherwise, an error will be raised.")
+    parser.add_argument("--strict", action="store_true",
+        help="This flag is used for `geninfo` command: when given, the\n"
+             "generated _build_info.py file is guaranteed to contain the\n"
+             "git_revision and git_branch fields, or otherwise an error\n"
+             "will be thrown. This flag is turned on automatically for\n"
+             "`sdist` and `wheel` commands.")
 
     args = parser.parse_args()
     if args.audit and "linux" not in sys.platform:
