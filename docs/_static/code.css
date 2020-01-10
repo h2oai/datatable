@@ -51,7 +51,7 @@ div.small-links div {
   background: none;
   border-style: none;
   color: #a3b2c5;
-  font-size: 85%;
+  font-size: 90%;
   padding: 0;
 }
 
@@ -210,9 +210,10 @@ h1 {
 
 h2 {
   font-family: inherit;
-  margin-top: 30pt;
+  margin-top: 24pt;
 }
 
 p {
   font-size: 100%;
+  line-height: 22px;
 }

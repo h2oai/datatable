@@ -1,6 +1,7 @@
 
 .x-function {
     margin-bottom: 18pt;
+    margin-top: -22pt;
 }
 
 .x-function h1 {
@@ -14,17 +15,17 @@
 
 .x-function .sig-container {
     background-color: #2b639c;
+    border-radius: 3px;
     display: flex;
-    font-family: "SF Mono", Menlo, monospace;
-    padding: 1pt 5pt 3pt 6pt;
+    line-height: 16px;
+    padding: 5pt 5pt 5pt 7pt;
 }
 
 .x-function .sig-container .sig-qualifier a,
 .x-function .sig-container .sig-qualifier a:visited,
 .x-function .sig-container .code-links a,
 .x-function .sig-container .code-links a:visited {
-    color: #7dd;
-    font-size: 75%;
+    color: #8da4d2;
 }
 
 .x-function .sig-container .sig-qualifier a:hover,
@@ -34,10 +35,13 @@
 
 .x-function .sig-body {
     flex: 1;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 88%;
 }
 
 .x-function .code-links {
-    font-size: 90%;
+    font-size: 75%;
+    margin-top: -3pt;
 }
 
 .x-function .code-links a:after {
@@ -52,16 +56,15 @@
 
 
 .x-function .sig-main {
+    color: #8da4d2;
     display: flex;
 }
 
 .x-function .sig-main .sig-name {
     color: #ffe810;
-    font-weight: bold;
 }
 
 .x-function .sig-main .sig-open-paren:before {
-    color: #79d;
     content: "(";
 }
 
@@ -69,7 +72,6 @@
     display: inline-block;
 }
 .x-function .sig-main .sig-close-paren:before {
-    color: #79d;
     content: ")";
 }
 
@@ -87,24 +89,19 @@
 .x-function .sig-parameters .param a:hover {
     color: #fff;
 }
-.x-function .sig-parameters .param.self,
-.x-function .sig-parameters .param.special {
-    color: #79d;
-}
+
 .x-function .sig-parameters .param:not(.final):after {
     color: #68c;
-    content: ",";
-    padding-right: 6pt;
+    content: ", ";
+    white-space: pre;
 }
 .x-function .sig-parameters .param .default {
-    color: #79d;
     display: inline;
     font-style: normal;
 }
 .x-function .sig-parameters .param .default:before {
     color: #68c;
     content: "=";
-    padding: 0 2pt;
 }
 
 
@@ -131,8 +128,14 @@
     background: none;
     border: none;
     color: #000;
+    font-size: 100%;
+    font-weight: normal;
     margin: 6pt 0 0 0;
     padding: 0;
+}
+
+.rst-content .x-function-body dl.simple code {
+    font-weight: normal;
 }
 
 .x-function a.xparam-ref code {
@@ -165,7 +168,7 @@
 
 .xparam-head {
     align-items: baseline;
-    background: #f2f2f2;
+    background: #f5f5f5;
     display: flex;
 }
 
@@ -177,7 +180,7 @@
     display: inline-block;
     font-family: "SF Mono", Menlo, monospace;
     font-size: 85%;
-    padding: 2px 4px;
+    padding: 3px 6px;
 }
 
 .xparam-head .param.return {
@@ -188,7 +191,7 @@
 .xparam-head .types {
     color: #ddd;  /* affects only the separators */
     line-height: 14px;
-    padding: 2px 10px;
+    padding: 3px 10px;
 }
 
 .xparam-body {
