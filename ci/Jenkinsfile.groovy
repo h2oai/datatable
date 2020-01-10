@@ -175,11 +175,11 @@ ansiColor('xterm') {
                         }
                     }
                     buildSummary.stageWithSummary('Generate version and git files', stageDir) {
-                        sh "make geninfo"
+                        sh "make geninfo --strict"
+                        arch "datatable/_build_info.py"
                         // stash name: 'VERSION', includes: "dist/VERSION.txt"
                         // stash name: 'GIT_HASH_FILE', includes: "datatable/_build_info.py"
                         // arch "dist/VERSION.txt"
-                        arch "datatable/_build_info.py"
                         // versionText = readFile('dist/VERSION.txt').trim()
                         // echo "Version is: ${versionText}"
                         // sh "make ${MAKE_OPTS} mrproper"
@@ -197,20 +197,22 @@ ansiColor('xterm') {
                             dumpInfo()
                             dir(stageDir) {
                                 unstash 'datatable-sources'
-                                // unstash 'VERSION'
-                                // unstash 'GIT_HASH_FILE'
-                                sh "make clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
-                                stash name: 'x86_64_centos7-py37-whl', includes: "dist/*.whl"
-                                arch "dist/*.whl"
-                                // unstash 'VERSION'
-                                // unstash 'GIT_HASH_FILE'
-                                sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
-                                stash name: 'x86_64_centos7-py36-whl', includes: "dist/*.whl"
-                                arch "dist/*.whl"
-                                // unstash 'VERSION'
-                                // unstash 'GIT_HASH_FILE'
-                                sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
-                                stash name: 'x86_64_centos7-py35-whl', includes: "dist/*.whl"
+                                sh """
+                                    docker run --rm --init \
+                                        -u `id -u`:`id -g` \
+                                        -v `pwd`:/dot \
+                                        ${createDockerArgs()} \
+                                        quay.io/pypa/manylinux2010_x86_64 \
+                                        -c "cd /dot && \
+                                            ls -la && \
+                                            ls -la datatable && \
+                                            /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
+                                            /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
+                                            /opt/python/cp37-cp37m/bin/python3.7 ext.py wheel --audit && \
+                                            /opt/python/cp38-cp38/bin/python3.8 ext.py wheel --audit \
+                                            ls -la dist"
+                                """
+                                stash name: 'x86_64_centos7-wheels', includes: "dist/*.whl"
                                 arch "dist/*.whl"
                             }
                         }
@@ -347,7 +349,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py37-whl'
+                                    unstash 'x86_64_centos7-wheels'
                                     testInDocker('ubuntu_test_py37_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
@@ -412,7 +414,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py37-whl'
+                                    unstash 'x86_64_centos7-wheels'
                                     testInDocker('centos7_test_py37_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
@@ -628,9 +630,7 @@ ansiColor('xterm') {
                         dir(stageDir) {
 
                             dir('x86_64-centos7') {
-                                unstash 'x86_64_centos7-py37-whl'
-                                unstash 'x86_64_centos7-py36-whl'
-                                unstash 'x86_64_centos7-py35-whl'
+                                unstash 'x86_64_centos7-wheels'
                                 s3upDocker {
                                     localArtifact = 'dist/*.whl'
                                     artifactId = 'pydatatable'
@@ -700,9 +700,7 @@ ansiColor('xterm') {
                             checkout scm
                             unstash 'CHANGELOG'
                             unstash 'VERSION'
-                            unstash 'x86_64_centos7-py37-whl'
-                            unstash 'x86_64_centos7-py36-whl'
-                            unstash 'x86_64_centos7-py35-whl'
+                            unstash 'x86_64_centos7-wheels'
                             unstash 'x86_64_osx-py37-whl'
                             unstash 'x86_64_osx-py36-whl'
                             unstash 'x86_64_osx-py35-whl'
