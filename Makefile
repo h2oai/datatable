@@ -35,16 +35,15 @@ PLATFORM := $(ARCH)-$(OS)
 # Distribution directory
 DIST_DIR := dist/$(PLATFORM)
 
-.PHONY: all clean mrproper build test_install test \
-		asan benchmark debug bi coverage dist fast xcoverage
 
-
+.PHONY: all
 all:
 	$(MAKE) clean
 	$(MAKE) build
 	$(MAKE) test
 
 
+.PHONY: clean
 clean::
 	rm -rf .asan
 	rm -rf .cache
@@ -58,21 +57,28 @@ clean::
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
 
+.PHONY: mrproper
 mrproper: clean
 	git clean -f -d -x
 
 
 
+.PHONY: extra_install
 extra_install:
 	$(PYTHON) -m pip install -r requirements_extra.txt
 
+
+.PHONY: test_install
 test_install:
 	$(PYTHON) -m pip install -r requirements_tests.txt
 
+
+.PHONY: docs_install
 docs_install:
 	$(PYTHON) -m pip install -r requirements_docs.txt
 
 
+.PHONY: test
 test:
 	rm -rf build/test-reports 2>/dev/null
 	mkdir -p build/test-reports/
@@ -85,28 +91,31 @@ test:
 #   $ make asan
 #   $ DYLD_INSERT_LIBRARIES=/usr/local/opt/llvm/lib/clang/7.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib ASAN_OPTIONS=detect_leaks=1 python -m pytest
 #
+.PHONY: asan
 asan:
 	@$(PYTHON) ext.py asan
 
+
+.PHONY: build
 build:
 	@$(PYTHON) ext.py build
 
-xcoverage:
-	@$(PYTHON) ext.py coverage
 
+.PHONY: debug
 debug:
 	@$(PYTHON) ext.py debug
 
+
+.PHONY: geninfo
 geninfo:
 	@$(PYTHON) ext.py geninfo
 
 
-
+.PHONY: coverage
 coverage:
 	$(PYTHON) -m pip install 'typesentry>=0.2.6' blessed
-	$(MAKE) xcoverage
+	$(PYTHON) ext.py coverage
 	$(MAKE) test_install
-	$(MAKE) geninfo
 	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--cov=datatable --cov-report=html:build/coverage-py \
 		tests
@@ -126,12 +135,22 @@ coverage:
 	genhtml --legend --output-directory build/coverage-c --demangle-cpp build/coverage.info
 	mv .coverage build/
 
-dist:
+
+.PHONY: wheel
+wheel:
 	@$(PYTHON) ext.py wheel -d $(DIST_DIR)
 
+
+.PHONY: dist
+dist: wheel
+
+
+.PHONY: sdist
 sdist:
 	@$(PYTHON) ext.py sdist
 
+
+.PHONY: version
 version:
 	@$(PYTHON) ci/setup_utils.py version
 
@@ -203,7 +222,7 @@ centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 		-w /dot \
 		--entrypoint /bin/bash \
 		$(CONTAINER_NAME_TAG) \
-		-c 'make dist'
+		-c 'make wheel'
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
 	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 
@@ -244,7 +263,7 @@ centos7_build_in_docker_impl:
 		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate $(BUILD_VENV) && \
-			make CI=$(CI) dist"
+			make wheel"
 
 centos7_build_py37_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py37-with-pandas centos7_build_in_docker_impl
