@@ -439,15 +439,19 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     assert isinstance(config_settings, dict)
     assert metadata_directory is None
 
-    soext = "dll" if sys.platform == "win32" else "so"
-    sofiles = glob.glob("datatable/lib/_datatable*." + soext)
-    if not sofiles:
-        raise SystemExit("Extension file not found in datatable/lib directory")
-    if len(sofiles) > 1:
-        raise SystemExit("Multiple extension files found: %r" % (sofiles,))
+    sofile = config_settings.get("sofile")
+    if not sofile:
+        soext = "dll" if sys.platform == "win32" else "so"
+        sofiles = glob.glob("datatable/lib/_datatable*." + soext)
+        if not sofiles:
+            raise SystemExit("Extension file datatable/lib/_datatable*.%s "
+                             "not found" % soext)
+        if len(sofiles) > 1:
+            raise SystemExit("Multiple extension files found: %r" % (sofiles,))
+        sofile = sofiles[0]
 
     files = glob.glob("datatable/**/*.py", recursive=True)
-    files += sofiles
+    files += [sofile]
     files += ["datatable/include/datatable.h"]
     files = [f for f in files if "_datatable_builder.py" not in f]
     files.sort()
@@ -516,7 +520,8 @@ def cmd_wheel(args):
     if not is_source_distribution():
         generate_build_info("build", strict=True)
     so_file = build_extension(cmd="build", verbosity=3)
-    wheel_file = build_wheel(args.destination, {"audit": args.audit})
+    wheel_file = build_wheel(args.destination,
+                             {"audit": args.audit, "sofile": so_file})
     assert os.path.isfile(os.path.join("dist", wheel_file))
 
 
