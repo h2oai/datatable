@@ -286,7 +286,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     try {
-                                        sh "make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                        sh "make ${MAKE_OPTS} DOCKER_CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
                                     } finally {
                                         arch "/tmp/cores/*python*"
                                     }
@@ -751,7 +751,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
             env
             rm -rf datatable
             mkdir -p /tmp/cores
-            make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
+            make ${MAKE_OPTS} DOCKER_CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
     } finally {
         sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/*python* build/cores || true'

@@ -20,6 +20,20 @@ PLATFORM := $(ARCH)-$(OS)
 # Distribution directory
 DIST_DIR := dist/$(PLATFORM)
 
+# Docker settings
+DOCKER_BIN             ?= docker
+DOCKER_RUN_COMMON_ARGS = --rm \
+						--init \
+						-u `id -u`:`id -g` \
+						-v `pwd`:/dot \
+						-w /dot \
+						--ulimit core=-1 \
+						--entrypoint /bin/bash \
+						-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
+						-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
+						$(DOCKER_CUSTOM_ARGS)
+DOCKER_RUN             = $(DOCKER_BIN) run $(DOCKER_RUN_COMMON_ARGS)
+
 .PHONY: all clean mrproper build install uninstall test_install test \
 		asan benchmark debug bi coverage dist fast xcoverage
 
@@ -208,15 +222,8 @@ centos7_docker_publish: Dockerfile-centos7.$(PLATFORM).tag
 
 centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
 	make clean
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
+	$(DOCKER_RUN) \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
 		$(CONTAINER_NAME_TAG) \
 		-c 'make dist'
 	mkdir -p $(DIST_DIR)/$(PLATFORM)
@@ -250,16 +257,8 @@ docker_image_tag:
 	@echo $(DOCKER_IMAGE_TAG)
 
 centos7_build_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
+	$(DOCKER_RUN) \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate $(BUILD_VENV) && \
 			make CI=$(CI) dist"
@@ -274,16 +273,8 @@ centos7_build_py35_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py35-with-pandas centos7_build_in_docker_impl
 
 centos7_version_in_docker:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
+	$(DOCKER_RUN) \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate datatable-py36-with-pandas && \
 			python --version && \
@@ -292,16 +283,7 @@ centos7_version_in_docker:
 			cat dist/VERSION.txt"
 
 centos7_test_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
+	$(DOCKER_RUN) \
 		$(CENTOS_DOCKER_IMAGE_NAME) \
 		-c ". activate $(TEST_VENV) && \
 			python --version && \
@@ -325,34 +307,16 @@ centos7_test_py36_in_docker:
 	$(MAKE) TEST_VENV=datatable-py36 centos7_test_in_docker_impl
 
 ubuntu_build_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
+	$(DOCKER_RUN) \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/$(BUILD_VENV)/bin/activate && \
 			python --version && \
 			make CI=$(CI) dist"
 
 ubuntu_build_sdist_in_docker:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
+	$(DOCKER_RUN) \
 		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
 			python --version && \
@@ -368,32 +332,14 @@ ubuntu_build_py35_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py35-with-pandas ubuntu_build_in_docker_impl
 
 ubuntu_coverage_py36_with_pandas_in_docker:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
+	$(DOCKER_RUN) \
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
 			python --version && \
 			make CI=$(CI) coverage"
 
 ubuntu_test_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
+	$(DOCKER_RUN) \
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/$(TEST_VENV)/bin/activate && \
 			python --version && \
@@ -425,6 +371,7 @@ printvars:
 	@echo VERSION=$(VERSION)
 	@echo CONTAINER_TAG=$(CONTAINER_TAG)
 	@echo CONTAINER_NAME=$(CONTAINER_NAME)
+	@echo DOCKER_RUN=$(DOCKER_RUN)
 
 clean::
 	rm -f Dockerfile-centos7.$(PLATFORM)
