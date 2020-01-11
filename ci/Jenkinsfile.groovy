@@ -210,7 +210,7 @@ ansiColor('xterm') {
                                             /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
                                             /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ext.py wheel --audit && \
-                                            /opt/python/cp38-cp38/bin/python3.8 ext.py wheel --audit \
+                                            /opt/python/cp38-cp38/bin/python3.8 ext.py wheel --audit && \
                                             ls -la dist"
                                 """
                                 stash name: 'x86_64_centos7-wheels', includes: "dist/*.whl"
