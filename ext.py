@@ -281,7 +281,7 @@ def build_extension(cmd, verbosity=3):
 
     # Setup is complete, ready to build
     ext.build()
-    return os.path.basename(ext.output_file)
+    return ext.output_file
 
 
 
