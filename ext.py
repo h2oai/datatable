@@ -128,17 +128,7 @@ def get_datatable_version(mode=None):
 
     # Building from sdist (file VERSION.txt not included)
     if is_source_distribution():
-        info_file = os.path.join("datatable", "_build_info.py")
-        if not os.path.exists(info_file):
-            raise SystemExit("Invalid source distribution: file "
-                             "datatable/_build_info.py is missing")
-        with open(info_file, "r", encoding="utf-8") as inp:
-            text = inp.read()
-        mm = re.search(r"\s*version\s*=\s*['\"]([\w\+\.]+)['\"]")
-        if not mm:
-            raise SystemExit("Cannot find version in datatable/"
-                             "_build_info.py file")
-        return mm.group(1)
+        return _get_version_from_build_info()
 
     # Otherwise we're building from a local distribution
     else:
@@ -161,6 +151,21 @@ def _get_version_txt(mode):
                          "in %s mode" % mode)
     with open("VERSION.txt", "r") as f:
         return f.read().strip()
+
+
+def _get_version_from_build_info():
+    info_file = os.path.join("datatable", "_build_info.py")
+    if not os.path.exists(info_file):
+        raise SystemExit("Invalid source distribution: file "
+                         "datatable/_build_info.py is missing")
+    with open(info_file, "r", encoding="utf-8") as inp:
+        text = inp.read()
+    mm = re.search(r"\s*version\s*=\s*['\"]([\w\+\.]+)['\"]", text)
+    if not mm:
+        raise SystemExit("Cannot find version in datatable/"
+                         "_build_info.py file")
+    return mm.group(1)
+
 
 
 def _get_user():
@@ -288,7 +293,7 @@ def build_extension(cmd, verbosity=3):
 def get_meta():
     return dict(
         name="datatable",
-        version=get_datatable_version(),
+        version=_get_version_from_build_info(),
 
         summary="Python library for fast multi-threaded data manipulation and "
                 "munging.",
@@ -439,8 +444,9 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     assert isinstance(config_settings, dict)
     assert metadata_directory is None
 
-    sofile = config_settings.get("sofile")
-    if not sofile:
+    if "sofile" in config_settings:
+        sofile = config_settings.pop("sofile")
+    else:
         soext = "dll" if sys.platform == "win32" else "so"
         sofiles = glob.glob("datatable/lib/_datatable*." + soext)
         if not sofiles:
