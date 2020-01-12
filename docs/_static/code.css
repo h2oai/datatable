@@ -210,6 +210,7 @@ div[role=navigation] hr {
 h1 {
   border-bottom: 1px solid #ccc;
   font-family: inherit;
+  margin-top: -22pt;
 }
 
 h2 {
@@ -220,4 +221,21 @@ h2 {
 p {
   font-size: 100%;
   line-height: 22px;
+}
+
+p + ul.simple, p + ol.simple {
+  margin-top: -12pt;
+  margin-left: 12pt;
+}
+
+/* inter-paragraph distance is reduced in a ul|ol */
+.rst-content .section ol p + ul.simple,
+.rst-content .section ul p + ul.simple,
+.rst-content .section ol p + ol.simple,
+.rst-content .section ul p + ul.simple {
+  margin-top: -6pt;
+}
+
+ul.simple li, ol.simple li {
+  margin-bottom: 6pt;
 }

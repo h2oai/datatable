@@ -51,7 +51,7 @@ raised - instead all frames that are shorter than the others will be
 padded with NAs.
 
 If the frames being appended have same column names as the current
-frame, then those names will be :ref:`mangled <names_deduplication>`
+frame, then those names will be :ref:`mangled <name-mangling>`
 to ensure that the column names in the current frame remain unique.
 A warning will also be issued in this case.
 
