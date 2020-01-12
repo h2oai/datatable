@@ -191,6 +191,7 @@ static void _register_function(const py::PKArgs& args) {
     case 5: replace_valueError(fnref); break;
     case 6: replace_dtWarning(fnref); break;
     case 7: py::Frame_Type = fnref; break;
+    case 8: replace_invalidOpError(fnref); break;
     case 9: py::Expr_Type = fnref; break;
     default: throw ValueError() << "Unknown index: " << n;
   }

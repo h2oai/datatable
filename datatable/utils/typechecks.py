@@ -26,6 +26,10 @@ class TImportError(ImportError):
     _handle_ = TTypeError._handle_
 
 
+class InvalidOperationError(Exception):
+    _handle_ = TTypeError._handle_
+
+
 TTypeError.__module__ = "datatable"
 TValueError.__module__ = "datatable"
 TImportError.__module__ = "datatable"
@@ -69,6 +73,7 @@ warnings.showwarning = _showwarning
 core._register_function(4, TTypeError)
 core._register_function(5, TValueError)
 core._register_function(6, DatatableWarning)
+core._register_function(8, InvalidOperationError)
 
 
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",

@@ -23,6 +23,7 @@ CErrno Errno;
 static PyObject* type_error_class;
 static PyObject* value_error_class;
 static PyObject* datatable_warning_class;
+static PyObject* invalid_operation_error_class;
 
 
 //==============================================================================
@@ -247,10 +248,12 @@ Error OverflowError()  { return Error(PyExc_OverflowError); }
 Error RuntimeError()   { return Error(PyExc_RuntimeError); }
 Error TypeError()      { return Error(type_error_class); }
 Error ValueError()     { return Error(value_error_class); }
+Error InvalidOperationError() { return Error(invalid_operation_error_class); }
 
 void replace_typeError(PyObject* obj) { type_error_class = obj; }
 void replace_valueError(PyObject* obj) { value_error_class = obj; }
 void replace_dtWarning(PyObject* obj) { datatable_warning_class = obj; }
+void replace_invalidOpError(PyObject* obj) { invalid_operation_error_class = obj; }
 
 void init_exceptions() {
   type_error_class = PyExc_TypeError;
