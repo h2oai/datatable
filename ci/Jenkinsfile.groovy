@@ -363,7 +363,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py36-whl'
+                                    unstash 'x86_64_centos7-wheels'
                                     testInDocker('ubuntu_test_py36_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
@@ -376,7 +376,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py35-whl'
+                                    unstash 'x86_64_centos7-wheels'
                                     testInDocker('ubuntu_test_py35_with_pandas_in_docker', needsLargerTest)
                                 }
                             }

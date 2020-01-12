@@ -371,7 +371,7 @@ ubuntu_coverage_py36_with_pandas_in_docker:
 		$(UBUNTU_DOCKER_IMAGE_NAME) \
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
 			python --version && \
-			make CI=$(CI) coverage"
+			make coverage"
 
 ubuntu_test_in_docker_impl:
 	docker run \
