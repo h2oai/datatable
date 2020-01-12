@@ -99,15 +99,14 @@ div.document div.notranslate.highlight-default {
 }
 
 div.document div.notranslate.highlight-default + div.output-cell {
-  margin-top: -16px;
+  margin-top: -18px;
 }
 
 div.document div.notranslate.highlight-default:before {
-  color: #A6D2BB;
+  color: #CCC;
   content: "[" counter(cc) "]:";
   flex: 0 0 48px;
   font-family: "Source Code Pro", monospace;
-  font-weight: bold;
   font-size: 80%;
   line-height: 24px;
   padding: 0.2em 0.4em;
@@ -117,8 +116,8 @@ div.document div.notranslate.highlight-default:before {
 div.document div.notranslate.highlight-default div.highlight {
   background: #F5F5F5;
   border: 1px solid #E0E0E0;
-  border-radius: 3px;
   flex: 1 1 auto;
+  margin-bottom: 0;
 }
 
 div.document div.notranslate.highlight-default div.highlight pre {
@@ -136,11 +135,10 @@ div.document div.output-cell {
 }
 
 div.document div.output-cell:before {
-  color: #D9B1B2;
+  color: #CCC;
   content: "[" counter(cc) "]:";
   flex: 0 0 48px;
   font-family: "Source Code Pro", monospace;
-  font-weight: bold;
   font-size: 80%;
   padding: .385em;
   text-align: right;
