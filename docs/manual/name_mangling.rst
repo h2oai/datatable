@@ -14,13 +14,13 @@ Column names in a :class:`Frame` satisfy several invariants:
 - within a single Frame column names must be unique;
 
 - no column name may contain characters from the `C0 control block`_. Among
-  others, this set of forbidden characters includes: the NUL character ``\0``,
+  others, this set of forbidden characters includes: the NULL character ``\0``,
   TAB character ``\t``, and the newline ``\n``.
 
 
 If the user makes an attempt to create a Frame that would violate some of
 these assumptions, then instead of failing we will attempt to **mangle** the
-provided names forcing them to satisfy the above requirements.
+provided names, forcing them to satisfy the above requirements.
 
 Given a list of column names requested by the user, the following algorithm
 is used:
@@ -42,7 +42,7 @@ is used:
      plus 1;
 
    - If the name does not end with a number, then append a dot (``.``) to the
-     name and consider this the ``stem``, for the ``count`` variable take the
+     name and consider this the ``stem``. For the ``count`` variable, take the
      value of option ``dt.options.frame.name_auto_index``.
 
    - Concatenate ``stem`` and ``count``, and check whether this name has been

@@ -40,17 +40,17 @@ method is roughly equivalent to `pandas.concat(axis=1)`.
 
 The frames being cbound must all either have the same number of rows,
 or some of them may have only a single row. Such single-row frames
-will be automatically expanded, replicating thei value as needed.
-This makes it easy to create constant columns, or to append reduction
+will be automatically expanded, replicating the value as needed.
+This makes it easy to create constant columns or to append reduction
 results (such as min/max/mean/etc) to the current Frame.
 
-If some of the `frames` have incompatible number of rows, then the
+If some of the `frames` have an incompatible number of rows, then the
 operation will fail with an :exc:`InvalidOperationError`. However, if
 you set the flag `force` to True, then the error will no longer be
 raised - instead all frames that are shorter than the others will be
 padded with NAs.
 
-If the frames being appended have same column names as the current
+If the frames being appended have the same column names as the current
 frame, then those names will be :ref:`mangled <name-mangling>`
 to ensure that the column names in the current frame remain unique.
 A warning will also be issued in this case.
