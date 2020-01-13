@@ -35,37 +35,54 @@ def test_colindex():
         assert DT.colindex(ch) == i
 
 
-def test_colindex_bad1():
+def test_name_doesnt_exist():
     DT = dt.Frame(range(5))
     msg = "Column `a` does not exist in the Frame"
     with pytest.raises(ValueError, match=msg):
         DT.colindex("a")
 
 
-def test_colindex_bad2():
+def test_index_too_large():
     DT = dt.Frame([[3]] * 7)
     msg = "Column index `7` is invalid for a frame with 7 columns"
     with pytest.raises(ValueError, match=msg):
         DT.colindex(7)
 
 
-def test_colindex_bad3():
+def test_index_too_negative():
     DT = dt.Frame([[3]] * 7)
     msg = "Column index `-8` is invalid for a frame with 7 columns"
     with pytest.raises(ValueError, match=msg):
         DT.colindex(-8)
 
 
-def test_colindex_bad4():
+def test_colindex_no_args():
     DT = dt.Frame()
     msg = r"Frame\.colindex\(\) is missing the required positional argument " \
-          "`name`"
+          "`column`"
     with pytest.raises(TypeError, match=msg):
         DT.colindex()
 
 
+def test_colindex_too_many_args():
+    DT = dt.Frame()
+    msg = r"Frame\.colindex\(\) takes only one positional argument, " \
+          "but 2 were given"
+    with pytest.raises(TypeError, match=msg):
+        DT.colindex(0, 1)
+
+
+def test_colindex_named_arg():
+    DT = dt.Frame(A=[0])
+    msg = r"Frame\.colindex\(\) got argument `column` as a keyword, but it " \
+          r"should be positional-only"
+    with pytest.raises(TypeError, match=msg):
+        DT.colindex(column="A")
+
+
+
 @pytest.mark.parametrize("x", [False, None, 1.99, [1, 2, 3]])
-def test_colindex_bad5(x):
+def test_arg_wrong_type(x):
     DT = dt.Frame(names=list("ABCDEFG"))
     msg = r"The argument to Frame\.colindex\(\) should be a string or an " \
           r"integer, not %s" % type(x)

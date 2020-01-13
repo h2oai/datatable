@@ -112,15 +112,15 @@ class strvecNP : public NameProvider {
 namespace py {
 
 
-static const char* doc_colindex = R"(colindex(self, name)
+static const char* doc_colindex = R"(colindex(self, column)
 --
 
-Return index of the column `name`, or raises a `ValueError` if the
+Return index of the column `column`, or raises a `ValueError` if the
 requested column does not exist.
 
 Parameters
 ----------
-name: str or int
+column: str or int
     The name of the column for which the index is sought. This can
     also be a numeric index, in which case the index is checked that
     it doesn't go out-of-bounds, and negative index is replaced with a
@@ -128,7 +128,7 @@ name: str or int
 )";
 
 static PKArgs args_colindex(
-    1, 0, 0, false, false, {"name"}, "colindex", doc_colindex
+    1, 0, 0, false, false, {"column"}, "colindex", doc_colindex
 );
 
 
@@ -136,7 +136,7 @@ oobj Frame::colindex(const PKArgs& args) {
   auto col = args[0];
   if (!col) {
     throw TypeError() << "Frame.colindex() is missing the required "
-                         "positional argument `name`";
+                         "positional argument `column`";
   }
 
   if (col.is_string()) {
