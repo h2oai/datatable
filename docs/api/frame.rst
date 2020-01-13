@@ -10,7 +10,9 @@ Frame
 
 
 .. toctree::
-	:glob:
 	:hidden:
 
-	frame/*
+	.cbind()     <frame/cbind>
+	.colindex()  <frame/colindex>
+	.replace()   <frame/replace>
+	.to_csv()    <frame/to_csv>

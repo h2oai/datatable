@@ -60,10 +60,9 @@ extensions = [
     'sphinxext.xfunction',
     'sphinxext.dt_changelog',
     'sphinxext.ref_context',
-    'nbsphinx',
+    # 'nbsphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    # 'sphinx.ext.viewcode',
     'sphinx.ext.napoleon'
 ]
 
