@@ -32,6 +32,7 @@ def test_colindex():
     assert DT.colindex(1) == 1
     assert DT.colindex(-1) == 6
     for i, ch in enumerate("ABCDEFG"):
+        assert DT.colindex(i) == i
         assert DT.colindex(ch) == i
 
 
@@ -116,3 +117,15 @@ def test_colindex_fuzzy_suggestions():
     check(d2, "VRANAME", "; did you mean `varname`?")
     check(d2, "var_name", "; did you mean `varname`?")
     check(d2, "variable", "; did you mean `varname`?")
+
+
+
+def test_colindex_after_column_deleted():
+    DT = dt.Frame(names=["A", "B", "C", "D"])
+    assert DT.colindex("D") == 3
+    del DT["B"]
+    assert DT.colindex("D") == 2
+    del DT["D"]
+    msg = "Column `D` does not exist in the Frame"
+    with pytest.raises(ValueError, match=msg):
+        DT.colindex("D")
