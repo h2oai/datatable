@@ -136,10 +136,11 @@ column: str | int | Expr
     frame. In this case the positive value `column + nrows` is
     returned.
 
-    Lastly, `column` argument may also be an f-expression such as
-    `f.A` or `f[3]`. This case is treated as if the argument was
-    simply `"A"` or `3`. More complicated f-expressions are not
-    allowed and will result in a `TypeError`.
+    Lastly, `column` argument may also be an
+    :ref:`f-expression <f-expressions>` such as `f.A` or `f[3]`. This
+    case is treated as if the argument was simply `"A"` or `3`. More
+    complicated f-expressions are not allowed and will result in a
+    `TypeError`.
 
 (return): int
     The numeric index of the provided `column`. This will be an
