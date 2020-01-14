@@ -236,8 +236,8 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     ccptr<T> contconv;
     size_t ncols = dt->ncols();
 
-    // Create a column convertor for each numeric columns,
-    // and create a vector of categoricals.
+    // Create column convertors for numeric columns,
+    // and a vector of categoricals.
     for (size_t i = 0; i < ncols; ++i) {
       bool is_continuous = true;
       const Column& col = dt->get_column(i);
@@ -579,25 +579,39 @@ bool Aggregator<T>::group_2d_continuous() {
  */
 template <typename T>
 bool Aggregator<T>::group_1d_categorical() {
-  auto res = group({dt_cat->get_column(0)}, {SortFlag::NONE});
-  RowIndex ri0 = std::move(res.first);
-  Groupby grpby0 = std::move(res.second);
+  auto col = dt_cat->get_column(0);
+  xassert(col.ltype() == LType::STRING);
+  auto res = group({col}, {SortFlag::NONE});
+  RowIndex ri = std::move(res.first);
+  Groupby gb = std::move(res.second);
+  auto offsets = gb.offsets_r();
+  auto d_members = static_cast<int32_t*>(
+                     dt_members->get_column(0).get_data_editable()
+                   );
 
-  auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
-  const int32_t* offsets0 = grpby0.offsets_r();
+  // Check if we have an "NA" group
+  bool na_group = false;
+  {
+    size_t row;
+    bool row_valid = ri.get_element(0, &row);
+    if (row_valid) {
+      CString val;
+      na_group = !col.get_element(row, &val);
+    }
+  }
 
-  dt::parallel_for_dynamic(grpby0.size(),
+  dt::parallel_for_dynamic(gb.size(),
     [&](size_t i) {
-      size_t off_i = static_cast<size_t>(offsets0[i]);
-      size_t off_i1 = static_cast<size_t>(offsets0[i+1]);
-      for (size_t j = off_i; j < off_i1; ++j) {
-        size_t rij;
-        bool rij_valid = ri0.get_element(j, &rij);
-        xassert(rij_valid); (void)rij_valid;
-        d_members[rij] = static_cast<int32_t>(i);
+      size_t offset_start = static_cast<size_t>(offsets[i]);
+      size_t offset_end = static_cast<size_t>(offsets[i+1]);
+      for (size_t j = offset_start; j < offset_end; ++j) {
+        size_t row;
+        bool row_valid = ri.get_element(j, &row);
+        xassert(row_valid); (void)row_valid;
+        d_members[row] = static_cast<int32_t>(i);
       }
     });
-  return grpby0.size() > n_bins;
+  return gb.size() > n_bins + na_group;
 }
 
 
@@ -606,47 +620,58 @@ bool Aggregator<T>::group_1d_categorical() {
  *  2D grouping for two categorical columns.
  */
 template <typename T>
-bool Aggregator<T>::group_2d_categorical()
-{
-  auto gbres = group({dt_cat->get_column(0), dt_cat->get_column(1)},
-                   {SortFlag::NONE, SortFlag::NONE});
-  RowIndex ri = std::move(gbres.first);
-  Groupby grpby = std::move(gbres.second);
-  auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
-  const int32_t* offsets = grpby.offsets_r();
-
+bool Aggregator<T>::group_2d_categorical() {
   const Column& col0 = dt_cat->get_column(0);
   const Column& col1 = dt_cat->get_column(1);
-  if (col0.ltype() != LType::STRING || col1.ltype() != LType::STRING) {
-    throw TypeError() << "Categorical column types should be either `str32`"
-                         " or `str64`, insted got: " << col0.ltype();
-  }
+  xassert(col0.ltype() == LType::STRING);
+  xassert(col1.ltype() == LType::STRING);
 
-  intvec n_nas(3, 0);
-  dt::parallel_for_dynamic(grpby.size(),
+  auto res = group({col0, col1},
+                   {SortFlag::NONE, SortFlag::NONE});
+  RowIndex ri = std::move(res.first);
+  Groupby gb = std::move(res.second);
+  auto offsets = gb.offsets_r();
+  auto d_members = static_cast<int32_t*>(
+                     dt_members->get_column(0).get_data_editable()
+                   );
+
+  std::atomic<size_t> na_bin1 { 0 };
+  std::atomic<size_t> na_bin2 { 0 };
+  std::atomic<size_t> na_bin3 { 0 };
+  dt::parallel_for_dynamic(gb.size(),
     [&](size_t i) {
-      CString tmp;
-      auto group_id = static_cast<int32_t>(i);
-      auto group_i_start = static_cast<size_t>(offsets[i]);
-      auto group_i_end = static_cast<size_t>(offsets[i+1]);
-      for (size_t j = group_i_start; j < group_i_end; ++j) {
-        size_t gi;
-        bool gi_valid = ri.get_element(j, &gi);
-        xassert(gi_valid); (void)gi_valid;
-        bool val0_isna = !col0.get_element(gi, &tmp);
-        bool val1_isna = !col1.get_element(gi, &tmp);
-        size_t na_case = val0_isna + 2 * val1_isna;
-        if (na_case) {
-          d_members[gi] = -static_cast<int32_t>(na_case);
-          n_nas[na_case - 1]++;
-        } else {
-          d_members[gi] = group_id;
-        }
+      CString val;
+      auto offset_start = static_cast<size_t>(offsets[i]);
+      auto offset_end = static_cast<size_t>(offsets[i+1]);
+
+      // Check is we are dealing with the "NA" group
+      size_t row;
+      bool row_valid = ri.get_element(offset_start, &row);
+      xassert(row_valid); (void)row_valid;
+      bool val0_isna = !col0.get_element(row, &val);
+      bool val1_isna = !col1.get_element(row, &val);
+      size_t na_bin = val0_isna + 2 * val1_isna;
+
+      auto group_id = -static_cast<int32_t>(na_bin);
+      switch (na_bin) {
+        case 1  : na_bin1++; break;
+        case 2  : na_bin2++; break;
+        case 3  : na_bin3++; break;
+        default : group_id = static_cast<int32_t>(i);
+      }
+
+      for (size_t j = offset_start; j < offset_end; ++j) {
+        row_valid = ri.get_element(j, &row);
+        xassert(row_valid); (void)row_valid;
+        d_members[row] = group_id;
       }
     });
-  size_t n_merged = n_merged_nas(n_nas);
-  bool res = grpby.size() - n_merged > nx_bins * ny_bins;
-  return res;
+
+    std::vector<size_t> na_bins {na_bin1, na_bin2, na_bin3};
+    size_t n_groups_merged = n_merged_nas(na_bins);
+    size_t n_na_bins = (na_bin1 > 0) + (na_bin2 > 0) + (na_bin3 > 0);
+
+    return gb.size() > nx_bins * ny_bins + n_na_bins + n_groups_merged;
 }
 
 
@@ -658,49 +683,50 @@ bool Aggregator<T>::group_2d_mixed()
 {
   const Column& col0 = dt_cat->get_column(0);
   const auto& col1 = *contconvs[0];
-  if (col0.ltype() != LType::STRING) {
-    throw TypeError() << "For 2D mixed aggretation, the categorical column's "
-                      << "type should be either `str32` or `str64`, got: "
-                      << col0.ltype();
-  }
+  xassert(col0.ltype() == LType::STRING);
 
-  auto gbres = group({dt_cat->get_column(0)}, {SortFlag::NONE});
-  RowIndex ri_cat = std::move(gbres.first);
-  Groupby grpby = std::move(gbres.second);
+  auto res = group({col0}, {SortFlag::NONE});
+  RowIndex ri = std::move(res.first);
+  Groupby gb = std::move(res.second);
 
   auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
-  const int32_t* offsets_cat = grpby.offsets_r();
+  const int32_t* offsets_cat = gb.offsets_r();
 
   T normx_factor, normx_shift;
   set_norm_coeffs(normx_factor, normx_shift, col1.get_min(), col1.get_max(), nx_bins);
 
-  intvec n_nas(3, 0);
-  dt::parallel_for_dynamic(grpby.size(),
+  // Check if we have an "NA" group in the categorical column.
+  bool na_cat_group = false;
+  {
+    size_t row;
+    bool row_valid = ri.get_element(0, &row);
+    if (row_valid) {
+      CString val;
+      na_cat_group = !col0.get_element(row, &val);
+    }
+  }
+
+  dt::parallel_for_static(gb.size(),
     [&](size_t i) {
-      CString tmp;
-      auto group_cat_id = static_cast<int32_t>(nx_bins * i);
-      auto group_i_start = static_cast<size_t>(offsets_cat[i]);
-      auto group_i_end = static_cast<size_t>(offsets_cat[i+1]);
-      for (size_t j = group_i_start; j < group_i_end; ++j) {
-        size_t gi;
-        bool gi_valid = ri_cat.get_element(j, &gi);
-        xassert(gi_valid); (void)gi_valid;
-        bool val0_isna = !col0.get_element(gi, &tmp);
-        bool val1_isna = ISNA<T>(col1[gi]);
-        size_t na_case = val1_isna + 2 * val0_isna;
-        if (na_case) {
-          d_members[gi] = -static_cast<int32_t>(na_case);
-          n_nas[na_case - 1]++;
-        } else {
-          d_members[gi] = group_cat_id +
-                          static_cast<int32_t>(normx_factor * col1[gi] + normx_shift);
-        }
+      auto group_id_shift = static_cast<int32_t>(nx_bins * i);
+      auto offset_start = static_cast<size_t>(offsets_cat[i]);
+      auto offset_end = static_cast<size_t>(offsets_cat[i+1]);
+      bool val0_isna = (i == 0) && na_cat_group;
+
+      for (size_t j = offset_start; j < offset_end; ++j) {
+        size_t row;
+        bool row_valid = ri.get_element(j, &row);
+        xassert(row_valid); (void)row_valid;
+        bool val1_isna = ISNA<T>(col1[row]);
+        size_t na_bin = val1_isna + 2 * val0_isna;
+
+        d_members[row] = na_bin? -static_cast<int32_t>(na_bin)
+                               : group_id_shift +
+                                 static_cast<int32_t>(normx_factor * col1[row] + normx_shift);
       }
     });
-  size_t n_merged = n_merged_nas(n_nas);
-  bool cont_na = n_nas[0] > 0;
-  bool res = (nx_bins + cont_na) * grpby.size() - n_merged > nx_bins * ny_bins;
-  return res;
+
+  return gb.size() > ny_bins + na_cat_group;
 }
 
 
