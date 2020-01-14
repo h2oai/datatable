@@ -23,7 +23,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
-
+from datatable import f
 
 
 def test_colindex():
@@ -36,11 +36,21 @@ def test_colindex():
         assert DT.colindex(ch) == i
 
 
+def test_colindex_f():
+    DT = dt.Frame(names=list("ABCD"))
+    assert DT.colindex(f.A) == 0
+    assert DT.colindex(f.D) == 3
+    assert DT.colindex(f[1]) == 1
+    assert DT.colindex(f[-1]) == 3
+
+
 def test_name_doesnt_exist():
     DT = dt.Frame(range(5))
     msg = "Column `a` does not exist in the Frame"
     with pytest.raises(KeyError, match=msg):
         DT.colindex("a")
+    with pytest.raises(KeyError, match=msg):
+        DT.colindex(f.a)
 
 
 def test_index_too_large():
@@ -82,7 +92,7 @@ def test_colindex_named_arg():
 
 
 
-@pytest.mark.parametrize("x", [False, None, 1.99, [1, 2, 3]])
+@pytest.mark.parametrize("x", [False, None, 1.99, [1, 2, 3], -f.x])
 def test_arg_wrong_type(x):
     DT = dt.Frame(names=list("ABCDEFG"))
     msg = r"The argument to Frame\.colindex\(\) should be a string or an " \
@@ -110,7 +120,7 @@ def test_colindex_fuzzy_suggestions():
     check(d1, "C", "; did you mean `C0`, `C1` or `C2`?")
     check(d1, "c1", "; did you mean `C1`, `C0` or `C2`?")
     check(d1, "C 1", "; did you mean `C1`, `C11` or `C21`?")
-    check(d1, "V0", "; did you mean `C0`?")
+    check(d1, f.V0, "; did you mean `C0`?")
     check(d1, "Va", "Frame")
     d2 = dt.Frame(varname=[1])
     check(d2, "vraname", "; did you mean `varname`?")

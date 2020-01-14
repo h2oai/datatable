@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@
 static Error _name_not_found_error(const DataTable* dt, const std::string& name)
 {
   Error err = KeyError();
+  // TODO: sanitize column's name: limit the display size, escape
+  //       special characters, handle the empty string
   err << "Column `" << name << "` does not exist in the Frame";
   std::string suggested = dt::suggest_similar_strings(dt->get_names(), name);
   if (!suggested.empty()) {
@@ -117,20 +119,57 @@ static const char* doc_colindex = R"(colindex(self, column)
 
 Return the position of the `column` in the Frame.
 
+Note that the index of the first column is `0`, just as with regular
+python lists.
+
+
 Parameters
 ----------
-column: str | int
-    The name of the column for which the index is sought. This can
-    also be a numeric index, in which case the index is checked that
-    it doesn't go out-of-bounds, and negative index is replaced with
-    a positive.
+column: str | int | Expr
+    If string, then this is the name of the column whose index you
+    want to find.
+
+    If integer, then this it represents a column's index. The return
+    value is thus the same as the input argument `column`, provided
+    that it is in the correct range. If the `column` argument is
+    negative, then it is interpreted as counting from the end of the
+    frame. In this case the positive value `column + nrows` is
+    returned.
+
+    Lastly, `column` argument may also be an f-expression such as
+    `f.A` or `f[3]`. This case is treated as if the argument was
+    simply `"A"` or `3`. More complicated f-expressions are not
+    allowed and will result in a `TypeError`.
 
 (return): int
     The numeric index of the provided `column`. This will be an
     integer between `0` and `self.nrows - 1`.
 
 (except): KeyError | IndexError
+    If the `column` argument is a string, and the column with such
+    name does not exist in the frame, then a `KeyError` is raised.
+    When this exception is thrown, the error message may contain
+    suggestions for up to 3 similarly-looking column names that
+    actually exist in the Frame.
 
+    If the `column` argument is an integer which is either greater
+    or equal than :attr:`.nrows`, or less than `-nrows`, then an
+    :exc:`IndexError` will be raised.
+
+
+Examples
+--------
+
+>>> df = dt.Frame(A=[3, 14, 15], B=["enas", "duo", "treis"],
+...               C=[0, 0, 0])
+>>> df.colindex("B")
+1
+>>> df.colindex(-1)
+2
+
+>>> from datatable import f
+>>> df.colindex(f.A)
+0
 )";
 
 static PKArgs args_colindex(
@@ -139,14 +178,22 @@ static PKArgs args_colindex(
 
 
 oobj Frame::colindex(const PKArgs& args) {
-  auto col = args[0];
-  if (!col) {
+  auto arg_col = args[0];
+  if (!arg_col) {
     throw TypeError() << "Frame.colindex() is missing the required "
                          "positional argument `column`";
   }
+  oobj col = arg_col.to_oobj();
 
+  if (col.is_dtexpr()) {
+    auto op = col.get_attr("_op").to_size_t();
+    if (op == 1) {
+      col = col.get_attr("_args").to_otuple()[0];
+    }
+    // fall-through
+  }
   if (col.is_string()) {
-    size_t index = dt->xcolindex(col.to_robj());
+    size_t index = dt->xcolindex(col);
     return py::oint(index);
   }
   if (col.is_int()) {
