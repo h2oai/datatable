@@ -161,9 +161,9 @@ void Frame::cbind(const PKArgs& args)
       size_t inrows = idt->nrows();
       if (nrows == 1) nrows = inrows;
       if (nrows == inrows || inrows == 1) continue;
-      throw ValueError() << "Cannot cbind frame with " << inrows << " rows to "
-          "a frame with " << nrows << " rows. Use `force=True` to disregard "
-          "this check and merge the frames anyways.";
+      throw InvalidOperationError() <<
+          "Cannot cbind frame with " << inrows << " rows to a frame with " <<
+          nrows << " rows";
     }
   }
 
