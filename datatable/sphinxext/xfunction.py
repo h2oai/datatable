@@ -232,7 +232,7 @@ class XobjectDirective(SphinxDirective):
 
     def _parse_option_tests(self):
         """
-        Process the optional option `:tests:`, and set the field
+        Process the optional option `:tests:`, and set the fields
         `self.test_file` and `self.tests_github_url`.
         """
         self.test_file = None

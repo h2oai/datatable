@@ -129,7 +129,7 @@ column: str | int | Expr
     If string, then this is the name of the column whose index you
     want to find.
 
-    If integer, then this it represents a column's index. The return
+    If integer, then this represents a column's index. The return
     value is thus the same as the input argument `column`, provided
     that it is in the correct range. If the `column` argument is
     negative, then it is interpreted as counting from the end of the
@@ -150,11 +150,11 @@ column: str | int | Expr
     If the `column` argument is a string, and the column with such
     name does not exist in the frame, then a `KeyError` is raised.
     When this exception is thrown, the error message may contain
-    suggestions for up to 3 similarly-looking column names that
+    suggestions for up to 3 similarly looking column names that
     actually exist in the Frame.
 
-    If the `column` argument is an integer which is either greater
-    or equal than :attr:`.nrows`, or less than `-nrows`, then an
+    If the `column` argument is an integer that is either greater
+    than or equal to :attr:`.nrows` or less than `-nrows`, then an
     :exc:`IndexError` will be raised.
 
 
