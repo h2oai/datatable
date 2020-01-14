@@ -135,7 +135,7 @@ Notes
     DT[:, :]
 
 - `Frame` class also supports copying via the standard Python library
-  `copy()`::
+  ``copy``::
 
     import copy
     DT_shallow_copy = copy.copy(DT)
