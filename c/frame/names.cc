@@ -28,7 +28,7 @@
 
 static Error _name_not_found_error(const DataTable* dt, const std::string& name)
 {
-  Error err = ValueError();
+  Error err = KeyError();
   err << "Column `" << name << "` does not exist in the Frame";
   std::string suggested = dt::suggest_similar_strings(dt->get_names(), name);
   if (!suggested.empty()) {
@@ -115,16 +115,22 @@ namespace py {
 static const char* doc_colindex = R"(colindex(self, column)
 --
 
-Return index of the column `column`, or raises a `ValueError` if the
-requested column does not exist.
+Return the position of the `column` in the Frame.
 
 Parameters
 ----------
-column: str or int
+column: str | int
     The name of the column for which the index is sought. This can
     also be a numeric index, in which case the index is checked that
-    it doesn't go out-of-bounds, and negative index is replaced with a
-    positive.
+    it doesn't go out-of-bounds, and negative index is replaced with
+    a positive.
+
+(return): int
+    The numeric index of the provided `column`. This will be an
+    integer between `0` and `self.nrows - 1`.
+
+(except): KeyError | IndexError
+
 )";
 
 static PKArgs args_colindex(

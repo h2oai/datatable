@@ -39,7 +39,7 @@ def test_colindex():
 def test_name_doesnt_exist():
     DT = dt.Frame(range(5))
     msg = "Column `a` does not exist in the Frame"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         DT.colindex("a")
 
 
@@ -93,7 +93,7 @@ def test_arg_wrong_type(x):
 
 def test_colindex_fuzzy_suggestions():
     def check(DT, name, suggestions):
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(KeyError) as e:
             DT.colindex(name)
         assert str(e.value).endswith(suggestions)
 
@@ -127,5 +127,5 @@ def test_colindex_after_column_deleted():
     assert DT.colindex("D") == 2
     del DT["D"]
     msg = "Column `D` does not exist in the Frame"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         DT.colindex("D")

@@ -75,7 +75,7 @@ def test_del_1col_str_3():
 
 def test_del_1col_str_nonexistent():
     d0 = smalldt()
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(KeyError) as e:
         del d0[:, "Z"]
     assert ("Column `Z` does not exist in the Frame" in str(e.value))
 

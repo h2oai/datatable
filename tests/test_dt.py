@@ -587,7 +587,7 @@ def test_rename_frame_copy():
     assert d1.names == ("C0", "ha!", "C2")
     assert d0.names == ("C0", "C1", "C2")
     assert d1.colindex("ha!") == 1
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         d0.colindex("ha!")
 
 
@@ -1026,7 +1026,7 @@ def test_single_element_all_stypes(st):
 
 
 def test_single_element_select_invalid_column(dt0):
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(KeyError) as e:
         noop(dt0[0, "Dd"])
     assert ("Column `Dd` does not exist in the Frame; did you mean `D`?" ==
             str(e.value))

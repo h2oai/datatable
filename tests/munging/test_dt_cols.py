@@ -63,6 +63,11 @@ def assert_valueerror(frame, cols, error_message):
     assert str(e.type) == "<class 'datatable.ValueError'>"
     assert error_message in str(e.value)
 
+def assert_keyerror(frame, cols, error_message):
+    with pytest.raises(KeyError) as e:
+        assert frame[:, cols]
+    assert error_message in str(e.value)
+
 def assert_typeerror(frame, cols, error_message):
     with pytest.raises(TypeError) as e:
         noop(frame[:, cols])
@@ -148,7 +153,7 @@ def test_j_string(dt0, tbl0):
 
 
 def test_j_string_error(dt0):
-    assert_valueerror(
+    assert_keyerror(
         dt0, "Z",
         "Column `Z` does not exist in the Frame; did you mean `A`, `B` or `C`?")
 
@@ -215,7 +220,7 @@ def test_j_strslice1(dt0, tbl0):
 
 
 def test_j_slice_error1(dt0):
-    assert_valueerror(
+    assert_keyerror(
         dt0, slice("a", "D"),
         "Column `a` does not exist in the Frame; did you mean `A`")
 

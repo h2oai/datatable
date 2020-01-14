@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2020
 //------------------------------------------------------------------------------
 #include <algorithm>
 #include <iostream>
@@ -24,6 +24,7 @@ static PyObject* type_error_class;
 static PyObject* value_error_class;
 static PyObject* datatable_warning_class;
 static PyObject* invalid_operation_error_class;
+static PyObject* key_error_class;
 
 
 //==============================================================================
@@ -241,7 +242,9 @@ std::string PyError::message() const {
 
 Error AssertionError() { return Error(PyExc_AssertionError); }
 Error ImportError()    { return Error(PyExc_ImportError); }
+Error IndexError()     { return Error(PyExc_IndexError); }
 Error IOError()        { return Error(PyExc_IOError); }
+Error KeyError()       { return Error(key_error_class); }
 Error MemoryError()    { return Error(PyExc_MemoryError); }
 Error NotImplError()   { return Error(PyExc_NotImplementedError); }
 Error OverflowError()  { return Error(PyExc_OverflowError); }
@@ -254,11 +257,14 @@ void replace_typeError(PyObject* obj) { type_error_class = obj; }
 void replace_valueError(PyObject* obj) { value_error_class = obj; }
 void replace_dtWarning(PyObject* obj) { datatable_warning_class = obj; }
 void replace_invalidOpError(PyObject* obj) { invalid_operation_error_class = obj; }
+void replace_keyError(PyObject* obj) { key_error_class = obj; }
 
 void init_exceptions() {
   type_error_class = PyExc_TypeError;
   value_error_class = PyExc_ValueError;
   datatable_warning_class = PyExc_Warning;
+  invalid_operation_error_class = PyExc_RuntimeError;
+  key_error_class = PyExc_KeyError;
 }
 
 
