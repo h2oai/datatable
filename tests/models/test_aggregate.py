@@ -76,6 +76,28 @@ def test_aggregate_1d_empty():
     assert_equals(d_in, d_in_copy)
 
 
+def test_aggregate_1d_na():
+    n_bins = 1
+    d_in = dt.Frame([None] * 53)
+    d_in_copy = dt.Frame(d_in)
+    [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins)
+    frame_integrity_check(d_members)
+    frame_integrity_check(d_exemplars)
+    assert_equals(
+        d_members,
+        dt.Frame([0] * 53, names = ["exemplar_id"], stypes = [dt.stype.int32])
+    )
+    assert_equals(
+        d_exemplars,
+        dt.Frame(
+            [[None], [53]],
+            names = ["C0", "members_count"],
+            stypes = [dt.stype.bool8, dt.stype.int32]
+        )
+    )
+    assert_equals(d_in, d_in_copy)
+
+
 def test_aggregate_1d_continuous_integer_tiny():
     n_bins = 1
     d_in = dt.Frame([5])
@@ -236,6 +258,28 @@ def test_aggregate_1d_categorical_sampling():
 # Aggregate 2D
 #-------------------------------------------------------------------------------
 
+def test_aggregate_2d_na():
+    d_in = dt.Frame([[None] * 53, [None] * 53])
+    d_in_copy = dt.Frame(d_in)
+    [d_exemplars, d_members] = aggregate(d_in, min_rows=0)
+    frame_integrity_check(d_members)
+    frame_integrity_check(d_exemplars)
+    assert_equals(
+        d_members,
+        dt.Frame([0] * 53, names = ["exemplar_id"], stypes = [dt.stype.int32])
+    )
+    assert_equals(
+        d_exemplars,
+        dt.Frame(
+            [[None], [None], [53]],
+            names = ["C0", "C1", "members_count"],
+            stypes = [dt.stype.bool8, dt.stype.bool8, dt.stype.int32]
+        )
+    )
+    assert_equals(d_in, d_in_copy)
+
+
+
 def test_aggregate_2d_continuous_integer_sorted():
     nx_bins = 3
     ny_bins = 3
@@ -383,6 +427,27 @@ def test_aggregate_2d_categorical_sampling():
     # assert d_exemplars.to_list() == [[...],
     #                                  [...],
     #                                  [...]]
+    assert_equals(d_in, d_in_copy)
+
+
+def test_aggregate_2d_mixed_na():
+    d_in = dt.Frame([["Hello world"] * 53, [None] * 53])
+    d_in_copy = dt.Frame(d_in)
+    [d_exemplars, d_members] = aggregate(d_in, min_rows=0)
+    frame_integrity_check(d_members)
+    frame_integrity_check(d_exemplars)
+    assert_equals(
+        d_members,
+        dt.Frame([0] * 53, names = ["exemplar_id"], stypes = [dt.stype.int32])
+    )
+    assert_equals(
+        d_exemplars,
+        dt.Frame(
+            [["Hello world"], [None], [53]],
+            names = ["C0", "C1", "members_count"],
+            stypes = [dt.stype.str32, dt.stype.bool8, dt.stype.int32]
+        )
+    )
     assert_equals(d_in, d_in_copy)
 
 

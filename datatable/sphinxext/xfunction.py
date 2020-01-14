@@ -96,13 +96,15 @@ class XobjectDirective(SphinxDirective):
                            which corresponds to the object being documented
         self.doc_file -- name of the file where the docstring is located
         self.doc_var -- name of the C++ variable containing the docstring
+        self.test_file -- name of the file where tests are located
 
     ==[ Parsed from the source files(s) ]==
         self.src_line_first -- starting line of the function in self.src_file
         self.src_line_last -- final line of the function in self.src_file
         self.src_github_url -- URL of the function's code on GitHub
         self.doc_text -- text of the object's docstring
-        self.doc_github_url -- URL of the docstring on the GitHub
+        self.doc_github_url -- URL of the docstring on GitHub
+        self.tests_github_url -- URL of the test file on GitHub
 
     ==[ Parsed from the docstring ]==
         self.parsed_params -- list of parameters of this function; each entry
@@ -120,6 +122,7 @@ class XobjectDirective(SphinxDirective):
     option_spec = {
         "src": directives.unchanged_required,
         "doc": directives.unchanged,
+        "tests": directives.unchanged,
     }
 
     def run(self):
@@ -127,6 +130,7 @@ class XobjectDirective(SphinxDirective):
         self._parse_arguments()
         self._parse_option_src()
         self._parse_option_doc()
+        self._parse_option_tests()
         title_overrides[self.env.docname] = ".%s()" % self.obj_name
 
         if self.doc_file == self.src_file:
@@ -145,10 +149,12 @@ class XobjectDirective(SphinxDirective):
     def _parse_config(self):
         self.module_name = self.env.config.xf_module_name
         self.project_root = self.env.config.xf_project_root
-        self.permalink_fn = self.env.config.xf_permalink_fn
+        self.permalink_url0 = self.env.config.xf_permalink_url0
+        self.permalink_url2 = self.env.config.xf_permalink_url2
         assert isinstance(self.module_name, str)
         assert isinstance(self.project_root, str)
-        assert self.permalink_fn is None or callable(self.permalink_fn)
+        assert isinstance(self.permalink_url0, str)
+        assert isinstance(self.permalink_url2, str)
 
 
     def _parse_arguments(self):
@@ -224,9 +230,35 @@ class XobjectDirective(SphinxDirective):
                              "'filename [docname]'")
 
 
+    def _parse_option_tests(self):
+        """
+        Process the optional option `:tests:`, and set the fields
+        `self.test_file` and `self.tests_github_url`.
+        """
+        self.test_file = None
+        self.tests_github_url = None
+        testfile = self.options.get("tests", "").strip()
+
+        if not testfile:
+            return
+        elif os.path.isfile(os.path.join(self.project_root, testfile)):
+            self.test_file = testfile
+            self.tests_github_url = self.permalink(testfile)
+        else:
+            raise self.error("Invalid :tests: option: file `%s` does not exist"
+                             % testfile)
+
+
+
     #---------------------------------------------------------------------------
     # Processing: retrieve docstring / function source
     #---------------------------------------------------------------------------
+
+    def permalink(self, filename, line1=None, line2=None):
+        pattern = self.permalink_url2 if line1 else \
+                  self.permalink_url0
+        return pattern.format(filename=filename, line1=line1, line2=line2)
+
 
     def _locate_sources(self, filename, funcname, docname):
         """
@@ -290,9 +322,7 @@ class XobjectDirective(SphinxDirective):
 
         self.src_line_first = start_line
         self.src_line_last = finish_line
-        if self.permalink_fn:
-            self.src_github_url = self.permalink_fn(filename, start_line,
-                                                    finish_line)
+        self.src_github_url = self.permalink(filename, start_line, finish_line)
 
 
     def _locate_doc_source(self, filename, docname, lines):
@@ -352,9 +382,7 @@ class XobjectDirective(SphinxDirective):
                              % (docname, filename, start_line))
 
         self.doc_text = doc_text.strip()
-        if self.permalink_fn:
-            self.doc_github_url = self.permalink_fn(filename, start_line,
-                                                    finish_line)
+        self.doc_github_url = self.permalink(filename, start_line, finish_line)
 
 
 
@@ -557,6 +585,8 @@ class XobjectDirective(SphinxDirective):
         node += a_node(href=self.src_github_url, text="source", new=True)
         if self.doc_file != self.src_file:
             node += a_node(href=self.doc_github_url, text="doc", new=True)
+        if self.tests_github_url:
+            node += a_node(href=self.tests_github_url, text="tests", new=True)
 
 
     def _generate_sigmain(self, node):
@@ -709,7 +739,8 @@ def fix_html_titles(app, pagename, templatename, context, doctree):
 def setup(app):
     app.add_config_value("xf_module_name", None, "env")
     app.add_config_value("xf_project_root", "..", "env")
-    app.add_config_value("xf_permalink_fn", None, "env")
+    app.add_config_value("xf_permalink_url0", "", "env")
+    app.add_config_value("xf_permalink_url2", "", "env")
     app.add_css_file("xfunction.css")
     app.add_js_file("https://use.fontawesome.com/0f455d5fb2.js")
     app.add_directive("xdata", XobjectDirective)
