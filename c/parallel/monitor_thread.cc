@@ -23,9 +23,11 @@
 #include <csignal>                      // std::signal, sig_atomic_t
 #include "parallel/api.h"
 #include "parallel/monitor_thread.h"
+#include "progress/_options.h"
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "parallel/thread_worker.h"     // idle_job
 #include "utils/exceptions.h"
+#include <iostream>
 
 // volatile std::sig_atomic_t gSignalStatus;
 using sig_handler_t = void(*)(int);
@@ -65,7 +67,6 @@ monitor_thread::~monitor_thread() {
 
 
 void monitor_thread::run() noexcept {
-  sigint_handler_prev = std::signal(SIGINT, sigint_handler);
   constexpr auto SLEEP_TIME = std::chrono::milliseconds(20);
 
   // Reduce this thread's priority to a minimum.
@@ -92,6 +93,18 @@ void monitor_thread::run() noexcept {
     // Sleep state
     while (!monitor_thread_active && running) {
       sleep_state_cv.wait(lock);
+    }
+
+    // Set the dt interrupt handler if allowed and if it was not already set.
+    if (dt::progress::allow_interruption && !sigint_handler_prev) {
+      sigint_handler_prev = std::signal(SIGINT, sigint_handler);
+    }
+
+    // Restore the original interrupt handler if we are not allowed
+    // to use the dt handler and if the original handler exists.
+    if (!dt::progress::allow_interruption && sigint_handler_prev) {
+      std::signal(SIGINT, sigint_handler_prev);
+      sigint_handler_prev = nullptr;
     }
 
     // Wake state
