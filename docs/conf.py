@@ -109,13 +109,12 @@ xf_project_root = ".."
 try:
     _ghcommit = subprocess.check_output(["git", "rev-parse", "master"],
                                         universal_newlines=True).strip()
-
-    def xf_permalink_fn(filename, line1, line2):
-        return ("https://github.com/h2oai/datatable/blob/%s/%s#L%d-L%d"
-                % (_ghcommit, filename, line1, line2))
+    xf_permalink_url0 = ("https://github.com/h2oai/datatable/blob/" +
+                         _ghcommit + "/{filename}")
+    xf_permalink_url2 = xf_permalink_url0 + "#L{line1}-L{line2}"
 
 except subprocess.CalledProcessError:
-    xf_permalink_fn = None
+    pass
 
 
 

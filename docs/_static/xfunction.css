@@ -40,6 +40,11 @@
     margin-top: -3pt;
 }
 
+.x-function .code-links a {
+    display: block;
+    line-height: 12px;
+}
+
 .x-function .code-links a:after {
     content: "\f08e";
     font-family: "FontAwesome";
