@@ -86,9 +86,9 @@ including column names, types, and keys.
 
 By default, copying is shallow with copy-on-write semantics. This
 means that only the minimal information about the frame is copied,
-while all internal data buffers are shared between the copies.
+while all the internal data buffers are shared between the copies.
 Nevertheless, due to the copy-on-write semantics, any changes made to
-one of the frames will not propagate to the other: instead, the data
+one of the frames will not propagate to the other; instead, the data
 will be copied whenever the user attempts to modify it.
 
 It is also possible to explicitly request a deep copy of the frame
@@ -104,7 +104,7 @@ deep: bool
     "deep" copy of the original frame.
 
 (return): Frame
-    A new Frame, which is the copy of the current.
+    A new Frame, which is the copy of the current frame.
 
 
 Examples
@@ -127,7 +127,7 @@ Notes
 
 - Deep copying is more expensive, since the data has to be physically
   written to new memory, and if the source columns are virtual, then
-  it needs to be computed too.
+  they need to be computed too.
 
 - Another way to create a copy of the frame is using a `DT[i,j]`
   expression (however, this will not copy the key property)::
