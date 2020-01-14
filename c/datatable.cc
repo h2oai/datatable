@@ -121,7 +121,7 @@ void DataTable::set_column(size_t i, Column&& newcol) {
 size_t DataTable::xcolindex(int64_t index) const {
   int64_t incols = static_cast<int64_t>(ncols_);
   if (index < -incols || index >= incols) {
-    throw ValueError() << "Column index `" << index << "` is invalid "
+    throw IndexError() << "Column index `" << index << "` is invalid "
         "for a frame with " << ncols_ << " column" << (ncols_ == 1? "" : "s");
   }
   if (index < 0) index += incols;

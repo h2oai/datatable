@@ -56,14 +56,14 @@ def test_name_doesnt_exist():
 def test_index_too_large():
     DT = dt.Frame([[3]] * 7)
     msg = "Column index `7` is invalid for a frame with 7 columns"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(IndexError, match=msg):
         DT.colindex(7)
 
 
 def test_index_too_negative():
     DT = dt.Frame([[3]] * 7)
     msg = "Column index `-8` is invalid for a frame with 7 columns"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(IndexError, match=msg):
         DT.colindex(-8)
 
 
