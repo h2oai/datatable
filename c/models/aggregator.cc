@@ -592,12 +592,11 @@ bool Aggregator<T>::group_1d_categorical() {
   // Check if we have an "NA" group
   bool na_group = false;
   {
+    CString val;
     size_t row;
     bool row_valid = ri.get_element(0, &row);
-    if (row_valid) {
-      CString val;
-      na_group = !col.get_element(row, &val);
-    }
+    xassert(row_valid);
+    na_group = !col.get_element(row, &val);
   }
 
   dt::parallel_for_dynamic(gb.size(),
@@ -698,12 +697,11 @@ bool Aggregator<T>::group_2d_mixed()
   // Check if we have an "NA" group in the categorical column.
   bool na_cat_group = false;
   {
+    CString val;
     size_t row;
     bool row_valid = ri.get_element(0, &row);
-    if (row_valid) {
-      CString val;
-      na_cat_group = !col0.get_element(row, &val);
-    }
+    xasser(row_valid);
+    na_cat_group = !col0.get_element(row, &val);
   }
 
   dt::parallel_for_static(gb.size(),
