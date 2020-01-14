@@ -10,9 +10,17 @@
   -[enh] String columns now support comparison operators ``<``, ``>``, ``<=``
     and ``>=``. [#2274]
 
+  -[enh] Method :meth:`Frame.colindex()` now accepts a column selector
+    f-expression as an argument.
+
   -[api] Method :meth:`.cbind()` now throws an :exc:`InvalidOperationError`
     instead of a ``ValueError`` if the argument frames have incompatible
     shapes.
+
+  -[api] Method :meth:`.colindex()` now throws an :exc:`KeyError` when given
+    a column that doesn't exist in the frame, or an :exc:`IndexError` if
+    given a numeric column index outside of the allowed range. Previously it
+    was throwing a ``ValueError`` in both cases.
 
 
   General

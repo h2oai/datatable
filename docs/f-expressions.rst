@@ -1,4 +1,6 @@
 
+.. _f-expressions:
+
 `f`-expressions
 ===============
 
