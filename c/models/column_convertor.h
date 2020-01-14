@@ -117,8 +117,15 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
   using R = typename std::conditional<std::is_integral<T1>::value,
                                       int64_t, double>::type;
   R min, max;
-  column_in.stats()->get_stat(Stat::Min, &min);
-  column_in.stats()->get_stat(Stat::Max, &max);
+  bool res = column_in.stats()->get_stat(Stat::Min, &min);
+
+  if (res) {
+    column_in.stats()->get_stat(Stat::Max, &max);
+  } else {
+    // The column consists of the missing values
+    min = R(0);
+    max = R(0);
+  }
   this->min = static_cast<T2>(min);
   this->max = static_cast<T2>(max);
 }
