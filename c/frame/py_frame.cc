@@ -106,24 +106,44 @@ deep: bool
 (return): Frame
     A new Frame, which is the copy of the current.
 
-Notes
------
-(low cost)
-(deepcopt - high cost)
-(DT[:,:])
-(copy.copy / copy.deepcopy)
-
 
 Examples
 --------
 
 >>> DT1 = dt.Frame(range(5))
 >>> DT2 = DT1.copy()
->>>
+>>> DT2[0, 0] = -1
+>>> DT2.to_list()
+[[-1, 1, 2, 3, 4]]
+>>> DT1.to_list()
+[[0, 1, 2, 3, 4]]
+
+
+Notes
+-----
+- Non-deep frame copy is a very low-cost operation: its speed depends
+  on the number of columns only, not on the number of rows. On a
+  regular laptop copying a 100-column frame takes about 30-50µs.
+
+- Deep copying is more expensive, since the data has to be physically
+  written to new memory, and if the source columns are virtual, then
+  it needs to be computed too.
+
+- Another way to create a copy of the frame is using a `DT[i,j]`
+  expression (however, this will not copy the key property)::
+
+    DT[:, :]
+
+- `Frame` class also supports copying via the standard Python library
+  `copy()`::
+
+    import copy
+    DT_shallow_copy = copy.copy(DT)
+    DT_deep_copy = copy.deepcopy(DT)
+
 )";
 
 static PKArgs args_copy(0, 0, 1, false, false, {"deep"}, "copy", doc_copy);
-
 
 
 oobj Frame::copy(const PKArgs& args) {
