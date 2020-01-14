@@ -82,6 +82,10 @@ LINK_MAP = [
     "fread"    : "h2o-3/fread",
 ]
 
+DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
+DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
+
+
 // Computed version suffix
 // def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
 // Global project build trigger filled in init stage
@@ -343,7 +347,7 @@ ansiColor('xterm') {
             if (!params.DISABLE_ALL_TESTS) {
                 def testStages = [:]
                 testStages <<
-                    namedStage('Test Py37 with Pandas on x86_64_linux', { stageName, stageDir ->
+                    namedStage('Test x86_64-ubuntu-py37', { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -351,7 +355,10 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64_centos7-wheels'
-                                    testInDocker('ubuntu_test_py37_with_pandas_in_docker', needsLargerTest)
+                                    // testInDocker('ubuntu_test_py37_with_pandas_in_docker', needsLargerTest)
+                                    test_in_docker("x86_64-ubuntu-py37", "37",
+                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                                   needsLargerTest)
                                 }
                             }
                         }
@@ -779,6 +786,74 @@ def testInDocker(final testTarget, final needsLargerTest) {
         junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
     }
 }
+
+
+
+// Run datatable test suite in docker
+//
+// Parameters
+// ----------
+// testtag
+//     Arbitrary string describing this test run. This variable will be
+//     used as a prefix for the the test-report file name.
+//
+// pyver
+//     2-character python version string, such as "36" or "37"
+//
+// docker_image
+//     Name of the docker container where the tests will be run
+//
+// larg_tests
+//     If true, then datatable "large fread tests" will be run as well
+//
+def test_in_docker(String testtag, String pyver, String docker_image, boolean large_tests) {
+    sh """
+        rm -rf build/test-reports
+        mkdir build/test-reports
+    """
+    try {
+        def docker_args = ""
+        docker_args += "--rm --init "
+        docker_args += "-u `id -u`:`id -g` "
+        docker_args += "-w / "
+        docker_args += "--entrypoint /bin/bash "
+        docker_args += "-v `pwd`:/dt "
+        docker_args += "-v /tmp/cores:/tmp/cores "
+        if (large_tests) {
+            LINK_MAP.each { key, value ->
+                docker_args += "-v ${SOURCE_DIR}/${key}:/data/${value} "
+            }
+            docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
+        }
+        def docker_cmd = ""
+        docker_cmd += "source /envs/datatable-py" + pyver + "/bin/activate && "
+        docker_cmd += "python --version && "
+        docker_cmd += "pip --freeze && "
+        docker_cmd += "ls /dt/dist/ && "
+        docker_cmd += "pip install /dt/dist/datatable-*-cp" + pyver + "-*.whl && "
+        docker_cmd += "pip install -r /dt/requirements_tests.txt && "
+        docker_cmd += "python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
+                            " --junit-prefix=" + testtag +
+                            " --junitxml=/dt/build/test-reports/TEST-datatable.xml"
+                            " /dt/tests"
+        sh """
+            mkdir -p /tmp/cores
+            ls /tmp/cores
+            docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
+        """
+    } finally {
+        sh """
+            ls /tmp/cores
+            mkdir -p build/cores
+            mv -f /tmp/cores/*python* build/cores
+        """
+        try {
+            arch "build/cores/*python*"
+        } catch (ex) { /* ignore */ }
+    }
+    junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
+}
+
 
 def testOSX(final environment, final needsLargerTest) {
     try {
