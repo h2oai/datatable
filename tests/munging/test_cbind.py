@@ -1,14 +1,31 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
 import types
 import datatable as dt
 from tests import assert_equals
-from datatable import stype, DatatableWarning
+from datatable import stype, DatatableWarning, InvalidOperationError
 from datatable.internal import frame_integrity_check, frame_columns_virtual
 
 
@@ -105,10 +122,9 @@ def test_cbind_notinplace():
 def test_cbind_notforced():
     d0 = dt.Frame([1, 2, 3])
     d1 = dt.Frame([4, 5])
-    with pytest.raises(ValueError) as e:
+    msg = "Cannot cbind frame with 2 rows to a frame with 3 rows"
+    with pytest.raises(InvalidOperationError, match=msg):
         d0.cbind(d1)
-    assert ("Cannot cbind frame with 2 rows to a frame with 3 rows"
-            in str(e.value))
 
 
 def test_cbind_forced1():
@@ -302,28 +318,25 @@ def test_cbind_0rows_3():
 
 def test_cbind_error_1():
     DT = dt.Frame(A=[1, 5])
-    with pytest.raises(ValueError) as e:
+    msg = "Cannot cbind frame with 0 rows to a frame with 2 rows"
+    with pytest.raises(InvalidOperationError, match=msg):
         DT.cbind(dt.Frame(B=[]))
-    assert ("Cannot cbind frame with 0 rows to a frame with 2 rows"
-            in str(e.value))
 
 
 def test_cbind_error_2():
     DT = dt.Frame(A=[])
-    with pytest.raises(ValueError) as e:
+    msg = "Cannot cbind frame with 2 rows to a frame with 0 rows"
+    with pytest.raises(InvalidOperationError, match=msg):
         DT.cbind(dt.Frame(B=[1, 5]))
-    assert ("Cannot cbind frame with 2 rows to a frame with 0 rows"
-            in str(e.value))
 
 
 def test_cbind_error_3():
     DT = dt.Frame()
     DT.nrows = 5
     assert DT.shape == (5, 0)
-    with pytest.raises(ValueError) as e:
+    msg = "Cannot cbind frame with 0 rows to a frame with 5 rows"
+    with pytest.raises(InvalidOperationError, match=msg):
         DT.cbind(dt.Frame(B=[]))
-    assert ("Cannot cbind frame with 0 rows to a frame with 5 rows"
-            in str(e.value))
 
 
 def test_issue1905():

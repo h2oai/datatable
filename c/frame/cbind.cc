@@ -31,29 +31,37 @@ static const char* doc_cbind =
 R"(cbind(self, *frames, force=False)
 --
 
-Append columns of Frames `frames` to the current Frame.
+Append columns of one or more `frames` to the current Frame.
 
-This is equivalent to `pandas.concat(axis=1)`: the Frames are combined
-by columns, i.e. cbinding a Frame of shape [n x m] to a Frame of
-shape [n x k] produces a Frame of shape [n x (m + k)].
+For example, if the current frame has `n` columns, and you are
+appending another frame with `k` columns, then after this method
+succeeds, the current frame will have `n + k` columns. Thus, this
+method is roughly equivalent to `pandas.concat(axis=1)`.
 
-As a special case, if you cbind a single-row Frame, then that row will
-be replicated as many times as there are rows in the current Frame. This
-makes it easy to create constant columns, or to append reduction results
-(such as min/max/mean/etc) to the current Frame.
+The frames being cbound must all either have the same number of rows,
+or some of them may have only a single row. Such single-row frames
+will be automatically expanded, replicating the value as needed.
+This makes it easy to create constant columns or to append reduction
+results (such as min/max/mean/etc) to the current Frame.
 
-If Frame(s) being appended have different number of rows (with the
-exception of Frames having 1 row), then the operation will fail by
-default. You can force cbinding these Frames anyways by providing option
-`force` `=True`: this will fill all "short" Frames with NAs. Thus there is
-a difference in how Frames with 1 row are treated compared to Frames
-with any other number of rows.
+If some of the `frames` have an incompatible number of rows, then the
+operation will fail with an :exc:`InvalidOperationError`. However, if
+you set the flag `force` to True, then the error will no longer be
+raised - instead all frames that are shorter than the others will be
+padded with NAs.
+
+If the frames being appended have the same column names as the current
+frame, then those names will be :ref:`mangled <name-mangling>`
+to ensure that the column names in the current frame remain unique.
+A warning will also be issued in this case.
+
 
 Parameters
 ----------
-frames: Frame | List[Frame]
-    One or more Frame to append. They should have the same number of
-    rows (unless option `force` is also used).
+frames: Frame | List[Frame] | None
+    The list/tuple/sequence/generator expression of Frames to append
+    to the current frame. The list may also contain `None` values,
+    which will be simply skipped.
 
 force: bool
     If True, allows Frames to be appended even if they have unequal
@@ -62,6 +70,56 @@ force: bool
     than the largest number of rows, will be padded with NAs (with the
     exception of Frames having just 1 row, which will be replicated
     instead of filling with NAs).
+
+(return): None
+    This method alters the current frame in-place, and doesn't return
+    anything.
+
+(except): InvalidOperationError
+    If trying to cbind frames with the number of rows different from
+    the current frame's, and the option `force` is not set.
+
+
+Notes
+-----
+
+Cbinding frames is a very cheap operation: the columns are copied by
+reference, which means the complexity of the operation depends only
+on the number of columns, not on the number of rows. Still, if you
+are planning to cbind a large number of frames, it will be beneficial
+to collect them in a list first and then call a single `cbind()`
+instead of cbinding them one-by-one.
+
+It is possible to cbind frames using the standard `DT[i,j]` syntax::
+
+    df[:, update(**frame1, **frame2, ...)]
+
+Or, if you need to append just a single column::
+
+    df["newcol"] = frame1
+
+
+Examples
+--------
+>>> DT = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
+>>> frame1 = dt.Frame(N=[-1, -2, -5])
+>>> DT.cbind(frame1)
+>>> DT
+   |  A   B   N
+-- + --  --  --
+ 0 |  1   4  -1
+ 1 |  2   7  -2
+ 2 |  3   0  -5
+--
+[3 rows x 3 columns]
+
+
+See also
+--------
+- :func:`dt.cbind() <datatable.cbind>` -- function for cbinding frames
+  "out-of-place" instead of in-place;
+
+- :meth:`.rbind()` -- method for row-binding frames.
 )";
 
 static PKArgs args_cbind(0, 0, 1, true, false, {"force"}, "cbind", doc_cbind);
@@ -103,9 +161,9 @@ void Frame::cbind(const PKArgs& args)
       size_t inrows = idt->nrows();
       if (nrows == 1) nrows = inrows;
       if (nrows == inrows || inrows == 1) continue;
-      throw ValueError() << "Cannot cbind frame with " << inrows << " rows to "
-          "a frame with " << nrows << " rows. Use `force=True` to disregard "
-          "this check and merge the frames anyways.";
+      throw InvalidOperationError() <<
+          "Cannot cbind frame with " << inrows << " rows to a frame with " <<
+          nrows << " rows";
     }
   }
 

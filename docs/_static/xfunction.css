@@ -1,7 +1,6 @@
 
 .x-function {
-    margin-bottom: 18pt;
-    margin-top: -22pt;
+    margin-bottom: 32pt;
 }
 
 
@@ -165,6 +164,11 @@
 
 .xparam-head .param.return {
     background-color: #469e36;
+    color: #FFF;
+}
+
+.xparam-head .param.except {
+    background-color: #C50000;
     color: #FFF;
 }
 

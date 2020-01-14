@@ -71,6 +71,10 @@ rx_return = re.compile(r"[\[\(]?returns?[\]\)]?")
 #     sphinx-build -P -b html . _build/html
 #
 
+# Store title overrides for individual pages.
+title_overrides = {}
+
+
 
 #-------------------------------------------------------------------------------
 # XobjectDirective
@@ -123,6 +127,7 @@ class XobjectDirective(SphinxDirective):
         self._parse_arguments()
         self._parse_option_src()
         self._parse_option_doc()
+        title_overrides[self.env.docname] = ".%s()" % self.obj_name
 
         if self.doc_file == self.src_file:
             self._locate_sources(self.src_file, self.src_fnname, self.doc_var)
@@ -619,9 +624,9 @@ class XparamDirective(SphinxDirective):
         id0 = self.param.strip("*/()[]")
         root = mydiv_node(classes=["xparam-box"], ids=[id0])
         head = mydiv_node(classes=["xparam-head"])
-        if id0 == "return":
-            param_node = mydiv_node(classes=["param", "return"])
-            param_node += nodes.Text("(return)")
+        if id0 in ["return", "except"]:
+            param_node = mydiv_node(classes=["param", id0])
+            param_node += nodes.Text(id0)
         else:
             param_node = mydiv_node(classes=["param"])
             param_node += nodes.Text(self.param)
@@ -696,6 +701,10 @@ def depart_a(self, node):
 #-------------------------------------------------------------------------------
 # Setup
 #-------------------------------------------------------------------------------
+def fix_html_titles(app, pagename, templatename, context, doctree):
+    if pagename in title_overrides:
+        context["title"] = title_overrides[pagename]
+
 
 def setup(app):
     app.add_config_value("xf_module_name", None, "env")
@@ -710,4 +719,5 @@ def setup(app):
     app.add_node(mydiv_node, html=(visit_div, depart_div))
     app.add_node(a_node, html=(visit_a, depart_a))
     app.add_role("xparam-ref", xparamref)
+    app.connect("html-page-context", fix_html_titles)
     return {"parallel_read_safe": True, "parallel_write_safe": True}
