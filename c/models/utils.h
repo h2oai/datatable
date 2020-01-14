@@ -112,4 +112,15 @@ template <> inline bool _notnan(float x) { return !std::isnan(x); }
 template <> inline bool _notnan(double x) { return !std::isnan(x); }
 
 
+/**
+ * Convert `T` to `std::string`. In contrast to `std::to_string()`
+ * this function won't produce any trailing zeros.
+ */
+template <typename T>
+std::string tostr(const T& v) {
+   std::ostringstream oss;
+   oss << v;
+   return oss.str();
+}
+
 #endif
