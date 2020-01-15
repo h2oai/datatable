@@ -27,7 +27,6 @@
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "parallel/thread_worker.h"     // idle_job
 #include "utils/exceptions.h"
-#include <iostream>
 
 // volatile std::sig_atomic_t gSignalStatus;
 using sig_handler_t = void(*)(int);
