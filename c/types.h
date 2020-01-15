@@ -7,13 +7,13 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_H
 #define dt_TYPES_H
+#include <algorithm> // std::min
 #include <cstring>   // std::strncmp
 #include <cmath>     // isnan
 #include <limits>    // std::numeric_limits
 #include <string>    // std::string
 #include "python/python.h"
 using size_t = std::size_t;
-
 
 struct CString {
   const char* ch;
