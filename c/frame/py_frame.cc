@@ -92,9 +92,9 @@ one of the frames will not propagate to the other; instead, the data
 will be copied whenever the user attempts to modify it.
 
 It is also possible to explicitly request a deep copy of the frame
-by setting the parameter `deep` to True. With this flag, the returned
-copy will be truly independent from the original. The returned frame
-will also be fully materialized in this case.
+by setting the parameter `deep` to `True`. With this flag, the
+returned copy will be truly independent from the original. The
+returned frame will also be fully materialized in this case.
 
 
 Parameters
@@ -129,7 +129,7 @@ Notes
   written to new memory, and if the source columns are virtual, then
   they need to be computed too.
 
-- Another way to create a copy of the frame is using a `DT[i,j]`
+- Another way to create a copy of the frame is using a `DT[i, j]`
   expression (however, this will not copy the key property)::
 
     DT[:, :]
