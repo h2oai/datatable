@@ -809,7 +809,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
 def test_in_docker(String testtag, String pyver, String docker_image, boolean large_tests) {
     sh """
         rm -rf build/test-reports
-        mkdir build/test-reports
+        mkdir -p build/test-reports
     """
     try {
         def docker_args = ""
