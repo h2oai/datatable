@@ -82,6 +82,7 @@ LINK_MAP = [
     "fread"    : "h2o-3/fread",
 ]
 
+DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
 
@@ -128,7 +129,6 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
                         def scmEnv = checkout scm
-                        // env.DTBL_GIT_HASH = scmEnv.GIT_COMMIT
                         env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '-')
 
                         if (doPPC()) {
@@ -178,25 +178,26 @@ ansiColor('xterm') {
                             }
                         }
                     }
-                    buildSummary.stageWithSummary('Generate version and git files', stageDir) {
-                        sh "make geninfo"
+                    buildSummary.stageWithSummary('Generate version file', stageDir) {
+                        sh """
+                            docker run --rm \
+                                -v `pwd`:/dot \
+                                -w /dot \
+                                --entrypoint /bin/bash \
+                                ${DOCKER_IMAGE_X86_64_MANYLINUX} \
+                                -c "/opt/python/cp36-cp36m/bin/python3.6 ext.py geninfo --strict"
+                        """
                         arch "datatable/_build_info.py"
-                        // stash name: 'VERSION', includes: "dist/VERSION.txt"
-                        // stash name: 'GIT_HASH_FILE', includes: "datatable/_build_info.py"
-                        // arch "dist/VERSION.txt"
-                        // versionText = readFile('dist/VERSION.txt').trim()
-                        // echo "Version is: ${versionText}"
-                        // sh "make ${MAKE_OPTS} mrproper"
                     }
                     stash name: 'datatable-sources', useDefaultExcludes: false
                 }
             }
             // Build stages
             parallel([
-                'Build on x86_64_centos7': {
+                'Build on x86_64-manylinux': {
                     node(X86_64_BUILD_NODE_LABEL) {
-                        final stageDir = 'build-x86_64_centos7'
-                        buildSummary.stageWithSummary('Build on x86_64_centos7', stageDir) {
+                        final stageDir = 'build-x86_64-manylinux'
+                        buildSummary.stageWithSummary('Build on x86_64-manylinux', stageDir) {
                             cleanWs()
                             dumpInfo()
                             dir(stageDir) {
@@ -206,8 +207,7 @@ ansiColor('xterm') {
                                         -u `id -u`:`id -g` \
                                         -v `pwd`:/dot \
                                         --entrypoint /bin/bash \
-                                        ${createDockerArgs()} \
-                                        quay.io/pypa/manylinux2010_x86_64 \
+                                        ${DOCKER_IMAGE_X86_64_MANYLINUX} \
                                         -c "cd /dot && \
                                             ls -la && \
                                             ls -la datatable && \
@@ -217,16 +217,16 @@ ansiColor('xterm') {
                                             /opt/python/cp38-cp38/bin/python3.8 ext.py wheel --audit && \
                                             ls -la dist"
                                 """
-                                stash name: 'x86_64_centos7-wheels', includes: "dist/*.whl"
+                                stash name: 'x86_64-manylinux-wheels', includes: "dist/*.whl"
                                 arch "dist/*.whl"
                             }
                         }
                     }
                 },
-                'Build on x86_64_macos': {
+                'Build on x86_64-macos': {
                     node(OSX_NODE_LABEL) {
-                        def stageDir = 'build-x86_64_macos'
-                        buildSummary.stageWithSummary('Build on x86_64_macos', stageDir) {
+                        def stageDir = 'build-x86_64-macos'
+                        buildSummary.stageWithSummary('Build on x86_64-macos', stageDir) {
                             cleanWs()
                             dumpInfo()
                             dir(stageDir) {
@@ -354,7 +354,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-wheels'
+                                    unstash 'x86_64-manylinux-wheels'
                                     // testInDocker('ubuntu_test_py37_with_pandas_in_docker', needsLargerTest)
                                     test_in_docker("x86_64-ubuntu-py37", "37",
                                                    DOCKER_IMAGE_X86_64_UBUNTU,
@@ -370,7 +370,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-wheels'
+                                    unstash 'x86_64-manylinux-wheels'
                                     testInDocker('ubuntu_test_py36_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
@@ -383,7 +383,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-wheels'
+                                    unstash 'x86_64-manylinux-wheels'
                                     testInDocker('ubuntu_test_py35_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
@@ -422,7 +422,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-wheels'
+                                    unstash 'x86_64-manylinux-wheels'
                                     testInDocker('centos7_test_py37_with_pandas_in_docker', needsLargerTest)
                                 }
                             }
@@ -638,7 +638,7 @@ ansiColor('xterm') {
                         dir(stageDir) {
 
                             dir('x86_64-centos7') {
-                                unstash 'x86_64_centos7-wheels'
+                                unstash 'x86_64-manylinux-wheels'
                                 s3upDocker {
                                     localArtifact = 'dist/*.whl'
                                     artifactId = 'pydatatable'
@@ -708,7 +708,7 @@ ansiColor('xterm') {
                             checkout scm
                             unstash 'CHANGELOG'
                             unstash 'VERSION'
-                            unstash 'x86_64_centos7-wheels'
+                            unstash 'x86_64-manylinux-wheels'
                             unstash 'x86_64_osx-py37-whl'
                             unstash 'x86_64_osx-py36-whl'
                             unstash 'x86_64_osx-py35-whl'
