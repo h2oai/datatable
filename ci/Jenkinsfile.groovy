@@ -825,27 +825,29 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
             }
             docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
         }
+        def python = "python" + pyver[0] + "." + pyver[1] + " "
         def docker_cmd = ""
-        docker_cmd += "source /envs/datatable-py" + pyver + "/bin/activate && "
-        docker_cmd += "python --version && "
-        docker_cmd += "pip --freeze && "
         docker_cmd += "ls /dt/dist/ && "
-        docker_cmd += "pip install /dt/dist/datatable-*-cp" + pyver + "-*.whl && "
-        docker_cmd += "pip install -r /dt/requirements_tests.txt && "
-        docker_cmd += "python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
+        docker_cmd += python + "-VV && "
+        docker_cmd += python + "-m pip install --upgrade pip && "
+        docker_cmd += python + "-m pip freeze && "
+        docker_cmd += python + "-m pip install /dt/dist/datatable-*-cp" + pyver + "-*.whl && "
+        docker_cmd += python + "-m pip install -r /dt/requirements_tests.txt && "
+        docker_cmd += python + "-m pip install -r /dt/requirements_extra.txt && "
+        docker_cmd += python + "-m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
                             " --junit-prefix=" + testtag +
                             " --junitxml=/dt/build/test-reports/TEST-datatable.xml"
                             " /dt/tests"
         sh """
             mkdir -p /tmp/cores
-            ls /tmp/cores
+            rm -rf /tmp/cores/*
             docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
         """
     } finally {
         sh """
             ls /tmp/cores
             mkdir -p build/cores
-            mv -f /tmp/cores/*python* build/cores
+            test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true
         """
         try {
             arch "build/cores/*python*"
