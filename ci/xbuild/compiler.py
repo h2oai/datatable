@@ -177,8 +177,8 @@ class Compiler:
             for candidate in candidates:
                 if self._check_compiler(candidate["compiler"], srcname, outname):
                     self.executable = candidate["compiler"]
-                    self.linker = candidate["linker"] if "linker" in candidate else candidate["compiler"]
-                    self.path = candidate["path"] if "path" in candidate else ""
+                    self.linker = candidate.get("linker", candidate["compiler"])
+                    self.path = candidate.get("path", "")
                     self.log.report_compiler_executable(candidate["compiler"])
                     return
 
@@ -307,11 +307,8 @@ class Compiler:
 
 
     def add_default_python_lib_dir(self):
-        if not self.is_msvc():
-            return
-
-        py_lib_dir = sysconfig.get_config_var("INCLUDEPY")
-        py_lib_dir += "\\..\\libs"
+        py_dir = sysconfig.get_config_var("BINDIR")
+        py_lib_dir = os.path.join(py_dir, "libs")
         if not os.path.isdir(py_lib_dir):
             self._log.warn("Python lib directory `%s` does not exist, "
                            "linking may fail" % py_lib_dir)
