@@ -816,6 +816,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_args += "--rm --init "
         docker_args += "-u `id -u`:`id -g` "
         docker_args += "-w / "
+        docker_args += "--ulimit core=-1 "
         docker_args += "--entrypoint /bin/bash "
         docker_args += "-v `pwd`:/dt "
         docker_args += "-v /tmp/cores:/tmp/cores "
@@ -847,7 +848,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         sh """
             ls /tmp/cores
             mkdir -p build/cores
-            test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true
+            test -n "\$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true
         """
         try {
             arch "build/cores/*python*"
