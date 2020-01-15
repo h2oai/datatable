@@ -570,6 +570,8 @@ class XobjectDirective(SphinxDirective):
         out.append("")
         while i < len(lines):
             line = lines[i]
+            if line == "":
+                break
             if not line.startswith(indent):
                 raise self.error("Unexpected indent in docstring `%s` in "
                                  "file %s" % (self.doc_var, self.doc_file))
