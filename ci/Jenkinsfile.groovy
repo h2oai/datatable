@@ -820,7 +820,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_args += "--ulimit core=-1 "
         docker_args += "--entrypoint /bin/bash "
         docker_args += "-v `pwd`:/dt "
-        docker_args += "-v build/cores:/tmp/cores "
+        docker_args += "-v `pwd`/build/cores:/tmp/cores "
         if (large_tests) {
             LINK_MAP.each { key, value ->
                 docker_args += "-v ${SOURCE_DIR}/${key}:/data/${value} "
@@ -844,7 +844,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
             docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
         """
     } finally {
-        archiveArtifacts "build/cores/*", allowEmptyArchive: true
+        archiveArtifacts artifacts: "build/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
 }
