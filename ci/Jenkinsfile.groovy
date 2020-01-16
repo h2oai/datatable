@@ -841,7 +841,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_cmd += python + "-m pip freeze && "
         docker_cmd += python + "-m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
                             " --junit-prefix=" + testtag +
-                            " --junitxml=/dt/build/test-reports/TEST-datatable.xml"
+                            " --junitxml=/dt/build/test-reports/TEST-datatable.xml" +
                             " /dt/tests"
         sh """
             docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
