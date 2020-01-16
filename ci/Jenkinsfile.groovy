@@ -815,8 +815,6 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
     try {
         def docker_args = ""
         docker_args += "--rm --init "
-        docker_args += "-u `id -u`:`id -g` "
-        docker_args += "-w / "
         docker_args += "--ulimit core=-1 "
         docker_args += "--entrypoint /bin/bash "
         docker_args += "-v `pwd`:/dt "
