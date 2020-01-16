@@ -30,18 +30,6 @@ class InvalidOperationError(Exception):
     _handle_ = TTypeError._handle_
 
 
-class TKeyError(KeyError):
-    """
-    This class is similar to `KeyError`, except that it doesn't quote
-    its argument in the error message (which is arguably a bug in
-    KeyError's spec).
-    """
-    _handle_ = TTypeError._handle_
-
-    def __str__(self):
-        return self.args[0]
-
-
 TTypeError.__module__ = "datatable"
 TValueError.__module__ = "datatable"
 TImportError.__module__ = "datatable"
@@ -49,8 +37,6 @@ TTypeError.__qualname__ = "TypeError"
 TValueError.__qualname__ = "ValueError"
 TImportError.__qualname__ = "ImportError"
 TImportError.__name__ = "ImportError"
-TKeyError.__name__ = "KeyError"
-TKeyError.__module__ = "builtins"
 
 
 
@@ -88,7 +74,6 @@ core._register_function(4, TTypeError)
 core._register_function(5, TValueError)
 core._register_function(6, DatatableWarning)
 core._register_function(8, InvalidOperationError)
-core._register_function(10, TKeyError)
 
 
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",

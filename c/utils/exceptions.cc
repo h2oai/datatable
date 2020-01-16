@@ -13,6 +13,7 @@
 #include "progress/progress_manager.h"
 #include "python/obj.h"
 #include "python/string.h"
+#include "python/tuple.h"
 #include "utils/exceptions.h"
 #include "utils/assert.h"
 
@@ -24,7 +25,6 @@ static PyObject* type_error_class;
 static PyObject* value_error_class;
 static PyObject* datatable_warning_class;
 static PyObject* invalid_operation_error_class;
-static PyObject* key_error_class;
 
 
 //==============================================================================
@@ -183,7 +183,13 @@ void Error::to_python() const noexcept {
   // See https://stackoverflow.com/questions/1374468
   try {
     const std::string errstr = error.str();
-    PyErr_SetString(pycls, errstr.c_str());
+    if (pycls == PyExc_KeyError) {
+      auto _str = py::oobj::import("datatable.exceptions", "unrepr_str");
+      auto newstr = _str.call({ py::ostring(errstr) });
+      PyErr_SetObject(pycls, newstr.to_borrowed_ref());
+    } else {
+      PyErr_SetString(pycls, errstr.c_str());
+    }
   } catch (const std::exception& e) {
     PyErr_SetString(PyExc_RuntimeError, e.what());
   }
@@ -244,7 +250,7 @@ Error AssertionError() { return Error(PyExc_AssertionError); }
 Error ImportError()    { return Error(PyExc_ImportError); }
 Error IndexError()     { return Error(PyExc_IndexError); }
 Error IOError()        { return Error(PyExc_IOError); }
-Error KeyError()       { return Error(key_error_class); }
+Error KeyError()       { return Error(PyExc_KeyError); }
 Error MemoryError()    { return Error(PyExc_MemoryError); }
 Error NotImplError()   { return Error(PyExc_NotImplementedError); }
 Error OverflowError()  { return Error(PyExc_OverflowError); }
@@ -257,14 +263,12 @@ void replace_typeError(PyObject* obj) { type_error_class = obj; }
 void replace_valueError(PyObject* obj) { value_error_class = obj; }
 void replace_dtWarning(PyObject* obj) { datatable_warning_class = obj; }
 void replace_invalidOpError(PyObject* obj) { invalid_operation_error_class = obj; }
-void replace_keyError(PyObject* obj) { key_error_class = obj; }
 
 void init_exceptions() {
   type_error_class = PyExc_TypeError;
   value_error_class = PyExc_ValueError;
   datatable_warning_class = PyExc_Warning;
   invalid_operation_error_class = PyExc_RuntimeError;
-  key_error_class = PyExc_KeyError;
 }
 
 
