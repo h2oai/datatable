@@ -819,6 +819,9 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_args += "--rm --init "
         docker_args += "--ulimit core=-1 "
         docker_args += "--entrypoint /bin/bash "
+        docker_args += "-u `id -u`:`id -g` "
+        docker_args += "-w /tmp "  // this dir had write permissions for all users
+        docker_args += "-e HOME=/tmp "
         docker_args += "-v `pwd`:/dt "
         docker_args += "-v `pwd`/build/cores:/tmp/cores "
         if (large_tests) {
@@ -831,10 +834,10 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         def docker_cmd = ""
         docker_cmd += "ls /dt/dist/ && "
         docker_cmd += python + "-VV && "
-        docker_cmd += python + "-m pip install --upgrade pip && "
-        docker_cmd += python + "-m pip install /dt/dist/datatable-*-cp" + pyver + "-*.whl && "
-        docker_cmd += python + "-m pip install -r /dt/requirements_tests.txt && "
-        docker_cmd += python + "-m pip install -r /dt/requirements_extra.txt && "
+        docker_cmd += python + "-m pip install --user --upgrade pip && "
+        docker_cmd += python + "-m pip install --user /dt/dist/datatable-*-cp" + pyver + "-*.whl && "
+        docker_cmd += python + "-m pip install --user -r /dt/requirements_tests.txt && "
+        docker_cmd += python + "-m pip install --user -r /dt/requirements_extra.txt && "
         docker_cmd += python + "-m pip freeze && "
         docker_cmd += python + "-m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
                             " --junit-prefix=" + testtag +
