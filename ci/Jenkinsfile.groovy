@@ -300,50 +300,6 @@ ansiColor('xterm') {
                     }
                 }
             ])
-            // Coverage stages
-            if (!params.DISABLE_COVERAGE) {
-                parallel ([
-                    'Coverage on x86_64_linux': {
-                        node(NODE_LABEL) {
-                            final stageDir = 'coverage-x86_64_linux'
-                            buildSummary.stageWithSummary('Coverage on x86_64_linux', stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    try {
-                                        sh "make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
-                                    } finally {
-                                        arch "/tmp/cores/*python*"
-                                    }
-                                    testReport "build/coverage-c", "x86_64_linux coverage report for C"
-                                    testReport "build/coverage-py", "x86_64_linux coverage report for Python"
-                                }
-                            }
-                        }
-                    },
-                    'Coverage on x86_64_macos': {
-                        node(OSX_NODE_LABEL) {
-                            final stageDir = 'coverage-x86_64_osx'
-                            buildSummary.stageWithSummary('Coverage on x86_64_macos', stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    withEnv(OSX_ENV) {
-                                        sh """
-                                            . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
-                                            make ${MAKE_OPTS} coverage
-                                        """
-                                    }
-                                    testReport "build/coverage-c", "x86_64_osx coverage report for C"
-                                    testReport "build/coverage-py", "x86_64_osx coverage report for Python"
-                                }
-                            }
-                        }
-                    }
-                ])
-            }
             // Test stages
             if (!params.DISABLE_ALL_TESTS) {
                 def testStages = [:]
@@ -613,6 +569,50 @@ ansiColor('xterm') {
                     })
                 // Execute defined stages in parallel
                 parallel(testStages)
+            }
+            // Coverage stages
+            if (!params.DISABLE_COVERAGE) {
+                parallel ([
+                    'Coverage on x86_64_linux': {
+                        node(NODE_LABEL) {
+                            final stageDir = 'coverage-x86_64_linux'
+                            buildSummary.stageWithSummary('Coverage on x86_64_linux', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    try {
+                                        sh "make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                    } finally {
+                                        arch "/tmp/cores/*python*"
+                                    }
+                                    testReport "build/coverage-c", "x86_64_linux coverage report for C"
+                                    testReport "build/coverage-py", "x86_64_linux coverage report for Python"
+                                }
+                            }
+                        }
+                    },
+                    'Coverage on x86_64_macos': {
+                        node(OSX_NODE_LABEL) {
+                            final stageDir = 'coverage-x86_64_osx'
+                            buildSummary.stageWithSummary('Coverage on x86_64_macos', stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    withEnv(OSX_ENV) {
+                                        sh """
+                                            . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
+                                            make ${MAKE_OPTS} coverage
+                                        """
+                                    }
+                                    testReport "build/coverage-c", "x86_64_osx coverage report for C"
+                                    testReport "build/coverage-py", "x86_64_osx coverage report for Python"
+                                }
+                            }
+                        }
+                    }
+                ])
             }
             // Build sdist
             node(X86_64_BUILD_NODE_LABEL) {
