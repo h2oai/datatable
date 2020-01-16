@@ -839,7 +839,6 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
                             " --junitxml=/dt/build/test-reports/TEST-datatable.xml"
                             " /dt/tests"
         sh """
-            mkdir -p /tmp/cores
             rm -rf /tmp/cores/*
             docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
         """
