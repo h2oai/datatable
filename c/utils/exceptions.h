@@ -116,7 +116,6 @@ void replace_typeError(PyObject* obj);
 void replace_valueError(PyObject* obj);
 void replace_dtWarning(PyObject* obj);
 void replace_invalidOpError(PyObject* obj);
-void replace_keyError(PyObject* obj);
 void init_exceptions();
 
 

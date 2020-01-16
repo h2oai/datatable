@@ -139,3 +139,19 @@ def test_colindex_after_column_deleted():
     msg = "Column `D` does not exist in the Frame"
     with pytest.raises(KeyError, match=msg):
         DT.colindex("D")
+
+
+def test_keyerror():
+    import pickle
+    import traceback
+    try:
+        dt.Frame()["A"]
+        assert False
+    except KeyError as e:
+        obj = pickle.dumps(e)
+    ee = pickle.loads(obj)
+    assert isinstance(ee, KeyError)
+    assert str(ee) == "Column `A` does not exist in the Frame"
+    # Check that there are no extra quotes
+    assert traceback.format_exception_only(type(ee), ee) == \
+           ["KeyError: Column `A` does not exist in the Frame\n"]
