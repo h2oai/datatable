@@ -844,14 +844,11 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
             docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
         """
     } finally {
-        sh """
-            ls /tmp/cores
-            mkdir -p build/cores
-            test -n "\$(ls -A /tmp/cores)" && mv -f /tmp/cores/* build/cores || true
-        """
-        try {
-            arch "build/cores/*python*"
-        } catch (ex) { /* ignore */ }
+        def cores = sh(script: "ls -A /tmp/cores", returnStdout: true).trim()
+        if (cores) {
+            sh "mkdir -p build/cores && mv -f /tmp/cores/* build/cores"
+            arch "build/cores/*"
+        }
     }
     junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
 }
