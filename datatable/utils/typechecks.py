@@ -49,8 +49,8 @@ TTypeError.__qualname__ = "TypeError"
 TValueError.__qualname__ = "ValueError"
 TImportError.__qualname__ = "ImportError"
 TImportError.__name__ = "ImportError"
-TKeyError.__module__ = "builtins"
 TKeyError.__name__ = "KeyError"
+TKeyError.__module__ = "builtins"
 
 
 

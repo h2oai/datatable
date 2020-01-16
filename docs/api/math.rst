@@ -381,7 +381,6 @@ Floating-point functions
         :names: C0
         :types: int8
         :shape: 5, 1
-        :output:
 
         0,   3
         1,   2

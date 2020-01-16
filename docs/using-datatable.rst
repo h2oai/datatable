@@ -22,7 +22,6 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays,
     :names: C0
     :types: float64
     :shape: 1000000, 1
-    :output:
 
     0,1.62435
     1,-0.611756
@@ -51,7 +50,6 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays,
     :names: A
     :types: int64
     :shape: 1000, 1
-    :output:
 
     0,0
     1,1
@@ -78,7 +76,6 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays,
     :names: n, s
     :types: int8, str32
     :shape: 2, 2
-    :output:
 
     0,1,"foo"
     1,3,"bar"

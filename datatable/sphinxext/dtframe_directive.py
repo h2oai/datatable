@@ -351,7 +351,6 @@ class DtframeDirective(Directive):
         "shape": parse_shape,
         "types": parse_types,
         "names": parse_names,
-        "output": directives.flag,  # temporary
     }
 
     def run(self):
@@ -361,12 +360,9 @@ class DtframeDirective(Directive):
         root_node = div_node(classes=["datatable"])
         root_node += self._make_table(names, types, frame_data)
         root_node += self._make_footer(shape)
-        if "output" in self.options:
-            div = div_node(classes=["output-cell"])
-            div += root_node
-            return [div]
-        else:
-            return [root_node]
+        div = div_node(classes=["highlight-pycon", "notranslate"])
+        div += root_node
+        return [div]
 
 
     def _parse_options(self):

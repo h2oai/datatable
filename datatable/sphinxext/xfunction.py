@@ -29,7 +29,7 @@ list of all extensions in the "conf.py" file:
 
     extensions = [
         ...,
-        'datatable.sphinxext.xfunction_directive'
+        'datatable.sphinxext.xfunction'
     ]
 
 This makes several directives available for use in the .rst files:
@@ -39,8 +39,9 @@ This makes several directives available for use in the .rst files:
     .. xfunction: datatable.fread
 
     .. xmethod: datatable.Frame.cbind
-        :src: c/frame/cbind.cc::Frame::cbind
-        :doc: c/frame/cbind.cc::doc_cbind
+        :src: c/frame/cbind.cc Frame::cbind
+        :doc: c/frame/cbind.cc doc_cbind
+        :tests: tests/frame/test-cbind.py
 
 """
 import os
@@ -464,6 +465,8 @@ class XobjectDirective(SphinxDirective):
             self._transform_codeblocks(section)
             if header == "Parameters":
                 self._transform_parameters(section)
+            if header == "Examples":
+                self._transform_examples(section)
 
 
     def _split_into_sections(self, body):
@@ -521,6 +524,98 @@ class XobjectDirective(SphinxDirective):
                 lines[i] = ".. xparam:: " + line
                 lines.insert(i + 1, "")
             i += 1
+
+
+    def _transform_examples(self, lines):
+        out = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if line.lstrip().startswith(">>> "):
+                i = self._parse_example_code(i, lines, out)
+            else:
+                out.append(line)
+                i += 1
+        lines[:] = out
+
+
+    def _parse_example_code(self, i, lines, out):
+        line = lines[i]
+        indent = line[:len(line) - len(line.lstrip())]
+        indent1 = indent + ">>> "
+        indent2 = indent + "... "
+        assert line.startswith(indent1)
+        out.append(".. code-block:: python")
+        out.append("")
+        while i < len(lines):
+            line = lines[i]
+            i += 1
+            if line == "":
+                out.append(line)
+                break
+            if not line.startswith(indent):
+                raise self.error("Unexpected indent in docstring `%s` in "
+                                 "file %s" % (self.doc_var, self.doc_file))
+            if line.startswith(indent1) or line.startswith(indent2):
+                out.append("    " + line[len(indent1):])
+            else:
+                out.append("")
+                i = self._parse_example_output(i - 1, lines, out, indent)
+                break
+        return i
+
+
+    def _parse_example_output(self, i, lines, out, indent):
+        out0 = len(out)
+        out.append(".. code-block:: pycon")
+        out.append("")
+        while i < len(lines):
+            line = lines[i]
+            if line == "":
+                break
+            if not line.startswith(indent):
+                raise self.error("Unexpected indent in docstring `%s` in "
+                                 "file %s" % (self.doc_var, self.doc_file))
+            shortline = line[len(indent):]
+            if shortline.startswith(">>> "):
+                break
+            out.append("    " + shortline)
+            i += 1
+        if re.fullmatch(r"\s*\[\d+ rows? x \d+ columns?\]", out[-1]):
+            frame_lines = [line[4:] for line in out[out0+2:]]
+            out[out0:] = self._parse_dtframe(frame_lines)
+        return i
+
+
+    def _parse_dtframe(self, lines):
+        assert len(lines) >= 4
+        slices = [slice(*match.span())
+                   for match in re.finditer(r"(\-+|\+|\.{3}|…)", lines[1])]
+        vsep_index = [lines[1][s] for s in slices].index('+')
+        assert vsep_index == 1, "Keyed frames not supported yet"
+        row0 = [lines[0][s] for s in slices]
+        assert row0[vsep_index] == '|'
+        mm = re.fullmatch(r"\[(\d+) rows? x (\d+) columns?\]", lines[-1])
+        nrows = mm.group(1)
+        ncols = mm.group(2)
+        column_names = [row0[i].strip() for i in range(vsep_index+1, len(row0))]
+        column_types = ["int32"] * len(column_names)
+        out = []
+        out.append(".. dtframe::")
+        out.append("    :names: %r" % (column_names,))
+        out.append("    :types: %r" % (column_types,))
+        out.append("    :shape: (%s, %s)" % (nrows, ncols))
+        out.append("")
+        for i in range(2, len(lines) - 2):
+            rowi = [lines[i][s] for s in slices]
+            assert rowi[vsep_index] == '|'
+            del rowi[vsep_index]
+            out.append("    " + ",".join(x.strip() for x in rowi))
+        print('-' * 80)
+        for line in out:
+            print(line)
+        print('-' * 80)
+        return out
 
 
 

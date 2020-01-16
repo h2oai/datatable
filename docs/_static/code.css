@@ -89,6 +89,7 @@ div.document div.notranslate.highlight-bash .highlight {
 
 /* ------- Python code highlighting ----------------------------------------- */
 
+div.document div.notranslate.highlight-python,
 div.document div.notranslate.highlight-default {
   border: none;
   counter-increment: cc;
@@ -98,10 +99,12 @@ div.document div.notranslate.highlight-default {
   margin: 0 0 24px 0;
 }
 
-div.document div.notranslate.highlight-default + div.output-cell {
-  margin-top: -18px;
+div.document div.notranslate.highlight-python + div.highlight-pycon,
+div.document div.notranslate.highlight-default + div.highlight-pycon {
+  margin-top: -20px;
 }
 
+div.document div.notranslate.highlight-python:before,
 div.document div.notranslate.highlight-default:before {
   color: #CCC;
   content: "[" counter(cc) "]:";
@@ -113,6 +116,7 @@ div.document div.notranslate.highlight-default:before {
   text-align: right;
 }
 
+div.document div.notranslate.highlight-python div.highlight,
 div.document div.notranslate.highlight-default div.highlight {
   background: #F5F5F5;
   border: 1px solid #E0E0E0;
@@ -120,6 +124,7 @@ div.document div.notranslate.highlight-default div.highlight {
   margin-bottom: 0;
 }
 
+div.document div.notranslate.highlight-python div.highlight pre,
 div.document div.notranslate.highlight-default div.highlight pre {
   padding: .5em 1em;
 }
@@ -127,14 +132,19 @@ div.document div.notranslate.highlight-default div.highlight pre {
 
 /* ------- Output highlighting ---------------------------------------------- */
 
-div.document div.output-cell {
+div.document div.notranslate.highlight-pycon {
   border: none;
   display: flex;
   flex-direction: row;
   margin: 0 0 24px 0;
 }
 
-div.document div.output-cell:before {
+div.document div.notranslate.highlight-pycon + div.highlight-default,
+div.document div.notranslate.highlight-pycon + div.highlight-python {
+  margin-top: -12px;
+}
+
+div.document div.notranslate.highlight-pycon:before {
   color: #CCC;
   content: "[" counter(cc) "]:";
   flex: 0 0 48px;
@@ -144,12 +154,12 @@ div.document div.output-cell:before {
   text-align: right;
 }
 
-div.document div.output-cell .highlight {
+div.document div.notranslate.highlight-pycon .highlight {
   background: none;
   border: none;
 }
 
-div.document div.output-cell .highlight pre {
+div.document div.notranslate.highlight-pycon .highlight pre {
   padding: 4pt 10pt;
 }
 
