@@ -796,7 +796,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
 // ----------
 // testtag
 //     Arbitrary string describing this test run. This variable will be
-//     used as a prefix for the the test-report file name.
+//     used as a prefix for the test-report file name.
 //
 // pyver
 //     2-character python version string, such as "36" or "37"
