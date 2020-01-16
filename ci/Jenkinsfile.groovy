@@ -810,7 +810,9 @@ def testInDocker(final testTarget, final needsLargerTest) {
 def test_in_docker(String testtag, String pyver, String docker_image, boolean large_tests) {
     sh """
         rm -rf build/test-reports
+        rm -rf build/cores
         mkdir -p build/test-reports
+        mkdir -p build/cores
     """
     try {
         def docker_args = ""
@@ -818,7 +820,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_args += "--ulimit core=-1 "
         docker_args += "--entrypoint /bin/bash "
         docker_args += "-v `pwd`:/dt "
-        docker_args += "-v /tmp/cores:/tmp/cores "
+        docker_args += "-v build/cores:/tmp/cores "
         if (large_tests) {
             LINK_MAP.each { key, value ->
                 docker_args += "-v ${SOURCE_DIR}/${key}:/data/${value} "
@@ -839,15 +841,10 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
                             " --junitxml=/dt/build/test-reports/TEST-datatable.xml"
                             " /dt/tests"
         sh """
-            rm -rf /tmp/cores/*
             docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
         """
     } finally {
-        def cores = sh(script: "ls -A /tmp/cores", returnStdout: true).trim()
-        if (cores) {
-            sh "mkdir -p build/cores && mv -f /tmp/cores/* build/cores"
-            arch "build/cores/*"
-        }
+        archiveArtifacts "build/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
 }
