@@ -275,7 +275,7 @@ ansiColor('xterm') {
                 }
             ])
             // Coverage stages
-            if (!params.DISABLE_COVERAGE) {
+            if (false && !params.DISABLE_COVERAGE) {
                 parallel ([
                     'Coverage on x86_64_linux': {
                         node(NODE_LABEL) {
