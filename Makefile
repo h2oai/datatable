@@ -176,7 +176,7 @@ DOCKER_REPO_NAME ?= harbor.h2o.ai
 CONTAINER_NAME_SUFFIX ?= -$(USER)
 CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_NAME_SUFFIX)
 
-# PROJECT_VERSION := $(shell grep '^version' datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
+# PROJECT_VERSION := $(shell grep '^version' src/datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
 # BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 # BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
 BUILD_ID ?= local

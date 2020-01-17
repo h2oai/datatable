@@ -187,8 +187,8 @@ ansiColor('xterm') {
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
                                 -c "/opt/python/cp36-cp36m/bin/python3.6 ext.py geninfo --strict"
                         """
-                        sh "cat datatable/_build_info.py"
-                        arch "datatable/_build_info.py"
+                        sh "cat src/datatable/_build_info.py"
+                        arch "src/datatable/_build_info.py"
                     }
                     stash name: 'datatable-sources', useDefaultExcludes: false
                 }
@@ -571,7 +571,7 @@ ansiColor('xterm') {
                 parallel(testStages)
             }
             // Coverage stages
-            if (!params.DISABLE_COVERAGE) {
+            if (false && !params.DISABLE_COVERAGE) {
                 parallel ([
                     'Coverage on x86_64_linux': {
                         node(NODE_LABEL) {

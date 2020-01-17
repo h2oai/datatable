@@ -47,7 +47,7 @@ from ci import xbuild
 
 def is_source_distribution():
     return not os.path.exists("VERSION.txt") and \
-           os.path.exists("datatable/_build_info.py")
+           os.path.exists("src/datatable/_build_info.py")
 
 
 # The primary source of datatable's release version is the file
@@ -154,15 +154,15 @@ def _get_version_txt(mode):
 
 
 def _get_version_from_build_info():
-    info_file = os.path.join("datatable", "_build_info.py")
+    info_file = os.path.join("src", "datatable", "_build_info.py")
     if not os.path.exists(info_file):
         raise SystemExit("Invalid source distribution: file "
-                         "datatable/_build_info.py is missing")
+                         "src/datatable/_build_info.py is missing")
     with open(info_file, "r", encoding="utf-8") as inp:
         text = inp.read()
     mm = re.search(r"\s*version\s*=\s*['\"]([\w\+\.]+)['\"]", text)
     if not mm:
-        raise SystemExit("Cannot find version in datatable/"
+        raise SystemExit("Cannot find version in src/datatable/"
                          "_build_info.py file")
     return mm.group(1)
 
@@ -205,12 +205,12 @@ def build_extension(cmd, verbosity=3):
     ext.log = create_logger(verbosity)
     ext.name = "_datatable"
     ext.build_dir = "build/" + cmd
-    ext.destination_dir = "datatable/lib/"
-    ext.add_sources("c/**/*.cc")
+    ext.destination_dir = "src/datatable/lib/"
+    ext.add_sources("src/core/**/*.cc")
 
     # Common compile settings
     ext.compiler.enable_colors()
-    ext.compiler.add_include_dir("c")
+    ext.compiler.add_include_dir("src/core")
     ext.compiler.add_default_python_include_dir()
 
     if ext.compiler.is_msvc():
@@ -241,7 +241,7 @@ def build_extension(cmd, verbosity=3):
 
         if cmd == "coverage":
             raise RuntimeError("`make coverage` is not supported on Windows systems")
-            
+
         if cmd == "debug":
             xt.compiler.add_compiler_flag("/Od")    # no optimization
             ext.compiler.add_compiler_flag("/Z7")
@@ -478,18 +478,19 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
         sofile = config_settings.pop("sofile")
     else:
         soext = "dll" if sys.platform == "win32" else "so"
-        sofiles = glob.glob("datatable/lib/_datatable*." + soext)
+        sofiles = glob.glob("src/datatable/lib/_datatable*." + soext)
         if not sofiles:
-            raise SystemExit("Extension file datatable/lib/_datatable*.%s "
+            raise SystemExit("Extension file src/datatable/lib/_datatable*.%s "
                              "not found" % soext)
         if len(sofiles) > 1:
             raise SystemExit("Multiple extension files found: %r" % (sofiles,))
         sofile = sofiles[0]
 
-    files = glob.glob("datatable/**/*.py", recursive=True)
+    files = glob.glob("src/datatable/**/*.py", recursive=True)
     files += [sofile]
-    files += ["datatable/include/datatable.h"]
-    files = [f for f in files if "_datatable_builder.py" not in f]
+    files += ["src/datatable/include/datatable.h"]
+    files = [(f, f[4:])  # (src_file, destination_file)
+             for f in files if "_datatable_builder.py" not in f]
     files.sort()
 
     meta = get_meta()
@@ -507,14 +508,14 @@ def build_sdist(sdist_directory, config_settings=None):
     assert isinstance(sdist_directory, str)
     assert config_settings is None or isinstance(config_settings, dict)
 
-    files = [f for f in glob.glob("datatable/**/*.py", recursive=True)
+    files = [f for f in glob.glob("src/datatable/**/*.py", recursive=True)
              if "_datatable_builder.py" not in f]
-    files += glob.glob("c/**/*.cc", recursive=True)
-    files += glob.glob("c/**/*.h", recursive=True)
+    files += glob.glob("src/core/**/*.cc", recursive=True)
+    files += glob.glob("src/core/**/*.h", recursive=True)
     files += glob.glob("ci/xbuild/*.py")
     files += [f for f in glob.glob("tests/**/*.py", recursive=True)
               if "random_attack_logs" not in f]
-    files += ["datatable/include/datatable.h"]
+    files += ["src/datatable/include/datatable.h"]
     files.sort()
     files += ["ext.py"]
     files += ["pyproject.toml"]
@@ -536,7 +537,7 @@ def build_sdist(sdist_directory, config_settings=None):
 #-------------------------------------------------------------------------------
 
 def cmd_ext(args):
-    with open("datatable/lib/.xbuild-cmd", "wt") as out:
+    with open("src/datatable/lib/.xbuild-cmd", "wt") as out:
         out.write(args.cmd)
     generate_build_info(args.cmd, strict=args.strict)
     build_extension(cmd=args.cmd, verbosity=args.verbosity)
