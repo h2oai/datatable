@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../datatable'))
+sys.path.insert(0, os.path.abspath('../src/datatable'))
 
 
 # -- Project information -----------------------------------------------------

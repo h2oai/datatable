@@ -155,9 +155,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     sleep_time = 0.01
     exception = "KeyboardInterrupt\n"
     message = "[cancelled]\x1b[m\x1b[K\n"
-    cmd = ""
-    cmd += "import sys; sys.path.insert(0, 'src'); "
-    cmd += "import datatable as dt; from datatable.lib import core;"
+    cmd = "import datatable as dt; from datatable.lib import core;"
     cmd += "dt.options.progress.enabled = True;"
     cmd += "dt.options.progress.min_duration = 0;"
     cmd += "print('%s start', flush = True); " % parallel_type;
