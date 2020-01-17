@@ -58,7 +58,7 @@ def build_extension(cmd, verbosity=3):
     ext.log = create_logger(verbosity)
     ext.name = "_datatable"
     ext.build_dir = "build/" + cmd
-    ext.destination_dir = "datatable/lib/"
+    ext.destination_dir = "src/datatable/lib/"
     ext.add_sources("src/core/**/*.cc")
 
     # Common compile settings
