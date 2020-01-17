@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -138,7 +138,7 @@ def test_f_str(DT):
     for i, name in enumerate(DT.names):
         assert_equals(DT[:, f[name]], DT[:, i])
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(KeyError) as e:
         noop(DT[:, f["d"]])
     assert ("Column `d` does not exist in the Frame; "
             "did you mean `D`, `A` or `B`?" == str(e.value))

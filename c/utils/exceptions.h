@@ -99,19 +99,23 @@ public:
 
 //------------------------------------------------------------------------------
 
+Error AssertionError();
+Error ImportError();
+Error IndexError();
+Error InvalidOperationError();
+Error IOError();
+Error KeyError();
+Error MemoryError();
+Error NotImplError();
+Error OverflowError();
 Error RuntimeError();
 Error TypeError();
 Error ValueError();
-Error OverflowError();
-Error MemoryError();
-Error NotImplError();
-Error IOError();
-Error AssertionError();
-Error ImportError();
 
 void replace_typeError(PyObject* obj);
 void replace_valueError(PyObject* obj);
 void replace_dtWarning(PyObject* obj);
+void replace_invalidOpError(PyObject* obj);
 void init_exceptions();
 
 

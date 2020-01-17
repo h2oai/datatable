@@ -52,7 +52,11 @@ clean::
 	rm -rf dist
 	rm -rf datatable.egg-info
 	rm -f *.so
+ifeq (,$(findstring windows,$(OS)))
+	rm -f datatable/lib/_datatable*.pyd
+else
 	rm -f datatable/lib/_datatable*.so
+endif
 	rm -f ci/fast.mk
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
@@ -162,7 +166,9 @@ version:
 
 DIST_DIR = dist
 
-ARCH := $(shell arch)
+ifneq (,$(findstring windows,$(OS)))
+	ARCH := $(shell arch)
+endif
 OS_NAME ?= centos7
 PLATFORM := $(ARCH)_$(OS_NAME)
 

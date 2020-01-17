@@ -6,6 +6,8 @@
   Frame
   -----
 
+  .. ref-context:: datatable.Frame
+
   -[api] A Python list of integers containing only 0s and 1s will now produce
     an ``int8`` column instead of ``bool8``. In order to create a boolean
     column supply a list of Trues and Falses, or force the boolean stype with
@@ -26,11 +28,13 @@
     version 4.8 or earlier. (#2250)
 
   -[fix] Fixed an error when a frame with a computed boolean column was
-    saved into csv. [#2253]
+    saved into a CSV file. [#2253]
 
 
   General
   -------
+
+  .. ref-context:: datatable
 
   -[api] Properties ``dt.bool8.min`` and ``dt.bool8.max`` are now equal to
     ``False`` and ``True`` respectively, instead of integers 0 and 1. (#2231)
@@ -43,13 +47,15 @@
   FTRL model
   ----------
 
+  .. ref-context:: datatable.models.Ftrl
+
   -[fix] Fix feature importance normalization to [0, 1] in FTRL. (#2224)
 
   -[fix] Resetting an untrained FTRL model now doesn't result in a segfault.
     (#2226)
 
-  -[enh] The ``id`` column in FTRL model ``.labels`` frame now has stype
-    ``int32`` instead of ``bool`` for binomial and regression models.
+  -[enh] The "id" column in FTRL model's frame :attr:`.labels` now has stype
+    ``int32`` instead of ``bool8`` for binomial and regression models.
 
 
 
@@ -62,6 +68,6 @@
 
   People who contributed patches and pull requests (PRs):
 
-  - :user:`Pasha Stetsenko <st-pasha>`
-  - :user:`Oleksiy Kononenko <oleksiyskononenko>`
-  - :user:`Bijan Pourhamzeh <bpourhamzeh>`
+  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
+  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
+  -[gh.new] :user:`Bijan Pourhamzeh <bpourhamzeh>`

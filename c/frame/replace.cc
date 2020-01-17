@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -86,11 +86,7 @@ class ReplaceAgent {
 // Frame::replace()
 //------------------------------------------------------------------------------
 
-static PKArgs args_replace(
-  2, 0, 0, false, false,
-  {"to_replace", "replace_with"},
-  "replace",
-
+static const char* doc_replace =
 R"(replace(self, replace_what, replace_with)
 --
 
@@ -128,9 +124,9 @@ replace_with: single value, or list
     be either a single value, or a list of the same length. If `replace_what`
     is a dict, then this value should not be passed.
 
-Returns
--------
-Nothing, replacement is performed in-place.
+(return): None
+    Nothing is returned, the replacement is performed in-place.
+
 
 Examples
 --------
@@ -142,7 +138,11 @@ Examples
 >>> df.replace({-1: 100, 2: 200, "foo": None})
 >>> df.to_list()
 [[100, 200, 3, 100, 200, 3, 100, 200, 3]]
-)");
+)";
+
+static PKArgs args_replace(
+  2, 0, 0, false, false,
+  {"to_replace", "replace_with"}, "replace", doc_replace);
 
 
 void Frame::replace(const PKArgs& args) {

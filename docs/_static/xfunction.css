@@ -1,0 +1,188 @@
+
+.x-function {
+    margin-bottom: 32pt;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Signature block
+ *-----------------------------------------------------------------------------*/
+
+.x-function .sig-container {
+    background-color: #2b639c;
+    border-radius: 3px;
+    display: flex;
+    line-height: 16px;
+    padding: 5pt 5pt 5pt 7pt;
+}
+
+.x-function .sig-container .sig-qualifier a,
+.x-function .sig-container .sig-qualifier a:visited,
+.x-function .sig-container .code-links a,
+.x-function .sig-container .code-links a:visited {
+    color: #8da4d2;
+}
+
+.x-function .sig-container .sig-qualifier a:hover,
+.x-function .sig-container .code-links a:hover {
+    color: white;
+}
+
+.x-function .sig-body {
+    flex: 1;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 88%;
+}
+
+.x-function .code-links {
+    font-size: 75%;
+    margin-top: -3pt;
+}
+
+.x-function .code-links a {
+    display: block;
+    line-height: 12px;
+}
+
+.x-function .code-links a:after {
+    content: "\f08e";
+    font-family: "FontAwesome";
+    font-size: 70%;
+    padding-left: 3px;
+    position: relative;
+    top: -2px;
+    -webkit-font-smoothing: antialiased;
+}
+
+
+.x-function .sig-main {
+    color: #8da4d2;
+    display: flex;
+}
+
+.x-function .sig-main .sig-name {
+    color: #ffe810;
+}
+
+.x-function .sig-parameters {
+    flex: 1;
+}
+.x-function .sig-parameters .param {
+    display: inline-block;
+}
+.x-function .sig-parameters .param a,
+.x-function .sig-parameters .param a:visited {
+    color: #dff;
+}
+.x-function .sig-parameters .param a:hover {
+    color: #fff;
+}
+
+.x-function .sig-parameters .param .default {
+    display: inline;
+    font-style: normal;
+}
+.x-function .sig-parameters .param .default.literal {
+    color: #8da4d2;
+    font-size: inherit;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Main function block
+ *-----------------------------------------------------------------------------*/
+
+.x-function .x-function-body {
+    margin: 8pt 0 0 16pt;
+}
+
+.x-function .x-function-body p {
+    margin: 0 0 16px 0;
+    text-align: justify;
+}
+
+.x-function .x-function-body h2 {
+    font-size: 130%;
+}
+
+
+.rst-content .x-function-body dl.simple dt {
+    background: none;
+    border: none;
+    color: #000;
+    font-size: 100%;
+    font-weight: normal;
+    margin: 6pt 0 0 0;
+    padding: 0;
+}
+
+.rst-content .x-function-body dl.simple code {
+    font-weight: normal;
+}
+
+.x-function a.xparam-ref code {
+    color: #89abcd;
+    font-weight: bold;
+    padding: 1px 4px;
+}
+
+.x-function a.xparam-ref:hover code {
+    background: #2a629c;
+    border-radius: 3px;
+    color: #d7ffff;
+    font-weight: normal;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * xparam
+ *-----------------------------------------------------------------------------*/
+
+.xparam-box {
+    margin-bottom: 16pt;
+}
+
+.xparam-box:target {
+    outline: 1px dashed #ffdbae;
+    outline-offset: 5px;
+}
+
+.xparam-head {
+    align-items: baseline;
+    background: #f5f5f5;
+    display: flex;
+}
+
+.xparam-head .param {
+    background-color: #2a629c;
+    border-radius: 3px;
+    color: #d7ffff;
+    cursor: default;
+    display: inline-block;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 85%;
+    padding: 3px 6px;
+}
+
+.xparam-head .param.return {
+    background-color: #469e36;
+    color: #FFF;
+}
+
+.xparam-head .param.except {
+    background-color: #C50000;
+    color: #FFF;
+}
+
+.xparam-head .types {
+    color: #ddd;  /* affects only the separators */
+    line-height: 14px;
+    padding: 3px 10px;
+}
+
+.xparam-body {
+    margin-left: 24pt;
+}

@@ -80,8 +80,8 @@ def test_assign_nonexisting_column():
     # See #1983: if column `B` is created at a wrong moment in the evaluation
     # sequence, this may seg.fault
     DT = dt.Frame(A=range(5))
-    with pytest.raises(ValueError, match="Column `B` does not exist in the "
-                                         "Frame"):
+    with pytest.raises(KeyError, match="Column `B` does not exist in the "
+                                       "Frame"):
         DT[:, "B"] = f.B + 1
     frame_integrity_check(DT)
 

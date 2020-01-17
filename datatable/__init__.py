@@ -55,7 +55,7 @@ from .str import split_into_nhot
 from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError
-from .utils.typechecks import DatatableWarning
+from .utils.typechecks import DatatableWarning, InvalidOperationError
 import datatable.widget
 import datatable.math
 import datatable.internal
@@ -68,6 +68,7 @@ except ImportError:
 
 __all__ = (
     "Frame",
+    "InvalidOperationError",
     "corr",
     "count",
     "cov",

@@ -75,27 +75,76 @@ oobj Frame::tail(const PKArgs& args) {
 // copy()
 //------------------------------------------------------------------------------
 
-static PKArgs args_copy(
-  0, 0, 1, false, false,
-  {"deep"}, "copy",
-
+static const char* doc_copy =
 R"(copy(self, deep=False)
 --
 
-Make a copy of this frame.
+Make a copy of the frame.
 
-By default, this method creates a shallow copy of the current frame:
-only references are copied, not the data itself. However, due to
-copy-on-write semantics any changes made to one of the frames will not
-propagate to the other. Thus, for most intents and purposes the copied
-frame will behave as if it was deep-copied.
+The returned frame will be an identical copy of the original,
+including column names, types, and keys.
 
-Still, it is possible to explicitly request a deep copy of the frame,
-using the parameter `deep=True`. Even though it is not needed most of
-the time, there still could be situations where you may want to use
-this parameter: for example for auditing purposes, or if you want to
-explicitly control the moment when the copying is made.
-)");
+By default, copying is shallow with copy-on-write semantics. This
+means that only the minimal information about the frame is copied,
+while all the internal data buffers are shared between the copies.
+Nevertheless, due to the copy-on-write semantics, any changes made to
+one of the frames will not propagate to the other; instead, the data
+will be copied whenever the user attempts to modify it.
+
+It is also possible to explicitly request a deep copy of the frame
+by setting the parameter `deep` to `True`. With this flag, the
+returned copy will be truly independent from the original. The
+returned frame will also be fully materialized in this case.
+
+
+Parameters
+----------
+deep: bool
+    Flag indicating whether to return a "shallow" (default), or a
+    "deep" copy of the original frame.
+
+(return): Frame
+    A new Frame, which is the copy of the current frame.
+
+
+Examples
+--------
+
+>>> DT1 = dt.Frame(range(5))
+>>> DT2 = DT1.copy()
+>>> DT2[0, 0] = -1
+>>> DT2.to_list()
+[[-1, 1, 2, 3, 4]]
+>>> DT1.to_list()
+[[0, 1, 2, 3, 4]]
+
+
+Notes
+-----
+- Non-deep frame copy is a very low-cost operation: its speed depends
+  on the number of columns only, not on the number of rows. On a
+  regular laptop copying a 100-column frame takes about 30-50µs.
+
+- Deep copying is more expensive, since the data has to be physically
+  written to new memory, and if the source columns are virtual, then
+  they need to be computed too.
+
+- Another way to create a copy of the frame is using a `DT[i, j]`
+  expression (however, this will not copy the key property)::
+
+    DT[:, :]
+
+- `Frame` class also supports copying via the standard Python library
+  ``copy``::
+
+    import copy
+    DT_shallow_copy = copy.copy(DT)
+    DT_deep_copy = copy.deepcopy(DT)
+
+)";
+
+static PKArgs args_copy(0, 0, 1, false, false, {"deep"}, "copy", doc_copy);
+
 
 oobj Frame::copy(const PKArgs& args) {
   bool deepcopy = args[0].to<bool>(false);

@@ -39,6 +39,23 @@ static void init_option_clear_on_success() {
 
 
 //------------------------------------------------------------------------------
+// dt.options.progress.allow_interruption
+//------------------------------------------------------------------------------
+
+bool allow_interruption = true;
+
+static void init_option_allow_interruption() {
+  dt::register_option(
+    "progress.allow_interruption",
+    []{ return py::obool(allow_interruption); },
+    [](const py::Arg& value){ allow_interruption = value.to_bool_strict(); },
+    "If `True`, allow datatable to handle the `SIGINT` signal to interrupt\n"
+    "long-running tasks."
+  );
+}
+
+
+//------------------------------------------------------------------------------
 // dt.options.progress.enabled
 //------------------------------------------------------------------------------
 
@@ -180,6 +197,7 @@ void init_options() {
   init_option_min_duration();
   init_option_callback();
   init_option_clear_on_success();
+  init_option_allow_interruption();
 }
 
 

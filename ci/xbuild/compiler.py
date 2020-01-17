@@ -44,6 +44,7 @@ class Compiler:
         self._parent = None        # xbuild.extension.Extension
         self._compiler_flags = []  # List[str]
         self._include_dirs = []    # List[str]
+        self._lib_dirs = []        # List[str]
         self._linker_flags = []    # List[str]
 
 
@@ -65,7 +66,7 @@ class Compiler:
     def executable(self, value):
         assert isinstance(value, str)
         self._executable = value
-        self._flavor = "msvc" if "msvc" in value else \
+        self._flavor = "msvc" if "cl.exe" in value else \
                        "clang" if "clang" in value else \
                        "gcc" if "gcc" in value or "g++" in value else \
                        "unknown"
@@ -141,17 +142,44 @@ class Compiler:
                 return
 
             if sys.platform == "win32":
-                candidates = ["cl.exe", "clang.exe", "gcc.exe"]
-            elif sys.platform == "darwin":
-                candidates = ["/usr/local/opt/llvm/bin/clang", "clang"]
-            else:
-                candidates = ["gcc", "/usr/local/opt/llvm/bin/clang",
-                              "clang", "cc"]
+                self._detect_winsdk()
+                msvc_default_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\"
+                msvc_path = os.environ.get("DT_MSVC_PATH", msvc_default_path)
+                if not os.path.isdir(msvc_path):
+                    raise ValueError("Microsoft Visual Studio directory %s not found. "
+                                     "Please specify its location in `DT_MSVC_PATH` environment variable." 
+                                     % msvc_path)
 
-            for cc in candidates:
-                if self._check_compiler(cc, srcname, outname):
-                    self.executable = cc
-                    self.log.report_compiler_executable(cc)
+                candidates = []
+                compiler_versions = next(os.walk(msvc_default_path))[1]
+                for compiler_version in compiler_versions:
+                    path =  msvc_default_path + compiler_version
+                    bin_path = path + "\\bin\\Hostx64\\x64\\"
+                    candidates += [{
+                                    "compiler": bin_path + "cl.exe", 
+                                    "linker": bin_path + "link.exe", 
+                                    "path" : path
+                                  }]
+
+            elif sys.platform == "darwin":
+                candidates = [
+                    {"compiler": "/usr/local/opt/llvm/bin/clang"},
+                    {"compiler": "clang"}
+                ]
+            else:
+                candidates = [
+                    {"compiler": "gcc"},
+                    {"compiler": "/usr/local/opt/llvm/bin/clang"},
+                    {"compiler": "clang"},
+                    {"compiler": "cc"},
+                ]
+
+            for candidate in candidates:
+                if self._check_compiler(candidate["compiler"], srcname, outname):
+                    self.executable = candidate["compiler"]
+                    self.linker = candidate.get("linker", candidate["compiler"])
+                    self.path = candidate.get("path", "")
+                    self.log.report_compiler_executable(candidate["compiler"])
                     return
 
             raise RuntimeError("Suitable C++ compiler cannot be determined. "
@@ -163,6 +191,26 @@ class Compiler:
             if outname and os.path.isfile(outname):
                 os.remove(outname)
 
+
+    def _detect_winsdk(self):
+        winsdk_default_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
+        winsdk_path = os.environ.get("DT_WINSDK_PATH", winsdk_default_path)
+        if not os.path.isdir(winsdk_path):
+            raise ValueError("Windows SDK directory %s not found. "
+                             "Please specify its location in `DT_WINSDK_PATH` environment variable." 
+                             % msvc_path)
+
+        # Detect the latest available SDK version
+        winsdk_version_dir = next(os.walk(winsdk_default_path + "\\include"))[1][-1] 
+        winsdk_include_path = winsdk_default_path + "\\Include\\" + winsdk_version_dir
+        winsdk_lib_path = winsdk_default_path + "\\Lib\\" + winsdk_version_dir
+        if not os.path.isdir(winsdk_include_path):
+            raise ValueError("Windows SDK include directory %s not found" % winsdk_include_path)
+        if not os.path.isdir(winsdk_lib_path):
+            raise ValueError("Windows SDK lib directory %s not found" % winsdk_lib_path)
+
+        self.winsdk_include_path = winsdk_include_path
+        self.winsdk_lib_path = winsdk_lib_path
 
 
     #---------------------------------------------------------------------------
@@ -190,14 +238,14 @@ class Compiler:
 
 
     def add_default_python_include_dir(self):
-        dd = sysconfig.get_config_var("INCLUDEPY")
-        if not os.path.isdir(dd):
+        py_include_dir = sysconfig.get_config_var("INCLUDEPY")
+        if not os.path.isdir(py_include_dir):
             self._log.warn("Python include directory `%s` does not exist, "
-                           "compilation may fail" % dd)
-        elif not os.path.exists(os.path.join(dd, "Python.h")):
+                           "compilation may fail" % py_include_dir)
+        elif not os.path.exists(os.path.join(py_include_dir, "Python.h")):
             self._log.warn("Python include directory `%s` is missing the file "
-                           "Python.h, compilation may fail" % dd)
-        self.add_include_dir(dd, system=True)
+                           "Python.h, compilation may fail" % py_include_dir)
+        self.add_include_dir(py_include_dir, system=True)
 
 
     def add_compiler_flag(self, *flags):
@@ -240,6 +288,33 @@ class Compiler:
     # Linking
     #---------------------------------------------------------------------------
 
+    def _flags_for_lib_dir(self, path):
+        if self.is_msvc():
+            return ["/LIBPATH:" + path]
+        else:
+            return ["-L" + path]
+
+
+    def add_lib_dir(self, path):
+        if not path:
+            return
+        assert isinstance(path, str)
+        if not os.path.isdir(path):
+            raise ValueError("Lib directory %s not found" % path)
+        self._lib_dirs.append(path)
+        self._linker_flags += self._flags_for_lib_dir(path)
+        self.log.report_lib_dir(path)
+
+
+    def add_default_python_lib_dir(self):
+        py_dir = sysconfig.get_config_var("BINDIR")
+        py_lib_dir = os.path.join(py_dir, "libs")
+        if not os.path.isdir(py_lib_dir):
+            self._log.warn("Python lib directory `%s` does not exist, "
+                           "linking may fail" % py_lib_dir)
+        self.add_lib_dir(py_lib_dir)
+
+
     def add_linker_flag(self, *flags):
         for flag in flags:
             if flag:
@@ -248,7 +323,7 @@ class Compiler:
 
 
     def get_link_command(self, sources, target):
-        cmd = [self.executable]
+        cmd = [self.linker]
         cmd += sources
         if self.is_msvc():
             cmd += ["/OUT:" + target]

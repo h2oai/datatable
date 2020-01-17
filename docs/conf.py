@@ -13,6 +13,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import subprocess
 import sys
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../datatable'))
@@ -21,7 +22,7 @@ sys.path.insert(0, os.path.abspath('../datatable'))
 # -- Project information -----------------------------------------------------
 
 project = 'datatable'
-copyright = '2018-2019, H2O.ai'
+copyright = '2018-2020, H2O.ai'
 author = 'Pasha Stetsenko'
 
 try:
@@ -51,11 +52,12 @@ needs_sphinx = '1.8'
 # ones.
 extensions = [
     'sphinxext.dtframe_directive',
+    'sphinxext.xfunction',
     'sphinxext.dt_changelog',
-    'nbsphinx',
+    'sphinxext.ref_context',
+    # 'nbsphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    # 'sphinx.ext.viewcode',
     'sphinx.ext.napoleon'
 ]
 
@@ -86,8 +88,29 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store',
 pygments_style = 'sphinx'
 
 
+# -- Options for Changelog extension -----------------------------------------
+
 changelog_issue_url = "https://github.com/h2oai/datatable/issues/{issue}"
+
 changelog_user_url = "https://github.com/{name}"
+
+
+# -- Options for XFunction extension -----------------------------------------
+
+xf_module_name = "datatable"
+
+xf_project_root = ".."
+
+try:
+    _ghcommit = subprocess.check_output(["git", "rev-parse", "master"],
+                                        universal_newlines=True).strip()
+    xf_permalink_url0 = ("https://github.com/h2oai/datatable/blob/" +
+                         _ghcommit + "/{filename}")
+    xf_permalink_url2 = xf_permalink_url0 + "#L{line1}-L{line2}"
+
+except subprocess.CalledProcessError:
+    pass
+
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -108,6 +131,10 @@ html_theme_options = {
     "sticky_navigation": True,
     "titles_only": True,
 }
+
+html_show_sphinx = False
+html_show_copyright = False
+html_show_sourcelink = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -1,25 +1,27 @@
-Using ``datatable``
-===================
+
+.. ref-context datatable
+
+===============
+Using datatable
+===============
 
 This section describes common functionality and commands that you can run in ``datatable``.
 
 Create Frame
 ------------
 
-You can create a Frame from a variety of sources, including ``numpy`` arrays, ``pandas`` DataFrames, raw Python objects, etc:
+You can create a Frame from a variety of sources, including ``numpy`` arrays,
+``pandas`` DataFrames, raw Python objects, etc::
 
-::
-
-  import datatable as dt
-  import numpy as np
-  np.random.seed(1)
-  dt.Frame(np.random.randn(1000000))
+    import datatable as dt
+    import numpy as np
+    np.random.seed(1)
+    dt.Frame(np.random.randn(1000000))
 
 .. dtframe::
     :names: C0
     :types: float64
     :shape: 1000000, 1
-    :output:
 
     0,1.62435
     1,-0.611756
@@ -48,7 +50,6 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
     :names: A
     :types: int64
     :shape: 1000, 1
-    :output:
 
     0,0
     1,1
@@ -75,7 +76,6 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
     :names: n, s
     :types: int8, str32
     :shape: 2, 2
-    :output:
 
     0,1,"foo"
     1,3,"bar"
@@ -85,9 +85,8 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays, ``
 Convert a Frame
 ---------------
 
-Convert an existing Frame into a ``numpy`` array, a ``pandas`` DataFrame, or a pure Python object:
-
-::
+Convert an existing Frame into a ``numpy`` array, a ``pandas`` DataFrame,
+or a pure Python object::
 
    nparr = df1.to_numpy()
    pddfr = df1.to_pandas()
@@ -96,9 +95,7 @@ Convert an existing Frame into a ``numpy`` array, a ``pandas`` DataFrame, or a p
 Parse Text (csv) Files
 ----------------------
 
-``datatable`` provides fast and convenient parsing of text (csv) files:
-
-::
+``datatable`` provides fast and convenient parsing of text (csv) files::
 
    df = dt.fread("train.csv")
 
@@ -115,18 +112,15 @@ The ``datatable`` parser
 Write the Frame
 ---------------
 
-Write the Frame's content into a ``csv`` file (also multi-threaded):
-
-::
+Write the Frame's content into a ``csv`` file (also multi-threaded)::
 
    df.to_csv("out.csv")
 
 Save a Frame
 ------------
 
-Save a Frame into a binary format on disk, then open it later instantly, regardless of the data size:
-
-::
+Save a Frame into a binary format on disk, then open it later instantly,
+regardless of the data size::
 
    df.to_jay("out.jay")
    df2 = dt.open("out.jay")
@@ -134,9 +128,7 @@ Save a Frame into a binary format on disk, then open it later instantly, regardl
 Basic Frame Properties
 ----------------------
 
-Basic Frame properties include:
-
-::
+Basic Frame properties include::
 
     print(df.shape)   # (nrows, ncols)
     print(df.names)   # column names
@@ -145,9 +137,7 @@ Basic Frame properties include:
 Compute Per-Column Summary Stats
 --------------------------------
 
-Compute per-column summary stats using:
-
-::
+Compute per-column summary stats using::
 
    df.sum()
    df.max()
@@ -161,9 +151,7 @@ Compute per-column summary stats using:
 Select Subsets of Rows/Columns
 ------------------------------
 
-Select subsets of rows and/or columns using:
-
-::
+Select subsets of rows and/or columns using::
 
    df[:, "A"]         # select 1 column
    df[:10, :]         # first 10 rows
@@ -173,9 +161,7 @@ Select subsets of rows and/or columns using:
 Delete Rows/Columns
 -------------------
 
-Delete rows and or columns using:
-
-::
+Delete rows and or columns using::
 
    del df[:, "D"]     # delete column D
    del df[f.A < 0, :] # delete rows where column A has negative values
@@ -183,27 +169,22 @@ Delete rows and or columns using:
 Filter Rows
 -----------
 
-Filter rows via an expression using the following. In this example, ``mean``, ``sd``, ``f`` are all symbols imported from ``datatable``.
-
-::
+Filter rows via an expression using the following. In this example, ``mean``,
+``sd``, ``f`` are all symbols imported from ``datatable``::
 
    df[(f.x > mean(f.y) + 2.5 * sd(f.y)) | (f.x < -mean(f.y) - sd(f.y)), :]
 
 Compute Columnar Expressions
 ----------------------------
 
-Compute columnar expressions using:
-
-::
+Compute columnar expressions using::
 
    df[:, {"x": f.x, "y": f.y, "x+y": f.x + f.y, "x-y": f.x - f.y}]
 
 Sort Columns
 ------------
 
-Sort columns using:
-
-::
+Sort columns using::
 
     df.sort("A")
     df[:, :, sort(f.A)]
@@ -212,9 +193,7 @@ Sort columns using:
 Perform Groupby Calculations
 ----------------------------
 
-Perform groupby calculations using:
-
-::
+Perform groupby calculations using::
 
     df[:, mean(f.x), by("y")]
 
@@ -222,9 +201,7 @@ Perform groupby calculations using:
 Append Rows/Columns
 -------------------
 
-Append rows / columns to a Frame using:
+Append rows / columns to a Frame using :meth:`Frame.cbind() <datatable.Frame.cbind>`::
 
-::
-
-   df1.cbind(df2, df3)
-   df1.rbind(df4, force=True)
+    df1.cbind(df2, df3)
+    df1.rbind(df4, force=True)

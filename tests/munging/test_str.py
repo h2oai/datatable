@@ -217,7 +217,7 @@ def test_re_match_ignore_groups():
 @regexp_test
 def test_re_match_bad_regex1():
     with pytest.raises(ValueError):
-        noop(dt.Frame(["abc"])[f.A.re_match("(."), :])
+        noop(dt.Frame(A=["abc"])[f.A.re_match("(."), :])
     # assert ("Invalid regular expression: it contained mismatched ( and )"
     #         in str(e.value))
 
@@ -225,7 +225,7 @@ def test_re_match_bad_regex1():
 @regexp_test
 def test_re_match_bad_regex2():
     with pytest.raises(ValueError):
-        noop(dt.Frame(["abc"])[f.A.re_match("\\j"), :])
+        noop(dt.Frame(A=["abc"])[f.A.re_match("\\"), :])
     # assert ("Invalid regular expression: it contained an invalid escaped "
     #         "character, or a trailing escape"
     #         in str(e.value))
@@ -234,7 +234,7 @@ def test_re_match_bad_regex2():
 @regexp_test
 def test_re_match_bad_regex3():
     with pytest.raises(ValueError):
-        noop(dt.Frame(["abc"])[f.A.re_match("???"), :])
+        noop(dt.Frame(A=["abc"])[f.A.re_match("???"), :])
     # assert ("Invalid regular expression: One of *?+{ was not preceded by a "
     #         "valid regular expression"
     #         in str(e.value))

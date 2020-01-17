@@ -89,6 +89,7 @@ messages, and powerful API similar to R ``data.table``'s.
     :hidden:
 
     f-expressions
+    manual/name_mangling
     install
     contrib
     changelog

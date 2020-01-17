@@ -54,6 +54,7 @@ def test_options_all():
         "enabled",
         "min_duration",
         "updates_per_second",
+        "allow_interruption",
     }
 
 
