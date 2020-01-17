@@ -416,7 +416,7 @@ def generate_build_info(mode=None, strict=False):
     git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
                            strict=strict)
 
-    info_file = os.path.join("datatable", "_build_info.py")
+    info_file = os.path.join("src", "datatable", "_build_info.py")
     with open(info_file, "wt") as out:
         out.write(
             "#!/usr/bin/env python3\n"
