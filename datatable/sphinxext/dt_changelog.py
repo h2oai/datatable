@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -20,7 +20,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-import packaging.version
 import pdb
 import re
 from docutils import nodes
@@ -40,20 +39,21 @@ class ChangelogDirective(SphinxDirective):
     required_arguments = 0
     optional_arguments = 0
     option_spec = {
-        "version": packaging.version.parse,
+        "version": directives.unchanged,
         "released": directives.unchanged,
     }
 
     def run(self):
-        version = str(self.options.get("version", ""))
+        version = self.options.get("version", "")
         sect = nodes.section(ids=["v" + version], classes=["changelog"])
         sect.document = self.state.document
 
         if version:
+            self._note_release_version(version)
             title_text = "Version " + version
         else:
             title_text = "Unreleased"
-        sect += nodes.title(title_text, title_text)
+        sect += nodes.title("", title_text)
 
         lines = []
         lines += [".. changelog-infobox:: " + title_text]
@@ -68,6 +68,16 @@ class ChangelogDirective(SphinxDirective):
         self.state.nested_parse(new_content, self.content_offset, sect,
                                 match_titles=True)
         return [sect]
+
+    def _note_release_version(self, versionstr):
+        if not hasattr(self.env, "xchangelog"):
+            self.env.xchangelog = []
+        version = tuple(int(p) for p in versionstr.split("."))
+        self.env.xchangelog.append({
+            "version": version,
+            "versionstr": versionstr,
+            "doc": self.env.docname,
+        })
 
 
 
@@ -120,8 +130,13 @@ class ChangelogInfoboxDirective(SphinxDirective):
             released_row += td_node("Released:")
             released_row += td_node(self.options["released"])
             tbody += released_row
+        tbody += changelog_navigation()  # placeholder node
         infobox += tbody
         return [infobox]
+
+
+class changelog_navigation(nodes.Element, nodes.General): pass
+
 
 
 
@@ -261,8 +276,90 @@ class ChangelogContent:
 
 
 
+#-------------------------------------------------------------------------------
+# Event handlers for Changelog cross-referencing
+#-------------------------------------------------------------------------------
+
+# This event is emitted when a source file is removed from the
+# environment (including just before it is freshly read), and
+# extensions are expected to purge their info about that file.
+#
+def on_env_purge_doc(app, env, docname):
+    if hasattr(env, "xchangelog"):
+        env.xchangelog = [entry
+                          for entry in env.xchangelog
+                          if entry["doc"] != docname]
+
+
+# This event is only emitted when parallel reading of documents is
+# enabled. It is emitted once for every subprocess that has read some
+# documents.
+#
+# You must handle this event in an extension that stores data in the
+# environment in a custom location. Otherwise the environment in the
+# main process will not be aware of the information stored in the
+# subprocess.
+#
+def on_env_merge_info(app, env, docnames, other):
+    if not hasattr(other, "xchangelog"):
+        return
+    if hasattr(env, "xchangelog"):
+        env.xchangelog.extend(other.xchangelog)
+    else:
+        env.xchangelog = other.xchangelog
+
+
+# Emitted when a doctree has been “resolved” by the environment, that
+# is, all references have been resolved and TOCs have been inserted.
+# The doctree can be modified in place.
+#
+def on_doctree_resolved(app, doctree, docname):
+    env = app.builder.env
+    if not hasattr(env, "xchangelog"):
+        return
+    env.xchangelog.sort(key=lambda e: e["version"])
+
+    for node in doctree.traverse(changelog_navigation):
+        content = []
+        index = -1
+        for i, entry in enumerate(env.xchangelog):
+            if entry["doc"] == docname:
+                index = i
+                break
+        if index != -1 and index + 1 < len(env.xchangelog):
+            vnext = env.xchangelog[index + 1]
+            url = app.builder.get_relative_uri(docname, vnext['doc'])
+            row = nodes.row()
+            row += td_node("Next release:")
+            link = nodes.reference("", "", refdocname=vnext["doc"], refuri=url,
+                                   internal=True)
+            link += nodes.Text("Version " + vnext["versionstr"])
+            td = td_node()
+            td += nodes.inline("", "", link)
+            row += td
+            content.append(row)
+        if index > 0:
+            vprev = env.xchangelog[index - 1]
+            url = app.builder.get_relative_uri(docname, vprev['doc'])
+            row = nodes.row()
+            row += td_node("Previous release:")
+            link = nodes.reference("", "", refdocname=vprev["doc"], refuri=url,
+                                   internal=True)
+            link += nodes.Text("Version " + vprev["versionstr"])
+            td = td_node()
+            td += nodes.inline("", "", link)
+            row += td
+            content.append(row)
+
+        node.replace_self(content)
+
+
+
 
 def setup(app):
+    app.connect("env-purge-doc", on_env_purge_doc)
+    app.connect("env-merge-info", on_env_merge_info)
+    app.connect("doctree-resolved", on_doctree_resolved)
     app.add_config_value("changelog_issue_url", None, "env")
     app.add_config_value("changelog_user_url", None, "env")
     app.add_directive("changelog", ChangelogDirective)
@@ -272,4 +369,6 @@ def setup(app):
     app.add_role("issue", issue_role)
     app.add_role("user", user_role)
     app.add_css_file("changelog.css")
-    return {"parallel_read_safe": True, "parallel_write_safe": True}
+    return {"parallel_read_safe": True,
+            "parallel_write_safe": True,
+            "env_version": 1}
