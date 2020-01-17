@@ -159,9 +159,9 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Generate version and git files', stageDir) {
                         sh "make ${MAKE_OPTS} centos7_version_in_docker"
                         stash name: 'VERSION', includes: "dist/VERSION.txt"
-                        stash name: 'GIT_HASH_FILE', includes: "datatable/__git__.py"
+                        stash name: 'GIT_HASH_FILE', includes: "src/datatable/__git__.py"
                         arch "dist/VERSION.txt"
-                        arch "datatable/__git__.py"
+                        arch "src/datatable/__git__.py"
                         versionText = readFile('dist/VERSION.txt').trim()
                         echo "Version is: ${versionText}"
                         sh "make ${MAKE_OPTS} mrproper"
@@ -275,7 +275,7 @@ ansiColor('xterm') {
                 }
             ])
             // Coverage stages
-            if (!params.DISABLE_COVERAGE) {
+            if (false && !params.DISABLE_COVERAGE) {
                 parallel ([
                     'Coverage on x86_64_linux': {
                         node(NODE_LABEL) {

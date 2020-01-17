@@ -681,7 +681,7 @@ def test_strXX_large5(st):
 
 @pytest.mark.parametrize("st", [dt.str32, dt.str64])
 def test_strXX_large6(st):
-    rootdir = os.path.join(os.path.dirname(__file__), "..", "c")
+    rootdir = os.path.join(os.path.dirname(__file__), "..", "src", "core")
     assert os.path.isdir(rootdir)
     words = []
     for dirname, _, files in os.walk(rootdir):

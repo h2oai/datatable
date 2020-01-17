@@ -28,12 +28,12 @@ python:
   - "3.6"
 
 script:
-  - pip install 'typesentry>=0.2.6' blessed
-  - make test_install
-  - make extra_install
-  - make gitver
-  - make build
-  - make test
+  - pip install --upgrade pip
+  - python ext.py wheel
+  - pip install --upgrade dist/*.whl
+  - pip install -r requirements_tests.txt
+  - pip install -r requirements_extra.txt
+  - python -m pytest -ra --showlocals -Werror tests
 
 git:
   depth: 2
