@@ -36,7 +36,7 @@ except ImportError:
     import os
     import re
     verfile = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                              "../datatable/__version__.py"))
+                              "../src/datatable/__version__.py"))
     if os.path.isfile(verfile):
         with open(verfile, "rt") as inp:
             txt = inp.read()

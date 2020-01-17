@@ -7,9 +7,9 @@
 # This file is used by `pytest` to define common fixtures shared across all
 # tests.
 #-------------------------------------------------------------------------------
+import sys; sys.path.insert(0, "src")
 import datatable as dt
 import os
-import sys
 import pytest
 import shutil
 import tempfile as mod_tempfile

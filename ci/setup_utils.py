@@ -136,7 +136,7 @@ def get_datatable_version():
     #
     with TaskContext("Determine datatable version") as log:
         version = None
-        filename = dtpath("datatable", "__version__.py")
+        filename = dtpath("src", "datatable", "__version__.py")
         if not os.path.isfile(filename):
             log.fatal("The version file %s does not exist" % filename)
         log.info("Reading file " + filename)
