@@ -611,10 +611,6 @@ class XobjectDirective(SphinxDirective):
             assert rowi[vsep_index] == '|'
             del rowi[vsep_index]
             out.append("    " + ",".join(x.strip() for x in rowi))
-        print('-' * 80)
-        for line in out:
-            print(line)
-        print('-' * 80)
         return out
 
 
