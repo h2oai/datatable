@@ -153,14 +153,13 @@ class Compiler:
                 candidates = []
                 compiler_versions = next(os.walk(msvc_path))[1]
                 for compiler_version in compiler_versions:
-                    path =  msvc_default_path + compiler_version
-                    bin_path = path + "\\bin\\Hostx64\\x64\\"
+                    path =  os.path.join(msvc_path, compiler_version)
+                    bin_path = os.path.join(path, "bin\\Hostx64\\x64")
                     candidates += [{
-                                    "compiler": bin_path + "cl.exe",
-                                    "linker": bin_path + "link.exe",
+                                    "compiler": os.path.join(bin_path, "cl.exe"),
+                                    "linker": os.path.join(bin_path, "link.exe"),
                                     "path" : path
                                   }]
-
             elif sys.platform == "darwin":
                 candidates = [
                     {"compiler": "/usr/local/opt/llvm/bin/clang"},
@@ -193,6 +192,8 @@ class Compiler:
 
 
     def _detect_winsdk(self):
+        from packaging.version import parse, Version
+
         winsdk_default_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
         winsdk_path = os.environ.get("DT_WINSDK_PATH", winsdk_default_path)
         if not os.path.isdir(winsdk_path):
@@ -201,7 +202,15 @@ class Compiler:
                              % msvc_path)
 
         # Detect the latest available SDK version
-        winsdk_version_dir = next(os.walk(winsdk_default_path + "\\include"))[1][-1]
+        winsdk_version_dir = ""
+        winsdk_versions = next(os.walk(winsdk_default_path + "\\include"))[1]
+        for version in winsdk_versions:
+            if isinstance(parse(version), Version):
+                winsdk_version_dir = version
+
+        if winsdk_version_dir is "":
+            raise ValueError("A valid Windows SDK version directory %s not found.")            
+
         winsdk_include_path = winsdk_default_path + "\\Include\\" + winsdk_version_dir
         winsdk_lib_path = winsdk_default_path + "\\Lib\\" + winsdk_version_dir
         if not os.path.isdir(winsdk_include_path):
