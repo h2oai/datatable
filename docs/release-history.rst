@@ -8,6 +8,7 @@ Release History
 - :doc:`releases/v0.9.0`
 - :doc:`releases/v0.8.0`
 - :doc:`releases/v0.7.0`
+- :doc:`releases/v0.6.0`
 
 
 
@@ -21,3 +22,4 @@ Release History
     releases/v0.9.0
     releases/v0.8.0
     releases/v0.7.0
+    releases/v0.6.0

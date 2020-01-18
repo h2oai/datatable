@@ -35,44 +35,6 @@ website.
 
 
 
-## [0.6.0][] — 2018-06-05
-
-### Added
-
-- fread will detect feather file and issue an appropriate error message.
-
-- when fread extracts data from archives into memory, it will now display
-  the size of the extracted data in verbose mode.
-
-- syntax `DT[i, j, by]` is now supported.
-
-- multiple reduction operators can now be performed at once.
-
-- in groupby, reduction columns can now be combined with regular or computed
-  columns.
-
-- during grouping, group keys are now added automatically to the select list.
-
-- implement `sum()` reducer.
-
-- `==` operator now works for string columns too.
-
-- Improved performance of groupby operations.
-
-
-### Fixed
-
-- fread will no longer emit an error if there is an NA string in the header.
-
-- if the input contains excessively long lines, fread will no longer waste time
-  printing a sample of first 5 lines in verbose mode.
-
-- fixed wrong calculation of mean / standard deviation of line length in fread
-  if the sample contained broken lines.
-
-- frame view will no longer get stuck in a Jupyter notebook.
-
-
 ## [0.5.0][] — 2018-05-25
 
 ### Added
