@@ -211,7 +211,7 @@ ansiColor('xterm') {
                                         ${DOCKER_IMAGE_X86_64_MANYLINUX} \
                                         -c "cd /dot && \
                                             ls -la && \
-                                            ls -la datatable && \
+                                            ls -la src/datatable && \
                                             /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
                                             /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ext.py wheel --audit && \
@@ -774,7 +774,7 @@ def testInDocker(final testTarget, final needsLargerTest) {
     try {
         sh """
             env
-            rm -rf datatable
+            rm -rf src/datatable
             mkdir -p /tmp/cores
             make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
         """
@@ -860,7 +860,7 @@ def testOSX(final environment, final needsLargerTest) {
         withEnv(OSX_ENV) {
             sh """
                 env
-                rm -rf datatable
+                rm -rf src/datatable
                 . ${OSX_CONDA_ACTIVATE_PATH} ${environment}
                 pip install --no-cache-dir --upgrade dist/*.whl
                 make ${MAKE_OPTS} test_install MODULE=datatable
