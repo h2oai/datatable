@@ -102,7 +102,9 @@
     float: right;
     font-size: 80%;
     margin: 0 0 12pt 12pt;
+    position: relative;
     width: 16em;
+    z-index: 10;
 }
 
 .changelog table.infobox tr.title {
