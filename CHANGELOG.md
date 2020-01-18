@@ -35,17 +35,6 @@ website.
 
 
 
-## [0.4.0][] — 2018-05-07
-
-### Added
-
-- Fread now parses integers with thousands separator (e.g. "1,000").
-
-- Added option `fread.anonymize` which forces fread to anonymize all user input
-  in the verbose logs / error messages.
-
-- Allow type-casts from booleans / integers / floats into strings.
-
 
 
 ## [0.3.2][] — 2018-04-25
