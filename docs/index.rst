@@ -92,7 +92,7 @@ messages, and powerful API similar to R ``data.table``'s.
     manual/name_mangling
     install
     contrib
-    changelog
+    release-history
 
 .. toctree::
     :maxdepth: 2
