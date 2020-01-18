@@ -1,7 +1,13 @@
 version: 0.10.{build}
+image: Visual Studio 2019
+
+branches:
+  only:
+    - master
+
 pull_requests:
   do_not_increment_build_number: true
-image: Visual Studio 2019
+
 build_script:
 - cmd: >-
     SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
