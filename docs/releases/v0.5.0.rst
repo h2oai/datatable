@@ -1,0 +1,36 @@
+
+.. currentmodule:: datatable
+
+.. changelog::
+  :version: 0.5.0
+  :released: 2018-05-25
+
+  .. ref-context:: datatable
+
+  -[new] New function :func:`rbind()` to perform out-of-place row binding.
+
+  -[enh] :func:`rbind`-ing now works on columns of all types (including between
+    any types).
+
+  -[enh] Added ability to change the number of rows in a Frame.
+
+  -[new] It's now possible to modify a Frame in-place by assigning new values
+    to particular cells.
+
+  -[new] Created ``dt.__git_version__`` variable containing the commit hash from
+    which the package was built.
+
+  -[new] Added ability to read ``.bz2`` compressed files with :func:`fread`.
+
+  -[enh] Fread can now properly recognize quoted NA strings.
+
+  -[fix] Ensure that :func:`fread` only emits messages to Python from the master
+    thread.
+
+  -[fix] Fixed an error when unbounded f-expressions were printed to console.
+
+  -[fix] Fixed problems when operating with too many memory-mapped Frames
+    simultaneously.
+
+  -[fix] Fixed incorrect groupby calculation in some rare cases.
+

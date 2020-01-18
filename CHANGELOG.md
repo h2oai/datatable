@@ -35,35 +35,6 @@ website.
 
 
 
-## [0.5.0][] — 2018-05-25
-
-### Added
-
-- rbind()-ing now works on columns of all types (including between any types).
-
-- `dt.rbind()` function to perform out-of-place row binding.
-
-- ability to change the number of rows in a Frame.
-
-- ability to modify a Frame in-place by assigning new values to particular
-  cells.
-
-- `dt.__git_version__` variable containing the commit hash from which the
-  package was built.
-
-- ability to read .bz2 compressed files with fread.
-
-
-### Fixed
-
-- Ensure that fread only emits messages to Python from the master thread.
-- Fread can now properly recognize quoted NA strings.
-- Fixed error when unbounded f-expressions were printed to console.
-- Fixed problems when operating with too many memory-mapped Frames at once.
-- Fixed incorrect groupby calculation in some rare cases.
-
-
-
 ## [0.4.0][] — 2018-05-07
 
 ### Added
