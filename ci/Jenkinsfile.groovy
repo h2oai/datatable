@@ -397,7 +397,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-centos7-py37", "37",
-                                                   DOCKER_IMAGE_X86_64_CENTOS7,
+                                                   DOCKER_IMAGE_X86_64_CENTOS,
                                                    needsLargerTest)
                                 }
                             }
@@ -412,7 +412,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-centos7-py35", "35",
-                                                   DOCKER_IMAGE_X86_64_CENTOS7,
+                                                   DOCKER_IMAGE_X86_64_CENTOS,
                                                    needsLargerTest)
                                 }
                             }
