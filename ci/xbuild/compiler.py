@@ -192,7 +192,11 @@ class Compiler:
 
 
     def _detect_winsdk(self):
-        from packaging.version import parse, Version
+        def is_winsdk_version(version):
+            version_ids = version.split(".")
+            if len(version_ids) != 4:
+                return False
+            return all(version_id.isdigit() for version_id in version_ids)
 
         winsdk_default_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
         winsdk_path = os.environ.get("DT_WINSDK_PATH", winsdk_default_path)
@@ -205,11 +209,11 @@ class Compiler:
         winsdk_version_dir = ""
         winsdk_versions = next(os.walk(winsdk_default_path + "\\include"))[1]
         for version in winsdk_versions:
-            if isinstance(parse(version), Version):
+            if is_winsdk_version(version):
                 winsdk_version_dir = version
 
         if winsdk_version_dir is "":
-            raise ValueError("A valid Windows SDK version directory %s not found.")            
+            raise ValueError("A valid Windows SDK version directory %s not found.")
 
         winsdk_include_path = winsdk_default_path + "\\Include\\" + winsdk_version_dir
         winsdk_lib_path = winsdk_default_path + "\\Lib\\" + winsdk_version_dir
