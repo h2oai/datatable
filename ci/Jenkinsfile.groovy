@@ -820,8 +820,8 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_args += "--ulimit core=-1 "
         docker_args += "--entrypoint /bin/bash "
         docker_args += "-u `id -u`:`id -g` "
-        docker_args += "-w /tmp "  // this dir had write permissions for all users
-        docker_args += "-e HOME=/tmp "
+        docker_args += "-w /dt "
+        docker_args += "-e HOME=/tmp "  // this dir has write permission for all users
         docker_args += "-v `pwd`:/dt "
         docker_args += "-v `pwd`/build/cores:/tmp/cores "
         if (large_tests) {
@@ -831,20 +831,20 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
             docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
         }
         def docker_cmd = ""
-        docker_cmd += "ls /dt/dist/ && "
-        docker_cmd += "virtualenv pyenv --python=python" + pyver[0] + "." + pyver[1] + " && "
-        docker_cmd += "source pyenv/bin/activate && "
+        docker_cmd += "cd /dt && ls dist/ && "
+        docker_cmd += "virtualenv /tmp/pyenv --python=python" + pyver[0] + "." + pyver[1] + " && "
+        docker_cmd += "source /tmp/pyenv/bin/activate && "
         docker_cmd += "python -VV && "
         docker_cmd += "pip install --upgrade pip && "
-        docker_cmd += "pip install /dt/dist/datatable-*-cp" + pyver + "-*.whl && "
-        docker_cmd += "pip install -r /dt/requirements_tests.txt && "
-        docker_cmd += "pip install -r /dt/requirements_extra.txt && "
+        docker_cmd += "pip install dist/datatable-*-cp" + pyver + "-*.whl && "
+        docker_cmd += "pip install -r requirements_tests.txt && "
+        docker_cmd += "pip install -r requirements_extra.txt && "
         docker_cmd += "pip freeze && "
         docker_cmd += "python -c 'import datatable; print(datatable.__file__)' && "
         docker_cmd += "python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
                             " --junit-prefix=" + testtag +
-                            " --junitxml=/dt/build/test-reports/TEST-datatable.xml" +
-                            " /dt/tests"
+                            " --junitxml=build/test-reports/TEST-datatable.xml" +
+                            " tests"
         sh """
             docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
         """
