@@ -1,0 +1,41 @@
+
+.. currentmodule:: datatable
+
+.. changelog::
+  :version: 0.6.0
+  :released: 2018-06-05
+
+  .. ref-context:: datatable
+
+  -[new] Syntax ``DT[i, j, by]`` is now supported.
+
+  -[enh] :func:`fread()` will detect a feather file and issue an appropriate
+    error message.
+
+  -[enh] When :func:`fread()` extracts data from archives into memory, it will
+    now display the size of the extracted data in verbose mode.
+
+  -[enh] Multiple reduction operators can now be performed at once.
+
+  -[enh] In groupby, reduction columns can now be combined with regular or
+    computed columns.
+
+  -[enh] During grouping, group keys are now added automatically to the select
+    list.
+
+  -[new] Implemented :func:`sum()` reducer.
+
+  -[enh] The equality operator ``==`` now works for string columns too.
+
+  -[enh] Improved performance of groupby operations.
+
+  -[fix] :func:`fread()` will no longer emit an error if there is an NA string
+    in the header.
+
+  -[fix] If the input contains excessively long lines, :func:`fread()` will no
+    longer waste time printing a sample of first 5 lines in verbose mode.
+
+  -[fix] Fixed wrong calculation of mean / standard deviation of line length in
+    :func:`fread` if the sample contained broken lines.
+
+  -[fix] Frame view will no longer get stuck in a Jupyter notebook.
