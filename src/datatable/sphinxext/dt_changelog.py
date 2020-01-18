@@ -48,8 +48,8 @@ class ChangelogDirective(SphinxDirective):
         sect = nodes.section(ids=["v" + version], classes=["changelog"])
         sect.document = self.state.document
 
+        self._note_release_version(version)
         if version:
-            self._note_release_version(version)
             title_text = "Version " + version
         else:
             title_text = "Unreleased"
@@ -72,7 +72,10 @@ class ChangelogDirective(SphinxDirective):
     def _note_release_version(self, versionstr):
         if not hasattr(self.env, "xchangelog"):
             self.env.xchangelog = []
-        version = tuple(int(p) for p in versionstr.split("."))
+        if versionstr:
+            version = tuple(int(p) for p in versionstr.split("."))
+        else:
+            version = (999,)
         self.env.xchangelog.append({
             "version": version,
             "versionstr": versionstr,
@@ -329,11 +332,14 @@ def on_doctree_resolved(app, doctree, docname):
         if index != -1 and index + 1 < len(env.xchangelog):
             vnext = env.xchangelog[index + 1]
             url = app.builder.get_relative_uri(docname, vnext['doc'])
+            if vnext["versionstr"]:
+                text = "Version " + vnext["versionstr"]
+            else:
+                text = "(unreleased)"
             row = nodes.row()
             row += td_node("Next release:")
-            link = nodes.reference("", "", refdocname=vnext["doc"], refuri=url,
+            link = nodes.reference("", text, refdocname=vnext["doc"], refuri=url,
                                    internal=True)
-            link += nodes.Text("Version " + vnext["versionstr"])
             td = td_node()
             td += nodes.inline("", "", link)
             row += td
@@ -355,6 +361,10 @@ def on_doctree_resolved(app, doctree, docname):
 
 
 
+
+#-------------------------------------------------------------------------------
+# Extension setup
+#-------------------------------------------------------------------------------
 
 def setup(app):
     app.connect("env-purge-doc", on_env_purge_doc)
