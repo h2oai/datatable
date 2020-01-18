@@ -312,7 +312,6 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    // testInDocker('ubuntu_test_py37_with_pandas_in_docker', needsLargerTest)
                                     test_in_docker("x86_64-ubuntu-py37", "37",
                                                    DOCKER_IMAGE_X86_64_UBUNTU,
                                                    needsLargerTest)
@@ -320,7 +319,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 with Pandas on x86_64_linux', { stageName, stageDir ->
+                    namedStage('Test x86_64-ubuntu-py36', { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -328,12 +327,14 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    testInDocker('ubuntu_test_py36_with_pandas_in_docker', needsLargerTest)
+                                    test_in_docker("x86_64-ubuntu-py36", "36",
+                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                                   needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test Py35 with Pandas on x86_64_linux', { stageName, stageDir ->
+                    namedStage('Test x86_64-ubuntu-py35', { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -341,7 +342,9 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    testInDocker('ubuntu_test_py35_with_pandas_in_docker', needsLargerTest)
+                                    test_in_docker("x86_64-ubuntu-py35", "35",
+                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                                   needsLargerTest)
                                 }
                             }
                         }
@@ -385,28 +388,32 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 with Pandas on x86_64_centos7', { stageName, stageDir ->
+                    namedStage('Test x86_64-centos7-py37', { stageName, stageDir ->
                         node(NODE_LABEL) {
-                            buildSummary.stageWithSummary('Test Py36 with Pandas on x86_64_centos7', stageDir) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py36-whl'
-                                    testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
+                                    unstash 'x86_64-manylinux-wheels'
+                                    test_in_docker("x86_64-centos7-py37", "37",
+                                                   DOCKER_IMAGE_X86_64_CENTOS7,
+                                                   needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test Py35 with Pandas on x86_64_centos7', { stageName, stageDir ->
+                    namedStage('Test x86_64-centos7-py35', { stageName, stageDir ->
                         node(NODE_LABEL) {
-                            buildSummary.stageWithSummary('Test Py35 with Pandas on x86_64_centos7', stageDir) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_centos7-py35-whl'
-                                    testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
+                                    unstash 'x86_64-manylinux-wheels'
+                                    test_in_docker("x86_64-centos7-py35", "35",
+                                                   DOCKER_IMAGE_X86_64_CENTOS7,
+                                                   needsLargerTest)
                                 }
                             }
                         }
