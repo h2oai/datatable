@@ -7,61 +7,169 @@
 
   Frame
   -----
-
   .. ref-context:: datatable.Frame
 
   -[new] Added ability to read/write Jay files.
 
+  -[new] A Frame can now have a key column (or columns).
+
   -[enh] Frame can now be created from a list/dict of numpy arrays.
 
-  -[new] Frames can now be constructed via the keyword-args list of columns
-    (i.e. ``Frame(A=..., B=...)``).
+  -[enh] Frames can now be constructed via the keyword-args list of
+    columns::
 
-  -[new] Implemented logical operators "and" ``&`` and "or" ``|`` for eager
-    evaluator.
+        Frame(A=..., B=...)
+
+  -[enh] Frame constructor now accepts a list of tuples, which it treats as
+    rows when creating the frame.
+
+  -[enh] Frame can now be constructed from a list of named tuples, which will
+    be treated as rows and field names will be used as column names.
+
+  -[enh] Frame can now be constructed from a list of dictionaries, where each
+    item in the list represents a single row.
+
+  -[enh] Frame can now be created from a datetime64 numpy array. [#1274]
+
+  -[enh] Key column(s) are saved when the frame is saved into a Jay file.
+
+  -[enh] The error message when selecting a column that does not exist in the
+    Frame now refers to similarly-named columns in that Frame, if there are any.
+    At most 3 possible columns are reported, and they are ordered from most
+    likely to least likely. [#1253]
+
+  -[new] :meth:`Frame.copy()` can now be used to create a copy of the Frame.
+
+  -[enh] :meth:`Frame.cbind()` now accepts a list of frames as the argument.
+
+  -[enh] Frame can now be sorted by multiple columns.
+
+  -[new] Implemented :meth:`Frame.replace()` function. [#1319]
+
+  -[enh] Added HTML rendering of Frames inside a Jupyter notebook.
+
+  -[enh] Added support for multi-column keys.
+
+  -[enh] In Jupyter notebook columns now have visual indicators of their types.
+    The logical types are color-coded, and the size of each element is
+    given by the number of dots. [#1428]
+
+  -[api] The ``names`` argument in Frame constructor can no longer be a
+    string -- use a list or tuple of strings instead.
+
+  -[api] Method :meth:`Frame.rename()` removed -- the :attr:`.name` setter can
+    be used instead.
+
+  -[api] :meth:`Frame.resize()` removed -- same functionality is available via
+    assigning to :attr:`Frame.nrows`.
+
+  -[api] The expression ``Frame([])`` now creates a ``[0 x 0]`` Frame instead of
+   ``[0 x 1]``.
+
+  -[api] Parameter ``inplace`` in :meth:`Frame.cbind()` removed (was
+    deprecated). Instead of ``inplace=False`` use ``dt.cbind(...)``.
+
+  -[api] :meth:`Frame.cbind()` no longer returns anything (previously it
+    returned self, but this was confusing w.r.t whether it modifies the target,
+    or returns a modified copy).
+
+  -[api] default format for :meth:`Frame.save()` is now "jay".
+
+  -[fix] ``names`` parameter in Frame constructor is now checked for
+    correctness.
+
+  -[fix] Fixed saving view frames to csv.
+
+  -[fix] If ``x`` is a Frame, then ``y = dt.Frame(x)`` now creates a shallow
+    copy instead of a copy-by-reference.
+
+  -[fix] Fixed rare crash when converting a string column from pandas DataFrame,
+    when that column contains many non-ASCII characters.
+
+  -[fix] Fixed crash when saving a frame with many boolean columns into CSV.
+    [#1278]
+
+  -[fix] Fixed incorrect :attr:`.stypes`/:attr:`.ltypes` property after calling
+    :meth:`.cbind()`.
+
+  -[fix] Fixed calculation of min/max values in internal rowindex upon row
+    resizing.
+
+  -[fix] :meth:`Frame.sort()` with no arguments no longer produces an error.
+
+  -[fix] Fixed writing to disk of columns > 2GB in size. [#1387]
+
+  -[fix] Fixed crash when sorting by multiple columns and the first column was
+    of string type. [#1401]
+
+
+
+  DT[i, j] evaluation
+  -------------------
+
+  -[new] Filters can now be used together with groupby expressions.
 
   -[new] Implemented integer division ``//`` and modulo ``%`` operators.
 
-  -[new] A Frame can now have a key column (or columns).
-
-  -[new] Key column(s) are saved when the frame is saved into a Jay file.
+  -[new] Implemented logical operators "and" ``&`` and "or" ``|`` for eager
+    evaluator.
 
   -[new] A Frame can now be naturally-joined with a keyed Frame.
 
   -[new] Columns can now be updated within join expressions.
 
-  -[new] The error message when selecting a column that does not exist in the
-    Frame now refers to similarly-named columns in that Frame, if there are any.
-    At most 3 possible columns are reported, and they are ordered from most
-    likely to least likely. [#1253]
-
-  -[new] Frame() constructor now accepts a list of tuples, which it treats as
-    rows when creating the frame.
-
-  -[new] Frame() can now be constructed from a list of named tuples, which will
-    be treated as rows and field names will be used as column names.
-
-  -[new] `Frame.copy()` can now be used to create a copy of the Frame.
-
-  -[new] Frame can now be constructed from a list of dictionaries, where each
-    item in the list represents a single row.
-
-  -[new] Frame can now be created from a datetime64 numpy array. [#1274]
-
   -[enh] Groupby calculations are now parallel.
 
-  -[new] `Frame.cbind()` now accepts a list of frames as the argument.
+  -[enh] Added ability to join Frames on multiple columns.
 
-  -[new] Frame can now be sorted by multiple columns.
+  -[enh] The performance of explicit element selection improved by a factor
+    of 200x.
 
-  -[new] new function `split_into_nhot()` to split a string column into fragments
-    and then convert them into a set of indicator variables ("n-hot encode").
+  -[api] ``DT[i, j]`` now returns a python scalar value if ``i`` is integer,
+    and ``j`` is integer/string. This is referred to as "explicit element
+    selection". In the unlikely scenario when a single element needs to be
+    returned as a frame, you can always write ``DT[i:i+1, j]`` or
+    ``DT[[i], j]``.
 
-  -[new] ability to convert object columns into strings.
+  -[api] ``DT[col]`` syntax has been deprecated and now emits a warning. This
+    will be converted to an error in version 0.8.0, and will be interpreted
+    as row selector in 0.9.0.
 
-  -[new] implemented `Frame.replace()` function.
+  -[fix] Fixed bug with applying a cast expression to a view column.
 
-  -[new] improved handling of Excel files by fread:
+  -[fix] Fixed memory leak in groupby operations.
+
+  -[fix] Fixed crash when sorting string columns containins NA values.
+
+  -[fix] Fixed crash when applying a filter to a 0-rows frame.
+
+  -[fix] f-column-selectors should no longer throw errors and produce only
+    unique ids when stringified. [#1241]
+
+  -[fix] f-expressions now do not crash when reused with a different Frame.
+
+  -[fix] g-columns can be properly selected in a join. [#1352]
+
+
+
+  General
+  -------
+  .. ref-context:: datatable
+
+  -[new] Added function :func:`.abs()` to find the absolute value of elements
+    in a frame.
+
+  -[enh] :func:`.fread()`'s verbose output now includes time spent opening
+    the input file.
+
+  -[new] new function :func:`.split_into_nhot()` to split a string column into
+    fragments and then convert them into a set of indicator variables
+    ("n-hot encode").
+
+  -[new] Added ability to convert object columns into strings.
+
+  -[enh] improved handling of Excel files by :func:`fread`:
+
     - sheet name can now be used as a path component in the file name,
       causing only that particular sheet to be parsed;
 
@@ -74,131 +182,31 @@
       frame will contain the sheet name and cell range from where the data was
       extracted).
 
-  -[new] Added HTML rendering of Frames inside a Jupyter notebook.
+  -[new] Added set-theoretic functions: :func:`union`, :func:`intersect`,
+    :func:`setdiff` and :func:`symdiff`.
 
-  -[new] set-theoretic functions: `union`, `intersect`, `setdiff` and `symdiff`.
+  -[enh] Building no longer requires an LLVM distribution.
 
-  -[new] support for multi-column keys.
+  -[enh] Upgraded dependency version for ``typesentry``, the previous version
+    was not compatible with Python 3.7.
 
-  -[new] ability to join Frames on multiple columns.
+  -[enh] ``import datatable`` now takes only 0.13s, down from 0.6s.
 
-  -[new] In Jupyter notebook columns now have visual indicators of their types.
-    The logical types are color-coded, and the size of each element is
-    given by the number of dots (#1428).
+  -[fix] Fixed bug in :func:`cbind()` where the first Frame in the list was
+    ignored.
 
-  -[api] `names` argument in `Frame()` constructor can no longer be a string --
-    use a list or tuple of strings instead.
+  -[fix] Fixed occasional memory errors caused by a lack of available mmap
+    handles.
 
-  -[api] `Frame.resize()` removed -- same functionality is available via
-    assigning to `Frame.nrows`.
+  -[fix] bug in :func:`fread()` with QR bump occurring out-of-sample.
 
+  -[fix] :func:`fread()` no longer wastes time reading the full input, if
+    ``max_nrows`` option is used.
 
+  -[fix] Fixed bug where ``max_nrows`` parameter was sometimes causing a
+    segfault.
 
-  DT[i, j] evaluation
-  -------------------
+  -[fix] Fixed :func:`fread` performance bug caused by memory-mapped file
+    being accidentally copied into RAM.
 
-  -[new] Filters can now be used together with groupby expressions.
-
-
-
-  General
-  -------
-
-  -[new] Added function `dt.abs()` to find the absolute value of elements in
-    a frame.
-
-  -[enh] :func:`dt.fread()`'s verbose output now includes time spent opening
-    the input file.
-
-
-
-  ### Changed
-
-  -[api] `Frame.rename()` removed -- .name setter can be used instead.
-
-  -[api] `Frame([])` now creates a 0x0 Frame instead of 0x1.
-
-  -[api] Parameter `inplace` in `Frame.cbind()` removed (was deprecated).
-    Instead of `inplace=False` use `dt.cbind(...)`.
-
-  -[api] `Frame.cbind()` no longer returns anything (previously it returned self,
-    but this was confusing w.r.t whether it modifies the target, or returns
-    a modified copy).
-
-  -[api] `DT[i, j]` now returns a python scalar value if `i` is integer, and `j`
-    is integer/string. This is referred to as "explicit element selection".
-    In the unlikely scenario when a single element needs to be returned as
-    a frame, one can always write `DT[i:i+1, j]` or `DT[[i], j]`.
-
-  -[api] The performance of explicit element selection improved by a factor of 200x.
-
-  -[api] Building no longer requires an LLVM distribution.
-
-  -[api] `DT[col]` syntax has been deprecated and now emits a warning. This
-    will be converted to an error in version 0.8.0, and will be interpreted
-    as row selector in 0.9.0.
-
-  -[api] default format for `Frame.save()` is now "jay".
-
-
-  ### Fixed
-
-  -[fix] bug in dt.cbind() where the first Frame in the list was ignored.
-
-  -[fix] bug with applying a cast expression to a view column.
-
-  -[fix] occasional memory errors caused by a lack of available mmap handles.
-
-  -[fix] memory leak in groupby operations.
-
-  -[fix] `names` parameter in Frame constructor is now checked for correctness.
-
-  -[fix] bug in fread with QR bump occurring out-of-sample.
-
-  -[fix] `import datatable` now takes only 0.13s, down from 0.6s.
-
-  -[fix] fread no longer wastes time reading the full input, if max_nrows option
-    is used.
-
-  -[fix] bug where max_nrows parameter was sometimes causing a seg.fault
-
-  -[fix] fread performance bug caused by memory-mapped file being accidentally
-    copied into RAM.
-
-  -[fix] rare crash in fread when resizing the number of rows.
-
-  -[fix] saving view frames to csv.
-
-  -[fix] crash when sorting string columns containins NA strings.
-
-  -[fix] crash when applying a filter to a 0-rows frame.
-
-  -[fix] if `x` is a Frame, then `y = dt.Frame(x)` now creates a shallow copy
-    instead of a copy-by-reference.
-
-  -[fix] upgraded dependency version for typesentry, the previous version was not
-    compatible with Python 3.7.
-
-  -[fix] rare crash when converting a string column from pandas DataFrame, when
-    that column contains many non-ASCII characters.
-
-  -[fix] f-column-selectors should no longer throw errors and produce only unique
-    ids when stringified (#1241).
-
-  -[fix] crash when saving a frame with many boolean columns into CSV (#1278).
-
-  -[fix] incorrect .stypes/.ltypes property after calling cbind().
-
-  -[fix] calculation of min/max values in internal rowindex upon row resizing.
-
-  -[fix] frame.sort() with no arguments no longer produces an error.
-
-  -[fix] f-expressions now do not crash when reused with a different Frame.
-
-  -[fix] g-columns can be properly selected in a join (#1352).
-
-  -[fix] writing to disk of columns > 2GB in size (#1387).
-
-  -[fix] crash when sorting by multiple columns and the first column was
-    of string type (#1401).
-
+  -[fix] Fixed rare crash in fread when resizing the number of rows.
