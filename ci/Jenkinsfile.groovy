@@ -82,6 +82,7 @@ LINK_MAP = [
     "fread"    : "h2o-3/fread",
 ]
 
+
 DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
@@ -98,6 +99,8 @@ def dockerArgs = createDockerArgs()
 def versionText
 // String with current git revision
 def gitHash
+
+def runExtraTests = !isPrJob() || params.FORCE_ALL_TESTS_IN_PR
 
 MAKE_OPTS = "CI=1"
 
@@ -349,7 +352,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 with Numpy on x86_64_linux', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                    namedStage('Test Py36 with Numpy on x86_64_linux', runExtraTests, { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -362,7 +365,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 on x86_64_linux', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                    namedStage('Test Py36 on x86_64_linux', runExtraTests, { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -418,7 +421,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 with Numpy on x86_64_centos7', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                    namedStage('Test Py36 with Numpy on x86_64_centos7', runExtraTests, { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -431,7 +434,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 on x86_64_centos7', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                    namedStage('Test Py36 on x86_64_centos7', runExtraTests, { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -548,7 +551,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 with Numpy on x86_64_osx', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                    namedStage('Test Py36 with Numpy on x86_64_osx', runExtraTests, { stageName, stageDir ->
                         node(OSX_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -561,7 +564,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 on x86_64_osx', !isPrJob() || params.FORCE_ALL_TESTS_IN_PR, { stageName, stageDir ->
+                    namedStage('Test Py36 on x86_64_osx', runExtraTests, { stageName, stageDir ->
                         node(OSX_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
