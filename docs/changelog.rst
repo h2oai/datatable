@@ -1,12 +1,13 @@
 
-Changelog
-=========
+Release History
+===============
 
 - :doc:`changelog/v0.11.0`
 - :doc:`changelog/v0.10.1`
 - :doc:`changelog/v0.10.0`
 - :doc:`changelog/v0.9.0`
 - :doc:`changelog/v0.8.0`
+- :doc:`changelog/v0.7.0`
 
 
 
@@ -19,3 +20,4 @@ Changelog
     changelog/v0.10.0
     changelog/v0.9.0
     changelog/v0.8.0
+    changelog/v0.7.0
