@@ -10,7 +10,7 @@
 #     python tests/random_driver.py --help
 #
 #-------------------------------------------------------------------------------
-import sys; sys.path = ['.', '..'] + sys.path
+import sys
 import os
 import subprocess
 import random
@@ -19,6 +19,7 @@ from datatable.utils.terminal import term
 
 skip_successful_seeds = False
 save_logs_to_file = False
+log_dir = os.path.join(os.path.dirname(__file__), "random_attack_logs")
 
 
 def start_random_attack(n_attacks=None, maxfail=None):
@@ -50,7 +51,8 @@ def start_random_attack(n_attacks=None, maxfail=None):
 def try_seed(seed):
     utf8_env = os.environ
     utf8_env['PYTHONIOENCODING'] = 'utf-8'
-    proc = subprocess.Popen([sys.executable, "random_attack.py", str(seed)],
+    script = os.path.join(os.path.dirname(__file__), "random_attack.py")
+    proc = subprocess.Popen([sys.executable, script, str(seed)],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             env=utf8_env)
     try:
@@ -75,14 +77,15 @@ def try_seed(seed):
     print("%-19d: %s" % (seed, status))
 
     if save_logs_to_file:
-        write_to_file("random_attack_logs/%d.txt" % seed, out, err)
+        log_file = os.path.join(log_dir, "%d.txt" % seed)
+        write_to_file(log_file, out, err)
     else:
         write_to_screen(out, err)
     return rc == 0
 
 
 def write_to_file(filename, out, err):
-    os.makedirs("random_attack_logs", exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
     with open(filename, "wb") as o:
         if out:
             o.write(b"---- STDOUT -----------------------------------------\n")
@@ -130,10 +133,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     skip_successful_seeds = not args.showall
     save_logs_to_file = not args.verbose
-
-    if not os.path.exists("random_attack.py"):
-        if os.path.exists("tests/random_attack.py"):
-            os.chdir("tests")
-        else:
-            raise SystemExit("File random_attack.py not found")
     start_random_attack(n_attacks=args.ntests, maxfail=args.maxfail)
