@@ -36,7 +36,8 @@ def c_stypes():
     stypes = {}
 
     # Load info from types.h file
-    file1 = os.path.join(os.path.dirname(__file__), "..", "c", "types.h")
+    file1 = os.path.join(os.path.dirname(__file__),
+                         "..", "src", "core", "types.h")
     with open(file1, "r", encoding="utf-8") as f:
         txt1 = f.read()
     mm = re.search(r"enum class SType : uint8_t {\s*(.*?),?\s*}",
@@ -48,7 +49,8 @@ def c_stypes():
         stypes[name] = {"sname": name, "itype": int(i)}
 
     # Load info from types.cc file
-    file2 = os.path.join(os.path.dirname(__file__), "..", "c", "types.cc")
+    file2 = os.path.join(os.path.dirname(__file__),
+                         "..", "src", "core", "types.cc")
     with open(file2, "r", encoding="utf-8") as f:
         txt2 = f.read()
     mm = re.findall(r"STI\(SType::(\w+),\s*"

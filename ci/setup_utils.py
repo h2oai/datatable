@@ -136,7 +136,7 @@ def get_datatable_version():
     #
     with TaskContext("Determine datatable version") as log:
         version = None
-        filename = dtpath("datatable", "__version__.py")
+        filename = dtpath("src", "datatable", "__version__.py")
         if not os.path.isfile(filename):
             log.fatal("The version file %s does not exist" % filename)
         log.info("Reading file " + filename)
@@ -172,7 +172,7 @@ def get_datatable_version():
 def make_git_version_file(force):
     import subprocess
     with TaskContext("Generate git version file" + " (force)" * force) as log:
-        filename = os.path.join(dtroot(), "datatable", "__git__.py")
+        filename = os.path.join(dtroot(), "src", "datatable", "__git__.py")
         # Try to read git revision from env.
         githash = os.getenv('DTBL_GIT_HASH', None)
         if githash:

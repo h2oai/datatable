@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -58,12 +58,12 @@ def build_extension(cmd, verbosity=3):
     ext.log = create_logger(verbosity)
     ext.name = "_datatable"
     ext.build_dir = "build/" + cmd
-    ext.destination_dir = "datatable/lib/"
-    ext.add_sources("c/**/*.cc")
+    ext.destination_dir = "src/datatable/lib/"
+    ext.add_sources("src/core/**/*.cc")
 
     # Common compile settings
     ext.compiler.enable_colors()
-    ext.compiler.add_include_dir("c")
+    ext.compiler.add_include_dir("src/core")
     ext.compiler.add_default_python_include_dir()
 
     if ext.compiler.is_msvc():
@@ -94,7 +94,7 @@ def build_extension(cmd, verbosity=3):
 
         if cmd == "coverage":
             raise RuntimeError("`make coverage` is not supported on Windows systems")
-            
+
         if cmd == "debug":
             xt.compiler.add_compiler_flag("/Od")    # no optimization
             ext.compiler.add_compiler_flag("/Z7")
@@ -244,10 +244,11 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     assert metadata_directory is None
 
     so_file = build_extension(cmd="build", verbosity=3)
-    files = glob.glob("datatable/**/*.py", recursive=True)
-    files += ["datatable/include/datatable.h"]
-    files += ["datatable/lib/" + so_file]
-    files = [f for f in files if "_datatable_builder.py" not in f]
+    files = glob.glob("src/datatable/**/*.py", recursive=True)
+    files += ["src/datatable/include/datatable.h"]
+    files += ["src/datatable/lib/" + so_file]
+    files = [(f, f[4:])  # (src_file, destination_file)
+             for f in files if "_datatable_builder.py" not in f]
     files.sort()
 
     meta = get_meta()
@@ -265,14 +266,14 @@ def build_sdist(sdist_directory, config_settings=None):
     assert isinstance(sdist_directory, str)
     assert config_settings is None or isinstance(config_settings, dict)
 
-    files = [f for f in glob.glob("datatable/**/*.py", recursive=True)
+    files = [f for f in glob.glob("src/datatable/**/*.py", recursive=True)
              if "_datatable_builder.py" not in f]
-    files += glob.glob("c/**/*.cc", recursive=True)
-    files += glob.glob("c/**/*.h", recursive=True)
+    files += glob.glob("src/core/**/*.cc", recursive=True)
+    files += glob.glob("src/core/**/*.h", recursive=True)
     files += glob.glob("ci/xbuild/*.py")
     files += [f for f in glob.glob("tests/**/*.py", recursive=True)
               if "random_attack_logs" not in f]
-    files += ["datatable/include/datatable.h"]
+    files += ["src/datatable/include/datatable.h"]
     files.sort()
     files += ["ext.py"]
     files += ["pyproject.toml"]
@@ -343,7 +344,7 @@ def main():
     elif args.cmd == "gitver":
         make_git_version_file(True)
     else:
-        with open("datatable/lib/.xbuild-cmd", "wt") as out:
+        with open("src/datatable/lib/.xbuild-cmd", "wt") as out:
             out.write(args.cmd)
         build_extension(cmd=args.cmd, verbosity=args.verbosity)
 
