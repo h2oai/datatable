@@ -1,0 +1,79 @@
+
+.. changelog::
+  :version: 0.3.1
+  :released: 2018-04-20
+
+  .. ref-context:: datatable
+
+
+  -[enh] Added ability to delete rows from a view Frame.
+
+  -[enh] Implemented :func:`countna()` function for ``obj64`` columns.
+
+  -[new] New option ``dt.options.core_logger`` to help debug datatable.
+
+  -[new] New Frame method :meth:`Frame.materialize()` to convert a view Frame
+    into a "real" one. This method is noop if applied to a non-view Frame.
+
+  -[enh] Added several internal options to fine-tune the performance of sorting
+    algorithm.
+
+  -[enh] Significantly improved performance of sorting doubles.
+
+  -[enh] :func:`fread` can now read string columns that are larger than 2GB in
+    size.
+
+  -[enh] :func:`fread` can now accept a list/tuple of stypes for its ``columns``
+    parameter.
+
+  -[enh] Improved logic for auto-assigning column names when they are missing.
+
+  -[enh] :func:`fread` now supports reading files that contain NUL characters.
+
+  -[new] Added global settings ``options.frame.names_auto_index`` and
+    ``options.frame.names_auto_prefix`` to control automatic column name
+    generation in a Frame.
+
+  -[enh] Eliminated all ``assert()`` statements from C code, and replaced them
+    with exception throws.
+
+  -[api] When creating a column of "object" type, we will now coerce float NaN
+    values into ``None``.
+
+  -[api] Renamed :func:`fread`'s parameter ``strip_white`` into
+    ``strip_whitespace``.
+
+  -[api] Default column names, if none given by the user, are "C0", "C1", ...
+    for both :func:`fread` and :class:`Frame` constructor.
+
+  -[api] function-valued ``columns`` parameter in :func:`fread` has been
+    changed: if previously the function was invoked for every column, now it
+    receives the list of all columns at once, and is expected to return a
+    modified list (or dict / set / etc). Each column description in the list
+    that the function receives carries the columns name and stype, in the
+    future ``format`` field will also be added.
+
+  -[fix] :func:`fread` will no longer consume excessive amounts of memory when
+    reading a file with too many columns and few rows.
+
+  -[fix] fixed a possible crash when reading CSV file containing long string
+    fields.
+
+  -[fix] :func:`fread` NA fields with whitespace were not recognized correctly.
+
+  -[fix] :func:`fread` will no longer emit error messages or type-bump variables
+    due to incorrectly recognized chunk boundaries.
+
+  -[fix] Fixed a crash when rbinding string column with non-string: now an
+    exception will be thrown instead.
+
+  -[fix] Calling any stats function on a column of obj64 type will no longer
+    result in a crash.
+
+  -[fix] Columns/rows slices no longer fail on an empty Frame.
+
+  -[fix] Fixed crash when materializing a view frame containing obj64 columns.
+
+  -[fix] Fixed erroneous grouping calculations.
+
+  -[fix] Fixed sorting of 1-row view frames.

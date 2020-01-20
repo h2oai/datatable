@@ -1,0 +1,28 @@
+
+.. changelog::
+  :version: 0.3.2
+  :released: 2018-04-25
+
+  .. ref-context:: datatable
+
+
+  -[enh] Implemented sorting for ``str64`` columns.
+
+  -[enh] :func:`write_csv` can now write columns of type ``str64``.
+
+  -[enh] :func:`fread` can now accept a list of files to read, or a glob
+    pattern.
+
+  -[new] Added ``dt.lib.core.has_omp_support()`` to check whether
+    ``datatable`` was built with OMP support or not.
+
+  -[enh] Save per-column min/max information in the NFF format.
+
+  -[fix] Fix the source distribution (sdist) by including all the files that
+    are required for building from source.
+
+  -[fix] Install no longer fails with ``llvmlite==0.23.0`` package.
+
+  -[fix] Fixed a stall in fread when using single-threaded mode with
+    ``fill=True``.
+
