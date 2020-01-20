@@ -152,7 +152,7 @@ class Compiler:
 
                 candidates = []
                 compiler_versions = next(os.walk(msvc_path))[1]
-                for compiler_version in compiler_versions:
+                for compiler_version in reversed(compiler_versions):
                     path =  os.path.join(msvc_path, compiler_version)
                     bin_path = os.path.join(path, "bin\\Hostx64\\x64")
                     candidates += [{
@@ -192,7 +192,11 @@ class Compiler:
 
 
     def _detect_winsdk(self):
-        from packaging.version import parse, Version
+        def is_winsdk_version(version):
+            version_ids = version.split(".")
+            if len(version_ids) != 4:
+                return False
+            return all(version_id.isdigit() for version_id in version_ids)
 
         winsdk_default_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
         winsdk_path = os.environ.get("DT_WINSDK_PATH", winsdk_default_path)
@@ -204,12 +208,13 @@ class Compiler:
         # Detect the latest available SDK version
         winsdk_version_dir = ""
         winsdk_versions = next(os.walk(winsdk_default_path + "\\include"))[1]
-        for version in winsdk_versions:
-            if isinstance(parse(version), Version):
+        for version in reversed(winsdk_versions):
+            if is_winsdk_version(version):
                 winsdk_version_dir = version
+                break
 
         if winsdk_version_dir is "":
-            raise ValueError("A valid Windows SDK version directory %s not found.")            
+            raise ValueError("A valid Windows SDK version directory %s not found.")
 
         winsdk_include_path = winsdk_default_path + "\\Include\\" + winsdk_version_dir
         winsdk_lib_path = winsdk_default_path + "\\Lib\\" + winsdk_version_dir
