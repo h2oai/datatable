@@ -32,38 +32,6 @@ website.
 
 
 
-
-
-
-
-
-## [0.3.2][] — 2018-04-25
-
-### Added
-
-- Implemented sorting for `str64` columns.
-
-- write_csv can now write columns of type `str64`.
-
-- Fread can now accept a list of files to read, or a glob pattern.
-
-- Added `dt.lib.core.has_omp_support()` to check whether `datatable` was
-  built with OMP support or not.
-
-- Save per-column min/max information in the NFF format.
-
-
-### Fixed
-
-- Fix the source distribution (`sdist`) by including all the files that are
-  required for building from source.
-
-- Install no longer fails with `llvmlite 0.23.0` package.
-
-- Fixed a stall in fread when using single-threaded mode with fill=True.
-
-
-
 ## [0.3.1][] — 2018-04-20
 
 ### Added
