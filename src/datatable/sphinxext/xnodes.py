@@ -57,6 +57,7 @@ class xElement(nodes.Element):
 		super().__init__(rawtext, *children, **attributes)
 
 
+
 # xnodes.table()
 #   Similar to nodes.table, this node is used to build an HTML table.
 #   However, unlike the docutils' `table`, this node is suitable for
@@ -70,6 +71,7 @@ def visit_table(self, node):
 
 def depart_table(self, node):
     self.body.append("</table>")
+
 
 
 # xnodes.tr()
@@ -109,17 +111,36 @@ def depart_tdth(self, node):
 
 
 
+# xnodes.div()
+#   Simple structural element node, corresponds to <div> in HTML.
+#
+class div(xElement, nodes.General): pass
+
+def visit_div(self, node):
+    # Note: Sphinx's `.starttag()` adds a newline after the tag, which causes
+    # problem if the content of the div is a text node
+    self.body.append(self.starttag(node, "div").strip())
+
+def depart_div(self, node):
+    self.body.append("</div>")
+
+
+
 
 #-------------------------------------------------------------------------------
 # Extension setup
 #-------------------------------------------------------------------------------
 
 def setup(app):
+	# Set custom names for the node classes, otherwise Sphinx
+	# complains that the node with same name already registered.
 	table.__name__ = "xtable"
 	tr.__name__ = "xtr"
 	th.__name__ = "xth"
 	td.__name__ = "xtd"
+	div.__name__ = "xdiv"
 	app.add_node(table, html=(visit_table, depart_table))
 	app.add_node(tr, html=(visit_tr, depart_tr))
 	app.add_node(td, html=(visit_tdth, depart_tdth))
 	app.add_node(th, html=(visit_tdth, depart_tdth))
+	app.add_node(div, html=(visit_div, depart_div))

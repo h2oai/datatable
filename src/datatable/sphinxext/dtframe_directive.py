@@ -280,20 +280,6 @@ def parse_names(s):
 
 
 
-#-------------------------------------------------------------------------------
-# Nodes
-#-------------------------------------------------------------------------------
-
-class div_node(nodes.General, nodes.Element): pass
-
-def visit_div(self, node):
-    self.body.append(self.starttag(node, "div"))
-
-def depart_div(self, node):
-    self.body.append("</div>")
-
-
-
 
 #-------------------------------------------------------------------------------
 # DtframeDirective
@@ -313,10 +299,10 @@ class DtframeDirective(Directive):
         shape, types, names = self._parse_options()
         frame_data = self._parse_table(types, names)
 
-        root_node = div_node(classes=["datatable"])
+        root_node = xnodes.div(classes=["datatable"])
         root_node += self._make_table(names, types, frame_data)
         root_node += self._make_footer(shape)
-        div = div_node(classes=["highlight-pycon", "notranslate"])
+        div = xnodes.div(classes=["highlight-pycon", "notranslate"])
         div += root_node
         return [div]
 
@@ -447,15 +433,14 @@ class DtframeDirective(Directive):
 
 
     def _make_footer(self, shape):
-        footer_node = div_node(classes=["footer"])
-        dim_node = div_node(classes=["frame_dimensions"])
         shape_text = ("%s row%s × %s column%s"
                       % (comma_separated(shape[0]),
                          "" if shape[0] == 1 else "s",
                          comma_separated(shape[1]),
                          "" if shape[1] == 1 else "s"))
-        dim_node += nodes.Text(shape_text)
-        footer_node += dim_node
+        footer_node = xnodes.div(classes=["footer"], children=[
+            xnodes.div(shape_text, classes=["frame_dimensions"])
+        ])
         return footer_node
 
 
@@ -551,7 +536,7 @@ def html_page_context(app, pagename, templatename, context, doctree):
 
 
 def setup(app):
+    app.setup_extension("sphinxext.xnodes")
     app.add_directive("dtframe", DtframeDirective)
-    app.add_node(div_node, html=(visit_div, depart_div))
     app.connect('html-page-context', html_page_context)
     return {"parallel_read_safe": True, "parallel_write_safe": True}
