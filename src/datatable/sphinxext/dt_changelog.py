@@ -140,10 +140,54 @@ class ChangelogInfoboxDirective(SphinxDirective):
                                 xnodes.th(self.arguments[0], colspan=2)
                              ])
         if self.options["released"]:
-            infobox += xnodes.tr(xnodes.td("Release date:"),
+            infobox += xnodes.tr(xnodes.th("Release date:"),
                                  xnodes.td(self.options["released"]))
         infobox += changelog_navigation()  # placeholder node
+        infobox += self._render_wheels()
         return [infobox]
+
+
+    def _render_wheels(self):
+        out = []
+        if not self.options["wheels"]:
+            return out
+        assert isinstance(self.options["wheels"], list)
+        out.append(xnodes.tr(classes=["subheader"], children=[
+                                xnodes.th("Wheels", colspan=2)
+                             ]))
+        entries = {}
+        for url in self.options["wheels"]:
+            _, filename = url.rsplit("/", 1)
+            assert filename.endswith(".whl")
+            parts = filename[:-4].split('-')
+            assert len(parts) == 5
+            module, version, python, abi, platform = parts
+            if python in ["cp35", "cp36", "cp37", "cp38", "cp39"]:
+                python = "python-3." + python[3:]
+            else:
+                raise ValueError("Unrecognized python version `%s` in wheel URL"
+                                 % python)
+            if platform.startswith("macosx"):
+                platform = "MacOS"
+            elif platform in ["manylinux1_x86_64", "manylinux2010_x86_64"]:
+                platform = "Linux x86-64"
+            if platform not in entries:
+                entries[platform] = {}
+            if python in entries[platform]:
+                raise ValueError("Duplicate entries for `%s` - `%s`"
+                                 % (platform, python))
+            entries[platform][python] = url
+        for platform, platform_entries in entries.items():
+            row = xnodes.tr(xnodes.th(platform, rowspan=len(platform_entries)))
+            for i, py in enumerate(sorted(platform_entries.keys())):
+                if i > 0:
+                    row = xnodes.tr()
+                url = platform_entries[py]
+                row += xnodes.td(nodes.inline("", "",
+                            nodes.reference("", py, refuri=url,
+                                            internal=False)))
+                out.append(row)
+        return out
 
 
 class changelog_navigation(nodes.Element, nodes.General): pass
@@ -349,7 +393,7 @@ def on_doctree_resolved(app, doctree, docname):
                                    refdocname=vnext["doc"], refuri=url,
                                    internal=True)
             content.append(xnodes.tr(
-                             xnodes.td("Next release:"),
+                             xnodes.th("Next release:"),
                              xnodes.td(nodes.inline("", "", link))
                            ))
         if index > 0:
@@ -359,7 +403,7 @@ def on_doctree_resolved(app, doctree, docname):
                                    refdocname=vprev["doc"], refuri=url,
                                    internal=True)
             content.append(xnodes.tr(
-                            xnodes.td("Previous release:"),
+                            xnodes.th("Previous release:"),
                             xnodes.td(nodes.inline("", "", link))
                            ))
 

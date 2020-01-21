@@ -111,11 +111,21 @@
     background: #b9ccf7;
 }
 
-.changelog table.infobox tr.title th {
+.changelog table.infobox tr.subheader {
+    background: #F7D495;
+}
+
+.changelog table.infobox tr.title th,
+.changelog table.infobox tr.subheader th {
     padding: 2px;
     text-align: center;
 }
 
+.changelog table.infobox tr.subheader th {
+    border-top: 6px solid #fafafa;  /* fake margin */
+}
+
 .changelog table.infobox th {
     text-align: left;
+    vertical-align: top;
 }
