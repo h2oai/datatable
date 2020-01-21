@@ -87,6 +87,8 @@ import re
 from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.parsers.rst import Directive
+from . import xnodes
+
 
 stype2ltype = {
     "bool8": "bool",
@@ -292,52 +294,6 @@ def depart_div(self, node):
 
 
 
-class table_node(nodes.Element): pass
-
-def visit_table(self, node):
-    self.body.append(self.starttag(node, "table"))
-
-def depart_table(self, node):
-    self.body.append("</table>")
-
-
-
-class td_node(nodes.Element):
-    def __init__(self, text="", **attrs):
-        super().__init__(**attrs)
-        if text:
-            self += nodes.Text(text)
-
-def visit_td(self, node):
-    attrs = {}
-    for key in ["rowspan", "colspan"]:
-        if key in node.attributes:
-            attrs[key] = node.attributes[key]
-    self.body.append(self.starttag(node, "td", suffix="", **attrs))
-
-def depart_td(self, node):
-    self.body.append("</td>")
-
-
-
-class th_node(nodes.Element):
-    def __init__(self, text="", **attrs):
-        super().__init__(**attrs)
-        if text:
-            self += nodes.Text(text)
-
-def visit_th(self, node):
-    attrs = {}
-    for key in ["rowspan", "colspan"]:
-        if key in node.attributes:
-            attrs[key] = node.attributes[key]
-    self.body.append(self.starttag(node, "th", suffix="", **attrs))
-
-def depart_th(self, node):
-    self.body.append("</th>")
-
-
-
 
 #-------------------------------------------------------------------------------
 # DtframeDirective
@@ -417,7 +373,7 @@ class DtframeDirective(Directive):
 
 
     def _make_table(self, names, types, data):
-        table = table_node(classes=["frame"])
+        table = xnodes.table(classes=["frame"])
         thead = nodes.thead()
         thead += self._make_column_names_row(names)
         thead += self._make_column_types_row(types)
@@ -427,31 +383,31 @@ class DtframeDirective(Directive):
 
 
     def _make_column_names_row(self, names):
-        row = nodes.row(classes=["colnames"])
-        row += td_node(classes=["row_index"])
+        row = xnodes.tr(classes=["colnames"])
+        row += xnodes.td(classes=["row_index"])
         for name in names:
             classes = []
             if name is Ellipsis:
                 name = "\u2026"
                 classes.append("vellipsis")
-            row += th_node(classes=classes, text=name)
+            row += xnodes.th(name, classes=classes)
         return row
 
 
     def _make_column_types_row(self, types):
-        row = nodes.row(classes=["coltypes"])
-        row += td_node(classes=["row_index"])
+        row = xnodes.tr(classes=["coltypes"])
+        row += xnodes.td(classes=["row_index"])
         for stype in types:
             if stype is Ellipsis:
-                row += th_node()
+                row += xnodes.th()
             else:
-                row += th_node(classes=[stype2ltype[stype]], title=stype,
-                               text="\u25AA" * stype2width[stype])
+                row += xnodes.th(classes=[stype2ltype[stype]], title=stype,
+                                 children=["\u25AA" * stype2width[stype]])
         return row
 
 
     def _make_table_body(self, types, data):
-        body = nodes.tbody()
+        body = []
         if not data:
             return body
         ellipsis_column = -1
@@ -464,13 +420,13 @@ class DtframeDirective(Directive):
                 if lt == "int" or lt == "real":
                     is_numeric[i] = True
         for datarow in data:
-            row_node = nodes.row()
-            body += row_node
+            row_node = xnodes.tr()
+            body.append(row_node)
             if datarow is Ellipsis:
                 for i in range(len(data[0])):
                     html_class = "row_index" if i == 0 else "hellipsis"
                     text = "\u22F1" if i == ellipsis_column else "\u22EE"
-                    row_node += td_node(classes=[html_class], text=text)
+                    row_node += xnodes.td(text, classes=[html_class])
             else:
                 for i, text in enumerate(datarow):
                     classes = []
@@ -486,7 +442,7 @@ class DtframeDirective(Directive):
                     elif is_numeric[i]:
                         text = text.replace("-", "\u2212")
                     assert isinstance(text, str)
-                    row_node += td_node(classes=classes, text=text)
+                    row_node += xnodes.td(text, classes=classes)
         return body
 
 
@@ -597,8 +553,5 @@ def html_page_context(app, pagename, templatename, context, doctree):
 def setup(app):
     app.add_directive("dtframe", DtframeDirective)
     app.add_node(div_node, html=(visit_div, depart_div))
-    app.add_node(table_node, html=(visit_table, depart_table))
-    app.add_node(td_node, html=(visit_td, depart_td))
-    app.add_node(th_node, html=(visit_th, depart_th))
     app.connect('html-page-context', html_page_context)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

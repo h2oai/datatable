@@ -26,13 +26,22 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
 from sphinx.util.docutils import SphinxDirective
-
-from .dtframe_directive import table_node, td_node, th_node
+from . import xnodes
 
 
 #-------------------------------------------------------------------------------
 # Directives
 #-------------------------------------------------------------------------------
+
+def parse_wheels_option(txt):
+    if not txt:
+        return []
+    urls = txt.strip().split()
+    for url in urls:
+        if not re.fullmatch(r"https://(.*)\.whl", url):
+            raise ValueError("Invalid URL `%s` in the :wheels: option" % url)
+    return urls
+
 
 class ChangelogDirective(SphinxDirective):
     has_content = True
@@ -41,6 +50,7 @@ class ChangelogDirective(SphinxDirective):
     option_spec = {
         "version": directives.unchanged,
         "released": directives.unchanged,
+        "wheels": parse_wheels_option,
     }
 
     def run(self):
@@ -58,9 +68,10 @@ class ChangelogDirective(SphinxDirective):
         lines = []
         lines += [".. changelog-infobox:: " + title_text]
         lines += ["    :released: " + self.options.get("released", "")]
+        lines += ["    :wheels: " + " ".join(self.options.get("wheels", []))]
         lines += [""]
         lines.extend(self.content.data)
-        sources = [self.content.items[0]] * 3
+        sources = [self.content.items[0]] * 4
         sources.extend(self.content.items)
 
         cc = ChangelogContent(lines, sources)
@@ -120,21 +131,18 @@ class ChangelogInfoboxDirective(SphinxDirective):
     final_argument_whitespace = True
     option_spec = {
         "released": directives.unchanged,
+        "wheels": parse_wheels_option,
     }
 
     def run(self):
-        infobox = table_node(classes=["infobox"])
-        tbody = nodes.tbody()
-        title_row = nodes.row(classes=["title"])
-        title_row += th_node(self.arguments[0], colspan=2)
-        tbody += title_row
+        infobox = xnodes.table(classes=["infobox"])
+        infobox += xnodes.tr(classes=["title"], children=[
+                                xnodes.th(self.arguments[0], colspan=2)
+                             ])
         if self.options["released"]:
-            released_row = nodes.row()
-            released_row += td_node("Released:")
-            released_row += td_node(self.options["released"])
-            tbody += released_row
-        tbody += changelog_navigation()  # placeholder node
-        infobox += tbody
+            infobox += xnodes.tr(xnodes.td("Release date:"),
+                                 xnodes.td(self.options["released"]))
+        infobox += changelog_navigation()  # placeholder node
         return [infobox]
 
 
@@ -191,6 +199,7 @@ class ChangelogContent:
     rx_issue = re.compile(r"[\(\[]#(\d+)[\)\]]")
 
     def __init__(self, lines, sources):
+        assert len(lines) == len(sources)
         self._in_lines = lines
         self._in_sources = sources
         self._out_lines = []
@@ -336,26 +345,23 @@ def on_doctree_resolved(app, doctree, docname):
                 text = "Version " + vnext["versionstr"]
             else:
                 text = "(unreleased)"
-            row = nodes.row()
-            row += td_node("Next release:")
-            link = nodes.reference("", text, refdocname=vnext["doc"], refuri=url,
+            link = nodes.reference("", text,
+                                   refdocname=vnext["doc"], refuri=url,
                                    internal=True)
-            td = td_node()
-            td += nodes.inline("", "", link)
-            row += td
-            content.append(row)
+            content.append(xnodes.tr(
+                             xnodes.td("Next release:"),
+                             xnodes.td(nodes.inline("", "", link))
+                           ))
         if index > 0:
             vprev = env.xchangelog[index - 1]
             url = app.builder.get_relative_uri(docname, vprev['doc'])
-            row = nodes.row()
-            row += td_node("Previous release:")
-            link = nodes.reference("", "", refdocname=vprev["doc"], refuri=url,
+            link = nodes.reference("", "Version " + vprev["versionstr"],
+                                   refdocname=vprev["doc"], refuri=url,
                                    internal=True)
-            link += nodes.Text("Version " + vprev["versionstr"])
-            td = td_node()
-            td += nodes.inline("", "", link)
-            row += td
-            content.append(row)
+            content.append(xnodes.tr(
+                            xnodes.td("Previous release:"),
+                            xnodes.td(nodes.inline("", "", link))
+                           ))
 
         node.replace_self(content)
 
@@ -367,6 +373,7 @@ def on_doctree_resolved(app, doctree, docname):
 #-------------------------------------------------------------------------------
 
 def setup(app):
+    app.setup_extension("sphinxext.xnodes")
     app.connect("env-purge-doc", on_env_purge_doc)
     app.connect("env-merge-info", on_env_merge_info)
     app.connect("doctree-resolved", on_doctree_resolved)
