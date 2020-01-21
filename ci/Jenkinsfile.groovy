@@ -135,7 +135,6 @@ ansiColor('xterm') {
                             manager.addBadge("warning.gif", "Large tests required")
                         }
 
-                        stash includes: "CHANGELOG.md", name: 'CHANGELOG'
                         final String dockerImageTag = sh(script: "make ${MAKE_OPTS} docker_image_tag", returnStdout: true).trim()
                         docker.image("${X86_64_CENTOS_DOCKER_IMAGE_NAME}:${dockerImageTag}").inside {
                             def dockerfileSHAsString = ""
@@ -680,7 +679,6 @@ ansiColor('xterm') {
                         dumpInfo()
                         dir(stageDir) {
                             checkout scm
-                            unstash 'CHANGELOG'
                             unstash 'VERSION'
                             unstash 'x86_64_centos7-py37-whl'
                             unstash 'x86_64_centos7-py36-whl'
@@ -714,26 +712,6 @@ ansiColor('xterm') {
 
                                         s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}.tar.gz ${S3_URL_LATEST_STABLE}/datable-0.latest.tar.gz
                                        """
-                                }
-                            }
-                            docker.image('harbor.h2o.ai/library/hub').inside("--init") {
-                                withCredentials([file(credentialsId: RSA_CRED_ID, variable: 'ID_RSA_PATH'), file(credentialsId: GITCONFIG_CRED_ID, variable: 'GITCONFIG_PATH'), string(credentialsId: CREDS_ID, variable: 'GITHUB_TOKEN')]) {
-                                    final def releaseMsgFile = "release-msg.md"
-                                    def releaseMsg = """v${versionText}
-
-${project.getChangelogPartForVersion(versionText, "release/CHANGELOG.md")}
----
-${project.getReleaseDownloadLinksText("release/dist", "${getHTTPSTargetUrl(versionText)}")}
-"""
-                                    writeFile(file: "release/${releaseMsgFile}", text: releaseMsg)
-                                    sh """
-                                        mkdir -p ~/.ssh
-                                        cp \${ID_RSA_PATH} ~/.ssh/id_rsa
-                                        cp \${GITCONFIG_PATH} ~/.gitconfig
-                                        cd release
-                                        hub release create -f ${releaseMsgFile} \$(find dist/ \\( -name '*.whl' -o -name '*.tar.gz' \\) -exec echo -a {} \\;) "v${versionText}"
-                                    """
-                                    echo readFile("release/${releaseMsgFile}").trim()
                                 }
                             }
                         }
