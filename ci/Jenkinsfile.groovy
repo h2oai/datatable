@@ -189,7 +189,7 @@ ansiColor('xterm') {
                                 -w /dot \
                                 --entrypoint /bin/bash \
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
-                                -c "/opt/python/cp36-cp36m/bin/python3.6 ext.py sdist"
+                                -c "env && /opt/python/cp36-cp36m/bin/python3.6 ext.py sdist"
                         """
                         sh "cat src/datatable/_build_info.py"
                         arch "src/datatable/_build_info.py"
