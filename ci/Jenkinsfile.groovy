@@ -100,8 +100,12 @@ def versionText
 // String with current git revision
 def gitHash
 
-def runExtraTests = !isPrJob() || params.FORCE_ALL_TESTS_IN_PR
-def runPpcTests = doPPC() && !params.DISABLE_PPC64LE_TESTS
+
+def isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
+def doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL_TESTS
+def doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
+def doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
+
 
 MAKE_OPTS = "CI=1"
 
@@ -114,19 +118,19 @@ DT_BUILD_NUMBER = ""
 //////////////
 properties([
     parameters([
-        booleanParam(name: 'FORCE_BUILD_PPC64LE', defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
-        booleanParam(name: 'DISABLE_ALL_TESTS', defaultValue: false, description: '[BUILD] Disable all tests.'),
+        booleanParam(name: 'FORCE_BUILD_PPC64LE',   defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
+        booleanParam(name: 'DISABLE_ALL_TESTS',     defaultValue: false, description: '[BUILD] Disable all tests.'),
         booleanParam(name: 'DISABLE_PPC64LE_TESTS', defaultValue: false, description: '[BUILD] Disable PPC64LE tests.'),
-        booleanParam(name: 'DISABLE_COVERAGE', defaultValue: false, description: '[BUILD] Disable coverage.'),
-        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: false, description: '[BUILD] Trigger all tests even for PR.'),
-        booleanParam(name: 'FORCE_S3_PUSH', defaultValue: false, description: '[BUILD] Publish to S3 regardless of current branch.')
+        booleanParam(name: 'DISABLE_COVERAGE',      defaultValue: true, description: '[BUILD] Disable coverage.'),
+        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: true, description: '[BUILD] Trigger all tests even for PR.'),
+        booleanParam(name: 'FORCE_S3_PUSH',         defaultValue: false, description: '[BUILD] Publish to S3 regardless of current branch.')
     ]),
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
 
 ansiColor('xterm') {
     timestamps {
-        if (isPrJob()) {
+        if (isPrJob) {
             cancelPreviousBuilds()
         }
         timeout(time: 180, unit: 'MINUTES') {
@@ -139,7 +143,7 @@ ansiColor('xterm') {
                         def scmEnv = checkout scm
                         env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '-')
 
-                        if (doPPC()) {
+                        if (doPpcBuild) {
                             manager.addBadge("success.gif", "PPC64LE build triggered.")
                         }
                         if(doPublish()) {
@@ -274,25 +278,23 @@ ansiColor('xterm') {
                     }
                 },
                 'Build on ppc64le_centos7': {
-                    if (doPPC()) {
+                    if (doPpcBuild) {
                         node(PPC_NODE_LABEL) {
                             final stageDir = 'build-ppc64le_centos7'
                             buildSummary.stageWithSummary('Build on ppc64le_centos7', stageDir) {
-                                if(doPPC()) {
-                                    cleanWs()
-                                    dumpInfo()
-                                    dir(stageDir) {
-                                        unstash 'datatable-sources'
-                                        sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
-                                        stash name: 'ppc64le_centos7-py37-whl', includes: "dist/*.whl"
-                                        arch "dist/*.whl"
-                                        sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
-                                        stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
-                                        arch "dist/*.whl"
-                                        sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
-                                        stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
-                                        arch "dist/*.whl"
-                                    }
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
+                                    stash name: 'ppc64le_centos7-py37-whl', includes: "dist/*.whl"
+                                    arch "dist/*.whl"
+                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
+                                    stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
+                                    arch "dist/*.whl"
+                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
+                                    stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
+                                    arch "dist/*.whl"
                                 }
                             }
                         }
@@ -381,7 +383,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-centos7-py37', runPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-centos7-py37', doPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -396,7 +398,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-centos7-py36', runPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-centos7-py36', doPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -411,7 +413,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-centos7-py35', runPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-centos7-py35', doPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -469,7 +471,7 @@ ansiColor('xterm') {
                 parallel(testStages)
             }
             // Coverage stages
-            if (false && !params.DISABLE_COVERAGE) {
+            if (!params.DISABLE_COVERAGE) {
                 parallel ([
                     'Coverage on x86_64_linux': {
                         node(NODE_LABEL) {
@@ -533,7 +535,7 @@ ansiColor('xterm') {
                                 }
                             }
 
-                            if (doPPC()) {
+                            if (doPpcBuild) {
                                 dir('ppc64le-centos7') {
                                     unstash 'ppc64le_centos7-py37-whl'
                                     unstash 'ppc64le_centos7-py36-whl'
@@ -752,13 +754,9 @@ def testOSX(final environment, final needsLargerTest) {
     }
 }
 
-def isPrJob() {
-    return env.CHANGE_BRANCH != null && env.CHANGE_BRANCH != ''
-}
-
 def isModified(pattern) {
     def fList
-    if (isPrJob()) {
+    if (isPrJob) {
         sh "git fetch --no-tags --progress https://github.com/h2oai/datatable +refs/heads/${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}"
         final String mergeBaseSHA = sh(script: "git merge-base HEAD origin/${env.CHANGE_TARGET}", returnStdout: true).trim()
         fList = sh(script: "git diff --name-only ${mergeBaseSHA}", returnStdout: true).trim()
@@ -773,14 +771,6 @@ def isModified(pattern) {
     return !(out.isEmpty() || out == "0")
 }
 
-def doPPC() {
-    return !isPrJob() || params.FORCE_BUILD_PPC64LE || params.FORCE_ALL_TESTS_IN_PR
-}
-
-def doTestPPC64LE() {
-    return !params.DISABLE_PPC64LE_TESTS
-
-}
 
 def doPublish() {
     return env.BRANCH_NAME == 'master' || isRelease() || params.FORCE_S3_PUSH
