@@ -623,25 +623,6 @@ ansiColor('xterm') {
 }
 
 
-def testInDocker(final testTarget, final needsLargerTest) {
-    try {
-        sh """
-            env
-            rm -rf src/datatable
-            mkdir -p /tmp/cores
-            make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ${testTarget}
-        """
-    } finally {
-        sh 'mkdir -p build/cores && test -n "$(ls -A /tmp/cores)" && mv -f /tmp/cores/*python* build/cores || true'
-        // Try to archive all core dumps, but skip error in case of failure
-        try {
-            arch "build/cores/*python*"
-        } catch (ex) { /* ignore */ }
-        junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
-    }
-}
-
-
 
 // Run datatable test suite in docker
 //
