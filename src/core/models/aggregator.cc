@@ -358,7 +358,8 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
       size_t off_i = static_cast<size_t>(offsets[i]);
       size_t ri;
       bool rii_valid = ri_members.get_element(off_i, &ri);
-      xassert(rii_valid);  (void) rii_valid;
+      (void) rii_valid;
+      xassert(rii_valid);
       if (ISNA<int32_t>(d_members[ri])) {
         size_t off_i1 = static_cast<size_t>(offsets[i + 1]);
         dt::parallel_for_static(off_i1 - off_i,

@@ -24,6 +24,7 @@
 #include "models/utils.h"
 #include "parallel/api.h"
 #include "types.h"
+#include "utils/assert.h"
 
 
 
@@ -126,8 +127,7 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
     min = R(0);
     max = R(0);
   }
-
-  if (std::isinf(min) || std::isinf(max)) {
+  else if (std::isinf(min) || std::isinf(max)) {
     // If the incoming data contain infinite values,
     // replace them with the NA's.
     column.materialize();
@@ -138,8 +138,12 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
         data[i] = GETNA<T1>();
       }
     });
-    column.stats()->get_stat(Stat::Min, &min);
-    column.stats()->get_stat(Stat::Max, &max);
+    res_min = column.stats()->get_stat(Stat::Min, &min);
+    res_max = column.stats()->get_stat(Stat::Max, &max);
+    xassert(res_min);
+    xassert(res_max);
+    xassert(std::isfinite(min));
+    xassert(std::isfinite(max));
   }
 
   this->min = static_cast<T2>(min);
