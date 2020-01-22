@@ -143,24 +143,23 @@ class Compiler:
 
             if sys.platform == "win32":
                 self._detect_winsdk()
-                msvc_default_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\"
+                msvc_default_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\"
                 msvc_path = os.environ.get("DT_MSVC_PATH", msvc_default_path)
                 if not os.path.isdir(msvc_path):
                     raise ValueError("Microsoft Visual Studio directory %s not found. "
-                                     "Please specify its location in `DT_MSVC_PATH` environment variable." 
+                                     "Please specify its location in `DT_MSVC_PATH` environment variable."
                                      % msvc_path)
 
                 candidates = []
-                compiler_versions = next(os.walk(msvc_default_path))[1]
-                for compiler_version in compiler_versions:
-                    path =  msvc_default_path + compiler_version
-                    bin_path = path + "\\bin\\Hostx64\\x64\\"
+                compiler_versions = next(os.walk(msvc_path))[1]
+                for compiler_version in reversed(compiler_versions):
+                    path =  os.path.join(msvc_path, compiler_version)
+                    bin_path = os.path.join(path, "bin\\Hostx64\\x64")
                     candidates += [{
-                                    "compiler": bin_path + "cl.exe", 
-                                    "linker": bin_path + "link.exe", 
+                                    "compiler": os.path.join(bin_path, "cl.exe"),
+                                    "linker": os.path.join(bin_path, "link.exe"),
                                     "path" : path
                                   }]
-
             elif sys.platform == "darwin":
                 candidates = [
                     {"compiler": "/usr/local/opt/llvm/bin/clang"},
@@ -193,15 +192,30 @@ class Compiler:
 
 
     def _detect_winsdk(self):
+        def is_winsdk_version(version):
+            version_ids = version.split(".")
+            if len(version_ids) != 4:
+                return False
+            return all(version_id.isdigit() for version_id in version_ids)
+
         winsdk_default_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
         winsdk_path = os.environ.get("DT_WINSDK_PATH", winsdk_default_path)
         if not os.path.isdir(winsdk_path):
             raise ValueError("Windows SDK directory %s not found. "
-                             "Please specify its location in `DT_WINSDK_PATH` environment variable." 
+                             "Please specify its location in `DT_WINSDK_PATH` environment variable."
                              % msvc_path)
 
         # Detect the latest available SDK version
-        winsdk_version_dir = next(os.walk(winsdk_default_path + "\\include"))[1][-1] 
+        winsdk_version_dir = ""
+        winsdk_versions = next(os.walk(winsdk_default_path + "\\include"))[1]
+        for version in reversed(winsdk_versions):
+            if is_winsdk_version(version):
+                winsdk_version_dir = version
+                break
+
+        if winsdk_version_dir is "":
+            raise ValueError("A valid Windows SDK version directory %s not found.")
+
         winsdk_include_path = winsdk_default_path + "\\Include\\" + winsdk_version_dir
         winsdk_lib_path = winsdk_default_path + "\\Lib\\" + winsdk_version_dir
         if not os.path.isdir(winsdk_include_path):

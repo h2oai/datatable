@@ -1,3 +1,3 @@
 
 .. xmethod:: datatable.Frame.cbind
-    :src: c/frame/cbind.cc Frame::cbind
+    :src: src/core/frame/cbind.cc Frame::cbind

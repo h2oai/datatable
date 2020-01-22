@@ -102,13 +102,7 @@ version with some bug fixes. Do not add new functionality into a patch release
 - In the `VERSION.txt` file change the version to `{MAJOR}.{MINOR}.{MICRO+1}`
   (call it `MMN`).
 
-- Update the `CHANGELOG.md` by adding a new line with
-    ```md
-    ### [{MMN}][] — {DATE}
-    ```
-  where `DATE` is the current date. This line should be at the top of the file
-  immediately preceding the `[{MMM}] ...` line. Add a description of the
-  changes being introduced in this patch.
+- List the release date in the `docs/release/v{MMN}.rst` file.
 
 - Scroll to the bottom of the file and add the definition of the `[{MMN}]` link.
 
@@ -138,8 +132,8 @@ in the minor version release section, the following might be needed:
 
   and make those changes accordingly.
 
-- Update `CHANGELOG.md` noting all functionality that was removed/ changed/
-  deprecated.
+- Update the release history doc files noting all functionality that was
+  removed/ changed/ deprecated.
 
 - Publish a blog post outlining all main improvements since the previous major
   release.

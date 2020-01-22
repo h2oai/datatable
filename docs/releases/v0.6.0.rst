@@ -1,0 +1,44 @@
+
+.. currentmodule:: datatable
+
+.. changelog::
+  :version: 0.6.0
+  :released: 2018-06-05
+  :wheels: https://files.pythonhosted.org/packages/bd/67/09d6fb031456aec7e03a0a7ee9d904b6528b438b9a48019ed16a60d439dc/datatable-0.6.0-cp35-cp35m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/14/06/212109e29351a4351a2684e5c8c80bf14744fc2edac008d555b5bcc2de21/datatable-0.6.0-cp36-cp36m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/41/f1/cbe0dcb4dc513f754cf4ff4e0ab72e16e3aeafc2f44205ba30d28abc8184/datatable-0.6.0.tar.gz
+
+  .. ref-context:: datatable
+
+  -[new] Syntax ``DT[i, j, by]`` is now supported.
+
+  -[enh] :func:`fread()` will detect a feather file and issue an appropriate
+    error message.
+
+  -[enh] When :func:`fread()` extracts data from archives into memory, it will
+    now display the size of the extracted data in verbose mode.
+
+  -[enh] Multiple reduction operators can now be performed at once.
+
+  -[enh] In groupby, reduction columns can now be combined with regular or
+    computed columns.
+
+  -[enh] During grouping, group keys are now added automatically to the select
+    list.
+
+  -[new] Implemented :func:`sum()` reducer.
+
+  -[enh] The equality operator ``==`` now works for string columns too.
+
+  -[enh] Improved performance of groupby operations.
+
+  -[fix] :func:`fread()` will no longer emit an error if there is an NA string
+    in the header.
+
+  -[fix] If the input contains excessively long lines, :func:`fread()` will no
+    longer waste time printing a sample of first 5 lines in verbose mode.
+
+  -[fix] Fixed wrong calculation of mean / standard deviation of line length in
+    :func:`fread` if the sample contained broken lines.
+
+  -[fix] Frame view will no longer get stuck in a Jupyter notebook.

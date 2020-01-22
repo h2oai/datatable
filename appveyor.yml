@@ -1,0 +1,23 @@
+version: 0.10.{build}
+image: Visual Studio 2019
+
+branches:
+  only:
+    - master
+
+pull_requests:
+  do_not_increment_build_number: true
+
+build_script:
+- cmd: >-
+    SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
+
+    pip install blessed
+
+    pip install typesentry
+
+    python ext.py build
+
+    cd src
+
+    python -c "import datatable"

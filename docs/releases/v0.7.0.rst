@@ -1,0 +1,216 @@
+
+.. currentmodule:: datatable
+
+.. changelog::
+  :version: 0.7.0
+  :released: 2018-11-16
+  :wheels: https://files.pythonhosted.org/packages/4f/ce/edc756fbb3ebf25844faf5cf40e141ad13de8d01a1c44fb5d6451272d91c/datatable-0.7.0-cp35-cp35m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/d0/8e/20151d986c342138d390e968b25428697c539c69cd0d6fa0095c18455636/datatable-0.7.0-cp36-cp36m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/a1/e4/77e2feba6d0f7475576fd14c92a449e2b3941508aa150f125824a809e284/datatable-0.7.0-cp37-cp37m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/0b/b6/323297afd7258e7960f474cc256dd988a2bb923109adf87445435edbe575/datatable-0.7.0.tar.gz
+
+  Frame
+  -----
+  .. ref-context:: datatable.Frame
+
+  -[new] Added ability to read/write Jay files.
+
+  -[new] A Frame can now have a key column (or columns).
+
+  -[enh] Frame can now be created from a list/dict of numpy arrays.
+
+  -[enh] Frames can now be constructed via the keyword-args list of
+    columns::
+
+        Frame(A=..., B=...)
+
+  -[enh] Frame constructor now accepts a list of tuples, which it treats as
+    rows when creating the frame.
+
+  -[enh] Frame can now be constructed from a list of named tuples, which will
+    be treated as rows and field names will be used as column names.
+
+  -[enh] Frame can now be constructed from a list of dictionaries, where each
+    item in the list represents a single row.
+
+  -[enh] Frame can now be created from a datetime64 numpy array. [#1274]
+
+  -[enh] Key column(s) are saved when the frame is saved into a Jay file.
+
+  -[enh] The error message when selecting a column that does not exist in the
+    Frame now refers to similarly-named columns in that Frame, if there are any.
+    At most 3 possible columns are reported, and they are ordered from most
+    likely to least likely. [#1253]
+
+  -[new] :meth:`Frame.copy()` can now be used to create a copy of the Frame.
+
+  -[enh] :meth:`Frame.cbind()` now accepts a list of frames as the argument.
+
+  -[enh] Frame can now be sorted by multiple columns.
+
+  -[new] Implemented :meth:`Frame.replace()` function. [#1319]
+
+  -[enh] Added HTML rendering of Frames inside a Jupyter notebook.
+
+  -[enh] Added support for multi-column keys.
+
+  -[enh] In Jupyter notebook columns now have visual indicators of their types.
+    The logical types are color-coded, and the size of each element is
+    given by the number of dots. [#1428]
+
+  -[api] The ``names`` argument in Frame constructor can no longer be a
+    string -- use a list or tuple of strings instead.
+
+  -[api] Method :meth:`Frame.rename()` removed -- the :attr:`.name` setter can
+    be used instead.
+
+  -[api] :meth:`Frame.resize()` removed -- same functionality is available via
+    assigning to :attr:`Frame.nrows`.
+
+  -[api] The expression ``Frame([])`` now creates a ``[0 x 0]`` Frame instead of
+   ``[0 x 1]``.
+
+  -[api] Parameter ``inplace`` in :meth:`Frame.cbind()` removed (was
+    deprecated). Instead of ``inplace=False`` use ``dt.cbind(...)``.
+
+  -[api] :meth:`Frame.cbind()` no longer returns anything (previously it
+    returned self, but this was confusing w.r.t whether it modifies the target,
+    or returns a modified copy).
+
+  -[api] default format for :meth:`Frame.save()` is now "jay".
+
+  -[fix] ``names`` parameter in Frame constructor is now checked for
+    correctness.
+
+  -[fix] Fixed saving view frames to csv.
+
+  -[fix] If ``x`` is a Frame, then ``y = dt.Frame(x)`` now creates a shallow
+    copy instead of a copy-by-reference.
+
+  -[fix] Fixed rare crash when converting a string column from pandas DataFrame,
+    when that column contains many non-ASCII characters.
+
+  -[fix] Fixed crash when saving a frame with many boolean columns into CSV.
+    [#1278]
+
+  -[fix] Fixed incorrect :attr:`.stypes`/:attr:`.ltypes` property after calling
+    :meth:`.cbind()`.
+
+  -[fix] Fixed calculation of min/max values in internal rowindex upon row
+    resizing.
+
+  -[fix] :meth:`Frame.sort()` with no arguments no longer produces an error.
+
+  -[fix] Fixed writing to disk of columns > 2GB in size. [#1387]
+
+  -[fix] Fixed crash when sorting by multiple columns and the first column was
+    of string type. [#1401]
+
+
+
+  DT[i, j] evaluation
+  -------------------
+
+  -[new] Filters can now be used together with groupby expressions.
+
+  -[new] Implemented integer division ``//`` and modulo ``%`` operators.
+
+  -[new] Implemented logical operators "and" ``&`` and "or" ``|`` for eager
+    evaluator.
+
+  -[new] A Frame can now be naturally-joined with a keyed Frame.
+
+  -[new] Columns can now be updated within join expressions.
+
+  -[enh] Groupby calculations are now parallel.
+
+  -[enh] Added ability to join Frames on multiple columns.
+
+  -[enh] The performance of explicit element selection improved by a factor
+    of 200x.
+
+  -[api] ``DT[i, j]`` now returns a python scalar value if ``i`` is integer,
+    and ``j`` is integer/string. This is referred to as "explicit element
+    selection". In the unlikely scenario when a single element needs to be
+    returned as a frame, you can always write ``DT[i:i+1, j]`` or
+    ``DT[[i], j]``.
+
+  -[api] ``DT[col]`` syntax has been deprecated and now emits a warning. This
+    will be converted to an error in version 0.8.0, and will be interpreted
+    as row selector in 0.9.0.
+
+  -[fix] Fixed bug with applying a cast expression to a view column.
+
+  -[fix] Fixed memory leak in groupby operations.
+
+  -[fix] Fixed crash when sorting string columns containins NA values.
+
+  -[fix] Fixed crash when applying a filter to a 0-rows frame.
+
+  -[fix] f-column-selectors should no longer throw errors and produce only
+    unique ids when stringified. [#1241]
+
+  -[fix] f-expressions now do not crash when reused with a different Frame.
+
+  -[fix] g-columns can be properly selected in a join. [#1352]
+
+
+
+  General
+  -------
+  .. ref-context:: datatable
+
+  -[new] Added function :func:`.abs()` to find the absolute value of elements
+    in a frame.
+
+  -[enh] :func:`.fread()`'s verbose output now includes time spent opening
+    the input file.
+
+  -[new] new function :func:`.split_into_nhot()` to split a string column into
+    fragments and then convert them into a set of indicator variables
+    ("n-hot encode").
+
+  -[new] Added ability to convert object columns into strings.
+
+  -[enh] improved handling of Excel files by :func:`fread`:
+
+    - sheet name can now be used as a path component in the file name,
+      causing only that particular sheet to be parsed;
+
+    - further, a cell range can be specified as a path component after the
+      sheet name, forcing fread to consider only the provided cell range;
+
+    - fread can now handle the situation when a spreadsheet has multiple
+      separate tables in the same sheet. They will now be detected automatically
+      and returned to the user as separate Frame objects (the name of each
+      frame will contain the sheet name and cell range from where the data was
+      extracted).
+
+  -[new] Added set-theoretic functions: :func:`union`, :func:`intersect`,
+    :func:`setdiff` and :func:`symdiff`.
+
+  -[enh] Building no longer requires an LLVM distribution.
+
+  -[enh] Upgraded dependency version for ``typesentry``, the previous version
+    was not compatible with Python 3.7.
+
+  -[enh] ``import datatable`` now takes only 0.13s, down from 0.6s.
+
+  -[fix] Fixed bug in :func:`cbind()` where the first Frame in the list was
+    ignored.
+
+  -[fix] Fixed occasional memory errors caused by a lack of available mmap
+    handles.
+
+  -[fix] bug in :func:`fread()` with QR bump occurring out-of-sample.
+
+  -[fix] :func:`fread()` no longer wastes time reading the full input, if
+    ``max_nrows`` option is used.
+
+  -[fix] Fixed bug where ``max_nrows`` parameter was sometimes causing a
+    segfault.
+
+  -[fix] Fixed :func:`fread` performance bug caused by memory-mapped file
+    being accidentally copied into RAM.
+
+  -[fix] Fixed rare crash in fread when resizing the number of rows.

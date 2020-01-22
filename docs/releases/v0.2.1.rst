@@ -1,0 +1,34 @@
+
+.. changelog::
+  :version: 0.2.1
+  :released: 2017-09-11
+
+  .. ref-context:: datatable
+
+
+  -[new] Created the CHANGELOG file.
+
+  -[new] ``sys.getsizeof(DT)`` can now be used to query the size of the
+    datatable in memory.
+
+  -[new] Added a framework for computing and storing per-column summary
+    statistics.
+
+  -[new] Implemented statistics ``min``, ``max``, ``mean``, ``stdev``,
+    ``countna`` for numeric and boolean columns.
+
+  -[new] Getter ``df.internal.rowindex`` allows access to the RowIndex on the
+    DataTable (for inspection / reuse).
+
+  -[enh] In addition to LLVM4 environmental variable, datatable will now also
+    look for the ``llvm4`` folder within the package's directory.
+
+  -[new] If ``d0`` is a DataTable, then ``d1 = DataTable(d0)`` will create its
+    shallow copy.
+
+  -[enh] Environmental variable ``DTNOOPENMP`` will cause the ``datatable`` to
+    be built without OpenMP support.
+
+  -[fix] Filter function when applied to a view DataTable now produces correct
+    result.
+

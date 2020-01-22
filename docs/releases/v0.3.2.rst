@@ -1,0 +1,31 @@
+
+.. changelog::
+  :version: 0.3.2
+  :released: 2018-04-25
+  :wheels: https://files.pythonhosted.org/packages/7b/35/0f6ec6f8cdf97a1334a4d612382444cd8406df967afee1b8d359239561d2/datatable-0.3.2-cp35-cp35m-macosx_10_6_x86_64.whl
+           https://files.pythonhosted.org/packages/b0/d0/2727e2355c748435fa5407a25b12c69c1ed72e644bad6a532f03131237fc/datatable-0.3.2-cp36-cp36m-macosx_10_6_intel.whl
+           https://files.pythonhosted.org/packages/82/ca/5690f19c149874de9a23ae9fc25f787269c4023d39fdb48ab1f815e863d5/datatable-0.3.2.tar.gz
+
+  .. ref-context:: datatable
+
+
+  -[enh] Implemented sorting for ``str64`` columns.
+
+  -[enh] :func:`write_csv` can now write columns of type ``str64``.
+
+  -[enh] :func:`fread` can now accept a list of files to read, or a glob
+    pattern.
+
+  -[new] Added ``dt.lib.core.has_omp_support()`` to check whether
+    ``datatable`` was built with OMP support or not.
+
+  -[enh] Save per-column min/max information in the NFF format.
+
+  -[fix] Fix the source distribution (sdist) by including all the files that
+    are required for building from source.
+
+  -[fix] Install no longer fails with ``llvmlite==0.23.0`` package.
+
+  -[fix] Fixed a stall in fread when using single-threaded mode with
+    ``fill=True``.
+

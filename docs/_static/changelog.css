@@ -102,18 +102,30 @@
     float: right;
     font-size: 80%;
     margin: 0 0 12pt 12pt;
+    position: relative;
     width: 16em;
+    z-index: 10;
 }
 
 .changelog table.infobox tr.title {
     background: #b9ccf7;
 }
 
-.changelog table.infobox tr.title th {
+.changelog table.infobox tr.subheader {
+    background: #F7D495;
+}
+
+.changelog table.infobox tr.title th,
+.changelog table.infobox tr.subheader th {
     padding: 2px;
     text-align: center;
 }
 
+.changelog table.infobox tr.subheader th {
+    border-top: 6px solid #fafafa;  /* fake margin */
+}
+
 .changelog table.infobox th {
     text-align: left;
+    vertical-align: top;
 }

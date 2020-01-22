@@ -53,6 +53,7 @@ from sphinx import addnodes
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import make_refnode
+from . import xnodes
 
 logger = logging.getLogger(__name__)
 
@@ -611,10 +612,6 @@ class XobjectDirective(SphinxDirective):
             assert rowi[vsep_index] == '|'
             del rowi[vsep_index]
             out.append("    " + ",".join(x.strip() for x in rowi))
-        print('-' * 80)
-        for line in out:
-            print(line)
-        print('-' * 80)
         return out
 
 
@@ -646,11 +643,11 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_signature(self, targetname):
-        sig_node = mydiv_node(classes=["sig-container"], ids=[targetname])
-        sig_nodeL = mydiv_node(classes=["sig-body"])
+        sig_node = xnodes.div(classes=["sig-container"], ids=[targetname])
+        sig_nodeL = xnodes.div(classes=["sig-body"])
         self._generate_sigbody(sig_nodeL)
         sig_node += sig_nodeL
-        sig_nodeR = mydiv_node(classes=["code-links"])
+        sig_nodeR = xnodes.div(classes=["code-links"])
         self._generate_siglinks(sig_nodeR)
         sig_node += sig_nodeR
 
@@ -662,7 +659,7 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_sigbody(self, node):
-        row1 = mydiv_node(classes=["sig-qualifier"])
+        row1 = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
                                     reftype="class", refdomain="py")
@@ -671,7 +668,7 @@ class XobjectDirective(SphinxDirective):
         row1 += nodes.generated("", "", ref)
         node += row1
 
-        row2 = mydiv_node(classes=["sig-main"])
+        row2 = xnodes.div(classes=["sig-main"])
         self._generate_sigmain(row2)
         node += row2
 
@@ -685,13 +682,13 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_sigmain(self, node):
-        div1 = mydiv_node(classes=["sig-name"])
+        div1 = xnodes.div(classes=["sig-name"])
         div1 += nodes.Text(self.obj_name)
         node += div1
         if self.name != "xdata":
             node += nodes.inline("", nodes.Text("("),
                                  classes=["sig-open-paren"])
-            params = mydiv_node(classes=["sig-parameters"])
+            params = xnodes.div(classes=["sig-parameters"])
             last_i = len(self.parsed_params) - 1
             for i, param in enumerate(self.parsed_params):
                 classes = ["param"]
@@ -703,7 +700,7 @@ class XobjectDirective(SphinxDirective):
                         ref = nodes.Text(param)
                     else:
                         ref = a_node(text=param, href="#" + param)
-                    params += mydiv_node("", ref, classes=classes)
+                    params += xnodes.div(ref, classes=classes)
                 else:
                     assert isinstance(param, tuple)
                     param_node = a_node(text=param[0], href="#" + param[0])
@@ -712,8 +709,11 @@ class XobjectDirective(SphinxDirective):
                     # "improve" quotation marks and ...s
                     default_value_node = nodes.literal("", nodes.Text(param[1]),
                                                       classes=["default"])
-                    params += mydiv_node("", param_node, equal_sign_node,
-                                         default_value_node, classes=classes)
+                    params += xnodes.div(classes=classes, children=[
+                                            param_node,
+                                            equal_sign_node,
+                                            default_value_node
+                                         ])
                 if i < len(self.parsed_params) - 1:
                     params += nodes.inline("", nodes.Text(", "), classes=["punct"])
             params += nodes.inline("", nodes.Text(")"),
@@ -722,7 +722,7 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_body(self):
-        out = mydiv_node(classes=["x-function-body"])
+        out = xnodes.div(classes=["x-function-body"])
         for head, lines in self.parsed_body:
             if head:
                 lines = [head, "="*len(head), ""] + lines
@@ -747,16 +747,16 @@ class XparamDirective(SphinxDirective):
     def run(self):
         self._parse_arguments()
         id0 = self.param.strip("*/()[]")
-        root = mydiv_node(classes=["xparam-box"], ids=[id0])
-        head = mydiv_node(classes=["xparam-head"])
+        root = xnodes.div(classes=["xparam-box"], ids=[id0])
+        head = xnodes.div(classes=["xparam-head"])
         if id0 in ["return", "except"]:
-            param_node = mydiv_node(classes=["param", id0])
+            param_node = xnodes.div(classes=["param", id0])
             param_node += nodes.Text(id0)
         else:
-            param_node = mydiv_node(classes=["param"])
+            param_node = xnodes.div(classes=["param"])
             param_node += nodes.Text(self.param)
         head += param_node
-        types_node = mydiv_node(classes=["types"])
+        types_node = xnodes.div(classes=["types"])
         types_str = " | ".join("``%s``" % p for p in self.types)
         self.state.nested_parse(StringList([types_str]), self.content_offset,
                                 types_node)
@@ -764,7 +764,7 @@ class XparamDirective(SphinxDirective):
         types_node.children = types_node[0].children
         head += types_node
         root += head
-        desc_node = mydiv_node(classes=["xparam-body"])
+        desc_node = xnodes.div(classes=["xparam-body"])
         self.state.nested_parse(self.content, self.content_offset, desc_node)
         root += desc_node
         return [root]
@@ -791,18 +791,6 @@ def xparamref(name, rawtext, text, lineno, inliner, options={}, content=[]):
 #-------------------------------------------------------------------------------
 # Nodes
 #-------------------------------------------------------------------------------
-
-class mydiv_node(nodes.General, nodes.Element): pass
-
-def visit_div(self, node):
-    # Note: Sphinx's `.starttag()` adds a newline after the tag, which causes
-    # problem if the content of the div is a text node
-    self.body.append(self.starttag(node, "div").strip())
-
-def depart_div(self, node):
-    self.body.append("</div>")
-
-
 
 class a_node(nodes.Element, nodes.Inline):
     def __init__(self, href, text="", new=False, **attrs):
@@ -832,6 +820,7 @@ def fix_html_titles(app, pagename, templatename, context, doctree):
 
 
 def setup(app):
+    app.setup_extension("sphinxext.xnodes")
     app.add_config_value("xf_module_name", None, "env")
     app.add_config_value("xf_project_root", "..", "env")
     app.add_config_value("xf_permalink_url0", "", "env")
@@ -842,7 +831,6 @@ def setup(app):
     app.add_directive("xfunction", XobjectDirective)
     app.add_directive("xmethod", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
-    app.add_node(mydiv_node, html=(visit_div, depart_div))
     app.add_node(a_node, html=(visit_a, depart_a))
     app.add_role("xparam-ref", xparamref)
     app.connect("html-page-context", fix_html_titles)

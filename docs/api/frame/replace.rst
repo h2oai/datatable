@@ -1,3 +1,3 @@
 
 .. xmethod:: datatable.Frame.replace
-    :src: c/frame/replace.cc Frame::replace
+    :src: src/core/frame/replace.cc Frame::replace

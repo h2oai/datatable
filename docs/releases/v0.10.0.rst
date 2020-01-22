@@ -3,6 +3,12 @@
 .. changelog::
   :version: 0.10.0
   :released: 2019-12-02
+  :wheels: https://files.pythonhosted.org/packages/ed/3a/09d8767fd6b517a4b56e678d2dca4cb954332f374e8de2615a14753c7e70/datatable-0.10.0-cp35-cp35m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/7c/aa/5702847b8523c75746380dabbc0fbab29af1b76ef7aace733e398a178287/datatable-0.10.0-cp35-cp35m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/76/ac/0daab502195928df8b99e990f097ba6f5023184bad67e27551fe49918381/datatable-0.10.0-cp36-cp36m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/c4/e8/b96bc264e9e5a7a2589d4d6428ea0b93a46d1e551aba63cd44b595f951f4/datatable-0.10.0-cp36-cp36m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/a1/b4/bcb0d0b1c1785d089a43895d5c4e39261792777db2d18e1e1f08c0ee88a6/datatable-0.10.0-cp37-cp37m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/65/eb/005bec115fcd86b3428646361ea2ec20f4647320eda79c1002482c24f386/datatable-0.10.0-cp37-cp37m-manylinux2010_x86_64.whl
 
   Columnsets
   ----------

@@ -1,0 +1,19 @@
+
+.. currentmodule:: datatable
+
+.. changelog::
+  :version: 0.4.0
+  :released: 2018-05-07
+  :wheels: https://files.pythonhosted.org/packages/af/10/5f458bb24545845da3f290179a139f93c9c6966a3817fab9049f930cd5b8/datatable-0.4.0.tar.gz
+
+  .. ref-context:: datatable
+
+
+  -[enh] :func:`fread` now parses integers with thousands separator (for example
+    ``1,000``).
+
+  -[enh] Added option ``fread.anonymize`` which forces fread to anonymize all
+    user input in the verbose logs / error messages.
+
+  -[enh] Allow type-casts from booleans / integers / floats into strings.
+
