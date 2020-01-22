@@ -287,16 +287,14 @@ ansiColor('xterm') {
                                             -e DT_RELEASE=${DT_RELEASE} \
                                             -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
                                             -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
-                                            -e UID=`id -u` \
-                                            -e GID=`id -g` \
                                             --entrypoint /bin/bash \
                                             ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
                                             -c "cd /dot && \
                                                 ls -la && \
                                                 ls -la src/datatable && \
                                                 sed -i \\\"s/if 'ld-linux' in lib:/if 'ld-linux' in lib or 'ld64.so' in lib:/\\\" /opt/_internal/cpython-3.7.6/lib/python3.7/site-packages/auditwheel/policy/external_references.py && \
-                                                groupadd -g \$GID jenkins && \
-                                                useradd -u \$UID -g \$GID jenkins && \
+                                                groupadd -g `id -g` jenkins && \
+                                                useradd -u `id -u` -g jenkins jenkins && \
                                                 su jenkins && \
                                                 /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
