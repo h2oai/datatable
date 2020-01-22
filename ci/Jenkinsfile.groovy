@@ -383,33 +383,37 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py37 with Pandas on ppc64le_centos7', runPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-centos7-py37', runPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
-                            buildSummary.stageWithSummary(stageName) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le_centos7-py37-whl'
-                                    testInDocker('centos7_test_py37_with_pandas_in_docker', needsLargerTest)
+                                    test_in_docker("ppc64le-centos7-py37", "37",
+                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                                   needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 with Pandas on ppc64le_centos7', runPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-centos7-py36', runPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
-                            buildSummary.stageWithSummary(stageName) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le_centos7-py36-whl'
-                                    testInDocker('centos7_test_py36_with_pandas_in_docker', needsLargerTest)
+                                    test_in_docker("ppc64le-centos7-py36", "36",
+                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                                   needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test Py35 with Pandas on ppc64le_centos7', runPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-centos7-py35', runPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -417,7 +421,9 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le_centos7-py35-whl'
-                                    testInDocker('centos7_test_py35_with_pandas_in_docker', needsLargerTest)
+                                    test_in_docker("ppc64le-centos7-py35", "35",
+                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                                   needsLargerTest)
                                 }
                             }
                         }
@@ -753,7 +759,7 @@ def get_python_for_docker(String pyver, String image) {
     if (image == DOCKER_IMAGE_X86_64_UBUNTU) {
         return "python" + pyver[0] + "." + pyver[1]
     }
-    if (image == DOCKER_IMAGE_X86_64_CENTOS) {
+    if (image == DOCKER_IMAGE_X86_64_CENTOS || image == DOCKER_IMAGE_PPC64LE_CENTOS) {
         if (pyver == "35") return "/opt/h2oai/dai/python/envs/datatable-py35-with-pandas/bin/python3.5"
         if (pyver == "36") return "/opt/h2oai/dai/python/envs/datatable-py36-with-pandas/bin/python3.6"
         if (pyver == "37") return "/opt/h2oai/dai/python/envs/datatable-py37-with-pandas/bin/python3.7"
