@@ -280,65 +280,7 @@ centos7_build_py36_in_docker:
 centos7_build_py35_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py35-with-pandas centos7_build_in_docker_impl
 
-centos7_version_in_docker:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		$(CUSTOM_ARGS) \
-		$(CENTOS_DOCKER_IMAGE_NAME) \
-		-c ". activate datatable-py36-with-pandas && \
-			python ext.py geninfo"
 
-centos7_test_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		$(CUSTOM_ARGS) \
-		$(CENTOS_DOCKER_IMAGE_NAME) \
-		-c ". activate $(TEST_VENV) && \
-			python --version && \
-			pip install --no-cache-dir --upgrade dist/*.whl && \
-			make CI=$(CI) MODULE=datatable test_install && \
-			make test CI=$(CI)"
-
-centos7_test_py37_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py37-with-pandas centos7_test_in_docker_impl
-
-centos7_test_py36_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36-with-pandas centos7_test_in_docker_impl
-
-centos7_test_py35_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py35-with-pandas centos7_test_in_docker_impl
-
-centos7_test_py36_with_numpy_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36-with-numpy centos7_test_in_docker_impl
-
-centos7_test_py36_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36 centos7_test_in_docker_impl
-
-ubuntu_build_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		$(CUSTOM_ARGS) \
-		$(UBUNTU_DOCKER_IMAGE_NAME) \
-		-c ". /envs/$(BUILD_VENV)/bin/activate && \
-			python --version && \
-			make CI=$(CI) dist"
 
 ubuntu_build_sdist_in_docker:
 	docker run \
@@ -355,14 +297,7 @@ ubuntu_build_sdist_in_docker:
 			python --version && \
 			make CI=$(CI) sdist"
 
-ubuntu_build_py37_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py37-with-pandas ubuntu_build_in_docker_impl
 
-ubuntu_build_py36_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py36-with-pandas ubuntu_build_in_docker_impl
-
-ubuntu_build_py35_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py35-with-pandas ubuntu_build_in_docker_impl
 
 ubuntu_coverage_py36_with_pandas_in_docker:
 	docker run \
@@ -378,46 +313,3 @@ ubuntu_coverage_py36_with_pandas_in_docker:
 		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
 			python --version && \
 			make coverage"
-
-ubuntu_test_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		$(CUSTOM_ARGS) \
-		$(UBUNTU_DOCKER_IMAGE_NAME) \
-		-c ". /envs/$(TEST_VENV)/bin/activate && \
-			python --version && \
-			pip freeze && \
-			pip install --no-cache-dir dist/*.whl && \
-			python --version && \
-			make CI=$(CI) MODULE=datatable test_install && \
-			make CI=$(CI) test"
-
-ubuntu_test_py37_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py37-with-pandas ubuntu_test_in_docker_impl
-
-ubuntu_test_py36_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36-with-pandas ubuntu_test_in_docker_impl
-
-ubuntu_test_py35_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py35-with-pandas ubuntu_test_in_docker_impl
-
-ubuntu_test_py36_with_numpy_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36-with-numpy ubuntu_test_in_docker_impl
-
-ubuntu_test_py36_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36 ubuntu_test_in_docker_impl
-
-
-printvars:
-	@echo PLATFORM=$(PLATFORM)
-	@echo CONTAINER_TAG=$(CONTAINER_TAG)
-	@echo CONTAINER_NAME=$(CONTAINER_NAME)
-
-clean::
-	rm -f Dockerfile-centos7.$(PLATFORM)
