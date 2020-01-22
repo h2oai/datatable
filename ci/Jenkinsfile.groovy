@@ -46,16 +46,13 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 ///////////////
 // CONSTANTS //
 ///////////////
-X86_64_BUILD_NODE_LABEL = "buildMachine"
-NODE_LABEL = 'docker && !mr-0xc8'
-OSX_NODE_LABEL = 'osx'
-PPC_NODE_LABEL = 'ibm-power'
-RELEASE_NODE_LABEL = 'master'
-RELEASE_BRANCH_PREFIX = 'rel-'
-CREDS_ID = 'h2o-ops-personal-auth-token'
-GITCONFIG_CRED_ID = 'master-gitconfig'
-RSA_CRED_ID = 'master-id-rsa'
-X86_64_CENTOS_DOCKER_IMAGE_NAME = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7"
+NODE_LINUX_BUILD = "buildMachine"
+NODE_LINUX_TESTS = 'docker && !mr-0xc8'
+NODE_MACOS = 'osx'
+NODE_PPC = 'ibm-power'
+NODE_RELEASE = 'master'
+
+
 EXPECTED_SHAS = [
     files: [
         'ci/Dockerfile-centos7.in': '0dbfd08d5857fdaa5043ffae386895d4fe524a47',
@@ -63,17 +60,9 @@ EXPECTED_SHAS = [
     ]
 ]
 
-OSX_ENV = ["LLVM6=/usr/local/opt/llvm@6", "CI_EXTRA_COMPILE_ARGS=-DDISABLE_CLOCK_REALTIME"]
-OSX_CONDA_ACTIVATE_PATH = '/Users/jenkins/anaconda/bin/activate'
 // Paths should be absolute
-SOURCE_DIR = "/home/0xdiag"
-TARGET_DIR = "/tmp/pydatatable_large_data"
-BUCKET = 'h2o-release'
-STABLE_FOLDER = 'datatable/stable'
-LATEST_STABLE = 'datatable/latest_stable'
-S3_URL_STABLE = "s3://${BUCKET}/${STABLE_FOLDER}"
-S3_URL_LATEST_STABLE = "s3://${BUCKET}/${LATEST_STABLE}"
-HTTPS_URL_STABLE = "https://${BUCKET}.s3.amazonaws.com/${STABLE_FOLDER}"
+S3_URL_STABLE = "s3://h2o-release/datatable/stable"
+HTTPS_URL_STABLE = "https://h2o-release.s3.amazonaws.com/datatable/stable"
 // Data map for linking into container
 LINK_MAP = [
     "Data"     : "h2oai-benchmarks/Data",
@@ -83,11 +72,11 @@ LINK_MAP = [
 ]
 
 
-DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_PPC64LE_MANYLINUX = "quay.io/pypa/manylinux2014_ppc64le"
+DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:0.8.0-master.9"
+DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
-DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:0.8.0-master.9"
 
 // Computed version suffix
 // def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
@@ -95,7 +84,6 @@ DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_ce
 def project
 // Needs invocation of larger tests
 def needsLargerTest
-def dockerArgs = createDockerArgs()
 // String with current version
 def versionText
 // String with current git revision
@@ -106,9 +94,11 @@ def isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
 def doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL_TESTS
 def doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
 def doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
+def doCoverage = !params.DISABLE_COVERAGE
 
 doPpcTests = true
 doPpcBuild = true
+doCoverage = false
 
 MAKE_OPTS = "CI=1"
 
@@ -138,7 +128,7 @@ ansiColor('xterm') {
         }
         timeout(time: 180, unit: 'MINUTES') {
             // Checkout stage
-            node(X86_64_BUILD_NODE_LABEL) {
+            node(NODE_LINUX_BUILD) {
                 def stageDir = 'checkout'
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
@@ -159,16 +149,16 @@ ansiColor('xterm') {
                         if (isRelease()) {
                             DT_RELEASE = 'True'
                         }
-                        else if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
-                            DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + env.BUILD_ID
+                        else if (env.BRANCH_NAME == 'master') {
+                            DT_BUILD_NUMBER = env.BUILD_ID
                         }
                         else {
-                            DT_BUILD_NUMBER = env.BUILD_ID
+                            DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + env.BUILD_ID
                         }
 
                         needsLargerTest = isModified("c/(read|csv)/.*")
                         if (needsLargerTest) {
-                            env.DT_LARGE_TESTS_ROOT = TARGET_DIR
+                            env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
                             manager.addBadge("warning.gif", "Large tests required")
                         }
 
@@ -216,7 +206,7 @@ ansiColor('xterm') {
             // Build stages
             parallel([
                 'Build on x86_64-manylinux': {
-                    node(X86_64_BUILD_NODE_LABEL) {
+                    node(NODE_LINUX_BUILD) {
                         final stageDir = 'build-x86_64-manylinux'
                         buildSummary.stageWithSummary('Build on x86_64-manylinux', stageDir) {
                             cleanWs()
@@ -248,7 +238,7 @@ ansiColor('xterm') {
                     }
                 },
                 'Build on x86_64-macos': {
-                    node(OSX_NODE_LABEL) {
+                    node(NODE_MACOS) {
                         def stageDir = 'build-x86_64-macos'
                         buildSummary.stageWithSummary('Build on x86_64-macos', stageDir) {
                             cleanWs()
@@ -276,7 +266,7 @@ ansiColor('xterm') {
                 },
                 'Build on ppc64le-manylinux': {
                     if (doPpcBuild) {
-                        node(PPC_NODE_LABEL) {
+                        node(NODE_PPC) {
                             final stageDir = 'build-ppc64le_centos7'
                             buildSummary.stageWithSummary('Build on ppc64le_centos7', stageDir) {
                                 cleanWs()
@@ -322,7 +312,7 @@ ansiColor('xterm') {
                 def testStages = [:]
                 testStages <<
                     namedStage('Test x86_64-ubuntu-py37', { stageName, stageDir ->
-                        node(NODE_LABEL) {
+                        node(NODE_LINUX_TESTS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -337,7 +327,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-ubuntu-py36', { stageName, stageDir ->
-                        node(NODE_LABEL) {
+                        node(NODE_LINUX_TESTS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -352,7 +342,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-ubuntu-py35', { stageName, stageDir ->
-                        node(NODE_LABEL) {
+                        node(NODE_LINUX_TESTS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -367,7 +357,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-centos7-py37', { stageName, stageDir ->
-                        node(NODE_LABEL) {
+                        node(NODE_LINUX_TESTS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -382,7 +372,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-centos7-py35', { stageName, stageDir ->
-                        node(NODE_LABEL) {
+                        node(NODE_LINUX_TESTS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -397,7 +387,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test ppc64le-centos7-py37', doPpcTests, { stageName, stageDir ->
-                        node(PPC_NODE_LABEL) {
+                        node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -412,7 +402,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test ppc64le-centos7-py36', doPpcTests, { stageName, stageDir ->
-                        node(PPC_NODE_LABEL) {
+                        node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -427,7 +417,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test ppc64le-centos7-py35', doPpcTests, { stageName, stageDir ->
-                        node(PPC_NODE_LABEL) {
+                        node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -442,7 +432,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-macos-py37', { stageName, stageDir ->
-                        node(OSX_NODE_LABEL) {
+                        node(NODE_MACOS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -455,7 +445,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-macos-py36', { stageName, stageDir ->
-                        node(OSX_NODE_LABEL) {
+                        node(NODE_MACOS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -468,7 +458,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-macos-py35', { stageName, stageDir ->
-                        node(OSX_NODE_LABEL) {
+                        node(NODE_MACOS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -484,10 +474,10 @@ ansiColor('xterm') {
                 parallel(testStages)
             }
             // Coverage stages
-            if (false && !params.DISABLE_COVERAGE) {
+            if (doCoverage) {
                 parallel ([
                     'Coverage on x86_64_linux': {
-                        node(NODE_LABEL) {
+                        node(NODE_LINUX_TESTS) {
                             final stageDir = 'coverage-x86_64_linux'
                             buildSummary.stageWithSummary('Coverage on x86_64_linux', stageDir) {
                                 cleanWs()
@@ -506,19 +496,17 @@ ansiColor('xterm') {
                         }
                     },
                     'Coverage on x86_64_macos': {
-                        node(OSX_NODE_LABEL) {
+                        node(NODE_MACOS) {
                             final stageDir = 'coverage-x86_64_osx'
                             buildSummary.stageWithSummary('Coverage on x86_64_macos', stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    withEnv(OSX_ENV) {
-                                        sh """
-                                            . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
-                                            make ${MAKE_OPTS} coverage
-                                        """
-                                    }
+                                    sh """
+                                        . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
+                                        make ${MAKE_OPTS} coverage
+                                    """
                                     testReport "build/coverage-c", "x86_64_osx coverage report for C"
                                     testReport "build/coverage-py", "x86_64_osx coverage report for Python"
                                 }
@@ -529,7 +517,7 @@ ansiColor('xterm') {
             }
             // Publish snapshot to S3
             if (doPublish()) {
-                node(RELEASE_NODE_LABEL) {
+                node(NODE_RELEASE) {
                     def stageDir = 'publish-snapshot'
                     buildSummary.stageWithSummary('Publish Snapshot to S3', stageDir) {
                         cleanWs()
@@ -570,7 +558,7 @@ ansiColor('xterm') {
                 // TODO: merge this stage with the previous one?
                 //       The functionality is pretty much duplicated here...
                 //
-                node(RELEASE_NODE_LABEL) {
+                node(NODE_RELEASE) {
                     def stageDir = 'release'
                     buildSummary.stageWithSummary('Release', stageDir) {
                         timeout(unit: 'HOURS', time: 24) {
@@ -640,7 +628,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_args += "-v `pwd`/build/cores:/tmp/cores "
         if (large_tests) {
             LINK_MAP.each { key, value ->
-                docker_args += "-v ${SOURCE_DIR}/${key}:/data/${value} "
+                docker_args += "-v /home/0xdiag/${key}:/data/${value} "
             }
             docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
         }
@@ -738,13 +726,13 @@ def doPublish() {
 }
 
 def isRelease() {
-    return env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)
+    return env.BRANCH_NAME.startsWith("rel-")
 }
 
 def createDockerArgs() {
     def out = ""
     LINK_MAP.each { key, value ->
-        out += "-v ${SOURCE_DIR}/${key}:${TARGET_DIR}/${value} "
+        out += "-v /home/0xdiag/${key}:/tmp/pydatatable_large_data/${value} "
     }
     out += "-v /tmp/cores:/tmp/cores "
     return out

@@ -210,19 +210,6 @@ centos7_docker_build: Dockerfile-centos7.$(PLATFORM).tag
 centos7_docker_publish: Dockerfile-centos7.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
-centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
-	make clean
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		$(CONTAINER_NAME_TAG) \
-		-c 'make wheel'
-	mkdir -p $(DIST_DIR)/$(PLATFORM)
-	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
 
 #
 # Ubuntu image - will be removed
@@ -243,34 +230,7 @@ ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
 	docker push $(CONTAINER_NAME_TAG)
 
 ARCH_NAME ?= $(shell uname -m)
-DOCKER_IMAGE_TAG ?= 0.8.0-master.9
-CENTOS_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
-UBUNTU_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
-
-
-centos7_build_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		$(CUSTOM_ARGS) \
-		$(CENTOS_DOCKER_IMAGE_NAME) \
-		-c ". activate $(BUILD_VENV) && \
-			make wheel"
-
-centos7_build_py37_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py37-with-pandas centos7_build_in_docker_impl
-
-centos7_build_py36_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py36-with-pandas centos7_build_in_docker_impl
-
-centos7_build_py35_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py35-with-pandas centos7_build_in_docker_impl
-
-
+UBUNTU_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:0.8.0-master.9
 
 
 ubuntu_coverage_py36_with_pandas_in_docker:
