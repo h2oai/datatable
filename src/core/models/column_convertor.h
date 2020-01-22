@@ -22,6 +22,7 @@
 #ifndef dt_MODELS_COLUMN_CONVERTOR_h
 #define dt_MODELS_COLUMN_CONVERTOR_h
 #include "models/utils.h"
+#include "parallel/api.h"
 #include "types.h"
 
 
@@ -117,15 +118,30 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
   using R = typename std::conditional<std::is_integral<T1>::value,
                                       int64_t, double>::type;
   R min, max;
-  bool res = column_in.stats()->get_stat(Stat::Min, &min);
+  bool res_min = column.stats()->get_stat(Stat::Min, &min);
+  bool res_max = column.stats()->get_stat(Stat::Max, &max);
 
-  if (res) {
-    column_in.stats()->get_stat(Stat::Max, &max);
-  } else {
-    // The column consists of the missing values
+  if (!res_min || !res_max) {
+    // The column consists of all the missing values
     min = R(0);
     max = R(0);
   }
+
+  if (std::isinf(min) || std::isinf(max)) {
+    // If the incoming data contain infinite values,
+    // replace them with the NA's.
+    column.materialize();
+    auto data = static_cast<T1*>(column.get_data_editable());
+
+    dt::parallel_for_static(column.nrows(), [&](size_t i) {
+      if (std::isinf(data[i])) {
+        data[i] = GETNA<T1>();
+      }
+    });
+    column.stats()->get_stat(Stat::Min, &min);
+    column.stats()->get_stat(Stat::Max, &max);
+  }
+
   this->min = static_cast<T2>(min);
   this->max = static_cast<T2>(max);
 }

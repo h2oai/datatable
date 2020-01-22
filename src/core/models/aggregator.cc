@@ -595,6 +595,7 @@ bool Aggregator<T>::group_1d_categorical() {
     CString val;
     size_t row;
     bool row_valid = ri.get_element(0, &row);
+    (void) row_valid;
     xassert(row_valid);
     na_group = !col.get_element(row, &val);
   }
@@ -700,6 +701,7 @@ bool Aggregator<T>::group_2d_mixed()
     CString val;
     size_t row;
     bool row_valid = ri.get_element(0, &row);
+    (void) row_valid;
     xassert(row_valid);
     na_cat_group = !col0.get_element(row, &val);
   }
