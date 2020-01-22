@@ -840,9 +840,10 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
             }
             docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
         }
+        def python = get_python_for_docker(pyver, docker_image)
         def docker_cmd = ""
         docker_cmd += "cd /dt && ls dist/ && "
-        docker_cmd += "virtualenv /tmp/pyenv --python=python" + pyver[0] + "." + pyver[1] + " && "
+        docker_cmd += "virtualenv /tmp/pyenv --python=" + python + " && "
         docker_cmd += "source /tmp/pyenv/bin/activate && "
         docker_cmd += "python -VV && "
         docker_cmd += "pip install --upgrade pip && "
@@ -862,6 +863,24 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         archiveArtifacts artifacts: "build/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
+}
+
+def get_python_for_docker(String pyver, String image) {
+    if (image == DOCKER_IMAGE_X86_64_UBUNTU) {
+        return "python" + pyver[0] + "." + pyver[1]
+    }
+    if (image == DOCKER_IMAGE_X86_64_CENTOS) {
+        if (pyver == "35") return "/opt/h2oai/dai/python/pkgs/python-3.5.6-hc3d631a_0/bin/python3.5"
+        if (pyver == "36") return "/opt/h2oai/dai/python/pkgs/python-3.6.8-h0371630_0/bin/python3.6"
+        if (pyver == "37") return "/opt/h2oai/dai/python/pkgs/python-3.7.3-h0371630_0/bin/python3.7"
+    }
+    if (image == DOCKER_IMAGE_X86_64_MANYLINUX) {
+        if (pyver == "35") return "/opt/python/cp35-cp35m/bin/python3.5"
+        if (pyver == "36") return "/opt/python/cp36-cp36m/bin/python3.6"
+        if (pyver == "37") return "/opt/python/cp37-cp37m/bin/python3.7"
+        if (pyver == "38") return "/opt/python/cp38-cp38/bin/python3.8"
+    }
+    throw new Exception("Unknown python ${pyver} for docker ${image}")
 }
 
 
