@@ -128,14 +128,14 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
     min = R(0);
     max = R(0);
   }
-  else if (!_isfinite(min) || !_isfinite(max)) {
+  else if (_isinf(min) || _isinf(max)) {
     // When the column contains infinite values,
     // replace those with NA's.
     column_.materialize(); // noop if a column is not a view
     auto data = static_cast<T1*>(column_.get_data_editable());
 
     dt::parallel_for_static(column_.nrows(), [&](size_t i) {
-      if (!_isfinite(data[i])) {
+      if (_isinf(data[i])) {
         data[i] = GETNA<T1>();
       }
     });

@@ -97,6 +97,14 @@ inline T1 squared_loss(T1 p, T2 y) {
 
 
 /**
+ *  Portable implementation of std::isinf.
+ */
+template <typename T> inline bool _isinf(T) { return false; }
+template <> inline bool _isinf(float x) { return std::isinf(x); }
+template <> inline bool _isinf(double x) { return std::isinf(x); }
+
+
+/**
  *  Portable implementation of std::isfinite.
  */
 template <typename T> inline bool _isfinite(T) { return true; }
