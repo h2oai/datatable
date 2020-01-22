@@ -187,6 +187,9 @@ ansiColor('xterm') {
                                 -v `pwd`:/dot \
                                 -u `id -u`:`id -g` \
                                 -w /dot \
+                                -e DT_RELEASE=${env.DT_RELEASE} \
+                                -e DT_BUILD_SUFFIX=${env.DT_BUILD_SUFFIX} \
+                                -e DT_BUILD_NUMBER=${env.DT_BUILD_NUMBER} \
                                 --entrypoint /bin/bash \
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
                                 -c "env && /opt/python/cp36-cp36m/bin/python3.6 ext.py sdist"
