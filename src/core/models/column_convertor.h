@@ -123,14 +123,15 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
   bool res_max = column.stats()->get_stat(Stat::Max, &max);
 
   if (!res_min || !res_max) {
-    // The column consists of all the missing values
+    // When the column consists of all the missing values,
+    // set min = max = 0;
     min = R(0);
     max = R(0);
   }
   else if (std::isinf(min) || std::isinf(max)) {
-    // If the incoming data contain infinite values,
-    // replace them with the NA's.
-    column.materialize();
+    // When the column contains infinite values,
+    // replace those with NA's.
+    column.materialize(); // noop if a column is not a view
     auto data = static_cast<T1*>(column.get_data_editable());
 
     dt::parallel_for_static(column.nrows(), [&](size_t i) {
