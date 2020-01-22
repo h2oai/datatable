@@ -181,17 +181,20 @@ ansiColor('xterm') {
                             }
                         }
                     }
-                    buildSummary.stageWithSummary('Generate version file', stageDir) {
+                    buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
                         sh """
                             docker run --rm \
                                 -v `pwd`:/dot \
                                 -w /dot \
                                 --entrypoint /bin/bash \
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
-                                -c "/opt/python/cp36-cp36m/bin/python3.6 ext.py geninfo --strict"
+                                -c "/opt/python/cp36-cp36m/bin/python3.6 ext.py sdist"
                         """
                         sh "cat src/datatable/_build_info.py"
                         arch "src/datatable/_build_info.py"
+                        stash includes: 'dist/*.tar.gz', name: 'sdist'
+                        arch "dist/*.tar.gz"
+                        sh "rm -f dist/*.tar.gz"
                     }
                     stash name: 'datatable-sources', useDefaultExcludes: false
                 }
@@ -236,8 +239,6 @@ ansiColor('xterm') {
                             dir(stageDir) {
                                 unstash 'datatable-sources'
                                 withEnv(OSX_ENV) {
-                                    // unstash 'VERSION'
-                                    // unstash 'GIT_HASH_FILE'
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py37-with-pandas
                                         make ${MAKE_OPTS} clean
@@ -245,8 +246,6 @@ ansiColor('xterm') {
                                     """
                                     stash name: 'x86_64_osx-py37-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    // unstash 'VERSION'
-                                    // unstash 'GIT_HASH_FILE'
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
                                         make ${MAKE_OPTS} clean
@@ -254,8 +253,6 @@ ansiColor('xterm') {
                                     """
                                     stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
-                                    // unstash 'VERSION'
-                                    // unstash 'GIT_HASH_FILE'
                                     sh """
                                         . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
                                         make ${MAKE_OPTS} clean
@@ -278,18 +275,12 @@ ansiColor('xterm') {
                                     dumpInfo()
                                     dir(stageDir) {
                                         unstash 'datatable-sources'
-                                        // unstash 'VERSION'
-                                        // unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
                                         stash name: 'ppc64le_centos7-py37-whl', includes: "dist/*.whl"
                                         arch "dist/*.whl"
-                                        // unstash 'VERSION'
-                                        // unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
                                         stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
                                         arch "dist/*.whl"
-                                        // unstash 'VERSION'
-                                        // unstash 'GIT_HASH_FILE'
                                         sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
                                         stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
                                         arch "dist/*.whl"
@@ -513,21 +504,6 @@ ansiColor('xterm') {
                     }
                 ])
             }
-            // Build sdist
-            node(X86_64_BUILD_NODE_LABEL) {
-                def stageDir = 'build-sdist'
-                buildSummary.stageWithSummary ('Build sdist', stageDir) {
-                    cleanWs()
-                    dumpInfo()
-                    dir (stageDir) {
-                        unstash 'datatable-sources'
-                        unstash 'VERSION'
-                        sh "make ${MAKE_OPTS} ubuntu_build_sdist_in_docker"
-                        stash includes: 'dist/*.tar.gz', name: 'sdist-tar'
-                        arch "dist/*.tar.gz"
-                    }
-                }
-            }
             // Publish snapshot to S3
             if (doPublish()) {
                 node(RELEASE_NODE_LABEL) {
@@ -580,7 +556,7 @@ ansiColor('xterm') {
                             }
 
                             dir('sdist') {
-                                unstash 'sdist-tar'
+                                unstash 'sdist'
                                 s3upDocker {
                                     localArtifact = 'dist/*.tar.gz'
                                     artifactId = 'pydatatable'
@@ -606,7 +582,6 @@ ansiColor('xterm') {
                         dumpInfo()
                         dir(stageDir) {
                             checkout scm
-                            unstash 'VERSION'
                             unstash 'x86_64-manylinux-wheels'
                             unstash 'x86_64_osx-py37-whl'
                             unstash 'x86_64_osx-py36-whl'
@@ -614,7 +589,7 @@ ansiColor('xterm') {
                             unstash 'ppc64le_centos7-py37-whl'
                             unstash 'ppc64le_centos7-py36-whl'
                             unstash 'ppc64le_centos7-py35-whl'
-                            unstash 'sdist-tar'
+                            unstash 'sdist'
                         }
                         docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {
                             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
