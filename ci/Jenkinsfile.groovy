@@ -516,59 +516,35 @@ ansiColor('xterm') {
                         cleanWs()
                         dumpInfo()
                         dir(stageDir) {
-
-                            dir('x86_64-centos7') {
-                                unstash 'x86_64-manylinux-wheels'
-                                s3upDocker {
-                                    localArtifact = 'dist/*.whl'
-                                    artifactId = 'pydatatable'
-                                    version = versionText
-                                    keepPrivate = false
-                                    platform = 'x86_64-centos7'
-                                    isRelease = true
-                                }
-                            }
-
+                            sh "rm -rf dist"
+                            unstash 'x86_64-manylinux-wheels'
+                            unstash 'x86_64-macos-wheels'
+                            unstash 'sdist'
                             if (doPpcBuild) {
-                                dir('ppc64le-centos7') {
-                                    unstash 'ppc64le_centos7-py37-whl'
-                                    unstash 'ppc64le_centos7-py36-whl'
-                                    unstash 'ppc64le_centos7-py35-whl'
-                                    s3upDocker {
-                                        localArtifact = 'dist/*.whl'
-                                        artifactId = 'pydatatable'
-                                        version = versionText
-                                        keepPrivate = false
-                                        platform = 'ppc64le-centos7'
-                                        isRelease = true
-                                    }
-                                }
+                                unstash 'ppc64le_centos7-py37-whl'
+                                unstash 'ppc64le_centos7-py36-whl'
+                                unstash 'ppc64le_centos7-py35-whl'
                             }
-
-                            dir('x86_64-osx') {
-                                unstash 'x86_64-macos-wheels'
-                                s3upDocker {
-                                    localArtifact = 'dist/*.whl'
-                                    artifactId = 'pydatatable'
-                                    version = versionText
-                                    keepPrivate = false
-                                    platform = 'x86_64-osx'
-                                    isRelease = true
-                                }
+                            // FIXME: ${versionText} is an undefined variable.
+                            //        It has to be extracted from the filenames
+                            //        of the wheels/sdist:
+                            //
+                            //            dist/datatable-${version}.tar.gz
+                            //            dist/datatable-${version}-*.whl
+                            //
+                            //        At this point we'd also want to verify
+                            //        that the versions on all files are the
+                            //        same, and that if we are in release mode
+                            //        the version contains only digits and dots.
+                            //
+                            s3upDocker {
+                                localArtifact = 'dist/*'
+                                artifactId = 'datatable'
+                                version = versionText
+                                keepPrivate = false
+                                isRelease = isRelease()
                             }
-
-                            dir('sdist') {
-                                unstash 'sdist'
-                                s3upDocker {
-                                    localArtifact = 'dist/*.tar.gz'
-                                    artifactId = 'pydatatable'
-                                    version = versionText
-                                    keepPrivate = false
-                                    platform = 'any'
-                                    isRelease = true
-                                }
-                            }
-                        }
+                       }
                     }
                 }
             }
@@ -690,6 +666,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
     junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
 }
 
+
 def get_python_for_docker(String pyver, String image) {
     if (image == DOCKER_IMAGE_X86_64_UBUNTU) {
         return "python" + pyver[0] + "." + pyver[1]
@@ -712,6 +689,7 @@ def get_python_for_docker(String pyver, String image) {
 def test_macos(String pyver, boolean needsLargerTest) {
     try {
         sh """
+            rm -f /tmp/cores/*
             env
             . /Users/jenkins/anaconda/bin/activate datatable-py${pyver}-with-pandas
             pip install --upgrade pip
@@ -726,8 +704,8 @@ def test_macos(String pyver, boolean needsLargerTest) {
                 tests
         """
     } finally {
-        sh "ls -la build/cores"
-        archiveArtifacts artifacts: "build/cores/*", allowEmptyArchive: true
+        sh "ls -la /tmp/cores"
+        archiveArtifacts artifacts: "/tmp/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-datatable.xml", keepLongStdio: true, allowEmptyResults: false
 }
