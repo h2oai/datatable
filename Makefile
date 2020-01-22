@@ -142,21 +142,13 @@ coverage:
 
 .PHONY: wheel
 wheel:
-	@$(PYTHON) ext.py wheel -d $(DIST_DIR)
-
-
-.PHONY: dist
-dist: wheel
+	@$(PYTHON) ext.py wheel
 
 
 .PHONY: sdist
 sdist:
 	@$(PYTHON) ext.py sdist
 
-
-.PHONY: version
-version:
-	@$(PYTHON) ci/setup_utils.py version
 
 
 
@@ -278,22 +270,6 @@ centos7_build_py36_in_docker:
 centos7_build_py35_in_docker:
 	$(MAKE) BUILD_VENV=datatable-py35-with-pandas centos7_build_in_docker_impl
 
-
-
-ubuntu_build_sdist_in_docker:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		$(CUSTOM_ARGS) \
-		$(UBUNTU_DOCKER_IMAGE_NAME) \
-		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
-			python --version && \
-			make CI=$(CI) sdist"
 
 
 

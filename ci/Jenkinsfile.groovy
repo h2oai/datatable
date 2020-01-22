@@ -84,6 +84,7 @@ LINK_MAP = [
 
 
 DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
+DOCKER_IMAGE_PPC64LE_MANYLINUX = "quay.io/pypa/manylinux2014_ppc64le"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
 DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:0.8.0-master.9"
@@ -106,6 +107,8 @@ def doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE
 def doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
 def doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
 
+doPpcTests = true
+doPpcBuild = true
 
 MAKE_OPTS = "CI=1"
 
@@ -271,30 +274,46 @@ ansiColor('xterm') {
                         }
                     }
                 },
-                'Build on ppc64le_centos7': {
+                'Build on ppc64le-manylinux': {
                     if (doPpcBuild) {
                         node(PPC_NODE_LABEL) {
                             final stageDir = 'build-ppc64le_centos7'
                             buildSummary.stageWithSummary('Build on ppc64le_centos7', stageDir) {
                                 cleanWs()
                                 dumpInfo()
+
+                                // "sed" line below applies patch https://github.com/pypa/auditwheel/pull/213
+                                // It can be removed when the PR is merged and new ppc64le image is available
+                                //
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py37_in_docker"
-                                    stash name: 'ppc64le_centos7-py37-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py36_in_docker"
-                                    stash name: 'ppc64le_centos7-py36-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                    sh "make ${MAKE_OPTS} clean && make ${MAKE_OPTS} centos7_build_py35_in_docker"
-                                    stash name: 'ppc64le_centos7-py35-whl', includes: "dist/*.whl"
+                                    sh """
+                                        docker run --rm --init \
+                                            -u `id -u`:`id -g` \
+                                            -v `pwd`:/dot \
+                                            -e DT_RELEASE=${DT_RELEASE} \
+                                            -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
+                                            -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
+                                            --entrypoint /bin/bash \
+                                            ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
+                                            -c "cd /dot && \
+                                                ls -la && \
+                                                ls -la src/datatable && \
+                                                sed -i "s/if 'ld-linux' in lib:/if 'ld-linux' in lib or 'ld64.so' in lib:/" /opt/_internal/cpython-3.7.6/lib/python3.7/site-packages/auditwheel/policy/external_references.py && \
+                                                /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
+                                                /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
+                                                /opt/python/cp37-cp37m/bin/python3.7 ext.py wheel --audit && \
+                                                /opt/python/cp38-cp38/bin/python3.8 ext.py wheel --audit && \
+                                                ls -la dist"
+                                    """
+                                    stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl"
                                     arch "dist/*.whl"
                                 }
                             }
                         }
                     } else {
-                        echo 'Build on ppc64le_centos7 SKIPPED'
-                        markSkipped("Build on ppc64le_centos7")
+                        echo 'Build on ppc64le-manylinux SKIPPED'
+                        markSkipped("Build on ppc64le-manylinux")
                     }
                 }
             ])
@@ -384,7 +403,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'ppc64le_centos7-py37-whl'
+                                    unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-centos7-py37", "37",
                                                    DOCKER_IMAGE_PPC64LE_CENTOS,
                                                    needsLargerTest)
@@ -399,7 +418,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'ppc64le_centos7-py36-whl'
+                                    unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-centos7-py36", "36",
                                                    DOCKER_IMAGE_PPC64LE_CENTOS,
                                                    needsLargerTest)
@@ -414,7 +433,7 @@ ansiColor('xterm') {
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'ppc64le_centos7-py35-whl'
+                                    unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-centos7-py35", "35",
                                                    DOCKER_IMAGE_PPC64LE_CENTOS,
                                                    needsLargerTest)
@@ -521,9 +540,7 @@ ansiColor('xterm') {
                             unstash 'x86_64-macos-wheels'
                             unstash 'sdist'
                             if (doPpcBuild) {
-                                unstash 'ppc64le_centos7-py37-whl'
-                                unstash 'ppc64le_centos7-py36-whl'
-                                unstash 'ppc64le_centos7-py35-whl'
+                                unstash 'ppc64le-manylinux-wheels'
                             }
                             // FIXME: ${versionText} is an undefined variable.
                             //        It has to be extracted from the filenames
@@ -565,9 +582,7 @@ ansiColor('xterm') {
                             checkout scm
                             unstash 'x86_64-manylinux-wheels'
                             unstash 'x86_64-macos-wheels'
-                            unstash 'ppc64le_centos7-py37-whl'
-                            unstash 'ppc64le_centos7-py36-whl'
-                            unstash 'ppc64le_centos7-py35-whl'
+                            unstash 'ppc64le-manylinux-wheels'
                             unstash 'sdist'
                         }
                         docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {
