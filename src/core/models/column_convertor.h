@@ -135,7 +135,7 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
     auto data = static_cast<T1*>(column_.get_data_editable());
 
     dt::parallel_for_static(column_.nrows(), [&](size_t i) {
-      if (std::isinf(data[i])) {
+      if (!_isfinite(data[i])) {
         data[i] = GETNA<T1>();
       }
     });
