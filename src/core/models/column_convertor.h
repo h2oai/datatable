@@ -46,9 +46,9 @@ class ColumnConvertor {
     T get_max() const;
 
   protected:
-    T min;
-    T max;
-    size_t nrows;
+    T min_;
+    T max_;
+    size_t nrows_;
 };
 
 
@@ -58,7 +58,7 @@ class ColumnConvertor {
  */
 template<typename T>
 ColumnConvertor<T>::ColumnConvertor(size_t n)
-  : nrows(n) {}
+  : nrows_(n) {}
 
 
 /**
@@ -72,19 +72,19 @@ ColumnConvertor<T>::~ColumnConvertor() {}
  */
 template<typename T>
 T ColumnConvertor<T>::get_min() const {
-  return min;
+  return min_;
 }
 
 
 template<typename T>
 T ColumnConvertor<T>::get_max() const {
-  return max;
+  return max_;
 }
 
 
 template<typename T>
 size_t ColumnConvertor<T>::get_nrows() const {
-  return nrows;
+  return nrows_;
 }
 
 
@@ -98,7 +98,7 @@ class ColumnConvertorReal : public ColumnConvertor<T2> {
   static_assert(std::is_same<T2, float>::value || std::is_same<T2, double>::value,
                 "Wrong T2 in ColumnConvertorReal");
   private:
-    Column column;
+    Column column_;
 
   public:
     explicit ColumnConvertorReal(const Column&);
@@ -114,13 +114,13 @@ class ColumnConvertorReal : public ColumnConvertor<T2> {
 template<typename T1, typename T2>
 ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
   : ColumnConvertor<T2>(column_in.nrows()),
-    column(column_in)
+    column_(column_in)
 {
   using R = typename std::conditional<std::is_integral<T1>::value,
                                       int64_t, double>::type;
   R min, max;
-  bool res_min = column.stats()->get_stat(Stat::Min, &min);
-  bool res_max = column.stats()->get_stat(Stat::Max, &max);
+  bool res_min = column_.stats()->get_stat(Stat::Min, &min);
+  bool res_max = column_.stats()->get_stat(Stat::Max, &max);
 
   if (!res_min || !res_max) {
     // When the column consists of all the missing values,
@@ -128,27 +128,27 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
     min = R(0);
     max = R(0);
   }
-  else if (std::isinf(min) || std::isinf(max)) {
+  else if (!_isfinite(min) || !_isfinite(max)) {
     // When the column contains infinite values,
     // replace those with NA's.
-    column.materialize(); // noop if a column is not a view
-    auto data = static_cast<T1*>(column.get_data_editable());
+    column_.materialize(); // noop if a column is not a view
+    auto data = static_cast<T1*>(column_.get_data_editable());
 
-    dt::parallel_for_static(column.nrows(), [&](size_t i) {
+    dt::parallel_for_static(column_.nrows(), [&](size_t i) {
       if (std::isinf(data[i])) {
         data[i] = GETNA<T1>();
       }
     });
-    res_min = column.stats()->get_stat(Stat::Min, &min);
-    res_max = column.stats()->get_stat(Stat::Max, &max);
+    res_min = column_.stats()->get_stat(Stat::Min, &min);
+    res_max = column_.stats()->get_stat(Stat::Max, &max);
     xassert(res_min);
     xassert(res_max);
-    xassert(std::isfinite(min));
-    xassert(std::isfinite(max));
+    xassert(_isfinite(min));
+    xassert(_isfinite(max));
   }
 
-  this->min = static_cast<T2>(min);
-  this->max = static_cast<T2>(max);
+  this->min_ = static_cast<T2>(min);
+  this->max_ = static_cast<T2>(max);
 }
 
 
@@ -161,7 +161,7 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
 template<typename T1, typename T2>
 T2 ColumnConvertorReal<T1, T2>::operator[](size_t row) const {
   T1 value;
-  bool isvalid = column.get_element(row, &value);
+  bool isvalid = column_.get_element(row, &value);
   return isvalid? static_cast<T2>(value) : GETNA<T2>();
 }
 
@@ -176,7 +176,7 @@ void ColumnConvertorReal<T1, T2>::get_rows(
 {
   for (size_t j = 0; j < count; ++j) {
     T1 value;
-    bool isvalid = column.get_element(start + j * step, &value);
+    bool isvalid = column_.get_element(start + j * step, &value);
     buffer[j] = isvalid? static_cast<T2>(value) : GETNA<T2>();
   }
 }
