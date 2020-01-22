@@ -109,7 +109,7 @@ def get_datatable_version(mode=None):
                              "variable DT_BUILD_SUFFIX" % suffix)
         if not mm.group(2):
             version += ".a"
-        return version + "0+" + suffix
+        return version + "0+" + suffix.lower()
 
     # In "master-dev" mode, the DT_BUILD_NUMBER is used
     if os.environ.get("DT_BUILD_NUMBER"):

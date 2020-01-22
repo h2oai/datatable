@@ -255,8 +255,6 @@ DOCKER_IMAGE_TAG ?= 0.8.0-master.9
 CENTOS_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
 UBUNTU_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
 
-docker_image_tag:
-	@echo $(DOCKER_IMAGE_TAG)
 
 centos7_build_in_docker_impl:
 	docker run \

@@ -146,7 +146,7 @@ ansiColor('xterm') {
                         if (doPpcBuild) {
                             manager.addBadge("success.gif", "PPC64LE build triggered.")
                         }
-                        if(doPublish()) {
+                        if (doPublish()) {
                             manager.addBadge("package.gif", "Publish to S3.")
                         }
 
@@ -169,8 +169,7 @@ ansiColor('xterm') {
                             manager.addBadge("warning.gif", "Large tests required")
                         }
 
-                        final String dockerImageTag = sh(script: "make ${MAKE_OPTS} docker_image_tag", returnStdout: true).trim()
-                        docker.image("${X86_64_CENTOS_DOCKER_IMAGE_NAME}:${dockerImageTag}").inside {
+                        docker.image(DOCKER_IMAGE_X86_64_CENTOS).inside {
                             def dockerfileSHAsString = ""
                             EXPECTED_SHAS.files.each { filename, sha ->
                                 dockerfileSHAsString += "${sha}\t${filename}\n"
@@ -183,8 +182,8 @@ ansiColor('xterm') {
                                 """
                             } catch (e) {
                                 error "Dockerfiles do not have expected checksums. Please make sure, you have built the " +
-                                        "new images using the Jenkins pipeline and that you have changed the required " +
-                                        "fields in this pipeline."
+                                      "new images using the Jenkins pipeline and that you have changed the required " +
+                                      "fields in this pipeline."
                                 throw e
                             }
                         }
