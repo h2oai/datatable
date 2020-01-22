@@ -86,7 +86,7 @@ LINK_MAP = [
 DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
-
+DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:0.8.0-master.9"
 
 // Computed version suffix
 // def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
@@ -101,6 +101,7 @@ def versionText
 def gitHash
 
 def runExtraTests = !isPrJob() || params.FORCE_ALL_TESTS_IN_PR
+def runPpcTests = doPPC() && !params.DISABLE_PPC64LE_TESTS
 
 MAKE_OPTS = "CI=1"
 
@@ -382,7 +383,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py37 with Pandas on ppc64le_centos7', doPPC() && doTestPPC64LE(), { stageName, stageDir ->
+                    namedStage('Test Py37 with Pandas on ppc64le_centos7', runPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName) {
                                 cleanWs()
@@ -395,7 +396,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 with Pandas on ppc64le_centos7', doPPC() && doTestPPC64LE(), { stageName, stageDir ->
+                    namedStage('Test Py36 with Pandas on ppc64le_centos7', runPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName) {
                                 cleanWs()
@@ -408,7 +409,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py35 with Pandas on ppc64le_centos7', doPPC() && doTestPPC64LE(), { stageName, stageDir ->
+                    namedStage('Test Py35 with Pandas on ppc64le_centos7', runPpcTests, { stageName, stageDir ->
                         node(PPC_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -753,9 +754,9 @@ def get_python_for_docker(String pyver, String image) {
         return "python" + pyver[0] + "." + pyver[1]
     }
     if (image == DOCKER_IMAGE_X86_64_CENTOS) {
-        if (pyver == "35") return "/opt/h2oai/dai/python/pkgs/python-3.5.6-hc3d631a_0/bin/python3.5"
-        if (pyver == "36") return "/opt/h2oai/dai/python/pkgs/python-3.6.8-h0371630_0/bin/python3.6"
-        if (pyver == "37") return "/opt/h2oai/dai/python/pkgs/python-3.7.3-h0371630_0/bin/python3.7"
+        if (pyver == "35") return "/opt/h2oai/dai/python/envs/datatable-py35-with-pandas/bin/python3.5"
+        if (pyver == "36") return "/opt/h2oai/dai/python/envs/datatable-py36-with-pandas/bin/python3.6"
+        if (pyver == "37") return "/opt/h2oai/dai/python/envs/datatable-py37-with-pandas/bin/python3.7"
     }
     if (image == DOCKER_IMAGE_X86_64_MANYLINUX) {
         if (pyver == "35") return "/opt/python/cp35-cp35m/bin/python3.5"
