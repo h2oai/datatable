@@ -121,8 +121,8 @@ properties([
         booleanParam(name: 'FORCE_BUILD_PPC64LE',   defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
         booleanParam(name: 'DISABLE_ALL_TESTS',     defaultValue: false, description: '[BUILD] Disable all tests.'),
         booleanParam(name: 'DISABLE_PPC64LE_TESTS', defaultValue: false, description: '[BUILD] Disable PPC64LE tests.'),
-        booleanParam(name: 'DISABLE_COVERAGE',      defaultValue: true, description: '[BUILD] Disable coverage.'),
-        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: true, description: '[BUILD] Trigger all tests even for PR.'),
+        booleanParam(name: 'DISABLE_COVERAGE',      defaultValue: false, description: '[BUILD] Disable coverage.'),
+        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: false, description: '[BUILD] Trigger all tests even for PR.'),
         booleanParam(name: 'FORCE_S3_PUSH',         defaultValue: false, description: '[BUILD] Publish to S3 regardless of current branch.')
     ]),
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
@@ -252,25 +252,24 @@ ansiColor('xterm') {
                             dumpInfo()
                             dir(stageDir) {
                                 unstash 'datatable-sources'
-                                withEnv(OSX_ENV) {
+                                withEnv(["DT_RELEASE=${DT_RELEASE}",
+                                         "DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX}",
+                                         "DT_BUILD_NUMBER=${DT_BUILD_NUMBER}"]) {
                                     sh """
-                                        . ${OSX_CONDA_ACTIVATE_PATH} datatable-py37-with-pandas
-                                        make ${MAKE_OPTS} clean
-                                        make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
+                                        . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
+                                        python ext.py wheel
                                     """
                                     stash name: 'x86_64_osx-py37-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
                                     sh """
-                                        . ${OSX_CONDA_ACTIVATE_PATH} datatable-py36-with-pandas
-                                        make ${MAKE_OPTS} clean
-                                        make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
+                                        . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
+                                        python ext.py wheel
                                     """
                                     stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
                                     sh """
-                                        . ${OSX_CONDA_ACTIVATE_PATH} datatable-py35-with-pandas
-                                        make ${MAKE_OPTS} clean
-                                        make ${MAKE_OPTS} BRANCH_NAME=${env.BRANCH_NAME} dist
+                                        . /Users/jenkins/anaconda/bin/activate datatable-py35-with-pandas
+                                        python ext.py wheel
                                     """
                                     stash name: 'x86_64_osx-py35-whl', includes: "dist/*.whl"
                                     arch "dist/*.whl"
@@ -473,7 +472,7 @@ ansiColor('xterm') {
                 parallel(testStages)
             }
             // Coverage stages
-            if (!params.DISABLE_COVERAGE) {
+            if (false && !params.DISABLE_COVERAGE) {
                 parallel ([
                     'Coverage on x86_64_linux': {
                         node(NODE_LABEL) {
