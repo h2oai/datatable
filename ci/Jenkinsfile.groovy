@@ -129,7 +129,7 @@ ansiColor('xterm') {
         if (isPrJob()) {
             cancelPreviousBuilds()
         }
-        timeout(time: 120, unit: 'MINUTES') {
+        timeout(time: 180, unit: 'MINUTES') {
             // Checkout stage
             node(X86_64_BUILD_NODE_LABEL) {
                 def stageDir = 'checkout'
