@@ -4,6 +4,9 @@
 .. changelog::
   :version: 0.6.0
   :released: 2018-06-05
+  :wheels: https://files.pythonhosted.org/packages/bd/67/09d6fb031456aec7e03a0a7ee9d904b6528b438b9a48019ed16a60d439dc/datatable-0.6.0-cp35-cp35m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/14/06/212109e29351a4351a2684e5c8c80bf14744fc2edac008d555b5bcc2de21/datatable-0.6.0-cp36-cp36m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/41/f1/cbe0dcb4dc513f754cf4ff4e0ab72e16e3aeafc2f44205ba30d28abc8184/datatable-0.6.0.tar.gz
 
   .. ref-context:: datatable
 

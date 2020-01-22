@@ -4,6 +4,10 @@
 .. changelog::
   :version: 0.8.0
   :released: 2019-02-05
+  :wheels: https://files.pythonhosted.org/packages/4e/8a/fcbd50c3084398dcdcb38ad7c0f517861517bbf4e80af329c3110df8ad6e/datatable-0.8.0-cp35-cp35m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/de/61/3a20a529980d18f1ed2805fd1ccc0c4609ad5ae1dd489c1f80ea58928ef9/datatable-0.8.0-cp36-cp36m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/f3/63/f13b22b3a4e220b91e453ebe76e715fd68bb3b0f084fa1b4d1a14b38576e/datatable-0.8.0-cp37-cp37m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/33/6b/02045aa871501bec23a17563c9fb70782fa5b152b2f03faaf1b147c667e0/datatable-0.8.0.tar.gz
 
   Frame
   -----

@@ -38,7 +38,7 @@ def parse_wheels_option(txt):
         return []
     urls = txt.strip().split()
     for url in urls:
-        if not re.fullmatch(r"https://(.*)\.whl", url):
+        if not re.fullmatch(r"https://(.*)\.(whl|tar\.gz)", url):
             raise ValueError("Invalid URL `%s` in the :wheels: option" % url)
     return urls
 
@@ -158,6 +158,9 @@ class ChangelogInfoboxDirective(SphinxDirective):
         entries = {}
         for url in self.options["wheels"]:
             _, filename = url.rsplit("/", 1)
+            if filename.endswith(".tar.gz"):
+                entries["SDist"] = {"sources": url}
+                continue
             assert filename.endswith(".whl")
             parts = filename[:-4].split('-')
             assert len(parts) == 5
