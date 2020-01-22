@@ -378,19 +378,6 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py37 with Pandas on x86_64_centos7', { stageName, stageDir ->
-                        node(NODE_LABEL) {
-                            buildSummary.stageWithSummary('Test Py37 with Pandas on x86_64_centos7', stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-wheels'
-                                    testInDocker('centos7_test_py37_with_pandas_in_docker', needsLargerTest)
-                                }
-                            }
-                        }
-                    }) <<
                     namedStage('Test x86_64-centos7-py37', { stageName, stageDir ->
                         node(NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
