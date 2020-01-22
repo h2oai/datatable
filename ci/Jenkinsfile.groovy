@@ -224,6 +224,9 @@ ansiColor('xterm') {
                                     docker run --rm --init \
                                         -u `id -u`:`id -g` \
                                         -v `pwd`:/dot \
+                                        -e DT_RELEASE=${DT_RELEASE} \
+                                        -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
+                                        -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
                                         --entrypoint /bin/bash \
                                         ${DOCKER_IMAGE_X86_64_MANYLINUX} \
                                         -c "cd /dot && \
