@@ -274,22 +274,30 @@ ansiColor('xterm') {
 
                                 // "sed" line below applies patch https://github.com/pypa/auditwheel/pull/213
                                 // It can be removed when the PR is merged and new ppc64le image is available
+                                // Since it modifies the file owned by root, we cannot use the standard
+                                // approach of starting docker under the jenkins user. Instead, we start as
+                                // a root, modify the file, then create the jenkins user with the correct
+                                // uid/gid, and finally switch to that user's context.
                                 //
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
                                         docker run --rm --init \
-                                            -u `id -u`:`id -g` \
                                             -v `pwd`:/dot \
                                             -e DT_RELEASE=${DT_RELEASE} \
                                             -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
                                             -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
+                                            -e UID=`id -u` \
+                                            -e GID=`id -g` \
                                             --entrypoint /bin/bash \
                                             ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
                                             -c "cd /dot && \
                                                 ls -la && \
                                                 ls -la src/datatable && \
                                                 sed -i \\\"s/if 'ld-linux' in lib:/if 'ld-linux' in lib or 'ld64.so' in lib:/\\\" /opt/_internal/cpython-3.7.6/lib/python3.7/site-packages/auditwheel/policy/external_references.py && \
+                                                groupadd -g \$GID jenkins && \
+                                                useradd -u \$UID -g \$GID jenkins && \
+                                                su jenkins && \
                                                 /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ext.py wheel --audit && \
