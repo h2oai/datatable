@@ -2,6 +2,9 @@
 .. changelog::
   :version: 0.3.1
   :released: 2018-04-20
+  :wheels: https://files.pythonhosted.org/packages/f5/df/08d765bff48d8f2630314eb5b6e703798f765a9952c0a94495a05ea13ffd/datatable-0.3.1-cp35-cp35m-macosx_10_6_x86_64.whl
+           https://files.pythonhosted.org/packages/95/f6/4798ab9418eecea6adb6f060f27e254c6a185352e8a4539ee6c64d5efe8c/datatable-0.3.1-cp36-cp36m-macosx_10_6_intel.whl
+           https://files.pythonhosted.org/packages/fd/98/a881ebd763f8785c4df59518f67f3703c7194f496040c9a472982fb8544d/datatable-0.3.1.tar.gz
 
   .. ref-context:: datatable
 

@@ -26,13 +26,22 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
 from sphinx.util.docutils import SphinxDirective
-
-from .dtframe_directive import table_node, td_node, th_node
+from . import xnodes
 
 
 #-------------------------------------------------------------------------------
 # Directives
 #-------------------------------------------------------------------------------
+
+def parse_wheels_option(txt):
+    if not txt:
+        return []
+    urls = txt.strip().split()
+    for url in urls:
+        if not re.fullmatch(r"https://(.*)\.(whl|tar\.gz)", url):
+            raise ValueError("Invalid URL `%s` in the :wheels: option" % url)
+    return urls
+
 
 class ChangelogDirective(SphinxDirective):
     has_content = True
@@ -41,6 +50,7 @@ class ChangelogDirective(SphinxDirective):
     option_spec = {
         "version": directives.unchanged,
         "released": directives.unchanged,
+        "wheels": parse_wheels_option,
     }
 
     def run(self):
@@ -58,9 +68,10 @@ class ChangelogDirective(SphinxDirective):
         lines = []
         lines += [".. changelog-infobox:: " + title_text]
         lines += ["    :released: " + self.options.get("released", "")]
+        lines += ["    :wheels: " + " ".join(self.options.get("wheels", []))]
         lines += [""]
         lines.extend(self.content.data)
-        sources = [self.content.items[0]] * 3
+        sources = [self.content.items[0]] * 4
         sources.extend(self.content.items)
 
         cc = ChangelogContent(lines, sources)
@@ -120,22 +131,66 @@ class ChangelogInfoboxDirective(SphinxDirective):
     final_argument_whitespace = True
     option_spec = {
         "released": directives.unchanged,
+        "wheels": parse_wheels_option,
     }
 
     def run(self):
-        infobox = table_node(classes=["infobox"])
-        tbody = nodes.tbody()
-        title_row = nodes.row(classes=["title"])
-        title_row += th_node(self.arguments[0], colspan=2)
-        tbody += title_row
+        infobox = xnodes.table(classes=["infobox"])
+        infobox += xnodes.tr(classes=["title"], children=[
+                                xnodes.th(self.arguments[0], colspan=2)
+                             ])
         if self.options["released"]:
-            released_row = nodes.row()
-            released_row += td_node("Released:")
-            released_row += td_node(self.options["released"])
-            tbody += released_row
-        tbody += changelog_navigation()  # placeholder node
-        infobox += tbody
+            infobox += xnodes.tr(xnodes.th("Release date:"),
+                                 xnodes.td(self.options["released"]))
+        infobox += changelog_navigation()  # placeholder node
+        infobox += self._render_wheels()
         return [infobox]
+
+
+    def _render_wheels(self):
+        out = []
+        if not self.options["wheels"]:
+            return out
+        assert isinstance(self.options["wheels"], list)
+        out.append(xnodes.tr(classes=["subheader"], children=[
+                                xnodes.th("Wheels", colspan=2)
+                             ]))
+        entries = {}
+        for url in self.options["wheels"]:
+            _, filename = url.rsplit("/", 1)
+            if filename.endswith(".tar.gz"):
+                entries["SDist"] = {"sources": url}
+                continue
+            assert filename.endswith(".whl")
+            parts = filename[:-4].split('-')
+            assert len(parts) == 5
+            module, version, python, abi, platform = parts
+            if python in ["cp35", "cp36", "cp37", "cp38", "cp39"]:
+                python = "python-3." + python[3:]
+            else:
+                raise ValueError("Unrecognized python version `%s` in wheel URL"
+                                 % python)
+            if platform.startswith("macosx"):
+                platform = "MacOS"
+            elif platform in ["manylinux1_x86_64", "manylinux2010_x86_64"]:
+                platform = "Linux x86-64"
+            if platform not in entries:
+                entries[platform] = {}
+            if python in entries[platform]:
+                raise ValueError("Duplicate entries for `%s` - `%s`"
+                                 % (platform, python))
+            entries[platform][python] = url
+        for platform, platform_entries in entries.items():
+            row = xnodes.tr(xnodes.th(platform, rowspan=len(platform_entries)))
+            for i, py in enumerate(sorted(platform_entries.keys())):
+                if i > 0:
+                    row = xnodes.tr()
+                url = platform_entries[py]
+                row += xnodes.td(nodes.inline("", "",
+                            nodes.reference("", py, refuri=url,
+                                            internal=False)))
+                out.append(row)
+        return out
 
 
 class changelog_navigation(nodes.Element, nodes.General): pass
@@ -191,6 +246,7 @@ class ChangelogContent:
     rx_issue = re.compile(r"[\(\[]#(\d+)[\)\]]")
 
     def __init__(self, lines, sources):
+        assert len(lines) == len(sources)
         self._in_lines = lines
         self._in_sources = sources
         self._out_lines = []
@@ -336,26 +392,23 @@ def on_doctree_resolved(app, doctree, docname):
                 text = "Version " + vnext["versionstr"]
             else:
                 text = "(unreleased)"
-            row = nodes.row()
-            row += td_node("Next release:")
-            link = nodes.reference("", text, refdocname=vnext["doc"], refuri=url,
+            link = nodes.reference("", text,
+                                   refdocname=vnext["doc"], refuri=url,
                                    internal=True)
-            td = td_node()
-            td += nodes.inline("", "", link)
-            row += td
-            content.append(row)
+            content.append(xnodes.tr(
+                             xnodes.th("Next release:"),
+                             xnodes.td(nodes.inline("", "", link))
+                           ))
         if index > 0:
             vprev = env.xchangelog[index - 1]
             url = app.builder.get_relative_uri(docname, vprev['doc'])
-            row = nodes.row()
-            row += td_node("Previous release:")
-            link = nodes.reference("", "", refdocname=vprev["doc"], refuri=url,
+            link = nodes.reference("", "Version " + vprev["versionstr"],
+                                   refdocname=vprev["doc"], refuri=url,
                                    internal=True)
-            link += nodes.Text("Version " + vprev["versionstr"])
-            td = td_node()
-            td += nodes.inline("", "", link)
-            row += td
-            content.append(row)
+            content.append(xnodes.tr(
+                            xnodes.th("Previous release:"),
+                            xnodes.td(nodes.inline("", "", link))
+                           ))
 
         node.replace_self(content)
 
@@ -367,6 +420,7 @@ def on_doctree_resolved(app, doctree, docname):
 #-------------------------------------------------------------------------------
 
 def setup(app):
+    app.setup_extension("sphinxext.xnodes")
     app.connect("env-purge-doc", on_env_purge_doc)
     app.connect("env-merge-info", on_env_merge_info)
     app.connect("doctree-resolved", on_doctree_resolved)

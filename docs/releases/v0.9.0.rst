@@ -2,6 +2,13 @@
 .. changelog::
   :version: 0.9.0
   :released: 2019-07-25
+  :wheels: https://files.pythonhosted.org/packages/ef/d9/447d7361b74c843d865e47c9509f294ea158cfa03b9900ff365130fcdaf5/datatable-0.9.0-cp35-cp35m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/75/a9/acd8d0725460c8370b68a1d0ceb58fe893d57fe3666b1bc0b22ea1b09637/datatable-0.9.0-cp35-cp35m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/48/1f/789653311f87794df631abcfb32677292b79cf97de5a4ad1ea19859568e4/datatable-0.9.0-cp36-cp36m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/17/27/796081e2f75b482dc18155ef51d559f185d7c0c4e4273047babb58f9e92b/datatable-0.9.0-cp36-cp36m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/35/96/2430b8562206f1021f2be71f18f25fa3e2ed449c92a71ae2b5ddb7f3dc72/datatable-0.9.0-cp37-cp37m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/6f/4d/d11077f5d167826ac224ee06c427fd18104fcc22b4896caa95bd535864ea/datatable-0.9.0-cp37-cp37m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/4e/83/ef04b3d1340a4b2346c3afe442f94cec66d0e9dad11d8996c75161c8dd20/datatable-0.9.0.tar.gz
 
   Frame
   -----

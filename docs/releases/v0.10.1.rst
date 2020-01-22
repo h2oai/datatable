@@ -2,6 +2,14 @@
 .. changelog::
   :version: 0.10.1
   :released: 2019-12-23
+  :wheels: https://files.pythonhosted.org/packages/4c/17/42b347e5f8d4d392a04b463e3c25a34830c9f93af0107055b76407cc0fb6/datatable-0.10.1-cp35-cp35m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/57/17/e7d3c74a629d44263a3b22397b7e43cd2d7d14d5a170bdcbe81f99f77926/datatable-0.10.1-cp35-cp35m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/ea/6f/a643d80b70b0b5828580332e4d6d3956abaa257668597857cd296c5083c5/datatable-0.10.1-cp36-cp36m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/3a/e6/55c464201cdfe62e5cb39744d1d04f9d6cf369053edf28f3e7971ec80e63/datatable-0.10.1-cp36-cp36m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/72/73/7f7fa7b744b2afea31ef4aef968c744e3b22a7800a313ab6009600d4710a/datatable-0.10.1-cp37-cp37m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/37/79/8f0efc6151f47c8f28238de05d53011a73a12e11201435f09fc651baf4c4/datatable-0.10.1-cp37-cp37m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/69/60/1be2bac0477f3d1edae113be010d8fb988df9fb121ea41bb5947e2e9aa76/datatable-0.10.1-cp38-cp38-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/46/d3/66325bc3a1645f53d530a36d97061b84e2ab380b2b5434fb1f5889846ebe/datatable-0.10.1.tar.gz
 
   Frame
   -----

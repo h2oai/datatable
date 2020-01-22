@@ -2,6 +2,7 @@
 .. changelog::
   :version: 0.3.0
   :released: 2018-03-19
+  :wheels: https://files.pythonhosted.org/packages/a0/c4/fb925a263ab65f4706e0f06e6e31a8c3a57f2cc07ec7f16eef53bb1b57f3/datatable-0.3.0-cp35-cp35m-macosx_10_6_x86_64.whl
 
   .. ref-context:: datatable
 
