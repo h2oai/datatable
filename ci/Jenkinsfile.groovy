@@ -550,6 +550,9 @@ ansiColor('xterm') {
             }
             // Release to S3 and GitHub
             if (isRelease()) {
+                // TODO: merge this stage with the previous one?
+                //       The functionality is pretty much duplicated here...
+                //
                 node(RELEASE_NODE_LABEL) {
                     def stageDir = 'release'
                     buildSummary.stageWithSummary('Release', stageDir) {
@@ -573,21 +576,7 @@ ansiColor('xterm') {
                                     sh """
                                         s3cmd put -P release/dist/*.whl ${S3_URL_STABLE}/datatable-${versionText}/
                                         s3cmd put -P release/dist/*.tar.gz ${S3_URL_STABLE}/datatable-${versionText}/
-
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp35-cp35m-linux_ppc64le.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p35-linux_ppc64le.whl
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp35-cp35m-linux_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p35-linux_x86_64.whl
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp35-cp35m-macosx_10_7_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p35-macosx_10_7_x86_64.whl
-
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp36-cp36m-linux_ppc64le.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p36-linux_ppc64le.whl
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp36-cp36m-linux_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p36-linux_x86_64.whl
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp36-cp36m-macosx_10_7_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p36-macosx_10_7_x86_64.whl
-
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp37-cp37m-linux_ppc64le.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p37-linux_ppc64le.whl
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp37-cp37m-linux_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p37-linux_x86_64.whl
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}-cp37-cp37m-macosx_10_7_x86_64.whl ${S3_URL_LATEST_STABLE}/datable-0.latest-p37-macosx_10_7_x86_64.whl
-
-                                        s3cmd cp -f ${S3_URL_STABLE}/datatable-${versionText}/datatable-${versionText}.tar.gz ${S3_URL_LATEST_STABLE}/datable-0.latest.tar.gz
-                                       """
+                                    """
                                 }
                             }
                         }
