@@ -546,9 +546,7 @@ ansiColor('xterm') {
                             }
 
                             dir('x86_64-osx') {
-                                unstash 'x86_64_osx-py37-whl'
-                                unstash 'x86_64_osx-py36-whl'
-                                unstash 'x86_64_osx-py35-whl'
+                                unstash 'x86_64-macos-wheels'
                                 s3upDocker {
                                     localArtifact = 'dist/*.whl'
                                     artifactId = 'pydatatable'
@@ -587,9 +585,7 @@ ansiColor('xterm') {
                         dir(stageDir) {
                             checkout scm
                             unstash 'x86_64-manylinux-wheels'
-                            unstash 'x86_64_osx-py37-whl'
-                            unstash 'x86_64_osx-py36-whl'
-                            unstash 'x86_64_osx-py35-whl'
+                            unstash 'x86_64-macos-wheels'
                             unstash 'ppc64le_centos7-py37-whl'
                             unstash 'ppc64le_centos7-py36-whl'
                             unstash 'ppc64le_centos7-py35-whl'
