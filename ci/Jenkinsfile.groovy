@@ -258,20 +258,13 @@ ansiColor('xterm') {
                                     sh """
                                         . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
                                         python ext.py wheel
-                                    """
-                                    stash name: 'x86_64_osx-py37-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                    sh """
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
                                         python ext.py wheel
-                                    """
-                                    stash name: 'x86_64_osx-py36-whl', includes: "dist/*.whl"
-                                    arch "dist/*.whl"
-                                    sh """
                                         . /Users/jenkins/anaconda/bin/activate datatable-py35-with-pandas
                                         python ext.py wheel
+                                        ls dist
                                     """
-                                    stash name: 'x86_64_osx-py35-whl', includes: "dist/*.whl"
+                                    stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
                                     arch "dist/*.whl"
                                 }
                             }
@@ -429,41 +422,41 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test Py37 with Pandas on x86_64_osx', { stageName, stageDir ->
+                    namedStage('Test x86_64-macos-py37', { stageName, stageDir ->
                         node(OSX_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_osx-py37-whl'
-                                    testOSX('datatable-py37-with-pandas', needsLargerTest)
+                                    unstash 'x86_64-macos-wheels'
+                                    test_macos('37', needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test Py36 with Pandas on x86_64_osx', { stageName, stageDir ->
+                    namedStage('Test x86_64-macos-py36', { stageName, stageDir ->
                         node(OSX_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_osx-py36-whl'
-                                    testOSX('datatable-py36-with-pandas', needsLargerTest)
+                                    unstash 'x86_64-macos-wheels'
+                                    test_macos('36', needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test Py35 with Pandas on x86_64_osx', { stageName, stageDir ->
+                    namedStage('Test x86_64-macos-py35', { stageName, stageDir ->
                         node(OSX_NODE_LABEL) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64_osx-py35-whl'
-                                    testOSX('datatable-py35-with-pandas', needsLargerTest)
+                                    unstash 'x86_64-macos-wheels'
+                                    test_macos('35', needsLargerTest)
                                 }
                             }
                         }
@@ -714,6 +707,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
             docker run ${docker_args} ${docker_image} -c "${docker_cmd}"
         """
     } finally {
+        sh "ls -la build/cores"
         archiveArtifacts artifacts: "build/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
@@ -738,22 +732,29 @@ def get_python_for_docker(String pyver, String image) {
 }
 
 
-def testOSX(final environment, final needsLargerTest) {
+def test_macos(String pyver, boolean needsLargerTest) {
     try {
-        withEnv(OSX_ENV) {
-            sh """
-                env
-                rm -rf src/datatable
-                . ${OSX_CONDA_ACTIVATE_PATH} ${environment}
-                pip install --no-cache-dir --upgrade dist/*.whl
-                make ${MAKE_OPTS} test_install MODULE=datatable
-                make ${MAKE_OPTS} test
-            """
-        }
+        sh """
+            env
+            . /Users/jenkins/anaconda/bin/activate datatable-py${pyver}-with-pandas
+            pip install --upgrade pip
+            pip install dist/datatable-*-cp${pyver}-*.whl
+            pip install -r requirements_tests.txt
+            pip install -r requirements_extra.txt
+            pip freeze
+            python -c 'import datatable; print(datatable.__file__)'
+            python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals \
+                --junit-prefix=x86_64-macos-py${pyver} \
+                --junitxml=build/test-reports/TEST-datatable.xml \
+                tests
+        """
     } finally {
-        junit testResults: "build/test-reports/TEST-*.xml", keepLongStdio: true, allowEmptyResults: false
+        sh "ls -la build/cores"
+        archiveArtifacts artifacts: "build/cores/*", allowEmptyArchive: true
     }
+    junit testResults: "build/test-reports/TEST-datatable.xml", keepLongStdio: true, allowEmptyResults: false
 }
+
 
 def isModified(pattern) {
     def fList
