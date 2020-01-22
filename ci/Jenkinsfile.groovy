@@ -185,6 +185,7 @@ ansiColor('xterm') {
                         sh """
                             docker run --rm \
                                 -v `pwd`:/dot \
+                                -u `id -u`:`id -g` \
                                 -w /dot \
                                 --entrypoint /bin/bash \
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
