@@ -289,7 +289,7 @@ ansiColor('xterm') {
                                             -c "cd /dot && \
                                                 ls -la && \
                                                 ls -la src/datatable && \
-                                                sed -i "s/if 'ld-linux' in lib:/if 'ld-linux' in lib or 'ld64.so' in lib:/" /opt/_internal/cpython-3.7.6/lib/python3.7/site-packages/auditwheel/policy/external_references.py && \
+                                                sed -i \"s/if 'ld-linux' in lib:/if 'ld-linux' in lib or 'ld64.so' in lib:/\" /opt/_internal/cpython-3.7.6/lib/python3.7/site-packages/auditwheel/policy/external_references.py && \
                                                 /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ext.py wheel --audit && \
