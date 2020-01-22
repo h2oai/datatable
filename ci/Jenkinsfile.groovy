@@ -105,6 +105,10 @@ def runPpcTests = doPPC() && !params.DISABLE_PPC64LE_TESTS
 
 MAKE_OPTS = "CI=1"
 
+DT_RELEASE = ""
+DT_BUILD_SUFFIX = ""
+DT_BUILD_NUMBER = ""
+
 //////////////
 // PIPELINE //
 //////////////
@@ -146,13 +150,13 @@ ansiColor('xterm') {
                         project = load 'ci/default.groovy'
 
                         if (isRelease()) {
-                            env.DT_RELEASE = 'True'
+                            DT_RELEASE = 'True'
                         }
                         else if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith(RELEASE_BRANCH_PREFIX)) {
-                            env.DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + env.BUILD_ID
+                            DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + env.BUILD_ID
                         }
                         else {
-                            env.DT_BUILD_NUMBER = env.BUILD_ID
+                            DT_BUILD_NUMBER = env.BUILD_ID
                         }
 
                         needsLargerTest = isModified("c/(read|csv)/.*")
@@ -187,9 +191,9 @@ ansiColor('xterm') {
                                 -v `pwd`:/dot \
                                 -u `id -u`:`id -g` \
                                 -w /dot \
-                                -e DT_RELEASE=${env.DT_RELEASE} \
-                                -e DT_BUILD_SUFFIX=${env.DT_BUILD_SUFFIX} \
-                                -e DT_BUILD_NUMBER=${env.DT_BUILD_NUMBER} \
+                                -e DT_RELEASE=${DT_RELEASE} \
+                                -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
+                                -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
                                 --entrypoint /bin/bash \
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
                                 -c "env && /opt/python/cp36-cp36m/bin/python3.6 ext.py sdist"
