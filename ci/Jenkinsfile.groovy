@@ -73,10 +73,11 @@ LINK_MAP = [
 
 
 DOCKER_IMAGE_PPC64LE_MANYLINUX = "quay.io/pypa/manylinux2014_ppc64le"
-DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
+
+DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:0.8.0-master.9"
 
 // Note: global variables must be declared without `def`
 //       see https://stackoverflow.com/questions/6305910
@@ -88,11 +89,9 @@ versionText = "unknown"
 
 isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
 doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL_TESTS
-doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
+doPpcTests = true || doExtraTests && !params.DISABLE_PPC64LE_TESTS
 doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
 doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
-
-MAKE_OPTS = "CI=1"
 
 DT_RELEASE = ""
 DT_BUILD_SUFFIX = ""
@@ -510,7 +509,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     try {
-                                        sh "make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                        sh "make CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
                                     } finally {
                                         arch "/tmp/cores/*python*"
                                     }
@@ -530,7 +529,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     sh """
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
-                                        make ${MAKE_OPTS} coverage
+                                        make coverage
                                     """
                                     testReport "build/coverage-c", "x86_64_osx coverage report for C"
                                     testReport "build/coverage-py", "x86_64_osx coverage report for Python"
