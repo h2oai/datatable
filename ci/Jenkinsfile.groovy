@@ -659,7 +659,8 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         def python = get_python_for_docker(pyver, docker_image)
         def docker_cmd = ""
         docker_cmd += "cd /dt && ls dist/ && "
-        docker_cmd += "virtualenv /tmp/pyenv --python=" + python + " && "
+        docker_cmd += python + " -m pip install virtualenv --user && "
+        docker_cmd += python + " -m virtualenv /tmp/pyenv && "
         docker_cmd += "source /tmp/pyenv/bin/activate && "
         docker_cmd += "python -VV && "
         docker_cmd += "pip install --upgrade pip && "
