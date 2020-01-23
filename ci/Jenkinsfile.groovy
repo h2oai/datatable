@@ -420,7 +420,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-centos7-py37", "37",
-                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
@@ -435,7 +435,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-centos7-py36", "36",
-                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
@@ -450,7 +450,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-centos7-py35", "35",
-                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
@@ -693,7 +693,7 @@ def get_python_for_docker(String pyver, String image) {
         if (pyver == "36") return "/opt/h2oai/dai/python/envs/datatable-py36-with-pandas/bin/python3.6"
         if (pyver == "37") return "/opt/h2oai/dai/python/envs/datatable-py37-with-pandas/bin/python3.7"
     }
-    if (image == DOCKER_IMAGE_X86_64_MANYLINUX) {
+    if (image == DOCKER_IMAGE_X86_64_MANYLINUX || image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
         if (pyver == "35") return "/opt/python/cp35-cp35m/bin/python3.5"
         if (pyver == "36") return "/opt/python/cp36-cp36m/bin/python3.6"
         if (pyver == "37") return "/opt/python/cp37-cp37m/bin/python3.7"
