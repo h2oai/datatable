@@ -167,7 +167,7 @@ ansiColor('xterm') {
                         }
 
                         sh """
-                            set +x
+                            #!/bin/bash +x
                             echo 'DT_RELEASE      = ${DT_RELEASE}'
                             echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
                             echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
@@ -731,6 +731,10 @@ def test_macos(String pyver, boolean needsLargerTest) {
 
 def isModified(pattern) {
     def fList
+    sh """
+        #!/bin/bash +x
+        echo 'In isModified(): isPrJob = ${isPrJob}'
+    """
     if (isPrJob) {
         sh "git fetch --no-tags --progress https://github.com/h2oai/datatable +refs/heads/${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}"
         final String mergeBaseSHA = sh(script: "git merge-base HEAD origin/${env.CHANGE_TARGET}", returnStdout: true).trim()
