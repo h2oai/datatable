@@ -647,7 +647,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_cmd += "pip install --upgrade pip && "
         docker_cmd += "pip install dist/datatable-*-cp" + pyver + "-*.whl && "
         docker_cmd += "pip install -r requirements_tests.txt && "
-        docker_cmd += "pip install -r requirements_extra.txt && "
+        docker_cmd += "(pip install -r requirements_extra.txt || true) && "
         docker_cmd += "pip freeze && "
         docker_cmd += "python -c 'import datatable; print(datatable.__file__)' && "
         docker_cmd += "python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
