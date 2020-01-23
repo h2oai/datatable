@@ -81,8 +81,6 @@ DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubun
 // Note: global variables must be declared without `def`
 //       see https://stackoverflow.com/questions/6305910
 
-// Global project build trigger filled in init stage
-project = null
 // Needs invocation of larger tests
 needsLargerTest = false
 // String with current version (TODO: remove?)
@@ -156,7 +154,6 @@ ansiColor('xterm') {
                         }
 
                         buildInfo(env.BRANCH_NAME, isRelease())
-                        project = load 'ci/default.groovy'
 
                         if (isRelease()) {
                             DT_RELEASE = 'True'
