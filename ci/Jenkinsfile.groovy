@@ -181,7 +181,7 @@ ansiColor('xterm') {
                         }
                         sh """
                             set +x
-                            echo 'needsLargerTests = ${needsLargerTests}'
+                            echo 'needsLargerTests = ${needsLargerTest}'
                         """
 
                         docker.image(DOCKER_IMAGE_X86_64_CENTOS).inside {
