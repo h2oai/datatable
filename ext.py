@@ -477,11 +477,11 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     if is_source_distribution() and "reuse_version" not in config_settings:
         config_settings["reuse_version"] = True
 
-    if not config_settings.get("reuse_version", False):
+    if not config_settings.pop("reuse_version", False):
         generate_build_info("build", strict=True)
     assert os.path.isfile("src/datatable/_build_info.py")
 
-    if config_settings.get("reuse_extension", False):
+    if config_settings.pop("reuse_extension", False):
         soext = "dll" if sys.platform == "win32" else "so"
         sofiles = glob.glob("src/datatable/lib/_datatable*." + soext)
         if not sofiles:
