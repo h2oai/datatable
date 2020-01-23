@@ -156,7 +156,7 @@ def _get_version_txt(mode):
 def _get_version_from_build_info():
     info_file = os.path.join("src", "datatable", "_build_info.py")
     if not os.path.exists(info_file):
-        raise SystemExit("Invalid source distribution: file "
+        raise RuntimeError("Invalid source distribution: file "
                          "src/datatable/_build_info.py is missing")
     with open(info_file, "r", encoding="utf-8") as inp:
         text = inp.read()
@@ -474,9 +474,14 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     assert isinstance(config_settings, dict)
     assert metadata_directory is None
 
-    if "sofile" in config_settings:
-        sofile = config_settings.pop("sofile")
-    else:
+    if is_source_distribution() and "reuse_version" not in config_settings:
+        config_settings["reuse_version"] = True
+
+    if not config_settings.get("reuse_version", False):
+        generate_build_info("build", strict=True)
+    assert os.path.isfile("src/datatable/_build_info.py")
+
+    if config_settings.get("reuse_extension", False):
         soext = "dll" if sys.platform == "win32" else "so"
         sofiles = glob.glob("src/datatable/lib/_datatable*." + soext)
         if not sofiles:
@@ -484,10 +489,12 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
                              "not found" % soext)
         if len(sofiles) > 1:
             raise SystemExit("Multiple extension files found: %r" % (sofiles,))
-        sofile = sofiles[0]
+        so_file = sofiles[0]
+    else:
+        so_file = build_extension(cmd="build", verbosity=3)
 
     files = glob.glob("src/datatable/**/*.py", recursive=True)
-    files += [sofile]
+    files += [so_file]
     files += ["src/datatable/include/datatable.h"]
     files = [(f, f[4:])  # (src_file, destination_file)
              for f in files if "_datatable_builder.py" not in f]
@@ -507,6 +514,8 @@ def build_sdist(sdist_directory, config_settings=None):
     """
     assert isinstance(sdist_directory, str)
     assert config_settings is None or isinstance(config_settings, dict)
+
+    generate_build_info("sdist", strict=True)
 
     files = [f for f in glob.glob("src/datatable/**/*.py", recursive=True)
              if "_datatable_builder.py" not in f]
@@ -548,18 +557,13 @@ def cmd_geninfo(args):
 
 
 def cmd_sdist(args):
-    generate_build_info("sdist", strict=True)
     sdist_file = build_sdist(args.destination)
-    assert os.path.isfile(os.path.join("dist", sdist_file))
+    assert os.path.isfile(os.path.join(args.destination, sdist_file))
 
 
 def cmd_wheel(args):
-    if not is_source_distribution():
-        generate_build_info("build", strict=True)
-    so_file = build_extension(cmd="build", verbosity=3)
-    wheel_file = build_wheel(args.destination,
-                             {"audit": args.audit, "sofile": so_file})
-    assert os.path.isfile(os.path.join("dist", wheel_file))
+    wheel_file = build_wheel(args.destination, {"audit": args.audit})
+    assert os.path.isfile(os.path.join(args.destination, wheel_file))
 
 
 
