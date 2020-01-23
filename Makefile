@@ -34,6 +34,7 @@ clean::
 	rm -f src/datatable/lib/_datatable*.pyd
 	rm -f src/datatable/lib/_datatable*.so
 	rm -f src/datatable/_build_info.py
+	rm -f .coverage
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
 
