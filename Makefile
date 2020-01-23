@@ -62,28 +62,28 @@ test:
 #
 .PHONY: asan
 asan:
-	@$(PYTHON) ext.py asan
+	@$(PYTHON) ci/ext.py asan
 
 
 .PHONY: build
 build:
-	@$(PYTHON) ext.py build
+	@$(PYTHON) ci/ext.py build
 
 
 .PHONY: debug
 debug:
-	@$(PYTHON) ext.py debug
+	@$(PYTHON) ci/ext.py debug
 
 
 .PHONY: geninfo
 geninfo:
-	@$(PYTHON) ext.py geninfo --strict
+	@$(PYTHON) ci/ext.py geninfo --strict
 
 
 .PHONY: coverage
 coverage:
 	$(PYTHON) -m pip install 'typesentry>=0.2.6' blessed
-	$(PYTHON) ext.py coverage
+	$(PYTHON) ci/ext.py coverage
 	$(MAKE) test_install
 	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--cov=datatable --cov-report=html:build/coverage-py \
@@ -107,12 +107,12 @@ coverage:
 
 .PHONY: wheel
 wheel:
-	@$(PYTHON) ext.py wheel
+	@$(PYTHON) ci/ext.py wheel
 
 
 .PHONY: sdist
 sdist:
-	@$(PYTHON) ext.py sdist
+	@$(PYTHON) ci/ext.py sdist
 
 
 

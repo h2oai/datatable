@@ -16,8 +16,8 @@ build_script:
 
     pip install typesentry
 
-    python ext.py build
+    python ci/ext.py build
 
     cd src
 
-    python -c "import datatable"
+    python -c "import datatable as dt; print(dt.__version__)"

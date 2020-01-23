@@ -214,7 +214,7 @@ ansiColor('xterm') {
                                 -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
                                 --entrypoint /bin/bash \
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
-                                -c "env && /opt/python/cp36-cp36m/bin/python3.6 ext.py sdist"
+                                -c "env && /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py sdist"
                         """
                         sh "cat src/datatable/_build_info.py"
                         arch "src/datatable/_build_info.py"
@@ -247,10 +247,10 @@ ansiColor('xterm') {
                                         -c "cd /dot && \
                                             ls -la && \
                                             ls -la src/datatable && \
-                                            /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
-                                            /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
-                                            /opt/python/cp37-cp37m/bin/python3.7 ext.py wheel --audit && \
-                                            /opt/python/cp38-cp38/bin/python3.8 ext.py wheel --audit && \
+                                            /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
+                                            /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
+                                            /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
+                                            /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             ls -la dist"
                                 """
                                 stash name: 'x86_64-manylinux-wheels', includes: "dist/*.whl"
@@ -272,11 +272,11 @@ ansiColor('xterm') {
                                          "DT_BUILD_NUMBER=${DT_BUILD_NUMBER}"]) {
                                     sh """
                                         . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
-                                        python ext.py wheel
+                                        python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
-                                        python ext.py wheel
+                                        python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py35-with-pandas
-                                        python ext.py wheel
+                                        python ci/ext.py wheel
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
@@ -318,10 +318,10 @@ ansiColor('xterm') {
                                                 groupadd -g `id -g` jenkins && \
                                                 useradd -u `id -u` -g jenkins jenkins && \
                                                 su jenkins && \
-                                                /opt/python/cp35-cp35m/bin/python3.5 ext.py wheel --audit && \
-                                                /opt/python/cp36-cp36m/bin/python3.6 ext.py wheel --audit && \
-                                                /opt/python/cp37-cp37m/bin/python3.7 ext.py wheel --audit && \
-                                                /opt/python/cp38-cp38/bin/python3.8 ext.py wheel --audit && \
+                                                /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
+                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
+                                                /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
+                                                /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 ls -la dist"
                                     """
                                     stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl"

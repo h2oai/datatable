@@ -446,7 +446,7 @@ def generate_build_info(mode=None, strict=False):
             "# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE\n"
             "# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n"
             "# --------------------------------------------------------------\n"
-            "# This file was auto-generated from ext.py\n\n"
+            "# This file was auto-generated from ci/ext.py\n\n"
             % time.gmtime().tm_year
         )
         out.write("import types\n\n")
@@ -526,7 +526,7 @@ def build_sdist(sdist_directory, config_settings=None):
               if "random_attack_logs" not in f]
     files += ["src/datatable/include/datatable.h"]
     files.sort()
-    files += ["ext.py"]
+    files += ["ci/ext.py"]
     files += ["pyproject.toml"]
     files += ["LICENSE"]
     # See `is_source_distribution()`
