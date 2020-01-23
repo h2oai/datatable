@@ -156,7 +156,7 @@ def _get_version_txt(mode):
 def _get_version_from_build_info():
     info_file = os.path.join("src", "datatable", "_build_info.py")
     if not os.path.exists(info_file):
-        raise RuntimeError("Invalid source distribution: file "
+        raise SystemExit("Invalid source distribution: file "
                          "src/datatable/_build_info.py is missing")
     with open(info_file, "r", encoding="utf-8") as inp:
         text = inp.read()
