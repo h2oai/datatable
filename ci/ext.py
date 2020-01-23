@@ -38,7 +38,7 @@ import subprocess
 import sys
 import textwrap
 import time
-from ci import xbuild
+import xbuild
 
 
 #-------------------------------------------------------------------------------
@@ -526,7 +526,7 @@ def build_sdist(sdist_directory, config_settings=None):
               if "random_attack_logs" not in f]
     files += ["src/datatable/include/datatable.h"]
     files.sort()
-    files += ["ci/ext.py"]
+    files += ["ci/ext.py", "ci/__init__.py"]
     files += ["pyproject.toml"]
     files += ["LICENSE"]
     # See `is_source_distribution()`
