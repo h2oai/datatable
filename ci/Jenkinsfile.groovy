@@ -127,6 +127,7 @@ ansiColor('xterm') {
                         deleteDir()
                         def scmEnv = checkout scm
                         sh """
+                            set +x
                             echo 'env.BRANCH_NAME   = ${env.BRANCH_NAME}'
                             echo 'env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}'
                             echo 'env.CHANGE_ID     = ${env.CHANGE_ID}'
@@ -165,11 +166,21 @@ ansiColor('xterm') {
                             DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + env.BUILD_ID
                         }
 
+                        sh """
+                            set +x
+                            echo 'DT_RELEASE      = ${DT_RELEASE}'
+                            echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
+                            echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
+                        """
                         needsLargerTest = isModified("c/(read|csv)/.*")
                         if (needsLargerTest) {
                             env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
                             manager.addBadge("warning.gif", "Large tests required")
                         }
+                        sh """
+                            set +x
+                            echo 'needsLargerTests = ${needsLargerTests}'
+                        """
 
                         docker.image(DOCKER_IMAGE_X86_64_CENTOS).inside {
                             def dockerfileSHAsString = ""
