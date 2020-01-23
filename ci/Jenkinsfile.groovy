@@ -78,16 +78,12 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
 
-// Computed version suffix
-// def CI_VERSION_SUFFIX = utilsLib.getCiVersionSuffix()
 // Global project build trigger filled in init stage
 def project
 // Needs invocation of larger tests
 def needsLargerTest
 // String with current version
 def versionText
-// String with current git revision
-def gitHash
 
 
 def isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
@@ -130,6 +126,23 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
                         def scmEnv = checkout scm
+                        sh """
+                            echo 'env.BRANCH_NAME   = ${env.BRANCH_NAME}'
+                            echo 'env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}'
+                            echo 'env.CHANGE_ID     = ${env.CHANGE_ID}'
+                            echo 'env.CHANGE_TARGET = ${env.CHANGE_TARGET}'
+                            echo 'env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}'
+                            echo 'env.CHANGE_FORK   = ${env.CHANGE_FORK}'
+                            echo 'scm.GIT_BRANCH    = ${scmEnv.GIT_BRANCH}'
+                            echo 'scm.CHANGE_BRANCH = ${scmEnv.CHANGE_BRANCH}'
+                            echo 'scm.CHANGE_SOURCE = ${scmEnv.CHANGE_SOURCE}'
+                            echo 'isPrJob      = ${isPrJob}'
+                            echo 'doExtraTests = ${doExtraTests}'
+                            echo 'doPpcBuild   = ${doPpcBuild}'
+                            echo 'doPpcTests   = ${doPpcTests}'
+                            echo 'doCoverage   = ${doCoverage}'
+                        """
+
                         env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '-')
 
                         if (doPpcBuild) {
