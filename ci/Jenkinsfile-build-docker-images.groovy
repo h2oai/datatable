@@ -37,7 +37,8 @@ try {
             dir('centos7') {
                 checkout scm
                 sh """
-                    make mrproper
+                    git clean -f -d -x
+                    make clean
                     make centos7_docker_build CONTAINER_NAME_SUFFIX=
                 """
                 arch "*.tag"
@@ -45,7 +46,8 @@ try {
             dir ('ubuntu') {
                 checkout scm
                 sh """
-                    make mrproper
+                    git clean -f -d -x
+                    make clean
                     make ubuntu_docker_build CONTAINER_NAME_SUFFIX= OS_NAME=ubuntu
                 """
                 arch "*.tag"
@@ -79,7 +81,8 @@ try {
             dir('centos7') {
                 checkout scm
                 sh """
-                    make mrproper
+                    git clean -f -d -x
+                    make clean
                     make centos7_docker_build CONTAINER_NAME_SUFFIX=
                     make centos7_docker_publish CONTAINER_NAME_SUFFIX=
                 """

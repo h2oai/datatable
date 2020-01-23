@@ -94,11 +94,7 @@ def isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
 def doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL_TESTS
 def doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
 def doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
-def doCoverage = !params.DISABLE_COVERAGE
-
-doPpcTests = true
-doPpcBuild = true
-doCoverage = false
+def doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
 
 MAKE_OPTS = "CI=1"
 

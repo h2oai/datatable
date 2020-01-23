@@ -20,51 +20,20 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-BUILDDIR := build/fast
-PYTHON   ?= python3
-MODULE   ?= .
-ifneq ($(CI),)
-PYTEST_FLAGS := -vv -s --showlocals
-endif
-
-# Platform details
-OS       := $(shell uname | tr A-Z a-z)
-ARCH     := $(shell uname -m)
-PLATFORM := $(ARCH)-$(OS)
-
-# Distribution directory
-DIST_DIR := dist/$(PLATFORM)
-
-
-.PHONY: all
-all:
-	$(MAKE) clean
-	$(MAKE) build
-	$(MAKE) test
+PYTHON ?= python
 
 
 .PHONY: clean
 clean::
-	rm -rf .asan
 	rm -rf .cache
 	rm -rf .eggs
 	rm -rf build
 	rm -rf dist
 	rm -rf datatable.egg-info
 	rm -f *.so
-ifeq (,$(findstring windows,$(OS)))
 	rm -f datatable/lib/_datatable*.pyd
-else
 	rm -f datatable/lib/_datatable*.so
-endif
-	rm -f ci/fast.mk
 	find . -type d -name "__pycache__" -exec rm -rf {} +
-
-
-.PHONY: mrproper
-mrproper: clean
-	git clean -f -d -x
-
 
 
 .PHONY: extra_install
@@ -84,12 +53,7 @@ docs_install:
 
 .PHONY: test
 test:
-	rm -rf build/test-reports 2>/dev/null
-	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -ra --maxfail=10 -Werror $(PYTEST_FLAGS) \
-		--junit-prefix=$(PLATFORM) \
-		--junitxml=build/test-reports/TEST-datatable.xml \
-		tests
+	$(PYTHON) -m pytest -ra --maxfail=10 -Werror tests
 
 # In order to run with Address Sanitizer:
 #   $ make asan
@@ -156,7 +120,10 @@ sdist:
 #  OBSOLETE...
 #-------------------------------------------------------------------------------
 
-DIST_DIR = dist
+# Platform details
+OS       := $(shell uname | tr A-Z a-z)
+ARCH     := $(shell uname -m)
+
 
 ifneq (,$(findstring windows,$(OS)))
 	ARCH := $(shell arch)
