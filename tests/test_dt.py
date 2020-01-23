@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -121,9 +121,9 @@ def test_dt_loadtime(nocov):
             continue
         ratio = (t_datatable - tpy) / (t_smtplib - tpy)
         print("Ratio: %.6f" % ratio)
-        if ratio < 3:
+        if ratio < 4:
             return
-    assert ratio < 4
+    assert ratio < 5
 
 
 def test_dt_dependencies():
@@ -145,9 +145,18 @@ def test_dt_dependencies():
 def test_dt_version():
     assert dt.__version__
     assert isinstance(dt.__version__, str)
-    assert dt.__git_revision__
-    assert isinstance(dt.__git_revision__, str)
-    assert len(dt.__git_revision__) == 40
+    assert dt.build_info
+    assert isinstance(dt.build_info.build_date, str)
+    assert isinstance(dt.build_info.git_revision, str)
+    assert isinstance(dt.build_info.git_branch, str)
+    assert isinstance(dt.build_info.version, str)
+    if "DTCOVERAGE" not in os.environ:
+        assert dt.build_info.build_date
+        assert dt.build_info.git_revision
+        assert dt.build_info.git_branch
+        assert dt.build_info.version
+        assert len(dt.build_info.git_revision) == 40
+        assert dt.build_info.version == dt.__version__
 
 
 def test_dt_help():
@@ -305,13 +314,12 @@ def test_names_deduplication():
 @pytest.mark.usefixtures("py36", "numpy")
 def test_random_attack():
     import subprocess
-    cmd_run = "./tests/random_driver.py"
-    proc = subprocess.Popen([sys.executable, cmd_run,
-                            "-v", "-n 5"],
+    script = os.path.join(os.path.dirname(__file__), "random_driver.py")
+    proc = subprocess.Popen([sys.executable, script, "-v", "-n 5"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate(timeout=100)
-    assert("FAIL" not in out.decode())
-    assert(err.decode() == '')
+    assert "FAIL" not in out.decode()
+    assert not err
 
 
 #-------------------------------------------------------------------------------

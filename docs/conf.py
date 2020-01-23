@@ -27,23 +27,18 @@ author = 'Pasha Stetsenko'
 
 try:
     import datatable
-    # The short X.Y version
     version = datatable.__version__
-    # The full version, including alpha/beta/rc tags
-    release = datatable.__version__
 
 except ImportError:
     import os
     import re
     verfile = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                              "../src/datatable/__version__.py"))
+                              "../VERSION.txt"))
     if os.path.isfile(verfile):
         with open(verfile, "rt") as inp:
-            txt = inp.read()
+            version = inp.read().strip()
     else:
-        txt = ""
-    mm = re.search(r'version = "(.*)"', txt)
-    version = release = mm.group(1) if mm else "0.0.0"
+        version = ""
 
 
 # -- General configuration ---------------------------------------------------
