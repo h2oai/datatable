@@ -480,7 +480,7 @@ def test_cov_random(numpy, seed):
 
     DT = dt.Frame([arr1, arr2])
     dt_cov = DT[:, cov(f[0], f[1])][0, 0]
-    assert numpy.isclose(np_cov, dt_cov, atol=0, rtol=1e-12)
+    assert numpy.isclose(np_cov, dt_cov, atol=1e-12, rtol=1e-12)
 
 
 
