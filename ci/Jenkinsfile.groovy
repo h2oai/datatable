@@ -78,19 +78,21 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
 
+// Note: global variables must be declared without `def`
+//       see https://stackoverflow.com/questions/6305910
+
 // Global project build trigger filled in init stage
-def project
+project = null
 // Needs invocation of larger tests
-def needsLargerTest
-// String with current version
-def versionText
+needsLargerTest = false
+// String with current version (TODO: remove?)
+versionText = "unknown"
 
-
-def isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
-def doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL_TESTS
-def doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
-def doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
-def doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
+isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
+doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL_TESTS
+doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
+doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
+doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
 
 MAKE_OPTS = "CI=1"
 
@@ -167,7 +169,7 @@ ansiColor('xterm') {
                         }
 
                         sh """
-                            #!/bin/bash +x
+                            set +x
                             echo 'DT_RELEASE      = ${DT_RELEASE}'
                             echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
                             echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
@@ -731,10 +733,6 @@ def test_macos(String pyver, boolean needsLargerTest) {
 
 def isModified(pattern) {
     def fList
-    sh """
-        #!/bin/bash +x
-        echo 'In isModified(): isPrJob = ${isPrJob}'
-    """
     if (isPrJob) {
         sh "git fetch --no-tags --progress https://github.com/h2oai/datatable +refs/heads/${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}"
         final String mergeBaseSHA = sh(script: "git merge-base HEAD origin/${env.CHANGE_TARGET}", returnStdout: true).trim()
