@@ -68,7 +68,6 @@ LINK_MAP = [
 DOCKER_IMAGE_PPC64LE_MANYLINUX = "quay.io/pypa/manylinux2014_ppc64le"
 DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
-DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
 
 
 // Note: global variables must be declared without `def`
@@ -308,7 +307,7 @@ ansiColor('xterm') {
             if (!params.DISABLE_ALL_TESTS) {
                 def testStages = [:]
                 testStages <<
-                    namedStage('Test x86_64-ubuntu-py37', { stageName, stageDir ->
+                    namedStage('Test x86_64-manylinux-py37', { stageName, stageDir ->
                         node(NODE_LINUX_TESTS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -316,14 +315,14 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-ubuntu-py37", "37",
-                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                    test_in_docker("x86_64-manylinux-py37", "37",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test x86_64-ubuntu-py36', { stageName, stageDir ->
+                    namedStage('Test x86_64-manylinux-py36', { stageName, stageDir ->
                         node(NODE_LINUX_TESTS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -331,14 +330,14 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-ubuntu-py36", "36",
-                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                    test_in_docker("x86_64-manylinux-py36", "36",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test x86_64-ubuntu-py35', { stageName, stageDir ->
+                    namedStage('Test x86_64-manylinux-py35', { stageName, stageDir ->
                         node(NODE_LINUX_TESTS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -346,8 +345,8 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-ubuntu-py35", "35",
-                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                    test_in_docker("x86_64-manylinux-py35", "35",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
@@ -658,9 +657,6 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
 
 
 def get_python_for_docker(String pyver, String image) {
-    if (image == DOCKER_IMAGE_X86_64_UBUNTU) {
-        return "python" + pyver[0] + "." + pyver[1]
-    }
     if (image == DOCKER_IMAGE_X86_64_CENTOS) {
         if (pyver == "35") return "/opt/h2oai/dai/python/envs/datatable-py35-with-pandas/bin/python3.5"
         if (pyver == "36") return "/opt/h2oai/dai/python/envs/datatable-py36-with-pandas/bin/python3.6"
