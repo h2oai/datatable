@@ -46,8 +46,7 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 ///////////////
 // CONSTANTS //
 ///////////////
-NODE_LINUX_BUILD = "buildMachine"
-NODE_LINUX_TESTS = 'docker && !mr-0xc8'
+NODE_LINUX = "docker && linux && !micro"
 NODE_MACOS = 'osx'
 NODE_PPC = 'ibm-power'
 NODE_RELEASE = 'master'
@@ -110,7 +109,7 @@ ansiColor('xterm') {
         }
         timeout(time: 180, unit: 'MINUTES') {
             // Checkout stage
-            node(NODE_LINUX_BUILD) {
+            node(NODE_LINUX) {
                 def stageDir = 'checkout'
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
@@ -196,7 +195,7 @@ ansiColor('xterm') {
             // Build stages
             parallel([
                 'Build on x86_64-manylinux': {
-                    node(NODE_LINUX_BUILD) {
+                    node(NODE_LINUX) {
                         final stageDir = 'build-x86_64-manylinux'
                         buildSummary.stageWithSummary('Build on x86_64-manylinux', stageDir) {
                             cleanWs()
@@ -308,7 +307,7 @@ ansiColor('xterm') {
                 def testStages = [:]
                 testStages <<
                     namedStage('Test x86_64-manylinux-py37', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
+                        node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -323,7 +322,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-manylinux-py36', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
+                        node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -338,7 +337,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-manylinux-py35', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
+                        node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -353,7 +352,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-centos7-py37', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
+                        node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -368,7 +367,7 @@ ansiColor('xterm') {
                         }
                     }) <<
                     namedStage('Test x86_64-centos7-py35', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
+                        node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
@@ -473,7 +472,7 @@ ansiColor('xterm') {
             if (doCoverage) {
                 parallel ([
                     'Coverage on x86_64_linux': {
-                        node(NODE_LINUX_TESTS) {
+                        node(NODE_LINUX) {
                             final stageDir = 'coverage-x86_64_linux'
                             buildSummary.stageWithSummary('Coverage on x86_64_linux', stageDir) {
                                 cleanWs()
