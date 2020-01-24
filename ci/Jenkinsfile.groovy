@@ -46,19 +46,11 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 ///////////////
 // CONSTANTS //
 ///////////////
-NODE_LINUX_BUILD = "buildMachine"
-NODE_LINUX_TESTS = 'docker && !mr-0xc8'
+NODE_LINUX = "docker && linux && !micro"
 NODE_MACOS = 'osx'
 NODE_PPC = 'ibm-power'
 NODE_RELEASE = 'master'
 
-
-EXPECTED_SHAS = [
-    files: [
-        'ci/Dockerfile-centos7.in': '0dbfd08d5857fdaa5043ffae386895d4fe524a47',
-        'ci/Dockerfile-ubuntu.in': '8dbbd6afe03062befa391c20be95daf58caee4ac',
-    ]
-]
 
 // Paths should be absolute
 S3_URL_STABLE = "s3://h2o-release/datatable/stable"
@@ -73,10 +65,8 @@ LINK_MAP = [
 
 
 DOCKER_IMAGE_PPC64LE_MANYLINUX = "quay.io/pypa/manylinux2014_ppc64le"
-DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
-DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
-DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
+
 
 // Note: global variables must be declared without `def`
 //       see https://stackoverflow.com/questions/6305910
@@ -91,8 +81,6 @@ doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL
 doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
 doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
 doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
-
-MAKE_OPTS = "CI=1"
 
 DT_RELEASE = ""
 DT_BUILD_SUFFIX = ""
@@ -120,7 +108,7 @@ ansiColor('xterm') {
         }
         timeout(time: 180, unit: 'MINUTES') {
             // Checkout stage
-            node(NODE_LINUX_BUILD) {
+            node(NODE_LINUX) {
                 def stageDir = 'checkout'
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
@@ -180,25 +168,6 @@ ansiColor('xterm') {
                             set +x
                             echo 'needsLargerTests = ${needsLargerTest}'
                         """
-
-                        docker.image(DOCKER_IMAGE_X86_64_CENTOS).inside {
-                            def dockerfileSHAsString = ""
-                            EXPECTED_SHAS.files.each { filename, sha ->
-                                dockerfileSHAsString += "${sha}\t${filename}\n"
-                            }
-                            try {
-                                sh """
-                                    echo "${dockerfileSHAsString}" > dockerfiles.sha
-                                    sha1sum -c dockerfiles.sha
-                                    rm -f dockerfiles.sha
-                                """
-                            } catch (e) {
-                                error "Dockerfiles do not have expected checksums. Please make sure, you have built the " +
-                                      "new images using the Jenkins pipeline and that you have changed the required " +
-                                      "fields in this pipeline."
-                                throw e
-                            }
-                        }
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
                         sh """
@@ -225,7 +194,7 @@ ansiColor('xterm') {
             // Build stages
             parallel([
                 'Build on x86_64-manylinux': {
-                    node(NODE_LINUX_BUILD) {
+                    node(NODE_LINUX) {
                         final stageDir = 'build-x86_64-manylinux'
                         buildSummary.stageWithSummary('Build on x86_64-manylinux', stageDir) {
                             cleanWs()
@@ -336,82 +305,52 @@ ansiColor('xterm') {
             if (!params.DISABLE_ALL_TESTS) {
                 def testStages = [:]
                 testStages <<
-                    namedStage('Test x86_64-ubuntu-py37', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
+                    namedStage('Test x86_64-manylinux-py37', { stageName, stageDir ->
+                        node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-ubuntu-py37", "37",
-                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                    test_in_docker("x86_64-manylinux-py37", "37",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test x86_64-ubuntu-py36', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
+                    namedStage('Test x86_64-manylinux-py36', { stageName, stageDir ->
+                        node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-ubuntu-py36", "36",
-                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                    test_in_docker("x86_64-manylinux-py36", "36",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test x86_64-ubuntu-py35', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
+                    namedStage('Test x86_64-manylinux-py35', { stageName, stageDir ->
+                        node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-ubuntu-py35", "35",
-                                                   DOCKER_IMAGE_X86_64_UBUNTU,
+                                    test_in_docker("x86_64-manylinux-py35", "35",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test x86_64-centos7-py37', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-centos7-py37", "37",
-                                                   DOCKER_IMAGE_X86_64_CENTOS,
-                                                   needsLargerTest)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-centos7-py35', { stageName, stageDir ->
-                        node(NODE_LINUX_TESTS) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-centos7-py35", "35",
-                                                   DOCKER_IMAGE_X86_64_CENTOS,
-                                                   needsLargerTest)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-centos7-py37', doPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-manylinux-py37', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -419,14 +358,14 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-centos7-py37", "37",
-                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                    test_in_docker("ppc64le-manylinux-py37", "37",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-centos7-py36', doPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-manylinux-py36', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -434,14 +373,14 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-centos7-py36", "36",
-                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                    test_in_docker("ppc64le-manylinux-py36", "36",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-centos7-py35', doPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-manylinux-py35', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -449,8 +388,8 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-centos7-py35", "35",
-                                                   DOCKER_IMAGE_PPC64LE_CENTOS,
+                                    test_in_docker("ppc64le-manylinux-py35", "35",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
@@ -502,7 +441,7 @@ ansiColor('xterm') {
             if (doCoverage) {
                 parallel ([
                     'Coverage on x86_64_linux': {
-                        node(NODE_LINUX_TESTS) {
+                        node(NODE_LINUX) {
                             final stageDir = 'coverage-x86_64_linux'
                             buildSummary.stageWithSummary('Coverage on x86_64_linux', stageDir) {
                                 cleanWs()
@@ -510,7 +449,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     try {
-                                        sh "make ${MAKE_OPTS} CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                        sh "make ubuntu_coverage_py36_with_pandas_in_docker"
                                     } finally {
                                         arch "/tmp/cores/*python*"
                                     }
@@ -530,7 +469,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     sh """
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
-                                        make ${MAKE_OPTS} coverage
+                                        make coverage
                                     """
                                     testReport "build/coverage-c", "x86_64_osx coverage report for C"
                                     testReport "build/coverage-py", "x86_64_osx coverage report for Python"
@@ -660,7 +599,8 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         def python = get_python_for_docker(pyver, docker_image)
         def docker_cmd = ""
         docker_cmd += "cd /dt && ls dist/ && "
-        docker_cmd += "virtualenv /tmp/pyenv --python=" + python + " && "
+        docker_cmd += python + " -m pip install virtualenv --user && "
+        docker_cmd += python + " -m virtualenv /tmp/pyenv && "
         docker_cmd += "source /tmp/pyenv/bin/activate && "
         docker_cmd += "python -VV && "
         docker_cmd += "pip install --upgrade pip && "
@@ -685,15 +625,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
 
 
 def get_python_for_docker(String pyver, String image) {
-    if (image == DOCKER_IMAGE_X86_64_UBUNTU) {
-        return "python" + pyver[0] + "." + pyver[1]
-    }
-    if (image == DOCKER_IMAGE_X86_64_CENTOS || image == DOCKER_IMAGE_PPC64LE_CENTOS) {
-        if (pyver == "35") return "/opt/h2oai/dai/python/envs/datatable-py35-with-pandas/bin/python3.5"
-        if (pyver == "36") return "/opt/h2oai/dai/python/envs/datatable-py36-with-pandas/bin/python3.6"
-        if (pyver == "37") return "/opt/h2oai/dai/python/envs/datatable-py37-with-pandas/bin/python3.7"
-    }
-    if (image == DOCKER_IMAGE_X86_64_MANYLINUX) {
+    if (image == DOCKER_IMAGE_X86_64_MANYLINUX || image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
         if (pyver == "35") return "/opt/python/cp35-cp35m/bin/python3.5"
         if (pyver == "36") return "/opt/python/cp36-cp36m/bin/python3.6"
         if (pyver == "37") return "/opt/python/cp37-cp37m/bin/python3.7"
@@ -754,18 +686,7 @@ def isRelease() {
     return env.BRANCH_NAME.startsWith("rel-")
 }
 
-def createDockerArgs() {
-    def out = ""
-    LINK_MAP.each { key, value ->
-        out += "-v /home/0xdiag/${key}:/tmp/pydatatable_large_data/${value} "
-    }
-    out += "-v /tmp/cores:/tmp/cores "
-    return out
-}
 
-def getHTTPSTargetUrl(final versionText) {
-    return "${HTTPS_URL_STABLE}/datatable-${versionText}/"
-}
 
 def markSkipped(String stageName) {
     stage (stageName) {
