@@ -508,7 +508,7 @@ ansiColor('xterm') {
                             //        same, and that if we are in release mode
                             //        the version contains only digits and dots.
                             //
-                            versionText = sh(script: "sed -ne \"s/.*version='\([^']*\)',/\1/p\" < src/datatable/_build_info.py", returnStdout: true).trim()
+                            versionText = sh(script: """sed -ne "s/.*version='\\([^']*\\)',/\1/p" < src/datatable/_build_info.py""", returnStdout: true).trim()
                             s3upDocker {
                                 localArtifact = 'dist/*'
                                 artifactId = 'datatable'
