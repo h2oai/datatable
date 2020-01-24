@@ -66,7 +66,6 @@ LINK_MAP = [
 
 DOCKER_IMAGE_PPC64LE_MANYLINUX = "quay.io/pypa/manylinux2014_ppc64le"
 DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
-DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 
 
 // Note: global variables must be declared without `def`
@@ -351,36 +350,6 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test x86_64-centos7-py37', { stageName, stageDir ->
-                        node(NODE_LINUX) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-centos7-py37", "37",
-                                                   DOCKER_IMAGE_X86_64_CENTOS,
-                                                   needsLargerTest)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-centos7-py35', { stageName, stageDir ->
-                        node(NODE_LINUX) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-centos7-py35", "35",
-                                                   DOCKER_IMAGE_X86_64_CENTOS,
-                                                   needsLargerTest)
-                                }
-                            }
-                        }
-                    }) <<
                     namedStage('Test ppc64le-manylinux-py37', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -480,7 +449,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     try {
-                                        sh "make CUSTOM_ARGS='${createDockerArgs()}' ubuntu_coverage_py36_with_pandas_in_docker"
+                                        sh "make ubuntu_coverage_py36_with_pandas_in_docker"
                                     } finally {
                                         arch "/tmp/cores/*python*"
                                     }
@@ -656,11 +625,6 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
 
 
 def get_python_for_docker(String pyver, String image) {
-    if (image == DOCKER_IMAGE_X86_64_CENTOS) {
-        if (pyver == "35") return "/opt/h2oai/dai/python/envs/datatable-py35-with-pandas/bin/python3.5"
-        if (pyver == "36") return "/opt/h2oai/dai/python/envs/datatable-py36-with-pandas/bin/python3.6"
-        if (pyver == "37") return "/opt/h2oai/dai/python/envs/datatable-py37-with-pandas/bin/python3.7"
-    }
     if (image == DOCKER_IMAGE_X86_64_MANYLINUX || image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
         if (pyver == "35") return "/opt/python/cp35-cp35m/bin/python3.5"
         if (pyver == "36") return "/opt/python/cp36-cp36m/bin/python3.6"
@@ -722,18 +686,7 @@ def isRelease() {
     return env.BRANCH_NAME.startsWith("rel-")
 }
 
-def createDockerArgs() {
-    def out = ""
-    LINK_MAP.each { key, value ->
-        out += "-v /home/0xdiag/${key}:/tmp/pydatatable_large_data/${value} "
-    }
-    out += "-v /tmp/cores:/tmp/cores "
-    return out
-}
 
-def getHTTPSTargetUrl(final versionText) {
-    return "${HTTPS_URL_STABLE}/datatable-${versionText}/"
-}
 
 def markSkipped(String stageName) {
     stage (stageName) {
