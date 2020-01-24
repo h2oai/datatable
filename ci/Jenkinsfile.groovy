@@ -53,13 +53,6 @@ NODE_PPC = 'ibm-power'
 NODE_RELEASE = 'master'
 
 
-EXPECTED_SHAS = [
-    files: [
-        'ci/Dockerfile-centos7.in': '0dbfd08d5857fdaa5043ffae386895d4fe524a47',
-        'ci/Dockerfile-ubuntu.in': '8dbbd6afe03062befa391c20be95daf58caee4ac',
-    ]
-]
-
 // Paths should be absolute
 S3_URL_STABLE = "s3://h2o-release/datatable/stable"
 HTTPS_URL_STABLE = "https://h2o-release.s3.amazonaws.com/datatable/stable"
@@ -77,7 +70,6 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 DOCKER_IMAGE_X86_64_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_centos7:0.8.0-master.9"
 DOCKER_IMAGE_X86_64_UBUNTU = "harbor.h2o.ai/opsh2oai/datatable-build-x86_64_ubuntu:0.8.0-master.9"
 
-DOCKER_IMAGE_PPC64LE_CENTOS = "harbor.h2o.ai/opsh2oai/datatable-build-ppc64le_centos7:0.8.0-master.9"
 
 // Note: global variables must be declared without `def`
 //       see https://stackoverflow.com/questions/6305910
@@ -89,7 +81,7 @@ versionText = "unknown"
 
 isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
 doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL_TESTS
-doPpcTests = true || doExtraTests && !params.DISABLE_PPC64LE_TESTS
+doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
 doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
 doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
 
@@ -179,25 +171,6 @@ ansiColor('xterm') {
                             set +x
                             echo 'needsLargerTests = ${needsLargerTest}'
                         """
-
-                        docker.image(DOCKER_IMAGE_X86_64_CENTOS).inside {
-                            def dockerfileSHAsString = ""
-                            EXPECTED_SHAS.files.each { filename, sha ->
-                                dockerfileSHAsString += "${sha}\t${filename}\n"
-                            }
-                            try {
-                                sh """
-                                    echo "${dockerfileSHAsString}" > dockerfiles.sha
-                                    sha1sum -c dockerfiles.sha
-                                    rm -f dockerfiles.sha
-                                """
-                            } catch (e) {
-                                error "Dockerfiles do not have expected checksums. Please make sure, you have built the " +
-                                      "new images using the Jenkins pipeline and that you have changed the required " +
-                                      "fields in this pipeline."
-                                throw e
-                            }
-                        }
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
                         sh """
@@ -410,7 +383,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-centos7-py37', doPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-manylinux-py37', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -418,14 +391,14 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-centos7-py37", "37",
+                                    test_in_docker("ppc64le-manylinux-py37", "37",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-centos7-py36', doPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-manylinux-py36', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -433,14 +406,14 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-centos7-py36", "36",
+                                    test_in_docker("ppc64le-manylinux-py36", "36",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-centos7-py35', doPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-manylinux-py35', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -448,7 +421,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-centos7-py35", "35",
+                                    test_in_docker("ppc64le-manylinux-py35", "35",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
                                 }
@@ -688,7 +661,7 @@ def get_python_for_docker(String pyver, String image) {
     if (image == DOCKER_IMAGE_X86_64_UBUNTU) {
         return "python" + pyver[0] + "." + pyver[1]
     }
-    if (image == DOCKER_IMAGE_X86_64_CENTOS || image == DOCKER_IMAGE_PPC64LE_CENTOS) {
+    if (image == DOCKER_IMAGE_X86_64_CENTOS) {
         if (pyver == "35") return "/opt/h2oai/dai/python/envs/datatable-py35-with-pandas/bin/python3.5"
         if (pyver == "36") return "/opt/h2oai/dai/python/envs/datatable-py36-with-pandas/bin/python3.6"
         if (pyver == "37") return "/opt/h2oai/dai/python/envs/datatable-py37-with-pandas/bin/python3.7"
