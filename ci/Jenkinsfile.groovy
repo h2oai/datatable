@@ -184,6 +184,7 @@ ansiColor('xterm') {
                         """
                         sh "cat src/datatable/_build_info.py"
                         arch "src/datatable/_build_info.py"
+                        stash includes: 'src/datatable/_build_info.py', name 'build_info'
                         stash includes: 'dist/*.tar.gz', name: 'sdist'
                         arch "dist/*.tar.gz"
                         sh "rm -f dist/*.tar.gz"
@@ -491,6 +492,7 @@ ansiColor('xterm') {
                             unstash 'x86_64-manylinux-wheels'
                             unstash 'x86_64-macos-wheels'
                             unstash 'sdist'
+                            unstash 'build_info'
                             if (doPpcBuild) {
                                 unstash 'ppc64le-manylinux-wheels'
                             }
@@ -506,6 +508,7 @@ ansiColor('xterm') {
                             //        same, and that if we are in release mode
                             //        the version contains only digits and dots.
                             //
+                            versionText = sh(script: "sed -ne \"s/.*version='\([^']*\)',/\1/p\" < src/datatable/_build_info.py", returnStdout: true).trim()
                             s3upDocker {
                                 localArtifact = 'dist/*'
                                 artifactId = 'datatable'
