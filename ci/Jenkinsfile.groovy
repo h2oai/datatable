@@ -184,7 +184,7 @@ ansiColor('xterm') {
                         """
                         sh "cat src/datatable/_build_info.py"
                         arch "src/datatable/_build_info.py"
-                        stash includes: 'src/datatable/_build_info.py', name 'build_info'
+                        stash includes: 'src/datatable/_build_info.py', name: 'build_info'
                         stash includes: 'dist/*.tar.gz', name: 'sdist'
                         arch "dist/*.tar.gz"
                         sh "rm -f dist/*.tar.gz"
