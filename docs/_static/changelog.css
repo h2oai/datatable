@@ -79,7 +79,6 @@
     font-family: FontAwesome;
     left: 10px;
     position: absolute;
-    top: 3px;
 }
 
 .changelog ul.changelog-list li.changelog-list-item.gh.old:before {

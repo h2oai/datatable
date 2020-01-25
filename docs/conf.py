@@ -52,6 +52,7 @@ needs_sphinx = '1.8'
 # ones.
 extensions = [
     'sphinxext.dtframe_directive',
+    'sphinxext.xcontributors',
     'sphinxext.xfunction',
     'sphinxext.dt_changelog',
     'sphinxext.ref_context',
