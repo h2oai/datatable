@@ -45,7 +45,6 @@ def test_aggregate_0d_continuous_integer_random():
     d_in = dt.Frame([None, 9, 8, math.inf, 2, 3, 3, 0, 5, 5, 8, 1, -math.inf])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=min_rows, n_bins=n_bins)
-    print(d_exemplars, d_members)
     frame_integrity_check(d_members)
     assert d_members.shape == (13, 1)
     assert d_members.ltypes == (ltype.int,)
