@@ -32,7 +32,7 @@ __all__ = (
 	"Extension",
 	"Logger0",
 	"Logger1",
-  "Logger2",
+    "Logger2",
 	"Logger3",
 	"Wheel",
 )
@@ -40,16 +40,16 @@ __all__ = (
 
 # Enable console virtual terminal sequences on Windows
 if sys.platform == "win32":
-  import ctypes
-  from ctypes import wintypes
-  windll = ctypes.LibraryLoader(ctypes.WinDLL)
-  set_console_mode = windll.kernel32.SetConsoleMode
-  set_console_mode.argtypes = [wintypes.HANDLE, wintypes.DWORD]
-  set_console_mode.restype = wintypes.BOOL
+    import ctypes
+    from ctypes import wintypes
+    windll = ctypes.LibraryLoader(ctypes.WinDLL)
+    set_console_mode = windll.kernel32.SetConsoleMode
+    set_console_mode.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    set_console_mode.restype = wintypes.BOOL
 
-  get_std_handle = windll.kernel32.GetStdHandle
-  get_std_handle.argtypes = [wintypes.DWORD]
-  get_std_handle.restype = wintypes.HANDLE
+    get_std_handle = windll.kernel32.GetStdHandle
+    get_std_handle.argtypes = [wintypes.DWORD]
+    get_std_handle.restype = wintypes.HANDLE
 
-  STDOUT = get_std_handle(-11)
-  set_console_mode(STDOUT, 5)
+    STDOUT = get_std_handle(-11)
+    set_console_mode(STDOUT, 5)
