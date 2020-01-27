@@ -104,6 +104,9 @@ Column naryop_rowminmax(colvec&& columns, bool MIN) {
     case SType::FLOAT32: return _rowminmax<float>(std::move(columns), MIN);
     case SType::FLOAT64: return _rowminmax<double>(std::move(columns), MIN);
     default: xassert(0);
+             throw RuntimeError()
+               << "Wrong `res_stype` in `naryop_rowminmax()`: "
+               << res_stype;
   }
 }
 

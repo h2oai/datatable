@@ -155,6 +155,65 @@ class Logger1(Logger0):
         print(line, end="", flush=True)
 
 
+#-------------------------------------------------------------------------------
+# Logger2
+#-------------------------------------------------------------------------------
+
+class Logger2(Logger0):
+    """
+    Sublime friendly conservative logger.
+    """
+
+    def __init__(self):
+        self._indent = ""
+
+    def report_compile_start(self, filename, cmd):
+        self.info("Compiling `%s`" % filename)
+
+    def report_compiler_executable(self, cc, env=None):
+        msg = "Using compiler `%s`" % cc
+        if env:
+            msg += " from environment variable `%s`" % env
+        self.info(msg)
+
+    def report_link_file(self, filename, cmd):
+        self.info("Linking `%s`" % filename)
+
+    def report_output_file(self, filename):
+        self.info("Output file name will be `%r`" % filename)
+
+
+    def step_compile(self, files):
+        if files:
+            self.info("Compiling `%d` source files" % len(files),
+                      indent="")
+        else:
+            self.info("Compiling source files: SKIPPED", indent="")
+
+    def info(self, msg, indent=None):
+        if indent is None:
+            indent = self._indent
+        msg = re.sub(r"`([^`]*)`", "\x1B[1;97m\\1\x1B[0;90m", msg)
+        print(indent + "\x1B[90m" + msg + "\x1B[m")
+
+
+    def warn(self, msg, indent=None):
+        if indent is None:
+            indent = self._indent
+        msg = re.sub(r"`([^`]*)`", "\x1B[1;97m\\1\x1B[0;91m", msg)
+        print(indent + "\x1B[91m" + msg + "\x1B[m")
+
+
+    def report_errors_and_warnings(self, msgs, errors=False):
+        if not msgs:
+            return
+        color = "\x1B[91m" if errors else \
+                "\x1B[93m"
+        print(color + "+==== ERRORS & WARNINGS ========\n\x1B[m")
+        for msg in msgs:
+            for line in msg.split("\n"):
+                print(color + "\x1B[m" + line)
+
 
 
 #-------------------------------------------------------------------------------
@@ -263,7 +322,7 @@ class Logger3(Logger0):
         self.info("Use %d worker processes" % nworkers)
 
     def report_output_file(self, filename):
-        self.info("Output file name will be %r" % filename)
+        self.info("Output file name will be `%r`" % filename)
 
     def report_removed_file(self, filename):
         self.info("File `%s` deleted" % filename)

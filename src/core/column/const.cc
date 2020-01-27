@@ -160,6 +160,8 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
 
         default:
           xassert(0 && "Invalid stype for float constant");  // LCOV_EXCL_LINE
+          throw RuntimeError() << "Wrong `stype0` in `normalize_stype()`: "
+                  << stype0;
       }
     }
 };

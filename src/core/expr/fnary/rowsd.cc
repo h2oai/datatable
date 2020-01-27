@@ -92,6 +92,9 @@ Column naryop_rowsd(colvec&& columns) {
     case SType::FLOAT32: return _rowsd<float>(std::move(columns));
     case SType::FLOAT64: return _rowsd<double>(std::move(columns));
     default: xassert(0);
+             throw RuntimeError()
+               << "Wrong `res_stype` in `naryop_rowsd()`: "
+               << res_stype;
   }
 }
 

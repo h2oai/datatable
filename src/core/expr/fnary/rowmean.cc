@@ -88,6 +88,9 @@ Column naryop_rowmean(colvec&& columns) {
     case SType::FLOAT32: return _rowmean<float>(std::move(columns));
     case SType::FLOAT64: return _rowmean<double>(std::move(columns));
     default: xassert(0);
+             throw RuntimeError()
+               << "Wrong `res_stype` in `naryop_rowmean()`: "
+               << res_stype;
   }
 }
 

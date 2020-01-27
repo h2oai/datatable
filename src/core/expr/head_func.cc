@@ -116,41 +116,48 @@ static ptrHead make_cast(Op, const py::otuple& params) {
 
 static ptrHead make_colsetop(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
+  (void) params;
   return ptrHead(new Head_Func_Colset(op));
 }
 
 static ptrHead make_unop(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
+  (void) params;
   return ptrHead(new Head_Func_Unary(op));
 }
 
 
 static ptrHead make_binop(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
+  (void) params;
   return ptrHead(new Head_Func_Binary(op));
 }
 
 
 static ptrHead make_reduce0(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
+  (void) params;
   return ptrHead(new Head_Reduce_Nullary(op));
 }
 
 
 static ptrHead make_reduce1(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
+  (void) params;
   return ptrHead(new Head_Reduce_Unary(op));
 }
 
 
 static ptrHead make_reduce2(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
+  (void) params;
   return ptrHead(new Head_Reduce_Binary(op));
 }
 
 
 static ptrHead make_rowfn(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
+  (void) params;
   return ptrHead(new Head_Func_Nary(op));
 }
 
