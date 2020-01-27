@@ -182,7 +182,6 @@ class Logger2(Logger0):
     def report_output_file(self, filename):
         self.info("Output file name will be `%r`" % filename)
 
-
     def step_compile(self, files):
         if files:
             self.info("Compiling `%d` source files" % len(files),
@@ -190,19 +189,19 @@ class Logger2(Logger0):
         else:
             self.info("Compiling source files: SKIPPED", indent="")
 
+
+
     def info(self, msg, indent=None):
         if indent is None:
             indent = self._indent
         msg = re.sub(r"`([^`]*)`", "\x1B[1;97m\\1\x1B[0;90m", msg)
         print(indent + "\x1B[90m" + msg + "\x1B[m")
 
-
     def warn(self, msg, indent=None):
         if indent is None:
             indent = self._indent
         msg = re.sub(r"`([^`]*)`", "\x1B[1;97m\\1\x1B[0;91m", msg)
         print(indent + "\x1B[91m" + msg + "\x1B[m")
-
 
     def report_errors_and_warnings(self, msgs, errors=False):
         if not msgs:
