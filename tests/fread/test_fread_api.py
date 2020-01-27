@@ -50,11 +50,12 @@ def test_fread_from_cmd1():
 
 
 def test_fread_from_cmd2():
-    d0 = dt.fread(cmd="ls", header=False)
+    root = os.path.join(os.path.dirname(__file__), "..", "..")
+    d0 = dt.fread(cmd="ls " + root, header=False)
     frame_integrity_check(d0)
     assert d0.ncols == 1
     assert d0.nrows >= 12
-    d1 = dt.fread(cmd="cat LICENSE", sep="\n")
+    d1 = dt.fread(cmd="cat %s/LICENSE" % root, sep="\n")
     frame_integrity_check(d1)
     assert d1.nrows == 372
 
@@ -73,7 +74,8 @@ def test_fread_from_url1():
 
 
 def test_fread_from_url2():
-    path = os.path.abspath("LICENSE")
+    root = os.path.join(os.path.dirname(__file__), "..", "..")
+    path = os.path.abspath(os.path.join(root, "LICENSE"))
     d0 = dt.fread("file://" + path, sep="\n")
     frame_integrity_check(d0)
     assert d0.shape == (372, 1)

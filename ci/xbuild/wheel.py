@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -56,7 +56,8 @@ rx_version = re.compile(r"(?:\d+!)?"           # epoch
                         r"\d+(?:\.\d+)*"       # release segment
                         r"(?:(?:a|b|rc)\d+)?"  # pre-release segment
                         r"(?:\.post\d+)?"      # post-release segment
-                        r"(?:\.dev\d+)?")      # development release segment
+                        r"(?:\.dev\d+)?"       # development release segment
+                        r"(?:\+[\w\.]+)?")     # local version segment
 
 
 

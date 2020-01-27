@@ -80,7 +80,9 @@ Column naryop_rowsum(colvec&& columns) {
     case SType::INT64:   return _rowsum<int64_t>(std::move(columns));
     case SType::FLOAT32: return _rowsum<float>(std::move(columns));
     case SType::FLOAT64: return _rowsum<double>(std::move(columns));
-    default: xassert(0);
+    default: throw RuntimeError()
+               << "Wrong `res_stype` in `naryop_rowsum()`: "
+               << res_stype;  // LCOV_EXCL_LINE
   }
 }
 

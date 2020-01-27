@@ -1,0 +1,39 @@
+
+.. currentmodule:: datatable
+
+.. changelog::
+  :version: 0.5.0
+  :released: 2018-05-25
+  :wheels: https://files.pythonhosted.org/packages/5a/a6/2785bd9ac05ebffb71c067e8e1e0d0e65667482e15c3d1e221e9ebc80c3b/datatable-0.5.0-cp35-cp35m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/0e/cd/d994e4d67867f1ffbfbb355b98e43db5e689507fb785ed11057ea907980a/datatable-0.5.0-cp36-cp36m-macosx_10_7_x86_64.whl
+           https://files.pythonhosted.org/packages/09/ac/fd225408382529a4995143ff97c5226c72c8df8057496831256376e0ff9f/datatable-0.5.0.tar.gz
+
+  .. ref-context:: datatable
+
+  -[new] New function :func:`rbind()` to perform out-of-place row binding.
+
+  -[enh] :func:`rbind`-ing now works on columns of all types (including between
+    any types).
+
+  -[enh] Added ability to change the number of rows in a Frame.
+
+  -[new] It's now possible to modify a Frame in-place by assigning new values
+    to particular cells.
+
+  -[new] Created ``dt.__git_version__`` variable containing the commit hash from
+    which the package was built.
+
+  -[new] Added ability to read ``.bz2`` compressed files with :func:`fread`.
+
+  -[enh] Fread can now properly recognize quoted NA strings.
+
+  -[fix] Ensure that :func:`fread` only emits messages to Python from the master
+    thread.
+
+  -[fix] Fixed an error when unbounded f-expressions were printed to console.
+
+  -[fix] Fixed problems when operating with too many memory-mapped Frames
+    simultaneously.
+
+  -[fix] Fixed incorrect groupby calculation in some rare cases.
+

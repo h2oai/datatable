@@ -73,6 +73,7 @@ size_t SentinelStr_ColumnImpl<T>::get_num_data_buffers() const noexcept {
 template <typename T>
 bool SentinelStr_ColumnImpl<T>::is_data_editable(size_t k) const {
   xassert(k <= 1);
+  (void) k;
   return false;
 }
 

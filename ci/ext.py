@@ -26,15 +26,162 @@
 #     A build-system independent format for source trees
 #     Specification for a build backend system.
 #
+# [PEP-440](https://www.python.org/dev/peps/pep-0440/)
+#     Description of standard version formats.
+#
 #-------------------------------------------------------------------------------
 import glob
 import os
 import platform
+import re
+import subprocess
 import sys
 import textwrap
-from ci import xbuild
-from ci.setup_utils import get_datatable_version, make_git_version_file
+import time
+import xbuild
 
+
+#-------------------------------------------------------------------------------
+# Version handling
+#-------------------------------------------------------------------------------
+
+def is_source_distribution():
+    return not os.path.exists("VERSION.txt") and \
+           os.path.exists("src/datatable/_build_info.py")
+
+
+# The primary source of datatable's release version is the file
+# VERSION.txt in the root of the repository.
+#
+# When building the release version of datatable, this file is
+# expected to contain the "release version" of the distribution,
+# i.e. have form
+#
+#     XX.YY.ZZ
+#
+# In all other cases, the file is expected to contain the main
+# version + optional suffix "a", "b" or "rc":
+#
+#     XX.YY.ZZ[a|b|rc]
+#
+# If the suffix is absent, then this is presumed to be the
+# "post-release" version, and suffix `.post` is automatically added.
+#
+# This procedure verifies that the content of VERSION.txt is in
+# the appropriate format, and returns the augmented version of the
+# datatable distribution:
+#
+# - In release mode (env.variable DT_RELEASE is set), the final
+#   release is the same as the content of VERSION.txt;
+#
+# - In PR mode (env.variable DT_BUILD_SUFFIX is present), the final
+#   version is `VERSION.txt` "0+" `DT_BUILD_SUFFIX`
+#
+# - In dev-master mode (env.variable DT_BUILD_NUMBER is present),
+#   the version is equal to `VERSION.txt` BUILD_NUMBER;
+#
+# - When building from source distribution (file VERSION.txt is
+#   absent, the version is taken from datatable/_build_info.py) file;
+#
+# - In all other cases (local build), the final version consists of
+#   of `VERSION.txt` "0+" [buildmode "."] timestamp ["." username].
+#
+def get_datatable_version(mode=None):
+    # In release mode, the version is just the content of VERSION.txt
+    if os.environ.get("DT_RELEASE"):
+        version = _get_version_txt("release")
+        if not re.fullmatch(r"\d+(\.\d+)+", version):
+            raise SystemExit("Invalid version `%s` in VERSION.txt when building"
+                             " datatable in release mode (DT_RELEASE is on)"
+                             % version)
+        return version
+
+    # In PR mode, the version is appended with DT_BUILD_SUFFIX
+    if os.environ.get("DT_BUILD_SUFFIX"):
+        version = _get_version_txt("PR")
+        suffix = os.environ.get("DT_BUILD_SUFFIX")
+        mm = re.fullmatch(r"\d+(\.\d+)+(a|b|rc)?", version)
+        if not mm:
+            raise SystemExit("Invalid version `%s` in VERSION.txt when building"
+                             " datatable in PR mode" % version)
+        if not re.fullmatch(r"\w([\w\.]*\w)?", suffix):
+            raise SystemExit("Invalid build suffix `%s` from environment "
+                             "variable DT_BUILD_SUFFIX" % suffix)
+        if not mm.group(2):
+            version += ".a"
+        return version + "0+" + suffix.lower()
+
+    # In "master-dev" mode, the DT_BUILD_NUMBER is used
+    if os.environ.get("DT_BUILD_NUMBER"):
+        version = _get_version_txt("dev")
+        build = os.environ.get("DT_BUILD_NUMBER")
+        if not re.fullmatch(r"\d+", build):
+            raise SystemExit("Invalid build number `%s` from environment "
+                             "variable DT_BUILD_NUMBER" % build)
+        mm = re.fullmatch(r"\d+(\.\d+)+(a|b|rc)?", version)
+        if not mm:
+            raise SystemExit("Invalid version `%s` in VERSION.txt when building"
+                             " datatable in development mode" % version)
+        if not mm.group(2):
+            version += ".post"
+        return version + build
+
+    # Building from sdist (file VERSION.txt not included)
+    if is_source_distribution():
+        return _get_version_from_build_info()
+
+    # Otherwise we're building from a local distribution
+    else:
+        version = _get_version_txt("local")
+        if not version[-1].isdigit():
+            version += "0"
+        version += "+"
+        if mode:
+            version += mode + "."
+        version += str(int(time.time()))
+        user = _get_user()
+        if user:
+            version += "." + user
+        return version
+
+
+def _get_version_txt(mode):
+    if not os.path.exists("VERSION.txt"):
+        raise SystemExit("File VERSION.txt is missing when building datatable "
+                         "in %s mode" % mode)
+    with open("VERSION.txt", "r") as f:
+        return f.read().strip()
+
+
+def _get_version_from_build_info():
+    info_file = os.path.join("src", "datatable", "_build_info.py")
+    if not os.path.exists(info_file):
+        raise SystemExit("Invalid source distribution: file "
+                         "src/datatable/_build_info.py is missing")
+    with open(info_file, "r", encoding="utf-8") as inp:
+        text = inp.read()
+    mm = re.search(r"\s*version\s*=\s*['\"]([\w\+\.]+)['\"]", text)
+    if not mm:
+        raise SystemExit("Cannot find version in src/datatable/"
+                         "_build_info.py file")
+    return mm.group(1)
+
+
+
+def _get_user():
+    import getpass
+    try:
+        user = getpass.getuser()
+        return re.sub(r"[^a-zA-Z0-9]+", "", user)
+    except KeyError:
+        # An exception may be raised if the user is not in /etc/passwd file
+        return ""
+
+
+
+#-------------------------------------------------------------------------------
+# Commands implementation
+#-------------------------------------------------------------------------------
 
 def create_logger(verbosity):
     return (xbuild.Logger0() if verbosity == 0 else \
@@ -169,14 +316,14 @@ def build_extension(cmd, verbosity=3):
 
     # Setup is complete, ready to build
     ext.build()
-    return os.path.basename(ext.output_file)
+    return ext.output_file
 
 
 
 def get_meta():
     return dict(
         name="datatable",
-        version=get_datatable_version(),
+        version=_get_version_from_build_info(),
 
         summary="Python library for fast multi-threaded data manipulation and "
                 "munging.",
@@ -230,6 +377,90 @@ def get_meta():
 
 
 #-------------------------------------------------------------------------------
+# Build info file
+#-------------------------------------------------------------------------------
+
+def shell_cmd(cmd, strict=False):
+    try:
+        return subprocess.check_output(cmd, universal_newlines=True,
+                                       stderr=subprocess.STDOUT).strip()
+    except subprocess.CalledProcessError as e:
+        if strict:
+            raise SystemExit("Command `%s` failed with code %d: %s"
+                             % (" ".join(cmd), e.returncode, e.output))
+        return ""
+
+
+def generate_build_info(mode=None, strict=False):
+    """
+    Gather the build information and write it into the
+    datatable/_build_info.py file.
+
+    Parameters
+    ----------
+    mode: str
+        Used only for local version tags, the mode is the first part
+        of such local tag.
+
+    strict: bool
+        If False, then the errors in git commands will be silently
+        ignored, and the produced _build_info.py file will contain
+        empty `git_revision` and `git_branch` fields.
+
+        If True, then the errors in git commands will terminate the
+        build process.
+    """
+    version = get_datatable_version(mode)
+    build_date = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    git_hash = shell_cmd(["git", "rev-parse", "HEAD"], strict=strict)
+    git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                           strict=strict)
+
+    info_file = os.path.join("src", "datatable", "_build_info.py")
+    with open(info_file, "wt") as out:
+        out.write(
+            "#!/usr/bin/env python3\n"
+            "# -*- encoding: utf-8 -*-\n"
+            "# --------------------------------------------------------------\n"
+            "# Copyright 2018-%d H2O.ai\n"
+            "#\n"
+            "# Permission is hereby granted, free of charge, to any person\n"
+            "# obtaining a copy of this software and associated documentation\n"
+            "# files (the 'Software'), to deal in the Software without\n"
+            "# restriction, including without limitation the rights to use,\n"
+            "# copy, modify, merge, publish, distribute, sublicense, and/or\n"
+            "# sell copies of the Software, and to permit persons to whom the\n"
+            "# Software is furnished to do so, subject to the following\n"
+            "# conditions:\n"
+            "#\n"
+            "# The above copyright notice and this permission notice shall be\n"
+            "# included in all copies or substantial portions of the\n"
+            "# Software.\n"
+            "#\n"
+            "# THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY\n"
+            "# KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE\n"
+            "# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR\n"
+            "# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS\n"
+            "# OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+            "# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR\n"
+            "# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE\n"
+            "# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n"
+            "# --------------------------------------------------------------\n"
+            "# This file was auto-generated from ci/ext.py\n\n"
+            % time.gmtime().tm_year
+        )
+        out.write("import types\n\n")
+        out.write("build_info = types.SimpleNamespace(\n")
+        out.write("    version='%s',\n" % version)
+        out.write("    build_date='%s',\n" % build_date)
+        out.write("    git_revision='%s',\n" % git_hash)
+        out.write("    git_branch='%s',\n" % git_branch)
+        out.write(")\n")
+
+
+
+
+#-------------------------------------------------------------------------------
 # Standard hooks
 #-------------------------------------------------------------------------------
 
@@ -243,10 +474,28 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     assert isinstance(config_settings, dict)
     assert metadata_directory is None
 
-    so_file = build_extension(cmd="build", verbosity=3)
+    if is_source_distribution() and "reuse_version" not in config_settings:
+        config_settings["reuse_version"] = True
+
+    if not config_settings.pop("reuse_version", False):
+        generate_build_info("build", strict=True)
+    assert os.path.isfile("src/datatable/_build_info.py")
+
+    if config_settings.pop("reuse_extension", False):
+        soext = "dll" if sys.platform == "win32" else "so"
+        sofiles = glob.glob("src/datatable/lib/_datatable*." + soext)
+        if not sofiles:
+            raise SystemExit("Extension file src/datatable/lib/_datatable*.%s "
+                             "not found" % soext)
+        if len(sofiles) > 1:
+            raise SystemExit("Multiple extension files found: %r" % (sofiles,))
+        so_file = sofiles[0]
+    else:
+        so_file = build_extension(cmd="build", verbosity=3)
+
     files = glob.glob("src/datatable/**/*.py", recursive=True)
+    files += [so_file]
     files += ["src/datatable/include/datatable.h"]
-    files += ["src/datatable/lib/" + so_file]
     files = [(f, f[4:])  # (src_file, destination_file)
              for f in files if "_datatable_builder.py" not in f]
     files.sort()
@@ -266,6 +515,8 @@ def build_sdist(sdist_directory, config_settings=None):
     assert isinstance(sdist_directory, str)
     assert config_settings is None or isinstance(config_settings, dict)
 
+    generate_build_info("sdist", strict=True)
+
     files = [f for f in glob.glob("src/datatable/**/*.py", recursive=True)
              if "_datatable_builder.py" not in f]
     files += glob.glob("src/core/**/*.cc", recursive=True)
@@ -275,9 +526,11 @@ def build_sdist(sdist_directory, config_settings=None):
               if "random_attack_logs" not in f]
     files += ["src/datatable/include/datatable.h"]
     files.sort()
-    files += ["ext.py"]
+    files += ["ci/ext.py", "ci/__init__.py"]
     files += ["pyproject.toml"]
     files += ["LICENSE"]
+    # See `is_source_distribution()`
+    assert "VERSION.txt" not in files
 
     meta = get_meta()
     wb = xbuild.Wheel(files, **meta)
@@ -292,6 +545,28 @@ def build_sdist(sdist_directory, config_settings=None):
 # Allow this script to run from command line
 #-------------------------------------------------------------------------------
 
+def cmd_ext(args):
+    with open("src/datatable/lib/.xbuild-cmd", "wt") as out:
+        out.write(args.cmd)
+    generate_build_info(args.cmd, strict=args.strict)
+    build_extension(cmd=args.cmd, verbosity=args.verbosity)
+
+
+def cmd_geninfo(args):
+    generate_build_info(strict=args.strict)
+
+
+def cmd_sdist(args):
+    sdist_file = build_sdist(args.destination)
+    assert os.path.isfile(os.path.join(args.destination, sdist_file))
+
+
+def cmd_wheel(args):
+    wheel_file = build_wheel(args.destination, {"audit": args.audit})
+    assert os.path.isfile(os.path.join(args.destination, wheel_file))
+
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(
@@ -299,7 +574,7 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("cmd", metavar="CMD",
-        choices=["asan", "build", "coverage", "debug", "gitver", "sdist",
+        choices=["asan", "build", "coverage", "debug", "geninfo", "sdist",
                  "wheel"],
         help=textwrap.dedent("""
             Specify what this script should do:
@@ -310,7 +585,7 @@ def main():
                        testing
             debug    : build _datatable in debug mode, optimized for gdb
                        on Linux and for lldb on MacOS
-            gitver   : generate __git__.py file
+            geninfo  : generate _build_info.py file
             sdist    : create source distribution of datatable
             wheel    : create wheel distribution of datatable
             """).strip())
@@ -327,26 +602,22 @@ def main():
              "succeeds, i.e. the wheel is found to be compatible with a\n"
              "manylinux* tag, then the wheel will be renamed to use the new\n"
              "tag. Otherwise, an error will be raised.")
+    parser.add_argument("--strict", action="store_true",
+        help="This flag is used for `geninfo` command: when given, the\n"
+             "generated _build_info.py file is guaranteed to contain the\n"
+             "git_revision and git_branch fields, or otherwise an error\n"
+             "will be thrown. This flag is turned on automatically for\n"
+             "`sdist` and `wheel` commands.")
 
     args = parser.parse_args()
-    if args.cmd in ["sdist", "wheel"]:
-        make_git_version_file(True)
     if args.audit and "linux" not in sys.platform:
         raise ValueError("Argument --audit can be used on a Linux platform "
                          "only, current platform is `%s`" % sys.platform)
 
-    if args.cmd == "wheel":
-        wheel_file = build_wheel(args.destination, {"audit": args.audit})
-        assert os.path.isfile(os.path.join("dist", wheel_file))
-    elif args.cmd == "sdist":
-        sdist_file = build_sdist(args.destination)
-        assert os.path.isfile(os.path.join("dist", sdist_file))
-    elif args.cmd == "gitver":
-        make_git_version_file(True)
-    else:
-        with open("src/datatable/lib/.xbuild-cmd", "wt") as out:
-            out.write(args.cmd)
-        build_extension(cmd=args.cmd, verbosity=args.verbosity)
+    if args.cmd == "wheel":     cmd_wheel(args)
+    elif args.cmd == "sdist":   cmd_sdist(args)
+    elif args.cmd == "geninfo": cmd_geninfo(args)
+    else:                       cmd_ext(args)
 
 
 if __name__ == "__main__":

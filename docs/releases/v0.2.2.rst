@@ -1,0 +1,60 @@
+
+.. changelog::
+  :version: 0.2.2
+  :released: 2017-10-18
+
+  .. ref-context:: datatable
+
+  -[new] New function :meth:`Frame.to_csv()` to write DataTable into a CSV file.
+    The CSV writer is multi-threaded and extremely fast.
+
+  -[new] Added ``.internal.column(i).data_pointer`` getter, to allow native code
+    from other libraries to easily access the data in each column.
+
+  -[enh] Fread can now read hexadecimal floating-point numbers: floats and
+    doubles.
+
+  -[enh] Csv writer will now auto-quote an empty string, and a string containing
+    leading/trailing whitespace, so that it can be read by :func:`fread`
+    reliably.
+
+  -[enh] Fread now prints file sizes in "human-readable" form, i.e. KB/MB/GB
+    instead of bytes.
+
+  -[enh] Fread can now understand a variety of "NaN" / "Inf" literals produced
+    by different systems.
+
+  -[enh] Add option ``hex`` to csv writer, which controls whether floats will
+    be written in decimal (default) or hexadecimal format.
+
+  -[enh] Csv writer now uses the "dragonfly" algorithm for writing doubles,
+    which is faster than all known alternatives.
+
+  -[enh] It is now allowed to pass a single-row numpy array as an argument to
+    ``dt(rows=...)``, which will be treated the same as if it was a
+    single-column array.
+
+  -[enh] Now ``datatable``'s wheel will include libraries ``libomp`` and
+    ``libc++`` on the platforms where they are not widely available.
+
+  -[enh] New :func:`fread`'s argument ``logger`` allows the user to supply
+    custom logging mechanism to fread. When this argument is provided,
+    "verbose" mode is turned on automatically.
+
+  -[api] ``datatable`` will no longer attempt to distinguish between NA and NAN
+    floating-point values.
+
+  -[api] Constructing ``DataTable`` from a 2D numpy array now preserves shape
+    of that array. At the same time it is no longer true that
+    ``arr.tolist() == numpy.array(DataTable(arr)).tolist()``: the list will be
+    transposed instead.
+
+  -[api] Converting a ``DataTable`` into a numpy array now also preserves shape.
+    At the same time it is no longer true that
+    ``dt.topython() == dt.tonumpy().tolist()``: the list will be transposed.
+
+  -[api] The internal ``_datatable`` module was moved to
+    ``datatable.lib._datatable``.
+
+  -[fix] ``datatable`` will now convert huge integers into double ``inf`` values
+    instead of raising an exception.

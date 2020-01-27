@@ -39,7 +39,6 @@ def test_dt():
 
 
 def test_common_symbols():
-    assert __version__
     assert options
     assert Frame
     assert fread

@@ -1,127 +1,91 @@
 #-------------------------------------------------------------------------------
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 
-BUILDDIR := build/fast
-PYTHON   ?= python
-MODULE   ?= .
-ifneq ($(CI),)
-PYTEST_FLAGS := -vv -s --showlocals
-endif
-
-# Platform details
-OS       := $(shell uname | tr A-Z a-z)
-ARCH     := $(shell uname -m)
-PLATFORM := $(ARCH)-$(OS)
-
-# Distribution directory
-DIST_DIR := dist/$(PLATFORM)
-
-.PHONY: all clean mrproper build install uninstall test_install test \
-		asan benchmark debug bi coverage dist fast xcoverage
-
-ifeq ($(MAKECMDGOALS), fast)
--include ci/fast.mk
-ci/fast.mk:
-	@echo • Regenerating ci/fast.mk
-	@$(PYTHON) ci/make_fast.py
-endif
-
-ifeq ($(MAKECMDGOALS), dfast)
--include ci/fast.mk
-ci/fast.mk:
-	@echo • Regenerating ci/fast.mk [debug mode]
-	@$(PYTHON) ci/make_fast.py debug
-endif
-
-ifeq ($(MAKECMDGOALS), main-fast)
--include ci/fast.mk
-endif
+PYTHON ?= python
 
 
-all:
-	$(MAKE) clean
-	$(MAKE) build
-	$(MAKE) test
-
-
+.PHONY: clean
 clean::
-	rm -rf .asan
 	rm -rf .cache
 	rm -rf .eggs
 	rm -rf build
 	rm -rf dist
 	rm -rf datatable.egg-info
 	rm -f *.so
-ifeq (,$(findstring windows,$(OS)))
-	rm -f datatable/lib/_datatable*.pyd
-else
-	rm -f datatable/lib/_datatable*.so
-endif
-	rm -f ci/fast.mk
+	rm -f src/datatable/lib/_datatable*.pyd
+	rm -f src/datatable/lib/_datatable*.so
+	rm -f src/datatable/_build_info.py
+	rm -f .coverage
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
 
-mrproper: clean
-	git clean -f -d -x
-
-
-
-install:
-	$(PYTHON) -m pip install . --upgrade --no-cache-dir
-
-
-uninstall:
-	$(PYTHON) -m pip uninstall datatable -y
-
-
+.PHONY: extra_install
 extra_install:
 	$(PYTHON) -m pip install -r requirements_extra.txt
 
+
+.PHONY: test_install
 test_install:
 	$(PYTHON) -m pip install -r requirements_tests.txt
 
+
+.PHONY: docs_install
 docs_install:
 	$(PYTHON) -m pip install -r requirements_docs.txt
 
 
+.PHONY: test
 test:
-	rm -rf build/test-reports 2>/dev/null
-	mkdir -p build/test-reports/
-	$(PYTHON) -m pytest -ra --maxfail=10 -Werror $(PYTEST_FLAGS) \
-		--junit-prefix=$(PLATFORM) \
-		--junitxml=build/test-reports/TEST-datatable.xml \
-		tests
+	$(PYTHON) -m pytest -ra --maxfail=10 -Werror tests
 
 # In order to run with Address Sanitizer:
 #   $ make asan
 #   $ DYLD_INSERT_LIBRARIES=/usr/local/opt/llvm/lib/clang/7.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib ASAN_OPTIONS=detect_leaks=1 python -m pytest
 #
+.PHONY: asan
 asan:
-	@$(PYTHON) ext.py asan
+	@$(PYTHON) ci/ext.py asan
 
+
+.PHONY: build
 build:
-	@$(PYTHON) ext.py build
+	@$(PYTHON) ci/ext.py build
 
-xcoverage:
-	@$(PYTHON) ext.py coverage
 
+.PHONY: debug
 debug:
-	@$(PYTHON) ext.py debug
-
-gitver:
-	@$(PYTHON) ext.py gitver
+	@$(PYTHON) ci/ext.py debug
 
 
+.PHONY: geninfo
+geninfo:
+	@$(PYTHON) ci/ext.py geninfo --strict
 
+
+.PHONY: coverage
 coverage:
 	$(PYTHON) -m pip install 'typesentry>=0.2.6' blessed
-	$(MAKE) xcoverage
+	$(PYTHON) ci/ext.py coverage
 	$(MAKE) test_install
-	$(MAKE) gitver
 	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
 		--cov=datatable --cov-report=html:build/coverage-py \
 		tests
@@ -141,296 +105,12 @@ coverage:
 	genhtml --legend --output-directory build/coverage-c --demangle-cpp build/coverage.info
 	mv .coverage build/
 
-dist:
-	@$(PYTHON) ext.py wheel -d $(DIST_DIR)
 
+.PHONY: wheel
+wheel:
+	@$(PYTHON) ci/ext.py wheel
+
+
+.PHONY: sdist
 sdist:
-	@$(PYTHON) ext.py sdist
-
-version:
-	@$(PYTHON) ci/setup_utils.py version
-
-
-
-#-------------------------------------------------------------------------------
-# CentOS7 build
-#-------------------------------------------------------------------------------
-
-DIST_DIR = dist
-
-ifneq (,$(findstring windows,$(OS)))
-	ARCH := $(shell arch)
-endif
-OS_NAME ?= centos7
-PLATFORM := $(ARCH)_$(OS_NAME)
-
-DOCKER_REPO_NAME ?= harbor.h2o.ai
-CONTAINER_NAME_SUFFIX ?= -$(USER)
-CONTAINER_NAME ?= $(DOCKER_REPO_NAME)/opsh2oai/datatable-build-$(PLATFORM)$(CONTAINER_NAME_SUFFIX)
-
-PROJECT_VERSION := $(shell grep '^version' src/datatable/__version__.py | sed 's/version = //' | sed 's/\"//g')
-BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
-BRANCH_NAME_SUFFIX = +$(BRANCH_NAME)
-BUILD_ID ?= local
-BUILD_ID_SUFFIX = .$(BUILD_ID)
-VERSION = $(PROJECT_VERSION)$(BRANCH_NAME_SUFFIX)$(BUILD_ID_SUFFIX)
-CONTAINER_TAG := $(shell echo $(VERSION) | sed 's/[+\/]/-/g')
-
-CONTAINER_NAME_TAG = $(CONTAINER_NAME):$(CONTAINER_TAG)
-
-ifneq ($(CI), 1)
-	CI_VERSION_SUFFIX ?= $(BRANCH_NAME)
-endif
-
-ARCH_SUBST = undefined
-FROM_SUBST = undefined
-ifeq ($(PLATFORM),x86_64_centos7)
-    FROM_SUBST = centos:7
-    ARCH_SUBST = $(ARCH)
-endif
-ifeq ($(PLATFORM),ppc64le_centos7)
-    FROM_SUBST = ppc64le\/centos:7
-    ARCH_SUBST = $(ARCH)
-endif
-ifeq ($(PLATFORM),x86_64_ubuntu)
-    FROM_SUBST = x86_64_linux
-    ARCH_SUBST = $(ARCH)
-endif
-
-Dockerfile-centos7.$(PLATFORM): ci/Dockerfile-centos7.in
-	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
-
-Dockerfile-centos7.$(PLATFORM).tag: Dockerfile-centos7.$(PLATFORM)
-	docker build \
-		-t $(CONTAINER_NAME_TAG) \
-		-f Dockerfile-centos7.$(PLATFORM) \
-		.
-	echo $(CONTAINER_NAME_TAG) > $@
-
-centos7_docker_build: Dockerfile-centos7.$(PLATFORM).tag
-
-centos7_docker_publish: Dockerfile-centos7.$(PLATFORM).tag
-	docker push $(CONTAINER_NAME_TAG)
-
-centos7_in_docker: Dockerfile-centos7.$(PLATFORM).tag
-	make clean
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CONTAINER_NAME_TAG) \
-		-c 'make dist'
-	mkdir -p $(DIST_DIR)/$(PLATFORM)
-	mv $(DIST_DIR)/*.whl $(DIST_DIR)/$(PLATFORM)
-	echo $(VERSION) > $(DIST_DIR)/$(PLATFORM)/VERSION.txt
-
-#
-# Ubuntu image - will be removed
-#
-Dockerfile-ubuntu.$(PLATFORM): ci/Dockerfile-ubuntu.in
-	cat $< | sed 's/FROM_SUBST/$(FROM_SUBST)/'g | sed 's/ARCH_SUBST/$(ARCH_SUBST)/g' > $@
-
-Dockerfile-ubuntu.$(PLATFORM).tag: Dockerfile-ubuntu.$(PLATFORM)
-	docker build \
-		-t $(CONTAINER_NAME_TAG) \
-		-f Dockerfile-ubuntu.$(PLATFORM) \
-		.
-	echo $(CONTAINER_NAME_TAG) > $@
-
-ubuntu_docker_build: Dockerfile-ubuntu.$(PLATFORM).tag
-
-ubuntu_docker_publish: Dockerfile-ubuntu.$(PLATFORM).tag
-	docker push $(CONTAINER_NAME_TAG)
-
-ARCH_NAME ?= $(shell uname -m)
-DOCKER_IMAGE_TAG ?= 0.8.0-master.9
-CENTOS_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_centos7:$(DOCKER_IMAGE_TAG)
-UBUNTU_DOCKER_IMAGE_NAME ?= harbor.h2o.ai/opsh2oai/datatable-build-$(ARCH_NAME)_ubuntu:$(DOCKER_IMAGE_TAG)
-
-docker_image_tag:
-	@echo $(DOCKER_IMAGE_TAG)
-
-centos7_build_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
-		$(CENTOS_DOCKER_IMAGE_NAME) \
-		-c ". activate $(BUILD_VENV) && \
-			make CI=$(CI) dist"
-
-centos7_build_py37_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py37-with-pandas centos7_build_in_docker_impl
-
-centos7_build_py36_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py36-with-pandas centos7_build_in_docker_impl
-
-centos7_build_py35_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py35-with-pandas centos7_build_in_docker_impl
-
-centos7_version_in_docker:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
-		$(CENTOS_DOCKER_IMAGE_NAME) \
-		-c ". activate datatable-py36-with-pandas && \
-			python --version && \
-			mkdir -p dist && \
-			make CI=$(CI) version > dist/VERSION.txt && \
-			cat dist/VERSION.txt"
-
-centos7_test_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
-		$(CENTOS_DOCKER_IMAGE_NAME) \
-		-c ". activate $(TEST_VENV) && \
-			python --version && \
-			pip install --no-cache-dir --upgrade dist/*.whl && \
-			make CI=$(CI) MODULE=datatable test_install && \
-			make test CI=$(CI)"
-
-centos7_test_py37_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py37-with-pandas centos7_test_in_docker_impl
-
-centos7_test_py36_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36-with-pandas centos7_test_in_docker_impl
-
-centos7_test_py35_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py35-with-pandas centos7_test_in_docker_impl
-
-centos7_test_py36_with_numpy_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36-with-numpy centos7_test_in_docker_impl
-
-centos7_test_py36_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36 centos7_test_in_docker_impl
-
-ubuntu_build_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
-		$(UBUNTU_DOCKER_IMAGE_NAME) \
-		-c ". /envs/$(BUILD_VENV)/bin/activate && \
-			python --version && \
-			make CI=$(CI) dist"
-
-ubuntu_build_sdist_in_docker:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "CI_VERSION_SUFFIX=$(CI_VERSION_SUFFIX)" \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
-		$(UBUNTU_DOCKER_IMAGE_NAME) \
-		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
-			python --version && \
-			make CI=$(CI) sdist"
-
-ubuntu_build_py37_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py37-with-pandas ubuntu_build_in_docker_impl
-
-ubuntu_build_py36_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py36-with-pandas ubuntu_build_in_docker_impl
-
-ubuntu_build_py35_in_docker:
-	$(MAKE) BUILD_VENV=datatable-py35-with-pandas ubuntu_build_in_docker_impl
-
-ubuntu_coverage_py36_with_pandas_in_docker:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
-		$(UBUNTU_DOCKER_IMAGE_NAME) \
-		-c ". /envs/datatable-py36-with-pandas/bin/activate && \
-			python --version && \
-			make CI=$(CI) coverage"
-
-ubuntu_test_in_docker_impl:
-	docker run \
-		--rm \
-		--init \
-		-u `id -u`:`id -g` \
-		-v `pwd`:/dot \
-		-w /dot \
-		--entrypoint /bin/bash \
-		-e "DT_LARGE_TESTS_ROOT=$(DT_LARGE_TESTS_ROOT)" \
-		-e "DTBL_GIT_HASH=$(DTBL_GIT_HASH)" \
-		$(CUSTOM_ARGS) \
-		$(UBUNTU_DOCKER_IMAGE_NAME) \
-		-c ". /envs/$(TEST_VENV)/bin/activate && \
-			python --version && \
-			pip freeze && \
-			pip install --no-cache-dir dist/*.whl && \
-			python --version && \
-			make CI=$(CI) MODULE=datatable test_install && \
-			make CI=$(CI) test"
-
-ubuntu_test_py37_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py37-with-pandas ubuntu_test_in_docker_impl
-
-ubuntu_test_py36_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36-with-pandas ubuntu_test_in_docker_impl
-
-ubuntu_test_py35_with_pandas_in_docker:
-	$(MAKE) TEST_VENV=datatable-py35-with-pandas ubuntu_test_in_docker_impl
-
-ubuntu_test_py36_with_numpy_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36-with-numpy ubuntu_test_in_docker_impl
-
-ubuntu_test_py36_in_docker:
-	$(MAKE) TEST_VENV=datatable-py36 ubuntu_test_in_docker_impl
-
-
-printvars:
-	@echo PLATFORM=$(PLATFORM)
-	@echo PROJECT_VERSION=$(PROJECT_VERSION)
-	@echo VERSION=$(VERSION)
-	@echo CONTAINER_TAG=$(CONTAINER_TAG)
-	@echo CONTAINER_NAME=$(CONTAINER_NAME)
-
-clean::
-	rm -f Dockerfile-centos7.$(PLATFORM)
+	@$(PYTHON) ci/ext.py sdist

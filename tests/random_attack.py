@@ -4,7 +4,7 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-import sys; sys.path = ['.', '..'] + sys.path
+import sys
 import copy
 import datatable as dt
 import itertools
@@ -20,6 +20,7 @@ from datatable import f, join
 from datatable.internal import frame_integrity_check
 from datatable.utils.terminal import term
 from datatable.utils.misc import plural_form as plural
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests import assert_equals
 
 exhaustive_checks = False

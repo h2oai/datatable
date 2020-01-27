@@ -22,8 +22,8 @@
 
 # Outline of the release process
 
-Current version of `datatable` can be found in the `datatable/__version__.py`
-file. In the description below, this version will be denoted as
+Current version of `datatable` can be found in the `VERSION.txt` file.
+In the description below, this version will be denoted as
 `{MAJOR}.{MINOR}.{MICRO}` (or `MMM` for short).
 
 
@@ -34,7 +34,7 @@ update applies.
 
 - Create a new local branch called `rel-{MAJOR}.{MINOR+1}` on top of `master`.
 
-- In the `__version__.py` modify the version to `{MAJOR}.{MINOR+1}.0` (call
+- In the `VERSION.txt` modify the version to `{MAJOR}.{MINOR+1}.0` (call
   this `MN0` for short).
 
 - Update the `docs/changelog.rst` file to include the current DATE of the
@@ -99,16 +99,10 @@ version with some bug fixes. Do not add new functionality into a patch release
 - Cherry-pick any commits that you need into this branch from master (or from
   any other branch).
 
-- In the `__version__.py` file change the version to `{MAJOR}.{MINOR}.{MICRO+1}`
+- In the `VERSION.txt` file change the version to `{MAJOR}.{MINOR}.{MICRO+1}`
   (call it `MMN`).
 
-- Update the `CHANGELOG.md` by adding a new line with
-    ```md
-    ### [{MMN}][] — {DATE}
-    ```
-  where `DATE` is the current date. This line should be at the top of the file
-  immediately preceding the `[{MMM}] ...` line. Add a description of the
-  changes being introduced in this patch.
+- List the release date in the `docs/release/v{MMN}.rst` file.
 
 - Scroll to the bottom of the file and add the definition of the `[{MMN}]` link.
 
@@ -138,8 +132,8 @@ in the minor version release section, the following might be needed:
 
   and make those changes accordingly.
 
-- Update `CHANGELOG.md` noting all functionality that was removed/ changed/
-  deprecated.
+- Update the release history doc files noting all functionality that was
+  removed/ changed/ deprecated.
 
 - Publish a blog post outlining all main improvements since the previous major
   release.

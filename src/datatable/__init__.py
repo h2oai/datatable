@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -20,7 +20,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-from .__version__ import version as __version__
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr)
@@ -61,14 +60,13 @@ import datatable.widget
 import datatable.math
 import datatable.internal
 try:
-    from .__git__ import __git_revision__
+    from ._build_info import build_info
+    __version__ = build_info.version
 except ImportError:
-    __git_revision__ = ""
+    __version__ = ""
 
 
 __all__ = (
-    "__git_revision__",
-    "__version__",
     "Frame",
     "InvalidOperationError",
     "corr",
