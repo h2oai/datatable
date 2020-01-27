@@ -124,7 +124,12 @@ def issue_and_pr_authors(repo, args):
     for i, issue in enumerate(prs):
         progress_bar(i + 1, count)
         milestone = issue.milestone.title if issue.milestone else ""
-        kind = "PRs" if issue.pull_request else "issues"
+        if issue.pull_request:
+            if not issue.as_pull_request().merged:
+                continue  # skip PRs that were closed without merging
+            kind = "PRs"
+        else:
+            kind = "issues"
         mm = re.search(rx_attribution, issue.body) if issue.body else None
         if mm:
             author = mm.group(1)
