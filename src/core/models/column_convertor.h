@@ -40,7 +40,6 @@ class ColumnConvertor {
     explicit ColumnConvertor(size_t n);
     virtual ~ColumnConvertor();
     virtual T operator[](size_t) const = 0;
-    virtual void get_rows(std::vector<T>&, size_t, size_t, size_t) const = 0;
     size_t get_nrows() const;
     T get_min() const;
     T get_max() const;
@@ -103,7 +102,6 @@ class ColumnConvertorReal : public ColumnConvertor<T2> {
   public:
     explicit ColumnConvertorReal(const Column&);
     T2 operator[](size_t) const override;
-    void get_rows(std::vector<T2>&, size_t, size_t, size_t) const override;
 };
 
 
@@ -153,32 +151,14 @@ ColumnConvertorReal<T1, T2>::ColumnConvertorReal(const Column& column_in)
 
 
 /**
- *  operator[] to get a converted column value by
- *  - casting it to T2;
- *  - applying a rowindex;
- *  - properly handling NA's.
+ *  operator[] converts column values to `T2`, infinite values
+ *  are considered as missings at this point.
  */
 template<typename T1, typename T2>
 T2 ColumnConvertorReal<T1, T2>::operator[](size_t row) const {
   T1 value;
   bool isvalid = column_.get_element(row, &value);
-  return isvalid? static_cast<T2>(value) : GETNA<T2>();
-}
-
-
-/**
- *  This method does the same as above just for a chunk of data.
- *  No bound checks are performed.
- */
-template<typename T1, typename T2>
-void ColumnConvertorReal<T1, T2>::get_rows(
-    std::vector<T2>& buffer, size_t start, size_t step, size_t count) const
-{
-  for (size_t j = 0; j < count; ++j) {
-    T1 value;
-    bool isvalid = column_.get_element(start + j * step, &value);
-    buffer[j] = isvalid? static_cast<T2>(value) : GETNA<T2>();
-  }
+  return (isvalid && _isfinite(value))? static_cast<T2>(value) : GETNA<T2>();
 }
 
 
