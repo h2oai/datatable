@@ -21,10 +21,58 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import re
+import types
 from docutils import nodes
 from docutils.parsers.rst import directives
 from sphinx.util.docutils import SphinxDirective
 from . import xnodes
+
+
+class UserRepository:
+    def __init__(self):
+        self._data = None
+        self._env = None
+
+    def clear(self):
+        self._data = None
+
+    def use_env(self, env):
+        self._env = env
+
+    @property
+    def data(self):
+        if not self._data:
+            self._compute_data()
+        return self._data
+
+    def _compute_data(self):
+        fullnames = {}
+        env = self._env
+        assert env and env.xcontributors
+        for page, pagedata in env.xcontributors.items():
+            for kind in ["PRs", "issues"]:
+                assert kind in pagedata
+                for username, userdata in pagedata[kind].items():
+                    score, fullname = userdata
+                    if fullname:
+                        known_fullname = fullnames.get(username)
+                        if known_fullname and fullname != known_fullname:
+                            raise ValueError(
+                                "User `%s` has different names: `%s` and `%s`"
+                                % (username, fullname, known_fullname))
+                        fullnames[username] = fullname
+
+        self._data = types.SimpleNamespace(
+            fullnames=fullnames,
+        )
+
+
+    def get_full_name(self, username):
+        return self.data.fullnames.get(username, username)
+
+
+# Singleton instance
+users = UserRepository()
 
 
 
@@ -141,10 +189,8 @@ class contributors_placeholder_node(nodes.Element, nodes.General):
 
     def _render_contributors(self, people):
         ul = nodes.bullet_list(classes=["changelog-list", "simple"])
-        for username, record in people.items():
-            fullname = record[1]
-            if not fullname:
-                fullname = username
+        for username in people.keys():
+            fullname = users.get_full_name(username)
             url = "https://github.com/" + username
             link = nodes.reference("", fullname, refuri=url, internal=False)
             li = nodes.list_item(classes=["changelog-list-item", "gh"])
@@ -167,6 +213,7 @@ class contributors_placeholder_node(nodes.Element, nodes.General):
 def on_env_purge_doc(app, env, docname):
     if hasattr(env, "xcontributors"):
         env.xcontributors.pop(docname, None)
+        users.clear()
 
 
 # This event is only emitted when parallel reading of documents is
@@ -197,6 +244,7 @@ def on_doctree_resolved(app, doctree, docname):
     if not hasattr(env, "xcontributors"):
         return
     if docname in env.xcontributors:
+        users.use_env(env)
         for node in doctree.traverse(contributors_placeholder_node):
             node.resolve(env.xcontributors[docname])
 
