@@ -355,8 +355,19 @@
 
   .. contributors::
 
-    st-pasha
-    oleksiyskononenko
-    viktor-demin <Viktor Demin>
-    abal5 <Anmol Bal>
-    siddhesh <Siddhesh Poyarekar>
+    121 st-pasha
+    22  oleksiyskononenko
+    3   siddhesh          <Siddhesh Poyarekar>
+    1   Viktor-Demin      <Viktor Demin>
+    1   achraf-mer        <Achraf Merzouki>
+    --
+    65 st-pasha
+    9  oleksiyskononenko
+    6  jangorecki         <Jan Gorecki>
+    3  junghoocho
+    1  ben519             <Ben 519>
+    1  ultraNick          <Nick Kim>
+    1  zawrahman          <Zmnako Awrahman>
+    1  Viktor-Demin       <Viktor Demin>
+    1  mmalohlava         <Michal Malohlava>
+    1  atroiano           <Andy Troiano>

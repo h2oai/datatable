@@ -68,6 +68,10 @@
 
   .. contributors::
 
-    st-pasha <Pasha Stetsenko>
-    oleksiyskononenko <Oleksiy Kononenko>
-    bpourhamzeh <Bijan Pourhamzeh>
+    6 st-pasha           <Pasha Stetsenko>
+    2 oleksiyskononenko  <Oleksiy Kononenko>
+    1 bpourhamzeh        <Bijan Pourhamzeh>
+    --
+    4 st-pasha
+    1 toddrme2178        <Todd>
+    1 igor-susic         <Igor Šušić>
