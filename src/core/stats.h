@@ -32,9 +32,11 @@ enum class Stat : uint8_t {
   Max     = 10,
   Mode    = 11,
   NModal  = 12,
-  NUnique = 13
+  NUnique = 13,
+  Min2    = 14,
+  Max2    = 15
 };
-constexpr uint8_t NSTATS = 14;
+constexpr uint8_t NSTATS = 16;
 
 
 
@@ -175,6 +177,12 @@ class Stats
     virtual double  min_double (bool* isvalid = nullptr);
     virtual int64_t max_int    (bool* isvalid = nullptr);
     virtual double  max_double (bool* isvalid = nullptr);
+
+    virtual int64_t min2_int    (bool* isvalid = nullptr);
+    virtual double  min2_double (bool* isvalid = nullptr);
+    virtual int64_t max2_int    (bool* isvalid = nullptr);
+    virtual double  max2_double (bool* isvalid = nullptr);
+
     virtual int64_t mode_int   (bool* isvalid = nullptr);
     virtual double  mode_double(bool* isvalid = nullptr);
     virtual CString mode_string(bool* isvalid = nullptr);
@@ -202,6 +210,10 @@ class Stats
     virtual void set_min    (double  value, bool isvalid = true);
     virtual void set_max    (int64_t value, bool isvalid = true);
     virtual void set_max    (double  value, bool isvalid = true);
+    virtual void set_min2    (int64_t value, bool isvalid = true);
+    virtual void set_min2    (double  value, bool isvalid = true);
+    virtual void set_max2    (int64_t value, bool isvalid = true);
+    virtual void set_max2    (double  value, bool isvalid = true);
     virtual void set_mode   (int64_t value, bool isvalid = true);
     virtual void set_mode   (double  value, bool isvalid = true);
     virtual void set_mode   (CString value, bool isvalid = true);
@@ -258,35 +270,45 @@ class NumericStats : public Stats {
     double _kurt;
     V _min;
     V _max;
+    V _min2;
+    V _max2;
     V _mode;
 
   public:
     using Stats::Stats;
     size_t memory_footprint() const noexcept override;
 
-    double  sum        (bool* isvalid) override;
-    double  mean       (bool* isvalid) override;
-    double  stdev      (bool* isvalid) override;
-    double  skew       (bool* isvalid) override;
-    double  kurt       (bool* isvalid) override;
-    int64_t min_int    (bool* isvalid) override;
-    double  min_double (bool* isvalid) override;
-    int64_t max_int    (bool* isvalid) override;
-    double  max_double (bool* isvalid) override;
-    int64_t mode_int   (bool* isvalid) override;
-    double  mode_double(bool* isvalid) override;
+    double  sum         (bool* isvalid) override;
+    double  mean        (bool* isvalid) override;
+    double  stdev       (bool* isvalid) override;
+    double  skew        (bool* isvalid) override;
+    double  kurt        (bool* isvalid) override;
+    int64_t min_int     (bool* isvalid) override;
+    double  min_double  (bool* isvalid) override;
+    int64_t max_int     (bool* isvalid) override;
+    double  max_double  (bool* isvalid) override;
+    int64_t min2_int    (bool* isvalid) override;
+    double  min2_double (bool* isvalid) override;
+    int64_t max2_int    (bool* isvalid) override;
+    double  max2_double (bool* isvalid) override;
+    int64_t mode_int    (bool* isvalid) override;
+    double  mode_double (bool* isvalid) override;
 
-    void set_sum  (double value, bool isvalid) override;
-    void set_mean (double value, bool isvalid) override;
-    void set_stdev(double value, bool isvalid) override;
-    void set_skew (double value, bool isvalid) override;
-    void set_kurt (double value, bool isvalid) override;
-    void set_min  (int64_t value, bool isvalid) override;
-    void set_min  (double value, bool isvalid) override;
-    void set_max  (int64_t value, bool isvalid) override;
-    void set_max  (double value, bool isvalid) override;
-    void set_mode (int64_t value, bool isvalid) override;
-    void set_mode (double value, bool isvalid) override;
+    void set_sum   (double value, bool isvalid) override;
+    void set_mean  (double value, bool isvalid) override;
+    void set_stdev (double value, bool isvalid) override;
+    void set_skew  (double value, bool isvalid) override;
+    void set_kurt  (double value, bool isvalid) override;
+    void set_min   (int64_t value, bool isvalid) override;
+    void set_min   (double value, bool isvalid) override;
+    void set_max   (int64_t value, bool isvalid) override;
+    void set_max   (double value, bool isvalid) override;
+    void set_min2  (int64_t value, bool isvalid) override;
+    void set_min2  (double value, bool isvalid) override;
+    void set_max2  (int64_t value, bool isvalid) override;
+    void set_max2  (double value, bool isvalid) override;
+    void set_mode  (int64_t value, bool isvalid) override;
+    void set_mode  (double value, bool isvalid) override;
 
   protected:
     void compute_nacount() override;

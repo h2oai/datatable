@@ -12,6 +12,7 @@
 #include "column/column_impl.h"
 #include "lib/parallel_hashmap/phmap.h"
 #include "models/murmurhash.h"
+#include "models/utils.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
@@ -37,10 +38,12 @@ static const char* stat_name(Stat s) {
     case Stat::Skew:    return "Skew";
     case Stat::Kurt:    return "Kurt";
     case Stat::Min:     return "Min";
+    case Stat::Min2:    return "Min2";
     case Stat::Qt25:    return "Qt25";
     case Stat::Median:  return "Median";
     case Stat::Qt75:    return "Qt75";
     case Stat::Max:     return "Max";
+    case Stat::Max2:    return "Max2";
     case Stat::Mode:    return "Mode";
     case Stat::NModal:  return "NModal";
     case Stat::NUnique: return "NUnique";
@@ -111,6 +114,8 @@ int64_t Stats::get_stat_int(Stat stat, bool* isvalid) {
   switch (stat) {
     case Stat::Min:  return min_int(isvalid);
     case Stat::Max:  return max_int(isvalid);
+    case Stat::Min2: return min2_int(isvalid);
+    case Stat::Max2: return max2_int(isvalid);
     case Stat::Mode: return mode_int(isvalid);
     default:         return _invalid<int64_t>(isvalid);
   }
@@ -135,7 +140,9 @@ double Stats::get_stat_double(Stat stat, bool* isvalid) {
     case Stat::Skew:  return skew(isvalid);
     case Stat::Kurt:  return kurt(isvalid);
     case Stat::Min:   return min_double(isvalid);
+    case Stat::Min2:  return min2_double(isvalid);
     case Stat::Max:   return max_double(isvalid);
+    case Stat::Max2:  return max2_double(isvalid);
     case Stat::Mode:  return mode_double(isvalid);
     default:          return _invalid<double>(isvalid);
   }
@@ -245,13 +252,17 @@ double NumericStats<T>::kurt(bool* isvalid) {
   return _kurt;
 }
 
-int64_t Stats::min_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
-int64_t Stats::max_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
-int64_t Stats::mode_int   (bool* isvalid) { return _invalid<int64_t>(isvalid); }
-double  Stats::min_double (bool* isvalid) { return _invalid<double>(isvalid); }
-double  Stats::max_double (bool* isvalid) { return _invalid<double>(isvalid); }
-double  Stats::mode_double(bool* isvalid) { return _invalid<double>(isvalid); }
-CString Stats::mode_string(bool* isvalid) { return _invalid<CString>(isvalid); }
+int64_t Stats::min_int     (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+int64_t Stats::min2_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+int64_t Stats::max_int     (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+int64_t Stats::max2_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+int64_t Stats::mode_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+double  Stats::min_double  (bool* isvalid) { return _invalid<double>(isvalid); }
+double  Stats::max_double  (bool* isvalid) { return _invalid<double>(isvalid); }
+double  Stats::min2_double (bool* isvalid) { return _invalid<double>(isvalid); }
+double  Stats::max2_double (bool* isvalid) { return _invalid<double>(isvalid); }
+double  Stats::mode_double (bool* isvalid) { return _invalid<double>(isvalid); }
+CString Stats::mode_string (bool* isvalid) { return _invalid<CString>(isvalid); }
 
 template <typename T>
 int64_t NumericStats<T>::min_int(bool* isvalid) {
@@ -260,6 +271,15 @@ int64_t NumericStats<T>::min_int(bool* isvalid) {
   _fill_validity_flag(Stat::Min, isvalid);
   xassert((std::is_same<decltype(_min), int64_t>::value));
   return static_cast<int64_t>(_min);
+}
+
+template <typename T>
+int64_t NumericStats<T>::min2_int(bool* isvalid) {
+  if (!std::is_integral<T>::value) return _invalid<int64_t>(isvalid);
+  if (!is_computed(Stat::Min2)) compute_minmax();
+  _fill_validity_flag(Stat::Min2, isvalid);
+  xassert((std::is_same<decltype(_min2), int64_t>::value));
+  return static_cast<int64_t>(_min2);
 }
 
 template <typename T>
@@ -272,6 +292,15 @@ int64_t NumericStats<T>::max_int(bool* isvalid) {
 }
 
 template <typename T>
+int64_t NumericStats<T>::max2_int(bool* isvalid) {
+  if (!std::is_integral<T>::value) return _invalid<int64_t>(isvalid);
+  if (!is_computed(Stat::Max2)) compute_minmax();
+  _fill_validity_flag(Stat::Max2, isvalid);
+  xassert((std::is_same<decltype(_max2), int64_t>::value));
+  return static_cast<int64_t>(_max2);
+}
+
+template <typename T>
 double NumericStats<T>::min_double(bool* isvalid) {
   if (!std::is_floating_point<T>::value) return _invalid<double>(isvalid);
   if (!is_computed(Stat::Min)) compute_minmax();
@@ -281,12 +310,30 @@ double NumericStats<T>::min_double(bool* isvalid) {
 }
 
 template <typename T>
+double NumericStats<T>::min2_double(bool* isvalid) {
+  if (!std::is_floating_point<T>::value) return _invalid<double>(isvalid);
+  if (!is_computed(Stat::Min2)) compute_minmax();
+  _fill_validity_flag(Stat::Min2, isvalid);
+  xassert((std::is_same<decltype(_min2), double>::value));
+  return static_cast<double>(_min2);
+}
+
+template <typename T>
 double NumericStats<T>::max_double(bool* isvalid) {
   if (!std::is_floating_point<T>::value) return _invalid<double>(isvalid);
   if (!is_computed(Stat::Max)) compute_minmax();
   _fill_validity_flag(Stat::Max, isvalid);
   xassert((std::is_same<decltype(_max), double>::value));
   return static_cast<double>(_max);
+}
+
+template <typename T>
+double NumericStats<T>::max2_double(bool* isvalid) {
+  if (!std::is_floating_point<T>::value) return _invalid<double>(isvalid);
+  if (!is_computed(Stat::Max2)) compute_minmax();
+  _fill_validity_flag(Stat::Max2, isvalid);
+  xassert((std::is_same<decltype(_max2), double>::value));
+  return static_cast<double>(_max2);
 }
 
 template <typename T>
@@ -324,6 +371,8 @@ void Stats::set_stat(Stat stat, int64_t value, bool isvalid) {
   switch (stat) {
     case Stat::Min:  return set_min(value, isvalid);
     case Stat::Max:  return set_max(value, isvalid);
+    case Stat::Min2: return set_min2(value, isvalid);
+    case Stat::Max2: return set_max2(value, isvalid);
     case Stat::Mode: return set_mode(value, isvalid);
     default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
   }
@@ -347,6 +396,8 @@ void Stats::set_stat(Stat stat, double value, bool isvalid) {
     case Stat::Kurt:  return set_kurt(value, isvalid);
     case Stat::Min:   return set_min(value, isvalid);
     case Stat::Max:   return set_max(value, isvalid);
+    case Stat::Min2:  return set_min2(value, isvalid);
+    case Stat::Max2:  return set_max2(value, isvalid);
     case Stat::Mode:  return set_mode(value, isvalid);
     default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
   }
@@ -391,6 +442,10 @@ void Stats::set_min(int64_t, bool)  { throw RuntimeError(); }
 void Stats::set_min(double, bool)   { throw RuntimeError(); }
 void Stats::set_max(int64_t, bool)  { throw RuntimeError(); }
 void Stats::set_max(double, bool)   { throw RuntimeError(); }
+void Stats::set_min2(int64_t, bool) { throw RuntimeError(); }
+void Stats::set_min2(double, bool)  { throw RuntimeError(); }
+void Stats::set_max2(int64_t, bool) { throw RuntimeError(); }
+void Stats::set_max2(double, bool)  { throw RuntimeError(); }
 void Stats::set_mode(int64_t, bool) { throw RuntimeError(); }
 void Stats::set_mode(double, bool)  { throw RuntimeError(); }
 void Stats::set_mode(CString, bool) { throw RuntimeError(); }
@@ -434,10 +489,24 @@ void NumericStats<T>::set_min(int64_t value, bool isvalid) {
 }
 
 template <typename T>
+void NumericStats<T>::set_min2(int64_t value, bool isvalid) {
+  xassert((std::is_same<V, int64_t>::value));
+  _min2 = static_cast<V>(value);
+  set_valid(Stat::Min2, isvalid);
+}
+
+template <typename T>
 void NumericStats<T>::set_min(double value, bool isvalid) {
   xassert((std::is_same<V, double>::value));
   _min = static_cast<V>(value);
   set_valid(Stat::Min, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_min2(double value, bool isvalid) {
+  xassert((std::is_same<V, double>::value));
+  _min2 = static_cast<V>(value);
+  set_valid(Stat::Min2, isvalid);
 }
 
 template <typename T>
@@ -448,10 +517,24 @@ void NumericStats<T>::set_max(int64_t value, bool isvalid) {
 }
 
 template <typename T>
+void NumericStats<T>::set_max2(int64_t value, bool isvalid) {
+  xassert((std::is_same<V, int64_t>::value));
+  _max2 = static_cast<V>(value);
+  set_valid(Stat::Max2, isvalid);
+}
+
+template <typename T>
 void NumericStats<T>::set_max(double value, bool isvalid) {
   xassert((std::is_same<V, double>::value));
   _max = static_cast<V>(value);
   set_valid(Stat::Max, isvalid);
+}
+
+template <typename T>
+void NumericStats<T>::set_max2(double value, bool isvalid) {
+  xassert((std::is_same<V, double>::value));
+  _max2 = static_cast<V>(value);
+  set_valid(Stat::Max2, isvalid);
 }
 
 template <typename T>
@@ -535,6 +618,8 @@ constexpr T infinity() {
 void Stats::compute_minmax() {
   set_valid(Stat::Min, false);
   set_valid(Stat::Max, false);
+  set_valid(Stat::Min2, false);
+  set_valid(Stat::Max2, false);
 }
 
 void BooleanStats::compute_minmax() {
@@ -547,14 +632,18 @@ void NumericStats<T>::compute_minmax() {
   size_t nrows = column->nrows();
   size_t count_valid = 0;
   T min = infinity<T>();
+  T min2 = infinity<T>();
   T max = -infinity<T>();
+  T max2 = -infinity<T>();
   std::mutex mutex;
   dt::parallel_region(
     dt::NThreads(column->allow_parallel_access()),
     [&] {
       size_t t_count_notna = 0;
       T t_min = infinity<T>();
+      T t_min2 = infinity<T>();
       T t_max = -infinity<T>();
+      T t_max2 = -infinity<T>();
 
       dt::nested_for_static(nrows,
         [&](size_t i) {
@@ -562,20 +651,51 @@ void NumericStats<T>::compute_minmax() {
           bool isvalid = column->get_element(i, &x);
           if (!isvalid) return;
           t_count_notna++;
-          if (x < t_min) t_min = x;  // Note: these ifs are not exclusive!
-          if (x > t_max) t_max = x;
+          if (x < t_min) {                    // Note: these ifs are not exclusive!
+            t_min2 = t_min;
+            t_min = x;
+          } else if (x < t_min2 && _isfinite(x)) {
+            t_min2 = x;
+          }
+
+          if (x > t_max) {
+            t_max2 = t_max;
+            t_max = x;
+          } else if (x > t_max2 && _isfinite(x)) {
+            t_max2 = x;
+          }
         });
 
       if (t_count_notna) {
         std::lock_guard<std::mutex> lock(mutex);
         count_valid += t_count_notna;
-        if (t_min < min) min = t_min;
-        if (t_max > max) max = t_max;
+
+        if (t_min < min) {
+          min2 = (min < t_min2)? min : t_min2;
+          min = t_min;
+        } else if (t_min < min2) {
+          min2 = t_min;
+        } else if (t_min2 < min2) {
+          min2 = t_min2;
+        }
+
+        if (t_max > max) {
+          max2 = (max > t_max2)? max : t_max2;
+          max = t_max;
+        } else if (t_max > max2) {
+          max2 = t_max;
+        } else if (t_max2 > max2) {
+          max2 = t_max2;
+        }
+
       }
     });
+
   set_nacount(nrows - count_valid, true);
   set_min(static_cast<V>(min), (count_valid > 0));
   set_max(static_cast<V>(max), (count_valid > 0));
+  set_min2(static_cast<V>(min2), _isfinite(min2));
+  set_max2(static_cast<V>(max2), _isfinite(max2));
 }
 
 
@@ -1060,6 +1180,8 @@ void BooleanStats::compute_all_stats() {
   set_kurt(K, valid);
   set_min(int64_t(n0? 0 : 1), valid);
   set_max(int64_t(n1? 1 : 0), valid);
+  set_min2(int64_t(1), n0 && n1);
+  set_max2(int64_t(0), n0 && n1);
   set_mode(int64_t(n0>=n1? 0 : 1), valid);
 }
 
@@ -1217,6 +1339,8 @@ void Stats::verify_integrity(const dt::ColumnImpl* col) {
   check_stat<double>(Stat::Mode, this, new_stats.get());
   check_stat<int64_t>(Stat::Min, this, new_stats.get());
   check_stat<int64_t>(Stat::Max, this, new_stats.get());
+  check_stat<int64_t>(Stat::Min2, this, new_stats.get());
+  check_stat<int64_t>(Stat::Max2, this, new_stats.get());
   check_stat<int64_t>(Stat::Mode, this, new_stats.get());
   check_stat<CString>(Stat::Mode, this, new_stats.get());
 }
@@ -1252,6 +1376,8 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
     }
     case Stat::Min:
     case Stat::Max:
+    case Stat::Min2:
+    case Stat::Max2:
     case Stat::Mode: {
       switch (info(column->stype()).ltype()) {
         case LType::BOOL:
@@ -1336,6 +1462,8 @@ Column Stats::get_stat_as_column(Stat stat) {
     }
     case Stat::Min:
     case Stat::Max:
+    case Stat::Min2:
+    case Stat::Max2:
     case Stat::Mode: {
       switch (column->stype()) {
         case SType::BOOL:    return colwrap_stat<int64_t, int8_t>(stat, SType::BOOL);

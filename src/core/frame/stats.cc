@@ -56,6 +56,8 @@ static DataTable* _make_frame(DataTable* dt, Stat stat) {
 
 static PKArgs args_min(0, 0, 0, false, false, {}, "min", nullptr);
 static PKArgs args_max(0, 0, 0, false, false, {}, "max", nullptr);
+static PKArgs args_min2(0, 0, 0, false, false, {}, "min2", nullptr);
+static PKArgs args_max2(0, 0, 0, false, false, {}, "max2", nullptr);
 static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", nullptr);
 static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", nullptr);
 static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
@@ -97,6 +99,8 @@ void Frame::_init_stats(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::stat, args_sum));
   xt.add(METHOD(&Frame::stat, args_min));
   xt.add(METHOD(&Frame::stat, args_max));
+  xt.add(METHOD(&Frame::stat, args_min2));
+  xt.add(METHOD(&Frame::stat, args_max2));
   xt.add(METHOD(&Frame::stat, args_mode));
   xt.add(METHOD(&Frame::stat, args_mean));
   xt.add(METHOD(&Frame::stat, args_sd));
@@ -121,6 +125,8 @@ void Frame::_init_stats(XTypeMaker& xt) {
   stat_from_args[&args_sd]      = Stat::StDev;
   stat_from_args[&args_min]     = Stat::Min;
   stat_from_args[&args_max]     = Stat::Max;
+  stat_from_args[&args_min2]    = Stat::Min2;
+  stat_from_args[&args_max2]    = Stat::Max2;
   stat_from_args[&args_mode]    = Stat::Mode;
   stat_from_args[&args_nmodal]  = Stat::NModal;
   stat_from_args[&args_nunique] = Stat::NUnique;
