@@ -86,7 +86,7 @@ class ChangelogDirective(SphinxDirective):
         if versionstr:
             version = tuple(int(p) for p in versionstr.split("."))
         else:
-            version = (999,)
+            version = (999,9)
         self.env.xchangelog.append({
             "version": version,
             "versionstr": versionstr,

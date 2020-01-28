@@ -128,3 +128,44 @@
     text-align: left;
     vertical-align: top;
 }
+
+
+
+/*----- contributors-grid ---------------------*/
+
+table.contributors-grid {
+    margin-bottom: 18pt;
+}
+
+table.contributors-grid td {
+    border: 1px solid #eee;
+    padding: 3px 6px;
+    text-align: center;
+}
+
+table.contributors-grid td.version {
+    width: 60px;
+}
+
+table.contributors-grid td.name {
+    text-align: left;
+}
+
+table.contributors-grid tr.versions td {
+    background-color: #2a80b9;
+    border-color: #1b5f8c;
+    color: white;
+}
+
+table.contributors-grid a.reference {
+    color: #2980b9;
+}
+
+.rst-content table.contributors-grid a.reference.external:after {
+    color: inherit;
+    opacity: 0.3;
+}
+
+table.contributors-grid a.reference:hover {
+    color: #9cd3ff;
+}

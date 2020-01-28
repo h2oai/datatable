@@ -18,6 +18,7 @@ Release History
 - :doc:`releases/v0.2.1`
 
 
+.. contributors-grid::
 
 
 .. toctree::
