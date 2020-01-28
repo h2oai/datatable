@@ -31,7 +31,7 @@ from github.GithubException import (
     UnknownObjectException
 )
 
-rx_attribution = re.compile(r"^Attribute[\s\-][tT]o:\s*@([\w\-]+)\s*$",
+rx_attribution = re.compile(r"^Attribute[\s\-][tT]o:?\s+@([\w\-]+)\s*$",
                             re.MULTILINE)
 
 
@@ -168,7 +168,7 @@ def cmd_authors(repo, args):
                                     key=lambda k: -authors[k])
             for author in sorted_authors:
                 count = authors[author]
-                print("    %d %s" % (count, author))
+                print("    %-3d @%s" % (count, author))
         print()
 
 

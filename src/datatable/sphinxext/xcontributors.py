@@ -94,9 +94,9 @@ class XContributorsDirective(SphinxDirective):
 
     def _parse(self, lines):
         rx_separator = re.compile(r"\-+")
-        rx_contributor = re.compile(r"(?:(\d+)\s+)?"
-                                    r"([\w\-]+)"
-                                    r"(?:\s+<([^<>]*)>)?")
+        rx_contributor = re.compile(r"(?:(\d+)\s+)?"        # contribution count
+                                    r"(@?[\w\-]+)"          # username
+                                    r"(?:\s+<([^<>]*)>)?")  # full name
         self.people = {"PRs": {}, "issues": {}}
         mode = "PRs"
         for line in lines:
