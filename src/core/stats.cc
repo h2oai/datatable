@@ -654,14 +654,14 @@ void NumericStats<T>::compute_minmax() {
           if (x < t_min) {                    // Note: these ifs are not exclusive!
             t_min2 = t_min;
             t_min = x;
-          } else if (x < t_min2 && _isfinite(x)) {
+          } else if (x < t_min2 && x != t_min) {
             t_min2 = x;
           }
 
           if (x > t_max) {
             t_max2 = t_max;
             t_max = x;
-          } else if (x > t_max2 && _isfinite(x)) {
+          } else if (x > t_max2 && x != t_max) {
             t_max2 = x;
           }
         });
@@ -673,7 +673,7 @@ void NumericStats<T>::compute_minmax() {
         if (t_min < min) {
           min2 = (min < t_min2)? min : t_min2;
           min = t_min;
-        } else if (t_min < min2) {
+        } else if (t_min < min2 && t_min != min) {
           min2 = t_min;
         } else if (t_min2 < min2) {
           min2 = t_min2;
@@ -682,7 +682,7 @@ void NumericStats<T>::compute_minmax() {
         if (t_max > max) {
           max2 = (max > t_max2)? max : t_max2;
           max = t_max;
-        } else if (t_max > max2) {
+        } else if (t_max > max2 && t_max != max) {
           max2 = t_max;
         } else if (t_max2 > max2) {
           max2 = t_max2;
@@ -694,8 +694,8 @@ void NumericStats<T>::compute_minmax() {
   set_nacount(nrows - count_valid, true);
   set_min(static_cast<V>(min), (count_valid > 0));
   set_max(static_cast<V>(max), (count_valid > 0));
-  set_min2(static_cast<V>(min2), _isfinite(min2));
-  set_max2(static_cast<V>(max2), _isfinite(max2));
+  set_min2(static_cast<V>(min2), min2 != infinity<T>());
+  set_max2(static_cast<V>(max2), max2 != -infinity<T>());
 }
 
 
