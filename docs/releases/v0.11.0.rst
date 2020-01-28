@@ -51,9 +51,10 @@
 
   .. contributors::
 
-    38  @st-pasha
+    39  @st-pasha
     20  @oleksiyskononenko
+    1   @mmalohlava
     1   @bboe                <Bryce Boe>
     --
-    8   @st-pasha
-    3   @oleksiyskononenko
+    10  @st-pasha
+    4   @oleksiyskononenko

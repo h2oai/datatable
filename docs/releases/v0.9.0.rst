@@ -245,29 +245,20 @@
 
 
 
-  Contributors
-  ------------
+  .. contributors::
 
-  This release was made possible via the effort of a number of people, some who
-  contributed code, but also those who helped making the product better by
-  submitting bug reports and new feature requests.
-
-  People who contributed patches and pull requests (PRs):
-
-  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
-  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
-  -[gh]     :user:`Michal Raška <michal-raska>`
-  -[gh]     :user:`Anmol Bal <abal5>`
-
-  People who contributed with bug reports and feature requests:
-
-  -[gh]     :user:`Arno Candel <arnocandel>`
-  -[gh.new] :user:`Antorsae <antorsae>`
-  -[gh.new] :user:`Hawk Berry <hawkberry>`
-  -[gh]     :user:`Jonathan McKinney <pseudotensor>`
-  -[gh]     :user:`Mateusz Dymczyk <mdymczyk>`
-  -[gh.new] :user:`NachiGithub <NachiGithub>`
-  -[gh]     :user:`Olivier <goldentom42>`
-  -[gh]     :user:`Pasha Stetsenko <st-pasha>`
-  -[gh]     :user:`Tom Kraljevic <tomkraljevic>`
-  -[gh.new] :user:`Yu Zhu <XiaomoWu>`
+    99  @st-pasha
+    1   @jangorecki
+    1   @oleksiyskononenko
+    --
+    39  @st-pasha
+    4   @arnocandel
+    2   @hawkberry          <Hawk Berry>
+    2   @jangorecki
+    2   @pseudotensor
+    2   @oleksiyskononenko
+    1   @XiaomoWu           <Yu Zhu>
+    1   @NachiGithub
+    1   @Viktor-Demin
+    1   @mdancho84          <Matt Dancho>
+    1   @antorsae
