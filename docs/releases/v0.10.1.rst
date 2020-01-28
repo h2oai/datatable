@@ -66,16 +66,12 @@
     ``int32`` instead of ``bool8`` for binomial and regression models.
 
 
+  .. contributors::
 
-  Contributors
-  ------------
-
-  This release was made possible via the effort of a number of people, some who
-  contributed code, but also those who helped making the product better by
-  submitting bug reports and new feature requests.
-
-  People who contributed patches and pull requests (PRs):
-
-  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
-  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
-  -[gh.new] :user:`Bijan Pourhamzeh <bpourhamzeh>`
+    6 st-pasha           <Pasha Stetsenko>
+    2 oleksiyskononenko  <Oleksiy Kononenko>
+    1 bpourhamzeh        <Bijan Pourhamzeh>
+    --
+    4 st-pasha
+    1 toddrme2178        <Todd>
+    1 igor-susic         <Igor Šušić>

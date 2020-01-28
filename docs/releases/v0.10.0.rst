@@ -353,17 +353,21 @@
 
 
 
-  Contributors
-  ------------
+  .. contributors::
 
-  This release was made possible via the effort of a number of people, some who
-  contributed code, but also those who helped making the product better by
-  submitting bug reports and new feature requests.
-
-  People who contributed patches and pull requests (PRs):
-
-  - :user:`Pasha Stetsenko <st-pasha>`
-  - :user:`Oleksiy Kononenko <oleksiyskononenko>`
-  - :user:`Viktor Demin <Viktor-Demin>`
-  - :user:`Anmol Bal <abal5>`
-  - :user:`Siddhesh Poyarekar <siddhesh>`
+    121 st-pasha
+    22  oleksiyskononenko
+    3   siddhesh          <Siddhesh Poyarekar>
+    1   Viktor-Demin      <Viktor Demin>
+    1   achraf-mer        <Achraf Merzouki>
+    --
+    65 st-pasha
+    9  oleksiyskononenko
+    6  jangorecki         <Jan Gorecki>
+    3  junghoocho
+    1  ben519             <Ben 519>
+    1  ultraNick          <Nick Kim>
+    1  zawrahman          <Zmnako Awrahman>
+    1  Viktor-Demin       <Viktor Demin>
+    1  mmalohlava         <Michal Malohlava>
+    1  atroiano           <Andy Troiano>
