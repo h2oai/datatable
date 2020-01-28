@@ -99,7 +99,7 @@ class td(xElement, nodes.Part): pass
 
 def visit_tdth(self, node):
     attrs = {}
-    for key in ["rowspan", "colspan"]:
+    for key in ["rowspan", "colspan", "title"]:
         if key in node.attributes:
             attrs[key] = node.attributes[key]
     tag = node.__class__.__name__[1:]

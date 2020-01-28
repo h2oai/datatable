@@ -348,10 +348,22 @@ class contributors_grid_placeholder_node(nodes.Element, nodes.General):
             row += xnodes.td(nodes.inline("", "", link), classes=["name"])
             for version in versions:
                 scores = users.get_user_score_in_version(username, version)
-                content = "\u25fc" if scores[0] else \
-                          "\u25aa" if scores[1] else \
+                nprs, nissues = scores
+                content = "\u25fc" if nprs else \
+                          "\u25aa" if nissues else \
                           ""
-                row += xnodes.td(content)
+                details = ""
+                if nprs:
+                    details += "%d pull request" % nprs
+                    if nprs != 1:
+                        details += "s"
+                if nissues:
+                    if details:
+                        details += " + "
+                    details += "%d issue" % nissues
+                    if nissues != 1:
+                        details += "s"
+                row += xnodes.td(content, title=details)
             out += row
         self.replace_self([out])
 
