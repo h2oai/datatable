@@ -60,6 +60,7 @@ div.small-links div {
 }
 
 .rst-content.style-external-links a.reference.external:after {
+  left: 1pt;
   position: relative;
   top: -.5em;
   vertical-align: inherit;

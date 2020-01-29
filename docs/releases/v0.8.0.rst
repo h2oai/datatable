@@ -215,29 +215,24 @@
 
 
 
-  Contributors
-  ------------
+  .. contributors::
 
-  This release was made possible via the effort of a number of people, some who
-  contributed code, but also those who helped making the product better by
-  submitting bug reports and new feature requests.
-
-  People who contributed patches and pull requests (PRs):
-
-  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
-  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
-  -[gh]     :user:`Michal Raška <michal-raska>`
-  -[gh.new] :user:`Michael Frasco <mfrasco>`
-
-  People who contributed with bug reports and feature requests:
-
-  -[gh]     :user:`Arno Candel <arnocandel>`
-  -[gh.new] :user:`CarlosThinkBig <CarlosThinkBig>`
-  -[gh]     :user:`Jonathan McKinney <pseudotensor>`
-  -[gh.new] :user:`Joseph Granados <g-eoj>`
-  -[gh.new] :user:`Megan Kurka <meganjkurka>`
-  -[gh.new] :user:`Michael Frasco <mfrasco>`
-  -[gh]     :user:`Nishant Kalonia <nkalonia1>`
-  -[gh]     :user:`Oleksiy Kononenko <oleksiyskononenko>`
-  -[gh.new] :user:`Olivier <goldentom42>`
-  -[gh]     :user:`Pasha Stetsenko <st-pasha>`
+    88  @st-pasha
+    22  @oleksiyskononenko
+    1   @abal5
+    1   @Quetzalcohuatl     <Corey Levinson>
+    1   @mfrasco
+    1   @michal-raska
+    --
+    40  @st-pasha
+    11  @oleksiyskononenko
+    9   @arnocandel         <Arno Candel>
+    4   @nkalonia1          <Nishant Kalonia>
+    2   @pseudotensor       <Jonathan McKinney>
+    1   @mmalohlava         <Michal Malohlava>
+    1   @g-eoj              <Joseph Granados>
+    1   @Far0n              <Mathias Müller>
+    1   @goldentom42        <Olivier Grellier>
+    1   @mfrasco            <Michael Frasco>
+    1   @thirdwing          <Qiang Kou (KK)>
+    1   @jangorecki         <Jan Gorecki>

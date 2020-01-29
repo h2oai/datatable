@@ -245,29 +245,27 @@
 
 
 
-  Contributors
-  ------------
+  .. contributors::
 
-  This release was made possible via the effort of a number of people, some who
-  contributed code, but also those who helped making the product better by
-  submitting bug reports and new feature requests.
-
-  People who contributed patches and pull requests (PRs):
-
-  -[gh.old] :user:`Pasha Stetsenko <st-pasha>`
-  -[gh.old] :user:`Oleksiy Kononenko <oleksiyskononenko>`
-  -[gh]     :user:`Michal Raška <michal-raska>`
-  -[gh]     :user:`Anmol Bal <abal5>`
-
-  People who contributed with bug reports and feature requests:
-
-  -[gh]     :user:`Arno Candel <arnocandel>`
-  -[gh.new] :user:`Antorsae <antorsae>`
-  -[gh.new] :user:`Hawk Berry <hawkberry>`
-  -[gh]     :user:`Jonathan McKinney <pseudotensor>`
-  -[gh]     :user:`Mateusz Dymczyk <mdymczyk>`
-  -[gh.new] :user:`NachiGithub <NachiGithub>`
-  -[gh]     :user:`Olivier <goldentom42>`
-  -[gh]     :user:`Pasha Stetsenko <st-pasha>`
-  -[gh]     :user:`Tom Kraljevic <tomkraljevic>`
-  -[gh.new] :user:`Yu Zhu <XiaomoWu>`
+    141 @st-pasha
+    30  @oleksiyskononenko
+    2   @abal5              <Anmol Bal>
+    1   @jangorecki
+    1   @michal-raska       <Michal Raška>
+    --
+    43  @st-pasha
+    10  @arnocandel
+    7   @oleksiyskononenko
+    3   @pseudotensor
+    3   @jangorecki
+    2   @hawkberry          <Hawk Berry>
+    2   @NachiGithub
+    1   @mdymczyk           <Mateusz Dymczyk>
+    1   @Sinan81            <Sinan>
+    1   @goldentom42
+    1   @XiaomoWu           <Yu Zhu>
+    1   @Viktor-Demin
+    1   @mmalohlava
+    1   @sentieonycdev
+    1   @mdancho84          <Matt Dancho>
+    1   @antorsae           <Andres Torrubia>

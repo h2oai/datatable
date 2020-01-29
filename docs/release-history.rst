@@ -18,8 +18,6 @@ Release History
 - :doc:`releases/v0.2.1`
 
 
-
-
 .. toctree::
     :hidden:
 
@@ -37,3 +35,4 @@ Release History
     releases/v0.3.0
     releases/v0.2.2
     releases/v0.2.1
+    releases/contributors

@@ -80,3 +80,16 @@
   -[fix] Fixed erroneous grouping calculations.
 
   -[fix] Fixed sorting of 1-row view frames.
+
+
+  .. contributors::
+
+    38  @st-pasha
+    3   @abal5
+    2   @michal-raska
+    1   @mmalohlava
+    1   @CreatureDev    <Patrick Rice>
+    --
+    26  @st-pasha
+    5   @arnocandel
+    1   @nkalonia1
