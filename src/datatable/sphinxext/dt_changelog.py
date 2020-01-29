@@ -20,7 +20,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-import pdb
 import re
 from docutils import nodes
 from docutils.parsers.rst import directives

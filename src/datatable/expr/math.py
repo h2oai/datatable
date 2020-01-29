@@ -14,10 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #-------------------------------------------------------------------------------
-from .expr import f, Expr, OpCodes
 from datatable.lib import core
-from builtins import abs as _builtin_abs
-import math
 
 __all__ = ("abs", "exp", "log", "log10", "isna")
 

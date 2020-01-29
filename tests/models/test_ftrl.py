@@ -240,7 +240,7 @@ def test_ftrl_create_default():
     ft = Ftrl()
     assert ft.params == default_params
     assert ft.model_type_trained == "none"
-    assert ft.labels == None
+    assert ft.labels is None
 
 
 def test_ftrl_access_params():
@@ -606,7 +606,7 @@ def test_ftrl_reset_trained():
     model_ref = dt.Frame([[0.0] * tparams.nbins, [7.0] * tparams.nbins])
     assert_equals(ft.model, model_ref)
     ft.reset()
-    assert ft.model == None
+    assert ft.model is None
     assert ft.params == tparams
     ft.nepochs = 0
     ft.fit(dt.Frame(range(10)), dt.Frame([False, True] * 5))
@@ -1433,7 +1433,7 @@ def test_ftrl_fi_shallowcopy():
 
     fi2 = copy.deepcopy(ft.feature_importances)
     ft.reset()
-    assert ft.feature_importances == None
+    assert ft.feature_importances is None
     assert_equals(fi1, fi2)
 
 

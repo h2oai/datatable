@@ -85,7 +85,6 @@ The following rules apply:
 """
 import re
 from docutils import nodes
-from docutils.parsers.rst import directives
 from docutils.parsers.rst import Directive
 from . import xnodes
 

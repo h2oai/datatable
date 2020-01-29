@@ -26,7 +26,6 @@
 #
 #-------------------------------------------------------------------------------
 import datatable as dt
-import math
 import pytest
 from datatable import f, DatatableWarning
 from datatable.internal import frame_integrity_check

@@ -11,7 +11,6 @@ import datatable as dt
 import pytest
 import random
 import re
-import sys
 from datatable.internal import frame_integrity_check
 from tests import find_file, same_iterables
 

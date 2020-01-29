@@ -22,7 +22,6 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
-import pytest
 import re
 from collections import namedtuple
 

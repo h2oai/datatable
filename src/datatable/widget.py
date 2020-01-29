@@ -6,7 +6,6 @@
 #-------------------------------------------------------------------------------
 import time
 
-import datatable
 from datatable.lib._datatable import Frame as coreFrame
 from datatable.options import options
 from datatable.types import ltype

@@ -522,7 +522,7 @@ def test_fread_columns_dict1():
 
 
 def test_fread_columns_dict2():
-    d0 = dt.fread(text="A,B,C,D\n1,2,3,4", columns={"A": "a", ...: None})
+    d0 = dt.fread(text="A,B,C,D\n1,2,3,4", columns={"A": "a", Ellipsis: None})
     assert d0.names == ("a", )
     assert d0.to_list() == [[1]]
 

@@ -23,7 +23,6 @@
 #-------------------------------------------------------------------------------
 import math
 import pytest
-import random
 import datatable as dt
 from datatable import f, g, stype, ltype, join
 from datatable.internal import frame_integrity_check

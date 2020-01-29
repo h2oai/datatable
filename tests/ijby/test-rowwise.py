@@ -28,8 +28,7 @@ import datatable as dt
 from datatable import f, g, stype, ltype, join
 from datatable import rowall, rowany, rowsum, rowcount, rowmin, rowmax, \
                       rowfirst, rowlast, rowmean, rowsd
-from datatable.internal import frame_integrity_check
-from tests import list_equals, assert_equals, noop
+from tests import assert_equals
 
 stypes_int = ltype.int.stypes
 stypes_float = ltype.real.stypes

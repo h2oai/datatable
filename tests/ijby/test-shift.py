@@ -23,7 +23,6 @@
 #-------------------------------------------------------------------------------
 import math
 import pytest
-import random
 import datatable as dt
 from datatable import f, shift, by
 from tests import assert_equals
