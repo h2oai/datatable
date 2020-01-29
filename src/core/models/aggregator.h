@@ -60,7 +60,7 @@ class Aggregator : public AggregatorBase {
     static void set_norm_coeffs(T&, T&, T, T, size_t);
     static size_t n_merged_nas(const intvec&);
 
-    // Minimum number of rows a thread will get for an aggregation.
+    // Minimum number of rows a thread will get for an aggregation
     static constexpr size_t MIN_ROWS_PER_THREAD = 1000;
 
   private:
@@ -82,11 +82,11 @@ class Aggregator : public AggregatorBase {
     dtptr dt_exemplars;
     dtptr dt_members;
 
-    // Continuous column convertors and datatable with categorical columns
+    // Categorical and continuous columns extracted from the data
     dtptr dt_cat;
-
-
     colvec contcols;
+
+    // Stats calculated on continuous columns
     std::vector<T> mins;
     std::vector<T> maxs;
 

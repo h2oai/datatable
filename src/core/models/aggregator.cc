@@ -883,6 +883,7 @@ bool Aggregator<T>::group_nd() {
       // Main loop over all the rows
       for (size_t i = i0; i < i1; ++i) {
         bool is_exemplar = true;
+        std::memset(member.get(), 0, ndims * sizeof(T));
         do_projection? project_row(member, i, ncols, pmatrix) :
                        normalize_row(member, i, ncols);
 
@@ -1084,9 +1085,11 @@ template <typename T>
 void Aggregator<T>::normalize_row(tptr<T>& r, size_t row, size_t ncols) {
   for (size_t i = 0; i < ncols; ++i) {
     T norm_factor, norm_shift, value;
-    contcols[i].get_element(row, &value);
-    set_norm_coeffs(norm_factor, norm_shift, mins[i], maxs[i], 1);
-    r[i] =  norm_factor * value + norm_shift;
+    bool is_valid = contcols[i].get_element(row, &value);
+    if (is_valid) {
+      set_norm_coeffs(norm_factor, norm_shift, mins[i], maxs[i], 1);
+      r[i] =  norm_factor * value + norm_shift;
+    }
   }
 }
 
@@ -1097,7 +1100,6 @@ void Aggregator<T>::normalize_row(tptr<T>& r, size_t row, size_t ncols) {
 template <typename T>
 void Aggregator<T>::project_row(tptr<T>& r, size_t row, size_t ncols, tptr<T>& pmatrix)
 {
-  std::memset(r.get(), 0, max_dimensions * sizeof(T));
   size_t n = 0;
   for (size_t i = 0; i < ncols; ++i) {
     T value;

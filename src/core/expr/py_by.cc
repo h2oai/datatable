@@ -159,8 +159,8 @@ oby oby::make(const robj& r) {
 }
 
 
-bool oby::check(PyObject* v) {
-  return oby::oby_pyobject::check(v);
+bool oby::check(PyObject* val) {
+  return oby::oby_pyobject::check(val);
 }
 
 
