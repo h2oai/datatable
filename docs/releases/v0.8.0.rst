@@ -217,16 +217,22 @@
 
   .. contributors::
 
-    4   @st-pasha
-    1   @oleksiyskononenko
+    88  @st-pasha
+    22  @oleksiyskononenko
+    1   @abal5
+    1   @Quetzalcohuatl     <Corey Levinson>
+    1   @mfrasco
+    1   @michal-raska
     --
-    33  @st-pasha
+    40  @st-pasha
+    11  @oleksiyskononenko
     9   @arnocandel         <Arno Candel>
-    7   @oleksiyskononenko
     4   @nkalonia1          <Nishant Kalonia>
     2   @pseudotensor       <Jonathan McKinney>
-    1   @mmalohlava
+    1   @mmalohlava         <Michal Malohlava>
     1   @g-eoj              <Joseph Granados>
-    1   @Far0n
-    1   @goldentom42        <Olivier>
+    1   @Far0n              <Mathias Müller>
+    1   @goldentom42        <Olivier Grellier>
     1   @mfrasco            <Michael Frasco>
+    1   @thirdwing          <Qiang Kou (KK)>
+    1   @jangorecki         <Jan Gorecki>

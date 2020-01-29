@@ -29,3 +29,13 @@
   -[fix] Fixed a stall in fread when using single-threaded mode with
     ``fill=True``.
 
+
+  .. contributors::
+
+    10  @st-pasha
+    1   @michal-raska
+    1   @abal5
+    1   @mmalohlava
+    --
+    7   @st-pasha
+    1   @arnocandel

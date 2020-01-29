@@ -247,18 +247,25 @@
 
   .. contributors::
 
-    99  @st-pasha
+    141 @st-pasha
+    30  @oleksiyskononenko
+    2   @abal5              <Anmol Bal>
     1   @jangorecki
-    1   @oleksiyskononenko
+    1   @michal-raska       <Michal Raška>
     --
-    39  @st-pasha
-    4   @arnocandel
+    43  @st-pasha
+    10  @arnocandel
+    7   @oleksiyskononenko
+    3   @pseudotensor
+    3   @jangorecki
     2   @hawkberry          <Hawk Berry>
-    2   @jangorecki
-    2   @pseudotensor
-    2   @oleksiyskononenko
+    2   @NachiGithub
+    1   @mdymczyk           <Mateusz Dymczyk>
+    1   @Sinan81            <Sinan>
+    1   @goldentom42
     1   @XiaomoWu           <Yu Zhu>
-    1   @NachiGithub
     1   @Viktor-Demin
+    1   @mmalohlava
+    1   @sentieonycdev
     1   @mdancho84          <Matt Dancho>
-    1   @antorsae
+    1   @antorsae           <Andres Torrubia>

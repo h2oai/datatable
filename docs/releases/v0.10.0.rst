@@ -355,19 +355,25 @@
 
   .. contributors::
 
-    121 st-pasha
-    22  oleksiyskononenko
-    3   siddhesh          <Siddhesh Poyarekar>
-    1   Viktor-Demin      <Viktor Demin>
-    1   achraf-mer        <Achraf Merzouki>
+    127 @st-pasha
+    41  @oleksiyskononenko
+    3   @siddhesh          <Siddhesh Poyarekar>
+    2   @abal5
+    1   @mmalohlava
+    1   @Viktor-Demin      <Viktor Demin>
+    1   @achraf-mer        <Achraf Merzouki>
     --
-    65 st-pasha
-    10 oleksiyskononenko
-    6  jangorecki         <Jan Gorecki>
-    3  junghoocho         <JCho>
-    1  ben519             <Ben 519>
-    1  ultraNick          <Nick Kim>
-    1  zawrahman          <Zmnako Awrahman>
-    1  Viktor-Demin       <Viktor Demin>
-    1  mmalohlava         <Michal Malohlava>
-    1  atroiano           <Andy Troiano>
+    68  @st-pasha
+    14  @oleksiyskononenko
+    6   @jangorecki         <Jan Gorecki>
+    3   @junghoocho         <Junghoo Cho>
+    1   @ben519             <Ben 519>
+    1   @ultraNick          <Nick Kim>
+    1   @korayal            <Koray AL>
+    1   @dvorka             <Martin Dvorak>
+    1   @zawrahman          <Zmnako Awrahman>
+    1   @Viktor-Demin       <Viktor Demin>
+    1   @mmalohlava         <Michal Malohlava>
+    1   @atroiano           <Andy Troiano>
+    1   @javadba            <Stephen Boesch>
+    1   @nkalonia1

@@ -214,3 +214,27 @@
     being accidentally copied into RAM.
 
   -[fix] Fixed rare crash in fread when resizing the number of rows.
+
+
+  .. contributors::
+
+    126 @st-pasha
+    18  @oleksiyskononenko
+    15  @michal-raska
+    7   @mmalohlava
+    3   @nkalonia1
+    1   @sumanstats            <Suman Khanal>
+    1   @johnygomez            <Jan Gamec>
+    --
+    81  @st-pasha
+    19  @oleksiyskononenko
+    7   @jangorecki
+    4   @pseudotensor
+    4   @nkalonia1
+    1   @meganjkurka           <Megan Kurka>
+    1   @govi218               <Govind Mohan>
+    1   @srisatish             <Sri Ambati>
+    1   @hemenkapadia          <Hemen Kapadia>
+    1   @aschmu                <Achille M.>
+    1   @lelandwilkinson       <Leland Wilkinson>
+    1   @mmalohlava

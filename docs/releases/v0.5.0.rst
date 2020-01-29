@@ -37,3 +37,16 @@
 
   -[fix] Fixed incorrect groupby calculation in some rare cases.
 
+
+  .. contributors::
+
+    19  @st-pasha
+    3   @mmalohlava
+    1   @angela0xdata
+    1   @abal5
+    1   @michal-raska
+    --
+    14  @st-pasha
+    1   @mmalohlava
+    1   @arnocandel
+    1   @meganjkurka

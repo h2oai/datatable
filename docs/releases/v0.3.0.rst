@@ -200,3 +200,19 @@
 
   -[fix] Computed columns expression can now be combined with rows expression,
     or applied to a view Frame.
+
+
+  .. contributors::
+
+    191 @st-pasha
+    11  @nkalonia1
+    5   @mmalohlava
+    1   @michal-raska
+    1   @tomkraljevic
+    --
+    102 @st-pasha
+    8   @arnocandel
+    7   @pseudotensor
+    5   @nkalonia1
+    1   @michal-raska
+    1   @mklechan      <Mark Chan>

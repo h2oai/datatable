@@ -42,3 +42,14 @@
     :func:`fread` if the sample contained broken lines.
 
   -[fix] Frame view will no longer get stuck in a Jupyter notebook.
+
+
+  .. contributors::
+
+    16  @st-pasha
+    1   @angela0xdata    <Angela Bartz>
+    1   @jlavileze       <Jose Luis Avilez>
+    --
+    10  @st-pasha
+    1   @tomkraljevic    <Tom Kraljevic>
+    1   @mmalohlava

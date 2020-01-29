@@ -17,3 +17,12 @@
 
   -[enh] Allow type-casts from booleans / integers / floats into strings.
 
+
+  .. contributors::
+
+    11  @st-pasha
+    8   @mmalohlava
+    1   @abal5
+    --
+    7   @st-pasha
+    6   @mmalohlava

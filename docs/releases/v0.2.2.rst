@@ -58,3 +58,13 @@
 
   -[fix] ``datatable`` will now convert huge integers into double ``inf`` values
     instead of raising an exception.
+
+
+  .. contributors::
+
+    70  @st-pasha
+    13  @nkalonia1
+    6   @mmalohlava
+    --
+    3   @nkalonia1    <Nishant Kalonia>
+    1   @st-pasha
