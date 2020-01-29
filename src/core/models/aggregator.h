@@ -62,6 +62,7 @@ class Aggregator : public AggregatorBase {
 
     // Minimum number of rows a thread will get for an aggregation
     static constexpr size_t MIN_ROWS_PER_THREAD = 1000;
+    static constexpr size_t ND_COLS = 3;
 
   private:
     // Input parameters and datatable

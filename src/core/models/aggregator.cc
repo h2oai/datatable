@@ -210,7 +210,7 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
 
 
 template<typename TI, typename TO>
-bool convertfn(TI x, bool x_isvalid, TO* out) {
+bool castfn(TI x, bool x_isvalid, TO* out) {
   *out = static_cast<TO>(x);
   return x_isvalid && _isfinite(x);
 }
@@ -234,7 +234,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt = dt_in;
   bool needs_sampling;
 
-  constexpr SType stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
+  constexpr SType agg_stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
 
 
   Column col0 = Column::new_data_column(dt->nrows(), SType::INT32);
@@ -257,54 +257,41 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     for (size_t i = 0; i < ncols; ++i) {
       bool is_continuous = true;
       const Column& col = dt->get_column(i);
-      switch (col.stype()) {
+      SType col_stype = col.stype();
+      switch (col_stype) {
         case SType::BOOL:
         case SType::INT8:    contcol = Column(new dt::FuncUnary2_ColumnImpl<int8_t, T>(
-                               Column(col),
-                               convertfn<int8_t, T>,
-                               col.nrows(),
-                               stype
+                               Column(col), castfn<int8_t, T>, col.nrows(), agg_stype
                              ));
                              break;
         case SType::INT16:   contcol = Column(new dt::FuncUnary2_ColumnImpl<int16_t, T>(
-                               Column(col),
-                               convertfn<int16_t, T>,
-                               col.nrows(),
-                               stype
+                               Column(col), castfn<int16_t, T>, col.nrows(), agg_stype
                              ));
                              break;
         case SType::INT32:   contcol = Column(new dt::FuncUnary2_ColumnImpl<int32_t, T>(
-                               Column(col),
-                               convertfn<int32_t, T>,
-                               col.nrows(),
-                               stype
+                               Column(col), castfn<int32_t, T>, col.nrows(), agg_stype
                              ));
                              break;
         case SType::INT64:   contcol = Column(new dt::FuncUnary2_ColumnImpl<int64_t, T>(
-                               Column(col),
-                               convertfn<int64_t, T>,
-                               col.nrows(),
-                               stype
+                               Column(col), castfn<int64_t, T>, col.nrows(), agg_stype
                              ));
                              break;
         case SType::FLOAT32: contcol = Column(new dt::FuncUnary2_ColumnImpl<float, T>(
-                               Column(col),
-                               convertfn<float, T>,
-                               col.nrows(),
-                               stype
+                               Column(col), castfn<float, T>, col.nrows(), agg_stype
                              ));
                              break;
         case SType::FLOAT64: contcol = Column(new dt::FuncUnary2_ColumnImpl<double, T>(
-                               Column(col),
-                               convertfn<double, T>,
-                               col.nrows(),
-                               stype
+                               Column(col), castfn<double, T>, col.nrows(), agg_stype
                              ));
                              break;
-        default:             is_continuous = false;
-                             if (ncols < 3) {
+        case SType::STR32:
+        case SType::STR64:   is_continuous = false;
+                             if (ncols < ND_COLS) {
                                catcols.push_back(dt->get_column(i));
                              }
+                             break;
+        default:             throw ValueError() << "Columns with stype `"
+                               << col_stype << "` are not supported";
       }
       if (is_continuous) {
         double min, max;
@@ -318,8 +305,12 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       size_t amount = (WORK_PREPARE * (i + 1)) / ncols;
       job.set_done_amount(amount);
     }
-    dt_cat = dtptr(new DataTable(std::move(catcols), DataTable::default_names));
-    ncols = contcols.size() + dt_cat->ncols();
+
+    size_t ncols_agg = contcols.size();
+    if (ncols < ND_COLS) {
+      dt_cat = dtptr(new DataTable(std::move(catcols), DataTable::default_names));
+      ncols_agg += dt_cat->ncols();
+    }
 
     // Depending on number of columns call a corresponding aggregating method.
     // If `dt` has too few rows, do not aggregate it, instead, just sort it by
@@ -327,7 +318,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     {
       job.set_message("Aggregating");
       dt::progress::subtask subjob(job, WORK_AGGREGATE);
-      switch (ncols) {
+      switch (ncols_agg) {
         case 0:  needs_sampling = group_0d();
                  max_bins = nd_max_bins;
                  break;
