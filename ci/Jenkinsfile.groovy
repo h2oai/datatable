@@ -601,6 +601,13 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
             }
             docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
         }
+        def pip_args = ""
+        if (docker_image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
+            // On a PPC machine use our own repository which contains pre-built
+            // binary wheels for pandas & numpy.
+            pip_args += "-i https://h2oai.github.io/py-repo/ "
+            pip_args += "--extra-index-url https://pypi.org/simple/ "
+        }
         def python = get_python_for_docker(pyver, docker_image)
         def docker_cmd = ""
         docker_cmd += "cd /dt && ls dist/ && "
@@ -611,7 +618,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_cmd += "pip install --upgrade pip && "
         docker_cmd += "pip install dist/datatable-*-cp" + pyver + "-*.whl && "
         docker_cmd += "pip install -r requirements_tests.txt && "
-        docker_cmd += "(pip install -r requirements_extra.txt || true) && "
+        docker_cmd += "pip install ${pip_args} -r requirements_extra.txt && "
         docker_cmd += "pip freeze && "
         docker_cmd += "python -c 'import datatable; print(datatable.__file__)' && "
         docker_cmd += "python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
