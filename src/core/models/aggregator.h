@@ -98,6 +98,10 @@ class Aggregator : public AggregatorBase {
     static constexpr size_t WORK_SAMPLE = 10;
     static constexpr size_t WORK_FINALIZE = 10;
 
+    // Convertor for continuous columns
+    template <typename TI>
+    Column contcol_maker(const Column&, SType);
+
     // Final aggregation method
     void aggregate_exemplars(bool);
 

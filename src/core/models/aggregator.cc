@@ -209,10 +209,24 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
 }
 
 
-template<typename TI, typename TO>
-bool castfn(TI x, bool x_isvalid, TO* out) {
-  *out = static_cast<TO>(x);
-  return x_isvalid && _isfinite(x);
+/**
+ *  Continuous column maker returns virtual column
+ *  that casts a numeric column to type `T` and converts
+ *  infinite values into missings.
+ */
+template <typename T>
+template <typename TI>
+Column Aggregator<T>::contcol_maker(const Column& col_, SType stype) {
+  Column col = Column(new dt::FuncUnary2_ColumnImpl<TI, T>(
+                 Column(col_),
+                 [](TI x, bool x_isvalid, T* out) {
+                   *out = static_cast<T>(x);
+                   return x_isvalid && _isfinite(x);
+                 },
+                 col_.nrows(),
+                 stype
+               ));
+  return col;
 }
 
 
@@ -260,30 +274,12 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       SType col_stype = col.stype();
       switch (col_stype) {
         case SType::BOOL:
-        case SType::INT8:    contcol = Column(new dt::FuncUnary2_ColumnImpl<int8_t, T>(
-                               Column(col), castfn<int8_t, T>, col.nrows(), agg_stype
-                             ));
-                             break;
-        case SType::INT16:   contcol = Column(new dt::FuncUnary2_ColumnImpl<int16_t, T>(
-                               Column(col), castfn<int16_t, T>, col.nrows(), agg_stype
-                             ));
-                             break;
-        case SType::INT32:   contcol = Column(new dt::FuncUnary2_ColumnImpl<int32_t, T>(
-                               Column(col), castfn<int32_t, T>, col.nrows(), agg_stype
-                             ));
-                             break;
-        case SType::INT64:   contcol = Column(new dt::FuncUnary2_ColumnImpl<int64_t, T>(
-                               Column(col), castfn<int64_t, T>, col.nrows(), agg_stype
-                             ));
-                             break;
-        case SType::FLOAT32: contcol = Column(new dt::FuncUnary2_ColumnImpl<float, T>(
-                               Column(col), castfn<float, T>, col.nrows(), agg_stype
-                             ));
-                             break;
-        case SType::FLOAT64: contcol = Column(new dt::FuncUnary2_ColumnImpl<double, T>(
-                               Column(col), castfn<double, T>, col.nrows(), agg_stype
-                             ));
-                             break;
+        case SType::INT8:    contcol = contcol_maker<int8_t>(col, agg_stype); break;
+        case SType::INT16:   contcol = contcol_maker<int16_t>(col, agg_stype); break;
+        case SType::INT32:   contcol = contcol_maker<int32_t>(col, agg_stype); break;
+        case SType::INT64:   contcol = contcol_maker<int64_t>(col, agg_stype); break;
+        case SType::FLOAT32: contcol = contcol_maker<float>(col, agg_stype); break;
+        case SType::FLOAT64: contcol = contcol_maker<double>(col, agg_stype); break;
         case SType::STR32:
         case SType::STR64:   is_continuous = false;
                              if (ncols < ND_COLS) {
@@ -307,7 +303,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     }
 
     size_t ncols_agg = contcols.size();
-    if (ncols < ND_COLS) {
+    if (catcols.size()) {
       dt_cat = dtptr(new DataTable(std::move(catcols), DataTable::default_names));
       ncols_agg += dt_cat->ncols();
     }
