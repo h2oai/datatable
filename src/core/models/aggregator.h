@@ -22,16 +22,11 @@
 #include <limits>     // std::numeric_limits
 #include <memory>     // std::unique_ptr
 #include <vector>     // std::vector
-#include "models/column_convertor.h"
+#include "models/utils.h"
 #include "parallel/api.h"
 #include "python/obj.h"
 
 
-// Define templated types for Aggregator
-template <typename T>
-using ccptr = typename std::unique_ptr<ColumnConvertor<T>>;
-template <typename T>
-using ccptrvec = typename std::vector<ccptr<T>>;
 using dtptr = std::unique_ptr<DataTable>;
 
 /**
@@ -88,8 +83,13 @@ class Aggregator : public AggregatorBase {
     dtptr dt_members;
 
     // Continuous column convertors and datatable with categorical columns
-    ccptrvec<T> contconvs;
     dtptr dt_cat;
+
+
+    colvec contcols;
+    std::vector<T> mins;
+    std::vector<T> maxs;
+
 
     // Progress reporting constants
     static constexpr size_t WORK_PREPARE = 10;
