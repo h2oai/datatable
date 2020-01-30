@@ -26,7 +26,6 @@
 # pandas DataFrame).
 #
 #-------------------------------------------------------------------------------
-import math
 import pytest
 from datatable import f, dt
 from tests import assert_equals

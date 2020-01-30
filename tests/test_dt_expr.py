@@ -25,9 +25,9 @@ import math
 import pytest
 import random
 import datatable as dt
-from datatable import f, stype, ltype
+from datatable import f, stype
 from datatable.internal import frame_integrity_check
-from tests import list_equals, assert_equals, noop
+from tests import assert_equals
 
 
 # Sets of tuples containing test columns of each type

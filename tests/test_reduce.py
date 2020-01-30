@@ -210,8 +210,8 @@ def test_last_array():
     assert last([1, 5, 7]) == 7
     assert last("dlvksjdnf") == "f"
     assert last(x.upper() for x in "abcd") == "D"
-    assert last(x * 2 for x in "") == None
-    assert last([]) == None
+    assert last(x * 2 for x in "") is None
+    assert last([]) is None
 
 def test_last_frame():
     DT = dt.Frame(A=[1, 3, 7], B=[None, "er", "hooray"])

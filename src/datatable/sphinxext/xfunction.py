@@ -583,7 +583,7 @@ class XobjectDirective(SphinxDirective):
             out.append("    " + shortline)
             i += 1
         if re.fullmatch(r"\s*\[\d+ rows? x \d+ columns?\]", out[-1]):
-            frame_lines = [line[4:] for line in out[out0+2:]]
+            frame_lines = [oline[4:] for oline in out[out0+2:]]
             out[out0:] = self._parse_dtframe(frame_lines)
         return i
 

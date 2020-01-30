@@ -6,7 +6,6 @@
 #-------------------------------------------------------------------------------
 import ctypes
 import enum
-import datatable
 from datatable.expr.expr import Expr, OpCodes
 from datatable.lib import core
 from datatable.utils.typechecks import TValueError
