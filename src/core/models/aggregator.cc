@@ -29,6 +29,7 @@
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
+#include "column/func_unary.h"
 
 namespace py {
 
@@ -209,6 +210,27 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
 
 
 /**
+ *  Continuous column maker returns virtual column
+ *  that casts a numeric column to type `T` and converts
+ *  infinite values into missings.
+ */
+template <typename T>
+template <typename TI>
+Column Aggregator<T>::contcol_maker(const Column& col_, SType stype) {
+  Column col = Column(new dt::FuncUnary2_ColumnImpl<TI, T>(
+                 Column(col_),
+                 [](TI x, bool x_isvalid, T* out) {
+                   *out = static_cast<T>(x);
+                   return x_isvalid && _isfinite(x);
+                 },
+                 col_.nrows(),
+                 stype
+               ));
+  return col;
+}
+
+
+/**
  *  Main Aggregator method, convert all the numeric columns to `T`,
  *  do the corresponding grouping and final exemplar aggregation:
  *  - `dt` is an input datatable to aggregate;
@@ -226,14 +248,22 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt = dt_in;
   bool needs_sampling;
 
+  constexpr SType agg_stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
+
+
   Column col0 = Column::new_data_column(dt->nrows(), SType::INT32);
   dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
 
   if (dt->nrows() >= min_rows && dt->nrows() != 0) {
     colvec catcols;
+    Column contcol;
     size_t max_bins;
-    contconvs.reserve(dt->ncols());
-    ccptr<T> contconv;
+
+    contcols.reserve(dt->ncols());
+    mins.reserve(dt->ncols());
+    maxs.reserve(dt->ncols());
+
+
     size_t ncols = dt->ncols();
 
     // Create column convertors for numeric columns,
@@ -241,27 +271,42 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     for (size_t i = 0; i < ncols; ++i) {
       bool is_continuous = true;
       const Column& col = dt->get_column(i);
-      switch (col.stype()) {
-        case SType::BOOL:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T>(col)); break;
-        case SType::INT8:    contconv = ccptr<T>(new ColumnConvertorReal<int8_t, T>(col)); break;
-        case SType::INT16:   contconv = ccptr<T>(new ColumnConvertorReal<int16_t, T>(col)); break;
-        case SType::INT32:   contconv = ccptr<T>(new ColumnConvertorReal<int32_t, T>(col)); break;
-        case SType::INT64:   contconv = ccptr<T>(new ColumnConvertorReal<int64_t, T>(col)); break;
-        case SType::FLOAT32: contconv = ccptr<T>(new ColumnConvertorReal<float, T>(col)); break;
-        case SType::FLOAT64: contconv = ccptr<T>(new ColumnConvertorReal<double, T>(col)); break;
-        default:             if (ncols < 3) {
-                               is_continuous = false;
+      SType col_stype = col.stype();
+      switch (col_stype) {
+        case SType::BOOL:
+        case SType::INT8:    contcol = contcol_maker<int8_t>(col, agg_stype); break;
+        case SType::INT16:   contcol = contcol_maker<int16_t>(col, agg_stype); break;
+        case SType::INT32:   contcol = contcol_maker<int32_t>(col, agg_stype); break;
+        case SType::INT64:   contcol = contcol_maker<int64_t>(col, agg_stype); break;
+        case SType::FLOAT32: contcol = contcol_maker<float>(col, agg_stype); break;
+        case SType::FLOAT64: contcol = contcol_maker<double>(col, agg_stype); break;
+        case SType::STR32:
+        case SType::STR64:   is_continuous = false;
+                             if (ncols < ND_COLS) {
                                catcols.push_back(dt->get_column(i));
                              }
+                             break;
+        default:             throw ValueError() << "Columns with stype `"
+                               << col_stype << "` are not supported";
       }
-      if (is_continuous && contconv != nullptr) {
-        contconvs.push_back(std::move(contconv));
+      if (is_continuous) {
+        double min, max;
+        contcol.stats()->get_stat(Stat::Min, &min);
+        contcol.stats()->get_stat(Stat::Max, &max);
+        mins.push_back(static_cast<T>(min));
+        maxs.push_back(static_cast<T>(max));
+
+        contcols.push_back(std::move(contcol));
       }
       size_t amount = (WORK_PREPARE * (i + 1)) / ncols;
       job.set_done_amount(amount);
     }
-    dt_cat = dtptr(new DataTable(std::move(catcols), DataTable::default_names));
-    ncols = contconvs.size() + dt_cat->ncols();
+
+    size_t ncols_agg = contcols.size();
+    if (catcols.size()) {
+      dt_cat = dtptr(new DataTable(std::move(catcols), DataTable::default_names));
+      ncols_agg += dt_cat->ncols();
+    }
 
     // Depending on number of columns call a corresponding aggregating method.
     // If `dt` has too few rows, do not aggregate it, instead, just sort it by
@@ -269,7 +314,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     {
       job.set_message("Aggregating");
       dt::progress::subtask subjob(job, WORK_AGGREGATE);
-      switch (ncols) {
+      switch (ncols_agg) {
         case 0:  needs_sampling = group_0d();
                  max_bins = nd_max_bins;
                  break;
@@ -315,7 +360,10 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   // We do not need a pointer to the original datatable anymore,
   // also clear vector of column convertors and datatable with categoricals.
   dt = nullptr;
-  contconvs.clear();
+
+  contcols.clear();
+  mins.clear();
+  maxs.clear();
   dt_cat = nullptr;
   job.done();
 }
@@ -358,7 +406,8 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
       size_t off_i = static_cast<size_t>(offsets[i]);
       size_t ri;
       bool rii_valid = ri_members.get_element(off_i, &ri);
-      xassert(rii_valid);  (void) rii_valid;
+      (void) rii_valid;
+      xassert(rii_valid);
       if (ISNA<int32_t>(d_members[ri])) {
         size_t off_i1 = static_cast<size_t>(offsets[i + 1]);
         dt::parallel_for_static(off_i1 - off_i,
@@ -478,7 +527,7 @@ bool Aggregator<T>::group_0d() {
  */
 template <typename T>
 bool Aggregator<T>::group_1d() {
-  size_t ncont = contconvs.size();
+  size_t ncont = contcols.size();
   xassert(ncont < 2);
 
   bool res;
@@ -506,7 +555,7 @@ bool Aggregator<T>::group_1d() {
  */
 template <typename T>
 bool Aggregator<T>::group_2d() {
-  size_t ncont = contconvs.size();
+  size_t ncont = contcols.size();
   xassert(ncont < 3);
 
   bool res;
@@ -530,15 +579,16 @@ template <typename T>
 bool Aggregator<T>::group_1d_continuous() {
   auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
   T norm_factor, norm_shift;
-  set_norm_coeffs(norm_factor, norm_shift, contconvs[0]->get_min(), contconvs[0]->get_max(), n_bins);
+  set_norm_coeffs(norm_factor, norm_shift, mins[0], maxs[0], n_bins);
 
-  dt::parallel_for_static(contconvs[0]->get_nrows(),
+  dt::parallel_for_static(contcols[0].nrows(),
     [&](size_t i) {
-      T value = (*contconvs[0])[i];
-      if (ISNA<T>(value)) {
-        d_members[i] = GETNA<int32_t>();
-      } else {
+      T value;
+      bool is_valid = contcols[0].get_element(i, &value);
+      if (is_valid) {
         d_members[i] = static_cast<int32_t>(norm_factor * value + norm_shift);
+      } else {
+        d_members[i] = GETNA<int32_t>();
       }
     });
   return false;
@@ -554,14 +604,17 @@ bool Aggregator<T>::group_2d_continuous() {
 
   T normx_factor, normx_shift;
   T normy_factor, normy_shift;
-  set_norm_coeffs(normx_factor, normx_shift, contconvs[0]->get_min(), contconvs[0]->get_max(), nx_bins);
-  set_norm_coeffs(normy_factor, normy_shift, contconvs[1]->get_min(), contconvs[1]->get_max(), ny_bins);
+  set_norm_coeffs(normx_factor, normx_shift, mins[0], maxs[0], nx_bins);
+  set_norm_coeffs(normy_factor, normy_shift, mins[1], maxs[1], ny_bins);
 
-  dt::parallel_for_static(contconvs[0]->get_nrows(),
+  dt::parallel_for_static(contcols[0].nrows(),
     [&](size_t i) {
-      T value0 = (*contconvs[0])[i];
-      T value1 = (*contconvs[1])[i];
-      int32_t na_case = ISNA<T>(value0) + 2 * ISNA<T>(value1);
+      T value0, value1;
+
+      bool not_valid0 = !contcols[0].get_element(i, &value0);
+      bool not_valid1 = !contcols[1].get_element(i, &value1);
+
+      int32_t na_case = not_valid0 + 2 * not_valid1;
       if (na_case) {
         d_members[i] = -na_case;
       } else {
@@ -595,6 +648,7 @@ bool Aggregator<T>::group_1d_categorical() {
     CString val;
     size_t row;
     bool row_valid = ri.get_element(0, &row);
+    (void) row_valid;
     xassert(row_valid);
     (void) row_valid;
     na_group = !col.get_element(row, &val);
@@ -682,7 +736,6 @@ template <typename T>
 bool Aggregator<T>::group_2d_mixed()
 {
   const Column& col0 = dt_cat->get_column(0);
-  const auto& col1 = *contconvs[0];
   xassert(col0.ltype() == LType::STRING);
 
   auto res = group({col0}, {SortFlag::NONE});
@@ -693,7 +746,7 @@ bool Aggregator<T>::group_2d_mixed()
   const int32_t* offsets_cat = gb.offsets_r();
 
   T normx_factor, normx_shift;
-  set_norm_coeffs(normx_factor, normx_shift, col1.get_min(), col1.get_max(), nx_bins);
+  set_norm_coeffs(normx_factor, normx_shift, mins[0], maxs[0], nx_bins);
 
   // Check if we have an "NA" group in the categorical column.
   bool na_cat_group = false;
@@ -701,6 +754,7 @@ bool Aggregator<T>::group_2d_mixed()
     CString val;
     size_t row;
     bool row_valid = ri.get_element(0, &row);
+    (void) row_valid;
     xassert(row_valid);
     (void) row_valid;
     na_cat_group = !col0.get_element(row, &val);
@@ -717,12 +771,14 @@ bool Aggregator<T>::group_2d_mixed()
         size_t row;
         bool row_valid = ri.get_element(j, &row);
         xassert(row_valid); (void)row_valid;
-        bool val1_isna = ISNA<T>(col1[row]);
+
+        T val1;
+        bool val1_isna = !contcols[0].get_element(row, &val1);
         size_t na_bin = val1_isna + 2 * val0_isna;
 
         d_members[row] = na_bin? -static_cast<int32_t>(na_bin)
                                : group_id_shift +
-                                 static_cast<int32_t>(normx_factor * col1[row] + normx_shift);
+                                 static_cast<int32_t>(normx_factor * val1 + normx_shift);
       }
     });
 
@@ -772,8 +828,8 @@ size_t Aggregator<T>::n_merged_nas(const intvec& n_nas) {
 template <typename T>
 bool Aggregator<T>::group_nd() {
   dt::shared_bmutex shmutex;
-  size_t ncols = contconvs.size();
-  size_t nrows = (*contconvs[0]).get_nrows();
+  size_t ncols = contcols.size();
+  size_t nrows = contcols[0].nrows();
   size_t ndims = std::min(max_dimensions, ncols);
 
   std::vector<exptr> exemplars;
@@ -814,6 +870,7 @@ bool Aggregator<T>::group_nd() {
       // Main loop over all the rows
       for (size_t i = i0; i < i1; ++i) {
         bool is_exemplar = true;
+        std::memset(member.get(), 0, ndims * sizeof(T));
         do_projection? project_row(member, i, ncols, pmatrix) :
                        normalize_row(member, i, ncols);
 
@@ -1014,10 +1071,12 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
 template <typename T>
 void Aggregator<T>::normalize_row(tptr<T>& r, size_t row, size_t ncols) {
   for (size_t i = 0; i < ncols; ++i) {
-    T norm_factor, norm_shift;
-    T value = (*contconvs[i])[row];
-    set_norm_coeffs(norm_factor, norm_shift, (*contconvs[i]).get_min(), (*contconvs[i]).get_max(), 1);
-    r[i] =  norm_factor * value + norm_shift;
+    T norm_factor, norm_shift, value;
+    bool is_valid = contcols[i].get_element(row, &value);
+    if (is_valid) {
+      set_norm_coeffs(norm_factor, norm_shift, mins[i], maxs[i], 1);
+      r[i] =  norm_factor * value + norm_shift;
+    }
   }
 }
 
@@ -1028,16 +1087,17 @@ void Aggregator<T>::normalize_row(tptr<T>& r, size_t row, size_t ncols) {
 template <typename T>
 void Aggregator<T>::project_row(tptr<T>& r, size_t row, size_t ncols, tptr<T>& pmatrix)
 {
-  std::memset(r.get(), 0, max_dimensions * sizeof(T));
   size_t n = 0;
   for (size_t i = 0; i < ncols; ++i) {
-    T value = (*contconvs[i])[row];
-    if (!ISNA<T>(value)) {
+    T value;
+    bool is_valid = contcols[i].get_element(row, &value);
+
+    if (is_valid) {
       T norm_factor, norm_shift;
       set_norm_coeffs(norm_factor,
                       norm_shift,
-                      (*contconvs[i]).get_min(),
-                      (*contconvs[i]).get_max(),
+                      mins[i],
+                      maxs[i],
                       1);
       T norm_row = norm_factor * value + norm_shift;
       for (size_t j = 0; j < max_dimensions; ++j) {

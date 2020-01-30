@@ -30,6 +30,7 @@ from datatable import ltype
 from datatable.models import aggregate
 from tests import assert_equals
 from datatable.internal import frame_columns_virtual, frame_integrity_check
+import math
 import pytest
 
 
@@ -41,17 +42,17 @@ import pytest
 def test_aggregate_0d_continuous_integer_random():
     n_bins = 3  # `nrows < min_rows`, so we also test that this input is ignored
     min_rows = 500
-    d_in = dt.Frame([None, 9, 8, None, 2, 3, 3, 0, 5, 5, 8, 1, None])
+    d_in = dt.Frame([None, 9, 8, math.inf, 2, 3, 3, 0, 5, 5, 8, 1, -math.inf])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=min_rows, n_bins=n_bins)
     frame_integrity_check(d_members)
     assert d_members.shape == (13, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.to_list() == [[0, 12, 10, 1, 5, 6, 7, 3, 8, 9, 11, 4, 2]]
+    assert d_members.to_list() == [[0, 11, 9, 12, 4, 5, 6, 2, 7, 8, 10, 3, 1]]
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (13, 2)
-    assert d_exemplars.ltypes == (ltype.int, ltype.int)
-    assert d_exemplars.to_list() == [[None, None, None, 0, 1, 2, 3, 3, 5, 5, 8, 8, 9],
+    assert d_exemplars.ltypes == (ltype.real, ltype.int)
+    assert d_exemplars.to_list() == [[None, -math.inf, 0, 1, 2, 3, 3, 5, 5, 8, 8, 9, math.inf],
                                      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
     assert_equals(d_in, d_in_copy)
 
@@ -93,6 +94,28 @@ def test_aggregate_1d_na():
             [[None], [53]],
             names = ["C0", "members_count"],
             stypes = [dt.stype.bool8, dt.stype.int32]
+        )
+    )
+    assert_equals(d_in, d_in_copy)
+
+
+def test_aggregate_1d_na_inf():
+    n_bins = 1
+    d_in = dt.Frame([None, math.inf] * 26)
+    d_in_copy = dt.Frame(d_in)
+    [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins)
+    frame_integrity_check(d_members)
+    frame_integrity_check(d_exemplars)
+    assert_equals(
+        d_members,
+        dt.Frame([0] * 52, names = ["exemplar_id"], stypes = [dt.stype.int32])
+    )
+    assert_equals(
+        d_exemplars,
+        dt.Frame(
+            [[None], [52]],
+            names = ["C0", "members_count"],
+            stypes = [dt.stype.float64, dt.stype.int32]
         )
     )
     assert_equals(d_in, d_in_copy)
@@ -166,18 +189,18 @@ def test_aggregate_1d_continuous_integer_random():
 
 def test_aggregate_1d_continuous_real_sorted():
     n_bins = 3
-    d_in = dt.Frame([0.0, None, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    d_in = dt.Frame([-math.inf, 0.0, None, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, n_bins=n_bins)
     frame_integrity_check(d_members)
-    assert d_members.shape == (11, 1)
+    assert d_members.shape == (12, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.to_list() == [[1, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]]
+    assert d_members.to_list() == [[0, 1, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]]
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (4, 2)
     assert d_exemplars.ltypes == (ltype.real, ltype.int)
-    assert d_exemplars.to_list() == [[None, 0.0, 0.4, 0.7],
-                                    [1, 4, 3, 3]]
+    assert d_exemplars.to_list() == [[-math.inf, 0.0, 0.4, 0.7],
+                                    [2, 4, 3, 3]]
     assert_equals(d_in, d_in_copy)
 
 
@@ -325,7 +348,7 @@ def test_aggregate_2d_continuous_real_sorted():
     ny_bins = 3
     d_in = dt.Frame([[0.0, 0.0, 0.1, 0.2, None, 0.3, 0.4, 0.5, 0.6,
                       0.7, 0.8, 0.9, None],
-                     [None, 0.0, 0.1, 0.2, None, 0.3, 0.4, 0.5, 0.6,
+                     [math.inf, 0.0, 0.1, 0.2, None, 0.3, 0.4, 0.5, 0.6,
                       0.7, 0.8, 0.9, 0.0]])
     d_in_copy = dt.Frame(d_in)
     [d_exemplars, d_members] = aggregate(d_in, min_rows=0, nx_bins=nx_bins, ny_bins=ny_bins)
@@ -337,7 +360,7 @@ def test_aggregate_2d_continuous_real_sorted():
     assert d_exemplars.shape == (6, 3)
     assert d_exemplars.ltypes == (ltype.real, ltype.real, ltype.int)
     assert d_exemplars.to_list() == [[None, 0.0, None, 0.0, 0.4, 0.7],
-                                     [None, None, 0.0, 0.0, 0.4, 0.7],
+                                     [None, math.inf, 0.0, 0.0, 0.4, 0.7],
                                      [1, 1, 1, 4, 3, 3]]
     assert_equals(d_in, d_in_copy)
 
@@ -346,7 +369,7 @@ def test_aggregate_2d_continuous_real_random():
     nx_bins = 3
     ny_bins = 3
     d_in = dt.Frame([
-        [None, 0.9, 0.8, 0.2, 0.3, None, 0.3, 0.0, 0.5, 0.5, 0.8, 0.1],
+        [-math.inf, 0.9, 0.8, 0.2, 0.3, math.inf, 0.3, 0.0, 0.5, 0.5, 0.8, 0.1],
         [None, 0.3, 0.5, 0.8, 0.1, None, 0.4, 0.4, 0.8, 0.7, 0.6, 0.1]
     ])
     d_in_copy = dt.Frame(d_in)
@@ -358,7 +381,7 @@ def test_aggregate_2d_continuous_real_random():
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (8, 3)
     assert d_exemplars.ltypes == (ltype.real, ltype.real, ltype.int)
-    assert d_exemplars.to_list() == [[None, 0.3, 0.9, 0.3, 0.8, 0.2, 0.5, 0.8],
+    assert d_exemplars.to_list() == [[-math.inf, 0.3, 0.9, 0.3, 0.8, 0.2, 0.5, 0.8],
                                      [None, 0.1, 0.3, 0.4, 0.5, 0.8, 0.8, 0.6],
                                      [2, 2, 1, 2, 1, 1, 2, 1]]
     assert_equals(d_in, d_in_copy)
@@ -683,18 +706,18 @@ def test_aggregate_view_1d_continuous_integer():
 
 
 def test_aggregate_view_1d_continuous_float():
-    d_in = dt.Frame([0.0, 1.1, None, 2.2, None, 3.1, 3.2, 4.1, 4.0, None, 5.1])
+    d_in = dt.Frame([0.0, 1.1, None, 2.2, None, 3.1, 3.2, 4.1, 4.0, math.inf, 5.1, None, -math.inf])
     d_in_copy = dt.Frame(d_in)
-    d_in_view = d_in[5:11, :]
+    d_in_view = d_in[5:, :]
     [d_exemplars, d_members] = aggregate(d_in_view, min_rows=0, n_bins=5)
 
     frame_integrity_check(d_members)
-    assert d_members.shape == (6, 1)
+    assert d_members.shape == (8, 1)
     assert d_members.ltypes == (ltype.int,)
-    assert d_members.to_list() == [[1, 1, 2, 2, 0, 3]]
+    assert d_members.to_list() == [[1, 1, 2, 2, 0, 3, 0, 0]]
 
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (4, 2)
     assert d_exemplars.ltypes == (ltype.real, ltype.int)
-    assert d_exemplars.to_list() == [[None, 3.1, 4.1, 5.1], [1, 2, 2, 1]]
+    assert d_exemplars.to_list() == [[math.inf, 3.1, 4.1, 5.1], [3, 2, 2, 1]]
     assert_equals(d_in, d_in_copy)
