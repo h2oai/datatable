@@ -248,7 +248,7 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_linker_flag("/DEBUG:FULL")
     else:
         # Common compile flags
-        ext.compiler.add_compiler_flag("-std=c++11")
+        ext.compiler.add_compiler_flag("-std=c++17")
         # "-stdlib=libc++"  (clang ???)
         ext.compiler.add_compiler_flag("-fPIC")
 
