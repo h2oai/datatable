@@ -176,7 +176,7 @@ class VarKwdsIterator {
   public:
     VarKwdsIterator(const PKArgs&, Py_ssize_t i0);
     VarKwdsIterator(const VarKwdsIterator&) = default;
-    VarKwdsIterator& operator=(const VarKwdsIterator&) = default;
+    VarKwdsIterator& operator=(const VarKwdsIterator&) = delete;
 
     VarKwdsIterator& operator++();
     value_type operator*() const;
@@ -213,7 +213,7 @@ class VarArgsIterator {
   public:
     VarArgsIterator(const PKArgs&, size_t i0);
     VarArgsIterator(const VarArgsIterator&) = default;
-    VarArgsIterator& operator=(const VarArgsIterator&) = default;
+    VarArgsIterator& operator=(const VarArgsIterator&) = delete;
 
     VarArgsIterator& operator++();
     value_type operator*() const;
