@@ -83,8 +83,8 @@ DataTable* ojoin::get_datatable() const {
 }
 
 
-bool ojoin::check(PyObject* val) {
-  return pyobj::check(val);
+bool ojoin::check(PyObject* v) {
+  return pyobj::check(v);
 }
 
 

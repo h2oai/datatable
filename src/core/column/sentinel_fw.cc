@@ -48,8 +48,8 @@ SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(size_t nrows)
   stype_ = SType::BOOL;
 }
 
-SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows)
-  : SentinelFw_ColumnImpl<py::robj>(nrows)
+SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows_)
+  : SentinelFw_ColumnImpl<py::robj>(nrows_)
 {
   stype_ = SType::OBJ;
   mbuf_.set_pyobjects(/*clear_data = */ true);
@@ -75,8 +75,8 @@ SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(size_t nrows, Buffer&& mem)
   stype_ = SType::BOOL;
 }
 
-SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows, Buffer&& mem)
-    : SentinelFw_ColumnImpl<py::robj>(nrows, std::move(mem))
+SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows_, Buffer&& mem)
+    : SentinelFw_ColumnImpl<py::robj>(nrows_, std::move(mem))
 {
   stype_ = SType::OBJ;
   mbuf_.set_pyobjects(/*clear_data = */ false);

@@ -665,7 +665,7 @@ class Extension:
 
         self.log.report_errors_and_warnings(errors_and_warnings, has_errors)
         if has_errors:
-            raise SystemExit("Error compiling %s\n" % self.name)
+            raise SystemExit("Error compiling %s" % self.name)
 
 
     def _link_files(self):
@@ -690,4 +690,4 @@ class Extension:
             if msg:
                 self.log.report_errors_and_warnings([msg], errors=fail)
             if fail:
-                raise SystemExit("Error linking `%s`\n" % self.output_file)
+                raise SystemExit("Error linking `%s`" % self.output_file)

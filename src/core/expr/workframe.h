@@ -88,7 +88,7 @@ class Workframe {
   public:
     Workframe(EvalContext&);
     Workframe(Workframe&&) = default;
-    Workframe& operator=(Workframe&&) = delete;
+    Workframe& operator=(Workframe&&) = default;
     Workframe(const Workframe&) = delete;
     Workframe& operator=(const Workframe&) = delete;
 
