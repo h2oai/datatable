@@ -288,10 +288,11 @@ def build_extension(cmd, verbosity=3):
 
         if cmd == "debug":
             ext.compiler.add_compiler_flag("-g3")
-            ext.compiler.add_compiler_flag("-fdebug-macro")
             ext.compiler.add_compiler_flag("-glldb" if macos else "-ggdb")
             ext.compiler.add_compiler_flag("-O0")  # no optimization
             ext.compiler.add_compiler_flag("-DDTTEST", "-DDTDEBUG")
+            if ext.compiler.flavor == "clang":
+                ext.compiler.add_compiler_flag("-fdebug-macro")
 
         # Compiler warnings
         if ext.compiler.is_clang():
