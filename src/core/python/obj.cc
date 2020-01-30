@@ -165,16 +165,16 @@ oobj::~oobj() {
   if (v) Py_DECREF(v);
 }
 
-oobj oobj::wrap(bool val)    { return py::obool(val); }
-oobj oobj::wrap(int8_t val)  { return py::oint(val); }
-oobj oobj::wrap(int16_t val) { return py::oint(val); }
-oobj oobj::wrap(int32_t val) { return py::oint(val); }
-oobj oobj::wrap(int64_t val) { return py::oint(val); }
-oobj oobj::wrap(size_t val)  { return py::oint(val); }
-oobj oobj::wrap(float val)   { return py::ofloat(val); }
-oobj oobj::wrap(double val)  { return py::ofloat(val); }
-oobj oobj::wrap(const CString& val) { return py::ostring(val); }
-oobj oobj::wrap(const robj& val) { return py::oobj(val); }
+oobj oobj::wrap(bool v)    { return py::obool(v); }
+oobj oobj::wrap(int8_t v)  { return py::oint(v); }
+oobj oobj::wrap(int16_t v) { return py::oint(v); }
+oobj oobj::wrap(int32_t v) { return py::oint(v); }
+oobj oobj::wrap(int64_t v) { return py::oint(v); }
+oobj oobj::wrap(size_t v)  { return py::oint(v); }
+oobj oobj::wrap(float v)   { return py::ofloat(v); }
+oobj oobj::wrap(double v)  { return py::ofloat(v); }
+oobj oobj::wrap(const CString& v) { return py::ostring(v); }
+oobj oobj::wrap(const robj& v) { return py::oobj(v); }
 
 
 
