@@ -85,8 +85,8 @@ oupdate::oupdate(const robj& r) : oobj(r) {
 }
 
 
-bool oupdate::check(PyObject* v) {
-  return oupdate::oupdate_pyobject::check(v);
+bool oupdate::check(PyObject* val) {
+  return oupdate::oupdate_pyobject::check(val);
 }
 
 

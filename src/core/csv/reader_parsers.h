@@ -153,7 +153,7 @@ class ParserIterator {
     ParserIterator();
     ParserIterator(PT pt);
     ParserIterator(const ParserIterator&) = default;
-    ParserIterator& operator=(const ParserIterator&) = default;
+    ParserIterator& operator=(const ParserIterator&) = delete;
     ~ParserIterator() {}
     ParserIterator& operator++();
     bool operator==(const ParserIterator&) const;

@@ -139,8 +139,8 @@ osort::osort(const otuple& cols) {
 }
 
 
-bool osort::check(PyObject* v) {
-  return osort::osort_pyobject::check(v);
+bool osort::check(PyObject* val) {
+  return osort::osort_pyobject::check(val);
 }
 
 
