@@ -231,6 +231,7 @@ ansiColor('xterm') {
                                          "DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX}",
                                          "DT_BUILD_NUMBER=${DT_BUILD_NUMBER}"]) {
                                     sh """
+                                        conda info --envs
                                         . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas

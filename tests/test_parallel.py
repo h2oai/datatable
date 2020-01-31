@@ -161,7 +161,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     cmd += "print('%s start', flush = True); " % parallel_type;
 
     if parallel_type:
-        if parallel_type is "ordered":
+        if parallel_type == "ordered":
             niterations //= 10
         cmd += "core.test_progress_%s(%s, %s)" % (
                   parallel_type, niterations, nthreads)
