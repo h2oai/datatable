@@ -688,10 +688,11 @@ def get_python_for_docker(String pyver, String image) {
 
 def test_macos(String pyver, boolean needsLargerTest) {
     try {
+        def pyenv = get_env_for_macos(pyver)
         sh """
             rm -f /tmp/cores/*
             env
-            . /Users/jenkins/anaconda/bin/activate datatable-py${pyver}-with-pandas
+            . /Users/jenkins/anaconda/bin/activate ${pyenv}
             pip install --upgrade pip
             pip install dist/datatable-*-cp${pyver}-*.whl
             pip install -r requirements_tests.txt
@@ -708,6 +709,15 @@ def test_macos(String pyver, boolean needsLargerTest) {
         archiveArtifacts artifacts: "/tmp/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-datatable.xml", keepLongStdio: true, allowEmptyResults: false
+}
+
+
+def get_env_for_macos(String pyver) {
+    if (pyver == "38") return "datatable-py38"
+    if (pyver == "37") return "datatable-py37-with-pandas"
+    if (pyver == "36") return "datatable-py36-with-pandas"
+    if (pyver == "35") return "datatable-py35-with-pandas"
+    throw new Exception("Unknown python ${pyver} for MacOS")
 }
 
 
