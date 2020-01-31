@@ -165,7 +165,7 @@ py::oobj EvalContext::evaluate() {
     case EvalMode::UPDATE: return evaluate_update();
   }
 
-  return nullptr;
+  return nullptr; // Silences compiler warnings, this line is unreachable.
 }
 
 
