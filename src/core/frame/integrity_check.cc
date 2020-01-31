@@ -20,6 +20,7 @@
 #include "utils/misc.h"      // repr_utf8
 #include "datatable.h"
 #include "encodings.h"
+#include <iostream>
 
 
 //------------------------------------------------------------------------------
@@ -198,7 +199,6 @@ void SentinelBool_ColumnImpl::verify_integrity() const {
 //------------------------------------------------------------------------------
 // SentinelStr_ColumnImpl
 //------------------------------------------------------------------------------
-
 template <typename T>
 void SentinelStr_ColumnImpl<T>::verify_integrity() const {
   Sentinel_ColumnImpl::verify_integrity();
@@ -208,14 +208,20 @@ void SentinelStr_ColumnImpl<T>::verify_integrity() const {
   //*_utf8 functions use unsigned char*
   const uint8_t* cdata = static_cast<const uint8_t*>(strbuf_.rptr());
   const T* str_offsets = static_cast<const T*>(offbuf_.rptr()) + 1;
+  size_t mbuf_nrows = offbuf_.size()/sizeof(T) - 1;
+
+  size_t strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
+  if (strbuf_.size() < strdata_size) {
+    throw AssertionError()
+        << "Size of the buffer `" << strbuf_.size() << "` is smaller than "
+        << "the data size calculated from the offsets `" << strdata_size << "`";
+  }
 
   // Check that the offsets section is preceded by a -1
   if (str_offsets[-1] != 0) {
     throw AssertionError()
         << "Offsets section in string column does not start with 0";
   }
-
-  size_t mbuf_nrows = offbuf_.size()/sizeof(T) - 1;
 
   // Check for the validity of each offset
   T lastoff = 0;
