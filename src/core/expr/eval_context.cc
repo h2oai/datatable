@@ -164,6 +164,8 @@ py::oobj EvalContext::evaluate() {
     case EvalMode::DELETE: return evaluate_delete();
     case EvalMode::UPDATE: return evaluate_update();
   }
+
+  return nullptr;
 }
 
 

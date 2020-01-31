@@ -16,7 +16,9 @@
 #include "utils/macros.h"
 #if !DT_OS_WINDOWS
   /* enable nice() function in unistd.h */
-  #define _XOPEN_SOURCE
+  #ifndef _XOPEN_SOURCE
+    #define _XOPEN_SOURCE
+  #endif
   #include <unistd.h>                   // nice
 #endif
 #include <iostream>

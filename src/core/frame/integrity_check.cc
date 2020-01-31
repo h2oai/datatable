@@ -205,7 +205,6 @@ void SentinelStr_ColumnImpl<T>::verify_integrity() const {
   offbuf_.verify_integrity();
   strbuf_.verify_integrity();
 
-  size_t strdata_size = 0;
   //*_utf8 functions use unsigned char*
   const uint8_t* cdata = static_cast<const uint8_t*>(strbuf_.rptr());
   const T* str_offsets = static_cast<const T*>(offbuf_.rptr()) + 1;
@@ -217,7 +216,6 @@ void SentinelStr_ColumnImpl<T>::verify_integrity() const {
   }
 
   size_t mbuf_nrows = offbuf_.size()/sizeof(T) - 1;
-  strdata_size = str_offsets[mbuf_nrows - 1] & ~GETNA<T>();
 
   // Check for the validity of each offset
   T lastoff = 0;
