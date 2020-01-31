@@ -164,6 +164,9 @@ py::oobj EvalContext::evaluate() {
     case EvalMode::DELETE: return evaluate_delete();
     case EvalMode::UPDATE: return evaluate_update();
   }
+
+  // This line is unreachable and just silences compiler warnings
+  return nullptr;
 }
 
 

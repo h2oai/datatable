@@ -53,16 +53,6 @@ Terminal& Terminal::plain_terminal() {
 }
 
 Terminal::Terminal(bool is_plain) {
-  size_.width = is_plain? (1 << 20) : 0;
-  size_.height = is_plain? 45 : 0;
-  allow_unicode_ = true;
-  enable_colors_ = !is_plain;
-  enable_ecma48_ = !is_plain;
-  enable_keyboard_ = false;
-  is_jupyter_ = false;
-  is_ipython_ = false;
-  if (!enable_ecma48_) xassert(!enable_colors_);
-
   // Note: there is no simple way to catch the terminal re-size event
   // on Windows, because there is no `SIGWINCH` signal there.
   // For such a reason, on Windows we just re-check the terminal size
@@ -72,6 +62,16 @@ Terminal::Terminal(bool is_plain) {
       std::signal(SIGWINCH, sigwinch_handler);
     }
   #endif
+
+  size_.width = is_plain? (1 << 20) : 0;
+  size_.height = is_plain? 45 : 0;
+  allow_unicode_ = true;
+  enable_colors_ = !is_plain;
+  enable_ecma48_ = !is_plain;
+  enable_keyboard_ = false;
+  is_jupyter_ = false;
+  is_ipython_ = false;
+  if (!enable_ecma48_) xassert(!enable_colors_);
 }
 
 Terminal::~Terminal() = default;
