@@ -128,8 +128,6 @@ class ArrayRowIndexImpl : public RowIndexImpl {
   public:
     ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
     ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
-    ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
-                      const arr64_t& steps);
     ArrayRowIndexImpl(const Column&);
 
     const int32_t* indices32() const noexcept;

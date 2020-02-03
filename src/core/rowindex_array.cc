@@ -66,68 +66,6 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted) {
 }
 
 
-// Construct from a list of slices
-ArrayRowIndexImpl::ArrayRowIndexImpl(
-    const arr64_t& starts, const arr64_t& counts, const arr64_t& steps)
-{
-  size_t n = starts.size();
-  xassert(n == counts.size() && n == steps.size());
-  ascending = true;
-
-  // Compute the total number of elements, and the largest index that needs
-  // to be stored. Also check for potential overflows / invalid values.
-  length = 0;
-  max = 0;
-  for (size_t i = 0; i < n; ++i) {
-    size_t start = static_cast<size_t>(starts[i]);
-    size_t step  = static_cast<size_t>(steps[i]);
-    size_t len   = static_cast<size_t>(counts[i]);
-    SliceRowIndexImpl tmp(start, len, step);  // check triple's validity
-    if (tmp.ascending && start >= max) {
-      xassert(tmp.max >= max);
-      max = tmp.max;
-    } else {
-      ascending = false;
-    }
-    length += len;
-  }
-  if (length == 0) {
-    max_valid = false;
-  }
-
-  if (length <= INT32_MAX && max <= INT32_MAX) {
-    type = RowIndexType::ARR32;
-    _resize_data();
-    auto rowsptr = static_cast<int32_t*>(buf_.xptr());
-    for (size_t i = 0; i < n; ++i) {
-      int32_t j = static_cast<int32_t>(starts[i]);
-      int32_t icount = static_cast<int32_t>(counts[i]);
-      int32_t istep = static_cast<int32_t>(steps[i]);
-      for (int32_t k = 0; k < icount; ++k) {
-        *rowsptr++ = j;
-        j += istep;
-      }
-    }
-    xassert(rowsptr == static_cast<const int32_t*>(buf_.rptr()) + length);
-  } else {
-    type = RowIndexType::ARR64;
-    _resize_data();
-    auto rowsptr = static_cast<int64_t*>(buf_.xptr());
-    for (size_t i = 0; i < n; ++i) {
-      int64_t j = starts[i];
-      int64_t icount = counts[i];
-      int64_t istep = steps[i];
-      for (int64_t k = 0; k < icount; ++k) {
-        *rowsptr++ = j;
-        j += istep;
-      }
-    }
-    xassert(rowsptr == static_cast<const int64_t*>(buf_.rptr()) + length);
-  }
-  test(this);
-}
-
-
 ArrayRowIndexImpl::ArrayRowIndexImpl(const Column& col) {
   ascending = false;
   switch (col.stype()) {

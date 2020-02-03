@@ -144,44 +144,53 @@ RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
     if (tstart + tcount == nrows) {
       return new SliceRowIndexImpl(0, newcount, 1);
     }
-    arr64_t starts(2);
-    arr64_t counts(2);
-    arr64_t steps(2);
-    starts[0] = 0;
-    counts[0] = static_cast<int64_t>(tstart);
-    steps[0] = 1;
-    starts[1] = static_cast<int64_t>(tstart + tcount);
-    counts[1] = static_cast<int64_t>(nrows - (tstart + tcount));
-    steps[1] = 1;
-    return new ArrayRowIndexImpl(starts, counts, steps);
   }
-  size_t j = 0;
   if (nrows <= INT32_MAX) {
+    size_t j = 0;
     arr32_t indices(newcount);
-    size_t next_row_to_skip = tstart;
-    size_t tend = tstart + tcount * tstep;
-    for (size_t i = 0; i < nrows; ++i) {
-      if (i == next_row_to_skip) {
-        next_row_to_skip += tstep;
-        if (next_row_to_skip == tend) next_row_to_skip = nrows;
-        continue;
-      } else {
+    if (tstep == 1) {
+      for (size_t i = 0; i < tstart; ++i) {
         indices[j++] = static_cast<int32_t>(i);
+      }
+      for (size_t i = tstart + tcount; i < nrows; ++i) {
+        indices[j++] = static_cast<int32_t>(i);
+      }
+    } else {
+      size_t next_row_to_skip = tstart;
+      size_t tend = tstart + tcount * tstep;
+      for (size_t i = 0; i < nrows; ++i) {
+        if (i == next_row_to_skip) {
+          next_row_to_skip += tstep;
+          if (next_row_to_skip == tend) next_row_to_skip = nrows;
+          continue;
+        } else {
+          indices[j++] = static_cast<int32_t>(i);
+        }
       }
     }
     xassert(j == newcount);
     return new ArrayRowIndexImpl(std::move(indices), true);
   } else {
+    size_t j = 0;
     arr64_t indices(newcount);
-    size_t next_row_to_skip = tstart;
-    size_t tend = tstart + tcount * tstep;
-    for (size_t i = 0; i < nrows; ++i) {
-      if (i == next_row_to_skip) {
-        next_row_to_skip += tstep;
-        if (next_row_to_skip == tend) next_row_to_skip = nrows;
-        continue;
-      } else {
+    if (tstep == 1) {
+      for (size_t i = 0; i < tstart; ++i) {
         indices[j++] = static_cast<int64_t>(i);
+      }
+      for (size_t i = tstart + tcount; i < nrows; ++i) {
+        indices[j++] = static_cast<int64_t>(i);
+      }
+    } else {
+      size_t next_row_to_skip = tstart;
+      size_t tend = tstart + tcount * tstep;
+      for (size_t i = 0; i < nrows; ++i) {
+        if (i == next_row_to_skip) {
+          next_row_to_skip += tstep;
+          if (next_row_to_skip == tend) next_row_to_skip = nrows;
+          continue;
+        } else {
+          indices[j++] = static_cast<int64_t>(i);
+        }
       }
     }
     xassert(j == newcount);
