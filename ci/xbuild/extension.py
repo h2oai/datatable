@@ -133,7 +133,8 @@ class Extension:
 
         # The time of the previous invocation of xbuilder. This is
         # detected via the last modification time of .xbuild file.
-        # This time is used to detect which If set to 0, then
+        # This time is used to detect which files need to be
+        # recompiled?
         self._t0 = 0                # int
 
 

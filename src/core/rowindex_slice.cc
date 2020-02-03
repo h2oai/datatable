@@ -44,14 +44,6 @@ bool check_slice_triple(size_t start, size_t count, size_t step, size_t max)
                                 : step >= -start/(count - 1)));
 }
 
-static void _check_triple(size_t start, size_t count, size_t step)
-{
-  if (!check_slice_triple(start, count, step, RowIndex::MAX)) {
-    throw ValueError() << "Invalid RowIndex slice [" << start << "/"
-                       << count << "/" << step << "]";
-  }
-}
-
 
 
 //------------------------------------------------------------------------------
@@ -59,7 +51,7 @@ static void _check_triple(size_t start, size_t count, size_t step)
 //------------------------------------------------------------------------------
 
 SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
-  _check_triple(i0, n, di);
+  xassert(check_slice_triple(i0, n, di, RowIndex::MAX));
   type   = RowIndexType::SLICE;
   ascending = (di <= RowIndex::MAX);
   start  = i0;
@@ -209,33 +201,15 @@ size_t SliceRowIndexImpl::memory_footprint() const noexcept {
 void SliceRowIndexImpl::verify_integrity() const {
   RowIndexImpl::verify_integrity();
 
-  if (type != RowIndexType::SLICE) {
-    throw AssertionError() << "Invalid type = " << static_cast<int>(type)
-        << " in a SliceRowIndex";
-  }
-
-  try {
-    _check_triple(start, length, step);
-  } catch (const Error&) {
-    int64_t istep = static_cast<int64_t>(step);
-    throw AssertionError()
-        << "Invalid slice rowindex: " << start << "/" << length << "/" << istep;
-  }
+  XAssert(type == RowIndexType::SLICE);
+  XAssert(check_slice_triple(start, length, step, RowIndex::MAX));
 
   if (length > 0) {
     size_t minrow = start;
     size_t maxrow = start + step * (length - 1);
     if (!ascending) std::swap(minrow, maxrow);
-    if (max != maxrow) {
-      int64_t istep = static_cast<int64_t>(step);
-      throw AssertionError()
-          << "Invalid max value in a Slice RowIndex " << start << "/"
-          << length << "/" << istep << ": max = " << max;
-    }
-    if (ascending != (step <= RowIndex::MAX)) {
-      throw AssertionError()
-          << "Incorrect 'ascending' flag in Slice RowIndex";
-    }
+    XAssert(max == maxrow);
+    XAssert(ascending == (step <= RowIndex::MAX));
   }
 }
 

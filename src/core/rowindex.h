@@ -33,6 +33,8 @@ enum class RowIndexType : uint8_t {
   ARR32 = 1,
   ARR64 = 2,
   SLICE = 3,
+  BUF32 = 4,
+  BUF64 = 5,
 };
 
 
@@ -183,7 +185,8 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
       }
       break;
     }
-    case RowIndexType::ARR32: {
+    case RowIndexType::ARR32:
+    case RowIndexType::BUF32: {
       const int32_t* ridata = indices32();
       for (size_t i = i0; i < i1; i += di) {
         int32_t x = ridata[i];
@@ -191,7 +194,8 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
       }
       break;
     }
-    case RowIndexType::ARR64: {
+    case RowIndexType::ARR64:
+    case RowIndexType::BUF64: {
       const int64_t* ridata = indices64();
       for (size_t i = i0; i < i1; i += di) {
         int64_t x = ridata[i];
