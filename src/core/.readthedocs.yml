@@ -11,8 +11,7 @@ sphinx:
   configuration: docs/conf.py
 
 # Optionally build your docs in additional formats such as PDF and ePub
-formats:
-  - htmlzip
+formats: []
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
