@@ -134,9 +134,9 @@
 #include "parallel/api.h"
 #include "python/args.h"
 #include "utils/alloc.h"
-#include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
+#include "buffer.h"
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -431,7 +431,7 @@ class SortContext {
     omem container_xx;
     omem container_o;
     omem container_oo;
-    dt::array<size_t> arr_hist;
+    Buffer hist_buffer;
     GroupGatherer gg;
 
     rmem x;
@@ -548,8 +548,8 @@ class SortContext {
     allocate_xx();
     allocate_oo();
 
-    dt::array<radix_range> rrmap(nradixes);
-    radix_range* rrmap_ptr = rrmap.data();
+    auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
+    radix_range* rrmap_ptr = rrmap.get();
     _fill_rrmap_from_groups(rrmap_ptr);
 
     if (make_groups) {
@@ -885,10 +885,12 @@ class SortContext {
    * will contain cumulative counts of values in `x`).
    */
   void build_histogram() {
-    size_t counts_size = nchunks * nradixes;
-    arr_hist.ensuresize(counts_size);
-    histogram = arr_hist.data();
-    std::memset(histogram, 0, counts_size * sizeof(size_t));
+    size_t counts_size = nchunks * nradixes * sizeof(size_t);
+    if (hist_buffer.size() < counts_size) {
+      hist_buffer.resize(counts_size);
+    }
+    histogram = static_cast<size_t*>(hist_buffer.xptr());
+    std::memset(histogram, 0, counts_size);
     switch (elemsize) {
       case 1: _histogram_gather<uint8_t>();  break;
       case 2: _histogram_gather<uint16_t>(); break;
@@ -1072,8 +1074,8 @@ class SortContext {
       // sort them recursively.
       uint8_t _nsigbits = nsigbits;
       nsigbits = is_string? 8 : shift;
-      dt::array<radix_range> rrmap(nradixes);
-      radix_range* rrmap_ptr = rrmap.data();
+      auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
+      radix_range* rrmap_ptr = rrmap.get();
       _fill_rrmap_from_histogram(rrmap_ptr);
       _radix_recurse<make_groups>(rrmap_ptr);
       nsigbits = _nsigbits;

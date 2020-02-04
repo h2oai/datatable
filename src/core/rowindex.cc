@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>     // std::memcpy
-#include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "parallel/api.h"     // dt::parallel_for_static

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,7 +22,7 @@
 #ifndef dt_ROWINDEX_h
 #define dt_ROWINDEX_h
 #include <cstdint>
-#include "utils/array.h"
+#include "buffer.h"
 
 class Column;
 class RowIndexImpl;

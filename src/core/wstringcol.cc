@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ void writable_string_col::buffer::write_na() {
 template <typename T>
 writable_string_col::buffer_impl<T>::buffer_impl(writable_string_col& s)
   : col(s),
-    strbuf(1024),
+    strbuf(Buffer::mem(1024ul)),
     strbuf_used(0),
     strbuf_write_pos(0),
     offptr(nullptr),
@@ -107,11 +107,17 @@ writable_string_col::buffer_impl<T>::buffer_impl(writable_string_col& s)
 
 
 template <typename T>
+char* writable_string_col::buffer_impl<T>::strbuf_ptr() const {
+  return static_cast<char*>(strbuf.xptr());
+}
+
+
+template <typename T>
 void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
   if (ch) {
     if (sizeof(T) == 4) xassert(len <= Column::MAX_ARR32_SIZE);
     strbuf.ensuresize(strbuf_used + len);
-    std::memcpy(strbuf.data() + strbuf_used, ch, len);
+    std::memcpy(strbuf_ptr() + strbuf_used, ch, len);
     strbuf_used += len;
     *offptr++ = static_cast<T>(strbuf_used);
   } else {
@@ -123,14 +129,14 @@ void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
 
 template <typename T>
 void writable_string_col::buffer_impl<T>::order() {
-  strbuf_write_pos = col.strdata.prep_write(strbuf_used, strbuf.data());
+  strbuf_write_pos = col.strdata.prep_write(strbuf_used, strbuf_ptr());
 }
 
 
 template <typename T>
 void writable_string_col::buffer_impl<T>::commit_and_start_new_chunk(size_t i0)
 {
-  col.strdata.write_at(strbuf_write_pos, strbuf_used, strbuf.data());
+  col.strdata.write_at(strbuf_write_pos, strbuf_used, strbuf_ptr());
   for (T* p = offptr0; p < offptr; ++p) {
     *p += strbuf_write_pos;
   }
@@ -143,13 +149,13 @@ void writable_string_col::buffer_impl<T>::commit_and_start_new_chunk(size_t i0)
 template <typename T>
 char* writable_string_col::buffer_impl<T>::prepare_raw_write(size_t nbytes) {
   strbuf.ensuresize(strbuf_used + nbytes);
-  return strbuf.data() + strbuf_used;
+  return strbuf_ptr() + strbuf_used;
 }
 
 
 template <typename T>
 void writable_string_col::buffer_impl<T>::commit_raw_write(char* ptr) {
-  strbuf_used = static_cast<size_t>(ptr - strbuf.data());
+  strbuf_used = static_cast<size_t>(ptr - strbuf_ptr());
   *offptr++ = static_cast<T>(strbuf_used);
 }
 
