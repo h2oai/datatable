@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -476,8 +476,8 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
 
     // Then we go through the list of new labels and relate existing models
     // to the incoming label indicators.
-    arr64_t new_label_indices(nlabels_in);
-    int64_t* data = new_label_indices.data();
+    Buffer new_label_indices = Buffer::mem(nlabels_in * sizeof(int64_t));
+    int64_t* data = static_cast<int64_t*>(new_label_indices.xptr());
     size_t n_new_labels = 0;
     for (size_t i = 0; i < nlabels_in; ++i) {
       size_t rii;
@@ -503,8 +503,9 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
       }
 
       // Extract new labels from `dt_labels_in`, and rbind them to `dt_labels`.
-      new_label_indices.resize(n_new_labels);
-      RowIndex ri_labels(std::move(new_label_indices));
+      new_label_indices.resize(n_new_labels * sizeof(int64_t),
+                               true);  // keep data
+      RowIndex ri_labels(std::move(new_label_indices), RowIndex::ARR64);
       dt_labels_in->apply_rowindex(ri_labels);
 
       // Set new ids for the incoming labels, so that they can be rbinded

@@ -21,11 +21,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                                                                                        //
-// DISCLAIMER: Code in this pipeline is currently "unwinded" for better readability of non-Jenkins users. //
-//                                                                                                        //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
 @Library('test-shared-library@1.17') _
 
 import ai.h2o.ci.Utils
@@ -33,10 +28,6 @@ import ai.h2o.ci.buildsummary.StagesSummary
 import ai.h2o.ci.buildsummary.DetailsSummary
 import ai.h2o.ci.BuildResult
 import static org.jenkinsci.plugins.pipeline.modeldefinition.Utils.markStageWithTag
-
-def utilsLib = new Utils()
-
-BuildResult result = BuildResult.FAILURE
 
 // initialize build summary
 buildSummary('https://github.com/h2oai/datatable', true)
@@ -46,9 +37,9 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 ///////////////
 // CONSTANTS //
 ///////////////
-NODE_LINUX = "docker && linux && !micro"
-NODE_MACOS = 'osx'
-NODE_PPC = 'ibm-power'
+NODE_LINUX   = "docker && linux && !micro"
+NODE_MACOS   = 'osx'
+NODE_PPC     = 'ibm-power'
 NODE_RELEASE = 'master'
 
 
@@ -77,9 +68,10 @@ needsLargerTest = false
 versionText = "unknown"
 
 isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
-doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS_IN_PR) && !params.DISABLE_ALL_TESTS
+doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS) && !params.DISABLE_ALL_TESTS
 doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
 doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
+doPy38Tests = doExtraTests
 doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
 
 DT_RELEASE = ""
@@ -91,11 +83,11 @@ DT_BUILD_NUMBER = ""
 //////////////
 properties([
     parameters([
-        booleanParam(name: 'FORCE_BUILD_PPC64LE',   defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
+        booleanParam(name: 'FORCE_ALL_TESTS',       defaultValue: false, description: '[BUILD] Run all tests (even for PR).'),
         booleanParam(name: 'DISABLE_ALL_TESTS',     defaultValue: false, description: '[BUILD] Disable all tests.'),
         booleanParam(name: 'DISABLE_PPC64LE_TESTS', defaultValue: false, description: '[BUILD] Disable PPC64LE tests.'),
+        booleanParam(name: 'FORCE_BUILD_PPC64LE',   defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
         booleanParam(name: 'DISABLE_COVERAGE',      defaultValue: false, description: '[BUILD] Disable coverage.'),
-        booleanParam(name: 'FORCE_ALL_TESTS_IN_PR', defaultValue: false, description: '[BUILD] Trigger all tests even for PR.'),
         booleanParam(name: 'FORCE_S3_PUSH',         defaultValue: false, description: '[BUILD] Publish to S3 regardless of current branch.')
     ]),
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
@@ -126,8 +118,9 @@ ansiColor('xterm') {
                             echo 'scm.CHANGE_BRANCH = ${scmEnv.CHANGE_BRANCH}'
                             echo 'scm.CHANGE_SOURCE = ${scmEnv.CHANGE_SOURCE}'
                             echo 'isPrJob      = ${isPrJob}'
-                            echo 'doExtraTests = ${doExtraTests}'
                             echo 'doPpcBuild   = ${doPpcBuild}'
+                            echo 'doExtraTests = ${doExtraTests}'
+                            echo 'doPy38Tests  = ${doPy38Tests}'
                             echo 'doPpcTests   = ${doPpcTests}'
                             echo 'doCoverage   = ${doCoverage}'
                         """
@@ -244,6 +237,8 @@ ansiColor('xterm') {
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py35-with-pandas
                                         python ci/ext.py wheel
+                                        . /Users/jenkins/anaconda/bin/activate datatable-py38
+                                        python ci/ext.py wheel
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
@@ -351,6 +346,21 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
+                    namedStage('Test x86_64-manylinux-py38', doPy38Tests, { stageName, stageDir ->
+                        node(NODE_LINUX) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-manylinux-wheels'
+                                    test_in_docker("x86_64-manylinux-py38", "38",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
+                                                   needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test ppc64le-manylinux-py37', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -392,6 +402,34 @@ ansiColor('xterm') {
                                     test_in_docker("ppc64le-manylinux-py35", "35",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
                                                    needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test ppc64le-manylinux-py38', doPpcTests && doPy38Tests, { stageName, stageDir ->
+                        node(NODE_PPC) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le-manylinux-wheels'
+                                    test_in_docker("ppc64le-manylinux-py38", "38",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
+                                                   needsLargerTest)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test x86_64-macos-py38', doPy38Tests, { stageName, stageDir ->
+                        node(NODE_MACOS) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-macos-wheels'
+                                    test_macos('38', needsLargerTest)
                                 }
                             }
                         }
@@ -649,10 +687,11 @@ def get_python_for_docker(String pyver, String image) {
 
 def test_macos(String pyver, boolean needsLargerTest) {
     try {
+        def pyenv = get_env_for_macos(pyver)
         sh """
             rm -f /tmp/cores/*
             env
-            . /Users/jenkins/anaconda/bin/activate datatable-py${pyver}-with-pandas
+            . /Users/jenkins/anaconda/bin/activate ${pyenv}
             pip install --upgrade pip
             pip install dist/datatable-*-cp${pyver}-*.whl
             pip install -r requirements_tests.txt
@@ -669,6 +708,15 @@ def test_macos(String pyver, boolean needsLargerTest) {
         archiveArtifacts artifacts: "/tmp/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-datatable.xml", keepLongStdio: true, allowEmptyResults: false
+}
+
+
+def get_env_for_macos(String pyver) {
+    if (pyver == "38") return "datatable-py38"
+    if (pyver == "37") return "datatable-py37-with-pandas"
+    if (pyver == "36") return "datatable-py36-with-pandas"
+    if (pyver == "35") return "datatable-py35-with-pandas"
+    throw new Exception("Unknown python ${pyver} for MacOS")
 }
 
 

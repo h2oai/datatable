@@ -235,6 +235,7 @@ class Buffer
     //
     Buffer& set_pyobjects(bool clear_data);
     Buffer& resize(size_t newsize, bool keep_data = true);
+    void ensuresize(size_t newsize);
     void to_memory();
 
     // Utility functions

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -449,7 +449,8 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   if (offsets[ngroups] == 0) ngroups = 0;
 
   size_t n_exemplars = ngroups - was_sampled;
-  arr32_t exemplar_indices(n_exemplars);
+  Buffer exemplars_buf = Buffer::mem(n_exemplars * sizeof(int32_t));
+  auto exemplar_indices = static_cast<int32_t*>(exemplars_buf.xptr());
 
   // Setting up a table for counts
   auto dt_counts = dtptr(new DataTable(
@@ -496,7 +497,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
   dt_members->get_column(0).reset_stats();
 
   // Applying exemplars row index and binding exemplars with the counts.
-  RowIndex ri_exemplars = RowIndex(std::move(exemplar_indices));
+  RowIndex ri_exemplars = RowIndex(std::move(exemplars_buf), RowIndex::ARR32);
   dt_exemplars->apply_rowindex(ri_exemplars);
   std::vector<DataTable*> dts = { dt_counts.get() };
   dt_exemplars->cbind(dts);

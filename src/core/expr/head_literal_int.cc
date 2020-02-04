@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -133,15 +133,16 @@ RowIndex Head_Literal_Int::evaluate_i(const vecExpr&, EvalContext& ctx) const {
 RiGb Head_Literal_Int::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
   const int32_t ivalue = static_cast<int32_t>(value);
   if (ivalue != value) {
-    return RiGb{ RowIndex(arr32_t(0)), Groupby::zero_groups() };
+    return RiGb{ RowIndex(Buffer(), RowIndex::ARR32),
+                 Groupby::zero_groups() };
   }
 
   const Groupby& inp_groupby = ctx.get_groupby();
   const int32_t* inp_group_offsets = inp_groupby.offsets_r();
   size_t ngroups = inp_groupby.size();
 
-  arr32_t out_ri_array(ngroups);
-  int32_t* out_rowindices = out_ri_array.data();
+  Buffer out_ri_buffer = Buffer::mem(ngroups * sizeof(int32_t));
+  int32_t* out_rowindices = static_cast<int32_t*>(out_ri_buffer.xptr());
 
   int32_t k = 0;  // index for output groups
   if (ivalue >= 0) {
@@ -171,8 +172,9 @@ RiGb Head_Literal_Int::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
     out_group_offsets[i] = i;
   }
 
-  out_ri_array.resize(zk);
-  return RiGb{ RowIndex(std::move(out_ri_array), /* sorted= */ true),
+  out_ri_buffer.resize(zk * sizeof(int32_t));
+  return RiGb{ RowIndex(std::move(out_ri_buffer),
+                        RowIndex::ARR32|RowIndex::SORTED),
                Groupby(zk, std::move(out_groups)) };
 }
 

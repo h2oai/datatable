@@ -57,6 +57,7 @@ class Groupby {
     size_t size() const noexcept;
     size_t last_offset() const noexcept;
     const int32_t* offsets_r() const;
+    Buffer offsets_buffer() const;
     void get_group(size_t i, size_t* i0, size_t* i1) const;
 
     // Return a RowIndex which can be used to perform "ungrouping" operation.

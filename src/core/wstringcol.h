@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,9 @@
 #ifndef dt_WSTRINGCOL_h
 #define dt_WSTRINGCOL_h
 #include <memory>           // std::unique_ptr
-#include "buffer.h"       // Buffer
+#include "buffer.h"         // Buffer
 #include "column.h"
 #include "types.h"          // CString
-#include "utils/array.h"    // dt::array
 #include "writebuf.h"       // WritableBuffer
 
 template <typename T> class SentinelStr_ColumnImpl;
@@ -70,7 +69,7 @@ class writable_string_col {
     class buffer_impl : public buffer {
       private:
         writable_string_col& col;
-        dt::array<char> strbuf;
+        Buffer strbuf;
         size_t strbuf_used;
         size_t strbuf_write_pos;
         T* offptr;
@@ -85,6 +84,9 @@ class writable_string_col {
 
         void order() override;
         void commit_and_start_new_chunk(size_t i0) override;
+
+      private:
+        char* strbuf_ptr() const;
     };
 
     std::unique_ptr<buffer> make_buffer();

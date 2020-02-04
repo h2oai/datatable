@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -45,85 +45,15 @@
 // ArrayRowIndexImpl implementation
 //------------------------------------------------------------------------------
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted) {
-  xassert(array.size() <= Column::MAX_ARR32_SIZE);
-  type = RowIndexType::ARR32;
-  ascending = sorted;
-  length = array.size();
-  buf_ = array.to_memoryrange();
+ArrayRowIndexImpl::ArrayRowIndexImpl(Buffer&& buffer, int flags) {
+  bool arr32 = flags & RowIndex::ARR32;
+  bool arr64 = flags & RowIndex::ARR64;
+  xassert(arr32 == !arr64);
+  type = arr32? RowIndexType::ARR32 : RowIndexType::ARR64;
+  ascending = bool(flags & RowIndex::SORTED);
+  length = buffer.size() / (arr64? 8 : 4);
+  buf_ = std::move(buffer);
   set_min_max();
-  test(this);
-}
-
-
-ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted) {
-  type = RowIndexType::ARR64;
-  ascending = sorted;
-  length = array.size();
-  buf_ = array.to_memoryrange();
-  set_min_max();
-  test(this);
-}
-
-
-// Construct from a list of slices
-ArrayRowIndexImpl::ArrayRowIndexImpl(
-    const arr64_t& starts, const arr64_t& counts, const arr64_t& steps)
-{
-  size_t n = starts.size();
-  xassert(n == counts.size() && n == steps.size());
-  ascending = true;
-
-  // Compute the total number of elements, and the largest index that needs
-  // to be stored. Also check for potential overflows / invalid values.
-  length = 0;
-  max = 0;
-  for (size_t i = 0; i < n; ++i) {
-    size_t start = static_cast<size_t>(starts[i]);
-    size_t step  = static_cast<size_t>(steps[i]);
-    size_t len   = static_cast<size_t>(counts[i]);
-    SliceRowIndexImpl tmp(start, len, step);  // check triple's validity
-    if (tmp.ascending && start >= max) {
-      xassert(tmp.max >= max);
-      max = tmp.max;
-    } else {
-      ascending = false;
-    }
-    length += len;
-  }
-  if (length == 0) {
-    max_valid = false;
-  }
-
-  if (length <= INT32_MAX && max <= INT32_MAX) {
-    type = RowIndexType::ARR32;
-    _resize_data();
-    auto rowsptr = static_cast<int32_t*>(buf_.xptr());
-    for (size_t i = 0; i < n; ++i) {
-      int32_t j = static_cast<int32_t>(starts[i]);
-      int32_t icount = static_cast<int32_t>(counts[i]);
-      int32_t istep = static_cast<int32_t>(steps[i]);
-      for (int32_t k = 0; k < icount; ++k) {
-        *rowsptr++ = j;
-        j += istep;
-      }
-    }
-    xassert(rowsptr == static_cast<const int32_t*>(buf_.rptr()) + length);
-  } else {
-    type = RowIndexType::ARR64;
-    _resize_data();
-    auto rowsptr = static_cast<int64_t*>(buf_.xptr());
-    for (size_t i = 0; i < n; ++i) {
-      int64_t j = starts[i];
-      int64_t icount = counts[i];
-      int64_t istep = steps[i];
-      for (int64_t k = 0; k < icount; ++k) {
-        *rowsptr++ = j;
-        j += istep;
-      }
-    }
-    xassert(rowsptr == static_cast<const int64_t*>(buf_.rptr()) + length);
-  }
   test(this);
 }
 
@@ -300,7 +230,8 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
   if (uptype == RowIndexType::SLICE) {
     size_t start = slice_rowindex_get_start(rii);
     size_t step  = slice_rowindex_get_step(rii);
-    arr64_t rowsres(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int64_t));
+    auto rowsres = static_cast<int64_t*>(outbuf.xptr());
     if (type == RowIndexType::ARR32) {
       auto ind32 = indices32();
       for (size_t i = 0; i < length; ++i) {
@@ -314,26 +245,30 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
         rowsres[i] = static_cast<int64_t>(j);
       }
     }
-    bool res_sorted = ascending && slice_rowindex_increasing(rii);
-    auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
+    int flags = RowIndex::ARR64;
+    if (ascending && slice_rowindex_increasing(rii)) flags |= RowIndex::SORTED;
+    auto res = new ArrayRowIndexImpl(std::move(outbuf), flags);
     res->compactify();
     return res;
   }
   xassert(max_valid? max < rii->length : true);
   if (uptype == RowIndexType::ARR32 && type == RowIndexType::ARR32) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    arr32_t rowsres(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int32_t));
+    auto rowsres = static_cast<int32_t*>(outbuf.xptr());
     auto rows_ab = arii->indices32();
     auto rows_bc = indices32();
     for (size_t i = 0; i < length; ++i) {
       rowsres[i] = rows_ab[rows_bc[i]];
     }
-    bool res_sorted = ascending && arii->ascending;
-    return new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
+    int flags = RowIndex::ARR32;
+    if (ascending && arii->ascending) flags |= RowIndex::SORTED;
+    return new ArrayRowIndexImpl(std::move(outbuf), flags);
   }
   if (uptype == RowIndexType::ARR32 || uptype == RowIndexType::ARR64) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    arr64_t rowsres(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int64_t));
+    auto rowsres = static_cast<int64_t*>(outbuf.xptr());
     if (uptype == RowIndexType::ARR32 && type == RowIndexType::ARR64) {
       auto rows_ab = arii->indices32();
       auto rows_bc = indices64();
@@ -355,8 +290,9 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
         rowsres[i] = rows_ab[rows_bc[i]];
       }
     }
-    bool res_sorted = ascending && arii->ascending;
-    auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
+    int flags = RowIndex::ARR64;
+    if (ascending && arii->ascending) flags |= RowIndex::SORTED;
+    auto res = new ArrayRowIndexImpl(std::move(outbuf), flags);
     res->compactify();
     return res;
   }
@@ -390,7 +326,8 @@ RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
   auto inputs = static_cast<const TI*>(buf_.rptr());
   size_t newsize = nrows - length;
   size_t inpsize = length;
-  dt::array<TO> outputs(newsize);
+  Buffer outbuf = Buffer::mem(newsize * sizeof(TO));
+  auto outputs = static_cast<TO*>(outbuf.xptr());
   TO orows = static_cast<TO>(nrows);
 
   TO next_index_to_skip = static_cast<TO>(inputs[0]);
@@ -408,7 +345,9 @@ RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
     }
   }
 
-  return new ArrayRowIndexImpl(std::move(outputs), true);
+  int flags = RowIndex::SORTED;
+  flags |= (sizeof(TO) == sizeof(int32_t))? RowIndex::ARR32 : RowIndex::ARR64;
+  return new ArrayRowIndexImpl(std::move(outbuf), flags);
 }
 
 

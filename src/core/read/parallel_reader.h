@@ -10,6 +10,7 @@
 #include <memory>                    // std::unique_ptr
 #include "read/chunk_coordinates.h"  // ChunkCoordinates
 #include "read/thread_context.h"     // ThreadContext
+#include "parallel/shared_mutex.h"   // shared_mutex
 
 class GenericReader;
 

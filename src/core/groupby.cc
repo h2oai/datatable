@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -81,6 +81,11 @@ const int32_t* Groupby::offsets_r() const {
 }
 
 
+Buffer Groupby::offsets_buffer() const {
+  return Buffer(offsets_);
+}
+
+
 size_t Groupby::last_offset() const noexcept {
   const int32_t* offs = offsets_r();
   return offs? static_cast<size_t>(offs[ngroups_]) : 0;
@@ -98,13 +103,13 @@ RowIndex Groupby::ungroup_rowindex() {
   const int32_t* offs = offsets_r();
   if (!offs) return RowIndex();
   int32_t nrows = offs[ngroups_];
-  arr32_t indices(static_cast<size_t>(nrows));
-  int32_t* data = indices.data();
+  Buffer indices = Buffer::mem(static_cast<size_t>(nrows) * sizeof(int32_t));
+  int32_t* data = static_cast<int32_t*>(indices.xptr());
   int32_t j = 0;
   for (size_t i = 0; i < ngroups_; ++i) {
     int32_t upto = offs[i + 1];
     int32_t ii = static_cast<int32_t>(i);
     while (j < upto) data[j++] = ii;
   }
-  return RowIndex(std::move(indices), /* sorted = */ true);
+  return RowIndex(std::move(indices), RowIndex::ARR32|RowIndex::SORTED);
 }

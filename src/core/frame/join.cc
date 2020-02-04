@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -408,9 +408,9 @@ RowIndex natural_join(const DataTable& xdt, const DataTable& jdt) {
     jcols.push_back(i);
   }
 
-  arr32_t arr_result_indices(xdt.nrows());
+  Buffer result_buf = Buffer::mem(xdt.nrows() * sizeof(int32_t));
   if (xdt.nrows()) {
-    int32_t* result_indices = arr_result_indices.data();
+    auto result_indices = static_cast<int32_t*>(result_buf.xptr());
     size_t nchunks = std::min(std::max(xdt.nrows() / 200, size_t(1)),
                               dt::num_threads_in_pool());
     xassert(nchunks);
@@ -441,7 +441,7 @@ RowIndex natural_join(const DataTable& xdt, const DataTable& jdt) {
     }
   }
 
-  return RowIndex(std::move(arr_result_indices));
+  return RowIndex(std::move(result_buf), RowIndex::ARR32);
 }
 
 
