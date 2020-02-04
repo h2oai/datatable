@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -100,10 +100,10 @@ RiGb Head_Literal_SliceInt::evaluate_iby(const vecExpr&, EvalContext& ctx) const
   size_t ngroups = gb.size();
   const int32_t* group_offsets = gb.offsets_r() + 1;
   size_t ri_size = _estimate_iby_nrows(ctx.nrows(), ngroups, istart, istop, istep);
-  arr32_t out_ri_array(ri_size);
+  Buffer out_buffer = Buffer::mem(ri_size * sizeof(int32_t));
 
   Buffer out_groups = Buffer::mem((ngroups + 1) * sizeof(int32_t));
-  int32_t* out_rowindices = out_ri_array.data();
+  int32_t* out_rowindices = static_cast<int32_t*>(out_buffer.xptr());
   int32_t* out_offsets = static_cast<int32_t*>(out_groups.xptr()) + 1;
   out_offsets[-1] = 0;
   size_t j = 0;  // Counter for the row indices
@@ -180,10 +180,11 @@ RiGb Head_Literal_SliceInt::evaluate_iby(const vecExpr&, EvalContext& ctx) const
   }
 
   xassert(j <= ri_size);
-  out_ri_array.resize(j);
+  out_buffer.resize(j * sizeof(int32_t));
   out_groups.resize((k + 1) * sizeof(int32_t));
+  int buf_flags = RowIndex::ARR32 | ((step >= 0)? RowIndex::SORTED : 0);
   return std::make_pair(
-            RowIndex(std::move(out_ri_array), /* sorted = */ (step >= 0)),
+            RowIndex(std::move(out_buffer), buf_flags),
             Groupby(k, std::move(out_groups))
           );
 }

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,8 +39,8 @@ namespace expr {
 template <bool LAG>
 static RowIndex compute_lag_rowindex(const Groupby& groupby, int shift) {
   xassert(shift > 0);
-  arr32_t arr_indices(groupby.last_offset());
-  int32_t* indices = arr_indices.data();
+  Buffer buf_indices = Buffer::mem(groupby.last_offset() * sizeof(int32_t));
+  int32_t* indices = static_cast<int32_t*>(buf_indices.xptr());
 
   auto group_offsets = groupby.offsets_r();
   dt::parallel_for_dynamic(
@@ -60,7 +60,7 @@ static RowIndex compute_lag_rowindex(const Groupby& groupby, int shift) {
       }
     });
 
-  return RowIndex(std::move(arr_indices), true);
+  return RowIndex(std::move(buf_indices), RowIndex::ARR32|RowIndex::SORTED);
 }
 
 

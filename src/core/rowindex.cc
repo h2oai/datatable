@@ -94,6 +94,8 @@ RowIndex::RowIndex(const Column& col) {
 
 template <typename T>
 static RowIndex _concat(size_t n, const std::vector<RowIndex>& parts) {
+  // Buffer buffer = Buffer::mem(n * sizeof(T));
+  // auto data = static_cast<T*>(buffer.xptr());
   dt::array<T> data(n);
   size_t offset = 0;
   for (const RowIndex& ri : parts) {
