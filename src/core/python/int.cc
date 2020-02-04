@@ -38,12 +38,10 @@ oint::oint(int32_t n) {
 }
 
 oint::oint(int64_t n) {
-  #if LONG_MAX==9223372036854775807
+  #if DT_TYPE_LONG64
     v = PyLong_FromLong(n);
-  #elif LLONG_MAX==9223372036854775807
-    v = PyLong_FromLongLong(n);
   #else
-    #error "Cannot determine size of `long`"
+    v = PyLong_FromLongLong(n);
   #endif
 }
 
@@ -109,7 +107,7 @@ int32_t oint::ovalue(int* overflow) const {
 template<>
 int64_t oint::ovalue(int* overflow) const {
   if (!v) return GETNA<int64_t>();
-  #if LONG_MAX==9223372036854775807
+  #if DT_TYPE_LONG64
     long res = PyLong_AsLongAndOverflow(v, overflow);
   #else
     long long res = PyLong_AsLongLongAndOverflow(v, overflow);
@@ -266,7 +264,7 @@ int32_t oint::mvalue() const {
 
 template<>
 int64_t oint::mvalue() const {
-  #if LONG_MAX==9223372036854775807
+  #if DT_TYPE_LONG64
     return masked_value_long<int64_t>(v);
   #else
     if (!v) return GETNA<int64_t>();

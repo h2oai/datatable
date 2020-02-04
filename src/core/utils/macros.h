@@ -146,5 +146,17 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 };
 
 
+//------------------------------------------------------------------------------
+// Types
+//------------------------------------------------------------------------------
+
+#if LONG_MAX==9223372036854775807
+  #define DT_TYPE_LONG64 1
+#elif LLONG_MAX==9223372036854775807
+  #define DT_TYPE_LONG64 0
+#else
+  #error "Cannot determine size of `long`"
+#endif
+
 
 #endif
