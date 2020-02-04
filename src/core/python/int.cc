@@ -22,9 +22,9 @@
 // See https://docs.python.org/3/c-api/long.html
 // for the details of Python API
 //------------------------------------------------------------------------------
-#include <limits>
 #include "python/int.h"
 #include "utils/exceptions.h"
+#include "utils/macros.h"
 
 namespace py {
 

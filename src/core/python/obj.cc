@@ -354,7 +354,7 @@ bool _parse_int(PyObject* v, T* out) {
   return false;
 }
 
-#if LONG_MAX != 9223372036854775807
+#if !DT_TYPE_LONG64
   template <>
   bool _parse_int(PyObject* v, int64_t* out) {
     static_assert(sizeof(int64_t) <= sizeof(long long), "Wrong size of long long");
