@@ -426,7 +426,7 @@ void sort_init_options() {
  */
 class SortContext {
   private:
-    arr32_t groups;
+    Buffer groups;
     omem container_x;
     omem container_xx;
     omem container_o;
@@ -481,9 +481,9 @@ class SortContext {
       use_order = true;
     }
     if (make_groups) {
-      groups.resize(n + 1);
-      groups[0] = 0;
-      gg.init(groups.data() + 1, 0);
+      groups.resize((n + 1) * sizeof(int32_t));
+      groups.set_element<int32_t>(0, 0);
+      gg.init(static_cast<int32_t*>(groups.xptr()) + 1, 0);
     }
   }
 
@@ -491,7 +491,8 @@ class SortContext {
               bool make_groups)
     : SortContext(nrows, rowindex, make_groups)
   {
-    groups = arr32_t(groupby.size() + 1, groupby.offsets_r(), false);
+    groups = Buffer::external(groupby.offsets_r(),
+                              (groupby.size() + 1) * sizeof(int32_t));
     gg.init(nullptr, 0, groupby.size());
     if (!rowindex) {
       dt::parallel_for_static(n,
@@ -552,7 +553,7 @@ class SortContext {
     _fill_rrmap_from_groups(rrmap_ptr);
 
     if (make_groups) {
-      gg.init(groups.data() + 1, 0);
+      gg.init(static_cast<int32_t*>(groups.xptr()) + 1, 0);
       _radix_recurse<true>(rrmap_ptr);
     } else {
       _radix_recurse<false>(rrmap_ptr);
@@ -568,26 +569,24 @@ class SortContext {
 
   Groupby extract_groups() {
     size_t ng = gg.size();
-    xassert(groups.size() > ng);
-    groups.resize(ng + 1);
-    return Groupby(ng, groups.to_memoryrange());
+    xassert(groups.size() > ng * sizeof(int32_t));
+    groups.resize((ng + 1) * sizeof(int32_t));
+    return Groupby(ng, std::move(groups));
   }
 
   Groupby copy_groups() {
     size_t ng = gg.size();
-    xassert(groups.size() > ng);
-    size_t memsize = (ng + 1) * sizeof(int32_t);
-    Buffer mr = Buffer::mem(memsize);
-    std::memcpy(mr.xptr(), groups.data(), memsize);
-    return Groupby(ng, std::move(mr));
+    xassert(groups.size() > ng * sizeof(int32_t));
+    groups.resize((ng + 1) * sizeof(int32_t));
+    return Groupby(ng, Buffer(groups));
   }
 
   std::pair<RowIndex, Groupby> get_result_groups() {
     size_t ng = gg.size();
-    xassert(groups.size() > ng);
-    groups.resize(ng + 1);
+    xassert(groups.size() > ng * sizeof(int32_t));
+    groups.resize((ng + 1) * sizeof(int32_t));
     return std::pair<RowIndex, Groupby>(get_result_rowindex(),
-                                        Groupby(ng, groups.to_memoryrange()));
+                                        Groupby(ng, std::move(groups)));
   }
 
 
@@ -1109,9 +1108,12 @@ class SortContext {
 
   void _fill_rrmap_from_groups(radix_range* rrmap) {
     size_t ng = gg.size();
+    auto group_offsets = static_cast<const int32_t*>(groups.rptr());
     for (size_t i = 0; i < ng; ++i) {
-      rrmap[i].offset = static_cast<size_t>(groups[i]);
-      rrmap[i].size   = static_cast<size_t>(groups[i + 1] - groups[i]);
+      auto j0 = static_cast<size_t>(group_offsets[i]);
+      auto j1 = static_cast<size_t>(group_offsets[i + 1]);
+      rrmap[i].offset = j0;
+      rrmap[i].size   = j1 - j0;
     }
   }
 
@@ -1280,8 +1282,8 @@ class SortContext {
   //============================================================================
 
   void kinsert_sort() {
-    arr32_t tmparr(n);
-    int32_t* tmp = tmparr.data();
+    auto tmparr = std::unique_ptr<int32_t[]>(new int32_t[n]);
+    int32_t* tmp = tmparr.get();
     int32_t nn = static_cast<int32_t>(n);
     if (is_string) {
       insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending);
