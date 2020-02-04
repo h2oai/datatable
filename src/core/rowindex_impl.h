@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -126,10 +126,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     Buffer buf_;
 
   public:
-    ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
-    ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
-    ArrayRowIndexImpl(const arr64_t& starts, const arr64_t& counts,
-                      const arr64_t& steps);
+    ArrayRowIndexImpl(Buffer&& buf, int flags);
     ArrayRowIndexImpl(const Column&);
 
     const int32_t* indices32() const noexcept;

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>     // std::memcpy
-#include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "parallel/api.h"     // dt::parallel_for_static
@@ -74,30 +73,13 @@ RowIndex::RowIndex(size_t start, size_t count, size_t step) {
   impl = (new SliceRowIndexImpl(start, count, step))->acquire();
 }
 
-RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
-  impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
-}
 
-RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
-  impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
+RowIndex::RowIndex(Buffer&& buf, int flags) {
+  impl = (new ArrayRowIndexImpl(std::move(buf), flags))->acquire();
 }
 
 RowIndex::RowIndex(const Column& col) {
   impl = (new ArrayRowIndexImpl(col))->acquire();
-}
-
-
-
-template <typename T>
-static RowIndex _concat(size_t n, const std::vector<RowIndex>& parts) {
-  dt::array<T> data(n);
-  size_t offset = 0;
-  for (const RowIndex& ri : parts) {
-    dt::array<T> subdata(ri.size(), data.data() + offset, /*owned=*/false);
-    ri.extract_into(subdata);
-    offset += ri.size();
-  }
-  return RowIndex(std::move(data));
 }
 
 
@@ -106,11 +88,19 @@ RowIndex RowIndex::concat(const std::vector<RowIndex>& parts) {
   for (const RowIndex& ri : parts) {
     total_size += ri.size();
   }
-  if (total_size <= std::numeric_limits<int32_t>::max()) {
-    return _concat<int32_t>(total_size, parts);
-  } else {
-    return _concat<int64_t>(total_size, parts);
+  bool use32 = (total_size <= std::numeric_limits<int32_t>::max());
+  size_t elemsize = use32? sizeof(int32_t) : sizeof(int64_t);
+  int outflag = use32? RowIndex::ARR32 : RowIndex::ARR64;
+
+  Buffer buffer = Buffer::mem(total_size * elemsize);
+  size_t offset = 0;
+  for (const RowIndex& ri : parts) {
+    auto subview = Buffer::view(buffer,
+                                ri.size() * elemsize, offset * elemsize);
+    ri.extract_into(subview, outflag);
+    offset += ri.size();
   }
+  return RowIndex(std::move(buffer), outflag);
 }
 
 
@@ -182,15 +172,14 @@ size_t RowIndex::slice_step() const noexcept {
 
 
 template <typename T>
-static void _extract_into(const RowIndex& ri, dt::array<T>& target) {
+static void _extract_into(const RowIndex& ri, T* target) {
   if (!ri) return;
   size_t ri_size = ri.size();
-  xassert(target.size() >= ri_size);
   switch (ri.type()) {
     case RowIndexType::ARR32: {
       const int32_t* ri_data = ri.indices32();
       if (sizeof(T) == 4) {
-        std::memcpy(target.data(), ri_data, ri_size * sizeof(T));
+        std::memcpy(target, ri_data, ri_size * sizeof(T));
       }
       else {
         dt::parallel_for_static(ri_size,
@@ -203,7 +192,7 @@ static void _extract_into(const RowIndex& ri, dt::array<T>& target) {
     case RowIndexType::ARR64: {
       const int64_t* ri_data = ri.indices64();
       if (sizeof(T) == 8) {
-        std::memcpy(target.data(), ri_data, ri_size * sizeof(T));
+        std::memcpy(target, ri_data, ri_size * sizeof(T));
       }
       else {
         dt::parallel_for_static(ri_size,
@@ -227,12 +216,16 @@ static void _extract_into(const RowIndex& ri, dt::array<T>& target) {
   }
 }
 
-void RowIndex::extract_into(arr32_t& target) const {
-  _extract_into<int32_t>(*this, target);
-}
 
-void RowIndex::extract_into(arr64_t& target) const {
-  _extract_into<int64_t>(*this, target);
+void RowIndex::extract_into(Buffer& buffer, int flags) const {
+  void* data = buffer.xptr();
+  if (flags & RowIndex::ARR32) {
+    xassert(buffer.size() >= size() * sizeof(int32_t));
+    _extract_into<int32_t>(*this, static_cast<int32_t*>(data));
+  } else {
+    xassert(buffer.size() >= size() * sizeof(int64_t));
+    _extract_into<int64_t>(*this, static_cast<int64_t*>(data));
+  }
 }
 
 

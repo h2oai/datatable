@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -134,9 +134,9 @@
 #include "parallel/api.h"
 #include "python/args.h"
 #include "utils/alloc.h"
-#include "utils/array.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
+#include "buffer.h"
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -426,12 +426,12 @@ void sort_init_options() {
  */
 class SortContext {
   private:
-    arr32_t groups;
+    Buffer groups;
     omem container_x;
     omem container_xx;
     omem container_o;
     omem container_oo;
-    dt::array<size_t> arr_hist;
+    Buffer hist_buffer;
     GroupGatherer gg;
 
     rmem x;
@@ -476,14 +476,14 @@ class SortContext {
     container_o.ensure_size(n * sizeof(int32_t));
     o = static_cast<int32_t*>(container_o.ptr);
     if (rowindex) {
-      arr32_t co(n, o);
-      rowindex.extract_into(co);
+      Buffer oview = Buffer::external(o, n * sizeof(int32_t));
+      rowindex.extract_into(oview, RowIndex::ARR32);
       use_order = true;
     }
     if (make_groups) {
-      groups.resize(n + 1);
-      groups[0] = 0;
-      gg.init(groups.data() + 1, 0);
+      groups.resize((n + 1) * sizeof(int32_t));
+      groups.set_element<int32_t>(0, 0);
+      gg.init(static_cast<int32_t*>(groups.xptr()) + 1, 0);
     }
   }
 
@@ -491,7 +491,8 @@ class SortContext {
               bool make_groups)
     : SortContext(nrows, rowindex, make_groups)
   {
-    groups = arr32_t(groupby.size() + 1, groupby.offsets_r(), false);
+    groups = Buffer::external(groupby.offsets_r(),
+                              (groupby.size() + 1) * sizeof(int32_t));
     gg.init(nullptr, 0, groupby.size());
     if (!rowindex) {
       dt::parallel_for_static(n,
@@ -547,12 +548,12 @@ class SortContext {
     allocate_xx();
     allocate_oo();
 
-    dt::array<radix_range> rrmap(nradixes);
-    radix_range* rrmap_ptr = rrmap.data();
+    auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
+    radix_range* rrmap_ptr = rrmap.get();
     _fill_rrmap_from_groups(rrmap_ptr);
 
     if (make_groups) {
-      gg.init(groups.data() + 1, 0);
+      gg.init(static_cast<int32_t*>(groups.xptr()) + 1, 0);
       _radix_recurse<true>(rrmap_ptr);
     } else {
       _radix_recurse<false>(rrmap_ptr);
@@ -562,31 +563,30 @@ class SortContext {
 
   RowIndex get_result_rowindex() {
     auto data = static_cast<int32_t*>(container_o.release());
-    return RowIndex(arr32_t(n, data, true));
+    return RowIndex(Buffer::acquire(data, n * sizeof(int32_t)),
+                    RowIndex::ARR32);
   }
 
   Groupby extract_groups() {
     size_t ng = gg.size();
-    xassert(groups.size() > ng);
-    groups.resize(ng + 1);
-    return Groupby(ng, groups.to_memoryrange());
+    xassert(groups.size() > ng * sizeof(int32_t));
+    groups.resize((ng + 1) * sizeof(int32_t));
+    return Groupby(ng, std::move(groups));
   }
 
   Groupby copy_groups() {
     size_t ng = gg.size();
-    xassert(groups.size() > ng);
-    size_t memsize = (ng + 1) * sizeof(int32_t);
-    Buffer mr = Buffer::mem(memsize);
-    std::memcpy(mr.xptr(), groups.data(), memsize);
-    return Groupby(ng, std::move(mr));
+    xassert(groups.size() > ng * sizeof(int32_t));
+    groups.resize((ng + 1) * sizeof(int32_t));
+    return Groupby(ng, Buffer(groups));
   }
 
   std::pair<RowIndex, Groupby> get_result_groups() {
     size_t ng = gg.size();
-    xassert(groups.size() > ng);
-    groups.resize(ng + 1);
+    xassert(groups.size() > ng * sizeof(int32_t));
+    groups.resize((ng + 1) * sizeof(int32_t));
     return std::pair<RowIndex, Groupby>(get_result_rowindex(),
-                                        Groupby(ng, groups.to_memoryrange()));
+                                        Groupby(ng, std::move(groups)));
   }
 
 
@@ -885,10 +885,12 @@ class SortContext {
    * will contain cumulative counts of values in `x`).
    */
   void build_histogram() {
-    size_t counts_size = nchunks * nradixes;
-    arr_hist.ensuresize(counts_size);
-    histogram = arr_hist.data();
-    std::memset(histogram, 0, counts_size * sizeof(size_t));
+    size_t counts_size = nchunks * nradixes * sizeof(size_t);
+    if (hist_buffer.size() < counts_size) {
+      hist_buffer.resize(counts_size);
+    }
+    histogram = static_cast<size_t*>(hist_buffer.xptr());
+    std::memset(histogram, 0, counts_size);
     switch (elemsize) {
       case 1: _histogram_gather<uint8_t>();  break;
       case 2: _histogram_gather<uint16_t>(); break;
@@ -1072,8 +1074,8 @@ class SortContext {
       // sort them recursively.
       uint8_t _nsigbits = nsigbits;
       nsigbits = is_string? 8 : shift;
-      dt::array<radix_range> rrmap(nradixes);
-      radix_range* rrmap_ptr = rrmap.data();
+      auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
+      radix_range* rrmap_ptr = rrmap.get();
       _fill_rrmap_from_histogram(rrmap_ptr);
       _radix_recurse<make_groups>(rrmap_ptr);
       nsigbits = _nsigbits;
@@ -1108,9 +1110,12 @@ class SortContext {
 
   void _fill_rrmap_from_groups(radix_range* rrmap) {
     size_t ng = gg.size();
+    auto group_offsets = static_cast<const int32_t*>(groups.rptr());
     for (size_t i = 0; i < ng; ++i) {
-      rrmap[i].offset = static_cast<size_t>(groups[i]);
-      rrmap[i].size   = static_cast<size_t>(groups[i + 1] - groups[i]);
+      auto j0 = static_cast<size_t>(group_offsets[i]);
+      auto j1 = static_cast<size_t>(group_offsets[i + 1]);
+      rrmap[i].offset = j0;
+      rrmap[i].size   = j1 - j0;
     }
   }
 
@@ -1279,8 +1284,8 @@ class SortContext {
   //============================================================================
 
   void kinsert_sort() {
-    arr32_t tmparr(n);
-    int32_t* tmp = tmparr.data();
+    auto tmparr = std::unique_ptr<int32_t[]>(new int32_t[n]);
+    int32_t* tmp = tmparr.get();
     int32_t nn = static_cast<int32_t>(n);
     if (is_string) {
       insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending);
@@ -1351,9 +1356,9 @@ RiGb group(const std::vector<Column>& columns,
     return result;
   }
   if (nrows == 1) {
-    arr32_t indices(nrows);
-    indices[0] = 0;
-    result.first = RowIndex(std::move(indices), true);
+    Buffer buf = Buffer::mem(sizeof(int32_t));
+    buf.set_element<int32_t>(0, 0);
+    result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
     result.second = Groupby::single_group(nrows);
     return result;
   }

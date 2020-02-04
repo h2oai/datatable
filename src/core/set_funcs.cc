@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -51,10 +51,10 @@ struct sort_result {
 // helper functions
 //------------------------------------------------------------------------------
 
-static py::oobj make_pyframe(sort_result&& sorted, arr32_t&& arr) {
+static py::oobj make_pyframe(sort_result&& sorted, Buffer&& buf) {
   // The array of rowindices `arr` is typically shuffled because the values
   // in the input are sorted before they are compared.
-  RowIndex out_ri = RowIndex(std::move(arr), false);
+  RowIndex out_ri = RowIndex(std::move(buf), RowIndex::ARR32);
   sorted.column.apply_rowindex(out_ri);
   DataTable* dt = new DataTable({std::move(sorted.column)},
                                 {std::move(sorted.colname)});
@@ -130,13 +130,13 @@ static py::oobj _union(named_colvec&& ncv) {
   if (goffsets[ngrps] == 0) ngrps = 0;
 
   const int32_t* indices = sorted.ri.indices32();
-  arr32_t arr(ngrps);
-  int32_t* out_indices = arr.data();
+  Buffer buf = Buffer::mem(ngrps * sizeof(int32_t));
+  int32_t* out_indices = static_cast<int32_t*>(buf.xptr());
 
   for (size_t i = 0; i < ngrps; ++i) {
     out_indices[i] = indices[goffsets[i]];
   }
-  return make_pyframe(std::move(sorted), std::move(arr));
+  return make_pyframe(std::move(sorted), std::move(buf));
 }
 
 
@@ -228,8 +228,8 @@ static py::oobj _intersect(named_colvec&& cv) {
   if (goffsets[ngrps] == 0) ngrps = 0;
 
   const int32_t* indices = sorted.ri.indices32();
-  arr32_t arr(ngrps);
-  int32_t* out_indices = arr.data();
+  Buffer buffer = Buffer::mem(ngrps * sizeof(int32_t));
+  int32_t* out_indices = static_cast<int32_t*>(buffer.xptr());
   size_t j = 0;
 
   if (TWO) {
@@ -273,8 +273,8 @@ static py::oobj _intersect(named_colvec&& cv) {
       cont_outer_loop:;
     }
   }
-  arr.resize(j);
-  return make_pyframe(std::move(sorted), std::move(arr));
+  buffer.resize(j * sizeof(int32_t));
+  return make_pyframe(std::move(sorted), std::move(buffer));
 }
 
 
@@ -326,8 +326,8 @@ static py::oobj _setdiff(named_colvec&& cv) {
   if (goffsets[ngrps] == 0) ngrps = 0;
 
   const int32_t* indices = sorted.ri.indices32();
-  arr32_t arr(ngrps);
-  int32_t* out_indices = arr.data();
+  Buffer buffer = Buffer::mem(ngrps * sizeof(int32_t));
+  int32_t* out_indices = static_cast<int32_t*>(buffer.xptr());
   size_t j = 0;
 
   int32_t n1 = static_cast<int32_t>(sorted.sizes[0]);
@@ -338,8 +338,8 @@ static py::oobj _setdiff(named_colvec&& cv) {
       out_indices[j++] = x;
     }
   }
-  arr.resize(j);
-  return make_pyframe(std::move(sorted), std::move(arr));
+  buffer.resize(j * sizeof(int32_t));
+  return make_pyframe(std::move(sorted), std::move(buffer));
 }
 
 
@@ -387,8 +387,8 @@ static py::oobj _symdiff(named_colvec&& cv) {
   if (goffsets[ngrps] == 0) ngrps = 0;
 
   const int32_t* indices = sr.ri.indices32();
-  arr32_t arr(ngrps);
-  int32_t* out_indices = arr.data();
+  Buffer buffer = Buffer::mem(ngrps * sizeof(int32_t));
+  int32_t* out_indices = static_cast<int32_t*>(buffer.xptr());
   size_t j = 0;
 
   if (TWO) {
@@ -427,8 +427,8 @@ static py::oobj _symdiff(named_colvec&& cv) {
       }
     }
   }
-  arr.resize(j);
-  return make_pyframe(std::move(sr), std::move(arr));
+  buffer.resize(j * sizeof(int32_t));
+  return make_pyframe(std::move(sr), std::move(buffer));
 }
 
 

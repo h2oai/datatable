@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -44,14 +44,6 @@ bool check_slice_triple(size_t start, size_t count, size_t step, size_t max)
                                 : step >= -start/(count - 1)));
 }
 
-static void _check_triple(size_t start, size_t count, size_t step)
-{
-  if (!check_slice_triple(start, count, step, RowIndex::MAX)) {
-    throw ValueError() << "Invalid RowIndex slice [" << start << "/"
-                       << count << "/" << step << "]";
-  }
-}
-
 
 
 //------------------------------------------------------------------------------
@@ -59,7 +51,7 @@ static void _check_triple(size_t start, size_t count, size_t step)
 //------------------------------------------------------------------------------
 
 SliceRowIndexImpl::SliceRowIndexImpl(size_t i0, size_t n, size_t di) {
-  _check_triple(i0, n, di);
+  xassert(check_slice_triple(i0, n, di, RowIndex::MAX));
   type   = RowIndexType::SLICE;
   ascending = (di <= RowIndex::MAX);
   start  = i0;
@@ -108,26 +100,28 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
   // step = 0 and n > INT32_MAX, which case we handled above).
   if (uptype == RowIndexType::ARR32) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    arr32_t res(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int32_t));
+    auto res = static_cast<int32_t*>(outbuf.xptr());
     const int32_t* srcrows = arii->indices32();
     size_t j = start;
     for (size_t i = 0; i < length; ++i) {
       res[i] = srcrows[j];
       j += step;
     }
-    return new ArrayRowIndexImpl(std::move(res), false);
+    return new ArrayRowIndexImpl(std::move(outbuf), RowIndex::ARR32);
   }
 
   if (uptype == RowIndexType::ARR64) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    arr64_t res(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int64_t));
+    auto res = static_cast<int64_t*>(outbuf.xptr());
     const int64_t* srcrows = arii->indices64();
     size_t j = start;
     for (size_t i = 0; i < length; ++i) {
       res[i] = srcrows[j];
       j += step;
     }
-    return new ArrayRowIndexImpl(std::move(res), false);
+    return new ArrayRowIndexImpl(std::move(outbuf), RowIndex::ARR64);
   }
 
   throw RuntimeError() << "Unknown RowIndexType " << static_cast<int>(uptype);
@@ -152,48 +146,61 @@ RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
     if (tstart + tcount == nrows) {
       return new SliceRowIndexImpl(0, newcount, 1);
     }
-    arr64_t starts(2);
-    arr64_t counts(2);
-    arr64_t steps(2);
-    starts[0] = 0;
-    counts[0] = static_cast<int64_t>(tstart);
-    steps[0] = 1;
-    starts[1] = static_cast<int64_t>(tstart + tcount);
-    counts[1] = static_cast<int64_t>(nrows - (tstart + tcount));
-    steps[1] = 1;
-    return new ArrayRowIndexImpl(starts, counts, steps);
   }
-  size_t j = 0;
   if (nrows <= INT32_MAX) {
-    arr32_t indices(newcount);
-    size_t next_row_to_skip = tstart;
-    size_t tend = tstart + tcount * tstep;
-    for (size_t i = 0; i < nrows; ++i) {
-      if (i == next_row_to_skip) {
-        next_row_to_skip += tstep;
-        if (next_row_to_skip == tend) next_row_to_skip = nrows;
-        continue;
-      } else {
+    size_t j = 0;
+    Buffer outbuf = Buffer::mem(newcount * sizeof(int32_t));
+    auto indices = static_cast<int32_t*>(outbuf.xptr());
+    if (tstep == 1) {
+      for (size_t i = 0; i < tstart; ++i) {
         indices[j++] = static_cast<int32_t>(i);
       }
-    }
-    xassert(j == newcount);
-    return new ArrayRowIndexImpl(std::move(indices), true);
-  } else {
-    arr64_t indices(newcount);
-    size_t next_row_to_skip = tstart;
-    size_t tend = tstart + tcount * tstep;
-    for (size_t i = 0; i < nrows; ++i) {
-      if (i == next_row_to_skip) {
-        next_row_to_skip += tstep;
-        if (next_row_to_skip == tend) next_row_to_skip = nrows;
-        continue;
-      } else {
-        indices[j++] = static_cast<int64_t>(i);
+      for (size_t i = tstart + tcount; i < nrows; ++i) {
+        indices[j++] = static_cast<int32_t>(i);
+      }
+    } else {
+      size_t next_row_to_skip = tstart;
+      size_t tend = tstart + tcount * tstep;
+      for (size_t i = 0; i < nrows; ++i) {
+        if (i == next_row_to_skip) {
+          next_row_to_skip += tstep;
+          if (next_row_to_skip == tend) next_row_to_skip = nrows;
+          continue;
+        } else {
+          indices[j++] = static_cast<int32_t>(i);
+        }
       }
     }
     xassert(j == newcount);
-    return new ArrayRowIndexImpl(std::move(indices), true);
+    return new ArrayRowIndexImpl(std::move(outbuf),
+                                 RowIndex::ARR32|RowIndex::SORTED);
+  } else {
+    size_t j = 0;
+    Buffer outbuf = Buffer::mem(newcount * sizeof(int64_t));
+    auto indices = static_cast<int64_t*>(outbuf.xptr());
+    if (tstep == 1) {
+      for (size_t i = 0; i < tstart; ++i) {
+        indices[j++] = static_cast<int64_t>(i);
+      }
+      for (size_t i = tstart + tcount; i < nrows; ++i) {
+        indices[j++] = static_cast<int64_t>(i);
+      }
+    } else {
+      size_t next_row_to_skip = tstart;
+      size_t tend = tstart + tcount * tstep;
+      for (size_t i = 0; i < nrows; ++i) {
+        if (i == next_row_to_skip) {
+          next_row_to_skip += tstep;
+          if (next_row_to_skip == tend) next_row_to_skip = nrows;
+          continue;
+        } else {
+          indices[j++] = static_cast<int64_t>(i);
+        }
+      }
+    }
+    xassert(j == newcount);
+    return new ArrayRowIndexImpl(std::move(outbuf),
+                                 RowIndex::ARR64|RowIndex::SORTED);
   }
 }
 
@@ -209,33 +216,15 @@ size_t SliceRowIndexImpl::memory_footprint() const noexcept {
 void SliceRowIndexImpl::verify_integrity() const {
   RowIndexImpl::verify_integrity();
 
-  if (type != RowIndexType::SLICE) {
-    throw AssertionError() << "Invalid type = " << static_cast<int>(type)
-        << " in a SliceRowIndex";
-  }
-
-  try {
-    _check_triple(start, length, step);
-  } catch (const Error&) {
-    int64_t istep = static_cast<int64_t>(step);
-    throw AssertionError()
-        << "Invalid slice rowindex: " << start << "/" << length << "/" << istep;
-  }
+  XAssert(type == RowIndexType::SLICE);
+  XAssert(check_slice_triple(start, length, step, RowIndex::MAX));
 
   if (length > 0) {
     size_t minrow = start;
     size_t maxrow = start + step * (length - 1);
     if (!ascending) std::swap(minrow, maxrow);
-    if (max != maxrow) {
-      int64_t istep = static_cast<int64_t>(step);
-      throw AssertionError()
-          << "Invalid max value in a Slice RowIndex " << start << "/"
-          << length << "/" << istep << ": max = " << max;
-    }
-    if (ascending != (step <= RowIndex::MAX)) {
-      throw AssertionError()
-          << "Incorrect 'ascending' flag in Slice RowIndex";
-    }
+    XAssert(max == maxrow);
+    XAssert(ascending == (step <= RowIndex::MAX));
   }
 }
 

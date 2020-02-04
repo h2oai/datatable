@@ -919,6 +919,13 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
   }
 
 
+  void Buffer::ensuresize(size_t newsize) {
+    if (size() < newsize) {
+      resize(newsize + newsize/2, true);
+    }
+  }
+
+
   void Buffer::to_memory() {
     impl_->to_memory(*this);
   }
