@@ -62,12 +62,11 @@ class RowIndex {
     ~RowIndex();
 
     /**
-     * Construct a RowIndex object from an array of int32/int64 indices.
-     * Optional `sorted` flag tells the constructor whether the arrays are
-     * sorted or not.
+     * Construct a RowIndex object from a buffer of int32/int64 indices.
+     * The `flags` argument should contain either RowIndex::ARR32 or
+     * RowIndex::ARR64, optionally combined with RowIndex::SORTED to tell
+     * the constructor whether that the array is sorted.
      */
-    RowIndex(arr32_t&& arr, bool sorted = false);
-    RowIndex(arr64_t&& arr, bool sorted = false);
     RowIndex(Buffer&& buf, int flags);
 
     /**
@@ -113,8 +112,6 @@ class RowIndex {
     bool get_element(size_t i, size_t* out) const;
 
     void extract_into(Buffer&, int flags) const;
-    void extract_into(arr32_t&) const;
-    void extract_into(arr64_t&) const;
 
     /**
      * Convert the RowIndex into an array `int8_t[nrows]`, where each entry

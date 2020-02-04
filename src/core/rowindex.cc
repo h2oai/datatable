@@ -74,13 +74,6 @@ RowIndex::RowIndex(size_t start, size_t count, size_t step) {
   impl = (new SliceRowIndexImpl(start, count, step))->acquire();
 }
 
-RowIndex::RowIndex(arr32_t&& arr, bool sorted) {
-  impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
-}
-
-RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
-  impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
-}
 
 RowIndex::RowIndex(Buffer&& buf, int flags) {
   impl = (new ArrayRowIndexImpl(std::move(buf), flags))->acquire();
@@ -224,15 +217,6 @@ static void _extract_into(const RowIndex& ri, T* target) {
   }
 }
 
-void RowIndex::extract_into(arr32_t& target) const {
-  xassert(target.size() >= size());
-  _extract_into<int32_t>(*this, target.data());
-}
-
-void RowIndex::extract_into(arr64_t& target) const {
-  xassert(target.size() >= size());
-  _extract_into<int64_t>(*this, target.data());
-}
 
 void RowIndex::extract_into(Buffer& buffer, int flags) const {
   void* data = buffer.xptr();

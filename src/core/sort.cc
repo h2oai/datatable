@@ -476,8 +476,8 @@ class SortContext {
     container_o.ensure_size(n * sizeof(int32_t));
     o = static_cast<int32_t*>(container_o.ptr);
     if (rowindex) {
-      arr32_t co(n, o);
-      rowindex.extract_into(co);
+      Buffer oview = Buffer::external(o, n * sizeof(int32_t));
+      rowindex.extract_into(oview, RowIndex::ARR32);
       use_order = true;
     }
     if (make_groups) {
