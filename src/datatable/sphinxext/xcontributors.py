@@ -201,7 +201,7 @@ class XContributorsDirective(SphinxDirective):
     def run(self):
         self._parse(self.content.data)
         self._store_env()
-        return [contributors_placeholder_node()]
+        return [contributors_placeholder_node(self.env.docname)]
 
 
     def _parse(self, lines):
@@ -261,7 +261,12 @@ class contributors_placeholder_node(nodes.Element, nodes.General):
     the page is rendered.
     """
 
-    def resolve(self, record):
+    def __init__(self, docname):
+        super().__init__()
+        self._docname = docname
+
+    def resolve(self, env):
+        record = env.xcontributors[self._docname]
         sect = nodes.section(ids=["contributors"], classes=["contributors"])
         sect += nodes.title("", "Contributors")
         sect += nodes.paragraph("", self._prepare_text(record))
@@ -412,9 +417,8 @@ def on_doctree_resolved(app, doctree, docname):
     if not hasattr(env, "xcontributors"):
         return
     users.use_env(env)
-    if docname in env.xcontributors:
-        for node in doctree.traverse(contributors_placeholder_node):
-            node.resolve(env.xcontributors[docname])
+    for node in doctree.traverse(contributors_placeholder_node):
+        node.resolve(env)
     for node in doctree.traverse(contributors_grid_placeholder_node):
         node.resolve()
 
