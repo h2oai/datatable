@@ -45,7 +45,9 @@ class UserRepository:
     def data(self):
         if not self._data:
             self._data = types.SimpleNamespace()
-            self._compute_version_strings()
+            self._compute_version_strings(maxsize=7,
+                                          newname="next",
+                                          oldname="past")
             self._compute_user_scores()
             self._aggregate_scores()
         return self._data
@@ -57,8 +59,7 @@ class UserRepository:
         return self._fullnames
 
 
-    def _compute_version_strings(self, maxsize=7, newname="next",
-                                 oldname="earlier"):
+    def _compute_version_strings(self, maxsize, newname, oldname):
         """
         self._data.sorted_versions = [<version>]   # list of strings
         self._data.doc_versions = {<docname>: <version>}
