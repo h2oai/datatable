@@ -112,6 +112,7 @@ class RowIndex {
 
     bool get_element(size_t i, size_t* out) const;
 
+    void extract_into(Buffer&, int flags) const;
     void extract_into(arr32_t&) const;
     void extract_into(arr64_t&) const;
 
