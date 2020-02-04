@@ -21,11 +21,13 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_THREADCONTEXT_h
 #define dt_READ_THREADCONTEXT_h
+#include <cstddef>
 #include <vector>                    // std::vector
 #include "read/field64.h"            // field64
 #include "read/chunk_coordinates.h"  // ChunkCoordinates
 namespace dt {
 namespace read {
+using std::size_t;
 
 
 /**

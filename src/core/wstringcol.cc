@@ -99,7 +99,7 @@ void writable_string_col::buffer::write_na() {
 template <typename T>
 writable_string_col::buffer_impl<T>::buffer_impl(writable_string_col& s)
   : col(s),
-    strbuf(Buffer::mem(1024ul)),
+    strbuf(Buffer::mem(size_t(1024))),
     strbuf_used(0),
     strbuf_write_pos(0),
     offptr(nullptr),
