@@ -45,7 +45,9 @@ class UserRepository:
     def data(self):
         if not self._data:
             self._data = types.SimpleNamespace()
-            self._compute_version_strings()
+            self._compute_version_strings(maxsize=7,
+                                          newname="next",
+                                          oldname="past")
             self._compute_user_scores()
             self._aggregate_scores()
         return self._data
@@ -57,8 +59,7 @@ class UserRepository:
         return self._fullnames
 
 
-    def _compute_version_strings(self, maxsize=7, newname="next",
-                                 oldname="earlier"):
+    def _compute_version_strings(self, maxsize, newname, oldname):
         """
         self._data.sorted_versions = [<version>]   # list of strings
         self._data.doc_versions = {<docname>: <version>}
@@ -201,7 +202,7 @@ class XContributorsDirective(SphinxDirective):
     def run(self):
         self._parse(self.content.data)
         self._store_env()
-        return [contributors_placeholder_node()]
+        return [contributors_placeholder_node(self.env.docname)]
 
 
     def _parse(self, lines):
@@ -261,7 +262,12 @@ class contributors_placeholder_node(nodes.Element, nodes.General):
     the page is rendered.
     """
 
-    def resolve(self, record):
+    def __init__(self, docname):
+        super().__init__()
+        self._docname = docname
+
+    def resolve(self, env):
+        record = env.xcontributors[self._docname]
         sect = nodes.section(ids=["contributors"], classes=["contributors"])
         sect += nodes.title("", "Contributors")
         sect += nodes.paragraph("", self._prepare_text(record))
@@ -349,9 +355,12 @@ class contributors_grid_placeholder_node(nodes.Element, nodes.General):
             for version in versions:
                 scores = users.get_user_score_in_version(username, version)
                 nprs, nissues = scores
-                content = "\u25fc" if nprs else \
-                          "\u25aa" if nissues else \
+                content = "\u25cf" if nprs else \
+                          "\u2022" if nissues else \
                           ""
+                classes = ["prs"] if nprs else \
+                          ["issues"] if nissues else \
+                          []
                 details = ""
                 if nprs:
                     details += "%d pull request" % nprs
@@ -363,7 +372,7 @@ class contributors_grid_placeholder_node(nodes.Element, nodes.General):
                     details += "%d issue" % nissues
                     if nissues != 1:
                         details += "s"
-                row += xnodes.td(content, title=details)
+                row += xnodes.td(content, title=details, classes=classes)
             out += row
         self.replace_self([out])
 
@@ -412,9 +421,8 @@ def on_doctree_resolved(app, doctree, docname):
     if not hasattr(env, "xcontributors"):
         return
     users.use_env(env)
-    if docname in env.xcontributors:
-        for node in doctree.traverse(contributors_placeholder_node):
-            node.resolve(env.xcontributors[docname])
+    for node in doctree.traverse(contributors_placeholder_node):
+        node.resolve(env)
     for node in doctree.traverse(contributors_grid_placeholder_node):
         node.resolve()
 

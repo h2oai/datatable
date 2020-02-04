@@ -151,6 +151,15 @@ table.contributors-grid td.name {
     text-align: left;
 }
 
+table.contributors-grid td.issues {
+    color: #d6a64e;
+    font-size: 80%;
+}
+
+table.contributors-grid td.prs {
+    color: #5cbb64;
+}
+
 table.contributors-grid tr.versions td {
     background-color: #2a80b9;
     border-color: #1b5f8c;
