@@ -243,7 +243,7 @@ def build_extension(cmd, verbosity=3):
             raise RuntimeError("`make coverage` is not supported on Windows systems")
 
         if cmd == "debug":
-            xt.compiler.add_compiler_flag("/Od")    # no optimization
+            ext.compiler.add_compiler_flag("/Od")    # no optimization
             ext.compiler.add_compiler_flag("/Z7")
             ext.compiler.add_linker_flag("/DEBUG:FULL")
     else:
