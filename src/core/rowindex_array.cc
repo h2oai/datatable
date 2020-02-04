@@ -45,27 +45,6 @@
 // ArrayRowIndexImpl implementation
 //------------------------------------------------------------------------------
 
-ArrayRowIndexImpl::ArrayRowIndexImpl(arr32_t&& array, bool sorted) {
-  xassert(array.size() <= Column::MAX_ARR32_SIZE);
-  type = RowIndexType::ARR32;
-  ascending = sorted;
-  length = array.size();
-  buf_ = array.to_memoryrange();
-  set_min_max();
-  test(this);
-}
-
-
-ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted) {
-  type = RowIndexType::ARR64;
-  ascending = sorted;
-  length = array.size();
-  buf_ = array.to_memoryrange();
-  set_min_max();
-  test(this);
-}
-
-
 ArrayRowIndexImpl::ArrayRowIndexImpl(Buffer&& buffer, int flags) {
   bool arr32 = flags & RowIndex::ARR32;
   bool arr64 = flags & RowIndex::ARR64;
@@ -251,7 +230,8 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
   if (uptype == RowIndexType::SLICE) {
     size_t start = slice_rowindex_get_start(rii);
     size_t step  = slice_rowindex_get_step(rii);
-    arr64_t rowsres(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int64_t));
+    auto rowsres = static_cast<int64_t*>(outbuf.xptr());
     if (type == RowIndexType::ARR32) {
       auto ind32 = indices32();
       for (size_t i = 0; i < length; ++i) {
@@ -265,26 +245,30 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
         rowsres[i] = static_cast<int64_t>(j);
       }
     }
-    bool res_sorted = ascending && slice_rowindex_increasing(rii);
-    auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
+    int flags = RowIndex::ARR64;
+    if (ascending && slice_rowindex_increasing(rii)) flags |= RowIndex::SORTED;
+    auto res = new ArrayRowIndexImpl(std::move(outbuf), flags);
     res->compactify();
     return res;
   }
   xassert(max_valid? max < rii->length : true);
   if (uptype == RowIndexType::ARR32 && type == RowIndexType::ARR32) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    arr32_t rowsres(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int32_t));
+    auto rowsres = static_cast<int32_t*>(outbuf.xptr());
     auto rows_ab = arii->indices32();
     auto rows_bc = indices32();
     for (size_t i = 0; i < length; ++i) {
       rowsres[i] = rows_ab[rows_bc[i]];
     }
-    bool res_sorted = ascending && arii->ascending;
-    return new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
+    int flags = RowIndex::ARR32;
+    if (ascending && arii->ascending) flags |= RowIndex::SORTED;
+    return new ArrayRowIndexImpl(std::move(outbuf), flags);
   }
   if (uptype == RowIndexType::ARR32 || uptype == RowIndexType::ARR64) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    arr64_t rowsres(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int64_t));
+    auto rowsres = static_cast<int64_t*>(outbuf.xptr());
     if (uptype == RowIndexType::ARR32 && type == RowIndexType::ARR64) {
       auto rows_ab = arii->indices32();
       auto rows_bc = indices64();
@@ -306,8 +290,9 @@ RowIndexImpl* ArrayRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
         rowsres[i] = rows_ab[rows_bc[i]];
       }
     }
-    bool res_sorted = ascending && arii->ascending;
-    auto res = new ArrayRowIndexImpl(std::move(rowsres), res_sorted);
+    int flags = RowIndex::ARR64;
+    if (ascending && arii->ascending) flags |= RowIndex::SORTED;
+    auto res = new ArrayRowIndexImpl(std::move(outbuf), flags);
     res->compactify();
     return res;
   }
@@ -341,7 +326,8 @@ RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
   auto inputs = static_cast<const TI*>(buf_.rptr());
   size_t newsize = nrows - length;
   size_t inpsize = length;
-  dt::array<TO> outputs(newsize);
+  Buffer outbuf = Buffer::mem(newsize * sizeof(TO));
+  auto outputs = static_cast<TO*>(outbuf.xptr());
   TO orows = static_cast<TO>(nrows);
 
   TO next_index_to_skip = static_cast<TO>(inputs[0]);
@@ -359,7 +345,9 @@ RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
     }
   }
 
-  return new ArrayRowIndexImpl(std::move(outputs), true);
+  int flags = RowIndex::SORTED;
+  flags |= (sizeof(TO) == sizeof(int32_t))? RowIndex::ARR32 : RowIndex::ARR64;
+  return new ArrayRowIndexImpl(std::move(outbuf), flags);
 }
 
 

@@ -100,26 +100,28 @@ RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
   // step = 0 and n > INT32_MAX, which case we handled above).
   if (uptype == RowIndexType::ARR32) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    arr32_t res(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int32_t));
+    auto res = static_cast<int32_t*>(outbuf.xptr());
     const int32_t* srcrows = arii->indices32();
     size_t j = start;
     for (size_t i = 0; i < length; ++i) {
       res[i] = srcrows[j];
       j += step;
     }
-    return new ArrayRowIndexImpl(std::move(res), false);
+    return new ArrayRowIndexImpl(std::move(outbuf), RowIndex::ARR32);
   }
 
   if (uptype == RowIndexType::ARR64) {
     auto arii = static_cast<const ArrayRowIndexImpl*>(rii);
-    arr64_t res(length);
+    Buffer outbuf = Buffer::mem(length * sizeof(int64_t));
+    auto res = static_cast<int64_t*>(outbuf.xptr());
     const int64_t* srcrows = arii->indices64();
     size_t j = start;
     for (size_t i = 0; i < length; ++i) {
       res[i] = srcrows[j];
       j += step;
     }
-    return new ArrayRowIndexImpl(std::move(res), false);
+    return new ArrayRowIndexImpl(std::move(outbuf), RowIndex::ARR64);
   }
 
   throw RuntimeError() << "Unknown RowIndexType " << static_cast<int>(uptype);
@@ -147,7 +149,8 @@ RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
   }
   if (nrows <= INT32_MAX) {
     size_t j = 0;
-    arr32_t indices(newcount);
+    Buffer outbuf = Buffer::mem(newcount * sizeof(int32_t));
+    auto indices = static_cast<int32_t*>(outbuf.xptr());
     if (tstep == 1) {
       for (size_t i = 0; i < tstart; ++i) {
         indices[j++] = static_cast<int32_t>(i);
@@ -169,10 +172,12 @@ RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
       }
     }
     xassert(j == newcount);
-    return new ArrayRowIndexImpl(std::move(indices), true);
+    return new ArrayRowIndexImpl(std::move(outbuf),
+                                 RowIndex::ARR32|RowIndex::SORTED);
   } else {
     size_t j = 0;
-    arr64_t indices(newcount);
+    Buffer outbuf = Buffer::mem(newcount * sizeof(int64_t));
+    auto indices = static_cast<int64_t*>(outbuf.xptr());
     if (tstep == 1) {
       for (size_t i = 0; i < tstart; ++i) {
         indices[j++] = static_cast<int64_t>(i);
@@ -194,7 +199,8 @@ RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
       }
     }
     xassert(j == newcount);
-    return new ArrayRowIndexImpl(std::move(indices), true);
+    return new ArrayRowIndexImpl(std::move(outbuf),
+                                 RowIndex::ARR64|RowIndex::SORTED);
   }
 }
 

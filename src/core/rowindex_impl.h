@@ -126,8 +126,6 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     Buffer buf_;
 
   public:
-    ArrayRowIndexImpl(arr32_t&& indices, bool sorted);
-    ArrayRowIndexImpl(arr64_t&& indices, bool sorted);
     ArrayRowIndexImpl(Buffer&& buf, int flags);
     ArrayRowIndexImpl(const Column&);
 
