@@ -82,6 +82,10 @@ RowIndex::RowIndex(arr64_t&& arr, bool sorted) {
   impl = (new ArrayRowIndexImpl(std::move(arr), sorted))->acquire();
 }
 
+RowIndex::RowIndex(Buffer&& buf, int flags) {
+  impl = (new ArrayRowIndexImpl(std::move(buf), flags))->acquire();
+}
+
 RowIndex::RowIndex(const Column& col) {
   impl = (new ArrayRowIndexImpl(col))->acquire();
 }

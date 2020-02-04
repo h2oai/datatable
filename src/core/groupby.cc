@@ -81,6 +81,11 @@ const int32_t* Groupby::offsets_r() const {
 }
 
 
+Buffer Groupby::offsets_buffer() const {
+  return Buffer(offsets_);
+}
+
+
 size_t Groupby::last_offset() const noexcept {
   const int32_t* offs = offsets_r();
   return offs? static_cast<size_t>(offs[ngroups_]) : 0;

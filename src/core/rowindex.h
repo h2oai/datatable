@@ -49,6 +49,9 @@ class RowIndex {
     static constexpr int32_t NA_ARR32 = INT32_MIN;
     static constexpr int64_t NA_ARR64 = INT64_MIN;
     static constexpr size_t MAX = size_t(-1) >> 1;
+    static constexpr int ARR32 = 1;
+    static constexpr int ARR64 = 2;
+    static constexpr int SORTED = 4;
     static_assert(int32_t(size_t(NA_ARR32)) == NA_ARR32, "Bad NA_ARR32");
     static_assert(int64_t(size_t(NA_ARR64)) == NA_ARR64, "Bad NA_ARR64");
 
@@ -65,6 +68,7 @@ class RowIndex {
      */
     RowIndex(arr32_t&& arr, bool sorted = false);
     RowIndex(arr64_t&& arr, bool sorted = false);
+    RowIndex(Buffer&& buf, int flags);
 
     /**
      * Construct a "slice" RowIndex from triple `(start, count, step)`.

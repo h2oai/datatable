@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -562,7 +562,8 @@ class SortContext {
 
   RowIndex get_result_rowindex() {
     auto data = static_cast<int32_t*>(container_o.release());
-    return RowIndex(arr32_t(n, data, true));
+    return RowIndex(Buffer::acquire(data, n * sizeof(int32_t)),
+                    RowIndex::ARR32);
   }
 
   Groupby extract_groups() {
@@ -1351,9 +1352,9 @@ RiGb group(const std::vector<Column>& columns,
     return result;
   }
   if (nrows == 1) {
-    arr32_t indices(nrows);
-    indices[0] = 0;
-    result.first = RowIndex(std::move(indices), true);
+    Buffer buf = Buffer::mem(sizeof(int32_t));
+    buf.set_element<int32_t>(0, 0);
+    result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
     result.second = Groupby::single_group(nrows);
     return result;
   }

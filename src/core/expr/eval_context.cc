@@ -121,11 +121,11 @@ const RowIndex& EvalContext::get_group_rowindex() {
   if (!group_rowindex_) {
     size_t n = groupby_.size();
     if (n == 1 && groupby_.last_offset() == 0) n = 0;
-    // TODO: when RowIndex supports Buffers, this could be replaced by a
-    //       simple buffer copy from groupby_ into the RowIndex
-    arr32_t offsets(n);
-    std::memcpy(offsets.data(), groupby_.offsets_r(), n * sizeof(int32_t));
-    group_rowindex_ = RowIndex(std::move(offsets), true);
+    // groupby's buffer has n+1 elements, so we need to create a view
+    group_rowindex_ = RowIndex(Buffer::view(groupby_.offsets_buffer(),
+                                            n * sizeof(int32_t), 0),
+                               RowIndex::ARR32|RowIndex::SORTED);
+    xassert(group_rowindex_.size() == n);
   }
   return group_rowindex_;
 }

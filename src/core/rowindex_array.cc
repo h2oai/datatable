@@ -66,6 +66,19 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(arr64_t&& array, bool sorted) {
 }
 
 
+ArrayRowIndexImpl::ArrayRowIndexImpl(Buffer&& buffer, int flags) {
+  bool arr32 = flags & RowIndex::ARR32;
+  bool arr64 = flags & RowIndex::ARR64;
+  xassert(arr32 == !arr64);
+  type = arr32? RowIndexType::ARR32 : RowIndexType::ARR64;
+  ascending = bool(flags & RowIndex::SORTED);
+  length = buffer.size() / (arr64? 8 : 4);
+  buf_ = std::move(buffer);
+  set_min_max();
+  test(this);
+}
+
+
 ArrayRowIndexImpl::ArrayRowIndexImpl(const Column& col) {
   ascending = false;
   switch (col.stype()) {

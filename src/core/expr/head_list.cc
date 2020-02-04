@@ -222,7 +222,8 @@ static RowIndex _evaluate_i_bools(const vecExpr& inputs, EvalContext& ctx) {
         << "The length of boolean list in i selector does not match the "
            "number of rows in the Frame: " << inputs.size() << " vs " << nrows;
   }
-  arr32_t data(nrows);
+  Buffer databuf = Buffer::mem(nrows * sizeof(int32_t));
+  auto data = static_cast<int32_t*>(databuf.xptr());
   size_t data_index = 0;
   for (size_t i = 0; i < nrows; ++i) {
     if (inputs[i].get_expr_kind() != Kind::Bool) {
@@ -235,14 +236,15 @@ static RowIndex _evaluate_i_bools(const vecExpr& inputs, EvalContext& ctx) {
       data[data_index++] = static_cast<int32_t>(i);
     }
   }
-  data.resize(data_index);
-  return RowIndex(std::move(data), /*sorted=*/true);
+  databuf.resize(data_index * sizeof(int32_t));
+  return RowIndex(std::move(databuf), RowIndex::ARR32|RowIndex::SORTED);
 }
 
 
 static RowIndex _evaluate_i_ints(const vecExpr& inputs, EvalContext& ctx) {
   auto inrows = static_cast<int64_t>(ctx.nrows());
-  arr32_t data(inputs.size());
+  Buffer databuf = Buffer::mem(inputs.size() * sizeof(int32_t));
+  int32_t* data = static_cast<int32_t*>(databuf.xptr());
   size_t data_index = 0;
   for (size_t i = 0; i < inputs.size(); ++i) {
     auto ikind = inputs[i].get_expr_kind();
@@ -263,8 +265,8 @@ static RowIndex _evaluate_i_ints(const vecExpr& inputs, EvalContext& ctx) {
           << " at index " << i << " in the i-selector list";
     }
   }
-  data.resize(data_index);
-  return RowIndex(std::move(data), /*sorted=*/false);
+  databuf.resize(data_index * sizeof(int32_t));
+  return RowIndex(std::move(databuf), RowIndex::ARR32);
 }
 
 
