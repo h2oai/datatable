@@ -19,14 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <algorithm>           // std::min, std::swap, std::move
-#include <cstdlib>             // std::memcpy
-#include <limits>              // std::numeric_limits
-#include "parallel/api.h"      // nested_for_static
+#include <algorithm>             // std::min, std::swap, std::move
+#include <cstdlib>               // std::memcpy
+#include <limits>                // std::numeric_limits
+#include "column/sentinel_fw.h"  // SentinelFw_ColumnImpl
+#include "parallel/api.h"        // nested_for_static
 #include "parallel/atomic.h"
-#include "utils/exceptions.h"  // ValueError, RuntimeError
+#include "utils/exceptions.h"    // ValueError, RuntimeError
 #include "utils/assert.h"
-#include "column.h"            // Column
+#include "column.h"              // Column
 #include "rowindex_impl.h"
 
 #ifndef NDEBUG
@@ -221,6 +222,15 @@ const int32_t* ArrayRowIndexImpl::indices32() const noexcept {
 }
 const int64_t* ArrayRowIndexImpl::indices64() const noexcept {
   return static_cast<const int64_t*>(buf_.rptr());
+}
+
+
+Column ArrayRowIndexImpl::as_column() const {
+  if (type == RowIndexType::ARR32) {
+    return Column(new dt::SentinelFw_ColumnImpl<int32_t>(length, Buffer(buf_)));
+  } else {
+    return Column(new dt::SentinelFw_ColumnImpl<int64_t>(length, Buffer(buf_)));
+  }
 }
 
 

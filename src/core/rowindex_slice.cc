@@ -20,10 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>           // std::swap, std::move
-#include "rowindex.h"
-#include "rowindex_impl.h"
+#include "column/range.h"
 #include "utils/assert.h"      // xassert
 #include "utils/exceptions.h"  // ValueError, RuntimeError
+#include "rowindex.h"
+#include "rowindex_impl.h"
 
 
 
@@ -71,6 +72,12 @@ bool SliceRowIndexImpl::get_element(size_t i, size_t* out) const {
   return true;
 }
 
+
+Column SliceRowIndexImpl::as_column() const {
+  return Column(new dt::Range_ColumnImpl(static_cast<int64_t>(start),
+                                         static_cast<int64_t>(length),
+                                         static_cast<int64_t>(step)));
+}
 
 
 RowIndexImpl* SliceRowIndexImpl::uplift_from(const RowIndexImpl* rii) const {
