@@ -144,17 +144,18 @@ static void _init_options()
               : py::oint(display_max_column_width);
     },
     [](const py::Arg& value) {
+      const int max_column_width_limit = 2;
       if (value.is_none()) {
         display_max_column_width = MAX_int;
       } else {
         int n = value.to_int32_strict();
 
-        if (n < 2) {
+        if (n < max_column_width_limit) {
           throw ValueError() << "The smalled allowed value for `max_column_width`"
-            << " is 2, got: " << n;
+            << " is " << max_column_width_limit << ", got: " << n;
         }
 
-        display_max_column_width = (n < 0)? MAX_int : std::max(n, 2);
+        display_max_column_width = n;
       }
     },
     "A column's name or values that exceed `max_column_width` in size\n"
