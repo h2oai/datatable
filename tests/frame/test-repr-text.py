@@ -654,8 +654,6 @@ def test_max_width_invalid():
 def test_max_width_none():
     with dt.options.display.context(max_column_width=None):
         assert dt.options.display.max_column_width is None
-        dt.options.display.max_column_width = -1
-        assert dt.options.display.max_column_width is None
         DT = dt.Frame(Long=["a" * 12321])
         assert str(DT) == (
             "   | Long" + " "*12317 + "\n" +
