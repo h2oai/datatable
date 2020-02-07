@@ -144,18 +144,25 @@ static void _init_options()
               : py::oint(display_max_column_width);
     },
     [](const py::Arg& value) {
+      const int max_column_width_limit = 2;
       if (value.is_none()) {
         display_max_column_width = MAX_int;
       } else {
         int n = value.to_int32_strict();
-        display_max_column_width = (n < 0)? MAX_int : std::max(n, 2);
+
+        if (n < max_column_width_limit) {
+          throw ValueError() << "The smallest allowed value for `max_column_width`"
+            << " is " << max_column_width_limit << ", got: " << n;
+        }
+
+        display_max_column_width = n;
       }
     },
     "A column's name or values that exceed `max_column_width` in size\n"
     "will be truncated. This option applies both to rendering a frame\n"
     "in a terminal, and to rendering in a Jupyter notebook. The\n"
     "smallest allowed `max_column_width` is 2.\n"
-    "Setting the value to `None` (or negative) indicates that the\n"
+    "Setting the value to `None` indicates that the\n"
     "column's content should never be truncated.\n"
   );
 }
