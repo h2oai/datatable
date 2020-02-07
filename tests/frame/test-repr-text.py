@@ -598,7 +598,7 @@ def test_max_width1():
     DT = dt.Frame(A=['foo', None, 'z'])
     with dt.options.display.context(max_column_width=2):
         assert dt.options.display.max_column_width == 2
-        with pytest.raises(ValueError, match = "The smalled allowed value for "
+        with pytest.raises(ValueError, match = "The smallest allowed value for "
                                        "`max_column_width` is 2, got: 0"):
             dt.options.display.max_column_width = 0
 

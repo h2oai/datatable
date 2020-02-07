@@ -151,7 +151,7 @@ static void _init_options()
         int n = value.to_int32_strict();
 
         if (n < max_column_width_limit) {
-          throw ValueError() << "The smalled allowed value for `max_column_width`"
+          throw ValueError() << "The smallest allowed value for `max_column_width`"
             << " is " << max_column_width_limit << ", got: " << n;
         }
 
