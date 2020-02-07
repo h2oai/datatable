@@ -53,7 +53,7 @@ class Terminal {
     bool is_jupyter_;
     bool is_ipython_;
     bool is_plain_;
-    int : 16;
+    int : 8;
 
   public:
     static Terminal& standard_terminal();
