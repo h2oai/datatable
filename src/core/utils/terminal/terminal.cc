@@ -156,11 +156,9 @@ bool Terminal::unicode_allowed() const noexcept {
 
 
 TerminalSize Terminal::get_size() {
-  #if DT_OS_WINDOWS
-    if (!is_plain_) _detect_window_size();
-  #else
-    if (!size_.width || !size_.height) _detect_window_size();
-  #endif
+  if (!is_plain_ && (DT_OS_WINDOWS || size_.width == 0)) {
+    _detect_window_size();
+  }
   return size_;
 }
 
