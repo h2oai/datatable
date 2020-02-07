@@ -708,7 +708,7 @@ def test_encoding_autodetection(tempfile):
     # datatable can detect it and set display.allow_unicode option
     # to False automatically.
     cmd = ("import sys; " +
-           "sys.stdout = open('%s', 'w', encoding='ascii'); " % tempfile +
+           "sys.stdout = open(r'%s', 'w', encoding='ascii'); " % tempfile +
            "import datatable as dt; " +
            "assert dt.options.display.allow_unicode is False; " +
            "DT = dt.Frame(A=['\\u2728']); " +
