@@ -596,9 +596,12 @@ def test_max_width_colored(capsys, uni):
 
 def test_max_width1():
     DT = dt.Frame(A=['foo', None, 'z'])
-    with dt.options.display.context(max_column_width=1):
+    with dt.options.display.context(max_column_width=2):
         assert dt.options.display.max_column_width == 2
-        dt.options.display.max_column_width = 0
+        with pytest.raises(ValueError, match = "The smallest allowed value for "
+                                       "`max_column_width` is 2, got: 0"):
+            dt.options.display.max_column_width = 0
+
         assert dt.options.display.max_column_width == 2
         assert str(DT) == (
             "   | A \n"
@@ -654,8 +657,6 @@ def test_max_width_invalid():
 def test_max_width_none():
     with dt.options.display.context(max_column_width=None):
         assert dt.options.display.max_column_width is None
-        dt.options.display.max_column_width = -1
-        assert dt.options.display.max_column_width is None
         DT = dt.Frame(Long=["a" * 12321])
         assert str(DT) == (
             "   | Long" + " "*12317 + "\n" +
@@ -707,7 +708,7 @@ def test_encoding_autodetection(tempfile):
     # datatable can detect it and set display.allow_unicode option
     # to False automatically.
     cmd = ("import sys; " +
-           "sys.stdout = open('%s', 'w', encoding='ascii'); " % tempfile +
+           "sys.stdout = open(r'%s', 'w', encoding='ascii'); " % tempfile +
            "import datatable as dt; " +
            "assert dt.options.display.allow_unicode is False; " +
            "DT = dt.Frame(A=['\\u2728']); " +

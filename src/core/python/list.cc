@@ -8,6 +8,7 @@
 #include "python/list.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include "utils/macros.h"
 
 namespace py {
 

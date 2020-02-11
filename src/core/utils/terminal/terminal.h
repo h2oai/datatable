@@ -52,7 +52,8 @@ class Terminal {
     bool enable_keyboard_;
     bool is_jupyter_;
     bool is_ipython_;
-    int : 16;
+    bool is_plain_;
+    int : 8;
 
   public:
     static Terminal& standard_terminal();

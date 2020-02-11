@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_MACROS_h
 #define dt_UTILS_MACROS_h
+#include <climits>
 #include <utility>  // std::move
 
 
@@ -145,6 +146,18 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
   cache_aligned(T&& v_) : v(std::move(v_)) {}
 };
 
+
+//------------------------------------------------------------------------------
+// Types
+//------------------------------------------------------------------------------
+
+#if LONG_MAX==9223372036854775807
+  #define DT_TYPE_LONG64 1
+#elif LLONG_MAX==9223372036854775807
+  #define DT_TYPE_LONG64 0
+#else
+  #error "Cannot determine size of `long`"
+#endif
 
 
 #endif

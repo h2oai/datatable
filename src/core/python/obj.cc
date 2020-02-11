@@ -30,6 +30,7 @@
 #include "python/list.h"
 #include "python/obj.h"
 #include "python/string.h"
+#include "utils/macros.h"
 
 namespace py {
 static PyObject* pandas_DataFrame_type = nullptr;
@@ -353,7 +354,7 @@ bool _parse_int(PyObject* v, T* out) {
   return false;
 }
 
-#if LONG_MAX != 9223372036854775807
+#if !DT_TYPE_LONG64
   template <>
   bool _parse_int(PyObject* v, int64_t* out) {
     static_assert(sizeof(int64_t) <= sizeof(long long), "Wrong size of long long");
@@ -523,7 +524,11 @@ int64_t _obj::to_int64(const error_manager& em) const {
   if (is_none()) return GETNA<int64_t>();
   if (PyLong_Check(v)) {
     int overflow;
-    long value = PyLong_AsLongAndOverflow(v, &overflow);
+    #if DT_TYPE_LONG64
+      long value = PyLong_AsLongAndOverflow(v, &overflow);
+    #else
+      long long value = PyLong_AsLongLongAndOverflow(v, &overflow);
+    #endif
     int64_t res = static_cast<int64_t>(value);
     if (overflow ) {
       res = overflow == 1 ? MAX : -MAX;
@@ -542,7 +547,11 @@ int64_t _obj::to_int64_strict(const error_manager& em) const {
     throw em.error_not_integer(v);
   }
   int overflow;
-  long value = PyLong_AsLongAndOverflow(v, &overflow);
+  #if DT_TYPE_LONG64
+    long value = PyLong_AsLongAndOverflow(v, &overflow);
+  #else
+    long long value = PyLong_AsLongLongAndOverflow(v, &overflow);
+  #endif
   if (overflow) {
     throw em.error_int64_overflow(v);
   }
