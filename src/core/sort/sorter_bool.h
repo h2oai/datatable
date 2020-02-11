@@ -34,6 +34,7 @@ namespace sort {
 template <typename TO>
 class Sorter_Bool : public Sorter<TO> {
   private:
+    using Sorter<TO>::nrows_;
     Column column_;
 
   public:
@@ -51,7 +52,7 @@ class Sorter_Bool : public Sorter<TO> {
     }
 
     void insert_sort(array<TO> ordering_out) const override {
-      ::insert_sort(ordering_out,
+      dt::sort::insert_sort(ordering_out,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);
@@ -66,7 +67,7 @@ class Sorter_Bool : public Sorter<TO> {
         [&](size_t i) {  // get_radix
           int8_t ivalue;
           bool ivalid = column_.get_element(i, &ivalue);
-          return static_cast<size_t>(isvalid * (value + 1));
+          return static_cast<size_t>(ivalid * (ivalue + 1));
         });
     }
 

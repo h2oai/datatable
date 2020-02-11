@@ -40,14 +40,15 @@ class array {
     size_t size;
 
   public:
+    array() : ptr(nullptr), size(0) {}
     array(T* p, size_t n) : ptr(p), size(n) {}
     array(const array&) = default;
     array& operator=(const array&) = default;
 
     array(const Buffer& buf)
-      : ptr(static_cast<TH*>(buf.xptr())),
-        size(buf.size() / sizeof(TH))
-    { xassert(buf.size() % sizeof(TH) == 0); }
+      : ptr(static_cast<T*>(buf.xptr())),
+        size(buf.size() / sizeof(T))
+    { xassert(buf.size() % sizeof(T) == 0); }
 };
 
 

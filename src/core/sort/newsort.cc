@@ -27,6 +27,7 @@
 #include "sort/common.h"       // array
 #include "sort/insert-sort.h"  // insert_sort
 #include "sort/radixsort.h"    // RadixSort
+#include "sort/sorter_bool.h"  // Sorter_Bool
 #include "utils/assert.h"      // xassert
 #include "utils/misc.h"        // dt::nlz
 #include "buffer.h"            // Buffer
@@ -82,8 +83,10 @@ class SorterColumn {
     template <typename TO>
     void radix_sort(array<TO> ordering_out, bool allow_parallel)
     {
-      RadixSort rdx(get_nrows(), get_n_radix_bits(), allow_parallel);
-      array<TO> group_offsets = rdx.sort_by_radix(ordering_out, n);
+      (void) ordering_out;
+      (void) allow_parallel;
+      // RadixSort rdx(get_nrows(), get_n_radix_bits(), allow_parallel);
+      // array<TO> group_offsets = rdx.sort_by_radix(ordering_out, n);
 
       // if (has_more_radix_bits()) {
       //   size_t* group_offsets = histogram + (n_chunks_ - 1) * nradixes_;
@@ -112,17 +115,17 @@ class SorterColumn {
     }
 
 
-    template <typename TO>
-    void reorder_indices(TO* indices, size_t n, TO* order) {
-      dt::parallel_for_static(n,
-        [&](size_t i) {
-          order[i] = indices[order[i]];
-        });
-      dt::parallel_for_static(n,
-        [&](size_t i) {
-          indices[i] = order[i];
-        })
-    }
+    // template <typename TO>
+    // void reorder_indices(TO* indices, size_t n, TO* order) {
+    //   dt::parallel_for_static(n,
+    //     [&](size_t i) {
+    //       order[i] = indices[order[i]];
+    //     });
+    //   dt::parallel_for_static(n,
+    //     [&](size_t i) {
+    //       indices[i] = order[i];
+    //     });
+    // }
 
 
   protected:
@@ -138,10 +141,6 @@ class SorterColumn {
       */
     virtual void sort_small(array<int32_t> ordering_out) const = 0;
 
-    template <typename TO>
-    virtual void sort_small(size_t offset,
-                            array<TO> ordering_in,
-                            array<TO> ordering_out) const = 0;
 
     /**
       * Return the number of bits this column should use for the radix
@@ -190,7 +189,7 @@ class Boolean_SorterColumn : public SorterColumn {
     }
 
     void sort_small(array<int32_t> ordering_out) const override {
-      dt::sort::simple_sort(ordering_out.ptr, get_nrows(),
+      dt::sort::small_sort(array<int32_t>(), ordering_out,
         [&](size_t i, size_t j) {
           int8_t ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);
@@ -202,9 +201,9 @@ class Boolean_SorterColumn : public SorterColumn {
     template <typename TO>
     void sort_small(size_t offset,
                     array<TO> ordering_in,
-                    array<TO> ordering_out) const override
+                    array<TO> ordering_out) const
     {
-      dt::sort::simple_sort(ordering_in, ordering_out,
+      dt::sort::small_sort(ordering_in, ordering_out,
         [&](size_t i, size_t j) {
           int8_t ivalue, jvalue;
           bool ivalid = column_.get_element(i + offset, &ivalue);
@@ -301,7 +300,7 @@ oobj Frame::newsort(const PKArgs&) {
   xassert(dt->nrows() > 1);
 
   const Column& col0 = dt->get_column(0);
-  auto sorter = dt::_make_sorter_column(col0);
+  auto sorter = dt::sort::_make_sorter_column(col0);
   auto rowindex = sorter->sort();
   Column ricol = rowindex.as_column(dt->nrows());
   return py::Frame::oframe(new DataTable({std::move(ricol)}, {"order"}));

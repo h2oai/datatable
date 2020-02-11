@@ -21,7 +21,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_RADIXSORT_h
 #define dt_SORT_RADIXSORT_h
+#include <functional>        // std::function
 #include <tuple>             // std::tuple
+#include <type_traits>       // std::is_convertible
 #include "parallel/api.h"    // num_threads_in_pool, parallel_for_static
 #include "sort/common.h"
 #include "utils/assert.h"    // xassert
@@ -45,90 +47,143 @@ inline T divceil(T a, T b) {
   * directly (not encapsulated).
   */
 class RadixSort {
-  public:
-    size_t n_radixes;
-    size_t n_radix_bits;
-    size_t n_rows;
-    size_t n_chunks;
-    size_t n_rows_per_chunk;
-    Buffer histogram_buffer;
+  private:
+    size_t n_radixes_;
+    size_t n_rows_;
+    size_t n_chunks_;
+    size_t n_rows_per_chunk_;
+    Buffer histogram_buffer_;
 
   public:
-    RadixConfig(size_t nrows, int nrb, bool allow_parallel) {
+    RadixSort(size_t nrows, int nrb, bool allow_parallel) {
       xassert(nrb > 0 && nrb <= 20);
-      n_radixes = (1u << nrb) + 1;
-      n_radix_bits = static_cast<size_t>(nrb);
-      n_rows = nrows;
-      n_chunks = 1;
+      n_radixes_ = (1u << nrb) + 1;
+      n_rows_ = nrows;
+      // If `allow_parallel` is false, then setting `n_chunks_` to 1
+      // will ensure that the parallel constructs such as
+      // dt::parallel_for_static will not actually spawn a parallel
+      // region.
+      n_chunks_ = 1;
       if (allow_parallel) {
         xassert(dt::num_threads_in_team() == 0);
-        n_chunks = std::min(dt::num_threads_in_pool(),
+        n_chunks_ = std::min(dt::num_threads_in_pool(),
                             divceil(nrows, MIN_NROWS_PER_THREAD));
       }
-      n_rows_per_chunk = divceil(nrows, n_chunks);
+      n_rows_per_chunk_ = divceil(nrows, n_chunks_);
     }
 
 
-    template <typename TO, typename F>
-    array<TO> sort_by_radix(array<TO> ordering_out, F fn_get_radix) {
-      xassert(ordering_out.size == n_rows);
-      auto histogram = allocate_histogram<TO>();
-      build_histogram(histogram, fn_get_radix);
-      reorder_data(histogram, ordering_out, fn_get_radix);
-      return array<TO>(histogram + (n_chunks - 1) * n_radixes, n_radixes);
+    /**
+      * .sort_by_radix(ordering_out, get_radix[, move_data])
+      *
+      * First step of the radix-sort algorithm. In this sort we take
+      * the input data (given indirectly via `get_radix()`) and
+      * sort it according to their radixes. The ordering is written
+      * into `ordering_out`.
+      *
+      * The return value is the "grouping" array, i.e. the array of
+      * offsets (within the `ordering_out` array) that define the
+      * groups of data. Some of those groups may be empty. The size
+      * of the grouping array is equal to the number of radixes, and
+      * its lifetime is tied to the lifetime of the RadixSort object.
+      *
+      * The function `get_radix` has the signature `(size_t)->size_t`,
+      * it takes an index as an argument, and must return the radix
+      * of the value at that index. The value of the radix cannot
+      * exceed `1 << nradixbits` (though it can be equal).
+      *
+      * The optional argument `move_data` is a function with a
+      * signature `(size_t, size_t)->void`. This function will be
+      * called once for every input observation, with two arguments:
+      * the index of an input observation, and the index of the same
+      * observation in the sorted sequence. The caller can use this
+      * to store the sorted data.
+      */
+    template <typename TO, typename GetRadix>
+    array<TO> sort_by_radix(array<TO> ordering_out, GetRadix get_radix) {
+      static_assert(
+        std::is_convertible<GetRadix, std::function<size_t(size_t)>>::value,
+        "Incorrect signature of get_radix function");
+      xassert(ordering_out.size == n_rows_);
+
+      array<TO> histogram = allocate_histogram<TO>();
+      build_histogram(histogram, get_radix);
+      reorder_data(histogram, ordering_out, get_radix, [](size_t, size_t){});
+      return array<TO>(histogram + (n_chunks_ - 1) * n_radixes_, n_radixes_);
+    }
+
+    template <typename TO, typename GetRadix, typename MoveData>
+    array<TO> sort_by_radix(array<TO> ordering_out,
+                            GetRadix get_radix,
+                            MoveData move_data = [](size_t, size_t){})
+    {
+      static_assert(
+        std::is_convertible<GetRadix, std::function<size_t(size_t)>>::value,
+        "Incorrect signature of get_radix function");
+      static_assert(
+        std::is_convertible<MoveData, std::function<void(size_t,size_t)>>::value,
+        "Incorrect signature of move_data function");
+      xassert(ordering_out.size == n_rows_);
+
+      array<TO> histogram = allocate_histogram<TO>();
+      build_histogram(histogram, get_radix);
+      reorder_data(histogram, ordering_out, get_radix, move_data);
+      return array<TO>(histogram + (n_chunks_ - 1) * n_radixes_, n_radixes_);
     }
 
 
+  //----------------------------------------------------------------------------
+  // Private implementation
+  //----------------------------------------------------------------------------
   private:
     std::tuple<size_t, size_t> get_chunk(size_t i) const {
-      xassert(i < n_chunks);
-      size_t start = i * n_rows_per_chunk;
-      size_t end = start + n_rows_per_chunk;
-      if (i == n_chunks - 1) end = n_rows;
+      xassert(i < n_chunks_);
+      size_t start = i * n_rows_per_chunk_;
+      size_t end = start + n_rows_per_chunk_;
+      if (i == n_chunks_ - 1) end = n_rows_;
       return std::make_tuple(start, end);
+    }
+
+    template <typename TH>
+    array<TH> allocate_histogram() {
+      xassert(n_rows_ <= MAX_NROWS_INT32 || sizeof(TH) == 8);
+      histogram_buffer_.resize(n_chunks_ * n_radixes_ * sizeof(TH), false);
+      return array<TH>(histogram_buffer_);
     }
 
     /**
       * Calculate the histograms of radixes in the column being
       * sorted.
-      * Specifically, we're creating the `histogram_` table which has
-      * `ndata_chunks_` rows and `nradix` columns. Cell `[i,j]` in
-      * this table will contain the count of radixes `j` within the
-      * chunk `i`. After that the values are cumulated across all
-      * `j`s (i.e. in the end the histogram will contain cumulative
-      * counts of values in the sorted column).
+      * Specifically, we're creating the `histogram` table which has
+      * `n_chunks_` rows and `n_radixes_` columns. Cell [i,j] in this
+      * table will contain the count of radixes `j` within the chunk
+      * `i`. After that the values are cumulated across all `j`s
+      * (i.e. in the end the histogram will contain cumulative counts
+      * of values in the sorted column).
       */
-    template <typename TH, typename F>
-    void build_histogram(array<TH> histogram, F fn_get_radix) {
+    template <typename TH, typename GetRadix>
+    void build_histogram(array<TH> histogram, GetRadix get_radix) {
       dt::parallel_for_static(
-        n_chunks,          // n iterations
+        n_chunks_,          // n iterations
         dt::ChunkSize(1),  // each iteration processed individually
         [&](size_t i) {
-          TH* tcounts = histogram.ptr + (n_radixes * i);
+          TH* tcounts = histogram.ptr + (n_radixes_ * i);
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
           for (size_t j = j0; j < j1; ++j) {
-            size_t radix = fn_get_radix(j);
-            xassert(radix < n_radixes);
+            size_t radix = get_radix(j);
+            xassert(radix < n_radixes_);
             tcounts[radix]++;
           }
         });
-      cumulate_histogram(histogram);
-    }
-
-    template <typename TH>
-    array<TH> allocate_histogram() {
-      xassert(nrows <= MAX_NROWS_INT32 || sizeof(TH) == 8);
-      size_t histogram_size = n_chunks * n_radixes;
-      histogram_buffer.resize(histogram_size * sizeof(TH), false);
-      return array<TH>(histogram_buffer);
+      cumulate_histogram<TH>(histogram);
     }
 
     template <typename TH>
     void cumulate_histogram(array<TH> histogram) {
       size_t cumsum = 0;
-      size_t histogram_size = n_chunks * n_radixes;
-      for (size_t j = 0; j < n_radixes; ++j) {
-        for (size_t r = j; r < histogram_size; r += n_radixes) {
+      size_t histogram_size = n_chunks_ * n_radixes_;
+      for (size_t j = 0; j < n_radixes_; ++j) {
+        for (size_t r = j; r < histogram_size; r += n_radixes_) {
           auto t = histogram.ptr[r];
           histogram.ptr[r] = cumsum;
           cumsum += t;
@@ -138,25 +193,28 @@ class RadixSort {
 
 
 
-    template<typename TH, typename TO, typename F>
-    void reorder_data(array<TH> histogram, array<TO> ordering_out,
-                      F fn_get_radix)
+    template<typename TH, typename TO, typename GetRadix, typename MoveData>
+    void reorder_data(array<TH> histogram,
+                      array<TO> ordering_out,
+                      GetRadix get_radix,
+                      MoveData move_data)
     {
-      xassert(ordering_out.size == n_rows);
+      xassert(ordering_out.size == n_rows_);
       dt::parallel_for_static(
-        n_chunks,
+        n_chunks_,
         dt::ChunkSize(1),
         [&](size_t i) {
-          TH* tcounts = histogram.ptr + (n_radixes * i);
+          TH* tcounts = histogram.ptr + (n_radixes_ * i);
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
           for (size_t j = j0; j < j1; ++j) {
-            size_t radix = fn_get_radix(j);
-            size_t k = tcounts[radix]++;
-            xassert(k < n_rows);
+            size_t radix = get_radix(j);
+            TH k = tcounts[radix]++;
+            xassert(k < n_rows_);
             ordering_out.ptr[k] = static_cast<TO>(j);
+            move_data(j, k);
           }
         });
-      xassert(histogram.ptr[n_chunks * n_radixes - 1] == n_rows);
+      xassert(histogram.ptr[histogram.size - 1] == n_rows_);
     }
 
 
