@@ -109,7 +109,7 @@ class RadixSort {
       array<TO> histogram = allocate_histogram<TO>();
       build_histogram(histogram, get_radix);
       reorder_data(histogram, ordering_out, get_radix, [](size_t, size_t){});
-      return array<TO>(histogram + (n_chunks_ - 1) * n_radixes_, n_radixes_);
+      return array<TO>(histogram.ptr + (n_chunks_ - 1) * n_radixes_, n_radixes_);
     }
 
     template <typename TO, typename GetRadix, typename MoveData>
@@ -128,7 +128,19 @@ class RadixSort {
       array<TO> histogram = allocate_histogram<TO>();
       build_histogram(histogram, get_radix);
       reorder_data(histogram, ordering_out, get_radix, move_data);
-      return array<TO>(histogram + (n_chunks_ - 1) * n_radixes_, n_radixes_);
+      return array<TO>(histogram.ptr + (n_chunks_ - 1) * n_radixes_, n_radixes_);
+    }
+
+    template <typename TO, typename SortSubgroup>
+    void sort_subgroups(array<TO> groups,
+                        array<TO> ordering_in,
+                        array<TO> ordering_out,
+                        SortSubgroup sort_subgroup)
+    {
+      (void) groups;
+      (void) ordering_in;
+      (void) ordering_out;
+      (void) sort_subgroup;
     }
 
 
@@ -184,9 +196,9 @@ class RadixSort {
       size_t histogram_size = n_chunks_ * n_radixes_;
       for (size_t j = 0; j < n_radixes_; ++j) {
         for (size_t r = j; r < histogram_size; r += n_radixes_) {
-          auto t = histogram.ptr[r];
-          histogram.ptr[r] = cumsum;
-          cumsum += t;
+          TH t = histogram.ptr[r];
+          histogram.ptr[r] = static_cast<TH>(cumsum);
+          cumsum += static_cast<size_t>(t);
         }
       }
     }
@@ -209,12 +221,12 @@ class RadixSort {
           for (size_t j = j0; j < j1; ++j) {
             size_t radix = get_radix(j);
             TH k = tcounts[radix]++;
-            xassert(k < n_rows_);
+            xassert(static_cast<size_t>(k) < n_rows_);
             ordering_out.ptr[k] = static_cast<TO>(j);
-            move_data(j, k);
+            move_data(j, static_cast<size_t>(k));
           }
         });
-      xassert(histogram.ptr[histogram.size - 1] == n_rows_);
+      xassert(static_cast<size_t>(histogram.ptr[histogram.size - 1]) == n_rows_);
     }
 
 

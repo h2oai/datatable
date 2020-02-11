@@ -28,6 +28,7 @@
 #include "sort/insert-sort.h"  // insert_sort
 #include "sort/radix-sort.h"   // RadixSort
 #include "sort/sorter_bool.h"  // Sorter_Bool
+#include "sort/sorter_int.h"   // Sorter_Int
 #include "utils/assert.h"      // xassert
 #include "utils/misc.h"        // dt::nlz
 #include "buffer.h"            // Buffer
@@ -275,10 +276,15 @@ class Integer_SorterColumn : public SorterColumn {
 
 
 
-using sortcolPtr = std::unique_ptr<SorterColumn>;
-static sortcolPtr _make_sorter_column(const Column& col) {
+using sorterPtr = std::unique_ptr<SorterInterface>;
+template <typename TO>
+static sorterPtr _make_sorter(const Column& col) {
   switch (col.stype()) {
-    case SType::BOOL: return sortcolPtr(new Boolean_SorterColumn(col));
+    case SType::BOOL:  return sorterPtr(new Sorter_Bool<TO>(col));
+    case SType::INT8:  return sorterPtr(new Sorter_Int<TO, int8_t>(col));
+    case SType::INT16: return sorterPtr(new Sorter_Int<TO, int16_t>(col));
+    case SType::INT32: return sorterPtr(new Sorter_Int<TO, int32_t>(col));
+    case SType::INT64: return sorterPtr(new Sorter_Int<TO, int64_t>(col));
     default: throw TypeError() << "Cannot sort column of type " << col.stype();
   }
 }
@@ -300,9 +306,12 @@ oobj Frame::newsort(const PKArgs&) {
   xassert(dt->nrows() > 1);
 
   const Column& col0 = dt->get_column(0);
-  auto sorter = dt::sort::_make_sorter_column(col0);
+  size_t n = dt->nrows();
+  auto sorter = (n <= dt::sort::MAX_NROWS_INT32)
+      ? dt::sort::_make_sorter<int32_t>(col0)
+      : dt::sort::_make_sorter<int64_t>(col0);
   auto rowindex = sorter->sort();
-  Column ricol = rowindex.as_column(dt->nrows());
+  Column ricol = rowindex.as_column(n);
   return py::Frame::oframe(new DataTable({std::move(ricol)}, {"order"}));
 }
 

@@ -52,7 +52,7 @@ class Sorter_Bool : public Sorter<TO> {
     }
 
     void insert_sort(array<TO> ordering_out) const override {
-      dt::sort::insert_sort(ordering_out,
+      dt::sort::insert_sort(array<TO>(), ordering_out,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);

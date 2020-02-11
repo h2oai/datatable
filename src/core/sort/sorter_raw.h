@@ -32,6 +32,7 @@ namespace sort {
 template <typename TO, typename TU>
 class Sorter_Raw : public Sorter<TO> {
   private:
+    using Sorter<TO>::nrows_;
     TU* data_;        // array with nrows_ elements
     Buffer buffer_;   // owner of the data_ pointer
     int n_significant_bits_;
@@ -40,13 +41,17 @@ class Sorter_Raw : public Sorter<TO> {
   public:
   	Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
   		: Sorter<TO>(nrows),
-        data_(buf.xptr()),
+        data_(static_cast<TU*>(buf.xptr())),
   		  buffer_(std::move(buf)),
         n_significant_bits_(nbits)
   	{
   		xassert(buffer_.size() == nrows * sizeof(TU));
       xassert(nbits > 0 && nbits <= 8 * sizeof(TU));
  	  }
+
+    void sort_subgroup(size_t offset, size_t length,
+                       array<TO> ordering_in, array<TO> ordering_out)
+    {}
 
   protected:
     int compare_lge(size_t i, size_t j) const override {
@@ -55,17 +60,19 @@ class Sorter_Raw : public Sorter<TO> {
 
 
     void insert_sort(array<TO> ordering_out) const override {
-      ::insert_sort(ordering_out,
-                    [&](size_t i, size_t j){ return data_[i] < data_[j]; });
+      dt::sort::insert_sort(
+        array<TO>(),
+        ordering_out,
+        [&](size_t i, size_t j){ return data_[i] < data_[j]; });
     }
 
 
     void radix_sort(array<TO> ordering_out, bool parallel) const override {
-      RadixSort rdx(nrows_, n_radix_bits, parallel);
-      auto groups = rdx.sort_by_radix();
+      (void) ordering_out;
+      (void) parallel;
+      // RadixSort rdx(nrows_, n_radix_bits, parallel);
+      // auto groups = rdx.sort_by_radix();
     }
-
-
 
 };
 

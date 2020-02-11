@@ -21,10 +21,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_SORTER_INT_h
 #define dt_SORT_SORTER_INT_h
-#include "sort/insert-sort.h"
-#include "sort/radix-sort.h"
-#include "sort/sorter.h"
-#include "sort/sorter_uint.h"
+#include "sort/insert-sort.h"   // dt::sort::insert_sort
+#include "sort/radix-sort.h"    // RadixSort
+#include "sort/sorter.h"        // Sort
+#include "sort/sorter_raw.h"    // Sorter_Raw
+#include "utils/misc.h"         // dt::nlz
 #include "column.h"
 namespace dt {
 namespace sort {
@@ -35,10 +36,12 @@ namespace sort {
  */
 template <typename TO, typename TI>
 class Sorter_Int : public Sorter<TO> {
-  using TU = std::make_unsigned<TI>::type;
+  using TU = typename std::make_unsigned<TI>::type;
   private:
+    using Sorter<TO>::nrows_;
     Column column_;
     TI min_;
+    size_t : 64 - sizeof(TI) * 8;
 
   public:
     Sorter_Int(const Column& col)
@@ -56,7 +59,7 @@ class Sorter_Int : public Sorter<TO> {
     }
 
     void insert_sort(array<TO> ordering_out) const override {
-      ::insert_sort(ordering_out,
+      dt::sort::insert_sort(array<TO>(), ordering_out,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);
@@ -74,7 +77,8 @@ class Sorter_Int : public Sorter<TO> {
         return;
       }
 
-      int nsigbits = sizeof(TI) * 8 - dt::nlz(static_cast<TU>(max - min + 1));
+      int nsigbits = static_cast<int>(sizeof(TI) * 8) -
+                      dt::nlz(static_cast<TU>(max - min + 1));
       int nradixbits = std::min(nsigbits, 8);
       int shift = nsigbits - nradixbits;
       size_t mask = (size_t(1) << shift) - 1;
@@ -86,25 +90,28 @@ class Sorter_Int : public Sorter<TO> {
       array<TI> out_array(out_buffer);
 
       RadixSort rdx(nrows_, 1, parallel);
-      auto groups = rdx.sort_by_radix(ordering_tmp, out_array,
-        [&](size_t i, size_t* remainder) -> size_t {  // get_radix
+      auto groups = rdx.sort_by_radix(ordering_tmp,
+        [&](size_t i) -> size_t {  // get_radix
           TI value;
           bool isvalid = column_.get_element(i, &value);
-          if (!isvalid) return 0;
-          *remainder = static_cast<size_t>(value - min) & mask;
-          return 1 + (static_cast<size_t>(value - min) >> shift);
+          return isvalid? 1 + (static_cast<size_t>(value - min) >> shift) : 0;
+        },
+        [&](size_t i, size_t j) {  // move_data
+          TI value;
+          bool isvalid = column_.get_element(i, &value);
+          out_array.ptr[j] = (value - min) & mask;
         });
 
-      Sorter_UInt<TO, TU> nextcol(std::move(out_buffer), nrows_);
+      Sorter_Raw<TO, TU> nextcol(std::move(out_buffer), nrows_, shift);
       rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
         [&](size_t offset, size_t len, array<TO> ord_in, array<TO> ord_out) {
-          nextcol.sort(offset, len, ord_in, ord_out);
+          nextcol.sort_subgroup(offset, len, ord_in, ord_out);
         });
     }
 
 
   private:
-    void write_range(array<TO> ordering_out) {
+    void write_range(array<TO> ordering_out) const {
       size_t n = ordering_out.size;
       for (size_t i = 0; i < n; ++i) {
         ordering_out.ptr[i] = static_cast<TO>(i);

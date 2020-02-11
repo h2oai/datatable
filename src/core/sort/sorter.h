@@ -26,11 +26,18 @@ namespace dt {
 namespace sort {
 
 
+class SorterInterface {
+  public:
+    virtual ~SorterInterface() {}
+    virtual RowIndex sort() = 0;
+};
+
+
 /**
  * Virtual class that handles sorting of a column.
  */
 template <typename TO>
-class Sorter {
+class Sorter : public SorterInterface {
   protected:
     size_t nrows_;
 
@@ -40,11 +47,9 @@ class Sorter {
       nrows_ = n;
     }
 
-    virtual ~Sorter() {}
 
-
-    RowIndex sort() {
-      // ...
+    RowIndex sort() override {
+      return RowIndex();
     }
 
   protected:
