@@ -19,6 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+//
+// See http://quick-bench.com/gl2wXMVIU4i4eswQL2dBg2oKCZs for variations
+//
+//------------------------------------------------------------------------------
 #ifndef dt_SORT_INSERTSORT_h
 #define dt_SORT_INSERTSORT_h
 #include <algorithm>       // std::algorithm
@@ -42,10 +46,13 @@ static size_t NROWS_INSERT_SORT = 16;
   * `compare(i, j)` which compares the values at indices `i` and `j`
   * and returns true if and only if `value[i] < value[j]`.
   *
-  *
   */
 template <typename TO, typename Compare>
 void insert_sort(array<TO> ordering_out, Compare compare) {
+  static_assert(
+    std::is_convertible<Compare, std::function<bool(size_t, size_t)>>::value,
+    "Invalid signature of comparator function");
+
   size_t n = ordering_out.size;
   TO* oo = ordering_out.ptr;
   oo[0] = 0;
@@ -62,53 +69,22 @@ void insert_sort(array<TO> ordering_out, Compare compare) {
 
 
 /**
-  * For small `n`s this function uses the insert-sort algorithm, while
-  * for larger `n`s it falls back to the algorithm from the standard
-  * library. In both cases this function is single-threaded and thus
-  * only suitable for small `n`s.
-  */
-template <typename Compare>
-void simple_sort(array<int32_t> ordering_out, Compare compare) {
-  static_assert(
-    std::is_convertible<Compare, std::function<bool(size_t, size_t)>>::value,
-    "Invalid signature of comparator function");
-
-  size_t n = ordering_out.size;
-  if (n < NROWS_INSERT_SORT) {
-    insert_sort(ordering_out, compare);
-  }
-  else {
-    for (size_t i = 0; i < n; ++i) {
-      ordering_out.ptr[i] = static_cast<int32_t>(i);
-    }
-    std::stable_sort(ordering_out.ptr, ordering_out.ptr + n, compare);
-  }
-}
-
-
-/**
-  * simple_sort(ordering_in, ordering_out, compare)
+  * insert_sort(ordering_in, ordering_out, compare)
   *
-  * Sort values in vector `ordering_in` and store the aorted values
-  * into the array `ordering_out`.
+  * Sort values in vector `ordering_in` and store the sorted values
+  * into `ordering_out` (both vectors must have the same size).
   *
-  * The values in the `ordering_in` vector are not compares directly,
-  * instead a function `compare` is used which compares the values at
+  * The values in vector `ordering_in` are not compared directly,
+  * instead we use the `compare` function which compares the values at
   * indices `i` and `j` and returns true iff `value[i] < value[j]`.
   *
-  * For example, if the input vector is {5, 2, -1, 7, 2}, then this
-  * function will write {2, 1, 4, 0, 3} into `ordering_out`.
-  *
-  * For small `n`s this function uses the insert-sort algorithm, while
-  * for larger `n`s it falls back to the algorithm from the standard
-  * library. In both cases this function is single-threaded and thus
-  * only suitable for small `n`s.
   */
 template <typename TO, typename Compare>
-void simple_sort(array<TO> ordering_in, array<TO> ordering_out, Compare compare)
+void insert_sort(const array<TO> ordering_in, array<TO> ordering_out,
+                 Compare compare)
 {
   xassert(ordering_in.size == ordering_out.size);
-  simple_sort(ordering_out, compare);
+  insert_sort(ordering_out, compare);
   size_t n = ordering_out.size;
   for (size_t i = 0; i < n; ++i) {
     ordering_out.ptr[i] = ordering_in.ptr[ordering_out.ptr[i]];
@@ -118,10 +94,33 @@ void simple_sort(array<TO> ordering_in, array<TO> ordering_out, Compare compare)
 
 
 
+/**
+  * For small `n`s this function uses the insert-sort algorithm, while
+  * for larger `n`s it falls back to the algorithm from the standard
+  * library. In both cases this function is single-threaded and thus
+  * should only be used for relatively small `n`s.
+  */
 template <typename TO, typename Compare>
-void insert_sort(array<TO> ordering_in, array<TO> ordering_out, Compare compare)
+void small_sort(array<TO> ordering_out, Compare compare) {
+  size_t n = ordering_out.size;
+  if (n < NROWS_INSERT_SORT) {
+    insert_sort(ordering_out, compare);
+  }
+  else {
+    for (size_t i = 0; i < n; ++i) {
+      ordering_out.ptr[i] = static_cast<TO>(i);
+    }
+    std::stable_sort(ordering_out.ptr, ordering_out.ptr + n, compare);
+  }
+}
+
+
+template <typename TO, typename Compare>
+void small_sort(const array<TO> ordering_in, array<TO> ordering_out,
+                Compare compare)
 {
-  insert_sort(ordering_out, compare);
+  xassert(ordering_in.size == ordering_out.size);
+  small_sort(ordering_out, compare);
   size_t n = ordering_out.size;
   for (size_t i = 0; i < n; ++i) {
     ordering_out.ptr[i] = ordering_in.ptr[ordering_out.ptr[i]];
