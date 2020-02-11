@@ -19,35 +19,53 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_SORT_COMMON_h
-#define dt_SORT_COMMON_h
-#include <cstddef>           // std::size_t
-#include "utils/assert.h"    // xassert
-#include "buffer.h"          // Buffer
+#ifndef dt_SORT_SORTER_RAW_h
+#define dt_SORT_SORTER_RAW_h
+#include "sort/common.h"
+#include "sort/insertsort.h"
+#include "sort/sorter.h"
 namespace dt {
 namespace sort {
 
-using std::size_t;
 
-static constexpr size_t MAX_NROWS_INT32 = 0x7FFFFFFF;
-
-
-
-template <typename T>
-class array {
-  public:
-    T* ptr;
-    size_t size;
+template <typename TO, typename TU>
+class Sorter_Raw : public Sorter<TO> {
+  private:
+    TU* data_;        // array with nrows_ elements
+    Buffer buffer_;   // owner of the data_ pointer
+    int n_significant_bits_;
+    int : 32;
 
   public:
-    array(T* p, size_t n) : ptr(p), size(n) {}
-    array(const array&) = default;
-    array& operator=(const array&) = default;
+  	Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
+  		: Sorter<TO>(nrows),
+        data_(buf.xptr()),
+  		  buffer_(std::move(buf)),
+        n_significant_bits_(nbits)
+  	{
+  		xassert(buffer_.size() == nrows * sizeof(TU));
+      xassert(nbits > 0 && nbits <= 8 * sizeof(TU));
+ 	  }
 
-    array(const Buffer& buf)
-      : ptr(static_cast<TH*>(buf.xptr())),
-        size(buf.size() / sizeof(TH))
-    { xassert(buf.size() % sizeof(TH) == 0); }
+  protected:
+    int compare_lge(size_t i, size_t j) const override {
+      return (data_[i] > data_[j]) - (data_[i] < data_[j]);
+    }
+
+
+    void insert_sort(array<TO> ordering_out) const override {
+      ::insert_sort(ordering_out,
+                    [&](size_t i, size_t j){ return data_[i] < data_[j]; });
+    }
+
+
+    void radix_sort(array<TO> ordering_out, bool parallel) const override {
+      RadixSort rdx(nrows_, n_radix_bits, parallel);
+      auto groups = rdx.sort_by_radix();
+    }
+
+
+
 };
 
 

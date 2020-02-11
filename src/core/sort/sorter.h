@@ -19,35 +19,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_SORT_COMMON_h
-#define dt_SORT_COMMON_h
-#include <cstddef>           // std::size_t
-#include "utils/assert.h"    // xassert
-#include "buffer.h"          // Buffer
+#ifndef dt_SORT_SORTER_h
+#define dt_SORT_SORTER_h
+#include "sort/common.h"
 namespace dt {
 namespace sort {
 
-using std::size_t;
 
-static constexpr size_t MAX_NROWS_INT32 = 0x7FFFFFFF;
-
-
-
-template <typename T>
-class array {
-  public:
-    T* ptr;
-    size_t size;
+/**
+ * Virtual class that handles sorting of a column.
+ */
+template <typename TO>
+class Sorter {
+  protected:
+    size_t nrows_;
 
   public:
-    array(T* p, size_t n) : ptr(p), size(n) {}
-    array(const array&) = default;
-    array& operator=(const array&) = default;
+    Sorter(size_t n) {
+      xassert(sizeof(TO) == 8 || n <= MAX_NROWS_INT32);
+      nrows_ = n;
+    }
 
-    array(const Buffer& buf)
-      : ptr(static_cast<TH*>(buf.xptr())),
-        size(buf.size() / sizeof(TH))
-    { xassert(buf.size() % sizeof(TH) == 0); }
+    virtual ~Sorter() {}
+
+
+    RowIndex sort() {
+      // ...
+    }
+
+  protected:
+    virtual void insert_sort(array<TO> ordering_out) const = 0;
+    virtual void radix_sort(array<TO> ordering_out, bool parallel) const = 0;
+
+    /**
+      * Comparator function that compares the values of the underlying
+      * column at indices `i` and `j`. This function should return:
+      *   - a negative value if `val[i] < val[j]`;
+      *   - zero if `val[i] == val[j]`;
+      *   - a positive value if `val[i] > val[j]`.
+      */
+    virtual int compare_lge(size_t i, size_t j) const = 0;
 };
 
 

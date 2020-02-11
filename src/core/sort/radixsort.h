@@ -30,7 +30,6 @@ namespace sort {
 
 
 static constexpr size_t MIN_NROWS_PER_THREAD = 1024;
-static constexpr size_t MAX_NROWS_INT32 = 0x7FFFFFFF;
 
 
 // Compute ceil(a/b), for integer a and b.
@@ -45,15 +44,14 @@ inline T divceil(T a, T b) {
   * sort. For convenience, the members in this class are readable
   * directly (not encapsulated).
   */
-class RadixConfig {
+class RadixSort {
   public:
     size_t n_radixes;
     size_t n_radix_bits;
     size_t n_rows;
     size_t n_chunks;
     size_t n_rows_per_chunk;
-
-    Buffer histogram_buffer();
+    Buffer histogram_buffer;
 
   public:
     RadixConfig(size_t nrows, int nrb, bool allow_parallel) {

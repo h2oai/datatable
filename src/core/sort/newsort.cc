@@ -24,9 +24,9 @@
 #include "frame/py_frame.h"    // py::Frame
 #include "parallel/api.h"      // parallel_for_static
 #include "python/args.h"       // py::PKArgs
-#include "sort/common.h"
+#include "sort/common.h"       // array
 #include "sort/insertsort.h"   // insert_sort
-#include "sort/radixsort.h"    // RadixConfig
+#include "sort/radixsort.h"    // RadixSort
 #include "utils/assert.h"      // xassert
 #include "utils/misc.h"        // dt::nlz
 #include "buffer.h"            // Buffer
@@ -82,7 +82,7 @@ class SorterColumn {
     template <typename TO>
     void radix_sort(array<TO> ordering_out, bool allow_parallel)
     {
-      RadixConfig rdx(get_nrows(), get_n_radix_bits(), allow_parallel);
+      RadixSort rdx(get_nrows(), get_n_radix_bits(), allow_parallel);
       array<TO> group_offsets = rdx.sort_by_radix(ordering_out, n);
 
       // if (has_more_radix_bits()) {

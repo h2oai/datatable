@@ -89,21 +89,11 @@ void simple_sort(array<int32_t> ordering_out, Compare cmp_lt) {
 template <typename TO, typename Compare>
 void simple_sort(array<TO> ordering_in, array<TO> ordering_out, Compare cmp_lt)
 {
-  static_assert(
-    std::is_convertible<Compare, std::function<bool(size_t, size_t)>>::value,
-    "Invalid signature of comparator function");
   xassert(ordering_in.size == ordering_out.size);
-
-  size_t n = ordering_in.size;
-  if (n < NROWS_INSERT_SORT) {
-    insert_sort(ordering_out, cmp_lt);
-    for (size_t i = 0; i < n; ++i) {
-      ordering_out.ptr[i] = ordering_in.ptr[ordering_out.ptr[i]];
-    }
-  }
-  else {
-    std::memcpy(ordering_out.ptr, ordering_in.ptr, n * sizeof(TO));
-    std::stable_sort(ordering_out.ptr, ordering_out.ptr + n, cmp_lt);
+  simple_sort(ordering_out, cmp_lt);
+  size_t n = ordering_out.size;
+  for (size_t i = 0; i < n; ++i) {
+    ordering_out.ptr[i] = ordering_in.ptr[ordering_out.ptr[i]];
   }
 }
 
@@ -121,6 +111,18 @@ void insert_sort(array<TO> ordering_out, Compare cmp_lt) {
       j--;
     }
     oo[j] = static_cast<TO>(i);
+  }
+}
+
+
+
+template <typename TO, typename Compare>
+void insert_sort(array<TO> ordering_in, array<TO> ordering_out, Compare cmp_lt)
+{
+  insert_sort(ordering_out, cmp_lt);
+  size_t n = ordering_out.size;
+  for (size_t i = 0; i < n; ++i) {
+    ordering_out.ptr[i] = ordering_in.ptr[ordering_out.ptr[i]];
   }
 }
 
