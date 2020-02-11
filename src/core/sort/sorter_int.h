@@ -22,7 +22,7 @@
 #ifndef dt_SORT_SORTER_INT_h
 #define dt_SORT_SORTER_INT_h
 #include "sort/insert-sort.h"
-#include "sort/radixsort.h"
+#include "sort/radix-sort.h"
 #include "sort/sorter.h"
 #include "sort/sorter_uint.h"
 #include "column.h"
