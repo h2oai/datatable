@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_SORTER_BOOL_h
 #define dt_SORT_SORTER_BOOL_h
-#include "sort/insertsort.h"
+#include "sort/insert-sort.h"
 #include "sort/sorter.h"
 #include "column.h"
 namespace dt {

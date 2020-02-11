@@ -22,7 +22,7 @@
 #ifndef dt_SORT_SORTER_RAW_h
 #define dt_SORT_SORTER_RAW_h
 #include "sort/common.h"
-#include "sort/insertsort.h"
+#include "sort/insert-sort.h"
 #include "sort/sorter.h"
 namespace dt {
 namespace sort {
