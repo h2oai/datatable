@@ -26,19 +26,14 @@ namespace dt {
 namespace sort {
 
 
-class SorterInterface {
-  public:
-    virtual ~SorterInterface() {}
-    virtual RowIndex sort() = 0;
-};
-
-
 /**
- * Virtual class that handles sorting of a column.
- */
+  * Virtual class that handles sorting of a column. Template parameter
+  * <TO> corresponds to the type of indices in the resulting rowindex.
+  */
 template <typename TO>
-class Sorter : public SorterInterface {
+class Sorter {
   protected:
+    using ovec = ovec;
     size_t nrows_;
 
   public:
@@ -46,23 +41,43 @@ class Sorter : public SorterInterface {
       xassert(sizeof(TO) == 8 || n <= MAX_NROWS_INT32);
       nrows_ = n;
     }
+    virtual ~Sorter() {}
 
 
-    RowIndex sort() override {
+    RowIndex sort() {
       Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(TO));
-      array<TO> rowindex_array(rowindex_buf);
+      ovec ordering_in;
+      ovec ordering_out(rowindex_buf);
       if (nrows_ <= INSERTSORT_NROWS) {
-        insert_sort(rowindex_array);
+        insert_sort(ordering_in, ordering_out, 0);
       } else {
-        radix_sort(rowindex_array, true);
+        radix_sort(ordering_in, ordering_out, 0, true);
       }
       return RowIndex(std::move(rowindex_buf),
                       sizeof(TO) == 4? RowIndex::ARR32 : RowIndex::ARR64);
     }
 
+
+  //----------------------------------------------------------------------------
+  // API that should be implemented by the derived classes
+  //----------------------------------------------------------------------------
   protected:
-    virtual void insert_sort(array<TO> ordering_out) const = 0;
-    virtual void radix_sort(array<TO> ordering_out, bool parallel) const = 0;
+    /**
+      * Sort the vector of indices `ordering_in` and write the result
+      * into `ordering_out`. If `ordering_in` is empty, treat it as
+      * if it was {0, 1, ..., n-1}.
+      *
+      * The sorting is performed according to the values of the
+      * underlying column within the range `[offset; offset + n)`.
+      *
+      * The recommended way of implementing this methid is via the
+      * `dt::sort::small_sort()` function from "sort/insert-sort.h".
+      */
+    virtual void small_sort(ovec ordering_in,
+                            ovec ordering_out,
+                            size_t offset) const = 0;
+
+    virtual void radix_sort(ovec ordering_out, bool parallel) const = 0;
 
     /**
       * Comparator function that compares the values of the underlying

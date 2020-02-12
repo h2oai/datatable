@@ -51,7 +51,7 @@ static size_t NROWS_INSERT_SORT = 16;
   *
   */
 template <typename TO, typename Compare>
-void insert_sort(const array<TO> ordering_in,
+void insert_sort(array<TO> ordering_in,
                  array<TO> ordering_out,
                  Compare compare)
 {
@@ -90,7 +90,7 @@ void insert_sort(const array<TO> ordering_in,
   * standard library (typically this is a quick-sort implementation).
   */
 template <typename TO, typename Compare>
-void std_sort(const array<TO> ordering_in,
+void std_sort(array<TO> ordering_in,
               array<TO> ordering_out,
               Compare compare)
 {
@@ -120,7 +120,7 @@ void std_sort(const array<TO> ordering_in,
   * relatively small `n`s.
   */
 template <typename TO, typename Compare>
-void small_sort(const array<TO> ordering_in,
+void small_sort(array<TO> ordering_in,
                 array<TO> ordering_out,
                 Compare compare)
 {

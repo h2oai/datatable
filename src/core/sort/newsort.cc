@@ -233,15 +233,15 @@ class Boolean_SorterColumn : public SorterColumn {
 
 
 
-using sorterPtr = std::unique_ptr<SorterInterface>;
 template <typename TO>
-static sorterPtr _make_sorter(const Column& col) {
+static std::unique_ptr<Sorter<TO>> _make_sorter(const Column& col) {
+  using so = std::unique_ptr<Sorter<TO>>;
   switch (col.stype()) {
-    case SType::BOOL:  return sorterPtr(new Sorter_Bool<TO>(col));
-    case SType::INT8:  return sorterPtr(new Sorter_Int<TO, int8_t>(col));
-    case SType::INT16: return sorterPtr(new Sorter_Int<TO, int16_t>(col));
-    case SType::INT32: return sorterPtr(new Sorter_Int<TO, int32_t>(col));
-    case SType::INT64: return sorterPtr(new Sorter_Int<TO, int64_t>(col));
+    case SType::BOOL:  return so(new Sorter_Bool<TO>(col));
+    case SType::INT8:  return so(new Sorter_Int<TO, int8_t>(col));
+    case SType::INT16: return so(new Sorter_Int<TO, int16_t>(col));
+    case SType::INT32: return so(new Sorter_Int<TO, int32_t>(col));
+    case SType::INT64: return so(new Sorter_Int<TO, int64_t>(col));
     default: throw TypeError() << "Cannot sort column of type " << col.stype();
   }
 }
@@ -264,10 +264,14 @@ oobj Frame::newsort(const PKArgs&) {
 
   const Column& col0 = dt->get_column(0);
   size_t n = dt->nrows();
-  auto sorter = (n <= dt::sort::MAX_NROWS_INT32)
-      ? dt::sort::_make_sorter<int32_t>(col0)
-      : dt::sort::_make_sorter<int64_t>(col0);
-  auto rowindex = sorter->sort();
+  RowIndex rowindex;
+  if (n <= dt::sort::MAX_NROWS_INT32) {
+    auto sorter = dt::sort::_make_sorter<int32_t>(col0);
+    rowindex = sorter->sort();
+  } else {
+    auto sorter = dt::sort::_make_sorter<int64_t>(col0);
+    rowindex = sorter->sort();
+  }
   Column ricol = rowindex.as_column(n);
   return py::Frame::oframe(new DataTable({std::move(ricol)}, {"order"}));
 }

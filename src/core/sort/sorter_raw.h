@@ -82,7 +82,7 @@ class Sorter_Raw : public Sorter<TO> {
 
   private:
     void insert_sort(size_t offset,
-                     const array<TO> ordering_in,
+                     array<TO> ordering_in,
                      array<TO> ordering_out) const
     {
       TU* x = data_ + offset;
@@ -92,7 +92,7 @@ class Sorter_Raw : public Sorter<TO> {
 
 
     void radix_sort(size_t offset,
-                    const array<TO> ordering_in,
+                    array<TO> ordering_in,
                     array<TO> ordering_out,
                     bool parallel) const
     {
@@ -106,7 +106,7 @@ class Sorter_Raw : public Sorter<TO> {
     }
 
     void radix_sort0(size_t offset,
-                     const array<TO> ordering_in,
+                     array<TO> ordering_in,
                      array<TO> ordering_out,
                      bool parallel) const
     {
@@ -120,7 +120,7 @@ class Sorter_Raw : public Sorter<TO> {
 
     template <typename TNext>
     void radix_sort1(size_t offset,
-                     const array<TO> ordering_in,
+                     array<TO> ordering_in,
                      array<TO> ordering_out,
                      int n_radix_bits,
                      bool parallel) const
