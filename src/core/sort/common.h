@@ -30,7 +30,7 @@ namespace sort {
 using std::size_t;
 
 static constexpr size_t MAX_NROWS_INT32 = 0x7FFFFFFF;
-
+static constexpr size_t INSERTSORT_NROWS = 16;
 
 
 template <typename T>
@@ -49,6 +49,11 @@ class array {
       : ptr(static_cast<T*>(buf.xptr())),
         size(buf.size() / sizeof(T))
     { xassert(buf.size() % sizeof(T) == 0); }
+
+    array<T> subset(size_t start, size_t length) {
+      xassert(start + length <= size && start + length > length);
+      return array<T>(ptr + start, length);
+    }
 };
 
 

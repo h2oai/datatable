@@ -49,7 +49,15 @@ class Sorter : public SorterInterface {
 
 
     RowIndex sort() override {
-      return RowIndex();
+      Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(TO));
+      array<TO> rowindex_array(rowindex_buf);
+      if (nrows_ <= INSERTSORT_NROWS) {
+        insert_sort(rowindex_array);
+      } else {
+        radix_sort(rowindex_array, true);
+      }
+      return RowIndex(std::move(rowindex_buf),
+                      sizeof(TO) == 4? RowIndex::ARR32 : RowIndex::ARR64);
     }
 
   protected:

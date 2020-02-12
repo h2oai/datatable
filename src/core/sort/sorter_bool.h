@@ -63,7 +63,7 @@ class Sorter_Bool : public Sorter<TO> {
 
     void radix_sort(array<TO> ordering_out, bool parallel) const override {
       RadixSort rdx(nrows_, 1, parallel);
-      rdx.sort_by_radix(ordering_out,
+      rdx.sort_by_radix(array<TO>(), ordering_out,
         [&](size_t i) {  // get_radix
           int8_t ivalue;
           bool ivalid = column_.get_element(i, &ivalue);

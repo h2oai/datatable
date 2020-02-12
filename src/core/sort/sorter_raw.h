@@ -46,12 +46,24 @@ class Sorter_Raw : public Sorter<TO> {
         n_significant_bits_(nbits)
   	{
   		xassert(buffer_.size() == nrows * sizeof(TU));
-      xassert(nbits > 0 && nbits <= 8 * sizeof(TU));
+      xassert(nbits > 0 && nbits <= 8 * int(sizeof(TU)));
  	  }
 
     void sort_subgroup(size_t offset, size_t length,
-                       array<TO> ordering_in, array<TO> ordering_out)
-    {}
+                       array<TO> ordering_in, array<TO> ordering_out,
+                       bool parallel)
+    {
+      if (length <= INSERTSORT_NROWS) {
+        insert_sort(offset, ordering_in, ordering_out);
+      } else {
+        radix_sort(offset, ordering_in, ordering_out, parallel);
+      }
+    }
+
+    TU* get_data() const {
+      return data_;
+    }
+
 
   protected:
     int compare_lge(size_t i, size_t j) const override {
@@ -60,20 +72,77 @@ class Sorter_Raw : public Sorter<TO> {
 
 
     void insert_sort(array<TO> ordering_out) const override {
-      dt::sort::insert_sort(
-        array<TO>(),
-        ordering_out,
-        [&](size_t i, size_t j){ return data_[i] < data_[j]; });
+      insert_sort(0, array<TO>(), ordering_out);
     }
-
 
     void radix_sort(array<TO> ordering_out, bool parallel) const override {
-      (void) ordering_out;
-      (void) parallel;
-      // RadixSort rdx(nrows_, n_radix_bits, parallel);
-      // auto groups = rdx.sort_by_radix();
+      radix_sort(0, array<TO>(), ordering_out, parallel);
     }
 
+
+  private:
+    void insert_sort(size_t offset,
+                     const array<TO> ordering_in,
+                     array<TO> ordering_out) const
+    {
+      TU* x = data_ + offset;
+      dt::sort::small_sort(ordering_in, ordering_out,
+        [&](size_t i, size_t j){ return x[i] < x[j]; });
+    }
+
+
+    void radix_sort(size_t offset,
+                    const array<TO> ordering_in,
+                    array<TO> ordering_out,
+                    bool parallel) const
+    {
+      int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
+      int n_remaining_bits = n_significant_bits_ - n_radix_bits;
+      if (n_remaining_bits == 0)       radix_sort0(offset, ordering_in, ordering_out, parallel);
+      else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (offset, ordering_in, ordering_out, n_radix_bits, parallel);
+      else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(offset, ordering_in, ordering_out, n_radix_bits, parallel);
+      else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(offset, ordering_in, ordering_out, n_radix_bits, parallel);
+      else                             radix_sort1<uint64_t>(offset, ordering_in, ordering_out, n_radix_bits, parallel);
+    }
+
+    void radix_sort0(size_t offset,
+                     const array<TO> ordering_in,
+                     array<TO> ordering_out,
+                     bool parallel) const
+    {
+      size_t n = ordering_out.size;
+      RadixSort rdx(n, n_significant_bits_, parallel);
+      TU* x = data_ + offset;
+      rdx.sort_by_radix(ordering_in, ordering_out,
+        [&](size_t i){ return x[i]; });
+    }
+
+
+    template <typename TNext>
+    void radix_sort1(size_t offset,
+                     const array<TO> ordering_in,
+                     array<TO> ordering_out,
+                     int n_radix_bits,
+                     bool parallel) const
+    {
+      static_assert(std::is_unsigned<TNext>::value, "Wrong TNext type");
+      size_t n = ordering_out.size;
+      int shift = n_significant_bits_ - n_radix_bits;
+      TU mask = static_cast<TU>(TU(1) << shift) - 1;
+      Sorter_Raw<TO, TNext> nextcol(Buffer::mem(n*sizeof(TNext)), n, shift);
+      TU* x = data_ + offset;
+      TNext* y = nextcol.get_data();
+
+      RadixSort rdx(n, n_radix_bits, parallel);
+      array<TO> groups = rdx.sort_by_radix(ordering_in, ordering_out,
+        [&](size_t i){ return static_cast<size_t>(x[i] >> shift); },
+        [&](size_t i, size_t j){ y[j] = static_cast<TNext>(x[i] & mask); });
+
+      rdx.sort_subgroups(groups, ordering_out, ordering_in,
+        [&](size_t offs, size_t length, array<TO> oin, array<TO> oout, bool para) {
+          nextcol.sort_subgroup(offs, length, oin, oout, para);
+        });
+    }
 };
 
 

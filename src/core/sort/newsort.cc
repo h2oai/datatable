@@ -230,49 +230,6 @@ class Boolean_SorterColumn : public SorterColumn {
 };
 
 
-/*
-template <typename T>
-class Integer_SorterColumn : public SorterColumn {
-  using TU = typename std::make_unsigned<T>::type;
-  using TM = typename std::common_type<T, int>::type;
-  private:
-    Column column_;
-    int n_significant_bits_;
-    int n_radix_bits_;
-    TM  min1_;
-    int shift_;
-
-  public:
-    Integer_SorteerColumn(const Column& col)
-      : column_(col),
-        n_significant_bits_(0),
-        n_radix_bits_(0) {}
-
-    size_t get_nrows() const override {
-      return column_.nrows();
-    }
-
-    int get_n_radix_bits() override {
-      bool isvalid;
-      int64_t min = column_.stats()->min_int(&isvalid);
-      int64_t max = column_.stats()->max_int(&isvalid);
-      if (isvalid && min != max) {
-        n_significant_bits_ = sizeof(T) * 8;
-        n_significant_bits_ -= dt::nlz(static_cast<TU>(max - min + 1));
-      }
-      n_radix_bits_ = std::min(8, n_significant_bits_);
-      shift_ = n_significant_bits_ - n_radix_bits_;
-      min1_ = static_cast<TM>(min - 1);
-      return n_radix_bits_;
-    }
-
-    size_t get_radix(size_t i) const override {
-      T value;
-      bool isvalid = column_.get_element(i, &value);
-      return isvalid? ((value - min1_) >> shift_) : 0;
-    }
-};
-*/
 
 
 

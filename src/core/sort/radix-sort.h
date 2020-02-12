@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_SORT_RADIXSORT_h
-#define dt_SORT_RADIXSORT_h
+#ifndef dt_SORT_RADIX_SORT_h
+#define dt_SORT_RADIX_SORT_h
 #include <functional>        // std::function
 #include <tuple>             // std::tuple
 #include <type_traits>       // std::is_convertible
@@ -56,6 +56,7 @@ class RadixSort {
 
   public:
     RadixSort(size_t nrows, int nrb, bool allow_parallel) {
+      xassert(nrows > 0);
       xassert(nrb > 0 && nrb <= 20);
       n_radixes_ = (1u << nrb) + 1;
       n_rows_ = nrows;
@@ -74,12 +75,16 @@ class RadixSort {
 
 
     /**
-      * .sort_by_radix(ordering_out, get_radix[, move_data])
+      * .sort_by_radix(ordering_in, ordering_out, get_radix,
+      *                [move_data])
       *
-      * First step of the radix-sort algorithm. In this sort we take
-      * the input data (given indirectly via `get_radix()`) and
-      * sort it according to their radixes. The ordering is written
-      * into `ordering_out`.
+      * First step of the radix-sort algorithm. In this step we sort
+      * the indices in vector `ordering_in` and write the result into
+      * `ordering_out`. The sorting keys are the values returned by
+      * the `get_radix` function.
+      *
+      * The array `ordering_in` may also be empty, which is equivalent
+      * to it being {0, 1, 2, ..., n_rows_-1}.
       *
       * The return value is the "grouping" array, i.e. the array of
       * offsets (within the `ordering_out` array) that define the
@@ -99,48 +104,115 @@ class RadixSort {
       * observation in the sorted sequence. The caller can use this
       * to store the sorted data.
       */
-    template <typename TO, typename GetRadix>
-    array<TO> sort_by_radix(array<TO> ordering_out, GetRadix get_radix) {
-      static_assert(
-        std::is_convertible<GetRadix, std::function<size_t(size_t)>>::value,
-        "Incorrect signature of get_radix function");
-      xassert(ordering_out.size == n_rows_);
-
-      array<TO> histogram = allocate_histogram<TO>();
-      build_histogram(histogram, get_radix);
-      reorder_data(histogram, ordering_out, get_radix, [](size_t, size_t){});
-      return array<TO>(histogram.ptr + (n_chunks_ - 1) * n_radixes_, n_radixes_);
-    }
-
     template <typename TO, typename GetRadix, typename MoveData>
-    array<TO> sort_by_radix(array<TO> ordering_out,
+    array<TO> sort_by_radix(array<TO> ordering_in,
+                            array<TO> ordering_out,
                             GetRadix get_radix,
-                            MoveData move_data = [](size_t, size_t){})
+                            MoveData move_data)
     {
       static_assert(
         std::is_convertible<GetRadix, std::function<size_t(size_t)>>::value,
         "Incorrect signature of get_radix function");
       static_assert(
-        std::is_convertible<MoveData, std::function<void(size_t,size_t)>>::value,
+        std::is_convertible<MoveData,
+                            std::function<void(size_t,size_t)>>::value,
         "Incorrect signature of move_data function");
+      xassert(ordering_in.size == n_rows_ || ordering_in.size == 0);
       xassert(ordering_out.size == n_rows_);
 
       array<TO> histogram = allocate_histogram<TO>();
       build_histogram(histogram, get_radix);
-      reorder_data(histogram, ordering_out, get_radix, move_data);
-      return array<TO>(histogram.ptr + (n_chunks_ - 1) * n_radixes_, n_radixes_);
+      if (ordering_in.size) {
+        reorder_data(histogram, get_radix,
+                     [&](size_t i, size_t j) {
+                       ordering_out.ptr[j] = ordering_in.ptr[i];
+                       move_data(i, j);
+                     });
+      } else {
+        reorder_data(histogram, get_radix,
+                     [&](size_t i, size_t j) {
+                       ordering_out.ptr[j] = static_cast<TO>(i);
+                       move_data(i, j);
+                     });
+      }
+      return array<TO>(histogram.ptr + (n_chunks_ - 1) * n_radixes_,
+                       n_radixes_);
     }
 
-    template <typename TO, typename SortSubgroup>
+    // (same method, but with `move_data` argument omitted)
+    template <typename TO, typename GetRadix>
+    array<TO> sort_by_radix(array<TO> ordering_in,
+                            array<TO> ordering_out, GetRadix get_radix)
+    {
+      return sort_by_radix(ordering_in, ordering_out, get_radix,
+                           [](size_t, size_t){});
+    }
+
+
+    /**
+      * sort_subgroups(groups, ordering_in, ordering_out, subsort)
+      *
+      * Second step in the radix-sort algorithm. This step takes the
+      * array of group offsets `groups` (same array as returned from
+      * `sort_by_radix()`), and sorts each of these groups using the
+      * function `subsort`.
+      */
+    template <typename TO, typename Subsort>
     void sort_subgroups(array<TO> groups,
                         array<TO> ordering_in,
                         array<TO> ordering_out,
-                        SortSubgroup sort_subgroup)
+                        Subsort subsort)
     {
-      (void) groups;
-      (void) ordering_in;
-      (void) ordering_out;
-      (void) sort_subgroup;
+      static_assert(
+        std::is_convertible<Subsort,
+                            std::function<void(size_t,size_t,array<TO>,array<TO>,bool)>>::value,
+        "Invalid signature of subsort function");
+      xassert(groups.size > 0);
+      xassert(ordering_in.size == n_rows_ && ordering_out.size == n_rows_);
+
+      if (n_chunks_ == 1 || true) {
+        const size_t ngroups = groups.size;
+        size_t group_start = 0;
+        for (size_t i = 0; i < ngroups; ++i) {
+          size_t group_end = static_cast<size_t>(groups.ptr[i]);
+          size_t group_size = group_end - group_start;
+          if (group_size > 1) {
+            subsort(group_start, group_size,
+                    ordering_in.subset(group_start, group_size),
+                    ordering_out.subset(group_start, group_size), true);
+          }
+          group_end = group_start;
+        }
+      }
+      // TODO: use parallelism
+
+      // const size_t large_group = std::max(n_rows_ / 4, size_t(100000));
+      // size_t group_start = 0;
+      // for (size_t i = 0; i < ngroups; ++i) {
+      //   size_t group_end = groups[i];
+      //   size_t group_size = group_end - group_start;
+      // }
+
+      //   Buffer tmp;
+
+      //   size_t group_start = 0;
+      //   size_t first_group = 0;
+      //   size_t last_group = nradixes_;
+      //   for (size_t i = 0; i < nradixes_; ++i) {
+      //     size_t group_end = group_offsets[i];
+      //     if (group_end == 0) { first_group = i + 1; continue; }
+      //     size_t group_size = group_end - group_start;
+      //     if (group_size >= large_group) {
+      //       tmp.ensuresize(group_size * sizeof(TO));
+      //       TO* subordering = static_cast<TO*>(tmp.xptr());
+      //       sort_subgroup(group_start, group_size, subordering);
+      //       reorder_indices(ordering_out + group_start, group_size,
+      //                       subordering);
+      //     }
+      //     if (group_end == n) { last_group = i + 1; break;}
+      //     group_start = group_end;
+      //   }
+
     }
 
 
@@ -205,13 +277,11 @@ class RadixSort {
 
 
 
-    template<typename TH, typename TO, typename GetRadix, typename MoveData>
+    template<typename TH, typename GetRadix, typename MoveData>
     void reorder_data(array<TH> histogram,
-                      array<TO> ordering_out,
                       GetRadix get_radix,
                       MoveData move_data)
     {
-      xassert(ordering_out.size == n_rows_);
       dt::parallel_for_static(
         n_chunks_,
         dt::ChunkSize(1),
@@ -222,7 +292,6 @@ class RadixSort {
             size_t radix = get_radix(j);
             TH k = tcounts[radix]++;
             xassert(static_cast<size_t>(k) < n_rows_);
-            ordering_out.ptr[k] = static_cast<TO>(j);
             move_data(j, static_cast<size_t>(k));
           }
         });

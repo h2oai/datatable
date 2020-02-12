@@ -23,8 +23,8 @@
 // See http://quick-bench.com/gl2wXMVIU4i4eswQL2dBg2oKCZs for variations
 //
 //------------------------------------------------------------------------------
-#ifndef dt_SORT_INSERTSORT_h
-#define dt_SORT_INSERTSORT_h
+#ifndef dt_SORT_INSERT_SORT_h
+#define dt_SORT_INSERT_SORT_h
 #include <algorithm>       // std::stable_sort
 #include <functional>      // std::function
 #include <type_traits>     // std::is_convertible

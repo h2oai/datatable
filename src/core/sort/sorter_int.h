@@ -40,8 +40,6 @@ class Sorter_Int : public Sorter<TO> {
   private:
     using Sorter<TO>::nrows_;
     Column column_;
-    TI min_;
-    size_t : 64 - sizeof(TI) * 8;
 
   public:
     Sorter_Int(const Column& col)
@@ -70,8 +68,8 @@ class Sorter_Int : public Sorter<TO> {
 
     void radix_sort(array<TO> ordering_out, bool parallel) const override {
       bool minmax_valid;
-      int64_t min = column_.stats()->min_int(&minmax_valid);
-      int64_t max = column_.stats()->max_int(&minmax_valid);
+      TI min = static_cast<TI>(column_.stats()->min_int(&minmax_valid));
+      TI max = static_cast<TI>(column_.stats()->max_int(&minmax_valid));
       if (!minmax_valid) {
         write_range(ordering_out);
         return;
@@ -90,7 +88,7 @@ class Sorter_Int : public Sorter<TO> {
       array<TI> out_array(out_buffer);
 
       RadixSort rdx(nrows_, 1, parallel);
-      auto groups = rdx.sort_by_radix(ordering_tmp,
+      auto groups = rdx.sort_by_radix(array<TO>(), ordering_tmp,
         [&](size_t i) -> size_t {  // get_radix
           TI value;
           bool isvalid = column_.get_element(i, &value);
@@ -98,14 +96,14 @@ class Sorter_Int : public Sorter<TO> {
         },
         [&](size_t i, size_t j) {  // move_data
           TI value;
-          bool isvalid = column_.get_element(i, &value);
+          column_.get_element(i, &value);
           out_array.ptr[j] = (value - min) & mask;
         });
 
       Sorter_Raw<TO, TU> nextcol(std::move(out_buffer), nrows_, shift);
       rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
-        [&](size_t offset, size_t len, array<TO> ord_in, array<TO> ord_out) {
-          nextcol.sort_subgroup(offset, len, ord_in, ord_out);
+        [&](size_t offset, size_t len, array<TO> ord_in, array<TO> ord_out, bool parallel) {
+          nextcol.sort_subgroup(offset, len, ord_in, ord_out, parallel);
         });
     }
 
