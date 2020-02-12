@@ -280,12 +280,10 @@ class GenericReader(object):
         proc = subprocess.Popen(cmd, shell=True,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-        ret = proc.wait()
         msgout, msgerr = proc.communicate()
-        if ret:
+        if msgerr:
             msgerr = msgerr.decode("utf-8", errors="replace").strip()
-            raise TValueError("Shell command returned error code %r: `%s`"
-                              % (ret, msgerr))
+            raise TValueError("Shell command returned an error: `%s`" % msgerr)
         else:
             self._text = msgout
             self._src = cmd

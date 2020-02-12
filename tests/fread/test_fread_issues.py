@@ -20,7 +20,7 @@ def test_issue1935():
     # an error instead of returning an empty Frame silently.
     with pytest.raises(ValueError) as e:
         dt.fread(cmd="leeroy jenkins")
-    assert ("Shell command returned error code" in str(e.value))
+    assert ("Shell command returned an error" in str(e.value))
     # This may need adjustments for different OSes
     assert re.search(r"leeroy:(?: command)? not found\s*", str(e.value))
 
