@@ -32,6 +32,7 @@ namespace sort {
 template <typename TO, typename TU>
 class Sorter_Raw : public Sorter<TO> {
   private:
+    using ovec = array<TO>;
     using Sorter<TO>::nrows_;
     TU* data_;        // array with nrows_ elements
     Buffer buffer_;   // owner of the data_ pointer
@@ -50,13 +51,13 @@ class Sorter_Raw : public Sorter<TO> {
  	  }
 
     void sort_subgroup(size_t offset, size_t length,
-                       array<TO> ordering_in, array<TO> ordering_out,
+                       ovec ordering_in, ovec ordering_out,
                        bool parallel)
     {
       if (length <= INSERTSORT_NROWS) {
-        insert_sort(offset, ordering_in, ordering_out);
+        small_sort(ordering_in, ordering_out, offset);
       } else {
-        radix_sort(offset, ordering_in, ordering_out, parallel);
+        radix_sort(ordering_in, ordering_out, offset, parallel);
       }
     }
 
@@ -71,19 +72,8 @@ class Sorter_Raw : public Sorter<TO> {
     }
 
 
-    void insert_sort(array<TO> ordering_out) const override {
-      insert_sort(0, array<TO>(), ordering_out);
-    }
-
-    void radix_sort(array<TO> ordering_out, bool parallel) const override {
-      radix_sort(0, array<TO>(), ordering_out, parallel);
-    }
-
-
-  private:
-    void insert_sort(size_t offset,
-                     array<TO> ordering_in,
-                     array<TO> ordering_out) const
+    void small_sort(ovec ordering_in, ovec ordering_out,
+                     size_t offset) const override
     {
       TU* x = data_ + offset;
       dt::sort::small_sort(ordering_in, ordering_out,
@@ -91,23 +81,26 @@ class Sorter_Raw : public Sorter<TO> {
     }
 
 
-    void radix_sort(size_t offset,
-                    array<TO> ordering_in,
-                    array<TO> ordering_out,
-                    bool parallel) const
+    void small_sort(ovec ordering_out) const override {
+      small_sort(ovec(), ordering_out, 0);
+    }
+
+
+    void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
+                    bool parallel) const override
     {
       int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
       int n_remaining_bits = n_significant_bits_ - n_radix_bits;
-      if (n_remaining_bits == 0)       radix_sort0(offset, ordering_in, ordering_out, parallel);
-      else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (offset, ordering_in, ordering_out, n_radix_bits, parallel);
-      else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(offset, ordering_in, ordering_out, n_radix_bits, parallel);
-      else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(offset, ordering_in, ordering_out, n_radix_bits, parallel);
-      else                             radix_sort1<uint64_t>(offset, ordering_in, ordering_out, n_radix_bits, parallel);
+      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, parallel);
+      else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (ordering_in, ordering_out, offset, n_radix_bits, parallel);
+      else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
+      else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
+      else                             radix_sort1<uint64_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
     }
 
-    void radix_sort0(size_t offset,
-                     array<TO> ordering_in,
-                     array<TO> ordering_out,
+
+  private:
+    void radix_sort0(ovec ordering_in, ovec ordering_out, size_t offset,
                      bool parallel) const
     {
       size_t n = ordering_out.size;
@@ -119,11 +112,8 @@ class Sorter_Raw : public Sorter<TO> {
 
 
     template <typename TNext>
-    void radix_sort1(size_t offset,
-                     array<TO> ordering_in,
-                     array<TO> ordering_out,
-                     int n_radix_bits,
-                     bool parallel) const
+    void radix_sort1(ovec ordering_in, ovec ordering_out, size_t offset,
+                     int n_radix_bits, bool parallel) const
     {
       static_assert(std::is_unsigned<TNext>::value, "Wrong TNext type");
       size_t n = ordering_out.size;
@@ -134,12 +124,12 @@ class Sorter_Raw : public Sorter<TO> {
       TNext* y = nextcol.get_data();
 
       RadixSort rdx(n, n_radix_bits, parallel);
-      array<TO> groups = rdx.sort_by_radix(ordering_in, ordering_out,
+      ovec groups = rdx.sort_by_radix(ordering_in, ordering_out,
         [&](size_t i){ return static_cast<size_t>(x[i] >> shift); },
         [&](size_t i, size_t j){ y[j] = static_cast<TNext>(x[i] & mask); });
 
       rdx.sort_subgroups(groups, ordering_out, ordering_in,
-        [&](size_t offs, size_t length, array<TO> oin, array<TO> oout, bool para) {
+        [&](size_t offs, size_t length, ovec oin, ovec oout, bool para) {
           nextcol.sort_subgroup(offs, length, oin, oout, para);
         });
     }

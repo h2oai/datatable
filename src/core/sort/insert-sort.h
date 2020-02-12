@@ -33,21 +33,23 @@ namespace dt {
 namespace sort {
 
 
-static size_t NROWS_INSERT_SORT = 16;
-
-
 
 /**
   * insert_sort(ordering_in, ordering_out, compare)
   *
   * Sort vector `ordering_in` and store the sorted values into
   * `ordering_out` (both vectors must have the same size). It is also
-  * allowed for `ordering_in` to be a 0-sized vector, in which case
-  * we treat it as if it was a sequence {0, 1, 2, ..., n-1}.
+  * allowed for `ordering_in` to be an empty vector, in which case
+  * we treat it as if it was the sequence {0, 1, 2, ..., n-1}.
   *
   * The values in vector `ordering_in` are not compared directly,
-  * instead we use the `compare` function which compares the values at
-  * indices `i` and `j` and returns true iff `value[i] < value[j]`.
+  * instead we use the `compare` function with signature
+  * `(size_t, size_t) -> bool`. This function compares the underlying
+  * values at indices `i` and `j` and returns true if and only if
+  * `value[i] < value[j]`. The indices `i, j` passed to this function
+  * are in the range `[0; n)` (where `n` is the size of
+  * `ordering_out`). Notably, these indices do not take `ordering_in`
+  * into account.
   *
   */
 template <typename TO, typename Compare>
@@ -60,7 +62,11 @@ void insert_sort(array<TO> ordering_in,
     "Invalid signature of comparator function");
 
   size_t n = ordering_out.size;
-  xassert(ordering_in.size == n || ordering_in.size == 0);
+  xassert(n > 0);
+  if (ordering_in.size) {
+    xassert(ordering_in.size == n);
+    xassert(ordering_in.ptr);
+  }
 
   TO* const oo = ordering_out.ptr;
   oo[0] = 0;
@@ -74,7 +80,6 @@ void insert_sort(array<TO> ordering_in,
   }
 
   if (ordering_in.size) {
-    xassert(ordering_in.ptr);
     for (size_t i = 0; i < n; ++i) {
       oo[i] = ordering_in.ptr[oo[i]];
     }
@@ -95,7 +100,11 @@ void std_sort(array<TO> ordering_in,
               Compare compare)
 {
   size_t n = ordering_out.size;
-  xassert(ordering_in.size == n || ordering_in.size == 0);
+  xassert(n > 0);
+  if (ordering_in.size) {
+    xassert(ordering_in.size == n);
+    xassert(ordering_in.ptr);
+  }
 
   TO* const oo = ordering_out.ptr;
   for (size_t i = 0; i < n; ++i) {
@@ -104,7 +113,6 @@ void std_sort(array<TO> ordering_in,
   std::stable_sort(oo, oo + n, compare);
 
   if (ordering_in.size) {
-    xassert(ordering_in.ptr);
     for (size_t i = 0; i < n; ++i) {
       oo[i] = ordering_in.ptr[oo[i]];
     }
@@ -124,7 +132,7 @@ void small_sort(array<TO> ordering_in,
                 array<TO> ordering_out,
                 Compare compare)
 {
-  if (ordering_out.size < NROWS_INSERT_SORT) {
+  if (ordering_out.size < INSERTSORT_NROWS) {
     insert_sort(ordering_in, ordering_out, compare);
   }
   else {

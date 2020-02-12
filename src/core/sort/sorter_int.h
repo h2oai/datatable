@@ -38,6 +38,7 @@ template <typename TO, typename TI>
 class Sorter_Int : public Sorter<TO> {
   using TU = typename std::make_unsigned<TI>::type;
   private:
+    using ovec = array<TO>;
     using Sorter<TO>::nrows_;
     Column column_;
 
@@ -56,8 +57,22 @@ class Sorter_Int : public Sorter<TO> {
                              : (ivalid - jvalid);
     }
 
-    void insert_sort(array<TO> ordering_out) const override {
-      dt::sort::insert_sort(array<TO>(), ordering_out,
+    void small_sort(ovec ordering_in, ovec ordering_out,
+                    size_t offset) const override
+    {
+      xassert(ordering_in.size == ordering_out.size);
+      const TO* oin = ordering_in.ptr;
+      dt::sort::small_sort(ordering_in, ordering_out,
+        [&](size_t i, size_t j) -> bool {  // compare_lt
+          TI ivalue, jvalue;
+          bool ivalid = column_.get_element(oin[i], &ivalue);
+          bool jvalid = column_.get_element(oin[j], &jvalue);
+          return jvalid && (!ivalid || ivalue < jvalue);
+        });
+    }
+
+    void small_sort(ovec ordering_out) const override {
+      dt::sort::small_sort(ovec(), ordering_out,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);
@@ -66,7 +81,9 @@ class Sorter_Int : public Sorter<TO> {
         });
     }
 
-    void radix_sort(array<TO> ordering_out, bool parallel) const override {
+    void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset, bool parallel) const override {
+      xassert(ordering_in.size == 0);
+      xassert(offset == 0);
       bool minmax_valid;
       TI min = static_cast<TI>(column_.stats()->min_int(&minmax_valid));
       TI max = static_cast<TI>(column_.stats()->max_int(&minmax_valid));
@@ -82,13 +99,13 @@ class Sorter_Int : public Sorter<TO> {
       size_t mask = (size_t(1) << shift) - 1;
 
       Buffer tmp = Buffer::mem(sizeof(TO) * nrows_);
-      array<TO> ordering_tmp(tmp);
+      ovec ordering_tmp(tmp);
 
       Buffer out_buffer = Buffer::mem(sizeof(TI) * nrows_);
       array<TI> out_array(out_buffer);
 
       RadixSort rdx(nrows_, 1, parallel);
-      auto groups = rdx.sort_by_radix(array<TO>(), ordering_tmp,
+      auto groups = rdx.sort_by_radix(ovec(), ordering_tmp,
         [&](size_t i) -> size_t {  // get_radix
           TI value;
           bool isvalid = column_.get_element(i, &value);
@@ -102,14 +119,14 @@ class Sorter_Int : public Sorter<TO> {
 
       Sorter_Raw<TO, TU> nextcol(std::move(out_buffer), nrows_, shift);
       rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
-        [&](size_t offset, size_t len, array<TO> ord_in, array<TO> ord_out, bool parallel) {
+        [&](size_t offset, size_t len, ovec ord_in, ovec ord_out, bool parallel) {
           nextcol.sort_subgroup(offset, len, ord_in, ord_out, parallel);
         });
     }
 
 
   private:
-    void write_range(array<TO> ordering_out) const {
+    void write_range(ovec ordering_out) const {
       size_t n = ordering_out.size;
       for (size_t i = 0; i < n; ++i) {
         ordering_out.ptr[i] = static_cast<TO>(i);

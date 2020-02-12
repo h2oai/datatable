@@ -33,7 +33,7 @@ namespace sort {
 template <typename TO>
 class Sorter {
   protected:
-    using ovec = ovec;
+    using ovec = array<TO>;
     size_t nrows_;
 
   public:
@@ -46,12 +46,11 @@ class Sorter {
 
     RowIndex sort() {
       Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(TO));
-      ovec ordering_in;
       ovec ordering_out(rowindex_buf);
       if (nrows_ <= INSERTSORT_NROWS) {
-        insert_sort(ordering_in, ordering_out, 0);
+        small_sort(ordering_out);
       } else {
-        radix_sort(ordering_in, ordering_out, 0, true);
+        radix_sort(ovec(), ordering_out, 0, true);
       }
       return RowIndex(std::move(rowindex_buf),
                       sizeof(TO) == 4? RowIndex::ARR32 : RowIndex::ARR64);
@@ -64,8 +63,8 @@ class Sorter {
   protected:
     /**
       * Sort the vector of indices `ordering_in` and write the result
-      * into `ordering_out`. If `ordering_in` is empty, treat it as
-      * if it was {0, 1, ..., n-1}.
+      * into `ordering_out`. This method should be single-threaded,
+      * and optimized for small `n`s.
       *
       * The sorting is performed according to the values of the
       * underlying column within the range `[offset; offset + n)`.
@@ -73,11 +72,19 @@ class Sorter {
       * The recommended way of implementing this methid is via the
       * `dt::sort::small_sort()` function from "sort/insert-sort.h".
       */
-    virtual void small_sort(ovec ordering_in,
-                            ovec ordering_out,
+    virtual void small_sort(ovec ordering_in, ovec ordering_out,
                             size_t offset) const = 0;
 
-    virtual void radix_sort(ovec ordering_out, bool parallel) const = 0;
+    /**
+      * Same as previous, but `ordering_in` is implicitly equal to
+      * `{0, 1, ..., n-1}` and `offset` is 0.
+      */
+    virtual void small_sort(ovec ordering_out) const = 0;
+
+    /**
+      */
+    virtual void radix_sort(ovec ordering_in, ovec ordering_out,
+                            size_t offset, bool parallel) const = 0;
 
     /**
       * Comparator function that compares the values of the underlying

@@ -34,6 +34,7 @@ namespace sort {
 template <typename TO>
 class Sorter_Bool : public Sorter<TO> {
   private:
+    using ovec = array<TO>;
     using Sorter<TO>::nrows_;
     Column column_;
 
@@ -51,8 +52,23 @@ class Sorter_Bool : public Sorter<TO> {
       return (ivalid - jvalid) + (ivalid & jvalid) * (ivalue - jvalue);
     }
 
-    void insert_sort(array<TO> ordering_out) const override {
-      dt::sort::insert_sort(array<TO>(), ordering_out,
+
+    void small_sort(ovec ordering_in, ovec ordering_out, size_t) const override
+    {
+      xassert(ordering_in.size == ordering_out.size);
+      const TO* oin = ordering_in.ptr;
+      dt::sort::small_sort(ordering_in, ordering_out,
+        [&](size_t i, size_t j) {  // compare_lt
+          int8_t ivalue, jvalue;
+          bool ivalid = column_.get_element(oin[i], &ivalue);
+          bool jvalid = column_.get_element(oin[j], &jvalue);
+          return jvalid && (!ivalid || ivalue < jvalue);
+        });
+    }
+
+
+    void small_sort(ovec ordering_out) const override {
+      dt::sort::small_sort(ovec(), ordering_out,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);
@@ -61,9 +77,12 @@ class Sorter_Bool : public Sorter<TO> {
         });
     }
 
-    void radix_sort(array<TO> ordering_out, bool parallel) const override {
+
+    void radix_sort(ovec ordering_in, ovec ordering_out,
+                    size_t offset, bool parallel) const override
+    {
       RadixSort rdx(nrows_, 1, parallel);
-      rdx.sort_by_radix(array<TO>(), ordering_out,
+      rdx.sort_by_radix(ordering_in, ordering_out,
         [&](size_t i) {  // get_radix
           int8_t ivalue;
           bool ivalid = column_.get_element(i, &ivalue);
