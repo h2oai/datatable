@@ -66,7 +66,12 @@ class Terminal:
             enc = self._encoding.upper()
             if enc == "UTF8" or enc == "UTF-8":
                 self._allow_unicode = True
-            self.is_a_tty = sys.__stdin__.isatty() and sys.__stdout__.isatty()
+
+            if sys.__stdin__.closed or sys.__stdout__.closed:
+                self.is_a_tty = False
+            else:
+                self.is_a_tty = sys.__stdin__.isatty() and sys.__stdout__.isatty()
+
             self._width = 0
             self._height = 0
             self._check_ipython()
