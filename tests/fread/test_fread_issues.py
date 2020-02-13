@@ -27,7 +27,7 @@ def test_issue1935():
         dt.fread(cmd="leeroy jenkins")
     assert ("Shell command returned error code" in str(e.value))
     # This may need adjustments for different OSes
-    assert re.search(r"leeroy(:|\')(?: command)? (.*) not (found|recognized)\s*",
+    assert re.search(r"leeroy(:|\')(command)? (.*) not (found|recognized)\s*",
                      str(e.value))
 
 
