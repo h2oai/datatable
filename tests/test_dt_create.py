@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -1237,7 +1237,7 @@ def test_issue_42():
     frame_integrity_check(d)
     assert d.shape == (1, 1)
     assert d.ltypes == (ltype.int, )
-    d = dt.Frame([-1, 2, 5, "hooray"])
+    d = dt.Frame([-1, 2, {5}, "hooray"])
     frame_integrity_check(d)
     assert d.shape == (4, 1)
     assert d.ltypes == (ltype.obj, )
