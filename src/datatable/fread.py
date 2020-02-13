@@ -285,7 +285,7 @@ class GenericReader(object):
         if ret:
             msgerr = msgerr.decode("utf-8", errors="replace").strip()
             raise TValueError("Shell command returned error code %r: `%s`"
-                  % (ret, msgerr))
+                              % (ret, msgerr))
         else:
             self._text = msgout
             self._src = cmd
