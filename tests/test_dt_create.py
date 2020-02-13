@@ -700,10 +700,24 @@ def test_auto_float64():
     assert d0.to_list()[0] == src
 
 
-def test_auto_str32():
+def test_auto_str32_1():
     d0 = dt.Frame(["start", None, "end"])
     frame_integrity_check(d0)
     assert d0.stypes == (stype.str32,)
+
+
+def test_auto_str32_2():
+    DT = dt.Frame([None, 1, 12, "fini"])
+    frame_integrity_check(DT)
+    assert DT.stype == stype.str32
+    assert DT.to_list() == [[None, "1", "12", "fini"]]
+
+
+def test_auto_str32_3():
+    DT = dt.Frame([True, 5.75, 9, "hi", 4, False])
+    frame_integrity_check(DT)
+    assert DT.stype == stype.str32
+    assert DT.to_list() == [["True", "5.75", "9", "hi", "4", "False"]]
 
 
 def test_auto_str64():
