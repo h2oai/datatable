@@ -28,6 +28,14 @@
     consistent with fread's behavior when reading CSV files.
 
 
+  Fread
+  -----
+
+  -[fix] When reading Excel files, the cells with datetime or boolean types
+    are now handled correctly, in particular a datetime value is converted
+    into its string representation. [#1701]
+
+
   General
   -------
   .. ref-context:: datatable
