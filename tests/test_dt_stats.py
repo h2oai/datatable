@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -397,7 +397,7 @@ def test_empty_frame(st):
 
 
 def test_object_column():
-    df = dt.Frame([None, nan, 3, "srsh"])
+    df = dt.Frame([None, nan, 3, [], "srsh"])
     frame_integrity_check(df)
     assert df.countna1() == 2
     assert df.min1() is None
@@ -411,7 +411,7 @@ def test_object_column():
 
 
 def test_object_column2():
-    df = dt.Frame([None, nan, 3, "srsh"])
+    df = dt.Frame([None, nan, 3, [], "srsh"])
 
     f0 = df.countna()
     frame_integrity_check(f0)

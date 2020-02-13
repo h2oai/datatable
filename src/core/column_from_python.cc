@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -270,6 +270,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
   T curr_offset = 0;
   size_t i = 0;
   py::robj item;
+  py::oobj tmpitem;
   for (i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
 
@@ -278,6 +279,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
       continue;
     }
     if (item.is_string()) {
+      parse_string:
       CString cstr = item.to_cstring();
       if (cstr.size) {
         T tlen = static_cast<T>(cstr.size);
@@ -301,6 +303,11 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
       }
       offsets[i] = curr_offset;
       continue;
+    }
+    if (item.is_int() || item.is_float() || item.is_bool()) {
+      tmpitem = item.to_pystring_force();
+      item = tmpitem;
+      goto parse_string;
     }
     break;
   }
@@ -346,6 +353,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
 
   T curr_offset = 0;
   py::robj item;
+  py::oobj tmpitem;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
 
@@ -354,7 +362,8 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
       continue;
     }
     if (!item.is_string()) {
-      item = item.to_pystring_force();
+      tmpitem = item.to_pystring_force();
+      item = tmpitem;
     }
     if (item.is_string()) {
       CString cstr = item.to_cstring();
