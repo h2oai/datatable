@@ -553,7 +553,10 @@ class SortContext {
     _fill_rrmap_from_groups(rrmap_ptr);
 
     if (make_groups) {
-      gg.init(static_cast<int32_t*>(groups.xptr()) + 1, 0);
+      // Note: `groups` variable may have been stored in another
+      // variable, if doing groupby+sort (by more than 1 column).
+      // Thus, use `.wptr()` instead of `.xptr()` here.
+      gg.init(static_cast<int32_t*>(groups.wptr()) + 1, 0);
       _radix_recurse<true>(rrmap_ptr);
     } else {
       _radix_recurse<false>(rrmap_ptr);

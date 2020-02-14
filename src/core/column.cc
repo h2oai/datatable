@@ -125,6 +125,10 @@ dt::ColumnImpl* Column::_get_mutable_impl(bool keep_stats) {
   return const_cast<dt::ColumnImpl*>(impl_);
 }
 
+bool Column::operator==(const Column& other) const noexcept {
+  return impl_ == other.impl_;
+}
+
 
 
 //------------------------------------------------------------------------------
