@@ -39,7 +39,11 @@ class Terminal:
     def __init__(self):
         self.jupyter = False
         self.ipython = False
-        if sys.__stdin__.closed or sys.__stdout__.closed:
+
+        def bad(stream):
+            return getattr(stream, "closed", True)
+
+        if bad(sys.__stdin__) or bad(sys.__stdout__):
             self._enable_keyboard = False
             self._enable_colors = False
             self._enable_terminal_codes = False
