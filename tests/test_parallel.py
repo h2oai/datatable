@@ -48,7 +48,6 @@ def test_multiprocessing_threadpool():
     parent_threads = get_thread_ids()
     n = 4
     with mp.Pool(processes=n) as pool:
-        # atexit.register(pool.close)
         child_threads = pool.starmap(get_thread_ids, [()] * n, chunksize=1)
         assert len(child_threads) == n
         for chthreads in child_threads:
