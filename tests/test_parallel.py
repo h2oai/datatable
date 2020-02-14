@@ -42,12 +42,14 @@ cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
 #-------------------------------------------------------------------------------
 
 def test_multiprocessing_threadpool():
+    import atexit
     # Verify that threads work properly after forking (#1758)
     import multiprocessing as mp
     from datatable.internal import get_thread_ids
     parent_threads = get_thread_ids()
     n = 4
     pool = mp.Pool(processes=n)
+    atexit.register(pool.close)
     child_threads = pool.starmap(get_thread_ids, [()] * n, chunksize=1)
     assert len(child_threads) == n
     for chthreads in child_threads:
