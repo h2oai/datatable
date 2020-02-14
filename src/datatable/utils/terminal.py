@@ -39,7 +39,17 @@ class Terminal:
     def __init__(self):
         self.jupyter = False
         self.ipython = False
-        if sys.__stdin__ and sys.__stdout__:
+        if sys.__stdin__.closed or sys.__stdout__.closed:
+            self._enable_keyboard = False
+            self._enable_colors = False
+            self._enable_terminal_codes = False
+            self._encoding = "UTF8"
+            self._allow_unicode = True
+            self.is_a_tty = False
+            self._width = 80
+            self._height = 25
+
+        else:
             import blessed
             import _locale
 
@@ -67,23 +77,12 @@ class Terminal:
             if enc == "UTF8" or enc == "UTF-8":
                 self._allow_unicode = True
 
-            if sys.__stdin__.closed or sys.__stdout__.closed:
-                self.is_a_tty = False
-            else:
-                self.is_a_tty = sys.__stdin__.isatty() and sys.__stdout__.isatty()
+            self.is_a_tty = sys.__stdin__.isatty() and sys.__stdout__.isatty()
 
             self._width = 0
             self._height = 0
             self._check_ipython()
-        else:
-            self._enable_keyboard = False
-            self._enable_colors = False
-            self._enable_terminal_codes = False
-            self._encoding = "UTF8"
-            self._allow_unicode = True
-            self.is_a_tty = False
-            self._width = 80
-            self._height = 25
+
 
     @property
     def width(self):
