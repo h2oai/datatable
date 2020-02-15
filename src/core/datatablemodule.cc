@@ -266,7 +266,7 @@ static void initialize_options(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 // Support memory leak detection
 //------------------------------------------------------------------------------
-#ifdef DTDEBUG
+#if DTDEBUG
 
 struct PtrInfo {
   size_t alloc_size;
@@ -371,7 +371,7 @@ void py::DatatableModule::init_methods() {
   #ifdef DTTEST
     init_tests();
   #endif
-  #ifdef DTDEBUG
+  #if DTDEBUG
     ADD_FN(&get_tracked_objects, args_get_tracked_objects);
   #endif
 }

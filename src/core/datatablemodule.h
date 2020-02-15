@@ -61,7 +61,7 @@ class DatatableModule : public ExtModule<DatatableModule> {
 }  // namespace py
 
 
-#ifdef DTDEBUG
+#if DTDEBUG
   void TRACK(void* ptr, size_t size, const char* name);
   void UNTRACK(void* ptr);
   bool IS_TRACKED(void* ptr);

@@ -122,6 +122,8 @@
 //
 //
 //------------------------------------------------------------------------------
+#include <iostream>
+
 #include <algorithm>  // std::min
 #include <atomic>     // std::atomic_flag
 #include <cstdlib>    // std::abs
@@ -166,7 +168,7 @@ class rmem {
   private:
   public:
     void* ptr;
-    #ifdef DTDEBUG
+    #if DTDEBUG
       size_t size;
     #endif
   public:
@@ -204,21 +206,21 @@ void* omem::release() {
 
 rmem::rmem() {
   ptr = nullptr;
-  #ifdef DTDEBUG
+  #if DTDEBUG
     size = 0;
   #endif
 }
 
 rmem::rmem(const omem& o) {
   ptr = o.ptr;
-  #ifdef DTDEBUG
+  #if DTDEBUG
     size = o.size;
   #endif
 }
 
 rmem::rmem(const rmem& o) {
   ptr = o.ptr;
-  #ifdef DTDEBUG
+  #if DTDEBUG
     size = o.size;
   #endif
 }
@@ -226,7 +228,7 @@ rmem::rmem(const rmem& o) {
 rmem::rmem(const rmem& o, size_t offset, size_t n) {
   ptr = static_cast<char*>(o.ptr) + offset;
   (void)n;
-  #ifdef DTDEBUG
+  #if DTDEBUG
     size = n;
     xassert(offset + n <= o.size);
   #endif
@@ -242,7 +244,7 @@ template <typename T> T* rmem::data() const noexcept {
 
 void swap(rmem& left, rmem& right) noexcept {
   std::swap(left.ptr, right.ptr);
-  #ifdef DTDEBUG
+  #if DTDEBUG
     std::swap(left.size, right.size);
   #endif
 }
@@ -535,6 +537,9 @@ class SortContext {
     descending = desc;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
+    std::cout << "continue_sort: o = [";
+    for (int i = 0; i < n; ++i) std::cout << o[i] << ", ";
+    std::cout << "]\n";
     if (desc) {
       _prepare_data_for_column<false>();
     } else {

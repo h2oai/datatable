@@ -250,15 +250,10 @@ void EvalContext::compute_groupby_and_sort() {
     if (ncols) {
       for (size_t i = 0; i < ncols; ++i) {
         const Column& col = wf.get_column(i);
-        // Remove duplicate columns from the sorting list
-        for (const Column& existing_col : cols) {
-          if (col == existing_col) goto skip_col;
-        }
         cols.push_back(col);  // copy
         if (i >= n_group_cols) {
           flags[i] = flags[i] | SortFlag::SORT_ONLY;
         }
-        skip_col:;
       }
       wf.truncate_columns(n_group_cols);
       set_groupby_columns(std::move(wf));
