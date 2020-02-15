@@ -939,8 +939,8 @@ def test_issue2348():
                   D=[11]*6, E=[2]*6)
     # Check that these expressions do not crash
     DT[:, :, by(f.A), sort(f.A, f.E)]
-    # DT[:, :, by(f.A, f.B), sort(f.A, f.B)]
-    # assert_equals(DT[:, dt.count(), by(f.D), sort(f.E, f.A)],
-    #               dt.Frame([[11], [6]],
-    #                        names=["D", "count"],
-    #                        stypes=[dt.int32, dt.int64]))
+    DT[:, :, by(f.A, f.B), sort(f.A, f.B)]
+    assert_equals(DT[:, dt.count(), by(f.D), sort(f.E, f.A)],
+                  dt.Frame([[11], [6]],
+                           names=["D", "count"],
+                           stypes=[dt.int32, dt.int64]))
