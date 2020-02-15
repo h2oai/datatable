@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -931,3 +931,16 @@ def test_h2oai7014(tempfile_jay):
     counts = counts[:, :, sort("count")]
     counts.materialize()
     assert counts.to_list() == [['t'], [1047]]
+
+
+def test_issue2348():
+    DT = dt.Frame(A=[1, 2, 3, 1, 2, 3], B=list('akdfnv'),
+                  C=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+                  D=[11]*6, E=[2]*6)
+    # Check that these expressions do not crash
+    DT[:, :, by(f.A), sort(f.A, f.E)]
+    # DT[:, :, by(f.A, f.B), sort(f.A, f.B)]
+    # assert_equals(DT[:, dt.count(), by(f.D), sort(f.E, f.A)],
+    #               dt.Frame([[11], [6]],
+    #                        names=["D", "count"],
+    #                        stypes=[dt.int32, dt.int64]))
