@@ -122,8 +122,6 @@
 //
 //
 //------------------------------------------------------------------------------
-#include <iostream>
-
 #include <algorithm>  // std::min
 #include <atomic>     // std::atomic_flag
 #include <cstdlib>    // std::abs
@@ -537,9 +535,6 @@ class SortContext {
     descending = desc;
     xassert(nradixes > 0);
     xassert(o == container_o.ptr);
-    std::cout << "continue_sort: o = [";
-    for (int i = 0; i < n; ++i) std::cout << o[i] << ", ";
-    std::cout << "]\n";
     if (desc) {
       _prepare_data_for_column<false>();
     } else {
@@ -561,6 +556,7 @@ class SortContext {
       // Note: `groups` variable may have been stored in another
       // variable, if doing groupby+sort (by more than 1 column).
       // Thus, use `.wptr()` instead of `.xptr()` here.
+      groups.ensuresize(sizeof(int32_t*) * (n + 1));
       gg.init(static_cast<int32_t*>(groups.wptr()) + 1, 0);
       _radix_recurse<true>(rrmap_ptr);
     } else {
