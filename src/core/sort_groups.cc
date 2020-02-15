@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <utility>  // std::move
 #include "utils/assert.h"
@@ -30,7 +44,7 @@ void GroupGatherer::push(size_t grp) {
 
 
 template <typename T, typename V>
-void GroupGatherer::from_data(const T* data, V* o, size_t n) {
+void GroupGatherer::from_data(const T* data, const V* o, size_t n) {
   if (n == 0) return;
   T curr_value = data[o[0]];
   size_t lasti = 0;
@@ -102,9 +116,9 @@ void GroupGatherer::from_histogram(
 }
 
 
-template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);
-template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
-template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
-template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
+template void GroupGatherer::from_data(const uint8_t*,  const int32_t*, size_t);
+template void GroupGatherer::from_data(const uint16_t*, const int32_t*, size_t);
+template void GroupGatherer::from_data(const uint32_t*, const int32_t*, size_t);
+template void GroupGatherer::from_data(const uint64_t*, const int32_t*, size_t);
 template void GroupGatherer::from_data(const Column&, const int32_t*, size_t);
 template void GroupGatherer::from_data(const Column&, const int64_t*, size_t);

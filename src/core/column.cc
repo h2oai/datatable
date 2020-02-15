@@ -125,6 +125,10 @@ dt::ColumnImpl* Column::_get_mutable_impl(bool keep_stats) {
   return const_cast<dt::ColumnImpl*>(impl_);
 }
 
+bool Column::operator==(const Column& other) const noexcept {
+  return impl_ == other.impl_;
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -302,8 +306,18 @@ Buffer Column::get_data_buffer(size_t k) const {
 //------------------------------------------------------------------------------
 
 void Column::materialize(bool to_memory) {
-  auto pcol = _get_mutable_impl(/* keep_stats= */ true);
-  pcol->materialize(*this, to_memory);
+  if (impl_->is_virtual()) {
+    auto pcol = _get_mutable_impl(/* keep_stats= */ true);
+    pcol->materialize(*this, to_memory);
+  }
+  else if (to_memory) {
+    // A non-virtual column doesn't need to be materialized, unless
+    // it's to bring the memory-mapped data into RAM. However, in
+    // that case we're not really changing the column, so no need to
+    // acquire the "mutable impl", which may incur unnecessary data
+    // copy.
+    const_cast<dt::ColumnImpl*>(impl_)->materialize(*this, to_memory);
+  }
 }
 
 void Column::replace_values(const RowIndex& replace_at,

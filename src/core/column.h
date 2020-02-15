@@ -158,6 +158,9 @@ class Column
     // the class overtakes ownership of that pointer.
     explicit Column(dt::ColumnImpl*&& col) noexcept;
 
+    // Columns are considered equal if they have the same `impl_`.
+    bool operator==(const Column& other) const noexcept;
+
   //------------------------------------
   // Properties
   //------------------------------------

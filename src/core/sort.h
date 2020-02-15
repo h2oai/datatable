@@ -117,7 +117,7 @@ class GroupGatherer {
     void push(size_t grp);
 
     template <typename T, typename V>
-    void from_data(const T*, V*, size_t);
+    void from_data(const T*, const V*, size_t);
 
     template <typename V>
     void from_data(const Column&, const V*, size_t);
@@ -166,10 +166,10 @@ extern template void insert_sort_values_str(const Column&, size_t, int32_t*, int
 extern template int compare_strings<1>(const CString&, bool, const CString&, bool, size_t);
 extern template int compare_strings<-1>(const CString&, bool, const CString&, bool, size_t);
 
-extern template void GroupGatherer::from_data(const uint8_t*,  int32_t*, size_t);
-extern template void GroupGatherer::from_data(const uint16_t*, int32_t*, size_t);
-extern template void GroupGatherer::from_data(const uint32_t*, int32_t*, size_t);
-extern template void GroupGatherer::from_data(const uint64_t*, int32_t*, size_t);
+extern template void GroupGatherer::from_data(const uint8_t*,  const int32_t*, size_t);
+extern template void GroupGatherer::from_data(const uint16_t*, const int32_t*, size_t);
+extern template void GroupGatherer::from_data(const uint32_t*, const int32_t*, size_t);
+extern template void GroupGatherer::from_data(const uint64_t*, const int32_t*, size_t);
 extern template void GroupGatherer::from_data(const Column&, const int32_t*, size_t);
 extern template void GroupGatherer::from_data(const Column&, const int64_t*, size_t);
 
