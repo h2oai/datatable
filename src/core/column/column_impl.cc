@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -71,15 +71,24 @@ void ColumnImpl::_materialize_fw(Column& out) {
   assert_compatible_type<T>(stype_);
   auto out_column = Sentinel_ColumnImpl::make_column(nrows_, stype_);
   auto out_data = static_cast<T*>(out_column.get_data_editable(0));
+  auto nthreads = NThreads(this->allow_parallel_access());
 
-  parallel_for_static(
-    nrows_,
-    NThreads(this->allow_parallel_access()),
-    [=](size_t i) {
-      T value;
-      bool isvalid = this->get_element(i, &value);
-      out_data[i] = isvalid? value : GETNA<T>();
-    });
+  if (computationally_expensive()) {
+    parallel_for_dynamic(nrows_, nthreads,
+      [=](size_t i) {
+        T value;
+        bool isvalid = this->get_element(i, &value);
+        out_data[i] = isvalid? value : GETNA<T>();
+      });
+  }
+  else {
+    parallel_for_static(nrows_, nthreads,
+      [=](size_t i) {
+        T value;
+        bool isvalid = this->get_element(i, &value);
+        out_data[i] = isvalid? value : GETNA<T>();
+      });
+  }
   out = std::move(out_column);
 }
 

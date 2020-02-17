@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -94,6 +94,7 @@ class ColumnImpl
     size_t nrows() const noexcept { return nrows_; }
     SType  stype() const noexcept { return stype_; }
     virtual bool is_virtual() const noexcept = 0;
+    virtual bool computationally_expensive() const { return false; }
     virtual size_t memory_footprint() const noexcept = 0;
 
 

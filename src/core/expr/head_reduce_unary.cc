@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -82,6 +82,10 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
       groupby.get_group(i, &i0, &i1);
       return reducer(arg, i0, i1, out);
     }
+
+    bool computationally_expensive() const override {
+      return true;
+    }
 };
 
 
@@ -115,6 +119,11 @@ class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, double*   out) const override { return _get(i, out); }
     bool get_element(size_t i, CString*  out) const override { return _get(i, out); }
     bool get_element(size_t i, py::robj* out) const override { return _get(i, out); }
+
+
+    bool computationally_expensive() const override {
+      return true;
+    }
 
   private:
     template <typename T>
