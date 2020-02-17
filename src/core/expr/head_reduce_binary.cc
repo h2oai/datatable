@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -84,6 +84,10 @@ class BinaryReduced_ColumnImpl : public Virtual_ColumnImpl {
       size_t i0, i1;
       groupby.get_group(i, &i0, &i1);
       return reducer(arg1, arg2, i0, i1, out);
+    }
+
+    bool computationally_expensive() const override {
+      return true;
     }
 };
 
