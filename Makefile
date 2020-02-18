@@ -83,7 +83,7 @@ geninfo:
 
 .PHONY: coverage
 coverage:
-	$(PYTHON) -m pip install 'typesentry>=0.2.6' blessed
+	$(PYTHON) -m pip install 'typesentry>=0.2.6'
 	$(PYTHON) ci/ext.py coverage
 	$(MAKE) test_install
 	DTCOVERAGE=1 $(PYTHON) -m pytest -x \
