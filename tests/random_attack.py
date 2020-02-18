@@ -18,7 +18,7 @@ import time
 import warnings
 from datatable import f, join
 from datatable.internal import frame_integrity_check
-from datatable.utils.terminal import term
+from datatable.lib import core
 from datatable.utils.misc import plural_form as plural
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests import assert_equals
@@ -121,7 +121,7 @@ class Attacker:
                 break
         print("\nAttack ended, checking the outcome... ", end='')
         frame.check()
-        print(term.color("bright_green", "PASSED"))
+        print(core.apply_color("bright_green", "PASSED"))
         t1 = time.time()
         print("Time taken = %.3fs" % (t1 - t0))
 

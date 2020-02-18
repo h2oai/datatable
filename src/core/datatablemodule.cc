@@ -263,6 +263,7 @@ static py::oobj apply_color(const py::PKArgs& args) {
 
   dt::TerminalStream ts(true);
   if      (color == "bright_black") ts << dt::style::grey;
+  else if (color == "grey")         ts << dt::style::grey;
   else if (color == "bright_green") ts << dt::style::bgreen;
   else if (color == "yellow"      ) ts << dt::style::yellow;
   else if (color == "bold"        ) ts << dt::style::bold;
