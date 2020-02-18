@@ -46,6 +46,8 @@
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "utils/terminal/terminal.h"
+#include "utils/terminal/terminal_stream.h"
+#include "utils/terminal/terminal_style.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
@@ -240,6 +242,41 @@ static py::oobj regex_supported(const py::PKArgs&) {
 
 
 
+static py::PKArgs args_apply_color(
+  2, 0, 0, false ,false, {"color", "text"}, "apply_color",
+  "Paint the text into the specified color with by appending "
+  "the appropriate terminal control sequences");
+
+static py::oobj apply_color(const py::PKArgs& args) {
+  if (args[0].is_none_or_undefined()) {
+    throw TypeError() << "Missing required argument `color`";
+  }
+  if (args[1].is_none_or_undefined()) {
+    throw TypeError() << "Missing required argument `text`";
+  }
+  bool use_colors = dt::Terminal::standard_terminal().colors_enabled();
+  if (!use_colors) {
+    return args[1].to_oobj();
+  }
+  std::string color = args[0].to_string();
+  std::string text = args[1].to_string();
+
+  dt::TerminalStream ts(true);
+  if      (color == "bright_black") ts << dt::style::grey;
+  else if (color == "bright_green") ts << dt::style::bgreen;
+  else if (color == "yellow"      ) ts << dt::style::yellow;
+  else if (color == "bold"        ) ts << dt::style::bold;
+  else if (color == "bright_red"  ) ts << dt::style::bred;
+  else if (color == "cyan"        ) ts << dt::style::cyan;
+  else if (color == "bright_cyan" ) ts << dt::style::bcyan;
+  else {
+    throw ValueError() << "Unknown color `" << color << "`";
+  }
+  ts << text << dt::style::end;
+  return py::ostring(ts.str());
+}
+
+
 
 static py::PKArgs args_initialize_options(
   1, 0, 0, false, false, {"options"}, "initialize_options",
@@ -345,6 +382,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&initialize_options, args_initialize_options);
   ADD_FN(&compiler_version, args_compiler_version);
   ADD_FN(&regex_supported, args_regex_supported);
+  ADD_FN(&apply_color, args_apply_color);
 
   init_methods_aggregate();
   init_methods_buffers();
