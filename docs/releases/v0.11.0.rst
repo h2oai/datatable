@@ -44,6 +44,9 @@
     signal when an operation is requested that would be illegal for the given
     combination of parameters.
 
+  -[enh] Datatable no longer lists module ``blessed`` as a dependency.
+    [#1677]
+
   -[fix] Internal function :func:`frame_column_data_r` now works properly with
     virtual columns. [#2269]
 

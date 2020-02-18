@@ -34,7 +34,6 @@ def test_options_all():
         "allow_unicode",
         "head_nrows",
         "interactive",
-        "interactive_hint",
         "max_nrows",
         "max_column_width",
         "tail_nrows",

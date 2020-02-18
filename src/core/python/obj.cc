@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -881,6 +881,12 @@ oobj _obj::get_attrx(const char* attr) const {
 
 bool _obj::has_attr(const char* attr) const {
   return PyObject_HasAttrString(v, attr);
+}
+
+
+void _obj::set_attr(const char* attr, const _obj& newvalue) {
+  int ret = PyObject_SetAttrString(v, attr, newvalue.v);
+  if (ret == -1) throw PyError();
 }
 
 

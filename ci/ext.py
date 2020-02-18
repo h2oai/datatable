@@ -365,7 +365,6 @@ def get_meta():
         # Runtime dependencies
         requirements=[
             "typesentry (>=0.2.6)",
-            "blessed",
             "pytest (>=3.1); extra == 'tests'",
             "docutils (>=0.14); extra == 'tests'",
             "numpy; extra == 'optional'",

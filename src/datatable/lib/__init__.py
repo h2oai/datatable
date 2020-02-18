@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -31,3 +31,16 @@ except ImportError:
 from . import _datatable as core
 
 __all__ = ("core", )
+
+
+if hasattr(core.Frame, "_repr_pretty_"):
+    import sys
+    _original_displayhook = sys.displayhook
+
+    def _new_displayhook(value):
+        if isinstance(value, core.Frame):
+            value.view(None)
+        else:
+            _original_displayhook(value)
+
+    sys.displayhook = _new_displayhook

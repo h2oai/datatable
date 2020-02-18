@@ -129,9 +129,10 @@ class _obj {
     PyObject* v;
 
   public:
+    bool has_attr(const char* attr) const;
     oobj get_attr(const char* attr) const;
     oobj get_attrx(const char* attr) const;
-    bool has_attr(const char* attr) const;
+    void set_attr(const char* attr, const _obj& newvalue);
     oobj get_item(const py::_obj& key) const;
     oobj get_iter() const;
     oobj invoke(const char* fn) const;

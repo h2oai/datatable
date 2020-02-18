@@ -11,7 +11,6 @@ import typesentry
 import warnings
 import sys
 from typesentry import U
-from datatable.utils.terminal import term
 from datatable.lib import core
 
 _tc = typesentry.Config()
@@ -50,8 +49,8 @@ class DatatableWarning(UserWarning):
             # Warning was converted into an exception
             TTypeError._handle_(self, *exc_args)
         else:
-            print(term.color("yellow", self.__class__.__name__ + ": ") +
-                  term.color("bright_black", str(self)))
+            print(core.apply_color("yellow", self.__class__.__name__ + ": ") +
+                  core.apply_color("grey", str(self)))
 
 
 def dtwarn(message):

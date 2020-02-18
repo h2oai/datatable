@@ -128,10 +128,8 @@ def test_dt_loadtime(nocov):
 
 def test_dt_dependencies():
     # This test checks how many dependencies `datatable` needs to load at
-    # startup. At the time of writing this test, the count was 168.
-    # The boundary of 200 may need to be revised upwards at some point (if
-    # new dependencies or source files are added), or downwards, if we eliminate
-    # some of the heavy dependent packages as blessed, llvmlite, typesentry.
+    # startup. At the time of writing this test, the count was 168 (as of
+    # Feb 2020: 86).
     n = subprocess.check_output([sys.executable, "-c",
                                  "import sys; "
                                  "set1 = set(sys.modules); "
@@ -139,7 +137,7 @@ def test_dt_dependencies():
                                  "set2 = set(sys.modules); "
                                  "assert 'numpy' not in set2; "
                                  "print(len(set2-set1), end='')"])
-    assert int(n) < 200
+    assert int(n) < 120
 
 
 def test_dt_version():

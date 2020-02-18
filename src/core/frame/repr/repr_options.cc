@@ -48,8 +48,6 @@ static void _init_options()
     [](const py::Arg& value) {
       display_use_colors = value.to_bool_strict();
       Terminal::standard_terminal().use_colors(display_use_colors);
-      py::oobj::import("datatable.utils.terminal", "term")
-        .invoke("use_colors", py::obool(display_use_colors));
     },
     "Whether to use colors when printing various messages into\n"
     "the console. Turn this off if your terminal is unable to\n"
@@ -65,8 +63,6 @@ static void _init_options()
     [](const py::Arg& value) {
       display_allow_unicode = value.to_bool_strict();
       Terminal::standard_terminal().use_unicode(display_allow_unicode);
-      py::oobj::import("datatable.utils.terminal", "term")
-        .invoke("set_allow_unicode", py::obool(display_allow_unicode));
     },
     "If True, datatable will allow unicode characters (encoded as\n"
     "UTF-8) to be printed into the output.\n"

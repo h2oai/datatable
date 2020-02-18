@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -86,10 +86,6 @@ void Frame::view(const PKArgs& args) {
   if (is_jupyter) {
     auto htmlstr = _repr_html_(args__repr_html_);
     dt::HtmlWidget::write_to_jupyter(htmlstr);
-  }
-  else if (interactive) {
-    oobj DFWidget = oobj::import("datatable.widget", "DataFrameWidget");
-    DFWidget.call({oobj(this), obool(interactive)}).invoke("render");
   } else {
     auto terminal = plain? &dt::Terminal::plain_terminal()
                          : &dt::Terminal::standard_terminal();
