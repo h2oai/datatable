@@ -137,7 +137,7 @@ def test_dt_dependencies():
                                  "set2 = set(sys.modules); "
                                  "assert 'numpy' not in set2; "
                                  "print(len(set2-set1), end='')"])
-    assert int(n) < 100
+    assert int(n) < 120
 
 
 def test_dt_version():
