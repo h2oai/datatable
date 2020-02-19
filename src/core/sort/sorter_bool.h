@@ -60,8 +60,8 @@ class Sorter_Bool : public Sorter<TO> {
       dt::sort::small_sort(ordering_in, ordering_out,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
-          bool ivalid = column_.get_element(oin[i], &ivalue);
-          bool jvalid = column_.get_element(oin[j], &jvalue);
+          bool ivalid = column_.get_element(static_cast<size_t>(oin[i]), &ivalue);
+          bool jvalid = column_.get_element(static_cast<size_t>(oin[j]), &jvalue);
           return jvalid && (!ivalid || ivalue < jvalue);
         });
     }

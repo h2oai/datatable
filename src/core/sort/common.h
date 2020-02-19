@@ -33,6 +33,13 @@ static constexpr size_t MAX_NROWS_INT32 = 0x7FFFFFFF;
 static constexpr size_t INSERTSORT_NROWS = 16;
 
 
+/**
+  * Simple struct-like class which represents a raw pointer viewed
+  * as an array of elements of type `T`. The pointer is not owned.
+  *
+  * The main difference between `array<T>` and a simple pointer `T*`
+  * is that the former also knows its size.
+  */
 template <typename T>
 class array {
   public:
@@ -51,7 +58,7 @@ class array {
     { xassert(buf.size() % sizeof(T) == 0); }
 
     array<T> subset(size_t start, size_t length) {
-      xassert(start + length <= size && start + length > length);
+      xassert(start + length <= size);
       return array<T>(ptr + start, length);
     }
 };

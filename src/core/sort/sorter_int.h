@@ -65,8 +65,8 @@ class Sorter_Int : public Sorter<TO> {
       dt::sort::small_sort(ordering_in, ordering_out,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
-          bool ivalid = column_.get_element(oin[i], &ivalue);
-          bool jvalid = column_.get_element(oin[j], &jvalue);
+          bool ivalid = column_.get_element(static_cast<size_t>(oin[i]), &ivalue);
+          bool jvalid = column_.get_element(static_cast<size_t>(oin[j]), &jvalue);
           return jvalid && (!ivalid || ivalue < jvalue);
         });
     }
@@ -96,13 +96,13 @@ class Sorter_Int : public Sorter<TO> {
                       dt::nlz(static_cast<TU>(max - min + 1));
       int nradixbits = std::min(nsigbits, 8);
       int shift = nsigbits - nradixbits;
-      size_t mask = (size_t(1) << shift) - 1;
+      TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
       Buffer tmp = Buffer::mem(sizeof(TO) * nrows_);
       ovec ordering_tmp(tmp);
 
-      Buffer out_buffer = Buffer::mem(sizeof(TI) * nrows_);
-      array<TI> out_array(out_buffer);
+      Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
+      array<TU> out_array(out_buffer);
 
       RadixSort rdx(nrows_, 1, parallel);
       auto groups = rdx.sort_by_radix(ovec(), ordering_tmp,
@@ -114,7 +114,7 @@ class Sorter_Int : public Sorter<TO> {
         [&](size_t i, size_t j) {  // move_data
           TI value;
           column_.get_element(i, &value);
-          out_array.ptr[j] = (value - min) & mask;
+          out_array.ptr[j] = static_cast<TU>(value - min) & mask;
         });
 
       Sorter_Raw<TO, TU> nextcol(std::move(out_buffer), nrows_, shift);

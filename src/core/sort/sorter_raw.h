@@ -70,7 +70,9 @@ class Sorter_Raw : public Sorter<TO> {
     int compare_lge(size_t i, size_t j) const override {
       return (data_[i] > data_[j]) - (data_[i] < data_[j]);
     }
-
+    bool contains_reordered_data() const override {
+      return true;
+    }
 
     void small_sort(ovec ordering_in, ovec ordering_out,
                      size_t offset) const override

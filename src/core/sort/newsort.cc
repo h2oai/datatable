@@ -25,6 +25,7 @@
 #include "sort/radix-sort.h"   // RadixSort
 #include "sort/sorter_bool.h"  // Sorter_Bool
 #include "sort/sorter_int.h"   // Sorter_Int
+#include "sort/sorter_multi.h" // Sorter_Multi
 #include "utils/assert.h"      // xassert
 #include "column.h"            // Column
 #include "rowindex.h"          // RowIndex
@@ -46,6 +47,20 @@ static std::unique_ptr<Sorter<TO>> _make_sorter(const Column& col) {
     case SType::INT64: return so(new Sorter_Int<TO, int64_t>(col));
     default: throw TypeError() << "Cannot sort column of type " << col.stype();
   }
+}
+
+
+template <typename TO>
+static std::unique_ptr<Sorter<TO>> _make_sorter(const std::vector<Column>& cols)
+{
+  using so = std::unique_ptr<Sorter<TO>>;
+  xassert(cols.size() > 1);
+  std::vector<so> sorters;
+  sorters.reserve(cols.size());
+  for (const Column& col : cols) {
+    sorters.push_back(_make_sorter<TO>(col));
+  }
+  return so(new Sorter_Multi<TO>(std::move(sorters)));
 }
 
 

@@ -44,6 +44,10 @@ class Sorter {
     virtual ~Sorter() {}
 
 
+    size_t nrows() const noexcept {
+      return nrows_;
+    }
+
     RowIndex sort() {
       Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(TO));
       ovec ordering_out(rowindex_buf);
@@ -94,6 +98,10 @@ class Sorter {
       *   - a positive value if `val[i] > val[j]`.
       */
     virtual int compare_lge(size_t i, size_t j) const = 0;
+
+    virtual bool contains_reordered_data() const {
+      return false;
+    }
 };
 
 
