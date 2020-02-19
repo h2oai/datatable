@@ -88,16 +88,16 @@ Convert a Frame
 Convert an existing Frame into a ``numpy`` array, a ``pandas`` DataFrame,
 or a pure Python object::
 
-   nparr = df1.to_numpy()
-   pddfr = df1.to_pandas()
-   pyobj = df1.to_list()
+   nparr = DT.to_numpy()
+   pddfr = DT.to_pandas()
+   pyobj = DT.to_list()
 
 Parse Text (csv) Files
 ----------------------
 
 ``datatable`` provides fast and convenient parsing of text (csv) files::
 
-   df = dt.fread("train.csv")
+   DT = dt.fread("train.csv")
 
 The ``datatable`` parser
 
@@ -114,7 +114,7 @@ Write the Frame
 
 Write the Frame's content into a ``csv`` file (also multi-threaded)::
 
-   df.to_csv("out.csv")
+   DT.to_csv("out.csv")
 
 Save a Frame
 ------------
@@ -122,49 +122,49 @@ Save a Frame
 Save a Frame into a binary format on disk, then open it later instantly,
 regardless of the data size::
 
-   df.to_jay("out.jay")
-   df2 = dt.open("out.jay")
+   DT.to_jay("out.jay")
+   DT2 = dt.open("out.jay")
 
 Basic Frame Properties
 ----------------------
 
 Basic Frame properties include::
 
-    print(df.shape)   # (nrows, ncols)
-    print(df.names)   # column names
-    print(df.stypes)  # column types
+    print(DT.shape)   # (nrows, ncols)
+    print(DT.names)   # column names
+    print(DT.stypes)  # column types
 
 Compute Per-Column Summary Stats
 --------------------------------
 
 Compute per-column summary stats using::
 
-   df.sum()
-   df.max()
-   df.min()
-   df.mean()
-   df.sd()
-   df.mode()
-   df.nmodal()
-   df.nunique()
+   DT.sum()
+   DT.max()
+   DT.min()
+   DT.mean()
+   DT.sd()
+   DT.mode()
+   DT.nmodal()
+   DT.nunique()
 
 Select Subsets of Rows/Columns
 ------------------------------
 
 Select subsets of rows and/or columns using::
 
-   df[:, "A"]         # select 1 column
-   df[:10, :]         # first 10 rows
-   df[::-1, "A":"D"]  # reverse rows order, columns from A to D
-   df[27, 3]          # single element in row 27, column 3 (0-based)
+   DT[:, "A"]         # select 1 column
+   DT[:10, :]         # first 10 rows
+   DT[::-1, "A":"D"]  # reverse rows order, columns from A to D
+   DT[27, 3]          # single element in row 27, column 3 (0-based)
 
 Delete Rows/Columns
 -------------------
 
 Delete rows and or columns using::
 
-   del df[:, "D"]     # delete column D
-   del df[f.A < 0, :] # delete rows where column A has negative values
+   del DT[:, "D"]     # delete column D
+   del DT[f.A < 0, :] # delete rows where column A has negative values
 
 Filter Rows
 -----------
@@ -172,22 +172,22 @@ Filter Rows
 Filter rows via an expression using the following. In this example, ``mean``,
 ``sd``, ``f`` are all symbols imported from ``datatable``::
 
-   df[(f.x > mean(f.y) + 2.5 * sd(f.y)) | (f.x < -mean(f.y) - sd(f.y)), :]
+   DT[(f.x > mean(f.y) + 2.5 * sd(f.y)) | (f.x < -mean(f.y) - sd(f.y)), :]
 
 Compute Columnar Expressions
 ----------------------------
 
 Compute columnar expressions using::
 
-   df[:, {"x": f.x, "y": f.y, "x+y": f.x + f.y, "x-y": f.x - f.y}]
+   DT[:, {"x": f.x, "y": f.y, "x+y": f.x + f.y, "x-y": f.x - f.y}]
 
 Sort Columns
 ------------
 
 Sort columns using::
 
-    df.sort("A")
-    df[:, :, sort(f.A)]
+    DT.sort("A")
+    DT[:, :, sort(f.A)]
 
 
 Perform Groupby Calculations
@@ -195,7 +195,7 @@ Perform Groupby Calculations
 
 Perform groupby calculations using::
 
-    df[:, mean(f.x), by("y")]
+    DT[:, mean(f.x), by("y")]
 
 
 Append Rows/Columns
@@ -203,5 +203,5 @@ Append Rows/Columns
 
 Append rows / columns to a Frame using :meth:`Frame.cbind() <datatable.Frame.cbind>`::
 
-    df1.cbind(df2, df3)
-    df1.rbind(df4, force=True)
+    DT1.cbind(DT2, DT3)
+    DT1.rbind(DT4, force=True)
