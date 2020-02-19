@@ -14,7 +14,9 @@
     border-radius: 3px;
     display: flex;
     line-height: 16px;
+    margin-bottom: 3pt;
     padding: 5pt 5pt 5pt 7pt;
+    white-space: pre-wrap;
 }
 
 .x-function .sig-container .sig-qualifier a,
@@ -88,6 +90,10 @@
     font-size: inherit;
 }
 
+.x-function .del-keyword {
+    color: white;
+    font-weight: bold;
+}
 
 
 /*------------------------------------------------------------------------------

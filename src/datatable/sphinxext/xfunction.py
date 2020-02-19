@@ -99,6 +99,7 @@ class XobjectDirective(SphinxDirective):
         self.doc_file -- name of the file where the docstring is located
         self.doc_var -- name of the C++ variable containing the docstring
         self.test_file -- name of the file where tests are located
+        self.setter -- name of the setter variable (for :xdata: directives)
 
     ==[ Parsed from the source files(s) ]==
         self.src_line_first -- starting line of the function in self.src_file
@@ -125,6 +126,8 @@ class XobjectDirective(SphinxDirective):
         "src": directives.unchanged_required,
         "doc": directives.unchanged,
         "tests": directives.unchanged,
+        "settable": directives.unchanged,
+        "deletable": directives.unchanged,
     }
 
     def run(self):
@@ -133,6 +136,8 @@ class XobjectDirective(SphinxDirective):
         self._parse_option_src()
         self._parse_option_doc()
         self._parse_option_tests()
+        self._parse_option_settable()
+        self._parse_option_deletable()
         title_overrides[self.env.docname] = ".%s()" % self.obj_name
 
         if self.doc_file == self.src_file:
@@ -251,6 +256,31 @@ class XobjectDirective(SphinxDirective):
                              % testfile)
 
 
+    def _parse_option_settable(self):
+        """
+        Process the option `:settable:`, which is available for
+        `:xdata:` directives only, and indicates that the property
+        being documented also supports a setter interface.
+        """
+        setter = self.options.get("settable", "").strip()
+
+        if setter:
+            if self.name != "xdata":
+                raise self.error("Option :settable: is not valid for a :%s: "
+                                 "directive" % self.name)
+            self.setter = setter
+        else:
+            self.setter = None
+
+
+    def _parse_option_deletable(self):
+        self.deletable = "deletable" in self.options
+
+        if self.deletable and self.name != "xdata":
+            raise self.error("Option :deletable: is not valid for a :%s: "
+                             "directive" % self.name)
+
+
 
     #---------------------------------------------------------------------------
     # Processing: retrieve docstring / function source
@@ -292,7 +322,7 @@ class XobjectDirective(SphinxDirective):
                                     r"(?:static\s+|inline\s+)*"
                                     r"(?:void|oobj|py::oobj)\s+" +
                                     fnname +
-                                    r"\s*\(.*\)\s*\{\s*")
+                                    r"\s*\(.*\)\s*(?:const\s*)?\{\s*")
         expect_closing = None
         start_line = None
         finish_line = None
@@ -399,6 +429,11 @@ class XobjectDirective(SphinxDirective):
         that, defers parsing of each part to :meth:`_parse_parameters`
         and :meth:`_parse_body` respectively.
         """
+        if self.name == "xdata":
+            self.parsed_params = []
+            self._parse_body(self.doc_text)
+            return
+
         tmp = self.doc_text.split("--\n", 1)
         if len(tmp) == 1:
             raise self.error("Docstring for `%s` does not contain '--\\n'"
@@ -622,10 +657,13 @@ class XobjectDirective(SphinxDirective):
 
     def _generate_nodes(self):
         title_text = self.qualifier + self.obj_name
+        h1_text = title_text + ("" if self.name == "xdata" else "()")
         sect = nodes.section(ids=[title_text], classes=["x-function"])
-        sect += nodes.title("", title_text + "()")
+        sect += nodes.title("", h1_text)
         sect += self._index_node(title_text)
         sect += self._generate_signature(title_text)
+        sect += self._generate_signature_setter()
+        sect += self._generate_signature_deleter()
         sect += self._generate_body()
         return [sect]
 
@@ -645,7 +683,7 @@ class XobjectDirective(SphinxDirective):
     def _generate_signature(self, targetname):
         sig_node = xnodes.div(classes=["sig-container"], ids=[targetname])
         sig_nodeL = xnodes.div(classes=["sig-body"])
-        self._generate_sigbody(sig_nodeL)
+        self._generate_sigbody(sig_nodeL, "normal")
         sig_node += sig_nodeL
         sig_nodeR = xnodes.div(classes=["code-links"])
         self._generate_siglinks(sig_nodeR)
@@ -658,7 +696,29 @@ class XobjectDirective(SphinxDirective):
         return [sig_node]
 
 
-    def _generate_sigbody(self, node):
+    def _generate_signature_setter(self):
+        if not self.setter:
+            return []
+        sig_node = xnodes.div(classes=["sig-container"])
+        sig_nodeL = xnodes.div(classes=["sig-body"])
+        self._generate_sigbody(sig_nodeL, "setter")
+        sig_node += sig_nodeL
+        return [sig_node]
+
+
+    def _generate_signature_deleter(self):
+        if not self.deletable:
+            return []
+        sig_node = xnodes.div(classes=["sig-container"])
+        body = xnodes.div(classes=["sig-body", "sig-main"])
+        body += xnodes.div(nodes.Text("del "), classes=["del-keyword"])
+        body += xnodes.div(nodes.Text(self.qualifier), classes=["sig-qualifier"])
+        body += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
+        sig_node += body
+        return sig_node
+
+
+    def _generate_sigbody(self, node, kind):
         row1 = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
@@ -669,7 +729,7 @@ class XobjectDirective(SphinxDirective):
         node += row1
 
         row2 = xnodes.div(classes=["sig-main"])
-        self._generate_sigmain(row2)
+        self._generate_sigmain(row2, kind)
         node += row2
 
 
@@ -681,11 +741,21 @@ class XobjectDirective(SphinxDirective):
             node += a_node(href=self.tests_github_url, text="tests", new=True)
 
 
-    def _generate_sigmain(self, node):
+    def _generate_sigmain(self, node, kind):
         div1 = xnodes.div(classes=["sig-name"])
         div1 += nodes.Text(self.obj_name)
         node += div1
-        if self.name != "xdata":
+        if self.name == "xdata":
+            if kind == "setter":
+                equal_sign_node = nodes.inline("", nodes.Text(" = "), classes=["punct"])
+                param_node = xnodes.div(
+                    a_node(text=self.setter, href="#" + self.setter),
+                    classes=["param"]
+                )
+                params = xnodes.div(classes=["sig-parameters"],
+                                    children=[equal_sign_node, param_node])
+                node += params
+        else:
             node += nodes.inline("", nodes.Text("("),
                                  classes=["sig-open-paren"])
             params = xnodes.div(classes=["sig-parameters"])

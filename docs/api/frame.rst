@@ -6,7 +6,7 @@ Frame
     :members:
     :inherited-members:
     :undoc-members:
-    :exclude-members: cbind, colindex, copy, countna, replace, to_csv
+    :exclude-members: cbind, colindex, copy, countna, countna1, names, replace, to_csv
 
 
 .. toctree::
@@ -16,5 +16,7 @@ Frame
 	.colindex()  <frame/colindex>
 	.copy()      <frame/copy>
 	.countna()   <frame/countna>
+	.countna1()  <frame/countna1>
+	.names       <frame/names>
 	.replace()   <frame/replace>
 	.to_csv()    <frame/to_csv>

@@ -207,10 +207,9 @@ oobj Frame::colindex(const PKArgs& args) {
 }
 
 
-
-static GSArgs args_names(
-  "names",
-R"(Tuple of column names.
+static const char* doc_names =
+R"(
+Tuple of column names.
 
 You can rename the Frame's columns by assigning a new list/tuple of
 names to this property. The length of the new list of names must be
@@ -232,7 +231,9 @@ Examples
 >>> del d0.names
 >>> d0.names
 ('C0', 'C1', 'C2)
-)");
+)";
+
+static GSArgs args_names("names", doc_names);
 
 
 oobj Frame::get_names() const {

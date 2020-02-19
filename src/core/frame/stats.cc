@@ -89,15 +89,41 @@ See Also
   in a column; can also be applied per-group.
 )";
 
-static PKArgs args_min(0, 0, 0, false, false, {}, "min", nullptr);
-static PKArgs args_max(0, 0, 0, false, false, {}, "max", nullptr);
-static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", nullptr);
-static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", nullptr);
-static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
-static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", nullptr);
+static const char* doc_countna1 =
+R"(countna1(self)
+--
+
+Return the number of NA values in a single-column Frame.
+
+This function is a shortcut for::
+
+    DT.countna()[0, 0]
+
+Parameters
+----------
+(except): ValueError
+    If called on a Frame that has more or less than 1 column.
+
+(return): int
+
+See Also
+--------
+- :meth:`.countna()` -- similar to this method, but can be applied to
+  a Frame with any number of columns.
+
+- :func:`dt.count()` -- function for counting non-NA ("valid") values
+  in a column; can also be applied per-group.
+)";
+
 static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", doc_countna);
-static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", nullptr);
+static PKArgs args_max(0, 0, 0, false, false, {}, "max", nullptr);
+static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
+static PKArgs args_min(0, 0, 0, false, false, {}, "min", nullptr);
+static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", nullptr);
 static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", nullptr);
+static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", nullptr);
+static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", nullptr);
+static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", nullptr);
 
 oobj Frame::stat(const PKArgs& args) {
   Stat stat = stat_from_args[&args];
@@ -106,8 +132,7 @@ oobj Frame::stat(const PKArgs& args) {
 }
 
 
-static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", nullptr);
-static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
+static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", doc_countna1);
 static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", nullptr);
 static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", nullptr);
 static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", nullptr);
@@ -115,6 +140,7 @@ static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", nullptr);
 static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", nullptr);
 static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", nullptr);
 static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", nullptr);
+static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
 
 oobj Frame::stat1(const PKArgs& args) {
   if (dt->ncols() != 1) {
