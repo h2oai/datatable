@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -511,7 +511,7 @@ def test_ftrl_fit_wrong_empty_target():
 def test_ftrl_fit_wrong_target_obj64():
     ft = Ftrl()
     df_train = dt.Frame(list(range(8)))
-    df_target = dt.Frame([3, "point", None, None, 14, 15, 92, "6"])
+    df_target = dt.Frame([3, "point", None, None, 14, 15, {92}, "6"])
     with pytest.raises(TypeError) as e:
         ft.fit(df_train, df_target)
     assert ("Target column type `obj64` is not supported" ==

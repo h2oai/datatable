@@ -166,7 +166,7 @@ class rmem {
   private:
   public:
     void* ptr;
-    #ifdef DTDEBUG
+    #if DTDEBUG
       size_t size;
     #endif
   public:
@@ -204,21 +204,21 @@ void* omem::release() {
 
 rmem::rmem() {
   ptr = nullptr;
-  #ifdef DTDEBUG
+  #if DTDEBUG
     size = 0;
   #endif
 }
 
 rmem::rmem(const omem& o) {
   ptr = o.ptr;
-  #ifdef DTDEBUG
+  #if DTDEBUG
     size = o.size;
   #endif
 }
 
 rmem::rmem(const rmem& o) {
   ptr = o.ptr;
-  #ifdef DTDEBUG
+  #if DTDEBUG
     size = o.size;
   #endif
 }
@@ -226,7 +226,7 @@ rmem::rmem(const rmem& o) {
 rmem::rmem(const rmem& o, size_t offset, size_t n) {
   ptr = static_cast<char*>(o.ptr) + offset;
   (void)n;
-  #ifdef DTDEBUG
+  #if DTDEBUG
     size = n;
     xassert(offset + n <= o.size);
   #endif
@@ -242,7 +242,7 @@ template <typename T> T* rmem::data() const noexcept {
 
 void swap(rmem& left, rmem& right) noexcept {
   std::swap(left.ptr, right.ptr);
-  #ifdef DTDEBUG
+  #if DTDEBUG
     std::swap(left.size, right.size);
   #endif
 }
@@ -553,7 +553,11 @@ class SortContext {
     _fill_rrmap_from_groups(rrmap_ptr);
 
     if (make_groups) {
-      gg.init(static_cast<int32_t*>(groups.xptr()) + 1, 0);
+      // Note: `groups` variable may have been stored in another
+      // variable, if doing groupby+sort (by more than 1 column).
+      // Thus, use `.wptr()` instead of `.xptr()` here.
+      groups.ensuresize(sizeof(int32_t*) * (n + 1));
+      gg.init(static_cast<int32_t*>(groups.wptr()) + 1, 0);
       _radix_recurse<true>(rrmap_ptr);
     } else {
       _radix_recurse<false>(rrmap_ptr);

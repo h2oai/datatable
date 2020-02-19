@@ -67,10 +67,10 @@ needsLargerTest = false
 // String with current version (TODO: remove?)
 versionText = "unknown"
 
-isPrJob = !(env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
-doExtraTests = (!isPrJob || params.FORCE_ALL_TESTS) && !params.DISABLE_ALL_TESTS
+isMasterJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
+doExtraTests = (isMasterJob || params.FORCE_ALL_TESTS) && !params.DISABLE_ALL_TESTS
 doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
-doPpcBuild = doPpcTests || params.FORCE_BUILD_PPC64LE
+doPpcBuild = doPpcTests || isMasterJob || params.FORCE_BUILD_PPC64LE
 doPy38Tests = doExtraTests
 doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
 
@@ -95,9 +95,7 @@ properties([
 
 ansiColor('xterm') {
     timestamps {
-        if (isPrJob) {
-            cancelPreviousBuilds()
-        }
+        cancelPreviousBuilds()
         timeout(time: 180, unit: 'MINUTES') {
             // Checkout stage
             node(NODE_LINUX) {
@@ -117,7 +115,7 @@ ansiColor('xterm') {
                             echo 'scm.GIT_BRANCH    = ${scmEnv.GIT_BRANCH}'
                             echo 'scm.CHANGE_BRANCH = ${scmEnv.CHANGE_BRANCH}'
                             echo 'scm.CHANGE_SOURCE = ${scmEnv.CHANGE_SOURCE}'
-                            echo 'isPrJob      = ${isPrJob}'
+                            echo 'isMasterJob  = ${isMasterJob}'
                             echo 'doPpcBuild   = ${doPpcBuild}'
                             echo 'doExtraTests = ${doExtraTests}'
                             echo 'doPy38Tests  = ${doPy38Tests}'
@@ -722,12 +720,12 @@ def get_env_for_macos(String pyver) {
 
 def isModified(pattern) {
     def fList
-    if (isPrJob) {
+    if (isMasterJob) {
+        fList = buildInfo.get().getChangedFiles().join('\n')
+    } else {
         sh "git fetch --no-tags --progress https://github.com/h2oai/datatable +refs/heads/${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}"
         final String mergeBaseSHA = sh(script: "git merge-base HEAD origin/${env.CHANGE_TARGET}", returnStdout: true).trim()
         fList = sh(script: "git diff --name-only ${mergeBaseSHA}", returnStdout: true).trim()
-    } else {
-        fList = buildInfo.get().getChangedFiles().join('\n')
     }
 
     def out = ""

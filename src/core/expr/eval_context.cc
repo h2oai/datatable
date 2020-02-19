@@ -250,7 +250,6 @@ void EvalContext::compute_groupby_and_sort() {
     if (ncols) {
       for (size_t i = 0; i < ncols; ++i) {
         const Column& col = wf.get_column(i);
-        const_cast<Column&>(col).materialize();
         cols.push_back(col);  // copy
         if (i >= n_group_cols) {
           flags[i] = flags[i] | SortFlag::SORT_ONLY;

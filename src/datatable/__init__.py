@@ -56,7 +56,6 @@ from .types import stype, ltype
 from .utils.typechecks import TTypeError as TypeError
 from .utils.typechecks import TValueError as ValueError
 from .utils.typechecks import DatatableWarning, InvalidOperationError
-import datatable.widget
 import datatable.math
 import datatable.internal
 try:

@@ -22,6 +22,19 @@
     given a numeric column index outside of the allowed range. Previously it
     was throwing a ``ValueError`` in both cases.
 
+  -[api] When creating a Frame from a list containing mixed integers / floats
+    and strings, the resulting Frame will now have stype ``str32``. Previously
+    an ``obj64`` column was created instead. The new behavior is more
+    consistent with fread's behavior when reading CSV files.
+
+
+  Fread
+  -----
+
+  -[fix] When reading Excel files, the cells with datetime or boolean types
+    are now handled correctly, in particular a datetime value is converted
+    into its string representation. [#1701]
+
 
   General
   -------
@@ -30,6 +43,9 @@
   -[new] Added exception :exc:`InvalidOperationError`, which can be used to
     signal when an operation is requested that would be illegal for the given
     combination of parameters.
+
+  -[enh] Datatable no longer lists module ``blessed`` as a dependency.
+    [#1677]
 
   -[fix] Internal function :func:`frame_column_data_r` now works properly with
     virtual columns. [#2269]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,12 +40,12 @@ def read_xls_workbook(filename, subpath):
                 raise TValueError("Sheet `%s` is not found in the XLS file"
                                   % subpath)
         ws = wb.sheet_by_name(sheetname)
-        result = read_xls_worksheet(ws, range2d)
+        result = read_xls_worksheet(ws, wb.datemode, range2d)
     else:
         wb = xlrd.open_workbook(filename, ragged_rows=True)
         result = {}
         for ws in wb.sheets():
-            out = read_xls_worksheet(ws)
+            out = read_xls_worksheet(ws, wb.datemode)
             if out is None:
                 continue
             for i, frame in out.items():
@@ -61,8 +61,9 @@ def read_xls_workbook(filename, subpath):
 
 
 
-def read_xls_worksheet(ws, subrange=None):
-    # Get the worksheet's internal data arrays directly, for efficienct
+def read_xls_worksheet(ws, datemode, subrange=None):
+    import xlrd
+    # Get the worksheet's internal data arrays directly, for efficiency
     values = ws._cell_values
     types = ws._cell_types
     assert len(values) == len(types)
@@ -82,22 +83,42 @@ def read_xls_worksheet(ws, subrange=None):
     for range2d in ranges2d:
         row0, row1, col0, col1 = range2d
         ncols = col1 - col0
+        nrows = row1 - row0 - 1  # row0 has column names
         if row0 < len(values):
             colnames = [str(n) for n in values[row0][col0:col1]]
             if len(colnames) < ncols:
                 colnames += [None] * (ncols - len(colnames))
         else:
             colnames = [None] * ncols
-        rowdata = []
-        if row1 > len(values):
-            values += [[]] * (row1 - len(values))
-        for irow in range(row0 + 1, row1):
-            vv = values[irow]
-            row = tuple(vv[col0:col1])
-            if len(row) < ncols:
-                row += (None,) * (ncols - len(row))
-            rowdata.append(row)
-        frame = dt.Frame(rowdata, names=colnames)
+
+        outdata = [[None] * nrows for _ in range(ncols)]
+        row0 += 1
+        row1 = min(row1, len(values))
+        for irow in range(row0, row1):
+            for icol in range(col0, col1):
+                if icol >= len(values[irow]): continue
+                cell_value = values[irow][icol]
+                cell_type = types[irow][icol]
+                if cell_type == xlrd.XL_CELL_EMPTY:
+                    cell_value = None
+                elif cell_type == xlrd.XL_CELL_TEXT:
+                    pass
+                elif cell_type == xlrd.XL_CELL_NUMBER:
+                    ivalue = int(cell_value)
+                    if ivalue == cell_value:
+                        cell_value = ivalue
+                elif cell_type == xlrd.XL_CELL_DATE:
+                    cell_value = xlrd.xldate_as_datetime(cell_value, datemode)
+                    # TODO: when datatable understands time better, we
+                    #       should remove this conversion to string
+                    cell_value = cell_value.strftime("%Y-%m-%d %H:%M:%S")
+                elif cell_type == xlrd.XL_CELL_BOOLEAN:
+                    cell_value = bool(cell_value)
+                elif cell_type == xlrd.XL_CELL_ERROR:
+                    cell_value = None
+                outdata[icol - col0][irow - row0] = cell_value
+
+        frame = dt.Frame(outdata, names=colnames)
         results[_range2d_to_excel_coords(range2d)] = frame
     return results
 

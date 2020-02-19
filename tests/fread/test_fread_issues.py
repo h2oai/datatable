@@ -16,13 +16,19 @@ from tests import find_file, same_iterables
 
 
 def test_issue1935():
+    # Check that we properly handle situations when a command terminates
+    # with an error but don't write anything to stderr.
+    with pytest.raises(ValueError, match="Shell command returned error code 1:"):
+        dt.fread(cmd="exit 1")
+
     # Check that giving wrong command to `cmd=` parameter raises
     # an error instead of returning an empty Frame silently.
     with pytest.raises(ValueError) as e:
         dt.fread(cmd="leeroy jenkins")
     assert ("Shell command returned error code" in str(e.value))
     # This may need adjustments for different OSes
-    assert re.search(r"leeroy:(?: command)? not found\s*", str(e.value))
+    assert re.search(r"leeroy(:|')(.*) not (found|recognized)\s*",
+                     str(e.value))
 
 
 

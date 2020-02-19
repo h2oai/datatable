@@ -207,32 +207,70 @@ oobj Frame::colindex(const PKArgs& args) {
 }
 
 
+static const char* doc_names =
+R"(
+The tuple of names of all columns in the frame.
 
-static GSArgs args_names(
-  "names",
-R"(Tuple of column names.
+Each name is a non-empty string not containing any ASCII control
+characters, and jointly the names are unique within the frame.
 
-You can rename the Frame's columns by assigning a new list/tuple of
-names to this property. The length of the new list of names must be
-the same as the number of columns in the Frame.
+This property is also assignable: setting ``DT.names`` has the effect
+of renaming the frame's columns without changing their order. When
+renaming, the length of the new list of names must be the same as the
+number of columns in the frame. It is also possible to rename just a
+few of the columns by assigning a dictionary ``{oldname: newname}``.
+Any column not listed in the dictionary will keep its old name.
 
-It is also possible to rename just a few columns by assigning a
-dictionary ``{oldname: newname, ...}``. Any column not listed in the
-dictionary will retain its name.
+When setting new column names, we will verify whether they satisfy
+the requirements mentioned above. If not, a warning will be emitted
+and the names will be automatically :ref:`mangled <name-mangling>`.
+
+Parameters
+----------
+(return): Tuple[str, ...]
+    When used in getter form, this property returns the names of all
+    frame's columns, as a tuple. The length of the tuple is equal to
+    the number of columns in the frame, :data:`.ncols`.
+
+newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
+    The most common form is to assign the list or tuple of new
+    column names. The length of the new list must be equal to the
+    number of columns in the frame. Some (or all) elements in the list
+    may be ``None``'s, indicating that that column should have
+    an auto-generated name.
+
+    If ``newnames`` is a dictionary, then it provides a mapping from
+    old to new column names. The dictionary may contain less entries
+    than the number of columns in the frame: the remaining columns
+    will retain their names.
+
+    Setting the ``.names`` to ``None`` is equivalent to using the
+    ``del`` keyword: the names will be set to their default values,
+    which are usually ``C0, C1, ...``.
+
+(except): ValueError
+    If the length of the list `newnames` does not match the number
+    of columns in the frame.
+
+(except): KeyError
+    If `newnames` is a dictionary containing entries that do not
+    match any of the existing columns in the frame.
 
 Examples
 --------
->>> d0 = dt.Frame([[1], [2], [3]])
->>> d0.names = ['A', 'B', 'C']
->>> d0.names
+>>> DT = dt.Frame([[1], [2], [3]])
+>>> DT.names = ['A', 'B', 'C']
+>>> DT.names
 ('A', 'B', 'C')
->>> d0.names = {'B': 'middle'}
->>> d0.names
+>>> DT.names = {'B': 'middle'}
+>>> DT.names
 ('A', 'middle', 'C')
->>> del d0.names
->>> d0.names
+>>> del DT.names
+>>> DT.names
 ('C0', 'C1', 'C2)
-)");
+)";
+
+static GSArgs args_names("names", doc_names);
 
 
 oobj Frame::get_names() const {
@@ -398,7 +436,7 @@ void DataTable::replace_names(py::odict replacements, bool warn) {
     py::robj val = kv.second;
     py::robj idx = py_inames_.get(key);
     if (idx.is_undefined()) {
-      throw ValueError() << "Cannot find column `" << key.str()
+      throw KeyError() << "Cannot find column `" << key.str()
         << "` in the Frame";
     }
     if (!val.is_string()) {
