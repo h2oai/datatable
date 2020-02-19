@@ -590,7 +590,7 @@ def test_rename_bad1():
 
 def test_rename_bad2():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(KeyError) as e:
         d0.names = {"xxx": "yyy"}
     assert "Cannot find column `xxx` in the Frame" == str(e.value)
 

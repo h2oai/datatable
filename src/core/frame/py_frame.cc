@@ -181,29 +181,59 @@ oobj Frame::m__deepcopy__(const PKArgs&) {
 // export_names()
 //------------------------------------------------------------------------------
 
-static PKArgs args_export_names(
-  0, 0, 0, false, false,
-  {}, "export_names",
-
+static const char* doc_export_names =
 R"(export_names(self)
 --
 
-Return f-variables for each column of this frame.
+.. xversionadded:: v0.10.0
 
-For example, if the frame has columns A, B, and C, then this method
-will return a tuple of expressions ``(f.A, f.B, f.C)``. If you assign
-these expressions to variables A, B, and C, then you will be able to
-write column expressions using the column names directly, without
-using the f symbol::
+Return a tuple of :ref:`f-expressions` for all columns of the frame.
+
+For example, if the frame has columns "A", "B", and "C", then this
+method will return a tuple of expressions ``(f.A, f.B, f.C)``. If you
+assign these to, say, variables ``A``, ``B``, and ``C``, then you
+will be able to write column expressions using the column names
+directly, without using the ``f`` symbol::
 
     A, B, C = DT.export_names()
     DT[A + B > C, :]
 
-This method is effectively equivalent to::
+The variables that are "exported" refer to each column *by name*. This
+means that you can use the variables even after reordering the
+columns. In addition, the variables will work not only for the frame
+they were exported from, but also for any other frame that has columns
+with the same names.
 
-    return tuple(f[name] for name in self.names)
+Parameters
+----------
+(return): Tuple[Expr, ...]
+    The length of the tuple is equal to the number of columns in the
+    frame. Each element of the tuple is a datatable *expression*, and
+    can be used primarily with the ``DT[i,j]`` notation.
 
-)");
+Notes
+-----
+- This method is effectively equivalent to::
+
+    def export_names(self):
+        return tuple(f[name] for name in self.names)
+
+- If you want to export only a subset of column names, then you can
+  either subset the frame first, or use ``*``-notation to ignore the
+  names that you do not plan to use::
+
+    A, B = DT[:, :2].export_names()  # export the first two columns
+    A, B, *_ = DT.export_names()     # same
+
+- Variables that you use in code do not have to have the same names
+  as the columns::
+
+    Price, Quantity = DT[:, ["sale price", "quant"]].export_names()
+
+)";
+
+static PKArgs args_export_names(
+  0, 0, 0, false, false, {}, "export_names", doc_export_names);
 
 oobj Frame::export_names(const PKArgs&) {
   py::oobj f = py::oobj::import("datatable", "f");
