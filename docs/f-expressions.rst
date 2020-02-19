@@ -21,18 +21,18 @@ By itself, it just means *a column named "price", in an unspecified frame*.
 This expression becomes concrete, however, when used with a particular frame.
 For example,::
 
-    train_df[f.price > 0, :]
+    train_dt[f.price > 0, :]
 
-selects all rows in ``train_df`` where the price is positive. Thus, within the
-call to ``train_df[...]``, the symbol ``f`` refers to the frame ``train_df``.
+selects all rows in ``train_dt`` where the price is positive. Thus, within the
+call to ``train_dt[...]``, the symbol ``f`` refers to the frame ``train_dt``.
 
 The standalone f-expression may occasionally be useful too: it can be saved in
 a variable and then re-applied to several different frames. Each time ``f``
 will refer to the frame to which it is being applied::
 
-    filter = (f.price > 0)
-    train_filtered = train[filter, :]
-    test_filtered = test[filter, :]
+    price_filter = (f.price > 0)
+    train_filtered = train_dt[price_filter, :]
+    test_filtered = test_dt[price_filter, :]
 
 The simple expression ``f.price`` can be saved in a variable too. In fact,
 there is a Frame helper method ``.export_names()`` which does exactly that:
