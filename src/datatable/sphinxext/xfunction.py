@@ -870,6 +870,28 @@ class XparamDirective(SphinxDirective):
 
 
 
+#-------------------------------------------------------------------------------
+# XversionaddedDirective
+#-------------------------------------------------------------------------------
+
+class XversionaddedDirective(SphinxDirective):
+    has_content = False
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = False
+
+    def run(self):
+        version = self.arguments[0].strip()
+
+        node = xnodes.div(classes=["x-version-added"])
+        node += nodes.Text("New in version ")
+        node += nodes.inline("", "",
+            addnodes.pending_xref("", nodes.Text(version),
+                refdomain="std", reftype="doc", refexplicit=True,
+                reftarget="/releases/"+version))
+        return [node]
+
+
 
 #-------------------------------------------------------------------------------
 # :xparam-ref: role
@@ -926,6 +948,7 @@ def setup(app):
     app.add_directive("xfunction", XobjectDirective)
     app.add_directive("xmethod", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
+    app.add_directive("xversionadded", XversionaddedDirective)
     app.add_node(a_node, html=(visit_a, depart_a))
     app.add_role("xparam-ref", xparamref)
     app.connect("html-page-context", fix_html_titles)
