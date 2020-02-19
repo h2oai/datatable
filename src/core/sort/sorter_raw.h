@@ -30,10 +30,10 @@ namespace sort {
 
 
 template <typename TO, typename TU>
-class Sorter_Raw : public Sorter<TO> {
+class Sorter_Raw : public SSorter<TO> {
   private:
     using ovec = array<TO>;
-    using Sorter<TO>::nrows_;
+    using SSorter<TO>::nrows_;
     TU* data_;        // array with nrows_ elements
     Buffer buffer_;   // owner of the data_ pointer
     int n_significant_bits_;
@@ -41,7 +41,7 @@ class Sorter_Raw : public Sorter<TO> {
 
   public:
   	Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
-  		: Sorter<TO>(nrows),
+  		: SSorter<TO>(nrows),
         data_(static_cast<TU*>(buf.xptr())),
   		  buffer_(std::move(buf)),
         n_significant_bits_(nbits)

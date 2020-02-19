@@ -24,25 +24,104 @@
 #include <vector>                // std::vector
 #include "sort/common.h"         // array
 #include "sort/insert-sort.h"    // small_sort
-#include "sort/sorter.h"         // Sorter
+#include "sort/sorter.h"         // SSorter
 namespace dt {
 namespace sort {
 
+template <typename TO>
+class Sorter_MultiImpl;
+
 
 template <typename TO>
-class Sorter_MultiImpl : public Sorter<TO> {
+class Sorter_Multi : public SSorter<TO> {
+  using ptrSsorter = std::unique_ptr<SSorter<TO>>;
+  using ovec = array<TO>;
   private:
-    using ovec = array<TO>;
-    using Sorter<TO>::nrows_;
-    Sorter<TO>* column0_;
-    array<Sorter<TO>*> other_columns_;
+    std::vector<ptrSsorter> sorters_;
+    Sorter_MultiImpl<TO> impl_;
 
   public:
-    Sorter_MultiImpl(Sorter<TO>* col0, array<Sorter<TO>*> cols)
-      : column0_(col0),
-        other_columns_(cols) {}
+    Sorter_Multi(std::vector<ptrSsorter>&& cols)
+      : SSorter<TO>(cols[0]->nrows()),
+        sorters_(std::move(cols)),
+        impl_(reinterpret_cast<SSorter<TO>**>(sorters_.data()),
+              sorters_.size()) {}
 
   protected:
+    void small_sort(ovec ordering_out) const override {
+      impl_.small_sort(ordering_out);
+    }
+
+    void small_sort(ovec ordering_in, ovec ordering_out,
+                    size_t offset) const override
+    {
+      impl_.small_sort(ordering_in, ordering_out, offset);
+    }
+
+    void radix_sort(ovec ordering_in, ovec ordering_out,
+                    size_t offset, bool parallel) const override
+    {
+      impl_.radix_sort(ordering_in, ordering_out, offset, parallel);
+    }
+
+    int compare_lge(size_t i, size_t j) const override {
+      return impl_.compare_lge(i, j);
+    }
+};
+
+
+
+template <typename TO>
+class Sorter_MultiImpl : public SSorter<TO>
+{
+  friend class Sorter_Multi<TO>;
+  private:
+    using ovec = array<TO>;
+    using SSorter<TO>::nrows_;
+    SSorter<TO>* column0_;
+    array<SSorter<TO>*> other_columns_;
+
+  public:
+    Sorter_MultiImpl(SSorter<TO>* col0, array<SSorter<TO>*> cols)
+      : SSorter<TO>(col0->nrows()),
+        column0_(col0),
+        other_columns_(cols) {}
+
+    Sorter_MultiImpl(SSorter<TO>** cols, size_t n)
+      : SSorter<TO>(cols[0]->nrows()),
+        column0_(cols[0]),
+        other_columns_(cols + 1, n - 1) {}
+
+  protected:
+    void small_sort(ovec ordering_out) const override {
+      (void) ordering_out;
+      throw NotImplError();
+    }
+
+    void small_sort(ovec ordering_in, ovec ordering_out, size_t offset)
+        const override
+    {
+      (void) ordering_in;
+      (void) ordering_out;
+      (void) offset;
+      throw NotImplError();
+    }
+
+    virtual void radix_sort(ovec ordering_in, ovec ordering_out,
+                            size_t offset, bool parallel) const override
+    {
+      (void) ordering_in;
+      (void) ordering_out;
+      (void) offset;
+      (void) parallel;
+      throw NotImplError();
+    }
+
+    int compare_lge(size_t i, size_t j) const override {
+      (void) i;
+      (void) j;
+      throw NotImplError();
+    }
     // void small_sort(ovec ordering_out) const override {
     //   if (column0_.contains_reordered_data())
     //     _small_sort_impl<true>(ordering_out);
@@ -61,29 +140,9 @@ class Sorter_MultiImpl : public Sorter<TO> {
     //       return jvalid && (!ivalid || ivalue < jvalue);
     //     });
     // }
+
 };
 
-
-
-template <typename TO>
-class Sorter_Multi : public Sorter<TO> {
-  using ovec = array<TO>;
-  private:
-    std::vector<std::unique_ptr<Sorter<TO>>> sorters_;
-    Sorter_MultiImpl<TO> impl_;
-
-  public:
-    Sorter_Multi(std::vector<std::unique_ptr<Sorter<TO>>>&& cols)
-      : Sorter<TO>(cols[0]->nrows()),
-        sorters_(std::move(cols)),
-        impl_(static_cast<Sorter<TO>**>(sorters_.data()),
-              sorters_.size()) {}
-
-  protected:
-    void small_sort(ovec ordering_out) const override {
-      impl_.small_sort(ordering_out);
-    }
-};
 
 
 

@@ -27,28 +27,41 @@ namespace sort {
 
 
 /**
-  * Virtual class that handles sorting of a column. Template parameter
-  * <TO> corresponds to the type of indices in the resulting rowindex.
+  * Virtual class that handles sorting of a column. This class is
+  * further subclassed by `SSorter<TO>`.
   */
-template <typename TO>
 class Sorter {
   protected:
-    using ovec = array<TO>;
     size_t nrows_;
 
   public:
-    Sorter(size_t n) {
-      xassert(sizeof(TO) == 8 || n <= MAX_NROWS_INT32);
-      nrows_ = n;
-    }
+    Sorter(size_t n) : nrows_(n) {}
     virtual ~Sorter() {}
-
 
     size_t nrows() const noexcept {
       return nrows_;
     }
 
-    RowIndex sort() {
+    virtual RowIndex sort() const = 0;
+};
+
+
+
+/**
+  * Virtual class that handles sorting of a column. Template parameter
+  * <TO> corresponds to the type of indices in the resulting rowindex.
+  */
+template <typename TO>
+class SSorter : public Sorter
+{
+  using ovec = array<TO>;
+  public:
+    SSorter(size_t n) : Sorter(n) {
+      xassert(sizeof(TO) == 8 || n <= MAX_NROWS_INT32);
+    }
+
+
+    RowIndex sort() const override {
       Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(TO));
       ovec ordering_out(rowindex_buf);
       if (nrows_ <= INSERTSORT_NROWS) {

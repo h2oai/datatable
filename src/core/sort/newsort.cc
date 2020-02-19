@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <memory>              // std::unique_ptr
 #include "frame/py_frame.h"    // py::Frame
 #include "python/args.h"       // py::PKArgs
 #include "sort/insert-sort.h"  // insert_sort
@@ -33,12 +34,12 @@ namespace dt {
 namespace sort {
 
 
-
+using ptrSorter = std::unique_ptr<Sorter>;
 
 
 template <typename TO>
-static std::unique_ptr<Sorter<TO>> _make_sorter(const Column& col) {
-  using so = std::unique_ptr<Sorter<TO>>;
+static std::unique_ptr<SSorter<TO>> _make_sorter(const Column& col) {
+  using so = std::unique_ptr<SSorter<TO>>;
   switch (col.stype()) {
     case SType::BOOL:  return so(new Sorter_Bool<TO>(col));
     case SType::INT8:  return so(new Sorter_Int<TO, int8_t>(col));
@@ -49,18 +50,29 @@ static std::unique_ptr<Sorter<TO>> _make_sorter(const Column& col) {
   }
 }
 
-
 template <typename TO>
-static std::unique_ptr<Sorter<TO>> _make_sorter(const std::vector<Column>& cols)
-{
-  using so = std::unique_ptr<Sorter<TO>>;
-  xassert(cols.size() > 1);
+static std::unique_ptr<SSorter<TO>> _make_sorter(const colvec& cols) {
+  using so = std::unique_ptr<SSorter<TO>>;
   std::vector<so> sorters;
   sorters.reserve(cols.size());
   for (const Column& col : cols) {
     sorters.push_back(_make_sorter<TO>(col));
   }
   return so(new Sorter_Multi<TO>(std::move(sorters)));
+}
+
+
+static ptrSorter make_sorter(const Column& col) {
+  return (col.nrows() <= dt::sort::MAX_NROWS_INT32)
+      ? ptrSorter(_make_sorter<int32_t>(col))
+      : ptrSorter(_make_sorter<int64_t>(col));
+}
+
+static ptrSorter make_sorter(const std::vector<Column>& cols) {
+  xassert(cols.size() > 1);
+  return (cols[0].nrows() <= dt::sort::MAX_NROWS_INT32)
+      ? ptrSorter(_make_sorter<int32_t>(cols))
+      : ptrSorter(_make_sorter<int64_t>(cols));
 }
 
 
@@ -79,17 +91,10 @@ oobj Frame::newsort(const PKArgs&) {
   xassert(dt->ncols() >= 1);
   xassert(dt->nrows() > 1);
 
-  const Column& col0 = dt->get_column(0);
-  size_t n = dt->nrows();
-  RowIndex rowindex;
-  if (n <= dt::sort::MAX_NROWS_INT32) {
-    auto sorter = dt::sort::_make_sorter<int32_t>(col0);
-    rowindex = sorter->sort();
-  } else {
-    auto sorter = dt::sort::_make_sorter<int64_t>(col0);
-    rowindex = sorter->sort();
-  }
-  Column ricol = rowindex.as_column(n);
+  auto sorter = (dt->ncols() == 1)? dt::sort::make_sorter(dt->get_column(0))
+                                  : dt::sort::make_sorter(dt->get_columns());
+  RowIndex rowindex = sorter->sort();
+  Column ricol = rowindex.as_column(sorter->nrows());
   return py::Frame::oframe(new DataTable({std::move(ricol)}, {"order"}));
 }
 

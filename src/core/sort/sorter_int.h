@@ -32,19 +32,19 @@ namespace sort {
 
 
 /**
- * Sorter for (virtual) integer columns.
+ * SSorter for (virtual) integer columns.
  */
 template <typename TO, typename TI>
-class Sorter_Int : public Sorter<TO> {
+class Sorter_Int : public SSorter<TO> {
   using TU = typename std::make_unsigned<TI>::type;
   private:
     using ovec = array<TO>;
-    using Sorter<TO>::nrows_;
+    using SSorter<TO>::nrows_;
     Column column_;
 
   public:
     Sorter_Int(const Column& col)
-      : Sorter<TO>(col.nrows()),
+      : SSorter<TO>(col.nrows()),
         column_(col) { assert_compatible_type<TI>(col.stype()); }
 
 
@@ -60,6 +60,7 @@ class Sorter_Int : public Sorter<TO> {
     void small_sort(ovec ordering_in, ovec ordering_out,
                     size_t offset) const override
     {
+      (void) offset;
       xassert(ordering_in.size == ordering_out.size);
       const TO* oin = ordering_in.ptr;
       dt::sort::small_sort(ordering_in, ordering_out,
@@ -119,8 +120,8 @@ class Sorter_Int : public Sorter<TO> {
 
       Sorter_Raw<TO, TU> nextcol(std::move(out_buffer), nrows_, shift);
       rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
-        [&](size_t offset, size_t len, ovec ord_in, ovec ord_out, bool parallel) {
-          nextcol.sort_subgroup(offset, len, ord_in, ord_out, parallel);
+        [&](size_t offs, size_t len, ovec ord_in, ovec ord_out, bool para) {
+          nextcol.sort_subgroup(offs, len, ord_in, ord_out, para);
         });
     }
 

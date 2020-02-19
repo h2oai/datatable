@@ -29,18 +29,18 @@ namespace sort {
 
 
 /**
- * Sorter for (virtual) boolean columns.
+ * SSorter for (virtual) boolean columns.
  */
 template <typename TO>
-class Sorter_Bool : public Sorter<TO> {
+class Sorter_Bool : public SSorter<TO> {
   private:
     using ovec = array<TO>;
-    using Sorter<TO>::nrows_;
+    using SSorter<TO>::nrows_;
     Column column_;
 
   public:
     Sorter_Bool(const Column& col)
-      : Sorter<TO>(col.nrows()),
+      : SSorter<TO>(col.nrows()),
         column_(col) { xassert(col.stype() == SType::BOOL); }
 
 
@@ -81,6 +81,7 @@ class Sorter_Bool : public Sorter<TO> {
     void radix_sort(ovec ordering_in, ovec ordering_out,
                     size_t offset, bool parallel) const override
     {
+      (void) offset;
       RadixSort rdx(nrows_, 1, parallel);
       rdx.sort_by_radix(ordering_in, ordering_out,
         [&](size_t i) {  // get_radix
