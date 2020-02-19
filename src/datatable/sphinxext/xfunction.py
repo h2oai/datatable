@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -842,7 +842,32 @@ class XparamDirective(SphinxDirective):
 
     def _parse_arguments(self):
         self.param = self.arguments[0].rstrip(":")
-        self.types = re.split(r"(?:,?\s+or\s+|\s*[,\|]\s*)", self.arguments[1])
+        self.types = []
+
+        rx_separator = re.compile(r"(?:,?\s+or\s+|\s*[,\|]\s*)")
+        args = self.arguments[1]
+        i0 = 0
+        bracket_level = 0
+        i = 0
+        while i < len(args):  # iterate by characters
+            if args[i] in "[({":
+                bracket_level += 1
+            elif args[i] in "})]":
+                bracket_level -= 1
+            elif bracket_level > 0:
+                pass
+            else:
+                mm = re.match(rx_separator, args[i:])
+                if mm:
+                    self.types.append(args[i0:i])
+                    i += mm.end()
+                    i0 = i
+                    continue
+            i += 1
+        assert i == len(args)
+        self.types.append(args[i0:])
+
+
 
 
 
