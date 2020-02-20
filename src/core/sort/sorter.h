@@ -25,6 +25,8 @@
 namespace dt {
 namespace sort {
 
+template <typename TO> class Sorter_MultiImpl;
+
 
 /**
   * Virtual class that handles sorting of a column. This class is
@@ -54,6 +56,7 @@ class Sorter {
 template <typename TO>
 class SSorter : public Sorter
 {
+  friend class Sorter_MultiImpl<TO>;
   using ovec = array<TO>;
   public:
     SSorter(size_t n) : Sorter(n) {
@@ -100,8 +103,11 @@ class SSorter : public Sorter
 
     /**
       */
+    using ssoptr = std::unique_ptr<SSorter<TO>>;
+    using next_wrapper = std::function<ssoptr(const ssoptr&)>;
     virtual void radix_sort(ovec ordering_in, ovec ordering_out,
-                            size_t offset, bool parallel) const = 0;
+                            size_t offset, bool parallel,
+                            next_wrapper wrap = nullptr) const = 0;
 
     /**
       * Comparator function that compares the values of the underlying
@@ -109,6 +115,8 @@ class SSorter : public Sorter
       *   - a negative value if `val[i] < val[j]`;
       *   - zero if `val[i] == val[j]`;
       *   - a positive value if `val[i] > val[j]`.
+      *
+      * This function is used by Sorter_MultiImpl<TO> only.
       */
     virtual int compare_lge(size_t i, size_t j) const = 0;
 

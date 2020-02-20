@@ -30,10 +30,12 @@ namespace sort {
 
 
 template <typename TO, typename TU>
-class Sorter_Raw : public SSorter<TO> {
+class Sorter_Raw : public SSorter<TO>
+{
+  using typename SSorter<TO>::next_wrapper;
+  using ovec = array<TO>;
+  using SSorter<TO>::nrows_;
   private:
-    using ovec = array<TO>;
-    using SSorter<TO>::nrows_;
     TU* data_;        // array with nrows_ elements
     Buffer buffer_;   // owner of the data_ pointer
     int n_significant_bits_;
@@ -89,7 +91,7 @@ class Sorter_Raw : public SSorter<TO> {
 
 
     void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
-                    bool parallel) const override
+                    bool parallel, next_wrapper wrap = nullptr) const override
     {
       int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
       int n_remaining_bits = n_significant_bits_ - n_radix_bits;

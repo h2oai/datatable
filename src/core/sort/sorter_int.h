@@ -39,6 +39,7 @@ class Sorter_Int : public SSorter<TO> {
   using TU = typename std::make_unsigned<TI>::type;
   private:
     using ovec = array<TO>;
+    using typename SSorter<TO>::next_wrapper;
     using SSorter<TO>::nrows_;
     Column column_;
 
@@ -82,7 +83,9 @@ class Sorter_Int : public SSorter<TO> {
         });
     }
 
-    void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset, bool parallel) const override {
+    void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
+                    bool parallel, next_wrapper wrap = nullptr) const override
+    {
       xassert(ordering_in.size == 0);
       xassert(offset == 0);
       bool minmax_valid;
