@@ -70,7 +70,7 @@ oobj Frame::get_key() const {
 
 
 void Frame::set_key(const Arg& val) {
-  if (val.is_none()) {
+  if (val.is_none_or_undefined()) {
     return dt->clear_key();
   }
   std::vector<size_t> col_indices;
