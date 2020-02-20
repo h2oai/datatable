@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,16 +31,32 @@
 //------------------------------------------------------------------------------
 namespace py {
 
-static GSArgs args_key(
-  "key",
-R"(Tuple of column names that serve as a primary key for this Frame.
+static const char* doc_key =
+R"(
+The tuple of column names that are the primary key for this frame.
 
-If the Frame is not keyed, this will return an empty tuple.
+The primary key columns are always located at the beginning of the
+frame, and therefore the following identity always holds::
+
+    DT.key == DT.names[:len(DT.key)]
+
+If the frame is not keyed, this property returns an empty tuple.
 
 Assigning to this property will make the Frame keyed by the specified
 column(s). The key columns will be moved to the front, and the Frame
 will be sorted. The values in the key columns must be unique.
-)");
+
+Parameters
+----------
+(return): Tuple[str, ...]
+    When used as a getter, returns the tuple of names of the primary
+    key columns.
+
+newkey: str | List[str] | Tuple[str, ...] | None
+    slm
+)";
+
+static GSArgs args_key("key", doc_key);
 
 
 oobj Frame::get_key() const {
