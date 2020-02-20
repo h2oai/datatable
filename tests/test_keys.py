@@ -165,6 +165,16 @@ def test_key_after_group():
     assert sum(tmp.to_list()[1]) == n
 
 
+def test_del_key():
+    # See issue #2357
+    DT = dt.Frame(A=range(5))
+    DT.key = "A"
+    del DT.key
+    assert DT.key == ()
+    frame_integrity_check(DT)
+
+
+
 #-------------------------------------------------------------------------------
 # Test if a key was dropped or kept after certain operations
 #-------------------------------------------------------------------------------
