@@ -625,25 +625,45 @@ class XobjectDirective(SphinxDirective):
 
     def _parse_dtframe(self, lines):
         assert len(lines) >= 4
+        if lines[1][0] == "-":
+            sep_line = 1
+        elif lines[2][0] == "-":
+            sep_line = 2
+        else:
+            raise self.error("Unrecognized format of dtframe")
+        # Parse the line that separates the headers from the body of the table.
+        # Runs of '-----'s will tell where the boundary of each column is.
         slices = [slice(*match.span())
-                   for match in re.finditer(r"(\-+|\+|\.{3}|…)", lines[1])]
-        vsep_index = [lines[1][s] for s in slices].index('+')
+                   for match in re.finditer(r"(\-+|\+|\.{3}|…)",
+                                            lines[sep_line])]
+        # Find the index of the "vertical separator" column
+        vsep_index = [lines[sep_line][s] for s in slices].index('+')
         assert vsep_index == 1, "Keyed frames not supported yet"
+
+        # Parse the column names
         row0 = [lines[0][s] for s in slices]
         assert row0[vsep_index] == '|'
+        column_names = [name.strip() for name in row0[vsep_index+1:]]
+
+        # Parse the column types
+        if sep_line == 2:
+            row1 = [lines[1][s] for s in slices]
+            assert row1[vsep_index] == '|'
+            column_types = [typ.strip(" <>") for typ in row1[vsep_index+1:]]
+        else:
+            column_types = ["int32"] * len(column_names)
+
         mm = re.fullmatch(r"\[(\d+) rows? x (\d+) columns?\]", lines[-1])
         nrows = mm.group(1)
         ncols = mm.group(2)
-        column_names = [row0[i].strip() for i in range(vsep_index+1, len(row0))]
-        column_types = ["int32"] * len(column_names)
         out = []
         out.append(".. dtframe::")
         out.append("    :names: %r" % (column_names,))
         out.append("    :types: %r" % (column_types,))
         out.append("    :shape: (%s, %s)" % (nrows, ncols))
         out.append("")
-        for i in range(2, len(lines) - 2):
-            rowi = [lines[i][s] for s in slices]
+        for line in lines[sep_line+1:-2]:
+            rowi = [line[s] for s in slices]
             assert rowi[vsep_index] == '|'
             del rowi[vsep_index]
             out.append("    " + ",".join(x.strip() for x in rowi))
