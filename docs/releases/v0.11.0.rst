@@ -27,6 +27,9 @@
     an ``obj64`` column was created instead. The new behavior is more
     consistent with fread's behavior when reading CSV files.
 
+  -[bug] Deleting a key from the Frame (``del DT.key``) no longer causes a
+    seg.fault. [#2357]
+
 
   Fread
   -----

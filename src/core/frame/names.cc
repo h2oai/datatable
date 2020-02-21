@@ -109,7 +109,7 @@ class strvecNP : public NameProvider {
 
 
 //------------------------------------------------------------------------------
-// Frame names API
+// colindex()
 //------------------------------------------------------------------------------
 namespace py {
 
@@ -207,6 +207,15 @@ oobj Frame::colindex(const PKArgs& args) {
 }
 
 
+} // namespace py
+
+
+
+//------------------------------------------------------------------------------
+// .names
+//------------------------------------------------------------------------------
+namespace py {
+
 static const char* doc_names =
 R"(
 The tuple of names of all columns in the frame.
@@ -241,16 +250,16 @@ newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
 
     If ``newnames`` is a dictionary, then it provides a mapping from
     old to new column names. The dictionary may contain less entries
-    than the number of columns in the frame: the remaining columns
-    will retain their names.
+    than the number of columns in the frame: the columns not mentioned
+    in the dictionary will retain their names.
 
     Setting the ``.names`` to ``None`` is equivalent to using the
     ``del`` keyword: the names will be set to their default values,
     which are usually ``C0, C1, ...``.
 
 (except): ValueError
-    If the length of the list `newnames` does not match the number
-    of columns in the frame.
+    If the length of the list/tuple `newnames` does not match the
+    number of columns in the frame.
 
 (except): KeyError
     If `newnames` is a dictionary containing entries that do not
@@ -275,7 +284,7 @@ static GSArgs args_names("names", doc_names);
 
 oobj Frame::get_names() const {
   return dt->get_pynames();
-}  // LCOV_EXCL_LINE
+}
 
 
 void Frame::set_names(const Arg& arg)

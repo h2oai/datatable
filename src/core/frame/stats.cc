@@ -70,9 +70,10 @@ Examples
 --------
 >>> DT = dt.Frame(A=[1, 5, None], B=[math.nan]*3, C=[None, None, 'bah!'])
 >>> DT.countna()
-   |  A   B   C
--- + --  --  --
- 0 |  1   3   2
+   |     A      B      C
+   | int64  int64  int64
+-- + -----  -----  -----
+ 0 |     1      3      2
 --
 [1 row x 3 columns]
 
