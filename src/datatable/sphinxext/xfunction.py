@@ -96,6 +96,7 @@ class XobjectDirective(SphinxDirective):
         self.src_file -- name of the file where the code is located
         self.src_fnname -- name of the C++ function (possibly with a namespace)
                            which corresponds to the object being documented
+        self.src_fnname2 -- name of the second C++ function (for setters)
         self.doc_file -- name of the file where the docstring is located
         self.doc_var -- name of the C++ variable containing the docstring
         self.test_file -- name of the file where tests are located
@@ -141,10 +142,12 @@ class XobjectDirective(SphinxDirective):
         title_overrides[self.env.docname] = ".%s()" % self.obj_name
 
         if self.doc_file == self.src_file:
-            self._locate_sources(self.src_file, self.src_fnname, self.doc_var)
+            self._locate_sources(self.src_file, self.src_fnname,
+                                 self.src_fnname2, self.doc_var)
         else:
-            self._locate_sources(self.src_file, self.src_fnname, None)
-            self._locate_sources(self.doc_file, None, self.doc_var)
+            self._locate_sources(self.src_file, self.src_fnname,
+                                 self.src_fnname2, None)
+            self._locate_sources(self.doc_file, None, None, self.doc_var)
         self._parse_docstring()
         return self._generate_nodes()
 
@@ -194,17 +197,24 @@ class XobjectDirective(SphinxDirective):
         """
         src = self.options["src"].strip()
         parts = src.split()
-        if len(parts) != 2:
+        if len(parts) == 2 or (len(parts) == 3 and self.name == "xdata"):
+            src = parts[0]
+            if not os.path.isfile(os.path.join(self.project_root, src)):
+                raise self.error("Invalid :src: option: file `%s` does not "
+                                 "exist" % src)
+            self.src_file = src
+            for p in parts[1:]:
+                if not re.fullmatch(rx_cc_id, p):
+                    raise self.error("Invalid :src: option: `%s` is not a "
+                                     "valid C++ identifier" % p)
+            self.src_fnname = parts[1]
+            if len(parts) == 3:
+                self.src_fnname2 = parts[2]
+            else:
+                self.src_fnname2 = None
+        else:
             raise self.error("Invalid :src: option: it must have form "
-                             "'filename fnname'")
-        if not os.path.isfile(os.path.join(self.project_root, parts[0])):
-            raise self.error("Invalid :src: option: file `%s` does not exist"
-                             % parts[0])
-        if not re.fullmatch(rx_cc_id, parts[1]):
-            raise self.error("Invalid :src: option: `%s` is not a valid C++ "
-                             "identifier" % parts[1])
-        self.src_file = parts[0]
-        self.src_fnname = parts[1]
+                             "'filename fnname [fnname]'")
 
 
     def _parse_option_doc(self):
@@ -292,7 +302,7 @@ class XobjectDirective(SphinxDirective):
         return pattern.format(filename=filename, line1=line1, line2=line2)
 
 
-    def _locate_sources(self, filename, funcname, docname):
+    def _locate_sources(self, filename, funcname1, funcname2, docname):
         """
         Locate either the function body or the documentation string or
         both in the source file `filename`.
@@ -303,8 +313,16 @@ class XobjectDirective(SphinxDirective):
         full_filename = os.path.join(self.project_root, filename)
         with open(full_filename, "r", encoding="utf-8") as inp:
             lines = list(inp)
-        if funcname:
-            self._locate_fn_source(filename, funcname, lines)
+        if funcname1:
+            line1, line2 = self._locate_fn_source(filename, funcname1, lines)
+            self.src_line_first = line1
+            self.src_line_last = line2
+            self.src_github_url = self.permalink(filename, line1, line2)
+        if funcname2:
+            line1, line2 = self._locate_fn_source(filename, funcname2, lines)
+            self.src2_line_first = line1
+            self.src2_line_last = line2
+            self.src2_github_url = self.permalink(filename, line1, line2)
         if docname:
             self._locate_doc_source(filename, docname, lines)
 
@@ -314,9 +332,8 @@ class XobjectDirective(SphinxDirective):
         Find the body of the function `fnname` within the `lines` that
         were read from the file `filename`.
 
-        If successful, this function sets properties
-        `self.src_line_first`, `self.src_line_last`, and
-        `self.src_github_url`.
+        If successful, this function returns a tuple of the line
+        numbers of the start the end of the function.
         """
         rx_cc_function = re.compile(r"(\s*)"
                                     r"(?:static\s+|inline\s+)*"
@@ -351,10 +368,7 @@ class XobjectDirective(SphinxDirective):
             raise self.error("Could not locate the end of function `%s` "
                              "in file `%s` line %d"
                              % (fnname, filename, start_line))
-
-        self.src_line_first = start_line
-        self.src_line_last = finish_line
-        self.src_github_url = self.permalink(filename, start_line, finish_line)
+        return (start_line, finish_line)
 
 
     def _locate_doc_source(self, filename, docname, lines):
@@ -638,18 +652,22 @@ class XobjectDirective(SphinxDirective):
                                             lines[sep_line])]
         # Find the index of the "vertical separator" column
         vsep_index = [lines[sep_line][s] for s in slices].index('+')
-        assert vsep_index == 1, "Keyed frames not supported yet"
+        nkeys = 0
+        if vsep_index > 1 or lines[0][slices[0]].strip():
+            nkeys = vsep_index
 
         # Parse the column names
         row0 = [lines[0][s] for s in slices]
         assert row0[vsep_index] == '|'
-        column_names = [name.strip() for name in row0[vsep_index+1:]]
+        column_names = [name.strip() for name in row0[:nkeys] +
+                                                 row0[vsep_index+1:]]
 
         # Parse the column types
         if sep_line == 2:
             row1 = [lines[1][s] for s in slices]
             assert row1[vsep_index] == '|'
-            column_types = [typ.strip(" <>") for typ in row1[vsep_index+1:]]
+            column_types = [typ.strip(" <>") for typ in row1[:nkeys] +
+                                                        row1[vsep_index+1:]]
         else:
             column_types = ["int32"] * len(column_names)
 
@@ -661,6 +679,7 @@ class XobjectDirective(SphinxDirective):
         out.append("    :names: %r" % (column_names,))
         out.append("    :types: %r" % (column_types,))
         out.append("    :shape: (%s, %s)" % (nrows, ncols))
+        out.append("    :nkeys: %d" % nkeys)
         out.append("")
         for line in lines[sep_line+1:-2]:
             rowi = [line[s] for s in slices]
@@ -723,6 +742,10 @@ class XobjectDirective(SphinxDirective):
         sig_nodeL = xnodes.div(classes=["sig-body"])
         self._generate_sigbody(sig_nodeL, "setter")
         sig_node += sig_nodeL
+        sig_nodeR = xnodes.div(classes=["code-links"])
+        if self.src_fnname2:
+            sig_nodeR += a_node(href=self.src2_github_url, text="source", new=True)
+        sig_node += sig_nodeR
         return [sig_node]
 
 
