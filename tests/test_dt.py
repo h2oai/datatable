@@ -147,11 +147,14 @@ def test_dt_version():
     assert isinstance(dt.build_info.build_date, str)
     assert isinstance(dt.build_info.git_revision, str)
     assert isinstance(dt.build_info.git_branch, str)
+    assert isinstance(dt.build_info.git_date, str)
+    assert isinstance(dt.build_info.git_diff, str)
     assert isinstance(dt.build_info.version, str)
     if "DTCOVERAGE" not in os.environ:
         assert dt.build_info.build_date
         assert dt.build_info.git_revision
         assert dt.build_info.git_branch
+        assert dt.build_info.git_date
         assert dt.build_info.version
         assert len(dt.build_info.git_revision) == 40
         assert dt.build_info.version == dt.__version__
