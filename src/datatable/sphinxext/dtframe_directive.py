@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -39,6 +39,7 @@ files. For example:
         :names: Key, Value, ..., Last
         :types: str32, int32, ..., float64
         :shape: (9, 7)
+        :nkeys: 0
 
         0,cat,1,...,2.3
         1,apple,2,...,0.0e+0
@@ -278,6 +279,11 @@ def parse_names(s):
     return names
 
 
+def parse_nkeys(s):
+    if s is None:
+        return 0
+    return int(s.strip())
+
 
 
 #-------------------------------------------------------------------------------
@@ -292,14 +298,15 @@ class DtframeDirective(Directive):
         "shape": parse_shape,
         "types": parse_types,
         "names": parse_names,
+        "nkeys": parse_nkeys,
     }
 
     def run(self):
-        shape, types, names = self._parse_options()
-        frame_data = self._parse_table(types, names)
+        shape, types, names, nkeys = self._parse_options()
+        frame_data = self._parse_table(types, names, nkeys)
 
         root_node = xnodes.div(classes=["datatable"])
-        root_node += self._make_table(names, types, frame_data)
+        root_node += self._make_table(names, types, nkeys, frame_data)
         root_node += self._make_footer(shape)
         div = xnodes.div(classes=["highlight-pycon", "notranslate"])
         div += root_node
@@ -313,15 +320,17 @@ class DtframeDirective(Directive):
         shape = self.options["shape"]
         types = self.options["types"]
         names = self.options["names"]
+        nkeys = self.options.get("nkeys", 0)
         if len(names) != len(types):
             raise ValueError("Number of values in :names: is %d, while the "
                              "number of values in :types: is %d"
                              % (len(names), len(types)))
-        return shape, types, names
+        return shape, types, names, nkeys
 
 
-    def _parse_table(self, types, names):
+    def _parse_table(self, types, names, nkeys):
         ncols = len(types)
+        expected_nentries = ncols + (1 if nkeys == 0 else 0)
         frame_data = []
         for i, line in enumerate(self.content):
             if line == "...":
@@ -330,10 +339,10 @@ class DtframeDirective(Directive):
                 frame_data.append(Ellipsis)
                 continue
             tokens = parse_csv_line(line)
-            if len(tokens) != ncols + 1:
+            if len(tokens) != expected_nentries:
                 raise ValueError("Expected %d entries in line %d of input, "
                                  "instead found %d"
-                                 % (ncols + 1, i + 1, len(tokens)))
+                                 % (expected_nentries, i + 1, len(tokens)))
             frame_data.append(tokens)
         for i in range(ncols):
             if types[i] is Ellipsis:
@@ -357,31 +366,35 @@ class DtframeDirective(Directive):
         return frame_data
 
 
-    def _make_table(self, names, types, data):
+    def _make_table(self, names, types, nkeys, data):
         table = xnodes.table(classes=["frame"])
         thead = nodes.thead()
-        thead += self._make_column_names_row(names)
-        thead += self._make_column_types_row(types)
+        thead += self._make_column_names_row(names, nkeys)
+        thead += self._make_column_types_row(types, nkeys)
         table += thead
-        table += self._make_table_body(types, data)
+        table += self._make_table_body(types, data, nkeys)
         return table
 
 
-    def _make_column_names_row(self, names):
+    def _make_column_names_row(self, names, nkeys):
         row = xnodes.tr(classes=["colnames"])
-        row += xnodes.td(classes=["row_index"])
-        for name in names:
+        if nkeys == 0:
+            row += xnodes.td(classes=["row_index"])
+        for i, name in enumerate(names):
             classes = []
             if name is Ellipsis:
                 name = "\u2026"
                 classes.append("vellipsis")
+            if i < nkeys:
+                classes.append("row_index")
             row += xnodes.th(name, classes=classes)
         return row
 
 
-    def _make_column_types_row(self, types):
+    def _make_column_types_row(self, types, nkeys):
         row = xnodes.tr(classes=["coltypes"])
-        row += xnodes.td(classes=["row_index"])
+        if nkeys == 0:
+            row += xnodes.td(classes=["row_index"])
         for stype in types:
             if stype is Ellipsis:
                 row += xnodes.th()
@@ -391,7 +404,7 @@ class DtframeDirective(Directive):
         return row
 
 
-    def _make_table_body(self, types, data):
+    def _make_table_body(self, types, data, nkeys):
         body = []
         if not data:
             return body
@@ -415,17 +428,20 @@ class DtframeDirective(Directive):
             else:
                 for i, text in enumerate(datarow):
                     classes = []
-                    if i == 0:
+                    if i == 0 and nkeys == 0:
                         classes = ["row_index"]
                         text = comma_separated(int(text))
                     elif i == ellipsis_column:
                         classes = ["vellipsis"]
                         text = "\u2026"
-                    elif text is None:
-                        classes = ["na"]
-                        text = "NA"
-                    elif is_numeric[i]:
-                        text = text.replace("-", "\u2212")
+                    else:
+                        if i < nkeys:
+                            classes.append("row_index")
+                        if text is None:
+                            classes.append("na")
+                            text = "NA"
+                        elif is_numeric[i]:
+                            text = text.replace("-", "\u2212")
                     assert isinstance(text, str)
                     row_node += xnodes.td(text, classes=classes)
         return body
@@ -492,20 +508,11 @@ def html_page_context(app, pagename, templatename, context, doctree):
         .datatable table.frame thead tr th:nth-child(2) {
             padding-left: 12px;
         }
-        .datatable table.frame tbody tr:nth-child(even) {
-            background-color: #F5F5F5;
-        }
-        .datatable table.frame.docutils tbody tr:nth-child(odd) td {
-            background-color: #FFFFFF;
-        }
-        .datatable table.frame td.row_index {
+        .datatable table.frame .row_index {
             color: rgba(0, 0, 0, 0.38);
             background: #EEEEEE;
             font-size: 9px;
             border-right: 1px solid #BDBDBD;
-        }
-        .datatable table.frame tr.coltypes td.row_index {
-            background: #BDBDBD;
         }
         .datatable table.frame td.hellipsis {
             color: #E0E0E0;
