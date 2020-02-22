@@ -59,6 +59,17 @@
 
   -[fix] Fix rare crash in the interrupt signal handler. [#2282]
 
+  -[api] All exceptions thrown by datatable are now declared in the
+    ``datatable.exceptions`` module. These exceptions are now organized to
+    derive from the common base class ``DtException``.
+
+    The exception messages when stringified no longer contain backticks. The
+    backticks are still emitted internally to help display the error in a
+    color-supporting terminal, but when the exception is converted into a
+    string via `str()` or `repr()`, these backticks will now be stripped.
+    This change ensures that the exception message remains the same regardless
+    of how it is rendered.
+
 
   FTRL model
   ----------
