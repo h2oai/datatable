@@ -40,6 +40,9 @@ static py::oobj DtExc_IndexError;
 static py::oobj DtExc_InvalidOperationError;
 static py::oobj DtExc_IOError;
 static py::oobj DtExc_KeyError;
+static py::oobj DtExc_MemoryError;
+static py::oobj DtExc_NotImplementedError;
+static py::oobj DtExc_OverflowError;
 static py::oobj DtExc_TypeError;
 static py::oobj DtExc_ValueError;
 static py::oobj DtWrn_DatatableWarning;
@@ -53,6 +56,9 @@ static void init() {
   DtExc_InvalidOperationError = dx.get_attr("InvalidOperationError");
   DtExc_IOError               = dx.get_attr("IOError");
   DtExc_KeyError              = dx.get_attr("KeyError");
+  DtExc_MemoryError           = dx.get_attr("MemoryError");
+  DtExc_NotImplementedError   = dx.get_attr("NotImplementedError");
+  DtExc_OverflowError         = dx.get_attr("OverflowError");
   DtExc_TypeError             = dx.get_attr("TypeError");
   DtExc_ValueError            = dx.get_attr("ValueError");
   DtWrn_DatatableWarning      = dx.get_attr("DatatableWarning");
@@ -279,14 +285,14 @@ std::string PyError::message() const {
 //==============================================================================
 
 Error AssertionError() { return Error(PyExc_AssertionError); }
+Error RuntimeError()   { return Error(PyExc_RuntimeError); }
 Error ImportError()    { init(); return Error(DtExc_ImportError); }
 Error IndexError()     { init(); return Error(DtExc_IndexError); }
 Error IOError()        { init(); return Error(DtExc_IOError); }
 Error KeyError()       { init(); return Error(DtExc_KeyError); }
-Error MemoryError()    { return Error(PyExc_MemoryError); }
-Error NotImplError()   { return Error(PyExc_NotImplementedError); }
-Error OverflowError()  { return Error(PyExc_OverflowError); }
-Error RuntimeError()   { return Error(PyExc_RuntimeError); }
+Error MemoryError()    { init(); return Error(DtExc_MemoryError); }
+Error NotImplError()   { init(); return Error(DtExc_NotImplementedError); }
+Error OverflowError()  { init(); return Error(DtExc_OverflowError); }
 Error TypeError()      { init(); return Error(DtExc_TypeError); }
 Error ValueError()     { init(); return Error(DtExc_ValueError); }
 Error InvalidOperationError()

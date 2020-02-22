@@ -47,6 +47,9 @@ class IndexError(DtException, builtins.IndexError): pass
 class InvalidOperationError(DtException): pass
 class IOError(DtException, builtins.IOError): pass
 class KeyError(DtException, builtins.KeyError): pass
+class MemoryError(DtException, builtins.MemoryError): pass
+class NotImplementedError(DtException, builtins.NotImplementedError): pass
+class OverflowError(DtException, builtins.OverflowError): pass
 class TypeError(DtException, builtins.TypeError): pass
 class ValueError(DtException, builtins.ValueError): pass
 
