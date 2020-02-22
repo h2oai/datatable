@@ -79,6 +79,8 @@ def _handle_dt_exception(exc_class, exc, tb):
     filename_prefix = os.path.commonprefix([frame.filename
                                             for frame in tbframes
                                             if frame.filename[:1] != "<"])
+    if os.path.isfile(filename_prefix):
+        filename_prefix = os.path.dirname(filename_prefix)
     col1 = []
     col2 = []
     for frame in tbframes:
@@ -98,7 +100,8 @@ def _handle_dt_exception(exc_class, exc, tb):
             tbout += "    " + line1
             tbout += " "*(col1len - len(line1))
             tbout += line2 + "\n"
-        out += apply_color("grey", tbout)
+        tbout += "    . = %s\n" % filename_prefix
+        out += apply_color("dim", tbout)
     print(out, file=sys.stderr)
 
 
