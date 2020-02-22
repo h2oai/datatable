@@ -30,8 +30,7 @@ import tempfile
 import warnings
 
 from datatable.lib import core
-from datatable.utils.typechecks import (TValueError, TTypeError,
-                                        DatatableWarning)
+from datatable.exceptions import TypeError, ValueError, FreadWarning
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
@@ -120,8 +119,8 @@ class GenericReader(object):
         if verbose and not logger:
             self._logger = _DefaultLogger()
         if args:
-            raise TTypeError("Unknown argument(s) %r in FReader(...)"
-                             % list(args.keys()))
+            raise TypeError("Unknown argument(s) %r in FReader(...)"
+                            % list(args.keys()))
 
 
     #---------------------------------------------------------------------------
@@ -135,17 +134,17 @@ class GenericReader(object):
                 ["cmd"] * (cmd is not None) +
                 ["url"] * (url is not None))
         if len(args) == 0:
-            raise TValueError(
+            raise ValueError(
                 "No input source for `fread` was given. Please specify one of "
                 "the parameters `file`, `text`, `url`, or `cmd`")
         if len(args) > 1:
             if anysource is None:
-                raise TValueError(
+                raise ValueError(
                     "Both parameters `%s` and `%s` cannot be passed to fread "
                     "simultaneously." % (args[0], args[1]))
             else:
                 args.remove("any")
-                raise TValueError(
+                raise ValueError(
                     "When an unnamed argument is passed, it is invalid to also "
                     "provide the `%s` parameter." % (args[0], ))
         self._resolve_source_any(anysource)
@@ -195,16 +194,16 @@ class GenericReader(object):
         elif isinstance(src, (list, tuple)):
             self._resolve_source_list_of_files(src)
         else:
-            raise TTypeError("Unknown type for the first argument in fread: %r"
-                             % type(src))
+            raise TypeError("Unknown type for the first argument in fread: %r"
+                            % type(src))
 
 
     def _resolve_source_text(self, text):
         if text is None:
             return
         if not isinstance(text, (str, bytes)):
-            raise TTypeError("Invalid parameter `text` in fread: expected "
-                             "str or bytes, got %r" % type(text))
+            raise TypeError("Invalid parameter `text` in fread: expected "
+                            "str or bytes, got %r" % type(text))
         self._text = text
         self._src = "<text>"
 
@@ -251,8 +250,8 @@ class GenericReader(object):
                 self._src = file
             return
         else:
-            raise TTypeError("Invalid parameter `file` in fread: expected a "
-                             "str/bytes/PathLike, got %r" % type(file))
+            raise TypeError("Invalid parameter `file` in fread: expected a "
+                            "str/bytes/PathLike, got %r" % type(file))
         # if `file` is not str, then `os.path.join(file, "..")` below will fail
         assert isinstance(file, str)
         if not os.path.exists(file):
@@ -270,9 +269,9 @@ class GenericReader(object):
                 self._resolve_archive(xpath, ypath)
                 return
             else:
-                raise TValueError("File %s`%s` does not exist" % (xpath, ypath))
+                raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
         if not os.path.isfile(file):
-            raise TValueError("Path `%s` is not a file" % file)
+            raise ValueError("Path `%s` is not a file" % file)
         self._src = file
         self._resolve_archive(file)
 
@@ -290,8 +289,8 @@ class GenericReader(object):
         if cmd is None:
             return
         if not isinstance(cmd, str):
-            raise TTypeError("Invalid parameter `cmd` in fread: expected str, "
-                             "got %r" % type(cmd))
+            raise TypeError("Invalid parameter `cmd` in fread: expected str, "
+                            "got %r" % type(cmd))
         proc = subprocess.Popen(cmd, shell=True,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
@@ -299,8 +298,8 @@ class GenericReader(object):
         ret = proc.returncode
         if ret:
             msgerr = msgerr.decode("utf-8", errors="replace").strip()
-            raise TValueError("Shell command returned error code %r: `%s`"
-                              % (ret, msgerr))
+            raise ValueError("Shell command returned error code %r: `%s`"
+                             % (ret, msgerr))
         else:
             self._text = msgout
             self._src = cmd
@@ -334,14 +333,14 @@ class GenericReader(object):
                 if subpath in zff:
                     zff = [subpath]
                 else:
-                    raise TValueError("File `%s` does not exist in archive "
-                                      "`%s`" % (subpath, filename))
+                    raise ValueError("File `%s` does not exist in archive `%s`"
+                                     % (subpath, filename))
             if len(zff) > 1:
                 warnings.warn("Zip file %s contains multiple compressed "
                               "files: %r. Only the first of them will be used."
                               % (filename, zff), category=FreadWarning)
             if len(zff) == 0:
-                raise TValueError("Zip file %s is empty" % filename)
+                raise ValueError("Zip file %s is empty" % filename)
             if self._verbose:
                 self._logger.debug("Extracting %s to temporary directory %s"
                                   % (filename, self.tempdir))
@@ -521,12 +520,12 @@ def _apply_columns_slice(colslice, colsdesc):
     else:
         t = normalize_range(colslice, n)
         if t is None:
-            raise TValueError("Invalid range iterator for a file with "
-                              "%d columns: %r" % (n, colslice))
+            raise ValueError("Invalid range iterator for a file with "
+                             "%d columns: %r" % (n, colslice))
         start, count, step = t
     if step <= 0:
-        raise TValueError("Cannot use slice/range with negative step "
-                          "for column filter: %r" % colslice)
+        raise ValueError("Cannot use slice/range with negative step "
+                         "for column filter: %r" % colslice)
 
     colnames = [None] * count
     coltypes = [rtype.rdrop.value] * n
@@ -561,9 +560,9 @@ def _apply_columns_list(collist, colsdesc):
     n = len(colsdesc)
     nn = len(collist)
     if n != nn:
-        raise TValueError("Input contains %s, whereas `columns` "
-                          "parameter specifies only %s"
-                          % (plural(n, "column"), plural(nn, "column")))
+        raise ValueError("Input contains %s, whereas `columns` "
+                         "parameter specifies only %s"
+                         % (plural(n, "column"), plural(nn, "column")))
     colnames = []
     coltypes = [rtype.rdrop.value] * n
     for i in range(n):
@@ -582,13 +581,13 @@ def _apply_columns_list(collist, colsdesc):
         elif isinstance(entry, tuple):
             newname, newtype = entry
             if newtype not in _rtypes_map:
-                raise TValueError("Unknown type %r used as an override "
-                                  "for column %r" % (newtype, newname))
+                raise ValueError("Unknown type %r used as an override "
+                                 "for column %r" % (newtype, newname))
             colnames.append(newname)
             coltypes[i] = _rtypes_map[newtype].value
         else:
-            raise TTypeError("Entry `columns[%d]` has invalid type %r"
-                             % (i, entry.__class__.__name__))
+            raise TypeError("Entry `columns[%d]` has invalid type %r"
+                            % (i, entry.__class__.__name__))
     return (colnames, coltypes)
 
 
@@ -609,7 +608,7 @@ def _apply_columns_dict(colsdict, colsdesc):
             if isinstance(val, (list, tuple, set)):
                 for entry in val:
                     if not isinstance(entry, str):
-                        raise TTypeError(
+                        raise TypeError(
                             "Type %s in the `columns` parameter should map"
                             " to a string or list of strings (column names)"
                             "; however it contains an entry %r"
@@ -618,7 +617,7 @@ def _apply_columns_dict(colsdict, colsdesc):
                         continue
                     new_entries[entry] = key
             else:
-                raise TTypeError(
+                raise TypeError(
                     "Unknown entry %r for %s in `columns`" % (val, key))
     if new_entries:
         colsdict = {**colsdict, **new_entries}
@@ -642,11 +641,11 @@ def _apply_columns_dict(colsdict, colsdesc):
             coltypes[i] = _rtypes_map[newtype].value
             assert isinstance(newname, str)
             if not coltypes[i]:
-                raise TValueError("Unknown type %r used as an override "
-                                  "for column %r" % (newtype, newname))
+                raise ValueError("Unknown type %r used as an override "
+                                 "for column %r" % (newtype, newname))
         else:
-            raise TTypeError("Unknown value %r for column '%s' in "
-                             "columns descriptor" % (entry, name))
+            raise TypeError("Unknown value %r for column '%s' in "
+                            "columns descriptor" % (entry, name))
     return (colnames, coltypes)
 
 
@@ -660,10 +659,6 @@ def _apply_columns_function(colsfn, colsdesc):
 #-------------------------------------------------------------------------------
 # Helper classes
 #-------------------------------------------------------------------------------
-
-class FreadWarning(DatatableWarning):
-    pass
-
 
 class _DefaultLogger:
     def debug(self, message):

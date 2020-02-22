@@ -69,11 +69,6 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
 _default_warnings_hoook = warnings.showwarning
 warnings.showwarning = _showwarning
 
-core._register_function(4, TTypeError)
-core._register_function(5, TValueError)
-core._register_function(6, DatatableWarning)
-core._register_function(8, InvalidOperationError)
-
 
 __all__ = ("typed", "is_type", "U", "TTypeError", "TValueError", "TImportError",
            "DatatableWarning", "dtwarn", "name_type")

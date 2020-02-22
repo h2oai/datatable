@@ -4,11 +4,9 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-import importlib
-from .typechecks import TImportError
 
 __all__ = ("clamp", "normalize_slice", "normalize_range", "plural_form",
-           "load_module", "humanize_bytes")
+           "humanize_bytes")
 
 
 def plural_form(n, singular=None, plural=None):
@@ -165,18 +163,6 @@ def normalize_range(e, n):
     assert count >= 0
     return (start, count, e.step)
 
-
-
-def load_module(module):
-    """
-    Import and return the requested module.
-    """
-    try:
-        m = importlib.import_module(module)
-        return m
-    except ModuleNotFoundError:  # pragma: no cover
-        raise TImportError("Module `%s` is not installed. It is required for "
-                           "running this function." % module)
 
 
 def humanize_bytes(size):

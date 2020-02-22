@@ -6,9 +6,9 @@
 #-------------------------------------------------------------------------------
 import ctypes
 import enum
+from datatable.exceptions import ValueError
 from datatable.expr.expr import Expr, OpCodes
 from datatable.lib import core
-from datatable.utils.typechecks import TValueError
 
 __all__ = ("stype", "ltype")
 
@@ -197,9 +197,9 @@ def ___new___(cls, value):
                 return cls._value2member_map_[value]
     except TypeError:
         # `value` is not hasheable -- not valid for our enum. Pass-through
-        # and raise the TValueError below.
+        # and raise the ValueError below.
         pass
-    raise TValueError("`%r` does not map to any %s" % (value, cls.__name__))
+    raise ValueError("`%r` does not map to any %s" % (value, cls.__name__))
 
 
 setattr(stype, "__new__", ___new___)
