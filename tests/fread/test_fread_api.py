@@ -1,8 +1,25 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 # Tests in this file are specifically aimed at checking the API of `fread`
 # function / class. This includes: presence of various parameters, checks that
@@ -11,7 +28,8 @@
 import pytest
 import datatable as dt
 import os
-from datatable import ltype, stype, DatatableWarning, FreadWarning
+from datatable import ltype, stype
+from datatable.exceptions import FreadWarning, DatatableWarning
 from datatable.internal import frame_integrity_check
 
 
@@ -189,14 +207,14 @@ def test_fread_file_not_exists():
     path = os.path.abspath(".")
     with pytest.raises(ValueError) as e:
         dt.fread(name)
-    assert ("File %s`/%s` does not exist" % (path, name)) in str(e.value)
+    assert ("File %s/%s does not exist" % (path, name)) in str(e.value)
 
 
 def test_fread_file_is_directory():
     path = os.path.abspath(".")
     with pytest.raises(ValueError) as e:
         dt.fread(path)
-    assert ("Path `%s` is not a file" % path) in str(e.value)
+    assert ("Path %s is not a file" % path) in str(e.value)
 
 
 def test_fread_xz_file(tempfile, capsys):
@@ -302,7 +320,7 @@ def test_fread_zip_file_bad2(tempfile):
         zf.writestr("data1.csv", "Egeustimentis")
     with pytest.raises(ValueError) as e:
         dt.fread(zfname + "/out.csv")
-    assert "File `out.csv` does not exist in archive" in str(e.value)
+    assert "File out.csv does not exist in archive" in str(e.value)
     os.unlink(zfname)
 
 
@@ -316,13 +334,13 @@ def test_fread_bad_source_any_and_source():
     with pytest.raises(ValueError) as e:
         dt.fread("a", text="b")
     assert "When an unnamed argument is passed, it is invalid to also " \
-           "provide the `text` parameter" in str(e.value)
+           "provide the text parameter" in str(e.value)
 
 
 def test_fread_bad_source_2sources():
     with pytest.raises(ValueError) as e:
         dt.fread(file="a", text="b")
-    assert "Both parameters `file` and `text` cannot be passed to fread " \
+    assert "Both parameters file and text cannot be passed to fread " \
            "simultaneously" in str(e.value)
 
 
@@ -335,21 +353,21 @@ def test_fread_bad_source_anysource():
 def test_fread_bad_source_text():
     with pytest.raises(TypeError) as e:
         dt.fread(text=["a", "b", "c"])
-    assert ("Invalid parameter `text` in fread: expected str or bytes"
+    assert ("Invalid parameter text in fread: expected str or bytes"
             in str(e.value))
 
 
 def test_fread_bad_source_file():
     with pytest.raises(TypeError) as e:
         dt.fread(file=TypeError)
-    assert ("Invalid parameter `file` in fread: expected a str/bytes/PathLike"
+    assert ("Invalid parameter file in fread: expected a str/bytes/PathLike"
             in str(e.value))
 
 
 def test_fread_bad_source_cmd():
     with pytest.raises(TypeError) as e:
         dt.fread(cmd=["ls", "-l", ".."])
-    assert "Invalid parameter `cmd` in fread: expected str" in str(e.value)
+    assert "Invalid parameter cmd in fread: expected str" in str(e.value)
 
 
 def test_fread_from_glob(tempfile):
@@ -450,7 +468,7 @@ def test_fread_columns_list_of_types():
 def test_fread_columns_list_bad1():
     with pytest.raises(ValueError) as e:
         dt.fread(text="C1,C2\n1,2\n3,4\n", columns=["C2"])
-    assert ("Input contains 2 columns, whereas `columns` parameter "
+    assert ("Input contains 2 columns, whereas columns parameter "
             "specifies only 1 column" in str(e.value))
 
 
@@ -477,7 +495,7 @@ def test_fread_columns_list_bad4():
            in str(e.value)
     with pytest.raises(ValueError) as e:
         dt.fread(src, columns=[str, str])
-    assert ("Input contains 3 columns, whereas `columns` parameter "
+    assert ("Input contains 3 columns, whereas columns parameter "
             "specifies only 2 columns" in str(e.value))
 
 
@@ -485,7 +503,7 @@ def test_fread_columns_list_bad5():
     src = 'A,B,C\n01,foo,3.140\n002,bar,6.28000\n'
     with pytest.raises(TypeError) as e:
         dt.fread(src, columns=list(range(3)))
-    assert "Entry `columns[0]` has invalid type 'int'" in str(e.value)
+    assert "Entry columns[0] has invalid type 'int'" in str(e.value)
 
 
 def test_fread_columns_set1():
@@ -645,7 +663,7 @@ def test_sep_selection(sep):
 def test_sep_invalid1():
     with pytest.raises(TypeError) as e:
         dt.fread("A,,B\n", sep=12)
-    assert ("Parameter `sep` should be a string, instead got <class 'int'>"
+    assert ("Parameter sep should be a string, instead got <class 'int'>"
             in str(e.value))
 
 
@@ -667,7 +685,8 @@ def test_sep_invalid3():
 def test_sep_invalid4(c):
     with pytest.raises(Exception) as e:
         dt.fread("A,,B\n", sep=c)
-    assert "Separator `%s` is not allowed" % c == str(e.value)
+    strc = '\\x60' if c == '`' else c
+    assert "Separator %s is not allowed" % strc == str(e.value)
 
 
 

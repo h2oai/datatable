@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -47,14 +47,14 @@ def _dt0():
 def assert_valueerror(df, rows, error_message):
     with pytest.raises(ValueError) as e:
         noop(df[rows, :])
-    assert str(e.type) == "<class 'datatable.ValueError'>"
+    assert str(e.type) == "<class 'datatable.exceptions.ValueError'>"
     assert error_message in str(e.value)
 
 
 def assert_typeerror(df, rows, error_message):
     with pytest.raises(TypeError) as e:
         noop(df[rows, :])
-    assert str(e.type) == "<class 'datatable.TypeError'>"
+    assert str(e.type) == "<class 'datatable.exceptions.TypeError'>"
     assert error_message in str(e.value)
 
 
@@ -126,20 +126,20 @@ def test_rows_integer2(dt0):
 
 def test_rows_integer3(dt0):
     assert_valueerror(dt0, 10,
-                      "Row `10` is invalid for a frame with 10 rows")
+                      "Row 10 is invalid for a frame with 10 rows")
     assert_valueerror(dt0, -11,
-                      "Row `-11` is invalid for a frame with 10 rows")
+                      "Row -11 is invalid for a frame with 10 rows")
     assert_valueerror(dt0, -20,
-                      "Row `-20` is invalid for a frame with 10 rows")
+                      "Row -20 is invalid for a frame with 10 rows")
     assert_valueerror(dt0, 10**18,
-                      "Row `1000000000000000000` is invalid for a frame "
+                      "Row 1000000000000000000 is invalid for a frame "
                       "with 10 rows")
 
 
 def test_rows_integer_empty_dt():
     df = dt.Frame()
-    assert_valueerror(df, 0, "Row `0` is invalid for a frame with 0 rows")
-    assert_valueerror(df, -1, "Row `-1` is invalid for a frame with 0 rows")
+    assert_valueerror(df, 0, "Row 0 is invalid for a frame with 0 rows")
+    assert_valueerror(df, -1, "Row -1 is invalid for a frame with 0 rows")
 
 
 
@@ -418,18 +418,18 @@ def test_rows_bool_column(dt0):
 def test_rows_bool_column_error(dt0):
     assert_valueerror(
         dt0, dt.Frame(list(bool(i % 2) for i in range(20))),
-        "`i` selector has 20 rows, but applied to a Frame with 10 rows")
+        "i selector has 20 rows, but applied to a Frame with 10 rows")
 
 
 def test_rows_bad_column(dt0):
     assert_valueerror(
         dt0, dt0,
-        "Only a single-column Frame may be used as `i` selector, instead got "
+        "Only a single-column Frame may be used as i selector, instead got "
         "a Frame with 3 columns")
     assert_typeerror(
         dt0, dt.Frame([0.3, 1, 1.5]),
-        "A Frame which is used as an `i` selector should be either boolean or "
-        "integer, instead got `float64`")
+        "A Frame which is used as an i selector should be either boolean or "
+        "integer, instead got float64")
 
 
 
@@ -468,7 +468,7 @@ def test_rows_int_column_negative(dt0):
     col = dt.Frame([3, 7, -3, 4])
     assert_valueerror(
         dt0, col,
-        "An integer column used as an `i` selector contains an invalid negative "
+        "An integer column used as an i selector contains an invalid negative "
         "index: -3")
 
 
@@ -476,7 +476,7 @@ def test_rows_int_column_large(dt0):
     col = dt.Frame([3, 7, 93, 4])
     assert_valueerror(
         dt0, col,
-        "An integer column used as an `i` selector contains index 93 which is "
+        "An integer column used as an i selector contains index 93 which is "
         "not valid for a Frame with 10 rows")
 
 
@@ -516,7 +516,7 @@ def test_rows_numpy_array_big(numpy):
     idx = numpy.arange(900, 1200, 5)
     assert_valueerror(
         DT, idx,
-        "An integer column used as an `i` selector contains index 1195 "
+        "An integer column used as an i selector contains index 1195 "
         "which is not valid for a Frame with 1000 rows")
 
 
@@ -537,7 +537,7 @@ def test_rows_int_numpy_array_shapes(dt0, numpy):
 def test_rows_int_numpy_array_errors1(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([[1, 2], [2, 1], [3, 3]]),
-        "Only a single-column Frame may be used as `i` selector, "
+        "Only a single-column Frame may be used as i selector, "
         "instead got a Frame with 2 columns")
 
 
@@ -550,7 +550,7 @@ def test_rows_int_numpy_array_errors2(dt0, numpy):
 def test_rows_int_numpy_array_errors3(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([5, 11, 3]),
-        "An integer column used as an `i` selector contains index 11 which is "
+        "An integer column used as an i selector contains index 11 which is "
         "not valid for a Frame with 10 rows")
 
 
@@ -568,15 +568,15 @@ def test_rows_bool_numpy_array(dt0, numpy):
 def test_rows_bool_numpy_array_error(dt0, numpy):
     assert_valueerror(
         dt0, numpy.array([True, False, False]),
-        "A boolean column used as `i` selector has 3 rows, but applied to "
+        "A boolean column used as i selector has 3 rows, but applied to "
         "a Frame with 10 rows")
 
 
 def test_rows_bool_numpy_array_error2(dt0, numpy):
     assert_typeerror(
         dt0, numpy.array([1.7, 3.4, 0.5] + [0.0] * 7),
-        "A Frame which is used as an `i` selector should be either boolean "
-        "or integer, instead got `float64`")
+        "A Frame which is used as an i selector should be either boolean "
+        "or integer, instead got float64")
 
 
 

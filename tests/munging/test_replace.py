@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -430,7 +430,7 @@ def test_replace_bad2():
     with pytest.raises(ValueError) as e:
         df0 = dt.Frame(A=range(10))
         df0.replace([0, 5, 7], [2, 6])
-    assert ("The `replace_what` and `replace_with` lists in Frame.replace() "
+    assert ("The replace_what and replace_with lists in Frame.replace() "
             "have different lengths: 3 and 2 respectively" == str(e.value))
 
 
@@ -438,7 +438,7 @@ def test_replace_bad3():
     with pytest.raises(TypeError) as e:
         df0 = dt.Frame(A=range(10))
         df0.replace({0: inf})
-    assert ("Cannot replace integer value `0` with a value of type "
+    assert ("Cannot replace integer value 0 with a value of type "
             "<class 'float'>" == str(e.value))
 
 
@@ -446,7 +446,7 @@ def test_replace_bad4():
     with pytest.raises(TypeError) as e:
         df0 = dt.Frame(B=[0.1] * 10)
         df0.replace({inf: 0})
-    assert ("Cannot replace float value `inf` with a value of type "
+    assert ("Cannot replace float value inf with a value of type "
             "<class 'int'>" == str(e.value))
 
 
@@ -454,7 +454,7 @@ def test_replace_bad5():
     with pytest.raises(TypeError) as e:
         df0 = dt.Frame([True, False])
         df0.replace({False: 0})
-    assert ("Cannot replace boolean value `False` with a value of type "
+    assert ("Cannot replace boolean value False with a value of type "
             "<class 'int'>" == str(e.value))
 
 
@@ -462,7 +462,7 @@ def test_replace_nonunique():
     with pytest.raises(ValueError) as e:
         df0 = dt.Frame(A=range(10))
         df0.replace([0, 9, 11, 0], -1)
-    assert ("Replacement target `0` was specified more than once in "
+    assert ("Replacement target 0 was specified more than once in "
             "Frame.replace()" == str(e.value))
 
 
@@ -470,7 +470,7 @@ def test_issue1525_1():
     with pytest.raises(TypeError) as e:
         df0 = dt.Frame(["foo"])
         df0.replace()
-    assert ("Missing the required argument `replace_what` in method "
+    assert ("Missing the required argument replace_what in method "
             "Frame.replace()" == str(e.value))
 
 
@@ -478,5 +478,5 @@ def test_issue1525_2():
     with pytest.raises(TypeError) as e:
         df0 = dt.Frame(["foo"])
         df0.replace("foo")
-    assert ("Missing the required argument `replace_with` in method "
+    assert ("Missing the required argument replace_with in method "
             "Frame.replace()" == str(e.value))

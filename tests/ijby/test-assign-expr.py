@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -80,7 +80,7 @@ def test_assign_nonexisting_column():
     # See #1983: if column `B` is created at a wrong moment in the evaluation
     # sequence, this may seg.fault
     DT = dt.Frame(A=range(5))
-    with pytest.raises(KeyError, match="Column `B` does not exist in the "
+    with pytest.raises(KeyError, match="Column B does not exist in the "
                                        "Frame"):
         DT[:, "B"] = f.B + 1
     frame_integrity_check(DT)
@@ -101,7 +101,7 @@ def test_assign_expr_partial():
 def test_assign_expr_partial_with_type_change():
     DT = dt.Frame(A=range(5))
     with pytest.raises(TypeError, match="Cannot assign float value to "
-                                        "column `A` of type int32"):
+                                        "column A of type int32"):
         DT[f.A > 3, f.A] = 1 / f.A
 
 

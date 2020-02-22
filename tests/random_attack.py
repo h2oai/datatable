@@ -754,7 +754,7 @@ class Frame0:
 
     def cbind(self, frames):
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", dt.DatatableWarning)
+            warnings.simplefilter("ignore", dt.exceptions.DatatableWarning)
             self.df.cbind(*[iframe.df for iframe in frames])
         newdata = copy.deepcopy(self.data)
         newnames = self.names.copy()

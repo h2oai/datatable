@@ -126,7 +126,7 @@ def test_f_int(DT):
     assert_equals(DT[:, f[-1]], DT[:, 6])
     assert_equals(DT[f[0] > 0, f[-1]], dt.Frame(G=["1", "2"]))
 
-    with pytest.raises(ValueError, match="Column index `10` is invalid for a "
+    with pytest.raises(ValueError, match="Column index 10 is invalid for a "
                                          "Frame with 7 columns"):
         assert DT[:, f[10]]
 
@@ -140,8 +140,8 @@ def test_f_str(DT):
 
     with pytest.raises(KeyError) as e:
         noop(DT[:, f["d"]])
-    assert ("Column `d` does not exist in the Frame; "
-            "did you mean `D`, `A` or `B`?" == str(e.value))
+    assert ("Column d does not exist in the Frame; "
+            "did you mean D, A or B?" == str(e.value))
 
 
 

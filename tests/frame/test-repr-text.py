@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -599,7 +599,7 @@ def test_max_width1():
     with dt.options.display.context(max_column_width=2):
         assert dt.options.display.max_column_width == 2
         with pytest.raises(ValueError, match = "The smallest allowed value for "
-                                       "`max_column_width` is 2, got: 0"):
+                                       "max_column_width is 2, got: 0"):
             dt.options.display.max_column_width = 0
 
         assert dt.options.display.max_column_width == 2

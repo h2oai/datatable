@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -426,12 +426,12 @@ def test_median_wrong_stype():
     DT = dt.Frame(A=["foo"], B=["moo"], stypes={"A": dt.str32, "B": dt.str64})
     with pytest.raises(TypeError) as e:
         noop(DT[:, median(f.A)])
-    assert ("Unable to apply reduce function `median()` to a column of "
-            "type `str32`" in str(e.value))
+    assert ("Unable to apply reduce function median() to a column of "
+            "type str32" in str(e.value))
     with pytest.raises(TypeError) as e:
         noop(DT[:, median(f.B)])
-    assert ("Unable to apply reduce function `median()` to a column of "
-            "type `str64`" in str(e.value))
+    assert ("Unable to apply reduce function median() to a column of "
+            "type str64" in str(e.value))
 
 
 

@@ -46,7 +46,7 @@ def test_colindex_f():
 
 def test_name_doesnt_exist():
     DT = dt.Frame(range(5))
-    msg = "Column `a` does not exist in the Frame"
+    msg = "Column a does not exist in the Frame"
     with pytest.raises(KeyError, match=msg):
         DT.colindex("a")
     with pytest.raises(KeyError, match=msg):
@@ -55,14 +55,14 @@ def test_name_doesnt_exist():
 
 def test_index_too_large():
     DT = dt.Frame([[3]] * 7)
-    msg = "Column index `7` is invalid for a frame with 7 columns"
+    msg = "Column index 7 is invalid for a frame with 7 columns"
     with pytest.raises(IndexError, match=msg):
         DT.colindex(7)
 
 
 def test_index_too_negative():
     DT = dt.Frame([[3]] * 7)
-    msg = "Column index `-8` is invalid for a frame with 7 columns"
+    msg = "Column index -8 is invalid for a frame with 7 columns"
     with pytest.raises(IndexError, match=msg):
         DT.colindex(-8)
 
@@ -70,7 +70,7 @@ def test_index_too_negative():
 def test_colindex_no_args():
     DT = dt.Frame()
     msg = r"Frame\.colindex\(\) is missing the required positional argument " \
-          "`column`"
+          "column"
     with pytest.raises(TypeError, match=msg):
         DT.colindex()
 
@@ -85,7 +85,7 @@ def test_colindex_too_many_args():
 
 def test_colindex_named_arg():
     DT = dt.Frame(A=[0])
-    msg = r"Frame\.colindex\(\) got argument `column` as a keyword, but it " \
+    msg = r"Frame\.colindex\(\) got argument column as a keyword, but it " \
           r"should be positional-only"
     with pytest.raises(TypeError, match=msg):
         DT.colindex(column="A")
@@ -108,25 +108,25 @@ def test_colindex_fuzzy_suggestions():
         assert str(e.value).endswith(suggestions)
 
     d0 = dt.Frame([[0]] * 3, names=["foo", "bar", "baz"])
-    check(d0, "fo", "; did you mean `foo`?")
-    check(d0, "foe", "; did you mean `foo`?")
-    check(d0, "fooo", "; did you mean `foo`?")
-    check(d0, "ba", "; did you mean `bar` or `baz`?")
-    check(d0, "barb", "; did you mean `bar` or `baz`?")
-    check(d0, "bazb", "; did you mean `baz` or `bar`?")
+    check(d0, "fo", "; did you mean foo?")
+    check(d0, "foe", "; did you mean foo?")
+    check(d0, "fooo", "; did you mean foo?")
+    check(d0, "ba", "; did you mean bar or baz?")
+    check(d0, "barb", "; did you mean bar or baz?")
+    check(d0, "bazb", "; did you mean baz or bar?")
     check(d0, "ababa", "Frame")
     d1 = dt.Frame([[0]] * 50)
     check(d1, "A", "Frame")
-    check(d1, "C", "; did you mean `C0`, `C1` or `C2`?")
-    check(d1, "c1", "; did you mean `C1`, `C0` or `C2`?")
-    check(d1, "C 1", "; did you mean `C1`, `C11` or `C21`?")
-    check(d1, f.V0, "; did you mean `C0`?")
+    check(d1, "C", "; did you mean C0, C1 or C2?")
+    check(d1, "c1", "; did you mean C1, C0 or C2?")
+    check(d1, "C 1", "; did you mean C1, C11 or C21?")
+    check(d1, f.V0, "; did you mean C0?")
     check(d1, "Va", "Frame")
     d2 = dt.Frame(varname=[1])
-    check(d2, "vraname", "; did you mean `varname`?")
-    check(d2, "VRANAME", "; did you mean `varname`?")
-    check(d2, "var_name", "; did you mean `varname`?")
-    check(d2, "variable", "; did you mean `varname`?")
+    check(d2, "vraname", "; did you mean varname?")
+    check(d2, "VRANAME", "; did you mean varname?")
+    check(d2, "var_name", "; did you mean varname?")
+    check(d2, "variable", "; did you mean varname?")
 
 
 
@@ -136,7 +136,7 @@ def test_colindex_after_column_deleted():
     del DT["B"]
     assert DT.colindex("D") == 2
     del DT["D"]
-    msg = "Column `D` does not exist in the Frame"
+    msg = "Column D does not exist in the Frame"
     with pytest.raises(KeyError, match=msg):
         DT.colindex("D")
 
@@ -151,7 +151,7 @@ def test_keyerror():
         obj = pickle.dumps(e)
     ee = pickle.loads(obj)
     assert isinstance(ee, KeyError)
-    assert str(ee) == "Column `A` does not exist in the Frame"
+    assert str(ee) == "Column A does not exist in the Frame"
     # Check that there are no extra quotes
     assert traceback.format_exception_only(type(ee), ee) == \
-           ["KeyError: Column `A` does not exist in the Frame\n"]
+        ["datatable.exceptions.KeyError: Column A does not exist in the Frame\n"]

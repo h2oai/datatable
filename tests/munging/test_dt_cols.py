@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -60,7 +60,7 @@ def dt1():
 def assert_valueerror(frame, cols, error_message):
     with pytest.raises(ValueError) as e:
         assert frame[:, cols]
-    assert str(e.type) == "<class 'datatable.ValueError'>"
+    assert str(e.type) == "<class 'datatable.exceptions.ValueError'>"
     assert error_message in str(e.value)
 
 def assert_keyerror(frame, cols, error_message):
@@ -71,7 +71,7 @@ def assert_keyerror(frame, cols, error_message):
 def assert_typeerror(frame, cols, error_message):
     with pytest.raises(TypeError) as e:
         noop(frame[:, cols])
-    assert str(e.type) == "<class 'datatable.TypeError'>"
+    assert str(e.type) == "<class 'datatable.exceptions.TypeError'>"
     assert error_message in str(e.value)
 
 
@@ -129,10 +129,10 @@ def test_j_integer(dt0, tbl0):
 def test_j_integer_wrong(dt0):
     assert_valueerror(
         dt0, 4,
-        "Column index `4` is invalid for a Frame with 4 columns")
+        "Column index 4 is invalid for a Frame with 4 columns")
     assert_valueerror(
         dt0, -5,
-        "Column index `-5` is invalid for a Frame with 4 columns")
+        "Column index -5 is invalid for a Frame with 4 columns")
     assert_typeerror(
         dt0, 10**30,
         "A floating-point value cannot be used as a column selector")
@@ -155,7 +155,7 @@ def test_j_string(dt0, tbl0):
 def test_j_string_error(dt0):
     assert_keyerror(
         dt0, "Z",
-        "Column `Z` does not exist in the Frame; did you mean `A`, `B` or `C`?")
+        "Column Z does not exist in the Frame; did you mean A, B or C?")
 
 
 def test_j_bytes_error(dt0):
@@ -222,7 +222,7 @@ def test_j_strslice1(dt0, tbl0):
 def test_j_slice_error1(dt0):
     assert_keyerror(
         dt0, slice("a", "D"),
-        "Column `a` does not exist in the Frame; did you mean `A`")
+        "Column a does not exist in the Frame; did you mean A")
 
 
 @pytest.mark.parametrize("s", [slice("A", "D", 2), slice("A", 3),
@@ -391,7 +391,7 @@ def test_j_list_bools(dt0, tbl0):
 def test_j_list_bools_error1(dt0):
     assert_valueerror(
         dt0, [True] * 5,
-        "The length of boolean list in `j` selector does not match the number "
+        "The length of boolean list in j selector does not match the number "
         "of columns in the Frame")
 
 

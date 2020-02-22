@@ -9,7 +9,6 @@ import re
 
 import pytest
 import datatable as dt
-from datatable.utils.typechecks import TValueError
 
 
 #-------------------------------------------------------------------------------
@@ -225,15 +224,15 @@ def test_stype_instantiate_from_numpy(numpy):
 
 def test_stype_instantiate_bad():
     from datatable import stype
-    with pytest.raises(TValueError):
+    with pytest.raises(dt.exceptions.ValueError):
         print(stype(-1))
-    with pytest.raises(TValueError):
+    with pytest.raises(dt.exceptions.ValueError):
         print(stype(0))
-    with pytest.raises(TValueError):
+    with pytest.raises(dt.exceptions.ValueError):
         print(stype(["i", "4"]))
-    with pytest.raises(TValueError):
+    with pytest.raises(dt.exceptions.ValueError):
         print(stype(1.5))
-    with pytest.raises(TValueError):
+    with pytest.raises(dt.exceptions.ValueError):
         print(stype(True))
 
 

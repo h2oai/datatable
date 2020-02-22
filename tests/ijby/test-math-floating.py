@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -81,7 +81,7 @@ def test_abs_all_stypes():
 
 
 def test_abs_wrong_type():
-    msg = "Function `abs` cannot be applied to a column of type `str32`"
+    msg = "Function abs cannot be applied to a column of type str32"
     with pytest.raises(TypeError, match=msg):
         DT = dt.Frame(['foo'])
         assert DT[:, dt.math.abs(f.C0)]
@@ -117,7 +117,7 @@ def test_ceil_srcs(src):
 
 
 def test_ceil_wrong_type():
-    msg = "Function `ceil` cannot be applied to a column of type `str32`"
+    msg = "Function ceil cannot be applied to a column of type str32"
     with pytest.raises(TypeError, match=msg):
         DT = dt.Frame(['foo'])
         assert DT[:, dt.math.ceil(f.C0)]
@@ -150,12 +150,12 @@ def test_copysign_constant():
 
 
 def test_copysign_wrong_signature():
-    msg1 = r"Function `copysign\(\)` takes 2 positional arguments"
+    msg1 = r"Function copysign\(\) takes 2 positional arguments"
     with pytest.raises(TypeError, match=msg1):
         dt.math.copysign(f[7])
 
-    msg2 = r"Cannot apply function `copysign\(\)` to columns with types " \
-           r"`str32` and `str32`"
+    msg2 = r"Cannot apply function copysign\(\) to columns with types " \
+           r"str32 and str32"
     with pytest.raises(TypeError, match=msg2):
         dt.Frame(A=['hello'])[:, dt.math.copysign(f.A, f.A)]
 
@@ -221,7 +221,7 @@ def test_floor_srcs(src):
 
 
 def test_floor_wrong_type():
-    msg = "Function `floor` cannot be applied to a column of type `str32`"
+    msg = "Function floor cannot be applied to a column of type str32"
     with pytest.raises(TypeError, match=msg):
         DT = dt.Frame(['foo'])
         assert DT[:, dt.math.floor(f.C0)]
@@ -316,8 +316,8 @@ def test_dt_isfinite_scalar(src):
 
 
 def test_dt_isfinite_scalar_wrong_arg():
-    with pytest.raises(TypeError, match="Function `isfinite` cannot be applied "
-                                        "to a column of type `str32`"):
+    with pytest.raises(TypeError, match="Function isfinite cannot be applied "
+                                        "to a column of type str32"):
         dt.math.isfinite("hello")
 
 
@@ -445,7 +445,7 @@ def test_rint_srcs(src):
 
 
 def test_rint_wrong_type():
-    msg = "Function `rint` cannot be applied to a column of type `str32`"
+    msg = "Function rint cannot be applied to a column of type str32"
     with pytest.raises(TypeError, match=msg):
         DT = dt.Frame(['foo'])
         assert DT[:, dt.math.rint(f.C0)]
@@ -551,7 +551,7 @@ def test_trunc_srcs(src):
 
 
 def test_trunc_wrong_type():
-    msg = "Function `trunc` cannot be applied to a column of type `str32`"
+    msg = "Function trunc cannot be applied to a column of type str32"
     with pytest.raises(TypeError, match=msg):
         DT = dt.Frame(['foo'])
         assert DT[:, dt.math.trunc(f.C0)]

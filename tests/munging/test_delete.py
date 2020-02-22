@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -77,7 +77,7 @@ def test_del_1col_str_nonexistent():
     d0 = smalldt()
     with pytest.raises(KeyError) as e:
         del d0[:, "Z"]
-    assert ("Column `Z` does not exist in the Frame" in str(e.value))
+    assert ("Column Z does not exist in the Frame" in str(e.value))
 
 
 def test_del_1col_int():
@@ -191,7 +191,7 @@ def test_del_cols_computed1():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, f.A + f.B]
-    assert ("Item 0 in the `j` selector list is a computed expression and "
+    assert ("Item 0 in the j selector list is a computed expression and "
             "cannot be deleted" == str(e.value))
 
 
@@ -199,7 +199,7 @@ def test_del_cols_computed2():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, [f.A, f.B, f.A + f.B]]
-    assert ("Item 2 in the `j` selector list is a computed expression and "
+    assert ("Item 2 in the j selector list is a computed expression and "
             "cannot be deleted" == str(e.value))
 
 
@@ -207,7 +207,7 @@ def test_del_cols_dict():
     d0 = smalldt()
     with pytest.raises(TypeError) as e:
         del d0[:, {"X": f.A}]
-    assert ("When del operator is applied, `j` selector cannot be a "
+    assert ("When del operator is applied, j selector cannot be a "
             "dictionary" in str(e.value))
 
 
