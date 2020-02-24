@@ -413,8 +413,16 @@ def generate_build_info(mode=None, strict=False):
     version = get_datatable_version(mode)
     build_date = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     git_hash = shell_cmd(["git", "rev-parse", "HEAD"], strict=strict)
+    # get the date of the commit (HEAD), as a Unix timestamp
+    git_date = shell_cmd(["git", "show", "-s", "--format=%ct", "HEAD"],
+                         strict=strict)
     git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
                            strict=strict)
+    git_diff = shell_cmd(["git", "diff", "HEAD", "--stat", "--no-color"],
+                         strict=strict)
+    # Reformat the `git_date` as a UTC time string
+    git_date = time.strftime("%Y-%m-%d %H:%M:%S",
+                             time.gmtime(int(git_date)))
 
     info_file = os.path.join("src", "datatable", "_build_info.py")
     with open(info_file, "wt") as out:
@@ -455,6 +463,16 @@ def generate_build_info(mode=None, strict=False):
         out.write("    build_date='%s',\n" % build_date)
         out.write("    git_revision='%s',\n" % git_hash)
         out.write("    git_branch='%s',\n" % git_branch)
+        out.write("    git_date='%s',\n" % git_date)
+        if git_diff:
+            lines = git_diff.split('\n')
+            assert not any("'" in line for line in lines)
+            out.write("    git_diff='%s" % lines[0].strip())
+            for line in lines[1:]:
+                out.write("\\n'\n             '%s" % line.strip())
+            out.write("',\n")
+        else:
+            out.write("    git_diff='',\n")
         out.write(")\n")
 
 

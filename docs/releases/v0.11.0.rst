@@ -50,6 +50,11 @@
   -[enh] Datatable no longer lists module ``blessed`` as a dependency.
     [#1677]
 
+  -[enh] Added 2 new fields into the ``dt.build_info`` struct: ``.git_date``
+    is the UTC timestamp of the git revision from which that version of
+    datatable was built, and ``.git_diff`` which will be non-empty for builds
+    from code that was modified compared to the git revision they are based on.
+
   -[fix] Internal function :func:`frame_column_data_r` now works properly with
     virtual columns. [#2269]
 
