@@ -67,40 +67,58 @@ def _handle_dt_exception(exc_class, exc, tb):
     if not isinstance(exc, DtException):
         return _previous_except_hook(exc_class, exc, tb)
 
+    def dim(line):
+        return apply_color("dim", line)
+
     out = ""
 
     tbframes = traceback.extract_tb(tb)
     col1 = []
-    col2 = []
-    for frame in tbframes:
-        if frame.filename == "<stdin>" and frame.name == "<module>":
+    site_packages_dir = None
+    last_code_line = None
+    for i, frame in enumerate(tbframes):
+        ffile = frame.filename
+        if ffile == "<stdin>" and frame.name == "<module>":
+            col1.append(None)
             continue
-        line = frame.filename + ':' + str(frame.lineno) + ' in ' + frame.name
+        if "site-packages" in ffile:
+            if site_packages_dir is None:
+                site_packages_dir = ffile[:ffile.index("site-packages")+14]
+            if ffile.startswith(site_packages_dir):
+                ffile = "$PY/" + ffile[len(site_packages_dir):]
+        else:
+            last_code_line = i
+        line = "%s:%d in %s" % (ffile, frame.lineno, frame.name)
         col1.append(line)
-        col2.append(frame.line)
-    if col1:
-        tbout = "Traceback (most recent call last):\n"
+
+    if col1[-1]:
+        out += dim("Traceback (most recent call last):\n")
         col1len = max(len(line) for line in col1) + 2
         prev_line = None
         prev_count = 0
-        for line1, line2 in zip(col1, col2):
+        for i, line1 in enumerate(col1):
+            if not line1: continue
             if line1 == prev_line:
                 prev_count += 1
                 if prev_count >= 3:
                     continue
             else:
                 if prev_count >= 3:
-                    tbout += ("  ... [previous line repeated %d more times]\n"
-                              % (prev_count - 3))
+                    out += dim("  ... [previous line repeated %d more times]\n"
+                               % (prev_count - 3))
                 prev_count = 0
                 prev_line = line1
-            tbout += "  " + line1
-            tbout += " "*(col1len - len(line1))
-            tbout += line2 + "\n"
+            lineout = ("  " + line1 + " "*(col1len - len(line1)) +
+                       tbframes[i].line + "\n")
+            if i == last_code_line:
+                out += lineout
+            else:
+                out += dim(lineout)
         if prev_count >= 3:
-            tbout += ("  ... [previous line repeated %d more times]\n"
-                      % (prev_count - 3))
-        out += apply_color("dim", tbout)
+            out += dim("  ... [previous line repeated %d more times]\n"
+                       % (prev_count - 3))
+        if site_packages_dir:
+            out += dim("  (with $PY = %s)\n" % site_packages_dir)
         out += "\n"
 
     # Lastly, print the exception name & message
