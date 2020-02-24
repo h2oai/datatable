@@ -76,7 +76,7 @@ class BufferImpl
     bool   contains_pyobjects_;
     bool   writable_;
     bool   resizable_;
-    int : 8;
+    bool   page_multiple_;
 
   //------------------------------------
   // Constructors
@@ -89,7 +89,8 @@ class BufferImpl
         nshared_(0),
         contains_pyobjects_(false),
         writable_(true),
-        resizable_(true) {}
+        resizable_(true),
+        page_multiple_(false) {}
 
     virtual ~BufferImpl() {
       wassert(!contains_pyobjects_);
@@ -174,6 +175,10 @@ class BufferImpl
 
     bool is_pyobjects() const noexcept {
       return contains_pyobjects_;
+    }
+
+    bool is_page_multiple() const noexcept {
+      return page_multiple_;
     }
 
 
@@ -576,7 +581,18 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
           break;
         }
       }
+
+      #if DT_OS_WINDOWS
+        SYSTEM_INFO sysInfo;
+        GetSystemInfo(&sysInfo);
+        const size_t pagesize = sysInfo.dwPageSize;
+      #else
+        const size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
+      #endif
+
+      page_multiple_ = !(size_%pagesize);
       mapped_ = true;
+
       xassert(mmm_index_);
     }
 
@@ -800,13 +816,11 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
     return Buffer(new Mmap_BufferImpl(path));
   }
 
-  Buffer Buffer::mmap(const std::string& path, size_t n, int fd) {
-    return Buffer(new Mmap_BufferImpl(path, n, fd));
+  Buffer Buffer::mmap(const std::string& path, size_t n, int fd, bool create) {
+    return Buffer(new Mmap_BufferImpl(path, n, fd, create));
   }
 
-  Buffer Buffer::overmap(const std::string& path, size_t extra_n,
-                                   int fd)
-  {
+  Buffer Buffer::overmap(const std::string& path, size_t extra_n, int fd) {
     return Buffer(new Overmap_BufferImpl(path, extra_n, fd));
   }
 

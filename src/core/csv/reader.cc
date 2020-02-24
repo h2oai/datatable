@@ -576,32 +576,19 @@ void GenericReader::open_input() {
   double t0 = wallclock();
   CString text;
   const char* filename = nullptr;
-  size_t extra_byte = 0;
   if (fileno > 0) {
     const char* src = src_arg.to_cstring().ch;
-    input_mbuf = Buffer::overmap(src, /* extra = */ 1, fileno);
+    input_mbuf = Buffer::mmap(src, 0, fileno);
     size_t sz = input_mbuf.size();
-    if (sz > 0) {
-      sz--;
-      static_cast<char*>(input_mbuf.wptr())[sz] = '\0';
-      extra_byte = 1;
-    }
     trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
 
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
-    input_mbuf = Buffer::external(text.ch, size + 1);
-    extra_byte = 1;
+    input_mbuf = Buffer::external(text.ch, size);
     input_is_string = true;
-
   } else if ((filename = file_arg.to_cstring().ch)) {
-    input_mbuf = Buffer::overmap(filename, /* extra = */ 1);
+    input_mbuf = Buffer::mmap(filename);
     size_t sz = input_mbuf.size();
-    if (sz > 0) {
-      sz--;
-      static_cast<char*>(input_mbuf.xptr())[sz] = '\0';
-      extra_byte = 1;
-    }
     trace("File \"%s\" opened, size: %zu", filename, sz);
 
   } else {
@@ -609,8 +596,7 @@ void GenericReader::open_input() {
   }
   line = 1;
   sof = static_cast<char*>(input_mbuf.wptr());
-  eof = sof + input_mbuf.size() - extra_byte;
-  if (eof) xassert(*eof == '\0');
+  eof = sof + input_mbuf.size();
 
   if (verbose) {
     trace("==== file sample ====");

@@ -129,7 +129,7 @@ class Buffer
     static Buffer external(const void* ptr, size_t n, py::buffer&& pybuf);
     static Buffer view(const Buffer& src, size_t n, size_t offset);
     static Buffer mmap(const std::string& path);
-    static Buffer mmap(const std::string& path, size_t n, int fd = -1);
+    static Buffer mmap(const std::string& path, size_t n, int fd = -1, bool create = false);
     static Buffer overmap(const std::string& path, size_t nextra, int fd = -1);
 
     // Basic properties of the Buffer:
