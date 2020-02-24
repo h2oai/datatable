@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -162,7 +162,7 @@ def test_assign_downcasts(st1, st2):
 def test_assign_frame_to_subframe_wrong_ltype():
     DT = dt.Frame(A=range(5))
     with pytest.raises(TypeError, match="Cannot assign float value to column "
-                                        "`A` of type int32"):
+                                        "A of type int32"):
         DT[:2, "A"] = dt.Frame([0.5, -0.5])
     with pytest.raises(TypeError):
         DT[:2, "A"] = dt.Frame(["nope"])

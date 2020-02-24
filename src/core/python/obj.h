@@ -372,6 +372,7 @@ oobj False();
 oobj Ellipsis();
 robj rstdin();
 robj rstdout();
+robj rstderr();
 robj rnone();
 
 

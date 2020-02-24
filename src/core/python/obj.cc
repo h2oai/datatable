@@ -57,6 +57,7 @@ PyObject* Expr_Type = nullptr;
 #define _Py_static_string_init(value) { NULL, value, NULL }
 _Py_IDENTIFIER(stdin);
 _Py_IDENTIFIER(stdout);
+_Py_IDENTIFIER(stderr);
 _Py_IDENTIFIER(write);
 
 
@@ -1078,6 +1079,16 @@ robj rstdout() {
       _PySys_GetObjectId(&PyId_stdout)  // borrowed ref
     #else
       PySys_GetObject("stdout")         // borrowed ref
+    #endif
+  );
+}
+
+robj rstderr() {
+  return robj(
+    #ifndef Py_LIMITED_API
+      _PySys_GetObjectId(&PyId_stderr)  // borrowed ref
+    #else
+      PySys_GetObject("stderr")         // borrowed ref
     #endif
   );
 }

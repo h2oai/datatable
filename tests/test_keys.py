@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -129,7 +129,7 @@ def test_key_duplicate():
     dt0 = dt.Frame(A=range(5))
     with pytest.raises(ValueError) as e:
         dt0.key = ("A", "A")
-    assert ("Column `A` is specified multiple times within the key" ==
+    assert ("Column A is specified multiple times within the key" ==
             str(e.value))
 
 

@@ -47,8 +47,8 @@
     signal when an operation is requested that would be illegal for the given
     combination of parameters.
 
-  -[enh] Datatable no longer lists module ``blessed`` as a dependency.
-    [#1677]
+  -[enh] Datatable no longer has modules ``blessed`` and ``typesentry`` as
+    dependencies. [#1677] [#1535]
 
   -[enh] Added 2 new fields into the ``dt.build_info`` struct: ``.git_date``
     is the UTC timestamp of the git revision from which that version of
@@ -63,6 +63,17 @@
     [#2272]
 
   -[fix] Fix rare crash in the interrupt signal handler. [#2282]
+
+  -[api] All exceptions thrown by datatable are now declared in the
+    ``datatable.exceptions`` module. These exceptions are now organized to
+    derive from the common base class ``DtException``.
+
+    The exception messages when stringified no longer contain backticks. The
+    backticks are still emitted internally to help display the error in a
+    color-supporting terminal, but when the exception is converted into a
+    string via `str()` or `repr()`, these backticks will now be stripped.
+    This change ensures that the exception message remains the same regardless
+    of how it is rendered.
 
 
   FTRL model

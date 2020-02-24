@@ -16,7 +16,6 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import re
-from datatable.utils.typechecks import TValueError
 
 
 
@@ -24,8 +23,9 @@ def read_xls_workbook(filename, subpath):
     try:
         import xlrd
     except ImportError:
-        raise TValueError("Module `xlrd` is required in order to read "
-                          "Excel file '%s'" % filename)
+        raise dt.exceptions.ImportError(
+            "Module `xlrd` is required in order to read Excel file '%s'"
+            % filename)
 
     if subpath:
         wb = xlrd.open_workbook(filename, on_demand=True, ragged_rows=True)
@@ -37,8 +37,8 @@ def read_xls_workbook(filename, subpath):
                 sheetname, xlsrange = subpath.rsplit('/', 1)
                 range2d = _excel_coords_to_range2d(xlsrange)
             if not(sheetname in wb.sheet_names() and range2d is not None):
-                raise TValueError("Sheet `%s` is not found in the XLS file"
-                                  % subpath)
+                raise ValueError("Sheet `%s` is not found in the XLS file"
+                                 % subpath)
         ws = wb.sheet_by_name(sheetname)
         result = read_xls_worksheet(ws, wb.datemode, range2d)
     else:

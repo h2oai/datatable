@@ -47,8 +47,6 @@ def test_common_symbols():
     assert join
     assert by
     assert dt.open != open
-    assert dt.TypeError != TypeError
-    assert dt.ValueError != ValueError
 
 
 def test_reducers():

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -26,8 +26,9 @@ import pytest
 import types
 import datatable as dt
 from tests import assert_equals
-from datatable import stype, DatatableWarning
+from datatable import stype
 from datatable.internal import frame_integrity_check
+from datatable.exceptions import DatatableWarning
 
 
 #-------------------------------------------------------------------------------
@@ -77,31 +78,31 @@ def test_rbind_columns_mismatch():
         dt0.rbind(dt1)
     assert "Cannot rbind frame with 2 columns to a frame " \
            "with 1 column" in str(e.value)
-    assert "`force=True`" in str(e.value)
+    assert "force=True" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt1, bynames=False)
     assert "Cannot rbind frame with 2 columns to a frame " \
            "with 1 column" in str(e.value)
-    assert "`force=True`" in str(e.value)
+    assert "force=True" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt1.rbind(dt0)
     assert "Cannot rbind frame with 1 column to a frame " \
            "with 2 columns" in str(e.value)
-    assert "`force=True`" in str(e.value)
+    assert "force=True" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt0.rbind(dt2)
-    assert "Column `C` is not found in the original frame" in str(e.value)
-    assert "`force=True`" in str(e.value)
+    assert "Column C is not found in the original frame" in str(e.value)
+    assert "force=True" in str(e.value)
 
 
 def test_rbind_error1():
     dt0 = dt.Frame(range(5))
     with pytest.raises(TypeError) as e:
         dt0.rbind(123)
-    assert ("`Frame.rbind()` expects a list or sequence of Frames as an "
+    assert ("Frame.rbind() expects a list or sequence of Frames as an "
             "argument; instead item 0 was a <class 'int'>" == str(e.value))
 
 
@@ -109,7 +110,7 @@ def test_rbind_error2():
     dt0 = dt.Frame(range(5))
     with pytest.raises(TypeError) as e:
         dt0.rbind(dt.Frame(range(1)), [dt.Frame(range(4)), 123])
-    assert ("`Frame.rbind()` expects a list or sequence of Frames as an "
+    assert ("Frame.rbind() expects a list or sequence of Frames as an "
             "argument; instead item 2 was a <class 'int'>" == str(e.value))
 
 

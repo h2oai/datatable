@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -142,7 +142,7 @@ def test_cast_other_to_numeric(source_stype, target_stype):
     assert DT.stypes == (source_stype,)
     with pytest.raises(NotImplementedError) as e:
         noop(DT[:, target_stype(f.W)])
-    assert ("Unable to cast `%s` into `%s`"
+    assert ("Unable to cast %s into %s"
             % (source_stype.name, target_stype.name) in str(e.value))
 
 

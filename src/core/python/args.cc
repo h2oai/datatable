@@ -150,11 +150,11 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
         n_varkwds++;
         if (has_varkwds) continue;
         throw TypeError() << get_long_name() << " got an unexpected keyword "
-          "argument `" << PyUnicode_AsUTF8(key) << '`';
+          "argument `" << PyUnicode_AsUTF8(key) << "`";
       }
       if (ikey < n_bound_args) {
         throw TypeError() << get_long_name() << " got multiple values for "
-          "argument `" << PyUnicode_AsUTF8(key) << '`';
+          "argument `" << PyUnicode_AsUTF8(key) << "`";
       }
       if (ikey < n_posonly_args) {
         throw TypeError() << get_long_name() << " got argument `"

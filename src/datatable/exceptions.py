@@ -20,33 +20,134 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import builtins
+import os
+import re
+import sys
+import traceback
+import warnings
+from .lib._datatable import apply_color
 
 
 
-class unrepr_str(str):
-    """
-    This is a helper class for KeyError, to be used like this:
+class DtException(Exception):
+    def __init__(self, message):
+        assert isinstance(message, str)
+        self.msg = message
 
-        >>> raise KeyError(_str("column A not found"))
-        Traceback (most recent call last):
-          File "<stdin>", line 1, in <module>
-        KeyError: column A not found
-
-    The reason this helper class is needed at all is because by
-    default Python will try to repr the message of the exception:
-
-        >>> raise KeyError("column A not found")
-        Traceback (most recent call last):
-          File "<stdin>", line 1, in <module>
-        KeyError: 'column A not found'
-
-    This was a deliberate (although arguably bad) choice in the early
-    days of Python. With this class we attempt to mitigate this design
-    choice by providing a "fake" repr function that returns the
-    wrapped string.
-    """
-    def __init__(self, msg):
-        self.msg = msg
+    def __str__(self):
+        return self.msg.replace('`', '')
 
     def __repr__(self):
-        return self.msg
+        return self.__class__.__name__ + '(' + repr(str(self)) + ')'
+
+
+class ImportError(DtException, builtins.ImportError): pass
+class IndexError(DtException, builtins.IndexError): pass
+class InvalidOperationError(DtException): pass
+class IOError(DtException, builtins.IOError): pass
+class KeyError(DtException, builtins.KeyError): pass
+class MemoryError(DtException, builtins.MemoryError): pass
+class NotImplementedError(DtException, builtins.NotImplementedError): pass
+class OverflowError(DtException, builtins.OverflowError): pass
+class TypeError(DtException, builtins.TypeError): pass
+class ValueError(DtException, builtins.ValueError): pass
+
+
+class DatatableWarning(DtException, UserWarning): pass
+class FreadWarning(DatatableWarning): pass
+
+
+
+#-------------------------------------------------------------------------------
+# Custom exception handling
+#-------------------------------------------------------------------------------
+
+def _handle_dt_exception(exc_class, exc, tb):
+    if not isinstance(exc, DtException):
+        return _previous_except_hook(exc_class, exc, tb)
+
+    def dim(line):
+        return apply_color("dim", line)
+
+    out = ""
+
+    tbframes = traceback.extract_tb(tb)
+    col1 = []
+    site_packages_dir = None
+    last_code_line = None
+    for i, frame in enumerate(tbframes):
+        ffile = frame.filename
+        if ffile == "<stdin>" and frame.name == "<module>":
+            col1.append(None)
+            continue
+        if "site-packages" in ffile:
+            if site_packages_dir is None:
+                site_packages_dir = ffile[:ffile.index("site-packages")+14]
+            if ffile.startswith(site_packages_dir):
+                ffile = "$PY/" + ffile[len(site_packages_dir):]
+        else:
+            last_code_line = i
+        line = "%s:%d in %s" % (ffile, frame.lineno, frame.name)
+        col1.append(line)
+
+    if col1[-1]:
+        out += dim("Traceback (most recent call last):\n")
+        col1len = max(len(line) for line in col1) + 2
+        prev_line = None
+        prev_count = 0
+        for i, line1 in enumerate(col1):
+            if not line1: continue
+            if line1 == prev_line:
+                prev_count += 1
+                if prev_count >= 3:
+                    continue
+            else:
+                if prev_count >= 3:
+                    out += dim("  ... [previous line repeated %d more times]\n"
+                               % (prev_count - 3))
+                prev_count = 0
+                prev_line = line1
+            lineout = ("  " + line1 + " "*(col1len - len(line1)) +
+                       tbframes[i].line + "\n")
+            if i == last_code_line:
+                out += lineout
+            else:
+                out += dim(lineout)
+        if prev_count >= 3:
+            out += dim("  ... [previous line repeated %d more times]\n"
+                       % (prev_count - 3))
+        if site_packages_dir:
+            out += dim("  (with $PY = %s)\n" % site_packages_dir)
+        out += "\n"
+
+    # Lastly, print the exception name & message
+    # Also, make sure that any component surrounded with backticks (`like
+    # this`) is emphasized
+    out += apply_color("red", exc_class.__name__ + ": ")
+    for i, part in enumerate(re.split(r"`(.*?)`", exc.msg)):
+        out += apply_color("bold" if i % 2 else "bright_red", part)
+    print(out, file=sys.stderr)
+
+
+_previous_except_hook = sys.excepthook
+sys.excepthook = _handle_dt_exception
+
+
+
+#-------------------------------------------------------------------------------
+# Custom warning handling
+#-------------------------------------------------------------------------------
+
+def _handle_dt_warning(message, category, filename, lineno, file=None,
+                       line=None):
+    if not isinstance(category, DatatableWarning):
+        return _previous_warnings_hook(message, category, filename, lineno,
+                                       file, line)
+    print(apply_color("yellow", category.__class__.__name__ + ": ") +
+          apply_color("grey", message),
+          file=sys.stderr)
+
+
+_previous_warnings_hook = warnings.showwarning
+warnings.showwarning = _handle_dt_warning

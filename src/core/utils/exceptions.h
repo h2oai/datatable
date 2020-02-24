@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_EXCEPTIONS_h
 #define dt_UTILS_EXCEPTIONS_h
@@ -30,10 +44,13 @@ class Error : public std::exception
 {
   protected:
     std::ostringstream error;
-    PyObject* pycls;  // This pointer acts as an enum...
+    // Owned reference; however do not use a py::oobj here in order
+    // to avoid circular dependencies
+    PyObject* pycls;
 
 public:
   Error(PyObject* cls = PyExc_Exception);
+  Error(py::oobj cls);
   Error(const Error& other);
   Error(Error&& other);
   Error& operator=(Error&& other);
@@ -112,11 +129,6 @@ Error RuntimeError();
 Error TypeError();
 Error ValueError();
 
-void replace_typeError(PyObject* obj);
-void replace_valueError(PyObject* obj);
-void replace_dtWarning(PyObject* obj);
-void replace_invalidOpError(PyObject* obj);
-void init_exceptions();
 
 
 //------------------------------------------------------------------------------
@@ -124,6 +136,7 @@ void init_exceptions();
 class Warning : public Error {
   public:
     Warning(PyObject* cls);
+    Warning(py::oobj cls);
     Warning(const Warning&) = default;
 
     void emit();

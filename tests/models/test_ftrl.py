@@ -31,9 +31,10 @@ import collections
 import random
 import math
 import datatable as dt
+from datatable import f, stype
 from datatable.models import Ftrl
 from datatable.internal import frame_integrity_check
-from datatable import f, stype, DatatableWarning
+from datatable.exceptions import DatatableWarning
 from tests import assert_equals, noop
 
 
@@ -67,70 +68,70 @@ epsilon = 0.01
 def test_ftrl_construct_wrong_alpha_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(alpha = "1.0"))
-    assert ("Argument `alpha` in Ftrl() constructor should be a float, instead "
+    assert ("Argument alpha in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_beta_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(beta = "1.0"))
-    assert ("Argument `beta` in Ftrl() constructor should be a float, instead "
+    assert ("Argument beta in Ftrl() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda1_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(lambda1 = "1.0"))
-    assert ("Argument `lambda1` in Ftrl() constructor should be a float, "
+    assert ("Argument lambda1 in Ftrl() constructor should be a float, "
             "instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda2_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(lambda2 = "1.0"))
-    assert ("Argument `lambda2` in Ftrl() constructor should be a float, "
+    assert ("Argument lambda2 in Ftrl() constructor should be a float, "
             "instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_nbins_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(nbins = 1000000.0))
-    assert ("Argument `nbins` in Ftrl() constructor should be an integer, "
+    assert ("Argument nbins in Ftrl() constructor should be an integer, "
             "instead got <class 'float'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_mantissa_nbits_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(mantissa_nbits = 20.0))
-    assert ("Argument `mantissa_nbits` in Ftrl() constructor should be an integer, "
+    assert ("Argument mantissa_nbits in Ftrl() constructor should be an integer, "
             "instead got <class 'float'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_nepochs_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(nepochs = "10.0"))
-    assert ("Argument `nepochs` in Ftrl() constructor should be a float, "
+    assert ("Argument nepochs in Ftrl() constructor should be a float, "
             "instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_double_precision_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(double_precision = 2))
-    assert ("Argument `double_precision` in Ftrl() constructor should be a boolean, "
+    assert ("Argument double_precision in Ftrl() constructor should be a boolean, "
             "instead got <class 'int'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_interactions_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(interactions = "C0"))
-    assert ("Argument `interactions` in Ftrl() constructor should be a list or a tuple, "
+    assert ("Argument interactions in Ftrl() constructor should be a list or a tuple, "
             "instead got: <class 'str'>" == str(e.value))
 
 
 def test_ftrl_construct_wrong_interaction_type():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(interactions = ["C0"]))
-    assert ("Argument `interactions` in Ftrl() constructor should be a list or a tuple "
+    assert ("Argument interactions in Ftrl() constructor should be a list or a tuple "
             "of lists or tuples, instead encountered: 'C0'" == str(e.value))
 
 
@@ -138,7 +139,7 @@ def test_ftrl_construct_wrong_interactions_from_itertools():
     import itertools
     with pytest.raises(TypeError) as e:
         noop(Ftrl(interactions = itertools.combinations(["C0", "C1"], 2)))
-    assert ("Argument `interactions` in Ftrl() constructor should be a list or a tuple, "
+    assert ("Argument interactions in Ftrl() constructor should be a list or a tuple, "
             "instead got: <class 'itertools.combinations'>"
             == str(e.value))
 
@@ -146,10 +147,10 @@ def test_ftrl_construct_wrong_interactions_from_itertools():
 def test_ftrl_construct_wrong_combination():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
-    assert ("You can either pass all the parameters with `params` or any of "
-            "the individual parameters with `alpha`, `beta`, `lambda1`, "
-            "`lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, `double_precision`, "
-            "`negative_class`, `interactions` or `model_type` to Ftrl constructor, "
+    assert ("You can either pass all the parameters with params or any of "
+            "the individual parameters with alpha, beta, lambda1, "
+            "lambda2, nbins, mantissa_nbits, nepochs, double_precision, "
+            "negative_class, interactions or model_type to Ftrl constructor, "
             "but not both at the same time"
             == str(e.value))
 
@@ -157,7 +158,7 @@ def test_ftrl_construct_wrong_combination():
 def test_ftrl_construct_unknown_arg():
     with pytest.raises(TypeError) as e:
         noop(Ftrl(c = 1.0))
-    assert ("Ftrl() constructor got an unexpected keyword argument `c`" ==
+    assert ("Ftrl() constructor got an unexpected keyword argument c" ==
             str(e.value))
 
 
@@ -165,7 +166,8 @@ def test_ftrl_construct_wrong_params_type():
     params = tparams._replace(alpha = "1.0")
     with pytest.raises(TypeError) as e:
         Ftrl(params)
-    assert ("`FtrlParams.alpha` should be a float, instead got <class 'str'>" == str(e.value))
+    assert ("FtrlParams.alpha should be a float, instead got <class 'str'>"
+            == str(e.value))
 
 
 def test_ftrl_construct_wrong_params_name():
@@ -184,41 +186,41 @@ def test_ftrl_construct_wrong_params_name():
 def test_ftrl_construct_wrong_alpha_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(alpha = 0.0))
-    assert ("Argument `alpha` in Ftrl() constructor should be positive: 0.0"
+    assert ("Argument alpha in Ftrl() constructor should be positive: 0.0"
             == str(e.value))
 
 
 def test_ftrl_construct_wrong_beta_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(beta = -1.0))
-    assert ("Argument `beta` in Ftrl() constructor should be greater than "
+    assert ("Argument beta in Ftrl() constructor should be greater than "
             "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda1_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(lambda1 = -1.0))
-    assert ("Argument `lambda1` in Ftrl() constructor should be greater than "
+    assert ("Argument lambda1 in Ftrl() constructor should be greater than "
             "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_lambda2_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(lambda2 = -1.0))
-    assert ("Argument `lambda2` in Ftrl() constructor should be greater than "
+    assert ("Argument lambda2 in Ftrl() constructor should be greater than "
             "or equal to zero: -1.0" == str(e.value))
 
 
 def test_ftrl_construct_wrong_nbins_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(nbins = 0))
-    assert ("Argument `nbins` in Ftrl() constructor should be positive: 0"
+    assert ("Argument nbins in Ftrl() constructor should be positive: 0"
             == str(e.value))
 
 
 @pytest.mark.parametrize('value, message',
-                         [[-1, "Argument `mantissa_nbits` in Ftrl() constructor cannot be negative: -1"],
-                         [53, "Argument `mantissa_nbits` in Ftrl() constructor should be less than or equal to 52, got: 53"]])
+                         [[-1, "Argument mantissa_nbits in Ftrl() constructor cannot be negative: -1"],
+                         [53, "Argument mantissa_nbits in Ftrl() constructor should be less than or equal to 52, got: 53"]])
 def test_ftrl_construct_wrong_mantissa_nbits_value(value, message):
     with pytest.raises(ValueError) as e:
         noop(Ftrl(mantissa_nbits = value))
@@ -228,7 +230,7 @@ def test_ftrl_construct_wrong_mantissa_nbits_value(value, message):
 def test_ftrl_construct_wrong_nepochs_value():
     with pytest.raises(ValueError) as e:
         noop(Ftrl(nepochs = -1))
-    assert ("Argument `nepochs` in Ftrl() constructor should be greater than or equal to zero: -1"
+    assert ("Argument nepochs in Ftrl() constructor should be greater than or equal to zero: -1"
             == str(e.value))
 
 
@@ -328,56 +330,56 @@ def test_ftrl_set_wrong_alpha_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.alpha = "0.0"
-    assert ("`.alpha` should be a float, instead got <class 'str'>" == str(e.value))
+    assert (".alpha should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_beta_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.beta = "-1.0"
-    assert ("`.beta` should be a float, instead got <class 'str'>" == str(e.value))
+    assert (".beta should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda1_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.lambda1 = "-1.0"
-    assert ("`.lambda1` should be a float, instead got <class 'str'>" == str(e.value))
+    assert (".lambda1 should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_lambda2_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.lambda2 = "-1.0"
-    assert ("`.lambda2` should be a float, instead got <class 'str'>" == str(e.value))
+    assert (".lambda2 should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_nbins_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.nbins = "0"
-    assert ("`.nbins` should be an integer, instead got <class 'str'>" == str(e.value))
+    assert (".nbins should be an integer, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_mantissa_nbits_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.mantissa_nbits = "0"
-    assert ("`.mantissa_nbits` should be an integer, instead got <class 'str'>" == str(e.value))
+    assert (".mantissa_nbits should be an integer, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_nepochs_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.nepochs = "-10.0"
-    assert ("`.nepochs` should be a float, instead got <class 'str'>" == str(e.value))
+    assert (".nepochs should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_ftrl_set_wrong_interactions_type():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.interactions = True
-    assert ("`.interactions` should be a list or a tuple, instead got: <class 'bool'>"
+    assert (".interactions should be a list or a tuple, instead got: <class 'bool'>"
             == str(e.value))
 
 
@@ -392,7 +394,7 @@ def test_ftrl_set_wrong_interactions_not_list():
     ft = Ftrl()
     with pytest.raises(TypeError) as e:
         ft.interactions = ["a", [1, 2]]
-    assert ("`.interactions` should be a list or a tuple of lists or tuples, "
+    assert (".interactions should be a list or a tuple of lists or tuples, "
            "instead encountered: 'a'" == str(e.value))
 
 
@@ -409,10 +411,10 @@ def test_ftrl_set_wrong_interactions_not_string():
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize('value, message',
-                         [[0.0, "`.alpha` should be positive: 0.0"],
-                          [None, "`.alpha` should be positive: None"],
-                          [math.nan, "`.alpha` should be positive: nan"],
-                          [math.inf, "`.alpha` should be finite: inf"]
+                         [[0.0, ".alpha should be positive: 0.0"],
+                          [None, ".alpha should be positive: None"],
+                          [math.nan, ".alpha should be positive: nan"],
+                          [math.inf, ".alpha should be finite: inf"]
                          ])
 def test_ftrl_set_bad_alpha_value(value, message):
     ft = Ftrl()
@@ -422,10 +424,10 @@ def test_ftrl_set_bad_alpha_value(value, message):
 
 
 @pytest.mark.parametrize('value, message',
-                         [[-1.0, "`.beta` should be greater than or equal to zero: -1.0"],
-                          [None, "`.beta` should be greater than or equal to zero: None"],
-                          [math.nan, "`.beta` should be greater than or equal to zero: nan"],
-                          [math.inf, "`.beta` should be finite: inf"]
+                         [[-1.0, ".beta should be greater than or equal to zero: -1.0"],
+                          [None, ".beta should be greater than or equal to zero: None"],
+                          [math.nan, ".beta should be greater than or equal to zero: nan"],
+                          [math.inf, ".beta should be finite: inf"]
                          ])
 def test_ftrl_set_bad_beta_value(value, message):
     ft = Ftrl()
@@ -435,10 +437,10 @@ def test_ftrl_set_bad_beta_value(value, message):
 
 
 @pytest.mark.parametrize('value, message',
-                         [[-1.0, "`.lambda1` should be greater than or equal to zero: -1.0"],
-                          [None, "`.lambda1` should be greater than or equal to zero: None"],
-                          [math.nan, "`.lambda1` should be greater than or equal to zero: nan"],
-                          [math.inf, "`.lambda1` should be finite: inf"]
+                         [[-1.0, ".lambda1 should be greater than or equal to zero: -1.0"],
+                          [None, ".lambda1 should be greater than or equal to zero: None"],
+                          [math.nan, ".lambda1 should be greater than or equal to zero: nan"],
+                          [math.inf, ".lambda1 should be finite: inf"]
                          ])
 def test_ftrl_set_bad_lambda1_value(value, message):
     ft = Ftrl()
@@ -448,10 +450,10 @@ def test_ftrl_set_bad_lambda1_value(value, message):
 
 
 @pytest.mark.parametrize('value, message',
-                         [[-1.0, "`.lambda2` should be greater than or equal to zero: -1.0"],
-                          [None, "`.lambda2` should be greater than or equal to zero: None"],
-                          [math.nan, "`.lambda2` should be greater than or equal to zero: nan"],
-                          [math.inf, "`.lambda2` should be finite: inf"]
+                         [[-1.0, ".lambda2 should be greater than or equal to zero: -1.0"],
+                          [None, ".lambda2 should be greater than or equal to zero: None"],
+                          [math.nan, ".lambda2 should be greater than or equal to zero: nan"],
+                          [math.inf, ".lambda2 should be finite: inf"]
                          ])
 def test_ftrl_set_bad_lambda2_value(value, message):
     ft = Ftrl()
@@ -464,12 +466,12 @@ def test_ftrl_set_wrong_nbins_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.nbins = 0
-    assert ("`.nbins` should be positive: 0" == str(e.value))
+    assert (".nbins should be positive: 0" == str(e.value))
 
 
 @pytest.mark.parametrize('value, message',
-                         [[-1, "`.mantissa_nbits` cannot be negative: -1"],
-                         [53, "`.mantissa_nbits` should be less than or equal to 52, got: 53"]])
+                         [[-1, ".mantissa_nbits cannot be negative: -1"],
+                         [53, ".mantissa_nbits should be less than or equal to 52, got: 53"]])
 def test_ftrl_set_wrong_mantissa_nbits_value(value, message):
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
@@ -481,7 +483,7 @@ def test_ftrl_set_wrong_nepochs_value():
     ft = Ftrl()
     with pytest.raises(ValueError) as e:
         ft.nepochs = -10
-    assert ("`.nepochs` should be greater than or equal to zero: -10" == str(e.value))
+    assert (".nepochs should be greater than or equal to zero: -10" == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -514,7 +516,7 @@ def test_ftrl_fit_wrong_target_obj64():
     df_target = dt.Frame([3, "point", None, None, 14, 15, {92}, "6"])
     with pytest.raises(TypeError) as e:
         ft.fit(df_train, df_target)
-    assert ("Target column type `obj64` is not supported" ==
+    assert ("Target column type obj64 is not supported" ==
             str(e.value))
 
 
@@ -791,7 +793,7 @@ def test_ftrl_disable_setters_after_fit(parameter, value):
     assert ft.model_type_trained == "binomial"
     with pytest.raises(ValueError) as e:
         setattr(ft, parameter, value)
-    assert ("Cannot change `."+parameter+"` for a trained model, "
+    assert ("Cannot change ."+parameter+" for a trained model, "
             "reset this model or create a new one"
             == str(e.value))
     ft.reset()
@@ -1201,7 +1203,7 @@ def test_ftrl_wrong_validation_target_type():
         res = ft.fit(df_X, df_y, df_X_val, df_y_val,
                      nepochs_validation = 0)
     assert ("Training and validation target columns must have the same ltype, "
-            "got: `integer` and `string`" == str(e.value))
+            "got: integer and string" == str(e.value))
 
 
 def test_ftrl_wrong_validation_parameters():
@@ -1216,13 +1218,13 @@ def test_ftrl_wrong_validation_parameters():
     with pytest.raises(ValueError) as e:
         res = ft.fit(df_X, df_y, df_X, df_y,
                      nepochs_validation = 0)
-    assert ("Argument `nepochs_validation` in Ftrl.fit() should be "
+    assert ("Argument nepochs_validation in Ftrl.fit() should be "
             "positive: 0" == str(e.value))
 
     with pytest.raises(ValueError) as e:
         res = ft.fit(df_X, df_y, df_X, df_y,
                      validation_average_niterations = 0)
-    assert ("Argument `validation_average_niterations` in Ftrl.fit() should be "
+    assert ("Argument validation_average_niterations in Ftrl.fit() should be "
             "positive: 0" == str(e.value))
 
 
@@ -1454,8 +1456,8 @@ def test_ftrl_interactions_wrong_features():
     df_target = dt.Frame([False, True] * (nrows // 2))
     with pytest.raises(ValueError) as e:
         ft.fit(df_train, df_target)
-    assert ("Feature `mod1000` is used in the interactions, however, column "
-            "`mod1000` is missing in the training frame" == str(e.value))
+    assert ("Feature mod1000 is used in the interactions, however, column "
+            "mod1000 is missing in the training frame" == str(e.value))
 
 
 @pytest.mark.parametrize("interactions", [

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,8 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
-from datatable import f, DatatableWarning
+from datatable import f
+from datatable.exceptions import DatatableWarning
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
@@ -277,7 +278,7 @@ def test_assign_key_column():
     DT = dt.Frame(range(100))
     DT.key = "C0"
     with pytest.raises(ValueError, match="Cannot change values in a key "
-                                         "column `C0`"):
+                                         "column C0"):
         DT[0, 0] = 99
     with pytest.raises(ValueError):
         DT[:, :] = 3
@@ -285,7 +286,7 @@ def test_assign_key_column():
 
 
 def test_assign_key_column2():
-    msg = "Cannot change values in a key column `%s`"
+    msg = "Cannot change values in a key column %s"
     DT = dt.Frame(A=range(10), B=[3]*10)
     DT.key = ("A", "B")
     with pytest.raises(ValueError, match=msg % "A"):

@@ -80,21 +80,22 @@ def test_option_bad():
 
     with pytest.raises(TypeError) as e:
         dt.options.register_option(name="gooo", xtype=str, default=3, doc="??")
-    assert "Default value `3` is not of type str" in str(e.value)
+    assert "Default value 3 is not of type <class 'str'>" in str(e.value)
 
     with pytest.raises(ValueError) as e:
         dt.options.register_option(name=".hidden", xtype=int, default=0)
-    assert "Invalid option name `.hidden`" in str(e.value)
+    assert "Invalid option name .hidden" in str(e.value)
 
     dt.options.register_option(name="gooo", xtype=int, default=3)
 
     with pytest.raises(ValueError) as e:
         dt.options.register_option(name="gooo", xtype=int, default=4, doc="???")
-    assert "Option `gooo` already registered" in str(e.value)
+    assert "Option gooo already registered" in str(e.value)
 
     with pytest.raises(TypeError) as e:
         dt.options.gooo = 2.5
-    assert ("Invalid value for option `gooo`: expected int, instead got float"
+    assert ("Invalid value for option gooo: expected <class 'int'>, instead "
+            "got <class 'float'>"
             in str(e.value))
 
 
@@ -133,7 +134,7 @@ def test_options_many_bad():
     assert dt.options.get("tmp2.foo.x") == 8
     with pytest.raises(TypeError) as e:
         dt.options.tmp2.foo = 0
-    assert ("Cannot assign a value to group of options `tmp2.foo.*`"
+    assert ("Cannot assign a value to group of options tmp2.foo.*"
             in str(e.value))
 
 
