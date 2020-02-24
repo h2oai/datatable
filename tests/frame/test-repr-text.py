@@ -257,10 +257,10 @@ def test_colored_output(capsys):
     DT = dt.Frame([[2, 7, 0, 0],
                    ["cogito", "ergo", "sum", None]],
                   names=["int", "str"])
-    assert dt.options.display.use_colors == True
-    DT.view(interactive=False)
-    out, err = capsys.readouterr()
-    assert not err
+    with dt.options.display.context(use_colors=True):
+        DT.view(interactive=False)
+        out, err = capsys.readouterr()
+        assert not err
     check_colored_output(out,
         "   | int  str   ",
         "-- + ---  ------",
@@ -291,9 +291,10 @@ def test_option_use_colors(capsys):
 def test_colored_keyed(capsys):
     DT = dt.Frame(A=[1, 2, 1], B=[None, 'd', 'a'], C=[3.2, -7.7, 14.1])
     DT.key = ('A', 'B')
-    DT.view(interactive=False)
-    out, err = capsys.readouterr()
-    assert not err
+    with dt.options.display.context(use_colors=True):
+        DT.view(interactive=False)
+        out, err = capsys.readouterr()
+        assert not err
     check_colored_output(out,
         " A  B  |    C",
         "--  -- + ----",
@@ -306,9 +307,10 @@ def test_colored_keyed(capsys):
 
 def test_colored_escaped_name(capsys):
     DT = dt.Frame(names=["#(\x80)#"])  # U+0080 is always escaped in the output
-    DT.view(interactive=False)
-    out, err = capsys.readouterr()
-    assert not err
+    with dt.options.display.context(use_colors=True):
+        DT.view(interactive=False)
+        out, err = capsys.readouterr()
+        assert not err
     check_colored_output(out,
         "   | #(\\x80)#",
         "-- + --------",
@@ -319,7 +321,7 @@ def test_horizontal_elision(capsys):
     DT = dt.Frame([["1234567890" * 3]] * 20)
     with dt.options.display.context(allow_unicode=True, use_colors=True):
         DT.view(interactive=False)
-    out, err = capsys.readouterr()
+        out, err = capsys.readouterr()
     assert not err
     # if os.environ.get("TRAVIS"):
     #     # On Travis the output is truncated to 80 width
@@ -349,9 +351,9 @@ def test_horizontal_elision(capsys):
 
 def test_option_allow_unicode(capsys):
     DT = dt.Frame(uni=["møøse", "𝔘𝔫𝔦𝔠𝔬𝔡𝔢", "J̲o̲s̲é̲", "🚑💥✅"])
-    with dt.options.display.context(allow_unicode=False):
+    with dt.options.display.context(allow_unicode=False, use_colors=True):
         DT.view(interactive=False)
-    out, err = capsys.readouterr()
+        out, err = capsys.readouterr()
     assert not err
     check_colored_output(out,
         "   | uni" + ' '*67,
@@ -582,7 +584,8 @@ def test_max_width_data():
 @pytest.mark.parametrize('uni', [True, False])
 def test_max_width_colored(capsys, uni):
     DT = dt.Frame(S=['abcdefg'])
-    with dt.options.display.context(max_column_width=4, allow_unicode=uni):
+    with dt.options.display.context(max_column_width=4, allow_unicode=uni,
+                                    use_colors=True):
         DT.view(interactive=False)
         out, err = capsys.readouterr()
         symbol = "…" if uni else "~"
