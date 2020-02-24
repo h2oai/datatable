@@ -81,10 +81,25 @@ def _handle_dt_exception(exc_class, exc, tb):
     if col1:
         tbout = "Traceback (most recent call last):\n"
         col1len = max(len(line) for line in col1) + 2
+        prev_line = None
+        prev_count = 0
         for line1, line2 in zip(col1, col2):
+            if line1 == prev_line:
+                prev_count += 1
+                if prev_count >= 3:
+                    continue
+            else:
+                if prev_count >= 3:
+                    tbout += ("  ... [previous line repeated %d more times]\n"
+                              % (prev_count - 3))
+                prev_count = 0
+                prev_line = line1
             tbout += "  " + line1
             tbout += " "*(col1len - len(line1))
             tbout += line2 + "\n"
+        if prev_count >= 3:
+            tbout += ("  ... [previous line repeated %d more times]\n"
+                      % (prev_count - 3))
         out += apply_color("dim", tbout)
         out += "\n"
 
