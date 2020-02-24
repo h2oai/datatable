@@ -124,7 +124,7 @@ def _handle_dt_warning(message, category, filename, lineno, file=None,
           file=sys.stderr)
 
 
-_previous_warnings_hoook = warnings.showwarning
+_previous_warnings_hook = warnings.showwarning
 warnings.showwarning = _handle_dt_warning
 
 
