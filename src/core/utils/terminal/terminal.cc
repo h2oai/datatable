@@ -84,7 +84,10 @@ Terminal::~Terminal() = default;
 void Terminal::initialize() {
   py::robj rstdin = py::rstdin();
   py::robj rstdout = py::rstdout();
-  if (!rstdout || !rstdin || rstdout.is_none() || rstdin.is_none()) {
+  py::robj rstderr = py::rstderr();
+  if (!rstdout || !rstdin || !rstderr ||
+      rstdout.is_none() || rstdin.is_none() || rstderr.is_none())
+  {
     enable_keyboard_ = false;
     enable_colors_ = false;
     enable_ecma48_ = false;
@@ -92,6 +95,9 @@ void Terminal::initialize() {
   }
   else {
     allow_unicode_ = false;
+    enable_keyboard_ = false;
+    enable_colors_ = false;
+    enable_ecma48_ = false;
     try {
       std::string encoding = rstdout.get_attr("encoding").to_string();
       if (encoding == "UTF-8" || encoding == "UTF8" ||
@@ -99,9 +105,15 @@ void Terminal::initialize() {
         allow_unicode_ = true;
       }
     } catch (...) {}
-    enable_keyboard_ = true;
-    enable_colors_ = true;
-    enable_ecma48_ = true;
+    try {
+      bool istty = rstdout.get_attr("isatty").call().to_bool_strict() &&
+                   rstderr.get_attr("isatty").call().to_bool_strict();
+      if (istty) {
+        enable_colors_ = true;
+        enable_ecma48_ = true;
+        enable_keyboard_ = true;
+      }
+    } catch (...) {}
     _check_ipython();
   }
   // Set options
