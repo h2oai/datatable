@@ -70,32 +70,23 @@ def _handle_dt_exception(exc_class, exc, tb):
     out = ""
 
     tbframes = traceback.extract_tb(tb)
-    filename_prefix = os.path.commonprefix([frame.filename
-                                            for frame in tbframes
-                                            if frame.filename[:1] != "<"])
-    if os.path.isfile(filename_prefix):
-        filename_prefix = os.path.dirname(filename_prefix)
     col1 = []
     col2 = []
     for frame in tbframes:
         if frame.filename == "<stdin>" and frame.name == "<module>":
             continue
-        if frame.filename[:1] == '<':
-            relname = frame.filename
-        else:
-            relname = os.path.relpath(frame.filename, filename_prefix)
-        line = relname + ':' + str(frame.lineno) + ' in ' + frame.name
+        line = frame.filename + ':' + str(frame.lineno) + ' in ' + frame.name
         col1.append(line)
         col2.append(frame.line)
     if col1:
-        tbout = ""
+        tbout = "Traceback (most recent call last):\n"
         col1len = max(len(line) for line in col1) + 2
         for line1, line2 in zip(col1, col2):
-            tbout += "    " + line1
+            tbout += "  " + line1
             tbout += " "*(col1len - len(line1))
             tbout += line2 + "\n"
-        tbout += "    . = %s\n" % filename_prefix
         out += apply_color("dim", tbout)
+        out += "\n"
 
     # Lastly, print the exception name & message
     # Also, make sure that any component surrounded with backticks (`like
@@ -103,7 +94,6 @@ def _handle_dt_exception(exc_class, exc, tb):
     out += apply_color("red", exc_class.__name__ + ": ")
     for i, part in enumerate(re.split(r"`(.*?)`", exc.msg)):
         out += apply_color("bold" if i % 2 else "bright_red", part)
-    out += "\n"
     print(out, file=sys.stderr)
 
 
