@@ -67,13 +67,7 @@ def _handle_dt_exception(exc_class, exc, tb):
     if not isinstance(exc, DtException):
         return _previous_except_hook(exc_class, exc, tb)
 
-    # First, print the exception name
-    out = apply_color("red", exc_class.__name__ + ": ")
-    # Then the exception message, however make sure that any component
-    # surrounded with backticks (`like this`) is emphasized
-    for i, part in enumerate(re.split(r"`(.*?)`", exc.msg)):
-        out += apply_color("bright_white" if i % 2 else "bright_red", part)
-    out += "\n"
+    out = ""
 
     tbframes = traceback.extract_tb(tb)
     filename_prefix = os.path.commonprefix([frame.filename
@@ -102,6 +96,14 @@ def _handle_dt_exception(exc_class, exc, tb):
             tbout += line2 + "\n"
         tbout += "    . = %s\n" % filename_prefix
         out += apply_color("dim", tbout)
+
+    # Lastly, print the exception name & message
+    # Also, make sure that any component surrounded with backticks (`like
+    # this`) is emphasized
+    out += apply_color("red", exc_class.__name__ + ": ")
+    for i, part in enumerate(re.split(r"`(.*?)`", exc.msg)):
+        out += apply_color("bold" if i % 2 else "bright_red", part)
+    out += "\n"
     print(out, file=sys.stderr)
 
 
@@ -126,9 +128,3 @@ def _handle_dt_warning(message, category, filename, lineno, file=None,
 
 _previous_warnings_hook = warnings.showwarning
 warnings.showwarning = _handle_dt_warning
-
-
-# tmp
-# from .lib import core
-# core._register_function(4, TypeError)
-# core._register_function(5, ValueError)

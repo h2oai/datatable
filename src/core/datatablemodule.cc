@@ -269,7 +269,6 @@ static py::oobj apply_color(const py::PKArgs& args) {
   else if (color == "bright_red"  ) ts << dt::style::bred;
   else if (color == "cyan"        ) ts << dt::style::cyan;
   else if (color == "bright_cyan" ) ts << dt::style::bcyan;
-  else if (color == "bright_white") ts << dt::style::bwhite;
   else {
     throw ValueError() << "Unknown color `" << color << "`";
   }
