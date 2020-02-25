@@ -262,7 +262,7 @@ def test_frame_as_mapping(dt0):
     i = 0
     for name, col in dict(dt0).items():
         assert name == dt0.names[i]
-        assert_equals(col, dt0[:, i])
+        assert_equals(col, dt0[i])
         i += 1
 
 

@@ -7,6 +7,10 @@
   -----
   .. ref-context:: datatable.Frame
 
+  -[new] The expression ``len(DT)`` now works, and returns the number of
+    columns in the Frame. This allows the Frame to be used in contexts where
+    an iterable might be expected.
+
   -[enh] String columns now support comparison operators ``<``, ``>``, ``<=``
     and ``>=``. [#2274]
 
