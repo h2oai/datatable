@@ -337,7 +337,8 @@ def test_collections():
     DT = dt.Frame()
     assert isinstance(DT, collections.Sized)
     assert isinstance(DT, collections.Iterable)
-    assert isinstance(DT, collections.Reversible)
+    if hasattr(collections, "Reversible"):  # doesn't exist in py3.5
+        assert isinstance(DT, collections.Reversible)
 
 
 
