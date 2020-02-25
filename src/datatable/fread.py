@@ -399,7 +399,7 @@ class GenericReader(object):
             if self._verbose:
                 self._logger.debug("[1] Prepare for reading")
             self._resolve_source(*self._src)
-            if self._result:
+            if self._result is not None:
                 return self._result
             if self._files:
                 res = {}

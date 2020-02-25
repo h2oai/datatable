@@ -24,6 +24,7 @@ XTypeMaker::MethodTag XTypeMaker::method_tag;
 XTypeMaker::Method0Tag XTypeMaker::method0_tag;
 XTypeMaker::ReprTag XTypeMaker::repr_tag;
 XTypeMaker::StrTag XTypeMaker::str_tag;
+XTypeMaker::LengthTag XTypeMaker::length_tag;
 XTypeMaker::GetitemTag XTypeMaker::getitem_tag;
 XTypeMaker::SetitemTag XTypeMaker::setitem_tag;
 XTypeMaker::BuffersTag XTypeMaker::buffers_tag;
@@ -147,6 +148,13 @@ void XTypeMaker::add(reprfunc _repr, ReprTag) {
 // reprfunc = PyObject*(*)(PyObject*)
 void XTypeMaker::add(reprfunc _str, StrTag) {
   type->tp_str = _str;
+}
+
+
+// lenfunc = Py_ssize_t(*)(PyObject*)
+void XTypeMaker::add(lenfunc _length, LengthTag) {
+  init_tp_as_mapping();
+  type->tp_as_mapping->mp_length = _length;
 }
 
 

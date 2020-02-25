@@ -48,6 +48,7 @@ class XTypeMaker {
     static struct Method0Tag {} method0_tag;
     static struct ReprTag {} repr_tag;
     static struct StrTag {} str_tag;
+    static struct LengthTag {} length_tag;
     static struct GetitemTag {} getitem_tag;
     static struct SetitemTag {} setitem_tag;
     static struct BuffersTag {} buffers_tag;
@@ -67,6 +68,8 @@ class XTypeMaker {
     // destructor = void(*)(PyObject*)
     void add(destructor _dealloc, DestructorTag);
 
+
+
     // getter = PyObject*(*)(PyObject*, void*)
     // setter = int(*)(PyObject*, PyObject*, void*)
     void add(getter getfunc, setter setfunc, GSArgs& args, GetSetTag);
@@ -82,6 +85,9 @@ class XTypeMaker {
 
     // reprfunc = PyObject*(*)(PyObject*)
     void add(reprfunc _str, StrTag);
+
+    // lenfunc = Py_ssize_t(*)(PyObject*)
+    void add(lenfunc getlen, LengthTag);
 
     // binaryfunc = PyObject*(*)(PyObject*, PyObject*)
     void add(binaryfunc _getitem, GetitemTag);
@@ -237,6 +243,19 @@ PyObject* _safe_getter(PyObject* obj, void*) noexcept {
   catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
+  }
+}
+
+
+template <typename T, size_t(T::*METH)() const>
+Py_ssize_t _safe_len(PyObject* obj) noexcept {
+  try {
+    T* t = static_cast<T*>(obj);
+    return static_cast<Py_ssize_t>((t->*METH)());
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return -1;
   }
 }
 
@@ -431,6 +450,10 @@ static T _class_of_impl(R(T::*)(Args...) const);
 
 #define METHOD__STR__(METH)                                                    \
     _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::str_tag
+
+
+#define METHOD__LEN__(METH)                                                    \
+    _safe_len<CLASS_OF(METH), METH>, py::XTypeMaker::length_tag
 
 
 #define METHOD__GETITEM__(METH)                                                \

@@ -262,8 +262,25 @@ def test_frame_as_mapping(dt0):
     i = 0
     for name, col in dict(dt0).items():
         assert name == dt0.names[i]
-        assert_equals(col, dt0[:, i])
+        assert_equals(col, dt0[i])
         i += 1
+
+
+def test_frame_singlestar_expansion(dt0):
+    def foo1(*args):
+        for item in args:
+            assert isinstance(item, dt.Frame)
+            assert item.shape == (dt0.nrows, 1)
+            frame_integrity_check(item)
+
+    foo1(*dt0)
+
+
+def test_frame_singlestar_expansion2(dt0):
+    dt0list = [*dt0]
+    assert len(dt0list) == dt0.ncols
+    for i, col in enumerate(dt0list):
+        assert_equals(col, dt0[:, i])
 
 
 def test_frame_doublestar_expansion(dt0):
@@ -304,6 +321,32 @@ def test_names_deduplication():
     with pytest.warns(dt.exceptions.DatatableWarning):
         DT = dt.Frame(names=["A", "A01", "A01"])
         assert DT.names == ("A", "A01", "A2")
+
+
+
+def test__len__():
+    DT = dt.Frame(A=[1, 2], B=[3, 7], D=["a", 'n'], V=[1.1, None])
+    assert len(DT) == 4
+    assert DT.__len__() == 4
+    with pytest.raises(TypeError):
+        assert DT.__len__(3)
+
+
+def test_collections():
+    DT = dt.Frame()
+    if sys.version_info >= (3, 7):
+        import collections.abc
+        assert isinstance(DT, collections.abc.Sized)
+        assert isinstance(DT, collections.abc.Iterable)
+        assert isinstance(DT, collections.abc.Reversible)
+    else:
+        import collections
+        assert isinstance(DT, collections.Sized)
+        assert isinstance(DT, collections.Iterable)
+        if hasattr(collections, "Reversible"):  # doesn't exist in py3.5
+            assert isinstance(DT, collections.Reversible)
+
+
 
 
 #-------------------------------------------------------------------------------
