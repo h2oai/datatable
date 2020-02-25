@@ -333,12 +333,18 @@ def test__len__():
 
 
 def test_collections():
-    import collections
     DT = dt.Frame()
-    assert isinstance(DT, collections.Sized)
-    assert isinstance(DT, collections.Iterable)
-    if hasattr(collections, "Reversible"):  # doesn't exist in py3.5
-        assert isinstance(DT, collections.Reversible)
+    if sys.version_info >= (3, 7):
+        import collections.abc
+        assert isinstance(DT, collections.abc.Sized)
+        assert isinstance(DT, collections.abc.Iterable)
+        assert isinstance(DT, collections.abc.Reversible)
+    else:
+        import collections
+        assert isinstance(DT, collections.Sized)
+        assert isinstance(DT, collections.Iterable)
+        if hasattr(collections, "Reversible"):  # doesn't exist in py3.5
+            assert isinstance(DT, collections.Reversible)
 
 
 
