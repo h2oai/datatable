@@ -60,6 +60,10 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
     Groupby groupby;
     reducer_fn<U> reducer;
 
+    // Each element is "expensive" to compute if the average group
+    // size is larger than this threshold.
+    static constexpr size_t GROUP_SIZE_TINY = 4;
+
   public:
     Reduced_ColumnImpl(SType stype, Column&& col, const Groupby& grpby,
                        reducer_fn<U> fn)
@@ -84,7 +88,7 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     bool computationally_expensive() const override {
-      return true;
+      return nrows_ >= GROUP_SIZE_TINY * groupby.size();
     }
 };
 
