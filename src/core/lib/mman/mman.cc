@@ -62,7 +62,7 @@
       else
       {
           DWORD page_write = is_private? PAGE_WRITECOPY :
-                                       PAGE_READWRITE;
+                                         PAGE_READWRITE;
 
           protect = ((prot & PROT_WRITE) != 0) ? page_write :
                                                  PAGE_READONLY;
