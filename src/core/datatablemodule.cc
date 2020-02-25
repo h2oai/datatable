@@ -428,7 +428,6 @@ extern "C" {
 
       // Initialize submodules
       if (!init_py_encodings(m)) return nullptr;
-      dt::Terminal::standard_terminal().initialize();
 
       init_types();
       dt::expr::Head_Func::init();
