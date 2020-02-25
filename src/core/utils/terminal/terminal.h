@@ -58,7 +58,6 @@ class Terminal {
   public:
     static Terminal& standard_terminal();
     static Terminal& plain_terminal();
-    void initialize();
 
     bool is_jupyter() const noexcept;
     bool is_ipython() const noexcept;
@@ -77,6 +76,7 @@ class Terminal {
     Terminal(Terminal&&) = delete;
     ~Terminal();
 
+    void _initialize();
     void _check_ipython();
     void _detect_window_size();
 };
