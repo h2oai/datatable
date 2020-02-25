@@ -266,6 +266,23 @@ def test_frame_as_mapping(dt0):
         i += 1
 
 
+def test_frame_singlestar_expansion(dt0):
+    def foo1(*args):
+        for item in args:
+            assert isinstance(item, dt.Frame)
+            assert item.shape == (dt0.nrows, 1)
+            frame_integrity_check(item)
+
+    foo1(*dt0)
+
+
+def test_frame_singlestar_expansion2(dt0):
+    dt0list = [*dt0]
+    assert len(dt0list) == dt0.ncols
+    for i, col in enumerate(dt0list):
+        assert_equals(col, dt0[:, i])
+
+
 def test_frame_doublestar_expansion(dt0):
     def foo(**kwds):
         for name, col in kwds.items():
@@ -313,6 +330,14 @@ def test__len__():
     assert DT.__len__() == 4
     with pytest.raises(TypeError):
         assert DT.__len__(3)
+
+
+def test_collections():
+    import collections
+    DT = dt.Frame()
+    assert isinstance(DT, collections.Sized)
+    assert isinstance(DT, collections.Iterable)
+    assert isinstance(DT, collections.Reversible)
 
 
 
