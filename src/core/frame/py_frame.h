@@ -53,6 +53,7 @@ class Frame : public XObject<Frame> {
     static void _init_repr(XTypeMaker&);
     static void _init_sizeof(XTypeMaker&);
     static void _init_sort(XTypeMaker&);
+    static void _init_newsort(XTypeMaker&);
     static void _init_stats(XTypeMaker&);
     static void _init_tocsv(XTypeMaker&);
     static void _init_tonumpy(XTypeMaker&);
@@ -115,6 +116,7 @@ class Frame : public XObject<Frame> {
     void repeat(const PKArgs&);
     void replace(const PKArgs&);
     oobj sort(const PKArgs&);
+    oobj newsort(const PKArgs&);
     oobj tail(const PKArgs&);
     oobj export_names(const PKArgs&);
 

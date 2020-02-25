@@ -114,6 +114,12 @@ class RowIndex {
     void extract_into(Buffer&, int flags) const;
 
     /**
+      * Convert this RowIndex into a Column of indices. The `nrows`
+      * parameter is used for UNKNOWN rowindex only.
+      */
+    Column as_column(size_t nrows) const;
+
+    /**
      * Convert the RowIndex into an array `int8_t[nrows]`, where each entry
      * is either 1 or 0 depending whether that element is selected by the
      * current RowIndex or not.
