@@ -29,6 +29,7 @@
 // version of the original:
 // - added an operating system check, so that this code only builds on Windows;
 // - added MAP_NORESERVE;
+// - added MAP_PRIVATE handling to page and file protection routines;
 // - minor changes to code format.
 //
 //------------------------------------------------------------------------------
