@@ -306,6 +306,17 @@ def test_names_deduplication():
         assert DT.names == ("A", "A01", "A2")
 
 
+
+def test__len__():
+    DT = dt.Frame(A=[1, 2], B=[3, 7], D=["a", 'n'], V=[1.1, None])
+    assert len(DT) == 4
+    assert DT.__len__() == 4
+    with pytest.raises(TypeError):
+        assert DT.__len__(3)
+
+
+
+
 #-------------------------------------------------------------------------------
 # Run several random attacks on a datatable as a whole
 #-------------------------------------------------------------------------------

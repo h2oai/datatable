@@ -273,29 +273,6 @@ size_t Frame::m__len__() const {
 
 
 //------------------------------------------------------------------------------
-// __contains__()
-//------------------------------------------------------------------------------
-
-static PKArgs args___contains__(
-  1, 0, 0, false, false, {"item"}, "__contains__", nullptr);
-
-oobj Frame::m__contains__(const PKArgs& args) {
-  auto arg0 = args[0];
-  if (arg0.is_undefined()) {
-    throw TypeError() << "Missing required positional argument";
-  }
-  bool ret = false;
-  if (arg0.is_string()) {
-    int64_t pos = dt->colindex(arg0.to_robj());
-    ret = (pos >= 0);
-  }
-  return obool(ret);
-}
-
-
-
-
-//------------------------------------------------------------------------------
 // export_names()
 //------------------------------------------------------------------------------
 
@@ -647,7 +624,6 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD0(&Frame::get_names, "keys"));
   xt.add(METHOD0(&Frame::m__copy__, "__copy__"));
   xt.add(METHOD(&Frame::m__deepcopy__, args___deepcopy__));
-  xt.add(METHOD(&Frame::m__contains__, args___contains__));
 }
 
 
