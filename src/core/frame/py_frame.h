@@ -83,6 +83,7 @@ class Frame : public XObject<Frame> {
     oobj m__copy__();
     oobj m__deepcopy__(const PKArgs&);
     size_t m__len__() const;
+    oobj m__contains__(const PKArgs&);
 
     // Frame display
     oobj m__repr__() const;
