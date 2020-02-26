@@ -266,6 +266,8 @@ def test_int8_large_stable(n):
 
 
 #-------------------------------------------------------------------------------
+# Bool8
+#-------------------------------------------------------------------------------
 
 def test_bool8_small():
     d0 = dt.Frame([True, False, False, None, True, True, None])
@@ -681,7 +683,7 @@ def test_strXX_large5(st):
 
 @pytest.mark.parametrize("st", [dt.str32, dt.str64])
 def test_strXX_large6(st):
-    rootdir = os.path.join(os.path.dirname(__file__), "..", "src", "core")
+    rootdir = os.path.join(os.path.dirname(__file__), "..", "..", "src", "core")
     assert os.path.isdir(rootdir)
     words = []
     for dirname, _, files in os.walk(rootdir):
