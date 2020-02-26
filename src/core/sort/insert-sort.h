@@ -25,10 +25,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_INSERT_SORT_h
 #define dt_SORT_INSERT_SORT_h
-#include <algorithm>       // std::stable_sort
-#include <functional>      // std::function
-#include <type_traits>     // std::is_convertible
-#include "sort/common.h"   // array
+#include <algorithm>         // std::stable_sort
+#include <type_traits>       // std::is_convertible
+#include "sort/common.h"     // array
+#include "utils/function.h"  // dt::function
 namespace dt {
 namespace sort {
 
@@ -52,13 +52,13 @@ namespace sort {
   * into account.
   *
   */
-template <typename TO, typename Compare>
-void insert_sort(array<TO> ordering_in,
-                 array<TO> ordering_out,
+template <typename T, typename Compare>
+void insert_sort(array<T> ordering_in,
+                 array<T> ordering_out,
                  Compare compare)
 {
   static_assert(
-    std::is_convertible<Compare, std::function<bool(size_t, size_t)>>::value,
+    std::is_convertible<Compare, dt::function<bool(size_t, size_t)>>::value,
     "Invalid signature of comparator function");
 
   size_t n = ordering_out.size();
@@ -67,7 +67,7 @@ void insert_sort(array<TO> ordering_in,
     xassert(ordering_in.size() == n);
   }
 
-  TO* const oo = ordering_out.ptr();
+  T* const oo = ordering_out.ptr();
   oo[0] = 0;
   for (size_t i = 1; i < n; ++i) {
     size_t j = i;
@@ -75,7 +75,7 @@ void insert_sort(array<TO> ordering_in,
       oo[j] = oo[j - 1];
       j--;
     }
-    oo[j] = static_cast<TO>(i);
+    oo[j] = static_cast<T>(i);
   }
 
   if (ordering_in) {
@@ -93,18 +93,18 @@ void insert_sort(array<TO> ordering_in,
   * Same as `insert_sort()`, but uses stable_sort algorithm from the
   * standard library (typically this is a quick-sort implementation).
   */
-template <typename TO, typename Compare>
-void std_sort(array<TO> ordering_in,
-              array<TO> ordering_out,
+template <typename T, typename Compare>
+void std_sort(array<T> ordering_in,
+              array<T> ordering_out,
               Compare compare)
 {
   size_t n = ordering_out.size();
   xassert(n > 0);
   xassert(!ordering_in || ordering_in.size() == n);
 
-  TO* const oo = ordering_out.ptr();
+  T* const oo = ordering_out.ptr();
   for (size_t i = 0; i < n; ++i) {
-    oo[i] = static_cast<TO>(i);
+    oo[i] = static_cast<T>(i);
   }
   std::stable_sort(oo, oo + n, compare);
 
@@ -123,9 +123,9 @@ void std_sort(array<TO> ordering_in,
   * function is single-threaded and thus should only be used for
   * relatively small `n`s.
   */
-template <typename TO, typename Compare>
-void small_sort(array<TO> ordering_in,
-                array<TO> ordering_out,
+template <typename T, typename Compare>
+void small_sort(array<T> ordering_in,
+                array<T> ordering_out,
                 Compare compare)
 {
   if (ordering_out.size() < INSERTSORT_NROWS) {

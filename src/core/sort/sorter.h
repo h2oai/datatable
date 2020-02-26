@@ -21,11 +21,15 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_SORTER_h
 #define dt_SORT_SORTER_h
+#include <utility>           // std::pair
 #include "sort/common.h"
+#include "groupby.h"
+#include "rowindex.h"
 namespace dt {
 namespace sort {
 
 template <typename TO> class Sorter_Multi;
+using RiGb = std::pair<RowIndex, Groupby>;
 
 
 /**
@@ -36,15 +40,16 @@ class Sorter {
   protected:
     size_t nrows_;
 
-  public:
     Sorter(size_t n) : nrows_(n) {}
+
+  public:
     virtual ~Sorter() {}
 
     size_t nrows() const noexcept {
       return nrows_;
     }
 
-    virtual RowIndex sort() const = 0;
+    virtual RiGb sort() const = 0;
 };
 
 
@@ -58,13 +63,15 @@ class SSorter : public Sorter
 {
   friend class Sorter_Multi<TO>;
   using ovec = array<TO>;
+  using uqsorter = std::unique_ptr<SSorter<TO>>;
+
   public:
     SSorter(size_t n) : Sorter(n) {
       xassert(sizeof(TO) == 8 || n <= MAX_NROWS_INT32);
     }
 
 
-    RowIndex sort() const override {
+    RiGb sort() const override {
       Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(TO));
       ovec ordering_out(rowindex_buf);
       if (nrows_ <= INSERTSORT_NROWS) {
@@ -72,8 +79,10 @@ class SSorter : public Sorter
       } else {
         radix_sort(ovec(), ordering_out, 0, true);
       }
-      return RowIndex(std::move(rowindex_buf),
-                      sizeof(TO) == 4? RowIndex::ARR32 : RowIndex::ARR64);
+      auto rowindex_type = sizeof(TO) == 4? RowIndex::ARR32 : RowIndex::ARR64;
+      RowIndex result_rowindex(std::move(rowindex_buf), rowindex_type);
+      Groupby  result_groupby;
+      return RiGb(std::move(result_rowindex), std::move(result_groupby));
     }
 
 
@@ -103,8 +112,7 @@ class SSorter : public Sorter
 
     /**
       */
-    using ssoptr = std::unique_ptr<SSorter<TO>>;
-    using next_wrapper = std::function<ssoptr(ssoptr&&)>;
+    using next_wrapper = std::function<uqsorter(uqsorter&&)>;
     virtual void radix_sort(ovec ordering_in, ovec ordering_out,
                             size_t offset, bool parallel,
                             next_wrapper wrap = nullptr) const = 0;

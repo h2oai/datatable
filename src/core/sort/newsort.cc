@@ -93,8 +93,8 @@ oobj Frame::newsort(const PKArgs&) {
 
   auto sorter = (dt->ncols() == 1)? dt::sort::make_sorter(dt->get_column(0))
                                   : dt::sort::make_sorter(dt->get_columns());
-  RowIndex rowindex = sorter->sort();
-  Column ricol = rowindex.as_column(sorter->nrows());
+  dt::sort::RiGb rigb = sorter->sort();
+  Column ricol = rigb.first.as_column(dt->nrows());
   return py::Frame::oframe(new DataTable({std::move(ricol)}, {"order"}));
 }
 
