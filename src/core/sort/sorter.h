@@ -25,7 +25,7 @@
 namespace dt {
 namespace sort {
 
-template <typename TO> class Sorter_MultiImpl;
+template <typename TO> class Sorter_Multi;
 
 
 /**
@@ -56,7 +56,7 @@ class Sorter {
 template <typename TO>
 class SSorter : public Sorter
 {
-  friend class Sorter_MultiImpl<TO>;
+  friend class Sorter_Multi<TO>;
   using ovec = array<TO>;
   public:
     SSorter(size_t n) : Sorter(n) {
@@ -104,7 +104,7 @@ class SSorter : public Sorter
     /**
       */
     using ssoptr = std::unique_ptr<SSorter<TO>>;
-    using next_wrapper = std::function<ssoptr(const ssoptr&)>;
+    using next_wrapper = std::function<ssoptr(ssoptr&&)>;
     virtual void radix_sort(ovec ordering_in, ovec ordering_out,
                             size_t offset, bool parallel,
                             next_wrapper wrap = nullptr) const = 0;

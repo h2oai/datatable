@@ -100,9 +100,7 @@ void std_sort(array<TO> ordering_in,
 {
   size_t n = ordering_out.size();
   xassert(n > 0);
-  if (ordering_in.size()) {
-    xassert(ordering_in.size() == n);
-  }
+  xassert(!ordering_in || ordering_in.size() == n);
 
   TO* const oo = ordering_out.ptr();
   for (size_t i = 0; i < n; ++i) {
