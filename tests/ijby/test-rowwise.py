@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019 H2O.ai
+# Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -76,7 +76,7 @@ def test_rowall_no_columns():
 @pytest.mark.parametrize('st', stypes_int + stypes_float + stypes_str)
 def test_rowall_wrong_type(st):
     DT = dt.Frame(A=[], stype=st)
-    with pytest.raises(TypeError, match="Function `rowall` requires a sequence "
+    with pytest.raises(TypeError, match="Function rowall requires a sequence "
                                         "of boolean columns"):
         assert DT[:, rowall(f.A)]
 
@@ -98,7 +98,7 @@ def test_rowany_simple():
 @pytest.mark.parametrize('st', stypes_int + stypes_float + stypes_str)
 def test_rowany_wrong_type(st):
     DT = dt.Frame(A=[], stype=st)
-    with pytest.raises(TypeError, match="Function `rowany` requires a sequence "
+    with pytest.raises(TypeError, match="Function rowany requires a sequence "
                                         "of boolean columns"):
         assert DT[:, rowany(f.A)]
 
@@ -232,7 +232,7 @@ def test_rowmean_floats():
 
 def test_rowmean_wrong_types():
     DT = dt.Frame(A=[3, 5, 6], B=["a", "d", "e"])
-    with pytest.raises(TypeError, match="Function `rowmean` expects a sequence "
+    with pytest.raises(TypeError, match="Function rowmean expects a sequence "
                                         "of numeric columns"):
         assert rowmean(DT)
 
@@ -266,7 +266,7 @@ def test_rowsd_floats():
 
 def test_rowmean_wrong_types():
     DT = dt.Frame(A=[3, 5, 6], B=["a", "d", "e"])
-    with pytest.raises(TypeError, match="Function `rowsd` expects a sequence "
+    with pytest.raises(TypeError, match="Function rowsd expects a sequence "
                                         "of numeric columns"):
         assert rowsd(DT)
 

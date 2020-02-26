@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -70,8 +70,8 @@ def test_dt_invert():
 def test_dt_invert_invalid(src):
     DT = dt.Frame(src)
     col_stype = DT.stype.name
-    with pytest.raises(TypeError, match="Cannot apply unary `operator ~` to a "
-                                        "column with stype `%s`" % col_stype):
+    with pytest.raises(TypeError, match="Cannot apply unary operator ~ to a "
+                                        "column with stype %s" % col_stype):
         assert DT[:, ~f[0]]
 
 
@@ -99,8 +99,8 @@ def test_dt_neg(src):
 def test_dt_neg_invalid(src):
     DT = dt.Frame(src)
     col_stype = DT.stype.name
-    with pytest.raises(TypeError, match="Cannot apply unary `operator -` to a "
-                                        "column with stype `%s`" % col_stype):
+    with pytest.raises(TypeError, match="Cannot apply unary operator - to a "
+                                        "column with stype %s" % col_stype):
         assert DT[:, -f[0]]
 
 
@@ -123,8 +123,8 @@ def test_dt_pos(src):
 def test_dt_pos_invalid(src):
     DT = dt.Frame(src)
     col_stype = DT.stype.name
-    with pytest.raises(TypeError, match="Cannot apply unary `operator \\+` to "
-                                        "a column with stype `%s`" % col_stype):
+    with pytest.raises(TypeError, match="Cannot apply unary operator \\+ to "
+                                        "a column with stype %s" % col_stype):
         assert DT[:, +f[0]]
 
 
@@ -243,8 +243,8 @@ def test_len2():
 
 def test_len_wrong_col():
     DT = dt.Frame(range(34))
-    with pytest.raises(TypeError, match="Function `len` cannot be applied to "
-                                        "a column of type `int32`"):
+    with pytest.raises(TypeError, match="Function len cannot be applied to "
+                                        "a column of type int32"):
         assert DT[:, f[0].len()]
 
 

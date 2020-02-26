@@ -72,6 +72,7 @@ Terminal::Terminal(bool is_plain) : is_plain_(is_plain){
   is_jupyter_ = false;
   is_ipython_ = false;
   if (!enable_ecma48_) xassert(!enable_colors_);
+  if (!is_plain_) _initialize();
 }
 
 Terminal::~Terminal() = default;
@@ -81,10 +82,13 @@ Terminal::~Terminal() = default;
   * This is called for 'standard' terminal only from "datatablemodule.cc",
   * once during module initialization.
   */
-void Terminal::initialize() {
+void Terminal::_initialize() {
   py::robj rstdin = py::rstdin();
   py::robj rstdout = py::rstdout();
-  if (!rstdout || !rstdin || rstdout.is_none() || rstdin.is_none()) {
+  py::robj rstderr = py::rstderr();
+  if (!rstdout || !rstdin || !rstderr ||
+      rstdout.is_none() || rstdin.is_none() || rstderr.is_none())
+  {
     enable_keyboard_ = false;
     enable_colors_ = false;
     enable_ecma48_ = false;
@@ -92,6 +96,9 @@ void Terminal::initialize() {
   }
   else {
     allow_unicode_ = false;
+    enable_keyboard_ = false;
+    enable_colors_ = false;
+    enable_ecma48_ = false;
     try {
       std::string encoding = rstdout.get_attr("encoding").to_string();
       if (encoding == "UTF-8" || encoding == "UTF8" ||
@@ -99,9 +106,25 @@ void Terminal::initialize() {
         allow_unicode_ = true;
       }
     } catch (...) {}
-    enable_keyboard_ = true;
-    enable_colors_ = true;
-    enable_ecma48_ = true;
+    try {
+      bool istty = rstdout.get_attr("isatty").call().to_bool_strict() &&
+                   rstderr.get_attr("isatty").call().to_bool_strict();
+      if (istty) {
+        enable_colors_ = true;
+        enable_ecma48_ = true;
+        enable_keyboard_ = true;
+      }
+
+      // To render colors on Windows, we switch terminal to the ANSI mode
+      #if DT_OS_WINDOWS
+        DWORD dw_mode = ENABLE_PROCESSED_INPUT |
+                        ENABLE_ECHO_INPUT |
+                        ENABLE_LINE_INPUT;
+        HANDLE h_console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        SetConsoleMode(h_console_handle, dw_mode);
+      #endif
+
+    } catch (...) {}
     _check_ipython();
   }
   // Set options

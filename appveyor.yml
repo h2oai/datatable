@@ -12,8 +12,6 @@ build_script:
 - cmd: >-
     SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
 
-    pip install typesentry
-
     python ci/ext.py build
 
     cd src

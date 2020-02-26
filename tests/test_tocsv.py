@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -488,13 +488,13 @@ def test_quoting_invalid():
 
     with pytest.raises(TypeError) as e:
         DT.to_csv(quoting=1.7)
-    assert ("Argument `quoting` in Frame.to_csv() should be an integer"
+    assert ("Argument quoting in Frame.to_csv() should be an integer"
             in str(e.value))
 
     for q in [-1, 4, 99, "ANY"]:
         with pytest.raises(ValueError) as e:
             DT.to_csv(quoting=q)
-        assert ("Invalid value of the `quoting` parameter in Frame.to_csv()"
+        assert ("Invalid value of the quoting parameter in Frame.to_csv()"
                 in str(e.value))
 
 
@@ -537,7 +537,7 @@ def test_compress_invalid():
     DT = dt.Frame()
     with pytest.raises(TypeError) as e:
         DT.to_csv(compression=0)
-    assert ("Argument `compression` in Frame.to_csv() should be a string, "
+    assert ("Argument compression in Frame.to_csv() should be a string, "
             "instead got <class 'int'>" in str(e.value))
     with pytest.raises(ValueError) as e:
         DT.to_csv(compression="rar")
@@ -574,7 +574,7 @@ def test_header_valid():
 
 
 def test_header_invalid():
-    msg = r"Argument `header` in Frame\.to_csv\(\) should be a boolean"
+    msg = r"Argument header in Frame\.to_csv\(\) should be a boolean"
     DT = dt.Frame()
     with pytest.raises(TypeError, match=msg):
         DT.to_csv(header=1)
@@ -615,7 +615,7 @@ def test_append_to_existing_file(tempfile):
 
 def test_append_no_file_given():
     DT = dt.Frame(A=[5])
-    with pytest.raises(ValueError, match="`append` parameter is set to True, "
+    with pytest.raises(ValueError, match="append parameter is set to True, "
                                          "but the output file is not specifi"):
         DT.to_csv(append=True)
 
@@ -634,7 +634,7 @@ def test_append_valid(tempfile):
 
 def test_append_invalid(tempfile):
     os.unlink(tempfile)
-    msg = r"Argument `append` in Frame\.to_csv\(\) should be a boolean"
+    msg = r"Argument append in Frame\.to_csv\(\) should be a boolean"
     DT = dt.Frame()
     with pytest.raises(TypeError, match=msg):
         DT.to_csv('tmp', append=1)

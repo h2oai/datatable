@@ -25,7 +25,8 @@ import pytest
 import types
 import datatable as dt
 from tests import assert_equals
-from datatable import stype, DatatableWarning, InvalidOperationError
+from datatable import stype
+from datatable.exceptions import InvalidOperationError, DatatableWarning
 from datatable.internal import frame_integrity_check, frame_columns_virtual
 
 

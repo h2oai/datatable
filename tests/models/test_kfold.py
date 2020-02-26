@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -34,30 +34,30 @@ from tests import assert_type_error, assert_value_error
 
 def test_kfold_api():
     assert_type_error(lambda: kfold(),
-        "Required parameter `nrows` is missing")
+        "Required parameter nrows is missing")
 
     assert_type_error(lambda: kfold(nrows=5),
-        "Required parameter `nsplits` is missing")
+        "Required parameter nsplits is missing")
 
     assert_type_error(lambda: kfold(nrows=5, nsplits=2, seed=12345),
-        "kfold() got an unexpected keyword argument `seed`")
+        "kfold() got an unexpected keyword argument seed")
 
     assert_type_error(lambda: kfold(5, 2),
         "kfold() takes no positional arguments, but 2 were given")
 
     assert_type_error(lambda: kfold(nrows=5, nsplits=3.3),
-        "Argument `nsplits` in kfold() should be an integer")
+        "Argument nsplits in kfold() should be an integer")
 
     assert_type_error(lambda: kfold(nrows=None, nsplits=7),
-        "Argument `nrows` in kfold() should be an integer")
+        "Argument nrows in kfold() should be an integer")
 
 
 def test_bad_args2():
     assert_value_error(lambda: kfold(nrows=-1, nsplits=1),
-        "Argument `nrows` in kfold() cannot be negative")
+        "Argument nrows in kfold() cannot be negative")
 
     assert_value_error(lambda: kfold(nrows=3, nsplits=-3),
-        "Argument `nsplits` in kfold() cannot be negative")
+        "Argument nsplits in kfold() cannot be negative")
 
     assert_value_error(lambda: kfold(nrows=5, nsplits=0),
         "The number of splits cannot be less than two")
@@ -127,33 +127,33 @@ def test_kfold_k_any(seed):
 
 def test_kfold_random_api():
     assert_type_error(lambda: kfold_random(),
-        "Required parameter `nrows` is missing")
+        "Required parameter nrows is missing")
 
     assert_type_error(lambda: kfold_random(nrows=5, seed=12345678),
-        "Required parameter `nsplits` is missing")
+        "Required parameter nsplits is missing")
 
     assert_type_error(lambda: kfold_random(5, 2),
         "kfold_random() takes no positional arguments, but 2 were given")
 
     assert_type_error(lambda: kfold_random(nrows=5, nsplits=3.3),
-        "Argument `nsplits` in kfold_random() should be an integer")
+        "Argument nsplits in kfold_random() should be an integer")
 
     assert_type_error(lambda: kfold_random(nrows=None, nsplits=7),
-        "Argument `nrows` in kfold_random() should be an integer")
+        "Argument nrows in kfold_random() should be an integer")
 
     assert_type_error(lambda: kfold_random(nrows=5, nsplits=2, seed="boo"),
-        "Argument `seed` in kfold_random() should be an integer")
+        "Argument seed in kfold_random() should be an integer")
 
 
 def test_kfold_random_bad_args():
     assert_value_error(lambda: kfold_random(nrows=-1, nsplits=1),
-        "Argument `nrows` in kfold_random() cannot be negative")
+        "Argument nrows in kfold_random() cannot be negative")
 
     assert_value_error(lambda: kfold_random(nrows=3, nsplits=-3),
-        "Argument `nsplits` in kfold_random() cannot be negative")
+        "Argument nsplits in kfold_random() cannot be negative")
 
     assert_value_error(lambda: kfold_random(nrows=10, nsplits=3, seed=-1),
-        "Argument `seed` in kfold_random() cannot be negative")
+        "Argument seed in kfold_random() cannot be negative")
 
     assert_value_error(lambda: kfold_random(nrows=5, nsplits=0),
         "The number of splits cannot be less than two")

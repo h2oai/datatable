@@ -64,7 +64,7 @@ def dt0():
 def assert_valueerror(frame, rows, error_message):
     with pytest.raises(ValueError) as e:
         noop(frame[rows, :])
-    assert str(e.type) == "<class 'dt.ValueError'>"
+    assert isinstance(e.value, dt.exceptions.DtException)
     assert error_message in str(e.value)
 
 
@@ -147,11 +147,14 @@ def test_dt_version():
     assert isinstance(dt.build_info.build_date, str)
     assert isinstance(dt.build_info.git_revision, str)
     assert isinstance(dt.build_info.git_branch, str)
+    assert isinstance(dt.build_info.git_date, str)
+    assert isinstance(dt.build_info.git_diff, str)
     assert isinstance(dt.build_info.version, str)
     if "DTCOVERAGE" not in os.environ:
         assert dt.build_info.build_date
         assert dt.build_info.git_revision
         assert dt.build_info.git_branch
+        assert dt.build_info.git_date
         assert dt.build_info.version
         assert len(dt.build_info.git_revision) == 40
         assert dt.build_info.version == dt.__version__
@@ -259,8 +262,25 @@ def test_frame_as_mapping(dt0):
     i = 0
     for name, col in dict(dt0).items():
         assert name == dt0.names[i]
-        assert_equals(col, dt0[:, i])
+        assert_equals(col, dt0[i])
         i += 1
+
+
+def test_frame_singlestar_expansion(dt0):
+    def foo1(*args):
+        for item in args:
+            assert isinstance(item, dt.Frame)
+            assert item.shape == (dt0.nrows, 1)
+            frame_integrity_check(item)
+
+    foo1(*dt0)
+
+
+def test_frame_singlestar_expansion2(dt0):
+    dt0list = [*dt0]
+    assert len(dt0list) == dt0.ncols
+    for i, col in enumerate(dt0list):
+        assert_equals(col, dt0[:, i])
 
 
 def test_frame_doublestar_expansion(dt0):
@@ -291,16 +311,42 @@ def test_warnings_as_errors():
         warnings.simplefilter("error")
         try:
             dt.fread("A,A,A\n1,2,3")
-        except dt.DatatableWarning as e:
+        except dt.exceptions.DatatableWarning as e:
             assert "Duplicate column names found" in str(e)
             assert "SystemError" not in str(e)
             assert e.__cause__ is None
 
 
 def test_names_deduplication():
-    with pytest.warns(dt.DatatableWarning):
+    with pytest.warns(dt.exceptions.DatatableWarning):
         DT = dt.Frame(names=["A", "A01", "A01"])
         assert DT.names == ("A", "A01", "A2")
+
+
+
+def test__len__():
+    DT = dt.Frame(A=[1, 2], B=[3, 7], D=["a", 'n'], V=[1.1, None])
+    assert len(DT) == 4
+    assert DT.__len__() == 4
+    with pytest.raises(TypeError):
+        assert DT.__len__(3)
+
+
+def test_collections():
+    DT = dt.Frame()
+    if sys.version_info >= (3, 7):
+        import collections.abc
+        assert isinstance(DT, collections.abc.Sized)
+        assert isinstance(DT, collections.abc.Iterable)
+        assert isinstance(DT, collections.abc.Reversible)
+    else:
+        import collections
+        assert isinstance(DT, collections.Sized)
+        assert isinstance(DT, collections.Iterable)
+        if hasattr(collections, "Reversible"):  # doesn't exist in py3.5
+            assert isinstance(DT, collections.Reversible)
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -334,7 +380,7 @@ def test_dt_stype(dt0):
 def test_dt_stype_heterogenous(dt0):
     with pytest.raises(ValueError) as e:
         noop(dt0.stype)
-    assert ("The stype of column 'B' is `bool8`, which is different "
+    assert ("The stype of column 'B' is bool8, which is different "
             "from the stype of the previous column" in str(e.value))
 
 
@@ -592,14 +638,14 @@ def test_rename_bad2():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(KeyError) as e:
         d0.names = {"xxx": "yyy"}
-    assert "Cannot find column `xxx` in the Frame" == str(e.value)
+    assert "Cannot find column xxx in the Frame" == str(e.value)
 
 
 def test_rename_bad3():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(ValueError) as e:
         d0.names = ['1', '2', '3', '5']
-    assert ("The `names` list has length 4, while the Frame has only 3 columns"
+    assert ("The names list has length 4, while the Frame has only 3 columns"
             in str(e.value))
 
 
@@ -607,7 +653,7 @@ def test_rename_bad4():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(ValueError) as e:
         d0.names = ('k', )
-    assert ("The `names` list has length 1, while the Frame has 3 columns"
+    assert ("The names list has length 1, while the Frame has 3 columns"
             in str(e.value))
 
 
@@ -615,7 +661,7 @@ def test_rename_bad5():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(TypeError) as e:
         d0.names = {"a": 17}
-    assert ("The replacement name for column `a` should be a string, "
+    assert ("The replacement name for column a should be a string, "
             "but got <class 'int'>" == str(e.value))
 
 
@@ -1007,7 +1053,7 @@ def test_single_element_all_stypes(st):
 def test_single_element_select_invalid_column(dt0):
     with pytest.raises(KeyError) as e:
         noop(dt0[0, "Dd"])
-    assert ("Column `Dd` does not exist in the Frame; did you mean `D`?" ==
+    assert ("Column Dd does not exist in the Frame; did you mean D?" ==
             str(e.value))
 
 
@@ -1111,7 +1157,7 @@ def test_materialize_to_memory(tempfile_jay):
 
 def test_materialize_to_memory_bad_type():
     DT = dt.Frame(range(5))
-    msg = r"Argument `to_memory` in Frame.materialize\(\) should be a boolean"
+    msg = r"Argument to_memory in Frame.materialize\(\) should be a boolean"
     with pytest.raises(TypeError, match=msg):
         DT.materialize(to_memory=0)
 

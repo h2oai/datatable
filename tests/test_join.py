@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -82,7 +82,7 @@ def test_join_error_no_left_column():
     d1.key = "B"
     with pytest.raises(ValueError) as e:
         noop(d0[:, :, join(d1)])
-    assert "Key column `B` does not exist in the left Frame" in str(e.value)
+    assert "Key column B does not exist in the left Frame" in str(e.value)
 
 
 def test_join_error_type_mismatch():
@@ -91,8 +91,8 @@ def test_join_error_type_mismatch():
     d1.key = "A"
     with pytest.raises(TypeError) as e:
         noop(d0[:, :, join(d1)])
-    assert ("Column `A` of type int32 in the left Frame cannot be joined to "
-            "column `A` of incompatible type str32 in the right Frame"
+    assert ("Column A of type int32 in the left Frame cannot be joined to "
+            "column A of incompatible type str32 in the right Frame"
             in str(e.value))
 
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -189,11 +189,7 @@ static void _register_function(const py::PKArgs& args) {
   switch (n) {
     case 2: init_py_stype_objs(fnref); break;
     case 3: init_py_ltype_objs(fnref); break;
-    case 4: replace_typeError(fnref); break;
-    case 5: replace_valueError(fnref); break;
-    case 6: replace_dtWarning(fnref); break;
     case 7: py::Frame_Type = fnref; break;
-    case 8: replace_invalidOpError(fnref); break;
     case 9: py::Expr_Type = fnref; break;
     default: throw ValueError() << "Unknown index: " << n;
   }
@@ -263,10 +259,13 @@ static py::oobj apply_color(const py::PKArgs& args) {
 
   dt::TerminalStream ts(true);
   if      (color == "bright_black") ts << dt::style::grey;
-  else if (color == "grey")         ts << dt::style::grey;
+  else if (color == "grey"        ) ts << dt::style::grey;
   else if (color == "bright_green") ts << dt::style::bgreen;
+  else if (color == "dim"         ) ts << dt::style::dim;
+  else if (color == "italic"      ) ts << dt::style::italic;
   else if (color == "yellow"      ) ts << dt::style::yellow;
   else if (color == "bold"        ) ts << dt::style::bold;
+  else if (color == "red"         ) ts << dt::style::red;
   else if (color == "bright_red"  ) ts << dt::style::bred;
   else if (color == "cyan"        ) ts << dt::style::cyan;
   else if (color == "bright_cyan" ) ts << dt::style::bcyan;
@@ -425,13 +424,10 @@ extern "C" {
     PyObject* m = nullptr;
 
     try {
-      init_exceptions();
-
       m = dtmod.init();
 
       // Initialize submodules
       if (!init_py_encodings(m)) return nullptr;
-      dt::Terminal::standard_terminal().initialize();
 
       init_types();
       dt::expr::Head_Func::init();

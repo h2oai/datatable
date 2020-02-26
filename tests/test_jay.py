@@ -28,7 +28,7 @@ import pickle
 import pytest
 import random
 import shutil
-from datatable import DatatableWarning
+from datatable.exceptions import DatatableWarning
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop, isview
 

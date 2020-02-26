@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -154,7 +154,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     niterations = 10000
     sleep_time = 0.01
     exception = "KeyboardInterrupt\n"
-    message = "[cancelled]\x1b[m\x1b[K\n"
+    message = "[cancelled]\x1b[K\n"
     cmd = "import datatable as dt; from datatable.lib import core;"
     cmd += "dt.options.progress.enabled = True;"
     cmd += "dt.options.progress.min_duration = 0;"

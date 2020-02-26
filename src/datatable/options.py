@@ -22,13 +22,10 @@
 #-------------------------------------------------------------------------------
 from contextlib import contextmanager
 from datatable.lib import core
-from datatable.utils.typechecks import TTypeError, TValueError, name_type
+import datatable.exceptions as dx
 
 __all__ = ("options", "Option")
 
-
-class DtAttributeError(AttributeError):
-    _handle_ = TValueError._handle_
 
 
 
@@ -75,8 +72,8 @@ class Config:
     def __setattr__(self, key, val):
         opt = self._get_option(key)
         if isinstance(opt, Config):
-            raise TypeError("Cannot assign a value to group of options `%s.*`"
-                            % (self._prefix + key))
+            raise dx.TypeError("Cannot assign a value to group of options `%s.*`"
+                               % (self._prefix + key))
         opt.set(val)
 
     def __delattr__(self, key):
@@ -101,14 +98,14 @@ class Config:
         alternatives = core.fuzzy_match(self._options, kkey)
         if alternatives:
             msg += "; did you mean %s?" % alternatives
-        raise DtAttributeError(msg)
+        raise AttributeError(msg)
 
     def register(self, opt):
         fullname = opt.name
         if fullname.startswith("."):
-            raise TValueError("Invalid option name `%s`" % fullname)
+            raise dx.ValueError("Invalid option name `%s`" % fullname)
         if fullname in self._options:
-            raise TValueError("Option `%s` already registered" % fullname)
+            raise dx.ValueError("Option `%s` already registered" % fullname)
         self._options[fullname] = opt
         prefix = fullname.rsplit('.', 1)[0]
         if prefix not in self._options:
@@ -234,8 +231,8 @@ class Option:
         self._xtype = xtype
         self._onchange = onchange
         if xtype and not isinstance(default, xtype):
-            raise TTypeError("Default value `%r` is not of type %s"
-                             % (default, name_type(xtype)))
+            raise dx.TypeError("Default value `%r` is not of type %s"
+                               % (default, xtype))
 
     @property
     def name(self):
@@ -255,10 +252,9 @@ class Option:
     def set(self, x):
         if self._xtype is not None:
             if not isinstance(x, self._xtype):
-                raise TTypeError("Invalid value for option `%s`: expected %s, "
-                                 "instead got %s"
-                                 % (self._name, name_type(self._xtype),
-                                    name_type(type(x))))
+                raise dx.TypeError(
+                    "Invalid value for option `%s`: expected %s, instead got %s"
+                    % (self._name, self._xtype, type(x)))
         self._value = x
         if self._onchange is not None:
             self._onchange(x)

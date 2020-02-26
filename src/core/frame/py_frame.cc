@@ -262,6 +262,17 @@ oobj Frame::m__deepcopy__(const PKArgs&) {
 
 
 //------------------------------------------------------------------------------
+// __len__()
+//------------------------------------------------------------------------------
+
+size_t Frame::m__len__() const {
+  return dt->ncols();
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // export_names()
 //------------------------------------------------------------------------------
 
@@ -575,6 +586,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.set_subclassable(true);
   xt.add(CONSTRUCTOR(&Frame::m__init__, args___init__));
   xt.add(DESTRUCTOR(&Frame::m__dealloc__));
+  xt.add(METHOD__LEN__(&Frame::m__len__));
   xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
   xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
@@ -592,6 +604,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_sizeof(xt);
   _init_stats(xt);
   _init_sort(xt);
+  _init_newsort(xt);
   _init_tocsv(xt);
   _init_tonumpy(xt);
   _init_topython(xt);

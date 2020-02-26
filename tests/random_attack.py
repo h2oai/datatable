@@ -1,8 +1,25 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import sys
 import copy
@@ -244,7 +261,7 @@ class Attacker:
                 python_output.write("DT[f[%d] == None, f[%d]] = %r\n"
                                     % (icol, icol, replacement_value))
             else:
-                msg = 'Cannot change values in a key column `%s`' % frame.names[icol]
+                msg = 'Cannot change values in a key column %s' % frame.names[icol]
                 msg = re.escape(msg)
                 python_output.write("with pytest.raises(ValueError, match='%s'):\n"
                                     "    DT[f[%d] == None, f[%d]] = %r\n"
@@ -754,7 +771,7 @@ class Frame0:
 
     def cbind(self, frames):
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", dt.DatatableWarning)
+            warnings.simplefilter("ignore", dt.exceptions.DatatableWarning)
             self.df.cbind(*[iframe.df for iframe in frames])
         newdata = copy.deepcopy(self.data)
         newnames = self.names.copy()
@@ -799,7 +816,7 @@ class Frame0:
         assert isinstance(replacement_value, self.types[icol])
 
         if icol < self.nkeys:
-            msg = 'Cannot change values in a key column `%s`' % self.names[icol]
+            msg = 'Cannot change values in a key column %s' % self.names[icol]
             msg = re.escape(msg)
             with pytest.raises(ValueError, match = msg):
                 self.df[f[icol] == None, f[icol]] = replacement_value

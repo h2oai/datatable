@@ -53,11 +53,9 @@ from .lib._datatable import (
 from .options import options
 from .str import split_into_nhot
 from .types import stype, ltype
-from .utils.typechecks import TTypeError as TypeError
-from .utils.typechecks import TValueError as ValueError
-from .utils.typechecks import DatatableWarning, InvalidOperationError
 import datatable.math
 import datatable.internal
+import datatable.exceptions
 try:
     from ._build_info import build_info
     __version__ = build_info.version
@@ -67,7 +65,6 @@ except ImportError:
 
 __all__ = (
     "Frame",
-    "InvalidOperationError",
     "corr",
     "count",
     "cov",

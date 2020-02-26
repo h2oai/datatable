@@ -76,6 +76,7 @@ class RowIndexImpl {
     RowIndexImpl* release();
 
     virtual bool get_element(size_t i, size_t* out) const = 0;
+    virtual Column as_column() const = 0;
     virtual RowIndexImpl* uplift_from(const RowIndexImpl*) const = 0;
     virtual RowIndexImpl* negate(size_t nrows) const = 0;
 
@@ -98,6 +99,7 @@ class SliceRowIndexImpl : public RowIndexImpl {
     SliceRowIndexImpl(size_t start, size_t count, size_t step);
 
     bool get_element(size_t i, size_t* out) const override;
+    Column as_column() const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
 
@@ -133,6 +135,7 @@ class ArrayRowIndexImpl : public RowIndexImpl {
     const int64_t* indices64() const noexcept;
 
     bool get_element(size_t i, size_t* out) const override;
+    Column as_column() const override;
     RowIndexImpl* uplift_from(const RowIndexImpl*) const override;
     RowIndexImpl* negate(size_t nrows) const override;
 

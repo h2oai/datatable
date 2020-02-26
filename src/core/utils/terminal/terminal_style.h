@@ -91,11 +91,14 @@ namespace style {
   static constexpr TerminalStyle bmagenta  = TerminalStyle::BMAGENTA;
   static constexpr TerminalStyle red       = TerminalStyle::RED;
   static constexpr TerminalStyle bred      = TerminalStyle::BRED;
-  static constexpr TerminalStyle white     = TerminalStyle::WHITE;
-  static constexpr TerminalStyle bwhite    = TerminalStyle::BWHITE;
   static constexpr TerminalStyle yellow    = TerminalStyle::YELLOW;
   static constexpr TerminalStyle byellow   = TerminalStyle::BYELLOW;
   static constexpr TerminalStyle end       = TerminalStyle::END;
+  // Note: avoid `white` and `bright_white` colors, because on MacOS default
+  //       terminal (which has white background) they are nearly invisible.
+  //       Use `bold` instead of `bright_white`.
+  // static constexpr TerminalStyle white     = TerminalStyle::WHITE;
+  // static constexpr TerminalStyle bwhite    = TerminalStyle::BOLD;
 
 
   inline constexpr bool has_style(TerminalStyle st)    { return (st & TerminalStyle::ANYSTYLE); }

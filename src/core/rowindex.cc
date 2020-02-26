@@ -20,9 +20,10 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>     // std::memcpy
+#include "column/range.h"
+#include "parallel/api.h"     // dt::parallel_for_static
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "parallel/api.h"     // dt::parallel_for_static
 #include "datatablemodule.h"
 #include "rowindex.h"
 #include "rowindex_impl.h"
@@ -225,6 +226,17 @@ void RowIndex::extract_into(Buffer& buffer, int flags) const {
   } else {
     xassert(buffer.size() >= size() * sizeof(int64_t));
     _extract_into<int64_t>(*this, static_cast<int64_t*>(data));
+  }
+}
+
+
+Column RowIndex::as_column(size_t nrows) const {
+  if (impl) {
+    return impl->as_column();
+  } else {
+    // No RowIndex is equivalent to having RowIndex over all rows
+    auto inrows = static_cast<int64_t>(nrows);
+    return Column(new dt::Range_ColumnImpl(0, inrows, 1));
   }
 }
 
