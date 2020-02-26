@@ -103,8 +103,8 @@ class Sorter_MultiImpl : public SSorter<TO>
         [&](size_t i, size_t j) {  // compare_lt
           int cmp = column0_->compare_lge(i, j);
           if (cmp == 0) {
-            for (size_t k = 0; k < other_columns_.size; ++k) {
-              cmp = other_columns_.ptr[k]->compare_lge(i, j);
+            for (size_t k = 0; k < other_columns_.size(); ++k) {
+              cmp = other_columns_[k]->compare_lge(i, j);
               if (cmp) break;
             }
           }
@@ -115,16 +115,16 @@ class Sorter_MultiImpl : public SSorter<TO>
     void small_sort(ovec ordering_in, ovec ordering_out, size_t offset)
         const override
     {
-      xassert(ordering_in.size == ordering_out.size);
+      xassert(ordering_in.size() == ordering_out.size());
       if (column0_->contains_reordered_data()) {
         dt::sort::small_sort(ordering_in, ordering_out,
           [&](size_t i, size_t j) {
             int cmp = column0_->compare_lge(i + offset, j + offset);
             if (cmp == 0) {
-              size_t ii = static_cast<size_t>(ordering_in.ptr[i]);
-              size_t jj = static_cast<size_t>(ordering_in.ptr[j]);
-              for (size_t k = 0; k < other_columns_.size; ++k) {
-                cmp = other_columns_.ptr[k]->compare_lge(ii, jj);
+              size_t ii = static_cast<size_t>(ordering_in[i]);
+              size_t jj = static_cast<size_t>(ordering_in[j]);
+              for (size_t k = 0; k < other_columns_.size(); ++k) {
+                cmp = other_columns_[k]->compare_lge(ii, jj);
                 if (cmp) break;
               }
             }
@@ -134,12 +134,12 @@ class Sorter_MultiImpl : public SSorter<TO>
       else {
         dt::sort::small_sort(ordering_in, ordering_out,
           [&](size_t i, size_t j) {
-            size_t ii = static_cast<size_t>(ordering_in.ptr[i]);
-            size_t jj = static_cast<size_t>(ordering_in.ptr[j]);
+            size_t ii = static_cast<size_t>(ordering_in[i]);
+            size_t jj = static_cast<size_t>(ordering_in[j]);
             int cmp = column0_->compare_lge(ii, jj);
             if (cmp == 0) {
-              for (size_t k = 0; k < other_columns_.size; ++k) {
-                cmp = other_columns_.ptr[k]->compare_lge(ii, jj);
+              for (size_t k = 0; k < other_columns_.size(); ++k) {
+                cmp = other_columns_[k]->compare_lge(ii, jj);
                 if (cmp) break;
               }
             }

@@ -107,7 +107,7 @@ class Sorter_Raw : public SSorter<TO>
     void radix_sort0(ovec ordering_in, ovec ordering_out, size_t offset,
                      bool parallel) const
     {
-      size_t n = ordering_out.size;
+      size_t n = ordering_out.size();
       RadixSort rdx(n, n_significant_bits_, parallel);
       TU* x = data_ + offset;
       rdx.sort_by_radix(ordering_in, ordering_out,
@@ -120,7 +120,7 @@ class Sorter_Raw : public SSorter<TO>
                      int n_radix_bits, bool parallel) const
     {
       static_assert(std::is_unsigned<TNext>::value, "Wrong TNext type");
-      size_t n = ordering_out.size;
+      size_t n = ordering_out.size();
       int shift = n_significant_bits_ - n_radix_bits;
       TU mask = static_cast<TU>(TU(1) << shift) - 1;
       Sorter_Raw<TO, TNext> nextcol(Buffer::mem(n*sizeof(TNext)), n, shift);

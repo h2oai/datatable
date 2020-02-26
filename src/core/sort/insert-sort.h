@@ -61,14 +61,13 @@ void insert_sort(array<TO> ordering_in,
     std::is_convertible<Compare, std::function<bool(size_t, size_t)>>::value,
     "Invalid signature of comparator function");
 
-  size_t n = ordering_out.size;
+  size_t n = ordering_out.size();
   xassert(n > 0);
-  if (ordering_in.size) {
-    xassert(ordering_in.size == n);
-    xassert(ordering_in.ptr);
+  if (ordering_in.size()) {
+    xassert(ordering_in.size() == n);
   }
 
-  TO* const oo = ordering_out.ptr;
+  TO* const oo = ordering_out.ptr();
   oo[0] = 0;
   for (size_t i = 1; i < n; ++i) {
     size_t j = i;
@@ -79,9 +78,9 @@ void insert_sort(array<TO> ordering_in,
     oo[j] = static_cast<TO>(i);
   }
 
-  if (ordering_in.size) {
+  if (ordering_in) {
     for (size_t i = 0; i < n; ++i) {
-      oo[i] = ordering_in.ptr[oo[i]];
+      oo[i] = ordering_in[oo[i]];
     }
   }
 }
@@ -99,22 +98,21 @@ void std_sort(array<TO> ordering_in,
               array<TO> ordering_out,
               Compare compare)
 {
-  size_t n = ordering_out.size;
+  size_t n = ordering_out.size();
   xassert(n > 0);
-  if (ordering_in.size) {
-    xassert(ordering_in.size == n);
-    xassert(ordering_in.ptr);
+  if (ordering_in.size()) {
+    xassert(ordering_in.size() == n);
   }
 
-  TO* const oo = ordering_out.ptr;
+  TO* const oo = ordering_out.ptr();
   for (size_t i = 0; i < n; ++i) {
     oo[i] = static_cast<TO>(i);
   }
   std::stable_sort(oo, oo + n, compare);
 
-  if (ordering_in.size) {
+  if (ordering_in) {
     for (size_t i = 0; i < n; ++i) {
-      oo[i] = ordering_in.ptr[oo[i]];
+      oo[i] = ordering_in[oo[i]];
     }
   }
 }
@@ -132,7 +130,7 @@ void small_sort(array<TO> ordering_in,
                 array<TO> ordering_out,
                 Compare compare)
 {
-  if (ordering_out.size < INSERTSORT_NROWS) {
+  if (ordering_out.size() < INSERTSORT_NROWS) {
     insert_sort(ordering_in, ordering_out, compare);
   }
   else {

@@ -56,8 +56,8 @@ class Sorter_Bool : public SSorter<TO> {
 
     void small_sort(ovec ordering_in, ovec ordering_out, size_t) const override
     {
-      xassert(ordering_in.size == ordering_out.size);
-      const TO* oin = ordering_in.ptr;
+      xassert(ordering_in.size() == ordering_out.size());
+      const TO* oin = ordering_in.ptr();
       dt::sort::small_sort(ordering_in, ordering_out,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;

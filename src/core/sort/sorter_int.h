@@ -62,8 +62,8 @@ class Sorter_Int : public SSorter<TO> {
                     size_t offset) const override
     {
       (void) offset;
-      xassert(ordering_in.size == ordering_out.size);
-      const TO* oin = ordering_in.ptr;
+      xassert(ordering_in.size() == ordering_out.size());
+      const TO* oin = ordering_in.ptr();
       dt::sort::small_sort(ordering_in, ordering_out,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
@@ -86,7 +86,7 @@ class Sorter_Int : public SSorter<TO> {
     void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
                     bool parallel, next_wrapper wrap = nullptr) const override
     {
-      xassert(ordering_in.size == 0);
+      xassert(ordering_in.size() == 0);
       xassert(offset == 0);
       bool minmax_valid;
       TI min = static_cast<TI>(column_.stats()->min_int(&minmax_valid));
@@ -118,7 +118,7 @@ class Sorter_Int : public SSorter<TO> {
         [&](size_t i, size_t j) {  // move_data
           TI value;
           column_.get_element(i, &value);
-          out_array.ptr[j] = static_cast<TU>(value - min) & mask;
+          out_array[j] = static_cast<TU>(value - min) & mask;
         });
 
       Sorter_Raw<TO, TU> nextcol(std::move(out_buffer), nrows_, shift);
@@ -131,9 +131,9 @@ class Sorter_Int : public SSorter<TO> {
 
   private:
     void write_range(ovec ordering_out) const {
-      size_t n = ordering_out.size;
+      size_t n = ordering_out.size();
       for (size_t i = 0; i < n; ++i) {
-        ordering_out.ptr[i] = static_cast<TO>(i);
+        ordering_out[i] = static_cast<TO>(i);
       }
     }
 
