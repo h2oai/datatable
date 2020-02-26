@@ -578,7 +578,7 @@ void GenericReader::open_input() {
   const char* filename = nullptr;
   if (fileno > 0) {
     const char* src = src_arg.to_cstring().ch;
-    input_mbuf = Buffer::mmap(src, 0, fileno);
+    input_mbuf = Buffer::mmap(src, 0, fileno, false);
     size_t sz = input_mbuf.size();
     trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
 

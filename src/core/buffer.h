@@ -112,8 +112,9 @@ class Buffer
     // Buffer:mmap(path)
     //   Create Buffer by mem-mapping a file given by the `path`.
     //
-    // Buffer::mmap(path, n, [fd])
-    //   Create a file of size `n` at `path`, and then memory-map it.
+    // Buffer::mmap(path, n, [fd], [create])
+    //   If `create` is `true` (default), create a file of size `n` at `path`,
+    //   and then memory-map it. Otherwise, just memory-map the existing file.
     //
     // Buffer::overmap(path, nextra)
     //   Similar to `mmap(path)`, but the memmap will return a buffer
@@ -129,7 +130,8 @@ class Buffer
     static Buffer external(const void* ptr, size_t n, py::buffer&& pybuf);
     static Buffer view(const Buffer& src, size_t n, size_t offset);
     static Buffer mmap(const std::string& path);
-    static Buffer mmap(const std::string& path, size_t n, int fd = -1, bool create = false);
+    static Buffer mmap(const std::string& path, size_t n, int fd = -1,
+                       bool create = true);
     static Buffer overmap(const std::string& path, size_t nextra, int fd = -1);
 
     // Basic properties of the Buffer:
