@@ -250,6 +250,14 @@ def test_rbind_strings5():
     assert f1.to_list() == [["foo", "bra", "1", "2", "3"]]
 
 
+def test_rbind_strings_large():
+    s = "ABCDEFGHIJ" * 110 + "xyz"
+    n = 1000000
+    assert len(s) * n * 2 > (1 << 31)
+    DT0 = dt.Frame(A=[s] * n)
+    DT1 = dt.rbind(DT0, DT0)
+    assert DT1[-1, 0] == s
+
 
 
 #-------------------------------------------------------------------------------

@@ -188,7 +188,7 @@ void ColumnImpl::replace_values(const RowIndex&, const Column&, Column&) {
   throw NotImplError() << "Method ColumnImpl::replace_values() not implemented";
 }
 
-void ColumnImpl::rbind_impl(colvec&, size_t, bool) {
+void ColumnImpl::rbind_impl(colvec&, size_t, bool, SType&) {
   throw NotImplError() << "Method ColumnImpl::rbind_impl() not implemented";
 }
 
