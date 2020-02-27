@@ -37,6 +37,10 @@
   -[bug] Casting a 0-row ``str32`` column into ``str64`` stype no longer goes
     into an infinite loop. [#2369]
 
+  -[bug] Rbinding several ``str32`` columns such that their combined string
+    buffers have size over 2GB now properly creates a ``str64`` column as a
+    result. [#2367]
+
 
   Fread
   -----
