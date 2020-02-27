@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include "column/sentinel_str.h"
 #include "parallel/api.h"
 #include "parallel/string_utils.h"
 #include "utils/assert.h"
@@ -32,6 +33,10 @@ Column generate_string_column(function<void(size_t, string_buf*)> fn,
                               bool force_str64,
                               bool force_single_threaded)
 {
+  if (nrows == 0) {
+    return force_str64? Column(new SentinelStr_ColumnImpl<uint64_t>(0))
+                      : Column(new SentinelStr_ColumnImpl<uint32_t>(0));
+  }
   size_t nchunks = 1 + (nrows - 1)/1000;
   size_t chunksize = 1 + (nrows - 1)/nchunks;
 
