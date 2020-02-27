@@ -132,7 +132,8 @@ class ColumnImpl
   //------------------------------------
   private:
     // TODO: this should really be materializer for RBound column impl
-    virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty);
+    virtual void rbind_impl(colvec& columns, size_t nrows, bool isempty,
+                            SType& cast_stype);
 
     template <typename T> void _materialize_fw(Column&);
     void _materialize_str(Column&);

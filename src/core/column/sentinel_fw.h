@@ -65,7 +65,7 @@ class SentinelFw_ColumnImpl : public Sentinel_ColumnImpl
     void replace_values(const RowIndex& at, T with);
 
   protected:
-    void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
+    void rbind_impl(colvec& columns, size_t nrows, bool isempty, SType&) override;
 };
 
 
@@ -128,7 +128,7 @@ public:
   bool get_element(size_t i, py::robj* out) const override;
 
 protected:
-  void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
+  void rbind_impl(colvec& columns, size_t nrows, bool, SType&) override;
   void verify_integrity() const override;
 };
 
