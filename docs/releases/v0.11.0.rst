@@ -37,6 +37,9 @@
   -[bug] Casting a 0-row ``str32`` column into ``str64`` stype no longer goes
     into an infinite loop. [#2369]
 
+  -[bug] Fixed creation of a ``str64`` column from a python list of strings
+    when the total size of all strings is greater than 2GB. [#2368]
+
   -[bug] Rbinding several ``str32`` columns such that their combined string
     buffers have size over 2GB now properly creates a ``str64`` column as a
     result. [#2367]
