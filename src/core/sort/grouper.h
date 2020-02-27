@@ -27,6 +27,7 @@ namespace dt {
 namespace sort {
 
 
+
 /**
  * Helper class to collect grouping information while sorting.
  *
@@ -41,10 +42,10 @@ namespace sort {
  * -------------------
  * data_
  *     The array of cumulative group sizes. The array must be pre-allocated
- *     and passed to this class via `init()`.
+ *     and passed to this class in the constructor.
  *
  * n_
- *     The number of groups that were stored in the `data_` array.
+ *     The number of groups that were stored in the `data_` array so far.
  *
  * offset_
  *     The total size of all groups added so far. This is always equals to

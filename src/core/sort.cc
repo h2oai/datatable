@@ -1346,7 +1346,6 @@ RiGb group(const std::vector<Column>& columns,
   xassert(n == flags.size());
 
   const Column& col0 = columns[0];
-  col0.stats();  // instantiate Stats object; TODO: remove this
 
   size_t nrows = col0.nrows();
   #if DTDEBUG
@@ -1374,6 +1373,7 @@ RiGb group(const std::vector<Column>& columns,
 
   bool do_groups = n > 1 || !(flags[0] & SortFlag::SORT_ONLY);
   SortContext sc(nrows, RowIndex(), do_groups);
+  col0.stats();  // instantiate Stats object; TODO: remove this
   sc.start_sort(col0, bool(flags[0] & SortFlag::DESCENDING));
   for (size_t j = 1; j < n; ++j) {
     bool j_sort_only = (flags[j] & SortFlag::SORT_ONLY);
