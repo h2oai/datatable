@@ -242,6 +242,7 @@ void SentinelStr_ColumnImpl<T>::verify_integrity() const {
                "previous offset: offset = " << oj
             << ", previous offset = " << lastoff;
       }
+      XAssert(cdata);
       if (!is_valid_utf8(cdata + lastoff, static_cast<size_t>(oj - lastoff))) {
         throw AssertionError()
             << "Invalid UTF-8 string in row " << i << ": "

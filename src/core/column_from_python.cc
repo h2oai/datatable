@@ -258,6 +258,8 @@ template <typename T>
 static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
                            Buffer& strbuf)
 {
+  static_assert(std::is_unsigned<T>::value, "Wrong T type");
+
   size_t nrows = inputcol.nrows();
   offbuf.resize((nrows + 1) * sizeof(T));
   T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
@@ -285,7 +287,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
         T tlen = static_cast<T>(cstr.size);
         T next_offset = curr_offset + tlen;
         // Check that length or offset of the string doesn't overflow int32_t
-        if (std::is_same<T, int32_t>::value &&
+        if (std::is_same<T, uint32_t>::value &&
               (static_cast<int64_t>(tlen) != cstr.size ||
                next_offset < curr_offset)) {
           break;
@@ -312,7 +314,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
     break;
   }
   if (i < nrows) {
-    if (std::is_same<T, int64_t>::value) {
+    if (std::is_same<T, uint64_t>::value) {
       strbuf.resize(0);
     }
   } else {
