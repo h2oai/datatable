@@ -1,17 +1,23 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>
 #include <functional>   // std::function
@@ -45,10 +51,7 @@ static constexpr size_t INVALID_INDEX = size_t(-1);
 //------------------------------------------------------------------------------
 namespace py {
 
-static PKArgs args_rbind(
-  0, 0, 2, true, false,
-  {"force", "bynames"}, "rbind",
-
+static const char* docs_rbind =
 R"(rbind(self, *frames, force=False, bynames=True)
 --
 
@@ -59,7 +62,7 @@ combined by rows, i.e. rbinding a frame of shape [n x k] to a Frame
 of shape [m x k] produces a frame of shape [(m + n) x k].
 
 This method modifies the current frame in-place. If you do not want
-the current frame modified, then use `dt.rbind()` function.
+the current frame modified, then use the :func:`dt.rbind()` function.
 
 If frame(s) being appended have columns of types different from the
 current frame, then these columns will be promoted to the largest of
@@ -67,7 +70,7 @@ their types: bool -> int -> float -> string.
 
 If you need to append multiple frames, then it is more efficient to
 collect them into an array first and then do a single `rbind()`, than
-it is to append them one-by-one.
+it is to append them one-by-one in a loop.
 
 Appending data to a frame opened from disk will force loading the
 current frame into memory, which may fail with an OutOfMemory
@@ -75,7 +78,7 @@ exception if the frame is sufficiently big.
 
 Parameters
 ----------
-frames: sequence or list of Frames
+frames: Frame | List[Frame]
     One or more frame to append. These frames should have the same
     columnar structure as the current frame (unless option `force` is
     used).
@@ -93,7 +96,11 @@ bynames: bool
     column names will be ignored, and the columns will be matched
     according to their order, i.e. i-th column in the current frame
     to the i-th column in each appended frame.
-)");
+)";
+
+static PKArgs args_rbind(
+  0, 0, 2, true, false, {"force", "bynames"}, "rbind", docs_rbind);
+
 
 
 void Frame::rbind(const PKArgs& args) {
@@ -341,7 +348,12 @@ void Column::rbind(colvec& columns) {
 
   // Use the appropriate strategy to continue appending the columns.
   newcol.materialize();
-  newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty);
+  new_stype = SType::VOID;
+  newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty, new_stype);
+  if (new_stype != SType::VOID) {
+    newcol.cast_inplace(new_stype);
+    newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty, new_stype);
+  }
 
   // Replace current column's impl with the newcol's
   std::swap(impl_, newcol.impl_);
@@ -354,8 +366,8 @@ void Column::rbind(colvec& columns) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows,
-                                 bool col_empty)
+void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
+        colvec& columns, size_t new_nrows, bool col_empty, SType& new_stype)
 {
   // Determine the size of the memory to allocate
   size_t old_nrows = nrows_;
@@ -367,11 +379,17 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows
     Column& col = columns[i];
     if (col.stype() == SType::VOID) continue;
     if (col.ltype() != LType::STRING) {
-      col = col.cast(stype_);
+      col.cast_inplace(stype_);
     }
     new_strbuf_size += col.get_data_size(1);
   }
   size_t new_mbuf_size = sizeof(T) * (new_nrows + 1);
+  if (sizeof(T) == 4 && (new_strbuf_size > Column::MAX_ARR32_SIZE ||
+                         new_nrows > Column::MAX_ARR32_SIZE))
+  {
+    new_stype = SType::STR64;
+    return;
+  }
 
   // Reallocate the column
   offbuf_.resize(new_mbuf_size);
@@ -441,7 +459,8 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows
 template<> inline py::robj GETNA() { return py::rnone(); }
 
 template <typename T>
-void dt::SentinelFw_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows, bool col_empty)
+void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
+        colvec& columns, size_t new_nrows, bool col_empty, SType&)
 {
   const T na = GETNA<T>();
   const void* naptr = static_cast<const void*>(&na);
@@ -494,7 +513,7 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(colvec& columns, size_t new_nrows,
 //------------------------------------------------------------------------------
 
 void dt::SentinelObj_ColumnImpl::rbind_impl(
-  colvec& columns, size_t nnrows, bool col_empty)
+  colvec& columns, size_t nnrows, bool col_empty, SType&)
 {
   size_t old_nrows = nrows_;
   size_t new_nrows = nnrows;
