@@ -254,6 +254,15 @@ def test_cast_huge_to_str():
     assert RES[-1, 0] == DT[0, 0]
 
 
+def test_cast_empty_str32_to_str64():
+    # See issue #2369
+    DT = dt.Frame(A=[], stype=dt.str32)
+    DT['A'] = dt.str64
+    assert_equals(DT, dt.Frame(A=[], stype=dt.str64))
+    DT['A'] = dt.str32
+    assert_equals(DT, dt.Frame(A=[], stype=dt.str32))
+
+
 
 
 #-------------------------------------------------------------------------------

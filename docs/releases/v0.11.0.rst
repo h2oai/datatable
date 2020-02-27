@@ -34,6 +34,9 @@
   -[bug] Deleting a key from the Frame (``del DT.key``) no longer causes a
     seg.fault. [#2357]
 
+  -[bug] Casting a 0-row ``str32`` column into ``str64`` stype no longer goes
+    into an infinite loop. [#2369]
+
 
   Fread
   -----
