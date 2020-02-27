@@ -270,53 +270,54 @@ def test_int8_large_stable(n):
 #-------------------------------------------------------------------------------
 
 def test_bool8_small():
-    d0 = dt.Frame([True, False, False, None, True, True, None])
-    assert d0.stypes == (stype.bool8, )
-    d1 = d0[:, :, sort("C0")]
-    assert d1.stypes == d0.stypes
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, None, False, False, True, True, True]]
+    DT0 = dt.Frame([True, False, False, None, True, True, None])
+    DT1 = dt.Frame([None, None, False, False, True, True, True])
+    DTS = DT0[:, :, sort("C0")]
+    assert DT0.stype == dt.bool8
+    assert isview(DTS)
+    assert_equals(DTS, DT1)
 
 
 def test_bool8_small_stable():
-    d0 = dt.Frame([[True, False, False, None, True, True, None],
-                   [1, 2, 3, 4, 5, 6, 7]],
-                  names=["A", "B"], stypes={"B": "int8"})
-    assert d0.stypes == (stype.bool8, stype.int8)
-    d1 = d0[:, :, sort("A")]
-    assert d1.stypes == d0.stypes
-    assert d1.names == d0.names
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, None, False, False, True, True, True],
-                            [4, 7, 2, 3, 1, 5, 6]]
+    DT0 = dt.Frame(A=[True, False, False, None, True, True, None],
+                   B=[1, 2, 3, 4, 5, 6, 7])
+    DT1 = dt.Frame(A=[None, None, False, False, True, True, True],
+                   B=[4, 7, 2, 3, 1, 5, 6])
+    DTS = DT0[:, :, sort(f.A)]
+    assert DT0['A'].stype == dt.bool8
+    assert isview(DTS)
+    assert_equals(DTS, DT1)
 
 
-@pytest.mark.parametrize("n", [100, 512, 1000, 5000, 100000])
+def test_bool8_small_view():
+    DT0 = dt.Frame([True, False, False, True, None, True, True, None])
+    DT1 = dt.Frame([None, None, False, False, True, True, True, True])
+    DTS = dt.rbind(DT0[::2, :], DT0[1::2, :]).sort(0)
+    assert_equals(DTS, DT1)
+
+
+@pytest.mark.parametrize("n", [100, 512, 1000, 5000, 123457])
 def test_bool8_large(n):
-    d0 = dt.Frame([True, False, True, None, None, False] * n)
-    assert d0.stypes == (stype.bool8, )
-    d1 = d0.sort(0)
-    assert d1.stypes == d0.stypes
-    assert d1.names == d0.names
-    assert isview(d1)
-    frame_integrity_check(d0)
-    frame_integrity_check(d1)
     nn = 2 * n
-    assert d1.to_list() == [[None] * nn + [False] * nn + [True] * nn]
+    DT0 = dt.Frame([True, False, True, None, None, False] * n)
+    DT1 = dt.Frame([[None] * nn + [False] * nn + [True] * nn])
+    assert DT0.stype == dt.bool8
+    DTS = DT0.sort(0)
+    DTT = DT0[::-1, :].sort(0)
+    assert isview(DTS)
+    assert_equals(DTS, DT1)
+    assert_equals(DTT, DT1)
 
 
-@pytest.mark.parametrize("n", [254, 255, 256, 257, 258, 1000, 10000])
+@pytest.mark.parametrize("n", [254, 255, 256, 257, 258, 1000, 11111])
 def test_bool8_large_stable(n):
-    d0 = dt.Frame([[True, False, None] * n, range(3 * n)], names=["A", "B"])
-    assert d0.stypes[0] == stype.bool8
-    d1 = d0[:, f.B, sort(f.A)]
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [list(range(2, 3 * n, 3)) +
-                            list(range(1, 3 * n, 3)) +
-                            list(range(0, 3 * n, 3))]
+    DT0 = dt.Frame(A=[True, False, None] * n, B=range(3 * n))
+    DT1 = dt.Frame(B=list(range(2, 3 * n, 3)) +
+                     list(range(1, 3 * n, 3)) +
+                     list(range(0, 3 * n, 3)))
+    DTS = DT0[:, f.B, sort(f.A)]
+    assert_equals(DTS, DT1)
+
 
 
 
