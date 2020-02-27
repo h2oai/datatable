@@ -728,6 +728,13 @@ def test_auto_str64():
     assert d0.stypes == (stype.str64,)
 
 
+def test_create_large_string_column():
+    s = 'a' * (1 << 20)
+    DT = dt.Frame([s] * (1 << 12))
+    frame_integrity_check(DT)
+    assert DT.stype == dt.str64
+    assert DT[-1, 0] == s
+
 
 
 #-------------------------------------------------------------------------------
