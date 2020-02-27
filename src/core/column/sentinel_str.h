@@ -55,7 +55,7 @@ class SentinelStr_ColumnImpl : public Sentinel_ColumnImpl
                         Column& out) override;
 
   protected:
-    void rbind_impl(colvec& columns, size_t nrows, bool isempty) override;
+    void rbind_impl(colvec& columns, size_t nrows, bool isempty, SType&) override;
 };
 
 
