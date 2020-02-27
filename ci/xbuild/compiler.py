@@ -254,11 +254,11 @@ class Compiler:
     def add_default_python_include_dir(self):
         py_include_dir = sysconfig.get_config_var("INCLUDEPY")
         if not os.path.isdir(py_include_dir):
-            self._log.warn("Python include directory `%s` does not exist, "
-                           "compilation may fail" % py_include_dir)
+            self.log.warn("Python include directory `%s` does not exist, "
+                          "compilation may fail" % py_include_dir)
         elif not os.path.exists(os.path.join(py_include_dir, "Python.h")):
-            self._log.warn("Python include directory `%s` is missing the file "
-                           "Python.h, compilation may fail" % py_include_dir)
+            self.log.warn("Python include directory `%s` is missing the file "
+                          "Python.h, compilation may fail" % py_include_dir)
         self.add_include_dir(py_include_dir, system=True)
 
 
@@ -324,8 +324,8 @@ class Compiler:
         py_dir = sysconfig.get_config_var("BINDIR")
         py_lib_dir = os.path.join(py_dir, "libs")
         if not os.path.isdir(py_lib_dir):
-            self._log.warn("Python lib directory `%s` does not exist, "
-                           "linking may fail" % py_lib_dir)
+            self.log.warn("Python lib directory `%s` does not exist, "
+                          "linking may fail" % py_lib_dir)
         self.add_lib_dir(py_lib_dir)
 
 
