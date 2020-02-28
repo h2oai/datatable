@@ -86,10 +86,12 @@ class Sorter_Bool : public SSorter<T>
 
 
     void radix_sort(Vec ordering_in, Vec ordering_out,
-                    size_t offset, Mode sort_mode,
-                    NextWrapper wrap = nullptr) const override
+                    size_t offset, TGrouper* grouper, Mode sort_mode,
+                    NextWrapper wrap) const override
     {
       (void) offset;
+      (void) grouper;
+      (void) wrap;
       RadixSort rdx(nrows_, 1, sort_mode);
       rdx.sort_by_radix(ordering_in, ordering_out,
         [&](size_t i) {  // get_radix

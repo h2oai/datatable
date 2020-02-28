@@ -88,8 +88,11 @@ class Sorter_Int : public SSorter<T> {
     }
 
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
-                    Mode sort_mode, NextWrapper wrap = nullptr) const override
+                    TGrouper* grouper, Mode sort_mode, NextWrapper wrap
+                    ) const override
     {
+      (void) grouper;
+      (void) wrap;
       xassert(ordering_in.size() == 0);
       xassert(offset == 0);
       bool minmax_valid;
@@ -128,7 +131,7 @@ class Sorter_Int : public SSorter<T> {
       Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
       rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
         [&](size_t offs, size_t len, Vec ord_in, Vec ord_out, Mode m) {
-          nextcol.sort_subgroup(offs, len, ord_in, ord_out, m);
+          nextcol.sort_subgroup(offs, len, ord_in, ord_out, nullptr, m);
         });
     }
 

@@ -89,8 +89,8 @@ class SSorter : public Sorter
       if (nrows_ <= INSERTSORT_NROWS) {
         small_sort(ordering_out, grouper.get());
       } else {
-        xassert(!grouper);
-        radix_sort(Vec(), ordering_out, 0, Mode::PARALLEL);
+        radix_sort(Vec(), ordering_out, 0, grouper.get(),
+                   Mode::PARALLEL, nullptr);
       }
       auto rowindex_type = sizeof(T) == 4? RowIndex::ARR32 : RowIndex::ARR64;
       RowIndex result_rowindex(std::move(rowindex_buf), rowindex_type);
@@ -134,8 +134,8 @@ class SSorter : public Sorter
     /**
       */
     virtual void radix_sort(Vec ordering_in, Vec ordering_out,
-                            size_t offset, Mode sort_mode,
-                            NextWrapper wrap = nullptr) const = 0;
+                            size_t offset, TGrouper* grouper,
+                            Mode sort_mode, NextWrapper wrap) const = 0;
 
     /**
       * Comparator function that compares the values of the underlying

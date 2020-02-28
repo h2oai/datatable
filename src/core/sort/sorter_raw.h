@@ -57,12 +57,12 @@ class Sorter_Raw : public SSorter<T>
 
     void sort_subgroup(size_t offset, size_t length,
                        Vec ordering_in, Vec ordering_out,
-                       Mode sort_mode)
+                       TGrouper* grouper, Mode sort_mode)
     {
       if (length <= INSERTSORT_NROWS) {
-        small_sort(ordering_in, ordering_out, offset, nullptr);
+        small_sort(ordering_in, ordering_out, offset, grouper);
       } else {
-        radix_sort(ordering_in, ordering_out, offset, sort_mode);
+        radix_sort(ordering_in, ordering_out, offset, grouper, sort_mode, nullptr);
       }
     }
 
@@ -94,8 +94,11 @@ class Sorter_Raw : public SSorter<T>
 
 
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
-                    Mode mode, NextWrapper wrap = nullptr) const override
+                    TGrouper* grouper, Mode mode, NextWrapper wrap
+                    ) const override
     {
+      (void) grouper;
+      (void) wrap;
       int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
       int n_remaining_bits = n_significant_bits_ - n_radix_bits;
       if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, mode);
@@ -137,7 +140,7 @@ class Sorter_Raw : public SSorter<T>
 
       rdx.sort_subgroups(groups, ordering_out, ordering_in,
         [&](size_t offs, size_t length, Vec oin, Vec oout, Mode m) {
-          nextcol.sort_subgroup(offs, length, oin, oout, m);
+          nextcol.sort_subgroup(offs, length, oin, oout, nullptr, m);
         });
     }
 };

@@ -111,15 +111,16 @@ class Sorter_Multi : public SSorter<T>
       }
     }
 
-    virtual void radix_sort(Vec ordering_in, Vec ordering_out,
-                            size_t offset, Mode sort_mode,
-                            NextWrapper wrap = nullptr) const override
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
+                    TGrouper* grouper, Mode sort_mode, NextWrapper wrap
+                    ) const override
     {
-      column0_->radix_sort(ordering_in, ordering_out, offset, sort_mode,
+      (void) wrap;
+      column0_->radix_sort(ordering_in, ordering_out, offset, grouper, sort_mode,
           [&](UnqSorter&& next_sorter) {
             if (next_sorter) {
               return UnqSorter(new Sorter_Multi<T>(std::move(next_sorter),
-                                                    other_columns_));
+                                                   other_columns_));
             } else {
               return UnqSorter();  // FIXME
               // return ssoptr(new Sorter_MultiImpl<T>());
