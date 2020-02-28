@@ -78,10 +78,13 @@ class Grouper
     void fill_from_data(vec ordering, compare_fn cmp) {
       const size_t nrows = ordering.size();
       size_t last_i = 0;
+      size_t last_oi = static_cast<size_t>(ordering[0]);
       for (size_t i = 1; i < nrows; ++i) {
-        if (cmp(last_i, i)) {
+        size_t oi = static_cast<size_t>(ordering[i]);
+        if (cmp(last_oi, oi)) {
           push(i - last_i);
           last_i = i;
+          last_oi = oi;
         }
       }
       push(nrows - last_i);
