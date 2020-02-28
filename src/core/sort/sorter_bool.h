@@ -34,7 +34,8 @@ namespace sort {
 template <typename TO>
 class Sorter_Bool : public SSorter<TO> {
   private:
-    using ovec = array<TO>;
+    using Vec = array<TO>;
+    using TGrouper = Grouper<TO>;
     using typename SSorter<TO>::next_wrapper;
     using SSorter<TO>::nrows_;
     Column column_;
@@ -54,32 +55,35 @@ class Sorter_Bool : public SSorter<TO> {
     }
 
 
-    void small_sort(ovec ordering_in, ovec ordering_out, size_t) const override
+    void small_sort(Vec ordering_in, Vec ordering_out, size_t,
+                    TGrouper*) const override
     {
       xassert(ordering_in.size() == ordering_out.size());
       const TO* oin = ordering_in.ptr();
       dt::sort::small_sort(ordering_in, ordering_out,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
-          bool ivalid = column_.get_element(static_cast<size_t>(oin[i]), &ivalue);
-          bool jvalid = column_.get_element(static_cast<size_t>(oin[j]), &jvalue);
-          return jvalid && (!ivalid || ivalue < jvalue);
+          auto ii = static_cast<size_t>(oin[i]);
+          auto jj = static_cast<size_t>(oin[j]);
+          bool ivalid = column_.get_element(ii, &ivalue);
+          bool jvalid = column_.get_element(jj, &jvalue);
+          return jvalid & (!ivalid | (ivalue < jvalue));
         });
     }
 
 
-    void small_sort(ovec ordering_out) const override {
-      dt::sort::small_sort(ovec(), ordering_out,
+    void small_sort(Vec ordering_out, TGrouper*) const override {
+      dt::sort::small_sort(Vec(), ordering_out,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);
           bool jvalid = column_.get_element(j, &jvalue);
-          return jvalid && (!ivalid || ivalue < jvalue);
+          return jvalid & (!ivalid | (ivalue < jvalue));
         });
     }
 
 
-    void radix_sort(ovec ordering_in, ovec ordering_out,
+    void radix_sort(Vec ordering_in, Vec ordering_out,
                     size_t offset, Mode sort_mode,
                     next_wrapper wrap = nullptr) const override
     {

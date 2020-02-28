@@ -34,6 +34,7 @@ class Sorter_Raw : public SSorter<TO>
 {
   using typename SSorter<TO>::next_wrapper;
   using ovec = array<TO>;
+  using TGrouper = Grouper<TO>;
   using SSorter<TO>::nrows_;
   private:
     TU* data_;        // array with nrows_ elements
@@ -57,7 +58,7 @@ class Sorter_Raw : public SSorter<TO>
                        Mode sort_mode)
     {
       if (length <= INSERTSORT_NROWS) {
-        small_sort(ordering_in, ordering_out, offset);
+        small_sort(ordering_in, ordering_out, offset, nullptr);
       } else {
         radix_sort(ordering_in, ordering_out, offset, sort_mode);
       }
@@ -77,7 +78,7 @@ class Sorter_Raw : public SSorter<TO>
     }
 
     void small_sort(ovec ordering_in, ovec ordering_out,
-                     size_t offset) const override
+                    size_t offset, TGrouper*) const override
     {
       TU* x = data_ + offset;
       dt::sort::small_sort(ordering_in, ordering_out,
@@ -85,8 +86,8 @@ class Sorter_Raw : public SSorter<TO>
     }
 
 
-    void small_sort(ovec ordering_out) const override {
-      small_sort(ovec(), ordering_out, 0);
+    void small_sort(ovec ordering_out, TGrouper* grouper) const override {
+      small_sort(ovec(), ordering_out, 0, grouper);
     }
 
 

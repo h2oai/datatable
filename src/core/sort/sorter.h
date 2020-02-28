@@ -23,6 +23,7 @@
 #define dt_SORT_SORTER_h
 #include <utility>           // std::pair
 #include "sort/common.h"
+#include "sort/grouper.h"    // Grouper
 #include "groupby.h"
 #include "rowindex.h"
 namespace dt {
@@ -63,6 +64,7 @@ class SSorter : public Sorter
 {
   friend class Sorter_Multi<TO>;
   using ovec = array<TO>;
+  using TGrouper = Grouper<TO>;
   using uqsorter = std::unique_ptr<SSorter<TO>>;
 
   public:
@@ -75,7 +77,7 @@ class SSorter : public Sorter
       Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(TO));
       ovec ordering_out(rowindex_buf);
       if (nrows_ <= INSERTSORT_NROWS) {
-        small_sort(ordering_out);
+        small_sort(ordering_out, nullptr);
       } else {
         radix_sort(ovec(), ordering_out, 0, Mode::PARALLEL);
       }
@@ -98,17 +100,21 @@ class SSorter : public Sorter
       * The sorting is performed according to the values of the
       * underlying column within the range `[offset; offset + n)`.
       *
+      * The `grouper` variable may be nullptr. However, if present,
+      * the function should store the information about the groups
+      * in the data range that was sorted.
+      *
       * The recommended way of implementing this methid is via the
       * `dt::sort::small_sort()` function from "sort/insert-sort.h".
       */
     virtual void small_sort(ovec ordering_in, ovec ordering_out,
-                            size_t offset) const = 0;
+                            size_t offset, TGrouper* grouper) const = 0;
 
     /**
       * Same as previous, but `ordering_in` is implicitly equal to
       * `{0, 1, ..., n-1}` and `offset` is 0.
       */
-    virtual void small_sort(ovec ordering_out) const = 0;
+    virtual void small_sort(ovec ordering_out, TGrouper*) const = 0;
 
     /**
       */

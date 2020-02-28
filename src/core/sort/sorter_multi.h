@@ -38,6 +38,7 @@ class Sorter_Multi : public SSorter<TO>
   using uqSsorter = std::unique_ptr<SSorter<TO>>;
   using shSsorter = std::shared_ptr<SSorter<TO>>;
   using ovec = array<TO>;
+  using TGrouper = Grouper<TO>;
   private:
     shSsorter column0_;
     std::vector<shSsorter> other_columns_;
@@ -60,7 +61,7 @@ class Sorter_Multi : public SSorter<TO>
     {}
 
   protected:
-    void small_sort(ovec ordering_out) const override {
+    void small_sort(ovec ordering_out, TGrouper*) const override {
       dt::sort::small_sort(ovec(), ordering_out,
         [&](size_t i, size_t j) {  // compare_lt
           int cmp = column0_->compare_lge(i, j);
@@ -74,7 +75,7 @@ class Sorter_Multi : public SSorter<TO>
         });
     }
 
-    void small_sort(ovec ordering_in, ovec ordering_out, size_t offset)
+    void small_sort(ovec ordering_in, ovec ordering_out, size_t offset, TGrouper*)
         const override
     {
       xassert(ordering_in.size() == ordering_out.size());

@@ -39,6 +39,7 @@ class Sorter_Int : public SSorter<TO> {
   using TU = typename std::make_unsigned<TI>::type;
   private:
     using ovec = array<TO>;
+    using TGrouper = Grouper<TO>;
     using typename SSorter<TO>::next_wrapper;
     using SSorter<TO>::nrows_;
     Column column_;
@@ -59,7 +60,7 @@ class Sorter_Int : public SSorter<TO> {
     }
 
     void small_sort(ovec ordering_in, ovec ordering_out,
-                    size_t offset) const override
+                    size_t offset, TGrouper*) const override
     {
       (void) offset;
       xassert(ordering_in.size() == ordering_out.size());
@@ -67,13 +68,15 @@ class Sorter_Int : public SSorter<TO> {
       dt::sort::small_sort(ordering_in, ordering_out,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
-          bool ivalid = column_.get_element(static_cast<size_t>(oin[i]), &ivalue);
-          bool jvalid = column_.get_element(static_cast<size_t>(oin[j]), &jvalue);
+          auto ii = static_cast<size_t>(oin[i]);
+          auto jj = static_cast<size_t>(oin[j]);
+          bool ivalid = column_.get_element(ii, &ivalue);
+          bool jvalid = column_.get_element(jj, &jvalue);
           return jvalid && (!ivalid || ivalue < jvalue);
         });
     }
 
-    void small_sort(ovec ordering_out) const override {
+    void small_sort(ovec ordering_out, TGrouper*) const override {
       dt::sort::small_sort(ovec(), ordering_out,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
