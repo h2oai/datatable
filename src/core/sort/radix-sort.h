@@ -111,18 +111,17 @@ class RadixSort {
                             MoveData move_data)
     {
       static_assert(
-        std::is_convertible<GetRadix, std::function<size_t(size_t)>>::value,
+        std::is_convertible<GetRadix, dt::function<size_t(size_t)>>::value,
         "Incorrect signature of get_radix function");
       static_assert(
-        std::is_convertible<MoveData,
-                            std::function<void(size_t,size_t)>>::value,
+        std::is_convertible<MoveData, dt::function<void(size_t,size_t)>>::value,
         "Incorrect signature of move_data function");
       xassert(ordering_in.size() == n_rows_ || ordering_in.size() == 0);
       xassert(ordering_out.size() == n_rows_);
 
       array<TO> histogram = allocate_histogram<TO>();
       build_histogram(histogram, get_radix);
-      if (ordering_in.size()) {
+      if (ordering_in) {
         reorder_data(histogram, get_radix,
                      [&](size_t i, size_t j) {
                        ordering_out[j] = ordering_in[i];
