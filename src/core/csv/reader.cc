@@ -584,7 +584,7 @@ void GenericReader::open_input() {
 
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
-    input_mbuf = Buffer::external(text.ch, size);
+    input_mbuf = Buffer::external(text.ch, size + 1);
     input_is_string = true;
   } else if ((filename = file_arg.to_cstring().ch)) {
     input_mbuf = Buffer::mmap(filename);
