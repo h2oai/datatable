@@ -60,12 +60,12 @@ class Sorter_Int : public SSorter<TO> {
     }
 
     void small_sort(ovec ordering_in, ovec ordering_out,
-                    size_t offset, TGrouper*) const override
+                    size_t offset, TGrouper* grouper) const override
     {
       (void) offset;
       xassert(ordering_in.size() == ordering_out.size());
       const TO* oin = ordering_in.ptr();
-      dt::sort::small_sort(ordering_in, ordering_out,
+      dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
           auto ii = static_cast<size_t>(oin[i]);
@@ -76,8 +76,8 @@ class Sorter_Int : public SSorter<TO> {
         });
     }
 
-    void small_sort(ovec ordering_out, TGrouper*) const override {
-      dt::sort::small_sort(ovec(), ordering_out,
+    void small_sort(ovec ordering_out, TGrouper* grouper) const override {
+      dt::sort::small_sort(ovec(), ordering_out, grouper,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);

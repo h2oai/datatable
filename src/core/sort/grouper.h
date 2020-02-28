@@ -92,7 +92,7 @@ class Grouper
     void push(size_t group_size) {
       xassert(n_ < data_.size());
       offset_ += group_size;
-      data_[n_++] = offset_;
+      data_[n_++] = static_cast<T>(offset_);
     }
 
 };

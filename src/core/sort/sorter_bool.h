@@ -56,11 +56,11 @@ class Sorter_Bool : public SSorter<TO> {
 
 
     void small_sort(Vec ordering_in, Vec ordering_out, size_t,
-                    TGrouper*) const override
+                    TGrouper* grouper) const override
     {
       xassert(ordering_in.size() == ordering_out.size());
       const TO* oin = ordering_in.ptr();
-      dt::sort::small_sort(ordering_in, ordering_out,
+      dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
           auto ii = static_cast<size_t>(oin[i]);
@@ -72,8 +72,8 @@ class Sorter_Bool : public SSorter<TO> {
     }
 
 
-    void small_sort(Vec ordering_out, TGrouper*) const override {
-      dt::sort::small_sort(Vec(), ordering_out,
+    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
+      dt::sort::small_sort(Vec(), ordering_out, grouper,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);

@@ -28,6 +28,7 @@
 #include <algorithm>         // std::stable_sort
 #include <type_traits>       // std::is_convertible
 #include "sort/common.h"     // array
+#include "sort/grouper.h"    // Grouper
 #include "utils/function.h"  // dt::function
 namespace dt {
 namespace sort {
@@ -55,6 +56,7 @@ namespace sort {
 template <typename T, typename Compare>
 void insert_sort(array<T> ordering_in,
                  array<T> ordering_out,
+                 Grouper<T>* grouper,
                  Compare compare)
 {
   static_assert(
@@ -78,6 +80,9 @@ void insert_sort(array<T> ordering_in,
     oo[j] = static_cast<T>(i);
   }
 
+  if (grouper) {
+    grouper->fill_from_data(ordering_out, compare);
+  }
   if (ordering_in) {
     for (size_t i = 0; i < n; ++i) {
       oo[i] = ordering_in[oo[i]];
@@ -96,6 +101,7 @@ void insert_sort(array<T> ordering_in,
 template <typename T, typename Compare>
 void std_sort(array<T> ordering_in,
               array<T> ordering_out,
+              Grouper<T>* grouper,
               Compare compare)
 {
   size_t n = ordering_out.size();
@@ -108,6 +114,9 @@ void std_sort(array<T> ordering_in,
   }
   std::stable_sort(oo, oo + n, compare);
 
+  if (grouper) {
+    grouper->fill_from_data(ordering_out, compare);
+  }
   if (ordering_in) {
     for (size_t i = 0; i < n; ++i) {
       oo[i] = ordering_in[oo[i]];
@@ -126,13 +135,14 @@ void std_sort(array<T> ordering_in,
 template <typename T, typename Compare>
 void small_sort(array<T> ordering_in,
                 array<T> ordering_out,
+                Grouper<T>* grouper,
                 Compare compare)
 {
   if (ordering_out.size() < INSERTSORT_NROWS) {
-    insert_sort(ordering_in, ordering_out, compare);
+    insert_sort(ordering_in, ordering_out, grouper, compare);
   }
   else {
-    std_sort(ordering_in, ordering_out, compare);
+    std_sort(ordering_in, ordering_out, grouper, compare);
   }
 }
 

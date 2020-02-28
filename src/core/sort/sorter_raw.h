@@ -78,10 +78,10 @@ class Sorter_Raw : public SSorter<TO>
     }
 
     void small_sort(ovec ordering_in, ovec ordering_out,
-                    size_t offset, TGrouper*) const override
+                    size_t offset, TGrouper* grouper) const override
     {
       TU* x = data_ + offset;
-      dt::sort::small_sort(ordering_in, ordering_out,
+      dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j){ return x[i] < x[j]; });
     }
 

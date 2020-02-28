@@ -61,8 +61,8 @@ class Sorter_Multi : public SSorter<TO>
     {}
 
   protected:
-    void small_sort(ovec ordering_out, TGrouper*) const override {
-      dt::sort::small_sort(ovec(), ordering_out,
+    void small_sort(ovec ordering_out, TGrouper* grouper) const override {
+      dt::sort::small_sort(ovec(), ordering_out, grouper,
         [&](size_t i, size_t j) {  // compare_lt
           int cmp = column0_->compare_lge(i, j);
           if (cmp == 0) {
@@ -75,12 +75,12 @@ class Sorter_Multi : public SSorter<TO>
         });
     }
 
-    void small_sort(ovec ordering_in, ovec ordering_out, size_t offset, TGrouper*)
-        const override
+    void small_sort(ovec ordering_in, ovec ordering_out, size_t offset,
+                    TGrouper* grouper) const override
     {
       xassert(ordering_in.size() == ordering_out.size());
       if (column0_->contains_reordered_data()) {
-        dt::sort::small_sort(ordering_in, ordering_out,
+        dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) {
             int cmp = column0_->compare_lge(i + offset, j + offset);
             if (cmp == 0) {
@@ -95,7 +95,7 @@ class Sorter_Multi : public SSorter<TO>
           });
       }
       else {
-        dt::sort::small_sort(ordering_in, ordering_out,
+        dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) {
             size_t ii = static_cast<size_t>(ordering_in[i]);
             size_t jj = static_cast<size_t>(ordering_in[j]);
