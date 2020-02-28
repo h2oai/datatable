@@ -45,7 +45,10 @@ class Sorter_Bool : public SSorter<T>
   public:
     Sorter_Bool(const Column& col)
       : SSorter<T>(col.nrows()),
-        column_(col) { xassert(col.stype() == SType::BOOL); }
+        column_(col)
+    {
+      xassert(col.stype() == SType::BOOL);
+    }
 
 
   protected:

@@ -22,6 +22,10 @@
 //
 // See http://quick-bench.com/gl2wXMVIU4i4eswQL2dBg2oKCZs for variations
 //
+// See http://quick-bench.com/0O1TXlyBu-d-nwpjHcAibMEjj_o for comparison of
+// template-based implementation, and implementations based on a dt::function
+// or std::function pointers.
+//
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_INSERT_SORT_h
 #define dt_SORT_INSERT_SORT_h
@@ -33,6 +37,7 @@
 namespace dt {
 namespace sort {
 
+using Compare = dt::function<bool(size_t, size_t)>;
 
 
 /**
@@ -51,18 +56,13 @@ namespace sort {
   * are in the range `[0; n)` (where `n` is the size of
   * `ordering_out`). Notably, these indices do not take `ordering_in`
   * into account.
-  *
   */
-template <typename T, typename Compare>
+template <typename T>
 void insert_sort(array<T> ordering_in,
                  array<T> ordering_out,
                  Grouper<T>* grouper,
                  Compare compare)
 {
-  static_assert(
-    std::is_convertible<Compare, dt::function<bool(size_t, size_t)>>::value,
-    "Invalid signature of comparator function");
-
   size_t n = ordering_out.size();
   xassert(n > 0);
   if (ordering_in.size()) {
@@ -98,7 +98,7 @@ void insert_sort(array<T> ordering_in,
   * Same as `insert_sort()`, but uses stable_sort algorithm from the
   * standard library (typically this is a quick-sort implementation).
   */
-template <typename T, typename Compare>
+template <typename T>
 void std_sort(array<T> ordering_in,
               array<T> ordering_out,
               Grouper<T>* grouper,
@@ -132,7 +132,7 @@ void std_sort(array<T> ordering_in,
   * function is single-threaded and thus should only be used for
   * relatively small `n`s.
   */
-template <typename T, typename Compare>
+template <typename T>
 void small_sort(array<T> ordering_in,
                 array<T> ordering_out,
                 Grouper<T>* grouper,
