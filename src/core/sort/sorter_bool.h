@@ -90,15 +90,17 @@ class Sorter_Bool : public SSorter<T>
                     NextWrapper wrap) const override
     {
       (void) offset;
-      (void) grouper;
       (void) wrap;
       RadixSort rdx(nrows_, 1, sort_mode);
-      rdx.sort_by_radix(ordering_in, ordering_out,
-        [&](size_t i) {  // get_radix
-          int8_t ivalue;
-          bool ivalid = column_.get_element(i, &ivalue);
-          return static_cast<size_t>(ivalid * (ivalue + 1));
-        });
+      auto groups = rdx.sort_by_radix(ordering_in, ordering_out,
+          [&](size_t i) {  // get_radix
+            int8_t ivalue;
+            bool ivalid = column_.get_element(i, &ivalue);
+            return static_cast<size_t>(ivalid * (ivalue + 1));
+          });
+      if (grouper) {
+        grouper->fill_from_offsets(groups);
+      }
     }
 
 };

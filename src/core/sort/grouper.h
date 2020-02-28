@@ -61,14 +61,16 @@ class Grouper
 
   private:
     Vec data_;
-    size_t offset_;
     size_t n_;
+    T offset_;
+    int : 64 - sizeof(T) * 8;
 
   public:
     Grouper(Vec data, size_t initial_offset)
       : data_(data),
-        offset_(initial_offset),
-        n_(0) {}
+        n_(0),
+        offset_(static_cast<T>(initial_offset))
+    {}
 
 
     size_t size() const noexcept {
@@ -91,6 +93,21 @@ class Grouper
       push(nrows - last_i);
     }
 
+
+    void fill_from_offsets(Vec offsets) {
+      xassert(n_ == 0);
+      T last_offset = 0;
+      for (size_t i = 0; i < offsets.size(); ++i) {
+        T curr_offset = offsets[i];
+        if (curr_offset > last_offset) {
+          data_[n_++] = curr_offset + offset_;
+          last_offset = curr_offset;
+        }
+      }
+      offset_ += last_offset;
+    }
+
+
     Groupby to_groupby(Buffer&& source_buffer) {
       xassert(static_cast<const T*>(source_buffer.rptr()) + 1 == data_.ptr());
       data_.ptr()[-1] = 0;
@@ -98,11 +115,12 @@ class Grouper
       return Groupby(n_, std::move(source_buffer));
     }
 
+
   private:
     void push(size_t group_size) {
       xassert(n_ < data_.size());
-      offset_ += group_size;
-      data_[n_++] = static_cast<T>(offset_);
+      offset_ += static_cast<T>(group_size);
+      data_[n_++] = offset_;
     }
 
 };
