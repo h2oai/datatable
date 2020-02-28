@@ -1367,11 +1367,11 @@ RiGb group(const std::vector<Column>& columns,
     return result;
   }
   if (n == 1 && col0.stype() == SType::BOOL &&
-      (flags[0] & SortFlag::SORT_ONLY) &&
       !(flags[0] & SortFlag::DESCENDING))
   {
+    bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
     auto sorter = dt::sort::make_sorter(col0);
-    return sorter->sort();
+    return sorter->sort(!sort_only);
   }
 
   // TODO: avoid materialization

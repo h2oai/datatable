@@ -23,6 +23,7 @@
 #define dt_SORT_GROUPER_h
 #include "sort/common.h"        // array<T>
 #include "utils/function.h"     // dt::function
+#include "groupby.h"            // Groupby
 namespace dt {
 namespace sort {
 
@@ -55,16 +56,16 @@ namespace sort {
 template <typename T>
 class Grouper
 {
-  using vec = array<T>;
+  using Vec = array<T>;
   using compare_fn = dt::function<bool(size_t, size_t)>;
 
   private:
-    vec data_;
+    Vec data_;
     size_t offset_;
     size_t n_;
 
   public:
-    Grouper(vec data, size_t initial_offset)
+    Grouper(Vec data, size_t initial_offset)
       : data_(data),
         offset_(initial_offset),
         n_(0) {}
@@ -75,7 +76,7 @@ class Grouper
     }
 
 
-    void fill_from_data(vec ordering, compare_fn cmp) {
+    void fill_from_data(Vec ordering, compare_fn cmp) {
       const size_t nrows = ordering.size();
       size_t last_i = 0;
       size_t last_oi = static_cast<size_t>(ordering[0]);
@@ -90,6 +91,12 @@ class Grouper
       push(nrows - last_i);
     }
 
+    Groupby to_groupby(Buffer&& source_buffer) {
+      xassert(static_cast<const T*>(source_buffer.rptr()) + 1 == data_.ptr());
+      data_.ptr()[-1] = 0;
+      source_buffer.resize((n_ + 1) * sizeof(T));
+      return Groupby(n_, std::move(source_buffer));
+    }
 
   private:
     void push(size_t group_size) {

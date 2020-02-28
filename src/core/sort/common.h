@@ -65,11 +65,12 @@ class array
       xassert((ptr_ == nullptr) == (size_ == 0));
     }
 
-    array(const Buffer& buf)
-      : ptr_(static_cast<T*>(buf.xptr())),
-        size_(buf.size() / sizeof(T))
+    array(const Buffer& buf, size_t offset = 0)
+      : ptr_(static_cast<T*>(buf.xptr()) + offset),
+        size_(buf.size() / sizeof(T) - offset)
     {
       xassert(buf.size() % sizeof(T) == 0);
+      xassert(buf.size() >= offset * sizeof(T));
     }
 
     array<T> subset(size_t start, size_t length) {

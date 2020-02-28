@@ -31,38 +31,38 @@ namespace sort {
 
 
 
-template <typename TO>
-class Sorter_Multi : public SSorter<TO>
+template <typename T>
+class Sorter_Multi : public SSorter<T>
 {
-  using typename SSorter<TO>::next_wrapper;
-  using uqSsorter = std::unique_ptr<SSorter<TO>>;
-  using shSsorter = std::shared_ptr<SSorter<TO>>;
-  using ovec = array<TO>;
-  using TGrouper = Grouper<TO>;
+  using Vec = array<T>;
+  using TGrouper = Grouper<T>;
+  using UnqSorter = std::unique_ptr<SSorter<T>>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
   private:
-    shSsorter column0_;
-    std::vector<shSsorter> other_columns_;
+    ShrSorter column0_;
+    std::vector<ShrSorter> other_columns_;
 
   public:
-    Sorter_Multi(std::vector<uqSsorter>&& cols)
-      : SSorter<TO>(cols[0]->nrows()),
+    Sorter_Multi(std::vector<UnqSorter>&& cols)
+      : SSorter<T>(cols[0]->nrows()),
         column0_(std::move(cols[0]))
     {
       other_columns_.reserve(cols.size() - 1);
       for (size_t i = 1; i < cols.size(); ++i) {
-        other_columns_.push_back(shSsorter(std::move(cols[i])));
+        other_columns_.push_back(ShrSorter(std::move(cols[i])));
       }
     }
 
-    Sorter_Multi(uqSsorter&& col0, const std::vector<shSsorter>& cols1)
-      : SSorter<TO>(col0->nrows()),
+    Sorter_Multi(UnqSorter&& col0, const std::vector<ShrSorter>& cols1)
+      : SSorter<T>(col0->nrows()),
         column0_(std::move(col0)),
         other_columns_(cols1)
     {}
 
   protected:
-    void small_sort(ovec ordering_out, TGrouper* grouper) const override {
-      dt::sort::small_sort(ovec(), ordering_out, grouper,
+    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
+      dt::sort::small_sort(Vec(), ordering_out, grouper,
         [&](size_t i, size_t j) {  // compare_lt
           int cmp = column0_->compare_lge(i, j);
           if (cmp == 0) {
@@ -75,7 +75,7 @@ class Sorter_Multi : public SSorter<TO>
         });
     }
 
-    void small_sort(ovec ordering_in, ovec ordering_out, size_t offset,
+    void small_sort(Vec ordering_in, Vec ordering_out, size_t offset,
                     TGrouper* grouper) const override
     {
       xassert(ordering_in.size() == ordering_out.size());
@@ -111,18 +111,18 @@ class Sorter_Multi : public SSorter<TO>
       }
     }
 
-    virtual void radix_sort(ovec ordering_in, ovec ordering_out,
+    virtual void radix_sort(Vec ordering_in, Vec ordering_out,
                             size_t offset, Mode sort_mode,
-                            next_wrapper wrap = nullptr) const override
+                            NextWrapper wrap = nullptr) const override
     {
       column0_->radix_sort(ordering_in, ordering_out, offset, sort_mode,
-          [&](uqSsorter&& next_sorter) {
+          [&](UnqSorter&& next_sorter) {
             if (next_sorter) {
-              return uqSsorter(new Sorter_Multi<TO>(std::move(next_sorter),
+              return UnqSorter(new Sorter_Multi<T>(std::move(next_sorter),
                                                     other_columns_));
             } else {
-              return uqSsorter();  // FIXME
-              // return ssoptr(new Sorter_MultiImpl<TO>());
+              return UnqSorter();  // FIXME
+              // return ssoptr(new Sorter_MultiImpl<T>());
             }
           });
     }

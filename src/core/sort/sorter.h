@@ -50,40 +50,55 @@ class Sorter {
       return nrows_;
     }
 
-    virtual RiGb sort() const = 0;
+    virtual RiGb sort(bool find_groups) const = 0;
 };
 
 
 
 /**
   * Virtual class that handles sorting of a column. Template parameter
-  * <TO> corresponds to the type of indices in the resulting rowindex.
+  * <T> corresponds to the type of indices in the resulting rowindex.
   */
-template <typename TO>
+template <typename T>
 class SSorter : public Sorter
 {
-  friend class Sorter_Multi<TO>;
-  using ovec = array<TO>;
-  using TGrouper = Grouper<TO>;
-  using uqsorter = std::unique_ptr<SSorter<TO>>;
+  friend class Sorter_Multi<T>;
+  using Vec = array<T>;
+  using TGrouper = Grouper<T>;
+  using UnqGrouper = std::unique_ptr<Grouper<T>>;
+  using UnqSorter = std::unique_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
 
   public:
     SSorter(size_t n) : Sorter(n) {
-      xassert(sizeof(TO) == 8 || n <= MAX_NROWS_INT32);
+      xassert(sizeof(T) == 8 || n <= MAX_NROWS_INT32);
     }
 
 
-    RiGb sort() const override {
-      Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(TO));
-      ovec ordering_out(rowindex_buf);
-      if (nrows_ <= INSERTSORT_NROWS) {
-        small_sort(ordering_out, nullptr);
-      } else {
-        radix_sort(ovec(), ordering_out, 0, Mode::PARALLEL);
+    RiGb sort(bool find_groups) const override
+    {
+      Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(T));
+      Vec ordering_out(rowindex_buf);
+      Buffer groups_buf;
+      UnqGrouper grouper;
+      if (find_groups) {
+        groups_buf.resize((nrows_ + 1) * sizeof(T));
+        grouper = UnqGrouper(new TGrouper(Vec(groups_buf, 1), 0));
       }
-      auto rowindex_type = sizeof(TO) == 4? RowIndex::ARR32 : RowIndex::ARR64;
+
+      if (nrows_ <= INSERTSORT_NROWS) {
+        small_sort(ordering_out, grouper.get());
+      } else {
+        xassert(!grouper);
+        radix_sort(Vec(), ordering_out, 0, Mode::PARALLEL);
+      }
+      auto rowindex_type = sizeof(T) == 4? RowIndex::ARR32 : RowIndex::ARR64;
       RowIndex result_rowindex(std::move(rowindex_buf), rowindex_type);
       Groupby  result_groupby;
+      if (find_groups) {
+        result_groupby = grouper->to_groupby(std::move(groups_buf));
+      }
+
       return RiGb(std::move(result_rowindex), std::move(result_groupby));
     }
 
@@ -107,21 +122,20 @@ class SSorter : public Sorter
       * The recommended way of implementing this methid is via the
       * `dt::sort::small_sort()` function from "sort/insert-sort.h".
       */
-    virtual void small_sort(ovec ordering_in, ovec ordering_out,
+    virtual void small_sort(Vec ordering_in, Vec ordering_out,
                             size_t offset, TGrouper* grouper) const = 0;
 
     /**
       * Same as previous, but `ordering_in` is implicitly equal to
       * `{0, 1, ..., n-1}` and `offset` is 0.
       */
-    virtual void small_sort(ovec ordering_out, TGrouper*) const = 0;
+    virtual void small_sort(Vec ordering_out, TGrouper*) const = 0;
 
     /**
       */
-    using next_wrapper = std::function<uqsorter(uqsorter&&)>;
-    virtual void radix_sort(ovec ordering_in, ovec ordering_out,
+    virtual void radix_sort(Vec ordering_in, Vec ordering_out,
                             size_t offset, Mode sort_mode,
-                            next_wrapper wrap = nullptr) const = 0;
+                            NextWrapper wrap = nullptr) const = 0;
 
     /**
       * Comparator function that compares the values of the underlying
@@ -130,7 +144,7 @@ class SSorter : public Sorter
       *   - zero if `val[i] == val[j]`;
       *   - a positive value if `val[i] > val[j]`.
       *
-      * This function is used by Sorter_MultiImpl<TO> only.
+      * This function is used by Sorter_MultiImpl<T> only.
       */
     virtual int compare_lge(size_t i, size_t j) const = 0;
 

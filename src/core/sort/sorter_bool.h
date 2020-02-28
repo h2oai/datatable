@@ -31,18 +31,20 @@ namespace sort {
 /**
  * SSorter for (virtual) boolean columns.
  */
-template <typename TO>
-class Sorter_Bool : public SSorter<TO> {
+template <typename T>
+class Sorter_Bool : public SSorter<T>
+{
+  using Vec = array<T>;
+  using TGrouper = Grouper<T>;
+  using UnqSorter = std::unique_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
   private:
-    using Vec = array<TO>;
-    using TGrouper = Grouper<TO>;
-    using typename SSorter<TO>::next_wrapper;
-    using SSorter<TO>::nrows_;
+    using SSorter<T>::nrows_;
     Column column_;
 
   public:
     Sorter_Bool(const Column& col)
-      : SSorter<TO>(col.nrows()),
+      : SSorter<T>(col.nrows()),
         column_(col) { xassert(col.stype() == SType::BOOL); }
 
 
@@ -59,7 +61,7 @@ class Sorter_Bool : public SSorter<TO> {
                     TGrouper* grouper) const override
     {
       xassert(ordering_in.size() == ordering_out.size());
-      const TO* oin = ordering_in.ptr();
+      const T* oin = ordering_in.ptr();
       dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j) {  // compare_lt
           int8_t ivalue, jvalue;
@@ -85,7 +87,7 @@ class Sorter_Bool : public SSorter<TO> {
 
     void radix_sort(Vec ordering_in, Vec ordering_out,
                     size_t offset, Mode sort_mode,
-                    next_wrapper wrap = nullptr) const override
+                    NextWrapper wrap = nullptr) const override
     {
       (void) offset;
       RadixSort rdx(nrows_, 1, sort_mode);

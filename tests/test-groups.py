@@ -181,6 +181,24 @@ def test_groups_autoexpand():
 
 
 #-------------------------------------------------------------------------------
+# Test grouping for boolean columns
+#-------------------------------------------------------------------------------
+
+def test_group_boolean():
+    DT = dt.Frame(A=[True, None, False, False, True, True, False, True])
+    DTR = DT[:, count(), by(f.A)]
+    assert_equals(DTR, dt.Frame(A=[None, False, True], count=[1, 3, 4],
+                                stypes={"count": dt.int64}))
+
+def test_group_boolean2():
+    DT = dt.Frame(A=[True, False, False] * 500 + [None, True])
+    DTR = DT[:, count(), by(f.A)]
+    assert_equals(DTR, dt.Frame(A=[None, False, True], count=[1, 501, 1000],
+                                stypes={"count": dt.int64}))
+
+
+
+#-------------------------------------------------------------------------------
 # Test different reducers
 #-------------------------------------------------------------------------------
 
