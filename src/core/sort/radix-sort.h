@@ -252,6 +252,8 @@ class RadixSort {
         dt::ChunkSize(1),  // each iteration processed individually
         [&](size_t i) {
           TH* tcounts = histogram.ptr() + (n_radixes_ * i);
+          std::fill(tcounts, tcounts + n_radixes_, 0);
+
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
           for (size_t j = j0; j < j1; ++j) {
             size_t radix = get_radix(j);

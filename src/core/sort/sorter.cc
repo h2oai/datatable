@@ -24,6 +24,7 @@
 #include "python/args.h"       // py::PKArgs
 #include "sort/insert-sort.h"  // insert_sort
 #include "sort/radix-sort.h"   // RadixSort
+#include "sort/sorter.h"       // Sorter_Bool
 #include "sort/sorter_bool.h"  // Sorter_Bool
 #include "sort/sorter_int.h"   // Sorter_Int
 #include "sort/sorter_multi.h" // Sorter_Multi
@@ -34,7 +35,6 @@ namespace dt {
 namespace sort {
 
 
-using ptrSorter = std::unique_ptr<Sorter>;
 
 
 template <typename TO>
@@ -62,17 +62,19 @@ static std::unique_ptr<SSorter<TO>> _make_sorter(const colvec& cols) {
 }
 
 
-static ptrSorter make_sorter(const Column& col) {
+using psorter = std::unique_ptr<Sorter>;
+
+psorter make_sorter(const Column& col) {
   return (col.nrows() <= dt::sort::MAX_NROWS_INT32)
-      ? ptrSorter(_make_sorter<int32_t>(col))
-      : ptrSorter(_make_sorter<int64_t>(col));
+      ? psorter(_make_sorter<int32_t>(col))
+      : psorter(_make_sorter<int64_t>(col));
 }
 
-static ptrSorter make_sorter(const std::vector<Column>& cols) {
+psorter make_sorter(const std::vector<Column>& cols) {
   xassert(cols.size() > 1);
   return (cols[0].nrows() <= dt::sort::MAX_NROWS_INT32)
-      ? ptrSorter(_make_sorter<int32_t>(cols))
-      : ptrSorter(_make_sorter<int64_t>(cols));
+      ? psorter(_make_sorter<int32_t>(cols))
+      : psorter(_make_sorter<int64_t>(cols));
 }
 
 

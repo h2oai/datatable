@@ -133,6 +133,7 @@
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/args.h"
+#include "sort/sorter.h"
 #include "utils/alloc.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
@@ -1364,6 +1365,13 @@ RiGb group(const std::vector<Column>& columns,
     result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
     result.second = Groupby::single_group(nrows);
     return result;
+  }
+  if (n == 1 && col0.stype() == SType::BOOL &&
+      (flags[0] & SortFlag::SORT_ONLY) &&
+      !(flags[0] & SortFlag::DESCENDING))
+  {
+    auto sorter = dt::sort::make_sorter(col0);
+    return sorter->sort();
   }
 
   // TODO: avoid materialization

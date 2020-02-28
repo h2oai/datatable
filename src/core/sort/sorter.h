@@ -135,5 +135,11 @@ class SSorter : public Sorter
 
 
 
+// Factory functions
+std::unique_ptr<Sorter> make_sorter(const Column&);
+std::unique_ptr<Sorter> make_sorter(const std::vector<Column>&);
+
+
+
 }}  // namespace dt::sort
 #endif

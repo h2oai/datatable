@@ -84,7 +84,7 @@ class array
     }
 
     operator bool() const noexcept {
-      return (ptr_ == nullptr);
+      return (ptr_ != nullptr);
     }
 
     T& operator[](size_t i) const {
