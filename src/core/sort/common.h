@@ -33,6 +33,13 @@ static constexpr size_t MAX_NROWS_INT32 = 0x7FFFFFFF;
 static constexpr size_t INSERTSORT_NROWS = 16;
 
 
+enum class Mode {
+  SINGLE_THREADED,
+  PARALLEL
+};
+
+
+
 /**
   * Simple struct-like class which represents a raw pointer viewed
   * as an array of elements of type `T`. The pointer is not owned.

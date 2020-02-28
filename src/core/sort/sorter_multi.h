@@ -111,10 +111,10 @@ class Sorter_Multi : public SSorter<TO>
     }
 
     virtual void radix_sort(ovec ordering_in, ovec ordering_out,
-                            size_t offset, bool parallel,
+                            size_t offset, Mode sort_mode,
                             next_wrapper wrap = nullptr) const override
     {
-      column0_->radix_sort(ordering_in, ordering_out, offset, parallel,
+      column0_->radix_sort(ordering_in, ordering_out, offset, sort_mode,
           [&](uqSsorter&& next_sorter) {
             if (next_sorter) {
               return uqSsorter(new Sorter_Multi<TO>(std::move(next_sorter),

@@ -84,7 +84,7 @@ class Sorter_Int : public SSorter<TO> {
     }
 
     void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
-                    bool parallel, next_wrapper wrap = nullptr) const override
+                    Mode sort_mode, next_wrapper wrap = nullptr) const override
     {
       xassert(ordering_in.size() == 0);
       xassert(offset == 0);
@@ -108,7 +108,7 @@ class Sorter_Int : public SSorter<TO> {
       Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
       array<TU> out_array(out_buffer);
 
-      RadixSort rdx(nrows_, 1, parallel);
+      RadixSort rdx(nrows_, 1, sort_mode);
       auto groups = rdx.sort_by_radix(ovec(), ordering_tmp,
         [&](size_t i) -> size_t {  // get_radix
           TI value;
@@ -123,8 +123,8 @@ class Sorter_Int : public SSorter<TO> {
 
       Sorter_Raw<TO, TU> nextcol(std::move(out_buffer), nrows_, shift);
       rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
-        [&](size_t offs, size_t len, ovec ord_in, ovec ord_out, bool para) {
-          nextcol.sort_subgroup(offs, len, ord_in, ord_out, para);
+        [&](size_t offs, size_t len, ovec ord_in, ovec ord_out, Mode m) {
+          nextcol.sort_subgroup(offs, len, ord_in, ord_out, m);
         });
     }
 

@@ -77,7 +77,7 @@ class SSorter : public Sorter
       if (nrows_ <= INSERTSORT_NROWS) {
         small_sort(ordering_out);
       } else {
-        radix_sort(ovec(), ordering_out, 0, true);
+        radix_sort(ovec(), ordering_out, 0, Mode::PARALLEL);
       }
       auto rowindex_type = sizeof(TO) == 4? RowIndex::ARR32 : RowIndex::ARR64;
       RowIndex result_rowindex(std::move(rowindex_buf), rowindex_type);
@@ -114,7 +114,7 @@ class SSorter : public Sorter
       */
     using next_wrapper = std::function<uqsorter(uqsorter&&)>;
     virtual void radix_sort(ovec ordering_in, ovec ordering_out,
-                            size_t offset, bool parallel,
+                            size_t offset, Mode sort_mode,
                             next_wrapper wrap = nullptr) const = 0;
 
     /**

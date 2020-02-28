@@ -80,11 +80,11 @@ class Sorter_Bool : public SSorter<TO> {
 
 
     void radix_sort(ovec ordering_in, ovec ordering_out,
-                    size_t offset, bool parallel,
+                    size_t offset, Mode sort_mode,
                     next_wrapper wrap = nullptr) const override
     {
       (void) offset;
-      RadixSort rdx(nrows_, 1, parallel);
+      RadixSort rdx(nrows_, 1, sort_mode);
       rdx.sort_by_radix(ordering_in, ordering_out,
         [&](size_t i) {  // get_radix
           int8_t ivalue;

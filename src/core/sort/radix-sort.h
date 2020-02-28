@@ -42,9 +42,16 @@ inline T divceil(T a, T b) {
 
 
 /**
-  * Helper class that holds all the parameters needed during radix
-  * sort. For convenience, the members in this class are readable
-  * directly (not encapsulated).
+  * Class that encapsulates the radix-sort algorithm.
+  *
+  * Usage:
+  *
+  *     RadixSort rdx(nrows, nradixbits, true);
+  *     auto groups = rdx.sort_by_radix(ordin, ordout,
+  *                       [&](size_t i){ ... }  // get_radix
+  *                       );
+  *     rdx.sort_subgroups(groups, ...);
+  *
   */
 class RadixSort {
   private:
@@ -55,7 +62,7 @@ class RadixSort {
     Buffer histogram_buffer_;
 
   public:
-    RadixSort(size_t nrows, int nrb, bool allow_parallel) {
+    RadixSort(size_t nrows, int nrb, Mode mode) {
       xassert(nrows > 0);
       xassert(nrb > 0 && nrb <= 20);
       n_radixes_ = (1u << nrb) + 1;
@@ -65,7 +72,7 @@ class RadixSort {
       // dt::parallel_for_static will not actually spawn a parallel
       // region.
       n_chunks_ = 1;
-      if (allow_parallel) {
+      if (mode == Mode::PARALLEL) {
         xassert(dt::num_threads_in_team() == 0);
         n_chunks_ = std::min(dt::num_threads_in_pool(),
                             divceil(nrows, MIN_NROWS_PER_THREAD));
@@ -164,7 +171,7 @@ class RadixSort {
     {
       static_assert(
         std::is_convertible<Subsort,
-                            std::function<void(size_t,size_t,array<TO>,array<TO>,bool)>>::value,
+                            std::function<void(size_t,size_t,array<TO>,array<TO>,Mode)>>::value,
         "Invalid signature of subsort function");
       xassert(groups.size() > 0);
       xassert(ordering_in.size() == n_rows_ && ordering_out.size() == n_rows_);
@@ -178,7 +185,8 @@ class RadixSort {
           if (group_size > 1) {
             subsort(group_start, group_size,
                     ordering_in.subset(group_start, group_size),
-                    ordering_out.subset(group_start, group_size), true);
+                    ordering_out.subset(group_start, group_size),
+                    Mode::PARALLEL);
           }
           group_end = group_start;
         }
