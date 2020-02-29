@@ -319,8 +319,27 @@ def test_bool8_large_stable(n):
     assert_equals(DTS, DT1)
 
 
+def test_bool8_small_descending():
+    DT0 = dt.Frame([True, False, False, None, True, True, None])
+    DT1 = dt.Frame([None, None, True, True, True, False, False])
+    DTS = DT0[:, :, sort(-f.C0)]
+    assert DT0.stype == dt.bool8
+    assert isview(DTS)
+    assert_equals(DTS, DT1)
 
 
+@pytest.mark.parametrize("n", [int(random.expovariate(0.00001)) + 100])
+def test_bool8_large_descending(n):
+    DT0 = dt.Frame([True, False, True, None, None, False, True] * n)
+    DT1 = dt.Frame([None] * (2*n) + [True] * (3*n) + [False] * (2*n))
+    DTS = DT0[:, :, sort(-f[0])]
+    assert_equals(DTS, DT1)
+
+
+
+
+#-------------------------------------------------------------------------------
+# Int16
 #-------------------------------------------------------------------------------
 
 def test_int16_small():
@@ -366,6 +385,8 @@ def test_int16_large_stable(n):
 
 
 
+#-------------------------------------------------------------------------------
+# Int64
 #-------------------------------------------------------------------------------
 
 def test_int64_small():
@@ -414,6 +435,8 @@ def test_int64_large_random(seed):
 
 
 #-------------------------------------------------------------------------------
+# Float32
+#-------------------------------------------------------------------------------
 
 def test_float32_small():
     d0 = dt.Frame([0, .4, .9, .2, .1, nan, -inf, -5, 3, 11, inf, 5.2],
@@ -452,6 +475,8 @@ def test_float32_random(numpy, n):
 
 
 
+#-------------------------------------------------------------------------------
+# Float64
 #-------------------------------------------------------------------------------
 
 def test_float64_small():
