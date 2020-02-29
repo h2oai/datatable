@@ -37,37 +37,41 @@ namespace sort {
 
 
 
-template <typename TO>
-static std::unique_ptr<SSorter<TO>> _make_sorter(const Column& col) {
-  using so = std::unique_ptr<SSorter<TO>>;
+template <typename T, bool ASC>
+static std::unique_ptr<SSorter<T>> _make_sorter(const Column& col)
+{
+  using so = std::unique_ptr<SSorter<T>>;
   switch (col.stype()) {
-    case SType::BOOL:  return so(new Sorter_Bool<TO>(col));
-    case SType::INT8:  return so(new Sorter_Int<TO, int8_t>(col));
-    case SType::INT16: return so(new Sorter_Int<TO, int16_t>(col));
-    case SType::INT32: return so(new Sorter_Int<TO, int32_t>(col));
-    case SType::INT64: return so(new Sorter_Int<TO, int64_t>(col));
+    case SType::BOOL:  return so(new Sorter_Bool<T, ASC>(col));
+    case SType::INT8:  return so(new Sorter_Int<T, int8_t>(col));
+    case SType::INT16: return so(new Sorter_Int<T, int16_t>(col));
+    case SType::INT32: return so(new Sorter_Int<T, int32_t>(col));
+    case SType::INT64: return so(new Sorter_Int<T, int64_t>(col));
     default: throw TypeError() << "Cannot sort column of type " << col.stype();
   }
 }
 
-template <typename TO>
-static std::unique_ptr<SSorter<TO>> _make_sorter(const colvec& cols) {
-  using so = std::unique_ptr<SSorter<TO>>;
+template <typename T>
+static std::unique_ptr<SSorter<T>> _make_sorter(const colvec& cols) {
+  using so = std::unique_ptr<SSorter<T>>;
   std::vector<so> sorters;
   sorters.reserve(cols.size());
   for (const Column& col : cols) {
-    sorters.push_back(_make_sorter<TO>(col));
+    sorters.push_back(_make_sorter<T, true>(col));
   }
-  return so(new Sorter_Multi<TO>(std::move(sorters)));
+  return so(new Sorter_Multi<T>(std::move(sorters)));
 }
 
 
 using psorter = std::unique_ptr<Sorter>;
 
-psorter make_sorter(const Column& col) {
-  return (col.nrows() <= dt::sort::MAX_NROWS_INT32)
-      ? psorter(_make_sorter<int32_t>(col))
-      : psorter(_make_sorter<int64_t>(col));
+psorter make_sorter(const Column& col, Direction dir) {
+  bool small = (col.nrows() <= dt::sort::MAX_NROWS_INT32);
+  bool asc   = (dir == Direction::ASCENDING);
+  return small? (asc? psorter(_make_sorter<int32_t, true>(col))
+                    : psorter(_make_sorter<int32_t, false>(col)))
+              : (asc? psorter(_make_sorter<int64_t, true>(col))
+                    : psorter(_make_sorter<int64_t, false>(col)));
 }
 
 psorter make_sorter(const std::vector<Column>& cols) {
@@ -93,7 +97,7 @@ oobj Frame::newsort(const PKArgs&) {
   xassert(dt->ncols() >= 1);
   xassert(dt->nrows() > 1);
 
-  auto sorter = (dt->ncols() == 1)? dt::sort::make_sorter(dt->get_column(0))
+  auto sorter = (dt->ncols() == 1)? dt::sort::make_sorter(dt->get_column(0), dt::sort::Direction::ASCENDING)
                                   : dt::sort::make_sorter(dt->get_columns());
   dt::sort::RiGb rigb = sorter->sort(false);
   Column ricol = rigb.first.as_column(dt->nrows());

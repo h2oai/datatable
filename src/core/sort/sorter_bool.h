@@ -31,7 +31,7 @@ namespace sort {
 /**
  * SSorter for (virtual) boolean columns.
  */
-template <typename T>
+template <typename T, bool ASC>
 class Sorter_Bool : public SSorter<T>
 {
   using Vec = array<T>;
@@ -56,7 +56,8 @@ class Sorter_Bool : public SSorter<T>
       int8_t ivalue, jvalue;
       bool ivalid = column_.get_element(i, &ivalue);
       bool jvalid = column_.get_element(j, &jvalue);
-      return (ivalid - jvalid) + (ivalid & jvalid) * (ivalue - jvalue);
+      return (ivalid - jvalid) +
+             (ivalid & jvalid) * (ASC? ivalue - jvalue : jvalue - ivalue);
     }
 
 
@@ -72,7 +73,7 @@ class Sorter_Bool : public SSorter<T>
           auto jj = static_cast<size_t>(oin[j]);
           bool ivalid = column_.get_element(ii, &ivalue);
           bool jvalid = column_.get_element(jj, &jvalue);
-          return jvalid & (!ivalid | (ivalue < jvalue));
+          return jvalid & (!ivalid | (ASC? ivalue < jvalue : ivalue > jvalue));
         });
     }
 
@@ -83,7 +84,7 @@ class Sorter_Bool : public SSorter<T>
           int8_t ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);
           bool jvalid = column_.get_element(j, &jvalue);
-          return jvalid & (!ivalid | (ivalue < jvalue));
+          return jvalid & (!ivalid | (ASC? ivalue < jvalue : ivalue > jvalue));
         });
     }
 
@@ -99,7 +100,7 @@ class Sorter_Bool : public SSorter<T>
           [&](size_t i) {  // get_radix
             int8_t ivalue;
             bool ivalid = column_.get_element(i, &ivalue);
-            return static_cast<size_t>(ivalid * (ivalue + 1));
+            return static_cast<size_t>(ivalid * (ASC? ivalue + 1 : 2 - ivalue));
           });
       if (grouper) {
         grouper->fill_from_offsets(groups);

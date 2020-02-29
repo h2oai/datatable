@@ -38,6 +38,10 @@ enum class Mode {
   PARALLEL
 };
 
+enum class Direction {
+  ASCENDING,
+  DESCENDING
+};
 
 
 /**

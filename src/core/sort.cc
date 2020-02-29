@@ -1366,11 +1366,11 @@ RiGb group(const std::vector<Column>& columns,
     result.second = Groupby::single_group(nrows);
     return result;
   }
-  if (n == 1 && col0.stype() == SType::BOOL &&
-      !(flags[0] & SortFlag::DESCENDING))
-  {
+  if (n == 1 && col0.stype() == SType::BOOL) {
     bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
-    auto sorter = dt::sort::make_sorter(col0);
+    auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
+                                                      : dt::sort::Direction::ASCENDING;
+    auto sorter = dt::sort::make_sorter(col0, direction);
     return sorter->sort(!sort_only);
   }
 
