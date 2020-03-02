@@ -93,6 +93,8 @@ class Sorter_Int : public SSorter<T> {
     {
       (void) grouper;
       (void) wrap;
+      (void) offset;
+      (void) ordering_in;
       xassert(ordering_in.size() == 0);
       xassert(offset == 0);
       bool minmax_valid;
