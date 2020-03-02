@@ -31,6 +31,21 @@ from math import inf, nan
 from tests import list_equals, random_string, assert_equals, isview
 
 
+def check_newsort(fn):
+    @pytest.mark.parametrize("newsort", [True, False])
+    def foo(newsort):
+        with dt.options.sort.context(new=newsort):
+            fn()
+    return foo
+
+
+def check_newsort_n(fn):
+    @pytest.mark.parametrize("newsort", [True, False])
+    def foo(newsort, n):
+        with dt.options.sort.context(new=newsort):
+            fn(n)
+    return foo
+
 
 #-------------------------------------------------------------------------------
 # Simple sort
@@ -269,6 +284,7 @@ def test_int8_large_stable(n):
 # Bool8
 #-------------------------------------------------------------------------------
 
+@check_newsort
 def test_bool8_small():
     DT0 = dt.Frame([True, False, False, None, True, True, None])
     DT1 = dt.Frame([None, None, False, False, True, True, True])
@@ -278,6 +294,7 @@ def test_bool8_small():
     assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_bool8_small_stable():
     DT0 = dt.Frame(A=[True, False, False, None, True, True, None],
                    B=[1, 2, 3, 4, 5, 6, 7])
@@ -289,6 +306,7 @@ def test_bool8_small_stable():
     assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_bool8_small_view():
     DT0 = dt.Frame([True, False, False, True, None, True, True, None])
     DT1 = dt.Frame([None, None, False, False, True, True, True, True])
@@ -297,6 +315,7 @@ def test_bool8_small_view():
 
 
 @pytest.mark.parametrize("n", [100, 512, 1000, 5000, 123457])
+@check_newsort_n
 def test_bool8_large(n):
     nn = 2 * n
     DT0 = dt.Frame([True, False, True, None, None, False] * n)
@@ -310,6 +329,7 @@ def test_bool8_large(n):
 
 
 @pytest.mark.parametrize("n", [254, 255, 256, 257, 258, 1000, 11111])
+@check_newsort_n
 def test_bool8_large_stable(n):
     DT0 = dt.Frame(A=[True, False, None] * n, B=range(3 * n))
     DT1 = dt.Frame(B=list(range(2, 3 * n, 3)) +
@@ -319,6 +339,7 @@ def test_bool8_large_stable(n):
     assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_bool8_small_descending():
     DT0 = dt.Frame([True, False, False, None, True, True, None])
     DT1 = dt.Frame([None, None, True, True, True, False, False])
@@ -329,6 +350,7 @@ def test_bool8_small_descending():
 
 
 @pytest.mark.parametrize("n", [int(random.expovariate(0.00001)) + 100])
+@check_newsort_n
 def test_bool8_large_descending(n):
     DT0 = dt.Frame([True, False, True, None, None, False, True] * n)
     DT1 = dt.Frame([None] * (2*n) + [True] * (3*n) + [False] * (2*n))

@@ -26,6 +26,7 @@ def test_options_all():
         "insert_method_threshold",
         "max_chunk_length",
         "max_radix_bits",
+        "new",
         "nthreads",
         "over_radix_bits",
         "thread_multiplier",

@@ -260,6 +260,7 @@ static size_t sort_max_chunk_length = 1 << 8;
 static uint8_t sort_max_radix_bits = 12;
 static uint8_t sort_over_radix_bits = 8;
 static int32_t sort_nthreads = static_cast<int>(dt::get_hardware_concurrency());
+static bool sort_new = false;
 
 void sort_init_options() {
   dt::register_option(
@@ -321,6 +322,13 @@ void sort_init_options() {
       if (nth <= 0) nth += static_cast<int32_t>(dt::get_hardware_concurrency());
       if (nth <= 0) nth = 1;
       sort_nthreads = static_cast<uint8_t>(nth);
+    }, "");
+
+  dt::register_option(
+    "sort.new",
+    []{ return py::obool(sort_new); },
+    [](const py::Arg& value) {
+      sort_new = value.to_bool_strict();
     }, "");
 }
 
@@ -1353,6 +1361,18 @@ RiGb group(const std::vector<Column>& columns,
     for (const Column& col : columns) xassert(col.nrows() == nrows);
   #endif
 
+  if (sort_new) {
+    if (n == 1 && col0.stype() == SType::BOOL) {
+      bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
+      auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
+                                                        : dt::sort::Direction::ASCENDING;
+      auto sorter = dt::sort::make_sorter(col0, direction);
+      return sorter->sort(!sort_only);
+    } else {
+      throw NotImplError() << "Newsort not implemented for this column type";
+    }
+  }
+
   // For a 0-row Frame we return a rowindex of size 0, and the
   // Groupby containing zero groups.
   if (nrows == 0) {
@@ -1365,13 +1385,6 @@ RiGb group(const std::vector<Column>& columns,
     result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
     result.second = Groupby::single_group(nrows);
     return result;
-  }
-  if (n == 1 && col0.stype() == SType::BOOL) {
-    bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
-    auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
-                                                      : dt::sort::Direction::ASCENDING;
-    auto sorter = dt::sort::make_sorter(col0, direction);
-    return sorter->sort(!sort_only);
   }
 
   // TODO: avoid materialization
