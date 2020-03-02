@@ -29,10 +29,10 @@ namespace sort {
 
 
 /**
- * SSorter for (virtual) boolean columns.
- */
+  * Sorter for (virtual) boolean columns.
+  */
 template <typename T, bool ASC>
-class Sorter_Bool : public SSorter<T>
+class Sorter_VBool : public SSorter<T>
 {
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
@@ -43,7 +43,7 @@ class Sorter_Bool : public SSorter<T>
     Column column_;
 
   public:
-    Sorter_Bool(const Column& col)
+    Sorter_VBool(const Column& col)
       : SSorter<T>(col.nrows()),
         column_(col)
     {
@@ -95,7 +95,8 @@ class Sorter_Bool : public SSorter<T>
     {
       (void) offset;
       (void) wrap;
-      RadixSort rdx(nrows_, 1, sort_mode);
+      constexpr int nradixbits = 1;
+      RadixSort rdx(nrows_, nradixbits, sort_mode);
       auto groups = rdx.sort_by_radix(ordering_in, ordering_out,
           [&](size_t i) {  // get_radix
             int8_t ivalue;
@@ -108,6 +109,97 @@ class Sorter_Bool : public SSorter<T>
     }
 
 };
+
+
+
+/**
+  * Sorter for a boolean (material) column.
+  */
+template <typename T, bool ASC>
+class Sorter_MBool : public SSorter<T>
+{
+  using Vec = array<T>;
+  using TGrouper = Grouper<T>;
+  using UnqSorter = std::unique_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+  private:
+    using SSorter<T>::nrows_;
+    const int8_t* data_;
+
+  public:
+    Sorter_MBool(const Column& col)
+      : SSorter<T>(col.nrows())
+    {
+      xassert(ASC);
+      xassert(col.get_na_storage_method() == NaStorage::SENTINEL);
+      data_ = static_cast<const int8_t*>(col.get_data_readonly());
+    }
+
+  protected:
+    int compare_lge(size_t i, size_t j) const override {
+      int8_t xi = data_[i];
+      int8_t xj = data_[j];
+      return ASC? static_cast<int>(xi) - static_cast<int>(xj)
+                : static_cast<int>(static_cast<uint8_t>(xj)) -
+                  static_cast<int>(static_cast<uint8_t>(xi));
+    }
+
+    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
+      dt::sort::small_sort(Vec(), ordering_out, grouper,
+          [&](size_t i, size_t j) {
+            return data_[i] < data_[j];
+          });
+    }
+
+
+    void small_sort(Vec ordering_in, Vec ordering_out, size_t,
+                    TGrouper* grouper) const override
+    {
+      xassert(ordering_in.size() == ordering_out.size());
+      const T* oin = ordering_in.ptr();
+      dt::sort::small_sort(ordering_in, ordering_out, grouper,
+          [&](size_t i, size_t j) {
+            return data_[oin[i]] < data_[oin[j]];
+          });
+    }
+
+
+    void radix_sort(Vec ordering_in, Vec ordering_out,
+                    size_t offset, TGrouper* grouper, Mode sort_mode,
+                    NextWrapper wrap) const override
+    {
+      (void) offset;
+      (void) wrap;
+      constexpr int nradixbits = 1;
+      RadixSort rdx(nrows_, nradixbits, sort_mode);
+      auto groups = rdx.sort_by_radix(ordering_in, ordering_out,
+          [&](size_t i) {  // get_radix
+            int8_t ivalue = data_[i];
+            return ISNA<int8_t>(ivalue)? 0 : static_cast<size_t>(ivalue + 1);
+          });
+      if (grouper) {
+        grouper->fill_from_offsets(groups);
+      }
+    }
+
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// Factory function
+//------------------------------------------------------------------------------
+
+template <typename T, bool ASC>
+std::unique_ptr<SSorter<T>> make_sorter_bool(const Column& column) {
+  if (ASC && !column.is_virtual()) {
+    return std::unique_ptr<SSorter<T>>(new Sorter_MBool<T, ASC>(column));
+  } else {
+    return std::unique_ptr<SSorter<T>>(new Sorter_VBool<T, ASC>(column));
+  }
+}
+
 
 
 
