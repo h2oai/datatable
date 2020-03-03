@@ -34,18 +34,20 @@ namespace sort {
 /**
  * SSorter for (virtual) integer columns.
  */
-template <typename TO, typename TI>
-class Sorter_Int : public SSorter<TO> {
+template <typename T, typename TI>
+class Sorter_Int : public SSorter<T> {
   using TU = typename std::make_unsigned<TI>::type;
+  using Vec = array<T>;
+  using TGrouper = Grouper<T>;
+  using UnqSorter = std::unique_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
   private:
-    using ovec = array<TO>;
-    using typename SSorter<TO>::next_wrapper;
-    using SSorter<TO>::nrows_;
+    using SSorter<T>::nrows_;
     Column column_;
 
   public:
     Sorter_Int(const Column& col)
-      : SSorter<TO>(col.nrows()),
+      : SSorter<T>(col.nrows()),
         column_(col) { assert_compatible_type<TI>(col.stype()); }
 
 
@@ -58,23 +60,25 @@ class Sorter_Int : public SSorter<TO> {
                              : (ivalid - jvalid);
     }
 
-    void small_sort(ovec ordering_in, ovec ordering_out,
-                    size_t offset) const override
+    void small_sort(Vec ordering_in, Vec ordering_out,
+                    size_t offset, TGrouper* grouper) const override
     {
       (void) offset;
-      xassert(ordering_in.size == ordering_out.size);
-      const TO* oin = ordering_in.ptr;
-      dt::sort::small_sort(ordering_in, ordering_out,
+      xassert(ordering_in.size() == ordering_out.size());
+      const T* oin = ordering_in.ptr();
+      dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
-          bool ivalid = column_.get_element(static_cast<size_t>(oin[i]), &ivalue);
-          bool jvalid = column_.get_element(static_cast<size_t>(oin[j]), &jvalue);
+          auto ii = static_cast<size_t>(oin[i]);
+          auto jj = static_cast<size_t>(oin[j]);
+          bool ivalid = column_.get_element(ii, &ivalue);
+          bool jvalid = column_.get_element(jj, &jvalue);
           return jvalid && (!ivalid || ivalue < jvalue);
         });
     }
 
-    void small_sort(ovec ordering_out) const override {
-      dt::sort::small_sort(ovec(), ordering_out,
+    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
+      dt::sort::small_sort(Vec(), ordering_out, grouper,
         [&](size_t i, size_t j) -> bool {  // compare_lt
           TI ivalue, jvalue;
           bool ivalid = column_.get_element(i, &ivalue);
@@ -83,10 +87,15 @@ class Sorter_Int : public SSorter<TO> {
         });
     }
 
-    void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
-                    bool parallel, next_wrapper wrap = nullptr) const override
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
+                    TGrouper* grouper, Mode sort_mode, NextWrapper wrap
+                    ) const override
     {
-      xassert(ordering_in.size == 0);
+      (void) grouper;
+      (void) wrap;
+      (void) offset;
+      (void) ordering_in;
+      xassert(ordering_in.size() == 0);
       xassert(offset == 0);
       bool minmax_valid;
       TI min = static_cast<TI>(column_.stats()->min_int(&minmax_valid));
@@ -102,14 +111,14 @@ class Sorter_Int : public SSorter<TO> {
       int shift = nsigbits - nradixbits;
       TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      Buffer tmp = Buffer::mem(sizeof(TO) * nrows_);
-      ovec ordering_tmp(tmp);
+      Buffer tmp = Buffer::mem(sizeof(T) * nrows_);
+      Vec ordering_tmp(tmp);
 
       Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
       array<TU> out_array(out_buffer);
 
-      RadixSort rdx(nrows_, 1, parallel);
-      auto groups = rdx.sort_by_radix(ovec(), ordering_tmp,
+      RadixSort rdx(nrows_, 1, sort_mode);
+      auto groups = rdx.sort_by_radix(Vec(), ordering_tmp,
         [&](size_t i) -> size_t {  // get_radix
           TI value;
           bool isvalid = column_.get_element(i, &value);
@@ -118,22 +127,22 @@ class Sorter_Int : public SSorter<TO> {
         [&](size_t i, size_t j) {  // move_data
           TI value;
           column_.get_element(i, &value);
-          out_array.ptr[j] = static_cast<TU>(value - min) & mask;
+          out_array[j] = static_cast<TU>(value - min) & mask;
         });
 
-      Sorter_Raw<TO, TU> nextcol(std::move(out_buffer), nrows_, shift);
+      Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
       rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
-        [&](size_t offs, size_t len, ovec ord_in, ovec ord_out, bool para) {
-          nextcol.sort_subgroup(offs, len, ord_in, ord_out, para);
+        [&](size_t offs, size_t len, Vec ord_in, Vec ord_out, Mode m) {
+          nextcol.sort_subgroup(offs, len, ord_in, ord_out, nullptr, m);
         });
     }
 
 
   private:
-    void write_range(ovec ordering_out) const {
-      size_t n = ordering_out.size;
+    void write_range(Vec ordering_out) const {
+      size_t n = ordering_out.size();
       for (size_t i = 0; i < n; ++i) {
-        ordering_out.ptr[i] = static_cast<TO>(i);
+        ordering_out[i] = static_cast<T>(i);
       }
     }
 

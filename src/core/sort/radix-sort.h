@@ -42,9 +42,16 @@ inline T divceil(T a, T b) {
 
 
 /**
-  * Helper class that holds all the parameters needed during radix
-  * sort. For convenience, the members in this class are readable
-  * directly (not encapsulated).
+  * Class that encapsulates the radix-sort algorithm.
+  *
+  * Usage:
+  *
+  *     RadixSort rdx(nrows, nradixbits, true);
+  *     auto groups = rdx.sort_by_radix(ordin, ordout,
+  *                       [&](size_t i){ ... }  // get_radix
+  *                       );
+  *     rdx.sort_subgroups(groups, ...);
+  *
   */
 class RadixSort {
   private:
@@ -55,7 +62,7 @@ class RadixSort {
     Buffer histogram_buffer_;
 
   public:
-    RadixSort(size_t nrows, int nrb, bool allow_parallel) {
+    RadixSort(size_t nrows, int nrb, Mode mode) {
       xassert(nrows > 0);
       xassert(nrb > 0 && nrb <= 20);
       n_radixes_ = (1u << nrb) + 1;
@@ -65,7 +72,7 @@ class RadixSort {
       // dt::parallel_for_static will not actually spawn a parallel
       // region.
       n_chunks_ = 1;
-      if (allow_parallel) {
+      if (mode == Mode::PARALLEL) {
         xassert(dt::num_threads_in_team() == 0);
         n_chunks_ = std::min(dt::num_threads_in_pool(),
                             divceil(nrows, MIN_NROWS_PER_THREAD));
@@ -111,31 +118,30 @@ class RadixSort {
                             MoveData move_data)
     {
       static_assert(
-        std::is_convertible<GetRadix, std::function<size_t(size_t)>>::value,
+        std::is_convertible<GetRadix, dt::function<size_t(size_t)>>::value,
         "Incorrect signature of get_radix function");
       static_assert(
-        std::is_convertible<MoveData,
-                            std::function<void(size_t,size_t)>>::value,
+        std::is_convertible<MoveData, dt::function<void(size_t,size_t)>>::value,
         "Incorrect signature of move_data function");
-      xassert(ordering_in.size == n_rows_ || ordering_in.size == 0);
-      xassert(ordering_out.size == n_rows_);
+      xassert(ordering_in.size() == n_rows_ || ordering_in.size() == 0);
+      xassert(ordering_out.size() == n_rows_);
 
       array<TO> histogram = allocate_histogram<TO>();
       build_histogram(histogram, get_radix);
-      if (ordering_in.size) {
+      if (ordering_in) {
         reorder_data(histogram, get_radix,
                      [&](size_t i, size_t j) {
-                       ordering_out.ptr[j] = ordering_in.ptr[i];
+                       ordering_out[j] = ordering_in[i];
                        move_data(i, j);
                      });
       } else {
         reorder_data(histogram, get_radix,
                      [&](size_t i, size_t j) {
-                       ordering_out.ptr[j] = static_cast<TO>(i);
+                       ordering_out[j] = static_cast<TO>(i);
                        move_data(i, j);
                      });
       }
-      return array<TO>(histogram.ptr + (n_chunks_ - 1) * n_radixes_,
+      return array<TO>(histogram.ptr() + (n_chunks_ - 1) * n_radixes_,
                        n_radixes_);
     }
 
@@ -165,21 +171,22 @@ class RadixSort {
     {
       static_assert(
         std::is_convertible<Subsort,
-                            std::function<void(size_t,size_t,array<TO>,array<TO>,bool)>>::value,
+                            std::function<void(size_t,size_t,array<TO>,array<TO>,Mode)>>::value,
         "Invalid signature of subsort function");
-      xassert(groups.size > 0);
-      xassert(ordering_in.size == n_rows_ && ordering_out.size == n_rows_);
+      xassert(groups.size() > 0);
+      xassert(ordering_in.size() == n_rows_ && ordering_out.size() == n_rows_);
 
       if (n_chunks_ == 1 || true) {
-        const size_t ngroups = groups.size;
+        const size_t ngroups = groups.size();
         size_t group_start = 0;
         for (size_t i = 0; i < ngroups; ++i) {
-          size_t group_end = static_cast<size_t>(groups.ptr[i]);
+          size_t group_end = static_cast<size_t>(groups[i]);
           size_t group_size = group_end - group_start;
           if (group_size > 1) {
             subsort(group_start, group_size,
                     ordering_in.subset(group_start, group_size),
-                    ordering_out.subset(group_start, group_size), true);
+                    ordering_out.subset(group_start, group_size),
+                    Mode::PARALLEL);
           }
           group_end = group_start;
         }
@@ -251,7 +258,9 @@ class RadixSort {
         n_chunks_,          // n iterations
         dt::ChunkSize(1),  // each iteration processed individually
         [&](size_t i) {
-          TH* tcounts = histogram.ptr + (n_radixes_ * i);
+          TH* tcounts = histogram.ptr() + (n_radixes_ * i);
+          std::fill(tcounts, tcounts + n_radixes_, 0);
+
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
           for (size_t j = j0; j < j1; ++j) {
             size_t radix = get_radix(j);
@@ -268,8 +277,8 @@ class RadixSort {
       size_t histogram_size = n_chunks_ * n_radixes_;
       for (size_t j = 0; j < n_radixes_; ++j) {
         for (size_t r = j; r < histogram_size; r += n_radixes_) {
-          TH t = histogram.ptr[r];
-          histogram.ptr[r] = static_cast<TH>(cumsum);
+          TH t = histogram[r];
+          histogram[r] = static_cast<TH>(cumsum);
           cumsum += static_cast<size_t>(t);
         }
       }
@@ -286,7 +295,7 @@ class RadixSort {
         n_chunks_,
         dt::ChunkSize(1),
         [&](size_t i) {
-          TH* tcounts = histogram.ptr + (n_radixes_ * i);
+          TH* tcounts = histogram.ptr() + (n_radixes_ * i);
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
           for (size_t j = j0; j < j1; ++j) {
             size_t radix = get_radix(j);
@@ -295,7 +304,7 @@ class RadixSort {
             move_data(j, static_cast<size_t>(k));
           }
         });
-      xassert(static_cast<size_t>(histogram.ptr[histogram.size - 1]) == n_rows_);
+      xassert(static_cast<size_t>(histogram[histogram.size() - 1]) == n_rows_);
     }
 
 

@@ -29,13 +29,16 @@ namespace dt {
 namespace sort {
 
 
-template <typename TO, typename TU>
-class Sorter_Raw : public SSorter<TO>
+template <typename T, typename TU>
+class Sorter_Raw : public SSorter<T>
 {
-  using typename SSorter<TO>::next_wrapper;
-  using ovec = array<TO>;
-  using SSorter<TO>::nrows_;
+  using Vec = array<T>;
+  using TGrouper = Grouper<T>;
+  using UnqSorter = std::unique_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+
   private:
+    using SSorter<T>::nrows_;
     TU* data_;        // array with nrows_ elements
     Buffer buffer_;   // owner of the data_ pointer
     int n_significant_bits_;
@@ -43,7 +46,7 @@ class Sorter_Raw : public SSorter<TO>
 
   public:
   	Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
-  		: SSorter<TO>(nrows),
+  		: SSorter<T>(nrows),
         data_(static_cast<TU*>(buf.xptr())),
   		  buffer_(std::move(buf)),
         n_significant_bits_(nbits)
@@ -53,13 +56,13 @@ class Sorter_Raw : public SSorter<TO>
  	  }
 
     void sort_subgroup(size_t offset, size_t length,
-                       ovec ordering_in, ovec ordering_out,
-                       bool parallel)
+                       Vec ordering_in, Vec ordering_out,
+                       TGrouper* grouper, Mode sort_mode)
     {
       if (length <= INSERTSORT_NROWS) {
-        small_sort(ordering_in, ordering_out, offset);
+        small_sort(ordering_in, ordering_out, offset, grouper);
       } else {
-        radix_sort(ordering_in, ordering_out, offset, parallel);
+        radix_sort(ordering_in, ordering_out, offset, grouper, sort_mode, nullptr);
       }
     }
 
@@ -76,39 +79,42 @@ class Sorter_Raw : public SSorter<TO>
       return true;
     }
 
-    void small_sort(ovec ordering_in, ovec ordering_out,
-                     size_t offset) const override
+    void small_sort(Vec ordering_in, Vec ordering_out,
+                    size_t offset, TGrouper* grouper) const override
     {
       TU* x = data_ + offset;
-      dt::sort::small_sort(ordering_in, ordering_out,
+      dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j){ return x[i] < x[j]; });
     }
 
 
-    void small_sort(ovec ordering_out) const override {
-      small_sort(ovec(), ordering_out, 0);
+    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
+      small_sort(Vec(), ordering_out, 0, grouper);
     }
 
 
-    void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
-                    bool parallel, next_wrapper wrap = nullptr) const override
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
+                    TGrouper* grouper, Mode mode, NextWrapper wrap
+                    ) const override
     {
+      (void) grouper;
+      (void) wrap;
       int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
       int n_remaining_bits = n_significant_bits_ - n_radix_bits;
-      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, parallel);
-      else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (ordering_in, ordering_out, offset, n_radix_bits, parallel);
-      else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
-      else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
-      else                             radix_sort1<uint64_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
+      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, mode);
+      else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (ordering_in, ordering_out, offset, n_radix_bits, mode);
+      else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
+      else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
+      else                             radix_sort1<uint64_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
     }
 
 
   private:
-    void radix_sort0(ovec ordering_in, ovec ordering_out, size_t offset,
-                     bool parallel) const
+    void radix_sort0(Vec ordering_in, Vec ordering_out, size_t offset,
+                     Mode mode) const
     {
-      size_t n = ordering_out.size;
-      RadixSort rdx(n, n_significant_bits_, parallel);
+      size_t n = ordering_out.size();
+      RadixSort rdx(n, n_significant_bits_, mode);
       TU* x = data_ + offset;
       rdx.sort_by_radix(ordering_in, ordering_out,
         [&](size_t i){ return x[i]; });
@@ -116,25 +122,25 @@ class Sorter_Raw : public SSorter<TO>
 
 
     template <typename TNext>
-    void radix_sort1(ovec ordering_in, ovec ordering_out, size_t offset,
-                     int n_radix_bits, bool parallel) const
+    void radix_sort1(Vec ordering_in, Vec ordering_out, size_t offset,
+                     int n_radix_bits, Mode mode) const
     {
       static_assert(std::is_unsigned<TNext>::value, "Wrong TNext type");
-      size_t n = ordering_out.size;
+      size_t n = ordering_out.size();
       int shift = n_significant_bits_ - n_radix_bits;
       TU mask = static_cast<TU>(TU(1) << shift) - 1;
-      Sorter_Raw<TO, TNext> nextcol(Buffer::mem(n*sizeof(TNext)), n, shift);
+      Sorter_Raw<T, TNext> nextcol(Buffer::mem(n*sizeof(TNext)), n, shift);
       TU* x = data_ + offset;
       TNext* y = nextcol.get_data();
 
-      RadixSort rdx(n, n_radix_bits, parallel);
-      ovec groups = rdx.sort_by_radix(ordering_in, ordering_out,
+      RadixSort rdx(n, n_radix_bits, mode);
+      Vec groups = rdx.sort_by_radix(ordering_in, ordering_out,
         [&](size_t i){ return static_cast<size_t>(x[i] >> shift); },
         [&](size_t i, size_t j){ y[j] = static_cast<TNext>(x[i] & mask); });
 
       rdx.sort_subgroups(groups, ordering_out, ordering_in,
-        [&](size_t offs, size_t length, ovec oin, ovec oout, bool para) {
-          nextcol.sort_subgroup(offs, length, oin, oout, para);
+        [&](size_t offs, size_t length, Vec oin, Vec oout, Mode m) {
+          nextcol.sort_subgroup(offs, length, oin, oout, nullptr, m);
         });
     }
 };
