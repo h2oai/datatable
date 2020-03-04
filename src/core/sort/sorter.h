@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_SORTER_h
 #define dt_SORT_SORTER_h
+#include <type_traits>       // std::is_same
 #include <utility>           // std::pair
 #include "sort/common.h"
 #include "sort/grouper.h"    // Grouper
@@ -62,6 +63,8 @@ class Sorter {
 template <typename T>
 class SSorter : public Sorter
 {
+  static_assert(std::is_same<T, int32_t>::value ||
+                std::is_same<T, int64_t>::value, "Wrong SSorter<T>");
   friend class Sorter_Multi<T>;
   using Vec = array<T>;
   using TGrouper = Grouper<T>;

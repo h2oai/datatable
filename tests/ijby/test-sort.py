@@ -362,32 +362,33 @@ def test_bool8_large_descending(n):
 # Int16
 #-------------------------------------------------------------------------------
 
+@check_newsort
 def test_int16_small():
-    d0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None], stype=dt.int16)
-    assert d0.stypes[0] == stype.int16
-    d1 = d0.sort(0)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, -1000, -10, 0, 2, 100, 999, 10000]]
+    DT0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None] / dt.int16)
+    DT1 = dt.Frame([None, -1000, -10, 0, 2, 100, 999, 10000] / dt.int16)
+    DTS = DT0.sort(0)
+    assert DT0.stype == stype.int16
+    assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_int16_small_stable():
-    d0 = dt.Frame([[0, 1000, 0, 0, 1000, 0, 0, 1000, 0],
-                   [1, 2, 3, 4, 5, 6, 7, 8, 9]],
-                  names=["A", "B"], stypes={"A": "int16"})
-    assert d0.stypes[0] == stype.int16
-    d1 = d0.sort(0)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[0, 0, 0, 0, 0, 0, 1000, 1000, 1000],
-                            [1, 3, 4, 6, 7, 9, 2, 5, 8]]
+    DT0 = dt.Frame(A=[0, 1000, 0, 0, 1000, 0, 0, 1000, 0] / dt.int16,
+                   B=[1, 2, 3, 4, 5, 6, 7, 8, 9])
+    DT1 = dt.Frame(A=[0, 0, 0, 0, 0, 0, 1000, 1000, 1000] / dt.int16,
+                   B=[1, 3, 4, 6, 7, 9, 2, 5, 8])
+    DTS = DT0.sort(0)
+    assert DT0['A'].stype == stype.int16
+    assert_equals(DTS, DT1)
 
 
 def test_int16_large():
-    d0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)],
-                  stype=dt.int16)
-    d1 = d0.sort(0)
-    assert d1.stypes == (stype.int16, )
-    frame_integrity_check(d1)
-    assert d1.to_list() == [list(range(-5003, 5004))]
+    DT0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)]
+                   / dt.int16)
+    DT1 = dt.Frame(range(-5003, 5004), stype=dt.int16)
+    DTS = DT0.sort(0)
+    assert DT0.stype == stype.int16
+    assert_equals(DTS, DT1)
 
 
 @pytest.mark.parametrize("n", [100, 150, 200, 500, 1000, 200000])

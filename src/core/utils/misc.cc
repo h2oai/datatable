@@ -12,6 +12,14 @@
 
 namespace dt {
 
+// The warning is spurious, because shifts triggering the warning are
+// within if() conditions that get statically ignored.
+#if !DT_OS_WINDOWS
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wshift-count-overflow"
+#endif
+
+
 /**
  * Number of leading zeros.
  * This algorithm tuned for the case when the number of leading zeros is
@@ -20,12 +28,6 @@ namespace dt {
  */
 template <typename T>
 int nlz(T x) {
-  // The warning is spurious, because shifts triggering the warning are
-  // within if() conditions that get statically ignored.
-  #if !DT_OS_WINDOWS
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wshift-count-overflow"
-  #endif
   T y;
   int n = sizeof(T) * 8;
   if (sizeof(T) >= 8) {
@@ -43,15 +45,43 @@ int nlz(T x) {
     y = x >> 1;  if (y != 0) return n - 2;
   }
   return n - static_cast<int>(x);
-  #if !DT_OS_WINDOWS
-    #pragma GCC diagnostic pop
-  #endif
 }
+
+
+template <typename T>
+int nsb(T x) {
+  static_assert(std::is_unsigned<T>::value, "Wrong T in nsb<T>()");
+  T y;
+  int m = 0;
+  if (sizeof(T) >= 8) {
+    y = x >> 32; if (y) { m += 32;  x = y; }
+  }
+  if (sizeof(T) >= 4) {
+    y = x >> 16; if (y) { m += 16;  x = y; }
+  }
+  if (sizeof(T) >= 2) {
+    y = x >> 8;  if (y) { m += 8;  x = y; }
+  }
+  if (sizeof(T) >= 1) {
+    y = x >> 4;  if (y) { m += 4;  x = y; }
+    y = x >> 2;  if (y) { m += 2;  x = y; }
+    y = x >> 1;  if (y) return m + 2;
+  }
+  return m + static_cast<int>(x);
+}
+
+#if !DT_OS_WINDOWS
+  #pragma GCC diagnostic pop
+#endif
 
 template int nlz(uint64_t);
 template int nlz(uint32_t);
 template int nlz(uint16_t);
 template int nlz(uint8_t);
+template int nsb(uint64_t);
+template int nsb(uint32_t);
+template int nsb(uint16_t);
+template int nsb(uint8_t);
 
 };  // namespace dt
 

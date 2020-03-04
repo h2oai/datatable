@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_SORTER_INT_h
 #define dt_SORT_SORTER_INT_h
+#include <type_traits>          // std::is_same
 #include "sort/insert-sort.h"   // dt::sort::insert_sort
 #include "sort/radix-sort.h"    // RadixSort
 #include "sort/sorter.h"        // Sort
@@ -32,10 +33,18 @@ namespace sort {
 
 
 /**
- * SSorter for (virtual) integer columns.
+ * Sorter for (virtual) integer columns.
+ *
+ * <T>  : type of elements in the ordering vector;
+ * <TI> : type of elements in the underlying integer column.
  */
 template <typename T, typename TI>
-class Sorter_Int : public SSorter<T> {
+class Sorter_Int : public SSorter<T>
+{
+  static_assert(std::is_same<TI, int8_t>::value ||
+                std::is_same<TI, int16_t>::value ||
+                std::is_same<TI, int32_t>::value ||
+                std::is_same<TI, int64_t>::value, "Wrong TI in Sorter_Int");
   using TU = typename std::make_unsigned<TI>::type;
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
@@ -48,7 +57,10 @@ class Sorter_Int : public SSorter<T> {
   public:
     Sorter_Int(const Column& col)
       : SSorter<T>(col.nrows()),
-        column_(col) { assert_compatible_type<TI>(col.stype()); }
+        column_(col)
+    {
+      assert_compatible_type<TI>(col.stype());
+    }
 
 
   protected:
@@ -105,37 +117,44 @@ class Sorter_Int : public SSorter<T> {
         return;
       }
 
-      int nsigbits = static_cast<int>(sizeof(TI) * 8) -
-                      dt::nlz(static_cast<TU>(max - min + 1));
+      int nsigbits = dt::nsb(static_cast<TU>(max - min));
       int nradixbits = std::min(nsigbits, 8);
-      int shift = nsigbits - nradixbits;
-      TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      Buffer tmp = Buffer::mem(shift? sizeof(T) * nrows_ : 0);
-      Vec ordering_tmp(tmp);
+      if (nsigbits > nradixbits) {
+        int shift = nsigbits - nradixbits;
+        TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
-      array<TU> out_array(out_buffer);
+        Buffer tmp_buffer = Buffer::mem(sizeof(T) * nrows_);
+        Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
+        Vec ordering_tmp(tmp_buffer);
+        array<TU> out_array(out_buffer);
 
-      RadixSort rdx(nrows_, nradixbits, sort_mode);
-      auto groups = rdx.sort_by_radix(Vec(),
-        shift? ordering_tmp : ordering_out,
-        [&](size_t i) -> size_t {  // get_radix
-          TI value;
-          bool isvalid = column_.get_element(i, &value);
-          return isvalid? 1 + (static_cast<size_t>(value - min) >> shift) : 0;
-        },
-        [&](size_t i, size_t j) {  // move_data
-          TI value;
-          column_.get_element(i, &value);
-          out_array[j] = static_cast<TU>(value - min) & mask;
-        });
+        RadixSort rdx(nrows_, nradixbits, sort_mode);
+        auto groups = rdx.sort_by_radix(Vec(), ordering_tmp,
+          [&](size_t i) -> size_t {  // get_radix
+            TI value;
+            bool isvalid = column_.get_element(i, &value);
+            return isvalid? 1 + (static_cast<size_t>(value - min) >> shift) : 0;
+          },
+          [&](size_t i, size_t j) {  // move_data
+            TI value;
+            column_.get_element(i, &value);
+            out_array[j] = static_cast<TU>(value - min) & mask;
+          });
 
-      if (shift) {
         Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
         rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
           [&](size_t offs, size_t len, Vec ord_in, Vec ord_out, Mode m) {
             nextcol.sort_subgroup(offs, len, ord_in, ord_out, nullptr, m);
+          });
+      }
+      else {
+        RadixSort rdx(nrows_, nradixbits, sort_mode);
+        rdx.sort_by_radix(Vec(), ordering_out,
+          [&](size_t i) -> size_t {  // get_radix
+            TI value;
+            bool isvalid = column_.get_element(i, &value);
+            return isvalid? 1 + static_cast<size_t>(value - min) : 0;
           });
       }
     }
