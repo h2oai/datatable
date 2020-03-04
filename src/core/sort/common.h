@@ -95,6 +95,10 @@ class array
       return ptr_;
     }
 
+    T* end() const noexcept {
+      return ptr_ + size_;
+    }
+
     operator bool() const noexcept {
       return (ptr_ != nullptr);
     }
@@ -112,6 +116,10 @@ class array
     T& operator[](int64_t i) const {
       xassert(static_cast<size_t>(i) < size_);
       return ptr_[i];
+    }
+
+    bool intersects(const array<T>& other) const {
+      return (other.ptr() < end()) && (ptr() < other.end());
     }
 };
 

@@ -382,6 +382,7 @@ def test_int16_small_stable():
     assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_int16_large():
     DT0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)]
                    / dt.int16)

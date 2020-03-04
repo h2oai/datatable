@@ -26,6 +26,7 @@
 #include <type_traits>       // std::is_convertible
 #include "parallel/api.h"    // num_threads_in_pool, parallel_for_static
 #include "sort/common.h"
+#include "sort/sorter.h"     // SSorter<T>
 #include "utils/assert.h"    // xassert
 namespace dt {
 namespace sort {
@@ -75,7 +76,7 @@ class RadixSort {
       if (mode == Mode::PARALLEL) {
         xassert(dt::num_threads_in_team() == 0);
         n_chunks_ = std::min(dt::num_threads_in_pool(),
-                            divceil(nrows, MIN_NROWS_PER_THREAD));
+                             divceil(nrows, MIN_NROWS_PER_THREAD));
       }
       n_rows_per_chunk_ = divceil(nrows, n_chunks_);
     }
@@ -111,11 +112,11 @@ class RadixSort {
       * observation in the sorted sequence. The caller can use this
       * to store the sorted data.
       */
-    template <typename TO, typename GetRadix, typename MoveData>
-    array<TO> sort_by_radix(array<TO> ordering_in,
-                            array<TO> ordering_out,
-                            GetRadix get_radix,
-                            MoveData move_data)
+    template <typename T, typename GetRadix, typename MoveData>
+    array<T> sort_by_radix(array<T> ordering_in,
+                           array<T> ordering_out,
+                           GetRadix get_radix,
+                           MoveData move_data)
     {
       static_assert(
         std::is_convertible<GetRadix, dt::function<size_t(size_t)>>::value,
@@ -125,8 +126,9 @@ class RadixSort {
         "Incorrect signature of move_data function");
       xassert(ordering_in.size() == n_rows_ || ordering_in.size() == 0);
       xassert(ordering_out.size() == n_rows_);
+      xassert(!ordering_in.intersects(ordering_out));
 
-      array<TO> histogram = allocate_histogram<TO>();
+      array<T> histogram = allocate_histogram<T>();
       build_histogram(histogram, get_radix);
       if (ordering_in) {
         reorder_data(histogram, get_radix,
@@ -137,18 +139,19 @@ class RadixSort {
       } else {
         reorder_data(histogram, get_radix,
                      [&](size_t i, size_t j) {
-                       ordering_out[j] = static_cast<TO>(i);
+                       ordering_out[j] = static_cast<T>(i);
                        move_data(i, j);
                      });
       }
-      return array<TO>(histogram.ptr() + (n_chunks_ - 1) * n_radixes_,
-                       n_radixes_);
+      return array<T>(histogram.ptr() + (n_chunks_ - 1) * n_radixes_,
+                      n_radixes_);
     }
 
     // (same method, but with `move_data` argument omitted)
-    template <typename TO, typename GetRadix>
-    array<TO> sort_by_radix(array<TO> ordering_in,
-                            array<TO> ordering_out, GetRadix get_radix)
+    template <typename T, typename GetRadix>
+    array<T> sort_by_radix(array<T> ordering_in,
+                           array<T> ordering_out,
+                           GetRadix get_radix)
     {
       return sort_by_radix(ordering_in, ordering_out, get_radix,
                            [](size_t, size_t){});
@@ -156,25 +159,22 @@ class RadixSort {
 
 
     /**
-      * sort_subgroups(groups, ordering_in, ordering_out, subsort)
+      * sort_subgroups(groups, ordering_in, ordering_out, sorter)
       *
       * Second step in the radix-sort algorithm. This step takes the
       * array of group offsets `groups` (same array as returned from
-      * `sort_by_radix()`), and sorts each of these groups using the
-      * function `subsort`.
+      * `sort_by_radix()`), and sorts `sorter` within each of these
+      * groups.
       */
-    template <typename TO, typename Subsort>
-    void sort_subgroups(array<TO> groups,
-                        array<TO> ordering_in,
-                        array<TO> ordering_out,
-                        Subsort subsort)
+    template <typename T>
+    void sort_subgroups(array<T> groups,
+                        array<T> ordering_in,
+                        array<T> ordering_out,
+                        SSorter<T>* sorter)
     {
-      static_assert(
-        std::is_convertible<Subsort,
-                            std::function<void(size_t,size_t,array<TO>,array<TO>,Mode)>>::value,
-        "Invalid signature of subsort function");
       xassert(groups.size() > 0);
       xassert(ordering_in.size() == n_rows_ && ordering_out.size() == n_rows_);
+      xassert(!ordering_in.intersects(ordering_out));
 
       if (n_chunks_ == 1 || true) {
         const size_t ngroups = groups.size();
@@ -183,10 +183,11 @@ class RadixSort {
           size_t group_end = static_cast<size_t>(groups[i]);
           size_t group_size = group_end - group_start;
           if (group_size > 1) {
-            subsort(group_start, group_size,
-                    ordering_in.subset(group_start, group_size),
-                    ordering_out.subset(group_start, group_size),
-                    Mode::PARALLEL);
+            sorter->sort(ordering_in.subset(group_start, group_size),
+                         ordering_out.subset(group_start, group_size),
+                         group_start,
+                         nullptr,    // Grouper
+                         Mode::PARALLEL);
           }
           group_end = group_start;
         }
@@ -210,8 +211,8 @@ class RadixSort {
       //     if (group_end == 0) { first_group = i + 1; continue; }
       //     size_t group_size = group_end - group_start;
       //     if (group_size >= large_group) {
-      //       tmp.ensuresize(group_size * sizeof(TO));
-      //       TO* subordering = static_cast<TO*>(tmp.xptr());
+      //       tmp.ensuresize(group_size * sizeof(T));
+      //       T* subordering = static_cast<T*>(tmp.xptr());
       //       sort_subgroup(group_start, group_size, subordering);
       //       reorder_indices(ordering_out + group_start, group_size,
       //                       subordering);
@@ -235,11 +236,11 @@ class RadixSort {
       return std::make_tuple(start, end);
     }
 
-    template <typename TH>
-    array<TH> allocate_histogram() {
-      xassert(n_rows_ <= MAX_NROWS_INT32 || sizeof(TH) == 8);
-      histogram_buffer_.resize(n_chunks_ * n_radixes_ * sizeof(TH), false);
-      return array<TH>(histogram_buffer_);
+    template <typename T>
+    array<T> allocate_histogram() {
+      xassert(n_rows_ <= MAX_NROWS_INT32 || sizeof(T) == 8);
+      histogram_buffer_.resize(n_chunks_ * n_radixes_ * sizeof(T), false);
+      return array<T>(histogram_buffer_);
     }
 
     /**
@@ -252,13 +253,13 @@ class RadixSort {
       * (i.e. in the end the histogram will contain cumulative counts
       * of values in the sorted column).
       */
-    template <typename TH, typename GetRadix>
-    void build_histogram(array<TH> histogram, GetRadix get_radix) {
+    template <typename T, typename GetRadix>
+    void build_histogram(array<T> histogram, GetRadix get_radix) {
       dt::parallel_for_static(
         n_chunks_,          // n iterations
         dt::ChunkSize(1),  // each iteration processed individually
         [&](size_t i) {
-          TH* tcounts = histogram.ptr() + (n_radixes_ * i);
+          T* tcounts = histogram.ptr() + (n_radixes_ * i);
           std::fill(tcounts, tcounts + n_radixes_, 0);
 
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
@@ -268,17 +269,17 @@ class RadixSort {
             tcounts[radix]++;
           }
         });
-      cumulate_histogram<TH>(histogram);
+      cumulate_histogram<T>(histogram);
     }
 
-    template <typename TH>
-    void cumulate_histogram(array<TH> histogram) {
+    template <typename T>
+    void cumulate_histogram(array<T> histogram) {
       size_t cumsum = 0;
       size_t histogram_size = n_chunks_ * n_radixes_;
       for (size_t j = 0; j < n_radixes_; ++j) {
         for (size_t r = j; r < histogram_size; r += n_radixes_) {
-          TH t = histogram[r];
-          histogram[r] = static_cast<TH>(cumsum);
+          T t = histogram[r];
+          histogram[r] = static_cast<T>(cumsum);
           cumsum += static_cast<size_t>(t);
         }
       }
@@ -286,8 +287,8 @@ class RadixSort {
 
 
 
-    template<typename TH, typename GetRadix, typename MoveData>
-    void reorder_data(array<TH> histogram,
+    template<typename T, typename GetRadix, typename MoveData>
+    void reorder_data(array<T> histogram,
                       GetRadix get_radix,
                       MoveData move_data)
     {
@@ -295,11 +296,11 @@ class RadixSort {
         n_chunks_,
         dt::ChunkSize(1),
         [&](size_t i) {
-          TH* tcounts = histogram.ptr() + (n_radixes_ * i);
+          T* tcounts = histogram.ptr() + (n_radixes_ * i);
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
           for (size_t j = j0; j < j1; ++j) {
             size_t radix = get_radix(j);
-            TH k = tcounts[radix]++;
+            T k = tcounts[radix]++;
             xassert(static_cast<size_t>(k) < n_rows_);
             move_data(j, static_cast<size_t>(k));
           }

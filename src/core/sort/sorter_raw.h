@@ -88,11 +88,6 @@ class Sorter_Raw : public SSorter<T>
     }
 
 
-    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
-      small_sort(Vec(), ordering_out, 0, grouper);
-    }
-
-
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
                     TGrouper* grouper, Mode mode, NextWrapper wrap
                     ) const override
@@ -138,10 +133,7 @@ class Sorter_Raw : public SSorter<T>
         [&](size_t i){ return static_cast<size_t>(x[i] >> shift); },
         [&](size_t i, size_t j){ y[j] = static_cast<TNext>(x[i] & mask); });
 
-      rdx.sort_subgroups(groups, ordering_out, ordering_in,
-        [&](size_t offs, size_t length, Vec oin, Vec oout, Mode m) {
-          nextcol.sort_subgroup(offs, length, oin, oout, nullptr, m);
-        });
+      rdx.sort_subgroups(groups, ordering_out, ordering_in, &nextcol);
     }
 };
 

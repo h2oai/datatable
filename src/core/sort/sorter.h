@@ -89,12 +89,8 @@ class SSorter : public Sorter
         grouper = UnqGrouper(new TGrouper(Vec(groups_buf, 1), 0));
       }
 
-      if (nrows_ <= INSERTSORT_NROWS) {
-        small_sort(ordering_out, grouper.get());
-      } else {
-        radix_sort(Vec(), ordering_out, 0, grouper.get(),
-                   Mode::PARALLEL, nullptr);
-      }
+      sort(Vec(), ordering_out, 0, grouper.get(), Mode::PARALLEL);
+
       auto rowindex_type = sizeof(T) == 4? RowIndex::ARR32 : RowIndex::ARR64;
       RowIndex result_rowindex(std::move(rowindex_buf), rowindex_type);
       Groupby  result_groupby;
@@ -107,6 +103,19 @@ class SSorter : public Sorter
     }
 
 
+    void sort(Vec ordering_in, Vec ordering_out,
+              size_t offset, TGrouper* grouper, Mode sort_mode) const
+    {
+      size_t n = ordering_out.size();
+      if (n <= INSERTSORT_NROWS) {
+        small_sort(ordering_in, ordering_out, offset, grouper);
+      } else {
+        radix_sort(ordering_in, ordering_out, offset, grouper,
+                   sort_mode, nullptr);
+      }
+    }
+
+
   //----------------------------------------------------------------------------
   // API that should be implemented by the derived classes
   //----------------------------------------------------------------------------
@@ -114,7 +123,9 @@ class SSorter : public Sorter
     /**
       * Sort the vector of indices `ordering_in` and write the result
       * into `ordering_out`. This method should be single-threaded,
-      * and optimized for small `n`s.
+      * and optimized for small `n`s. The vector `ordering_in` can
+      * also be empty, in which it should be treated as if it was
+      * equal to `{0, 1, ..., n-1}`.
       *
       * The sorting is performed according to the values of the
       * underlying column within the range `[offset; offset + n)`.
@@ -129,11 +140,6 @@ class SSorter : public Sorter
     virtual void small_sort(Vec ordering_in, Vec ordering_out,
                             size_t offset, TGrouper* grouper) const = 0;
 
-    /**
-      * Same as previous, but `ordering_in` is implicitly equal to
-      * `{0, 1, ..., n-1}` and `offset` is 0.
-      */
-    virtual void small_sort(Vec ordering_out, TGrouper*) const = 0;
 
     /**
       */

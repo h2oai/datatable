@@ -73,34 +73,34 @@ class Sorter_Int : public SSorter<T>
                              : (ivalid - jvalid);
     }
 
-    void small_sort(Vec ordering_in, Vec ordering_out,
-                    size_t offset, TGrouper* grouper) const override
+    void small_sort(Vec ordering_in, Vec ordering_out, size_t,
+                    TGrouper* grouper) const override
     {
-      (void) offset;
-      xassert(ordering_in.size() == ordering_out.size());
-      const T* oin = ordering_in.ptr();
-      dt::sort::small_sort(ordering_in, ordering_out, grouper,
-        [&](size_t i, size_t j) -> bool {  // compare_lt
-          TI ivalue, jvalue;
-          auto ii = static_cast<size_t>(oin[i]);
-          auto jj = static_cast<size_t>(oin[j]);
-          bool ivalid = column_.get_element(ii, &ivalue);
-          bool jvalid = column_.get_element(jj, &jvalue);
-          return jvalid && (!ivalid || ivalue < jvalue);
-        });
+      if (ordering_in) {
+        const T* oin = ordering_in.ptr();
+        xassert(oin && ordering_in.size() == ordering_out.size());
+        dt::sort::small_sort(ordering_in, ordering_out, grouper,
+          [&](size_t i, size_t j) -> bool {  // compare_lt
+            TI ivalue, jvalue;
+            auto ii = static_cast<size_t>(oin[i]);
+            auto jj = static_cast<size_t>(oin[j]);
+            bool ivalid = column_.get_element(ii, &ivalue);
+            bool jvalid = column_.get_element(jj, &jvalue);
+            return jvalid && (!ivalid || ivalue < jvalue);
+          });
+      }
+      else {
+        dt::sort::small_sort(Vec(), ordering_out, grouper,
+          [&](size_t i, size_t j) -> bool {  // compare_lt
+            TI ivalue, jvalue;
+            bool ivalid = column_.get_element(i, &ivalue);
+            bool jvalid = column_.get_element(j, &jvalue);
+            return jvalid && (!ivalid || ivalue < jvalue);
+          });
+      }
       this->check_sorted(ordering_out);
     }
 
-    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
-      dt::sort::small_sort(Vec(), ordering_out, grouper,
-        [&](size_t i, size_t j) -> bool {  // compare_lt
-          TI ivalue, jvalue;
-          bool ivalid = column_.get_element(i, &ivalue);
-          bool jvalid = column_.get_element(j, &jvalue);
-          return jvalid && (!ivalid || ivalue < jvalue);
-        });
-      this->check_sorted(ordering_out);
-    }
 
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
                     TGrouper* grouper, Mode sort_mode, NextWrapper wrap
@@ -144,10 +144,7 @@ class Sorter_Int : public SSorter<T>
           });
 
         Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
-        rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
-          [&](size_t offs, size_t len, Vec ord_in, Vec ord_out, Mode m) {
-            nextcol.sort_subgroup(offs, len, ord_in, ord_out, nullptr, m);
-          });
+        rdx.sort_subgroups(groups, ordering_tmp, ordering_out, &nextcol);
       }
       else {
         RadixSort rdx(nrows_, nradixbits, sort_mode);
@@ -158,6 +155,7 @@ class Sorter_Int : public SSorter<T>
             return isvalid? 1 + static_cast<size_t>(value - min) : 0;
           });
       }
+      this->check_sorted(ordering_out);
     }
 
 
