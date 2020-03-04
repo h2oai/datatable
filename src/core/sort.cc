@@ -1362,7 +1362,8 @@ RiGb group(const std::vector<Column>& columns,
   #endif
 
   if (sort_new) {
-    if (n == 1 && col0.stype() == SType::BOOL) {
+    if (n == 1 && (col0.stype() == SType::BOOL ||
+                   col0.stype() == SType::INT8)) {
       bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
       auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
                                                         : dt::sort::Direction::ASCENDING;

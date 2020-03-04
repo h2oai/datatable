@@ -237,43 +237,42 @@ def test_int32_issue220():
 # Int8
 #-------------------------------------------------------------------------------
 
+@check_newsort
 def test_int8_small():
-    d0 = dt.Frame([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1], stype=dt.int8)
-    assert d0.stypes == (stype.int8, )
-    d1 = d0.sort(0)
-    assert d1.stypes == d0.stypes
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96]]
+    DT0 = dt.Frame([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1], stype=dt.int8)
+    DT1 = dt.Frame([None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96], stype=dt.int8)
+    DTS = DT0.sort(0)
+    assert DT0.stype == dt.int8
+    assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_int8_small_stable():
-    d0 = dt.Frame([
-        [5, 3, 5, None, 100, None, 3, None],
-        [1, 5, 10, 20, 50, 100, 200, 500]
-    ], names=["A", "B"])
-    d1 = d0[:, :, sort(f.A)]
-    frame_integrity_check(d1)
-    assert d1.to_list() == [
-        [None, None, None, 3, 3, 5, 5, 100],
-        [20, 100, 500, 5, 200, 1, 10, 50],
-    ]
+    DT0 = dt.Frame(A=[5, 3, 5, None, 100, None, 3, None],
+                   B=[1, 5, 10, 20, 50, 100, 200, 500],
+                   stypes={"A": dt.int8})
+    DT1 = dt.Frame(A=[None, None, None, 3, 3, 5, 5, 100],
+                   B=[20, 100, 500, 5, 200, 1, 10, 50],
+                   stypes={"A": dt.int8})
+    DTS = DT0[:, :, sort(f.A)]
+    assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_int8_large():
-    d0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)], stype=dt.int8)
-    d1 = d0.sort(0)
-    assert d1.stypes == (stype.int8, )
-    frame_integrity_check(d1)
-    assert d1.to_list() == [sum(([i] * 10 for i in range(-50, 51)), [])]
+    DT0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)], stype=dt.int8)
+    DT1 = dt.Frame([sum(([i] * 10 for i in range(-50, 51)), [])], stype=dt.int8)
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
 
 
 @pytest.mark.parametrize("n", [30, 303, 3333, 30000, 60009, 120000])
+@check_newsort_n
 def test_int8_large_stable(n):
     src = [None, 10, -10] * (n // 3)
-    d0 = dt.Frame([src, range(n)], names=("A", "B"), stypes={"A": "int8"})
-    assert d0.stypes[0] == stype.int8
-    d1 = d0[:, f.B, sort(f.A)]
+    DT = dt.Frame([src, range(n)], names=("A", "B"), stypes={"A": "int8"})
+    assert DT.stypes[0] == stype.int8
+    d1 = DT[:, f.B, sort(f.A)]
     assert d1.to_list() == [list(range(0, n, 3)) +
                             list(range(2, n, 3)) +
                             list(range(1, n, 3))]
