@@ -45,15 +45,15 @@ class Sorter_Raw : public SSorter<T>
     int : 32;
 
   public:
-  	Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
-  		: SSorter<T>(nrows),
+    Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
+      : SSorter<T>(nrows),
         data_(static_cast<TU*>(buf.xptr())),
-  		  buffer_(std::move(buf)),
+        buffer_(std::move(buf)),
         n_significant_bits_(nbits)
-  	{
-  		xassert(buffer_.size() == nrows * sizeof(TU));
+    {
+      xassert(buffer_.size() == nrows * sizeof(TU));
       xassert(nbits > 0 && nbits <= 8 * int(sizeof(TU)));
- 	  }
+    }
 
     void sort_subgroup(size_t offset, size_t length,
                        Vec ordering_in, Vec ordering_out,

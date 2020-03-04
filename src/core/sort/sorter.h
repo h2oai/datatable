@@ -99,6 +99,7 @@ class SSorter : public Sorter
         result_groupby = grouper->to_groupby(std::move(groups_buf));
       }
 
+      xassert(result_rowindex.max() == nrows_ - 1);
       return RiGb(std::move(result_rowindex), std::move(result_groupby));
     }
 

@@ -111,14 +111,15 @@ class Sorter_Int : public SSorter<T> {
       int shift = nsigbits - nradixbits;
       TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      Buffer tmp = Buffer::mem(sizeof(T) * nrows_);
+      Buffer tmp = Buffer::mem(shift? sizeof(T) * nrows_ : 0);
       Vec ordering_tmp(tmp);
 
       Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
       array<TU> out_array(out_buffer);
 
-      RadixSort rdx(nrows_, 1, sort_mode);
-      auto groups = rdx.sort_by_radix(Vec(), ordering_tmp,
+      RadixSort rdx(nrows_, nradixbits, sort_mode);
+      auto groups = rdx.sort_by_radix(Vec(),
+        shift? ordering_tmp : ordering_out,
         [&](size_t i) -> size_t {  // get_radix
           TI value;
           bool isvalid = column_.get_element(i, &value);
@@ -130,11 +131,13 @@ class Sorter_Int : public SSorter<T> {
           out_array[j] = static_cast<TU>(value - min) & mask;
         });
 
-      Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
-      rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
-        [&](size_t offs, size_t len, Vec ord_in, Vec ord_out, Mode m) {
-          nextcol.sort_subgroup(offs, len, ord_in, ord_out, nullptr, m);
-        });
+      if (shift) {
+        Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
+        rdx.sort_subgroups(groups, ordering_tmp, ordering_out,
+          [&](size_t offs, size_t len, Vec ord_in, Vec ord_out, Mode m) {
+            nextcol.sort_subgroup(offs, len, ord_in, ord_out, nullptr, m);
+          });
+      }
     }
 
 
