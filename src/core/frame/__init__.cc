@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -607,6 +607,10 @@ class FrameInitializationManager {
         col = Column::from_pybuffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
+        if (s == SType::VOID && colsrc.has_attr("type")) {
+          auto srctype = colsrc.get_attr("type");
+          s = srctype.to_stype();
+        }
         col = Column::from_pylist(colsrc.to_pylist(), int(s));
       }
       else if (colsrc.is_range()) {

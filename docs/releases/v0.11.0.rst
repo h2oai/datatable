@@ -17,6 +17,13 @@
   -[enh] Method :meth:`Frame.colindex()` now accepts a column selector
     f-expression as an argument.
 
+  -[enh] When creating a Frame from a python list, it is now possible to
+    explicitly specify the stype of the resulting column by "dividing" the
+    list by the type you need::
+
+        dt.Frame(A=[1, 5, 10] / dt.int64,
+                 B=[0, 0, 0] / dt.float64)
+
   -[api] Method :meth:`.cbind()` now throws an :exc:`InvalidOperationError`
     instead of a ``ValueError`` if the argument frames have incompatible
     shapes.
