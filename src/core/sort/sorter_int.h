@@ -50,6 +50,7 @@ class Sorter_Int : public SSorter<T>
   using TGrouper = Grouper<T>;
   using UnqSorter = std::unique_ptr<SSorter<T>>;
   using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+
   private:
     using SSorter<T>::nrows_;
     Column column_;
@@ -87,6 +88,7 @@ class Sorter_Int : public SSorter<T>
           bool jvalid = column_.get_element(jj, &jvalue);
           return jvalid && (!ivalid || ivalue < jvalue);
         });
+      this->check_sorted(ordering_out);
     }
 
     void small_sort(Vec ordering_out, TGrouper* grouper) const override {
@@ -97,6 +99,7 @@ class Sorter_Int : public SSorter<T>
           bool jvalid = column_.get_element(j, &jvalue);
           return jvalid && (!ivalid || ivalue < jvalue);
         });
+      this->check_sorted(ordering_out);
     }
 
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
@@ -105,10 +108,8 @@ class Sorter_Int : public SSorter<T>
     {
       (void) grouper;
       (void) wrap;
-      (void) offset;
-      (void) ordering_in;
-      xassert(ordering_in.size() == 0);
-      xassert(offset == 0);
+      xassert(!ordering_in);   (void) ordering_in;
+      xassert(!offset);        (void) offset;
       bool minmax_valid;
       TI min = static_cast<TI>(column_.stats()->min_int(&minmax_valid));
       TI max = static_cast<TI>(column_.stats()->max_int(&minmax_valid));

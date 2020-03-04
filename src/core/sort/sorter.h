@@ -155,6 +155,23 @@ class SSorter : public Sorter
     virtual bool contains_reordered_data() const {
       return false;
     }
+
+
+  protected:
+    void check_sorted(Vec ordering) const {
+      (void) ordering;
+      #if DTDEBUG
+        size_t n = ordering.size();
+        if (!n) return;
+        size_t j0 = static_cast<size_t>(ordering[0]);
+        for (size_t i = 1; i < n; ++i) {
+          size_t j1 = static_cast<size_t>(ordering[i]);
+          int r = compare_lge(j0, j1);
+          xassert(r <= 0);
+          j0 = j1;
+        }
+      #endif
+    }
 };
 
 
