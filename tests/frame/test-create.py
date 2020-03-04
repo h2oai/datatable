@@ -334,6 +334,39 @@ def test_create_from_kwargs_error():
 
 
 #-------------------------------------------------------------------------------
+# Create from a typed list
+#-------------------------------------------------------------------------------
+
+def test_create_from_typed_list():
+    DT = dt.Frame([1, 2, 3] / dt.int16)
+    assert DT.stype == dt.int16
+    assert DT.to_list() == [[1, 2, 3]]
+    frame_integrity_check(DT)
+
+
+def test_create_from_typed_list2():
+    DT = dt.Frame([[1, 2, 3] / dt.int64,
+                   [1, 2, 3] / dt.float64])
+    assert DT.stypes == (dt.int64, dt.float64)
+    assert DT.to_list() == [[1, 2, 3]] * 2
+    frame_integrity_check(DT)
+
+
+def test_create_from_typed_list3():
+    DT = dt.Frame(A=[1, 2, 3] / dt.str32,
+                  B=[1, 2, 3] / dt.bool8,
+                  C=[1, 2, 3] / dt.float64)
+    assert_equals(DT, dt.Frame(A=["1", "2", "3"], B=[True, True, True],
+                               C=[1.0, 2.0, 3.0]))
+
+
+def test_create_from_typed_list4():
+    DT = dt.Frame({"A": [1, 2, 3] / dt.int8})
+    assert_equals(DT, dt.Frame([1, 2, 3], names=["A"], stypes=[dt.int8]))
+
+
+
+#-------------------------------------------------------------------------------
 # Create from a Frame (copy)
 #-------------------------------------------------------------------------------
 
