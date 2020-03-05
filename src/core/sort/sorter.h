@@ -113,6 +113,9 @@ class SSorter : public Sorter
         radix_sort(ordering_in, ordering_out, offset, grouper,
                    sort_mode, nullptr);
       }
+      #if DTDEBUG
+        check_sorted(ordering_out);
+      #endif
     }
 
 
@@ -163,10 +166,14 @@ class SSorter : public Sorter
     }
 
 
-  protected:
+  private:
     void check_sorted(Vec ordering) const {
-      (void) ordering;
       #if DTDEBUG
+        // The `ordering` vector corresponds to the ordering of the
+        // original data vector. If the Sorter contains reordered
+        // data, then this ordering is not valid for it.
+        if (contains_reordered_data()) return;
+
         size_t n = ordering.size();
         if (!n) return;
         size_t j0 = static_cast<size_t>(ordering[0]);
@@ -176,6 +183,8 @@ class SSorter : public Sorter
           xassert(r <= 0);
           j0 = j1;
         }
+      #else
+        (void) ordering;
       #endif
     }
 };

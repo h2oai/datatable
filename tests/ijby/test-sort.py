@@ -393,6 +393,7 @@ def test_int16_large():
 
 
 @pytest.mark.parametrize("n", [100, 150, 200, 500, 1000, 200000])
+@check_newsort_n
 def test_int16_large_stable(n):
     d0 = dt.Frame([[-5, None, 5, -999, 1000] * n, range(n * 5)],
                   names=["A", "B"], stypes={"A": "int16"})

@@ -110,7 +110,6 @@ class Sorter_Multi : public SSorter<T>
             return (cmp < 0);
           });
       }
-      this->check_sorted(ordering_out);
     }
 
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,

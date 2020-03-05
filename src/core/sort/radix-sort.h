@@ -189,7 +189,7 @@ class RadixSort {
                          nullptr,    // Grouper
                          Mode::PARALLEL);
           }
-          group_end = group_start;
+          group_start = group_end;
         }
       }
       // TODO: use parallelism

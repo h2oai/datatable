@@ -86,7 +86,6 @@ class Sorter_VBool : public SSorter<T>
             return jvalid & (!ivalid | (ASC? ivalue < jvalue : ivalue > jvalue));
           });
       }
-      this->check_sorted(ordering_out);
     }
 
 

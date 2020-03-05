@@ -98,7 +98,6 @@ class Sorter_Int : public SSorter<T>
             return jvalid && (!ivalid || ivalue < jvalue);
           });
       }
-      this->check_sorted(ordering_out);
     }
 
 
@@ -155,7 +154,6 @@ class Sorter_Int : public SSorter<T>
             return isvalid? 1 + static_cast<size_t>(value - min) : 0;
           });
       }
-      this->check_sorted(ordering_out);
     }
 
 
