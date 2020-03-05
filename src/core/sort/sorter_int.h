@@ -113,10 +113,18 @@ class Sorter_Int : public SSorter<T>
       (void) wrap;
       xassert(!ordering_in);   (void) ordering_in;
       xassert(!offset);        (void) offset;
-      bool minmax_valid;
-      TI min = static_cast<TI>(column_.stats()->min_int(&minmax_valid));
-      TI max = static_cast<TI>(column_.stats()->max_int(&minmax_valid));
-      if (!minmax_valid || min == max) {
+      // Computing min/max of a column also calculates the nacount stat;
+      // but not the other way around. Therefore, `nacount` must be retrieved
+      // after `min` / `max`.
+      // The validity flags on min/max are disregarded, because min/max are
+      // invalid iff nacount==nrows.
+      TI min = static_cast<TI>(column_.stats()->min_int());
+      TI max = static_cast<TI>(column_.stats()->max_int());
+      size_t nacount = column_.stats()->nacount();
+
+      // If either all values are NAs, or all values are same and there are no
+      // NAs, then there is no need to sort.
+      if (nacount == nrows_ || (min == max && nacount == 0)) {
         write_range(ordering_out);
         return;
       }

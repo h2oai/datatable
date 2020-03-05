@@ -190,6 +190,7 @@ def test_int32_constant(n):
     assert d1.to_list() == tbl0
 
 
+@new
 def test_int32_reverse_list():
     step = 10
     d0 = dt.Frame(range(1000000, 0, -step))
@@ -200,6 +201,7 @@ def test_int32_reverse_list():
 
 
 @pytest.mark.parametrize("b", [32767, 1000000])
+@new
 def test_int32_upper_range(b):
     # This test looks at an i4 array with small range but large absolute values.
     # After subtracting the mean it will be converted into uint16_t for sorting,
@@ -212,6 +214,7 @@ def test_int32_upper_range(b):
 
 @pytest.mark.parametrize("dc", [32765, 32766, 32767, 32768,
                                 65533, 65534, 65535, 65536])
+@new
 def test_int32_u2range(dc):
     # Test array with range close to 2^15 / 2^16 (looking for potential off-by-1
     # errors at the boundary of int16_t / uint16_t)
@@ -224,6 +227,7 @@ def test_int32_u2range(dc):
     assert d1.to_list() == [[a] * 1000 + [b] * 1000 + [c] * 1000]
 
 
+@new
 def test_int32_unsigned():
     # In this test the range of values is 32 bits, so that after removing the
     # radix we would have full 16 bits remaining. At that point we should be
@@ -239,6 +243,7 @@ def test_int32_unsigned():
     assert d1.to_list() == [tbl]
 
 
+@new
 def test_int32_issue220():
     d0 = dt.Frame([None] + [1000000] * 200 + [None])
     d1 = d0.sort(0)
@@ -459,6 +464,7 @@ def test_int16_random(n):
 # Int64
 #-------------------------------------------------------------------------------
 
+@new
 def test_int64_small():
     d0 = dt.Frame([10**(i * 101 % 13) for i in range(13)] + [None])
     assert d0.stypes == (dt.int64, )
@@ -468,6 +474,7 @@ def test_int64_small():
     assert d1.to_list() == [[None] + [10**i for i in range(13)]]
 
 
+@new
 def test_int64_small_stable():
     d0 = dt.Frame([[0, None, -1000, 11**11] * 3, range(12)])
     assert d0.stypes == (dt.int64, dt.int32)
@@ -477,6 +484,7 @@ def test_int64_small_stable():
 
 
 @pytest.mark.parametrize("n", [16, 20, 30, 40, 50, 100, 500, 1000])
+@new
 def test_int64_large0(n):
     a = -6654966461866573261
     b = -6655043958000990616
@@ -493,6 +501,7 @@ def test_int64_large0(n):
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(63) for i in range(10)])
+@new
 def test_int64_large_random(seed):
     random.seed(seed)
     m = 2**63 - 1

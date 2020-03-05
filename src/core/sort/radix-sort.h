@@ -65,7 +65,7 @@ class RadixSort {
   public:
     RadixSort(size_t nrows, int nrb, Mode mode) {
       xassert(nrows > 0);
-      xassert(nrb > 0 && nrb <= 20);
+      xassert(nrb <= 20);
       n_radixes_ = (1u << nrb) + 1;
       n_rows_ = nrows;
       // If `allow_parallel` is false, then setting `n_chunks_` to 1
