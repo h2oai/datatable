@@ -601,34 +601,30 @@ def test_float64_random(numpy, n):
 # Sort views
 #-------------------------------------------------------------------------------
 
+@new
 def test_sort_view1():
-    d0 = dt.Frame([5, 10])
-    d1 = d0[[i % 2 for i in range(10)], :]
-    assert d1.shape == (10, 1)
-    frame_integrity_check(d1)
-    assert isview(d1)
-    d2 = d1[:, :, sort(0)]
-    assert d2.shape == d1.shape
-    frame_integrity_check(d2)
-    assert isview(d2)
-    assert d2.to_list() == [[5] * 5 + [10] * 5]
+    DT0 = dt.Frame([5, 10])
+    DT1 = DT0[[i % 2 for i in range(10)], :]
+    assert DT1.shape == (10, 1)
+    assert isview(DT1)
+    DT2 = DT1[:, :, sort(0)]
+    assert_equals(DT2, dt.Frame([5] * 5 + [10] * 5))
 
 
+@new
 def test_sort_view2():
-    d0 = dt.Frame([4, 1, 0, 5, -3, 12, 99, 7])
-    d1 = d0.sort(0)
-    d2 = d1[:, :, sort(0)]
-    frame_integrity_check(d2)
-    assert d2.to_list() == d1.to_list()
+    DT0 = dt.Frame([4, 1, 0, 5, -3, 12, 99, 7])
+    DT1 = DT0.sort(0)
+    DT2 = DT1[:, :, sort(0)]
+    assert_equals(DT1, DT2)
 
 
+@new
 def test_sort_view3():
-    d0 = dt.Frame(range(1000))
-    d1 = d0[::-5, :]
-    d2 = d1[:, :, sort(0)]
-    frame_integrity_check(d2)
-    assert d2.shape == (200, 1)
-    assert d2.to_list() == [list(range(4, 1000, 5))]
+    DT0 = dt.Frame(range(1000))
+    DT1 = DT0[::-5, :]
+    DT2 = DT1[:, :, sort(0)]
+    assert_equals(DT2, dt.Frame(range(4, 1000, 5)))
 
 
 def test_sort_view4():
@@ -920,6 +916,7 @@ def test_sort_random_multi(seed):
 # Sort in reverse order
 #-------------------------------------------------------------------------------
 
+@new
 def test_sort_bools_reverse():
     DT = dt.Frame(A=[True, None, False, None, True, None], B=list('abcdef'))
     assert_equals(DT[:, :, sort(-f.A)],
@@ -928,6 +925,7 @@ def test_sort_bools_reverse():
 
 
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
+@new
 def test_sort_ints_reverse(st):
     DT = dt.Frame(A=[5, 17, 9, -12, 0, 111, 3, 5], B=list('abcdefgh'),
                   stypes={"A": st, "B": dt.str32})
