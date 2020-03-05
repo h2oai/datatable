@@ -385,7 +385,7 @@ def test_int16_small_stable():
                    B=[1, 2, 3, 4, 5, 6, 7, 8, 9])
     DT1 = dt.Frame(A=[0, 0, 0, 0, 0, 0, 1000, 1000, 1000] / dt.int16,
                    B=[1, 3, 4, 6, 7, 9, 2, 5, 8])
-    DTS = DT0.sort(0)
+    DTS = DT0[:, :, sort(f.A)]
     assert DT0['A'].stype == stype.int16
     assert_equals(DTS, DT1)
 
