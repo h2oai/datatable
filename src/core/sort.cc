@@ -1380,7 +1380,10 @@ RiGb group(const std::vector<Column>& columns,
                    col0.stype() == SType::INT8 ||
                    col0.stype() == SType::INT16 ||
                    col0.stype() == SType::INT32 ||
-                   col0.stype() == SType::INT64)) {
+                   col0.stype() == SType::INT64 ||
+                   col0.stype() == SType::FLOAT32 ||
+                   col0.stype() == SType::FLOAT64 ||
+                   false)) {
       bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
       auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
                                                         : dt::sort::Direction::ASCENDING;

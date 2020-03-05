@@ -517,6 +517,7 @@ def test_int64_large_random(seed):
 # Float32
 #-------------------------------------------------------------------------------
 
+@new
 def test_float32_small():
     DT = dt.Frame([0, .4, .9, .2, .1, nan, -inf, -5, 3, 11, inf, 5.2],
                   stype="float32")
@@ -526,6 +527,7 @@ def test_float32_small():
     assert list_equals(d1.to_list(), dr.to_list())
 
 
+@new
 def test_float32_nans():
     DT0 = dt.Frame([nan, 0.5, nan, nan, -3, nan, 0.2, nan, nan, 1] / dt.float32)
     DT1 = dt.Frame([nan, nan, nan, nan, nan, nan, -3, 0.2, 0.5, 1] / dt.float32)
@@ -533,6 +535,7 @@ def test_float32_nans():
     assert_equals(DTS, DT1)
 
 
+@new
 def test_float32_large():
     d0 = dt.Frame([-1000, 0, 1.5e10, 7.2, math.inf] * 100, stype="float32")
     assert d0.stypes == (dt.float32, )
@@ -544,6 +547,7 @@ def test_float32_large():
 
 
 @pytest.mark.parametrize("n", [15, 16, 17, 20, 50, 100, 1000, 100000])
+# @new
 def test_float32_random(numpy, n):
     a = numpy.random.rand(n).astype("float32")
     d0 = dt.Frame(a)
@@ -557,6 +561,7 @@ def test_float32_random(numpy, n):
 # Float64
 #-------------------------------------------------------------------------------
 
+@new
 def test_float64_small():
     d0 = dt.Frame([0.1, -0.5, 1.6, 0, None, -inf, inf, 3.3, 1e100])
     assert d0.stypes == (dt.float64, )
@@ -566,6 +571,7 @@ def test_float64_small():
     assert list_equals(d1.to_list(), dr.to_list())
 
 
+@new
 def test_float64_zeros():
     z = 0.0
     d0 = dt.Frame([0.5] + [z, -z] * 100)
@@ -577,6 +583,7 @@ def test_float64_zeros():
 
 
 @pytest.mark.parametrize("n", [20, 100, 500, 2500, 20000])
+@new
 def test_float64_large(n):
     d0 = dt.Frame([12.6, .3, inf, -5.1, 0, -inf, None] * n)
     assert d0.stypes == (dt.float64, )
