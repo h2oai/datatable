@@ -237,43 +237,49 @@ def test_int32_issue220():
 # Int8
 #-------------------------------------------------------------------------------
 
+@check_newsort
 def test_int8_small():
-    d0 = dt.Frame([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1], stype=dt.int8)
-    assert d0.stypes == (stype.int8, )
-    d1 = d0.sort(0)
-    assert d1.stypes == d0.stypes
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96]]
+    DT0 = dt.Frame([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1] / dt.int8)
+    DT1 = dt.Frame([None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96] / dt.int8)
+    DTS = DT0.sort(0)
+    assert DT0.stype == dt.int8
+    assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_int8_small_stable():
-    d0 = dt.Frame([
-        [5, 3, 5, None, 100, None, 3, None],
-        [1, 5, 10, 20, 50, 100, 200, 500]
-    ], names=["A", "B"])
-    d1 = d0[:, :, sort(f.A)]
-    frame_integrity_check(d1)
-    assert d1.to_list() == [
-        [None, None, None, 3, 3, 5, 5, 100],
-        [20, 100, 500, 5, 200, 1, 10, 50],
-    ]
+    DT0 = dt.Frame(A=[5, 3, 5, None, 100, None, 3, None] / dt.int8,
+                   B=[1, 5, 10, 20, 50, 100, 200, 500])
+    DT1 = dt.Frame(A=[None, None, None, 3, 3, 5, 5, 100] / dt.int8,
+                   B=[20, 100, 500, 5, 200, 1, 10, 50])
+    DTS = DT0[:, :, sort(f.A)]
+    assert_equals(DTS, DT1)
 
 
+@check_newsort
+def test_int8_small_descending():
+    DT0 = dt.Frame(A=[3, 7, None, 12, 99, -1, -5, None, 0, 0, 2] / dt.int8)
+    DT1 = dt.Frame(A=[None, None, 99, 12, 7, 3, 2, 0, 0, -1, -5] / dt.int8)
+    DTS = DT0[:, :, sort(-f.A)]
+    assert_equals(DTS, DT1)
+
+
+@check_newsort
 def test_int8_large():
-    d0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)], stype=dt.int8)
-    d1 = d0.sort(0)
-    assert d1.stypes == (stype.int8, )
-    frame_integrity_check(d1)
-    assert d1.to_list() == [sum(([i] * 10 for i in range(-50, 51)), [])]
+    DT0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)] / dt.int8)
+    DT1 = dt.Frame(sum(([i] * 10 for i in range(-50, 51)), []),
+                   stype=dt.int8)
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
 
 
 @pytest.mark.parametrize("n", [30, 303, 3333, 30000, 60009, 120000])
+@check_newsort_n
 def test_int8_large_stable(n):
     src = [None, 10, -10] * (n // 3)
-    d0 = dt.Frame([src, range(n)], names=("A", "B"), stypes={"A": "int8"})
-    assert d0.stypes[0] == stype.int8
-    d1 = d0[:, f.B, sort(f.A)]
+    DT = dt.Frame([src, range(n)], names=("A", "B"), stypes={"A": "int8"})
+    assert DT["A"].stype == dt.int8
+    d1 = DT[:, f.B, sort(f.A)]
     assert d1.to_list() == [list(range(0, n, 3)) +
                             list(range(2, n, 3)) +
                             list(range(1, n, 3))]
@@ -364,35 +370,46 @@ def test_bool8_large_descending(n):
 # Int16
 #-------------------------------------------------------------------------------
 
+@check_newsort
 def test_int16_small():
-    d0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None], stype=dt.int16)
-    assert d0.stypes[0] == stype.int16
-    d1 = d0.sort(0)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, -1000, -10, 0, 2, 100, 999, 10000]]
+    DT0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None] / dt.int16)
+    DT1 = dt.Frame([None, -1000, -10, 0, 2, 100, 999, 10000] / dt.int16)
+    DTS = DT0.sort(0)
+    assert DT0.stype == stype.int16
+    assert_equals(DTS, DT1)
 
 
+@check_newsort
 def test_int16_small_stable():
-    d0 = dt.Frame([[0, 1000, 0, 0, 1000, 0, 0, 1000, 0],
-                   [1, 2, 3, 4, 5, 6, 7, 8, 9]],
-                  names=["A", "B"], stypes={"A": "int16"})
-    assert d0.stypes[0] == stype.int16
-    d1 = d0.sort(0)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[0, 0, 0, 0, 0, 0, 1000, 1000, 1000],
-                            [1, 3, 4, 6, 7, 9, 2, 5, 8]]
+    DT0 = dt.Frame(A=[0, 1000, 0, 0, 1000, 0, 0, 1000, 0] / dt.int16,
+                   B=[1, 2, 3, 4, 5, 6, 7, 8, 9])
+    DT1 = dt.Frame(A=[0, 0, 0, 0, 0, 0, 1000, 1000, 1000] / dt.int16,
+                   B=[1, 3, 4, 6, 7, 9, 2, 5, 8])
+    DTS = DT0[:, :, sort(f.A)]
+    assert DT0['A'].stype == stype.int16
+    assert_equals(DTS, DT1)
 
 
+@check_newsort
+def test_int16_small_descending():
+    DT0 = dt.Frame(A=[4, 12, 1000, None, 2, 4, 0, -444, 95, None, 7] / dt.int16)
+    DT1 = dt.Frame(A=[None, None, 1000, 95, 12, 7, 4, 4, 2, 0, -444] / dt.int16)
+    DTS = DT0[:, :, sort(-f.A)]
+    assert_equals(DTS, DT1)
+
+
+@check_newsort
 def test_int16_large():
-    d0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)],
-                  stype=dt.int16)
-    d1 = d0.sort(0)
-    assert d1.stypes == (stype.int16, )
-    frame_integrity_check(d1)
-    assert d1.to_list() == [list(range(-5003, 5004))]
+    DT0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)]
+                   / dt.int16)
+    DT1 = dt.Frame(range(-5003, 5004), stype=dt.int16)
+    DTS = DT0.sort(0)
+    assert DT0.stype == stype.int16
+    assert_equals(DTS, DT1)
 
 
 @pytest.mark.parametrize("n", [100, 150, 200, 500, 1000, 200000])
+@check_newsort_n
 def test_int16_large_stable(n):
     d0 = dt.Frame([[-5, None, 5, -999, 1000] * n, range(n * 5)],
                   names=["A", "B"], stypes={"A": "int16"})
@@ -404,6 +421,24 @@ def test_int16_large_stable(n):
                             list(range(0, 5 * n, 5)) +
                             list(range(2, 5 * n, 5)) +
                             list(range(4, 5 * n, 5))]
+
+
+@pytest.mark.parametrize("n", [random.getrandbits(32) for i in range(5)])
+@check_newsort_n
+def test_int16_random(n):
+    random.seed(n)
+    nn = int(random.expovariate(0.001)) + 1
+    span = min(65535, int(random.expovariate(0.01)) + 3)
+    data = [random.randint(-span, span) for _ in range(nn)]
+    DT0 = dt.Frame(A=data, stype=dt.int16)
+    DT1 = dt.Frame(A=sorted(data), stype=dt.int16)
+    if random.choice([True, False]):
+        DTS = DT0[:, :, sort(f.A)]
+        assert_equals(DTS, DT1)
+    else:
+        DTS = DT0[:, :, sort(-f.A)]
+        assert_equals(DTS, DT1[::-1, :])
+
 
 
 

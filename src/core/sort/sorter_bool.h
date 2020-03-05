@@ -64,28 +64,28 @@ class Sorter_VBool : public SSorter<T>
     void small_sort(Vec ordering_in, Vec ordering_out, size_t,
                     TGrouper* grouper) const override
     {
-      xassert(ordering_in.size() == ordering_out.size());
-      const T* oin = ordering_in.ptr();
-      dt::sort::small_sort(ordering_in, ordering_out, grouper,
-        [&](size_t i, size_t j) {  // compare_lt
-          int8_t ivalue, jvalue;
-          auto ii = static_cast<size_t>(oin[i]);
-          auto jj = static_cast<size_t>(oin[j]);
-          bool ivalid = column_.get_element(ii, &ivalue);
-          bool jvalid = column_.get_element(jj, &jvalue);
-          return jvalid & (!ivalid | (ASC? ivalue < jvalue : ivalue > jvalue));
-        });
-    }
-
-
-    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
-      dt::sort::small_sort(Vec(), ordering_out, grouper,
-        [&](size_t i, size_t j) {  // compare_lt
-          int8_t ivalue, jvalue;
-          bool ivalid = column_.get_element(i, &ivalue);
-          bool jvalid = column_.get_element(j, &jvalue);
-          return jvalid & (!ivalid | (ASC? ivalue < jvalue : ivalue > jvalue));
-        });
+      if (ordering_in) {
+        const T* oin = ordering_in.ptr();
+        xassert(oin && ordering_in.size() == ordering_out.size());
+        dt::sort::small_sort(ordering_in, ordering_out, grouper,
+          [&](size_t i, size_t j) {  // compare_lt
+            int8_t ivalue, jvalue;
+            auto ii = static_cast<size_t>(oin[i]);
+            auto jj = static_cast<size_t>(oin[j]);
+            bool ivalid = column_.get_element(ii, &ivalue);
+            bool jvalid = column_.get_element(jj, &jvalue);
+            return jvalid & (!ivalid | (ASC? ivalue < jvalue : ivalue > jvalue));
+          });
+      }
+      else {
+        dt::sort::small_sort(ordering_in, ordering_out, grouper,
+          [&](size_t i, size_t j) {  // compare_lt
+            int8_t ivalue, jvalue;
+            bool ivalid = column_.get_element(i, &ivalue);
+            bool jvalid = column_.get_element(j, &jvalue);
+            return jvalid & (!ivalid | (ASC? ivalue < jvalue : ivalue > jvalue));
+          });
+      }
     }
 
 
@@ -144,23 +144,24 @@ class Sorter_MBool : public SSorter<T>
                   static_cast<int>(static_cast<uint8_t>(xi));
     }
 
-    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
-      dt::sort::small_sort(Vec(), ordering_out, grouper,
-          [&](size_t i, size_t j) {
-            return data_[i] < data_[j];
-          });
-    }
-
 
     void small_sort(Vec ordering_in, Vec ordering_out, size_t,
                     TGrouper* grouper) const override
     {
-      xassert(ordering_in.size() == ordering_out.size());
-      const T* oin = ordering_in.ptr();
-      dt::sort::small_sort(ordering_in, ordering_out, grouper,
-          [&](size_t i, size_t j) {
-            return data_[oin[i]] < data_[oin[j]];
-          });
+      if (ordering_in) {
+        const T* oin = ordering_in.ptr();
+        xassert(oin && ordering_in.size() == ordering_out.size());
+        dt::sort::small_sort(ordering_in, ordering_out, grouper,
+            [&](size_t i, size_t j) {
+              return data_[oin[i]] < data_[oin[j]];
+            });
+      }
+      else {
+        dt::sort::small_sort(Vec(), ordering_out, grouper,
+            [&](size_t i, size_t j) {
+              return data_[i] < data_[j];
+            });
+      }
     }
 
 

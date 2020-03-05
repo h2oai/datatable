@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_SORTER_h
 #define dt_SORT_SORTER_h
+#include <type_traits>       // std::is_same
 #include <utility>           // std::pair
 #include "sort/common.h"
 #include "sort/grouper.h"    // Grouper
@@ -62,6 +63,8 @@ class Sorter {
 template <typename T>
 class SSorter : public Sorter
 {
+  static_assert(std::is_same<T, int32_t>::value ||
+                std::is_same<T, int64_t>::value, "Wrong SSorter<T>");
   friend class Sorter_Multi<T>;
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
@@ -86,12 +89,8 @@ class SSorter : public Sorter
         grouper = UnqGrouper(new TGrouper(Vec(groups_buf, 1), 0));
       }
 
-      if (nrows_ <= INSERTSORT_NROWS) {
-        small_sort(ordering_out, grouper.get());
-      } else {
-        radix_sort(Vec(), ordering_out, 0, grouper.get(),
-                   Mode::PARALLEL, nullptr);
-      }
+      sort(Vec(), ordering_out, 0, grouper.get(), Mode::PARALLEL);
+
       auto rowindex_type = sizeof(T) == 4? RowIndex::ARR32 : RowIndex::ARR64;
       RowIndex result_rowindex(std::move(rowindex_buf), rowindex_type);
       Groupby  result_groupby;
@@ -99,7 +98,24 @@ class SSorter : public Sorter
         result_groupby = grouper->to_groupby(std::move(groups_buf));
       }
 
+      xassert(result_rowindex.max() == nrows_ - 1);
       return RiGb(std::move(result_rowindex), std::move(result_groupby));
+    }
+
+
+    void sort(Vec ordering_in, Vec ordering_out,
+              size_t offset, TGrouper* grouper, Mode sort_mode) const
+    {
+      size_t n = ordering_out.size();
+      if (n <= INSERTSORT_NROWS) {
+        small_sort(ordering_in, ordering_out, offset, grouper);
+      } else {
+        radix_sort(ordering_in, ordering_out, offset, grouper,
+                   sort_mode, nullptr);
+      }
+      #if DTDEBUG
+        check_sorted(ordering_out);
+      #endif
     }
 
 
@@ -110,7 +126,9 @@ class SSorter : public Sorter
     /**
       * Sort the vector of indices `ordering_in` and write the result
       * into `ordering_out`. This method should be single-threaded,
-      * and optimized for small `n`s.
+      * and optimized for small `n`s. The vector `ordering_in` can
+      * also be empty, in which it should be treated as if it was
+      * equal to `{0, 1, ..., n-1}`.
       *
       * The sorting is performed according to the values of the
       * underlying column within the range `[offset; offset + n)`.
@@ -125,11 +143,6 @@ class SSorter : public Sorter
     virtual void small_sort(Vec ordering_in, Vec ordering_out,
                             size_t offset, TGrouper* grouper) const = 0;
 
-    /**
-      * Same as previous, but `ordering_in` is implicitly equal to
-      * `{0, 1, ..., n-1}` and `offset` is 0.
-      */
-    virtual void small_sort(Vec ordering_out, TGrouper*) const = 0;
 
     /**
       */
@@ -150,6 +163,29 @@ class SSorter : public Sorter
 
     virtual bool contains_reordered_data() const {
       return false;
+    }
+
+
+  private:
+    void check_sorted(Vec ordering) const {
+      #if DTDEBUG
+        // The `ordering` vector corresponds to the ordering of the
+        // original data vector. If the Sorter contains reordered
+        // data, then this ordering is not valid for it.
+        if (contains_reordered_data()) return;
+
+        size_t n = ordering.size();
+        if (!n) return;
+        size_t j0 = static_cast<size_t>(ordering[0]);
+        for (size_t i = 1; i < n; ++i) {
+          size_t j1 = static_cast<size_t>(ordering[i]);
+          int r = compare_lge(j0, j1);
+          xassert(r <= 0);
+          j0 = j1;
+        }
+      #else
+        (void) ordering;
+      #endif
     }
 };
 

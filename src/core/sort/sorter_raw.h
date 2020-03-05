@@ -45,15 +45,15 @@ class Sorter_Raw : public SSorter<T>
     int : 32;
 
   public:
-  	Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
-  		: SSorter<T>(nrows),
+    Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
+      : SSorter<T>(nrows),
         data_(static_cast<TU*>(buf.xptr())),
-  		  buffer_(std::move(buf)),
+        buffer_(std::move(buf)),
         n_significant_bits_(nbits)
-  	{
-  		xassert(buffer_.size() == nrows * sizeof(TU));
+    {
+      xassert(buffer_.size() == nrows * sizeof(TU));
       xassert(nbits > 0 && nbits <= 8 * int(sizeof(TU)));
- 	  }
+    }
 
     void sort_subgroup(size_t offset, size_t length,
                        Vec ordering_in, Vec ordering_out,
@@ -85,11 +85,6 @@ class Sorter_Raw : public SSorter<T>
       TU* x = data_ + offset;
       dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j){ return x[i] < x[j]; });
-    }
-
-
-    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
-      small_sort(Vec(), ordering_out, 0, grouper);
     }
 
 
@@ -138,10 +133,7 @@ class Sorter_Raw : public SSorter<T>
         [&](size_t i){ return static_cast<size_t>(x[i] >> shift); },
         [&](size_t i, size_t j){ y[j] = static_cast<TNext>(x[i] & mask); });
 
-      rdx.sort_subgroups(groups, ordering_out, ordering_in,
-        [&](size_t offs, size_t length, Vec oin, Vec oout, Mode m) {
-          nextcol.sort_subgroup(offs, length, oin, oout, nullptr, m);
-        });
+      rdx.sort_subgroups(groups, ordering_out, ordering_in, &nextcol);
     }
 };
 

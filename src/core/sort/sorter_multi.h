@@ -60,26 +60,26 @@ class Sorter_Multi : public SSorter<T>
         other_columns_(cols1)
     {}
 
-  protected:
-    void small_sort(Vec ordering_out, TGrouper* grouper) const override {
-      dt::sort::small_sort(Vec(), ordering_out, grouper,
-        [&](size_t i, size_t j) {  // compare_lt
-          int cmp = column0_->compare_lge(i, j);
-          if (cmp == 0) {
-            for (size_t k = 0; k < other_columns_.size(); ++k) {
-              cmp = other_columns_[k]->compare_lge(i, j);
-              if (cmp) break;
-            }
-          }
-          return (cmp < 0);
-        });
-    }
 
+  protected:
     void small_sort(Vec ordering_in, Vec ordering_out, size_t offset,
                     TGrouper* grouper) const override
     {
-      xassert(ordering_in.size() == ordering_out.size());
-      if (column0_->contains_reordered_data()) {
+      if (!ordering_in) {
+        dt::sort::small_sort(Vec(), ordering_out, grouper,
+          [&](size_t i, size_t j) {  // compare_lt
+            int cmp = column0_->compare_lge(i, j);
+            if (cmp == 0) {
+              for (size_t k = 0; k < other_columns_.size(); ++k) {
+                cmp = other_columns_[k]->compare_lge(i, j);
+                if (cmp) break;
+              }
+            }
+            return (cmp < 0);
+          });
+      }
+      else if (column0_->contains_reordered_data()) {
+        xassert(ordering_in.size() == ordering_out.size());
         dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) {
             int cmp = column0_->compare_lge(i + offset, j + offset);
@@ -95,6 +95,7 @@ class Sorter_Multi : public SSorter<T>
           });
       }
       else {
+        xassert(ordering_in.size() == ordering_out.size());
         dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) {
             size_t ii = static_cast<size_t>(ordering_in[i]);
