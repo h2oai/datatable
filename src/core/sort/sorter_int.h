@@ -35,10 +35,11 @@ namespace sort {
 /**
  * Sorter for (virtual) integer columns.
  *
- * <T>  : type of elements in the ordering vector;
- * <TI> : type of elements in the underlying integer column.
+ * <T>   : type of elements in the ordering vector;
+ * <TI>  : type of elements in the underlying integer column.
+ * <ASC> : sort ascending (if true), or descending (if false)
  */
-template <typename T, typename TI>
+template <typename T, bool ASC, typename TI>
 class Sorter_Int : public SSorter<T>
 {
   static_assert(std::is_same<TI, int8_t>::value ||
@@ -69,7 +70,8 @@ class Sorter_Int : public SSorter<T>
       TI ivalue, jvalue;
       bool ivalid = column_.get_element(i, &ivalue);
       bool jvalid = column_.get_element(j, &jvalue);
-      return ivalid && jvalid? (ivalue > jvalue) - (ivalue < jvalue)
+      return ivalid && jvalid? (ASC? (ivalue > jvalue) - (ivalue < jvalue)
+                                   : (ivalue < jvalue) - (ivalue > jvalue))
                              : (ivalid - jvalid);
     }
 
@@ -86,7 +88,8 @@ class Sorter_Int : public SSorter<T>
             auto jj = static_cast<size_t>(oin[j]);
             bool ivalid = column_.get_element(ii, &ivalue);
             bool jvalid = column_.get_element(jj, &jvalue);
-            return jvalid && (!ivalid || ivalue < jvalue);
+            return jvalid && (!ivalid || (ASC? ivalue < jvalue
+                                             : ivalue > jvalue));
           });
       }
       else {
@@ -95,7 +98,8 @@ class Sorter_Int : public SSorter<T>
             TI ivalue, jvalue;
             bool ivalid = column_.get_element(i, &ivalue);
             bool jvalid = column_.get_element(j, &jvalue);
-            return jvalid && (!ivalid || ivalue < jvalue);
+            return jvalid && (!ivalid || (ASC? ivalue < jvalue
+                                             : ivalue > jvalue));
           });
       }
     }
@@ -134,12 +138,14 @@ class Sorter_Int : public SSorter<T>
           [&](size_t i) -> size_t {  // get_radix
             TI value;
             bool isvalid = column_.get_element(i, &value);
-            return isvalid? 1 + (static_cast<size_t>(value - min) >> shift) : 0;
+            auto uvalue = static_cast<size_t>(ASC? value - min : max - value);
+            return isvalid? 1 + (uvalue >> shift) : 0;
           },
           [&](size_t i, size_t j) {  // move_data
             TI value;
             column_.get_element(i, &value);
-            out_array[j] = static_cast<TU>(value - min) & mask;
+            auto uvalue = static_cast<TU>(ASC? value - min : max - value);
+            out_array[j] = uvalue & mask;
           });
 
         Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
@@ -151,7 +157,8 @@ class Sorter_Int : public SSorter<T>
           [&](size_t i) -> size_t {  // get_radix
             TI value;
             bool isvalid = column_.get_element(i, &value);
-            return isvalid? 1 + static_cast<size_t>(value - min) : 0;
+            auto uvalue = static_cast<size_t>(ASC? value - min : max - value);
+            return isvalid? 1 + uvalue : 0;
           });
       }
     }

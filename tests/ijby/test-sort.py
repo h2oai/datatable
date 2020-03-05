@@ -257,6 +257,14 @@ def test_int8_small_stable():
 
 
 @check_newsort
+def test_int8_small_descending():
+    DT0 = dt.Frame(A=[3, 7, None, 12, 99, -1, -5, None, 0, 0, 2] / dt.int8)
+    DT1 = dt.Frame(A=[None, None, 99, 12, 7, 3, 2, 0, 0, -1, -5] / dt.int8)
+    DTS = DT0[:, :, sort(-f.A)]
+    assert_equals(DTS, DT1)
+
+
+@check_newsort
 def test_int8_large():
     DT0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)] / dt.int8)
     DT1 = dt.Frame(sum(([i] * 10 for i in range(-50, 51)), []),
@@ -383,6 +391,14 @@ def test_int16_small_stable():
 
 
 @check_newsort
+def test_int16_small_descending():
+    DT0 = dt.Frame(A=[4, 12, 1000, None, 2, 4, 0, -444, 95, None, 7] / dt.int16)
+    DT1 = dt.Frame(A=[None, None, 1000, 95, 12, 7, 4, 4, 2, 0, -444] / dt.int16)
+    DTS = DT0[:, :, sort(-f.A)]
+    assert_equals(DTS, DT1)
+
+
+@check_newsort
 def test_int16_large():
     DT0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)]
                    / dt.int16)
@@ -414,10 +430,14 @@ def test_int16_random(n):
     nn = int(random.expovariate(0.001)) + 1
     span = min(65535, int(random.expovariate(0.01)) + 3)
     data = [random.randint(-span, span) for _ in range(nn)]
-    DT0 = dt.Frame(data, stype=dt.int16)
-    DT1 = dt.Frame(sorted(data), stype=dt.int16)
-    DTS = DT0.sort(0)
-    assert_equals(DTS, DT1)
+    DT0 = dt.Frame(A=data, stype=dt.int16)
+    DT1 = dt.Frame(A=sorted(data), stype=dt.int16)
+    if random.choice([True, False]):
+        DTS = DT0[:, :, sort(f.A)]
+        assert_equals(DTS, DT1)
+    else:
+        DTS = DT0[:, :, sort(-f.A)]
+        assert_equals(DTS, DT1[::-1, :])
 
 
 

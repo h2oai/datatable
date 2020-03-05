@@ -43,10 +43,10 @@ static std::unique_ptr<SSorter<T>> _make_sorter(const Column& col)
   using so = std::unique_ptr<SSorter<T>>;
   switch (col.stype()) {
     case SType::BOOL:  return make_sorter_bool<T, ASC>(col);
-    case SType::INT8:  return so(new Sorter_Int<T, int8_t>(col));
-    case SType::INT16: return so(new Sorter_Int<T, int16_t>(col));
-    case SType::INT32: return so(new Sorter_Int<T, int32_t>(col));
-    case SType::INT64: return so(new Sorter_Int<T, int64_t>(col));
+    case SType::INT8:  return so(new Sorter_Int<T, ASC, int8_t>(col));
+    case SType::INT16: return so(new Sorter_Int<T, ASC, int16_t>(col));
+    case SType::INT32: return so(new Sorter_Int<T, ASC, int32_t>(col));
+    case SType::INT64: return so(new Sorter_Int<T, ASC, int64_t>(col));
     default: throw TypeError() << "Cannot sort column of type " << col.stype();
   }
 }
