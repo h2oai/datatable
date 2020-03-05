@@ -1361,6 +1361,20 @@ RiGb group(const std::vector<Column>& columns,
     for (const Column& col : columns) xassert(col.nrows() == nrows);
   #endif
 
+  // For a 0-row Frame we return a rowindex of size 0, and the
+  // Groupby containing zero groups.
+  if (nrows == 0) {
+    result.second = Groupby::zero_groups();
+    return result;
+  }
+  if (nrows == 1) {
+    Buffer buf = Buffer::mem(sizeof(int32_t));
+    buf.set_element<int32_t>(0, 0);
+    result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
+    result.second = Groupby::single_group(nrows);
+    return result;
+  }
+
   if (sort_new) {
     if (n == 1 && (col0.stype() == SType::BOOL ||
                    col0.stype() == SType::INT8 ||
@@ -1374,20 +1388,6 @@ RiGb group(const std::vector<Column>& columns,
     } else {
       throw NotImplError() << "Newsort not implemented for this column type";
     }
-  }
-
-  // For a 0-row Frame we return a rowindex of size 0, and the
-  // Groupby containing zero groups.
-  if (nrows == 0) {
-    result.second = Groupby::zero_groups();
-    return result;
-  }
-  if (nrows == 1) {
-    Buffer buf = Buffer::mem(sizeof(int32_t));
-    buf.set_element<int32_t>(0, 0);
-    result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
-    result.second = Groupby::single_group(nrows);
-    return result;
   }
 
   // TODO: avoid materialization
