@@ -407,6 +407,20 @@ def test_int16_large_stable(n):
                             list(range(4, 5 * n, 5))]
 
 
+@pytest.mark.parametrize("n", [random.getrandbits(32) for i in range(5)])
+@check_newsort_n
+def test_int16_random(n):
+    random.seed(n)
+    nn = int(random.expovariate(0.001)) + 1
+    span = min(65535, int(random.expovariate(0.01)) + 3)
+    data = [random.randint(-span, span) for _ in range(nn)]
+    DT0 = dt.Frame(data, stype=dt.int16)
+    DT1 = dt.Frame(sorted(data), stype=dt.int16)
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
+
+
+
 
 #-------------------------------------------------------------------------------
 # Int64

@@ -182,12 +182,18 @@ class RadixSort {
         for (size_t i = 0; i < ngroups; ++i) {
           size_t group_end = static_cast<size_t>(groups[i]);
           size_t group_size = group_end - group_start;
+          if (!group_size) continue;
           if (group_size > 1) {
             sorter->sort(ordering_in.subset(group_start, group_size),
                          ordering_out.subset(group_start, group_size),
                          group_start,
                          nullptr,    // Grouper
                          Mode::PARALLEL);
+          }
+          else {
+            // Group of size 1 -- no need to sort, but still have to
+            // write the ordering into the `ordering_out` array.
+            ordering_out[group_start] = ordering_in[group_start];
           }
           group_start = group_end;
         }
