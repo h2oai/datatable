@@ -116,7 +116,7 @@ class Sorter_Int : public SSorter<T>
       bool minmax_valid;
       TI min = static_cast<TI>(column_.stats()->min_int(&minmax_valid));
       TI max = static_cast<TI>(column_.stats()->max_int(&minmax_valid));
-      if (!minmax_valid) {
+      if (!minmax_valid || min == max) {
         write_range(ordering_out);
         return;
       }

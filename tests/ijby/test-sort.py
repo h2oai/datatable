@@ -120,6 +120,7 @@ def test_nonfirst_column():
 # Int32
 #-------------------------------------------------------------------------------
 
+@check_newsort
 def test_int32_small():
     d0 = dt.Frame([17, 2, 96, 245, 847569, 34, -45, None, 1])
     assert d0.stypes == (stype.int32, )
@@ -130,6 +131,7 @@ def test_int32_small():
     assert d1.to_list() == [[None, -45, 1, 2, 17, 34, 96, 245, 847569]]
 
 
+@check_newsort
 def test_int32_small_stable():
     d0 = dt.Frame([
         [5, 3, 5, None, 1000000, None, 3, None],
@@ -143,6 +145,7 @@ def test_int32_small_stable():
     ]
 
 
+@check_newsort
 def test_int32_large():
     # p1, p2 should both be prime, with p1 < p2. Here we rely on the fact that
     # a multiplicative group of integers modulo n is cyclic with order n-1 when
@@ -157,6 +160,7 @@ def test_int32_large():
 
 
 @pytest.mark.parametrize("n", [30, 300, 3000, 30000, 60000, 120000])
+@check_newsort_n
 def test_int32_large_stable(n):
     src = [None, 100, 100000] * (n // 3)
     d0 = dt.Frame([src, range(n)], names=["A", "B"])
@@ -168,6 +172,7 @@ def test_int32_large_stable(n):
 
 
 @pytest.mark.parametrize("n", [5, 100, 500, 2500, 32767, 32768, 32769, 200000])
+@check_newsort_n
 def test_int32_constant(n):
     tbl0 = [[100000] * n, list(range(n))]
     d0 = dt.Frame(tbl0)
