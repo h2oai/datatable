@@ -29,6 +29,19 @@ namespace dt {
 namespace sort {
 
 
+/**
+  * Sorter for "raw" (i.e. unsigned integer) data. This type of data
+  * is most directly suitable for radix sorting, since its bits can
+  * be used to construct radixes directly.
+  *
+  * This "raw" data does not exist in datatable as-is, however most
+  * other data types can be converted into this representation through
+  * a simple transform.
+  *
+  * <T>:  the type of elements in the ordering vector
+  * <TU>: the type of elements in the underlying data vector
+  *
+  */
 template <typename T, typename TU>
 class Sorter_Raw : public SSorter<T>
 {
@@ -55,26 +68,19 @@ class Sorter_Raw : public SSorter<T>
       xassert(nbits > 0 && nbits <= 8 * int(sizeof(TU)));
     }
 
-    void sort_subgroup(size_t offset, size_t length,
-                       Vec ordering_in, Vec ordering_out,
-                       TGrouper* grouper, Mode sort_mode)
-    {
-      if (length <= INSERTSORT_NROWS) {
-        small_sort(ordering_in, ordering_out, offset, grouper);
-      } else {
-        radix_sort(ordering_in, ordering_out, offset, grouper, sort_mode, nullptr);
-      }
-    }
 
-    TU* get_data() const {
+    TU* get_data() const noexcept {
       return data_;
     }
 
 
   protected:
     int compare_lge(size_t i, size_t j) const override {
-      return (data_[i] > data_[j]) - (data_[i] < data_[j]);
+      TU xi = data_[i];
+      TU xj = data_[j];
+      return (xi > xj) - (xi < xj);
     }
+
     bool contains_reordered_data() const override {
       return true;
     }
@@ -82,7 +88,7 @@ class Sorter_Raw : public SSorter<T>
     void small_sort(Vec ordering_in, Vec ordering_out,
                     size_t offset, TGrouper* grouper) const override
     {
-      TU* x = data_ + offset;
+      const TU* x = data_ + offset;
       dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j){ return x[i] < x[j]; });
     }
