@@ -547,13 +547,16 @@ def test_float32_large():
 
 
 @pytest.mark.parametrize("n", [15, 16, 17, 20, 50, 100, 1000, 100000])
-# @new
-def test_float32_random(numpy, n):
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+@new
+def test_float32_random(numpy, n, seed):
+    numpy.random.seed(seed)
     a = numpy.random.rand(n).astype("float32")
-    d0 = dt.Frame(a)
-    assert d0.stypes == (dt.float32, )
-    d1 = d0.sort(0)
-    assert list_equals(d1.to_list()[0], sorted(a.tolist()))
+    DT0 = dt.Frame(a)
+    DT1 = dt.Frame(numpy.sort(a))
+    assert DT0.stype == DT1.stype == dt.float32
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
 
 
 
@@ -955,6 +958,7 @@ def test_sort_ints_reverse(st):
                            stypes={"A": st, "B": dt.str32}))
 
 
+@new
 def test_sort_doubles_reverse():
     DT = dt.Frame(A=[0.0, 0.1, -0.5, 1.6, -0.0, None, -inf, inf, 3.3, 1e100])
     assert_equals(DT[:, :, sort(-f.A)],
@@ -962,6 +966,7 @@ def test_sort_doubles_reverse():
                               -0.5, -inf]))
 
 
+@new
 def test_sort_double_stable_nans():
     DT = dt.Frame(A=[nan, -nan, nan, -inf, None, inf, 9.99, None],
                   B=list('abcdefgh'))
@@ -1044,6 +1049,7 @@ def test_sort_expr():
                   dt.Frame(A=[1, 1, 2, 2], B=[0.1, 3.9, 2.7, 4.5]))
 
 
+@new
 def test_h2oai7014(tempfile_jay):
     data = dt.Frame([[None, 't'], [3580, 1047]], names=["ID", "count"])
     data.to_jay(tempfile_jay)
