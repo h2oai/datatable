@@ -47,10 +47,10 @@ inline T divceil(T a, T b) {
   *
   * Usage:
   *
-  *     RadixSort rdx(nrows, nradixbits, true);
+  *     RadixSort rdx(nrows, nradixbits, Mode::PARALLEL);
   *     auto groups = rdx.sort_by_radix(ordin, ordout,
-  *                       [&](size_t i){ ... }  // get_radix
-  *                       );
+  *                     [&](size_t i){ ... }  // get_radix
+  *                   );
   *     rdx.sort_subgroups(groups, ...);
   *
   */
@@ -65,7 +65,7 @@ class RadixSort {
   public:
     RadixSort(size_t nrows, int nrb, Mode mode) {
       xassert(nrows > 0);
-      xassert(nrb > 0 && nrb <= 20);
+      xassert(nrb <= 20);
       n_radixes_ = (1u << nrb) + 1;
       n_rows_ = nrows;
       // If `allow_parallel` is false, then setting `n_chunks_` to 1

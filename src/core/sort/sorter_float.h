@@ -19,34 +19,48 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_SORT_SORTER_INT_h
-#define dt_SORT_SORTER_INT_h
+#ifndef dt_SORT_SORTER_FLOAT_h
+#define dt_SORT_SORTER_FLOAT_h
 #include <type_traits>          // std::is_same
 #include "sort/insert-sort.h"   // dt::sort::insert_sort
 #include "sort/radix-sort.h"    // RadixSort
 #include "sort/sorter.h"        // Sort
 #include "sort/sorter_raw.h"    // Sorter_Raw
-#include "utils/misc.h"         // dt::nlz
 #include "column.h"
 namespace dt {
 namespace sort {
 
 
+template <typename T> struct FloatConstants {};
+template <> struct FloatConstants<float> {
+  using utype = uint32_t;
+  static constexpr utype EXP = 0x7F800000;
+  static constexpr utype MNT = 0x007FFFFF;
+  static constexpr utype SBT = 0x80000000;
+};
+template <> struct FloatConstants<double> {
+  using utype = uint64_t;
+  static constexpr utype EXP = 0x7FF0000000000000ULL;
+  static constexpr utype MNT = 0x000FFFFFFFFFFFFFULL;
+  static constexpr utype SBT = 0x8000000000000000ULL;
+};
+
+
+
 /**
- * Sorter for (virtual) integer columns.
+ * Sorter for (virtual) float columns.
  *
  * <T>   : type of elements in the ordering vector;
- * <TI>  : type of elements in the underlying integer column.
+ * <TE>  : type of elements in the underlying float column.
  * <ASC> : sort ascending (if true), or descending (if false)
  */
-template <typename T, bool ASC, typename TI>
-class Sorter_Int : public SSorter<T>
+template <typename T, bool ASC, typename TE>
+class Sorter_Float : public SSorter<T>
 {
-  static_assert(std::is_same<TI, int8_t>::value ||
-                std::is_same<TI, int16_t>::value ||
-                std::is_same<TI, int32_t>::value ||
-                std::is_same<TI, int64_t>::value, "Wrong TI in Sorter_Int");
-  using TU = typename std::make_unsigned<TI>::type;
+  static_assert(std::is_same<TE, float>::value ||
+                std::is_same<TE, double>::value, "Wrong TE in Sorter_Float");
+  using TU = typename FloatConstants<TE>::utype;
+  static_assert(sizeof(TE) == sizeof(TU), "Wrong TU in Sorter_Float");
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
   using UnqSorter = std::unique_ptr<SSorter<T>>;
@@ -56,18 +70,24 @@ class Sorter_Int : public SSorter<T>
     using SSorter<T>::nrows_;
     Column column_;
 
+    static constexpr TU EXP = FloatConstants<TE>::EXP;
+    static constexpr TU MNT = FloatConstants<TE>::MNT;
+    static constexpr TU SBT = FloatConstants<TE>::SBT;
+    static constexpr int SHIFT = sizeof(TU) * 8 - 1;
+    static_assert(SBT == TU(1)<<SHIFT, "bad SHIFT/SBT");
+
   public:
-    Sorter_Int(const Column& col)
+    Sorter_Float(const Column& col)
       : SSorter<T>(col.nrows()),
         column_(col)
     {
-      assert_compatible_type<TI>(col.stype());
+      assert_compatible_type<TE>(col.stype());
     }
 
 
   protected:
     int compare_lge(size_t i, size_t j) const override {
-      TI ivalue, jvalue;
+      TE ivalue, jvalue;
       bool ivalid = column_.get_element(i, &ivalue);
       bool jvalid = column_.get_element(j, &jvalue);
       return ivalid && jvalid? (ASC? (ivalue > jvalue) - (ivalue < jvalue)
@@ -83,7 +103,7 @@ class Sorter_Int : public SSorter<T>
         xassert(oin && ordering_in.size() == ordering_out.size());
         dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) -> bool {  // compare_lt
-            TI ivalue, jvalue;
+            TE ivalue, jvalue;
             auto ii = static_cast<size_t>(oin[i]);
             auto jj = static_cast<size_t>(oin[j]);
             bool ivalid = column_.get_element(ii, &ivalue);
@@ -95,7 +115,7 @@ class Sorter_Int : public SSorter<T>
       else {
         dt::sort::small_sort(Vec(), ordering_out, grouper,
           [&](size_t i, size_t j) -> bool {  // compare_lt
-            TI ivalue, jvalue;
+            TE ivalue, jvalue;
             bool ivalid = column_.get_element(i, &ivalue);
             bool jvalid = column_.get_element(j, &jvalue);
             return jvalid && (!ivalid || (ASC? ivalue < jvalue
@@ -113,62 +133,38 @@ class Sorter_Int : public SSorter<T>
       (void) wrap;
       xassert(!ordering_in);   (void) ordering_in;
       xassert(!offset);        (void) offset;
-      // Computing min/max of a column also calculates the nacount stat;
-      // but not the other way around. Therefore, `nacount` must be retrieved
-      // after `min` / `max`.
-      // The validity flags on min/max are disregarded, because min/max are
-      // invalid iff nacount==nrows.
-      TI min = static_cast<TI>(column_.stats()->min_int());
-      TI max = static_cast<TI>(column_.stats()->max_int());
-      size_t nacount = column_.stats()->nacount();
 
-      // If either all values are NAs, or all values are same and there are no
-      // NAs, then there is no need to sort.
-      if (nacount == nrows_ || (min == max && nacount == 0)) {
-        write_range(ordering_out);
-        return;
-      }
+      constexpr int nsigbits = 8 * sizeof(TE);
+      constexpr int nradixbits = 8;
+      constexpr int shift = nsigbits - nradixbits;
+      constexpr TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      int nsigbits = dt::nsb(static_cast<TU>(max - min));
-      int nradixbits = std::min(nsigbits, 8);
+      Buffer tmp_buffer = Buffer::mem(sizeof(T) * nrows_);
+      Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
+      Vec ordering_tmp(tmp_buffer);
+      array<TU> out_array(out_buffer);
 
-      if (nsigbits > nradixbits) {
-        int shift = nsigbits - nradixbits;
-        TU mask = static_cast<TU>((size_t(1) << shift) - 1);
+      RadixSort rdx(nrows_, nradixbits, sort_mode);
+      auto groups = rdx.sort_by_radix(Vec(), ordering_tmp,
+        [&](size_t i) -> size_t {  // get_radix
+          TU value;
+          bool isvalid = column_.get_element(i, reinterpret_cast<TE*>(&value));
+          value = ((value & EXP) == EXP && (value & MNT) != 0) ? 0 :
+                    ASC? value ^ (SBT | -(value>>SHIFT))
+                       : value ^ (~SBT & ((value>>SHIFT) - 1));
+          return isvalid? 1 + (value >> shift) : 0;
+        },
+        [&](size_t i, size_t j) {  // move_data
+          TU value;
+          column_.get_element(i, reinterpret_cast<TE*>(&value));
+          value = ((value & EXP) == EXP && (value & MNT) != 0) ? 0 :
+                    ASC? value ^ (SBT | -(value>>SHIFT))
+                       : value ^ (~SBT & ((value>>SHIFT) - 1));
+          out_array[j] = value & mask;
+        });
 
-        Buffer tmp_buffer = Buffer::mem(sizeof(T) * nrows_);
-        Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
-        Vec ordering_tmp(tmp_buffer);
-        array<TU> out_array(out_buffer);
-
-        RadixSort rdx(nrows_, nradixbits, sort_mode);
-        auto groups = rdx.sort_by_radix(Vec(), ordering_tmp,
-          [&](size_t i) -> size_t {  // get_radix
-            TI value;
-            bool isvalid = column_.get_element(i, &value);
-            auto uvalue = static_cast<size_t>(ASC? value - min : max - value);
-            return isvalid? 1 + (uvalue >> shift) : 0;
-          },
-          [&](size_t i, size_t j) {  // move_data
-            TI value;
-            column_.get_element(i, &value);
-            auto uvalue = static_cast<TU>(ASC? value - min : max - value);
-            out_array[j] = uvalue & mask;
-          });
-
-        Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
-        rdx.sort_subgroups(groups, ordering_tmp, ordering_out, &nextcol);
-      }
-      else {
-        RadixSort rdx(nrows_, nradixbits, sort_mode);
-        rdx.sort_by_radix(Vec(), ordering_out,
-          [&](size_t i) -> size_t {  // get_radix
-            TI value;
-            bool isvalid = column_.get_element(i, &value);
-            auto uvalue = static_cast<size_t>(ASC? value - min : max - value);
-            return isvalid? 1 + uvalue : 0;
-          });
-      }
+      Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
+      rdx.sort_subgroups(groups, ordering_tmp, ordering_out, &nextcol);
     }
 
 

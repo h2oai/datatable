@@ -24,8 +24,9 @@
 #include "python/args.h"       // py::PKArgs
 #include "sort/insert-sort.h"  // insert_sort
 #include "sort/radix-sort.h"   // RadixSort
-#include "sort/sorter.h"       // Sorter_Bool
+#include "sort/sorter.h"       // Sorter
 #include "sort/sorter_bool.h"  // Sorter_Bool
+#include "sort/sorter_float.h" // Sorter_Float
 #include "sort/sorter_int.h"   // Sorter_Int
 #include "sort/sorter_multi.h" // Sorter_Multi
 #include "utils/assert.h"      // xassert
@@ -42,11 +43,13 @@ static std::unique_ptr<SSorter<T>> _make_sorter(const Column& col)
 {
   using so = std::unique_ptr<SSorter<T>>;
   switch (col.stype()) {
-    case SType::BOOL:  return make_sorter_bool<T, ASC>(col);
-    case SType::INT8:  return so(new Sorter_Int<T, ASC, int8_t>(col));
-    case SType::INT16: return so(new Sorter_Int<T, ASC, int16_t>(col));
-    case SType::INT32: return so(new Sorter_Int<T, ASC, int32_t>(col));
-    case SType::INT64: return so(new Sorter_Int<T, ASC, int64_t>(col));
+    case SType::BOOL:    return make_sorter_bool<T, ASC>(col);
+    case SType::INT8:    return so(new Sorter_Int<T, ASC, int8_t>(col));
+    case SType::INT16:   return so(new Sorter_Int<T, ASC, int16_t>(col));
+    case SType::INT32:   return so(new Sorter_Int<T, ASC, int32_t>(col));
+    case SType::INT64:   return so(new Sorter_Int<T, ASC, int64_t>(col));
+    case SType::FLOAT32: return so(new Sorter_Float<T, ASC, float>(col));
+    case SType::FLOAT64: return so(new Sorter_Float<T, ASC, double>(col));
     default: throw TypeError() << "Cannot sort column of type " << col.stype();
   }
 }

@@ -1361,20 +1361,6 @@ RiGb group(const std::vector<Column>& columns,
     for (const Column& col : columns) xassert(col.nrows() == nrows);
   #endif
 
-  if (sort_new) {
-    if (n == 1 && (col0.stype() == SType::BOOL ||
-                   col0.stype() == SType::INT8 ||
-                   col0.stype() == SType::INT16)) {
-      bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
-      auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
-                                                        : dt::sort::Direction::ASCENDING;
-      auto sorter = dt::sort::make_sorter(col0, direction);
-      return sorter->sort(!sort_only);
-    } else {
-      throw NotImplError() << "Newsort not implemented for this column type";
-    }
-  }
-
   // For a 0-row Frame we return a rowindex of size 0, and the
   // Groupby containing zero groups.
   if (nrows == 0) {
@@ -1387,6 +1373,25 @@ RiGb group(const std::vector<Column>& columns,
     result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
     result.second = Groupby::single_group(nrows);
     return result;
+  }
+
+  if (sort_new) {
+    if (n == 1 && (col0.stype() == SType::BOOL ||
+                   col0.stype() == SType::INT8 ||
+                   col0.stype() == SType::INT16 ||
+                   col0.stype() == SType::INT32 ||
+                   col0.stype() == SType::INT64 ||
+                   col0.stype() == SType::FLOAT32 ||
+                   col0.stype() == SType::FLOAT64 ||
+                   false)) {
+      bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
+      auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
+                                                        : dt::sort::Direction::ASCENDING;
+      auto sorter = dt::sort::make_sorter(col0, direction);
+      return sorter->sort(!sort_only);
+    } else {
+      throw NotImplError() << "Newsort not implemented for this column type";
+    }
   }
 
   // TODO: avoid materialization
