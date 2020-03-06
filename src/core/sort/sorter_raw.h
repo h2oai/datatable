@@ -128,12 +128,15 @@ class Sorter_Raw : public SSorter<T>
       TU* x = data_ + offset;
       TNext* y = nextcol.get_data();
 
+      Buffer tmp_buffer = Buffer::mem(n * sizeof(T));
+      Vec ordering_tmp(tmp_buffer);
+
       RadixSort rdx(n, n_radix_bits, mode);
-      Vec groups = rdx.sort_by_radix(ordering_in, ordering_out,
+      Vec groups = rdx.sort_by_radix(ordering_in, ordering_tmp,
         [&](size_t i){ return static_cast<size_t>(x[i] >> shift); },
         [&](size_t i, size_t j){ y[j] = static_cast<TNext>(x[i] & mask); });
 
-      rdx.sort_subgroups(groups, ordering_out, ordering_in, &nextcol);
+      rdx.sort_subgroups(groups, ordering_tmp, ordering_out, &nextcol);
     }
 };
 

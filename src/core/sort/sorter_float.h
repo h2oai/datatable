@@ -35,13 +35,13 @@ template <typename T> struct FloatConstants {};
 template <> struct FloatConstants<float> {
   using utype = uint32_t;
   static constexpr utype EXP = 0x7F800000;
-  static constexpr utype SIG = 0x007FFFFF;
+  static constexpr utype MNT = 0x007FFFFF;
   static constexpr utype SBT = 0x80000000;
 };
 template <> struct FloatConstants<double> {
   using utype = uint64_t;
   static constexpr utype EXP = 0x7FF0000000000000ULL;
-  static constexpr utype SIG = 0x000FFFFFFFFFFFFFULL;
+  static constexpr utype MNT = 0x000FFFFFFFFFFFFFULL;
   static constexpr utype SBT = 0x8000000000000000ULL;
 };
 
@@ -71,9 +71,10 @@ class Sorter_Float : public SSorter<T>
     Column column_;
 
     static constexpr TU EXP = FloatConstants<TE>::EXP;
-    static constexpr TU SIG = FloatConstants<TE>::SIG;
+    static constexpr TU MNT = FloatConstants<TE>::MNT;
     static constexpr TU SBT = FloatConstants<TE>::SBT;
     static constexpr int SHIFT = sizeof(TU) * 8 - 1;
+    static_assert(SBT == TU(1)<<SHIFT, "bad SHIFT/SBT");
 
   public:
     Sorter_Float(const Column& col)
@@ -148,7 +149,7 @@ class Sorter_Float : public SSorter<T>
         [&](size_t i) -> size_t {  // get_radix
           TU value;
           bool isvalid = column_.get_element(i, reinterpret_cast<TE*>(&value));
-          value = ((value & EXP) == EXP && (value & SIG) != 0) ? 0 :
+          value = ((value & EXP) == EXP && (value & MNT) != 0) ? 0 :
                     ASC? value ^ (SBT | -(value>>SHIFT))
                        : value ^ (~SBT & ((value>>SHIFT) - 1));
           return isvalid? 1 + (value >> shift) : 0;
@@ -156,7 +157,7 @@ class Sorter_Float : public SSorter<T>
         [&](size_t i, size_t j) {  // move_data
           TU value;
           column_.get_element(i, reinterpret_cast<TE*>(&value));
-          value = ((value & EXP) == EXP && (value & SIG) != 0) ? 0 :
+          value = ((value & EXP) == EXP && (value & MNT) != 0) ? 0 :
                     ASC? value ^ (SBT | -(value>>SHIFT))
                        : value ^ (~SBT & ((value>>SHIFT) - 1));
           out_array[j] = value & mask;

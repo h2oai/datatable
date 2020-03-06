@@ -572,6 +572,15 @@ def test_float64_small():
 
 
 @new
+def test_float64_small2():
+    DT0 = dt.Frame([0.451, 0.455, 0.450, 0.4507, 0.452])
+    DT1 = dt.Frame([0.450, 0.4507, 0.451, 0.452, 0.455])
+    assert DT0.stype == DT1.stype == dt.float64
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
+
+
+@new
 def test_float64_zeros():
     z = 0.0
     d0 = dt.Frame([0.5] + [z, -z] * 100)
@@ -595,12 +604,16 @@ def test_float64_large(n):
 
 
 @pytest.mark.parametrize("n", [15, 16, 17, 20, 50, 100, 1000, 100000])
-def test_float64_random(numpy, n):
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+@new
+def test_float64_random(numpy, n, seed):
+    numpy.random.seed(seed)
     a = numpy.random.rand(n)
-    d0 = dt.Frame(a)
-    assert d0.stypes == (dt.float64, )
-    d1 = d0.sort(0)
-    assert list_equals(d1.to_list()[0], sorted(a.tolist()))
+    DT0 = dt.Frame(a)
+    assert DT0.stype == dt.float64
+    assert DT0.nrows == n
+    DTS = DT0.sort(0)
+    assert_equals(DTS, dt.Frame(sorted(a.tolist())))
 
 
 
