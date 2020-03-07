@@ -146,7 +146,7 @@ class Sorter_Float : public SSorter<T>
       }
 
       RadixSort rdx(nrows_, nradixbits, sort_mode);
-      rdx.sort(Vec(), ordering_out, next_sorter.get(), grouper,
+      rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
         [&](size_t i) -> size_t {  // get_radix
           TU value;
           bool isvalid = column_.get_element(i, reinterpret_cast<TE*>(&value));
