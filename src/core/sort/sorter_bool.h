@@ -37,7 +37,7 @@ class Sorter_VBool : public SSorter<T>
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
   using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+  using NextWrapper = dt::function<void(UnqSorter&)>;
   private:
     using SSorter<T>::nrows_;
     Column column_;
@@ -91,21 +91,25 @@ class Sorter_VBool : public SSorter<T>
 
     void radix_sort(Vec ordering_in, Vec ordering_out,
                     size_t offset, TGrouper* grouper, Mode sort_mode,
-                    NextWrapper wrap) const override
+                    NextWrapper replace_sorter) const override
     {
-      (void) offset;
-      (void) wrap;
+      xassert(offset == 0);  (void) offset;
+
       constexpr int nradixbits = 1;
+      UnqSorter next_sorter = nullptr;
+      if (replace_sorter) {
+        replace_sorter(next_sorter);
+      }
+
       RadixSort rdx(nrows_, nradixbits, sort_mode);
-      auto groups = rdx.sort_by_radix(ordering_in, ordering_out,
+      rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
           [&](size_t i) {  // get_radix
             int8_t ivalue;
             bool ivalid = column_.get_element(i, &ivalue);
             return static_cast<size_t>(ivalid * (ASC? ivalue + 1 : 2 - ivalue));
-          });
-      if (grouper) {
-        grouper->fill_from_offsets(groups);
-      }
+          },
+          [](size_t, size_t) {}  // move_data
+      );
     }
 
 };
@@ -121,7 +125,7 @@ class Sorter_MBool : public SSorter<T>
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
   using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+  using NextWrapper = dt::function<void(UnqSorter&)>;
   private:
     using SSorter<T>::nrows_;
     const int8_t* data_;
@@ -167,20 +171,24 @@ class Sorter_MBool : public SSorter<T>
 
     void radix_sort(Vec ordering_in, Vec ordering_out,
                     size_t offset, TGrouper* grouper, Mode sort_mode,
-                    NextWrapper wrap) const override
+                    NextWrapper replace_sorter) const override
     {
-      (void) offset;
-      (void) wrap;
+      xassert(offset == 0);  (void) offset;
+
       constexpr int nradixbits = 1;
+      UnqSorter next_sorter = nullptr;
+      if (replace_sorter) {
+        replace_sorter(next_sorter);
+      }
+
       RadixSort rdx(nrows_, nradixbits, sort_mode);
-      auto groups = rdx.sort_by_radix(ordering_in, ordering_out,
+      rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
           [&](size_t i) {  // get_radix
             int8_t ivalue = data_[i];
             return ISNA<int8_t>(ivalue)? 0 : static_cast<size_t>(ivalue + 1);
-          });
-      if (grouper) {
-        grouper->fill_from_offsets(groups);
-      }
+          },
+          [](size_t, size_t) {}  // move_data
+      );
     }
 
 };

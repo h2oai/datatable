@@ -48,7 +48,7 @@ class Sorter_Raw : public SSorter<T>
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
   using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+  using NextWrapper = dt::function<void(UnqSorter&)>;
 
   private:
     using SSorter<T>::nrows_;

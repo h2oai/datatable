@@ -70,7 +70,7 @@ class SSorter : public Sorter
   using TGrouper = Grouper<T>;
   using UnqGrouper = std::unique_ptr<Grouper<T>>;
   using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+  using NextWrapper = dt::function<void(UnqSorter&)>;
 
   public:
     SSorter(size_t n) : Sorter(n) {

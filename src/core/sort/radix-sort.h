@@ -82,6 +82,26 @@ class RadixSort {
     }
 
 
+    template <typename T, typename GetRadix, typename MoveData>
+    void sort(array<T> ordering_in, array<T> ordering_out,
+              SSorter<T>* next_sorter, Grouper<T>* grouper,
+              GetRadix get_radix, MoveData move_data)
+    {
+      Buffer tmp_buffer = Buffer::mem(next_sorter? n_rows_ * sizeof(T) : 0);
+      array<T> ordering_tmp = array<T>(tmp_buffer);
+
+      auto groups = sort_by_radix(ordering_in,
+                                  next_sorter? ordering_tmp : ordering_out,
+                                  get_radix, move_data);
+      if (next_sorter) {
+        sort_subgroups(groups, ordering_tmp, ordering_out, next_sorter);
+      }
+      else if (grouper) {
+        grouper->fill_from_offsets(groups);
+      }
+    }
+
+
     /**
       * .sort_by_radix(ordering_in, ordering_out, get_radix,
       *                [move_data])
