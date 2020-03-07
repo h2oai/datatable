@@ -126,11 +126,9 @@ class Sorter_Float : public SSorter<T>
 
 
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
-                    TGrouper* grouper, Mode sort_mode, NextWrapper wrap
-                    ) const override
+                    TGrouper* grouper, Mode sort_mode,
+                    NextWrapper replace_sorter) const override
     {
-      (void) grouper;
-      (void) wrap;
       xassert(!ordering_in);   (void) ordering_in;
       xassert(!offset);        (void) offset;
 
@@ -139,13 +137,16 @@ class Sorter_Float : public SSorter<T>
       constexpr int shift = nsigbits - nradixbits;
       constexpr TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      Buffer tmp_buffer = Buffer::mem(sizeof(T) * nrows_);
-      Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
-      Vec ordering_tmp(tmp_buffer);
-      array<TU> out_array(out_buffer);
+      auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * nrows_),
+                                          nrows_, shift);
+      array<TU> out_array(rawptr->get_data(), nrows_);
+      UnqSorter next_sorter(rawptr);
+      if (replace_sorter) {
+        replace_sorter(next_sorter);
+      }
 
       RadixSort rdx(nrows_, nradixbits, sort_mode);
-      auto groups = rdx.sort_by_radix(Vec(), ordering_tmp,
+      rdx.sort(Vec(), ordering_out, next_sorter.get(), grouper,
         [&](size_t i) -> size_t {  // get_radix
           TU value;
           bool isvalid = column_.get_element(i, reinterpret_cast<TE*>(&value));
@@ -162,9 +163,6 @@ class Sorter_Float : public SSorter<T>
                        : value ^ (~SBT & ((value>>SHIFT) - 1));
           out_array[j] = value & mask;
         });
-
-      Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
-      rdx.sort_subgroups(groups, ordering_tmp, ordering_out, &nextcol);
     }
 
 
