@@ -95,14 +95,12 @@ class Sorter_Raw : public SSorter<T>
 
 
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
-                    TGrouper* grouper, Mode mode, NextWrapper wrap
+                    TGrouper* grouper, Mode mode, NextWrapper replace_sorter
                     ) const override
     {
-      (void) grouper;
-      (void) wrap;
       int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
       int n_remaining_bits = n_significant_bits_ - n_radix_bits;
-      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, mode);
+      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, grouper, mode, replace_sorter);
       else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (ordering_in, ordering_out, offset, n_radix_bits, mode);
       else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
       else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
@@ -112,13 +110,19 @@ class Sorter_Raw : public SSorter<T>
 
   private:
     void radix_sort0(Vec ordering_in, Vec ordering_out, size_t offset,
-                     Mode mode) const
+                    TGrouper* grouper, Mode mode, NextWrapper replace_sorter) const
     {
+      UnqSorter next_sorter = nullptr;
+      if (replace_sorter) {
+        replace_sorter(next_sorter);
+      }
+
       size_t n = ordering_out.size();
-      RadixSort rdx(n, n_significant_bits_, mode);
       TU* x = data_ + offset;
-      rdx.sort_by_radix(ordering_in, ordering_out,
-        [&](size_t i){ return x[i]; });
+      RadixSort rdx(n, n_significant_bits_, mode);
+      rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
+        [&](size_t i){ return x[i]; },
+        [](size_t, size_t){});
     }
 
 
