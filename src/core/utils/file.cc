@@ -170,8 +170,15 @@ void File::remove(const std::string& name, bool except) {
 
 
 bool File::exists(const std::string& name) noexcept {
-  int ret = ::access(name.c_str(), F_OK);
-  return (ret == 0);
+  #if DT_OS_WINDOWS
+    DWORD attrs = GetFileAttributesW(name.c_str());
+    return (attrs != INVALID_FILE_ATTRIBUTES) &&
+            !(attrs & FILE_ATTRIBUTE_DIRECTORY);
+
+  #else
+    int ret = ::access(name.c_str(), F_OK);
+    return (ret == 0);
+  #endif
 }
 
 
@@ -180,7 +187,24 @@ bool File::exists(const std::string& name) noexcept {
   * otherwise.
   */
 bool File::nonempty(const std::string& name) noexcept {
-  struct stat statbuf;
-  int ret = stat(name.c_str(), &statbuf);
-  return (ret == 0) && S_ISREG(statbuf.st_mode) && (statbuf.st_size > 0);
+  #if DT_OS_WINDOWS
+    HANDLE hFile = CreateFile(
+        name.c_str(),           // lpFileName
+        FILE_READ_ATTRIBUTES,   // dwDesiredAccess
+        FILE_SHARE_WRITE,       // dwShareMode
+        nullptr,                // lpSecurityAttributes
+        OPEN_EXISTING,          // dwCreationDisposition
+        0,                      // dwFlagsAndAttributes
+        nullptr                 // hTemplateFile
+    );
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+    size_t size;
+    bool ret = GetFileSizeEx(hFile, &size);
+    return ret && (size != 0);
+
+  #else
+    struct stat statbuf;
+    int ret = stat(name.c_str(), &statbuf);
+    return (ret == 0) && S_ISREG(statbuf.st_mode) && (statbuf.st_size > 0);
+  #endif
 }
