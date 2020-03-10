@@ -15,6 +15,7 @@
 #include "utils/misc.h"
 
 #if DT_OS_WINDOWS
+  #include <Windows.h>
   #include <io.h>               // close, write, _chsize
   #define FTRUNCATE _chsize
 #else
