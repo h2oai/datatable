@@ -42,8 +42,8 @@ static void change_to_lowercase(std::string& str) {
 
 static const char* doc_to_csv =
 R"(to_csv(self, path=None, *, quoting="minimal", append=False,
-       header=..., hex=False, compression=None, verbose=False,
-       _strategy="auto")
+       header=..., bom=False, hex=False, compression=None,
+       verbose=False, _strategy="auto")
 --
 
 Write the Frame into the provided file in CSV format.
@@ -87,6 +87,17 @@ header: bool | ...
     will be written in all cases except when appending content into
     an existing file.
 
+bom: bool
+    If True, then insert the byte-order mark into the output file
+    (the option is False by default). Even if the option is True,
+    the BOM will not be written when appending data to an existing
+    file.
+
+    According to Unicode standard, including BOM into text files is
+    "neither required nor recommended". However, some programs (e.g.
+    Excel) may not be able to recognize file encoding without this
+    mark.
+
 hex: bool
     If True, then all floating-point values will be printed in hex
     format (equivalent to %a format in C `printf`). This format is
@@ -119,9 +130,9 @@ _strategy: "mmap" | "write" | "auto"
 )";
 
 static PKArgs args_to_csv(
-    0, 1, 7, false, false,
-    {"path", "quoting", "append", "header", "hex", "compression", "verbose",
-     "_strategy"},
+    0, 1, 8, false, false,
+    {"path", "quoting", "append", "header", "bom", "hex", "compression",
+     "verbose", "_strategy"},
     "to_csv", doc_to_csv);
 
 
@@ -131,10 +142,11 @@ oobj Frame::to_csv(const PKArgs& args)
   const Arg& arg_quoting  = args[1];
   const Arg& arg_append   = args[2];
   const Arg& arg_header   = args[3];
-  const Arg& arg_hex      = args[4];
-  const Arg& arg_compress = args[5];
-  const Arg& arg_verbose  = args[6];
-  const Arg& arg_strategy = args[7];
+  const Arg& arg_bom      = args[4];
+  const Arg& arg_hex      = args[5];
+  const Arg& arg_compress = args[6];
+  const Arg& arg_verbose  = args[7];
+  const Arg& arg_strategy = args[8];
 
   // path
   oobj path = arg_path.to<oobj>(ostring(""));
@@ -176,11 +188,15 @@ oobj Frame::to_csv(const PKArgs& args)
   // header
   bool header;
   if (arg_header.is_none_or_undefined() || arg_header.is_ellipsis()) {
-    header = !(append &&
-               oobj::import("os", "path", "exists").call(path)
-                  .to_bool_strict());
+    header = !(append && File::nonempty(filename));
   } else {
     header = arg_header.to<bool>(true);
+  }
+
+  // bom
+  bool bom = arg_bom.to<bool>(false);
+  if (bom && append && File::nonempty(filename)) {
+    bom = false;  // turn off when appending to an existing file
   }
 
   // hex
@@ -219,6 +235,7 @@ oobj Frame::to_csv(const PKArgs& args)
   writer.set_header(header);
   writer.set_strategy(sstrategy);
   writer.set_usehex(hex);
+  writer.set_bom(bom);
   writer.set_logger(logger);
   writer.set_quoting(quoting);
   writer.set_compression(compress);

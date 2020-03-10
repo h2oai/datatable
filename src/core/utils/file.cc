@@ -18,7 +18,7 @@
   #include <io.h>               // close, write, _chsize
   #define FTRUNCATE _chsize
 #else
-  #include <unistd.h>           // close, write, ftruncate
+  #include <unistd.h>           // access, close, write, ftruncate
   #define FTRUNCATE ftruncate
 #endif
 
@@ -155,6 +155,7 @@ void File::load_stats() const {
   }
 }
 
+
 void File::remove(const std::string& name, bool except) {
   int ret = ::remove(name.c_str());
   if (ret == -1) {
@@ -165,4 +166,21 @@ void File::remove(const std::string& name, bool except) {
              name.c_str(), errno, strerror(errno));
     }
   }
+}
+
+
+bool File::exists(const std::string& name) noexcept {
+  int ret = ::access(name.c_str(), F_OK);
+  return (ret == 0);
+}
+
+
+/**
+  * Return true if the file exists and is non-empty, and false
+  * otherwise.
+  */
+bool File::nonempty(const std::string& name) noexcept {
+  struct stat statbuf;
+  int ret = stat(name.c_str(), &statbuf);
+  return (ret == 0) && S_ISREG(statbuf.st_mode) && (statbuf.st_size > 0);
 }

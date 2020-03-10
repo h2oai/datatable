@@ -24,6 +24,10 @@
         dt.Frame(A=[1, 5, 10] / dt.int64,
                  B=[0, 0, 0] / dt.float64)
 
+  -[enh] Added new argument ``bom=False`` to the :meth:`Frame.to_csv()` method.
+    If set to ``True``, it will add the Byte-Order Mark (BOM) to the output
+    CSV file. [#2379]
+
   -[api] Method :meth:`.cbind()` now throws an :exc:`InvalidOperationError`
     instead of a ``ValueError`` if the argument frames have incompatible
     shapes.
