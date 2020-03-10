@@ -199,9 +199,9 @@ bool File::nonempty(const std::string& name) noexcept {
         nullptr                 // hTemplateFile
     );
     if (hFile == INVALID_HANDLE_VALUE) return false;
-    size_t size;
+    LARGE_INTEGER size;
     bool ret = GetFileSizeEx(hFile, &size);
-    return ret && (size != 0);
+    return ret && (size.QuadPart != 0);
 
   #else
     struct stat statbuf;
