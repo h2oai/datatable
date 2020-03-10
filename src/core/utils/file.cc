@@ -172,7 +172,7 @@ void File::remove(const std::string& name, bool except) {
 
 bool File::exists(const std::string& name) noexcept {
   #if DT_OS_WINDOWS
-    DWORD attrs = GetFileAttributesW(name.c_str());
+    DWORD attrs = GetFileAttributes(name.c_str());
     return (attrs != INVALID_FILE_ATTRIBUTES) &&
             !(attrs & FILE_ATTRIBUTE_DIRECTORY);
 
