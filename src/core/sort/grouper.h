@@ -109,8 +109,8 @@ class Grouper
 
 
     Groupby to_groupby(Buffer&& source_buffer) {
-      xassert(static_cast<const T*>(source_buffer.rptr()) + 1 == data_.ptr());
-      data_.ptr()[-1] = 0;
+      xassert(static_cast<const T*>(source_buffer.rptr()) + 1 == data_.start());
+      data_.start()[-1] = 0;
       source_buffer.resize((n_ + 1) * sizeof(T));
       return Groupby(n_, std::move(source_buffer));
     }

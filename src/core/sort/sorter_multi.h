@@ -39,22 +39,23 @@ class Sorter_Multi : public SSorter<T>
   using UnqSorter = std::unique_ptr<SSorter<T>>;
   using ShrSorter = std::shared_ptr<SSorter<T>>;
   using NextWrapper = dt::function<void(UnqSorter&)>;
+  using SorterVec = std::vector<ShrSorter>;
 
   private:
-    std::vector<ShrSorter> columns_;
+    SorterVec columns_;
 
   public:
     Sorter_Multi(std::vector<UnqSorter>&& cols)
       : SSorter<T>(cols[0]->nrows())
     {
-      xassert(cols.size() > 1);
+      xassert(cols.size() >= 1);
       columns_.reserve(cols.size());
       for (auto& col : cols) {
         columns_.push_back(ShrSorter(std::move(col)));
       }
     }
 
-    Sorter_Multi(UnqSorter&& col0, const std::vector<ShrSorter>& cols1)
+    Sorter_Multi(UnqSorter&& col0, const SorterVec& cols1)
       : SSorter<T>(col0->nrows())
     {
       columns_.reserve(1 + cols1.size());
@@ -63,6 +64,10 @@ class Sorter_Multi : public SSorter<T>
         columns_.push_back(col);
       }
     }
+
+    Sorter_Multi(SorterVec&& cols)
+      : SSorter<T>(cols.front()->nrows()),
+        columns_(std::move(cols)) {}
 
 
   protected:
@@ -110,18 +115,29 @@ class Sorter_Multi : public SSorter<T>
       }
     }
 
+
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
                     TGrouper* grouper, Mode sort_mode, NextWrapper wrap
                     ) const override
     {
       xassert(!wrap);  (void) wrap;
-      columns_[0]->radix_sort(ordering_in, ordering_out, offset, grouper, sort_mode,
+      columns_[0]->radix_sort(
+          ordering_in, ordering_out, offset, grouper, sort_mode,
           [&](UnqSorter& next_sorter) {
+            if (columns_.size() == 1) {
+              return;
+            }
+            SorterVec remaining_columns(columns_.begin() + 1,
+                                        columns_.end());
             if (next_sorter) {
-              next_sorter = UnqSorter(new Sorter_Multi<T>(std::move(next_sorter),
-                                                          columns_));
+              next_sorter = UnqSorter(
+                  new Sorter_Multi<T>(std::move(next_sorter),
+                                      std::move(remaining_columns))
+              );
             } else {
-              // FIXME
+              next_sorter = UnqSorter(
+                  new Sorter_Multi<T>(std::move(remaining_columns))
+              );
             }
           });
     }

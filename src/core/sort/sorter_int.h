@@ -79,7 +79,7 @@ class Sorter_Int : public SSorter<T>
                     TGrouper* grouper) const override
     {
       if (ordering_in) {
-        const T* oin = ordering_in.ptr();
+        const T* oin = ordering_in.start();
         xassert(oin && ordering_in.size() == ordering_out.size());
         dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) -> bool {  // compare_lt

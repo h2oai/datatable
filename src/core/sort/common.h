@@ -91,7 +91,7 @@ class array
       return size_;
     }
 
-    T* ptr() const noexcept {
+    T* start() const noexcept {
       return ptr_;
     }
 
@@ -119,7 +119,7 @@ class array
     }
 
     bool intersects(const array<T>& other) const {
-      return (other.ptr() < end()) && (ptr() < other.end());
+      return (other.start() < end()) && (start() < other.end());
     }
 };
 
