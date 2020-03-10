@@ -15,10 +15,11 @@
 #include "utils/misc.h"
 
 #if DT_OS_WINDOWS
+  #include <Windows.h>
   #include <io.h>               // close, write, _chsize
   #define FTRUNCATE _chsize
 #else
-  #include <unistd.h>           // close, write, ftruncate
+  #include <unistd.h>           // access, close, write, ftruncate
   #define FTRUNCATE ftruncate
 #endif
 
@@ -155,6 +156,7 @@ void File::load_stats() const {
   }
 }
 
+
 void File::remove(const std::string& name, bool except) {
   int ret = ::remove(name.c_str());
   if (ret == -1) {
@@ -165,4 +167,45 @@ void File::remove(const std::string& name, bool except) {
              name.c_str(), errno, strerror(errno));
     }
   }
+}
+
+
+bool File::exists(const std::string& name) noexcept {
+  #if DT_OS_WINDOWS
+    DWORD attrs = GetFileAttributes(name.c_str());
+    return (attrs != INVALID_FILE_ATTRIBUTES) &&
+            !(attrs & FILE_ATTRIBUTE_DIRECTORY);
+
+  #else
+    int ret = ::access(name.c_str(), F_OK);
+    return (ret == 0);
+  #endif
+}
+
+
+/**
+  * Return true if the file exists and is non-empty, and false
+  * otherwise.
+  */
+bool File::nonempty(const std::string& name) noexcept {
+  #if DT_OS_WINDOWS
+    HANDLE hFile = CreateFile(
+        name.c_str(),           // lpFileName
+        FILE_READ_ATTRIBUTES,   // dwDesiredAccess
+        FILE_SHARE_WRITE,       // dwShareMode
+        nullptr,                // lpSecurityAttributes
+        OPEN_EXISTING,          // dwCreationDisposition
+        0,                      // dwFlagsAndAttributes
+        nullptr                 // hTemplateFile
+    );
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+    LARGE_INTEGER size;
+    bool ret = GetFileSizeEx(hFile, &size);
+    return ret && (size.QuadPart != 0);
+
+  #else
+    struct stat statbuf;
+    int ret = stat(name.c_str(), &statbuf);
+    return (ret == 0) && S_ISREG(statbuf.st_mode) && (statbuf.st_size > 0);
+  #endif
 }

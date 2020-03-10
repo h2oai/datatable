@@ -85,7 +85,13 @@ void csv_writer::write_preamble() {
 
   Column names_as_col = Column(new Strvec_ColumnImpl(column_names));
   auto writer = value_writer::create(names_as_col, options);
-  writing_context ctx { 3*dt->ncols(), 1, options.compress_zlib };
+  writing_context ctx { 3*dt->ncols() + 3, 1, options.compress_zlib };
+
+  if (options.bom) {
+    *ctx.ch++ = '\xEF';
+    *ctx.ch++ = '\xBB';
+    *ctx.ch++ = '\xBF';
+  }
 
   if (options.quoting_mode == Quoting::ALL) {
     for (size_t i = 0; i < dt->ncols(); ++i) {

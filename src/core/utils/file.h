@@ -44,6 +44,9 @@ public:
 
   static void remove(const std::string& name, bool except = false);
 
+  static bool exists(const std::string& name) noexcept;
+  static bool nonempty(const std::string& name) noexcept;
+
 private:
   void load_stats() const;
 };
