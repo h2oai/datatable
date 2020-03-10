@@ -71,7 +71,7 @@ def test_sort_len1():
     assert_equals(DTS, DT0)
 
 
-# @new
+@new
 def test_sort_len1_view():
     d0 = dt.Frame([range(10), range(10, 0, -1)])
     d1 = d0[6, :].sort(0)

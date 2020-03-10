@@ -142,8 +142,14 @@ class Sorter_Multi : public SSorter<T>
           });
     }
 
-    int compare_lge(size_t, size_t) const override {
-      throw RuntimeError() << "Sorter_Multi cannot be nested";
+    // may be called from `check_sorted()`
+    int compare_lge(size_t i, size_t j) const override {
+      int cmp = 0;
+      for (const auto& col : columns_) {
+        cmp = col->compare_lge(i, j);
+        if (cmp) break;
+      }
+      return cmp;
     }
 
 };
