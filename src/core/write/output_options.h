@@ -60,8 +60,6 @@ struct output_options {
 };
 
 
-static_assert(sizeof(output_options) == 16,
-              "Unexpected size of output_options");
 
 
 }}  // namespace dt::write
