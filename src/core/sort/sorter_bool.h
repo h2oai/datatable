@@ -39,12 +39,12 @@ class Sorter_VBool : public SSorter<T>
   using UnqSorter = std::unique_ptr<SSorter<T>>;
   using NextWrapper = dt::function<void(UnqSorter&)>;
   private:
-    using SSorter<T>::nrows_;
+    // using SSorter<T>::nrows_;
     Column column_;
 
   public:
     Sorter_VBool(const Column& col)
-      : SSorter<T>(col.nrows()),
+      : // SSorter<T>(col.nrows()),
         column_(col)
     {
       xassert(col.stype() == SType::BOOL);
@@ -101,7 +101,7 @@ class Sorter_VBool : public SSorter<T>
         replace_sorter(next_sorter);
       }
 
-      RadixSort rdx(nrows_, nradixbits, sort_mode);
+      RadixSort rdx(ordering_out.size(), nradixbits, sort_mode);
       rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
           [&](size_t i) {  // get_radix
             int8_t ivalue;
@@ -127,12 +127,10 @@ class Sorter_MBool : public SSorter<T>
   using UnqSorter = std::unique_ptr<SSorter<T>>;
   using NextWrapper = dt::function<void(UnqSorter&)>;
   private:
-    using SSorter<T>::nrows_;
     const int8_t* data_;
 
   public:
     Sorter_MBool(const Column& col)
-      : SSorter<T>(col.nrows())
     {
       xassert(ASC);
       xassert(col.get_na_storage_method() == NaStorage::SENTINEL);
@@ -170,18 +168,16 @@ class Sorter_MBool : public SSorter<T>
 
 
     void radix_sort(Vec ordering_in, Vec ordering_out,
-                    size_t offset, TGrouper* grouper, Mode sort_mode,
+                    size_t, TGrouper* grouper, Mode sort_mode,
                     NextWrapper replace_sorter) const override
     {
-      xassert(offset == 0);  (void) offset;
-
       constexpr int nradixbits = 1;
       UnqSorter next_sorter = nullptr;
       if (replace_sorter) {
         replace_sorter(next_sorter);
       }
 
-      RadixSort rdx(nrows_, nradixbits, sort_mode);
+      RadixSort rdx(ordering_out.size(), nradixbits, sort_mode);
       rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
           [&](size_t i) {  // get_radix
             int8_t ivalue = data_[i];

@@ -38,20 +38,12 @@ using RiGb = std::pair<RowIndex, Groupby>;
   * Virtual class that handles sorting of a column. This class is
   * further subclassed by `SSorter<TO>`.
   */
-class Sorter {
-  protected:
-    size_t nrows_;
-
-    Sorter(size_t n) : nrows_(n) {}
-
+class Sorter
+{
   public:
     virtual ~Sorter() {}
 
-    size_t nrows() const noexcept {
-      return nrows_;
-    }
-
-    virtual RiGb sort(bool find_groups) const = 0;
+    virtual RiGb sort(size_t n, bool find_groups) const = 0;
 };
 
 
@@ -73,19 +65,17 @@ class SSorter : public Sorter
   using NextWrapper = dt::function<void(UnqSorter&)>;
 
   public:
-    SSorter(size_t n) : Sorter(n) {
-      xassert(sizeof(T) == 8 || n <= MAX_NROWS_INT32);
-    }
-
-
-    RiGb sort(bool find_groups) const override
+    RiGb sort(size_t n, bool find_groups) const override
     {
-      Buffer rowindex_buf = Buffer::mem(nrows_ * sizeof(T));
+      xassert(sizeof(T) == 8 || n <= MAX_NROWS_INT32);
+      Buffer rowindex_buf = Buffer::mem(n * sizeof(T));
       Vec ordering_out(rowindex_buf);
+      xassert(ordering_out.size() == n);
+
       Buffer groups_buf;
       UnqGrouper grouper;
       if (find_groups) {
-        groups_buf.resize((nrows_ + 1) * sizeof(T));
+        groups_buf.resize((n + 1) * sizeof(T));
         grouper = UnqGrouper(new TGrouper(Vec(groups_buf, 1), 0));
       }
 
@@ -98,7 +88,7 @@ class SSorter : public Sorter
         result_groupby = grouper->to_groupby(std::move(groups_buf));
       }
 
-      xassert(result_rowindex.max() == nrows_ - 1);
+      xassert(result_rowindex.max() == n - 1);
       return RiGb(std::move(result_rowindex), std::move(result_groupby));
     }
 
@@ -157,7 +147,7 @@ class SSorter : public Sorter
       *   - zero if `val[i] == val[j]`;
       *   - a positive value if `val[i] > val[j]`.
       *
-      * This function is used by Sorter_MultiImpl<T> only.
+      * This function is mainly used by Sorter_Multi<T>.
       */
     virtual int compare_lge(size_t i, size_t j) const = 0;
 

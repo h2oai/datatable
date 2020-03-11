@@ -53,13 +53,11 @@ class Sorter_Int : public SSorter<T>
   using NextWrapper = dt::function<void(UnqSorter&)>;
 
   private:
-    using SSorter<T>::nrows_;
     Column column_;
 
   public:
     Sorter_Int(const Column& col)
-      : SSorter<T>(col.nrows()),
-        column_(col)
+      : column_(col)
     {
       assert_compatible_type<TI>(col.stype());
     }
@@ -105,12 +103,13 @@ class Sorter_Int : public SSorter<T>
     }
 
 
-    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t,
                     TGrouper* grouper, Mode sort_mode,
                     NextWrapper replace_sorter) const override
     {
-      xassert(!ordering_in);   (void) ordering_in;
-      xassert(!offset);        (void) offset;
+      xassert(!ordering_in || ordering_in.size() == ordering_out.size());
+      size_t n = ordering_out.size();
+
       // Computing min/max of a column also calculates the nacount stat;
       // but not the other way around. Therefore, `nacount` must be retrieved
       // after `min` / `max`.
@@ -122,7 +121,7 @@ class Sorter_Int : public SSorter<T>
 
       // If either all values are NAs, or all values are same and there are no
       // NAs, then there is no need to sort.
-      if (nacount == nrows_ || (min == max && nacount == 0)) {
+      if (nacount == n || (min == max && nacount == 0)) {
         write_range(ordering_out);
         return;
       }
@@ -135,16 +134,16 @@ class Sorter_Int : public SSorter<T>
       UnqSorter next_sorter = nullptr;
       array<TU> out_array;
       if (shift) {
-        auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * nrows_),
-                                            nrows_, shift);
-        out_array = array<TU>(rawptr->get_data(), nrows_);
+        auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * n),
+                                            n, shift);
+        out_array = array<TU>(rawptr->get_data(), n);
         next_sorter = UnqSorter(rawptr);
       }
       if (replace_sorter) {
         replace_sorter(next_sorter);
       }
 
-      RadixSort rdx(nrows_, nradixbits, sort_mode);
+      RadixSort rdx(n, nradixbits, sort_mode);
       if (shift) {
         rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
           [&](size_t i) -> size_t {  // get_radix

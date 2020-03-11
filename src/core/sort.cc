@@ -1381,10 +1381,10 @@ RiGb group(const std::vector<Column>& columns,
       auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
                                                         : dt::sort::Direction::ASCENDING;
       auto sorter = dt::sort::make_sorter(col0, direction);
-      return sorter->sort(!sort_only);
+      return sorter->sort(nrows, !sort_only);
     } else {
       auto sorter = dt::sort::make_sorter(columns);
-      return sorter->sort(false);
+      return sorter->sort(nrows, false);
     }
   }
 

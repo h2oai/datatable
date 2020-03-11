@@ -67,7 +67,6 @@ class Sorter_Float : public SSorter<T>
   using NextWrapper = dt::function<void(UnqSorter&)>;
 
   private:
-    using SSorter<T>::nrows_;
     Column column_;
 
     static constexpr TU EXP = FloatConstants<TE>::EXP;
@@ -78,8 +77,7 @@ class Sorter_Float : public SSorter<T>
 
   public:
     Sorter_Float(const Column& col)
-      : SSorter<T>(col.nrows()),
-        column_(col)
+      : column_(col)
     {
       assert_compatible_type<TE>(col.stype());
     }
@@ -125,27 +123,27 @@ class Sorter_Float : public SSorter<T>
     }
 
 
-    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t,
                     TGrouper* grouper, Mode sort_mode,
                     NextWrapper replace_sorter) const override
     {
-      xassert(!ordering_in);   (void) ordering_in;
-      xassert(!offset);        (void) offset;
+      size_t n = ordering_out.size();
+      xassert(!ordering_in || ordering_in.size() == n);
 
       constexpr int nsigbits = 8 * sizeof(TE);
       constexpr int nradixbits = 8;
       constexpr int shift = nsigbits - nradixbits;
       constexpr TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * nrows_),
-                                          nrows_, shift);
-      array<TU> out_array(rawptr->get_data(), nrows_);
+      auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * n),
+                                          n, shift);
+      array<TU> out_array(rawptr->get_data(), n);
       UnqSorter next_sorter(rawptr);
       if (replace_sorter) {
         replace_sorter(next_sorter);
       }
 
-      RadixSort rdx(nrows_, nradixbits, sort_mode);
+      RadixSort rdx(n, nradixbits, sort_mode);
       rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
         [&](size_t i) -> size_t {  // get_radix
           TU value;

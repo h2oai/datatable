@@ -825,6 +825,7 @@ def test_strXX_large6(st):
 # Sort by multiple columns
 #-------------------------------------------------------------------------------
 
+@new
 def test_sort_len0_multi():
     d0 = dt.Frame([[], [], []], names=["E", "R", "G"])
     assert d0.shape == (0, 3)
@@ -844,6 +845,7 @@ def test_sort_len1_multi():
     assert d1.to_list() == d0.to_list()
 
 
+@new
 def test_int32_small_multi():
     src = [
         [1, 3, 2, 7, 2, 1, 1, 7, 2, 1, 1, 7],
@@ -859,6 +861,7 @@ def test_int32_small_multi():
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
+# @new
 def test_bool8_2cols_multi(seed):
     random.seed(seed)
     n = int(random.expovariate(0.001) + 200)

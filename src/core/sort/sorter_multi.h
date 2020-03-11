@@ -46,7 +46,6 @@ class Sorter_Multi : public SSorter<T>
 
   public:
     Sorter_Multi(std::vector<UnqSorter>&& cols)
-      : SSorter<T>(cols[0]->nrows())
     {
       xassert(cols.size() >= 1);
       columns_.reserve(cols.size());
@@ -56,7 +55,6 @@ class Sorter_Multi : public SSorter<T>
     }
 
     Sorter_Multi(UnqSorter&& col0, const SorterVec& cols1)
-      : SSorter<T>(col0->nrows())
     {
       columns_.reserve(1 + cols1.size());
       columns_.push_back(std::move(col0));
@@ -66,8 +64,7 @@ class Sorter_Multi : public SSorter<T>
     }
 
     Sorter_Multi(SorterVec&& cols)
-      : SSorter<T>(cols.front()->nrows()),
-        columns_(std::move(cols)) {}
+      : columns_(std::move(cols)) {}
 
 
   protected:

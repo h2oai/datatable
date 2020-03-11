@@ -51,7 +51,6 @@ class Sorter_Raw : public SSorter<T>
   using NextWrapper = dt::function<void(UnqSorter&)>;
 
   private:
-    using SSorter<T>::nrows_;
     TU* data_;        // array with nrows_ elements
     Buffer buffer_;   // owner of the data_ pointer
     int n_significant_bits_;
@@ -59,8 +58,7 @@ class Sorter_Raw : public SSorter<T>
 
   public:
     Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
-      : SSorter<T>(nrows),
-        data_(static_cast<TU*>(buf.xptr())),
+      : data_(static_cast<TU*>(buf.xptr())),
         buffer_(std::move(buf)),
         n_significant_bits_(nbits)
     {
