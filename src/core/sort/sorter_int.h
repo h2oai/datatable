@@ -49,8 +49,8 @@ class Sorter_Int : public SSorter<T>
   using TU = typename std::make_unsigned<TI>::type;
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<void(UnqSorter&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
 
   private:
     Column column_;
@@ -131,13 +131,13 @@ class Sorter_Int : public SSorter<T>
       const int shift = nsigbits - nradixbits;
       const TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      UnqSorter next_sorter = nullptr;
+      ShrSorter next_sorter = nullptr;
       array<TU> out_array;
       if (shift) {
         auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * n),
                                             n, shift);
         out_array = array<TU>(rawptr->get_data(), n);
-        next_sorter = UnqSorter(rawptr);
+        next_sorter = ShrSorter(rawptr);
       }
       if (replace_sorter) {
         replace_sorter(next_sorter);

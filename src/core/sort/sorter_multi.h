@@ -38,7 +38,7 @@ class Sorter_Multi : public SSorter<T>
   using TGrouper = Grouper<T>;
   using UnqSorter = std::unique_ptr<SSorter<T>>;
   using ShrSorter = std::shared_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<void(UnqSorter&)>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
   using SorterVec = std::vector<ShrSorter>;
 
   private:
@@ -47,14 +47,14 @@ class Sorter_Multi : public SSorter<T>
   public:
     Sorter_Multi(std::vector<UnqSorter>&& cols)
     {
-      xassert(cols.size() >= 1);
+      xassert(cols.size() > 1);
       columns_.reserve(cols.size());
       for (auto& col : cols) {
         columns_.push_back(ShrSorter(std::move(col)));
       }
     }
 
-    Sorter_Multi(UnqSorter&& col0, const SorterVec& cols1)
+    Sorter_Multi(ShrSorter&& col0, const SorterVec& cols1)
     {
       columns_.reserve(1 + cols1.size());
       columns_.push_back(std::move(col0));
@@ -64,7 +64,10 @@ class Sorter_Multi : public SSorter<T>
     }
 
     Sorter_Multi(SorterVec&& cols)
-      : columns_(std::move(cols)) {}
+      : columns_(std::move(cols))
+    {
+      xassert(cols.size() > 1);
+    }
 
 
   protected:
@@ -120,21 +123,20 @@ class Sorter_Multi : public SSorter<T>
       xassert(!wrap);  (void) wrap;
       columns_[0]->radix_sort(
           ordering_in, ordering_out, offset, grouper, sort_mode,
-          [&](UnqSorter& next_sorter) {
-            if (columns_.size() == 1) {
-              return;
-            }
+          [&](ShrSorter& next_sorter) {
             SorterVec remaining_columns(columns_.begin() + 1,
                                         columns_.end());
             if (next_sorter) {
-              next_sorter = UnqSorter(
+              next_sorter = ShrSorter(
                   new Sorter_Multi<T>(std::move(next_sorter),
                                       std::move(remaining_columns))
               );
-            } else {
-              next_sorter = UnqSorter(
+            } else if (remaining_columns.size() > 1) {
+              next_sorter = ShrSorter(
                   new Sorter_Multi<T>(std::move(remaining_columns))
               );
+            } else {
+              next_sorter = std::move(remaining_columns[0]);
             }
           });
     }

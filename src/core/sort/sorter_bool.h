@@ -36,16 +36,14 @@ class Sorter_VBool : public SSorter<T>
 {
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<void(UnqSorter&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
   private:
-    // using SSorter<T>::nrows_;
     Column column_;
 
   public:
     Sorter_VBool(const Column& col)
-      : // SSorter<T>(col.nrows()),
-        column_(col)
+      : column_(col)
     {
       xassert(col.stype() == SType::BOOL);
     }
@@ -96,7 +94,7 @@ class Sorter_VBool : public SSorter<T>
       xassert(offset == 0);  (void) offset;
 
       constexpr int nradixbits = 1;
-      UnqSorter next_sorter = nullptr;
+      ShrSorter next_sorter = nullptr;
       if (replace_sorter) {
         replace_sorter(next_sorter);
       }
@@ -124,8 +122,8 @@ class Sorter_MBool : public SSorter<T>
 {
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<void(UnqSorter&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
   private:
     const int8_t* data_;
 
@@ -172,7 +170,7 @@ class Sorter_MBool : public SSorter<T>
                     NextWrapper replace_sorter) const override
     {
       constexpr int nradixbits = 1;
-      UnqSorter next_sorter = nullptr;
+      ShrSorter next_sorter = nullptr;
       if (replace_sorter) {
         replace_sorter(next_sorter);
       }

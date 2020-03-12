@@ -47,8 +47,8 @@ class Sorter_Raw : public SSorter<T>
 {
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<void(UnqSorter&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
 
   private:
     TU* data_;        // array with nrows_ elements
@@ -110,7 +110,7 @@ class Sorter_Raw : public SSorter<T>
     void radix_sort0(Vec ordering_in, Vec ordering_out, size_t offset,
                     TGrouper* grouper, Mode mode, NextWrapper replace_sorter) const
     {
-      UnqSorter next_sorter = nullptr;
+      ShrSorter next_sorter = nullptr;
       if (replace_sorter) {
         replace_sorter(next_sorter);
       }

@@ -63,8 +63,8 @@ class Sorter_Float : public SSorter<T>
   static_assert(sizeof(TE) == sizeof(TU), "Wrong TU in Sorter_Float");
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<void(UnqSorter&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
 
   private:
     Column column_;
@@ -138,7 +138,7 @@ class Sorter_Float : public SSorter<T>
       auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * n),
                                           n, shift);
       array<TU> out_array(rawptr->get_data(), n);
-      UnqSorter next_sorter(rawptr);
+      ShrSorter next_sorter(rawptr);
       if (replace_sorter) {
         replace_sorter(next_sorter);
       }

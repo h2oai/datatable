@@ -61,8 +61,8 @@ class SSorter : public Sorter
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
   using UnqGrouper = std::unique_ptr<Grouper<T>>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<void(UnqSorter&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
 
   public:
     RiGb sort(size_t n, bool find_groups) const override
