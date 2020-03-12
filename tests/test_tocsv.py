@@ -415,6 +415,13 @@ def test_issue2253():
     assert X.to_csv() == "A,B\n" + "10,0\n" + "20,1\n"
 
 
+def test_issue2382():
+    DT = dt.Frame([[True] * 20] * 200)
+    out = DT.to_csv(quoting='all')
+    assert out == (','.join('"C%d"' % i for i in range(200)) + "\n" +
+                   '\n'.join(','.join(['"1"'] * 200) for j in range(20)) + "\n")
+
+
 
 
 #-------------------------------------------------------------------------------

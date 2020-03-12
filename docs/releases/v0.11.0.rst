@@ -55,6 +55,9 @@
     buffers have size over 2GB now properly creates a ``str64`` column as a
     result. [#2367]
 
+  -[bug] Fixed crash when writing to CSV a frame with many boolean columns
+    when the option ``quoting="all"`` is used. [#2382]
+
 
   Fread
   -----
