@@ -116,13 +116,13 @@ void Frame::rbind(const PKArgs& args) {
   // Any frames with 0 rows will be disregarded.
   {
     size_t j = 0;
-    std::function<void(py::robj)> process_arg = [&](py::robj arg) {
+    std::function<void(const py::robj)> process_arg = [&](const py::robj arg) {
       if (arg.is_frame()) {
         DataTable* df = arg.to_datatable();
         if (df->nrows()) dts.push_back(df);
         ++j;
       }
-      else if (arg.is_iterable()) {
+      else if (arg.is_iterable() && !arg.is_string()) {
         for (auto item : arg.to_oiter()) {
           process_arg(item);
         }
