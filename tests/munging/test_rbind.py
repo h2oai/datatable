@@ -138,6 +138,30 @@ def test_rbind_error5():
         dt0.rbind(["iddqd", "idkfa", "idclip"])
 
 
+def test_rbind_infinite():
+    def foo():
+        yield dt.Frame()
+        yield from foo()
+
+    with pytest.raises(RecursionError):
+        dt.rbind(foo())
+
+
+def test_rbind_infinite2():
+    class A:
+        def __next__(self):
+            return self
+
+        def __iter__(self):
+            return self
+
+    msg = r"Frame.rbind\(\) expects a list or sequence of Frames as an " \
+          r"argument; instead item 0 was a <class '.*\.A'>"
+    with pytest.raises(TypeError, match=msg):
+        dt.rbind(A())
+
+
+
 #-------------------------------------------------------------------------------
 # Simple test cases
 #-------------------------------------------------------------------------------

@@ -63,8 +63,10 @@ static py::oobj make_pyframe(sort_result&& sorted, Buffer&& buf) {
 
 
 static named_colvec columns_from_args(const py::PKArgs& args) {
+  using FN = std::function<void(py::robj,size_t)>;
   named_colvec result;
-  std::function<void(py::robj)> process_arg = [&](py::robj arg) {
+
+  FN process_arg = [&](py::robj arg, size_t level) {
     if (arg.is_frame()) {
       DataTable* dt = arg.to_datatable();
       if (dt->ncols() == 0) return;
@@ -79,9 +81,9 @@ static named_colvec columns_from_args(const py::PKArgs& args) {
         result.name = dt->get_names()[0];
       }
     }
-    else if (arg.is_iterable()) {
+    else if (arg.is_iterable() && !arg.is_string() && level < 2) {
       for (auto item : arg.to_oiter()) {
-        process_arg(item);
+        process_arg(item, level+1);
       }
     }
     else {
@@ -91,10 +93,11 @@ static named_colvec columns_from_args(const py::PKArgs& args) {
   };
 
   for (auto va : args.varargs()) {
-    process_arg(va);
+    process_arg(va, 0);
   }
   return result;
 }
+
 
 static sort_result sort_columns(named_colvec&& ncv) {
   xassert(!ncv.columns.empty());
