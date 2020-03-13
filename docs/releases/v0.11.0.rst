@@ -92,6 +92,10 @@
 
   -[fix] Fix rare crash in the interrupt signal handler. [#2282]
 
+  -[fix] Fixed possible crash in :func:`rbind()` and :func:`union()` when
+    they were called with a string argument, or with an object that caused
+    infinite recursion. [#2386]
+
   -[api] All exceptions thrown by datatable are now declared in the
     ``datatable.exceptions`` module. These exceptions are now organized to
     derive from the common base class ``DtException``.
