@@ -115,16 +115,17 @@ void Frame::rbind(const PKArgs& args) {
   // we even allow a sequence of lists, because why not.
   // Any frames with 0 rows will be disregarded.
   {
+    using FN = std::function<void(const py::robj, size_t)>;
     size_t j = 0;
-    std::function<void(const py::robj)> process_arg = [&](const py::robj arg) {
+    FN process_arg = [&](const py::robj arg, size_t level) {
       if (arg.is_frame()) {
         DataTable* df = arg.to_datatable();
         if (df->nrows()) dts.push_back(df);
         ++j;
       }
-      else if (arg.is_iterable() && !arg.is_string()) {
+      else if (arg.is_iterable() && !arg.is_string() && level < 2) {
         for (auto item : arg.to_oiter()) {
-          process_arg(item);
+          process_arg(item, level + 1);
         }
       }
       else {
@@ -135,7 +136,7 @@ void Frame::rbind(const PKArgs& args) {
     };
 
     for (auto arg : args.varargs()) {
-      process_arg(arg);
+      process_arg(arg, 0);
     }
   }
 

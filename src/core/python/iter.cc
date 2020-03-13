@@ -31,12 +31,12 @@ oiter::oiter(PyObject* src) : oobj(PyObject_GetIter(src)) {}
 
 
 
-iter_iterator oiter::begin() const noexcept {
+iter_iterator oiter::begin() const {
   return iter_iterator(v);
 }
 
 
-iter_iterator oiter::end() const noexcept {
+iter_iterator oiter::end() const {
   return iter_iterator(nullptr);
 }
 
@@ -104,6 +104,7 @@ void iter_iterator::advance() {
   if (res) {
     next_value = py::oobj::from_new_reference(res);
   } else {
+    if (PyErr_Occurred()) throw PyError();
     iter = py::oobj(nullptr);
     next_value = py::oobj(nullptr);
   }
