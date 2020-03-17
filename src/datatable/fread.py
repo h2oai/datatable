@@ -158,43 +158,6 @@ class GenericReader(object):
                             % list(args.keys()))
 
 
-    #---------------------------------------------------------------------------
-    # Resolve from various sources
-    #---------------------------------------------------------------------------
-
-    def _resolve_source(self):
-        anysource, file, text, cmd, url = self._src
-        args = (["any"] * (anysource is not None) +
-                ["file"] * (file is not None) +
-                ["text"] * (text is not None) +
-                ["cmd"] * (cmd is not None) +
-                ["url"] * (url is not None))
-        if len(args) == 0:
-            raise ValueError(
-                "No input source for `fread` was given. Please specify one of "
-                "the parameters `file`, `text`, `url`, or `cmd`")
-        if len(args) > 1:
-            if anysource is None:
-                raise ValueError(
-                    "Both parameters `%s` and `%s` cannot be passed to fread "
-                    "simultaneously." % (args[0], args[1]))
-            else:
-                args.remove("any")
-                raise ValueError(
-                    "When an unnamed argument is passed, it is invalid to also "
-                    "provide the `%s` parameter." % (args[0], ))
-        if anysource is not None:
-            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_any(anysource, self._tempfiles, self._logger)
-        if file is not None:
-            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(file, self._tempfiles, self._logger)
-        if text is not None:
-            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_text(text)
-        if cmd is not None:
-            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_cmd(cmd)
-        if url is not None:
-            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_url(url, self._tempfiles)
-
-
     @property
     def verbose(self):
         return self._logger is not None
@@ -205,7 +168,8 @@ class GenericReader(object):
     def read(self):
         if self._logger:
             self._logger.debug("[1] Prepare for reading")
-        self._resolve_source()
+        self._src, self._file, self._fileno, self._text, self._result = \
+            _resolve_source(self._src, self._tempfiles, self._logger)
         if isinstance(self._result, list):
             res = {}
             for src, filename, fileno, txt, result in self._result:
@@ -289,6 +253,39 @@ class GenericReader(object):
 #-------------------------------------------------------------------------------
 # Resolvers
 #-------------------------------------------------------------------------------
+
+def _resolve_source(src, tempfiles, logger):
+    anysource, file, text, cmd, url = src
+    args = (["any"] * (anysource is not None) +
+            ["file"] * (file is not None) +
+            ["text"] * (text is not None) +
+            ["cmd"] * (cmd is not None) +
+            ["url"] * (url is not None))
+    if len(args) == 0:
+        raise ValueError(
+            "No input source for `fread` was given. Please specify one of "
+            "the parameters `file`, `text`, `url`, or `cmd`")
+    if len(args) > 1:
+        if anysource is None:
+            raise ValueError(
+                "Both parameters `%s` and `%s` cannot be passed to fread "
+                "simultaneously." % (args[0], args[1]))
+        else:
+            args.remove("any")
+            raise ValueError(
+                "When an unnamed argument is passed, it is invalid to also "
+                "provide the `%s` parameter." % (args[0], ))
+    if anysource is not None:
+        return _resolve_source_any(anysource, tempfiles, logger)
+    if file is not None:
+        return _resolve_source_file(file, tempfiles, logger)
+    if text is not None:
+        return _resolve_source_text(text)
+    if cmd is not None:
+        return _resolve_source_cmd(cmd)
+    if url is not None:
+        return _resolve_source_url(url, tempfiles)
+
 
 def _resolve_source_any(src, tempfiles, logger):
     is_str = isinstance(src, str)
