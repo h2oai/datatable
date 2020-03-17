@@ -127,7 +127,8 @@ class GenericReader(object):
     # Resolve from various sources
     #---------------------------------------------------------------------------
 
-    def _resolve_source(self, anysource, file, text, cmd, url):
+    def _resolve_source(self):
+        anysource, file, text, cmd, url = self._src
         args = (["any"] * (anysource is not None) +
                 ["file"] * (file is not None) +
                 ["text"] * (text is not None) +
@@ -148,8 +149,10 @@ class GenericReader(object):
                     "When an unnamed argument is passed, it is invalid to also "
                     "provide the `%s` parameter." % (args[0], ))
         self._resolve_source_any(anysource)
-        self._resolve_source_text(text)
-        self._resolve_source_file(file)
+        if file is not None:
+            self._resolve_source_file(file)
+        if text is not None:
+            self._text, self._src = _resolve_source_text(text)
         if cmd is not None:
             self._text, self._src = _resolve_source_cmd(cmd)
         if url is not None:
@@ -167,7 +170,7 @@ class GenericReader(object):
                 if self._verbose:
                     self._logger.debug("Input is a string of length %d, "
                                       "treating it as raw text" % len(src))
-                self._resolve_source_text(src)
+                self._text, self._src = _resolve_source_text(src)
             else:
                 fn = ord if is_str else int
                 for ch in src:
@@ -176,7 +179,7 @@ class GenericReader(object):
                         if self._verbose:
                             self._logger.debug("Input contains '\\x%02X', "
                                               "treating it as raw text" % ccode)
-                        self._resolve_source_text(src)
+                        self._text, self._src = _resolve_source_text(src)
                         return
                 if is_str and re.match(_url_regex, src):
                     if self._verbose:
@@ -200,19 +203,7 @@ class GenericReader(object):
                             % type(src))
 
 
-    def _resolve_source_text(self, text):
-        if text is None:
-            return
-        if not isinstance(text, (str, bytes)):
-            raise TypeError("Invalid parameter `text` in fread: expected "
-                            "str or bytes, got %r" % type(text))
-        self._text = text
-        self._src = "<text>"
-
-
     def _resolve_source_file(self, file):
-        if file is None:
-            return
         if isinstance(file, _pathlike):
             # `_pathlike` contains (str, bytes), and on Python 3.6 also
             # os.PathLike interface
@@ -281,6 +272,7 @@ class GenericReader(object):
     def _resolve_source_list_of_files(self, files_list):
         self._files = []
         for s in files_list:
+            if s is None: continue
             self._resolve_source_file(s)
             entry = (self._src, self._file, self._fileno, self._text)
             self._files.append(entry)
@@ -369,7 +361,7 @@ class GenericReader(object):
         try:
             if self._verbose:
                 self._logger.debug("[1] Prepare for reading")
-            self._resolve_source(*self._src)
+            self._resolve_source()
             if self._result is not None:
                 return self._result
             if self._files:
@@ -464,6 +456,13 @@ class GenericReader(object):
 #-------------------------------------------------------------------------------
 # Resolvers
 #-------------------------------------------------------------------------------
+
+def _resolve_source_text(text):
+    if not isinstance(text, (str, bytes)):
+        raise TypeError("Invalid parameter `text` in fread: expected "
+                        "str or bytes, got %r" % type(text))
+    return text, "<text>"
+
 
 def _resolve_source_cmd(cmd):
     import subprocess
