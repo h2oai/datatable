@@ -753,8 +753,8 @@ void GenericReader::skip_to_line_with_string() {
   while (ch < eof) {
     if (*ch == *ss) {
       int d = 1;
-      while (ss + d < eof && ch + d < eof && ch[d] == ss[d]) d++;
-      if (ss + d == eof) {
+      while (ss[d] != '\0' && ch + d < eof && ch[d] == ss[d]) d++;
+      if (ss[d] == '\0') {
         if (line_start > sof) {
           sof = line_start;
           trace("Skipped to line %zd containing skip_to_string = \"%s\"",
@@ -766,7 +766,7 @@ void GenericReader::skip_to_line_with_string() {
       }
     }
     if (ch < eof && (*ch=='\n' || *ch=='\r')) {
-      ch += 1 + (ch+1 < eof && *ch + ch[1] == '\n' + '\r');
+      ch += 1 + ((ch + 1 < eof) && *ch + ch[1] == '\n' + '\r');
       line_start = ch;
       line++;
     } else {

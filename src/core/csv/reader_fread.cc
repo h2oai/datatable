@@ -433,7 +433,7 @@ class ColumnTypeDetectionChunkster {
         // and we jumped onto the second '\r' (which wouldn't be considered a
         // newline by `skip_eol()`s rules, which would then become a part of the
         // following field).
-        while ((*tch == '\n' || *tch == '\r')) tch++;
+        while (tch < f.eof && (*tch == '\n' || *tch == '\r')) tch++;
 
         if (tch < f.eof) {
           bool ok = fctx.next_good_line_start(cc, static_cast<int>(f.get_ncols()),
