@@ -294,14 +294,15 @@ class GenericReader(object):
                 xpath = os.path.abspath(os.path.join(xpath, ".."))
             ypath = ypath[len(xpath):]
             if os.path.isfile(xpath):
-                self._resolve_archive(xpath, ypath, self._tempfiles)
+                self._text, self._file, self._src, self._result = \
+                    _resolve_archive(xpath, ypath, self._tempfiles, self._logger)
                 return
             else:
                 raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
         if not os.path.isfile(file):
             raise ValueError("Path `%s` is not a file" % file)
-        self._src = file
-        self._resolve_archive(file, None, self._tempfiles)
+        self._text, self._file, self._src, self._result = \
+            _resolve_archive(file, None, self._tempfiles, self._logger)
 
 
     def _resolve_source_list_of_files(self, files_list):
@@ -313,74 +314,6 @@ class GenericReader(object):
             self._files.append(entry)
 
 
-    def _resolve_archive(self, filename, subpath, tempfiles):
-        ext = os.path.splitext(filename)[1]
-        if subpath and subpath[0] == "/":
-            subpath = subpath[1:]
-
-        if ext == ".zip":
-            import zipfile
-            zf = zipfile.ZipFile(filename)
-            # MacOS is found guilty of adding extra files into the Zip archives
-            # it creates. The files are hidden, and in the directory __MACOSX/.
-            # We remove those files from the list, since they are not real user
-            # files, and have an unknown binary format.
-            zff = [name for name in zf.namelist()
-                   if not(name.startswith("__MACOSX/") or name.endswith("/"))]
-            if subpath:
-                if subpath in zff:
-                    zff = [subpath]
-                else:
-                    raise ValueError("File `%s` does not exist in archive `%s`"
-                                     % (subpath, filename))
-            if len(zff) > 1:
-                warnings.warn("Zip file %s contains multiple compressed "
-                              "files: %r. Only the first of them will be used."
-                              % (filename, zff), category=FreadWarning)
-            if len(zff) == 0:
-                raise ValueError("Zip file %s is empty" % filename)
-            if self._logger:
-                self._logger.debug("Extracting %s to temporary directory %s"
-                                  % (filename, tempfiles.tempdir))
-            newfile = zf.extract(zff[0], path=tempfiles.tempdir)
-            tempfiles.add(newfile)
-            self._file = newfile
-
-        elif ext == ".gz":
-            import gzip
-            zf = gzip.GzipFile(filename, mode="rb")
-            if self._logger:
-                self._logger.debug("Extracting %s into memory" % filename)
-            self._text = zf.read()
-            if self._logger:
-                self._logger.debug("Extracted: size = %d" % len(self._text))
-
-        elif ext == ".bz2":
-            import bz2
-            with bz2.open(filename, mode="rb") as zf:
-                if self._logger:
-                    self._logger.debug("Extracting %s into memory" % filename)
-                self._text = zf.read()
-                if self._logger:
-                    self._logger.debug("Extracted: size = %d" % len(self._text))
-
-        elif ext == ".xz":
-            import lzma
-            with lzma.open(filename, mode="rb") as zf:
-                if self._logger:
-                    self._logger.debug("Extracting %s into memory" % filename)
-                self._text = zf.read()
-                if self._logger:
-                    self._logger.debug("Extracted: size = %d" % len(self._text))
-
-        elif ext == ".xlsx" or ext == ".xls":
-            self._result = read_xls_workbook(filename, subpath)
-
-        elif ext == ".jay":
-            self._result = core.open_jay(filename)
-
-        else:
-            self._file = filename
 
 
     @property
@@ -479,7 +412,83 @@ def _resolve_source_text(text):
     if not isinstance(text, (str, bytes)):
         raise TypeError("Invalid parameter `text` in fread: expected "
                         "str or bytes, got %r" % type(text))
+    # text, src
     return text, "<text>"
+
+
+def _resolve_archive(filename, subpath, tempfiles, logger):
+    ext = os.path.splitext(filename)[1]
+    if subpath and subpath[0] == "/":
+        subpath = subpath[1:]
+
+    out_file = None
+    out_text = None
+    out_result = None
+    if ext == ".zip":
+        import zipfile
+        zf = zipfile.ZipFile(filename)
+        # MacOS is found guilty of adding extra files into the Zip archives
+        # it creates. The files are hidden, and in the directory __MACOSX/.
+        # We remove those files from the list, since they are not real user
+        # files, and have an unknown binary format.
+        zff = [name for name in zf.namelist()
+               if not(name.startswith("__MACOSX/") or name.endswith("/"))]
+        if subpath:
+            if subpath in zff:
+                zff = [subpath]
+            else:
+                raise ValueError("File `%s` does not exist in archive `%s`"
+                                 % (subpath, filename))
+        if len(zff) > 1:
+            warnings.warn("Zip file %s contains multiple compressed "
+                          "files: %r. Only the first of them will be used."
+                          % (filename, zff), category=FreadWarning)
+        if len(zff) == 0:
+            raise ValueError("Zip file %s is empty" % filename)
+        if logger:
+            logger.debug("Extracting %s to temporary directory %s"
+                              % (filename, tempfiles.tempdir))
+        newfile = zf.extract(zff[0], path=tempfiles.tempdir)
+        tempfiles.add(newfile)
+        out_file = newfile
+
+    elif ext == ".gz":
+        import gzip
+        zf = gzip.GzipFile(filename, mode="rb")
+        if logger:
+            logger.debug("Extracting %s into memory" % filename)
+        out_text = zf.read()
+        if logger:
+            logger.debug("Extracted: size = %d" % len(out_text))
+
+    elif ext == ".bz2":
+        import bz2
+        with bz2.open(filename, mode="rb") as zf:
+            if logger:
+                logger.debug("Extracting %s into memory" % filename)
+            out_text = zf.read()
+            if logger:
+                logger.debug("Extracted: size = %d" % len(out_text))
+
+    elif ext == ".xz":
+        import lzma
+        with lzma.open(filename, mode="rb") as zf:
+            if logger:
+                logger.debug("Extracting %s into memory" % filename)
+            out_text = zf.read()
+            if logger:
+                logger.debug("Extracted: size = %d" % len(out_text))
+
+    elif ext == ".xlsx" or ext == ".xls":
+        out_result = read_xls_workbook(filename, subpath)
+
+    elif ext == ".jay":
+        out_result = core.open_jay(filename)
+
+    else:
+        out_file = filename
+    # text, file, src, result
+    return out_text, out_file, filename, out_result
 
 
 def _resolve_source_cmd(cmd):
@@ -506,6 +515,7 @@ def _resolve_source_url(url, tempfiles):
     import urllib.request
     targetfile = tempfiles.create_temp_file()
     urllib.request.urlretrieve(url, filename=targetfile)
+    # file, src
     return targetfile, url
 
 
