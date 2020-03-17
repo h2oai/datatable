@@ -65,7 +65,7 @@ void FreadThreadContext::read_chunk(
   tokenizer.target = tbuf.data();
   tokenizer.anchor = anchor = tch;
 
-  while (tch < cc.get_end()) {
+  while (tch < tokenizer.eof) {
     if (used_nrows == tbuf_nrows) {
       allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
       tokenizer.target = tbuf.data() + used_nrows * tbuf_ncols;
@@ -80,7 +80,7 @@ void FreadThreadContext::read_chunk(
       while (j < ncols) {
         fieldStart = tch;
         parsers[types[j]](tokenizer);
-        if (tch >= cc.get_end() || *tch != sep) break;
+        if (tch >= tokenizer.eof || *tch != sep) break;
         tokenizer.target += columns[j].is_in_buffer();
         tch++;
         j++;
@@ -88,7 +88,7 @@ void FreadThreadContext::read_chunk(
       //*** END HOT. START TEPID ***//
       if (tch == tlineStart) {
         tokenizer.skip_whitespace_at_line_start();
-        if (tch == cc.get_end()) break;  // empty last line
+        if (tch == tokenizer.eof) break;  // empty last line
         if (skipEmptyLines && tokenizer.skip_eol()) continue;
         tch = tlineStart;  // in case white space at the beginning may need to be included in field
       }
@@ -106,12 +106,12 @@ void FreadThreadContext::read_chunk(
 
 
     if (sep==' ') {
-      while (tch < cc.get_end() && *tch==' ') tch++;
+      while (tch < tokenizer.eof && *tch==' ') tch++;
       fieldStart = tch;
       if (skipEmptyLines && tokenizer.skip_eol()) continue;
     }
 
-    if (fillme || (tch == cc.get_end() || (*tch!='\n' && *tch!='\r'))) {  // also includes the case when sep==' '
+    if (fillme || (tch == tokenizer.eof || (*tch!='\n' && *tch!='\r'))) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
         auto ptype_iter = columns[j].get_ptype_iterator(&tokenizer.quoteRule);
@@ -125,19 +125,19 @@ void FreadThreadContext::read_chunk(
             tch = tokenizer.end_NA_string(tch);
             tokenizer.skip_whitespace();
             if (!tokenizer.at_end_of_field()) tch = afterSpace;
-            if (tch < cc.get_end() && *tch==quote) { quoted=true; tch++; }
+            if (tch < tokenizer.eof && *tch==quote) { quoted=true; tch++; }
           }
           parsers[*ptype_iter](tokenizer);
           if (quoted) {
-            if (tch < cc.get_end() && *tch==quote) tch++;
+            if (tch < tokenizer.eof && *tch==quote) tch++;
             else goto typebump;
           }
           tokenizer.skip_whitespace();
           if (tokenizer.at_end_of_field()) {
-            if (sep==' ' && tch < cc.get_end() && *tch==' ') {
-              while ((tch + 1 < cc.get_end()) && tch[1]==' ') tch++;  // multiple space considered one sep so move to last
-              if (((tch + 1 < cc.get_end()) && (tch[1]=='\r' || tch[1]=='\n'))
-                  || (tch + 1 == cc.get_end())) tch++;
+            if (sep==' ' && tch < tokenizer.eof && *tch==' ') {
+              while ((tch + 1 < tokenizer.eof) && tch[1]==' ') tch++;  // multiple space considered one sep so move to last
+              if (((tch + 1 < tokenizer.eof) && (tch[1]=='\r' || tch[1]=='\n'))
+                  || (tch + 1 == tokenizer.eof)) tch++;
             }
             break;
           }
@@ -173,8 +173,8 @@ void FreadThreadContext::read_chunk(
         }
         tokenizer.target += columns[j].is_in_buffer();
         j++;
-        if (tch < cc.get_end() && *tch==sep) { tch++; continue; }
-        if (fill && (tch == cc.get_end() || *tch=='\n' || *tch=='\r') && j <= ncols) {
+        if (tch < tokenizer.eof && *tch==sep) { tch++; continue; }
+        if (fill && (tch == tokenizer.eof || *tch=='\n' || *tch=='\r') && j <= ncols) {
           // All parsers have already stored NA to target; except for string
           // which writes "" value instead -- hence this case should be
           // corrected here.
@@ -216,7 +216,7 @@ void FreadThreadContext::read_chunk(
     }
 
 
-    if (!(tokenizer.skip_eol() || tch == cc.get_end())) {
+    if (!(tokenizer.skip_eol() || tch == tokenizer.eof)) {
       if (cc.is_start_exact()) {
         throw RuntimeError() << "Too many fields on line "
           << row0 + used_nrows + freader.line
