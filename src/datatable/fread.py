@@ -103,7 +103,6 @@ class GenericReader(object):
         self._maxnrows = max_nrows
         self._header = header
         self._nastrings = na_strings
-        self._verbose = verbose
         self._fill = fill
         self._encoding = encoding
         self._quotechar = quotechar
@@ -167,7 +166,7 @@ class GenericReader(object):
             # If there are any control characters (such as \n or \r) in the
             # text of `src`, then its type is "text".
             if len(src) >= 4096:
-                if self._verbose:
+                if self._logger:
                     self._logger.debug("Input is a string of length %d, "
                                       "treating it as raw text" % len(src))
                 self._text, self._src = _resolve_source_text(src)
@@ -176,21 +175,21 @@ class GenericReader(object):
                 for ch in src:
                     ccode = fn(ch)
                     if ccode < 0x20:
-                        if self._verbose:
+                        if self._logger:
                             self._logger.debug("Input contains '\\x%02X', "
                                               "treating it as raw text" % ccode)
                         self._text, self._src = _resolve_source_text(src)
                         return
                 if is_str and re.match(_url_regex, src):
-                    if self._verbose:
+                    if self._logger:
                         self._logger.debug("Input is a URL.")
                     self._file, self._src = _resolve_source_url(src, self.tempdir, self._tempfiles)
                 elif is_str and re.search(_glob_regex, src):
-                    if self._verbose:
+                    if self._logger:
                         self._logger.debug("Input is a glob pattern.")
                     self._resolve_source_list_of_files(glob.glob(src))
                 else:
-                    if self._verbose:
+                    if self._logger:
                         self._logger.debug("Input is assumed to be a "
                                           "file name.")
                     self._resolve_source_file(src)
@@ -259,14 +258,14 @@ class GenericReader(object):
                 xpath = os.path.abspath(os.path.join(xpath, ".."))
             ypath = ypath[len(xpath):]
             if os.path.isfile(xpath):
-                self._resolve_archive(xpath, ypath)
+                self._resolve_archive(xpath, ypath, self._tempfiles, self.tempdir)
                 return
             else:
                 raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
         if not os.path.isfile(file):
             raise ValueError("Path `%s` is not a file" % file)
         self._src = file
-        self._resolve_archive(file)
+        self._resolve_archive(file, None, self._tempfiles, self.tempdir)
 
 
     def _resolve_source_list_of_files(self, files_list):
@@ -278,7 +277,7 @@ class GenericReader(object):
             self._files.append(entry)
 
 
-    def _resolve_archive(self, filename, subpath=None):
+    def _resolve_archive(self, filename, subpath, tempfiles, tempdir):
         ext = os.path.splitext(filename)[1]
         if subpath and subpath[0] == "/":
             subpath = subpath[1:]
@@ -304,37 +303,37 @@ class GenericReader(object):
                               % (filename, zff), category=FreadWarning)
             if len(zff) == 0:
                 raise ValueError("Zip file %s is empty" % filename)
-            if self._verbose:
+            if self._logger:
                 self._logger.debug("Extracting %s to temporary directory %s"
-                                  % (filename, self.tempdir))
-            self._tempfiles.append(zf.extract(zff[0], path=self.tempdir))
-            self._file = self._tempfiles[-1]
+                                  % (filename, tempdir))
+            tempfiles.append(zf.extract(zff[0], path=tempdir))
+            self._file = tempfiles[-1]
 
         elif ext == ".gz":
             import gzip
             zf = gzip.GzipFile(filename, mode="rb")
-            if self._verbose:
+            if self._logger:
                 self._logger.debug("Extracting %s into memory" % filename)
             self._text = zf.read()
-            if self._verbose:
+            if self._logger:
                 self._logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".bz2":
             import bz2
             with bz2.open(filename, mode="rb") as zf:
-                if self._verbose:
+                if self._logger:
                     self._logger.debug("Extracting %s into memory" % filename)
                 self._text = zf.read()
-                if self._verbose:
+                if self._logger:
                     self._logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xz":
             import lzma
             with lzma.open(filename, mode="rb") as zf:
-                if self._verbose:
+                if self._logger:
                     self._logger.debug("Extracting %s into memory" % filename)
                 self._text = zf.read()
-                if self._verbose:
+                if self._logger:
                     self._logger.debug("Extracted: size = %d" % len(self._text))
 
         elif ext == ".xlsx" or ext == ".xls":
@@ -355,11 +354,16 @@ class GenericReader(object):
         return self._tempdir
 
 
+    @property
+    def verbose(self):
+        return self._logger is not None
+
+
     #---------------------------------------------------------------------------
 
     def read(self):
         try:
-            if self._verbose:
+            if self._logger:
                 self._logger.debug("[1] Prepare for reading")
             self._resolve_source()
             if self._result is not None:
@@ -400,19 +404,19 @@ class GenericReader(object):
     #         except ImportError:
     #             psutil = None
     #
-    #     if self._verbose and estimated_size > 1:
+    #     if self._logger and estimated_size > 1:
     #         self._logger.debug("The Frame is estimated to require %s bytes"
     #                           % humanize_bytes(estimated_size))
     #     if estimated_size < 1024 or psutil is None:
     #         return None
     #     vm = psutil.virtual_memory()
-    #     if self._verbose:
+    #     if self._logger:
     #         self._logger.debug("Memory available = %s (out of %s)"
     #                           % (humanize_bytes(vm.available),
     #                              humanize_bytes(vm.total)))
     #     if (estimated_size < vm.available and self._save_to is None or
     #             self._save_to == "memory"):
-    #         if self._verbose:
+    #         if self._logger:
     #             self._logger.debug("Frame will be loaded into memory")
     #         return None
     #     else:
@@ -422,12 +426,12 @@ class GenericReader(object):
     #         else:
     #             tmpdir = tempfile.mkdtemp()
     #         du = psutil.disk_usage(tmpdir)
-    #         if self._verbose:
+    #         if self._logger:
     #             self._logger.debug("Free disk space on drive %s = %s"
     #                               % (os.path.splitdrive(tmpdir)[0] or "/",
     #                                  humanize_bytes(du.free)))
     #         if du.free > estimated_size or self._save_to:
-    #             if self._verbose:
+    #             if self._logger:
     #                 self._logger.debug("Frame will be stored in %s"
     #                                   % tmpdir)
     #             return tmpdir
@@ -440,7 +444,7 @@ class GenericReader(object):
     def _clear_temporary_files(self):
         for f in self._tempfiles:
             try:
-                if self._verbose:
+                if self._logger:
                     self._logger.debug("Removing temporary file %s" % f)
                 os.remove(f)
             except OSError as e:

@@ -88,7 +88,7 @@ GenericReader::GenericReader(const py::robj& pyrdr)
   text_arg = pyrdr.get_attr("_text");
   fileno   = pyrdr.get_attr("_fileno").to_int32();
 
-  init_verbose(   py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
+  init_verbose(   py::Arg(pyrdr.get_attr("verbose"), "Parameter `verbose`"));
   init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"));
   init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
   init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));
