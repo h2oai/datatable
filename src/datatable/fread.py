@@ -76,6 +76,44 @@ def fread(
 
 
 
+class TempFiles:
+    def __init__(self, tempdir, logger=None):
+        self._logger = logger
+        self._tempfiles = []
+        self._tempdir = tempdir
+        self._tempdir_own = False
+
+    def add(self, file):
+        self._tempfiles.append(file)
+
+    def create_temp_file(self):
+        newfile = tempfile.mktemp(dir=self.tempdir)
+        self._tempfiles.append(newfile)
+        return newfile
+
+    def __del__(self):
+        for f in self._tempfiles:
+            try:
+                if self._logger:
+                    self._logger.debug("Removing temporary file %s" % f)
+                os.remove(f)
+            except OSError as e:
+                self._logger.warning("Failed to remove a temporary file: %r" % e)
+        if self._tempdir_own:
+            shutil.rmtree(self._tempdir, ignore_errors=True)
+        self._tempfiles = []
+        self._tempdir_own = False
+
+    @property
+    def tempdir(self):
+        if self._tempdir is None:
+            self._tempdir = tempfile.mkdtemp()
+            self._tempdir_own = True
+        return self._tempdir
+
+
+
+
 class GenericReader(object):
     """
     Parser object for reading CSV files.
@@ -92,12 +130,14 @@ class GenericReader(object):
         self._file = None
         self._files = None
         self._fileno = None
-        self._tempfiles = []
-        self._tempdir = None
-        self._tempdir_own = False
         self._text = None
         self._result = None
 
+        self._logger = logger
+        if verbose and not logger:
+            self._logger = _DefaultLogger()
+        self._tempfiles = TempFiles(tempdir=args.pop("_tempdir", None),
+                                    logger=self._logger)
         self._sep = args.pop("separator", sep)
         self._dec = dec
         self._maxnrows = max_nrows
@@ -113,10 +153,6 @@ class GenericReader(object):
         self._columns = columns
         # self._save_to = save_to
         self._nthreads = nthreads
-        self._tempdir = args.pop("_tempdir", None)
-        self._logger = logger
-        if verbose and not logger:
-            self._logger = _DefaultLogger()
         if args:
             raise TypeError("Unknown argument(s) %r in FReader(...)"
                             % list(args.keys()))
@@ -155,7 +191,7 @@ class GenericReader(object):
         if cmd is not None:
             self._text, self._src = _resolve_source_cmd(cmd)
         if url is not None:
-            self._file, self._src = _resolve_source_url(url, self.tempdir, self._tempfiles)
+            self._file, self._src = _resolve_source_url(url, self._tempfiles)
 
 
     def _resolve_source_any(self, src):
@@ -183,7 +219,7 @@ class GenericReader(object):
                 if is_str and re.match(_url_regex, src):
                     if self._logger:
                         self._logger.debug("Input is a URL.")
-                    self._file, self._src = _resolve_source_url(src, self.tempdir, self._tempfiles)
+                    self._file, self._src = _resolve_source_url(src, self._tempfiles)
                 elif is_str and re.search(_glob_regex, src):
                     if self._logger:
                         self._logger.debug("Input is a glob pattern.")
@@ -258,14 +294,14 @@ class GenericReader(object):
                 xpath = os.path.abspath(os.path.join(xpath, ".."))
             ypath = ypath[len(xpath):]
             if os.path.isfile(xpath):
-                self._resolve_archive(xpath, ypath, self._tempfiles, self.tempdir)
+                self._resolve_archive(xpath, ypath, self._tempfiles)
                 return
             else:
                 raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
         if not os.path.isfile(file):
             raise ValueError("Path `%s` is not a file" % file)
         self._src = file
-        self._resolve_archive(file, None, self._tempfiles, self.tempdir)
+        self._resolve_archive(file, None, self._tempfiles)
 
 
     def _resolve_source_list_of_files(self, files_list):
@@ -277,7 +313,7 @@ class GenericReader(object):
             self._files.append(entry)
 
 
-    def _resolve_archive(self, filename, subpath, tempfiles, tempdir):
+    def _resolve_archive(self, filename, subpath, tempfiles):
         ext = os.path.splitext(filename)[1]
         if subpath and subpath[0] == "/":
             subpath = subpath[1:]
@@ -305,9 +341,10 @@ class GenericReader(object):
                 raise ValueError("Zip file %s is empty" % filename)
             if self._logger:
                 self._logger.debug("Extracting %s to temporary directory %s"
-                                  % (filename, tempdir))
-            tempfiles.append(zf.extract(zff[0], path=tempdir))
-            self._file = tempfiles[-1]
+                                  % (filename, tempfiles.tempdir))
+            newfile = zf.extract(zff[0], path=tempfiles.tempdir)
+            tempfiles.add(newfile)
+            self._file = newfile
 
         elif ext == ".gz":
             import gzip
@@ -347,14 +384,6 @@ class GenericReader(object):
 
 
     @property
-    def tempdir(self):
-        if self._tempdir is None:
-            self._tempdir = tempfile.mkdtemp()
-            self._tempdir_own = True
-        return self._tempdir
-
-
-    @property
     def verbose(self):
         return self._logger is not None
 
@@ -362,28 +391,25 @@ class GenericReader(object):
     #---------------------------------------------------------------------------
 
     def read(self):
-        try:
-            if self._logger:
-                self._logger.debug("[1] Prepare for reading")
-            self._resolve_source()
-            if self._result is not None:
-                return self._result
-            if self._files:
-                res = {}
-                for src, filename, fileno, txt in self._files:
-                    self._src = src
-                    self._file = filename
-                    self._fileno = fileno
-                    self._text = txt
-                    try:
-                        res[src] = core.gread(self)
-                    except Exception as e:
-                        res[src] = e
-                return res
-            else:
-                return core.gread(self)
-        finally:
-            self._clear_temporary_files()
+        if self._logger:
+            self._logger.debug("[1] Prepare for reading")
+        self._resolve_source()
+        if self._result is not None:
+            return self._result
+        elif self._files:
+            res = {}
+            for src, filename, fileno, txt in self._files:
+                self._src = src
+                self._file = filename
+                self._fileno = fileno
+                self._text = txt
+                try:
+                    res[src] = core.gread(self)
+                except Exception as e:
+                    res[src] = e
+            return res
+        else:
+            return core.gread(self)
 
 
     #---------------------------------------------------------------------------
@@ -441,18 +467,6 @@ class GenericReader(object):
     #                        % humanize_bytes(estimated_size))
 
 
-    def _clear_temporary_files(self):
-        for f in self._tempfiles:
-            try:
-                if self._logger:
-                    self._logger.debug("Removing temporary file %s" % f)
-                os.remove(f)
-            except OSError as e:
-                self._logger.warning("Failed to remove a temporary file: %r" % e)
-        if self._tempdir_own:
-            shutil.rmtree(self._tempdir, ignore_errors=True)
-        self._tempfiles = []
-        self._tempdir_own = False
 
 
 
@@ -487,12 +501,11 @@ def _resolve_source_cmd(cmd):
         return msgout, cmd
 
 
-def _resolve_source_url(url, tempdir, tempfiles):
+def _resolve_source_url(url, tempfiles):
     assert url is not None
     import urllib.request
-    targetfile = tempfile.mktemp(dir=tempdir)
+    targetfile = tempfiles.create_temp_file()
     urllib.request.urlretrieve(url, filename=targetfile)
-    tempfiles.append(targetfile)
     return targetfile, url
 
 
