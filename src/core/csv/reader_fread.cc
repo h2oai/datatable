@@ -9,7 +9,7 @@
 #include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
 #include "utils/misc.h"          // wallclock
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
-
+#include <iostream>
 
 
 //------------------------------------------------------------------------------
@@ -265,6 +265,8 @@ void FreadReader::detect_sep_and_qr() {
   // `numLines` has the number of lines in each group.
   int numFields[JUMPLINES+1];
   int numLines[JUMPLINES+1];
+
+
   for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
     for (int s=0; s<nseps; s++) {
       sep = seps[s];
@@ -292,7 +294,9 @@ void FreadReader::detect_sep_and_qr() {
         numLines[i]++;
       }
       if (numFields[0] == -1) continue;
-      if (firstJumpEnd == nullptr) firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
+      if (firstJumpEnd == nullptr) {
+        firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
+      }
       if (topQuoteRule < 0) topQuoteRule = quoteRule;
       bool updated = false;
       int nmax = 0;
@@ -347,6 +351,7 @@ void FreadReader::detect_sep_and_qr() {
 
   // Create vector of Column objects
   columns.add_columns(static_cast<size_t>(ncols));
+
 
   first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
 
@@ -431,7 +436,7 @@ class ColumnTypeDetectionChunkster {
         // and we jumped onto the second '\r' (which wouldn't be considered a
         // newline by `skip_eol()`s rules, which would then become a part of the
         // following field).
-        while (*tch == '\n' || *tch == '\r') tch++;
+        while ((*tch == '\n' || *tch == '\r')) tch++;
 
         if (tch < f.eof) {
           bool ok = fctx.next_good_line_start(cc, static_cast<int>(f.get_ncols()),

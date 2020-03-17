@@ -80,7 +80,7 @@ void FreadThreadContext::read_chunk(
       while (j < ncols) {
         fieldStart = tch;
         parsers[types[j]](tokenizer);
-        if (*tch != sep) break;
+        if (tch >= cc.get_end() || *tch != sep) break;
         tokenizer.target += columns[j].is_in_buffer();
         tch++;
         j++;
@@ -88,7 +88,7 @@ void FreadThreadContext::read_chunk(
       //*** END HOT. START TEPID ***//
       if (tch == tlineStart) {
         tokenizer.skip_whitespace_at_line_start();
-        if (*tch == '\0') break;  // empty last line
+        if (tch == cc.get_end()) break;  // empty last line
         if (skipEmptyLines && tokenizer.skip_eol()) continue;
         tch = tlineStart;  // in case white space at the beginning may need to be included in field
       }
@@ -104,13 +104,15 @@ void FreadThreadContext::read_chunk(
     }
     //*** END TEPID. NOW COLD.
 
+
     if (sep==' ') {
-      while (*tch==' ') tch++;
+      while (tch < cc.get_end() && *tch==' ') tch++;
       fieldStart = tch;
       if (skipEmptyLines && tokenizer.skip_eol()) continue;
     }
 
-    if (fillme || (*tch!='\n' && *tch!='\r')) {  // also includes the case when sep==' '
+    if (fillme || (tch == cc.get_end() || (*tch!='\n' && *tch!='\r'))) {  // also includes the case when sep==' '
+      // size_t niter = 0;
       while (j < ncols) {
         fieldStart = tch;
         auto ptype_iter = columns[j].get_ptype_iterator(&tokenizer.quoteRule);
@@ -124,18 +126,19 @@ void FreadThreadContext::read_chunk(
             tch = tokenizer.end_NA_string(tch);
             tokenizer.skip_whitespace();
             if (!tokenizer.at_end_of_field()) tch = afterSpace;
-            if (*tch==quote) { quoted=true; tch++; }
+            if (tch < cc.get_end() && *tch==quote) { quoted=true; tch++; }
           }
           parsers[*ptype_iter](tokenizer);
           if (quoted) {
-            if (*tch==quote) tch++;
+            if (tch < cc.get_end() && *tch==quote) tch++;
             else goto typebump;
           }
           tokenizer.skip_whitespace();
           if (tokenizer.at_end_of_field()) {
-            if (sep==' ' && *tch==' ') {
-              while (tch[1]==' ') tch++;  // multiple space considered one sep so move to last
-              if (tch[1]=='\r' || tch[1]=='\n' || tch[1]=='\0') tch++;
+            if (sep==' ' && tch < cc.get_end() && *tch==' ') {
+              while ((tch + 1 < cc.get_end()) && tch[1]==' ') tch++;  // multiple space considered one sep so move to last
+              if (((tch + 1 < cc.get_end()) && (tch[1]=='\r' || tch[1]=='\n'))
+                  || (tch + 1 == cc.get_end())) tch++;
             }
             break;
           }
@@ -171,8 +174,8 @@ void FreadThreadContext::read_chunk(
         }
         tokenizer.target += columns[j].is_in_buffer();
         j++;
-        if (*tch==sep) { tch++; continue; }
-        if (fill && (*tch=='\n' || *tch=='\r' || *tch=='\0') && j <= ncols) {
+        if (tch < cc.get_end() && *tch==sep) { tch++; continue; }
+        if (fill && (tch == cc.get_end() || *tch=='\n' || *tch=='\r') && j <= ncols) {
           // All parsers have already stored NA to target; except for string
           // which writes "" value instead -- hence this case should be
           // corrected here.
@@ -185,6 +188,7 @@ void FreadThreadContext::read_chunk(
         break;
       }  // while (j < ncols)
     }
+
 
     if (j < ncols) {
       // Is it perhaps an empty line at the end of the input? If so then it
@@ -211,7 +215,9 @@ void FreadThreadContext::read_chunk(
         return;
       }
     }
-    if (!(tokenizer.skip_eol() || *tch=='\0')) {
+
+
+    if (!(tokenizer.skip_eol() || tch == cc.get_end())) {
       if (cc.is_start_exact()) {
         throw RuntimeError() << "Too many fields on line "
           << row0 + used_nrows + freader.line

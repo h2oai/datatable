@@ -576,28 +576,43 @@ void GenericReader::open_input() {
   double t0 = wallclock();
   CString text;
   const char* filename = nullptr;
+  // size_t extra_byte = 0;
   if (fileno > 0) {
     const char* src = src_arg.to_cstring().ch;
     input_mbuf = Buffer::mmap(src, 0, fileno, false);
+    // input_mbuf = Buffer::overmap(src, /* extra = */ 1, fileno);
     size_t sz = input_mbuf.size();
+    // if (sz > 0) {
+    //   sz--;
+    //   static_cast<char*>(input_mbuf.wptr())[sz] = '\0';
+    //   extra_byte = 1;
+    // }
     trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
 
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
     input_mbuf = Buffer::external(text.ch, size + 1);
+    // extra_byte = 1;
     input_is_string = true;
   } else if ((filename = file_arg.to_cstring().ch)) {
     input_mbuf = Buffer::mmap(filename);
+    // input_mbuf = Buffer::overmap(filename, /* extra = */ 1);
     size_t sz = input_mbuf.size();
+    // if (sz > 0) {
+    //   sz--;
+    //   static_cast<char*>(input_mbuf.wptr())[sz] = '\0';
+    //   extra_byte = 1;
+    // }
+
     trace("File \"%s\" opened, size: %zu", filename, sz);
 
   } else {
     throw RuntimeError() << "No input given to the GenericReader";
   }
   line = 1;
-  sof = static_cast<char*>(input_mbuf.wptr());
+  sof = static_cast<const char*>(input_mbuf.rptr());
   eof = sof + input_mbuf.size();
-
+  // eof = sof + input_mbuf.size() - extra_byte;
   if (verbose) {
     trace("==== file sample ====");
     const char* ch = sof;
@@ -738,8 +753,8 @@ void GenericReader::skip_to_line_with_string() {
   while (ch < eof) {
     if (*ch == *ss) {
       int d = 1;
-      while (ss[d] != '\0' && ch + d < eof && ch[d] == ss[d]) d++;
-      if (ss[d] == '\0') {
+      while (ss + d < eof && ch + d < eof && ch[d] == ss[d]) d++;
+      if (ss + d == eof) {
         if (line_start > sof) {
           sof = line_start;
           trace("Skipped to line %zd containing skip_to_string = \"%s\"",
@@ -750,7 +765,7 @@ void GenericReader::skip_to_line_with_string() {
         ch++;
       }
     }
-    if (*ch=='\n' || *ch=='\r') {
+    if (ch < eof && (*ch=='\n' || *ch=='\r')) {
       ch += 1 + (ch+1 < eof && *ch + ch[1] == '\n' + '\r');
       line_start = ch;
       line++;
