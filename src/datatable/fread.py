@@ -150,8 +150,10 @@ class GenericReader(object):
         self._resolve_source_any(anysource)
         self._resolve_source_text(text)
         self._resolve_source_file(file)
-        self._resolve_source_cmd(cmd)
-        self._resolve_source_url(url)
+        if cmd is not None:
+            self._text, self._src = _resolve_source_cmd(cmd)
+        if url is not None:
+            self._file, self._src = _resolve_source_url(url, self.tempdir, self._tempfiles)
 
 
     def _resolve_source_any(self, src):
@@ -179,7 +181,7 @@ class GenericReader(object):
                 if is_str and re.match(_url_regex, src):
                     if self._verbose:
                         self._logger.debug("Input is a URL.")
-                    self._resolve_source_url(src)
+                    self._file, self._src = _resolve_source_url(src, self.tempdir, self._tempfiles)
                 elif is_str and re.search(_glob_regex, src):
                     if self._verbose:
                         self._logger.debug("Input is a glob pattern.")
@@ -284,37 +286,6 @@ class GenericReader(object):
             self._files.append(entry)
 
 
-    def _resolve_source_cmd(self, cmd):
-        import subprocess
-        if cmd is None:
-            return
-        if not isinstance(cmd, str):
-            raise TypeError("Invalid parameter `cmd` in fread: expected str, "
-                            "got %r" % type(cmd))
-        proc = subprocess.Popen(cmd, shell=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        msgout, msgerr = proc.communicate()
-        ret = proc.returncode
-        if ret:
-            msgerr = msgerr.decode("utf-8", errors="replace").strip()
-            raise ValueError("Shell command returned error code %r: `%s`"
-                             % (ret, msgerr))
-        else:
-            self._text = msgout
-            self._src = cmd
-
-
-    def _resolve_source_url(self, url):
-        if url is not None:
-            import urllib.request
-            targetfile = tempfile.mktemp(dir=self.tempdir)
-            urllib.request.urlretrieve(url, filename=targetfile)
-            self._tempfiles.append(targetfile)
-            self._file = targetfile
-            self._src = url
-
-
     def _resolve_archive(self, filename, subpath=None):
         ext = os.path.splitext(filename)[1]
         if subpath and subpath[0] == "/":
@@ -407,7 +378,7 @@ class GenericReader(object):
                     self._src = src
                     self._file = filename
                     self._fileno = fileno
-                    self._txt = txt
+                    self._text = txt
                     try:
                         res[src] = core.gread(self)
                     except Exception as e:
@@ -486,6 +457,40 @@ class GenericReader(object):
             shutil.rmtree(self._tempdir, ignore_errors=True)
         self._tempfiles = []
         self._tempdir_own = False
+
+
+
+
+#-------------------------------------------------------------------------------
+# Resolvers
+#-------------------------------------------------------------------------------
+
+def _resolve_source_cmd(cmd):
+    import subprocess
+    if not isinstance(cmd, str):
+        raise TypeError("Invalid parameter `cmd` in fread: expected str, "
+                        "got %r" % type(cmd))
+    proc = subprocess.Popen(cmd, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    msgout, msgerr = proc.communicate()
+    ret = proc.returncode
+    if ret:
+        msgerr = msgerr.decode("utf-8", errors="replace").strip()
+        raise ValueError("Shell command returned error code %r: `%s`"
+                         % (ret, msgerr))
+    else:
+        # text, src
+        return msgout, cmd
+
+
+def _resolve_source_url(url, tempdir, tempfiles):
+    assert url is not None
+    import urllib.request
+    targetfile = tempfile.mktemp(dir=tempdir)
+    urllib.request.urlretrieve(url, filename=targetfile)
+    tempfiles.append(targetfile)
+    return targetfile, url
 
 
 
