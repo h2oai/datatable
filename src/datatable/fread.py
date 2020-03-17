@@ -187,11 +187,11 @@ class GenericReader(object):
         if file is not None:
             self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(file, self._tempfiles, self._logger)
         if text is not None:
-            self._text, self._src = _resolve_source_text(text)
+            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_text(text)
         if cmd is not None:
-            self._text, self._src = _resolve_source_cmd(cmd)
+            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_cmd(cmd)
         if url is not None:
-            self._file, self._src = _resolve_source_url(url, self._tempfiles)
+            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_url(url, self._tempfiles)
 
 
     def _resolve_source_any(self, src):
@@ -205,7 +205,7 @@ class GenericReader(object):
                 if self._logger:
                     self._logger.debug("Input is a string of length %d, "
                                       "treating it as raw text" % len(src))
-                self._text, self._src = _resolve_source_text(src)
+                self._src, self._file, self._fileno, self._text, self._result = _resolve_source_text(src)
             else:
                 fn = ord if is_str else int
                 for ch in src:
@@ -214,12 +214,12 @@ class GenericReader(object):
                         if self._logger:
                             self._logger.debug("Input contains '\\x%02X', "
                                               "treating it as raw text" % ccode)
-                        self._text, self._src = _resolve_source_text(src)
+                        self._src, self._file, self._fileno, self._text, self._result = _resolve_source_text(src)
                         return
                 if is_str and re.match(_url_regex, src):
                     if self._logger:
                         self._logger.debug("Input is a URL.")
-                    self._file, self._src = _resolve_source_url(src, self._tempfiles)
+                    self._src, self._file, self._fileno, self._text, self._result = _resolve_source_url(src, self._tempfiles)
                 elif is_str and re.search(_glob_regex, src):
                     if self._logger:
                         self._logger.debug("Input is a glob pattern.")
@@ -243,8 +243,7 @@ class GenericReader(object):
         self._files = []
         for s in files_list:
             if s is None: continue
-            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(s, self._tempfiles, self._logger)
-            entry = (self._src, self._file, self._fileno, self._text)
+            entry = _resolve_source_file(s, self._tempfiles, self._logger)
             self._files.append(entry)
 
 
@@ -265,15 +264,18 @@ class GenericReader(object):
             return self._result
         elif self._files:
             res = {}
-            for src, filename, fileno, txt in self._files:
+            for src, filename, fileno, txt, result in self._files:
                 self._src = src
                 self._file = filename
                 self._fileno = fileno
                 self._text = txt
-                try:
-                    res[src] = core.gread(self)
-                except Exception as e:
-                    res[src] = e
+                if result:
+                    res[src] = result
+                else:
+                    try:
+                        res[src] = core.gread(self)
+                    except Exception as e:
+                        res[src] = e
             return res
         else:
             return core.gread(self)
@@ -346,8 +348,8 @@ def _resolve_source_text(text):
     if not isinstance(text, (str, bytes)):
         raise TypeError("Invalid parameter `text` in fread: expected "
                         "str or bytes, got %r" % type(text))
-    # text, src
-    return text, "<text>"
+    # src, file, fileno, text, result
+    return "<text>", None, None, text, None
 
 
 def _resolve_source_file(file, tempfiles, logger):
@@ -507,8 +509,8 @@ def _resolve_source_cmd(cmd):
         raise ValueError("Shell command returned error code %r: `%s`"
                          % (ret, msgerr))
     else:
-        # text, src
-        return msgout, cmd
+        # src, file, fileno, text, result
+        return cmd, None, None, msgout, None
 
 
 def _resolve_source_url(url, tempfiles):
@@ -516,8 +518,8 @@ def _resolve_source_url(url, tempfiles):
     import urllib.request
     targetfile = tempfiles.create_temp_file()
     urllib.request.urlretrieve(url, filename=targetfile)
-    # file, src
-    return targetfile, url
+    # src, file, fileno, text, result
+    return url, targetfile, None, None, None
 
 
 
