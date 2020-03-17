@@ -82,6 +82,26 @@ class RadixSort {
     }
 
 
+    template <typename T, typename GetRadix, typename MoveData>
+    void sort(array<T> ordering_in, array<T> ordering_out,
+              SSorter<T>* next_sorter, Grouper<T>* grouper,
+              GetRadix get_radix, MoveData move_data)
+    {
+      Buffer tmp_buffer = Buffer::mem(next_sorter? n_rows_ * sizeof(T) : 0);
+      array<T> ordering_tmp = array<T>(tmp_buffer);
+
+      auto groups = sort_by_radix(ordering_in,
+                                  next_sorter? ordering_tmp : ordering_out,
+                                  get_radix, move_data);
+      if (next_sorter) {
+        sort_subgroups(groups, ordering_tmp, ordering_out, next_sorter);
+      }
+      else if (grouper) {
+        grouper->fill_from_offsets(groups);
+      }
+    }
+
+
     /**
       * .sort_by_radix(ordering_in, ordering_out, get_radix,
       *                [move_data])
@@ -143,7 +163,7 @@ class RadixSort {
                        move_data(i, j);
                      });
       }
-      return array<T>(histogram.ptr() + (n_chunks_ - 1) * n_radixes_,
+      return array<T>(histogram.start() + (n_chunks_ - 1) * n_radixes_,
                       n_radixes_);
     }
 
@@ -265,7 +285,7 @@ class RadixSort {
         n_chunks_,          // n iterations
         dt::ChunkSize(1),  // each iteration processed individually
         [&](size_t i) {
-          T* tcounts = histogram.ptr() + (n_radixes_ * i);
+          T* tcounts = histogram.start() + (n_radixes_ * i);
           std::fill(tcounts, tcounts + n_radixes_, 0);
 
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
@@ -302,7 +322,7 @@ class RadixSort {
         n_chunks_,
         dt::ChunkSize(1),
         [&](size_t i) {
-          T* tcounts = histogram.ptr() + (n_radixes_ * i);
+          T* tcounts = histogram.start() + (n_radixes_ * i);
           size_t j0, j1; std::tie(j0, j1) = get_chunk(i);
           for (size_t j = j0; j < j1; ++j) {
             size_t radix = get_radix(j);

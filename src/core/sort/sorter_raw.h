@@ -29,16 +29,28 @@ namespace dt {
 namespace sort {
 
 
+/**
+  * Sorter for "raw" (i.e. unsigned integer) data. This type of data
+  * is most directly suitable for radix sorting, since its bits can
+  * be used to construct radixes directly.
+  *
+  * This "raw" data does not exist in datatable as-is, however most
+  * other data types can be converted into this representation through
+  * a simple transform.
+  *
+  * <T>:  the type of elements in the ordering vector
+  * <TU>: the type of elements in the underlying data vector
+  *
+  */
 template <typename T, typename TU>
 class Sorter_Raw : public SSorter<T>
 {
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
 
   private:
-    using SSorter<T>::nrows_;
     TU* data_;        // array with nrows_ elements
     Buffer buffer_;   // owner of the data_ pointer
     int n_significant_bits_;
@@ -46,8 +58,7 @@ class Sorter_Raw : public SSorter<T>
 
   public:
     Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
-      : SSorter<T>(nrows),
-        data_(static_cast<TU*>(buf.xptr())),
+      : data_(static_cast<TU*>(buf.xptr())),
         buffer_(std::move(buf)),
         n_significant_bits_(nbits)
     {
@@ -55,26 +66,19 @@ class Sorter_Raw : public SSorter<T>
       xassert(nbits > 0 && nbits <= 8 * int(sizeof(TU)));
     }
 
-    void sort_subgroup(size_t offset, size_t length,
-                       Vec ordering_in, Vec ordering_out,
-                       TGrouper* grouper, Mode sort_mode)
-    {
-      if (length <= INSERTSORT_NROWS) {
-        small_sort(ordering_in, ordering_out, offset, grouper);
-      } else {
-        radix_sort(ordering_in, ordering_out, offset, grouper, sort_mode, nullptr);
-      }
-    }
 
-    TU* get_data() const {
+    TU* get_data() const noexcept {
       return data_;
     }
 
 
   protected:
     int compare_lge(size_t i, size_t j) const override {
-      return (data_[i] > data_[j]) - (data_[i] < data_[j]);
+      TU xi = data_[i];
+      TU xj = data_[j];
+      return (xi > xj) - (xi < xj);
     }
+
     bool contains_reordered_data() const override {
       return true;
     }
@@ -82,21 +86,19 @@ class Sorter_Raw : public SSorter<T>
     void small_sort(Vec ordering_in, Vec ordering_out,
                     size_t offset, TGrouper* grouper) const override
     {
-      TU* x = data_ + offset;
+      const TU* x = data_ + offset;
       dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j){ return x[i] < x[j]; });
     }
 
 
     void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
-                    TGrouper* grouper, Mode mode, NextWrapper wrap
+                    TGrouper* grouper, Mode mode, NextWrapper replace_sorter
                     ) const override
     {
-      (void) grouper;
-      (void) wrap;
       int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
       int n_remaining_bits = n_significant_bits_ - n_radix_bits;
-      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, mode);
+      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, grouper, mode, replace_sorter);
       else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (ordering_in, ordering_out, offset, n_radix_bits, mode);
       else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
       else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
@@ -106,13 +108,19 @@ class Sorter_Raw : public SSorter<T>
 
   private:
     void radix_sort0(Vec ordering_in, Vec ordering_out, size_t offset,
-                     Mode mode) const
+                    TGrouper* grouper, Mode mode, NextWrapper replace_sorter) const
     {
+      ShrSorter next_sorter = nullptr;
+      if (replace_sorter) {
+        replace_sorter(next_sorter);
+      }
+
       size_t n = ordering_out.size();
-      RadixSort rdx(n, n_significant_bits_, mode);
       TU* x = data_ + offset;
-      rdx.sort_by_radix(ordering_in, ordering_out,
-        [&](size_t i){ return x[i]; });
+      RadixSort rdx(n, n_significant_bits_, mode);
+      rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
+        [&](size_t i){ return x[i]; },
+        [](size_t, size_t){});
     }
 
 

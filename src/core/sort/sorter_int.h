@@ -49,17 +49,15 @@ class Sorter_Int : public SSorter<T>
   using TU = typename std::make_unsigned<TI>::type;
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
 
   private:
-    using SSorter<T>::nrows_;
     Column column_;
 
   public:
     Sorter_Int(const Column& col)
-      : SSorter<T>(col.nrows()),
-        column_(col)
+      : column_(col)
     {
       assert_compatible_type<TI>(col.stype());
     }
@@ -79,7 +77,7 @@ class Sorter_Int : public SSorter<T>
                     TGrouper* grouper) const override
     {
       if (ordering_in) {
-        const T* oin = ordering_in.ptr();
+        const T* oin = ordering_in.start();
         xassert(oin && ordering_in.size() == ordering_out.size());
         dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) -> bool {  // compare_lt
@@ -105,14 +103,13 @@ class Sorter_Int : public SSorter<T>
     }
 
 
-    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
-                    TGrouper* grouper, Mode sort_mode, NextWrapper wrap
-                    ) const override
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t,
+                    TGrouper* grouper, Mode sort_mode,
+                    NextWrapper replace_sorter) const override
     {
-      (void) grouper;
-      (void) wrap;
-      xassert(!ordering_in);   (void) ordering_in;
-      xassert(!offset);        (void) offset;
+      xassert(!ordering_in || ordering_in.size() == ordering_out.size());
+      size_t n = ordering_out.size();
+
       // Computing min/max of a column also calculates the nacount stat;
       // but not the other way around. Therefore, `nacount` must be retrieved
       // after `min` / `max`.
@@ -124,25 +121,31 @@ class Sorter_Int : public SSorter<T>
 
       // If either all values are NAs, or all values are same and there are no
       // NAs, then there is no need to sort.
-      if (nacount == nrows_ || (min == max && nacount == 0)) {
+      if (nacount == n || (min == max && nacount == 0)) {
         write_range(ordering_out);
         return;
       }
 
-      int nsigbits = dt::nsb(static_cast<TU>(max - min));
-      int nradixbits = std::min(nsigbits, 8);
+      const int nsigbits = dt::nsb(static_cast<TU>(max - min));
+      const int nradixbits = std::min(nsigbits, 8);
+      const int shift = nsigbits - nradixbits;
+      const TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      if (nsigbits > nradixbits) {
-        int shift = nsigbits - nradixbits;
-        TU mask = static_cast<TU>((size_t(1) << shift) - 1);
+      ShrSorter next_sorter = nullptr;
+      array<TU> out_array;
+      if (shift) {
+        auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * n),
+                                            n, shift);
+        out_array = array<TU>(rawptr->get_data(), n);
+        next_sorter = ShrSorter(rawptr);
+      }
+      if (replace_sorter) {
+        replace_sorter(next_sorter);
+      }
 
-        Buffer tmp_buffer = Buffer::mem(sizeof(T) * nrows_);
-        Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
-        Vec ordering_tmp(tmp_buffer);
-        array<TU> out_array(out_buffer);
-
-        RadixSort rdx(nrows_, nradixbits, sort_mode);
-        auto groups = rdx.sort_by_radix(Vec(), ordering_tmp,
+      RadixSort rdx(n, nradixbits, sort_mode);
+      if (shift) {
+        rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
           [&](size_t i) -> size_t {  // get_radix
             TI value;
             bool isvalid = column_.get_element(i, &value);
@@ -154,20 +157,18 @@ class Sorter_Int : public SSorter<T>
             column_.get_element(i, &value);
             auto uvalue = static_cast<TU>(ASC? value - min : max - value);
             out_array[j] = uvalue & mask;
-          });
-
-        Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
-        rdx.sort_subgroups(groups, ordering_tmp, ordering_out, &nextcol);
+          }
+        );
       }
       else {
-        RadixSort rdx(nrows_, nradixbits, sort_mode);
-        rdx.sort_by_radix(Vec(), ordering_out,
+        rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
           [&](size_t i) -> size_t {  // get_radix
             TI value;
             bool isvalid = column_.get_element(i, &value);
             auto uvalue = static_cast<size_t>(ASC? value - min : max - value);
-            return isvalid? 1 + uvalue : 0;
-          });
+            return isvalid? 1 + (uvalue >> shift) : 0;
+          },
+          [](size_t, size_t){});
       }
     }
 

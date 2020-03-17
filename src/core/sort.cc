@@ -1376,21 +1376,15 @@ RiGb group(const std::vector<Column>& columns,
   }
 
   if (sort_new) {
-    if (n == 1 && (col0.stype() == SType::BOOL ||
-                   col0.stype() == SType::INT8 ||
-                   col0.stype() == SType::INT16 ||
-                   col0.stype() == SType::INT32 ||
-                   col0.stype() == SType::INT64 ||
-                   col0.stype() == SType::FLOAT32 ||
-                   col0.stype() == SType::FLOAT64 ||
-                   false)) {
+    if (n == 1) {
       bool sort_only = (flags[0] & SortFlag::SORT_ONLY);
       auto direction = (flags[0] & SortFlag::DESCENDING)? dt::sort::Direction::DESCENDING
                                                         : dt::sort::Direction::ASCENDING;
       auto sorter = dt::sort::make_sorter(col0, direction);
-      return sorter->sort(!sort_only);
+      return sorter->sort(nrows, !sort_only);
     } else {
-      throw NotImplError() << "Newsort not implemented for this column type";
+      auto sorter = dt::sort::make_sorter(columns);
+      return sorter->sort(nrows, false);
     }
   }
 

@@ -69,7 +69,7 @@ void insert_sort(array<T> ordering_in,
     xassert(ordering_in.size() == n);
   }
 
-  T* const oo = ordering_out.ptr();
+  T* const oo = ordering_out.start();
   oo[0] = 0;
   for (size_t i = 1; i < n; ++i) {
     size_t j = i;
@@ -108,7 +108,7 @@ void std_sort(array<T> ordering_in,
   xassert(n > 0);
   xassert(!ordering_in || ordering_in.size() == n);
 
-  T* const oo = ordering_out.ptr();
+  T* const oo = ordering_out.start();
   for (size_t i = 0; i < n; ++i) {
     oo[i] = static_cast<T>(i);
   }

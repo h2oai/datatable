@@ -63,11 +63,10 @@ class Sorter_Float : public SSorter<T>
   static_assert(sizeof(TE) == sizeof(TU), "Wrong TU in Sorter_Float");
   using Vec = array<T>;
   using TGrouper = Grouper<T>;
-  using UnqSorter = std::unique_ptr<SSorter<T>>;
-  using NextWrapper = dt::function<UnqSorter(UnqSorter&&)>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
 
   private:
-    using SSorter<T>::nrows_;
     Column column_;
 
     static constexpr TU EXP = FloatConstants<TE>::EXP;
@@ -78,8 +77,7 @@ class Sorter_Float : public SSorter<T>
 
   public:
     Sorter_Float(const Column& col)
-      : SSorter<T>(col.nrows()),
-        column_(col)
+      : column_(col)
     {
       assert_compatible_type<TE>(col.stype());
     }
@@ -99,7 +97,7 @@ class Sorter_Float : public SSorter<T>
                     TGrouper* grouper) const override
     {
       if (ordering_in) {
-        const T* oin = ordering_in.ptr();
+        const T* oin = ordering_in.start();
         xassert(oin && ordering_in.size() == ordering_out.size());
         dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) -> bool {  // compare_lt
@@ -125,27 +123,28 @@ class Sorter_Float : public SSorter<T>
     }
 
 
-    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
-                    TGrouper* grouper, Mode sort_mode, NextWrapper wrap
-                    ) const override
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t,
+                    TGrouper* grouper, Mode sort_mode,
+                    NextWrapper replace_sorter) const override
     {
-      (void) grouper;
-      (void) wrap;
-      xassert(!ordering_in);   (void) ordering_in;
-      xassert(!offset);        (void) offset;
+      size_t n = ordering_out.size();
+      xassert(!ordering_in || ordering_in.size() == n);
 
       constexpr int nsigbits = 8 * sizeof(TE);
       constexpr int nradixbits = 8;
       constexpr int shift = nsigbits - nradixbits;
       constexpr TU mask = static_cast<TU>((size_t(1) << shift) - 1);
 
-      Buffer tmp_buffer = Buffer::mem(sizeof(T) * nrows_);
-      Buffer out_buffer = Buffer::mem(sizeof(TU) * nrows_);
-      Vec ordering_tmp(tmp_buffer);
-      array<TU> out_array(out_buffer);
+      auto rawptr = new Sorter_Raw<T, TU>(Buffer::mem(sizeof(TU) * n),
+                                          n, shift);
+      array<TU> out_array(rawptr->get_data(), n);
+      ShrSorter next_sorter(rawptr);
+      if (replace_sorter) {
+        replace_sorter(next_sorter);
+      }
 
-      RadixSort rdx(nrows_, nradixbits, sort_mode);
-      auto groups = rdx.sort_by_radix(Vec(), ordering_tmp,
+      RadixSort rdx(n, nradixbits, sort_mode);
+      rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
         [&](size_t i) -> size_t {  // get_radix
           TU value;
           bool isvalid = column_.get_element(i, reinterpret_cast<TE*>(&value));
@@ -162,9 +161,6 @@ class Sorter_Float : public SSorter<T>
                        : value ^ (~SBT & ((value>>SHIFT) - 1));
           out_array[j] = value & mask;
         });
-
-      Sorter_Raw<T, TU> nextcol(std::move(out_buffer), nrows_, shift);
-      rdx.sort_subgroups(groups, ordering_tmp, ordering_out, &nextcol);
     }
 
 
