@@ -9,7 +9,6 @@
 #include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
 #include "utils/misc.h"          // wallclock
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
-#include <iostream>
 
 
 //------------------------------------------------------------------------------
