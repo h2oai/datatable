@@ -183,7 +183,8 @@ class GenericReader(object):
                 raise ValueError(
                     "When an unnamed argument is passed, it is invalid to also "
                     "provide the `%s` parameter." % (args[0], ))
-        self._resolve_source_any(anysource)
+        if anysource is not None:
+            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_any(anysource, self._tempfiles, self._logger)
         if file is not None:
             self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(file, self._tempfiles, self._logger)
         if text is not None:
@@ -192,61 +193,6 @@ class GenericReader(object):
             self._src, self._file, self._fileno, self._text, self._result = _resolve_source_cmd(cmd)
         if url is not None:
             self._src, self._file, self._fileno, self._text, self._result = _resolve_source_url(url, self._tempfiles)
-
-
-    def _resolve_source_any(self, src):
-        if src is None:
-            return
-        is_str = isinstance(src, str)
-        if is_str or isinstance(src, bytes):
-            # If there are any control characters (such as \n or \r) in the
-            # text of `src`, then its type is "text".
-            if len(src) >= 4096:
-                if self._logger:
-                    self._logger.debug("Input is a string of length %d, "
-                                      "treating it as raw text" % len(src))
-                self._src, self._file, self._fileno, self._text, self._result = _resolve_source_text(src)
-            else:
-                fn = ord if is_str else int
-                for ch in src:
-                    ccode = fn(ch)
-                    if ccode < 0x20:
-                        if self._logger:
-                            self._logger.debug("Input contains '\\x%02X', "
-                                              "treating it as raw text" % ccode)
-                        self._src, self._file, self._fileno, self._text, self._result = _resolve_source_text(src)
-                        return
-                if is_str and re.match(_url_regex, src):
-                    if self._logger:
-                        self._logger.debug("Input is a URL.")
-                    self._src, self._file, self._fileno, self._text, self._result = _resolve_source_url(src, self._tempfiles)
-                elif is_str and re.search(_glob_regex, src):
-                    if self._logger:
-                        self._logger.debug("Input is a glob pattern.")
-                    self._resolve_source_list_of_files(glob.glob(src))
-                else:
-                    if self._logger:
-                        self._logger.debug("Input is assumed to be a "
-                                          "file name.")
-                    self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(src, self._tempfiles, self._logger)
-        elif isinstance(src, _pathlike) or hasattr(src, "read"):
-            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(src, self._tempfiles, self._logger)
-        elif isinstance(src, (list, tuple)):
-            self._resolve_source_list_of_files(src)
-        else:
-            raise TypeError("Unknown type for the first argument in fread: %r"
-                            % type(src))
-
-
-
-    def _resolve_source_list_of_files(self, files_list):
-        self._files = []
-        for s in files_list:
-            if s is None: continue
-            entry = _resolve_source_file(s, self._tempfiles, self._logger)
-            self._files.append(entry)
-
-
 
 
     @property
@@ -260,11 +206,9 @@ class GenericReader(object):
         if self._logger:
             self._logger.debug("[1] Prepare for reading")
         self._resolve_source()
-        if self._result is not None:
-            return self._result
-        elif self._files:
+        if isinstance(self._result, list):
             res = {}
-            for src, filename, fileno, txt, result in self._files:
+            for src, filename, fileno, txt, result in self._result:
                 self._src = src
                 self._file = filename
                 self._fileno = fileno
@@ -277,6 +221,8 @@ class GenericReader(object):
                     except Exception as e:
                         res[src] = e
             return res
+        elif self._result is not None:
+            return self._result
         else:
             return core.gread(self)
 
@@ -343,6 +289,47 @@ class GenericReader(object):
 #-------------------------------------------------------------------------------
 # Resolvers
 #-------------------------------------------------------------------------------
+
+def _resolve_source_any(src, tempfiles, logger):
+    is_str = isinstance(src, str)
+    if is_str or isinstance(src, bytes):
+        # If there are any control characters (such as \n or \r) in the
+        # text of `src`, then its type is "text".
+        if len(src) >= 4096:
+            if logger:
+                logger.debug("Input is a string of length %d, "
+                             "treating it as raw text" % len(src))
+            return _resolve_source_text(src)
+        else:
+            fn = ord if is_str else int
+            for ch in src:
+                ccode = fn(ch)
+                if ccode < 0x20:
+                    if logger:
+                        logger.debug("Input contains '\\x%02X', "
+                                          "treating it as raw text" % ccode)
+                    return _resolve_source_text(src)
+            if is_str and re.match(_url_regex, src):
+                if logger:
+                    logger.debug("Input is a URL.")
+                return _resolve_source_url(src, tempfiles)
+            elif is_str and re.search(_glob_regex, src):
+                if logger:
+                    logger.debug("Input is a glob pattern.")
+                return _resolve_source_list_of_files(glob.glob(src), tempfiles, logger)
+            else:
+                if logger:
+                    logger.debug("Input is assumed to be a "
+                                      "file name.")
+                return _resolve_source_file(src, tempfiles, logger)
+    elif isinstance(src, _pathlike) or hasattr(src, "read"):
+        return _resolve_source_file(src, tempfiles, logger)
+    elif isinstance(src, (list, tuple)):
+        return _resolve_source_list_of_files(src, tempfiles, logger)
+    else:
+        raise TypeError("Unknown type for the first argument in fread: %r"
+                        % type(src))
+
 
 def _resolve_source_text(text):
     if not isinstance(text, (str, bytes)):
@@ -417,6 +404,16 @@ def _resolve_source_file(file, tempfiles, logger):
     if not os.path.isfile(file):
         raise ValueError("Path `%s` is not a file" % file)
     return _resolve_archive(file, None, tempfiles, logger)
+
+
+def _resolve_source_list_of_files(files_list, tempfiles, logger):
+    files = []
+    for s in files_list:
+        if s is None: continue
+        entry = _resolve_source_file(s, tempfiles, logger)
+        files.append(entry)
+    # src, file, fileno, text, result
+    return None, None, None, None, files
 
 
 def _resolve_archive(filename, subpath, tempfiles, logger):
