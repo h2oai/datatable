@@ -185,7 +185,7 @@ class GenericReader(object):
                     "provide the `%s` parameter." % (args[0], ))
         self._resolve_source_any(anysource)
         if file is not None:
-            self._resolve_source_file(file)
+            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(file, self._tempfiles, self._logger)
         if text is not None:
             self._text, self._src = _resolve_source_text(text)
         if cmd is not None:
@@ -228,9 +228,9 @@ class GenericReader(object):
                     if self._logger:
                         self._logger.debug("Input is assumed to be a "
                                           "file name.")
-                    self._resolve_source_file(src)
+                    self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(src, self._tempfiles, self._logger)
         elif isinstance(src, _pathlike) or hasattr(src, "read"):
-            self._resolve_source_file(src)
+            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(src, self._tempfiles, self._logger)
         elif isinstance(src, (list, tuple)):
             self._resolve_source_list_of_files(src)
         else:
@@ -238,78 +238,12 @@ class GenericReader(object):
                             % type(src))
 
 
-    def _resolve_source_file(self, file):
-        if isinstance(file, _pathlike):
-            # `_pathlike` contains (str, bytes), and on Python 3.6 also
-            # os.PathLike interface
-            file = os.path.expanduser(file)
-            file = os.fsdecode(file)
-        elif isinstance(file, pathlib.Path):
-            # This is only for Python 3.5; in Python 3.6 pathlib.Path implements
-            # os.PathLike interface and is included in `_pathlike`.
-            file = file.expanduser()
-            file = str(file)
-        elif hasattr(file, "read") and callable(file.read):
-            # A builtin `file` object, or something similar. We check for the
-            # presence of `fileno` attribute, which will allow us to provide a
-            # more direct access to the underlying file.
-            # noinspection PyBroadException
-            try:
-                # .fileno can be either a method, or a property
-                # The implementation of .fileno may raise an exception too
-                # (indicating that no file descriptor is available)
-                fd = file.fileno
-                if callable(fd):
-                    fd = fd()
-                if not isinstance(fd, int) or fd <= 0:
-                    raise Exception
-                self._fileno = fd
-            except Exception:
-                # Catching if: file.fileno is not defined, or is not an integer,
-                # or raises an error, or returns a closed file descriptor
-                rawtxt = file.read()
-                self._text = rawtxt
-            file = getattr(file, "name", None)
-            if not isinstance(file, (str, bytes)):
-                self._src = "<file>"
-            elif isinstance(file, bytes):
-                self._src = os.fsdecode(file)
-            else:
-                self._src = file
-            return
-        else:
-            raise TypeError("Invalid parameter `file` in fread: expected a "
-                            "str/bytes/PathLike, got %r" % type(file))
-        # if `file` is not str, then `os.path.join(file, "..")` below will fail
-        assert isinstance(file, str)
-        if not os.path.exists(file):
-            # File does not exist -- search up the tree for the first file that
-            # does. This will allow us to provide a better error message to the
-            # user; also if the first path component that exists is a file (not
-            # a folder), then the user probably tries to specify a file within
-            # an archive -- and this is not an error at all!
-            xpath = os.path.abspath(file)
-            ypath = xpath
-            while not os.path.exists(xpath):
-                xpath = os.path.abspath(os.path.join(xpath, ".."))
-            ypath = ypath[len(xpath):]
-            if os.path.isfile(xpath):
-                self._text, self._file, self._src, self._result = \
-                    _resolve_archive(xpath, ypath, self._tempfiles, self._logger)
-                return
-            else:
-                raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
-        if not os.path.isfile(file):
-            raise ValueError("Path `%s` is not a file" % file)
-        self._text, self._file, self._src, self._result = \
-            _resolve_archive(file, None, self._tempfiles, self._logger)
-
 
     def _resolve_source_list_of_files(self, files_list):
         self._files = []
         for s in files_list:
             if s is None: continue
-            self._resolve_source_file(s)
+            self._src, self._file, self._fileno, self._text, self._result = _resolve_source_file(s, self._tempfiles, self._logger)
             entry = (self._src, self._file, self._fileno, self._text)
             self._files.append(entry)
 
@@ -416,6 +350,73 @@ def _resolve_source_text(text):
     return text, "<text>"
 
 
+def _resolve_source_file(file, tempfiles, logger):
+    if isinstance(file, _pathlike):
+        # `_pathlike` contains (str, bytes), and on Python 3.6 also
+        # os.PathLike interface
+        file = os.path.expanduser(file)
+        file = os.fsdecode(file)
+    elif isinstance(file, pathlib.Path):
+        # This is only for Python 3.5; in Python 3.6 pathlib.Path implements
+        # os.PathLike interface and is included in `_pathlike`.
+        file = file.expanduser()
+        file = str(file)
+    elif hasattr(file, "read") and callable(file.read):
+        out_src = None
+        out_fileno = None
+        out_text = None
+        # A builtin `file` object, or something similar. We check for the
+        # presence of `fileno` attribute, which will allow us to provide a
+        # more direct access to the underlying file.
+        # noinspection PyBroadException
+        try:
+            # .fileno can be either a method, or a property
+            # The implementation of .fileno may raise an exception too
+            # (indicating that no file descriptor is available)
+            fd = file.fileno
+            if callable(fd):
+                fd = fd()
+            if not isinstance(fd, int) or fd <= 0:
+                raise Exception
+            out_fileno = fd
+        except Exception:
+            # Catching if: file.fileno is not defined, or is not an integer,
+            # or raises an error, or returns a closed file descriptor
+            rawtxt = file.read()
+            out_text = rawtxt
+        file = getattr(file, "name", None)
+        if not isinstance(file, (str, bytes)):
+            out_src = "<file>"
+        elif isinstance(file, bytes):
+            out_src = os.fsdecode(file)
+        else:
+            out_src = file
+        return out_src, None, out_fileno, out_text, None
+    else:
+        raise TypeError("Invalid parameter `file` in fread: expected a "
+                        "str/bytes/PathLike, got %r" % type(file))
+    # if `file` is not str, then `os.path.join(file, "..")` below will fail
+    assert isinstance(file, str)
+    if not os.path.exists(file):
+        # File does not exist -- search up the tree for the first file that
+        # does. This will allow us to provide a better error message to the
+        # user; also if the first path component that exists is a file (not
+        # a folder), then the user probably tries to specify a file within
+        # an archive -- and this is not an error at all!
+        xpath = os.path.abspath(file)
+        ypath = xpath
+        while not os.path.exists(xpath):
+            xpath = os.path.abspath(os.path.join(xpath, ".."))
+        ypath = ypath[len(xpath):]
+        if os.path.isfile(xpath):
+            return _resolve_archive(xpath, ypath, tempfiles, logger)
+        else:
+            raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
+    if not os.path.isfile(file):
+        raise ValueError("Path `%s` is not a file" % file)
+    return _resolve_archive(file, None, tempfiles, logger)
+
+
 def _resolve_archive(filename, subpath, tempfiles, logger):
     ext = os.path.splitext(filename)[1]
     if subpath and subpath[0] == "/":
@@ -487,8 +488,8 @@ def _resolve_archive(filename, subpath, tempfiles, logger):
 
     else:
         out_file = filename
-    # text, file, src, result
-    return out_text, out_file, filename, out_result
+    # src, file, fileno, text, result
+    return filename, out_file, None, out_text, out_result
 
 
 def _resolve_source_cmd(cmd):
