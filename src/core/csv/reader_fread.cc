@@ -264,8 +264,6 @@ void FreadReader::detect_sep_and_qr() {
   // `numLines` has the number of lines in each group.
   int numFields[JUMPLINES+1];
   int numLines[JUMPLINES+1];
-
-
   for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
     for (int s=0; s<nseps; s++) {
       sep = seps[s];

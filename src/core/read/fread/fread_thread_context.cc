@@ -112,7 +112,6 @@ void FreadThreadContext::read_chunk(
     }
 
     if (fillme || (tch == cc.get_end() || (*tch!='\n' && *tch!='\r'))) {  // also includes the case when sep==' '
-      // size_t niter = 0;
       while (j < ncols) {
         fieldStart = tch;
         auto ptype_iter = columns[j].get_ptype_iterator(&tokenizer.quoteRule);

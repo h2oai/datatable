@@ -582,7 +582,7 @@ void parse_string(FreadTokenizer& ctx) {
     // Most common case: unambiguously not quoted. Simply search for sep|eol.
     // If field contains sep|eol then it should have been quoted and we do not
     // try to heal that.
-    while (ch < ctx.eof) {
+    while (1) {
       if (*ch == sep) break;
       if (static_cast<uint8_t>(*ch) <= 13) {
         if (*ch == '\n' || ch == ctx.eof) break;
