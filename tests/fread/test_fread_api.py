@@ -661,7 +661,7 @@ def test_sep_selection(sep):
 
 
 def test_sep_invalid1():
-    msg = r"Argument sep in gread\(\) should be a string, instead got " \
+    msg = r"Argument sep in fread\(\) should be a string, instead got " \
           r"<class 'int'>"
     with pytest.raises(TypeError, match=msg) as e:
         dt.fread("A,,B\n", sep=12)

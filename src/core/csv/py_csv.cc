@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <vector>
 #include <stdlib.h>
@@ -17,10 +31,23 @@ namespace py {
 
 
 //------------------------------------------------------------------------------
-// gread()
+// fread()
 //------------------------------------------------------------------------------
 
-static PKArgs args_gread(
+static const char* doc_fread =
+R"(fread(anysource=None, *, file=None, text=None, cmd=None, url=None,
+         columns=None, sep=None, dec=".", max_nrows=None, header=None,
+         na_strings=None, verbose=False, fill=False, encoding=None,
+         skip_to_string=None, skip_to_line=None, skip_blank_lines=False,
+         strip_whitespace=True, quotechar='"', save_to=None,
+         tempdir=None, nthreads=None, logger=None)
+--
+
+Generic read function, similar to `fread` but supports other
+file types, not just csv.
+)";
+
+static PKArgs args_fread(
   1, 0, 22, false, false,
   {"anysource", "file", "text", "cmd", "url",
    "columns", "sep", "dec", "max_nrows", "header", "na_strings",
@@ -28,16 +55,9 @@ static PKArgs args_gread(
    "skip_blank_lines", "strip_whitespace", "quotechar", "save_to",
    "tempdir", "nthreads", "logger"
    },
-  "gread",
+  "fread", doc_fread);
 
-R"(gread(reader)
---
-
-Generic read function, similar to `fread` but supports other
-file types, not just csv.
-)");
-
-static oobj gread(const PKArgs& args) {
+static oobj fread(const PKArgs& args) {
   size_t k = 0;
   const Arg& arg_anysource  = args[k++];
   const Arg& arg_file       = args[k++];
@@ -82,21 +102,21 @@ static oobj gread(const PKArgs& args) {
   (void) arg_saveto;
   (void) arg_encoding;
 
-  oobj source = otuple({arg_anysource.to_oobj(),
-                        arg_file.to_oobj(),
-                        arg_text.to_oobj(),
-                        arg_cmd.to_oobj(),
-                        arg_url.to_oobj()});
+  oobj source = otuple({arg_anysource.to_oobj_or_none(),
+                        arg_file.to_oobj_or_none(),
+                        arg_text.to_oobj_or_none(),
+                        arg_cmd.to_oobj_or_none(),
+                        arg_url.to_oobj_or_none()});
   oobj logger = rdr.get_logger();
-  oobj clsTempFiles = oobj::import("datatable.fread", "TempFiles");
-  oobj tempdir = arg_tempdir.to_oobj();
+  oobj clsTempFiles = oobj::import("datatable.utils.fread", "TempFiles");
+  oobj tempdir = arg_tempdir.to_oobj_or_none();
   oobj tempfiles = logger? clsTempFiles.call({tempdir, logger})
                          : clsTempFiles.call(tempdir);
 
   if (logger) {
     logger.invoke("debug", ostring("[1] Prepare for reading"));
   }
-  auto resolve_source = oobj::import("datatable.fread", "_resolve_source");
+  auto resolve_source = oobj::import("datatable.utils.fread", "_resolve_source");
   auto res_tuple = resolve_source.call({source, tempfiles}).to_otuple();
   auto sources = res_tuple[0];
   auto result = res_tuple[1];
@@ -126,7 +146,7 @@ static oobj gread(const PKArgs& args) {
 
 
 void DatatableModule::init_methods_csv() {
-  ADD_FN(&gread, args_gread);
+  ADD_FN(&fread, args_fread);
 }
 
 } // namespace py

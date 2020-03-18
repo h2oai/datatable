@@ -42,53 +42,6 @@ _url_regex = re.compile(r"(?:https?|ftp|file)://")
 _glob_regex = re.compile(r"[\*\?\[\]]")
 
 
-def fread(
-        # Input source
-        anysource=None, *,
-        file=None,
-        text=None,
-        cmd=None,
-        url=None,
-
-        columns=None,
-        sep=None,
-        dec=".",
-        max_nrows=None,
-        header=None,
-        na_strings=None,
-        verbose=False,
-        fill=False,
-        encoding=None,
-        skip_to_string=None,
-        skip_to_line=None,
-        skip_blank_lines=False,
-        strip_whitespace=True,
-        quotechar='"',
-        save_to=None,
-        tempdir=None,
-        nthreads=None,
-        logger=None):
-    return core.gread(anysource, file=file, text=text, cmd=cmd, url=url,
-                      columns=columns,
-                      sep=sep,
-                      dec=dec,
-                      max_nrows=max_nrows,
-                      header=header,
-                      na_strings=na_strings,
-                      fill=fill,
-                      encoding=encoding,
-                      skip_to_string=skip_to_string,
-                      skip_to_line=skip_to_line,
-                      skip_blank_lines=skip_blank_lines,
-                      strip_whitespace=strip_whitespace,
-                      quotechar=quotechar,
-                      save_to=save_to,
-                      nthreads=nthreads,
-                      tempdir=tempdir,
-                      verbose=verbose,
-                      logger=logger
-                      )
-
 
 
 class TempFiles:
