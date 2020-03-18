@@ -245,7 +245,7 @@ void FreadReader::detect_sep_and_qr() {
   const char* firstJumpEnd = nullptr; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
   int topNumLines = 0;      // the most number of lines with the same number of fields, so far
   int topNumFields = 0;     // how many fields that was, to resolve ties
-  int8_t topQuoteRule = -1;  // which quote rule that was
+  int8_t topQuoteRule = -1; // which quote rule that was
   int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
                             //   (when fill=true, the max is usually the header row and is the longest but there are more
                             //    lines of fewer)
@@ -276,7 +276,7 @@ void FreadReader::detect_sep_and_qr() {
       for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
       int i=-1; // The slot we're counting the currently contiguous consistent ncols
       int thisLine=0, lastncol=-1;
-      while (tch < eof && thisLine++ < JUMPLINES) {
+      while (thisLine++ < JUMPLINES) {
         // Compute num columns and move `tch` to the start of next line
         int thisncol = ctx.countfields();
         if (thisncol < 0) {

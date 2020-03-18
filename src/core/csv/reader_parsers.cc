@@ -574,7 +574,7 @@ void parse_string(FreadTokenizer& ctx) {
   // need to skip_whitespace first for the reason that a quoted field might have space before the
   // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
   if (ch < ctx.eof && *ch==' ' && ctx.strip_whitespace) {
-    while(ch < ctx.eof && *++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
+    while(ch + 1 < ctx.eof && *++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
   }
 
   const char* fieldStart = ch;
@@ -587,7 +587,7 @@ void parse_string(FreadTokenizer& ctx) {
       if (static_cast<uint8_t>(*ch) <= 13) {
         if (*ch == '\n' || ch == ctx.eof) break;
         if (ch < ctx.eof && *ch == '\r') {
-          if (ctx.cr_is_newline || ch[1] == '\n') break;
+          if (ctx.cr_is_newline || (ch + 1 < ctx.eof && ch[1] == '\n')) break;
           const char *tch = ch + 1;
           while (tch < ctx.eof && *tch == '\r') tch++;
           if (tch < ctx.eof && *tch == '\n') break;
@@ -622,7 +622,7 @@ void parse_string(FreadTokenizer& ctx) {
       if (ch == ctx.eof) {
         break;
       } else if (*ch == quote) {
-        if (ch[1] == quote) { ch++; continue; }
+        if (ch + 1 < ctx.eof && ch[1] == quote) { ch++; continue; }
         break;  // found undoubled closing quote
       }
     }

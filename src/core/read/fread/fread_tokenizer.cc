@@ -54,11 +54,11 @@ bool FreadTokenizer::skip_eol() {
     return true;
   }
   if (ch < eof && *ch == '\r') {
-    if ((ch + 1 < eof) && ch[1] == '\n') {   // '\r\n'
+    if (ch + 1 < eof && ch[1] == '\n') {   // '\r\n'
       ch += 2;
       return true;
     }
-    if ((ch + 2 < eof) && ch[1] == '\r' && ch[2] == '\n') {  // '\r\r\n'
+    if (ch + 2 < eof && ch[1] == '\r' && ch[2] == '\n') {  // '\r\r\n'
       ch += 3;
       return true;
     }
@@ -155,7 +155,7 @@ int FreadTokenizer::countfields()
   const char* ch0 = ch;
   if (sep==' ') while (ch < eof && *ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_whitespace();
-  if (ch==eof || skip_eol()) {
+  if (skip_eol() || ch==eof) {
     return 0;
   }
   int ncol = 1;
