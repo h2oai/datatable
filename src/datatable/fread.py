@@ -67,12 +67,22 @@ def fread(
         quotechar='"',
         save_to=None,
         nthreads=None,
-        logger=None,
-        **extra):
-    params = {**locals(), **extra}
-    del params["extra"]
-    freader = GenericReader(**params)
-    return core.gread(freader)
+        logger=None):
+    freader = GenericReader(verbose=verbose, logger=logger)
+    return core.gread(freader, anysource, file=file, text=text, cmd=cmd, url=url,
+                      columns=columns, sep=sep, dec=dec, max_nrows=max_nrows,
+                      header=header, na_strings=na_strings, verbose=verbose,
+                      fill=fill,
+                      encoding=encoding,
+                      skip_to_string=skip_to_string,
+                      skip_to_line=skip_to_line,
+                      skip_blank_lines=skip_blank_lines,
+                      strip_whitespace=strip_whitespace,
+                      quotechar=quotechar,
+                      save_to=save_to,
+                      nthreads=nthreads,
+                      logger=logger
+                      )
 
 
 
@@ -98,7 +108,8 @@ class TempFiles:
                     self._logger.debug("Removing temporary file %s" % f)
                 os.remove(f)
             except OSError as e:
-                self._logger.warning("Failed to remove a temporary file: %r" % e)
+                if self._logger:
+                    self._logger.warning("Failed to remove a temporary file: %r" % e)
         if self._tempdir_own:
             shutil.rmtree(self._tempdir, ignore_errors=True)
         self._tempfiles = []
@@ -119,39 +130,12 @@ class GenericReader(object):
     Parser object for reading CSV files.
     """
 
-    def __init__(self, anysource=None, *, file=None, text=None, url=None,
-                 cmd=None, columns=None, sep=None,
-                 max_nrows=None, header=None, na_strings=None, verbose=False,
-                 fill=False, encoding=None, dec=".",
-                 skip_to_string=None, skip_to_line=None, save_to=None,
-                 nthreads=None, logger=None, skip_blank_lines=True,
-                 strip_whitespace=True, quotechar='"', **args):
-        self._src = (anysource, file, text, cmd, url)
-
-        self._logger = logger
+    def __init__(self, verbose, logger):
         if verbose and not logger:
-            self._logger = _DefaultLogger()
-        self._verbose = (self._logger is not None)
-        self._tempfiles = TempFiles(tempdir=args.pop("_tempdir", None),
-                                    logger=self._logger)
-        self._sep = args.pop("separator", sep)
-        self._dec = dec
-        self._maxnrows = max_nrows
-        self._header = header
-        self._nastrings = na_strings
-        self._fill = fill
-        self._encoding = encoding
-        self._quotechar = quotechar
-        self._skip_to_line = skip_to_line
-        self._skip_blank_lines = skip_blank_lines
-        self._skip_to_string = skip_to_string
-        self._strip_whitespace = strip_whitespace
-        self._columns = columns
-        self._save_to = save_to
-        self._nthreads = nthreads
-        if args:
-            raise TypeError("Unknown argument(s) %r in FReader(...)"
-                            % list(args.keys()))
+            logger = _DefaultLogger()
+        self._logger = logger
+        self._verbose = (logger is not None)
+        self._tempfiles = TempFiles(tempdir=None, logger=logger)
 
 
 

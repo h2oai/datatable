@@ -116,11 +116,12 @@ class GenericReader
   //---- Public API ----
   public:
     GenericReader();
-    GenericReader(py::robj pyreader, py::robj pysources);
+    GenericReader(const GenericReader&);
+    GenericReader(py::robj pyreader);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
-    py::oobj read_all();
+    py::oobj read_all(py::robj pysources);
 
     bool has_next() const;
     py::oobj read_next();
@@ -196,7 +197,6 @@ class GenericReader
 
   //---- Inherited API ----
   protected:
-    GenericReader(const GenericReader&);
     dtptr makeDatatable();
 };
 

@@ -76,19 +76,12 @@ GenericReader::GenericReader()
 }
 
 
-GenericReader::GenericReader(py::robj pyrdr, py::robj pysources)
+GenericReader::GenericReader(py::robj pyrdr)
 {
-  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   sof = nullptr;
   eof = nullptr;
   line = 0;
   cr_is_newline = 0;
-
-  auto pysrcs = pysources.to_otuple();
-  src_arg  = pysrcs[0];
-  file_arg = pysrcs[1];
-  fileno   = pysrcs[2].to_int32();
-  text_arg = pysrcs[3];
 
   init_verbose(   py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
   init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"));
@@ -356,8 +349,15 @@ void GenericReader::init_logger(const py::Arg& arg) {
 // Main read_all() function
 //------------------------------------------------------------------------------
 
-py::oobj GenericReader::read_all()
+py::oobj GenericReader::read_all(py::robj pysources)
 {
+  auto pysrcs = pysources.to_otuple();
+  src_arg  = pysrcs[0];
+  file_arg = pysrcs[1];
+  fileno   = pysrcs[2].to_int32();
+  text_arg = pysrcs[3];
+
+  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   open_input();
   bool done = read_jay();
 
