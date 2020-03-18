@@ -661,10 +661,10 @@ def test_sep_selection(sep):
 
 
 def test_sep_invalid1():
-    with pytest.raises(TypeError) as e:
+    msg = r"Argument sep in fread\(\) should be a string, instead got " \
+          r"<class 'int'>"
+    with pytest.raises(TypeError, match=msg) as e:
         dt.fread("A,,B\n", sep=12)
-    assert ("Parameter sep should be a string, instead got <class 'int'>"
-            in str(e.value))
 
 
 def test_sep_invalid2():

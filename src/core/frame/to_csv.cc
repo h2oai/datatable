@@ -221,7 +221,7 @@ oobj Frame::to_csv(const PKArgs& args)
   bool verbose = arg_verbose.to<bool>(false);
   oobj logger;
   if (verbose) {
-    logger = oobj::import("datatable", "_DefaultLogger").call();
+    logger = oobj::import("datatable.utils.fread", "_DefaultLogger").call();
   }
 
   auto strategy = arg_strategy.to<std::string>("");

@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <stdlib.h>             // strtod
 #include <cerrno>               // errno
@@ -76,20 +90,15 @@ GenericReader::GenericReader()
 }
 
 
-GenericReader::GenericReader(const py::robj& pyrdr)
+GenericReader::GenericReader(py::robj pyrdr)
 {
-  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   sof = nullptr;
   eof = nullptr;
   line = 0;
   cr_is_newline = 0;
-  src_arg  = pyrdr.get_attr("_src");
-  file_arg = pyrdr.get_attr("_file");
-  text_arg = pyrdr.get_attr("_text");
-  fileno   = pyrdr.get_attr("_fileno").to_int32();
 
-  init_verbose(   py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
-  init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"));
+  init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"),
+                  py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
   init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
   init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));
   init_maxnrows(  py::Arg(pyrdr.get_attr("_maxnrows"), "Parameter `max_nrows`"));
@@ -136,10 +145,6 @@ GenericReader::GenericReader(const GenericReader& g)
 
 GenericReader::~GenericReader() {}
 
-
-void GenericReader::init_verbose(const py::Arg& arg) {
-  verbose = arg.to<bool>(false);
-}
 
 void GenericReader::init_nthreads(const py::Arg& arg) {
   int32_t DEFAULT = -(1 << 30);
@@ -326,7 +331,7 @@ void GenericReader::init_stripwhite(const py::Arg& arg) {
 }
 
 void GenericReader::init_skipblanks(const py::Arg& arg) {
-  skip_blank_lines = arg.to<bool>(true);
+  skip_blank_lines = arg.to<bool>(false);
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
@@ -336,13 +341,16 @@ void GenericReader::init_columns(const py::Arg& arg) {
   }
 }
 
-void GenericReader::init_logger(const py::Arg& arg) {
-  if (arg.is_none_or_undefined()) {
+void GenericReader::init_logger(
+        const py::Arg& arg_logger, const py::Arg& arg_verbose)
+{
+  verbose = arg_verbose.to<bool>(false);
+  if (arg_logger.is_none_or_undefined()) {
     if (verbose) {
-      logger = py::oobj::import("datatable.fread", "_DefaultLogger").call();
+      logger = py::oobj::import("datatable.utils.fread", "_DefaultLogger").call();
     }
   } else {
-    logger = arg.to_oobj();
+    logger = arg_logger.to_oobj();
     verbose = true;
   }
 }
@@ -354,8 +362,15 @@ void GenericReader::init_logger(const py::Arg& arg) {
 // Main read_all() function
 //------------------------------------------------------------------------------
 
-py::oobj GenericReader::read_all()
+py::oobj GenericReader::read_all(py::robj pysources)
 {
+  auto pysrcs = pysources.to_otuple();
+  src_arg  = pysrcs[0];
+  file_arg = pysrcs[1];
+  fileno   = pysrcs[2].to_int32();
+  text_arg = pysrcs[3];
+
+  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   open_input();
   bool done = read_jay();
 
@@ -383,6 +398,11 @@ py::oobj GenericReader::read_all()
 
 
 //------------------------------------------------------------------------------
+
+py::oobj GenericReader::get_logger() const {
+  return logger;
+}
+
 
 size_t GenericReader::datasize() const {
   return static_cast<size_t>(eof - sof);
@@ -875,7 +895,7 @@ void GenericReader::report_columns_to_python() {
     }
 
     py::otuple newColumns =
-      py::oobj::import("datatable.fread", "_override_columns")
+      py::oobj::import("datatable.utils.fread", "_override_columns")
         .call({columns_arg, colDescriptorList}).to_otuple();
 
     column_names = newColumns[0].to_pylist();

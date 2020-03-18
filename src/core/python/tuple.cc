@@ -95,10 +95,12 @@ robj rtuple::operator[](size_t i) const {
 
 void otuple::set(size_t i, const _obj& value) {
   // PyTuple_SET_ITEM "steals" a reference to the last argument
+  xassert(!value.is_undefined());
   PyTuple_SET_ITEM(v, static_cast<Py_ssize_t>(i), value.to_pyobject_newref());
 }
 
 void otuple::set(size_t i, oobj&& value) {
+  xassert(!value.is_undefined());
   PyTuple_SET_ITEM(v, static_cast<Py_ssize_t>(i), std::move(value).release());
 }
 
@@ -109,6 +111,7 @@ void otuple::replace(size_t i, const _obj& value) {
   make_editable();
 
   // PyTuple_SetItem "steals" a reference to the last argument
+  xassert(!value.is_undefined());
   PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), value.to_pyobject_newref());
 }
 
@@ -118,6 +121,7 @@ void otuple::replace(size_t i, oobj&& value) {
   // will result in a `SystemError`.
   make_editable();
 
+  xassert(!value.is_undefined());
   PyTuple_SetItem(v, static_cast<Py_ssize_t>(i), std::move(value).release());
 }
 
