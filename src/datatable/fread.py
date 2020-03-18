@@ -65,6 +65,7 @@ def fread(
         strip_whitespace=True,
         quotechar='"',
         save_to=None,
+        tempdir=None,
         nthreads=None,
         logger=None):
     return core.gread(anysource, file=file, text=text, cmd=cmd, url=url,
@@ -83,6 +84,7 @@ def fread(
                       quotechar=quotechar,
                       save_to=save_to,
                       nthreads=nthreads,
+                      tempdir=tempdir,
                       verbose=verbose,
                       logger=logger
                       )

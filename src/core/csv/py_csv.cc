@@ -21,12 +21,12 @@ namespace py {
 //------------------------------------------------------------------------------
 
 static PKArgs args_gread(
-  1, 0, 21, false, false,
+  1, 0, 22, false, false,
   {"anysource", "file", "text", "cmd", "url",
    "columns", "sep", "dec", "max_nrows", "header", "na_strings",
    "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
    "skip_blank_lines", "strip_whitespace", "quotechar", "save_to",
-   "nthreads", "logger"
+   "tempdir", "nthreads", "logger"
    },
   "gread",
 
@@ -38,29 +38,31 @@ file types, not just csv.
 )");
 
 static oobj gread(const PKArgs& args) {
-  const Arg& arg_anysource  = args[0];
-  const Arg& arg_file       = args[1];
-  const Arg& arg_text       = args[2];
-  const Arg& arg_cmd        = args[3];
-  const Arg& arg_url        = args[4];
+  size_t k = 0;
+  const Arg& arg_anysource  = args[k++];
+  const Arg& arg_file       = args[k++];
+  const Arg& arg_text       = args[k++];
+  const Arg& arg_cmd        = args[k++];
+  const Arg& arg_url        = args[k++];
 
-  const Arg& arg_columns    = args[5];
-  const Arg& arg_sep        = args[6];
-  const Arg& arg_dec        = args[7];
-  const Arg& arg_maxnrows   = args[8];
-  const Arg& arg_header     = args[9];
-  const Arg& arg_nastrings  = args[10];
-  const Arg& arg_verbose    = args[11];
-  const Arg& arg_fill       = args[12];
-  const Arg& arg_encoding   = args[13];
-  const Arg& arg_skiptostr  = args[14];
-  const Arg& arg_skiptoline = args[15];
-  const Arg& arg_skipblanks = args[16];
-  const Arg& arg_stripwhite = args[17];
-  const Arg& arg_quotechar  = args[18];
-  const Arg& arg_saveto     = args[19];
-  const Arg& arg_nthreads   = args[20];
-  const Arg& arg_logger     = args[21];
+  const Arg& arg_columns    = args[k++];
+  const Arg& arg_sep        = args[k++];
+  const Arg& arg_dec        = args[k++];
+  const Arg& arg_maxnrows   = args[k++];
+  const Arg& arg_header     = args[k++];
+  const Arg& arg_nastrings  = args[k++];
+  const Arg& arg_verbose    = args[k++];
+  const Arg& arg_fill       = args[k++];
+  const Arg& arg_encoding   = args[k++];
+  const Arg& arg_skiptostr  = args[k++];
+  const Arg& arg_skiptoline = args[k++];
+  const Arg& arg_skipblanks = args[k++];
+  const Arg& arg_stripwhite = args[k++];
+  const Arg& arg_quotechar  = args[k++];
+  const Arg& arg_saveto     = args[k++];
+  const Arg& arg_tempdir    = args[k++];
+  const Arg& arg_nthreads   = args[k++];
+  const Arg& arg_logger     = args[k++];
 
   GenericReader rdr;
   rdr.init_logger(     arg_logger, arg_verbose);
@@ -77,6 +79,8 @@ static oobj gread(const PKArgs& args) {
   rdr.init_stripwhite( arg_stripwhite);
   rdr.init_skipblanks( arg_skipblanks);
   rdr.init_columns(    arg_columns);
+  (void) arg_saveto;
+  (void) arg_encoding;
 
   oobj source = otuple({arg_anysource.to_oobj(),
                         arg_file.to_oobj(),
@@ -85,8 +89,9 @@ static oobj gread(const PKArgs& args) {
                         arg_url.to_oobj()});
   oobj logger = rdr.get_logger();
   oobj clsTempFiles = oobj::import("datatable.fread", "TempFiles");
-  oobj tempfiles = logger? clsTempFiles.call({py::None(), logger})
-                         : clsTempFiles.call();
+  oobj tempdir = arg_tempdir.to_oobj();
+  oobj tempfiles = logger? clsTempFiles.call({tempdir, logger})
+                         : clsTempFiles.call(tempdir);
 
   if (logger) {
     logger.invoke("debug", ostring("[1] Prepare for reading"));
