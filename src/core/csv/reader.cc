@@ -76,19 +76,21 @@ GenericReader::GenericReader()
 }
 
 
-GenericReader::GenericReader(const py::robj& pyrdr)
+GenericReader::GenericReader(py::robj pyrdr, py::robj pysources)
 {
   job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   sof = nullptr;
   eof = nullptr;
   line = 0;
   cr_is_newline = 0;
-  src_arg  = pyrdr.get_attr("_src");
-  file_arg = pyrdr.get_attr("_file");
-  text_arg = pyrdr.get_attr("_text");
-  fileno   = pyrdr.get_attr("_fileno").to_int32();
 
-  init_verbose(   py::Arg(pyrdr.get_attr("verbose"), "Parameter `verbose`"));
+  auto pysrcs = pysources.to_otuple();
+  src_arg  = pysrcs[0];
+  file_arg = pysrcs[1];
+  fileno   = pysrcs[2].to_int32();
+  text_arg = pysrcs[3];
+
+  init_verbose(   py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
   init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"));
   init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
   init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));

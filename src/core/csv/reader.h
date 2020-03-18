@@ -116,7 +116,7 @@ class GenericReader
   //---- Public API ----
   public:
     GenericReader();
-    GenericReader(const py::robj& pyreader);
+    GenericReader(py::robj pyreader, py::robj pysources);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 

@@ -127,15 +127,11 @@ class GenericReader(object):
                  nthreads=None, logger=None, skip_blank_lines=True,
                  strip_whitespace=True, quotechar='"', **args):
         self._src = (anysource, file, text, cmd, url)
-        self._file = None
-        self._files = None
-        self._fileno = None
-        self._text = None
-        self._result = None
 
         self._logger = logger
         if verbose and not logger:
             self._logger = _DefaultLogger()
+        self._verbose = (self._logger is not None)
         self._tempfiles = TempFiles(tempdir=args.pop("_tempdir", None),
                                     logger=self._logger)
         self._sep = args.pop("separator", sep)
@@ -158,37 +154,26 @@ class GenericReader(object):
                             % list(args.keys()))
 
 
-    @property
-    def verbose(self):
-        return self._logger is not None
-
-
-    #---------------------------------------------------------------------------
-
     def read(self):
         if self._logger:
             self._logger.debug("[1] Prepare for reading")
-        self._src, self._file, self._fileno, self._text, self._result = \
-            _resolve_source(self._src, self._tempfiles, self._logger)
-        if isinstance(self._result, list):
+        sources, result = _resolve_source(self._src, self._tempfiles, self._logger)
+        if isinstance(result, list):
             res = {}
-            for src, filename, fileno, txt, result in self._result:
-                self._src = src
-                self._file = filename
-                self._fileno = fileno
-                self._text = txt
-                if result:
-                    res[src] = result
+            for isources, iresult in result:
+                src = isources[0]
+                if iresult:
+                    res[src] = iresult
                 else:
                     try:
-                        res[src] = core.gread(self)
+                        res[src] = core.gread(self, isources)
                     except Exception as e:
                         res[src] = e
             return res
-        elif self._result is not None:
-            return self._result
+        elif result is not None:
+            return result
         else:
-            return core.gread(self)
+            return core.gread(self, sources)
 
 
     #---------------------------------------------------------------------------
@@ -333,7 +318,7 @@ def _resolve_source_text(text):
         raise TypeError("Invalid parameter `text` in fread: expected "
                         "str or bytes, got %r" % type(text))
     # src, file, fileno, text, result
-    return "<text>", None, None, text, None
+    return ("<text>", None, None, text), None
 
 
 def _resolve_source_file(file, tempfiles, logger):
@@ -377,7 +362,7 @@ def _resolve_source_file(file, tempfiles, logger):
             out_src = os.fsdecode(file)
         else:
             out_src = file
-        return out_src, None, out_fileno, out_text, None
+        return (out_src, None, out_fileno, out_text), None
     else:
         raise TypeError("Invalid parameter `file` in fread: expected a "
                         "str/bytes/PathLike, got %r" % type(file))
@@ -410,7 +395,7 @@ def _resolve_source_list_of_files(files_list, tempfiles, logger):
         entry = _resolve_source_file(s, tempfiles, logger)
         files.append(entry)
     # src, file, fileno, text, result
-    return None, None, None, None, files
+    return (None, None, None, None), files
 
 
 def _resolve_archive(filename, subpath, tempfiles, logger):
@@ -485,7 +470,7 @@ def _resolve_archive(filename, subpath, tempfiles, logger):
     else:
         out_file = filename
     # src, file, fileno, text, result
-    return filename, out_file, None, out_text, out_result
+    return (filename, out_file, None, out_text), out_result
 
 
 def _resolve_source_cmd(cmd):
@@ -504,7 +489,7 @@ def _resolve_source_cmd(cmd):
                          % (ret, msgerr))
     else:
         # src, file, fileno, text, result
-        return cmd, None, None, msgout, None
+        return (cmd, None, None, msgout), None
 
 
 def _resolve_source_url(url, tempfiles):
@@ -513,7 +498,7 @@ def _resolve_source_url(url, tempfiles):
     targetfile = tempfiles.create_temp_file()
     urllib.request.urlretrieve(url, filename=targetfile)
     # src, file, fileno, text, result
-    return url, targetfile, None, None, None
+    return (url, targetfile, None, None), None
 
 
 

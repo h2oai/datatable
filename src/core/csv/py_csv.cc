@@ -21,9 +21,9 @@ namespace py {
 //------------------------------------------------------------------------------
 
 static PKArgs args_read_csv(
-  1, 0, 0, false, false, {"reader"}, "gread",
+  2, 0, 0, false, false, {"reader", "sources"}, "gread",
 
-R"(gread(reader)
+R"(gread(reader, sources)
 --
 
 Generic read function, similar to `fread` but supports other
@@ -33,7 +33,8 @@ file types, not just csv.
 
 static oobj read_csv(const PKArgs& args) {
   robj pyreader = args[0];
-  GenericReader rdr(pyreader);
+  robj sources  = args[1];
+  GenericReader rdr(pyreader, sources);
   return rdr.read_all();
 }
 
