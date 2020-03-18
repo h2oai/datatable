@@ -40,7 +40,6 @@ from datatable.xls import read_xls_workbook
 
 _url_regex = re.compile(r"(?:https?|ftp|file)://")
 _glob_regex = re.compile(r"[\*\?\[\]]")
-# _psutil_load_attempted = False
 
 
 def fread(
@@ -68,10 +67,13 @@ def fread(
         save_to=None,
         nthreads=None,
         logger=None):
-    freader = GenericReader(verbose=verbose, logger=logger)
-    return core.gread(freader, anysource, file=file, text=text, cmd=cmd, url=url,
-                      columns=columns, sep=sep, dec=dec, max_nrows=max_nrows,
-                      header=header, na_strings=na_strings, verbose=verbose,
+    return core.gread(anysource, file=file, text=text, cmd=cmd, url=url,
+                      columns=columns,
+                      sep=sep,
+                      dec=dec,
+                      max_nrows=max_nrows,
+                      header=header,
+                      na_strings=na_strings,
                       fill=fill,
                       encoding=encoding,
                       skip_to_string=skip_to_string,
@@ -81,13 +83,14 @@ def fread(
                       quotechar=quotechar,
                       save_to=save_to,
                       nthreads=nthreads,
+                      verbose=verbose,
                       logger=logger
                       )
 
 
 
 class TempFiles:
-    def __init__(self, tempdir, logger=None):
+    def __init__(self, tempdir=None, logger=None):
         self._logger = logger
         self._tempfiles = []
         self._tempdir = tempdir
@@ -125,26 +128,14 @@ class TempFiles:
 
 
 
-class GenericReader(object):
-    """
-    Parser object for reading CSV files.
-    """
-
-    def __init__(self, verbose, logger):
-        if verbose and not logger:
-            logger = _DefaultLogger()
-        self._logger = logger
-        self._verbose = (logger is not None)
-        self._tempfiles = TempFiles(tempdir=None, logger=logger)
-
-
 
 #-------------------------------------------------------------------------------
 # Resolvers
 #-------------------------------------------------------------------------------
 
-def _resolve_source(src, tempfiles, logger):
+def _resolve_source(src, tempfiles):
     anysource, file, text, cmd, url = src
+    logger = tempfiles._logger
     args = (["any"] * (anysource is not None) +
             ["file"] * (file is not None) +
             ["text"] * (text is not None) +

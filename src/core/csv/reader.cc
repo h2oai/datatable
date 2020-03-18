@@ -83,8 +83,8 @@ GenericReader::GenericReader(py::robj pyrdr)
   line = 0;
   cr_is_newline = 0;
 
-  init_verbose(   py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
-  init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"));
+  init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"),
+                  py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
   init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
   init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));
   init_maxnrows(  py::Arg(pyrdr.get_attr("_maxnrows"), "Parameter `max_nrows`"));
@@ -131,10 +131,6 @@ GenericReader::GenericReader(const GenericReader& g)
 
 GenericReader::~GenericReader() {}
 
-
-void GenericReader::init_verbose(const py::Arg& arg) {
-  verbose = arg.to<bool>(false);
-}
 
 void GenericReader::init_nthreads(const py::Arg& arg) {
   int32_t DEFAULT = -(1 << 30);
@@ -331,13 +327,16 @@ void GenericReader::init_columns(const py::Arg& arg) {
   }
 }
 
-void GenericReader::init_logger(const py::Arg& arg) {
-  if (arg.is_none_or_undefined()) {
+void GenericReader::init_logger(
+        const py::Arg& arg_logger, const py::Arg& arg_verbose)
+{
+  verbose = arg_verbose.to<bool>(false);
+  if (arg_logger.is_none_or_undefined()) {
     if (verbose) {
       logger = py::oobj::import("datatable.fread", "_DefaultLogger").call();
     }
   } else {
-    logger = arg.to_oobj();
+    logger = arg_logger.to_oobj();
     verbose = true;
   }
 }
@@ -385,6 +384,11 @@ py::oobj GenericReader::read_all(py::robj pysources)
 
 
 //------------------------------------------------------------------------------
+
+py::oobj GenericReader::get_logger() const {
+  return logger;
+}
+
 
 size_t GenericReader::datasize() const {
   return static_cast<size_t>(eof - sof);

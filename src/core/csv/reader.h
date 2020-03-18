@@ -121,6 +121,7 @@ class GenericReader
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
+    py::oobj get_logger() const;
     py::oobj read_all(py::robj pysources);
 
     bool has_next() const;
@@ -162,7 +163,6 @@ class GenericReader
 
   // Helper functions
   public:
-    void init_verbose   (const py::Arg&);
     void init_nthreads  (const py::Arg&);
     void init_fill      (const py::Arg&);
     void init_maxnrows  (const py::Arg&);
@@ -176,7 +176,7 @@ class GenericReader
     void init_stripwhite(const py::Arg&);
     void init_skipblanks(const py::Arg&);
     void init_columns   (const py::Arg&);
-    void init_logger    (const py::Arg&);
+    void init_logger    (const py::Arg& arg_logger, const py::Arg& arg_verbose);
 
   protected:
     void open_input();

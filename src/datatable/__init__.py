@@ -23,7 +23,7 @@
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr)
-from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
+from .fread import fread, FreadWarning
 from .lib._datatable import (
     by,
     cbind,
