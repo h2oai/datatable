@@ -9,7 +9,7 @@
 #include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
 #include "utils/misc.h"          // wallclock
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
-
+#include <iostream>
 
 //------------------------------------------------------------------------------
 // Initialization
@@ -276,7 +276,7 @@ void FreadReader::detect_sep_and_qr() {
       for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
       int i=-1; // The slot we're counting the currently contiguous consistent ncols
       int thisLine=0, lastncol=-1;
-      while (thisLine++ < JUMPLINES) {
+      while (tch < eof && thisLine++ < JUMPLINES) {
         // Compute num columns and move `tch` to the start of next line
         int thisncol = ctx.countfields();
         if (thisncol < 0) {
@@ -502,7 +502,7 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
       if (*fieldStart == quote) {
         tch = fieldStart + 1;
         parsers[*ptype_iter](fctx);
-        if (*tch == quote) {
+        if (tch < eof && *tch == quote) {
           tch++;
           fctx.skip_whitespace();
           if (fctx.at_end_of_field()) break;
@@ -517,7 +517,7 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
     }
     j++;
 
-    if (*tch == sep) {
+    if (tch < eof && *tch == sep) {
       if (sep == ' ') {
         // Multiple spaces are considered a single sep. In addition, spaces at
         // the end of the line should be discarded and not treated as a sep.

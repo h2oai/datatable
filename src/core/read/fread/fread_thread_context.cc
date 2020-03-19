@@ -65,7 +65,7 @@ void FreadThreadContext::read_chunk(
   tokenizer.target = tbuf.data();
   tokenizer.anchor = anchor = tch;
 
-  while (tch < tokenizer.eof) {
+  while (tch < cc.get_end()) {
     if (used_nrows == tbuf_nrows) {
       allocate_tbuf(tbuf_ncols, tbuf_nrows * 3 / 2);
       tokenizer.target = tbuf.data() + used_nrows * tbuf_ncols;

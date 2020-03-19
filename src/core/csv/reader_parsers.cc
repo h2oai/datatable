@@ -574,15 +574,16 @@ void parse_string(FreadTokenizer& ctx) {
   // need to skip_whitespace first for the reason that a quoted field might have space before the
   // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
   if (ch < ctx.eof && *ch==' ' && ctx.strip_whitespace) {
-    while(ch + 1 < ctx.eof && *++ch==' ');  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
+    while(*++ch==' ' && ch < ctx.eof);  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
   }
 
   const char* fieldStart = ch;
-  if (*ch!=quote || ctx.quoteRule==3) {
+  if (ch == ctx.eof || *ch!=quote || ctx.quoteRule==3) {
     // Most common case: unambiguously not quoted. Simply search for sep|eol.
     // If field contains sep|eol then it should have been quoted and we do not
     // try to heal that.
     while (1) {
+      if (ch == ctx.eof) break;
       if (*ch == sep) break;
       if (static_cast<uint8_t>(*ch) <= 13) {
         if (*ch == '\n' || ch == ctx.eof) break;
