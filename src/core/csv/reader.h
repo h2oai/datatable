@@ -105,6 +105,7 @@ class GenericReader
     py::oobj tempstr;
     py::oobj columns_arg;
     py::olist column_names;
+    py::oobj tempfiles;
 
     // If `trace()` cannot display a message immediately (because it was not
     // sent from the main thread), it will be temporarily stored in this
@@ -121,7 +122,7 @@ class GenericReader
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
-    py::oobj get_logger() const;
+    py::oobj get_tempfiles() const;
     py::oobj read_all(py::robj pysources);
 
     bool has_next() const;
@@ -175,6 +176,7 @@ class GenericReader
     void init_skipstring(const py::Arg&);
     void init_stripwhite(const py::Arg&);
     void init_skipblanks(const py::Arg&);
+    void init_tempdir   (const py::Arg&);
     void init_columns   (const py::Arg&);
     void init_logger    (const py::Arg& arg_logger, const py::Arg& arg_verbose);
 

@@ -335,6 +335,13 @@ void GenericReader::init_skipblanks(const py::Arg& arg) {
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
+void GenericReader::init_tempdir(const py::Arg& arg_tempdir) {
+  auto clsTempFiles = py::oobj::import("datatable.utils.fread", "TempFiles");
+  auto tempdir = arg_tempdir.to_oobj_or_none();
+  tempfiles = logger? clsTempFiles.call({tempdir, logger})
+                    : clsTempFiles.call(tempdir);
+}
+
 void GenericReader::init_columns(const py::Arg& arg) {
   if (arg.is_defined()) {
     columns_arg = arg.to_oobj();
@@ -370,6 +377,9 @@ py::oobj GenericReader::read_all(py::robj pysources)
   fileno   = pysrcs[2].to_int32();
   text_arg = pysrcs[3];
 
+  if (logger) {
+    logger.invoke("debug", py::ostring("[1] Prepare for reading"));
+  }
   job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   open_input();
   bool done = read_jay();
@@ -399,8 +409,8 @@ py::oobj GenericReader::read_all(py::robj pysources)
 
 //------------------------------------------------------------------------------
 
-py::oobj GenericReader::get_logger() const {
-  return logger;
+py::oobj GenericReader::get_tempfiles() const {
+  return tempfiles;
 }
 
 

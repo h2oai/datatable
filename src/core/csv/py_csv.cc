@@ -99,6 +99,7 @@ static oobj fread(const PKArgs& args) {
   rdr.init_stripwhite( arg_stripwhite);
   rdr.init_skipblanks( arg_skipblanks);
   rdr.init_columns(    arg_columns);
+  rdr.init_tempdir(    arg_tempdir);
   (void) arg_saveto;
   (void) arg_encoding;
 
@@ -107,15 +108,8 @@ static oobj fread(const PKArgs& args) {
                         arg_text.to_oobj_or_none(),
                         arg_cmd.to_oobj_or_none(),
                         arg_url.to_oobj_or_none()});
-  oobj logger = rdr.get_logger();
-  oobj clsTempFiles = oobj::import("datatable.utils.fread", "TempFiles");
-  oobj tempdir = arg_tempdir.to_oobj_or_none();
-  oobj tempfiles = logger? clsTempFiles.call({tempdir, logger})
-                         : clsTempFiles.call(tempdir);
+  oobj tempfiles = rdr.get_tempfiles();
 
-  if (logger) {
-    logger.invoke("debug", ostring("[1] Prepare for reading"));
-  }
   auto resolve_source = oobj::import("datatable.utils.fread", "_resolve_source");
   auto res_tuple = resolve_source.call({source, tempfiles}).to_otuple();
   auto sources = res_tuple[0];
