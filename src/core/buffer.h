@@ -116,11 +116,6 @@ class Buffer
     //   If `create` is `true` (default), create a file of size `n` at `path`,
     //   and then memory-map it. Otherwise, just memory-map the existing file.
     //
-    // Buffer::overmap(path, nextra)
-    //   Similar to `mmap(path)`, but the memmap will return a buffer
-    //   over-allocated for `nextra` bytes above the size of the file. This is
-    //   used mostly in fread.
-    //
     static Buffer mem(size_t n);
     static Buffer mem(int64_t n);
     static Buffer copy(const void* ptr, size_t n);
@@ -132,7 +127,6 @@ class Buffer
     static Buffer mmap(const std::string& path);
     static Buffer mmap(const std::string& path, size_t n, int fd = -1,
                        bool create = true);
-    static Buffer overmap(const std::string& path, size_t nextra, int fd = -1);
 
     // Basic properties of the Buffer:
     //
