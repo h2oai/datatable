@@ -84,6 +84,7 @@ class Sorter_Bool : public SSorter<TO> {
                     next_wrapper wrap = nullptr) const override
     {
       (void) offset;
+      (void) wrap;
       RadixSort rdx(nrows_, 1, parallel);
       rdx.sort_by_radix(ordering_in, ordering_out,
         [&](size_t i) {  // get_radix

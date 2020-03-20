@@ -93,6 +93,7 @@ class Sorter_Raw : public SSorter<TO>
     void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
                     bool parallel, next_wrapper wrap = nullptr) const override
     {
+      (void) wrap;
       int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
       int n_remaining_bits = n_significant_bits_ - n_radix_bits;
       if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, parallel);

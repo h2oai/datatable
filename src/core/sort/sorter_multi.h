@@ -152,6 +152,7 @@ class Sorter_MultiImpl : public SSorter<TO>
                             size_t offset, bool parallel,
                             next_wrapper wrap = nullptr) const override
     {
+      (void) wrap;
       column0_->radix_sort(ordering_in, ordering_out, offset, parallel,
           [&](const ssoptr& next_sorter) {
             if (next_sorter) {

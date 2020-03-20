@@ -88,6 +88,7 @@ class Sorter_Int : public SSorter<TO> {
     {
       xassert(ordering_in.size == 0);
       xassert(offset == 0);
+      (void) wrap;
       bool minmax_valid;
       TI min = static_cast<TI>(column_.stats()->min_int(&minmax_valid));
       TI max = static_cast<TI>(column_.stats()->max_int(&minmax_valid));
