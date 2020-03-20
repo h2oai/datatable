@@ -24,6 +24,7 @@
 #include "csv/reader.h"
 #include "frame/py_frame.h"
 #include "python/string.h"
+#include "read/read_source.h"
 #include "datatablemodule.h"
 #include "options.h"
 
@@ -103,38 +104,20 @@ static oobj fread(const PKArgs& args) {
   (void) arg_saveto;
   (void) arg_encoding;
 
-  oobj source = otuple({arg_anysource.to_oobj_or_none(),
-                        arg_file.to_oobj_or_none(),
-                        arg_text.to_oobj_or_none(),
-                        arg_cmd.to_oobj_or_none(),
-                        arg_url.to_oobj_or_none()});
-  oobj tempfiles = rdr.get_tempfiles();
-
-  auto resolve_source = oobj::import("datatable.utils.fread", "_resolve_source");
-  auto res_tuple = resolve_source.call({source, tempfiles}).to_otuple();
-  auto sources = res_tuple[0];
-  auto result = res_tuple[1];
-  if (result.is_none()) {
-    return rdr.read_all(sources);
+  auto read_sources = dt::read::resolve_sources(arg_anysource, arg_file, arg_text,
+                                                arg_cmd, arg_url, rdr);
+  if (read_sources.size() == 1) {
+    return read_sources[0].read(rdr);
   }
-  if (result.is_list_or_tuple()) {
-    py::olist result_list = result.to_pylist();
+  else {
     py::odict result_dict;
-    for (size_t i = 0; i < result_list.size(); ++i) {
+    for (auto& src : read_sources) {
       GenericReader ireader(rdr);
-      auto entry = result_list[i].to_otuple();
-      auto isources = entry[0];
-      auto iresult = entry[1];
-      auto isrc = isources.to_otuple()[0];
-      if (iresult.is_none()) {
-        result_dict.set(isrc, ireader.read_all(isources));
-      } else {
-        result_dict.set(isrc, iresult);
-      }
+      result_dict.set(py::ostring(src.get_name()),
+                      src.read(ireader));
     }
-    return oobj(std::move(result_dict));
+    return std::move(result_dict);
   }
-  return result;
 }
 
 

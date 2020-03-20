@@ -31,12 +31,12 @@ namespace read {
 
 // forward-declare
 static void _check_src_args(const py::PKArgs&);
-static ReadSource _resolve_source_any(const py::Arg&, GenericReader&);
-static ReadSource _resolve_source_file(const py::Arg&, GenericReader&);
-static ReadSource _resolve_source_text(const py::Arg&, GenericReader&);
-static ReadSource _resolve_source_cmd(const py::Arg&, GenericReader&);
-static ReadSource _resolve_source_url(const py::Arg&, GenericReader&);
-static bool _has_control_characters(const CString& str);
+// static ReadSource _resolve_source_any(const py::Arg&, GenericReader&);
+// static ReadSource _resolve_source_file(const py::Arg&, GenericReader&);
+// static ReadSource _resolve_source_text(const py::Arg&, GenericReader&);
+// static ReadSource _resolve_source_cmd(const py::Arg&, GenericReader&);
+// static ReadSource _resolve_source_url(const py::Arg&, GenericReader&);
+// static bool _has_control_characters(const CString& str);
 /*
 static bool _looks_like_glob(const CString& str);
 static bool _looks_like_url(const CString& str);
@@ -69,11 +69,11 @@ New (prototype) fread function
 static py::oobj zread(const py::PKArgs& args)
 {
   _check_src_args(args);
-  const py::Arg& src_any  = args[0];
-  const py::Arg& src_file = args[1];
-  const py::Arg& src_text = args[2];
-  const py::Arg& src_cmd  = args[3];
-  const py::Arg& src_url  = args[4];
+  // const py::Arg& src_any  = args[0];
+  // const py::Arg& src_file = args[1];
+  // const py::Arg& src_text = args[2];
+  // const py::Arg& src_cmd  = args[3];
+  // const py::Arg& src_url  = args[4];
   const py::Arg& arg_columns          = args[5];
   const py::Arg& arg_sep              = args[6];
   const py::Arg& arg_dec              = args[7];
@@ -110,13 +110,14 @@ static py::oobj zread(const py::PKArgs& args)
   (void) arg_save_to;
   (void) arg_encoding;
 
-  ReadSource source =
-      src_any.is_defined() ? _resolve_source_any(src_any, gr) :
-      src_file.is_defined()? _resolve_source_file(src_file, gr) :
-      src_text.is_defined()? _resolve_source_text(src_text, gr) :
-      src_cmd.is_defined() ? _resolve_source_cmd(src_cmd, gr) :
-                             _resolve_source_url(src_url, gr);
-  return source.read_one();
+  // ReadSource source =
+  //     src_any.is_defined() ? _resolve_source_any(src_any, gr) :
+  //     src_file.is_defined()? _resolve_source_file(src_file, gr) :
+  //     src_text.is_defined()? _resolve_source_text(src_text, gr) :
+  //     src_cmd.is_defined() ? _resolve_source_cmd(src_cmd, gr) :
+  //                            _resolve_source_url(src_url, gr);
+  // return source.read();
+  return py::None();
 }
 
 
@@ -158,6 +159,7 @@ static void _check_src_args(const py::PKArgs& args) {
 }
 
 
+#if 0
 // Return true if `text` has any characters from C0 range.
 static bool _has_control_characters(const CString& text) {
   size_t n = static_cast<size_t>(text.size);
@@ -171,7 +173,6 @@ static bool _has_control_characters(const CString& text) {
 }
 
 
-#if 0
 static bool _looks_like_url(const CString& text) {
   size_t n = static_cast<size_t>(text.size);
   const char* ch = text.ch;
@@ -197,6 +198,7 @@ static bool _looks_like_glob(const CString& text) {
 #endif
 
 
+#if 0
 static ReadSource _resolve_source_any(const py::Arg& src, GenericReader& gr) {
   (void)gr;
   xassert(src.is_defined());
@@ -252,7 +254,7 @@ static ReadSource _resolve_source_cmd(const py::Arg&, GenericReader&) {
 static ReadSource _resolve_source_url(const py::Arg&, GenericReader&) {
   throw NotImplError();
 }
-
+#endif
 
 
 
