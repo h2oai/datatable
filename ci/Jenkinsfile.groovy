@@ -150,7 +150,7 @@ ansiColor('xterm') {
                             echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
                             echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
                         """
-                        needsLargerTest = isModified("c/(read|csv)/.*")
+                        needsLargerTest = isModified("src/core/(read|csv)/.*")
                         if (needsLargerTest) {
                             env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
                             manager.addBadge("warning.gif", "Large tests required")
