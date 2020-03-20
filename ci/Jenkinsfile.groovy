@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 
-@Library('test-shared-library@1.17') _
+@Library('test-shared-library@1.21') _
 
 import ai.h2o.ci.Utils
 import ai.h2o.ci.buildsummary.StagesSummary
