@@ -582,12 +582,11 @@ void parse_string(FreadTokenizer& ctx) {
     // Most common case: unambiguously not quoted. Simply search for sep|eol.
     // If field contains sep|eol then it should have been quoted and we do not
     // try to heal that.
-    while (1) {
-      if (ch == ctx.eof) break;
+    while (ch < ctx.eof) {
       if (*ch == sep) break;
       if (static_cast<uint8_t>(*ch) <= 13) {
         if (*ch == '\n' || ch == ctx.eof) break;
-        if (ch < ctx.eof && *ch == '\r') {
+        if (*ch == '\r') {
           if (ctx.cr_is_newline || (ch + 1 < ctx.eof && ch[1] == '\n')) break;
           const char *tch = ch + 1;
           while (tch < ctx.eof && *tch == '\r') tch++;
