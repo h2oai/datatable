@@ -12,12 +12,12 @@
 #include "read/thread_context.h"     // ThreadContext
 #include "parallel/shared_mutex.h"   // shared_mutex
 
-class GenericReader;
 
 namespace dt {
 namespace read {
 using ThreadContextPtr = std::unique_ptr<ThreadContext>;
 
+class GenericReader;
 
 
 /**

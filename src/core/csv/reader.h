@@ -13,8 +13,11 @@
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
 #include "read/columns.h"   // dt::read::Columns
-
 class DataTable;
+namespace dt {
+namespace read {
+
+
 using dtptr = std::unique_ptr<DataTable>;
 using strvec = std::vector<std::string>;
 
@@ -202,5 +205,5 @@ class GenericReader
 };
 
 
-
+}}  // namespace dt::read
 #endif

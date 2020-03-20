@@ -55,11 +55,11 @@ static py::PKArgs args_fread(
 
 static py::oobj fread(const py::PKArgs& args) {
   size_t k = 0;
-  const py::Arg& arg_anysource  = args[k++];
-  const py::Arg& arg_file       = args[k++];
-  const py::Arg& arg_text       = args[k++];
-  const py::Arg& arg_cmd        = args[k++];
-  const py::Arg& arg_url        = args[k++];
+  const py::Arg& src_any  = args[k++];
+  const py::Arg& src_file = args[k++];
+  const py::Arg& src_text = args[k++];
+  const py::Arg& src_cmd  = args[k++];
+  const py::Arg& src_url  = args[k++];
 
   const py::Arg& arg_columns    = args[k++];
   const py::Arg& arg_sep        = args[k++];
@@ -99,8 +99,8 @@ static py::oobj fread(const py::PKArgs& args) {
   (void) arg_saveto;
   (void) arg_encoding;
 
-  auto read_sources = resolve_sources(arg_anysource, arg_file, arg_text,
-                                      arg_cmd, arg_url, rdr);
+  auto read_sources = resolve_sources(src_any, src_file, src_text,
+                                      src_cmd, src_url, rdr);
   if (read_sources.size() == 1) {
     return read_sources[0].read(rdr);
   }

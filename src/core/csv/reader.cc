@@ -35,6 +35,8 @@
 #include "datatable.h"
 #include "encodings.h"
 #include "options.h"
+namespace dt {
+namespace read {
 
 
 //------------------------------------------------------------------------------
@@ -902,7 +904,7 @@ dtptr GenericReader::makeDatatable() {
   size_t ncols = columns.size();
   size_t nrows = columns.get_nrows();
   size_t ocols = columns.nColumnsInOutput();
-  std::vector<Column> ccols;
+  std::vector<::Column> ccols;
   ccols.reserve(ocols);
   for (size_t i = 0; i < ncols; ++i) {
     dt::read::Column& col = columns[i];
@@ -911,8 +913,8 @@ dtptr GenericReader::makeDatatable() {
     Buffer strbuf = col.extract_strbuf();
     SType stype = col.get_stype();
     ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
-      ? Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))
-      : Column::new_mbuf_column(nrows, stype, std::move(databuf))
+      ? ::Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))
+      : ::Column::new_mbuf_column(nrows, stype, std::move(databuf))
     );
   }
   if (column_names) {
@@ -921,3 +923,7 @@ dtptr GenericReader::makeDatatable() {
     return dtptr(new DataTable(std::move(ccols), columns.get_names()));
   }
 }
+
+
+
+}}  // namespace dt::read
