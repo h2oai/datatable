@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -98,6 +98,27 @@ def test_setfns_between_empty_frames2(fn):
     DT = dt.Frame(A=[])
     res = fn(DT, DT)
     assert_equals(res, DT)
+
+
+def test_union_badargs():
+    msg = (r"union\(\) expects a list or sequence of Frames, but got an "
+           r"argument of type <class 'str'>")
+    with pytest.raises(TypeError, match=msg):
+        dt.union('a')
+
+
+def test_union_infinite():
+    class A:
+        def __next__(self):
+            return self
+
+        def __iter__(self):
+            return self
+
+    msg = r"union\(\) expects a list or sequence of Frames, but " \
+          r"got an argument of type <class '.*\.A'>"
+    with pytest.raises(TypeError, match=msg):
+        dt.union(A())
 
 
 

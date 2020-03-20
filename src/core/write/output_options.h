@@ -43,7 +43,9 @@ struct output_options {
   bool strings_never_quote;
   bool strings_always_quote;
   bool strings_escape_quotes;
+  bool bom;
   Quoting quoting_mode;
+  size_t : 56;
 
   output_options()
     : compress_zlib(false),
@@ -53,12 +55,11 @@ struct output_options {
       strings_never_quote(false),
       strings_always_quote(false),
       strings_escape_quotes(false),
+      bom(false),
       quoting_mode(Quoting::MINIMAL) {}
 };
 
 
-static_assert(sizeof(output_options) == 8,
-              "Unexpected size of output_options");
 
 
 }}  // namespace dt::write

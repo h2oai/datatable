@@ -20,15 +20,33 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import inspect
 import math
 import os
 import pytest
 import random
 import datatable as dt
-from datatable import stype, ltype, sort, by, f
+from datatable import ltype, sort, by, f
 from datatable.internal import frame_integrity_check
 from math import inf, nan
 from tests import list_equals, random_string, assert_equals, isview
+from types import FunctionType
+
+
+all_stypes = [dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64,
+              dt.float32, dt.float64, dt.str32, dt.str64]
+
+
+def new(fn):
+    args_str = ", ".join(inspect.getfullargspec(fn).args)
+    inner_code = compile("def inner(%s):\n" % args_str +
+                         "    with sort_context(new=True):\n" +
+                         "        fn(%s)\n" % args_str +
+                         "\n",
+                         "<test-sort.py:42>", "exec")
+    # Cannot use `dt` in the compiled function, because it is not in locals()
+    sort_context = dt.options.sort.context
+    return FunctionType(inner_code.co_consts[0], locals(), fn.__name__)
 
 
 
@@ -36,22 +54,24 @@ from tests import list_equals, random_string, assert_equals, isview
 # Simple sort
 #-------------------------------------------------------------------------------
 
-def test_sort_len0():
-    d0 = dt.Frame([[]])
-    assert d0.shape == (0, 1)
-    d1 = d0.sort(0)
-    frame_integrity_check(d1)
-    assert d1.shape == (0, 1)
+@pytest.mark.parametrize("stype", all_stypes)
+@new
+def test_sort_len0(stype):
+    DT0 = dt.Frame(A=[], stype=stype)
+    assert DT0.shape == (0, 1)
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT0)
 
 
+@new
 def test_sort_len1():
-    d0 = dt.Frame([10**6])
-    assert d0.shape == (1, 1)
-    d1 = d0.sort(0)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[10**6]]
+    DT0 = dt.Frame([10**6])
+    assert DT0.shape == (1, 1)
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT0)
 
 
+@new
 def test_sort_len1_view():
     d0 = dt.Frame([range(10), range(10, 0, -1)])
     d1 = d0[6, :].sort(0)
@@ -65,6 +85,7 @@ def test_sort_len1_view():
     assert d4.to_list() == [[8, 6, 4], [2, 4, 6]]
 
 
+@new
 def test_sort_len2():
     d0 = dt.Frame([None, 10000000])
     d1 = d0.sort(0)
@@ -75,6 +96,7 @@ def test_sort_len2():
     assert d1.to_list() == d2.to_list()
 
 
+@new
 def test_sort_simple():
     d0 = dt.Frame([random.randint(0, 20) for _ in range(100)])
     d1 = d0[:, :, sort(0)]
@@ -83,6 +105,7 @@ def test_sort_simple():
     assert d1.to_list() == [sorted(d0.to_list()[0])]
 
 
+@new
 def test_nonfirst_column():
     """Check that sorting by n-th column works too..."""
     d0 = dt.Frame([range(100),
@@ -105,9 +128,10 @@ def test_nonfirst_column():
 # Int32
 #-------------------------------------------------------------------------------
 
+@new
 def test_int32_small():
     d0 = dt.Frame([17, 2, 96, 245, 847569, 34, -45, None, 1])
-    assert d0.stypes == (stype.int32, )
+    assert d0.stypes == (dt.int32, )
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert isview(d1)
@@ -115,6 +139,7 @@ def test_int32_small():
     assert d1.to_list() == [[None, -45, 1, 2, 17, 34, 96, 245, 847569]]
 
 
+@new
 def test_int32_small_stable():
     d0 = dt.Frame([
         [5, 3, 5, None, 1000000, None, 3, None],
@@ -128,6 +153,7 @@ def test_int32_small_stable():
     ]
 
 
+@new
 def test_int32_large():
     # p1, p2 should both be prime, with p1 < p2. Here we rely on the fact that
     # a multiplicative group of integers modulo n is cyclic with order n-1 when
@@ -136,16 +162,17 @@ def test_int32_large():
     p2 = 2000003
     src = [((n + 1) * p2) % p1 for n in range(p1)]
     d0 = dt.Frame(src)
-    assert d0.stypes == (stype.int32, )
+    assert d0.stypes == (dt.int32, )
     d1 = d0.sort(0)
     assert d1.to_list() == [list(range(p1))]
 
 
 @pytest.mark.parametrize("n", [30, 300, 3000, 30000, 60000, 120000])
+@new
 def test_int32_large_stable(n):
     src = [None, 100, 100000] * (n // 3)
     d0 = dt.Frame([src, range(n)], names=["A", "B"])
-    assert d0.stypes[0] == stype.int32
+    assert d0.stypes[0] == dt.int32
     d1 = d0[:, "B", sort("A")]
     assert d1.to_list() == [list(range(0, n, 3)) +
                             list(range(1, n, 3)) +
@@ -153,37 +180,41 @@ def test_int32_large_stable(n):
 
 
 @pytest.mark.parametrize("n", [5, 100, 500, 2500, 32767, 32768, 32769, 200000])
+@new
 def test_int32_constant(n):
     tbl0 = [[100000] * n, list(range(n))]
     d0 = dt.Frame(tbl0)
-    assert d0.stypes[0] == stype.int32
+    assert d0.stypes[0] == dt.int32
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert d1.to_list() == tbl0
 
 
+@new
 def test_int32_reverse_list():
     step = 10
     d0 = dt.Frame(range(1000000, 0, -step))
-    assert d0.stypes[0] == stype.int32
+    assert d0.stypes[0] == dt.int32
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     assert d1.to_list() == [list(range(step, 1000000 + step, step))]
 
 
 @pytest.mark.parametrize("b", [32767, 1000000])
+@new
 def test_int32_upper_range(b):
     # This test looks at an i4 array with small range but large absolute values.
     # After subtracting the mean it will be converted into uint16_t for sorting,
     # and we test here that such conversion gives the correct results.
     d0 = dt.Frame([b, b - 1, b + 1] * 1000)
-    assert d0.stypes[0] == stype.int32
+    assert d0.stypes[0] == dt.int32
     d1 = d0.sort(0)
     assert d1.to_list() == [[b - 1] * 1000 + [b] * 1000 + [b + 1] * 1000]
 
 
 @pytest.mark.parametrize("dc", [32765, 32766, 32767, 32768,
                                 65533, 65534, 65535, 65536])
+@new
 def test_int32_u2range(dc):
     # Test array with range close to 2^15 / 2^16 (looking for potential off-by-1
     # errors at the boundary of int16_t / uint16_t)
@@ -191,11 +222,12 @@ def test_int32_u2range(dc):
     b = a + 10
     c = a + dc
     d0 = dt.Frame([c, b, a] * 1000)
-    assert d0.stypes[0] == stype.int32
+    assert d0.stypes[0] == dt.int32
     d1 = d0.sort(0)
     assert d1.to_list() == [[a] * 1000 + [b] * 1000 + [c] * 1000]
 
 
+@new
 def test_int32_unsigned():
     # In this test the range of values is 32 bits, so that after removing the
     # radix we would have full 16 bits remaining. At that point we should be
@@ -205,12 +237,13 @@ def test_int32_unsigned():
                                    0x7FFF0000, 0x7FFF0001, 0x7FFF7FFF,
                                    0x7FFF8000, 0x7FFF8001, 0x7FFFFFFF]), [])
     d0 = dt.Frame(tbl)
-    assert d0.stypes == (stype.int32, )
+    assert d0.stypes == (dt.int32, )
     d1 = d0.sort(0)
     frame_integrity_check(d1)
     assert d1.to_list() == [tbl]
 
 
+@new
 def test_int32_issue220():
     d0 = dt.Frame([None] + [1000000] * 200 + [None])
     d1 = d0.sort(0)
@@ -222,43 +255,49 @@ def test_int32_issue220():
 # Int8
 #-------------------------------------------------------------------------------
 
+@new
 def test_int8_small():
-    d0 = dt.Frame([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1], stype=dt.int8)
-    assert d0.stypes == (stype.int8, )
-    d1 = d0.sort(0)
-    assert d1.stypes == d0.stypes
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96]]
+    DT0 = dt.Frame([17, 2, 96, 45, 84, 75, 69, 34, -45, None, 1] / dt.int8)
+    DT1 = dt.Frame([None, -45, 1, 2, 17, 34, 45, 69, 75, 84, 96] / dt.int8)
+    DTS = DT0.sort(0)
+    assert DT0.stype == dt.int8
+    assert_equals(DTS, DT1)
 
 
+@new
 def test_int8_small_stable():
-    d0 = dt.Frame([
-        [5, 3, 5, None, 100, None, 3, None],
-        [1, 5, 10, 20, 50, 100, 200, 500]
-    ], names=["A", "B"])
-    d1 = d0[:, :, sort(f.A)]
-    frame_integrity_check(d1)
-    assert d1.to_list() == [
-        [None, None, None, 3, 3, 5, 5, 100],
-        [20, 100, 500, 5, 200, 1, 10, 50],
-    ]
+    DT0 = dt.Frame(A=[5, 3, 5, None, 100, None, 3, None] / dt.int8,
+                   B=[1, 5, 10, 20, 50, 100, 200, 500])
+    DT1 = dt.Frame(A=[None, None, None, 3, 3, 5, 5, 100] / dt.int8,
+                   B=[20, 100, 500, 5, 200, 1, 10, 50])
+    DTS = DT0[:, :, sort(f.A)]
+    assert_equals(DTS, DT1)
 
 
+@new
+def test_int8_small_descending():
+    DT0 = dt.Frame(A=[3, 7, None, 12, 99, -1, -5, None, 0, 0, 2] / dt.int8)
+    DT1 = dt.Frame(A=[None, None, 99, 12, 7, 3, 2, 0, 0, -1, -5] / dt.int8)
+    DTS = DT0[:, :, sort(-f.A)]
+    assert_equals(DTS, DT1)
+
+
+@new
 def test_int8_large():
-    d0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)], stype=dt.int8)
-    d1 = d0.sort(0)
-    assert d1.stypes == (stype.int8, )
-    frame_integrity_check(d1)
-    assert d1.to_list() == [sum(([i] * 10 for i in range(-50, 51)), [])]
+    DT0 = dt.Frame([(i * 1327) % 101 - 50 for i in range(1010)] / dt.int8)
+    DT1 = dt.Frame(sum(([i] * 10 for i in range(-50, 51)), []),
+                   stype=dt.int8)
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
 
 
 @pytest.mark.parametrize("n", [30, 303, 3333, 30000, 60009, 120000])
+@new
 def test_int8_large_stable(n):
     src = [None, 10, -10] * (n // 3)
-    d0 = dt.Frame([src, range(n)], names=("A", "B"), stypes={"A": "int8"})
-    assert d0.stypes[0] == stype.int8
-    d1 = d0[:, f.B, sort(f.A)]
+    DT = dt.Frame([src, range(n)], names=("A", "B"), stypes={"A": "int8"})
+    assert DT["A"].stype == dt.int8
+    d1 = DT[:, f.B, sort(f.A)]
     assert d1.to_list() == [list(range(0, n, 3)) +
                             list(range(2, n, 3)) +
                             list(range(1, n, 3))]
@@ -266,93 +305,133 @@ def test_int8_large_stable(n):
 
 
 #-------------------------------------------------------------------------------
+# Bool8
+#-------------------------------------------------------------------------------
 
+@new
 def test_bool8_small():
-    d0 = dt.Frame([True, False, False, None, True, True, None])
-    assert d0.stypes == (stype.bool8, )
-    d1 = d0[:, :, sort("C0")]
-    assert d1.stypes == d0.stypes
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, None, False, False, True, True, True]]
+    DT0 = dt.Frame([True, False, False, None, True, True, None])
+    DT1 = dt.Frame([None, None, False, False, True, True, True])
+    DTS = DT0[:, :, sort("C0")]
+    assert DT0.stype == dt.bool8
+    assert isview(DTS)
+    assert_equals(DTS, DT1)
 
 
+@new
 def test_bool8_small_stable():
-    d0 = dt.Frame([[True, False, False, None, True, True, None],
-                   [1, 2, 3, 4, 5, 6, 7]],
-                  names=["A", "B"], stypes={"B": "int8"})
-    assert d0.stypes == (stype.bool8, stype.int8)
-    d1 = d0[:, :, sort("A")]
-    assert d1.stypes == d0.stypes
-    assert d1.names == d0.names
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, None, False, False, True, True, True],
-                            [4, 7, 2, 3, 1, 5, 6]]
+    DT0 = dt.Frame(A=[True, False, False, None, True, True, None],
+                   B=[1, 2, 3, 4, 5, 6, 7])
+    DT1 = dt.Frame(A=[None, None, False, False, True, True, True],
+                   B=[4, 7, 2, 3, 1, 5, 6])
+    DTS = DT0[:, :, sort(f.A)]
+    assert DT0['A'].stype == dt.bool8
+    assert isview(DTS)
+    assert_equals(DTS, DT1)
 
 
-@pytest.mark.parametrize("n", [100, 512, 1000, 5000, 100000])
+@new
+def test_bool8_small_view():
+    DT0 = dt.Frame([True, False, False, True, None, True, True, None])
+    DT1 = dt.Frame([None, None, False, False, True, True, True, True])
+    DTS = dt.rbind(DT0[::2, :], DT0[1::2, :]).sort(0)
+    assert_equals(DTS, DT1)
+
+
+@pytest.mark.parametrize("n", [100, 512, 1000, 5000, 123457])
+@new
 def test_bool8_large(n):
-    d0 = dt.Frame([True, False, True, None, None, False] * n)
-    assert d0.stypes == (stype.bool8, )
-    d1 = d0.sort(0)
-    assert d1.stypes == d0.stypes
-    assert d1.names == d0.names
-    assert isview(d1)
-    frame_integrity_check(d0)
-    frame_integrity_check(d1)
     nn = 2 * n
-    assert d1.to_list() == [[None] * nn + [False] * nn + [True] * nn]
+    DT0 = dt.Frame([True, False, True, None, None, False] * n)
+    DT1 = dt.Frame([[None] * nn + [False] * nn + [True] * nn])
+    assert DT0.stype == dt.bool8
+    DTS = DT0.sort(0)
+    DTT = DT0[::-1, :].sort(0)
+    assert isview(DTS)
+    assert_equals(DTS, DT1)
+    assert_equals(DTT, DT1)
 
 
-@pytest.mark.parametrize("n", [254, 255, 256, 257, 258, 1000, 10000])
+@pytest.mark.parametrize("n", [254, 255, 256, 257, 258, 1000, 11111])
+@new
 def test_bool8_large_stable(n):
-    d0 = dt.Frame([[True, False, None] * n, range(3 * n)], names=["A", "B"])
-    assert d0.stypes[0] == stype.bool8
-    d1 = d0[:, f.B, sort(f.A)]
-    assert isview(d1)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [list(range(2, 3 * n, 3)) +
-                            list(range(1, 3 * n, 3)) +
-                            list(range(0, 3 * n, 3))]
+    DT0 = dt.Frame(A=[True, False, None] * n, B=range(3 * n))
+    DT1 = dt.Frame(B=list(range(2, 3 * n, 3)) +
+                     list(range(1, 3 * n, 3)) +
+                     list(range(0, 3 * n, 3)))
+    DTS = DT0[:, f.B, sort(f.A)]
+    assert_equals(DTS, DT1)
+
+
+@new
+def test_bool8_small_descending():
+    DT0 = dt.Frame([True, False, False, None, True, True, None])
+    DT1 = dt.Frame([None, None, True, True, True, False, False])
+    DTS = DT0[:, :, sort(-f.C0)]
+    assert DT0.stype == dt.bool8
+    assert isview(DTS)
+    assert_equals(DTS, DT1)
+
+
+@pytest.mark.parametrize("n", [int(random.expovariate(0.00001)) + 100])
+@new
+def test_bool8_large_descending(n):
+    DT0 = dt.Frame([True, False, True, None, None, False, True] * n)
+    DT1 = dt.Frame([None] * (2*n) + [True] * (3*n) + [False] * (2*n))
+    DTS = DT0[:, :, sort(-f[0])]
+    assert_equals(DTS, DT1)
+
 
 
 
 #-------------------------------------------------------------------------------
+# Int16
+#-------------------------------------------------------------------------------
 
+@new
 def test_int16_small():
-    d0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None], stype=dt.int16)
-    assert d0.stypes[0] == stype.int16
-    d1 = d0.sort(0)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[None, -1000, -10, 0, 2, 100, 999, 10000]]
+    DT0 = dt.Frame([0, -10, 100, -1000, 10000, 2, 999, None] / dt.int16)
+    DT1 = dt.Frame([None, -1000, -10, 0, 2, 100, 999, 10000] / dt.int16)
+    DTS = DT0.sort(0)
+    assert DT0.stype == dt.int16
+    assert_equals(DTS, DT1)
 
 
+@new
 def test_int16_small_stable():
-    d0 = dt.Frame([[0, 1000, 0, 0, 1000, 0, 0, 1000, 0],
-                   [1, 2, 3, 4, 5, 6, 7, 8, 9]],
-                  names=["A", "B"], stypes={"A": "int16"})
-    assert d0.stypes[0] == stype.int16
-    d1 = d0.sort(0)
-    frame_integrity_check(d1)
-    assert d1.to_list() == [[0, 0, 0, 0, 0, 0, 1000, 1000, 1000],
-                            [1, 3, 4, 6, 7, 9, 2, 5, 8]]
+    DT0 = dt.Frame(A=[0, 1000, 0, 0, 1000, 0, 0, 1000, 0] / dt.int16,
+                   B=[1, 2, 3, 4, 5, 6, 7, 8, 9])
+    DT1 = dt.Frame(A=[0, 0, 0, 0, 0, 0, 1000, 1000, 1000] / dt.int16,
+                   B=[1, 3, 4, 6, 7, 9, 2, 5, 8])
+    DTS = DT0[:, :, sort(f.A)]
+    assert DT0['A'].stype == dt.int16
+    assert_equals(DTS, DT1)
 
 
+@new
+def test_int16_small_descending():
+    DT0 = dt.Frame(A=[4, 12, 1000, None, 2, 4, 0, -444, 95, None, 7] / dt.int16)
+    DT1 = dt.Frame(A=[None, None, 1000, 95, 12, 7, 4, 4, 2, 0, -444] / dt.int16)
+    DTS = DT0[:, :, sort(-f.A)]
+    assert_equals(DTS, DT1)
+
+
+@new
 def test_int16_large():
-    d0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)],
-                  stype=dt.int16)
-    d1 = d0.sort(0)
-    assert d1.stypes == (stype.int16, )
-    frame_integrity_check(d1)
-    assert d1.to_list() == [list(range(-5003, 5004))]
+    DT0 = dt.Frame([(i * 111119) % 10007 - 5003 for i in range(10007)]
+                   / dt.int16)
+    DT1 = dt.Frame(range(-5003, 5004), stype=dt.int16)
+    DTS = DT0.sort(0)
+    assert DT0.stype == dt.int16
+    assert_equals(DTS, DT1)
 
 
 @pytest.mark.parametrize("n", [100, 150, 200, 500, 1000, 200000])
+@new
 def test_int16_large_stable(n):
     d0 = dt.Frame([[-5, None, 5, -999, 1000] * n, range(n * 5)],
                   names=["A", "B"], stypes={"A": "int16"})
-    assert d0.stypes[0] == stype.int16
+    assert d0.stypes[0] == dt.int16
     d1 = d0[:, f.B, sort(f.A)]
     frame_integrity_check(d1)
     assert d1.to_list() == [list(range(1, 5 * n, 5)) +
@@ -362,27 +441,50 @@ def test_int16_large_stable(n):
                             list(range(4, 5 * n, 5))]
 
 
+@pytest.mark.parametrize("n", [random.getrandbits(32) for i in range(5)])
+@new
+def test_int16_random(n):
+    random.seed(n)
+    nn = int(random.expovariate(0.001)) + 1
+    span = min(65535, int(random.expovariate(0.01)) + 3)
+    data = [random.randint(-span, span) for _ in range(nn)]
+    DT0 = dt.Frame(A=data, stype=dt.int16)
+    DT1 = dt.Frame(A=sorted(data), stype=dt.int16)
+    if random.choice([True, False]):
+        DTS = DT0[:, :, sort(f.A)]
+        assert_equals(DTS, DT1)
+    else:
+        DTS = DT0[:, :, sort(-f.A)]
+        assert_equals(DTS, DT1[::-1, :])
+
+
+
 
 #-------------------------------------------------------------------------------
+# Int64
+#-------------------------------------------------------------------------------
 
+@new
 def test_int64_small():
     d0 = dt.Frame([10**(i * 101 % 13) for i in range(13)] + [None])
-    assert d0.stypes == (stype.int64, )
+    assert d0.stypes == (dt.int64, )
     d1 = d0.sort(0)
     assert d1.stypes == d0.stypes
     frame_integrity_check(d1)
     assert d1.to_list() == [[None] + [10**i for i in range(13)]]
 
 
+@new
 def test_int64_small_stable():
     d0 = dt.Frame([[0, None, -1000, 11**11] * 3, range(12)])
-    assert d0.stypes == (stype.int64, stype.int32)
+    assert d0.stypes == (dt.int64, dt.int32)
     d1 = d0[:, 1, sort(0)]
     frame_integrity_check(d1)
     assert d1.to_list() == [[1, 5, 9, 2, 6, 10, 0, 4, 8, 3, 7, 11]]
 
 
 @pytest.mark.parametrize("n", [16, 20, 30, 40, 50, 100, 500, 1000])
+@new
 def test_int64_large0(n):
     a = -6654966461866573261
     b = -6655043958000990616
@@ -399,39 +501,44 @@ def test_int64_large0(n):
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(63) for i in range(10)])
+@new
 def test_int64_large_random(seed):
     random.seed(seed)
     m = 2**63 - 1
     tbl = [random.randint(-m, m) for i in range(1000)]
     d0 = dt.Frame(tbl)
-    assert d0.stypes == (stype.int64, )
+    assert d0.stypes == (dt.int64, )
     d1 = d0.sort(0)
     assert d1.to_list() == [sorted(tbl)]
 
 
 
 #-------------------------------------------------------------------------------
+# Float32
+#-------------------------------------------------------------------------------
 
+@new
 def test_float32_small():
-    d0 = dt.Frame([0, .4, .9, .2, .1, nan, -inf, -5, 3, 11, inf, 5.2],
+    DT = dt.Frame([0, .4, .9, .2, .1, nan, -inf, -5, 3, 11, inf, 5.2],
                   stype="float32")
-    assert d0.stypes == (stype.float32, )
-    d1 = d0.sort(0)
+    assert DT.stype == dt.float32
+    d1 = DT.sort(0)
     dr = dt.Frame([None, -inf, -5, 0, .1, .2, .4, .9, 3, 5.2, 11, inf])
     assert list_equals(d1.to_list(), dr.to_list())
 
 
+@new
 def test_float32_nans():
-    d0 = dt.Frame([nan, 0.5, nan, nan, -3, nan, 0.2, nan, nan, 1],
-                  stype="float32")
-    d1 = d0.sort(0)
-    assert list_equals(d1.to_list(),
-                       [[None, None, None, None, None, None, -3, 0.2, 0.5, 1]])
+    DT0 = dt.Frame([nan, 0.5, nan, nan, -3, nan, 0.2, nan, nan, 1] / dt.float32)
+    DT1 = dt.Frame([nan, nan, nan, nan, nan, nan, -3, 0.2, 0.5, 1] / dt.float32)
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
 
 
+@new
 def test_float32_large():
     d0 = dt.Frame([-1000, 0, 1.5e10, 7.2, math.inf] * 100, stype="float32")
-    assert d0.stypes == (stype.float32, )
+    assert d0.stypes == (dt.float32, )
     d1 = d0.sort(0)
     frame_integrity_check(d1)
     dr = dt.Frame([-1000] * 100 + [0] * 100 + [7.2] * 100 +
@@ -440,30 +547,47 @@ def test_float32_large():
 
 
 @pytest.mark.parametrize("n", [15, 16, 17, 20, 50, 100, 1000, 100000])
-def test_float32_random(numpy, n):
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+@new
+def test_float32_random(numpy, n, seed):
+    numpy.random.seed(seed)
     a = numpy.random.rand(n).astype("float32")
-    d0 = dt.Frame(a)
-    assert d0.stypes == (stype.float32, )
-    d1 = d0.sort(0)
-    assert list_equals(d1.to_list()[0], sorted(a.tolist()))
+    DT0 = dt.Frame(a)
+    DT1 = dt.Frame(numpy.sort(a))
+    assert DT0.stype == DT1.stype == dt.float32
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
 
 
 
 #-------------------------------------------------------------------------------
+# Float64
+#-------------------------------------------------------------------------------
 
+@new
 def test_float64_small():
     d0 = dt.Frame([0.1, -0.5, 1.6, 0, None, -inf, inf, 3.3, 1e100])
-    assert d0.stypes == (stype.float64, )
+    assert d0.stypes == (dt.float64, )
     d1 = d0.sort(0)
     frame_integrity_check(d1)
     dr = dt.Frame([None, -inf, -0.5, 0, 0.1, 1.6, 3.3, 1e100, inf])
     assert list_equals(d1.to_list(), dr.to_list())
 
 
+@new
+def test_float64_small2():
+    DT0 = dt.Frame([0.451, 0.455, 0.450, 0.4507, 0.452])
+    DT1 = dt.Frame([0.450, 0.4507, 0.451, 0.452, 0.455])
+    assert DT0.stype == DT1.stype == dt.float64
+    DTS = DT0.sort(0)
+    assert_equals(DTS, DT1)
+
+
+@new
 def test_float64_zeros():
     z = 0.0
     d0 = dt.Frame([0.5] + [z, -z] * 100)
-    assert d0.stypes == (stype.float64, )
+    assert d0.stypes == (dt.float64, )
     d1 = d0.sort(0)
     frame_integrity_check(d1)
     dr = dt.Frame([-z] * 100 + [z] * 100 + [0.5])
@@ -471,9 +595,10 @@ def test_float64_zeros():
 
 
 @pytest.mark.parametrize("n", [20, 100, 500, 2500, 20000])
+@new
 def test_float64_large(n):
     d0 = dt.Frame([12.6, .3, inf, -5.1, 0, -inf, None] * n)
-    assert d0.stypes == (stype.float64, )
+    assert d0.stypes == (dt.float64, )
     d1 = d0.sort(0)
     frame_integrity_check(d1)
     dr = dt.Frame([None] * n + [-inf] * n + [-5.1] * n +
@@ -482,12 +607,16 @@ def test_float64_large(n):
 
 
 @pytest.mark.parametrize("n", [15, 16, 17, 20, 50, 100, 1000, 100000])
-def test_float64_random(numpy, n):
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+@new
+def test_float64_random(numpy, n, seed):
+    numpy.random.seed(seed)
     a = numpy.random.rand(n)
-    d0 = dt.Frame(a)
-    assert d0.stypes == (stype.float64, )
-    d1 = d0.sort(0)
-    assert list_equals(d1.to_list()[0], sorted(a.tolist()))
+    DT0 = dt.Frame(a)
+    assert DT0.stype == dt.float64
+    assert DT0.nrows == n
+    DTS = DT0.sort(0)
+    assert_equals(DTS, dt.Frame(sorted(a.tolist())))
 
 
 
@@ -495,34 +624,30 @@ def test_float64_random(numpy, n):
 # Sort views
 #-------------------------------------------------------------------------------
 
+@new
 def test_sort_view1():
-    d0 = dt.Frame([5, 10])
-    d1 = d0[[i % 2 for i in range(10)], :]
-    assert d1.shape == (10, 1)
-    frame_integrity_check(d1)
-    assert isview(d1)
-    d2 = d1[:, :, sort(0)]
-    assert d2.shape == d1.shape
-    frame_integrity_check(d2)
-    assert isview(d2)
-    assert d2.to_list() == [[5] * 5 + [10] * 5]
+    DT0 = dt.Frame([5, 10])
+    DT1 = DT0[[i % 2 for i in range(10)], :]
+    assert DT1.shape == (10, 1)
+    assert isview(DT1)
+    DT2 = DT1[:, :, sort(0)]
+    assert_equals(DT2, dt.Frame([5] * 5 + [10] * 5))
 
 
+@new
 def test_sort_view2():
-    d0 = dt.Frame([4, 1, 0, 5, -3, 12, 99, 7])
-    d1 = d0.sort(0)
-    d2 = d1[:, :, sort(0)]
-    frame_integrity_check(d2)
-    assert d2.to_list() == d1.to_list()
+    DT0 = dt.Frame([4, 1, 0, 5, -3, 12, 99, 7])
+    DT1 = DT0.sort(0)
+    DT2 = DT1[:, :, sort(0)]
+    assert_equals(DT1, DT2)
 
 
+@new
 def test_sort_view3():
-    d0 = dt.Frame(range(1000))
-    d1 = d0[::-5, :]
-    d2 = d1[:, :, sort(0)]
-    frame_integrity_check(d2)
-    assert d2.shape == (200, 1)
-    assert d2.to_list() == [list(range(4, 1000, 5))]
+    DT0 = dt.Frame(range(1000))
+    DT1 = DT0[::-5, :]
+    DT2 = DT1[:, :, sort(0)]
+    assert_equals(DT2, dt.Frame(range(4, 1000, 5)))
 
 
 def test_sort_view4():
@@ -545,9 +670,7 @@ def test_sort_view_large_strs():
     assert elems == sorted(elems)
 
 
-@pytest.mark.parametrize("st", [stype.bool8, stype.int8, stype.int16,
-                                stype.int32, stype.int64, stype.float32,
-                                stype.float64, stype.str32, stype.str64])
+@pytest.mark.parametrize("st", all_stypes)
 def test_sort_view_all_stypes(st):
     def random_bool():
         return random.choice([True, True, False, False, None])
@@ -570,7 +693,7 @@ def test_sort_view_all_stypes(st):
     def sortkey_str(x):
         return "" if x is None else x
 
-    fn = (random_bool if st == stype.bool8 else
+    fn = (random_bool if st == dt.bool8 else
           random_int if st.ltype == ltype.int else
           random_real if st.ltype == ltype.real else
           random_str)
@@ -579,7 +702,7 @@ def test_sort_view_all_stypes(st):
     n = 1000
     src = [fn() for _ in range(n)]
     d0 = dt.Frame(src, stype=st)
-    if st in (stype.int8, stype.int16, stype.float32):
+    if st in (dt.int8, dt.int16, dt.float32):
         src = d0.to_list()[0]
     d1 = d0[::3, :].sort(0)
     frame_integrity_check(d0)
@@ -681,7 +804,7 @@ def test_strXX_large5(st):
 
 @pytest.mark.parametrize("st", [dt.str32, dt.str64])
 def test_strXX_large6(st):
-    rootdir = os.path.join(os.path.dirname(__file__), "..", "src", "core")
+    rootdir = os.path.join(os.path.dirname(__file__), "..", "..", "src", "core")
     assert os.path.isdir(rootdir)
     words = []
     for dirname, _, files in os.walk(rootdir):
@@ -702,6 +825,7 @@ def test_strXX_large6(st):
 # Sort by multiple columns
 #-------------------------------------------------------------------------------
 
+@new
 def test_sort_len0_multi():
     d0 = dt.Frame([[], [], []], names=["E", "R", "G"])
     assert d0.shape == (0, 3)
@@ -721,6 +845,7 @@ def test_sort_len1_multi():
     assert d1.to_list() == d0.to_list()
 
 
+@new
 def test_int32_small_multi():
     src = [
         [1, 3, 2, 7, 2, 1, 1, 7, 2, 1, 1, 7],
@@ -736,6 +861,7 @@ def test_int32_small_multi():
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
+# @new
 def test_bool8_2cols_multi(seed):
     random.seed(seed)
     n = int(random.expovariate(0.001) + 200)
@@ -816,6 +942,7 @@ def test_sort_random_multi(seed):
 # Sort in reverse order
 #-------------------------------------------------------------------------------
 
+@new
 def test_sort_bools_reverse():
     DT = dt.Frame(A=[True, None, False, None, True, None], B=list('abcdef'))
     assert_equals(DT[:, :, sort(-f.A)],
@@ -824,6 +951,7 @@ def test_sort_bools_reverse():
 
 
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
+@new
 def test_sort_ints_reverse(st):
     DT = dt.Frame(A=[5, 17, 9, -12, 0, 111, 3, 5], B=list('abcdefgh'),
                   stypes={"A": st, "B": dt.str32})
@@ -833,6 +961,7 @@ def test_sort_ints_reverse(st):
                            stypes={"A": st, "B": dt.str32}))
 
 
+@new
 def test_sort_doubles_reverse():
     DT = dt.Frame(A=[0.0, 0.1, -0.5, 1.6, -0.0, None, -inf, inf, 3.3, 1e100])
     assert_equals(DT[:, :, sort(-f.A)],
@@ -840,6 +969,7 @@ def test_sort_doubles_reverse():
                               -0.5, -inf]))
 
 
+@new
 def test_sort_double_stable_nans():
     DT = dt.Frame(A=[nan, -nan, nan, -inf, None, inf, 9.99, None],
                   B=list('abcdefgh'))
@@ -908,7 +1038,7 @@ def test_issue1857(numpy):
     agg1 = DT[:, {"M": dt.median(f.n1)}, by(f.g1, f.g2)]
     assert agg1.shape == (100, 3)
     assert agg1.names == ("g1", "g2", "M")
-    assert agg1.stypes == (stype.int64, stype.int64, stype.float32)
+    assert agg1.stypes == (dt.int64, dt.int64, dt.float32)
     assert agg1.sum().to_tuples()[0] == (450, 450, 51.63409462571144)
 
 
@@ -922,6 +1052,7 @@ def test_sort_expr():
                   dt.Frame(A=[1, 1, 2, 2], B=[0.1, 3.9, 2.7, 4.5]))
 
 
+@new
 def test_h2oai7014(tempfile_jay):
     data = dt.Frame([[None, 't'], [3580, 1047]], names=["ID", "count"])
     data.to_jay(tempfile_jay)

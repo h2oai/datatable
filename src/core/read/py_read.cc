@@ -93,8 +93,7 @@ static py::oobj zread(const py::PKArgs& args)
   const py::Arg& arg_logger           = args[21];
 
   GenericReader gr;
-  gr.init_verbose(arg_verbose);
-  gr.init_logger(arg_logger);
+  gr.init_logger(arg_logger, arg_verbose);
   gr.init_nthreads(arg_nthreads);
   gr.init_fill(arg_fill);
   gr.init_maxnrows(arg_max_nrows);

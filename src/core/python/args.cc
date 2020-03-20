@@ -48,7 +48,7 @@ PKArgs::PKArgs(
     arg_names(_names),
     n_varkwds(0)
 {
-  xassert(n_all_args == arg_names.size());
+  wassert(n_all_args == arg_names.size());
   if (has_varargs) xassert(n_pos_kwd_args == 0);
   bound_args.resize(n_all_args);
   for (size_t i = 0; i < n_all_args; ++i) {

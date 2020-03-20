@@ -29,12 +29,27 @@ namespace dt {
 namespace sort {
 
 
-template <typename TO, typename TU>
-class Sorter_Raw : public SSorter<TO>
+/**
+  * Sorter for "raw" (i.e. unsigned integer) data. This type of data
+  * is most directly suitable for radix sorting, since its bits can
+  * be used to construct radixes directly.
+  *
+  * This "raw" data does not exist in datatable as-is, however most
+  * other data types can be converted into this representation through
+  * a simple transform.
+  *
+  * <T>:  the type of elements in the ordering vector
+  * <TU>: the type of elements in the underlying data vector
+  *
+  */
+template <typename T, typename TU>
+class Sorter_Raw : public SSorter<T>
 {
-  using typename SSorter<TO>::next_wrapper;
-  using ovec = array<TO>;
-  using SSorter<TO>::nrows_;
+  using Vec = array<T>;
+  using TGrouper = Grouper<T>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
+
   private:
     TU* data_;        // array with nrows_ elements
     Buffer buffer_;   // owner of the data_ pointer
@@ -42,101 +57,94 @@ class Sorter_Raw : public SSorter<TO>
     int : 32;
 
   public:
-  	Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
-  		: SSorter<TO>(nrows),
-        data_(static_cast<TU*>(buf.xptr())),
-  		  buffer_(std::move(buf)),
+    Sorter_Raw(Buffer&& buf, size_t nrows, int nbits)
+      : data_(static_cast<TU*>(buf.xptr())),
+        buffer_(std::move(buf)),
         n_significant_bits_(nbits)
-  	{
-  		xassert(buffer_.size() == nrows * sizeof(TU));
-      xassert(nbits > 0 && nbits <= 8 * int(sizeof(TU)));
- 	  }
-
-    void sort_subgroup(size_t offset, size_t length,
-                       ovec ordering_in, ovec ordering_out,
-                       bool parallel)
     {
-      if (length <= INSERTSORT_NROWS) {
-        small_sort(ordering_in, ordering_out, offset);
-      } else {
-        radix_sort(ordering_in, ordering_out, offset, parallel);
-      }
+      xassert(buffer_.size() == nrows * sizeof(TU));
+      xassert(nbits > 0 && nbits <= 8 * int(sizeof(TU)));
     }
 
-    TU* get_data() const {
+
+    TU* get_data() const noexcept {
       return data_;
     }
 
 
   protected:
     int compare_lge(size_t i, size_t j) const override {
-      return (data_[i] > data_[j]) - (data_[i] < data_[j]);
+      TU xi = data_[i];
+      TU xj = data_[j];
+      return (xi > xj) - (xi < xj);
     }
+
     bool contains_reordered_data() const override {
       return true;
     }
 
-    void small_sort(ovec ordering_in, ovec ordering_out,
-                     size_t offset) const override
+    void small_sort(Vec ordering_in, Vec ordering_out,
+                    size_t offset, TGrouper* grouper) const override
     {
-      TU* x = data_ + offset;
-      dt::sort::small_sort(ordering_in, ordering_out,
+      const TU* x = data_ + offset;
+      dt::sort::small_sort(ordering_in, ordering_out, grouper,
         [&](size_t i, size_t j){ return x[i] < x[j]; });
     }
 
 
-    void small_sort(ovec ordering_out) const override {
-      small_sort(ovec(), ordering_out, 0);
-    }
-
-
-    void radix_sort(ovec ordering_in, ovec ordering_out, size_t offset,
-                    bool parallel, next_wrapper wrap = nullptr) const override
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
+                    TGrouper* grouper, Mode mode, NextWrapper replace_sorter
+                    ) const override
     {
-      (void) wrap;
       int n_radix_bits = (n_significant_bits_ < 16)? n_significant_bits_ : 8;
       int n_remaining_bits = n_significant_bits_ - n_radix_bits;
-      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, parallel);
-      else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (ordering_in, ordering_out, offset, n_radix_bits, parallel);
-      else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
-      else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
-      else                             radix_sort1<uint64_t>(ordering_in, ordering_out, offset, n_radix_bits, parallel);
+      if (n_remaining_bits == 0)       radix_sort0(ordering_in, ordering_out, offset, grouper, mode, replace_sorter);
+      else if (n_remaining_bits <= 8)  radix_sort1<uint8_t> (ordering_in, ordering_out, offset, n_radix_bits, mode);
+      else if (n_remaining_bits <= 16) radix_sort1<uint16_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
+      else if (n_remaining_bits <= 32) radix_sort1<uint32_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
+      else                             radix_sort1<uint64_t>(ordering_in, ordering_out, offset, n_radix_bits, mode);
     }
 
 
   private:
-    void radix_sort0(ovec ordering_in, ovec ordering_out, size_t offset,
-                     bool parallel) const
+    void radix_sort0(Vec ordering_in, Vec ordering_out, size_t offset,
+                    TGrouper* grouper, Mode mode, NextWrapper replace_sorter) const
     {
-      size_t n = ordering_out.size;
-      RadixSort rdx(n, n_significant_bits_, parallel);
+      ShrSorter next_sorter = nullptr;
+      if (replace_sorter) {
+        replace_sorter(next_sorter);
+      }
+
+      size_t n = ordering_out.size();
       TU* x = data_ + offset;
-      rdx.sort_by_radix(ordering_in, ordering_out,
-        [&](size_t i){ return x[i]; });
+      RadixSort rdx(n, n_significant_bits_, mode);
+      rdx.sort(ordering_in, ordering_out, next_sorter.get(), grouper,
+        [&](size_t i){ return x[i]; },
+        [](size_t, size_t){});
     }
 
 
     template <typename TNext>
-    void radix_sort1(ovec ordering_in, ovec ordering_out, size_t offset,
-                     int n_radix_bits, bool parallel) const
+    void radix_sort1(Vec ordering_in, Vec ordering_out, size_t offset,
+                     int n_radix_bits, Mode mode) const
     {
       static_assert(std::is_unsigned<TNext>::value, "Wrong TNext type");
-      size_t n = ordering_out.size;
+      size_t n = ordering_out.size();
       int shift = n_significant_bits_ - n_radix_bits;
       TU mask = static_cast<TU>(TU(1) << shift) - 1;
-      Sorter_Raw<TO, TNext> nextcol(Buffer::mem(n*sizeof(TNext)), n, shift);
+      Sorter_Raw<T, TNext> nextcol(Buffer::mem(n*sizeof(TNext)), n, shift);
       TU* x = data_ + offset;
       TNext* y = nextcol.get_data();
 
-      RadixSort rdx(n, n_radix_bits, parallel);
-      ovec groups = rdx.sort_by_radix(ordering_in, ordering_out,
+      Buffer tmp_buffer = Buffer::mem(n * sizeof(T));
+      Vec ordering_tmp(tmp_buffer);
+
+      RadixSort rdx(n, n_radix_bits, mode);
+      Vec groups = rdx.sort_by_radix(ordering_in, ordering_tmp,
         [&](size_t i){ return static_cast<size_t>(x[i] >> shift); },
         [&](size_t i, size_t j){ y[j] = static_cast<TNext>(x[i] & mask); });
 
-      rdx.sort_subgroups(groups, ordering_out, ordering_in,
-        [&](size_t offs, size_t length, ovec oin, ovec oout, bool para) {
-          nextcol.sort_subgroup(offs, length, oin, oout, para);
-        });
+      rdx.sort_subgroups(groups, ordering_tmp, ordering_out, &nextcol);
     }
 };
 

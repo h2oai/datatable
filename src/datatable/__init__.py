@@ -23,10 +23,10 @@
 from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr)
-from .fread import fread, GenericReader, FreadWarning, _DefaultLogger
 from .lib._datatable import (
     by,
     cbind,
+    fread,
     init_styles,
     intersect,
     join,
@@ -77,7 +77,7 @@ __all__ = (
     "mean",
     "median",
     "sd",
-    "GenericReader", "stype", "ltype", "f", "g",
+    "stype", "ltype", "f", "g",
     "join", "by", "exp", "log", "log10",
     "options",
     "bool8", "int8", "int16", "int32", "int64",

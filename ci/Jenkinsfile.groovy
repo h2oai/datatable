@@ -21,7 +21,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 
-@Library('test-shared-library@1.17') _
+@Library('test-shared-library@1.21') _
 
 import ai.h2o.ci.Utils
 import ai.h2o.ci.buildsummary.StagesSummary
@@ -40,7 +40,7 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 NODE_LINUX   = "docker && linux && !micro"
 NODE_MACOS   = 'osx'
 NODE_PPC     = 'ibm-power'
-NODE_RELEASE = 'master'
+NODE_RELEASE = 'docker && linux && !micro'
 
 
 // Paths should be absolute

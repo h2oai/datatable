@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_SORTER_MULTI_h
 #define dt_SORT_SORTER_MULTI_h
+#include <memory>                // std::shared_ptr
 #include <vector>                // std::vector
 #include "sort/common.h"         // array
 #include "sort/insert-sort.h"    // small_sort
@@ -28,103 +29,71 @@
 namespace dt {
 namespace sort {
 
-// forward-declare
-template <typename TO> class Sorter_MultiImpl;
 
 
-template <typename TO>
-class Sorter_Multi : public SSorter<TO>
+template <typename T>
+class Sorter_Multi : public SSorter<T>
 {
-  using typename SSorter<TO>::next_wrapper;
-  using ptrSsorter = std::unique_ptr<SSorter<TO>>;
-  using ovec = array<TO>;
+  using Vec = array<T>;
+  using TGrouper = Grouper<T>;
+  using UnqSorter = std::unique_ptr<SSorter<T>>;
+  using ShrSorter = std::shared_ptr<SSorter<T>>;
+  using NextWrapper = dt::function<void(ShrSorter&)>;
+  using SorterVec = std::vector<ShrSorter>;
+
   private:
-    std::vector<ptrSsorter> sorters_;
-    Sorter_MultiImpl<TO> impl_;
+    SorterVec columns_;
 
   public:
-    Sorter_Multi(std::vector<ptrSsorter>&& cols)
-      : SSorter<TO>(cols[0]->nrows()),
-        sorters_(std::move(cols)),
-        impl_(reinterpret_cast<SSorter<TO>**>(sorters_.data()),
-              sorters_.size()) {}
+    Sorter_Multi(std::vector<UnqSorter>&& cols)
+    {
+      xassert(cols.size() > 1);
+      columns_.reserve(cols.size());
+      for (auto& col : cols) {
+        columns_.push_back(ShrSorter(std::move(col)));
+      }
+    }
+
+    Sorter_Multi(ShrSorter&& col0, const SorterVec& cols1)
+    {
+      columns_.reserve(1 + cols1.size());
+      columns_.push_back(std::move(col0));
+      for (const auto& col : cols1) {
+        columns_.push_back(col);
+      }
+    }
+
+    Sorter_Multi(SorterVec&& cols)
+      : columns_(std::move(cols))
+    {
+      xassert(cols.size() > 1);
+    }
+
 
   protected:
-    void small_sort(ovec ordering_out) const override {
-      impl_.small_sort(ordering_out);
-    }
-
-    void small_sort(ovec ordering_in, ovec ordering_out,
-                    size_t offset) const override
+    void small_sort(Vec ordering_in, Vec ordering_out, size_t offset,
+                    TGrouper* grouper) const override
     {
-      impl_.small_sort(ordering_in, ordering_out, offset);
-    }
-
-    void radix_sort(ovec ordering_in, ovec ordering_out,
-                    size_t offset, bool parallel,
-                    next_wrapper wrap = nullptr) const override
-    {
-      impl_.radix_sort(ordering_in, ordering_out, offset, parallel, wrap);
-    }
-
-    int compare_lge(size_t i, size_t j) const override {
-      return impl_.compare_lge(i, j);
-    }
-};
-
-
-
-template <typename TO>
-class Sorter_MultiImpl : public SSorter<TO>
-{
-  friend class Sorter_Multi<TO>;
-  using typename SSorter<TO>::ovec;
-  using typename SSorter<TO>::ssoptr;
-  using typename SSorter<TO>::next_wrapper;
-  using Sorter::nrows_;
-  private:
-    SSorter<TO>* column0_;
-    array<SSorter<TO>*> other_columns_;
-
-  public:
-    Sorter_MultiImpl(SSorter<TO>* col0, array<SSorter<TO>*> cols)
-      : SSorter<TO>(col0->nrows()),
-        column0_(col0),
-        other_columns_(cols) {}
-
-    Sorter_MultiImpl(SSorter<TO>** cols, size_t n)
-      : SSorter<TO>(cols[0]->nrows()),
-        column0_(cols[0]),
-        other_columns_(cols + 1, n - 1) {}
-
-  protected:
-    void small_sort(ovec ordering_out) const override {
-      dt::sort::small_sort(ovec(), ordering_out,
-        [&](size_t i, size_t j) {  // compare_lt
-          int cmp = column0_->compare_lge(i, j);
-          if (cmp == 0) {
-            for (size_t k = 0; k < other_columns_.size; ++k) {
-              cmp = other_columns_.ptr[k]->compare_lge(i, j);
-              if (cmp) break;
+      if (!ordering_in) {
+        dt::sort::small_sort(Vec(), ordering_out, grouper,
+          [&](size_t i, size_t j) {  // compare_lt
+            for (const auto& col : columns_) {
+              int cmp = col->compare_lge(i, j);
+              if (cmp) return (cmp < 0);
             }
-          }
-          return (cmp < 0);
-        });
-    }
-
-    void small_sort(ovec ordering_in, ovec ordering_out, size_t offset)
-        const override
-    {
-      xassert(ordering_in.size == ordering_out.size);
-      if (column0_->contains_reordered_data()) {
-        dt::sort::small_sort(ordering_in, ordering_out,
+            return false;
+          });
+      }
+      else if (columns_[0]->contains_reordered_data()) {
+        xassert(ordering_in.size() == ordering_out.size());
+        dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) {
-            int cmp = column0_->compare_lge(i + offset, j + offset);
+            int cmp = columns_[0]->compare_lge(i + offset, j + offset);
             if (cmp == 0) {
-              size_t ii = static_cast<size_t>(ordering_in.ptr[i]);
-              size_t jj = static_cast<size_t>(ordering_in.ptr[j]);
-              for (size_t k = 0; k < other_columns_.size; ++k) {
-                cmp = other_columns_.ptr[k]->compare_lge(ii, jj);
+              size_t ii = static_cast<size_t>(ordering_in[i]);
+              size_t jj = static_cast<size_t>(ordering_in[j]);
+              for (size_t k = 1; k < columns_.size(); ++k) {
+                cmp = columns_[k]->compare_lge(ii, jj);
                 if (cmp) break;
               }
             }
@@ -132,41 +101,54 @@ class Sorter_MultiImpl : public SSorter<TO>
           });
       }
       else {
-        dt::sort::small_sort(ordering_in, ordering_out,
+        xassert(ordering_in.size() == ordering_out.size());
+        dt::sort::small_sort(ordering_in, ordering_out, grouper,
           [&](size_t i, size_t j) {
-            size_t ii = static_cast<size_t>(ordering_in.ptr[i]);
-            size_t jj = static_cast<size_t>(ordering_in.ptr[j]);
-            int cmp = column0_->compare_lge(ii, jj);
-            if (cmp == 0) {
-              for (size_t k = 0; k < other_columns_.size; ++k) {
-                cmp = other_columns_.ptr[k]->compare_lge(ii, jj);
-                if (cmp) break;
-              }
+            size_t ii = static_cast<size_t>(ordering_in[i]);
+            size_t jj = static_cast<size_t>(ordering_in[j]);
+            for (const auto& col : columns_) {
+              int cmp = col->compare_lge(ii, jj);
+              if (cmp) return (cmp < 0);
             }
-            return (cmp < 0);
+            return false;
           });
       }
     }
 
-    virtual void radix_sort(ovec ordering_in, ovec ordering_out,
-                            size_t offset, bool parallel,
-                            next_wrapper wrap = nullptr) const override
+
+    void radix_sort(Vec ordering_in, Vec ordering_out, size_t offset,
+                    TGrouper* grouper, Mode sort_mode, NextWrapper wrap
+                    ) const override
     {
-      (void) wrap;
-      column0_->radix_sort(ordering_in, ordering_out, offset, parallel,
-          [&](const ssoptr& next_sorter) {
+      xassert(!wrap);  (void) wrap;
+      columns_[0]->radix_sort(
+          ordering_in, ordering_out, offset, grouper, sort_mode,
+          [&](ShrSorter& next_sorter) {
+            SorterVec remaining_columns(columns_.begin() + 1,
+                                        columns_.end());
             if (next_sorter) {
-              return ssoptr(new Sorter_MultiImpl<TO>(next_sorter.get(),
-                                                     other_columns_));
+              next_sorter = ShrSorter(
+                  new Sorter_Multi<T>(std::move(next_sorter),
+                                      std::move(remaining_columns))
+              );
+            } else if (remaining_columns.size() > 1) {
+              next_sorter = ShrSorter(
+                  new Sorter_Multi<T>(std::move(remaining_columns))
+              );
             } else {
-              return ssoptr();  // FIXME
-              // return ssoptr(new Sorter_MultiImpl<TO>());
+              next_sorter = std::move(remaining_columns[0]);
             }
           });
     }
 
-    int compare_lge(size_t, size_t) const override {
-      throw RuntimeError() << "Sorter_Multi cannot be nested";
+    // may be called from `check_sorted()`
+    int compare_lge(size_t i, size_t j) const override {
+      int cmp = 0;
+      for (const auto& col : columns_) {
+        cmp = col->compare_lge(i, j);
+        if (cmp) break;
+      }
+      return cmp;
     }
 
 };

@@ -41,11 +41,16 @@ inline std::string operator "" _s(const char* str, size_t len) {
 
 namespace dt {
 template <typename T> int nlz(T x);  // Number of leading zeros
+template <typename T> int nsb(T x);  // Number of significant bits
 
 extern template int nlz(uint64_t);
 extern template int nlz(uint32_t);
 extern template int nlz(uint16_t);
 extern template int nlz(uint8_t);
+extern template int nsb(uint64_t);
+extern template int nsb(uint32_t);
+extern template int nsb(uint16_t);
+extern template int nsb(uint8_t);
 };
 
 

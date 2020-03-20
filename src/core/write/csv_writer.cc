@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -67,6 +67,10 @@ void csv_writer::estimate_output_size() {
     total_columns_size += column_names[i].size() + 1;
   }
   rowsize_fixed += 1 * ncols;  // separators
+  if (options.quoting_mode == Quoting::ALL) {
+    rowsize_fixed += 2 * ncols;
+    total_columns_size += 2 * ncols;
+  }
 
   fixed_size_per_row = rowsize_fixed;
   estimated_output_size = (rowsize_fixed + rowsize_dynamic) * nrows
@@ -85,7 +89,13 @@ void csv_writer::write_preamble() {
 
   Column names_as_col = Column(new Strvec_ColumnImpl(column_names));
   auto writer = value_writer::create(names_as_col, options);
-  writing_context ctx { 3*dt->ncols(), 1, options.compress_zlib };
+  writing_context ctx { 3*dt->ncols() + 3, 1, options.compress_zlib };
+
+  if (options.bom) {
+    *ctx.ch++ = '\xEF';
+    *ctx.ch++ = '\xBB';
+    *ctx.ch++ = '\xBF';
+  }
 
   if (options.quoting_mode == Quoting::ALL) {
     for (size_t i = 0; i < dt->ncols(); ++i) {

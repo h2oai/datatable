@@ -415,6 +415,13 @@ def test_issue2253():
     assert X.to_csv() == "A,B\n" + "10,0\n" + "20,1\n"
 
 
+def test_issue2382():
+    DT = dt.Frame([[True] * 20] * 200)
+    out = DT.to_csv(quoting='all')
+    assert out == (','.join('"C%d"' % i for i in range(200)) + "\n" +
+                   '\n'.join(','.join(['"1"'] * 200) for j in range(20)) + "\n")
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -675,3 +682,52 @@ def test_append_large(tempfile):
     assert readfile(tempfile) == "...\n" + (word + "\n") * (2*n)
     DT.to_csv(tempfile, append=True, _strategy="mmap")
     assert readfile(tempfile) == "...\n" + (word + "\n") * (3*n)
+
+
+
+#-------------------------------------------------------------------------------
+# Parameter bom=
+#-------------------------------------------------------------------------------
+
+def test_bom1():
+    DT = dt.Frame(A=[1,2,3])
+    assert DT.to_csv(bom=False) == "A\n1\n2\n3\n"
+    assert DT.to_csv(bom=True) == "\uFEFF" + "A\n1\n2\n3\n"
+
+
+def test_bom2(tempfile):
+    DT = dt.Frame(A=[1,2,3])
+    DT.to_csv(tempfile, bom=True)
+    with open(tempfile, 'rb') as inp:
+        assert inp.read() == b"\xEF\xBB\xBFA\n1\n2\n3\n"
+
+
+def test_bom3(tempfile):
+    # Appending to a file that doesn't exist: write BOM if requested
+    os.remove(tempfile)
+    assert not os.path.exists(tempfile)
+    DT = dt.Frame(A=[1,2,3])
+    DT.to_csv(tempfile, append=True, bom=True)
+    with open(tempfile, 'rb') as inp:
+        assert inp.read() == b"\xEF\xBB\xBFA\n1\n2\n3\n"
+
+
+
+def test_bom4(tempfile):
+    # When appending to an empty file, add the BOM mark if requested
+    assert os.path.exists(tempfile)
+    DT = dt.Frame(B=[5,6,7])
+    DT.to_csv(tempfile, append=True, bom=True)
+    with open(tempfile, 'rb') as inp:
+        assert inp.read() == b"\xEF\xBB\xBFB\n5\n6\n7\n"
+
+
+def test_bom5(tempfile):
+    # When appending to a non-empty file, the BOM mark is not written
+    assert os.path.exists(tempfile)
+    with open(tempfile, "w") as out:
+        out.write("# test file\n")
+    DT = dt.Frame(B=[5,6,7])
+    DT.to_csv(tempfile, append=True, bom=True)
+    with open(tempfile, 'rb') as inp:
+        assert inp.read() == b"# test file\n5\n6\n7\n"

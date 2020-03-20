@@ -41,8 +41,8 @@ class oiter : public oobj {
     // Returns size of the iterator, or -1 if unknown
     size_t size() const noexcept;
 
-    iter_iterator begin() const noexcept;
-    iter_iterator end() const noexcept;
+    iter_iterator begin() const;
+    iter_iterator end() const;
 
   private:
     // Wrap an existing PyObject* into an `oiter`.

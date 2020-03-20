@@ -100,18 +100,65 @@ def test_rbind_columns_mismatch():
 
 def test_rbind_error1():
     dt0 = dt.Frame(range(5))
-    with pytest.raises(TypeError) as e:
+    msg = r"Frame.rbind\(\) expects a list or sequence of Frames as an " \
+           "argument; instead item 0 was a <class 'int'>"
+    with pytest.raises(TypeError, match = msg):
         dt0.rbind(123)
-    assert ("Frame.rbind() expects a list or sequence of Frames as an "
-            "argument; instead item 0 was a <class 'int'>" == str(e.value))
 
 
 def test_rbind_error2():
     dt0 = dt.Frame(range(5))
-    with pytest.raises(TypeError) as e:
+    msg = r"Frame.rbind\(\) expects a list or sequence of Frames as an " \
+           "argument; instead item 2 was a <class 'int'>"
+    with pytest.raises(TypeError, match = msg):
         dt0.rbind(dt.Frame(range(1)), [dt.Frame(range(4)), 123])
-    assert ("Frame.rbind() expects a list or sequence of Frames as an "
-            "argument; instead item 2 was a <class 'int'>" == str(e.value))
+
+
+def test_rbind_error3():
+    dt0 = dt.Frame(range(5))
+    msg = r"Frame.rbind\(\) expects a list or sequence of Frames as an " \
+           "argument; instead item 0 was a <class 'int'>"
+    with pytest.raises(TypeError, match = msg):
+        dt0.rbind([123])
+
+
+def test_rbind_error4():
+    dt0 = dt.Frame(range(5))
+    msg = r"Frame.rbind\(\) expects a list or sequence of Frames as an " \
+           "argument; instead item 0 was a <class 'str'>"
+    with pytest.raises(TypeError, match = msg):
+        dt0.rbind("iddqd")
+
+
+def test_rbind_error5():
+    dt0 = dt.Frame(range(5))
+    msg = r"Frame.rbind\(\) expects a list or sequence of Frames as an " \
+           "argument; instead item 0 was a <class 'str'>"
+    with pytest.raises(TypeError, match = msg):
+        dt0.rbind(["iddqd", "idkfa", "idclip"])
+
+
+def test_rbind_infinite():
+    def foo():
+        yield dt.Frame()
+        yield from foo()
+
+    with pytest.raises(RecursionError):
+        dt.rbind(foo())
+
+
+def test_rbind_infinite2():
+    class A:
+        def __next__(self):
+            return self
+
+        def __iter__(self):
+            return self
+
+    msg = r"Frame.rbind\(\) expects a list or sequence of Frames as an " \
+          r"argument; instead item 0 was a <class '.*\.A'>"
+    with pytest.raises(TypeError, match=msg):
+        dt.rbind(A())
 
 
 
