@@ -118,7 +118,6 @@ class GenericReader
   public:
     GenericReader();
     GenericReader(const GenericReader&);
-    GenericReader(py::robj pyreader);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 

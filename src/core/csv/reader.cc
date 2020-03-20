@@ -90,30 +90,6 @@ GenericReader::GenericReader()
 }
 
 
-GenericReader::GenericReader(py::robj pyrdr)
-{
-  sof = nullptr;
-  eof = nullptr;
-  line = 0;
-  cr_is_newline = 0;
-
-  init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"),
-                  py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
-  init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
-  init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));
-  init_maxnrows(  py::Arg(pyrdr.get_attr("_maxnrows"), "Parameter `max_nrows`"));
-  init_skiptoline(py::Arg(pyrdr.get_attr("_skip_to_line"), "Parameter `skip_to_line`"));
-  init_sep(       py::Arg(pyrdr.get_attr("_sep"), "Parameter `sep`"));
-  init_dec(       py::Arg(pyrdr.get_attr("_dec"), "Parameter `dec`"));
-  init_quote(     py::Arg(pyrdr.get_attr("_quotechar"), "Parameter `quotechar`"));
-  init_header(    py::Arg(pyrdr.get_attr("_header"), "Parameter `header`"));
-  init_nastrings( py::Arg(pyrdr.get_attr("_nastrings"), "Parameter `na_strings`"));
-  init_skipstring(py::Arg(pyrdr.get_attr("_skip_to_string"), "Parameter `skip_to_string`"));
-  init_stripwhite(py::Arg(pyrdr.get_attr("_strip_whitespace"), "Parameter `strip_whitespace`"));
-  init_skipblanks(py::Arg(pyrdr.get_attr("_skip_blank_lines"), "Parameter `skip_blank_lines`"));
-  init_columns(   py::Arg(pyrdr.get_attr("_columns"), "Parameter `columns`"));
-}
-
 // Copy-constructor will copy only the essential parts
 GenericReader::GenericReader(const GenericReader& g)
 {
