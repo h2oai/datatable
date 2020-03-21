@@ -188,7 +188,6 @@ void FreadThreadContext::read_chunk(
       }  // while (j < ncols)
     }
 
-
     if (j < ncols) {
       // Is it perhaps an empty line at the end of the input? If so then it
       // should be simply skipped without raising any errors
@@ -214,7 +213,6 @@ void FreadThreadContext::read_chunk(
         return;
       }
     }
-
 
     if (!(tokenizer.skip_eol() || tch == tokenizer.eof)) {
       if (cc.is_start_exact()) {

@@ -75,7 +75,7 @@ class BufferImpl
     bool   contains_pyobjects_;
     bool   writable_;
     bool   resizable_;
-    size_t : 8;
+    int : 8;
 
   public:
     static const size_t page_size_;
@@ -225,7 +225,7 @@ class BufferImpl
 };
 
 
-// Initialize static member with the actual page
+// Determine memory page size
 const size_t BufferImpl::page_size_ = BufferImpl::calc_page_size();
 
 
@@ -594,9 +594,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
           break;
         }
       }
-
       mapped_ = true;
-
       xassert(mmm_index_);
     }
 

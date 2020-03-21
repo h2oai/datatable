@@ -9,7 +9,7 @@
 #include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
 #include "utils/misc.h"          // wallclock
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
-#include <iostream>
+
 
 //------------------------------------------------------------------------------
 // Initialization
@@ -20,12 +20,7 @@ FreadReader::FreadReader(const GenericReader& g)
 {
   size_t input_size = datasize();
   targetdir = nullptr;
-  // TODO: Do not require the extra byte, and do not write into the input stream...
-  // xassert(extra_byte_accessible());
   xassert(input_size > 0);
-  // Usually the extra byte is already zero, however if we skipped whitespace
-  // at the end, it may no longer be so
-  // *const_cast<char*>(eof) = '\0';
 
   first_jump_size = 0;
   n_sample_lines = 0;
@@ -348,7 +343,6 @@ void FreadReader::detect_sep_and_qr() {
 
   // Create vector of Column objects
   columns.add_columns(static_cast<size_t>(ncols));
-
 
   first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
 

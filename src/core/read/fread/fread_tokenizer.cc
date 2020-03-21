@@ -82,7 +82,7 @@ bool FreadTokenizer::at_end_of_field() {
   // single check `tch<=13` is almost equivalent to checking whether `tch` is
   // one of \r, \n, \0. We cast to unsigned first because `char` type is signed
   // by default, and therefore characters in the range 0x80-0xFF are negative.
-  if (ch >= eof) return true;
+  if (ch == eof) return true;
   char c = *ch;
   if (c == sep) return true;
 
