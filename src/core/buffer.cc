@@ -75,7 +75,10 @@ class BufferImpl
     bool   contains_pyobjects_;
     bool   writable_;
     bool   resizable_;
-    bool   page_multiple_;
+    size_t : 8;
+
+  public:
+    static const size_t page_size_;
 
   //------------------------------------
   // Constructors
@@ -88,8 +91,7 @@ class BufferImpl
         nshared_(0),
         contains_pyobjects_(false),
         writable_(true),
-        resizable_(true),
-        page_multiple_(false) {}
+        resizable_(true) {}
 
     virtual ~BufferImpl() {
       wassert(!contains_pyobjects_);
@@ -177,9 +179,19 @@ class BufferImpl
     }
 
     bool is_page_multiple() const noexcept {
-      return page_multiple_;
+      return !(size_%page_size_);
     }
 
+    static size_t calc_page_size() {
+      #if DT_OS_WINDOWS
+        SYSTEM_INFO sysInfo;
+        GetSystemInfo(&sysInfo);
+        const size_t page_size = sysInfo.dwPageSize;
+      #else
+        const size_t page_size = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
+      #endif
+      return page_size;
+    }
 
   //------------------------------------
   // Methods
@@ -213,6 +225,8 @@ class BufferImpl
 };
 
 
+// Initialize static member with the actual page
+const size_t BufferImpl::page_size_ = BufferImpl::calc_page_size();
 
 
 //------------------------------------------------------------------------------
@@ -581,15 +595,6 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
         }
       }
 
-      #if DT_OS_WINDOWS
-        SYSTEM_INFO sysInfo;
-        GetSystemInfo(&sysInfo);
-        const size_t pagesize = sysInfo.dwPageSize;
-      #else
-        const size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
-      #endif
-
-      page_multiple_ = !(size_%pagesize);
       mapped_ = true;
 
       xassert(mmm_index_);
