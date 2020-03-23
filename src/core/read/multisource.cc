@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "csv/reader.h"           // GenericReader
 #include "python/_all.h"          // py::olist
-#include "python/arg.h"           // py::Arg
+#include "python/args.h"          // py::PKArgs
 #include "python/string.h"        // py::ostring
 #include "read/multisource.h"
 namespace dt {
@@ -67,13 +67,46 @@ static MultiSource _from_python(py::robj pysource) {
 }
 
 
-MultiSource MultiSource::from_args(const py::Arg& src_any,
-                                   const py::Arg& src_file,
-                                   const py::Arg& src_text,
-                                   const py::Arg& src_cmd,
-                                   const py::Arg& src_url,
+MultiSource MultiSource::from_args(const py::PKArgs& args,
                                    const GenericReader& rdr)
 {
+  const py::Arg& src_any  = args[0];
+  const py::Arg& src_file = args[1];
+  const py::Arg& src_text = args[2];
+  const py::Arg& src_cmd  = args[3];
+  const py::Arg& src_url  = args[4];
+  int total = src_any.is_defined() +
+              src_file.is_defined() +
+              src_text.is_defined() +
+              src_cmd.is_defined() +
+              src_url.is_defined();
+  if (total != 1) {
+    // Bad: throw an error; however, try to produce a message that reflects
+    // what exactly is wrong with the parameters.
+    const char* fnname = args.get_long_name();
+    if (total == 0) {
+      throw TypeError()
+          << "No input source for " << fnname
+          << " was given. Please specify one of the parameters "
+             "`file`, `text`, `url`, or `cmd`";
+    }
+    std::vector<const char*> extra_args;
+    if (src_file.is_defined()) extra_args.push_back("file");
+    if (src_text.is_defined()) extra_args.push_back("text");
+    if (src_cmd.is_defined())  extra_args.push_back("cmd");
+    if (src_url.is_defined())  extra_args.push_back("url");
+    if (src_any.is_defined()) {
+      throw TypeError()
+          << "When an unnamed argument is passed to " << fnname
+          << ", it is invalid to also provide the `"
+          << extra_args[0] << "` parameter";
+    } else {
+      throw TypeError()
+          << "Both parameters `" << extra_args[0] << "` and `" << extra_args[1]
+          << "` cannot be passed to " << fnname << " simultaneously";
+    }
+  }
+
   auto resolve_source = py::oobj::import("datatable.utils.fread", "_resolve_source");
   auto tempfiles = rdr.get_tempfiles();
   auto source = py::otuple({src_any.to_oobj_or_none(),

@@ -72,12 +72,7 @@ class MultiSource
     MultiSource& operator=(MultiSource&&) = default;
 
     MultiSource(SourceVec&&);
-    static MultiSource from_args(const py::Arg& src_any,
-                                 const py::Arg& src_file,
-                                 const py::Arg& src_text,
-                                 const py::Arg& src_cmd,
-                                 const py::Arg& src_url,
-                                 const GenericReader& reader);
+    static MultiSource from_args(const py::PKArgs&, const GenericReader&);
 
     py::oobj read_all_fread_style(GenericReader&);
 };

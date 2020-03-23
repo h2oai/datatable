@@ -325,23 +325,23 @@ def test_fread_zip_file_bad2(tempfile):
 
 
 def test_fread_bad_source_none():
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(TypeError) as e:
         dt.fread()
     assert "No input source" in str(e.value)
 
 
 def test_fread_bad_source_any_and_source():
-    with pytest.raises(ValueError) as e:
+    msg = r"When an unnamed argument is passed to fread\(\), it is invalid " \
+          r"to also provide the text parameter"
+    with pytest.raises(TypeError, match=msg) as e:
         dt.fread("a", text="b")
-    assert "When an unnamed argument is passed, it is invalid to also " \
-           "provide the text parameter" in str(e.value)
 
 
 def test_fread_bad_source_2sources():
-    with pytest.raises(ValueError) as e:
+    msg = r"Both parameters file and text cannot be passed to fread\(\) " \
+          r"simultaneously"
+    with pytest.raises(TypeError, match=msg) as e:
         dt.fread(file="a", text="b")
-    assert "Both parameters file and text cannot be passed to fread " \
-           "simultaneously" in str(e.value)
 
 
 def test_fread_bad_source_anysource():

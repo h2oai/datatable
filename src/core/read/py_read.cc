@@ -29,7 +29,7 @@ namespace dt {
 namespace read {
 
 // forward-declare
-static void _check_src_args(const py::PKArgs&);
+// static void _check_src_args(const py::PKArgs&);
 // static ReadSource _resolve_source_any(const py::Arg&, GenericReader&);
 // static ReadSource _resolve_source_file(const py::Arg&, GenericReader&);
 // static ReadSource _resolve_source_text(const py::Arg&, GenericReader&);
@@ -67,7 +67,7 @@ New (prototype) fread function
 
 static py::oobj zread(const py::PKArgs& args)
 {
-  _check_src_args(args);
+  // _check_src_args(args);
   // const py::Arg& src_any  = args[0];
   // const py::Arg& src_file = args[1];
   // const py::Arg& src_text = args[2];
@@ -126,36 +126,36 @@ static py::oobj zread(const py::PKArgs& args)
 // Helpers
 //------------------------------------------------------------------------------
 
-static void _check_src_args(const py::PKArgs& args) {
-  bool defined_any  = args[0].is_defined();
-  bool defined_file = args[1].is_defined();
-  bool defined_text = args[2].is_defined();
-  bool defined_cmd  = args[3].is_defined();
-  bool defined_url  = args[4].is_defined();
-  int total = defined_any + defined_file + defined_text + defined_cmd +
-              defined_url;
-  if (total == 1) return;  // normal
+// static void _check_src_args(const py::PKArgs& args) {
+//   bool defined_any  = args[0].is_defined();
+//   bool defined_file = args[1].is_defined();
+//   bool defined_text = args[2].is_defined();
+//   bool defined_cmd  = args[3].is_defined();
+//   bool defined_url  = args[4].is_defined();
+//   int total = defined_any + defined_file + defined_text + defined_cmd +
+//               defined_url;
+//   if (total == 1) return;  // normal
 
-  if (total == 0) {
-    throw ValueError()
-        << "No input source for fread was given. Please specify one of "
-           "the parameters `file`, `text`, `url`, or `cmd`";
-  }
-  std::vector<const char*> extra_args;
-  if (defined_file) extra_args.push_back(args[1].short_name());
-  if (defined_text) extra_args.push_back(args[2].short_name());
-  if (defined_cmd)  extra_args.push_back(args[3].short_name());
-  if (defined_url)  extra_args.push_back(args[4].short_name());
-  if (defined_any) {
-    throw ValueError()
-        << "When an unnamed argument is passed to fread, it is invalid "
-           "to also provide the `" << extra_args[0] << "` parameter";
-  } else {
-    throw ValueError()
-        << "Both parameters `" << extra_args[0] << "` and `" << extra_args[1]
-        << "` cannot be passed to fread simultaneously";
-  }
-}
+//   if (total == 0) {
+//     throw ValueError()
+//         << "No input source for fread was given. Please specify one of "
+//            "the parameters `file`, `text`, `url`, or `cmd`";
+//   }
+//   std::vector<const char*> extra_args;
+//   if (defined_file) extra_args.push_back(args[1].short_name());
+//   if (defined_text) extra_args.push_back(args[2].short_name());
+//   if (defined_cmd)  extra_args.push_back(args[3].short_name());
+//   if (defined_url)  extra_args.push_back(args[4].short_name());
+//   if (defined_any) {
+//     throw ValueError()
+//         << "When an unnamed argument is passed to fread, it is invalid "
+//            "to also provide the `" << extra_args[0] << "` parameter";
+//   } else {
+//     throw ValueError()
+//         << "Both parameters `" << extra_args[0] << "` and `" << extra_args[1]
+//         << "` cannot be passed to fread simultaneously";
+//   }
+// }
 
 
 #if 0

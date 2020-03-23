@@ -54,13 +54,7 @@ static py::PKArgs args_fread(
   "fread", doc_fread);
 
 static py::oobj fread(const py::PKArgs& args) {
-  size_t k = 0;
-  const py::Arg& src_any  = args[k++];
-  const py::Arg& src_file = args[k++];
-  const py::Arg& src_text = args[k++];
-  const py::Arg& src_cmd  = args[k++];
-  const py::Arg& src_url  = args[k++];
-
+  size_t k = 5;
   const py::Arg& arg_columns    = args[k++];
   const py::Arg& arg_sep        = args[k++];
   const py::Arg& arg_dec        = args[k++];
@@ -99,8 +93,7 @@ static py::oobj fread(const py::PKArgs& args) {
   (void) arg_saveto;
   (void) arg_encoding;
 
-  auto multisource = MultiSource::from_args(src_any, src_file, src_text,
-                                            src_cmd, src_url, rdr);
+  auto multisource = MultiSource::from_args(args, rdr);
   return multisource.read_all_fread_style(rdr);
 }
 
