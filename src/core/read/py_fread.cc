@@ -22,8 +22,9 @@
 #include "csv/reader.h"        // GenericReader
 #include "python/args.h"       // py::PKArgs
 #include "python/string.h"     // py::ostring
-#include "read/read_source.h"  // dt::read::resolve_sources
-#include "datatablemodule.h"   // DatatableModule
+#include "read/multisource.h"  // MultiSource
+#include "read/read_source.h"  // resolve_sources
+#include "datatablemodule.h"   // ::DatatableModule
 namespace dt {
 namespace read {
 
