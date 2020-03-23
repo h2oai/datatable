@@ -28,43 +28,16 @@ namespace dt {
 namespace read {
 
 
+static MultiSource _from_python(py::robj);
+static MultiSource _from_any(py::robj, const GenericReader&);
+
+
 //------------------------------------------------------------------------------
 // Constructors
 //------------------------------------------------------------------------------
 
 MultiSource::MultiSource(SourceVec&& srcs)
   : sources_(std::move(srcs)) {}
-
-
-static MultiSource _from_python(py::robj pysource) {
-  auto res_tuple = pysource.to_otuple();
-  auto sources = res_tuple[0];
-  auto result = res_tuple[1];
-
-  std::vector<std::unique_ptr<Source>> out;
-  if (result.is_none()) {
-    out.emplace_back(new Source_Python("", sources));
-  }
-  else if (result.is_list_or_tuple()) {
-    py::olist sources_list = result.to_pylist();
-    for (size_t i = 0; i < sources_list.size(); ++i) {
-      auto entry = sources_list[i].to_otuple();
-      xassert(entry.size() == 2);
-      auto isources = entry[0];
-      auto iresult = entry[1];
-      auto iname = isources.to_otuple()[0].to_string();
-      if (iresult.is_none()) {
-        out.emplace_back(new Source_Python(iname, isources));
-      } else {
-        out.emplace_back(new Source_Result(iname, iresult));
-      }
-    }
-  }
-  else {
-    out.emplace_back(new Source_Result("", result));
-  }
-  return MultiSource(std::move(out));
-}
 
 
 MultiSource MultiSource::from_args(const py::PKArgs& args,
@@ -107,6 +80,8 @@ MultiSource MultiSource::from_args(const py::PKArgs& args,
     }
   }
 
+  if (src_any.is_defined()) return _from_any(src_any.to_oobj(), rdr);
+
   auto resolve_source = py::oobj::import("datatable.utils.fread", "_resolve_source");
   auto tempfiles = rdr.get_tempfiles();
   auto source = py::otuple({src_any.to_oobj_or_none(),
@@ -116,6 +91,45 @@ MultiSource MultiSource::from_args(const py::PKArgs& args,
                             src_url.to_oobj_or_none()});
 
   return _from_python(resolve_source.call({source, tempfiles}));
+}
+
+
+// temporary helper function
+static MultiSource _from_python(py::robj pysource) {
+  auto res_tuple = pysource.to_otuple();
+  auto sources = res_tuple[0];
+  auto result = res_tuple[1];
+
+  std::vector<std::unique_ptr<Source>> out;
+  if (result.is_none()) {
+    out.emplace_back(new Source_Python("", sources));
+  }
+  else if (result.is_list_or_tuple()) {
+    py::olist sources_list = result.to_pylist();
+    for (size_t i = 0; i < sources_list.size(); ++i) {
+      auto entry = sources_list[i].to_otuple();
+      xassert(entry.size() == 2);
+      auto isources = entry[0];
+      auto iresult = entry[1];
+      auto iname = isources.to_otuple()[0].to_string();
+      if (iresult.is_none()) {
+        out.emplace_back(new Source_Python(iname, isources));
+      } else {
+        out.emplace_back(new Source_Result(iname, iresult));
+      }
+    }
+  }
+  else {
+    out.emplace_back(new Source_Result("", result));
+  }
+  return MultiSource(std::move(out));
+}
+
+
+static MultiSource _from_any(py::robj src, const GenericReader& rdr) {
+  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_any");
+  auto tempfiles = rdr.get_tempfiles();
+  return _from_python(resolver.call({src, tempfiles}));
 }
 
 
