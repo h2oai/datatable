@@ -23,7 +23,6 @@
 #include "python/args.h"       // py::PKArgs
 #include "python/string.h"     // py::ostring
 #include "read/multisource.h"  // MultiSource
-#include "read/read_source.h"  // resolve_sources
 #include "datatablemodule.h"   // ::DatatableModule
 namespace dt {
 namespace read {
@@ -100,20 +99,9 @@ static py::oobj fread(const py::PKArgs& args) {
   (void) arg_saveto;
   (void) arg_encoding;
 
-  auto read_sources = resolve_sources(src_any, src_file, src_text,
-                                      src_cmd, src_url, rdr);
-  if (read_sources.size() == 1) {
-    return read_sources[0].read(rdr);
-  }
-  else {
-    py::odict result_dict;
-    for (auto& src : read_sources) {
-      GenericReader ireader(rdr);
-      result_dict.set(py::ostring(src.get_name()),
-                      src.read(ireader));
-    }
-    return std::move(result_dict);
-  }
+  auto multisource = MultiSource::from_args(src_any, src_file, src_text,
+                                            src_cmd, src_url, rdr);
+  return multisource.read_all_fread_style(rdr);
 }
 
 

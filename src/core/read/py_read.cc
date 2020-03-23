@@ -24,7 +24,6 @@
 #include <vector>
 #include "csv/reader.h"
 #include "python/_all.h"
-#include "read/read_source.h"
 #include "datatablemodule.h"
 namespace dt {
 namespace read {
