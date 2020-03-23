@@ -36,26 +36,12 @@ MultiSource::MultiSource(SourceVec&& srcs)
   : sources_(std::move(srcs)) {}
 
 
-MultiSource MultiSource::from_args(const py::Arg& src_any,
-                                   const py::Arg& src_file,
-                                   const py::Arg& src_text,
-                                   const py::Arg& src_cmd,
-                                   const py::Arg& src_url,
-                                   const GenericReader& rdr)
-{
-  auto tempfiles = rdr.get_tempfiles();
-  auto source = py::otuple({src_any.to_oobj_or_none(),
-                            src_file.to_oobj_or_none(),
-                            src_text.to_oobj_or_none(),
-                            src_cmd.to_oobj_or_none(),
-                            src_url.to_oobj_or_none()});
-
-  auto resolve_source = py::oobj::import("datatable.utils.fread", "_resolve_source");
-  auto res_tuple = resolve_source.call({source, tempfiles}).to_otuple();
+static MultiSource _from_python(py::robj pysource) {
+  auto res_tuple = pysource.to_otuple();
   auto sources = res_tuple[0];
   auto result = res_tuple[1];
 
-  SourceVec out;
+  std::vector<std::unique_ptr<Source>> out;
   if (result.is_none()) {
     out.emplace_back(new Source_Python("", sources));
   }
@@ -81,8 +67,30 @@ MultiSource MultiSource::from_args(const py::Arg& src_any,
 }
 
 
+MultiSource MultiSource::from_args(const py::Arg& src_any,
+                                   const py::Arg& src_file,
+                                   const py::Arg& src_text,
+                                   const py::Arg& src_cmd,
+                                   const py::Arg& src_url,
+                                   const GenericReader& rdr)
+{
+  auto resolve_source = py::oobj::import("datatable.utils.fread", "_resolve_source");
+  auto tempfiles = rdr.get_tempfiles();
+  auto source = py::otuple({src_any.to_oobj_or_none(),
+                            src_file.to_oobj_or_none(),
+                            src_text.to_oobj_or_none(),
+                            src_cmd.to_oobj_or_none(),
+                            src_url.to_oobj_or_none()});
+
+  return _from_python(resolve_source.call({source, tempfiles}));
+}
 
 
+
+
+//------------------------------------------------------------------------------
+// Process sources, and return the results
+//------------------------------------------------------------------------------
 
 py::oobj MultiSource::read_all_fread_style(GenericReader& reader) {
   xassert(!sources_.empty());
