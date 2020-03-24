@@ -30,6 +30,10 @@ namespace read {
 
 static MultiSource _from_python(py::robj);
 static MultiSource _from_any(py::robj, const GenericReader&);
+static MultiSource _from_file(py::robj, const GenericReader&);
+static MultiSource _from_text(py::robj, const GenericReader&);
+static MultiSource _from_cmd(py::robj, const GenericReader&);
+static MultiSource _from_url(py::robj, const GenericReader&);
 
 
 //------------------------------------------------------------------------------
@@ -40,9 +44,11 @@ MultiSource::MultiSource(SourceVec&& srcs)
   : sources_(std::move(srcs)) {}
 
 
+// Main MultiSource constructor
 MultiSource MultiSource::from_args(const py::PKArgs& args,
                                    const GenericReader& rdr)
 {
+  const char* fnname = args.get_long_name();
   const py::Arg& src_any  = args[0];
   const py::Arg& src_file = args[1];
   const py::Arg& src_text = args[2];
@@ -53,16 +59,7 @@ MultiSource MultiSource::from_args(const py::PKArgs& args,
               src_text.is_defined() +
               src_cmd.is_defined() +
               src_url.is_defined();
-  if (total != 1) {
-    // Bad: throw an error; however, try to produce a message that reflects
-    // what exactly is wrong with the parameters.
-    const char* fnname = args.get_long_name();
-    if (total == 0) {
-      throw TypeError()
-          << "No input source for " << fnname
-          << " was given. Please specify one of the parameters "
-             "`file`, `text`, `url`, or `cmd`";
-    }
+  if (total > 1) {
     std::vector<const char*> extra_args;
     if (src_file.is_defined()) extra_args.push_back("file");
     if (src_text.is_defined()) extra_args.push_back("text");
@@ -80,17 +77,16 @@ MultiSource MultiSource::from_args(const py::PKArgs& args,
     }
   }
 
-  if (src_any.is_defined()) return _from_any(src_any.to_oobj(), rdr);
+  if (src_any.is_defined())  return _from_any(src_any.to_oobj(), rdr);
+  if (src_file.is_defined()) return _from_file(src_file.to_oobj(), rdr);
+  if (src_text.is_defined()) return _from_text(src_text.to_oobj(), rdr);
+  if (src_cmd.is_defined())  return _from_cmd(src_cmd.to_oobj(), rdr);
+  if (src_url.is_defined())  return _from_url(src_url.to_oobj(), rdr);
 
-  auto resolve_source = py::oobj::import("datatable.utils.fread", "_resolve_source");
-  auto tempfiles = rdr.get_tempfiles();
-  auto source = py::otuple({src_any.to_oobj_or_none(),
-                            src_file.to_oobj_or_none(),
-                            src_text.to_oobj_or_none(),
-                            src_cmd.to_oobj_or_none(),
-                            src_url.to_oobj_or_none()});
-
-  return _from_python(resolve_source.call({source, tempfiles}));
+  throw TypeError()
+      << "No input source for " << fnname
+      << " was given. Please specify one of the parameters "
+         "`file`, `text`, `url`, or `cmd`";
 }
 
 
@@ -128,6 +124,32 @@ static MultiSource _from_python(py::robj pysource) {
 
 static MultiSource _from_any(py::robj src, const GenericReader& rdr) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_any");
+  auto tempfiles = rdr.get_tempfiles();
+  return _from_python(resolver.call({src, tempfiles}));
+}
+
+
+static MultiSource _from_file(py::robj src, const GenericReader& rdr) {
+  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_file");
+  auto tempfiles = rdr.get_tempfiles();
+  return _from_python(resolver.call({src, tempfiles}));
+}
+
+
+static MultiSource _from_text(py::robj src, const GenericReader&) {
+  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_text");
+  return _from_python(resolver.call({src}));
+}
+
+
+static MultiSource _from_cmd(py::robj src, const GenericReader&) {
+  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_cmd");
+  return _from_python(resolver.call({src}));
+}
+
+
+static MultiSource _from_url(py::robj src, const GenericReader& rdr) {
+  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_url");
   auto tempfiles = rdr.get_tempfiles();
   return _from_python(resolver.call({src, tempfiles}));
 }

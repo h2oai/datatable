@@ -88,39 +88,6 @@ class TempFiles:
 # Resolvers
 #-------------------------------------------------------------------------------
 
-def _resolve_source(src, tempfiles):
-    anysource, file, text, cmd, url = src
-    args = (["any"] * (anysource is not None) +
-            ["file"] * (file is not None) +
-            ["text"] * (text is not None) +
-            ["cmd"] * (cmd is not None) +
-            ["url"] * (url is not None))
-    if len(args) == 0:
-        raise ValueError(
-            "No input source for `fread` was given. Please specify one of "
-            "the parameters `file`, `text`, `url`, or `cmd`")
-    if len(args) > 1:
-        if anysource is None:
-            raise ValueError(
-                "Both parameters `%s` and `%s` cannot be passed to fread "
-                "simultaneously." % (args[0], args[1]))
-        else:
-            args.remove("any")
-            raise ValueError(
-                "When an unnamed argument is passed, it is invalid to also "
-                "provide the `%s` parameter." % (args[0], ))
-    if anysource is not None:
-        return _resolve_source_any(anysource, tempfiles)
-    if file is not None:
-        return _resolve_source_file(file, tempfiles)
-    if text is not None:
-        return _resolve_source_text(text)
-    if cmd is not None:
-        return _resolve_source_cmd(cmd)
-    if url is not None:
-        return _resolve_source_url(url, tempfiles)
-
-
 def _resolve_source_any(src, tempfiles):
     logger = tempfiles._logger
     is_str = isinstance(src, str)
