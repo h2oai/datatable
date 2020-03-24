@@ -74,5 +74,24 @@ py::oobj Source_Result::read(GenericReader&) {
 
 
 
+//------------------------------------------------------------------------------
+// Source_Text
+//------------------------------------------------------------------------------
+
+Source_Text::Source_Text(py::robj textsrc)
+  : Source("<text>"), src_(textsrc)
+{
+  xassert(src_.is_string() || src_.is_bytes());
+}
+
+
+py::oobj Source_Text::read(GenericReader& reader) {
+  auto text = src_.to_cstring();
+  auto buf = Buffer::external(text.ch, static_cast<size_t>(text.size) + 1);
+  return reader.read_buffer(buf, 1);
+}
+
+
+
 
 }}  // namespace dt::read

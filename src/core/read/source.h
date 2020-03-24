@@ -66,7 +66,6 @@ class Source_Python : public Source
 
   public:
     Source_Python(const std::string& name, py::oobj src);
-
     py::oobj read(GenericReader&) override;
 };
 
@@ -79,7 +78,18 @@ class Source_Result : public Source
 
   public:
     Source_Result(const std::string& name, py::oobj res);
+    py::oobj read(GenericReader&) override;
+};
 
+
+
+class Source_Text : public Source
+{
+  private:
+    py::oobj src_;
+
+  public:
+    Source_Text(py::robj textsrc);
     py::oobj read(GenericReader&) override;
 };
 

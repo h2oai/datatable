@@ -27,11 +27,13 @@
 namespace dt {
 namespace read {
 
+using SourcePtr = std::unique_ptr<Source>;
+using SourceVec = std::vector<SourcePtr>;
 
 static MultiSource _from_python(py::robj);
 static MultiSource _from_any(py::robj, const GenericReader&);
 static MultiSource _from_file(py::robj, const GenericReader&);
-static MultiSource _from_text(py::robj, const GenericReader&);
+static MultiSource _from_text(const py::Arg&, const GenericReader&);
 static MultiSource _from_cmd(py::robj, const GenericReader&);
 static MultiSource _from_url(py::robj, const GenericReader&);
 
@@ -42,6 +44,11 @@ static MultiSource _from_url(py::robj, const GenericReader&);
 
 MultiSource::MultiSource(SourceVec&& srcs)
   : sources_(std::move(srcs)) {}
+
+
+MultiSource::MultiSource(SourcePtr&& src) {
+  sources_.push_back(std::move(src));
+}
 
 
 // Main MultiSource constructor
@@ -79,7 +86,7 @@ MultiSource MultiSource::from_args(const py::PKArgs& args,
 
   if (src_any.is_defined())  return _from_any(src_any.to_oobj(), rdr);
   if (src_file.is_defined()) return _from_file(src_file.to_oobj(), rdr);
-  if (src_text.is_defined()) return _from_text(src_text.to_oobj(), rdr);
+  if (src_text.is_defined()) return _from_text(src_text, rdr);
   if (src_cmd.is_defined())  return _from_cmd(src_cmd.to_oobj(), rdr);
   if (src_url.is_defined())  return _from_url(src_url.to_oobj(), rdr);
 
@@ -96,7 +103,7 @@ static MultiSource _from_python(py::robj pysource) {
   auto sources = res_tuple[0];
   auto result = res_tuple[1];
 
-  std::vector<std::unique_ptr<Source>> out;
+  SourceVec out;
   if (result.is_none()) {
     out.emplace_back(new Source_Python("", sources));
   }
@@ -136,9 +143,12 @@ static MultiSource _from_file(py::robj src, const GenericReader& rdr) {
 }
 
 
-static MultiSource _from_text(py::robj src, const GenericReader&) {
-  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_text");
-  return _from_python(resolver.call({src}));
+static MultiSource _from_text(const py::Arg& src, const GenericReader&) {
+  if (!(src.is_string() || src.is_bytes())) {
+    throw TypeError() << "Invalid parameter `text` in fread: expected "
+                         "str or bytes, got " << src.typeobj();
+  }
+  return MultiSource(SourcePtr(new Source_Text(src.to_oobj())));
 }
 
 

@@ -126,6 +126,7 @@ class GenericReader
 
     py::oobj get_tempfiles() const;
     py::oobj read_all(py::robj pysources);
+    py::oobj read_buffer(const Buffer&, size_t extra_byte);
 
     bool has_next() const;
     py::oobj read_next();
@@ -184,6 +185,7 @@ class GenericReader
 
   protected:
     void open_input();
+    void open_buffer(const Buffer& buf, size_t extra_byte);
     void detect_and_skip_bom();
     void skip_initial_whitespace();
     void skip_trailing_whitespace();

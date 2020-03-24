@@ -384,6 +384,37 @@ py::oobj GenericReader::read_all(py::robj pysources)
 }
 
 
+py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
+{
+  if (logger) {
+    logger.invoke("debug", py::ostring("[1] Prepare for reading"));
+  }
+  open_buffer(buf, extra_byte);
+  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
+  bool done = read_jay();
+
+  if (!done) {
+    detect_and_skip_bom();
+    skip_to_line_number();
+    skip_to_line_with_string();
+    skip_initial_whitespace();
+    skip_trailing_whitespace();
+    job->add_done_amount(WORK_PREPARE);
+
+    read_empty_input() ||
+    detect_improper_files() ||
+    read_csv();
+  }
+
+  if (outputs.empty()) {
+    throw RuntimeError() << "Unable to read input " << src_arg.to_string();
+  }
+
+  job->done();
+  return outputs[0];
+}
+
+
 
 //------------------------------------------------------------------------------
 
@@ -647,6 +678,15 @@ void GenericReader::open_input() {
     trace("=====================");
   }
   t_open_input = wallclock() - t0;
+}
+
+
+void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
+  input_mbuf = buf;
+  line = 1;
+  sof = static_cast<const char*>(input_mbuf.rptr());
+  eof = sof + input_mbuf.size() - extra_byte;
+  if (eof) xassert(*eof == '\0');
 }
 
 
