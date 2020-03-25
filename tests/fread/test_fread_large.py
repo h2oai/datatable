@@ -52,7 +52,7 @@ def get_file_list(*path, skip=None):
         return [failed("Directory '%s' does not exist" % rootdir, rootdir)]
     good_extensions = [".csv", ".txt", ".tsv", ".data", ".gz", ".zip", ".asv",
                        ".psv", ".scsv", ".hive"]
-    bad_extensions = {".gif", ".jpg", ".jpeg", ".pdf", ".svg", "tar.gz"}
+    bad_extensions = {".gif", ".jpg", ".jpeg", ".pdf", ".svg", ".tar.gz"}
     if skip:
         rem = set(os.path.join(rootdir, f) for f in skip)
     else:
