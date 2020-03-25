@@ -62,8 +62,11 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 // Note: global variables must be declared without `def`
 //       see https://stackoverflow.com/questions/6305910
 
-// Needs invocation of larger tests
-needsLargerTests = (params.FORCE_LARGER_TESTS || params.FORCE_ALL_TESTS) && !params.DISABLE_ALL_TESTS
+// Larger tests are invoked if forced or if isModified() routine
+// returns `true`, and unless the larger tests are explicitely
+// disabled. Here we only define the default value for `needsLargerTests`
+// adjusting it when we check for the actual code changes.
+needsLargerTests = params.FORCE_LARGER_TESTS || params.FORCE_ALL_TESTS
 // String with current version (TODO: remove?)
 versionText = "unknown"
 
@@ -151,7 +154,7 @@ ansiColor('xterm') {
                             echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
                             echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
                         """
-                        needsLargerTests = needsLargerTests || isModified("src/core/(read|csv)/.*")
+                        needsLargerTests = (needsLargerTests || isModified("src/core/(read|csv)/.*")) && !params.DISABLE_ALL_TESTS
                         if (needsLargerTests) {
                             env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
                             manager.addBadge("warning.gif", "Large tests required")
