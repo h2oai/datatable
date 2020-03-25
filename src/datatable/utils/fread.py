@@ -88,41 +88,8 @@ class TempFiles:
 # Resolvers
 #-------------------------------------------------------------------------------
 
-def _resolve_source(src, tempfiles):
-    anysource, file, text, cmd, url = src
+def _resolve_source_any(src, tempfiles):
     logger = tempfiles._logger
-    args = (["any"] * (anysource is not None) +
-            ["file"] * (file is not None) +
-            ["text"] * (text is not None) +
-            ["cmd"] * (cmd is not None) +
-            ["url"] * (url is not None))
-    if len(args) == 0:
-        raise ValueError(
-            "No input source for `fread` was given. Please specify one of "
-            "the parameters `file`, `text`, `url`, or `cmd`")
-    if len(args) > 1:
-        if anysource is None:
-            raise ValueError(
-                "Both parameters `%s` and `%s` cannot be passed to fread "
-                "simultaneously." % (args[0], args[1]))
-        else:
-            args.remove("any")
-            raise ValueError(
-                "When an unnamed argument is passed, it is invalid to also "
-                "provide the `%s` parameter." % (args[0], ))
-    if anysource is not None:
-        return _resolve_source_any(anysource, tempfiles, logger)
-    if file is not None:
-        return _resolve_source_file(file, tempfiles, logger)
-    if text is not None:
-        return _resolve_source_text(text)
-    if cmd is not None:
-        return _resolve_source_cmd(cmd)
-    if url is not None:
-        return _resolve_source_url(url, tempfiles)
-
-
-def _resolve_source_any(src, tempfiles, logger):
     is_str = isinstance(src, str)
     if is_str or isinstance(src, bytes):
         # If there are any control characters (such as \n or \r) in the
@@ -148,16 +115,15 @@ def _resolve_source_any(src, tempfiles, logger):
             elif is_str and re.search(_glob_regex, src):
                 if logger:
                     logger.debug("Input is a glob pattern.")
-                return _resolve_source_list_of_files(glob.glob(src), tempfiles, logger)
+                return _resolve_source_list_of_files(glob.glob(src), tempfiles)
             else:
                 if logger:
-                    logger.debug("Input is assumed to be a "
-                                      "file name.")
-                return _resolve_source_file(src, tempfiles, logger)
+                    logger.debug("Input is assumed to be a file name.")
+                return _resolve_source_file(src, tempfiles)
     elif isinstance(src, _pathlike) or hasattr(src, "read"):
-        return _resolve_source_file(src, tempfiles, logger)
+        return _resolve_source_file(src, tempfiles)
     elif isinstance(src, (list, tuple)):
-        return _resolve_source_list_of_files(src, tempfiles, logger)
+        return _resolve_source_list_of_files(src, tempfiles)
     else:
         raise TypeError("Unknown type for the first argument in fread: %r"
                         % type(src))
@@ -171,7 +137,8 @@ def _resolve_source_text(text):
     return ("<text>", None, None, text), None
 
 
-def _resolve_source_file(file, tempfiles, logger):
+def _resolve_source_file(file, tempfiles):
+    logger = tempfiles._logger
     if isinstance(file, _pathlike):
         # `_pathlike` contains (str, bytes), and on Python 3.6 also
         # os.PathLike interface
@@ -230,25 +197,26 @@ def _resolve_source_file(file, tempfiles, logger):
             xpath = os.path.abspath(os.path.join(xpath, ".."))
         ypath = ypath[len(xpath):]
         if os.path.isfile(xpath):
-            return _resolve_archive(xpath, ypath, tempfiles, logger)
+            return _resolve_archive(xpath, ypath, tempfiles)
         else:
             raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
     if not os.path.isfile(file):
         raise ValueError("Path `%s` is not a file" % file)
-    return _resolve_archive(file, None, tempfiles, logger)
+    return _resolve_archive(file, None, tempfiles)
 
 
-def _resolve_source_list_of_files(files_list, tempfiles, logger):
+def _resolve_source_list_of_files(files_list, tempfiles):
     files = []
     for s in files_list:
         if s is None: continue
-        entry = _resolve_source_file(s, tempfiles, logger)
+        entry = _resolve_source_file(s, tempfiles)
         files.append(entry)
     # src, file, fileno, text, result
     return (None, None, None, None), files
 
 
-def _resolve_archive(filename, subpath, tempfiles, logger):
+def _resolve_archive(filename, subpath, tempfiles):
+    logger = tempfiles._logger
     ext = os.path.splitext(filename)[1]
     if subpath and subpath[0] == "/":
         subpath = subpath[1:]

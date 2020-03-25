@@ -13,8 +13,11 @@
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
 #include "read/columns.h"   // dt::read::Columns
-
 class DataTable;
+namespace dt {
+namespace read {
+
+
 using dtptr = std::unique_ptr<DataTable>;
 using strvec = std::vector<std::string>;
 
@@ -105,6 +108,7 @@ class GenericReader
     py::oobj tempstr;
     py::oobj columns_arg;
     py::olist column_names;
+    py::oobj tempfiles;
 
     // If `trace()` cannot display a message immediately (because it was not
     // sent from the main thread), it will be temporarily stored in this
@@ -117,12 +121,12 @@ class GenericReader
   public:
     GenericReader();
     GenericReader(const GenericReader&);
-    GenericReader(py::robj pyreader);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
-    py::oobj get_logger() const;
+    py::oobj get_tempfiles() const;
     py::oobj read_all(py::robj pysources);
+    py::oobj read_buffer(const Buffer&, size_t extra_byte);
 
     bool has_next() const;
     py::oobj read_next();
@@ -175,11 +179,13 @@ class GenericReader
     void init_skipstring(const py::Arg&);
     void init_stripwhite(const py::Arg&);
     void init_skipblanks(const py::Arg&);
+    void init_tempdir   (const py::Arg&);
     void init_columns   (const py::Arg&);
     void init_logger    (const py::Arg& arg_logger, const py::Arg& arg_verbose);
 
   protected:
     void open_input();
+    void open_buffer(const Buffer& buf, size_t extra_byte);
     void detect_and_skip_bom();
     void skip_initial_whitespace();
     void skip_trailing_whitespace();
@@ -201,5 +207,5 @@ class GenericReader
 };
 
 
-
+}}  // namespace dt::read
 #endif
