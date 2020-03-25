@@ -64,9 +64,9 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 
 // Larger tests are invoked if forced or if isModified() routine
 // returns `true`, and unless the larger tests are explicitely
-// disabled. Here we only define the default value for `needsLargerTests`
+// disabled. Here we only define the default value for `doLargerTests`
 // adjusting it when we check for the actual code changes.
-needsLargerTests = params.FORCE_LARGER_TESTS || params.FORCE_ALL_TESTS
+doLargerTests = params.FORCE_LARGER_TESTS || params.FORCE_ALL_TESTS
 // String with current version (TODO: remove?)
 versionText = "unknown"
 
@@ -154,14 +154,14 @@ ansiColor('xterm') {
                             echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
                             echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
                         """
-                        needsLargerTests = (needsLargerTests || isModified("src/core/(read|csv)/.*")) && !params.DISABLE_ALL_TESTS
-                        if (needsLargerTests) {
+                        doLargerTests = (doLargerTests || isModified("src/core/(read|csv)/.*")) && !params.DISABLE_ALL_TESTS
+                        if (doLargerTests) {
                             env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
                             manager.addBadge("warning.gif", "Large tests required")
                         }
                         sh """
                             set +x
-                            echo 'needsLargerTestss = ${needsLargerTests}'
+                            echo 'doLargerTestss = ${doLargerTests}'
                         """
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
@@ -313,7 +313,7 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py37", "37",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   needsLargerTests)
+                                                   doLargerTests)
                                 }
                             }
                         }
@@ -328,7 +328,7 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py36", "36",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   needsLargerTests)
+                                                   doLargerTests)
                                 }
                             }
                         }
@@ -343,7 +343,7 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py35", "35",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   needsLargerTests)
+                                                   doLargerTests)
                                 }
                             }
                         }
@@ -358,7 +358,7 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py38", "38",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   needsLargerTests)
+                                                   doLargerTests)
                                 }
                             }
                         }
@@ -373,7 +373,7 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py37", "37",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   needsLargerTests)
+                                                   doLargerTests)
                                 }
                             }
                         }
@@ -388,7 +388,7 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py36", "36",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   needsLargerTests)
+                                                   doLargerTests)
                                 }
                             }
                         }
@@ -403,7 +403,7 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py35", "35",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   needsLargerTests)
+                                                   doLargerTests)
                                 }
                             }
                         }
@@ -418,7 +418,7 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py38", "38",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   needsLargerTests)
+                                                   doLargerTests)
                                 }
                             }
                         }
@@ -431,7 +431,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('38', needsLargerTests)
+                                    test_macos('38', doLargerTests)
                                 }
                             }
                         }
@@ -444,7 +444,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('37', needsLargerTests)
+                                    test_macos('37', doLargerTests)
                                 }
                             }
                         }
@@ -457,7 +457,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('36', needsLargerTests)
+                                    test_macos('36', doLargerTests)
                                 }
                             }
                         }
@@ -470,7 +470,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('35', needsLargerTests)
+                                    test_macos('35', doLargerTests)
                                 }
                             }
                         }
@@ -687,7 +687,7 @@ def get_python_for_docker(String pyver, String image) {
 }
 
 
-def test_macos(String pyver, boolean needsLargerTests) {
+def test_macos(String pyver, boolean doLargerTests) {
     try {
         def pyenv = get_env_for_macos(pyver)
         sh """
