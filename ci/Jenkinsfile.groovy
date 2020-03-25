@@ -733,6 +733,11 @@ def isModified(pattern) {
     if (!fList.isEmpty()) {
         out = sh(script: "echo '${fList}' | xargs basename -a | egrep -e '${pattern}' | wc -l", returnStdout: true).trim()
     }
+
+    sh """
+        echo 'out = ${out}'
+    """
+
     return !(out.isEmpty() || out == "0")
 }
 
