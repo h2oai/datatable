@@ -129,7 +129,7 @@ def test_diabetes_tiny_two_sheets_xlsx():
     filename = find_file("h2o-3", "fread", "diabetes_tiny_two_sheets.xlsx")
     DTs = dt.fread(filename)
     assert isinstance(DTs, dict)
-    assert list(DTs.keys()) == ["Sheet1/A1:AY17", "Sheet2/A1:AY17"]
+    assert sorted(list(DTs.keys())) == ["Sheet1/A1:AY17", "Sheet2/A1:AY17"]
     DT1, DT2 = DTs.values()
     assert DT1.shape == DT2.shape == (16, 51)
     assert DT1.stypes == DT2.stypes
