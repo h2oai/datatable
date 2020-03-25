@@ -69,7 +69,7 @@ def get_file_list(*path, skip=None):
                 continue
             if f in rem:
                 continue
-            if f.endswith(".dat.gz") || f.endswith(".tar.gz"):
+            if f.endswith(".dat.gz") or f.endswith(".tar.gz"):
                 continue
             if ("readme" not in filename.lower() and
                     ".svm" not in filename and
