@@ -735,6 +735,8 @@ def isModified(pattern) {
     }
 
     sh """
+        echo 'fList = ${fList}'
+        echo 'pattern = ${pattern}'
         echo 'out = ${out}'
     """
 
