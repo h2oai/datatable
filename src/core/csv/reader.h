@@ -1,20 +1,37 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_READER_h
 #define dt_CSV_READER_h
 #include <memory>           // std::unique_ptr, std::shared_ptr
-#include "buffer.h"       // Buffer
+#include "buffer.h"         // Buffer
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
 #include "read/columns.h"   // dt::read::Columns
-
 class DataTable;
+namespace dt {
+namespace read {
+
+
 using dtptr = std::unique_ptr<DataTable>;
 using strvec = std::vector<std::string>;
 
@@ -95,7 +112,7 @@ class GenericReader
     dt::read::Columns columns;
     double t_open_input{ 0 };
 
-    std::vector<py::oobj> outputs;
+    py::oobj output_;
 
   private:
     py::oobj logger;
@@ -105,6 +122,7 @@ class GenericReader
     py::oobj tempstr;
     py::oobj columns_arg;
     py::olist column_names;
+    py::oobj tempfiles;
 
     // If `trace()` cannot display a message immediately (because it was not
     // sent from the main thread), it will be temporarily stored in this
@@ -117,12 +135,12 @@ class GenericReader
   public:
     GenericReader();
     GenericReader(const GenericReader&);
-    GenericReader(py::robj pyreader);
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
-    py::oobj get_logger() const;
+    py::oobj get_tempfiles() const;
     py::oobj read_all(py::robj pysources);
+    py::oobj read_buffer(const Buffer&, size_t extra_byte);
 
     bool has_next() const;
     py::oobj read_next();
@@ -175,11 +193,13 @@ class GenericReader
     void init_skipstring(const py::Arg&);
     void init_stripwhite(const py::Arg&);
     void init_skipblanks(const py::Arg&);
+    void init_tempdir   (const py::Arg&);
     void init_columns   (const py::Arg&);
     void init_logger    (const py::Arg& arg_logger, const py::Arg& arg_verbose);
 
   protected:
     void open_input();
+    void open_buffer(const Buffer& buf, size_t extra_byte);
     void detect_and_skip_bom();
     void skip_initial_whitespace();
     void skip_trailing_whitespace();
@@ -201,5 +221,5 @@ class GenericReader
 };
 
 
-
+}}  // namespace dt::read
 #endif

@@ -16,11 +16,11 @@
 enum PT : uint8_t;
 enum RT : uint8_t;
 enum class SType : uint8_t;
-class GenericReader;
 
 namespace dt {
 namespace read {
 
+class GenericReader;
 
 /**
  * Information about a single input column in a GenericReader. An "input column"

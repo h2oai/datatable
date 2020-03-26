@@ -7,6 +7,11 @@
   -----
   .. ref-context:: datatable.Frame
 
+  -[new] Property :attr:`Frame.source` will contain the name of the file
+    where the frame was loaded from. If the frame was modified after loading,
+    or if it was created dynamically to begin with, this property will
+    return ``None``.
+
   -[new] The expression ``len(DT)`` now works, and returns the number of
     columns in the Frame. This allows the Frame to be used in contexts where
     an iterable might be expected.

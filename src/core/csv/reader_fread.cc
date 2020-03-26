@@ -15,7 +15,7 @@
 // Initialization
 //------------------------------------------------------------------------------
 
-FreadReader::FreadReader(const GenericReader& g)
+FreadReader::FreadReader(const dt::read::GenericReader& g)
   : GenericReader(g), parsers(parserlib.get_parser_fns()), fo(g)
 {
   size_t input_size = datasize();
@@ -907,7 +907,7 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
 // FreadObserver
 //==============================================================================
 
-FreadObserver::FreadObserver(const GenericReader& g_) : g(g_) {
+FreadObserver::FreadObserver(const dt::read::GenericReader& g_) : g(g_) {
   t_start = wallclock();
   t_initialized = 0;
   t_parse_parameters_detected = 0;

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -37,6 +37,7 @@ class Frame : public XObject<Frame> {
   private:
     DataTable* dt;  // owned (cannot use unique_ptr because this class's
                     // destructor is never called by Python)
+    py::oobj source_;
     mutable PyObject* stypes;  // memoized tuple of stypes
     mutable PyObject* ltypes;  // memoized tuple of ltypes
 
@@ -93,19 +94,21 @@ class Frame : public XObject<Frame> {
     void view(const PKArgs&);
     oobj newview(const PKArgs&);
 
-    oobj get_ncols() const;
-    oobj get_nrows() const;
-    oobj get_ndims() const;
-    oobj get_shape() const;
-    oobj get_stypes() const;
-    oobj get_stype() const;
+    // Getters/setters
+    oobj get_key() const;
     oobj get_ltypes() const;
     oobj get_names() const;
-    oobj get_key() const;
-    void set_nrows(const Arg&);
-    void set_names(const Arg&);
+    oobj get_ncols() const;
+    oobj get_ndims() const;
+    oobj get_nrows() const;
+    oobj get_shape() const;
+    oobj get_source() const;
+    oobj get_stype() const;
+    oobj get_stypes() const;
     void set_key(const Arg&);
-    void set_internal(robj);
+    void set_names(const Arg&);
+    void set_nrows(const Arg&);
+    void set_source(const std::string&);  // internal use only
 
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
@@ -145,7 +148,7 @@ class Frame : public XObject<Frame> {
     class NameProvider;
 
     ~Frame() {}
-    void _clear_types() const;
+    void _clear_types();
     void _init_names() const;
     void _init_inames() const;
     void _fill_default_names();

@@ -93,7 +93,7 @@ def _handle_dt_exception(exc_class, exc, tb):
 
     if col1[-1]:
         out += dim("Traceback (most recent call last):\n")
-        col1len = max(len(line) for line in col1) + 2
+        col1len = max(len(line) for line in col1 if line) + 2
         prev_line = None
         prev_count = 0
         for i, line1 in enumerate(col1):

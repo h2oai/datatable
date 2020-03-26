@@ -35,6 +35,8 @@
 #include "datatable.h"
 #include "encodings.h"
 #include "options.h"
+namespace dt {
+namespace read {
 
 
 //------------------------------------------------------------------------------
@@ -89,30 +91,6 @@ GenericReader::GenericReader()
   cr_is_newline = 0;
 }
 
-
-GenericReader::GenericReader(py::robj pyrdr)
-{
-  sof = nullptr;
-  eof = nullptr;
-  line = 0;
-  cr_is_newline = 0;
-
-  init_logger(    py::Arg(pyrdr.get_attr("_logger"), "Parameter `logger`"),
-                  py::Arg(pyrdr.get_attr("_verbose"), "Parameter `verbose`"));
-  init_nthreads(  py::Arg(pyrdr.get_attr("_nthreads"), "Parameter `nthreads`"));
-  init_fill(      py::Arg(pyrdr.get_attr("_fill"), "Parameter `fill`"));
-  init_maxnrows(  py::Arg(pyrdr.get_attr("_maxnrows"), "Parameter `max_nrows`"));
-  init_skiptoline(py::Arg(pyrdr.get_attr("_skip_to_line"), "Parameter `skip_to_line`"));
-  init_sep(       py::Arg(pyrdr.get_attr("_sep"), "Parameter `sep`"));
-  init_dec(       py::Arg(pyrdr.get_attr("_dec"), "Parameter `dec`"));
-  init_quote(     py::Arg(pyrdr.get_attr("_quotechar"), "Parameter `quotechar`"));
-  init_header(    py::Arg(pyrdr.get_attr("_header"), "Parameter `header`"));
-  init_nastrings( py::Arg(pyrdr.get_attr("_nastrings"), "Parameter `na_strings`"));
-  init_skipstring(py::Arg(pyrdr.get_attr("_skip_to_string"), "Parameter `skip_to_string`"));
-  init_stripwhite(py::Arg(pyrdr.get_attr("_strip_whitespace"), "Parameter `strip_whitespace`"));
-  init_skipblanks(py::Arg(pyrdr.get_attr("_skip_blank_lines"), "Parameter `skip_blank_lines`"));
-  init_columns(   py::Arg(pyrdr.get_attr("_columns"), "Parameter `columns`"));
-}
 
 // Copy-constructor will copy only the essential parts
 GenericReader::GenericReader(const GenericReader& g)
@@ -335,6 +313,13 @@ void GenericReader::init_skipblanks(const py::Arg& arg) {
   trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
 }
 
+void GenericReader::init_tempdir(const py::Arg& arg_tempdir) {
+  auto clsTempFiles = py::oobj::import("datatable.utils.fread", "TempFiles");
+  auto tempdir = arg_tempdir.to_oobj_or_none();
+  tempfiles = logger? clsTempFiles.call({tempdir, logger})
+                    : clsTempFiles.call(tempdir);
+}
+
 void GenericReader::init_columns(const py::Arg& arg) {
   if (arg.is_defined()) {
     columns_arg = arg.to_oobj();
@@ -370,6 +355,9 @@ py::oobj GenericReader::read_all(py::robj pysources)
   fileno   = pysrcs[2].to_int32();
   text_arg = pysrcs[3];
 
+  if (logger) {
+    logger.invoke("debug", py::ostring("[1] Prepare for reading"));
+  }
   job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   open_input();
   bool done = read_jay();
@@ -387,20 +375,51 @@ py::oobj GenericReader::read_all(py::robj pysources)
     read_csv();
   }
 
-  if (outputs.empty()) {
+  if (!output_) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
   }
 
   job->done();
-  return outputs[0];
+  return output_;
+}
+
+
+py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
+{
+  if (logger) {
+    logger.invoke("debug", py::ostring("[1] Prepare for reading"));
+  }
+  open_buffer(buf, extra_byte);
+  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
+  bool done = read_jay();
+
+  if (!done) {
+    detect_and_skip_bom();
+    skip_to_line_number();
+    skip_to_line_with_string();
+    skip_initial_whitespace();
+    skip_trailing_whitespace();
+    job->add_done_amount(WORK_PREPARE);
+
+    read_empty_input() ||
+    detect_improper_files() ||
+    read_csv();
+  }
+
+  if (!output_) {
+    throw RuntimeError() << "Unable to read input " << src_arg.to_string();
+  }
+
+  job->done();
+  return output_;
 }
 
 
 
 //------------------------------------------------------------------------------
 
-py::oobj GenericReader::get_logger() const {
-  return logger;
+py::oobj GenericReader::get_tempfiles() const {
+  return tempfiles;
 }
 
 
@@ -648,6 +667,15 @@ void GenericReader::open_input() {
 }
 
 
+void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
+  input_mbuf = buf;
+  line = 1;
+  sof = static_cast<const char*>(input_mbuf.rptr());
+  eof = sof + input_mbuf.size() - extra_byte;
+  if (eof) xassert(*eof == '\0');
+}
+
+
 /**
  * Check whether the input contains BOM (Byte Order Mark), and if so skip it
  * modifying `sof`. If BOM indicates UTF-16 file, then recode the file into
@@ -788,7 +816,7 @@ bool GenericReader::read_empty_input() {
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
     job->add_done_amount(WORK_READ);
-    outputs.push_back(py::Frame::oframe(new DataTable()));
+    output_ = py::Frame::oframe(new DataTable());
     return true;
   }
   return false;
@@ -828,7 +856,7 @@ bool GenericReader::read_jay() {
     input_mbuf.resize(datasize());
     DataTable* dt = open_jay_from_mbuf(input_mbuf);
     job->add_done_amount(WORK_READ);
-    outputs.push_back(py::Frame::oframe(dt));
+    output_ = py::Frame::oframe(dt);
     return true;
   }
   return false;
@@ -838,7 +866,7 @@ bool GenericReader::read_jay() {
 bool GenericReader::read_csv() {
   auto dt = FreadReader(*this).read_all();
   if (dt) {
-    outputs.push_back(py::Frame::oframe(dt.release()));
+    output_ = py::Frame::oframe(dt.release());
     return true;
   }
   return false;
@@ -902,7 +930,7 @@ dtptr GenericReader::makeDatatable() {
   size_t ncols = columns.size();
   size_t nrows = columns.get_nrows();
   size_t ocols = columns.nColumnsInOutput();
-  std::vector<Column> ccols;
+  std::vector<::Column> ccols;
   ccols.reserve(ocols);
   for (size_t i = 0; i < ncols; ++i) {
     dt::read::Column& col = columns[i];
@@ -911,8 +939,8 @@ dtptr GenericReader::makeDatatable() {
     Buffer strbuf = col.extract_strbuf();
     SType stype = col.get_stype();
     ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
-      ? Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))
-      : Column::new_mbuf_column(nrows, stype, std::move(databuf))
+      ? ::Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))
+      : ::Column::new_mbuf_column(nrows, stype, std::move(databuf))
     );
   }
   if (column_names) {
@@ -921,3 +949,7 @@ dtptr GenericReader::makeDatatable() {
     return dtptr(new DataTable(std::move(ccols), columns.get_names()));
   }
 }
+
+
+
+}}  // namespace dt::read
