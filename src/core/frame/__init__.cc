@@ -686,6 +686,7 @@ Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
 void Frame::m__init__(const PKArgs& args) {
   if (dt) m__dealloc__();
   dt = nullptr;
+  source_ = nullptr;
   stypes = nullptr;
   ltypes = nullptr;
   if (Frame::internal_construction) return;
@@ -729,6 +730,7 @@ void Frame::m__setstate__(const PKArgs& args) {
   const char* data = PyBytes_AS_STRING(_state);
   size_t length = static_cast<size_t>(PyBytes_GET_SIZE(_state));
   dt = open_jay_from_bytes(data, length);
+  source_ = py::ostring("<pickle>");
 }
 
 

@@ -375,12 +375,12 @@ py::oobj GenericReader::read_all(py::robj pysources)
     read_csv();
   }
 
-  if (outputs.empty()) {
+  if (!output_) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
   }
 
   job->done();
-  return outputs[0];
+  return output_;
 }
 
 
@@ -406,12 +406,12 @@ py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
     read_csv();
   }
 
-  if (outputs.empty()) {
+  if (!output_) {
     throw RuntimeError() << "Unable to read input " << src_arg.to_string();
   }
 
   job->done();
-  return outputs[0];
+  return output_;
 }
 
 
@@ -830,7 +830,7 @@ bool GenericReader::read_empty_input() {
   if (size == 0 || (size == 1 && *sof == '\0')) {
     trace("Input is empty, returning a (0 x 0) DataTable");
     job->add_done_amount(WORK_READ);
-    outputs.push_back(py::Frame::oframe(new DataTable()));
+    output_ = py::Frame::oframe(new DataTable());
     return true;
   }
   return false;
@@ -870,7 +870,7 @@ bool GenericReader::read_jay() {
     input_mbuf.resize(datasize());
     DataTable* dt = open_jay_from_mbuf(input_mbuf);
     job->add_done_amount(WORK_READ);
-    outputs.push_back(py::Frame::oframe(dt));
+    output_ = py::Frame::oframe(dt);
     return true;
   }
   return false;
@@ -880,7 +880,7 @@ bool GenericReader::read_jay() {
 bool GenericReader::read_csv() {
   auto dt = FreadReader(*this).read_all();
   if (dt) {
-    outputs.push_back(py::Frame::oframe(dt.release()));
+    output_ = py::Frame::oframe(dt.release());
     return true;
   }
   return false;

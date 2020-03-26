@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -375,14 +375,16 @@ void Frame::m__dealloc__() {
   Py_XDECREF(ltypes);
   delete dt;
   dt = nullptr;
+  source_ = nullptr;
 }
 
 
-void Frame::_clear_types() const {
+void Frame::_clear_types() {
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);
   stypes = nullptr;
   ltypes = nullptr;
+  source_ = nullptr;
 }
 
 
@@ -444,7 +446,7 @@ void Frame::materialize(const PKArgs& args) {
 
 
 //------------------------------------------------------------------------------
-// Getters / setters
+// .ncols
 //------------------------------------------------------------------------------
 
 static GSArgs args_ncols(
@@ -455,6 +457,11 @@ oobj Frame::get_ncols() const {
   return py::oint(dt->ncols());
 }
 
+
+
+//------------------------------------------------------------------------------
+// .nrows
+//------------------------------------------------------------------------------
 
 static GSArgs args_nrows(
   "nrows",
@@ -485,6 +492,10 @@ void Frame::set_nrows(const Arg& nr) {
 
 
 
+//------------------------------------------------------------------------------
+// .shape
+//------------------------------------------------------------------------------
+
 static GSArgs args_shape(
   "shape",
   "Tuple with (nrows, ncols) dimensions of the Frame\n");
@@ -503,6 +514,40 @@ oobj Frame::get_ndims() const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// .source
+//------------------------------------------------------------------------------
+
+static const char* doc_source =
+R"(
+The location of the file where this frame was loaded from.
+
+Parameters
+----------
+(return): str | None
+    If the frame was loaded from a file or similar resource, the
+    name of that file is returned. If the frame was computed, or its
+    data modified, the property will return ``None``.
+)";
+
+static GSArgs args_source("source", doc_source);
+
+oobj Frame::get_source() const {
+  return source_? source_ : py::None();
+}
+
+
+void Frame::set_source(const std::string& src) {
+  source_ = src.empty()? py::None() : py::ostring(src);
+}
+
+
+
+//------------------------------------------------------------------------------
+// .stypes
+//------------------------------------------------------------------------------
+
 static GSArgs args_stypes(
   "stypes",
   "The tuple of each column's stypes (\"storage types\")\n");
@@ -519,6 +564,11 @@ oobj Frame::get_stypes() const {
   return oobj(stypes);
 }
 
+
+
+//------------------------------------------------------------------------------
+// .stype
+//------------------------------------------------------------------------------
 
 static GSArgs args_stype(
   "stype",
@@ -543,6 +593,10 @@ oobj Frame::get_stype() const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// .ltypes
+//------------------------------------------------------------------------------
 
 static GSArgs args_ltypes(
   "ltypes",
@@ -609,13 +663,14 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_tonumpy(xt);
   _init_topython(xt);
 
+  xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
   xt.add(GETTER(&Frame::get_ncols, args_ncols));
+  xt.add(GETTER(&Frame::get_ndims, args_ndims));
   xt.add(GETSET(&Frame::get_nrows, &Frame::set_nrows, args_nrows));
   xt.add(GETTER(&Frame::get_shape, args_shape));
-  xt.add(GETTER(&Frame::get_stypes, args_stypes));
+  xt.add(GETTER(&Frame::get_source, args_source));
   xt.add(GETTER(&Frame::get_stype,  args_stype));
-  xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
-  xt.add(GETTER(&Frame::get_ndims, args_ndims));
+  xt.add(GETTER(&Frame::get_stypes, args_stypes));
 
   xt.add(METHOD(&Frame::head, args_head));
   xt.add(METHOD(&Frame::tail, args_tail));

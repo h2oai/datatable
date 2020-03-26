@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "csv/reader.h"           // GenericReader
+#include "frame/py_frame.h"       // py::Frame
 #include "python/_all.h"          // py::olist
 #include "python/args.h"          // py::PKArgs
 #include "python/string.h"        // py::ostring
@@ -105,7 +106,8 @@ static MultiSource _from_python(py::robj pysource) {
 
   SourceVec out;
   if (result.is_none()) {
-    out.emplace_back(new Source_Python("", sources));
+    auto name = sources.to_otuple()[0].to_string();
+    out.emplace_back(new Source_Python(name, sources));
   }
   else if (result.is_list_or_tuple()) {
     py::olist sources_list = result.to_pylist();
@@ -120,6 +122,11 @@ static MultiSource _from_python(py::robj pysource) {
       } else {
         out.emplace_back(new Source_Result(iname, iresult));
       }
+    }
+  }
+  else if (result.is_dict()) {
+    for (auto kv : result.to_rdict()) {
+      out.emplace_back(new Source_Result(kv.first.to_string(), kv.second));
     }
   }
   else {
@@ -174,14 +181,17 @@ static MultiSource _from_url(py::robj src, const GenericReader& rdr) {
 py::oobj MultiSource::read_all_fread_style(GenericReader& reader) {
   xassert(!sources_.empty());
   if (sources_.size() == 1) {
-    return sources_[0]->read(reader);
+    py::oobj res = sources_[0]->read(reader);
+    res.to_pyframe()->set_source(sources_[0]->name());
+    return res;
   }
   else {
     py::odict result_dict;
     for (auto& src : sources_) {
       GenericReader ireader(reader);
-      result_dict.set(py::ostring(src->name()),
-                      src->read(ireader));
+      py::oobj res = src->read(ireader);
+      res.to_pyframe()->set_source(src->name());
+      result_dict.set(py::ostring(src->name()), res);
     }
     return std::move(result_dict);
   }
