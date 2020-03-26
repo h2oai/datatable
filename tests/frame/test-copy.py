@@ -120,3 +120,14 @@ def test_issue2179(numpy):
     DT2 = copy.deepcopy(DT)
     frame_integrity_check(DT1)
     frame_integrity_check(DT2)
+
+
+def test_copy_source(tempfile):
+    with open(tempfile, "w") as out:
+        out.write("A\n3\n1\n4\n1\n5\n")
+    DT = dt.fread(tempfile)
+    assert DT.source == tempfile
+    copy1 = DT.copy()
+    copy2 = DT.copy(deep=True)
+    assert copy1.source == tempfile
+    assert copy2.source == tempfile

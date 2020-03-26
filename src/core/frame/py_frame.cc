@@ -238,6 +238,7 @@ oobj Frame::copy(const PKArgs& args) {
   Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
+  newframe->source_ = source_;
   return res;
 }
 

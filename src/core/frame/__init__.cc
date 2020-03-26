@@ -367,6 +367,7 @@ class FrameInitializationManager {
         std::swap(frame->dt,      resframe->dt);
         std::swap(frame->stypes,  resframe->stypes);
         std::swap(frame->ltypes,  resframe->ltypes);
+        std::swap(frame->source_, resframe->source_);
       } else {
         xassert(res.is_dict());
         auto err = ValueError();

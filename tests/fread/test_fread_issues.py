@@ -139,6 +139,7 @@ def test_issue_R2351(tempfile):
     with open(tempfile, "wb") as o:
         o.write(text)
     d0 = dt.fread(tempfile)
+    assert d0.source == tempfile
     frame_integrity_check(d0)
     assert d0[:2, :].to_list() == [["id0", "id1"], [0, 38]]
     assert d0[-2:, :].to_list() == [["id99998", "id99999"], [92, 130]]

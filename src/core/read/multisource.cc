@@ -181,17 +181,19 @@ static MultiSource _from_url(py::robj src, const GenericReader& rdr) {
 py::oobj MultiSource::read_all_fread_style(GenericReader& reader) {
   xassert(!sources_.empty());
   if (sources_.size() == 1) {
+    const std::string& name = sources_[0]->name();
     py::oobj res = sources_[0]->read(reader);
-    res.to_pyframe()->set_source(sources_[0]->name());
+    if (!name.empty()) res.to_pyframe()->set_source(name);
     return res;
   }
   else {
     py::odict result_dict;
     for (auto& src : sources_) {
+      const std::string& iname = src->name();
       GenericReader ireader(reader);
       py::oobj res = src->read(ireader);
-      res.to_pyframe()->set_source(src->name());
-      result_dict.set(py::ostring(src->name()), res);
+      if (!iname.empty()) res.to_pyframe()->set_source(iname);
+      result_dict.set(py::ostring(iname), res);
     }
     return std::move(result_dict);
   }

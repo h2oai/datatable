@@ -235,6 +235,7 @@ def _resolve_archive(filename, subpath, tempfiles):
                if not(name.startswith("__MACOSX/") or name.endswith("/"))]
         if subpath:
             if subpath in zff:
+                filename += "/" + subpath
                 zff = [subpath]
             else:
                 raise ValueError("File `%s` does not exist in archive `%s`"
@@ -243,6 +244,7 @@ def _resolve_archive(filename, subpath, tempfiles):
             warnings.warn("Zip file %s contains multiple compressed "
                           "files: %r. Only the first of them will be used."
                           % (filename, zff), category=FreadWarning)
+            filename += "/" + zff[0]
         if len(zff) == 0:
             raise ValueError("Zip file %s is empty" % filename)
         if logger:
