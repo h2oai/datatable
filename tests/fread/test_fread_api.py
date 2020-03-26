@@ -46,6 +46,7 @@ def test_fread_from_file1(tempfile):
     frame_integrity_check(d0)
     assert d0.names == ("A", "B")
     assert d0.to_list() == [[1], [2]]
+    assert d0.source == tempfile
 
 
 def test_fread_from_file2():
@@ -58,11 +59,13 @@ def test_fread_from_text1():
     frame_integrity_check(d0)
     assert d0.names == ("A",)
     assert d0.shape == (0, 1)
+    assert d0.source == "<text>"
 
 
 def test_fread_from_cmd1():
     d0 = dt.fread(cmd="ls -l")
     frame_integrity_check(d0)
+    d0.source == "ls -l"
     # It is difficult to assert anything about the contents or structure
     # of the resulting dataset...
 
@@ -73,6 +76,7 @@ def test_fread_from_cmd2():
     frame_integrity_check(d0)
     assert d0.ncols == 1
     assert d0.nrows >= 12
+    assert d0.source == "ls " + root
     d1 = dt.fread(cmd="cat %s/LICENSE" % root, sep="\n")
     frame_integrity_check(d1)
     assert d1.nrows == 372
@@ -97,6 +101,7 @@ def test_fread_from_url2():
     d0 = dt.fread("file://" + path, sep="\n")
     frame_integrity_check(d0)
     assert d0.shape == (372, 1)
+    assert d0.source == "file://" + path
 
 
 def test_fread_from_anysource_as_text1(capsys):
@@ -105,6 +110,7 @@ def test_fread_from_anysource_as_text1(capsys):
     d0 = dt.fread(src, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
+    assert d0.source == "<text>"
     assert not err
     assert "Input contains '\\x0A', treating it as raw text" in out
 
@@ -137,6 +143,7 @@ def test_fread_from_anysource_as_file1(tempfile, capsys):
     d0 = dt.fread(tempfile, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
+    assert d0.source == tempfile
     assert not err
     assert "Input is assumed to be a file name" in out
 
@@ -152,6 +159,7 @@ def test_fread_from_anysource_as_file2(tempfile, py36):
     frame_integrity_check(d1)
     frame_integrity_check(d2)
     assert d0.to_list() == d1.to_list() == d2.to_list()
+    assert d0.source == d1.source == d2.source == tempfile
 
 
 def test_fread_from_anysource_filelike():
@@ -167,6 +175,7 @@ def test_fread_from_anysource_filelike():
 
     d0 = dt.fread(MyFile())
     frame_integrity_check(d0)
+    assert d0.source == "fake file"
     assert d0.names == ("A", "B", "C")
     assert d0.to_list() == [["a"], ["b"], ["c"]]
 
@@ -175,9 +184,11 @@ def test_fread_from_anysource_as_url(tempfile, capsys):
     assert isinstance(tempfile, str)
     with open(tempfile, "w") as o:
         o.write("A,B\n1,2\n")
-    d0 = dt.fread("file://" + os.path.abspath(tempfile), verbose=True)
+    url = "file://" + os.path.abspath(tempfile)
+    d0 = dt.fread(url, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
+    assert d0.source == url
     assert not err
     assert "Input is a URL" in out
 
@@ -187,6 +198,7 @@ def test_fread_from_stringbuf():
     s = StringIO("A,B,C\n1,2,3\n4,5,6")
     d0 = dt.fread(s)
     frame_integrity_check(d0)
+    assert d0.source == "<file>"
     assert d0.names == ("A", "B", "C")
     assert d0.to_list() == [[1, 4], [2, 5], [3, 6]]
 
@@ -198,6 +210,7 @@ def test_fread_from_fileobj(tempfile):
     with open(tempfile, "r") as f:
         d0 = dt.fread(f)
         frame_integrity_check(d0)
+        assert d0.source == tempfile
         assert d0.names == ("A", "B", "C")
         assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
 
@@ -225,6 +238,7 @@ def test_fread_xz_file(tempfile, capsys):
     d0 = dt.fread(xzfile, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
+    assert d0.source == xzfile
     assert d0.to_list() == [[1, 2, 3]]
     assert not err
     assert ("Extracting %s into memory" % xzfile) in out
@@ -239,6 +253,7 @@ def test_fread_gz_file(tempfile, capsys):
     d0 = dt.fread(gzfile, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
+    assert d0.source == gzfile
     assert d0.to_list() == [[10, 20, 30]]
     assert not err
     assert ("Extracting %s into memory" % gzfile) in out
@@ -254,6 +269,7 @@ def test_fread_bz2_file(tempfile, capsys):
         d0 = dt.fread(bzfile, verbose=True)
         out, err = capsys.readouterr()
         frame_integrity_check(d0)
+        assert d0.source == bzfile
         assert d0.to_list() == [[11, 22, 33]]
         assert not err
         assert ("Extracting %s into memory" % bzfile) in out
@@ -269,6 +285,7 @@ def test_fread_zip_file_1(tempfile, capsys):
     d0 = dt.fread(zfname, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
+    assert d0.source == zfname
     assert d0.names == ("a", "b", "c")
     assert d0.to_list() == [[10, 5], [20, 7], [30, 12]]
     assert not err
@@ -285,11 +302,14 @@ def test_fread_zip_file_multi(tempfile):
         zf.writestr("data3.csv", "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
     with pytest.warns(FreadWarning) as ws:
         d0 = dt.fread(zfname)
-        d1 = dt.fread(zfname + "/data2.csv")
-        d2 = dt.fread(zfname + "/data3.csv")
+    d1 = dt.fread(zfname + "/data2.csv")
+    d2 = dt.fread(zfname + "/data3.csv")
     frame_integrity_check(d0)
     frame_integrity_check(d1)
     frame_integrity_check(d2)
+    assert d0.source == zfname + "/data1.csv"
+    assert d1.source == zfname + "/data2.csv"
+    assert d2.source == zfname + "/data3.csv"
     assert d0.names == ("a", "b", "c")
     assert d1.names == ("A", "B", "C")
     assert d2.names == ("Aa", "Bb", "Cc")
@@ -325,9 +345,8 @@ def test_fread_zip_file_bad2(tempfile):
 
 
 def test_fread_bad_source_none():
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(TypeError, match="No input source"):
         dt.fread()
-    assert "No input source" in str(e.value)
 
 
 def test_fread_bad_source_any_and_source():
@@ -384,11 +403,13 @@ def test_fread_from_glob(tempfile):
         res = dt.fread(pattern)
         assert len(res) == 10
         assert set(res.keys()) == set(tempfiles)
-        for f in res.values():
-            assert isinstance(f, dt.Frame)
-            frame_integrity_check(f)
-            assert f.names == ("A", "B", "C")
-            assert f.shape == (2, 3)
+        for j in range(10):
+            DTj = res[tempfiles[j]]
+            assert isinstance(DTj, dt.Frame)
+            assert DTj.source == tempfiles[j]
+            frame_integrity_check(DTj)
+            assert DTj.names == ("A", "B", "C")
+            assert DTj.shape == (2, 3)
         df = dt.rbind(*[res[f] for f in tempfiles])
         frame_integrity_check(df)
         assert df.names == ("A", "B", "C")
@@ -775,7 +796,7 @@ def test_fread_quotechar_bad():
     with pytest.raises(ValueError):
         dt.fread("A,B\n1,2", quotechar="''")
     with pytest.raises(ValueError):
-        dt.fread("A,B\n1,2", quotechar="\0")
+        dt.fread("A,B\n1,2", quotechar="\x00")
 
 
 

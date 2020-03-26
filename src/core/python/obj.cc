@@ -782,6 +782,14 @@ DataTable* _obj::to_datatable(const error_manager& em) const {
   throw em.error_not_frame(v);
 }
 
+py::Frame* _obj::to_pyframe(const error_manager& em) const {
+  if (v == Py_None) return nullptr;
+  if (is_frame()) {
+    return static_cast<py::Frame*>(v);
+  }
+  throw em.error_not_frame(v);
+}
+
 
 
 SType _obj::to_stype(const error_manager& em) const {

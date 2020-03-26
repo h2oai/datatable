@@ -21,9 +21,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_SOURCE_h
 #define dt_READ_SOURCE_h
-#include <memory>         // std::unique_ptr
-#include <string>         // std::string
-#include "python/_all.h"  // py::oobj
+#include <memory>            // std::unique_ptr
+#include <string>            // std::string
+#include "python/_all.h"     // py::oobj
 namespace dt {
 namespace read {
 
