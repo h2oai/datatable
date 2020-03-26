@@ -64,9 +64,9 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 
 // Larger tests are invoked if forced or if isModified() routine
 // returns `true`, and unless the larger tests are explicitely
-// disabled. Here we only define the default value for `doLargerTests`
+// disabled. Here we only define the default value for `doLargerFreadTests`
 // adjusting it when we check for the actual code changes.
-doLargerTests = params.FORCE_LARGER_TESTS || params.FORCE_ALL_TESTS
+doLargerFreadTests = params.FORCE_LARGER_FREAD_TESTS || params.FORCE_ALL_TESTS
 // String with current version (TODO: remove?)
 versionText = "unknown"
 
@@ -86,13 +86,13 @@ DT_BUILD_NUMBER = ""
 //////////////
 properties([
     parameters([
-        booleanParam(name: 'FORCE_ALL_TESTS',       defaultValue: false, description: '[BUILD] Run all tests (even for PR).'),
-        booleanParam(name: 'DISABLE_ALL_TESTS',     defaultValue: false, description: '[BUILD] Disable all tests.'),
-        booleanParam(name: 'DISABLE_PPC64LE_TESTS', defaultValue: false, description: '[BUILD] Disable PPC64LE tests.'),
-        booleanParam(name: 'FORCE_BUILD_PPC64LE',   defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
-        booleanParam(name: 'DISABLE_COVERAGE',      defaultValue: false, description: '[BUILD] Disable coverage.'),
-        booleanParam(name: 'FORCE_S3_PUSH',         defaultValue: false, description: '[BUILD] Publish to S3 regardless of current branch.'),
-        booleanParam(name: 'FORCE_LARGER_TESTS',    defaultValue: false, description: '[BUILD] Run larger fread tests.')
+        booleanParam(name: 'FORCE_ALL_TESTS',          defaultValue: false, description: '[BUILD] Run all tests (even for PR).'),
+        booleanParam(name: 'DISABLE_ALL_TESTS',        defaultValue: false, description: '[BUILD] Disable all tests.'),
+        booleanParam(name: 'DISABLE_PPC64LE_TESTS',    defaultValue: false, description: '[BUILD] Disable PPC64LE tests.'),
+        booleanParam(name: 'FORCE_BUILD_PPC64LE',      defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
+        booleanParam(name: 'DISABLE_COVERAGE',         defaultValue: false, description: '[BUILD] Disable coverage.'),
+        booleanParam(name: 'FORCE_S3_PUSH',            defaultValue: false, description: '[BUILD] Publish to S3 regardless of current branch.'),
+        booleanParam(name: 'FORCE_LARGER_FREAD_TESTS', defaultValue: false, description: '[BUILD] Run larger fread tests.')
     ]),
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
@@ -154,14 +154,14 @@ ansiColor('xterm') {
                             echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
                             echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
                         """
-                        doLargerTests = (doLargerTests || isModified("src/core/(read|csv)/.*")) && !params.DISABLE_ALL_TESTS
-                        if (doLargerTests) {
+                        doLargerFreadTests = (doLargerFreadTests || isModified("src/core/(read|csv)/.*")) && !params.DISABLE_ALL_TESTS
+                        if (doLargerFreadTests) {
                             env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
-                            manager.addBadge("warning.gif", "Large tests required")
+                            manager.addBadge("warning.gif", "Large fread tests required")
                         }
                         sh """
                             set +x
-                            echo 'doLargerTestss = ${doLargerTests}'
+                            echo 'doLargerFreadTests = ${doLargerFreadTests}'
                         """
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
@@ -313,7 +313,7 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py37", "37",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   doLargerTests)
+                                                   doLargerFreadTests)
                                 }
                             }
                         }
@@ -328,7 +328,7 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py36", "36",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   doLargerTests)
+                                                   doLargerFreadTests)
                                 }
                             }
                         }
@@ -343,7 +343,7 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py35", "35",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   doLargerTests)
+                                                   doLargerFreadTests)
                                 }
                             }
                         }
@@ -358,7 +358,7 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py38", "38",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   doLargerTests)
+                                                   doLargerFreadTests)
                                 }
                             }
                         }
@@ -373,7 +373,7 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py37", "37",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   doLargerTests)
+                                                   doLargerFreadTests)
                                 }
                             }
                         }
@@ -388,7 +388,7 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py36", "36",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   doLargerTests)
+                                                   doLargerFreadTests)
                                 }
                             }
                         }
@@ -403,7 +403,7 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py35", "35",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   doLargerTests)
+                                                   doLargerFreadTests)
                                 }
                             }
                         }
@@ -418,7 +418,7 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py38", "38",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   doLargerTests)
+                                                   doLargerFreadTests)
                                 }
                             }
                         }
@@ -431,7 +431,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('38', doLargerTests)
+                                    test_macos('38', doLargerFreadTests)
                                 }
                             }
                         }
@@ -444,7 +444,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('37', doLargerTests)
+                                    test_macos('37', doLargerFreadTests)
                                 }
                             }
                         }
@@ -457,7 +457,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('36', doLargerTests)
+                                    test_macos('36', doLargerFreadTests)
                                 }
                             }
                         }
@@ -470,7 +470,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('35', doLargerTests)
+                                    test_macos('35', doLargerFreadTests)
                                 }
                             }
                         }
@@ -687,10 +687,11 @@ def get_python_for_docker(String pyver, String image) {
 }
 
 
-def test_macos(String pyver, boolean doLargerTests) {
+def test_macos(String pyver, boolean doLargerFreadTests) {
     try {
         def pyenv = get_env_for_macos(pyver)
         sh """
+            ulimit -c unlimited
             rm -f /tmp/cores/*
             env
             . /Users/jenkins/anaconda/bin/activate ${pyenv}
