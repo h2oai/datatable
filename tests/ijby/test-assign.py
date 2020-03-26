@@ -311,3 +311,28 @@ def test_assign_in_keyed_frame():
     assert DT.key == ("A",)
     DT.key = None
     assert_equals(DT, dt.Frame(A=range(5), B=range(5)))
+
+
+def test_assign_clears_source():
+    DT = dt.fread("A\n1\n2\n3\n")
+    assert DT.source == "<text>"
+    assert DT.stype == dt.int32
+    DT[0, 1] = 1000
+    assert DT.source is None
+    assert DT.stype == dt.int32
+
+
+def test_assign_clears_source2(tempfile):
+    with open(tempfile, "w") as out:
+        out.write("foo,bar\n3,4\n")
+    DT = dt.fread(tempfile)
+    assert DT.source == tempfile
+    DT[0, 1] = -1
+    assert DT.source is None
+
+
+def test_assign_clears_source3():
+    DT = dt.fread("A\n1\n2\n3\n")
+    assert DT.source == "<text>"
+    DT['N'] = True
+    assert DT.source is None

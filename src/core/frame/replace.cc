@@ -182,6 +182,7 @@ void Frame::replace(const PKArgs& args) {
     }
   }
   if (ra.types_changed()) _clear_types();
+  source_ = nullptr;
 }
 
 
