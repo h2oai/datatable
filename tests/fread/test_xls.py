@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #-------------------------------------------------------------------------------
+import os
 import pytest
 import random
 import datatable as dt
@@ -95,6 +96,7 @@ def test__excel_coords_to_range2d(seed):
 def test_10k_diabetes_xlsx():
     filename = find_file("h2o-3", "fread", "10k_diabetes.xlsx")
     DT = dt.fread(filename)
+    assert DT.source == filename
     assert DT.shape == (10000, 51)
     assert DT.names[:4] == ("race", "gender", "age", "weight")
     assert DT["readmitted"].stype == dt.bool8
@@ -105,6 +107,7 @@ def test_10k_diabetes_xlsx():
 def test_large_ids_xlsx():
     filename = find_file("h2o-3", "fread", "large_ids.xlsx")
     DT = dt.fread(filename)
+    assert DT.source == filename
     assert DT.shape == (53493, 3)
     assert DT.stypes == (dt.int32, dt.int32, dt.int32)
     assert DT.names == ("C1", "member_id", "loan_amnt")
@@ -114,6 +117,7 @@ def test_large_ids_xlsx():
 def test_set_xls_new_xlsx():
     filename = find_file("h2o-3", "fread", "test_set_xls_new.xlsx")
     DT = dt.fread(filename)
+    assert DT.source == filename
     assert DT.shape == (7, 1)
     assert DT.names == ("Data",)
     assert DT.to_list()[0] == ['2019-05-06 00:00:00',
@@ -129,8 +133,11 @@ def test_diabetes_tiny_two_sheets_xlsx():
     filename = find_file("h2o-3", "fread", "diabetes_tiny_two_sheets.xlsx")
     DTs = dt.fread(filename)
     assert isinstance(DTs, dict)
-    assert list(DTs.keys()) == ["Sheet1/A1:AY17", "Sheet2/A1:AY17"]
+    assert list(DTs.keys()) == [filename + "/Sheet1/A1:AY17",
+                                filename + "/Sheet2/A1:AY17"]
     DT1, DT2 = DTs.values()
+    assert DT1.source == filename + "/Sheet1/A1:AY17"
+    assert DT2.source == filename + "/Sheet2/A1:AY17"
     assert DT1.shape == DT2.shape == (16, 51)
     assert DT1.stypes == DT2.stypes
     assert DT1.to_list() == DT2.to_list()
@@ -140,6 +147,7 @@ def test_winemag_data_rate_wine_xlsx():
     filename = find_file("h2o-3", "fread", "winemag-data_rate_wine.xlsx")
     DT = dt.fread(filename)
     dt.internal.frame_integrity_check(DT)
+    assert DT.source == filename
     assert DT.shape == (2007, 9)
     assert DT.names == ('Sno', 'country', 'description', 'designation', 'points',
                         'price', 'province', 'variety', 'winery')
@@ -152,6 +160,7 @@ def test_winemag_data_rate_wine_xlsx():
 def test_excel_testbook_xlsx_1():
     filename = find_file("h2o-3", "fread", "excelTestbook.xlsx")
     DT1 = dt.fread(filename + "/Sheet1")
+    assert DT1.source == os.path.abspath(filename) + "/Sheet1"
     assert_equals(DT1, dt.Frame([("Apples", 50),
                                  ("Oranges", 20),
                                  ("Bananas", 60),
@@ -162,6 +171,7 @@ def test_excel_testbook_xlsx_1():
 def test_excel_testbook_xlsx_2():
     filename = find_file("h2o-3", "fread", "excelTestbook.xlsx")
     DT2 = dt.fread(filename + "/Sheet2")
+    assert DT2.source == os.path.abspath(filename) + "/Sheet2"
     assert_equals(DT2, dt.Frame(day=["today", "tomorrow", "yes\nter\nday",
                                      "everyday"]))
 
@@ -169,6 +179,7 @@ def test_excel_testbook_xlsx_2():
 def test_excel_testbook_xlsx_3():
     filename = find_file("h2o-3", "fread", "excelTestbook.xlsx")
     DT3 = dt.fread(filename + "/big sheet")
+    assert DT3.source == os.path.abspath(filename) + "/big sheet"
     assert DT3.shape == (20, 2)
     assert DT3.names == ("date1", "time1")
     assert DT3['date1'].to_list()[0] == ["2020-01-%02d 00:00:00" % i
@@ -181,6 +192,7 @@ def test_excel_testbook_xlsx_3():
 def test_excel_testbook_xlsx_4():
     filename = find_file("h2o-3", "fread", "excelTestbook.xlsx")
     DT3 = dt.fread(filename + "/next sheet")
+    assert DT3.source == os.path.abspath(filename) + "/next sheet"
     assert DT3.stypes == (dt.bool8, dt.int32, dt.bool8, dt.int32, dt.float64)
     assert DT3.names == ("colA", "colB", "colC", "colD", "colE")
     assert DT3.to_list() == [
@@ -194,6 +206,7 @@ def test_excel_testbook_xlsx_4():
 def test_excel_testbook_xlsx_5():
     filename = find_file("h2o-3", "fread", "excelTestbook.xlsx")
     DT3 = dt.fread(filename + "/ragged/B2:E8")
+    assert DT3.source == os.path.abspath(filename) + "/ragged/B2:E8"
     assert DT3.names == ("a", "C0", "b", "c")
     assert DT3.stype == dt.int32
     assert DT3.to_list() == [[None, 7, None, None, 0, None],

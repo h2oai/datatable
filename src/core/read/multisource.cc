@@ -103,10 +103,10 @@ static MultiSource _from_python(py::robj pysource) {
   auto res_tuple = pysource.to_otuple();
   auto sources = res_tuple[0];
   auto result = res_tuple[1];
+  auto name = sources.to_otuple()[0].to_string();
 
   SourceVec out;
   if (result.is_none()) {
-    auto name = sources.to_otuple()[0].to_string();
     out.emplace_back(new Source_Python(name, sources));
   }
   else if (result.is_list_or_tuple()) {
@@ -130,7 +130,7 @@ static MultiSource _from_python(py::robj pysource) {
     }
   }
   else {
-    out.emplace_back(new Source_Result("", result));
+    out.emplace_back(new Source_Result(name, result));
   }
   return MultiSource(std::move(out));
 }
