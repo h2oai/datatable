@@ -95,7 +95,7 @@ static py::oobj fread(const py::PKArgs& args) {
   (void) arg_encoding;
 
   MultiSource multisource(args, rdr);
-  return multisource.read_all_fread_style(rdr);
+  return multisource.read_single(rdr);
 }
 
 

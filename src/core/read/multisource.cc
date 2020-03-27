@@ -183,32 +183,25 @@ static SourceVec _from_url(py::robj src, const GenericReader& rdr) {
 // Process sources, and return the results
 //------------------------------------------------------------------------------
 
-py::oobj MultiSource::read_all_fread_style(GenericReader& reader) {
+py::oobj MultiSource::read_single(const GenericReader& reader) {
   xassert(!sources_.empty());
-  if (sources_.size() == 1) {
-    const std::string& name = sources_[0]->name();
-    py::oobj res = sources_[0]->read(reader);
-    if (!name.empty()) res.to_pyframe()->set_source(name);
-    return res;
+  xassert(iteration_index == 0);
+  py::oobj res = read_next(reader);
+  if (iteration_index < sources_.size()) {
+    auto w = IOWarning();
+    w << "fread() input contains multiple sources, only the first will be "
+         "used. Use iread() if you need to read all sources";
+    w.emit();
   }
-  else {
-    py::odict result_dict;
-    for (auto& src : sources_) {
-      const std::string& iname = src->name();
-      GenericReader ireader(reader);
-      py::oobj res = src->read(ireader);
-      if (!iname.empty()) res.to_pyframe()->set_source(iname);
-      result_dict.set(py::ostring(iname), res);
-    }
-    return std::move(result_dict);
-  }
+  return res;
 }
 
 
-py::oobj MultiSource::read_next(GenericReader& reader) {
+py::oobj MultiSource::read_next(const GenericReader& reader) {
   if (iteration_index >= sources_.size()) return py::oobj();
+  GenericReader new_reader(reader);
   auto& src = sources_[iteration_index];
-  py::oobj res = src->read(reader);
+  py::oobj res = src->read(new_reader);
   py::Frame::cast_from(res)->set_source(src->name());
   SourcePtr next = src->continuation();
   if (next) {

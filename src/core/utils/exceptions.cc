@@ -46,6 +46,7 @@ static py::oobj DtExc_OverflowError;
 static py::oobj DtExc_TypeError;
 static py::oobj DtExc_ValueError;
 static py::oobj DtWrn_DatatableWarning;
+static py::oobj DtWrn_IOWarning;
 
 static void init() {
   static bool initialized = false;
@@ -62,6 +63,7 @@ static void init() {
   DtExc_TypeError             = dx.get_attr("TypeError");
   DtExc_ValueError            = dx.get_attr("ValueError");
   DtWrn_DatatableWarning      = dx.get_attr("DatatableWarning");
+  DtWrn_IOWarning             = dx.get_attr("IOWarning");
   initialized = true;
 }
 
@@ -317,7 +319,6 @@ void Warning::emit() {
 }
 
 
-Warning DatatableWarning()  { init(); return Warning(DtWrn_DatatableWarning); }
-// Note, DeprecationWarnings are ignored by default in python
 Warning DeprecationWarning() { return Warning(PyExc_FutureWarning); }
-
+Warning DatatableWarning()   { init(); return Warning(DtWrn_DatatableWarning); }
+Warning IOWarning()          { init(); return Warning(DtWrn_IOWarning); }

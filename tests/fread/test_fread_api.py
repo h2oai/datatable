@@ -400,17 +400,21 @@ def test_fread_from_glob(tempfile):
             with open(tempfiles[j], "w") as f:
                 f.write("A,B,C\n0,0,0\n%d,%d,%d\n"
                         % (j, j * 2 + 1, (j + 3) * 17 % 23))
-        res = dt.fread(pattern)
+        res = dt.iread(pattern)
+        assert res.__class__.__name__ == "read_iterator"
+        res = list(res)
         assert len(res) == 10
-        assert set(res.keys()) == set(tempfiles)
+        assert set(DTj.source for DTj in res) == set(tempfiles)
+        # The glob pattern tempfile*.csv may have returned the files in a
+        # shuffled order, need to sort them back from 0 to 9:
+        res = sorted(res, key=lambda DTj: DTj.source)
         for j in range(10):
-            DTj = res[tempfiles[j]]
+            DTj = res[j]
             assert isinstance(DTj, dt.Frame)
-            assert DTj.source == tempfiles[j]
             frame_integrity_check(DTj)
             assert DTj.names == ("A", "B", "C")
             assert DTj.shape == (2, 3)
-        df = dt.rbind(*[res[f] for f in tempfiles])
+        df = dt.rbind(res)
         frame_integrity_check(df)
         assert df.names == ("A", "B", "C")
         assert df.shape == (20, 3)

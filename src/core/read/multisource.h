@@ -76,8 +76,8 @@ class MultiSource
     MultiSource(SourcePtr&&);
     MultiSource(const py::PKArgs&, const GenericReader&);
 
-    py::oobj read_all_fread_style(GenericReader&);
-    py::oobj read_next(GenericReader&);
+    py::oobj read_single(const GenericReader&);
+    py::oobj read_next(const GenericReader&);
 };
 
 
