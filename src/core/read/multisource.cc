@@ -69,7 +69,13 @@ MultiSource::MultiSource(const py::PKArgs& args, const GenericReader& rdr)
               src_text.is_defined() +
               src_cmd.is_defined() +
               src_url.is_defined();
-  if (total > 1) {
+  if (total != 1) {
+    if (total == 0) {
+      throw TypeError()
+          << "No input source for " << fnname
+          << " was given. Please specify one of the parameters "
+             "`file`, `text`, `url`, or `cmd`";
+    }
     std::vector<const char*> extra_args;
     if (src_file.is_defined()) extra_args.push_back("file");
     if (src_text.is_defined()) extra_args.push_back("text");
@@ -92,12 +98,6 @@ MultiSource::MultiSource(const py::PKArgs& args, const GenericReader& rdr)
   if (src_text.is_defined()) sources_ = _from_text(src_text, rdr);
   if (src_cmd.is_defined())  sources_ = _from_cmd(src_cmd.to_oobj(), rdr);
   if (src_url.is_defined())  sources_ = _from_url(src_url.to_oobj(), rdr);
-  if (sources_.empty()) {
-    throw TypeError()
-        << "No input source for " << fnname
-        << " was given. Please specify one of the parameters "
-           "`file`, `text`, `url`, or `cmd`";
-  }
 }
 
 
@@ -197,8 +197,10 @@ static Warning _multisrc_warning() {
 
 // for fread
 py::oobj MultiSource::read_single(const GenericReader& reader) {
-  xassert(!sources_.empty());
   xassert(iteration_index == 0);
+  if (sources_.empty()) {
+    return py::Frame::oframe(new DataTable);
+  }
 
   bool err = (reader.multisource_strategy == FreadMultiSourceStrategy::Error);
   bool warn = (reader.multisource_strategy == FreadMultiSourceStrategy::Warn);

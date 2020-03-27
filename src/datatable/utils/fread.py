@@ -250,19 +250,19 @@ def _resolve_archive(filename, subpath, tempfiles):
             else:
                 raise ValueError("File `%s` does not exist in archive `%s`"
                                  % (subpath, filename))
-        if len(zff) > 1:
-            warnings.warn("Zip file %s contains multiple compressed "
-                          "files: %r. Only the first of them will be used."
-                          % (filename, zff), category=FreadWarning)
-            filename += "/" + zff[0]
-        if len(zff) == 0:
-            raise ValueError("Zip file %s is empty" % filename)
-        if logger:
-            logger.debug("Extracting %s to temporary directory %s"
-                              % (filename, tempfiles.tempdir))
-        newfile = zf.extract(zff[0], path=tempfiles.tempdir)
-        tempfiles.add(newfile)
-        out_file = newfile
+        extracted_files = []
+        for zf_file in zff:
+            if logger:
+                logger.debug("Extracting %s/%s to temporary directory %s"
+                             % (filename, zf_file, tempfiles.tempdir))
+            newfile = zf.extract(zf_file, path=tempfiles.tempdir)
+            srcname = filename + "/" + zf_file
+            tempfiles.add(newfile)
+            extracted_files.append(((srcname, newfile, None, None), None))
+        if len(extracted_files) == 1:
+            out_file = extracted_files[0][0][1]
+        else:
+            return (None, None, None, None), extracted_files
 
     elif ext == ".gz":
         import gzip

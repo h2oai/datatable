@@ -29,7 +29,7 @@ import pytest
 import datatable as dt
 import os
 from datatable import ltype, stype
-from datatable.exceptions import FreadWarning, DatatableWarning
+from datatable.exceptions import FreadWarning, DatatableWarning, IOWarning
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
@@ -289,7 +289,7 @@ def test_fread_zip_file_1(tempfile, capsys):
     assert d0.names == ("a", "b", "c")
     assert d0.to_list() == [[10, 5], [20, 7], [30, 12]]
     assert not err
-    assert ("Extracting %s to temporary directory" % zfname) in out
+    assert ("Extracting %s/data1.csv to temporary directory" % zfname) in out
     os.unlink(zfname)
 
 
@@ -300,7 +300,9 @@ def test_fread_zip_file_multi(tempfile):
         zf.writestr("data1.csv", "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
         zf.writestr("data2.csv", "A,B,C\n3,4,5\n6,7,8\n")
         zf.writestr("data3.csv", "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
-    with pytest.warns(FreadWarning) as ws:
+    msg = r"fread\(\) input contains multiple sources, only the first " \
+          r"will be used"
+    with pytest.warns(IOWarning, match=msg):
         d0 = dt.fread(zfname)
     d1 = dt.fread(zfname + "/data2.csv")
     d2 = dt.fread(zfname + "/data3.csv")
@@ -316,9 +318,6 @@ def test_fread_zip_file_multi(tempfile):
     assert d0.to_list() == [["foo", "gee"], ["bar", "jou"], ["baz", "sha"]]
     assert d1.to_list() == [[3, 6], [4, 7], [5, 8]]
     assert d2.to_list() == [[True, False], [1.5, 1e20], ["", "yay"]]
-    assert len(ws) == 1
-    assert ("Zip file %s contains multiple compressed files"
-            % zfname) in ws[0].message.args[0]
     os.unlink(zfname)
 
 
@@ -327,9 +326,10 @@ def test_fread_zip_file_bad1(tempfile):
     zfname = tempfile + ".zip"
     with zipfile.ZipFile(zfname, "x"):
         pass
-    with pytest.raises(ValueError) as e:
-        dt.fread(zfname)
-    assert ("Zip file %s is empty" % zfname) in str(e.value)
+    DT = dt.fread(zfname)
+    assert_equals(DT, dt.Frame())
+    DTs = list(dt.iread(zfname))
+    assert len(DTs) == 0
     os.unlink(zfname)
 
 
