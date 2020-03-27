@@ -123,7 +123,7 @@ def _resolve_source_any(src, tempfiles):
     elif isinstance(src, _pathlike) or hasattr(src, "read"):
         return _resolve_source_file(src, tempfiles)
     elif isinstance(src, (list, tuple)):
-        return _resolve_source_list_of_files(src, tempfiles)
+        return _resolve_source_list(src, tempfiles)
     else:
         raise TypeError("Unknown type for the first argument in fread: %r"
                         % type(src))
@@ -213,6 +213,16 @@ def _resolve_source_list_of_files(files_list, tempfiles):
         files.append(entry)
     # src, file, fileno, text, result
     return (None, None, None, None), files
+
+
+def _resolve_source_list(srcs_list, tempfiles):
+    out = []
+    for s in srcs_list:
+        if s is None: continue
+        entry = _resolve_source_any(s, tempfiles)
+        out.append(entry)
+    # src, file, fileno, text, result
+    return (None, None, None, None), out
 
 
 def _resolve_archive(filename, subpath, tempfiles):

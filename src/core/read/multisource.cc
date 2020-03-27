@@ -183,18 +183,35 @@ static SourceVec _from_url(py::robj src, const GenericReader& rdr) {
 // Process sources, and return the results
 //------------------------------------------------------------------------------
 
+static Error _multisrc_error() {
+  return IOError() << "fread() input contains multiple sources";
+}
+
+static Warning _multisrc_warning() {
+  Warning w = IOWarning();
+  w << "fread() input contains multiple sources, only the first will be used. "
+       "Use iread() if you need to read all sources";
+  return w;
+}
+
+
+// for fread
 py::oobj MultiSource::read_single(const GenericReader& reader) {
   xassert(!sources_.empty());
   xassert(iteration_index == 0);
+
+  bool err = (reader.multisource_strategy == FreadMultiSourceStrategy::Error);
+  bool warn = (reader.multisource_strategy == FreadMultiSourceStrategy::Warn);
+  if (sources_.size() > 1 && err) throw _multisrc_error();
+
   py::oobj res = read_next(reader);
   if (iteration_index < sources_.size()) {
-    auto w = IOWarning();
-    w << "fread() input contains multiple sources, only the first will be "
-         "used. Use iread() if you need to read all sources";
-    w.emit();
+    if (err) throw _multisrc_error();
+    if (warn) _multisrc_warning().emit();
   }
   return res;
 }
+
 
 
 py::oobj MultiSource::read_next(const GenericReader& reader) {

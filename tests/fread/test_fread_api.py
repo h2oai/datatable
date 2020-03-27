@@ -31,7 +31,7 @@ import os
 from datatable import ltype, stype
 from datatable.exceptions import FreadWarning, DatatableWarning
 from datatable.internal import frame_integrity_check
-
+from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
@@ -712,6 +712,40 @@ def test_sep_invalid4(c):
         dt.fread("A,,B\n", sep=c)
     strc = '\\x60' if c == '`' else c
     assert "Separator %s is not allowed" % strc == str(e.value)
+
+
+
+#-------------------------------------------------------------------------------
+# `multiple_sources`
+#-------------------------------------------------------------------------------
+
+def test_multiple_sources_invalid():
+    msg = r"Argument multiple_sources in fread\(\) should be a string, " \
+          r"instead got <class 'bool'>"
+    with pytest.raises(TypeError, match=msg):
+        dt.fread("foo", multiple_sources=True)
+
+    msg = r"Argument multiple_sources in fread\(\) got invalid value WARN"
+    with pytest.raises(ValueError, match=msg):
+        dt.fread("foo", multiple_sources="WARN")
+
+
+def test_multiple_sources_warn():
+    with pytest.warns(dt.exceptions.IOWarning):
+        DT = dt.fread([None, "a\n2", "a\n3"], multiple_sources="warn")
+    assert_equals(DT, dt.Frame(a=[2]))
+
+
+def test_multiple_source_error():
+    msg = r"fread\(\) input contains multiple sources"
+    with pytest.raises(dt.exceptions.IOError, match=msg):
+        DT = dt.fread([None, "a\n2", "a\n3"], multiple_sources="error")
+
+
+def test_multiple_source_ignore():
+    DT = dt.fread([None, "a\n2", "a\n3"], multiple_sources="ignore")
+    assert_equals(DT, dt.Frame(a=[2]))
+
 
 
 

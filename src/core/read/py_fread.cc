@@ -39,18 +39,18 @@ R"(fread(anysource=None, *, file=None, text=None, cmd=None, url=None,
          na_strings=None, verbose=False, fill=False, encoding=None,
          skip_to_string=None, skip_to_line=None, skip_blank_lines=False,
          strip_whitespace=True, quotechar='"', save_to=None,
-         tempdir=None, nthreads=None, logger=None)
+         tempdir=None, nthreads=None, logger=None, multiple_sources="warn")
 --
 
 )";
 
 static py::PKArgs args_fread(
-  1, 0, 22, false, false,
+  1, 0, 23, false, false,
   {"anysource", "file", "text", "cmd", "url",
    "columns", "sep", "dec", "max_nrows", "header", "na_strings",
    "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
    "skip_blank_lines", "strip_whitespace", "quotechar", "save_to",
-   "tempdir", "nthreads", "logger"
+   "tempdir", "nthreads", "logger", "multiple_sources"
    },
   "fread", doc_fread);
 
@@ -74,6 +74,7 @@ static py::oobj fread(const py::PKArgs& args) {
   const py::Arg& arg_tempdir    = args[k++];
   const py::Arg& arg_nthreads   = args[k++];
   const py::Arg& arg_logger     = args[k++];
+  const py::Arg& arg_multisrc   = args[k++];
 
   GenericReader rdr;
   rdr.init_logger(     arg_logger, arg_verbose);
@@ -91,6 +92,7 @@ static py::oobj fread(const py::PKArgs& args) {
   rdr.init_skipblanks( arg_skipblanks);
   rdr.init_columns(    arg_columns);
   rdr.init_tempdir(    arg_tempdir);
+  rdr.init_multisource(arg_multisrc);
   (void) arg_saveto;
   (void) arg_encoding;
 

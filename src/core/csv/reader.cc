@@ -89,6 +89,7 @@ GenericReader::GenericReader()
   eof = nullptr;
   line = 0;
   cr_is_newline = 0;
+  multisource_strategy = FreadMultiSourceStrategy::Warn;
 }
 
 
@@ -102,11 +103,14 @@ GenericReader::GenericReader(const GenericReader& g)
   dec              = g.dec;
   quote            = g.quote;
   max_nrows        = g.max_nrows;
+  multisource_strategy = g.multisource_strategy;
   skip_to_line     = 0;  // this parameter was already applied
   na_strings       = g.na_strings;
   header           = g.header;
   strip_whitespace = g.strip_whitespace;
   skip_blank_lines = g.skip_blank_lines;
+  skip_to_string   = g.skip_to_string;
+  skip_to_line     = g.skip_to_line;
   fill             = g.fill;
   blank_is_na      = g.blank_is_na;
   number_is_na     = g.number_is_na;
@@ -230,6 +234,17 @@ void GenericReader::init_header(const py::Arg& arg) {
   } else {
     header = arg.to_bool_strict();
     trace("header = %s", header? "True" : "False");
+  }
+}
+
+void GenericReader::init_multisource(const py::Arg& arg) {
+  auto str = arg.to<std::string>("");
+  if (str == "")            multisource_strategy = FreadMultiSourceStrategy::Warn;
+  else if (str == "warn")   multisource_strategy = FreadMultiSourceStrategy::Warn;
+  else if (str == "error")  multisource_strategy = FreadMultiSourceStrategy::Error;
+  else if (str == "ignore") multisource_strategy = FreadMultiSourceStrategy::Ignore;
+  else {
+    throw ValueError() << arg.name() << " got invalid value " << str;
   }
 }
 

@@ -35,6 +35,14 @@ namespace read {
 using dtptr = std::unique_ptr<DataTable>;
 using strvec = std::vector<std::string>;
 
+// What fread() should do if the input contains multiple sources
+enum class FreadMultiSourceStrategy : int8_t {
+  Warn,
+  Error,
+  Ignore,
+};
+
+
 /**
  * GenericReader: base class for reading text files in multiple formats. This
  * class attempts to parse different formats in turn, until it succeeds.
@@ -85,7 +93,8 @@ class GenericReader
     bool    fill;
     bool    blank_is_na;
     bool    number_is_na;
-    int : 16;
+    FreadMultiSourceStrategy multisource_strategy;
+    int : 8;
     std::string skip_to_string;
     const char** na_strings;
     strvec  na_strings_container;
@@ -181,21 +190,22 @@ class GenericReader
 
   // Helper functions
   public:
-    void init_nthreads  (const py::Arg&);
-    void init_fill      (const py::Arg&);
-    void init_maxnrows  (const py::Arg&);
-    void init_skiptoline(const py::Arg&);
-    void init_sep       (const py::Arg&);
-    void init_dec       (const py::Arg&);
-    void init_quote     (const py::Arg&);
-    void init_header    (const py::Arg&);
-    void init_nastrings (const py::Arg&);
-    void init_skipstring(const py::Arg&);
-    void init_stripwhite(const py::Arg&);
-    void init_skipblanks(const py::Arg&);
-    void init_tempdir   (const py::Arg&);
-    void init_columns   (const py::Arg&);
-    void init_logger    (const py::Arg& arg_logger, const py::Arg& arg_verbose);
+    void init_columns    (const py::Arg&);
+    void init_dec        (const py::Arg&);
+    void init_fill       (const py::Arg&);
+    void init_header     (const py::Arg&);
+    void init_logger     (const py::Arg& arg_logger, const py::Arg& arg_verbose);
+    void init_maxnrows   (const py::Arg&);
+    void init_multisource(const py::Arg&);
+    void init_nastrings  (const py::Arg&);
+    void init_nthreads   (const py::Arg&);
+    void init_quote      (const py::Arg&);
+    void init_sep        (const py::Arg&);
+    void init_skipblanks (const py::Arg&);
+    void init_skipstring (const py::Arg&);
+    void init_skiptoline (const py::Arg&);
+    void init_stripwhite (const py::Arg&);
+    void init_tempdir    (const py::Arg&);
 
   protected:
     void open_input();
