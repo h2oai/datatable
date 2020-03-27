@@ -31,12 +31,12 @@ namespace read {
 using SourcePtr = std::unique_ptr<Source>;
 using SourceVec = std::vector<SourcePtr>;
 
-static MultiSource _from_python(py::robj);
-static MultiSource _from_any(py::robj, const GenericReader&);
-static MultiSource _from_file(py::robj, const GenericReader&);
-static MultiSource _from_text(const py::Arg&, const GenericReader&);
-static MultiSource _from_cmd(py::robj, const GenericReader&);
-static MultiSource _from_url(py::robj, const GenericReader&);
+static SourceVec _from_python(py::robj);
+static SourceVec _from_any(py::robj, const GenericReader&);
+static SourceVec _from_file(py::robj, const GenericReader&);
+static SourceVec _from_text(const py::Arg&, const GenericReader&);
+static SourceVec _from_cmd(py::robj, const GenericReader&);
+static SourceVec _from_url(py::robj, const GenericReader&);
 
 
 //------------------------------------------------------------------------------
@@ -44,18 +44,20 @@ static MultiSource _from_url(py::robj, const GenericReader&);
 //------------------------------------------------------------------------------
 
 MultiSource::MultiSource(SourceVec&& srcs)
-  : sources_(std::move(srcs)) {}
+  : sources_(std::move(srcs)),
+    iteration_index(0) {}
 
 
 MultiSource::MultiSource(SourcePtr&& src) {
-  sources_.push_back(std::move(src));
+  sources_.emplace_back(std::move(src));
+  iteration_index = 0;
 }
 
 
 // Main MultiSource constructor
-MultiSource MultiSource::from_args(const py::PKArgs& args,
-                                   const GenericReader& rdr)
+MultiSource::MultiSource(const py::PKArgs& args, const GenericReader& rdr)
 {
+  iteration_index = 0;
   const char* fnname = args.get_long_name();
   const py::Arg& src_any  = args[0];
   const py::Arg& src_file = args[1];
@@ -85,21 +87,22 @@ MultiSource MultiSource::from_args(const py::PKArgs& args,
     }
   }
 
-  if (src_any.is_defined())  return _from_any(src_any.to_oobj(), rdr);
-  if (src_file.is_defined()) return _from_file(src_file.to_oobj(), rdr);
-  if (src_text.is_defined()) return _from_text(src_text, rdr);
-  if (src_cmd.is_defined())  return _from_cmd(src_cmd.to_oobj(), rdr);
-  if (src_url.is_defined())  return _from_url(src_url.to_oobj(), rdr);
-
-  throw TypeError()
-      << "No input source for " << fnname
-      << " was given. Please specify one of the parameters "
-         "`file`, `text`, `url`, or `cmd`";
+  if (src_any.is_defined())  sources_ = _from_any(src_any.to_oobj(), rdr);
+  if (src_file.is_defined()) sources_ = _from_file(src_file.to_oobj(), rdr);
+  if (src_text.is_defined()) sources_ = _from_text(src_text, rdr);
+  if (src_cmd.is_defined())  sources_ = _from_cmd(src_cmd.to_oobj(), rdr);
+  if (src_url.is_defined())  sources_ = _from_url(src_url.to_oobj(), rdr);
+  if (sources_.empty()) {
+    throw TypeError()
+        << "No input source for " << fnname
+        << " was given. Please specify one of the parameters "
+           "`file`, `text`, `url`, or `cmd`";
+  }
 }
 
 
 // temporary helper function
-static MultiSource _from_python(py::robj pysource) {
+static SourceVec _from_python(py::robj pysource) {
   auto res_tuple = pysource.to_otuple();
   auto sources = res_tuple[0];
   auto result = res_tuple[1];
@@ -132,40 +135,42 @@ static MultiSource _from_python(py::robj pysource) {
   else {
     out.emplace_back(new Source_Result(name, result));
   }
-  return MultiSource(std::move(out));
+  return out;
 }
 
 
-static MultiSource _from_any(py::robj src, const GenericReader& rdr) {
+static SourceVec _from_any(py::robj src, const GenericReader& rdr) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_any");
   auto tempfiles = rdr.get_tempfiles();
   return _from_python(resolver.call({src, tempfiles}));
 }
 
 
-static MultiSource _from_file(py::robj src, const GenericReader& rdr) {
+static SourceVec _from_file(py::robj src, const GenericReader& rdr) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_file");
   auto tempfiles = rdr.get_tempfiles();
   return _from_python(resolver.call({src, tempfiles}));
 }
 
 
-static MultiSource _from_text(const py::Arg& src, const GenericReader&) {
+static SourceVec _from_text(const py::Arg& src, const GenericReader&) {
   if (!(src.is_string() || src.is_bytes())) {
     throw TypeError() << "Invalid parameter `text` in fread: expected "
                          "str or bytes, got " << src.typeobj();
   }
-  return MultiSource(SourcePtr(new Source_Text(src.to_oobj())));
+  SourceVec out;
+  out.emplace_back(new Source_Text(src.to_oobj()));
+  return out;
 }
 
 
-static MultiSource _from_cmd(py::robj src, const GenericReader&) {
+static SourceVec _from_cmd(py::robj src, const GenericReader&) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_cmd");
   return _from_python(resolver.call({src}));
 }
 
 
-static MultiSource _from_url(py::robj src, const GenericReader& rdr) {
+static SourceVec _from_url(py::robj src, const GenericReader& rdr) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_url");
   auto tempfiles = rdr.get_tempfiles();
   return _from_python(resolver.call({src, tempfiles}));
@@ -198,6 +203,22 @@ py::oobj MultiSource::read_all_fread_style(GenericReader& reader) {
     return std::move(result_dict);
   }
 }
+
+
+py::oobj MultiSource::read_next(GenericReader& reader) {
+  if (iteration_index >= sources_.size()) return py::oobj();
+  auto& src = sources_[iteration_index];
+  py::oobj res = src->read(reader);
+  py::Frame::cast_from(res)->set_source(src->name());
+  SourcePtr next = src->continuation();
+  if (next) {
+    sources_[iteration_index] = std::move(next);
+  } else {
+    iteration_index++;
+  }
+  return res;
+}
+
 
 
 

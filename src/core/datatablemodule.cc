@@ -43,6 +43,7 @@
 #include "progress/_options.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "read/py_read_iterator.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "utils/terminal/terminal.h"
@@ -433,6 +434,8 @@ extern "C" {
 
       py::Frame::init_type(m);
       py::Ftrl::init_type(m);
+      py::ReadIterator::init_type(m);
+
       dt::init_config_option(m);
       py::oby::init(m);
       py::ojoin::init(m);
