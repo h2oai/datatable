@@ -46,8 +46,9 @@ void parse_bool8_numeric(FreadTokenizer& ctx) {
   // *ch=='0' => d=0,
   // *ch=='1' => d=1,
   // *ch==(everything else) => d>1
-  uint8_t d = static_cast<uint8_t>(*ch - '0');
-  if (ch < ctx.eof && d <= 1) {
+  uint8_t d = (ch < ctx.eof)? static_cast<uint8_t>(*ch - '0') : uint8_t(-1);
+
+  if (d <= 1) {
     ctx.target->int8 = static_cast<int8_t>(d);
     ctx.ch = ch + 1;
   } else {
@@ -114,8 +115,9 @@ void parse_int_simple(FreadTokenizer& ctx) {
   constexpr uint64_t MAX_VALUE = std::numeric_limits<T>::max();
   constexpr T NA_VALUE = std::numeric_limits<T>::min();
   const char* ch = ctx.ch;
-  bool negative = (*ch == '-');
-  ch += (negative || *ch == '+');
+  bool negative = (ch < ctx.eof) && (*ch == '-');
+
+  ch += (negative || ((ch < ctx.eof) && (*ch == '+')));
   const char* start = ch;     // to check if at least one digit is present
   uint64_t value = 0;         // value accumulator
   uint8_t  digit;             // current digit being read
@@ -165,10 +167,10 @@ void parse_int_simple(FreadTokenizer& ctx) {
 template <typename T>
 void parse_intNN_grouped(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
-  bool quoted = (*ch == ctx.quote);
+  bool quoted = (ch < ctx.eof) && (*ch == ctx.quote);
   ch += quoted;
-  bool negative = (*ch == '-');
-  ch += (negative || *ch == '+');
+  bool negative = (ch < ctx.eof) && (*ch == '-');
+  ch += (negative || ((ch < ctx.eof) && (*ch == '+')));
 
   const char thsep = quoted || ctx.sep != ','? ',' : '\xFF';
   const char* start = ch;  // to check if at least one digit is present
@@ -234,10 +236,13 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
 
 void parse_float32_hex(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
-  uint32_t neg;
+  uint32_t neg = 0;
   uint8_t digit;
   bool Eneg, subnormal = 0;
-  ch += (neg = (*ch=='-')) + (*ch=='+');
+
+  if (ch < ctx.eof) {
+    ch += (neg = (*ch=='-')) + (*ch=='+');
+  }
 
   if (ch + 2 < ctx.eof && ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') &&
       (ch[2]=='1' || (subnormal = (ch[2]=='0')))) {
@@ -429,16 +434,21 @@ void parse_float64_simple(FreadTokenizer& ctx) {
  */
 void parse_float64_extended(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
-  uint64_t neg;
-  bool quoted;
-  ch += (quoted = (*ch==ctx.quote));
-  ch += (neg = (*ch=='-')) + (*ch=='+');
+  uint64_t neg = 0;
+  bool quoted = 0;
+
+  if (ch < ctx.eof) {
+    ch += (quoted = (*ch==ctx.quote));
+    if (ch < ctx.eof) {
+      ch += (neg = (*ch=='-')) + (*ch=='+');
+    }
+  }
 
   if (ch + 2 < ctx.eof && ch[0]=='n' && ch[1]=='a' && ch[2]=='n' && (ch += 3)) goto return_nan;
   if (ch + 2 < ctx.eof && ch[0]=='i' && ch[1]=='n' && ch[2]=='f' && (ch += 3)) goto return_inf;
   if (ch + 2 < ctx.eof && ch[0]=='I' && ch[1]=='N' && ch[2]=='F' && (ch += 3)) goto return_inf;
   if (ch + 2 < ctx.eof && ch[0]=='I' && ch[1]=='n' && ch[2]=='f' && (ch += 3)) {
-    if (ch + 3 < ctx.eof && ch[0]=='i' && ch[1]=='n' && ch[2]=='i' && ch[3]=='t' && ch[4]=='y') ch += 5;
+    if (ch + 4 < ctx.eof && ch[0]=='i' && ch[1]=='n' && ch[2]=='i' && ch[3]=='t' && ch[4]=='y') ch += 5;
     goto return_inf;
   }
   if (ch + 2 < ctx.eof && ch[0]=='N' && (ch[1]=='A' || ch[1]=='a') && ch[2]=='N' && (ch += 3)) {
@@ -474,7 +484,7 @@ void parse_float64_extended(FreadTokenizer& ctx) {
   return_na:
     ctx.target->uint64 = NA_FLOAT64_I64;
   ok:
-    if (quoted && *ch!=ctx.quote) {
+    if (quoted && (ch < ctx.eof) && (*ch!=ctx.quote)) {
       ctx.target->uint64 = NA_FLOAT64_I64;
     } else {
       ctx.ch = ch + quoted;
@@ -510,10 +520,13 @@ void parse_float64_extended(FreadTokenizer& ctx) {
  */
 void parse_float64_hex(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
-  uint64_t neg;
+  uint64_t neg = 0;
   uint8_t digit;
   bool Eneg, subnormal = 0;
-  ch += (neg = (*ch=='-')) + (*ch=='+');
+
+  if (ch < ctx.eof) {
+    ch += (neg = (*ch=='-')) + (*ch=='+');
+  }
 
   if (ch + 2 < ctx.eof && ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') &&
       (ch[2]=='1' || (subnormal = (ch[2]=='0')))) {
