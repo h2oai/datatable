@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,56 +19,82 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "read/read_source.h"
+#ifndef dt_READ_SOURCE_h
+#define dt_READ_SOURCE_h
+#include <memory>            // std::unique_ptr
+#include <string>            // std::string
+#include "python/_all.h"     // py::oobj
 namespace dt {
 namespace read {
 
+class GenericReader;
 
-class ReadSourceImpl {
+
+/**
+  * Single input source for *read functions. This is a base abstract
+  * class, with different implementations.
+  *
+  * The objects of this class are used by the MultiSource class only.
+  */
+class Source
+{
+  private:
+    std::string name_;
+
   public:
-    ReadSourceImpl() = default;
-    virtual ~ReadSourceImpl() = default;
+    Source(const std::string& name);
+    virtual ~Source();
+
+    const std::string& name() const;
+
+    virtual py::oobj read(GenericReader& reader) = 0;
+
+    virtual std::unique_ptr<Source> continuation();
 };
 
 
-class Text_ReadSource : public ReadSourceImpl {
+
+//------------------------------------------------------------------------------
+// Implementations
+//------------------------------------------------------------------------------
+
+// temporary
+class Source_Python : public Source
+{
   private:
     py::oobj src_;
-    CString  text_;
 
   public:
-    Text_ReadSource(py::oobj src)
-      : src_(src), text_(src.to_cstring()) {}
+    Source_Python(const std::string& name, py::oobj src);
+    py::oobj read(GenericReader&) override;
+};
+
+
+// temporary
+class Source_Result : public Source
+{
+  private:
+    py::oobj result_;
+
+  public:
+    Source_Result(const std::string& name, py::oobj res);
+    py::oobj read(GenericReader&) override;
 };
 
 
 
+class Source_Text : public Source
+{
+  private:
+    py::oobj src_;
 
-//------------------------------------------------------------------------------
-// ReadSource
-//------------------------------------------------------------------------------
+  public:
+    Source_Text(py::robj textsrc);
+    py::oobj read(GenericReader&) override;
+};
 
-ReadSource::ReadSource() = default;
-ReadSource::ReadSource(ReadSource&&) = default;
-ReadSource::~ReadSource() = default;
-
-ReadSource::ReadSource(ReadSourceImpl* impl)
-  : impl_(std::move(impl)) {}
-
-
-ReadSource ReadSource::from_text(py::oobj src) {
-  return ReadSource(new Text_ReadSource(src));
-}
-
-
-py::oobj ReadSource::read_one() {
-  return py::None();
-}
-
-py::oobj ReadSource::read_all() {
-  return py::None();
-}
 
 
 
 }}  // namespace dt::read
+#endif

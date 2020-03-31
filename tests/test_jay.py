@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2019 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -47,6 +47,7 @@ def test_jay_simple(tempfile_jay):
     with open(tempfile_jay, "rb") as inp:
         assert inp.read(8) == b"JAY1\x00\x00\x00\x00"
     dt1 = dt.Frame(tempfile_jay)
+    assert dt1.source == tempfile_jay
     assert_equals(dt0, dt1)
 
 
@@ -55,6 +56,8 @@ def test_open(tempfile_jay):
     DT.to_jay(tempfile_jay)
     with pytest.warns(FutureWarning):
         DT2 = dt.open(tempfile_jay)
+    assert DT.source is None
+    assert DT2.source == tempfile_jay
     assert_equals(DT, DT2)
 
 
@@ -68,6 +71,8 @@ def test_fread(tempfile_jay):
         f1 = dt.fread(tempfile_jay)
         f2 = dt.fread(tempfile_joy)
         assert_equals(f1, f2)
+        assert f1.source == tempfile_jay
+        assert f2.source == tempfile_joy
     finally:
         os.remove(tempfile_joy)
 
@@ -78,6 +83,7 @@ def test_jay_empty_string_col(tempfile_jay):
     assert os.path.isfile(tempfile_jay)
     dt1 = dt.Frame(tempfile_jay)
     assert_equals(dt0, dt1)
+    assert dt1.source == tempfile_jay
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -91,6 +97,7 @@ def test_jay_view(tempfile_jay, seed):
     assert os.path.isfile(tempfile_jay)
     dt2 = dt.fread(tempfile_jay)
     assert not isview(dt2)
+    assert dt2.source == tempfile_jay
     frame_integrity_check(dt1)
     frame_integrity_check(dt2)
     assert dt1.names == dt2.names
@@ -106,6 +113,7 @@ def test_jay_unicode_names(tempfile_jay):
     dt1 = dt.fread(tempfile_jay)
     assert dt0.names == dt1.names
     assert_equals(dt0, dt1)
+    assert dt1.source == tempfile_jay
 
 
 def test_jay_object_columns(tempfile_jay):
@@ -121,6 +129,7 @@ def test_jay_object_columns(tempfile_jay):
     frame_integrity_check(d1)
     assert d1.names == ("A",)
     assert d1.to_list() == [src1]
+    assert d1.source == tempfile_jay
 
 
 def test_jay_empty_frame(tempfile_jay):
@@ -130,6 +139,7 @@ def test_jay_empty_frame(tempfile_jay):
     d1 = dt.fread(tempfile_jay)
     assert d1.shape == (0, 0)
     assert d1.names == tuple()
+    assert d1.source == tempfile_jay
 
 
 def test_jay_all_types(tempfile_jay):
@@ -155,6 +165,7 @@ def test_jay_all_types(tempfile_jay):
     assert os.path.isfile(tempfile_jay)
     d1 = dt.fread(tempfile_jay)
     assert_equals(d0, d1)
+    assert d1.source == tempfile_jay
 
 
 def test_jay_keys(tempfile_jay):
@@ -167,6 +178,7 @@ def test_jay_keys(tempfile_jay):
     d0.to_jay(tempfile_jay)
     d1 = dt.fread(tempfile_jay)
     assert d1.key == ("x",)
+    assert d1.source == tempfile_jay
     assert_equals(d0, d1)
 
 
@@ -185,6 +197,7 @@ def test_pickle(tempfile):
     assert DT.to_list() == DT2.to_list()
     assert DT.names == DT2.names
     assert DT.stypes == DT2.stypes
+    assert DT2.source == "<pickle>"
 
 
 def test_pickle2(tempfile):
@@ -221,3 +234,4 @@ def test_pickle_keyed_frame(tempfile):
     assert DT.stypes == DT2.stypes
     assert DT.to_list() == DT2.to_list()
     assert DT.key == DT2.key
+    assert DT2.source == "<pickle>"

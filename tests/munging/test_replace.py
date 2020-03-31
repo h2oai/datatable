@@ -400,6 +400,15 @@ def test_replace_in_view2():
     assert DT.to_list() == [names]
 
 
+def test_replace_clears_source(tempfile):
+    dt.Frame(range(100)).to_jay(tempfile)
+    DT = dt.fread(tempfile)
+    assert DT.source == tempfile
+    DT.replace(5, None)
+    assert DT.source is None
+
+
+
 #-------------------------------------------------------------------------------
 # Replacing in a keyed frame
 #-------------------------------------------------------------------------------

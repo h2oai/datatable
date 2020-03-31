@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -238,6 +238,7 @@ oobj Frame::copy(const PKArgs& args) {
   Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
+  newframe->source_ = source_;
   return res;
 }
 
@@ -375,14 +376,16 @@ void Frame::m__dealloc__() {
   Py_XDECREF(ltypes);
   delete dt;
   dt = nullptr;
+  source_ = nullptr;
 }
 
 
-void Frame::_clear_types() const {
+void Frame::_clear_types() {
   Py_XDECREF(stypes);
   Py_XDECREF(ltypes);
   stypes = nullptr;
   ltypes = nullptr;
+  source_ = nullptr;
 }
 
 
@@ -444,7 +447,7 @@ void Frame::materialize(const PKArgs& args) {
 
 
 //------------------------------------------------------------------------------
-// Getters / setters
+// .ncols
 //------------------------------------------------------------------------------
 
 static GSArgs args_ncols(
@@ -455,6 +458,11 @@ oobj Frame::get_ncols() const {
   return py::oint(dt->ncols());
 }
 
+
+
+//------------------------------------------------------------------------------
+// .nrows
+//------------------------------------------------------------------------------
 
 static GSArgs args_nrows(
   "nrows",
@@ -485,6 +493,10 @@ void Frame::set_nrows(const Arg& nr) {
 
 
 
+//------------------------------------------------------------------------------
+// .shape
+//------------------------------------------------------------------------------
+
 static GSArgs args_shape(
   "shape",
   "Tuple with (nrows, ncols) dimensions of the Frame\n");
@@ -503,6 +515,54 @@ oobj Frame::get_ndims() const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// .source
+//------------------------------------------------------------------------------
+
+static const char* doc_source =
+R"(
+The name of the file where this frame was loaded from.
+
+This is a read-only property that describes the origin of the frame.
+When a frame is loaded from a Jay or CSV file, this property will
+contain the name of that file. Similarly, if the frame was opened
+from a URL or a from a shell command, the source will report the
+original URL / the command.
+
+Certain sources may be converted into a Frame only partially,
+in such case the ``source`` property will attempt to reflect this
+fact. For example, when opening a multi-file zip archive, the
+source will contain the name of the file within the archive.
+Similarly, when opening an XLS file with several worksheets, the
+source property will contain the name of the XLS file, the name of
+the worksheet, and possibly even the range of cells that were read.
+
+Parameters
+----------
+(return): str | None
+    If the frame was loaded from a file or similar resource, the
+    name of that file is returned. If the frame was computed, or its
+    data modified, the property will return ``None``.
+)";
+
+static GSArgs args_source("source", doc_source);
+
+oobj Frame::get_source() const {
+  return source_? source_ : py::None();
+}
+
+
+void Frame::set_source(const std::string& src) {
+  source_ = src.empty()? py::None() : py::ostring(src);
+}
+
+
+
+//------------------------------------------------------------------------------
+// .stypes
+//------------------------------------------------------------------------------
+
 static GSArgs args_stypes(
   "stypes",
   "The tuple of each column's stypes (\"storage types\")\n");
@@ -519,6 +579,11 @@ oobj Frame::get_stypes() const {
   return oobj(stypes);
 }
 
+
+
+//------------------------------------------------------------------------------
+// .stype
+//------------------------------------------------------------------------------
 
 static GSArgs args_stype(
   "stype",
@@ -543,6 +608,10 @@ oobj Frame::get_stype() const {
 }
 
 
+
+//------------------------------------------------------------------------------
+// .ltypes
+//------------------------------------------------------------------------------
 
 static GSArgs args_ltypes(
   "ltypes",
@@ -609,13 +678,14 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_tonumpy(xt);
   _init_topython(xt);
 
+  xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
   xt.add(GETTER(&Frame::get_ncols, args_ncols));
+  xt.add(GETTER(&Frame::get_ndims, args_ndims));
   xt.add(GETSET(&Frame::get_nrows, &Frame::set_nrows, args_nrows));
   xt.add(GETTER(&Frame::get_shape, args_shape));
-  xt.add(GETTER(&Frame::get_stypes, args_stypes));
+  xt.add(GETTER(&Frame::get_source, args_source));
   xt.add(GETTER(&Frame::get_stype,  args_stype));
-  xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
-  xt.add(GETTER(&Frame::get_ndims, args_ndims));
+  xt.add(GETTER(&Frame::get_stypes, args_stypes));
 
   xt.add(METHOD(&Frame::head, args_head));
   xt.add(METHOD(&Frame::tail, args_tail));

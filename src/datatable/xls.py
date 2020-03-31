@@ -22,6 +22,11 @@ import re
 def read_xls_workbook(filename, subpath):
     try:
         import xlrd
+        # Fixes the warning
+        # "PendingDeprecationWarning: This method will be removed in future
+        #  versions.  Use 'tree.iter()' or 'list(tree.iter())' instead."
+        xlrd.xlsx.ensure_elementtree_imported(False, None)
+        xlrd.xlsx.Element_has_iter = True
     except ImportError:
         raise dt.exceptions.ImportError(
             "Module `xlrd` is required in order to read Excel file '%s'"
@@ -49,7 +54,7 @@ def read_xls_workbook(filename, subpath):
             if out is None:
                 continue
             for i, frame in out.items():
-                result["%s/%s" % (ws.name, i)] = frame
+                result["%s/%s/%s" % (filename, ws.name, i)] = frame
 
     if len(result) == 0:
         return None
