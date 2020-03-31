@@ -312,8 +312,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py37", "37",
-                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   doLargerFreadTests)
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
                         }
@@ -327,8 +326,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py36", "36",
-                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   doLargerFreadTests)
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
                         }
@@ -342,8 +340,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py35", "35",
-                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   doLargerFreadTests)
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
                         }
@@ -357,8 +354,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py38", "38",
-                                                   DOCKER_IMAGE_X86_64_MANYLINUX,
-                                                   doLargerFreadTests)
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
                         }
@@ -372,8 +368,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py37", "37",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   doLargerFreadTests)
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
                         }
@@ -387,8 +382,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py36", "36",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   doLargerFreadTests)
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
                         }
@@ -402,8 +396,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py35", "35",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   doLargerFreadTests)
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
                         }
@@ -417,8 +410,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py38", "38",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX,
-                                                   doLargerFreadTests)
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
                         }
@@ -431,7 +423,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('38', doLargerFreadTests)
+                                    test_macos('38')
                                 }
                             }
                         }
@@ -444,7 +436,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('37', doLargerFreadTests)
+                                    test_macos('37')
                                 }
                             }
                         }
@@ -457,7 +449,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('36', doLargerFreadTests)
+                                    test_macos('36')
                                 }
                             }
                         }
@@ -470,7 +462,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('35', doLargerFreadTests)
+                                    test_macos('35')
                                 }
                             }
                         }
@@ -615,10 +607,7 @@ ansiColor('xterm') {
 // docker_image
 //     Name of the docker container where the tests will be run
 //
-// larg_tests
-//     If true, then datatable "large fread tests" will be run as well
-//
-def test_in_docker(String testtag, String pyver, String docker_image, boolean large_tests) {
+def test_in_docker(String testtag, String pyver, String docker_image) {
     sh """
         rm -rf build/test-reports
         rm -rf build/cores
@@ -635,7 +624,7 @@ def test_in_docker(String testtag, String pyver, String docker_image, boolean la
         docker_args += "-e HOME=/tmp "  // this dir has write permission for all users
         docker_args += "-v `pwd`:/dt "
         docker_args += "-v `pwd`/build/cores:/tmp/cores "
-        if (large_tests) {
+        if (doLargerFreadTests) {
             LINK_MAP.each { key, value ->
                 docker_args += "-v /home/0xdiag/${key}:/data/${value} "
             }
@@ -687,7 +676,7 @@ def get_python_for_docker(String pyver, String image) {
 }
 
 
-def test_macos(String pyver, boolean doLargerFreadTests) {
+def test_macos(String pyver) {
     try {
         def pyenv = get_env_for_macos(pyver)
         sh """
