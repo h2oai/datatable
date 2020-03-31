@@ -308,9 +308,12 @@ void parse_float64_simple(FreadTokenizer& ctx) {
   constexpr int MAX_DIGITS = 18;
   const char* ch = ctx.ch;
 
-  bool neg, Eneg;
+  bool neg = 0, Eneg = 0;
   double r;
-  ch += (neg = *ch=='-') + (*ch=='+');
+
+  if (ch < ctx.eof) {
+    ch += (neg = *ch=='-') + (*ch=='+');
+  }
 
   const char* start = ch; // beginning of the number, without the initial sign
   uint_fast64_t acc = 0;  // mantissa NNN.MMM as a single 64-bit integer NNNMMM
@@ -334,12 +337,12 @@ void parse_float64_simple(FreadTokenizer& ctx) {
   // we will read and discard those extra digits, but only if they are followed
   // by a decimal point (otherwise it's a just big integer, which should be
   // treated as a string instead of losing precision).
-  if (sflimit == 0 && static_cast<uint_fast8_t>(*ch - '0') < 10) {
-    while (static_cast<uint_fast8_t>(*ch - '0') < 10) {
+  if (ch < ctx.eof && sflimit == 0 && static_cast<uint_fast8_t>(*ch - '0') < 10) {
+    while (ch < ctx.eof && static_cast<uint_fast8_t>(*ch - '0') < 10) {
       ch++;
       e++;
     }
-    if (*ch != ctx.dec) goto fail;
+    if (ch == ctx.eof || *ch != ctx.dec) goto fail;
   }
 
   // Read the fractional part of the number, if it's present
@@ -347,7 +350,7 @@ void parse_float64_simple(FreadTokenizer& ctx) {
     ch++;  // skip the dot
     // If the integer part was 0, then leading zeros in the fractional part do
     // not count against the number's precision: skip them.
-    if (*ch == '0' && acc == 0) {
+    if (ch < ctx.eof && *ch == '0' && acc == 0) {
       int_fast32_t k = 0;
       while (ch + k < ctx.eof && ch[k] == '0') k++;
       ch += k;
@@ -355,7 +358,7 @@ void parse_float64_simple(FreadTokenizer& ctx) {
     }
     // Now read the significant digits in the fractional part of the number
     int_fast32_t k = 0;
-    while (ch < ctx.eof && (digit = static_cast<uint_fast8_t>(ch[k] - '0')) < 10 && sflimit) {
+    while (ch + k < ctx.eof && (digit = static_cast<uint_fast8_t>(ch[k] - '0')) < 10 && sflimit) {
       acc = 10*acc + digit;
       k++;
       sflimit--;
@@ -379,7 +382,10 @@ void parse_float64_simple(FreadTokenizer& ctx) {
 
   // Now scan the "exponent" part of the number (if present)
   if (ch < ctx.eof && (*ch == 'E' || *ch == 'e')) {
-    ch += 1/*E*/ + (Eneg = (ch[1]=='-')) + (ch[1]=='+');
+
+    if (ch + 1 < ctx.eof) {
+      ch += 1/*E*/ + (Eneg = (ch[1]=='-')) + (ch[1]=='+');
+    }
     int_fast32_t exp = 0;
     if (ch < ctx.eof && (digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
       exp = digit;

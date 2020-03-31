@@ -691,7 +691,6 @@ def test_macos(String pyver, boolean doLargerFreadTests) {
     try {
         def pyenv = get_env_for_macos(pyver)
         sh """
-            ulimit -c unlimited
             rm -f /tmp/cores/*
             env
             . /Users/jenkins/anaconda/bin/activate ${pyenv}
