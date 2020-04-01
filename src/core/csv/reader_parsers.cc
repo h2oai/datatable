@@ -46,7 +46,7 @@ void parse_bool8_numeric(FreadTokenizer& ctx) {
   // *ch=='0' => d=0,
   // *ch=='1' => d=1,
   // *ch==(everything else) => d>1
-  uint8_t d = (ch < ctx.eof)? static_cast<uint8_t>(*ch - '0') : uint8_t(-1);
+  uint8_t d = ch < ctx.eof? static_cast<uint8_t>(*ch - '0') : uint8_t(-1);
 
   if (d <= 1) {
     ctx.target->int8 = static_cast<int8_t>(d);
@@ -115,9 +115,9 @@ void parse_int_simple(FreadTokenizer& ctx) {
   constexpr uint64_t MAX_VALUE = std::numeric_limits<T>::max();
   constexpr T NA_VALUE = std::numeric_limits<T>::min();
   const char* ch = ctx.ch;
-  bool negative = (ch < ctx.eof) && (*ch == '-');
+  bool negative = ch < ctx.eof && *ch == '-';
 
-  ch += (negative || ((ch < ctx.eof) && (*ch == '+')));
+  ch += negative || (ch < ctx.eof && *ch == '+');
   const char* start = ch;     // to check if at least one digit is present
   uint64_t value = 0;         // value accumulator
   uint8_t  digit;             // current digit being read
@@ -167,10 +167,10 @@ void parse_int_simple(FreadTokenizer& ctx) {
 template <typename T>
 void parse_intNN_grouped(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
-  bool quoted = (ch < ctx.eof) && (*ch == ctx.quote);
+  bool quoted = ch < ctx.eof && *ch == ctx.quote;
   ch += quoted;
-  bool negative = (ch < ctx.eof) && (*ch == '-');
-  ch += (negative || ((ch < ctx.eof) && (*ch == '+')));
+  bool negative = ch < ctx.eof && *ch == '-';
+  ch += (negative || (ch < ctx.eof && *ch == '+'));
 
   const char thsep = quoted || ctx.sep != ','? ',' : '\xFF';
   const char* start = ch;  // to check if at least one digit is present
@@ -185,7 +185,7 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
     ch++;
     sf++;
     gr++;
-    if (*ch == thsep) {
+    if (ch < ctx.eof && *ch == thsep) {
       if (gr > 3 || (gr < 3 && gr != sf)) goto fail;
       gr = 0;  // restart the digit group
       ch++;    // skip over the thousands separator
@@ -196,7 +196,7 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
   if (gr != 3 && gr != sf) goto fail;
   // Check that a quoted field properly ends with a quote
   if (quoted) {
-    if (*ch != ctx.quote) goto fail;
+    if ((ch < ctx.eof && *ch != ctx.quote) || ch == ctx.eof) goto fail;
     ch++;
   } else {
     // Make sure we do not confuse field separator with thousands separator when
@@ -238,7 +238,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   uint32_t neg = 0;
   uint8_t digit;
-  bool Eneg, subnormal = 0;
+  bool Eneg = 0, subnormal = 0;
 
   if (ch < ctx.eof) {
     ch += (neg = (*ch=='-')) + (*ch=='+');
@@ -248,7 +248,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
       (ch[2]=='1' || (subnormal = (ch[2]=='0')))) {
     ch += 3;
     uint32_t acc = 0;
-    if (*ch == '.') {
+    if (ch < ctx.eof && *ch == '.') {
       ch++;
       int ndigits = 0;
       while (ch < ctx.eof && (digit = dt::read::hexdigits[static_cast<uint8_t>(*ch)]) < 16) {
@@ -260,8 +260,13 @@ void parse_float32_hex(FreadTokenizer& ctx) {
       acc <<= 24 - ndigits * 4;
       acc >>= 1;
     }
-    if (*ch!='p' && *ch!='P') goto fail;
-    ch += 1 + (Eneg = ch[1]=='-') + (ch[1]=='+');
+    if ((ch < ctx.eof && *ch!='p' && *ch!='P') || ch == ctx.eof) goto fail;
+
+    if (ch + 1 < ctx.eof) {
+      ch += (Eneg = ch[1]=='-') + (ch[1]=='+');
+    }
+    ch += 1;
+
     uint32_t E = 0;
     while (ch < ctx.eof && (digit = static_cast<uint8_t>(*ch - '0')) < 10 ) {
       E = 10*E + digit;
@@ -389,8 +394,10 @@ void parse_float64_simple(FreadTokenizer& ctx) {
   if (ch < ctx.eof && (*ch == 'E' || *ch == 'e')) {
 
     if (ch + 1 < ctx.eof) {
-      ch += 1/*E*/ + (Eneg = (ch[1]=='-')) + (ch[1]=='+');
+      ch += (Eneg = (ch[1]=='-')) + (ch[1]=='+');
     }
+    ch += 1/*E*/;
+
     int_fast32_t exp = 0;
     if (ch < ctx.eof && (digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
       exp = digit;
@@ -484,7 +491,7 @@ void parse_float64_extended(FreadTokenizer& ctx) {
   return_na:
     ctx.target->uint64 = NA_FLOAT64_I64;
   ok:
-    if (quoted && (ch < ctx.eof) && (*ch!=ctx.quote)) {
+    if (quoted && ((ch < ctx.eof && *ch!=ctx.quote) || ch == ctx.eof)) {
       ctx.target->uint64 = NA_FLOAT64_I64;
     } else {
       ctx.ch = ch + quoted;
@@ -522,7 +529,7 @@ void parse_float64_hex(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg = 0;
   uint8_t digit;
-  bool Eneg, subnormal = 0;
+  bool Eneg = 0, subnormal = 0;
 
   if (ch < ctx.eof) {
     ch += (neg = (*ch=='-')) + (*ch=='+');
@@ -544,7 +551,13 @@ void parse_float64_hex(FreadTokenizer& ctx) {
       acc <<= (13 - ndigits) * 4;
     }
     if (ch < ctx.eof && *ch!='p' && *ch!='P') goto fail;
-    ch += 1 + (Eneg = (ch[1]=='-')) + (ch[1]=='+');
+
+
+    if (ch + 1 < ctx.eof) {
+      ch += (Eneg = (ch[1]=='-')) + (ch[1]=='+');
+    }
+    ch += 1;
+
     uint64_t E = 0;
     while (ch < ctx.eof && (digit = static_cast<uint8_t>(*ch - '0')) < 10 ) {
       E = 10*E + digit;
