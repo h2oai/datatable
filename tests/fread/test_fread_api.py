@@ -431,6 +431,35 @@ def test_fread_from_glob(tempfile):
 
 
 #-------------------------------------------------------------------------------
+# iread()
+#-------------------------------------------------------------------------------
+
+def test_iread_simple():
+    sources = ["A\n1", "A\n2\n3\n", "A\n3\n4\n5"]
+    for i, DT in enumerate(dt.iread(sources)):
+        assert isinstance(DT, dt.Frame)
+        assert DT.source == "<text>"
+        assert DT.names == ("A",)
+        assert DT.shape == (i + 1, 1)
+        assert DT.to_list() == [list(range(i+1, 2*(i+1)))]
+
+
+def test_iread_error():
+    sources = ["A\n1", "A,B\n1,2\n3,4,5\n", "D\n"]
+    with pytest.warns(dt.exceptions.IOWarning):
+        DTs = list(dt.iread(sources))
+        assert len(DTs) == 2
+    with pytest.warns(dt.exceptions.IOWarning):
+        DTs = list(dt.iread(sources, errors="warn"))
+        assert len(DTs) == 2
+    with pytest.raises(dt.exceptions.IOError):
+        DTs = list(dt.iread(sources, errors="raise"))
+    # no errors / warnings
+    DTs = list(dt.iread(sources, errors="ignore"))
+
+
+
+#-------------------------------------------------------------------------------
 # `columns`
 #-------------------------------------------------------------------------------
 
