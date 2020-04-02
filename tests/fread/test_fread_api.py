@@ -338,7 +338,7 @@ def test_fread_zip_file_bad2(tempfile):
     zfname = tempfile + ".zip"
     with zipfile.ZipFile(zfname, "x") as zf:
         zf.writestr("data1.csv", "Egeustimentis")
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(IOError) as e:
         dt.fread(zfname + "/out.csv")
     assert "File out.csv does not exist in archive" in str(e.value)
     os.unlink(zfname)

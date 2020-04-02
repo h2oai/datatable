@@ -90,6 +90,7 @@ GenericReader::GenericReader()
   line = 0;
   cr_is_newline = 0;
   multisource_strategy = FreadMultiSourceStrategy::Warn;
+  errors_strategy = IreadErrorHandlingStrategy::Error;
 }
 
 
@@ -104,7 +105,8 @@ GenericReader::GenericReader(const GenericReader& g)
   quote            = g.quote;
   max_nrows        = g.max_nrows;
   multisource_strategy = g.multisource_strategy;
-  skip_to_line     = 0;  // this parameter was already applied
+  errors_strategy  = g.errors_strategy;
+  skip_to_line     = g.skip_to_line;
   na_strings       = g.na_strings;
   header           = g.header;
   strip_whitespace = g.strip_whitespace;
@@ -243,6 +245,18 @@ void GenericReader::init_multisource(const py::Arg& arg) {
   else if (str == "warn")   multisource_strategy = FreadMultiSourceStrategy::Warn;
   else if (str == "error")  multisource_strategy = FreadMultiSourceStrategy::Error;
   else if (str == "ignore") multisource_strategy = FreadMultiSourceStrategy::Ignore;
+  else {
+    throw ValueError() << arg.name() << " got invalid value " << str;
+  }
+}
+
+void GenericReader::init_errors(const py::Arg& arg) {
+  auto str = arg.to<std::string>("");
+  if (str == "")            errors_strategy = IreadErrorHandlingStrategy::Warn;
+  else if (str == "warn")   errors_strategy = IreadErrorHandlingStrategy::Warn;
+  else if (str == "raise")  errors_strategy = IreadErrorHandlingStrategy::Error;
+  else if (str == "ignore") errors_strategy = IreadErrorHandlingStrategy::Ignore;
+  else if (str == "store")  errors_strategy = IreadErrorHandlingStrategy::Store;
   else {
     throw ValueError() << arg.name() << " got invalid value " << str;
   }

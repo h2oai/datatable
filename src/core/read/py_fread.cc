@@ -112,18 +112,18 @@ R"(iread(anysource=None, *, file=None, text=None, cmd=None, url=None,
          na_strings=None, verbose=False, fill=False, encoding=None,
          skip_to_string=None, skip_to_line=None, skip_blank_lines=False,
          strip_whitespace=True, quotechar='"', save_to=None,
-         tempdir=None, nthreads=None, logger=None)
+         tempdir=None, nthreads=None, logger=None, errors="warn")
 --
 
 )";
 
 static py::PKArgs args_iread(
-  1, 0, 22, false, false,
+  1, 0, 23, false, false,
   {"anysource", "file", "text", "cmd", "url",
    "columns", "sep", "dec", "max_nrows", "header", "na_strings",
    "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
    "skip_blank_lines", "strip_whitespace", "quotechar", "save_to",
-   "tempdir", "nthreads", "logger"
+   "tempdir", "nthreads", "logger", "errors"
    },
   "iread", doc_iread);
 
@@ -147,6 +147,7 @@ static py::oobj iread(const py::PKArgs& args) {
   const py::Arg& arg_tempdir    = args[k++];
   const py::Arg& arg_nthreads   = args[k++];
   const py::Arg& arg_logger     = args[k++];
+  const py::Arg& arg_errors     = args[k++];
 
   auto rdr = std::unique_ptr<GenericReader>(new GenericReader);
   rdr->init_logger(     arg_logger, arg_verbose);
@@ -164,6 +165,7 @@ static py::oobj iread(const py::PKArgs& args) {
   rdr->init_skipblanks( arg_skipblanks);
   rdr->init_columns(    arg_columns);
   rdr->init_tempdir(    arg_tempdir);
+  rdr->init_errors(     arg_errors);
   (void) arg_saveto;
   (void) arg_encoding;
 

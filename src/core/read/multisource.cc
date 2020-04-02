@@ -19,12 +19,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/reader.h"           // GenericReader
-#include "frame/py_frame.h"       // py::Frame
-#include "python/_all.h"          // py::olist
-#include "python/args.h"          // py::PKArgs
-#include "python/string.h"        // py::ostring
+#include "csv/reader.h"                // GenericReader
+#include "frame/py_frame.h"            // py::Frame
+#include "progress/progress_manager.h" // dt::progress::manager
+#include "python/_all.h"               // py::olist
+#include "python/args.h"               // py::PKArgs
+#include "python/string.h"             // py::ostring
 #include "read/multisource.h"
+#include "utils/macros.h"
 namespace dt {
 namespace read {
 
@@ -187,11 +189,17 @@ static Error _multisrc_error() {
   return IOError() << "fread() input contains multiple sources";
 }
 
-static Warning _multisrc_warning() {
+static void emit_multisrc_warning() {
   Warning w = IOWarning();
   w << "fread() input contains multiple sources, only the first will be used. "
        "Use iread() if you need to read all sources";
-  return w;
+  w.emit();
+}
+
+static void emit_badsrc_warning(const std::string& name, const Error& e) {
+  Warning w = IOWarning();
+  w << "Could not read `" << name << "`: " << e.to_string();
+  w.emit();
 }
 
 
@@ -209,25 +217,59 @@ py::oobj MultiSource::read_single(const GenericReader& reader) {
   py::oobj res = read_next(reader);
   if (iteration_index < sources_.size()) {
     if (err) throw _multisrc_error();
-    if (warn) _multisrc_warning().emit();
+    if (warn) emit_multisrc_warning();
   }
   return res;
 }
 
 
 
-py::oobj MultiSource::read_next(const GenericReader& reader) {
+py::oobj MultiSource::read_next(const GenericReader& reader)
+{
+  start:
   if (iteration_index >= sources_.size()) return py::oobj();
+
+  py::oobj res;
   GenericReader new_reader(reader);
   auto& src = sources_[iteration_index];
-  py::oobj res = src->read(new_reader);
-  py::Frame::cast_from(res)->set_source(src->name());
+  if (reader.errors_strategy == IreadErrorHandlingStrategy::Error) {
+    res = src->read(new_reader);
+  }
+  else {
+    try {
+      res = src->read(new_reader);
+    }
+    catch (const Error& e) {
+      switch (reader.errors_strategy) {
+        case IreadErrorHandlingStrategy::Warn:
+          emit_badsrc_warning(src->name(), e);
+          break;
+        case IreadErrorHandlingStrategy::Store: {
+          exception_to_python(e);
+          PyObject* etype = nullptr;
+          PyObject* evalue = nullptr;
+          PyObject* etraceback = nullptr;
+          PyErr_Fetch(&etype, &evalue, &etraceback);
+          PyErr_NormalizeException(&etype, &evalue, &etraceback);
+          if (etraceback) PyException_SetTraceback(evalue, etraceback);
+          Py_XDECREF(etype);
+          Py_XDECREF(etraceback);
+          return py::oobj::from_new_reference(evalue);
+        }
+        default:;
+      }
+    }
+  }
+  if (res) {
+    py::Frame::cast_from(res)->set_source(src->name());
+  }
   SourcePtr next = src->continuation();
   if (next) {
     sources_[iteration_index] = std::move(next);
   } else {
     iteration_index++;
   }
+  if (!res) goto start;
   return res;
 }
 

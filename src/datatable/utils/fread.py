@@ -30,7 +30,7 @@ import tempfile
 import warnings
 
 from datatable.lib import core
-from datatable.exceptions import TypeError, ValueError, FreadWarning
+from datatable.exceptions import TypeError, ValueError, IOError, FreadWarning
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
@@ -248,8 +248,8 @@ def _resolve_archive(filename, subpath, tempfiles):
                 filename += "/" + subpath
                 zff = [subpath]
             else:
-                raise ValueError("File `%s` does not exist in archive `%s`"
-                                 % (subpath, filename))
+                raise IOError("File `%s` does not exist in archive `%s`"
+                               % (subpath, filename))
         extracted_files = []
         for zf_file in zff:
             if logger:
@@ -258,6 +258,32 @@ def _resolve_archive(filename, subpath, tempfiles):
             newfile = zf.extract(zf_file, path=tempfiles.tempdir)
             srcname = filename + "/" + zf_file
             tempfiles.add(newfile)
+            extracted_files.append(((srcname, newfile, None, None), None))
+        if len(extracted_files) == 1:
+            out_file = extracted_files[0][0][1]
+        else:
+            return (None, None, None, None), extracted_files
+
+    elif filename.endswith(".tar.gz"):
+        import tarfile
+        zf = tarfile.open(filename, mode="r:gz")
+        zff = [entry.name for entry in zf.getmembers() if entry.isfile()]
+        if subpath:
+            if subpath in zff:
+                filename += "/" + subpath
+                zff = [subpath]
+            else:
+                raise IOError("File `%s` does not exist in archive `%s`"
+                              % (subpath, filename))
+        extracted_files = []
+        for entryname in zff:
+            if logger:
+                logger.debug("Extracting %s/%s to temporary directory %s"
+                             % (filename, entryname, tempfiles.tempdir))
+            newfile = tempfiles.create_temp_file()
+            with zf.extractfile(entryname) as inp, open(newfile, "wb") as out:
+                out.write(inp.read())
+            srcname = filename + "/" + entryname
             extracted_files.append(((srcname, newfile, None, None), None))
         if len(extracted_files) == 1:
             out_file = extracted_files[0][0][1]

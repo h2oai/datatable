@@ -34,16 +34,20 @@ enum InterruptStatus : unsigned char {
   HANDLE_INTERRUPT = 2
 };
 
+
 /**
  * Singleton class that acts as a liaison between the progress bar and
  * multiple `work` instances.
  *
- * manager.update_view()
- *     This function should be called periodically from the master
- *     thread to re-draw the progress bar (if needed) and check
- *     for signals. This function may throw an exception if there
- *     is a KeyboardInterrupt signal pending, or if the progress-
- *     reporting function raised an exception in python.
+ * This class owns a progress bar instance (`pbar`), and maintains a
+ * stack (`tasks`) of work objects that are currently being run. The
+ * work objects are not owned: they are created / destroyed by user
+ * code; however, the work objects inform the progress_manager about
+ * their lifetime.
+ *
+ * A new progress bar object is instantiated when the first task is
+ * pushed on the stack, and then destroyed when the last task is
+ * popped from the stack.
  */
 class progress_manager {
   private:
@@ -52,6 +56,8 @@ class progress_manager {
     // when the last task is popped off the stack. This cycle continues,
     // while more and more top-level tasks are received.
     progress_bar* pbar;
+
+    // The stack of all tasks currently being executed.
     std::stack<work*> tasks;
 
     // This mutex is used to protect access to `pbar`. In particular,
@@ -74,8 +80,14 @@ class progress_manager {
     int : 32;
 
   public:
+    /**
+      * This function should be called periodically from the master
+      * thread to re-draw the progress bar (if needed) and check
+      * for signals. This function may throw an exception if there
+      * is a KeyboardInterrupt signal pending, or if the progress-
+      * reporting function raised an exception in python.
+      */
     void update_view() const;
-    void set_error_status(bool cancelled) noexcept;
 
   public:  // package-private
     progress_manager();

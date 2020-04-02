@@ -142,11 +142,11 @@ sys.excepthook = _handle_dt_exception
 
 def _handle_dt_warning(message, category, filename, lineno, file=None,
                        line=None):
-    if not isinstance(category, DatatableWarning):
+    if not issubclass(category, DatatableWarning):
         return _previous_warnings_hook(message, category, filename, lineno,
                                        file, line)
-    print(apply_color("yellow", category.__class__.__name__ + ": ") +
-          apply_color("grey", message),
+    print(apply_color("yellow", category.__name__ + ": ") +
+          apply_color("grey", str(message)),
           file=sys.stderr)
 
 

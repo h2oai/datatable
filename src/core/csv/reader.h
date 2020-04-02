@@ -42,6 +42,22 @@ enum class FreadMultiSourceStrategy : int8_t {
   Ignore,
 };
 
+// How to handle the situation when some of the iread's inputs cannot
+// be parsed (perhaps because they are not in CSV or other
+// recognizable formats).
+//
+// Warn - skip the invalid inputs, but produce a warning to the user
+// Error - throw an error
+// Ignore - silently skip all "bad" inputs
+// Store - bad inputs are returned as exception objects
+//
+enum class IreadErrorHandlingStrategy : int8_t {
+  Warn,
+  Error,
+  Ignore,
+  Store
+};
+
 
 /**
  * GenericReader: base class for reading text files in multiple formats. This
@@ -94,7 +110,7 @@ class GenericReader
     bool    blank_is_na;
     bool    number_is_na;
     FreadMultiSourceStrategy multisource_strategy;
-    int : 8;
+    IreadErrorHandlingStrategy errors_strategy;
     std::string skip_to_string;
     const char** na_strings;
     strvec  na_strings_container;
@@ -192,6 +208,7 @@ class GenericReader
   public:
     void init_columns    (const py::Arg&);
     void init_dec        (const py::Arg&);
+    void init_errors     (const py::Arg&);
     void init_fill       (const py::Arg&);
     void init_header     (const py::Arg&);
     void init_logger     (const py::Arg& arg_logger, const py::Arg& arg_verbose);

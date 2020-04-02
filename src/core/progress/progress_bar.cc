@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ void progress_bar_enabled::set_status_finished() {
 }
 
 void progress_bar_enabled::set_status_error(bool cancelled) {
-  wassert(status == Status::RUNNING);
+  if (status != Status::RUNNING) return;
   status = cancelled? Status::CANCELLED : Status::ERROR;
   force_redraw = true;
   refresh();
