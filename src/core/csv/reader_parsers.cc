@@ -605,8 +605,9 @@ void parse_string(FreadTokenizer& ctx) {
 
   // need to skip_whitespace first for the reason that a quoted field might have space before the
   // quote; e.g. test 1609. We need to skip the space(s) to then switch on quote or not.
-  if (ch < ctx.eof && *ch==' ' && ctx.strip_whitespace) {
-    while(*++ch==' ' && ch < ctx.eof);  // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
+  if (ctx.strip_whitespace) {
+    // if sep==' ' the space would have been skipped already and we wouldn't be on space now.
+    while (ch < ctx.eof && *ch == ' ') ch++;
   }
 
   const char* fieldStart = ch;
@@ -676,7 +677,8 @@ void parse_string(FreadTokenizer& ctx) {
     // Under this rule, no eol may occur inside fields.
     {
       const char* ch2 = ch;
-      while (ch < ctx.eof && *++ch && *ch!='\n' && *ch!='\r') {
+      ch++;
+      while (ch < ctx.eof && *ch!='\n' && *ch!='\r') {
         if (ch + 1 < ctx.eof && *ch==quote && (ch[1]==sep || ch[1]=='\r' || ch[1]=='\n')) {
           // (*1) regular ", ending; leave *ch on closing quote
           ch2 = ch;
@@ -686,16 +688,18 @@ void parse_string(FreadTokenizer& ctx) {
           // first sep in this field
           // if there is a ", afterwards but before the next \n, use that; the field was quoted and it's still case (i) above.
           // Otherwise break here at this first sep as it's case (ii) above (the data contains a quote at the start and no sep)
-          ch2 = ch;
-          while (ch < ctx.eof && *++ch2 && *ch2!='\n' && *ch2!='\r') {
-            if (ch + 1 < ctx.eof && *ch2==quote && (ch2[1]==sep || ch2[1]=='\r' || ch2[1]=='\n')) {
+          ch2 = ch + 1;
+          while (ch2 < ctx.eof && *ch2!='\n' && *ch2!='\r') {
+            if (ch2 + 1 < ctx.eof && *ch2==quote && (ch2[1]==sep || ch2[1]=='\r' || ch2[1]=='\n')) {
               // (*2) move on to that first ", -- that's this field's ending
               ch = ch2;
               break;
             }
+            ch2++;
           }
           break;
         }
+        ch++;
       }
       if (ch!=ch2) fieldStart--;   // field ending is this sep|eol; neither (*1) or (*2) happened; opening quote wasn't really an opening quote
     }
