@@ -405,7 +405,7 @@ py::oobj GenericReader::read_all(py::robj pysources)
   }
 
   if (!output_) {
-    throw RuntimeError() << "Unable to read input " << src_arg.to_string();
+    throw IOError() << "Unable to read input " << src_arg.to_string();
   }
 
   job->done();
@@ -436,7 +436,7 @@ py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
   }
 
   if (!output_) {
-    throw RuntimeError() << "Unable to read input " << src_arg.to_string();
+    throw IOError() << "Unable to read input " << src_arg.to_string();
   }
 
   job->done();
@@ -673,7 +673,7 @@ void GenericReader::open_input() {
     trace("File \"%s\" opened, size: %zu", filename, sz);
 
   } else {
-    throw RuntimeError() << "No input given to the GenericReader";
+    throw IOError() << "No input given to the GenericReader";
   }
   line = 1;
   sof = static_cast<char*>(input_mbuf.wptr());
@@ -876,13 +876,13 @@ bool GenericReader::detect_improper_files() {
   // --- detect HTML ---
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
   if (ch + 15 < eof && std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
-    throw RuntimeError() << src_arg.to_string() << " is an HTML file. Please "
+    throw IOError() << src_arg.to_string() << " is an HTML file. Please "
         << "open it in a browser and then save in a plain text format.";
   }
   // --- detect Feather ---
   if (sof + 8 < eof && std::memcmp(sof, "FEA1", 4) == 0
                     && std::memcmp(eof - 4, "FEA1", 4) == 0) {
-    throw RuntimeError() << src_arg.to_string() << " is a feather file, it "
+    throw IOError() << src_arg.to_string() << " is a feather file, it "
         "cannot be read with fread.";
   }
   return false;

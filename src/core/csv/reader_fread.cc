@@ -829,7 +829,7 @@ void FreadReader::skip_preamble() {
  *
  * This function assumes that the `quoteRule` and `quote` were already detected
  * correctly, so that `parse_string()` can parse each field without error. If
- * not, a `RuntimeError` will be thrown.
+ * not, a `IOError` will be thrown.
  */
 // TODO name-cleaning should be a method of dt::read::Column
 void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
@@ -892,7 +892,7 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
       ncols_found = i + 1;
       break;
     } else {
-      throw RuntimeError() << "Internal error: cannot parse column names";
+      throw IOError() << "Internal error: cannot parse column names";
     }
   }
 

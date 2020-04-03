@@ -566,7 +566,7 @@ def test_fread_columns_list_bad4():
     d0 = dt.fread(src, columns=[stype.str32, None, stype.float64])
     assert d0.names == ("A", "C")
     assert d0.to_list() == [["01", "002"], [3.14, 6.28]]
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(IOError) as e:
         dt.fread(src, columns=[str, float, float])
     assert "Attempt to override column 2 \"B\" with detected type 'Str32' " \
            in str(e.value)
