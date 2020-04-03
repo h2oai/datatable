@@ -456,6 +456,10 @@ def test_iread_error():
         DTs = list(dt.iread(sources, errors="raise"))
     # no errors / warnings
     DTs = list(dt.iread(sources, errors="ignore"))
+    assert len(DTs) == 2
+    # store error objects
+    DTs = list(dt.iread(sources, errors="store"))
+    assert len(DTs) == 3
 
 
 def test_iread_tar_gz(tempfile):

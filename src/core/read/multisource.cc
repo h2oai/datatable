@@ -234,34 +234,30 @@ py::oobj MultiSource::read_next(const GenericReader& reader)
   auto& src = sources_[iteration_index];
   if (reader.errors_strategy == IreadErrorHandlingStrategy::Error) {
     res = src->read(new_reader);
+    py::Frame::cast_from(res)->set_source(src->name());
   }
   else {
     try {
       res = src->read(new_reader);
+      py::Frame::cast_from(res)->set_source(src->name());
     }
     catch (const Error& e) {
-      switch (reader.errors_strategy) {
-        case IreadErrorHandlingStrategy::Warn:
-          emit_badsrc_warning(src->name(), e);
-          break;
-        case IreadErrorHandlingStrategy::Store: {
-          exception_to_python(e);
-          PyObject* etype = nullptr;
-          PyObject* evalue = nullptr;
-          PyObject* etraceback = nullptr;
-          PyErr_Fetch(&etype, &evalue, &etraceback);
-          PyErr_NormalizeException(&etype, &evalue, &etraceback);
-          if (etraceback) PyException_SetTraceback(evalue, etraceback);
-          Py_XDECREF(etype);
-          Py_XDECREF(etraceback);
-          return py::oobj::from_new_reference(evalue);
-        }
-        default:;
+      if (reader.errors_strategy == IreadErrorHandlingStrategy::Warn) {
+        emit_badsrc_warning(src->name(), e);
+      }
+      if (reader.errors_strategy == IreadErrorHandlingStrategy::Store) {
+        exception_to_python(e);
+        PyObject* etype = nullptr;
+        PyObject* evalue = nullptr;
+        PyObject* etraceback = nullptr;
+        PyErr_Fetch(&etype, &evalue, &etraceback);
+        PyErr_NormalizeException(&etype, &evalue, &etraceback);
+        if (etraceback) PyException_SetTraceback(evalue, etraceback);
+        Py_XDECREF(etype);
+        Py_XDECREF(etraceback);
+        res = py::oobj::from_new_reference(evalue);
       }
     }
-  }
-  if (res) {
-    py::Frame::cast_from(res)->set_source(src->name());
   }
   SourcePtr next = src->continuation();
   if (next) {
