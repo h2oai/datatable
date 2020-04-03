@@ -458,6 +458,25 @@ def test_iread_error():
     DTs = list(dt.iread(sources, errors="ignore"))
 
 
+def test_iread_tar_gz(tempfile):
+    import tarfile
+    outfile = tempfile + ".tar.gz"
+    with tarfile.open(outfile, "w:gz") as tf:
+        with open(tempfile, 'w') as out:
+            out.write("1\n2\n3\n")
+        tf.add(tempfile, arcname='one')
+        with open(tempfile, 'w') as out:
+            out.write("4\n5\n6\n")
+        tf.add(tempfile, arcname='two')
+        with open(tempfile, 'w') as out:
+            out.write("7\n8\n9\n")
+        tf.add(tempfile, arcname='three')
+    for i, DT in enumerate(dt.iread(outfile)):
+        assert DT.source == outfile + ["/one", "/two", "/three"][i]
+        assert DT.shape == (3, 1)
+        assert DT.to_list()[0] == list(range(3*i + 1, 3*i + 4))
+
+
 
 #-------------------------------------------------------------------------------
 # `columns`
