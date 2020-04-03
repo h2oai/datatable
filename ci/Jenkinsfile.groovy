@@ -100,7 +100,7 @@ properties([
 ansiColor('xterm') {
     timestamps {
         cancelPreviousBuilds()
-        timeout(time: 180, unit: 'MINUTES') {
+        timeout(time: 400, unit: 'MINUTES') {
             // Checkout stage
             node(NODE_LINUX) {
                 def stageDir = 'checkout'
