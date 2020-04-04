@@ -117,7 +117,7 @@ class Aggregator : public AggregatorBase {
     bool group_nd();
 
     // Random sampling and modular quasi-random generator
-    void sample_exemplars(size_t);
+    bool sample_exemplars(size_t);
 
     // Helper methods
     size_t get_nthreads(size_t nrows);
