@@ -19,24 +19,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/reader.h"           // GenericReader
-#include "frame/py_frame.h"       // py::Frame
-#include "python/_all.h"          // py::olist
-#include "python/args.h"          // py::PKArgs
-#include "python/string.h"        // py::ostring
+#include "csv/reader.h"                // GenericReader
+#include "frame/py_frame.h"            // py::Frame
+#include "progress/progress_manager.h" // dt::progress::manager
+#include "python/_all.h"               // py::olist
+#include "python/args.h"               // py::PKArgs
+#include "python/string.h"             // py::ostring
 #include "read/multisource.h"
+#include "utils/macros.h"
 namespace dt {
 namespace read {
 
 using SourcePtr = std::unique_ptr<Source>;
 using SourceVec = std::vector<SourcePtr>;
 
-static MultiSource _from_python(py::robj);
-static MultiSource _from_any(py::robj, const GenericReader&);
-static MultiSource _from_file(py::robj, const GenericReader&);
-static MultiSource _from_text(const py::Arg&, const GenericReader&);
-static MultiSource _from_cmd(py::robj, const GenericReader&);
-static MultiSource _from_url(py::robj, const GenericReader&);
+static SourceVec _from_python(py::robj);
+static SourceVec _from_any(py::robj, const GenericReader&);
+static SourceVec _from_file(py::robj, const GenericReader&);
+static SourceVec _from_text(const py::Arg&, const GenericReader&);
+static SourceVec _from_cmd(py::robj, const GenericReader&);
+static SourceVec _from_url(py::robj, const GenericReader&);
 
 
 //------------------------------------------------------------------------------
@@ -44,18 +46,20 @@ static MultiSource _from_url(py::robj, const GenericReader&);
 //------------------------------------------------------------------------------
 
 MultiSource::MultiSource(SourceVec&& srcs)
-  : sources_(std::move(srcs)) {}
+  : sources_(std::move(srcs)),
+    iteration_index(0) {}
 
 
 MultiSource::MultiSource(SourcePtr&& src) {
-  sources_.push_back(std::move(src));
+  sources_.emplace_back(std::move(src));
+  iteration_index = 0;
 }
 
 
 // Main MultiSource constructor
-MultiSource MultiSource::from_args(const py::PKArgs& args,
-                                   const GenericReader& rdr)
+MultiSource::MultiSource(const py::PKArgs& args, const GenericReader& rdr)
 {
+  iteration_index = 0;
   const char* fnname = args.get_long_name();
   const py::Arg& src_any  = args[0];
   const py::Arg& src_file = args[1];
@@ -67,7 +71,13 @@ MultiSource MultiSource::from_args(const py::PKArgs& args,
               src_text.is_defined() +
               src_cmd.is_defined() +
               src_url.is_defined();
-  if (total > 1) {
+  if (total != 1) {
+    if (total == 0) {
+      throw TypeError()
+          << "No input source for " << fnname
+          << " was given. Please specify one of the parameters "
+             "`file`, `text`, `url`, or `cmd`";
+    }
     std::vector<const char*> extra_args;
     if (src_file.is_defined()) extra_args.push_back("file");
     if (src_text.is_defined()) extra_args.push_back("text");
@@ -85,21 +95,16 @@ MultiSource MultiSource::from_args(const py::PKArgs& args,
     }
   }
 
-  if (src_any.is_defined())  return _from_any(src_any.to_oobj(), rdr);
-  if (src_file.is_defined()) return _from_file(src_file.to_oobj(), rdr);
-  if (src_text.is_defined()) return _from_text(src_text, rdr);
-  if (src_cmd.is_defined())  return _from_cmd(src_cmd.to_oobj(), rdr);
-  if (src_url.is_defined())  return _from_url(src_url.to_oobj(), rdr);
-
-  throw TypeError()
-      << "No input source for " << fnname
-      << " was given. Please specify one of the parameters "
-         "`file`, `text`, `url`, or `cmd`";
+  if (src_any.is_defined())  sources_ = _from_any(src_any.to_oobj(), rdr);
+  if (src_file.is_defined()) sources_ = _from_file(src_file.to_oobj(), rdr);
+  if (src_text.is_defined()) sources_ = _from_text(src_text, rdr);
+  if (src_cmd.is_defined())  sources_ = _from_cmd(src_cmd.to_oobj(), rdr);
+  if (src_url.is_defined())  sources_ = _from_url(src_url.to_oobj(), rdr);
 }
 
 
 // temporary helper function
-static MultiSource _from_python(py::robj pysource) {
+static SourceVec _from_python(py::robj pysource) {
   auto res_tuple = pysource.to_otuple();
   auto sources = res_tuple[0];
   auto result = res_tuple[1];
@@ -132,40 +137,42 @@ static MultiSource _from_python(py::robj pysource) {
   else {
     out.emplace_back(new Source_Result(name, result));
   }
-  return MultiSource(std::move(out));
+  return out;
 }
 
 
-static MultiSource _from_any(py::robj src, const GenericReader& rdr) {
+static SourceVec _from_any(py::robj src, const GenericReader& rdr) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_any");
   auto tempfiles = rdr.get_tempfiles();
   return _from_python(resolver.call({src, tempfiles}));
 }
 
 
-static MultiSource _from_file(py::robj src, const GenericReader& rdr) {
+static SourceVec _from_file(py::robj src, const GenericReader& rdr) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_file");
   auto tempfiles = rdr.get_tempfiles();
   return _from_python(resolver.call({src, tempfiles}));
 }
 
 
-static MultiSource _from_text(const py::Arg& src, const GenericReader&) {
+static SourceVec _from_text(const py::Arg& src, const GenericReader&) {
   if (!(src.is_string() || src.is_bytes())) {
     throw TypeError() << "Invalid parameter `text` in fread: expected "
                          "str or bytes, got " << src.typeobj();
   }
-  return MultiSource(SourcePtr(new Source_Text(src.to_oobj())));
+  SourceVec out;
+  out.emplace_back(new Source_Text(src.to_oobj()));
+  return out;
 }
 
 
-static MultiSource _from_cmd(py::robj src, const GenericReader&) {
+static SourceVec _from_cmd(py::robj src, const GenericReader&) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_cmd");
   return _from_python(resolver.call({src}));
 }
 
 
-static MultiSource _from_url(py::robj src, const GenericReader& rdr) {
+static SourceVec _from_url(py::robj src, const GenericReader& rdr) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_url");
   auto tempfiles = rdr.get_tempfiles();
   return _from_python(resolver.call({src, tempfiles}));
@@ -178,26 +185,90 @@ static MultiSource _from_url(py::robj src, const GenericReader& rdr) {
 // Process sources, and return the results
 //------------------------------------------------------------------------------
 
-py::oobj MultiSource::read_all_fread_style(GenericReader& reader) {
-  xassert(!sources_.empty());
-  if (sources_.size() == 1) {
-    const std::string& name = sources_[0]->name();
-    py::oobj res = sources_[0]->read(reader);
-    if (!name.empty()) res.to_pyframe()->set_source(name);
-    return res;
+static Error _multisrc_error() {
+  return IOError() << "fread() input contains multiple sources";
+}
+
+static void emit_multisrc_warning() {
+  Warning w = IOWarning();
+  w << "fread() input contains multiple sources, only the first will be used. "
+       "Use iread() if you need to read all sources";
+  w.emit();
+}
+
+static void emit_badsrc_warning(const std::string& name, const Error& e) {
+  Warning w = IOWarning();
+  w << "Could not read `" << name << "`: " << e.to_string();
+  w.emit();
+}
+
+
+// for fread
+py::oobj MultiSource::read_single(const GenericReader& reader) {
+  xassert(iteration_index == 0);
+  if (sources_.empty()) {
+    return py::Frame::oframe(new DataTable);
+  }
+
+  bool err = (reader.multisource_strategy == FreadMultiSourceStrategy::Error);
+  bool warn = (reader.multisource_strategy == FreadMultiSourceStrategy::Warn);
+  if (sources_.size() > 1 && err) throw _multisrc_error();
+
+  py::oobj res = read_next(reader);
+  if (iteration_index < sources_.size()) {
+    if (err) throw _multisrc_error();
+    if (warn) emit_multisrc_warning();
+  }
+  return res;
+}
+
+
+
+py::oobj MultiSource::read_next(const GenericReader& reader)
+{
+  start:
+  if (iteration_index >= sources_.size()) return py::oobj();
+
+  py::oobj res;
+  GenericReader new_reader(reader);
+  auto& src = sources_[iteration_index];
+  if (reader.errors_strategy == IreadErrorHandlingStrategy::Error) {
+    res = src->read(new_reader);
+    py::Frame::cast_from(res)->set_source(src->name());
   }
   else {
-    py::odict result_dict;
-    for (auto& src : sources_) {
-      const std::string& iname = src->name();
-      GenericReader ireader(reader);
-      py::oobj res = src->read(ireader);
-      if (!iname.empty()) res.to_pyframe()->set_source(iname);
-      result_dict.set(py::ostring(iname), res);
+    try {
+      res = src->read(new_reader);
+      py::Frame::cast_from(res)->set_source(src->name());
     }
-    return std::move(result_dict);
+    catch (const Error& e) {
+      if (reader.errors_strategy == IreadErrorHandlingStrategy::Warn) {
+        emit_badsrc_warning(src->name(), e);
+      }
+      if (reader.errors_strategy == IreadErrorHandlingStrategy::Store) {
+        exception_to_python(e);
+        PyObject* etype = nullptr;
+        PyObject* evalue = nullptr;
+        PyObject* etraceback = nullptr;
+        PyErr_Fetch(&etype, &evalue, &etraceback);
+        PyErr_NormalizeException(&etype, &evalue, &etraceback);
+        if (etraceback) PyException_SetTraceback(evalue, etraceback);
+        Py_XDECREF(etype);
+        Py_XDECREF(etraceback);
+        res = py::oobj::from_new_reference(evalue);
+      }
+    }
   }
+  SourcePtr next = src->continuation();
+  if (next) {
+    sources_[iteration_index] = std::move(next);
+  } else {
+    iteration_index++;
+  }
+  if (!res) goto start;
+  return res;
 }
+
 
 
 

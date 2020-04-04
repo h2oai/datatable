@@ -19,32 +19,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ_PY_READ_ITERATOR_h
-#define dt_READ_PY_READ_ITERATOR_h
-#include <memory>             // std::unique_ptr
-#include "python/xobject.h"   // XObject, PKArgs
-#include "read/multisource.h" // dt::read::MultiSource, dt::read::GenericReader
+#include "csv/reader.h"
+#include "read/py_read_iterator.h"
 namespace py {
 
 
-class ReadIterator : public XObject<ReadIterator>
+void ReadIterator::m__init__(const PKArgs&) {}
+
+void ReadIterator::m__dealloc__() {
+  reader_ = nullptr;
+  multisource_ = nullptr;
+}
+
+
+oobj ReadIterator::m__next__() {
+  return multisource_->read_next(*reader_);
+}
+
+
+oobj ReadIterator::make(std::unique_ptr<dt::read::GenericReader>&& reader,
+                        std::unique_ptr<dt::read::MultiSource>&& multisource)
 {
-  private:
-    std::unique_ptr<dt::read::GenericReader> reader_;
-    std::unique_ptr<dt::read::MultiSource> multisource_;
+  robj rtype(reinterpret_cast<PyObject*>(&ReadIterator::type));
+  oobj resobj = rtype.call();
+  ReadIterator* iterator = ReadIterator::cast_from(resobj);
+  iterator->reader_ = std::move(reader);
+  iterator->multisource_ = std::move(multisource);
+  return resobj;
+}
 
-    void m__init__(const PKArgs& args);
-    void m__dealloc__();
-    oobj m__next__();
 
-  public:
-    static oobj make(std::unique_ptr<dt::read::GenericReader>&& reader,
-                     std::unique_ptr<dt::read::MultiSource>&& multisource);
-    static void impl_init_type(XTypeMaker& xt);
-};
+void ReadIterator::impl_init_type(XTypeMaker& xt) {
+  xt.set_class_name("read_iterator");
+
+  static PKArgs args_init(0, 0, 0, false, false, {}, "__init__", nullptr);
+  xt.add(CONSTRUCTOR(&ReadIterator::m__init__, args_init));
+  xt.add(DESTRUCTOR(&ReadIterator::m__dealloc__));
+  xt.add(METHOD__NEXT__(&ReadIterator::m__next__));
+}
 
 
 
 
 } // namespace py
-#endif

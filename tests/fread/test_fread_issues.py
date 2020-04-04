@@ -499,7 +499,7 @@ def test_issue1030():
     lines[0] = "A,B,C,D,E,F\n"
     lines[3333] = '3,"45,99,-3,7,0\n'
     src = "".join(lines)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(IOError):
         dt.fread(src, verbose=True)
 
 

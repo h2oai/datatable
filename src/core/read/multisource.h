@@ -64,6 +64,7 @@ class MultiSource
     using SourceVec = std::vector<SourcePtr>;
 
     SourceVec sources_;
+    size_t iteration_index;
 
   public:
     MultiSource() = default;
@@ -73,9 +74,10 @@ class MultiSource
 
     MultiSource(SourceVec&&);
     MultiSource(SourcePtr&&);
-    static MultiSource from_args(const py::PKArgs&, const GenericReader&);
+    MultiSource(const py::PKArgs&, const GenericReader&);
 
-    py::oobj read_all_fread_style(GenericReader&);
+    py::oobj read_single(const GenericReader&);
+    py::oobj read_next(const GenericReader&);
 };
 
 

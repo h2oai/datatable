@@ -144,7 +144,7 @@ class Warning : public Error {
 
 Warning DatatableWarning();
 Warning DeprecationWarning();
-
+Warning IOWarning();
 
 
 #endif

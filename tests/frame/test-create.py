@@ -457,13 +457,11 @@ def test_cannot_create_from_multiple_files(tempfile):
             o1.write("A,B\nfoo,2\n")
             o2.write("3\n4\n5\n6\n")
             o3.write("qw\n1\n2\n5\n")
-        ff = dt.fread(tempfile + ".*.csv")
-        assert isinstance(ff, dict)
-        assert len(ff) == 3
-        with pytest.raises(ValueError) as e:
+        ff = dt.iread(tempfile + ".*.csv")
+        assert len(list(ff)) == 3
+        msg = r"fread\(\) input contains multiple sources"
+        with pytest.raises(IOError, match=msg):
             dt.Frame(tempfile + ".*.csv")
-        assert ("Frame cannot be initialized from multiple source files"
-                in str(e.value))
     finally:
         os.remove(file1)
         os.remove(file2)

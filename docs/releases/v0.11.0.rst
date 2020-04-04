@@ -71,6 +71,32 @@
     are now handled correctly, in particular a datetime value is converted
     into its string representation. [#1701]
 
+  -[new] Added new function :func:`iread()`, which is similar to
+    :func:`fread()`, but suitable for reading multiple sources at once. The
+    function will return an iterator of Frames.
+
+    Use this function to read multiple files using a glob, or give it a list
+    of files, or an archive containing multiple files inside, or an Excel
+    file with multiple sheets, etc.
+
+    The function :func:`iread()` has parameter ``errors=`` which controls
+    what shouold happen when some of the sources cannot be read. Possible
+    values are: ``"warn"``, ``"raise"``, ``"ignore"`` and ``"store"``. The
+    latter will catch the exceptions that may occur when reading each
+    input, and return those exception objects within the iterator. [#2008]
+
+  -[new] It is now possible to read multi-file ``.tar.gz`` files using
+    :func:`iread()`. [#2392]
+
+  -[enh] Added parameter ``multiple_sources`` which controls fread's
+    behavior when multiple input sources are detected (for example, if you
+    pass a name of an archive, and the archive contains multiple files).
+    Possible values are: ``"warn"`` (default), ``"error"``, and ``"ignore"``.
+
+  -[api] Function :func:`fread()` now always returns a single Frame object;
+    previously it could return a dict of Frames if multiple sources were
+    detected. Use :func:`iread()` if you need to read multi-source input.
+
 
   General
   -------

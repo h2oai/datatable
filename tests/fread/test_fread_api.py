@@ -29,9 +29,9 @@ import pytest
 import datatable as dt
 import os
 from datatable import ltype, stype
-from datatable.exceptions import FreadWarning, DatatableWarning
+from datatable.exceptions import FreadWarning, DatatableWarning, IOWarning
 from datatable.internal import frame_integrity_check
-
+from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
@@ -289,7 +289,7 @@ def test_fread_zip_file_1(tempfile, capsys):
     assert d0.names == ("a", "b", "c")
     assert d0.to_list() == [[10, 5], [20, 7], [30, 12]]
     assert not err
-    assert ("Extracting %s to temporary directory" % zfname) in out
+    assert ("Extracting %s/data1.csv to temporary directory" % zfname) in out
     os.unlink(zfname)
 
 
@@ -300,7 +300,9 @@ def test_fread_zip_file_multi(tempfile):
         zf.writestr("data1.csv", "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
         zf.writestr("data2.csv", "A,B,C\n3,4,5\n6,7,8\n")
         zf.writestr("data3.csv", "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
-    with pytest.warns(FreadWarning) as ws:
+    msg = r"fread\(\) input contains multiple sources, only the first " \
+          r"will be used"
+    with pytest.warns(IOWarning, match=msg):
         d0 = dt.fread(zfname)
     d1 = dt.fread(zfname + "/data2.csv")
     d2 = dt.fread(zfname + "/data3.csv")
@@ -316,9 +318,6 @@ def test_fread_zip_file_multi(tempfile):
     assert d0.to_list() == [["foo", "gee"], ["bar", "jou"], ["baz", "sha"]]
     assert d1.to_list() == [[3, 6], [4, 7], [5, 8]]
     assert d2.to_list() == [[True, False], [1.5, 1e20], ["", "yay"]]
-    assert len(ws) == 1
-    assert ("Zip file %s contains multiple compressed files"
-            % zfname) in ws[0].message.args[0]
     os.unlink(zfname)
 
 
@@ -327,9 +326,10 @@ def test_fread_zip_file_bad1(tempfile):
     zfname = tempfile + ".zip"
     with zipfile.ZipFile(zfname, "x"):
         pass
-    with pytest.raises(ValueError) as e:
-        dt.fread(zfname)
-    assert ("Zip file %s is empty" % zfname) in str(e.value)
+    DT = dt.fread(zfname)
+    assert_equals(DT, dt.Frame())
+    DTs = list(dt.iread(zfname))
+    assert len(DTs) == 0
     os.unlink(zfname)
 
 
@@ -338,7 +338,7 @@ def test_fread_zip_file_bad2(tempfile):
     zfname = tempfile + ".zip"
     with zipfile.ZipFile(zfname, "x") as zf:
         zf.writestr("data1.csv", "Egeustimentis")
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(IOError) as e:
         dt.fread(zfname + "/out.csv")
     assert "File out.csv does not exist in archive" in str(e.value)
     os.unlink(zfname)
@@ -400,17 +400,21 @@ def test_fread_from_glob(tempfile):
             with open(tempfiles[j], "w") as f:
                 f.write("A,B,C\n0,0,0\n%d,%d,%d\n"
                         % (j, j * 2 + 1, (j + 3) * 17 % 23))
-        res = dt.fread(pattern)
+        res = dt.iread(pattern)
+        assert res.__class__.__name__ == "read_iterator"
+        res = list(res)
         assert len(res) == 10
-        assert set(res.keys()) == set(tempfiles)
+        assert set(DTj.source for DTj in res) == set(tempfiles)
+        # The glob pattern tempfile*.csv may have returned the files in a
+        # shuffled order, need to sort them back from 0 to 9:
+        res = sorted(res, key=lambda DTj: DTj.source)
         for j in range(10):
-            DTj = res[tempfiles[j]]
+            DTj = res[j]
             assert isinstance(DTj, dt.Frame)
-            assert DTj.source == tempfiles[j]
             frame_integrity_check(DTj)
             assert DTj.names == ("A", "B", "C")
             assert DTj.shape == (2, 3)
-        df = dt.rbind(*[res[f] for f in tempfiles])
+        df = dt.rbind(res)
         frame_integrity_check(df)
         assert df.names == ("A", "B", "C")
         assert df.shape == (20, 3)
@@ -423,6 +427,58 @@ def test_fread_from_glob(tempfile):
         for f in tempfiles:
             os.remove(f)
 
+
+
+
+#-------------------------------------------------------------------------------
+# iread()
+#-------------------------------------------------------------------------------
+
+def test_iread_simple():
+    sources = ["A\n1", "A\n2\n3\n", "A\n3\n4\n5"]
+    for i, DT in enumerate(dt.iread(sources)):
+        assert isinstance(DT, dt.Frame)
+        assert DT.source == "<text>"
+        assert DT.names == ("A",)
+        assert DT.shape == (i + 1, 1)
+        assert DT.to_list() == [list(range(i+1, 2*(i+1)))]
+
+
+def test_iread_error():
+    sources = ["A\n1", "A,B\n1,2\n3,4,5\n", "D\n"]
+    with pytest.warns(dt.exceptions.IOWarning):
+        DTs = list(dt.iread(sources))
+        assert len(DTs) == 2
+    with pytest.warns(dt.exceptions.IOWarning):
+        DTs = list(dt.iread(sources, errors="warn"))
+        assert len(DTs) == 2
+    with pytest.raises(dt.exceptions.IOError):
+        DTs = list(dt.iread(sources, errors="raise"))
+    # no errors / warnings
+    DTs = list(dt.iread(sources, errors="ignore"))
+    assert len(DTs) == 2
+    # store error objects
+    DTs = list(dt.iread(sources, errors="store"))
+    assert len(DTs) == 3
+
+
+def test_iread_tar_gz(tempfile):
+    import tarfile
+    outfile = tempfile + ".tar.gz"
+    with tarfile.open(outfile, "w:gz") as tf:
+        with open(tempfile, 'w') as out:
+            out.write("1\n2\n3\n")
+        tf.add(tempfile, arcname='one')
+        with open(tempfile, 'w') as out:
+            out.write("4\n5\n6\n")
+        tf.add(tempfile, arcname='two')
+        with open(tempfile, 'w') as out:
+            out.write("7\n8\n9\n")
+        tf.add(tempfile, arcname='three')
+    for i, DT in enumerate(dt.iread(outfile)):
+        assert DT.source == outfile + ["/one", "/two", "/three"][i]
+        assert DT.shape == (3, 1)
+        assert DT.to_list()[0] == list(range(3*i + 1, 3*i + 4))
 
 
 
@@ -510,7 +566,7 @@ def test_fread_columns_list_bad4():
     d0 = dt.fread(src, columns=[stype.str32, None, stype.float64])
     assert d0.names == ("A", "C")
     assert d0.to_list() == [["01", "002"], [3.14, 6.28]]
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(IOError) as e:
         dt.fread(src, columns=[str, float, float])
     assert "Attempt to override column 2 \"B\" with detected type 'Str32' " \
            in str(e.value)
@@ -708,6 +764,40 @@ def test_sep_invalid4(c):
         dt.fread("A,,B\n", sep=c)
     strc = '\\x60' if c == '`' else c
     assert "Separator %s is not allowed" % strc == str(e.value)
+
+
+
+#-------------------------------------------------------------------------------
+# `multiple_sources`
+#-------------------------------------------------------------------------------
+
+def test_multiple_sources_invalid():
+    msg = r"Argument multiple_sources in fread\(\) should be a string, " \
+          r"instead got <class 'bool'>"
+    with pytest.raises(TypeError, match=msg):
+        dt.fread("foo", multiple_sources=True)
+
+    msg = r"Argument multiple_sources in fread\(\) got invalid value WARN"
+    with pytest.raises(ValueError, match=msg):
+        dt.fread("foo", multiple_sources="WARN")
+
+
+def test_multiple_sources_warn():
+    with pytest.warns(dt.exceptions.IOWarning):
+        DT = dt.fread([None, "a\n2", "a\n3"], multiple_sources="warn")
+    assert_equals(DT, dt.Frame(a=[2]))
+
+
+def test_multiple_source_error():
+    msg = r"fread\(\) input contains multiple sources"
+    with pytest.raises(dt.exceptions.IOError, match=msg):
+        DT = dt.fread([None, "a\n2", "a\n3"], multiple_sources="error")
+
+
+def test_multiple_source_ignore():
+    DT = dt.fread([None, "a\n2", "a\n3"], multiple_sources="ignore")
+    assert_equals(DT, dt.Frame(a=[2]))
+
 
 
 

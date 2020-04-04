@@ -35,10 +35,10 @@ work::work(size_t amount)
 }
 
 work::~work() {
- if (!pbar) return;
- try {
-   dt::progress::manager->finish_work(this, false);
- } catch (...) {};
+  if (!pbar) return;
+  try {
+    dt::progress::manager->finish_work(this, false);
+  } catch (...) {};
 }
 
 

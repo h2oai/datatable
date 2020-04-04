@@ -37,9 +37,9 @@ progress_manager::progress_manager()
 
 
 void progress_manager::start_work(work* task) {
+  xassert((pbar == nullptr) == tasks.empty());
   if (tasks.empty()) {
     std::lock_guard<std::mutex> lock(mutex);
-    xassert(pbar == nullptr);
     if (dt::progress::enabled) {
       pbar = new progress_bar_enabled();
     } else {
@@ -62,8 +62,9 @@ void progress_manager::finish_work(work* task, bool successfully) {
   tasks.pop();
 
   std::lock_guard<std::mutex> lock(mutex);
-  if (successfully && tasks.empty()) {
-    pbar->set_status_finished();
+  if (tasks.empty()) {
+    if (successfully) pbar->set_status_finished();
+    else              pbar->set_status_error(false);
     delete pbar;
     pbar = nullptr;
   }
@@ -84,16 +85,6 @@ void progress_manager::update_view() const {
 }
 
 
-void progress_manager::set_error_status(bool cancelled) noexcept {
-  std::lock_guard<std::mutex> lock(mutex);
-  if (!pbar) return;
-  try {
-    pbar->set_status_error(cancelled);
-  } catch (...) {}
-  delete pbar;
-  pbar = nullptr;
-}
-
 
 void progress_manager::set_interrupt() const noexcept {
   interrupt_status = InterruptStatus::HANDLE_INTERRUPT;
@@ -112,6 +103,7 @@ void progress_manager::reset_interrupt_status() const noexcept {
 
 void progress_manager::handle_interrupt() const {
   if (interrupt_status == InterruptStatus::HANDLE_INTERRUPT) {
+    if (pbar) pbar->set_status_error(true);
     interrupt_status = InterruptStatus::ABORT_EXECUTION;
     PyErr_SetNone(PyExc_KeyboardInterrupt);
     throw PyError();

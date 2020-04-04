@@ -204,7 +204,7 @@ void FreadThreadContext::read_chunk(
       // fields should already have been filled above due to continue inside
       // `while (j < ncols)`.
       if (cc.is_start_exact()) {
-        throw RuntimeError() << "Too few fields on line "
+        throw IOError() << "Too few fields on line "
           << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but found only " << j
           << " (with sep='" << sep << "'). Set fill=True to ignore this error. "
@@ -216,7 +216,7 @@ void FreadThreadContext::read_chunk(
 
     if (!(tokenizer.skip_eol() || tch == tokenizer.eof)) {
       if (cc.is_start_exact()) {
-        throw RuntimeError() << "Too many fields on line "
+        throw IOError() << "Too many fields on line "
           << row0 + used_nrows + freader.line
           << ": expected " << ncols << " but more are present. <<"
           << freader.repr_source(tlineStart, 500) << ">>";

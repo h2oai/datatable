@@ -30,7 +30,7 @@ import tempfile
 import warnings
 
 from datatable.lib import core
-from datatable.exceptions import TypeError, ValueError, FreadWarning
+from datatable.exceptions import TypeError, ValueError, IOError, FreadWarning
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
@@ -123,7 +123,7 @@ def _resolve_source_any(src, tempfiles):
     elif isinstance(src, _pathlike) or hasattr(src, "read"):
         return _resolve_source_file(src, tempfiles)
     elif isinstance(src, (list, tuple)):
-        return _resolve_source_list_of_files(src, tempfiles)
+        return _resolve_source_list(src, tempfiles)
     else:
         raise TypeError("Unknown type for the first argument in fread: %r"
                         % type(src))
@@ -215,6 +215,16 @@ def _resolve_source_list_of_files(files_list, tempfiles):
     return (None, None, None, None), files
 
 
+def _resolve_source_list(srcs_list, tempfiles):
+    out = []
+    for s in srcs_list:
+        if s is None: continue
+        entry = _resolve_source_any(s, tempfiles)
+        out.append(entry)
+    # src, file, fileno, text, result
+    return (None, None, None, None), out
+
+
 def _resolve_archive(filename, subpath, tempfiles):
     logger = tempfiles._logger
     ext = os.path.splitext(filename)[1]
@@ -238,21 +248,47 @@ def _resolve_archive(filename, subpath, tempfiles):
                 filename += "/" + subpath
                 zff = [subpath]
             else:
-                raise ValueError("File `%s` does not exist in archive `%s`"
-                                 % (subpath, filename))
-        if len(zff) > 1:
-            warnings.warn("Zip file %s contains multiple compressed "
-                          "files: %r. Only the first of them will be used."
-                          % (filename, zff), category=FreadWarning)
-            filename += "/" + zff[0]
-        if len(zff) == 0:
-            raise ValueError("Zip file %s is empty" % filename)
-        if logger:
-            logger.debug("Extracting %s to temporary directory %s"
-                              % (filename, tempfiles.tempdir))
-        newfile = zf.extract(zff[0], path=tempfiles.tempdir)
-        tempfiles.add(newfile)
-        out_file = newfile
+                raise IOError("File `%s` does not exist in archive `%s`"
+                               % (subpath, filename))
+        extracted_files = []
+        for zf_file in zff:
+            if logger:
+                logger.debug("Extracting %s/%s to temporary directory %s"
+                             % (filename, zf_file, tempfiles.tempdir))
+            newfile = zf.extract(zf_file, path=tempfiles.tempdir)
+            srcname = filename + "/" + zf_file
+            tempfiles.add(newfile)
+            extracted_files.append(((srcname, newfile, None, None), None))
+        if len(extracted_files) == 1:
+            out_file = extracted_files[0][0][1]
+        else:
+            return (None, None, None, None), extracted_files
+
+    elif filename.endswith(".tar.gz"):
+        import tarfile
+        zf = tarfile.open(filename, mode="r:gz")
+        zff = [entry.name for entry in zf.getmembers() if entry.isfile()]
+        if subpath:
+            if subpath in zff:
+                filename += "/" + subpath
+                zff = [subpath]
+            else:
+                raise IOError("File `%s` does not exist in archive `%s`"
+                              % (subpath, filename))
+        extracted_files = []
+        for entryname in zff:
+            if logger:
+                logger.debug("Extracting %s/%s to temporary directory %s"
+                             % (filename, entryname, tempfiles.tempdir))
+            newfile = tempfiles.create_temp_file()
+            with zf.extractfile(entryname) as inp, open(newfile, "wb") as out:
+                out.write(inp.read())
+            srcname = filename + "/" + entryname
+            extracted_files.append(((srcname, newfile, None, None), None))
+        if len(extracted_files) == 1:
+            out_file = extracted_files[0][0][1]
+        else:
+            return (None, None, None, None), extracted_files
 
     elif ext == ".gz":
         import gzip
