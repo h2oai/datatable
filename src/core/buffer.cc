@@ -26,7 +26,6 @@
   #include <sys/mman.h>        // mmap, munmap
 #endif
 
-
 //------------------------------------------------------------------------------
 // BufferImpl
 //------------------------------------------------------------------------------
@@ -77,6 +76,9 @@ class BufferImpl
     bool   writable_;
     bool   resizable_;
     int : 8;
+
+  public:
+    static const size_t page_size_;
 
   //------------------------------------
   // Constructors
@@ -176,6 +178,20 @@ class BufferImpl
       return contains_pyobjects_;
     }
 
+    bool is_page_multiple() const noexcept {
+      return !(size_%page_size_);
+    }
+
+    static size_t calc_page_size() {
+      #if DT_OS_WINDOWS
+        SYSTEM_INFO sysInfo;
+        GetSystemInfo(&sysInfo);
+        const size_t page_size = sysInfo.dwPageSize;
+      #else
+        const size_t page_size = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
+      #endif
+      return page_size;
+    }
 
   //------------------------------------
   // Methods
@@ -209,6 +225,8 @@ class BufferImpl
 };
 
 
+// Determine memory page size
+const size_t BufferImpl::page_size_ = BufferImpl::calc_page_size();
 
 
 //------------------------------------------------------------------------------
@@ -607,123 +625,6 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
 
 
 
-
-//------------------------------------------------------------------------------
-// Overmap_BufferImpl
-//------------------------------------------------------------------------------
-
-class Overmap_BufferImpl : public Mmap_BufferImpl {
-  private:
-    void* xbuf_;
-    size_t xsize_;
-
-  public:
-    Overmap_BufferImpl(const std::string& path, size_t xn, int fd = -1)
-      : Mmap_BufferImpl(path, xn, fd, false),
-        xbuf_(nullptr),
-        xsize_(xn)
-    {
-      writable_ = true;
-    }
-
-    ~Overmap_BufferImpl() override {
-      if (!xbuf_) return;
-      int ret = munmap(xbuf_, xsize_);
-      if (ret) {
-        printf("Cannot unmap extra memory %p: [errno %d] %s",
-               xbuf_, errno, std::strerror(errno));
-      }
-    }
-
-    virtual size_t memory_footprint() const noexcept override {
-      return Mmap_BufferImpl::memory_footprint() - sizeof(Mmap_BufferImpl) +
-             xsize_ + sizeof(Overmap_BufferImpl);
-    }
-
-  protected:
-    void memmap() override {
-      Mmap_BufferImpl::memmap();
-      if (xsize_ == 0) return;
-      if (!data_) return;
-
-      // The parent's constructor has opened a memory-mapped region
-      // of size `filesize + xn`. This, however, is not always
-      // enough:
-      // | A file is mapped in multiples of the page size. For a
-      // | file that is not a multiple of the page size, the
-      // | remaining memory is 0ed when mapped, and writes to that
-      // | region are not written out to the file.
-      //
-      // Thus, when `filesize` is *not* a multiple of pagesize,
-      // then the memory mapping will have some writable "scratch"
-      // space at the end, filled with '\0' bytes. We check -- if
-      // this space is large enough to hold `xn` bytes, then don't
-      // do anything extra. If not (for example when `filesize` is
-      // an exact multiple of `pagesize`), then attempt to read/
-      // write past physical end of file wil fail with a BUS error,
-      // despite the fact that the map was overallocated for the
-      // extra `xn` bytes:
-      // | Use of a mapped region can result in these signals:
-      // | SIGBUS:
-      // |   Attempted access to a portion of the buffer that does
-      // |   not correspond to the file (for example, beyond the
-      // |   end of the file)
-      //
-      // In order to circumvent this, we allocate a new memory-
-      // mapped region of size `xn` and placed at address `buf +
-      // filesize`. In theory, this should always succeed because
-      // we over-allocated `buf` by `xn` bytes; and even though
-      // those extra bytes are not readable/writable, at least
-      // there is a guarantee that it is not occupied by anyone
-      // else. Now, `mmap()` documentation explicitly allows to
-      // declare mappings that overlap each other:
-      // | MAP_ANONYMOUS:
-      // |   The mapping is not backed by any file; its contents are
-      // |   initialized to zero. The fd argument is ignored.
-      // | MAP_FIXED
-      // |   Don't interpret addr as a hint: place the mapping at
-      // |   exactly that address.  `addr` must be a multiple of
-      // |   the page size. If the memory region specified by addr
-      // |   and len overlaps pages of any existing mapping(s), then
-      // |   the overlapped part of the existing mapping(s) will be
-      // |   discarded.
-      //
-      size_t xn = xsize_;
-
-      #if DT_OS_WINDOWS
-        SYSTEM_INFO sysInfo;
-        GetSystemInfo(&sysInfo);
-        size_t pagesize = sysInfo.dwPageSize;
-      #else
-        size_t pagesize = static_cast<size_t>(sysconf(_SC_PAGE_SIZE));
-      #endif
-
-      size_t filesize = size() - xn;
-      // How much to add to filesize to align it to a page boundary
-      size_t gapsize = (pagesize - filesize%pagesize) % pagesize;
-      if (xn > gapsize) {
-        void* target = static_cast<void*>(
-                          static_cast<char*>(data_) + filesize + gapsize);
-        xsize_ = xn - gapsize;
-        xbuf_ = mmap(/* address = */ target,
-                    /* size = */ xsize_,
-                    /* protection = */ PROT_WRITE|PROT_READ,
-                    /* flags = */ MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
-                    /* file descriptor, ignored */ -1,
-                    /* offset, ignored */ 0);
-        if (xbuf_ == MAP_FAILED) {
-          throw RuntimeError() << "Cannot allocate additional " << xsize_
-                               << " bytes at address " << target << ": "
-                               << Errno;
-        }
-      }
-    }
-};
-
-
-
-
-
 //==============================================================================
 // Buffer
 //==============================================================================
@@ -800,14 +701,8 @@ class Overmap_BufferImpl : public Mmap_BufferImpl {
     return Buffer(new Mmap_BufferImpl(path));
   }
 
-  Buffer Buffer::mmap(const std::string& path, size_t n, int fd) {
-    return Buffer(new Mmap_BufferImpl(path, n, fd));
-  }
-
-  Buffer Buffer::overmap(const std::string& path, size_t extra_n,
-                                   int fd)
-  {
-    return Buffer(new Overmap_BufferImpl(path, extra_n, fd));
+  Buffer Buffer::mmap(const std::string& path, size_t n, int fd, bool create) {
+    return Buffer(new Mmap_BufferImpl(path, n, fd, create));
   }
 
 

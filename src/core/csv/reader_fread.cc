@@ -11,7 +11,6 @@
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 
 
-
 //------------------------------------------------------------------------------
 // Initialization
 //------------------------------------------------------------------------------
@@ -21,12 +20,7 @@ FreadReader::FreadReader(const dt::read::GenericReader& g)
 {
   size_t input_size = datasize();
   targetdir = nullptr;
-  // TODO: Do not require the extra byte, and do not write into the input stream...
-  xassert(extra_byte_accessible());
   xassert(input_size > 0);
-  // Usually the extra byte is already zero, however if we skipped whitespace
-  // at the end, it may no longer be so
-  *const_cast<char*>(eof) = '\0';
 
   first_jump_size = 0;
   n_sample_lines = 0;
@@ -246,7 +240,7 @@ void FreadReader::detect_sep_and_qr() {
   const char* firstJumpEnd = nullptr; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
   int topNumLines = 0;      // the most number of lines with the same number of fields, so far
   int topNumFields = 0;     // how many fields that was, to resolve ties
-  int8_t topQuoteRule = -1;  // which quote rule that was
+  int8_t topQuoteRule = -1; // which quote rule that was
   int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
                             //   (when fill=true, the max is usually the header row and is the longest but there are more
                             //    lines of fewer)
@@ -292,7 +286,9 @@ void FreadReader::detect_sep_and_qr() {
         numLines[i]++;
       }
       if (numFields[0] == -1) continue;
-      if (firstJumpEnd == nullptr) firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
+      if (firstJumpEnd == nullptr) {
+        firstJumpEnd = tch;  // if this wins (doesn't get updated), it'll be single column input
+      }
       if (topQuoteRule < 0) topQuoteRule = quoteRule;
       bool updated = false;
       int nmax = 0;
@@ -431,7 +427,7 @@ class ColumnTypeDetectionChunkster {
         // and we jumped onto the second '\r' (which wouldn't be considered a
         // newline by `skip_eol()`s rules, which would then become a part of the
         // following field).
-        while (*tch == '\n' || *tch == '\r') tch++;
+        while (tch < f.eof && (*tch == '\n' || *tch == '\r')) tch++;
 
         if (tch < f.eof) {
           bool ok = fctx.next_good_line_start(cc, static_cast<int>(f.get_ncols()),
@@ -500,7 +496,7 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
       if (*fieldStart == quote) {
         tch = fieldStart + 1;
         parsers[*ptype_iter](fctx);
-        if (*tch == quote) {
+        if (tch < eof && *tch == quote) {
           tch++;
           fctx.skip_whitespace();
           if (fctx.at_end_of_field()) break;
@@ -515,7 +511,7 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
     }
     j++;
 
-    if (*tch == sep) {
+    if (tch < eof && *tch == sep) {
       if (sep == ' ') {
         // Multiple spaces are considered a single sep. In addition, spaces at
         // the end of the line should be discarded and not treated as a sep.
