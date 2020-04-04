@@ -474,6 +474,29 @@ def test_aggregate_2d_mixed_na():
     assert_equals(d_in, d_in_copy)
 
 
+def test_aggregate_2d_mixed_distinct_na():
+    d_in = dt.Frame([["a", "b", "c", "d", "e", "f"], [None] * 6])
+    d_in_copy = dt.Frame(d_in)
+    d_exemplars, d_members = aggregate(d_in, min_rows=0, nx_bins = 3, ny_bins = 3)
+    print(d_exemplars, d_members)
+    frame_integrity_check(d_members)
+    frame_integrity_check(d_exemplars)
+    assert_equals(
+        d_members,
+        dt.Frame([0] * 6, names = ["exemplar_id"], stypes = [dt.stype.int32])
+    )
+    assert_equals(
+        d_exemplars,
+        dt.Frame(
+            [["a"], [None], [6]],
+            names = ["C0", "C1", "members_count"],
+            stypes = [dt.stype.str32, dt.stype.bool8, dt.stype.int32]
+        )
+    )
+    assert_equals(d_in, d_in_copy)
+
+
+
 def test_aggregate_2d_mixed_sorted():
     nx_bins = 7
     d_in = dt.Frame([[None, None, 0, 0, 1, 2, 3, 4, 5, 6],

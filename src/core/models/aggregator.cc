@@ -333,7 +333,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       // Sample exemplars if we gathered too many.
       job.set_message("Sampling");
       dt::progress::subtask subjob(job, WORK_SAMPLE);
-      sample_exemplars(max_bins);
+      needs_sampling = sample_exemplars(max_bins);
       subjob.done();
     } else {
       job.add_done_amount(WORK_SAMPLE);
@@ -374,8 +374,9 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
  *  (e.g. too many distinct categorical values) do random sampling.
  */
 template <typename T>
-void Aggregator<T>::sample_exemplars(size_t max_bins)
-{
+bool Aggregator<T>::sample_exemplars(size_t max_bins) {
+  bool was_sampled = false;
+
   // Sorting `dt_members` to calculate total number of exemplars.
   auto res = group({dt_members->get_column(0)},
                    {SortFlag::NONE});
@@ -423,7 +424,10 @@ void Aggregator<T>::sample_exemplars(size_t max_bins)
     }
     dt_members->get_column(0).reset_stats();
     job.done();
+    was_sampled = true;
   }
+
+  return was_sampled;
 }
 
 
@@ -783,7 +787,12 @@ bool Aggregator<T>::group_2d_mixed()
       }
     });
 
-  return gb.size() > ny_bins + na_cat_group;
+  // This condition is a good indicator that the resulting
+  // exemplars need sampling. However, in some cases,
+  // for instance, when the numeric column consists of
+  // missing values only, it may be wrong. It's ok, because
+  // the `sample_exemplars()` does a real check.
+  return gb.size() > nx_bins + na_cat_group;
 }
 
 
