@@ -96,12 +96,14 @@ def test_fread_from_url1():
 
 
 def test_fread_from_url2():
+    import pathlib
     root = os.path.join(os.path.dirname(__file__), "..", "..")
     path = os.path.abspath(os.path.join(root, "LICENSE"))
-    d0 = dt.fread("file://" + path, sep="\n")
+    url = pathlib.Path(path).as_uri()
+    d0 = dt.fread(url, sep="\n")
     frame_integrity_check(d0)
     assert d0.shape == (372, 1)
-    assert d0.source == "file://" + path
+    assert d0.source == url
 
 
 def test_fread_from_anysource_as_text1(capsys):
@@ -181,10 +183,11 @@ def test_fread_from_anysource_filelike():
 
 
 def test_fread_from_anysource_as_url(tempfile, capsys):
+    import pathlib
     assert isinstance(tempfile, str)
     with open(tempfile, "w") as o:
         o.write("A,B\n1,2\n")
-    url = "file://" + os.path.abspath(tempfile)
+    url = pathlib.Path(os.path.abspath(tempfile)).as_uri()
     d0 = dt.fread(url, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)

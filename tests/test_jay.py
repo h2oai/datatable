@@ -74,6 +74,7 @@ def test_fread(tempfile_jay):
         assert f1.source == tempfile_jay
         assert f2.source == tempfile_joy
     finally:
+        f2 = None
         os.remove(tempfile_joy)
 
 

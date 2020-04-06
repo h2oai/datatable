@@ -725,7 +725,7 @@ def test_bom4(tempfile):
 def test_bom5(tempfile):
     # When appending to a non-empty file, the BOM mark is not written
     assert os.path.exists(tempfile)
-    with open(tempfile, "w") as out:
+    with open(tempfile, "w", newline="\n") as out:
         out.write("# test file\n")
     DT = dt.Frame(B=[5,6,7])
     DT.to_csv(tempfile, append=True, bom=True)
