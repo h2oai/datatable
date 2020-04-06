@@ -223,7 +223,7 @@ def test_fread_file_not_exists():
     path = os.path.abspath(".")
     with pytest.raises(ValueError) as e:
         dt.fread(name)
-    assert ("File %s/%s does not exist" % (path, name)) in str(e.value)
+    assert ("File %s does not exist" % os.path.join(path, name)) in str(e.value)
 
 
 def test_fread_file_is_directory():
