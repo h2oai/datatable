@@ -187,7 +187,7 @@ def test_fread_from_anysource_as_url(tempfile, capsys):
     assert isinstance(tempfile, str)
     with open(tempfile, "w") as o:
         o.write("A,B\n1,2\n")
-    url = pathlib.Path(os.path.abspath(tempfile)).as_uri()
+    url = pathlib.Path(tempfile).as_uri()
     d0 = dt.fread(url, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
