@@ -299,27 +299,24 @@ def test_fread_zip_file_1(tempfile, capsys):
 def test_fread_zip_file_multi(tempfile):
     import zipfile
     zfname = tempfile + ".zip"
+    fnames = ["data" + str(i) + ".csv" for i in range(3)]
+    full_fnames = [os.path.join(zfname, fnames[i]) for i in range(3)]
     with zipfile.ZipFile(zfname, "x", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("data1.csv", "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
-        zf.writestr("data2.csv", "A,B,C\n3,4,5\n6,7,8\n")
-        zf.writestr("data3.csv", "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
+        zf.writestr(fnames[0], "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
+        zf.writestr(fnames[1], "A,B,C\n3,4,5\n6,7,8\n")
+        zf.writestr(fnames[2], "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
     msg = r"fread\(\) input contains multiple sources, only the first " \
           r"will be used"
     with pytest.warns(IOWarning, match=msg):
         d0 = dt.fread(zfname)
-    full_fname0 = os.path.join(zfname, "data1.csv")
-    full_fname1 = os.path.join(zfname, "data2.csv")
-    full_fname2 = os.path.join(zfname, "data3.csv")
-    print(full_fname1)
-    d1 = dt.fread(full_fname1)
-    print(d1.source)
-    d2 = dt.fread(full_fname2)
+    d1 = dt.fread(full_fnames[1])
+    d2 = dt.fread(full_fnames[2])
     frame_integrity_check(d0)
     frame_integrity_check(d1)
     frame_integrity_check(d2)
-    assert d0.source == full_fname0
-    assert d1.source == full_fname1
-    assert d2.source == full_fname2
+    assert d0.source == full_fnames[0]
+    assert d1.source == full_fnames[1]
+    assert d2.source == full_fnames[2]
     assert d0.names == ("a", "b", "c")
     assert d1.names == ("A", "B", "C")
     assert d2.names == ("Aa", "Bb", "Cc")
