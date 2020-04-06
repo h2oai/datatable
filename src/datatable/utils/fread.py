@@ -228,7 +228,7 @@ def _resolve_source_list(srcs_list, tempfiles):
 def _resolve_archive(filename, subpath, tempfiles):
     logger = tempfiles._logger
     ext = os.path.splitext(filename)[1]
-    if subpath and subpath[0] == "/":
+    if subpath and subpath[0] in ["/", "\\"]:
         subpath = subpath[1:]
 
     out_file = None
@@ -245,7 +245,7 @@ def _resolve_archive(filename, subpath, tempfiles):
                if not(name.startswith("__MACOSX/") or name.endswith("/"))]
         if subpath:
             if subpath in zff:
-                filename += "/" + subpath
+                filename = os.path.join(filename, subpath)
                 zff = [subpath]
             else:
                 raise IOError("File `%s` does not exist in archive `%s`"
@@ -256,7 +256,7 @@ def _resolve_archive(filename, subpath, tempfiles):
                 logger.debug("Extracting %s/%s to temporary directory %s"
                              % (filename, zf_file, tempfiles.tempdir))
             newfile = zf.extract(zf_file, path=tempfiles.tempdir)
-            srcname = filename + "/" + zf_file
+            srcname = os.path.join(filename, zf_file)
             tempfiles.add(newfile)
             extracted_files.append(((srcname, newfile, None, None), None))
         if len(extracted_files) == 1:
@@ -270,7 +270,7 @@ def _resolve_archive(filename, subpath, tempfiles):
         zff = [entry.name for entry in zf.getmembers() if entry.isfile()]
         if subpath:
             if subpath in zff:
-                filename += "/" + subpath
+                filename = os.path.join(filename, subpath)
                 zff = [subpath]
             else:
                 raise IOError("File `%s` does not exist in archive `%s`"
@@ -283,7 +283,7 @@ def _resolve_archive(filename, subpath, tempfiles):
             newfile = tempfiles.create_temp_file()
             with zf.extractfile(entryname) as inp, open(newfile, "wb") as out:
                 out.write(inp.read())
-            srcname = filename + "/" + entryname
+            srcname = os.path.join(filename, entryname)
             extracted_files.append(((srcname, newfile, None, None), None))
         if len(extracted_files) == 1:
             out_file = extracted_files[0][0][1]
@@ -320,7 +320,7 @@ def _resolve_archive(filename, subpath, tempfiles):
     elif ext == ".xlsx" or ext == ".xls":
         out_result = read_xls_workbook(filename, subpath)
         if subpath:
-            filename += "/" + subpath
+            filename = os.path.join(filenam, subpath)
 
     elif ext == ".jay":
         out_result = core.open_jay(filename)
