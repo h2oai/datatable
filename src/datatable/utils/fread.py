@@ -248,7 +248,6 @@ def _resolve_archive(filename, subpath, tempfiles):
                     filename = os.path.join(filename, subpath)
                     zff = [subpath]
                 else:
-                    zipfile.ZipFile.close(zf)
                     raise IOError("File `%s` does not exist in archive `%s`"
                                    % (subpath, filename))
             extracted_files = []
