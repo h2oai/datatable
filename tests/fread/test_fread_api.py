@@ -207,9 +207,10 @@ def test_fread_from_stringbuf():
     assert d0.to_list() == [[1, 4], [2, 5], [3, 6]]
 
 
-@pytest.mark.skipif(sys.platform == "win32", 
-                    reason="On Windows this test makes pytest to stop")
-def test_fread_from_fileobj(tempfile):
+# This test is temporarily disabled in Windows, 
+# because there it makes pytest to stop abruptly.
+def test_fread_from_fileobj(tempfile, nowin):
+
     with open(tempfile, "w") as f:
         f.write("A,B,C\nfoo,bar,baz\n")
 
