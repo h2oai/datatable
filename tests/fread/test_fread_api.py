@@ -28,6 +28,7 @@
 import pytest
 import datatable as dt
 import os
+import sys
 from datatable import ltype, stype
 from datatable.exceptions import FreadWarning, DatatableWarning, IOWarning
 from datatable.internal import frame_integrity_check
@@ -96,12 +97,14 @@ def test_fread_from_url1():
 
 
 def test_fread_from_url2():
+    import pathlib
     root = os.path.join(os.path.dirname(__file__), "..", "..")
     path = os.path.abspath(os.path.join(root, "LICENSE"))
-    d0 = dt.fread("file://" + path, sep="\n")
+    url = pathlib.Path(path).as_uri()
+    d0 = dt.fread(url, sep="\n")
     frame_integrity_check(d0)
     assert d0.shape == (372, 1)
-    assert d0.source == "file://" + path
+    assert d0.source == url
 
 
 def test_fread_from_anysource_as_text1(capsys):
@@ -181,10 +184,11 @@ def test_fread_from_anysource_filelike():
 
 
 def test_fread_from_anysource_as_url(tempfile, capsys):
+    import pathlib
     assert isinstance(tempfile, str)
     with open(tempfile, "w") as o:
         o.write("A,B\n1,2\n")
-    url = "file://" + os.path.abspath(tempfile)
+    url = pathlib.Path(tempfile).as_uri()
     d0 = dt.fread(url, verbose=True)
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
@@ -203,7 +207,10 @@ def test_fread_from_stringbuf():
     assert d0.to_list() == [[1, 4], [2, 5], [3, 6]]
 
 
-def test_fread_from_fileobj(tempfile):
+# This test is temporarily disabled in Windows, 
+# because there it makes pytest to stop abruptly.
+def test_fread_from_fileobj(tempfile, nowin):
+
     with open(tempfile, "w") as f:
         f.write("A,B,C\nfoo,bar,baz\n")
 
@@ -220,7 +227,7 @@ def test_fread_file_not_exists():
     path = os.path.abspath(".")
     with pytest.raises(ValueError) as e:
         dt.fread(name)
-    assert ("File %s/%s does not exist" % (path, name)) in str(e.value)
+    assert ("File %s does not exist" % os.path.join(path, name)) in str(e.value)
 
 
 def test_fread_file_is_directory():
@@ -296,22 +303,24 @@ def test_fread_zip_file_1(tempfile, capsys):
 def test_fread_zip_file_multi(tempfile):
     import zipfile
     zfname = tempfile + ".zip"
+    fnames = ["data" + str(i) + ".csv" for i in range(3)]
+    full_fnames = [os.path.join(zfname, fnames[i]) for i in range(3)]
     with zipfile.ZipFile(zfname, "x", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("data1.csv", "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
-        zf.writestr("data2.csv", "A,B,C\n3,4,5\n6,7,8\n")
-        zf.writestr("data3.csv", "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
+        zf.writestr(fnames[0], "a,b,c\nfoo,bar,baz\ngee,jou,sha\n")
+        zf.writestr(fnames[1], "A,B,C\n3,4,5\n6,7,8\n")
+        zf.writestr(fnames[2], "Aa,Bb,Cc\ntrue,1.5,\nfalse,1e+20,yay\n")
     msg = r"fread\(\) input contains multiple sources, only the first " \
           r"will be used"
     with pytest.warns(IOWarning, match=msg):
         d0 = dt.fread(zfname)
-    d1 = dt.fread(zfname + "/data2.csv")
-    d2 = dt.fread(zfname + "/data3.csv")
+    d1 = dt.fread(full_fnames[1])
+    d2 = dt.fread(full_fnames[2])
     frame_integrity_check(d0)
     frame_integrity_check(d1)
     frame_integrity_check(d2)
-    assert d0.source == zfname + "/data1.csv"
-    assert d1.source == zfname + "/data2.csv"
-    assert d2.source == zfname + "/data3.csv"
+    assert d0.source == full_fnames[0]
+    assert d1.source == full_fnames[1]
+    assert d2.source == full_fnames[2]
     assert d0.names == ("a", "b", "c")
     assert d1.names == ("A", "B", "C")
     assert d2.names == ("Aa", "Bb", "Cc")
@@ -339,7 +348,7 @@ def test_fread_zip_file_bad2(tempfile):
     with zipfile.ZipFile(zfname, "x") as zf:
         zf.writestr("data1.csv", "Egeustimentis")
     with pytest.raises(IOError) as e:
-        dt.fread(zfname + "/out.csv")
+        dt.fread(os.path.join(zfname, "out.csv"))
     assert "File out.csv does not exist in archive" in str(e.value)
     os.unlink(zfname)
 
@@ -476,7 +485,7 @@ def test_iread_tar_gz(tempfile):
             out.write("7\n8\n9\n")
         tf.add(tempfile, arcname='three')
     for i, DT in enumerate(dt.iread(outfile)):
-        assert DT.source == outfile + ["/one", "/two", "/three"][i]
+        assert DT.source == os.path.join(outfile, ["one", "two", "three"][i])
         assert DT.shape == (3, 1)
         assert DT.to_list()[0] == list(range(3*i + 1, 3*i + 4))
 

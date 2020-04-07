@@ -48,6 +48,13 @@ def noppc64():
 
 
 @pytest.fixture(scope="session")
+def nowin():
+    """Skip this test when running on Windows"""
+    if sys.platform == "win32":
+        pytest.skip("Disabled on Windows")
+
+
+@pytest.fixture(scope="session")
 def nocov():
     """Skip this test when running in the 'coverage' mode"""
     if "DTCOVERAGE" in os.environ:

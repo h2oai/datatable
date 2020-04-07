@@ -74,6 +74,11 @@ def test_fread(tempfile_jay):
         assert f1.source == tempfile_jay
         assert f2.source == tempfile_joy
     finally:
+        # The file `tempfile_joy` is memory-mapped as the frame `f2`.
+        # So in order to delete `tempfile_joy` we first need to 
+        # delete `f2`. Otherwise (for instance, on Windows) we won't
+        # have permissions to delete this file.
+        f2 = None
         os.remove(tempfile_joy)
 
 
