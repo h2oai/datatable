@@ -28,6 +28,7 @@
 import pytest
 import datatable as dt
 import os
+import sys
 from datatable import ltype, stype
 from datatable.exceptions import FreadWarning, DatatableWarning, IOWarning
 from datatable.internal import frame_integrity_check
@@ -206,16 +207,18 @@ def test_fread_from_stringbuf():
     assert d0.to_list() == [[1, 4], [2, 5], [3, 6]]
 
 
+@pytest.mark.skipif(sys.platform == "win32", 
+                    reason="On Windows this test makes pytest to stop")
 def test_fread_from_fileobj(tempfile):
     with open(tempfile, "w") as f:
         f.write("A,B,C\nfoo,bar,baz\n")
 
-    # with open(tempfile, "r") as f:
-    #     d0 = dt.fread(f)
-    #     frame_integrity_check(d0)
-    #     assert d0.source == tempfile
-    #     assert d0.names == ("A", "B", "C")
-    #     assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
+    with open(tempfile, "r") as f:
+        d0 = dt.fread(f)
+        frame_integrity_check(d0)
+        assert d0.source == tempfile
+        assert d0.names == ("A", "B", "C")
+        assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
 
 
 def test_fread_file_not_exists():
