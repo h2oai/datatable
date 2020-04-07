@@ -236,33 +236,35 @@ def _resolve_archive(filename, subpath, tempfiles):
     out_result = None
     if ext == ".zip":
         import zipfile
-        zf = zipfile.ZipFile(filename)
-        # MacOS is found guilty of adding extra files into the Zip archives
-        # it creates. The files are hidden, and in the directory __MACOSX/.
-        # We remove those files from the list, since they are not real user
-        # files, and have an unknown binary format.
-        zff = [name for name in zf.namelist()
-               if not(name.startswith("__MACOSX/") or name.endswith("/"))]
-        if subpath:
-            if subpath in zff:
-                filename = os.path.join(filename, subpath)
-                zff = [subpath]
+        with zipfile.ZipFile(filename) as zf:
+            # MacOS is found guilty of adding extra files into the Zip archives
+            # it creates. The files are hidden, and in the directory __MACOSX/.
+            # We remove those files from the list, since they are not real user
+            # files, and have an unknown binary format.
+            zff = [name for name in zf.namelist()
+                   if not(name.startswith("__MACOSX/") or name.endswith("/"))]
+            if subpath:
+                if subpath in zff:
+                    filename = os.path.join(filename, subpath)
+                    zff = [subpath]
+                else:
+                    zipfile.ZipFile.close(zf)
+                    raise IOError("File `%s` does not exist in archive `%s`"
+                                   % (subpath, filename))
+            extracted_files = []
+            for zf_file in zff:
+                if logger:
+                    logger.debug("Extracting %s/%s to temporary directory %s"
+                                 % (filename, zf_file, tempfiles.tempdir))
+                newfile = zf.extract(zf_file, path=tempfiles.tempdir)
+                srcname = os.path.join(filename, zf_file)
+                tempfiles.add(newfile)
+                extracted_files.append(((srcname, newfile, None, None), None))
+
+            if len(extracted_files) == 1:
+                out_file = extracted_files[0][0][1]
             else:
-                raise IOError("File `%s` does not exist in archive `%s`"
-                               % (subpath, filename))
-        extracted_files = []
-        for zf_file in zff:
-            if logger:
-                logger.debug("Extracting %s/%s to temporary directory %s"
-                             % (filename, zf_file, tempfiles.tempdir))
-            newfile = zf.extract(zf_file, path=tempfiles.tempdir)
-            srcname = os.path.join(filename, zf_file)
-            tempfiles.add(newfile)
-            extracted_files.append(((srcname, newfile, None, None), None))
-        if len(extracted_files) == 1:
-            out_file = extracted_files[0][0][1]
-        else:
-            return (None, None, None, None), extracted_files
+                return (None, None, None, None), extracted_files
 
     elif filename.endswith(".tar.gz"):
         import tarfile
