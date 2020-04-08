@@ -1015,9 +1015,9 @@ void FreadObserver::type_bump_info(
 
   // The actual number of characters
   int field_len = std::min(MAX_FIELD_SIZE, static_cast<int>(len));
- 
+
   // Calculate the total message size
-  int message_size = snprintf(NULL, 0,
+  int message_size = snprintf(nullptr, 0,
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
@@ -1025,14 +1025,14 @@ void FreadObserver::type_bump_info(
 
   if (message_size < 0) {
     throw IOError() << "Cannot calculate message size in "
-                    << "FreadObserver::type_bump_info()"; 
+                    << "FreadObserver::type_bump_info()";
   }
 
   // Create a message buffer of the proper size
   char* message = new char[message_size + 1];
 
   // Write the actual message
-  int written_size = snprintf(message, message_size,
+  int written_size = snprintf(message, static_cast<size_t>(message_size),
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
@@ -1040,7 +1040,7 @@ void FreadObserver::type_bump_info(
 
   if (written_size < 0 || written_size != message_size) {
     throw IOError() << "Cannot write message in "
-                    << "FreadObserver::type_bump_info()"; 
+                    << "FreadObserver::type_bump_info()";
   }
 
   messages.push_back(std::string(message, static_cast<size_t>(written_size)));
