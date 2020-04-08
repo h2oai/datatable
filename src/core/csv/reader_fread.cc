@@ -1021,21 +1021,28 @@ void FreadObserver::type_bump_info(
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
-    field_len, field, 
-    static_cast<size_t>(lineno));
+    field_len, field, static_cast<size_t>(lineno));
+
+  if (message_size < 0) {
+    throw IOError() << "Cannot calculate message size in "
+                    << "FreadObserver::type_bump_info()"; 
+  }
 
   // Create a message buffer of the proper size
   char* message = new char[message_size + 1];
 
   // Write the actual message
-  int n = sprintf(message,
+  int written_size = snprintf(message, message_size,
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
-    field_len, field, 
-    static_cast<size_t>(lineno));
+    field_len, field, static_cast<size_t>(lineno));
 
-  n = std::min(n, message_size);
-  messages.push_back(std::string(message, static_cast<size_t>(n)));
+  if (written_size < 0 || written_size != message_size) {
+    throw IOError() << "Cannot write message in "
+                    << "FreadObserver::type_bump_info()"; 
+  }
+
+  messages.push_back(std::string(message, static_cast<size_t>(written_size)));
   delete[] message;
 }
