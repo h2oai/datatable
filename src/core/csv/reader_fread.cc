@@ -1010,13 +1010,32 @@ void FreadObserver::type_bump_info(
   size_t icol, const dt::read::Column& col, PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
-  static const int BUF_SIZE = 1000;
-  char temp[BUF_SIZE + 1];
-  int n = snprintf(temp, BUF_SIZE,
+  // Maximum number of characters to be written for the `field` data
+  static const int MAX_FIELD_SIZE = 1000;
+
+  // The actual number of characters
+  int field_len = std::min(MAX_FIELD_SIZE, static_cast<int>(len));
+ 
+  // Calculate the total message size
+  int message_size = snprintf(NULL, 0,
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
-    static_cast<int>(len), field, static_cast<size_t>(lineno));
-  n = std::min(n, BUF_SIZE);
-  messages.push_back(std::string(temp, static_cast<size_t>(n)));
+    field_len, field, 
+    static_cast<size_t>(lineno));
+
+  // Create a message buffer of the proper size
+  char* message = new char[message_size + 1];
+
+  // Write the actual message
+  int n = sprintf(message,
+    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
+    icol, col.repr_name(g), col.typeName(),
+    ParserLibrary::info(new_type).cname(),
+    field_len, field, 
+    static_cast<size_t>(lineno));
+
+  n = std::min(n, message_size);
+  messages.push_back(std::string(message, static_cast<size_t>(n)));
+  delete[] message;
 }
