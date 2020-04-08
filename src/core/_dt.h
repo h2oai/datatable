@@ -79,7 +79,13 @@ namespace jay {
 
 
 // dt::read support
-enum PT : uint8_t;
+namespace dt {
+namespace read {
+  enum PT : uint8_t;
+  enum RT : uint8_t;
+  enum BT : uint8_t;
+
+}}
 
 
 #endif

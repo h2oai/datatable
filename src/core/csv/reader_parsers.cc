@@ -750,7 +750,7 @@ void ParserLibrary::init_parsers() {
   parsers = new ParserInfo[num_parsers];
   parser_fns = new ParserFnPtr[num_parsers];
 
-  auto add = [&](PT pt, const char* name, char code, int8_t sz, SType st,
+  auto add = [&](dt::read::PT pt, const char* name, char code, int8_t sz, SType st,
                  ParserFnPtr ptr) {
     size_t iid = static_cast<size_t>(pt);
     xassert(iid < ParserLibrary::num_parsers);
@@ -758,21 +758,21 @@ void ParserLibrary::init_parsers() {
     parser_fns[iid] = ptr;
   };
 
-  add(PT::Mu,           "Unknown",         '?', 1, SType::BOOL,    parse_mu);
-  add(PT::Bool01,       "Bool8/numeric",   'b', 1, SType::BOOL,    parse_bool8_numeric);
-  add(PT::BoolU,        "Bool8/uppercase", 'b', 1, SType::BOOL,    parse_bool8_uppercase);
-  add(PT::BoolT,        "Bool8/titlecase", 'b', 1, SType::BOOL,    parse_bool8_titlecase);
-  add(PT::BoolL,        "Bool8/lowercase", 'b', 1, SType::BOOL,    parse_bool8_lowercase);
-  add(PT::Int32,        "Int32",           'i', 4, SType::INT32,   parse_int_simple<int32_t, true>);
-  add(PT::Int32Sep,     "Int32/grouped",   'i', 4, SType::INT32,   parse_intNN_grouped<int32_t>);
-  add(PT::Int64,        "Int64",           'I', 8, SType::INT64,   parse_int_simple<int64_t, true>);
-  add(PT::Int64Sep,     "Int64/grouped",   'I', 8, SType::INT64,   parse_intNN_grouped<int64_t>);
-  add(PT::Float32Hex,   "Float32/hex",     'f', 4, SType::FLOAT32, parse_float32_hex);
-  add(PT::Float64Plain, "Float64",         'F', 8, SType::FLOAT64, parse_float64_simple);
-  add(PT::Float64Ext,   "Float64/ext",     'F', 8, SType::FLOAT64, parse_float64_extended);
-  add(PT::Float64Hex,   "Float64/hex",     'F', 8, SType::FLOAT64, parse_float64_hex);
-  add(PT::Str32,        "Str32",           's', 4, SType::STR32,   parse_string);
-  add(PT::Str64,        "Str64",           'S', 8, SType::STR64,   parse_string);
+  add(dt::read::PT::Mu,           "Unknown",         '?', 1, SType::BOOL,    parse_mu);
+  add(dt::read::PT::Bool01,       "Bool8/numeric",   'b', 1, SType::BOOL,    parse_bool8_numeric);
+  add(dt::read::PT::BoolU,        "Bool8/uppercase", 'b', 1, SType::BOOL,    parse_bool8_uppercase);
+  add(dt::read::PT::BoolT,        "Bool8/titlecase", 'b', 1, SType::BOOL,    parse_bool8_titlecase);
+  add(dt::read::PT::BoolL,        "Bool8/lowercase", 'b', 1, SType::BOOL,    parse_bool8_lowercase);
+  add(dt::read::PT::Int32,        "Int32",           'i', 4, SType::INT32,   parse_int_simple<int32_t, true>);
+  add(dt::read::PT::Int32Sep,     "Int32/grouped",   'i', 4, SType::INT32,   parse_intNN_grouped<int32_t>);
+  add(dt::read::PT::Int64,        "Int64",           'I', 8, SType::INT64,   parse_int_simple<int64_t, true>);
+  add(dt::read::PT::Int64Sep,     "Int64/grouped",   'I', 8, SType::INT64,   parse_intNN_grouped<int64_t>);
+  add(dt::read::PT::Float32Hex,   "Float32/hex",     'f', 4, SType::FLOAT32, parse_float32_hex);
+  add(dt::read::PT::Float64Plain, "Float64",         'F', 8, SType::FLOAT64, parse_float64_simple);
+  add(dt::read::PT::Float64Ext,   "Float64/ext",     'F', 8, SType::FLOAT64, parse_float64_extended);
+  add(dt::read::PT::Float64Hex,   "Float64/hex",     'F', 8, SType::FLOAT64, parse_float64_hex);
+  add(dt::read::PT::Str32,        "Str32",           's', 4, SType::STR32,   parse_string);
+  add(dt::read::PT::Str64,        "Str64",           'S', 8, SType::STR64,   parse_string);
 }
 
 
@@ -786,12 +786,12 @@ ParserLibrary::ParserLibrary() {
 // ParserIterator
 //------------------------------------------------------------------------------
 
-ParserIterable ParserLibrary::successor_types(PT pt) const {
+ParserIterable ParserLibrary::successor_types(dt::read::PT pt) const {
   return ParserIterable(pt);
 }
 
 
-ParserIterable::ParserIterable(PT pt)
+ParserIterable::ParserIterable(dt::read::PT pt)
   : ptype(pt) {}
 
 ParserIterator ParserIterable::begin() const {
@@ -806,7 +806,7 @@ ParserIterator ParserIterable::end() const {
 ParserIterator::ParserIterator()
   : ipt(-1), ptype(0) {}
 
-ParserIterator::ParserIterator(PT pt)
+ParserIterator::ParserIterator(dt::read::PT pt)
   : ipt(0), ptype(static_cast<uint8_t>(pt))
 {
   ++*this;
@@ -831,7 +831,7 @@ bool ParserIterator::operator!=(const ParserIterator& rhs) const {
          (ipt != rhs.ipt || ptype != rhs.ptype);
 }
 
-PT ParserIterator::operator*() const {
-  return static_cast<PT>(ptype + ipt);
+dt::read::PT ParserIterator::operator*() const {
+  return static_cast<dt::read::PT>(ptype + ipt);
 }
 

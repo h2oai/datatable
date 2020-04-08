@@ -51,7 +51,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   //*********************************************************************************************
   {
     if (verbose) trace("[5] Apply user overrides on column types");
-    std::unique_ptr<PT[]> oldtypes = columns.getTypes();
+    std::unique_ptr<dt::read::PT[]> oldtypes = columns.getTypes();
 
     report_columns_to_python();
 
@@ -103,8 +103,8 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   //****************************************************************************
   bool firstTime = true;
 
-  std::unique_ptr<PT[]> typesPtr = columns.getTypes();
-  PT* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
+  std::unique_ptr<dt::read::PT[]> typesPtr = columns.getTypes();
+  dt::read::PT* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
 
   trace("[6] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions

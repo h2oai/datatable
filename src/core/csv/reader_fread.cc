@@ -464,7 +464,7 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
   size_t ncols = columns.size();
   size_t j = 0;
   dt::read::Column dummy_col;
-  dummy_col.force_ptype(PT::Str32);
+  dummy_col.force_ptype(dt::read::PT::Str32);
 
   while (true) {
     dt::read::Column& col = j < ncols ? columns[j] : dummy_col;
@@ -550,11 +550,11 @@ void FreadReader::detect_column_types()
   int rows_to_sample = static_cast<int>(std::min<size_t>(max_nrows, 100));
 
   // Start with all columns having the smallest possible type
-  columns.setType(PT::Mu);
+  columns.setType(dt::read::PT::Mu);
 
   // This variable will store column types at the beginning of each jump
   // so that we can revert to them if the jump proves to be invalid.
-  auto saved_types = std::unique_ptr<PT[]>(new PT[ncols]);
+  auto saved_types = std::unique_ptr<dt::read::PT[]>(new dt::read::PT[ncols]);
 
   for (size_t j = 0; j < nChunks; ++j) {
     dt::read::ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
@@ -614,7 +614,7 @@ void FreadReader::detect_column_types()
     if (header == 1) {
       // A single-row input, and that row is the header. Reset all types to
       // boolean (lowest type possible, a better guess than "string").
-      columns.setType(PT::Mu);
+      columns.setType(dt::read::PT::Mu);
       allocnrow = 0;
     }
     meanLineLen = sumLen;
@@ -668,7 +668,7 @@ void FreadReader::detect_header() {
   // Detect types in the header column
   auto saved_types = columns.getTypes();
   tch = sof;
-  columns.setType(PT::Mu);
+  columns.setType(dt::read::PT::Mu);
   int64_t ncols_header = parse_single_line(fctx);
   auto header_types = columns.getTypes();
   columns.setTypes(saved_types);
@@ -691,7 +691,7 @@ void FreadReader::detect_header() {
     for (size_t j = 0; j < ncols; ++j) {
       if (ParserLibrary::info(header_types[j]).isstring() &&
           !ParserLibrary::info(saved_types[j]).isstring() &&
-          saved_types[j] != PT::Mu) {
+          saved_types[j] != dt::read::PT::Mu) {
         header = true;
         trace("`header` determined to be True due to column %d containing a "
               "string on row 1 and type %s in the rest of the sample.",
@@ -1007,7 +1007,7 @@ void FreadObserver::report() {
 
 
 void FreadObserver::type_bump_info(
-  size_t icol, const dt::read::Column& col, PT new_type,
+  size_t icol, const dt::read::Column& col, dt::read::PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
   static const int BUF_SIZE = 1000;

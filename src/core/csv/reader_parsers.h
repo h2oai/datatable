@@ -44,6 +44,9 @@ void parse_string(dt::read::FreadTokenizer&);
 //------------------------------------------------------------------------------
 // Do not use "enum class" here: we want these enums to be implicitly
 // convertible into integers, so that we can use them as array indices.
+namespace dt {
+namespace read {
+
 
 /**
  * Parse Type -- each identifier corresponds to one of the parser functions
@@ -108,12 +111,12 @@ enum RT : uint8_t {
 };
 
 
+}}  // namespace dt::read
 
 //------------------------------------------------------------------------------
 // ParserInfo
 //------------------------------------------------------------------------------
 class ParserLibrary;
-
 
 class ParserInfo {
   public:
@@ -122,16 +125,16 @@ class ParserInfo {
     char        code;
     int8_t      elemsize;
     SType       stype;
-    PT          id;
+    dt::read::PT id;
     int : 32;
 
     ParserInfo() : fn(nullptr), code(0) {}
-    ParserInfo(PT id_, const char* name_, char code_, int8_t sz_, SType st_,
-               ParserFnPtr ptr)
+    ParserInfo(dt::read::PT id_, const char* name_, char code_, int8_t sz_,
+               SType st_, ParserFnPtr ptr)
       : fn(ptr), name(name_), code(code_), elemsize(sz_), stype(st_), id(id_) {}
 
     const char* cname() const { return name.data(); }
-    bool isstring() const { return id >= PT::Str32; }
+    bool isstring() const { return id >= dt::read:: PT::Str32; }
 };
 
 
@@ -147,11 +150,11 @@ class ParserIterator {
     int : 24;
 
   public:
-    using value_type = PT;
+    using value_type = dt::read::PT;
     using category_type = std::input_iterator_tag;
 
     ParserIterator();
-    ParserIterator(PT pt);
+    ParserIterator(dt::read::PT pt);
     ParserIterator(const ParserIterator&) = default;
     ParserIterator& operator=(const ParserIterator&) = delete;
     ~ParserIterator() {}
@@ -163,13 +166,13 @@ class ParserIterator {
 
 class ParserIterable {
   private:
-    const PT ptype;
+    const dt::read::PT ptype;
     int64_t : 56;
 
   public:
     using iterator = ParserIterator;
 
-    ParserIterable(PT pt);
+    ParserIterable(dt::read::PT pt);
     iterator begin() const;
     iterator end() const;
 };
@@ -188,17 +191,17 @@ class ParserLibrary {
     int64_t : 64;
 
   public:
-    static constexpr size_t num_parsers = static_cast<size_t>(PT::Str64) + 1;
+    static constexpr size_t num_parsers = static_cast<size_t>(dt::read::PT::Str64) + 1;
     ParserLibrary();
     ParserLibrary(const ParserLibrary&) = delete;
     void operator=(const ParserLibrary&) = delete;
 
-    ParserIterable successor_types(PT pt) const;
+    ParserIterable successor_types(dt::read::PT pt) const;
 
     static const ParserFnPtr* get_parser_fns() { return parser_fns; }
     static const ParserInfo* get_parser_infos() { return parsers; }
     static const ParserInfo& info(size_t i) { return parsers[i]; }
-    static const ParserInfo& info(PT i) { return parsers[i]; }
+    static const ParserInfo& info(dt::read::PT i) { return parsers[i]; }
 };
 
 
