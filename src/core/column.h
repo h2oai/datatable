@@ -21,17 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_h
 #define dt_COLUMN_h
-#include <string>
-#include <vector>
-#include "python/obj.h"  // py::robj, py::list
+#include "_dt.h"
 #include "stats.h"       // Stat (enum), Stats
-#include "types.h"       // SType (enum), LType (enum), CString
 
-class Column;
-class Groupby;
-class Buffer;
-using colvec = std::vector<Column>;
-using strvec = std::vector<std::string>;
+
 namespace dt {
   class ColumnImpl;
 }
@@ -316,6 +309,13 @@ class Column
     // exception will be raised if the column's data is in an
     // erroneous state.
     void verify_integrity() const;
+
+    // Serialize the column into a Jay format.
+    // See jay/save_jay.cc
+    flatbuffers::Offset<jay::Column> write_to_jay(
+        const std::string& name,
+        flatbuffers::FlatBufferBuilder&,
+        WritableBuffer*);
 
   private:
     void _acquire_impl(const dt::ColumnImpl*);

@@ -16,9 +16,6 @@
 
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::Type stype_to_jaytype[DT_STYPES_COUNT];
-static flatbuffers::Offset<jay::Column> column_to_jay(
-    const Column& col, const std::string& name,
-    flatbuffers::FlatBufferBuilder& fbb, WritableBuffer* wb);
 static jay::Buffer saveMemoryRange(const void*, size_t, WritableBuffer*);
 template <typename T, typename StatBuilder>
 static flatbuffers::Offset<void> saveStats(
@@ -54,22 +51,19 @@ Buffer DataTable::save_jay() {
 
 
 void DataTable::save_jay_impl(WritableBuffer* wb) {
-  // Cannot store a view frame, so materialize first.
-  materialize(false);
-
   wb->write(8, "JAY1\0\0\0\0");
 
   flatbuffers::FlatBufferBuilder fbb(1024);
 
   std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
   for (size_t i = 0; i < ncols_; ++i) {
-    const Column& col = get_column(i);
+    Column& col = get_column(i);
     if (col.stype() == SType::OBJ) {
       auto w = DatatableWarning();
       w << "Column `" << names_[i] << "` of type obj64 was not saved";
       w.emit();
     } else {
-      auto saved_col = column_to_jay(col, names_[i], fbb, wb);
+      auto saved_col = col.write_to_jay(names_[i], fbb, wb);
       msg_columns.push_back(saved_col);
     }
   }
@@ -101,16 +95,15 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 // Save a column
 //------------------------------------------------------------------------------
 
-static flatbuffers::Offset<jay::Column> column_to_jay(
-    const Column& col,
-    const std::string& name,
-    flatbuffers::FlatBufferBuilder& fbb,
-    WritableBuffer* wb)
+flatbuffers::Offset<jay::Column> Column::write_to_jay(
+        const std::string& name,
+        flatbuffers::FlatBufferBuilder& fbb,
+        WritableBuffer* wb)
 {
   jay::Stats jsttype = jay::Stats_NONE;
   flatbuffers::Offset<void> jsto;
-  Stats* colstats = col.get_stats_if_exist();
-  switch (col.stype()) {
+  Stats* colstats = get_stats_if_exist();
+  switch (stype()) {
     case SType::BOOL:
       jsto = saveStats<int8_t,  jay::StatsBool>(colstats, fbb);
       jsttype = jay::Stats_Bool;
@@ -145,24 +138,26 @@ static flatbuffers::Offset<jay::Column> column_to_jay(
   auto sname = fbb.CreateString(name.c_str());
 
   jay::ColumnBuilder cbb(fbb);
-  cbb.add_type(stype_to_jaytype[static_cast<int>(col.stype())]);
+  cbb.add_type(stype_to_jaytype[static_cast<int>(stype())]);
   cbb.add_name(sname);
-  cbb.add_nullcount(col.na_count());
+  cbb.add_nullcount(na_count());
 
-  const void* data = col.get_data_readonly();
-  size_t size = col.get_data_size();
+  materialize(false);
+  const void* data = get_data_readonly();
+  size_t size = get_data_size();
   jay::Buffer saved_mbuf = saveMemoryRange(data, size, wb);
   cbb.add_data(&saved_mbuf);
+
+  if (ltype() == LType::STRING) {
+    data = get_data_readonly(1);
+    size = get_data_size(1);
+    jay::Buffer saved_strbuf = saveMemoryRange(data, size, wb);
+    cbb.add_strdata(&saved_strbuf);
+  }
+
   if (jsttype != jay::Stats_NONE) {
     cbb.add_stats_type(jsttype);
     cbb.add_stats(jsto);
-  }
-
-  if (col.ltype() == LType::STRING) {
-    data = col.get_data_readonly(1);
-    size = col.get_data_size(1);
-    jay::Buffer saved_strbuf = saveMemoryRange(data, size, wb);
-    cbb.add_strdata(&saved_strbuf);
   }
 
   return cbb.Finish();

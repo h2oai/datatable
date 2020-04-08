@@ -26,7 +26,7 @@
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
-#include "read/columns.h"   // dt::read::Columns
+#include "read/preframe.h"  // dt::read::PreFrame
 class DataTable;
 namespace dt {
 namespace read {
@@ -134,7 +134,7 @@ class GenericReader
     bool cr_is_newline;
     bool input_is_string{ false };
     int : 16;
-    dt::read::Columns columns;
+    dt::read::PreFrame columns;
     double t_open_input{ 0 };
 
     py::oobj output_;

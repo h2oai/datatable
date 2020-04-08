@@ -8,7 +8,7 @@
 #ifndef dt_READ_FREAD_THREAD_CONTEXT_h
 #define dt_READ_FREAD_THREAD_CONTEXT_h
 #include "parallel/shared_mutex.h"      // dt::shared_mutex
-#include "read/columns.h"               // Columns
+#include "read/preframe.h"              // PreFrame
 #include "read/fread/fread_tokenizer.h" // FreadTokenizer
 #include "read/thread_context.h"        // ThreadContext
 
@@ -42,7 +42,7 @@ class FreadThreadContext : public ThreadContext
     PT* types;
 
     FreadReader& freader;
-    Columns& columns;
+    PreFrame& columns;
     dt::shared_mutex& shmutex;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
