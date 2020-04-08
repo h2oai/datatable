@@ -29,7 +29,7 @@ namespace read {
 
 
 class PreFrame {
-  using PTlist = std::unique_ptr<PT[]>;
+  using ptvec = std::vector<PT>;
 
   private:
     std::vector<dt::read::Column> cols;
@@ -48,10 +48,10 @@ class PreFrame {
 
     void add_columns(size_t n);
 
-    PTlist getTypes() const;
-    void saveTypes(PTlist& types) const;
-    bool sameTypes(PTlist& types) const;
-    void setTypes(const PTlist& types);
+    ptvec getTypes() const;
+    void saveTypes(ptvec& types) const;
+    bool sameTypes(ptvec& types) const;
+    void setTypes(const ptvec& types);
     void setType(PT type);
     const char* printTypes() const;
 

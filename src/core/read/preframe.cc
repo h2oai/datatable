@@ -72,31 +72,31 @@ std::vector<std::string> PreFrame::get_names() const {
 
 //----- Columns types ----------------------------------------------------------
 
-PreFrame::PTlist PreFrame::getTypes() const {
-  PTlist res(new PT[cols.size()]);
+PreFrame::ptvec PreFrame::getTypes() const {
+  ptvec res(cols.size(), PT::Mu);
   saveTypes(res);
   return res;
 }
 
-void PreFrame::saveTypes(PTlist& types) const {
-  size_t i = 0;
-  for (const auto& col : cols) {
-    types[i++] = col.get_ptype();
+void PreFrame::saveTypes(ptvec& types) const {
+  xassert(types.size() == cols.size());
+  for (size_t i = 0; i < cols.size(); ++i) {
+    types[i] = cols[i].get_ptype();
   }
 }
 
-bool PreFrame::sameTypes(PTlist& types) const {
-  size_t i = 0;
-  for (const auto& col : cols) {
-    if (types[i++] != col.get_ptype()) return false;
+bool PreFrame::sameTypes(ptvec& types) const {
+  xassert(types.size() == cols.size());
+  for (size_t i = 0; i < cols.size(); ++i) {
+    if (types[i] != cols[i].get_ptype()) return false;
   }
   return true;
 }
 
-void PreFrame::setTypes(const PTlist& types) {
-  size_t i = 0;
-  for (auto& col : cols) {
-    col.force_ptype(types[i++]);
+void PreFrame::setTypes(const ptvec& types) {
+  xassert(types.size() == cols.size());
+  for (size_t i = 0; i < cols.size(); ++i) {
+    cols[i].force_ptype(types[i]);
   }
 }
 

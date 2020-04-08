@@ -554,7 +554,7 @@ void FreadReader::detect_column_types()
 
   // This variable will store column types at the beginning of each jump
   // so that we can revert to them if the jump proves to be invalid.
-  auto saved_types = std::unique_ptr<dt::read::PT[]>(new dt::read::PT[ncols]);
+  std::vector<dt::read::PT> saved_types(ncols, dt::read::Mu);
 
   for (size_t j = 0; j < nChunks; ++j) {
     dt::read::ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
