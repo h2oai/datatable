@@ -12,9 +12,8 @@
 
 //==============================================================================
 //
-// Main fread() function that does all the job of reading a text/csv file.
-//
-// Returns 1 if it finishes successfully, and 0 otherwise.
+// Main fread() function that does all the job of reading a text/csv file and
+// returning std::unique_ptr<DataTable>
 //
 //==============================================================================
 std::unique_ptr<DataTable> FreadReader::read_all()
