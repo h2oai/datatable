@@ -1011,41 +1011,18 @@ void FreadObserver::type_bump_info(
   const char* field, int64_t len, int64_t lineno)
 {
   // Maximum number of characters to be written for the `field` data
-  static const int MAX_FIELD_SIZE = 1000;
+  static const size_t MAX_FIELD_LEN = 1000;
 
   // The actual number of characters
-  int field_len = std::min(MAX_FIELD_SIZE, static_cast<int>(len));
+  size_t field_len = std::min(MAX_FIELD_LEN, static_cast<size_t>(len));
 
-  // Calculate the total message size
-  int message_size = snprintf(nullptr, 0,
-    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
-    icol, col.repr_name(g), col.typeName(),
-    ParserLibrary::info(new_type).cname(),
-    field_len, field, static_cast<size_t>(lineno));
+  std::stringstream ss;
+  std::string field_str(field, field_len);
+  ss << "Column " << icol
+     << " (" << col.repr_name(g) << ") bumped from " << col.typeName()
+     << " to " << ParserLibrary::info(new_type).cname()
+     << " due to <<" << field_str << ">>"
+     << " on row " << static_cast<size_t>(lineno);
 
-  if (message_size < 0) {
-    throw IOError() << "Cannot calculate message size in "
-                    << "FreadObserver::type_bump_info()";
-  }
-
-  // Create a message buffer of the proper size
-  cptr message = cptr(new char[message_size + 1]);
-
-  // Write the actual message
-  int written_size = snprintf(message.get(),
-    static_cast<size_t>(message_size) + 1,
-    "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
-    icol, col.repr_name(g), col.typeName(),
-    ParserLibrary::info(new_type).cname(),
-    field_len, field, static_cast<size_t>(lineno));
-
-  if (written_size < 0 || written_size != message_size) {
-    throw IOError() << "Cannot write message in "
-                    << "FreadObserver::type_bump_info()";
-  }
-
-  messages.push_back(std::string(
-    message.get(),
-    static_cast<size_t>(written_size)
-  ));
+  messages.push_back(ss.str());
 }
