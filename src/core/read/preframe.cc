@@ -65,7 +65,8 @@ std::vector<std::string> PreFrame::get_names() const {
   std::vector<std::string> names;
   names.reserve(cols_.size());
   for (const Column& col : cols_) {
-    names.push_back(col.get_name());
+    if (col.is_in_output())
+      names.push_back(col.get_name());
   }
   return names;
 }

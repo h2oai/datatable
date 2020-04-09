@@ -78,13 +78,15 @@ namespace jay {
 }
 
 
-// dt::read support
 namespace dt {
 namespace read {
   enum PT : uint8_t;
   enum RT : uint8_t;
   enum BT : uint8_t;
 
+  class Column;
+  class GenericReader;
+  class PreFrame;
 }}
 
 

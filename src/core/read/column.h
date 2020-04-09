@@ -26,14 +26,10 @@
 #include "python/obj.h"   // py::oobj
 #include "writebuf.h"     // WritableBuffer
 #include "_dt.h"
-
-// forward-declare
-enum class SType : uint8_t;
-
 namespace dt {
 namespace read {
 
-class GenericReader;
+
 
 /**
  * Information about a single input column in a GenericReader. An "input column"
@@ -91,12 +87,13 @@ class Column {
     const char* repr_name(const GenericReader& g) const;  // static ptr
 
     // Column's type(s)
-    dt::read::PT get_ptype() const;
+    PT get_ptype() const noexcept;
+    RT get_rtype() const noexcept;
     SType get_stype() const;
     ptype_iterator get_ptype_iterator(int8_t* qr_ptr) const;
     void set_rtype(int64_t it);
     void set_ptype(const ptype_iterator& it);
-    void force_ptype(dt::read::PT new_ptype);
+    void force_ptype(PT new_ptype);
     const char* typeName() const;
 
     // Column info

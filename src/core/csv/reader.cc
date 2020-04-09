@@ -941,13 +941,18 @@ void GenericReader::report_columns_to_python() {
       py::oobj::import("datatable.utils.fread", "_override_columns")
         .call({columns_arg, colDescriptorList}).to_otuple();
 
-    column_names = newColumns[0].to_pylist();
+    py::olist newNamesList = newColumns[0].to_pylist();
     py::olist newTypesList = newColumns[1].to_pylist();
-
     if (newTypesList) {
-      for (size_t i = 0; i < ncols; i++) {
+      XAssert(newTypesList.size() == ncols);
+      for (size_t i = 0, j = 0; i < ncols; i++) {
         py::robj elem = newTypesList[i];
         columns[i].set_rtype(elem.to_int64());
+        if (newNamesList && columns[i].get_rtype() != RT::RDrop) {
+          XAssert(j < newNamesList.size());
+          elem = newNamesList[j++];
+          columns[i].set_name(elem.to_string());
+        }
       }
     }
   }
@@ -972,11 +977,7 @@ dtptr GenericReader::makeDatatable() {
       : ::Column::new_mbuf_column(nrows, stype, std::move(databuf))
     );
   }
-  if (column_names) {
-    return dtptr(new DataTable(std::move(ccols), column_names));
-  } else {
-    return dtptr(new DataTable(std::move(ccols), columns.get_names()));
-  }
+  return dtptr(new DataTable(std::move(ccols), columns.get_names()));
 }
 
 

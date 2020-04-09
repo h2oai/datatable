@@ -134,7 +134,7 @@ class GenericReader
     bool cr_is_newline;
     bool input_is_string{ false };
     int : 16;
-    dt::read::PreFrame columns;
+    PreFrame columns;
     double t_open_input{ 0 };
 
     py::oobj output_;
@@ -146,7 +146,6 @@ class GenericReader
     py::oobj text_arg;
     py::oobj tempstr;
     py::oobj columns_arg;
-    py::olist column_names;
     py::oobj tempfiles;
 
     // If `trace()` cannot display a message immediately (because it was not

@@ -102,8 +102,12 @@ const char* Column::repr_name(const GenericReader& g) const {
 
 //---- Column's type -----------------------------------------------------------
 
-PT Column::get_ptype() const {
+PT Column::get_ptype() const noexcept {
   return ptype;
+}
+
+RT Column::get_rtype() const noexcept {
+  return rtype;
 }
 
 SType Column::get_stype() const {
