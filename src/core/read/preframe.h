@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PREFRAME_h
 #define dt_READ_PREFRAME_h
-#include "read/column.h"
+#include "read/precolumn.h"
 #include "_dt.h"
 namespace dt {
 namespace read {
@@ -38,10 +38,10 @@ namespace read {
 class PreFrame
 {
   private:
-    using iterator = std::vector<dt::read::Column>::iterator;
-    using const_iterator = std::vector<dt::read::Column>::const_iterator;
+    using iterator = std::vector<PreColumn>::iterator;
+    using const_iterator = std::vector<PreColumn>::const_iterator;
 
-    std::vector<dt::read::Column> columns_;
+    std::vector<PreColumn> columns_;
     size_t nrows_;
 
   public:
@@ -56,8 +56,8 @@ class PreFrame
     const_iterator end() const;
     iterator begin();
     iterator end();
-    Column& column(size_t i) &;
-    const Column& column(size_t i) const &;
+    PreColumn& column(size_t i) &;
+    const PreColumn& column(size_t i) const &;
 
     std::vector<PT> get_ptypes() const;
     void save_ptypes(std::vector<PT>& types) const;

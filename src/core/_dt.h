@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 
+typedef struct _object PyObject;
 
 class Buffer;
 class Column;
@@ -84,8 +85,9 @@ namespace read {
   enum RT : uint8_t;
   enum BT : uint8_t;
 
-  class Column;
+  struct FreadTokenizer;
   class GenericReader;
+  class PreColumn;
   class PreFrame;
 }}
 

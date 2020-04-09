@@ -59,7 +59,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     size_t ndropped = 0;
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
-      dt::read::Column& col = preframe.column(i);
+      auto& col = preframe.column(i);
       col.reset_type_bumped();
       if (col.is_dropped()) {
         ndropped++;
@@ -127,7 +127,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       fo.n_cols_reread += ncols_to_reread;
       size_t n_type_bump_cols = 0;
       for (size_t j = 0; j < ncols; j++) {
-        dt::read::Column& col = preframe.column(j);
+        auto& col = preframe.column(j);
         if (!col.is_in_output()) continue;
         bool bumped = col.is_type_bumped();
         col.reset_type_bumped();

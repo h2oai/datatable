@@ -9,15 +9,10 @@
 #define dt_CSV_READER_PARSERS_h
 #include <string>
 #include <vector>
-#include "types.h"
+#include "_dt.h"
 
-namespace dt {
-namespace read {
-  class Column;
-  struct FreadTokenizer;
-}}
 typedef void (*ParserFnPtr)(dt::read::FreadTokenizer& ctx);
-typedef PyObject* (*FormatGeneratorFn)(dt::read::Column& col);
+typedef PyObject* (*FormatGeneratorFn)(dt::read::PreColumn& col);
 
 
 // In order to add a new type:

@@ -64,12 +64,12 @@ void PreFrame::set_nrows(size_t n) {
 // Iterators
 //------------------------------------------------------------------------------
 
-Column& PreFrame::column(size_t i) & {
+PreColumn& PreFrame::column(size_t i) & {
   xassert(i < columns_.size());
   return columns_[i];
 }
 
-const Column& PreFrame::column(size_t i) const & {
+const PreColumn& PreFrame::column(size_t i) const & {
   xassert(i < columns_.size());
   return columns_[i];
 }

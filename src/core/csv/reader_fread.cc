@@ -477,11 +477,11 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
 
   size_t ncols = preframe.ncols();
   size_t j = 0;
-  dt::read::Column dummy_col;
+  dt::read::PreColumn dummy_col;
   dummy_col.force_ptype(dt::read::PT::Str32);
 
   while (true) {
-    dt::read::Column& col = j < ncols ? preframe.column(j) : dummy_col;
+    auto& col = j < ncols ? preframe.column(j) : dummy_col;
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
@@ -1021,7 +1021,7 @@ void FreadObserver::report() {
 
 
 void FreadObserver::type_bump_info(
-  size_t icol, const dt::read::Column& col, dt::read::PT new_type,
+  size_t icol, const dt::read::PreColumn& col, dt::read::PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
   static const int BUF_SIZE = 1000;

@@ -257,7 +257,7 @@ void FreadThreadContext::postprocess() {
                   quoteRule == 1? '\\' : 0xFF;
   uint32_t output_offset = 0;
   for (size_t i = 0, j = 0; i < preframe.ncols(); ++i) {
-    Column& col = preframe.column(i);
+    auto& col = preframe.column(i);
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       strinfo[j].start = output_offset;
