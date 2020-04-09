@@ -321,7 +321,7 @@ def _resolve_archive(filename, subpath, tempfiles):
     elif ext == ".xlsx" or ext == ".xls":
         out_result = read_xls_workbook(filename, subpath)
         if subpath:
-            filename = os.path.join(filenam, subpath)
+            filename = os.path.join(filename, subpath)
 
     elif ext == ".jay":
         out_result = core.open_jay(filename)
