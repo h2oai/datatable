@@ -151,7 +151,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
 
 
   trace("[7] Finalize the datatable");
-  std::unique_ptr<DataTable> res = makeDatatable();
+  std::unique_ptr<DataTable> res = columns.to_datatable();
   if (verbose) fo.report();
   return res;
 }

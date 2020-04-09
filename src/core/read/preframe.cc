@@ -21,6 +21,8 @@
 //------------------------------------------------------------------------------
 #include "csv/reader_parsers.h"
 #include "read/preframe.h"
+#include "column.h"
+#include "datatable.h"
 namespace dt {
 namespace read {
 
@@ -61,15 +63,6 @@ void PreFrame::add_columns(size_t n) {
   }
 }
 
-std::vector<std::string> PreFrame::get_names() const {
-  std::vector<std::string> names;
-  names.reserve(cols_.size());
-  for (const Column& col : cols_) {
-    if (col.is_in_output())
-      names.push_back(col.get_name());
-  }
-  return names;
-}
 
 
 //----- Columns types ----------------------------------------------------------
@@ -176,5 +169,32 @@ size_t PreFrame::totalAllocSize() const {
 
 
 
-}  // namespace read
-}  // namespace dt
+//---- Finalizing --------------------------------------------------------------
+using dtptr = std::unique_ptr<DataTable>;
+
+dtptr PreFrame::to_datatable() {
+  std::vector<::Column> ccols;
+  std::vector<std::string> names;
+  size_t n_outcols = nColumnsInOutput();
+  ccols.reserve(n_outcols);
+  names.reserve(n_outcols);
+
+  for (size_t i = 0; i < cols_.size(); ++i) {
+    auto& col = cols_[i];
+    if (!col.is_in_output()) continue;
+    Buffer databuf = col.extract_databuf();
+    Buffer strbuf = col.extract_strbuf();
+    SType stype = col.get_stype();
+    ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
+      ? ::Column::new_string_column(nrows_, std::move(databuf), std::move(strbuf))
+      : ::Column::new_mbuf_column(nrows_, stype, std::move(databuf))
+    );
+    names.push_back(col.get_name());
+  }
+  return dtptr(new DataTable(std::move(ccols), std::move(names)));
+}
+
+
+
+
+}}  // namespace dt::read

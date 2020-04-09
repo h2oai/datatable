@@ -240,10 +240,6 @@ class GenericReader
     bool read_empty_input();
     bool read_jay();
     bool detect_improper_files();
-
-  //---- Inherited API ----
-  protected:
-    dtptr makeDatatable();
 };
 
 

@@ -47,7 +47,6 @@ class PreFrame
 
     Column& operator[](size_t i) &;
     const Column& operator[](size_t i) const &;
-    std::vector<std::string> get_names() const;
 
     void add_columns(size_t n);
 
@@ -63,6 +62,8 @@ class PreFrame
     size_t nColumnsToReread() const;
     size_t nStringColumns() const;
     size_t totalAllocSize() const;
+
+    std::unique_ptr<DataTable> to_datatable();
 };
 
 

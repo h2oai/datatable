@@ -960,26 +960,5 @@ void GenericReader::report_columns_to_python() {
 
 
 
-dtptr GenericReader::makeDatatable() {
-  size_t ncols = columns.size();
-  size_t nrows = columns.get_nrows();
-  size_t ocols = columns.nColumnsInOutput();
-  std::vector<::Column> ccols;
-  ccols.reserve(ocols);
-  for (size_t i = 0; i < ncols; ++i) {
-    dt::read::Column& col = columns[i];
-    if (!col.is_in_output()) continue;
-    Buffer databuf = col.extract_databuf();
-    Buffer strbuf = col.extract_strbuf();
-    SType stype = col.get_stype();
-    ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
-      ? ::Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))
-      : ::Column::new_mbuf_column(nrows, stype, std::move(databuf))
-    );
-  }
-  return dtptr(new DataTable(std::move(ccols), columns.get_names()));
-}
-
-
 
 }}  // namespace dt::read
