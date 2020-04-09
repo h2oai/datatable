@@ -1033,7 +1033,7 @@ void FreadObserver::type_bump_info(
 
   // Write the actual message
   int written_size = snprintf(message.get(),
-    static_cast<size_t>(message_size),
+    static_cast<size_t>(message_size) + 1,
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
