@@ -929,12 +929,13 @@ void GenericReader::decode_utf16() {
 
 
 void GenericReader::report_columns_to_python() {
-  size_t ncols = columns.size();
+  size_t ncols = preframe.ncols();
 
   if (columns_arg) {
     py::olist colDescriptorList(ncols);
-    for (size_t i = 0; i < ncols; i++) {
-      colDescriptorList.set(i, columns[i].py_descriptor());
+    size_t i = 0, j = 0;
+    for (const auto& col : preframe) {
+      colDescriptorList.set(i++, col.py_descriptor());
     }
 
     py::otuple newColumns =
@@ -945,13 +946,14 @@ void GenericReader::report_columns_to_python() {
     py::olist newTypesList = newColumns[1].to_pylist();
     if (newTypesList) {
       XAssert(newTypesList.size() == ncols);
-      for (size_t i = 0, j = 0; i < ncols; i++) {
+      for (i = 0, j = 0; i < ncols; i++) {
+        auto& coli = preframe.column(i);
         py::robj elem = newTypesList[i];
-        columns[i].set_rtype(elem.to_int64());
-        if (newNamesList && columns[i].get_rtype() != RT::RDrop) {
+        coli.set_rtype(elem.to_int64());
+        if (newNamesList && coli.get_rtype() != RT::RDrop) {
           XAssert(j < newNamesList.size());
           elem = newNamesList[j++];
-          columns[i].set_name(elem.to_string());
+          coli.set_name(elem.to_string());
         }
       }
     }

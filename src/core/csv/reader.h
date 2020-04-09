@@ -134,7 +134,7 @@ class GenericReader
     bool cr_is_newline;
     bool input_is_string{ false };
     int : 16;
-    PreFrame columns;
+    PreFrame preframe;
     double t_open_input{ 0 };
 
     py::oobj output_;

@@ -29,7 +29,7 @@ ParallelReader::ParallelReader(GenericReader& reader, double meanLineLen)
   approximate_line_length = std::max(meanLineLen, 1.0);
   nthreads = static_cast<size_t>(g.nthreads);
   nrows_written = 0;
-  nrows_allocated = g.columns.get_nrows();
+  nrows_allocated = g.preframe.nrows();
   nrows_max = g.max_nrows;
   xassert(nrows_allocated <= nrows_max);
 
@@ -216,7 +216,7 @@ void ParallelReader::read_all()
   g.emit_delayed_messages();
 
   // Reallocate the output to have the correct number of rows
-  g.columns.set_nrows(nrows_written);
+  g.preframe.set_nrows(nrows_written);
 
   // Check that all input was read (unless interrupted early because of
   // nrows_max).
@@ -228,7 +228,7 @@ void ParallelReader::read_all()
 
 
 /**
- * Reallocate output columns (i.e. `g.columns`) to the new number of rows.
+ * Reallocate output frame (i.e. `g.preframe`) to the new number of rows.
  * Argument `ichunk` contains the index of the chunk that was read last (this
  * helps with determining the new number of rows), and `new_allocnrow` is the
  * minimal number of rows to reallocate to.
@@ -262,7 +262,7 @@ void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
 
   { // Acquire a lock and then resize all columns
     shared_lock<shared_mutex> lock(shmutex, /* exclusive = */ true);
-    g.columns.set_nrows(nrows_allocated);
+    g.preframe.set_nrows(nrows_allocated);
   }
 }
 

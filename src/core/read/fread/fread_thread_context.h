@@ -42,7 +42,7 @@ class FreadThreadContext : public ThreadContext
     PT* types;
 
     FreadReader& freader;
-    PreFrame& columns;
+    PreFrame& preframe;
     dt::shared_mutex& shmutex;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;

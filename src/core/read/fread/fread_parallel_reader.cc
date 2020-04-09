@@ -27,7 +27,7 @@ void FreadParallelReader::read_all() {
 
 std::unique_ptr<ThreadContext> FreadParallelReader::init_thread_context() {
   size_t trows = std::max<size_t>(nrows_allocated / chunk_count, 4);
-  size_t tcols = f.columns.nColumnsInBuffer();
+  size_t tcols = f.preframe.nColumnsInBuffer();
   return std::unique_ptr<ThreadContext>(
             new FreadThreadContext(tcols, trows, f, types, shmutex));
 }

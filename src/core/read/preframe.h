@@ -31,22 +31,31 @@ namespace read {
 /**
   * This class represents a "work-in-progress" Frame, while it is
   * in the process of being read from a CSV file.
+  *
+  * At the end of this object's lifetime, call `.to_datatable()`
+  * to convert it into an actual DataTable object.
   */
 class PreFrame
 {
   private:
-    std::vector<dt::read::Column> cols_;
+    using iterator = std::vector<dt::read::Column>::iterator;
+    using const_iterator = std::vector<dt::read::Column>::const_iterator;
+    std::vector<dt::read::Column> columns_;
     size_t nrows_;
 
   public:
     PreFrame() noexcept;
 
-    size_t size() const noexcept;
-    size_t get_nrows() const noexcept;
+    size_t ncols() const noexcept;
+    size_t nrows() const noexcept;
     void set_nrows(size_t nrows);
 
-    Column& operator[](size_t i) &;
-    const Column& operator[](size_t i) const &;
+    const_iterator begin() const;
+    const_iterator end() const;
+    iterator begin();
+    iterator end();
+    Column& column(size_t i) &;
+    const Column& column(size_t i) const &;
 
     void add_columns(size_t n);
 
@@ -63,9 +72,9 @@ class PreFrame
     size_t nStringColumns() const;
     size_t totalAllocSize() const;
 
-    std::unique_ptr<DataTable> to_datatable();
-};
+    std::unique_ptr<DataTable> to_datatable() &&;
 
+};
 
 
 }}  // namespace dt::read

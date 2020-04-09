@@ -31,35 +31,59 @@ namespace read {
 PreFrame::PreFrame() noexcept : nrows_(0) {}
 
 
-size_t PreFrame::size() const noexcept {
-  return cols_.size();
+
+//------------------------------------------------------------------------------
+// Basic properties
+//------------------------------------------------------------------------------
+
+size_t PreFrame::ncols() const noexcept {
+  return columns_.size();
 }
 
-size_t PreFrame::get_nrows() const noexcept {
+size_t PreFrame::nrows() const noexcept {
   return nrows_;
 }
 
 void PreFrame::set_nrows(size_t n) {
-  for (auto& col : cols_) {
+  for (auto& col : columns_) {
     col.allocate(n);
   }
   nrows_ = n;
 }
 
 
-Column& PreFrame::operator[](size_t i) & {
-  xassert(i < cols_.size());
-  return cols_[i];
+Column& PreFrame::column(size_t i) & {
+  xassert(i < columns_.size());
+  return columns_[i];
 }
 
-const Column& PreFrame::operator[](size_t i) const & {
-  return cols_[i];
+const Column& PreFrame::column(size_t i) const & {
+  xassert(i < columns_.size());
+  return columns_[i];
 }
+
+
+PreFrame::iterator PreFrame::begin() {
+  return columns_.begin();
+}
+
+PreFrame::iterator PreFrame::end() {
+  return columns_.end();
+}
+
+PreFrame::const_iterator PreFrame::begin() const {
+  return columns_.begin();
+}
+
+PreFrame::const_iterator PreFrame::end() const {
+  return columns_.end();
+}
+
 
 void PreFrame::add_columns(size_t n) {
-  cols_.reserve(cols_.size() + n);
+  columns_.reserve(columns_.size() + n);
   for (size_t i = 0; i < n; ++i) {
-    cols_.push_back(Column());
+    columns_.push_back(Column());
   }
 }
 
@@ -68,35 +92,35 @@ void PreFrame::add_columns(size_t n) {
 //----- Columns types ----------------------------------------------------------
 
 std::vector<PT> PreFrame::getTypes() const {
-  std::vector<PT> res(cols_.size(), PT::Mu);
+  std::vector<PT> res(columns_.size(), PT::Mu);
   saveTypes(res);
   return res;
 }
 
 void PreFrame::saveTypes(std::vector<PT>& types) const {
-  xassert(types.size() == cols_.size());
-  for (size_t i = 0; i < cols_.size(); ++i) {
-    types[i] = cols_[i].get_ptype();
+  xassert(types.size() == columns_.size());
+  for (size_t i = 0; i < columns_.size(); ++i) {
+    types[i] = columns_[i].get_ptype();
   }
 }
 
 bool PreFrame::sameTypes(std::vector<PT>& types) const {
-  xassert(types.size() == cols_.size());
-  for (size_t i = 0; i < cols_.size(); ++i) {
-    if (types[i] != cols_[i].get_ptype()) return false;
+  xassert(types.size() == columns_.size());
+  for (size_t i = 0; i < columns_.size(); ++i) {
+    if (types[i] != columns_[i].get_ptype()) return false;
   }
   return true;
 }
 
 void PreFrame::setTypes(const std::vector<PT>& types) {
-  xassert(types.size() == cols_.size());
-  for (size_t i = 0; i < cols_.size(); ++i) {
-    cols_[i].force_ptype(types[i]);
+  xassert(types.size() == columns_.size());
+  for (size_t i = 0; i < columns_.size(); ++i) {
+    columns_[i].force_ptype(types[i]);
   }
 }
 
 void PreFrame::setType(PT type) {
-  for (auto& col : cols_) {
+  for (auto& col : columns_) {
     col.force_ptype(type);
   }
 }
@@ -106,10 +130,10 @@ const char* PreFrame::printTypes() const {
   static const size_t N = 100;
   static char out[N + 1];
   char* ch = out;
-  size_t ncols = size();
+  size_t ncols = columns_.size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = parsers[cols_[i].get_ptype()].code;
+    *ch++ = parsers[columns_[i].get_ptype()].code;
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -118,7 +142,7 @@ const char* PreFrame::printTypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = parsers[cols_[i].get_ptype()].code;
+      *ch++ = parsers[columns_[i].get_ptype()].code;
   }
   *ch = '\0';
   return out;
@@ -129,7 +153,7 @@ const char* PreFrame::printTypes() const {
 
 size_t PreFrame::nColumnsInOutput() const {
   size_t n = 0;
-  for (const auto& col : cols_) {
+  for (const auto& col : columns_) {
     n += col.is_in_output();
   }
   return n;
@@ -137,7 +161,7 @@ size_t PreFrame::nColumnsInOutput() const {
 
 size_t PreFrame::nColumnsInBuffer() const {
   size_t n = 0;
-  for (const auto& col : cols_) {
+  for (const auto& col : columns_) {
     n += col.is_in_buffer();
   }
   return n;
@@ -145,7 +169,7 @@ size_t PreFrame::nColumnsInBuffer() const {
 
 size_t PreFrame::nColumnsToReread() const {
   size_t n = 0;
-  for (const auto& col : cols_) {
+  for (const auto& col : columns_) {
     n += col.is_type_bumped();
   }
   return n;
@@ -153,7 +177,7 @@ size_t PreFrame::nColumnsToReread() const {
 
 size_t PreFrame::nStringColumns() const {
   size_t n = 0;
-  for (const auto& col : cols_) {
+  for (const auto& col : columns_) {
     n += col.is_string();
   }
   return n;
@@ -161,7 +185,7 @@ size_t PreFrame::nStringColumns() const {
 
 size_t PreFrame::totalAllocSize() const {
   size_t allocsize = sizeof(*this);
-  for (const auto& col : cols_) {
+  for (const auto& col : columns_) {
     allocsize += col.memory_footprint();
   }
   return allocsize;
@@ -172,15 +196,14 @@ size_t PreFrame::totalAllocSize() const {
 //---- Finalizing --------------------------------------------------------------
 using dtptr = std::unique_ptr<DataTable>;
 
-dtptr PreFrame::to_datatable() {
+dtptr PreFrame::to_datatable() && {
   std::vector<::Column> ccols;
   std::vector<std::string> names;
   size_t n_outcols = nColumnsInOutput();
   ccols.reserve(n_outcols);
   names.reserve(n_outcols);
 
-  for (size_t i = 0; i < cols_.size(); ++i) {
-    auto& col = cols_[i];
+  for (auto& col : columns_) {
     if (!col.is_in_output()) continue;
     Buffer databuf = col.extract_databuf();
     Buffer strbuf = col.extract_strbuf();
@@ -193,7 +216,6 @@ dtptr PreFrame::to_datatable() {
   }
   return dtptr(new DataTable(std::move(ccols), std::move(names)));
 }
-
 
 
 

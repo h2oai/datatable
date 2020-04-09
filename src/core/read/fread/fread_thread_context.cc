@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "csv/reader_fread.h"      // FreadReader
 #include "encodings.h"             // check_escaped_string, decode_escaped_csv_string
@@ -23,7 +37,7 @@ FreadThreadContext::FreadThreadContext(
   ) : ThreadContext(bcols, brows),
       types(types_),
       freader(f),
-      columns(f.columns),
+      preframe(f.preframe),
       shmutex(mut),
       tokenizer(f.makeTokenizer(tbuf.data(), nullptr)),
       parsers(ParserLibrary::get_parser_fns())
@@ -56,8 +70,8 @@ void FreadThreadContext::read_chunk(
   actual_cc.set_start_exact(cc.get_start());
   actual_cc.set_end_exact(nullptr);
 
-  size_t ncols = columns.size();
-  bool fillme = fill || (columns.size()==1 && !skipEmptyLines);
+  size_t ncols = preframe.ncols();
+  bool fillme = fill || (ncols==1 && !skipEmptyLines);
   bool fastParsingAllowed = (sep != ' ') && !numbersMayBeNAs;
   const char*& tch = tokenizer.ch;
   tch = cc.get_start();
@@ -81,7 +95,7 @@ void FreadThreadContext::read_chunk(
         fieldStart = tch;
         parsers[types[j]](tokenizer);
         if (tch >= tokenizer.eof || *tch != sep) break;
-        tokenizer.target += columns[j].is_in_buffer();
+        tokenizer.target += preframe.column(j).is_in_buffer();
         tch++;
         j++;
       }
@@ -93,7 +107,7 @@ void FreadThreadContext::read_chunk(
         tch = tlineStart;  // in case white space at the beginning may need to be included in field
       }
       else if (tokenizer.skip_eol() && j < ncols) {
-        tokenizer.target += columns[j].is_in_buffer();
+        tokenizer.target += preframe.column(j).is_in_buffer();
         j++;
         if (j==ncols) { used_nrows++; continue; }  // next line
         tch--;
@@ -114,7 +128,7 @@ void FreadThreadContext::read_chunk(
     if (fillme || (tch == tokenizer.eof || (*tch!='\n' && *tch!='\r'))) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
-        auto ptype_iter = columns[j].get_ptype_iterator(&tokenizer.quoteRule);
+        auto ptype_iter = preframe.column(j).get_ptype_iterator(&tokenizer.quoteRule);
 
         while (true) {
           tch = fieldStart;
@@ -157,28 +171,29 @@ void FreadThreadContext::read_chunk(
         // Type-bump. This may only happen if cc.is_start_exact() is true, which
         // is can only happen to one thread at a time. Thus, there is no need
         // for "critical" section here.
+        auto& colj = preframe.column(j);
         if (ptype_iter.has_incremented()) {
           xassert(cc.is_start_exact());
           if (verbose) {
-            freader.fo.type_bump_info(j + 1, columns[j], *ptype_iter, fieldStart,
+            freader.fo.type_bump_info(j + 1, colj, *ptype_iter, fieldStart,
                                       tch - fieldStart,
                                       static_cast<int64_t>(row0 + used_nrows));
           }
           types[j] = *ptype_iter;
-          columns[j].set_ptype(ptype_iter);
+          colj.set_ptype(ptype_iter);
           if (!freader.reread_scheduled) {
             freader.reread_scheduled = true;
             freader.job->add_work_amount(GenericReader::WORK_REREAD);
           }
         }
-        tokenizer.target += columns[j].is_in_buffer();
+        tokenizer.target += colj.is_in_buffer();
         j++;
         if (tch < tokenizer.eof && *tch==sep) { tch++; continue; }
         if (fill && (tch == tokenizer.eof || *tch=='\n' || *tch=='\r') && j <= ncols) {
           // All parsers have already stored NA to target; except for string
           // which writes "" value instead -- hence this case should be
           // corrected here.
-          if (columns[j-1].is_string() && columns[j-1].is_in_buffer() &&
+          if (colj.is_string() && colj.is_in_buffer() &&
               tokenizer.target[-1].str32.length == 0) {
             tokenizer.target[-1].str32.setna();
           }
@@ -241,8 +256,8 @@ void FreadThreadContext::postprocess() {
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
   uint32_t output_offset = 0;
-  for (size_t i = 0, j = 0; i < columns.size(); ++i) {
-    Column& col = columns[i];
+  for (size_t i = 0, j = 0; i < preframe.ncols(); ++i) {
+    Column& col = preframe.column(i);
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       strinfo[j].start = output_offset;
@@ -295,8 +310,8 @@ void FreadThreadContext::postprocess() {
 
 void FreadThreadContext::orderBuffer() {
   if (!used_nrows) return;
-  for (size_t i = 0, j = 0; i < columns.size(); ++i) {
-    Column& col = columns[i];
+  size_t j = 0;
+  for (auto& col : preframe) {
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       // Compute the size of the string content in the buffer `sz` from the
@@ -323,9 +338,8 @@ void FreadThreadContext::push_buffers() {
   dt::shared_lock<dt::shared_mutex> lock(shmutex);
 
   double t0 = verbose? wallclock() : 0;
-  size_t ncols = columns.size();
-  for (size_t i = 0, j = 0; i < ncols; i++) {
-    Column& col = columns[i];
+  size_t j = 0;
+  for (auto& col : preframe) {
     if (!col.is_in_buffer()) continue;
     void* data = col.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
@@ -393,5 +407,5 @@ void FreadThreadContext::push_buffers() {
 
 
 
-}  // namespace read
-}  // namespace dt
+
+}}  // namespace dt::read
