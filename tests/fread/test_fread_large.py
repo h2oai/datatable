@@ -193,6 +193,8 @@ def test_h2o3_bigdata(f):
         os.path.join("LoanStats3b.csv"),
         os.path.join("LoanStats3c.csv"),
         os.path.join("LoanStats3d.csv"),
+        os.path.join("Kaggle_Product_BO_Test_v2.csv.zip"),
+        os.path.join("Kaggle_Product_BO_Training_v2.csv.zip"),
     }
     if any(ff in f for ff in ignored_files):
         pytest.skip("On the ignored files list")
