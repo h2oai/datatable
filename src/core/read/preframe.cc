@@ -52,6 +52,20 @@ void PreFrame::set_nrows(size_t n) {
 }
 
 
+void PreFrame::add_columns(size_t n) {
+  columns_.reserve(columns_.size() + n);
+  for (size_t i = 0; i < n; ++i) {
+    columns_.push_back(Column());
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Iterators
+//------------------------------------------------------------------------------
+
 Column& PreFrame::column(size_t i) & {
   xassert(i < columns_.size());
   return columns_[i];
@@ -80,16 +94,11 @@ PreFrame::const_iterator PreFrame::end() const {
 }
 
 
-void PreFrame::add_columns(size_t n) {
-  columns_.reserve(columns_.size() + n);
-  for (size_t i = 0; i < n; ++i) {
-    columns_.push_back(Column());
-  }
-}
 
 
-
-//----- Columns types ----------------------------------------------------------
+//------------------------------------------------------------------------------
+// Column parse types
+//------------------------------------------------------------------------------
 
 std::vector<PT> PreFrame::get_ptypes() const {
   std::vector<PT> res(columns_.size(), PT::Mu);
@@ -152,7 +161,11 @@ const char* PreFrame::print_ptypes() const {
 }
 
 
-//---- Columns stats -----------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+// Aggregate column stats
+//------------------------------------------------------------------------------
 
 size_t PreFrame::n_columns_in_output() const {
   size_t n = 0;
@@ -189,7 +202,10 @@ size_t PreFrame::total_allocsize() const {
 
 
 
-//---- Finalizing --------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Finalizing
+//------------------------------------------------------------------------------
 using dtptr = std::unique_ptr<DataTable>;
 
 dtptr PreFrame::to_datatable() && {
@@ -212,6 +228,7 @@ dtptr PreFrame::to_datatable() && {
   }
   return dtptr(new DataTable(std::move(ccols), std::move(names)));
 }
+
 
 
 

@@ -73,8 +73,9 @@ class PreFrame
     size_t total_allocsize() const;
 
     std::unique_ptr<DataTable> to_datatable() &&;
-
 };
+
+
 
 
 }}  // namespace dt::read
