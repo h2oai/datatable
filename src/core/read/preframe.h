@@ -40,6 +40,7 @@ class PreFrame
   private:
     using iterator = std::vector<dt::read::Column>::iterator;
     using const_iterator = std::vector<dt::read::Column>::const_iterator;
+
     std::vector<dt::read::Column> columns_;
     size_t nrows_;
 
@@ -59,18 +60,17 @@ class PreFrame
 
     void add_columns(size_t n);
 
-    std::vector<PT> getTypes() const;
-    void saveTypes(std::vector<PT>& types) const;
-    bool sameTypes(std::vector<PT>& types) const;
-    void setTypes(const std::vector<PT>& types);
-    void setType(PT type);
-    const char* printTypes() const;
+    std::vector<PT> get_ptypes() const;
+    void save_ptypes(std::vector<PT>& types) const;
+    bool are_same_ptypes(std::vector<PT>& types) const;
+    void set_ptypes(const std::vector<PT>& types);
+    void reset_ptypes();
+    const char* print_ptypes() const;
 
-    size_t nColumnsInOutput() const;
-    size_t nColumnsInBuffer() const;
-    size_t nColumnsToReread() const;
-    size_t nStringColumns() const;
-    size_t totalAllocSize() const;
+    size_t n_columns_in_output() const;
+    size_t n_columns_in_buffer() const;
+    size_t n_columns_to_reread() const;
+    size_t total_allocsize() const;
 
     std::unique_ptr<DataTable> to_datatable() &&;
 

@@ -51,7 +51,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   //*********************************************************************************************
   {
     if (verbose) trace("[5] Apply user overrides on column types");
-    auto oldtypes = preframe.getTypes();
+    auto oldtypes = preframe.get_ptypes();
 
     report_columns_to_python();
 
@@ -80,7 +80,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     if (verbose) {
       if (nUserBumped || ndropped) {
         trace("After %d type and %d drop user overrides : %s",
-              nUserBumped, ndropped, preframe.printTypes());
+              nUserBumped, ndropped, preframe.print_ptypes());
       }
       trace("Allocating %d column slots with %zd rows",
             ncols - ndropped, allocnrow);
@@ -92,7 +92,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       fo.t_frame_allocated = wallclock();
       fo.n_rows_allocated = allocnrow;
       fo.n_cols_allocated = ncols - ndropped;
-      fo.allocation_size = preframe.totalAllocSize();
+      fo.allocation_size = preframe.total_allocsize();
     }
   }
   job->add_done_amount(WORK_PREPARE);
@@ -103,7 +103,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   //****************************************************************************
   bool firstTime = true;
 
-  auto typesPtr = preframe.getTypes();
+  auto typesPtr = preframe.get_ptypes();
   dt::read::PT* types = typesPtr.data();  // This pointer is valid until `typesPtr` goes out of scope
 
   trace("[6] Read the data");
@@ -121,7 +121,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       fo.t_data_reread = wallclock();
     }
     size_t ncols = preframe.ncols();
-    size_t ncols_to_reread = preframe.nColumnsToReread();
+    size_t ncols_to_reread = preframe.n_columns_to_reread();
     xassert((ncols_to_reread > 0) == reread_scheduled);
     if (ncols_to_reread) {
       fo.n_cols_reread += ncols_to_reread;
@@ -146,7 +146,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     }
 
     fo.n_rows_read = preframe.nrows();
-    fo.n_cols_read = preframe.nColumnsInOutput();
+    fo.n_cols_read = preframe.n_columns_in_output();
   }
 
 

@@ -564,7 +564,7 @@ void FreadReader::detect_column_types()
   int rows_to_sample = static_cast<int>(std::min<size_t>(max_nrows, 100));
 
   // Start with all columns having the smallest possible type
-  preframe.setType(dt::read::PT::Mu);
+  preframe.reset_ptypes();
 
   // This variable will store column types at the beginning of each jump
   // so that we can revert to them if the jump proves to be invalid.
@@ -575,7 +575,7 @@ void FreadReader::detect_column_types()
     tch = cc.get_start();
     if (tch >= eof) continue;
 
-    preframe.saveTypes(saved_types);
+    preframe.save_ptypes(saved_types);
 
     for (int i = 0; i < rows_to_sample; ++i) {
       if (tch >= eof) break;
@@ -596,7 +596,7 @@ void FreadReader::detect_column_types()
         if (j == 0) {
           chunkster.last_row_end = eof;
         } else {
-          preframe.setTypes(saved_types);
+          preframe.set_ptypes(saved_types);
         }
         break;
       }
@@ -610,15 +610,15 @@ void FreadReader::detect_column_types()
       if (thisLineLen>maxLen) maxLen = thisLineLen;
     }
     if (verbose && (j == 0 || j == nChunks - 1 ||
-                    !preframe.sameTypes(saved_types))) {
-      trace("Type codes (jump %03d): %s", j, preframe.printTypes());
+                    !preframe.are_same_ptypes(saved_types))) {
+      trace("Type codes (jump %03d): %s", j, preframe.print_ptypes());
     }
   }
 
   detect_header();
 
   if (verbose) {
-    trace("Type codes (final): %s", preframe.printTypes());
+    trace("Type codes (final): %s", preframe.print_ptypes());
   }
 
   allocnrow = 1;
@@ -628,7 +628,7 @@ void FreadReader::detect_column_types()
     if (header == 1) {
       // A single-row input, and that row is the header. Reset all types to
       // boolean (lowest type possible, a better guess than "string").
-      preframe.setType(dt::read::PT::Mu);
+      preframe.reset_ptypes();
       allocnrow = 0;
     }
     meanLineLen = sumLen;
@@ -680,12 +680,12 @@ void FreadReader::detect_header() {
   const char*& tch = fctx.ch;
 
   // Detect types in the header column
-  auto saved_types = preframe.getTypes();
+  auto saved_types = preframe.get_ptypes();
   tch = sof;
-  preframe.setType(dt::read::PT::Mu);
+  preframe.reset_ptypes();
   int64_t ncols_header = parse_single_line(fctx);
-  auto header_types = preframe.getTypes();
-  preframe.setTypes(saved_types);
+  auto header_types = preframe.get_ptypes();
+  preframe.set_ptypes(saved_types);
 
   if (ncols_header != sncols && n_sample_lines > 0 && !fill) {
     header = true;
