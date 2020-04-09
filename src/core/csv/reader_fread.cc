@@ -1029,10 +1029,11 @@ void FreadObserver::type_bump_info(
   }
 
   // Create a message buffer of the proper size
-  char* message = new char[message_size + 1];
+  cptr message = cptr(new char[message_size + 1]);
 
   // Write the actual message
-  int written_size = snprintf(message, static_cast<size_t>(message_size),
+  int written_size = snprintf(message.get(),
+    static_cast<size_t>(message_size),
     "Column %zu (%s) bumped from %s to %s due to <<%.*s>> on row %zu",
     icol, col.repr_name(g), col.typeName(),
     ParserLibrary::info(new_type).cname(),
@@ -1043,6 +1044,8 @@ void FreadObserver::type_bump_info(
                     << "FreadObserver::type_bump_info()";
   }
 
-  messages.push_back(std::string(message, static_cast<size_t>(written_size)));
-  delete[] message;
+  messages.push_back(std::string(
+    message.get(),
+    static_cast<size_t>(written_size)
+  ));
 }

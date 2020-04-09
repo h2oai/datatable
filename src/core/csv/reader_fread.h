@@ -77,7 +77,7 @@ class FreadObserver {
     void report();
 };
 
-
+using cptr = std::unique_ptr<char>;
 
 
 //------------------------------------------------------------------------------
