@@ -28,12 +28,15 @@ namespace read {
 
 
 
-class PreFrame {
-  using ptvec = std::vector<PT>;
-
+/**
+  * This class represents a "work-in-progress" Frame, while it is
+  * in the process of being read from a CSV file.
+  */
+class PreFrame
+{
   private:
-    std::vector<dt::read::Column> cols;
-    size_t nrows;
+    std::vector<dt::read::Column> cols_;
+    size_t nrows_;
 
   public:
     PreFrame() noexcept;
@@ -48,10 +51,10 @@ class PreFrame {
 
     void add_columns(size_t n);
 
-    ptvec getTypes() const;
-    void saveTypes(ptvec& types) const;
-    bool sameTypes(ptvec& types) const;
-    void setTypes(const ptvec& types);
+    std::vector<PT> getTypes() const;
+    void saveTypes(std::vector<PT>& types) const;
+    bool sameTypes(std::vector<PT>& types) const;
+    void setTypes(const std::vector<PT>& types);
     void setType(PT type);
     const char* printTypes() const;
 

@@ -26,44 +26,45 @@ namespace read {
 
 
 
-PreFrame::PreFrame() noexcept : nrows(0) {}
+PreFrame::PreFrame() noexcept : nrows_(0) {}
 
 
 size_t PreFrame::size() const noexcept {
-  return cols.size();
+  return cols_.size();
 }
 
 size_t PreFrame::get_nrows() const noexcept {
-  return nrows;
+  return nrows_;
 }
 
 void PreFrame::set_nrows(size_t n) {
-  for (auto& col : cols) {
+  for (auto& col : cols_) {
     col.allocate(n);
   }
-  nrows = n;
+  nrows_ = n;
 }
 
 
 Column& PreFrame::operator[](size_t i) & {
-  return cols[i];
+  xassert(i < cols_.size());
+  return cols_[i];
 }
 
 const Column& PreFrame::operator[](size_t i) const & {
-  return cols[i];
+  return cols_[i];
 }
 
 void PreFrame::add_columns(size_t n) {
-  cols.reserve(cols.size() + n);
+  cols_.reserve(cols_.size() + n);
   for (size_t i = 0; i < n; ++i) {
-    cols.push_back(Column());
+    cols_.push_back(Column());
   }
 }
 
 std::vector<std::string> PreFrame::get_names() const {
   std::vector<std::string> names;
-  names.reserve(cols.size());
-  for (const Column& col : cols) {
+  names.reserve(cols_.size());
+  for (const Column& col : cols_) {
     names.push_back(col.get_name());
   }
   return names;
@@ -72,36 +73,36 @@ std::vector<std::string> PreFrame::get_names() const {
 
 //----- Columns types ----------------------------------------------------------
 
-PreFrame::ptvec PreFrame::getTypes() const {
-  ptvec res(cols.size(), PT::Mu);
+std::vector<PT> PreFrame::getTypes() const {
+  std::vector<PT> res(cols_.size(), PT::Mu);
   saveTypes(res);
   return res;
 }
 
-void PreFrame::saveTypes(ptvec& types) const {
-  xassert(types.size() == cols.size());
-  for (size_t i = 0; i < cols.size(); ++i) {
-    types[i] = cols[i].get_ptype();
+void PreFrame::saveTypes(std::vector<PT>& types) const {
+  xassert(types.size() == cols_.size());
+  for (size_t i = 0; i < cols_.size(); ++i) {
+    types[i] = cols_[i].get_ptype();
   }
 }
 
-bool PreFrame::sameTypes(ptvec& types) const {
-  xassert(types.size() == cols.size());
-  for (size_t i = 0; i < cols.size(); ++i) {
-    if (types[i] != cols[i].get_ptype()) return false;
+bool PreFrame::sameTypes(std::vector<PT>& types) const {
+  xassert(types.size() == cols_.size());
+  for (size_t i = 0; i < cols_.size(); ++i) {
+    if (types[i] != cols_[i].get_ptype()) return false;
   }
   return true;
 }
 
-void PreFrame::setTypes(const ptvec& types) {
-  xassert(types.size() == cols.size());
-  for (size_t i = 0; i < cols.size(); ++i) {
-    cols[i].force_ptype(types[i]);
+void PreFrame::setTypes(const std::vector<PT>& types) {
+  xassert(types.size() == cols_.size());
+  for (size_t i = 0; i < cols_.size(); ++i) {
+    cols_[i].force_ptype(types[i]);
   }
 }
 
 void PreFrame::setType(PT type) {
-  for (auto& col : cols) {
+  for (auto& col : cols_) {
     col.force_ptype(type);
   }
 }
@@ -114,7 +115,7 @@ const char* PreFrame::printTypes() const {
   size_t ncols = size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = parsers[cols[i].get_ptype()].code;
+    *ch++ = parsers[cols_[i].get_ptype()].code;
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -123,7 +124,7 @@ const char* PreFrame::printTypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = parsers[cols[i].get_ptype()].code;
+      *ch++ = parsers[cols_[i].get_ptype()].code;
   }
   *ch = '\0';
   return out;
@@ -134,7 +135,7 @@ const char* PreFrame::printTypes() const {
 
 size_t PreFrame::nColumnsInOutput() const {
   size_t n = 0;
-  for (const auto& col : cols) {
+  for (const auto& col : cols_) {
     n += col.is_in_output();
   }
   return n;
@@ -142,7 +143,7 @@ size_t PreFrame::nColumnsInOutput() const {
 
 size_t PreFrame::nColumnsInBuffer() const {
   size_t n = 0;
-  for (const auto& col : cols) {
+  for (const auto& col : cols_) {
     n += col.is_in_buffer();
   }
   return n;
@@ -150,7 +151,7 @@ size_t PreFrame::nColumnsInBuffer() const {
 
 size_t PreFrame::nColumnsToReread() const {
   size_t n = 0;
-  for (const auto& col : cols) {
+  for (const auto& col : cols_) {
     n += col.is_type_bumped();
   }
   return n;
@@ -158,7 +159,7 @@ size_t PreFrame::nColumnsToReread() const {
 
 size_t PreFrame::nStringColumns() const {
   size_t n = 0;
-  for (const auto& col : cols) {
+  for (const auto& col : cols_) {
     n += col.is_string();
   }
   return n;
@@ -166,7 +167,7 @@ size_t PreFrame::nStringColumns() const {
 
 size_t PreFrame::totalAllocSize() const {
   size_t allocsize = sizeof(*this);
-  for (const auto& col : cols) {
+  for (const auto& col : cols_) {
     allocsize += col.memory_footprint();
   }
   return allocsize;
