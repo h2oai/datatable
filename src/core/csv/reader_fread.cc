@@ -1010,18 +1010,17 @@ void FreadObserver::type_bump_info(
   size_t icol, const dt::read::Column& col, PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
-  // Maximum number of characters to be written for the `field` data
+  // Maximum number of characters to be printed out for a data sample
   static const size_t MAX_FIELD_LEN = 1000;
 
-  // The actual number of characters
+  // The actual number of characters for the `field` data
   size_t field_len = std::min(MAX_FIELD_LEN, static_cast<size_t>(len));
 
   std::stringstream ss;
-  std::string field_str(field, field_len);
   ss << "Column " << icol
      << " (" << col.repr_name(g) << ") bumped from " << col.typeName()
      << " to " << ParserLibrary::info(new_type).cname()
-     << " due to <<" << field_str << ">>"
+     << " due to <<" << std::string(field, field_len) << ">>"
      << " on row " << static_cast<size_t>(lineno);
 
   messages.push_back(ss.str());
