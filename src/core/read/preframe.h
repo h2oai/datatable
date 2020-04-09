@@ -49,6 +49,7 @@ class PreFrame
 
     size_t ncols() const noexcept;
     size_t nrows() const noexcept;
+    void set_ncols(size_t ncols);
     void set_nrows(size_t nrows);
 
     const_iterator begin() const;
@@ -57,8 +58,6 @@ class PreFrame
     iterator end();
     Column& column(size_t i) &;
     const Column& column(size_t i) const &;
-
-    void add_columns(size_t n);
 
     std::vector<PT> get_ptypes() const;
     void save_ptypes(std::vector<PT>& types) const;

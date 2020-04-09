@@ -44,19 +44,17 @@ size_t PreFrame::nrows() const noexcept {
   return nrows_;
 }
 
+
+void PreFrame::set_ncols(size_t ncols) {
+  xassert(ncols >= columns_.size());
+  columns_.resize(ncols);
+}
+
 void PreFrame::set_nrows(size_t n) {
   for (auto& col : columns_) {
     col.allocate(n);
   }
   nrows_ = n;
-}
-
-
-void PreFrame::add_columns(size_t n) {
-  columns_.reserve(columns_.size() + n);
-  for (size_t i = 0; i < n; ++i) {
-    columns_.push_back(Column());
-  }
 }
 
 

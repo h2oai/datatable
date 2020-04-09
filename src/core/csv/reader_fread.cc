@@ -352,11 +352,11 @@ void FreadReader::detect_sep_and_qr() {
     fill = 1;
   }
 
-  int ncols = fill? topNmax : topNumFields;
+  size_t ncols = static_cast<size_t>(fill? topNmax : topNumFields);
   xassert(ncols >= 1 && line >= 1);
 
   // Create vector of Column objects
-  preframe.add_columns(static_cast<size_t>(ncols));
+  preframe.set_ncols(ncols);
 
   first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
 
@@ -696,7 +696,7 @@ void FreadReader::detect_header() {
       fill = true;
       trace("Setting `fill` to True because the header contains more columns "
             "than the data.");
-      preframe.add_columns(static_cast<size_t>(ncols_header - sncols));
+      preframe.set_ncols(static_cast<size_t>(ncols_header));
     }
     return;
   }
@@ -864,7 +864,7 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
     size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
-      preframe.add_columns(1);
+      preframe.set_ncols(i);
     }
     if (ilen > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
