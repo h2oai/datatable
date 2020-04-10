@@ -478,7 +478,6 @@ def test_aggregate_2d_mixed_distinct_na():
     d_in = dt.Frame([["a", "b", "c", "d", "e", "f"], [None] * 6])
     d_in_copy = dt.Frame(d_in)
     d_exemplars, d_members = aggregate(d_in, min_rows=0, nx_bins = 3, ny_bins = 3)
-    print(d_exemplars, d_members)
     frame_integrity_check(d_members)
     frame_integrity_check(d_exemplars)
     assert_equals(

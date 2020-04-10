@@ -132,10 +132,7 @@ def test_set_xls_new_xlsx():
 def test_diabetes_tiny_two_sheets_xlsx():
     filename = find_file("h2o-3", "fread", "diabetes_tiny_two_sheets.xlsx")
     DTs_keys = [filename + "/Sheet1/A1:AY17", filename + "/Sheet2/A1:AY17"]
-    DTs = dt.fread(filename)
-    assert isinstance(DTs, dict)
-    assert sorted(list(DTs.keys())) == DTs_keys
-    DT1, DT2 = DTs.values()
+    DT1, DT2 = list(dt.iread(filename))
     assert sorted([DT1.source, DT2.source]) == DTs_keys
     assert DT1.shape == DT2.shape == (16, 51)
     assert DT1.stypes == DT2.stypes
