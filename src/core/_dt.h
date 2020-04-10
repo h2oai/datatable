@@ -22,6 +22,7 @@
 #ifndef dt__DT_h
 #define dt__DT_h
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
