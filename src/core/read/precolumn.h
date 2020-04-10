@@ -72,9 +72,8 @@ class PreColumn
 
   public:
     PreColumn();
+    PreColumn(PreColumn&&) noexcept;
     PreColumn(const PreColumn&) = delete;
-    PreColumn(PreColumn&&);
-    virtual ~PreColumn();
 
     // Column's data
     void allocate(size_t nrows);

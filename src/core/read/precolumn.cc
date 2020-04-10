@@ -38,7 +38,7 @@ PreColumn::PreColumn() {
   present_in_buffer_ = true;
 }
 
-PreColumn::PreColumn(PreColumn&& o)
+PreColumn::PreColumn(PreColumn&& o) noexcept
   : name_(std::move(o.name_)),
     databuf_(std::move(o.databuf_)),
     strbuf_(std::move(o.strbuf_)),
@@ -48,7 +48,6 @@ PreColumn::PreColumn(PreColumn&& o)
     present_in_output_(o.present_in_output_),
     present_in_buffer_(o.present_in_buffer_) {}
 
-PreColumn::~PreColumn() {}
 
 
 
