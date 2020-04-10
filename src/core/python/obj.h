@@ -24,7 +24,7 @@
 #include <memory>   // std::unique_ptr
 #include <string>   // std::string
 #include <vector>   // std::vector
-#include "_dt.h"             // CString
+#include "_dt.h"               // general declarations
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
