@@ -79,8 +79,8 @@ class PreColumn
     void allocate(size_t nrows);
     void* data_w();
     WritableBuffer* strdata_w();
-    Buffer extract_databuf();
-    Buffer extract_strbuf();
+
+    Column to_column(size_t nrows) &&;
 
     // Column's name
     const std::string& get_name() const noexcept;

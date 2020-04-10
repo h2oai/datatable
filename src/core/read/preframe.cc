@@ -215,14 +215,8 @@ dtptr PreFrame::to_datatable() && {
 
   for (auto& col : columns_) {
     if (!col.is_in_output()) continue;
-    Buffer databuf = col.extract_databuf();
-    Buffer strbuf = col.extract_strbuf();
-    SType stype = col.get_stype();
-    ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
-      ? ::Column::new_string_column(nrows_, std::move(databuf), std::move(strbuf))
-      : ::Column::new_mbuf_column(nrows_, stype, std::move(databuf))
-    );
     names.push_back(col.get_name());
+    ccols.push_back(std::move(col).to_column(nrows_));
   }
   return dtptr(new DataTable(std::move(ccols), std::move(names)));
 }

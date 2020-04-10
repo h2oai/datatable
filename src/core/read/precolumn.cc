@@ -23,6 +23,7 @@
 #include "csv/reader_parsers.h"
 #include "python/string.h"
 #include "read/precolumn.h"
+#include "column.h"
 namespace dt {
 namespace read {
 
@@ -78,15 +79,6 @@ WritableBuffer* PreColumn::strdata_w() {
   return strbuf_.get();
 }
 
-Buffer PreColumn::extract_databuf() {
-  return std::move(databuf_);
-}
-
-Buffer PreColumn::extract_strbuf() {
-  if (!(strbuf_ && is_string())) return Buffer();
-  strbuf_->finalize();
-  return strbuf_->get_mbuf();
-}
 
 
 
@@ -276,6 +268,24 @@ PreColumn::ptype_iterator& PreColumn::ptype_iterator::operator++() {
 
 bool PreColumn::ptype_iterator::has_incremented() const {
   return curr_ptype != orig_ptype;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Finalizing
+//------------------------------------------------------------------------------
+
+Column PreColumn::to_column(size_t nrows) && {
+  SType stype = get_stype();
+  if (is_string()) {
+    strbuf_->finalize();
+    return Column::new_string_column(nrows, std::move(databuf_),
+                                     strbuf_->get_mbuf());
+  } else {
+    return Column::new_mbuf_column(nrows, stype, std::move(databuf_));
+  }
 }
 
 
