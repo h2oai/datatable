@@ -30,7 +30,6 @@ typedef struct _object PyObject;
 class Buffer;
 class Column;
 class DataTable;
-class NameProvider;
 class Groupby;
 class RowIndex;
 class Stats;

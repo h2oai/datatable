@@ -150,10 +150,6 @@ class Frame : public XObject<Frame> {
     ~Frame() {}
     void _clear_types();
     void _init_names() const;
-    void _init_inames() const;
-    void _fill_default_names();
-    void _dedup_and_save_names(NameProvider*);
-    void _replace_names_from_map(py::odict);
 
     // getitem / setitem support
     oobj _main_getset(robj item, robj value);
