@@ -8,6 +8,7 @@
 #ifndef dt_MMM_h
 #define dt_MMM_h
 #include <vector>
+#include "_dt.h"
 
 
 class MemoryMapWorker {
