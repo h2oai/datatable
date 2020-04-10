@@ -35,7 +35,6 @@ class RowIndex;
 class Stats;
 class WritableBuffer;
 
-
 struct CString;
 enum class LType : uint8_t;
 enum class SType : uint8_t;

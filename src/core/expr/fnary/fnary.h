@@ -22,7 +22,6 @@
 #ifndef dt_EXPR_FNARY_FNARY_h
 #define dt_EXPR_FNARY_FNARY_h
 #include <memory>
-#include "_dt.h"
 #include "expr/declarations.h"
 #include "expr/op.h"
 #include "python/args.h"

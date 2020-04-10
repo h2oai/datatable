@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_HEAD_h
 #define dt_EXPR_HEAD_h
-#include "_dt.h"
 #include "expr/op.h"
 #include "expr/declarations.h"
 #include "python/obj.h"

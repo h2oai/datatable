@@ -23,7 +23,6 @@
 #define dt_MODELS_FTRL_BASE_h
 #include "options.h"
 #include "str/py_str.h"
-#include "_dt.h"
 namespace dt {
 
 
