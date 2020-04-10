@@ -181,12 +181,12 @@ py::oobj EvalContext::evaluate() {
 // in `dt0`, with the approriate names. The returned array of indices
 // will contain the location of these columns in the updated `dt0`.
 //
-intvec EvalContext::evaluate_j_as_column_index() {
+sztvec EvalContext::evaluate_j_as_column_index() {
   bool allow_new = (eval_mode_ == EvalMode::UPDATE);
   DataTable* dt0 = get_datatable(0);
   auto jres = jexpr_.evaluate_j(*this, allow_new);
   size_t n = jres.ncols();
-  intvec indices(n);
+  sztvec indices(n);
 
   for (size_t i = 0; i < n; ++i) {
     size_t frame_id, col_id;
@@ -373,7 +373,7 @@ py::oobj EvalContext::evaluate_update() {
   auto ri0 = get_rowindex(0);
   auto ncols = dt0->ncols();
   auto nkeys = dt0->nkeys();
-  intvec indices = evaluate_j_as_column_index();
+  sztvec indices = evaluate_j_as_column_index();
 
   for (size_t i : indices) {
     if (i < nkeys) {
@@ -418,7 +418,7 @@ py::oobj EvalContext::evaluate_update() {
 
 
 void EvalContext::typecheck_for_update(
-    Workframe& replframe, const intvec& indices)
+    Workframe& replframe, const sztvec& indices)
 {
   DataTable* dt0 = get_datatable(0);
   bool allrows = !(get_rowindex(0));

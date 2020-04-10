@@ -13,8 +13,6 @@
 #include "python/list.h"
 namespace py {
 
-class PKArgs;
-using strvec = std::vector<std::string>;
 
 /**
  * The argument may be in "undefined" state, meaning the user did not provide

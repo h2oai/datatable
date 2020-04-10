@@ -17,16 +17,6 @@
 #include "column.h"
 #include "ztest.h"
 
-// avoid circular dependency between .h files
-class Column;
-class Stats;
-class DataTable;
-class NameProvider;
-
-
-using colvec = std::vector<Column>;
-using intvec = std::vector<size_t>;
-using strvec = std::vector<std::string>;
 
 
 //==============================================================================
@@ -80,13 +70,13 @@ class DataTable {
     size_t ncols() const noexcept { return ncols_; }
     size_t nkeys() const noexcept { return nkeys_; }
 
-    void delete_columns(intvec&);
+    void delete_columns(sztvec&);
     void delete_all();
     void resize_rows(size_t n);
     void resize_columns(const strvec& new_names);
     void apply_rowindex(const RowIndex&);
     void materialize(bool to_memory);
-    void rbind(const std::vector<DataTable*>&, const std::vector<intvec>&);
+    void rbind(const std::vector<DataTable*>&, const std::vector<sztvec>&);
     void cbind(const std::vector<DataTable*>&);
     DataTable extract_column(size_t i) const;
     size_t memory_footprint() const noexcept;
@@ -107,10 +97,10 @@ class DataTable {
     void set_names(const py::olist& names_list, bool warn = true);
     void set_names(const strvec& names_list, bool warn = true);
     void replace_names(py::odict replacements, bool warn = true);
-    void reorder_names(const intvec& col_indices);
+    void reorder_names(const sztvec& col_indices);
 
     // Key
-    void set_key(intvec& col_indices);
+    void set_key(sztvec& col_indices);
     void clear_key();
     void set_nkeys_unsafe(size_t K);
 

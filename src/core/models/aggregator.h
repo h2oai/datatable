@@ -22,12 +22,11 @@
 #include <limits>     // std::numeric_limits
 #include <memory>     // std::unique_ptr
 #include <vector>     // std::vector
+#include "_dt.h"
 #include "models/utils.h"
 #include "parallel/api.h"
 #include "python/obj.h"
 
-
-using dtptr = std::unique_ptr<DataTable>;
 
 /**
  *  Aggregator base class.
@@ -58,7 +57,7 @@ class Aggregator : public AggregatorBase {
     void aggregate(DataTable*, dtptr&, dtptr&) override;
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
-    static size_t n_merged_nas(const intvec&);
+    static size_t n_merged_nas(const sztvec&);
 
     // Minimum number of rows a thread will get for an aggregation
     static constexpr size_t MIN_ROWS_PER_THREAD = 1000;

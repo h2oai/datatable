@@ -27,7 +27,6 @@
 namespace dt {
 namespace sort {
 
-using std::size_t;
 
 static constexpr size_t MAX_NROWS_INT32 = 0x7FFFFFFF;
 static constexpr size_t INSERTSORT_NROWS = 16;

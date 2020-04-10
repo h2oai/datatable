@@ -108,7 +108,7 @@ void Frame::rbind(const PKArgs& args) {
   bool bynames = args[1].to<bool>(true);
 
   std::vector<DataTable*> dts;
-  std::vector<intvec> cols;
+  std::vector<sztvec> cols;
 
   // First, find all frames that will be rbound. We will process both the
   // vararg sequence, and the case when a list (or tuple) passed. In fact,
@@ -183,7 +183,7 @@ void Frame::rbind(const PKArgs& args) {
         }
         else if (force) {
           final_names.push_back(name);
-          cols.push_back(intvec(dts.size(), INVALID_INDEX));
+          cols.push_back(sztvec(dts.size(), INVALID_INDEX));
           inames[name] = n;
           cols[n][i] = j;
           ++n;
@@ -210,7 +210,7 @@ void Frame::rbind(const PKArgs& args) {
           const strvec& dfnames = df->get_names();
           for (size_t j = n; j < df->ncols(); ++j) {
             final_names.push_back(dfnames[j]);
-            cols.push_back(intvec(dts.size(), INVALID_INDEX));
+            cols.push_back(sztvec(dts.size(), INVALID_INDEX));
           }
           n = df->ncols();
         }
@@ -278,7 +278,7 @@ void DatatableModule::init_methods_rbind() {
  */
 void DataTable::rbind(
     const std::vector<DataTable*>& dts,
-    const std::vector<intvec>& col_indices)
+    const std::vector<sztvec>& col_indices)
 {
   size_t new_ncols = col_indices.size();
   xassert(new_ncols >= ncols_);

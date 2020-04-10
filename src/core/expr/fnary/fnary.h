@@ -22,6 +22,7 @@
 #ifndef dt_EXPR_FNARY_FNARY_h
 #define dt_EXPR_FNARY_FNARY_h
 #include <memory>
+#include "_dt.h"
 #include "expr/declarations.h"
 #include "expr/op.h"
 #include "python/args.h"
@@ -29,7 +30,6 @@
 namespace dt {
 namespace expr {
 
-using colvec = std::vector<Column>;
 
 /**
   * Main method for computing n-ary (rowwise) functions.

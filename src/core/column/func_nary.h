@@ -21,11 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_FUNC_NARY_h
 #define dt_COLUMN_FUNC_NARY_h
+#include "_dt.h"
 #include "column/virtual.h"
 #include "utils/assert.h"
 namespace dt {
-
-using colvec = std::vector<Column>;
 
 
 /**

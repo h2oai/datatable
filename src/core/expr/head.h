@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_HEAD_h
 #define dt_EXPR_HEAD_h
+#include "_dt.h"
 #include "expr/op.h"
 #include "expr/declarations.h"
 #include "python/obj.h"
@@ -115,7 +116,7 @@ class Head {
 
     virtual Workframe evaluate_r(const vecExpr& args,
                                  EvalContext& ctx,
-                                 const intvec& column_indices) const = 0;
+                                 const sztvec& column_indices) const = 0;
 
     virtual Workframe evaluate_f(EvalContext& ctx,
                                  size_t frame_id,

@@ -27,13 +27,10 @@
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
 #include "read/preframe.h"  // dt::read::PreFrame
-class DataTable;
+
+
 namespace dt {
 namespace read {
-
-
-using dtptr = std::unique_ptr<DataTable>;
-using strvec = std::vector<std::string>;
 
 // What fread() should do if the input contains multiple sources
 enum class FreadMultiSourceStrategy : int8_t {

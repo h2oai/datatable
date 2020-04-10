@@ -21,7 +21,6 @@
 #include <atomic>
 
 namespace dt {
-using std::size_t;
 
 // Forward-declare
 class thread_scheduler;

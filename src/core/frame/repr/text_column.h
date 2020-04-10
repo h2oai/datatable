@@ -29,9 +29,8 @@
 #include "utils/terminal/terminal_stream.h"
 #include "column.h"
 namespace dt {
-using std::size_t;
+
 using std::ostringstream;
-using intvec = std::vector<size_t>;
 using sstrvec = std::vector<tstring>;
 
 static constexpr size_t NA_index = size_t(-1);
@@ -91,7 +90,7 @@ class Data_TextColumn : public TextColumn {
   public:
     Data_TextColumn(const std::string& name,
                     const Column& col,
-                    const intvec& indices,
+                    const sztvec& indices,
                     int max_width);
     Data_TextColumn(const Data_TextColumn&) = default;
     Data_TextColumn(Data_TextColumn&&) noexcept = default;
@@ -101,7 +100,7 @@ class Data_TextColumn : public TextColumn {
     void print_value(TerminalStream&, size_t i) const override;
 
   private:
-    void _render_all_data(const Column& col, const intvec& indices);
+    void _render_all_data(const Column& col, const sztvec& indices);
     void _print_aligned_value(TerminalStream&, const tstring& value) const;
     void _align_at_dot();
 

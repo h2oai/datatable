@@ -30,39 +30,50 @@ typedef struct _object PyObject;
 class Buffer;
 class Column;
 class DataTable;
+class NameProvider;
 class Groupby;
 class RowIndex;
+class Stats;
 class WritableBuffer;
+
 
 struct CString;
 enum class LType : uint8_t;
 enum class SType : uint8_t;
 
 using std::size_t;
+using dtptr = std::unique_ptr<DataTable>;
 using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
 using sztvec = std::vector<size_t>;
+using RiGb = std::pair<RowIndex, Groupby>;
 
 
 namespace py {
   class Arg;
+  class Frame;
   class GSArgs;
   class PKArgs;
   class obool;
+  class oby;
   class odict;
   class ofloat;
   class oint;
   class oiter;
+  class ojoin;
   class olist;
   class onamedtuple;
   class oobj;
   class orange;
   class oset;
   class oslice;
+  class osort;
   class ostring;
   class otuple;
+  class oupdate;
   class rdict;
   class robj;
+  class rtuple;
 }
 
 

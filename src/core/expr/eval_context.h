@@ -159,9 +159,9 @@ class EvalContext
     void evaluate_delete_columns();
     void evaluate_delete_rows();
     void evaluate_delete_subframe();
-    intvec evaluate_j_as_column_index();
+    sztvec evaluate_j_as_column_index();
     void create_placeholder_columns();
-    void typecheck_for_update(Workframe&, const intvec&);
+    void typecheck_for_update(Workframe&, const sztvec&);
     void update_groupby_columns(Grouping gmode);
 };
 

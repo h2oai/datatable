@@ -24,7 +24,6 @@
 #include "utils/terminal/terminal_style.h"
 #include "encodings.h"
 namespace dt {
-using std::size_t;
 
 static size_t UNKNOWN = size_t(-1);
 

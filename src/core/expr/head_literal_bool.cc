@@ -52,7 +52,7 @@ Workframe Head_Literal_Bool::evaluate_n(
 //   DT[:, j] = True
 //
 Workframe Head_Literal_Bool::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const intvec&) const
+    const vecExpr&, EvalContext& ctx, const sztvec&) const
 {
   return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
 }

@@ -60,7 +60,7 @@ class Ftrl : public dt::FtrlBase {
     size_t: (sizeof(T) % 8) * 8;
 
     // Vector of feature interactions.
-    std::vector<intvec> interactions;
+    std::vector<sztvec> interactions;
 
     // Helper parameters.
     T ialpha;
@@ -168,7 +168,7 @@ class Ftrl : public dt::FtrlBase {
     uint64_t get_nbins() override;
     unsigned char get_mantissa_nbits() override;
     double get_nepochs() override;
-    const std::vector<intvec>& get_interactions() override;
+    const std::vector<sztvec>& get_interactions() override;
     bool get_negative_class() override;
     FtrlParams get_params() override;
     py::oobj get_labels() override;
@@ -185,7 +185,7 @@ class Ftrl : public dt::FtrlBase {
     void set_nbins(uint64_t) override;
     void set_mantissa_nbits(unsigned char) override;
     void set_nepochs(double) override;
-    void set_interactions(std::vector<intvec>) override;
+    void set_interactions(std::vector<sztvec>) override;
     void set_negative_class(bool) override;
     void set_labels(const DataTable&) override;
 

@@ -21,8 +21,6 @@
 #include "parallel/api_primitives.h"
 #include "utils/function.h"
 namespace dt {
-using std::size_t;
-
 
 
 //------------------------------------------------------------------------------

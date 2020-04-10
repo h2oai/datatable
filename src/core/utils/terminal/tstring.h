@@ -27,7 +27,6 @@
 #ifndef dt_UTILS_TERMINAL_TSTRING_h
 #define dt_UTILS_TERMINAL_TSTRING_h
 namespace dt {
-using std::size_t;
 
 
 /**

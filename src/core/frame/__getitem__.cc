@@ -74,12 +74,12 @@ oobj Frame::_get_single_column(robj selector) {
 oobj Frame::_del_single_column(robj selector) {
   if (selector.is_int()) {
     size_t col_index = dt->xcolindex(selector.to_int64_strict());
-    intvec columns_to_delete = {col_index};
+    sztvec columns_to_delete = {col_index};
     dt->delete_columns(columns_to_delete);
   }
   else if (selector.is_string()) {
     size_t col_index = dt->xcolindex(selector);
-    intvec columns_to_delete = {col_index};
+    sztvec columns_to_delete = {col_index};
     dt->delete_columns(columns_to_delete);
   }
   else {

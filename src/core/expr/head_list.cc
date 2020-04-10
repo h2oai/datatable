@@ -53,7 +53,7 @@ Workframe Head_List::evaluate_n(
 // `indices` within the "root" Frame.
 //
 Workframe Head_List::evaluate_r(
-    const vecExpr& inputs, EvalContext& ctx, const intvec& indices) const
+    const vecExpr& inputs, EvalContext& ctx, const sztvec& indices) const
 {
   Workframe outputs(ctx);
   if (inputs.size() == indices.size()) {
@@ -356,7 +356,7 @@ Workframe Head_NamedList::evaluate_n(
 
 
 Workframe Head_NamedList::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const intvec&) const
+    const vecExpr& args, EvalContext& ctx, const sztvec&) const
 {
   return evaluate_n(args, ctx, false);
 }

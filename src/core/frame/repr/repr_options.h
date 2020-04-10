@@ -23,8 +23,6 @@
 #define dt_FRAME_REPR_OPTIONS_h
 #include <cstddef>
 namespace dt {
-using std::size_t;
-
 
 extern size_t display_max_nrows;
 extern size_t display_head_nrows;

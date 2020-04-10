@@ -27,28 +27,17 @@
 #include <vector>
 #include "sort.h"
 
-class Column;
-class DataTable;
-class Groupby;
-class RowIndex;
-
 
 namespace dt {
 namespace expr {
-  using std::size_t;
-
 
   class Head;
   class Expr;
   class Workframe;
   class EvalContext;
 
-  using strvec = std::vector<std::string>;
-  using intvec = std::vector<size_t>;
   using ptrHead = std::unique_ptr<Head>;
   using vecExpr = std::vector<Expr>;
-  using RiGb = std::pair<RowIndex, Groupby>;
-
 
 
   // Evaluation mode, this distinguishes between expressions of the

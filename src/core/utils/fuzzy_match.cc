@@ -21,7 +21,6 @@
 #include "utils/fuzzy_match.h"
 #include "datatablemodule.h"
 namespace dt {
-using std::size_t;
 
 
 //------------------------------------------------------------------------------

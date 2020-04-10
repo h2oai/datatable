@@ -24,6 +24,7 @@
 #include <memory>   // std::unique_ptr
 #include <string>   // std::string
 #include <vector>   // std::vector
+#include "_dt.h"             // CString
 #include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
 
@@ -31,29 +32,6 @@ class DataTable;
 class RowIndex;
 
 namespace py {
-
-// Forward declarations
-class Arg;
-class Frame;
-class oby;
-class odict;
-class ofloat;
-class oint;
-class oiter;
-class ojoin;
-class olist;
-class oslice;
-class ostring;
-class orange;
-class osort;
-class otuple;
-class rtuple;
-class oupdate;
-class robj;
-class rdict;
-class oobj;
-using strvec = std::vector<std::string>;
-
 
 /**
  * This class is a C++ wrapper around pythonic C struct `PyObject*`. Its main
