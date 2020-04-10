@@ -50,15 +50,15 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   //*********************************************************************************************
   {
     if (verbose) trace("[5] Apply user overrides on column types");
-    std::unique_ptr<PT[]> oldtypes = columns.getTypes();
+    auto oldtypes = preframe.get_ptypes();
 
     report_columns_to_python();
 
-    size_t ncols = columns.size();
+    size_t ncols = preframe.ncols();
     size_t ndropped = 0;
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
-      dt::read::Column& col = columns[i];
+      auto& col = preframe.column(i);
       col.reset_type_bumped();
       if (col.is_dropped()) {
         ndropped++;
@@ -79,19 +79,19 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     if (verbose) {
       if (nUserBumped || ndropped) {
         trace("After %d type and %d drop user overrides : %s",
-              nUserBumped, ndropped, columns.printTypes());
+              nUserBumped, ndropped, preframe.print_ptypes());
       }
       trace("Allocating %d column slots with %zd rows",
             ncols - ndropped, allocnrow);
     }
 
-    columns.set_nrows(allocnrow);
+    preframe.set_nrows(allocnrow);
 
     if (verbose) {
       fo.t_frame_allocated = wallclock();
       fo.n_rows_allocated = allocnrow;
       fo.n_cols_allocated = ncols - ndropped;
-      fo.allocation_size = columns.totalAllocSize();
+      fo.allocation_size = preframe.total_allocsize();
     }
   }
   job->add_done_amount(WORK_PREPARE);
@@ -102,8 +102,8 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   //****************************************************************************
   bool firstTime = true;
 
-  std::unique_ptr<PT[]> typesPtr = columns.getTypes();
-  PT* types = typesPtr.get();  // This pointer is valid until `typesPtr` goes out of scope
+  auto typesPtr = preframe.get_ptypes();
+  dt::read::PT* types = typesPtr.data();  // This pointer is valid until `typesPtr` goes out of scope
 
   trace("[6] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
@@ -119,14 +119,14 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     } else {
       fo.t_data_reread = wallclock();
     }
-    size_t ncols = columns.size();
-    size_t ncols_to_reread = columns.nColumnsToReread();
+    size_t ncols = preframe.ncols();
+    size_t ncols_to_reread = preframe.n_columns_to_reread();
     xassert((ncols_to_reread > 0) == reread_scheduled);
     if (ncols_to_reread) {
       fo.n_cols_reread += ncols_to_reread;
       size_t n_type_bump_cols = 0;
       for (size_t j = 0; j < ncols; j++) {
-        dt::read::Column& col = columns[j];
+        auto& col = preframe.column(j);
         if (!col.is_in_output()) continue;
         bool bumped = col.is_type_bumped();
         col.reset_type_bumped();
@@ -144,13 +144,13 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       goto read;
     }
 
-    fo.n_rows_read = columns.get_nrows();
-    fo.n_cols_read = columns.nColumnsInOutput();
+    fo.n_rows_read = preframe.nrows();
+    fo.n_cols_read = preframe.n_columns_in_output();
   }
 
 
   trace("[7] Finalize the datatable");
-  std::unique_ptr<DataTable> res = makeDatatable();
+  std::unique_ptr<DataTable> res = std::move(preframe).to_datatable();
   if (verbose) fo.report();
   return res;
 }

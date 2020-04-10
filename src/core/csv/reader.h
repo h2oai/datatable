@@ -26,7 +26,7 @@
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
-#include "read/columns.h"   // dt::read::Columns
+#include "read/preframe.h"  // dt::read::PreFrame
 class DataTable;
 namespace dt {
 namespace read {
@@ -134,7 +134,7 @@ class GenericReader
     bool cr_is_newline;
     bool input_is_string{ false };
     int : 16;
-    dt::read::Columns columns;
+    PreFrame preframe;
     double t_open_input{ 0 };
 
     py::oobj output_;
@@ -146,7 +146,6 @@ class GenericReader
     py::oobj text_arg;
     py::oobj tempstr;
     py::oobj columns_arg;
-    py::olist column_names;
     py::oobj tempfiles;
 
     // If `trace()` cannot display a message immediately (because it was not
@@ -241,10 +240,6 @@ class GenericReader
     bool read_empty_input();
     bool read_jay();
     bool detect_improper_files();
-
-  //---- Inherited API ----
-  protected:
-    dtptr makeDatatable();
 };
 
 

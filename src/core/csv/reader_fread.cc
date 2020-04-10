@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "csv/reader_fread.h"    // FreadReader
 #include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
@@ -338,11 +352,11 @@ void FreadReader::detect_sep_and_qr() {
     fill = 1;
   }
 
-  int ncols = fill? topNmax : topNumFields;
+  size_t ncols = static_cast<size_t>(fill? topNmax : topNumFields);
   xassert(ncols >= 1 && line >= 1);
 
   // Create vector of Column objects
-  columns.add_columns(static_cast<size_t>(ncols));
+  preframe.set_ncols(ncols);
 
   first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
 
@@ -461,13 +475,13 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
   fctx.skip_whitespace_at_line_start();
   if (tch == eof || fctx.skip_eol()) return 0;
 
-  size_t ncols = columns.size();
+  size_t ncols = preframe.ncols();
   size_t j = 0;
-  dt::read::Column dummy_col;
-  dummy_col.force_ptype(PT::Str32);
+  dt::read::PreColumn dummy_col;
+  dummy_col.force_ptype(dt::read::PT::Str32);
 
   while (true) {
-    dt::read::Column& col = j < ncols ? columns[j] : dummy_col;
+    auto& col = j < ncols ? preframe.column(j) : dummy_col;
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
@@ -533,7 +547,7 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
 void FreadReader::detect_column_types()
 {
   trace("[3] Detect column types and header");
-  size_t ncols = columns.size();
+  size_t ncols = preframe.ncols();
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
@@ -550,18 +564,18 @@ void FreadReader::detect_column_types()
   int rows_to_sample = static_cast<int>(std::min<size_t>(max_nrows, 100));
 
   // Start with all columns having the smallest possible type
-  columns.setType(PT::Mu);
+  preframe.reset_ptypes();
 
   // This variable will store column types at the beginning of each jump
   // so that we can revert to them if the jump proves to be invalid.
-  auto saved_types = std::unique_ptr<PT[]>(new PT[ncols]);
+  std::vector<dt::read::PT> saved_types(ncols, dt::read::Mu);
 
   for (size_t j = 0; j < nChunks; ++j) {
     dt::read::ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
     tch = cc.get_start();
     if (tch >= eof) continue;
 
-    columns.saveTypes(saved_types);
+    preframe.save_ptypes(saved_types);
 
     for (int i = 0; i < rows_to_sample; ++i) {
       if (tch >= eof) break;
@@ -582,7 +596,7 @@ void FreadReader::detect_column_types()
         if (j == 0) {
           chunkster.last_row_end = eof;
         } else {
-          columns.setTypes(saved_types);
+          preframe.set_ptypes(saved_types);
         }
         break;
       }
@@ -596,15 +610,15 @@ void FreadReader::detect_column_types()
       if (thisLineLen>maxLen) maxLen = thisLineLen;
     }
     if (verbose && (j == 0 || j == nChunks - 1 ||
-                    !columns.sameTypes(saved_types))) {
-      trace("Type codes (jump %03d): %s", j, columns.printTypes());
+                    !preframe.are_same_ptypes(saved_types))) {
+      trace("Type codes (jump %03d): %s", j, preframe.print_ptypes());
     }
   }
 
   detect_header();
 
   if (verbose) {
-    trace("Type codes (final): %s", columns.printTypes());
+    trace("Type codes (final): %s", preframe.print_ptypes());
   }
 
   allocnrow = 1;
@@ -614,7 +628,7 @@ void FreadReader::detect_column_types()
     if (header == 1) {
       // A single-row input, and that row is the header. Reset all types to
       // boolean (lowest type possible, a better guess than "string").
-      columns.setType(PT::Mu);
+      preframe.reset_ptypes();
       allocnrow = 0;
     }
     meanLineLen = sumLen;
@@ -658,7 +672,7 @@ void FreadReader::detect_column_types()
  */
 void FreadReader::detect_header() {
   if (!ISNA<int8_t>(header)) return;
-  size_t ncols = columns.size();
+  size_t ncols = preframe.ncols();
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
@@ -666,12 +680,12 @@ void FreadReader::detect_header() {
   const char*& tch = fctx.ch;
 
   // Detect types in the header column
-  auto saved_types = columns.getTypes();
+  auto saved_types = preframe.get_ptypes();
   tch = sof;
-  columns.setType(PT::Mu);
+  preframe.reset_ptypes();
   int64_t ncols_header = parse_single_line(fctx);
-  auto header_types = columns.getTypes();
-  columns.setTypes(saved_types);
+  auto header_types = preframe.get_ptypes();
+  preframe.set_ptypes(saved_types);
 
   if (ncols_header != sncols && n_sample_lines > 0 && !fill) {
     header = true;
@@ -682,7 +696,7 @@ void FreadReader::detect_header() {
       fill = true;
       trace("Setting `fill` to True because the header contains more columns "
             "than the data.");
-      columns.add_columns(static_cast<size_t>(ncols_header - sncols));
+      preframe.set_ncols(static_cast<size_t>(ncols_header));
     }
     return;
   }
@@ -691,7 +705,7 @@ void FreadReader::detect_header() {
     for (size_t j = 0; j < ncols; ++j) {
       if (ParserLibrary::info(header_types[j]).isstring() &&
           !ParserLibrary::info(saved_types[j]).isstring() &&
-          saved_types[j] != PT::Mu) {
+          saved_types[j] != dt::read::PT::Mu) {
         header = true;
         trace("`header` determined to be True due to column %d containing a "
               "string on row 1 and type %s in the rest of the sample.",
@@ -839,7 +853,7 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
 
-  size_t ncols = columns.size();
+  size_t ncols = preframe.ncols();
   size_t ncols_found;
   for (size_t i = 0; ; ++i) {
     // Parse string field, but do not advance `ctx.target`: on the next
@@ -850,13 +864,13 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
     size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
-      columns.add_columns(1);
+      preframe.set_ncols(i);
     }
     if (ilen > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
       int res = check_escaped_string(usrc, zlen, echar);
       if (res == 0) {
-        columns[i].set_name(std::string(start, zlen));
+        preframe.column(i).set_name(std::string(start, zlen));
       } else {
         char* newsrc = new char[zlen * 4];
         uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
@@ -869,7 +883,7 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
         }
         xassert(newlen > 0);
         zlen = static_cast<size_t>(newlen);
-        columns[i].set_name(std::string(newsrc, zlen));
+        preframe.column(i).set_name(std::string(newsrc, zlen));
         delete[] newsrc;
       }
     }
@@ -894,9 +908,9 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
 
   if (sep == ' ' && ncols_found == ncols - 1) {
     for (size_t j = ncols - 1; j > 0; j--){
-      columns[j].swap_names(columns[j-1]);
+      preframe.column(j).swap_names(preframe.column(j-1));
     }
-    columns[0].set_name("index");
+    preframe.column(0).set_name("index");
   }
 }
 
@@ -1007,7 +1021,7 @@ void FreadObserver::report() {
 
 
 void FreadObserver::type_bump_info(
-  size_t icol, const dt::read::Column& col, PT new_type,
+  size_t icol, const dt::read::PreColumn& col, dt::read::PT new_type,
   const char* field, int64_t len, int64_t lineno)
 {
   // Maximum number of characters to be printed out for a data sample

@@ -10,10 +10,10 @@
 #include <memory>
 #include "read/parallel_reader.h"
 #include "read/thread_context.h"
+#include "_dt.h"
 
 class FreadReader;
 struct FreadTokenizer;
-enum PT : uint8_t;
 
 namespace dt {
 namespace read {

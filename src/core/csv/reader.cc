@@ -929,55 +929,37 @@ void GenericReader::decode_utf16() {
 
 
 void GenericReader::report_columns_to_python() {
-  size_t ncols = columns.size();
+  size_t ncols = preframe.ncols();
 
   if (columns_arg) {
     py::olist colDescriptorList(ncols);
-    for (size_t i = 0; i < ncols; i++) {
-      colDescriptorList.set(i, columns[i].py_descriptor());
+    size_t i = 0, j = 0;
+    for (const auto& col : preframe) {
+      colDescriptorList.set(i++, col.py_descriptor());
     }
 
     py::otuple newColumns =
       py::oobj::import("datatable.utils.fread", "_override_columns")
         .call({columns_arg, colDescriptorList}).to_otuple();
 
-    column_names = newColumns[0].to_pylist();
+    py::olist newNamesList = newColumns[0].to_pylist();
     py::olist newTypesList = newColumns[1].to_pylist();
-
     if (newTypesList) {
-      for (size_t i = 0; i < ncols; i++) {
+      XAssert(newTypesList.size() == ncols);
+      for (i = 0, j = 0; i < ncols; i++) {
+        auto& coli = preframe.column(i);
         py::robj elem = newTypesList[i];
-        columns[i].set_rtype(elem.to_int64());
+        coli.set_rtype(elem.to_int64());
+        if (newNamesList && coli.get_rtype() != RT::RDrop) {
+          XAssert(j < newNamesList.size());
+          elem = newNamesList[j++];
+          coli.set_name(elem.to_string());
+        }
       }
     }
   }
 }
 
-
-
-dtptr GenericReader::makeDatatable() {
-  size_t ncols = columns.size();
-  size_t nrows = columns.get_nrows();
-  size_t ocols = columns.nColumnsInOutput();
-  std::vector<::Column> ccols;
-  ccols.reserve(ocols);
-  for (size_t i = 0; i < ncols; ++i) {
-    dt::read::Column& col = columns[i];
-    if (!col.is_in_output()) continue;
-    Buffer databuf = col.extract_databuf();
-    Buffer strbuf = col.extract_strbuf();
-    SType stype = col.get_stype();
-    ccols.push_back((stype == SType::STR32 || stype == SType::STR64)
-      ? ::Column::new_string_column(nrows, std::move(databuf), std::move(strbuf))
-      : ::Column::new_mbuf_column(nrows, stype, std::move(databuf))
-    );
-  }
-  if (column_names) {
-    return dtptr(new DataTable(std::move(ccols), column_names));
-  } else {
-    return dtptr(new DataTable(std::move(ccols), columns.get_names()));
-  }
-}
 
 
 
