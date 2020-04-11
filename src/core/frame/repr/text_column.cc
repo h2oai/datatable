@@ -79,7 +79,7 @@ int TextColumn::get_width() const {
 
 Data_TextColumn::Data_TextColumn(const std::string& name,
                                  const Column& col,
-                                 const intvec& indices,
+                                 const sztvec& indices,
                                  int max_width)
 {
   xassert(max_width >= 4);
@@ -303,7 +303,7 @@ tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
 
 
 
-void Data_TextColumn::_render_all_data(const Column& col, const intvec& indices)
+void Data_TextColumn::_render_all_data(const Column& col, const sztvec& indices)
 {
   data_.reserve(indices.size());
   for (size_t i : indices) {

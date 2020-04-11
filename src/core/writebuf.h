@@ -11,10 +11,6 @@
 #include <string>      // std::string
 #include "parallel/shared_mutex.h"
 #include "utils/file.h"
-using std::size_t;
-
-class Buffer;
-
 
 
 //==============================================================================

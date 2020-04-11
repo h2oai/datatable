@@ -23,8 +23,6 @@
 #define dt_UTILS_TERMINAL_TERMINAL_STYLE_h
 #include <cstdint>
 namespace dt {
-using std::size_t;
-
 
 
 enum TerminalStyle : size_t {

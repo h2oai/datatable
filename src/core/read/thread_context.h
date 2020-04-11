@@ -27,7 +27,6 @@
 #include "read/chunk_coordinates.h"  // ChunkCoordinates
 namespace dt {
 namespace read {
-using std::size_t;
 
 
 /**

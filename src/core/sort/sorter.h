@@ -31,7 +31,6 @@ namespace dt {
 namespace sort {
 
 template <typename TO> class Sorter_Multi;
-using RiGb = std::pair<RowIndex, Groupby>;
 
 
 /**

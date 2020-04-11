@@ -24,8 +24,6 @@
 #include "utils/terminal/tstring_impl.h"
 #include "encodings.h"
 namespace dt {
-using std::size_t;
-
 
 static auto EMPTY_IMPL = std::make_shared<tstring_impl>();
 

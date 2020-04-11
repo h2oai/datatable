@@ -24,7 +24,6 @@
 #include <memory>
 #include <string>
 namespace dt {
-using std::size_t;
 
 struct TerminalSize {
   int width;

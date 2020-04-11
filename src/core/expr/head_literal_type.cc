@@ -163,7 +163,7 @@ static void _resolve_stype(py::robj value, SType* out_stype, LType* out_ltype)
 }
 
 Workframe Head_Literal_Type::evaluate_r(
-      const vecExpr&, EvalContext& ctx, const intvec& indices) const
+      const vecExpr&, EvalContext& ctx, const sztvec& indices) const
 {
   if (ctx.get_rowindex(0)) {
     throw ValueError()

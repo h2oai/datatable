@@ -29,7 +29,6 @@
 namespace dt {
 namespace expr {
 
-using colvec = std::vector<Column>;
 
 /**
   * Main method for computing n-ary (rowwise) functions.

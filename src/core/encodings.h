@@ -9,7 +9,6 @@
 #define dt_ENCODINGS_H
 #include <cstddef>
 #include <cstdint>
-using std::size_t;
 
 
 int is_valid_utf8(const uint8_t* src, size_t len);

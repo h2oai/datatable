@@ -20,7 +20,6 @@
 #include <mutex>                // std::mutex
 #include <thread>               // std::thread
 namespace dt {
-using std::size_t;
 
 class idle_job;
 void enable_monitor(bool) noexcept;

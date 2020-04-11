@@ -800,7 +800,7 @@ bool Aggregator<T>::group_2d_mixed()
  *  Calculate how many NA groups were merged together.
  */
 template <typename T>
-size_t Aggregator<T>::n_merged_nas(const intvec& n_nas) {
+size_t Aggregator<T>::n_merged_nas(const sztvec& n_nas) {
   size_t n_merged_nas = 0;
   for (size_t i = 0; i < n_nas.size(); ++i) {
     n_merged_nas += (n_nas[i] > 0)? n_nas[i] - 1 : 0;

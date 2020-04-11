@@ -27,7 +27,6 @@
 #include "utils/assert.h"
 #include "utils/terminal/terminal_style.h"
 namespace dt {
-using std::size_t;
 
 class tstring;
 

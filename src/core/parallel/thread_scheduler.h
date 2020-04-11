@@ -17,7 +17,6 @@
 #define dt_PARALLEL_THREAD_SCHEDULER_h
 #include <cstddef>  // size_t
 namespace dt {
-using std::size_t;
 
 // forward-declare
 class thread_worker;

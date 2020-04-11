@@ -125,7 +125,7 @@ Workframe Head_Frame::evaluate_j(
 // take precedence in this case.
 //
 Workframe Head_Frame::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const intvec& indices) const
+    const vecExpr& args, EvalContext& ctx, const sztvec& indices) const
 {
   // Allow to assign an empty frame to an empty column set (see issue #1544)
   if (indices.size() == 0 && dt_->nrows() == 0 && dt_->ncols() == 0) {

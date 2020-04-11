@@ -68,7 +68,7 @@ Workframe Head_Func::evaluate_j(
 // same as during evaluation in "normal" mode.
 //
 Workframe Head_Func::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const intvec&) const
+    const vecExpr& args, EvalContext& ctx, const sztvec&) const
 {
   return evaluate_n(args, ctx, false);
 }

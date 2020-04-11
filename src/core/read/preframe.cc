@@ -204,7 +204,6 @@ size_t PreFrame::total_allocsize() const {
 //------------------------------------------------------------------------------
 // Finalizing
 //------------------------------------------------------------------------------
-using dtptr = std::unique_ptr<DataTable>;
 
 dtptr PreFrame::to_datatable() && {
   std::vector<::Column> ccols;

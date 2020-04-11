@@ -108,7 +108,7 @@ static void sort_colnames(colvec& outcols, strvec& outnames) {
   size_t ncols = outcols.size();
   strvec outnames_sorted(ncols);
   colvec outcols_sorted(ncols);
-  intvec colindex = sort_index<std::string>(outnames);
+  sztvec colindex = sort_index<std::string>(outnames);
 
   for (size_t i = 0; i < ncols; ++i) {
     size_t j = colindex[i];

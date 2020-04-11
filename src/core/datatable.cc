@@ -141,7 +141,7 @@ DataTable DataTable::extract_column(size_t i) const {
 
 
 // Remove columns at the specified indices
-void DataTable::delete_columns(intvec& cols_to_remove) {
+void DataTable::delete_columns(sztvec& cols_to_remove) {
   if (cols_to_remove.empty()) return;
   std::sort(cols_to_remove.begin(), cols_to_remove.end());
   cols_to_remove.push_back(size_t(-1));  // guardian value

@@ -60,7 +60,7 @@ Workframe Head_Literal_None::evaluate_j(
 // their stypes.
 //
 Workframe Head_Literal_None::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const intvec& indices) const
+    const vecExpr&, EvalContext& ctx, const sztvec& indices) const
 {
   auto dt0 = ctx.get_datatable(0);
   Workframe outputs(ctx);

@@ -18,7 +18,6 @@
 #include <cstddef>
 #include "utils/assert.h"
 namespace dt {
-using std::size_t;
 
 size_t num_threads_in_pool();
 

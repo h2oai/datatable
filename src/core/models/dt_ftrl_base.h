@@ -72,7 +72,6 @@ struct FtrlFitOutput {
     double loss;
 };
 
-using dtptr = std::unique_ptr<DataTable>;
 
 /**
  *  An abstract dt::FtrlBase class that declares all the virtual functions
@@ -107,7 +106,7 @@ class FtrlBase {
     virtual uint64_t get_nbins() = 0;
     virtual unsigned char get_mantissa_nbits() = 0;
     virtual double get_nepochs() = 0;
-    virtual const std::vector<intvec>& get_interactions() = 0;
+    virtual const std::vector<sztvec>& get_interactions() = 0;
     virtual bool get_negative_class() = 0;
     virtual FtrlParams get_params() = 0;
     virtual py::oobj get_labels() = 0;
@@ -125,7 +124,7 @@ class FtrlBase {
     virtual void set_nbins(uint64_t) = 0;
     virtual void set_mantissa_nbits(unsigned char) = 0;
     virtual void set_nepochs(double) = 0;
-    virtual void set_interactions(std::vector<intvec>) = 0;
+    virtual void set_interactions(std::vector<sztvec>) = 0;
     virtual void set_negative_class(bool) = 0;
     virtual void set_labels(const DataTable&) = 0;
 

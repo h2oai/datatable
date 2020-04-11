@@ -21,7 +21,6 @@
 #include "parallel/thread_scheduler.h"
 #include "parallel/thread_worker.h"
 namespace dt {
-using std::size_t;
 
 class thread_team;
 

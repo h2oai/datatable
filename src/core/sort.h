@@ -9,13 +9,9 @@
 #define dt_SORT_h
 #include <vector>
 #include <cstddef>
+#include "_dt.h"
 #include "types.h"
-using std::size_t;
 
-class Column;
-class RowIndex;
-class Groupby;
-using RiGb = std::pair<RowIndex, Groupby>;
 
 struct radix_range {
   size_t size;

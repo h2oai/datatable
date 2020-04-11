@@ -39,7 +39,7 @@ struct named_colvec {
 };
 
 struct sort_result {
-  intvec sizes;
+  sztvec sizes;
   Column column;
   std::string colname;
   RowIndex ri;

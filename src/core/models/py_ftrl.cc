@@ -173,12 +173,12 @@ void Ftrl::m__dealloc__() {
  *  of the training frame. If yes, set up interactions for `dtft`.
  */
 void Ftrl::init_dt_interactions() {
-  std::vector<intvec> dt_interactions;
+  std::vector<sztvec> dt_interactions;
   auto py_interactions = py_params->get_attr("interactions").to_oiter();
   dt_interactions.reserve(py_interactions.size());
 
   for (auto py_interaction_robj : py_interactions) {
-    intvec dt_interaction;
+    sztvec dt_interaction;
     auto py_interaction = py_interaction_robj.to_oiter();
     size_t nfeatures = py_interaction.size();
     dt_interaction.reserve(nfeatures);

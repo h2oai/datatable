@@ -62,6 +62,7 @@ class Sorter_Raw : public SSorter<T>
         buffer_(std::move(buf)),
         n_significant_bits_(nbits)
     {
+      (void) nrows;
       xassert(buffer_.size() == nrows * sizeof(TU));
       xassert(nbits > 0 && nbits <= 8 * int(sizeof(TU)));
     }

@@ -48,7 +48,7 @@ Workframe Head_Literal_Float::evaluate_n(
 // The `j` columns must be float.
 //
 Workframe Head_Literal_Float::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const intvec& indices) const
+    const vecExpr&, EvalContext& ctx, const sztvec& indices) const
 {
   auto dt0 = ctx.get_datatable(0);
 

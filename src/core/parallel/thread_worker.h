@@ -25,7 +25,6 @@
 #include "parallel/semaphore.h"
 #include "parallel/thread_scheduler.h"
 namespace dt {
-using std::size_t;
 
 // Forward-declare
 class idle_job;

@@ -24,8 +24,6 @@
 #ifndef dt_FRAME_REPR_WIDGET_h
 #define dt_FRAME_REPR_WIDGET_h
 namespace dt {
-using std::size_t;
-
 
 
 /**

@@ -39,7 +39,7 @@ using comparator_maker = cmpptr (*)(const Column&, const Column&);
 static comparator_maker cmps[DT_STYPES_COUNT][DT_STYPES_COUNT];
 
 static cmpptr _make_comparatorM(const DataTable& Xdt, const DataTable& Jdt,
-                                const intvec& x_ind, const intvec& j_ind);
+                                const sztvec& x_ind, const sztvec& j_ind);
 
 static cmpptr _make_comparator1(const DataTable& Xdt, const DataTable& Jdt,
                                 size_t xi, size_t ji)
@@ -59,7 +59,7 @@ static cmpptr _make_comparator1(const DataTable& Xdt, const DataTable& Jdt,
 }
 
 static cmpptr _make_comparator(const DataTable& Xdt, const DataTable& Jdt,
-                               const intvec& x_indices, const intvec& j_indices)
+                               const sztvec& x_indices, const sztvec& j_indices)
 {
   xassert(x_indices.size() == j_indices.size());
   if (x_indices.size() == 1) {
@@ -120,19 +120,19 @@ class MultiCmp : public Cmp {
 
   public:
     MultiCmp(const DataTable& Xdt, const DataTable& Jdt,
-             const intvec& Xindices, const intvec& Jindices);
+             const sztvec& Xindices, const sztvec& Jindices);
     int set_xrow(size_t row) override;
     int cmp_jrow(size_t row) const override;
 };
 
 static cmpptr _make_comparatorM(const DataTable& Xdt, const DataTable& Jdt,
-                                const intvec& x_ind, const intvec& j_ind) {
+                                const sztvec& x_ind, const sztvec& j_ind) {
   return cmpptr(new MultiCmp(Xdt, Jdt, x_ind, j_ind));
 }
 
 
 MultiCmp::MultiCmp(const DataTable& Xdt, const DataTable& Jdt,
-                   const intvec& Xindices, const intvec& Jindices)
+                   const sztvec& Xindices, const sztvec& Jindices)
 {
   xassert(Xindices.size() == Jindices.size());
   for (size_t i = 0; i < Xindices.size(); ++i) {
@@ -396,7 +396,7 @@ RowIndex natural_join(const DataTable& xdt, const DataTable& jdt) {
   xassert(k > 0);
 
   // Determine how key columns in `jdt` match the columns in `xdt`
-  intvec xcols, jcols;
+  sztvec xcols, jcols;
   py::otuple jnames = jdt.get_pynames();
   for (size_t i = 0; i < k; ++i) {
     int64_t index = xdt.colindex(jnames[i]);

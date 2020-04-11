@@ -31,17 +31,17 @@ using tptr = typename std::unique_ptr<T[]>;
 using uint64ptr = std::unique_ptr<uint64_t[]>;
 using sizetptr = std::unique_ptr<size_t[]>;
 
-void calculate_coprimes(size_t, intvec&);
+void calculate_coprimes(size_t, sztvec&);
 
 
 /**
  *  Create list of sorting indexes.
  */
 template <typename T>
-intvec sort_index(const std::vector<T> &v) {
+sztvec sort_index(const std::vector<T> &v) {
 
   // Initialize original index locations
-  intvec index(v.size());
+  sztvec index(v.size());
   std::iota(index.begin(), index.end(), 0);
 
   // Sort index based on comparing values in v
