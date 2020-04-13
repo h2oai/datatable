@@ -32,13 +32,11 @@ namespace read {
 
 
 FreadThreadContext::FreadThreadContext(
-    size_t bcols, size_t brows, FreadReader& f, PT* types_,
-    dt::shared_mutex& mut
+    size_t bcols, size_t brows, FreadReader& f, PT* types_
   ) : ThreadContext(bcols, brows),
       types(types_),
       freader(f),
       preframe(f.preframe),
-      shmutex(mut),
       tokenizer(f.makeTokenizer(tbuf.data(), nullptr)),
       parsers(ParserLibrary::get_parser_fns())
 {
@@ -335,7 +333,6 @@ void FreadThreadContext::orderBuffer() {
 void FreadThreadContext::push_buffers() {
   // If the buffer is empty, then there's nothing to do...
   if (!used_nrows) return;
-  dt::shared_lock<dt::shared_mutex> lock(shmutex);
 
   double t0 = verbose? wallclock() : 0;
   size_t j = 0;

@@ -43,13 +43,11 @@ class FreadThreadContext : public ThreadContext
 
     FreadReader& freader;
     PreFrame& preframe;
-    dt::shared_mutex& shmutex;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
 
   public:
-    FreadThreadContext(size_t bcols, size_t brows, FreadReader&, PT* types,
-                       dt::shared_mutex&);
+    FreadThreadContext(size_t bcols, size_t brows, FreadReader&, PT* types);
     FreadThreadContext(const FreadThreadContext&) = delete;
     FreadThreadContext& operator=(const FreadThreadContext&) = delete;
     virtual ~FreadThreadContext() override;

@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>           // std::max
 #include "csv/reader.h"
@@ -151,7 +165,7 @@ void ParallelReader::read_all()
 
   dt::parallel_for_ordered(
     /* n_iterations = */ chunk_count,
-    /* n_threads = */ NThreads(nthreads),
+    NThreads(nthreads),
 
     [&](dt::ordered* o) {
       // Thread-local parse context. This object does most of the parsing job.
@@ -197,10 +211,10 @@ void ParallelReader::read_all()
               xassert(nrows_max >= nrows_written);
               tctx->used_nrows = nrows_max - nrows_written;
               nrows_new = nrows_max;
-              realloc_output_columns(i, nrows_new);
+              realloc_output_columns(i, nrows_new, o);
               o->set_n_iterations(i + 1);
             } else {
-              realloc_output_columns(i, nrows_new);
+              realloc_output_columns(i, nrows_new, o);
             }
           }
           nrows_written = nrows_new;
@@ -233,10 +247,10 @@ void ParallelReader::read_all()
  * helps with determining the new number of rows), and `new_allocnrow` is the
  * minimal number of rows to reallocate to.
  *
- * This method is thread-safe: it will acquire an exclusive lock before
- * making any changes.
+ * This method should be called from ordered section only.
  */
-void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
+void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows,
+                                            ordered* ordered_loop)
 {
   xassert(ichunk < chunk_count);
   if (new_nrows == nrows_allocated) {
@@ -260,10 +274,8 @@ void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
 
   g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
 
-  { // Acquire a lock and then resize all columns
-    shared_lock<shared_mutex> lock(shmutex, /* exclusive = */ true);
-    g.preframe.set_nrows(nrows_allocated);
-  }
+  ordered_loop->wait_until_all_finalized();
+  g.preframe.set_nrows(nrows_allocated);
 }
 
 

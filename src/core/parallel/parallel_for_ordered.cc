@@ -263,6 +263,7 @@ void ordered_scheduler::abort_execution() {
   * READY_TO_FINISH in the meanwhile.
   */
 void ordered_scheduler::wait_until_all_finalized() const {
+  if (n_threads == 1) return;
   size_t ordering_iter;
   {
     std::lock_guard<dt::spin_mutex> lock(mutex);
@@ -282,7 +283,7 @@ void ordered_scheduler::wait_until_all_finalized() const {
   };
   // Busy-wait loop until all eligible tasks have finished their
   // "post-ordered" section.
-  while (1) {
+  while (true) {
     std::this_thread::yield();
     std::lock_guard<dt::spin_mutex> lock(mutex);
     // when `next_to_finish` becomes equal to the current ordering
