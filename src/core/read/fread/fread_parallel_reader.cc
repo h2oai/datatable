@@ -8,7 +8,6 @@
 #include "read/fread/fread_parallel_reader.h"
 #include "read/fread/fread_thread_context.h"  // FreadThreadContext
 #include "csv/reader_fread.h"                 // FreadReader
-
 namespace dt {
 namespace read {
 
@@ -34,12 +33,12 @@ std::unique_ptr<ThreadContext> FreadParallelReader::init_thread_context() {
 
 
 void FreadParallelReader::adjust_chunk_coordinates(
-  ChunkCoordinates& cc, ThreadContextPtr& ctx) const
+    ChunkCoordinates& cc, ThreadContext* ctx) const
 {
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
   if (cc.is_start_approximate()) {
-    FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx.get())->tokenizer;
+    FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx)->tokenizer;
     const char* start = cc.get_start();
     while (*start=='\n' || *start=='\r') start++;
     cc.set_start_approximate(start);
@@ -60,5 +59,6 @@ void FreadParallelReader::adjust_chunk_coordinates(
 }
 
 
-}  // namespace read
-}  // namespace dt
+
+
+}}  // namespace dt::read

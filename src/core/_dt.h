@@ -99,6 +99,7 @@ namespace read {
   class GenericReader;
   class PreColumn;
   class PreFrame;
+  class ThreadContext;
 }}
 
 

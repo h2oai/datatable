@@ -21,26 +21,20 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PARALLELREADER_h
 #define dt_READ_PARALLELREADER_h
-#include <memory>                    // std::unique_ptr
 #include "read/chunk_coordinates.h"  // ChunkCoordinates
 #include "read/thread_context.h"     // ThreadContext
 #include "parallel/api.h"
-#include "parallel/shared_mutex.h"   // shared_mutex
-
-
+#include "_dt.h"
 namespace dt {
 namespace read {
-using ThreadContextPtr = std::unique_ptr<ThreadContext>;
-
-class GenericReader;
 
 
 /**
- * This class' responsibility is to execute parallel reading of its input,
- * ensuring that the data integrity is maintained.
- */
-class ParallelReader {
-
+  * This class' responsibility is to execute parallel reading of its
+  * input, ensuring that the data integrity is maintained.
+  */
+class ParallelReader
+{
   protected:
     size_t chunk_size;
     size_t chunk_count;
@@ -74,22 +68,22 @@ class ParallelReader {
      * `start` / `end` if the flags `start_exact` / `end_exact` are set.
      */
     virtual void adjust_chunk_coordinates(
-        ChunkCoordinates&, ThreadContextPtr&) const {}
+        ChunkCoordinates&, ThreadContext*) const {}
 
     /**
      * Return an instance of a `ThreadContext` class. Implementations of
      * `ParallelReader` are expected to override this method to return
      * appropriate subclasses of `ThreadContext`.
      */
-    virtual ThreadContextPtr init_thread_context() = 0;
+    virtual std::unique_ptr<ThreadContext> init_thread_context() = 0;
 
   private:
-    ChunkCoordinates compute_chunk_boundaries(size_t, ThreadContextPtr&) const;
+    ChunkCoordinates compute_chunk_boundaries(size_t, ThreadContext*) const;
     void determine_chunking_strategy();
     double work_done_amount() const;
     void realloc_output_columns(size_t i, size_t new_nrows, ordered*);
     void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,
-                     ThreadContextPtr& ctx);
+                     ThreadContext* ctx);
 };
 
 

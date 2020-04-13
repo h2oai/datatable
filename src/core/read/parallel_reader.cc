@@ -107,7 +107,7 @@ void ParallelReader::determine_chunking_strategy() {
  * assuming that different invocation receive different `ctx` objects.
  */
 ChunkCoordinates ParallelReader::compute_chunk_boundaries(
-    size_t i, ThreadContextPtr& ctx) const
+    size_t i, ThreadContext* ctx) const
 {
   xassert(i < chunk_count);
   ChunkCoordinates c;
@@ -188,7 +188,7 @@ void ParallelReader::read_all()
             g.emit_delayed_messages();
           }
 
-          txcc = compute_chunk_boundaries(i, tctx);
+          txcc = compute_chunk_boundaries(i, tctx.get());
 
           // Read the chunk with the expected coordinates `txcc`. The actual
           // coordinates of the data read will be stored in variable `tacc`.
@@ -201,7 +201,7 @@ void ParallelReader::read_all()
 
         [&](size_t i) {
           tctx->row0 = nrows_written;
-          order_chunk(tacc, txcc, tctx);
+          order_chunk(tacc, txcc, tctx.get());
 
           size_t nrows_new = nrows_written + tctx->used_nrows;
           if (nrows_new > nrows_allocated) {
@@ -298,7 +298,7 @@ void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows,
  * parser that the coordinates that it received are true.
  */
 void ParallelReader::order_chunk(
-    ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContextPtr& ctx)
+    ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContext* ctx)
 {
   for (int i = 0; i < 2; ++i) {
     if (acc.get_start() == end_of_last_chunk &&
