@@ -36,6 +36,9 @@ using f1t = function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
 class ordered_task : public thread_task {
+  #if DTDEBUG
+    friend class ordered_scheduler;
+  #endif
   private:
     static constexpr size_t READY_TO_START = 0;
     static constexpr size_t STARTING = 1;
@@ -91,8 +94,9 @@ void ordered_task::cancel() {
 }
 
 void ordered_task::start_iteration(size_t i) {
+  xassert(state == READY_TO_START);
   n_iter = i;
-  state++;
+  state = STARTING;
 }
 
 void ordered_task::execute(thread_worker*) {
@@ -185,7 +189,8 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
   std::lock_guard<spin_mutex> lock(mutex);
 
   ordered_task* task = assigned_tasks[ith];
-  task->advance_state();
+  task->advance_state();  // finish previously assigned task
+
   if (ith == ordering_thread_index) {
     ordering_thread_index = NO_THREAD;
     work.set_done_amount(next_to_order);
@@ -198,14 +203,18 @@ thread_task* ordered_scheduler::get_next_task(size_t ith) {
       next_to_order < n_iterations && tasks[iorder].ready_to_order()) {
     ordering_thread_index = ith;
     task = &tasks[iorder];
-    task->start_iteration(next_to_order);
+    task->advance_state();
+    xassert(task->n_iter == next_to_order &&
+            task->state == ordered_task::ORDERING);
     iorder = (++next_to_order) % n_tasks;
   }
   // Otherwise, if there are any tasks that are ready to be finished, then
   // perform those, clearing up the backlog.
   else if (next_to_finish < n_iterations && tasks[ifinish].ready_to_finish()) {
     task = &tasks[ifinish];
-    task->start_iteration(next_to_finish);
+    task->advance_state();
+    xassert(task->n_iter == next_to_finish &&
+            task->state == ordered_task::FINISHING);
     ifinish = (++next_to_finish) % n_tasks;
   }
   // Otherwise if there are still tasks in the start queue, and there are
