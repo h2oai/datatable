@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -62,6 +62,7 @@ class ordered_task : public thread_task {
     bool ready_to_start()  const noexcept { return state == READY_TO_START; }
     bool ready_to_order()  const noexcept { return state == READY_TO_ORDER; }
     bool ready_to_finish() const noexcept { return state == READY_TO_FINISH; }
+    bool is_finishing()    const noexcept { return state == FINISHING; }
 
     void advance_state();
     void cancel();
@@ -150,7 +151,7 @@ class ordered_scheduler : public thread_scheduler {
     static constexpr size_t INVALID_THREAD = size_t(-2);
     progress::work& work;
     wait_task waittask;
-    dt::spin_mutex mutex;  // 1 byte
+    mutable dt::spin_mutex mutex;  // 1 byte
     size_t : 56;
     size_t next_to_start;
     size_t next_to_order;
@@ -165,6 +166,7 @@ class ordered_scheduler : public thread_scheduler {
                       progress::work&);
     thread_task* get_next_task(size_t) override;
     void abort_execution() override;
+    void wait_until_all_finalized() const;
 };
 
 
@@ -248,6 +250,48 @@ void ordered_scheduler::abort_execution() {
   next_to_finish = n_iterations;
   ordering_thread_index = INVALID_THREAD;
   tasks[iorder].cancel();
+}
+
+
+/**
+  * This should be called from within the "ordered" section only.
+  * This function will block until all tasks that are currently in
+  * READY_TO_FINISH or FINISHING state are completed.
+  *
+  * This function is called by the thread which is performing an
+  * ORDERING task, which means no new tasks can become
+  * READY_TO_FINISH in the meanwhile.
+  */
+void ordered_scheduler::wait_until_all_finalized() const {
+  size_t ordering_iter;
+  {
+    std::lock_guard<dt::spin_mutex> lock(mutex);
+    xassert(dt::this_thread_index() == ordering_thread_index);
+    // next_to_order was incremented when the ordering task was
+    // started, so the iteration number that is currently being
+    // ordered is 1 less than `next_to_order`.
+    ordering_iter = next_to_order - 1;
+  }
+  // Helper function: returns true if there are no tasks in the
+  // FINISHING stage, and false otherwise.
+  auto no_tasks_finishing = [&]() -> bool {
+    for (const auto& task : tasks) {
+      if (task.is_finishing()) return false;
+    }
+    return true;
+  };
+  // Busy-wait loop until all eligible tasks have finished their
+  // "post-ordered" section.
+  while (1) {
+    std::this_thread::yield();
+    std::lock_guard<dt::spin_mutex> lock(mutex);
+    // when `next_to_finish` becomes equal to the current ordering
+    // iteration, it means all iterations that were READY_TO_FINISH
+    // has at least entered the FINISHING stage.
+    if (next_to_finish == ordering_iter && no_tasks_finishing()) {
+      break;
+    }
+  }
 }
 
 
@@ -339,6 +383,11 @@ void ordered::set_n_iterations(size_t n) {
   size_t delta = n - sch->n_iterations;
   sch->n_iterations = n;
   sch->work.add_work_amount(delta);
+}
+
+
+void ordered::wait_until_all_finalized() const {
+  sch->wait_until_all_finalized();
 }
 
 
