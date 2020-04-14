@@ -20,12 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "csv/reader_fread.h"      // FreadReader
-#include "encodings.h"             // check_escaped_string, decode_escaped_csv_string
-#include "py_encodings.h"          // decode_win1252
 #include "read/fread/fread_thread_context.h"
 #include "read/parallel_reader.h"  // ChunkCoordinates
 #include "utils/misc.h"            // wallclock
-
+#include "encodings.h"             // check_escaped_string, decode_escaped_csv_string
+#include "py_encodings.h"          // decode_win1252
 namespace dt {
 namespace read {
 
@@ -346,7 +345,7 @@ void FreadThreadContext::push_buffers() {
       // any attempt to write the data may fail with data corruption
     } else if (col.is_string()) {
       WritableBuffer* wb = col.strdata_w();
-      SInfo& si = strinfo[j];
+      auto& si = strinfo[j];
       field64* lo = tbuf.data() + j;
 
       wb->write_at(si.write_at, si.size, sbuf.data() + si.start);

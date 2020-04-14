@@ -31,6 +31,10 @@ namespace read {
   * that will be local to each thread during the parallel reading
   * of the input.
   *
+  * This class is abstract. The derived classes are expected to
+  * implement the actual logic for reading a chunk into the local
+  * buffers (tbuf/sbuf) and then saving into the output PreFrame.
+  *
   * tbuf
   *   Output buffer. Within the buffer the data is stored in row-major
   *   order, i.e. in the same order as in the original CSV file. We
@@ -65,12 +69,16 @@ namespace read {
   */
 class ThreadContext
 {
-  public:
-    struct SInfo { size_t start, size, write_at; };
+  protected:
+    struct StrInfo {
+      size_t start;
+      size_t size;
+      size_t write_at;
+    };
 
     std::vector<field64> tbuf;
     std::vector<uint8_t> sbuf;
-    std::vector<SInfo> strinfo;
+    std::vector<StrInfo> strinfo;
     size_t tbuf_ncols;
     size_t tbuf_nrows;
     size_t used_nrows;
@@ -80,12 +88,13 @@ class ThreadContext
     ThreadContext(size_t ncols, size_t nrows);
     virtual ~ThreadContext();
 
-    virtual void push_buffers() = 0;
     virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
     virtual void order_buffer() = 0;
+    virtual void push_buffers() = 0;
 
     size_t get_nrows() const;
     void set_nrows(size_t n);
+    void set_row0(size_t n);
     void allocate_tbuf(size_t ncols, size_t nrows);
 };
 

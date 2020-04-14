@@ -28,13 +28,13 @@ namespace read {
 
 
 ThreadContext::ThreadContext(size_t ncols, size_t nrows)
-  : tbuf(ncols * nrows + 1), sbuf(0), strinfo(ncols)
-{
-  tbuf_ncols = ncols;
-  tbuf_nrows = nrows;
-  used_nrows = 0;
-  row0 = 0;
-}
+  : tbuf(ncols * nrows + 1),
+    sbuf(0),
+    strinfo(ncols),
+    tbuf_ncols(ncols),
+    tbuf_nrows(nrows),
+    used_nrows(0),
+    row0(0) {}
 
 
 // Note: it is possible to have `used_nrows != 0` at the end: the content of
@@ -58,6 +58,12 @@ size_t ThreadContext::get_nrows() const {
 void ThreadContext::set_nrows(size_t n) {
   xassert(n <= used_nrows);
   used_nrows = n;
+}
+
+
+void ThreadContext::set_row0(size_t n) {
+  xassert(row0 <= n);
+  row0 = n;
 }
 
 

@@ -200,16 +200,16 @@ void ParallelReader::read_all()
         },
 
         [&](size_t i) {
-          tctx->row0 = nrows_written;
+          tctx->set_row0(nrows_written);
           order_chunk(tacc, txcc, tctx.get());
 
-          size_t nrows_new = nrows_written + tctx->used_nrows;
+          size_t nrows_new = nrows_written + tctx->get_nrows();
           if (nrows_new > nrows_allocated) {
             if (nrows_new > nrows_max) {
               // more rows read than nrows_max, no need to reallocate
               // the output, just truncate the rows in the current chunk.
               xassert(nrows_max >= nrows_written);
-              tctx->used_nrows = nrows_max - nrows_written;
+              tctx->set_nrows(nrows_max - nrows_written);
               nrows_new = nrows_max;
               realloc_output_columns(i, nrows_new, o);
               o->set_n_iterations(i + 1);

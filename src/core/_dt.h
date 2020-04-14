@@ -104,6 +104,7 @@ namespace read {
   class PreFrame;
   class ThreadContext;
 }}
+class FreadReader;
 
 
 #endif

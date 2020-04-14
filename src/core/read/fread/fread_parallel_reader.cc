@@ -38,7 +38,7 @@ void FreadParallelReader::adjust_chunk_coordinates(
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
   if (cc.is_start_approximate()) {
-    FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx)->tokenizer;
+    FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx)->get_tokenizer();
     const char* start = cc.get_start();
     while (*start=='\n' || *start=='\r') start++;
     cc.set_start_approximate(start);
