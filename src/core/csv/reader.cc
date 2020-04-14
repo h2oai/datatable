@@ -91,6 +91,7 @@ GenericReader::GenericReader()
   cr_is_newline = 0;
   multisource_strategy = FreadMultiSourceStrategy::Warn;
   errors_strategy = IreadErrorHandlingStrategy::Error;
+  memory_bound = size_t(-1);
 }
 
 
@@ -118,6 +119,7 @@ GenericReader::GenericReader(const GenericReader& g)
   number_is_na     = g.number_is_na;
   columns_arg      = g.columns_arg;
   t_open_input     = g.t_open_input;
+  memory_bound     = g.memory_bound;
   // Runtime parameters
   job     = g.job;
   input_mbuf = g.input_mbuf;
@@ -367,6 +369,11 @@ void GenericReader::init_logger(
     logger = arg_logger.to_oobj();
     verbose = true;
   }
+}
+
+
+void GenericReader::init_memorybound(const py::Arg& arg) {
+  memory_bound = arg.to<size_t>(size_t(-1));
 }
 
 

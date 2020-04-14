@@ -112,6 +112,7 @@ class GenericReader
     const char** na_strings;
     strvec  na_strings_container;
     std::unique_ptr<const char*[]> na_strings_ptr;
+    size_t  memory_bound;
 
   //---- Runtime parameters ----
   // line:
@@ -219,6 +220,7 @@ class GenericReader
     void init_skiptoline (const py::Arg&);
     void init_stripwhite (const py::Arg&);
     void init_tempdir    (const py::Arg&);
+    void init_memorybound(const py::Arg&);
 
   protected:
     void open_input();

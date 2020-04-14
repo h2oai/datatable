@@ -135,6 +135,11 @@ inline int64_t Arg::to(const int64_t& deflt) const {
 }
 
 template <>
+inline size_t Arg::to(const size_t& deflt) const {
+    return is_none_or_undefined()? deflt : to_size_t();
+}
+
+template <>
 inline double Arg::to(const double& deflt) const {
   return is_none_or_undefined()? deflt : to_double();
 }
