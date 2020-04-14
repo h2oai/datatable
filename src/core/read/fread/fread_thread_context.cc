@@ -306,7 +306,7 @@ void FreadThreadContext::postprocess() {
 }
 
 
-void FreadThreadContext::orderBuffer() {
+void FreadThreadContext::order_buffer() {
   if (!used_nrows) return;
   size_t j = 0;
   for (auto& col : preframe) {

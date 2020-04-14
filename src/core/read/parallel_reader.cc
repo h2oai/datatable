@@ -219,7 +219,7 @@ void ParallelReader::read_all()
           }
           nrows_written = nrows_new;
 
-          tctx->orderBuffer();
+          tctx->order_buffer();
         },
 
         [&](size_t) {

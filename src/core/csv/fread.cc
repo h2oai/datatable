@@ -58,6 +58,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     size_t ndropped = 0;
     int nUserBumped = 0;
     size_t row_binary_size = 0;
+    size_t row_string_size = 0;
     for (size_t i = 0; i < ncols; i++) {
       auto& col = preframe.column(i);
       col.reset_type_bumped();
@@ -73,11 +74,12 @@ std::unique_ptr<DataTable> FreadReader::read_all()
             << "' down to '" << col.typeName() << "' which is not supported yet.";
       }
       nUserBumped += (col.get_ptype() != oldtypes[i]);
-      row_binary_size += col.elemsize() * (1 + col.is_string());
+      row_binary_size += col.elemsize();
+      row_string_size += col.elemsize() * col.is_string();
     }
 
-    if (row_binary_size * allocnrow > memory_bound) {
-      allocnrow = memory_bound / row_binary_size;
+    if ((row_binary_size + row_string_size) * allocnrow > memory_bound) {
+      allocnrow = memory_bound / (row_binary_size + row_string_size);
       if (!allocnrow) allocnrow = 1;
       if (verbose) {
         trace("Allocation size reduced to %zd rows due to memory_bound parameter",
@@ -94,6 +96,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
             ncols - ndropped, allocnrow);
     }
     preframe.set_nrows(allocnrow);
+    preframe.use_memory_quota(allocnrow * row_binary_size);
 
     if (verbose) {
       fo.t_frame_allocated = wallclock();

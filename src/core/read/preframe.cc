@@ -28,7 +28,10 @@ namespace read {
 
 
 
-PreFrame::PreFrame() noexcept : nrows_(0) {}
+PreFrame::PreFrame() noexcept
+  : nrows_(0),
+    memory_limit_(size_t(-1)),
+    memory_remaining_(size_t(-1)) {}
 
 
 
@@ -57,6 +60,18 @@ void PreFrame::set_nrows(size_t n) {
   nrows_ = n;
 }
 
+
+void PreFrame::set_memory_bound(size_t sz) {
+  memory_limit_ = sz;
+  memory_remaining_ = sz;
+}
+
+void PreFrame::use_memory_quota(size_t sz) {
+  if (memory_remaining_ < sz) {
+    memory_remaining_ = memory_limit_;
+  }
+  memory_remaining_ -= sz;
+}
 
 
 

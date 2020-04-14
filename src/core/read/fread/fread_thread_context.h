@@ -55,7 +55,7 @@ class FreadThreadContext : public ThreadContext
     virtual void push_buffers() override;
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
     void postprocess();
-    void orderBuffer() override;
+    void order_buffer() override;
 };
 
 

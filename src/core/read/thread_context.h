@@ -21,37 +21,50 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_THREADCONTEXT_h
 #define dt_READ_THREADCONTEXT_h
-#include <cstddef>
-#include <vector>                    // std::vector
-#include "read/field64.h"            // field64
-#include "read/chunk_coordinates.h"  // ChunkCoordinates
+#include "_dt.h"
 namespace dt {
 namespace read {
 
 
 /**
- * This is a helper class for ChunkedReader. It carries variables that will be
- * local to each thread during the parallel reading of the input.
- *
- * tbuf
- *   Output buffer. Within the buffer the data is stored in row-major order,
- *   i.e. in the same order as in the original CSV file. We view the buffer as
- *   a rectangular grid having `tbuf_ncols * tbuf_nrows` elements (+1 extra).
- *
- * sbuf
- *   Additional buffer, used to store string content after post-processing.
- *
- * tbuf_ncols, tbuf_nrows
- *   Dimensions of the output buffer.
- *
- * used_nrows
- *   Number of rows of data currently stored in `tbuf`. This can never exceed
- *   `tbuf_nrows`.
- *
- * row0
- *   Starting row index within the output DataTable for the current data chunk.
- */
-class ThreadContext {
+  * This is a helper class for ParallelReader. It carries variables
+  * that will be local to each thread during the parallel reading
+  * of the input.
+  *
+  * tbuf
+  *   Output buffer. Within the buffer the data is stored in row-major
+  *   order, i.e. in the same order as in the original CSV file. We
+  *   view the buffer as a rectangular grid having `tbuf_ncols *
+  *   tbuf_nrows` elements (+1 extra).
+  *
+  * sbuf
+  *   Additional buffer, used to store string content after post-
+  *   processing.
+  *
+  * strinfo
+  *   Information necessary for string columns. The number of elements
+  *   in this vector should be equal to the number of string columns
+  *   in the preframe.
+  *   Each entry is a struct:
+  *     .start    - location of this column's character data within
+  *                 the `sbuf` buffer;
+  *     .size     - size of the character data buffer;
+  *     .write_at - where the data should be written within the
+  *                 column's WritableBuffer.
+  *
+  * tbuf_ncols, tbuf_nrows
+  *   Dimensions of the output buffer.
+  *
+  * used_nrows
+  *   Number of rows of data currently stored in `tbuf`. This can
+  *   never exceed `tbuf_nrows`.
+  *
+  * row0
+  *   Starting row index within the PreFrame for the current data
+  *   chunk.
+  */
+class ThreadContext
+{
   public:
     struct SInfo { size_t start, size, write_at; };
 
@@ -69,7 +82,7 @@ class ThreadContext {
 
     virtual void push_buffers() = 0;
     virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
-    virtual void orderBuffer() = 0;
+    virtual void order_buffer() = 0;
 
     size_t get_nrows() const;
     void set_nrows(size_t n);
@@ -77,7 +90,7 @@ class ThreadContext {
 };
 
 
-}  // namespace read
-}  // namespace dt
 
+
+}}  // namespace dt::read
 #endif

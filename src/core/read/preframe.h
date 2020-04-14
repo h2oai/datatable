@@ -44,6 +44,9 @@ class PreFrame
     std::vector<PreColumn> columns_;
     size_t nrows_;
 
+    size_t memory_limit_;
+    size_t memory_remaining_;
+
   public:
     PreFrame() noexcept;
 
@@ -52,6 +55,7 @@ class PreFrame
     void set_ncols(size_t ncols);
     void set_nrows(size_t nrows);
 
+    // Column iterator / access
     const_iterator begin() const;
     const_iterator end() const;
     iterator begin();
@@ -70,6 +74,9 @@ class PreFrame
     size_t n_columns_in_buffer() const;
     size_t n_columns_to_reread() const;
     size_t total_allocsize() const;
+
+    void set_memory_bound(size_t);
+    void use_memory_quota(size_t);
 
     std::unique_ptr<DataTable> to_datatable() &&;
 };
