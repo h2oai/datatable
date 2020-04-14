@@ -625,9 +625,8 @@ void FreadReader::detect_column_types()
   meanLineLen = 0;
 
   if (n_sample_lines <= 1) {
+    // A single-row input, and that row is the header.
     if (header == 1) {
-      // A single-row input, and that row is the header. Reset all types to
-      // boolean (lowest type possible, a better guess than "string").
       preframe.reset_ptypes();
       allocnrow = 0;
     }

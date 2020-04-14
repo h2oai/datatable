@@ -57,25 +57,34 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     size_t ncols = preframe.ncols();
     size_t ndropped = 0;
     int nUserBumped = 0;
+    size_t row_binary_size = 0;
     for (size_t i = 0; i < ncols; i++) {
       auto& col = preframe.column(i);
       col.reset_type_bumped();
       if (col.is_dropped()) {
         ndropped++;
         continue;
-      } else {
-        if (col.get_ptype() < oldtypes[i]) {
-          // FIXME: if the user wants to override the type, let them
-          throw IOError()
-              << "Attempt to override column " << i + 1 << " \"" << col.repr_name(*this)
-              << "\" with detected type '" << ParserLibrary::info(oldtypes[i]).cname()
-              << "' down to '" << col.typeName() << "' which will lose accuracy. "
-                 "If this was intended, please coerce to the lower type afterwards. Only "
-                 "overrides to a higher type are permitted.";
-        }
-        nUserBumped += (col.get_ptype() != oldtypes[i]);
+      }
+      if (col.get_ptype() < oldtypes[i]) {
+        // FIXME: if the user wants to override the type, let them
+        throw IOError()
+            << "Attempt to override column " << i + 1 << " \"" << col.repr_name(*this)
+            << "\" with detected type '" << ParserLibrary::info(oldtypes[i]).cname()
+            << "' down to '" << col.typeName() << "' which is not supported yet.";
+      }
+      nUserBumped += (col.get_ptype() != oldtypes[i]);
+      row_binary_size += col.elemsize() * (1 + col.is_string());
+    }
+
+    if (row_binary_size * allocnrow > memory_bound) {
+      allocnrow = memory_bound / row_binary_size;
+      if (!allocnrow) allocnrow = 1;
+      if (verbose) {
+        trace("Allocation size reduced to %zd rows due to memory_bound parameter",
+              allocnrow);
       }
     }
+
     if (verbose) {
       if (nUserBumped || ndropped) {
         trace("After %d type and %d drop user overrides : %s",
@@ -84,7 +93,6 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       trace("Allocating %d column slots with %zd rows",
             ncols - ndropped, allocnrow);
     }
-
     preframe.set_nrows(allocnrow);
 
     if (verbose) {
