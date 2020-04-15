@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>           // std::min
 #include <cerrno>              // errno
@@ -14,6 +28,7 @@
 #include "utils/exceptions.h"  // ValueError, MemoryError
 #include "utils/macros.h"
 #include "utils/misc.h"        // malloc_size
+#include "utils/temporary_file.h"
 #include "datatablemodule.h"   // TRACK, UNTRACK, IS_TRACKED
 #include "buffer.h"
 #include "mmm.h"               // MemoryMapWorker, MemoryMapManager
@@ -25,6 +40,8 @@
 #else
   #include <sys/mman.h>        // mmap, munmap
 #endif
+
+
 
 //------------------------------------------------------------------------------
 // BufferImpl
@@ -402,6 +419,57 @@ class View_BufferImpl : public BufferImpl
 
 
 //------------------------------------------------------------------------------
+// TemporaryFile_BufferImpl
+//------------------------------------------------------------------------------
+
+/**
+  * Buffer backed by a temporary file.
+  *
+  * The TemporaryFile object must be provided in the constructor,
+  * ensuring that the file does not get deleted while the Buffer
+  * is using it.
+  *
+  * The `offset` and `length` parameters specify the location of the
+  * buffer within the file.
+  *
+  * This object postpones opening and memmapping the file until it
+  * needs the actual data pointer. This allows such use cases when
+  * you store some data in a file, create a TemporaryFile_BufferImpl
+  * pointing at that data, then keep writing more data to the file.
+  * Once the file is closed the buffers can access that data safely.
+  */
+class TemporaryFile_BufferImpl : public BufferImpl
+{
+  private:
+    mutable std::shared_ptr<TemporaryFile> temporary_file_;
+    size_t offset_;
+
+  public:
+    TemporaryFile_BufferImpl(std::shared_ptr<TemporaryFile> tmp,
+                             size_t offset, size_t length)
+      : temporary_file_(std::move(tmp))
+    {
+      xassert(length > 0);
+      offset_ = offset;
+      size_ = length;
+      writable_ = false;
+      resizable_ = false;
+    }
+
+
+    void* data() const override {
+      return static_cast<char*>(temporary_file_->data()) + offset_;
+    }
+
+    size_t memory_footprint() const noexcept override {
+      return sizeof(TemporaryFile_BufferImpl);
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
 // Mmap_BufferImpl
 //------------------------------------------------------------------------------
 
@@ -703,6 +771,12 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
 
   Buffer Buffer::mmap(const std::string& path, size_t n, int fd, bool create) {
     return Buffer(new Mmap_BufferImpl(path, n, fd, create));
+  }
+
+  Buffer Buffer::tmp(std::shared_ptr<TemporaryFile> tempfile,
+                     size_t offset, size_t length) {
+    return Buffer(new TemporaryFile_BufferImpl(std::move(tempfile),
+                                               offset, length));
   }
 
 

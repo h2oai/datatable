@@ -25,6 +25,7 @@
 #include "python/obj.h"
 #include "utils/temporary_file.h"
 #include "utils/macros.h"
+#include "buffer.h"
 
 
 static std::string get_temp_dir() {
@@ -87,6 +88,12 @@ TemporaryFile::TemporaryFile(const std::string& tempdir)
 
 
 TemporaryFile::~TemporaryFile() {
+  // Buffer must be deleted before removing the file, on some OSes
+  // it may not be possible to remove a file while it is memory-
+  // mapped.
+  delete bufferptr_;
+  bufferptr_ = nullptr;
+
   int ret = std::remove(filename_.c_str());
   if (ret) {
     std::string msg = "Cannot remove temporary file " + filename_;
@@ -97,4 +104,12 @@ TemporaryFile::~TemporaryFile() {
 
 const std::string& TemporaryFile::name() const {
   return filename_;
+}
+
+
+void* TemporaryFile::data() {
+  if (!bufferptr_) {
+    bufferptr_ = new Buffer(Buffer::mmap(filename_));
+  }
+  return bufferptr_->xptr();
 }

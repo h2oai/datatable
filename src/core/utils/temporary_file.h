@@ -41,6 +41,7 @@ class TemporaryFile
 {
   private:
     std::string filename_;
+    Buffer* bufferptr_;
 
   public:
     TemporaryFile();
@@ -48,6 +49,12 @@ class TemporaryFile
     ~TemporaryFile();
 
     const std::string& name() const;
+
+    // Open and memmap the file, returning the pointer to the file's
+    // data. Once this method is called, it is no longer safe to
+    // modify the underlying file.
+    //
+    void* data();
 };
 
 

@@ -34,6 +34,7 @@ class DataTable;
 class Groupby;
 class RowIndex;
 class Stats;
+class TemporaryFile;
 class WritableBuffer;
 
 struct CString;
