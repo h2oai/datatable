@@ -59,13 +59,10 @@ def tol():
     long double type, resulting in a loss of precision when fread converts
     double literals into double numbers.
     """
-    platform_system = platform.system()
+    platform_tols = {"Windows": 1e-15, "PowerPC64": 1e-16}
+    platform_system = "PowerPC64" if is_ppc64() else platform.system()
 
-    if is_ppc64():
-        platform_system == "PowerPC64"
-
-    tols = {"Windows": 1e-15, "PowerPC64": 1e-16}
-    return tols.get(platform_system, 0)
+    return platform_tols.get(platform_system, 0)
 
 
 @pytest.fixture(scope="session")
