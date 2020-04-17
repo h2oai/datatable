@@ -16,4 +16,4 @@ build_script:
 
     cd src
 
-    python -c "import datatable as dt; print(dt.__version__)"
+    pytest ../tests/
