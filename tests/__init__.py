@@ -89,7 +89,7 @@ def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
     The primary difference from the built-in Python equality operator is that
     this function compares floats up to a relative tolerance of `rel_tol`
     and absolute tolerance of `abs_tol`. It also compares floating NaN as
-     equal to itself (in standard Python `nan != nan`).
+    equal to itself (in standard Python `nan != nan`).
     The purpose of this function is to compare datatables' python
     representations.
     """
