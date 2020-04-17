@@ -12,10 +12,10 @@ build_script:
 - cmd: >-
     SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
 
+    python ci/ext.py build
+
     SET PYTHONPATH=%APPVEYOR_BUILD_FOLDER%\src;%PYTHONPATH%
 
-    pip install pytest
-
-    python ci/ext.py build
+    pip install pytest docutils pandas numpy
 
     pytest .\tests\
