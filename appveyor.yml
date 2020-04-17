@@ -12,8 +12,10 @@ build_script:
 - cmd: >-
     SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
 
-    python ci/ext.py build
+    SET PYTHONPATH=%APPVEYOR_BUILD_FOLDER%\src;%PYTHONPATH%
 
-    cd src
+    pip install pytest docutils
 
-    python -c "import datatable as dt; print(dt.__version__)"
+    python ci\ext.py build
+
+    pytest .\tests\
