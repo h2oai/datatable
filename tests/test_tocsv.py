@@ -187,7 +187,8 @@ def test_save_double(tol):
     dd = dt.fread(text=d.to_csv())
     assert list_equals(d.to_list(), dd.to_list(), rel_tol = tol)
     # .split() in order to produce better error messages
-    assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
+    if tol == 0:
+        assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
 
 
 def test_save_double2(tol):
@@ -198,7 +199,8 @@ def test_save_double2(tol):
            ["1.0e+%02d" % i for i in range(15, 308)])
     d = dt.Frame(src)
     assert d.stypes == (stype.float64, )
-    assert d.to_csv().split("\n")[1:-1] == res
+    if tol == 0:
+        assert d.to_csv().split("\n")[1:-1] == res
 
 
 def test_save_round_doubles():
