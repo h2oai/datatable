@@ -14,7 +14,7 @@ build_script:
 
     SET PYTHONPATH=%APPVEYOR_BUILD_FOLDER%\src;%PYTHONPATH%
 
-    pip install pytest docutils pandas
+    pip install pytest docutils
 
     python ci\ext.py build
 
