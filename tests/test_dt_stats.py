@@ -473,7 +473,7 @@ def test_stats_bool_large(numpy):
 
 def test_stats_int_large(numpy):
     n = 12345678
-    a = numpy.random.randint(2**20, size=n, dtype=numpy.int32)
+    a = numpy.random.randint(2**20, size=n, dtype=numpy.int64)
     dt0 = dt.Frame(a)
     assert dt0.min().to_list() == [[a.min()]]
     assert dt0.max().to_list() == [[a.max()]]

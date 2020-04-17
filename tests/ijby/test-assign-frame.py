@@ -184,7 +184,7 @@ def test_assign_frame_to_subframe_wrong_nrows():
 
 def test_assign_nparray(numpy):
     DT = dt.Frame(A=range(5))
-    DT[:, "B"] = numpy.array([7, 6, 5, 4, 3])
+    DT[:, "B"] = numpy.array([7, 6, 5, 4, 3], dtype=numpy.int64)
     assert_equals(DT, dt.Frame(A=range(5), B=[7, 6, 5, 4, 3],
                                stypes={"B": dt.int64}))
 
@@ -196,7 +196,7 @@ def test_assign_nparray_str(numpy):
 
 
 def test_assign_masked_array(numpy):
-    arr = numpy.array([3, 6, 12, 4, 0])
+    arr = numpy.array([3, 6, 12, 4, 0], dtype=numpy.int64)
     arr = numpy.ma.array(arr, mask=[False, False, True, True, False])
     DT = dt.Frame(A=range(5))
     DT["M"] = arr
@@ -206,7 +206,7 @@ def test_assign_masked_array(numpy):
 
 def test_assign_nparray_slice(numpy):
     DT = dt.Frame(A=range(5))
-    DT["S"] = numpy.array(range(100))[3:12:2]
+    DT["S"] = numpy.array(range(100), dtype=numpy.int64)[3:12:2]
     assert_equals(DT, dt.Frame(A=range(5), S=[3, 5, 7, 9, 11],
                                stypes={"S": dt.int64}))
 

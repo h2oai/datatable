@@ -1033,8 +1033,8 @@ def test_issue1857(numpy):
     nrows = 3620
     numpy.random.seed(364)
     DT = dt.Frame(n1=numpy.random.rand(nrows).astype(numpy.float32),
-                  g1=numpy.random.randint(0, 10, nrows),
-                  g2=numpy.random.randint(0, 10, nrows))
+                  g1=numpy.random.randint(0, 10, nrows, dtype=numpy.int64),
+                  g2=numpy.random.randint(0, 10, nrows, dtype=numpy.int64))
     agg1 = DT[:, {"M": dt.median(f.n1)}, by(f.g1, f.g2)]
     assert agg1.shape == (100, 3)
     assert agg1.names == ("g1", "g2", "M")
