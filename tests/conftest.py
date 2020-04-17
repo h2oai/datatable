@@ -54,6 +54,15 @@ def nowin():
         pytest.skip("Disabled on Windows")
 
 
+
+@pytest.fixture(scope="session")
+def tol():
+    # Tolerances for float comparisons on different OS's
+    tols = {"win32": 1e-14}
+
+    return tols.get(sys.platform, 0)
+
+
 @pytest.fixture(scope="session")
 def nocov():
     """Skip this test when running in the 'coverage' mode"""

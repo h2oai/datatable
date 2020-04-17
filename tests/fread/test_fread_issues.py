@@ -12,7 +12,7 @@ import pytest
 import random
 import re
 from datatable.internal import frame_integrity_check
-from tests import find_file, same_iterables
+from tests import find_file, same_iterables, list_equals
 
 
 def test_issue1935():
@@ -34,7 +34,7 @@ def test_issue1935():
 
 #-------------------------------------------------------------------------------
 
-def test_issue_R1113():
+def test_issue_R1113(tol):
     # Based on #1113 in R, test 1555.1-11
     txt = ("ITER    THETA1    THETA2   MCMC\n"
            "        -11000 -2.50000E+00  2.30000E+00    345678.20255 \n"
@@ -45,10 +45,12 @@ def test_issue_R1113():
     assert d0.names == ("ITER", "THETA1", "THETA2", "MCMC")
     assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,
                          dt.ltype.real)
-    assert d0.to_list() == [[-11000, -10999, -10998],
-                            [-2.5, -24.9853, 0.195957],
-                            [2.3, 379.270, 4.16522],
-                            [345678.20255, -195780.43911, 7937.13048]]
+    list_equals(d0.to_list(),
+                [[-11000, -10999, -10998],
+                [-2.5, -24.9853, 0.195957],
+                [2.3, 379.270, 4.16522],
+                [345678.20255, -195780.43911, 7937.13048]],
+                rel_tol = tol)
     # `strip_whitespace` has no effect when `sep == ' '`
     d1 = dt.fread(txt, strip_whitespace=False)
     frame_integrity_check(d1)

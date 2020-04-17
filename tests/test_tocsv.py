@@ -29,7 +29,7 @@ import re
 import pytest
 from datatable import stype
 from datatable.internal import frame_integrity_check
-from tests import assert_equals
+from tests import assert_equals, list_equals
 
 
 def pyhex(v):
@@ -177,7 +177,7 @@ def test_save_int64():
     assert d.to_csv() == "C0\n" + res + "\n"
 
 
-def test_save_double():
+def test_save_double(tol):
     src = ([0.0, -0.0, 1.5, 0.0034876143, 10.3074, 83476101.13487,
             # 7.0785040837745274,
             # 23.898342808714432,
@@ -185,12 +185,12 @@ def test_save_double():
            [10**p for p in range(320) if p != 126])
     d = dt.Frame(src)
     dd = dt.fread(text=d.to_csv())
-    assert d.to_list()[0] == dd.to_list()[0]
+    list_equals(d.to_list(), dd.to_list(), rel_tol = tol)
     # .split() in order to produce better error messages
     assert d.to_csv(hex=True).split("\n") == dd.to_csv(hex=True).split("\n")
 
 
-def test_save_double2():
+def test_save_double2(tol):
     src = [10**i for i in range(-307, 308)]
     res = (["1.0e%02d" % i for i in range(-307, -4)] +
            ["0.0001", "0.001", "0.01", "0.1"] +
@@ -198,7 +198,7 @@ def test_save_double2():
            ["1.0e+%02d" % i for i in range(15, 308)])
     d = dt.Frame(src)
     assert d.stypes == (stype.float64, )
-    assert d.to_csv().split("\n")[1:-1] == res
+    list_equals(d.to_csv().split("\n")[1:-1], res, rel_tol = tol)
 
 
 def test_save_round_doubles():

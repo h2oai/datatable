@@ -82,21 +82,26 @@ def same_iterables(a, b):
 
 
 
-def list_equals(a, b):
+def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
     """
     Helper functions that tests whether two lists `a` and `b` are equal.
 
     The primary difference from the built-in Python equality operator is that
-    this function compares floats up to a relative tolerance of 1e-6, and it
-    also compares floating NaN as equal to itself (in standard Python
-    `nan != nan`).
+    this function compares floats up to a relative tolerance of `rel_tol`
+    and absolute tolerance of `abs_tol`. It also compares floating NaN as
+     equal to itself (in standard Python `nan != nan`).
     The purpose of this function is to compare datatables' python
     representations.
     """
-    if a == b: return True
+    if abs_tol is None:
+        abs_tol = rel_tol
+    if a == b:
+        return True
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-        if isnan(a) and isnan(b): return True
-        if abs(a - b) < 1e-6 * (abs(a) + abs(b) + 1): return True
+        if isnan(a) and isnan(b):
+            return True
+        if abs(a - b) < max(rel_tol * max(abs(a), abs(b)), abs_tol):
+            return True
     if isinstance(a, list) and isinstance(b, list):
         return (len(a) == len(b) and
                 all(list_equals(a[i], b[i]) for i in range(len(a))))
