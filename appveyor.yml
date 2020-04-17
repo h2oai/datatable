@@ -13,5 +13,7 @@ build_script:
     SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%APPVEYOR_BUILD_FOLDER%\src;%PATH%
 
     pip install pytest
+
     python ci/ext.py build
+
     pytest .\tests\
