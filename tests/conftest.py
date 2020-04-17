@@ -57,9 +57,14 @@ def nowin():
 
 @pytest.fixture(scope="session")
 def tol():
-    # Tolerances for float comparisons on different OS's
+    """
+    This fixture returns a tolerance to compare floats
+    on a particular operating system. The reason we sometimes use
+    OS specific tolerance is that some platforms don't have a proper
+    long double type, resulting in a loss of precision
+    when fread converts double literals into double numbers.
+    """
     tols = {"win32": 1e-15}
-
     return tols.get(sys.platform, 0)
 
 

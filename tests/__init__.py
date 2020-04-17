@@ -93,8 +93,11 @@ def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
     The purpose of this function is to compare datatables' python
     representations.
     """
+
+    # The default value of `abs_tol` is set to `rel_tol`
     if abs_tol is None:
         abs_tol = rel_tol
+
     if a == b:
         return True
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
