@@ -10,7 +10,9 @@ pull_requests:
 
 build_script:
 - cmd: >-
-    SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%APPVEYOR_BUILD_FOLDER%\src;%PATH%
+    SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
+
+    SET PYTHONPATH=%APPVEYOR_BUILD_FOLDER%\src;%PYTHONPATH%
 
     pip install pytest
 
