@@ -143,11 +143,15 @@ def test_float_decimal0(noppc64, tol):
     # PPC64 platform doesn't have proper long doubles, which may cause loss of
     # precision in the last digit when converting double literals into double
     # values.
-    assert dt.fread("1.3485701e-303\n")[0, 0] == 1.3485701e-303
-    assert dt.fread("1.46761e-313\n")[0, 0] == 1.46761e-313
-    list_equals(dt.fread("A\n1.23456789123456789123456999\n").to_list(),
-                [[1.23456789123456789123456999]],
-                rel_tol = tol)
+    assert list_equals(dt.fread("1.3485701e-303\n").to_list(), 
+                       [[1.3485701e-303]], 
+                       rel_tol = tol)
+    assert list_equals(dt.fread("1.46761e-313\n").to_list(), 
+                       [[1.46761e-313]], 
+                       rel_tol = tol)
+    assert (dt.fread("A\n1.23456789123456789123456999\n")[0, 0] ==
+            1.23456789123456789123456999)
+
 
 
 def test_float_precision():
@@ -258,9 +262,9 @@ def test_int_even_longer(tol):
     text = "A,B,C,D\n%s,%s,1.%s,%s.99" % (src1, src2, src2, src2)
     d0 = dt.fread(text)
     frame_integrity_check(d0)
-    list_equals(d0.to_list(),
-                [[src1], [src2], [float("1." + src2)], [float(src2)]],
-                rel_tol = tol)
+    assert list_equals(d0.to_list(),
+                       [[src1], [src2], [float("1." + src2)], [float(src2)]],
+                       rel_tol = tol)
 
 
 def test_int_with_thousand_sep():
@@ -519,7 +523,7 @@ def test_fread1(tol):
                  "100.3")
     assert f.shape == (3, 1)
     assert f.names == ("hello", )
-    list_equals(f.to_list(), [[1.1, 200000.0, 100.3]], rel_tol = tol)
+    assert list_equals(f.to_list(), [[1.1, 200000.0, 100.3]], rel_tol = tol)
 
 
 def test_fread2():
@@ -616,7 +620,7 @@ def test_utf16(tempfile, tol):
         d0 = dt.fread(tempfile)
         frame_integrity_check(d0)
         assert d0.names == names
-        list_equals(d0.to_list(), [col1, col2, col3], rel_tol = tol)
+        assert list_equals(d0.to_list(), [col1, col2, col3], rel_tol = tol)
 
 
 def test_fread_CtrlZ():
@@ -633,7 +637,7 @@ def test_fread_NUL(tol):
     d0 = dt.fread(text=b"A,B\n2.3,5\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
     frame_integrity_check(d0)
     assert d0.ltypes == (dt.ltype.real, dt.ltype.int)
-    list_equals(d0.to_list(), [[2.3], [5]], rel_tol = tol)
+    assert list_equals(d0.to_list(), [[2.3], [5]], rel_tol = tol)
 
 
 def test_fread_1col_a():
@@ -805,9 +809,9 @@ def test_whitespace_nas(tol):
     frame_integrity_check(d0)
     assert d0.names == ("A", "B", "C")
     assert d0.ltypes == (dt.ltype.real,) * 3
-    list_equals(d0.to_list(),
-                [[17, 3, None, 0], [34, None, 2, 0.1], [2.3, 1, None, 0]],
-                rel_tol = tol)
+    assert list_equals(d0.to_list(),
+                       [[17, 3, None, 0], [34, None, 2, 0.1], [2.3, 1, None, 0]],
+                       rel_tol = tol)
 
 
 def test_quoted_na_strings():

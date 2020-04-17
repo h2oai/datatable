@@ -45,12 +45,12 @@ def test_issue_R1113(tol):
     assert d0.names == ("ITER", "THETA1", "THETA2", "MCMC")
     assert d0.ltypes == (dt.ltype.int, dt.ltype.real, dt.ltype.real,
                          dt.ltype.real)
-    list_equals(d0.to_list(),
-                [[-11000, -10999, -10998],
-                [-2.5, -24.9853, 0.195957],
-                [2.3, 379.270, 4.16522],
-                [345678.20255, -195780.43911, 7937.13048]],
-                rel_tol = tol)
+    assert list_equals(d0.to_list(),
+                       [[-11000, -10999, -10998],
+                       [-2.5, -24.9853, 0.195957],
+                       [2.3, 379.270, 4.16522],
+                       [345678.20255, -195780.43911, 7937.13048]],
+                       rel_tol = tol)
     # `strip_whitespace` has no effect when `sep == ' '`
     d1 = dt.fread(txt, strip_whitespace=False)
     frame_integrity_check(d1)

@@ -58,7 +58,7 @@ def nowin():
 @pytest.fixture(scope="session")
 def tol():
     # Tolerances for float comparisons on different OS's
-    tols = {"win32": 1e-14}
+    tols = {"win32": 1e-15}
 
     return tols.get(sys.platform, 0)
 

@@ -104,7 +104,8 @@ def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
             return True
     if isinstance(a, list) and isinstance(b, list):
         return (len(a) == len(b) and
-                all(list_equals(a[i], b[i]) for i in range(len(a))))
+                all(list_equals(a[i], b[i], rel_tol = rel_tol, abs_tol = abs_tol) 
+                    for i in range(len(a))))
     return False
 
 
