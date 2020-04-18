@@ -12,6 +12,7 @@ import os
 import pytest
 import shutil
 import sys
+import platform
 import tempfile as mod_tempfile
 import warnings
 
@@ -30,42 +31,38 @@ def py36():
         pytest.skip("Python3.6+ is required")
 
 
+def is_ppc64():
+    """Helper function to determine ppc64 platform"""
+    platform_hardware = [platform.machine(), platform.processor()]
+    return platform.system() == "Linux" and "ppc64le" in platform_hardware
+
+
 @pytest.fixture(scope="session")
 def noppc64():
-    """
-    Skip the test if running in PowerPC64 or Python 3.5.
-
-    The reason we include Python3.6 requirement is because in Python 3.5 it
-    is not possible to determine whether the platform is PPC64 or not. Or at
-    least I don't know how... sys.platform is "linux", and
-    sys.implementation.cache_tag is "cpython-35".
-    """
-    if sys.version_info < (3, 6):
-        pytest.skip("Python3.6+ is required")
-    impl = str(sys.implementation)
-    if "powerpc64" in impl or "ppc64le" in impl:
+    """ Skip the test if running in PowerPC64 """
+    if is_ppc64():
         pytest.skip("Disabled on PowerPC64 platform")
 
 
 @pytest.fixture(scope="session")
 def nowin():
     """Skip this test when running on Windows"""
-    if sys.platform == "win32":
+    if platform.system() == "Windows":
         pytest.skip("Disabled on Windows")
-
 
 
 @pytest.fixture(scope="session")
 def tol():
     """
-    This fixture returns a tolerance to compare floats
-    on a particular operating system. The reason we sometimes use
-    OS specific tolerance is that some platforms don't have a proper
-    long double type, resulting in a loss of precision
-    when fread converts double literals into double numbers.
+    This fixture returns a tolerance to compare floats on a particular platform.
+    The reason we need this fixture are some platforms that don't have a proper
+    long double type, resulting in a loss of precision when fread converts
+    double literals into double numbers.
     """
-    tols = {"win32": 1e-15}
-    return tols.get(sys.platform, 0)
+    platform_tols = {"Windows": 1e-15, "PowerPC64": 1e-16}
+    platform_system = "PowerPC64" if is_ppc64() else platform.system()
+
+    return platform_tols.get(platform_system, 0)
 
 
 @pytest.fixture(scope="session")

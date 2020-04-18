@@ -139,15 +139,12 @@ def test_float_hex_invalid():
     assert d0.to_list() == [[f] for f in fields]
 
 
-def test_float_decimal0(noppc64, tol):
-    # PPC64 platform doesn't have proper long doubles, which may cause loss of
-    # precision in the last digit when converting double literals into double
-    # values.
-    assert list_equals(dt.fread("1.3485701e-303\n").to_list(), 
-                       [[1.3485701e-303]], 
+def test_float_decimal0(tol):
+    assert list_equals(dt.fread("1.3485701e-303\n").to_list(),
+                       [[1.3485701e-303]],
                        rel_tol = tol)
-    assert list_equals(dt.fread("1.46761e-313\n").to_list(), 
-                       [[1.46761e-313]], 
+    assert list_equals(dt.fread("1.46761e-313\n").to_list(),
+                       [[1.46761e-313]],
                        rel_tol = tol)
     assert (dt.fread("A\n1.23456789123456789123456999\n")[0, 0] ==
             1.23456789123456789123456999)
