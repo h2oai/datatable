@@ -841,7 +841,12 @@ class Frame0:
         coltype = self.random_type()
         mfraction = random.random()
         data, mmask = self.random_column(self.nrows, coltype, mfraction, False)
-        np_data = np.ma.array(data, mask=mmask, dtype=np.dtype(coltype))
+
+        # On Linux/Mac numpy's default int type is np.int64,
+        # while on Windows it is np.int32. Here we force it to be
+        # np.int64 for consistency.
+        np_dtype = np.int64 if coltype == int else np.dtype(coltype)
+        np_data = np.ma.array(data, mask=mmask, dtype=np_dtype)
 
         # Save random numpy arrays to make sure they don't change with
         # munging. Arrays that are not saved here will be eventually deleted

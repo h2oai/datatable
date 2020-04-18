@@ -1128,7 +1128,7 @@ def test_create_from_numpy_float16(numpy):
 
 
 def test_create_from_list_of_numpy_arrays(numpy):
-    df = dt.Frame([numpy.random.randint(2**30, size=100),
+    df = dt.Frame([numpy.random.randint(2**30, size=100, dtype=numpy.int64),
                    numpy.random.randn(100)], names=["A", "B"])
     frame_integrity_check(df)
     assert df.shape == (100, 2)
@@ -1221,20 +1221,20 @@ def test_create_from_numpy_floats_mixed(numpy):
 
 
 def test_create_from_numpy_reversed(numpy):
-    DT = dt.Frame(numpy.array(range(10))[::-1])
+    DT = dt.Frame(numpy.array(range(10), dtype=numpy.int64)[::-1])
     assert_equals(DT, dt.Frame(range(9, -1, -1), stype=dt.int64))
     assert DT.to_jay()
 
 
 def test_create_from_numpy_masked_and_sliced(numpy):
-    arr = numpy.ma.array([1, 2, 3], mask=[False, True, False])
+    arr = numpy.ma.array([1, 2, 3], mask=[False, True, False], dtype=numpy.int64)
     DT = dt.Frame(arr[::2])
     assert_equals(DT, dt.Frame([1, 3], stype=dt.int64))
     assert DT.to_jay()
 
 
 def test_create_from_0size_masked_array(numpy):
-    arr = numpy.ma.array([1, 2, 3], mask=[False, True, False])
+    arr = numpy.ma.array([1, 2, 3], mask=[False, True, False], dtype=numpy.int64)
     DT = dt.Frame(arr[2:0])
     assert_equals(DT, dt.Frame(C0=[], stype=dt.int64))
     assert DT.to_jay()
@@ -1248,10 +1248,11 @@ def test_from_random_numpy_masked_and_sliced(numpy, seed):
     step = 0
     while step == 0:
         step = random.randint(-5, 5)
-    arr = numpy.arange(20)
+    arr = numpy.arange(20, dtype=numpy.int64)
     if random.random() < 0.5:
         arr = numpy.ma.array(arr, mask=[random.random() < 0.5
                                         for _ in range(arr.shape[0])])
+
     arr = arr[start:end:step]
     DT = dt.Frame(arr)
     assert_equals(DT, dt.Frame(C0=arr.tolist(), stype=dt.int64))
