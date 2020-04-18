@@ -139,14 +139,16 @@ def test_float_hex_invalid():
     assert d0.to_list() == [[f] for f in fields]
 
 
-def test_float_decimal0(noppc64):
-    # PPC64 platform doesn't have proper long doubles, which may cause loss of
-    # precision in the last digit when converting double literals into double
-    # values.
-    assert dt.fread("1.3485701e-303\n")[0, 0] == 1.3485701e-303
-    assert dt.fread("1.46761e-313\n")[0, 0] == 1.46761e-313
+def test_float_decimal0(tol):
+    assert list_equals(dt.fread("1.3485701e-303\n").to_list(),
+                       [[1.3485701e-303]],
+                       rel_tol = tol)
+    assert list_equals(dt.fread("1.46761e-313\n").to_list(),
+                       [[1.46761e-313]],
+                       rel_tol = tol)
     assert (dt.fread("A\n1.23456789123456789123456999\n")[0, 0] ==
             1.23456789123456789123456999)
+
 
 
 def test_float_precision():
@@ -246,7 +248,7 @@ def test_int_toolong3():
     assert d0.to_list() == [[2], ["384325987234905827340958734572934"]]
 
 
-def test_int_even_longer():
+def test_int_even_longer(tol):
     # Test that integers just above 128 or 256 characters in length parse as
     # strings, not as integers/floats (if the character counter is byte, then
     # it would overflow and fail to recognize that the integer is very long).
@@ -257,9 +259,9 @@ def test_int_even_longer():
     text = "A,B,C,D\n%s,%s,1.%s,%s.99" % (src1, src2, src2, src2)
     d0 = dt.fread(text)
     frame_integrity_check(d0)
-    assert d0.to_list() == [[src1], [src2],
-                            [float("1." + src2)],
-                            [float(src2)]]
+    assert list_equals(d0.to_list(),
+                       [[src1], [src2], [float("1." + src2)], [float(src2)]],
+                       rel_tol = tol)
 
 
 def test_int_with_thousand_sep():
@@ -511,14 +513,14 @@ def test_input_htmlfile():
 # Small files
 #-------------------------------------------------------------------------------
 
-def test_fread1():
+def test_fread1(tol):
     f = dt.fread("hello\n"
                  "1.1\n"
                  "200000\n"
                  "100.3")
     assert f.shape == (3, 1)
     assert f.names == ("hello", )
-    assert f.to_list() == [[1.1, 200000.0, 100.3]]
+    assert list_equals(f.to_list(), [[1.1, 200000.0, 100.3]], rel_tol = tol)
 
 
 def test_fread2():
@@ -599,7 +601,7 @@ def test_space_separated_numbers():
                          ltype.bool)
 
 
-def test_utf16(tempfile):
+def test_utf16(tempfile, tol):
     names = ("alpha", "beta", "gamma")
     col1 = [1.5, 12.999, -4e-6, 2.718281828]
     col2 = ["я", "не", "нездужаю", "нівроку"]
@@ -615,7 +617,7 @@ def test_utf16(tempfile):
         d0 = dt.fread(tempfile)
         frame_integrity_check(d0)
         assert d0.names == names
-        assert d0.to_list() == [col1, col2, col3]
+        assert list_equals(d0.to_list(), [col1, col2, col3], rel_tol = tol)
 
 
 def test_fread_CtrlZ():
@@ -627,12 +629,12 @@ def test_fread_CtrlZ():
     assert d0.to_list() == [[-1], [2], [3]]
 
 
-def test_fread_NUL():
+def test_fread_NUL(tol):
     """Check that NUL characters at the end of the file are removed"""
     d0 = dt.fread(text=b"A,B\n2.3,5\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
     frame_integrity_check(d0)
     assert d0.ltypes == (dt.ltype.real, dt.ltype.int)
-    assert d0.to_list() == [[2.3], [5]]
+    assert list_equals(d0.to_list(), [[2.3], [5]], rel_tol = tol)
 
 
 def test_fread_1col_a():
@@ -795,7 +797,7 @@ def test_unescaping1():
                              "\r\t\v\a\b\071\uABCD"]]
 
 
-def test_whitespace_nas():
+def test_whitespace_nas(tol):
     d0 = dt.fread('A,   B,    C\n'
                   '17,  34, 2.3\n'
                   '3.,  NA,   1\n'
@@ -804,9 +806,9 @@ def test_whitespace_nas():
     frame_integrity_check(d0)
     assert d0.names == ("A", "B", "C")
     assert d0.ltypes == (dt.ltype.real,) * 3
-    assert d0.to_list() == [[17, 3, None, 0],
-                            [34, None, 2, 0.1],
-                            [2.3, 1, None, 0]]
+    assert list_equals(d0.to_list(),
+                       [[17, 3, None, 0], [34, None, 2, 0.1], [2.3, 1, None, 0]],
+                       rel_tol = tol)
 
 
 def test_quoted_na_strings():
