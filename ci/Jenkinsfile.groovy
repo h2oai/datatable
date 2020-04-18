@@ -72,7 +72,7 @@ versionText = "unknown"
 
 isMasterJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
 doExtraTests = (isMasterJob || params.FORCE_ALL_TESTS) && !params.DISABLE_ALL_TESTS
-doPpcTests = doExtraTests && !params.DISABLE_PPC64LE_TESTS
+doPpcTests = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
 doPpcBuild = doPpcTests || isMasterJob || params.FORCE_BUILD_PPC64LE
 doPy38Tests = doExtraTests
 doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
