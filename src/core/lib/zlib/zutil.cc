@@ -3,12 +3,15 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 #include "lib/zlib/zutil.h"
+#include "utils/macros.h"
+
 namespace zlib {
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-qual"
-#pragma clang diagnostic ignored "-Wold-style-cast"
-
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wcast-qual"
+  #pragma clang diagnostic ignored "-Wold-style-cast"
+#endif
 
 
 const char * const z_errmsg[10] = {
@@ -110,7 +113,9 @@ void zcfree (voidpf opaque, voidpf ptr)
 #endif /* MY_ZCALLOC */
 
 #endif /* !Z_SOLO */
-#pragma clang diagnostic pop
 
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#endif
 
 } // namespace zlib

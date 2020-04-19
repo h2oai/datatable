@@ -50,15 +50,16 @@
 #include "lib/zlib/deflate.h"
 namespace zlib {
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wconversion"
-#pragma clang diagnostic ignored "-Wcomma"
-#pragma clang diagnostic ignored "-Wpadded"
-#pragma clang diagnostic ignored "-Wold-style-cast"
-#pragma clang diagnostic ignored "-Wsign-conversion"
-#pragma clang diagnostic ignored "-Wunused-const-variable"
-#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
-
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wconversion"
+  #pragma clang diagnostic ignored "-Wcomma"
+  #pragma clang diagnostic ignored "-Wpadded"
+  #pragma clang diagnostic ignored "-Wold-style-cast"
+  #pragma clang diagnostic ignored "-Wsign-conversion"
+  #pragma clang diagnostic ignored "-Wunused-const-variable"
+  #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#endif
 
 
 const char deflate_copyright[] =
@@ -1199,7 +1200,8 @@ static void fill_window(deflate_state* s)
     more = (unsigned)(s->window_size -(ulg)s->lookahead -(ulg)s->strstart);
 
     /* Deal with !@#$% 64K limit: */
-    if (sizeof(int) <= 2) {
+    const bool small_int = sizeof(int) <= 2;
+    if (small_int) {
       if (more == 0 && s->strstart == 0 && s->lookahead == 0) {
         more = wsize;
 
@@ -1401,10 +1403,10 @@ static block_state deflate_stored(deflate_state* s, int flush)
     _tr_stored_block(s, (char *)0, 0L, last);
 
     /* Replace the lengths in the dummy stored block with len. */
-    s->pending_buf[s->pending - 4] = len;
-    s->pending_buf[s->pending - 3] = len >> 8;
-    s->pending_buf[s->pending - 2] = ~len;
-    s->pending_buf[s->pending - 1] = ~len >> 8;
+    s->pending_buf[s->pending - 4] = static_cast<zlib::Bytef>(len);
+    s->pending_buf[s->pending - 3] = static_cast<zlib::Bytef>(len >> 8);
+    s->pending_buf[s->pending - 2] = static_cast<zlib::Bytef>(~len);
+    s->pending_buf[s->pending - 1] = static_cast<zlib::Bytef>(~len >> 8);
 
     /* Write the stored block header bytes. */
     flush_pending(s->strm);
@@ -1873,6 +1875,7 @@ static block_state deflate_huff(deflate_state* s, int flush)
 }
 
 
-
-#pragma clang diagnostic pop
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#endif
 } // namespace zlib

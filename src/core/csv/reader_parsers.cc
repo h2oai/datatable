@@ -147,7 +147,8 @@ void parse_int_simple(FreadTokenizer& ctx) {
       (sd == MAX_DIGITS && value <= MAX_VALUE))
   {
     T x = static_cast<T>(value);
-    *reinterpret_cast<T*>(ctx.target) = (x ^ -negative) + negative;
+    *reinterpret_cast<T*>(ctx.target) = (x ^ -static_cast<int>(negative))
+                                        + negative;
     ctx.ch = ch;
   } else {
     *reinterpret_cast<T*>(ctx.target) = NA_VALUE;
@@ -216,16 +217,23 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
   if ((sf? sf < max_digits : ch > start) ||
       (sf == max_digits && acc <= max_value))
   {
-    T x = static_cast<T>(acc);
-    if (sizeof(T) == 4) ctx.target->int32 = negative? -x : x;
-    if (sizeof(T) == 8) ctx.target->int64 = negative? -x : x;
+    switch (sizeof(T)) {
+      case 4: ctx.target->int32 = negative? -static_cast<int32_t>(acc) : 
+                                            static_cast<int32_t>(acc); 
+              break;
+      case 8: ctx.target->int64 = negative? -static_cast<int64_t>(acc) : 
+                                            acc;
+    }
+
     ctx.ch = ch;
     return;
   }
 
   fail:
-    if (sizeof(T) == 4) ctx.target->int32 = NA_INT32;
-    if (sizeof(T) == 8) ctx.target->int64 = NA_INT64;
+    switch (sizeof(T)) {
+      case 4: ctx.target->int32 = NA_INT32; break;
+      case 8: ctx.target->int64 = NA_INT64;
+    }
 }
 
 
@@ -245,7 +253,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
   }
 
   if (ch + 2 < ctx.eof && ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') &&
-      (ch[2]=='1' || (subnormal = (ch[2]=='0')))) {
+      (ch[2]=='1' || (subnormal = (ch[2]=='0')) != 0)) {
     ch += 3;
     uint32_t acc = 0;
     if (ch < ctx.eof && *ch == '.') {
@@ -277,7 +285,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
       else if (E == 126 && Eneg && acc) /* subnormal */ E = 0;
       else goto fail;
     } else {
-      E = 127 + (E ^ -Eneg) + Eneg;
+      E = 127 + (E ^ -static_cast<int>(Eneg)) + Eneg;
       if (E < 1 || E > 254) goto fail;
     }
     ctx.target->uint32 = (neg << 31) | (E << 23) | (acc);
@@ -536,7 +544,7 @@ void parse_float64_hex(FreadTokenizer& ctx) {
   }
 
   if (ch + 2 < ctx.eof && ch[0]=='0' && (ch[1]=='x' || ch[1]=='X') &&
-      (ch[2]=='1' || (subnormal = (ch[2]=='0')))) {
+      (ch[2]=='1' || (subnormal = (ch[2]=='0')) != 0)) {
     ch += 3;
     uint64_t acc = 0;
     if (ch < ctx.eof && *ch == '.') {
@@ -568,7 +576,7 @@ void parse_float64_hex(FreadTokenizer& ctx) {
       else if (E == 1022 && Eneg && acc) /* subnormal */ E = 0;
       else goto fail;
     } else {
-      E = 1023 + (E ^ -Eneg) + Eneg;
+      E = 1023 + (E ^ -static_cast<int>(Eneg)) + Eneg;
       if (E < 1 || E > 2046) goto fail;
     }
     ctx.target->uint64 = (neg << 63) | (E << 52) | (acc);

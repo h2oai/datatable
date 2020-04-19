@@ -50,7 +50,10 @@ int init_py_encodings(PyObject*) {
   for (int k = 0; k < 3; k++) {
     uint32_t* map = (k == 0)? win1252_map : (k == 1)? win1251_map : iso8859_map;
     for (unsigned int i = 0; i < 256; i++) {
-      if (i < 0x80) xassert(map[i] == i);  // check ASCII compatibility
+      if (i < 0x80) {
+        (void) i;
+        xassert(map[i] == i);  // check ASCII compatibility
+      }
       if (i && map[i] == 0) map[i] = 0x00BDBFEF;  // U+FFFD
       xassert((map[i] & 0xFF000000) == 0);
     }
