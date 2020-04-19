@@ -505,10 +505,14 @@ void GenericReader::_message(
     msg = va_arg(args, char*);
   } else {
     msg = shared_buffer;
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    #if defined(__GNUC__)
+      #pragma GCC diagnostic push
+      #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    #endif
     vsnprintf(msg, 2000, format, args);
-    #pragma GCC diagnostic pop
+    #if defined(__GNUC__)
+      #pragma GCC diagnostic pop
+    #endif
   }
 
   if (dt::num_threads_in_team() == 0) {
@@ -655,7 +659,7 @@ void GenericReader::open_input() {
     input_mbuf = Buffer::external(text.ch, size + 1);
     input_is_string = true;
 
-  } else if ((filename = file_arg.to_cstring().ch)) {
+  } else if ((filename = file_arg.to_cstring().ch) != 0) {
     input_mbuf = Buffer::mmap(filename);
     size_t sz = input_mbuf.size();
     trace("File \"%s\" opened, size: %zu", filename, sz);
@@ -701,7 +705,10 @@ void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
   line = 1;
   sof = static_cast<const char*>(input_mbuf.rptr());
   eof = sof + input_mbuf.size() - extra_byte;
-  if (eof) xassert(*eof == '\0');
+  if (eof) {
+    (void) eof;
+    xassert(*eof == '\0');
+  }
 }
 
 
