@@ -222,7 +222,7 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
                                             static_cast<int32_t>(acc); 
               break;
       case 8: ctx.target->int64 = negative? -static_cast<int64_t>(acc) : 
-                                            acc;
+                                            static_cast<int64_t>(acc);
     }
 
     ctx.ch = ch;
@@ -285,7 +285,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
       else if (E == 126 && Eneg && acc) /* subnormal */ E = 0;
       else goto fail;
     } else {
-      E = 127 + (E ^ -static_cast<int>(Eneg)) + Eneg;
+      E = 127 + (E ^ -static_cast<uint32_t>(Eneg)) + Eneg;
       if (E < 1 || E > 254) goto fail;
     }
     ctx.target->uint32 = (neg << 31) | (E << 23) | (acc);
@@ -576,7 +576,7 @@ void parse_float64_hex(FreadTokenizer& ctx) {
       else if (E == 1022 && Eneg && acc) /* subnormal */ E = 0;
       else goto fail;
     } else {
-      E = 1023 + (E ^ -static_cast<int>(Eneg)) + Eneg;
+      E = 1023 + (E ^ -static_cast<uint64_t>(Eneg)) + Eneg;
       if (E < 1 || E > 2046) goto fail;
     }
     ctx.target->uint64 = (neg << 63) | (E << 52) | (acc);
