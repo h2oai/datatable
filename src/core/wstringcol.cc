@@ -115,7 +115,11 @@ char* writable_string_col::buffer_impl<T>::strbuf_ptr() const {
 template <typename T>
 void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
   if (ch) {
-    if (sizeof(T) == 4) xassert(len <= Column::MAX_ARR32_SIZE);
+    if (sizeof(T) == 4) {
+      (void) len;
+      xassert(len <= Column::MAX_ARR32_SIZE);
+    }
+
     strbuf.ensuresize(strbuf_used + len);
     std::memcpy(strbuf_ptr() + strbuf_used, ch, len);
     strbuf_used += len;

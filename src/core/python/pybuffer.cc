@@ -98,7 +98,11 @@ void buffer::_normalize_dimensions() {
     xassert(len == itemsize);
   }
   else if (ndim == 1) {
-    if (info_->shape) xassert(info_->shape[0] * itemsize == len);
+    if (info_->shape) {
+      (void) info_->shape;
+      xassert(info_->shape[0] * itemsize == len);
+    }
+
     if (info_->strides) {
       xassert(info_->strides[0] % itemsize == 0);
       stride_ = static_cast<size_t>(info_->strides[0] / itemsize);

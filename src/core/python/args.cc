@@ -49,7 +49,11 @@ PKArgs::PKArgs(
     n_varkwds(0)
 {
   wassert(n_all_args == arg_names.size());
-  if (has_varargs) xassert(n_pos_kwd_args == 0);
+  if (has_varargs) {
+    (void) has_varargs;
+    xassert(n_pos_kwd_args == 0);
+  }
+
   bound_args.resize(n_all_args);
   for (size_t i = 0; i < n_all_args; ++i) {
     bound_args[i].init(i, this);

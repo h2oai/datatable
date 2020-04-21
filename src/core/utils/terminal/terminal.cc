@@ -71,7 +71,11 @@ Terminal::Terminal(bool is_plain) : is_plain_(is_plain){
   enable_keyboard_ = false;
   is_jupyter_ = false;
   is_ipython_ = false;
-  if (!enable_ecma48_) xassert(!enable_colors_);
+  if (!enable_ecma48_) {
+    (void) enable_ecma48_;
+    xassert(!enable_colors_);
+  }
+
   if (!is_plain_) _initialize();
 }
 
