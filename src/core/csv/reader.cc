@@ -659,7 +659,7 @@ void GenericReader::open_input() {
     input_mbuf = Buffer::external(text.ch, size + 1);
     input_is_string = true;
 
-  } else if ((filename = file_arg.to_cstring().ch) != 0) {
+  } else if ((filename = file_arg.to_cstring().ch) != nullptr) {
     input_mbuf = Buffer::mmap(filename);
     size_t sz = input_mbuf.size();
     trace("File \"%s\" opened, size: %zu", filename, sz);
