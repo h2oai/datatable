@@ -29,8 +29,14 @@ namespace read {
 
 
 /**
-  * This class represents a "work-in-progress" Frame, while it is
+  * PreFrame represents a "work-in-progress" Frame, while it is
   * in the process of being read from a CSV file.
+  *
+  * This class contains a vector of `PreColumn` objects, where each
+  * PreColumn corresponds to a single column of data in the input
+  * csv file. Notably, not all of these columns will end up in the
+  * final DataTable - some columns may be excluded from the output
+  * by the user.
   *
   * At the end of this object's lifetime, call `.to_datatable()`
   * to convert it into an actual DataTable object.
@@ -44,8 +50,10 @@ class PreFrame
     std::vector<PreColumn> columns_;
     size_t nrows_;
 
+    static constexpr size_t MEMORY_UNLIMITED = size_t(-1);
     size_t memory_limit_;
     size_t memory_remaining_;
+    std::shared_ptr<TemporaryFile> tempfile_;
 
   public:
     PreFrame() noexcept;
@@ -53,7 +61,7 @@ class PreFrame
     size_t ncols() const noexcept;
     size_t nrows() const noexcept;
     void set_ncols(size_t ncols);
-    void set_nrows(size_t nrows);
+    void set_nrows(size_t new_nrows, size_t nrows_written = 0);
 
     // Column iterator / access
     const_iterator begin() const;
@@ -79,6 +87,9 @@ class PreFrame
     void use_memory_quota(size_t);
 
     std::unique_ptr<DataTable> to_datatable() &&;
+
+  private:
+    void init_tempfile();
 };
 
 

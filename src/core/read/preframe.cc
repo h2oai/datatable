@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "csv/reader_parsers.h"
 #include "read/preframe.h"
+#include "utils/temporary_file.h"    // TemporaryFile
 #include "column.h"
 #include "datatable.h"
 namespace dt {
@@ -30,8 +31,8 @@ namespace read {
 
 PreFrame::PreFrame() noexcept
   : nrows_(0),
-    memory_limit_(size_t(-1)),
-    memory_remaining_(size_t(-1)) {}
+    memory_limit_(MEMORY_UNLIMITED),
+    memory_remaining_(MEMORY_UNLIMITED) {}
 
 
 
@@ -53,11 +54,28 @@ void PreFrame::set_ncols(size_t ncols) {
   columns_.resize(ncols);
 }
 
-void PreFrame::set_nrows(size_t n) {
-  for (auto& col : columns_) {
-    col.allocate(n);
+
+void PreFrame::set_nrows(size_t new_nrows, size_t nrows_written)
+{
+  // If some data was already written into PreColumns, then "archive"
+  // that data into column chunks within each PreColumn.
+  if (new_nrows > nrows_ && nrows_written > 0) {
+    if (!tempfile_ && memory_limit_ != MEMORY_UNLIMITED) {
+      size_t current_memory = total_allocsize();
+      double new_memory = 1.0 * new_nrows / nrows_ * current_memory;
+      if (new_memory > 0.95 * memory_limit_) {
+        init_tempfile();
+      }
+    }
+    for (auto& col : columns_) {
+      col.archive_data(nrows_written, tempfile_);
+    }
   }
-  nrows_ = n;
+  // Now reallocate all columns for a proper number of rows
+  for (auto& col : columns_) {
+    col.allocate(new_nrows);
+  }
+  nrows_ = new_nrows;
 }
 
 
@@ -72,6 +90,12 @@ void PreFrame::use_memory_quota(size_t sz) {
   }
   memory_remaining_ -= sz;
 }
+
+
+void PreFrame::init_tempfile() {
+  tempfile_ = std::shared_ptr<TemporaryFile>(new TemporaryFile());
+}
+
 
 
 
@@ -230,7 +254,7 @@ dtptr PreFrame::to_datatable() && {
   for (auto& col : columns_) {
     if (!col.is_in_output()) continue;
     names.push_back(col.get_name());
-    ccols.push_back(std::move(col).to_column(nrows_));
+    ccols.push_back(col.to_column());
   }
   return dtptr(new DataTable(std::move(ccols), std::move(names)));
 }

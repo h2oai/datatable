@@ -78,9 +78,10 @@ class Buffer
 
   public:
     // Basic copy & move constructors / assignment operators.
-    // The copy constructor creates a shallow copy (similar to shared_ptr).
-    // The move constructor leaves the source object in a state where the
-    // only legal operation is to destruct that object.
+    // The copy constructor creates a shallow copy (similar to
+    // shared_ptr). The move constructor leaves the source object in
+    // a state where the only legal operations are either to destruct
+    // that object, or to reinitialize using `operator=`.
     //
     Buffer();
     Buffer(const Buffer&);

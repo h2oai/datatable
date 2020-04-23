@@ -91,8 +91,8 @@ TemporaryFile::~TemporaryFile() {
   // Buffer must be deleted before removing the file, on some OSes
   // it may not be possible to remove a file while it is memory-
   // mapped.
-  delete bufferptr_;
-  bufferptr_ = nullptr;
+  if (writebufptr_) close_write_buffer();
+  if (bufferptr_) close_read_buffer();
 
   int ret = std::remove(filename_.c_str());
   if (ret) {
@@ -107,9 +107,39 @@ const std::string& TemporaryFile::name() const {
 }
 
 
-void* TemporaryFile::data() {
-  if (!bufferptr_) {
-    bufferptr_ = new Buffer(Buffer::mmap(filename_));
-  }
+WritableBuffer* TemporaryFile::data_w() {
+  init_write_buffer();
+  return writebufptr_;
+}
+
+void* TemporaryFile::data_r() {
+  init_read_buffer();
   return bufferptr_->xptr();
+}
+
+
+void TemporaryFile::init_read_buffer() {
+  if (bufferptr_) return;
+  if (writebufptr_) close_write_buffer();
+  bufferptr_ = new Buffer(Buffer::mmap(filename_));
+}
+
+void TemporaryFile::close_read_buffer() noexcept {
+  delete bufferptr_;
+  bufferptr_ = nullptr;
+}
+
+
+void TemporaryFile::init_write_buffer() {
+  if (writebufptr_) return;
+  xassert(!bufferptr_);
+  writebufptr_ = new FileWritableBuffer(filename_);
+}
+
+void TemporaryFile::close_write_buffer() noexcept {
+  try {
+    writebufptr_->finalize();
+  } catch (...) {}
+  delete writebufptr_;
+  writebufptr_ = nullptr;
 }

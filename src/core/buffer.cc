@@ -458,7 +458,7 @@ class TemporaryFile_BufferImpl : public BufferImpl
 
 
     void* data() const override {
-      return static_cast<char*>(temporary_file_->data()) + offset_;
+      return static_cast<char*>(temporary_file_->data_r()) + offset_;
     }
 
     size_t memory_footprint() const noexcept override {
@@ -714,9 +714,9 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
   }
 
   Buffer& Buffer::operator=(const Buffer& other) {
-    auto tmp = impl_;
+    auto old_impl = impl_;
     impl_ = other.impl_->acquire();
-    tmp->release();
+    if (old_impl) old_impl->release();
     return *this;
   }
 

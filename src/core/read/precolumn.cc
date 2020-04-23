@@ -19,31 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/rbound.h"
 #include "csv/reader.h"
 #include "csv/reader_parsers.h"
 #include "python/string.h"
 #include "read/precolumn.h"
+#include "utils/temporary_file.h"
 #include "column.h"
 namespace dt {
 namespace read {
 
 
 
-//---- Constructors ------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
 
-PreColumn::PreColumn() {
-  ptype_ = PT::Mu;
-  rtype_ = RT::RAuto;
-  type_bumped_ = false;
-  present_in_output_ = true;
-  present_in_buffer_ = true;
-}
+PreColumn::PreColumn()
+  : nrows_allocated_(0),
+    nrows_archived_(0),
+    parse_type_(PT::Mu),
+    rtype_(RT::RAuto),
+    type_bumped_(false),
+    present_in_output_(true),
+    present_in_buffer_(true) {}
 
 PreColumn::PreColumn(PreColumn&& o) noexcept
   : name_(std::move(o.name_)),
     databuf_(std::move(o.databuf_)),
     strbuf_(std::move(o.strbuf_)),
-    ptype_(o.ptype_),
+    chunks_(std::move(o.chunks_)),
+    nrows_allocated_(o.nrows_allocated_),
+    nrows_archived_(o.nrows_archived_),
+    parse_type_(o.parse_type_),
     rtype_(o.rtype_),
     type_bumped_(o.type_bumped_),
     present_in_output_(o.present_in_output_),
@@ -52,27 +60,92 @@ PreColumn::PreColumn(PreColumn&& o) noexcept
 
 
 
-//---- Column's data -----------------------------------------------------------
+//------------------------------------------------------------------------------
+// Column's data
+//------------------------------------------------------------------------------
 
-void PreColumn::allocate(size_t nrows) {
-  if (!present_in_output_) return;
+void PreColumn::archive_data(size_t nrows_written,
+                             std::shared_ptr<TemporaryFile>& tempfile)
+{
+  if (nrows_written == nrows_archived_) return;
+  if (type_bumped_ || !present_in_output_) return;
+  xassert(nrows_written > nrows_archived_ &&
+          nrows_written <= nrows_archived_ + nrows_allocated_);
+
   bool col_is_string = is_string();
-  size_t allocsize = (nrows + col_is_string) * elemsize();
+  size_t nrows_chunk = nrows_written - nrows_archived_;
+  size_t data_size = elemsize() * (nrows_chunk + col_is_string);
+  Buffer stored_databuf, stored_strbuf;
+  if (tempfile) {
+    auto writebuf = tempfile->data_w();
+    {
+      Buffer tmpbuf = std::move(databuf_);
+      size_t offset = writebuf->write(data_size, tmpbuf.rptr());
+      stored_databuf = Buffer::tmp(tempfile, offset, data_size);
+    }
+    if (col_is_string) {
+      strbuf_->finalize();
+      Buffer tmpbuf = strbuf_->get_mbuf();
+      size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
+      stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
+      strbuf_ = nullptr;
+    }
+  }
+  else {
+    stored_databuf = std::move(databuf_);
+    stored_databuf.resize(data_size);
+    if (col_is_string) {
+      strbuf_->finalize();
+      stored_strbuf = strbuf_->get_mbuf();
+      strbuf_ = nullptr;
+    }
+  }
+
+  chunks_.push_back(
+    col_is_string? Column::new_string_column(nrows_chunk,
+                                             std::move(stored_databuf),
+                                             std::move(stored_strbuf))
+                 : Column::new_mbuf_column(nrows_chunk, get_stype(),
+                                           std::move(stored_databuf))
+  );
+  nrows_archived_ = nrows_written;
+  nrows_allocated_ = 0;
+  xassert(!databuf_ && !strbuf_);
+}
+
+
+void PreColumn::allocate(size_t new_nrows) {
+  xassert(new_nrows >= nrows_archived_);
+  if (type_bumped_ || !present_in_output_) return;
+
+  size_t new_nrows_allocated = new_nrows - nrows_archived_;
+  size_t allocsize = (new_nrows_allocated + is_string()) * elemsize();
   databuf_.resize(allocsize);
-  if (col_is_string) {
-    if (elemsize() == 4)
-      databuf_.set_element<int32_t>(0, 0);
-    else
-      databuf_.set_element<int64_t>(0, 0);
+
+  if (is_string()) {
+    size_t zero = 0;
+    std::memcpy(databuf_.xptr(), &zero, elemsize());
     if (!strbuf_) {
       strbuf_ = std::unique_ptr<MemoryWritableBuffer>(
                     new MemoryWritableBuffer(allocsize));
     }
   }
+  nrows_allocated_ = new_nrows_allocated;
 }
 
+
+Column PreColumn::to_column() {
+  std::shared_ptr<TemporaryFile> tmp = nullptr;
+  archive_data(nrows_archived_ + nrows_allocated_, tmp);
+  size_t nchunks = chunks_.size();
+  return (nchunks == 0)? Column::new_na_column(0, get_stype()) :
+         (nchunks == 1)? std::move(chunks_[0]) :
+                         Column(new Rbound_ColumnImpl(std::move(chunks_)));
+}
+
+
 void* PreColumn::data_w() {
-  return databuf_.wptr();
+  return databuf_.xptr();
 }
 
 WritableBuffer* PreColumn::strdata_w() {
@@ -107,7 +180,7 @@ const char* PreColumn::repr_name(const GenericReader& g) const {
 //---- Column's type -----------------------------------------------------------
 
 PT PreColumn::get_ptype() const noexcept {
-  return ptype_;
+  return parse_type_;
 }
 
 RT PreColumn::get_rtype() const noexcept {
@@ -115,24 +188,24 @@ RT PreColumn::get_rtype() const noexcept {
 }
 
 SType PreColumn::get_stype() const {
-  return ParserLibrary::info(ptype_).stype;
+  return ParserLibrary::info(parse_type_).stype;
 }
 
 PreColumn::ptype_iterator
 PreColumn::get_ptype_iterator(int8_t* qr_ptr) const {
-  return PreColumn::ptype_iterator(ptype_, rtype_, qr_ptr);
+  return PreColumn::ptype_iterator(parse_type_, rtype_, qr_ptr);
 }
 
 void PreColumn::set_ptype(const PreColumn::ptype_iterator& it) {
   xassert(rtype_ == it.get_rtype());
-  ptype_ = *it;
+  parse_type_ = *it;
   type_bumped_ = true;
 }
 
-// Set .ptype_ to the provided value, disregarding the restrictions imposed
+// Set .parse_type_ to the provided value, disregarding the restrictions imposed
 // by the .rtype_ field.
 void PreColumn::force_ptype(PT new_ptype) {
-  ptype_ = new_ptype;
+  parse_type_ = new_ptype;
 }
 
 void PreColumn::set_rtype(int64_t it) {
@@ -140,26 +213,26 @@ void PreColumn::set_rtype(int64_t it) {
   // Temporary
   switch (rtype_) {
     case RDrop:
-      ptype_ = PT::Str32;
+      parse_type_ = PT::Str32;
       present_in_output_ = false;
       present_in_buffer_ = false;
       break;
     case RAuto:    break;
-    case RBool:    ptype_ = PT::Bool01; break;
-    case RInt:     ptype_ = PT::Int32; break;
-    case RInt32:   ptype_ = PT::Int32; break;
-    case RInt64:   ptype_ = PT::Int64; break;
-    case RFloat:   ptype_ = PT::Float32Hex; break;
-    case RFloat32: ptype_ = PT::Float32Hex; break;
-    case RFloat64: ptype_ = PT::Float64Plain; break;
-    case RStr:     ptype_ = PT::Str32; break;
-    case RStr32:   ptype_ = PT::Str32; break;
-    case RStr64:   ptype_ = PT::Str64; break;
+    case RBool:    parse_type_ = PT::Bool01; break;
+    case RInt:     parse_type_ = PT::Int32; break;
+    case RInt32:   parse_type_ = PT::Int32; break;
+    case RInt64:   parse_type_ = PT::Int64; break;
+    case RFloat:   parse_type_ = PT::Float32Hex; break;
+    case RFloat32: parse_type_ = PT::Float32Hex; break;
+    case RFloat64: parse_type_ = PT::Float64Plain; break;
+    case RStr:     parse_type_ = PT::Str32; break;
+    case RStr32:   parse_type_ = PT::Str32; break;
+    case RStr64:   parse_type_ = PT::Str64; break;
   }
 }
 
 const char* PreColumn::typeName() const {
-  return ParserLibrary::info(ptype_).name.data();
+  return ParserLibrary::info(parse_type_).name.data();
 }
 
 
@@ -167,27 +240,27 @@ const char* PreColumn::typeName() const {
 //---- Column info -------------------------------------------------------------
 
 bool PreColumn::is_string() const {
-  return ParserLibrary::info(ptype_).isstring();
+  return ParserLibrary::info(parse_type_).isstring();
 }
 
-bool PreColumn::is_dropped() const {
+bool PreColumn::is_dropped() const noexcept {
   return rtype_ == RT::RDrop;
 }
 
-bool PreColumn::is_type_bumped() const {
+bool PreColumn::is_type_bumped() const noexcept {
   return type_bumped_;
 }
 
-bool PreColumn::is_in_output() const {
+bool PreColumn::is_in_output() const noexcept {
   return present_in_output_;
 }
 
-bool PreColumn::is_in_buffer() const {
+bool PreColumn::is_in_buffer() const noexcept {
   return present_in_buffer_;
 }
 
 size_t PreColumn::elemsize() const {
-  return static_cast<size_t>(ParserLibrary::info(ptype_).elemsize);
+  return static_cast<size_t>(ParserLibrary::info(parse_type_).elemsize);
 }
 
 void PreColumn::reset_type_bumped() {
@@ -196,6 +269,10 @@ void PreColumn::reset_type_bumped() {
 
 void PreColumn::set_in_buffer(bool f) {
   present_in_buffer_ = f;
+}
+
+size_t PreColumn::nrows_archived() const noexcept {
+  return nrows_archived_;
 }
 
 
@@ -226,20 +303,28 @@ static PyTypeObject* init_nametypepytuple() {
   return res;
 }
 
+
 py::oobj PreColumn::py_descriptor() const {
   static PyTypeObject* name_type_pytuple = init_nametypepytuple();
   PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
-  PyObject* stype = info(ParserLibrary::info(ptype_).stype).py_stype().release();
+  PyObject* stype = info(ParserLibrary::info(parse_type_).stype).py_stype().release();
   PyObject* cname = py::ostring(name_).release();
   PyStructSequence_SetItem(nt_tuple, 0, cname);
   PyStructSequence_SetItem(nt_tuple, 1, stype);
   return py::oobj::from_new_reference(nt_tuple);
 }
 
-size_t PreColumn::memory_footprint() const noexcept {
-  return databuf_.memory_footprint() +
-         (strbuf_? strbuf_->size() : 0) + name_.size() + sizeof(*this);
+
+size_t PreColumn::memory_footprint() const {
+  size_t sz = 0;
+  for (const auto& col : chunks_) {
+    sz += col.memory_footprint();
+  }
+  sz += databuf_.memory_footprint();
+  sz += strbuf_? strbuf_->size() : 0;
+  sz += name_.size() + sizeof(*this);
+  return sz;
 }
 
 
@@ -270,23 +355,6 @@ bool PreColumn::ptype_iterator::has_incremented() const {
   return curr_ptype != orig_ptype;
 }
 
-
-
-
-//------------------------------------------------------------------------------
-// Finalizing
-//------------------------------------------------------------------------------
-
-Column PreColumn::to_column(size_t nrows) && {
-  SType stype = get_stype();
-  if (is_string()) {
-    strbuf_->finalize();
-    return Column::new_string_column(nrows, std::move(databuf_),
-                                     strbuf_->get_mbuf());
-  } else {
-    return Column::new_mbuf_column(nrows, stype, std::move(databuf_));
-  }
-}
 
 
 

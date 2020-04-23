@@ -42,6 +42,7 @@ class TemporaryFile
   private:
     std::string filename_;
     Buffer* bufferptr_;
+    WritableBuffer* writebufptr_;
 
   public:
     TemporaryFile();
@@ -50,11 +51,21 @@ class TemporaryFile
 
     const std::string& name() const;
 
-    // Open and memmap the file, returning the pointer to the file's
-    // data. Once this method is called, it is no longer safe to
-    // modify the underlying file.
-    //
-    void* data();
+    // Open the underlying file for writing and return the
+    // corresponding WritableBuffer object. This method may be
+    // called multiple times, returning the same object.
+    WritableBuffer* data_w();
+
+    // Open the file for reading, returning the pointer to the file's
+    // data. If the file was opened for writing previously, its
+    // WritableBuffer object will be finalized and closed.
+    void* data_r();
+
+  private:
+    void init_read_buffer();
+    void close_read_buffer() noexcept;
+    void init_write_buffer();
+    void close_write_buffer() noexcept;
 };
 
 

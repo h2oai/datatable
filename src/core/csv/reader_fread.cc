@@ -22,6 +22,7 @@
 #include "csv/reader_fread.h"    // FreadReader
 #include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
 #include "utils/misc.h"          // wallclock
+#include "column.h"
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 
 

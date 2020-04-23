@@ -270,12 +270,12 @@ void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows,
     // no point in allocating more than that amount.
     new_nrows = nrows_max;
   }
-  nrows_allocated = new_nrows;
 
-  g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
+  g.trace("Too few rows allocated, reallocating to %zu rows", new_nrows);
 
   ordered_loop->wait_until_all_finalized();
-  g.preframe.set_nrows(nrows_allocated);
+  g.preframe.set_nrows(new_nrows, nrows_written);
+  nrows_allocated = new_nrows;
 }
 
 
