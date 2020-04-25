@@ -160,4 +160,14 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 #endif
 
 
+//------------------------------------------------------------------------------
+// Platform specific pragmas
+//------------------------------------------------------------------------------
+
+#if DT_OS_WINDOWS
+  // Disable C4996 warning ("This function or variable may be unsafe")
+  // issued by MSVC for a fully valid and portable code
+  #pragma warning(disable : 4996)
+#endif
+
 #endif
