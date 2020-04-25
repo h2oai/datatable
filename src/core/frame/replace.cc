@@ -27,6 +27,7 @@
 #include "python/dict.h"
 #include "python/list.h"
 #include "utils/assert.h"
+#include "utils/macros.h"
 
 namespace py {
 

@@ -48,6 +48,8 @@
 //
 //------------------------------------------------------------------------------
 #include "lib/zlib/deflate.h"
+#include "utils/macros.h"
+
 namespace zlib {
 
 #if defined(__clang__)
@@ -1200,8 +1202,7 @@ static void fill_window(deflate_state* s)
     more = (unsigned)(s->window_size -(ulg)s->lookahead -(ulg)s->strstart);
 
     /* Deal with !@#$% 64K limit: */
-    const bool small_int = sizeof(int) <= 2;
-    if (small_int) {
+    if (sizeof(int) <= 2) {
       if (more == 0 && s->strstart == 0 && s->lookahead == 0) {
         more = wsize;
 

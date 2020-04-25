@@ -168,6 +168,10 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
   // Disable C4996 warning ("This function or variable may be unsafe")
   // issued by MSVC for a fully valid and portable code
   #pragma warning(disable : 4996)
+
+  // Disable C4127 warning ("consider using 'if constexpr' statement instead")
+  // as 'if constexpr' is not available in C++11F
+  #pragma warning(disable : 4127)
 #endif
 
 #endif

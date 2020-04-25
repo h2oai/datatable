@@ -49,6 +49,7 @@
 #include "lib/parallel_hashmap/phmap_utils.h"
 #include "lib/parallel_hashmap/phmap_base.h"
 #include "lib/parallel_hashmap/phmap_fwd_decl.h"
+#include "utils/macros.h"
 
 #if PHMAP_HAVE_STD_STRING_VIEW
     #include <string_view>
@@ -326,7 +327,7 @@ struct GroupSse2Impl
         return BitMask<uint32_t, kWidth>(static_cast<uint32_t>(
             _mm_movemask_epi8(_mm_sign_epi8(ctrl, ctrl))));
 #else
-        return Match(kEmpty);
+        return Match(static_cast<phmap::container_internal::h2_t>(kEmpty));
 #endif
     }
 

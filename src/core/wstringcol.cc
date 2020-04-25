@@ -17,6 +17,7 @@
 #include "column.h"
 #include "datatablemodule.h"
 #include "wstringcol.h"
+#include "utils/macros.h"
 
 namespace dt {
 
