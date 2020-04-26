@@ -63,6 +63,11 @@ namespace zlib {
   #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
+#if DT_OS_WINDOWS
+    #pragma warning(push)
+    #pragma warning(disable : 4244)
+#endif
+
 
 const char deflate_copyright[] =
    " deflate 1.2.11 Copyright 1995-2017 Jean-loup Gailly and Mark Adler ";
@@ -1404,10 +1409,10 @@ static block_state deflate_stored(deflate_state* s, int flush)
     _tr_stored_block(s, (char *)0, 0L, last);
 
     /* Replace the lengths in the dummy stored block with len. */
-    s->pending_buf[s->pending - 4] = static_cast<zlib::Bytef>(len);
-    s->pending_buf[s->pending - 3] = static_cast<zlib::Bytef>(len >> 8);
-    s->pending_buf[s->pending - 2] = static_cast<zlib::Bytef>(~len);
-    s->pending_buf[s->pending - 1] = static_cast<zlib::Bytef>(~len >> 8);
+    s->pending_buf[s->pending - 4] = len;
+    s->pending_buf[s->pending - 3] = len >> 8;
+    s->pending_buf[s->pending - 2] = ~len;
+    s->pending_buf[s->pending - 1] = ~len >> 8;
 
     /* Write the stored block header bytes. */
     flush_pending(s->strm);
@@ -1879,4 +1884,9 @@ static block_state deflate_huff(deflate_state* s, int flush)
 #if defined(__clang__)
   #pragma clang diagnostic pop
 #endif
+
+#if DT_OS_WINDOWS
+    #pragma warning(pop)
+#endif
+
 } // namespace zlib

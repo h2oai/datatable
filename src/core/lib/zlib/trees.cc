@@ -30,6 +30,7 @@
 //          Addison-Wesley, 1983. ISBN 0-201-06672-6.
 //------------------------------------------------------------------------------
 #include "lib/zlib/deflate.h"
+#include "utils/macros.h"
 namespace zlib {
 
 #ifdef __clang__
@@ -43,6 +44,10 @@ namespace zlib {
   #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
+#if DT_OS_WINDOWS
+    #pragma warning(push)
+    #pragma warning(disable : 4244)
+#endif
 
 
 /* ===========================================================================
@@ -515,7 +520,7 @@ static void scan_tree (deflate_state *s, ct_data *tree, int max_code)
     if (++count < max_count && curlen == nextlen) {
       continue;
     } else if (count < min_count) {
-      s->bl_tree[curlen].Freq += static_cast<zlib::ush>(count);
+      s->bl_tree[curlen].Freq += count;
     } else if (curlen != 0) {
       if (curlen != prevlen) s->bl_tree[curlen].Freq++;
       s->bl_tree[REP_3_6].Freq++;
@@ -992,4 +997,10 @@ static void bi_windup(deflate_state *s)
 #ifdef __clang__
   #pragma clang diagnostic pop
 #endif
+
+#if DT_OS_WINDOWS
+    #pragma warning(pop)
+#endif
+
+
 }  // namespace zlib

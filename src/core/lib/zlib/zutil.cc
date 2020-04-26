@@ -3,7 +3,6 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 #include "lib/zlib/zutil.h"
-#include "utils/macros.h"
 
 namespace zlib {
 
