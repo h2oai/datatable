@@ -873,7 +873,7 @@ class SortContext {
     uint8_t nradixbits = nsigbits < sort_max_radix_bits
                          ? nsigbits : sort_over_radix_bits;
     shift = nsigbits - nradixbits;
-    nradixes = 1 << nradixbits;
+    nradixes = size_t(1) << nradixbits;
 
     // The remaining number of sig.bits is `shift`. Thus, this value will
     // determine the `next_elemsize`.

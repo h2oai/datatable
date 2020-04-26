@@ -22,11 +22,11 @@ inline void btoa(char** pch, int8_t value)
     *ch++ = '1';
     int d = value/10;
     *ch++ = static_cast<char>(d) - 10 + '0';
-    value -= d*10;
+    value -= static_cast<int8_t>(d*10);
   } else if (value >= 10) {
     int d = value/10;
     *ch++ = static_cast<char>(d) + '0';
-    value -= d*10;
+    value -= static_cast<int8_t>(d*10);
   }
   *ch++ = static_cast<char>(value) + '0';
   *pch = ch;
@@ -49,7 +49,7 @@ inline void htoa(char** pch, int16_t value)
   for (; r; r--) {
     int d = value / DIVS32[r];
     *ch++ = static_cast<char>(d) + '0';
-    value -= d * DIVS32[r];
+    value -= static_cast<int16_t>(d * DIVS32[r]);
   }
   *ch = static_cast<char>(value) + '0';
   *pch = ch + 1;
