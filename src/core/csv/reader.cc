@@ -83,6 +83,7 @@ void GenericReader::init_options() {
 //------------------------------------------------------------------------------
 
 GenericReader::GenericReader()
+  : preframe(this)
 {
   na_strings = nullptr;
   sof = nullptr;
@@ -97,6 +98,7 @@ GenericReader::GenericReader()
 
 // Copy-constructor will copy only the essential parts
 GenericReader::GenericReader(const GenericReader& g)
+  : preframe(this)
 {
   // Input parameters
   nthreads         = g.nthreads;

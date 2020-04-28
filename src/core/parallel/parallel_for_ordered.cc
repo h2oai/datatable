@@ -63,6 +63,7 @@ class ordered_task : public thread_task {
     bool ready_to_order()  const noexcept { return state == READY_TO_ORDER; }
     bool ready_to_finish() const noexcept { return state == READY_TO_FINISH; }
     bool is_finishing()    const noexcept { return state == FINISHING; }
+    size_t iteration()     const noexcept { return n_iter; }
 
     void advance_state();
     void cancel();
@@ -389,6 +390,16 @@ void ordered::set_n_iterations(size_t n) {
 
 void ordered::wait_until_all_finalized() const {
   sch->wait_until_all_finalized();
+}
+
+
+size_t ordered::get_n_iterations() const {
+  std::lock_guard<dt::spin_mutex> lock(sch->mutex);
+  return sch->n_iterations;
+}
+
+size_t ordered::current_iteration() const {
+  return sch->assigned_tasks[dt::this_thread_index()]->iteration();
 }
 
 

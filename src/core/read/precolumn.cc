@@ -317,14 +317,35 @@ py::oobj PreColumn::py_descriptor() const {
 
 
 size_t PreColumn::memory_footprint() const {
-  size_t sz = 0;
-  for (const auto& col : chunks_) {
-    sz += col.memory_footprint();
-  }
+  size_t sz = archived_size();
   sz += databuf_.memory_footprint();
   sz += strbuf_? strbuf_->size() : 0;
   sz += name_.size() + sizeof(*this);
   return sz;
+}
+
+
+size_t PreColumn::archived_size() const {
+  size_t sz = 0;
+  for (const auto& col : chunks_) {
+    sz += col.memory_footprint();
+  }
+  return sz;
+}
+
+
+void PreColumn::prepare_for_rereading() {
+  if (type_bumped_ && present_in_output_) {
+    present_in_buffer_ = true;
+    type_bumped_ = false;
+    chunks_.clear();
+    nrows_allocated_ = 0;
+    nrows_archived_ = 0;
+    strbuf_ = nullptr;
+  }
+  else {
+    present_in_buffer_ = false;
+  }
 }
 
 

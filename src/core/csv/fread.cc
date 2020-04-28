@@ -57,8 +57,6 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     size_t ncols = preframe.ncols();
     size_t ndropped = 0;
     int nUserBumped = 0;
-    size_t row_binary_size = 0;
-    size_t row_string_size = 0;
     for (size_t i = 0; i < ncols; i++) {
       auto& col = preframe.column(i);
       col.reset_type_bumped();
@@ -74,17 +72,6 @@ std::unique_ptr<DataTable> FreadReader::read_all()
             << "' down to '" << col.typeName() << "' which is not supported yet.";
       }
       nUserBumped += (col.get_ptype() != oldtypes[i]);
-      row_binary_size += col.elemsize();
-      row_string_size += col.elemsize() * col.is_string();
-    }
-
-    if ((row_binary_size + row_string_size) * allocnrow > memory_bound) {
-      allocnrow = memory_bound / (row_binary_size + row_string_size);
-      if (!allocnrow) allocnrow = 1;
-      if (verbose) {
-        trace("Allocation size reduced to %zd rows due to memory_bound parameter",
-              allocnrow);
-      }
     }
 
     if (verbose) {
@@ -95,8 +82,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       trace("Allocating %d column slots with %zd rows",
             ncols - ndropped, allocnrow);
     }
-    preframe.set_nrows(allocnrow);
-    preframe.use_memory_quota(allocnrow * row_binary_size);
+    preframe.preallocate(allocnrow);
 
     if (verbose) {
       fo.t_frame_allocated = wallclock();
@@ -130,32 +116,23 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     } else {
       fo.t_data_reread = wallclock();
     }
-    size_t ncols = preframe.ncols();
     size_t ncols_to_reread = preframe.n_columns_to_reread();
     xassert((ncols_to_reread > 0) == reread_scheduled);
     if (ncols_to_reread) {
       fo.n_cols_reread += ncols_to_reread;
-      size_t n_type_bump_cols = 0;
-      for (size_t j = 0; j < ncols; j++) {
-        auto& col = preframe.column(j);
-        if (!col.is_in_output()) continue;
-        bool bumped = col.is_type_bumped();
-        col.reset_type_bumped();
-        col.set_in_buffer(bumped);
-        n_type_bump_cols += bumped;
-      }
-      firstTime = false;
       if (verbose) {
-        trace(n_type_bump_cols == 1
+        trace(ncols_to_reread == 1
               ? "%zu column needs to be re-read because its type has changed"
               : "%zu columns need to be re-read because their types have changed",
-              n_type_bump_cols);
+              ncols_to_reread);
       }
+      preframe.prepare_for_rereading();
+      firstTime = false;
       reread_scheduled = false;
       goto read;
     }
 
-    fo.n_rows_read = preframe.nrows();
+    fo.n_rows_read = preframe.nrows_written();
     fo.n_cols_read = preframe.n_columns_in_output();
   }
 

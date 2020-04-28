@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "csv/reader.h"              // GenericReader
 #include "csv/reader_parsers.h"
 #include "read/preframe.h"
 #include "utils/temporary_file.h"    // TemporaryFile
@@ -29,71 +30,176 @@ namespace read {
 
 
 
-PreFrame::PreFrame() noexcept
-  : nrows_(0),
-    memory_limit_(MEMORY_UNLIMITED),
-    memory_remaining_(MEMORY_UNLIMITED) {}
+PreFrame::PreFrame(const GenericReader* reader) noexcept
+  : g_(reader),
+    nrows_allocated_(0),
+    nrows_written_(0),
+    memory_limit_(MEMORY_UNLIMITED) {}
 
 
 
 //------------------------------------------------------------------------------
-// Basic properties
+// Columns
 //------------------------------------------------------------------------------
 
 size_t PreFrame::ncols() const noexcept {
   return columns_.size();
 }
 
-size_t PreFrame::nrows() const noexcept {
-  return nrows_;
-}
-
 
 void PreFrame::set_ncols(size_t ncols) {
   xassert(ncols >= columns_.size());
+  xassert(nrows_written_ == 0);  // TODO: handle the case when this isn't true
   columns_.resize(ncols);
 }
 
 
-void PreFrame::set_nrows(size_t new_nrows, size_t nrows_written)
-{
-  // If some data was already written into PreColumns, then "archive"
-  // that data into column chunks within each PreColumn.
-  if (new_nrows > nrows_ && nrows_written > 0) {
-    if (!tempfile_ && memory_limit_ != MEMORY_UNLIMITED) {
-      size_t current_memory = total_allocsize();
-      double new_memory = 1.0 * new_nrows / nrows_ * current_memory;
-      if (new_memory > 0.95 * memory_limit_) {
-        init_tempfile();
+
+
+//------------------------------------------------------------------------------
+// Rows
+//------------------------------------------------------------------------------
+
+size_t PreFrame::nrows_allocated() const noexcept {
+  return nrows_allocated_;
+}
+
+size_t PreFrame::nrows_written() const noexcept {
+  return nrows_written_;
+}
+
+
+void PreFrame::preallocate(size_t nrows) {
+  xassert(nrows_written_ == 0);
+  // Possibly reduce memory allocation if there is a memory limit
+  if (memory_limit_ != MEMORY_UNLIMITED) {
+    size_t row_size = 0;
+    for (const auto& col : columns_) {
+      row_size += col.elemsize() * (1 + col.is_string());
+    }
+    if (row_size * nrows > memory_limit_) {
+      nrows = std::max(size_t(1), memory_limit_ / row_size);
+      if (g_->verbose) {
+        g_->trace("Allocation size reduced to %zu rows due to memory_bound "
+                  "parameter", nrows);
       }
     }
+  }
+  for (auto& col : columns_) {
+    col.allocate(nrows);
+  }
+  nrows_allocated_ = nrows;
+}
+
+
+/**
+  * Make sure there is enough room in the columns to write
+  * `nrows_in_chunk` rows. This parameter is passed by reference,
+  * because occasionally PreFrame will need to reduce the effective
+  * number of rows in the chunk (this happens when the total number)
+  * of rows exceeds `max_nrows_`.
+  *
+  * The `ordered_loop` variable allows us to retrieve information
+  * about the current state of iteration, and to wait until the
+  * currently pending data is safely written if we need to reallocate
+  * buffers.
+  *
+  * This function will also adjust the `nrows_written` counter, and
+  * thus should be called from the ordered section only.
+  */
+void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
+                                   dt::ordered* ordered_loop)
+{
+  size_t nrows_new = nrows_written_ + nrows_in_chunk;
+  size_t nrows_max = g_->max_nrows;
+
+  // The loop is run at most once. In the most common case it doesn't
+  // run at all.
+  while (nrows_new > nrows_allocated_) {
+    // If the new number of rows would exceed `nrows_max`, then no need
+    // to reallocate the output, just truncate the rows in the current
+    // chunk.
+    if (nrows_new > nrows_max) {
+      xassert(nrows_written_ <= nrows_max);
+      nrows_in_chunk = nrows_max - nrows_written_;
+      nrows_new = nrows_max;
+      if (nrows_new <= nrows_allocated_) break;
+    }
+
+    // Estimate the final number of rows that will be needed
+    size_t nchunks = ordered_loop->get_n_iterations();
+    xassert(ichunk < nchunks);
+    if (ichunk < nchunks - 1) {
+      nrows_new = std::min(
+          nrows_max,
+          std::max(
+              1024 + nrows_allocated_,
+              static_cast<size_t>(1.2 * nrows_new * nchunks / (ichunk + 1))
+      ));
+    }
+
+    xassert(nrows_new >= nrows_in_chunk + nrows_written_);
+    ordered_loop->wait_until_all_finalized();
+    archive_column_chunks(nrows_new);
+
+    // If there is a memory limit, then we potentially need to adjust
+    // the number of rows allocated, so as not to exceed this limit.
+    if (memory_limit_ != MEMORY_UNLIMITED) {
+      size_t nrows_extra = nrows_new - nrows_written_;
+      size_t archived_size = 0;
+      for (const auto& col : columns_) {
+        archived_size += col.archived_size();
+      }
+      double avg_size_per_row = 1.0 * archived_size / nrows_written_;
+      if (nrows_extra * avg_size_per_row > memory_limit_) {
+        nrows_extra = std::max(
+            nrows_in_chunk,
+            static_cast<size_t>(memory_limit_ / avg_size_per_row)
+        );
+        nrows_new = nrows_written_ + nrows_extra;
+      }
+    }
+
+    g_->trace("Too few rows allocated, reallocating to %zu rows", nrows_new);
+
+    // Now reallocate all columns for a proper number of rows
     for (auto& col : columns_) {
-      col.archive_data(nrows_written, tempfile_);
+      col.allocate(nrows_new);
+    }
+    nrows_allocated_ = nrows_new;
+  }
+
+  if (nrows_new == nrows_max) {
+    ordered_loop->set_n_iterations(ichunk + 1);
+  }
+  nrows_written_ += nrows_in_chunk;
+  xassert(nrows_written_ <= nrows_allocated_);
+}
+
+
+void PreFrame::archive_column_chunks(size_t expected_nrows) {
+  if (nrows_written_ == 0) return;
+  xassert(nrows_allocated_ > 0);
+
+  if (!tempfile_ && memory_limit_ != MEMORY_UNLIMITED) {
+    size_t current_memory = total_allocsize();
+    double new_memory = 1.0 * expected_nrows / nrows_allocated_ * current_memory;
+    if (new_memory > 0.95 * memory_limit_) {
+      init_tempfile();
     }
   }
-  // Now reallocate all columns for a proper number of rows
   for (auto& col : columns_) {
-    col.allocate(new_nrows);
+    col.archive_data(nrows_written_, tempfile_);
   }
-  nrows_ = new_nrows;
-}
-
-
-void PreFrame::set_memory_bound(size_t sz) {
-  memory_limit_ = sz;
-  memory_remaining_ = sz;
-}
-
-void PreFrame::use_memory_quota(size_t sz) {
-  if (memory_remaining_ < sz) {
-    memory_remaining_ = memory_limit_;
-  }
-  memory_remaining_ -= sz;
 }
 
 
 void PreFrame::init_tempfile() {
   tempfile_ = std::shared_ptr<TemporaryFile>(new TemporaryFile());
+  if (g_->get_verbose()) {
+    auto name = tempfile_->name();
+    g_->trace("Created temporary file %s", name.c_str());
+  }
 }
 
 
@@ -244,6 +350,15 @@ size_t PreFrame::total_allocsize() const {
 // Finalizing
 //------------------------------------------------------------------------------
 
+void PreFrame::prepare_for_rereading() {
+  for (auto& col : columns_) {
+    col.prepare_for_rereading();
+  }
+  nrows_written_ = 0;
+  nrows_allocated_ = 0;
+}
+
+
 dtptr PreFrame::to_datatable() && {
   std::vector<::Column> ccols;
   std::vector<std::string> names;
@@ -251,8 +366,10 @@ dtptr PreFrame::to_datatable() && {
   ccols.reserve(n_outcols);
   names.reserve(n_outcols);
 
+  std::shared_ptr<TemporaryFile> tmp = nullptr;
   for (auto& col : columns_) {
     if (!col.is_in_output()) continue;
+    col.archive_data(nrows_written_, tmp);
     names.push_back(col.get_name());
     ccols.push_back(col.to_column());
   }

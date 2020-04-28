@@ -45,9 +45,7 @@ class ParallelReader
 
   protected:
     GenericReader& g;
-    size_t nrows_max;
-    size_t nrows_allocated;
-    size_t nrows_written;
+    PreFrame& preframe;
     size_t nthreads;
 
   public:

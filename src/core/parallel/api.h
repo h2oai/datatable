@@ -129,6 +129,9 @@ class ordered {
                   function<void(size_t)> post_ordered);
     void set_n_iterations(size_t n);
     void wait_until_all_finalized() const;
+
+    size_t get_n_iterations() const;
+    size_t current_iteration() const;
 };
 
 void parallel_for_ordered(size_t n_iterations, NThreads NThreads_,
