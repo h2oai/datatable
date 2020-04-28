@@ -182,6 +182,7 @@ def test_fread_from_anysource_filelike():
             "file-like objects is not supported on Windows"):
             d0 = dt.fread(MyFile())
     else:
+        d0 = dt.fread(MyFile())
         frame_integrity_check(d0)
         assert d0.source == "fake file"
         assert d0.names == ("A", "B", "C")
