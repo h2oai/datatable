@@ -207,19 +207,24 @@ def test_fread_from_stringbuf():
     assert d0.to_list() == [[1, 4], [2, 5], [3, 6]]
 
 
-# This test is temporarily disabled in Windows, 
-# because there it makes pytest to stop abruptly.
-def test_fread_from_fileobj(tempfile, nowin):
+def test_fread_from_fileobj(tempfile):
+    import platform
 
     with open(tempfile, "w") as f:
         f.write("A,B,C\nfoo,bar,baz\n")
 
     with open(tempfile, "r") as f:
-        d0 = dt.fread(f)
-        frame_integrity_check(d0)
-        assert d0.source == tempfile
-        assert d0.names == ("A", "B", "C")
-        assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
+        if platform.system() == "Windows":
+            msg = "Reading from file-like objects, that involves " \
+                  "file descriptors, is not supported on Windows"
+            with pytest.raises(NotImplementedError, match=msg):
+                d0 = dt.fread(f)
+        else:
+            d0 = dt.fread(f)
+            frame_integrity_check(d0)
+            assert d0.source == tempfile
+            assert d0.names == ("A", "B", "C")
+            assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
 
 
 def test_fread_file_not_exists():
