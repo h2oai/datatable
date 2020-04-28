@@ -150,10 +150,6 @@ def _resolve_source_file(file, tempfiles):
         file = file.expanduser()
         file = str(file)
     elif hasattr(file, "read") and callable(file.read):
-        import platform
-        # if platform.system() == "Windows":
-        #     raise NotImplementedError("Reading from file-like objects is not "
-        #                               "supported on Windows") 
         out_src = None
         out_fileno = None
         out_text = None
