@@ -375,7 +375,11 @@ void GenericReader::init_logger(
 
 
 void GenericReader::init_memorybound(const py::Arg& arg) {
-  memory_bound = arg.to<size_t>(size_t(-1));
+  constexpr size_t UNLIMITED = size_t(-1);
+  memory_bound = arg.to<size_t>(UNLIMITED);
+  if (memory_bound != UNLIMITED) {
+    trace("memory_limit = %zu bytes", memory_bound);
+  }
 }
 
 

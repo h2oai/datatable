@@ -54,7 +54,6 @@ class PreFrame
     size_t nrows_written_;
 
     static constexpr size_t MEMORY_UNLIMITED = size_t(-1);
-    size_t memory_limit_;
     std::shared_ptr<TemporaryFile> tempfile_;
 
   public:

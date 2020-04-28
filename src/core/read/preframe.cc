@@ -33,8 +33,7 @@ namespace read {
 PreFrame::PreFrame(const GenericReader* reader) noexcept
   : g_(reader),
     nrows_allocated_(0),
-    nrows_written_(0),
-    memory_limit_(MEMORY_UNLIMITED) {}
+    nrows_written_(0) {}
 
 
 
@@ -71,14 +70,16 @@ size_t PreFrame::nrows_written() const noexcept {
 
 void PreFrame::preallocate(size_t nrows) {
   xassert(nrows_written_ == 0);
+  size_t memory_limit = g_->memory_bound;
+
   // Possibly reduce memory allocation if there is a memory limit
-  if (memory_limit_ != MEMORY_UNLIMITED) {
+  if (memory_limit != MEMORY_UNLIMITED) {
     size_t row_size = 0;
     for (const auto& col : columns_) {
       row_size += col.elemsize() * (1 + col.is_string());
     }
-    if (row_size * nrows > memory_limit_) {
-      nrows = std::max(size_t(1), memory_limit_ / row_size);
+    if (row_size * nrows > memory_limit) {
+      nrows = std::max(size_t(1), memory_limit / row_size);
       if (g_->verbose) {
         g_->trace("Allocation size reduced to %zu rows due to memory_bound "
                   "parameter", nrows);
@@ -112,6 +113,7 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
 {
   size_t nrows_new = nrows_written_ + nrows_in_chunk;
   size_t nrows_max = g_->max_nrows;
+  size_t memory_limit = g_->memory_bound;
 
   // The loop is run at most once. In the most common case it doesn't
   // run at all.
@@ -144,17 +146,17 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
 
     // If there is a memory limit, then we potentially need to adjust
     // the number of rows allocated, so as not to exceed this limit.
-    if (memory_limit_ != MEMORY_UNLIMITED) {
+    if (memory_limit != MEMORY_UNLIMITED) {
       size_t nrows_extra = nrows_new - nrows_written_;
       size_t archived_size = 0;
       for (const auto& col : columns_) {
         archived_size += col.archived_size();
       }
       double avg_size_per_row = 1.0 * archived_size / nrows_written_;
-      if (nrows_extra * avg_size_per_row > memory_limit_) {
+      if (nrows_extra * avg_size_per_row > memory_limit) {
         nrows_extra = std::max(
             nrows_in_chunk,
-            static_cast<size_t>(memory_limit_ / avg_size_per_row)
+            static_cast<size_t>(memory_limit / avg_size_per_row)
         );
         nrows_new = nrows_written_ + nrows_extra;
       }
@@ -180,11 +182,12 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
 void PreFrame::archive_column_chunks(size_t expected_nrows) {
   if (nrows_written_ == 0) return;
   xassert(nrows_allocated_ > 0);
+  size_t memory_limit = g_->memory_bound;
 
-  if (!tempfile_ && memory_limit_ != MEMORY_UNLIMITED) {
+  if (!tempfile_ && memory_limit != MEMORY_UNLIMITED) {
     size_t current_memory = total_allocsize();
     double new_memory = 1.0 * expected_nrows / nrows_allocated_ * current_memory;
-    if (new_memory > 0.95 * memory_limit_) {
+    if (new_memory > 0.95 * memory_limit) {
       init_tempfile();
     }
   }
