@@ -213,16 +213,17 @@ def test_fread_from_fileobj(tempfile):
         f.write("A,B,C\nfoo,bar,baz\n")
 
     if platform.system() == "Windows":
-        with pytest.raises(NotImplError, match="Reading from a file descriptor "
-                                               "is not supported on Windows"):
+        with open(tempfile, "r") as f, \
+             pytest.raises(NotImplementedError, match="Reading from a file "
+                "object is not supported on Windows"):
             d0 = dt.fread(f)
-
-    with open(tempfile, "r") as f:
-        d0 = dt.fread(f)
-        frame_integrity_check(d0)
-        assert d0.source == tempfile
-        assert d0.names == ("A", "B", "C")
-        assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
+    else:
+        with open(tempfile, "r") as f:
+            d0 = dt.fread(f)
+            frame_integrity_check(d0)
+            assert d0.source == tempfile
+            assert d0.names == ("A", "B", "C")
+            assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
 
 
 def test_fread_file_not_exists():
