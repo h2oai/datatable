@@ -213,14 +213,13 @@ def test_fread_from_fileobj(tempfile):
     with open(tempfile, "w") as f:
         f.write("A,B,C\nfoo,bar,baz\n")
 
-    if platform.system() == "Windows":
-        with open(tempfile, "r") as f, \
-             pytest.raises(NotImplementedError, match="Reading from "
-                "file-like objects, that involves file descriptors, "
-                "is not supported on Windows"):
-            d0 = dt.fread(f)
-    else:
-        with open(tempfile, "r") as f:
+    with open(tempfile, "r") as f:
+        if platform.system() == "Windows":
+            msg = "Reading from file-like objects, that involves " \
+                  "file descriptors, is not supported on Windows"
+            with pytest.raises(NotImplementedError, match=msg):
+                d0 = dt.fread(f)
+        else:
             d0 = dt.fread(f)
             frame_integrity_check(d0)
             assert d0.source == tempfile
