@@ -28,6 +28,7 @@
 import pytest
 import datatable as dt
 import os
+import platform
 import sys
 from datatable import ltype, stype
 from datatable.exceptions import FreadWarning, DatatableWarning, IOWarning
@@ -176,11 +177,15 @@ def test_fread_from_anysource_filelike():
         def read(self):
             return "A,B,C\na,b,c\n"
 
-    d0 = dt.fread(MyFile())
-    frame_integrity_check(d0)
-    assert d0.source == "fake file"
-    assert d0.names == ("A", "B", "C")
-    assert d0.to_list() == [["a"], ["b"], ["c"]]
+    if platform.system() == "Windows":
+        with pytest.raises(NotImplementedError, match="Reading from "
+            "file-like objects is not supported on Windows"):
+            d0 = dt.fread(MyFile())
+    else:
+        frame_integrity_check(d0)
+        assert d0.source == "fake file"
+        assert d0.names == ("A", "B", "C")
+        assert d0.to_list() == [["a"], ["b"], ["c"]]
 
 
 def test_fread_from_anysource_as_url(tempfile, capsys):
@@ -200,22 +205,26 @@ def test_fread_from_anysource_as_url(tempfile, capsys):
 def test_fread_from_stringbuf():
     from io import StringIO
     s = StringIO("A,B,C\n1,2,3\n4,5,6")
-    d0 = dt.fread(s)
-    frame_integrity_check(d0)
-    assert d0.source == "<file>"
-    assert d0.names == ("A", "B", "C")
-    assert d0.to_list() == [[1, 4], [2, 5], [3, 6]]
+    if platform.system() == "Windows":
+        with pytest.raises(NotImplementedError, match="Reading from "
+                "file-like objects is not supported on Windows"):
+            d0 = dt.fread(s)
+    else:
+        d0 = dt.fread(s)
+        frame_integrity_check(d0)
+        assert d0.source == "<file>"
+        assert d0.names == ("A", "B", "C")
+        assert d0.to_list() == [[1, 4], [2, 5], [3, 6]]
 
 
 def test_fread_from_fileobj(tempfile):
-    import platform
     with open(tempfile, "w") as f:
         f.write("A,B,C\nfoo,bar,baz\n")
 
     if platform.system() == "Windows":
         with open(tempfile, "r") as f, \
-             pytest.raises(NotImplementedError, match="Reading from a file "
-                "object is not supported on Windows"):
+             pytest.raises(NotImplementedError, match="Reading from "
+                "file-like objects is not supported on Windows"):
             d0 = dt.fread(f)
     else:
         with open(tempfile, "r") as f:
