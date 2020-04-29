@@ -27,6 +27,9 @@
 
 #if DT_OS_WINDOWS
 
+  #pragma warning(push)
+  #pragma warning(disable : 4100)
+
   #include <windows.h>
   #include <errno.h>
   #include <io.h>
@@ -215,5 +218,7 @@
 
       return -1;
   }
+
+  #pragma warning(pop)
 
 #endif

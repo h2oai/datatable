@@ -75,7 +75,7 @@ static void init() {
 static bool is_string_empty(const char* msg) noexcept {
   if (!msg) return true;
   char c;
-  while ((c = *msg)) {
+  while ((c = *msg) != 0) {
     if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r'))
       return false;
     msg++;
