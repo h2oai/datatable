@@ -172,6 +172,7 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
   // Disable C4127 warning ("consider using 'if constexpr' statement instead")
   // as 'if constexpr' is not available in C++11
   #pragma warning(disable : 4127)
+  #pragma warning(disable : 4661)
 #endif
 
 #endif

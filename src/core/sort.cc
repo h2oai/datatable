@@ -693,7 +693,7 @@ class SortContext {
     int64_t min = column.stats()->min_int(nullptr);
     int64_t max = column.stats()->max_int(nullptr);
     nsigbits = sizeof(T) * 8;
-    nsigbits -= dt::nlz(static_cast<TU>(max - min + 1));
+    nsigbits -= static_cast<int8_t>(dt::nlz(static_cast<TU>(max - min + 1)));
     T edge = static_cast<T>(ASC? min : max);
     if (nsigbits > 32)      _initI_impl<ASC, T, TU, uint64_t>(edge);
     else if (nsigbits > 16) _initI_impl<ASC, T, TU, uint32_t>(edge);
