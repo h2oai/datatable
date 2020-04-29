@@ -10,6 +10,7 @@
 #include "read/fread/fread_tokenizer.h"  // FreadTokenizer
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
+#include "utils/macros.h"                // xassert
 
 static constexpr int8_t   NA_BOOL8 = -128;
 static constexpr int32_t  NA_INT32 = INT32_MIN;
@@ -217,12 +218,13 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
   if ((sf? sf < max_digits : ch > start) ||
       (sf == max_digits && acc <= max_value))
   {
-    switch (sizeof(T)) {
-      case 4: ctx.target->int32 = negative? -static_cast<int32_t>(acc) :
-                                            static_cast<int32_t>(acc);
-              break;
-      case 8: ctx.target->int64 = negative? -static_cast<int64_t>(acc) :
-                                            static_cast<int64_t>(acc);
+    if (sizeof(T) == 4) {
+      int32_t x = static_cast<int32_t>(acc);
+      ctx.target->int32 = negative? -x : x;
+    }
+    if (sizeof(T) == 8) {
+      int64_t x = static_cast<int64_t>(acc);
+      ctx.target->int64 = negative? -x : x;
     }
 
     ctx.ch = ch;
@@ -230,10 +232,8 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
   }
 
   fail:
-    switch (sizeof(T)) {
-      case 4: ctx.target->int32 = NA_INT32; break;
-      case 8: ctx.target->int64 = NA_INT64;
-    }
+    if (sizeof(T) == 4) ctx.target->int32 = NA_INT32;
+    if (sizeof(T) == 8) ctx.target->int64 = NA_INT64;
 }
 
 

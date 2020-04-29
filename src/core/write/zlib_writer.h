@@ -97,10 +97,7 @@ class zlib_writer {
       if (input_size != static_cast<zlib::uLong>(input_size)) {
         throw RuntimeError() << "Cannot compress chunk of size " << input_size;
       }
-      size_t out_size = zlib::deflateBound(
-                          &stream, 
-                          static_cast<zlib::uLong>(input_size)
-                        );  // estimated
+      size_t out_size = zlib::deflateBound(&stream, input_size);  // estimated
       ensure_buffer_capacity(out_size);
 
       reset_buffer();
