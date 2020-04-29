@@ -81,13 +81,15 @@ template <typename T>
 size_t SentinelStr_ColumnImpl<T>::get_data_size(size_t k) const {
   xassert(k <= 1);
   if (k == 0) {
-    xassert(offbuf_.size() >= (nrows_ + 1) * sizeof(T));
-    return (nrows_ + 1) * sizeof(T);
+    // xassert(offbuf_.size() >= (nrows_ + 1) * sizeof(T));
+    // return (nrows_ + 1) * sizeof(T);
+    return offbuf_.size();
   }
   else {
-    size_t sz = static_cast<const T*>(offbuf_.rptr())[nrows_] & ~GETNA<T>();
-    xassert(sz <= strbuf_.size());
-    return sz;
+    // size_t sz = static_cast<const T*>(offbuf_.rptr())[nrows_] & ~GETNA<T>();
+    // xassert(sz <= strbuf_.size());
+    // return sz;
+    return strbuf_.size();
   }
 }
 

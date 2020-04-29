@@ -324,7 +324,10 @@ size_t PreColumn::memory_footprint() const {
 size_t PreColumn::archived_size() const {
   size_t sz = 0;
   for (const auto& col : chunks_) {
-    sz += col.memory_footprint();
+    size_t k = col.get_num_data_buffers();
+    for (size_t i = 0; i < k; ++i) {
+      sz += col.get_data_size(i);
+    }
   }
   return sz;
 }
