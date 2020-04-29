@@ -57,7 +57,6 @@ class PreColumn
     Buffer databuf_;
     std::unique_ptr<MemoryWritableBuffer> strbuf_;
     std::vector<Column> chunks_;
-    size_t nrows_allocated_;
     size_t nrows_archived_;
     PT parse_type_;
     RT rtype_;

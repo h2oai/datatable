@@ -36,8 +36,7 @@ namespace read {
 //------------------------------------------------------------------------------
 
 PreColumn::PreColumn()
-  : nrows_allocated_(0),
-    nrows_archived_(0),
+  : nrows_archived_(0),
     parse_type_(PT::Mu),
     rtype_(RT::RAuto),
     type_bumped_(false),
@@ -49,7 +48,6 @@ PreColumn::PreColumn(PreColumn&& o) noexcept
     databuf_(std::move(o.databuf_)),
     strbuf_(std::move(o.strbuf_)),
     chunks_(std::move(o.chunks_)),
-    nrows_allocated_(o.nrows_allocated_),
     nrows_archived_(o.nrows_archived_),
     parse_type_(o.parse_type_),
     rtype_(o.rtype_),
@@ -69,8 +67,7 @@ void PreColumn::archive_data(size_t nrows_written,
 {
   if (nrows_written == nrows_archived_) return;
   if (type_bumped_ || !present_in_buffer_) return;
-  xassert(nrows_written > nrows_archived_ &&
-          nrows_written <= nrows_archived_ + nrows_allocated_);
+  xassert(nrows_written > nrows_archived_);
 
   bool col_is_string = is_string();
   size_t nrows_chunk = nrows_written - nrows_archived_;
@@ -110,7 +107,6 @@ void PreColumn::archive_data(size_t nrows_written,
                                            std::move(stored_databuf))
   );
   nrows_archived_ = nrows_written;
-  nrows_allocated_ = 0;
   xassert(!databuf_ && !strbuf_);
 }
 
@@ -131,13 +127,12 @@ void PreColumn::allocate(size_t new_nrows) {
                     new MemoryWritableBuffer(allocsize));
     }
   }
-  nrows_allocated_ = new_nrows_allocated;
 }
 
 
+// Call `.archive_data()` before invoking `.to_column()`.
 Column PreColumn::to_column() {
-  std::shared_ptr<TemporaryFile> tmp = nullptr;
-  archive_data(nrows_archived_ + nrows_allocated_, tmp);
+  xassert(!databuf_);
   size_t nchunks = chunks_.size();
   return (nchunks == 0)? Column::new_na_column(0, get_stype()) :
          (nchunks == 1)? std::move(chunks_[0]) :
@@ -340,7 +335,6 @@ void PreColumn::prepare_for_rereading() {
     present_in_buffer_ = true;
     type_bumped_ = false;
     chunks_.clear();
-    nrows_allocated_ = 0;
     nrows_archived_ = 0;
     strbuf_ = nullptr;
   }

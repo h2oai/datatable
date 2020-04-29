@@ -355,6 +355,7 @@ size_t PreFrame::total_allocsize() const {
 
 void PreFrame::prepare_for_rereading() {
   for (auto& col : columns_) {
+    col.archive_data(nrows_written_, tempfile_);
     col.prepare_for_rereading();
   }
   nrows_written_ = 0;
