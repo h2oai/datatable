@@ -59,7 +59,7 @@ class TemporaryFile
     // Open the file for reading, returning the pointer to the file's
     // data. If the file was opened for writing previously, its
     // WritableBuffer object will be finalized and closed.
-    void* data_r();
+    const void* data_r();
 
   private:
     void init_read_buffer();

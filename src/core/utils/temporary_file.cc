@@ -22,6 +22,7 @@
 #include <cstdio>                   // std::remove, std::perror
 #include <cstdlib>                  // std::rand
 #include <ctime>
+#include "parallel/api.h"
 #include "python/obj.h"
 #include "utils/temporary_file.h"
 #include "utils/macros.h"
@@ -29,6 +30,7 @@
 
 
 static std::string get_temp_dir() {
+  std::lock_guard<std::mutex> lock(dt::python_mutex());
   auto gettempdirfn = py::oobj::import("tempfile", "gettempdir");
   auto tempdir = gettempdirfn.call();
   return tempdir.to_string();
@@ -81,10 +83,12 @@ static std::string get_temp_file(const std::string& tempdir) {
 //------------------------------------------------------------------------------
 
 TemporaryFile::TemporaryFile()
-  : filename_(get_temp_file(get_temp_dir())) {}
+  : TemporaryFile(get_temp_dir()) {}
 
 TemporaryFile::TemporaryFile(const std::string& tempdir)
-  : filename_(get_temp_file(tempdir)) {}
+  : filename_(get_temp_file(tempdir)),
+    bufferptr_(nullptr),
+    writebufptr_(nullptr) {}
 
 
 TemporaryFile::~TemporaryFile() {
@@ -112,9 +116,9 @@ WritableBuffer* TemporaryFile::data_w() {
   return writebufptr_;
 }
 
-void* TemporaryFile::data_r() {
+const void* TemporaryFile::data_r() {
   init_read_buffer();
-  return bufferptr_->xptr();
+  return bufferptr_->rptr();
 }
 
 

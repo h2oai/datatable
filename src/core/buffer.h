@@ -89,6 +89,7 @@ class Buffer
     Buffer& operator=(const Buffer&);
     Buffer& operator=(Buffer&&);
     ~Buffer();
+    void swap(Buffer& other);
 
     // Factory constructors:
     //

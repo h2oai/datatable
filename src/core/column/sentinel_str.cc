@@ -46,8 +46,8 @@ SentinelStr_ColumnImpl<T>::SentinelStr_ColumnImpl(size_t n, Buffer&& mb, Buffer&
 {
   xassert(mb);
   xassert(mb.size() >= sizeof(T) * (n + 1));
-  xassert(mb.get_element<T>(0) == 0);
-  xassert(sb.size() >= (mb.get_element<T>(n) & ~GETNA<T>()));
+  // xassert(mb.get_element<T>(0) == 0);
+  // xassert(sb.size() >= (mb.get_element<T>(n) & ~GETNA<T>()));
   offbuf_ = std::move(mb);
   strbuf_ = std::move(sb);
 }

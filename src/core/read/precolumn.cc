@@ -68,7 +68,7 @@ void PreColumn::archive_data(size_t nrows_written,
                              std::shared_ptr<TemporaryFile>& tempfile)
 {
   if (nrows_written == nrows_archived_) return;
-  if (type_bumped_ || !present_in_output_) return;
+  if (type_bumped_ || !present_in_buffer_) return;
   xassert(nrows_written > nrows_archived_ &&
           nrows_written <= nrows_archived_ + nrows_allocated_);
 
@@ -79,7 +79,8 @@ void PreColumn::archive_data(size_t nrows_written,
   if (tempfile) {
     auto writebuf = tempfile->data_w();
     {
-      Buffer tmpbuf = std::move(databuf_);
+      Buffer tmpbuf;
+      tmpbuf.swap(databuf_);
       size_t offset = writebuf->write(data_size, tmpbuf.rptr());
       stored_databuf = Buffer::tmp(tempfile, offset, data_size);
     }
@@ -92,7 +93,7 @@ void PreColumn::archive_data(size_t nrows_written,
     }
   }
   else {
-    stored_databuf = std::move(databuf_);
+    stored_databuf.swap(databuf_);
     stored_databuf.resize(data_size);
     if (col_is_string) {
       strbuf_->finalize();
@@ -115,8 +116,8 @@ void PreColumn::archive_data(size_t nrows_written,
 
 
 void PreColumn::allocate(size_t new_nrows) {
+  if (type_bumped_ || !present_in_buffer_) return;
   xassert(new_nrows >= nrows_archived_);
-  if (type_bumped_ || !present_in_output_) return;
 
   size_t new_nrows_allocated = new_nrows - nrows_archived_;
   size_t allocsize = (new_nrows_allocated + is_string()) * elemsize();

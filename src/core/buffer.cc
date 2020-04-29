@@ -458,7 +458,8 @@ class TemporaryFile_BufferImpl : public BufferImpl
 
 
     void* data() const override {
-      return static_cast<char*>(temporary_file_->data_r()) + offset_;
+      void* ptr = const_cast<void*>(temporary_file_->data_r());
+      return static_cast<char*>(ptr) + offset_;
     }
 
     size_t memory_footprint() const noexcept override {
@@ -729,6 +730,10 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
     if (impl_) impl_->release();
   }
 
+  void Buffer::swap(Buffer& other) {
+    std::swap(impl_, other.impl_);
+  }
+
 
   Buffer Buffer::mem(size_t n) {
     return Buffer(new Memory_BufferImpl(n));
@@ -783,7 +788,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
   //---- Basic properties ------------------------
 
   Buffer::operator bool() const {
-    return (impl_->size() != 0);
+    return (impl_ && impl_->size() != 0);
   }
 
   bool Buffer::is_writable() const {
@@ -854,6 +859,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
 
 
   Buffer& Buffer::resize(size_t newsize, bool keep_data) {
+    xassert(impl_);
     size_t oldsize = impl_->size();
     if (newsize != oldsize) {
       if (is_resizable()) {
