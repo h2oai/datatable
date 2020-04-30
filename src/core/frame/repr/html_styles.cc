@@ -24,7 +24,6 @@
 #include "datatablemodule.h"
 #include "frame/repr/html_widget.h"
 #include "python/string.h"
-#include "utils/macros.h"
 #include "utils/terminal/terminal.h"
 namespace dt {
 

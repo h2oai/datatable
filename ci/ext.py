@@ -214,8 +214,7 @@ def build_extension(cmd, verbosity=3):
     ext.compiler.add_default_python_include_dir()
 
     if ext.compiler.is_msvc():
-        # Common compile flags
-        ext.compiler.add_compiler_flag("/W4")
+        # General compiler flags
         ext.compiler.add_compiler_flag("/EHsc")
         ext.compiler.add_compiler_flag("/nologo")
         ext.compiler.add_include_dir(ext.compiler.path + "\\include")
@@ -223,7 +222,22 @@ def build_extension(cmd, verbosity=3):
         ext.compiler.add_include_dir(ext.compiler.winsdk_include_path + "\\shared")
         ext.compiler.add_include_dir(ext.compiler.winsdk_include_path + "\\um")
 
-        # Common link flags
+        # Compiler warnings
+        ext.compiler.add_compiler_flag(
+            "/W4",
+            # Disable C4996 warning ("This function or variable may be unsafe")
+            # issued by MSVC for a fully valid and portable code
+            "/wd4996",
+            # Disable C4127 warning ("consider using 'if constexpr' statement instead")
+            # as 'if constexpr' is not available in C++11
+            "/wd4127",
+            # Disable C4661 warning ("no suitable definition provided for
+            # explicit template instantiation request") as we really need
+            # to keep some template method definitions in separate translation units
+            "/wd4661",
+        )
+
+        # Link flags
         ext.compiler.add_linker_flag("/nologo")
         ext.compiler.add_linker_flag("/DLL")
         ext.compiler.add_linker_flag("/EXPORT:PyInit__datatable")

@@ -28,7 +28,6 @@
 #include "python/obj.h"
 #include "python/tuple.h"
 #include "utils/assert.h"
-#include "utils/macros.h"
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"

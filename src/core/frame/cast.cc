@@ -27,7 +27,6 @@
 #include "parallel/string_utils.h"  // dt::generate_string_column
 #include "python/_all.h"
 #include "python/string.h"
-#include "utils/macros.h"
 
 
 //------------------------------------------------------------------------------

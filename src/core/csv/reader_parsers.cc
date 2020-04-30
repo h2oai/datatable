@@ -10,7 +10,6 @@
 #include "read/fread/fread_tokenizer.h"  // FreadTokenizer
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
-#include "utils/macros.h"                
 
 static constexpr int8_t   NA_BOOL8 = -128;
 static constexpr int32_t  NA_INT32 = INT32_MIN;

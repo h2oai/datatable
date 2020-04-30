@@ -30,7 +30,6 @@
 #include "python/tuple.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "utils/macros.h"
 
 
 // Singleton, used to write the current "errno" into the stream

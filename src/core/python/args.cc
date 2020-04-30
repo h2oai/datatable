@@ -23,7 +23,6 @@
 #include <cstring>         // std::strrchr
 #include "python/args.h"
 #include "utils/assert.h"
-#include "utils/macros.h"
 
 namespace py {
 
