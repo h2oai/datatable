@@ -102,7 +102,7 @@ class SSorter : public Sorter
         radix_sort(ordering_in, ordering_out, offset, grouper,
                    sort_mode, nullptr);
       }
-      #if DTDEBUG
+      #if DT_DEBUG
         check_sorted(ordering_out);
       #endif
     }
@@ -157,7 +157,7 @@ class SSorter : public Sorter
 
   private:
     void check_sorted(Vec ordering) const {
-      #if DTDEBUG
+      #if DT_DEBUG
         // The `ordering` vector corresponds to the ordering of the
         // original data vector. If the Sorter contains reordered
         // data, then this ordering is not valid for it.

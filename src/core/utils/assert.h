@@ -16,14 +16,14 @@
 // First, fix the NDEBUG macro.
 // This macro, if present, disables all assert statements. Unfortunately, python
 // may add it as a default compilation flag, so in order to combat this we have
-// defined a new `DTDEBUG` macro. This macro may be passed from the Makefile,
+// defined a new `DT_DEBUG` macro. This macro may be passed from the Makefile,
 // and if declared it means to ignore the NDEBUG macro even if it is present.
 #undef NDEBUG
-#ifdef DTDEBUG
-  #undef DTDEBUG
-  #define DTDEBUG 1
+#ifdef DT_DEBUG
+  #undef DT_DEBUG
+  #define DT_DEBUG 1
 #else
-  #define DTDEBUG 0
+  #define DT_DEBUG 0
   #define NDEBUG 1
 #endif
 
@@ -33,7 +33,7 @@
 
 // Here we also define the `xassert` macro, which behaves similarly to `assert`,
 // however it throws exceptions instead of terminating the program
-#if DTDEBUG
+#if DT_DEBUG
   #define wassert(EXPRESSION) \
     if (!(EXPRESSION)) { \
       (AssertionError() << "Assertion '" #EXPRESSION "' failed in " \

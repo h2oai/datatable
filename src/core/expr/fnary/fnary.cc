@@ -79,7 +79,7 @@ SType detect_common_numeric_stype(const colvec& columns, const char* fnname)
                           << " had type `" << columns[i].stype() << "`";
     }
   }
-  #if DTDEBUG
+  #if DT_DEBUG
     if (!columns.empty()) {
       size_t nrows = columns[0].nrows();
       for (const auto& col : columns) xassert(col.nrows() == nrows);

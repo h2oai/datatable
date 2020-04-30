@@ -167,7 +167,7 @@ class rmem {
   private:
   public:
     void* ptr;
-    #if DTDEBUG
+    #if DT_DEBUG
       size_t size;
     #endif
   public:
@@ -205,21 +205,21 @@ void* omem::release() {
 
 rmem::rmem() {
   ptr = nullptr;
-  #if DTDEBUG
+  #if DT_DEBUG
     size = 0;
   #endif
 }
 
 rmem::rmem(const omem& o) {
   ptr = o.ptr;
-  #if DTDEBUG
+  #if DT_DEBUG
     size = o.size;
   #endif
 }
 
 rmem::rmem(const rmem& o) {
   ptr = o.ptr;
-  #if DTDEBUG
+  #if DT_DEBUG
     size = o.size;
   #endif
 }
@@ -227,7 +227,7 @@ rmem::rmem(const rmem& o) {
 rmem::rmem(const rmem& o, size_t offset, size_t n) {
   ptr = static_cast<char*>(o.ptr) + offset;
   (void)n;
-  #if DTDEBUG
+  #if DT_DEBUG
     size = n;
     xassert(offset + n <= o.size);
   #endif
@@ -243,7 +243,7 @@ template <typename T> T* rmem::data() const noexcept {
 
 void swap(rmem& left, rmem& right) noexcept {
   std::swap(left.ptr, right.ptr);
-  #if DTDEBUG
+  #if DT_DEBUG
     std::swap(left.size, right.size);
   #endif
 }
@@ -1357,7 +1357,7 @@ RiGb group(const std::vector<Column>& columns,
   const Column& col0 = columns[0];
 
   size_t nrows = col0.nrows();
-  #if DTDEBUG
+  #if DT_DEBUG
     for (const Column& col : columns) xassert(col.nrows() == nrows);
   #endif
 
