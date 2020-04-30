@@ -147,8 +147,8 @@ void parse_int_simple(FreadTokenizer& ctx) {
       (sd == MAX_DIGITS && value <= MAX_VALUE))
   {
     T x = static_cast<T>(value);
-    *reinterpret_cast<T*>(ctx.target) = (x ^ -static_cast<int>(negative))
-                                        + negative;
+    T neg = static_cast<T>(negative);
+    *reinterpret_cast<T*>(ctx.target) = (x ^ -neg) + neg; // same as neg? -x : x
     ctx.ch = ch;
   } else {
     *reinterpret_cast<T*>(ctx.target) = NA_VALUE;
