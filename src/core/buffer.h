@@ -259,7 +259,7 @@ class Buffer
 // Template definitions
 //------------------------------------------------------------------------------
 
-#if DTDEBUG
+#if DT_DEBUG
   inline void buffer_oob_check(size_t i, size_t size, size_t elemsize) {
     if ((i + 1) * elemsize > size) {
       throw ValueError() << "Index " << i << " is out of bounds for a buffer "

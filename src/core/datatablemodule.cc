@@ -142,7 +142,7 @@ static py::PKArgs args_in_debug_mode(
     "Return True if datatable was compiled in debug mode");
 
 static py::oobj in_debug_mode(const py::PKArgs&) {
-  #if DTDEBUG
+  #if DT_DEBUG
     return py::True();
   #else
     return py::False();
@@ -304,7 +304,7 @@ static void initialize_options(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 // Support memory leak detection
 //------------------------------------------------------------------------------
-#if DTDEBUG
+#if DT_DEBUG
 
 struct PtrInfo {
   size_t alloc_size;
@@ -409,7 +409,7 @@ void py::DatatableModule::init_methods() {
   #ifdef DTTEST
     init_tests();
   #endif
-  #if DTDEBUG
+  #if DT_DEBUG
     ADD_FN(&get_tracked_objects, args_get_tracked_objects);
   #endif
 }
