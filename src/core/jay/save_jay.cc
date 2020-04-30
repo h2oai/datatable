@@ -1,10 +1,28 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/column_impl.h"
+#include "column/rbound.h"
+#include "column/sentinel.h"
+#include "column/virtual.h"
 #include "frame/py_frame.h"
 #include "jay/jay_generated.h"
 #include "python/_all.h"
@@ -141,19 +159,7 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
   cbb.add_type(stype_to_jaytype[static_cast<int>(stype())]);
   cbb.add_name(sname);
   cbb.add_nullcount(na_count());
-
-  materialize(false);
-  const void* data = get_data_readonly();
-  size_t size = get_data_size();
-  jay::Buffer saved_mbuf = saveMemoryRange(data, size, wb);
-  cbb.add_data(&saved_mbuf);
-
-  if (ltype() == LType::STRING) {
-    data = get_data_readonly(1);
-    size = get_data_size(1);
-    jay::Buffer saved_strbuf = saveMemoryRange(data, size, wb);
-    cbb.add_strdata(&saved_strbuf);
-  }
+  write_data_to_jay(cbb, wb);
 
   if (jsttype != jay::Stats_NONE) {
     cbb.add_stats_type(jsttype);
@@ -162,6 +168,63 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
 
   return cbb.Finish();
 }
+
+
+void Column::write_data_to_jay(jay::ColumnBuilder& cbb, WritableBuffer* wb) {
+  impl_->write_data_to_jay(*this, cbb, wb);
+}
+
+
+void dt::Sentinel_ColumnImpl::write_data_to_jay(
+    Column&, jay::ColumnBuilder& cbb, WritableBuffer* wb) const
+{
+  size_t nbufs = get_num_data_buffers();
+  for (size_t i = 0; i < nbufs; ++i) {
+    const void* data = get_data_readonly(i);
+    size_t size = get_data_size(i);
+    jay::Buffer saved_buf = saveMemoryRange(data, size, wb);
+    if (i == 0) cbb.add_data(&saved_buf);
+    if (i == 1) cbb.add_strdata(&saved_buf);
+  }
+}
+
+
+void dt::Virtual_ColumnImpl::write_data_to_jay(
+    Column& thiscol, jay::ColumnBuilder& cbb, WritableBuffer* wb) const
+{
+  thiscol.materialize(false);
+  thiscol.write_data_to_jay(cbb, wb);
+}
+
+
+void dt::Rbound_ColumnImpl::write_data_to_jay(
+    Column&, jay::ColumnBuilder& cbb, WritableBuffer* wb) const
+{
+  for (const Column& col : chunks_) {
+    const_cast<Column*>(&col)->materialize();
+  }
+  size_t nbufs = chunks_[0].get_num_data_buffers();
+  for (size_t i = 0; i < nbufs; ++i) {
+    size_t pos0 = 0;
+    size_t size0 = 0;
+    for (const Column& col : chunks_) {
+      const void* data = col.get_data_readonly(i);
+      size_t size = col.get_data_size(i);
+      size_t pos = wb->write(size, data);
+      xassert(pos >= 8);
+      if (!pos0) pos0 = pos;
+      size0 += size;
+    }
+    if (size0 & 7) {
+      size_t zero = 0;
+      wb->write(8 - (size0 & 7), &zero);
+    }
+    jay::Buffer saved_buf(pos0 - 8, size0);
+    if (i == 0) cbb.add_data(&saved_buf);
+    if (i == 1) cbb.add_strdata(&saved_buf);
+  }
+}
+
 
 
 

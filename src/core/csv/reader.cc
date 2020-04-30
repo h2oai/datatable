@@ -527,7 +527,6 @@ void GenericReader::_message(
   if (dt::num_threads_in_team() == 0) {
     _send_message_to_python(method, msg, logger);
   } else {
-    // Any other team-wide mutex would work too
     std::lock_guard<std::mutex> lock(dt::python_mutex());
     delayed_message += msg;
   }

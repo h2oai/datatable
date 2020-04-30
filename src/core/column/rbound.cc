@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -47,9 +47,10 @@ static SType compute_stype(const colvec& columns) {
 
 Rbound_ColumnImpl::Rbound_ColumnImpl(const colvec& columns)
   : Virtual_ColumnImpl(compute_nrows(columns), compute_stype(columns)),
-    columns_(columns)
+    chunks_(columns)
 {
-  for (auto& col : columns_) {
+  xassert(!chunks_.empty());
+  for (auto& col : chunks_) {
     if (col.stype() != stype()) {
       col.cast_inplace(stype());
     }
@@ -58,7 +59,7 @@ Rbound_ColumnImpl::Rbound_ColumnImpl(const colvec& columns)
 
 
 ColumnImpl* Rbound_ColumnImpl::clone() const {
-  auto res = new Rbound_ColumnImpl(columns_);
+  auto res = new Rbound_ColumnImpl(chunks_);
   res->nrows_ = nrows_;
   return res;
 }
@@ -80,14 +81,14 @@ static inline bool _get(const colvec& columns, size_t i, T* out) {
   throw ValueError() << "Index " << i << " is out of range";
 }
 
-bool Rbound_ColumnImpl::get_element(size_t i, int8_t* out)   const { return _get(columns_, i, out); }
-bool Rbound_ColumnImpl::get_element(size_t i, int16_t* out)  const { return _get(columns_, i, out); }
-bool Rbound_ColumnImpl::get_element(size_t i, int32_t* out)  const { return _get(columns_, i, out); }
-bool Rbound_ColumnImpl::get_element(size_t i, int64_t* out)  const { return _get(columns_, i, out); }
-bool Rbound_ColumnImpl::get_element(size_t i, float* out)    const { return _get(columns_, i, out); }
-bool Rbound_ColumnImpl::get_element(size_t i, double* out)   const { return _get(columns_, i, out); }
-bool Rbound_ColumnImpl::get_element(size_t i, CString* out)  const { return _get(columns_, i, out); }
-bool Rbound_ColumnImpl::get_element(size_t i, py::robj* out) const { return _get(columns_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, int8_t* out)   const { return _get(chunks_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, int16_t* out)  const { return _get(chunks_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, int32_t* out)  const { return _get(chunks_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, int64_t* out)  const { return _get(chunks_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, float* out)    const { return _get(chunks_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, double* out)   const { return _get(chunks_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, CString* out)  const { return _get(chunks_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, py::robj* out) const { return _get(chunks_, i, out); }
 
 
 

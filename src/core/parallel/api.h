@@ -142,6 +142,7 @@ void parallel_for_ordered(size_t n_iterations,
 
 
 std::mutex& python_mutex();
+std::mutex& team_mutex();
 
 }  // namespace dt
 

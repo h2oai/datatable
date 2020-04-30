@@ -370,10 +370,13 @@ dtptr PreFrame::to_datatable() && {
   ccols.reserve(n_outcols);
   names.reserve(n_outcols);
 
-  std::shared_ptr<TemporaryFile> tmp = nullptr;
+  if (tempfile_) {
+    tempfile_->data_r();  // Make sure tempfile is initialized for reading
+    tempfile_ = nullptr;
+  }
   for (auto& col : columns_) {
     if (!col.is_in_output()) continue;
-    col.archive_data(nrows_written_, tmp);
+    col.archive_data(nrows_written_, tempfile_);
     names.push_back(col.get_name());
     ccols.push_back(col.to_column());
   }

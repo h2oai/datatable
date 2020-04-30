@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,6 +39,9 @@ class Sentinel_ColumnImpl : public ColumnImpl
 
     bool is_virtual() const noexcept override;
     NaStorage get_na_storage_method() const noexcept override;
+
+    void write_data_to_jay(Column&, jay::ColumnBuilder&,
+                           WritableBuffer*) const override;
 
   protected:
     Sentinel_ColumnImpl(size_t nrows, SType stype);

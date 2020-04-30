@@ -87,6 +87,7 @@ namespace jay {
   struct Frame;
   struct Column;
   struct Buffer;
+  struct ColumnBuilder;
 }
 
 
