@@ -70,7 +70,7 @@ size_t PreFrame::nrows_written() const noexcept {
 
 void PreFrame::preallocate(size_t nrows) {
   xassert(nrows_written_ == 0);
-  size_t memory_limit = g_->memory_bound;
+  size_t memory_limit = g_->memory_limit;
 
   // Possibly reduce memory allocation if there is a memory limit
   if (memory_limit != MEMORY_UNLIMITED) {
@@ -81,7 +81,7 @@ void PreFrame::preallocate(size_t nrows) {
     if (row_size * nrows > memory_limit) {
       nrows = std::max(size_t(1), memory_limit / row_size);
       if (g_->verbose) {
-        g_->trace("Allocation size reduced to %zu rows due to memory_bound "
+        g_->trace("Allocation size reduced to %zu rows due to memory_limit "
                   "parameter", nrows);
       }
     }
@@ -113,7 +113,7 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
 {
   size_t nrows_new = nrows_written_ + nrows_in_chunk;
   size_t nrows_max = g_->max_nrows;
-  size_t memory_limit = g_->memory_bound;
+  size_t memory_limit = g_->memory_limit;
 
   // The loop is run at most once. In the most common case it doesn't
   // run at all.
@@ -182,7 +182,7 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
 void PreFrame::archive_column_chunks(size_t expected_nrows) {
   if (nrows_written_ == 0) return;
   xassert(nrows_allocated_ > 0);
-  size_t memory_limit = g_->memory_bound;
+  size_t memory_limit = g_->memory_limit;
 
   if (!tempfile_ && memory_limit != MEMORY_UNLIMITED) {
     size_t current_memory = total_allocsize();
