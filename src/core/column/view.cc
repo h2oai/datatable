@@ -49,6 +49,15 @@ bool SliceView_ColumnImpl::allow_parallel_access() const {
   return arg.allow_parallel_access();
 }
 
+size_t SliceView_ColumnImpl::n_children() const noexcept {
+  return 1;
+}
+
+const Column& SliceView_ColumnImpl::child(size_t i) const {
+  xassert(i == 0);  (void)i;
+  return arg;
+}
+
 
 bool SliceView_ColumnImpl::get_element(size_t i, int8_t* out)   const { return arg.get_element(start + i*step, out); }
 bool SliceView_ColumnImpl::get_element(size_t i, int16_t* out)  const { return arg.get_element(start + i*step, out); }
@@ -100,6 +109,17 @@ ColumnImpl* ArrayView_ColumnImpl<T>::clone() const {
 template <typename T>
 bool ArrayView_ColumnImpl<T>::allow_parallel_access() const {
   return arg.allow_parallel_access();
+}
+
+template <typename T>
+size_t ArrayView_ColumnImpl<T>::n_children() const noexcept {
+  return 1;
+}
+
+template <typename T>
+const Column& ArrayView_ColumnImpl<T>::child(size_t i) const {
+  xassert(i == 0);  (void)i;
+  return arg;
 }
 
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -40,6 +40,14 @@ ColumnImpl* PyList_ColumnImpl::clone() const {
   return new PyList_ColumnImpl(list_);
 }
 
+bool PyList_ColumnImpl::allow_parallel_access() const {
+  return false;
+}
+
+size_t PyList_ColumnImpl::n_children() const noexcept {
+  return 0;
+}
+
 
 bool PyList_ColumnImpl::get_element(size_t i, py::robj* out) const {
   xassert(i < nrows_);
@@ -64,6 +72,14 @@ ColumnImpl* PyTupleList_ColumnImpl::clone() const {
   return new PyTupleList_ColumnImpl(tuple_list_, index_);
 }
 
+bool PyTupleList_ColumnImpl::allow_parallel_access() const {
+  return false;
+}
+
+size_t PyTupleList_ColumnImpl::n_children() const noexcept {
+  return 0;
+}
+
 
 bool PyTupleList_ColumnImpl::get_element(size_t i, py::robj* out) const {
   xassert(i < nrows_);
@@ -86,6 +102,14 @@ PyDictList_ColumnImpl::PyDictList_ColumnImpl(const py::olist& list, py::oobj k)
 
 ColumnImpl* PyDictList_ColumnImpl::clone() const {
   return new PyDictList_ColumnImpl(dict_list_, key_);
+}
+
+bool PyDictList_ColumnImpl::allow_parallel_access() const {
+  return false;
+}
+
+size_t PyDictList_ColumnImpl::n_children() const noexcept {
+  return 0;
 }
 
 

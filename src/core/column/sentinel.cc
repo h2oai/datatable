@@ -113,6 +113,10 @@ Sentinel_ColumnImpl::Sentinel_ColumnImpl(size_t nrows, SType stype)
   : ColumnImpl(nrows, stype) {}
 
 
+bool Sentinel_ColumnImpl::allow_parallel_access() const {
+  return (stype_ != SType::OBJ);
+}
+
 bool Sentinel_ColumnImpl::is_virtual() const noexcept {
   return false;
 }
@@ -121,6 +125,9 @@ NaStorage Sentinel_ColumnImpl::get_na_storage_method() const noexcept {
   return NaStorage::SENTINEL;
 }
 
+size_t Sentinel_ColumnImpl::n_children() const noexcept {
+  return 0;
+}
 
 
 

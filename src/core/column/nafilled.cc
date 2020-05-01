@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,6 +53,15 @@ void NaFilled_ColumnImpl::truncate(size_t new_nrows, Column& out)
   else {
     nrows_ = new_nrows;
   }
+}
+
+size_t NaFilled_ColumnImpl::n_children() const noexcept {
+  return 1;
+}
+
+const Column& NaFilled_ColumnImpl::child(size_t i) const {
+  xassert(i == 0);  (void)i;
+  return arg;
 }
 
 

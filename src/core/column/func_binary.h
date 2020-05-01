@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -55,7 +55,8 @@ class FuncBinary1_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
-    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -85,7 +86,8 @@ class FuncBinary2_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
-    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -144,8 +146,14 @@ void FuncBinary1_ColumnImpl<T1, T2, TO>::verify_integrity() const {
 
 
 template <typename T1, typename T2, typename TO>
-bool FuncBinary1_ColumnImpl<T1, T2, TO>::allow_parallel_access() const {
-  return arg1_.allow_parallel_access() && arg2_.allow_parallel_access();
+size_t FuncBinary1_ColumnImpl<T1, T2, TO>::n_children() const noexcept {
+  return 2;
+}
+
+template <typename T1, typename T2, typename TO>
+const Column& FuncBinary1_ColumnImpl<T1, T2, TO>::child(size_t i) const {
+  xassert(i < 2);
+  return (i == 0)? arg1_ : arg2_;
 }
 
 
@@ -198,8 +206,14 @@ void FuncBinary2_ColumnImpl<T1, T2, TO>::verify_integrity() const {
 
 
 template <typename T1, typename T2, typename TO>
-bool FuncBinary2_ColumnImpl<T1, T2, TO>::allow_parallel_access() const {
-  return arg1_.allow_parallel_access() && arg2_.allow_parallel_access();
+size_t FuncBinary2_ColumnImpl<T1, T2, TO>::n_children() const noexcept {
+  return 2;
+}
+
+template <typename T1, typename T2, typename TO>
+const Column& FuncBinary2_ColumnImpl<T1, T2, TO>::child(size_t i) const {
+  xassert(i < 2);
+  return (i == 0)? arg1_ : arg2_;
 }
 
 

@@ -65,6 +65,17 @@ ColumnImpl* Rbound_ColumnImpl::clone() const {
 }
 
 
+size_t Rbound_ColumnImpl::n_children() const noexcept {
+  return chunks_.size();
+}
+
+const Column& Rbound_ColumnImpl::child(size_t i) const {
+  xassert(i < chunks_.size());
+  return chunks_[i];
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Data access

@@ -37,6 +37,8 @@ class Rbound_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     // ColumnImpl* materialize() override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t i, int8_t* out)   const override;
     bool get_element(size_t i, int16_t* out)  const override;

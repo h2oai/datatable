@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -38,6 +38,8 @@ class PyList_ColumnImpl : public Virtual_ColumnImpl {
     explicit PyList_ColumnImpl(const py::olist&);
 
     ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
     bool get_element(size_t, py::robj*) const override;
 };
 
@@ -56,6 +58,8 @@ class PyTupleList_ColumnImpl : public Virtual_ColumnImpl {
     explicit PyTupleList_ColumnImpl(const py::olist&, size_t index);
 
     ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
     bool get_element(size_t, py::robj*) const override;
 };
 
@@ -75,6 +79,8 @@ class PyDictList_ColumnImpl : public Virtual_ColumnImpl {
     explicit PyDictList_ColumnImpl(const py::olist&, py::oobj key);
 
     ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
     bool get_element(size_t, py::robj*) const override;
 };
 

@@ -97,6 +97,9 @@ class ColumnImpl
     virtual bool computationally_expensive() const { return false; }
     virtual size_t memory_footprint() const noexcept = 0;
 
+    virtual size_t n_children() const noexcept = 0;
+    virtual const Column& child(size_t i) const;
+
 
   //------------------------------------
   // Data buffers

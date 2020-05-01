@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -65,6 +65,12 @@ void Latent_ColumnImpl::materialize(Column&, bool to_memory) {
 bool Latent_ColumnImpl::allow_parallel_access() const {
   return vivify()->allow_parallel_access();
 }
+
+
+size_t Latent_ColumnImpl::n_children() const noexcept {
+  return 0;
+}
+
 
 
 bool Latent_ColumnImpl::get_element(size_t i, int8_t* out)   const { return vivify()->get_element(i, out); }

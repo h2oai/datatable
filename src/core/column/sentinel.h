@@ -37,8 +37,10 @@ class Sentinel_ColumnImpl : public ColumnImpl
     static Column make_fw_column(size_t nrows, SType, Buffer&&);
     static Column make_str_column(size_t nrows, Buffer&&, Buffer&&);
 
+    bool allow_parallel_access() const override;
     bool is_virtual() const noexcept override;
     NaStorage get_na_storage_method() const noexcept override;
+    size_t n_children() const noexcept override;
 
     void write_data_to_jay(Column&, jay::ColumnBuilder&,
                            WritableBuffer*) const override;

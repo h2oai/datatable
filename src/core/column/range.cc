@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -135,6 +135,11 @@ void Range_ColumnImpl::verify_integrity() const {
   Virtual_ColumnImpl::verify_integrity();
   auto ltype = info(stype_).ltype();
   XAssert(ltype == LType::INT || ltype == LType::REAL);
+}
+
+
+size_t Range_ColumnImpl::n_children() const noexcept {
+  return 0;
 }
 
 

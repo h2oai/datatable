@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,7 +39,8 @@ class Repeated_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void repeat(size_t ntimes, Column& out) override;
-    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t, int8_t*)   const override;
     bool get_element(size_t, int16_t*)  const override;

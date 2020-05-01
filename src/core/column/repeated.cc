@@ -48,9 +48,16 @@ void Repeated_ColumnImpl::repeat(size_t ntimes, Column&) {
   nrows_ *= ntimes;
 }
 
-bool Repeated_ColumnImpl::allow_parallel_access() const {
-  return arg.allow_parallel_access();
+
+size_t Repeated_ColumnImpl::n_children() const noexcept {
+  return 1;
 }
+
+const Column& Repeated_ColumnImpl::child(size_t i) const {
+  xassert(i == 0);  (void)i;
+  return arg;
+}
+
 
 
 bool Repeated_ColumnImpl::get_element(size_t i, int8_t* out)   const { return arg.get_element(i % mod, out); }

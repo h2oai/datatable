@@ -139,7 +139,11 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
 
 
 bool ColumnImpl::allow_parallel_access() const {
-  return (stype_ != SType::OBJ);
+  size_t n = n_children();
+  for (size_t i = 0; i < n; ++i) {
+    if (!child(i).allow_parallel_access()) return false;
+  }
+  return true;
 }
 
 
@@ -192,6 +196,9 @@ void ColumnImpl::rbind_impl(colvec&, size_t, bool, SType&) {
   throw NotImplError() << "Method ColumnImpl::rbind_impl() not implemented";
 }
 
+const Column& ColumnImpl::child(size_t) const {
+  throw RuntimeError() << "This Column object has no children";
+}
 
 void ColumnImpl::na_pad(size_t new_nrows, Column& out) {
   xassert(new_nrows > nrows());
@@ -202,6 +209,7 @@ void ColumnImpl::truncate(size_t new_nrows, Column&) {
   xassert(new_nrows < nrows());
   nrows_ = new_nrows;
 }
+
 
 
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -50,6 +50,16 @@ class re_match_vcol : public Virtual_ColumnImpl {
     ColumnImpl* clone() const override {
       return new re_match_vcol(Column(arg), regex);
     }
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
 
     bool get_element(size_t i, int8_t* out) const override {
       CString x;
