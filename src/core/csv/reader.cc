@@ -505,12 +505,12 @@ void GenericReader::_message(
     msg = va_arg(args, char*);
   } else {
     msg = shared_buffer;
-    #if defined(__GNUC__)
+    #if DT_COMPILER_GCC
       #pragma GCC diagnostic push
       #pragma GCC diagnostic ignored "-Wformat-nonliteral"
     #endif
     vsnprintf(msg, 2000, format, args);
-    #if defined(__GNUC__)
+    #if DT_COMPILER_GCC
       #pragma GCC diagnostic pop
     #endif
   }

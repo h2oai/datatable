@@ -17,7 +17,7 @@
 #ifndef FLATBUFFERS_H_
 #define FLATBUFFERS_H_
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wdocumentation"
   #pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
@@ -2284,12 +2284,8 @@ volatile __attribute__((weak)) const char *flatbuffer_version_string =
 /// @endcond
 }  // namespace flatbuffers
 
-#if defined(_MSC_VER)
-  #pragma warning(pop)
-#endif
-// clang-format on
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic pop
 #endif
 

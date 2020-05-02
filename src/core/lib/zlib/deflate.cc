@@ -52,7 +52,7 @@
 
 namespace zlib {
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wconversion"
   #pragma clang diagnostic ignored "-Wcomma"
@@ -61,11 +61,9 @@ namespace zlib {
   #pragma clang diagnostic ignored "-Wsign-conversion"
   #pragma clang diagnostic ignored "-Wunused-const-variable"
   #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
-#endif
-
-#if DT_OS_WINDOWS
-    #pragma warning(push)
-    #pragma warning(disable : 4244)
+#elif DT_COMPILER_MSVC
+  #pragma warning(push)
+  #pragma warning(disable : 4244)
 #endif
 
 
@@ -1881,12 +1879,10 @@ static block_state deflate_huff(deflate_state* s, int flush)
 }
 
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic pop
-#endif
-
-#if DT_OS_WINDOWS
-    #pragma warning(pop)
+#elif DT_COMPILER_MSVC
+  #pragma warning(pop)
 #endif
 
 } // namespace zlib

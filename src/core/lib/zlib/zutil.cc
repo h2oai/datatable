@@ -6,7 +6,7 @@
 
 namespace zlib {
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wcast-qual"
   #pragma clang diagnostic ignored "-Wold-style-cast"
@@ -113,7 +113,7 @@ void zcfree (voidpf opaque, voidpf ptr)
 
 #endif /* !Z_SOLO */
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic pop
 #endif
 

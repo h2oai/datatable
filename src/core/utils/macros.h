@@ -29,14 +29,10 @@
 // Operating system
 //------------------------------------------------------------------------------
 
-#define DT_OS_WINDOWS 0
 #define DT_OS_DARWIN  0
 #define DT_OS_LINUX   0
+#define DT_OS_WINDOWS 0
 
-#ifdef _WIN32
-  #undef  DT_OS_WINDOWS
-  #define DT_OS_WINDOWS 1
-#endif
 
 #if defined(__APPLE__) && defined(__MACH__)
   #undef  DT_OS_DARWIN
@@ -46,6 +42,11 @@
 #if defined(__linux) || defined(__linux__)
   #undef  DT_OS_LINUX
   #define DT_OS_LINUX 1
+#endif
+
+#ifdef _WIN32
+  #undef  DT_OS_WINDOWS
+  #define DT_OS_WINDOWS 1
 #endif
 
 #if (DT_OS_LINUX || DT_OS_DARWIN)
@@ -97,18 +98,39 @@
 // Compiler
 //------------------------------------------------------------------------------
 
-#if defined(__clang__)
+
+#define DT_COMPILER_CLANG 0
+#define DT_COMPILER_GCC   0
+#define DT_COMPILER_MSVC  0
+
+#ifdef __clang__
+  #undef  DT_COMPILER_CLANG
+  #define DT_COMPILER_CLANG __clang_major__
+#endif
+
+#ifdef __GNUC__
+  #undef  DT_COMPILER_GCC
+  #define DT_COMPILER_GCC __GNUC__
+#endif
+
+#ifdef _MSC_VER
+  #undef  DT_COMPILER_MSVC
+  #define DT_COMPILER_MSVC _MSC_VER
+#endif
+
+
+#if DT_COMPILER_CLANG
   #define FALLTHROUGH [[clang::fallthrough]]
-#elif defined(__GNUC__) && __GNUC__ >= 7
+#elif DT_COMPILER_GCC >= 7
   #define FALLTHROUGH [[gnu::fallthrough]]
 #else
   #define FALLTHROUGH
 #endif
 
 
-#if defined(__clang__) || defined(_MSC_VER)
+#if DT_COMPILER_CLANG || DT_COMPILER_MSVC
   #define REGEX_SUPPORTED 1
-#elif defined(__GNUC__) && __GNUC__ <= 4
+#elif DT_COMPILER_GCC > 0 && DT_COMPILER_GCC <= 4
   #define REGEX_SUPPORTED 0
 #else
   #define REGEX_SUPPORTED 1

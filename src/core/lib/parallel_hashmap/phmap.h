@@ -47,7 +47,7 @@
 #include <cassert>
 #include "utils/macros.h"
 
-#if DT_OS_WINDOWS
+#if DT_COMPILER_MSVC
     #pragma warning(push)
     #pragma warning(disable : 4245)
     #pragma warning(disable : 4324)
@@ -4627,7 +4627,7 @@ public:
 }  // namespace phmap
 
 
-#if DT_OS_WINDOWS
+#if DT_COMPILER_MSVC
     #pragma warning(pop)
 #endif
 

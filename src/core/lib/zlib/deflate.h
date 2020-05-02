@@ -12,7 +12,7 @@
 #include "lib/zlib/zutil.h"
 namespace zlib {
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wpadded"
 #endif
@@ -344,7 +344,7 @@ void _tr_stored_block(deflate_state *s, charf *buf, ulg stored_len, int last);
 
 
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic pop
 #endif
 
