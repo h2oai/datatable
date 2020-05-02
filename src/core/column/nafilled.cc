@@ -26,15 +26,26 @@ namespace dt {
 
 NaFilled_ColumnImpl::NaFilled_ColumnImpl(Column&& col, size_t nrows)
   : Virtual_ColumnImpl(nrows, col.stype()),
-    arg_nrows(col.nrows()),
-    arg(std::move(col))
+    arg_nrows_(col.nrows()),
+    arg_(std::move(col))
 {
-  xassert(nrows >= arg.nrows());
+  xassert(nrows > arg_.nrows());
+}
+
+// Only used by Truncated_ColumnImpl and clone()
+NaFilled_ColumnImpl::NaFilled_ColumnImpl(Column&& col, size_t nrows,
+                                         size_t arg_nrows)
+  : Virtual_ColumnImpl(nrows, col.stype()),
+    arg_nrows_(arg_nrows),
+    arg_(std::move(col))
+{
+  xassert(nrows > arg_nrows_);
 }
 
 
+
 ColumnImpl* NaFilled_ColumnImpl::clone() const {
-  return new NaFilled_ColumnImpl(Column(arg), nrows_);
+  return new NaFilled_ColumnImpl(Column(arg_), nrows_, arg_nrows_);
 }
 
 
@@ -46,9 +57,9 @@ void NaFilled_ColumnImpl::na_pad(size_t new_nrows, Column&) {
 void NaFilled_ColumnImpl::truncate(size_t new_nrows, Column& out)
 {
   xassert(new_nrows < nrows_);
-  if (new_nrows < arg_nrows) {
-    arg.resize(new_nrows);
-    out = std::move(arg);
+  if (new_nrows <= arg_nrows_) {
+    arg_.resize(new_nrows);
+    out = std::move(arg_);
   }
   else {
     nrows_ = new_nrows;
@@ -61,42 +72,42 @@ size_t NaFilled_ColumnImpl::n_children() const noexcept {
 
 const Column& NaFilled_ColumnImpl::child(size_t i) const {
   xassert(i == 0);  (void)i;
-  return arg;
+  return arg_;
 }
 
 
 
 
 bool NaFilled_ColumnImpl::get_element(size_t i, int8_t* out)   const {
-  return (i < arg_nrows) && arg.get_element(i, out);
+  return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
 bool NaFilled_ColumnImpl::get_element(size_t i, int16_t* out)  const {
-  return (i < arg_nrows) && arg.get_element(i, out);
+  return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
 bool NaFilled_ColumnImpl::get_element(size_t i, int32_t* out)  const {
-  return (i < arg_nrows) && arg.get_element(i, out);
+  return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
 bool NaFilled_ColumnImpl::get_element(size_t i, int64_t* out)  const {
-  return (i < arg_nrows) && arg.get_element(i, out);
+  return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
 bool NaFilled_ColumnImpl::get_element(size_t i, float* out)    const {
-  return (i < arg_nrows) && arg.get_element(i, out);
+  return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
 bool NaFilled_ColumnImpl::get_element(size_t i, double* out)   const {
-  return (i < arg_nrows) && arg.get_element(i, out);
+  return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
 bool NaFilled_ColumnImpl::get_element(size_t i, CString* out)  const {
-  return (i < arg_nrows) && arg.get_element(i, out);
+  return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
 bool NaFilled_ColumnImpl::get_element(size_t i, py::robj* out) const {
-  return (i < arg_nrows) && arg.get_element(i, out);
+  return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
 
