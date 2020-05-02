@@ -28,8 +28,8 @@
 #include "python/obj.h"
 #include "python/string.h"
 #include "python/tuple.h"
-#include "utils/exceptions.h"
 #include "utils/assert.h"
+#include "utils/exceptions.h"
 
 
 // Singleton, used to write the current "errno" into the stream
@@ -74,7 +74,7 @@ static void init() {
 static bool is_string_empty(const char* msg) noexcept {
   if (!msg) return true;
   char c;
-  while ((c = *msg)) {
+  while ((c = *msg) != 0) {
     if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r'))
       return false;
     msg++;

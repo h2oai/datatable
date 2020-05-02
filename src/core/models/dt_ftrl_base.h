@@ -43,22 +43,22 @@ enum class FtrlModelType : size_t {
  *  that also defines their default values.
  */
 struct FtrlParams {
-    FtrlModelType model_type;
-    double alpha;
-    double beta;
-    double lambda1;
-    double lambda2;
-    uint64_t nbins;
-    double nepochs;
-    unsigned char mantissa_nbits;
-    bool double_precision;
-    bool negative_class;
-    size_t : 40;
-    FtrlParams() : model_type(FtrlModelType::AUTO),
-                   alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
-                   nbins(1000000), nepochs(1.0), mantissa_nbits(10),
-                   double_precision(false), negative_class(false)
-                   {}
+  FtrlModelType model_type;
+  double alpha;
+  double beta;
+  double lambda1;
+  double lambda2;
+  uint64_t nbins;
+  double nepochs;
+  unsigned char mantissa_nbits;
+  bool double_precision;
+  bool negative_class;
+  size_t : 40;
+  FtrlParams() : model_type(FtrlModelType::AUTO),
+                 alpha(0.005), beta(1.0), lambda1(0.0), lambda2(0.0),
+                 nbins(1000000), nepochs(1.0), mantissa_nbits(10),
+                 double_precision(false), negative_class(false)
+                 {}
 };
 
 
@@ -68,8 +68,16 @@ struct FtrlParams {
  *  was provided, the corresponding final loss.
  */
 struct FtrlFitOutput {
-    double epoch;
-    double loss;
+  double epoch;
+  double loss;
+  FtrlFitOutput() {
+    epoch = std::numeric_limits<double>::quiet_NaN();
+    loss = std::numeric_limits<double>::quiet_NaN();
+  }
+  FtrlFitOutput(double epoch_, double loss_) {
+    epoch = epoch_;
+    loss = loss_;
+  }
 };
 
 

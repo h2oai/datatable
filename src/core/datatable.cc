@@ -62,7 +62,7 @@ DataTable::DataTable(colvec&& cols) : DataTable()
   columns_ = std::move(cols);
   ncols_ = columns_.size();
   nrows_ = columns_[0].nrows();
-  #if DTDEBUG
+  #if DT_DEBUG
     for (const auto& col : columns_) {
       xassert(col && col.nrows() == nrows_);
     }

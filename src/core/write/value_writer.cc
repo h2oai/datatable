@@ -23,6 +23,7 @@
 #include <cstring>   // std::memcpy
 #include "csv/toa.h"
 #include "utils/exceptions.h"
+#include "utils/macros.h"
 #include "write/value_writer.h"
 namespace dt {
 namespace write {

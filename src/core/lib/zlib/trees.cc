@@ -30,6 +30,7 @@
 //          Addison-Wesley, 1983. ISBN 0-201-06672-6.
 //------------------------------------------------------------------------------
 #include "lib/zlib/deflate.h"
+#include "utils/macros.h"
 namespace zlib {
 
 #ifdef __clang__
@@ -43,6 +44,10 @@ namespace zlib {
   #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
+#if DT_OS_WINDOWS
+    #pragma warning(push)
+    #pragma warning(disable : 4244)
+#endif
 
 
 /* ===========================================================================
@@ -992,4 +997,10 @@ static void bi_windup(deflate_state *s)
 #ifdef __clang__
   #pragma clang diagnostic pop
 #endif
+
+#if DT_OS_WINDOWS
+    #pragma warning(pop)
+#endif
+
+
 }  // namespace zlib

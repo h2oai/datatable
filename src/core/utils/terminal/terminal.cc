@@ -71,7 +71,18 @@ Terminal::Terminal(bool is_plain) : is_plain_(is_plain){
   enable_keyboard_ = false;
   is_jupyter_ = false;
   is_ipython_ = false;
+
+  #if DT_OS_WINDOWS && !DT_DEBUG
+    #pragma warning(push)
+    #pragma warning(disable : 4390) // empty controlled statement found
+  #endif
+
   if (!enable_ecma48_) xassert(!enable_colors_);
+
+  #if DT_OS_WINDOWS && !DT_DEBUG
+    #pragma warning(pop)
+  #endif
+
   if (!is_plain_) _initialize();
 }
 

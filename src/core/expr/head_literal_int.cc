@@ -104,7 +104,11 @@ Workframe Head_Literal_Int::evaluate_r(
         newcol = Const_ColumnImpl::make_int_column(1, value, col.stype());
       }
       else if (ltype == LType::REAL) {
-        newcol = Const_ColumnImpl::make_float_column(1, value, col.stype());
+        newcol = Const_ColumnImpl::make_float_column(
+                   1, 
+                   static_cast<double>(value), 
+                   col.stype()
+                 );
       }
       else {
         newcol = Const_ColumnImpl::make_int_column(1, value);

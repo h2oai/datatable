@@ -14,7 +14,7 @@ namespace dt {
 
 // The warning is spurious, because shifts triggering the warning are
 // within if() conditions that get statically ignored.
-#if !DT_OS_WINDOWS
+#if DT_COMPILER_GCC
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wshift-count-overflow"
 #endif
@@ -70,7 +70,7 @@ int nsb(T x) {
   return m + static_cast<int>(x);
 }
 
-#if !DT_OS_WINDOWS
+#if DT_COMPILER_GCC
   #pragma GCC diagnostic pop
 #endif
 

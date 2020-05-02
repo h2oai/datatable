@@ -37,10 +37,12 @@
 #ifndef ZLIB_H
 #define ZLIB_H
 #include "lib/zlib/zconf.h"
+#include "utils/macros.h"
+
 namespace zlib {
 
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wpadded"
 #endif
@@ -416,7 +418,7 @@ int deflateInit2_(z_stream* strm, int level, int method, int windowBits,
 const char* zError(int);
 
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic pop
 #endif
 

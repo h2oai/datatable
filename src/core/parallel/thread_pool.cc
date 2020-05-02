@@ -34,25 +34,27 @@ namespace dt {
 // Singleton instance of the thread_pool
 thread_pool* thpool = new thread_pool;
 
-static void _child_cleanup_after_fork() {
-  // Replace the current thread pool instance with a new one, ensuring that all
-  // schedulers and workers have new mutexes/condition variables.
-  // The previous value of `thpool` is abandoned without deleting since that
-  // memory is owned by the parent process.
-  size_t n = thpool->size();
-  thpool = new thread_pool;
-  progress::manager = new progress::progress_manager;
-  thpool->resize(n);
-}
-
-
 
 //------------------------------------------------------------------------------
 // thread_pool
 //------------------------------------------------------------------------------
+
+// no fork on Windows
 #if !DT_OS_WINDOWS
-  // no fork on Windows
+
+  static void _child_cleanup_after_fork() {
+    // Replace the current thread pool instance with a new one, ensuring that all
+    // schedulers and workers have new mutexes/condition variables.
+    // The previous value of `thpool` is abandoned without deleting since that
+    // memory is owned by the parent process.
+    size_t n = thpool->size();
+    thpool = new thread_pool;
+    progress::manager = new progress::progress_manager;
+    thpool->resize(n);
+  }
+
   static bool after_fork_handler_registered = false;
+
 #endif
 
 thread_pool::thread_pool()

@@ -142,7 +142,7 @@ static py::PKArgs args_in_debug_mode(
     "Return True if datatable was compiled in debug mode");
 
 static py::oobj in_debug_mode(const py::PKArgs&) {
-  #if DTDEBUG
+  #if DT_DEBUG
     return py::True();
   #else
     return py::False();
@@ -205,15 +205,15 @@ static py::PKArgs args_compiler_version(
 const char* get_compiler_version_string() {
   #define STR(x) STR1(x)
   #define STR1(x) #x
-  #ifdef __clang__
+  #if DT_COMPILER_CLANG
     return "CLang " STR(__clang_major__) "." STR(__clang_minor__) "."
            STR(__clang_patchlevel__);
-  #elif defined(_MSC_VER)
+  #elif DT_COMPILER_MSVC
     return "MSVC " STR(_MSC_FULL_VER);
   #elif defined(__MINGW64__)
     return "MinGW64 " STR(__MINGW64_VERSION_MAJOR) "."
            STR(__MINGW64_VERSION_MINOR);
-  #elif defined(__GNUC__)
+  #elif DT_COMPILER_GCC
     return "GCC " STR(__GNUC__) "." STR(__GNUC_MINOR__) "."
            STR(__GNUC_PATCHLEVEL__);
   #else
@@ -304,7 +304,7 @@ static void initialize_options(const py::PKArgs& args) {
 //------------------------------------------------------------------------------
 // Support memory leak detection
 //------------------------------------------------------------------------------
-#if DTDEBUG
+#if DT_DEBUG
 
 struct PtrInfo {
   size_t alloc_size;
@@ -409,7 +409,7 @@ void py::DatatableModule::init_methods() {
   #ifdef DTTEST
     init_tests();
   #endif
-  #if DTDEBUG
+  #if DT_DEBUG
     ADD_FN(&get_tracked_objects, args_get_tracked_objects);
   #endif
 }

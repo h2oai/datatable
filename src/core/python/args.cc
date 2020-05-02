@@ -23,6 +23,7 @@
 #include <cstring>         // std::strrchr
 #include "python/args.h"
 #include "utils/assert.h"
+#include "utils/macros.h"
 
 namespace py {
 
@@ -49,7 +50,18 @@ PKArgs::PKArgs(
     n_varkwds(0)
 {
   wassert(n_all_args == arg_names.size());
+
+  #if DT_OS_WINDOWS && !DT_DEBUG
+    #pragma warning(push)
+    #pragma warning(disable : 4390) // empty controlled statement found
+  #endif
+
   if (has_varargs) xassert(n_pos_kwd_args == 0);
+
+  #if DT_OS_WINDOWS && !DT_DEBUG
+    #pragma warning(pop)
+  #endif
+
   bound_args.resize(n_all_args);
   for (size_t i = 0; i < n_all_args; ++i) {
     bound_args[i].init(i, this);

@@ -27,6 +27,7 @@
 #include "python/dict.h"
 #include "python/list.h"
 #include "utils/assert.h"
+#include "utils/macros.h"
 
 namespace py {
 
@@ -587,7 +588,7 @@ void ReplaceAgent::process_str_column(size_t colidx) {
 // Step 4: perform actual data replacement
 //------------------------------------------------------------------------------
 // Ignore warnings in auto-generated lambda code
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wpadded"
 #endif
@@ -717,7 +718,7 @@ Column ReplaceAgent::replace_strN(CString* x, CString* y,
 }
 
 
-#if defined(__clang__)
+#if DT_COMPILER_CLANG
   #pragma clang diagnostic pop
 #endif
 

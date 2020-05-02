@@ -52,7 +52,7 @@ class RowIndex {
     static constexpr int ARR32 = 1;
     static constexpr int ARR64 = 2;
     static constexpr int SORTED = 4;
-    static_assert(int32_t(size_t(NA_ARR32)) == NA_ARR32, "Bad NA_ARR32");
+    static_assert(static_cast<int32_t>(size_t(NA_ARR32)) == NA_ARR32, "Bad NA_ARR32");
     static_assert(int64_t(size_t(NA_ARR64)) == NA_ARR64, "Bad NA_ARR64");
 
     RowIndex();
