@@ -36,7 +36,7 @@ using f1t = function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
 class ordered_task : public thread_task {
-  #if DTDEBUG
+  #if DT_DEBUG
     friend class ordered_scheduler;
   #endif
   private:
