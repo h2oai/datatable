@@ -358,12 +358,14 @@ def test_collections():
 @pytest.mark.usefixtures("py36", "numpy")
 def test_random_attack():
     import subprocess
-    script = os.path.join(os.path.dirname(__file__), "random_driver.py")
+    script = os.path.join(os.path.dirname(__file__),
+                          "..", "tests_random", "continuous.py")
     proc = subprocess.Popen([sys.executable, script, "-v", "-n 5"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate(timeout=100)
     assert "FAIL" not in out.decode()
     assert not err
+
 
 
 #-------------------------------------------------------------------------------
