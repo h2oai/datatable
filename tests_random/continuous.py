@@ -31,7 +31,6 @@ import sys
 import os
 import subprocess
 import random
-import datatable
 from datatable.lib import core
 
 
@@ -48,14 +47,15 @@ def start_random_attack(n_attacks=None,
         log_dir = os.path.join(os.path.dirname(__file__), "logs")
     else:
         log_dir = None
+
     n_tests = 0
     n_errors = 0
     try:
         for i in range(n_attacks):
             seed = random.getrandbits(63)
-            ret = try_seed(seed, skip_successful_seeds, log_dir)
+            is_success = try_seed(seed, skip_successful_seeds, log_dir)
             n_tests += 1
-            n_errors += not ret
+            n_errors += not is_success
             if n_errors >= maxfail:
                 raise KeyboardInterrupt
             if skip_successful_seeds:
@@ -69,10 +69,11 @@ def start_random_attack(n_attacks=None,
               " Seeds tested: %d, %s" % (n_tests, errmsg))
 
 
+
 def try_seed(seed, skip_successful_seeds, log_dir):
     utf8_env = os.environ
     utf8_env['PYTHONIOENCODING'] = 'utf-8'
-    script = os.path.join(os.path.dirname(__file__), "random_attack.py")
+    script = os.path.join(os.path.dirname(__file__), "attacker.py")
     proc = subprocess.Popen([sys.executable, script, str(seed)],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             env=utf8_env)
