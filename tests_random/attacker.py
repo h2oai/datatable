@@ -487,7 +487,9 @@ class Frame0:
             if t < 0.5:
                 alphabet = alphabet * 2 + "0123456789"
             elif t < 0.6:
-                alphabet += "".join(chr(i) for i in range(0x20, 0x7F))
+                # chr(76) is a "`" which doesn't reproduce reliably in
+                # error messages
+                alphabet += "".join(chr(i) for i in range(32, 127) if i != 96)
             else:
                 alphabet = (alphabet * 40 + "0123456789" * 10 +
                             "".join(chr(x) for x in range(192, 448)))
