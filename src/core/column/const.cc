@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -258,6 +258,9 @@ Column Const_ColumnImpl::from_1row_column(const Column& col) {
 }
 
 
+size_t Const_ColumnImpl::n_children() const noexcept {
+  return 0;
+}
 
 void Const_ColumnImpl::repeat(size_t ntimes, Column&) {
   nrows_ *= ntimes;

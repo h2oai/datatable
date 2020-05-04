@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -116,6 +116,15 @@ class Column
     // reference count reaches 0, the object is deleted.
     // We do not use std::shared_ptr<> here primarily because it makes it
     // harder to inspect the object in GDB / LLDB.
+    //
+    // This pointer is marked `const` in order to prevent accidental
+    // modification of the shared data. Specifically, `impl_` is
+    // potentially shared among multiple `Column` objects; and
+    // modifying one Column should not affect any other instance.
+    // Therefore, when `impl_` needs to be modified use
+    // `_get_mutable_impl()` in order to either const-cast or copy
+    // the `impl_` depending on its refcount.
+    //
     const dt::ColumnImpl* impl_;
 
   public:
@@ -316,6 +325,7 @@ class Column
         const std::string& name,
         flatbuffers::FlatBufferBuilder&,
         WritableBuffer*);
+    void write_data_to_jay(jay::ColumnBuilder&, WritableBuffer*);
 
   private:
     void _acquire_impl(const dt::ColumnImpl*);

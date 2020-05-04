@@ -80,10 +80,11 @@ def test_issue365():
 
 def test_write_spacestrs():
     # Test that fields having spaces at the beginning/end are auto-quoted
-    d = dt.Frame([" hello ", "world  ", " !", "!", ""])
-    assert d.to_csv() == 'C0\n" hello "\n"world  "\n" !"\n!\n""\n'
-    dd = dt.fread(text=d.to_csv(), sep='\n')
-    assert d.to_list() == dd.to_list()
+    DT1 = dt.Frame([" hello ", "world  ", " !", "!", ""])
+    text = DT1.to_csv()
+    assert text == 'C0\n" hello "\n"world  "\n" !"\n!\n""\n'
+    DT2 = dt.fread(text=text, sep='\n')
+    assert DT1.to_list() == DT2.to_list()
 
 
 def test_write_spacenames():

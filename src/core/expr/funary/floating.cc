@@ -183,9 +183,15 @@ class Isna_ColumnImpl : public Virtual_ColumnImpl {
       return new Isna_ColumnImpl<T>(Column(arg_), nrows_);
     }
 
-    bool allow_parallel_access() const override {
-      return arg_.allow_parallel_access();
+    size_t n_children() const noexcept override {
+      return 1;
     }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg_;
+    }
+
 
     bool get_element(size_t i, int8_t* out) const override {
       T tmp;

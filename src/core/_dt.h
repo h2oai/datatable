@@ -34,6 +34,7 @@ class DataTable;
 class Groupby;
 class RowIndex;
 class Stats;
+class TemporaryFile;
 class WritableBuffer;
 
 struct CString;
@@ -86,6 +87,7 @@ namespace jay {
   struct Frame;
   struct Column;
   struct Buffer;
+  struct ColumnBuilder;
 }
 
 
@@ -96,10 +98,15 @@ namespace read {
   enum BT : uint8_t;
 
   struct FreadTokenizer;
+  union field64;
+
+  class ChunkCoordinates;
   class GenericReader;
   class PreColumn;
   class PreFrame;
+  class ThreadContext;
 }}
+class FreadReader;
 
 
 #endif

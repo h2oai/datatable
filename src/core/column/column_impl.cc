@@ -22,6 +22,7 @@
 #include "column/column_impl.h"
 #include "column/nafilled.h"
 #include "column/sentinel_fw.h"
+#include "column/truncated.h"
 #include "parallel/api.h"
 #include "parallel/string_utils.h"
 namespace dt {
@@ -139,7 +140,11 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
 
 
 bool ColumnImpl::allow_parallel_access() const {
-  return (stype_ != SType::OBJ);
+  size_t n = n_children();
+  for (size_t i = 0; i < n; ++i) {
+    if (!child(i).allow_parallel_access()) return false;
+  }
+  return true;
 }
 
 
@@ -192,16 +197,20 @@ void ColumnImpl::rbind_impl(colvec&, size_t, bool, SType&) {
   throw NotImplError() << "Method ColumnImpl::rbind_impl() not implemented";
 }
 
+const Column& ColumnImpl::child(size_t) const {
+  throw RuntimeError() << "This Column object has no children";
+}
 
 void ColumnImpl::na_pad(size_t new_nrows, Column& out) {
   xassert(new_nrows > nrows());
   out = Column(new NaFilled_ColumnImpl(std::move(out), new_nrows));
 }
 
-void ColumnImpl::truncate(size_t new_nrows, Column&) {
+void ColumnImpl::truncate(size_t new_nrows, Column& out) {
   xassert(new_nrows < nrows());
-  nrows_ = new_nrows;
+  out = Column(new Truncated_ColumnImpl(std::move(out), new_nrows));
 }
+
 
 
 

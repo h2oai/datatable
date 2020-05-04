@@ -133,9 +133,15 @@ class BooleanAnd_ColumnImpl : public Virtual_ColumnImpl {
       XAssert(arg2_.stype() == SType::BOOL);
     }
 
-    bool allow_parallel_access() const override {
-      return arg1_.allow_parallel_access() && arg2_.allow_parallel_access();
+    size_t n_children() const noexcept override {
+      return 2;
     }
+
+    const Column& child(size_t i) const override {
+      xassert(i < 2);
+      return (i == 0)? arg1_ : arg2_;
+    }
+
 
     bool get_element(size_t i, int8_t* out) const override {
       int8_t x, y;
@@ -244,9 +250,15 @@ class BooleanOr_ColumnImpl : public Virtual_ColumnImpl {
       XAssert(arg2_.stype() == SType::BOOL);
     }
 
-    bool allow_parallel_access() const override {
-      return arg1_.allow_parallel_access() && arg2_.allow_parallel_access();
+    size_t n_children() const noexcept override {
+      return 2;
     }
+
+    const Column& child(size_t i) const override {
+      xassert(i < 2);
+      return (i == 0)? arg1_ : arg2_;
+    }
+
 
     bool get_element(size_t i, int8_t* out) const override {
       int8_t x, y;

@@ -46,6 +46,7 @@ class thread_team;
 class thread_pool {
   friend class thread_team;
   friend std::mutex& python_mutex();
+  friend std::mutex& team_mutex();
   public:
     std::unique_ptr<monitor_thread> monitor;
 

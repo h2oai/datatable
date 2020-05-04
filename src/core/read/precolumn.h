@@ -39,8 +39,16 @@ namespace read {
   *
   * An input column usually translates into an output column in a
   * DataTable returned to the user. The exception to this are
-  * "dropped" columns. They are marked with `presentInOutput = false`
-  * flag (and have rtype RT::RDrop).
+  * "dropped" columns. They are marked with `present_in_output_ =
+  * false` flag (and have `rtype_ = RT::RDrop`).
+  *
+  * The `present_in_buffer_` flag tracks whether the column should be
+  * read from the csv file. Normally, this flag has the same value as
+  * `present_in_output_`; however, during a reread stage we want to
+  * reread only those columns that were type-bumped while skipping the
+  * others. Thus, during a reread only type-bumped columns will be
+  * "present in buffer", while those that were read correctly on the
+  * first try will have this flag set to false.
   */
 class PreColumn
 {
@@ -48,12 +56,14 @@ class PreColumn
     std::string name_;
     Buffer databuf_;
     std::unique_ptr<MemoryWritableBuffer> strbuf_;
-    PT ptype_;
+    std::vector<Column> chunks_;
+    size_t nrows_archived_;
+    PT parse_type_;
     RT rtype_;
     bool type_bumped_;
     bool present_in_output_;
     bool present_in_buffer_;
-    int32_t : 24;
+    int : 24;
 
     class ptype_iterator {
       private:
@@ -76,11 +86,11 @@ class PreColumn
     PreColumn(const PreColumn&) = delete;
 
     // Column's data
-    void allocate(size_t nrows);
     void* data_w();
     WritableBuffer* strdata_w();
-
-    Column to_column(size_t nrows) &&;
+    void allocate(size_t new_nrows);
+    void archive_data(size_t nrows_written, std::shared_ptr<TemporaryFile>&);
+    Column to_column();
 
     // Column's name
     const std::string& get_name() const noexcept;
@@ -100,17 +110,20 @@ class PreColumn
 
     // Column info
     bool is_string() const;
-    bool is_dropped() const;
-    bool is_type_bumped() const;
-    bool is_in_output() const;
-    bool is_in_buffer() const;
+    bool is_dropped() const noexcept;
+    bool is_type_bumped() const noexcept;
+    bool is_in_output() const noexcept;
+    bool is_in_buffer() const noexcept;
     size_t elemsize() const;
     void reset_type_bumped();
     void set_in_buffer(bool f);
+    size_t nrows_archived() const noexcept;
 
     // Misc
     py::oobj py_descriptor() const;
-    size_t memory_footprint() const noexcept;
+    size_t memory_footprint() const;
+    size_t archived_size() const;
+    void prepare_for_rereading();
 };
 
 

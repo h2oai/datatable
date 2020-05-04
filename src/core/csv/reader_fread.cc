@@ -22,6 +22,7 @@
 #include "csv/reader_fread.h"    // FreadReader
 #include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
 #include "utils/misc.h"          // wallclock
+#include "column.h"
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 
 
@@ -625,9 +626,8 @@ void FreadReader::detect_column_types()
   meanLineLen = 0;
 
   if (n_sample_lines <= 1) {
+    // A single-row input, and that row is the header.
     if (header == 1) {
-      // A single-row input, and that row is the header. Reset all types to
-      // boolean (lowest type possible, a better guess than "string").
       preframe.reset_ptypes();
       allocnrow = 0;
     }

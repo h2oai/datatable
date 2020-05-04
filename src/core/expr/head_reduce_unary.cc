@@ -81,6 +81,16 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
                                           reducer);
     }
 
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
+
     bool get_element(size_t i, U* out) const override {
       size_t i0, i1;
       groupby.get_group(i, &i0, &i1);
@@ -128,6 +138,16 @@ class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
     bool computationally_expensive() const override {
       return true;
     }
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
 
   private:
     template <typename T>
@@ -396,6 +416,16 @@ class SdGrouped_ColumnImpl : public Virtual_ColumnImpl {
       groupby.get_group(i, &i0, &i1);
       return (i1 - i0 > 1);
     }
+
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
 };
 
 
@@ -494,6 +524,16 @@ class CountGrouped_ColumnImpl : public Virtual_ColumnImpl
       }
       return true;
     }
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
 };
 
 
@@ -617,6 +657,16 @@ class Median_ColumnImpl : public Virtual_ColumnImpl {
         *out = (static_cast<U>(value1) + static_cast<U>(value2))/2;
       }
       return true;
+    }
+
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
     }
 };
 

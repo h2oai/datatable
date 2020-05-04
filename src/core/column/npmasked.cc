@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -73,6 +73,17 @@ void NpMasked_ColumnImpl::materialize(Column& out, bool to_memory) {
   }
   ColumnImpl::materialize(out, to_memory);
 }
+
+
+size_t NpMasked_ColumnImpl::n_children() const noexcept {
+  return 1;
+}
+
+const Column& NpMasked_ColumnImpl::child(size_t i) const {
+  xassert(i == 0);  (void)i;
+  return arg_;
+}
+
 
 
 

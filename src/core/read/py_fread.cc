@@ -39,18 +39,19 @@ R"(fread(anysource=None, *, file=None, text=None, cmd=None, url=None,
          na_strings=None, verbose=False, fill=False, encoding=None,
          skip_to_string=None, skip_to_line=None, skip_blank_lines=False,
          strip_whitespace=True, quotechar='"', save_to=None,
-         tempdir=None, nthreads=None, logger=None, multiple_sources="warn")
+         tempdir=None, nthreads=None, logger=None, multiple_sources="warn",
+         memory_limit=None)
 --
 
 )";
 
 static py::PKArgs args_fread(
-  1, 0, 23, false, false,
+  1, 0, 24, false, false,
   {"anysource", "file", "text", "cmd", "url",
    "columns", "sep", "dec", "max_nrows", "header", "na_strings",
    "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
    "skip_blank_lines", "strip_whitespace", "quotechar", "save_to",
-   "tempdir", "nthreads", "logger", "multiple_sources"
+   "tempdir", "nthreads", "logger", "multiple_sources", "memory_limit"
    },
   "fread", doc_fread);
 
@@ -75,6 +76,7 @@ static py::oobj fread(const py::PKArgs& args) {
   const py::Arg& arg_nthreads   = args[k++];
   const py::Arg& arg_logger     = args[k++];
   const py::Arg& arg_multisrc   = args[k++];
+  const py::Arg& arg_memlimit   = args[k++];
 
   GenericReader rdr;
   rdr.init_logger(     arg_logger, arg_verbose);
@@ -93,6 +95,7 @@ static py::oobj fread(const py::PKArgs& args) {
   rdr.init_columns(    arg_columns);
   rdr.init_tempdir(    arg_tempdir);
   rdr.init_multisource(arg_multisrc);
+  rdr.init_memorylimit(arg_memlimit);
   (void) arg_saveto;
   (void) arg_encoding;
 
@@ -112,18 +115,19 @@ R"(iread(anysource=None, *, file=None, text=None, cmd=None, url=None,
          na_strings=None, verbose=False, fill=False, encoding=None,
          skip_to_string=None, skip_to_line=None, skip_blank_lines=False,
          strip_whitespace=True, quotechar='"', save_to=None,
-         tempdir=None, nthreads=None, logger=None, errors="warn")
+         tempdir=None, nthreads=None, logger=None, errors="warn",
+         memory_limit=None)
 --
 
 )";
 
 static py::PKArgs args_iread(
-  1, 0, 23, false, false,
+  1, 0, 24, false, false,
   {"anysource", "file", "text", "cmd", "url",
    "columns", "sep", "dec", "max_nrows", "header", "na_strings",
    "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
    "skip_blank_lines", "strip_whitespace", "quotechar", "save_to",
-   "tempdir", "nthreads", "logger", "errors"
+   "tempdir", "nthreads", "logger", "errors", "memory_limit"
    },
   "iread", doc_iread);
 
@@ -148,6 +152,7 @@ static py::oobj iread(const py::PKArgs& args) {
   const py::Arg& arg_nthreads   = args[k++];
   const py::Arg& arg_logger     = args[k++];
   const py::Arg& arg_errors     = args[k++];
+  const py::Arg& arg_memlimit   = args[k++];
 
   auto rdr = std::unique_ptr<GenericReader>(new GenericReader);
   rdr->init_logger(     arg_logger, arg_verbose);
@@ -166,6 +171,7 @@ static py::oobj iread(const py::PKArgs& args) {
   rdr->init_columns(    arg_columns);
   rdr->init_tempdir(    arg_tempdir);
   rdr->init_errors(     arg_errors);
+  rdr->init_memorylimit(arg_memlimit);
   (void) arg_saveto;
   (void) arg_encoding;
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -52,7 +52,8 @@ class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
-    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -79,7 +80,8 @@ class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
-    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t i, TO* out) const override;
 };
@@ -132,9 +134,16 @@ void FuncUnary1_ColumnImpl<TI, TO>::verify_integrity() const {
 
 
 template <typename TI, typename TO>
-bool FuncUnary1_ColumnImpl<TI, TO>::allow_parallel_access() const {
-  return arg_.allow_parallel_access();
+size_t FuncUnary1_ColumnImpl<TI, TO>::n_children() const noexcept {
+  return 1;
 }
+
+template <typename TI, typename TO>
+const Column& FuncUnary1_ColumnImpl<TI, TO>::child(size_t i) const {
+  xassert(i == 0);  (void)i;
+  return arg_;
+}
+
 
 
 
@@ -179,9 +188,16 @@ void FuncUnary2_ColumnImpl<TI, TO>::verify_integrity() const {
 }
 
 
+
 template <typename TI, typename TO>
-bool FuncUnary2_ColumnImpl<TI, TO>::allow_parallel_access() const {
-  return arg_.allow_parallel_access();
+size_t FuncUnary2_ColumnImpl<TI, TO>::n_children() const noexcept {
+  return 1;
+}
+
+template <typename TI, typename TO>
+const Column& FuncUnary2_ColumnImpl<TI, TO>::child(size_t i) const {
+  xassert(i == 0);  (void)i;
+  return arg_;
 }
 
 

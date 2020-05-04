@@ -40,6 +40,8 @@ class SliceView_ColumnImpl : public Virtual_ColumnImpl {
     SliceView_ColumnImpl(Column&& col, const RowIndex& ri);
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t i, int8_t* out)   const override;
     bool get_element(size_t i, int16_t* out)  const override;
@@ -70,6 +72,8 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
     ArrayView_ColumnImpl(Column&& col, const RowIndex& ri, size_t nrows);
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     // defined in sort.cc
     void sort_grouped(const Groupby& gby, Column& out) override;

@@ -46,6 +46,7 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
                      SType stype = SType::VOID);
 
     ColumnImpl* clone() const override;
+    size_t n_children() const noexcept override;
     size_t memory_footprint() const noexcept override;
     void materialize(Column&, bool) override;
     void verify_integrity() const override;

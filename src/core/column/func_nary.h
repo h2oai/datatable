@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -44,7 +44,8 @@ class FuncNary_ColumnImpl : public Virtual_ColumnImpl
 
     ColumnImpl* clone() const override;
     void verify_integrity() const override;
-    bool allow_parallel_access() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t i, T* out) const override;
 };
@@ -86,12 +87,16 @@ void FuncNary_ColumnImpl<T>::verify_integrity() const {
 
 
 template <typename T>
-bool FuncNary_ColumnImpl<T>::allow_parallel_access() const {
-  for (const auto& col : columns_) {
-    if (!col.allow_parallel_access()) return false;
-  }
-  return true;
+size_t FuncNary_ColumnImpl<T>::n_children() const noexcept {
+  return columns_.size();
 }
+
+template <typename T>
+const Column& FuncNary_ColumnImpl<T>::child(size_t i) const {
+  xassert(i < columns_.size());
+  return columns_[i];
+}
+
 
 
 template <typename T>

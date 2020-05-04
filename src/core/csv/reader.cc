@@ -83,6 +83,7 @@ void GenericReader::init_options() {
 //------------------------------------------------------------------------------
 
 GenericReader::GenericReader()
+  : preframe(this)
 {
   na_strings = nullptr;
   sof = nullptr;
@@ -91,11 +92,13 @@ GenericReader::GenericReader()
   cr_is_newline = 0;
   multisource_strategy = FreadMultiSourceStrategy::Warn;
   errors_strategy = IreadErrorHandlingStrategy::Error;
+  memory_limit = size_t(-1);
 }
 
 
 // Copy-constructor will copy only the essential parts
 GenericReader::GenericReader(const GenericReader& g)
+  : preframe(this)
 {
   // Input parameters
   nthreads         = g.nthreads;
@@ -118,6 +121,7 @@ GenericReader::GenericReader(const GenericReader& g)
   number_is_na     = g.number_is_na;
   columns_arg      = g.columns_arg;
   t_open_input     = g.t_open_input;
+  memory_limit     = g.memory_limit;
   // Runtime parameters
   job     = g.job;
   input_mbuf = g.input_mbuf;
@@ -370,6 +374,15 @@ void GenericReader::init_logger(
 }
 
 
+void GenericReader::init_memorylimit(const py::Arg& arg) {
+  constexpr size_t UNLIMITED = size_t(-1);
+  memory_limit = arg.to<size_t>(UNLIMITED);
+  if (memory_limit != UNLIMITED) {
+    trace("memory_limit = %zu bytes", memory_limit);
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -518,7 +531,6 @@ void GenericReader::_message(
   if (dt::num_threads_in_team() == 0) {
     _send_message_to_python(method, msg, logger);
   } else {
-    // Any other team-wide mutex would work too
     std::lock_guard<std::mutex> lock(dt::python_mutex());
     delayed_message += msg;
   }

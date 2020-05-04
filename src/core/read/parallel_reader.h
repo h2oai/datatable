@@ -1,31 +1,40 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PARALLELREADER_h
 #define dt_READ_PARALLELREADER_h
-#include <memory>                    // std::unique_ptr
 #include "read/chunk_coordinates.h"  // ChunkCoordinates
 #include "read/thread_context.h"     // ThreadContext
-#include "parallel/shared_mutex.h"   // shared_mutex
-
-
+#include "parallel/api.h"
+#include "_dt.h"
 namespace dt {
 namespace read {
-using ThreadContextPtr = std::unique_ptr<ThreadContext>;
-
-class GenericReader;
 
 
 /**
- * This class' responsibility is to execute parallel reading of its input,
- * ensuring that the data integrity is maintained.
- */
-class ParallelReader {
-
+  * This class' responsibility is to execute parallel reading of its
+  * input, ensuring that the data integrity is maintained.
+  */
+class ParallelReader
+{
   protected:
     size_t chunk_size;
     size_t chunk_count;
@@ -36,10 +45,7 @@ class ParallelReader {
 
   protected:
     GenericReader& g;
-    shared_mutex shmutex;
-    size_t nrows_max;
-    size_t nrows_allocated;
-    size_t nrows_written;
+    PreFrame& preframe;
     size_t nthreads;
 
   public:
@@ -60,22 +66,22 @@ class ParallelReader {
      * `start` / `end` if the flags `start_exact` / `end_exact` are set.
      */
     virtual void adjust_chunk_coordinates(
-        ChunkCoordinates&, ThreadContextPtr&) const {}
+        ChunkCoordinates&, ThreadContext*) const {}
 
     /**
      * Return an instance of a `ThreadContext` class. Implementations of
      * `ParallelReader` are expected to override this method to return
      * appropriate subclasses of `ThreadContext`.
      */
-    virtual ThreadContextPtr init_thread_context() = 0;
+    virtual std::unique_ptr<ThreadContext> init_thread_context() = 0;
 
   private:
-    ChunkCoordinates compute_chunk_boundaries(size_t, ThreadContextPtr&) const;
+    ChunkCoordinates compute_chunk_boundaries(size_t, ThreadContext*) const;
     void determine_chunking_strategy();
     double work_done_amount() const;
-    void realloc_output_columns(size_t i, size_t new_nrows);
+    void realloc_output_columns(size_t i, size_t new_nrows, ordered*);
     void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,
-                     ThreadContextPtr& ctx);
+                     ThreadContext* ctx);
 };
 
 

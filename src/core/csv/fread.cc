@@ -63,19 +63,17 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       if (col.is_dropped()) {
         ndropped++;
         continue;
-      } else {
-        if (col.get_ptype() < oldtypes[i]) {
-          // FIXME: if the user wants to override the type, let them
-          throw IOError()
-              << "Attempt to override column " << i + 1 << " \"" << col.repr_name(*this)
-              << "\" with detected type '" << ParserLibrary::info(oldtypes[i]).cname()
-              << "' down to '" << col.typeName() << "' which will lose accuracy. "
-                 "If this was intended, please coerce to the lower type afterwards. Only "
-                 "overrides to a higher type are permitted.";
-        }
-        nUserBumped += (col.get_ptype() != oldtypes[i]);
       }
+      if (col.get_ptype() < oldtypes[i]) {
+        // FIXME: if the user wants to override the type, let them
+        throw IOError()
+            << "Attempt to override column " << i + 1 << " \"" << col.repr_name(*this)
+            << "\" with detected type '" << ParserLibrary::info(oldtypes[i]).cname()
+            << "' down to '" << col.typeName() << "' which is not supported yet.";
+      }
+      nUserBumped += (col.get_ptype() != oldtypes[i]);
     }
+
     if (verbose) {
       if (nUserBumped || ndropped) {
         trace("After %d type and %d drop user overrides : %s",
@@ -84,8 +82,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
       trace("Allocating %d column slots with %zd rows",
             ncols - ndropped, allocnrow);
     }
-
-    preframe.set_nrows(allocnrow);
+    preframe.preallocate(allocnrow);
 
     if (verbose) {
       fo.t_frame_allocated = wallclock();
@@ -119,32 +116,23 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     } else {
       fo.t_data_reread = wallclock();
     }
-    size_t ncols = preframe.ncols();
     size_t ncols_to_reread = preframe.n_columns_to_reread();
     xassert((ncols_to_reread > 0) == reread_scheduled);
     if (ncols_to_reread) {
       fo.n_cols_reread += ncols_to_reread;
-      size_t n_type_bump_cols = 0;
-      for (size_t j = 0; j < ncols; j++) {
-        auto& col = preframe.column(j);
-        if (!col.is_in_output()) continue;
-        bool bumped = col.is_type_bumped();
-        col.reset_type_bumped();
-        col.set_in_buffer(bumped);
-        n_type_bump_cols += bumped;
-      }
-      firstTime = false;
       if (verbose) {
-        trace(n_type_bump_cols == 1
+        trace(ncols_to_reread == 1
               ? "%zu column needs to be re-read because its type has changed"
               : "%zu columns need to be re-read because their types have changed",
-              n_type_bump_cols);
+              ncols_to_reread);
       }
+      preframe.prepare_for_rereading();
+      firstTime = false;
       reread_scheduled = false;
       goto read;
     }
 
-    fo.n_rows_read = preframe.nrows();
+    fo.n_rows_read = preframe.nrows_written();
     fo.n_cols_read = preframe.n_columns_in_output();
   }
 

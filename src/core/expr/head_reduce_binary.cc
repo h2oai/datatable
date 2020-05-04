@@ -89,6 +89,16 @@ class BinaryReduced_ColumnImpl : public Virtual_ColumnImpl {
     bool computationally_expensive() const override {
       return true;
     }
+
+    size_t n_children() const noexcept override {
+      return 2;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i < 2);
+      return (i == 0)? arg1 : arg2;
+    }
+
 };
 
 

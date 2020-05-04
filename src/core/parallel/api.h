@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -128,6 +128,10 @@ class ordered {
                   function<void(size_t)> do_ordered,
                   function<void(size_t)> post_ordered);
     void set_n_iterations(size_t n);
+    void wait_until_all_finalized() const;
+
+    size_t get_n_iterations() const;
+    size_t current_iteration() const;
 };
 
 void parallel_for_ordered(size_t n_iterations, NThreads NThreads_,
@@ -138,6 +142,7 @@ void parallel_for_ordered(size_t n_iterations,
 
 
 std::mutex& python_mutex();
+std::mutex& team_mutex();
 
 }  // namespace dt
 

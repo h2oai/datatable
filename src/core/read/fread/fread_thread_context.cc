@@ -20,25 +20,22 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "csv/reader_fread.h"      // FreadReader
-#include "encodings.h"             // check_escaped_string, decode_escaped_csv_string
-#include "py_encodings.h"          // decode_win1252
 #include "read/fread/fread_thread_context.h"
 #include "read/parallel_reader.h"  // ChunkCoordinates
 #include "utils/misc.h"            // wallclock
-
+#include "encodings.h"             // check_escaped_string, decode_escaped_csv_string
+#include "py_encodings.h"          // decode_win1252
 namespace dt {
 namespace read {
 
 
 
 FreadThreadContext::FreadThreadContext(
-    size_t bcols, size_t brows, FreadReader& f, PT* types_,
-    dt::shared_mutex& mut
+    size_t bcols, size_t brows, FreadReader& f, PT* types_
   ) : ThreadContext(bcols, brows),
       types(types_),
       freader(f),
       preframe(f.preframe),
-      shmutex(mut),
       tokenizer(f.makeTokenizer(tbuf.data(), nullptr)),
       parsers(ParserLibrary::get_parser_fns())
 {
@@ -308,7 +305,7 @@ void FreadThreadContext::postprocess() {
 }
 
 
-void FreadThreadContext::orderBuffer() {
+void FreadThreadContext::order_buffer() {
   if (!used_nrows) return;
   size_t j = 0;
   for (auto& col : preframe) {
@@ -316,7 +313,7 @@ void FreadThreadContext::orderBuffer() {
     if (col.is_string() && !col.is_type_bumped()) {
       // Compute the size of the string content in the buffer `sz` from the
       // offset of the last element. This quantity cannot be calculated in the
-      // postprocess() step, since `used_nrows` may some times change affecting
+      // postprocess() step, since `used_nrows` may sometimes change, affecting
       // this size after the post-processing.
       uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
       uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
@@ -335,7 +332,6 @@ void FreadThreadContext::orderBuffer() {
 void FreadThreadContext::push_buffers() {
   // If the buffer is empty, then there's nothing to do...
   if (!used_nrows) return;
-  dt::shared_lock<dt::shared_mutex> lock(shmutex);
 
   double t0 = verbose? wallclock() : 0;
   size_t j = 0;
@@ -343,19 +339,20 @@ void FreadThreadContext::push_buffers() {
     if (!col.is_in_buffer()) continue;
     void* data = col.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
+    size_t effective_row0 = row0 - col.nrows_archived();
 
     if (col.is_type_bumped()) {
       // do nothing: the column was not properly allocated for its type, so
       // any attempt to write the data may fail with data corruption
     } else if (col.is_string()) {
       WritableBuffer* wb = col.strdata_w();
-      SInfo& si = strinfo[j];
+      auto& si = strinfo[j];
       field64* lo = tbuf.data() + j;
 
       wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
 
       if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(data) + row0 + 1;
+        uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0 + 1;
         uint32_t delta = static_cast<uint32_t>(si.write_at - si.start);
         for (size_t n = 0; n < used_nrows; ++n) {
           uint32_t soff = lo->str32.offset;
@@ -363,7 +360,7 @@ void FreadThreadContext::push_buffers() {
           lo += tbuf_ncols;
         }
       } else {
-        uint64_t* dest = static_cast<uint64_t*>(data) + row0 + 1;
+        uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0 + 1;
         uint64_t delta = static_cast<uint64_t>(si.write_at - si.start);
         for (size_t n = 0; n < used_nrows; ++n) {
           uint64_t soff = lo->str32.offset;
@@ -375,7 +372,7 @@ void FreadThreadContext::push_buffers() {
     } else {
       const field64* src = tbuf.data() + j;
       if (elemsize == 8) {
-        uint64_t* dest = static_cast<uint64_t*>(data) + row0;
+        uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0;
         for (size_t r = 0; r < used_nrows; r++) {
           *dest = src->uint64;
           src += tbuf_ncols;
@@ -383,7 +380,7 @@ void FreadThreadContext::push_buffers() {
         }
       } else
       if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(data) + row0;
+        uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0;
         for (size_t r = 0; r < used_nrows; r++) {
           *dest = src->uint32;
           src += tbuf_ncols;
@@ -391,7 +388,7 @@ void FreadThreadContext::push_buffers() {
         }
       } else
       if (elemsize == 1) {
-        uint8_t* dest = static_cast<uint8_t*>(data) + row0;
+        uint8_t* dest = static_cast<uint8_t*>(data) + effective_row0;
         for (size_t r = 0; r < used_nrows; r++) {
           *dest = src->uint8;
           src += tbuf_ncols;

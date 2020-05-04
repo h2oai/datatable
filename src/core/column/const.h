@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,6 +35,7 @@ class Const_ColumnImpl : public Virtual_ColumnImpl {
     static Column make_string_column(size_t nrows, CString value, SType stype = SType::STR32);
     static Column from_1row_column(const Column& col);
 
+    size_t n_children() const noexcept override;
     void repeat(size_t ntimes, Column& out) override;
 };
 

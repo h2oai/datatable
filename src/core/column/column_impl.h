@@ -97,6 +97,9 @@ class ColumnImpl
     virtual bool computationally_expensive() const { return false; }
     virtual size_t memory_footprint() const noexcept = 0;
 
+    virtual size_t n_children() const noexcept = 0;
+    virtual const Column& child(size_t i) const;
+
 
   //------------------------------------
   // Data buffers
@@ -109,6 +112,9 @@ class ColumnImpl
     virtual const void* get_data_readonly(size_t k) const = 0;
     virtual void*       get_data_editable(size_t k) = 0;
     virtual Buffer      get_data_buffer(size_t k) const = 0;
+
+    virtual void write_data_to_jay(Column&, jay::ColumnBuilder&,
+                                   WritableBuffer*) const = 0;
 
 
   //------------------------------------

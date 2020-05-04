@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,8 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_RBOUND_h
 #define dt_COLUMN_RBOUND_h
-#include <memory>
-#include <vector>
 #include "column/virtual.h"
 namespace dt {
 
@@ -32,13 +30,15 @@ namespace dt {
   */
 class Rbound_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    std::vector<Column> columns_;
+    std::vector<Column> chunks_;
 
   public:
     Rbound_ColumnImpl(const colvec& columns);
 
     ColumnImpl* clone() const override;
     // ColumnImpl* materialize() override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t i, int8_t* out)   const override;
     bool get_element(size_t i, int16_t* out)  const override;
@@ -48,6 +48,9 @@ class Rbound_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, double* out)   const override;
     bool get_element(size_t i, CString* out)  const override;
     bool get_element(size_t i, py::robj* out) const override;
+
+    void write_data_to_jay(Column&, jay::ColumnBuilder&,
+                           WritableBuffer*) const override;
 };
 
 

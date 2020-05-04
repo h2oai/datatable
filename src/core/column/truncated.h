@@ -19,26 +19,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_REPEATED_h
-#define dt_COLUMN_REPEATED_h
-#include <memory>
+#ifndef dt_COLUMN_TRUNCATED_h
+#define dt_COLUMN_TRUNCATED_h
 #include "column/virtual.h"
 namespace dt {
 
 
 /**
-  * Virtual column representing the `arg` column repeated n times.
+  * Virtual column representing the `arg` truncated to
+  * `nrows_ < arg.nrows()` rows.
   */
-class Repeated_ColumnImpl : public Virtual_ColumnImpl {
+class Truncated_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    size_t mod;
-    Column arg;  // arg.nrows() == mod
+    Column arg_;
 
   public:
-    Repeated_ColumnImpl(Column&&, size_t ntimes);
-
+    Truncated_ColumnImpl(Column&&, size_t nrows);
     ColumnImpl* clone() const override;
-    void repeat(size_t ntimes, Column& out) override;
+
+    void na_pad(size_t new_nrows, Column& out) override;
+    void truncate(size_t new_nrows, Column& out) override;
     size_t n_children() const noexcept override;
     const Column& child(size_t i) const override;
 

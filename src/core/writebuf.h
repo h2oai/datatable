@@ -92,15 +92,19 @@ public:
   virtual void finalize() = 0;
 
   /**
-   * Simple helper method for writing into the buffer in single-threaded
-   * context.
-   */
-  void write(size_t n, const void* src) {
-    write_at(prep_write(n, src), n, src);
+    * Simple helper method for writing into the buffer in single-
+    * threaded context. The return value is the position within the
+    * buffer where the data was written.
+    */
+  size_t write(size_t n, const void* src) {
+    size_t writepos = prep_write(n, src);
+    write_at(writepos, n, src);
+    return writepos;
   }
-  void write(const CString& src) {
-    size_t at = prep_write(static_cast<size_t>(src.size), src.ch);
-    write_at(at, static_cast<size_t>(src.size), src.ch);
+  size_t write(const CString& src) {
+    size_t writepos = prep_write(static_cast<size_t>(src.size), src.ch);
+    write_at(writepos, static_cast<size_t>(src.size), src.ch);
+    return writepos;
   }
 
   // Prevent copying / assignment for these objects

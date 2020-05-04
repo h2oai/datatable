@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,15 +32,18 @@ namespace dt {
   */
 class NaFilled_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    size_t arg_nrows;
-    Column arg;
+    size_t arg_nrows_;
+    Column arg_;
 
   public:
     NaFilled_ColumnImpl(Column&&, size_t nrows);
+    NaFilled_ColumnImpl(Column&&, size_t nrows, size_t arg_nrows);
     ColumnImpl* clone() const override;
 
     void na_pad(size_t new_nrows, Column& out) override;
     void truncate(size_t new_nrows, Column& out) override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
     bool get_element(size_t, int8_t*)   const override;
     bool get_element(size_t, int16_t*)  const override;

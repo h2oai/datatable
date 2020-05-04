@@ -8,7 +8,6 @@
 #include "read/fread/fread_parallel_reader.h"
 #include "read/fread/fread_thread_context.h"  // FreadThreadContext
 #include "csv/reader_fread.h"                 // FreadReader
-
 namespace dt {
 namespace read {
 
@@ -26,20 +25,20 @@ void FreadParallelReader::read_all() {
 
 
 std::unique_ptr<ThreadContext> FreadParallelReader::init_thread_context() {
-  size_t trows = std::max<size_t>(nrows_allocated / chunk_count, 4);
+  size_t trows = std::max<size_t>(preframe.nrows_allocated() / chunk_count, 4);
   size_t tcols = f.preframe.n_columns_in_buffer();
   return std::unique_ptr<ThreadContext>(
-            new FreadThreadContext(tcols, trows, f, types, shmutex));
+            new FreadThreadContext(tcols, trows, f, types));
 }
 
 
 void FreadParallelReader::adjust_chunk_coordinates(
-  ChunkCoordinates& cc, ThreadContextPtr& ctx) const
+    ChunkCoordinates& cc, ThreadContext* ctx) const
 {
   // Adjust the beginning of the chunk so that it is guaranteed not to be
   // on a newline.
   if (cc.is_start_approximate()) {
-    FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx.get())->tokenizer;
+    FreadTokenizer& tok = static_cast<FreadThreadContext*>(ctx)->get_tokenizer();
     const char* start = cc.get_start();
     while (*start=='\n' || *start=='\r') start++;
     cc.set_start_approximate(start);
@@ -60,5 +59,6 @@ void FreadParallelReader::adjust_chunk_coordinates(
 }
 
 
-}  // namespace read
-}  // namespace dt
+
+
+}}  // namespace dt::read

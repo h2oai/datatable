@@ -1,38 +1,47 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>           // std::max
 #include "csv/reader.h"
 #include "parallel/api.h"
 #include "read/parallel_reader.h"
 #include "utils/assert.h"
-
-extern double wallclock();
-
+#include "utils/misc.h"
 namespace dt {
 namespace read {
 
 
 
 ParallelReader::ParallelReader(GenericReader& reader, double meanLineLen)
-  : g(reader)
+  : chunk_size(0),
+    chunk_count(0),
+    input_start(reader.sof),
+    input_end(reader.eof),
+    end_of_last_chunk(input_start),
+    approximate_line_length(meanLineLen),
+    g(reader),
+    preframe(reader.preframe),
+    nthreads(static_cast<size_t>(reader.nthreads))
 {
-  chunk_size = 0;
-  chunk_count = 0;
-  input_start = g.sof;
-  input_end = g.eof;
-  end_of_last_chunk = input_start;
-  approximate_line_length = std::max(meanLineLen, 1.0);
-  nthreads = static_cast<size_t>(g.nthreads);
-  nrows_written = 0;
-  nrows_allocated = g.preframe.nrows();
-  nrows_max = g.max_nrows;
-  xassert(nrows_allocated <= nrows_max);
-
+  xassert(input_end >= input_start);
   determine_chunking_strategy();
 }
 
@@ -42,6 +51,8 @@ ParallelReader::~ParallelReader() {}
 
 void ParallelReader::determine_chunking_strategy() {
   size_t input_size = static_cast<size_t>(input_end - input_start);
+  size_t nrows_max = g.max_nrows;
+
   double maxrows_size = nrows_max * approximate_line_length;
   bool input_size_reduced = false;
   if (nrows_max < 1000000 && maxrows_size < input_size) {
@@ -93,7 +104,7 @@ void ParallelReader::determine_chunking_strategy() {
  * assuming that different invocation receive different `ctx` objects.
  */
 ChunkCoordinates ParallelReader::compute_chunk_boundaries(
-    size_t i, ThreadContextPtr& ctx) const
+    size_t i, ThreadContext* ctx) const
 {
   xassert(i < chunk_count);
   ChunkCoordinates c;
@@ -151,7 +162,7 @@ void ParallelReader::read_all()
 
   dt::parallel_for_ordered(
     /* n_iterations = */ chunk_count,
-    /* n_threads = */ NThreads(nthreads),
+    NThreads(nthreads),
 
     [&](dt::ordered* o) {
       // Thread-local parse context. This object does most of the parsing job.
@@ -174,7 +185,7 @@ void ParallelReader::read_all()
             g.emit_delayed_messages();
           }
 
-          txcc = compute_chunk_boundaries(i, tctx);
+          txcc = compute_chunk_boundaries(i, tctx.get());
 
           // Read the chunk with the expected coordinates `txcc`. The actual
           // coordinates of the data read will be stored in variable `tacc`.
@@ -186,26 +197,13 @@ void ParallelReader::read_all()
         },
 
         [&](size_t i) {
-          tctx->row0 = nrows_written;
-          order_chunk(tacc, txcc, tctx);
+          tctx->set_row0(preframe.nrows_written());
+          order_chunk(tacc, txcc, tctx.get());
 
-          size_t nrows_new = nrows_written + tctx->used_nrows;
-          if (nrows_new > nrows_allocated) {
-            if (nrows_new > nrows_max) {
-              // more rows read than nrows_max, no need to reallocate
-              // the output, just truncate the rows in the current chunk.
-              xassert(nrows_max >= nrows_written);
-              tctx->used_nrows = nrows_max - nrows_written;
-              nrows_new = nrows_max;
-              realloc_output_columns(i, nrows_new);
-              o->set_n_iterations(i + 1);
-            } else {
-              realloc_output_columns(i, nrows_new);
-            }
-          }
-          nrows_written = nrows_new;
-
-          tctx->orderBuffer();
+          size_t chunk_nrows = tctx->get_nrows();
+          preframe.ensure_output_nrows(chunk_nrows, i, o);
+          tctx->set_nrows(chunk_nrows);
+          tctx->order_buffer();
         },
 
         [&](size_t) {
@@ -215,56 +213,13 @@ void ParallelReader::read_all()
     });  // dt::parallel_for_ordered
   g.emit_delayed_messages();
 
-  // Reallocate the output to have the correct number of rows
-  g.preframe.set_nrows(nrows_written);
-
   // Check that all input was read (unless interrupted early because of
   // nrows_max).
-  if (nrows_written < nrows_max) {
+  if (preframe.nrows_written() < g.max_nrows) {
     xassert(end_of_last_chunk == input_end);
   }
 }
 
-
-
-/**
- * Reallocate output frame (i.e. `g.preframe`) to the new number of rows.
- * Argument `ichunk` contains the index of the chunk that was read last (this
- * helps with determining the new number of rows), and `new_allocnrow` is the
- * minimal number of rows to reallocate to.
- *
- * This method is thread-safe: it will acquire an exclusive lock before
- * making any changes.
- */
-void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
-{
-  xassert(ichunk < chunk_count);
-  if (new_nrows == nrows_allocated) {
-    return;
-  }
-  if (ichunk == chunk_count - 1) {
-    // If we're on the last jump, then `new_nrows` is exactly how many rows
-    // will be needed.
-  } else {
-    // Otherwise we adjust the alloc to account for future chunks as well.
-    double expected_nrows = 1.2 * new_nrows * chunk_count / (ichunk + 1);
-    new_nrows = std::max(static_cast<size_t>(expected_nrows),
-                         1024 + nrows_allocated);
-  }
-  if (new_nrows > nrows_max) {
-    // If the user asked to read no more than `nrows_max` rows, then there is
-    // no point in allocating more than that amount.
-    new_nrows = nrows_max;
-  }
-  nrows_allocated = new_nrows;
-
-  g.trace("Too few rows allocated, reallocating to %zu rows", nrows_allocated);
-
-  { // Acquire a lock and then resize all columns
-    shared_lock<shared_mutex> lock(shmutex, /* exclusive = */ true);
-    g.preframe.set_nrows(nrows_allocated);
-  }
-}
 
 
 
@@ -286,7 +241,7 @@ void ParallelReader::realloc_output_columns(size_t ichunk, size_t new_nrows)
  * parser that the coordinates that it received are true.
  */
 void ParallelReader::order_chunk(
-    ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContextPtr& ctx)
+    ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContext* ctx)
 {
   for (int i = 0; i < 2; ++i) {
     if (acc.get_start() == end_of_last_chunk &&

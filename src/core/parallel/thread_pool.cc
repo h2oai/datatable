@@ -208,6 +208,10 @@ std::mutex& python_mutex() {
   return thpool->monitor->mutex;
 }
 
+std::mutex& team_mutex() {
+  return thpool->global_mutex;
+}
+
 
 void thread_pool::init_options() {
   // By default, set the number of threads to `hardware_concurrency`

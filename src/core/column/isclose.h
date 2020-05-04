@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -56,8 +56,13 @@ class IsClose_ColumnImpl : public Virtual_ColumnImpl {
                                        rtol_, atol_, nrows_);
     }
 
-    bool allow_parallel_access() const override {
-      return argx_.allow_parallel_access() && argy_.allow_parallel_access();
+    size_t n_children() const noexcept override {
+      return 2;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i < 2);
+      return (i == 0)? argx_ : argy_;
     }
 
 
