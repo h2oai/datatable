@@ -28,7 +28,8 @@ import re
 import warnings
 from datatable import dt, f, join
 from datatable.internal import frame_integrity_check
-from tests_random.utils import assert_equals, repr_data, repr_row, repr_types
+from tests_random.utils import (
+    assert_equals, log, repr_data, repr_row, repr_types)
 
 
 class MetaFrame:
@@ -62,10 +63,10 @@ class MetaFrame:
         for t in types:
             tt[t] += 1
         assert len(tt) == 4
-        print("Making a frame with nrows=%d, ncols=%d" % (nrows, ncols))
-        print("  types: bool=%d, int=%d, float=%d, str=%d"
+        print("# Making a frame with nrows=%d, ncols=%d" % (nrows, ncols))
+        print("#   types: bool=%d, int=%d, float=%d, str=%d"
               % (tt[bool], tt[int], tt[float], tt[str]))
-        print("  missing values: %.3f" % missing_fraction)
+        print("#   missing values: %.3f" % missing_fraction)
         data = [self.random_column(nrows, types[i], missing_fraction)[0]
                 for i in range(ncols)]
         self.data = data
@@ -78,17 +79,15 @@ class MetaFrame:
         self.df_shallow_copy = self.df_deep_copy = None
         self._name = "DT" + str(MetaFrame.COUNTER)
         MetaFrame.COUNTER += 1
+        self.write_to_file()
 
 
-    def write_to_file(self, out):
-        out.write("%s = dt.Frame(\n" % self.name)
-        out.write("    %s,\n" % (repr_data(self.data, 4), ))
-        out.write("    names=%r,\n" % (self.names, ))
-        out.write("    stypes=%s\n" % (repr_types(self.types), ))
-        out.write(")\n")
-        out.write("assert %s.shape == (%d, %d)\n"
-                  % (self.name, self.nrows, self.ncols))
-        out.write("DT_shallow_copy = DT_deep_copy = None\n")
+    def write_to_file(self):
+        print(f"{self} = dt.Frame(")
+        print(f"    {repr_data(self.data, 4)},")
+        print(f"    names={self.names},")
+        print(f"    stypes={repr_types(self.types)}")
+        print(f")")
 
 
     def random_type(self):
@@ -201,6 +200,9 @@ class MetaFrame:
     #---------------------------------------------------------------------------
     # Properties
     #---------------------------------------------------------------------------
+
+    def __repr__(self):
+        return self._name
 
     @property
     def name(self):
@@ -319,6 +321,7 @@ class MetaFrame:
     # Operations
     #---------------------------------------------------------------------------
 
+    @log
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
         if self.nkeys and nrows > curr_nrows:
@@ -338,6 +341,7 @@ class MetaFrame:
                     elem[:] = elem[:nrows]
 
 
+    @log
     def slice_rows(self, s):
         self.df = self.df[s, :]
         if isinstance(s, slice):
@@ -351,6 +355,7 @@ class MetaFrame:
         self.nkeys = 0
 
 
+    @log
     def delete_rows(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
         nrows = self.nrows
@@ -363,6 +368,7 @@ class MetaFrame:
             self.data[i] = [col[j] for j in index]
 
 
+    @log
     def delete_columns(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
         if isinstance(s, slice):
@@ -385,6 +391,7 @@ class MetaFrame:
             self.nkeys -= nkeys_remove
 
 
+    @log
     def slice_cols(self, s):
         self.df = self.df[:, s]
         self.data = self.data[s]
@@ -393,6 +400,7 @@ class MetaFrame:
         self.nkeys = 0
 
 
+    @log
     def cbind(self, frames):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", dt.exceptions.DatatableWarning)
@@ -410,6 +418,7 @@ class MetaFrame:
         self.dedup_names()
 
 
+    @log
     def rbind(self, frames):
         if (self.nkeys > 0) and (self.nrows > 0):
             msg = "Cannot rbind to a keyed frame"
@@ -429,6 +438,7 @@ class MetaFrame:
             self.data = newdata
 
 
+    @log
     def filter_on_bool_column(self, icol):
         assert self.types[icol] is bool
         filter_col = self.data[icol]
@@ -438,6 +448,7 @@ class MetaFrame:
         self.nkeys = 0
 
 
+    @log
     def replace_nas_in_column(self, icol, replacement_value):
         assert 0 <= icol < self.ncols
         assert isinstance(replacement_value, self.types[icol])
@@ -456,6 +467,7 @@ class MetaFrame:
                     column[i] = replacement_value
 
 
+    @log
     def sort_columns(self, a):
         self.df = self.df.sort(a)
         if self.nrows:
@@ -465,6 +477,7 @@ class MetaFrame:
         self.nkeys = 0
 
 
+    @log
     def cbind_numpy_column(self):
         import numpy as np
         coltype = self.random_type()
@@ -497,6 +510,7 @@ class MetaFrame:
         self.dedup_names()
 
 
+    @log
     def add_range_column(self, name, rangeobj):
         self.data += [list(rangeobj)]
         self.names += [name]
@@ -505,6 +519,7 @@ class MetaFrame:
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
 
 
+    @log
     def set_key_columns(self, keys, names):
         key_data = [self.data[i] for i in keys]
         unique_rows = set(zip(*key_data))
@@ -531,6 +546,7 @@ class MetaFrame:
 
 
 
+    @log
     def join_self(self):
         ncols = self.ncols
         if self.nkeys:
@@ -554,6 +570,7 @@ class MetaFrame:
 
 
     # This is a noop for the python data
+    @log
     def shallow_copy(self):
         self.df_shallow_copy = self.df.copy()
         self.df_deep_copy = copy.deepcopy(self.df)
@@ -582,5 +599,3 @@ class MetaFrame:
                     name = base + str(num)
                 self.names[i] = name
             seen_names.add(name)
-
-
