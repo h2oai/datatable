@@ -657,6 +657,14 @@ class Extension:
             with open(proc.output, "rt", encoding="utf-8") as proc_output:
                 out = proc_output.read()
             os.remove(proc.output)
+
+            # MSVC prints a translation unit name even when 
+            # no warnings/errors are generated. Unfortunately, 
+            # there is no way to disable this feature, so here 
+            # we just filter out such useless messages. 
+            if self._compiler.is_msvc() and out[:-1] in proc.source:
+                out = None
+            
             if out:
                 errors_and_warnings.append(out)
                 n_error_lines += len(out.split("\n"))
