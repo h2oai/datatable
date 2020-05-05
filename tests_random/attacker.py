@@ -26,83 +26,13 @@ import itertools
 import os
 import random
 import re
-import textwrap
 import time
 from datatable.lib import core
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests_random.metaframe import MetaFrame
+from tests_random.utils import repr_slice
 
 
-python_output = None
-
-def repr_row(row, j):
-    assert 0 <= j < len(row)
-    if len(row) <= 20 or j <= 12:
-        out = str(row[:j])[:-1]
-        if j > 0:
-            out += ",   " + str(row[j])
-        if len(row) > 20:
-            out += ",   " + str(row[j+1:20])[1:-1] + ", ...]"
-        elif j < len(row) - 1:
-            out += ",   " + str(row[j+1:])[1:]
-        else:
-            out += "]"
-    else:
-        out = str(row[:10])[:-1] + ", ..., " + str(row[j]) + ", ...]"
-    return out
-
-def repr_slice(s):
-    if s == slice(None):
-        return ":"
-    if s.start is None:
-        if s.stop is None:
-            return "::" +  str(s.step)
-        elif s.step is None:
-            return ":" + str(s.stop)
-        else:
-            return ":" + str(s.stop) + ":" + str(s.step)
-    else:
-        if s.stop is None:
-            return str(s.start) + "::" +  str(s.step)
-        elif s.step is None:
-            return str(s.start) + ":" + str(s.stop)
-        else:
-            return str(s.start) + ":" + str(s.stop) + ":" + str(s.step)
-
-def repr_data(data, indent):
-    out = "["
-    for i, arr in enumerate(data):
-        if i > 0:
-            out += " " * (indent + 1)
-        out += "["
-        out += textwrap.fill(", ".join(repr(e) for e in arr),
-                             width = 80, subsequent_indent=" "*(indent+2))
-        out += "]"
-        if i != len(data) - 1:
-            out += ",\n"
-    out += "]"
-    return out
-
-def repr_type(t):
-    if t is int:
-        return "int"
-    if t is bool:
-        return "bool"
-    if t is float:
-        return "float"
-    if t is str:
-        return "str"
-    raise ValueError("Unknown type %r" % t)
-
-def repr_types(types):
-    assert isinstance(types, (list, tuple))
-    return "[" + ", ".join(repr_type(t) for t in types) + "]"
-
-
-
-#-------------------------------------------------------------------------------
-# Attacker
-#-------------------------------------------------------------------------------
 
 class Attacker:
 
@@ -431,7 +361,7 @@ if __name__ == "__main__":
                              "after every step.")
     args = parser.parse_args()
     if args.python:
-        ra_dir = os.path.join(os.path.dirname(__file__), "random_attack_logs")
+        ra_dir = os.path.join(os.path.dirname(__file__), "logs")
         os.makedirs(ra_dir, exist_ok=True)
         outfile = os.path.join(ra_dir, str(args.seed) + ".py")
         with open(outfile, "wt", encoding="UTF-8") as out:

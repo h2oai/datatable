@@ -28,7 +28,7 @@ import re
 import warnings
 from datatable import dt, f, join
 from datatable.internal import frame_integrity_check
-from tests_random.utils import assert_equals
+from tests_random.utils import assert_equals, repr_data, repr_row, repr_types
 
 
 class MetaFrame:
@@ -83,8 +83,8 @@ class MetaFrame:
         out.write("DT = dt.Frame(%s,\n"
                   "              names=%r,\n"
                   "              stypes=%s)\n"
-                  % (repr_data(data, 14), names, repr_types(types)))
-        out.write("assert DT.shape == (%d, %d)\n" % (nrows, ncols))
+                  % (repr_data(self.data, 14), self.names, repr_types(self.types)))
+        out.write("assert DT.shape == (%d, %d)\n" % (self.nrows, self.ncols))
         out.write("DT_shallow_copy = DT_deep_copy = None\n")
 
 

@@ -22,6 +22,7 @@ coverage.info
 .benchmarks
 .pytest_cache/
 random_attack_logs/
+tests_random/logs/
 
 
 # Sphinx documentation
