@@ -34,7 +34,7 @@ from tests_random.utils import assert_equals, repr_data, repr_row, repr_types
 class MetaFrame:
 
     def __init__(self, ncols=None, nrows=None, types=None, names=None,
-                 missing_fraction=None):
+                 missing_fraction=None, pyout=None):
         if ncols is None:
             if types:
                 ncols = len(types)
@@ -75,11 +75,13 @@ class MetaFrame:
         self.np_data_deepcopy = []
         self.df = dt.Frame(data, names=names, stypes=types)
         self.df_shallow_copy = self.df_deep_copy = None
+        self._pyout = pyout
+        if pyout:
+            self.write_to_file()
 
 
-    def write_to_file(self, out):
-        if not out:
-            return
+    def write_to_file(self):
+        out = self._pyout
         out.write("DT = dt.Frame(%s,\n"
                   "              names=%r,\n"
                   "              stypes=%s)\n"
@@ -318,9 +320,14 @@ class MetaFrame:
             with pytest.raises(ValueError, match="Cannot increase the number "
                                "of rows in a keyed frame"):
                 self.df.nrows = nrows
-            return False
-        else:
-            self.df.nrows = nrows
+            if self._pyout:
+                self._pyout.write("with pytest.raises(ValueError, "
+                                  "match='Cannot increase the number of rows "
+                                  "in a keyed frame'):\n"
+                                  "    DT.nrows = %d\n\n" % nrows)
+            return
+
+        self.df.nrows = nrows
 
         if curr_nrows < nrows:
             append = [None] * (nrows - curr_nrows)
@@ -329,7 +336,9 @@ class MetaFrame:
         elif curr_nrows > nrows:
             for i, elem in enumerate(self.data):
                 self.data[i] = elem[:nrows]
-        return True
+        if self._pyout:
+            self._pyout.write("DT.nrows = %d\n" % nrows)
+
 
     def slice_rows(self, s):
         self.df = self.df[s, :]
@@ -337,10 +346,14 @@ class MetaFrame:
             for i in range(self.ncols):
                 self.data[i] = self.data[i][s]
         else:
+            assert isinstance(s, list)
             for i in range(self.ncols):
                 col = self.data[i]
                 self.data[i] = [col[j] for j in s]
         self.nkeys = 0
+        if self._pyout:
+            self._pyout.write("DT = DT[%s, :]\n" % repr_slice(s))
+
 
     def delete_rows(self, s):
         assert isinstance(s, slice) or isinstance(s, list)

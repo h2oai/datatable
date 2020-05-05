@@ -30,7 +30,7 @@ import time
 from datatable.lib import core
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests_random.metaframe import MetaFrame
-from tests_random.utils import repr_slice
+from tests_random.utils import repr_slice, random_slice
 
 
 
@@ -51,8 +51,7 @@ class Attacker:
             rounds = int(random.expovariate(0.05) + 2)
         assert isinstance(rounds, int)
         if frame is None:
-            frame = MetaFrame()
-            frame.write_to_file(self._out)
+            frame = MetaFrame(pyout=self._out)
         print("Launching an attack for %d rounds" % rounds)
         for _ in range(rounds):
             self.attack_frame(frame)
@@ -77,35 +76,16 @@ class Attacker:
     # Individual attack methods
     #---------------------------------------------------------------------------
 
-    def resize_rows(self, frame):
-        t = random.random()
-        curr_nrows = frame.nrows
-        new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
-        print("[01] Setting nrows to %d" % (new_nrows, ))
+    def resize_rows_(self, frame):
+        resize_rows(frame)
 
-        res = frame.resize_rows(new_nrows)
 
-        if self._out:
-            if res:
-                self._out.write("DT.nrows = %d\n" % new_nrows)
-            else:
-                self._out.write("with pytest.raises(ValueError, "
-                                    "match='Cannot increase the number of rows "
-                                    "in a keyed frame'):\n"
-                                    "    DT.nrows = %d\n\n"
-                                    % new_nrows)
+    def slice_rows_(self, frame):
+        slice_rows(frame)
 
-    def slice_rows(self, frame):
-        s = self.random_slice(frame.nrows)
-        new_ncols = len(range(*s.indices(frame.nrows)))
-        print("[02] Applying row slice (%r, %r, %r) -> nrows = %d"
-              % (s.start, s.stop, s.step, new_ncols))
-        if self._out:
-            self._out.write("DT = DT[%s, :]\n" % repr_slice(s))
-        frame.slice_rows(s)
 
     def slice_cols(self, frame):
-        s = self.random_slice(frame.ncols)
+        s = random_slice(frame.ncols)
         new_ncols = len(range(*s.indices(frame.ncols)))
         print("[03] Applying column slice (%r, %r, %r) -> ncols = %d"
               % (s.start, s.stop, s.step, new_ncols))
@@ -294,23 +274,6 @@ class Attacker:
     # Helpers
     #---------------------------------------------------------------------------
 
-    def random_slice(self, n):
-        while True:
-            t = random.random()
-            s = random.random()
-            i0 = int(n * t * 0.2) if t > 0.5 else None
-            i1 = int(n * (s * 0.2 + 0.8)) if s > 0.5 else None
-            if i0 is not None and i1 is not None and i1 < i0:
-                i0, i1 = i1, i0
-            step = random.choice([-2, -1, -1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 7] +
-                                 [None] * 3)
-            if step is not None and step < 0:
-                i0, i1 = i1, i0
-            res = slice(i0, i1, step)
-            newn = len(range(*res.indices(n)))
-            if newn > 0 or n == 0:
-                return res
-
     def random_array(self, n, positive=False):
         assert n > 0
         newn = max(5, random.randint(n // 2, 3 * n // 2))
@@ -320,8 +283,8 @@ class Attacker:
 
 
     ATTACK_METHODS = {
-        resize_rows: 1,
-        slice_rows: 3,
+        resize_rows_: 1,
+        slice_rows_: 3,
         slice_cols: 0.5,
         cbind_self: 1,
         rbind_self: 1,
@@ -340,6 +303,27 @@ class Attacker:
     ATTACK_WEIGHTS = list(itertools.accumulate(ATTACK_METHODS.values()))
     ATTACK_METHODS = list(ATTACK_METHODS.keys())
 
+
+
+
+#---------------------------------------------------------------------------
+# Individual attack methods
+#---------------------------------------------------------------------------
+
+def resize_rows(frame):
+    t = random.random()
+    curr_nrows = frame.nrows
+    new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
+    print("[01] Setting nrows to %d" % (new_nrows, ))
+    frame.resize_rows(new_nrows)
+
+
+def slice_rows(frame):
+    s = random_slice(frame.nrows)
+    new_ncols = len(range(*s.indices(frame.nrows)))
+    print("[02] Applying row slice (%r, %r, %r) -> nrows = %d"
+          % (s.start, s.stop, s.step, new_ncols))
+    frame.slice_rows(s)
 
 
 

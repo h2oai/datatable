@@ -21,6 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import random
 import sys
 import textwrap
 from datatable.internal import frame_integrity_check
@@ -142,3 +143,22 @@ def repr_type(t):
 def repr_types(types):
     assert isinstance(types, (list, tuple))
     return "[" + ", ".join(repr_type(t) for t in types) + "]"
+
+
+
+def random_slice(n):
+    while True:
+        t = random.random()
+        s = random.random()
+        i0 = int(n * t * 0.2) if t > 0.5 else None
+        i1 = int(n * (s * 0.2 + 0.8)) if s > 0.5 else None
+        if i0 is not None and i1 is not None and i1 < i0:
+            i0, i1 = i1, i0
+        step = random.choice([-2, -1, -1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 7] +
+                             [None] * 3)
+        if step is not None and step < 0:
+            i0, i1 = i1, i0
+        res = slice(i0, i1, step)
+        newn = len(range(*res.indices(n)))
+        if newn > 0 or n == 0:
+            return res
