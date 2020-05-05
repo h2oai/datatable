@@ -553,8 +553,8 @@ def build_sdist(sdist_directory, config_settings=None):
     files += glob.glob("src/core/**/*.cc", recursive=True)
     files += glob.glob("src/core/**/*.h", recursive=True)
     files += glob.glob("ci/xbuild/*.py")
-    files += [f for f in glob.glob("tests/**/*.py", recursive=True)
-              if "random_attack_logs" not in f]
+    files += [f for f in glob.glob("tests/**/*.py", recursive=True)]
+    files += [f for f in glob.glob("tests_random/*.py")]
     files += ["src/datatable/include/datatable.h"]
     files.sort()
     files += ["ci/ext.py", "ci/__init__.py"]
