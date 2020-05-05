@@ -32,6 +32,7 @@ from tests_random.utils import assert_equals, repr_data, repr_row, repr_types
 
 
 class MetaFrame:
+    COUNTER = 1
 
     def __init__(self, ncols=None, nrows=None, types=None, names=None,
                  missing_fraction=None, pyout=None):
@@ -76,17 +77,21 @@ class MetaFrame:
         self.df = dt.Frame(data, names=names, stypes=types)
         self.df_shallow_copy = self.df_deep_copy = None
         self._pyout = pyout
+        self._name = "DT" + str(MetaFrame.COUNTER)
+        MetaFrame.COUNTER += 1
         if pyout:
             self.write_to_file()
 
 
     def write_to_file(self):
         out = self._pyout
-        out.write("DT = dt.Frame(%s,\n"
-                  "              names=%r,\n"
-                  "              stypes=%s)\n"
-                  % (repr_data(self.data, 14), self.names, repr_types(self.types)))
-        out.write("assert DT.shape == (%d, %d)\n" % (self.nrows, self.ncols))
+        out.write("%s = dt.Frame(\n" % self.name)
+        out.write("    %s,\n" % (repr_data(self.data, 4), ))
+        out.write("    names=%r,\n" % (self.names, ))
+        out.write("    stypes=%s\n" % (repr_types(self.types), ))
+        out.write(")\n")
+        out.write("assert %s.shape == (%d, %d)\n"
+                  % (self.name, self.nrows, self.ncols))
         out.write("DT_shallow_copy = DT_deep_copy = None\n")
 
 
@@ -200,6 +205,10 @@ class MetaFrame:
     #---------------------------------------------------------------------------
     # Properties
     #---------------------------------------------------------------------------
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def nrows(self):
@@ -337,7 +346,7 @@ class MetaFrame:
             for i, elem in enumerate(self.data):
                 self.data[i] = elem[:nrows]
         if self._pyout:
-            self._pyout.write("DT.nrows = %d\n" % nrows)
+            self._pyout.write(f"{self.name}.nrows = {nrows}\n")
 
 
     def slice_rows(self, s):
@@ -352,7 +361,7 @@ class MetaFrame:
                 self.data[i] = [col[j] for j in s]
         self.nkeys = 0
         if self._pyout:
-            self._pyout.write("DT = DT[%s, :]\n" % repr_slice(s))
+            self._pyout.write(f"{self.name} = {self.name}[{repr_slice(s)}, :]\n")
 
 
     def delete_rows(self, s):
@@ -365,6 +374,10 @@ class MetaFrame:
         for i in range(self.ncols):
             col = self.data[i]
             self.data[i] = [col[j] for j in index]
+        if self._pyout:
+            strs = repr_slice(s) if isinstance(s, slice) else repr(s)
+            self._pyout.write(f"del {self.name}[{strs}, :]\n")
+
 
     def delete_columns(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
@@ -378,7 +391,12 @@ class MetaFrame:
             with pytest.raises(ValueError, match="Cannot delete a column that "
                                "is a part of a multi-column key"):
                 del self.df[:, s]
-            return False
+            if self._pyout:
+                self._pyout.write("with pytest.raises(ValueError, "
+                                    "match='Cannot delete a column that is "
+                                    "a part of a multi-column key'):\n"
+                                    "    del DT[:, %r]\n\n"
+                                    % s)
         else:
             ncols = self.ncols
             del self.df[:, s]
@@ -387,7 +405,8 @@ class MetaFrame:
             self.names = [self.names[i] for i in new_column_ids]
             self.types = [self.types[i] for i in new_column_ids]
             self.nkeys -= nkeys_remove
-            return True
+            if self._pyout:
+                self._pyout.write("del DT[:, %r]\n" % s)
 
 
     def slice_cols(self, s):
@@ -396,6 +415,9 @@ class MetaFrame:
         self.names = self.names[s]
         self.types = self.types[s]
         self.nkeys = 0
+        if self._pyout:
+            self._pyout.write("DT = DT[:, %s]\n" % repr_slice(s))
+
 
     def cbind(self, frames):
         with warnings.catch_warnings():
@@ -412,12 +434,19 @@ class MetaFrame:
         self.names = newnames
         self.types = newtypes
         self.dedup_names()
+        if self._pyout:
+            self._pyout.write(f"{self.name}.cbind({frame.name for frame in frames})\n")
+
 
     def rbind(self, frames):
         if (self.nkeys > 0) and (self.nrows > 0):
             with pytest.raises(ValueError, match="Cannot rbind to a keyed frame"):
                 self.df.rbind(*[iframe.df for iframe in frames])
-            return False
+            if self._pyout:
+                self._pyout.write("with pytest.raises(ValueError, "
+                                  "match='Cannot rbind to a keyed frame'):\n"
+                                  "    DT.rbind([DT] * %d)\n" % t)
+            return
         else:
             self.df.rbind(*[iframe.df for iframe in frames])
 
@@ -429,7 +458,10 @@ class MetaFrame:
                 assert self.names[j] == iframe.names[j]
                 newdata[j] += iframe.data[j]
         self.data = newdata
+        if self._pyout:
+            self._pyout.write(f"{self.name}.rbind({frame.name for frame in frames})\n")
         return True
+
 
     def filter_on_bool_column(self, icol):
         assert self.types[icol] is bool
@@ -438,6 +470,9 @@ class MetaFrame:
                      for column in self.data]
         self.df = self.df[f[icol], :]
         self.nkeys = 0
+        if self._pyout:
+            self._pyout.write(f"{self.name} = {self.name}[f[{icol}], :]\n")
+
 
     def replace_nas_in_column(self, icol, replacement_value):
         assert 0 <= icol < self.ncols
@@ -448,14 +483,21 @@ class MetaFrame:
             msg = re.escape(msg)
             with pytest.raises(ValueError, match = msg):
                 self.df[f[icol] == None, f[icol]] = replacement_value
-            return False
+            if self._pyout:
+                msg = 'Cannot change values in a key column %s' % frame.names[icol]
+                msg = re.escape(msg)
+                self._pyout.write("with pytest.raises(ValueError, match='%s'):\n"
+                                    "    DT[f[%d] == None, f[%d]] = %r\n"
+                                    % (msg, icol, icol, replacement_value))
         else:
             self.df[f[icol] == None, f[icol]] = replacement_value
             column = self.data[icol]
             for i, value in enumerate(column):
                 if value is None:
                     column[i] = replacement_value
-            return True
+            if self._pyout:
+                self._pyout.write(f"{self.name}[f[{icol}] == None, f[{icol}]] = {replacement_value}\n")
+
 
     def sort_columns(self, a):
         self.df = self.df.sort(a)
@@ -464,8 +506,11 @@ class MetaFrame:
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
             self.data = list(map(list, zip(*data)))
         self.nkeys = 0
+        if self._pyout:
+            self._pyout.write("DT = DT.sort(%r)\n" % a)
 
-    def cbind_numpy_column(self, out):
+
+    def cbind_numpy_column(self):
         import numpy as np
         coltype = self.random_type()
         mfraction = random.random()
@@ -486,8 +531,8 @@ class MetaFrame:
 
         names = self.random_names(1)
         df = dt.Frame(np_data.T, names=names)
-        if out:
-            out.write("DTNP = dt.Frame(np.ma.array(%s,\n"
+        if self._pyout:
+            self._pyout.write("DTNP = dt.Frame(np.ma.array(%s,\n"
                       "                mask=%s,\n"
                       "                dtype=np.dtype(%s)).T,\n"
                       "                names=%r)\n"
@@ -495,7 +540,7 @@ class MetaFrame:
                          repr_data([mmask], 14),
                          coltype.__name__,
                          names))
-            out.write("assert DTNP.shape == (%d, %d)\n" % (self.nrows, 1))
+            self._pyout.write("assert DTNP.shape == (%d, %d)\n" % (self.nrows, 1))
 
         for i in range(self.nrows):
             if mmask[i]: data[i] = None
@@ -505,6 +550,9 @@ class MetaFrame:
         self.types += [coltype]
         self.names += names
         self.dedup_names()
+        if self._pyout:
+            self._pyout.write("DT.cbind(DTNP)\n")
+
 
     def add_range_column(self, name, rangeobj):
         self.data += [list(rangeobj)]
@@ -512,6 +560,9 @@ class MetaFrame:
         self.types += [int]
         self.dedup_names()
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
+        if self._pyout:
+            self._pyout.write("DT.cbind(dt.Frame(%s=%r))\n"
+                                % (name, rangeobj))
 
     def set_key_columns(self, keys, names):
         key_data = [self.data[i] for i in keys]
@@ -522,7 +573,13 @@ class MetaFrame:
             with pytest.raises(ValueError, match="Cannot set a key: the values "
                                "are not unique"):
                 self.df.key = names
-            return False
+            if self._pyout:
+                self._pyout.write("with pytest.raises(ValueError, "
+                                    "match='Cannot set a key: the values are "
+                                    "not unique'):\n"
+                                    "    DT.key = %r\n\n"
+                                    % names)
+            return
 
         nonkeys = sorted(set(range(self.ncols)) - set(keys))
         new_column_order = keys + nonkeys
@@ -536,7 +593,9 @@ class MetaFrame:
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
             self.data = list(map(list, zip(*data)))
             self.data = [self.data[i] for i in new_column_order]
-        return True
+        if self._pyout:
+            self._pyout.write("DT.key = %r\n" % names)
+
 
     def join_self(self):
         ncols = self.ncols
@@ -545,7 +604,11 @@ class MetaFrame:
         else:
             with pytest.raises(ValueError, match="The join frame is not keyed"):
                 self.df = self.df[:, :, join(self.df)]
-            return False
+            if self._pyout:
+                self._pyout.write("with pytest.raises(ValueError, "
+                                  "match='The join frame is not keyed'):\n"
+                                  "    DT = DT[:, :, join(DT)]\n\n")
+            return
 
         s = slice(self.nkeys, ncols)
         join_data = copy.deepcopy(self.data[s])
@@ -557,12 +620,17 @@ class MetaFrame:
         self.names += join_names
         self.nkeys = 0
         self.dedup_names()
-        return True
+        if self._pyout:
+            self._pyout.write("DT = DT[:, :, join(DT)]\n")
+
 
     # This is a noop for the python data
     def shallow_copy(self):
         self.df_shallow_copy = self.df.copy()
         self.df_deep_copy = copy.deepcopy(self.df)
+        if self._pyout:
+            self._pyout.write("DT_shallow_copy = DT.copy()\n")
+            self._pyout.write("DT_deep_copy = copy.deepcopy(DT)\n")
 
 
     #---------------------------------------------------------------------------

@@ -146,6 +146,10 @@ def repr_types(types):
 
 
 
+#-------------------------------------------------------------------------------
+# Random helpers
+#-------------------------------------------------------------------------------
+
 def random_slice(n):
     while True:
         t = random.random()
@@ -162,3 +166,11 @@ def random_slice(n):
         newn = len(range(*res.indices(n)))
         if newn > 0 or n == 0:
             return res
+
+
+def random_array(n, positive=False):
+    assert n > 0
+    newn = max(5, random.randint(n // 2, 3 * n // 2))
+    lb = 0 if positive else -n
+    ub = n - 1
+    return [random.randint(lb, ub) for i in range(newn)]
