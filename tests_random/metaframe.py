@@ -35,7 +35,7 @@ class MetaFrame:
     COUNTER = 1
 
     def __init__(self, ncols=None, nrows=None, types=None, names=None,
-                 missing_fraction=None, pyout=None):
+                 missing_fraction=None):
         if ncols is None:
             if types:
                 ncols = len(types)
@@ -76,15 +76,11 @@ class MetaFrame:
         self.np_data_deepcopy = []
         self.df = dt.Frame(data, names=names, stypes=types)
         self.df_shallow_copy = self.df_deep_copy = None
-        self._pyout = pyout
         self._name = "DT" + str(MetaFrame.COUNTER)
         MetaFrame.COUNTER += 1
-        if pyout:
-            self.write_to_file()
 
 
-    def write_to_file(self):
-        out = self._pyout
+    def write_to_file(self, out):
         out.write("%s = dt.Frame(\n" % self.name)
         out.write("    %s,\n" % (repr_data(self.data, 4), ))
         out.write("    names=%r,\n" % (self.names, ))
@@ -326,27 +322,20 @@ class MetaFrame:
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
         if self.nkeys and nrows > curr_nrows:
-            with pytest.raises(ValueError, match="Cannot increase the number "
-                               "of rows in a keyed frame"):
+            msg = "Cannot increase the number of rows in a keyed frame"
+            with pytest.raises(ValueError, match=msg):
                 self.df.nrows = nrows
-            if self._pyout:
-                self._pyout.write("with pytest.raises(ValueError, "
-                                  "match='Cannot increase the number of rows "
-                                  "in a keyed frame'):\n"
-                                  "    DT.nrows = %d\n\n" % nrows)
-            return
 
-        self.df.nrows = nrows
+        else:
+            self.df.nrows = nrows
 
-        if curr_nrows < nrows:
-            append = [None] * (nrows - curr_nrows)
-            for i, elem in enumerate(self.data):
-                self.data[i] = elem + append
-        elif curr_nrows > nrows:
-            for i, elem in enumerate(self.data):
-                self.data[i] = elem[:nrows]
-        if self._pyout:
-            self._pyout.write(f"{self.name}.nrows = {nrows}\n")
+            if curr_nrows < nrows:
+                append = [None] * (nrows - curr_nrows)
+                for i, elem in enumerate(self.data):
+                    self.data[i] = elem + append
+            elif curr_nrows > nrows:
+                for i, elem in enumerate(self.data):
+                    elem[:] = elem[:nrows]
 
 
     def slice_rows(self, s):
@@ -360,8 +349,6 @@ class MetaFrame:
                 col = self.data[i]
                 self.data[i] = [col[j] for j in s]
         self.nkeys = 0
-        if self._pyout:
-            self._pyout.write(f"{self.name} = {self.name}[{repr_slice(s)}, :]\n")
 
 
     def delete_rows(self, s):
@@ -374,9 +361,6 @@ class MetaFrame:
         for i in range(self.ncols):
             col = self.data[i]
             self.data[i] = [col[j] for j in index]
-        if self._pyout:
-            strs = repr_slice(s) if isinstance(s, slice) else repr(s)
-            self._pyout.write(f"del {self.name}[{strs}, :]\n")
 
 
     def delete_columns(self, s):
@@ -388,15 +372,9 @@ class MetaFrame:
         nkeys_remove = len(set_keys.intersection(set_delcols))
 
         if (nkeys_remove > 0 and nkeys_remove < self.nkeys and self.nrows > 0):
-            with pytest.raises(ValueError, match="Cannot delete a column that "
-                               "is a part of a multi-column key"):
+            msg = "Cannot delete a column that is a part of a multi-column key"
+            with pytest.raises(ValueError, match=msg):
                 del self.df[:, s]
-            if self._pyout:
-                self._pyout.write("with pytest.raises(ValueError, "
-                                    "match='Cannot delete a column that is "
-                                    "a part of a multi-column key'):\n"
-                                    "    del DT[:, %r]\n\n"
-                                    % s)
         else:
             ncols = self.ncols
             del self.df[:, s]
@@ -405,8 +383,6 @@ class MetaFrame:
             self.names = [self.names[i] for i in new_column_ids]
             self.types = [self.types[i] for i in new_column_ids]
             self.nkeys -= nkeys_remove
-            if self._pyout:
-                self._pyout.write("del DT[:, %r]\n" % s)
 
 
     def slice_cols(self, s):
@@ -415,8 +391,6 @@ class MetaFrame:
         self.names = self.names[s]
         self.types = self.types[s]
         self.nkeys = 0
-        if self._pyout:
-            self._pyout.write("DT = DT[:, %s]\n" % repr_slice(s))
 
 
     def cbind(self, frames):
@@ -434,33 +408,25 @@ class MetaFrame:
         self.names = newnames
         self.types = newtypes
         self.dedup_names()
-        if self._pyout:
-            self._pyout.write(f"{self.name}.cbind({frame.name for frame in frames})\n")
 
 
     def rbind(self, frames):
         if (self.nkeys > 0) and (self.nrows > 0):
-            with pytest.raises(ValueError, match="Cannot rbind to a keyed frame"):
+            msg = "Cannot rbind to a keyed frame"
+            with pytest.raises(ValueError, match=msg):
                 self.df.rbind(*[iframe.df for iframe in frames])
-            if self._pyout:
-                self._pyout.write("with pytest.raises(ValueError, "
-                                  "match='Cannot rbind to a keyed frame'):\n"
-                                  "    DT.rbind([DT] * %d)\n" % t)
-            return
+
         else:
             self.df.rbind(*[iframe.df for iframe in frames])
 
-        newdata = [col.copy() for col in self.data]
-        for iframe in frames:
-            assert iframe.ncols == self.ncols
-            for j in range(self.ncols):
-                assert self.types[j] == iframe.types[j]
-                assert self.names[j] == iframe.names[j]
-                newdata[j] += iframe.data[j]
-        self.data = newdata
-        if self._pyout:
-            self._pyout.write(f"{self.name}.rbind({frame.name for frame in frames})\n")
-        return True
+            newdata = [col.copy() for col in self.data]
+            for iframe in frames:
+                assert iframe.ncols == self.ncols
+                for j in range(self.ncols):
+                    assert self.types[j] == iframe.types[j]
+                    assert self.names[j] == iframe.names[j]
+                    newdata[j] += iframe.data[j]
+            self.data = newdata
 
 
     def filter_on_bool_column(self, icol):
@@ -470,8 +436,6 @@ class MetaFrame:
                      for column in self.data]
         self.df = self.df[f[icol], :]
         self.nkeys = 0
-        if self._pyout:
-            self._pyout.write(f"{self.name} = {self.name}[f[{icol}], :]\n")
 
 
     def replace_nas_in_column(self, icol, replacement_value):
@@ -483,20 +447,13 @@ class MetaFrame:
             msg = re.escape(msg)
             with pytest.raises(ValueError, match = msg):
                 self.df[f[icol] == None, f[icol]] = replacement_value
-            if self._pyout:
-                msg = 'Cannot change values in a key column %s' % frame.names[icol]
-                msg = re.escape(msg)
-                self._pyout.write("with pytest.raises(ValueError, match='%s'):\n"
-                                    "    DT[f[%d] == None, f[%d]] = %r\n"
-                                    % (msg, icol, icol, replacement_value))
+
         else:
             self.df[f[icol] == None, f[icol]] = replacement_value
             column = self.data[icol]
             for i, value in enumerate(column):
                 if value is None:
                     column[i] = replacement_value
-            if self._pyout:
-                self._pyout.write(f"{self.name}[f[{icol}] == None, f[{icol}]] = {replacement_value}\n")
 
 
     def sort_columns(self, a):
@@ -506,8 +463,6 @@ class MetaFrame:
             data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
             self.data = list(map(list, zip(*data)))
         self.nkeys = 0
-        if self._pyout:
-            self._pyout.write("DT = DT.sort(%r)\n" % a)
 
 
     def cbind_numpy_column(self):
@@ -531,16 +486,6 @@ class MetaFrame:
 
         names = self.random_names(1)
         df = dt.Frame(np_data.T, names=names)
-        if self._pyout:
-            self._pyout.write("DTNP = dt.Frame(np.ma.array(%s,\n"
-                      "                mask=%s,\n"
-                      "                dtype=np.dtype(%s)).T,\n"
-                      "                names=%r)\n"
-                      % (repr_data([data], 14),
-                         repr_data([mmask], 14),
-                         coltype.__name__,
-                         names))
-            self._pyout.write("assert DTNP.shape == (%d, %d)\n" % (self.nrows, 1))
 
         for i in range(self.nrows):
             if mmask[i]: data[i] = None
@@ -550,8 +495,6 @@ class MetaFrame:
         self.types += [coltype]
         self.names += names
         self.dedup_names()
-        if self._pyout:
-            self._pyout.write("DT.cbind(DTNP)\n")
 
 
     def add_range_column(self, name, rangeobj):
@@ -560,77 +503,61 @@ class MetaFrame:
         self.types += [int]
         self.dedup_names()
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
-        if self._pyout:
-            self._pyout.write("DT.cbind(dt.Frame(%s=%r))\n"
-                                % (name, rangeobj))
+
 
     def set_key_columns(self, keys, names):
         key_data = [self.data[i] for i in keys]
         unique_rows = set(zip(*key_data))
         if len(unique_rows) == self.nrows:
             self.df.key = names
+
+            nonkeys = sorted(set(range(self.ncols)) - set(keys))
+            new_column_order = keys + nonkeys
+
+            self.types = [self.types[i] for i in new_column_order]
+            self.names = [self.names[i] for i in new_column_order]
+            self.nkeys = len(keys)
+
+            if self.nrows:
+                data = list(zip(*self.data))
+                data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
+                self.data = list(map(list, zip(*data)))
+                self.data = [self.data[i] for i in new_column_order]
+
         else:
-            with pytest.raises(ValueError, match="Cannot set a key: the values "
-                               "are not unique"):
+            msg = "Cannot set a key: the values are not unique"
+            with pytest.raises(ValueError, match=msg):
                 self.df.key = names
-            if self._pyout:
-                self._pyout.write("with pytest.raises(ValueError, "
-                                    "match='Cannot set a key: the values are "
-                                    "not unique'):\n"
-                                    "    DT.key = %r\n\n"
-                                    % names)
-            return
 
-        nonkeys = sorted(set(range(self.ncols)) - set(keys))
-        new_column_order = keys + nonkeys
-
-        self.types = [self.types[i] for i in new_column_order]
-        self.names = [self.names[i] for i in new_column_order]
-        self.nkeys = len(keys)
-
-        if self.nrows:
-            data = list(zip(*self.data))
-            data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
-            self.data = list(map(list, zip(*data)))
-            self.data = [self.data[i] for i in new_column_order]
-        if self._pyout:
-            self._pyout.write("DT.key = %r\n" % names)
 
 
     def join_self(self):
         ncols = self.ncols
         if self.nkeys:
             self.df = self.df[:, :, join(self.df)]
+
+            s = slice(self.nkeys, ncols)
+            join_data = copy.deepcopy(self.data[s])
+            join_types = self.types[s].copy()
+            join_names = self.names[s].copy()
+
+            self.data += join_data
+            self.types += join_types
+            self.names += join_names
+            self.nkeys = 0
+            self.dedup_names()
+
         else:
-            with pytest.raises(ValueError, match="The join frame is not keyed"):
+            msg = "The join frame is not keyed"
+            with pytest.raises(ValueError, match=msg):
                 self.df = self.df[:, :, join(self.df)]
-            if self._pyout:
-                self._pyout.write("with pytest.raises(ValueError, "
-                                  "match='The join frame is not keyed'):\n"
-                                  "    DT = DT[:, :, join(DT)]\n\n")
-            return
-
-        s = slice(self.nkeys, ncols)
-        join_data = copy.deepcopy(self.data[s])
-        join_types = self.types[s].copy()
-        join_names = self.names[s].copy()
-
-        self.data += join_data
-        self.types += join_types
-        self.names += join_names
-        self.nkeys = 0
-        self.dedup_names()
-        if self._pyout:
-            self._pyout.write("DT = DT[:, :, join(DT)]\n")
 
 
     # This is a noop for the python data
     def shallow_copy(self):
         self.df_shallow_copy = self.df.copy()
         self.df_deep_copy = copy.deepcopy(self.df)
-        if self._pyout:
-            self._pyout.write("DT_shallow_copy = DT.copy()\n")
-            self._pyout.write("DT_deep_copy = copy.deepcopy(DT)\n")
+
 
 
     #---------------------------------------------------------------------------

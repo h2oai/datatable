@@ -39,12 +39,11 @@ from tests_random.utils import repr_slice, random_array, random_slice
 
 class Attacker:
 
-    def __init__(self, seed=None, exhaustive_checks=False, pyout=None):
+    def __init__(self, seed=None, exhaustive_checks=False):
         if seed is None:
             seed = random.getrandbits(64)
         self._seed = seed
         self._exhaustive_checks = exhaustive_checks
-        self._out = pyout
         random.seed(seed)
         print("Seed: %r\n" % seed)
 
@@ -54,7 +53,7 @@ class Attacker:
             rounds = int(random.expovariate(0.05) + 2)
         assert isinstance(rounds, int)
         if frame is None:
-            frame = MetaFrame(pyout=self._out)
+            frame = MetaFrame()
         print("Launching an attack for %d rounds" % rounds)
         for _ in range(rounds):
             action = random.choices(population=ATTACK_METHODS,
@@ -267,39 +266,9 @@ if __name__ == "__main__":
                     "a particular seed value, otherwise run `random_driver.py`."
     )
     parser.add_argument("seed", type=int, metavar="SEED")
-    parser.add_argument("-py", "--python", action="store_true",
-                        help="Generate python file corresponding to the code "
-                             "being run.")
     parser.add_argument("-x", "--exhaustive", action="store_true",
                         help="Run exhaustive checks, i.e. check for validity "
                              "after every step.")
     args = parser.parse_args()
-    if args.python:
-        ra_dir = os.path.join(os.path.dirname(__file__), "logs")
-        os.makedirs(ra_dir, exist_ok=True)
-        outfile = os.path.join(ra_dir, str(args.seed) + ".py")
-        with open(outfile, "wt", encoding="UTF-8") as out:
-            out.write("#!/usr/bin/env python\n")
-            out.write("# seed: %s\n" % args.seed)
-            out.write("import sys; sys.path = ['.', '..'] + sys.path\n")
-            out.write("import copy\n")
-            out.write("import datatable as dt\n")
-            out.write("import numpy as np\n")
-            out.write("import pytest\n")
-            out.write("from datatable import f, join\n")
-            out.write("from datatable.internal import frame_integrity_check\n")
-            out.write("from tests import assert_equals\n\n")
-
-            try:
-                ra = Attacker(args.seed, args.exhaustive, out)
-                ra.attack()
-            finally:
-                out.write("frame_integrity_check(DT)\n")
-                out.write("if DT_shallow_copy:\n")
-                out.write("    frame_integrity_check(DT_shallow_copy)\n")
-                out.write("    frame_integrity_check(DT_deep_copy)\n")
-                out.write("    assert_equals(DT_shallow_copy, DT_deep_copy)\n")
-
-    else:
-        ra = Attacker(args.seed, args.exhaustive)
-        ra.attack()
+    ra = Attacker(args.seed, args.exhaustive)
+    ra.attack()
