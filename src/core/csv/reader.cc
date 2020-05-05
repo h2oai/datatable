@@ -664,13 +664,12 @@ void GenericReader::open_input() {
     #if DT_OS_WINDOWS
       throw NotImplError() << "Reading from file-like objects, that involves "
         << "file descriptors, is not supported on Windows";
+    #else
+      const char* src = src_arg.to_cstring().ch;
+      input_mbuf = Buffer::mmap(src, 0, fileno, false);
+      size_t sz = input_mbuf.size();
+      trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
     #endif
-
-    const char* src = src_arg.to_cstring().ch;
-    input_mbuf = Buffer::mmap(src, 0, fileno, false);
-    size_t sz = input_mbuf.size();
-    trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
-
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
     input_mbuf = Buffer::external(text.ch, size + 1);
