@@ -222,20 +222,23 @@ def build_extension(cmd, verbosity=3):
         ext.compiler.add_include_dir(ext.compiler.winsdk_include_path + "\\shared")
         ext.compiler.add_include_dir(ext.compiler.winsdk_include_path + "\\um")
 
-        # Compiler warnings
+
+        # Set up the compiler warning level
+        ext.compiler.add_compiler_flag("/W4")
+
+        # Disable particular warnings
         ext.compiler.add_compiler_flag(
-            "/W4",
-            # Disable C4996 warning ("This function or variable may be unsafe")
+            # "This function or variable may be unsafe"
             # issued by MSVC for a fully valid and portable code
             "/wd4996",
-            # Disable C4127 warning ("consider using 'if constexpr' statement instead")
+            # "consider using 'if constexpr' statement instead"
             # as 'if constexpr' is not available in C++11
             "/wd4127",
-            # Disable C4661 warning ("no suitable definition provided for
-            # explicit template instantiation request") as we really need
-            # to keep some template method definitions in separate translation units
+            # "no suitable definition provided for explicit template instantiation 
+            # request" as we want to keep some template method definitions 
+            # in separate translation units
             "/wd4661",
-            # Disable C4324 warning ("structure was padded due to alignment specifier")
+            # "structure was padded due to alignment specifier" 
             # as this is exactly the reason why we use the alignment specifier
             "/wd4324",
         )
