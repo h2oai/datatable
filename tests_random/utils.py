@@ -76,7 +76,7 @@ def assert_equals(frame1, frame2):
         assert same_iterables(frame1.to_list(), frame2.to_list())
 
 
-def log(fn):
+def traced(fn):
     def wrapper(self, *args, **kwds):
         sargs = ", ".join([repr(arg) for arg in args] +
                           ['%s=%r' % kw for kw in kwds.items()])

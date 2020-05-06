@@ -29,7 +29,7 @@ import warnings
 from datatable import dt, f, join
 from datatable.internal import frame_integrity_check
 from tests_random.utils import (
-    assert_equals, log, repr_data, repr_row, repr_types)
+    assert_equals, repr_data, repr_row, repr_types, traced)
 
 
 class MetaFrame:
@@ -321,7 +321,7 @@ class MetaFrame:
     # Operations
     #---------------------------------------------------------------------------
 
-    @log
+    @traced
     def resize_rows(self, nrows):
         curr_nrows = self.nrows
         if self.nkeys and nrows > curr_nrows:
@@ -341,7 +341,7 @@ class MetaFrame:
                     elem[:] = elem[:nrows]
 
 
-    @log
+    @traced
     def slice_rows(self, s):
         self.df = self.df[s, :]
         if isinstance(s, slice):
@@ -355,7 +355,7 @@ class MetaFrame:
         self.nkeys = 0
 
 
-    @log
+    @traced
     def delete_rows(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
         nrows = self.nrows
@@ -368,7 +368,7 @@ class MetaFrame:
             self.data[i] = [col[j] for j in index]
 
 
-    @log
+    @traced
     def delete_columns(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
         if isinstance(s, slice):
@@ -391,7 +391,7 @@ class MetaFrame:
             self.nkeys -= nkeys_remove
 
 
-    @log
+    @traced
     def slice_cols(self, s):
         self.df = self.df[:, s]
         self.data = self.data[s]
@@ -400,7 +400,7 @@ class MetaFrame:
         self.nkeys = 0
 
 
-    @log
+    @traced
     def cbind(self, frames):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", dt.exceptions.DatatableWarning)
@@ -418,7 +418,7 @@ class MetaFrame:
         self.dedup_names()
 
 
-    @log
+    @traced
     def rbind(self, frames):
         if (self.nkeys > 0) and (self.nrows > 0):
             msg = "Cannot rbind to a keyed frame"
@@ -438,7 +438,7 @@ class MetaFrame:
             self.data = newdata
 
 
-    @log
+    @traced
     def filter_on_bool_column(self, icol):
         assert self.types[icol] is bool
         filter_col = self.data[icol]
@@ -448,7 +448,7 @@ class MetaFrame:
         self.nkeys = 0
 
 
-    @log
+    @traced
     def replace_nas_in_column(self, icol, replacement_value):
         assert 0 <= icol < self.ncols
         assert isinstance(replacement_value, self.types[icol])
@@ -467,7 +467,7 @@ class MetaFrame:
                     column[i] = replacement_value
 
 
-    @log
+    @traced
     def sort_columns(self, a):
         self.df = self.df.sort(a)
         if self.nrows:
@@ -477,7 +477,7 @@ class MetaFrame:
         self.nkeys = 0
 
 
-    @log
+    @traced
     def cbind_numpy_column(self):
         import numpy as np
         coltype = self.random_type()
@@ -510,7 +510,7 @@ class MetaFrame:
         self.dedup_names()
 
 
-    @log
+    @traced
     def add_range_column(self, name, rangeobj):
         self.data += [list(rangeobj)]
         self.names += [name]
@@ -519,7 +519,7 @@ class MetaFrame:
         self.df.cbind(dt.Frame(rangeobj, names=[name]))
 
 
-    @log
+    @traced
     def set_key_columns(self, keys, names):
         key_data = [self.data[i] for i in keys]
         unique_rows = set(zip(*key_data))
@@ -546,7 +546,7 @@ class MetaFrame:
 
 
 
-    @log
+    @traced
     def join_self(self):
         ncols = self.ncols
         if self.nkeys:
@@ -570,7 +570,7 @@ class MetaFrame:
 
 
     # This is a noop for the python data
-    @log
+    @traced
     def shallow_copy(self):
         self.df_shallow_copy = self.df.copy()
         self.df_deep_copy = copy.deepcopy(self.df)
