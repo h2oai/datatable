@@ -9,6 +9,7 @@
 #include "column/sentinel_fw.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
+#include "utils/macros.h"
 #include "column.h"
 template<> inline py::robj GETNA() { return py::rnone(); }
 namespace dt {
@@ -123,6 +124,12 @@ size_t SentinelFw_ColumnImpl<T>::memory_footprint() const noexcept {
 // Data access
 //------------------------------------------------------------------------------
 
+#if DT_COMPILER_MSVC
+  #pragma warning(push)
+  // unreachable code
+  #pragma warning(disable : 4702)
+#endif
+
 template <typename T>
 bool SentinelFw_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
   T x = static_cast<const T*>(mbuf_.rptr())[i];
@@ -158,6 +165,7 @@ bool SentinelFw_ColumnImpl<T>::get_element(size_t i, float* out) const {
   return !ISNA<T>(x);
 }
 
+
 template <typename T>
 bool SentinelFw_ColumnImpl<T>::get_element(size_t i, double* out) const {
   T x = static_cast<const T*>(mbuf_.rptr())[i];
@@ -171,13 +179,16 @@ bool SentinelFw_ColumnImpl<T>::get_element(size_t i, py::robj* out) const {
   return ColumnImpl::get_element(i, out);
 }
 
+
 bool SentinelObj_ColumnImpl::get_element(size_t i, py::robj* out) const {
   py::robj x = static_cast<const py::robj*>(mbuf_.rptr())[i];
   *out = x;
   return !x.is_none();
 }
 
-
+#if DT_COMPILER_MSVC
+  #pragma warning(pop)
+#endif
 
 
 
