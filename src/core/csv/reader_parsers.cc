@@ -10,6 +10,7 @@
 #include "read/fread/fread_tokenizer.h"  // FreadTokenizer
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
+#include "utils/macros.h"
 
 static constexpr int8_t   NA_BOOL8 = -128;
 static constexpr int32_t  NA_INT32 = INT32_MIN;
@@ -284,7 +285,18 @@ void parse_float32_hex(FreadTokenizer& ctx) {
       else if (E == 126 && Eneg && acc) /* subnormal */ E = 0;
       else goto fail;
     } else {
+      #if DT_COMPILER_MSVC
+        #pragma warning(push)
+        // unary minus operator applied to unsigned type, result still unsigned
+        #pragma warning(disable : 4146) 
+      #endif
+      
       E = 127 + (Eneg? -E : E);
+      
+      #if DT_COMPILER_MSVC
+        #pragma warning(pop)
+      #endif
+      
       if (E < 1 || E > 254) goto fail;
     }
     ctx.target->uint32 = (neg << 31) | (E << 23) | (acc);
@@ -575,7 +587,18 @@ void parse_float64_hex(FreadTokenizer& ctx) {
       else if (E == 1022 && Eneg && acc) /* subnormal */ E = 0;
       else goto fail;
     } else {
+      #if DT_COMPILER_MSVC
+        #pragma warning(push)
+        // unary minus operator applied to unsigned type, result still unsigned
+        #pragma warning(disable : 4146) 
+      #endif
+
       E = 1023 + (Eneg? -E : E);
+
+      #if DT_COMPILER_MSVC
+        #pragma warning(pop)
+      #endif
+
       if (E < 1 || E > 2046) goto fail;
     }
     ctx.target->uint64 = (neg << 63) | (E << 52) | (acc);

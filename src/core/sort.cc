@@ -137,6 +137,7 @@
 #include "utils/alloc.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
+#include "utils/macros.h"
 #include "buffer.h"
 #include "column.h"
 #include "datatable.h"
@@ -779,17 +780,39 @@ class SortContext {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TO t = xi[o[j]];
+
+          #if DT_COMPILER_MSVC
+            #pragma warning(push)
+            // unary minus operator applied to unsigned type, result still unsigned
+            #pragma warning(disable : 4146) 
+          #endif
+      
           xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
                   ASC? t ^ (SBT | -(t>>SHIFT))
                      : t ^ (~SBT & ((t>>SHIFT) - 1));
+          
+          #if DT_COMPILER_MSVC
+            #pragma warning(pop)
+          #endif
         });
     } else {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TO t = xi[j];
+
+          #if DT_COMPILER_MSVC
+            #pragma warning(push)
+            // unary minus operator applied to unsigned type, result still unsigned
+            #pragma warning(disable : 4146) 
+          #endif
+      
           xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
                   ASC? t ^ (SBT | -(t>>SHIFT))
                      : t ^ (~SBT & ((t>>SHIFT) - 1));
+          
+          #if DT_COMPILER_MSVC
+            #pragma warning(pop)
+          #endif
         });
     }
   }

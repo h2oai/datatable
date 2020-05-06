@@ -230,14 +230,26 @@ Column buffer::to_column() &&
                   ));
   }
   else {
-    size_t datasize = itemsize() * nrows * (-stride_);
-    ptr = static_cast<char*>(ptr) - itemsize() * (nrows - 1) * (-stride_);
+    #if DT_COMPILER_MSVC
+      #pragma warning(push)
+      // unary minus operator applied to unsigned type, result still unsigned
+      #pragma warning(disable : 4146) 
+    #endif
+
+    size_t minus_stride = -stride_;
+    
+    #if DT_COMPILER_MSVC
+      #pragma warning(pop)
+    #endif
+
+    size_t datasize = itemsize() * nrows * minus_stride;
+    ptr = static_cast<char*>(ptr) - itemsize() * (nrows - 1) * minus_stride;
     Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
-    Column internal_col = Column::new_mbuf_column(nrows * (-stride_), stype,
+    Column internal_col = Column::new_mbuf_column(nrows * minus_stride, stype,
                                                   std::move(databuf));
     return Column(new dt::SliceView_ColumnImpl(
                           std::move(internal_col),
-                          RowIndex((nrows - 1) * (-stride_), nrows, stride_)
+                          RowIndex((nrows - 1) * minus_stride, nrows, stride_)
                   ));
   }
 }
