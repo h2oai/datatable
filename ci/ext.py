@@ -235,6 +235,9 @@ def build_extension(cmd, verbosity=3):
             # explicit template instantiation request") as we really need
             # to keep some template method definitions in separate translation units
             "/wd4661",
+            # Disable C4324 warning ("structure was padded due to alignment specifier")
+            # as this is exactly the reason why we use the alignment specifier
+            "/wd4324",
         )
 
         # Link flags

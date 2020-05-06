@@ -50,7 +50,6 @@
 #if DT_COMPILER_MSVC
     #pragma warning(push)
     #pragma warning(disable : 4245)
-    #pragma warning(disable : 4324)
 #endif
 
 #include "lib/parallel_hashmap/phmap_utils.h"

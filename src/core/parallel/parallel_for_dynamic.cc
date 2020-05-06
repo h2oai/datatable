@@ -30,12 +30,6 @@ namespace dt {
 //------------------------------------------------------------------------------
 using dynamicfn_t = std::function<void(size_t)>;
 
-#if DT_COMPILER_MSVC
-  #pragma warning(push)
-  // structure was padded due to alignment specifier
-  #pragma warning(disable : 4324) 
-#endif
-
 struct alignas(CACHELINE_SIZE) dynamic_task : public thread_task {
   private:
     size_t iter;
@@ -51,11 +45,6 @@ struct alignas(CACHELINE_SIZE) dynamic_task : public thread_task {
     void set_iter(size_t i) noexcept;
     void execute(thread_worker*) override;
 };
-
-#if DT_COMPILER_MSVC
-  #pragma warning(pop)
-#endif
-
 
 dynamic_task::dynamic_task(const dynamicfn_t& f)
   : iter(size_t(-1)), fn(f) {}
