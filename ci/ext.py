@@ -265,6 +265,9 @@ def build_extension(cmd, verbosity=3):
         ext.compiler.add_compiler_flag("-std=c++11")
         # "-stdlib=libc++"  (clang ???)
         ext.compiler.add_compiler_flag("-fPIC")
+        # -pthread is recommended for compiling/linking multithreaded apps
+        ext.compiler.add_compiler_flag("-pthread")
+        ext.compiler.add_linker_flag("-pthread")
 
         # Common link flags
         ext.compiler.add_linker_flag("-shared")
@@ -274,8 +277,6 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
         if linux:
             ext.compiler.add_linker_flag("-lstdc++")
-        if ppc64:
-            ext.compiler.add_linker_flag("-pthread")
 
         if cmd == "asan":
             ext.compiler.add_compiler_flag("-fsanitize=address")
