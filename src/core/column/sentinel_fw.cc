@@ -6,11 +6,11 @@
 // © H2O.ai 2018-2019
 //------------------------------------------------------------------------------
 #include <type_traits>
+#include "column.h"
 #include "column/sentinel_fw.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "utils/macros.h"
-#include "column.h"
 template<> inline py::robj GETNA() { return py::rnone(); }
 namespace dt {
 
