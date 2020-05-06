@@ -22,13 +22,14 @@
 #include <algorithm>             // std::min, std::swap, std::move
 #include <cstdlib>               // std::memcpy
 #include <limits>                // std::numeric_limits
+#include "column.h"              // Column
 #include "column/sentinel_fw.h"  // SentinelFw_ColumnImpl
 #include "parallel/api.h"        // nested_for_static
 #include "parallel/atomic.h"
+#include "rowindex_impl.h"
 #include "utils/exceptions.h"    // ValueError, RuntimeError
 #include "utils/assert.h"
-#include "column.h"              // Column
-#include "rowindex_impl.h"
+#include "utils/macros.h"
 
 #ifndef NDEBUG
   inline static void test(ArrayRowIndexImpl* o) {
@@ -90,8 +91,19 @@ void ArrayRowIndexImpl::set_min_max() {
 
 template <typename T>
 void ArrayRowIndexImpl::_set_min_max() {
+  #if DT_COMPILER_MSVC
+    #pragma warning(push)
+    // cast truncates constant value
+    #pragma warning(disable : 4310) 
+  #endif
+
   constexpr T NA = std::is_same<T, int32_t>::value? T(RowIndex::NA_ARR32)
                                                   : T(RowIndex::NA_ARR64);
+ 
+  #if DT_COMPILER_MSVC
+    #pragma warning(pop)
+  #endif
+
   constexpr T TMAX = std::numeric_limits<T>::max();
   const T* idata = static_cast<const T*>(buf_.rptr());
   if (length == 1) ascending = true;
@@ -402,8 +414,18 @@ template <typename T>
 static void verify_integrity_helper(
     const void* data, size_t len, size_t max, bool max_valid, bool sorted)
 {
+  #if DT_COMPILER_MSVC
+    #pragma warning(push)
+    // cast truncates constant value
+    #pragma warning(disable : 4310) 
+  #endif
+
   constexpr T NA = std::is_same<T, int32_t>::value? T(RowIndex::NA_ARR32)
                                                   : T(RowIndex::NA_ARR64);
+  #if DT_COMPILER_MSVC
+    #pragma warning(pop)
+  #endif
+
   constexpr T TMAX = std::numeric_limits<T>::max();
   auto ind = static_cast<const T*>(data);
   T tmax = -TMAX;

@@ -99,7 +99,7 @@ static Column convert_fwchararray_to_column(py::buffer&& view)
   for (size_t j = 0; j < nrows; ++j) {
     uint32_t* start = input + j*stride;  // note: stride can be negative!
     int64_t bytes_len = utf32_to_utf8(start, k, strptr);
-    offset += bytes_len;
+    offset += static_cast<uint32_t>(bytes_len);
     strptr += bytes_len;
     *offptr++ = offset;
   }
@@ -182,7 +182,7 @@ static void try_to_resolve_object_column(Column& col)
         }
         std::memcpy(strs + offset, PyBytes_AsString(z), sz);
         Py_DECREF(z);
-        offset += sz;
+        offset += static_cast<uint32_t>(sz);
         offsets[i] = offset;
       } else {
         offsets[i] = offset ^ GETNA<uint32_t>();

@@ -35,9 +35,12 @@ namespace py {
 //------------------------------------------------------------------------------
 
 oslice::oslice(int64_t start, int64_t stop, int64_t step) {
-  PyObject* ostart = (start == oslice::NA)? nullptr : PyLong_FromLong(start);
-  PyObject* ostop  = (stop == oslice::NA)? nullptr : PyLong_FromLong(stop);
-  PyObject* ostep  = (step == oslice::NA)? nullptr : PyLong_FromLong(step);
+  PyObject* ostart = (start == oslice::NA)? 
+                     nullptr : PyLong_FromLong(static_cast<long>(start));
+  PyObject* ostop  = (stop == oslice::NA)? 
+                     nullptr : PyLong_FromLong(static_cast<long>(stop));
+  PyObject* ostep  = (step == oslice::NA)? 
+                     nullptr : PyLong_FromLong(static_cast<long>(step));
   v = PySlice_New(ostart, ostop, ostep);
   Py_XDECREF(ostart);
   Py_XDECREF(ostop);

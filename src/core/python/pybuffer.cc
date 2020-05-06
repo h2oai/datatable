@@ -101,18 +101,10 @@ void buffer::_normalize_dimensions() {
     xassert(len == itemsize);
   }
   else if (ndim == 1) {
-
-    #if DT_OS_WINDOWS && !DT_DEBUG
-      #pragma warning(push)
-      #pragma warning(disable : 4390) // empty controlled statement found
-    #endif
-
-    if (info_->shape) xassert(info_->shape[0] * itemsize == len);
-
-    #if DT_OS_WINDOWS && !DT_DEBUG
-      #pragma warning(pop)
-    #endif
-
+    if (info_->shape) {
+      xassert(info_->shape[0] * itemsize == len);
+    }
+    
     if (info_->strides) {
       xassert(info_->strides[0] % itemsize == 0);
       stride_ = static_cast<size_t>(info_->strides[0] / itemsize);
