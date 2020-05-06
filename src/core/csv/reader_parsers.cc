@@ -218,14 +218,20 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
   if ((sf? sf < max_digits : ch > start) ||
       (sf == max_digits && acc <= max_value))
   {
-    if (sizeof(T) == 4) {
-      int32_t x = static_cast<int32_t>(acc);
-      ctx.target->int32 = negative? -x : x;
-    }
-    if (sizeof(T) == 8) {
-      int64_t x = static_cast<int64_t>(acc);
-      ctx.target->int64 = negative? -x : x;
-    }
+    T x = static_cast<T>(acc);
+
+    #if DT_COMPILER_MSVC
+      #pragma warning(push)
+      // conversion from 'T' to 'int32_t', possible loss of data
+      #pragma warning(disable : 4244) 
+    #endif
+
+    if (sizeof(T) == 4) ctx.target->int32 = negative? -x : x;
+    if (sizeof(T) == 8) ctx.target->int64 = negative? -x : x;
+
+    #if DT_COMPILER_MSVC
+      #pragma warning(pop)
+    #endif
 
     ctx.ch = ch;
     return;
