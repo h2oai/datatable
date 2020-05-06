@@ -39,14 +39,13 @@ from tests_random.utils import repr_slice, random_array, random_slice
 
 class Attacker:
 
-    def __init__(self, seed=None, exhaustive_checks=False, pyout=None):
+    def __init__(self, seed=None, exhaustive_checks=False):
         if seed is None:
             seed = random.getrandbits(64)
         self._seed = seed
         self._exhaustive_checks = exhaustive_checks
-        self._out = pyout
         random.seed(seed)
-        print("Seed: %r\n" % seed)
+        print("# Seed: %r\n" % seed)
 
     def attack(self, frame=None, rounds=None):
         t0 = time.time()
@@ -54,8 +53,8 @@ class Attacker:
             rounds = int(random.expovariate(0.05) + 2)
         assert isinstance(rounds, int)
         if frame is None:
-            frame = MetaFrame(pyout=self._out)
-        print("Launching an attack for %d rounds" % rounds)
+            frame = MetaFrame()
+        print("# Launching an attack for %d rounds" % rounds)
         for _ in range(rounds):
             action = random.choices(population=ATTACK_METHODS,
                                     cum_weights=ATTACK_WEIGHTS, k=1)[0]
@@ -82,23 +81,18 @@ def resize_rows(frame):
     t = random.random()
     curr_nrows = frame.nrows
     new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
-    print("[01] Setting nrows to %d" % (new_nrows, ))
     frame.resize_rows(new_nrows)
 
 
 def slice_rows(frame):
     s = random_slice(frame.nrows)
     new_nrows = len(range(*s.indices(frame.nrows)))
-    print("[02] Applying row slice [%s] -> nrows = %d"
-          % (repr_slice(s), new_nrows))
     frame.slice_rows(s)
 
 
 def slice_columns(frame):
     s = random_slice(frame.ncols)
     new_ncols = len(range(*s.indices(frame.ncols)))
-    print("[03] Applying column slice [%s] -> ncols = %d"
-          % (repr_slice(s), new_ncols))
     frame.slice_cols(s)
 
 
@@ -106,23 +100,18 @@ def cbind_self(frame):
     if frame.ncols > 1000:
         return slice_columns(frame)
     t = random.randint(1, min(5, 100 // (1 + frame.ncols)) + 1)
-    print("[04] Cbinding frame with itself %d times -> ncols = %d"
-          % (t, frame.ncols * (t + 1)))
     frame.cbind([frame] * t)
 
 
 def rbind_self(frame):
     t = random.randint(1, min(5, 1000 // (1 + frame.nrows)) + 1)
     res = frame.rbind([frame] * t)
-    print("[05] Rbinding frame with itself %d times -> nrows = %d"
-          % (t, frame.nrows))
 
 
 def select_rows_array(frame):
     if frame.nrows == 0:
         return
     s = random_array(frame.nrows)
-    print("[06] Selecting a row list %r -> nrows = %d" % (s, len(s)))
     frame.slice_rows(s)
 
 
@@ -131,8 +120,6 @@ def delete_rows_array(frame):
         return
     s = random_array(frame.nrows, positive=True)
     s = sorted(set(s))
-    print("[07] Removing rows %r -> nrows = %d"
-          % (s, frame.nrows - len(s)))
     frame.delete_rows(s)
 
 
@@ -141,8 +128,6 @@ def select_rows_with_boolean_column(frame):
     if frame.ncols <= 1 or not bool_columns:
         return
     filter_column = random.choice(bool_columns)
-    print("[08] Selecting rows where column %d (%r) is True"
-          % (filter_column, frame.names[filter_column]))
     frame.filter_on_bool_column(filter_column)
 
 
@@ -156,8 +141,6 @@ def replace_nas_in_column(frame):
         replacement_value = random.random() * 1000
     elif frame.types[icol] is str:
         replacement_value = MetaFrame.random_name()
-    print("[09] Replacing NA values in column %d with %r"
-          % (icol, replacement_value))
     res = frame.replace_nas_in_column(icol, replacement_value)
 
 
@@ -166,13 +149,10 @@ def sort_columns(frame):
         return
     ncols_sort = min(int(random.expovariate(1.0)) + 1, frame.ncols)
     a = random.sample(range(0, frame.ncols), ncols_sort)
-    print("[10] Sorting %d columns in ascending order: %r" % (len(a), a))
     frame.sort_columns(a)
 
 
 def cbind_numpy_column(frame):
-    print("[11] Cbinding frame with a numpy column -> ncols = %d"
-          % (frame.ncols + 1))
     frame.cbind_numpy_column()
 
 
@@ -183,8 +163,6 @@ def add_range_column(frame):
         step = int(1 + random.random() * 3)
     stop = start + step * frame.nrows
     rangeobj = range(start, stop, step)
-    print("[12] Adding a range column %r -> ncols = %d"
-          % (rangeobj, frame.ncols + 1))
     name = MetaFrame.random_name()
     frame.add_range_column(name, rangeobj)
 
@@ -197,7 +175,6 @@ def set_key_columns(frame):
     keys = random.sample(range(0, frame.ncols), nkeys)
     names = [frame.names[i] for i in keys]
 
-    print("[13] Setting %d key column(s): %r" % (nkeys, keys))
     frame.set_key_columns(keys, names)
 
 
@@ -207,7 +184,6 @@ def delete_columns_array(frame):
     if frame.ncols < 2:
         return
     s = random_array(frame.ncols - 1, positive=True)
-    print("[14] Removing columns %r -> ncols = %d" % (s, frame.ncols))
     frame.delete_columns(s)
 
 
@@ -215,12 +191,10 @@ def join_self(frame):
     if frame.ncols > 1000:
         return slice_columns(frame)
 
-    print("[15] Joining frame with itself -> ncols = %d" % frame.ncols)
     frame.join_self()
 
 
 def shallow_copy(frame):
-    print("[16] Creating a shallow copy of a frame")
     frame.shallow_copy()
 
 
@@ -267,39 +241,9 @@ if __name__ == "__main__":
                     "a particular seed value, otherwise run `random_driver.py`."
     )
     parser.add_argument("seed", type=int, metavar="SEED")
-    parser.add_argument("-py", "--python", action="store_true",
-                        help="Generate python file corresponding to the code "
-                             "being run.")
     parser.add_argument("-x", "--exhaustive", action="store_true",
                         help="Run exhaustive checks, i.e. check for validity "
                              "after every step.")
     args = parser.parse_args()
-    if args.python:
-        ra_dir = os.path.join(os.path.dirname(__file__), "logs")
-        os.makedirs(ra_dir, exist_ok=True)
-        outfile = os.path.join(ra_dir, str(args.seed) + ".py")
-        with open(outfile, "wt", encoding="UTF-8") as out:
-            out.write("#!/usr/bin/env python\n")
-            out.write("# seed: %s\n" % args.seed)
-            out.write("import sys; sys.path = ['.', '..'] + sys.path\n")
-            out.write("import copy\n")
-            out.write("import datatable as dt\n")
-            out.write("import numpy as np\n")
-            out.write("import pytest\n")
-            out.write("from datatable import f, join\n")
-            out.write("from datatable.internal import frame_integrity_check\n")
-            out.write("from tests import assert_equals\n\n")
-
-            try:
-                ra = Attacker(args.seed, args.exhaustive, out)
-                ra.attack()
-            finally:
-                out.write("frame_integrity_check(DT)\n")
-                out.write("if DT_shallow_copy:\n")
-                out.write("    frame_integrity_check(DT_shallow_copy)\n")
-                out.write("    frame_integrity_check(DT_deep_copy)\n")
-                out.write("    assert_equals(DT_shallow_copy, DT_deep_copy)\n")
-
-    else:
-        ra = Attacker(args.seed, args.exhaustive)
-        ra.attack()
+    ra = Attacker(args.seed, args.exhaustive)
+    ra.attack()

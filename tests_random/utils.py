@@ -76,6 +76,20 @@ def assert_equals(frame1, frame2):
         assert same_iterables(frame1.to_list(), frame2.to_list())
 
 
+def traced(fn):
+    def wrapper(self, *args, **kwds):
+        sargs = ", ".join([repr(arg) for arg in args] +
+                          ['%s=%r' % kw for kw in kwds.items()])
+        print(f"{self}.{fn.__name__}({sargs})")
+        fn(self, *args, **kwds)
+
+    return wrapper
+
+
+
+#-------------------------------------------------------------------------------
+# Repr helpers
+#-------------------------------------------------------------------------------
 
 def repr_row(row, j):
     assert 0 <= j < len(row)
@@ -121,7 +135,7 @@ def repr_data(data, indent):
             out += " " * (indent + 1)
         out += "["
         out += textwrap.fill(", ".join(repr(e) for e in arr),
-                             width = 80, subsequent_indent=" "*(indent+2))
+                             width=160, subsequent_indent=" "*(indent+2))
         out += "]"
         if i != len(data) - 1:
             out += ",\n"
