@@ -30,7 +30,12 @@ import time
 from datatable.lib import core
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests_random.metaframe import MetaFrame
-from tests_random.utils import repr_slice, random_array, random_slice
+from tests_random.utils import (
+    repr_slice,
+    random_array,
+    random_slice,
+    random_string
+)
 
 
 #---------------------------------------------------------------------------
@@ -53,12 +58,17 @@ class Attacker:
             rounds = int(random.expovariate(0.05) + 2)
         assert isinstance(rounds, int)
         if frame is None:
-            frame = MetaFrame()
+            frame = MetaFrame.random()
         print("# Launching an attack for %d rounds" % rounds)
-        for _ in range(rounds):
+        for i in range(rounds):
             action = random.choices(population=ATTACK_METHODS,
                                     cum_weights=ATTACK_WEIGHTS, k=1)[0]
-            action(frame)
+            if action:
+                action(frame)
+            else:
+                # Non-standard actions
+                fork_and_run(frame, rounds - i)
+                break
             if self._exhaustive_checks:
                 frame.check()
             if time.time() - t0 > 60:
@@ -70,6 +80,15 @@ class Attacker:
         t1 = time.time()
         print("Time taken = %.3fs" % (t1 - t0))
 
+
+def fattack(filename, seed, nrounds):
+    """
+    Entry-point function for a forked process.
+    """
+    print("Entering child process")
+    frame = MetaFrame.load_from_jay(filename)
+    attacker = Attacker(seed=seed)
+    attacker.attack(frame, nrounds)
 
 
 
@@ -140,7 +159,7 @@ def replace_nas_in_column(frame):
     elif frame.types[icol] is float:
         replacement_value = random.random() * 1000
     elif frame.types[icol] is str:
-        replacement_value = MetaFrame.random_name()
+        replacement_value = random_string()
     res = frame.replace_nas_in_column(icol, replacement_value)
 
 
@@ -163,7 +182,7 @@ def add_range_column(frame):
         step = int(1 + random.random() * 3)
     stop = start + step * frame.nrows
     rangeobj = range(start, stop, step)
-    name = MetaFrame.random_name()
+    name = random_string()
     frame.add_range_column(name, rangeobj)
 
 
@@ -198,6 +217,23 @@ def shallow_copy(frame):
     frame.shallow_copy()
 
 
+def fork_and_run(frame, nrounds):
+    import multiprocessing as mp
+    import tempfile
+    print(f"Forking the parent process")
+    filename = tempfile.mktemp(suffix=".jay")
+    seed = random.getrandbits(64)
+    try:
+        frame.save_to_jay(filename)
+        process = mp.Process(target=fattack, args=(filename, seed, nrounds))
+        process.start()
+        process.join()
+        ret = process.exitcode
+        if ret != 0:
+            raise RuntimeError(f"Child terminated with exit code {ret}")
+    finally:
+        os.remove(filename)
+
 
 
 #---------------------------------------------------------------------------
@@ -205,6 +241,7 @@ def shallow_copy(frame):
 #---------------------------------------------------------------------------
 
 _METHODS = {
+    None: 1,
     resize_rows: 1,
     slice_rows: 3,
     slice_columns: 0.5,
@@ -238,7 +275,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Perform single batch of randomized testing. The SEED "
                     "argument is required. Use this script for troubleshooting "
-                    "a particular seed value, otherwise run `random_driver.py`."
+                    "a particular seed value, otherwise run `continuous.py`."
     )
     parser.add_argument("seed", type=int, metavar="SEED")
     parser.add_argument("-x", "--exhaustive", action="store_true",
