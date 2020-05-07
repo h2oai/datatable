@@ -246,12 +246,13 @@ def test_cast_obj_to_str():
 def test_cast_huge_to_str():
     # Test that converting a huge column into str would properly overflow it
     # into str64 type. See issue #1695
-    # This test takes up to 2s to run (or up to 5s if doing an integrity check)
-    DT = dt.repeat(dt.Frame(BIG=["ABCDEFGHIJ" * 100000]), 3000)
-    assert DT.stypes == (dt.str32,)
+    # This test takes up to 8s to run
+    n = 300000000
+    DT = dt.Frame(BIG=range(n))
     RES = DT[:, dt.str32(f.BIG)]
-    assert RES.stypes == (dt.str64,)
-    assert RES[-1, 0] == DT[0, 0]
+    assert RES.stype == dt.str64
+    assert RES[-1, 0] == str(n - 1)
+    assert RES[3194870, 0] == "3194870"
 
 
 def test_cast_empty_str32_to_str64():
