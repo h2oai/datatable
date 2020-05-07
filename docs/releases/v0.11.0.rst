@@ -33,6 +33,8 @@
     If set to ``True``, it will add the Byte-Order Mark (BOM) to the output
     CSV file. [#2379]
 
+  -[enh] Casting a column into its own type is now a no-op. [#2425]
+
   -[api] Method :meth:`.cbind()` now throws an :exc:`InvalidOperationError`
     instead of a ``ValueError`` if the argument frames have incompatible
     shapes.
