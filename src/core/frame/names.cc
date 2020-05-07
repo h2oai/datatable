@@ -794,7 +794,7 @@ namespace dttest {
     test_assert(check1, "Duplicate name 'foo' for column 1");
     dt->names_ = { "foo", "f\x0A\x0D" };
     xassert(dt->names_.size() == 2);  // silence "unused var" warning
-    test_assert(check1, "Invalid character '\\x0a' in column 1's name");
+    test_assert(check1, "Invalid character '\\n' in column 1's name");
     dt->names_ = { "one", "two" };
 
     auto check2 = [dt]() { dt->_integrity_check_pynames(); };

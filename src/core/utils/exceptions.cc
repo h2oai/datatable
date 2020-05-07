@@ -232,11 +232,19 @@ Error& Error::operator<<(LType ltype) {
 
 Error& Error::operator<<(char c) {
   uint8_t uc = static_cast<uint8_t>(c);
-  if (uc < 0x20 || uc >= 0x80 || uc == '`') {
-    uint8_t d1 = uc >> 4;
-    uint8_t d2 = uc & 15;
-    error << "\\x" << static_cast<char>((d1 <= 9? '0' : 'a' - 10) + d1)
-                   << static_cast<char>((d2 <= 9? '0' : 'a' - 10) + d2);
+  if (uc < 0x20 || uc >= 0x80 || uc == '`' || uc == '\\') {
+    error << '\\';
+    if (c == '\n') error << 'n';
+    else if (c == '\r') error << 'r';
+    else if (c == '\t') error << 't';
+    else if (c == '\\') error << '\\';
+    else if (c == '`')  error << '`';
+    else {
+      uint8_t d1 = uc >> 4;
+      uint8_t d2 = uc & 15;
+      error << "\\x" << static_cast<char>((d1 <= 9? '0' : 'a' - 10) + d1)
+                     << static_cast<char>((d2 <= 9? '0' : 'a' - 10) + d2);
+    }
   } else {
     error << c;
   }
