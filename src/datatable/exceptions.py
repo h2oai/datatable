@@ -36,7 +36,7 @@ class DtException(Exception):
         self.msg = message
 
     def __str__(self):
-        return self.msg.replace('`', '')
+        return "".join(_split_backtick_string(self.msg))
 
     def __repr__(self):
         return self.__class__.__name__ + '(' + repr(str(self)) + ')'
@@ -126,13 +126,45 @@ def _handle_dt_exception(exc_class, exc, tb):
     # Also, make sure that any component surrounded with backticks (`like
     # this`) is emphasized
     out += apply_color("red", exc_class.__name__ + ": ")
-    for i, part in enumerate(re.split(r"`(.*?)`", exc.msg)):
+    # for i, part in enumerate(re.split(r"`(.*?)`", exc.msg)):
+    for i, part in enumerate(_split_backtick_string(exc.msg)):
         out += apply_color("bold" if i % 2 else "bright_red", part)
     print(out, file=sys.stderr)
 
 
 _previous_except_hook = sys.excepthook
 sys.excepthook = _handle_dt_exception
+
+
+def _split_backtick_string(string):
+    r"""
+    Helper function for processing an exception message with
+    backticks. This function will split the string at the
+    backtick characters, while also taking care of unescaping any
+    escaped special symbols. For example:
+
+        "abc" -> ["abc"]
+        "a`b`c" -> ["a", "b", "c"]
+        "`abc`" -> ["", "abc"]
+        "`\`a\\bc\``" -> ["", "`a\bc`"]
+    """
+    out = []
+    part = ""
+    escape_next = False
+    for ch in string:
+        if escape_next:
+            part += ch
+            escape_next = False
+        elif ch == '\\':
+            escape_next = True
+        elif ch == '`':
+            out.append(part)
+            part = ""
+        else:
+            part += ch
+    if part:
+        out.append(part)
+    return out
 
 
 

@@ -155,3 +155,22 @@ def test_keyerror():
     # Check that there are no extra quotes
     assert traceback.format_exception_only(type(ee), ee) == \
         ["datatable.exceptions.KeyError: Column A does not exist in the Frame\n"]
+
+
+def test_columns_with_backticks():
+    DT = dt.Frame(names=["`abc", "a`bc", "`abc`", "\\", "\\`"])
+    msg = "Column abc does not exist in the Frame; did you mean "\
+          "`abc or a`bc?"
+    with pytest.raises(KeyError, match=msg):
+        DT.colindex("abc")
+
+    msg = "Column abc` does not exist in the Frame; did you mean "\
+          "`abc`, `abc or a`bc?"
+    with pytest.raises(KeyError, match=msg):
+        DT.colindex("abc`")
+
+    try:
+        DT.colindex("\\a")
+    except KeyError as e:
+        assert str(e) == r"Column \a does not exist in the Frame; "\
+                         r"did you mean \ or \`?"

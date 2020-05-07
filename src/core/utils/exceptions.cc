@@ -100,6 +100,29 @@ void exception_to_python(const std::exception& e) noexcept {
 }
 
 
+/**
+  * If `str` contains any backticks or backslashes, they will be
+  * escaped by prepending each such character with a backslash.
+  * If there are no backticks/backslahes in `str`, then a simple copy
+  * of the string is returned.
+  */
+std::string escape_backticks(const std::string& str) {
+  size_t count = 0;
+  for (char c : str) {
+    count += (c == '`' || c == '\\');
+  }
+  if (count == 0) return str;
+  std::string out;
+  out.reserve(str.size() + count);
+  for (char c : str) {
+    if (c == '`' || c == '\\') out += '\\';
+    out += c;
+  }
+  return out;
+}
+
+
+
 
 //==============================================================================
 
@@ -114,7 +137,7 @@ Error::Error(const Error& other) {
   pycls = other.pycls;
 }
 
-Error::Error(Error&& other) : Error() {
+Error::Error(Error&& other) : Error(nullptr) {
   *this = std::move(other);
 }
 
@@ -243,7 +266,7 @@ bool Error::is_keyboard_interrupt() const noexcept {
 
 //==============================================================================
 
-PyError::PyError() {
+PyError::PyError() : Error(nullptr) {
   PyErr_Fetch(&exc_type, &exc_value, &exc_traceback);
 }
 
