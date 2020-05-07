@@ -101,7 +101,7 @@ void ArrayRowIndexImpl::_set_min_max() {
     max_valid = false;
     for (size_t j = length - 1; j < length && !max_valid; --j) {
       T x = idata[j];
-      if (x == RowIndex::NA<T>::value) continue;
+      if (x == RowIndex::NA<T>) continue;
       max = static_cast<size_t>(x);
       max_valid = true;
     }
@@ -381,12 +381,12 @@ bool ArrayRowIndexImpl::get_element(size_t i, size_t* out) const {
   if (type == RowIndexType::ARR32) {
     int32_t x = indices32()[i];
     *out = static_cast<size_t>(x);
-    return (x != RowIndex::NA<int32_t>::value);
+    return (x != RowIndex::NA<int32_t>);
   }
   else {
     int64_t x = indices64()[i];
     *out = static_cast<size_t>(x);
-    return (x != RowIndex::NA<int64_t>::value);
+    return (x != RowIndex::NA<int64_t>);
   }
 }
 
@@ -407,7 +407,7 @@ static void verify_integrity_helper(
   bool check_sorted = sorted;
   for (size_t i = 0; i < len; ++i) {
     T x = ind[i];
-    if (x == RowIndex::NA<T>::value) continue;
+    if (x == RowIndex::NA<T>) continue;
     XAssert(x >= 0);
     if (x > tmax) tmax = x;
     if (check_sorted && i > 0 && x < ind[i-1]) check_sorted = false;

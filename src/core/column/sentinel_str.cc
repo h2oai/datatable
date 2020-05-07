@@ -178,7 +178,7 @@ void SentinelStr_ColumnImpl<T>::replace_values(
     rescol = dt::map_str2str(out,
       [=](size_t i, CString& value, dt::string_buf* sb) {
         int ir = mask_indices[i];
-        if (ir == RowIndex::NA<int32_t>::value) {
+        if (ir == RowIndex::NA<int32_t>) {
           sb->write(value);
         } else {
           CString str;

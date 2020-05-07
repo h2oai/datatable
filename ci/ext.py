@@ -215,6 +215,7 @@ def build_extension(cmd, verbosity=3):
 
     if ext.compiler.is_msvc():
         # General compiler flags
+        ext.compiler.add_compiler_flag("/std:c++14")
         ext.compiler.add_compiler_flag("/EHsc")
         ext.compiler.add_compiler_flag("/nologo")
         ext.compiler.add_include_dir(ext.compiler.path + "\\include")
@@ -234,11 +235,11 @@ def build_extension(cmd, verbosity=3):
             # "consider using 'if constexpr' statement instead"
             # as 'if constexpr' is not available in C++11
             "/wd4127",
-            # "no suitable definition provided for explicit template instantiation 
-            # request" as we want to keep some template method definitions 
+            # "no suitable definition provided for explicit template instantiation
+            # request" as we want to keep some template method definitions
             # in separate translation units
             "/wd4661",
-            # "structure was padded due to alignment specifier" 
+            # "structure was padded due to alignment specifier"
             # as this is exactly the reason why we use the alignment specifier
             "/wd4324",
         )
@@ -268,7 +269,7 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_linker_flag("/DEBUG:FULL")
     else:
         # Common compile flags
-        ext.compiler.add_compiler_flag("-std=c++11")
+        ext.compiler.add_compiler_flag("-std=c++14")
         # "-stdlib=libc++"  (clang ???)
         ext.compiler.add_compiler_flag("-fPIC")
 
