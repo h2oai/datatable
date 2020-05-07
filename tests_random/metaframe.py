@@ -29,14 +29,36 @@ import warnings
 from datatable import dt, f, join
 from datatable.internal import frame_integrity_check
 from tests_random.utils import (
-    assert_equals, repr_data, repr_row, repr_types, traced)
+    assert_equals,
+    random_column,
+    random_names,
+    random_type,
+    repr_data,
+    repr_row,
+    repr_types,
+    traced)
 
 
 class MetaFrame:
     COUNTER = 1
 
-    def __init__(self, ncols=None, nrows=None, types=None, names=None,
-                 missing_fraction=None):
+    def __init__(self):
+        self.df = None
+        self.data = None
+        self.names = None
+        self.types = None
+        self.nkeys = 0
+        self.np_data = []
+        self.np_data_deepcopy = []
+        self.df_shallow_copy = None
+        self.df_deep_copy = None
+        self._name = "DT" + str(MetaFrame.COUNTER)
+        MetaFrame.COUNTER += 1
+
+
+    @staticmethod
+    def random(ncols=None, nrows=None, types=None, names=None,
+               missing_fraction=None):
         if ncols is None:
             if types:
                 ncols = len(types)
@@ -47,9 +69,9 @@ class MetaFrame:
         if nrows is None:
             nrows = int(random.expovariate(0.01)) + 1
         if not types:
-            types = [self.random_type() for _ in range(ncols)]
+            types = [random_type() for _ in range(ncols)]
         if not names:
-            names = self.random_names(ncols)
+            names = random_names(ncols)
         if missing_fraction is None:
             missing_fraction = random.random()**10
             if missing_fraction < 0.05 or nrows == 1:
@@ -67,134 +89,34 @@ class MetaFrame:
         print("#   types: bool=%d, int=%d, float=%d, str=%d"
               % (tt[bool], tt[int], tt[float], tt[str]))
         print("#   missing values: %.3f" % missing_fraction)
-        data = [self.random_column(nrows, types[i], missing_fraction)[0]
+        data = [random_column(nrows, types[i], missing_fraction)[0]
                 for i in range(ncols)]
-        self.data = data
-        self.names = names
-        self.types = types
-        self.nkeys = 0
-        self.np_data = []
-        self.np_data_deepcopy = []
-        self.df = dt.Frame(data, names=names, stypes=types)
-        self.df_shallow_copy = self.df_deep_copy = None
-        self._name = "DT" + str(MetaFrame.COUNTER)
-        MetaFrame.COUNTER += 1
-        self.write_to_file()
-
-
-    def write_to_file(self):
-        print(f"{self} = dt.Frame(")
-        print(f"    {repr_data(self.data, 4)},")
-        print(f"    names={self.names},")
-        print(f"    stypes={repr_types(self.types)}")
+        frame = MetaFrame()
+        frame.data = data
+        frame.names = names
+        frame.types = types
+        frame.nkeys = 0
+        frame.df = dt.Frame(data, names=names, stypes=types)
+        print(f"{frame.name} = dt.Frame(")
+        print(f"    {repr_data(data, 4)},")
+        print(f"    names={names},")
+        print(f"    stypes={repr_types(types)}")
         print(f")")
-
-
-    def random_type(self):
-        return random.choice([bool, int, float, str])
-
-
-    def random_names(self, ncols):
-        t = random.random()
-        if t < 0.8:
-            alphabet = "abcdefghijklmnopqrstuvwxyz"
-            if t < 0.5:
-                alphabet = alphabet * 2 + "0123456789"
-            elif t < 0.6:
-                # chr(76) is a "`" which doesn't reproduce reliably in
-                # error messages
-                alphabet += "".join(chr(i) for i in range(32, 127) if i != 96)
-            else:
-                alphabet = (alphabet * 40 + "0123456789" * 10 +
-                            "".join(chr(x) for x in range(192, 448)))
-            while True:
-                # Ensure uniqueness of the returned names
-                names = [self.random_name(alphabet) for _ in range(ncols)]
-                if len(set(names)) == ncols:
-                    return names
-        else:
-            c = chr(ord('A') + random.randint(0, 25))
-            return ["%s%d" % (c, i) for i in range(ncols)]
+        return frame
 
 
     @staticmethod
-    def random_name(alphabet="abcdefghijklmnopqrstuvwxyz"):
-        n = int(random.expovariate(0.2) + 1.5)
-        while True:
-            name = "".join(random.choice(alphabet) for _ in range(n))
-            if not(name.isdigit() or name.isspace()):
-                return name
+    def load_from_jay(filename):
+        DT = dt.fread(filename)
+        frame = MetaFrame()
+        frame.df = DT
+        frame.data = DT.to_list()
+        frame.names = list(DT.names)
+        frame.types = [_ltype_to_pytype[lt] for lt in DT.ltypes]
+        frame.nkeys = len(DT.key)
+        print(f"{frame.name} = <loaded from {filename}>")
+        return frame
 
-
-    def random_column(self, nrows, ttype, missing_fraction, missing_nones=True):
-        missing_mask = [False] * nrows
-        if ttype == bool:
-            data = self.random_bool_column(nrows)
-        elif ttype == int:
-            data = self.random_int_column(nrows)
-        elif ttype == float:
-            data = self.random_float_column(nrows)
-        else:
-            data = self.random_str_column(nrows)
-        if missing_fraction:
-            for i in range(nrows):
-                if random.random() < missing_fraction:
-                    missing_mask[i] = True
-
-        if missing_nones:
-            for i in range(nrows):
-                if missing_mask[i]: data[i] = None
-
-        return data, missing_mask
-
-
-    def random_bool_column(self, nrows):
-        t = random.random()  # fraction of 1s
-        return [random.random() < t
-                for _ in range(nrows)]
-
-
-    def random_int_column(self, nrows):
-        t = random.random()
-        s = t * 10 - int(t * 10)   # 0...1
-        q = t * 1000 - int(t * 1000)
-        if t < 0.1:
-            r0, r1 = -int(10 + s * 20), int(60 + s * 100)
-        elif t < 0.3:
-            r0, r1 = 0, int(60 + s * 100)
-        elif t < 0.6:
-            r0, r1 = 0, int(t * 1000000 + 500000)
-        elif t < 0.8:
-            r1 = int(t * 100000 + 30000)
-            r0 = -r1
-        elif t < 0.9:
-            r1 = (1 << 63) - 1
-            r0 = -r1
-        else:
-            r0, r1 = 0, (1 << 63) - 1
-        data = [random.randint(r0, r1) for _ in range(nrows)]
-        if q < 0.2:
-            fraction = 0.5 + q * 2
-            for i in range(nrows):
-                if random.random() < fraction:
-                    data[i] = 0
-        return data
-
-
-    def random_float_column(self, nrows):
-        scale = random.expovariate(0.3) + 1
-        return [random.random() * scale
-                for _ in range(nrows)]
-
-
-    def random_str_column(self, nrows):
-        t = random.random()
-        if t < 0.2:
-            words = ["cat", "dog", "mouse", "squirrel", "whale",
-                     "ox", "ant", "badger", "eagle", "snail"][:int(2 + t * 50)]
-            return [random.choice(words) for _ in range(nrows)]
-        else:
-            return [self.random_name() for _ in range(nrows)]
 
 
     #---------------------------------------------------------------------------
@@ -480,9 +402,9 @@ class MetaFrame:
     @traced
     def cbind_numpy_column(self):
         import numpy as np
-        coltype = self.random_type()
+        coltype = random_type()
         mfraction = random.random()
-        data, mmask = self.random_column(self.nrows, coltype, mfraction, False)
+        data, mmask = random_column(self.nrows, coltype, mfraction, False)
 
         # On Linux/Mac numpy's default int type is np.int64,
         # while on Windows it is np.int32. Here we force it to be
@@ -497,7 +419,7 @@ class MetaFrame:
             self.np_data += [np_data]
             self.np_data_deepcopy += [copy.deepcopy(np_data)]
 
-        names = self.random_names(1)
+        names = random_names(1)
         df = dt.Frame(np_data.T, names=names)
 
         for i in range(self.nrows):
@@ -545,7 +467,6 @@ class MetaFrame:
                 self.df.key = names
 
 
-
     @traced
     def join_self(self):
         ncols = self.ncols
@@ -569,11 +490,16 @@ class MetaFrame:
                 self.df = self.df[:, :, join(self.df)]
 
 
-    # This is a noop for the python data
     @traced
     def shallow_copy(self):
+        # This is a noop for the python data
         self.df_shallow_copy = self.df.copy()
         self.df_deep_copy = copy.deepcopy(self.df)
+
+
+    @traced
+    def save_to_jay(self, filename):
+        self.df.to_jay(filename)
 
 
 
@@ -599,3 +525,13 @@ class MetaFrame:
                     name = base + str(num)
                 self.names[i] = name
             seen_names.add(name)
+
+
+_ltype_to_pytype = {
+    dt.ltype.bool: bool,
+    dt.ltype.int: int,
+    dt.ltype.real: float,
+    dt.ltype.str: str,
+    dt.ltype.time: None,
+    dt.ltype.obj: object
+}

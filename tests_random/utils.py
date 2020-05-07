@@ -188,3 +188,109 @@ def random_array(n, positive=False):
     lb = 0 if positive else -n
     ub = n - 1
     return [random.randint(lb, ub) for i in range(newn)]
+
+
+def random_type():
+    return random.choice([bool, int, float, str])
+
+
+def random_names(ncols):
+    t = random.random()
+    if t < 0.8:
+        alphabet = "abcdefghijklmnopqrstuvwxyz"
+        if t < 0.5:
+            alphabet = alphabet * 2 + "0123456789"
+        elif t < 0.6:
+            # chr(76) is a "`" which doesn't reproduce reliably in
+            # error messages
+            alphabet += "".join(chr(i) for i in range(32, 127) if i != 96)
+        else:
+            alphabet = (alphabet * 40 + "0123456789" * 10 +
+                        "".join(chr(x) for x in range(192, 448)))
+        while True:
+            # Ensure uniqueness of the returned names
+            names = [random_string(alphabet) for _ in range(ncols)]
+            if len(set(names)) == ncols:
+                return names
+    else:
+        c = chr(ord('A') + random.randint(0, 25))
+        return ["%s%d" % (c, i) for i in range(ncols)]
+
+
+def random_string(alphabet="abcdefghijklmnopqrstuvwxyz"):
+    n = int(random.expovariate(0.2) + 1.5)
+    while True:
+        name = "".join(random.choice(alphabet) for _ in range(n))
+        if not(name.isdigit() or name.isspace()):
+            return name
+
+
+
+def random_column(nrows, ttype, missing_fraction, missing_nones=True):
+    missing_mask = [False] * nrows
+    if ttype == bool:
+        data = random_bool_column(nrows)
+    elif ttype == int:
+        data = random_int_column(nrows)
+    elif ttype == float:
+        data = random_float_column(nrows)
+    else:
+        data = random_str_column(nrows)
+    if missing_fraction:
+        for i in range(nrows):
+            if random.random() < missing_fraction:
+                missing_mask[i] = True
+
+    if missing_nones:
+        for i in range(nrows):
+            if missing_mask[i]: data[i] = None
+
+    return data, missing_mask
+
+
+def random_bool_column(nrows):
+    t = random.random()  # fraction of 1s
+    return [random.random() < t for _ in range(nrows)]
+
+
+def random_int_column(nrows):
+    t = random.random()
+    s = t * 10 - int(t * 10)   # 0...1
+    q = t * 1000 - int(t * 1000)
+    if t < 0.1:
+        r0, r1 = -int(10 + s * 20), int(60 + s * 100)
+    elif t < 0.3:
+        r0, r1 = 0, int(60 + s * 100)
+    elif t < 0.6:
+        r0, r1 = 0, int(t * 1000000 + 500000)
+    elif t < 0.8:
+        r1 = int(t * 100000 + 30000)
+        r0 = -r1
+    elif t < 0.9:
+        r1 = (1 << 63) - 1
+        r0 = -r1
+    else:
+        r0, r1 = 0, (1 << 63) - 1
+    data = [random.randint(r0, r1) for _ in range(nrows)]
+    if q < 0.2:
+        fraction = 0.5 + q * 2
+        for i in range(nrows):
+            if random.random() < fraction:
+                data[i] = 0
+    return data
+
+
+def random_float_column(nrows):
+    scale = random.expovariate(0.3) + 1
+    return [random.random() * scale
+            for _ in range(nrows)]
+
+
+def random_str_column(nrows):
+    t = random.random()
+    if t < 0.2:
+        words = ["cat", "dog", "mouse", "squirrel", "whale",
+                 "ox", "ant", "badger", "eagle", "snail"][:int(2 + t * 50)]
+        return [random.choice(words) for _ in range(nrows)]
+    else:
+        return [random_string() for _ in range(nrows)]
