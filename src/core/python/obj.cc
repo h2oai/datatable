@@ -51,7 +51,7 @@ static void init_numpy();
 PyObject* Expr_Type = nullptr;
 
 // `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
-// a designated initializer, that is not supported by the C++11 standard.
+// a designated initializer, that is not supported by the C++14 standard.
 // Redefine `_Py_static_string_init` here to use a regular initializer.
 #undef _Py_static_string_init
 #define _Py_static_string_init(value) { NULL, value, NULL }
