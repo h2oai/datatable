@@ -776,8 +776,7 @@ def test_sep_invalid3():
 def test_sep_invalid4(c):
     with pytest.raises(Exception) as e:
         dt.fread("A,,B\n", sep=c)
-    strc = '\\x60' if c == '`' else c
-    assert "Separator %s is not allowed" % strc == str(e.value)
+    assert "Separator %s is not allowed" % c == str(e.value)
 
 
 

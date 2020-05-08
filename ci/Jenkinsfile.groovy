@@ -258,13 +258,6 @@ ansiColor('xterm') {
                                 cleanWs()
                                 dumpInfo()
 
-                                // "sed" line below applies patch https://github.com/pypa/auditwheel/pull/213
-                                // It can be removed when the PR is merged and new ppc64le image is available
-                                // Since it modifies the file owned by root, we cannot use the standard
-                                // approach of starting docker under the jenkins user. Instead, we start as
-                                // a root, modify the file, then create the jenkins user with the correct
-                                // uid/gid, and finally switch to that user's context.
-                                //
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
@@ -278,7 +271,6 @@ ansiColor('xterm') {
                                             -c "cd /dot && \
                                                 ls -la && \
                                                 ls -la src/datatable && \
-                                                sed -i \\\"s/if 'ld-linux' in lib:/if 'ld-linux' in lib or 'ld64.so' in lib:/\\\" /opt/_internal/cpython-3.7.6/lib/python3.7/site-packages/auditwheel/policy/external_references.py && \
                                                 groupadd -g `id -g` jenkins && \
                                                 useradd -u `id -u` -g jenkins jenkins && \
                                                 su jenkins && \

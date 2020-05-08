@@ -230,7 +230,8 @@ void GenericReader::init_quote(const py::Arg& arg) {
     quote = str[0];
     trace("Quote char = (%c)", quote);
   } else {
-    throw ValueError() << "quotechar = (" << str << ") is not allowed";
+    throw ValueError() << "quotechar = (" << escape_backticks(str)
+                       << ") is not allowed";
   }
 }
 

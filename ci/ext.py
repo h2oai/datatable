@@ -233,7 +233,7 @@ def build_extension(cmd, verbosity=3):
             # issued by MSVC for a fully valid and portable code
             "/wd4996",
             # "consider using 'if constexpr' statement instead"
-            # as 'if constexpr' is not available in C++11
+            # as 'if constexpr' is not available in C++14
             "/wd4127",
             # "no suitable definition provided for explicit template instantiation
             # request" as we want to keep some template method definitions

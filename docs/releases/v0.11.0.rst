@@ -129,6 +129,9 @@
     they were called with a string argument, or with an object that caused
     infinite recursion. [#2386]
 
+  -[fix] Column names containing backticks now display properly in error
+    messages. [#2406]
+
   -[api] All exceptions thrown by datatable are now declared in the
     ``datatable.exceptions`` module. These exceptions are now organized to
     derive from the common base class ``DtException``.
