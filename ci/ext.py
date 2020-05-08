@@ -215,6 +215,7 @@ def build_extension(cmd, verbosity=3):
 
     if ext.compiler.is_msvc():
         # General compiler flags
+        ext.compiler.add_compiler_flag("/std:c++14")
         ext.compiler.add_compiler_flag("/EHsc")
         ext.compiler.add_compiler_flag("/nologo")
         ext.compiler.add_include_dir(ext.compiler.path + "\\include")
@@ -229,7 +230,7 @@ def build_extension(cmd, verbosity=3):
             # issued by MSVC for a fully valid and portable code
             "/wd4996",
             # Disable C4127 warning ("consider using 'if constexpr' statement instead")
-            # as 'if constexpr' is not available in C++11
+            # as 'if constexpr' is not available in C++14
             "/wd4127",
             # Disable C4661 warning ("no suitable definition provided for
             # explicit template instantiation request") as we really need
@@ -262,7 +263,7 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_linker_flag("/DEBUG:FULL")
     else:
         # Common compile flags
-        ext.compiler.add_compiler_flag("-std=c++11")
+        ext.compiler.add_compiler_flag("-std=c++14")
         # "-stdlib=libc++"  (clang ???)
         ext.compiler.add_compiler_flag("-fPIC")
         # -pthread is recommended for compiling/linking multithreaded apps

@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <iostream>
-#include <cstdint>         // INT32_MAX
+#include <cstdint>            // INT32_MAX
 #include "expr/py_by.h"       // py::oby
 #include "expr/py_join.h"     // py::ojoin
 #include "expr/py_sort.h"     // py::osort
@@ -51,7 +51,7 @@ static void init_numpy();
 PyObject* Expr_Type = nullptr;
 
 // `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
-// a designated initializer, that is not supported by the C++11 standard.
+// a designated initializer, that is not supported by the C++14 standard.
 // Redefine `_Py_static_string_init` here to use a regular initializer.
 #undef _Py_static_string_init
 #define _Py_static_string_init(value) { NULL, value, NULL }
@@ -713,7 +713,7 @@ char** _obj::to_cstringlist(const error_manager&) const {
     Py_ssize_t count = Py_SIZE(v);
     char** res = nullptr;
     try {
-      res = new char*[count + 1]();
+      res = new char*[static_cast<size_t>(count + 1)]();
       for (Py_ssize_t i = 0; i <= count; ++i) res[i] = nullptr;
       for (Py_ssize_t i = 0; i < count; ++i) {
         PyObject* item = islist? PyList_GET_ITEM(v, i)

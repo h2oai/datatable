@@ -24,7 +24,6 @@
 #include <mutex>               // std::mutex, std::lock_guard
 #include "python/pybuffer.h"   // py::buffer
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
-#include "utils/c+++.h"        // dt::make_unique
 #include "utils/exceptions.h"  // ValueError, MemoryError
 #include "utils/macros.h"
 #include "utils/misc.h"        // malloc_size
@@ -763,7 +762,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
 
   Buffer Buffer::external(const void* ptr, size_t n, py::buffer&& pb) {
     return Buffer(new External_BufferImpl(
-              ptr, n, dt::make_unique<py::buffer>(std::move(pb))));
+              ptr, n, std::make_unique<py::buffer>(std::move(pb))));
   }
 
   Buffer Buffer::view(const Buffer& src, size_t n, size_t offset) {
