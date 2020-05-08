@@ -230,7 +230,7 @@ def build_extension(cmd, verbosity=3):
             # issued by MSVC for a fully valid and portable code
             "/wd4996",
             # Disable C4127 warning ("consider using 'if constexpr' statement instead")
-            # as 'if constexpr' is not available in C++11
+            # as 'if constexpr' is not available in C++14
             "/wd4127",
             # Disable C4661 warning ("no suitable definition provided for
             # explicit template instantiation request") as we really need
