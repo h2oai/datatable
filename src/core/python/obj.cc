@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <iostream>
-#include <cstdint>         // INT32_MAX
+#include <cstdint>            // INT32_MAX
 #include "expr/py_by.h"       // py::oby
 #include "expr/py_join.h"     // py::ojoin
 #include "expr/py_sort.h"     // py::osort
