@@ -23,7 +23,7 @@
 #include "column/range.h"
 #include "utils/assert.h"      // xassert
 #include "utils/exceptions.h"  // ValueError, RuntimeError
-#include "utils/macros.h"  
+#include "utils/macros.h"
 #include "rowindex.h"
 #include "rowindex_impl.h"
 
@@ -40,21 +40,11 @@ bool check_slice_triple(size_t start, size_t count, size_t step, size_t max)
   // Note: computing `start + step*(count - 1)` may potentially overflow, we
   // must therefore use a safer version.
 
-  #if DT_COMPILER_MSVC
-    #pragma warning(push)
-    // unary minus operator applied to unsigned type, result still unsigned
-    #pragma warning(disable : 4146) 
-  #endif
-
   return (start <= max) &&
          (count <= RowIndex::MAX) &&
          (count <= 1 || (step == 0) ||
          (step <= RowIndex::MAX? step <= (max - start)/(count - 1)
-                               : -step <= start/(count - 1)));
-
-  #if DT_COMPILER_MSVC
-    #pragma warning(pop)
-  #endif
+                               : 0 - step <= start/(count - 1)));
 }
 
 
@@ -156,18 +146,7 @@ RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
   size_t tstep  = step;
   if (!ascending) {  // negative step
     tstart += (tcount - 1) * tstep;
-
-    #if DT_COMPILER_MSVC
-      #pragma warning(push)
-      // unary minus operator applied to unsigned type, result still unsigned
-      #pragma warning(disable : 4146) 
-    #endif
-
-    tstep = -tstep;
-
-    #if DT_COMPILER_MSVC
-      #pragma warning(pop)
-    #endif
+    tstep = 0 - tstep;
   }
   if (tstep == 1) {
     if (tstart == 0) {

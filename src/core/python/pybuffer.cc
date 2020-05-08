@@ -104,7 +104,7 @@ void buffer::_normalize_dimensions() {
     if (info_->shape) {
       xassert(info_->shape[0] * itemsize == len);
     }
-    
+
     if (info_->strides) {
       xassert(info_->strides[0] % itemsize == 0);
       stride_ = static_cast<size_t>(info_->strides[0] / itemsize);
@@ -222,17 +222,7 @@ Column buffer::to_column() &&
                   ));
   }
   else {
-    #if DT_COMPILER_MSVC
-      #pragma warning(push)
-      // unary minus operator applied to unsigned type, result still unsigned
-      #pragma warning(disable : 4146) 
-    #endif
-
-    size_t minus_stride = -stride_;
-    
-    #if DT_COMPILER_MSVC
-      #pragma warning(pop)
-    #endif
+    size_t minus_stride = 0 - stride_;
 
     size_t datasize = itemsize() * nrows * minus_stride;
     ptr = static_cast<char*>(ptr) - itemsize() * (nrows - 1) * minus_stride;

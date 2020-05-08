@@ -149,40 +149,17 @@ class Sorter_Float : public SSorter<T>
         [&](size_t i) -> size_t {  // get_radix
           TU value;
           bool isvalid = column_.get_element(i, reinterpret_cast<TE*>(&value));
-
-          #if DT_COMPILER_MSVC
-            #pragma warning(push)
-            // unary minus operator applied to unsigned type, result still unsigned
-            #pragma warning(disable : 4146) 
-          #endif
-
           value = ((value & EXP) == EXP && (value & MNT) != 0) ? 0 :
-                    ASC? value ^ (SBT | -(value>>SHIFT))
+                    ASC? value ^ (SBT | (0 - (value>>SHIFT) ))
                        : value ^ (~SBT & ((value>>SHIFT) - 1));
-
-          #if DT_COMPILER_MSVC
-            #pragma warning(pop)
-          #endif
-
           return isvalid? 1 + (value >> shift) : 0;
         },
         [&](size_t i, size_t j) {  // move_data
           TU value;
           column_.get_element(i, reinterpret_cast<TE*>(&value));
-
-          #if DT_COMPILER_MSVC
-            #pragma warning(push)
-            // unary minus operator applied to unsigned type, result still unsigned
-            #pragma warning(disable : 4146) 
-          #endif
-
           value = ((value & EXP) == EXP && (value & MNT) != 0) ? 0 :
-                    ASC? value ^ (SBT | -(value>>SHIFT))
+                    ASC? value ^ (SBT | (0 - (value>>SHIFT) ))
                        : value ^ (~SBT & ((value>>SHIFT) - 1));
-          
-          #if DT_COMPILER_MSVC
-            #pragma warning(pop)
-          #endif
 
           out_array[j] = value & mask;
         });
