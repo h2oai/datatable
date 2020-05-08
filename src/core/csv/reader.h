@@ -113,6 +113,7 @@ class GenericReader
     strvec  na_strings_container;
     std::unique_ptr<const char*[]> na_strings_ptr;
     size_t  memory_limit;
+    std::string encoding_;
 
   //---- Runtime parameters ----
   // line:
@@ -221,10 +222,12 @@ class GenericReader
     void init_stripwhite (const py::Arg&);
     void init_tempdir    (const py::Arg&);
     void init_memorylimit(const py::Arg&);
+    void init_encoding   (const py::Arg&);
 
   protected:
     void open_input();
     void open_buffer(const Buffer& buf, size_t extra_byte);
+    void process_encoding();
     void detect_and_skip_bom();
     void skip_initial_whitespace();
     void skip_trailing_whitespace();

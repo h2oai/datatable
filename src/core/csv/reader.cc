@@ -151,6 +151,17 @@ void GenericReader::init_nthreads(const py::Arg& arg) {
   }
 }
 
+
+void GenericReader::init_encoding(const py::Arg& arg) {
+  if (arg.is_none_or_undefined()) return;
+  encoding_ = arg.to_string();
+  if (!PyCodec_KnownEncoding(encoding_.c_str())) {
+    throw ValueError() << "Unknown encoding " << encoding_;
+  }
+  trace("encoding='%s'", encoding_.c_str());
+}
+
+
 void GenericReader::init_fill(const py::Arg& arg) {
   fill = arg.to<bool>(false);
   if (fill) {
@@ -406,6 +417,7 @@ py::oobj GenericReader::read_all(py::robj pysources)
   bool done = read_jay();
 
   if (!done) {
+    process_encoding();
     detect_and_skip_bom();
     skip_to_line_number();
     skip_to_line_with_string();
@@ -737,6 +749,13 @@ void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
 }
 
 
+void GenericReader::process_encoding() {
+  if (encoding_.empty()) return;
+  // auto stream = py::oobj::import("io", "open").call({});
+  // PyObject* py_stream_reader = PyCodec_StreamReader(encoding_.c_str(), py_stream, "replace");
+}
+
+
 /**
  * Check whether the input contains BOM (Byte Order Mark), and if so skip it
  * modifying `sof`. If BOM indicates UTF-16 file, then recode the file into
@@ -745,6 +764,7 @@ void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
  * See: https://en.wikipedia.org/wiki/Byte_order_mark
  */
 void GenericReader::detect_and_skip_bom() {
+  if (!encoding_.empty()) return;
   size_t sz = datasize();
   const char* ch = sof;
   if (!sz) return;
@@ -774,9 +794,9 @@ void GenericReader::detect_and_skip_bom() {
  *
  * Example
  * -------
- * Suppose input is the following (_ shows spaces, ␤ is newline, and ⇥ is tab):
+ * Suppose input is the following (_ is a space):
  *
- *     _ _ _ _ ␤ _ ⇥ _ H e l l o …
+ *     _ _ _ _ \\n _ \\t _ H e l l o …
  *
  * If strip_whitespace=true, then this function will move the `sof` to
  * character H; whereas if strip_whitespace=false, this function will move the

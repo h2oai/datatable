@@ -96,8 +96,8 @@ static py::oobj fread(const py::PKArgs& args) {
   rdr.init_tempdir(    arg_tempdir);
   rdr.init_multisource(arg_multisrc);
   rdr.init_memorylimit(arg_memlimit);
+  rdr.init_encoding(   arg_encoding);
   (void) arg_saveto;
-  (void) arg_encoding;
 
   MultiSource multisource(args, rdr);
   return multisource.read_single(rdr);
