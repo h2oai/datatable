@@ -25,7 +25,6 @@
 #include "models/utils.h"
 #include "parallel/api.h"       // dt::parallel_for_static
 #include "progress/work.h"      // dt::progress::work
-#include "utils/c+++.h"
 #include "datatablemodule.h"
 #include "options.h"
 #include "sort.h"
@@ -152,13 +151,13 @@ static oobj aggregate(const PKArgs& args) {
   std::unique_ptr<AggregatorBase> agg;
   size_t nrows = dt->nrows();
   if (double_precision) {
-    agg = dt::make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins,
+    agg = std::make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins,
+                                               nd_max_bins, max_dimensions, seed,
+                                               nrows);
+  } else {
+    agg = std::make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
                                               nd_max_bins, max_dimensions, seed,
                                               nrows);
-  } else {
-    agg = dt::make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
-                                             nd_max_bins, max_dimensions, seed,
-                                             nrows);
   }
 
   agg->aggregate(dt, dt_exemplars, dt_members);

@@ -56,12 +56,7 @@ from GitHub, run the following command:
 
 Since ``datatable`` is written mostly in C++, you will need to have a C++
 compiler on your computer. We recommend either `Clang 4+`, or `gcc 5+`,
-however in theory any compiler that supports C++11 should work.
-
-It is also possible to build `datatable` with `gcc 4.8`, which has only
-partial support of C++11 features. In this case, `datatable`'s functionality
-will be limited, and any function using regular expressions will not be
-supported.
+however in theory any compiler that supports C++14 should work.
 
 
 

@@ -275,18 +275,6 @@ void Ftrl<T>::create_y_binomial(const DataTable* dt,
 
 
 /**
- *  Identity target to be used by `fit_regression()`.
- *  Since C++11 doesn't support templated lambdas, this one is implemented
- *  as a separate inlined function.
- */
-template <typename U>
-inline U itarget(U y, size_t label_indicator) {
-  (void) label_indicator;
-  return y;
-};
-
-
-/**
  *  Create labels (in the case of numeric regression there is no actual
  *  labeles, so we just use a column name for this purpose),
  *  set up identity mapping between models and the incoming label inficators,
@@ -310,8 +298,14 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
     create_model();
     model_type = FtrlModelType::REGRESSION;
   }
+
   label_ids_train = { 0 };
   label_ids_val = { 0 };
+
+  // For numeric regression `targetfn` is just an identity function
+  auto targetfn = [](auto y, size_t) {
+    return y;
+  };
 
   FtrlFitOutput res;
 
@@ -320,20 +314,20 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
     // the validation target column and make an appropriate call to `.fit()`.
     SType stype_y_val = dt_y_val->get_column(0).stype();
     switch (stype_y_val) {
-      case SType::BOOL:    res = fit<U, int8_t>(identity<T>, itarget<U>, itarget<int8_t>, squared_loss<T, int8_t>); break;
-      case SType::INT8:    res = fit<U, int8_t>(identity<T>, itarget<U>, itarget<int8_t>, squared_loss<T, int8_t>); break;
-      case SType::INT16:   res = fit<U, int16_t>(identity<T>, itarget<U>, itarget<int16_t>, squared_loss<T, int16_t>); break;
-      case SType::INT32:   res = fit<U, int32_t>(identity<T>, itarget<U>, itarget<int32_t>, squared_loss<T, int32_t>); break;
-      case SType::INT64:   res = fit<U, int64_t>(identity<T>, itarget<U>, itarget<int64_t>, squared_loss<T, int64_t>); break;
-      case SType::FLOAT32: res = fit<U, float>(identity<T>, itarget<U>, itarget<float>, squared_loss<T, float>); break;
-      case SType::FLOAT64: res = fit<U, double>(identity<T>, itarget<U>, itarget<double>, squared_loss<T, double>); break;
+      case SType::BOOL:    res = fit<U, int8_t>(identity<T>, targetfn, targetfn, squared_loss<T, int8_t>); break;
+      case SType::INT8:    res = fit<U, int8_t>(identity<T>, targetfn, targetfn, squared_loss<T, int8_t>); break;
+      case SType::INT16:   res = fit<U, int16_t>(identity<T>, targetfn, targetfn, squared_loss<T, int16_t>); break;
+      case SType::INT32:   res = fit<U, int32_t>(identity<T>, targetfn, targetfn, squared_loss<T, int32_t>); break;
+      case SType::INT64:   res = fit<U, int64_t>(identity<T>, targetfn, targetfn, squared_loss<T, int64_t>); break;
+      case SType::FLOAT32: res = fit<U, float>(identity<T>, targetfn, targetfn, squared_loss<T, float>); break;
+      case SType::FLOAT64: res = fit<U, double>(identity<T>, targetfn, targetfn, squared_loss<T, double>); break;
       default:             throw TypeError() << "Target column type `"
                                              << stype_y_val << "` is not supported by numeric regression";
     }
   } else {
     // If no validation was requested, it doesn't matter
     // what validation type we are passing to the `fit()` method.
-    res = fit<U, U>(identity<T>, itarget<U>, itarget<U>, squared_loss<T, U>);
+    res = fit<U, U>(identity<T>, targetfn, targetfn, squared_loss<T, U>);
   }
 
   return res;

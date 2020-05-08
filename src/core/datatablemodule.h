@@ -16,7 +16,6 @@
 #ifndef dt_DATATABLEMODULE_h
 #define dt_DATATABLEMODULE_h
 #include "python/ext_module.h"
-#include "utils/c+++.h"
 
 namespace py {
 
