@@ -22,7 +22,6 @@
 #include "column/range.h"
 #include "frame/repr/terminal_widget.h"
 #include "python/string.h"
-#include "utils/c+++.h"
 namespace dt {
 
 
