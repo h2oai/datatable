@@ -26,7 +26,8 @@
 #include <string>
 #include <vector>
 
-typedef struct _object PyObject;
+typedef struct _object     PyObject;
+typedef struct _typeobject PyTypeObject;
 
 class Buffer;
 class Column;
@@ -74,6 +75,7 @@ namespace py {
   class rdict;
   class robj;
   class rtuple;
+  class _obj;
 }
 
 

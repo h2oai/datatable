@@ -21,21 +21,17 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_EXCEPTIONS_h
 #define dt_UTILS_EXCEPTIONS_h
-#include <cstdint>
 #include <exception>  // std::exception
 #include <sstream>    // std::ostringstream
-#include <string>     // std::string
-#include "types.h"
+#include "_dt.h"
 
 class CErrno {};
 extern CErrno Errno;
 
+
 void exception_to_python(const std::exception&) noexcept;
 
-namespace py {
-  class _obj;
-  class ostring;
-}
+std::string escape_backticks(const std::string&);
 
 
 //------------------------------------------------------------------------------
@@ -49,7 +45,7 @@ class Error : public std::exception
     PyObject* pycls;
 
 public:
-  Error(PyObject* cls = PyExc_Exception);
+  Error(PyObject* cls);
   Error(py::oobj cls);
   Error(const Error& other);
   Error(Error&& other);

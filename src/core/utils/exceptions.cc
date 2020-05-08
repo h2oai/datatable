@@ -100,6 +100,29 @@ void exception_to_python(const std::exception& e) noexcept {
 }
 
 
+/**
+  * If `str` contains any backticks or backslashes, they will be
+  * escaped by prepending each such character with a backslash.
+  * If there are no backticks/backslahes in `str`, then a simple copy
+  * of the string is returned.
+  */
+std::string escape_backticks(const std::string& str) {
+  size_t count = 0;
+  for (char c : str) {
+    count += (c == '`' || c == '\\');
+  }
+  if (count == 0) return str;
+  std::string out;
+  out.reserve(str.size() + count);
+  for (char c : str) {
+    if (c == '`' || c == '\\') out += '\\';
+    out += c;
+  }
+  return out;
+}
+
+
+
 
 //==============================================================================
 
@@ -114,7 +137,7 @@ Error::Error(const Error& other) {
   pycls = other.pycls;
 }
 
-Error::Error(Error&& other) : Error() {
+Error::Error(Error&& other) : Error(nullptr) {
   *this = std::move(other);
 }
 
@@ -209,11 +232,19 @@ Error& Error::operator<<(LType ltype) {
 
 Error& Error::operator<<(char c) {
   uint8_t uc = static_cast<uint8_t>(c);
-  if (uc < 0x20 || uc >= 0x80 || uc == '`') {
-    uint8_t d1 = uc >> 4;
-    uint8_t d2 = uc & 15;
-    error << "\\x" << static_cast<char>((d1 <= 9? '0' : 'a' - 10) + d1)
-                   << static_cast<char>((d2 <= 9? '0' : 'a' - 10) + d2);
+  if (uc < 0x20 || uc >= 0x80 || uc == '`' || uc == '\\') {
+    error << '\\';
+    if (c == '\n') error << 'n';
+    else if (c == '\r') error << 'r';
+    else if (c == '\t') error << 't';
+    else if (c == '\\') error << '\\';
+    else if (c == '`')  error << '`';
+    else {
+      uint8_t d1 = uc >> 4;
+      uint8_t d2 = uc & 15;
+      error << "\\x" << static_cast<char>((d1 <= 9? '0' : 'a' - 10) + d1)
+                     << static_cast<char>((d2 <= 9? '0' : 'a' - 10) + d2);
+    }
   } else {
     error << c;
   }
@@ -243,7 +274,7 @@ bool Error::is_keyboard_interrupt() const noexcept {
 
 //==============================================================================
 
-PyError::PyError() {
+PyError::PyError() : Error(nullptr) {
   PyErr_Fetch(&exc_type, &exc_value, &exc_traceback);
 }
 

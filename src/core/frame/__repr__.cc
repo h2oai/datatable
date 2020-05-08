@@ -82,6 +82,7 @@ void Frame::view(const PKArgs& args) {
   bool plain = args[1].to<bool>(false);
   if (args[0].is_none()) interactive = dt::display_interactive;
   if (args[0].is_bool()) interactive = args[0].to_bool_strict();
+  (void) interactive;  // TODO: implement interactive frame viewer
 
   if (is_jupyter) {
     auto htmlstr = _repr_html_(args__repr_html_);

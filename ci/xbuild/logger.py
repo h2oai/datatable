@@ -151,6 +151,7 @@ class Logger1(Logger0):
             ch_future = sz - ch_queued - ch_done
             line += " [%s\x1B[1;97m%s\x1B[0;90m%s]" \
                     % ("#" * ch_done, "#" * ch_queued, "." * ch_future)
+            line += " %d/%d" % (self._n_finished, self._n_total)
         line += "\x1B[m\x1B[K"  # clear the rest of the line
         print(line, end="", flush=True)
 

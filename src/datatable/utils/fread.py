@@ -34,6 +34,7 @@ from datatable.exceptions import TypeError, ValueError, IOError, FreadWarning
 from datatable.utils.misc import (normalize_slice, normalize_range,
                                   humanize_bytes)
 from datatable.utils.misc import plural_form as plural
+from datatable.utils.misc import backticks_escape as escape
 from datatable.types import stype, ltype
 from datatable.xls import read_xls_workbook
 
@@ -199,9 +200,10 @@ def _resolve_source_file(file, tempfiles):
         if os.path.isfile(xpath):
             return _resolve_archive(xpath, ypath, tempfiles)
         else:
-            raise ValueError("File %s`%s` does not exist" % (xpath, ypath))
+            raise ValueError("File %s`%s` does not exist"
+                             % (escape(xpath), escape(ypath)))
     if not os.path.isfile(file):
-        raise ValueError("Path `%s` is not a file" % file)
+        raise ValueError("Path `%s` is not a file" % escape(file))
     return _resolve_archive(file, None, tempfiles)
 
 
