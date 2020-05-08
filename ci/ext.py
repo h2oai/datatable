@@ -272,6 +272,9 @@ def build_extension(cmd, verbosity=3):
         ext.compiler.add_compiler_flag("-std=c++14")
         # "-stdlib=libc++"  (clang ???)
         ext.compiler.add_compiler_flag("-fPIC")
+        # -pthread is recommended for compiling/linking multithreaded apps
+        ext.compiler.add_compiler_flag("-pthread")
+        ext.compiler.add_linker_flag("-pthread")
 
         # Common link flags
         ext.compiler.add_linker_flag("-shared")
@@ -281,8 +284,6 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
         if linux:
             ext.compiler.add_linker_flag("-lstdc++")
-        if ppc64:
-            ext.compiler.add_linker_flag("-pthread")
 
         if cmd == "asan":
             ext.compiler.add_compiler_flag("-fsanitize=address")
@@ -560,8 +561,8 @@ def build_sdist(sdist_directory, config_settings=None):
     files += glob.glob("src/core/**/*.cc", recursive=True)
     files += glob.glob("src/core/**/*.h", recursive=True)
     files += glob.glob("ci/xbuild/*.py")
-    files += [f for f in glob.glob("tests/**/*.py", recursive=True)
-              if "random_attack_logs" not in f]
+    files += [f for f in glob.glob("tests/**/*.py", recursive=True)]
+    files += [f for f in glob.glob("tests_random/*.py")]
     files += ["src/datatable/include/datatable.h"]
     files.sort()
     files += ["ci/ext.py", "ci/__init__.py"]

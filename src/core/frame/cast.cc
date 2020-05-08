@@ -466,8 +466,9 @@ void py::DatatableModule::init_casts()
 // Column (base methods)
 //------------------------------------------------------------------------------
 
-void Column::cast_inplace(SType stype) {
-  Column newcolumn = casts.execute(*this, Buffer(), stype);
+void Column::cast_inplace(SType new_stype) {
+  if (new_stype == stype()) return;
+  Column newcolumn = casts.execute(*this, Buffer(), new_stype);
   std::swap(*this, newcolumn);
 }
 
