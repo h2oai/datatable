@@ -23,6 +23,7 @@
 #include "column/range.h"
 #include "utils/assert.h"      // xassert
 #include "utils/exceptions.h"  // ValueError, RuntimeError
+#include "utils/macros.h"
 #include "rowindex.h"
 #include "rowindex_impl.h"
 
@@ -38,11 +39,12 @@ bool check_slice_triple(size_t start, size_t count, size_t step, size_t max)
 {
   // Note: computing `start + step*(count - 1)` may potentially overflow, we
   // must therefore use a safer version.
+
   return (start <= max) &&
          (count <= RowIndex::MAX) &&
          (count <= 1 || (step == 0) ||
          (step <= RowIndex::MAX? step <= (max - start)/(count - 1)
-                               : step >= -start/(count - 1)));
+                               : 0 - step <= start/(count - 1)));
 }
 
 
@@ -144,7 +146,7 @@ RowIndexImpl* SliceRowIndexImpl::negate(size_t nrows) const {
   size_t tstep  = step;
   if (!ascending) {  // negative step
     tstart += (tcount - 1) * tstep;
-    tstep = -tstep;
+    tstep = 0 - tstep;
   }
   if (tstep == 1) {
     if (tstart == 0) {

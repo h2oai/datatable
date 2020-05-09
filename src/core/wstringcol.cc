@@ -17,7 +17,6 @@
 #include "column.h"
 #include "datatablemodule.h"
 #include "wstringcol.h"
-#include "utils/macros.h"
 
 namespace dt {
 
@@ -116,17 +115,9 @@ char* writable_string_col::buffer_impl<T>::strbuf_ptr() const {
 template <typename T>
 void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
   if (ch) {
-
-    #if DT_OS_WINDOWS && !DT_DEBUG
-      #pragma warning(push)
-      #pragma warning(disable : 4390) // empty controlled statement found
-    #endif
-
-    if (sizeof(T) == 4) xassert(len <= Column::MAX_ARR32_SIZE);
-
-    #if DT_OS_WINDOWS && !DT_DEBUG
-      #pragma warning(pop)
-    #endif
+    if (sizeof(T) == 4) {
+      xassert(len <= Column::MAX_ARR32_SIZE);
+    }
 
     strbuf.ensuresize(strbuf_used + len);
     std::memcpy(strbuf_ptr() + strbuf_used, ch, len);
@@ -150,7 +141,7 @@ void writable_string_col::buffer_impl<T>::commit_and_start_new_chunk(size_t i0)
 {
   col.strdata.write_at(strbuf_write_pos, strbuf_used, strbuf_ptr());
   for (T* p = offptr0; p < offptr; ++p) {
-    *p += strbuf_write_pos;
+    *p += static_cast<T>(strbuf_write_pos);
   }
   offptr = static_cast<T*>(col.offdata.xptr()) + i0 + 1;
   offptr0 = offptr;

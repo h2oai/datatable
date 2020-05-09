@@ -74,8 +74,8 @@ bool SliceView_ColumnImpl::get_element(size_t i, py::robj* out) const { return a
 //------------------------------------------------------------------------------
 // ArrayView_ColumnImpl
 //------------------------------------------------------------------------------
-static_assert(RowIndex::NA_ARR32 < 0, "Unexpected RowIndex::NA_ARR32");
-static_assert(RowIndex::NA_ARR64 < 0, "Unexpected RowIndex::NA_ARR64");
+static_assert(RowIndex::NA<int32_t> < 0, "Unexpected RowIndex::NA<int32_t>");
+static_assert(RowIndex::NA<int64_t> < 0, "Unexpected RowIndex::NA<int64_t>");
 
 template <typename T> const T* get_indices(const RowIndex&) { return nullptr; }
 template <> const int32_t* get_indices(const RowIndex& ri) { return ri.indices32(); }

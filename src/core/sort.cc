@@ -137,6 +137,7 @@
 #include "utils/alloc.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
+#include "utils/macros.h"
 #include "buffer.h"
 #include "column.h"
 #include "datatable.h"
@@ -780,7 +781,7 @@ class SortContext {
         [&](size_t j) {
           TO t = xi[o[j]];
           xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
-                  ASC? t ^ (SBT | -(t>>SHIFT))
+                  ASC? t ^ (SBT | (0 - (t>>SHIFT)) )
                      : t ^ (~SBT & ((t>>SHIFT) - 1));
         });
     } else {
@@ -788,7 +789,7 @@ class SortContext {
         [&](size_t j) {
           TO t = xi[j];
           xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
-                  ASC? t ^ (SBT | -(t>>SHIFT))
+                  ASC? t ^ (SBT | (0 -(t>>SHIFT)) )
                      : t ^ (~SBT & ((t>>SHIFT) - 1));
         });
     }

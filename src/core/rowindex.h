@@ -46,14 +46,18 @@ class RowIndex {
     RowIndexImpl* impl;  // Shared reference semantics
 
   public:
-    static constexpr int32_t NA_ARR32 = INT32_MIN;
-    static constexpr int64_t NA_ARR64 = INT64_MIN;
+    template <typename T>
+    static constexpr T NA = std::numeric_limits<T>::min();
+
+    static_assert(static_cast<int32_t>(size_t(NA<int32_t>)) == NA<int32_t>,
+                  "Bad RowIndex::NA<int32_t>");
+    static_assert(int64_t(size_t(NA<int64_t>)) == NA<int64_t>,
+                  "Bad RowIndex::NA<int64_t>");
+
     static constexpr size_t MAX = size_t(-1) >> 1;
     static constexpr int ARR32 = 1;
     static constexpr int ARR64 = 2;
     static constexpr int SORTED = 4;
-    static_assert(static_cast<int32_t>(size_t(NA_ARR32)) == NA_ARR32, "Bad NA_ARR32");
-    static_assert(int64_t(size_t(NA_ARR64)) == NA_ARR64, "Bad NA_ARR64");
 
     RowIndex();
     RowIndex(const RowIndex&);
@@ -179,7 +183,6 @@ class RowIndex {
 
 
 
-
 //==============================================================================
 
 template<typename F>
@@ -195,7 +198,7 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
       const int32_t* ridata = indices32();
       for (size_t i = i0; i < i1; i += di) {
         int32_t x = ridata[i];
-        f(i, static_cast<size_t>(x), x != RowIndex::NA_ARR32);
+        f(i, static_cast<size_t>(x), x != RowIndex::NA<int32_t>);
       }
       break;
     }
@@ -203,7 +206,7 @@ void RowIndex::iterate(size_t i0, size_t i1, size_t di, F f) const {
       const int64_t* ridata = indices64();
       for (size_t i = i0; i < i1; i += di) {
         int64_t x = ridata[i];
-        f(i, static_cast<size_t>(x), x != RowIndex::NA_ARR64);
+        f(i, static_cast<size_t>(x), x != RowIndex::NA<int64_t>);
       }
       break;
     }
