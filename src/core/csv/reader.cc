@@ -476,7 +476,7 @@ bool GenericReader::extra_byte_accessible() const {
 }
 
 
-#if !DT_OS_WINDOWS
+#if !DT_COMPILER_MSVC
 __attribute__((format(printf, 2, 3)))
 #endif
 void GenericReader::trace(const char* format, ...) const {
@@ -487,7 +487,7 @@ void GenericReader::trace(const char* format, ...) const {
   va_end(args);
 }
 
-#if !DT_OS_WINDOWS
+#if !DT_COMPILER_MSVC
 __attribute__((format(printf, 2, 3)))
 #endif
 void GenericReader::warn(const char* format, ...) const {
@@ -665,13 +665,12 @@ void GenericReader::open_input() {
     #if DT_OS_WINDOWS
       throw NotImplError() << "Reading from file-like objects, that involves "
         << "file descriptors, is not supported on Windows";
+    #else
+      const char* src = src_arg.to_cstring().ch;
+      input_mbuf = Buffer::mmap(src, 0, fileno, false);
+      size_t sz = input_mbuf.size();
+      trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
     #endif
-
-    const char* src = src_arg.to_cstring().ch;
-    input_mbuf = Buffer::mmap(src, 0, fileno, false);
-    size_t sz = input_mbuf.size();
-    trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
-
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
     input_mbuf = Buffer::external(text.ch, size + 1);
@@ -724,16 +723,9 @@ void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
   sof = static_cast<const char*>(input_mbuf.rptr());
   eof = sof + input_mbuf.size() - extra_byte;
 
-  #if DT_OS_WINDOWS && !DT_DEBUG
-    #pragma warning(push)
-    #pragma warning(disable : 4390) // empty controlled statement found
-  #endif
-
-  if (eof) xassert(*eof == '\0');
-
-  #if DT_OS_WINDOWS && !DT_DEBUG
-    #pragma warning(pop)
-  #endif
+  if (eof) {
+    xassert(*eof == '\0');
+  }
 }
 
 

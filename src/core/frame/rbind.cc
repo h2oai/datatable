@@ -442,7 +442,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
       if (col_strsize) {
         void* target = strbuf_.wptr(static_cast<size_t>(curr_offset));
         std::memcpy(target, col_strdata, col_strsize);
-        curr_offset += col_strsize;
+        curr_offset += static_cast<T>(col_strsize);
       }
     }
   }

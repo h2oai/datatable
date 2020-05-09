@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <cstring>     // std::memcpy
+#include <cstring>            // std::memcpy
 #include "column/range.h"
 #include "parallel/api.h"     // dt::parallel_for_static
 #include "utils/assert.h"
@@ -29,9 +29,8 @@
 #include "rowindex_impl.h"
 
 
-constexpr int32_t RowIndex::NA_ARR32;
-constexpr int64_t RowIndex::NA_ARR64;
-
+template <typename T>
+constexpr T RowIndex::NA;
 
 //------------------------------------------------------------------------------
 // Construction
@@ -269,7 +268,7 @@ Buffer RowIndex::as_boolean_mask(size_t nrows) const {
 Buffer RowIndex::as_integer_mask(size_t nrows) const {
   Buffer res = Buffer::mem(nrows * 4);
   int32_t* data = static_cast<int32_t*>(res.xptr());
-  std::fill(data, data + nrows, RowIndex::NA_ARR32);
+  std::fill(data, data + nrows, RowIndex::NA<int32_t>);
   iterate(0, size(), 1,
     [&](size_t i, size_t j, bool jvalid) {
       if (jvalid) data[j] = static_cast<int32_t>(i);

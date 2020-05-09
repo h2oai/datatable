@@ -22,11 +22,12 @@
 #ifndef dt_SORT_SORTER_FLOAT_h
 #define dt_SORT_SORTER_FLOAT_h
 #include <type_traits>          // std::is_same
+#include "column.h"
 #include "sort/insert-sort.h"   // dt::sort::insert_sort
 #include "sort/radix-sort.h"    // RadixSort
 #include "sort/sorter.h"        // Sort
 #include "sort/sorter_raw.h"    // Sorter_Raw
-#include "column.h"
+#include "utils/macros.h"
 namespace dt {
 namespace sort {
 
@@ -149,7 +150,7 @@ class Sorter_Float : public SSorter<T>
           TU value;
           bool isvalid = column_.get_element(i, reinterpret_cast<TE*>(&value));
           value = ((value & EXP) == EXP && (value & MNT) != 0) ? 0 :
-                    ASC? value ^ (SBT | -(value>>SHIFT))
+                    ASC? value ^ (SBT | (0 - (value>>SHIFT) ))
                        : value ^ (~SBT & ((value>>SHIFT) - 1));
           return isvalid? 1 + (value >> shift) : 0;
         },
@@ -157,8 +158,9 @@ class Sorter_Float : public SSorter<T>
           TU value;
           column_.get_element(i, reinterpret_cast<TE*>(&value));
           value = ((value & EXP) == EXP && (value & MNT) != 0) ? 0 :
-                    ASC? value ^ (SBT | -(value>>SHIFT))
+                    ASC? value ^ (SBT | (0 - (value>>SHIFT) ))
                        : value ^ (~SBT & ((value>>SHIFT) - 1));
+
           out_array[j] = value & mask;
         });
     }

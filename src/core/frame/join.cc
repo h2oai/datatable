@@ -385,7 +385,8 @@ static size_t binsearch(Cmp* cmp, size_t nrows) {
     else if (r < 0) start = mid + 1;
     else return mid;
   }
-  return cmp->cmp_jrow(start) == 0? start : size_t(RowIndex::NA_ARR32);
+  return cmp->cmp_jrow(start) == 0? start
+                                  : size_t(RowIndex::NA<int32_t>);
 }
 
 
@@ -418,7 +419,7 @@ RowIndex natural_join(const DataTable& xdt, const DataTable& jdt) {
     if (jdt.nrows() == 0) {
       dt::parallel_for_static(xdt.nrows(),
         [&](size_t i) {
-          result_indices[i] = RowIndex::NA_ARR32;
+          result_indices[i] = RowIndex::NA<int32_t>;
         });
     }
     else {
@@ -434,7 +435,7 @@ RowIndex natural_join(const DataTable& xdt, const DataTable& jdt) {
                 size_t j = binsearch(comparator.get(), jdt.nrows());
                 result_indices[i] = static_cast<int32_t>(j);
               } else {
-                result_indices[i] = RowIndex::NA_ARR32;
+                result_indices[i] = RowIndex::NA<int32_t>;
               }
             });
         });

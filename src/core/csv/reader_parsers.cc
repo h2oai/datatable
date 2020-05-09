@@ -10,6 +10,7 @@
 #include "read/fread/fread_tokenizer.h"  // FreadTokenizer
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
+#include "utils/macros.h"
 
 static constexpr int8_t   NA_BOOL8 = -128;
 static constexpr int32_t  NA_INT32 = INT32_MIN;
@@ -217,14 +218,20 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
   if ((sf? sf < max_digits : ch > start) ||
       (sf == max_digits && acc <= max_value))
   {
-    if (sizeof(T) == 4) {
-      int32_t x = static_cast<int32_t>(acc);
-      ctx.target->int32 = negative? -x : x;
-    }
-    if (sizeof(T) == 8) {
-      int64_t x = static_cast<int64_t>(acc);
-      ctx.target->int64 = negative? -x : x;
-    }
+    T x = static_cast<T>(acc);
+
+    #if DT_COMPILER_MSVC
+      #pragma warning(push)
+      // conversion from 'T' to 'int32_t', possible loss of data
+      #pragma warning(disable : 4244)
+    #endif
+
+    if (sizeof(T) == 4) ctx.target->int32 = negative? -x : x;
+    if (sizeof(T) == 8) ctx.target->int64 = negative? -x : x;
+
+    #if DT_COMPILER_MSVC
+      #pragma warning(pop)
+    #endif
 
     ctx.ch = ch;
     return;
@@ -284,7 +291,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
       else if (E == 126 && Eneg && acc) /* subnormal */ E = 0;
       else goto fail;
     } else {
-      E = 127 + (Eneg? -E : E);
+      E = Eneg? 127 - E : 127 + E;
       if (E < 1 || E > 254) goto fail;
     }
     ctx.target->uint32 = (neg << 31) | (E << 23) | (acc);
@@ -575,7 +582,7 @@ void parse_float64_hex(FreadTokenizer& ctx) {
       else if (E == 1022 && Eneg && acc) /* subnormal */ E = 0;
       else goto fail;
     } else {
-      E = 1023 + (Eneg? -E : E);
+      E = Eneg? 1023 - E : 1023 + E;
       if (E < 1 || E > 2046) goto fail;
     }
     ctx.target->uint64 = (neg << 63) | (E << 52) | (acc);

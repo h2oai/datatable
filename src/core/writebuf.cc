@@ -112,7 +112,7 @@ size_t FileWritableBuffer::prep_write(size_t src_size, const void* src)
   while (written_to_file < src_size) {
     size_t bytes_to_write = std::min(src_size - written_to_file, CHUNK_SIZE);
     const void* buf = static_cast<const char*>(src) + written_to_file;
-    ssize_t r = ::WRITE(fd, buf, bytes_to_write);
+    ssize_t r = ::WRITE(fd, buf, static_cast<unsigned int>(bytes_to_write));
     if (r < 0) {
       throw IOError() << "Cannot write to file: " << Errno
           << " (started at offset " << pos

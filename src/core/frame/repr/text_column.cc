@@ -262,7 +262,7 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
           ch = ch0;
           break;
         }
-        remaining_width -= escaped.size();
+        remaining_width -= static_cast<int>(escaped.size());
         out << std::move(escaped);
       }
     }

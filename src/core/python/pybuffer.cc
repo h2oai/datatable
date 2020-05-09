@@ -101,17 +101,9 @@ void buffer::_normalize_dimensions() {
     xassert(len == itemsize);
   }
   else if (ndim == 1) {
-
-    #if DT_OS_WINDOWS && !DT_DEBUG
-      #pragma warning(push)
-      #pragma warning(disable : 4390) // empty controlled statement found
-    #endif
-
-    if (info_->shape) xassert(info_->shape[0] * itemsize == len);
-
-    #if DT_OS_WINDOWS && !DT_DEBUG
-      #pragma warning(pop)
-    #endif
+    if (info_->shape) {
+      xassert(info_->shape[0] * itemsize == len);
+    }
 
     if (info_->strides) {
       xassert(info_->strides[0] % itemsize == 0);
@@ -230,14 +222,16 @@ Column buffer::to_column() &&
                   ));
   }
   else {
-    size_t datasize = itemsize() * nrows * (-stride_);
-    ptr = static_cast<char*>(ptr) - itemsize() * (nrows - 1) * (-stride_);
+    size_t minus_stride = 0 - stride_;
+
+    size_t datasize = itemsize() * nrows * minus_stride;
+    ptr = static_cast<char*>(ptr) - itemsize() * (nrows - 1) * minus_stride;
     Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
-    Column internal_col = Column::new_mbuf_column(nrows * (-stride_), stype,
+    Column internal_col = Column::new_mbuf_column(nrows * minus_stride, stype,
                                                   std::move(databuf));
     return Column(new dt::SliceView_ColumnImpl(
                           std::move(internal_col),
-                          RowIndex((nrows - 1) * (-stride_), nrows, stride_)
+                          RowIndex((nrows - 1) * minus_stride, nrows, stride_)
                   ));
   }
 }
