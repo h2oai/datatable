@@ -628,6 +628,7 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
             // binary wheels for pandas & numpy.
             pip_args += "-i https://h2oai.github.io/py-repo/ "
             pip_args += "--extra-index-url https://pypi.org/simple/ "
+            pip_args += "--prefer-binary "
         }
         def python = get_python_for_docker(pyver, docker_image)
         def docker_cmd = ""
