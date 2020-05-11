@@ -979,8 +979,7 @@ void FreadObserver::report() {
           total_minutes, total_seconds);
   g.trace(" = %*.3fs (%2.0f%%) %s", p,
           g.t_open_input, 100 * g.t_open_input / total_time,
-          g.input_is_string? "converting input string into bytes"
-                           : "memory-mapping input line");
+          "memory-mapping input file");
   g.trace(" + %*.3fs (%2.0f%%) detecting parse parameters", p,
           params_time, 100 * params_time / total_time);
   g.trace(" + %*.3fs (%2.0f%%) detecting column types using %s sample rows", p,

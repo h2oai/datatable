@@ -131,12 +131,12 @@ class GenericReader
     size_t line;
     int32_t fileno;
     bool cr_is_newline;
-    bool input_is_string{ false };
-    int : 16;
+    int : 24;
     PreFrame preframe;
     double t_open_input{ 0 };
 
     py::oobj output_;
+    const std::string* source_name;
 
   private:
     py::oobj logger;
@@ -162,7 +162,7 @@ class GenericReader
     virtual ~GenericReader();
 
     py::oobj get_tempfiles() const;
-    py::oobj read_all(py::robj pysources);
+    // py::oobj read_all(py::robj pysources);
     py::oobj read_buffer(const Buffer&, size_t extra_byte);
 
     bool has_next() const;
@@ -225,7 +225,7 @@ class GenericReader
     void init_encoding   (const py::Arg&);
 
   protected:
-    void open_input();
+    void log_file_sample();
     void open_buffer(const Buffer& buf, size_t extra_byte);
     void process_encoding();
     void detect_and_skip_bom();
