@@ -123,6 +123,7 @@ GenericReader::GenericReader(const GenericReader& g)
   columns_arg      = g.columns_arg;
   t_open_input     = g.t_open_input;
   memory_limit     = g.memory_limit;
+  encoding_        = g.encoding_;
   // Runtime parameters
   job     = g.job;
   input_mbuf = g.input_mbuf;
@@ -408,9 +409,10 @@ py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
   if (logger) {
     logger.invoke("debug", py::ostring("[1] Prepare for reading"));
   }
-  open_buffer(buf, extra_byte);
-  log_file_sample();
   job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
+  open_buffer(buf, extra_byte);
+  process_encoding();
+  log_file_sample();
   bool done = read_jay();
 
   if (!done) {
@@ -675,8 +677,32 @@ void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
 
 void GenericReader::process_encoding() {
   if (encoding_.empty()) return;
-  // auto stream = py::oobj::import("io", "open").call({});
-  // PyObject* py_stream_reader = PyCodec_StreamReader(encoding_.c_str(), py_stream, "replace");
+  if (verbose) {
+    trace("Decoding input from %s", encoding_.c_str());
+  }
+  job->add_work_amount(WORK_DECODE_UTF16);
+  job->set_message("Decoding " + encoding_);
+  dt::progress::subtask subjob(*job, WORK_DECODE_UTF16);
+
+  auto decoder = py::oobj::from_new_reference(
+      PyCodec_IncrementalDecoder(encoding_.c_str(), "replace"));
+  auto decode = decoder.get_attr("decode");
+
+  auto wb = std::make_unique<MemoryWritableBuffer>(input_mbuf.size() * 6/5);
+  constexpr size_t CHUNK_SIZE = 1024 * 1024;
+  for (const char* ch = sof; ch < eof; ch += CHUNK_SIZE) {
+    size_t chunk_size = std::min(static_cast<size_t>(eof - ch), CHUNK_SIZE);
+    // TODO: use obytes class
+    auto original_bytes =
+      py::oobj::from_new_reference(
+        PyBytes_FromStringAndSize(ch, static_cast<Py_ssize_t>(chunk_size)));
+    auto is_final = py::obool(ch + chunk_size == eof);
+    auto decoded_string = decode.call({original_bytes, is_final});
+    wb->write(decoded_string.to_cstring());
+  }
+  wb->finalize();
+  open_buffer(wb->get_mbuf(), 0);
+  subjob.done();
 }
 
 
