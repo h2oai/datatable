@@ -56,7 +56,7 @@ static py::PKArgs args_fread(
   "fread", doc_fread);
 
 static py::oobj fread(const py::PKArgs& args) {
-  size_t k = 5;
+  size_t k = 5;  // skip source args for now
   const py::Arg& arg_columns    = args[k++];
   const py::Arg& arg_sep        = args[k++];
   const py::Arg& arg_dec        = args[k++];
