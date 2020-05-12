@@ -96,8 +96,8 @@ static py::oobj fread(const py::PKArgs& args) {
   rdr.init_tempdir(    arg_tempdir);
   rdr.init_multisource(arg_multisrc);
   rdr.init_memorylimit(arg_memlimit);
+  rdr.init_encoding(   arg_encoding);
   (void) arg_saveto;
-  (void) arg_encoding;
 
   MultiSource multisource(args, rdr);
   return multisource.read_single(rdr);
@@ -154,7 +154,7 @@ static py::oobj iread(const py::PKArgs& args) {
   const py::Arg& arg_errors     = args[k++];
   const py::Arg& arg_memlimit   = args[k++];
 
-  auto rdr = std::unique_ptr<GenericReader>(new GenericReader);
+  auto rdr = std::make_unique<GenericReader>();
   rdr->init_logger(     arg_logger, arg_verbose);
   rdr->init_nthreads(   arg_nthreads);
   rdr->init_fill(       arg_fill);
@@ -175,7 +175,7 @@ static py::oobj iread(const py::PKArgs& args) {
   (void) arg_saveto;
   (void) arg_encoding;
 
-  auto ms = std::unique_ptr<MultiSource>(new MultiSource(args, *rdr));
+  auto ms = std::make_unique<MultiSource>(args, *rdr);
   return py::ReadIterator::make(std::move(rdr), std::move(ms));
 }
 

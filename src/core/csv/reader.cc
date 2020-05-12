@@ -85,6 +85,7 @@ void GenericReader::init_options() {
 GenericReader::GenericReader()
   : preframe(this)
 {
+  source_name = nullptr;
   na_strings = nullptr;
   sof = nullptr;
   eof = nullptr;
@@ -122,6 +123,7 @@ GenericReader::GenericReader(const GenericReader& g)
   columns_arg      = g.columns_arg;
   t_open_input     = g.t_open_input;
   memory_limit     = g.memory_limit;
+  encoding_        = g.encoding_;
   // Runtime parameters
   job     = g.job;
   input_mbuf = g.input_mbuf;
@@ -129,6 +131,7 @@ GenericReader::GenericReader(const GenericReader& g)
   eof     = g.eof;
   line    = g.line;
   logger  = g.logger;   // for verbose messages / warnings
+  source_name = g.source_name;
 }
 
 GenericReader::~GenericReader() {}
@@ -150,6 +153,17 @@ void GenericReader::init_nthreads(const py::Arg& arg) {
           nthreads, (nthreads==1? "" : "s"), nth, maxth);
   }
 }
+
+
+void GenericReader::init_encoding(const py::Arg& arg) {
+  if (arg.is_none_or_undefined()) return;
+  encoding_ = arg.to_string();
+  if (!PyCodec_KnownEncoding(encoding_.c_str())) {
+    throw ValueError() << "Unknown encoding " << encoding_;
+  }
+  trace("encoding='%s'", encoding_.c_str());
+}
+
 
 void GenericReader::init_fill(const py::Arg& arg) {
   fill = arg.to<bool>(false);
@@ -390,50 +404,15 @@ void GenericReader::init_memorylimit(const py::Arg& arg) {
 // Main read_all() function
 //------------------------------------------------------------------------------
 
-py::oobj GenericReader::read_all(py::robj pysources)
-{
-  auto pysrcs = pysources.to_otuple();
-  src_arg  = pysrcs[0];
-  file_arg = pysrcs[1];
-  fileno   = pysrcs[2].to_int32();
-  text_arg = pysrcs[3];
-
-  if (logger) {
-    logger.invoke("debug", py::ostring("[1] Prepare for reading"));
-  }
-  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
-  open_input();
-  bool done = read_jay();
-
-  if (!done) {
-    detect_and_skip_bom();
-    skip_to_line_number();
-    skip_to_line_with_string();
-    skip_initial_whitespace();
-    skip_trailing_whitespace();
-    job->add_done_amount(WORK_PREPARE);
-
-    read_empty_input() ||
-    detect_improper_files() ||
-    read_csv();
-  }
-
-  if (!output_) {
-    throw IOError() << "Unable to read input " << src_arg.to_string();
-  }
-
-  job->done();
-  return output_;
-}
-
-
 py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
 {
   if (logger) {
     logger.invoke("debug", py::ostring("[1] Prepare for reading"));
   }
-  open_buffer(buf, extra_byte);
   job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
+  open_buffer(buf, extra_byte);
+  process_encoding();
+  log_file_sample();
   bool done = read_jay();
 
   if (!done) {
@@ -450,13 +429,41 @@ py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
   }
 
   if (!output_) {
-    throw IOError() << "Unable to read input " << src_arg.to_string();
+    throw IOError() << "Unable to read input " << *source_name;
   }
 
   job->done();
   return output_;
 }
 
+
+void GenericReader::log_file_sample() {
+  if (!verbose) return;
+  trace("==== file sample ====");
+  const char* ch = sof;
+  bool newline = true;
+  for (int i = 0; i < 5 && ch < eof; i++) {
+    if (newline) trace("%s", repr_source(ch, 100));
+    else         trace("...%s", repr_source(ch, 97));
+    const char* start = ch;
+    const char* end = std::min(eof, ch + 10000);
+    while (ch < end) {
+      char c = *ch++;
+      // simplified newline sequence. TODO: replace with `skip_eol()`
+      if (c == '\n' || c == '\r') {
+        if (ch < end && (*ch == '\r' || *ch == '\n') && *ch != c) ch++;
+        break;
+      }
+    }
+    if (ch == end && ch < eof) {
+      ch = start + 100;
+      newline = false;
+    } else {
+      newline = true;
+    }
+  }
+  trace("=====================");
+}
 
 
 //------------------------------------------------------------------------------
@@ -656,76 +663,48 @@ const char* GenericReader::repr_binary(
 // Input handling
 //------------------------------------------------------------------------------
 
-void GenericReader::open_input() {
-  if (input_mbuf) return;
-  double t0 = wallclock();
-  CString text;
-  const char* filename = nullptr;
-  if (fileno > 0) {
-    #if DT_OS_WINDOWS
-      throw NotImplError() << "Reading from file-like objects, that involves "
-        << "file descriptors, is not supported on Windows";
-    #else
-      const char* src = src_arg.to_cstring().ch;
-      input_mbuf = Buffer::mmap(src, 0, fileno, false);
-      size_t sz = input_mbuf.size();
-      trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
-    #endif
-  } else if ((text = text_arg.to_cstring())) {
-    size_t size = static_cast<size_t>(text.size);
-    input_mbuf = Buffer::external(text.ch, size + 1);
-    input_is_string = true;
-
-  } else if ((filename = file_arg.to_cstring().ch) != nullptr) {
-    input_mbuf = Buffer::mmap(filename);
-    size_t sz = input_mbuf.size();
-    trace("File \"%s\" opened, size: %zu", filename, sz);
-
-  } else {
-    throw IOError() << "No input given to the GenericReader";
-  }
-  line = 1;
-  sof = static_cast<const char*>(input_mbuf.rptr());
-  eof = sof + input_mbuf.size();
-  if (verbose) {
-    trace("==== file sample ====");
-    const char* ch = sof;
-    bool newline = true;
-    for (int i = 0; i < 5 && ch < eof; i++) {
-      if (newline) trace("%s", repr_source(ch, 100));
-      else         trace("...%s", repr_source(ch, 97));
-      const char* start = ch;
-      const char* end = std::min(eof, ch + 10000);
-      while (ch < end) {
-        char c = *ch++;
-        // simplified newline sequence. TODO: replace with `skip_eol()`
-        if (c == '\n' || c == '\r') {
-          if ((*ch == '\r' || *ch == '\n') && *ch != c) ch++;
-          break;
-        }
-      }
-      if (ch == end && ch < eof) {
-        ch = start + 100;
-        newline = false;
-      } else {
-        newline = true;
-      }
-    }
-    trace("=====================");
-  }
-  t_open_input = wallclock() - t0;
-}
-
-
 void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
   input_mbuf = buf;
   line = 1;
   sof = static_cast<const char*>(input_mbuf.rptr());
   eof = sof + input_mbuf.size() - extra_byte;
 
-  if (eof) {
+  if (eof && extra_byte) {
     xassert(*eof == '\0');
   }
+}
+
+
+void GenericReader::process_encoding() {
+  if (encoding_.empty()) return;
+  if (verbose) {
+    trace("Decoding input from %s", encoding_.c_str());
+  }
+  job->add_work_amount(WORK_DECODE_UTF16);
+  job->set_message("Decoding " + encoding_);
+  dt::progress::subtask subjob(*job, WORK_DECODE_UTF16);
+
+  const char* enc_errors = (encoding_ == "base64"? "strict" : "replace");
+
+  auto decoder = py::oobj::from_new_reference(
+      PyCodec_IncrementalDecoder(encoding_.c_str(), enc_errors));
+  auto decode = decoder.get_attr("decode");
+
+  auto wb = std::make_unique<MemoryWritableBuffer>(input_mbuf.size() * 6/5);
+  constexpr size_t CHUNK_SIZE = 1024 * 1024;
+  for (const char* ch = sof; ch < eof; ch += CHUNK_SIZE) {
+    size_t chunk_size = std::min(static_cast<size_t>(eof - ch), CHUNK_SIZE);
+    // TODO: use obytes class
+    auto original_bytes =
+      py::oobj::from_new_reference(
+        PyBytes_FromStringAndSize(ch, static_cast<Py_ssize_t>(chunk_size)));
+    auto is_final = py::obool(ch + chunk_size == eof);
+    auto decoded_string = decode.call({original_bytes, is_final});
+    wb->write(decoded_string.to_cstring());
+  }
+  wb->finalize();
+  open_buffer(wb->get_mbuf(), 0);
+  subjob.done();
 }
 
 
@@ -737,6 +716,7 @@ void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
  * See: https://en.wikipedia.org/wiki/Byte_order_mark
  */
 void GenericReader::detect_and_skip_bom() {
+  if (!encoding_.empty()) return;
   size_t sz = datasize();
   const char* ch = sof;
   if (!sz) return;
@@ -766,9 +746,9 @@ void GenericReader::detect_and_skip_bom() {
  *
  * Example
  * -------
- * Suppose input is the following (_ shows spaces, ␤ is newline, and ⇥ is tab):
+ * Suppose input is the following (_ is a space):
  *
- *     _ _ _ _ ␤ _ ⇥ _ H e l l o …
+ *     _ _ _ _ \\n _ \\t _ H e l l o …
  *
  * If strip_whitespace=true, then this function will move the `sof` to
  * character H; whereas if strip_whitespace=false, this function will move the
@@ -886,13 +866,13 @@ bool GenericReader::detect_improper_files() {
   // --- detect HTML ---
   while (ch < eof && (*ch==' ' || *ch=='\t')) ch++;
   if (ch + 15 < eof && std::memcmp(ch, "<!DOCTYPE html>", 15) == 0) {
-    throw IOError() << src_arg.to_string() << " is an HTML file. Please "
+    throw IOError() << *source_name << " is an HTML file. Please "
         << "open it in a browser and then save in a plain text format.";
   }
   // --- detect Feather ---
   if (sof + 8 < eof && std::memcmp(sof, "FEA1", 4) == 0
                     && std::memcmp(eof - 4, "FEA1", 4) == 0) {
-    throw IOError() << src_arg.to_string() << " is a feather file, it "
+    throw IOError() << *source_name << " is a feather file, it "
         "cannot be read with fread.";
   }
   return false;

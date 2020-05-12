@@ -1000,7 +1000,6 @@ def test_fread_max_nrows(capsys):
     assert d0.to_list() == [[1, 3], ["foo", "bar"], [True, False]]
     assert "Allocating 3 column slots with 2 rows" in out
     assert "Too few rows allocated" not in out
-    assert "converting input string into bytes" in out
 
 
 def test_fread_max_nrows_0rows():
@@ -1157,3 +1156,55 @@ def test_anonymize2(capsys):
         assert "Column 1 (aaaaaa aaaa)" in out
     finally:
         dt.options.fread.anonymize = False
+
+
+
+#-------------------------------------------------------------------------------
+# `encoding`
+#-------------------------------------------------------------------------------
+
+def test_encoding_bad():
+    msg = "Unknown encoding xoxoxo"
+    with pytest.raises(ValueError, match=msg):
+        dt.fread("A\nB\n", encoding="xoxoxo")
+
+    msg = r"Argument encoding in fread\(\) should be a string"
+    with pytest.raises(TypeError, match=msg):
+        dt.fread("A\n", encoding=124)
+
+
+def test_encoding_base64():
+    DT = dt.fread('YWJjCjEKMg==\n', encoding='base64')
+    assert_equals(DT, dt.Frame(abc=[1, 2]))
+
+
+@pytest.mark.parametrize("encoding", ["cp1251", "cp855", "iso8859_5", "koi8_u"])
+def test_encoding_simple(encoding):
+    src = "один\nдва\nтри\nчотири\nп'ять"
+    encoded = src.encode(encoding)
+    DT = dt.fread(text=encoded, encoding=encoding, header=False)
+    assert_equals(DT, dt.Frame([src.split("\n")]))
+
+
+@pytest.mark.parametrize("encoding", ["shift_jis", "shift_jis_2004",
+                                      "shift_jisx0213"])
+def test_encoding_shiftjis(encoding):
+    src = "script\n漢字\nひらがな\n平仮名\nカタカナ\n片仮名\n"
+    encoded = src.encode("shift_jis")
+    DT = dt.fread(text=encoded, encoding=encoding)
+    assert_equals(DT, dt.Frame(script=src.split("\n")[1:-1]))
+
+
+def test_encoding_gb2312():
+    src = "旧\n金\n山\n奥\n克\n兰\n海\n湾\n大\n桥\n半\n美\n元\n"
+    encoded = src.encode("gb2312")
+    DT = dt.fread(text=encoded, encoding='gb2312', header=False)
+    assert_equals(DT, dt.Frame([src.split('\n')[:-1]]))
+
+
+def test_encoded_file(tempfile):
+    with open(tempfile, "wt", encoding="cp1251") as out:
+        out.write("test\n")
+        out.write("коронавірус\n" * 12345)
+    DT = dt.fread(tempfile, encoding="cp1251")
+    assert_equals(DT, dt.Frame(test=['коронавірус'] * 12345))

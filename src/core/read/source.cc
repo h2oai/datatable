@@ -21,6 +21,8 @@
 //------------------------------------------------------------------------------
 #include "csv/reader.h"     // GenericReader
 #include "read/source.h"    // Source
+#include "utils/macros.h"
+#include "utils/misc.h"
 namespace dt {
 namespace read {
 
@@ -55,7 +57,45 @@ Source_Python::Source_Python(const std::string& name, py::oobj src)
 
 
 py::oobj Source_Python::read(GenericReader& reader) {
-  return reader.read_all(src_);
+  reader.source_name = &name_;
+
+  auto pysrcs = src_.to_otuple();
+  auto src_arg  = pysrcs[0];
+  auto file_arg = pysrcs[1];
+  int  fileno   = pysrcs[2].to_int32();
+  auto text_arg = pysrcs[3];
+
+  double t0 = wallclock();
+  Buffer input_mbuf;
+  CString text;
+  const char* filename = nullptr;
+  if (fileno > 0) {
+    #if DT_OS_WINDOWS
+      throw NotImplError() << "Reading from file-like objects, that involves "
+        << "file descriptors, is not supported on Windows";
+    #else
+      const char* src = src_arg.to_cstring().ch;
+      input_mbuf = Buffer::mmap(src, 0, fileno, false);
+      size_t sz = input_mbuf.size();
+      reader.trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
+    #endif
+  } else if ((text = text_arg.to_cstring())) {
+    size_t size = static_cast<size_t>(text.size);
+    input_mbuf = Buffer::external(text.ch, size + 1);
+
+  } else if ((filename = file_arg.to_cstring().ch) != nullptr) {
+    input_mbuf = Buffer::mmap(filename);
+    size_t sz = input_mbuf.size();
+    reader.trace("File \"%s\" opened, size: %zu", filename, sz);
+
+  } else {
+    throw IOError() << "No input given to the GenericReader";
+  }
+  reader.t_open_input = wallclock() - t0;
+
+  auto res = reader.read_buffer(input_mbuf, 0);
+  reader.source_name = nullptr;
+  return res;
 }
 
 

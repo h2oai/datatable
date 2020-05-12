@@ -113,6 +113,7 @@ class GenericReader
     strvec  na_strings_container;
     std::unique_ptr<const char*[]> na_strings_ptr;
     size_t  memory_limit;
+    std::string encoding_;
 
   //---- Runtime parameters ----
   // line:
@@ -123,19 +124,19 @@ class GenericReader
     static constexpr size_t WORK_READ = 100;
     static constexpr size_t WORK_REREAD = 60;
     static constexpr size_t WORK_DECODE_UTF16 = 50;
-    std::shared_ptr<dt::progress::work> job; // owned
+    std::shared_ptr<dt::progress::work> job;
     Buffer input_mbuf;
     const char* sof;
     const char* eof;
     size_t line;
     int32_t fileno;
     bool cr_is_newline;
-    bool input_is_string{ false };
-    int : 16;
+    int : 24;
     PreFrame preframe;
     double t_open_input{ 0 };
 
     py::oobj output_;
+    const std::string* source_name;
 
   private:
     py::oobj logger;
@@ -161,7 +162,6 @@ class GenericReader
     virtual ~GenericReader();
 
     py::oobj get_tempfiles() const;
-    py::oobj read_all(py::robj pysources);
     py::oobj read_buffer(const Buffer&, size_t extra_byte);
 
     bool has_next() const;
@@ -221,10 +221,12 @@ class GenericReader
     void init_stripwhite (const py::Arg&);
     void init_tempdir    (const py::Arg&);
     void init_memorylimit(const py::Arg&);
+    void init_encoding   (const py::Arg&);
 
   protected:
-    void open_input();
+    void log_file_sample();
     void open_buffer(const Buffer& buf, size_t extra_byte);
+    void process_encoding();
     void detect_and_skip_bom();
     void skip_initial_whitespace();
     void skip_trailing_whitespace();

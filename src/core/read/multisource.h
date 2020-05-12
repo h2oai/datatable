@@ -21,18 +21,15 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_MULTISOURCE_h
 #define dt_READ_MULTISOURCE_h
-#include <memory>             // std::unique_ptr
-#include <vector>             // std::vector
-#include "python/_all.h"      // py::oobj
 #include "read/source.h"      // Source
+#include "_dt.h"
 namespace dt {
 namespace read {
 
-class GenericReader;
 
 
 /**
-  * This class encapsulates various input sources for *read family
+  * This class encapsulates various input sources for ?read family
   * of functions.
   *
   * Consider that the input for fread may come in a number of

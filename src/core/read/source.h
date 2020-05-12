@@ -38,7 +38,7 @@ class GenericReader;
   */
 class Source
 {
-  private:
+  protected:
     std::string name_;
 
   public:
