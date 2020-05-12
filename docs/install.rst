@@ -55,7 +55,7 @@ from GitHub, run the following command:
   $ pip install git+https://github.com/h2oai/datatable
 
 Since ``datatable`` is written mostly in C++, you will need to have a C++
-compiler on your computer. We recommend either `Clang 4+`, or `gcc 5+`,
+compiler on your computer. We recommend either `Clang 4+`, or `gcc 6+`,
 however in theory any compiler that supports C++14 should work.
 
 
