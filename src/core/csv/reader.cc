@@ -684,8 +684,10 @@ void GenericReader::process_encoding() {
   job->set_message("Decoding " + encoding_);
   dt::progress::subtask subjob(*job, WORK_DECODE_UTF16);
 
+  const char* enc_errors = (encoding_ == "base64"? "strict" : "replace");
+
   auto decoder = py::oobj::from_new_reference(
-      PyCodec_IncrementalDecoder(encoding_.c_str(), "replace"));
+      PyCodec_IncrementalDecoder(encoding_.c_str(), enc_errors));
   auto decode = decoder.get_attr("decode");
 
   auto wb = std::make_unique<MemoryWritableBuffer>(input_mbuf.size() * 6/5);
