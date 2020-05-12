@@ -90,10 +90,11 @@
   -[new] It is now possible to read multi-file ``.tar.gz`` files using
     :func:`iread()`. [#2392]
 
-  -[new] Added parameter ``encoding`` which will force fread to recode the
+  -[new] Added parameter ``encoding`` which will force fread to decode the
     input using the specified encoding before attempting to read it. The
-    recoding process uses standard python codecs, and is therefore
-    single-threaded.
+    decoding process uses standard python codecs, and is therefore
+    single-threaded. The parameter accepts any value available via the standard
+    python library ``codecs``. [#2395]
 
   -[enh] Added parameter ``multiple_sources`` which controls fread's
     behavior when multiple input sources are detected (for example, if you

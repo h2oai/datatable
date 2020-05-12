@@ -451,7 +451,7 @@ void GenericReader::log_file_sample() {
       char c = *ch++;
       // simplified newline sequence. TODO: replace with `skip_eol()`
       if (c == '\n' || c == '\r') {
-        if ((*ch == '\r' || *ch == '\n') && *ch != c) ch++;
+        if (ch < end && (*ch == '\r' || *ch == '\n') && *ch != c) ch++;
         break;
       }
     }

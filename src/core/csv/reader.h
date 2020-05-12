@@ -124,7 +124,7 @@ class GenericReader
     static constexpr size_t WORK_READ = 100;
     static constexpr size_t WORK_REREAD = 60;
     static constexpr size_t WORK_DECODE_UTF16 = 50;
-    std::shared_ptr<dt::progress::work> job; // owned
+    std::shared_ptr<dt::progress::work> job;
     Buffer input_mbuf;
     const char* sof;
     const char* eof;
@@ -162,7 +162,6 @@ class GenericReader
     virtual ~GenericReader();
 
     py::oobj get_tempfiles() const;
-    // py::oobj read_all(py::robj pysources);
     py::oobj read_buffer(const Buffer&, size_t extra_byte);
 
     bool has_next() const;

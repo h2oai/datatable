@@ -22,6 +22,7 @@
 #include "csv/reader.h"     // GenericReader
 #include "read/source.h"    // Source
 #include "utils/macros.h"
+#include "utils/misc.h"
 namespace dt {
 namespace read {
 
@@ -57,7 +58,6 @@ Source_Python::Source_Python(const std::string& name, py::oobj src)
 
 py::oobj Source_Python::read(GenericReader& reader) {
   reader.source_name = &name_;
-  // return reader.read_all(src_);
 
   auto pysrcs = src_.to_otuple();
   auto src_arg  = pysrcs[0];
@@ -65,7 +65,7 @@ py::oobj Source_Python::read(GenericReader& reader) {
   int  fileno   = pysrcs[2].to_int32();
   auto text_arg = pysrcs[3];
 
-  // double t0 = wallclock();
+  double t0 = wallclock();
   Buffer input_mbuf;
   CString text;
   const char* filename = nullptr;
@@ -91,6 +91,7 @@ py::oobj Source_Python::read(GenericReader& reader) {
   } else {
     throw IOError() << "No input given to the GenericReader";
   }
+  reader.t_open_input = wallclock() - t0;
 
   auto res = reader.read_buffer(input_mbuf, 0);
   reader.source_name = nullptr;
