@@ -621,13 +621,7 @@ class FrameInitializationManager {
         col = Column::from_range(r.start(), r.stop(), r.step(), s);
       }
       else if (colsrc.is_pandas_categorical()) {
-        const char* strtype = (s == SType::INT8)? "int8" :
-                              (s == SType::INT16)? "int16" :
-                              (s == SType::INT32)? "int32" :
-                              (s == SType::INT64)? "int64" :
-                              (s == SType::FLOAT32)? "float32" :
-                              (s == SType::FLOAT64)? "float64" : "str";
-        make_column(colsrc.invoke("astype", py::ostring(strtype)), s);
+        make_column(colsrc.invoke("astype", py::ostring("str")), SType::STR32);
         return;
       }
       else {

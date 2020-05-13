@@ -1011,6 +1011,14 @@ def test_create_from_pandas_with_duplicate_names(pandas):
     assert X.to_list() == [[1], [2], [3]]
 
 
+def test_create_from_pandas_categorical(pandas):
+    df = pandas.cut(pandas.Series(range(10)), bins=3)
+    DT = dt.Frame(df)
+    assert_equals(DT, dt.Frame(["(-0.009, 3.0]"] * 4 +
+                               ["(3.0, 6.0]"] * 3 +
+                               ["(6.0, 9.0]"] * 3))
+
+
 
 #-------------------------------------------------------------------------------
 # Create from Numpy
