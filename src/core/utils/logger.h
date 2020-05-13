@@ -31,6 +31,41 @@ class Message;
 struct ff;
 
 
+/**
+  * Logger: a utility class which can be used to report some
+  * debug-level information into python.
+  *
+  * This class may operate in one of the three modes:
+  *   - "disabled" (`!enabled_`): messages are not written
+  *     anywhere, and will get simply lost. This is the default;
+  *   - "enabled" (`enabled_ && !pylogger_`): messages are written
+  *     into python stdout, and colored grey (unless terminal settings
+  *     prohibit colored text);
+  *   - "python" (`enabled_ && pylogger_`): messages are sent to a
+  *     python Logger object.
+  *
+  * When the object of this class is created, it is in the "disabled"
+  * mode. Use `.enable()` to put into the "enabled" mode, and
+  * `.use_pylogger()` to put into the "python" mode.
+  *
+  * Usage
+  * -----
+  *
+  * logger.section(title)
+  *   Emit `title` as a debug message, and return a log::Section
+  *   object. While that object is alive, all subsequent writes to the
+  *   logger will be indented. Multiple sections can be nested.
+  *
+  * logger.info()
+  *   Returns a stream-like object which can be written to using the
+  *   standard `<<` notation. When the object is destroyed, its
+  *   contents will be submitted into the logger.
+  *
+  * logger.warn()
+  *   Same as .info(), but the content of the object will be emitted
+  *   as a warning.
+  *
+  */
 class Logger {
   private:
     py::oobj pylogger_;
@@ -62,6 +97,9 @@ class Logger {
 
 
 
+/**
+  * Helper object, returned by `Logger.section()`.
+  */
 class Section {
   private:
     Logger* logger_;
@@ -75,6 +113,10 @@ class Section {
 
 
 
+/**
+  * Helper object, returned by `Logger.info()` and `Logger.warn()`.
+  * This object supports stream-like interface.
+  */
 class Message {
   private:
     std::ostringstream out_;
@@ -96,6 +138,16 @@ class Message {
 };
 
 
+
+
+/**
+  * This struct can be used as a convenient way to write a formatted
+  * floating-point value. "Ff" stands for "fixed float". For example:
+  *
+  *     msg << ff(6, 3, value);
+  *
+  * This is equivalent to `printf("%6.3f", value)`.
+  */
 struct ff {
   int width, precision;
   double value;
