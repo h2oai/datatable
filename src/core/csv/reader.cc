@@ -132,7 +132,6 @@ GenericReader::GenericReader(const GenericReader& g)
   sof     = g.sof;
   eof     = g.eof;
   line    = g.line;
-  logger  = g.logger;   // for verbose messages / warnings
   logger_ = g.logger_;
   source_name = g.source_name;
 }
@@ -369,8 +368,7 @@ void GenericReader::init_skipblanks(const py::Arg& arg) {
 void GenericReader::init_tempdir(const py::Arg& arg_tempdir) {
   auto clsTempFiles = py::oobj::import("datatable.utils.fread", "TempFiles");
   auto tempdir = arg_tempdir.to_oobj_or_none();
-  tempfiles = logger? clsTempFiles.call({tempdir, logger})
-                    : clsTempFiles.call(tempdir);
+  tempfiles = clsTempFiles.call(tempdir);
 }
 
 void GenericReader::init_columns(const py::Arg& arg) {
@@ -385,11 +383,9 @@ void GenericReader::init_logger(
   verbose = arg_verbose.to<bool>(false);
   if (arg_logger.is_none_or_undefined()) {
     if (verbose) {
-      logger = py::oobj::import("datatable.utils.fread", "_DefaultLogger").call();
       logger_.enable();
     }
   } else {
-    logger = arg_logger.to_oobj();
     logger_.use_pylogger(arg_logger.to_oobj());
     verbose = true;
   }
@@ -413,9 +409,7 @@ void GenericReader::init_memorylimit(const py::Arg& arg) {
 
 py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
 {
-  if (logger) {
-    logger.invoke("debug", py::ostring("[1] Prepare for reading"));
-  }
+  auto _ = logger_.section("[1] Prepare for reading");
   job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
   open_buffer(buf, extra_byte);
   process_encoding();
@@ -479,7 +473,7 @@ py::oobj GenericReader::get_tempfiles() const {
   return tempfiles;
 }
 
-LogMessage GenericReader::d() const {
+log::LogMessage GenericReader::d() const {
   xassert(verbose);
   return logger_.info();
 }

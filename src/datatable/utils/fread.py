@@ -534,16 +534,6 @@ def _apply_columns_function(colsfn, colsdesc):
 # Helper classes
 #-------------------------------------------------------------------------------
 
-class _DefaultLogger:
-    def debug(self, message):
-        if message[0] != "[":
-            message = "  " + message
-        print(core.apply_color("grey", message), flush=True)
-
-    def warning(self, message):
-        warnings.warn(message, category=FreadWarning)
-
-
 # os.PathLike interface was added in Python 3.6
 _pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
             (str, bytes)

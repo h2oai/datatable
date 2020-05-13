@@ -58,8 +58,8 @@ void write_manager::set_strategy(WritableBuffer::Strategy strategy_) {
   strategy = strategy_;
 }
 
-void write_manager::set_logger(py::oobj logger) {
-  chronicler.set_logger(std::move(logger));
+void write_manager::set_verbose(bool f) {
+  chronicler.set_verbose(f);
 }
 
 void write_manager::set_usehex(bool f) {

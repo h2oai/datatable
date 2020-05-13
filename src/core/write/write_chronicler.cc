@@ -26,8 +26,8 @@ namespace write {
 
 write_chronicler::write_chronicler() {}
 
-void write_chronicler::set_logger(py::oobj logger) {
-  logger_.use_pylogger(logger);
+void write_chronicler::set_verbose(bool verbose) {
+  if (verbose) logger_.enable();
 }
 
 
@@ -66,7 +66,7 @@ void write_chronicler::report_final(size_t actual_output_size)
   if (!logger_.enabled()) return;
   double t_total = t_preamble + t_writing_rows + t_epilogue;
 
-  using read::ff;
+  using log::ff;
   msg() << "Final output size is " << actual_output_size << " bytes";
   msg() << "Timing report:";
   msg() << "   " << ff(6, 3, t_preamble)     << "s  Prepare for writing";
@@ -89,7 +89,7 @@ double write_chronicler::duration_from_last() {
   return delta.count();
 }
 
-read::LogMessage write_chronicler::msg() const {
+log::LogMessage write_chronicler::msg() const {
   return logger_.info();
 }
 

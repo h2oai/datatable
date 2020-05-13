@@ -24,7 +24,7 @@
 #include <iomanip>
 #include "_dt.h"
 namespace dt {
-namespace read {
+namespace log {
 
 class LogSection;
 class LogMessage;
@@ -107,5 +107,5 @@ template <> LogMessage& LogMessage::operator<<(const ff&);
 
 
 
-}}  // namespace dt::read
+}}  // namespace dt::log
 #endif

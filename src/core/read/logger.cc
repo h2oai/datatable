@@ -25,7 +25,7 @@
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
 namespace dt {
-namespace read {
+namespace log {
 
 
 //------------------------------------------------------------------------------
@@ -156,4 +156,4 @@ void Logger::emit(std::string&& msg, bool warning) {
 
 
 
-}}  // namespace dt::read
+}}  // namespace dt::log

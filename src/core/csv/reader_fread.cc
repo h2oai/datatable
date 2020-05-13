@@ -421,7 +421,7 @@ class ColumnTypeDetectionChunkster {
         if (f.verbose) {
           f.d() << "Number of sampling jump points = " << nchunks
                 << " because the first chunk was "
-                << dt::read::ff(1, 1, 1.0 * input_size / chunk0_size)
+                << dt::log::ff(1, 1, 1.0 * input_size / chunk0_size)
                 << "times smaller than the entire file";
         }
       }
@@ -651,8 +651,8 @@ void FreadReader::detect_column_types()
       d() << "=====";
       d() << "Sampled " << n_sample_lines << " rows at " << nChunks << " jump point(s)";
       d() << "Bytes from first data row to the end of last row: " << bytesRead;
-      d() << "Line length: mean=" << dt::read::ff(2, 2, meanLineLen)
-          << " sd=" << dt::read::ff(2, 2, sd)
+      d() << "Line length: mean=" << dt::log::ff(2, 2, meanLineLen)
+          << " sd=" << dt::log::ff(2, 2, sd)
           << " min=" << minLen << " max=" << maxLen;
       d() << "Estimated number of rows: " << estnrow;
       d() << "Initial alloc = " << allocnrow << " rows (using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn])";
@@ -978,7 +978,7 @@ void FreadObserver::report() {
           total_time < 100 ? 6 :
           total_time < 1000 ? 7 : 8;
 
-  using dt::read::ff;
+  using dt::log::ff;
   g.d() << "=============================";
   g.d() << "Read " << humanize_number(n_rows_read) << " rows x "
         << humanize_number(n_cols_read) << " columns from "

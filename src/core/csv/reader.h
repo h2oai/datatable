@@ -135,12 +135,12 @@ class GenericReader
     PreFrame preframe;
     double t_open_input{ 0 };
 
-    Logger logger_;
+    log::Logger logger_;
     py::oobj output_;
     const std::string* source_name;
 
   private:
-    py::oobj logger;
+    // py::oobj logger;
     py::oobj src_arg;
     py::oobj file_arg;
     py::oobj text_arg;
@@ -192,7 +192,7 @@ class GenericReader
     bool extra_byte_accessible() const;
 
     bool get_verbose() const { return verbose; }
-    LogMessage d() const;
+    log::LogMessage d() const;
 
     const char* repr_source(const char* ch, size_t limit) const;
     const char* repr_binary(const char* ch, const char* end, size_t limit) const;
