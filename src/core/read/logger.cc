@@ -67,6 +67,7 @@ Logger::Logger() {
   use_colors_ = dt::Terminal::standard_terminal().colors_enabled();
 }
 
+
 void Logger::enable() {
   enabled_ = true;
 }
@@ -124,10 +125,10 @@ void Logger::emit(std::string&& msg, bool warning) {
       if (!enabled_) return;
       if (use_colors_) {
         dt::TerminalStream ts(true);
-        ts << dt::style::grey << prefix_ << msg << dt::style::end;
+        ts << dt::style::grey << prefix_ << msg << "\n" << dt::style::end;
         msg = ts.str();
       } else {
-        msg = prefix_ + msg;
+        msg = prefix_ + msg + "\n";
       }
       py::write_to_stdout(msg);
     }

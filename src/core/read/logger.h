@@ -40,8 +40,8 @@ class Logger {
 
   public:
     Logger();
-    Logger(const Logger&) = delete;
-    Logger(Logger&&) = delete;
+    Logger(const Logger&) = default;
+    Logger& operator=(const Logger&) = default;
     void enable();
     void use_pylogger(py::oobj);
 

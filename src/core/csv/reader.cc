@@ -38,6 +38,8 @@
 namespace dt {
 namespace read {
 
+#define D() if (verbose) logger_.info()
+
 
 //------------------------------------------------------------------------------
 // options
@@ -131,6 +133,7 @@ GenericReader::GenericReader(const GenericReader& g)
   eof     = g.eof;
   line    = g.line;
   logger  = g.logger;   // for verbose messages / warnings
+  logger_ = g.logger_;
   source_name = g.source_name;
 }
 
@@ -143,14 +146,14 @@ void GenericReader::init_nthreads(const py::Arg& arg) {
   int maxth = static_cast<int>(dt::num_threads_in_pool());
   if (nth == DEFAULT) {
     nthreads = maxth;
-    trace("Using default %d thread%s", nthreads, (nthreads==1? "" : "s"));
+    D() << "Using default " << nthreads << " thread(s)";
   } else {
     nthreads = nth;
     if (nthreads > maxth) nthreads = maxth;
     if (nthreads <= 0) nthreads += maxth;
     if (nthreads <= 0) nthreads = 1;
-    trace("Using %d thread%s (requested=%d, max.available=%d)",
-          nthreads, (nthreads==1? "" : "s"), nth, maxth);
+    D() << "Using " << nthreads << " thread(s) "
+          "(requested=" << nth << ", max.available=" << maxth << ")";
   }
 }
 
@@ -161,14 +164,14 @@ void GenericReader::init_encoding(const py::Arg& arg) {
   if (!PyCodec_KnownEncoding(encoding_.c_str())) {
     throw ValueError() << "Unknown encoding " << encoding_;
   }
-  trace("encoding='%s'", encoding_.c_str());
+  D() << "encoding = '" << encoding_ << "'";
 }
 
 
 void GenericReader::init_fill(const py::Arg& arg) {
   fill = arg.to<bool>(false);
   if (fill) {
-    trace("fill=True (incomplete lines will be padded with NAs)");
+    D() << "fill = True (incomplete lines will be padded with NAs)";
   }
 }
 
@@ -178,20 +181,21 @@ void GenericReader::init_maxnrows(const py::Arg& arg) {
     max_nrows = std::numeric_limits<size_t>::max();
   } else {
     max_nrows = static_cast<size_t>(n);
-    trace("max_nrows = %lld", static_cast<long long>(n));
+    D() << "max_nrows = " << max_nrows;
   }
 }
 
 void GenericReader::init_skiptoline(const py::Arg& arg) {
   int64_t n = arg.to<int64_t>(-1);
   skip_to_line = (n < 0)? 0 : static_cast<size_t>(n);
-  if (n > 1) trace("skip_to_line = %zu", n);
+  if (n > 1) {
+    D() << "skip_to_line = " << skip_to_line;
+  }
 }
 
 void GenericReader::init_sep(const py::Arg& arg) {
   if (arg.is_none_or_undefined()) {
     sep = '\xFF';
-    trace("sep = <auto-detect>");
     return;
   }
   auto str = arg.to_string();
@@ -199,7 +203,7 @@ void GenericReader::init_sep(const py::Arg& arg) {
   const char c = size? str[0] : '\n';
   if (c == '\n' || c == '\r') {
     sep = '\n';
-    trace("sep = <single-column mode>");
+    D() << "sep = <single-column mode>";
   } else if (size > 1) {
     throw NotImplError() << "Multi-character or unicode separators are not "
                             "supported: '" << str << "'";
@@ -209,6 +213,7 @@ void GenericReader::init_sep(const py::Arg& arg) {
       throw ValueError() << "Separator `" << c << "` is not allowed";
     }
     sep = c;
+    D() << "sep = " << sep;
   }
 }
 
@@ -227,7 +232,7 @@ void GenericReader::init_dec(const py::Arg& arg) {
   const char c = str[0];
   if (c == '.' || c == ',') {
     dec = c;
-    trace("Decimal separator = '%c'", dec);
+    D() << "Decimal separator = " << dec;
   } else {
     throw ValueError() << "Only dec='.' or ',' are allowed";
   }
@@ -242,7 +247,7 @@ void GenericReader::init_quote(const py::Arg& arg) {
                        << str << "'";
   } else if (str[0] == '"' || str[0] == '\'' || str[0] == '`') {
     quote = str[0];
-    trace("Quote char = (%c)", quote);
+    D() << "Quote char = " << quote;
   } else {
     throw ValueError() << "quotechar = (" << escape_backticks(str)
                        << ") is not allowed";
@@ -254,7 +259,7 @@ void GenericReader::init_header(const py::Arg& arg) {
     header = GETNA<int8_t>();
   } else {
     header = arg.to_bool_strict();
-    trace("header = %s", header? "True" : "False");
+    D() << "header = " << (header? "True" : "False");
   }
 }
 
@@ -322,7 +327,7 @@ void GenericReader::init_nastrings(const py::Arg& arg) {
   }
   if (verbose) {
     if (*na_strings == nullptr) {
-      trace("No na_strings provided");
+      D() << "No na_strings provided";
     } else {
       std::string out = "na_strings = [";
       ptr = na_strings;
@@ -333,9 +338,9 @@ void GenericReader::init_nastrings(const py::Arg& arg) {
         if (*ptr) out += ", ";
       }
       out += ']';
-      trace("%s", out.c_str());
-      if (number_is_na) trace("  + some na strings look like numbers");
-      if (blank_is_na)  trace("  + empty string is considered an NA");
+      D() << out;
+      if (number_is_na) D() << "  + some na strings look like numbers";
+      if (blank_is_na)  D() << "  + empty string is considered an NA";
     }
   }
 }
@@ -347,18 +352,18 @@ void GenericReader::init_skipstring(const py::Arg& arg) {
       throw ValueError() << "Parameters `skip_to_line` and `skip_to_string` "
                          << "cannot be provided simultaneously";
     }
-    trace("skip_to_string = \"%s\"", skip_to_string.data());
+    D() << "skip_to_string = \"" << skip_to_string << "\"";
   }
 }
 
 void GenericReader::init_stripwhite(const py::Arg& arg) {
   strip_whitespace = arg.to<bool>(true);
-  trace("strip_whitespace = %s", strip_whitespace? "True" : "False");
+  D() << "strip_whitespace = " << (strip_whitespace? "True" : "False");
 }
 
 void GenericReader::init_skipblanks(const py::Arg& arg) {
   skip_blank_lines = arg.to<bool>(false);
-  trace("skip_blank_lines = %s", skip_blank_lines? "True" : "False");
+  D() << "skip_blank_lines = " << (skip_blank_lines? "True" : "False");
 }
 
 void GenericReader::init_tempdir(const py::Arg& arg_tempdir) {
@@ -381,9 +386,11 @@ void GenericReader::init_logger(
   if (arg_logger.is_none_or_undefined()) {
     if (verbose) {
       logger = py::oobj::import("datatable.utils.fread", "_DefaultLogger").call();
+      logger_.enable();
     }
   } else {
     logger = arg_logger.to_oobj();
+    logger_.use_pylogger(arg_logger.to_oobj());
     verbose = true;
   }
 }
@@ -393,7 +400,7 @@ void GenericReader::init_memorylimit(const py::Arg& arg) {
   constexpr size_t UNLIMITED = size_t(-1);
   memory_limit = arg.to<size_t>(UNLIMITED);
   if (memory_limit != UNLIMITED) {
-    trace("memory_limit = %zu bytes", memory_limit);
+    D() << "memory_limit = " << memory_limit << " bytes";
   }
 }
 
@@ -439,12 +446,12 @@ py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
 
 void GenericReader::log_file_sample() {
   if (!verbose) return;
-  trace("==== file sample ====");
+  d() << "==== file sample ====";
   const char* ch = sof;
   bool newline = true;
   for (int i = 0; i < 5 && ch < eof; i++) {
-    if (newline) trace("%s", repr_source(ch, 100));
-    else         trace("...%s", repr_source(ch, 97));
+    if (newline) d() << repr_source(ch, 100);
+    else         d() << "..." << repr_source(ch, 97);
     const char* start = ch;
     const char* end = std::min(eof, ch + 10000);
     while (ch < end) {
@@ -462,7 +469,7 @@ void GenericReader::log_file_sample() {
       newline = true;
     }
   }
-  trace("=====================");
+  d() << "=====================";
 }
 
 
@@ -470,6 +477,11 @@ void GenericReader::log_file_sample() {
 
 py::oobj GenericReader::get_tempfiles() const {
   return tempfiles;
+}
+
+LogMessage GenericReader::d() {
+  xassert(verbose);
+  return logger_.info();
 }
 
 
@@ -678,7 +690,7 @@ void GenericReader::open_buffer(const Buffer& buf, size_t extra_byte) {
 void GenericReader::process_encoding() {
   if (encoding_.empty()) return;
   if (verbose) {
-    trace("Decoding input from %s", encoding_.c_str());
+    D() << "Decoding input from " << encoding_;
   }
   job->add_work_amount(WORK_DECODE_UTF16);
   job->set_message("Decoding " + encoding_);

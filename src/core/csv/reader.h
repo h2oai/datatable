@@ -26,11 +26,11 @@
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
+#include "read/logger.h"
 #include "read/preframe.h"  // dt::read::PreFrame
-
-
 namespace dt {
 namespace read {
+
 
 // What fread() should do if the input contains multiple sources
 enum class FreadMultiSourceStrategy : int8_t {
@@ -135,6 +135,7 @@ class GenericReader
     PreFrame preframe;
     double t_open_input{ 0 };
 
+    Logger logger_;
     py::oobj output_;
     const std::string* source_name;
 
@@ -191,6 +192,7 @@ class GenericReader
     bool extra_byte_accessible() const;
 
     bool get_verbose() const { return verbose; }
+    LogMessage d();
     void trace(const char* format, ...) const;
     void warn(const char* format, ...) const;
     void emit_delayed_messages();
