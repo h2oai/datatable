@@ -115,7 +115,7 @@ def test_fread_from_anysource_as_text1(capsys):
     frame_integrity_check(d0)
     assert d0.source == "<text>"
     assert not err
-    # assert "Input contains '\\x0A', treating it as raw text" in out
+    assert "Input contains '\\x0A', treating it as raw text" in out
 
 
 def test_fread_from_anysource_as_text2(capsys):
@@ -125,8 +125,8 @@ def test_fread_from_anysource_as_text2(capsys):
     out, err = capsys.readouterr()
     frame_integrity_check(d0)
     assert not err
-    # assert ("Input is a string of length %d, treating it as raw text"
-    #         % len(src)) in out
+    assert ("Input is a string of length %d, treating it as raw text"
+            % len(src)) in out
 
 
 def test_fread_from_anysource_as_text3(capsys):
@@ -136,7 +136,7 @@ def test_fread_from_anysource_as_text3(capsys):
     frame_integrity_check(d0)
     assert not err
     assert d0.to_list() == [[1, 5], [2, 4], [3, 3]]
-    # assert "Input contains '\\x0A', treating it as raw text" in out
+    assert "Input contains '\\x0A', treating it as raw text" in out
 
 
 def test_fread_from_anysource_as_file1(tempfile, capsys):
@@ -148,7 +148,7 @@ def test_fread_from_anysource_as_file1(tempfile, capsys):
     frame_integrity_check(d0)
     assert d0.source == tempfile
     assert not err
-    # assert "Input is assumed to be a file name" in out
+    assert "Input is assumed to be a file name" in out
 
 
 def test_fread_from_anysource_as_file2(tempfile, py36):
@@ -194,7 +194,7 @@ def test_fread_from_anysource_as_url(tempfile, capsys):
     frame_integrity_check(d0)
     assert d0.source == url
     assert not err
-    # assert "Input is a URL" in out
+    assert "Input is a URL" in out
 
 
 def test_fread_from_stringbuf():
@@ -253,7 +253,7 @@ def test_fread_xz_file(tempfile, capsys):
     assert d0.source == xzfile
     assert d0.to_list() == [[1, 2, 3]]
     assert not err
-    # assert ("Extracting %s into memory" % xzfile) in out
+    assert ("Extracting %s into memory" % xzfile) in out
     os.unlink(xzfile)
 
 
@@ -268,7 +268,7 @@ def test_fread_gz_file(tempfile, capsys):
     assert d0.source == gzfile
     assert d0.to_list() == [[10, 20, 30]]
     assert not err
-    # assert ("Extracting %s into memory" % gzfile) in out
+    assert ("Extracting %s into memory" % gzfile) in out
     os.unlink(gzfile)
 
 
@@ -284,7 +284,7 @@ def test_fread_bz2_file(tempfile, capsys):
         assert d0.source == bzfile
         assert d0.to_list() == [[11, 22, 33]]
         assert not err
-        # assert ("Extracting %s into memory" % bzfile) in out
+        assert ("Extracting %s into memory" % bzfile) in out
     finally:
         os.remove(bzfile)
 
@@ -301,7 +301,7 @@ def test_fread_zip_file_1(tempfile, capsys):
     assert d0.names == ("a", "b", "c")
     assert d0.to_list() == [[10, 5], [20, 7], [30, 12]]
     assert not err
-    # assert ("Extracting %s/data1.csv to temporary directory" % zfname) in out
+    assert ("Extracting %s/data1.csv to temporary directory" % zfname) in out
     os.unlink(zfname)
 
 

@@ -373,7 +373,7 @@ void GenericReader::init_skipblanks(const py::Arg& arg) {
 void GenericReader::init_tempdir(const py::Arg& arg_tempdir) {
   auto clsTempFiles = py::oobj::import("datatable.utils.fread", "TempFiles");
   auto tempdir = arg_tempdir.to_oobj_or_none();
-  tempfiles = clsTempFiles.call(tempdir);
+  tempfiles = clsTempFiles.call({tempdir, logger_.get_pylogger()});
 }
 
 void GenericReader::init_columns(const py::Arg& arg) {

@@ -23,6 +23,7 @@
 #define dt_UTILS_LOGGER_h
 #include <iomanip>
 #include "_dt.h"
+namespace py { class DefaultLogger; }
 namespace dt {
 namespace log {
 
@@ -84,7 +85,14 @@ class Logger {
     Section section(std::string title);
     Message info() const;
     Message warn() const;
+
+    // Return true if the Logger is in "enabled" or "python" modes
     bool enabled() const;
+
+    // "disabled" -> returns None
+    // "enabled" -> returns an object of DefaultLogger class
+    // "python" -> returns the stored python logger object
+    py::oobj get_pylogger() const;
 
   private:
     void end_section();
@@ -92,6 +100,7 @@ class Logger {
 
     friend class Section;
     friend class Message;
+    friend class py::DefaultLogger;
 };
 
 

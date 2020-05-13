@@ -21,11 +21,82 @@
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
 #include "python/string.h"
+#include "python/xobject.h"
 #include "utils/logger.h"
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
+
+
+static void print_message(const std::string& message,
+                          const std::string& prefix,
+                          bool use_colors)
+{
+  dt::TerminalStream ts(use_colors);
+  ts << dt::style::grey << prefix << message << dt::style::end << "\n";
+  py::write_to_stdout(ts.str());
+}
+
+
+
+//------------------------------------------------------------------------------
+// Python Logger class
+//------------------------------------------------------------------------------
+namespace py {
+
+class DefaultLogger : public XObject<DefaultLogger>
+{
+  private:
+    std::unique_ptr<std::string> prefix_;
+    bool use_colors_;
+    size_t : 56;
+
+    void m__init__(const PKArgs&) {}
+
+    void m__dealloc__() { prefix_ = nullptr; }
+
+    void debug(const PKArgs& args) {
+      auto msg = args[0].to_string();
+      print_message(msg, *prefix_, use_colors_);
+    }
+    // oobj warning();
+
+  public:
+    static oobj make(const dt::log::Logger& logger) {
+      robj rtype(reinterpret_cast<PyObject*>(&DefaultLogger::type));
+      oobj resobj = rtype.call();
+      DefaultLogger* dlogger = DefaultLogger::cast_from(resobj);
+      dlogger->prefix_ = std::make_unique<std::string>(logger.prefix_);
+      dlogger->use_colors_ = logger.use_colors_;
+      return resobj;
+    }
+
+    static void impl_init_type(XTypeMaker& xt) {
+      xt.set_class_name("DefaultLogger");
+      static PKArgs args_init(0, 0, 0, false, false, {}, "__init__", nullptr);
+      static PKArgs args_debug(1, 0, 0, false, false, {"msg"}, "debug", nullptr);
+      xt.add(CONSTRUCTOR(&DefaultLogger::m__init__, args_init));
+      xt.add(DESTRUCTOR(&DefaultLogger::m__dealloc__));
+      xt.add(METHOD(&DefaultLogger::debug, args_debug));
+    }
+};
+
+
+
+static void init_default_logger_class() {
+  static bool initalized = false;
+  if (!initalized) {
+    DefaultLogger::init_type(nullptr);
+    initalized = true;
+  }
+}
+
+
+}
+
+
 namespace dt {
 namespace log {
+
 
 
 //------------------------------------------------------------------------------
@@ -136,6 +207,18 @@ bool Logger::enabled() const {
   return enabled_;
 }
 
+py::oobj Logger::get_pylogger() const {
+  if (enabled_) {
+    if (pylogger_) return pylogger_;
+    else {
+      py::init_default_logger_class();
+      return py::DefaultLogger::make(*this);
+    }
+  } else {
+    return py::None();
+  }
+}
+
 
 
 void Logger::end_section() {
@@ -162,16 +245,8 @@ void Logger::emit(std::string&& msg, bool warning) {
       w << std::move(msg);
       w.emit();
     }
-    else {
-      if (!enabled_) return;
-      if (use_colors_) {
-        dt::TerminalStream ts(true);
-        ts << dt::style::grey << prefix_ << msg << "\n" << dt::style::end;
-        msg = ts.str();
-      } else {
-        msg = prefix_ + msg + "\n";
-      }
-      py::write_to_stdout(msg);
+    else if (enabled_) {
+      print_message(msg, prefix_, use_colors_);
     }
   }
 }

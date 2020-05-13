@@ -140,7 +140,6 @@ class GenericReader
     const std::string* source_name;
 
   private:
-    // py::oobj logger;
     py::oobj src_arg;
     py::oobj file_arg;
     py::oobj text_arg;
