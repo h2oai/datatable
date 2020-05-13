@@ -101,6 +101,9 @@
     pass a name of an archive, and the archive contains multiple files).
     Possible values are: ``"warn"`` (default), ``"error"``, and ``"ignore"``.
 
+  -[fix] Fread now properly detects ``\r``-newlines in the presence of fields
+    with quoted ``\n``-newlines. [#1343]
+
   -[api] Function :func:`fread()` now always returns a single Frame object;
     previously it could return a dict of Frames if multiple sources were
     detected. Use :func:`iread()` if you need to read multi-source input.
