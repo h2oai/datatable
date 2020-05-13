@@ -155,7 +155,7 @@ struct ff {
 };
 
 template <> Message& Message::operator<<(const ff&);
-
+template <> Message& Message::operator<<(const char&);
 
 
 

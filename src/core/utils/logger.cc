@@ -69,6 +69,29 @@ Message& Message::operator<<(const ff& f) {
 }
 
 
+template <>
+Message& Message::operator<<(const char& c) {
+  uint8_t uc = static_cast<uint8_t>(c);
+  if (uc < 0x20 || uc >= 0x80 || uc == '`' || uc == '\\') {
+    out_ << '\\';
+    if (c == '\n') out_ << 'n';
+    else if (c == '\r') out_ << 'r';
+    else if (c == '\t') out_ << 't';
+    else if (c == '\\') out_ << '\\';
+    else if (c == '`')  out_ << '`';
+    else {
+      uint8_t d1 = uc >> 4;
+      uint8_t d2 = uc & 15;
+      out_ << 'x' << static_cast<char>(d1 <= 9? '0' + d1 : d1 - 10 + 'a')
+                  << static_cast<char>(d2 <= 9? '0' + d2 : d2 - 10 + 'a');
+    }
+  } else {
+    out_ << c;
+  }
+  return *this;
+}
+
+
 
 
 //------------------------------------------------------------------------------

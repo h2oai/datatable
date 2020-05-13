@@ -212,7 +212,7 @@ void GenericReader::init_sep(const py::Arg& arg) {
       throw ValueError() << "Separator `" << c << "` is not allowed";
     }
     sep = c;
-    D() << "sep = " << sep;
+    D() << "sep = '" << sep << "'";
   }
 }
 
@@ -409,11 +409,13 @@ void GenericReader::init_memorylimit(const py::Arg& arg) {
 
 py::oobj GenericReader::read_buffer(const Buffer& buf, size_t extra_byte)
 {
-  auto _ = logger_.section("[1] Prepare for reading");
-  job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
-  open_buffer(buf, extra_byte);
-  process_encoding();
-  log_file_sample();
+  {
+    auto _ = logger_.section("[1] Prepare for reading");
+    job = std::make_shared<dt::progress::work>(WORK_PREPARE + WORK_READ);
+    open_buffer(buf, extra_byte);
+    process_encoding();
+    log_file_sample();
+  }
   bool done = read_jay();
 
   if (!done) {
