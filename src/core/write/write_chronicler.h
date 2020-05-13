@@ -23,7 +23,7 @@
 #define dt_WRITE_WRITE_CHRONICLER_h
 #include <chrono>
 #include "python/obj.h"
-#include "read/logger.h"
+#include "utils/logger.h"
 namespace dt {
 namespace write {
 

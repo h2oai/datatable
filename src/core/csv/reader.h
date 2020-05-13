@@ -26,8 +26,8 @@
 #include "progress/work.h"  // dt::progress::work
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
-#include "read/logger.h"
 #include "read/preframe.h"  // dt::read::PreFrame
+#include "utils/logger.h"
 namespace dt {
 namespace read {
 
@@ -233,8 +233,6 @@ class GenericReader
     void skip_to_line_with_string();
     void decode_utf16();
     void report_columns_to_python();
-
-    void _message(const char* method, const char* format, va_list args) const;
 
     bool read_csv();
     bool read_empty_input();

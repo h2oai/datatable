@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
 #include "python/string.h"
-#include "read/logger.h"
+#include "utils/logger.h"
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
 namespace dt {

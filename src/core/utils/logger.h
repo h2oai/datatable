@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,59 +22,90 @@
 #ifndef dt_UTILS_LOGGER_h
 #define dt_UTILS_LOGGER_h
 #include <iomanip>
-#include <sstream>
-#include "python/_all.h"
-#include "python/obj.h"
-#include "python/string.h"
+#include "_dt.h"
+namespace dt {
+namespace log {
+
+class LogSection;
+class LogMessage;
+struct ff;
+
+
+class Logger {
+  private:
+    py::oobj pylogger_;
+    std::string prefix_;
+    bool enabled_;
+    bool use_colors_;
+    size_t : 48;
+
+  public:
+    Logger();
+    Logger(const Logger&) = default;
+    Logger& operator=(const Logger&) = default;
+    void enable();
+    void use_pylogger(py::oobj);
+
+    LogSection section(std::string title);
+    LogMessage info() const;
+    LogMessage warn() const;
+    bool enabled() const;
+
+  private:
+    void end_section();
+    void emit(std::string&& msg, bool as_warning);
+
+    friend class LogSection;
+    friend class LogMessage;
+};
+
+
+
+
+class LogSection {
+  private:
+    Logger* logger_;
+
+  public:
+    LogSection(Logger*);
+    LogSection(LogSection&&) = default;
+    ~LogSection();
+};
+
+
+
+
+class LogMessage {
+  private:
+    std::ostringstream out_;
+    Logger* logger_;
+    bool emit_as_warning_;
+    size_t : 56;
+
+  public:
+    LogMessage(Logger*, bool warn);
+    LogMessage(const LogMessage&) = delete;
+    LogMessage(LogMessage&&) = default;
+    ~LogMessage();
+
+    template <typename T>
+    LogMessage& operator<<(const T& value) {
+      out_ << value;
+      return *this;
+    }
+};
 
 
 struct ff {
   int width, precision;
   double value;
-  ff(int w, int p, double v) : width(w), precision(p), value(v) {}
+  ff(int w, int h, double val);
 };
 
-
-class LogMessage {
-  private:
-    std::ostringstream out;
-    py::oobj logger;
-
-  public:
-    explicit LogMessage(py::oobj logger_) : logger(logger_) {}
-    LogMessage(const LogMessage&) = delete;
-
-    LogMessage(LogMessage&& other) {
-      #if defined(__GNUC__) && __GNUC__ < 5
-        // In gcc4.8 string stream was not moveable
-        out << other.out.str();
-      #else
-        std::swap(out, other.out);
-      #endif
-      logger = std::move(other.logger);
-    }
-
-    ~LogMessage() {
-      if (!logger) return;
-      try {
-        py::ostring s(out.str());
-        logger.get_attr("debug").call({s});
-      } catch (...) {}
-    }
-
-    template <typename T>
-    LogMessage& operator <<(const T& value) {
-      if (logger) out << value;
-      return *this;
-    }
-
-    LogMessage& operator <<(const ff& f) {
-      out << std::fixed << std::setw(f.width)
-          << std::setprecision(f.precision)
-          << f.value;
-      return *this;
-    }
-};
+template <> LogMessage& LogMessage::operator<<(const ff&);
 
 
+
+
+}}  // namespace dt::log
 #endif
