@@ -89,7 +89,7 @@ void monitor_thread::run() noexcept {
 
   _set_thread_num(size_t(-1));
 
-  std::unique_lock<std::mutex> lock(mutex);
+  std::unique_lock<std::mutex> lock(dt::python_mutex());
   while (running) {
     // Sleep state
     while (!monitor_thread_active && running) {
@@ -136,7 +136,7 @@ void monitor_thread::set_active(bool a) noexcept {
 
 
 void monitor_thread::stop_running() {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(dt::python_mutex());
   running = false;
   monitor_thread_active = 0;
   sleep_state_cv.notify_one();

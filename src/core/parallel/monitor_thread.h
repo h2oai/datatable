@@ -35,11 +35,9 @@ void enable_monitor(bool) noexcept;
   * variables that are also accessed from a signal handler.
   */
 class monitor_thread {
-  friend std::mutex& python_mutex();
   private:
     std::thread thread;
     idle_job* controller;
-    std::mutex mutex;
     std::condition_variable sleep_state_cv;
     bool running;
     size_t : 56;
