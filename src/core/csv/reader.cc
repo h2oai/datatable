@@ -473,7 +473,7 @@ py::oobj GenericReader::get_tempfiles() const {
   return tempfiles;
 }
 
-log::LogMessage GenericReader::d() const {
+log::Message GenericReader::d() const {
   xassert(verbose);
   return logger_.info();
 }

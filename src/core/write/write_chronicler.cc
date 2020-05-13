@@ -89,7 +89,7 @@ double write_chronicler::duration_from_last() {
   return delta.count();
 }
 
-log::LogMessage write_chronicler::msg() const {
+log::Message write_chronicler::msg() const {
   return logger_.info();
 }
 

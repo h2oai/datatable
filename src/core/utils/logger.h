@@ -26,8 +26,8 @@
 namespace dt {
 namespace log {
 
-class LogSection;
-class LogMessage;
+class Section;
+class Message;
 struct ff;
 
 
@@ -46,36 +46,36 @@ class Logger {
     void enable();
     void use_pylogger(py::oobj);
 
-    LogSection section(std::string title);
-    LogMessage info() const;
-    LogMessage warn() const;
+    Section section(std::string title);
+    Message info() const;
+    Message warn() const;
     bool enabled() const;
 
   private:
     void end_section();
     void emit(std::string&& msg, bool as_warning);
 
-    friend class LogSection;
-    friend class LogMessage;
+    friend class Section;
+    friend class Message;
 };
 
 
 
 
-class LogSection {
+class Section {
   private:
     Logger* logger_;
 
   public:
-    LogSection(Logger*);
-    LogSection(LogSection&&) = default;
-    ~LogSection();
+    Section(Logger*);
+    Section(Section&&) = default;
+    ~Section();
 };
 
 
 
 
-class LogMessage {
+class Message {
   private:
     std::ostringstream out_;
     Logger* logger_;
@@ -83,13 +83,13 @@ class LogMessage {
     size_t : 56;
 
   public:
-    LogMessage(Logger*, bool warn);
-    LogMessage(const LogMessage&) = delete;
-    LogMessage(LogMessage&&) = default;
-    ~LogMessage();
+    Message(Logger*, bool warn);
+    Message(const Message&) = delete;
+    Message(Message&&) = default;
+    ~Message();
 
     template <typename T>
-    LogMessage& operator<<(const T& value) {
+    Message& operator<<(const T& value) {
       out_ << value;
       return *this;
     }
@@ -102,7 +102,7 @@ struct ff {
   ff(int w, int h, double val);
 };
 
-template <> LogMessage& LogMessage::operator<<(const ff&);
+template <> Message& Message::operator<<(const ff&);
 
 
 

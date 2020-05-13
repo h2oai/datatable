@@ -29,14 +29,14 @@ namespace log {
 
 
 //------------------------------------------------------------------------------
-// LogSection
+// Section
 //------------------------------------------------------------------------------
 
-LogSection::LogSection(Logger* logger)
+Section::Section(Logger* logger)
   : logger_(logger) {}
 
 
-LogSection::~LogSection() {
+Section::~Section() {
   logger_->end_section();
 }
 
@@ -44,14 +44,14 @@ LogSection::~LogSection() {
 
 
 //------------------------------------------------------------------------------
-// LogMessage
+// Message
 //------------------------------------------------------------------------------
 
-LogMessage::LogMessage(Logger* logger, bool warn)
+Message::Message(Logger* logger, bool warn)
   : logger_(logger), emit_as_warning_(warn) {}
 
 
-LogMessage::~LogMessage() {
+Message::~Message() {
   logger_->emit(std::move(out_).str(), emit_as_warning_);
 }
 
@@ -61,7 +61,7 @@ ff::ff(int w, int p, double v)
   : width(w), precision(p), value(v) {}
 
 template <>
-LogMessage& LogMessage::operator<<(const ff& f) {
+Message& Message::operator<<(const ff& f) {
   out_ << std::fixed << std::setw(f.width)
        << std::setprecision(f.precision)
        << f.value;
@@ -91,21 +91,21 @@ void Logger::use_pylogger(py::oobj logger) {
 }
 
 
-LogSection Logger::section(std::string title) {
+Section Logger::section(std::string title) {
   if (enabled_) {
     emit(std::move(title), false);
     prefix_ += "  ";
   }
-  return LogSection(this);
+  return Section(this);
 }
 
 
-LogMessage Logger::info() const {
-  return LogMessage(const_cast<Logger*>(this), false);
+Message Logger::info() const {
+  return Message(const_cast<Logger*>(this), false);
 }
 
-LogMessage Logger::warn() const {
-  return LogMessage(const_cast<Logger*>(this), true);
+Message Logger::warn() const {
+  return Message(const_cast<Logger*>(this), true);
 }
 
 

@@ -53,7 +53,7 @@ class write_chronicler {
 
   private:
     double duration_from_last();
-    log::LogMessage msg() const;
+    log::Message msg() const;
 };
 
 
