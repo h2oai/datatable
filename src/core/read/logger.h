@@ -49,6 +49,7 @@ class Logger {
     LogSection section(std::string title);
     LogMessage info() const;
     LogMessage warn() const;
+    bool enabled() const;
 
   private:
     void end_section();
@@ -83,6 +84,7 @@ class LogMessage {
 
   public:
     LogMessage(Logger*, bool warn);
+    LogMessage(const LogMessage&) = delete;
     LogMessage(LogMessage&&) = default;
     ~LogMessage();
 

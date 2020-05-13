@@ -23,7 +23,8 @@
 #define dt_WRITE_WRITE_CHRONICLER_h
 #include <chrono>
 #include "python/obj.h"
-#include "utils/logger.h"
+// #include "utils/logger.h"
+#include "read/logger.h"
 namespace dt {
 namespace write {
 
@@ -32,7 +33,7 @@ class write_chronicler {
   private:
     using ptime_t = std::chrono::steady_clock::time_point;
 
-    py::oobj logger;
+    read::Logger logger_;
     ptime_t t_last;
     double t_preamble;
     double t_writing_rows;
@@ -53,7 +54,7 @@ class write_chronicler {
 
   private:
     double duration_from_last();
-    LogMessage msg() const;
+    read::LogMessage msg() const;
 };
 
 

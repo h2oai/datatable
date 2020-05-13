@@ -109,6 +109,11 @@ LogMessage Logger::warn() const {
 }
 
 
+bool Logger::enabled() const {
+  return enabled_;
+}
+
+
 
 void Logger::end_section() {
   if (enabled_) {
