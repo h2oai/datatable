@@ -193,8 +193,6 @@ class GenericReader
 
     bool get_verbose() const { return verbose; }
     LogMessage d() const;
-    void warn(const char* format, ...) const;
-    void emit_delayed_messages();
 
     const char* repr_source(const char* ch, size_t limit) const;
     const char* repr_binary(const char* ch, const char* end, size_t limit) const;

@@ -496,65 +496,6 @@ bool GenericReader::extra_byte_accessible() const {
 
 
 
-#if !DT_COMPILER_MSVC
-__attribute__((format(printf, 2, 3)))
-#endif
-void GenericReader::warn(const char* format, ...) const {
-  va_list args;
-  va_start(args, format);
-  _message("warning", format, args);
-  va_end(args);
-}
-
-static void _send_message_to_python(
-    const char* method, const char* message, const py::oobj& logger)
-{
-  PyObject* pymsg = PyUnicode_FromString(message);
-  if (pymsg) {
-    PyObject* py_logger = logger.to_borrowed_ref();
-    PyObject* res = PyObject_CallMethod(py_logger, method, "(O)", pymsg);
-    Py_XDECREF(res);
-  }
-  PyErr_Clear();  // ignore any exceptions
-  Py_XDECREF(pymsg);
-}
-
-void GenericReader::_message(
-  const char* method, const char* format, va_list args) const
-{
-  static char shared_buffer[2001];
-  char* msg;
-  if (strcmp(format, "%s") == 0) {
-    msg = va_arg(args, char*);
-  } else {
-    msg = shared_buffer;
-    #if DT_COMPILER_GCC
-      #pragma GCC diagnostic push
-      #pragma GCC diagnostic ignored "-Wformat-nonliteral"
-    #endif
-    vsnprintf(msg, 2000, format, args);
-    #if DT_COMPILER_GCC
-      #pragma GCC diagnostic pop
-    #endif
-  }
-
-  if (dt::num_threads_in_team() == 0) {
-    _send_message_to_python(method, msg, logger);
-  } else {
-    std::lock_guard<std::mutex> lock(dt::python_mutex());
-    delayed_message += msg;
-  }
-}
-
-void GenericReader::emit_delayed_messages() {
-  std::lock_guard<std::mutex> lock(dt::python_mutex());
-  if (delayed_message.size()) {
-    _send_message_to_python("debug", delayed_message.c_str(), logger);
-    delayed_message.clear();
-  }
-}
-
-
 static void print_byte(uint8_t c, char*& out) {
   *out++ = '\\';
   if (c == '\n') *out++ = 'n';

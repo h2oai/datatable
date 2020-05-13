@@ -189,10 +189,6 @@ void ParallelReader::read_all()
       // Main data reading loop
       o->parallel(
         [&](size_t i) {
-          if (dt::this_thread_index() == 0) {
-            g.emit_delayed_messages();
-          }
-
           txcc = compute_chunk_boundaries(i, tctx.get());
 
           // Read the chunk with the expected coordinates `txcc`. The actual
@@ -219,7 +215,6 @@ void ParallelReader::read_all()
         }
       );  // o->parallel()
     });  // dt::parallel_for_ordered
-  g.emit_delayed_messages();
 
   // Check that all input was read (unless interrupted early because of
   // nrows_max).

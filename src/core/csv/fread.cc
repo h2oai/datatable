@@ -123,7 +123,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     if (ncols_to_reread) {
       fo.n_cols_reread += ncols_to_reread;
       D() << ncols_to_reread
-          << " column(s) needs to be re-read because their types have changed";
+          << " column(s) need to be re-read because their types have changed";
       preframe.prepare_for_rereading();
       firstTime = false;
       reread_scheduled = false;
