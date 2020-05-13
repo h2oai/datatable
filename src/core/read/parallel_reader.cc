@@ -78,16 +78,22 @@ void ParallelReader::determine_chunking_strategy() {
       // If chunk_count is 1 then we'll attempt to read the whole input
       // with the first chunk, which is not what we want...
       chunk_count += 2;
-      g.trace("Number of threads reduced to %zu because due to max_nrows=%zu "
-              "we estimate the amount of data to be read will be small",
-              nthreads, nrows_max);
+      if (g.verbose) {
+        g.d() << "Number of threads reduced to " << nthreads
+              << " because due to max_nrows=" << nrows_max
+              << " we estimate the amount of data to be read will be small";
+      }
     } else {
-      g.trace("Number of threads reduced to %zu because data is small",
-              nthreads);
+      if (g.verbose) {
+        g.d() << "Number of threads reduced to " << nthreads
+              << " because data is small";
+      }
     }
   }
-  g.trace("The input will be read in %zu chunks of size %zu each",
-          chunk_count, chunk_size);
+  if (g.verbose) {
+    g.d() << "The input will be read in " << chunk_count
+          << " chunks of size " << chunk_size << " each";
+  }
 }
 
 
@@ -156,7 +162,9 @@ void ParallelReader::read_all()
   size_t pool_nthreads = dt::num_threads_in_pool();
   if (pool_nthreads < nthreads) {
     nthreads = pool_nthreads;
-    g.trace("Actual number of threads: %zu", nthreads);
+    if (g.verbose) {
+      g.d() << "Actual number of threads: " << nthreads;
+    }
     determine_chunking_strategy();
   }
 

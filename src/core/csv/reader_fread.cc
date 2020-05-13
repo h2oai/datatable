@@ -19,11 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iomanip>
 #include "csv/reader_fread.h"    // FreadReader
 #include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
+#include "read/logger.h"
 #include "utils/misc.h"          // wallclock
 #include "column.h"
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
+
+#define D() if (verbose) d()
 
 
 //------------------------------------------------------------------------------
@@ -228,7 +232,7 @@ void FreadReader::detect_sep(dt::read::FreadTokenizer&) {
  *     using jump 0 only.
  */
 void FreadReader::detect_sep_and_qr() {
-  if (verbose) trace("[2] Detect separator, quoting rule, and ncolumns");
+  auto _ = logger_.section("[2] Detect parse settings");
   // at each of the 100 jumps how many lines to guess column types (10,000 sample lines)
   constexpr int JUMPLINES = 100;
 
@@ -248,8 +252,8 @@ void FreadReader::detect_sep_and_qr() {
     seps[1] = '\0';
     topSep = sep;
     nseps = 1;
-    trace("Using supplied sep '%s'",
-          sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps);
+    D() << "Using supplied sep '"
+        << (sep=='\t' ? "\\t" : sep=='\xFE' ? "\\n" : seps) << "'";
   }
 
   const char* firstJumpEnd = nullptr; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
@@ -282,7 +286,6 @@ void FreadReader::detect_sep_and_qr() {
       ctx.sep = sep;
       ctx.whiteChar = whiteChar;
       ctx.quoteRule = quoteRule;
-      // if (verbose) trace("  Trying sep='%c' with quoteRule %d ...\n", sep, quoteRule);
       for (int i=0; i<=JUMPLINES; i++) { numFields[i]=0; numLines[i]=0; } // clear VLAs
       int i=-1; // The slot we're counting the currently contiguous consistent ncols
       int thisLine=0, lastncol=-1;
@@ -336,10 +339,9 @@ void FreadReader::detect_sep_and_qr() {
           topNmax = nmax;
         }
       }
-      if (verbose && updated) {
-        trace(sep<' '? "sep='\\x%02x' with %d lines of %d fields using quote rule %d" :
-                       "sep='%c' with %d lines of %d fields using quote rule %d",
-              sep, topNumLines, topNumFields, topQuoteRule);
+      if (updated) {
+        D() << "sep='" << sep << "' with " << topNumLines << " lines of "
+            << topNumFields << " fields using quote rule " << topQuoteRule;
       }
     }
   }
@@ -349,7 +351,7 @@ void FreadReader::detect_sep_and_qr() {
   sep = ctx.sep = topSep;
   whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
   if (sep==' ' && !fill) {
-    trace("sep=' ' detected, setting fill to True");
+    D() << "sep=' ' detected, setting fill to True";
     fill = 1;
   }
 
@@ -362,11 +364,10 @@ void FreadReader::detect_sep_and_qr() {
   first_jump_size = static_cast<size_t>(firstJumpEnd - sof);
 
   if (verbose) {
-    trace("Detected %d columns", ncols);
-    if (sep == '\xFE') trace("sep = <single-column mode>");
-    else if (sep >= ' ') trace("sep = '%c'", sep);
-    else trace("sep = '\\x%02x'", int(sep));
-    trace("Quote rule = %d", quoteRule);
+    D() << "Detected " << ncols << " columns";
+    D() << "Quote rule = " << static_cast<int>(quoteRule);
+    if (sep == '\xFE') { D() << "sep = <single-column mode>"; }
+    else               { D() << "sep = '" << sep << "'"; }
     fo.t_parse_parameters_detected = wallclock();
   }
 }
@@ -402,20 +403,27 @@ class ColumnTypeDetectionChunkster {
       size_t input_size = static_cast<size_t>(f.eof - f.sof);
       if (f.max_nrows < std::numeric_limits<size_t>::max()) {
         nchunks = 1;
-        f.trace("Number of sampling jump points = 1 because max_nrows "
-                "parameter is used");
+        if (f.verbose) {
+          f.d() << "Number of sampling jump points = 1 because max_nrows "
+                   "parameter is used";
+        }
       } else if (chunk0_size == 0 || chunk0_size == input_size) {
         nchunks = 1;
-        f.trace("Number of sampling jump points = 1 because input is less "
-                "than 100 lines");
+        if (f.verbose) {
+          f.d() << "Number of sampling jump points = 1 because input is less "
+                   "than 100 lines";
+        }
       } else {
         xassert(chunk0_size < input_size);
         nchunks = chunk0_size * 200 < input_size ? 101 :
                   chunk0_size * 20  < input_size ? 11 : 1;
         if (nchunks > 1) chunk_distance = input_size / (nchunks - 1);
-        f.trace("Number of sampling jump points = %zu because the first "
-                "chunk was %.1f times smaller than the entire file",
-                nchunks, 1.0 * input_size / chunk0_size);
+        if (f.verbose) {
+          f.d() << "Number of sampling jump points = " << nchunks
+                << " because the first chunk was "
+                << dt::read::ff(1, 1, 1.0 * input_size / chunk0_size)
+                << "times smaller than the entire file";
+        }
       }
     }
 
@@ -547,7 +555,7 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
 
 void FreadReader::detect_column_types()
 {
-  trace("[3] Detect column types and header");
+  auto _ = logger_.section("[3] Detect column types and header");
   size_t ncols = preframe.ncols();
   int64_t sncols = static_cast<int64_t>(ncols);
 
@@ -587,9 +595,9 @@ void FreadReader::detect_column_types()
       }
       // bool eol_found = fctx.skip_eol();
       if (incols == -1 || (incols != sncols && !fill)) {
-        trace("A line with too %s fields (%zd out of %zd) was found on line %d "
-              "of sample jump %zu",
-              incols < sncols ? "few" : "many", incols, ncols, i, j);
+        D() << "A line with too " << (incols < sncols ? "few" : "many")
+            << " fields (" << incols << " out of " << ncols << ") was found "
+            << "on line " << i << " of sample jump " << j;
         // Restore column types: it is possible that the chunk start was guessed
         // incorrectly, in which case we don't want the types to be bumped
         // invalidly. This applies to all chunks except the first (for which we
@@ -612,15 +620,12 @@ void FreadReader::detect_column_types()
     }
     if (verbose && (j == 0 || j == nChunks - 1 ||
                     !preframe.are_same_ptypes(saved_types))) {
-      trace("Type codes (jump %03d): %s", j, preframe.print_ptypes());
+      D() << "Type codes (jump " << j << "): " << preframe.print_ptypes();
     }
   }
+  D() << "Type codes  (final): " << preframe.print_ptypes();
 
   detect_header();
-
-  if (verbose) {
-    trace("Type codes (final): %s", preframe.print_ptypes());
-  }
 
   allocnrow = 1;
   meanLineLen = 0;
@@ -643,23 +648,24 @@ void FreadReader::detect_column_types()
     // sd can be very close to 0.0 sometimes, so apply a +10% minimum
     // blank lines have length 1 so for fill=true apply a +100% maximum. It'll be grown if needed.
     if (verbose) {
-      trace("=====");
-      trace("Sampled %zd rows (handled \\n inside quoted fields) at %d jump point(s)", n_sample_lines, nChunks);
-      trace("Bytes from first data row to the end of last row: %zd", bytesRead);
-      trace("Line length: mean=%.2f sd=%.2f min=%d max=%d", meanLineLen, sd, minLen, maxLen);
-      trace("Estimated number of rows: %zd / %.2f = %zd", bytesRead, meanLineLen, estnrow);
-      trace("Initial alloc = %zd rows (%zd + %d%%) using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn]",
-            allocnrow, estnrow, static_cast<int>(100.0*allocnrow/estnrow-100.0));
+      d() << "=====";
+      d() << "Sampled " << n_sample_lines << " rows at " << nChunks << " jump point(s)";
+      d() << "Bytes from first data row to the end of last row: " << bytesRead;
+      d() << "Line length: mean=" << dt::read::ff(2, 2, meanLineLen)
+          << " sd=" << dt::read::ff(2, 2, sd)
+          << " min=" << minLen << " max=" << maxLen;
+      d() << "Estimated number of rows: " << estnrow;
+      d() << "Initial alloc = " << allocnrow << " rows (using bytes/max(mean-2*sd,min) clamped between [1.1*estn, 2.0*estn])";
     }
     if (nChunks == 1 && tch == eof) {
       if (header == 1) n_sample_lines--;
       allocnrow = n_sample_lines;
-      trace("All rows were sampled since file is small so we know nrows=%zd exactly", allocnrow);
+      D() << "All rows were sampled since file is small so we know nrows=" << allocnrow << " exactly";
     } else {
       xassert(n_sample_lines <= allocnrow);
     }
     if (max_nrows < allocnrow) {
-      trace("Alloc limited to nrows=%zd according to the provided max_nrows argument.", max_nrows);
+      D() << "Alloc limited to nrows=" << max_nrows << " according to the provided max_nrows argument";
       allocnrow = max_nrows;
     }
   }
@@ -689,13 +695,13 @@ void FreadReader::detect_header() {
 
   if (ncols_header != sncols && n_sample_lines > 0 && !fill) {
     header = true;
-    trace("`header` determined to be True because the first line contains "
-          "different number of columns (%zd) than the rest of the file (%zu)",
-          ncols_header, ncols);
+    D() << "`header` determined to be True because the first line contains "
+           "different number of columns (" << ncols_header << ") than the rest "
+           "of the file (" << ncols << ")";
     if (ncols_header > sncols) {
       fill = true;
-      trace("Setting `fill` to True because the header contains more columns "
-            "than the data.");
+      D() << "Setting `fill` to True because the header contains more columns "
+             "than the data";
       preframe.set_ncols(static_cast<size_t>(ncols_header));
     }
     return;
@@ -707,9 +713,10 @@ void FreadReader::detect_header() {
           !ParserLibrary::info(saved_types[j]).isstring() &&
           saved_types[j] != dt::read::PT::Mu) {
         header = true;
-        trace("`header` determined to be True due to column %d containing a "
-              "string on row 1 and type %s in the rest of the sample.",
-              j+1, ParserLibrary::info(saved_types[j]).cname());
+        D() << "`header` determined to be True due to column " << j + 1
+            << " containing a string on row 1 and type "
+            << ParserLibrary::info(saved_types[j]).cname()
+            << " in the rest of the sample";
         return;
       }
     }
@@ -724,12 +731,12 @@ void FreadReader::detect_header() {
   }
   if (all_strings) {
     header = true;
-    trace("`header` determined to be True because all inputs columns are "
-          "strings and better guess is not possible");
+    D() << "`header` determined to be True because all inputs columns are "
+           "strings and better guess is not possible";
   } else {
     header = false;
-    trace("`header` determined to be False because some of the fields on "
-          "the first row are not of the string type");
+    D() << "`header` determined to be False because some of the fields on "
+           "the first row are not of the string type";
     // If header is false, then the first row also belongs to the sample.
     // Accurate count of sample lines is needed so that we can allocate
     // the correct amount of rows for the output Frame.
@@ -765,11 +772,11 @@ void FreadReader::detect_lf() {
   }
   cr_is_newline = !(ch < eof && *ch == '\n');
   if (cr_is_newline) {
-    trace("LF character (\\n) not found in input, "
-          "CR character (\\r) will be treated as a newline");
+    D() << "LF character (\\n) not found in input, "
+           "CR character (\\r) will be treated as a newline";
   } else {
-    trace("LF character (\\n) found in input, "
-          "\\r-only newlines will not be recognized");
+    D() << "LF character (\\n) found in input, "
+           "\\r-only newlines will not be recognized";
   }
 
 }
@@ -816,9 +823,8 @@ void FreadReader::skip_preamble() {
     }
   }
   if (comment_lines) {
-    trace("Comment section (%zu line%s starting with '%c') found at the "
-          "top of the file and skipped",
-          comment_lines, (comment_lines == 1? "" : "s"), comment_char);
+    D() << "Comment section (" << comment_lines << " lines starting with '"
+        << comment_char << "') found at the top of the file and skipped";
     sof = ch;
     line += total_lines;
   }
@@ -947,6 +953,7 @@ FreadObserver::~FreadObserver() {}
 
 void FreadObserver::report() {
   double t_end = wallclock();
+  xassert(g.verbose);
   xassert(t_start <= t_initialized &&
           t_initialized <= t_parse_parameters_detected &&
           t_parse_parameters_detected <= t_column_types_detected &&
@@ -971,49 +978,48 @@ void FreadObserver::report() {
           total_time < 100 ? 6 :
           total_time < 1000 ? 7 : 8;
 
-  g.trace("=============================");
-  g.trace("Read %s row%s x %s column%s from %s input in %02d:%06.3fs",
-          humanize_number(n_rows_read), (n_rows_read == 1 ? "" : "s"),
-          humanize_number(n_cols_read), (n_cols_read == 1 ? "" : "s"),
-          filesize_to_str(input_size),
-          total_minutes, total_seconds);
-  g.trace(" = %*.3fs (%2.0f%%) %s", p,
-          g.t_open_input, 100 * g.t_open_input / total_time,
-          "memory-mapping input file");
-  g.trace(" + %*.3fs (%2.0f%%) detecting parse parameters", p,
-          params_time, 100 * params_time / total_time);
-  g.trace(" + %*.3fs (%2.0f%%) detecting column types using %s sample rows", p,
-          types_time, 100 * types_time / total_time,
-          humanize_number(n_lines_sampled));
-  g.trace(" + %*.3fs (%2.0f%%) allocating [%s x %s] frame (%s) of which "
-          "%s (%.0f%%) rows used", p,
-          alloc_time, 100 * alloc_time / total_time,
-          humanize_number(n_rows_allocated),
-          humanize_number(n_cols_allocated),
-          filesize_to_str(allocation_size),
-          humanize_number(n_rows_read),
-          100.0 * n_rows_read / n_rows_allocated);  // may be > 100%
-  g.trace(" + %*.3fs (%2.0f%%) reading data using %zu thread%s", p,
-          read_time, 100 * read_time / total_time,
-          read_data_nthreads, (read_data_nthreads == 1? "" : "s"));
+  using dt::read::ff;
+  g.d() << "=============================";
+  g.d() << "Read " << humanize_number(n_rows_read) << " rows x "
+        << humanize_number(n_cols_read) << " columns from "
+        << filesize_to_str(input_size) << " input in "
+        << std::setfill('0') << std::setw(2) << total_minutes << ":"
+        << ff(6, 3, total_seconds) << "s";
+  g.d() << " = " << ff(p, 3, g.t_open_input) << "s ("
+        << ff(2, 0, 100 * g.t_open_input / total_time) << "%)"
+        << " memory-mapping input file";
+  g.d() << " + " << ff(p, 3, params_time) << "s ("
+        << ff(2, 0, 100 * params_time / total_time) << "%)"
+        << " detecting parse parameters";
+  g.d() << " + " << ff(p, 3, types_time) << "s ("
+        << ff(2, 0, 100 * types_time / total_time) << "%)"
+        << " detecting column types using "
+        << humanize_number(n_lines_sampled) << " sample rows";
+  g.d() << " + " << ff(p, 3, alloc_time) << "s ("
+        << ff(2, 0, 100 * alloc_time / total_time) << "%)"
+        << " allocating [" << humanize_number(n_rows_allocated)
+        << " x " << humanize_number(n_cols_allocated) << "] frame ("
+        << filesize_to_str(allocation_size) << ") of which "
+        << humanize_number(n_rows_read) << " ("
+        << ff(3, 0, 100.0 * n_rows_read / n_rows_allocated)
+        << "%) rows used";
+  g.d() << " + " << ff(p, 3, read_time) << "s ("
+        << ff(2, 0, 100 * read_time / total_time) << "%)"
+        << " reading data";
   if (n_cols_reread) {
-    g.trace(" + %*.3fs (%2.0f%%) Rereading %d columns due to out-of-sample "
-            "type exceptions", p,
-            reread_time, 100 * reread_time / total_time,
-            n_cols_reread);
+    g.d() << " + " << ff(p, 3, reread_time) << "s ("
+          << ff(2, 0, 100 * reread_time / total_time) << "%)"
+          << " re-reading " << n_cols_reread
+          << " columns due to out-of-sample type exceptions";
   }
-  g.trace("    = %*.3fs (%2.0f%%) reading into row-major buffers", p,
-          t_read, 100 * t_read / total_time);
-  g.trace("    + %*.3fs (%2.0f%%) saving into the output frame", p,
-          t_push, 100 * t_push / total_time);
-  g.trace("    + %*.3fs (%2.0f%%) waiting", p,
-          time_wait_data, 100 * time_wait_data / total_time);
-  g.trace(" + %*.3fs (%2.0f%%) creating the final Frame", p,
-          makedt_time, 100 * makedt_time / total_time);
+  g.d() << "    = " << ff(p, 3, t_read) << "s (" << ff(2, 0, 100 * t_read / total_time) << "%) reading into row-major buffers";
+  g.d() << "    = " << ff(p, 3, t_push) << "s (" << ff(2, 0, 100 * t_push / total_time) << "%) saving into the output frame";
+  g.d() << "    = " << ff(p, 3, time_wait_data) << "s (" << ff(2, 0, 100 * time_wait_data / total_time) << "%) waiting";
+  g.d() << "    = " << ff(p, 3, makedt_time) << "s (" << ff(2, 0, 100 * makedt_time / total_time) << "%) creating the final Frame";
   if (!messages.empty()) {
-    g.trace("=============================");
-    for (std::string msg : messages) {
-      g.trace("%s", msg.data());
+    g.d() << "=============================";
+    for (const auto& msg : messages) {
+      g.d() << msg;
     }
   }
 }

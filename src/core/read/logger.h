@@ -21,13 +21,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_LOGGER_h
 #define dt_READ_LOGGER_h
+#include <iomanip>
 #include "_dt.h"
 namespace dt {
 namespace read {
 
 class LogSection;
 class LogMessage;
-
+struct ff;
 
 
 class Logger {
@@ -46,8 +47,8 @@ class Logger {
     void use_pylogger(py::oobj);
 
     LogSection section(std::string title);
-    LogMessage info();
-    LogMessage warn();
+    LogMessage info() const;
+    LogMessage warn() const;
 
   private:
     void end_section();
@@ -91,6 +92,15 @@ class LogMessage {
       return *this;
     }
 };
+
+
+struct ff {
+  int width, precision;
+  double value;
+  ff(int w, int h, double val);
+};
+
+template <> LogMessage& LogMessage::operator<<(const ff&);
 
 
 

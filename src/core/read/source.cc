@@ -77,7 +77,10 @@ py::oobj Source_Python::read(GenericReader& reader) {
       const char* src = src_arg.to_cstring().ch;
       input_mbuf = Buffer::mmap(src, 0, fileno, false);
       size_t sz = input_mbuf.size();
-      reader.trace("Using file %s opened at fd=%d; size = %zu", src, fileno, sz);
+      if (reader.verbose) {
+        reader.d() << "Using file " << src << " opened at fd=" << fileno
+                   <<"; size = " << sz;
+      }
     #endif
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
@@ -86,7 +89,9 @@ py::oobj Source_Python::read(GenericReader& reader) {
   } else if ((filename = file_arg.to_cstring().ch) != nullptr) {
     input_mbuf = Buffer::mmap(filename);
     size_t sz = input_mbuf.size();
-    reader.trace("File \"%s\" opened, size: %zu", filename, sz);
+    if (reader.verbose) {
+      reader.d() << "File \"" << filename << "\" opened, size: " << sz;
+    }
 
   } else {
     throw IOError() << "No input given to the GenericReader";

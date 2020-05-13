@@ -8,6 +8,8 @@
 #include "utils/misc.h"                        // wallclock
 #include "datatable.h"                         // DataTable
 
+#define D() if (verbose) logger_.info()
+
 
 
 //==============================================================================
@@ -34,7 +36,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   //     of data ("removing" the column names).
   //****************************************************************************
   if (header == 1) {
-    trace("[4] Assign column names");
+    auto _ = logger_.section("[4] Assign column names");
     dt::read::field64 tmp;
     dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
     fctx.ch = sof;
@@ -49,7 +51,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   // [5] Allow user to override column types; then allocate the DataTable
   //*********************************************************************************************
   {
-    if (verbose) trace("[5] Apply user overrides on column types");
+    auto _ = logger_.section("[5] Apply user overrides on column types");
     auto oldtypes = preframe.get_ptypes();
 
     report_columns_to_python();
@@ -76,11 +78,11 @@ std::unique_ptr<DataTable> FreadReader::read_all()
 
     if (verbose) {
       if (nUserBumped || ndropped) {
-        trace("After %d type and %d drop user overrides : %s",
-              nUserBumped, ndropped, preframe.print_ptypes());
+        D() << "After " << nUserBumped << " type and " << ndropped
+            << " drop user overrides : " << preframe.print_ptypes();
       }
-      trace("Allocating %d column slots with %zd rows",
-            ncols - ndropped, allocnrow);
+      D() << "Allocating " << ncols - ndropped << " columns with "
+          << allocnrow << " rows";
     }
     preframe.preallocate(allocnrow);
 
@@ -102,9 +104,9 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   auto typesPtr = preframe.get_ptypes();
   dt::read::PT* types = typesPtr.data();  // This pointer is valid until `typesPtr` goes out of scope
 
-  trace("[6] Read the data");
   read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
+    auto _ = logger_.section("[6] Read the data");
     job->set_message(firstTime? "Reading data" : "Rereading data");
     dt::progress::subtask subwork(*job, firstTime? WORK_READ : WORK_REREAD);
     dt::read::FreadParallelReader scr(*this, types);
@@ -120,12 +122,8 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     xassert((ncols_to_reread > 0) == reread_scheduled);
     if (ncols_to_reread) {
       fo.n_cols_reread += ncols_to_reread;
-      if (verbose) {
-        trace(ncols_to_reread == 1
-              ? "%zu column needs to be re-read because its type has changed"
-              : "%zu columns need to be re-read because their types have changed",
-              ncols_to_reread);
-      }
+      D() << ncols_to_reread
+          << " column(s) needs to be re-read because their types have changed";
       preframe.prepare_for_rereading();
       firstTime = false;
       reread_scheduled = false;
@@ -137,7 +135,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   }
 
 
-  trace("[7] Finalize the datatable");
+  auto _ = logger_.section("[7] Finalizing the frame");
   std::unique_ptr<DataTable> res = std::move(preframe).to_datatable();
   if (verbose) fo.report();
   return res;

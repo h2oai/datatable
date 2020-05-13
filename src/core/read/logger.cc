@@ -57,6 +57,19 @@ LogMessage::~LogMessage() {
 
 
 
+ff::ff(int w, int p, double v)
+  : width(w), precision(p), value(v) {}
+
+template <>
+LogMessage& LogMessage::operator<<(const ff& f) {
+  out_ << std::fixed << std::setw(f.width)
+       << std::setprecision(f.precision)
+       << f.value;
+  return *this;
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Logger
@@ -87,12 +100,12 @@ LogSection Logger::section(std::string title) {
 }
 
 
-LogMessage Logger::info() {
-  return LogMessage(this, false);
+LogMessage Logger::info() const {
+  return LogMessage(const_cast<Logger*>(this), false);
 }
 
-LogMessage Logger::warn() {
-  return LogMessage(this, true);
+LogMessage Logger::warn() const {
+  return LogMessage(const_cast<Logger*>(this), true);
 }
 
 

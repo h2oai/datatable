@@ -158,25 +158,28 @@ static py::oobj iread(const py::PKArgs& args) {
   const py::Arg& arg_memlimit   = args[k++];
 
   auto rdr = std::make_unique<GenericReader>();
-  rdr->init_logger(     arg_logger, arg_verbose);
-  rdr->init_nthreads(   arg_nthreads);
-  rdr->init_fill(       arg_fill);
-  rdr->init_maxnrows(   arg_maxnrows);
-  rdr->init_skiptoline( arg_skiptoline);
-  rdr->init_sep(        arg_sep);
-  rdr->init_dec(        arg_dec);
-  rdr->init_quote(      arg_quotechar);
-  rdr->init_header(     arg_header);
-  rdr->init_nastrings(  arg_nastrings);
-  rdr->init_skipstring( arg_skiptostr);
-  rdr->init_stripwhite( arg_stripwhite);
-  rdr->init_skipblanks( arg_skipblanks);
-  rdr->init_columns(    arg_columns);
-  rdr->init_tempdir(    arg_tempdir);
-  rdr->init_errors(     arg_errors);
-  rdr->init_memorylimit(arg_memlimit);
-  (void) arg_saveto;
-  (void) arg_encoding;
+  rdr->init_logger(arg_logger, arg_verbose);
+  {
+    auto section = rdr->logger_.section("[*] Process input parameters");
+    rdr->init_nthreads(   arg_nthreads);
+    rdr->init_fill(       arg_fill);
+    rdr->init_maxnrows(   arg_maxnrows);
+    rdr->init_skiptoline( arg_skiptoline);
+    rdr->init_sep(        arg_sep);
+    rdr->init_dec(        arg_dec);
+    rdr->init_quote(      arg_quotechar);
+    rdr->init_header(     arg_header);
+    rdr->init_nastrings(  arg_nastrings);
+    rdr->init_skipstring( arg_skiptostr);
+    rdr->init_stripwhite( arg_stripwhite);
+    rdr->init_skipblanks( arg_skipblanks);
+    rdr->init_columns(    arg_columns);
+    rdr->init_tempdir(    arg_tempdir);
+    rdr->init_errors(     arg_errors);
+    rdr->init_memorylimit(arg_memlimit);
+    rdr->init_encoding(   arg_encoding);
+    (void) arg_saveto;
+  }
 
   auto ms = std::make_unique<MultiSource>(args, *rdr);
   return py::ReadIterator::make(std::move(rdr), std::move(ms));

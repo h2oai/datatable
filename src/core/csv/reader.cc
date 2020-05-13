@@ -232,7 +232,7 @@ void GenericReader::init_dec(const py::Arg& arg) {
   const char c = str[0];
   if (c == '.' || c == ',') {
     dec = c;
-    D() << "Decimal separator = " << dec;
+    D() << "dec = " << dec;
   } else {
     throw ValueError() << "Only dec='.' or ',' are allowed";
   }
@@ -247,7 +247,7 @@ void GenericReader::init_quote(const py::Arg& arg) {
                        << str << "'";
   } else if (str[0] == '"' || str[0] == '\'' || str[0] == '`') {
     quote = str[0];
-    D() << "Quote char = " << quote;
+    D() << "quote = " << quote;
   } else {
     throw ValueError() << "quotechar = (" << escape_backticks(str)
                        << ") is not allowed";
@@ -479,7 +479,7 @@ py::oobj GenericReader::get_tempfiles() const {
   return tempfiles;
 }
 
-LogMessage GenericReader::d() {
+LogMessage GenericReader::d() const {
   xassert(verbose);
   return logger_.info();
 }
@@ -495,16 +495,6 @@ bool GenericReader::extra_byte_accessible() const {
 }
 
 
-#if !DT_COMPILER_MSVC
-__attribute__((format(printf, 2, 3)))
-#endif
-void GenericReader::trace(const char* format, ...) const {
-  if (!verbose) return;
-  va_list args;
-  va_start(args, format);
-  _message("debug", format, args);
-  va_end(args);
-}
 
 #if !DT_COMPILER_MSVC
 __attribute__((format(printf, 2, 3)))
@@ -734,12 +724,12 @@ void GenericReader::detect_and_skip_bom() {
   if (!sz) return;
   if (sz >= 3 && ch[0]=='\xEF' && ch[1]=='\xBB' && ch[2]=='\xBF') {
     sof += 3;
-    trace("UTF-8 byte order mark EF BB BF found at the start of the file "
-          "and skipped");
+    D() << "UTF-8 byte order mark EF BB BF found at the start of the file "
+           "and skipped";
   } else
   if (sz >= 2 && ch[0] + ch[1] == '\xFE' + '\xFF') {
-    trace("UTF-16 byte order mark %s found at the start of the file and "
-          "skipped", ch[0]=='\xFE'? "FE FF" : "FF FE");
+    D() << "UTF-16 byte order mark " << (ch[0]=='\xFE'? "FE FF" : "FF FE")
+        << " found at the start of the file and skipped";
     decode_utf16();
     detect_and_skip_bom();  // just in case BOM was not discarded
   }
@@ -781,7 +771,7 @@ void GenericReader::skip_initial_whitespace() {
   if (ch > sof) {
     size_t doffset = static_cast<size_t>(ch - sof);
     sof = ch;
-    trace("Skipped %zu initial whitespace character(s)", doffset);
+    D() << "Skipped " << doffset << " initial whitespace character(s)";
   }
 }
 
@@ -797,7 +787,7 @@ void GenericReader::skip_trailing_whitespace() {
     size_t d = static_cast<size_t>(eof - 1 - ch);
     eof = ch + 1;
     if (d > 1) {
-      trace("Skipped %zu trailing whitespace characters", d);
+      D() << "Skipped " << d << " trailing whitespace characters";
     }
   }
 }
@@ -818,7 +808,7 @@ void GenericReader::skip_to_line_number() {
   }
   if (ch > sof) {
     sof = ch;
-    trace("Skipped to line %zd in the file", line);
+    D() << "Skipped to line " << line << " in the file";
   }
 }
 
@@ -835,8 +825,8 @@ void GenericReader::skip_to_line_with_string() {
       if (ss[d] == '\0') {
         if (line_start > sof) {
           sof = line_start;
-          trace("Skipped to line %zd containing skip_to_string = \"%s\"",
-                line, ss);
+          D() << "Skipped to line " << line
+              << " containing skip_to_string = \"" << skip_to_string << "\"";
         }
         return;
       } else {
@@ -859,7 +849,7 @@ void GenericReader::skip_to_line_with_string() {
 bool GenericReader::read_empty_input() {
   size_t size = datasize();
   if (size == 0 || (size == 1 && *sof == '\0')) {
-    trace("Input is empty, returning a (0 x 0) DataTable");
+    D() << "Input is empty, returning a (0 x 0) DataTable";
     job->add_done_amount(WORK_READ);
     output_ = py::Frame::oframe(new DataTable());
     return true;

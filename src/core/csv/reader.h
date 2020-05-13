@@ -192,8 +192,7 @@ class GenericReader
     bool extra_byte_accessible() const;
 
     bool get_verbose() const { return verbose; }
-    LogMessage d();
-    void trace(const char* format, ...) const;
+    LogMessage d() const;
     void warn(const char* format, ...) const;
     void emit_delayed_messages();
 
