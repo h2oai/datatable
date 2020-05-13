@@ -238,7 +238,11 @@ void GenericReader::init_dec(const py::Arg& arg) {
 }
 
 void GenericReader::init_quote(const py::Arg& arg) {
-  auto str = arg.to<std::string>("\"");
+  if (arg.is_none_or_undefined()) {
+    quote = '"';
+    return;
+  }
+  auto str = arg.to_string();
   if (str.size() == 0) {
     quote = '\0';
   } else if (str.size() > 1) {
@@ -246,7 +250,8 @@ void GenericReader::init_quote(const py::Arg& arg) {
                        << str << "'";
   } else if (str[0] == '"' || str[0] == '\'' || str[0] == '`') {
     quote = str[0];
-    D() << "quote = " << quote;
+    if (quote == '\'') { D() << "quote = \"'\""; }
+    else               { D() << "quote = '" << quote << "'"; }
   } else {
     throw ValueError() << "quotechar = (" << escape_backticks(str)
                        << ") is not allowed";

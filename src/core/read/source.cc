@@ -84,7 +84,7 @@ py::oobj Source_Python::read(GenericReader& reader) {
     #endif
   } else if ((text = text_arg.to_cstring())) {
     size_t size = static_cast<size_t>(text.size);
-    input_mbuf = Buffer::external(text.ch, size + 1);
+    input_mbuf = Buffer::external(text.ch, size);
 
   } else if ((filename = file_arg.to_cstring().ch) != nullptr) {
     input_mbuf = Buffer::mmap(filename);

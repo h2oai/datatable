@@ -259,7 +259,7 @@ void FreadReader::detect_sep_and_qr() {
   const char* firstJumpEnd = nullptr; // remember where the winning jumpline from jump 0 ends, to know its size excluding header
   int topNumLines = 0;      // the most number of lines with the same number of fields, so far
   int topNumFields = 0;     // how many fields that was, to resolve ties
-  int8_t topQuoteRule = -1; // which quote rule that was
+  int topQuoteRule = -1;    // which quote rule that was
   int topNmax=1;            // for that sep and quote rule, what was the max number of columns (just for fill=true)
                             //   (when fill=true, the max is usually the header row and is the longest but there are more
                             //    lines of fewer)
@@ -347,7 +347,7 @@ void FreadReader::detect_sep_and_qr() {
   }
   if (!topNumFields) topNumFields = 1;
   xassert(firstJumpEnd && topQuoteRule >= 0);
-  quoteRule = ctx.quoteRule = topQuoteRule;
+  quoteRule = ctx.quoteRule = static_cast<int8_t>(topQuoteRule);
   sep = ctx.sep = topSep;
   whiteChar = ctx.whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));
   if (sep==' ' && !fill) {
@@ -630,12 +630,11 @@ void FreadReader::detect_column_types()
   allocnrow = 1;
   meanLineLen = 0;
 
-  if (n_sample_lines <= 1) {
-    // A single-row input, and that row is the header.
-    if (header == 1) {
-      preframe.reset_ptypes();
-      allocnrow = 0;
-    }
+  if (n_sample_lines == 0) {
+    // During type detection the first row is skipped (unless header==0),
+    // if n_sample_lines is 0, it means only the header row is present.
+    preframe.reset_ptypes();
+    allocnrow = 0;
     meanLineLen = sumLen;
   } else {
     size_t bytesRead = static_cast<size_t>(eof - sof);
