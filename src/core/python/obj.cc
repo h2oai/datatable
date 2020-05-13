@@ -33,6 +33,7 @@
 #include "utils/macros.h"
 
 namespace py {
+static PyObject* pandas_Categorical_type = nullptr;
 static PyObject* pandas_DataFrame_type = nullptr;
 static PyObject* pandas_Series_type = nullptr;
 static PyObject* numpy_Array_type = nullptr;
@@ -234,6 +235,12 @@ bool _obj::is_sort_node() const noexcept {
 
 bool _obj::is_update_node() const noexcept {
   return py::oupdate::check(v);
+}
+
+bool _obj::is_pandas_categorical() const noexcept {
+  if (!pandas_Categorical_type) init_pandas();
+  if (!v || !pandas_Categorical_type) return false;
+  return PyObject_IsInstance(v, pandas_Categorical_type);
 }
 
 bool _obj::is_pandas_frame() const noexcept {
@@ -1043,8 +1050,9 @@ oobj get_module(const char* modname) {
 static void init_pandas() {
   py::oobj pd = get_module("pandas");
   if (pd) {
-    pandas_DataFrame_type = pd.get_attr("DataFrame").release();
-    pandas_Series_type    = pd.get_attr("Series").release();
+    pandas_Categorical_type = pd.get_attr("Categorical").release();
+    pandas_DataFrame_type   = pd.get_attr("DataFrame").release();
+    pandas_Series_type      = pd.get_attr("Series").release();
   }
 }
 

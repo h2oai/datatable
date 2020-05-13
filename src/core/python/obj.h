@@ -180,6 +180,7 @@ class _obj {
     int  is_numpy_int()     const noexcept;
     int  is_numpy_float()   const noexcept;
     bool is_numpy_marray()  const noexcept;
+    bool is_pandas_categorical() const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
     bool is_range()         const noexcept;
