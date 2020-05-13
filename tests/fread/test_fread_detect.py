@@ -1,14 +1,32 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 # Tests related to datatable's ability to detect various parsing settings, such
 # as sep, ncols, quote rule, presence of headers, etc.
 #-------------------------------------------------------------------------------
 import datatable as dt
 from datatable.internal import frame_integrity_check
+from tests import assert_equals
 
 
 
@@ -70,3 +88,58 @@ def test_detect_sep1():
     assert f0.shape == (3, 6)
     assert f0.names == ("Date Time", "Open", "High", "Low", "Close", "Volume")
     assert f0[:, "Open"].to_list() == [[5683, 5675, 5674]]
+
+
+
+
+#-------------------------------------------------------------------------------
+# Detect newline
+#-------------------------------------------------------------------------------
+
+def test_detect_newlines1():
+    DT = dt.fread("A,B\n1,2\n3,4\n")
+    assert_equals(DT, dt.Frame(A=[1, 3], B=[2, 4]))
+
+
+def test_detect_newlines2():
+    DT = dt.fread("A,B\r1,2\r3,4")
+    assert_equals(DT, dt.Frame(A=[1, 3], B=[2, 4]))
+
+
+def test_detect_newline3():
+    DT = dt.fread("A,B\rC\rD\n3,4")
+    assert_equals(DT, dt.Frame([[3], [4]], names=["A", "B.C.D"]))
+
+
+def test_detect_newlines4():
+    # We wait to see at least 10 \r's before concluding that it must be
+    # a valid line separator
+    DT1 = dt.fread("B\r1\r2\r3\r4\r5\r6\r7\r8\r9\n255")
+    assert_equals(DT1, dt.Frame({"B.1.2.3.4.5.6.7.8.9": [255]}))
+    DT2 = dt.fread("B\r1\r2\r3\r4\r5\r6\r7\r8\r9\r0\n255")
+    assert_equals(DT2, dt.Frame(B=[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 255]))
+
+
+def test_detect_newlines5():
+    DT = dt.fread('A,"B\nC"\r5,7')
+    assert_equals(DT, dt.Frame({"A": [5], "B.C": [7]}))
+
+
+def test_detect_newlines6():
+    DT1 = dt.fread('A,"B\n""C"\r5,7')
+    assert_equals(DT1, dt.Frame({"A": [5], "B.\"C": [7]}))
+    DT2 = dt.fread('A,"B\n\\"C"\r5,7')
+    assert_equals(DT2, dt.Frame({"A": [5], "B.\"C": [7]}))
+
+
+def test_detect_newlines7():
+    # No newlines found
+    DT = dt.fread(text="A,B")
+    assert_equals(DT, dt.Frame(A=[], B=[]))
+
+
+def test_detect_newline8():
+    DT = dt.fread("a,b,c\r1,4,foo\r7,99,\"wha\ntt?\"\r4,-1,nvm")
+    assert_equals(DT, dt.Frame(a=[1, 7, 4],
+                               b=[4, 99, -1],
+                               c=["foo", "wha\ntt?", "nvm"]))
