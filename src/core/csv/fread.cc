@@ -81,8 +81,8 @@ std::unique_ptr<DataTable> FreadReader::read_all()
         D() << "After " << nUserBumped << " type and " << ndropped
             << " drop user overrides : " << preframe.print_ptypes();
       }
-      D() << "Allocating " << ncols - ndropped << " columns with "
-          << allocnrow << " rows";
+      D() << "Allocating " << dt::log::plural(ncols - ndropped, "column slot")
+          << " with " << dt::log::plural(allocnrow, "row");
     }
     preframe.preallocate(allocnrow);
 
@@ -122,8 +122,8 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     xassert((ncols_to_reread > 0) == reread_scheduled);
     if (ncols_to_reread) {
       fo.n_cols_reread += ncols_to_reread;
-      D() << ncols_to_reread
-          << " column(s) need to be re-read because their types have changed";
+      D() << dt::log::plural(ncols_to_reread, "column")
+          << " need to be re-read because their types have changed";
       preframe.prepare_for_rereading();
       firstTime = false;
       reread_scheduled = false;

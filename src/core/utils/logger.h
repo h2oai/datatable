@@ -150,12 +150,11 @@ class Message {
 
 
 /**
-  * This struct can be used as a convenient way to write a formatted
-  * floating-point value. "Ff" stands for "fixed float". For example:
+  * This struct can be used to write a formatted floating-point value.
+  * The name "ff" stands for "fixed float". For example:
   *
-  *     msg << ff(6, 3, value);
+  *     msg << ff(6, 3, val);  // equivalent to printf("%6.3f", val)
   *
-  * This is equivalent to `printf("%6.3f", value)`.
   */
 struct ff {
   int width, precision;
@@ -163,7 +162,19 @@ struct ff {
   ff(int w, int h, double val);
 };
 
+
+/**
+  */
+struct plural {
+  size_t count_;
+  const char* str_;
+  plural(size_t, const std::string&);
+  plural(size_t, const char*);
+};
+
+
 template <> Message& Message::operator<<(const ff&);
+template <> Message& Message::operator<<(const plural&);
 template <> Message& Message::operator<<(const char&);
 
 

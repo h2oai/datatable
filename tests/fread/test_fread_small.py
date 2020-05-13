@@ -1018,7 +1018,7 @@ def test_int64s_and_typebumps(capsys):
                          stype.float64, stype.float64,
                          stype.str32, stype.str32, stype.str32, stype.str32)
     assert not err
-    assert "6 column(s) need to be re-read" in out
+    assert "6 columns need to be re-read" in out
     assert "Column 3 (i64-2) bumped from Int32 to Int64" in out
     assert "Column 9 (s32-4) bumped from Float64 to Str32 due to " \
            "<<1.23e>> on row 111" in out
@@ -1135,7 +1135,7 @@ def test_typebumps(capsys):
     frame_integrity_check(d0)
     out, err = capsys.readouterr()
     assert not err
-    assert ("4 column(s) need to be re-read because their types have changed"
+    assert ("4 columns need to be re-read because their types have changed"
             in out)
     assert ("Column 1 (A) bumped from Bool8/numeric to Str32 due to <<Fals>> "
             "on row 105" in out)

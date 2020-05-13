@@ -91,8 +91,9 @@ void ParallelReader::determine_chunking_strategy() {
     }
   }
   if (g.verbose) {
-    g.d() << "The input will be read in " << chunk_count
-          << " chunks of size " << chunk_size << " each";
+    g.d() << "The input will be read in "
+          << dt::log::plural(chunk_count, "chunk")
+          << " of size " << chunk_size << " each";
   }
 }
 

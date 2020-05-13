@@ -43,6 +43,7 @@ static void print_message(const std::string& message,
 //------------------------------------------------------------------------------
 namespace py {
 
+
 class DefaultLogger : public XObject<DefaultLogger>
 {
   private:
@@ -78,22 +79,19 @@ class DefaultLogger : public XObject<DefaultLogger>
       xt.add(DESTRUCTOR(&DefaultLogger::m__dealloc__));
       xt.add(METHOD(&DefaultLogger::debug, args_debug));
     }
+
+    static void init_once() {
+      static bool initalized = false;
+      if (initalized) return;
+      DefaultLogger::init_type(nullptr);
+      initalized = true;
+    }
 };
 
 
 
-static void init_default_logger_class() {
-  static bool initalized = false;
-  if (!initalized) {
-    DefaultLogger::init_type(nullptr);
-    initalized = true;
-  }
-}
 
-
-}
-
-
+}  // namespace py
 namespace dt {
 namespace log {
 
@@ -138,6 +136,24 @@ Message& Message::operator<<(const ff& f) {
        << f.value;
   return *this;
 }
+
+
+plural::plural(size_t n, const std::string& s)
+  : count_(n), str_(s.c_str()) {}
+
+plural::plural(size_t n, const char* s)
+  : count_(n), str_(s) {}
+
+template <>
+Message& Message::operator<<(const plural& pl) {
+  out_ << pl.count_ << ' ';
+  out_ << pl.str_;
+  if (pl.count_ != 1) {  // see misc.py for more advanced pluralization rules
+    out_ << 's';
+  }
+  return *this;
+}
+
 
 
 template <>
@@ -211,7 +227,7 @@ py::oobj Logger::get_pylogger() const {
   if (enabled_) {
     if (pylogger_) return pylogger_;
     else {
-      py::init_default_logger_class();
+      py::DefaultLogger::init_once();
       return py::DefaultLogger::make(*this);
     }
   } else {

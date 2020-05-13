@@ -998,7 +998,7 @@ def test_fread_max_nrows(capsys):
     frame_integrity_check(d0)
     assert d0.names == ("A", "B", "C")
     assert d0.to_list() == [[1, 3], ["foo", "bar"], [True, False]]
-    assert "Allocating 3 columns with 2 rows" in out
+    assert "Allocating 3 column slots with 2 rows" in out
     assert "Too few rows allocated" not in out
 
 
