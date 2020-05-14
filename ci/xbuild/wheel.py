@@ -435,16 +435,12 @@ class Wheel:
             parts = soabi.split("-")
             assert parts[0] == "cpython"
             abi = 'cp' + parts[1]
-        elif hasattr(sys, 'maxunicode'):
-            d = ''
-            m = ''
-            if get_flag('Py_DEBUG', hasattr(sys, 'gettotalrefcount')):
-                d = 'd'
-            if sys.version_info < (3, 8) and get_flag('WITH_PYMALLOC', True):
-                m = 'm'
-            abi = self._get_python_tag() + d + m
         else:
-            abi = None
+            abi = self._get_python_tag()
+            if get_flag('Py_DEBUG', hasattr(sys, 'gettotalrefcount')):
+                abi += 'd'
+            if sys.version_info < (3, 8) and get_flag('WITH_PYMALLOC', True):
+                abi += 'm'
 
         return abi
 
