@@ -754,30 +754,57 @@ void FreadReader::detect_header() {
 //------------------------------------------------------------------------------
 
 /**
- * This helper method tests whether '\\n' characters are present in the file,
- * and sets the `cr_is_newline` flag accordingly.
- *
- * If '\\n' exists in the file, then `cr_is_newline` is false, and standalone
- * '\\r' will be treated as a regular character. However if there are no '\\n's
- * in the file (at least within the first 100 lines), then we will treat '\\r'
- * as a newline character.
- */
+  * This method attempts to detect the value of the `cr_is_newline`
+  * parse parameter. When `cr_is_newline` is true, a standalone '\\r'
+  * character is treated as a line separator. When the value is false,
+  * a standalone '\\r' does not start a new line.
+  *
+  * Only the first 64Kb of text will be scanned. If any \\n is found,
+  * then cr_is_newline will be set to false. However, if at least 10
+  * \\r are found without encountering a single \\n, then
+  * cr_is_newline will be set to true. If after reading 64Kb of input
+  * only \\r's were seen, then cr_is_newline will again be set to
+  * true. If neither \\r's nor \\n's were seen, then cr_is_newline
+  * will be set to false (i.e. newlines are \\n-based).
+  *
+  * While scanning, we ignore any newline characters that occur
+  * within quoted fields.
+  */
 void FreadReader::detect_lf() {
-  int cnt = 0;
+  size_t cr_count = 0;
+  bool in_quoted_field = false;
   const char* ch = sof;
-  while (ch < eof && *ch != '\n' && cnt < 100) {
-    cnt += (*ch == '\r');
-    ch++;
+  const char* end = std::min(eof, sof + 65536);
+  for (; ch < end; ++ch) {
+    if (in_quoted_field) {
+      if (*ch == quote) in_quoted_field = false;
+      else if (*ch == '\\') ch++;  // skip the next character
+    }
+    else if (*ch == '\n') {
+      cr_is_newline = false;
+      D() << "LF character (\\n) found in input, "
+             "\\r-only newlines will be prohibited";
+      return;
+    }
+    else if (*ch == '\r') {
+      cr_count++;
+      if (cr_count == 10) break;
+    }
+    else if (*ch == quote) {
+      in_quoted_field = true;
+    }
   }
-  cr_is_newline = !(ch < eof && *ch == '\n');
-  if (cr_is_newline) {
-    D() << "LF character (\\n) not found in input, "
-           "CR character (\\r) will be treated as a newline";
-  } else {
-    D() << "LF character (\\n) found in input, "
-           "\\r-only newlines will not be recognized";
+  if (cr_count) {
+    cr_is_newline = true;
+    D() << "Found " << dt::log::plural(cr_count, "\\r character")
+        << " and no \\n characters within the first " << ch - sof
+        << " bytes of input, \\r will be treated as a newline";
   }
-
+  else {
+    cr_is_newline = false;
+    D() << "Found no \\r or \\n characters within the first " << ch - sof
+        << " bytes of input; default \\n newlines will be assumed";
+  }
 }
 
 
