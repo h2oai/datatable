@@ -30,6 +30,7 @@ XTypeMaker::SetitemTag XTypeMaker::setitem_tag;
 XTypeMaker::BuffersTag XTypeMaker::buffers_tag;
 XTypeMaker::IterTag XTypeMaker::iter_tag;
 XTypeMaker::NextTag XTypeMaker::next_tag;
+XTypeMaker::CallTag XTypeMaker::call_tag;
 
 
 XTypeMaker::XTypeMaker(PyTypeObject* t, size_t objsize) : type(t) {
@@ -196,6 +197,13 @@ void XTypeMaker::add(iternextfunc _next, NextTag) {
   }
   type->tp_iternext = _next;
 }
+
+
+// ternaryfunc = PyObject*(*)(PyObject*, PyObject*, PyObject*)
+void XTypeMaker::add(ternaryfunc meth, CallTag) {
+  type->tp_call = meth;
+}
+
 
 
 PyGetSetDef* XTypeMaker::finalize_getsets() {

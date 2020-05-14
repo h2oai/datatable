@@ -172,11 +172,72 @@ static SourceVec _from_cmd(py::robj src, const GenericReader&) {
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// Retrieve data from URL
+//------------------------------------------------------------------------------
+
+class ReportHook : public py::XObject<ReportHook>
+{
+  private:
+    dt::progress::work* job;   // owned
+    const std::string*  msg;   // owned
+
+    void m__init__(const py::PKArgs&) {}
+    void m__dealloc__() {
+      delete job;  job = nullptr;
+      delete msg;  msg = nullptr;
+    }
+
+    void m__call__(const py::PKArgs& args) {
+      size_t count = args[0].to_size_t();
+      size_t block_size = args[1].to_size_t();
+      int64_t total_size = args[2].to_int64_strict();
+      if (total_size < 0) return;  // TODO: use tentative progress
+      size_t zsize = static_cast<size_t>(total_size);
+
+      if (!job) {
+        job = new dt::progress::work(zsize);
+        job->set_message(*msg);
+      }
+      size_t dsize = count * block_size;
+      job->set_done_amount(std::min(dsize, zsize));
+      if (dsize >= zsize) job->done();
+      xassert(dt::num_threads_in_team() == 0);
+      dt::progress::manager->update_view();
+    }
+
+  public:
+    static py::oobj make(std::string&& msg) {
+      auto res = py::XObject<ReportHook>::make();
+      auto reporthook = reinterpret_cast<ReportHook*>(res.to_borrowed_ref());
+      reporthook->msg = new std::string(std::move(msg));
+      return res;
+    }
+
+    static void impl_init_type(py::XTypeMaker& xt) {
+      xt.set_class_name("reporthook");
+      static py::PKArgs args_init(0, 0, 0, false, false, {}, "__init__", nullptr);
+      static py::PKArgs args_call(3, 0, 0, false, false,
+          {"count", "blocksize", "totalsize"}, "__call__", nullptr);
+      xt.add(CONSTRUCTOR(&ReportHook::m__init__, args_init));
+      xt.add(DESTRUCTOR(&ReportHook::m__dealloc__));
+      xt.add(METHOD__CALL__(&ReportHook::m__call__, args_call));
+    }
+};
+
+
+
 static SourceVec _from_url(py::robj src, const GenericReader& rdr) {
+  ReportHook::init_type();
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_url");
   auto tempfiles = rdr.get_tempfiles();
-  return _from_python(resolver.call({src, tempfiles}));
+  // TODO: create a subtask here
+  auto reporthook = ReportHook::make("Downloading " + src.to_string());
+  return _from_python(resolver.call({src, tempfiles, reporthook}));
 }
+
 
 
 
