@@ -410,17 +410,43 @@ class Wheel:
     #---------------------------------------------------------------------------
 
     def _get_python_tag(self):
+        from packaging import tags
         impl = sys.implementation.name
         assert impl == "cpython"
-        major = sys.version_info.major
-        minor = sys.version_info.minor
-        return "cp" + str(major) + str(minor)
+        return "cp" + tags.interpreter_version()
+
 
     def _get_abi_tag(self):
-        soabi = sysconfig.get_config_var("SOABI")
-        parts = soabi.split("-")
-        assert parts[0] == "cpython"
-        return "cp" + parts[1]
+        """
+        Return the ABI tag if available, otherwise just emulate it.
+        Adopted from pypa/wheel, see https://github.com/pypa/wheel/blob/a51977075740fda01b2c0e983a79bfe753567219/src/wheel/bdist_wheel.py#L67
+        """
+
+        def get_flag(var, fallback):
+            val = sysconfig.get_config_var(var)
+            if val is None:
+                self.log.report_abi_variable_missing(var)
+                return fallback
+            return val
+
+        soabi = sysconfig.get_config_var('SOABI')
+        if soabi:
+            parts = soabi.split("-")
+            assert parts[0] == "cpython"
+            abi = 'cp' + parts[1]
+        elif hasattr(sys, 'maxunicode'):
+            d = ''
+            m = ''
+            if get_flag('Py_DEBUG', hasattr(sys, 'gettotalrefcount')):
+                d = 'd'
+            if sys.version_info < (3, 8) and get_flag('WITH_PYMALLOC', True):
+                m = 'm'
+            abi = self._get_python_tag() + d + m
+        else:
+            abi = None
+
+        return abi
+
 
     def get_tag(self):
         if self._tag is None:
