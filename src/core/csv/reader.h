@@ -27,10 +27,10 @@
 #include "python/obj.h"     // py::robj, py::oobj
 #include "python/list.h"    // py::olist
 #include "read/preframe.h"  // dt::read::PreFrame
-
-
+#include "utils/logger.h"
 namespace dt {
 namespace read {
+
 
 // What fread() should do if the input contains multiple sources
 enum class FreadMultiSourceStrategy : int8_t {
@@ -135,11 +135,11 @@ class GenericReader
     PreFrame preframe;
     double t_open_input{ 0 };
 
+    log::Logger logger_;
     py::oobj output_;
     const std::string* source_name;
 
   private:
-    py::oobj logger;
     py::oobj src_arg;
     py::oobj file_arg;
     py::oobj text_arg;
@@ -191,9 +191,7 @@ class GenericReader
     bool extra_byte_accessible() const;
 
     bool get_verbose() const { return verbose; }
-    void trace(const char* format, ...) const;
-    void warn(const char* format, ...) const;
-    void emit_delayed_messages();
+    log::Message d() const;
 
     const char* repr_source(const char* ch, size_t limit) const;
     const char* repr_binary(const char* ch, const char* end, size_t limit) const;
@@ -234,8 +232,6 @@ class GenericReader
     void skip_to_line_with_string();
     void decode_utf16();
     void report_columns_to_python();
-
-    void _message(const char* method, const char* format, va_list args) const;
 
     bool read_csv();
     bool read_empty_input();

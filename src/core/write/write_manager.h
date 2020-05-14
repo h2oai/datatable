@@ -101,7 +101,7 @@ class write_manager {
     void set_append(bool);
     void set_header(bool);
     void set_strategy(WritableBuffer::Strategy);
-    void set_logger(py::oobj logger);
+    void set_verbose(bool);
     void set_usehex(bool);
     void set_bom(bool);
     void set_quoting(int);

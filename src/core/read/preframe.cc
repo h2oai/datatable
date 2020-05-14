@@ -81,8 +81,8 @@ void PreFrame::preallocate(size_t nrows) {
     if (row_size * nrows > memory_limit) {
       nrows = std::max(size_t(1), memory_limit / row_size);
       if (g_->verbose) {
-        g_->trace("Allocation size reduced to %zu rows due to memory_limit "
-                  "parameter", nrows);
+        g_->d() << "Allocation size reduced to " << nrows
+                << " rows due to memory_limit parameter";
       }
     }
   }
@@ -162,7 +162,10 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
       }
     }
 
-    g_->trace("Too few rows allocated, reallocating to %zu rows", nrows_new);
+    if (g_->verbose) {
+      g_->d() << "Too few rows allocated, reallocating to "
+              << nrows_new << " rows";
+    }
 
     // Now reallocate all columns for a proper number of rows
     for (auto& col : columns_) {
@@ -201,7 +204,7 @@ void PreFrame::init_tempfile() {
   tempfile_ = std::shared_ptr<TemporaryFile>(new TemporaryFile());
   if (g_->get_verbose()) {
     auto name = tempfile_->name();
-    g_->trace("Created temporary file %s", name.c_str());
+    g_->d() << "Created temporary file " << name;
   }
 }
 

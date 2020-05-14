@@ -205,7 +205,7 @@ size_t get_hardware_concurrency() noexcept {
 
 
 std::mutex& python_mutex() {
-  return thpool->monitor->mutex;
+  return thpool->python_mutex;
 }
 
 std::mutex& team_mutex() {

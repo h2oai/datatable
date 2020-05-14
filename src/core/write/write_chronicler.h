@@ -32,7 +32,7 @@ class write_chronicler {
   private:
     using ptime_t = std::chrono::steady_clock::time_point;
 
-    py::oobj logger;
+    log::Logger logger_;
     ptime_t t_last;
     double t_preamble;
     double t_writing_rows;
@@ -40,7 +40,7 @@ class write_chronicler {
 
   public:
     write_chronicler();
-    void set_logger(py::oobj logger_);
+    void set_verbose(bool);
 
     void checkpoint_start_writing();
     void checkpoint_preamble_done();
@@ -53,7 +53,7 @@ class write_chronicler {
 
   private:
     double duration_from_last();
-    LogMessage msg() const;
+    log::Message msg() const;
 };
 
 

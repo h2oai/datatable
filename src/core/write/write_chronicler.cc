@@ -26,8 +26,8 @@ namespace write {
 
 write_chronicler::write_chronicler() {}
 
-void write_chronicler::set_logger(py::oobj logger_) {
-  logger = std::move(logger_);
+void write_chronicler::set_verbose(bool verbose) {
+  if (verbose) logger_.enable();
 }
 
 
@@ -51,7 +51,7 @@ void write_chronicler::checkpoint_the_end() {
 void write_chronicler::report_chunking_strategy(
   size_t nrows, size_t nchunks, size_t nthreads, size_t estimated_output_size)
 {
-  if (!logger) return;
+  if (!logger_.enabled()) return;
   size_t rows_per_chunk = nrows / nchunks;
 
   msg() << "File size estimate is " << estimated_output_size << " bytes ";
@@ -63,9 +63,10 @@ void write_chronicler::report_chunking_strategy(
 
 void write_chronicler::report_final(size_t actual_output_size)
 {
-  if (!logger) return;
+  if (!logger_.enabled()) return;
   double t_total = t_preamble + t_writing_rows + t_epilogue;
 
+  using log::ff;
   msg() << "Final output size is " << actual_output_size << " bytes";
   msg() << "Timing report:";
   msg() << "   " << ff(6, 3, t_preamble)     << "s  Prepare for writing";
@@ -88,8 +89,8 @@ double write_chronicler::duration_from_last() {
   return delta.count();
 }
 
-LogMessage write_chronicler::msg() const {
-  return LogMessage(logger);
+log::Message write_chronicler::msg() const {
+  return logger_.info();
 }
 
 

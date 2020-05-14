@@ -76,6 +76,9 @@ class thread_pool {
     // across all threads.
     std::mutex global_mutex;
 
+    // Mutex that guards access to python runtime
+    std::mutex python_mutex;
+
     // TODO: merge thread_team functionality into the pool?
     thread_team* current_team;
 

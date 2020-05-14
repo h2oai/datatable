@@ -219,10 +219,6 @@ oobj Frame::to_csv(const PKArgs& args)
 
   // verbose
   bool verbose = arg_verbose.to<bool>(false);
-  oobj logger;
-  if (verbose) {
-    logger = oobj::import("datatable.utils.fread", "_DefaultLogger").call();
-  }
 
   auto strategy = arg_strategy.to<std::string>("");
   auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
@@ -236,7 +232,7 @@ oobj Frame::to_csv(const PKArgs& args)
   writer.set_strategy(sstrategy);
   writer.set_usehex(hex);
   writer.set_bom(bom);
-  writer.set_logger(logger);
+  writer.set_verbose(verbose);
   writer.set_quoting(quoting);
   writer.set_compression(compress);
   writer.write_main();
