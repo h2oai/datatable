@@ -410,10 +410,11 @@ class Wheel:
     #---------------------------------------------------------------------------
 
     def _get_python_tag(self):
-        from packaging import tags
         impl = sys.implementation.name
         assert impl == "cpython"
-        return "cp" + tags.interpreter_version()
+        major = sys.version_info.major
+        minor = sys.version_info.minor
+        return "cp" + str(major) + str(minor)
 
 
     def _get_abi_tag(self):
