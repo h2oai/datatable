@@ -620,6 +620,10 @@ class FrameInitializationManager {
         auto r = colsrc.to_orange();
         col = Column::from_range(r.start(), r.stop(), r.step(), s);
       }
+      else if (colsrc.is_pandas_categorical()) {
+        make_column(colsrc.invoke("astype", py::ostring("str")), SType::STR32);
+        return;
+      }
       else {
         throw TypeError() << "Cannot create a column from " << colsrc.typeobj();
       }

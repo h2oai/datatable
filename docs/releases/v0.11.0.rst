@@ -35,6 +35,9 @@
 
   -[enh] Casting a column into its own type is now a no-op. [#2425]
 
+  -[enh] It is now possible to create a Frame from a pandas DataFrame with
+    Categorical columns (which will be converted into strings). [#2407]
+
   -[api] Method :meth:`.cbind()` now throws an :exc:`InvalidOperationError`
     instead of a ``ValueError`` if the argument frames have incompatible
     shapes.
