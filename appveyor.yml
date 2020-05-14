@@ -16,6 +16,6 @@ build_script:
 
     pip install pytest docutils pandas
 
-    python ci\ext.py build
+    python ci\ext.py wheel
 
     pytest .\tests\
