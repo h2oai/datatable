@@ -15,7 +15,7 @@ build_script:
 
     python ci\ext.py wheel
 
-    FOR %i in (%APPVEYOR_BUILD_FOLDER%\dist\*-cp35-*.whl) DO pip install %i
+    FOR %i in (dist\*-cp35-*.whl) DO pip install %i
 
     pip install pytest docutils pandas
 
@@ -27,7 +27,7 @@ build_script:
 
     python ci\ext.py wheel
 
-    FOR %i in (%APPVEYOR_BUILD_FOLDER%\dist\*-cp36-*.whl) DO pip install %i
+    FOR %i in (dist\*-cp36-*.whl) DO pip install %i
 
     pip install pytest docutils pandas
 
@@ -39,7 +39,7 @@ build_script:
 
     python ci\ext.py wheel
 
-    FOR %i in (%APPVEYOR_BUILD_FOLDER%\dist\*-cp37-*.whl) DO pip install %i
+    FOR %i in (dist\*-cp37-*.whl) DO pip install %i
 
     pip install pytest docutils pandas
 
@@ -51,7 +51,7 @@ build_script:
 
     python ci\ext.py wheel
 
-    FOR %i in (%APPVEYOR_BUILD_FOLDER%\dist\*-cp38-*.whl) DO pip install %i
+    FOR %i in (dist\*-cp38-*.whl) DO pip install %i
 
     pip install pytest docutils pandas
 
