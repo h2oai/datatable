@@ -60,6 +60,7 @@ class TemporaryFile
     // data. If the file was opened for writing previously, its
     // WritableBuffer object will be finalized and closed.
     const void* data_r();
+    Buffer buffer_r();
 
   private:
     void init_read_buffer();

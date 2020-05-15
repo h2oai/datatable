@@ -40,7 +40,15 @@ static SourceVec _from_text(const py::Arg&, const GenericReader&);
 static SourceVec _from_cmd(py::robj, const GenericReader&);
 static SourceVec _from_url(py::robj, const GenericReader&);
 
+static SourceVec single_source(Source* src) {
+  SourceVec res;
+  res.push_back(SourcePtr(src));
+  return res;
+}
+
 #define D() if (rdr.verbose) rdr.logger_.info()
+
+
 
 
 //------------------------------------------------------------------------------
@@ -168,9 +176,15 @@ static SourceVec _from_cmd(py::robj src, const GenericReader&) {
 }
 
 
+static SourceVec _from_url(py::robj src, const GenericReader&) {
+  return single_source(new Source_Url(src.to_string()));
+}
+
+
 
 
 //------------------------------------------------------------------------------
+// Resolve "any_source" parameter to fread
 //------------------------------------------------------------------------------
 
 // Return true if `text` has any characters from C0 range.
@@ -236,78 +250,6 @@ static SourceVec _from_any(py::robj src, const GenericReader& rdr) {
   auto tempfiles = rdr.get_tempfiles();
   return _from_python(resolver.call({src, tempfiles}));
 }
-
-
-
-
-//------------------------------------------------------------------------------
-// Retrieve data from URL
-//------------------------------------------------------------------------------
-
-class ReportHook : public py::XObject<ReportHook>
-{
-  private:
-    dt::progress::work* job_;   // borrowed
-
-  public:
-    void m__init__(const py::PKArgs&) {}
-    void m__dealloc__() {}
-
-    void m__call__(const py::PKArgs& args) {
-      size_t count = args[0].to_size_t();
-      size_t block_size = args[1].to_size_t();
-      int64_t total_size = args[2].to_int64_strict();
-      if (total_size < 0) return;  // TODO: use tentative progress
-      size_t zsize = static_cast<size_t>(total_size);
-
-      if (job_->get_work_amount() == 1) {
-        job_->add_work_amount(zsize);
-      }
-      size_t dsize = count * block_size;
-      if (dsize >= zsize) {
-        // 1 was the original "fake" work amount
-        job_->set_done_amount(zsize + 1);
-        job_->done();
-      } else {
-        job_->set_done_amount(dsize + 1);
-      }
-      xassert(dt::num_threads_in_team() == 0);
-      dt::progress::manager->update_view();
-    }
-
-    static py::oobj make(dt::progress::work* job) {
-      auto res = py::XObject<ReportHook>::make();
-      auto reporthook = reinterpret_cast<ReportHook*>(res.to_borrowed_ref());
-      reporthook->job_ = job;
-      return res;
-    }
-
-    static void impl_init_type(py::XTypeMaker& xt) {
-      xt.set_class_name("reporthook");
-      static py::PKArgs args_init(0, 0, 0, false, false, {}, "__init__", nullptr);
-      static py::PKArgs args_call(3, 0, 0, false, false,
-          {"count", "blocksize", "totalsize"}, "__call__", nullptr);
-      xt.add(CONSTRUCTOR(&ReportHook::m__init__, args_init));
-      xt.add(DESTRUCTOR(&ReportHook::m__dealloc__));
-      xt.add(METHOD__CALL__(&ReportHook::m__call__, args_call));
-    }
-};
-
-
-
-static SourceVec _from_url(py::robj src, const GenericReader& rdr) {
-  ReportHook::init_type();
-  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_url");
-  auto tempfiles = rdr.get_tempfiles();
-
-  // TODO: create a subtask here
-  dt::progress::work job(1);
-  job.set_message("Downloading " + src.to_string());
-  auto reporthook = ReportHook::make(&job);
-  auto res = resolver.call({src, tempfiles, reporthook});
-  return _from_python(res);
-}
-
 
 
 

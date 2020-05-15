@@ -31,7 +31,7 @@ class GenericReader;
 
 
 /**
-  * Single input source for *read functions. This is a base abstract
+  * Single input source for ?read functions. This is a base abstract
   * class, with different implementations.
   *
   * The objects of this class are used by the MultiSource class only.
@@ -45,10 +45,20 @@ class Source
     Source(const std::string& name);
     virtual ~Source();
 
+    // Each source has a name (the names need not be unique) which
+    // attempts to identify the origin of the object. This name will
+    // be carried in the `.source` attribute of the frame produced.
     const std::string& name() const;
 
+    // Main Source function, it will read the data from the
+    // referenced input source, and return it as a python Frame
+    // object.
     virtual py::oobj read(GenericReader& reader) = 0;
 
+    // If the source must return more than one Frame object, the
+    // first one shall be returned by the `read()` method above,
+    // whereas retrieving all subsequent Frames will require
+    // calling this function.
     virtual std::unique_ptr<Source> continuation();
 };
 
@@ -90,6 +100,18 @@ class Source_Text : public Source
 
   public:
     Source_Text(py::robj textsrc);
+    py::oobj read(GenericReader&) override;
+};
+
+
+
+class Source_Url : public Source
+{
+  private:
+    std::string url_;
+
+  public:
+    Source_Url(const std::string& url);
     py::oobj read(GenericReader&) override;
 };
 
