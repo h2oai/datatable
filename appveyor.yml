@@ -18,19 +18,25 @@ build_script:
 
     rem =======================================================================
 
-    FOR /f %%i in ('git rev-list --count master') DO SET BUILD_ID=%%i
+    FOR /f %%i in ('git rev-list --count master') DO SET MASTER_BUILD_ID=%%i
+    FOR /f %%i in ('git rev-list --count master..') DO SET BRANCH_BUILD_ID=%%i
 
-    if defined APPVEYOR_PULL_REQUEST_NUMBER (SET DT_BUILD_SUFFIX=PR%APPVEYOR_PULL_REQUEST_NUMBER%.%APPVEYOR_JOB_NUMBER%)
-    else if "%APPVEYOR_REPO_BRANCH%"=="master" (SET DT_BUILD_NUMBER=%BUILD_ID%)
+    if defined APPVEYOR_PULL_REQUEST_NUMBER (SET DT_BUILD_SUFFIX=PR%APPVEYOR_PULL_REQUEST_NUMBER%.%BRANCH_BUILD_ID%)
+    else if "%APPVEYOR_REPO_BRANCH%"=="master" (SET DT_BUILD_NUMBER=%MASTER_BUILD_ID%)
     else if "%APPVEYOR_REPO_BRANCH:~0,4%"=="rel-" (SET DT_RELEASE=True)
-    else (SET DT_BUILD_SUFFIX=%APPVEYOR_REPO_BRANCH%.%APPVEYOR_JOB_NUMBER%)
+    else (SET DT_BUILD_SUFFIX=%APPVEYOR_REPO_BRANCH%.%BRANCH_BUILD_ID%)
 
+
+    echo MASTER_BUILD_ID = %MASTER_BUILD_ID%
+
+    echo BRANCH_BUILD_ID = %BRANCH_BUILD_ID%
 
     echo DT_RELEASE      = %DT_RELEASE%
 
     echo DT_BUILD_NUMBER = %DT_BUILD_NUMBER%
 
     echo DT_BUILD_SUFFIX = %DT_BUILD_SUFFIX%
+
 
 
     rem Python 3.5

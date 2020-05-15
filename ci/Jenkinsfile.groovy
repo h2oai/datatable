@@ -146,7 +146,8 @@ ansiColor('xterm') {
                             DT_BUILD_NUMBER = sh(script: 'git rev-list --count master', returnStdout: true)
                         }
                         else {
-                            DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + env.BUILD_ID
+                            def BRANCH_BUILD_ID = sh(script: 'git rev-list --count master..', returnStdout: true)
+                            DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
                         }
 
                         sh """
