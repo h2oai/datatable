@@ -111,6 +111,7 @@ ansiColor('xterm') {
                         sh """
                             set +x
                             echo 'env.BRANCH_NAME   = ${env.BRANCH_NAME}'
+                            echo 'env.BUILD_ID      = ${env.BUILD_ID}'
                             echo 'env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}'
                             echo 'env.CHANGE_ID     = ${env.CHANGE_ID}'
                             echo 'env.CHANGE_TARGET = ${env.CHANGE_TARGET}'
@@ -142,7 +143,7 @@ ansiColor('xterm') {
                             DT_RELEASE = 'True'
                         }
                         else if (env.BRANCH_NAME == 'master') {
-                            DT_BUILD_NUMBER = env.BUILD_ID
+                            DT_BUILD_NUMBER = sh(script: 'git rev-list --count master', returnStdout: true)
                         }
                         else {
                             DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + env.BUILD_ID
