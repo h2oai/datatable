@@ -14,6 +14,18 @@ artifacts:
 build_script:
 - cmd: >-
 
+    FOR /f %%i in ('git rev-list --count master') DO SET REV_COUNT_MASTER=%%i
+
+
+
+    if "%APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH:~0,4%"=="rel-" (SET DT_RELEASE=True)
+
+    else if "%APPVEYOR_REPO_BRANCH%"=="master" (SET DT_BUILD_NUMBER=%REV_COUNT_MASTER%)
+
+    else (SET DT_BUILD_SUFFIX=%APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH%.%REV_COUNT_MASTER%)
+
+
+
     SET PATH=C:\Python35-x64;C:\Python35-x64\Scripts;%PATH%
 
     python ci\ext.py wheel
