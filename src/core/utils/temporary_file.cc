@@ -121,6 +121,11 @@ const void* TemporaryFile::data_r() {
   return bufferptr_->rptr();
 }
 
+Buffer TemporaryFile::buffer_r() {
+  init_read_buffer();
+  return *bufferptr_;
+}
+
 
 void TemporaryFile::init_read_buffer() {
   if (bufferptr_) return;

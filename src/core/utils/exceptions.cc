@@ -85,6 +85,7 @@ static bool is_string_empty(const char* msg) noexcept {
 
 void exception_to_python(const std::exception& e) noexcept {
   wassert(dt::num_threads_in_team() == 0);
+  // dt::progress::manager->update_view();
   const Error* error = dynamic_cast<const Error*>(&e);
   if (error) {
     error->to_python();
@@ -276,6 +277,9 @@ bool Error::is_keyboard_interrupt() const noexcept {
 
 PyError::PyError() : Error(nullptr) {
   PyErr_Fetch(&exc_type, &exc_value, &exc_traceback);
+  if (is_keyboard_interrupt()) {
+    dt::progress::manager->set_status_cancelled();
+  }
 }
 
 PyError::PyError(PyError&& other) : Error(std::move(other)) {

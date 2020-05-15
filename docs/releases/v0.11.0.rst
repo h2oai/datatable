@@ -104,6 +104,9 @@
     pass a name of an archive, and the archive contains multiple files).
     Possible values are: ``"warn"`` (default), ``"error"``, and ``"ignore"``.
 
+  -[enh] Fread now displays a progress bar when downloading data from a URL.
+    [#2441]
+
   -[fix] Fread now properly detects ``\r``-newlines in the presence of fields
     with quoted ``\n``-newlines. [#1343]
 

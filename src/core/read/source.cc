@@ -20,9 +20,12 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "csv/reader.h"     // GenericReader
+#include "python/string.h"
+#include "python/xobject.h"
 #include "read/source.h"    // Source
 #include "utils/macros.h"
 #include "utils/misc.h"
+#include "utils/temporary_file.h"
 namespace dt {
 namespace read {
 
@@ -131,9 +134,91 @@ Source_Text::Source_Text(py::robj textsrc)
 
 
 py::oobj Source_Text::read(GenericReader& reader) {
+  reader.source_name = &name_;
   auto text = src_.to_cstring();
   auto buf = Buffer::external(text.ch, static_cast<size_t>(text.size) + 1);
-  return reader.read_buffer(buf, 1);
+  auto res = reader.read_buffer(buf, 1);
+  reader.source_name = nullptr;
+  return res;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Source_Url
+//------------------------------------------------------------------------------
+
+class ReportHook : public py::XObject<ReportHook>
+{
+  private:
+    dt::progress::work* job_;   // borrowed
+
+  public:
+    void m__init__(const py::PKArgs&) {}
+    void m__dealloc__() {}
+
+    void m__call__(const py::PKArgs& args) {
+      size_t count = args[0].to_size_t();
+      size_t block_size = args[1].to_size_t();
+      int64_t total_size = args[2].to_int64_strict();
+      if (total_size < 0) return;  // TODO: use tentative progress
+      size_t zsize = static_cast<size_t>(total_size);
+
+      if (job_->get_work_amount() == 1) {
+        job_->add_work_amount(zsize);
+      }
+      size_t dsize = count * block_size;
+      if (dsize >= zsize) {
+        // 1 was the original "fake" work amount
+        job_->set_done_amount(zsize + 1);
+        job_->done();
+      } else {
+        job_->set_done_amount(dsize + 1);
+      }
+      xassert(dt::num_threads_in_team() == 0);
+      dt::progress::manager->update_view();
+    }
+
+    static py::oobj make(dt::progress::work* job) {
+      ReportHook::init_type();
+      auto res = py::XObject<ReportHook>::make();
+      auto reporthook = reinterpret_cast<ReportHook*>(res.to_borrowed_ref());
+      reporthook->job_ = job;
+      return res;
+    }
+
+    static void impl_init_type(py::XTypeMaker& xt) {
+      xt.set_class_name("reporthook");
+      static py::PKArgs args_init(0, 0, 0, false, false, {}, "__init__", nullptr);
+      static py::PKArgs args_call(3, 0, 0, false, false,
+          {"count", "blocksize", "totalsize"}, "__call__", nullptr);
+      xt.add(CONSTRUCTOR(&ReportHook::m__init__, args_init));
+      xt.add(DESTRUCTOR(&ReportHook::m__dealloc__));
+      xt.add(METHOD__CALL__(&ReportHook::m__call__, args_call));
+    }
+};
+
+
+
+Source_Url::Source_Url(const std::string& url)
+  : Source(url), url_(url) {}
+
+
+py::oobj Source_Url::read(GenericReader& reader) {
+  reader.source_name = &name_;
+  TemporaryFile tmpfile;
+  {
+    dt::progress::work job(1);
+    job.set_message("Downloading " + url_);
+    auto retriever = py::oobj::import("urllib.request", "urlretrieve");
+    retriever.call({py::ostring(url_),
+                    py::ostring(tmpfile.name()),
+                    ReportHook::make(&job)});
+  }
+  auto res = reader.read_buffer(tmpfile.buffer_r(), 0);
+  reader.source_name = nullptr;
+  return res;
 }
 
 

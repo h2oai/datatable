@@ -73,7 +73,8 @@ void progress_manager::finish_work(work* task, bool successfully) {
 
 
 void progress_manager::update_view() const {
-  xassert(dt::this_thread_index() == size_t(-1));
+  xassert(dt::this_thread_index() == size_t(-1) ||
+          dt::num_threads_in_team() == 0);
   std::lock_guard<std::mutex> lock(mutex);
 
   // Handle interrupt if in a parallel region.
@@ -109,6 +110,15 @@ void progress_manager::handle_interrupt() const {
     throw PyError();
   }
 }
+
+
+void progress_manager::set_status_cancelled() noexcept {
+  try {
+    if (pbar) pbar->set_status_error(true);
+  } catch (...) {}
+}
+
+
 
 
 }} // namespace dt::progress

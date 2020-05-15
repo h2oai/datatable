@@ -107,7 +107,7 @@ def _resolve_source_any(src, tempfiles):
                 if ccode < 0x20:
                     if logger:
                         logger.debug("Input contains '\\x%02X', "
-                                          "treating it as raw text" % ccode)
+                                     "treating it as raw text" % ccode)
                     return _resolve_source_text(src)
             if is_str and re.match(_url_regex, src):
                 if logger:
@@ -353,11 +353,11 @@ def _resolve_source_cmd(cmd):
         return (cmd, None, None, msgout), None
 
 
-def _resolve_source_url(url, tempfiles):
+def _resolve_source_url(url, tempfiles, reporthook=None):
     assert url is not None
     import urllib.request
     targetfile = tempfiles.create_temp_file()
-    urllib.request.urlretrieve(url, filename=targetfile)
+    urllib.request.urlretrieve(url, filename=targetfile, reporthook=reporthook)
     # src, file, fileno, text, result
     return (url, targetfile, None, None), None
 

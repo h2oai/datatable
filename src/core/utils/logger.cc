@@ -79,13 +79,6 @@ class DefaultLogger : public XObject<DefaultLogger>
       xt.add(DESTRUCTOR(&DefaultLogger::m__dealloc__));
       xt.add(METHOD(&DefaultLogger::debug, args_debug));
     }
-
-    static void init_once() {
-      static bool initalized = false;
-      if (initalized) return;
-      DefaultLogger::init_type(nullptr);
-      initalized = true;
-    }
 };
 
 
@@ -227,7 +220,7 @@ py::oobj Logger::get_pylogger() const {
   if (enabled_) {
     if (pylogger_) return pylogger_;
     else {
-      py::DefaultLogger::init_once();
+      py::DefaultLogger::init_type();
       return py::DefaultLogger::make(*this);
     }
   } else {
