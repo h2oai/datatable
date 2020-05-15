@@ -8,6 +8,9 @@ branches:
 pull_requests:
   do_not_increment_build_number: true
 
+artifacts:
+  - path: dist\*.whl
+
 build_script:
 - cmd: >-
 
