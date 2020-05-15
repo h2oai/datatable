@@ -18,11 +18,14 @@ build_script:
 
     rem =======================================================================
 
-    FOR /f %%i in ('git rev-list --count master') DO SET REV_COUNT_MASTER=%%i
+    FOR /f %%i in ('git rev-list --count master') DO SET BUILD_ID=%%i
 
-    if "%APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH:~0,4%"=="rel-" (SET DT_RELEASE=True)
-    else if "%APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH%"=="master" (SET DT_BUILD_NUMBER=%REV_COUNT_MASTER%)
-    else (SET DT_BUILD_SUFFIX=pr%APPVEYOR_PULL_REQUEST_NUMBER%.%APPVEYOR_BUILD_NUMBER%)
+    if defined APPVEYOR_PULL_REQUEST_NUMBER
+      (SET DT_BUILD_SUFFIX=pr%APPVEYOR_PULL_REQUEST_NUMBER%.%APPVEYOR_BUILD_NUMBER%)
+    else if "%APPVEYOR_REPO_BRANCH%"=="master"
+      (SET DT_BUILD_NUMBER=%BUILD_ID%)
+    else if "%APPVEYOR_REPO_BRANCH:~0,4%"=="rel-"
+      (SET DT_RELEASE=True)
 
     echo DT_RELEASE      = %DT_RELEASE%
 
