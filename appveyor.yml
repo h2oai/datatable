@@ -20,13 +20,13 @@ build_script:
 
     FOR /f %%i in ('git rev-list --count master') DO SET BUILD_ID=%%i
 
-    if defined APPVEYOR_PULL_REQUEST_NUMBER
-      (SET DT_BUILD_SUFFIX=pr%APPVEYOR_PULL_REQUEST_NUMBER%.%APPVEYOR_BUILD_NUMBER%)
-    else if "%APPVEYOR_REPO_BRANCH%"=="master"
-      (SET DT_BUILD_NUMBER=%BUILD_ID%)
-    else if "%APPVEYOR_REPO_BRANCH:~0,4%"=="rel-"
-      (SET DT_RELEASE=True)
-    else
+    if defined APPVEYOR_PULL_REQUEST_NUMBER ^
+      (SET DT_BUILD_SUFFIX=pr%APPVEYOR_PULL_REQUEST_NUMBER%.%APPVEYOR_BUILD_NUMBER%) ^
+    else if "%APPVEYOR_REPO_BRANCH%"=="master" ^
+      (SET DT_BUILD_NUMBER=%BUILD_ID%) ^
+    else if "%APPVEYOR_REPO_BRANCH:~0,4%"=="rel-" ^
+      (SET DT_RELEASE=True) ^
+    else ^
       (SET DT_BUILD_SUFFIX=%APPVEYOR_REPO_BRANCH%.%APPVEYOR_BUILD_NUMBER%)
 
 
