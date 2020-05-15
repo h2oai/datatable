@@ -40,6 +40,8 @@ static SourceVec _from_text(const py::Arg&, const GenericReader&);
 static SourceVec _from_cmd(py::robj, const GenericReader&);
 static SourceVec _from_url(py::robj, const GenericReader&);
 
+#define D() if (rdr.verbose) rdr.logger_.info()
+
 
 //------------------------------------------------------------------------------
 // Constructors
@@ -141,12 +143,6 @@ static SourceVec _from_python(py::robj pysource) {
 }
 
 
-static SourceVec _from_any(py::robj src, const GenericReader& rdr) {
-  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_any");
-  auto tempfiles = rdr.get_tempfiles();
-  return _from_python(resolver.call({src, tempfiles}));
-}
-
 
 static SourceVec _from_file(py::robj src, const GenericReader& rdr) {
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_file");
@@ -175,20 +171,87 @@ static SourceVec _from_cmd(py::robj src, const GenericReader&) {
 
 
 //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+// Return true if `text` has any characters from C0 range.
+static bool _has_control_characters(const CString& text, char* evidence) {
+  size_t n = static_cast<size_t>(text.size);
+  const char* ch = text.ch;
+  for (size_t i = 0; i < n; ++i) {
+    if (static_cast<unsigned char>(ch[i]) < 0x20) {
+      *evidence = ch[i];
+      return true;
+    }
+  }
+  return false;
+}
+
+
+static bool _looks_like_url(const CString& text) {
+  size_t n = static_cast<size_t>(text.size);
+  const char* ch = text.ch;
+  if (n >= 8) {
+    if (std::memcmp(ch, "https://", 8) == 0) return true;
+    if (std::memcmp(ch, "http://", 7) == 0) return true;
+    if (std::memcmp(ch, "file://", 7) == 0) return true;
+    if (std::memcmp(ch, "ftp://", 6) == 0) return true;
+  }
+  return false;
+}
+
+
+// static bool _looks_like_glob(const CString& text) {
+//   size_t n = static_cast<size_t>(text.size);
+//   const char* ch = text.ch;
+//   for (size_t i = 0; i < n; ++i) {
+//     char c = ch[i];
+//     if (c == '*' || c == '?' || c == '[' || c == ']') return true;
+//   }
+//   return false;
+// }
+
+
+static SourceVec _from_any(py::robj src, const GenericReader& rdr) {
+  SourceVec out;
+  if (src.is_string() || src.is_bytes()) {
+    CString cstr = src.to_cstring();
+    if (cstr.size >= 4096) {
+      D() << "Input is a string of length " << cstr.size
+          << ", treating it as raw text";
+      out.emplace_back(new Source_Text(src));
+      return out;
+    }
+    char c = '?';
+    if (_has_control_characters(cstr, &c)) {
+      D() << "Input contains '" << c << "', treating it as raw text";
+      out.emplace_back(new Source_Text(src));
+      return out;
+    }
+    if (_looks_like_url(cstr)) {
+      D() << "Input is a URL";
+      return _from_url(src, rdr);
+    }
+  }
+  auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_any");
+  auto tempfiles = rdr.get_tempfiles();
+  return _from_python(resolver.call({src, tempfiles}));
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // Retrieve data from URL
 //------------------------------------------------------------------------------
 
 class ReportHook : public py::XObject<ReportHook>
 {
   private:
-    dt::progress::work* job;   // owned
-    const std::string*  msg;   // owned
+    dt::progress::work* job_;   // borrowed
 
+  public:
     void m__init__(const py::PKArgs&) {}
-    void m__dealloc__() {
-      delete job;  job = nullptr;
-      delete msg;  msg = nullptr;
-    }
+    void m__dealloc__() {}
 
     void m__call__(const py::PKArgs& args) {
       size_t count = args[0].to_size_t();
@@ -197,22 +260,25 @@ class ReportHook : public py::XObject<ReportHook>
       if (total_size < 0) return;  // TODO: use tentative progress
       size_t zsize = static_cast<size_t>(total_size);
 
-      if (!job) {
-        job = new dt::progress::work(zsize);
-        job->set_message(*msg);
+      if (job_->get_work_amount() == 1) {
+        job_->add_work_amount(zsize);
       }
       size_t dsize = count * block_size;
-      job->set_done_amount(std::min(dsize, zsize));
-      if (dsize >= zsize) job->done();
+      if (dsize >= zsize) {
+        // 1 was the original "fake" work amount
+        job_->set_done_amount(zsize + 1);
+        job_->done();
+      } else {
+        job_->set_done_amount(dsize + 1);
+      }
       xassert(dt::num_threads_in_team() == 0);
       dt::progress::manager->update_view();
     }
 
-  public:
-    static py::oobj make(std::string&& msg) {
+    static py::oobj make(dt::progress::work* job) {
       auto res = py::XObject<ReportHook>::make();
       auto reporthook = reinterpret_cast<ReportHook*>(res.to_borrowed_ref());
-      reporthook->msg = new std::string(std::move(msg));
+      reporthook->job_ = job;
       return res;
     }
 
@@ -233,9 +299,13 @@ static SourceVec _from_url(py::robj src, const GenericReader& rdr) {
   ReportHook::init_type();
   auto resolver = py::oobj::import("datatable.utils.fread", "_resolve_source_url");
   auto tempfiles = rdr.get_tempfiles();
+
   // TODO: create a subtask here
-  auto reporthook = ReportHook::make("Downloading " + src.to_string());
-  return _from_python(resolver.call({src, tempfiles, reporthook}));
+  dt::progress::work job(1);
+  job.set_message("Downloading " + src.to_string());
+  auto reporthook = ReportHook::make(&job);
+  auto res = resolver.call({src, tempfiles, reporthook});
+  return _from_python(res);
 }
 
 

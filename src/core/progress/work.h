@@ -102,9 +102,10 @@ class work {
     void done();
     ~work();
 
+    size_t get_work_amount() noexcept;
+    size_t get_done_amount() noexcept;
     void add_work_amount(size_t) noexcept;
     void set_done_amount(size_t) noexcept;
-    size_t get_done_amount() noexcept;
     void add_done_amount(size_t) noexcept;
     void add_tentative_amount(size_t) noexcept;
 

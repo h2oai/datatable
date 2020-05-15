@@ -82,6 +82,10 @@ void work::add_done_amount(size_t amount) noexcept {
 }
 
 
+size_t work::get_work_amount() noexcept {
+  return total_amount;
+}
+
 size_t work::get_done_amount() noexcept {
   return done_amount;
 }

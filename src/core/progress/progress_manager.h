@@ -99,6 +99,7 @@ class progress_manager {
     bool is_interrupt_occurred() const noexcept;
     void reset_interrupt_status() const noexcept;
     void handle_interrupt() const;
+    void set_status_cancelled() noexcept;
 };
 
 

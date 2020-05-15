@@ -112,4 +112,13 @@ void progress_manager::handle_interrupt() const {
 }
 
 
+void progress_manager::set_status_cancelled() noexcept {
+  try {
+    if (pbar) pbar->set_status_error(true);
+  } catch (...) {}
+}
+
+
+
+
 }} // namespace dt::progress
