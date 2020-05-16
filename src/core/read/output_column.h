@@ -38,6 +38,8 @@ class OutputColumn
     std::vector<Column> chunks_;
     size_t nrows_in_chunks_;
     size_t na_count_;
+    SType stype_;
+    size_t : 56;
 
   public:
     OutputColumn();
@@ -49,6 +51,8 @@ class OutputColumn
     void allocate(size_t new_nrows);
     void archive_data(size_t nrows_written, std::shared_ptr<TemporaryFile>&);
     Column to_column();
+
+    void set_stype(SType stype);
 };
 
 

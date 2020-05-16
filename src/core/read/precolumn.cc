@@ -19,7 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/rbound.h"
 #include "csv/reader.h"
 #include "csv/reader_parsers.h"
 #include "python/string.h"
@@ -127,23 +126,10 @@ void PreColumn::allocate(size_t new_nrows) {
 }
 
 
-// Call `.archive_data()` before invoking `.to_column()`.
-Column PreColumn::to_column() {
-  xassert(!outcol_.databuf_);
-  size_t nchunks = outcol_.chunks_.size();
-  return (nchunks == 0)? Column::new_na_column(0, get_stype()) :
-         (nchunks == 1)? std::move(outcol_.chunks_[0]) :
-                         Column(new Rbound_ColumnImpl(std::move(outcol_.chunks_)));
+OutputColumn& PreColumn::outcol() {
+  return outcol_;
 }
 
-
-void* PreColumn::data_w() {
-  return outcol_.databuf_.xptr();
-}
-
-WritableBuffer* PreColumn::strdata_w() {
-  return outcol_.strbuf_.get();
-}
 
 
 
@@ -191,14 +177,16 @@ PreColumn::get_ptype_iterator(int8_t* qr_ptr) const {
 
 void PreColumn::set_ptype(const PreColumn::ptype_iterator& it) {
   xassert(requested_type_ == it.get_rtype());
-  parse_type_ = *it;
   type_bumped_ = true;
+  parse_type_ = *it;
+  outcol_.set_stype(get_stype());
 }
 
 // Set .parse_type_ to the provided value, disregarding the restrictions imposed
 // by the .requested_type_ field.
 void PreColumn::force_ptype(PT new_ptype) {
   parse_type_ = new_ptype;
+  outcol_.set_stype(get_stype());
 }
 
 void PreColumn::set_rtype(int64_t it) {
@@ -222,6 +210,7 @@ void PreColumn::set_rtype(int64_t it) {
     case RStr32:   parse_type_ = PT::Str32; break;
     case RStr64:   parse_type_ = PT::Str64; break;
   }
+  outcol_.set_stype(get_stype());
 }
 
 const char* PreColumn::typeName() const {

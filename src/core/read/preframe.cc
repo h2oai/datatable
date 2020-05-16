@@ -379,9 +379,10 @@ dtptr PreFrame::to_datatable() && {
   }
   for (auto& col : columns_) {
     if (!col.is_in_output()) continue;
+    auto& outcol = col.outcol();
     col.archive_data(nrows_written_, tempfile_);
     names.push_back(col.get_name());
-    ccols.push_back(col.to_column());
+    ccols.push_back(outcol.to_column());
   }
   return dtptr(new DataTable(std::move(ccols), std::move(names)));
 }

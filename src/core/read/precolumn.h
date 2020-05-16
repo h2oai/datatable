@@ -84,11 +84,9 @@ class PreColumn
     PreColumn(const PreColumn&) = delete;
 
     // Column's data
-    void* data_w();
-    WritableBuffer* strdata_w();
+    OutputColumn& outcol();
     void allocate(size_t new_nrows);
     void archive_data(size_t nrows_written, std::shared_ptr<TemporaryFile>&);
-    Column to_column();
 
     // Column's name
     const std::string& get_name() const noexcept;
