@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ_PRECOLUMN_h
-#define dt_READ_PRECOLUMN_h
+#ifndef dt_READ_INPUT_COLUMN_h
+#define dt_READ_INPUT_COLUMN_h
 #include "read/output_column.h"
 #include "buffer.h"       // Buffer
 #include "python/obj.h"   // py::oobj
@@ -50,17 +50,20 @@ namespace read {
   * "present in buffer", while those that were read correctly on the
   * first try will have this flag set to false.
   */
-class PreColumn
+class InputColumn
 {
   private:
     std::string name_;
     PT parse_type_;
     RT requested_type_;
+
+    // [Deprecated]
     bool type_bumped_;
     bool present_in_output_;
     bool present_in_buffer_;
     int : 24;
 
+    // TODO: make OutputColumn completely separate from InputColumn
     OutputColumn outcol_;
 
     class ptype_iterator {
@@ -79,9 +82,9 @@ class PreColumn
     };
 
   public:
-    PreColumn();
-    PreColumn(PreColumn&&) noexcept;
-    PreColumn(const PreColumn&) = delete;
+    InputColumn();
+    InputColumn(InputColumn&&) noexcept;
+    InputColumn(const InputColumn&) = delete;
 
     // Column's data
     OutputColumn& outcol();
@@ -89,7 +92,7 @@ class PreColumn
     // Column's name
     const std::string& get_name() const noexcept;
     void set_name(std::string&& newname) noexcept;
-    void swap_names(PreColumn& other) noexcept;
+    void swap_names(InputColumn& other) noexcept;
     const char* repr_name(const GenericReader& g) const;  // static ptr
 
     // Column's type(s)
@@ -98,7 +101,7 @@ class PreColumn
     SType get_stype() const;
     ptype_iterator get_ptype_iterator(int8_t* qr_ptr) const;
     void set_rtype(int64_t it);
-    void set_ptype(const ptype_iterator& it);
+    void set_ptype(PT new_ptype);
     void force_ptype(PT new_ptype);
     const char* typeName() const;
 
@@ -110,7 +113,6 @@ class PreColumn
     bool is_in_buffer() const noexcept;
     size_t elemsize() const;
     void reset_type_bumped();
-    void set_in_buffer(bool f);
     size_t nrows_archived() const noexcept;
 
     // Misc

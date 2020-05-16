@@ -106,7 +106,7 @@ namespace read {
   class ChunkCoordinates;
   class GenericReader;
   class OutputColumn;
-  class PreColumn;
+  class InputColumn;
   class PreFrame;
   class ThreadContext;
 }}

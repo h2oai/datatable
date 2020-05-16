@@ -23,7 +23,7 @@
 #include "csv/reader_parsers.h"
 #include "python/string.h"
 #include "read/output_column.h"
-#include "read/precolumn.h"
+#include "read/input_column.h"
 #include "utils/temporary_file.h"
 #include "column.h"
 namespace dt {
@@ -35,14 +35,14 @@ namespace read {
 // Constructors
 //------------------------------------------------------------------------------
 
-PreColumn::PreColumn()
+InputColumn::InputColumn()
   : parse_type_(PT::Mu),
     requested_type_(RT::RAuto),
     type_bumped_(false),
     present_in_output_(true),
     present_in_buffer_(true) {}
 
-PreColumn::PreColumn(PreColumn&& o) noexcept
+InputColumn::InputColumn(InputColumn&& o) noexcept
   : name_(std::move(o.name_)),
     parse_type_(o.parse_type_),
     requested_type_(o.requested_type_),
@@ -53,7 +53,7 @@ PreColumn::PreColumn(PreColumn&& o) noexcept
 
 
 
-OutputColumn& PreColumn::outcol() {
+OutputColumn& InputColumn::outcol() {
   return outcol_;
 }
 
@@ -62,19 +62,19 @@ OutputColumn& PreColumn::outcol() {
 
 //---- Column's name -----------------------------------------------------------
 
-const std::string& PreColumn::get_name() const noexcept {
+const std::string& InputColumn::get_name() const noexcept {
   return name_;
 }
 
-void PreColumn::set_name(std::string&& newname) noexcept {
+void InputColumn::set_name(std::string&& newname) noexcept {
   name_ = std::move(newname);
 }
 
-void PreColumn::swap_names(PreColumn& other) noexcept {
+void InputColumn::swap_names(InputColumn& other) noexcept {
   name_.swap(other.name_);
 }
 
-const char* PreColumn::repr_name(const GenericReader& g) const {
+const char* InputColumn::repr_name(const GenericReader& g) const {
   const char* start = name_.c_str();
   const char* end = start + name_.size();
   return g.repr_binary(start, end, 25);
@@ -84,47 +84,44 @@ const char* PreColumn::repr_name(const GenericReader& g) const {
 
 //---- Column's type -----------------------------------------------------------
 
-PT PreColumn::get_ptype() const noexcept {
+PT InputColumn::get_ptype() const noexcept {
   return parse_type_;
 }
 
-RT PreColumn::get_rtype() const noexcept {
+RT InputColumn::get_rtype() const noexcept {
   return requested_type_;
 }
 
-SType PreColumn::get_stype() const {
+SType InputColumn::get_stype() const {
   return ParserLibrary::info(parse_type_).stype;
 }
 
-PreColumn::ptype_iterator
-PreColumn::get_ptype_iterator(int8_t* qr_ptr) const {
-  return PreColumn::ptype_iterator(parse_type_, requested_type_, qr_ptr);
+InputColumn::ptype_iterator
+InputColumn::get_ptype_iterator(int8_t* qr_ptr) const {
+  return InputColumn::ptype_iterator(parse_type_, requested_type_, qr_ptr);
 }
 
-void PreColumn::set_ptype(const PreColumn::ptype_iterator& it) {
-  xassert(requested_type_ == it.get_rtype());
+void InputColumn::set_ptype(PT new_ptype) {
   type_bumped_ = true;
-  parse_type_ = *it;
+  parse_type_ = new_ptype;
   outcol_.set_stype(get_stype());
   outcol_.type_bumped_ = true;
 }
 
 // Set .parse_type_ to the provided value, disregarding the restrictions imposed
 // by the .requested_type_ field.
-void PreColumn::force_ptype(PT new_ptype) {
+void InputColumn::force_ptype(PT new_ptype) {
   parse_type_ = new_ptype;
   outcol_.set_stype(get_stype());
 }
 
-void PreColumn::set_rtype(int64_t it) {
+void InputColumn::set_rtype(int64_t it) {
   requested_type_ = static_cast<RT>(it);
   // Temporary
   switch (requested_type_) {
     case RDrop:
       parse_type_ = PT::Str32;
       present_in_output_ = false;
-      present_in_buffer_ = false;
-      outcol_.present_in_buffer_ = false;
       break;
     case RAuto:    break;
     case RBool:    parse_type_ = PT::Bool01; break;
@@ -141,7 +138,7 @@ void PreColumn::set_rtype(int64_t it) {
   outcol_.set_stype(get_stype());
 }
 
-const char* PreColumn::typeName() const {
+const char* InputColumn::typeName() const {
   return ParserLibrary::info(parse_type_).name.data();
 }
 
@@ -149,41 +146,36 @@ const char* PreColumn::typeName() const {
 
 //---- Column info -------------------------------------------------------------
 
-bool PreColumn::is_string() const {
+bool InputColumn::is_string() const {
   return ParserLibrary::info(parse_type_).isstring();
 }
 
-bool PreColumn::is_dropped() const noexcept {
+bool InputColumn::is_dropped() const noexcept {
   return requested_type_ == RT::RDrop;
 }
 
-bool PreColumn::is_type_bumped() const noexcept {
+bool InputColumn::is_type_bumped() const noexcept {
   return type_bumped_;
 }
 
-bool PreColumn::is_in_output() const noexcept {
+bool InputColumn::is_in_output() const noexcept {
   return present_in_output_;
 }
 
-bool PreColumn::is_in_buffer() const noexcept {
+bool InputColumn::is_in_buffer() const noexcept {
   return present_in_buffer_;
 }
 
-size_t PreColumn::elemsize() const {
+size_t InputColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(parse_type_).elemsize);
 }
 
-void PreColumn::reset_type_bumped() {
+void InputColumn::reset_type_bumped() {
   type_bumped_ = false;
   outcol_.type_bumped_ = false;
 }
 
-void PreColumn::set_in_buffer(bool f) {
-  present_in_buffer_ = f;
-  outcol_.present_in_buffer_ = f;
-}
-
-size_t PreColumn::nrows_archived() const noexcept {
+size_t InputColumn::nrows_archived() const noexcept {
   return outcol_.nrows_in_chunks_;
 }
 
@@ -216,7 +208,7 @@ static PyTypeObject* init_nametypepytuple() {
 }
 
 
-py::oobj PreColumn::py_descriptor() const {
+py::oobj InputColumn::py_descriptor() const {
   static PyTypeObject* name_type_pytuple = init_nametypepytuple();
   PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
@@ -228,7 +220,7 @@ py::oobj PreColumn::py_descriptor() const {
 }
 
 
-size_t PreColumn::memory_footprint() const {
+size_t InputColumn::memory_footprint() const {
   size_t sz = archived_size();
   sz += outcol_.databuf_.memory_footprint();
   sz += outcol_.strbuf_? outcol_.strbuf_->size() : 0;
@@ -237,7 +229,7 @@ size_t PreColumn::memory_footprint() const {
 }
 
 
-size_t PreColumn::archived_size() const {
+size_t InputColumn::archived_size() const {
   size_t sz = 0;
   for (const auto& col : outcol_.chunks_) {
     size_t k = col.get_num_data_buffers();
@@ -249,7 +241,7 @@ size_t PreColumn::archived_size() const {
 }
 
 
-void PreColumn::prepare_for_rereading() {
+void InputColumn::prepare_for_rereading() {
   if (type_bumped_ && present_in_output_) {
     present_in_buffer_ = true;
     type_bumped_ = false;
@@ -269,18 +261,18 @@ void PreColumn::prepare_for_rereading() {
 
 //---- ptype_iterator ----------------------------------------------------------
 
-PreColumn::ptype_iterator::ptype_iterator(PT pt, RT rt, int8_t* qr_ptr)
+InputColumn::ptype_iterator::ptype_iterator(PT pt, RT rt, int8_t* qr_ptr)
   : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
 
-PT PreColumn::ptype_iterator::operator*() const {
+PT InputColumn::ptype_iterator::operator*() const {
   return curr_ptype;
 }
 
-RT PreColumn::ptype_iterator::get_rtype() const {
+RT InputColumn::ptype_iterator::get_rtype() const {
   return rtype;
 }
 
-PreColumn::ptype_iterator& PreColumn::ptype_iterator::operator++() {
+InputColumn::ptype_iterator& InputColumn::ptype_iterator::operator++() {
   if (curr_ptype < PT::Str32) {
     curr_ptype = static_cast<PT>(curr_ptype + 1);
   } else {
@@ -289,7 +281,7 @@ PreColumn::ptype_iterator& PreColumn::ptype_iterator::operator++() {
   return *this;
 }
 
-bool PreColumn::ptype_iterator::has_incremented() const {
+bool InputColumn::ptype_iterator::has_incremented() const {
   return curr_ptype != orig_ptype;
 }
 

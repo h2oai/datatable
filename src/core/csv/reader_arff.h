@@ -40,7 +40,7 @@ class ArffReader
   const char* ch;  // pointer to the current reading location
   int line;        // current line number within the input (1-based)
   int : 32;
-  std::vector<dt::read::PreColumn> columns;
+  std::vector<dt::read::InputColumn> columns;
 
 public:
   ArffReader(dt::read::GenericReader&);

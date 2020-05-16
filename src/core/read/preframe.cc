@@ -215,12 +215,12 @@ void PreFrame::init_tempfile() {
 // Iterators
 //------------------------------------------------------------------------------
 
-PreColumn& PreFrame::column(size_t i) & {
+InputColumn& PreFrame::column(size_t i) & {
   xassert(i < columns_.size());
   return columns_[i];
 }
 
-const PreColumn& PreFrame::column(size_t i) const & {
+const InputColumn& PreFrame::column(size_t i) const & {
   xassert(i < columns_.size());
   return columns_[i];
 }

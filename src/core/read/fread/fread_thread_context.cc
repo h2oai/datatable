@@ -177,7 +177,7 @@ void FreadThreadContext::read_chunk(
                                       static_cast<int64_t>(row0 + used_nrows));
           }
           types[j] = *ptype_iter;
-          colj.set_ptype(ptype_iter);
+          colj.set_ptype(types[j]);
           if (!freader.reread_scheduled) {
             freader.reread_scheduled = true;
             freader.job->add_work_amount(GenericReader::WORK_REREAD);

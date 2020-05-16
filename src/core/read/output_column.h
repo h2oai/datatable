@@ -31,7 +31,7 @@ namespace read {
   */
 class OutputColumn
 {
-  friend class PreColumn;
+  friend class InputColumn;
   private:
     Buffer databuf_;
     std::unique_ptr<MemoryWritableBuffer> strbuf_;

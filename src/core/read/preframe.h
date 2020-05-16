@@ -22,7 +22,7 @@
 #ifndef dt_READ_PREFRAME_h
 #define dt_READ_PREFRAME_h
 #include "parallel/api.h"
-#include "read/precolumn.h"
+#include "read/input_column.h"
 #include "_dt.h"
 namespace dt {
 namespace read {
@@ -33,8 +33,8 @@ namespace read {
   * PreFrame represents a "work-in-progress" Frame, while it is in
   * the process of being read from a CSV file.
   *
-  * This class contains a vector of `PreColumn` objects, where each
-  * PreColumn corresponds to a single column of data in the input
+  * This class contains a vector of `InputColumn` objects, where each
+  * InputColumn corresponds to a single column of data in the input
   * CSV file. However, not all of these columns will end up in the
   * final DataTable - some columns may be excluded from the output
   * by the user.
@@ -45,11 +45,11 @@ namespace read {
 class PreFrame
 {
   private:
-    using iterator = std::vector<PreColumn>::iterator;
-    using const_iterator = std::vector<PreColumn>::const_iterator;
+    using iterator = std::vector<InputColumn>::iterator;
+    using const_iterator = std::vector<InputColumn>::const_iterator;
 
     const GenericReader* g_;
-    std::vector<PreColumn> columns_;
+    std::vector<InputColumn> columns_;
     size_t nrows_allocated_;
     size_t nrows_written_;
 
@@ -73,8 +73,8 @@ class PreFrame
     const_iterator end() const;
     iterator begin();
     iterator end();
-    PreColumn& column(size_t i) &;
-    const PreColumn& column(size_t i) const &;
+    InputColumn& column(size_t i) &;
+    const InputColumn& column(size_t i) const &;
 
     std::vector<PT> get_ptypes() const;
     void save_ptypes(std::vector<PT>& types) const;
