@@ -141,9 +141,6 @@ Column OutputColumn::to_column() {
 
 void OutputColumn::set_stype(SType stype) {
   stype_ = stype;
-  for (auto& col : chunks_) {
-    col.cast_inplace(stype);
-  }
 }
 
 
