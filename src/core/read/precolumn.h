@@ -85,7 +85,6 @@ class PreColumn
 
     // Column's data
     OutputColumn& outcol();
-    void archive_data(size_t nrows_written, std::shared_ptr<TemporaryFile>&);
 
     // Column's name
     const std::string& get_name() const noexcept;

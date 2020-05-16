@@ -53,64 +53,9 @@ PreColumn::PreColumn(PreColumn&& o) noexcept
 
 
 
-
-//------------------------------------------------------------------------------
-// Column's data
-//------------------------------------------------------------------------------
-
-void PreColumn::archive_data(size_t nrows_written,
-                             std::shared_ptr<TemporaryFile>& tempfile)
-{
-  if (nrows_written == outcol_.nrows_in_chunks_) return;
-  if (type_bumped_ || !present_in_buffer_) return;
-  xassert(nrows_written > outcol_.nrows_in_chunks_);
-
-  bool col_is_string = is_string();
-  size_t nrows_chunk = nrows_written - outcol_.nrows_in_chunks_;
-  size_t data_size = elemsize() * (nrows_chunk + col_is_string);
-  Buffer stored_databuf, stored_strbuf;
-  if (tempfile) {
-    auto writebuf = tempfile->data_w();
-    {
-      Buffer tmpbuf;
-      tmpbuf.swap(outcol_.databuf_);
-      size_t offset = writebuf->write(data_size, tmpbuf.rptr());
-      stored_databuf = Buffer::tmp(tempfile, offset, data_size);
-    }
-    if (col_is_string) {
-      outcol_.strbuf_->finalize();
-      Buffer tmpbuf = outcol_.strbuf_->get_mbuf();
-      size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
-      stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
-      outcol_.strbuf_ = nullptr;
-    }
-  }
-  else {
-    stored_databuf.swap(outcol_.databuf_);
-    stored_databuf.resize(data_size);
-    if (col_is_string) {
-      outcol_.strbuf_->finalize();
-      stored_strbuf = outcol_.strbuf_->get_mbuf();
-      outcol_.strbuf_ = nullptr;
-    }
-  }
-
-  outcol_.chunks_.push_back(
-    col_is_string? Column::new_string_column(nrows_chunk,
-                                             std::move(stored_databuf),
-                                             std::move(stored_strbuf))
-                 : Column::new_mbuf_column(nrows_chunk, get_stype(),
-                                           std::move(stored_databuf))
-  );
-  outcol_.nrows_in_chunks_ = nrows_written;
-  xassert(!outcol_.databuf_ && !outcol_.strbuf_);
-}
-
-
 OutputColumn& PreColumn::outcol() {
   return outcol_;
 }
-
 
 
 

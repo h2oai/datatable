@@ -195,7 +195,7 @@ void PreFrame::archive_column_chunks(size_t expected_nrows) {
     }
   }
   for (auto& col : columns_) {
-    col.archive_data(nrows_written_, tempfile_);
+    col.outcol().archive_data(nrows_written_, tempfile_);
   }
 }
 
@@ -358,7 +358,7 @@ size_t PreFrame::total_allocsize() const {
 
 void PreFrame::prepare_for_rereading() {
   for (auto& col : columns_) {
-    col.archive_data(nrows_written_, tempfile_);
+    col.outcol().archive_data(nrows_written_, tempfile_);
     col.prepare_for_rereading();
   }
   nrows_written_ = 0;
@@ -380,7 +380,7 @@ dtptr PreFrame::to_datatable() && {
   for (auto& col : columns_) {
     if (!col.is_in_output()) continue;
     auto& outcol = col.outcol();
-    col.archive_data(nrows_written_, tempfile_);
+    col.outcol().archive_data(nrows_written_, tempfile_);
     names.push_back(col.get_name());
     ccols.push_back(outcol.to_column());
   }

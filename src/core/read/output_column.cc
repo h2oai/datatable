@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/rbound.h"
 #include "read/output_column.h"
-// #include "writebuf.h"
+#include "utils/temporary_file.h"
 #include "column.h"
 namespace dt {
 namespace read {
@@ -54,6 +54,57 @@ void* OutputColumn::data_w() {
 
 WritableBuffer* OutputColumn::strdata_w() {
   return strbuf_.get();
+}
+
+
+void OutputColumn::archive_data(size_t nrows_written,
+                                std::shared_ptr<TemporaryFile>& tempfile)
+{
+  if (nrows_written == nrows_in_chunks_) return;
+  if (type_bumped_ || !present_in_buffer_) return;
+  xassert(nrows_written > nrows_in_chunks_);
+
+  size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);
+  size_t elemsize = ::info(stype_).elemsize();
+
+  size_t nrows_chunk = nrows_written - nrows_in_chunks_;
+  size_t data_size = elemsize * (nrows_chunk + is_string);
+  Buffer stored_databuf, stored_strbuf;
+  if (tempfile) {
+    auto writebuf = tempfile->data_w();
+    {
+      Buffer tmpbuf;
+      tmpbuf.swap(databuf_);
+      size_t offset = writebuf->write(data_size, tmpbuf.rptr());
+      stored_databuf = Buffer::tmp(tempfile, offset, data_size);
+    }
+    if (is_string) {
+      strbuf_->finalize();
+      Buffer tmpbuf = strbuf_->get_mbuf();
+      size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
+      stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
+      strbuf_ = nullptr;
+    }
+  }
+  else {
+    stored_databuf.swap(databuf_);
+    stored_databuf.resize(data_size);
+    if (is_string) {
+      strbuf_->finalize();
+      stored_strbuf = strbuf_->get_mbuf();
+      strbuf_ = nullptr;
+    }
+  }
+
+  chunks_.push_back(
+    is_string? Column::new_string_column(nrows_chunk,
+                                         std::move(stored_databuf),
+                                         std::move(stored_strbuf))
+             : Column::new_mbuf_column(nrows_chunk, stype_,
+                                       std::move(stored_databuf))
+  );
+  nrows_in_chunks_ = nrows_written;
+  xassert(!databuf_ && !strbuf_);
 }
 
 
