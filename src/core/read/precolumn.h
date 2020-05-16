@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PRECOLUMN_h
 #define dt_READ_PRECOLUMN_h
-#include <string>
+#include "read/output_column.h"
 #include "buffer.h"       // Buffer
 #include "python/obj.h"   // py::oobj
 #include "writebuf.h"     // WritableBuffer
@@ -40,7 +40,7 @@ namespace read {
   * An input column usually translates into an output column in a
   * DataTable returned to the user. The exception to this are
   * "dropped" columns. They are marked with `present_in_output_ =
-  * false` flag (and have `rtype_ = RT::RDrop`).
+  * false` flag (and have `requested_type_ = RT::RDrop`).
   *
   * The `present_in_buffer_` flag tracks whether the column should be
   * read from the csv file. Normally, this flag has the same value as
@@ -54,16 +54,14 @@ class PreColumn
 {
   private:
     std::string name_;
-    Buffer databuf_;
-    std::unique_ptr<MemoryWritableBuffer> strbuf_;
-    std::vector<Column> chunks_;
-    size_t nrows_archived_;
     PT parse_type_;
-    RT rtype_;
+    RT requested_type_;
     bool type_bumped_;
     bool present_in_output_;
     bool present_in_buffer_;
     int : 24;
+
+    OutputColumn outcol_;
 
     class ptype_iterator {
       private:
