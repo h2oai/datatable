@@ -39,7 +39,10 @@ class OutputColumn
     size_t nrows_in_chunks_;
     size_t na_count_;
     SType stype_;
-    size_t : 56;
+
+    bool type_bumped_;        // tmp
+    bool present_in_buffer_;  // tmp
+    size_t : 40;
 
   public:
     OutputColumn();

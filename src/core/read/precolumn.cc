@@ -107,25 +107,6 @@ void PreColumn::archive_data(size_t nrows_written,
 }
 
 
-void PreColumn::allocate(size_t new_nrows) {
-  if (type_bumped_ || !present_in_buffer_) return;
-  xassert(new_nrows >= outcol_.nrows_in_chunks_);
-
-  size_t new_nrows_allocated = new_nrows - outcol_.nrows_in_chunks_;
-  size_t allocsize = (new_nrows_allocated + is_string()) * elemsize();
-  outcol_.databuf_.resize(allocsize);
-
-  if (is_string()) {
-    size_t zero = 0;
-    std::memcpy(outcol_.databuf_.xptr(), &zero, elemsize());
-    if (!outcol_.strbuf_) {
-      outcol_.strbuf_ = std::unique_ptr<MemoryWritableBuffer>(
-                    new MemoryWritableBuffer(allocsize));
-    }
-  }
-}
-
-
 OutputColumn& PreColumn::outcol() {
   return outcol_;
 }
@@ -180,6 +161,7 @@ void PreColumn::set_ptype(const PreColumn::ptype_iterator& it) {
   type_bumped_ = true;
   parse_type_ = *it;
   outcol_.set_stype(get_stype());
+  outcol_.type_bumped_ = true;
 }
 
 // Set .parse_type_ to the provided value, disregarding the restrictions imposed
@@ -197,6 +179,7 @@ void PreColumn::set_rtype(int64_t it) {
       parse_type_ = PT::Str32;
       present_in_output_ = false;
       present_in_buffer_ = false;
+      outcol_.present_in_buffer_ = false;
       break;
     case RAuto:    break;
     case RBool:    parse_type_ = PT::Bool01; break;
@@ -247,10 +230,12 @@ size_t PreColumn::elemsize() const {
 
 void PreColumn::reset_type_bumped() {
   type_bumped_ = false;
+  outcol_.type_bumped_ = false;
 }
 
 void PreColumn::set_in_buffer(bool f) {
   present_in_buffer_ = f;
+  outcol_.present_in_buffer_ = f;
 }
 
 size_t PreColumn::nrows_archived() const noexcept {
@@ -326,9 +311,12 @@ void PreColumn::prepare_for_rereading() {
     outcol_.chunks_.clear();
     outcol_.nrows_in_chunks_ = 0;
     outcol_.strbuf_ = nullptr;
+    outcol_.type_bumped_ = false;
+    outcol_.present_in_buffer_ = true;
   }
   else {
     present_in_buffer_ = false;
+    outcol_.present_in_buffer_ = false;
   }
 }
 

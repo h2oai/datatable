@@ -87,7 +87,7 @@ void PreFrame::preallocate(size_t nrows) {
     }
   }
   for (auto& col : columns_) {
-    col.allocate(nrows);
+    col.outcol().allocate(nrows);
   }
   nrows_allocated_ = nrows;
 }
@@ -169,7 +169,7 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
 
     // Now reallocate all columns for a proper number of rows
     for (auto& col : columns_) {
-      col.allocate(nrows_new);
+      col.outcol().allocate(nrows_new);
     }
     nrows_allocated_ = nrows_new;
   }
