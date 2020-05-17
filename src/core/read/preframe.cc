@@ -87,7 +87,7 @@ void PreFrame::preallocate(size_t nrows) {
     }
   }
   for (auto& col : columns_) {
-    col.allocate(nrows);
+    col.outcol().allocate(nrows);
   }
   nrows_allocated_ = nrows;
 }
@@ -169,7 +169,7 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
 
     // Now reallocate all columns for a proper number of rows
     for (auto& col : columns_) {
-      col.allocate(nrows_new);
+      col.outcol().allocate(nrows_new);
     }
     nrows_allocated_ = nrows_new;
   }
@@ -195,7 +195,7 @@ void PreFrame::archive_column_chunks(size_t expected_nrows) {
     }
   }
   for (auto& col : columns_) {
-    col.archive_data(nrows_written_, tempfile_);
+    col.outcol().archive_data(nrows_written_, tempfile_);
   }
 }
 
@@ -215,12 +215,12 @@ void PreFrame::init_tempfile() {
 // Iterators
 //------------------------------------------------------------------------------
 
-PreColumn& PreFrame::column(size_t i) & {
+InputColumn& PreFrame::column(size_t i) & {
   xassert(i < columns_.size());
   return columns_[i];
 }
 
-const PreColumn& PreFrame::column(size_t i) const & {
+const InputColumn& PreFrame::column(size_t i) const & {
   xassert(i < columns_.size());
   return columns_[i];
 }
@@ -358,7 +358,7 @@ size_t PreFrame::total_allocsize() const {
 
 void PreFrame::prepare_for_rereading() {
   for (auto& col : columns_) {
-    col.archive_data(nrows_written_, tempfile_);
+    col.outcol().archive_data(nrows_written_, tempfile_);
     col.prepare_for_rereading();
   }
   nrows_written_ = 0;
@@ -379,9 +379,10 @@ dtptr PreFrame::to_datatable() && {
   }
   for (auto& col : columns_) {
     if (!col.is_in_output()) continue;
-    col.archive_data(nrows_written_, tempfile_);
+    auto& outcol = col.outcol();
+    col.outcol().archive_data(nrows_written_, tempfile_);
     names.push_back(col.get_name());
-    ccols.push_back(col.to_column());
+    ccols.push_back(outcol.to_column());
   }
   return dtptr(new DataTable(std::move(ccols), std::move(names)));
 }

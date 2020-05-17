@@ -12,7 +12,7 @@
 #include "_dt.h"
 
 typedef void (*ParserFnPtr)(dt::read::FreadTokenizer& ctx);
-typedef PyObject* (*FormatGeneratorFn)(dt::read::PreColumn& col);
+typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
 
 
 // In order to add a new type:

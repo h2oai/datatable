@@ -19,9 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ_PRECOLUMN_h
-#define dt_READ_PRECOLUMN_h
-#include <string>
+#ifndef dt_READ_INPUT_COLUMN_h
+#define dt_READ_INPUT_COLUMN_h
+#include "read/output_column.h"
 #include "buffer.h"       // Buffer
 #include "python/obj.h"   // py::oobj
 #include "writebuf.h"     // WritableBuffer
@@ -40,7 +40,7 @@ namespace read {
   * An input column usually translates into an output column in a
   * DataTable returned to the user. The exception to this are
   * "dropped" columns. They are marked with `present_in_output_ =
-  * false` flag (and have `rtype_ = RT::RDrop`).
+  * false` flag (and have `requested_type_ = RT::RDrop`).
   *
   * The `present_in_buffer_` flag tracks whether the column should be
   * read from the csv file. Normally, this flag has the same value as
@@ -50,20 +50,21 @@ namespace read {
   * "present in buffer", while those that were read correctly on the
   * first try will have this flag set to false.
   */
-class PreColumn
+class InputColumn
 {
   private:
     std::string name_;
-    Buffer databuf_;
-    std::unique_ptr<MemoryWritableBuffer> strbuf_;
-    std::vector<Column> chunks_;
-    size_t nrows_archived_;
     PT parse_type_;
-    RT rtype_;
+    RT requested_type_;
+
+    // [Deprecated]
     bool type_bumped_;
     bool present_in_output_;
     bool present_in_buffer_;
     int : 24;
+
+    // TODO: make OutputColumn completely separate from InputColumn
+    OutputColumn outcol_;
 
     class ptype_iterator {
       private:
@@ -81,21 +82,17 @@ class PreColumn
     };
 
   public:
-    PreColumn();
-    PreColumn(PreColumn&&) noexcept;
-    PreColumn(const PreColumn&) = delete;
+    InputColumn();
+    InputColumn(InputColumn&&) noexcept;
+    InputColumn(const InputColumn&) = delete;
 
     // Column's data
-    void* data_w();
-    WritableBuffer* strdata_w();
-    void allocate(size_t new_nrows);
-    void archive_data(size_t nrows_written, std::shared_ptr<TemporaryFile>&);
-    Column to_column();
+    OutputColumn& outcol();
 
     // Column's name
     const std::string& get_name() const noexcept;
     void set_name(std::string&& newname) noexcept;
-    void swap_names(PreColumn& other) noexcept;
+    void swap_names(InputColumn& other) noexcept;
     const char* repr_name(const GenericReader& g) const;  // static ptr
 
     // Column's type(s)
@@ -104,7 +101,7 @@ class PreColumn
     SType get_stype() const;
     ptype_iterator get_ptype_iterator(int8_t* qr_ptr) const;
     void set_rtype(int64_t it);
-    void set_ptype(const ptype_iterator& it);
+    void set_ptype(PT new_ptype);
     void force_ptype(PT new_ptype);
     const char* typeName() const;
 
@@ -116,7 +113,6 @@ class PreColumn
     bool is_in_buffer() const noexcept;
     size_t elemsize() const;
     void reset_type_bumped();
-    void set_in_buffer(bool f);
     size_t nrows_archived() const noexcept;
 
     // Misc

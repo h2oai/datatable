@@ -177,7 +177,7 @@ void FreadThreadContext::read_chunk(
                                       static_cast<int64_t>(row0 + used_nrows));
           }
           types[j] = *ptype_iter;
-          colj.set_ptype(ptype_iter);
+          colj.set_ptype(types[j]);
           if (!freader.reread_scheduled) {
             freader.reread_scheduled = true;
             freader.job->add_work_amount(GenericReader::WORK_REREAD);
@@ -311,6 +311,7 @@ void FreadThreadContext::order_buffer() {
   for (auto& col : preframe) {
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
+      auto& outcol = col.outcol();
       // Compute the size of the string content in the buffer `sz` from the
       // offset of the last element. This quantity cannot be calculated in the
       // postprocess() step, since `used_nrows` may sometimes change, affecting
@@ -320,7 +321,7 @@ void FreadThreadContext::order_buffer() {
       size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
       strinfo[j].size = sz;
 
-      WritableBuffer* wb = col.strdata_w();
+      WritableBuffer* wb = outcol.strdata_w();
       size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
       strinfo[j].write_at = write_at;
     }
@@ -337,7 +338,8 @@ void FreadThreadContext::push_buffers() {
   size_t j = 0;
   for (auto& col : preframe) {
     if (!col.is_in_buffer()) continue;
-    void* data = col.data_w();
+    auto& outcol = col.outcol();
+    void* data = outcol.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
     size_t effective_row0 = row0 - col.nrows_archived();
 
@@ -345,7 +347,7 @@ void FreadThreadContext::push_buffers() {
       // do nothing: the column was not properly allocated for its type, so
       // any attempt to write the data may fail with data corruption
     } else if (col.is_string()) {
-      WritableBuffer* wb = col.strdata_w();
+      WritableBuffer* wb = outcol.strdata_w();
       auto& si = strinfo[j];
       field64* lo = tbuf.data() + j;
 
