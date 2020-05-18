@@ -151,9 +151,10 @@ ansiColor('xterm') {
                                 sh "git pull"
                                 sh "git checkout ${env.CHANGE_BRANCH}"
                                 def BRANCH_BUILD_ID = sh(script:
-                                  'git rev-list --count master..;',
+                                  'git rev-list --count master..',
                                   returnStdout: true
                                 )
+                                sh "git checkout master"
                                 DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
                             }
                         }
