@@ -307,76 +307,8 @@ void FreadThreadContext::postprocess() {
 
 
 void FreadThreadContext::push_buffers() {
-  // If the buffer is empty, then there's nothing to do...
-  if (!used_nrows) return;
-
   double t0 = verbose? wallclock() : 0;
-  size_t j = 0;
-  for (auto& col : preframe_) {
-    if (!col.is_in_buffer()) continue;
-    auto& outcol = col.outcol();
-    void* data = outcol.data_w();
-    int8_t elemsize = static_cast<int8_t>(col.elemsize());
-    size_t effective_row0 = row0 - col.nrows_archived();
-
-    if (col.is_type_bumped()) {
-      // do nothing: the column was not properly allocated for its type, so
-      // any attempt to write the data may fail with data corruption
-    } else if (col.is_string()) {
-      WritableBuffer* wb = outcol.strdata_w();
-      auto& si = strinfo[j];
-      field64* lo = tbuf.data() + j;
-
-      wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
-
-      if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0 + 1;
-        uint32_t delta = static_cast<uint32_t>(si.write_at - si.start);
-        for (size_t n = 0; n < used_nrows; ++n) {
-          uint32_t soff = lo->str32.offset;
-          *dest++ = soff + delta;
-          lo += tbuf_ncols;
-        }
-      } else {
-        uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0 + 1;
-        uint64_t delta = static_cast<uint64_t>(si.write_at - si.start);
-        for (size_t n = 0; n < used_nrows; ++n) {
-          uint64_t soff = lo->str32.offset;
-          *dest++ = soff + delta;
-          lo += tbuf_ncols;
-        }
-      }
-
-    } else {
-      const field64* src = tbuf.data() + j;
-      if (elemsize == 8) {
-        uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint64;
-          src += tbuf_ncols;
-          dest++;
-        }
-      } else
-      if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint32;
-          src += tbuf_ncols;
-          dest++;
-        }
-      } else
-      if (elemsize == 1) {
-        uint8_t* dest = static_cast<uint8_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint8;
-          src += tbuf_ncols;
-          dest++;
-        }
-      }
-    }
-    j++;
-  }
-  used_nrows = 0;
+  ThreadContext::push_buffers();
   if (verbose) ttime_push += wallclock() - t0;
 }
 
