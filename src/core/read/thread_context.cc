@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "read/field64.h"            // field64
 #include "read/chunk_coordinates.h"  // ChunkCoordinates
+#include "read/preframe.h"
 #include "read/thread_context.h"
 #include "utils/assert.h"
 namespace dt {
@@ -65,6 +66,31 @@ void ThreadContext::set_nrows(size_t n) {
 void ThreadContext::set_row0(size_t n) {
   xassert(row0 <= n);
   row0 = n;
+}
+
+
+void ThreadContext::order_buffer() {
+  if (!used_nrows) return;
+  size_t j = 0;
+  for (auto& col : preframe_) {
+    if (!col.is_in_buffer()) continue;
+    if (col.is_string() && !col.is_type_bumped()) {
+      auto& outcol = col.outcol();
+      // Compute the size of the string content in the buffer `sz` from the
+      // offset of the last element. This quantity cannot be calculated in the
+      // postprocess() step, since `used_nrows` may sometimes change, affecting
+      // this size after the post-processing.
+      uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
+      uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
+      size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
+      strinfo[j].size = sz;
+
+      WritableBuffer* wb = outcol.strdata_w();
+      size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
+      strinfo[j].write_at = write_at;
+    }
+    ++j;
+  }
 }
 
 

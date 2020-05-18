@@ -91,7 +91,7 @@ class ThreadContext    // TODO: rename
     virtual ~ThreadContext();
 
     virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
-    virtual void order_buffer() = 0;
+    virtual void order_buffer();
     virtual void push_buffers() = 0;
 
     size_t get_nrows() const;

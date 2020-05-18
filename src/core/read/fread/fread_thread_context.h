@@ -64,7 +64,7 @@ class FreadThreadContext : public ThreadContext
 
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
     void postprocess();
-    void order_buffer() override;
+    // void order_buffer() override;
     void push_buffers() override;
 
     FreadTokenizer& get_tokenizer() { return tokenizer; }
