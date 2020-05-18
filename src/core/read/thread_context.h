@@ -67,7 +67,7 @@ namespace read {
   *   Starting row index within the PreFrame for the current data
   *   chunk.
   */
-class ThreadContext
+class ThreadContext    // TODO: rename
 {
   protected:
     struct StrInfo {
@@ -84,8 +84,10 @@ class ThreadContext
     size_t used_nrows;
     size_t row0;
 
+    PreFrame& preframe_;
+
   public:
-    ThreadContext(size_t ncols, size_t nrows);
+    ThreadContext(size_t ncols, size_t nrows, PreFrame&);
     virtual ~ThreadContext();
 
     virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;

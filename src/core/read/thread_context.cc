@@ -27,14 +27,15 @@ namespace dt {
 namespace read {
 
 
-ThreadContext::ThreadContext(size_t ncols, size_t nrows)
+ThreadContext::ThreadContext(size_t ncols, size_t nrows, PreFrame& preframe)
   : tbuf(ncols * nrows + 1),
     sbuf(0),
     strinfo(ncols),
     tbuf_ncols(ncols),
     tbuf_nrows(nrows),
     used_nrows(0),
-    row0(0) {}
+    row0(0),
+    preframe_(preframe) {}
 
 
 // Note: it is possible to have `used_nrows != 0` at the end: the content of

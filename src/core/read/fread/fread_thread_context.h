@@ -52,7 +52,7 @@ class FreadThreadContext : public ThreadContext
     PT* types;
 
     FreadReader& freader;
-    PreFrame& preframe;
+    // PreFrame& preframe;
     FreadTokenizer tokenizer;
     const ParserFnPtr* parsers;
 

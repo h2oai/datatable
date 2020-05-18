@@ -32,10 +32,9 @@ namespace read {
 
 FreadThreadContext::FreadThreadContext(
     size_t bcols, size_t brows, FreadReader& f, PT* types_
-  ) : ThreadContext(bcols, brows),
+  ) : ThreadContext(bcols, brows, f.preframe),
       types(types_),
       freader(f),
-      preframe(f.preframe),
       tokenizer(f.makeTokenizer(tbuf.data(), nullptr)),
       parsers(ParserLibrary::get_parser_fns())
 {
@@ -67,7 +66,7 @@ void FreadThreadContext::read_chunk(
   actual_cc.set_start_exact(cc.get_start());
   actual_cc.set_end_exact(nullptr);
 
-  size_t ncols = preframe.ncols();
+  size_t ncols = preframe_.ncols();
   bool fillme = fill || (ncols==1 && !skipEmptyLines);
   bool fastParsingAllowed = (sep != ' ') && !numbersMayBeNAs;
   const char*& tch = tokenizer.ch;
@@ -92,7 +91,7 @@ void FreadThreadContext::read_chunk(
         fieldStart = tch;
         parsers[types[j]](tokenizer);
         if (tch >= tokenizer.eof || *tch != sep) break;
-        tokenizer.target += preframe.column(j).is_in_buffer();
+        tokenizer.target += preframe_.column(j).is_in_buffer();
         tch++;
         j++;
       }
@@ -104,7 +103,7 @@ void FreadThreadContext::read_chunk(
         tch = tlineStart;  // in case white space at the beginning may need to be included in field
       }
       else if (tokenizer.skip_eol() && j < ncols) {
-        tokenizer.target += preframe.column(j).is_in_buffer();
+        tokenizer.target += preframe_.column(j).is_in_buffer();
         j++;
         if (j==ncols) { used_nrows++; continue; }  // next line
         tch--;
@@ -125,7 +124,7 @@ void FreadThreadContext::read_chunk(
     if (fillme || (tch == tokenizer.eof || (*tch!='\n' && *tch!='\r'))) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
-        auto ptype_iter = preframe.column(j).get_ptype_iterator(&tokenizer.quoteRule);
+        auto ptype_iter = preframe_.column(j).get_ptype_iterator(&tokenizer.quoteRule);
 
         while (true) {
           tch = fieldStart;
@@ -168,7 +167,7 @@ void FreadThreadContext::read_chunk(
         // Type-bump. This may only happen if cc.is_start_exact() is true, which
         // is can only happen to one thread at a time. Thus, there is no need
         // for "critical" section here.
-        auto& colj = preframe.column(j);
+        auto& colj = preframe_.column(j);
         if (ptype_iter.has_incremented()) {
           xassert(cc.is_start_exact());
           if (verbose) {
@@ -253,8 +252,8 @@ void FreadThreadContext::postprocess() {
   uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
                   quoteRule == 1? '\\' : 0xFF;
   uint32_t output_offset = 0;
-  for (size_t i = 0, j = 0; i < preframe.ncols(); ++i) {
-    auto& col = preframe.column(i);
+  for (size_t i = 0, j = 0; i < preframe_.ncols(); ++i) {
+    auto& col = preframe_.column(i);
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       strinfo[j].start = output_offset;
@@ -308,7 +307,7 @@ void FreadThreadContext::postprocess() {
 void FreadThreadContext::order_buffer() {
   if (!used_nrows) return;
   size_t j = 0;
-  for (auto& col : preframe) {
+  for (auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
       auto& outcol = col.outcol();
@@ -336,7 +335,7 @@ void FreadThreadContext::push_buffers() {
 
   double t0 = verbose? wallclock() : 0;
   size_t j = 0;
-  for (auto& col : preframe) {
+  for (auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
     auto& outcol = col.outcol();
     void* data = outcol.data_w();
