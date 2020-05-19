@@ -20,6 +20,8 @@ build_script:
 
     FOR /f %%i in ('git rev-list --count master') DO SET MASTER_BUILD_ID=%%i
 
+    git rev-list --count master..
+
     FOR /f %%i in ('git rev-list --count master..') DO SET BRANCH_BUILD_ID=%%i
 
     if defined APPVEYOR_PULL_REQUEST_NUMBER (SET DT_BUILD_SUFFIX=PR%APPVEYOR_PULL_REQUEST_NUMBER%.%BRANCH_BUILD_ID%)
