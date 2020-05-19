@@ -543,9 +543,8 @@ def test_runaway_quote():
 
 
 def test_unmatched_quotes():
-    # Should instead all quotes remain around 'aa', 'bb' and 'cc' ?
     assert dt.fread('A,B\n"aa",1\n"bb,2\n"cc",3\n') \
-             .to_list() == [['aa', '"bb', 'cc'], [1, 2, 3]]
+             .to_list() == [['"aa"', '"bb', '"cc"'], [1, 2, 3]]
     assert dt.fread('A,B\n"aa",1\n""bb",2\n"cc",3\n') \
              .to_list() == [['aa', '"bb', 'cc'], [1, 2, 3]]
     assert dt.fread('A,B\n"aa",1\nbb",2\n"cc",3\n') \

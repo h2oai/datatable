@@ -481,6 +481,7 @@ int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
   const char*& tch = fctx.ch;
 
   // detect blank lines
+  fctx.anchor = tch;
   fctx.skip_whitespace_at_line_start();
   if (tch == eof || fctx.skip_eol()) return 0;
 
@@ -896,7 +897,7 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
     size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
-      preframe.set_ncols(i);
+      preframe.set_ncols(i + 1);
     }
     if (ilen > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);

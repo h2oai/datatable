@@ -153,6 +153,7 @@ void FreadTokenizer::skip_whitespace_at_line_start() {
 int FreadTokenizer::countfields()
 {
   const char* ch0 = ch;
+  anchor = ch0;
   if (sep==' ') while (ch < eof && *ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_whitespace();
   if (skip_eol() || ch==eof) {
