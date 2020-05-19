@@ -11,6 +11,10 @@ pull_requests:
 build_script:
 - cmd: >-
 
+    git log --oneline master..
+
+
+
     SET PATH=C:\Python35-x64;C:\Python35-x64\Scripts;%PATH%
 
     python ci\ext.py wheel
