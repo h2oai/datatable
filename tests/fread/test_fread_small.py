@@ -16,7 +16,7 @@ import random
 import re
 import time
 from datatable.internal import frame_integrity_check
-from tests import random_string, list_equals
+from tests import random_string, list_equals, assert_equals
 
 
 
@@ -533,6 +533,13 @@ def test_fread2():
     assert f.shape == (3, 4)
     assert f.names == ("A", "B", "C", "D")
     assert f.ltypes == (ltype.int, ltype.int, ltype.int, ltype.real)
+
+
+@pytest.mark.parametrize('newline', ["\n", "\r", "\r\n", "\n\r"])
+def test_fread3(newline):
+    src = newline.join(['COL', "abc", "def", "", "ijk", ""])
+    DT = dt.fread(text=src)
+    assert_equals(DT, dt.Frame(COL=["abc", "def", "", "ijk"]))
 
 
 def test_runaway_quote():

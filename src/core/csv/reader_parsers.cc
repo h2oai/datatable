@@ -646,7 +646,7 @@ static void parse_string_unquoted(ParseContext& ctx) {
     if (static_cast<uint8_t>(c) <= 13) {  // probably a newline
       if (c == '\n') {
         // Move back to the beginning of \r+\n sequence
-        while (ch >= field_start && ch[-1] == '\r') ch--;
+        while (ch > field_start && ch[-1] == '\r') ch--;
         break;
       }
       if (c == '\r' && ctx.cr_is_newline) break;
@@ -809,6 +809,7 @@ void parse_string(ParseContext& ctx) {
   }
   auto len = ctx.target->str32.length;
   auto ptr = ctx.target->str32.offset + ctx.anchor;
+  xassert(len >= 0 || ctx.target->str32.isna());
   if (len == 0? ctx.blank_is_na
               : ctx.end_NA_string(ptr) == ptr + len) {
     ctx.target->str32.setna();
