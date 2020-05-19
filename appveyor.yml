@@ -22,6 +22,8 @@ build_script:
 
     git rev-list master..
 
+    git show 342b10b4d5fa7985fa91981e4a9d059ab3c7b688
+
     FOR /f %%i in ('git rev-list --count master..') DO SET BRANCH_BUILD_ID=%%i
 
     if defined APPVEYOR_PULL_REQUEST_NUMBER (SET DT_BUILD_SUFFIX=PR%APPVEYOR_PULL_REQUEST_NUMBER%.%BRANCH_BUILD_ID%)
