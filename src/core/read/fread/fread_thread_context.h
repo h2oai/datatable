@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_FREAD_THREAD_CONTEXT_h
 #define dt_READ_FREAD_THREAD_CONTEXT_h
-#include "read/fread/fread_tokenizer.h" // FreadTokenizer
+#include "read/parse_context.h"         // ParseContext
 #include "read/thread_context.h"        // ThreadContext
 #include "_dt.h"
 namespace dt {
@@ -36,7 +36,7 @@ namespace read {
 class FreadThreadContext : public ThreadContext
 {
   private:
-    using ParserFnPtr = void(*)(FreadTokenizer& ctx);
+    using ParserFnPtr = void(*)(ParseContext& ctx);
 
     const char* anchor;
     int quoteRule;
@@ -52,8 +52,8 @@ class FreadThreadContext : public ThreadContext
     PT* types;
 
     FreadReader& freader;
-    PreFrame& preframe;
-    FreadTokenizer tokenizer;
+    // PreFrame& preframe;
+    ParseContext tokenizer;
     const ParserFnPtr* parsers;
 
   public:
@@ -64,10 +64,10 @@ class FreadThreadContext : public ThreadContext
 
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
     void postprocess();
-    void order_buffer() override;
+    // void order_buffer() override;
     void push_buffers() override;
 
-    FreadTokenizer& get_tokenizer() { return tokenizer; }
+    ParseContext& get_tokenizer() { return tokenizer; }
 };
 
 

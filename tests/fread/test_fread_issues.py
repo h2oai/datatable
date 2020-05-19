@@ -59,7 +59,7 @@ def test_issue_R1113(tol):
     # Check that whitespace is not removed from column names either
     d2 = dt.fread(text=" ITER,    THETA1,       THETA2", strip_whitespace=False)
     d3 = dt.fread(text=" ITER  ,  THETA1   ,    THETA2", strip_whitespace=False)
-    d4 = dt.fread(text=' ITER  ,  THETA1  ,   "THETA2"', strip_whitespace=False)
+    d4 = dt.fread(text=' ITER  ,  THETA1  ,   "THETA2"', strip_whitespace=False, sep=',')
     assert d2.names == (" ITER", "    THETA1", "       THETA2")
     assert d3.names == (" ITER  ", "  THETA1   ", "    THETA2")
     assert d4.names == (' ITER  ', '  THETA1  ', '   "THETA2"')

@@ -13,7 +13,7 @@
 #include "_dt.h"
 
 class FreadReader;
-struct FreadTokenizer;
+struct ParseContext;
 
 namespace dt {
 namespace read {

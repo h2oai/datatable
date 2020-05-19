@@ -132,7 +132,7 @@ void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
 
 template <typename T>
 void writable_string_col::buffer_impl<T>::order() {
-  strbuf_write_pos = col.strdata.prep_write(strbuf_used, strbuf_ptr());
+  strbuf_write_pos = col.strdata.prepare_write(strbuf_used, strbuf_ptr());
 }
 
 

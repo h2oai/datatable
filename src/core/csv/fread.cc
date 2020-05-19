@@ -4,7 +4,7 @@
 //------------------------------------------------------------------------------
 #include "csv/reader_fread.h"                  // FreadReader
 #include "read/fread/fread_parallel_reader.h"  // FreadParallelReader
-#include "read/fread/fread_tokenizer.h"        // FreadTokenizer
+#include "read/parse_context.h"                // ParseContext
 #include "utils/misc.h"                        // wallclock
 #include "datatable.h"                         // DataTable
 
@@ -38,7 +38,9 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   if (header == 1) {
     auto _ = logger_.section("[4] Assign column names");
     dt::read::field64 tmp;
-    dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, /* anchor= */ sof);
+    dt::read::ParseContext fctx = makeTokenizer();
+    fctx.target = &tmp;
+    fctx.anchor = sof;
     fctx.ch = sof;
     parse_column_names(fctx);
     sof = fctx.ch;  // Update sof to point to the first line after the columns

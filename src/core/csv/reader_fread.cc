@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include <iomanip>
 #include "csv/reader_fread.h"    // FreadReader
-#include "read/fread/fread_tokenizer.h"  // dt::read::FreadTokenizer
+#include "read/parse_context.h"  // dt::read::ParseContext
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock
 #include "column.h"
@@ -53,13 +53,12 @@ FreadReader::FreadReader(const dt::read::GenericReader& g)
 FreadReader::~FreadReader() {}
 
 
-dt::read::FreadTokenizer FreadReader::makeTokenizer(
-    dt::read::field64* target, const char* anchor) const
+dt::read::ParseContext FreadReader::makeTokenizer() const
 {
-  dt::read::FreadTokenizer res;
+  dt::read::ParseContext res;
   res.ch = nullptr;
-  res.target = target;
-  res.anchor = anchor;
+  res.target = nullptr;
+  res.anchor = nullptr;
   res.eof = eof;
   res.NAstrings = na_strings;
   res.whiteChar = whiteChar;
@@ -88,13 +87,13 @@ class HypothesisPool;
 
 class Hypothesis {
   protected:
-    FreadTokenizer& ctx;
+    ParseContext& ctx;
     size_t nlines;
     bool invalid;
     int64_t : 56;
 
   public:
-    Hypothesis(FreadTokenizer& c) : ctx(c), nlines(0), invalid(false) {}
+    Hypothesis(ParseContext& c) : ctx(c), nlines(0), invalid(false) {}
     virtual ~Hypothesis() {}
     virtual void parse_next_line(HypothesisPool&) = 0;
     virtual double score() = 0;
@@ -122,7 +121,7 @@ class HypothesisQC : public Hypothesis {
     char qc;
     int64_t : 56;
   public:
-    HypothesisQC(FreadTokenizer& c, char q, HypothesisNoQC* p)
+    HypothesisQC(ParseContext& c, char q, HypothesisNoQC* p)
       : Hypothesis(c), parent(p), qc(q) {}
     void parse_next_line(HypothesisPool&) override {
       (void) parent;
@@ -140,7 +139,7 @@ class HypothesisNoQC : public Hypothesis {
     bool singleQuoteSeen;
     int64_t : 48;
   public:
-    HypothesisNoQC(FreadTokenizer& ctx)
+    HypothesisNoQC(ParseContext& ctx)
       : Hypothesis(ctx), chcounts(MaxSeps * HypothesisPool::MaxLines),
         doubleQuoteSeen(false), singleQuoteSeen(false) {}
 
@@ -224,7 +223,7 @@ class HypothesisNoQC : public Hypothesis {
  * H1: QC = «"», starting with QR1 = 0
  * H2: QC = «'», starting with QR2 = 0
  */
-void FreadReader::detect_sep(dt::read::FreadTokenizer&) {
+void FreadReader::detect_sep(dt::read::ParseContext&) {
 }
 
 /**
@@ -264,8 +263,9 @@ void FreadReader::detect_sep_and_qr() {
                             //   (when fill=true, the max is usually the header row and is the longest but there are more
                             //    lines of fewer)
 
-  dt::read::field64 trash;
-  dt::read::FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
+  dt::read::field64 tmp;
+  dt::read::ParseContext ctx = makeTokenizer();
+  ctx.target = &tmp;
   const char*& tch = ctx.ch;
 
   // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
@@ -384,12 +384,12 @@ void FreadReader::detect_sep_and_qr() {
 class ColumnTypeDetectionChunkster {
   public:
     const FreadReader& f;
-    dt::read::FreadTokenizer fctx;
+    dt::read::ParseContext fctx;
     size_t nchunks;
     size_t chunk_distance;
     const char* last_row_end;
 
-    ColumnTypeDetectionChunkster(FreadReader& fr, dt::read::FreadTokenizer& ft)
+    ColumnTypeDetectionChunkster(FreadReader& fr, dt::read::ParseContext& ft)
         : f(fr), fctx(ft)
     {
       nchunks = 0;
@@ -476,11 +476,12 @@ class ColumnTypeDetectionChunkster {
  * If the line cannot be parsed (because it contains a string that is not
  * parseable under the current quoting rule), then return -1.
  */
-int64_t FreadReader::parse_single_line(dt::read::FreadTokenizer& fctx)
+int64_t FreadReader::parse_single_line(dt::read::ParseContext& fctx)
 {
   const char*& tch = fctx.ch;
 
   // detect blank lines
+  fctx.anchor = tch;
   fctx.skip_whitespace_at_line_start();
   if (tch == eof || fctx.skip_eol()) return 0;
 
@@ -560,7 +561,8 @@ void FreadReader::detect_column_types()
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
-  dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
+  dt::read::ParseContext fctx = makeTokenizer();
+  fctx.target = &tmp;
   const char*& tch = fctx.ch;
 
   ColumnTypeDetectionChunkster chunkster(*this, fctx);
@@ -681,7 +683,8 @@ void FreadReader::detect_header() {
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
-  dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
+  dt::read::ParseContext fctx = makeTokenizer();
+  fctx.target = &tmp;
   const char*& tch = fctx.ch;
 
   // Detect types in the header column
@@ -820,7 +823,8 @@ void FreadReader::skip_preamble() {
   }
 
   dt::read::field64 tmp;
-  auto fctx = makeTokenizer(&tmp, /* anchor = */ nullptr);
+  auto fctx = makeTokenizer();
+  fctx.target = &tmp;
   const char*& ch = fctx.ch;
 
   char comment_char = '\xFF';  // meaning "auto"
@@ -874,7 +878,7 @@ void FreadReader::skip_preamble() {
  * not, a `IOError` will be thrown.
  */
 // TODO name-cleaning should be a method of dt::read::Column
-void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
+void FreadReader::parse_column_names(dt::read::ParseContext& ctx) {
   const char*& ch = ctx.ch;
 
   // Skip whitespace at the beginning of a line.
@@ -896,7 +900,7 @@ void FreadReader::parse_column_names(dt::read::FreadTokenizer& ctx) {
     size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
-      preframe.set_ncols(i);
+      preframe.set_ncols(i + 1);
     }
     if (ilen > 0) {
       const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);

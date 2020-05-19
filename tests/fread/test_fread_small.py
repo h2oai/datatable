@@ -16,7 +16,7 @@ import random
 import re
 import time
 from datatable.internal import frame_integrity_check
-from tests import random_string, list_equals
+from tests import random_string, list_equals, assert_equals
 
 
 
@@ -535,6 +535,13 @@ def test_fread2():
     assert f.ltypes == (ltype.int, ltype.int, ltype.int, ltype.real)
 
 
+@pytest.mark.parametrize('newline', ["\n", "\r", "\r\n", "\n\r"])
+def test_fread3(newline):
+    src = newline.join(['COL', "abc", "def", "", "ijk", ""])
+    DT = dt.fread(text=src)
+    assert_equals(DT, dt.Frame(COL=["abc", "def", "", "ijk"]))
+
+
 def test_runaway_quote():
     d0 = dt.fread('"A,B,C\n1,2,3\n4,5,6')
     assert d0.shape == (2, 3)
@@ -543,9 +550,8 @@ def test_runaway_quote():
 
 
 def test_unmatched_quotes():
-    # Should instead all quotes remain around 'aa', 'bb' and 'cc' ?
     assert dt.fread('A,B\n"aa",1\n"bb,2\n"cc",3\n') \
-             .to_list() == [['aa', '"bb', 'cc'], [1, 2, 3]]
+             .to_list() == [['"aa"', '"bb', '"cc"'], [1, 2, 3]]
     assert dt.fread('A,B\n"aa",1\n""bb",2\n"cc",3\n') \
              .to_list() == [['aa', '"bb', 'cc'], [1, 2, 3]]
     assert dt.fread('A,B\n"aa",1\nbb",2\n"cc",3\n') \

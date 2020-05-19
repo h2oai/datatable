@@ -100,7 +100,7 @@ namespace read {
   enum RT : uint8_t;
   enum BT : uint8_t;
 
-  struct FreadTokenizer;
+  struct ParseContext;
   union field64;
 
   class ChunkCoordinates;
@@ -111,6 +111,7 @@ namespace read {
   class ThreadContext;
 }}
 class FreadReader;
+void parse_string(dt::read::ParseContext&);
 
 
 #endif
