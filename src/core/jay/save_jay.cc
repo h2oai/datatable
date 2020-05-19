@@ -235,7 +235,7 @@ void dt::Rbound_ColumnImpl::write_data_to_jay(
 static jay::Buffer saveMemoryRange(
     const void* data, size_t len, WritableBuffer* wb)
 {
-  size_t pos = wb->prep_write(len, data);
+  size_t pos = wb->prepare_write(len, data);
   wb->write_at(pos, len, data);
   xassert(pos >= 8);
   if (len & 7) {  // Align the buffer to 8-byte boundary

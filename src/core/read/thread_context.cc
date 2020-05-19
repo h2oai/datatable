@@ -86,7 +86,7 @@ void ThreadContext::order_buffer() {
       strinfo[j].size = sz;
 
       WritableBuffer* wb = outcol.strdata_w();
-      size_t write_at = wb->prep_write(sz, sbuf.data() + offset0);
+      size_t write_at = wb->prepare_write(sz, sbuf.data() + offset0);
       strinfo[j].write_at = write_at;
     }
     ++j;

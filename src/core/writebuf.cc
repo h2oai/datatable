@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>       // std::min
 #include <cstring>         // std::memcpy
@@ -12,7 +26,6 @@
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "utils/misc.h"
-#include "datatablemodule.h"
 #include "buffer.h"
 #include "writebuf.h"
 
@@ -22,11 +35,11 @@
 
   // The POSIX `write()` function is deprecated on Windows,
   // so we use the ISO C++ conformant `_write()` instead.
-  #define WRITE _write
+  #define WRITE ::_write
 #else
   #include <sys/mman.h>      // mmap
   #include <unistd.h>        // write
-  #define WRITE write
+  #define WRITE ::write
 #endif
 
 
@@ -35,9 +48,9 @@
 // WritableBuffer
 //==============================================================================
 
-// Do not define ~WritableBuffer() inline in writebuf.h, because it triggers
-// the -Wweak-tables warning.
-WritableBuffer::WritableBuffer(): bytes_written(0) {}
+WritableBuffer::WritableBuffer()
+  : bytes_written_(0) {}
+
 WritableBuffer::~WritableBuffer() {}
 
 
@@ -59,7 +72,7 @@ std::unique_ptr<WritableBuffer> WritableBuffer::create_target(
     res = new MemoryWritableBuffer(size);
   } else {
     if (strategy == Strategy::Auto) {
-      #ifdef __APPLE__
+      #if DT_OS_DARWIN
         strategy = Strategy::Write;
       #else
         strategy = Strategy::Mmap;
@@ -76,27 +89,30 @@ std::unique_ptr<WritableBuffer> WritableBuffer::create_target(
 }
 
 
+size_t WritableBuffer::size() const {
+  return bytes_written_;
+}
+
+
+
 
 //==============================================================================
 // FileWritableBuffer
 //==============================================================================
 
 FileWritableBuffer::FileWritableBuffer(const std::string& path, bool append) {
-  file = new File(path, append? File::APPEND
-                              : File::OVERWRITE);
-  TRACK(this, sizeof(*this), "FileWritableBuffer");
+  file_ = new File(path, append? File::APPEND
+                               : File::OVERWRITE);
 }
 
 FileWritableBuffer::~FileWritableBuffer() {
-  delete file;
-  UNTRACK(this);
+  delete file_;
 }
 
 
-size_t FileWritableBuffer::prep_write(size_t src_size, const void* src)
-{
+size_t FileWritableBuffer::prepare_write(size_t src_size, const void* src) {
   constexpr size_t CHUNK_SIZE = 1 << 30;
-  size_t pos = bytes_written;
+  size_t pos = bytes_written_;
   if (!src_size) return pos;
 
   // On MacOS, it is impossible to write more than 2GB of data at once; on
@@ -106,18 +122,18 @@ size_t FileWritableBuffer::prep_write(size_t src_size, const void* src)
   //
   // See: https://linux.die.net/man/2/write
   //
-  int fd = file->descriptor();
+  int fd = file_->descriptor();
   int attempts_remaining = 5;
   size_t written_to_file = 0;
   while (written_to_file < src_size) {
     size_t bytes_to_write = std::min(src_size - written_to_file, CHUNK_SIZE);
-    const void* buf = static_cast<const char*>(src) + written_to_file;
-    ssize_t r = ::WRITE(fd, buf, static_cast<unsigned int>(bytes_to_write));
+    auto buf = static_cast<const char*>(src) + written_to_file;
+    auto r = WRITE(fd, buf, static_cast<unsigned int>(bytes_to_write));
     if (r < 0) {
       throw IOError() << "Cannot write to file: " << Errno
           << " (started at offset " << pos
-          << ", written " << written_to_file << " out of " << src_size
-          << " bytes)";
+          << ", written " << written_to_file
+          << " out of " << src_size << " bytes)";
     }
     if (r == 0) {
       if (attempts_remaining--) continue;  // Retry several times
@@ -133,14 +149,13 @@ size_t FileWritableBuffer::prep_write(size_t src_size, const void* src)
     written_to_file += static_cast<size_t>(r);
   }
   XAssert(written_to_file == src_size);
-  bytes_written += written_to_file;
+  bytes_written_ += written_to_file;
   return pos;
 }
 
 
-void FileWritableBuffer::write_at(size_t, size_t, const void*)
-{
-  // Do nothing. FileWritableBuffer does all the writing at the "prep_write"
+void FileWritableBuffer::write_at(size_t, size_t, const void*) {
+  // Do nothing. FileWritableBuffer does all the writing at the "prepare_write"
   // stage, because it is unable to write from multiple threads at the same
   // time (which would have required keeping multiple `fd`s on the same file
   // open, and then each thread seek-and-write to its own location.
@@ -152,9 +167,10 @@ void FileWritableBuffer::write_at(size_t, size_t, const void*)
 
 
 void FileWritableBuffer::finalize() {
-  delete file;
-  file = nullptr;
+  delete file_;
+  file_ = nullptr;
 }
+
 
 
 
@@ -163,46 +179,43 @@ void FileWritableBuffer::finalize() {
 //==============================================================================
 
 ThreadsafeWritableBuffer::ThreadsafeWritableBuffer()
-  : buffer(nullptr), allocsize(0) {}
+  : data_(nullptr), allocsize_(0) {}
 
 
-ThreadsafeWritableBuffer::~ThreadsafeWritableBuffer() {}
-
-
-size_t ThreadsafeWritableBuffer::prep_write(size_t n, const void*) {
-  size_t pos = bytes_written;
+size_t ThreadsafeWritableBuffer::prepare_write(size_t n, const void*) {
+  size_t pos = bytes_written_;
   size_t nbw = pos + n;
 
-  if (nbw > allocsize) {
-    dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
+  if (nbw > allocsize_) {
+    dt::shared_lock<dt::shared_mutex> lock(shmutex_, /* exclusive = */ true);
     size_t newsize = nbw * 2;
     this->realloc(newsize);
-    xassert(allocsize >= newsize);
+    xassert(allocsize_ >= newsize);
   }
 
-  bytes_written = nbw;
+  bytes_written_ = nbw;
   return pos;
 }
 
 
 void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src) {
-  // When n==0, the `buffer` pointer may remain unallocated, and it
+  // When n==0, the `data_` pointer may remain unallocated, and it
   // is invalid to `memcpy` 0 bytes into a null pointer.
   if (n == 0) return;
-  if (pos + n > allocsize) {
-    throw AssertionError() << "Attempt to write at pos=" << pos << " chunk of "
-      "length " << n << ", however the buffer is allocated for " << allocsize
+  if (pos + n > allocsize_) {
+    throw RuntimeError() << "Attempt to write at pos=" << pos << " chunk of "
+      "length " << n << ", however the buffer is allocated for " << allocsize_
       << " bytes only";
   }
-  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ false);
-  char* target = static_cast<char*>(buffer) + pos;
+  dt::shared_lock<dt::shared_mutex> lock(shmutex_, /* exclusive = */ false);
+  char* target = static_cast<char*>(data_) + pos;
   std::memcpy(target, src, n);
 }
 
 
 void ThreadsafeWritableBuffer::finalize() {
-  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
-  this->realloc(bytes_written);
+  dt::shared_lock<dt::shared_mutex> lock(shmutex_, /* exclusive = */ true);
+  this->realloc(bytes_written_);
 }
 
 
@@ -219,29 +232,33 @@ MemoryWritableBuffer::MemoryWritableBuffer(size_t size)
 
 
 MemoryWritableBuffer::~MemoryWritableBuffer() {
-  dt::free(buffer);
+  dt::free(data_);
 }
 
 
-void MemoryWritableBuffer::realloc(size_t newsize)
-{
-  buffer = dt::realloc(buffer, newsize);
-  allocsize = newsize;
+void MemoryWritableBuffer::realloc(size_t newsize) {
+  data_ = dt::realloc(data_, newsize);
+  allocsize_ = newsize;
 }
 
 
 Buffer MemoryWritableBuffer::get_mbuf() {
-  Buffer buf = Buffer::acquire(buffer, allocsize);
-  buffer = nullptr;
-  allocsize = 0;
+  Buffer buf = Buffer::acquire(data_, allocsize_);
+  data_ = nullptr;
+  allocsize_ = 0;
   return buf;
 }
 
 
-// This method leaves `buffer` intact; and it will be freed when the destructor
+// This method leaves `data_` intact; and it will be freed when the destructor
 // is invoked.
 std::string MemoryWritableBuffer::get_string() {
-  return std::string(static_cast<char*>(buffer), allocsize);
+  return std::string(static_cast<char*>(data_), allocsize_);
+}
+
+
+void MemoryWritableBuffer::clear() {
+  bytes_written_ = 0;
 }
 
 
@@ -252,20 +269,19 @@ std::string MemoryWritableBuffer::get_string() {
 
 MmapWritableBuffer::MmapWritableBuffer(const std::string& path, size_t size,
                                        bool append)
-  : ThreadsafeWritableBuffer(), filename(path)
+  : ThreadsafeWritableBuffer(), filename_(path)
 {
   File file(path, File::CREATE);
   if (append) {
     size_t filesize = file.size();
     size += filesize;
-    bytes_written = filesize;
+    bytes_written_ = filesize;
   }
   if (size) {
     file.resize(size);
-    allocsize = size;
+    allocsize_ = size;
     map(file.descriptor(), size);
   }
-  TRACK(this, sizeof(*this), "MmapWritableBuffer");
 }
 
 
@@ -275,46 +291,44 @@ MmapWritableBuffer::~MmapWritableBuffer() {
   } catch (const std::exception& e) {
     printf("%s\n", e.what());
   }
-  UNTRACK(this);
 }
 
 
 void MmapWritableBuffer::map(int fd, size_t size) {
-  if (buffer) {
-    throw ValueError() << "buffer is not null";
+  if (data_) {
+    throw ValueError() << "data_ is not null";
   }
   if (size == 0) {
-    allocsize = 0;
+    allocsize_ = 0;
     return;
   }
-  buffer = mmap(nullptr, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
-  if (buffer == MAP_FAILED) {
-    buffer = nullptr;
-    throw RuntimeError() << "Memory map failed for file " << filename
+  data_ = mmap(nullptr, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+  if (data_ == MAP_FAILED) {
+    data_ = nullptr;
+    throw RuntimeError() << "Memory map failed for file " << filename_
                          << " of size " << size << Errno;
   }
-  allocsize = size;
+  allocsize_ = size;
 }
 
 
 void MmapWritableBuffer::unmap() {
-  if (!buffer) return;
+  if (!data_) return;
   // Do not short-circuit: both `msync` and `munmap` must run
-  int ret = msync(buffer, allocsize, MS_ASYNC) |
-            munmap(buffer, allocsize);
+  int ret = msync(data_, allocsize_, MS_ASYNC) |
+            munmap(data_, allocsize_);
   if (ret) {
     throw IOError() << "Error unmapping the view of file "
-        << filename << " (" << buffer << "..+" << allocsize
+        << filename_ << " (" << data_ << "..+" << allocsize_
         << "): " << Errno;
   }
-  buffer = nullptr;
+  data_ = nullptr;
 }
 
 
-void MmapWritableBuffer::realloc(size_t newsize)
-{
+void MmapWritableBuffer::realloc(size_t newsize) {
   unmap();
-  File file(filename, File::READWRITE);
+  File file(filename_, File::READWRITE);
   file.resize(newsize);
   map(file.descriptor(), newsize);
 }
@@ -322,8 +336,8 @@ void MmapWritableBuffer::realloc(size_t newsize)
 
 // Similar to realloc(), but does not re-map the file
 void MmapWritableBuffer::finalize() {
-  dt::shared_lock<dt::shared_mutex> lock(shmutex, /* exclusive = */ true);
+  dt::shared_lock<dt::shared_mutex> lock(shmutex_, /* exclusive = */ true);
   unmap();
-  File file(filename, File::READWRITE);
-  file.resize(bytes_written);
+  File file(filename_, File::READWRITE);
+  file.resize(bytes_written_);
 }
