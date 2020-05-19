@@ -1,16 +1,25 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "read/fread/fread_tokenizer.h"
-
-// defined in reader_parsers.cc
-void parse_string(dt::read::FreadTokenizer&);
-
-
+#include "read/parse_context.h"
 namespace dt {
 namespace read {
 
@@ -48,7 +57,7 @@ namespace read {
  * is any '\\n' found in the file, in which case a standalone '\\r' will not be
  * considered a newline.
  */
-bool FreadTokenizer::skip_eol() {
+bool ParseContext::skip_eol() {
   if (ch < eof && *ch == '\n') {       // '\n\r' or '\n'
     ch += 1 + (ch + 1 < eof && ch[1] == '\r');
     return true;
@@ -76,7 +85,7 @@ bool FreadTokenizer::skip_eol() {
  * terminator (either a `sep` or a newline). This does not advance the tokenizer
  * position.
  */
-bool FreadTokenizer::at_end_of_field() {
+bool ParseContext::at_end_of_field() {
   // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
   // fact that the characters in the ASCII range 0..13 are very rare, so a
   // single check `tch<=13` is almost equivalent to checking whether `tch` is
@@ -97,7 +106,7 @@ bool FreadTokenizer::at_end_of_field() {
 }
 
 
-const char* FreadTokenizer::end_NA_string(const char* fieldStart) {
+const char* ParseContext::end_NA_string(const char* fieldStart) {
   const char* const* nastr = NAstrings;
   const char* mostConsumed = fieldStart;
   while (*nastr) {
@@ -119,7 +128,7 @@ const char* FreadTokenizer::end_NA_string(const char* fieldStart) {
  * For all other seps we assume that both ' ' and '\\t' characters are
  * whitespace to be skipped.
  */
-void FreadTokenizer::skip_whitespace() {
+void ParseContext::skip_whitespace() {
   // skip space so long as sep isn't space and skip tab so long as sep isn't tab
   if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
     while (ch < eof && (*ch == ' ' || *ch == '\t')) ch++;
@@ -133,7 +142,7 @@ void FreadTokenizer::skip_whitespace() {
  * Skip whitespace at the beginning of a line. This whitespace does not count
  * as a separator even if `sep=' '`.
  */
-void FreadTokenizer::skip_whitespace_at_line_start() {
+void ParseContext::skip_whitespace_at_line_start() {
   if (sep == '\t') {
     while (ch < eof && *ch == ' ') ch++;
   } else {
@@ -150,7 +159,7 @@ void FreadTokenizer::skip_whitespace_at_line_start() {
  * be parsed using current settings, or 0 if the line is empty (even though an
  * empty line may be viewed as a single field).
  */
-int FreadTokenizer::countfields()
+int ParseContext::countfields()
 {
   const char* ch0 = ch;
   anchor = ch0;
@@ -187,7 +196,7 @@ int FreadTokenizer::countfields()
 
 // Find the next "good line", in the sense that we find at least 5 lines
 // with `ncols` fields from that point on.
-bool FreadTokenizer::next_good_line_start(
+bool ParseContext::next_good_line_start(
   const ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines)
 {
   // int ncols = static_cast<int>(f.get_ncols());

@@ -209,7 +209,7 @@ void FreadThreadContext::read_chunk(
         while (tokenizer.skip_eol()) {
           tokenizer.skip_whitespace();
         }
-        if (tokenizer.at_eof()) break;
+        if (tokenizer.ch == tokenizer.eof) break;
       }
 
       // not enough columns observed (including empty line). If fill==true,

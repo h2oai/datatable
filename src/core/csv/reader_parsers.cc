@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------
 #include <limits>                        // std::numeric_limits
 #include "csv/reader_parsers.h"
-#include "read/fread/fread_tokenizer.h"  // FreadTokenizer
+#include "read/parse_context.h"          // ParseContext
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
 #include "utils/macros.h"
@@ -36,13 +36,13 @@ using namespace dt::read;
  * and there is nothing to read nor parsing pointer to advance in an empty
  * column.
  */
-void parse_mu(FreadTokenizer& ctx) {
+void parse_mu(ParseContext& ctx) {
   ctx.target->int8 = NA_BOOL8;
 }
 
 
 /* Parse numbers 0 | 1 as boolean. */
-void parse_bool8_numeric(FreadTokenizer& ctx) {
+void parse_bool8_numeric(ParseContext& ctx) {
   const char* ch = ctx.ch;
   // *ch=='0' => d=0,
   // *ch=='1' => d=1,
@@ -59,7 +59,7 @@ void parse_bool8_numeric(FreadTokenizer& ctx) {
 
 
 /* Parse lowercase true | false as boolean. */
-void parse_bool8_lowercase(FreadTokenizer& ctx) {
+void parse_bool8_lowercase(ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -74,7 +74,7 @@ void parse_bool8_lowercase(FreadTokenizer& ctx) {
 
 
 /* Parse titlecase True | False as boolean. */
-void parse_bool8_titlecase(FreadTokenizer& ctx) {
+void parse_bool8_titlecase(ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -89,7 +89,7 @@ void parse_bool8_titlecase(FreadTokenizer& ctx) {
 
 
 /* Parse uppercase TRUE | FALSE as boolean. */
-void parse_bool8_uppercase(FreadTokenizer& ctx) {
+void parse_bool8_uppercase(ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
     ctx.target->int8 = 0;
@@ -111,7 +111,7 @@ void parse_bool8_uppercase(FreadTokenizer& ctx) {
 // See (?)microbench/fread/int32.cpp for performance tests
 //
 template <typename T, bool allow_leading_zeroes>
-void parse_int_simple(FreadTokenizer& ctx) {
+void parse_int_simple(ParseContext& ctx) {
   constexpr int MAX_DIGITS = sizeof(T) == 4? 10 : 19;
   constexpr uint64_t MAX_VALUE = std::numeric_limits<T>::max();
   constexpr T NA_VALUE = std::numeric_limits<T>::min();
@@ -167,7 +167,7 @@ void parse_int_simple(FreadTokenizer& ctx) {
 // `T` should be either int32_t or int64_t
 //
 template <typename T>
-void parse_intNN_grouped(FreadTokenizer& ctx) {
+void parse_intNN_grouped(ParseContext& ctx) {
   const char* ch = ctx.ch;
   bool quoted = ch < ctx.eof && *ch == ctx.quote;
   ch += quoted;
@@ -248,7 +248,7 @@ void parse_intNN_grouped(FreadTokenizer& ctx) {
 // Float32
 //------------------------------------------------------------------------------
 
-void parse_float32_hex(FreadTokenizer& ctx) {
+void parse_float32_hex(ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint32_t neg = 0;
   uint8_t digit;
@@ -328,7 +328,7 @@ void parse_float32_hex(FreadTokenizer& ctx) {
  * where `NNN`, `MMM`, `EEE` are one or more decimal digits, representing the
  * whole part, fractional part, and the exponent respectively.
  */
-void parse_float64_simple(FreadTokenizer& ctx) {
+void parse_float64_simple(ParseContext& ctx) {
   constexpr int MAX_DIGITS = 18;
   const char* ch = ctx.ch;
 
@@ -453,7 +453,7 @@ void parse_float64_simple(FreadTokenizer& ctx) {
  *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
  *
  */
-void parse_float64_extended(FreadTokenizer& ctx) {
+void parse_float64_extended(ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg = 0;
   bool quoted = 0;
@@ -539,7 +539,7 @@ void parse_float64_extended(FreadTokenizer& ctx) {
  * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
  * @see https://en.wikipedia.org/wiki/IEEE_754-1985
  */
-void parse_float64_hex(FreadTokenizer& ctx) {
+void parse_float64_hex(ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg = 0;
   uint8_t digit;
@@ -630,7 +630,7 @@ static constexpr int ESCAPED = 2;
   *   - WILL strip the leading/trailing whitespace if requested.
   */
 template <bool QUOTES_FORBIDDEN>
-static void parse_string_unquoted(FreadTokenizer& ctx) {
+static void parse_string_unquoted(ParseContext& ctx) {
   const char* ch = ctx.ch;
   const char* end = ctx.eof;
   const char quote = ctx.quote;
@@ -686,7 +686,7 @@ static void parse_string_unquoted(FreadTokenizer& ctx) {
   *              backslash.
   */
 template <int MODE>
-static void parse_string_quoted(FreadTokenizer& ctx) {
+static void parse_string_quoted(ParseContext& ctx) {
   const char* ch = ctx.ch;
   const char* end = ctx.eof;
   const char quote = ctx.quote;
@@ -748,7 +748,7 @@ static void parse_string_quoted(FreadTokenizer& ctx) {
   * Note: this parser is very hacky, and might as well be removed
   * in the future entirely.
   */
-static void parse_string_naive(FreadTokenizer& ctx) {
+static void parse_string_naive(ParseContext& ctx) {
   const char* ch = ctx.ch;
   const char* end = ctx.eof;
   const char quote = ctx.quote;
@@ -800,7 +800,7 @@ static void parse_string_naive(FreadTokenizer& ctx) {
 
 
 
-void parse_string(FreadTokenizer& ctx) {
+void parse_string(ParseContext& ctx) {
   switch (ctx.quoteRule) {
     case 0: parse_string_quoted<DOUBLED>(ctx); break;
     case 1: parse_string_quoted<ESCAPED>(ctx); break;
