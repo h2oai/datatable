@@ -139,22 +139,24 @@ ansiColor('xterm') {
 
                         buildInfo(env.BRANCH_NAME, isRelease())
 
+
+                        sh "git clone https://github.com/h2oai/datatable.git"
+
                         if (isRelease()) {
                             DT_RELEASE = 'True'
                         }
                         else if (env.BRANCH_NAME == 'master') {
-                            DT_BUILD_NUMBER = sh(script: 'git rev-list --count master', returnStdout: true)
+                            dir("./datatable") {
+                                DT_BUILD_NUMBER = sh(script: 'git rev-list --count master', returnStdout: true)
+                            }
                         }
                         else {
-                            dir("/home/jenkins/repos/datatable") {
-                                sh "git checkout master"
-                                sh "git pull"
+                            dir("./datatable") {
                                 sh "git checkout ${env.CHANGE_BRANCH}"
                                 def BRANCH_BUILD_ID = sh(script:
                                   'git rev-list --count master..',
                                   returnStdout: true
                                 )
-                                sh "git checkout master"
                                 DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
                             }
                         }
