@@ -52,7 +52,7 @@ void* OutputColumn::data_w() {
 }
 
 
-WritableBuffer* OutputColumn::strdata_w() {
+MemoryWritableBuffer* OutputColumn::strdata_w() {
   return strbuf_.get();
 }
 
