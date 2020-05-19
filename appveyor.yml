@@ -8,8 +8,44 @@ branches:
 pull_requests:
   do_not_increment_build_number: true
 
+artifacts:
+  - path: dist\*.whl
+
 build_script:
 - cmd: >-
+
+    rem Set up DT_* environment variables
+
+    rem =======================================================================
+
+    FOR /f %%i in ('git rev-list --count master') DO SET MASTER_BUILD_ID=%%i
+
+    rem AppVeyor does an additional merge commit, that we don't need to take into account
+
+    FOR /f %%i in ('git rev-list --count master..') DO SET /a "BRANCH_BUILD_ID=%%i-1"
+
+
+    if defined APPVEYOR_PULL_REQUEST_NUMBER (SET DT_BUILD_SUFFIX=PR%APPVEYOR_PULL_REQUEST_NUMBER%.%BRANCH_BUILD_ID%)
+    else if "%APPVEYOR_REPO_BRANCH%"=="master" (SET DT_BUILD_NUMBER=%MASTER_BUILD_ID%)
+    else if "%APPVEYOR_REPO_BRANCH:~0,4%"=="rel-" (SET DT_RELEASE=True)
+    else (SET DT_BUILD_SUFFIX=%APPVEYOR_REPO_BRANCH%.%BRANCH_BUILD_ID%)
+
+
+    echo MASTER_BUILD_ID = %MASTER_BUILD_ID%
+
+    echo BRANCH_BUILD_ID = %BRANCH_BUILD_ID%
+
+    echo DT_RELEASE      = %DT_RELEASE%
+
+    echo DT_BUILD_NUMBER = %DT_BUILD_NUMBER%
+
+    echo DT_BUILD_SUFFIX = %DT_BUILD_SUFFIX%
+
+
+
+    rem Python 3.5
+
+    rem =======================================================================
 
     SET PATH=C:\Python35-x64;C:\Python35-x64\Scripts;%PATH%
 
@@ -23,6 +59,10 @@ build_script:
 
 
 
+    rem Python 3.6
+
+    rem =======================================================================
+
     SET PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
 
     python ci\ext.py wheel
@@ -35,6 +75,10 @@ build_script:
 
 
 
+    rem Python 3.7
+
+    rem =======================================================================
+
     SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
 
     python ci\ext.py wheel
@@ -46,6 +90,10 @@ build_script:
     pytest .\tests\
 
 
+
+    rem Python 3.8
+
+    rem =======================================================================
 
     SET PATH=C:\Python38-x64;C:\Python38-x64\Scripts;%PATH%
 
