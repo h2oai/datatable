@@ -108,10 +108,8 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
 
-                        sh "git clone https://github.com/h2oai/datatable.git checkout"
-                        dir("./checkout") {
-                            sh "git checkout ${env.CHANGE_BRANCH}"
-                        }
+                        sh "git clone https://github.com/h2oai/datatable.git ."
+                        sh "git checkout ${env.CHANGE_BRANCH}"
 
                         sh """
                             set +x
@@ -145,21 +143,17 @@ ansiColor('xterm') {
                             DT_RELEASE = 'True'
                         }
                         else if (env.BRANCH_NAME == 'master') {
-                            dir("./checkout") {
-                                DT_BUILD_NUMBER = sh(
-                                  script: "git rev-list --count master | tr -d '\n'",
-                                  returnStdout: true
-                                )
-                            }
+                            DT_BUILD_NUMBER = sh(
+                              script: "git rev-list --count master | tr -d '\n'",
+                              returnStdout: true
+                            )
                         }
                         else {
-                            dir("./checkout") {
-                                def BRANCH_BUILD_ID = sh(script:
-                                  "git rev-list --count master.. | tr -d '\n'",
-                                  returnStdout: true
-                                )
-                                DT_BUILD_SUFFIX = "pr" + env.CHANGE_ID + "." + BRANCH_BUILD_ID
-                            }
+                            def BRANCH_BUILD_ID = sh(script:
+                              "git rev-list --count master.. | tr -d '\n'",
+                              returnStdout: true
+                            )
+                            DT_BUILD_SUFFIX = "pr" + env.CHANGE_ID + "." + BRANCH_BUILD_ID
                         }
 
                         sh """
