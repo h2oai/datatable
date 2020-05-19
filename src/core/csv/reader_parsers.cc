@@ -725,6 +725,29 @@ static void parse_string_quoted(FreadTokenizer& ctx) {
 }
 
 
+/**
+  * Parse a "naively" quoted string. This quoting rule means that
+  * the string which potentially has embedded quotes was written
+  * without any consideration for the need to escape inner quote
+  * marks. Such string is obviously broken. This parse rule attempts
+  * to fix this situation by following a heuristic:
+  *
+  *   - assume the field has no newlines;
+  *   - the field may or may not contain quote marks;
+  *   - if the field contains a quote mark, it is not followed
+  *     by the sep;
+  *   - when we see quote+(sep|eol) in the input, it means this is
+  *     the actual field end; any quote that is not followed by
+  *     either sep or eol is assumed to be part of the field;
+  *   - if the input starts and ends with a quote, those quotes are
+  *     not considered part of the field;
+  *   - if the input starts with a quote but doesn't end with a
+  *     quote, then the first quote is presumed to be part of the
+  *     field.
+  *
+  * Note: this parser is very hacky, and might as well be removed
+  * in the future entirely.
+  */
 static void parse_string_naive(FreadTokenizer& ctx) {
   const char* ch = ctx.ch;
   const char* end = ctx.eof;

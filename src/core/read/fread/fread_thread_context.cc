@@ -35,9 +35,10 @@ FreadThreadContext::FreadThreadContext(
   ) : ThreadContext(bcols, brows, f.preframe),
       types(types_),
       freader(f),
-      tokenizer(f.makeTokenizer(tbuf.data(), nullptr)),
+      tokenizer(f.makeTokenizer()),
       parsers(ParserLibrary::get_parser_fns())
 {
+  tokenizer.target = tbuf.data();
   ttime_push = 0;
   ttime_read = 0;
   anchor = nullptr;

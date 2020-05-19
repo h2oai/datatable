@@ -137,7 +137,7 @@ public:
   double get_mean_line_len() const { return meanLineLen; }
   size_t get_ncols() const { return preframe.ncols(); }
 
-  dt::read::FreadTokenizer makeTokenizer(dt::read::field64* target, const char* anchor) const;
+  dt::read::FreadTokenizer makeTokenizer() const;
 
 private:
   void parse_column_names(dt::read::FreadTokenizer& ctx);

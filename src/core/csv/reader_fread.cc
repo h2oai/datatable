@@ -53,13 +53,12 @@ FreadReader::FreadReader(const dt::read::GenericReader& g)
 FreadReader::~FreadReader() {}
 
 
-dt::read::FreadTokenizer FreadReader::makeTokenizer(
-    dt::read::field64* target, const char* anchor) const
+dt::read::FreadTokenizer FreadReader::makeTokenizer() const
 {
   dt::read::FreadTokenizer res;
   res.ch = nullptr;
-  res.target = target;
-  res.anchor = anchor;
+  res.target = nullptr;
+  res.anchor = nullptr;
   res.eof = eof;
   res.NAstrings = na_strings;
   res.whiteChar = whiteChar;
@@ -264,8 +263,9 @@ void FreadReader::detect_sep_and_qr() {
                             //   (when fill=true, the max is usually the header row and is the longest but there are more
                             //    lines of fewer)
 
-  dt::read::field64 trash;
-  dt::read::FreadTokenizer ctx = makeTokenizer(&trash, nullptr);
+  dt::read::field64 tmp;
+  dt::read::FreadTokenizer ctx = makeTokenizer();
+  ctx.target = &tmp;
   const char*& tch = ctx.ch;
 
   // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
@@ -561,7 +561,8 @@ void FreadReader::detect_column_types()
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
-  dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
+  dt::read::FreadTokenizer fctx = makeTokenizer();
+  fctx.target = &tmp;
   const char*& tch = fctx.ch;
 
   ColumnTypeDetectionChunkster chunkster(*this, fctx);
@@ -682,7 +683,8 @@ void FreadReader::detect_header() {
   int64_t sncols = static_cast<int64_t>(ncols);
 
   dt::read::field64 tmp;
-  dt::read::FreadTokenizer fctx = makeTokenizer(&tmp, nullptr);
+  dt::read::FreadTokenizer fctx = makeTokenizer();
+  fctx.target = &tmp;
   const char*& tch = fctx.ch;
 
   // Detect types in the header column
@@ -821,7 +823,8 @@ void FreadReader::skip_preamble() {
   }
 
   dt::read::field64 tmp;
-  auto fctx = makeTokenizer(&tmp, /* anchor = */ nullptr);
+  auto fctx = makeTokenizer();
+  fctx.target = &tmp;
   const char*& ch = fctx.ch;
 
   char comment_char = '\xFF';  // meaning "auto"
