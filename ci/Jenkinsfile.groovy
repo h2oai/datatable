@@ -153,7 +153,7 @@ ansiColor('xterm') {
                               "git rev-list --count master.. | tr -d '\n'",
                               returnStdout: true
                             )
-                            DT_BUILD_SUFFIX = "pr" + env.CHANGE_ID + "." + BRANCH_BUILD_ID
+                            DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
                         }
 
                         sh """
