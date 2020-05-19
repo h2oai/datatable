@@ -27,12 +27,23 @@ namespace dt {
 namespace read {
 
 
+/**
+  * This struct carries information needed by various field parsers
+  * to correctly read their values. Different values may be used by
+  * different parsers, some may not need any extra values at all.
+  *
+  * The most important variables, however, which are used by all
+  * parsers, are: `ch`, `eof` and `target`.
+  */
 struct ParseContext
 {
-  // Pointer to the current parsing location
-  const char* ch;
+  // Pointer to the current parsing location within the input stream.
+  // All parsers are expected to advance this pointer when they
+  // successfully read a value from the stream.
+  mutable const char* ch;
 
-  // Only range of bytes [ch; eof) is available for reading
+  // The end of the range of bytes available for reading. Only bytes
+  // up to but excluding `eof` may be accessed by a parser.
   const char* eof;
 
   // Where to write the parsed value. The pointer will be incremented after
