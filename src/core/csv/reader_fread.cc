@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <iomanip>
 #include "csv/reader_fread.h"    // FreadReader
+#include "read/chunk_coordinates.h"
 #include "read/parse_context.h"  // dt::read::ParseContext
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock

@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_THREADCONTEXT_h
 #define dt_READ_THREADCONTEXT_h
+#include "read/parse_context.h"
 #include "_dt.h"
 namespace dt {
 namespace read {
@@ -85,6 +86,7 @@ class ThreadContext    // TODO: rename
     size_t row0;
 
     PreFrame& preframe_;
+    ParseContext parse_ctx_;
 
   public:
     ThreadContext(size_t ncols, size_t nrows, PreFrame&);

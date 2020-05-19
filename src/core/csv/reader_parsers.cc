@@ -8,6 +8,7 @@
 #include <limits>                        // std::numeric_limits
 #include "csv/reader_parsers.h"
 #include "read/parse_context.h"          // ParseContext
+#include "read/field64.h"                // field64
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
 #include "utils/macros.h"

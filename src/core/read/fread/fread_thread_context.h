@@ -52,8 +52,6 @@ class FreadThreadContext : public ThreadContext
     PT* types;
 
     FreadReader& freader;
-    // PreFrame& preframe;
-    ParseContext tokenizer;
     const ParserFnPtr* parsers;
 
   public:
@@ -64,10 +62,9 @@ class FreadThreadContext : public ThreadContext
 
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
     void postprocess();
-    // void order_buffer() override;
     void push_buffers() override;
 
-    ParseContext& get_tokenizer() { return tokenizer; }
+    ParseContext& get_tokenizer() { return parse_ctx_; }
 };
 
 

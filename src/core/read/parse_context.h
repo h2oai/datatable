@@ -21,8 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PARSE_CONTEXT_h
 #define dt_READ_PARSE_CONTEXT_h
-#include "read/field64.h"            // field64
-#include "read/parallel_reader.h"    // ChunkCoordinates
+#include "_dt.h"
 namespace dt {
 namespace read {
 
