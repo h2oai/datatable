@@ -36,7 +36,7 @@ namespace read {
 class FreadThreadContext : public ThreadContext
 {
   private:
-    using ParserFnPtr = void(*)(ParseContext& ctx);
+    using ParserFnPtr = void(*)(const ParseContext& ctx);
 
     const char* anchor;
     int quoteRule;

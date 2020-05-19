@@ -111,7 +111,7 @@ namespace read {
   class ThreadContext;
 }}
 class FreadReader;
-void parse_string(dt::read::ParseContext&);
+void parse_string(const dt::read::ParseContext&);
 
 
 #endif

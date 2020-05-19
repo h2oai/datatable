@@ -267,6 +267,7 @@ void FreadReader::detect_sep_and_qr() {
   dt::read::field64 tmp;
   dt::read::ParseContext ctx = makeTokenizer();
   ctx.target = &tmp;
+  ctx.anchor = sof;
   const char*& tch = ctx.ch;
 
   // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
@@ -430,6 +431,7 @@ class ColumnTypeDetectionChunkster {
 
     dt::read::ChunkCoordinates compute_chunk_boundaries(size_t j) {
       dt::read::ChunkCoordinates cc(f.eof, f.eof);
+      fctx.anchor = f.sof;
       if (j == 0) {
         if (f.header == 0) {
           cc.set_start_exact(f.sof);

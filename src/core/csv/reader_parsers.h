@@ -11,29 +11,29 @@
 #include <vector>
 #include "_dt.h"
 
-typedef void (*ParserFnPtr)(dt::read::ParseContext& ctx);
+typedef void (*ParserFnPtr)(const dt::read::ParseContext& ctx);
 typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
 
 
 // In order to add a new type:
-//   - implement a new parser function `void (*)(dt::read::ParseContext&)`
+//   - implement a new parser function `void (*)(const dt::read::ParseContext&)`
 //   - add a new identifier into `enum PT`
 //   - declare this parser in `ParserLibrary::init_parsers()`
 //   - update `test_fread_fillna1` in test_fread.py to include the new type
 //
 
-void parse_mu(dt::read::ParseContext&);
-void parse_bool8_numeric(dt::read::ParseContext&);
-void parse_bool8_uppercase(dt::read::ParseContext&);
-void parse_bool8_lowercase(dt::read::ParseContext&);
-void parse_bool8_titlecase(dt::read::ParseContext&);
-void parse_int32_simple(dt::read::ParseContext&);
-void parse_int64_simple(dt::read::ParseContext&);
-void parse_float32_hex(dt::read::ParseContext&);
-void parse_float64_simple(dt::read::ParseContext& ctx);
-void parse_float64_extended(dt::read::ParseContext& ctx);
-void parse_float64_hex(dt::read::ParseContext&);
-void parse_string(dt::read::ParseContext&);
+void parse_mu(const dt::read::ParseContext&);
+void parse_bool8_numeric(const dt::read::ParseContext&);
+void parse_bool8_uppercase(const dt::read::ParseContext&);
+void parse_bool8_lowercase(const dt::read::ParseContext&);
+void parse_bool8_titlecase(const dt::read::ParseContext&);
+void parse_int32_simple(const dt::read::ParseContext&);
+void parse_int64_simple(const dt::read::ParseContext&);
+void parse_float32_hex(const dt::read::ParseContext&);
+void parse_float64_simple(const dt::read::ParseContext& ctx);
+void parse_float64_extended(const dt::read::ParseContext& ctx);
+void parse_float64_hex(const dt::read::ParseContext&);
+void parse_string(const dt::read::ParseContext&);
 
 
 //------------------------------------------------------------------------------

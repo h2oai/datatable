@@ -37,13 +37,13 @@ using namespace dt::read;
  * and there is nothing to read nor parsing pointer to advance in an empty
  * column.
  */
-void parse_mu(ParseContext& ctx) {
+void parse_mu(const ParseContext& ctx) {
   ctx.target->int8 = NA_BOOL8;
 }
 
 
 /* Parse numbers 0 | 1 as boolean. */
-void parse_bool8_numeric(ParseContext& ctx) {
+void parse_bool8_numeric(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   // *ch=='0' => d=0,
   // *ch=='1' => d=1,
@@ -60,7 +60,7 @@ void parse_bool8_numeric(ParseContext& ctx) {
 
 
 /* Parse lowercase true | false as boolean. */
-void parse_bool8_lowercase(ParseContext& ctx) {
+void parse_bool8_lowercase(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -75,7 +75,7 @@ void parse_bool8_lowercase(ParseContext& ctx) {
 
 
 /* Parse titlecase True | False as boolean. */
-void parse_bool8_titlecase(ParseContext& ctx) {
+void parse_bool8_titlecase(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -90,7 +90,7 @@ void parse_bool8_titlecase(ParseContext& ctx) {
 
 
 /* Parse uppercase TRUE | FALSE as boolean. */
-void parse_bool8_uppercase(ParseContext& ctx) {
+void parse_bool8_uppercase(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
     ctx.target->int8 = 0;
@@ -112,7 +112,7 @@ void parse_bool8_uppercase(ParseContext& ctx) {
 // See (?)microbench/fread/int32.cpp for performance tests
 //
 template <typename T, bool allow_leading_zeroes>
-void parse_int_simple(ParseContext& ctx) {
+void parse_int_simple(const ParseContext& ctx) {
   constexpr int MAX_DIGITS = sizeof(T) == 4? 10 : 19;
   constexpr uint64_t MAX_VALUE = std::numeric_limits<T>::max();
   constexpr T NA_VALUE = std::numeric_limits<T>::min();
@@ -168,7 +168,7 @@ void parse_int_simple(ParseContext& ctx) {
 // `T` should be either int32_t or int64_t
 //
 template <typename T>
-void parse_intNN_grouped(ParseContext& ctx) {
+void parse_intNN_grouped(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   bool quoted = ch < ctx.eof && *ch == ctx.quote;
   ch += quoted;
@@ -249,7 +249,7 @@ void parse_intNN_grouped(ParseContext& ctx) {
 // Float32
 //------------------------------------------------------------------------------
 
-void parse_float32_hex(ParseContext& ctx) {
+void parse_float32_hex(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint32_t neg = 0;
   uint8_t digit;
@@ -329,7 +329,7 @@ void parse_float32_hex(ParseContext& ctx) {
  * where `NNN`, `MMM`, `EEE` are one or more decimal digits, representing the
  * whole part, fractional part, and the exponent respectively.
  */
-void parse_float64_simple(ParseContext& ctx) {
+void parse_float64_simple(const ParseContext& ctx) {
   constexpr int MAX_DIGITS = 18;
   const char* ch = ctx.ch;
 
@@ -454,7 +454,7 @@ void parse_float64_simple(ParseContext& ctx) {
  *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
  *
  */
-void parse_float64_extended(ParseContext& ctx) {
+void parse_float64_extended(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg = 0;
   bool quoted = 0;
@@ -540,7 +540,7 @@ void parse_float64_extended(ParseContext& ctx) {
  * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
  * @see https://en.wikipedia.org/wiki/IEEE_754-1985
  */
-void parse_float64_hex(ParseContext& ctx) {
+void parse_float64_hex(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg = 0;
   uint8_t digit;
@@ -631,7 +631,7 @@ static constexpr int ESCAPED = 2;
   *   - WILL strip the leading/trailing whitespace if requested.
   */
 template <bool QUOTES_FORBIDDEN>
-static void parse_string_unquoted(ParseContext& ctx) {
+static void parse_string_unquoted(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   const char* end = ctx.eof;
   const char quote = ctx.quote;
@@ -687,7 +687,7 @@ static void parse_string_unquoted(ParseContext& ctx) {
   *              backslash.
   */
 template <int MODE>
-static void parse_string_quoted(ParseContext& ctx) {
+static void parse_string_quoted(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   const char* end = ctx.eof;
   const char quote = ctx.quote;
@@ -749,7 +749,7 @@ static void parse_string_quoted(ParseContext& ctx) {
   * Note: this parser is very hacky, and might as well be removed
   * in the future entirely.
   */
-static void parse_string_naive(ParseContext& ctx) {
+static void parse_string_naive(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   const char* end = ctx.eof;
   const char quote = ctx.quote;
@@ -801,7 +801,7 @@ static void parse_string_naive(ParseContext& ctx) {
 
 
 
-void parse_string(ParseContext& ctx) {
+void parse_string(const ParseContext& ctx) {
   switch (ctx.quoteRule) {
     case 0: parse_string_quoted<DOUBLED>(ctx); break;
     case 1: parse_string_quoted<ESCAPED>(ctx); break;

@@ -47,7 +47,7 @@ struct ParseContext
 
   // Where to write the parsed value. The pointer will be incremented after
   // each successful read.
-  field64* target;
+  mutable field64* target;
 
   // Anchor pointer for string parser, this pointer is the starting point
   // relative to which `str32.offset` is defined.
@@ -82,16 +82,16 @@ struct ParseContext
   // Whether to consider a standalone '\r' a newline character
   bool cr_is_newline;
 
-  void skip_whitespace();
-  void skip_whitespace_at_line_start();
-  bool at_end_of_field();
-  const char* end_NA_string(const char*);
-  int countfields();
-  bool skip_eol();
+  void skip_whitespace() const;
+  void skip_whitespace_at_line_start() const;
+  bool at_end_of_field() const;
+  const char* end_NA_string(const char*) const;
+  int countfields() const;
+  bool skip_eol() const;
 
   bool next_good_line_start(
     const ChunkCoordinates& cc, int ncols, bool fill,
-    bool skipEmptyLines);
+    bool skipEmptyLines) const;
 };
 
 
