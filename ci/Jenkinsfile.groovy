@@ -109,7 +109,10 @@ ansiColor('xterm') {
                         deleteDir()
 
                         sh "git clone https://github.com/h2oai/datatable.git ."
-                        sh "git checkout ${env.CHANGE_BRANCH}"
+
+                        if (env.CHANGE_BRANCH) {
+                            sh "git checkout ${env.CHANGE_BRANCH}"
+                        }
 
                         sh """
                             set +x
