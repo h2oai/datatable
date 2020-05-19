@@ -107,7 +107,12 @@ ansiColor('xterm') {
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
-                        def scmEnv = checkout scm
+
+                        sh "git clone https://github.com/h2oai/datatable.git checkout"
+                        dir("./checkout") {
+                            sh "git checkout ${env.CHANGE_BRANCH}"
+                        }
+
                         sh """
                             set +x
                             echo 'env.BRANCH_NAME   = ${env.BRANCH_NAME}'
@@ -117,9 +122,6 @@ ansiColor('xterm') {
                             echo 'env.CHANGE_TARGET = ${env.CHANGE_TARGET}'
                             echo 'env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}'
                             echo 'env.CHANGE_FORK   = ${env.CHANGE_FORK}'
-                            echo 'scm.GIT_BRANCH    = ${scmEnv.GIT_BRANCH}'
-                            echo 'scm.CHANGE_BRANCH = ${scmEnv.CHANGE_BRANCH}'
-                            echo 'scm.CHANGE_SOURCE = ${scmEnv.CHANGE_SOURCE}'
                             echo 'isMasterJob  = ${isMasterJob}'
                             echo 'doPpcBuild   = ${doPpcBuild}'
                             echo 'doExtraTests = ${doExtraTests}'
@@ -127,8 +129,6 @@ ansiColor('xterm') {
                             echo 'doPpcTests   = ${doPpcTests}'
                             echo 'doCoverage   = ${doCoverage}'
                         """
-
-                        env.BRANCH_NAME = scmEnv.GIT_BRANCH.replaceAll('origin/', '').replaceAll('/', '-')
 
                         if (doPpcBuild) {
                             manager.addBadge("success.gif", "PPC64LE build triggered.")
@@ -140,13 +140,12 @@ ansiColor('xterm') {
                         buildInfo(env.BRANCH_NAME, isRelease())
 
 
-                        sh "git clone https://github.com/h2oai/datatable.git"
 
                         if (isRelease()) {
                             DT_RELEASE = 'True'
                         }
                         else if (env.BRANCH_NAME == 'master') {
-                            dir("./datatable") {
+                            dir("./checkout") {
                                 DT_BUILD_NUMBER = sh(
                                   script: "git rev-list --count master | tr -d '\n'",
                                   returnStdout: true
@@ -154,13 +153,12 @@ ansiColor('xterm') {
                             }
                         }
                         else {
-                            dir("./datatable") {
-                                sh "git checkout ${env.CHANGE_BRANCH}"
+                            dir("./checkout") {
                                 def BRANCH_BUILD_ID = sh(script:
                                   "git rev-list --count master.. | tr -d '\n'",
                                   returnStdout: true
                                 )
-                                DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
+                                DT_BUILD_SUFFIX = "pr" + env.CHANGE_ID + "." + BRANCH_BUILD_ID
                             }
                         }
 
