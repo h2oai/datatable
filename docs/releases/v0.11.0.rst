@@ -117,7 +117,7 @@
 
   General
   -------
-  .. ref-context::
+  .. ref-context:: datatable
 
   -[new] datatable is now fully supported on Windows.
 
