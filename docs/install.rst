@@ -38,15 +38,15 @@ Install on Windows
 ------------------
 
 As of version 0.11.0, ``datatable`` will also be available on Windows,
-where the installation process will be identical to the one
+and the installation process will be identical to the process
 for Mac OS X and Linux.
 
-Meanwhile, you can install the dev version of ``datatable``
+Meanwhile, you can install the dev version of ``datatable`` on Windows
 from the pre-built wheels that are available on
-`AppVeyor <https://ci.appveyor.com/project/h2oops/datatable/history>`__
+`AppVeyor <https://ci.appveyor.com/project/h2oops/datatable/history>`__.
 To do so, simply click on the master build of your choice and
 then navigate to ``Artifacts``. Copy the wheel URL that corresponds
-to your version of Python and then install it as
+to your version of Python and then install it as:
 
 .. code-block:: bash
 
