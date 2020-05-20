@@ -23,7 +23,7 @@ environment for that Python. For example:
 
 
 
-Install on Mac OS X and Linux
+Install on macOS and Linux
 -----------------------------
 
 Run the following command to install ``datatable`` on Mac OS X and Linux:
@@ -39,7 +39,7 @@ Install on Windows
 
 As of version 0.11.0, ``datatable`` will also be available on Windows,
 where the installation process will be identical to the one
-for Mac OS X and Linux.
+for macOS and Linux.
 
 Meanwhile, you can install the dev version of ``datatable``
 from the pre-built wheels that are available on

@@ -1,5 +1,5 @@
 <!---
-  Copyright 2018 H2O.ai
+  Copyright 2018-2020 H2O.ai
 
   Permission is hereby granted, free of charge, to any person obtaining a
   copy of this software and associated documentation files (the "Software"),
@@ -96,10 +96,12 @@ the following:
 
 ## Installation
 
-On MacOS and Linux systems installing datatable is as easy as
+On macOS and Linux systems installing datatable is as easy as
 ```sh
 pip install datatable
 ```
+
+As of version 0.11.0, `datatable` will also be available on Windows.
 
 On all other platforms a source distribution will be needed. For more
 information see [Build instructions](https://datatable.readthedocs.io/en/latest/install.html).
