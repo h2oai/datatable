@@ -23,10 +23,10 @@ environment for that Python. For example:
 
 
 
-Install on Mac OS X and Linux
+Install on macOS and Linux
 -----------------------------
 
-Run the following command to install ``datatable`` on Mac OS X and Linux:
+Run the following command to install ``datatable`` on macOS and Linux:
 
 .. code-block:: bash
 
@@ -37,10 +37,20 @@ Run the following command to install ``datatable`` on Mac OS X and Linux:
 Install on Windows
 ------------------
 
-Currently `datatable` does not work on Windows. There is an open issue
-`#1114 <https://github.com/h2oai/datatable/issues/1114>`__ to add support
-for Windows platforms, and there is a certain amount of progress in that
-direction; however, there are still some unresolved problems.
+As of version 0.11.0, ``datatable`` will also be available on Windows,
+and the installation process will be identical to the process
+for macOS and Linux.
+
+Meanwhile, you can install the dev version of ``datatable`` on Windows
+from the pre-built wheels that are available on
+`AppVeyor <https://ci.appveyor.com/project/h2oops/datatable/history>`__.
+To do so, simply click on the master build of your choice and
+then navigate to ``Artifacts``. Copy the wheel URL that corresponds
+to your version of Python and then install it as:
+
+.. code-block:: bash
+
+  C:\> pip install YOUR_WHEEL_URL
 
 
 
