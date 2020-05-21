@@ -26,7 +26,7 @@ environment for that Python. For example:
 Install on macOS and Linux
 -----------------------------
 
-Run the following command to install ``datatable`` on Mac OS X and Linux:
+Run the following command to install ``datatable`` on macOS and Linux:
 
 .. code-block:: bash
 
