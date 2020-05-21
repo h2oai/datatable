@@ -793,7 +793,7 @@ def test_unquoting2():
 
 def test_unescaping1():
     d0 = dt.fread('"C\\\\D"\n'
-                  'AB\\x20CD\\n\n'
+                  '"AB\\x20CD\\n"\n'
                   '"\\"one\\", \\\'two\\\', three"\n'
                   '"\\r\\t\\v\\a\\b\\071\\uABCD"\n')
     frame_integrity_check(d0)

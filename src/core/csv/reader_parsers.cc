@@ -5,6 +5,7 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <iostream>
 #include <limits>                        // std::numeric_limits
 #include "csv/reader_parsers.h"
 #include "read/parse_context.h"          // ParseContext
@@ -12,6 +13,7 @@
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
 #include "utils/macros.h"
+#include "encodings.h"
 
 static constexpr int8_t   NA_BOOL8 = -128;
 static constexpr int32_t  NA_INT32 = INT32_MIN;
@@ -611,9 +613,123 @@ void parse_float64_hex(const ParseContext& ctx) {
 //------------------------------------------------------------------------------
 // String
 //------------------------------------------------------------------------------
-// static constexpr int SIMPLE = 0;
+static constexpr int SIMPLE = 0;
 static constexpr int DOUBLED = 1;
 static constexpr int ESCAPED = 2;
+
+static void save_plain_string(const ParseContext& ctx,
+                              const char* start, const char* end)
+{
+  auto len = end - start;
+  size_t pos = ctx.strbuf.write(static_cast<size_t>(len), start);
+  ctx.target->str32.offset = static_cast<uint32_t>(pos);
+  ctx.target->str32.length = static_cast<int32_t>(len);
+}
+
+static void write_utf8_codepoint(int32_t cp, char** dest) {
+  uint8_t* ch = reinterpret_cast<uint8_t*>(*dest);
+  if (cp <= 0x7F) {
+    *ch++ = static_cast<uint8_t>(cp);
+  } else if (cp <= 0x7FF) {
+    *ch++ = 0xC0 | static_cast<uint8_t>(cp >> 6);
+    *ch++ = 0x80 | static_cast<uint8_t>(cp & 0x3F);
+  } else if (cp <= 0xFFFF) {
+    *ch++ = 0xE0 | static_cast<uint8_t>(cp >> 12);
+    *ch++ = 0x80 | static_cast<uint8_t>((cp >> 6) & 0x3F);
+    *ch++ = 0x80 | static_cast<uint8_t>(cp & 0x3F);
+  } else {
+    *ch++ = 0xF0 | static_cast<uint8_t>(cp >> 18);
+    *ch++ = 0x80 | static_cast<uint8_t>((cp >> 12) & 0x3F);
+    *ch++ = 0x80 | static_cast<uint8_t>((cp >> 6) & 0x3F);
+    *ch++ = 0x80 | static_cast<uint8_t>(cp & 0x3F);
+  }
+  *dest = reinterpret_cast<char*>(ch);
+}
+
+template <int MODE>
+static void save_unescaped_string(const ParseContext& ctx,
+                                  const char* start, const char* end)
+{
+  char quote = ctx.quote;
+  auto len = end - start;
+  size_t pos = ctx.strbuf.prepare_write(static_cast<size_t>(len), nullptr);
+  char* dest = static_cast<char*>(ctx.strbuf.data()) + pos;
+  char* dest0 = dest;
+
+  const char* src = start;
+  while (src < end) {
+    start_loop:
+    char c = *src++;
+    if (MODE == DOUBLED) {
+      if (c == quote) src++;
+      *dest++ = c;
+    }
+    if (MODE == ESCAPED) {
+      if (c == '\\') {
+        c = *src++;
+        switch (c) {
+          case 'a': *dest++ = '\a'; break;
+          case 'b': *dest++ = '\b'; break;
+          case 'f': *dest++ = '\f'; break;
+          case 'n': *dest++ = '\n'; break;
+          case 'r': *dest++ = '\r'; break;
+          case 't': *dest++ = '\t'; break;
+          case 'v': *dest++ = '\v'; break;
+          case '0': case '1': case '2': case '3':
+          case '4': case '5': case '6': case '7': {
+            // Octal escape sequence
+            uint8_t chd = static_cast<uint8_t>(c - '0');
+            int32_t v = static_cast<int32_t>(chd);
+            if (src < end && (chd = static_cast<uint8_t>(*src-'0')) <= 7) {
+              v = v * 8 + chd;
+              src++;
+            }
+            if (src < end && (chd = static_cast<uint8_t>(*src-'0')) <= 7) {
+              v = v * 8 + chd;
+              src++;
+            }
+            write_utf8_codepoint(v, &dest);
+            break;
+          }
+          case 'x': case 'u': case 'U': {
+            // Hex-sequence
+            int32_t v = 0;
+            int nhexdigits = (c == 'x')? 2 : (c == 'u')? 4 : 8;
+            if (src + nhexdigits <= end) {
+              for (int i = 0; i < nhexdigits; i++) {
+                c = *src++;
+                if      (static_cast<uint8_t>(c - '0') < 10) v = v*16 + (c - '0');
+                else if (static_cast<uint8_t>(c - 'A') < 6)  v = v*16 + (c - 'A' + 10);
+                else if (static_cast<uint8_t>(c - 'a') < 6)  v = v*16 + (c - 'a' + 10);
+                else {
+                  *dest++ = '\\';
+                  src -= i + 2;
+                  goto start_loop;
+                }
+              }
+              write_utf8_codepoint(v, &dest);
+            } else {
+              *dest++ = '\\';
+              src--;
+            }
+            break;
+          }
+          default: {
+            *dest++ = c;
+            break;
+          }
+        }
+      } else {
+        *dest++ = c;
+      }
+    }
+  }
+  ctx.target->str32.offset = static_cast<uint32_t>(pos);
+  ctx.target->str32.length = static_cast<int32_t>(dest - dest0);
+  // std::cout << "Written string: `" << std::string(dest0, dest) << "`\n";
+}
+
+
 
 /**
   * Parse simple unquoted string field. The field terminates when we
@@ -667,8 +783,7 @@ static void parse_string_unquoted(const ParseContext& ctx) {
       field_size--;
     }
   }
-  ctx.target->str32.offset = static_cast<uint32_t>(field_start - ctx.anchor);
-  ctx.target->str32.length = static_cast<int32_t>(field_size);
+  save_plain_string(ctx, field_start, field_start + field_size);
   ctx.ch = ch;
 }
 
@@ -698,21 +813,32 @@ static void parse_string_quoted(const ParseContext& ctx) {
   if (ch < end && *ch == quote) {
     ch++;  // skip the quote symbol
     const char* field_start = ch;
+    size_t n_escapes = 0;
     while (ch < end) {
       if (*ch == quote) {
-        if (MODE == DOUBLED && ch + 1 < end && ch[1] == quote) ch++;
-        else break;  // undoubled quote: end of field
+        if (MODE == DOUBLED && ch + 1 < end && ch[1] == quote) {
+          ch++;
+          n_escapes++;
+        } else {
+          break;  // undoubled quote: end of field
+        }
       }
-      if (MODE == ESCAPED && *ch == '\\') ch++;
+      if (MODE == ESCAPED && *ch == '\\') {
+        ch++;
+        n_escapes++;
+      }
       ch++;
     }
     if (ch >= end) {
       ctx.target->str32.setna();
       return;
     }
-    xassert(field_start < ctx.anchor + (1ull << 32));
-    ctx.target->str32.offset = static_cast<uint32_t>(field_start - ctx.anchor);
-    ctx.target->str32.length = static_cast<int32_t>(ch - field_start);
+    if (MODE != SIMPLE && n_escapes) {
+      save_unescaped_string<MODE>(ctx, field_start, ch);
+    } else {
+      save_plain_string(ctx, field_start, ch);
+    }
+
     xassert(*ch == quote);
     ch++;  // skip over the quote
     if (ctx.strip_whitespace) {
@@ -794,9 +920,28 @@ static void parse_string_naive(const ParseContext& ctx) {
     ch++;
   }
   if (!field_end) field_end = ch;
-  ctx.target->str32.offset = static_cast<uint32_t>(field_start - ctx.anchor);
-  ctx.target->str32.length = static_cast<int32_t>(field_end - field_start);
+  size_t field_size = static_cast<size_t>(field_end - field_start);
+  size_t pos = ctx.strbuf.write(field_size, field_start);
+  ctx.target->str32.offset = static_cast<uint32_t>(pos);
+  ctx.target->str32.length = static_cast<int32_t>(field_size);
   ctx.ch = ch;
+}
+
+
+static bool is_na_string(const ParseContext& ctx, const char* start, const char* end)
+{
+  const char* const* nastr = ctx.NAstrings;
+  while (*nastr) {
+    const char* ch1 = start;
+    const char* ch2 = *nastr;
+    while (ch1 < end && *ch1 == *ch2 && *ch2) {
+      ch1++;
+      ch2++;
+    }
+    if (*ch2 == '\0') return true;
+    nastr++;
+  }
+  return false;
 }
 
 
@@ -809,11 +954,16 @@ void parse_string(const ParseContext& ctx) {
     case 3: parse_string_unquoted<false>(ctx); break;
   }
   auto len = ctx.target->str32.length;
-  auto ptr = ctx.target->str32.offset + ctx.anchor;
+  auto ptr = ctx.target->str32.offset +
+             static_cast<const char*>(ctx.strbuf.data());
   xassert(len >= 0 || ctx.target->str32.isna());
-  if (len == 0? ctx.blank_is_na
-              : ctx.end_NA_string(ptr) == ptr + len) {
-    ctx.target->str32.setna();
+  if (len == 0) {
+    if (ctx.blank_is_na) ctx.target->str32.setna();
+  }
+  else if (len > 0) {
+    if (is_na_string(ctx, ptr, ptr + len)) {
+      ctx.target->str32.setna();
+    }
   }
 }
 

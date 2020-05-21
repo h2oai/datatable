@@ -898,33 +898,15 @@ void FreadReader::parse_column_names(dt::read::ParseContext& ctx) {
     // Parse string field, but do not advance `ctx.target`: on the next
     // iteration we will write into the same place.
     parse_string(ctx);
-    const char* start = ctx.anchor + ctx.target->str32.offset;
+    const char* start = static_cast<const char*>(ctx.strbuf.data())
+                        + ctx.target->str32.offset;
     int32_t ilen = ctx.target->str32.length;
-    size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
       preframe.set_ncols(i + 1);
     }
     if (ilen > 0) {
-      const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
-      int res = check_escaped_string(usrc, zlen, echar);
-      if (res == 0) {
-        preframe.column(i).set_name(std::string(start, zlen));
-      } else {
-        char* newsrc = new char[zlen * 4];
-        uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
-        int newlen;
-        if (res == 1) {
-          newlen = decode_escaped_csv_string(usrc, ilen, unewsrc, echar);
-        } else {
-          newlen = decode_win1252(usrc, ilen, unewsrc);
-          newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
-        }
-        xassert(newlen > 0);
-        zlen = static_cast<size_t>(newlen);
-        preframe.column(i).set_name(std::string(newsrc, zlen));
-        delete[] newsrc;
-      }
+      preframe.column(i).set_name(std::string(start, start + ilen));
     }
     // Skip the separator, handling special case of sep=' ' (multiple spaces are
     // treated as a single separator, and spaces at the beginning/end of line

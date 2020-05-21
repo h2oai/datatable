@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PARSE_CONTEXT_h
 #define dt_READ_PARSE_CONTEXT_h
+#include "writebuf.h"
 #include "_dt.h"
 namespace dt {
 namespace read {
@@ -48,6 +49,9 @@ struct ParseContext
   // Where to write the parsed value. The pointer will be incremented after
   // each successful read.
   mutable field64* target;
+
+
+  mutable MemoryWritableBuffer strbuf;
 
   // Anchor pointer for string parser, this pointer is the starting point
   // relative to which `str32.offset` is defined.
@@ -92,6 +96,39 @@ struct ParseContext
   bool next_good_line_start(
     const ChunkCoordinates& cc, int ncols, bool fill,
     bool skipEmptyLines) const;
+
+
+  ParseContext() = default;
+  ParseContext(const ParseContext& o)
+    : ch(o.ch),
+      eof(o.eof),
+      target(o.target),
+      anchor(o.anchor),
+      NAstrings(o.NAstrings),
+      whiteChar(o.whiteChar),
+      dec(o.dec),
+      sep(o.sep),
+      quote(o.quote),
+      quoteRule(o.quoteRule),
+      strip_whitespace(o.strip_whitespace),
+      blank_is_na(o.blank_is_na),
+      cr_is_newline(o.cr_is_newline) {}
+  ParseContext& operator=(const ParseContext& o) {
+    ch = o.ch;
+    eof = o.eof;
+    target = o.target;
+    anchor = o.anchor;
+    NAstrings = o.NAstrings;
+    whiteChar = o.whiteChar;
+    dec = o.dec;
+    sep = o.sep;
+    quote = o.quote;
+    quoteRule = o.quoteRule;
+    strip_whitespace = o.strip_whitespace;
+    blank_is_na = o.blank_is_na;
+    cr_is_newline = o.cr_is_newline;
+    return *this;
+  }
 };
 
 

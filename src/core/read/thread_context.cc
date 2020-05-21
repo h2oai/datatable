@@ -72,56 +72,68 @@ void ThreadContext::set_row0(size_t n) {
 
 
 void ThreadContext::postprocess() {
-  auto zanchor = reinterpret_cast<const uint8_t*>(parse_ctx_.anchor);
-  uint8_t echar = parse_ctx_.quoteRule == 0? static_cast<uint8_t>(parse_ctx_.quote) :
-                  parse_ctx_.quoteRule == 1? '\\' : 0xFF;
-  uint32_t output_offset = 0;
-  for (size_t i = 0, j = 0; i < preframe_.ncols(); ++i) {
-    auto& col = preframe_.column(i);
+  // auto zanchor = reinterpret_cast<const uint8_t*>(parse_ctx_.anchor);
+  // uint8_t echar = parse_ctx_.quoteRule == 0? static_cast<uint8_t>(parse_ctx_.quote) :
+  //                 parse_ctx_.quoteRule == 1? '\\' : 0xFF;
+  // uint32_t output_offset = 0;
+  size_t j = 0;
+  for (const auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
     if (col.is_string() && !col.is_type_bumped()) {
-      strinfo[j].start = output_offset;
+      size_t total_length = 0;
       field64* coldata = tbuf.data() + j;
-      for (size_t n = 0; n < used_nrows; ++n) {
-        // Initially, offsets of all entries are given relative to `zanchor`.
-        // If a string is NA, its length will be INT_MIN.
-        uint32_t entry_offset = coldata->str32.offset;
+      for (size_t irow = 0; irow < used_nrows; irow++) {
         int32_t entry_length = coldata->str32.length;
         if (entry_length > 0) {
-          size_t zlen = static_cast<size_t>(entry_length);
-          if (sbuf.size() < zlen * 3 + output_offset) {
-            sbuf.resize(size_t((2 - 1.0*n/used_nrows)*sbuf.size()) + zlen*3);
-          }
-          uint8_t* dest = sbuf.data() + output_offset;
-          const uint8_t* src = zanchor + entry_offset;
-          int res = check_escaped_string(src, zlen, echar);
-          int32_t newlen = entry_length;
-          if (res == 0) {
-            // The most common case: the string is correct UTF-8 and does not
-            // require un-escaping. Leave the entry as-is
-            std::memcpy(dest, src, zlen);
-          } else if (res == 1) {
-            // Valid UTF-8, but requires un-escaping
-            newlen = decode_escaped_csv_string(src, entry_length, dest, echar);
-          } else {
-            // Invalid UTF-8
-            newlen = decode_win1252(src, entry_length, dest);
-            xassert(newlen > 0);
-            newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
-          }
-          xassert(newlen > 0);
-          output_offset += static_cast<uint32_t>(newlen);
-          coldata->str32.length = newlen;
-          coldata->str32.offset = output_offset;
-        } else if (entry_length == 0) {
-          coldata->str32.offset = output_offset;
-        } else {
-          xassert(coldata->str32.isna());
-          coldata->str32.offset = output_offset ^ GETNA<uint32_t>();
+          total_length += static_cast<size_t>(entry_length);
         }
         coldata += tbuf_ncols;
-        xassert(output_offset <= sbuf.size());
       }
+      strinfo[j].size = total_length;
+
+
+      // strinfo[j].start = output_offset;
+      // field64* coldata = tbuf.data() + j;
+      // for (size_t n = 0; n < used_nrows; ++n) {
+      //   // Initially, offsets of all entries are given relative to `zanchor`.
+      //   // If a string is NA, its length will be INT_MIN.
+      //   uint32_t entry_offset = coldata->str32.offset;
+      //   int32_t entry_length = coldata->str32.length;
+      //   if (entry_length > 0) {
+      //     size_t zlen = static_cast<size_t>(entry_length);
+      //     if (sbuf.size() < zlen * 3 + output_offset) {
+      //       sbuf.resize(size_t((2 - 1.0*n/used_nrows)*sbuf.size()) + zlen*3);
+      //     }
+      //     uint8_t* dest = sbuf.data() + output_offset;
+      //     const uint8_t* src = zanchor + entry_offset;
+      //     int res = check_escaped_string(src, zlen, echar);
+      //     int32_t newlen = entry_length;
+      //     if (res == 0) {
+      //       // The most common case: the string is correct UTF-8 and does not
+      //       // require un-escaping. Leave the entry as-is
+      //       std::memcpy(dest, src, zlen);
+      //     } else if (res == 1) {
+      //       // Valid UTF-8, but requires un-escaping
+      //       newlen = decode_escaped_csv_string(src, entry_length, dest, echar);
+      //     } else {
+      //       // Invalid UTF-8
+      //       newlen = decode_win1252(src, entry_length, dest);
+      //       xassert(newlen > 0);
+      //       newlen = decode_escaped_csv_string(dest, newlen, dest, echar);
+      //     }
+      //     xassert(newlen > 0);
+      //     output_offset += static_cast<uint32_t>(newlen);
+      //     coldata->str32.length = newlen;
+      //     coldata->str32.offset = output_offset;
+      //   } else if (entry_length == 0) {
+      //     coldata->str32.offset = output_offset;
+      //   } else {
+      //     xassert(coldata->str32.isna());
+      //     coldata->str32.offset = output_offset ^ GETNA<uint32_t>();
+      //   }
+      //   coldata += tbuf_ncols;
+      //   xassert(output_offset <= sbuf.size());
+      // }
     }
     ++j;
   }
@@ -140,13 +152,14 @@ void ThreadContext::order_buffer() {
       // offset of the last element. This quantity cannot be calculated in the
       // postprocess() step, since `used_nrows` may sometimes change, affecting
       // this size after the post-processing.
-      uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
-      uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
-      size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
-      strinfo[j].size = sz;
+      // uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
+      // uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
+      // size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
+      // strinfo[j].size = sz;
 
-      WritableBuffer* wb = outcol.strdata_w();
-      size_t write_at = wb->prepare_write(sz, sbuf.data() + offset0);
+      auto sz = strinfo[j].size;
+      auto wb = outcol.strdata_w();
+      size_t write_at = wb->prepare_write(sz, nullptr);
       strinfo[j].write_at = write_at;
     }
     ++j;
@@ -172,29 +185,48 @@ void ThreadContext::push_buffers() {
       // do nothing: the column was not properly allocated for its type, so
       // any attempt to write the data may fail with data corruption
     } else if (col.is_string()) {
-      WritableBuffer* wb = outcol.strdata_w();
-      auto& si = strinfo[j];
-      field64* lo = tbuf.data() + j;
+      auto srcbuf = static_cast<char*>(parse_ctx_.strbuf.data());
+      auto outbuf = outcol.strdata_w();
+      field64* dataptr = tbuf.data() + j;
 
-      wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
-
-      if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0 + 1;
-        uint32_t delta = static_cast<uint32_t>(si.write_at - si.start);
-        for (size_t n = 0; n < used_nrows; ++n) {
-          uint32_t soff = lo->str32.offset;
-          *dest++ = soff + delta;
-          lo += tbuf_ncols;
+      auto pos0 = static_cast<uint32_t>(strinfo[j].write_at);
+      auto dest = static_cast<uint32_t*>(data) + effective_row0 + 1;
+      for (size_t n = 0; n < used_nrows; ++n) {
+        uint32_t offset = dataptr->str32.offset;
+        int32_t length = dataptr->str32.length;
+        if (length > 0) {
+          outbuf->write_at(pos0, static_cast<size_t>(length), srcbuf + offset);
+          pos0 += static_cast<uint32_t>(length);
+          *dest++ = pos0;
         }
-      } else {
-        uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0 + 1;
-        uint64_t delta = static_cast<uint64_t>(si.write_at - si.start);
-        for (size_t n = 0; n < used_nrows; ++n) {
-          uint64_t soff = lo->str32.offset;
-          *dest++ = soff + delta;
-          lo += tbuf_ncols;
+        else {
+          static_assert(static_cast<uint32_t>(NA_I4) == NA_S4,
+                        "incompatible int32 and uint32 NA values");
+          xassert(length == 0 || length == NA_I4);
+          *dest++ = pos0 ^ static_cast<uint32_t>(length);
         }
+        dataptr += tbuf_ncols;
       }
+
+      // wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
+
+      // if (elemsize == 4) {
+      //   uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0 + 1;
+      //   uint32_t delta = static_cast<uint32_t>(si.write_at - si.start);
+      //   for (size_t n = 0; n < used_nrows; ++n) {
+      //     uint32_t soff = dataptr->str32.offset;
+      //     *dest++ = soff + delta;
+      //     dataptr += tbuf_ncols;
+      //   }
+      // } else {
+      //   uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0 + 1;
+      //   uint64_t delta = static_cast<uint64_t>(si.write_at - si.start);
+      //   for (size_t n = 0; n < used_nrows; ++n) {
+      //     uint64_t soff = dataptr->str32.offset;
+      //     *dest++ = soff + delta;
+      //     dataptr += tbuf_ncols;
+      //   }
+      // }
 
     } else {
       const field64* src = tbuf.data() + j;
