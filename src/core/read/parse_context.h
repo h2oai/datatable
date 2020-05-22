@@ -90,6 +90,7 @@ struct ParseContext
   void skip_whitespace_at_line_start() const;
   bool at_end_of_field() const;
   const char* end_NA_string(const char*) const;
+  bool is_na_string(const char* start, const char* end) const;
   int countfields() const;
   bool skip_eol() const;
 

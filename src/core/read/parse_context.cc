@@ -107,6 +107,24 @@ bool ParseContext::at_end_of_field() const {
 }
 
 
+
+bool ParseContext::is_na_string(const char* start, const char* end) const {
+  const char* const* nastr = NAstrings;
+  while (*nastr) {
+    const char* ch1 = start;
+    const char* ch2 = *nastr;
+    while (ch1 < end && *ch1 == *ch2 && *ch2) {
+      ch1++;
+      ch2++;
+    }
+    if (*ch2 == '\0') return true;
+    nastr++;
+  }
+  return false;
+}
+
+
+
 const char* ParseContext::end_NA_string(const char* fieldStart) const {
   const char* const* nastr = NAstrings;
   const char* mostConsumed = fieldStart;

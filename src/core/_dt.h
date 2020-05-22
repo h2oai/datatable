@@ -109,9 +109,10 @@ namespace read {
   class InputColumn;
   class PreFrame;
   class ThreadContext;
+
+  void parse_string(const dt::read::ParseContext&);
 }}
 class FreadReader;
-void parse_string(const dt::read::ParseContext&);
 
 
 #endif

@@ -889,15 +889,12 @@ void FreadReader::parse_column_names(dt::read::ParseContext& ctx) {
     while (*ch == ' ' || *ch == '\t') ch++;
   }
 
-  uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
-                  quoteRule == 1? '\\' : 0xFF;
-
   size_t ncols = preframe.ncols();
   size_t ncols_found;
   for (size_t i = 0; ; ++i) {
     // Parse string field, but do not advance `ctx.target`: on the next
     // iteration we will write into the same place.
-    parse_string(ctx);
+    dt::read::parse_string(ctx);
     const char* start = static_cast<const char*>(ctx.strbuf.data())
                         + ctx.target->str32.offset;
     int32_t ilen = ctx.target->str32.length;

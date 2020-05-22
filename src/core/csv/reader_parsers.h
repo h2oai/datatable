@@ -33,7 +33,12 @@ void parse_float32_hex(const dt::read::ParseContext&);
 void parse_float64_simple(const dt::read::ParseContext& ctx);
 void parse_float64_extended(const dt::read::ParseContext& ctx);
 void parse_float64_hex(const dt::read::ParseContext&);
-void parse_string(const dt::read::ParseContext&);
+namespace dt {
+namespace read {
+
+  void parse_string(const dt::read::ParseContext&);
+
+}}
 
 
 //------------------------------------------------------------------------------
