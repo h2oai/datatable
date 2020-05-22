@@ -817,6 +817,11 @@ def test_whitespace_nas(tol):
                        rel_tol = tol)
 
 
+def test_default_na_strings():
+    DT = dt.fread("A,B\nNA,3\n")
+    assert_equals(DT, dt.Frame(A=[None], B=[3]))
+
+
 def test_simple_na_strings():
     DT = dt.fread("A,B,C\n"
                   "foo,3,7\n"
