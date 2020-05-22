@@ -375,12 +375,17 @@ void parse_string(const ParseContext& ctx) {
   auto ptr = ctx.target->str32.offset +
              static_cast<const char*>(ctx.strbuf.data());
   xassert(len >= 0 || ctx.target->str32.isna());
+  // std::cout << "Read string <" << std::string(ptr, ptr+len) << ">\n";
   if (len == 0) {
-    if (ctx.blank_is_na) ctx.target->str32.setna();
+    if (ctx.blank_is_na) {
+      // std::cout << "Blank string replaced with NA\n";
+      ctx.target->str32.setna();
+    }
   }
   else if (len > 0) {
     if (ctx.is_na_string(ptr, ptr + len)) {
       ctx.target->str32.setna();
+      // std::cout << "String replaced with NA\n";
     }
   }
 }

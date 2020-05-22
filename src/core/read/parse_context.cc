@@ -117,7 +117,7 @@ bool ParseContext::is_na_string(const char* start, const char* end) const {
       ch1++;
       ch2++;
     }
-    if (*ch2 == '\0') return true;
+    if (*ch2 == '\0' && ch1 == end) return true;
     nastr++;
   }
   return false;

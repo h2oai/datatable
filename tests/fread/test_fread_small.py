@@ -817,6 +817,16 @@ def test_whitespace_nas(tol):
                        rel_tol = tol)
 
 
+def test_simple_na_strings():
+    DT = dt.fread("A,B,C\n"
+                  "foo,3,7\n"
+                  "14,foobar,6\n"
+                  ",fo,9\n", na_strings=['foo'])
+    assert_equals(DT, dt.Frame(A=[None, 14, None],
+                               B=["3", "foobar", "fo"],
+                               C=[7, 6, 9]))
+
+
 def test_quoted_na_strings():
     # Check that na strings are recognized regardless from whether they
     # were quoted or not. See issue #1014
