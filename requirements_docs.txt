@@ -1,5 +1,5 @@
 docutils>=0.15
-sphinx>=2.3
+sphinx>=1.8
 sphinx_rtd_theme
 nbsphinx>=0.5
 datatable
