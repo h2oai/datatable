@@ -26,6 +26,7 @@
 #include "utils/assert.h"
 #include "_dt.h"
 #include "encodings.h"
+#include "py_encodings.h"
 namespace dt {
 namespace read {
 
@@ -372,20 +373,31 @@ void parse_string(const ParseContext& ctx) {
     case 3: parse_string_unquoted<false>(ctx); break;
   }
   auto len = ctx.target->str32.length;
-  auto ptr = ctx.target->str32.offset +
-             static_cast<const char*>(ctx.strbuf.data());
+  auto off = ctx.target->str32.offset;
+  auto ptr = static_cast<const char*>(ctx.strbuf.data()) + off;
   xassert(len >= 0 || ctx.target->str32.isna());
-  // std::cout << "Read string <" << std::string(ptr, ptr+len) << ">\n";
   if (len == 0) {
     if (ctx.blank_is_na) {
-      // std::cout << "Blank string replaced with NA\n";
       ctx.target->str32.setna();
     }
   }
   else if (len > 0) {
     if (ctx.is_na_string(ptr, ptr + len)) {
       ctx.target->str32.setna();
-      // std::cout << "String replaced with NA\n";
+    }
+  }
+  if (!ctx.target->str32.isna()) {
+    auto zlen = static_cast<size_t>(len);
+    if (!is_valid_utf8(ptr, zlen)) {
+      auto newoff = ctx.strbuf.prepare_for_external_write(zlen * 3);
+      // Note: strbuf.data() pointer may have changed by the prepare... call,
+      // so we re-acquire the pointer just in case
+      auto ptr0 = static_cast<char*>(ctx.strbuf.data());
+      auto newlen = decode_win1252(ptr0 + off, len, ptr0 + newoff);
+      xassert(newlen >= 0);
+      ctx.strbuf.finish_external_write(static_cast<size_t>(newlen));
+      ctx.target->str32.length = static_cast<int32_t>(newlen);
+      ctx.target->str32.offset = static_cast<uint32_t>(newoff);
     }
   }
 }
