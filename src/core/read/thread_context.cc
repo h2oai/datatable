@@ -70,19 +70,84 @@ void ThreadContext::set_row0(size_t n) {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Post-processing
+//------------------------------------------------------------------------------
+
 void ThreadContext::postprocess() {
   size_t j = 0;
   for (const auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
     if (!col.is_type_bumped()) {
       switch (col.get_stype()) {
+        case SType::BOOL:    postprocess_bool_column(j); break;
+        case SType::INT32:   postprocess_int32_column(j); break;
+        case SType::INT64:   postprocess_int64_column(j); break;
+        case SType::FLOAT32: postprocess_float32_column(j); break;
+        case SType::FLOAT64: postprocess_float64_column(j); break;
         case SType::STR32:
-        case SType::STR64: postprocess_string_column(j); break;
+        case SType::STR64:   postprocess_string_column(j); break;
         default:;
       }
     }
     ++j;
   }
+}
+
+
+void ThreadContext::postprocess_bool_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<int8_t>(data->int8);
+  }
+  colinfo_[j].na_count = na_count;
+}
+
+
+void ThreadContext::postprocess_int32_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<int32_t>(data->int32);
+  }
+  colinfo_[j].na_count = na_count;
+}
+
+
+void ThreadContext::postprocess_int64_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<int64_t>(data->int64);
+  }
+  colinfo_[j].na_count = na_count;
+}
+
+
+void ThreadContext::postprocess_float32_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<float>(data->float32);
+  }
+  colinfo_[j].na_count = na_count;
+}
+
+
+void ThreadContext::postprocess_float64_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<double>(data->float64);
+  }
+  colinfo_[j].na_count = na_count;
 }
 
 
