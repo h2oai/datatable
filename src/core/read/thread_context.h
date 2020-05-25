@@ -100,6 +100,9 @@ class ThreadContext    // TODO: rename
     void set_nrows(size_t n);
     void set_row0(size_t n);
     void allocate_tbuf(size_t ncols, size_t nrows);
+
+  private:
+    void postprocess_string_column(size_t j);
 };
 
 

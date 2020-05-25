@@ -74,21 +74,37 @@ void ThreadContext::postprocess() {
   size_t j = 0;
   for (const auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
-    if (col.is_string() && !col.is_type_bumped()) {
-      size_t total_length = 0;
-      field64* coldata = tbuf.data() + j;
-      for (size_t irow = 0; irow < used_nrows; irow++) {
-        int32_t entry_length = coldata->str32.length;
-        if (entry_length > 0) {
-          total_length += static_cast<size_t>(entry_length);
-        }
-        coldata += tbuf_ncols;
+    if (!col.is_type_bumped()) {
+      switch (col.get_stype()) {
+        case SType::STR32:
+        case SType::STR64: postprocess_string_column(j); break;
+        default:;
       }
-      colinfo_[j].str.size = total_length;
     }
     ++j;
   }
 }
+
+
+void ThreadContext::postprocess_string_column(size_t j) {
+  size_t total_length = 0;
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    int32_t len = data->str32.length;
+    if (len > 0) {
+      total_length += static_cast<size_t>(len);
+    }
+    else if (len < 0) {
+      na_count++;
+    }
+  }
+  colinfo_[j].str.size = total_length;
+  colinfo_[j].na_count = na_count;
+}
+
+
 
 
 
@@ -97,6 +113,7 @@ void ThreadContext::order_buffer() {
   size_t j = 0;
   for (auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
+
     if (col.is_string() && !col.is_type_bumped()) {
       auto& outcol = col.outcol();
       // Compute the size of the string content in the buffer `sz` from the
