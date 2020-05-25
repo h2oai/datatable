@@ -32,8 +32,7 @@ namespace read {
 
 ThreadContext::ThreadContext(size_t ncols, size_t nrows, PreFrame& preframe)
   : tbuf(ncols * nrows + 1),
-    sbuf(0),
-    strinfo(ncols),
+    colinfo_(ncols),
     tbuf_ncols(ncols),
     tbuf_nrows(nrows),
     used_nrows(0),
@@ -85,7 +84,7 @@ void ThreadContext::postprocess() {
         }
         coldata += tbuf_ncols;
       }
-      strinfo[j].size = total_length;
+      colinfo_[j].str.size = total_length;
     }
     ++j;
   }
@@ -104,15 +103,15 @@ void ThreadContext::order_buffer() {
       // offset of the last element. This quantity cannot be calculated in the
       // postprocess() step, since `used_nrows` may sometimes change, affecting
       // this size after the post-processing.
-      // uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
+      // uint32_t offset0 = static_cast<uint32_t>(colinfo_[j].str.start);
       // uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
       // size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
-      // strinfo[j].size = sz;
+      // colinfo_[j].str.size = sz;
 
-      auto sz = strinfo[j].size;
+      auto sz = colinfo_[j].str.size;
       auto wb = outcol.strdata_w();
       size_t write_at = wb->prepare_write(sz, nullptr);
-      strinfo[j].write_at = write_at;
+      colinfo_[j].str.write_at = write_at;
     }
     ++j;
   }
@@ -141,7 +140,7 @@ void ThreadContext::push_buffers() {
       auto outbuf = outcol.strdata_w();
       field64* dataptr = tbuf.data() + j;
 
-      auto pos0 = static_cast<uint32_t>(strinfo[j].write_at);
+      auto pos0 = static_cast<uint32_t>(colinfo_[j].str.write_at);
       auto dest = static_cast<uint32_t*>(data) + effective_row0 + 1;
       xassert(elemsize == 4);
       for (size_t n = 0; n < used_nrows; ++n) {

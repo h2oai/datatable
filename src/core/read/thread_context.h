@@ -34,7 +34,7 @@ namespace read {
   *
   * This class is abstract. The derived classes are expected to
   * implement the actual logic for reading a chunk into the local
-  * buffers (tbuf/sbuf) and then saving into the output PreFrame.
+  * buffers (tbuf) and then saving into the output PreFrame.
   *
   * tbuf
   *   Output buffer. Within the buffer the data is stored in row-major
@@ -42,17 +42,11 @@ namespace read {
   *   view the buffer as a rectangular grid having `tbuf_ncols *
   *   tbuf_nrows` elements (+1 extra).
   *
-  * sbuf
-  *   Additional buffer, used to store string content after post-
-  *   processing.
-  *
   * strinfo
   *   Information necessary for string columns. The number of elements
   *   in this vector should be equal to the number of string columns
   *   in the preframe.
   *   Each entry is a struct:
-  *     .start    - location of this column's character data within
-  *                 the `sbuf` buffer;
   *     .size     - size of the character data buffer;
   *     .write_at - where the data should be written within the
   *                 column's WritableBuffer.
@@ -72,14 +66,19 @@ class ThreadContext    // TODO: rename
 {
   protected:
     struct StrInfo {
-      size_t start;
       size_t size;
       size_t write_at;
     };
+    struct ColInfo {
+      size_t na_count;
+
+      union {
+        StrInfo str;
+      };
+    };
 
     std::vector<field64> tbuf;
-    std::vector<uint8_t> sbuf;
-    std::vector<StrInfo> strinfo;
+    std::vector<ColInfo> colinfo_;
     size_t tbuf_ncols;
     size_t tbuf_nrows;
     size_t used_nrows;
