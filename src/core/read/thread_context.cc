@@ -185,6 +185,7 @@ void ThreadContext::order() {
     if (col.is_type_bumped()) { j++; continue; }
 
     auto& outcol = col.outcol();
+    outcol.add_na_count(colinfo_[j].na_count);
     switch (col.get_stype()) {
       case SType::STR32:
       case SType::STR64:  order_string_column(outcol, j); break;

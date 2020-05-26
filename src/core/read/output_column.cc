@@ -149,6 +149,10 @@ size_t OutputColumn::nrows_archived() const noexcept {
 }
 
 
+void OutputColumn::add_na_count(size_t n) {
+  na_count_ += n;
+}
+
 
 
 }} // namespace dt::read

@@ -64,19 +64,18 @@ namespace read {
   */
 class ThreadContext    // TODO: rename
 {
+  struct StrInfo {
+    size_t size;
+    size_t write_at;
+  };
+  struct ColInfo {
+    size_t na_count;
+    union {
+      StrInfo str;
+    };
+  };
+
   protected:
-    struct StrInfo {
-      size_t size;
-      size_t write_at;
-    };
-    struct ColInfo {
-      size_t na_count;
-
-      union {
-        StrInfo str;
-      };
-    };
-
     std::vector<field64> tbuf;
     std::vector<ColInfo> colinfo_;
     size_t tbuf_ncols;

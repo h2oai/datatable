@@ -57,6 +57,8 @@ class OutputColumn
 
     size_t nrows_archived() const noexcept;
 
+    void add_na_count(size_t n);
+
     void set_stype(SType stype);
 };
 
