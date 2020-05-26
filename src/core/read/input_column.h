@@ -113,7 +113,6 @@ class InputColumn
     bool is_in_buffer() const noexcept;
     size_t elemsize() const;
     void reset_type_bumped();
-    size_t nrows_archived() const noexcept;
 
     // Misc
     py::oobj py_descriptor() const;

@@ -55,6 +55,8 @@ class OutputColumn
     void archive_data(size_t nrows_written, std::shared_ptr<TemporaryFile>&);
     Column to_column();
 
+    size_t nrows_archived() const noexcept;
+
     void set_stype(SType stype);
 };
 

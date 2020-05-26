@@ -144,6 +144,10 @@ void OutputColumn::set_stype(SType stype) {
 }
 
 
+size_t OutputColumn::nrows_archived() const noexcept {
+  return nrows_in_chunks_;
+}
+
 
 
 

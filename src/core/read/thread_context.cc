@@ -36,7 +36,7 @@ ThreadContext::ThreadContext(size_t ncols, size_t nrows, PreFrame& preframe)
     tbuf_ncols(ncols),
     tbuf_nrows(nrows),
     used_nrows(0),
-    row0(0),
+    row0_(0),
     preframe_(preframe) {}
 
 
@@ -65,8 +65,8 @@ void ThreadContext::set_nrows(size_t n) {
 
 
 void ThreadContext::set_row0(size_t n) {
-  xassert(row0 <= n);
-  row0 = n;
+  xassert(row0_ <= n);
+  row0_ = n;
 }
 
 
@@ -220,41 +220,15 @@ void ThreadContext::postorder() {
 
     auto& outcol = col.outcol();
     switch (col.get_stype()) {
-      case SType::STR32:
-      case SType::STR64:  postorder_string_column(outcol, j); break;
+      case SType::STR32:  postorder_string_column(outcol, j); break;
       default:;
     }
 
-    void* data = outcol.data_w();
-    int8_t elemsize = static_cast<int8_t>(col.elemsize());
-    size_t effective_row0 = row0 - col.nrows_archived();
-
     if (col.is_string()) {
-      auto srcbuf = static_cast<char*>(parse_ctx_.strbuf.data());
-      auto outbuf = outcol.strdata_w();
-      field64* dataptr = tbuf.data() + j;
-
-      auto pos0 = static_cast<uint32_t>(colinfo_[j].str.write_at);
-      auto dest = static_cast<uint32_t*>(data) + effective_row0 + 1;
-      xassert(elemsize == 4);
-      for (size_t n = 0; n < used_nrows; ++n) {
-        uint32_t offset = dataptr->str32.offset;
-        int32_t length = dataptr->str32.length;
-        if (length > 0) {
-          outbuf->write_at(pos0, static_cast<size_t>(length), srcbuf + offset);
-          pos0 += static_cast<uint32_t>(length);
-          *dest++ = pos0;
-        }
-        else {
-          static_assert(static_cast<uint32_t>(NA_I4) == NA_S4,
-                        "incompatible int32 and uint32 NA values");
-          xassert(length == 0 || length == NA_I4);
-          *dest++ = pos0 ^ static_cast<uint32_t>(length);
-        }
-        dataptr += tbuf_ncols;
-      }
-
     } else {
+      void* data = outcol.data_w();
+      int8_t elemsize = static_cast<int8_t>(col.elemsize());
+      size_t effective_row0 = row0_ - outcol.nrows_archived();
       const field64* src = tbuf.data() + j;
       if (elemsize == 8) {
         uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0;
@@ -288,6 +262,29 @@ void ThreadContext::postorder() {
 
 
 void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
+  auto src_strbuf = static_cast<char*>(parse_ctx_.strbuf.data());
+  auto out_strbuf = col.strdata_w();
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<uint32_t*>(col.data_w());
+
+  auto pos0 = static_cast<uint32_t>(colinfo_[j].str.write_at);
+  auto dest = out_data + (row0_ - col.nrows_archived()) + 1;
+  for (size_t i = 0; i < used_nrows; ++i) {
+    uint32_t offset = src_data->str32.offset;
+    int32_t length = src_data->str32.length;
+    if (length > 0) {
+      out_strbuf->write_at(pos0, static_cast<size_t>(length), src_strbuf + offset);
+      pos0 += static_cast<uint32_t>(length);
+      *dest++ = pos0;
+    }
+    else {
+      static_assert(static_cast<uint32_t>(NA_I4) == NA_S4,
+                    "incompatible int32 and uint32 NA values");
+      xassert(length == 0 || length == NA_I4);
+      *dest++ = pos0 ^ static_cast<uint32_t>(length);
+    }
+    src_data += tbuf_ncols;
+  }
 
 }
 

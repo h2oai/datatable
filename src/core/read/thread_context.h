@@ -82,7 +82,7 @@ class ThreadContext    // TODO: rename
     size_t tbuf_ncols;
     size_t tbuf_nrows;
     size_t used_nrows;
-    size_t row0;
+    size_t row0_;
 
     PreFrame& preframe_;
     ParseContext parse_ctx_;

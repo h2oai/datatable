@@ -174,7 +174,8 @@ void FreadThreadContext::read_chunk(
           if (verbose) {
             freader.fo.type_bump_info(j + 1, colj, *ptype_iter, fieldStart,
                                       tch - fieldStart,
-                                      static_cast<int64_t>(row0 + used_nrows));
+                                      // TODO: use line number instead
+                                      static_cast<int64_t>(row0_ + used_nrows + freader.line));
           }
           types[j] = *ptype_iter;
           colj.set_ptype(types[j]);
@@ -217,7 +218,7 @@ void FreadThreadContext::read_chunk(
       // `while (j < ncols)`.
       if (cc.is_start_exact()) {
         throw IOError() << "Too few fields on line "
-          << row0 + used_nrows + freader.line
+          << row0_ + used_nrows + freader.line  // TODO: use line number instead
           << ": expected " << ncols << " but found only " << j
           << " (with sep='" << sep << "'). Set fill=True to ignore this error. "
           << " <<" << freader.repr_source(tlineStart, 500) << ">>";
@@ -229,7 +230,7 @@ void FreadThreadContext::read_chunk(
     if (!(parse_ctx_.skip_eol() || tch == parse_ctx_.eof)) {
       if (cc.is_start_exact()) {
         throw IOError() << "Too many fields on line "
-          << row0 + used_nrows + freader.line
+          << row0_ + used_nrows + freader.line  // TODO: use line number instead
           << ": expected " << ncols << " but more are present. <<"
           << freader.repr_source(tlineStart, 500) << ">>";
       } else {

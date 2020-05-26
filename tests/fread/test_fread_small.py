@@ -1042,7 +1042,7 @@ def test_int64s_and_typebumps(capsys):
     assert "6 columns need to be re-read" in out
     assert "Column 3 (i64-2) bumped from Int32 to Int64" in out
     assert "Column 9 (s32-4) bumped from Float64 to Str32 due to " \
-           "<<1.23e>> on row 111" in out
+           "<<1.23e>> on row 113" in out
     f1 = dt.fread(text, verbose=True, columns=f0.stypes)
     out, err = capsys.readouterr()
     assert f1.stypes == f0.stypes
@@ -1066,10 +1066,9 @@ def test_almost_nodata(capsys):
     assert d0.shape == (n, 3)
     assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
     assert d0.to_list() == [[2017] * n, m, ["foo"] * n]
-    print(out)
     assert not err
     assert ("Column 2 (B) bumped from Unknown to Str32 "
-            "due to <<gotcha>> on row 109" in out)
+            "due to <<gotcha>> on row 111" in out)
 
 
 
@@ -1159,13 +1158,13 @@ def test_typebumps(capsys):
     assert ("4 columns need to be re-read because their types have changed"
             in out)
     assert ("Column 1 (A) bumped from Bool8/numeric to Str32 due to <<Fals>> "
-            "on row 105" in out)
+            "on row 107" in out)
     assert ("Column 2 (B) bumped from Int32 to Float64 due to <<3.5>> on "
-            "row 105" in out)
+            "row 107" in out)
     assert ("Column 3 (C) bumped from Int32 to Str32 due to <<boo>> on "
-            "row 105" in out)
+            "row 107" in out)
     assert ("Column 4 (D) bumped from Int32 to Str32 due to <<\"1,000\">> on "
-            "row 105" in out)
+            "row 107" in out)
 
 
 def test_too_few_rows():

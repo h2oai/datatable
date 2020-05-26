@@ -175,9 +175,6 @@ void InputColumn::reset_type_bumped() {
   outcol_.type_bumped_ = false;
 }
 
-size_t InputColumn::nrows_archived() const noexcept {
-  return outcol_.nrows_in_chunks_;
-}
 
 
 
