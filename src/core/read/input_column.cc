@@ -247,6 +247,7 @@ void InputColumn::prepare_for_rereading() {
     outcol_.strbuf_ = nullptr;
     outcol_.type_bumped_ = false;
     outcol_.present_in_buffer_ = true;
+    outcol_.na_count_ = 0;
   }
   else {
     present_in_buffer_ = false;

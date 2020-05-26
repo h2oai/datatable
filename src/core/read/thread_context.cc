@@ -90,7 +90,7 @@ void ThreadContext::preorder() {
       case SType::FLOAT64: preorder_float64_column(j); break;
       case SType::STR32:
       case SType::STR64:   preorder_string_column(j); break;
-      default:;
+      default: throw RuntimeError() << "Unknown column type";
     }
     ++j;
   }
