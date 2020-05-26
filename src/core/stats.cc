@@ -1091,8 +1091,12 @@ static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
 }
 
 Stats* Column::stats() const {
-  if (!impl_->stats_) impl_->stats_ = _make_stats(impl_);
-  return impl_->stats_.get();
+  return impl_->stats();
+}
+
+Stats* dt::ColumnImpl::stats() const {
+  if (!stats_) stats_ = _make_stats(this);
+  return stats_.get();
 }
 
 Stats* Column::get_stats_if_exist() const {

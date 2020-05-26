@@ -99,6 +99,7 @@ class ColumnImpl
 
     virtual size_t n_children() const noexcept = 0;
     virtual const Column& child(size_t i) const;
+    Stats* stats() const;
 
 
   //------------------------------------

@@ -95,10 +95,9 @@ void PreFrame::preallocate(size_t nrows) {
 
 /**
   * Make sure there is enough room in the columns to write
-  * `nrows_in_chunk` rows. This parameter is passed by reference,
-  * because occasionally PreFrame will need to reduce the effective
-  * number of rows in the chunk (this happens when the total number)
-  * of rows exceeds `max_nrows_`.
+  * `nrows_in_chunk0` rows. The actual number of rows written will be
+  * returned. This number may be less than `nrows_in_chunk0` if the
+  * total number of rows exceeds `max_nrows` parameter.
   *
   * The `ordered_loop` variable allows us to retrieve information
   * about the current state of iteration, and to wait until the
@@ -108,9 +107,10 @@ void PreFrame::preallocate(size_t nrows) {
   * This function will also adjust the `nrows_written` counter, and
   * thus should be called from the ordered section only.
   */
-void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
-                                   dt::ordered* ordered_loop)
+size_t PreFrame::ensure_output_nrows(size_t nrows_in_chunk0, size_t ichunk,
+                                     dt::ordered* ordered_loop)
 {
+  size_t nrows_in_chunk = nrows_in_chunk0;  // may be changed due to max_nrows
   size_t nrows_new = nrows_written_ + nrows_in_chunk;
   size_t nrows_max = g_->max_nrows;
   size_t memory_limit = g_->memory_limit;
@@ -179,6 +179,7 @@ void PreFrame::ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk,
   }
   nrows_written_ += nrows_in_chunk;
   xassert(nrows_written_ <= nrows_allocated_);
+  return nrows_in_chunk;
 }
 
 
