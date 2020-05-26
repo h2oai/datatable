@@ -111,6 +111,11 @@ class ThreadContext    // TODO: rename
 
     void order_string_column(OutputColumn& col, size_t j);
 
+    void postorder_bool_column(OutputColumn& col, size_t j);
+    void postorder_int32_column(OutputColumn& col, size_t j);
+    void postorder_int64_column(OutputColumn& col, size_t j);
+    void postorder_float32_column(OutputColumn& col, size_t j);
+    void postorder_float64_column(OutputColumn& col, size_t j);
     void postorder_string_column(OutputColumn& col, size_t j);
 };
 

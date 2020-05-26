@@ -220,40 +220,14 @@ void ThreadContext::postorder() {
 
     auto& outcol = col.outcol();
     switch (col.get_stype()) {
-      case SType::STR32:  postorder_string_column(outcol, j); break;
-      default:;
-    }
-
-    if (col.is_string()) {
-    } else {
-      void* data = outcol.data_w();
-      int8_t elemsize = static_cast<int8_t>(col.elemsize());
-      size_t effective_row0 = row0_ - outcol.nrows_archived();
-      const field64* src = tbuf.data() + j;
-      if (elemsize == 8) {
-        uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint64;
-          src += tbuf_ncols;
-          dest++;
-        }
-      } else
-      if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint32;
-          src += tbuf_ncols;
-          dest++;
-        }
-      } else
-      if (elemsize == 1) {
-        uint8_t* dest = static_cast<uint8_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint8;
-          src += tbuf_ncols;
-          dest++;
-        }
-      }
+      case SType::BOOL:    postorder_bool_column(outcol, j); break;
+      case SType::INT32:   postorder_int32_column(outcol, j); break;
+      case SType::INT64:   postorder_int64_column(outcol, j); break;
+      case SType::FLOAT32: postorder_float32_column(outcol, j); break;
+      case SType::FLOAT64: postorder_float64_column(outcol, j); break;
+      case SType::STR32:   postorder_string_column(outcol, j); break;
+      default:
+        throw RuntimeError() << "Unknown column SType in fread";
     }
     j++;
   }
@@ -285,7 +259,61 @@ void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
     }
     src_data += tbuf_ncols;
   }
+}
 
+
+void ThreadContext::postorder_bool_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<int8_t*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->int8;
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_int32_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<int32_t*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->int32;
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_int64_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<int64_t*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->int64;
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_float32_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<float*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->float32;
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_float64_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<double*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->float64;
+    src_data += tbuf_ncols;
+  }
 }
 
 
