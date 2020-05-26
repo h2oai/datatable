@@ -239,7 +239,7 @@ void FreadThreadContext::read_chunk(
     used_nrows++;
   }
 
-  postprocess();
+  preorder();
 
   // Tell the caller where we finished reading the chunk. This is why
   // the parameter `actual_cc` was passed to this function.
@@ -251,9 +251,9 @@ void FreadThreadContext::read_chunk(
 
 
 
-void FreadThreadContext::push_buffers() {
+void FreadThreadContext::postorder() {
   double t0 = verbose? wallclock() : 0;
-  ThreadContext::push_buffers();
+  ThreadContext::postorder();
   if (verbose) ttime_push += wallclock() - t0;
 }
 

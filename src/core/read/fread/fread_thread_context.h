@@ -61,8 +61,7 @@ class FreadThreadContext : public ThreadContext
     ~FreadThreadContext() override;
 
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
-    // void postprocess();
-    void push_buffers() override;
+    void postorder() override;
 
     ParseContext& get_tokenizer() { return parse_ctx_; }
 };

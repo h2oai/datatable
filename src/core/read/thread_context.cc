@@ -75,28 +75,29 @@ void ThreadContext::set_row0(size_t n) {
 // Post-processing
 //------------------------------------------------------------------------------
 
-void ThreadContext::postprocess() {
+void ThreadContext::preorder() {
+  if (!used_nrows) return;
   size_t j = 0;
   for (const auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
-    if (!col.is_type_bumped()) {
-      switch (col.get_stype()) {
-        case SType::BOOL:    postprocess_bool_column(j); break;
-        case SType::INT32:   postprocess_int32_column(j); break;
-        case SType::INT64:   postprocess_int64_column(j); break;
-        case SType::FLOAT32: postprocess_float32_column(j); break;
-        case SType::FLOAT64: postprocess_float64_column(j); break;
-        case SType::STR32:
-        case SType::STR64:   postprocess_string_column(j); break;
-        default:;
-      }
+    if (col.is_type_bumped()) { j++; continue; }
+
+    switch (col.get_stype()) {
+      case SType::BOOL:    preorder_bool_column(j); break;
+      case SType::INT32:   preorder_int32_column(j); break;
+      case SType::INT64:   preorder_int64_column(j); break;
+      case SType::FLOAT32: preorder_float32_column(j); break;
+      case SType::FLOAT64: preorder_float64_column(j); break;
+      case SType::STR32:
+      case SType::STR64:   preorder_string_column(j); break;
+      default:;
     }
     ++j;
   }
 }
 
 
-void ThreadContext::postprocess_bool_column(size_t j) {
+void ThreadContext::preorder_bool_column(size_t j) {
   size_t na_count = 0;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
@@ -107,7 +108,7 @@ void ThreadContext::postprocess_bool_column(size_t j) {
 }
 
 
-void ThreadContext::postprocess_int32_column(size_t j) {
+void ThreadContext::preorder_int32_column(size_t j) {
   size_t na_count = 0;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
@@ -118,7 +119,7 @@ void ThreadContext::postprocess_int32_column(size_t j) {
 }
 
 
-void ThreadContext::postprocess_int64_column(size_t j) {
+void ThreadContext::preorder_int64_column(size_t j) {
   size_t na_count = 0;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
@@ -129,7 +130,7 @@ void ThreadContext::postprocess_int64_column(size_t j) {
 }
 
 
-void ThreadContext::postprocess_float32_column(size_t j) {
+void ThreadContext::preorder_float32_column(size_t j) {
   size_t na_count = 0;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
@@ -140,7 +141,7 @@ void ThreadContext::postprocess_float32_column(size_t j) {
 }
 
 
-void ThreadContext::postprocess_float64_column(size_t j) {
+void ThreadContext::preorder_float64_column(size_t j) {
   size_t na_count = 0;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
@@ -151,7 +152,7 @@ void ThreadContext::postprocess_float64_column(size_t j) {
 }
 
 
-void ThreadContext::postprocess_string_column(size_t j) {
+void ThreadContext::preorder_string_column(size_t j) {
   size_t total_length = 0;
   size_t na_count = 0;
   const field64* data = tbuf.data() + j;
@@ -172,52 +173,63 @@ void ThreadContext::postprocess_string_column(size_t j) {
 
 
 
+//------------------------------------------------------------------------------
+// Ordering
+//------------------------------------------------------------------------------
 
-void ThreadContext::order_buffer() {
+void ThreadContext::order() {
   if (!used_nrows) return;
   size_t j = 0;
   for (auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
+    if (col.is_type_bumped()) { j++; continue; }
 
-    if (col.is_string() && !col.is_type_bumped()) {
-      auto& outcol = col.outcol();
-      // Compute the size of the string content in the buffer `sz` from the
-      // offset of the last element. This quantity cannot be calculated in the
-      // postprocess() step, since `used_nrows` may sometimes change, affecting
-      // this size after the post-processing.
-      // uint32_t offset0 = static_cast<uint32_t>(colinfo_[j].str.start);
-      // uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
-      // size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
-      // colinfo_[j].str.size = sz;
-
-      auto sz = colinfo_[j].str.size;
-      auto wb = outcol.strdata_w();
-      size_t write_at = wb->prepare_write(sz, nullptr);
-      colinfo_[j].str.write_at = write_at;
+    auto& outcol = col.outcol();
+    switch (col.get_stype()) {
+      case SType::STR32:
+      case SType::STR64:  order_string_column(outcol, j); break;
+      default:;
     }
     ++j;
   }
 }
 
 
+void ThreadContext::order_string_column(OutputColumn& col, size_t j) {
+  auto strdata_size = colinfo_[j].str.size;
+  auto wb = col.strdata_w();
+  size_t write_at = wb->prepare_write(strdata_size, nullptr);
+  colinfo_[j].str.write_at = write_at;
+}
 
 
-void ThreadContext::push_buffers() {
+
+
+//------------------------------------------------------------------------------
+// Post-ordering
+//------------------------------------------------------------------------------
+
+void ThreadContext::postorder() {
   // If the buffer is empty, then there's nothing to do...
   if (!used_nrows) return;
 
   size_t j = 0;
   for (auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
+    if (col.is_type_bumped()) { j++; continue; }
+
     auto& outcol = col.outcol();
+    switch (col.get_stype()) {
+      case SType::STR32:
+      case SType::STR64:  postorder_string_column(outcol, j); break;
+      default:;
+    }
+
     void* data = outcol.data_w();
     int8_t elemsize = static_cast<int8_t>(col.elemsize());
     size_t effective_row0 = row0 - col.nrows_archived();
 
-    if (col.is_type_bumped()) {
-      // do nothing: the column was not properly allocated for its type, so
-      // any attempt to write the data may fail with data corruption
-    } else if (col.is_string()) {
+    if (col.is_string()) {
       auto srcbuf = static_cast<char*>(parse_ctx_.strbuf.data());
       auto outbuf = outcol.strdata_w();
       field64* dataptr = tbuf.data() + j;
@@ -272,6 +284,11 @@ void ThreadContext::push_buffers() {
     j++;
   }
   used_nrows = 0;
+}
+
+
+void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
+
 }
 
 

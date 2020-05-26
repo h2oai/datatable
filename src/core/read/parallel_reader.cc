@@ -208,11 +208,11 @@ void ParallelReader::read_all()
           size_t chunk_nrows = tctx->get_nrows();
           preframe.ensure_output_nrows(chunk_nrows, i, o);
           tctx->set_nrows(chunk_nrows);
-          tctx->order_buffer();
+          tctx->order();
         },
 
         [&](size_t) {
-          tctx->push_buffers();
+          tctx->postorder();
         }
       );  // o->parallel()
     });  // dt::parallel_for_ordered

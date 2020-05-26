@@ -92,9 +92,9 @@ class ThreadContext    // TODO: rename
     virtual ~ThreadContext();
 
     virtual void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) = 0;
-    virtual void postprocess();
-    virtual void order_buffer();
-    virtual void push_buffers();
+    virtual void preorder();
+    virtual void order();
+    virtual void postorder();
 
     size_t get_nrows() const;
     void set_nrows(size_t n);
@@ -102,12 +102,16 @@ class ThreadContext    // TODO: rename
     void allocate_tbuf(size_t ncols, size_t nrows);
 
   private:
-    void postprocess_bool_column(size_t j);
-    void postprocess_int32_column(size_t j);
-    void postprocess_int64_column(size_t j);
-    void postprocess_float32_column(size_t j);
-    void postprocess_float64_column(size_t j);
-    void postprocess_string_column(size_t j);
+    void preorder_bool_column(size_t j);
+    void preorder_int32_column(size_t j);
+    void preorder_int64_column(size_t j);
+    void preorder_float32_column(size_t j);
+    void preorder_float64_column(size_t j);
+    void preorder_string_column(size_t j);
+
+    void order_string_column(OutputColumn& col, size_t j);
+
+    void postorder_string_column(OutputColumn& col, size_t j);
 };
 
 
