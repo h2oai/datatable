@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PARSE_CONTEXT_h
 #define dt_READ_PARSE_CONTEXT_h
-#include "writebuf.h"
+#include "buffer.h"
 #include "_dt.h"
 namespace dt {
 namespace read {
@@ -46,12 +46,12 @@ struct ParseContext
   // up to but excluding `eof` may be accessed by a parser.
   const char* eof;
 
-  // Where to write the parsed value. The pointer will be incremented after
-  // each successful read.
+  // Where to write the parsed value.
   mutable field64* target;
 
 
-  mutable MemoryWritableBuffer strbuf;
+  mutable Buffer strbuf;
+  mutable size_t bytes_written;
 
   // Anchor pointer for string parser, this pointer is the starting point
   // relative to which `str32.offset` is defined.
@@ -86,50 +86,23 @@ struct ParseContext
   // Whether to consider a standalone '\r' a newline character
   bool cr_is_newline;
 
-  void skip_whitespace() const;
-  void skip_whitespace_at_line_start() const;
-  bool at_end_of_field() const;
-  const char* end_NA_string(const char*) const;
-  bool is_na_string(const char* start, const char* end) const;
-  int countfields() const;
-  bool skip_eol() const;
 
-  bool next_good_line_start(
-    const ChunkCoordinates& cc, int ncols, bool fill,
-    bool skipEmptyLines) const;
+  public:
+    ParseContext();
+    ParseContext(const ParseContext& o);
+    ParseContext& operator=(const ParseContext& o);
 
+    void skip_whitespace() const;
+    void skip_whitespace_at_line_start() const;
+    bool at_end_of_field() const;
+    const char* end_NA_string(const char*) const;
+    bool is_na_string(const char* start, const char* end) const;
+    int countfields() const;
+    bool skip_eol() const;
 
-  ParseContext() = default;
-  ParseContext(const ParseContext& o)
-    : ch(o.ch),
-      eof(o.eof),
-      target(o.target),
-      anchor(o.anchor),
-      NAstrings(o.NAstrings),
-      whiteChar(o.whiteChar),
-      dec(o.dec),
-      sep(o.sep),
-      quote(o.quote),
-      quoteRule(o.quoteRule),
-      strip_whitespace(o.strip_whitespace),
-      blank_is_na(o.blank_is_na),
-      cr_is_newline(o.cr_is_newline) {}
-  ParseContext& operator=(const ParseContext& o) {
-    ch = o.ch;
-    eof = o.eof;
-    target = o.target;
-    anchor = o.anchor;
-    NAstrings = o.NAstrings;
-    whiteChar = o.whiteChar;
-    dec = o.dec;
-    sep = o.sep;
-    quote = o.quote;
-    quoteRule = o.quoteRule;
-    strip_whitespace = o.strip_whitespace;
-    blank_is_na = o.blank_is_na;
-    cr_is_newline = o.cr_is_newline;
-    return *this;
-  }
+    bool next_good_line_start(
+      const ChunkCoordinates& cc, int ncols, bool fill,
+      bool skipEmptyLines) const;
 };
 
 

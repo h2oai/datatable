@@ -895,8 +895,8 @@ void FreadReader::parse_column_names(dt::read::ParseContext& ctx) {
     // Parse string field, but do not advance `ctx.target`: on the next
     // iteration we will write into the same place.
     dt::read::parse_string(ctx);
-    const char* start = static_cast<const char*>(ctx.strbuf.data())
-                        + ctx.target->str32.offset;
+    auto start = static_cast<const char*>(ctx.strbuf.rptr())
+                 + ctx.target->str32.offset;
     int32_t ilen = ctx.target->str32.length;
 
     if (i >= ncols) {

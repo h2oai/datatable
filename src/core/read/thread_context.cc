@@ -237,7 +237,7 @@ void ThreadContext::postorder() {
 
 
 void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
-  auto src_strbuf = static_cast<char*>(parse_ctx_.strbuf.data());
+  auto src_strbuf = static_cast<const char*>(parse_ctx_.strbuf.rptr());
   auto out_strbuf = col.strdata_w();
   auto src_data = tbuf.data() + j;
   auto out_data = static_cast<uint32_t*>(col.data_w());
