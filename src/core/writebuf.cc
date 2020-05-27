@@ -114,6 +114,7 @@ size_t FileWritableBuffer::prepare_write(size_t src_size, const void* src) {
   constexpr size_t CHUNK_SIZE = 1 << 30;
   size_t pos = bytes_written_;
   if (!src_size) return pos;
+  XAssert(src);
 
   // On MacOS, it is impossible to write more than 2GB of data at once; on
   // Unix, the limit is 0x7ffff000 bytes.
@@ -207,6 +208,7 @@ void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src) {
       "length " << n << ", however the buffer is allocated for " << allocsize_
       << " bytes only";
   }
+  XAssert(src);
   dt::shared_lock<dt::shared_mutex> lock(shmutex_, /* exclusive = */ false);
   char* target = static_cast<char*>(data_) + pos;
   std::memcpy(target, src, n);
@@ -260,6 +262,24 @@ std::string MemoryWritableBuffer::get_string() {
 void MemoryWritableBuffer::clear() {
   bytes_written_ = 0;
 }
+
+void* MemoryWritableBuffer::data() const {
+  return data_;
+}
+
+
+size_t MemoryWritableBuffer::prepare_for_external_write(size_t expected_length) {
+  size_t pos = ThreadsafeWritableBuffer::prepare_write(expected_length, nullptr);
+  bytes_written_ = pos;
+  return pos;
+}
+
+
+void MemoryWritableBuffer::finish_external_write(size_t actual_length) {
+  bytes_written_ += actual_length;
+  xassert(bytes_written_ <= allocsize_);
+}
+
 
 
 

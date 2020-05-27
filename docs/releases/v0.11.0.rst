@@ -72,10 +72,6 @@
   Fread
   -----
 
-  -[fix] When reading Excel files, the cells with datetime or boolean types
-    are now handled correctly, in particular a datetime value is converted
-    into its string representation. [#1701]
-
   -[new] Added new function :func:`iread()`, which is similar to
     :func:`fread()`, but suitable for reading multiple sources at once. The
     function will return an iterator of Frames.
@@ -106,6 +102,13 @@
 
   -[enh] Fread now displays a progress bar when downloading data from a URL.
     [#2441]
+
+  -[enh] Fread now computes NA counts of all data while reading, storing
+    them in per-column stats.
+
+  -[fix] When reading Excel files, the cells with datetime or boolean types
+    are now handled correctly, in particular a datetime value is converted
+    into its string representation. [#1701]
 
   -[fix] Fread now properly detects ``\r``-newlines in the presence of fields
     with quoted ``\n``-newlines. [#1343]

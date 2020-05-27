@@ -25,6 +25,9 @@
 #include <string>      // std::string
 #include "parallel/shared_mutex.h"
 #include "utils/file.h"
+#include "types.h"
+
+class Buffer;
 
 
 //==============================================================================
@@ -172,7 +175,7 @@ class ThreadsafeWritableBuffer : public WritableBuffer
 class MemoryWritableBuffer : public ThreadsafeWritableBuffer
 {
   public:
-    MemoryWritableBuffer(size_t size);
+    MemoryWritableBuffer(size_t size = 0);
     ~MemoryWritableBuffer() override;
 
     // Return memory buffer that was written. This method may only be
@@ -184,6 +187,11 @@ class MemoryWritableBuffer : public ThreadsafeWritableBuffer
     // will start from the beginning. This method does not actually
     // erase any data, nor does any reallocation.
     void clear();
+
+    void* data() const;
+
+    size_t prepare_for_external_write(size_t expected_length);
+    void finish_external_write(size_t actual_length);
 
   private:
     void realloc(size_t newsize) override;

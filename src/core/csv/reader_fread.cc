@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <iomanip>
 #include "csv/reader_fread.h"    // FreadReader
+#include "read/chunk_coordinates.h"
 #include "read/parse_context.h"  // dt::read::ParseContext
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock
@@ -266,6 +267,7 @@ void FreadReader::detect_sep_and_qr() {
   dt::read::field64 tmp;
   dt::read::ParseContext ctx = makeTokenizer();
   ctx.target = &tmp;
+  ctx.anchor = sof;
   const char*& tch = ctx.ch;
 
   // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
@@ -429,6 +431,7 @@ class ColumnTypeDetectionChunkster {
 
     dt::read::ChunkCoordinates compute_chunk_boundaries(size_t j) {
       dt::read::ChunkCoordinates cc(f.eof, f.eof);
+      fctx.anchor = f.sof;
       if (j == 0) {
         if (f.header == 0) {
           cc.set_start_exact(f.sof);
@@ -886,42 +889,21 @@ void FreadReader::parse_column_names(dt::read::ParseContext& ctx) {
     while (*ch == ' ' || *ch == '\t') ch++;
   }
 
-  uint8_t echar = quoteRule == 0? static_cast<uint8_t>(quote) :
-                  quoteRule == 1? '\\' : 0xFF;
-
   size_t ncols = preframe.ncols();
   size_t ncols_found;
   for (size_t i = 0; ; ++i) {
     // Parse string field, but do not advance `ctx.target`: on the next
     // iteration we will write into the same place.
-    parse_string(ctx);
-    const char* start = ctx.anchor + ctx.target->str32.offset;
+    dt::read::parse_string(ctx);
+    const char* start = static_cast<const char*>(ctx.strbuf.data())
+                        + ctx.target->str32.offset;
     int32_t ilen = ctx.target->str32.length;
-    size_t zlen = static_cast<size_t>(ilen);
 
     if (i >= ncols) {
       preframe.set_ncols(i + 1);
     }
     if (ilen > 0) {
-      const uint8_t* usrc = reinterpret_cast<const uint8_t*>(start);
-      int res = check_escaped_string(usrc, zlen, echar);
-      if (res == 0) {
-        preframe.column(i).set_name(std::string(start, zlen));
-      } else {
-        char* newsrc = new char[zlen * 4];
-        uint8_t* unewsrc = reinterpret_cast<uint8_t*>(newsrc);
-        int newlen;
-        if (res == 1) {
-          newlen = decode_escaped_csv_string(usrc, ilen, unewsrc, echar);
-        } else {
-          newlen = decode_win1252(usrc, ilen, unewsrc);
-          newlen = decode_escaped_csv_string(unewsrc, newlen, unewsrc, echar);
-        }
-        xassert(newlen > 0);
-        zlen = static_cast<size_t>(newlen);
-        preframe.column(i).set_name(std::string(newsrc, zlen));
-        delete[] newsrc;
-      }
+      preframe.column(i).set_name(std::string(start, start + ilen));
     }
     // Skip the separator, handling special case of sep=' ' (multiple spaces are
     // treated as a single separator, and spaces at the beginning/end of line

@@ -50,10 +50,19 @@ Rbound_ColumnImpl::Rbound_ColumnImpl(const colvec& columns)
     chunks_(columns)
 {
   xassert(!chunks_.empty());
+  size_t na_count = 0;
+  bool is_valid = true;
   for (auto& col : chunks_) {
+    auto chunk_stats = col.get_stats_if_exist();
+    if (chunk_stats && is_valid) {
+      na_count += chunk_stats->nacount(&is_valid);
+    }
     if (col.stype() != stype()) {
       col.cast_inplace(stype());
     }
+  }
+  if (is_valid) {
+    stats()->set_nacount(na_count);
   }
 }
 

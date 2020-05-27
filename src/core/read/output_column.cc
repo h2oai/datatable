@@ -52,7 +52,7 @@ void* OutputColumn::data_w() {
 }
 
 
-WritableBuffer* OutputColumn::strdata_w() {
+MemoryWritableBuffer* OutputColumn::strdata_w() {
   return strbuf_.get();
 }
 
@@ -96,13 +96,14 @@ void OutputColumn::archive_data(size_t nrows_written,
     }
   }
 
-  chunks_.push_back(
-    is_string? Column::new_string_column(nrows_chunk,
-                                         std::move(stored_databuf),
-                                         std::move(stored_strbuf))
-             : Column::new_mbuf_column(nrows_chunk, stype_,
-                                       std::move(stored_databuf))
-  );
+  Column newcol = is_string? Column::new_string_column(nrows_chunk,
+                                                       std::move(stored_databuf),
+                                                       std::move(stored_strbuf))
+                           : Column::new_mbuf_column(nrows_chunk, stype_,
+                                                     std::move(stored_databuf));
+  newcol.stats()->set_nacount(na_count_);
+  chunks_.push_back(std::move(newcol));
+  na_count_ = 0;
   nrows_in_chunks_ = nrows_written;
   xassert(!databuf_ && !strbuf_);
 }
@@ -144,6 +145,14 @@ void OutputColumn::set_stype(SType stype) {
 }
 
 
+size_t OutputColumn::nrows_archived() const noexcept {
+  return nrows_in_chunks_;
+}
+
+
+void OutputColumn::add_na_count(size_t n) {
+  na_count_ += n;
+}
 
 
 

@@ -5,9 +5,11 @@
 //
 // © H2O.ai 2018
 //------------------------------------------------------------------------------
+#include <iostream>
 #include <limits>                        // std::numeric_limits
 #include "csv/reader_parsers.h"
 #include "read/parse_context.h"          // ParseContext
+#include "read/field64.h"                // field64
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
 #include "utils/macros.h"
@@ -36,13 +38,13 @@ using namespace dt::read;
  * and there is nothing to read nor parsing pointer to advance in an empty
  * column.
  */
-void parse_mu(ParseContext& ctx) {
+void parse_mu(const ParseContext& ctx) {
   ctx.target->int8 = NA_BOOL8;
 }
 
 
 /* Parse numbers 0 | 1 as boolean. */
-void parse_bool8_numeric(ParseContext& ctx) {
+void parse_bool8_numeric(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   // *ch=='0' => d=0,
   // *ch=='1' => d=1,
@@ -59,7 +61,7 @@ void parse_bool8_numeric(ParseContext& ctx) {
 
 
 /* Parse lowercase true | false as boolean. */
-void parse_bool8_lowercase(ParseContext& ctx) {
+void parse_bool8_lowercase(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -74,7 +76,7 @@ void parse_bool8_lowercase(ParseContext& ctx) {
 
 
 /* Parse titlecase True | False as boolean. */
-void parse_bool8_titlecase(ParseContext& ctx) {
+void parse_bool8_titlecase(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
     ctx.target->int8 = 0;
@@ -89,7 +91,7 @@ void parse_bool8_titlecase(ParseContext& ctx) {
 
 
 /* Parse uppercase TRUE | FALSE as boolean. */
-void parse_bool8_uppercase(ParseContext& ctx) {
+void parse_bool8_uppercase(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   if (ch + 4 < ctx.eof && ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
     ctx.target->int8 = 0;
@@ -111,7 +113,7 @@ void parse_bool8_uppercase(ParseContext& ctx) {
 // See (?)microbench/fread/int32.cpp for performance tests
 //
 template <typename T, bool allow_leading_zeroes>
-void parse_int_simple(ParseContext& ctx) {
+void parse_int_simple(const ParseContext& ctx) {
   constexpr int MAX_DIGITS = sizeof(T) == 4? 10 : 19;
   constexpr uint64_t MAX_VALUE = std::numeric_limits<T>::max();
   constexpr T NA_VALUE = std::numeric_limits<T>::min();
@@ -167,7 +169,7 @@ void parse_int_simple(ParseContext& ctx) {
 // `T` should be either int32_t or int64_t
 //
 template <typename T>
-void parse_intNN_grouped(ParseContext& ctx) {
+void parse_intNN_grouped(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   bool quoted = ch < ctx.eof && *ch == ctx.quote;
   ch += quoted;
@@ -248,7 +250,7 @@ void parse_intNN_grouped(ParseContext& ctx) {
 // Float32
 //------------------------------------------------------------------------------
 
-void parse_float32_hex(ParseContext& ctx) {
+void parse_float32_hex(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint32_t neg = 0;
   uint8_t digit;
@@ -328,7 +330,7 @@ void parse_float32_hex(ParseContext& ctx) {
  * where `NNN`, `MMM`, `EEE` are one or more decimal digits, representing the
  * whole part, fractional part, and the exponent respectively.
  */
-void parse_float64_simple(ParseContext& ctx) {
+void parse_float64_simple(const ParseContext& ctx) {
   constexpr int MAX_DIGITS = 18;
   const char* ch = ctx.ch;
 
@@ -453,7 +455,7 @@ void parse_float64_simple(ParseContext& ctx) {
  *   #DIV/0!, #VALUE!, #NULL!, #NAME?, #NUM!, #REF!, #N/A
  *
  */
-void parse_float64_extended(ParseContext& ctx) {
+void parse_float64_extended(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg = 0;
   bool quoted = 0;
@@ -539,7 +541,7 @@ void parse_float64_extended(ParseContext& ctx) {
  * @see http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
  * @see https://en.wikipedia.org/wiki/IEEE_754-1985
  */
-void parse_float64_hex(ParseContext& ctx) {
+void parse_float64_hex(const ParseContext& ctx) {
   const char* ch = ctx.ch;
   uint64_t neg = 0;
   uint8_t digit;
@@ -608,217 +610,6 @@ void parse_float64_hex(ParseContext& ctx) {
 
 
 //------------------------------------------------------------------------------
-// String
-//------------------------------------------------------------------------------
-// static constexpr int SIMPLE = 0;
-static constexpr int DOUBLED = 1;
-static constexpr int ESCAPED = 2;
-
-/**
-  * Parse simple unquoted string field. The field terminates when we
-  * encounter either sep or a newline.
-  *
-  * The QUOTES_FORBIDDEN flag controls the meaning of the quotes
-  * found inside the field. If the flag is true, then any quotes will
-  * result in the error condition (target set to NA, `ch` not
-  * advanced); if the flag is false then the quote chars are treated
-  * as any other regular character.
-  *
-  * This function
-  *   - WILL NOT check for NA strings;
-  *   - WILL NOT check for UTF8 validity;
-  *   - WILL strip the leading/trailing whitespace if requested.
-  */
-template <bool QUOTES_FORBIDDEN>
-static void parse_string_unquoted(ParseContext& ctx) {
-  const char* ch = ctx.ch;
-  const char* end = ctx.eof;
-  const char quote = ctx.quote;
-  const char sep = ctx.sep;
-
-  if (ctx.strip_whitespace) {
-    while (ch < end && *ch == ' ') ch++;
-  }
-  const char* field_start = ch;
-  while (ch < end) {
-    char c = *ch;
-    if (c == sep) break;  // end of field
-    if (static_cast<uint8_t>(c) <= 13) {  // probably a newline
-      if (c == '\n') {
-        // Move back to the beginning of \r+\n sequence
-        while (ch > field_start && ch[-1] == '\r') ch--;
-        break;
-      }
-      if (c == '\r' && ctx.cr_is_newline) break;
-    }
-    else if (c == quote && QUOTES_FORBIDDEN) {
-      ctx.target->str32.setna();
-      return;
-    }
-    ch++;
-  }
-  // end of field reached
-  auto field_size = ch - field_start;
-  if (ctx.strip_whitespace) {
-    const char* fch = ch - 1;
-    while (field_size > 0 && *fch == ' ') {
-      fch--;
-      field_size--;
-    }
-  }
-  ctx.target->str32.offset = static_cast<uint32_t>(field_start - ctx.anchor);
-  ctx.target->str32.length = static_cast<int32_t>(field_size);
-  ctx.ch = ch;
-}
-
-
-/**
-  * Parse a "quoted" string, this function handles QRs 1 and 2. More
-  * precisely, if the current field begins with a quote, then it will
-  * be parsed as a quoted field, using the supplied QR MODE. However,
-  * if the field does not start with a quote, then we will defer to
-  * the `parse_string_unquoted<false>()` function instead.
-  *
-  * The following MODEs are supported:
-  *   - SIMPLE: no quotes inside field are allowed,
-  *   - DOUBLED: any quotes inside the field are doubled,
-  *   - ESCAPED: any quotes inside the field are escaped with a
-  *              backslash.
-  */
-template <int MODE>
-static void parse_string_quoted(ParseContext& ctx) {
-  const char* ch = ctx.ch;
-  const char* end = ctx.eof;
-  const char quote = ctx.quote;
-
-  if (ctx.strip_whitespace) {
-    while (ch < end && *ch == ' ') ch++;
-  }
-  if (ch < end && *ch == quote) {
-    ch++;  // skip the quote symbol
-    const char* field_start = ch;
-    while (ch < end) {
-      if (*ch == quote) {
-        if (MODE == DOUBLED && ch + 1 < end && ch[1] == quote) ch++;
-        else break;  // undoubled quote: end of field
-      }
-      if (MODE == ESCAPED && *ch == '\\') ch++;
-      ch++;
-    }
-    if (ch >= end) {
-      ctx.target->str32.setna();
-      return;
-    }
-    xassert(field_start < ctx.anchor + (1ull << 32));
-    ctx.target->str32.offset = static_cast<uint32_t>(field_start - ctx.anchor);
-    ctx.target->str32.length = static_cast<int32_t>(ch - field_start);
-    xassert(*ch == quote);
-    ch++;  // skip over the quote
-    if (ctx.strip_whitespace) {
-      while (ch < end && *ch == ' ') ch++;
-    }
-    ctx.ch = ch;
-  }
-  else {
-    parse_string_unquoted<true>(ctx);
-  }
-}
-
-
-/**
-  * Parse a "naively" quoted string. This quoting rule means that
-  * the string which potentially has embedded quotes was written
-  * without any consideration for the need to escape inner quote
-  * marks. Such string is obviously broken. This parse rule attempts
-  * to fix this situation by following a heuristic:
-  *
-  *   - assume the field has no newlines;
-  *   - the field may or may not contain quote marks;
-  *   - if the field contains a quote mark, it is not followed
-  *     by the sep;
-  *   - when we see quote+(sep|eol) in the input, it means this is
-  *     the actual field end; any quote that is not followed by
-  *     either sep or eol is assumed to be part of the field;
-  *   - if the input starts and ends with a quote, those quotes are
-  *     not considered part of the field;
-  *   - if the input starts with a quote but doesn't end with a
-  *     quote, then the first quote is presumed to be part of the
-  *     field.
-  *
-  * Note: this parser is very hacky, and might as well be removed
-  * in the future entirely.
-  */
-static void parse_string_naive(ParseContext& ctx) {
-  const char* ch = ctx.ch;
-  const char* end = ctx.eof;
-  const char quote = ctx.quote;
-  const char sep = ctx.sep;
-
-  if (ctx.strip_whitespace) {
-    while (ch < end && *ch == ' ') ch++;
-  }
-  const char* field_end = nullptr;
-  const char* field_start = ch;
-  bool quoted = false;
-  if (ch < end && *ch == quote) {
-    quoted = true;
-    ch++;
-  }
-  while (ch < end) {
-    char c = *ch;
-    if (c == sep) {
-      // this is a field end if either (1) the field did not start with a quote,
-      // or (2) a matching closing quote will not be found on the line
-      if (!field_end) field_end = ch;  // tentative
-      if (!quoted) break;
-    }
-    else if (c == quote && quoted) {
-      // a quote closes the field only if the field started with a quote, and
-      // only if this quote is followed with a valid sep
-      if (ch + 1 == end || ch[1] == sep || ch[1] == '\n' || ch[1] == '\r') {
-        field_end = ch;
-        field_start++;
-        ch++;  // skip over the final quote
-        break;
-      }
-    }
-    else if (static_cast<uint8_t>(c) <= 13) {  // probably a newline
-      if (c == '\n') {
-        // Move back to the beginning of \r+\n sequence
-        while (ch >= field_start && ch[-1] == '\r') ch--;
-        break;
-      }
-      if (c == '\r' && ctx.cr_is_newline) break;
-    }
-    ch++;
-  }
-  if (!field_end) field_end = ch;
-  ctx.target->str32.offset = static_cast<uint32_t>(field_start - ctx.anchor);
-  ctx.target->str32.length = static_cast<int32_t>(field_end - field_start);
-  ctx.ch = ch;
-}
-
-
-
-void parse_string(ParseContext& ctx) {
-  switch (ctx.quoteRule) {
-    case 0: parse_string_quoted<DOUBLED>(ctx); break;
-    case 1: parse_string_quoted<ESCAPED>(ctx); break;
-    case 2: parse_string_naive(ctx);           break;
-    case 3: parse_string_unquoted<false>(ctx); break;
-  }
-  auto len = ctx.target->str32.length;
-  auto ptr = ctx.target->str32.offset + ctx.anchor;
-  xassert(len >= 0 || ctx.target->str32.isna());
-  if (len == 0? ctx.blank_is_na
-              : ctx.end_NA_string(ptr) == ptr + len) {
-    ctx.target->str32.setna();
-  }
-}
-
-
-
-//------------------------------------------------------------------------------
 // ParserLibrary
 //------------------------------------------------------------------------------
 
@@ -852,8 +643,8 @@ void ParserLibrary::init_parsers() {
   add(dt::read::PT::Float64Plain, "Float64",         'F', 8, SType::FLOAT64, parse_float64_simple);
   add(dt::read::PT::Float64Ext,   "Float64/ext",     'F', 8, SType::FLOAT64, parse_float64_extended);
   add(dt::read::PT::Float64Hex,   "Float64/hex",     'F', 8, SType::FLOAT64, parse_float64_hex);
-  add(dt::read::PT::Str32,        "Str32",           's', 4, SType::STR32,   parse_string);
-  add(dt::read::PT::Str64,        "Str64",           'S', 8, SType::STR64,   parse_string);
+  add(dt::read::PT::Str32,        "Str32",           's', 4, SType::STR32,   dt::read::parse_string);
+  add(dt::read::PT::Str64,        "Str64",           'S', 8, SType::STR64,   dt::read::parse_string);
 }
 
 

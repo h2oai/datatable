@@ -65,7 +65,7 @@ class PreFrame
     size_t nrows_allocated() const noexcept;
     size_t nrows_written() const noexcept;
     void preallocate(size_t nrows);
-    void ensure_output_nrows(size_t& nrows_in_chunk, size_t ichunk, dt::ordered*);
+    size_t ensure_output_nrows(size_t nrows_in_chunk, size_t ichunk, dt::ordered*);
     void archive_column_chunks(size_t expected_nrows);
 
     // Column iterator / access

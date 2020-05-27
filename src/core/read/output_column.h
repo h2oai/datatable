@@ -50,10 +50,14 @@ class OutputColumn
     OutputColumn(const OutputColumn&) = delete;
 
     void* data_w();
-    WritableBuffer* strdata_w();
+    MemoryWritableBuffer* strdata_w();
     void allocate(size_t new_nrows);
     void archive_data(size_t nrows_written, std::shared_ptr<TemporaryFile>&);
     Column to_column();
+
+    size_t nrows_archived() const noexcept;
+
+    void add_na_count(size_t n);
 
     void set_stype(SType stype);
 };

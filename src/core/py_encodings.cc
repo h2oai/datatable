@@ -34,6 +34,11 @@ int decode_win1252(const uint8_t* src, int len, uint8_t* dest) {
   return decode_sbcs(src, len, dest, win1252_map);
 }
 
+int decode_win1252(const char* src, int len, char* dest) {
+  return decode_sbcs(reinterpret_cast<const uint8_t*>(src), len,
+                     reinterpret_cast<uint8_t*>(dest), win1252_map);
+}
+
 int decode_win1251(const uint8_t* src, int len, uint8_t* dest) {
   return decode_sbcs(src, len, dest, win1251_map);
 }
@@ -53,7 +58,7 @@ int init_py_encodings(PyObject*) {
       if (i < 0x80) {
         xassert(map[i] == i);  // check ASCII compatibility
       }
-      
+
       if (i && map[i] == 0) map[i] = 0x00BDBFEF;  // U+FFFD
       xassert((map[i] & 0xFF000000) == 0);
     }

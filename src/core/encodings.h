@@ -12,6 +12,7 @@
 
 
 int is_valid_utf8(const uint8_t* src, size_t len);
+int is_valid_utf8(const char* src, size_t len);
 
 int check_escaped_string(const uint8_t* src, size_t len, uint8_t escape_char);
 

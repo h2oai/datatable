@@ -793,7 +793,7 @@ def test_unquoting2():
 
 def test_unescaping1():
     d0 = dt.fread('"C\\\\D"\n'
-                  'AB\\x20CD\\n\n'
+                  '"AB\\x20CD\\n"\n'
                   '"\\"one\\", \\\'two\\\', three"\n'
                   '"\\r\\t\\v\\a\\b\\071\\uABCD"\n')
     frame_integrity_check(d0)
@@ -815,6 +815,21 @@ def test_whitespace_nas(tol):
     assert list_equals(d0.to_list(),
                        [[17, 3, None, 0], [34, None, 2, 0.1], [2.3, 1, None, 0]],
                        rel_tol = tol)
+
+
+def test_default_na_strings():
+    DT = dt.fread("A,B\nNA,3\n")
+    assert_equals(DT, dt.Frame(A=[None], B=[3]))
+
+
+def test_simple_na_strings():
+    DT = dt.fread("A,B,C\n"
+                  "foo,3,7\n"
+                  "14,foobar,6\n"
+                  ",fo,9\n", na_strings=['foo'])
+    assert_equals(DT, dt.Frame(A=[None, 14, None],
+                               B=["3", "foobar", "fo"],
+                               C=[7, 6, 9]))
 
 
 def test_quoted_na_strings():
@@ -1027,7 +1042,7 @@ def test_int64s_and_typebumps(capsys):
     assert "6 columns need to be re-read" in out
     assert "Column 3 (i64-2) bumped from Int32 to Int64" in out
     assert "Column 9 (s32-4) bumped from Float64 to Str32 due to " \
-           "<<1.23e>> on row 111" in out
+           "<<1.23e>> on row 113" in out
     f1 = dt.fread(text, verbose=True, columns=f0.stypes)
     out, err = capsys.readouterr()
     assert f1.stypes == f0.stypes
@@ -1051,10 +1066,9 @@ def test_almost_nodata(capsys):
     assert d0.shape == (n, 3)
     assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
     assert d0.to_list() == [[2017] * n, m, ["foo"] * n]
-    print(out)
     assert not err
     assert ("Column 2 (B) bumped from Unknown to Str32 "
-            "due to <<gotcha>> on row 109" in out)
+            "due to <<gotcha>> on row 111" in out)
 
 
 
@@ -1144,13 +1158,13 @@ def test_typebumps(capsys):
     assert ("4 columns need to be re-read because their types have changed"
             in out)
     assert ("Column 1 (A) bumped from Bool8/numeric to Str32 due to <<Fals>> "
-            "on row 105" in out)
+            "on row 107" in out)
     assert ("Column 2 (B) bumped from Int32 to Float64 due to <<3.5>> on "
-            "row 105" in out)
+            "row 107" in out)
     assert ("Column 3 (C) bumped from Int32 to Str32 due to <<boo>> on "
-            "row 105" in out)
+            "row 107" in out)
     assert ("Column 4 (D) bumped from Int32 to Str32 due to <<\"1,000\">> on "
-            "row 105" in out)
+            "row 107" in out)
 
 
 def test_too_few_rows():

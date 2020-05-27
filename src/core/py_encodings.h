@@ -17,5 +17,6 @@ int decode_iso8859(const uint8_t* src, int len, uint8_t* dest);
 int decode_win1252(const uint8_t* src, int len, uint8_t* dest);
 int decode_win1251(const uint8_t* src, int len, uint8_t* dest);
 
+int decode_win1252(const char* src, int len, char* dest);
 
 #endif

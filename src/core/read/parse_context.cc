@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "read/chunk_coordinates.h"
 #include "read/parse_context.h"
 namespace dt {
 namespace read {
@@ -57,7 +58,7 @@ namespace read {
  * is any '\\n' found in the file, in which case a standalone '\\r' will not be
  * considered a newline.
  */
-bool ParseContext::skip_eol() {
+bool ParseContext::skip_eol() const {
   if (ch < eof && *ch == '\n') {       // '\n\r' or '\n'
     ch += 1 + (ch + 1 < eof && ch[1] == '\r');
     return true;
@@ -85,7 +86,7 @@ bool ParseContext::skip_eol() {
  * terminator (either a `sep` or a newline). This does not advance the tokenizer
  * position.
  */
-bool ParseContext::at_end_of_field() {
+bool ParseContext::at_end_of_field() const {
   // \r is 13, \n is 10, and \0 is 0. The second part is optimized based on the
   // fact that the characters in the ASCII range 0..13 are very rare, so a
   // single check `tch<=13` is almost equivalent to checking whether `tch` is
@@ -106,7 +107,25 @@ bool ParseContext::at_end_of_field() {
 }
 
 
-const char* ParseContext::end_NA_string(const char* fieldStart) {
+
+bool ParseContext::is_na_string(const char* start, const char* end) const {
+  const char* const* nastr = NAstrings;
+  while (*nastr) {
+    const char* ch1 = start;
+    const char* ch2 = *nastr;
+    while (ch1 < end && *ch1 == *ch2 && *ch2) {
+      ch1++;
+      ch2++;
+    }
+    if (*ch2 == '\0' && ch1 == end) return true;
+    nastr++;
+  }
+  return false;
+}
+
+
+
+const char* ParseContext::end_NA_string(const char* fieldStart) const {
   const char* const* nastr = NAstrings;
   const char* mostConsumed = fieldStart;
   while (*nastr) {
@@ -128,7 +147,7 @@ const char* ParseContext::end_NA_string(const char* fieldStart) {
  * For all other seps we assume that both ' ' and '\\t' characters are
  * whitespace to be skipped.
  */
-void ParseContext::skip_whitespace() {
+void ParseContext::skip_whitespace() const {
   // skip space so long as sep isn't space and skip tab so long as sep isn't tab
   if (whiteChar == 0) {   // whiteChar==0 means skip both ' ' and '\t';  sep is neither ' ' nor '\t'.
     while (ch < eof && (*ch == ' ' || *ch == '\t')) ch++;
@@ -142,7 +161,7 @@ void ParseContext::skip_whitespace() {
  * Skip whitespace at the beginning of a line. This whitespace does not count
  * as a separator even if `sep=' '`.
  */
-void ParseContext::skip_whitespace_at_line_start() {
+void ParseContext::skip_whitespace_at_line_start() const {
   if (sep == '\t') {
     while (ch < eof && *ch == ' ') ch++;
   } else {
@@ -159,10 +178,8 @@ void ParseContext::skip_whitespace_at_line_start() {
  * be parsed using current settings, or 0 if the line is empty (even though an
  * empty line may be viewed as a single field).
  */
-int ParseContext::countfields()
-{
+int ParseContext::countfields() const {
   const char* ch0 = ch;
-  anchor = ch0;
   if (sep==' ') while (ch < eof && *ch==' ') ch++;  // multiple sep==' ' at the start does not mean sep
   skip_whitespace();
   if (skip_eol() || ch==eof) {
@@ -197,7 +214,7 @@ int ParseContext::countfields()
 // Find the next "good line", in the sense that we find at least 5 lines
 // with `ncols` fields from that point on.
 bool ParseContext::next_good_line_start(
-  const ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines)
+  const ChunkCoordinates& cc, int ncols, bool fill, bool skipEmptyLines) const
 {
   // int ncols = static_cast<int>(f.get_ncols());
   // bool fill = f.fill;
@@ -227,6 +244,8 @@ bool ParseContext::next_good_line_start(
   }
   return false;
 }
+
+
 
 
 }}  // namespace dt::read::

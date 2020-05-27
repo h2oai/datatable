@@ -24,18 +24,19 @@
 #include "read/preframe.h"
 #include "read/thread_context.h"
 #include "utils/assert.h"
+#include "encodings.h"               // check_escaped_string, decode_escaped_csv_string
+#include "py_encodings.h"            // decode_win1252
 namespace dt {
 namespace read {
 
 
 ThreadContext::ThreadContext(size_t ncols, size_t nrows, PreFrame& preframe)
   : tbuf(ncols * nrows + 1),
-    sbuf(0),
-    strinfo(ncols),
+    colinfo_(ncols),
     tbuf_ncols(ncols),
     tbuf_nrows(nrows),
     used_nrows(0),
-    row0(0),
+    row0_(0),
     preframe_(preframe) {}
 
 
@@ -64,108 +65,256 @@ void ThreadContext::set_nrows(size_t n) {
 
 
 void ThreadContext::set_row0(size_t n) {
-  xassert(row0 <= n);
-  row0 = n;
+  xassert(row0_ <= n);
+  row0_ = n;
 }
 
 
-void ThreadContext::order_buffer() {
+
+//------------------------------------------------------------------------------
+// Post-processing
+//------------------------------------------------------------------------------
+
+void ThreadContext::preorder() {
   if (!used_nrows) return;
   size_t j = 0;
-  for (auto& col : preframe_) {
+  for (const auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
-    if (col.is_string() && !col.is_type_bumped()) {
-      auto& outcol = col.outcol();
-      // Compute the size of the string content in the buffer `sz` from the
-      // offset of the last element. This quantity cannot be calculated in the
-      // postprocess() step, since `used_nrows` may sometimes change, affecting
-      // this size after the post-processing.
-      uint32_t offset0 = static_cast<uint32_t>(strinfo[j].start);
-      uint32_t offsetL = tbuf[j + tbuf_ncols * (used_nrows - 1)].str32.offset;
-      size_t sz = (offsetL - offset0) & ~GETNA<uint32_t>();
-      strinfo[j].size = sz;
+    if (col.is_type_bumped()) { j++; continue; }
 
-      WritableBuffer* wb = outcol.strdata_w();
-      size_t write_at = wb->prepare_write(sz, sbuf.data() + offset0);
-      strinfo[j].write_at = write_at;
+    switch (col.get_stype()) {
+      case SType::BOOL:    preorder_bool_column(j); break;
+      case SType::INT32:   preorder_int32_column(j); break;
+      case SType::INT64:   preorder_int64_column(j); break;
+      case SType::FLOAT32: preorder_float32_column(j); break;
+      case SType::FLOAT64: preorder_float64_column(j); break;
+      case SType::STR32:
+      case SType::STR64:   preorder_string_column(j); break;
+      default: throw RuntimeError() << "Unknown column type";
     }
     ++j;
   }
 }
 
 
+void ThreadContext::preorder_bool_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<int8_t>(data->int8);
+  }
+  colinfo_[j].na_count = na_count;
+}
 
 
-void ThreadContext::push_buffers() {
+void ThreadContext::preorder_int32_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<int32_t>(data->int32);
+  }
+  colinfo_[j].na_count = na_count;
+}
+
+
+void ThreadContext::preorder_int64_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<int64_t>(data->int64);
+  }
+  colinfo_[j].na_count = na_count;
+}
+
+
+void ThreadContext::preorder_float32_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<float>(data->float32);
+  }
+  colinfo_[j].na_count = na_count;
+}
+
+
+void ThreadContext::preorder_float64_column(size_t j) {
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    na_count += ISNA<double>(data->float64);
+  }
+  colinfo_[j].na_count = na_count;
+}
+
+
+void ThreadContext::preorder_string_column(size_t j) {
+  size_t total_length = 0;
+  size_t na_count = 0;
+  const field64* data = tbuf.data() + j;
+  const field64* end = data + used_nrows * tbuf_ncols;
+  for (; data < end; data += tbuf_ncols) {
+    int32_t len = data->str32.length;
+    if (len > 0) {
+      total_length += static_cast<size_t>(len);
+    }
+    else if (len < 0) {
+      na_count++;
+    }
+  }
+  colinfo_[j].str.size = total_length;
+  colinfo_[j].na_count = na_count;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Ordering
+//------------------------------------------------------------------------------
+
+void ThreadContext::order() {
+  if (!used_nrows) return;
+  size_t j = 0;
+  for (auto& col : preframe_) {
+    if (!col.is_in_buffer()) continue;
+    if (col.is_type_bumped()) { j++; continue; }
+
+    auto& outcol = col.outcol();
+    outcol.add_na_count(colinfo_[j].na_count);
+    switch (col.get_stype()) {
+      case SType::STR32:
+      case SType::STR64:  order_string_column(outcol, j); break;
+      default:;
+    }
+    ++j;
+  }
+}
+
+
+void ThreadContext::order_string_column(OutputColumn& col, size_t j) {
+  auto strdata_size = colinfo_[j].str.size;
+  auto wb = col.strdata_w();
+  size_t write_at = wb->prepare_write(strdata_size, nullptr);
+  colinfo_[j].str.write_at = write_at;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Post-ordering
+//------------------------------------------------------------------------------
+
+void ThreadContext::postorder() {
   // If the buffer is empty, then there's nothing to do...
   if (!used_nrows) return;
 
   size_t j = 0;
   for (auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
+    if (col.is_type_bumped()) { j++; continue; }
+
     auto& outcol = col.outcol();
-    void* data = outcol.data_w();
-    int8_t elemsize = static_cast<int8_t>(col.elemsize());
-    size_t effective_row0 = row0 - col.nrows_archived();
-
-    if (col.is_type_bumped()) {
-      // do nothing: the column was not properly allocated for its type, so
-      // any attempt to write the data may fail with data corruption
-    } else if (col.is_string()) {
-      WritableBuffer* wb = outcol.strdata_w();
-      auto& si = strinfo[j];
-      field64* lo = tbuf.data() + j;
-
-      wb->write_at(si.write_at, si.size, sbuf.data() + si.start);
-
-      if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0 + 1;
-        uint32_t delta = static_cast<uint32_t>(si.write_at - si.start);
-        for (size_t n = 0; n < used_nrows; ++n) {
-          uint32_t soff = lo->str32.offset;
-          *dest++ = soff + delta;
-          lo += tbuf_ncols;
-        }
-      } else {
-        uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0 + 1;
-        uint64_t delta = static_cast<uint64_t>(si.write_at - si.start);
-        for (size_t n = 0; n < used_nrows; ++n) {
-          uint64_t soff = lo->str32.offset;
-          *dest++ = soff + delta;
-          lo += tbuf_ncols;
-        }
-      }
-
-    } else {
-      const field64* src = tbuf.data() + j;
-      if (elemsize == 8) {
-        uint64_t* dest = static_cast<uint64_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint64;
-          src += tbuf_ncols;
-          dest++;
-        }
-      } else
-      if (elemsize == 4) {
-        uint32_t* dest = static_cast<uint32_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint32;
-          src += tbuf_ncols;
-          dest++;
-        }
-      } else
-      if (elemsize == 1) {
-        uint8_t* dest = static_cast<uint8_t*>(data) + effective_row0;
-        for (size_t r = 0; r < used_nrows; r++) {
-          *dest = src->uint8;
-          src += tbuf_ncols;
-          dest++;
-        }
-      }
+    switch (col.get_stype()) {
+      case SType::BOOL:    postorder_bool_column(outcol, j); break;
+      case SType::INT32:   postorder_int32_column(outcol, j); break;
+      case SType::INT64:   postorder_int64_column(outcol, j); break;
+      case SType::FLOAT32: postorder_float32_column(outcol, j); break;
+      case SType::FLOAT64: postorder_float64_column(outcol, j); break;
+      case SType::STR32:   postorder_string_column(outcol, j); break;
+      default:
+        throw RuntimeError() << "Unknown column SType in fread";
     }
     j++;
   }
   used_nrows = 0;
+}
+
+
+void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
+  auto src_strbuf = static_cast<char*>(parse_ctx_.strbuf.data());
+  auto out_strbuf = col.strdata_w();
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<uint32_t*>(col.data_w());
+
+  auto pos0 = static_cast<uint32_t>(colinfo_[j].str.write_at);
+  auto dest = out_data + (row0_ - col.nrows_archived()) + 1;
+  for (size_t i = 0; i < used_nrows; ++i) {
+    uint32_t offset = src_data->str32.offset;
+    int32_t length = src_data->str32.length;
+    if (length > 0) {
+      out_strbuf->write_at(pos0, static_cast<size_t>(length), src_strbuf + offset);
+      pos0 += static_cast<uint32_t>(length);
+      *dest++ = pos0;
+    }
+    else {
+      static_assert(static_cast<uint32_t>(NA_I4) == NA_S4,
+                    "incompatible int32 and uint32 NA values");
+      xassert(length == 0 || length == NA_I4);
+      *dest++ = pos0 ^ static_cast<uint32_t>(length);
+    }
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_bool_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<int8_t*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->int8;
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_int32_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<int32_t*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->int32;
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_int64_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<int64_t*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->int64;
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_float32_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<float*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->float32;
+    src_data += tbuf_ncols;
+  }
+}
+
+
+void ThreadContext::postorder_float64_column(OutputColumn& col, size_t j) {
+  auto src_data = tbuf.data() + j;
+  auto out_data = static_cast<double*>(col.data_w())
+                  + (row0_ - col.nrows_archived());
+  for (size_t i = 0; i < used_nrows; ++i) {
+    *out_data++ = src_data->float64;
+    src_data += tbuf_ncols;
+  }
 }
 
 

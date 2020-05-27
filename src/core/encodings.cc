@@ -61,6 +61,10 @@ int decode_sbcs(
 /**
  * Check whether the memory buffer contains a valid UTF-8 string.
  */
+int is_valid_utf8(const char* src, size_t len) {
+  return is_valid_utf8(reinterpret_cast<const uint8_t*>(src), len);
+}
+
 int is_valid_utf8(const uint8_t* src, size_t len)
 {
   const uint8_t* ch = src;

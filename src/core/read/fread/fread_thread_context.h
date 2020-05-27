@@ -36,7 +36,7 @@ namespace read {
 class FreadThreadContext : public ThreadContext
 {
   private:
-    using ParserFnPtr = void(*)(ParseContext& ctx);
+    using ParserFnPtr = void(*)(const ParseContext& ctx);
 
     const char* anchor;
     int quoteRule;
@@ -52,8 +52,6 @@ class FreadThreadContext : public ThreadContext
     PT* types;
 
     FreadReader& freader;
-    // PreFrame& preframe;
-    ParseContext tokenizer;
     const ParserFnPtr* parsers;
 
   public:
@@ -63,11 +61,9 @@ class FreadThreadContext : public ThreadContext
     ~FreadThreadContext() override;
 
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
-    void postprocess();
-    // void order_buffer() override;
-    void push_buffers() override;
+    void postorder() override;
 
-    ParseContext& get_tokenizer() { return tokenizer; }
+    ParseContext& get_tokenizer() { return parse_ctx_; }
 };
 
 

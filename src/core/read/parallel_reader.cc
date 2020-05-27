@@ -206,13 +206,16 @@ void ParallelReader::read_all()
           order_chunk(tacc, txcc, tctx.get());
 
           size_t chunk_nrows = tctx->get_nrows();
-          preframe.ensure_output_nrows(chunk_nrows, i, o);
-          tctx->set_nrows(chunk_nrows);
-          tctx->order_buffer();
+          size_t new_nrows = preframe.ensure_output_nrows(chunk_nrows, i, o);
+          if (new_nrows != chunk_nrows) {
+            tctx->set_nrows(new_nrows);
+            tctx->preorder();  // recalculate chunk stats, etc
+          }
+          tctx->order();
         },
 
         [&](size_t) {
-          tctx->push_buffers();
+          tctx->postorder();
         }
       );  // o->parallel()
     });  // dt::parallel_for_ordered
