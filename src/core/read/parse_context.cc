@@ -35,7 +35,6 @@ ParseContext::ParseContext()
     target(nullptr),
     strbuf(),
     bytes_written(0),
-    anchor(nullptr),
     NAstrings(nullptr),
     whiteChar('\0'),
     dec('.'),
@@ -53,7 +52,6 @@ ParseContext::ParseContext(const ParseContext& o)
     target(o.target),
     strbuf(),
     bytes_written(0),
-    anchor(o.anchor),
     NAstrings(o.NAstrings),
     whiteChar(o.whiteChar),
     dec(o.dec),
@@ -71,7 +69,6 @@ ParseContext& ParseContext::operator=(const ParseContext& o) {
   target = o.target;
   // strbuf is not assigned, just "emptied"
   bytes_written = 0;
-  anchor = o.anchor;
   NAstrings = o.NAstrings;
   whiteChar = o.whiteChar;
   dec = o.dec;

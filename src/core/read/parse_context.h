@@ -53,10 +53,6 @@ struct ParseContext
   mutable Buffer strbuf;
   mutable size_t bytes_written;
 
-  // Anchor pointer for string parser, this pointer is the starting point
-  // relative to which `str32.offset` is defined.
-  const char* anchor;
-
   const char* const* NAstrings;
 
   // what to consider as whitespace to skip: ' ', '\t' or 0 means both
