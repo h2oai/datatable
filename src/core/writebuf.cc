@@ -268,19 +268,6 @@ void* MemoryWritableBuffer::data() const {
 }
 
 
-size_t MemoryWritableBuffer::prepare_for_external_write(size_t expected_length) {
-  size_t pos = ThreadsafeWritableBuffer::prepare_write(expected_length, nullptr);
-  bytes_written_ = pos;
-  return pos;
-}
-
-
-void MemoryWritableBuffer::finish_external_write(size_t actual_length) {
-  bytes_written_ += actual_length;
-  xassert(bytes_written_ <= allocsize_);
-}
-
-
 
 
 //==============================================================================

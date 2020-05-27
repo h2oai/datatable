@@ -190,9 +190,6 @@ class MemoryWritableBuffer : public ThreadsafeWritableBuffer
 
     void* data() const;
 
-    size_t prepare_for_external_write(size_t expected_length);
-    void finish_external_write(size_t actual_length);
-
   private:
     void realloc(size_t newsize) override;
 };
