@@ -75,6 +75,7 @@ void FreadThreadContext::read_chunk(
   used_nrows = 0;
   parse_ctx_.target = tbuf.data();
   parse_ctx_.anchor = anchor = tch;
+  parse_ctx_.bytes_written = 0;
 
   while (tch < cc.get_end()) {
     if (used_nrows == tbuf_nrows) {
