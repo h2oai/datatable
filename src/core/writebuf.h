@@ -172,8 +172,24 @@ class ThreadsafeWritableBuffer : public WritableBuffer
 
 //==============================================================================
 
+
+
 class MemoryWritableBuffer : public ThreadsafeWritableBuffer
 {
+  class Writer {
+    MemoryWritableBuffer* mbuf_;
+    size_t pos_start_;
+    size_t pos_end_;
+
+    public:
+      Writer(MemoryWritableBuffer* parent, size_t start, size_t end);
+      Writer(const Writer&) = delete;
+      Writer(Writer&&);
+      ~Writer();
+
+      void write_at(size_t offset, const char* content, size_t len);
+  };
+
   public:
     MemoryWritableBuffer(size_t size = 0);
     ~MemoryWritableBuffer() override;
@@ -190,8 +206,7 @@ class MemoryWritableBuffer : public ThreadsafeWritableBuffer
 
     void* data() const;
 
-    size_t prepare_for_external_write(size_t expected_length);
-    void finish_external_write(size_t actual_length);
+    Writer writer(size_t start, size_t end);
 
   private:
     void realloc(size_t newsize) override;

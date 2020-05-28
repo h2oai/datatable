@@ -113,7 +113,7 @@ Troubleshooting
 
 - If you see an error ``'Python.h' file not found``, then it means you have an incomplete version of Python installed. This is known to sometimes happen on Ubuntu systems. The solution is to run ``apt-get install python-dev`` or ``apt-get install python3.6-dev``.
 
-- On OS X, if you are getting an error ``fatal error: 'sys/mman.h' file not found``, this can be fixed by installing the Xcode Command Line Tools:
+- On macOS, if you are getting an error ``fatal error: 'sys/mman.h' file not found``, this can be fixed by installing the Xcode Command Line Tools:
 
   .. code-block:: bash
 

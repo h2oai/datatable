@@ -523,3 +523,15 @@ def test_issue1803():
                                       'IND', 182, None, None, False, None,
                                       False, None, None, None, None, None,
                                       'NO', 'YES')]
+
+
+
+def test_issue2458(capsys):
+    # Check the step "saving into the output frame" doesn't take too long
+    src = "foo\n"*1000000
+    DT = dt.fread(src, verbose=True)
+    out, err = capsys.readouterr()
+    assert not err
+    mm = re.search(r"\(\s?(\d+)%\) saving into the output frame", out)
+    time_percent = int(mm.group(1))
+    assert time_percent < 20

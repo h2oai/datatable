@@ -59,7 +59,6 @@ dt::read::ParseContext FreadReader::makeTokenizer() const
   dt::read::ParseContext res;
   res.ch = nullptr;
   res.target = nullptr;
-  res.anchor = nullptr;
   res.eof = eof;
   res.NAstrings = na_strings;
   res.whiteChar = whiteChar;
@@ -267,7 +266,6 @@ void FreadReader::detect_sep_and_qr() {
   dt::read::field64 tmp;
   dt::read::ParseContext ctx = makeTokenizer();
   ctx.target = &tmp;
-  ctx.anchor = sof;
   const char*& tch = ctx.ch;
 
   // We will scan the input line-by-line (at most `JUMPLINES + 1` lines; "+1"
@@ -431,7 +429,6 @@ class ColumnTypeDetectionChunkster {
 
     dt::read::ChunkCoordinates compute_chunk_boundaries(size_t j) {
       dt::read::ChunkCoordinates cc(f.eof, f.eof);
-      fctx.anchor = f.sof;
       if (j == 0) {
         if (f.header == 0) {
           cc.set_start_exact(f.sof);
@@ -484,7 +481,6 @@ int64_t FreadReader::parse_single_line(dt::read::ParseContext& fctx)
   const char*& tch = fctx.ch;
 
   // detect blank lines
-  fctx.anchor = tch;
   fctx.skip_whitespace_at_line_start();
   if (tch == eof || fctx.skip_eol()) return 0;
 
@@ -895,8 +891,8 @@ void FreadReader::parse_column_names(dt::read::ParseContext& ctx) {
     // Parse string field, but do not advance `ctx.target`: on the next
     // iteration we will write into the same place.
     dt::read::parse_string(ctx);
-    const char* start = static_cast<const char*>(ctx.strbuf.data())
-                        + ctx.target->str32.offset;
+    auto start = static_cast<const char*>(ctx.strbuf.rptr())
+                 + ctx.target->str32.offset;
     int32_t ilen = ctx.target->str32.length;
 
     if (i >= ncols) {

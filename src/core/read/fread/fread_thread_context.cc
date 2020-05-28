@@ -41,7 +41,6 @@ FreadThreadContext::FreadThreadContext(
   parse_ctx_.target = tbuf.data();
   ttime_push = 0;
   ttime_read = 0;
-  anchor = nullptr;
   quote = f.quote;
   quoteRule = f.quoteRule;
   sep = f.sep;
@@ -74,7 +73,7 @@ void FreadThreadContext::read_chunk(
   tch = cc.get_start();
   used_nrows = 0;
   parse_ctx_.target = tbuf.data();
-  parse_ctx_.anchor = anchor = tch;
+  parse_ctx_.bytes_written = 0;
 
   while (tch < cc.get_end()) {
     if (used_nrows == tbuf_nrows) {

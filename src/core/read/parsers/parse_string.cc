@@ -43,8 +43,14 @@ static constexpr int ESCAPED = 2;
 static void save_plain_string(const ParseContext& ctx,
                               const char* start, const char* end)
 {
-  auto len = end - start;
-  size_t pos = ctx.strbuf.write(static_cast<size_t>(len), start);
+  xassert(end >= start);
+  auto len = static_cast<size_t>(end - start);
+  auto pos = ctx.bytes_written;
+  if (len) {
+    ctx.strbuf.ensuresize(pos + len);
+    std::memcpy(ctx.strbuf.xptr(pos), start, len);
+    ctx.bytes_written += len;
+  }
   ctx.target->str32.offset = static_cast<uint32_t>(pos);
   ctx.target->str32.length = static_cast<int32_t>(len);
 }
@@ -77,10 +83,11 @@ template <int MODE>
 static void save_unescaped_string(const ParseContext& ctx,
                                   const char* start, const char* end)
 {
+  xassert(end >= start);
   char quote = ctx.quote;
-  auto len = end - start;
-  size_t pos = ctx.strbuf.prepare_write(static_cast<size_t>(len), nullptr);
-  char* dest = static_cast<char*>(ctx.strbuf.data()) + pos;
+  auto pos = ctx.bytes_written;
+  ctx.strbuf.ensuresize(pos + static_cast<size_t>(end - start));
+  char* dest = static_cast<char*>(ctx.strbuf.xptr(pos));
   char* dest0 = dest;
 
   const char* src = start;
@@ -151,9 +158,9 @@ static void save_unescaped_string(const ParseContext& ctx,
       }
     }
   }
+  ctx.bytes_written += static_cast<size_t>(dest - dest0);
   ctx.target->str32.offset = static_cast<uint32_t>(pos);
   ctx.target->str32.length = static_cast<int32_t>(dest - dest0);
-  // std::cout << "Written string: `" << std::string(dest0, dest) << "`\n";
 }
 
 
@@ -354,11 +361,8 @@ static void parse_string_naive(const ParseContext& ctx) {
     ch++;
   }
   if (!field_end) field_end = ch;
-  size_t field_size = static_cast<size_t>(field_end - field_start);
-  size_t pos = ctx.strbuf.write(field_size, field_start);
-  ctx.target->str32.offset = static_cast<uint32_t>(pos);
-  ctx.target->str32.length = static_cast<int32_t>(field_size);
   ctx.ch = ch;
+  save_plain_string(ctx, field_start, field_end);
 }
 
 
@@ -374,7 +378,7 @@ void parse_string(const ParseContext& ctx) {
   }
   auto len = ctx.target->str32.length;
   auto off = ctx.target->str32.offset;
-  auto ptr = static_cast<const char*>(ctx.strbuf.data()) + off;
+  auto ptr = static_cast<const char*>(ctx.strbuf.rptr(off));
   xassert(len >= 0 || ctx.target->str32.isna());
   if (len == 0) {
     if (ctx.blank_is_na) {
@@ -389,13 +393,12 @@ void parse_string(const ParseContext& ctx) {
   if (!ctx.target->str32.isna()) {
     auto zlen = static_cast<size_t>(len);
     if (!is_valid_utf8(ptr, zlen)) {
-      auto newoff = ctx.strbuf.prepare_for_external_write(zlen * 3);
-      // Note: strbuf.data() pointer may have changed by the prepare... call,
-      // so we re-acquire the pointer just in case
-      auto ptr0 = static_cast<char*>(ctx.strbuf.data());
+      ctx.strbuf.ensuresize(ctx.bytes_written + zlen * 3);
+      auto newoff = ctx.bytes_written;
+      auto ptr0 = static_cast<char*>(ctx.strbuf.xptr());
       auto newlen = decode_win1252(ptr0 + off, len, ptr0 + newoff);
       xassert(newlen >= 0);
-      ctx.strbuf.finish_external_write(static_cast<size_t>(newlen));
+      ctx.bytes_written += static_cast<size_t>(newlen);
       ctx.target->str32.length = static_cast<int32_t>(newlen);
       ctx.target->str32.offset = static_cast<uint32_t>(newoff);
     }

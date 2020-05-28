@@ -29,8 +29,6 @@ namespace read {
 
 
 /**
- * anchor
- *   Pointer that serves as a starting point for all offsets in "RelStr" fields.
  *
  */
 class FreadThreadContext : public ThreadContext
@@ -38,7 +36,6 @@ class FreadThreadContext : public ThreadContext
   private:
     using ParserFnPtr = void(*)(const ParseContext& ctx);
 
-    const char* anchor;
     int quoteRule;
     char quote;
     char sep;

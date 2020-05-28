@@ -25,6 +25,69 @@ namespace dt {
 namespace read {
 
 
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
+
+ParseContext::ParseContext()
+  : ch(nullptr),
+    eof(nullptr),
+    target(nullptr),
+    strbuf(),
+    bytes_written(0),
+    NAstrings(nullptr),
+    whiteChar('\0'),
+    dec('.'),
+    sep(','),
+    quote('"'),
+    quoteRule(0),
+    strip_whitespace(true),
+    blank_is_na(false),
+    cr_is_newline(true) {}
+
+
+ParseContext::ParseContext(const ParseContext& o)
+  : ch(o.ch),
+    eof(o.eof),
+    target(o.target),
+    strbuf(),
+    bytes_written(0),
+    NAstrings(o.NAstrings),
+    whiteChar(o.whiteChar),
+    dec(o.dec),
+    sep(o.sep),
+    quote(o.quote),
+    quoteRule(o.quoteRule),
+    strip_whitespace(o.strip_whitespace),
+    blank_is_na(o.blank_is_na),
+    cr_is_newline(o.cr_is_newline) {}
+
+
+ParseContext& ParseContext::operator=(const ParseContext& o) {
+  ch = o.ch;
+  eof = o.eof;
+  target = o.target;
+  // strbuf is not assigned, just "emptied"
+  bytes_written = 0;
+  NAstrings = o.NAstrings;
+  whiteChar = o.whiteChar;
+  dec = o.dec;
+  sep = o.sep;
+  quote = o.quote;
+  quoteRule = o.quoteRule;
+  strip_whitespace = o.strip_whitespace;
+  blank_is_na = o.blank_is_na;
+  cr_is_newline = o.cr_is_newline;
+  return *this;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Parse helpers
+//------------------------------------------------------------------------------
+
 /**
  * skip_eol() is used to consume a "newline" token from the current parsing
  * location (`ch`). Specifically,

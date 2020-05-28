@@ -40,7 +40,6 @@ void FreadParallelReader::adjust_chunk_coordinates(
   if (cc.is_start_approximate()) {
     ParseContext& tok = static_cast<FreadThreadContext*>(ctx)->get_tokenizer();
     const char* start = cc.get_start();
-    tok.anchor = start;
     while (*start=='\n' || *start=='\r') start++;
     cc.set_start_approximate(start);
     int ncols = static_cast<int>(f.get_ncols());

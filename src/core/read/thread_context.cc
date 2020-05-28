@@ -237,26 +237,30 @@ void ThreadContext::postorder() {
 
 
 void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
-  auto src_strbuf = static_cast<char*>(parse_ctx_.strbuf.data());
-  auto out_strbuf = col.strdata_w();
+  // Note: `out_strbuf` is a Writer object, which holds a non-exclusive
+  //       lock on the underlying buffer for the duration of its lifetime.
+  auto pos0 = colinfo_[j].str.write_at;
+  auto len0 = colinfo_[j].str.size;
+  auto src_strbuf = static_cast<const char*>(parse_ctx_.strbuf.rptr());
+  auto out_strbuf = col.strdata_w()->writer(pos0, pos0 + len0);
   auto src_data = tbuf.data() + j;
   auto out_data = static_cast<uint32_t*>(col.data_w());
 
-  auto pos0 = static_cast<uint32_t>(colinfo_[j].str.write_at);
   auto dest = out_data + (row0_ - col.nrows_archived()) + 1;
   for (size_t i = 0; i < used_nrows; ++i) {
     uint32_t offset = src_data->str32.offset;
     int32_t length = src_data->str32.length;
     if (length > 0) {
-      out_strbuf->write_at(pos0, static_cast<size_t>(length), src_strbuf + offset);
-      pos0 += static_cast<uint32_t>(length);
-      *dest++ = pos0;
+      auto zlength = static_cast<size_t>(length);
+      out_strbuf.write_at(pos0, src_strbuf + offset, zlength);
+      pos0 += zlength;
+      *dest++ = static_cast<uint32_t>(pos0);
     }
     else {
       static_assert(static_cast<uint32_t>(NA_I4) == NA_S4,
                     "incompatible int32 and uint32 NA values");
       xassert(length == 0 || length == NA_I4);
-      *dest++ = pos0 ^ static_cast<uint32_t>(length);
+      *dest++ = static_cast<uint32_t>(pos0) ^ static_cast<uint32_t>(length);
     }
     src_data += tbuf_ncols;
   }
