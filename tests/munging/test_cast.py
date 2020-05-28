@@ -86,6 +86,12 @@ def test_cast_float_to_bool(source_stype):
     assert RES.to_list()[0] == [True, True, None, False, True, True, True, True]
 
 
+def test_cast_str_to_bool():
+    DT = dt.Frame(['True', "False", "bah", None, "true"])
+    DT[0] = bool
+    assert_equals(DT, dt.Frame([1, 0, None, None, None] / dt.bool8))
+
+
 
 
 #-------------------------------------------------------------------------------

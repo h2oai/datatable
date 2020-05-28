@@ -206,6 +206,39 @@ static Column cast_str_to_str(const Column& col, Buffer&& out_offsets,
 }
 
 
+static Column cast_str_to_bool(const Column& col, Buffer&& outbuf,
+                               SType target_stype)
+{
+  xassert(target_stype == SType::BOOL); (void)target_stype;
+  const size_t nrows = col.nrows();
+  outbuf.resize(nrows);
+  auto out_data = static_cast<int8_t*>(outbuf.wptr());
+  dt::parallel_region(
+    [&] {
+      dt::read::field64 f64_value;
+      CString           str_value;
+      dt::read::ParseContext ctx;
+      ctx.target = &f64_value;
+
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          bool isvalid = col.get_element(i, &str_value);
+          if (isvalid) {
+            ctx.ch = str_value.ch;
+            ctx.eof = str_value.ch + str_value.size;
+            parse_bool8_titlecase(ctx);
+            if (ctx.ch == ctx.eof) {
+              out_data[i] = f64_value.int8;
+              return;
+            }
+          }
+          out_data[i] = GETNA<int8_t>();
+        });
+    });
+  return Column::new_mbuf_column(nrows, SType::BOOL, std::move(outbuf));
+}
+
+
 template <typename T>
 static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
                               SType target_stype)
@@ -382,12 +415,14 @@ void py::DatatableModule::init_casts()
   casts.add(real64, real64, cast_fw2<double,  double,  _copy<double>>);
 
   // Casts into bool8
-  casts.add(int8, bool8,   cast_fw2<int8_t,  int8_t, fw_bool<int8_t>>);
-  casts.add(int16, bool8,  cast_fw2<int16_t, int8_t, fw_bool<int16_t>>);
-  casts.add(int32, bool8,  cast_fw2<int32_t, int8_t, fw_bool<int32_t>>);
-  casts.add(int64, bool8,  cast_fw2<int64_t, int8_t, fw_bool<int64_t>>);
+  casts.add(int8,   bool8, cast_fw2<int8_t,  int8_t, fw_bool<int8_t>>);
+  casts.add(int16,  bool8, cast_fw2<int16_t, int8_t, fw_bool<int16_t>>);
+  casts.add(int32,  bool8, cast_fw2<int32_t, int8_t, fw_bool<int32_t>>);
+  casts.add(int64,  bool8, cast_fw2<int64_t, int8_t, fw_bool<int64_t>>);
   casts.add(real32, bool8, cast_fw2<float,   int8_t, fw_bool<float>>);
   casts.add(real64, bool8, cast_fw2<double,  int8_t, fw_bool<double>>);
+  casts.add(str32,  bool8, cast_str_to_bool);
+  casts.add(str64,  bool8, cast_str_to_bool);
 
   // Casts into int8
   casts.add(bool8, int8,   cast_fw2<int8_t,  int8_t, fw_fw<int8_t, int8_t>>);
