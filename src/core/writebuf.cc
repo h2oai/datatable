@@ -223,6 +223,44 @@ void ThreadsafeWritableBuffer::finalize() {
 
 
 //==============================================================================
+// Writer (helper for MemoryWritableBuffer)
+//==============================================================================
+
+MemoryWritableBuffer::Writer::Writer(MemoryWritableBuffer* parent,
+                                     size_t start, size_t end)
+  : mbuf_(parent),
+    pos_start_(start),
+    pos_end_(end)
+{
+  XAssert(mbuf_ && pos_end_ <= mbuf_->allocsize_);
+  mbuf_->shmutex_.lock_shared();
+}
+
+MemoryWritableBuffer::Writer::Writer(Writer&& o)
+  : mbuf_(o.mbuf_),
+    pos_start_(o.pos_start_),
+    pos_end_(o.pos_end_)
+{
+  o.mbuf_ = nullptr;
+}
+
+
+MemoryWritableBuffer::Writer::~Writer() {
+  if (mbuf_) mbuf_->shmutex_.unlock_shared();
+}
+
+
+void MemoryWritableBuffer::Writer::write_at(size_t pos,
+                                            const char* src, size_t len)
+{
+  xassert(pos >= pos_start_ && pos + len <= pos_end_);
+  std::memcpy(static_cast<char*>(mbuf_->data_) + pos, src, len);
+}
+
+
+
+
+//==============================================================================
 // MemoryWritableBuffer
 //==============================================================================
 
@@ -265,6 +303,11 @@ void MemoryWritableBuffer::clear() {
 
 void* MemoryWritableBuffer::data() const {
   return data_;
+}
+
+
+MemoryWritableBuffer::Writer MemoryWritableBuffer::writer(size_t start, size_t end) {
+  return MemoryWritableBuffer::Writer(this, start, end);
 }
 
 

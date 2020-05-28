@@ -49,10 +49,12 @@ struct ParseContext
   // Where to write the parsed value.
   mutable field64* target;
 
-
+  // Buffer where string parser will be saving its data. Theoretically,
+  // some other parsers may store their values in here too.
   mutable Buffer strbuf;
   mutable size_t bytes_written;
 
+  // TODO: remove from here
   const char* const* NAstrings;
 
   // what to consider as whitespace to skip: ' ', '\t' or 0 means both
