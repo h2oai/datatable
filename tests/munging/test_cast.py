@@ -135,6 +135,12 @@ def test_cast_float_to_int(source_stype, target_stype):
     assert RES.to_list()[0] == [0, None, 7, -4, 111, 28]
 
 
+def test_cast_str_to_int_simple():
+    DT = dt.Frame(A=[str(i) for i in range(100001)])
+    DT["A"] = dt.int32
+    assert_equals(DT, dt.Frame(A=range(100001)))
+
+
 @pytest.mark.parametrize("source_stype", ltype.str.stypes)
 @pytest.mark.parametrize("target_stype", ltype.int.stypes)
 def test_cast_str_to_int(source_stype, target_stype):
