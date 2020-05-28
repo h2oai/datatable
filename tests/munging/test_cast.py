@@ -144,6 +144,12 @@ def test_cast_str_to_int(source_stype, target_stype):
     assert_equals(RES, dt.Frame(W=[0, 23, 56, -17, 101] / target_stype))
 
 
+def test_cast_badstr_to_int():
+    DT = dt.Frame(["345", "10000000000", "24e100", "abc500", None, "--5"])
+    RES = DT[:, dt.int32(f[0])]
+    assert_equals(RES, dt.Frame([345, None, None, None, None, None]))
+
+
 @pytest.mark.parametrize("source_stype", [stype.obj64])
 @pytest.mark.parametrize("target_stype", numeric_stypes)
 def test_cast_object_to_numeric(source_stype, target_stype):
