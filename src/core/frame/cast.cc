@@ -22,11 +22,14 @@
 #include <unordered_map>
 #include "column.h"
 #include "csv/toa.h"
+#include "csv/reader_parsers.h"
 #include "datatablemodule.h"
 #include "parallel/api.h"           // dt::parallel_for_static
 #include "parallel/string_utils.h"  // dt::generate_string_column
 #include "python/_all.h"
 #include "python/string.h"
+#include "read/parse_context.h"
+#include "read/field64.h"
 
 
 //------------------------------------------------------------------------------
@@ -203,6 +206,46 @@ static Column cast_str_to_str(const Column& col, Buffer&& out_offsets,
 }
 
 
+template <typename T>
+static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
+                              SType target_stype)
+{
+  static_assert(std::is_same<T, int8_t>() || std::is_same<T, int16_t>() ||
+                std::is_same<T, int32_t>() || std::is_same<T, int64_t>(),
+                "Invalid type T in cast_str_to_int<T>");
+  using U = std::conditional_t<std::is_same<T, int64_t>::value, int64_t, int32_t>;
+  assert_compatible_type<T>(target_stype);
+
+  const size_t nrows = col.nrows();
+  outbuf.resize(nrows * sizeof(T));
+  auto out_data = static_cast<T*>(outbuf.wptr());
+  dt::parallel_region(
+    [&] {
+      dt::read::field64 int_value;
+      CString           str_value;
+      dt::read::ParseContext ctx;
+      ctx.target = &int_value;
+
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          bool isvalid = col.get_element(i, &str_value);
+          if (isvalid) {
+            ctx.ch = str_value.ch;
+            ctx.eof = str_value.ch + str_value.size;
+            parse_int_simple<U, true>(ctx);
+            if (ctx.ch == ctx.eof) {
+              out_data[i] = std::is_same<T, int64_t>()
+                              ? static_cast<T>(int_value.int64)
+                              : static_cast<T>(int_value.int32);
+              return;
+            }
+          }
+          out_data[i] = GETNA<T>();
+        });
+    });
+  return Column::new_mbuf_column(nrows, target_stype, std::move(outbuf));
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -353,6 +396,8 @@ void py::DatatableModule::init_casts()
   casts.add(int64, int8,   cast_fw2<int64_t, int8_t, fw_fw<int64_t, int8_t>>);
   casts.add(real32, int8,  cast_fw2<float,   int8_t, fw_fw<float, int8_t>>);
   casts.add(real64, int8,  cast_fw2<double,  int8_t, fw_fw<double, int8_t>>);
+  casts.add(str32,  int8,  cast_str_to_int<int8_t>);
+  casts.add(str64,  int8,  cast_str_to_int<int8_t>);
 
   // Casts into int16
   casts.add(bool8, int16,  cast_fw2<int8_t,  int16_t, fw_fw<int8_t, int16_t>>);
@@ -361,6 +406,8 @@ void py::DatatableModule::init_casts()
   casts.add(int64, int16,  cast_fw2<int64_t, int16_t, fw_fw<int64_t, int16_t>>);
   casts.add(real32, int16, cast_fw2<float,   int16_t, fw_fw<float, int16_t>>);
   casts.add(real64, int16, cast_fw2<double,  int16_t, fw_fw<double, int16_t>>);
+  casts.add(str32,  int16, cast_str_to_int<int16_t>);
+  casts.add(str64,  int16, cast_str_to_int<int16_t>);
 
   // Casts into int32
   casts.add(bool8, int32,  cast_fw0<int8_t,  int32_t, fw_fw<int8_t, int32_t>>);
@@ -376,6 +423,8 @@ void py::DatatableModule::init_casts()
   casts.add(int64, int32,  cast_fw2<int64_t, int32_t, fw_fw<int64_t, int32_t>>);
   casts.add(real32, int32, cast_fw2<float,   int32_t, fw_fw<float, int32_t>>);
   casts.add(real64, int32, cast_fw2<double,  int32_t, fw_fw<double, int32_t>>);
+  casts.add(str32,  int32, cast_str_to_int<int32_t>);
+  casts.add(str64,  int32, cast_str_to_int<int32_t>);
 
   // Casts into int64
   casts.add(bool8, int64,  cast_fw0<int8_t,  int64_t, fw_fw<int8_t, int64_t>>);
@@ -391,6 +440,8 @@ void py::DatatableModule::init_casts()
   casts.add(int32, int64,  cast_fw2<int32_t, int64_t, fw_fw<int32_t, int64_t>>);
   casts.add(real32, int64, cast_fw2<float,   int64_t, fw_fw<float, int64_t>>);
   casts.add(real64, int64, cast_fw2<double,  int64_t, fw_fw<double, int64_t>>);
+  casts.add(str32,  int64, cast_str_to_int<int64_t>);
+  casts.add(str64,  int64, cast_str_to_int<int64_t>);
 
   // Casts into real32
   casts.add(bool8, real32,  cast_fw0<int8_t,  float, fw_fw<int8_t, float>>);
