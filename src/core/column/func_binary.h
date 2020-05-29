@@ -42,8 +42,8 @@ namespace dt {
   */
 template <typename T1, typename T2, typename TO>
 class FuncBinary1_ColumnImpl : public Virtual_ColumnImpl {
-  using R1 = typename _ref<T1>::t;
-  using R2 = typename _ref<T2>::t;
+  using R1 = ref_t<T1>;
+  using R2 = ref_t<T2>;
   using func_t = TO(*)(R1, R2);
   protected:
     Column arg1_;
@@ -73,8 +73,8 @@ class FuncBinary1_ColumnImpl : public Virtual_ColumnImpl {
   */
 template <typename T1, typename T2, typename TO>
 class FuncBinary2_ColumnImpl : public Virtual_ColumnImpl {
-  using R1 = typename _ref<T1>::t;
-  using R2 = typename _ref<T2>::t;
+  using R1 = ref_t<T1>;
+  using R2 = ref_t<T2>;
   using func_t = bool(*)(R1, bool, R2, bool, TO*);
   protected:
     Column arg1_;

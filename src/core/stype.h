@@ -216,6 +216,10 @@ template <> constexpr dt::SType _sfr<CString>   = dt::SType::STR32;
 template <> constexpr dt::SType _sfr<PyObject*> = dt::SType::OBJ;
 template <> constexpr dt::SType _sfr<py::robj>  = dt::SType::OBJ;
 
+template <typename T> struct _ref  { using t = T; };
+template <> struct _ref<CString>   { using t = const CString&; };
+// template <> struct _ref<PyObject*> { using t = const PyObject*; };
+
 
 /**
   * Helper template to convert between an stype and the C type
@@ -251,6 +255,9 @@ using read_t = typename _rdt<s>::t;
 template <typename T>
 constexpr dt::SType stype_from = _sfr<T>;
 
+
+template <typename T>
+using ref_t = typename _ref<T>::t;
 
 
 }  // namespace dt

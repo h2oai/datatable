@@ -42,7 +42,7 @@ namespace dt {
   */
 template <typename TI, typename TO>
 class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
-  using func_t = TO(*)(typename _ref<TI>::t);
+  using func_t = TO(*)(ref_t<TI>);
   protected:
     Column arg_;
     func_t func_;
@@ -70,7 +70,7 @@ class FuncUnary1_ColumnImpl : public Virtual_ColumnImpl {
   */
 template <typename TI, typename TO>
 class FuncUnary2_ColumnImpl : public Virtual_ColumnImpl {
-  using func_t = bool(*)(typename _ref<TI>::t, bool, TO*);
+  using func_t = bool(*)(ref_t<TI>, bool, TO*);
   protected:
     Column arg_;
     func_t func_;

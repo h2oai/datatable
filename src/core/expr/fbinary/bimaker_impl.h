@@ -60,7 +60,7 @@ class bimaker_nacol : public bimaker {
 template <typename TX, typename TY, typename TR>
 class bimaker1 : public bimaker
 {
-  using func_t = TR(*)(typename _ref<TX>::t, typename _ref<TY>::t);
+  using func_t = TR(*)(ref_t<TX>, ref_t<TY>);
   private:
     func_t func_;
     SType uptype1_;
@@ -105,8 +105,7 @@ class bimaker1 : public bimaker
 template <typename TX, typename TY, typename TR>
 class bimaker2 : public bimaker
 {
-  using func_t = bool(*)(typename _ref<TX>::t, bool,
-                         typename _ref<TY>::t, bool, TR*);
+  using func_t = bool(*)(ref_t<TX>, bool, ref_t<TY>, bool, TR*);
   private:
     func_t func_;
     SType uptype1_;

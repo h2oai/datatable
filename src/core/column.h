@@ -37,11 +37,6 @@ enum class NaStorage : uint8_t {
 };
 
 
-//------------------------------------------------------------------------------
-
-template <typename T> struct _ref { using t = T; };
-template <> struct _ref<CString> { using t = const CString&; };
-
 
 
 //------------------------------------------------------------------------------

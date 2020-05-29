@@ -110,7 +110,7 @@ class umaker_cast : public umaker {
 template <typename TX, typename TR>
 class umaker1 : public umaker
 {
-  using func_t = TR(*)(typename _ref<TX>::t);
+  using func_t = TR(*)(ref_t<TX>);
   private:
     func_t func_;
     SType uptype_;
@@ -156,7 +156,7 @@ class umaker1 : public umaker
 template <typename TX, typename TR>
 class umaker2 : public umaker
 {
-  using func_t = bool(*)(typename _ref<TX>::t, bool, TR*);
+  using func_t = bool(*)(ref_t<TX>, bool, TR*);
   private:
     func_t func_;
     SType uptype_;
