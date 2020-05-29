@@ -431,18 +431,18 @@ static size_t parse_as_pyobj(const Column& inputcol, Buffer& membuf)
 // Parse controller
 //------------------------------------------------------------------------------
 
-static SType find_next_stype(SType curr_stype, int stype0) {
+static dt::SType find_next_stype(dt::SType curr_stype, int stype0) {
   int istype = static_cast<int>(curr_stype);
   if (stype0 > 0) {
-    return static_cast<SType>(stype0);
+    return static_cast<dt::SType>(stype0);
   }
   if (stype0 < 0) {
-    return static_cast<SType>(std::min(istype + 1, -stype0));
+    return static_cast<dt::SType>(std::min(istype + 1, -stype0));
   }
-  if (istype == DT_STYPES_COUNT - 1) {
+  if (istype == dt::STYPES_COUNT - 1) {
     return curr_stype;
   }
-  return static_cast<SType>((istype + 1) % int(DT_STYPES_COUNT));
+  return static_cast<dt::SType>((istype + 1) % int(dt::STYPES_COUNT));
 }
 
 
@@ -451,23 +451,23 @@ static Column resolve_column(const Column& inputcol, int stype0)
 {
   Buffer membuf;
   Buffer strbuf;
-  SType stype = find_next_stype(SType::VOID, stype0);
+  dt::SType stype = find_next_stype(dt::SType::VOID, stype0);
   size_t nrows = inputcol.nrows();
   size_t i = 0;
-  while (stype != SType::VOID) {
-    SType next_stype = find_next_stype(stype, stype0);
+  while (stype != dt::SType::VOID) {
+    dt::SType next_stype = find_next_stype(stype, stype0);
     if (stype == next_stype) {
       switch (stype) {
-        case SType::BOOL:    force_as_bool(inputcol, membuf); break;
-        case SType::INT8:    force_as_int<int8_t>(inputcol, membuf); break;
-        case SType::INT16:   force_as_int<int16_t>(inputcol, membuf); break;
-        case SType::INT32:   force_as_int<int32_t>(inputcol, membuf); break;
-        case SType::INT64:   force_as_int<int64_t>(inputcol, membuf); break;
-        case SType::FLOAT32: force_as_real<float>(inputcol, membuf); break;
-        case SType::FLOAT64: force_as_real<double>(inputcol, membuf); break;
-        case SType::STR32:   force_as_str<uint32_t>(inputcol, membuf, strbuf); break;
-        case SType::STR64:   force_as_str<uint64_t>(inputcol, membuf, strbuf); break;
-        case SType::OBJ:     parse_as_pyobj(inputcol, membuf); break;
+        case dt::SType::BOOL:    force_as_bool(inputcol, membuf); break;
+        case dt::SType::INT8:    force_as_int<int8_t>(inputcol, membuf); break;
+        case dt::SType::INT16:   force_as_int<int16_t>(inputcol, membuf); break;
+        case dt::SType::INT32:   force_as_int<int32_t>(inputcol, membuf); break;
+        case dt::SType::INT64:   force_as_int<int64_t>(inputcol, membuf); break;
+        case dt::SType::FLOAT32: force_as_real<float>(inputcol, membuf); break;
+        case dt::SType::FLOAT64: force_as_real<double>(inputcol, membuf); break;
+        case dt::SType::STR32:   force_as_str<uint32_t>(inputcol, membuf, strbuf); break;
+        case dt::SType::STR64:   force_as_str<uint64_t>(inputcol, membuf, strbuf); break;
+        case dt::SType::OBJ:     parse_as_pyobj(inputcol, membuf); break;
         default:
           throw RuntimeError()
             << "Unable to create Column of type " << stype << " from list";
@@ -475,27 +475,27 @@ static Column resolve_column(const Column& inputcol, int stype0)
       break; // while(stype)
     } else {
       switch (stype) {
-        case SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
-        case SType::INT8:    i = parse_as_int8(inputcol, membuf, i); break;
-        case SType::INT16:   i = parse_as_int16(inputcol, membuf, i); break;
-        case SType::INT32:   i = parse_as_int<int32_t>(inputcol, membuf, i); break;
-        case SType::INT64:   i = parse_as_int<int64_t>(inputcol, membuf, i); break;
-        case SType::FLOAT32: i = parse_as_float32(inputcol, membuf, i); break;
-        case SType::FLOAT64: i = parse_as_float64(inputcol, membuf, i); break;
-        case SType::STR32:   i = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
-        case SType::STR64:   i = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
-        case SType::OBJ:     i = parse_as_pyobj(inputcol, membuf); break;
+        case dt::SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
+        case dt::SType::INT8:    i = parse_as_int8(inputcol, membuf, i); break;
+        case dt::SType::INT16:   i = parse_as_int16(inputcol, membuf, i); break;
+        case dt::SType::INT32:   i = parse_as_int<int32_t>(inputcol, membuf, i); break;
+        case dt::SType::INT64:   i = parse_as_int<int64_t>(inputcol, membuf, i); break;
+        case dt::SType::FLOAT32: i = parse_as_float32(inputcol, membuf, i); break;
+        case dt::SType::FLOAT64: i = parse_as_float64(inputcol, membuf, i); break;
+        case dt::SType::STR32:   i = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
+        case dt::SType::STR64:   i = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
+        case dt::SType::OBJ:     i = parse_as_pyobj(inputcol, membuf); break;
         default: /* do nothing -- not all STypes are currently implemented. */ break;
       }
       if (i == nrows) break;
       stype = next_stype;
     }
   }
-  if (stype == SType::STR32 || stype == SType::STR64) {
+  if (stype == dt::SType::STR32 || stype == dt::SType::STR64) {
     return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }
   else {
-    if (stype == SType::OBJ) {
+    if (stype == dt::SType::OBJ) {
       membuf.set_pyobjects(/* clear_data = */ false);
     }
     return Column::new_mbuf_column(nrows, stype, std::move(membuf));
@@ -532,10 +532,10 @@ Column Column::from_pylist_of_dicts(
 //------------------------------------------------------------------------------
 
 Column Column::from_range(
-    int64_t start, int64_t stop, int64_t step, SType stype)
+    int64_t start, int64_t stop, int64_t step, dt::SType stype)
 {
-  if (stype == SType::STR32 || stype == SType::STR64 ||
-      stype == SType::OBJ || stype == SType::BOOL)
+  if (stype == dt::SType::STR32 || stype == dt::SType::STR64 ||
+      stype == dt::SType::OBJ || stype == dt::SType::BOOL)
   {
     Column col = Column(new dt::Range_ColumnImpl(start, stop, step));
     col.cast_inplace(stype);

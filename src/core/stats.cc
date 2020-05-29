@@ -1073,16 +1073,16 @@ void BooleanStats::compute_all_stats() {
 static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
   switch (col->stype()) {
-    case SType::BOOL:    return StatsPtr(new BooleanStats(col));
-    case SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
-    case SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
-    case SType::INT32:   return StatsPtr(new IntegerStats<int32_t>(col));
-    case SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
-    case SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
-    case SType::FLOAT64: return StatsPtr(new RealStats<double>(col));
-    case SType::STR32:
-    case SType::STR64:   return StatsPtr(new StringStats(col));
-    case SType::OBJ:     return StatsPtr(new PyObjectStats(col));
+    case dt::SType::BOOL:    return StatsPtr(new BooleanStats(col));
+    case dt::SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
+    case dt::SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
+    case dt::SType::INT32:   return StatsPtr(new IntegerStats<int32_t>(col));
+    case dt::SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
+    case dt::SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
+    case dt::SType::FLOAT64: return StatsPtr(new RealStats<double>(col));
+    case dt::SType::STR32:
+    case dt::SType::STR64:   return StatsPtr(new StringStats(col));
+    case dt::SType::OBJ:     return StatsPtr(new PyObjectStats(col));
     default:
       throw NotImplError()
         << "Cannot create Stats object for a column with type `"
@@ -1195,16 +1195,16 @@ static void check_stat(Stat stat, Stats* curr_stats, Stats* new_stats) {
 void Stats::verify_integrity(const dt::ColumnImpl* col) {
   XAssert(column == col);
   switch (col->stype()) {
-    case SType::BOOL:    XAssert(dynamic_cast<BooleanStats*>(this)); break;
-    case SType::INT8:    XAssert(dynamic_cast<IntegerStats<int8_t>*>(this)); break;
-    case SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;
-    case SType::INT32:   XAssert(dynamic_cast<IntegerStats<int32_t>*>(this)); break;
-    case SType::INT64:   XAssert(dynamic_cast<IntegerStats<int64_t>*>(this)); break;
-    case SType::FLOAT32: XAssert(dynamic_cast<RealStats<float>*>(this)); break;
-    case SType::FLOAT64: XAssert(dynamic_cast<RealStats<double>*>(this)); break;
-    case SType::STR32:
-    case SType::STR64:   XAssert(dynamic_cast<StringStats*>(this)); break;
-    case SType::OBJ:     XAssert(dynamic_cast<PyObjectStats*>(this)); break;
+    case dt::SType::BOOL:    XAssert(dynamic_cast<BooleanStats*>(this)); break;
+    case dt::SType::INT8:    XAssert(dynamic_cast<IntegerStats<int8_t>*>(this)); break;
+    case dt::SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;
+    case dt::SType::INT32:   XAssert(dynamic_cast<IntegerStats<int32_t>*>(this)); break;
+    case dt::SType::INT64:   XAssert(dynamic_cast<IntegerStats<int64_t>*>(this)); break;
+    case dt::SType::FLOAT32: XAssert(dynamic_cast<RealStats<float>*>(this)); break;
+    case dt::SType::FLOAT64: XAssert(dynamic_cast<RealStats<double>*>(this)); break;
+    case dt::SType::STR32:
+    case dt::SType::STR64:   XAssert(dynamic_cast<StringStats*>(this)); break;
+    case dt::SType::OBJ:     XAssert(dynamic_cast<PyObjectStats*>(this)); break;
     default: throw AssertionError() << "Unknown column type " << col->stype();
   }
   auto new_stats = _make_stats(column);
@@ -1278,7 +1278,7 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
 //------------------------------------------------------------------------------
 
 template <typename T>
-static Column _make_column(SType stype, T value) {
+static Column _make_column(dt::SType stype, T value) {
   Buffer mbuf = Buffer::mem(sizeof(T));
   mbuf.set_element<T>(0, value);
   Column res = Column::new_mbuf_column(1, stype, std::move(mbuf));
@@ -1286,7 +1286,7 @@ static Column _make_column(SType stype, T value) {
   return res;
 }
 
-static Column _make_nacol(SType stype) {
+static Column _make_nacol(dt::SType stype) {
   return Column::new_na_column(1, stype);
 }
 
@@ -1309,7 +1309,7 @@ static Column _make_column_str(CString value) {
 
 
 template <typename S, typename R>
-Column Stats::colwrap_stat(Stat stat, SType stype) {
+Column Stats::colwrap_stat(Stat stat, dt::SType stype) {
   S value;
   bool isvalid = get_stat(stat, &value);
   return isvalid? _make_column<R>(stype, static_cast<R>(value))
@@ -1329,28 +1329,28 @@ Column Stats::get_stat_as_column(Stat stat) {
     case Stat::NaCount:
     case Stat::NUnique:
     case Stat::NModal: {
-      return colwrap_stat<size_t, int64_t>(stat, SType::INT64);
+      return colwrap_stat<size_t, int64_t>(stat, dt::SType::INT64);
     }
     case Stat::Sum:
     case Stat::Mean:
     case Stat::StDev:
     case Stat::Skew:
     case Stat::Kurt: {
-      return colwrap_stat<double, double>(stat, SType::FLOAT64);
+      return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
     }
     case Stat::Min:
     case Stat::Max:
     case Stat::Mode: {
       switch (column->stype()) {
-        case SType::BOOL:    return colwrap_stat<int64_t, int8_t>(stat, SType::BOOL);
-        case SType::INT8:    return colwrap_stat<int64_t, int8_t>(stat, SType::INT8);
-        case SType::INT16:   return colwrap_stat<int64_t, int16_t>(stat, SType::INT16);
-        case SType::INT32:   return colwrap_stat<int64_t, int32_t>(stat, SType::INT32);
-        case SType::INT64:   return colwrap_stat<int64_t, int64_t>(stat, SType::INT64);
-        case SType::FLOAT32: return colwrap_stat<double, float>(stat, SType::FLOAT32);
-        case SType::FLOAT64: return colwrap_stat<double, double>(stat, SType::FLOAT64);
-        case SType::STR32:
-        case SType::STR64:   return strcolwrap_stat(stat);
+        case dt::SType::BOOL:    return colwrap_stat<int64_t, int8_t>(stat, dt::SType::BOOL);
+        case dt::SType::INT8:    return colwrap_stat<int64_t, int8_t>(stat, dt::SType::INT8);
+        case dt::SType::INT16:   return colwrap_stat<int64_t, int16_t>(stat, dt::SType::INT16);
+        case dt::SType::INT32:   return colwrap_stat<int64_t, int32_t>(stat, dt::SType::INT32);
+        case dt::SType::INT64:   return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
+        case dt::SType::FLOAT32: return colwrap_stat<double, float>(stat, dt::SType::FLOAT32);
+        case dt::SType::FLOAT64: return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
+        case dt::SType::STR32:
+        case dt::SType::STR64:   return strcolwrap_stat(stat);
         default:             return _make_nacol(column->stype());
       }
     }

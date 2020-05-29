@@ -153,7 +153,7 @@ class info {
     uint8_t stype;
 
   public:
-    info(SType s);
+    info(dt::SType s);
     const char* name() const;
     static const char* ltype_name(LType);
     const char* ltype_name() const;
@@ -168,8 +168,8 @@ class info {
 
 //==============================================================================
 
-inline bool is_numeric(SType st) {
-  return static_cast<uint8_t>(st) <= static_cast<uint8_t>(SType::FLOAT64);
+inline bool is_numeric(dt::SType st) {
+  return static_cast<uint8_t>(st) <= static_cast<uint8_t>(dt::SType::FLOAT64);
 }
 
 
@@ -250,7 +250,7 @@ extern PyTypeObject* py_stype;
 extern PyTypeObject* py_ltype;
 
 int stype_from_pyobject(PyObject* s);
-SType common_stype(SType stype1, SType stype2);
+dt::SType common_stype(dt::SType stype1, dt::SType stype2);
 
 
 #endif

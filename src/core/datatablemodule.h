@@ -72,7 +72,7 @@ class DatatableModule : public ExtModule<DatatableModule> {
 
 namespace pybuffers {
   extern size_t single_col;  // Declared in py_buffers
-  extern SType force_stype;
+  extern dt::SType force_stype;
 }
 
 

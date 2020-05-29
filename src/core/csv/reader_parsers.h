@@ -131,13 +131,13 @@ class ParserInfo {
     std::string name;
     char        code;
     int8_t      elemsize;
-    SType       stype;
+    dt::SType   stype;
     dt::read::PT id;
     int : 32;
 
     ParserInfo() : fn(nullptr), code(0) {}
     ParserInfo(dt::read::PT id_, const char* name_, char code_, int8_t sz_,
-               SType st_, ParserFnPtr ptr)
+               dt::SType st_, ParserFnPtr ptr)
       : fn(ptr), name(name_), code(code_), elemsize(sz_), stype(st_), id(id_) {}
 
     const char* cname() const { return name.data(); }

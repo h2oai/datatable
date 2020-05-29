@@ -21,9 +21,9 @@
 //------------------------------------------------------------------------------
 #ifndef dt_STYPE_h
 #define dt_STYPE_h
+#include "_dt.h"     // size_t, uint8_t, PyObject
+namespace dt {
 
-
-//==============================================================================
 
 /**
  * "Storage" type of a data column.
@@ -174,9 +174,46 @@ enum class SType : uint8_t {
   INVALID = 22,
 };
 
-constexpr size_t DT_STYPES_COUNT = static_cast<size_t>(SType::INVALID);
+constexpr size_t STYPES_COUNT = static_cast<size_t>(SType::INVALID);
 
 
 
+//------------------------------------------------------------------------------
+// Templates
+//------------------------------------------------------------------------------
 
+template <SType> struct _elt {};
+template <> struct _elt<SType::VOID>    { using t = void; };
+template <> struct _elt<SType::BOOL>    { using t = int8_t; };
+template <> struct _elt<SType::INT8>    { using t = int8_t; };
+template <> struct _elt<SType::INT16>   { using t = int16_t; };
+template <> struct _elt<SType::INT32>   { using t = int32_t; };
+template <> struct _elt<SType::INT64>   { using t = int64_t; };
+template <> struct _elt<SType::FLOAT32> { using t = float; };
+template <> struct _elt<SType::FLOAT64> { using t = double; };
+template <> struct _elt<SType::DATE64>  { using t = int64_t; };
+template <> struct _elt<SType::DATE32>  { using t = int32_t; };
+template <> struct _elt<SType::DATE16>  { using t = int16_t; };
+template <> struct _elt<SType::TIME32>  { using t = int32_t; };
+template <> struct _elt<SType::STR32>   { using t = uint32_t; };
+template <> struct _elt<SType::STR64>   { using t = uint64_t; };
+template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
+
+
+/**
+  * Helper template to convert between an stype and the C type
+  * of the underlying column element:
+  *
+  * element_t<stype>
+  *   resolves to the type of the element that is in the main data buffer
+  *   of a column with the given stype.
+  *
+  * TODO: element_t<SType::BOOL> should be changed to `bool`, once
+  *       NA flags are stored as a separate bitmask.
+  */
+template <SType s>
+using element_t = typename _elt<s>::t;
+
+
+}  // namespace dt
 #endif

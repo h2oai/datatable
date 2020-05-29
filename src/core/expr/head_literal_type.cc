@@ -158,7 +158,7 @@ static void _resolve_stype(py::robj value, SType* out_stype, LType* out_ltype)
   }
   else if (value.is_stype()) {
     auto st = value.get_attr("value").to_size_t();
-    *out_stype = (st < DT_STYPES_COUNT)? static_cast<SType>(st) : SType::VOID;
+    *out_stype = (st < STYPES_COUNT)? static_cast<SType>(st) : SType::VOID;
   }
 }
 

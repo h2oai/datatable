@@ -75,52 +75,52 @@
 
 #ifdef NDEBUG
   template <typename T>
-  inline void assert_compatible_type(SType) {}
+  inline void assert_compatible_type(dt::SType) {}
 
 #else
   template<typename T>
-  inline void assert_compatible_type(SType) {
+  inline void assert_compatible_type(dt::SType) {
     throw NotImplError() << "Invalid type T in assert_compatible_type()";
   }
 
   template<>
-  inline void assert_compatible_type<int8_t>(SType s) {
-    xassert(s == SType::VOID || s == SType::INT8 || s == SType::BOOL);
+  inline void assert_compatible_type<int8_t>(dt::SType s) {
+    xassert(s == dt::SType::VOID || s == dt::SType::INT8 || s == dt::SType::BOOL);
   }
 
   template<>
-  inline void assert_compatible_type<int16_t>(SType s) {
-    xassert(s == SType::INT16);
+  inline void assert_compatible_type<int16_t>(dt::SType s) {
+    xassert(s == dt::SType::INT16);
   }
 
   template<>
-  inline void assert_compatible_type<int32_t>(SType s) {
-    xassert(s == SType::INT32);
+  inline void assert_compatible_type<int32_t>(dt::SType s) {
+    xassert(s == dt::SType::INT32);
   }
 
   template<>
-  inline void assert_compatible_type<int64_t>(SType s) {
-    xassert(s == SType::INT64);
+  inline void assert_compatible_type<int64_t>(dt::SType s) {
+    xassert(s == dt::SType::INT64);
   }
 
   template<>
-  inline void assert_compatible_type<float>(SType s) {
-    xassert(s == SType::FLOAT32);
+  inline void assert_compatible_type<float>(dt::SType s) {
+    xassert(s == dt::SType::FLOAT32);
   }
 
   template<>
-  inline void assert_compatible_type<double>(SType s) {
-    xassert(s == SType::FLOAT64);
+  inline void assert_compatible_type<double>(dt::SType s) {
+    xassert(s == dt::SType::FLOAT64);
   }
 
   template<>
-  inline void assert_compatible_type<CString>(SType s) {
-    xassert(s == SType::STR32 || s == SType::STR64);
+  inline void assert_compatible_type<CString>(dt::SType s) {
+    xassert(s == dt::SType::STR32 || s == dt::SType::STR64);
   }
 
   template<>
-  inline void assert_compatible_type<py::robj>(SType s) {
-    xassert(s == SType::OBJ);
+  inline void assert_compatible_type<py::robj>(dt::SType s) {
+    xassert(s == dt::SType::OBJ);
   }
 #endif
 

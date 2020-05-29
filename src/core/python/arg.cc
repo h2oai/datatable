@@ -104,15 +104,15 @@ py::rdict   Arg::to_rdict()        const { return pyobj.to_rdict(*this); }
 py::otuple  Arg::to_otuple()       const { return pyobj.to_otuple(*this); }
 std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
-SType       Arg::to_stype()        const { return pyobj.to_stype(*this); }
-SType       Arg::to_stype(const error_manager& em) const { return pyobj.to_stype(em); }
+dt::SType   Arg::to_stype()        const { return pyobj.to_stype(*this); }
+dt::SType   Arg::to_stype(const error_manager& em) const { return pyobj.to_stype(em); }
 py::oiter   Arg::to_oiter()        const { return pyobj.to_oiter(*this); }
 DataTable*  Arg::to_datatable()    const { return pyobj.to_datatable(*this); }
 
 Arg::operator int32_t() const { return to_int32_strict(); }
 Arg::operator int64_t() const { return to_int64_strict(); }
 Arg::operator size_t()  const { return to_size_t(); }
-Arg::operator SType()   const { return to_stype(); }
+Arg::operator dt::SType() const { return to_stype(); }
 
 
 //------------------------------------------------------------------------------

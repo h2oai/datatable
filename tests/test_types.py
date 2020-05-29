@@ -52,7 +52,7 @@ def c_stypes():
                          "..", "src", "core", "types.cc")
     with open(file2, "r", encoding="utf-8") as f:
         txt2 = f.read()
-    mm = re.findall(r"STI\(SType::(\w+),\s*"
+    mm = re.findall(r"STI\(dt::SType::(\w+),\s*"
                     r'"(..)",\s*'
                     r'"(.*)",\s*'
                     r"(\d+),\s*"

@@ -254,7 +254,7 @@ class _obj {
 
     DataTable*  to_datatable      (const error_manager& = _em0) const;
     py::Frame*  to_pyframe        (const error_manager& = _em0) const;
-    SType       to_stype          (const error_manager& = _em0) const;
+    dt::SType   to_stype          (const error_manager& = _em0) const;
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;
     py::osort   to_osort_lax      () const;

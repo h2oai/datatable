@@ -319,12 +319,12 @@ void DataTable::rbind(
 void Column::rbind(colvec& columns) {
   _get_mutable_impl();
   // Is the current column "empty" ?
-  bool col_empty = (stype() == SType::VOID);
+  bool col_empty = (stype() == dt::SType::VOID);
   if (!col_empty) this->materialize();
 
   // Compute the final number of rows and stype
   size_t new_nrows = nrows();
-  SType new_stype = col_empty? SType::BOOL : stype();
+  dt::SType new_stype = col_empty? dt::SType::BOOL : stype();
   for (auto& col : columns) {
     col.materialize();
     new_nrows += col.nrows();
@@ -349,9 +349,9 @@ void Column::rbind(colvec& columns) {
 
   // Use the appropriate strategy to continue appending the columns.
   newcol.materialize();
-  new_stype = SType::VOID;
+  new_stype = dt::SType::VOID;
   newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty, new_stype);
-  if (new_stype != SType::VOID) {
+  if (new_stype != dt::SType::VOID) {
     newcol.cast_inplace(new_stype);
     newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty, new_stype);
   }
@@ -368,7 +368,7 @@ void Column::rbind(colvec& columns) {
 
 template <typename T>
 void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
-        colvec& columns, size_t new_nrows, bool col_empty, SType& new_stype)
+        colvec& columns, size_t new_nrows, bool col_empty, dt::SType& new_stype)
 {
   // Determine the size of the memory to allocate
   size_t old_nrows = nrows_;
@@ -378,7 +378,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
   }
   for (size_t i = 0; i < columns.size(); ++i) {
     Column& col = columns[i];
-    if (col.stype() == SType::VOID) continue;
+    if (col.stype() == dt::SType::VOID) continue;
     if (col.ltype() != LType::STRING) {
       col.cast_inplace(stype_);
     }
@@ -388,7 +388,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
   if (sizeof(T) == 4 && (new_strbuf_size > Column::MAX_ARR32_SIZE ||
                          new_nrows > Column::MAX_ARR32_SIZE))
   {
-    new_stype = SType::STR64;
+    new_stype = dt::SType::STR64;
     return;
   }
 
@@ -409,7 +409,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
     offs += old_nrows;
   }
   for (Column& col : columns) {
-    if (col.stype() == SType::VOID) {
+    if (col.stype() == dt::SType::VOID) {
       rows_to_fill += col.nrows();
     } else {
       if (rows_to_fill) {
@@ -421,7 +421,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
       const void* col_maindata = col.get_data_readonly(0);
       const T delta_na = static_cast<T>(GETNA<uint64_t>() -
                                             GETNA<uint32_t>());
-      if (col.stype() == SType::STR32) {
+      if (col.stype() == dt::SType::STR32) {
         auto col_offsets = reinterpret_cast<const uint32_t*>(col_maindata) + 1;
         for (size_t j = 0; j < col.nrows(); ++j) {
           uint32_t offset = col_offsets[j];
@@ -429,7 +429,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
                     (sizeof(T)==8 && ISNA<uint32_t>(offset)? delta_na : 0);
         }
       } else {
-        xassert(col.stype() == SType::STR64);
+        xassert(col.stype() == dt::SType::STR64);
         auto col_offsets = reinterpret_cast<const uint64_t*>(col_maindata) + 1;
         for (size_t j = 0; j < col.nrows(); ++j) {
           uint64_t offset = col_offsets[j];
@@ -461,7 +461,7 @@ template<> inline py::robj GETNA() { return py::rnone(); }
 
 template <typename T>
 void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
-        colvec& columns, size_t new_nrows, bool col_empty, SType&)
+        colvec& columns, size_t new_nrows, bool col_empty, dt::SType&)
 {
   const T na = GETNA<T>();
   const void* naptr = static_cast<const void*>(&na);
@@ -483,7 +483,7 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
     resptr += old_alloc_size;
   }
   for (auto& col : columns) {
-    if (col.stype() == SType::VOID) {
+    if (col.stype() == dt::SType::VOID) {
       rows_to_fill += col.nrows();
     } else {
       if (rows_to_fill) {
@@ -514,7 +514,7 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
 //------------------------------------------------------------------------------
 
 void dt::SentinelObj_ColumnImpl::rbind_impl(
-  colvec& columns, size_t nnrows, bool col_empty, SType&)
+  colvec& columns, size_t nnrows, bool col_empty, dt::SType&)
 {
   size_t old_nrows = nrows_;
   size_t new_nrows = nnrows;
@@ -531,10 +531,10 @@ void dt::SentinelObj_ColumnImpl::rbind_impl(
     dest_data += old_nrows;
   }
   for (auto& col : columns) {
-    if (col.stype() == SType::VOID) {
+    if (col.stype() == dt::SType::VOID) {
       dest_data += col.nrows();
     } else {
-      if (col.stype() != SType::OBJ) {
+      if (col.stype() != dt::SType::OBJ) {
         col = col.cast(stype_);
       }
       auto src_data = static_cast<PyObject* const*>(

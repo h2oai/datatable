@@ -170,15 +170,15 @@ void Frame::replace(const PKArgs& args) {
     //
     const Column& col = dt->get_column(i);
     switch (col.stype()) {
-      case SType::BOOL:    ra.process_bool_column(i); break;
-      case SType::INT8:    ra.process_int_column<int8_t>(i); break;
-      case SType::INT16:   ra.process_int_column<int16_t>(i); break;
-      case SType::INT32:   ra.process_int_column<int32_t>(i); break;
-      case SType::INT64:   ra.process_int_column<int64_t>(i); break;
-      case SType::FLOAT32: ra.process_real_column<float>(i); break;
-      case SType::FLOAT64: ra.process_real_column<double>(i); break;
-      case SType::STR32:
-      case SType::STR64:   ra.process_str_column(i); break;
+      case dt::SType::BOOL:    ra.process_bool_column(i); break;
+      case dt::SType::INT8:    ra.process_int_column<int8_t>(i); break;
+      case dt::SType::INT16:   ra.process_int_column<int16_t>(i); break;
+      case dt::SType::INT32:   ra.process_int_column<int32_t>(i); break;
+      case dt::SType::INT64:   ra.process_int_column<int64_t>(i); break;
+      case dt::SType::FLOAT32: ra.process_real_column<float>(i); break;
+      case dt::SType::FLOAT64: ra.process_real_column<double>(i); break;
+      case dt::SType::STR32:
+      case dt::SType::STR64:   ra.process_str_column(i); break;
       default: break;
     }
   }
@@ -268,32 +268,32 @@ void ReplaceAgent::split_x_y_by_type() {
        done_bool = false,
        done_str = false;
   for (size_t i = 0; i < dt->ncols(); ++i) {
-    SType s = dt->get_column(i).stype();
+    dt::SType s = dt->get_column(i).stype();
     switch (s) {
-      case SType::BOOL: {
+      case dt::SType::BOOL: {
         if (done_bool) continue;
         split_x_y_bool();
         done_bool = true;
         break;
       }
-      case SType::INT8:
-      case SType::INT16:
-      case SType::INT32:
-      case SType::INT64: {
+      case dt::SType::INT8:
+      case dt::SType::INT16:
+      case dt::SType::INT32:
+      case dt::SType::INT64: {
         if (done_int) continue;
         split_x_y_int();
         done_int = true;
         break;
       }
-      case SType::FLOAT32:
-      case SType::FLOAT64: {
+      case dt::SType::FLOAT32:
+      case dt::SType::FLOAT64: {
         if (done_real) continue;
         split_x_y_real();
         done_real = true;
         break;
       }
-      case SType::STR32:
-      case SType::STR64: {
+      case dt::SType::STR32:
+      case dt::SType::STR64: {
         if (done_str) continue;
         split_x_y_str();
         done_str = true;
@@ -497,11 +497,11 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     }
   }
   if (maxy) {
-    SType new_stype = (maxy > std::numeric_limits<int32_t>::max())
-                      ? SType::INT64 : SType::INT32;
+    dt::SType new_stype = (maxy > std::numeric_limits<int32_t>::max())
+                      ? dt::SType::INT64 : dt::SType::INT32;
     dt->set_column(colidx, col.cast(new_stype));
     columns_cast = true;
-    if (new_stype == SType::INT64) {
+    if (new_stype == dt::SType::INT64) {
       process_int_column<int64_t>(colidx);
     } else {
       process_int_column<int32_t>(colidx);
@@ -555,7 +555,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     }
   }
   if (std::is_same<T, float>::value && maxy > 0) {
-    dt->set_column(colidx, col.cast(SType::FLOAT64));
+    dt->set_column(colidx, col.cast(dt::SType::FLOAT64));
     columns_cast = true;
     process_real_column<double>(colidx);
   } else {

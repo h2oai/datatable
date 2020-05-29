@@ -46,8 +46,8 @@ static oobj split_into_nhot(const PKArgs& args) {
       << dt->ncols() << " columns";
   }
   const Column& col0 = dt->get_column(0);
-  SType st = col0.stype();
-  if (!(st == SType::STR32 || st == SType::STR64)) {
+  dt::SType st = col0.stype();
+  if (!(st == dt::SType::STR32 || st == dt::SType::STR64)) {
     throw TypeError() << "Function split_into_nhot() may only be applied to "
       "a single-column Frame of type string;" << " received a column of type "
       << info(st).name();

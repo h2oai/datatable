@@ -221,7 +221,7 @@ Error& Error::operator<<(const CErrno&) {
   return *this;
 }
 
-Error& Error::operator<<(SType stype) {
+Error& Error::operator<<(dt::SType stype) {
   error << info(stype).name();
   return *this;
 }

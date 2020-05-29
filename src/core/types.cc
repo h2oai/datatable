@@ -11,7 +11,7 @@
 #include "types.h"
 
 static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
-static PyObject* py_stype_objs[DT_STYPES_COUNT];
+static PyObject* py_stype_objs[dt::STYPES_COUNT];
 PyTypeObject* py_ltype;
 PyTypeObject* py_stype;
 
@@ -89,75 +89,75 @@ struct STypeInfo {
 };
 
 
-static STypeInfo stype_info[DT_STYPES_COUNT];
-static SType stype_upcast_map[DT_STYPES_COUNT + 1][DT_STYPES_COUNT + 1];
+static STypeInfo stype_info[dt::STYPES_COUNT];
+static dt::SType stype_upcast_map[dt::STYPES_COUNT + 1][dt::STYPES_COUNT + 1];
 
 void init_types(void)
 {
   #define STI(T, code2, name, csize, vw, ltype) \
       stype_info[int(T)] = STypeInfo{csize, name, ltype, vw}
-  STI(SType::VOID,    "v0", "void",    0, 0, LType::MU);
-  STI(SType::BOOL,    "b1", "bool8",   1, 0, LType::BOOL);
-  STI(SType::INT8,    "i1", "int8",    1, 0, LType::INT);
-  STI(SType::INT16,   "i2", "int16",   2, 0, LType::INT);
-  STI(SType::INT32,   "i4", "int32",   4, 0, LType::INT);
-  STI(SType::INT64,   "i8", "int64",   8, 0, LType::INT);
-  STI(SType::FLOAT32, "r4", "float32", 4, 0, LType::REAL);
-  STI(SType::FLOAT64, "r8", "float64", 8, 0, LType::REAL);
-  STI(SType::STR32,   "s4", "str32",   4, 1, LType::STRING);
-  STI(SType::STR64,   "s8", "str64",   8, 1, LType::STRING);
-  STI(SType::DATE64,  "t8", "date64",  8, 0, LType::DATETIME);
-  STI(SType::TIME32,  "T4", "time32",  4, 0, LType::DATETIME);
-  STI(SType::DATE32,  "t4", "date32",  4, 0, LType::DATETIME);
-  STI(SType::DATE16,  "t2", "date16",  2, 0, LType::DATETIME);
-  STI(SType::OBJ,     "o8", "obj64",   8, 0, LType::OBJECT);
+  STI(dt::SType::VOID,    "v0", "void",    0, 0, LType::MU);
+  STI(dt::SType::BOOL,    "b1", "bool8",   1, 0, LType::BOOL);
+  STI(dt::SType::INT8,    "i1", "int8",    1, 0, LType::INT);
+  STI(dt::SType::INT16,   "i2", "int16",   2, 0, LType::INT);
+  STI(dt::SType::INT32,   "i4", "int32",   4, 0, LType::INT);
+  STI(dt::SType::INT64,   "i8", "int64",   8, 0, LType::INT);
+  STI(dt::SType::FLOAT32, "r4", "float32", 4, 0, LType::REAL);
+  STI(dt::SType::FLOAT64, "r8", "float64", 8, 0, LType::REAL);
+  STI(dt::SType::STR32,   "s4", "str32",   4, 1, LType::STRING);
+  STI(dt::SType::STR64,   "s8", "str64",   8, 1, LType::STRING);
+  STI(dt::SType::DATE64,  "t8", "date64",  8, 0, LType::DATETIME);
+  STI(dt::SType::TIME32,  "T4", "time32",  4, 0, LType::DATETIME);
+  STI(dt::SType::DATE32,  "t4", "date32",  4, 0, LType::DATETIME);
+  STI(dt::SType::DATE16,  "t2", "date16",  2, 0, LType::DATETIME);
+  STI(dt::SType::OBJ,     "o8", "obj64",   8, 0, LType::OBJECT);
   #undef STI
 
   #define UPCAST(stype1, stype2, stypeR)         \
       stype_upcast_map[int(stype1)][int(stype2)] = stypeR; \
       stype_upcast_map[int(stype2)][int(stype1)] = stypeR;
 
-  for (size_t i = 0; i < DT_STYPES_COUNT; i++) {
-    for (size_t j = 0; j < DT_STYPES_COUNT; j++) {
-      stype_upcast_map[i][j] = SType::INVALID;
+  for (size_t i = 0; i < dt::STYPES_COUNT; i++) {
+    for (size_t j = 0; j < dt::STYPES_COUNT; j++) {
+      stype_upcast_map[i][j] = dt::SType::INVALID;
     }
-    stype_upcast_map[i][i] = static_cast<SType>(i);
-    UPCAST(SType::INVALID, i, SType::INVALID)
+    stype_upcast_map[i][i] = static_cast<dt::SType>(i);
+    UPCAST(dt::SType::INVALID, i, dt::SType::INVALID)
   }
-  UPCAST(SType::VOID,  SType::BOOL,    SType::BOOL)
-  UPCAST(SType::VOID,  SType::INT8,    SType::INT8)
-  UPCAST(SType::VOID,  SType::INT16,   SType::INT16)
-  UPCAST(SType::VOID,  SType::INT32,   SType::INT32)
-  UPCAST(SType::VOID,  SType::INT64,   SType::INT64)
-  UPCAST(SType::VOID,  SType::FLOAT32, SType::FLOAT32)
-  UPCAST(SType::VOID,  SType::FLOAT64, SType::FLOAT64)
-  UPCAST(SType::VOID,  SType::STR32,   SType::STR32)
-  UPCAST(SType::VOID,  SType::STR64,   SType::STR64)
-  UPCAST(SType::BOOL,  SType::INT8,    SType::INT8)
-  UPCAST(SType::BOOL,  SType::INT16,   SType::INT16)
-  UPCAST(SType::BOOL,  SType::INT32,   SType::INT32)
-  UPCAST(SType::BOOL,  SType::INT64,   SType::INT64)
-  UPCAST(SType::BOOL,  SType::FLOAT32, SType::FLOAT32)
-  UPCAST(SType::BOOL,  SType::FLOAT64, SType::FLOAT64)
-  UPCAST(SType::INT8,  SType::INT16,   SType::INT16)
-  UPCAST(SType::INT8,  SType::INT32,   SType::INT32)
-  UPCAST(SType::INT8,  SType::INT64,   SType::INT64)
-  UPCAST(SType::INT8,  SType::FLOAT32, SType::FLOAT32)
-  UPCAST(SType::INT8,  SType::FLOAT64, SType::FLOAT64)
-  UPCAST(SType::INT16, SType::INT32,   SType::INT32)
-  UPCAST(SType::INT16, SType::INT64,   SType::INT64)
-  UPCAST(SType::INT16, SType::FLOAT32, SType::FLOAT32)
-  UPCAST(SType::INT16, SType::FLOAT64, SType::FLOAT64)
-  UPCAST(SType::INT32, SType::INT64,   SType::INT64)
-  UPCAST(SType::INT32, SType::FLOAT32, SType::FLOAT32)
-  UPCAST(SType::INT32, SType::FLOAT64, SType::FLOAT64)
-  UPCAST(SType::INT64, SType::FLOAT32, SType::FLOAT32)
-  UPCAST(SType::INT64, SType::FLOAT64, SType::FLOAT64)
-  UPCAST(SType::FLOAT32, SType::FLOAT64, SType::FLOAT64)
-  UPCAST(SType::STR32, SType::STR64,   SType::STR64)
+  UPCAST(dt::SType::VOID,  dt::SType::BOOL,    dt::SType::BOOL)
+  UPCAST(dt::SType::VOID,  dt::SType::INT8,    dt::SType::INT8)
+  UPCAST(dt::SType::VOID,  dt::SType::INT16,   dt::SType::INT16)
+  UPCAST(dt::SType::VOID,  dt::SType::INT32,   dt::SType::INT32)
+  UPCAST(dt::SType::VOID,  dt::SType::INT64,   dt::SType::INT64)
+  UPCAST(dt::SType::VOID,  dt::SType::FLOAT32, dt::SType::FLOAT32)
+  UPCAST(dt::SType::VOID,  dt::SType::FLOAT64, dt::SType::FLOAT64)
+  UPCAST(dt::SType::VOID,  dt::SType::STR32,   dt::SType::STR32)
+  UPCAST(dt::SType::VOID,  dt::SType::STR64,   dt::SType::STR64)
+  UPCAST(dt::SType::BOOL,  dt::SType::INT8,    dt::SType::INT8)
+  UPCAST(dt::SType::BOOL,  dt::SType::INT16,   dt::SType::INT16)
+  UPCAST(dt::SType::BOOL,  dt::SType::INT32,   dt::SType::INT32)
+  UPCAST(dt::SType::BOOL,  dt::SType::INT64,   dt::SType::INT64)
+  UPCAST(dt::SType::BOOL,  dt::SType::FLOAT32, dt::SType::FLOAT32)
+  UPCAST(dt::SType::BOOL,  dt::SType::FLOAT64, dt::SType::FLOAT64)
+  UPCAST(dt::SType::INT8,  dt::SType::INT16,   dt::SType::INT16)
+  UPCAST(dt::SType::INT8,  dt::SType::INT32,   dt::SType::INT32)
+  UPCAST(dt::SType::INT8,  dt::SType::INT64,   dt::SType::INT64)
+  UPCAST(dt::SType::INT8,  dt::SType::FLOAT32, dt::SType::FLOAT32)
+  UPCAST(dt::SType::INT8,  dt::SType::FLOAT64, dt::SType::FLOAT64)
+  UPCAST(dt::SType::INT16, dt::SType::INT32,   dt::SType::INT32)
+  UPCAST(dt::SType::INT16, dt::SType::INT64,   dt::SType::INT64)
+  UPCAST(dt::SType::INT16, dt::SType::FLOAT32, dt::SType::FLOAT32)
+  UPCAST(dt::SType::INT16, dt::SType::FLOAT64, dt::SType::FLOAT64)
+  UPCAST(dt::SType::INT32, dt::SType::INT64,   dt::SType::INT64)
+  UPCAST(dt::SType::INT32, dt::SType::FLOAT32, dt::SType::FLOAT32)
+  UPCAST(dt::SType::INT32, dt::SType::FLOAT64, dt::SType::FLOAT64)
+  UPCAST(dt::SType::INT64, dt::SType::FLOAT32, dt::SType::FLOAT32)
+  UPCAST(dt::SType::INT64, dt::SType::FLOAT64, dt::SType::FLOAT64)
+  UPCAST(dt::SType::FLOAT32, dt::SType::FLOAT64, dt::SType::FLOAT64)
+  UPCAST(dt::SType::STR32, dt::SType::STR64,   dt::SType::STR64)
   #undef UPCAST
   // In py_datatable.c we use 64-bit mask over stypes [???]
-  xassert(DT_STYPES_COUNT <= 64);
+  xassert(dt::STYPES_COUNT <= 64);
 
   //---- More static asserts -------------------------------------------------
   #ifndef NDEBUG
@@ -187,7 +187,7 @@ int stype_from_pyobject(PyObject* s) {
 }
 
 
-SType common_stype(SType stype1, SType stype2) {
+dt::SType common_stype(dt::SType stype1, dt::SType stype2) {
   return stype_upcast_map[int(stype1)][int(stype2)];
 }
 
@@ -195,7 +195,7 @@ SType common_stype(SType stype1, SType stype2) {
 void init_py_stype_objs(PyObject* stype_enum) {
   Py_INCREF(stype_enum);
   py_stype = reinterpret_cast<PyTypeObject*>(stype_enum);
-  for (size_t i = 0; i < DT_STYPES_COUNT; ++i) {
+  for (size_t i = 0; i < dt::STYPES_COUNT; ++i) {
     // The call may raise an exception -- that's ok
     py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
     if (py_stype_objs[i] == nullptr) {
@@ -222,7 +222,7 @@ void init_py_ltype_objs(PyObject* ltype_enum)
 
 //------------------------------------------------------------------------------
 
-info::info(SType s) {
+info::info(dt::SType s) {
   stype = static_cast<uint8_t>(s);
 }
 

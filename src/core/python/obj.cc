@@ -799,12 +799,12 @@ py::Frame* _obj::to_pyframe(const error_manager& em) const {
 
 
 
-SType _obj::to_stype(const error_manager& em) const {
+dt::SType _obj::to_stype(const error_manager& em) const {
   int s = stype_from_pyobject(v);
   if (s == -1) {
     throw em.error_not_stype(v);
   }
-  return static_cast<SType>(s);
+  return static_cast<dt::SType>(s);
 }
 
 

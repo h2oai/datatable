@@ -23,7 +23,7 @@
 #define dt_COLUMN_h
 #include "_dt.h"
 #include "stats.h"       // Stat (enum), Stats
-
+#include "stype.h"
 
 namespace dt {
   class ColumnImpl;
@@ -39,52 +39,26 @@ enum class NaStorage : uint8_t {
 
 //------------------------------------------------------------------------------
 
-/**
- * Helper template to convert between an stype and the C type
- * of the underlying column element:
- *
- * element_t<stype>
- *   resolves to the type of the element that is in the main data buffer
- *   of `column_t<stype>`.
- *
- * TODO: element_t<SType::BOOL> should be changed to `bool`, once
- *       NA flags are stored as a separate bitmask.
- */
-template <SType s> struct _elt {};
-template <> struct _elt<SType::BOOL>    { using t = int8_t; };
-template <> struct _elt<SType::INT8>    { using t = int8_t; };
-template <> struct _elt<SType::INT16>   { using t = int16_t; };
-template <> struct _elt<SType::INT32>   { using t = int32_t; };
-template <> struct _elt<SType::INT64>   { using t = int64_t; };
-template <> struct _elt<SType::FLOAT32> { using t = float; };
-template <> struct _elt<SType::FLOAT64> { using t = double; };
-template <> struct _elt<SType::STR32>   { using t = uint32_t; };
-template <> struct _elt<SType::STR64>   { using t = uint64_t; };
-template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
+template <dt::SType s> struct _readt { using t = dt::element_t<s>; };
+template <> struct _readt<dt::SType::STR32> { using t = CString; };
+template <> struct _readt<dt::SType::STR64> { using t = CString; };
+template <> struct _readt<dt::SType::OBJ>   { using t = py::robj; };
 
-template <SType s>
-using element_t = typename _elt<s>::t;
-
-template <SType s> struct _readt { using t = element_t<s>; };
-template <> struct _readt<SType::STR32> { using t = CString; };
-template <> struct _readt<SType::STR64> { using t = CString; };
-template <> struct _readt<SType::OBJ>   { using t = py::robj; };
-
-template <SType s>
+template <dt::SType s>
 using read_t = typename _readt<s>::t;
 
 
-template <typename T> inline SType stype_from() { return SType::VOID; }
-template <> inline SType stype_from<bool>()     { return SType::BOOL; }
-template <> inline SType stype_from<int8_t>()   { return SType::INT8; }
-template <> inline SType stype_from<int16_t>()  { return SType::INT16; }
-template <> inline SType stype_from<int32_t>()  { return SType::INT32; }
-template <> inline SType stype_from<int64_t>()  { return SType::INT64; }
-template <> inline SType stype_from<float>()    { return SType::FLOAT32; }
-template <> inline SType stype_from<double>()   { return SType::FLOAT64; }
-template <> inline SType stype_from<CString>()  { return SType::STR32; }
-template <> inline SType stype_from<PyObject*>(){ return SType::OBJ; }
-template <> inline SType stype_from<py::robj>() { return SType::OBJ; }
+template <typename T> inline dt::SType stype_from() { return dt::SType::VOID; }
+template <> inline dt::SType stype_from<bool>()     { return dt::SType::BOOL; }
+template <> inline dt::SType stype_from<int8_t>()   { return dt::SType::INT8; }
+template <> inline dt::SType stype_from<int16_t>()  { return dt::SType::INT16; }
+template <> inline dt::SType stype_from<int32_t>()  { return dt::SType::INT32; }
+template <> inline dt::SType stype_from<int64_t>()  { return dt::SType::INT64; }
+template <> inline dt::SType stype_from<float>()    { return dt::SType::FLOAT32; }
+template <> inline dt::SType stype_from<double>()   { return dt::SType::FLOAT64; }
+template <> inline dt::SType stype_from<CString>()  { return dt::SType::STR32; }
+template <> inline dt::SType stype_from<PyObject*>(){ return dt::SType::OBJ; }
+template <> inline dt::SType stype_from<py::robj>() { return dt::SType::OBJ; }
 
 
 template <typename T> struct _ref { using t = T; };
@@ -146,15 +120,15 @@ class Column
     Column& operator=(Column&&) noexcept;
     ~Column();
 
-    static Column new_data_column(size_t nrows, SType);
-    static Column new_na_column(size_t nrows, SType stype = SType::VOID);
-    static Column new_mbuf_column(size_t nrows, SType, Buffer&&);
+    static Column new_data_column(size_t nrows, dt::SType);
+    static Column new_na_column(size_t nrows, dt::SType stype = dt::SType::VOID);
+    static Column new_mbuf_column(size_t nrows, dt::SType, Buffer&&);
     static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);
     static Column from_pybuffer(const py::robj& buffer);
     static Column from_pylist(const py::olist& list, int stype0 = 0);
     static Column from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
     static Column from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
-    static Column from_range(int64_t start, int64_t stop, int64_t step, SType);
+    static Column from_range(int64_t start, int64_t stop, int64_t step, dt::SType);
 
     // Move-semantics for the pointer here indicates to the user that
     // the class overtakes ownership of that pointer.
@@ -169,7 +143,7 @@ class Column
   public:
     size_t nrows() const noexcept;
     size_t na_count() const;
-    SType  stype() const noexcept;
+    dt::SType  stype() const noexcept;
     LType  ltype() const noexcept;
     size_t elemsize() const noexcept;
     bool   is_fixedwidth() const noexcept;
@@ -195,7 +169,7 @@ class Column
     // Multiple overloads of `get_element()` correspond to different
     // stypes of the underlying column. It is the caller's
     // responsibility to call the correct function variant; calling
-    // a method that doesn't match the column's SType will likely
+    // a method that doesn't match the column's dt::SType will likely
     // result in an exception thrown.
     //
     // The function expects that `i < nrows()`. This assumption is
@@ -283,9 +257,9 @@ class Column
   public:
     void materialize(bool to_memory = false);
     void rbind(colvec& columns);
-    void cast_inplace(SType stype);
-    Column cast(SType stype) const;
-    Column cast(SType stype, Buffer&& mr) const;
+    void cast_inplace(dt::SType stype);
+    Column cast(dt::SType stype) const;
+    Column cast(dt::SType stype, Buffer&& mr) const;
     void sort_grouped(const Groupby&);
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);

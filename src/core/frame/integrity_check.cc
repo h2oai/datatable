@@ -49,7 +49,7 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols();
     }
     for (size_t i = 0; i < dt->ncols(); ++i) {
-      SType col_stype = dt->get_column(i).stype();
+      dt::SType col_stype = dt->get_column(i).stype();
       auto elem = stypes_tuple[i];
       auto eexp = info(col_stype).py_stype();
       if (elem != eexp) {
@@ -68,7 +68,7 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols();
     }
     for (size_t i = 0; i < dt->ncols(); ++i) {
-      SType col_stype = dt->get_column(i).stype();
+      dt::SType col_stype = dt->get_column(i).stype();
       auto elem = ltypes_tuple[i];
       auto eexp = info(col_stype).py_ltype();
       if (elem != eexp) {
@@ -153,7 +153,7 @@ namespace dt {
 
 void ColumnImpl::verify_integrity() const {
   XAssert(static_cast<int64_t>(nrows_) >= 0);
-  XAssert(static_cast<size_t>(stype_) < DT_STYPES_COUNT);
+  XAssert(static_cast<size_t>(stype_) < dt::STYPES_COUNT);
   XAssert(refcount_ > 0 && refcount_ < uint32_t(-100));
   if (stats_) { // Stats are allowed to be null
     stats_->verify_integrity(this);
@@ -184,7 +184,7 @@ void SentinelFw_ColumnImpl<T>::verify_integrity() const {
 
 void SentinelBool_ColumnImpl::verify_integrity() const {
   SentinelFw_ColumnImpl<int8_t>::verify_integrity();
-  XAssert(stype_ == SType::BOOL);
+  XAssert(stype_ == dt::SType::BOOL);
 
   // Check that all elements in column are either 0, 1, or NA_I1
   size_t mbuf_nrows = mbuf_.size();

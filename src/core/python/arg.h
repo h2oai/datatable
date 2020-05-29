@@ -69,8 +69,8 @@ class Arg : public _obj::error_manager {
     py::otuple  to_otuple             () const;
     std::string to_string             () const;
     strvec      to_stringlist         () const;
-    SType       to_stype              () const;
-    SType       to_stype              (const error_manager&) const;
+    dt::SType   to_stype              () const;
+    dt::SType   to_stype              (const error_manager&) const;
     py::oobj    to_oobj               () const { return oobj(pyobj); }
     py::oobj    to_oobj_or_none       () const { return pyobj? oobj(pyobj) : py::None(); }
     py::robj    to_robj               () const { return pyobj; }
@@ -98,7 +98,7 @@ class Arg : public _obj::error_manager {
     operator int32_t() const;
     operator int64_t() const;
     operator size_t() const;
-    operator SType() const;
+    operator dt::SType() const;
 
     // This template is specialized for different types below
     template <typename T> T to(const T& deflt) const;

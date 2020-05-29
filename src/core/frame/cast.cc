@@ -155,7 +155,7 @@ static void cast_to_pyobj(const Column& col, void* out_data)
 
 template <typename T, void (*CAST_OP)(T, dt::string_buf*)>
 static Column cast_to_str(const Column& col, Buffer&& out_offsets,
-                          SType target_stype)
+                          dt::SType target_stype)
 {
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
@@ -169,7 +169,7 @@ static Column cast_to_str(const Column& col, Buffer&& out_offsets,
       },
       col.nrows(),
       std::move(out_offsets),
-      /* force_str64 = */ (target_stype == SType::STR64),
+      /* force_str64 = */ (target_stype == dt::SType::STR64),
       /* force_single_threaded = */ !col.allow_parallel_access()
   );
 }
@@ -177,16 +177,16 @@ static Column cast_to_str(const Column& col, Buffer&& out_offsets,
 
 template <typename T>
 static Column cast_str_to_str(const Column& col, Buffer&& out_offsets,
-                              SType target_stype)
+                              dt::SType target_stype)
 {
-  if (sizeof(T) == 8 && target_stype == SType::STR32 &&
+  if (sizeof(T) == 8 && target_stype == dt::SType::STR32 &&
       ( // col->datasize() > Column::MAX_ARR32_SIZE ||
        col.nrows() > Column::MAX_ARR32_SIZE)) {
     // If the user attempts to convert str64 into str32 but the column is too
     // big, we will convert into str64 instead.
     // We could have also thrown an exception here, but this seems to be more
     // in agreement with other cases where we silently promote str32->str64.
-    return cast_str_to_str<T>(col, std::move(out_offsets), SType::STR64);
+    return cast_str_to_str<T>(col, std::move(out_offsets), dt::SType::STR64);
   }
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
@@ -200,16 +200,16 @@ static Column cast_str_to_str(const Column& col, Buffer&& out_offsets,
       },
       col.nrows(),
       std::move(out_offsets),
-      /* force_str64 = */ (target_stype == SType::STR64),
+      /* force_str64 = */ (target_stype == dt::SType::STR64),
       /* force_single_threaded = */ !col.allow_parallel_access()
   );
 }
 
 
 static Column cast_str_to_bool(const Column& col, Buffer&& outbuf,
-                               SType target_stype)
+                               dt::SType target_stype)
 {
-  xassert(target_stype == SType::BOOL); (void)target_stype;
+  xassert(target_stype == dt::SType::BOOL); (void)target_stype;
   const size_t nrows = col.nrows();
   outbuf.resize(nrows);
   auto out_data = static_cast<int8_t*>(outbuf.wptr());
@@ -235,13 +235,13 @@ static Column cast_str_to_bool(const Column& col, Buffer&& outbuf,
           out_data[i] = GETNA<int8_t>();
         });
     });
-  return Column::new_mbuf_column(nrows, SType::BOOL, std::move(outbuf));
+  return Column::new_mbuf_column(nrows, dt::SType::BOOL, std::move(outbuf));
 }
 
 
 template <typename T>
 static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
-                              SType target_stype)
+                              dt::SType target_stype)
 {
   static_assert(std::is_same<T, int8_t>() || std::is_same<T, int16_t>() ||
                 std::is_same<T, int32_t>() || std::is_same<T, int64_t>(),
@@ -282,7 +282,7 @@ static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
 
 template <typename T>
 static Column cast_str_to_float(const Column& col, Buffer&& outbuf,
-                                SType target_stype)
+                                dt::SType target_stype)
 {
   static_assert(std::is_same<T, float>() || std::is_same<T, double>(),
                 "Invalid type T in cast_str_to_float<T>");
@@ -326,7 +326,7 @@ class cast_manager {
   private:
     using castfn0 = void (*)(const Column&, size_t start, void* out);
     using castfn2 = void (*)(const Column&, void* out);
-    using castfnx = Column (*)(const Column&, Buffer&&, SType);
+    using castfnx = Column (*)(const Column&, Buffer&&, dt::SType);
     struct cast_info {
       castfn0  f0;
       castfn2  f2;
@@ -337,33 +337,33 @@ class cast_manager {
 
   public:
 
-    inline void add(SType st_from, SType st_to, castfn0 f);
-    inline void add(SType st_from, SType st_to, castfn2 f);
-    inline void add(SType st_from, SType st_to, castfnx f);
+    inline void add(dt::SType st_from, dt::SType st_to, castfn0 f);
+    inline void add(dt::SType st_from, dt::SType st_to, castfn2 f);
+    inline void add(dt::SType st_from, dt::SType st_to, castfnx f);
 
-    Column execute(const Column&, Buffer&&, SType);
+    Column execute(const Column&, Buffer&&, dt::SType);
 
   private:
-    static inline constexpr size_t key(SType st1, SType st2) {
-      return static_cast<size_t>(st1) * DT_STYPES_COUNT +
+    static inline constexpr size_t key(dt::SType st1, dt::SType st2) {
+      return static_cast<size_t>(st1) * dt::STYPES_COUNT +
              static_cast<size_t>(st2);
     }
 };
 
 
-void cast_manager::add(SType st_from, SType st_to, castfn0 f) {
+void cast_manager::add(dt::SType st_from, dt::SType st_to, castfn0 f) {
   size_t id = key(st_from, st_to);
   xassert(!all_casts[id].f0);
   all_casts[id].f0 = f;
 }
 
-void cast_manager::add(SType st_from, SType st_to, castfn2 f) {
+void cast_manager::add(dt::SType st_from, dt::SType st_to, castfn2 f) {
   size_t id = key(st_from, st_to);
   xassert(!all_casts[id].f2);
   all_casts[id].f2 = f;
 }
 
-void cast_manager::add(SType st_from, SType st_to, castfnx f) {
+void cast_manager::add(dt::SType st_from, dt::SType st_to, castfnx f) {
   size_t id = key(st_from, st_to);
   xassert(!all_casts[id].fx);
   all_casts[id].fx = f;
@@ -371,11 +371,11 @@ void cast_manager::add(SType st_from, SType st_to, castfnx f) {
 
 
 Column cast_manager::execute(const Column& src, Buffer&& target_mbuf,
-                             SType target_stype)
+                             dt::SType target_stype)
 {
   xassert(!target_mbuf.is_pyobjects());
   size_t nrows = src.nrows();
-  if (src.stype() == SType::VOID) {
+  if (src.stype() == dt::SType::VOID) {
     return Column::new_na_column(nrows, target_stype);
   }
 
@@ -402,7 +402,7 @@ Column cast_manager::execute(const Column& src, Buffer&& target_mbuf,
     castfns.f0(src, 0, out_data);
   }
 
-  if (target_stype == SType::OBJ) {
+  if (target_stype == dt::SType::OBJ) {
     target_mbuf.set_pyobjects(/* clear = */ false);
   }
 
@@ -423,16 +423,16 @@ void py::DatatableModule::init_casts()
 {
   // cast_fw0: cast a fw column without rowindex
   // cast_fw2: cast a fw column with any rowindex (including none)
-  constexpr SType bool8  = SType::BOOL;
-  constexpr SType int8   = SType::INT8;
-  constexpr SType int16  = SType::INT16;
-  constexpr SType int32  = SType::INT32;
-  constexpr SType int64  = SType::INT64;
-  constexpr SType real32 = SType::FLOAT32;
-  constexpr SType real64 = SType::FLOAT64;
-  constexpr SType str32  = SType::STR32;
-  constexpr SType str64  = SType::STR64;
-  constexpr SType obj64  = SType::OBJ;
+  constexpr dt::SType bool8  = dt::SType::BOOL;
+  constexpr dt::SType int8   = dt::SType::INT8;
+  constexpr dt::SType int16  = dt::SType::INT16;
+  constexpr dt::SType int32  = dt::SType::INT32;
+  constexpr dt::SType int64  = dt::SType::INT64;
+  constexpr dt::SType real32 = dt::SType::FLOAT32;
+  constexpr dt::SType real64 = dt::SType::FLOAT64;
+  constexpr dt::SType str32  = dt::SType::STR32;
+  constexpr dt::SType str64  = dt::SType::STR64;
+  constexpr dt::SType obj64  = dt::SType::OBJ;
 
   // Trivial casts
   casts.add(bool8, bool8,   cast_fw0<int8_t,  int8_t,  _copy<int8_t>>);
@@ -593,18 +593,18 @@ void py::DatatableModule::init_casts()
 // Column (base methods)
 //------------------------------------------------------------------------------
 
-void Column::cast_inplace(SType new_stype) {
+void Column::cast_inplace(dt::SType new_stype) {
   if (new_stype == stype()) return;
   Column newcolumn = casts.execute(*this, Buffer(), new_stype);
   std::swap(*this, newcolumn);
 }
 
 
-Column Column::cast(SType stype) const {
+Column Column::cast(dt::SType stype) const {
   return casts.execute(*this, Buffer(), stype);
 }
 
 
-Column Column::cast(SType stype, Buffer&& mem) const {
+Column Column::cast(dt::SType stype, Buffer&& mem) const {
   return casts.execute(*this, std::move(mem), stype);
 }

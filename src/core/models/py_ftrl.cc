@@ -541,12 +541,12 @@ void Ftrl::set_model(robj model) {
 
   }
 
-  SType stype = (double_precision)? SType::FLOAT64 : SType::FLOAT32;
+  auto stype = double_precision? dt::SType::FLOAT64 : dt::SType::FLOAT32;
 
   for (size_t i = 0; i < ncols; ++i) {
 
     const Column& col = dt_model->get_column(i);
-    SType c_stype = col.stype();
+    dt::SType c_stype = col.stype();
     if (col.stype() != stype) {
       throw ValueError() << "Column " << i << " in the model frame should "
                          << "have a type of " << stype << ", whereas it has "
