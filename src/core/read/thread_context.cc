@@ -26,6 +26,7 @@
 #include "utils/assert.h"
 #include "encodings.h"               // check_escaped_string, decode_escaped_csv_string
 #include "py_encodings.h"            // decode_win1252
+#include "stype.h"
 namespace dt {
 namespace read {
 

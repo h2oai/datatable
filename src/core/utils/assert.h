@@ -24,7 +24,6 @@
 #include <cstdio>
 #include <unistd.h>
 #include "utils/exceptions.h"
-#include "stype.h"
 
 
 // First, fix the NDEBUG macro.

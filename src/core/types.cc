@@ -23,6 +23,7 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "types.h"
+#include "stype.h"
 
 static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
 static PyObject* py_stype_objs[dt::STYPES_COUNT];
