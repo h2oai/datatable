@@ -108,7 +108,7 @@ FuncBinary1_ColumnImpl<T1, T2, TO>::FuncBinary1_ColumnImpl(
     arg2_(std::move(col2)),
     func_(f)
 {
-  assert_compatible_type<TO>(stype);
+  xassert(compatible_type<TO>(stype));
   xassert(arg1_.nrows() == arg2_.nrows());
   xassert(nrows <= arg1_.nrows());
 }
@@ -136,9 +136,9 @@ template <typename T1, typename T2, typename TO>
 void FuncBinary1_ColumnImpl<T1, T2, TO>::verify_integrity() const {
   arg1_.verify_integrity();
   arg2_.verify_integrity();
-  assert_compatible_type<TO>(stype_);
-  assert_compatible_type<T1>(arg1_.stype());
-  assert_compatible_type<T2>(arg2_.stype());
+  xassert(compatible_type<TO>(stype_));
+  xassert(compatible_type<T1>(arg1_.stype()));
+  xassert(compatible_type<T2>(arg2_.stype()));
   XAssert(nrows_ <= arg2_.nrows());
   XAssert(nrows_ <= arg1_.nrows());
   XAssert(func_ != nullptr);
@@ -172,7 +172,7 @@ FuncBinary2_ColumnImpl<T1, T2, TO>::FuncBinary2_ColumnImpl(
     arg2_(std::move(col2)),
     func_(f)
 {
-  assert_compatible_type<TO>(stype);
+  xassert(compatible_type<TO>(stype));
   xassert(arg1_.nrows() == arg2_.nrows());
   xassert(nrows <= arg1_.nrows());
 }
@@ -196,9 +196,9 @@ template <typename T1, typename T2, typename TO>
 void FuncBinary2_ColumnImpl<T1, T2, TO>::verify_integrity() const {
   arg1_.verify_integrity();
   arg2_.verify_integrity();
-  assert_compatible_type<TO>(stype_);
-  assert_compatible_type<T1>(arg1_.stype());
-  assert_compatible_type<T2>(arg2_.stype());
+  xassert(compatible_type<TO>(stype_));
+  xassert(compatible_type<T1>(arg1_.stype()));
+  xassert(compatible_type<T2>(arg2_.stype()));
   XAssert(nrows_ <= arg2_.nrows());
   XAssert(nrows_ <= arg1_.nrows());
   XAssert(func_ != nullptr);

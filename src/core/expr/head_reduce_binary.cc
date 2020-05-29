@@ -72,7 +72,7 @@ class BinaryReduced_ColumnImpl : public Virtual_ColumnImpl {
         groupby(grpby),
         reducer(fn)
     {
-      assert_compatible_type<T>(stype);
+      xassert(compatible_type<T>(stype));
     }
 
     ColumnImpl* clone() const override {

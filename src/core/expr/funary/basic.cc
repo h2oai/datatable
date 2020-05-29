@@ -66,7 +66,7 @@ static inline T op_minus(T x) {
 
 template <typename T>
 static umaker_ptr _uminus(SType uptype = SType::VOID) {
-  if (uptype != SType::VOID) assert_compatible_type<T>(uptype);
+  if (uptype != SType::VOID) xassert(compatible_type<T>(uptype));
   return umaker1<T, T>::make(op_minus<T>, uptype, stype_from<T>);
 }
 

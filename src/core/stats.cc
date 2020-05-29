@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <atomic>       // std::atomic
 #include <cmath>        // std::isinf, std::sqrt
@@ -482,7 +496,7 @@ void StringStats::set_mode(CString value, bool isvalid) {
 
 template <typename T>
 static size_t _compute_nacount(const dt::ColumnImpl* col) {
-  assert_compatible_type<T>(col->stype());
+  xassert(dt::compatible_type<T>(col->stype()));
   std::atomic<size_t> total_countna { 0 };
   dt::parallel_region(
     dt::NThreads(col->allow_parallel_access()),
@@ -543,7 +557,7 @@ void BooleanStats::compute_minmax() {
 
 template <typename T>
 void NumericStats<T>::compute_minmax() {
-  assert_compatible_type<T>(column->stype());
+  xassert(dt::compatible_type<T>(column->stype()));
   size_t nrows = column->nrows();
   size_t count_valid = 0;
   T min = infinity<T>();

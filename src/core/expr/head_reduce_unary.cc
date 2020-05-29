@@ -72,8 +72,8 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
         groupby(grpby),
         reducer(fn)
     {
-      assert_compatible_type<T>(arg.stype());
-      assert_compatible_type<U>(stype);
+      xassert(compatible_type<T>(arg.stype()));
+      xassert(compatible_type<U>(stype));
     }
 
     ColumnImpl* clone() const override {

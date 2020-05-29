@@ -87,56 +87,5 @@
 
 
 
-#ifdef NDEBUG
-  template <typename T>
-  inline void assert_compatible_type(dt::SType) {}
-
-#else
-  template<typename T>
-  inline void assert_compatible_type(dt::SType) {
-    throw NotImplError() << "Invalid type T in assert_compatible_type()";
-  }
-
-  template<>
-  inline void assert_compatible_type<int8_t>(dt::SType s) {
-    xassert(s == dt::SType::VOID || s == dt::SType::INT8 || s == dt::SType::BOOL);
-  }
-
-  template<>
-  inline void assert_compatible_type<int16_t>(dt::SType s) {
-    xassert(s == dt::SType::INT16);
-  }
-
-  template<>
-  inline void assert_compatible_type<int32_t>(dt::SType s) {
-    xassert(s == dt::SType::INT32);
-  }
-
-  template<>
-  inline void assert_compatible_type<int64_t>(dt::SType s) {
-    xassert(s == dt::SType::INT64);
-  }
-
-  template<>
-  inline void assert_compatible_type<float>(dt::SType s) {
-    xassert(s == dt::SType::FLOAT32);
-  }
-
-  template<>
-  inline void assert_compatible_type<double>(dt::SType s) {
-    xassert(s == dt::SType::FLOAT64);
-  }
-
-  template<>
-  inline void assert_compatible_type<CString>(dt::SType s) {
-    xassert(s == dt::SType::STR32 || s == dt::SType::STR64);
-  }
-
-  template<>
-  inline void assert_compatible_type<py::robj>(dt::SType s) {
-    xassert(s == dt::SType::OBJ);
-  }
-#endif
-
 
 #endif

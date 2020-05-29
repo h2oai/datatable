@@ -170,7 +170,7 @@ void ColumnImpl::verify_integrity() const {
 template <typename T>
 void SentinelFw_ColumnImpl<T>::verify_integrity() const {
   ColumnImpl::verify_integrity();
-  assert_compatible_type<T>(stype_);
+  xassert(compatible_type<T>(stype_));
   XAssert(mbuf_.size() >= sizeof(T) * nrows_);
   mbuf_.verify_integrity();
 }

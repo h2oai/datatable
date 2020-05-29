@@ -177,7 +177,7 @@ class Isna_ColumnImpl : public Virtual_ColumnImpl {
   public:
     Isna_ColumnImpl(Column&& col, size_t nrows)
       : Virtual_ColumnImpl(nrows, SType::BOOL),
-        arg_(std::move(col)) { assert_compatible_type<T>(arg_.stype()); }
+        arg_(std::move(col)) { xassert(compatible_type<T>(arg_.stype())); }
 
     ColumnImpl* clone() const override {
       return new Isna_ColumnImpl<T>(Column(arg_), nrows_);

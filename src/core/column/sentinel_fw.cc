@@ -23,7 +23,7 @@ template <typename T>
 SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(ColumnImpl*&& other)
   : Sentinel_ColumnImpl(other->nrows(), other->stype())
 {
-  assert_compatible_type<T>(other->stype());
+  xassert(compatible_type<T>(other->stype()));
   auto fwother = dynamic_cast<SentinelFw_ColumnImpl<T>*>(other);
   xassert(fwother != nullptr);
   mbuf_ = std::move(fwother->mbuf_);

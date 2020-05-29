@@ -121,8 +121,8 @@ class umaker1 : public umaker
     umaker1(func_t f, SType up, SType out)
       : func_(f), uptype_(up), outtype_(out)
     {
-      if (up != SType::VOID) assert_compatible_type<TX>(up);
-      assert_compatible_type<TR>(out);
+      if (up != SType::VOID) xassert(compatible_type<TX>(up));
+      xassert(compatible_type<TR>(out));
     }
 
     static umaker_ptr make(func_t f, SType up, SType out) {
@@ -167,8 +167,8 @@ class umaker2 : public umaker
     umaker2(func_t f, SType up, SType out)
       : func_(f), uptype_(up), outtype_(out)
     {
-      if (up != SType::VOID) assert_compatible_type<TX>(up);
-      assert_compatible_type<TR>(out);
+      if (up != SType::VOID) xassert(compatible_type<TX>(up));
+      xassert(compatible_type<TR>(out));
     }
 
     static umaker_ptr make(func_t f, SType up, SType out) {

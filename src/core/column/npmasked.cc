@@ -44,7 +44,7 @@ ColumnImpl* NpMasked_ColumnImpl::clone() const {
 
 template <typename T>
 void NpMasked_ColumnImpl::_apply_mask(Column& out) {
-  assert_compatible_type<T>(arg_.stype());
+  xassert(compatible_type<T>(arg_.stype()));
   auto mask_data = static_cast<const bool*>(mask_.rptr());
   auto col_data = static_cast<T*>(arg_.get_data_editable());
 

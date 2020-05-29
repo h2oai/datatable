@@ -59,7 +59,7 @@ class Sorter_Int : public SSorter<T>
     Sorter_Int(const Column& col)
       : column_(col)
     {
-      assert_compatible_type<TI>(col.stype());
+      xassert(compatible_type<TI>(col.stype()));
     }
 
 

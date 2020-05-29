@@ -80,7 +80,7 @@ class Sorter_Float : public SSorter<T>
     Sorter_Float(const Column& col)
       : column_(col)
     {
-      assert_compatible_type<TE>(col.stype());
+      xassert(compatible_type<TE>(col.stype()));
     }
 
 

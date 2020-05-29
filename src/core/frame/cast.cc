@@ -247,7 +247,7 @@ static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
                 std::is_same<T, int32_t>() || std::is_same<T, int64_t>(),
                 "Invalid type T in cast_str_to_int<T>");
   using U = std::conditional_t<std::is_same<T, int64_t>::value, int64_t, int32_t>;
-  assert_compatible_type<T>(target_stype);
+  xassert(dt::compatible_type<T>(target_stype));
 
   const size_t nrows = col.nrows();
   outbuf.resize(nrows * sizeof(T));
@@ -286,7 +286,7 @@ static Column cast_str_to_float(const Column& col, Buffer&& outbuf,
 {
   static_assert(std::is_same<T, float>() || std::is_same<T, double>(),
                 "Invalid type T in cast_str_to_float<T>");
-  assert_compatible_type<T>(target_stype);
+  xassert(dt::compatible_type<T>(target_stype));
 
   const size_t nrows = col.nrows();
   outbuf.resize(nrows * sizeof(T));

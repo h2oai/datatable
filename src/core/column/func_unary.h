@@ -101,7 +101,7 @@ FuncUnary1_ColumnImpl<TI, TO>::FuncUnary1_ColumnImpl(
     arg_(std::move(col)),
     func_(f)
 {
-  assert_compatible_type<TO>(stype);
+  xassert(compatible_type<TO>(stype));
 }
 
 
@@ -126,8 +126,8 @@ bool FuncUnary1_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
 template <typename TI, typename TO>
 void FuncUnary1_ColumnImpl<TI, TO>::verify_integrity() const {
   arg_.verify_integrity();
-  assert_compatible_type<TO>(stype_);
-  assert_compatible_type<TI>(arg_.stype());
+  xassert(compatible_type<TO>(stype_));
+  xassert(compatible_type<TI>(arg_.stype()));
   XAssert(nrows_ <= arg_.nrows());
   XAssert(func_ != nullptr);
 }
@@ -160,7 +160,7 @@ FuncUnary2_ColumnImpl<TI, TO>::FuncUnary2_ColumnImpl(
     arg_(std::move(col)),
     func_(f)
 {
-  assert_compatible_type<TO>(stype);
+  xassert(compatible_type<TO>(stype));
 }
 
 
@@ -181,8 +181,8 @@ bool FuncUnary2_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
 template <typename TI, typename TO>
 void FuncUnary2_ColumnImpl<TI, TO>::verify_integrity() const {
   arg_.verify_integrity();
-  assert_compatible_type<TO>(stype_);
-  assert_compatible_type<TI>(arg_.stype());
+  xassert(compatible_type<TO>(stype_));
+  xassert(compatible_type<TI>(arg_.stype()));
   XAssert(nrows_ <= arg_.nrows());
   XAssert(func_ != nullptr);
 }

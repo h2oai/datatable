@@ -182,6 +182,18 @@ constexpr size_t STYPES_COUNT = static_cast<size_t>(SType::INVALID);
 // Templates
 //------------------------------------------------------------------------------
 
+
+/**
+  * Helper template to convert between an stype and the C type
+  * of the underlying column element:
+  *
+  * element_t<stype>
+  *   resolves to the type of the element that is in the main data
+  *   buffer of a column with the given stype.
+  *
+  * TODO: element_t<SType::BOOL> should be changed to `bool`, once
+  *       NA flags are stored as a separate bitmask.
+  */
 template <SType> struct _elt {};
 template <> struct _elt<SType::VOID>    { using t = void; };
 template <> struct _elt<SType::BOOL>    { using t = int8_t; };
@@ -199,39 +211,6 @@ template <> struct _elt<SType::STR32>   { using t = uint32_t; };
 template <> struct _elt<SType::STR64>   { using t = uint64_t; };
 template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 
-template <SType s> struct _rdt { using t = typename _elt<s>::t; };
-template <> struct _rdt<SType::STR32> { using t = CString; };
-template <> struct _rdt<SType::STR64> { using t = CString; };
-template <> struct _rdt<SType::OBJ>   { using t = py::robj; };
-
-template <typename T> constexpr dt::SType _sfr  = dt::SType::VOID;
-template <> constexpr dt::SType _sfr<bool>      = dt::SType::BOOL;
-template <> constexpr dt::SType _sfr<int8_t>    = dt::SType::INT8;
-template <> constexpr dt::SType _sfr<int16_t>   = dt::SType::INT16;
-template <> constexpr dt::SType _sfr<int32_t>   = dt::SType::INT32;
-template <> constexpr dt::SType _sfr<int64_t>   = dt::SType::INT64;
-template <> constexpr dt::SType _sfr<float>     = dt::SType::FLOAT32;
-template <> constexpr dt::SType _sfr<double>    = dt::SType::FLOAT64;
-template <> constexpr dt::SType _sfr<CString>   = dt::SType::STR32;
-template <> constexpr dt::SType _sfr<PyObject*> = dt::SType::OBJ;
-template <> constexpr dt::SType _sfr<py::robj>  = dt::SType::OBJ;
-
-template <typename T> struct _ref  { using t = T; };
-template <> struct _ref<CString>   { using t = const CString&; };
-template <> struct _ref<PyObject*> { using t = const PyObject*; };
-
-
-/**
-  * Helper template to convert between an stype and the C type
-  * of the underlying column element:
-  *
-  * element_t<stype>
-  *   resolves to the type of the element that is in the main data
-  *   buffer of a column with the given stype.
-  *
-  * TODO: element_t<SType::BOOL> should be changed to `bool`, once
-  *       NA flags are stored as a separate bitmask.
-  */
 template <SType s>
 using element_t = typename _elt<s>::t;
 
@@ -244,6 +223,11 @@ using element_t = typename _elt<s>::t;
   *     bool isvalid = col.get_element(i, &value);
   *
   */
+template <SType s> struct _rdt { using t = element_t<s>; };
+template <> struct _rdt<SType::STR32> { using t = CString; };
+template <> struct _rdt<SType::STR64> { using t = CString; };
+template <> struct _rdt<SType::OBJ>   { using t = py::robj; };
+
 template <SType s>
 using read_t = typename _rdt<s>::t;
 
@@ -252,12 +236,56 @@ using read_t = typename _rdt<s>::t;
   * Approximate inverse of `read_t<SType>`: given a type T, returns
   * the "most typical" SType that represents type T.
   */
-template <typename T>
-constexpr dt::SType stype_from = _sfr<T>;
+template <typename T> constexpr SType _sfr  = SType::VOID;
+template <> constexpr SType _sfr<bool>      = SType::BOOL;
+template <> constexpr SType _sfr<int8_t>    = SType::INT8;
+template <> constexpr SType _sfr<int16_t>   = SType::INT16;
+template <> constexpr SType _sfr<int32_t>   = SType::INT32;
+template <> constexpr SType _sfr<int64_t>   = SType::INT64;
+template <> constexpr SType _sfr<float>     = SType::FLOAT32;
+template <> constexpr SType _sfr<double>    = SType::FLOAT64;
+template <> constexpr SType _sfr<CString>   = SType::STR32;
+template <> constexpr SType _sfr<PyObject*> = SType::OBJ;
+template <> constexpr SType _sfr<py::robj>  = SType::OBJ;
 
+template <typename T>
+constexpr SType stype_from = _sfr<T>;
+
+
+/**
+  * ref_t<T> returns a "reference type" for T. If T is a primitive
+  * C type such as int, float, etc, then this returns the type itself,
+  * otherwise it returns `const T&`.
+  *
+  * This is useful in circumstances where you need to create a
+  * function that will accept one of the `read_t<T>` types as an
+  * argument. In such case it is more efficient to pass primitive
+  * values by value, while more complicated objects by const-ref.
+  */
+template <typename T> struct _ref  { using t = T; };
+template <> struct _ref<CString>   { using t = const CString&; };
+template <> struct _ref<PyObject*> { using t = const PyObject*; };
 
 template <typename T>
 using ref_t = typename _ref<T>::t;
+
+
+/**
+  * Function that tests whether the given type T is suitable for
+  * reading values from a column of the given stype.
+  */
+template<typename T>
+inline bool compatible_type(SType) { return false; }
+template<> inline bool compatible_type<int8_t>(SType s)   { return (s == SType::VOID || s == SType::INT8 || s == SType::BOOL); }
+template<> inline bool compatible_type<int16_t>(SType s)  { return (s == SType::INT16); }
+template<> inline bool compatible_type<int32_t>(SType s)  { return (s == SType::INT32); }
+template<> inline bool compatible_type<int64_t>(SType s)  { return (s == SType::INT64); }
+template<> inline bool compatible_type<float>(SType s)    { return (s == SType::FLOAT32); }
+template<> inline bool compatible_type<double>(SType s)   { return (s == SType::FLOAT64); }
+template<> inline bool compatible_type<CString>(SType s)  { return (s == SType::STR32 || s == SType::STR64); }
+template<> inline bool compatible_type<py::robj>(SType s) { return (s == SType::OBJ); }
+
+
 
 
 }  // namespace dt

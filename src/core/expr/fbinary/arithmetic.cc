@@ -62,9 +62,9 @@ inline static T op_plus(T x, T y) {
 
 template <typename T>
 static inline bimaker_ptr _plus(SType uptype1, SType uptype2, SType outtype) {
-  assert_compatible_type<T>(outtype);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  xassert(compatible_type<T>(outtype));
+  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
   return bimaker1<T, T, T>::make(op_plus<T>, uptype1, uptype2, outtype);
 }
 
@@ -120,9 +120,9 @@ inline static T op_minus(T x, T y) {
 
 template <typename T>
 static inline bimaker_ptr _minus(SType uptype1, SType uptype2, SType outtype) {
-  assert_compatible_type<T>(outtype);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  xassert(compatible_type<T>(outtype));
+  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
   return bimaker1<T, T, T>::make(op_minus<T>, uptype1, uptype2, outtype);
 }
 
@@ -175,9 +175,9 @@ inline static T op_mul(T x, T y) {
 
 template <typename T>
 static inline bimaker_ptr _mul(SType uptype1, SType uptype2, SType outtype) {
-  assert_compatible_type<T>(outtype);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  xassert(compatible_type<T>(outtype));
+  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
   return bimaker1<T, T, T>::make(op_mul<T>, uptype1, uptype2, outtype);
 }
 
@@ -236,9 +236,9 @@ inline static T op_div(T x, T y) {
 
 template <typename T>
 static inline bimaker_ptr _div(SType uptype1, SType uptype2, SType outtype) {
-  assert_compatible_type<T>(outtype);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  xassert(compatible_type<T>(outtype));
+  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
   return bimaker1<T, T, T>::make(op_div<T>, uptype1, uptype2, outtype);
 }
 
@@ -295,9 +295,9 @@ inline static bool op_intdiv(T x, bool xvalid, T y, bool yvalid, T* out) {
 
 template <typename T>
 static inline bimaker_ptr _intdiv(SType uptype1, SType uptype2, SType outtype) {
-  assert_compatible_type<T>(outtype);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  xassert(compatible_type<T>(outtype));
+  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
   return bimaker2<T, T, T>::make(op_intdiv<T>, uptype1, uptype2, outtype);
 }
 
@@ -353,9 +353,9 @@ inline static bool op_modulo(T x, bool xvalid, T y, bool yvalid, T* out) {
 
 template <typename T>
 static inline bimaker_ptr _modulo(SType uptype1, SType uptype2, SType outtype) {
-  assert_compatible_type<T>(outtype);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  xassert(compatible_type<T>(outtype));
+  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
   return bimaker2<T, T, T>::make(op_modulo<T>, uptype1, uptype2, outtype);
 }
 
@@ -411,9 +411,9 @@ inline float op_power(float x, float y) {
 
 template <typename T>
 static inline bimaker_ptr _power(SType uptype1, SType uptype2, SType outtype) {
-  assert_compatible_type<T>(outtype);
-  if (uptype1 != SType::VOID) assert_compatible_type<T>(uptype1);
-  if (uptype2 != SType::VOID) assert_compatible_type<T>(uptype2);
+  xassert(compatible_type<T>(outtype));
+  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
   return bimaker1<T, T, T>::make(op_power<T>, uptype1, uptype2, outtype);
 }
 

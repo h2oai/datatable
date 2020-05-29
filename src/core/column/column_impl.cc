@@ -69,7 +69,7 @@ bool ColumnImpl::get_element(size_t, py::robj*)const { err(stype_, "object"); }
 
 template <typename T>
 void ColumnImpl::_materialize_fw(Column& out) {
-  assert_compatible_type<T>(stype_);
+  xassert(compatible_type<T>(stype_));
   auto out_column = Sentinel_ColumnImpl::make_column(nrows_, stype_);
   auto out_data = static_cast<T*>(out_column.get_data_editable(0));
   auto nthreads = NThreads(this->allow_parallel_access());

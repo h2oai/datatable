@@ -186,8 +186,8 @@ template <typename TX, typename TJ>
 FwCmp<TX, TJ>::FwCmp(const Column& xcol, const Column& jcol)
   : colX(xcol), colJ(jcol)
 {
-  assert_compatible_type<TX>(xcol.stype());
-  assert_compatible_type<TJ>(jcol.stype());
+  xassert(dt::compatible_type<TX>(xcol.stype()));
+  xassert(dt::compatible_type<TJ>(jcol.stype()));
 }
 
 template <typename TX, typename TJ>
