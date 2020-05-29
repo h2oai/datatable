@@ -40,7 +40,7 @@ class umaker_nacol : public umaker {
 
     Column compute(Column&& col) const override {
       if (col.stype() == SType::VOID) return std::move(col);
-      return Column::new_na_column(col.nrows());
+      return Column::new_na_column(col.nrows(), SType::VOID);
     }
 };
 

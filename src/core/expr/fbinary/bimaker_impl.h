@@ -39,7 +39,7 @@ class bimaker_nacol : public bimaker {
     Column compute(Column&& col1, Column&& col2) const override {
       if (col1.stype() == SType::VOID) return std::move(col1);
       if (col2.stype() == SType::VOID) return std::move(col2);
-      return Column::new_na_column(col1.nrows());
+      return Column::new_na_column(col1.nrows(), SType::VOID);
     }
 };
 

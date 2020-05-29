@@ -182,7 +182,6 @@ constexpr size_t STYPES_COUNT = static_cast<size_t>(SType::INVALID);
 // Templates
 //------------------------------------------------------------------------------
 
-
 /**
   * Helper template to convert between an stype and the C type
   * of the underlying column element:

@@ -286,7 +286,7 @@ void DataTable::rbind(
 
   columns_.reserve(new_ncols);
   for (size_t i = ncols_; i < new_ncols; ++i) {
-    columns_.push_back(Column::new_na_column(nrows_));
+    columns_.push_back(Column::new_na_column(nrows_, dt::SType::VOID));
   }
 
   size_t new_nrows = nrows_;
@@ -299,7 +299,7 @@ void DataTable::rbind(
     for (size_t j = 0; j < dts.size(); ++j) {
       size_t k = col_indices[i][j];
       Column col = (k == INVALID_INDEX)
-                      ? Column::new_na_column(dts[j]->nrows())
+                      ? Column::new_na_column(dts[j]->nrows(), dt::SType::VOID)
                       : dts[j]->get_column(k);
       cols_to_append[j] = std::move(col);
     }
