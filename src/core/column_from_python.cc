@@ -30,6 +30,7 @@
 #include "utils/exceptions.h"
 #include "utils/misc.h"
 #include "column.h"
+#include "stype.h"
 
 
 /**

@@ -29,6 +29,7 @@
 #include "python/oset.h"
 #include "python/string.h"
 #include "utils/alloc.h"
+#include "stype.h"
 #include "ztest.h"
 
 namespace py {

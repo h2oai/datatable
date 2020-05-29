@@ -24,6 +24,7 @@
 #include "column.h"
 #include "column/virtual.h"
 #include "models/utils.h"
+#include "stype.h"
 namespace dt {
 
 

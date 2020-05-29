@@ -23,6 +23,7 @@
 #define dt_COLUMN_RANGE_h
 #include <memory>
 #include "column/virtual.h"
+#include "stype.h"
 namespace dt {
 
 

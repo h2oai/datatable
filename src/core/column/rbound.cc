@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/rbound.h"
+#include "stype.h"
 namespace dt {
 
 

@@ -28,7 +28,7 @@
 #include "python/list.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
-
+#include "stype.h"
 namespace py {
 
 

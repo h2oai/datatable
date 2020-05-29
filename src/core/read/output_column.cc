@@ -23,6 +23,7 @@
 #include "read/output_column.h"
 #include "utils/temporary_file.h"
 #include "column.h"
+#include "stype.h"
 namespace dt {
 namespace read {
 

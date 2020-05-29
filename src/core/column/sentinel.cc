@@ -22,6 +22,7 @@
 #include "column/sentinel.h"
 #include "column/sentinel_fw.h"
 #include "column/sentinel_str.h"
+#include "stype.h"
 namespace dt {
 
 

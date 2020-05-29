@@ -30,6 +30,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "datatable.h"
+#include "stype.h"
 #include "writebuf.h"
 
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;

@@ -27,6 +27,7 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "column.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 

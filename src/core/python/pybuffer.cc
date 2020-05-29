@@ -27,8 +27,7 @@
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "buffer.h"
-
-
+#include "stype.h"
 namespace py {
 
 

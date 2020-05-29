@@ -28,6 +28,7 @@
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "datatablemodule.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 

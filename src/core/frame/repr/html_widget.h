@@ -25,6 +25,7 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/terminal/terminal.h"
+#include "stype.h"
 namespace dt {
 
 

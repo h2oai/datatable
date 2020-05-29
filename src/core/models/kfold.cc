@@ -33,7 +33,7 @@
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-
+#include "stype.h"
 namespace py {
 
 //------------------------------------------------------------------------------

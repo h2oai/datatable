@@ -27,6 +27,7 @@
 #include "sort/radix-sort.h"    // RadixSort
 #include "sort/sorter.h"        // Sort
 #include "sort/sorter_raw.h"    // Sorter_Raw
+#include "stype.h"
 #include "utils/macros.h"
 namespace dt {
 namespace sort {

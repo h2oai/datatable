@@ -26,6 +26,7 @@
 #include "utils/misc.h"      // repr_utf8
 #include "datatable.h"
 #include "encodings.h"
+#include "stype.h"
 
 
 //------------------------------------------------------------------------------

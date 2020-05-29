@@ -28,6 +28,7 @@
 #include "sort/sorter_raw.h"    // Sorter_Raw
 #include "utils/misc.h"         // dt::nlz
 #include "column.h"
+#include "stype.h"
 namespace dt {
 namespace sort {
 

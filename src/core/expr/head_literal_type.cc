@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/head_literal.h"
 #include "expr/workframe.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 

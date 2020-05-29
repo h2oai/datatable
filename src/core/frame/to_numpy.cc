@@ -25,6 +25,7 @@
 #include "python/args.h"
 #include "python/string.h"
 #include "datatablemodule.h"
+#include "stype.h"
 namespace py {
 
 

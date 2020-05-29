@@ -16,6 +16,7 @@
 #include "str/py_str.h"
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
+#include "stype.h"
 #include "types.h"
 #include "utils/exceptions.h"
 namespace py {

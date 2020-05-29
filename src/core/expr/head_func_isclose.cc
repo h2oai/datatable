@@ -27,6 +27,7 @@
 #include "utils/assert.h"
 #include "column.h"
 #include "datatablemodule.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 

@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/npmasked.h"
 #include "parallel/api.h"
+#include "stype.h"
 namespace dt {
 
 

@@ -31,6 +31,7 @@
 #include "utils/misc.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "stype.h"
 
 
 static void _check_ncols(size_t n0, size_t n1) {

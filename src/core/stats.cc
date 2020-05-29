@@ -34,8 +34,9 @@
 #include "column.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
-#include "stats.h"
 #include "sort.h"
+#include "stats.h"
+#include "stype.h"
 
 
 //------------------------------------------------------------------------------

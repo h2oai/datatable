@@ -20,6 +20,8 @@
 #include "column.h"
 #include "datatablemodule.h"
 #include "encodings.h"
+#include "stype.h"
+
 
 namespace pybuffers {
   size_t single_col;

@@ -145,6 +145,7 @@
 #include "options.h"
 #include "rowindex.h"
 #include "sort.h"
+#include "stype.h"
 #include "types.h"
 
 //------------------------------------------------------------------------------

@@ -29,6 +29,7 @@
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "sort.h"
+#include "stype.h"
 namespace dt {
 namespace set {
 

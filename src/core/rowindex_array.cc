@@ -30,8 +30,9 @@
 #include "utils/exceptions.h"    // ValueError, RuntimeError
 #include "utils/assert.h"
 #include "utils/macros.h"
+#include "stype.h"
 
-#ifndef NDEBUG
+#if DT_DEBUG
   inline static void test(ArrayRowIndexImpl* o) {
     o->refcount++;
     o->verify_integrity();

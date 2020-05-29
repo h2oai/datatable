@@ -24,6 +24,7 @@
 #include "sort/insert-sort.h"
 #include "sort/sorter.h"
 #include "column.h"
+#include "stype.h"
 namespace dt {
 namespace sort {
 

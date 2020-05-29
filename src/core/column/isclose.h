@@ -24,6 +24,7 @@
 #include <memory>
 #include "column/virtual.h"
 #include "utils/assert.h"
+#include "stype.h"
 namespace dt {
 
 

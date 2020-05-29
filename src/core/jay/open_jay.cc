@@ -25,6 +25,7 @@
 #include "jay/jay_generated.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "stype.h"
 
 
 // Helper functions

@@ -24,6 +24,7 @@
 #include "utils/assert.h"
 #include "utils/fuzzy_match.h"
 #include "options.h"
+#include "stype.h"
 #include "ztest.h"
 
 static Error _name_not_found_error(const DataTable* dt, const std::string& name)

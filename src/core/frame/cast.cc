@@ -30,6 +30,7 @@
 #include "python/string.h"
 #include "read/parse_context.h"
 #include "read/field64.h"
+#include "stype.h"
 
 
 //------------------------------------------------------------------------------

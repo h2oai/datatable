@@ -23,7 +23,6 @@
 #define dt_COLUMN_h
 #include "_dt.h"
 #include "stats.h"       // Stat (enum), Stats
-#include "stype.h"
 
 namespace dt {
   class ColumnImpl;
