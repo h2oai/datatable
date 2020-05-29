@@ -36,7 +36,7 @@ def c_stypes():
 
     # Load info from types.h file
     file1 = os.path.join(os.path.dirname(__file__),
-                         "..", "src", "core", "types.h")
+                         "..", "src", "core", "stype.h")
     with open(file1, "r", encoding="utf-8") as f:
         txt1 = f.read()
     mm = re.search(r"enum class SType : uint8_t {\s*(.*?),?\s*}",

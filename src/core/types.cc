@@ -96,7 +96,7 @@ void init_types(void)
 {
   #define STI(T, code2, name, csize, vw, ltype) \
       stype_info[int(T)] = STypeInfo{csize, name, ltype, vw}
-  STI(SType::VOID,    "--", "void",    0, 0, LType::MU);
+  STI(SType::VOID,    "v0", "void",    0, 0, LType::MU);
   STI(SType::BOOL,    "b1", "bool8",   1, 0, LType::BOOL);
   STI(SType::INT8,    "i1", "int8",    1, 0, LType::INT);
   STI(SType::INT16,   "i2", "int16",   2, 0, LType::INT);
@@ -104,15 +104,8 @@ void init_types(void)
   STI(SType::INT64,   "i8", "int64",   8, 0, LType::INT);
   STI(SType::FLOAT32, "r4", "float32", 4, 0, LType::REAL);
   STI(SType::FLOAT64, "r8", "float64", 8, 0, LType::REAL);
-  STI(SType::DEC16,   "d2", "dec16",   2, 0, LType::REAL);
-  STI(SType::DEC32,   "d4", "dec32",   4, 0, LType::REAL);
-  STI(SType::DEC64,   "d8", "dec64",   8, 0, LType::REAL);
   STI(SType::STR32,   "s4", "str32",   4, 1, LType::STRING);
   STI(SType::STR64,   "s8", "str64",   8, 1, LType::STRING);
-  STI(SType::FSTR,    "sx", "strfix",  0, 0, LType::STRING);
-  STI(SType::CAT8,    "e1", "cat8",    1, 1, LType::STRING);
-  STI(SType::CAT16,   "e2", "cat16",   2, 1, LType::STRING);
-  STI(SType::CAT32,   "e4", "cat32",   4, 1, LType::STRING);
   STI(SType::DATE64,  "t8", "date64",  8, 0, LType::DATETIME);
   STI(SType::TIME32,  "T4", "time32",  4, 0, LType::DATETIME);
   STI(SType::DATE32,  "t4", "date32",  4, 0, LType::DATETIME);
