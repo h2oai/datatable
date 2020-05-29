@@ -16,6 +16,9 @@
     columns in the Frame. This allows the Frame to be used in contexts where
     an iterable might be expected.
 
+  -[new] Added ability to cast string columns into numeric types: int, float
+    or boolean. [#1313]
+
   -[enh] String columns now support comparison operators ``<``, ``>``, ``<=``
     and ``>=``. [#2274]
 

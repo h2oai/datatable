@@ -86,6 +86,12 @@ def test_cast_float_to_bool(source_stype):
     assert RES.to_list()[0] == [True, True, None, False, True, True, True, True]
 
 
+def test_cast_str_to_bool():
+    DT = dt.Frame(['True', "False", "bah", None, "true"])
+    DT[0] = bool
+    assert_equals(DT, dt.Frame([1, 0, None, None, None] / dt.bool8))
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -135,9 +141,30 @@ def test_cast_float_to_int(source_stype, target_stype):
     assert RES.to_list()[0] == [0, None, 7, -4, 111, 28]
 
 
-@pytest.mark.parametrize("source_stype", ltype.str.stypes + [stype.obj64])
+def test_cast_str_to_int_simple():
+    DT = dt.Frame(A=[str(i) for i in range(100001)])
+    DT["A"] = dt.int32
+    assert_equals(DT, dt.Frame(A=range(100001)))
+
+
+@pytest.mark.parametrize("source_stype", ltype.str.stypes)
+@pytest.mark.parametrize("target_stype", ltype.int.stypes)
+def test_cast_str_to_int(source_stype, target_stype):
+    DT = dt.Frame(W=["0", "23", "+56", "-17", "101"], stype=source_stype)
+    assert DT.stype == source_stype
+    RES = DT[:, target_stype(f.W)]
+    assert_equals(RES, dt.Frame(W=[0, 23, 56, -17, 101] / target_stype))
+
+
+def test_cast_badstr_to_int():
+    DT = dt.Frame(["345", "10000000000", "24e100", "abc500", None, "--5"])
+    RES = DT[:, dt.int32(f[0])]
+    assert_equals(RES, dt.Frame([345, None, None, None, None, None]))
+
+
+@pytest.mark.parametrize("source_stype", [stype.obj64])
 @pytest.mark.parametrize("target_stype", numeric_stypes)
-def test_cast_other_to_numeric(source_stype, target_stype):
+def test_cast_object_to_numeric(source_stype, target_stype):
     DT = dt.Frame(W=[0, 1, 2], stype=source_stype)
     assert DT.stypes == (source_stype,)
     with pytest.raises(NotImplementedError) as e:
@@ -180,6 +207,13 @@ def test_cast_double_to_float():
     assert RES.to_list()[0] == [0.7799999713897705, None, math.inf, -math.inf,
                                 math.inf, -6.50000007168e+11]
 
+
+@pytest.mark.parametrize("target_stype", ltype.real.stypes)
+def test_cast_str_to_double(target_stype):
+    DT = dt.Frame(A=["2.45", "-3.333", "0.13e+29", "boo", None, "-4e-4"])
+    DT["A"] = target_stype
+    assert_equals(DT, dt.Frame(A=[2.45, -3.333, 1.3e28, None, None, -0.0004],
+                               stype=target_stype))
 
 
 

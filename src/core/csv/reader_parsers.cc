@@ -158,6 +158,9 @@ void parse_int_simple(const ParseContext& ctx) {
   }
 }
 
+template void parse_int_simple<int32_t, true>(const dt::read::ParseContext&);
+template void parse_int_simple<int64_t, true>(const dt::read::ParseContext&);
+
 
 // Parse integers where thousands are separated into groups, eg
 //   1,000,000
