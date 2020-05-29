@@ -280,6 +280,43 @@ static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
 }
 
 
+template <typename T>
+static Column cast_str_to_float(const Column& col, Buffer&& outbuf,
+                                SType target_stype)
+{
+  static_assert(std::is_same<T, float>() || std::is_same<T, double>(),
+                "Invalid type T in cast_str_to_float<T>");
+  assert_compatible_type<T>(target_stype);
+
+  const size_t nrows = col.nrows();
+  outbuf.resize(nrows * sizeof(T));
+  auto out_data = static_cast<T*>(outbuf.wptr());
+  dt::parallel_region(
+    [&] {
+      dt::read::field64 f64_value;
+      CString           str_value;
+      dt::read::ParseContext ctx;
+      ctx.target = &f64_value;
+
+      dt::nested_for_static(nrows,
+        [&](size_t i) {
+          bool isvalid = col.get_element(i, &str_value);
+          if (isvalid) {
+            ctx.ch = str_value.ch;
+            ctx.eof = str_value.ch + str_value.size;
+            parse_float64_simple(ctx);
+            if (ctx.ch == ctx.eof) {
+              out_data[i] = static_cast<T>(f64_value.float64);
+              return;
+            }
+          }
+          out_data[i] = GETNA<T>();
+        });
+    });
+  return Column::new_mbuf_column(nrows, target_stype, std::move(outbuf));
+}
+
+
 
 //------------------------------------------------------------------------------
 // cast_manager
@@ -492,6 +529,8 @@ void py::DatatableModule::init_casts()
   casts.add(int32, real32,  cast_fw2<int32_t, float, fw_fw<int32_t, float>>);
   casts.add(int64, real32,  cast_fw2<int64_t, float, fw_fw<int64_t, float>>);
   casts.add(real64, real32, cast_fw2<double,  float, _static<double, float>>);
+  casts.add(str32,  real32, cast_str_to_float<float>);
+  casts.add(str64,  real32, cast_str_to_float<float>);
 
   // Casts into real64
   casts.add(bool8, real64,  cast_fw0<int8_t,  double, fw_fw<int8_t, double>>);
@@ -502,11 +541,13 @@ void py::DatatableModule::init_casts()
   casts.add(real32, real64, cast_fw0<float,   double, _static<float, double>>);
 
   casts.add(bool8, real64,  cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
-  casts.add(int8, real64,   cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
+  casts.add(int8,  real64,  cast_fw2<int8_t,  double, fw_fw<int8_t, double>>);
   casts.add(int16, real64,  cast_fw2<int16_t, double, fw_fw<int16_t, double>>);
   casts.add(int32, real64,  cast_fw2<int32_t, double, fw_fw<int32_t, double>>);
   casts.add(int64, real64,  cast_fw2<int64_t, double, fw_fw<int64_t, double>>);
   casts.add(real32, real64, cast_fw2<float,   double, _static<float, double>>);
+  casts.add(str32,  real64, cast_str_to_float<double>);
+  casts.add(str64,  real64, cast_str_to_float<double>);
 
   // Casts into str32
   casts.add(bool8, str32,  cast_to_str<int8_t, bool_str>);

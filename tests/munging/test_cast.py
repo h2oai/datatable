@@ -208,6 +208,13 @@ def test_cast_double_to_float():
                                 math.inf, -6.50000007168e+11]
 
 
+@pytest.mark.parametrize("target_stype", ltype.real.stypes)
+def test_cast_str_to_double(target_stype):
+    DT = dt.Frame(A=["2.45", "-3.333", "0.13e+29", "boo", None, "-4e-4"])
+    DT["A"] = target_stype
+    assert_equals(DT, dt.Frame(A=[2.45, -3.333, 1.3e28, None, None, -0.0004],
+                               stype=target_stype))
+
 
 
 #-------------------------------------------------------------------------------
