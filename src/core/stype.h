@@ -218,7 +218,7 @@ template <> constexpr dt::SType _sfr<py::robj>  = dt::SType::OBJ;
 
 template <typename T> struct _ref  { using t = T; };
 template <> struct _ref<CString>   { using t = const CString&; };
-// template <> struct _ref<PyObject*> { using t = const PyObject*; };
+template <> struct _ref<PyObject*> { using t = const PyObject*; };
 
 
 /**
