@@ -138,7 +138,7 @@ static bool cov_reducer(const Column& col1, const Column& col2,
 
 template <typename T>
 static Column _cov(Column&& arg1, Column&& arg2, const Groupby& gby) {
-  const SType st = stype_from<T>();
+  const SType st = stype_from<T>;
   arg1.cast_inplace(st);
   arg2.cast_inplace(st);
   return Column(
@@ -200,7 +200,7 @@ static bool corr_reducer(const Column& col1, const Column& col2,
 
 template <typename T>
 static Column _corr(Column&& arg1, Column&& arg2, const Groupby& gby) {
-  const SType st = stype_from<T>();
+  const SType st = stype_from<T>;
   arg1.cast_inplace(st);
   arg2.cast_inplace(st);
   return Column(

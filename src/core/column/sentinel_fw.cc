@@ -38,7 +38,7 @@ SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(ColumnImpl*&& other)
 
 template <typename T>
 SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows)
-  : Sentinel_ColumnImpl(nrows, stype_from<T>())
+  : Sentinel_ColumnImpl(nrows, stype_from<T>)
 {
   mbuf_.resize(sizeof(T) * nrows);
 }
@@ -59,7 +59,7 @@ SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows)
 
 template <typename T>
 SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, Buffer&& mr)
-  : Sentinel_ColumnImpl(nrows, stype_from<T>())
+  : Sentinel_ColumnImpl(nrows, stype_from<T>)
 {
   size_t req_size = sizeof(T) * nrows;
   if (mr) {

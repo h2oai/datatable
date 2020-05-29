@@ -39,28 +39,6 @@ enum class NaStorage : uint8_t {
 
 //------------------------------------------------------------------------------
 
-template <dt::SType s> struct _readt { using t = dt::element_t<s>; };
-template <> struct _readt<dt::SType::STR32> { using t = CString; };
-template <> struct _readt<dt::SType::STR64> { using t = CString; };
-template <> struct _readt<dt::SType::OBJ>   { using t = py::robj; };
-
-template <dt::SType s>
-using read_t = typename _readt<s>::t;
-
-
-template <typename T> inline dt::SType stype_from() { return dt::SType::VOID; }
-template <> inline dt::SType stype_from<bool>()     { return dt::SType::BOOL; }
-template <> inline dt::SType stype_from<int8_t>()   { return dt::SType::INT8; }
-template <> inline dt::SType stype_from<int16_t>()  { return dt::SType::INT16; }
-template <> inline dt::SType stype_from<int32_t>()  { return dt::SType::INT32; }
-template <> inline dt::SType stype_from<int64_t>()  { return dt::SType::INT64; }
-template <> inline dt::SType stype_from<float>()    { return dt::SType::FLOAT32; }
-template <> inline dt::SType stype_from<double>()   { return dt::SType::FLOAT64; }
-template <> inline dt::SType stype_from<CString>()  { return dt::SType::STR32; }
-template <> inline dt::SType stype_from<PyObject*>(){ return dt::SType::OBJ; }
-template <> inline dt::SType stype_from<py::robj>() { return dt::SType::OBJ; }
-
-
 template <typename T> struct _ref { using t = T; };
 template <> struct _ref<CString> { using t = const CString&; };
 

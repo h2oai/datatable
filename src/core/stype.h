@@ -199,20 +199,58 @@ template <> struct _elt<SType::STR32>   { using t = uint32_t; };
 template <> struct _elt<SType::STR64>   { using t = uint64_t; };
 template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 
+template <SType s> struct _rdt { using t = typename _elt<s>::t; };
+template <> struct _rdt<SType::STR32> { using t = CString; };
+template <> struct _rdt<SType::STR64> { using t = CString; };
+template <> struct _rdt<SType::OBJ>   { using t = py::robj; };
+
+template <typename T> constexpr dt::SType _sfr  = dt::SType::VOID;
+template <> constexpr dt::SType _sfr<bool>      = dt::SType::BOOL;
+template <> constexpr dt::SType _sfr<int8_t>    = dt::SType::INT8;
+template <> constexpr dt::SType _sfr<int16_t>   = dt::SType::INT16;
+template <> constexpr dt::SType _sfr<int32_t>   = dt::SType::INT32;
+template <> constexpr dt::SType _sfr<int64_t>   = dt::SType::INT64;
+template <> constexpr dt::SType _sfr<float>     = dt::SType::FLOAT32;
+template <> constexpr dt::SType _sfr<double>    = dt::SType::FLOAT64;
+template <> constexpr dt::SType _sfr<CString>   = dt::SType::STR32;
+template <> constexpr dt::SType _sfr<PyObject*> = dt::SType::OBJ;
+template <> constexpr dt::SType _sfr<py::robj>  = dt::SType::OBJ;
+
 
 /**
   * Helper template to convert between an stype and the C type
   * of the underlying column element:
   *
   * element_t<stype>
-  *   resolves to the type of the element that is in the main data buffer
-  *   of a column with the given stype.
+  *   resolves to the type of the element that is in the main data
+  *   buffer of a column with the given stype.
   *
   * TODO: element_t<SType::BOOL> should be changed to `bool`, once
   *       NA flags are stored as a separate bitmask.
   */
 template <SType s>
 using element_t = typename _elt<s>::t;
+
+
+/**
+  * The type of variable that can be used to read the elements from
+  * a column with the given stype. Example:
+  *
+  *     read_t<stype> value;
+  *     bool isvalid = col.get_element(i, &value);
+  *
+  */
+template <SType s>
+using read_t = typename _rdt<s>::t;
+
+
+/**
+  * Approximate inverse of `read_t<SType>`: given a type T, returns
+  * the "most typical" SType that represents type T.
+  */
+template <typename T>
+constexpr dt::SType stype_from = _sfr<T>;
+
 
 
 }  // namespace dt

@@ -53,7 +53,7 @@ static T op_abs(T x) {
 
 template <typename T>
 static inline umaker_ptr _abs(SType uptype = SType::VOID) {
-  return umaker1<T, T>::make(op_abs<T>, uptype, stype_from<T>());
+  return umaker1<T, T>::make(op_abs<T>, uptype, stype_from<T>);
 }
 
 umaker_ptr resolve_op_abs(SType stype) {
@@ -133,7 +133,7 @@ static T op_sign(T x) {
 
 template <typename T>
 static inline umaker_ptr _sign(SType uptype = SType::VOID) {
-  return umaker1<T, T>::make(op_sign<T>, uptype, stype_from<T>());
+  return umaker1<T, T>::make(op_sign<T>, uptype, stype_from<T>);
 }
 
 umaker_ptr resolve_op_sign(SType stype) {
@@ -359,7 +359,7 @@ py::PKArgs args_ceil(1, 0, 0, false, false, {"x"}, "ceil", doc_ceil);
 
 template <typename T>
 static umaker_ptr _ceil() {
-  return umaker1<T, T>::make(std::ceil, SType::VOID, stype_from<T>());
+  return umaker1<T, T>::make(std::ceil, SType::VOID, stype_from<T>);
 }
 
 umaker_ptr resolve_op_ceil(SType stype) {
@@ -397,7 +397,7 @@ py::PKArgs args_floor(1, 0, 0, false, false, {"x"}, "floor", doc_floor);
 
 template <typename T>
 static umaker_ptr _floor() {
-  return umaker1<T, T>::make(std::floor, SType::VOID, stype_from<T>());
+  return umaker1<T, T>::make(std::floor, SType::VOID, stype_from<T>);
 }
 
 umaker_ptr resolve_op_floor(SType stype) {
@@ -435,7 +435,7 @@ py::PKArgs args_rint(1, 0, 0, false, false, {"x"}, "rint", doc_rint);
 
 template <typename T>
 static umaker_ptr _rint() {
-  return umaker1<T, T>::make(std::rint, SType::VOID, stype_from<T>());
+  return umaker1<T, T>::make(std::rint, SType::VOID, stype_from<T>);
 }
 
 umaker_ptr resolve_op_rint(SType stype) {
@@ -478,7 +478,7 @@ py::PKArgs args_trunc(1, 0, 0, false, false, {"x"}, "trunc", doc_trunc);
 
 template <typename T>
 static umaker_ptr _trunc() {
-  return umaker1<T, T>::make(std::trunc, SType::VOID, stype_from<T>());
+  return umaker1<T, T>::make(std::trunc, SType::VOID, stype_from<T>);
 }
 
 umaker_ptr resolve_op_trunc(SType stype) {

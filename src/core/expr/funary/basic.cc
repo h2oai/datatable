@@ -67,7 +67,7 @@ static inline T op_minus(T x) {
 template <typename T>
 static umaker_ptr _uminus(SType uptype = SType::VOID) {
   if (uptype != SType::VOID) assert_compatible_type<T>(uptype);
-  return umaker1<T, T>::make(op_minus<T>, uptype, stype_from<T>());
+  return umaker1<T, T>::make(op_minus<T>, uptype, stype_from<T>);
 }
 
 
@@ -110,7 +110,7 @@ static inline int8_t op_invert_bool(int8_t x) {
 
 template <typename T>
 static umaker_ptr _uinvert() {
-  return umaker1<T, T>::make(op_invert<T>, SType::VOID, stype_from<T>());
+  return umaker1<T, T>::make(op_invert<T>, SType::VOID, stype_from<T>);
 }
 
 

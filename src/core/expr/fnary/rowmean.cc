@@ -70,7 +70,7 @@ template <typename T>
 static inline Column _rowmean(colvec&& columns) {
   size_t nrows = columns[0].nrows();
   return Column(new FuncNary_ColumnImpl<T>(
-                    std::move(columns), op_rowmean<T>, nrows, stype_from<T>()));
+                    std::move(columns), op_rowmean<T>, nrows, stype_from<T>));
 }
 
 
