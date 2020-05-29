@@ -22,7 +22,7 @@
 #ifndef dt_UTILS_ASSERT_h
 #define dt_UTILS_ASSERT_h
 #include <cstdio>
-#include "python/obj.h"
+#include <unistd.h>
 #include "utils/exceptions.h"
 #include "stype.h"
 
