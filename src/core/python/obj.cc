@@ -800,11 +800,14 @@ py::Frame* _obj::to_pyframe(const error_manager& em) const {
 
 
 dt::SType _obj::to_stype(const error_manager& em) const {
-  int s = stype_from_pyobject(v);
-  if (s == -1) {
+  PyObject* res = PyObject_CallFunction(
+      reinterpret_cast<PyObject*>(py_stype), "O", v
+  );
+  if (res == nullptr) {
     throw em.error_not_stype(v);
   }
-  return static_cast<dt::SType>(s);
+  int32_t value = py::robj(res).get_attr("value").to_int32();
+  return static_cast<dt::SType>(value);
 }
 
 

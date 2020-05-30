@@ -300,7 +300,7 @@ static oobj kfold_random(const PKArgs& args) {
         fold_size -= v;
       }
     }
-    #ifndef NDEBUG
+    #if DT_DEBUG
       for (size_t i = 0; i < nchunks; ++i) {
         size_t chunk_size = chunk_start(i + 1, nchunks, nrows) -
                             chunk_start(i, nchunks, nrows);

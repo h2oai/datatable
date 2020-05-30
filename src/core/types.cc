@@ -26,7 +26,6 @@
 #include "stype.h"
 
 static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
-static PyObject* py_stype_objs[dt::STYPES_COUNT];
 PyTypeObject* py_ltype;
 PyTypeObject* py_stype;
 
@@ -103,7 +102,6 @@ struct STypeInfo {
 
 
 static STypeInfo stype_info[dt::STYPES_COUNT];
-static dt::SType stype_upcast_map[dt::STYPES_COUNT + 1][dt::STYPES_COUNT + 1];
 
 void init_types(void)
 {
@@ -126,54 +124,8 @@ void init_types(void)
   STI(dt::SType::OBJ,     "o8", "obj64",   8, 0, LType::OBJECT);
   #undef STI
 
-  #define UPCAST(stype1, stype2, stypeR)         \
-      stype_upcast_map[int(stype1)][int(stype2)] = stypeR; \
-      stype_upcast_map[int(stype2)][int(stype1)] = stypeR;
-
-  for (size_t i = 0; i < dt::STYPES_COUNT; i++) {
-    for (size_t j = 0; j < dt::STYPES_COUNT; j++) {
-      stype_upcast_map[i][j] = dt::SType::INVALID;
-    }
-    stype_upcast_map[i][i] = static_cast<dt::SType>(i);
-    UPCAST(dt::SType::INVALID, i, dt::SType::INVALID)
-  }
-  UPCAST(dt::SType::VOID,  dt::SType::BOOL,    dt::SType::BOOL)
-  UPCAST(dt::SType::VOID,  dt::SType::INT8,    dt::SType::INT8)
-  UPCAST(dt::SType::VOID,  dt::SType::INT16,   dt::SType::INT16)
-  UPCAST(dt::SType::VOID,  dt::SType::INT32,   dt::SType::INT32)
-  UPCAST(dt::SType::VOID,  dt::SType::INT64,   dt::SType::INT64)
-  UPCAST(dt::SType::VOID,  dt::SType::FLOAT32, dt::SType::FLOAT32)
-  UPCAST(dt::SType::VOID,  dt::SType::FLOAT64, dt::SType::FLOAT64)
-  UPCAST(dt::SType::VOID,  dt::SType::STR32,   dt::SType::STR32)
-  UPCAST(dt::SType::VOID,  dt::SType::STR64,   dt::SType::STR64)
-  UPCAST(dt::SType::BOOL,  dt::SType::INT8,    dt::SType::INT8)
-  UPCAST(dt::SType::BOOL,  dt::SType::INT16,   dt::SType::INT16)
-  UPCAST(dt::SType::BOOL,  dt::SType::INT32,   dt::SType::INT32)
-  UPCAST(dt::SType::BOOL,  dt::SType::INT64,   dt::SType::INT64)
-  UPCAST(dt::SType::BOOL,  dt::SType::FLOAT32, dt::SType::FLOAT32)
-  UPCAST(dt::SType::BOOL,  dt::SType::FLOAT64, dt::SType::FLOAT64)
-  UPCAST(dt::SType::INT8,  dt::SType::INT16,   dt::SType::INT16)
-  UPCAST(dt::SType::INT8,  dt::SType::INT32,   dt::SType::INT32)
-  UPCAST(dt::SType::INT8,  dt::SType::INT64,   dt::SType::INT64)
-  UPCAST(dt::SType::INT8,  dt::SType::FLOAT32, dt::SType::FLOAT32)
-  UPCAST(dt::SType::INT8,  dt::SType::FLOAT64, dt::SType::FLOAT64)
-  UPCAST(dt::SType::INT16, dt::SType::INT32,   dt::SType::INT32)
-  UPCAST(dt::SType::INT16, dt::SType::INT64,   dt::SType::INT64)
-  UPCAST(dt::SType::INT16, dt::SType::FLOAT32, dt::SType::FLOAT32)
-  UPCAST(dt::SType::INT16, dt::SType::FLOAT64, dt::SType::FLOAT64)
-  UPCAST(dt::SType::INT32, dt::SType::INT64,   dt::SType::INT64)
-  UPCAST(dt::SType::INT32, dt::SType::FLOAT32, dt::SType::FLOAT32)
-  UPCAST(dt::SType::INT32, dt::SType::FLOAT64, dt::SType::FLOAT64)
-  UPCAST(dt::SType::INT64, dt::SType::FLOAT32, dt::SType::FLOAT32)
-  UPCAST(dt::SType::INT64, dt::SType::FLOAT64, dt::SType::FLOAT64)
-  UPCAST(dt::SType::FLOAT32, dt::SType::FLOAT64, dt::SType::FLOAT64)
-  UPCAST(dt::SType::STR32, dt::SType::STR64,   dt::SType::STR64)
-  #undef UPCAST
-  // In py_datatable.c we use 64-bit mask over stypes [???]
-  xassert(dt::STYPES_COUNT <= 64);
-
   //---- More static asserts -------------------------------------------------
-  #ifndef NDEBUG
+  #if DT_DEBUG
     // This checks validity of a cast used in reader_parsers.cc
     // Cannot use `char ch` as a loop variable here because `127 + 1 == -128`.
     for (int i = -128; i <= 127; i++) {
@@ -187,36 +139,7 @@ void init_types(void)
 
 
 
-int stype_from_pyobject(PyObject* s) {
-  PyObject* res = PyObject_CallFunction(
-      reinterpret_cast<PyObject*>(py_stype), "O", s
-  );
-  if (res == nullptr) {
-    PyErr_Clear();
-    return -1;
-  }
-  int32_t value = py::robj(res).get_attr("value").to_int32();
-  return value;
-}
 
-
-dt::SType common_stype(dt::SType stype1, dt::SType stype2) {
-  return stype_upcast_map[int(stype1)][int(stype2)];
-}
-
-
-void init_py_stype_objs(PyObject* stype_enum) {
-  Py_INCREF(stype_enum);
-  py_stype = reinterpret_cast<PyTypeObject*>(stype_enum);
-  for (size_t i = 0; i < dt::STYPES_COUNT; ++i) {
-    // The call may raise an exception -- that's ok
-    py_stype_objs[i] = PyObject_CallFunction(stype_enum, "i", i);
-    if (py_stype_objs[i] == nullptr) {
-      PyErr_Clear();
-      py_stype_objs[i] = Py_None;
-    }
-  }
-}
 
 void init_py_ltype_objs(PyObject* ltype_enum)
 {
@@ -276,8 +199,4 @@ const char* info::ltype_name() const {
 
 py::oobj info::py_ltype() const {
   return py::oobj(py_ltype_objs[static_cast<uint8_t>(ltype())]);
-}
-
-py::oobj info::py_stype() const {
-  return py::oobj(py_stype_objs[stype]);
 }

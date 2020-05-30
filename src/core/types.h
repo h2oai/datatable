@@ -252,14 +252,11 @@ template<> inline bool IsIntNA(int64_t x)   { return x == NA_I8; }
 
 // Initializer function
 void init_types(void);
-void init_py_stype_objs(PyObject* stype_enum);
 void init_py_ltype_objs(PyObject* ltype_enum);
 
 extern PyTypeObject* py_stype;
 extern PyTypeObject* py_ltype;
 
-int stype_from_pyobject(PyObject* s);
-dt::SType common_stype(dt::SType stype1, dt::SType stype2);
 
 
 #endif

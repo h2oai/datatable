@@ -175,6 +175,8 @@ enum class SType : uint8_t {
 };
 
 constexpr size_t STYPES_COUNT = static_cast<size_t>(SType::INVALID);
+// Can stypes be used in a 64-bit bitmask?
+static_assert(STYPES_COUNT <= 64, "Too many stypes");
 
 
 
@@ -283,6 +285,20 @@ template<> inline bool compatible_type<float>(SType s)    { return (s == SType::
 template<> inline bool compatible_type<double>(SType s)   { return (s == SType::FLOAT64); }
 template<> inline bool compatible_type<CString>(SType s)  { return (s == SType::STR32 || s == SType::STR64); }
 template<> inline bool compatible_type<py::robj>(SType s) { return (s == SType::OBJ); }
+
+
+
+
+//------------------------------------------------------------------------------
+// Helper functions
+//------------------------------------------------------------------------------
+
+SType common_stype(SType stype1, SType stype2);
+
+
+
+// Invoked once during module initialization
+void init_py_stype_objs(PyObject* stype_enum);
 
 
 

@@ -46,7 +46,7 @@ bool MemoryMapManager::check_entry(size_t i, const MemoryMapWorker* obj) {
 
 
 void MemoryMapManager::freeup_memory() {
-  #ifndef NDEBUG
+  #if DT_DEBUG
     size_t size0 = entries.size();
   #endif
   // Sort the entries by size in descending order
