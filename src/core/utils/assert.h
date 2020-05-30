@@ -22,8 +22,12 @@
 #ifndef dt_UTILS_ASSERT_h
 #define dt_UTILS_ASSERT_h
 #include <cstdio>
-#include <unistd.h>
+#include "macros.h"
 #include "utils/exceptions.h"
+
+#if DT_OS_DARWIN
+  #include <unistd.h>
+#endif
 
 
 // First, fix the NDEBUG macro.
