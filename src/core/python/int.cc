@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,9 +23,9 @@
 // for the details of Python API
 //------------------------------------------------------------------------------
 #include "python/int.h"
+#include "stype.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
-
 namespace py {
 
 
@@ -65,7 +65,7 @@ oint::oint(const robj& src) : oobj(src) {}
 
 template<>
 int8_t oint::ovalue(int* overflow) const {
-  if (!v) return GETNA<int8_t>();
+  if (!v) return dt::GETNA<int8_t>();
   long res = PyLong_AsLongAndOverflow(v, overflow);
   int8_t ires = static_cast<int8_t>(res);
   if (res != ires) {
@@ -79,7 +79,7 @@ int8_t oint::ovalue(int* overflow) const {
 
 template<>
 int16_t oint::ovalue(int* overflow) const {
-  if (!v) return GETNA<int16_t>();
+  if (!v) return dt::GETNA<int16_t>();
   long res = PyLong_AsLongAndOverflow(v, overflow);
   int16_t ires = static_cast<int16_t>(res);
   if (res != ires) {
@@ -93,7 +93,7 @@ int16_t oint::ovalue(int* overflow) const {
 
 template<>
 int32_t oint::ovalue(int* overflow) const {
-  if (!v) return GETNA<int32_t>();
+  if (!v) return dt::GETNA<int32_t>();
   long res = PyLong_AsLongAndOverflow(v, overflow);
   int32_t ires = static_cast<int32_t>(res);
   if (res != ires) {
@@ -106,7 +106,7 @@ int32_t oint::ovalue(int* overflow) const {
 
 template<>
 int64_t oint::ovalue(int* overflow) const {
-  if (!v) return GETNA<int64_t>();
+  if (!v) return dt::GETNA<int64_t>();
   #if DT_TYPE_LONG64
     long res = PyLong_AsLongAndOverflow(v, overflow);
   #else
@@ -119,7 +119,7 @@ int64_t oint::ovalue(int* overflow) const {
 
 template<>
 float oint::ovalue(int* overflow) const {
-  if (!v) return GETNA<float>();
+  if (!v) return dt::GETNA<float>();
   static constexpr double max_float =
     static_cast<double>(std::numeric_limits<float>::max());
   double value = PyLong_AsDouble(v);
@@ -138,7 +138,7 @@ float oint::ovalue(int* overflow) const {
 
 template<>
 double oint::ovalue(int* overflow) const {
-  if (!v) return GETNA<double>();
+  if (!v) return dt::GETNA<double>();
   double value = PyLong_AsDouble(v);
   if (value == -1 && PyErr_Occurred()) {
     int sign = _PyLong_Sign(v);
@@ -217,7 +217,7 @@ size_t oint::xvalue() const {
 
 template<>
 double oint::xvalue() const {
-  if (!v) return GETNA<double>();
+  if (!v) return dt::GETNA<double>();
   double value = PyLong_AsDouble(v);
   if (value == -1 && PyErr_Occurred()) {
     throw OverflowError() << "Integer is too large to convert into `double`";
@@ -234,11 +234,11 @@ double oint::xvalue() const {
 
 template<typename T>
 static T masked_value_long(PyObject* v) {
-  if (!v) return GETNA<T>();
+  if (!v) return dt::GETNA<T>();
   unsigned long x = PyLong_AsUnsignedLongMask(v);
   if (x == static_cast<unsigned long>(-1) && PyErr_Occurred()) {
     PyErr_Clear();
-    return GETNA<T>();
+    return dt::GETNA<T>();
   }
   return static_cast<T>(x);
 }
@@ -267,11 +267,11 @@ int64_t oint::mvalue() const {
   #if DT_TYPE_LONG64
     return masked_value_long<int64_t>(v);
   #else
-    if (!v) return GETNA<int64_t>();
+    if (!v) return dt::GETNA<int64_t>();
     unsigned long long x = PyLong_AsUnsignedLongLongMask(v);
     if (x == static_cast<unsigned long long>(-1) && PyErr_Occurred()) {
       PyErr_Clear();
-      return GETNA<int64_t>();
+      return dt::GETNA<int64_t>();
     }
     return static_cast<int64_t>(x);
   #endif

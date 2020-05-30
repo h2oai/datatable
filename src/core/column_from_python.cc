@@ -184,7 +184,7 @@ static void force_as_int(const Column& inputcol, Buffer& membuf)
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     if (item.is_none()) {
-      outdata[i] = GETNA<T>();
+      outdata[i] = dt::GETNA<T>();
       continue;
     }
     py::oint litem = item.to_pyint_force();
@@ -235,7 +235,7 @@ static void force_as_real(const Column& inputcol, Buffer& membuf)
     inputcol.get_element(i, &item);
 
     if (item.is_none()) {
-      outdata[i] = GETNA<T>();
+      outdata[i] = dt::GETNA<T>();
       continue;
     }
     if (item.is_int()) {
@@ -278,7 +278,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
     inputcol.get_element(i, &item);
 
     if (item.is_none()) {
-      offsets[i] = curr_offset ^ GETNA<T>();
+      offsets[i] = curr_offset ^ dt::GETNA<T>();
       continue;
     }
     if (item.is_string()) {
@@ -361,7 +361,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
     inputcol.get_element(i, &item);
 
     if (item.is_none()) {
-      offsets[i] = curr_offset ^ GETNA<T>();
+      offsets[i] = curr_offset ^ dt::GETNA<T>();
       continue;
     }
     if (!item.is_string()) {
@@ -376,7 +376,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
         if (std::is_same<T, int32_t>::value &&
               (static_cast<int64_t>(tlen) != cstr.size ||
                next_offset < curr_offset)) {
-          offsets[i] = curr_offset ^ GETNA<T>();
+          offsets[i] = curr_offset ^ dt::GETNA<T>();
           continue;
         }
         if (strbuf.size() < static_cast<size_t>(next_offset)) {
@@ -392,7 +392,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
       offsets[i] = curr_offset;
       continue;
     } else {
-      offsets[i] = curr_offset ^ GETNA<T>();
+      offsets[i] = curr_offset ^ dt::GETNA<T>();
     }
   }
   strbuf.resize(curr_offset);

@@ -705,7 +705,7 @@ class SortContext {
 
   template <bool ASC, typename T, typename TI, typename TO>
   void _initI_impl(T edge) {
-    TI una = static_cast<TI>(GETNA<T>());
+    TI una = static_cast<TI>(dt::GETNA<T>());
     TI uedge = static_cast<TI>(edge);
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);

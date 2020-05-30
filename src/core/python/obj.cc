@@ -300,7 +300,7 @@ bool _obj::is_dtexpr() const noexcept {
 
 template <typename T>
 static inline bool _parse_none(PyObject* v, T* out) {
-  if (v == Py_None) { *out = GETNA<T>(); return true; }
+  if (v == Py_None) { *out = dt::GETNA<T>(); return true; }
   return false;
 }
 
@@ -464,7 +464,7 @@ bool _obj::parse_double(double* out) const {
 //------------------------------------------------------------------------------
 
 int8_t _obj::to_bool(const error_manager& em) const {
-  if (v == Py_None) return GETNA<int8_t>();
+  if (v == Py_None) return dt::GETNA<int8_t>();
   if (v == Py_True) return 1;
   if (v == Py_False) return 0;
   if (PyLong_CheckExact(v)) {
@@ -483,13 +483,13 @@ int8_t _obj::to_bool_strict(const error_manager& em) const {
 }
 
 int8_t _obj::to_bool_force(const error_manager&) const noexcept {
-  if (v == Py_None) return GETNA<int8_t>();
+  if (v == Py_None) return dt::GETNA<int8_t>();
   if (v == Py_True) return 1;
   if (v == Py_False) return 0;
   int r = PyObject_IsTrue(v);
   if (r >= 0) return static_cast<int8_t>(r);
   PyErr_Clear();
-  return GETNA<int8_t>();
+  return dt::GETNA<int8_t>();
 }
 
 
@@ -500,7 +500,7 @@ int8_t _obj::to_bool_force(const error_manager&) const noexcept {
 
 int32_t _obj::to_int32(const error_manager& em) const {
   constexpr int32_t MAX = std::numeric_limits<int32_t>::max();
-  if (is_none()) return GETNA<int32_t>();
+  if (is_none()) return dt::GETNA<int32_t>();
   if (!PyLong_Check(v)) {
     throw em.error_not_integer(v);
   }
@@ -530,7 +530,7 @@ int32_t _obj::to_int32_strict(const error_manager& em) const {
 
 int64_t _obj::to_int64(const error_manager& em) const {
   constexpr int64_t MAX = std::numeric_limits<int64_t>::max();
-  if (is_none()) return GETNA<int64_t>();
+  if (is_none()) return dt::GETNA<int64_t>();
   if (PyLong_Check(v)) {
     int overflow;
     #if DT_TYPE_LONG64
@@ -603,7 +603,7 @@ py::oint _obj::to_pyint_force(const error_manager&) const noexcept {
 
 double _obj::to_double(const error_manager& em) const {
   if (PyFloat_Check(v)) return PyFloat_AsDouble(v);
-  if (v == Py_None) return GETNA<double>();
+  if (v == Py_None) return dt::GETNA<double>();
   if (PyLong_Check(v)) {
     double res = PyLong_AsDouble(v);
     if (res == -1 && PyErr_Occurred()) {

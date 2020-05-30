@@ -49,12 +49,12 @@ static inline U _static(T x) {
 
 template <typename T, typename U>
 static inline U fw_fw(T x) {
-  return ISNA<T>(x)? GETNA<U>() : static_cast<U>(x);
+  return dt::ISNA<T>(x)? dt::GETNA<U>() : static_cast<U>(x);
 }
 
 template <typename T>
 static inline int8_t fw_bool(T x) {
-  return ISNA<T>(x)? GETNA<int8_t>() : (x != 0);
+  return dt::ISNA<T>(x)? dt::GETNA<int8_t>() : (x != 0);
 }
 
 static inline PyObject* bool_obj(int8_t x) {
@@ -131,7 +131,7 @@ static void cast_fw2(const Column& col, void* out_data)
     [=](size_t i) {
       T value;
       bool isvalid = col.get_element(i, &value);
-      out[i] = isvalid? CAST_OP(value) : GETNA<U>();
+      out[i] = isvalid? CAST_OP(value) : dt::GETNA<U>();
     });
 }
 
@@ -233,7 +233,7 @@ static Column cast_str_to_bool(const Column& col, Buffer&& outbuf,
               return;
             }
           }
-          out_data[i] = GETNA<int8_t>();
+          out_data[i] = dt::GETNA<int8_t>();
         });
     });
   return Column::new_mbuf_column(nrows, dt::SType::BOOL, std::move(outbuf));
@@ -274,7 +274,7 @@ static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
               return;
             }
           }
-          out_data[i] = GETNA<T>();
+          out_data[i] = dt::GETNA<T>();
         });
     });
   return Column::new_mbuf_column(nrows, target_stype, std::move(outbuf));
@@ -311,7 +311,7 @@ static Column cast_str_to_float(const Column& col, Buffer&& outbuf,
               return;
             }
           }
-          out_data[i] = GETNA<T>();
+          out_data[i] = dt::GETNA<T>();
         });
     });
   return Column::new_mbuf_column(nrows, target_stype, std::move(outbuf));

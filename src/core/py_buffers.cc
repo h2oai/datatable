@@ -155,7 +155,7 @@ static void try_to_resolve_object_column(Column& col)
     auto out = static_cast<int8_t*>(mbuf.xptr());
     for (size_t i = 0; i < nrows; ++i) {
       PyObject* v = data[i];
-      out[i] = v == Py_True? 1 : v == Py_False? 0 : GETNA<int8_t>();
+      out[i] = v == Py_True? 1 : v == Py_False? 0 : dt::GETNA<int8_t>();
     }
     col = Column::new_mbuf_column(nrows, dt::SType::BOOL, std::move(mbuf));
   }
@@ -187,7 +187,7 @@ static void try_to_resolve_object_column(Column& col)
         offset += static_cast<uint32_t>(sz);
         offsets[i] = offset;
       } else {
-        offsets[i] = offset ^ GETNA<uint32_t>();
+        offsets[i] = offset ^ dt::GETNA<uint32_t>();
       }
     }
 

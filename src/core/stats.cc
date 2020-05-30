@@ -1317,7 +1317,7 @@ static Column _make_column_str(CString value) {
     std::memcpy(strbuf.wptr(), value.ch, len);
   } else {
     mbuf.set_element<T>(0, 0);
-    mbuf.set_element<T>(1, GETNA<T>());
+    mbuf.set_element<T>(1, dt::GETNA<T>());
   }
   return Column::new_string_column(1, std::move(mbuf), std::move(strbuf));
 }

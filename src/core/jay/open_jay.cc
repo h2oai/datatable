@@ -155,8 +155,8 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
     stats->set_nacount(static_cast<size_t>(jcol->nullcount()));
     T min = jstats->min();
     T max = jstats->max();
-    stats->set_min(static_cast<R>(min), (min != GETNA<T>()));
-    stats->set_max(static_cast<R>(max), (max != GETNA<T>()));
+    stats->set_min(static_cast<R>(min), (min != dt::GETNA<T>()));
+    stats->set_max(static_cast<R>(max), (max != dt::GETNA<T>()));
   }
 }
 

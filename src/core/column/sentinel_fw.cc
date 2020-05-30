@@ -26,8 +26,8 @@
 #include "utils/misc.h"
 #include "utils/macros.h"
 #include "stype.h"
-template<> inline py::robj GETNA() { return py::rnone(); }
 namespace dt {
+template<> inline py::robj GETNA() { return py::rnone(); }
 
 
 //------------------------------------------------------------------------------

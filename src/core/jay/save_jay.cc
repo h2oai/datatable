@@ -262,8 +262,8 @@ static flatbuffers::Offset<void> saveStats(
   R min, max;
   bool min_valid = stats->get_stat(Stat::Min, &min);
   bool max_valid = stats->get_stat(Stat::Max, &max);
-  StatBuilder ss(min_valid? static_cast<T>(min) : GETNA<T>(),
-                 max_valid? static_cast<T>(max) : GETNA<T>());
+  StatBuilder ss(min_valid? static_cast<T>(min) : dt::GETNA<T>(),
+                 max_valid? static_cast<T>(max) : dt::GETNA<T>());
   flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
   return o;
 }

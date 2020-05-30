@@ -126,7 +126,7 @@ py::oobj stype_to_pyobj(SType stype) {
 
 
 //------------------------------------------------------------------------------
-// Work with Python stype enum objects
+// Interoperate with Python stype objects
 //------------------------------------------------------------------------------
 
 static void _init_py_stype(SType stype) {

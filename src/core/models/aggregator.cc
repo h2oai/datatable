@@ -390,7 +390,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins) {
     // First, set all `exemplar_id`s to `N/A`.
     dt::parallel_for_static(dt_members->nrows(), nthreads,
       [&](size_t i) {
-        d_members[i] = GETNA<int32_t>();
+        d_members[i] = dt::GETNA<int32_t>();
       });
 
     // Second, randomly select `max_bins` groups.
@@ -408,7 +408,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins) {
       bool rii_valid = ri_members.get_element(off_i, &ri);
       (void) rii_valid;
       xassert(rii_valid);
-      if (ISNA<int32_t>(d_members[ri])) {
+      if (dt::ISNA<int32_t>(d_members[ri])) {
         size_t off_i1 = static_cast<size_t>(offsets[i + 1]);
         dt::parallel_for_static(off_i1 - off_i,
           [&](size_t j) {
@@ -592,7 +592,7 @@ bool Aggregator<T>::group_1d_continuous() {
       if (is_valid) {
         d_members[i] = static_cast<int32_t>(norm_factor * value + norm_shift);
       } else {
-        d_members[i] = GETNA<int32_t>();
+        d_members[i] = dt::GETNA<int32_t>();
       }
     });
   return false;
@@ -1058,7 +1058,7 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
   size_t n = 0;
 
   for (size_t i = 0; i < ndims; ++i) {
-    if (ISNA<T>(e1[i]) || ISNA<T>(e2[i])) {
+    if (dt::ISNA<T>(e1[i]) || dt::ISNA<T>(e2[i])) {
       continue;
     }
     ++n;

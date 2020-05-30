@@ -458,7 +458,9 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
 //------------------------------------------------------------------------------
 // rbind fixed-width columns
 //------------------------------------------------------------------------------
-template<> inline py::robj GETNA() { return py::rnone(); }
+namespace dt {
+  template<> inline py::robj GETNA() { return py::rnone(); }
+}
 
 template <typename T>
 void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
