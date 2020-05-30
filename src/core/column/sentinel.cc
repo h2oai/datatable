@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -49,7 +49,7 @@ Column Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
 Column Sentinel_ColumnImpl::make_fw_column(
     size_t nrows, SType stype, Buffer&& buf)
 {
-  xassert(buf.size() >= nrows * info(stype).elemsize());
+  xassert(buf.size() >= nrows * stype_elemsize(stype));
   switch (stype) {
     case SType::BOOL:    return Column(new SentinelBool_ColumnImpl(nrows, std::move(buf)));
     case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows, std::move(buf)));

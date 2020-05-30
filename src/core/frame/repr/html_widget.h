@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -117,10 +117,10 @@ class HtmlWidget : public dt::Widget {
         if (j == NA_index) {
           html << "<td></td>";
         } else {
-          auto stype_info = info(dt_->get_column(j).stype());
-          size_t elemsize = stype_info.elemsize();
-          html << "<td class='" << stype_info.ltype_name()
-               << "' title='" << stype_info.name() << "'>";
+          auto stype = dt_->get_column(j).stype();
+          size_t elemsize = stype_elemsize(stype);
+          html << "<td class='" << ltype_name(stype_to_ltype(stype))
+               << "' title='" << stype_name(stype) << "'>";
           for (size_t k = 0; k < elemsize; ++k) html << "&#x25AA;";
           html << "</td>";
         }

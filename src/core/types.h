@@ -151,32 +151,11 @@ enum class LType : uint8_t {
   DATETIME = 5,
   DURATION = 6,
   OBJECT   = 7,
+
+  INVALID  = 8
 };
 
-constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::OBJECT) + 1;
-
-
-
-
-
-//==============================================================================
-namespace py { class oobj; }
-
-class info {
-  private:
-    uint8_t stype;
-
-  public:
-    info(dt::SType s);
-    const char* name() const;
-    static const char* ltype_name(LType);
-    const char* ltype_name() const;
-    size_t elemsize() const;
-    bool is_varwidth() const;
-    LType ltype() const;
-    py::oobj py_stype() const;
-    py::oobj py_ltype() const;
-};
+constexpr size_t DT_LTYPES_COUNT = static_cast<size_t>(LType::INVALID);
 
 
 
@@ -251,8 +230,10 @@ template<> inline bool IsIntNA(int64_t x)   { return x == NA_I8; }
 //==============================================================================
 
 // Initializer function
-void init_types(void);
 void init_py_ltype_objs(PyObject* ltype_enum);
+
+const char* ltype_name(LType lt);
+py::oobj ltype_to_pyobj(LType);
 
 extern PyTypeObject* py_ltype;
 

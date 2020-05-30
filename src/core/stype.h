@@ -295,6 +295,14 @@ template<> inline bool compatible_type<py::robj>(SType s) { return (s == SType::
 
 SType common_stype(SType stype1, SType stype2);
 
+LType       stype_to_ltype(SType);
+const char* stype_name(SType);
+size_t      stype_elemsize(SType);
+bool        stype_is_fixed_width(SType);
+bool        stype_is_variable_width(SType);
+py::oobj    stype_to_pyobj(SType);
+
+
 // Used by obj.cc exclusively
 bool is_stype_object(PyObject*);
 int stype_from_pyobject(PyObject*);

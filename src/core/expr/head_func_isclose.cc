@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -59,7 +59,7 @@ static Column op_isclose(Column&& xcol, Column&& ycol,
   SType stype1 = xcol.stype();
   SType stype2 = ycol.stype();
   SType stype0 = common_stype(stype1, stype2);
-  LType ltype0 = ::info(stype0).ltype();
+  LType ltype0 = stype_to_ltype(stype0);
   if (ltype0 == LType::BOOL || ltype0 == LType::INT) {
     stype0 = SType::FLOAT64;
   }

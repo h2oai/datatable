@@ -50,7 +50,7 @@ static umaker_ptr _resolve_exp(SType stype, const char* name,
   if (stype == SType::FLOAT32) {
     return umaker1<float, float>::make(fn32, SType::VOID, SType::FLOAT32);
   }
-  if (stype == SType::BOOL || ::info(stype).ltype() == LType::INT) {
+  if (stype == SType::BOOL || stype_to_ltype(stype) == LType::INT) {
     return umaker1<double, double>::make(fn64, SType::FLOAT64, SType::FLOAT64);
   }
   throw TypeError() << "Function `" << name << "` cannot be applied to a "

@@ -1272,7 +1272,7 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
     case Stat::Min:
     case Stat::Max:
     case Stat::Mode: {
-      switch (info(column->stype()).ltype()) {
+      switch (dt::stype_to_ltype(column->stype())) {
         case LType::BOOL:
         case LType::INT:  return pywrap_stat<int64_t>(stat);
         case LType::REAL: return pywrap_stat<double>(stat);

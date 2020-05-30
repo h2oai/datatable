@@ -162,11 +162,11 @@ dt::SType Column::stype() const noexcept {
 }
 
 LType Column::ltype() const noexcept {
-  return info(impl_->stype_).ltype();
+  return dt::stype_to_ltype(impl_->stype_);
 }
 
 bool Column::is_fixedwidth() const noexcept {
-  return !info(impl_->stype_).is_varwidth();
+  return !stype_is_variable_width(impl_->stype_);
 }
 
 bool Column::is_virtual() const noexcept {
@@ -182,7 +182,7 @@ bool Column::is_constant() const noexcept {
 }
 
 size_t Column::elemsize() const noexcept {
-  return info(impl_->stype_).elemsize();
+  return stype_elemsize(impl_->stype_);
 }
 
 Column::operator bool() const noexcept {

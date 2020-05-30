@@ -345,8 +345,8 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
       stype == dt::SType::STR64) stype = dt::SType::OBJ;
 
   // Allocate the final buffer
-  xassert(!info(stype).is_varwidth());
-  size_t elemsize = info(stype).elemsize();
+  xassert(!stype_is_variable_width(stype));
+  size_t elemsize = stype_elemsize(stype);
   size_t colsize = nrows * elemsize;
   Buffer memr = Buffer::mem(ncols * colsize);
   const char* fmt = format_from_stype(stype);

@@ -429,7 +429,6 @@ extern "C" {
       // Initialize submodules
       if (!init_py_encodings(m)) return nullptr;
 
-      init_types();
       dt::expr::Head_Func::init();
 
       py::Frame::init_type(m);

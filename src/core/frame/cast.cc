@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -393,7 +393,7 @@ Column cast_manager::execute(const Column& src, Buffer&& target_mbuf,
   }
   xassert(castfns.f2);
 
-  target_mbuf.resize(nrows * info(target_stype).elemsize());
+  target_mbuf.resize(nrows * stype_elemsize(target_stype));
   void* out_data = target_mbuf.wptr();
 
   if (src.is_virtual() || !castfns.f0) {

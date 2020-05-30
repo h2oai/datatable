@@ -199,7 +199,7 @@ bimaker_ptr resolve_op_multiply(SType stype1, SType stype2)
     return bimaker_nacol::make();
   }
   if ((stype1 == SType::STR32 || stype1 == SType::STR64) &&
-      (stype2 == SType::BOOL || ::info(stype2).ltype() == LType::INT)) {
+      (stype2 == SType::BOOL || stype_to_ltype(stype2) == LType::INT)) {
     throw NotImplError() << "Operator `*` is not implemented for columns "
         "of types `" << stype1 << "` and `" << stype2 << "`";
   }
@@ -260,7 +260,7 @@ bimaker_ptr resolve_op_divide(SType stype1, SType stype2)
     return bimaker_nacol::make();
   }
   SType stype0 = _find_common_stype(stype1, stype2);
-  if (stype0 == SType::BOOL || ::info(stype0).ltype() == LType::INT) {
+  if (stype0 == SType::BOOL || dt::stype_to_ltype(stype0) == LType::INT) {
     stype0 = SType::FLOAT64;
   }
   SType uptype1 = (stype1 == stype0)? SType::VOID : stype0;

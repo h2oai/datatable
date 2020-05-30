@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -190,8 +190,8 @@ dt::SType buffer::stype() const {
     throw ValueError()
         << "Unknown format '" << format << "' with itemsize " << itemsize;
   }
-  if (!::info(stype).is_varwidth()) {
-    xassert(::info(stype).elemsize() == static_cast<size_t>(itemsize));
+  if (stype_is_fixed_width(stype)) {
+    xassert(stype_elemsize(stype) == static_cast<size_t>(itemsize));
   }
   return stype;
 }

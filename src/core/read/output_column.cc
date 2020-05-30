@@ -66,7 +66,7 @@ void OutputColumn::archive_data(size_t nrows_written,
   xassert(nrows_written > nrows_in_chunks_);
 
   size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);
-  size_t elemsize = ::info(stype_).elemsize();
+  size_t elemsize = stype_elemsize(stype_);
 
   size_t nrows_chunk = nrows_written - nrows_in_chunks_;
   size_t data_size = elemsize * (nrows_chunk + is_string);
@@ -115,7 +115,7 @@ void OutputColumn::allocate(size_t new_nrows) {
   xassert(new_nrows >= nrows_in_chunks_);
 
   size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);
-  size_t elemsize = ::info(stype_).elemsize();
+  size_t elemsize = stype_elemsize(stype_);
   size_t new_nrows_allocated = new_nrows - nrows_in_chunks_;
   size_t allocsize = (new_nrows_allocated + is_string) * elemsize;
   databuf_.resize(allocsize);

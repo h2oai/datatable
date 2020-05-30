@@ -345,8 +345,8 @@ oobj Ftrl::fit(const PKArgs& args) {
 
     if (ltype != ltype_val) {
       throw TypeError() << "Training and validation target columns must have "
-                        << "the same ltype, got: `" << info::ltype_name(ltype)
-                        << "` and `" << info::ltype_name(ltype_val) << "`";
+                        << "the same ltype, got: `" << ltype << "` and `"
+                        << ltype_val << "`";
     }
 
     if (dt_X_val->nrows() != dt_y_val->nrows()) {

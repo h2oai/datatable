@@ -23,6 +23,7 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "stype.h"
 namespace py {
 
 PyObject* Frame_Type = nullptr;
@@ -572,7 +573,7 @@ oobj Frame::get_stypes() const {
     py::otuple ostypes(dt->ncols());
     for (size_t i = 0; i < ostypes.size(); ++i) {
       dt::SType st = dt->get_column(i).stype();
-      ostypes.set(i, info(st).py_stype());
+      ostypes.set(i, dt::stype_to_pyobj(st));
     }
     stypes = std::move(ostypes).release();
   }
@@ -604,7 +605,7 @@ oobj Frame::get_stype() const {
           "stype of the previous column" << (i>1? "s" : "");
     }
   }
-  return info(stype).py_stype();
+  return stype_to_pyobj(stype);
 }
 
 
@@ -622,7 +623,7 @@ oobj Frame::get_ltypes() const {
     py::otuple oltypes(dt->ncols());
     for (size_t i = 0; i < oltypes.size(); ++i) {
       dt::SType st = dt->get_column(i).stype();
-      oltypes.set(i, info(st).py_ltype());
+      oltypes.set(i, ltype_to_pyobj(stype_to_ltype(st)));
     }
     ltypes = std::move(oltypes).release();
   }

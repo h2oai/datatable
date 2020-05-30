@@ -28,6 +28,7 @@
 #include "python/obj.h"
 #include "python/string.h"
 #include "python/tuple.h"
+#include "stype.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 
@@ -222,12 +223,12 @@ Error& Error::operator<<(const CErrno&) {
 }
 
 Error& Error::operator<<(dt::SType stype) {
-  error << info(stype).name();
+  error << dt::stype_name(stype);
   return *this;
 }
 
 Error& Error::operator<<(LType ltype) {
-  error << info::ltype_name(ltype);
+  error << ltype_name(ltype);
   return *this;
 }
 

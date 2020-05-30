@@ -4,81 +4,9 @@
 #   License, v. 2.0. If a copy of the MPL was not distributed with this
 #   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #-------------------------------------------------------------------------------
-import os
-import re
-
 import pytest
 import datatable as dt
 
-
-#-------------------------------------------------------------------------------
-# Prepare fixtures & helper functions
-#-------------------------------------------------------------------------------
-
-@pytest.fixture()
-def c_stypes():
-    """
-    Create a dictionary whose keys are 3-char old stype codes, and values
-    are dictionaries with the following properties:
-        * sname (str): the 'ST_*' C name of the enum constant
-        * itype (int): integer value of the stype constant
-        * stype (str): 3-character string code of the SType
-        * code2 (str): 2-character string code of the SType
-        * ctype (str): C-type of a single element in this column
-        * elemsize (int): size in bytes of each element in this column
-        * varwidth (bool): is this a variable-width SType?
-        * ltype (str): name of the C enum constant with the LType corresponding
-          to the current SType
-
-    This dictionary is made from files "c/types.h" and "c/types.cc".
-    """
-    stypes = {}
-
-    # Load info from types.h file
-    file1 = os.path.join(os.path.dirname(__file__),
-                         "..", "src", "core", "stype.h")
-    with open(file1, "r", encoding="utf-8") as f:
-        txt1 = f.read()
-    mm = re.search(r"enum class SType : uint8_t {\s*(.*?),?\s*}",
-                   txt1, re.DOTALL)
-    assert mm
-    txt2 = mm.group(1)
-    for name, i in re.findall(r"(\w+)\s*=\s*(\d+)", txt2):
-        if name == "INVALID": continue
-        stypes[name] = {"sname": name, "itype": int(i)}
-
-    # Load info from types.cc file
-    file2 = os.path.join(os.path.dirname(__file__),
-                         "..", "src", "core", "types.cc")
-    with open(file2, "r", encoding="utf-8") as f:
-        txt2 = f.read()
-    mm = re.findall(r"STI\(dt::SType::(\w+),\s*"
-                    r'"(..)",\s*'
-                    r'"(.*)",\s*'
-                    r"(\d+),\s*"
-                    r"(\d),\s*"
-                    r"LType::(\w+)\)",
-                    txt2)
-    for name, code2, fullname, elemsize, varwidth, ltype in mm:
-        # stypes[name]["stype"] = code3
-        stypes[name]["code2"] = code2
-        stypes[name]["name"] = fullname
-        stypes[name]["elemsize"] = int(elemsize)
-        stypes[name]["varwidth"] = bool(int(varwidth))
-        stypes[name]["ltype"] = ltype
-
-    # Fill-in ctypes
-    for ct in stypes.values():
-        code2 = ct["code2"]
-        ct["ctype"] = "int%d_t" % (int(code2[1]) * 8) if code2[0] == "i" else \
-                      "uint%d_t" % (int(code2[1]) * 8) if code2[0] == "e" else \
-                      "float" if code2 == "f4" else \
-                      "double" if code2 == "f8" else \
-                      "void*" if code2 == "o8" else \
-                      "char*" if code2 == "sx" else None
-
-    # Re-key to "stype" field
-    return {st["code2"]: st for st in stypes.values() if st["code2"] != "--"}
 
 
 
@@ -134,18 +62,6 @@ def test_stype_codes():
     assert stype.str32.code == "s4"
     assert stype.str64.code == "s8"
     assert stype.obj64.code == "o8"
-
-
-def test_stype_values(c_stypes):
-    from datatable import stype
-    for st in stype:
-        assert st.value == c_stypes[st.code]["itype"]
-
-
-def test_stype_sizes(c_stypes):
-    from datatable import stype
-    for st in stype:
-        assert int(st.code[1:]) == c_stypes[st.code]["elemsize"]
 
 
 def test_stype_ctypes():
@@ -300,12 +216,6 @@ def test_ltype_repr():
     from datatable import ltype
     for lt in ltype:
         assert repr(lt) == str(lt) == "ltype." + lt.name
-
-
-def test_stype_ltypes(c_stypes):
-    from datatable import stype, ltype
-    for st in stype:
-        assert st.ltype is ltype(c_stypes[st.code]["ltype"].lower())
 
 
 def test_ltype_stypes():

@@ -52,7 +52,7 @@ void py::Frame::integrity_check() {
     for (size_t i = 0; i < dt->ncols(); ++i) {
       dt::SType col_stype = dt->get_column(i).stype();
       auto elem = stypes_tuple[i];
-      auto eexp = info(col_stype).py_stype();
+      auto eexp = stype_to_pyobj(col_stype);
       if (elem != eexp) {
         throw AssertionError() << "Element " << i << " of .stypes is "
             << elem << ", but the column's stype is " << col_stype;
@@ -71,7 +71,7 @@ void py::Frame::integrity_check() {
     for (size_t i = 0; i < dt->ncols(); ++i) {
       dt::SType col_stype = dt->get_column(i).stype();
       auto elem = ltypes_tuple[i];
-      auto eexp = info(col_stype).py_ltype();
+      auto eexp = ltype_to_pyobj(stype_to_ltype(col_stype));
       if (elem != eexp) {
         throw AssertionError() << "Element " << i << " of .ltypes is "
             << elem << ", but the column's ltype is " << col_stype;

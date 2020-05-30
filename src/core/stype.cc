@@ -25,8 +25,13 @@
 #include "python/python.h"
 #include "python/tuple.h"
 #include "stype.h"
+#include "types.h"          // LType
 #include "utils/assert.h"
 namespace dt {
+
+static PyObject* Py_Stype_Objects[STYPES_COUNT];  // initialized as nullptrs
+static PyTypeObject* Py_Stype = nullptr;
+
 
 
 //------------------------------------------------------------------------------
@@ -39,15 +44,90 @@ SType common_stype(SType stype1, SType stype2) {
 }
 
 
+LType stype_to_ltype(SType stype) {
+  switch (stype) {
+    case SType::VOID   : return LType::MU;
+    case SType::BOOL   : return LType::BOOL;
+    case SType::INT8   : return LType::INT;
+    case SType::INT16  : return LType::INT;
+    case SType::INT32  : return LType::INT;
+    case SType::INT64  : return LType::INT;
+    case SType::FLOAT32: return LType::REAL;
+    case SType::FLOAT64: return LType::REAL;
+    case SType::STR32  : return LType::STRING;
+    case SType::STR64  : return LType::STRING;
+    case SType::DATE64 : return LType::DATETIME;
+    case SType::TIME32 : return LType::DATETIME;
+    case SType::DATE32 : return LType::DATETIME;
+    case SType::DATE16 : return LType::DATETIME;
+    case SType::OBJ    : return LType::OBJECT;
+    default     : return LType::INVALID;
+  }
+}
+
+
+const char* stype_name(SType stype) {
+  switch (stype) {
+    case SType::VOID   : return "void";
+    case SType::BOOL   : return "bool8";
+    case SType::INT8   : return "int8";
+    case SType::INT16  : return "int16";
+    case SType::INT32  : return "int32";
+    case SType::INT64  : return "int64";
+    case SType::FLOAT32: return "float32";
+    case SType::FLOAT64: return "float64";
+    case SType::STR32  : return "str32";
+    case SType::STR64  : return "str64";
+    case SType::DATE64 : return "date64";
+    case SType::TIME32 : return "time32";
+    case SType::DATE32 : return "date32";
+    case SType::DATE16 : return "date16";
+    case SType::OBJ    : return "obj64";
+    default     : return "--";
+  }
+}
+
+
+size_t stype_elemsize(SType stype) {
+  switch (stype) {
+    case SType::VOID   : return 0;
+    case SType::BOOL   : return sizeof(element_t<SType::BOOL>);
+    case SType::INT8   : return sizeof(element_t<SType::INT8>);
+    case SType::INT16  : return sizeof(element_t<SType::INT16>);
+    case SType::INT32  : return sizeof(element_t<SType::INT32>);
+    case SType::INT64  : return sizeof(element_t<SType::INT64>);
+    case SType::FLOAT32: return sizeof(element_t<SType::FLOAT32>);
+    case SType::FLOAT64: return sizeof(element_t<SType::FLOAT64>);
+    case SType::STR32  : return sizeof(element_t<SType::STR32>);
+    case SType::STR64  : return sizeof(element_t<SType::STR64>);
+    case SType::DATE64 : return sizeof(element_t<SType::DATE64>);
+    case SType::TIME32 : return sizeof(element_t<SType::TIME32>);
+    case SType::DATE32 : return sizeof(element_t<SType::DATE32>);
+    case SType::DATE16 : return sizeof(element_t<SType::DATE16>);
+    case SType::OBJ    : return sizeof(element_t<SType::OBJ>);
+    default     : return 0;
+  }
+}
+
+
+bool stype_is_fixed_width(SType stype) {
+  return !stype_is_variable_width(stype);
+}
+bool stype_is_variable_width(SType stype) {
+  return (stype == SType::STR32 || stype == SType::STR64);
+}
+
+
+py::oobj stype_to_pyobj(SType stype) {
+  return py::oobj(Py_Stype_Objects[static_cast<size_t>(stype)]);
+}
+
+
 
 
 //------------------------------------------------------------------------------
 // Work with Python stype enum objects
 //------------------------------------------------------------------------------
-
-static PyObject* Py_Stype_Objects[STYPES_COUNT];  // initialized as nullptrs
-static PyTypeObject* Py_Stype = nullptr;
-
 
 static void _init_py_stype(SType stype) {
   int i = static_cast<int>(stype);
@@ -60,7 +140,7 @@ void init_py_stype_objs(PyObject* stype_enum) {
   Py_Stype = reinterpret_cast<PyTypeObject*>(stype_enum);
   Py_INCREF(stype_enum);
 
-  _init_py_stype(SType::VOID);
+  // _init_py_stype(SType::VOID);
   _init_py_stype(SType::BOOL);
   _init_py_stype(SType::INT8);
   _init_py_stype(SType::INT16);
@@ -70,10 +150,10 @@ void init_py_stype_objs(PyObject* stype_enum) {
   _init_py_stype(SType::FLOAT64);
   _init_py_stype(SType::STR32);
   _init_py_stype(SType::STR64);
-  _init_py_stype(SType::DATE64);
-  _init_py_stype(SType::TIME32);
-  _init_py_stype(SType::DATE32);
-  _init_py_stype(SType::DATE16);
+  // _init_py_stype(SType::DATE64);
+  // _init_py_stype(SType::TIME32);
+  // _init_py_stype(SType::DATE32);
+  // _init_py_stype(SType::DATE16);
   _init_py_stype(SType::OBJ);
 }
 
@@ -85,18 +165,18 @@ bool is_stype_object(PyObject* v) {
 
 int stype_from_pyobject(PyObject* s) {
   xassert(s);
-  for (size_t i = 0; i < STYPES_COUNT; ++i) {
-    if (Py_Stype_Objects[i] == s) return static_cast<int>(i);
+  PyObject* res = PyObject_CallFunction(
+      reinterpret_cast<PyObject*>(Py_Stype), "O", s
+  );
+  if (res == nullptr) {
+    PyErr_Clear();
+    return -1;
   }
-  return -1;
+  int32_t value = py::robj(res).get_attr("value").to_int32();
+  return value;
 }
 
 
 
 
-}
-
-#include "types.h"
-py::oobj info::py_stype() const {
-  return py::oobj(dt::Py_Stype_Objects[stype]);
-}
+}  // namespace dt
