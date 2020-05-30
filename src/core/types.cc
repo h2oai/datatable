@@ -27,7 +27,6 @@
 
 static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
 PyTypeObject* py_ltype;
-PyTypeObject* py_stype;
 
 
 

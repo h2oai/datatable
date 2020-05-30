@@ -30,6 +30,7 @@
 #include "python/list.h"
 #include "python/obj.h"
 #include "python/string.h"
+#include "stype.h"
 #include "utils/macros.h"
 
 namespace py {
@@ -203,7 +204,7 @@ bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_bytes()         const noexcept { return v && PyBytes_Check(v); }
 bool _obj::is_type()          const noexcept { return v && PyType_Check(v); }
 bool _obj::is_ltype()         const noexcept { return v && Py_TYPE(v) == py_ltype; }
-bool _obj::is_stype()         const noexcept { return v && Py_TYPE(v) == py_stype; }
+bool _obj::is_stype()         const noexcept { return v && dt::is_stype_object(v); }
 bool _obj::is_anytype()       const noexcept { return is_type() || is_stype() || is_ltype(); }
 bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
 bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
@@ -800,14 +801,11 @@ py::Frame* _obj::to_pyframe(const error_manager& em) const {
 
 
 dt::SType _obj::to_stype(const error_manager& em) const {
-  PyObject* res = PyObject_CallFunction(
-      reinterpret_cast<PyObject*>(py_stype), "O", v
-  );
-  if (res == nullptr) {
+  int s = dt::stype_from_pyobject(v);
+  if (s == -1) {
     throw em.error_not_stype(v);
   }
-  int32_t value = py::robj(res).get_attr("value").to_int32();
-  return static_cast<dt::SType>(value);
+  return static_cast<dt::SType>(s);
 }
 
 

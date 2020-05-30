@@ -295,7 +295,9 @@ template<> inline bool compatible_type<py::robj>(SType s) { return (s == SType::
 
 SType common_stype(SType stype1, SType stype2);
 
-
+// Used by obj.cc exclusively
+bool is_stype_object(PyObject*);
+int stype_from_pyobject(PyObject*);
 
 // Invoked once during module initialization
 void init_py_stype_objs(PyObject* stype_enum);
