@@ -309,8 +309,8 @@ constexpr double   NA_F8 = std::numeric_limits<double>::quiet_NaN();
 
 /**
   * GETNA function
-  * Template function that returns the appropriate NA_XX value based on the
-  * type of `T`. Returns NULL if `T` is incompatible.
+  * Template function that returns the appropriate NA_XX value based
+  * on the type of `T`. Returns NULL if `T` is incompatible.
   */
 template <typename T>
            inline T         GETNA() { return NULL;  }
@@ -326,10 +326,10 @@ template<> inline PyObject* GETNA() { return Py_None; }
 template<> inline CString   GETNA() { return CString(); }
 
 /**
- * ISNA function
- * Template function that uses the appropriate ISNA_XX macro/function based
- * on the argument type. Returns true if type is invalid.
- */
+  * ISNA function
+  * Template function that uses the appropriate ISNA_XX macro/function
+  * based on the argument type. Returns true if type is invalid.
+  */
 template <typename T>
            inline bool ISNA(T)           { return true;       }
 template<> inline bool ISNA(int8_t x)    { return x == NA_I1; }
@@ -343,13 +343,13 @@ template<> inline bool ISNA(double x)    { return std::isnan(x); }
 template<> inline bool ISNA(PyObject* x) { return x == Py_None; }
 
 /**
- * Similar to ISNA<T>(x) template, except it returns true only for integer-
- * valued types which are NAs.
- * In certain circumstances this could be useful to avoid unnecessary NA checks,
- * since <float> and <double> are represented as NaNs, and using them in any
- * arithmetic expressions will automatically create NaN values as the result
- * without the need for explicit checks.
- */
+  * Similar to ISNA<T>(x) template, except it returns true only for
+  * integer-valued types which are NAs.
+  * In certain circumstances this could be useful to avoid unnecessary
+  * NA checks, since <float> and <double> are represented as NaNs, and
+  * using them in any arithmetic expressions will automatically create
+  * NaN values as the result without the need for explicit checks.
+  */
 template<typename T> inline bool IsIntNA(T) { return false; }
 template<> inline bool IsIntNA(int8_t x)    { return x == NA_I1; }
 template<> inline bool IsIntNA(int16_t x)   { return x == NA_I2; }
