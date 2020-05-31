@@ -57,8 +57,8 @@ static_assert(sizeof(dt::SType) == 1, "SType does not fit in a byte");
 
 static_assert(static_cast<unsigned>(-1) - static_cast<unsigned>(-3) == 2,
               "Unsigned arithmetics check");
-static_assert(3u - (-1u) == 4u, "Unsigned arithmetics check");
-static_assert(-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
+static_assert(3u - (0-1u) == 4u, "Unsigned arithmetics check");
+static_assert(0-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 
 static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
               "int64_t and Py_ssize_t should refer to the same type");
