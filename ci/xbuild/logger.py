@@ -316,9 +316,9 @@ class Logger3(Logger0):
     def report_name(self, name):
         self.info("Building extension `%s`" % name)
 
-    def report_new_header_found(self, filename, modified):
-        self.info("New header file %s, %s"
-                  % (filename, "added to queue" if modified else "unmodified"))
+    # def report_new_header_found(self, filename, modified):
+    #     self.info("New header file %s, %s"
+    #               % (filename, "added to queue" if modified else "unmodified"))
 
     def report_no_state_file(self):
         self.info("The file does not exist")
@@ -351,8 +351,8 @@ class Logger3(Logger0):
         else:
             self.info("No modified source files found")
 
-    def report_src_includes(self, filename, includes):
-        self.info("Includes for %s: %r" % (filename, includes))
+    # def report_src_includes(self, filename, includes):
+    #     self.info("Includes for %s: %r" % (filename, includes))
 
     def report_stopped_compiling(self):
         self.info("Stopped compiling because too many errors produced")
