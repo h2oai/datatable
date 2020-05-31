@@ -63,8 +63,8 @@
           << __FILE__ << ", line " << __LINE__; \
     }
 #else
-  #define wassert(EXPRESSION)
-  #define xassert(EXPRESSION)
+  #define wassert(EXPRESSION) ((void)0)
+  #define xassert(EXPRESSION) ((void)0)
 #endif
 
 
