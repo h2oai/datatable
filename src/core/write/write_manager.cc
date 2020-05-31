@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -198,7 +198,7 @@ void write_manager::determine_chunking_strategy()
 {
   size_t nrows = dt->nrows();
   if (nrows == 0 || dt->ncols() == 0) return;
-  xassert(estimated_output_size > 0)
+  xassert(estimated_output_size > 0);
   const double bytes_per_row = 1.0 * estimated_output_size / nrows;
 
   static constexpr size_t max_chunk_size = 1024 * 1024;

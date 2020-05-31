@@ -61,7 +61,7 @@
     if (!(EXPRESSION)) { \
       throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
           << __FILE__ << ", line " << __LINE__; \
-    }
+    } ((void)(0))
 #else
   #define wassert(EXPRESSION) ((void)0)
   #define xassert(EXPRESSION) ((void)0)
