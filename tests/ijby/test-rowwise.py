@@ -162,7 +162,7 @@ def test_rowfirstlast_strs(st):
 
 
 def test_rowfirstlast_incompatible_types():
-    DT = dt.Frame(A=["a", None, "c", None], B=[1, 3, 4, None])
+    DT = dt.Frame([["a", None, "c", None], [1, 3, 4, None]])
     assert_equals(DT[:, rowfirst(f[:])],
                   dt.Frame(["a", "3", "c", None]))
 
