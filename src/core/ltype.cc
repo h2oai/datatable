@@ -33,8 +33,25 @@ static PyTypeObject* Py_Ltype = nullptr;
 
 
 
+const char* ltype_name(LType lt) {
+  switch (lt) {
+    case LType::MU:       return "void";
+    case LType::BOOL:     return "boolean";
+    case LType::INT:      return "integer";
+    case LType::REAL:     return "float";
+    case LType::STRING:   return "string";
+    case LType::DATETIME: return "time";
+    case LType::DURATION: return "duration";
+    case LType::OBJECT:   return "object";
+    default:              return "---";  // LCOV_EXCL_LINE
+  }
+}
+
+
+
+
 //------------------------------------------------------------------------------
-// Interoperate with Python stype objects
+// Interoperate with Python ltype objects
 //------------------------------------------------------------------------------
 
 static void _init_py_ltype(LType ltype) {
@@ -52,28 +69,8 @@ void init_py_ltype_objs(PyObject* ltype_enum) {
   _init_py_ltype(LType::INT);
   _init_py_ltype(LType::REAL);
   _init_py_ltype(LType::STRING);
+  _init_py_ltype(LType::DATETIME);
   _init_py_ltype(LType::OBJECT);
-}
-
-
-
-const char* ltype_name(LType lt) {
-  switch (lt) {
-    case LType::MU:       return "void";
-    case LType::BOOL:     return "boolean";
-    case LType::INT:      return "integer";
-    case LType::REAL:     return "float";
-    case LType::STRING:   return "string";
-    case LType::DATETIME: return "time";
-    case LType::DURATION: return "duration";
-    case LType::OBJECT:   return "object";
-    default:              return "---";  // LCOV_EXCL_LINE
-  }
-}
-
-
-py::oobj ltype_to_pyobj(LType ltype) {
-  return py::oobj(Py_Ltype_Objects[static_cast<size_t>(ltype)]);
 }
 
 
@@ -88,6 +85,11 @@ int ltype_from_pyobject(PyObject* lt) {
   }
   int32_t value = py::robj(res).get_attr("value").to_int32();
   return value;
+}
+
+
+py::oobj ltype_to_pyobj(LType ltype) {
+  return py::oobj(Py_Ltype_Objects[static_cast<size_t>(ltype)]);
 }
 
 
