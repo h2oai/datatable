@@ -16,13 +16,14 @@
 #include <string>         // std::string
 #include <unordered_map>  // std::unordered_map
 #include <vector>         // std::vector
+#include "datatable.h"
+#include "ltype.h"
 #include "models/utils.h" // sort_index
+#include "options.h"
 #include "parallel/api.h"
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
 #include "str/py_str.h"
-#include "datatable.h"
-#include "options.h"
 #include "stype.h"
 namespace dt {
 

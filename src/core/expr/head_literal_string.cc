@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,6 +22,7 @@
 #include "column/const.h"
 #include "expr/head_literal.h"
 #include "expr/workframe.h"
+#include "ltype.h"
 namespace dt {
 namespace expr {
 

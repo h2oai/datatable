@@ -21,12 +21,13 @@
 //------------------------------------------------------------------------------
 #include "column/sentinel_fw.h"
 #include "column/sentinel_str.h"
-#include "frame/py_frame.h"
-#include "utils/exceptions.h"
-#include "utils/misc.h"      // repr_utf8
 #include "datatable.h"
 #include "encodings.h"
+#include "frame/py_frame.h"
+#include "ltype.h"
 #include "stype.h"
+#include "utils/exceptions.h"
+#include "utils/misc.h"      // repr_utf8
 
 
 //------------------------------------------------------------------------------
@@ -52,7 +53,7 @@ void py::Frame::integrity_check() {
     for (size_t i = 0; i < dt->ncols(); ++i) {
       dt::SType col_stype = dt->get_column(i).stype();
       auto elem = stypes_tuple[i];
-      auto eexp = stype_to_pyobj(col_stype);
+      auto eexp = dt::stype_to_pyobj(col_stype);
       if (elem != eexp) {
         throw AssertionError() << "Element " << i << " of .stypes is "
             << elem << ", but the column's stype is " << col_stype;
@@ -71,7 +72,7 @@ void py::Frame::integrity_check() {
     for (size_t i = 0; i < dt->ncols(); ++i) {
       dt::SType col_stype = dt->get_column(i).stype();
       auto elem = ltypes_tuple[i];
-      auto eexp = ltype_to_pyobj(stype_to_ltype(col_stype));
+      auto eexp = dt::ltype_to_pyobj(stype_to_ltype(col_stype));
       if (elem != eexp) {
         throw AssertionError() << "Element " << i << " of .ltypes is "
             << elem << ", but the column's ltype is " << col_stype;

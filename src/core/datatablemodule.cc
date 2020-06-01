@@ -28,6 +28,7 @@
 #include <utility>         // std::pair, std::make_pair, std::move
 #include "../datatable/include/datatable.h"
 #include "csv/reader.h"
+#include "datatablemodule.h"
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
 #include "expr/py_by.h"              // py::oby
@@ -36,23 +37,23 @@
 #include "expr/py_update.h"          // py::oupdate
 #include "frame/py_frame.h"
 #include "frame/repr/html_widget.h"
+#include "ltype.h"
 #include "models/aggregator.h"
 #include "models/py_ftrl.h"
+#include "options.h"
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "progress/_options.h"
+#include "py_encodings.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "read/py_read_iterator.h"
+#include "sort.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
 #include "utils/terminal/terminal_style.h"
-#include "datatablemodule.h"
-#include "options.h"
-#include "sort.h"
-#include "py_encodings.h"
 #include "ztest.h"
 
 
@@ -189,7 +190,7 @@ static void _register_function(const py::PKArgs& args) {
   PyObject* fnref = std::move(fn).release();
   switch (n) {
     case 2: dt::init_py_stype_objs(fnref); break;
-    case 3: init_py_ltype_objs(fnref); break;
+    case 3: dt::init_py_ltype_objs(fnref); break;
     case 7: py::Frame_Type = fnref; break;
     case 9: py::Expr_Type = fnref; break;
     default: throw ValueError() << "Unknown index: " << n;

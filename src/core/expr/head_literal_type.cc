@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "expr/head_literal.h"
 #include "expr/workframe.h"
+#include "ltype.h"
 #include "stype.h"
 namespace dt {
 namespace expr {
@@ -155,7 +156,7 @@ static void _resolve_stype(py::robj value, SType* out_stype, LType* out_ltype)
   }
   else if (value.is_ltype()) {
     auto lt = value.get_attr("value").to_size_t();
-    *out_ltype = (lt < DT_LTYPES_COUNT)? static_cast<LType>(lt) : LType::MU;
+    *out_ltype = (lt < LTYPES_COUNT)? static_cast<LType>(lt) : LType::MU;
   }
   else if (value.is_stype()) {
     auto st = value.get_attr("value").to_size_t();

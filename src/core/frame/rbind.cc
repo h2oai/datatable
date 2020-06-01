@@ -26,6 +26,7 @@
 #include "column/sentinel_fw.h"
 #include "column/sentinel_str.h"
 #include "frame/py_frame.h"
+#include "ltype.h"
 #include "python/_all.h"
 #include "utils/assert.h"
 #include "utils/misc.h"

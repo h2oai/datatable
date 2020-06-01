@@ -161,7 +161,7 @@ dt::SType Column::stype() const noexcept {
   return impl_->stype_;
 }
 
-LType Column::ltype() const noexcept {
+dt::LType Column::ltype() const noexcept {
   return dt::stype_to_ltype(impl_->stype_);
 }
 

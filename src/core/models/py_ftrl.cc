@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -340,8 +340,8 @@ oobj Ftrl::fit(const PKArgs& args) {
     }
 
 
-    LType ltype = dt_y->get_column(0).ltype();
-    LType ltype_val = dt_y_val->get_column(0).ltype();
+    auto ltype = dt_y->get_column(0).ltype();
+    auto ltype_val = dt_y_val->get_column(0).ltype();
 
     if (ltype != ltype_val) {
       throw TypeError() << "Training and validation target columns must have "

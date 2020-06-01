@@ -22,6 +22,7 @@
 #include "column/const.h"
 #include "expr/head_literal.h"
 #include "expr/workframe.h"
+#include "ltype.h"
 namespace dt {
 namespace expr {
 
@@ -105,8 +106,8 @@ Workframe Head_Literal_Int::evaluate_r(
       }
       else if (ltype == LType::REAL) {
         newcol = Const_ColumnImpl::make_float_column(
-                   1, 
-                   static_cast<double>(value), 
+                   1,
+                   static_cast<double>(value),
                    col.stype()
                  );
       }

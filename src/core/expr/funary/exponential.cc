@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,7 @@
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
+#include "ltype.h"
 namespace dt {
 namespace expr {
 

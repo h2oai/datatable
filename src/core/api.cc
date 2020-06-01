@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,6 +22,7 @@
 #include "../datatable/include/datatable.h"
 #include "frame/py_frame.h"
 #include "datatable.h"
+#include "ltype.h"
 #include "rowindex.h"
 extern "C" {
 
@@ -115,7 +116,7 @@ const char* DtFrame_ColumnStringDataR(PyObject* pydt, size_t i) {
   if (_column_index_oob(dt, i)) return nullptr;
   try {
     const Column& col = dt->get_column(i);
-    if (col.ltype() == LType::STRING) {
+    if (col.ltype() == dt::LType::STRING) {
       return static_cast<const char*>(col.get_data_readonly(1));
     }
   } catch (const std::exception& e) {
