@@ -96,7 +96,9 @@ class CallLogger::Impl {
         stime_t t_end = std::chrono::steady_clock::now();
         std::chrono::duration<double> diff = t_end - t_start_;
         LOG.info() << indent_ << name_
-                   << " # finished in " << diff.count() << " s";
+                   << " # "
+                   << (PyErr_Occurred()? "failed" : "finished")
+                   << " in " << diff.count() << " s";
       } catch (...) {
         std::cerr << indent_ << name_ << " # log failed\n";
       }
