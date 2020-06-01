@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <type_traits>
 #include "column.h"
@@ -11,8 +25,9 @@
 #include "utils/assert.h"
 #include "utils/misc.h"
 #include "utils/macros.h"
-template<> inline py::robj GETNA() { return py::rnone(); }
+#include "stype.h"
 namespace dt {
+template<> inline py::robj GETNA() { return py::rnone(); }
 
 
 //------------------------------------------------------------------------------
@@ -23,7 +38,7 @@ template <typename T>
 SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(ColumnImpl*&& other)
   : Sentinel_ColumnImpl(other->nrows(), other->stype())
 {
-  assert_compatible_type<T>(other->stype());
+  xassert(compatible_type<T>(other->stype()));
   auto fwother = dynamic_cast<SentinelFw_ColumnImpl<T>*>(other);
   xassert(fwother != nullptr);
   mbuf_ = std::move(fwother->mbuf_);
@@ -38,7 +53,7 @@ SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(ColumnImpl*&& other)
 
 template <typename T>
 SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows)
-  : Sentinel_ColumnImpl(nrows, stype_from<T>())
+  : Sentinel_ColumnImpl(nrows, stype_from<T>)
 {
   mbuf_.resize(sizeof(T) * nrows);
 }
@@ -59,7 +74,7 @@ SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows)
 
 template <typename T>
 SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, Buffer&& mr)
-  : Sentinel_ColumnImpl(nrows, stype_from<T>())
+  : Sentinel_ColumnImpl(nrows, stype_from<T>)
 {
   size_t req_size = sizeof(T) * nrows;
   if (mr) {

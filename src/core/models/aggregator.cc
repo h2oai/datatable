@@ -215,7 +215,7 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
  */
 template <typename T>
 template <typename TI>
-Column Aggregator<T>::contcol_maker(const Column& col_, SType stype) {
+Column Aggregator<T>::contcol_maker(const Column& col_, dt::SType stype) {
   Column col = Column(new dt::FuncUnary2_ColumnImpl<TI, T>(
                  Column(col_),
                  [](TI x, bool x_isvalid, T* out) {
@@ -247,10 +247,10 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
   dt = dt_in;
   bool needs_sampling;
 
-  constexpr SType agg_stype = sizeof(T) == 4? SType::FLOAT32 : SType::FLOAT64;
+  constexpr dt::SType agg_stype = sizeof(T) == 4? dt::SType::FLOAT32 : dt::SType::FLOAT64;
 
 
-  Column col0 = Column::new_data_column(dt->nrows(), SType::INT32);
+  Column col0 = Column::new_data_column(dt->nrows(), dt::SType::INT32);
   dt_members = dtptr(new DataTable({std::move(col0)}, {"exemplar_id"}));
 
   if (dt->nrows() >= min_rows && dt->nrows() != 0) {
@@ -270,17 +270,17 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
     for (size_t i = 0; i < ncols; ++i) {
       bool is_continuous = true;
       const Column& col = dt->get_column(i);
-      SType col_stype = col.stype();
+      dt::SType col_stype = col.stype();
       switch (col_stype) {
-        case SType::BOOL:
-        case SType::INT8:    contcol = contcol_maker<int8_t>(col, agg_stype); break;
-        case SType::INT16:   contcol = contcol_maker<int16_t>(col, agg_stype); break;
-        case SType::INT32:   contcol = contcol_maker<int32_t>(col, agg_stype); break;
-        case SType::INT64:   contcol = contcol_maker<int64_t>(col, agg_stype); break;
-        case SType::FLOAT32: contcol = contcol_maker<float>(col, agg_stype); break;
-        case SType::FLOAT64: contcol = contcol_maker<double>(col, agg_stype); break;
-        case SType::STR32:
-        case SType::STR64:   is_continuous = false;
+        case dt::SType::BOOL:
+        case dt::SType::INT8:    contcol = contcol_maker<int8_t>(col, agg_stype); break;
+        case dt::SType::INT16:   contcol = contcol_maker<int16_t>(col, agg_stype); break;
+        case dt::SType::INT32:   contcol = contcol_maker<int32_t>(col, agg_stype); break;
+        case dt::SType::INT64:   contcol = contcol_maker<int64_t>(col, agg_stype); break;
+        case dt::SType::FLOAT32: contcol = contcol_maker<float>(col, agg_stype); break;
+        case dt::SType::FLOAT64: contcol = contcol_maker<double>(col, agg_stype); break;
+        case dt::SType::STR32:
+        case dt::SType::STR64:   is_continuous = false;
                              if (ncols < ND_COLS) {
                                catcols.push_back(dt->get_column(i));
                              }
@@ -390,7 +390,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins) {
     // First, set all `exemplar_id`s to `N/A`.
     dt::parallel_for_static(dt_members->nrows(), nthreads,
       [&](size_t i) {
-        d_members[i] = GETNA<int32_t>();
+        d_members[i] = dt::GETNA<int32_t>();
       });
 
     // Second, randomly select `max_bins` groups.
@@ -408,7 +408,7 @@ bool Aggregator<T>::sample_exemplars(size_t max_bins) {
       bool rii_valid = ri_members.get_element(off_i, &ri);
       (void) rii_valid;
       xassert(rii_valid);
-      if (ISNA<int32_t>(d_members[ri])) {
+      if (dt::ISNA<int32_t>(d_members[ri])) {
         size_t off_i1 = static_cast<size_t>(offsets[i + 1]);
         dt::parallel_for_static(off_i1 - off_i,
           [&](size_t j) {
@@ -457,7 +457,7 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 
   // Setting up a table for counts
   auto dt_counts = dtptr(new DataTable(
-      {Column::new_data_column(n_exemplars, SType::INT32)},
+      {Column::new_data_column(n_exemplars, dt::SType::INT32)},
       {"members_count"}
   ));
   auto d_counts = static_cast<int32_t*>(dt_counts->get_column(0).get_data_editable());
@@ -592,7 +592,7 @@ bool Aggregator<T>::group_1d_continuous() {
       if (is_valid) {
         d_members[i] = static_cast<int32_t>(norm_factor * value + norm_shift);
       } else {
-        d_members[i] = GETNA<int32_t>();
+        d_members[i] = dt::GETNA<int32_t>();
       }
     });
   return false;
@@ -1058,7 +1058,7 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
   size_t n = 0;
 
   for (size_t i = 0; i < ndims; ++i) {
-    if (ISNA<T>(e1[i]) || ISNA<T>(e2[i])) {
+    if (dt::ISNA<T>(e1[i]) || dt::ISNA<T>(e2[i])) {
       continue;
     }
     ++n;

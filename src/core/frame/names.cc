@@ -24,6 +24,7 @@
 #include "utils/assert.h"
 #include "utils/fuzzy_match.h"
 #include "options.h"
+#include "stype.h"
 #include "ztest.h"
 
 static Error _name_not_found_error(const DataTable* dt, const std::string& name)
@@ -782,8 +783,8 @@ namespace dttest {
 
   void cover_names_integrity_checks() {
     DataTable* dt = new DataTable({
-                        Column::new_data_column(1, SType::INT32),
-                        Column::new_data_column(1, SType::FLOAT64)
+                        Column::new_data_column(1, dt::SType::INT32),
+                        Column::new_data_column(1, dt::SType::FLOAT64)
                     });
 
     auto check1 = [dt]() { dt->_integrity_check_names(); };

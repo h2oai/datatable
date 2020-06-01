@@ -22,6 +22,7 @@
 #ifndef dt_COLUMN_CONST_h
 #define dt_COLUMN_CONST_h
 #include "column/virtual.h"
+#include "stype.h"
 namespace dt {
 
 

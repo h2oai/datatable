@@ -32,6 +32,7 @@
 #include "utils/assert.h"      // xassert
 #include "column.h"            // Column
 #include "rowindex.h"          // RowIndex
+#include "stype.h"
 namespace dt {
 namespace sort {
 

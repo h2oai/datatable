@@ -16,8 +16,8 @@
 #include <cstring>        // std::memcpy
 #include "column.h"
 #include "datatablemodule.h"
+#include "stype.h"
 #include "wstringcol.h"
-
 namespace dt {
 
 

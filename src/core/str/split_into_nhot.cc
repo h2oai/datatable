@@ -23,8 +23,10 @@
 #include "str/py_str.h"
 #include "datatable.h"
 #include "options.h"
-
+#include "stype.h"
 namespace dt {
+
+
 
 /**
  * Split string into tokens

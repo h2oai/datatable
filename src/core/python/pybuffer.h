@@ -76,7 +76,7 @@ class buffer
     size_t stride() const noexcept;
 
 
-    SType stype() const;
+    dt::SType stype() const;
 
     Column to_column() &&;
 

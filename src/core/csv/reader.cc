@@ -25,16 +25,17 @@
 #include "csv/reader.h"
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
+#include "datatable.h"
+#include "encodings.h"
 #include "frame/py_frame.h"
+#include "options.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "stype.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"         // wallclock
 #include "utils/macros.h"
-#include "datatable.h"
-#include "encodings.h"
-#include "options.h"
 namespace dt {
 namespace read {
 
@@ -260,7 +261,7 @@ void GenericReader::init_quote(const py::Arg& arg) {
 
 void GenericReader::init_header(const py::Arg& arg) {
   if (arg.is_none_or_undefined()) {
-    header = GETNA<int8_t>();
+    header = dt::GETNA<int8_t>();
   } else {
     header = arg.to_bool_strict();
     D() << "header = " << (header? "True" : "False");

@@ -28,6 +28,7 @@
 #include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 
@@ -72,8 +73,8 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
         groupby(grpby),
         reducer(fn)
     {
-      assert_compatible_type<T>(arg.stype());
-      assert_compatible_type<U>(stype);
+      xassert(compatible_type<T>(arg.stype()));
+      xassert(compatible_type<U>(stype));
     }
 
     ColumnImpl* clone() const override {
@@ -205,7 +206,7 @@ static Column _sum(Column&& arg, const Groupby& gby) {
   return Column(
           new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>(), std::move(arg), gby, sum_reducer<T, U>
+                 stype_from<U>, std::move(arg), gby, sum_reducer<T, U>
             )));
 }
 
@@ -244,7 +245,7 @@ template <typename T, typename U>
 static Column _gsum(Column&& arg, const Groupby& gby) {
   return Column(
             new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>(), std::move(arg), gby, sum_greducer<T, U>
+                 stype_from<U>, std::move(arg), gby, sum_greducer<T, U>
             ));
 }
 
@@ -294,7 +295,7 @@ static Column _mean(Column&& arg, const Groupby& gby) {
   return Column(
           new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>(), std::move(arg), gby, mean_reducer<T, U>
+                 stype_from<U>, std::move(arg), gby, mean_reducer<T, U>
             )));
 }
 
@@ -364,7 +365,7 @@ static Column _sd(Column&& arg, const Groupby& gby) {
   return Column(
           new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>(), std::move(arg), gby, sd_reducer<T, U>
+                 stype_from<U>, std::move(arg), gby, sd_reducer<T, U>
             )));
 }
 
@@ -588,7 +589,7 @@ static Column _minmax(Column&& arg, const Groupby& gby) {
   return Column(
           new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, T>(
-                 stype_from<T>(), std::move(arg), gby, minmax_reducer<T, MM>
+                 stype_from<T>, std::move(arg), gby, minmax_reducer<T, MM>
             )));
 }
 
@@ -621,7 +622,7 @@ class Median_ColumnImpl : public Virtual_ColumnImpl {
 
   public:
     Median_ColumnImpl(Column&& col, const Groupby& grpby)
-      : Virtual_ColumnImpl(grpby.size(), stype_from<U>()),
+      : Virtual_ColumnImpl(grpby.size(), stype_from<U>),
         arg(std::move(col)),
         groupby(grpby) {}
 

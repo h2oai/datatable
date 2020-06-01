@@ -64,7 +64,7 @@ template <typename T>
 static inline Column _rowsum(colvec&& columns) {
   size_t nrows = columns[0].nrows();
   return Column(new FuncNary_ColumnImpl<T>(
-                    std::move(columns), op_rowsum<T>, nrows, stype_from<T>()));
+                    std::move(columns), op_rowsum<T>, nrows, stype_from<T>));
 }
 
 

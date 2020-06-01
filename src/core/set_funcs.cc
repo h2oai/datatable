@@ -29,6 +29,7 @@
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "sort.h"
+#include "stype.h"
 namespace dt {
 namespace set {
 
@@ -112,7 +113,7 @@ static sort_result sort_columns(named_colvec&& ncv) {
     res.column = std::move(ncv.columns[0]);
     res.column.materialize();
   } else {
-    res.column = Column::new_na_column(0);
+    res.column = Column::new_na_column(0, SType::VOID);
     res.column.rbind(ncv.columns);
   }
   auto r = group({res.column}, {SortFlag::NONE});

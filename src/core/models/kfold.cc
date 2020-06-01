@@ -33,7 +33,7 @@
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-
+#include "stype.h"
 namespace py {
 
 //------------------------------------------------------------------------------
@@ -161,7 +161,7 @@ static oobj kfold(const PKArgs& args) {
     int64_t b1 = ii*n/k;
     int64_t b2 = (ii+1)*n/k;
     size_t colsize = static_cast<size_t>(b1 + n - b2);
-    Column col = Column::new_data_column(colsize, SType::INT32);
+    Column col = Column::new_data_column(colsize, dt::SType::INT32);
     data.push_back(static_cast<int32_t*>(col.get_data_editable()));
     DataTable* dt = new DataTable({std::move(col)}, DataTable::default_names);
 
@@ -300,7 +300,7 @@ static oobj kfold_random(const PKArgs& args) {
         fold_size -= v;
       }
     }
-    #ifndef NDEBUG
+    #if DT_DEBUG
       for (size_t i = 0; i < nchunks; ++i) {
         size_t chunk_size = chunk_start(i + 1, nchunks, nrows) -
                             chunk_start(i, nchunks, nrows);
@@ -325,7 +325,7 @@ static oobj kfold_random(const PKArgs& args) {
 
   // Create data arrays for each fold
   using T = int32_t;
-  SType S = SType::INT32;
+  auto S = dt::SType::INT32;
   std::vector<T*> test_folds(nsplits);
   std::vector<T*> train_folds(nsplits);
 

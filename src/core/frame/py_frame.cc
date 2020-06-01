@@ -23,6 +23,7 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "stype.h"
 namespace py {
 
 PyObject* Frame_Type = nullptr;
@@ -571,8 +572,8 @@ oobj Frame::get_stypes() const {
   if (stypes == nullptr) {
     py::otuple ostypes(dt->ncols());
     for (size_t i = 0; i < ostypes.size(); ++i) {
-      SType st = dt->get_column(i).stype();
-      ostypes.set(i, info(st).py_stype());
+      dt::SType st = dt->get_column(i).stype();
+      ostypes.set(i, dt::stype_to_pyobj(st));
     }
     stypes = std::move(ostypes).release();
   }
@@ -595,16 +596,16 @@ static GSArgs args_stype(
 
 oobj Frame::get_stype() const {
   if (dt->ncols() == 0) return None();
-  SType stype = dt->get_column(0).stype();
+  dt::SType stype = dt->get_column(0).stype();
   for (size_t i = 1; i < dt->ncols(); ++i) {
-    SType col_stype = dt->get_column(i).stype();
+    dt::SType col_stype = dt->get_column(i).stype();
     if (col_stype != stype) {
       throw ValueError() << "The stype of column '" << dt->get_names()[i]
           << "' is `" << col_stype << "`, which is different from the "
           "stype of the previous column" << (i>1? "s" : "");
     }
   }
-  return info(stype).py_stype();
+  return stype_to_pyobj(stype);
 }
 
 
@@ -621,8 +622,8 @@ oobj Frame::get_ltypes() const {
   if (ltypes == nullptr) {
     py::otuple oltypes(dt->ncols());
     for (size_t i = 0; i < oltypes.size(); ++i) {
-      SType st = dt->get_column(i).stype();
-      oltypes.set(i, info(st).py_ltype());
+      dt::SType st = dt->get_column(i).stype();
+      oltypes.set(i, ltype_to_pyobj(stype_to_ltype(st)));
     }
     ltypes = std::move(oltypes).release();
   }

@@ -20,6 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/column_hasher.h"
+#include "stype.h"
+
 
 /**
  *  Abstract Hasher class constructor and destructor.
@@ -33,7 +35,7 @@ Hasher::~Hasher() {}
  */
 template <typename T>
 uint64_t HasherInt<T>::hash(size_t row) const {
-  uint64_t h = NA_S8;
+  uint64_t h = dt::NA_S8;
   T value;
   bool isvalid = column.get_element(row, &value);
   if (isvalid) h = static_cast<uint64_t>(value);
@@ -52,7 +54,7 @@ HasherFloat<T>::HasherFloat(const Column& col, int shift_nbits_)
 
 template <typename T>
 uint64_t HasherFloat<T>::hash(size_t row) const {
-  uint64_t h = NA_S8;
+  uint64_t h = dt::NA_S8;
   T value;
   bool isvalid = column.get_element(row, &value);
   if (isvalid) {
@@ -68,7 +70,7 @@ uint64_t HasherFloat<T>::hash(size_t row) const {
  *  Hash strings using Murmur hash function.
  */
 uint64_t HasherString::hash(size_t row) const {
-  uint64_t h = NA_S8;
+  uint64_t h = dt::NA_S8;
   CString value;
   bool isvalid = column.get_element(row, &value);
   if (isvalid) h = hash_murmur2(value.ch, static_cast<size_t>(value.size));

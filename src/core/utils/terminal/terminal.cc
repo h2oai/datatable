@@ -22,6 +22,7 @@
 #include <csignal>
 #include <iostream>
 #include "frame/repr/repr_options.h"
+#include "python/obj.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "utils/terminal/terminal.h"
@@ -75,7 +76,7 @@ Terminal::Terminal(bool is_plain) : is_plain_(is_plain){
   if (!enable_ecma48_) {
     xassert(!enable_colors_);
   }
-  
+
   if (!is_plain_) _initialize();
 }
 

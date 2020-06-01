@@ -64,7 +64,7 @@ public:
   Error& operator<<(uint32_t);
   Error& operator<<(float);
   Error& operator<<(double);
-  Error& operator<<(SType);
+  Error& operator<<(dt::SType);
   Error& operator<<(LType);
   Error& operator<<(const CErrno&);
   Error& operator<<(const py::_obj&);

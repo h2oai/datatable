@@ -161,10 +161,11 @@ def test_rowfirstlast_strs(st):
                                  ["b", "x", "last"]], stype=st))
 
 
-def test_rowfirstlast_incompatible():
-    DT = dt.Frame(A=["a", "b", "c"], B=[1, 3, 4])
-    with pytest.raises(TypeError, match="Incompatible column types"):
-        assert DT[:, rowfirst(f[:])]
+def test_rowfirstlast_incompatible_types():
+    DT = dt.Frame([["a", None, "c", None], [1, 3, 4, None]])
+    assert_equals(DT[:, rowfirst(f[:])],
+                  dt.Frame(["a", "3", "c", None]))
+
 
 
 

@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include "column/virtual.h"
+#include "stype.h"
 namespace dt {
 
 

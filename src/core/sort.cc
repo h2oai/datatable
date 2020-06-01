@@ -145,6 +145,7 @@
 #include "options.h"
 #include "rowindex.h"
 #include "sort.h"
+#include "stype.h"
 #include "types.h"
 
 //------------------------------------------------------------------------------
@@ -629,17 +630,17 @@ class SortContext {
     is_string = false;
     // These will initialize `x`, `elemsize` and `nsigbits`, and also
     // `strdata`, `stroffs`, `strstart` for string columns
-    SType stype = column.stype();
+    dt::SType stype = column.stype();
     switch (stype) {
-      case SType::BOOL:    _initB<ASC>(); break;
-      case SType::INT8:    _initI<ASC, int8_t,  uint8_t>(); break;
-      case SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
-      case SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
-      case SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
-      case SType::FLOAT32: _initF<ASC, uint32_t>(); break;
-      case SType::FLOAT64: _initF<ASC, uint64_t>(); break;
-      case SType::STR32:
-      case SType::STR64:   _initS<ASC>(); break;
+      case dt::SType::BOOL:    _initB<ASC>(); break;
+      case dt::SType::INT8:    _initI<ASC, int8_t,  uint8_t>(); break;
+      case dt::SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
+      case dt::SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
+      case dt::SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
+      case dt::SType::FLOAT32: _initF<ASC, uint32_t>(); break;
+      case dt::SType::FLOAT64: _initF<ASC, uint64_t>(); break;
+      case dt::SType::STR32:
+      case dt::SType::STR64:   _initS<ASC>(); break;
       default:
         throw NotImplError() << "Unable to sort Column of stype " << stype;
     }
@@ -704,7 +705,7 @@ class SortContext {
 
   template <bool ASC, typename T, typename TI, typename TO>
   void _initI_impl(T edge) {
-    TI una = static_cast<TI>(GETNA<T>());
+    TI una = static_cast<TI>(dt::GETNA<T>());
     TI uedge = static_cast<TI>(edge);
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);

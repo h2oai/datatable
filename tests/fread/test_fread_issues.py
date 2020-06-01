@@ -534,4 +534,4 @@ def test_issue2458(capsys):
     assert not err
     mm = re.search(r"\(\s?(\d+)%\) saving into the output frame", out)
     time_percent = int(mm.group(1))
-    assert time_percent < 20
+    assert time_percent < 30

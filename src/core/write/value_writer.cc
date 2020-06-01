@@ -25,6 +25,7 @@
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "write/value_writer.h"
+#include "stype.h"
 namespace dt {
 namespace write {
 

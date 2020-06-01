@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,8 +27,7 @@
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "buffer.h"
-
-
+#include "stype.h"
 namespace py {
 
 
@@ -154,45 +153,45 @@ size_t buffer::stride() const noexcept {
 
 
 
-SType buffer::stype() const {
+dt::SType buffer::stype() const {
   const char* format = info_->format;
   int64_t itemsize = info_->itemsize;
 
-  SType stype = SType::VOID;
+  dt::SType stype = dt::SType::VOID;
   char c = format[0];
   if (c == '@' || c == '=') c = format[1];
 
   if (c == 'b' || c == 'h' || c == 'i' || c == 'l' || c == 'q' || c == 'n') {
     // These are all various integer types
-    stype = itemsize == 1 ? SType::INT8 :
-            itemsize == 2 ? SType::INT16 :
-            itemsize == 4 ? SType::INT32 :
-            itemsize == 8 ? SType::INT64 : SType::VOID;
+    stype = itemsize == 1 ? dt::SType::INT8 :
+            itemsize == 2 ? dt::SType::INT16 :
+            itemsize == 4 ? dt::SType::INT32 :
+            itemsize == 8 ? dt::SType::INT64 : dt::SType::VOID;
   }
   else if (c == 'd' || c == 'f') {
-    stype = itemsize == 4 ? SType::FLOAT32 :
-            itemsize == 8 ? SType::FLOAT64 : SType::VOID;
+    stype = itemsize == 4 ? dt::SType::FLOAT32 :
+            itemsize == 8 ? dt::SType::FLOAT64 : dt::SType::VOID;
   }
   else if (c == '?') {
-    stype = itemsize == 1 ? SType::BOOL : SType::VOID;
+    stype = itemsize == 1 ? dt::SType::BOOL : dt::SType::VOID;
   }
   else if (c == 'O') {
-    stype = SType::OBJ;
+    stype = dt::SType::OBJ;
   }
   else if (c >= '1' && c <= '9') {
     if (format[strlen(format) - 1] == 'w') {
       int numeral = atoi(format);
       if (itemsize == numeral * 4) {
-        stype = SType::STR32;
+        stype = dt::SType::STR32;
       }
     }
   }
-  if (stype == SType::VOID) {
+  if (stype == dt::SType::VOID) {
     throw ValueError()
         << "Unknown format '" << format << "' with itemsize " << itemsize;
   }
-  if (!::info(stype).is_varwidth()) {
-    xassert(::info(stype).elemsize() == static_cast<size_t>(itemsize));
+  if (stype_is_fixed_width(stype)) {
+    xassert(stype_elemsize(stype) == static_cast<size_t>(itemsize));
   }
   return stype;
 }
@@ -200,7 +199,7 @@ SType buffer::stype() const {
 
 Column buffer::to_column() &&
 {
-  SType  stype = this->stype();
+  dt::SType  stype = this->stype();
   size_t nrows = this->nelements();
   void*  ptr   = this->data();
   if (nrows == 0) {

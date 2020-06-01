@@ -24,6 +24,7 @@
 #include <memory>
 #include "column/virtual.h"
 #include "utils/assert.h"
+#include "stype.h"
 namespace dt {
 
 
@@ -47,8 +48,8 @@ class IsClose_ColumnImpl : public Virtual_ColumnImpl {
         rtol_(rtol),
         atol_(atol)
     {
-      assert_compatible_type<T>(argx_.stype());
-      assert_compatible_type<T>(argy_.stype());
+      xassert(compatible_type<T>(argx_.stype()));
+      xassert(compatible_type<T>(argy_.stype()));
     }
 
     ColumnImpl* clone() const override {

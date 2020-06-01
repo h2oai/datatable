@@ -44,7 +44,7 @@ static SType compute_stype(int64_t start, int64_t stop, SType stype) {
     bool stop_is_int32  = (stop == static_cast<int32_t>(stop));
     return (start_is_int32 && stop_is_int32) ? SType::INT32 : SType::INT64;
   }
-  auto ltype = info(stype).ltype();
+  auto ltype = stype_to_ltype(stype);
   if (ltype == LType::INT || ltype == LType::REAL) {
     return stype;
   }
@@ -133,7 +133,7 @@ void Range_ColumnImpl::materialize(Column& out, bool) {
 
 void Range_ColumnImpl::verify_integrity() const {
   Virtual_ColumnImpl::verify_integrity();
-  auto ltype = info(stype_).ltype();
+  auto ltype = stype_to_ltype(stype_);
   XAssert(ltype == LType::INT || ltype == LType::REAL);
 }
 

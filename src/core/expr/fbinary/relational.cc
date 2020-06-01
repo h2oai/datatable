@@ -121,7 +121,7 @@ static bool op_eq(T x, bool xvalid, T y, bool yvalid, int8_t* out) {
 
 template <typename T>
 static inline bimaker_ptr _eq(SType uptype1, SType uptype2) {
-  return bimaker2<T, T, int8_t>::make(op_eq<typename _ref<T>::t>,
+  return bimaker2<T, T, int8_t>::make(op_eq<ref_t<T>>,
                                       uptype1, uptype2, SType::BOOL);
 }
 
@@ -162,7 +162,7 @@ static bool op_ne(T x, bool xvalid, T y, bool yvalid, int8_t* out) {
 
 template <typename T>
 static inline bimaker_ptr _ne(SType uptype1, SType uptype2) {
-  return bimaker2<T, T, int8_t>::make(op_ne<typename _ref<T>::t>,
+  return bimaker2<T, T, int8_t>::make(op_ne<ref_t<T>>,
                                       uptype1, uptype2, SType::BOOL);
 }
 
@@ -202,7 +202,7 @@ static bool op_lt(T x, bool xvalid, T y, bool yvalid, int8_t* out) {
 
 template <typename T>
 static inline bimaker_ptr _lt(SType uptype1, SType uptype2) {
-  return bimaker2<T, T, int8_t>::make(op_lt<typename _ref<T>::t>,
+  return bimaker2<T, T, int8_t>::make(op_lt<ref_t<T>>,
                                       uptype1, uptype2, SType::BOOL);
 }
 
@@ -237,7 +237,7 @@ static bool op_gt(T x, bool xvalid, T y, bool yvalid, int8_t* out) {
 
 template <typename T>
 static inline bimaker_ptr _gt(SType uptype1, SType uptype2) {
-  return bimaker2<T, T, int8_t>::make(op_gt<typename _ref<T>::t>,
+  return bimaker2<T, T, int8_t>::make(op_gt<ref_t<T>>,
                                       uptype1, uptype2, SType::BOOL);
 }
 
@@ -272,7 +272,7 @@ static bool op_le(T x, bool xvalid, T y, bool yvalid, int8_t* out) {
 
 template <typename T>
 static inline bimaker_ptr _le(SType uptype1, SType uptype2) {
-  return bimaker2<T, T, int8_t>::make(op_le<typename _ref<T>::t>,
+  return bimaker2<T, T, int8_t>::make(op_le<ref_t<T>>,
                                       uptype1, uptype2, SType::BOOL);
 }
 
@@ -307,7 +307,7 @@ static bool op_ge(T x, bool xvalid, T y, bool yvalid, int8_t* out) {
 
 template <typename T>
 static inline bimaker_ptr _ge(SType uptype1, SType uptype2) {
-  return bimaker2<T, T, int8_t>::make(op_ge<typename _ref<T>::t>,
+  return bimaker2<T, T, int8_t>::make(op_ge<ref_t<T>>,
                                       uptype1, uptype2, SType::BOOL);
 }
 

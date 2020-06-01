@@ -21,8 +21,8 @@
 //------------------------------------------------------------------------------
 #include <cmath>
 #include "python/float.h"
+#include "stype.h"
 #include "utils/exceptions.h"
-
 namespace py {
 
 
@@ -49,13 +49,13 @@ ofloat::ofloat(const robj& src) : oobj(src) {}
 
 template<>
 float ofloat::value() const noexcept {
-  if (!v) return GETNA<float>();
+  if (!v) return dt::GETNA<float>();
   return static_cast<float>(PyFloat_AS_DOUBLE(v));
 }
 
 template<>
 double ofloat::value() const noexcept {
-  if (!v) return GETNA<double>();
+  if (!v) return dt::GETNA<double>();
   return PyFloat_AS_DOUBLE(v);
 }
 

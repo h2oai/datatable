@@ -188,7 +188,7 @@ static void _register_function(const py::PKArgs& args) {
 
   PyObject* fnref = std::move(fn).release();
   switch (n) {
-    case 2: init_py_stype_objs(fnref); break;
+    case 2: dt::init_py_stype_objs(fnref); break;
     case 3: init_py_ltype_objs(fnref); break;
     case 7: py::Frame_Type = fnref; break;
     case 9: py::Expr_Type = fnref; break;
@@ -429,7 +429,6 @@ extern "C" {
       // Initialize submodules
       if (!init_py_encodings(m)) return nullptr;
 
-      init_types();
       dt::expr::Head_Func::init();
 
       py::Frame::init_type(m);

@@ -345,8 +345,8 @@ oobj Ftrl::fit(const PKArgs& args) {
 
     if (ltype != ltype_val) {
       throw TypeError() << "Training and validation target columns must have "
-                        << "the same ltype, got: `" << info::ltype_name(ltype)
-                        << "` and `" << info::ltype_name(ltype_val) << "`";
+                        << "the same ltype, got: `" << ltype << "` and `"
+                        << ltype_val << "`";
     }
 
     if (dt_X_val->nrows() != dt_y_val->nrows()) {
@@ -541,12 +541,12 @@ void Ftrl::set_model(robj model) {
 
   }
 
-  SType stype = (double_precision)? SType::FLOAT64 : SType::FLOAT32;
+  auto stype = double_precision? dt::SType::FLOAT64 : dt::SType::FLOAT32;
 
   for (size_t i = 0; i < ncols; ++i) {
 
     const Column& col = dt_model->get_column(i);
-    SType c_stype = col.stype();
+    dt::SType c_stype = col.stype();
     if (col.stype() != stype) {
       throw ValueError() << "Column " << i << " in the model frame should "
                          << "have a type of " << stype << ", whereas it has "

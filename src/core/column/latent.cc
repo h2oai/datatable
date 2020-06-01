@@ -24,7 +24,9 @@
 #include "column/sentinel_str.h"
 #include "parallel/api.h"
 #include "column.h"
+#include "stype.h"
 namespace dt {
+
 
 #define CHECK_SIZE(cls) \
   static_assert(sizeof(Latent_ColumnImpl) >= sizeof(cls), \

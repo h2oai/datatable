@@ -83,7 +83,7 @@ Column naryop_rowfirstlast(colvec&& columns, bool FIRST) {
   // Detect common stype
   SType stype0 = SType::VOID;
   for (const auto& col : columns) {
-    stype0 = ::common_stype(stype0, col.stype());
+    stype0 = common_stype(stype0, col.stype());
   }
   if (stype0 == SType::INVALID) {
     throw TypeError() << "Incompatible column types in function `" << fnname << "`";

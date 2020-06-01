@@ -26,6 +26,7 @@
 #include "utils/misc.h"      // repr_utf8
 #include "datatable.h"
 #include "encodings.h"
+#include "stype.h"
 
 
 //------------------------------------------------------------------------------
@@ -49,9 +50,9 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols();
     }
     for (size_t i = 0; i < dt->ncols(); ++i) {
-      SType col_stype = dt->get_column(i).stype();
+      dt::SType col_stype = dt->get_column(i).stype();
       auto elem = stypes_tuple[i];
-      auto eexp = info(col_stype).py_stype();
+      auto eexp = stype_to_pyobj(col_stype);
       if (elem != eexp) {
         throw AssertionError() << "Element " << i << " of .stypes is "
             << elem << ", but the column's stype is " << col_stype;
@@ -68,9 +69,9 @@ void py::Frame::integrity_check() {
           << " is different from .ncols = " << dt->ncols();
     }
     for (size_t i = 0; i < dt->ncols(); ++i) {
-      SType col_stype = dt->get_column(i).stype();
+      dt::SType col_stype = dt->get_column(i).stype();
       auto elem = ltypes_tuple[i];
-      auto eexp = info(col_stype).py_ltype();
+      auto eexp = ltype_to_pyobj(stype_to_ltype(col_stype));
       if (elem != eexp) {
         throw AssertionError() << "Element " << i << " of .ltypes is "
             << elem << ", but the column's ltype is " << col_stype;
@@ -153,7 +154,7 @@ namespace dt {
 
 void ColumnImpl::verify_integrity() const {
   XAssert(static_cast<int64_t>(nrows_) >= 0);
-  XAssert(static_cast<size_t>(stype_) < DT_STYPES_COUNT);
+  XAssert(static_cast<size_t>(stype_) < dt::STYPES_COUNT);
   XAssert(refcount_ > 0 && refcount_ < uint32_t(-100));
   if (stats_) { // Stats are allowed to be null
     stats_->verify_integrity(this);
@@ -170,7 +171,7 @@ void ColumnImpl::verify_integrity() const {
 template <typename T>
 void SentinelFw_ColumnImpl<T>::verify_integrity() const {
   ColumnImpl::verify_integrity();
-  assert_compatible_type<T>(stype_);
+  xassert(compatible_type<T>(stype_));
   XAssert(mbuf_.size() >= sizeof(T) * nrows_);
   mbuf_.verify_integrity();
 }
@@ -184,7 +185,7 @@ void SentinelFw_ColumnImpl<T>::verify_integrity() const {
 
 void SentinelBool_ColumnImpl::verify_integrity() const {
   SentinelFw_ColumnImpl<int8_t>::verify_integrity();
-  XAssert(stype_ == SType::BOOL);
+  XAssert(stype_ == dt::SType::BOOL);
 
   // Check that all elements in column are either 0, 1, or NA_I1
   size_t mbuf_nrows = mbuf_.size();

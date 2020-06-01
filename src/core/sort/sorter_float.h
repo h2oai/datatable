@@ -27,6 +27,7 @@
 #include "sort/radix-sort.h"    // RadixSort
 #include "sort/sorter.h"        // Sort
 #include "sort/sorter_raw.h"    // Sorter_Raw
+#include "stype.h"
 #include "utils/macros.h"
 namespace dt {
 namespace sort {
@@ -80,7 +81,7 @@ class Sorter_Float : public SSorter<T>
     Sorter_Float(const Column& col)
       : column_(col)
     {
-      assert_compatible_type<TE>(col.stype());
+      xassert(compatible_type<TE>(col.stype()));
     }
 
 

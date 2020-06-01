@@ -25,6 +25,7 @@
 #include "jay/jay_generated.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "stype.h"
 
 
 // Helper functions
@@ -154,8 +155,8 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
     stats->set_nacount(static_cast<size_t>(jcol->nullcount()));
     T min = jstats->min();
     T max = jstats->max();
-    stats->set_min(static_cast<R>(min), (min != GETNA<T>()));
-    stats->set_max(static_cast<R>(max), (max != GETNA<T>()));
+    stats->set_min(static_cast<R>(min), (min != dt::GETNA<T>()));
+    stats->set_max(static_cast<R>(max), (max != dt::GETNA<T>()));
   }
 }
 
@@ -165,22 +166,22 @@ static Column column_from_jay(
 {
   jay::Type jtype = jcol->type();
 
-  SType stype = SType::VOID;
+  auto stype = dt::SType::VOID;
   switch (jtype) {
-    case jay::Type_Bool8:   stype = SType::BOOL; break;
-    case jay::Type_Int8:    stype = SType::INT8; break;
-    case jay::Type_Int16:   stype = SType::INT16; break;
-    case jay::Type_Int32:   stype = SType::INT32; break;
-    case jay::Type_Int64:   stype = SType::INT64; break;
-    case jay::Type_Float32: stype = SType::FLOAT32; break;
-    case jay::Type_Float64: stype = SType::FLOAT64; break;
-    case jay::Type_Str32:   stype = SType::STR32; break;
-    case jay::Type_Str64:   stype = SType::STR64; break;
+    case jay::Type_Bool8:   stype = dt::SType::BOOL; break;
+    case jay::Type_Int8:    stype = dt::SType::INT8; break;
+    case jay::Type_Int16:   stype = dt::SType::INT16; break;
+    case jay::Type_Int32:   stype = dt::SType::INT32; break;
+    case jay::Type_Int64:   stype = dt::SType::INT64; break;
+    case jay::Type_Float32: stype = dt::SType::FLOAT32; break;
+    case jay::Type_Float64: stype = dt::SType::FLOAT64; break;
+    case jay::Type_Str32:   stype = dt::SType::STR32; break;
+    case jay::Type_Str64:   stype = dt::SType::STR64; break;
   }
 
   Column col;
   Buffer databuf = extract_buffer(jaybuf, jcol->data());
-  if (stype == SType::STR32 || stype == SType::STR64) {
+  if (stype == dt::SType::STR32 || stype == dt::SType::STR64) {
     Buffer strbuf = extract_buffer(jaybuf, jcol->strdata());
     col = Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
   } else {

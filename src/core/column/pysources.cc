@@ -22,6 +22,7 @@
 #include "column/pysources.h"
 #include "python/dict.h"
 #include "python/tuple.h"
+#include "stype.h"
 #include "utils/assert.h"
 namespace dt {
 

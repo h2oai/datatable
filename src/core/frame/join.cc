@@ -32,11 +32,13 @@
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "types.h"
+#include "stype.h"
+
 
 class Cmp;
 using cmpptr = std::unique_ptr<Cmp>;
 using comparator_maker = cmpptr (*)(const Column&, const Column&);
-static comparator_maker cmps[DT_STYPES_COUNT][DT_STYPES_COUNT];
+static comparator_maker cmps[dt::STYPES_COUNT][dt::STYPES_COUNT];
 
 static cmpptr _make_comparatorM(const DataTable& Xdt, const DataTable& Jdt,
                                 const sztvec& x_ind, const sztvec& j_ind);
@@ -46,8 +48,8 @@ static cmpptr _make_comparator1(const DataTable& Xdt, const DataTable& Jdt,
 {
   const Column& colx = Xdt.get_column(xi);
   const Column& colj = Jdt.get_column(ji);
-  SType stype1 = colx.stype();
-  SType stype2 = colj.stype();
+  dt::SType stype1 = colx.stype();
+  dt::SType stype2 = colj.stype();
   auto cmp = cmps[static_cast<size_t>(stype1)][static_cast<size_t>(stype2)];
   if (!cmp) {
     throw TypeError() << "Column `" << Xdt.get_names()[xi] << "` of type "
@@ -186,8 +188,8 @@ template <typename TX, typename TJ>
 FwCmp<TX, TJ>::FwCmp(const Column& xcol, const Column& jcol)
   : colX(xcol), colJ(jcol)
 {
-  assert_compatible_type<TX>(xcol.stype());
-  assert_compatible_type<TJ>(jcol.stype());
+  xassert(dt::compatible_type<TX>(xcol.stype()));
+  xassert(dt::compatible_type<TJ>(jcol.stype()));
 }
 
 template <typename TX, typename TJ>
@@ -296,20 +298,20 @@ int StringCmp::set_xrow(size_t row) {
 //------------------------------------------------------------------------------
 
 static void _init_comparators() {
-  for (size_t i = 0; i < DT_STYPES_COUNT; ++i) {
-    for (size_t j = 0; j < DT_STYPES_COUNT; ++j) {
+  for (size_t i = 0; i < dt::STYPES_COUNT; ++i) {
+    for (size_t j = 0; j < dt::STYPES_COUNT; ++j) {
       cmps[i][j] = nullptr;
     }
   }
-  size_t bool8 = static_cast<size_t>(SType::BOOL);
-  size_t int08 = static_cast<size_t>(SType::INT8);
-  size_t int16 = static_cast<size_t>(SType::INT16);
-  size_t int32 = static_cast<size_t>(SType::INT32);
-  size_t int64 = static_cast<size_t>(SType::INT64);
-  size_t flt32 = static_cast<size_t>(SType::FLOAT32);
-  size_t flt64 = static_cast<size_t>(SType::FLOAT64);
-  size_t str32 = static_cast<size_t>(SType::STR32);
-  size_t str64 = static_cast<size_t>(SType::STR64);
+  size_t bool8 = static_cast<size_t>(dt::SType::BOOL);
+  size_t int08 = static_cast<size_t>(dt::SType::INT8);
+  size_t int16 = static_cast<size_t>(dt::SType::INT16);
+  size_t int32 = static_cast<size_t>(dt::SType::INT32);
+  size_t int64 = static_cast<size_t>(dt::SType::INT64);
+  size_t flt32 = static_cast<size_t>(dt::SType::FLOAT32);
+  size_t flt64 = static_cast<size_t>(dt::SType::FLOAT64);
+  size_t str32 = static_cast<size_t>(dt::SType::STR32);
+  size_t str64 = static_cast<size_t>(dt::SType::STR64);
   cmps[bool8][bool8] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][int08] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][int16] = FwCmp<int8_t, int16_t>::make;

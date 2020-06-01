@@ -30,8 +30,9 @@
 #include "utils/exceptions.h"    // ValueError, RuntimeError
 #include "utils/assert.h"
 #include "utils/macros.h"
+#include "stype.h"
 
-#ifndef NDEBUG
+#if DT_DEBUG
   inline static void test(ArrayRowIndexImpl* o) {
     o->refcount++;
     o->verify_integrity();
@@ -63,13 +64,13 @@ ArrayRowIndexImpl::ArrayRowIndexImpl(Buffer&& buffer, int flags) {
 ArrayRowIndexImpl::ArrayRowIndexImpl(const Column& col) {
   ascending = false;
   switch (col.stype()) {
-    case SType::BOOL:
+    case dt::SType::BOOL:
       init_from_boolean_column(col);
       break;
-    case SType::INT8:
-    case SType::INT16:
-    case SType::INT32:
-    case SType::INT64:
+    case dt::SType::INT8:
+    case dt::SType::INT16:
+    case dt::SType::INT32:
+    case dt::SType::INT64:
       init_from_integer_column(col);
       break;
     default:
@@ -128,7 +129,7 @@ void ArrayRowIndexImpl::_set_min_max() {
 
 
 void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
-  xassert(col.stype() == SType::BOOL);
+  xassert(col.stype() == dt::SType::BOOL);
   // total # of 1s in the column
   // Note: this may cause parallel computation over the entire column
   length = static_cast<size_t>(col.stats()->sum());
@@ -184,12 +185,12 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
                      (max <= Column::MAX_ARR32_SIZE);
 
   if (!col.is_virtual()) {
-    if (col.stype() == SType::INT32 && allow_arr32) {
+    if (col.stype() == dt::SType::INT32 && allow_arr32) {
       type = RowIndexType::ARR32;
       buf_ = col.get_data_buffer();
       return;
     }
-    if (col.stype() == SType::INT64) {
+    if (col.stype() == dt::SType::INT64) {
       type = RowIndexType::ARR64;
       buf_ = col.get_data_buffer();
       return;
@@ -205,13 +206,13 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
     // the column is destructed.
     Buffer xbuf = Buffer::view(buf_, buf_.size(), 0);
     xassert(xbuf.is_writable());
-    auto col3 = col.cast(SType::INT32, std::move(xbuf));
+    auto col3 = col.cast(dt::SType::INT32, std::move(xbuf));
   } else {
     type = RowIndexType::ARR64;
     _resize_data();
     Buffer xbuf = Buffer::view(buf_, buf_.size(), 0);
     xassert(xbuf.is_writable());
-    auto col3 = col.cast(SType::INT64, std::move(xbuf));
+    auto col3 = col.cast(dt::SType::INT64, std::move(xbuf));
   }
 }
 

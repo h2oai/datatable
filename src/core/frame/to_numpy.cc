@@ -25,6 +25,7 @@
 #include "python/args.h"
 #include "python/string.h"
 #include "datatablemodule.h"
+#include "stype.h"
 namespace py {
 
 
@@ -47,12 +48,12 @@ static bool datatable_has_nas(DataTable* dt, size_t force_col) {
 
 class pybuffers_context {
   public:
-    pybuffers_context(SType st, size_t col) {
+    pybuffers_context(dt::SType st, size_t col) {
       pybuffers::force_stype = st;
       pybuffers::single_col = col;
     }
     ~pybuffers_context() {
-      pybuffers::force_stype = SType::VOID;
+      pybuffers::force_stype = dt::SType::VOID;
       pybuffers::single_col = size_t(-1);
     }
 };
@@ -105,7 +106,7 @@ column: int
 oobj Frame::to_numpy(const PKArgs& args) {
   oobj numpy = oobj::import("numpy");
   oobj nparray = numpy.get_attr("array");
-  SType stype      = args.get<SType>(0, SType::VOID);
+  dt::SType stype      = args.get<dt::SType>(0, dt::SType::VOID);
   size_t force_col = args.get<size_t>(1, size_t(-1));
 
   oobj res;
@@ -122,7 +123,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
     size_t i0 = one_col? force_col : 0;
 
     size_t dtsize = ncols * dt->nrows();
-    Column mask_col = Column::new_data_column(dtsize, SType::BOOL);
+    Column mask_col = Column::new_data_column(dtsize, dt::SType::BOOL);
     bool* mask_data = static_cast<bool*>(mask_col.get_data_editable());
 
     size_t n_row_chunks = std::max(dt->nrows() / 100, size_t(1));

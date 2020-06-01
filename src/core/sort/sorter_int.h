@@ -28,6 +28,7 @@
 #include "sort/sorter_raw.h"    // Sorter_Raw
 #include "utils/misc.h"         // dt::nlz
 #include "column.h"
+#include "stype.h"
 namespace dt {
 namespace sort {
 
@@ -59,7 +60,7 @@ class Sorter_Int : public SSorter<T>
     Sorter_Int(const Column& col)
       : column_(col)
     {
-      assert_compatible_type<TI>(col.stype());
+      xassert(compatible_type<TI>(col.stype()));
     }
 
 

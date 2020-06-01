@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 #include "frame/py_frame.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 
@@ -175,7 +176,7 @@ RowIndex Head_Frame::evaluate_i(const vecExpr&, EvalContext& ctx) const {
   }
   const Column& col = dt_->get_column(0);
   SType st = col.stype();
-  if (!(st == SType::BOOL || info(st).ltype() == LType::INT)) {
+  if (!(st == SType::BOOL || stype_to_ltype(st) == LType::INT)) {
     throw TypeError() << "A Frame which is used as an `i` selector should be "
         "either boolean or integer, instead got `" << st << "`";
   }

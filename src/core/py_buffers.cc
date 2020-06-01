@@ -20,15 +20,17 @@
 #include "column.h"
 #include "datatablemodule.h"
 #include "encodings.h"
+#include "stype.h"
+
 
 namespace pybuffers {
   size_t single_col;
-  SType force_stype;
+  dt::SType force_stype;
 }
 
 // Forward declarations
 static void try_to_resolve_object_column(Column& col);
-static const char* format_from_stype(SType stype);
+static const char* format_from_stype(dt::SType stype);
 static Column convert_fwchararray_to_column(py::buffer&& view);
 
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
@@ -66,14 +68,14 @@ Column Column::from_pybuffer(const py::robj& pyobj)
   py::buffer view(pyobj);
 
   Column res;
-  if (view.stype() == SType::STR32) {
+  if (view.stype() == dt::SType::STR32) {
     res = convert_fwchararray_to_column(std::move(view));
   }
   else {
     res = std::move(view).to_column();
   }
 
-  if (res.stype() == SType::OBJ) {
+  if (res.stype() == dt::SType::OBJ) {
     try_to_resolve_object_column(res);
   }
   return res;
@@ -153,9 +155,9 @@ static void try_to_resolve_object_column(Column& col)
     auto out = static_cast<int8_t*>(mbuf.xptr());
     for (size_t i = 0; i < nrows; ++i) {
       PyObject* v = data[i];
-      out[i] = v == Py_True? 1 : v == Py_False? 0 : GETNA<int8_t>();
+      out[i] = v == Py_True? 1 : v == Py_False? 0 : dt::GETNA<int8_t>();
     }
-    col = Column::new_mbuf_column(nrows, SType::BOOL, std::move(mbuf));
+    col = Column::new_mbuf_column(nrows, dt::SType::BOOL, std::move(mbuf));
   }
 
   // All values were strings
@@ -185,7 +187,7 @@ static void try_to_resolve_object_column(Column& col)
         offset += static_cast<uint32_t>(sz);
         offsets[i] = offset;
       } else {
-        offsets[i] = offset ^ GETNA<uint32_t>();
+        offsets[i] = offset ^ dt::GETNA<uint32_t>();
       }
     }
 
@@ -232,14 +234,14 @@ struct XInfo {
   Py_ssize_t strides[2];
 
   // Stype of the exported data
-  SType stype;
+  dt::SType stype;
 
   int64_t : 56;
 
   XInfo() {
     shape[0] = shape[1] = 0;
     strides[0] = strides[1] = 0;
-    stype = SType::VOID;
+    stype = dt::SType::VOID;
     TRACK(this, sizeof(*this), "py-buffer");
   }
 
@@ -319,7 +321,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   // by-reference instead of copying the data into an intermediate buffer.
   const Column& col_i0 = dt->get_column(i0);
   if (ncols == 1 && !col_i0.is_virtual() && !REQ_WRITABLE(flags) &&
-      col_i0.is_fixedwidth() && pybuffers::force_stype == SType::VOID)
+      col_i0.is_fixedwidth() && pybuffers::force_stype == dt::SType::VOID)
   {
     return getbuffer_1_col(this, view, flags);
   }
@@ -330,21 +332,21 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   // "INDIRECT" buffer.
 
   // First, find the common stype for all columns in the DataTable.
-  SType stype = pybuffers::force_stype;
-  if (stype == SType::VOID) {
+  dt::SType stype = pybuffers::force_stype;
+  if (stype == dt::SType::VOID) {
     // Auto-detect common stype
     for (size_t i = 0; i < ncols; ++i) {
-      SType next_stype = dt->get_column(i + i0).stype();
+      dt::SType next_stype = dt->get_column(i + i0).stype();
       stype = common_stype(stype, next_stype);
     }
   }
-  if (stype == SType::INVALID ||
-      stype == SType::STR32 ||
-      stype == SType::STR64) stype = SType::OBJ;
+  if (stype == dt::SType::INVALID ||
+      stype == dt::SType::STR32 ||
+      stype == dt::SType::STR64) stype = dt::SType::OBJ;
 
   // Allocate the final buffer
-  xassert(!info(stype).is_varwidth());
-  size_t elemsize = info(stype).elemsize();
+  xassert(!stype_is_variable_width(stype));
+  size_t elemsize = stype_elemsize(stype);
   size_t colsize = nrows * elemsize;
   Buffer memr = Buffer::mem(ncols * colsize);
   const char* fmt = format_from_stype(stype);
@@ -370,7 +372,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
       // thus remain intact.
     }
   }
-  if (stype == SType::OBJ) {
+  if (stype == dt::SType::OBJ) {
     memr.set_pyobjects(/*clear=*/ false);
   }
 
@@ -426,7 +428,7 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 void py::DatatableModule::init_methods_buffers() {
   ADD_FN(&_install_buffer_hooks, args__install_buffer_hooks);
   pybuffers::single_col = size_t(-1);
-  pybuffers::force_stype = SType::VOID;
+  pybuffers::force_stype = dt::SType::VOID;
 }
 
 
@@ -436,14 +438,14 @@ void py::DatatableModule::init_methods_buffers() {
 // Buffers utility functions
 //==============================================================================
 
-static const char* format_from_stype(SType stype)
+static const char* format_from_stype(dt::SType stype)
 {
-  return stype == SType::BOOL? "?" :
-         stype == SType::INT8? "b" :
-         stype == SType::INT16? "h" :
-         stype == SType::INT32? "i" :
-         stype == SType::INT64? "q" :
-         stype == SType::FLOAT32? "f" :
-         stype == SType::FLOAT64? "d" :
-         stype == SType::OBJ? "O" : "x";
+  return stype == dt::SType::BOOL? "?" :
+         stype == dt::SType::INT8? "b" :
+         stype == dt::SType::INT16? "h" :
+         stype == dt::SType::INT32? "i" :
+         stype == dt::SType::INT64? "q" :
+         stype == dt::SType::FLOAT32? "f" :
+         stype == dt::SType::FLOAT64? "d" :
+         stype == dt::SType::OBJ? "O" : "x";
 }

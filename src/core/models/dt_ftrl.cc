@@ -427,7 +427,7 @@ void Ftrl<T>::create_y_multinomial(const DataTable* dt,
                                    dtptr& dt_multinomial,
                                    std::vector<size_t>& label_ids,
                                    bool validation /* = false */) {
-  xassert(label_ids.size() == 0)
+  xassert(label_ids.size() == 0);
   dtptr dt_labels_in;
   label_encode(dt->get_column(0), dt_labels_in, dt_multinomial);
 
@@ -922,7 +922,7 @@ template <typename T>
 void Ftrl<T>::adjust_model() {
   size_t ncols_model = dt_model->ncols();
   size_t ncols_model_new = 2 * dt_labels->nrows();
-  xassert(ncols_model_new > ncols_model)
+  xassert(ncols_model_new > ncols_model);
 
   colvec cols;
   cols.reserve(ncols_model_new);

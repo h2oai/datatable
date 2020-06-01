@@ -86,7 +86,7 @@ static inline Column _rowminmax(colvec&& columns, bool MIN) {
                : op_rowminmax<T, false>;
   size_t nrows = columns[0].nrows();
   return Column(new FuncNary_ColumnImpl<T>(
-                    std::move(columns), fn, nrows, stype_from<T>()));
+                    std::move(columns), fn, nrows, stype_from<T>));
 }
 
 

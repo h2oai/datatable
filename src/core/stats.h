@@ -221,7 +221,7 @@ class Stats
 
   private:
     template <typename S> py::oobj pywrap_stat(Stat);
-    template <typename S, typename R> Column colwrap_stat(Stat, SType);
+    template <typename S, typename R> Column colwrap_stat(Stat, dt::SType);
     Column strcolwrap_stat(Stat);
     friend class Column;
 };

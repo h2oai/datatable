@@ -24,6 +24,7 @@
 #include "frame/repr/text_column.h"
 #include "utils/assert.h"
 #include "encodings.h"
+#include "stype.h"
 namespace dt {
 
 

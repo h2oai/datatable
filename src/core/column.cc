@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstdlib>     // atoll
 #include "column/const.h"
@@ -21,17 +35,17 @@
 
 
 
-Column Column::new_data_column(size_t nrows, SType stype) {
+Column Column::new_data_column(size_t nrows, dt::SType stype) {
   return dt::Sentinel_ColumnImpl::make_column(nrows, stype);
 }
 
 
-Column Column::new_na_column(size_t nrows, SType stype) {
+Column Column::new_na_column(size_t nrows, dt::SType stype) {
   return Column(new dt::ConstNa_ColumnImpl(nrows, stype));
 }
 
 
-Column Column::new_mbuf_column(size_t nrows, SType stype, Buffer&& mbuf) {
+Column Column::new_mbuf_column(size_t nrows, dt::SType stype, Buffer&& mbuf) {
   return dt::Sentinel_ColumnImpl::make_fw_column(nrows, stype, std::move(mbuf));
 }
 
@@ -143,16 +157,16 @@ size_t Column::na_count() const {
   return stats()->nacount();
 }
 
-SType Column::stype() const noexcept {
+dt::SType Column::stype() const noexcept {
   return impl_->stype_;
 }
 
 LType Column::ltype() const noexcept {
-  return info(impl_->stype_).ltype();
+  return dt::stype_to_ltype(impl_->stype_);
 }
 
 bool Column::is_fixedwidth() const noexcept {
-  return !info(impl_->stype_).is_varwidth();
+  return !stype_is_variable_width(impl_->stype_);
 }
 
 bool Column::is_virtual() const noexcept {
@@ -168,7 +182,7 @@ bool Column::is_constant() const noexcept {
 }
 
 size_t Column::elemsize() const noexcept {
-  return info(impl_->stype_).elemsize();
+  return stype_elemsize(impl_->stype_);
 }
 
 Column::operator bool() const noexcept {
@@ -236,21 +250,21 @@ static inline py::oobj getelem(const Column& col, size_t i) {
 
 py::oobj Column::get_element_as_pyobject(size_t i) const {
   switch (stype()) {
-    case SType::BOOL: {
+    case dt::SType::BOOL: {
       int8_t x;
       bool isvalid = get_element(i, &x);
       return isvalid? py::obool(x) : py::None();
     }
-    case SType::INT8:    return getelem<int8_t>(*this, i);
-    case SType::INT16:   return getelem<int16_t>(*this, i);
-    case SType::INT32:   return getelem<int32_t>(*this, i);
-    case SType::INT64:   return getelem<int64_t>(*this, i);
-    case SType::FLOAT32: return getelem<float>(*this, i);
-    case SType::FLOAT64: return getelem<double>(*this, i);
-    case SType::STR32:
-    case SType::STR64:   return getelem<CString>(*this, i);
-    case SType::OBJ:     return getelem<py::robj>(*this, i);
-    case SType::VOID:    return py::None();
+    case dt::SType::INT8:    return getelem<int8_t>(*this, i);
+    case dt::SType::INT16:   return getelem<int16_t>(*this, i);
+    case dt::SType::INT32:   return getelem<int32_t>(*this, i);
+    case dt::SType::INT64:   return getelem<int64_t>(*this, i);
+    case dt::SType::FLOAT32: return getelem<float>(*this, i);
+    case dt::SType::FLOAT64: return getelem<double>(*this, i);
+    case dt::SType::STR32:
+    case dt::SType::STR64:   return getelem<CString>(*this, i);
+    case dt::SType::OBJ:     return getelem<py::robj>(*this, i);
+    case dt::SType::VOID:    return py::None();
     default:
       throw NotImplError() << "Unable to convert elements of stype "
           << stype() << " into python objects";

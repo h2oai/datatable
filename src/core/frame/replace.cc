@@ -28,7 +28,7 @@
 #include "python/list.h"
 #include "utils/assert.h"
 #include "utils/macros.h"
-
+#include "stype.h"
 namespace py {
 
 
@@ -170,15 +170,15 @@ void Frame::replace(const PKArgs& args) {
     //
     const Column& col = dt->get_column(i);
     switch (col.stype()) {
-      case SType::BOOL:    ra.process_bool_column(i); break;
-      case SType::INT8:    ra.process_int_column<int8_t>(i); break;
-      case SType::INT16:   ra.process_int_column<int16_t>(i); break;
-      case SType::INT32:   ra.process_int_column<int32_t>(i); break;
-      case SType::INT64:   ra.process_int_column<int64_t>(i); break;
-      case SType::FLOAT32: ra.process_real_column<float>(i); break;
-      case SType::FLOAT64: ra.process_real_column<double>(i); break;
-      case SType::STR32:
-      case SType::STR64:   ra.process_str_column(i); break;
+      case dt::SType::BOOL:    ra.process_bool_column(i); break;
+      case dt::SType::INT8:    ra.process_int_column<int8_t>(i); break;
+      case dt::SType::INT16:   ra.process_int_column<int16_t>(i); break;
+      case dt::SType::INT32:   ra.process_int_column<int32_t>(i); break;
+      case dt::SType::INT64:   ra.process_int_column<int64_t>(i); break;
+      case dt::SType::FLOAT32: ra.process_real_column<float>(i); break;
+      case dt::SType::FLOAT64: ra.process_real_column<double>(i); break;
+      case dt::SType::STR32:
+      case dt::SType::STR64:   ra.process_str_column(i); break;
       default: break;
     }
   }
@@ -268,32 +268,32 @@ void ReplaceAgent::split_x_y_by_type() {
        done_bool = false,
        done_str = false;
   for (size_t i = 0; i < dt->ncols(); ++i) {
-    SType s = dt->get_column(i).stype();
+    dt::SType s = dt->get_column(i).stype();
     switch (s) {
-      case SType::BOOL: {
+      case dt::SType::BOOL: {
         if (done_bool) continue;
         split_x_y_bool();
         done_bool = true;
         break;
       }
-      case SType::INT8:
-      case SType::INT16:
-      case SType::INT32:
-      case SType::INT64: {
+      case dt::SType::INT8:
+      case dt::SType::INT16:
+      case dt::SType::INT32:
+      case dt::SType::INT64: {
         if (done_int) continue;
         split_x_y_int();
         done_int = true;
         break;
       }
-      case SType::FLOAT32:
-      case SType::FLOAT64: {
+      case dt::SType::FLOAT32:
+      case dt::SType::FLOAT64: {
         if (done_real) continue;
         split_x_y_real();
         done_real = true;
         break;
       }
-      case SType::STR32:
-      case SType::STR64: {
+      case dt::SType::STR32:
+      case dt::SType::STR64: {
         if (done_str) continue;
         split_x_y_str();
         done_str = true;
@@ -313,7 +313,7 @@ void ReplaceAgent::split_x_y_bool() {
     if (xelem.is_none()) {
       if (yelem.is_none()) continue;
       if (!yelem.is_bool()) continue;
-      x_bool.push_back(GETNA<int8_t>());
+      x_bool.push_back(dt::GETNA<int8_t>());
       y_bool.push_back(yelem.to_bool());
     }
     else if (xelem.is_bool()) {
@@ -330,7 +330,7 @@ void ReplaceAgent::split_x_y_bool() {
 
 
 void ReplaceAgent::split_x_y_int() {
-  int64_t na_repl = GETNA<int64_t>();
+  int64_t na_repl = dt::GETNA<int64_t>();
   size_t n = vx.size();
   xmin_int = std::numeric_limits<int64_t>::max();
   xmax_int = -xmin_int;
@@ -354,8 +354,8 @@ void ReplaceAgent::split_x_y_int() {
       if (xval > xmax_int) xmax_int = xval;
     }
   }
-  if (!ISNA(na_repl)) {
-    x_int.push_back(GETNA<int64_t>());
+  if (!dt::ISNA(na_repl)) {
+    x_int.push_back(dt::GETNA<int64_t>());
     y_int.push_back(na_repl);
   }
   check_uniqueness<int64_t>(x_int);
@@ -363,7 +363,7 @@ void ReplaceAgent::split_x_y_int() {
 
 
 void ReplaceAgent::split_x_y_real() {
-  double na_repl = GETNA<double>();
+  double na_repl = dt::GETNA<double>();
   size_t n = vx.size();
   xmin_real = std::numeric_limits<double>::max();
   xmax_real = -xmin_real;
@@ -381,7 +381,7 @@ void ReplaceAgent::split_x_y_real() {
       }
       double xval = xelem.to_double();
       double yval = yelem.to_double();
-      if (ISNA(xval)) {
+      if (dt::ISNA(xval)) {
         na_repl = yval;
       } else {
         x_real.push_back(xval);
@@ -391,8 +391,8 @@ void ReplaceAgent::split_x_y_real() {
       }
     }
   }
-  if (!ISNA(na_repl)) {
-    x_real.push_back(GETNA<double>());
+  if (!dt::ISNA(na_repl)) {
+    x_real.push_back(dt::GETNA<double>());
     y_real.push_back(na_repl);
   }
   check_uniqueness<double>(x_real);
@@ -480,16 +480,16 @@ void ReplaceAgent::process_int_column(size_t colidx) {
   int64_t maxy = 0;
   for (size_t i = 0; i < x_int.size(); ++i) {
     int64_t x = x_int[i];
-    if (ISNA(x)) {
+    if (dt::ISNA(x)) {
       if (!col_has_nas) continue;
-      xfilt.push_back(GETNA<T>());
+      xfilt.push_back(dt::GETNA<T>());
     } else {
       if (x < col_min || x > col_max) continue;
       xfilt.push_back(static_cast<T>(x));
     }
     int64_t y = y_int[i];
-    if (ISNA(y)) {
-      yfilt.push_back(GETNA<T>());
+    if (dt::ISNA(y)) {
+      yfilt.push_back(dt::GETNA<T>());
     } else if (std::abs(y) <= std::numeric_limits<T>::max()) {
       yfilt.push_back(static_cast<T>(y));
     } else {
@@ -497,11 +497,11 @@ void ReplaceAgent::process_int_column(size_t colidx) {
     }
   }
   if (maxy) {
-    SType new_stype = (maxy > std::numeric_limits<int32_t>::max())
-                      ? SType::INT64 : SType::INT32;
+    dt::SType new_stype = (maxy > std::numeric_limits<int32_t>::max())
+                      ? dt::SType::INT64 : dt::SType::INT32;
     dt->set_column(colidx, col.cast(new_stype));
     columns_cast = true;
-    if (new_stype == SType::INT64) {
+    if (new_stype == dt::SType::INT64) {
       process_int_column<int64_t>(colidx);
     } else {
       process_int_column<int32_t>(colidx);
@@ -537,17 +537,17 @@ void ReplaceAgent::process_real_column(size_t colidx) {
   double maxy = 0;
   for (size_t i = 0; i < x_real.size(); ++i) {
     double x = x_real[i];
-    if (ISNA(x)) {
+    if (dt::ISNA(x)) {
       if (!col_has_nas) continue;
       xassert(i == x_real.size() - 1);
-      xfilt.push_back(GETNA<T>());
+      xfilt.push_back(dt::GETNA<T>());
     } else {
       if (x < col_min || x > col_max) continue;
       xfilt.push_back(static_cast<T>(x));
     }
     double y = y_real[i];
-    if (ISNA(y)) {
-      yfilt.push_back(GETNA<T>());
+    if (dt::ISNA(y)) {
+      yfilt.push_back(dt::GETNA<T>());
     } else if (std::is_same<T, double>::value || std::abs(y) <= MAX_FLOAT) {
       yfilt.push_back(static_cast<T>(y));
     } else {
@@ -555,7 +555,7 @@ void ReplaceAgent::process_real_column(size_t colidx) {
     }
   }
   if (std::is_same<T, float>::value && maxy > 0) {
-    dt->set_column(colidx, col.cast(SType::FLOAT64));
+    dt->set_column(colidx, col.cast(dt::SType::FLOAT64));
     columns_cast = true;
     process_real_column<double>(colidx);
   } else {
@@ -612,10 +612,10 @@ void ReplaceAgent::replace_fw(T* x, T* y, size_t nrows, T* data, size_t n)
 template <typename T>
 void ReplaceAgent::replace_fw1(T* x, T* y, size_t nrows, T* data) {
   T x0 = x[0], y0 = y[0];
-  if (std::is_floating_point<T>::value && ISNA<T>(x0)) {
+  if (std::is_floating_point<T>::value && dt::ISNA<T>(x0)) {
     dt::parallel_for_static(nrows,
       [=](size_t i) {
-        if (ISNA<T>(data[i])) data[i] = y0;
+        if (dt::ISNA<T>(data[i])) data[i] = y0;
       });
   } else {
     dt::parallel_for_static(nrows,
@@ -630,13 +630,13 @@ template <typename T>
 void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
   T x0 = x[0], y0 = y[0];
   T x1 = x[1], y1 = y[1];
-  xassert(!ISNA<T>(x0));
-  if (std::is_floating_point<T>::value && ISNA<T>(x1)) {
+  xassert(!dt::ISNA<T>(x0));
+  if (std::is_floating_point<T>::value && dt::ISNA<T>(x1)) {
     dt::parallel_for_static(nrows,
       [=](size_t i) {
         T v = data[i];
         if (v == x0) data[i] = y0;
-        else if (ISNA<T>(v)) data[i] = y1;
+        else if (dt::ISNA<T>(v)) data[i] = y1;
       });
   } else {
     dt::parallel_for_static(nrows,
@@ -651,12 +651,12 @@ void ReplaceAgent::replace_fw2(T* x, T* y, size_t nrows, T* data) {
 
 template <typename T>
 void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
-  if (std::is_floating_point<T>::value && ISNA<T>(x[n-1])) {
+  if (std::is_floating_point<T>::value && dt::ISNA<T>(x[n-1])) {
     n--;
     dt::parallel_for_static(nrows,
       [=](size_t i) {
         T v = data[i];
-        if (ISNA<T>(v)) {
+        if (dt::ISNA<T>(v)) {
           data[i] = y[n];
           return;
         }

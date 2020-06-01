@@ -41,7 +41,9 @@ class WritableBuffer;
 
 struct CString;
 enum class LType : uint8_t;
-enum class SType : uint8_t;
+namespace dt {
+  enum class SType : uint8_t;
+}
 
 using std::size_t;
 using dtptr = std::unique_ptr<DataTable>;

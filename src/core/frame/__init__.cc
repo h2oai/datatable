@@ -29,6 +29,7 @@
 #include "python/oset.h"
 #include "python/string.h"
 #include "utils/alloc.h"
+#include "stype.h"
 #include "ztest.h"
 
 namespace py {
@@ -48,7 +49,7 @@ class FrameInitializationManager {
     bool defined_names;
     bool defined_stypes;
     bool defined_stype;
-    SType stype0;
+    dt::SType stype0;
     int : 32;
     Frame* frame;
     colvec cols;
@@ -157,7 +158,7 @@ class FrameInitializationManager {
         check_stypes_count(ncols);
         py::olist empty_list(0);
         for (size_t i = 0; i < ncols; ++i) {
-          SType s = get_stype_for_column(i);
+          dt::SType s = get_stype_for_column(i);
           make_column(empty_list, s);
         }
         make_datatable(names_arg);
@@ -174,7 +175,7 @@ class FrameInitializationManager {
       check_stypes_count(collist.size());
       for (size_t i = 0; i < collist.size(); ++i) {
         py::robj item = collist[i];
-        SType s = get_stype_for_column(i);
+        dt::SType s = get_stype_for_column(i);
         make_column(item, s);
       }
       make_datatable(names_arg);
@@ -239,7 +240,7 @@ class FrameInitializationManager {
       size_t ncols = nameslist.size();
       for (size_t j = 0; j < ncols; ++j) {
         py::robj name = nameslist[j];
-        SType s = get_stype_for_column(j, &name);
+        dt::SType s = get_stype_for_column(j, &name);
         cols.push_back(Column::from_pylist_of_dicts(srclist, name, int(s)));
       }
       make_datatable(nameslist);
@@ -271,7 +272,7 @@ class FrameInitializationManager {
       }
       // Create the columns
       for (size_t j = 0; j < ncols; ++j) {
-        SType s = get_stype_for_column(j);
+        dt::SType s = get_stype_for_column(j);
         cols.push_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
       }
       if (names_arg || !item0.has_attr("_fields")) {
@@ -285,7 +286,7 @@ class FrameInitializationManager {
     void init_from_list_of_primitives() {
       check_names_count(1);
       check_stypes_count(1);
-      SType s = get_stype_for_column(0);
+      dt::SType s = get_stype_for_column(0);
       make_column(src.to_robj(), s);
       make_datatable(names_arg);
     }
@@ -304,7 +305,7 @@ class FrameInitializationManager {
       for (auto kv : coldict) {
         size_t i = newnames.size();
         py::robj name = kv.first;
-        SType stype = get_stype_for_column(i, &name);
+        dt::SType stype = get_stype_for_column(i, &name);
         newnames.push_back(name.to_string());
         make_column(kv.second, stype);
       }
@@ -323,7 +324,7 @@ class FrameInitializationManager {
       newnames.reserve(ncols);
       for (auto kv: all_args.varkwds()) {
         size_t i = newnames.size();
-        SType stype = get_stype_for_column(i, &kv.first);
+        dt::SType stype = get_stype_for_column(i, &kv.first);
         newnames.push_back(kv.first.to_string());
         make_column(kv.second, stype);
       }
@@ -332,7 +333,7 @@ class FrameInitializationManager {
 
 
     void init_mystery_frame() {
-      cols.push_back(Column::from_range(42, 43, 1, SType::VOID));
+      cols.push_back(Column::from_range(42, 43, 1, dt::SType::VOID));
       make_datatable(strvec { "?" });
     }
 
@@ -407,7 +408,7 @@ class FrameInitializationManager {
           if (!names_arg) colnames.append(col.to_pystring_force());
           index.replace(1, py::oint(i++));
           py::oobj colsrc = pd_iloc.get_item(index).get_attr("values");
-          make_column(colsrc, SType::VOID);
+          make_column(colsrc, dt::SType::VOID);
         }
         if (ncols == size_t(-1)) {
           check_names_count(cols.size());
@@ -419,7 +420,7 @@ class FrameInitializationManager {
           colnames.append(pdsrc.get_attr("name").to_pystring_force());
         }
         py::oobj colsrc = pdsrc.get_attr("values");
-        make_column(colsrc, SType::VOID);
+        make_column(colsrc, dt::SType::VOID);
       }
       if (colnames.size() > 0) {
         make_datatable(colnames);
@@ -469,7 +470,7 @@ class FrameInitializationManager {
         for (size_t i = 0; i < ncols; ++i) {
           col_key.replace(1, py::oint(i));
           auto colsrc = npsrc.get_item(col_key);  // npsrc[:, i]
-          make_column(colsrc, SType::VOID);
+          make_column(colsrc, dt::SType::VOID);
         }
       }
       make_datatable(names_arg);
@@ -537,7 +538,7 @@ class FrameInitializationManager {
      * `SType::VOID`.
      *
      */
-    SType get_stype_for_column(size_t i, const py::_obj* name = nullptr) {
+    dt::SType get_stype_for_column(size_t i, const py::_obj* name = nullptr) {
       if (defined_stype) {
         return stype0;
       }
@@ -563,11 +564,11 @@ class FrameInitializationManager {
           if (res) {
             return res.to_stype();
           } else {
-            return SType::VOID;
+            return dt::SType::VOID;
           }
         }
       }
-      return SType::VOID;
+      return dt::SType::VOID;
     }
 
 
@@ -596,7 +597,7 @@ class FrameInitializationManager {
     }
 
 
-    void make_column(py::robj colsrc, SType s) {
+    void make_column(py::robj colsrc, dt::SType s) {
       Column col;
       if (colsrc.is_frame()) {
         DataTable* srcdt = colsrc.to_datatable();
@@ -610,7 +611,7 @@ class FrameInitializationManager {
         col = Column::from_pybuffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
-        if (s == SType::VOID && colsrc.has_attr("type")) {
+        if (s == dt::SType::VOID && colsrc.has_attr("type")) {
           auto srctype = colsrc.get_attr("type");
           s = srctype.to_stype();
         }
@@ -621,7 +622,7 @@ class FrameInitializationManager {
         col = Column::from_range(r.start(), r.stop(), r.step(), s);
       }
       else if (colsrc.is_pandas_categorical()) {
-        make_column(colsrc.invoke("astype", py::ostring("str")), SType::STR32);
+        make_column(colsrc.invoke("astype", py::ostring("str")), dt::SType::STR32);
         return;
       }
       else {

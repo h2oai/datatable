@@ -99,7 +99,7 @@ class Aggregator : public AggregatorBase {
 
     // Convertor for continuous columns
     template <typename TI>
-    Column contcol_maker(const Column&, SType);
+    Column contcol_maker(const Column&, dt::SType);
 
     // Final aggregation method
     void aggregate_exemplars(bool);

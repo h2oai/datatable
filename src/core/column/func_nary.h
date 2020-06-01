@@ -65,7 +65,7 @@ FuncNary_ColumnImpl<T>::FuncNary_ColumnImpl(
     columns_(cols),
     evaluator_(fn)
 {
-  assert_compatible_type<T>(stype);
+  xassert(compatible_type<T>(stype));
 }
 
 

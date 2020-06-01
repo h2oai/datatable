@@ -13,6 +13,7 @@
 #include "read/constants.h"              // hexdigits, pow10lookup
 #include "utils/assert.h"                // xassert
 #include "utils/macros.h"
+#include "stype.h"
 
 static constexpr int8_t   NA_BOOL8 = -128;
 static constexpr int32_t  NA_INT32 = INT32_MIN;
@@ -625,29 +626,29 @@ void ParserLibrary::init_parsers() {
   parsers = new ParserInfo[num_parsers];
   parser_fns = new ParserFnPtr[num_parsers];
 
-  auto add = [&](dt::read::PT pt, const char* name, char code, int8_t sz, SType st,
-                 ParserFnPtr ptr) {
+  auto add = [&](dt::read::PT pt, const char* name, char code, int8_t sz,
+                  dt::SType st,ParserFnPtr ptr) {
     size_t iid = static_cast<size_t>(pt);
     xassert(iid < ParserLibrary::num_parsers);
     parsers[iid] = ParserInfo(pt, name, code, sz, st, ptr);
     parser_fns[iid] = ptr;
   };
 
-  add(dt::read::PT::Mu,           "Unknown",         '?', 1, SType::BOOL,    parse_mu);
-  add(dt::read::PT::Bool01,       "Bool8/numeric",   'b', 1, SType::BOOL,    parse_bool8_numeric);
-  add(dt::read::PT::BoolU,        "Bool8/uppercase", 'b', 1, SType::BOOL,    parse_bool8_uppercase);
-  add(dt::read::PT::BoolT,        "Bool8/titlecase", 'b', 1, SType::BOOL,    parse_bool8_titlecase);
-  add(dt::read::PT::BoolL,        "Bool8/lowercase", 'b', 1, SType::BOOL,    parse_bool8_lowercase);
-  add(dt::read::PT::Int32,        "Int32",           'i', 4, SType::INT32,   parse_int_simple<int32_t, true>);
-  add(dt::read::PT::Int32Sep,     "Int32/grouped",   'i', 4, SType::INT32,   parse_intNN_grouped<int32_t>);
-  add(dt::read::PT::Int64,        "Int64",           'I', 8, SType::INT64,   parse_int_simple<int64_t, true>);
-  add(dt::read::PT::Int64Sep,     "Int64/grouped",   'I', 8, SType::INT64,   parse_intNN_grouped<int64_t>);
-  add(dt::read::PT::Float32Hex,   "Float32/hex",     'f', 4, SType::FLOAT32, parse_float32_hex);
-  add(dt::read::PT::Float64Plain, "Float64",         'F', 8, SType::FLOAT64, parse_float64_simple);
-  add(dt::read::PT::Float64Ext,   "Float64/ext",     'F', 8, SType::FLOAT64, parse_float64_extended);
-  add(dt::read::PT::Float64Hex,   "Float64/hex",     'F', 8, SType::FLOAT64, parse_float64_hex);
-  add(dt::read::PT::Str32,        "Str32",           's', 4, SType::STR32,   dt::read::parse_string);
-  add(dt::read::PT::Str64,        "Str64",           'S', 8, SType::STR64,   dt::read::parse_string);
+  add(dt::read::PT::Mu,           "Unknown",         '?', 1, dt::SType::BOOL,    parse_mu);
+  add(dt::read::PT::Bool01,       "Bool8/numeric",   'b', 1, dt::SType::BOOL,    parse_bool8_numeric);
+  add(dt::read::PT::BoolU,        "Bool8/uppercase", 'b', 1, dt::SType::BOOL,    parse_bool8_uppercase);
+  add(dt::read::PT::BoolT,        "Bool8/titlecase", 'b', 1, dt::SType::BOOL,    parse_bool8_titlecase);
+  add(dt::read::PT::BoolL,        "Bool8/lowercase", 'b', 1, dt::SType::BOOL,    parse_bool8_lowercase);
+  add(dt::read::PT::Int32,        "Int32",           'i', 4, dt::SType::INT32,   parse_int_simple<int32_t, true>);
+  add(dt::read::PT::Int32Sep,     "Int32/grouped",   'i', 4, dt::SType::INT32,   parse_intNN_grouped<int32_t>);
+  add(dt::read::PT::Int64,        "Int64",           'I', 8, dt::SType::INT64,   parse_int_simple<int64_t, true>);
+  add(dt::read::PT::Int64Sep,     "Int64/grouped",   'I', 8, dt::SType::INT64,   parse_intNN_grouped<int64_t>);
+  add(dt::read::PT::Float32Hex,   "Float32/hex",     'f', 4, dt::SType::FLOAT32, parse_float32_hex);
+  add(dt::read::PT::Float64Plain, "Float64",         'F', 8, dt::SType::FLOAT64, parse_float64_simple);
+  add(dt::read::PT::Float64Ext,   "Float64/ext",     'F', 8, dt::SType::FLOAT64, parse_float64_extended);
+  add(dt::read::PT::Float64Hex,   "Float64/hex",     'F', 8, dt::SType::FLOAT64, parse_float64_hex);
+  add(dt::read::PT::Str32,        "Str32",           's', 4, dt::SType::STR32,   dt::read::parse_string);
+  add(dt::read::PT::Str64,        "Str64",           'S', 8, dt::SType::STR64,   dt::read::parse_string);
 }
 
 

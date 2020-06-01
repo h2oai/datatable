@@ -20,13 +20,14 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <iomanip>
+#include "column.h"
 #include "csv/reader_fread.h"    // FreadReader
+#include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 #include "read/chunk_coordinates.h"
 #include "read/parse_context.h"  // dt::read::ParseContext
+#include "stype.h"
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock
-#include "column.h"
-#include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 
 #define D() if (verbose) d()
 
@@ -677,7 +678,7 @@ void FreadReader::detect_column_types()
  * Detect whether the first line in input is the header or not.
  */
 void FreadReader::detect_header() {
-  if (!ISNA<int8_t>(header)) return;
+  if (!dt::ISNA<int8_t>(header)) return;
   size_t ncols = preframe.ncols();
   int64_t sncols = static_cast<int64_t>(ncols);
 

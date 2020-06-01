@@ -1,16 +1,33 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_ASSERT_h
 #define dt_UTILS_ASSERT_h
 #include <cstdio>
-#include "python/obj.h"
+#include "macros.h"
 #include "utils/exceptions.h"
-#include "types.h"
+
+#if DT_OS_DARWIN
+  #include <unistd.h>
+#endif
 
 
 // First, fix the NDEBUG macro.
@@ -44,10 +61,10 @@
     if (!(EXPRESSION)) { \
       throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
           << __FILE__ << ", line " << __LINE__; \
-    }
+    } ((void)(0))
 #else
-  #define wassert(EXPRESSION)
-  #define xassert(EXPRESSION)
+  #define wassert(EXPRESSION) ((void)0)
+  #define xassert(EXPRESSION) ((void)0)
 #endif
 
 
@@ -60,69 +77,6 @@
   }
 
 
-
-#ifdef static_assert
-  #define dt_static_assert static_assert
-#else
-  // Some system libraries fail to define this macro :( At least 3 people have
-  // reported having this problem on the first day of testing, so it's not
-  // that uncommon.
-  // In this case we just disable the checks.
-  #define dt_static_assert(x, y)
-#endif
-
-
-
-#ifdef NDEBUG
-  template <typename T>
-  inline void assert_compatible_type(SType) {}
-
-#else
-  template<typename T>
-  inline void assert_compatible_type(SType) {
-    throw NotImplError() << "Invalid type T in assert_compatible_type()";
-  }
-
-  template<>
-  inline void assert_compatible_type<int8_t>(SType s) {
-    xassert(s == SType::VOID || s == SType::INT8 || s == SType::BOOL);
-  }
-
-  template<>
-  inline void assert_compatible_type<int16_t>(SType s) {
-    xassert(s == SType::INT16);
-  }
-
-  template<>
-  inline void assert_compatible_type<int32_t>(SType s) {
-    xassert(s == SType::INT32);
-  }
-
-  template<>
-  inline void assert_compatible_type<int64_t>(SType s) {
-    xassert(s == SType::INT64);
-  }
-
-  template<>
-  inline void assert_compatible_type<float>(SType s) {
-    xassert(s == SType::FLOAT32);
-  }
-
-  template<>
-  inline void assert_compatible_type<double>(SType s) {
-    xassert(s == SType::FLOAT64);
-  }
-
-  template<>
-  inline void assert_compatible_type<CString>(SType s) {
-    xassert(s == SType::STR32 || s == SType::STR64);
-  }
-
-  template<>
-  inline void assert_compatible_type<py::robj>(SType s) {
-    xassert(s == SType::OBJ);
-  }
-#endif
 
 
 #endif

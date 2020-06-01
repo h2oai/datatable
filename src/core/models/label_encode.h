@@ -23,6 +23,7 @@
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
 #include "models/dt_ftrl_base.h"
+#include "stype.h"
 namespace dt {
 
 
@@ -223,6 +224,7 @@ void label_encode_str(const Column& ocol,
 }
 
 
-} // namespace dt
 
+
+} // namespace dt
 #endif
