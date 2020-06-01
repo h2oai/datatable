@@ -80,6 +80,7 @@ class Logger {
     Logger(const Logger&) = default;
     Logger& operator=(const Logger&) = default;
     void enable();
+    void disable();
     void use_pylogger(py::oobj);
 
     Section section(std::string title);
@@ -92,7 +93,7 @@ class Logger {
     // "disabled" -> returns None
     // "enabled" -> returns an object of DefaultLogger class
     // "python" -> returns the stored python logger object
-    py::oobj get_pylogger() const;
+    py::oobj get_pylogger(bool fallback_to_default = true) const;
 
   private:
     void end_section() noexcept;

@@ -199,6 +199,10 @@ void Logger::enable() {
   enabled_ = true;
 }
 
+void Logger::disable() {
+  enabled_ = false;
+}
+
 void Logger::use_pylogger(py::oobj logger) {
   pylogger_ = std::move(logger);
   enabled_ = true;
@@ -227,16 +231,17 @@ bool Logger::enabled() const {
   return enabled_;
 }
 
-py::oobj Logger::get_pylogger() const {
+py::oobj Logger::get_pylogger(bool fallback_to_default) const {
   if (enabled_) {
-    if (pylogger_) return pylogger_;
-    else {
+    if (pylogger_) {
+      return pylogger_;
+    }
+    else if (fallback_to_default) {
       py::DefaultLogger::init_type();
       return py::DefaultLogger::make(*this);
     }
-  } else {
-    return py::None();
   }
+  return py::None();
 }
 
 

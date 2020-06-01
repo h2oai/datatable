@@ -36,17 +36,35 @@ static constexpr size_t N_IMPLS = 10;
 // Options
 //------------------------------------------------------------------------------
 
-static bool opt_logger_enabled = false;  // must be false initially
 static bool opt_report_args = false;
 
 static void _init_options() {
   register_option(
-    "debug.logger",
-    []{ return py::obool(opt_logger_enabled); },
-    [](const py::Arg& value) {
-      opt_logger_enabled = value.to_bool_strict();
+    "debug.logger_enabled",
+    [] {
+      return py::obool(LOG.enabled());
     },
-    "Report calls to all internal functions"
+    [](const py::Arg& value) {
+      bool enabled = value.to_bool_strict();
+      if (enabled) LOG.enable();
+      else         LOG.disable();
+    },
+    "If True, then calls to all C++ core functions will be timed\n"
+    "and reported."
+  );
+
+  register_option(
+    "debug.logger",
+    [] {
+      return LOG.get_pylogger(false);
+    },
+    [](const py::Arg& value) {
+      LOG.use_pylogger(value.to_oobj_or_none());
+    },
+    "The logger object used for reporting calls to datatable core\n"
+    "functions. If None, then messages will be sent directly to\n"
+    "python stdout. Any object implementing the `.debug(msg)`\n"
+    "method can be used as a logger.\n"
   );
 }
 
@@ -98,7 +116,7 @@ size_t CallLogger::nested_level_ = 0;
 
 CallLogger::CallLogger(const py::PKArgs& pkargs) noexcept {
   impl_ = nullptr;
-  if (opt_logger_enabled) {
+  if (LOG.enabled()) {
     if (nested_level_ == impl_cache_.size()) {
       std::cerr << "nested call too deep\n";  // LCOV_EXCL_LINE
       return;                                 // LCOV_EXCL_LINE
@@ -121,10 +139,7 @@ void CallLogger::init_options() {
   for (size_t i = 0; i < N_IMPLS; ++i) {
     CallLogger::impl_cache_[i] = new CallLogger::Impl(i);
   }
-  // CallLogger::nested_level_ = 0;
   _init_options();
-  opt_logger_enabled = true;
-  LOG.enable();
 }
 
 
