@@ -1125,6 +1125,7 @@ void write_to_stdout(const std::string& str) {
     if (!writer) PyErr_Clear();
   }
   if (writer) {
+    HidePythonError h;
     writer.call({ ostring(str) });
   }
   else {

@@ -95,7 +95,7 @@ class Logger {
     py::oobj get_pylogger() const;
 
   private:
-    void end_section();
+    void end_section() noexcept;
     void emit(std::string&& msg, bool as_warning);
 
     friend class Section;

@@ -19,9 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include "parallel/api.h"
 #include "python/string.h"
 #include "python/xobject.h"
+#include "utils/assert.h"
 #include "utils/logger.h"
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
@@ -95,7 +97,10 @@ namespace log {
 //------------------------------------------------------------------------------
 
 Section::Section(Logger* logger)
-  : logger_(logger) {}
+  : logger_(logger)
+{
+  xassert(logger);
+}
 
 
 Section::~Section() {
@@ -114,7 +119,13 @@ Message::Message(Logger* logger, bool warn)
 
 
 Message::~Message() {
-  logger_->emit(std::move(out_).str(), emit_as_warning_);
+  try {
+    out_.rdbuf();
+    logger_->emit(std::move(out_).str(), emit_as_warning_);
+  }
+  catch (...) {
+    std::cerr << "unable to emit log message\n";
+  }
 }
 
 
@@ -230,8 +241,10 @@ py::oobj Logger::get_pylogger() const {
 
 
 
-void Logger::end_section() {
-  if (enabled_) {
+void Logger::end_section() noexcept {
+  if (enabled_ && prefix_.size() >= 2) {
+    // Presumably, string::resize() does not throw when the size is
+    // being decreased.
     prefix_.resize(prefix_.size() - 2);
   }
 }

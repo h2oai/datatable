@@ -27,6 +27,7 @@
 #include <unordered_map>   // std::unordered_map
 #include <utility>         // std::pair, std::make_pair, std::move
 #include "../datatable/include/datatable.h"
+#include "call_logger.h"
 #include "csv/reader.h"
 #include "datatablemodule.h"
 #include "expr/head_func.h"
@@ -296,6 +297,7 @@ static void initialize_options(const py::PKArgs& args) {
   py::Frame::init_display_options();
   dt::read::GenericReader::init_options();
   sort_init_options();
+  dt::CallLogger::init_options();
 }
 
 
