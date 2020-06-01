@@ -23,20 +23,21 @@
 #include <cmath>        // std::isinf, std::sqrt
 #include <limits>       // std::numeric_limits
 #include <type_traits>  // std::is_floating_point
+#include "column.h"
 #include "column/column_impl.h"
+#include "datatablemodule.h"
 #include "lib/parallel_hashmap/phmap.h"
+#include "ltype.h"
 #include "models/murmurhash.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
-#include "utils/assert.h"
-#include "utils/misc.h"
-#include "column.h"
-#include "datatablemodule.h"
 #include "rowindex.h"
 #include "sort.h"
 #include "stats.h"
 #include "stype.h"
+#include "utils/assert.h"
+#include "utils/misc.h"
 
 
 //------------------------------------------------------------------------------
@@ -1273,10 +1274,10 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
     case Stat::Max:
     case Stat::Mode: {
       switch (dt::stype_to_ltype(column->stype())) {
-        case LType::BOOL:
-        case LType::INT:  return pywrap_stat<int64_t>(stat);
-        case LType::REAL: return pywrap_stat<double>(stat);
-        case LType::STRING: return pywrap_stat<CString>(stat);
+        case dt::LType::BOOL:
+        case dt::LType::INT:  return pywrap_stat<int64_t>(stat);
+        case dt::LType::REAL: return pywrap_stat<double>(stat);
+        case dt::LType::STRING: return pywrap_stat<CString>(stat);
         default: return py::None();
       }
     }

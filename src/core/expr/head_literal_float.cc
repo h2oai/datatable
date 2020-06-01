@@ -22,6 +22,7 @@
 #include "column/const.h"
 #include "expr/head_literal.h"
 #include "expr/workframe.h"
+#include "ltype.h"
 namespace dt {
 namespace expr {
 

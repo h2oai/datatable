@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <memory>
 #include "column/range.h"
+#include "ltype.h"
 #include "parallel/api.h"
 #include "utils/exceptions.h"
 namespace dt {

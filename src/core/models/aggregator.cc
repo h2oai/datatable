@@ -20,15 +20,16 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <random>
+#include "column/func_unary.h"
+#include "datatablemodule.h"
 #include "frame/py_frame.h"
+#include "ltype.h"
 #include "models/aggregator.h"
 #include "models/utils.h"
+#include "options.h"
 #include "parallel/api.h"       // dt::parallel_for_static
 #include "progress/work.h"      // dt::progress::work
-#include "datatablemodule.h"
-#include "options.h"
 #include "sort.h"
-#include "column/func_unary.h"
 
 namespace py {
 
@@ -637,7 +638,7 @@ bool Aggregator<T>::group_2d_continuous() {
 template <typename T>
 bool Aggregator<T>::group_1d_categorical() {
   auto col = dt_cat->get_column(0);
-  xassert(col.ltype() == LType::STRING);
+  xassert(col.ltype() == dt::LType::STRING);
   auto res = group({col}, {SortFlag::NONE});
   RowIndex ri = std::move(res.first);
   Groupby gb = std::move(res.second);
@@ -681,8 +682,8 @@ template <typename T>
 bool Aggregator<T>::group_2d_categorical() {
   const Column& col0 = dt_cat->get_column(0);
   const Column& col1 = dt_cat->get_column(1);
-  xassert(col0.ltype() == LType::STRING);
-  xassert(col1.ltype() == LType::STRING);
+  xassert(col0.ltype() == dt::LType::STRING);
+  xassert(col1.ltype() == dt::LType::STRING);
 
   auto res = group({col0, col1},
                    {SortFlag::NONE, SortFlag::NONE});
@@ -740,7 +741,7 @@ template <typename T>
 bool Aggregator<T>::group_2d_mixed()
 {
   const Column& col0 = dt_cat->get_column(0);
-  xassert(col0.ltype() == LType::STRING);
+  xassert(col0.ltype() == dt::LType::STRING);
 
   auto res = group({col0}, {SortFlag::NONE});
   RowIndex ri = std::move(res.first);

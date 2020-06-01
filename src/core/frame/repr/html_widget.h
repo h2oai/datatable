@@ -22,6 +22,7 @@
 #ifndef dt_FRAME_REPR_HTML_WIDGET_h
 #define dt_FRAME_REPR_HTML_WIDGET_h
 #include "frame/repr/widget.h"
+#include "ltype.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "utils/terminal/terminal.h"

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,6 +22,7 @@
 #include <algorithm>                  // std::min, std::max
 #include "frame/repr/repr_options.h"
 #include "frame/repr/text_column.h"
+#include "ltype.h"
 #include "utils/assert.h"
 #include "encodings.h"
 #include "stype.h"

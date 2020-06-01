@@ -19,15 +19,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column.h"
 #include "column/isclose.h"
+#include "datatablemodule.h"
+#include "ltype.h"
 #include "expr/expr.h"
 #include "expr/head_func.h"
 #include "expr/workframe.h"
 #include "python/tuple.h"
-#include "utils/assert.h"
-#include "column.h"
-#include "datatablemodule.h"
 #include "stype.h"
+#include "utils/assert.h"
 namespace dt {
 namespace expr {
 

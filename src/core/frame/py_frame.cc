@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <iostream>
 #include "frame/py_frame.h"
+#include "ltype.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "stype.h"
@@ -623,7 +624,7 @@ oobj Frame::get_ltypes() const {
     py::otuple oltypes(dt->ncols());
     for (size_t i = 0; i < oltypes.size(); ++i) {
       dt::SType st = dt->get_column(i).stype();
-      oltypes.set(i, ltype_to_pyobj(stype_to_ltype(st)));
+      oltypes.set(i, dt::ltype_to_pyobj(stype_to_ltype(st)));
     }
     ltypes = std::move(oltypes).release();
   }

@@ -24,6 +24,7 @@
 #include "expr/head_frame.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
+#include "ltype.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "stype.h"

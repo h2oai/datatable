@@ -23,6 +23,7 @@
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
+#include "ltype.h"
 namespace dt {
 namespace expr {
 

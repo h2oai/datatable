@@ -115,8 +115,8 @@ class Column
   public:
     size_t nrows() const noexcept;
     size_t na_count() const;
-    dt::SType  stype() const noexcept;
-    LType  ltype() const noexcept;
+    dt::SType stype() const noexcept;
+    dt::LType ltype() const noexcept;
     size_t elemsize() const noexcept;
     bool   is_fixedwidth() const noexcept;
     bool   is_virtual() const noexcept;

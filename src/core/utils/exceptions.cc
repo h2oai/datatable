@@ -23,6 +23,7 @@
 #include <iostream>
 #include <errno.h>
 #include <string.h>
+#include "ltype.h"
 #include "parallel/api.h"
 #include "progress/progress_manager.h"
 #include "python/obj.h"
@@ -227,8 +228,8 @@ Error& Error::operator<<(dt::SType stype) {
   return *this;
 }
 
-Error& Error::operator<<(LType ltype) {
-  error << ltype_name(ltype);
+Error& Error::operator<<(dt::LType ltype) {
+  error << dt::ltype_name(ltype);
   return *this;
 }
 

@@ -21,15 +21,15 @@
 //------------------------------------------------------------------------------
 #include "expr/fbinary/bimaker.h"
 #include "expr/fbinary/bimaker_impl.h"
+#include "ltype.h"
 #include "python/args.h"
 #include "utils/macros.h"
 #if DT_OS_WINDOWS
   #undef copysign
 #endif
-
-
 namespace dt {
 namespace expr {
+
 
 
 static SType _resolve_math_stypes(SType stype1, SType stype2,

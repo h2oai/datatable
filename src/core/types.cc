@@ -19,20 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/obj.h"
-#include "utils/assert.h"
-#include "utils/misc.h"
-#include "types.h"
+#include "_dt.h"
+#include "ltype.h"
 #include "stype.h"
 
-static PyObject* py_ltype_objs[DT_LTYPES_COUNT];
-PyTypeObject* py_ltype;
 
-
-
-//==============================================================================
-// Static asserts
-//==============================================================================
 
 static_assert(INTPTR_MAX == INT64_MAX,
               "Only 64 bit platforms are supported.");
@@ -52,7 +43,7 @@ static_assert(sizeof(double) == 8, "double should be 8-byte");
 static_assert(sizeof(char) == sizeof(unsigned char), "char != uchar");
 static_assert(sizeof(char) == 1, "sizeof(char) != 1");
 
-static_assert(sizeof(LType) == 1, "LType does not fit in a byte");
+static_assert(sizeof(dt::LType) == 1, "LType does not fit in a byte");
 static_assert(sizeof(dt::SType) == 1, "SType does not fit in a byte");
 
 static_assert(static_cast<unsigned>(-1) - static_cast<unsigned>(-3) == 2,
@@ -62,43 +53,3 @@ static_assert(0-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
 
 static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
               "int64_t and Py_ssize_t should refer to the same type");
-
-
-
-//==============================================================================
-// Initialize auxiliary data structures
-//==============================================================================
-
-
-void init_py_ltype_objs(PyObject* ltype_enum)
-{
-  Py_INCREF(ltype_enum);
-  py_ltype = reinterpret_cast<PyTypeObject*>(ltype_enum);
-  for (size_t i = 0; i < DT_LTYPES_COUNT; ++i) {
-    // The call may raise an exception -- that's ok
-    py_ltype_objs[i] = PyObject_CallFunction(ltype_enum, "i", i);
-    if (py_ltype_objs[i] == nullptr) {
-      PyErr_Clear();
-      py_ltype_objs[i] = Py_None;
-    }
-  }
-}
-
-
-const char* ltype_name(LType lt) {
-  switch (lt) {
-    case LType::MU:       return "void";
-    case LType::BOOL:     return "boolean";
-    case LType::INT:      return "integer";
-    case LType::REAL:     return "float";
-    case LType::STRING:   return "string";
-    case LType::DATETIME: return "time";
-    case LType::DURATION: return "duration";
-    case LType::OBJECT:   return "object";
-    default:              return "---";  // LCOV_EXCL_LINE
-  }
-}
-
-py::oobj ltype_to_pyobj(LType ltype) {
-  return py::oobj(py_ltype_objs[static_cast<uint8_t>(ltype)]);
-}

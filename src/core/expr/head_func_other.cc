@@ -24,6 +24,7 @@
 #include "expr/expr.h"
 #include "expr/head_func_other.h"
 #include "expr/workframe.h"
+#include "ltype.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
