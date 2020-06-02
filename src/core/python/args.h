@@ -120,6 +120,7 @@ class PKArgs {
     // or "Class.foo()".
     const char* get_long_name() const;
 
+    const char* get_class_name() const;
     const char* get_short_name() const;
     const char* get_docstring() const;
 

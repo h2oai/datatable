@@ -40,17 +40,20 @@ class CallLogger {
     Impl* impl_;
 
   public:
-    CallLogger(const py::PKArgs&) noexcept;
-    CallLogger(const py::PKArgs&, PyObject* pyargs) noexcept;
-    CallLogger(const py::PKArgs&, PyObject* pyargs, PyObject* pykwds) noexcept;
+    CallLogger(CallLogger&&);
     CallLogger(const CallLogger&) = delete;
-    CallLogger(CallLogger&&) = delete;
     ~CallLogger();
 
-    void on_exception_raised(const std::exception&);
+    static CallLogger function(const py::PKArgs*, PyObject* pyargs, PyObject* pykwds) noexcept;
+    static CallLogger method(const py::PKArgs*, PyObject* pythis, PyObject* pyargs, PyObject* pykwds) noexcept;
+    static CallLogger dealloc(PyObject* pythis) noexcept;
+
 
     // Called once during module initialization
     static void init_options();
+
+  private:
+    CallLogger() noexcept;  // used by static constructors
 };
 
 

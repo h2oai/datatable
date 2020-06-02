@@ -122,7 +122,7 @@ Message::~Message() {
   try {
     logger_->emit(std::move(out_).str(), emit_as_warning_);
   }
-  catch (const std::exception& e) {
+  catch (...) {
     std::cerr << "unable to emit log message\n";
   }
 }

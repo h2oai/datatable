@@ -18,6 +18,7 @@
 #include <cstring>    // std::memcpy, std::memset, std::strrchr
 #include <vector>     // std::vector
 #include <Python.h>
+#include "call_logger.h"
 #include "python/args.h"
 #include "python/obj.h"
 #include "utils/assert.h"
@@ -207,6 +208,7 @@ PyTypeObject XObject<D>::type;
 
 template <typename T, void(T::*METH)()>
 void _safe_dealloc(PyObject* self) noexcept {
+  auto cl = dt::CallLogger::dealloc(self);
   try {
     (static_cast<T*>(self)->*METH)();
   }
@@ -325,6 +327,7 @@ PyObject* _call_method(
     oobj(T::*fn)(const PKArgs&), PKArgs& ARGS,
     PyObject* obj, PyObject* args, PyObject* kwds) noexcept
 {
+  auto cl = dt::CallLogger::method(&ARGS, obj, args, kwds);
   try {
     ARGS.bind(args, kwds);
     T* tobj = reinterpret_cast<T*>(obj);
@@ -342,6 +345,7 @@ PyObject* _call_method(
     void(T::*fn)(const PKArgs&), PKArgs& ARGS,
     PyObject* obj, PyObject* args, PyObject* kwds) noexcept
 {
+  auto cl = dt::CallLogger::method(&ARGS, obj, args, kwds);
   try {
     ARGS.bind(args, kwds);
     T* tobj = static_cast<T*>(obj);
@@ -360,6 +364,7 @@ int _call_method_int(
     void(T::*fn)(const PKArgs&), PKArgs& ARGS,
     PyObject* obj, PyObject* args, PyObject* kwds) noexcept
 {
+  auto cl = dt::CallLogger::method(&ARGS, obj, args, kwds);
   try {
     ARGS.bind(args, kwds);
     T* tobj = static_cast<T*>(obj);

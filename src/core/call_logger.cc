@@ -101,33 +101,117 @@ static void _init_options() {
 // CallLogger::Impl
 //------------------------------------------------------------------------------
 
+enum class CallType : size_t {
+  UNKNOWN = 0,
+  FUNCTION = 1,
+  METHOD = 2,
+  DEALLOC = 3,
+  GET = 4,
+  SET = 5,
+};
+
+
 class CallLogger::Impl {
   using stime_t = std::chrono::time_point<std::chrono::steady_clock>;
   private:
-    std::string indent_;
-    stime_t     t_start_;
-    const char* name_;
+    std::string       indent_;
+    CallType          type_;
+    const py::PKArgs* pkargs_;
+    const PyObject*   pythis_;
+    const PyObject*   pyargs_;
+    const PyObject*   pykwds_;
+    stime_t           t_start_;
+    bool              header_printed_;
+    size_t : 56;
 
   public:
     Impl(size_t i)
       : indent_(2*i, ' ') {}
 
-    void init_from(const py::PKArgs& pkargs) noexcept {
-      t_start_ = std::chrono::steady_clock::now();
-      name_ = pkargs.get_long_name();
+    void init_function(const py::PKArgs* pkargs,
+                       PyObject* pyargs, PyObject* pykwds) noexcept {
+      type_ = CallType::FUNCTION;
+      pkargs_ = pkargs;
+      pyargs_ = pyargs;
+      pykwds_ = pykwds;
+      init_common();
+    }
+
+    void init_method(const py::PKArgs* pkargs, PyObject* pythis,
+                     PyObject* pyargs, PyObject* pykwds) noexcept {
+      type_ = CallType::METHOD;
+      pkargs_ = pkargs;
+      pythis_ = pythis;
+      pyargs_ = pyargs;
+      pykwds_ = pykwds;
+      init_common();
+    }
+
+    void init_dealloc(PyObject* pythis) noexcept {
+      type_ = CallType::DEALLOC;
+      pythis_ = pythis;
+      init_common();
     }
 
     void finish() noexcept {
       try {
         stime_t t_end = std::chrono::steady_clock::now();
         std::chrono::duration<double> diff = t_end - t_start_;
-        LOG->info() << indent_ << name_
-                    << " # "
-                    << (PyErr_Occurred()? "failed" : "finished")
-                    << " in " << diff.count() << " s";
+        auto msg = LOG->info();
+        msg << indent_;
+        if (header_printed_) {
+          msg << '}';
+        } else {
+          print_name(msg);
+          print_arguments(msg);
+        }
+        print_result(msg, diff.count());
+        type_ = CallType::UNKNOWN;
       } catch (...) {
-        std::cerr << indent_ << name_ << " # log failed\n";
+        std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
       }
+    }
+
+  private:
+    void init_common() noexcept {
+      t_start_ = std::chrono::steady_clock::now();
+      header_printed_ = false;
+    }
+
+    void print_name(log::Message& out) {
+      switch (type_) {
+        case CallType::FUNCTION: {
+          out << "dt." << pkargs_->get_short_name();
+          break;
+        }
+        case CallType::METHOD: {
+          out << pkargs_->get_class_name() << '.' << pkargs_->get_short_name();
+          break;
+        }
+        case CallType::DEALLOC: {
+          const char* full_class_name =  pythis_->ob_type->tp_name;
+          const char* class_name = std::strrchr(full_class_name, '.');
+          if (class_name) class_name++;
+          else            class_name = full_class_name;
+          out << '~' << class_name;
+          break;
+        }
+        default: {
+          out << "<unknown>";
+          break;
+        }
+      }
+    }
+
+    void print_arguments(log::Message& out) {
+      (void)opt_report_args;
+      out << "()";  // for now
+    }
+
+    void print_result(log::Message& out, double dtime) {
+      out << " # "
+          << (PyErr_Occurred()? "failed" : "done")
+          << " in " << dtime << " s";
     }
 };
 
@@ -142,17 +226,49 @@ std::vector<CallLogger::Impl*> CallLogger::impl_cache_;
 size_t CallLogger::nested_level_ = 0;
 
 
-CallLogger::CallLogger(const py::PKArgs& pkargs) noexcept {
+CallLogger::CallLogger() noexcept {
   impl_ = nullptr;
   if (LOG) {
-    if (nested_level_ == impl_cache_.size()) {
-      std::cerr << "nested call too deep\n";  // LCOV_EXCL_LINE
-      return;                                 // LCOV_EXCL_LINE
+    if (nested_level_ < impl_cache_.size()) {
+      impl_ = impl_cache_[nested_level_++];
     }
-    impl_ = impl_cache_[nested_level_++];
-    impl_->init_from(pkargs);
+    else {
+      std::cerr << "nested call too deep\n";  // LCOV_EXCL_LINE
+    }
   }
 }
+
+
+CallLogger CallLogger::function(
+    const py::PKArgs* pkargs, PyObject* pyargs, PyObject* pykwds) noexcept
+{
+  CallLogger cl;
+  if (cl.impl_) cl.impl_->init_function(pkargs, pyargs, pykwds);
+  return cl;
+}
+
+
+CallLogger CallLogger::method(const py::PKArgs* pkargs,
+    PyObject* pythis, PyObject* pyargs, PyObject* pykwds) noexcept
+{
+  CallLogger cl;
+  if (cl.impl_) cl.impl_->init_method(pkargs, pythis, pyargs, pykwds);
+  return cl;
+}
+
+
+CallLogger CallLogger::dealloc(PyObject* pythis) noexcept {
+  CallLogger cl;
+  if (cl.impl_) cl.impl_->init_dealloc(pythis);
+  return cl;
+}
+
+
+CallLogger::CallLogger(CallLogger&& other) {
+  impl_ = other.impl_;
+  other.impl_ = nullptr;
+}
+
 
 CallLogger::~CallLogger() {
   if (impl_) {

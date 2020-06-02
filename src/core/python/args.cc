@@ -70,6 +70,10 @@ void PKArgs::set_class_name(const char* name) {
   cls_name = p? p + 1 : name;
 }
 
+const char* PKArgs::get_class_name() const {
+  return cls_name;
+}
+
 const char* PKArgs::get_short_name() const {
   return fun_name;
 }
@@ -177,7 +181,7 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
 PyObject* PKArgs::exec_function(
     PyObject* args, PyObject* kwds, oobj (*func)(const PKArgs&)) noexcept
 {
-  dt::CallLogger cg(*this);
+  auto cl = dt::CallLogger::function(this, args, kwds);
   try {
     bind(args, kwds);
     oobj res = func(*this);
@@ -194,7 +198,7 @@ PyObject* PKArgs::exec_function(
 PyObject* PKArgs::exec_function(
     PyObject* args, PyObject* kwds, void (*func)(const PKArgs&)) noexcept
 {
-  dt::CallLogger cg(*this);
+  auto cl = dt::CallLogger::function(this, args, kwds);
   try {
     bind(args, kwds);
     func(*this);
