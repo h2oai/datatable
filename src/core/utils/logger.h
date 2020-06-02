@@ -177,7 +177,7 @@ struct plural {
 template <> Message& Message::operator<<(const ff&);
 template <> Message& Message::operator<<(const plural&);
 template <> Message& Message::operator<<(const char&);
-
+template <> Message& Message::operator<<(const CString&);
 
 
 }}  // namespace dt::log

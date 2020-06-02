@@ -185,6 +185,13 @@ Message& Message::operator<<(const char& c) {
 }
 
 
+template <>
+Message& Message::operator<<(const CString& str) {
+  out_.write(str.ch, str.size);
+  return *this;
+}
+
+
 
 
 //------------------------------------------------------------------------------
