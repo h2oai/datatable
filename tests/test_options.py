@@ -75,7 +75,6 @@ def test_options_all():
     }
     assert set(dir(dt.options.debug)) == {
         "logger",
-        "enabled"
     }
 
 
@@ -254,15 +253,15 @@ def test_frame_names_auto_prefix():
 # .debug options
 #-------------------------------------------------------------------------------
 
-def test_debug_enabled(capsys):
-    assert dt.options.debug.enabled is False
-    with dt.options.debug.context(enabled=True):
-        assert dt.options.debug.enabled is True
-        assert dt.options.debug.logger is None
-        DT = dt.cbind([])
+def test_debug_logger_default(capsys):
+    assert dt.options.debug.logger is None
+    with dt.options.debug.context(logger="default"):
+        assert dt.options.debug.logger
+        DT = dt.Frame(range(100000))
         out, err = capsys.readouterr()
+        print(out)
         assert not err
-        assert "cbind() # done in " in out
+        assert "Frame.__init__() # done in " in out
 
         with pytest.raises(TypeError):
             dt.cbind(3)
@@ -271,8 +270,8 @@ def test_debug_enabled(capsys):
         assert "cbind() # failed in " in out
 
 
-def test_debug_logger():
-    class L:
+def test_debug_logger_object():
+    class CustomLogger:
         def __init__(self):
             self.msg = ""
 
@@ -281,10 +280,9 @@ def test_debug_logger():
             self.msg += "\n"
 
     assert dt.options.debug.logger is None
-    logger = L()
+    logger = CustomLogger()
     with dt.options.debug.context(logger=logger):
         assert dt.options.debug.logger is logger
-        assert dt.options.debug.enabled is True
 
         DT = dt.rbind([])
         assert "rbind() # done in" in logger.msg

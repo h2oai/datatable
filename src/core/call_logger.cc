@@ -33,7 +33,7 @@ namespace dt {
 // down (which will result in a crash, since Logger tries to DECREF
 // a PyObject that it owns).
 //
-static log::Logger* LOG = nullptr;
+static log::Logger* LOG = new log::Logger;
 static constexpr size_t N_IMPLS = 10;
 
 
@@ -45,52 +45,33 @@ static bool opt_report_args = false;
 
 static void _init_options() {
   register_option(
-    "debug.enabled",
-    [] {
-      return LOG? py::True() : py::False();
-    },
-    [](const py::Arg& arg) {
-      bool value = arg.to_bool_strict();
-      if (value) {    // debug.enabled = True
-        if (!LOG) {
-          LOG = new log::Logger;
-          LOG->enable();
-        }
-      }
-      else {          // debug.enabled = False
-        if (LOG) {
-          delete LOG;
-          LOG = nullptr;
-        }
-      }
-    },
-    "If True, then calls to all C++ core functions will be timed\n"
-    "and reported."
-  );
-
-  register_option(
     "debug.logger",
     [] {
-      return LOG? LOG->get_pylogger(false)
-                : py::None();
+      return LOG->get_pylogger(true);
     },
     [](const py::Arg& arg) {
       if (arg.is_none()) {    // debug.logger = None
-        if (LOG) {
-          LOG->use_pylogger(py::None());
+        LOG->disable();
+      }
+      else if (arg.is_string()) {
+        auto arg_str = arg.to_string();
+        if (arg_str == "default") {
+          LOG->enable();
+        } else {
+          throw ValueError()
+              << "Invalid value for `" << arg.name() << "`: "  << arg_str;
         }
       }
       else {                  // debug.logger = <object>
-        if (!LOG) {
-          LOG = new log::Logger;
-        }
         LOG->use_pylogger(arg.to_oobj());
       }
     },
     "The logger object used for reporting calls to datatable core\n"
-    "functions. If None, then messages will be sent directly to\n"
-    "python stdout. Any object implementing the `.debug(msg)`\n"
-    "method can be used as a logger.\n"
+    "functions. If None, then logging is disabled (this is the\n"
+    "default).\n\n"
+    "Setting this option to 'default' will use the built-in\n"
+    "datatable logger. Otherwise you can use any other object\n"
+    "that implements a `.debug(msg)` method.\n"
   );
 }
 
@@ -159,6 +140,14 @@ class CallLogger::Impl {
       pythis_ = pythis;
       gsargs_ = static_cast<const py::GSArgs*>(closure);
       init_common();
+    }
+
+    void emit_header() {
+      if (header_printed_) return;
+      auto msg = LOG->info();
+      print_name(msg);
+      msg << " {";
+      header_printed_ = true;
     }
 
     void finish() noexcept {
@@ -242,11 +231,14 @@ size_t CallLogger::nested_level_ = 0;
 
 CallLogger::CallLogger() noexcept {
   impl_ = nullptr;
-  if (LOG) {
+  if (LOG->enabled()) {
     if (nested_level_ < impl_cache_.size()) {
+      if (nested_level_ > 0) {
+        impl_cache_[nested_level_ - 1]->emit_header();
+      }
       impl_ = impl_cache_[nested_level_++];
     }
-    else {
+    else if (nested_level_) {
       std::cerr << "nested call too deep\n";  // LCOV_EXCL_LINE
     }
   }
