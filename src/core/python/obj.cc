@@ -995,6 +995,11 @@ ostring _obj::str() const {
 }
 
 
+ostring _obj::repr() const {
+  return ostring::from_new_reference(PyObject_Repr(v));
+}
+
+
 PyTypeObject* _obj::typeobj() const noexcept {
   return Py_TYPE(v);
 }
