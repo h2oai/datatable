@@ -25,6 +25,7 @@
 #include "options.h"
 #include "python/args.h"
 #include "python/bool.h"
+#include "python/string.h"
 #include "utils/logger.h"   // dt::log::Logger
 namespace dt {
 
@@ -34,7 +35,13 @@ namespace dt {
 // a PyObject that it owns).
 //
 static log::Logger* LOG = new log::Logger;
+
+// Number of `CallLogger::Impl`s in the cache. Normally we shouldn't
+// see calls that are more than 2 levels deep, but who knows what
+// the future will hold.
+//
 static constexpr size_t N_IMPLS = 10;
+
 
 
 //------------------------------------------------------------------------------
@@ -50,19 +57,19 @@ static void _init_options() {
       return LOG->get_pylogger(true);
     },
     [](const py::Arg& arg) {
-      if (arg.is_none()) {    // debug.logger = None
+      if (arg.is_none()) {             // debug.logger = None
         LOG->disable();
       }
       else if (arg.is_string()) {
         auto arg_str = arg.to_string();
-        if (arg_str == "default") {
+        if (arg_str == "default") {    // debug.logger = "default"
           LOG->enable();
-        } else {
+        } else {                       // debug.logger = <some other string>
           throw ValueError()
               << "Invalid value for `" << arg.name() << "`: "  << arg_str;
         }
       }
-      else {                  // debug.logger = <object>
+      else {                           // debug.logger = <object>
         LOG->use_pylogger(arg.to_oobj());
       }
     },
@@ -92,7 +99,8 @@ enum class CallType : size_t {
 };
 
 
-class CallLogger::Impl {
+class CallLogger::Impl
+{
   using stime_t = std::chrono::time_point<std::chrono::steady_clock>;
   private:
     std::string       indent_;
@@ -107,116 +115,156 @@ class CallLogger::Impl {
     size_t : 56;
 
   public:
-    Impl(size_t i)
-      : indent_(2*i, ' ') {}
+    Impl(size_t i);
+    void init_function(const py::PKArgs* pkargs, PyObject* pyargs, PyObject* pykwds) noexcept;
+    void init_method  (const py::PKArgs* pkargs, PyObject* pythis, PyObject* pyargs, PyObject* pykwds) noexcept;
+    void init_dealloc (PyObject* pythis) noexcept;
+    void init_getter  (PyObject* pythis, void* closure) noexcept;
 
-    void init_function(const py::PKArgs* pkargs,
-                       PyObject* pyargs, PyObject* pykwds) noexcept {
-      type_ = CallType::FUNCTION;
-      pkargs_ = pkargs;
-      pyargs_ = pyargs;
-      pykwds_ = pykwds;
-      init_common();
-    }
-
-    void init_method(const py::PKArgs* pkargs, PyObject* pythis,
-                     PyObject* pyargs, PyObject* pykwds) noexcept {
-      type_ = CallType::METHOD;
-      pkargs_ = pkargs;
-      pythis_ = pythis;
-      pyargs_ = pyargs;
-      pykwds_ = pykwds;
-      init_common();
-    }
-
-    void init_dealloc(PyObject* pythis) noexcept {
-      type_ = CallType::DEALLOC;
-      pythis_ = pythis;
-      init_common();
-    }
-
-    void init_getter(PyObject* pythis, void* closure) noexcept {
-      type_ = CallType::GET;
-      pythis_ = pythis;
-      gsargs_ = static_cast<const py::GSArgs*>(closure);
-      init_common();
-    }
-
-    void emit_header() {
-      if (header_printed_) return;
-      auto msg = LOG->info();
-      print_name(msg);
-      msg << " {";
-      header_printed_ = true;
-    }
-
-    void finish() noexcept {
-      if (!LOG) return;
-      try {
-        stime_t t_end = std::chrono::steady_clock::now();
-        std::chrono::duration<double> diff = t_end - t_start_;
-        auto msg = LOG->info();
-        msg << indent_;
-        if (header_printed_) {
-          msg << '}';
-        } else {
-          print_name(msg);
-        }
-        print_result(msg, diff.count());
-        type_ = CallType::UNKNOWN;
-      } catch (...) {
-        std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
-      }
-    }
+    void emit_header() noexcept;
+    void finish() noexcept;
 
   private:
-    void init_common() noexcept {
-      t_start_ = std::chrono::steady_clock::now();
-      header_printed_ = false;
-    }
+    void init_common() noexcept;
 
-    void print_name(log::Message& out) {
-      switch (type_) {
-        case CallType::FUNCTION: {
-          out << "dt." << pkargs_->get_short_name();
-          print_arguments(out);
-          break;
-        }
-        case CallType::METHOD: {
-          out << pkargs_->get_class_name() << '.' << pkargs_->get_short_name();
-          print_arguments(out);
-          break;
-        }
-        case CallType::DEALLOC: {
-          const char* full_class_name =  pythis_->ob_type->tp_name;
-          const char* class_name = std::strrchr(full_class_name, '.');
-          if (class_name) class_name++;
-          else            class_name = full_class_name;
-          out << '~' << class_name << "()";
-          break;
-        }
-        case CallType::GET: {
-          out << gsargs_->class_name << '.' << gsargs_->name;
-          break;
-        }
-        default: {
-          out << "<unknown>";
-          break;
-        }
-      }
-    }
-
-    void print_arguments(log::Message& out) {
-      (void)opt_report_args;
-      out << "()";  // for now
-    }
-
-    void print_result(log::Message& out, double dtime) {
-      out << " # "
-          << (PyErr_Occurred()? "failed" : "done")
-          << " in " << dtime << " s";
-    }
+    void print_name(log::Message&);
+    void print_arguments(log::Message&);
+    void print_result(log::Message&, double elapsed_time);
 };
+
+
+
+//---- Constructors ------------------------------------------------------------
+
+CallLogger::Impl::Impl(size_t i)
+    : indent_(2*i, ' ') {}
+
+
+void CallLogger::Impl::init_common() noexcept {
+  t_start_ = std::chrono::steady_clock::now();
+  header_printed_ = false;
+}
+
+
+void CallLogger::Impl::init_function(
+    const py::PKArgs* pkargs, PyObject* pyargs, PyObject* pykwds) noexcept
+{
+  type_ = CallType::FUNCTION;
+  pkargs_ = pkargs;
+  pyargs_ = pyargs;
+  pykwds_ = pykwds;
+  init_common();
+}
+
+
+void CallLogger::Impl::init_method(
+    const py::PKArgs* pkargs, PyObject* pythis, PyObject* pyargs,
+    PyObject* pykwds) noexcept
+{
+  type_ = CallType::METHOD;
+  pkargs_ = pkargs;
+  pythis_ = pythis;
+  pyargs_ = pyargs;
+  pykwds_ = pykwds;
+  init_common();
+}
+
+
+void CallLogger::Impl::init_dealloc(PyObject* pythis) noexcept {
+  type_ = CallType::DEALLOC;
+  pythis_ = pythis;
+  init_common();
+}
+
+
+void CallLogger::Impl::init_getter(PyObject* pythis, void* closure) noexcept {
+  type_ = CallType::GET;
+  pythis_ = pythis;
+  gsargs_ = static_cast<const py::GSArgs*>(closure);
+  init_common();
+}
+
+
+
+//---- Display -----------------------------------------------------------------
+
+void CallLogger::Impl::emit_header() noexcept {
+  if (header_printed_) return;
+  try {
+    auto msg = LOG->info();
+    print_name(msg);
+    msg << " {";
+    header_printed_ = true;
+  } catch (...) {
+    std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
+  }
+}
+
+
+void CallLogger::Impl::finish() noexcept {
+  if (!LOG) return;
+  try {
+    stime_t t_end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> diff = t_end - t_start_;
+    auto msg = LOG->info();
+    msg << indent_;
+    if (header_printed_) {
+      msg << '}';
+    } else {
+      print_name(msg);
+    }
+    print_result(msg, diff.count());
+    type_ = CallType::UNKNOWN;
+  } catch (...) {
+    std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
+  }
+}
+
+
+void CallLogger::Impl::print_name(log::Message& out) {
+  switch (type_) {
+    case CallType::FUNCTION: {
+      out << "dt." << pkargs_->get_short_name();
+      print_arguments(out);
+      break;
+    }
+    case CallType::METHOD: {
+      out << pkargs_->get_class_name() << '.' << pkargs_->get_short_name();
+      print_arguments(out);
+      break;
+    }
+    case CallType::DEALLOC: {
+      const char* full_class_name =  pythis_->ob_type->tp_name;
+      const char* class_name = std::strrchr(full_class_name, '.');
+      if (class_name) class_name++;
+      else            class_name = full_class_name;
+      out << '~' << class_name << "()";
+      break;
+    }
+    case CallType::GET: {
+      py::ostring this_repr = py::robj(pythis_).repr();
+      out << this_repr.to_cstring() << '.' << gsargs_->name;
+      break;
+    }
+    default: {
+      out << "<unknown>";
+      break;
+    }
+  }
+}
+
+
+void CallLogger::Impl::print_arguments(log::Message& out) {
+  (void)opt_report_args;
+  out << "()";  // for now
+}
+
+
+void CallLogger::Impl::print_result(log::Message& out, double elapsed_time) {
+  out << " # "
+      << (PyErr_Occurred()? "failed" : "done")
+      << " in " << elapsed_time << " s";
+}
 
 
 
