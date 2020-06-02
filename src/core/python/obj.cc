@@ -123,7 +123,7 @@ oobj::oobj(oobj&& other) {
 oobj& oobj::operator=(const oobj& other) {
   PyObject* t = v;
   v = other.v;
-  Py_XINCREF(other.v);
+  Py_XINCREF(v);
   Py_XDECREF(t);
   return *this;
 }

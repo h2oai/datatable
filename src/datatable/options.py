@@ -268,5 +268,3 @@ class Option:
 
 options = Config(options={}, prefix="")
 core.initialize_options(options)
-
-options.register_option("core_logger", default=None, doc="[DEPRECATED]")

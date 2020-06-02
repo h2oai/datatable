@@ -28,7 +28,12 @@
 #include "utils/logger.h"   // dt::log::Logger
 namespace dt {
 
-static log::Logger LOG;
+// LOG must be allocated dynamically, to prevent it from being
+// destroyed at program exit after python runtime has already shut
+// down (which will result in a crash, since Logger tries to DECREF
+// a PyObject that it owns).
+//
+static log::Logger* LOG = nullptr;
 static constexpr size_t N_IMPLS = 10;
 
 
@@ -40,14 +45,24 @@ static bool opt_report_args = false;
 
 static void _init_options() {
   register_option(
-    "debug.logger_enabled",
+    "debug.enabled",
     [] {
-      return py::obool(LOG.enabled());
+      return LOG? py::True() : py::False();
     },
-    [](const py::Arg& value) {
-      bool enabled = value.to_bool_strict();
-      if (enabled) LOG.enable();
-      else         LOG.disable();
+    [](const py::Arg& arg) {
+      bool value = arg.to_bool_strict();
+      if (value) {    // debug.enabled = True
+        if (!LOG) {
+          LOG = new log::Logger;
+          LOG->enable();
+        }
+      }
+      else {          // debug.enabled = False
+        if (LOG) {
+          delete LOG;
+          LOG = nullptr;
+        }
+      }
     },
     "If True, then calls to all C++ core functions will be timed\n"
     "and reported."
@@ -56,10 +71,21 @@ static void _init_options() {
   register_option(
     "debug.logger",
     [] {
-      return LOG.get_pylogger(false);
+      return LOG? LOG->get_pylogger(false)
+                : py::None();
     },
-    [](const py::Arg& value) {
-      LOG.use_pylogger(value.to_oobj_or_none());
+    [](const py::Arg& arg) {
+      if (arg.is_none()) {    // debug.logger = None
+        if (LOG) {
+          LOG->use_pylogger(py::None());
+        }
+      }
+      else {                  // debug.logger = <object>
+        if (!LOG) {
+          LOG = new log::Logger;
+        }
+        LOG->use_pylogger(arg.to_oobj());
+      }
     },
     "The logger object used for reporting calls to datatable core\n"
     "functions. If None, then messages will be sent directly to\n"
@@ -95,10 +121,10 @@ class CallLogger::Impl {
       try {
         stime_t t_end = std::chrono::steady_clock::now();
         std::chrono::duration<double> diff = t_end - t_start_;
-        LOG.info() << indent_ << name_
-                   << " # "
-                   << (PyErr_Occurred()? "failed" : "finished")
-                   << " in " << diff.count() << " s";
+        LOG->info() << indent_ << name_
+                    << " # "
+                    << (PyErr_Occurred()? "failed" : "finished")
+                    << " in " << diff.count() << " s";
       } catch (...) {
         std::cerr << indent_ << name_ << " # log failed\n";
       }
@@ -118,7 +144,7 @@ size_t CallLogger::nested_level_ = 0;
 
 CallLogger::CallLogger(const py::PKArgs& pkargs) noexcept {
   impl_ = nullptr;
-  if (LOG.enabled()) {
+  if (LOG) {
     if (nested_level_ == impl_cache_.size()) {
       std::cerr << "nested call too deep\n";  // LCOV_EXCL_LINE
       return;                                 // LCOV_EXCL_LINE

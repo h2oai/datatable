@@ -120,10 +120,9 @@ Message::Message(Logger* logger, bool warn)
 
 Message::~Message() {
   try {
-    out_.rdbuf();
     logger_->emit(std::move(out_).str(), emit_as_warning_);
   }
-  catch (...) {
+  catch (const std::exception& e) {
     std::cerr << "unable to emit log message\n";
   }
 }
@@ -259,6 +258,7 @@ void Logger::emit(std::string&& msg, bool warning) {
   std::lock_guard<std::mutex> lock(dt::python_mutex());
   // Use user-defined logger object
   if (pylogger_) {
+    HidePythonError hpe;
     if (warning) {
       pylogger_.invoke("warning", py::ostring(msg));
     } else {
