@@ -245,7 +245,8 @@ PyObject* _safe_repr(PyObject* self) noexcept {
 
 
 template <class T, oobj(T::*METH)() const>
-PyObject* _safe_getter(PyObject* obj, void*) noexcept {
+PyObject* _safe_getter(PyObject* obj, void* closure) noexcept {
+  auto cl = dt::CallLogger::getter(obj, closure);
   try {
     T* t = static_cast<T*>(obj);
     return (t->*METH)().release();

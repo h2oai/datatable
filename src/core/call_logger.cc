@@ -120,6 +120,7 @@ class CallLogger::Impl {
     const PyObject*   pythis_;
     const PyObject*   pyargs_;
     const PyObject*   pykwds_;
+    const py::GSArgs* gsargs_;
     stime_t           t_start_;
     bool              header_printed_;
     size_t : 56;
@@ -153,7 +154,15 @@ class CallLogger::Impl {
       init_common();
     }
 
+    void init_getter(PyObject* pythis, void* closure) noexcept {
+      type_ = CallType::GET;
+      pythis_ = pythis;
+      gsargs_ = static_cast<const py::GSArgs*>(closure);
+      init_common();
+    }
+
     void finish() noexcept {
+      if (!LOG) return;
       try {
         stime_t t_end = std::chrono::steady_clock::now();
         std::chrono::duration<double> diff = t_end - t_start_;
@@ -163,7 +172,6 @@ class CallLogger::Impl {
           msg << '}';
         } else {
           print_name(msg);
-          print_arguments(msg);
         }
         print_result(msg, diff.count());
         type_ = CallType::UNKNOWN;
@@ -182,10 +190,12 @@ class CallLogger::Impl {
       switch (type_) {
         case CallType::FUNCTION: {
           out << "dt." << pkargs_->get_short_name();
+          print_arguments(out);
           break;
         }
         case CallType::METHOD: {
           out << pkargs_->get_class_name() << '.' << pkargs_->get_short_name();
+          print_arguments(out);
           break;
         }
         case CallType::DEALLOC: {
@@ -193,7 +203,11 @@ class CallLogger::Impl {
           const char* class_name = std::strrchr(full_class_name, '.');
           if (class_name) class_name++;
           else            class_name = full_class_name;
-          out << '~' << class_name;
+          out << '~' << class_name << "()";
+          break;
+        }
+        case CallType::GET: {
+          out << gsargs_->class_name << '.' << gsargs_->name;
           break;
         }
         default: {
@@ -219,7 +233,7 @@ class CallLogger::Impl {
 
 
 //------------------------------------------------------------------------------
-// CallLogger constructors
+// CallLogger main class
 //------------------------------------------------------------------------------
 
 std::vector<CallLogger::Impl*> CallLogger::impl_cache_;
@@ -263,8 +277,14 @@ CallLogger CallLogger::dealloc(PyObject* pythis) noexcept {
   return cl;
 }
 
+CallLogger CallLogger::getter(PyObject* pythis, void* closure) noexcept {
+  CallLogger cl;
+  if (cl.impl_) cl.impl_->init_getter(pythis, closure);
+  return cl;
+}
 
-CallLogger::CallLogger(CallLogger&& other) {
+
+CallLogger::CallLogger(CallLogger&& other) noexcept {
   impl_ = other.impl_;
   other.impl_ = nullptr;
 }

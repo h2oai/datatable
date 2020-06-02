@@ -115,7 +115,10 @@ Section::~Section() {
 //------------------------------------------------------------------------------
 
 Message::Message(Logger* logger, bool warn)
-  : logger_(logger), emit_as_warning_(warn) {}
+  : logger_(logger), emit_as_warning_(warn)
+{
+  xassert(logger);
+}
 
 
 Message::~Message() {

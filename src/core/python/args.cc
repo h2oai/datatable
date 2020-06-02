@@ -71,6 +71,7 @@ void PKArgs::set_class_name(const char* name) {
 }
 
 const char* PKArgs::get_class_name() const {
+  xassert(cls_name);
   return cls_name;
 }
 

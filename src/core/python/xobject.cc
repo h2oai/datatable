@@ -110,11 +110,12 @@ void XTypeMaker::add(destructor _dealloc, DestructorTag) {
 
 // setter = int(*)(PyObject*, PyObject*, void*)
 void XTypeMaker::add(getter getfunc, setter setfunc, GSArgs& args, GetSetTag) {
+  args.class_name = type->tp_name;
   get_defs.push_back(PyGetSetDef {
     const_cast<char*>(args.name),
     getfunc, setfunc,
     const_cast<char*>(args.doc),
-    nullptr  // closure
+    &args  // closure
   });
 }
 

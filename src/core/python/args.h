@@ -36,10 +36,14 @@ class GSArgs {
   public:
     const char* name;
     const char* doc;
+    const char* class_name;
     Arg _arg;
 
     GSArgs(const char* name_, const char* doc_=nullptr)
-      : name(name_), doc(doc_), _arg(std::string("`.") + name_ + "`") {}
+      : name(name_),
+        doc(doc_),
+        class_name(nullptr),
+        _arg(std::string("`.") + name_ + "`") {}
 };
 
 

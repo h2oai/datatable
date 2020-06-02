@@ -262,7 +262,7 @@ def test_debug_enabled(capsys):
         DT = dt.cbind([])
         out, err = capsys.readouterr()
         assert not err
-        assert "cbind() # finished in " in out
+        assert "cbind() # done in " in out
 
         with pytest.raises(TypeError):
             dt.cbind(3)
@@ -287,7 +287,7 @@ def test_debug_logger():
         assert dt.options.debug.enabled is True
 
         DT = dt.rbind([])
-        assert "rbind() # finished in" in logger.msg
+        assert "rbind() # done in" in logger.msg
         logger.msg = ""
 
         with pytest.raises(TypeError):
