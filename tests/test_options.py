@@ -1,8 +1,25 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
@@ -15,7 +32,7 @@ def test_options_all():
     assert repr(dt.options).startswith("datatable.options.")
     assert set(dir(dt.options)) == {
         "nthreads",
-        "core_logger",
+        "debug",
         "sort",
         "display",
         "frame",
@@ -55,6 +72,10 @@ def test_options_all():
         "min_duration",
         "updates_per_second",
         "allow_interruption",
+    }
+    assert set(dir(dt.options.debug)) == {
+        "logger",
+        "enabled"
     }
 
 
@@ -225,3 +246,50 @@ def test_frame_names_auto_prefix():
     assert f2.names == ("C0", "C1", "C2", "C3")
     with pytest.raises(TypeError):
         dt.options.frame.names_auto_prefix = 0
+
+
+
+
+#-------------------------------------------------------------------------------
+# .debug options
+#-------------------------------------------------------------------------------
+
+def test_debug_enabled(capsys):
+    assert dt.options.debug.enabled is False
+    with dt.options.debug.context(enabled=True):
+        assert dt.options.debug.enabled is True
+        assert dt.options.debug.logger is None
+        DT = dt.cbind([])
+        out, err = capsys.readouterr()
+        assert not err
+        assert "cbind() # finished in " in out
+
+        with pytest.raises(TypeError):
+            dt.cbind(3)
+        out, err = capsys.readouterr()
+        assert not err
+        assert "cbind() # failed in " in out
+
+
+def test_debug_logger():
+    class L:
+        def __init__(self):
+            self.msg = ""
+
+        def debug(self, msg):
+            self.msg += msg
+            self.msg += "\n"
+
+    assert dt.options.debug.logger is None
+    logger = L()
+    with dt.options.debug.context(logger=logger):
+        assert dt.options.debug.logger is logger
+        assert dt.options.debug.enabled is True
+
+        DT = dt.rbind([])
+        assert "rbind() # finished in" in logger.msg
+        logger.msg = ""
+
+        with pytest.raises(TypeError):
+            dt.rbind(4)
+        assert "rbind() # failed in" in logger.msg
