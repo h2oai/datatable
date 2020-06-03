@@ -229,16 +229,14 @@ void CallLogger::Impl::print_name(log::Message& out) {
       break;
     }
     case CallType::METHOD: {
-      out << pkargs_->get_class_name() << '.' << pkargs_->get_short_name();
+      py::ostring this_repr = py::robj(pythis_).repr();
+      out << this_repr.to_cstring() << '.' << pkargs_->get_short_name();
       print_arguments(out);
       break;
     }
     case CallType::DEALLOC: {
-      const char* full_class_name =  pythis_->ob_type->tp_name;
-      const char* class_name = std::strrchr(full_class_name, '.');
-      if (class_name) class_name++;
-      else            class_name = full_class_name;
-      out << '~' << class_name << "()";
+      py::ostring this_repr = py::robj(pythis_).repr();
+      out << this_repr.to_cstring() << ".__del__()";
       break;
     }
     case CallType::GET: {
