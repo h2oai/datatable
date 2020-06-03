@@ -387,8 +387,9 @@ int _call_method_int(
 
 template <class T>
 int _call_setter(void(T::*fn)(const Arg&), Arg& ARG,
-                 PyObject* obj, PyObject* value) noexcept
+                 PyObject* obj, PyObject* value, void* closure) noexcept
 {
+  auto cl = dt::CallLogger::setter(obj, value, closure);
   try {
     ARG.set(value);
     T* tobj = static_cast<T*>(obj);
@@ -442,8 +443,8 @@ static T _class_of_impl(R(T::*)(Args...) const);
 
 #define GETSET(GETFN, SETFN, ARGS)                                             \
     _safe_getter<CLASS_OF(GETFN), GETFN>,                                      \
-    [](PyObject* self, PyObject* value, void*) noexcept -> int {               \
-      return _call_setter(SETFN, ARGS._arg, self, value);                      \
+    [](PyObject* self, PyObject* value, void* closure) noexcept -> int {       \
+      return _call_setter(SETFN, ARGS._arg, self, value, closure);             \
     },                                                                         \
     ARGS, py::XTypeMaker::getset_tag
 
