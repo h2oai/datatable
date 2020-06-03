@@ -100,7 +100,7 @@ static void _init_options() {
       return py::oint(opt_truncate_length);
     },
     [](const py::Arg& arg) {
-      opt_truncate_length = std::min(arg.to_size_t(), size_t(10));
+      opt_truncate_length = std::max(arg.to_size_t(), size_t(10));
     },
     "When the `report_args` is on, this option will limit the\n"
     "display size of each argument in order to prevent potentially\n"

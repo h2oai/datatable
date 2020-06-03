@@ -255,6 +255,14 @@ def test_frame_names_auto_prefix():
 #-------------------------------------------------------------------------------
 # .debug options
 #-------------------------------------------------------------------------------
+class SimpleLogger:
+    def __init__(self):
+        self.msg = ""
+
+    def debug(self, msg):
+        self.msg += msg
+        self.msg += "\n"
+
 
 def test_debug_logger_default_without_report_args(capsys):
     assert dt.options.debug.logger is None
@@ -296,17 +304,27 @@ def test_debug_logger_default_with_report_args(capsys):
         assert "} # failed in" in out
 
 
+def test_debug_arg_max_size():
+    logger = SimpleLogger()
+    with dt.options.debug.context(logger=logger, report_args=True):
+        assert dt.options.debug.arg_max_size == 100
+        with dt.options.debug.context(arg_max_size=0):
+            assert dt.options.debug.arg_max_size == 10
+        with pytest.raises(ValueError):
+            dt.options.debug.arg_max_size = -1
+        with pytest.raises(TypeError):
+            dt.options.debug.arg_max_size = None
+
+        with dt.options.debug.context(arg_max_size=20):
+            logger.msg = ""
+            DT = dt.Frame(A=["abcdefghij"*100])
+            assert ".__init__(A=['abcdefghij...hij']) # done" in logger.msg
+
+
+
 def test_debug_logger_object():
-    class CustomLogger:
-        def __init__(self):
-            self.msg = ""
-
-        def debug(self, msg):
-            self.msg += msg
-            self.msg += "\n"
-
     assert dt.options.debug.logger is None
-    logger = CustomLogger()
+    logger = SimpleLogger()
     with dt.options.debug.context(logger=logger, report_args=True):
         assert dt.options.debug.logger is logger
 
@@ -345,3 +363,23 @@ def test_debug_logger_bad_repr():
             DT[A()]
         except TypeError:
             pass
+
+
+def test_debug_logger_no_deadlock():
+    # This custom logger invokes datatable functionality, which has
+    # the potential of causing deadlocks or deep recursive messages.
+    class MyLogger:
+        def __init__(self):
+            self.frame = dt.Frame(msg=[], stype=str)
+
+        def debug(self, msg):
+            self.frame.nrows += 1
+            self.frame[-1, 0] = msg
+
+    logger = MyLogger()
+    with dt.options.debug.context(logger=logger, report_args=True):
+        DT = dt.Frame(range(10))
+        DT.rbind(DT)
+        del DT[::2, :]
+
+    print(logger.frame)
