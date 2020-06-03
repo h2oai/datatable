@@ -41,8 +41,9 @@ oobj Frame::m__repr__() const {
   size_t nrows = dt->nrows();
   size_t ncols = dt->ncols();
   std::ostringstream out;
-  out << "<Frame [" << nrows << " row" << (nrows == 1? "" : "s")
-      << " x " << ncols << " col" << (ncols == 1? "" : "s") << "]>";
+  out << "<Frame#"
+      << std::hex << reinterpret_cast<size_t>(static_cast<const void*>(this))
+      << ' ' << std::dec << nrows << "x" << ncols << ">";
   return ostring(out.str());
 }
 
