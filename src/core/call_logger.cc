@@ -114,12 +114,13 @@ class CallLogger::Impl
     const PyObject*   pyvalue_;
     const py::GSArgs* gsargs_;
     stime_t           t_start_;
-    bool              header_printed_;
-    size_t : 56;
+    std::unique_ptr<log::Message> out_;
+    // bool              header_printed_;
+    // size_t : 56;
 
   public:
     Impl(size_t i);
-    void init_function(const py::PKArgs* pkargs, PyObject* pyargs, PyObject* pykwds) noexcept;
+    void init_function(const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept;
     void init_method  (const py::PKArgs* pkargs, PyObject* pythis, PyObject* pyargs, PyObject* pykwds) noexcept;
     void init_dealloc (PyObject* pythis) noexcept;
     void init_getter  (PyObject* pythis, void* closure) noexcept;
@@ -135,6 +136,7 @@ class CallLogger::Impl
 
     void print_name(log::Message&);
     void print_arguments(log::Message&);
+    void print_arguments(py::robj pyargs, py::robj pykwds);
     void print_assignment(log::Message&);
     void print_result(log::Message&, double elapsed_time);
 };
@@ -147,20 +149,15 @@ CallLogger::Impl::Impl(size_t i)
     : indent_(2*i, ' ') {}
 
 
-void CallLogger::Impl::init_common() noexcept {
-  t_start_ = std::chrono::steady_clock::now();
-  header_printed_ = false;
-}
-
-
 void CallLogger::Impl::init_function(
-    const py::PKArgs* pkargs, PyObject* pyargs, PyObject* pykwds) noexcept
+    const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept
 {
   type_ = CallType::FUNCTION;
-  pkargs_ = pkargs;
-  pyargs_ = pyargs;
-  pykwds_ = pykwds;
-  init_common();
+  out_ = LOG->pinfo();
+  *out_ << "dt." << pkargs->get_short_name() << '(';
+  print_arguments(args, kwds);
+  *out_ << ')';
+  t_start_ = std::chrono::steady_clock::now();
 }
 
 
@@ -222,18 +219,25 @@ void CallLogger::Impl::init_setitem(
 }
 
 
+// Must be called last in all `init_*()` static constructors
+void CallLogger::Impl::init_common() noexcept {
+  out_ = LOG->pinfo();
+  print_name(*out_);
+  t_start_ = std::chrono::steady_clock::now();
+}
+
+
 
 //---- Display -----------------------------------------------------------------
 
 void CallLogger::Impl::emit_header() noexcept {
-  if (header_printed_) return;
-  try {
-    auto msg = LOG->info();
-    print_name(msg);
-    msg << " {";
-    header_printed_ = true;
-  } catch (...) {
-    std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
+  if (out_) {
+    try {
+      *out_ << " {";
+      out_ = nullptr;  // the message is sent to Logger instance
+    } catch (...) {
+      std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
+    }
   }
 }
 
@@ -243,14 +247,12 @@ void CallLogger::Impl::finish() noexcept {
   try {
     stime_t t_end = std::chrono::steady_clock::now();
     std::chrono::duration<double> diff = t_end - t_start_;
-    auto msg = LOG->info();
-    msg << indent_;
-    if (header_printed_) {
-      msg << '}';
-    } else {
-      print_name(msg);
+    if (!out_) {
+      out_ = LOG->pinfo();
+      *out_ << indent_ << '}';
     }
-    print_result(msg, diff.count());
+    print_result(*out_, diff.count());
+    out_ = nullptr;
     type_ = CallType::UNKNOWN;
   } catch (...) {
     std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
@@ -259,6 +261,7 @@ void CallLogger::Impl::finish() noexcept {
 
 
 void CallLogger::Impl::print_name(log::Message& out) {
+  out << indent_;
   switch (type_) {
     case CallType::FUNCTION: {
       out << "dt." << pkargs_->get_short_name() << '(';
@@ -302,9 +305,44 @@ void CallLogger::Impl::print_name(log::Message& out) {
 }
 
 
+static void print_value(log::Message& out, py::robj value) {
+  auto repr = value.repr();
+  out << repr.to_cstring();
+}
+
+
 void CallLogger::Impl::print_arguments(log::Message& out) {
   (void)opt_report_args;
   (void)out;
+}
+
+
+void CallLogger::Impl::print_arguments(py::robj args, py::robj kwds) {
+  // if (!opt_report_args) return;
+  auto& out = *out_;
+  if (!args.is_undefined()) {
+    if (args.is_tuple()) {
+      auto arg_tuple = args.to_otuple();
+      size_t n = arg_tuple.size();
+      for (size_t i = 0; i < n; ++i) {
+        if (i) out << ", ";
+        print_value(out, arg_tuple[i]);
+      }
+    } else {
+      print_value(out, args);
+    }
+  }
+  if (!kwds.is_undefined()) {
+    if (!args.is_undefined()) out << ", ";
+    auto kwds_dict = kwds.to_rdict();
+    bool print_comma = false;
+    for (auto kv : kwds_dict) {
+      if (print_comma) out << ", ";
+      out << kv.first.to_cstring() << "=";
+      print_value(out, kv.second);
+      print_comma = true;
+    }
+  }
 }
 
 
@@ -350,7 +388,9 @@ CallLogger CallLogger::function(
     const py::PKArgs* pkargs, PyObject* pyargs, PyObject* pykwds) noexcept
 {
   CallLogger cl;
-  if (cl.impl_) cl.impl_->init_function(pkargs, pyargs, pykwds);
+  if (cl.impl_) {
+    cl.impl_->init_function(pkargs, py::robj(pyargs), py::robj(pykwds));
+  }
   return cl;
 }
 

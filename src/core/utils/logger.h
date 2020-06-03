@@ -86,6 +86,8 @@ class Logger {
     Section section(std::string title);
     Message info() const;
     Message warn() const;
+    // Same as `info()`, but allocated on the heap
+    std::unique_ptr<Message> pinfo() const;
 
     // Return true if the Logger is in "enabled" or "python" modes
     bool enabled() const;

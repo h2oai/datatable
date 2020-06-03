@@ -235,6 +235,11 @@ Message Logger::warn() const {
   return Message(const_cast<Logger*>(this), true);
 }
 
+std::unique_ptr<Message> Logger::pinfo() const {
+  return std::make_unique<Message>(const_cast<Logger*>(this), false);
+}
+
+
 
 bool Logger::enabled() const {
   return enabled_;
