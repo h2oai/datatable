@@ -137,6 +137,7 @@ class _obj {
     oobj call(otuple args, odict kws) const;
     ostring str() const;
     ostring repr() const;
+    ostring safe_repr() const;
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
     std::string typestr() const;
     size_t get_sizeof() const;

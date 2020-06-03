@@ -134,7 +134,7 @@ log::Message& log::Message::operator<<(const R& r) {
       return *this;
     }
   }
-  py::ostring repr = r.obj.repr();
+  py::ostring repr = r.obj.safe_repr();
   auto strobj = repr.to_cstring();
   if (static_cast<size_t>(strobj.size) <= opt_truncate_length) {
     out_.write(strobj.ch, strobj.size);

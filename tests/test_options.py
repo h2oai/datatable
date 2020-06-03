@@ -310,3 +310,18 @@ def test_debug_logger_invalid_option():
             assert False, "Did not raise AttributeError"
         except AttributeError:
             pass
+
+
+def test_debug_logger_bad_repr():
+    # This test checks that logging does not crash if a repr()
+    # function throws an error
+    class A:
+        def __repr__(self):
+            raise RuntimeError("Malformed repr")
+
+    with dt.options.debug.context(logger='default'):
+        DT = dt.Frame()
+        try:
+            DT[A()]
+        except TypeError:
+            pass

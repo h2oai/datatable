@@ -996,7 +996,19 @@ ostring _obj::str() const {
 
 
 ostring _obj::repr() const {
-  return ostring::from_new_reference(PyObject_Repr(v));
+  PyObject* reprobj = PyObject_Repr(v);
+  if (!reprobj) throw PyError();
+  return ostring::from_new_reference(reprobj);
+}
+
+
+ostring _obj::safe_repr() const {
+  PyObject* reprobj = PyObject_Repr(v);
+  if (!reprobj) {
+    PyErr_Clear();
+    return ostring("<?>");
+  }
+  return ostring::from_new_reference(reprobj);
 }
 
 
