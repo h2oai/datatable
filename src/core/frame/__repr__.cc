@@ -38,12 +38,15 @@ namespace py {
 
 
 oobj Frame::m__repr__() const {
-  size_t nrows = dt->nrows();
-  size_t ncols = dt->ncols();
   std::ostringstream out;
-  out << "<Frame#"
-      << std::hex << reinterpret_cast<size_t>(static_cast<const void*>(this))
-      << ' ' << std::dec << nrows << "x" << ncols << ">";
+  out << "<Frame#";
+  out << std::hex << reinterpret_cast<size_t>(static_cast<const void*>(this));
+  if (dt) {
+    // If __repr__() is called while the frame is being constructed (or
+    // destructed), then `dt` may be nullptr.
+    out << ' ' << std::dec << dt->nrows() << "x" << dt->ncols();
+  }
+  out << '>';
   return ostring(out.str());
 }
 
