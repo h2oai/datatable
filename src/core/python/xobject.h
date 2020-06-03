@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -220,6 +220,8 @@ void _safe_dealloc(PyObject* self) noexcept {
 
 template <typename T, py::oobj(T::*METH)()>
 PyObject* _safe_repr(PyObject* self) noexcept {
+  // Do not use CallLogger here, because it itself calls repr() on
+  // the arguments passed
   try {
     T* tself = static_cast<T*>(self);
     return (tself->*METH)().release();
@@ -233,6 +235,8 @@ PyObject* _safe_repr(PyObject* self) noexcept {
 
 template <typename T, py::oobj(T::*METH)() const>
 PyObject* _safe_repr(PyObject* self) noexcept {
+  // Do not use CallLogger here, because it itself calls repr() on
+  // the arguments passed
   try {
     T* tself = static_cast<T*>(self);
     return (tself->*METH)().release();
@@ -273,6 +277,7 @@ Py_ssize_t _safe_len(PyObject* obj) noexcept {
 
 template <typename T, py::oobj(T::*METH)(py::robj)>
 PyObject* _safe_getitem(PyObject* self, PyObject* key) noexcept {
+  auto cl = dt::CallLogger::getitem(self, key);
   try {
     T* tself = static_cast<T*>(self);
     return (tself->*METH)(py::robj(key)).release();

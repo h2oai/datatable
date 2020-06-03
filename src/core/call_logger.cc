@@ -96,6 +96,7 @@ enum class CallType : size_t {
   DEALLOC = 3,
   GET = 4,
   SET = 5,
+  GETITEM = 6,
 };
 
 
@@ -120,6 +121,7 @@ class CallLogger::Impl
     void init_method  (const py::PKArgs* pkargs, PyObject* pythis, PyObject* pyargs, PyObject* pykwds) noexcept;
     void init_dealloc (PyObject* pythis) noexcept;
     void init_getter  (PyObject* pythis, void* closure) noexcept;
+    void init_getitem (PyObject* pythis, PyObject* key) noexcept;
 
     void emit_header() noexcept;
     void finish() noexcept;
@@ -185,6 +187,14 @@ void CallLogger::Impl::init_getter(PyObject* pythis, void* closure) noexcept {
 }
 
 
+void CallLogger::Impl::init_getitem(PyObject* pythis, PyObject* key) noexcept {
+  type_ = CallType::GETITEM;
+  pythis_ = pythis;
+  pyargs_ = key;
+  init_common();
+}
+
+
 
 //---- Display -----------------------------------------------------------------
 
@@ -224,14 +234,16 @@ void CallLogger::Impl::finish() noexcept {
 void CallLogger::Impl::print_name(log::Message& out) {
   switch (type_) {
     case CallType::FUNCTION: {
-      out << "dt." << pkargs_->get_short_name();
+      out << "dt." << pkargs_->get_short_name() << '(';
       print_arguments(out);
+      out << ')';
       break;
     }
     case CallType::METHOD: {
       py::ostring this_repr = py::robj(pythis_).repr();
-      out << this_repr.to_cstring() << '.' << pkargs_->get_short_name();
+      out << this_repr.to_cstring() << '.' << pkargs_->get_short_name() << '(';
       print_arguments(out);
+      out << ')';
       break;
     }
     case CallType::DEALLOC: {
@@ -244,6 +256,13 @@ void CallLogger::Impl::print_name(log::Message& out) {
       out << this_repr.to_cstring() << '.' << gsargs_->name;
       break;
     }
+    case CallType::GETITEM: {
+      py::ostring this_repr = py::robj(pythis_).repr();
+      out << this_repr.to_cstring() << '[';
+      print_arguments(out);
+      out << ']';
+      break;
+    }
     default: {
       out << "<unknown>";
       break;
@@ -254,7 +273,7 @@ void CallLogger::Impl::print_name(log::Message& out) {
 
 void CallLogger::Impl::print_arguments(log::Message& out) {
   (void)opt_report_args;
-  out << "()";  // for now
+  (void)out;
 }
 
 
@@ -318,6 +337,12 @@ CallLogger CallLogger::dealloc(PyObject* pythis) noexcept {
 CallLogger CallLogger::getter(PyObject* pythis, void* closure) noexcept {
   CallLogger cl;
   if (cl.impl_) cl.impl_->init_getter(pythis, closure);
+  return cl;
+}
+
+CallLogger CallLogger::getitem(PyObject* pythis, PyObject* key) noexcept {
+  CallLogger cl;
+  if (cl.impl_) cl.impl_->init_getitem(pythis, key);
   return cl;
 }
 

@@ -14,8 +14,8 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include "python/xobject.h"
-
 namespace py {
+
 
 XTypeMaker::ConstructorTag XTypeMaker::constructor_tag;
 XTypeMaker::DestructorTag XTypeMaker::destructor_tag;
@@ -31,6 +31,7 @@ XTypeMaker::BuffersTag XTypeMaker::buffers_tag;
 XTypeMaker::IterTag XTypeMaker::iter_tag;
 XTypeMaker::NextTag XTypeMaker::next_tag;
 XTypeMaker::CallTag XTypeMaker::call_tag;
+
 
 
 XTypeMaker::XTypeMaker(PyTypeObject* t, size_t objsize) : type(t) {
@@ -106,8 +107,8 @@ void XTypeMaker::add(destructor _dealloc, DestructorTag) {
   type->tp_dealloc = _dealloc;
 }
 
-// getter = PyObject*(*)(PyObject*, void*)
 
+// getter = PyObject*(*)(PyObject*, void*)
 // setter = int(*)(PyObject*, PyObject*, void*)
 void XTypeMaker::add(getter getfunc, setter setfunc, GSArgs& args, GetSetTag) {
   args.class_name = type->tp_name;
@@ -232,5 +233,8 @@ void XTypeMaker::init_tp_as_mapping() {
   type->tp_as_mapping->mp_subscript = nullptr;
   type->tp_as_mapping->mp_ass_subscript = nullptr;
 }
+
+
+
 
 } // namespace py
