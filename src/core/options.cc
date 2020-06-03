@@ -52,6 +52,10 @@ struct config_option : public XObject<config_option> {
     arg = nullptr;
   }
 
+  oobj m__repr__() {
+    return ostring("<Option " + name.to_string() + ">");
+  }
+
   oobj get(const PKArgs&) {
     return getter();
   }
@@ -84,6 +88,7 @@ void config_option::impl_init_type(XTypeMaker& xt) {
 
   xt.add(CONSTRUCTOR(&co::m__init__, args___init__));
   xt.add(DESTRUCTOR(&co::m__dealloc__));
+  xt.add(METHOD__REPR__(&co::m__repr__));
   xt.add(GETTER(&co::get_name, args_name));
   xt.add(GETTER(&co::get_doc, args_doc));
   xt.add(GETTER(&co::get_default, args_default));

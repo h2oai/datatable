@@ -20,6 +20,7 @@
 #include "parallel/thread_worker.h"
 #include "progress/progress_manager.h"
 #include "python/_all.h"
+#include "python/arg.h"
 #include "utils/assert.h"
 #include "options.h"
 #include "utils/macros.h"
