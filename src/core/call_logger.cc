@@ -26,6 +26,7 @@
 #include "python/args.h"
 #include "python/bool.h"
 #include "python/string.h"
+#include "utils/function.h"
 #include "utils/logger.h"   // dt::log::Logger
 namespace dt {
 
@@ -209,6 +210,7 @@ class CallLogger::Impl
     void finish() noexcept;
 
   private:
+    void safe_init(dt::function<void()>) noexcept;
     void print_arguments(py::robj pyargs, py::robj pykwds);
 };
 
@@ -220,20 +222,27 @@ CallLogger::Impl::Impl(size_t i)
     : indent_(2*i, ' ') {}
 
 
-void CallLogger::Impl::init_function(
-    const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept
-{
+void CallLogger::Impl::safe_init(dt::function<void()> init) noexcept {
   try {
     t_start_ = stime_t();
     out_ = LOG->pinfo();
     *out_ << indent_;
-    *out_ << "dt." << pkargs->get_short_name() << '(';
-    print_arguments(args, kwds);
-    *out_ << ')';
+    init();
     t_start_ = std::chrono::steady_clock::now();
   } catch (...) {
     std::cerr << "... log failed\n";
   }
+}
+
+
+void CallLogger::Impl::init_function(
+    const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept
+{
+  safe_init([&] {
+    *out_ << "dt." << pkargs->get_short_name() << '(';
+    print_arguments(args, kwds);
+    *out_ << ')';
+  });
 }
 
 
@@ -241,113 +250,76 @@ void CallLogger::Impl::init_method(
     const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds)
     noexcept
 {
-  try {
-    t_start_ = stime_t();
-    out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << '.' << pkargs->get_short_name() << '(';
+  safe_init([&] {
+    *out_ << R(obj) << '.' << pkargs->get_short_name() << '(';
     print_arguments(args, kwds);
     *out_ << ')';
-    t_start_ = std::chrono::steady_clock::now();
-  } catch (...) {
-    std::cerr << "... log failed\n";
-  }
+  });
 }
 
 
 void CallLogger::Impl::init_dealloc(py::robj obj) noexcept {
-  try {
-    t_start_ = stime_t();
-    out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << ".__del__()";
-    t_start_ = std::chrono::steady_clock::now();
-  } catch (...) {
-    std::cerr << "... log failed\n";
-  }
+  safe_init([&] {
+    *out_ << R(obj) << ".__del__()";
+  });
 }
 
 
 void CallLogger::Impl::init_getset(
     py::robj obj, py::robj val, void* closure) noexcept
 {
-  try {
-    t_start_ = stime_t();
-    const auto gsargs = static_cast<const py::GSArgs*>(closure);
-    out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << '.' << gsargs->name;
+  const auto gsargs = static_cast<const py::GSArgs*>(closure);
+  safe_init([&] {
+    *out_ << R(obj) << '.' << gsargs->name;
     if (!val.is_undefined() && opt_report_args) {
       *out_ << " = " << R(val);
     }
-    t_start_ = std::chrono::steady_clock::now();
-  } catch (...) {
-    std::cerr << "... log failed\n";
-  }
+  });
 }
 
 
 void CallLogger::Impl::init_getsetitem(
     py::robj obj, py::robj key, py::robj val) noexcept
 {
-  try {
-    t_start_ = stime_t();
-    out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << '[';
+  safe_init([&] {
+    *out_ << R(obj) << '[';
     print_arguments(key, py::robj());
     *out_ << ']';
     if (!val.is_undefined() && opt_report_args) {
       *out_ << " = " << R(val);
     }
-    t_start_ = std::chrono::steady_clock::now();
-  } catch (...) {
-    std::cerr << "... log failed\n";
-  }
+  });
 }
 
 
 void CallLogger::Impl::init_getbuffer(
     py::robj obj, void* buf, int flags) noexcept
 {
-  try {
-    t_start_ = stime_t();
-    out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << ".__getbuffer__(";
+  safe_init([&] {
+    *out_ << R(obj) << ".__getbuffer__(";
     if (opt_report_args) {
       *out_ << buf << ", " << flags;
     }
     *out_ << ')';
-    t_start_ = std::chrono::steady_clock::now();
-  } catch (...) {
-    std::cerr << "... log failed\n";
-  }
+  });
 }
 
 
-void CallLogger::Impl::init_delbuffer(py::robj obj, void* buf) noexcept
-{
-  try {
-    t_start_ = stime_t();
-    out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << ".__releasebuffer__(";
+void CallLogger::Impl::init_delbuffer(py::robj obj, void* buf) noexcept {
+  safe_init([&] {
+    *out_ << R(obj) << ".__releasebuffer__(";
     if (opt_report_args) {
       *out_ << buf;
     }
     *out_ << ')';
-    t_start_ = std::chrono::steady_clock::now();
-  } catch (...) {
-    std::cerr << "... log failed\n";
-  }
+  });
 }
 
 
-void CallLogger::Impl::init_len(py::robj obj) noexcept
-{
-  try {
-    t_start_ = stime_t();
-    out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << ".__len__()";
-    t_start_ = std::chrono::steady_clock::now();
-  } catch (...) {
-    std::cerr << "... log failed\n";
-  }
+void CallLogger::Impl::init_len(py::robj obj) noexcept {
+  safe_init([&] {
+    *out_ << R(obj) << ".__len__()";
+  });
 }
 
 
