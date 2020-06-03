@@ -33,6 +33,7 @@ namespace dt {
   */
 class CallLogger {
   class Impl;
+  class Lock;
   private:
     static std::vector<Impl*> impl_cache_;
     static size_t nested_level_;
@@ -61,6 +62,18 @@ class CallLogger {
 
   private:
     CallLogger() noexcept;  // used by static constructors
+};
+
+
+
+// Stop issuing CallLogger messages for the duration of the lock
+class CallLoggerLock {
+  private:
+    bool enabled_previously_;
+
+  public:
+    CallLoggerLock();
+    ~CallLoggerLock();
 };
 
 

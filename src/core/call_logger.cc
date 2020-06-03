@@ -37,6 +37,13 @@ namespace dt {
 //
 static log::Logger* LOG = new log::Logger;
 
+
+// This flag is equal to `LOG->enabled()` in most cases, except when
+// we need to temporarily suspend logging (see Lock class).
+//
+static bool LOG_ENABLED = false;
+
+
 // Number of `CallLogger::Impl`s in the cache. Normally we shouldn't
 // see calls that are more than 2 levels deep, but who knows what
 // the future will hold.
@@ -55,16 +62,22 @@ static void _init_options() {
   register_option(
     "debug.logger",
     [] {
-      return LOG->get_pylogger(true);
+      return LOG_ENABLED? LOG->get_pylogger(true)
+                        : py::None();
     },
     [](const py::Arg& arg) {
+      if (LOG_ENABLED != LOG->enabled()) {
+        throw RuntimeError() << "Cannot change debug.logger at this time";
+      }
       if (arg.is_none()) {             // debug.logger = None
         LOG->disable();
+        LOG_ENABLED = false;
       }
       else if (arg.is_string()) {
         auto arg_str = arg.to_string();
         if (arg_str == "default") {    // debug.logger = "default"
           LOG->enable();
+          LOG_ENABLED = true;
         } else {                       // debug.logger = <some other string>
           throw ValueError()
               << "Invalid value for `" << arg.name() << "`: "  << arg_str;
@@ -72,6 +85,7 @@ static void _init_options() {
       }
       else {                           // debug.logger = <object>
         LOG->use_pylogger(arg.to_oobj());
+        LOG_ENABLED = true;
       }
     },
     "The logger object used for reporting calls to datatable core\n"
@@ -403,7 +417,7 @@ PyObject* CallLogger::DELITEM = reinterpret_cast<PyObject*>(0);
 
 CallLogger::CallLogger() noexcept {
   impl_ = nullptr;
-  if (LOG->enabled()) {
+  if (LOG_ENABLED) {
     if (nested_level_ < impl_cache_.size()) {
       if (nested_level_ > 0) {
         impl_cache_[nested_level_ - 1]->emit_header();
@@ -512,6 +526,22 @@ void CallLogger::init_options() {
     CallLogger::impl_cache_[i] = new CallLogger::Impl(i);
   }
   _init_options();
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// CallLoggerLock
+//------------------------------------------------------------------------------
+
+CallLoggerLock::CallLoggerLock() {
+  enabled_previously_ = LOG_ENABLED;
+  LOG_ENABLED = false;
+}
+
+CallLoggerLock::~CallLoggerLock() {
+  LOG_ENABLED = enabled_previously_;
 }
 
 

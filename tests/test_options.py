@@ -378,8 +378,8 @@ def test_debug_logger_no_deadlock():
 
     logger = MyLogger()
     with dt.options.debug.context(logger=logger, report_args=True):
+        logger.frame.nrows = 0
         DT = dt.Frame(range(10))
         DT.rbind(DT)
         del DT[::2, :]
-
-    print(logger.frame)
+        assert logger.frame.nrows == 4

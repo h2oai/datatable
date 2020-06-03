@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <iostream>
+#include "call_logger.h"
 #include "parallel/api.h"
 #include "python/string.h"
 #include "python/xobject.h"
@@ -283,7 +284,8 @@ void Logger::end_section() noexcept {
 
 
 void Logger::emit(std::string&& msg, bool warning) {
-  std::lock_guard<std::mutex> lock(dt::python_mutex());
+  std::lock_guard<std::mutex> pylock(dt::python_mutex());
+  CallLoggerLock loglock;
   // Use user-defined logger object
   if (pylogger_) {
     HidePythonError hpe;
