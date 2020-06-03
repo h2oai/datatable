@@ -270,6 +270,7 @@ PyObject* _safe_getter(PyObject* obj, void* closure) noexcept {
 
 template <typename T, size_t(T::*METH)() const>
 Py_ssize_t _safe_len(PyObject* obj) noexcept {
+  auto cl = dt::CallLogger::len(obj);
   try {
     T* t = static_cast<T*>(obj);
     return static_cast<Py_ssize_t>((t->*METH)());

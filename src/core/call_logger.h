@@ -51,6 +51,7 @@ class CallLogger {
     static CallLogger getsetitem(PyObject* pyobj, PyObject* key, PyObject* val) noexcept;
     static CallLogger getbuffer (PyObject* pyobj, Py_buffer* buf, int flags) noexcept;
     static CallLogger delbuffer (PyObject* pyobj, Py_buffer* buf) noexcept;
+    static CallLogger len       (PyObject* pyobj) noexcept;
 
     // Called once during module initialization
     static void init_options();

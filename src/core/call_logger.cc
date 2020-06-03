@@ -203,6 +203,7 @@ class CallLogger::Impl
     void init_getsetitem(py::robj obj, py::robj key, py::robj val) noexcept;
     void init_getbuffer (py::robj obj, void* buf, int flags) noexcept;
     void init_delbuffer (py::robj obj, void* buf) noexcept;
+    void init_len       (py::robj obj) noexcept;
 
     void emit_header() noexcept;
     void finish() noexcept;
@@ -308,8 +309,11 @@ void CallLogger::Impl::init_getbuffer(
   try {
     t_start_ = stime_t();
     out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << ".__getbuffer__("
-          << buf << ", " << flags << ")";
+    *out_ << indent_ << R(obj) << ".__getbuffer__(";
+    if (opt_report_args) {
+      *out_ << buf << ", " << flags;
+    }
+    *out_ << ')';
     t_start_ = std::chrono::steady_clock::now();
   } catch (...) {
     std::cerr << "... log failed\n";
@@ -322,7 +326,24 @@ void CallLogger::Impl::init_delbuffer(py::robj obj, void* buf) noexcept
   try {
     t_start_ = stime_t();
     out_ = LOG->pinfo();
-    *out_ << indent_ << R(obj) << ".__releasebuffer__(" << buf << ")";
+    *out_ << indent_ << R(obj) << ".__releasebuffer__(";
+    if (opt_report_args) {
+      *out_ << buf;
+    }
+    *out_ << ')';
+    t_start_ = std::chrono::steady_clock::now();
+  } catch (...) {
+    std::cerr << "... log failed\n";
+  }
+}
+
+
+void CallLogger::Impl::init_len(py::robj obj) noexcept
+{
+  try {
+    t_start_ = stime_t();
+    out_ = LOG->pinfo();
+    *out_ << indent_ << R(obj) << ".__len__()";
     t_start_ = std::chrono::steady_clock::now();
   } catch (...) {
     std::cerr << "... log failed\n";
@@ -365,20 +386,22 @@ void CallLogger::Impl::finish() noexcept {
 
 void CallLogger::Impl::print_arguments(py::robj args, py::robj kwds) {
   if (!opt_report_args) return;
+  size_t n_args = 0;
   if (!args.is_undefined()) {
     if (args.is_tuple()) {
       auto arg_tuple = args.to_otuple();
-      size_t n = arg_tuple.size();
-      for (size_t i = 0; i < n; ++i) {
+      n_args = arg_tuple.size();
+      for (size_t i = 0; i < n_args; ++i) {
         if (i) *out_ << ", ";
         *out_ << R(arg_tuple[i]);
       }
     } else {
+      n_args = 1;
       *out_ << R(args);
     }
   }
   if (!kwds.is_undefined()) {
-    if (!args.is_undefined()) *out_ << ", ";
+    if (n_args) *out_ << ", ";
     auto kwds_dict = kwds.to_rdict();
     bool print_comma = false;
     for (auto kv : kwds_dict) {
@@ -478,6 +501,15 @@ CallLogger CallLogger::delbuffer(PyObject* pyobj, Py_buffer* buf) noexcept {
   CallLogger cl;
   if (cl.impl_) {
     cl.impl_->init_delbuffer(py::robj(pyobj), static_cast<void*>(buf));
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::len(PyObject* pyobj) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_len(py::robj(pyobj));
   }
   return cl;
 }
