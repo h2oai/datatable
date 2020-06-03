@@ -362,10 +362,9 @@ void CallLogger::Impl::finish() noexcept {
       out_ = LOG->pinfo();
       *out_ << indent_ << '}';
     }
-    *out_ << " # "
-          << (PyErr_Occurred()? "failed" : "done")
-          << " in " << diff.count() << " s";
-    out_ = nullptr;
+    *out_ << " # " << diff.count() << " s";
+    if (PyErr_Occurred()) *out_ << " (failed)";
+    out_ = nullptr;   // the message is sent to Logger instance
   } catch (...) {
     std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
   }
