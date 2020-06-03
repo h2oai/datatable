@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
+import re
 import datatable as dt
 from datatable.internal import frame_integrity_check
 from tests import noop
@@ -75,12 +76,14 @@ def test_options_all():
     }
     assert set(dir(dt.options.debug)) == {
         "logger",
+        "report_args",
+        "arg_max_size"
     }
 
 
 def test_option_api():
     dt.options.register_option(name="fooo", xtype=int, default=13,
-                                doc="a dozen")
+                               doc="a dozen")
     assert "fooo" in dir(dt.options)
     assert dt.options.fooo == 13
     assert dt.options.get("fooo") == 13
@@ -261,13 +264,16 @@ def test_debug_logger_default(capsys):
         out, err = capsys.readouterr()
         print(out)
         assert not err
-        assert "Frame.__init__() # done in " in out
+        assert re.search(r"<Frame#[\da-fA-F]+>.__init__"
+                         r"\(range\(0, 100000\)\) "
+                         r"# done in [\d\,]+(e[+-]?\d+)?", out)
 
         with pytest.raises(TypeError):
             dt.cbind(3)
         out, err = capsys.readouterr()
         assert not err
-        assert "cbind() # failed in " in out
+        assert "dt.cbind(3) {" in out
+        assert "} # failed in" in out
 
 
 def test_debug_logger_object():
@@ -285,9 +291,11 @@ def test_debug_logger_object():
         assert dt.options.debug.logger is logger
 
         DT = dt.rbind([])
-        assert "rbind() # done in" in logger.msg
+        assert "dt.rbind([]) {" in logger.msg
+        assert "} # done in" in logger.msg
         logger.msg = ""
 
         with pytest.raises(TypeError):
             dt.rbind(4)
-        assert "rbind() # failed in" in logger.msg
+        assert "dt.rbind(4) {" in logger.msg
+        assert "} # failed in" in logger.msg
