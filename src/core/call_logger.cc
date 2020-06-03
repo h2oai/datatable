@@ -155,23 +155,42 @@ log::Message& log::Message::operator<<(const R& r) {
 // CallLogger::Impl
 //------------------------------------------------------------------------------
 
-enum class CallType : size_t {
-  UNKNOWN = 0,
-  FUNCTION = 1,
-  METHOD = 2,
-  DEALLOC = 3,
-  GET = 4,
-  SET = 5,
-  GETITEM = 6,
-  SETITEM = 7,
-};
-
-
+/**
+  * Main class that implements the "call logging" functionality.
+  * Instances of this class are constructed at module startup and
+  * then reused when needed (see CallLogger::impl_cache_).
+  *
+  * One of the `impl_***()` methods must be called when an object
+  * gets reused, and then call `finish()` at the end.
+  *
+  * ---- implementation details ----
+  *
+  * out_ is the log::Message instance that will be sent to logger
+  *     once the call is complete. There are 2 modes how this can
+  *     happen:
+  *      + either the call completes "normally", in which case we
+  *        append call's timing info, and send to logger;
+  *      + or another datatable call occurs once this call is pending
+  *        (a nested call). In this case we send the `out_` message
+  *        to logger immediately, set out_ to nullptr, and then when
+  *        the call succeedes send '}' + timing info only.
+  *
+  * t_start_ is the time when the call started. This variable is
+  *     initialized at the end of each `init_***()` call. Also, at
+  *     the beginning of each call this variable is set to zero,
+  *     which serves as an indicator that the call is being
+  *     initialized. This is needed in order to avoid a situation
+  *     like this: a call's header is being printed, which calls
+  *     repr() on each argument, which in turn triggers a nested call
+  *     into the datatable, which would flush `out_` and set it to
+  *     nullptr. Then, as we continue to print the call's header, a
+  *     crash occurs as we try to write into a dangling pointer.
+  */
 class CallLogger::Impl
 {
   using stime_t = std::chrono::time_point<std::chrono::steady_clock>;
   private:
-    std::string                   indent_;
+    const std::string             indent_;
     stime_t                       t_start_;
     std::unique_ptr<log::Message> out_;
 
@@ -201,12 +220,17 @@ CallLogger::Impl::Impl(size_t i)
 void CallLogger::Impl::init_function(
     const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept
 {
-  out_ = LOG->pinfo();
-  *out_ << indent_;
-  *out_ << "dt." << pkargs->get_short_name() << '(';
-  print_arguments(args, kwds);
-  *out_ << ')';
-  t_start_ = std::chrono::steady_clock::now();
+  try {
+    t_start_ = stime_t();
+    out_ = LOG->pinfo();
+    *out_ << indent_;
+    *out_ << "dt." << pkargs->get_short_name() << '(';
+    print_arguments(args, kwds);
+    *out_ << ')';
+    t_start_ = std::chrono::steady_clock::now();
+  } catch (...) {
+    std::cerr << "... log failed\n";
+  }
 }
 
 
@@ -214,45 +238,65 @@ void CallLogger::Impl::init_method(
     const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds)
     noexcept
 {
-  out_ = LOG->pinfo();
-  *out_ << indent_ << R(obj) << '.' << pkargs->get_short_name() << '(';
-  print_arguments(args, kwds);
-  *out_ << ')';
-  t_start_ = std::chrono::steady_clock::now();
+  try {
+    t_start_ = stime_t();
+    out_ = LOG->pinfo();
+    *out_ << indent_ << R(obj) << '.' << pkargs->get_short_name() << '(';
+    print_arguments(args, kwds);
+    *out_ << ')';
+    t_start_ = std::chrono::steady_clock::now();
+  } catch (...) {
+    std::cerr << "... log failed\n";
+  }
 }
 
 
 void CallLogger::Impl::init_dealloc(py::robj obj) noexcept {
-  out_ = LOG->pinfo();
-  *out_ << indent_ << R(obj) << ".__del__()";
-  t_start_ = std::chrono::steady_clock::now();
+  try {
+    t_start_ = stime_t();
+    out_ = LOG->pinfo();
+    *out_ << indent_ << R(obj) << ".__del__()";
+    t_start_ = std::chrono::steady_clock::now();
+  } catch (...) {
+    std::cerr << "... log failed\n";
+  }
 }
 
 
 void CallLogger::Impl::init_getset(
     py::robj obj, py::robj val, void* closure) noexcept
 {
-  const auto gsargs = static_cast<const py::GSArgs*>(closure);
-  out_ = LOG->pinfo();
-  *out_ << indent_ << R(obj) << '.' << gsargs->name;
-  if (!val.is_undefined() && opt_report_args) {
-    *out_ << " = " << R(val);
+  try {
+    t_start_ = stime_t();
+    const auto gsargs = static_cast<const py::GSArgs*>(closure);
+    out_ = LOG->pinfo();
+    *out_ << indent_ << R(obj) << '.' << gsargs->name;
+    if (!val.is_undefined() && opt_report_args) {
+      *out_ << " = " << R(val);
+    }
+    t_start_ = std::chrono::steady_clock::now();
+  } catch (...) {
+    std::cerr << "... log failed\n";
   }
-  t_start_ = std::chrono::steady_clock::now();
 }
 
 
 void CallLogger::Impl::init_getsetitem(
     py::robj obj, py::robj key, py::robj val) noexcept
 {
-  out_ = LOG->pinfo();
-  *out_ << indent_ << R(obj) << '[';
-  print_arguments(key, py::robj());
-  *out_ << ']';
-  if (!val.is_undefined() && opt_report_args) {
-    *out_ << " = " << R(val);
+  try {
+    t_start_ = stime_t();
+    out_ = LOG->pinfo();
+    *out_ << indent_ << R(obj) << '[';
+    print_arguments(key, py::robj());
+    *out_ << ']';
+    if (!val.is_undefined() && opt_report_args) {
+      *out_ << " = " << R(val);
+    }
+    t_start_ = std::chrono::steady_clock::now();
+  } catch (...) {
+    std::cerr << "... log failed\n";
   }
-  t_start_ = std::chrono::steady_clock::now();
 }
 
 
@@ -261,7 +305,8 @@ void CallLogger::Impl::init_getsetitem(
 //---- Display -----------------------------------------------------------------
 
 void CallLogger::Impl::emit_header() noexcept {
-  if (!out_) return;  // header already emitted
+  if (!out_) return;                  // header already emitted
+  if (t_start_ == stime_t()) return;  // still initializing, refuse to emit
   try {
     *out_ << " {";
     out_ = nullptr;   // the message is sent to Logger instance
@@ -291,27 +336,26 @@ void CallLogger::Impl::finish() noexcept {
 
 void CallLogger::Impl::print_arguments(py::robj args, py::robj kwds) {
   if (!opt_report_args) return;
-  auto& out = *out_;
   if (!args.is_undefined()) {
     if (args.is_tuple()) {
       auto arg_tuple = args.to_otuple();
       size_t n = arg_tuple.size();
       for (size_t i = 0; i < n; ++i) {
-        if (i) out << ", ";
-        out << R(arg_tuple[i]);
+        if (i) *out_ << ", ";
+        *out_ << R(arg_tuple[i]);
       }
     } else {
-      out << R(args);
+      *out_ << R(args);
     }
   }
   if (!kwds.is_undefined()) {
-    if (!args.is_undefined()) out << ", ";
+    if (!args.is_undefined()) *out_ << ", ";
     auto kwds_dict = kwds.to_rdict();
     bool print_comma = false;
     for (auto kv : kwds_dict) {
-      if (print_comma) out << ", ";
-      out << kv.first.to_cstring() << "=";
-      out << R(kv.second);
+      if (print_comma) *out_ << ", ";
+      *out_ << kv.first.to_cstring() << "=";
+      *out_ << R(kv.second);
       print_comma = true;
     }
   }

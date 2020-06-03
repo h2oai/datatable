@@ -299,3 +299,14 @@ def test_debug_logger_object():
             dt.rbind(4)
         assert "dt.rbind(4) {" in logger.msg
         assert "} # failed in" in logger.msg
+
+
+def test_debug_logger_invalid_option():
+    # This test checks that invalid options do not cause a crash
+    # when logging is enabled
+    with dt.options.debug.context(logger="default"):
+        try:
+            dt.options.gooo0
+            assert False, "Did not raise AttributeError"
+        except AttributeError:
+            pass
