@@ -43,6 +43,13 @@ static log::Logger* LOG = new log::Logger;
 static constexpr size_t N_IMPLS = 10;
 
 
+static void print_value(log::Message& out, py::robj value) {
+  auto repr = value.repr();
+  out << repr.to_cstring();
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Options
@@ -105,39 +112,23 @@ class CallLogger::Impl
 {
   using stime_t = std::chrono::time_point<std::chrono::steady_clock>;
   private:
-    std::string       indent_;
-    CallType          type_;
-    const py::PKArgs* pkargs_;
-    const PyObject*   pythis_;
-    const PyObject*   pyargs_;
-    const PyObject*   pykwds_;
-    const PyObject*   pyvalue_;
-    const py::GSArgs* gsargs_;
-    stime_t           t_start_;
+    std::string                   indent_;
+    stime_t                       t_start_;
     std::unique_ptr<log::Message> out_;
-    // bool              header_printed_;
-    // size_t : 56;
 
   public:
     Impl(size_t i);
-    void init_function(const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept;
-    void init_method  (const py::PKArgs* pkargs, PyObject* pythis, PyObject* pyargs, PyObject* pykwds) noexcept;
-    void init_dealloc (PyObject* pythis) noexcept;
-    void init_getter  (PyObject* pythis, void* closure) noexcept;
-    void init_setter  (PyObject* pythis, PyObject* val, void* closure) noexcept;
-    void init_getitem (PyObject* pythis, PyObject* key) noexcept;
-    void init_setitem (PyObject* pythis, PyObject* key, PyObject* val) noexcept;
+    void init_function  (const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept;
+    void init_method    (const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds) noexcept;
+    void init_dealloc   (py::robj obj) noexcept;
+    void init_getset    (py::robj obj, py::robj val, void* closure) noexcept;
+    void init_getsetitem(py::robj obj, py::robj key, py::robj val) noexcept;
 
     void emit_header() noexcept;
     void finish() noexcept;
 
   private:
-    void init_common() noexcept;
-
-    void print_name(log::Message&);
-    void print_arguments(log::Message&);
     void print_arguments(py::robj pyargs, py::robj pykwds);
-    void print_assignment(log::Message&);
     void print_result(log::Message&, double elapsed_time);
 };
 
@@ -152,8 +143,8 @@ CallLogger::Impl::Impl(size_t i)
 void CallLogger::Impl::init_function(
     const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept
 {
-  type_ = CallType::FUNCTION;
   out_ = LOG->pinfo();
+  *out_ << indent_;
   *out_ << "dt." << pkargs->get_short_name() << '(';
   print_arguments(args, kwds);
   *out_ << ')';
@@ -162,69 +153,50 @@ void CallLogger::Impl::init_function(
 
 
 void CallLogger::Impl::init_method(
-    const py::PKArgs* pkargs, PyObject* pythis, PyObject* pyargs,
-    PyObject* pykwds) noexcept
+    const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds)
+    noexcept
 {
-  type_ = CallType::METHOD;
-  pkargs_ = pkargs;
-  pythis_ = pythis;
-  pyargs_ = pyargs;
-  pykwds_ = pykwds;
-  init_common();
-}
-
-
-void CallLogger::Impl::init_dealloc(PyObject* pythis) noexcept {
-  type_ = CallType::DEALLOC;
-  pythis_ = pythis;
-  init_common();
-}
-
-
-void CallLogger::Impl::init_getter(PyObject* pythis, void* closure) noexcept {
-  type_ = CallType::GET;
-  pythis_ = pythis;
-  gsargs_ = static_cast<const py::GSArgs*>(closure);
-  init_common();
-}
-
-
-void CallLogger::Impl::init_setter(
-    PyObject* pythis, PyObject* val, void* closure) noexcept
-{
-  type_ = CallType::SET;
-  pythis_ = pythis;
-  pyvalue_ = val;
-  gsargs_ = static_cast<const py::GSArgs*>(closure);
-  init_common();
-}
-
-
-void CallLogger::Impl::init_getitem(PyObject* pythis, PyObject* key) noexcept {
-  type_ = CallType::GETITEM;
-  pythis_ = pythis;
-  pyargs_ = key;
-  init_common();
-}
-
-
-void CallLogger::Impl::init_setitem(
-    PyObject* pythis, PyObject* key, PyObject* val) noexcept
-{
-  type_ = CallType::SETITEM;
-  pythis_ = pythis;
-  pyargs_ = key;
-  pyvalue_ = val;
-  init_common();
-}
-
-
-// Must be called last in all `init_*()` static constructors
-void CallLogger::Impl::init_common() noexcept {
   out_ = LOG->pinfo();
-  print_name(*out_);
+  *out_ << indent_ << obj << '.' << pkargs->get_short_name() << '(';
+  print_arguments(args, kwds);
+  *out_ << ')';
   t_start_ = std::chrono::steady_clock::now();
 }
+
+
+void CallLogger::Impl::init_dealloc(py::robj obj) noexcept {
+  out_ = LOG->pinfo();
+  *out_ << indent_ << obj << ".__del__()";
+  t_start_ = std::chrono::steady_clock::now();
+}
+
+
+void CallLogger::Impl::init_getset(
+    py::robj obj, py::robj val, void* closure) noexcept
+{
+  const auto gsargs = static_cast<const py::GSArgs*>(closure);
+  out_ = LOG->pinfo();
+  *out_ << indent_ << obj << '.' << gsargs->name;
+  if (!val.is_undefined()) {
+    *out_ << " = " << val;
+  }
+  t_start_ = std::chrono::steady_clock::now();
+}
+
+
+void CallLogger::Impl::init_getsetitem(
+    py::robj obj, py::robj key, py::robj val) noexcept
+{
+  out_ = LOG->pinfo();
+  *out_ << indent_ << obj << '[';
+  print_arguments(key, py::robj());
+  *out_ << ']';
+  if (!val.is_undefined()) {
+    *out_ << " = " << val;
+  }
+  t_start_ = std::chrono::steady_clock::now();
+}
+
 
 
 
@@ -253,67 +225,9 @@ void CallLogger::Impl::finish() noexcept {
     }
     print_result(*out_, diff.count());
     out_ = nullptr;
-    type_ = CallType::UNKNOWN;
   } catch (...) {
     std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
   }
-}
-
-
-void CallLogger::Impl::print_name(log::Message& out) {
-  out << indent_;
-  switch (type_) {
-    case CallType::FUNCTION: {
-      out << "dt." << pkargs_->get_short_name() << '(';
-      print_arguments(out);
-      out << ')';
-      break;
-    }
-    case CallType::METHOD: {
-      py::ostring this_repr = py::robj(pythis_).repr();
-      out << this_repr.to_cstring() << '.' << pkargs_->get_short_name() << '(';
-      print_arguments(out);
-      out << ')';
-      break;
-    }
-    case CallType::DEALLOC: {
-      py::ostring this_repr = py::robj(pythis_).repr();
-      out << this_repr.to_cstring() << ".__del__()";
-      break;
-    }
-    case CallType::GET:
-    case CallType::SET: {
-      py::ostring this_repr = py::robj(pythis_).repr();
-      out << this_repr.to_cstring() << '.' << gsargs_->name;
-      if (type_ == CallType::SET) print_assignment(out);
-      break;
-    }
-    case CallType::GETITEM:
-    case CallType::SETITEM: {
-      py::ostring this_repr = py::robj(pythis_).repr();
-      out << this_repr.to_cstring() << '[';
-      print_arguments(out);
-      out << ']';
-      if (type_ == CallType::SETITEM) print_assignment(out);
-      break;
-    }
-    default: {
-      out << "<unknown>";
-      break;
-    }
-  }
-}
-
-
-static void print_value(log::Message& out, py::robj value) {
-  auto repr = value.repr();
-  out << repr.to_cstring();
-}
-
-
-void CallLogger::Impl::print_arguments(log::Message& out) {
-  (void)opt_report_args;
-  (void)out;
 }
 
 
@@ -343,11 +257,6 @@ void CallLogger::Impl::print_arguments(py::robj args, py::robj kwds) {
       print_comma = true;
     }
   }
-}
-
-
-void CallLogger::Impl::print_assignment(log::Message& out) {
-  out << " = ...";
 }
 
 
@@ -399,7 +308,10 @@ CallLogger CallLogger::method(const py::PKArgs* pkargs,
     PyObject* pythis, PyObject* pyargs, PyObject* pykwds) noexcept
 {
   CallLogger cl;
-  if (cl.impl_) cl.impl_->init_method(pkargs, pythis, pyargs, pykwds);
+  if (cl.impl_) {
+    cl.impl_->init_method(pkargs, py::robj(pythis), py::robj(pyargs),
+                          py::robj(pykwds));
+  }
   return cl;
 }
 
@@ -410,27 +322,21 @@ CallLogger CallLogger::dealloc(PyObject* pythis) noexcept {
   return cl;
 }
 
-CallLogger CallLogger::getter(PyObject* pythis, void* closure) noexcept {
+
+CallLogger CallLogger::getsetattr(PyObject* pythis, PyObject* val, void* closure) noexcept {
   CallLogger cl;
-  if (cl.impl_) cl.impl_->init_getter(pythis, closure);
+  if (cl.impl_) {
+    cl.impl_->init_getset(py::robj(pythis), py::robj(val), closure);
+  }
   return cl;
 }
 
-CallLogger CallLogger::setter(PyObject* pythis, PyObject* val, void* closure) noexcept {
-  CallLogger cl;
-  if (cl.impl_) cl.impl_->init_setter(pythis, val, closure);
-  return cl;
-}
 
-CallLogger CallLogger::getitem(PyObject* pythis, PyObject* key) noexcept {
+CallLogger CallLogger::getsetitem(PyObject* pythis, PyObject* key, PyObject* val) noexcept {
   CallLogger cl;
-  if (cl.impl_) cl.impl_->init_getitem(pythis, key);
-  return cl;
-}
-
-CallLogger CallLogger::setitem(PyObject* pythis, PyObject* key, PyObject* val) noexcept {
-  CallLogger cl;
-  if (cl.impl_) cl.impl_->init_setitem(pythis, key, val);
+  if (cl.impl_) {
+    cl.impl_->init_getsetitem(py::robj(pythis), py::robj(key), py::robj(val));
+  }
   return cl;
 }
 

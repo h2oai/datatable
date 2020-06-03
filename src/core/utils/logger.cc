@@ -192,6 +192,19 @@ Message& Message::operator<<(const CString& str) {
 }
 
 
+template <>
+Message& Message::operator<<(const py::robj& pyobj) {
+  py::ostring repr = pyobj.repr();
+  return *this << repr.to_cstring();
+}
+
+template <>
+Message& Message::operator<<(const py::oobj& pyobj) {
+  py::ostring repr = pyobj.repr();
+  return *this << repr.to_cstring();
+}
+
+
 
 
 //------------------------------------------------------------------------------

@@ -250,7 +250,7 @@ PyObject* _safe_repr(PyObject* self) noexcept {
 
 template <class T, oobj(T::*METH)() const>
 PyObject* _safe_getter(PyObject* obj, void* closure) noexcept {
-  auto cl = dt::CallLogger::getter(obj, closure);
+  auto cl = dt::CallLogger::getsetattr(obj, nullptr, closure);
   try {
     T* t = static_cast<T*>(obj);
     return (t->*METH)().release();
@@ -277,7 +277,7 @@ Py_ssize_t _safe_len(PyObject* obj) noexcept {
 
 template <typename T, py::oobj(T::*METH)(py::robj)>
 PyObject* _safe_getitem(PyObject* self, PyObject* key) noexcept {
-  auto cl = dt::CallLogger::getitem(self, key);
+  auto cl = dt::CallLogger::getsetitem(self, key, nullptr);
   try {
     T* tself = static_cast<T*>(self);
     return (tself->*METH)(py::robj(key)).release();
@@ -290,7 +290,7 @@ PyObject* _safe_getitem(PyObject* self, PyObject* key) noexcept {
 
 template <typename T, void(T::*METH)(py::robj, py::robj)>
 int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) noexcept {
-  auto cl = dt::CallLogger::setitem(self, key, val);
+  auto cl = dt::CallLogger::getsetitem(self, key, val);
   try {
     T* tself = static_cast<T*>(self);
     (tself->*METH)(py::robj(key), py::robj(val));
@@ -389,7 +389,7 @@ template <class T>
 int _call_setter(void(T::*fn)(const Arg&), Arg& ARG,
                  PyObject* obj, PyObject* value, void* closure) noexcept
 {
-  auto cl = dt::CallLogger::setter(obj, value, closure);
+  auto cl = dt::CallLogger::getsetattr(obj, value, closure);
   try {
     ARG.set(value);
     T* tobj = static_cast<T*>(obj);

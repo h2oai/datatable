@@ -180,6 +180,9 @@ template <> Message& Message::operator<<(const ff&);
 template <> Message& Message::operator<<(const plural&);
 template <> Message& Message::operator<<(const char&);
 template <> Message& Message::operator<<(const CString&);
+template <> Message& Message::operator<<(const py::robj&);
+template <> Message& Message::operator<<(const py::oobj&);
+
 
 
 }}  // namespace dt::log
