@@ -36,6 +36,22 @@ stypes_str = ltype.str.stypes
 
 
 
+def test_reprs():
+    # Check that row-expressions can be repr'd without errors
+    assert repr(rowall())
+    assert repr(rowany())
+    assert repr(rowsum())
+    assert repr(rowcount())
+    assert repr(rowmin())
+    assert repr(rowmax())
+    assert repr(rowfirst())
+    assert repr(rowlast())
+    assert repr(rowmean())
+    assert repr(rowsd())
+
+
+
+
 #-------------------------------------------------------------------------------
 # rowall()
 #-------------------------------------------------------------------------------
