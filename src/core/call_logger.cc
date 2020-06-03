@@ -285,8 +285,9 @@ void CallLogger::Impl::init_getsetattr(
   const auto gsargs = static_cast<const py::GSArgs*>(closure);
   safe_init([&] {
     *out_ << R(obj) << '.' << gsargs->name;
-    if (!val.is_undefined() && opt_report_args) {
-      *out_ << " = " << R(val);
+    if (!val.is_undefined()) {
+      *out_ << " =";
+      if (opt_report_args) *out_ << ' ' << R(val);
     }
   });
 }
@@ -301,8 +302,9 @@ void CallLogger::Impl::init_getsetitem(
     *out_ << ']';
     if (val.get() == CallLogger::GETITEM) {}
     else if (val.get() == CallLogger::DELITEM) { *out_ << " del"; }
-    else if (opt_report_args) {
-      *out_ << " = " << R(val);
+    else {
+      *out_ << " =";
+      if (opt_report_args) *out_ << ' ' << R(val);
     }
   });
 }
