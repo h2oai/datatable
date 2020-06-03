@@ -43,19 +43,12 @@ static log::Logger* LOG = new log::Logger;
 static constexpr size_t N_IMPLS = 10;
 
 
-static void print_value(log::Message& out, py::robj value) {
-  auto repr = value.repr();
-  out << repr.to_cstring();
-}
-
-
-
-
 //------------------------------------------------------------------------------
 // Options
 //------------------------------------------------------------------------------
 
-static bool opt_report_args = false;
+static bool opt_report_args = true;
+static size_t opt_truncate_length = 100;
 
 static void _init_options() {
   register_option(
@@ -87,6 +80,72 @@ static void _init_options() {
     "datatable logger. Otherwise you can use any other object\n"
     "that implements a `.debug(msg)` method.\n"
   );
+
+  register_option(
+    "debug.report_args",
+    [] {
+      return py::obool(opt_report_args);
+    },
+    [](const py::Arg& arg) {
+      opt_report_args = arg.to_bool_strict();
+    },
+    "Controls whether log messages about function and method calls\n"
+    "contain information about the arguments of those calls."
+  );
+
+  register_option(
+    "debug.arg_max_size",
+    [] {
+      return py::oint(opt_truncate_length);
+    },
+    [](const py::Arg& arg) {
+      opt_truncate_length = std::min(arg.to_size_t(), size_t(10));
+    },
+    "When the `report_args` is on, this option will limit the\n"
+    "display size of each argument in order to prevent potentially\n"
+    "huge outputs. This option's value cannot be less than 10."
+  );
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Value printing
+//------------------------------------------------------------------------------
+
+struct R {
+  py::robj obj;
+  R(py::robj t) : obj(t) {}
+};
+
+template <>
+log::Message& log::Message::operator<<(const R& r) {
+  if (r.obj.is_slice()) {
+    auto sliceobj = r.obj.to_oslice();
+    if (sliceobj.is_numeric()) {
+      int64_t start = sliceobj.start();
+      int64_t stop = sliceobj.stop();
+      int64_t step = sliceobj.step();
+      if (start != py::oslice::NA) out_ << start;
+      out_ << ':';
+      if (stop != py::oslice::NA) out_ << stop;
+      if (step != py::oslice::NA) out_ << ':' << step;
+      return *this;
+    }
+  }
+  py::ostring repr = r.obj.repr();
+  auto strobj = repr.to_cstring();
+  if (static_cast<size_t>(strobj.size) <= opt_truncate_length) {
+    out_.write(strobj.ch, strobj.size);
+  } else {
+    auto len0 = static_cast<long>(opt_truncate_length * 3/5);
+    auto len1 = static_cast<long>(opt_truncate_length * 2/5 - 3);
+    out_.write(strobj.ch, len0);
+    out_.write("...", 3);
+    out_.write(strobj.ch + strobj.size - len1, len1);
+  }
+  return *this;
 }
 
 
@@ -129,7 +188,6 @@ class CallLogger::Impl
 
   private:
     void print_arguments(py::robj pyargs, py::robj pykwds);
-    void print_result(log::Message&, double elapsed_time);
 };
 
 
@@ -157,7 +215,7 @@ void CallLogger::Impl::init_method(
     noexcept
 {
   out_ = LOG->pinfo();
-  *out_ << indent_ << obj << '.' << pkargs->get_short_name() << '(';
+  *out_ << indent_ << R(obj) << '.' << pkargs->get_short_name() << '(';
   print_arguments(args, kwds);
   *out_ << ')';
   t_start_ = std::chrono::steady_clock::now();
@@ -166,7 +224,7 @@ void CallLogger::Impl::init_method(
 
 void CallLogger::Impl::init_dealloc(py::robj obj) noexcept {
   out_ = LOG->pinfo();
-  *out_ << indent_ << obj << ".__del__()";
+  *out_ << indent_ << R(obj) << ".__del__()";
   t_start_ = std::chrono::steady_clock::now();
 }
 
@@ -176,9 +234,9 @@ void CallLogger::Impl::init_getset(
 {
   const auto gsargs = static_cast<const py::GSArgs*>(closure);
   out_ = LOG->pinfo();
-  *out_ << indent_ << obj << '.' << gsargs->name;
-  if (!val.is_undefined()) {
-    *out_ << " = " << val;
+  *out_ << indent_ << R(obj) << '.' << gsargs->name;
+  if (!val.is_undefined() && opt_report_args) {
+    *out_ << " = " << R(val);
   }
   t_start_ = std::chrono::steady_clock::now();
 }
@@ -188,11 +246,11 @@ void CallLogger::Impl::init_getsetitem(
     py::robj obj, py::robj key, py::robj val) noexcept
 {
   out_ = LOG->pinfo();
-  *out_ << indent_ << obj << '[';
+  *out_ << indent_ << R(obj) << '[';
   print_arguments(key, py::robj());
   *out_ << ']';
-  if (!val.is_undefined()) {
-    *out_ << " = " << val;
+  if (!val.is_undefined() && opt_report_args) {
+    *out_ << " = " << R(val);
   }
   t_start_ = std::chrono::steady_clock::now();
 }
@@ -203,19 +261,17 @@ void CallLogger::Impl::init_getsetitem(
 //---- Display -----------------------------------------------------------------
 
 void CallLogger::Impl::emit_header() noexcept {
-  if (out_) {
-    try {
-      *out_ << " {";
-      out_ = nullptr;  // the message is sent to Logger instance
-    } catch (...) {
-      std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
-    }
+  if (!out_) return;  // header already emitted
+  try {
+    *out_ << " {";
+    out_ = nullptr;   // the message is sent to Logger instance
+  } catch (...) {
+    std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
   }
 }
 
 
 void CallLogger::Impl::finish() noexcept {
-  if (!LOG) return;
   try {
     stime_t t_end = std::chrono::steady_clock::now();
     std::chrono::duration<double> diff = t_end - t_start_;
@@ -223,7 +279,9 @@ void CallLogger::Impl::finish() noexcept {
       out_ = LOG->pinfo();
       *out_ << indent_ << '}';
     }
-    print_result(*out_, diff.count());
+    *out_ << " # "
+          << (PyErr_Occurred()? "failed" : "done")
+          << " in " << diff.count() << " s";
     out_ = nullptr;
   } catch (...) {
     std::cerr << "... log failed\n";  // LCOV_EXCL_LINE
@@ -232,7 +290,7 @@ void CallLogger::Impl::finish() noexcept {
 
 
 void CallLogger::Impl::print_arguments(py::robj args, py::robj kwds) {
-  // if (!opt_report_args) return;
+  if (!opt_report_args) return;
   auto& out = *out_;
   if (!args.is_undefined()) {
     if (args.is_tuple()) {
@@ -240,10 +298,10 @@ void CallLogger::Impl::print_arguments(py::robj args, py::robj kwds) {
       size_t n = arg_tuple.size();
       for (size_t i = 0; i < n; ++i) {
         if (i) out << ", ";
-        print_value(out, arg_tuple[i]);
+        out << R(arg_tuple[i]);
       }
     } else {
-      print_value(out, args);
+      out << R(args);
     }
   }
   if (!kwds.is_undefined()) {
@@ -253,17 +311,10 @@ void CallLogger::Impl::print_arguments(py::robj args, py::robj kwds) {
     for (auto kv : kwds_dict) {
       if (print_comma) out << ", ";
       out << kv.first.to_cstring() << "=";
-      print_value(out, kv.second);
+      out << R(kv.second);
       print_comma = true;
     }
   }
-}
-
-
-void CallLogger::Impl::print_result(log::Message& out, double elapsed_time) {
-  out << " # "
-      << (PyErr_Occurred()? "failed" : "done")
-      << " in " << elapsed_time << " s";
 }
 
 
