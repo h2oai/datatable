@@ -40,6 +40,9 @@ class CallLogger {
     Impl* impl_;
 
   public:
+    static PyObject* GETITEM;
+    static PyObject* DELITEM;
+
     CallLogger(CallLogger&&) noexcept;
     CallLogger(const CallLogger&) = delete;
     ~CallLogger();

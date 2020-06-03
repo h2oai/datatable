@@ -200,7 +200,7 @@ class CallLogger::Impl
     void init_function  (const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept;
     void init_method    (const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds) noexcept;
     void init_dealloc   (py::robj obj) noexcept;
-    void init_getset    (py::robj obj, py::robj val, void* closure) noexcept;
+    void init_getsetattr(py::robj obj, py::robj val, void* closure) noexcept;
     void init_getsetitem(py::robj obj, py::robj key, py::robj val) noexcept;
     void init_getbuffer (py::robj obj, void* buf, int flags) noexcept;
     void init_delbuffer (py::robj obj, void* buf) noexcept;
@@ -265,7 +265,7 @@ void CallLogger::Impl::init_dealloc(py::robj obj) noexcept {
 }
 
 
-void CallLogger::Impl::init_getset(
+void CallLogger::Impl::init_getsetattr(
     py::robj obj, py::robj val, void* closure) noexcept
 {
   const auto gsargs = static_cast<const py::GSArgs*>(closure);
@@ -285,7 +285,9 @@ void CallLogger::Impl::init_getsetitem(
     *out_ << R(obj) << '[';
     print_arguments(key, py::robj());
     *out_ << ']';
-    if (!val.is_undefined() && opt_report_args) {
+    if (val.get() == CallLogger::GETITEM) {}
+    else if (val.get() == CallLogger::DELITEM) { *out_ << " del"; }
+    else if (opt_report_args) {
       *out_ << " = " << R(val);
     }
   });
@@ -395,6 +397,9 @@ void CallLogger::Impl::print_arguments(py::robj args, py::robj kwds) {
 std::vector<CallLogger::Impl*> CallLogger::impl_cache_;
 size_t CallLogger::nested_level_ = 0;
 
+PyObject* CallLogger::GETITEM = reinterpret_cast<PyObject*>(-1);
+PyObject* CallLogger::DELITEM = reinterpret_cast<PyObject*>(0);
+
 
 CallLogger::CallLogger() noexcept {
   impl_ = nullptr;
@@ -445,7 +450,7 @@ CallLogger CallLogger::dealloc(PyObject* pyobj) noexcept {
 CallLogger CallLogger::getsetattr(PyObject* pyobj, PyObject* val, void* closure) noexcept {
   CallLogger cl;
   if (cl.impl_) {
-    cl.impl_->init_getset(py::robj(pyobj), py::robj(val), closure);
+    cl.impl_->init_getsetattr(py::robj(pyobj), py::robj(val), closure);
   }
   return cl;
 }

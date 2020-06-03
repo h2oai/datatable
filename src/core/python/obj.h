@@ -264,6 +264,7 @@ class _obj {
 
     PyObject*   to_pyobject_newref() const noexcept;
     PyObject*   to_borrowed_ref() const { return v; }
+    PyObject*   get() const { return v; }
 
     /**
      * `error_manager` is a factory function for different error messages. It

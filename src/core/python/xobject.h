@@ -284,7 +284,7 @@ Py_ssize_t _safe_len(PyObject* obj) noexcept {
 
 template <typename T, py::oobj(T::*METH)(py::robj)>
 PyObject* _safe_getitem(PyObject* self, PyObject* key) noexcept {
-  auto cl = dt::CallLogger::getsetitem(self, key, nullptr);
+  auto cl = dt::CallLogger::getsetitem(self, key, dt::CallLogger::GETITEM);
   try {
     T* tself = static_cast<T*>(self);
     return (tself->*METH)(py::robj(key)).release();
