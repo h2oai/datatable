@@ -28,6 +28,7 @@
 
 typedef struct _object     PyObject;
 typedef struct _typeobject PyTypeObject;
+typedef struct bufferinfo  Py_buffer;
 
 class Buffer;
 class Column;
