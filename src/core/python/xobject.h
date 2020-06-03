@@ -290,6 +290,7 @@ PyObject* _safe_getitem(PyObject* self, PyObject* key) noexcept {
 
 template <typename T, void(T::*METH)(py::robj, py::robj)>
 int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) noexcept {
+  auto cl = dt::CallLogger::setitem(self, key, val);
   try {
     T* tself = static_cast<T*>(self);
     (tself->*METH)(py::robj(key), py::robj(val));

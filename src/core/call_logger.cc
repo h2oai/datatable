@@ -97,6 +97,7 @@ enum class CallType : size_t {
   GET = 4,
   SET = 5,
   GETITEM = 6,
+  SETITEM = 7,
 };
 
 
@@ -110,6 +111,7 @@ class CallLogger::Impl
     const PyObject*   pythis_;
     const PyObject*   pyargs_;
     const PyObject*   pykwds_;
+    const PyObject*   pyvalue_;
     const py::GSArgs* gsargs_;
     stime_t           t_start_;
     bool              header_printed_;
@@ -122,6 +124,7 @@ class CallLogger::Impl
     void init_dealloc (PyObject* pythis) noexcept;
     void init_getter  (PyObject* pythis, void* closure) noexcept;
     void init_getitem (PyObject* pythis, PyObject* key) noexcept;
+    void init_setitem (PyObject* pythis, PyObject* key, PyObject* val) noexcept;
 
     void emit_header() noexcept;
     void finish() noexcept;
@@ -195,6 +198,17 @@ void CallLogger::Impl::init_getitem(PyObject* pythis, PyObject* key) noexcept {
 }
 
 
+void CallLogger::Impl::init_setitem(
+    PyObject* pythis, PyObject* key, PyObject* val) noexcept
+{
+  type_ = CallType::SETITEM;
+  pythis_ = pythis;
+  pyargs_ = key;
+  pyvalue_ = val;
+  init_common();
+}
+
+
 
 //---- Display -----------------------------------------------------------------
 
@@ -256,11 +270,15 @@ void CallLogger::Impl::print_name(log::Message& out) {
       out << this_repr.to_cstring() << '.' << gsargs_->name;
       break;
     }
-    case CallType::GETITEM: {
+    case CallType::GETITEM:
+    case CallType::SETITEM: {
       py::ostring this_repr = py::robj(pythis_).repr();
       out << this_repr.to_cstring() << '[';
       print_arguments(out);
       out << ']';
+      if (type_ == CallType::SETITEM) {
+        out << " = ?";
+      }
       break;
     }
     default: {
@@ -343,6 +361,12 @@ CallLogger CallLogger::getter(PyObject* pythis, void* closure) noexcept {
 CallLogger CallLogger::getitem(PyObject* pythis, PyObject* key) noexcept {
   CallLogger cl;
   if (cl.impl_) cl.impl_->init_getitem(pythis, key);
+  return cl;
+}
+
+CallLogger CallLogger::setitem(PyObject* pythis, PyObject* key, PyObject* val) noexcept {
+  CallLogger cl;
+  if (cl.impl_) cl.impl_->init_setitem(pythis, key, val);
   return cl;
 }
 
