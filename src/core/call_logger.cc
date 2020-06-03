@@ -47,7 +47,7 @@ static constexpr size_t N_IMPLS = 10;
 // Options
 //------------------------------------------------------------------------------
 
-static bool opt_report_args = true;
+static bool opt_report_args = false;
 static size_t opt_truncate_length = 100;
 
 static void _init_options() {

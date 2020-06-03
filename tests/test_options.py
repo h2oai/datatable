@@ -256,9 +256,29 @@ def test_frame_names_auto_prefix():
 # .debug options
 #-------------------------------------------------------------------------------
 
-def test_debug_logger_default(capsys):
+def test_debug_logger_default_without_report_args(capsys):
     assert dt.options.debug.logger is None
     with dt.options.debug.context(logger="default"):
+        assert dt.options.debug.logger
+        assert dt.options.debug.report_args is False
+        DT = dt.Frame(range(100000))
+        out, err = capsys.readouterr()
+        print(out)
+        assert not err
+        assert re.search(r"<Frame#[\da-fA-F]+>.__init__\(\) "
+                         r"# done in [\d\,]+(e[+-]?\d+)?", out)
+
+        with pytest.raises(TypeError):
+            dt.cbind(3)
+        out, err = capsys.readouterr()
+        assert not err
+        assert "dt.cbind() {" in out
+        assert "} # failed in" in out
+
+
+def test_debug_logger_default_with_report_args(capsys):
+    assert dt.options.debug.logger is None
+    with dt.options.debug.context(logger="default", report_args=True):
         assert dt.options.debug.logger
         DT = dt.Frame(range(100000))
         out, err = capsys.readouterr()
@@ -287,7 +307,7 @@ def test_debug_logger_object():
 
     assert dt.options.debug.logger is None
     logger = CustomLogger()
-    with dt.options.debug.context(logger=logger):
+    with dt.options.debug.context(logger=logger, report_args=True):
         assert dt.options.debug.logger is logger
 
         DT = dt.rbind([])
@@ -304,7 +324,7 @@ def test_debug_logger_object():
 def test_debug_logger_invalid_option():
     # This test checks that invalid options do not cause a crash
     # when logging is enabled
-    with dt.options.debug.context(logger="default"):
+    with dt.options.debug.context(logger="default", report_args=True):
         try:
             dt.options.gooo0
             assert False, "Did not raise AttributeError"
@@ -319,7 +339,7 @@ def test_debug_logger_bad_repr():
         def __repr__(self):
             raise RuntimeError("Malformed repr")
 
-    with dt.options.debug.context(logger='default'):
+    with dt.options.debug.context(logger='default', report_args=True):
         DT = dt.Frame()
         try:
             DT[A()]
