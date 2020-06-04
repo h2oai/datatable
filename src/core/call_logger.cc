@@ -35,7 +35,7 @@ namespace dt {
 // down (which will result in a crash, since Logger tries to DECREF
 // a PyObject that it owns).
 //
-static log::Logger* LOG = new log::Logger;
+static log::Logger* LOG = nullptr;
 
 
 // This flag is equal to `LOG->enabled()` in most cases, except when
@@ -527,6 +527,8 @@ void CallLogger::init_options() {
   for (size_t i = 0; i < N_IMPLS; ++i) {
     CallLogger::impl_cache_[i] = new CallLogger::Impl(i);
   }
+  LOG = new log::Logger;
+  xassert(!LOG->enabled());
   _init_options();
 }
 
