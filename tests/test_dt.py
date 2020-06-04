@@ -44,6 +44,7 @@ from tests import same_iterables, list_equals, noop, isview, assert_equals
 cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
                               reason="C++ tests were not compiled")
 
+
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions
 #-------------------------------------------------------------------------------
