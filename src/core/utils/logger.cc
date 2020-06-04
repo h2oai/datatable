@@ -19,9 +19,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
+#include "call_logger.h"
 #include "parallel/api.h"
 #include "python/string.h"
 #include "python/xobject.h"
+#include "utils/assert.h"
 #include "utils/logger.h"
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
@@ -95,7 +98,10 @@ namespace log {
 //------------------------------------------------------------------------------
 
 Section::Section(Logger* logger)
-  : logger_(logger) {}
+  : logger_(logger)
+{
+  xassert(logger);
+}
 
 
 Section::~Section() {
@@ -110,11 +116,19 @@ Section::~Section() {
 //------------------------------------------------------------------------------
 
 Message::Message(Logger* logger, bool warn)
-  : logger_(logger), emit_as_warning_(warn) {}
+  : logger_(logger), emit_as_warning_(warn)
+{
+  xassert(logger);
+}
 
 
 Message::~Message() {
-  logger_->emit(std::move(out_).str(), emit_as_warning_);
+  try {
+    logger_->emit(std::move(out_).str(), emit_as_warning_);
+  }
+  catch (...) {
+    std::cerr << "unable to emit log message\n";
+  }
 }
 
 
@@ -172,6 +186,26 @@ Message& Message::operator<<(const char& c) {
 }
 
 
+template <>
+Message& Message::operator<<(const CString& str) {
+  out_.write(str.ch, str.size);
+  return *this;
+}
+
+
+template <>
+Message& Message::operator<<(const py::robj& pyobj) {
+  py::ostring repr = pyobj.repr();
+  return *this << repr.to_cstring();
+}
+
+template <>
+Message& Message::operator<<(const py::oobj& pyobj) {
+  py::ostring repr = pyobj.repr();
+  return *this << repr.to_cstring();
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -186,6 +220,10 @@ Logger::Logger() {
 
 void Logger::enable() {
   enabled_ = true;
+}
+
+void Logger::disable() {
+  enabled_ = false;
 }
 
 void Logger::use_pylogger(py::oobj logger) {
@@ -211,36 +249,46 @@ Message Logger::warn() const {
   return Message(const_cast<Logger*>(this), true);
 }
 
+std::unique_ptr<Message> Logger::pinfo() const {
+  return std::make_unique<Message>(const_cast<Logger*>(this), false);
+}
+
+
 
 bool Logger::enabled() const {
   return enabled_;
 }
 
-py::oobj Logger::get_pylogger() const {
+py::oobj Logger::get_pylogger(bool fallback_to_default) const {
   if (enabled_) {
-    if (pylogger_) return pylogger_;
-    else {
+    if (pylogger_) {
+      return pylogger_;
+    }
+    else if (fallback_to_default) {
       py::DefaultLogger::init_type();
       return py::DefaultLogger::make(*this);
     }
-  } else {
-    return py::None();
   }
+  return py::None();
 }
 
 
 
-void Logger::end_section() {
-  if (enabled_) {
+void Logger::end_section() noexcept {
+  if (enabled_ && prefix_.size() >= 2) {
+    // Presumably, string::resize() does not throw when the size is
+    // being decreased.
     prefix_.resize(prefix_.size() - 2);
   }
 }
 
 
 void Logger::emit(std::string&& msg, bool warning) {
-  std::lock_guard<std::mutex> lock(dt::python_mutex());
+  std::lock_guard<std::mutex> pylock(dt::python_mutex());
+  CallLoggerLock loglock;
   // Use user-defined logger object
   if (pylogger_) {
+    HidePythonError hpe;
     if (warning) {
       pylogger_.invoke("warning", py::ostring(msg));
     } else {

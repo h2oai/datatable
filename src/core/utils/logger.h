@@ -80,11 +80,14 @@ class Logger {
     Logger(const Logger&) = default;
     Logger& operator=(const Logger&) = default;
     void enable();
+    void disable();
     void use_pylogger(py::oobj);
 
     Section section(std::string title);
     Message info() const;
     Message warn() const;
+    // Same as `info()`, but allocated on the heap
+    std::unique_ptr<Message> pinfo() const;
 
     // Return true if the Logger is in "enabled" or "python" modes
     bool enabled() const;
@@ -92,10 +95,10 @@ class Logger {
     // "disabled" -> returns None
     // "enabled" -> returns an object of DefaultLogger class
     // "python" -> returns the stored python logger object
-    py::oobj get_pylogger() const;
+    py::oobj get_pylogger(bool fallback_to_default = true) const;
 
   private:
-    void end_section();
+    void end_section() noexcept;
     void emit(std::string&& msg, bool as_warning);
 
     friend class Section;
@@ -176,6 +179,9 @@ struct plural {
 template <> Message& Message::operator<<(const ff&);
 template <> Message& Message::operator<<(const plural&);
 template <> Message& Message::operator<<(const char&);
+template <> Message& Message::operator<<(const CString&);
+template <> Message& Message::operator<<(const py::robj&);
+template <> Message& Message::operator<<(const py::oobj&);
 
 
 

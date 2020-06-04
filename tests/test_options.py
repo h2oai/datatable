@@ -1,10 +1,28 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
+import re
 import datatable as dt
 from datatable.internal import frame_integrity_check
 from tests import noop
@@ -15,7 +33,7 @@ def test_options_all():
     assert repr(dt.options).startswith("datatable.options.")
     assert set(dir(dt.options)) == {
         "nthreads",
-        "core_logger",
+        "debug",
         "sort",
         "display",
         "frame",
@@ -56,11 +74,17 @@ def test_options_all():
         "updates_per_second",
         "allow_interruption",
     }
+    assert set(dir(dt.options.debug)) == {
+        "enabled",
+        "logger",
+        "report_args",
+        "arg_max_size"
+    }
 
 
 def test_option_api():
     dt.options.register_option(name="fooo", xtype=int, default=13,
-                                doc="a dozen")
+                               doc="a dozen")
     assert "fooo" in dir(dt.options)
     assert dt.options.fooo == 13
     assert dt.options.get("fooo") == 13
@@ -225,3 +249,158 @@ def test_frame_names_auto_prefix():
     assert f2.names == ("C0", "C1", "C2", "C3")
     with pytest.raises(TypeError):
         dt.options.frame.names_auto_prefix = 0
+
+
+
+
+#-------------------------------------------------------------------------------
+# .debug options
+#-------------------------------------------------------------------------------
+class SimpleLogger:
+    def __init__(self):
+        self.msg = ""
+
+    def debug(self, msg):
+        self.msg += msg
+        self.msg += "\n"
+
+
+def test_debug_logger_default_without_report_args(capsys):
+    assert dt.options.debug.enabled is False
+    assert dt.options.debug.logger is None
+    assert dt.options.debug.report_args is False
+    with dt.options.debug.context(enabled=True):
+        assert dt.options.debug.logger is None
+        assert dt.options.debug.enabled is True
+        DT = dt.Frame(range(100000))
+        out, err = capsys.readouterr()
+        assert not err
+        assert re.search(r"<Frame#[\da-fA-F]+>.__init__\(\) ", out)
+        assert re.search(r"# \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", out)
+
+        with pytest.raises(TypeError):
+            dt.cbind(3)
+        out, err = capsys.readouterr()
+        assert not err
+        assert "dt.cbind() {" in out
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
+
+
+def test_debug_logger_default_with_report_args(capsys):
+    assert dt.options.debug.logger is None
+    with dt.options.debug.context(enabled=True, report_args=True):
+        assert dt.options.debug.logger is None
+        assert dt.options.debug.enabled is True
+        DT = dt.Frame(range(100000))
+        out, err = capsys.readouterr()
+        print(out)
+        assert not err
+        assert re.search(r"<Frame#[\da-fA-F]+>.__init__\(range\(0, 100000\)\)", out)
+        assert re.search(r"# \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", out)
+
+        with pytest.raises(TypeError):
+            dt.cbind(3)
+        out, err = capsys.readouterr()
+        assert not err
+        assert "dt.cbind(3) {" in out
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
+
+
+def test_debug_logger_object():
+    assert dt.options.debug.logger is None
+    logger = SimpleLogger()
+    with dt.options.debug.context(logger=logger, enabled=True, report_args=True):
+        assert dt.options.debug.logger is logger
+        assert dt.options.debug.enabled is True
+
+        DT = dt.rbind([])
+        assert "dt.rbind([]) {" in logger.msg
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", logger.msg)
+        logger.msg = ""
+
+        with pytest.raises(TypeError):
+            dt.rbind(4)
+        assert "dt.rbind(4) {" in logger.msg
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", logger.msg)
+
+
+def test_debug_logger_invalid_object():
+    msg = r"Logger should be an object having a method \.debug\(self, msg\)"
+    with pytest.raises(TypeError, match=msg):
+        dt.options.debug.logger = "default"
+
+    with pytest.raises(TypeError, match=msg):
+        dt.options.debug.logger = False
+
+    class A: pass
+    with pytest.raises(TypeError, match=msg):
+        dt.options.debug.logger = A()
+
+    class B:
+        debug = True
+
+    with pytest.raises(TypeError, match=msg):
+        dt.options.debug.logger = B()
+
+
+def test_debug_arg_max_size():
+    logger = SimpleLogger()
+    with dt.options.debug.context(logger=logger, enabled=True, report_args=True):
+        assert dt.options.debug.arg_max_size == 100
+        with dt.options.debug.context(arg_max_size=0):
+            assert dt.options.debug.arg_max_size == 10
+        with pytest.raises(ValueError):
+            dt.options.debug.arg_max_size = -1
+        with pytest.raises(TypeError):
+            dt.options.debug.arg_max_size = None
+
+        with dt.options.debug.context(arg_max_size=20):
+            logger.msg = ""
+            DT = dt.Frame(A=["abcdefghij"*100])
+            assert ".__init__(A=['abcdefghij...hij']) #" in logger.msg
+
+
+def test_debug_logger_invalid_option():
+    # This test checks that invalid options do not cause a crash
+    # when logging is enabled
+    with dt.options.debug.context(enabled=True, report_args=True):
+        try:
+            dt.options.gooo0
+            assert False, "Did not raise AttributeError"
+        except AttributeError:
+            pass
+
+
+def test_debug_logger_bad_repr():
+    # This test checks that logging does not crash if a repr()
+    # function throws an error
+    class A:
+        def __repr__(self):
+            raise RuntimeError("Malformed repr")
+
+    with dt.options.debug.context(enabled=True, report_args=True):
+        DT = dt.Frame()
+        try:
+            DT[A()]
+        except TypeError:
+            pass
+
+
+def test_debug_logger_no_deadlock():
+    # This custom logger invokes datatable functionality, which has
+    # the potential of causing deadlocks or deep recursive messages.
+    class MyLogger:
+        def __init__(self):
+            self.frame = dt.Frame(msg=[], stype=str)
+
+        def debug(self, msg):
+            self.frame.nrows += 1
+            self.frame[-1, 0] = msg
+
+    logger = MyLogger()
+    with dt.options.debug.context(enabled=True, logger=logger, report_args=True):
+        logger.frame.nrows = 0
+        DT = dt.Frame(range(10))
+        DT.rbind(DT)
+        del DT[::2, :]
+        assert logger.frame.nrows == 4

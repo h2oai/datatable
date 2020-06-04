@@ -358,3 +358,26 @@ void Warning::emit() {
 Warning DeprecationWarning() { return Warning(PyExc_FutureWarning); }
 Warning DatatableWarning()   { init(); return Warning(DtWrn_DatatableWarning); }
 Warning IOWarning()          { init(); return Warning(DtWrn_IOWarning); }
+
+
+
+
+//------------------------------------------------------------------------------
+// HidePythonError
+//------------------------------------------------------------------------------
+
+HidePythonError::HidePythonError() {
+  if (PyErr_Occurred()) {
+    PyErr_Fetch(&ptype_, &pvalue_, &ptraceback_);
+  } else {
+    ptype_ = nullptr;
+    pvalue_ = nullptr;
+    ptraceback_ = nullptr;
+  }
+}
+
+HidePythonError::~HidePythonError() {
+  if (ptype_) {
+    PyErr_Restore(ptype_, pvalue_, ptraceback_);
+  }
+}

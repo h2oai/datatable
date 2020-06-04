@@ -21,9 +21,9 @@
 //------------------------------------------------------------------------------
 #include <algorithm>       // std::min
 #include <cstring>         // std::strrchr
+#include "call_logger.h"
 #include "python/args.h"
 #include "utils/assert.h"
-
 namespace py {
 
 
@@ -53,7 +53,7 @@ PKArgs::PKArgs(
   if (has_varargs) {
     xassert(n_pos_kwd_args == 0);
   }
-  
+
   bound_args.resize(n_all_args);
   for (size_t i = 0; i < n_all_args; ++i) {
     bound_args[i].init(i, this);
@@ -68,6 +68,11 @@ PKArgs::~PKArgs() {
 void PKArgs::set_class_name(const char* name) {
   const char* p = std::strrchr(name, '.');
   cls_name = p? p + 1 : name;
+}
+
+const char* PKArgs::get_class_name() const {
+  xassert(cls_name);
+  return cls_name;
 }
 
 const char* PKArgs::get_short_name() const {
@@ -177,6 +182,7 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
 PyObject* PKArgs::exec_function(
     PyObject* args, PyObject* kwds, oobj (*func)(const PKArgs&)) noexcept
 {
+  auto cl = dt::CallLogger::function(this, args, kwds);
   try {
     bind(args, kwds);
     oobj res = func(*this);
@@ -193,6 +199,7 @@ PyObject* PKArgs::exec_function(
 PyObject* PKArgs::exec_function(
     PyObject* args, PyObject* kwds, void (*func)(const PKArgs&)) noexcept
 {
+  auto cl = dt::CallLogger::function(this, args, kwds);
   try {
     bind(args, kwds);
     func(*this);

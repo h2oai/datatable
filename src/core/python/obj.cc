@@ -123,7 +123,7 @@ oobj::oobj(oobj&& other) {
 oobj& oobj::operator=(const oobj& other) {
   PyObject* t = v;
   v = other.v;
-  Py_XINCREF(other.v);
+  Py_XINCREF(v);
   Py_XDECREF(t);
   return *this;
 }
@@ -197,6 +197,7 @@ bool _obj::is_ellipsis()      const noexcept { return (v == Py_Ellipsis); }
 bool _obj::is_true()          const noexcept { return (v == Py_True); }
 bool _obj::is_false()         const noexcept { return (v == Py_False); }
 bool _obj::is_bool()          const noexcept { return is_true() || is_false(); }
+bool _obj::is_callable()      const noexcept { return v && PyCallable_Check(v); }
 bool _obj::is_numeric()       const noexcept { return is_float() || is_int(); }
 bool _obj::is_list_or_tuple() const noexcept { return is_list() || is_tuple(); }
 bool _obj::is_int()           const noexcept { return v && PyLong_Check(v) && !is_bool(); }
@@ -995,6 +996,23 @@ ostring _obj::str() const {
 }
 
 
+ostring _obj::repr() const {
+  PyObject* reprobj = PyObject_Repr(v);
+  if (!reprobj) throw PyError();
+  return ostring::from_new_reference(reprobj);
+}
+
+
+ostring _obj::safe_repr() const {
+  PyObject* reprobj = PyObject_Repr(v);
+  if (!reprobj) {
+    PyErr_Clear();
+    return ostring("<?>");
+  }
+  return ostring::from_new_reference(reprobj);
+}
+
+
 PyTypeObject* _obj::typeobj() const noexcept {
   return Py_TYPE(v);
 }
@@ -1113,6 +1131,7 @@ robj rstderr() {
 
 void write_to_stdout(const std::string& str) {
   PyObject* py_stdout = rstdout().to_borrowed_ref();
+  HidePythonError h;
   oobj writer;
   if (py_stdout && py_stdout != Py_None) {
     writer = oobj::from_new_reference(

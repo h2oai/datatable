@@ -27,14 +27,19 @@ Arg::Arg()
   : pos(0), parent(nullptr), pyobj(nullptr) {}
 
 Arg::Arg(py::_obj py_object, const std::string& cached_name_)
-  : pyobj(py_object.to_borrowed_ref()), cached_name(cached_name_) {}
-
+  : pos(0),
+    parent(nullptr),
+    pyobj(py_object.to_borrowed_ref()),
+    cached_name(cached_name_) {}
 
 Arg::Arg(const std::string& cached_name_)
-  : pyobj(nullptr), cached_name(cached_name_) {}
-
+  : pos(0),
+    parent(nullptr),
+    pyobj(nullptr),
+    cached_name(cached_name_) {}
 
 Arg::~Arg() {}
+
 
 void Arg::init(size_t i, PKArgs* args) {
   pos = i;

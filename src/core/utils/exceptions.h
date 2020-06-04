@@ -143,4 +143,29 @@ Warning DeprecationWarning();
 Warning IOWarning();
 
 
+
+
+//------------------------------------------------------------------------------
+// HidePythonError
+//------------------------------------------------------------------------------
+
+/**
+  * Guardian-type class that will temporarily hide the current
+  * python error (if any), restoring it when the object goes out of
+  * scope.
+  */
+class HidePythonError {
+  private:
+    PyObject* ptype_;
+    PyObject* pvalue_;
+    PyObject* ptraceback_;
+
+  public:
+    HidePythonError();
+    ~HidePythonError();
+};
+
+
+
+
 #endif
