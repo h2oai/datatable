@@ -273,15 +273,15 @@ def test_debug_logger_default_without_report_args(capsys):
         out, err = capsys.readouterr()
         print(out)
         assert not err
-        assert re.search(r"<Frame#[\da-fA-F]+>.__init__\(\) "
-                         r"# \d+\.\d+(?:e[+-]?\d+)? s", out)
+        assert re.search(r"<Frame#[\da-fA-F]+>.__init__\(\) ", out)
+        assert re.search(r"# \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", out)
 
         with pytest.raises(TypeError):
             dt.cbind(3)
         out, err = capsys.readouterr()
         assert not err
         assert "dt.cbind() {" in out
-        assert re.search(r"} # \d+\.\d+(?:e[+-]?\d+)? s \(failed\)", out)
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
 
 
 def test_debug_logger_default_with_report_args(capsys):
@@ -292,16 +292,15 @@ def test_debug_logger_default_with_report_args(capsys):
         out, err = capsys.readouterr()
         print(out)
         assert not err
-        assert re.search(r"<Frame#[\da-fA-F]+>.__init__"
-                         r"\(range\(0, 100000\)\) "
-                         r"# \d+\.\d+(?:e[+-]?\d+)? s", out)
+        assert re.search(r"<Frame#[\da-fA-F]+>.__init__\(range\(0, 100000\)\)", out)
+        assert re.search(r"# \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", out)
 
         with pytest.raises(TypeError):
             dt.cbind(3)
         out, err = capsys.readouterr()
         assert not err
         assert "dt.cbind(3) {" in out
-        assert re.search(r"} # \d+\.\d+(?:e[+-]?\d+)? s \(failed\)", out)
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
 
 
 def test_debug_arg_max_size():
@@ -330,13 +329,13 @@ def test_debug_logger_object():
 
         DT = dt.rbind([])
         assert "dt.rbind([]) {" in logger.msg
-        assert re.search(r"} # \d+\.\d+(?:e[+-]?\d+)? s", logger.msg)
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", logger.msg)
         logger.msg = ""
 
         with pytest.raises(TypeError):
             dt.rbind(4)
         assert "dt.rbind(4) {" in logger.msg
-        assert re.search(r"} # \d+\.\d+(?:e[+-]?\d+)? s \(failed\)", logger.msg)
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", logger.msg)
 
 
 def test_debug_logger_invalid_option():
