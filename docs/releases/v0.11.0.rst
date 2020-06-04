@@ -131,10 +131,13 @@
     signal when an operation is requested that would be illegal for the given
     combination of parameters.
 
-  -[new] New option ``dt.options.debug.logger`` will report all calls to the
+  -[new] New option ``dt.options.debug.enabled`` will report all calls to the
     internal C++ core functions, together with their timings. This may help
     identify performance bottlenecks, or help troubleshooting user scripts.
-    [#2452]
+
+    Additional options ``debug.logger``, ``debug.report_args`` and
+    ``debug.max_arg_size`` allow more granular control over the logging
+    process. [#2452]
 
   -[enh] datatable no longer has modules ``blessed`` and ``typesentry`` as
     dependencies. [#1677] [#1535]
