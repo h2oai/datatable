@@ -324,6 +324,25 @@ def test_debug_logger_object():
         assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", logger.msg)
 
 
+def test_debug_logger_invalid_object():
+    msg = r"Logger should be an object having a method \.debug\(self, msg\)"
+    with pytest.raises(TypeError, match=msg):
+        dt.options.debug.logger = "default"
+
+    with pytest.raises(TypeError, match=msg):
+        dt.options.debug.logger = False
+
+    class A: pass
+    with pytest.raises(TypeError, match=msg):
+        dt.options.debug.logger = A()
+
+    class B:
+        debug = True
+
+    with pytest.raises(TypeError, match=msg):
+        dt.options.debug.logger = B()
+
+
 def test_debug_arg_max_size():
     logger = SimpleLogger()
     with dt.options.debug.context(logger=logger, enabled=True, report_args=True):
