@@ -197,6 +197,7 @@ bool _obj::is_ellipsis()      const noexcept { return (v == Py_Ellipsis); }
 bool _obj::is_true()          const noexcept { return (v == Py_True); }
 bool _obj::is_false()         const noexcept { return (v == Py_False); }
 bool _obj::is_bool()          const noexcept { return is_true() || is_false(); }
+bool _obj::is_callable()      const noexcept { return v && PyCallable_Check(v); }
 bool _obj::is_numeric()       const noexcept { return is_float() || is_int(); }
 bool _obj::is_list_or_tuple() const noexcept { return is_list() || is_tuple(); }
 bool _obj::is_int()           const noexcept { return v && PyLong_Check(v) && !is_bool(); }
@@ -1130,6 +1131,7 @@ robj rstderr() {
 
 void write_to_stdout(const std::string& str) {
   PyObject* py_stdout = rstdout().to_borrowed_ref();
+  HidePythonError h;
   oobj writer;
   if (py_stdout && py_stdout != Py_None) {
     writer = oobj::from_new_reference(
@@ -1142,7 +1144,6 @@ void write_to_stdout(const std::string& str) {
     if (!writer) PyErr_Clear();
   }
   if (writer) {
-    HidePythonError h;
     writer.call({ ostring(str) });
   }
   else {

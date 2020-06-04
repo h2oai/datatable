@@ -170,8 +170,9 @@ class Config:
                 extras += "%s [...]\n\n" % core.apply_color("bold", opt.name)
                 continue
             value = opt.get()
-            comment = ("(default)" if value == opt.default else
-                       "(default: %r)" % opt.default)
+            default = opt.default
+            comment = ("(default)" if value == default else
+                       "(default: %r)" % default)
             print("%s = %s %s" %
                   (core.apply_color("bold", opt.name),
                    core.apply_color("bright_green", repr(value)),

@@ -75,6 +75,7 @@ def test_options_all():
         "allow_interruption",
     }
     assert set(dir(dt.options.debug)) == {
+        "enabled",
         "logger",
         "report_args",
         "arg_max_size"
@@ -265,13 +266,14 @@ class SimpleLogger:
 
 
 def test_debug_logger_default_without_report_args(capsys):
+    assert dt.options.debug.enabled is False
     assert dt.options.debug.logger is None
-    with dt.options.debug.context(logger="default"):
-        assert dt.options.debug.logger
-        assert dt.options.debug.report_args is False
+    assert dt.options.debug.report_args is False
+    with dt.options.debug.context(enabled=True):
+        assert dt.options.debug.logger is None
+        assert dt.options.debug.enabled is True
         DT = dt.Frame(range(100000))
         out, err = capsys.readouterr()
-        print(out)
         assert not err
         assert re.search(r"<Frame#[\da-fA-F]+>.__init__\(\) ", out)
         assert re.search(r"# \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", out)
@@ -286,8 +288,9 @@ def test_debug_logger_default_without_report_args(capsys):
 
 def test_debug_logger_default_with_report_args(capsys):
     assert dt.options.debug.logger is None
-    with dt.options.debug.context(logger="default", report_args=True):
-        assert dt.options.debug.logger
+    with dt.options.debug.context(enabled=True, report_args=True):
+        assert dt.options.debug.logger is None
+        assert dt.options.debug.enabled is True
         DT = dt.Frame(range(100000))
         out, err = capsys.readouterr()
         print(out)
@@ -303,9 +306,27 @@ def test_debug_logger_default_with_report_args(capsys):
         assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
 
 
+def test_debug_logger_object():
+    assert dt.options.debug.logger is None
+    logger = SimpleLogger()
+    with dt.options.debug.context(logger=logger, enabled=True, report_args=True):
+        assert dt.options.debug.logger is logger
+        assert dt.options.debug.enabled is True
+
+        DT = dt.rbind([])
+        assert "dt.rbind([]) {" in logger.msg
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", logger.msg)
+        logger.msg = ""
+
+        with pytest.raises(TypeError):
+            dt.rbind(4)
+        assert "dt.rbind(4) {" in logger.msg
+        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", logger.msg)
+
+
 def test_debug_arg_max_size():
     logger = SimpleLogger()
-    with dt.options.debug.context(logger=logger, report_args=True):
+    with dt.options.debug.context(logger=logger, enabled=True, report_args=True):
         assert dt.options.debug.arg_max_size == 100
         with dt.options.debug.context(arg_max_size=0):
             assert dt.options.debug.arg_max_size == 10
@@ -320,28 +341,10 @@ def test_debug_arg_max_size():
             assert ".__init__(A=['abcdefghij...hij']) #" in logger.msg
 
 
-
-def test_debug_logger_object():
-    assert dt.options.debug.logger is None
-    logger = SimpleLogger()
-    with dt.options.debug.context(logger=logger, report_args=True):
-        assert dt.options.debug.logger is logger
-
-        DT = dt.rbind([])
-        assert "dt.rbind([]) {" in logger.msg
-        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", logger.msg)
-        logger.msg = ""
-
-        with pytest.raises(TypeError):
-            dt.rbind(4)
-        assert "dt.rbind(4) {" in logger.msg
-        assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", logger.msg)
-
-
 def test_debug_logger_invalid_option():
     # This test checks that invalid options do not cause a crash
     # when logging is enabled
-    with dt.options.debug.context(logger="default", report_args=True):
+    with dt.options.debug.context(enabled=True, report_args=True):
         try:
             dt.options.gooo0
             assert False, "Did not raise AttributeError"
@@ -356,7 +359,7 @@ def test_debug_logger_bad_repr():
         def __repr__(self):
             raise RuntimeError("Malformed repr")
 
-    with dt.options.debug.context(logger='default', report_args=True):
+    with dt.options.debug.context(enabled=True, report_args=True):
         DT = dt.Frame()
         try:
             DT[A()]
@@ -376,7 +379,7 @@ def test_debug_logger_no_deadlock():
             self.frame[-1, 0] = msg
 
     logger = MyLogger()
-    with dt.options.debug.context(logger=logger, report_args=True):
+    with dt.options.debug.context(enabled=True, logger=logger, report_args=True):
         logger.frame.nrows = 0
         DT = dt.Frame(range(10))
         DT.rbind(DT)

@@ -61,40 +61,47 @@ static size_t opt_truncate_length = 100;
 
 static void _init_options() {
   register_option(
-    "debug.logger",
+    "debug.enabled",
     [] {
-      return LOG_ENABLED? LOG->get_pylogger(true)
-                        : py::None();
+      return py::obool(LOG_ENABLED);
     },
     [](const py::Arg& arg) {
-      if (LOG_ENABLED != LOG->enabled()) {
-        throw RuntimeError() << "Cannot change debug.logger at this time";
+      bool value = arg.to_bool_strict();
+      if (value && !LOG_ENABLED) {
+        LOG->enable();
+        LOG_ENABLED = true;
       }
-      if (arg.is_none()) {             // debug.logger = None
+      if (!value && LOG_ENABLED) {
         LOG->disable();
         LOG_ENABLED = false;
       }
-      else if (arg.is_string()) {
-        auto arg_str = arg.to_string();
-        if (arg_str == "default") {    // debug.logger = "default"
-          LOG->enable();
-          LOG_ENABLED = true;
-        } else {                       // debug.logger = <some other string>
-          throw ValueError()
-              << "Invalid value for `" << arg.name() << "`: "  << arg_str;
-        }
+    },
+    "If True, all calls to datatable core functions will be logged,\n"
+    "together with their timings."
+  );
+
+  register_option(
+    "debug.logger",
+    [] {
+      return LOG->get_pylogger(false);
+    },
+    [](const py::Arg& arg) {
+      auto logger = arg.to_oobj();
+      if (logger.is_none()) {
+        LOG->use_pylogger(py::oobj());
       }
-      else {                           // debug.logger = <object>
-        LOG->use_pylogger(arg.to_oobj());
-        LOG_ENABLED = true;
+      else {
+        if (!logger.get_attrx("debug").is_callable()) {
+          throw TypeError()
+            << "Logger should be an object having a method .debug(self, msg)";
+        }
+        LOG->use_pylogger(logger);
       }
     },
     "The logger object used for reporting calls to datatable core\n"
-    "functions. If None, then logging is disabled (this is the\n"
-    "default).\n\n"
-    "Setting this option to 'default' will use the built-in\n"
-    "datatable logger. Otherwise you can use any other object\n"
-    "that implements a `.debug(msg)` method.\n"
+    "functions. If None, then the default (built-in) logger will\n"
+    "be used. This option has no effect if `debug.enabled` is\n"
+    "turned off.\n"
   );
 
   register_option(
