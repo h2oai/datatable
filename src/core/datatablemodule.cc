@@ -296,6 +296,7 @@ static void initialize_options(const py::PKArgs& args) {
   py::Frame::init_display_options();
   dt::read::GenericReader::init_options();
   sort_init_options();
+  throw RuntimeError();
 }
 
 
