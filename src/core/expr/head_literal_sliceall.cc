@@ -46,6 +46,7 @@ Workframe Head_Literal_SliceAll::evaluate_f(
   size_t ncols = ctx.get_datatable(frame_id)->ncols();
   Workframe outputs(ctx);
   for (size_t i = 0; i < ncols; ++i) {
+    if (ctx.has_group_column(frame_id, i)) continue;
     outputs.add_ref_column(frame_id, i);
   }
   return outputs;

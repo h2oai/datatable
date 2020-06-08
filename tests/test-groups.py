@@ -115,6 +115,33 @@ def test_groups4(seed):
     assert curr_value is None
 
 
+def test_group_slice_all():
+    DT = dt.Frame([[1, 2, 3, 4, 5, 6], [3, 0, 3, 3, 1, 0], list("abcdef")],
+                  names=["A", "B", "C"])
+    RES = dt.Frame(B=[0, 0, 1, 3, 3, 3],
+                   A=[2, 6, 5, 1, 3, 4],
+                   C=["b", "f", "e", "a", "c", "d"])
+    assert_equals(DT[:, :, by(f.B)], RES)
+    assert_equals(DT[:, f[:], by(f.B)], RES)
+
+
+def test_group_reduce_all_columns():
+    DT = dt.Frame(
+        id=[3,3,3,3,4,4,4,4],
+        beef=[23,None,None,None,None,None,None,None],
+        eggs=[None,33,None,None,197,103,None,None],
+        fork=[None,None,10,None,None,None,210,None],
+        veg=[17,None,None,40,1,2,None,340]
+    )
+    assert_equals(DT[:, sum(f[:]), by(f.id)],
+                  dt.Frame(id=[3, 4],
+                           beef=[23, 0]/dt.int64,
+                           eggs=[33, 300]/dt.int64,
+                           fork=[10, 210]/dt.int64,
+                           veg=[57, 343]/dt.int64))
+
+
+
 
 #-------------------------------------------------------------------------------
 # Groupby on small datasets
