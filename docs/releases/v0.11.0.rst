@@ -55,6 +55,9 @@
     an ``obj64`` column was created instead. The new behavior is more
     consistent with fread's behavior when reading CSV files.
 
+  -[api] Expression `f[:]` now excludes groupby columns when used in a
+    groupby context. [#2460]
+
   -[bug] Deleting a key from the Frame (``del DT.key``) no longer causes a
     seg.fault. [#2357]
 
