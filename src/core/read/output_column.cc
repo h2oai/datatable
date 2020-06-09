@@ -30,7 +30,6 @@ namespace read {
 
 OutputColumn::OutputColumn()
   : nrows_in_chunks_(0),
-    na_count_(0),
     stype_(SType::BOOL),
     type_bumped_(false),
     present_in_buffer_(true) {}
@@ -41,15 +40,16 @@ OutputColumn::OutputColumn(OutputColumn&& o) noexcept
     strbuf_(std::move(o.strbuf_)),
     chunks_(std::move(o.chunks_)),
     nrows_in_chunks_(o.nrows_in_chunks_),
-    na_count_(o.na_count_),
     stype_(o.stype_),
     type_bumped_(o.type_bumped_),
     present_in_buffer_(o.present_in_buffer_) {}
 
 
 
-void* OutputColumn::data_w() {
-  return databuf_.xptr();
+void* OutputColumn::data_w(size_t row) {
+  xassert(row >= nrows_in_chunks_);
+  return static_cast<char*>(databuf_.xptr())
+         + (row - nrows_in_chunks_) * stype_elemsize(stype_);
 }
 
 
@@ -102,9 +102,9 @@ void OutputColumn::archive_data(size_t nrows_written,
                                                        std::move(stored_strbuf))
                            : Column::new_mbuf_column(nrows_chunk, stype_,
                                                      std::move(stored_databuf));
-  newcol.stats()->set_nacount(na_count_);
+  newcol.stats()->set_nacount(colinfo_.na_count);
   chunks_.push_back(std::move(newcol));
-  na_count_ = 0;
+  colinfo_.na_count = 0;
   nrows_in_chunks_ = nrows_written;
   xassert(!databuf_ && !strbuf_);
 }
@@ -143,16 +143,12 @@ Column OutputColumn::to_column() {
 
 void OutputColumn::set_stype(SType stype) {
   stype_ = stype;
-}
-
-
-size_t OutputColumn::nrows_archived() const noexcept {
-  return nrows_in_chunks_;
+  if (nrows_in_chunks_) type_bumped_ = true;
 }
 
 
 void OutputColumn::add_na_count(size_t n) {
-  na_count_ += n;
+  colinfo_.na_count += n;
 }
 
 

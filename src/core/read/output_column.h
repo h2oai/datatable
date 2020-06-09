@@ -23,11 +23,21 @@
 #define dt_READ_OUTPUT_COLUMN_h
 #include "_dt.h"
 #include "buffer.h"
+#include "read/colinfo.h"
 namespace dt {
 namespace read {
 
 
 /**
+  * This class represents a single column that will be written
+  * to the output frame.
+  *
+  * The column contains the main data buffer `databuf_`, plus an
+  * extra buffer for string data `strbuf_`. Additionally, there is
+  * vector `chunks_` which contains data that was already stored as
+  * `Column` fragments.
+  *
+  * TODO: finish separating from InputColumn
   */
 class OutputColumn
 {
@@ -37,7 +47,7 @@ class OutputColumn
     std::unique_ptr<MemoryWritableBuffer> strbuf_;
     std::vector<Column> chunks_;
     size_t nrows_in_chunks_;
-    size_t na_count_;
+    ColInfo colinfo_;
     SType stype_;
 
     bool type_bumped_;        // tmp
@@ -49,13 +59,11 @@ class OutputColumn
     OutputColumn(OutputColumn&&) noexcept;
     OutputColumn(const OutputColumn&) = delete;
 
-    void* data_w();
+    void* data_w(size_t row);
     MemoryWritableBuffer* strdata_w();
     void allocate(size_t new_nrows);
     void archive_data(size_t nrows_written, std::shared_ptr<TemporaryFile>&);
     Column to_column();
-
-    size_t nrows_archived() const noexcept;
 
     void add_na_count(size_t n);
 
