@@ -33,7 +33,10 @@ OutputColumn::OutputColumn()
   : nrows_in_chunks_(0),
     stype_(SType::BOOL),
     type_bumped_(false),
-    present_in_buffer_(true) {}
+    present_in_buffer_(true)
+{
+  reset_colinfo();
+}
 
 
 OutputColumn::OutputColumn(OutputColumn&& o) noexcept
@@ -41,6 +44,7 @@ OutputColumn::OutputColumn(OutputColumn&& o) noexcept
     strbuf_(std::move(o.strbuf_)),
     chunks_(std::move(o.chunks_)),
     nrows_in_chunks_(o.nrows_in_chunks_),
+    colinfo_(o.colinfo_),
     stype_(o.stype_),
     type_bumped_(o.type_bumped_),
     present_in_buffer_(o.present_in_buffer_) {}
