@@ -1393,3 +1393,4 @@ template class IntegerStats<int8_t>;
 template class IntegerStats<int16_t>;
 template class IntegerStats<int32_t>;
 template class IntegerStats<int64_t>;
+template class NumericStats<int64_t>;

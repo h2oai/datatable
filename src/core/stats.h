@@ -367,6 +367,9 @@ class BooleanStats : public NumericStats<int64_t> {
     void compute_all_stats();
 };
 
+extern template class NumericStats<int64_t>;
+
+
 
 
 //------------------------------------------------------------------------------

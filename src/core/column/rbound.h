@@ -51,6 +51,12 @@ class Rbound_ColumnImpl : public Virtual_ColumnImpl {
 
     void write_data_to_jay(Column&, jay::ColumnBuilder&,
                            WritableBuffer*) const override;
+
+  private:
+    void calculate_nacount();
+    void calculate_boolean_stats();
+    void calculate_integer_stats();
+    void calculate_float_stats();
 };
 
 
