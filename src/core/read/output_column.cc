@@ -128,7 +128,7 @@ void OutputColumn::archive_data(size_t nrows_written,
     }
   }
   chunks_.push_back(std::move(newcol));
-  colinfo_.na_count = 0;
+  reset_colinfo();
   nrows_in_chunks_ = nrows_written;
   xassert(!databuf_ && !strbuf_);
 }
@@ -171,6 +171,13 @@ Column OutputColumn::to_column() {
 void OutputColumn::set_stype(SType stype) {
   xassert(type_bumped_ || !databuf_);
   stype_ = stype;
+  reset_colinfo();
+}
+
+
+
+void OutputColumn::reset_colinfo() {
+  colinfo_.na_count = 0;
   switch (stype_) {
     case SType::BOOL: {
       colinfo_.b.count0 = 0;

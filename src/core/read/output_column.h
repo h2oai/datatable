@@ -103,6 +103,9 @@ class OutputColumn
     void merge_chunk_stats(const ColInfo& info);
 
     void set_stype(SType stype);
+
+  private:
+    void reset_colinfo();
 };
 
 
