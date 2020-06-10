@@ -105,8 +105,8 @@ InputColumn::get_ptype_iterator(int8_t* qr_ptr) const {
 void InputColumn::set_ptype(PT new_ptype) {
   type_bumped_ = true;
   parse_type_ = new_ptype;
-  outcol_.set_stype(get_stype());
   outcol_.type_bumped_ = true;
+  outcol_.set_stype(get_stype());
 }
 
 // Set .parse_type_ to the provided value, disregarding the restrictions imposed

@@ -488,7 +488,7 @@ int64_t FreadReader::parse_single_line(dt::read::ParseContext& fctx)
   size_t ncols = preframe.ncols();
   size_t j = 0;
   dt::read::InputColumn dummy_col;
-  dummy_col.force_ptype(dt::read::PT::Str32);
+  dummy_col.set_rtype(dt::read::RT::RStr32);
 
   while (true) {
     auto& col = j < ncols ? preframe.column(j) : dummy_col;

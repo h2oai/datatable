@@ -46,16 +46,16 @@ OutputColumn::OutputColumn(OutputColumn&& o) noexcept
 
 
 
-void* OutputColumn::data_w(size_t row) {
+void* OutputColumn::data_w(size_t row) const {
   xassert(row >= nrows_in_chunks_);
-  return static_cast<char*>(databuf_.xptr())
-         + (row - nrows_in_chunks_) * stype_elemsize(stype_);
+  return databuf_.xptr((row - nrows_in_chunks_) * stype_elemsize(stype_));
 }
 
 
 MemoryWritableBuffer* OutputColumn::strdata_w() {
   return strbuf_.get();
 }
+
 
 
 void OutputColumn::archive_data(size_t nrows_written,
@@ -110,6 +110,7 @@ void OutputColumn::archive_data(size_t nrows_written,
 }
 
 
+
 void OutputColumn::allocate(size_t new_nrows) {
   if (type_bumped_ || !present_in_buffer_) return;
   xassert(new_nrows >= nrows_in_chunks_);
@@ -131,6 +132,7 @@ void OutputColumn::allocate(size_t new_nrows) {
 }
 
 
+
 // Call `.archive_data()` before invoking `.to_column()`.
 Column OutputColumn::to_column() {
   xassert(!databuf_);
@@ -141,9 +143,10 @@ Column OutputColumn::to_column() {
 }
 
 
+
 void OutputColumn::set_stype(SType stype) {
+  xassert(type_bumped_ || !databuf_);
   stype_ = stype;
-  if (nrows_in_chunks_) type_bumped_ = true;
 }
 
 
