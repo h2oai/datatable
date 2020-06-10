@@ -98,11 +98,6 @@ class ThreadContext    // TODO: rename
     void preorder_float64_column(size_t j);
     void preorder_string_column(size_t j);
 
-    void order_bool_column(OutputColumn& col, size_t j);
-    void order_int_column(OutputColumn& col, size_t j);
-    void order_float_column(OutputColumn& col, size_t j);
-    void order_string_column(OutputColumn& col, size_t j);
-
     void postorder_bool_column(OutputColumn& col, size_t j);
     void postorder_int32_column(OutputColumn& col, size_t j);
     void postorder_int64_column(OutputColumn& col, size_t j);

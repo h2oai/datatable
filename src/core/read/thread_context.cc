@@ -231,49 +231,15 @@ void ThreadContext::order() {
     if (col.is_type_bumped()) { j++; continue; }
 
     auto& outcol = col.outcol();
-    switch (col.get_stype()) {
-      case SType::BOOL:    order_bool_column(outcol, j); break;
-      case SType::INT8:
-      case SType::INT32:
-      case SType::INT64:   order_int_column(outcol, j); break;
-      case SType::FLOAT32:
-      case SType::FLOAT64: order_float_column(outcol, j); break;
-      case SType::STR32:
-      case SType::STR64:   order_string_column(outcol, j); break;
-      default:;
+    outcol.merge_chunk_stats(colinfo_[j]);
+    if (col.is_string()) {
+      auto strdata_size = colinfo_[j].str.size;
+      auto wb = outcol.strdata_w();
+      size_t write_at = wb->prepare_write(strdata_size, nullptr);
+      colinfo_[j].str.write_at = write_at;
     }
     ++j;
   }
-}
-
-
-void ThreadContext::order_bool_column(OutputColumn& col, size_t j) {
-  (void) col; (void) j;
-  col.add_na_count(colinfo_[j].na_count);
-  // colinfo_[j]
-}
-
-
-void ThreadContext::order_int_column(OutputColumn& col, size_t j) {
-  (void) col; (void) j;
-  col.add_na_count(colinfo_[j].na_count);
-  // colinfo_[j]
-}
-
-
-void ThreadContext::order_float_column(OutputColumn& col, size_t j) {
-  (void) col; (void) j;
-  col.add_na_count(colinfo_[j].na_count);
-  // colinfo_[j]
-}
-
-
-void ThreadContext::order_string_column(OutputColumn& col, size_t j) {
-  auto strdata_size = colinfo_[j].str.size;
-  auto wb = col.strdata_w();
-  size_t write_at = wb->prepare_write(strdata_size, nullptr);
-  colinfo_[j].str.write_at = write_at;
-  col.add_na_count(colinfo_[j].na_count);
 }
 
 

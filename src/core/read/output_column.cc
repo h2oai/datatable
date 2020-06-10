@@ -147,12 +147,64 @@ Column OutputColumn::to_column() {
 void OutputColumn::set_stype(SType stype) {
   xassert(type_bumped_ || !databuf_);
   stype_ = stype;
+  switch (stype_) {
+    case SType::BOOL: {
+      colinfo_.b.count0 = 0;
+      colinfo_.b.count1 = 0;
+      break;
+    }
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64: {
+      colinfo_.i.min = std::numeric_limits<int64_t>::max();
+      colinfo_.i.max = -std::numeric_limits<int64_t>::max();
+      break;
+    }
+    case SType::FLOAT32:
+    case SType::FLOAT64: {
+      colinfo_.f.min = std::numeric_limits<double>::max();
+      colinfo_.f.max = -std::numeric_limits<double>::max();
+      break;
+    }
+    case SType::STR32:
+    case SType::STR64: break;
+    default:
+      throw RuntimeError() << "Unexpected stype in fread: " << stype_;
+  }
 }
 
 
-void OutputColumn::add_na_count(size_t n) {
-  colinfo_.na_count += n;
+
+void OutputColumn::merge_chunk_stats(const ColInfo& info) {
+  colinfo_.na_count += info.na_count;
+  switch (stype_) {
+    case SType::BOOL: {
+      colinfo_.b.count0 += info.b.count0;
+      colinfo_.b.count1 += info.b.count1;
+      break;
+    }
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64: {
+      if (info.i.min < colinfo_.i.min) colinfo_.i.min = info.i.min;
+      if (info.i.max > colinfo_.i.max) colinfo_.i.max = info.i.max;
+      break;
+    }
+    case SType::FLOAT32:
+    case SType::FLOAT64: {
+      if (info.f.min < colinfo_.f.min) colinfo_.f.min = info.f.min;
+      if (info.f.max > colinfo_.f.max) colinfo_.f.max = info.f.max;
+      break;
+    }
+    case SType::STR32:
+    case SType::STR64: break;
+    default:
+      throw RuntimeError() << "Unexpected stype in fread: " << stype_;
+  }
 }
+
 
 
 

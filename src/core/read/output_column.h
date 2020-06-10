@@ -100,7 +100,7 @@ class OutputColumn
     //
     Column to_column();
 
-    void add_na_count(size_t n);
+    void merge_chunk_stats(const ColInfo& info);
 
     void set_stype(SType stype);
 };
