@@ -23,6 +23,7 @@
 #include "read/output_column.h"
 #include "utils/temporary_file.h"
 #include "column.h"
+#include "ltype.h"
 #include "stype.h"
 namespace dt {
 namespace read {
@@ -102,7 +103,30 @@ void OutputColumn::archive_data(size_t nrows_written,
                                                        std::move(stored_strbuf))
                            : Column::new_mbuf_column(nrows_chunk, stype_,
                                                      std::move(stored_databuf));
-  newcol.stats()->set_nacount(colinfo_.na_count);
+  {
+    Stats* stats = newcol.stats();
+    stats->set_nacount(colinfo_.na_count);
+    bool valid = (colinfo_.na_count < nrows_chunk);
+    switch (stype_to_ltype(stype_)) {
+      case LType::BOOL: {
+        auto bstats = dynamic_cast<BooleanStats*>(stats);
+        xassert(bstats);
+        bstats->set_all_stats(colinfo_.b.count0, colinfo_.b.count1);
+        break;
+      }
+      case LType::INT: {
+        stats->set_min(colinfo_.i.min, valid);
+        stats->set_max(colinfo_.i.max, valid);
+        break;
+      }
+      case LType::REAL: {
+        stats->set_min(colinfo_.f.min, valid);
+        stats->set_max(colinfo_.f.max, valid);
+        break;
+      }
+      default: break;
+    }
+  }
   chunks_.push_back(std::move(newcol));
   colinfo_.na_count = 0;
   nrows_in_chunks_ = nrows_written;
@@ -163,8 +187,8 @@ void OutputColumn::set_stype(SType stype) {
     }
     case SType::FLOAT32:
     case SType::FLOAT64: {
-      colinfo_.f.min = std::numeric_limits<double>::max();
-      colinfo_.f.max = -std::numeric_limits<double>::max();
+      colinfo_.f.min = std::numeric_limits<double>::infinity();
+      colinfo_.f.max = -std::numeric_limits<double>::infinity();
       break;
     }
     case SType::STR32:

@@ -353,6 +353,8 @@ class BooleanStats : public NumericStats<int64_t> {
   public:
     using NumericStats<int64_t>::NumericStats;
 
+    void set_all_stats(size_t count0, size_t count1);
+
   protected:
     std::unique_ptr<Stats> clone() const override;
 

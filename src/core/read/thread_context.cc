@@ -109,8 +109,8 @@ void ThreadContext::preorder_bool_column(size_t j) {
     count1 += (data->int8 == 1);
   }
   colinfo_[j].na_count = used_nrows - count0 - count1;
-  colinfo_[j].b.count0 += count0;
-  colinfo_[j].b.count1 += count1;
+  colinfo_[j].b.count0 = count0;
+  colinfo_[j].b.count1 = count1;
 }
 
 
@@ -158,7 +158,7 @@ void ThreadContext::preorder_int64_column(size_t j) {
 
 void ThreadContext::preorder_float32_column(size_t j) {
   size_t na_count = 0;
-  float min = std::numeric_limits<float>::max();
+  float min = std::numeric_limits<float>::infinity();
   float max = -min;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
@@ -179,7 +179,7 @@ void ThreadContext::preorder_float32_column(size_t j) {
 
 void ThreadContext::preorder_float64_column(size_t j) {
   size_t na_count = 0;
-  double min = std::numeric_limits<double>::max();
+  double min = std::numeric_limits<double>::infinity();
   double max = -min;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;

@@ -1057,7 +1057,13 @@ void BooleanStats::compute_all_stats() {
   size_t n = count_all.load();
   size_t n1 = count_1.load();
   size_t n0 = n - n1;
+  set_nacount(nrows - n, true);
+  set_all_stats(n0, n1);
+}
 
+
+void BooleanStats::set_all_stats(size_t n0, size_t n1) {
+  size_t n = n0 + n1;
   bool valid = (n > 0);
   double mu = valid ? 1.0 * n1 / n : 0.0;
   double s = (n > 1) ? std::sqrt(1.0 * n0 * n1 / n / (n-1)) : 0.0;
@@ -1066,7 +1072,6 @@ void BooleanStats::compute_all_stats() {
                             * (n+1)/n0/n1 - 3.0*(n-1))
                        * (n-1) / (n-2) / (n-3) : 0.0;
 
-  set_nacount(nrows - n, true);
   set_nunique((n0 > 0) + (n1 > 0), true);
   set_nmodal(std::max(n0, n1), true);
   set_sum(static_cast<double>(n1), true);
