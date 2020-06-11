@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <limits>
 #include "read/field64.h"            // field64
 #include "read/chunk_coordinates.h"  // ChunkCoordinates
 #include "read/preframe.h"
@@ -99,57 +100,101 @@ void ThreadContext::preorder() {
 
 
 void ThreadContext::preorder_bool_column(size_t j) {
-  size_t na_count = 0;
+  size_t count0 = 0;
+  size_t count1 = 0;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
   for (; data < end; data += tbuf_ncols) {
-    na_count += ISNA<int8_t>(data->int8);
+    count0 += (data->int8 == 0);
+    count1 += (data->int8 == 1);
   }
-  colinfo_[j].na_count = na_count;
+  colinfo_[j].na_count = used_nrows - count0 - count1;
+  colinfo_[j].b.count0 = count0;
+  colinfo_[j].b.count1 = count1;
 }
 
 
 void ThreadContext::preorder_int32_column(size_t j) {
   size_t na_count = 0;
+  int32_t min = std::numeric_limits<int32_t>::max();
+  int32_t max = -min;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
   for (; data < end; data += tbuf_ncols) {
-    na_count += ISNA<int32_t>(data->int32);
+    auto x = data->int32;
+    if (ISNA<int32_t>(x)) {
+      na_count++;
+    } else {
+      if (x < min) min = x;
+      if (x > max) max = x;
+    }
   }
   colinfo_[j].na_count = na_count;
+  colinfo_[j].i.min = min;
+  colinfo_[j].i.max = max;
 }
 
 
 void ThreadContext::preorder_int64_column(size_t j) {
   size_t na_count = 0;
+  int64_t min = std::numeric_limits<int64_t>::max();
+  int64_t max = -min;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
   for (; data < end; data += tbuf_ncols) {
-    na_count += ISNA<int64_t>(data->int64);
+    auto x = data->int64;
+    if (ISNA<int64_t>(x)) {
+      na_count++;
+    } else {
+      if (x < min) min = x;
+      if (x > max) max = x;
+    }
   }
   colinfo_[j].na_count = na_count;
+  colinfo_[j].i.min = min;
+  colinfo_[j].i.max = max;
 }
 
 
 void ThreadContext::preorder_float32_column(size_t j) {
   size_t na_count = 0;
+  float min = std::numeric_limits<float>::infinity();
+  float max = -min;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
   for (; data < end; data += tbuf_ncols) {
-    na_count += ISNA<float>(data->float32);
+    auto x = data->float32;
+    if (ISNA<float>(x)) {
+      na_count++;
+    } else {
+      if (x < min) min = x;
+      if (x > max) max = x;
+    }
   }
   colinfo_[j].na_count = na_count;
+  colinfo_[j].f.min = static_cast<double>(min);
+  colinfo_[j].f.max = static_cast<double>(max);
 }
 
 
 void ThreadContext::preorder_float64_column(size_t j) {
   size_t na_count = 0;
+  double min = std::numeric_limits<double>::infinity();
+  double max = -min;
   const field64* data = tbuf.data() + j;
   const field64* end = data + used_nrows * tbuf_ncols;
   for (; data < end; data += tbuf_ncols) {
-    na_count += ISNA<double>(data->float64);
+    auto x = data->float64;
+    if (ISNA<double>(x)) {
+      na_count++;
+    } else {
+      if (x < min) min = x;
+      if (x > max) max = x;
+    }
   }
   colinfo_[j].na_count = na_count;
+  colinfo_[j].f.min = min;
+  colinfo_[j].f.max = max;
 }
 
 
@@ -186,22 +231,15 @@ void ThreadContext::order() {
     if (col.is_type_bumped()) { j++; continue; }
 
     auto& outcol = col.outcol();
-    outcol.add_na_count(colinfo_[j].na_count);
-    switch (col.get_stype()) {
-      case SType::STR32:
-      case SType::STR64:  order_string_column(outcol, j); break;
-      default:;
+    outcol.merge_chunk_stats(colinfo_[j]);
+    if (col.is_string()) {
+      auto strdata_size = colinfo_[j].str.size;
+      auto wb = outcol.strdata_w();
+      size_t write_at = wb->prepare_write(strdata_size, nullptr);
+      colinfo_[j].str.write_at = write_at;
     }
     ++j;
   }
-}
-
-
-void ThreadContext::order_string_column(OutputColumn& col, size_t j) {
-  auto strdata_size = colinfo_[j].str.size;
-  auto wb = col.strdata_w();
-  size_t write_at = wb->prepare_write(strdata_size, nullptr);
-  colinfo_[j].str.write_at = write_at;
 }
 
 
@@ -245,9 +283,8 @@ void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
   auto src_strbuf = static_cast<const char*>(parse_ctx_.strbuf.rptr());
   auto out_strbuf = col.strdata_w()->writer(pos0, pos0 + len0);
   auto src_data = tbuf.data() + j;
-  auto out_data = static_cast<uint32_t*>(col.data_w());
+  auto out_data = static_cast<uint32_t*>(col.data_w(row0_ + 1));
 
-  auto dest = out_data + (row0_ - col.nrows_archived()) + 1;
   for (size_t i = 0; i < used_nrows; ++i) {
     uint32_t offset = src_data->str32.offset;
     int32_t length = src_data->str32.length;
@@ -255,13 +292,13 @@ void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
       auto zlength = static_cast<size_t>(length);
       out_strbuf.write_at(pos0, src_strbuf + offset, zlength);
       pos0 += zlength;
-      *dest++ = static_cast<uint32_t>(pos0);
+      *out_data++ = static_cast<uint32_t>(pos0);
     }
     else {
       static_assert(static_cast<uint32_t>(NA_I4) == NA_S4,
                     "incompatible int32 and uint32 NA values");
       xassert(length == 0 || length == NA_I4);
-      *dest++ = static_cast<uint32_t>(pos0) ^ static_cast<uint32_t>(length);
+      *out_data++ = static_cast<uint32_t>(pos0) ^ static_cast<uint32_t>(length);
     }
     src_data += tbuf_ncols;
   }
@@ -270,8 +307,7 @@ void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
 
 void ThreadContext::postorder_bool_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
-  auto out_data = static_cast<int8_t*>(col.data_w())
-                  + (row0_ - col.nrows_archived());
+  auto out_data = static_cast<int8_t*>(col.data_w(row0_));
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->int8;
     src_data += tbuf_ncols;
@@ -281,8 +317,7 @@ void ThreadContext::postorder_bool_column(OutputColumn& col, size_t j) {
 
 void ThreadContext::postorder_int32_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
-  auto out_data = static_cast<int32_t*>(col.data_w())
-                  + (row0_ - col.nrows_archived());
+  auto out_data = static_cast<int32_t*>(col.data_w(row0_));
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->int32;
     src_data += tbuf_ncols;
@@ -292,8 +327,7 @@ void ThreadContext::postorder_int32_column(OutputColumn& col, size_t j) {
 
 void ThreadContext::postorder_int64_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
-  auto out_data = static_cast<int64_t*>(col.data_w())
-                  + (row0_ - col.nrows_archived());
+  auto out_data = static_cast<int64_t*>(col.data_w(row0_));
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->int64;
     src_data += tbuf_ncols;
@@ -303,8 +337,7 @@ void ThreadContext::postorder_int64_column(OutputColumn& col, size_t j) {
 
 void ThreadContext::postorder_float32_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
-  auto out_data = static_cast<float*>(col.data_w())
-                  + (row0_ - col.nrows_archived());
+  auto out_data = static_cast<float*>(col.data_w(row0_));
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->float32;
     src_data += tbuf_ncols;
@@ -314,8 +347,7 @@ void ThreadContext::postorder_float32_column(OutputColumn& col, size_t j) {
 
 void ThreadContext::postorder_float64_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
-  auto out_data = static_cast<double*>(col.data_w())
-                  + (row0_ - col.nrows_archived());
+  auto out_data = static_cast<double*>(col.data_w(row0_));
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->float64;
     src_data += tbuf_ncols;

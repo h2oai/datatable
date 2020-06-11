@@ -110,7 +110,8 @@
     [#2441]
 
   -[enh] Fread now computes NA counts of all data while reading, storing
-    them in per-column stats.
+    them in per-column stats. For integer and floating point columns we also
+    compute min/max value in each column. [#1097]
 
   -[fix] When reading Excel files, the cells with datetime or boolean types
     are now handled correctly, in particular a datetime value is converted

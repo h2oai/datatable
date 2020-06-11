@@ -23,6 +23,7 @@
 #include "read/output_column.h"
 #include "utils/temporary_file.h"
 #include "column.h"
+#include "ltype.h"
 #include "stype.h"
 namespace dt {
 namespace read {
@@ -30,10 +31,12 @@ namespace read {
 
 OutputColumn::OutputColumn()
   : nrows_in_chunks_(0),
-    na_count_(0),
     stype_(SType::BOOL),
     type_bumped_(false),
-    present_in_buffer_(true) {}
+    present_in_buffer_(true)
+{
+  reset_colinfo();
+}
 
 
 OutputColumn::OutputColumn(OutputColumn&& o) noexcept
@@ -41,21 +44,23 @@ OutputColumn::OutputColumn(OutputColumn&& o) noexcept
     strbuf_(std::move(o.strbuf_)),
     chunks_(std::move(o.chunks_)),
     nrows_in_chunks_(o.nrows_in_chunks_),
-    na_count_(o.na_count_),
+    colinfo_(o.colinfo_),
     stype_(o.stype_),
     type_bumped_(o.type_bumped_),
     present_in_buffer_(o.present_in_buffer_) {}
 
 
 
-void* OutputColumn::data_w() {
-  return databuf_.xptr();
+void* OutputColumn::data_w(size_t row) const {
+  xassert(row >= nrows_in_chunks_);
+  return databuf_.xptr((row - nrows_in_chunks_) * stype_elemsize(stype_));
 }
 
 
 MemoryWritableBuffer* OutputColumn::strdata_w() {
   return strbuf_.get();
 }
+
 
 
 void OutputColumn::archive_data(size_t nrows_written,
@@ -102,12 +107,36 @@ void OutputColumn::archive_data(size_t nrows_written,
                                                        std::move(stored_strbuf))
                            : Column::new_mbuf_column(nrows_chunk, stype_,
                                                      std::move(stored_databuf));
-  newcol.stats()->set_nacount(na_count_);
+  {
+    Stats* stats = newcol.stats();
+    stats->set_nacount(colinfo_.na_count);
+    bool valid = (colinfo_.na_count < nrows_chunk);
+    switch (stype_to_ltype(stype_)) {
+      case LType::BOOL: {
+        auto bstats = dynamic_cast<BooleanStats*>(stats);
+        xassert(bstats);
+        bstats->set_all_stats(colinfo_.b.count0, colinfo_.b.count1);
+        break;
+      }
+      case LType::INT: {
+        stats->set_min(colinfo_.i.min, valid);
+        stats->set_max(colinfo_.i.max, valid);
+        break;
+      }
+      case LType::REAL: {
+        stats->set_min(colinfo_.f.min, valid);
+        stats->set_max(colinfo_.f.max, valid);
+        break;
+      }
+      default: break;
+    }
+  }
   chunks_.push_back(std::move(newcol));
-  na_count_ = 0;
+  reset_colinfo();
   nrows_in_chunks_ = nrows_written;
   xassert(!databuf_ && !strbuf_);
 }
+
 
 
 void OutputColumn::allocate(size_t new_nrows) {
@@ -131,6 +160,7 @@ void OutputColumn::allocate(size_t new_nrows) {
 }
 
 
+
 // Call `.archive_data()` before invoking `.to_column()`.
 Column OutputColumn::to_column() {
   xassert(!databuf_);
@@ -141,19 +171,75 @@ Column OutputColumn::to_column() {
 }
 
 
+
 void OutputColumn::set_stype(SType stype) {
+  xassert(type_bumped_ || !databuf_);
   stype_ = stype;
+  reset_colinfo();
 }
 
 
-size_t OutputColumn::nrows_archived() const noexcept {
-  return nrows_in_chunks_;
+
+void OutputColumn::reset_colinfo() {
+  colinfo_.na_count = 0;
+  switch (stype_) {
+    case SType::BOOL: {
+      colinfo_.b.count0 = 0;
+      colinfo_.b.count1 = 0;
+      break;
+    }
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64: {
+      colinfo_.i.min = std::numeric_limits<int64_t>::max();
+      colinfo_.i.max = -std::numeric_limits<int64_t>::max();
+      break;
+    }
+    case SType::FLOAT32:
+    case SType::FLOAT64: {
+      colinfo_.f.min = std::numeric_limits<double>::infinity();
+      colinfo_.f.max = -std::numeric_limits<double>::infinity();
+      break;
+    }
+    case SType::STR32:
+    case SType::STR64: break;
+    default:
+      throw RuntimeError() << "Unexpected stype in fread: " << stype_;
+  }
 }
 
 
-void OutputColumn::add_na_count(size_t n) {
-  na_count_ += n;
+
+void OutputColumn::merge_chunk_stats(const ColInfo& info) {
+  colinfo_.na_count += info.na_count;
+  switch (stype_) {
+    case SType::BOOL: {
+      colinfo_.b.count0 += info.b.count0;
+      colinfo_.b.count1 += info.b.count1;
+      break;
+    }
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:
+    case SType::INT64: {
+      if (info.i.min < colinfo_.i.min) colinfo_.i.min = info.i.min;
+      if (info.i.max > colinfo_.i.max) colinfo_.i.max = info.i.max;
+      break;
+    }
+    case SType::FLOAT32:
+    case SType::FLOAT64: {
+      if (info.f.min < colinfo_.f.min) colinfo_.f.min = info.f.min;
+      if (info.f.max > colinfo_.f.max) colinfo_.f.max = info.f.max;
+      break;
+    }
+    case SType::STR32:
+    case SType::STR64: break;
+    default:
+      throw RuntimeError() << "Unexpected stype in fread: " << stype_;
+  }
 }
+
 
 
 

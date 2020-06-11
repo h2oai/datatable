@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_THREADCONTEXT_h
 #define dt_READ_THREADCONTEXT_h
+#include "read/colinfo.h"
 #include "read/parse_context.h"
 #include "_dt.h"
 namespace dt {
@@ -64,17 +65,6 @@ namespace read {
   */
 class ThreadContext    // TODO: rename
 {
-  struct StrInfo {
-    size_t size;
-    size_t write_at;
-  };
-  struct ColInfo {
-    size_t na_count;
-    union {
-      StrInfo str;
-    };
-  };
-
   protected:
     std::vector<field64> tbuf;
     std::vector<ColInfo> colinfo_;
@@ -107,8 +97,6 @@ class ThreadContext    // TODO: rename
     void preorder_float32_column(size_t j);
     void preorder_float64_column(size_t j);
     void preorder_string_column(size_t j);
-
-    void order_string_column(OutputColumn& col, size_t j);
 
     void postorder_bool_column(OutputColumn& col, size_t j);
     void postorder_int32_column(OutputColumn& col, size_t j);

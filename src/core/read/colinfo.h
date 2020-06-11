@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,47 +19,49 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_RBOUND_h
-#define dt_COLUMN_RBOUND_h
-#include "column/virtual.h"
+#ifndef dt_READ_COLINFO_h
+#define dt_READ_COLINFO_h
+#include "_dt.h"
 namespace dt {
+namespace read {
+
+
+struct StrInfo {
+  size_t size, write_at;
+};
+
+struct BoolInfo {
+  size_t count0, count1;
+};
+
+struct IntInfo {
+  int64_t min, max;
+};
+
+struct FloatInfo {
+  double min, max;
+};
 
 
 /**
-  *
+  * Helper struct that is used in OutputColumn and ThreadContext.
+  * It holds per-column stats information.
   */
-class Rbound_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    std::vector<Column> chunks_;
+struct ColInfo {
+  size_t na_count;
+  union {
+    BoolInfo  b;
+    IntInfo   i;
+    FloatInfo f;
+    StrInfo   str;
+  };
 
-  public:
-    Rbound_ColumnImpl(const colvec& columns);
-
-    ColumnImpl* clone() const override;
-    // ColumnImpl* materialize() override;
-    size_t n_children() const noexcept override;
-    const Column& child(size_t i) const override;
-
-    bool get_element(size_t i, int8_t* out)   const override;
-    bool get_element(size_t i, int16_t* out)  const override;
-    bool get_element(size_t i, int32_t* out)  const override;
-    bool get_element(size_t i, int64_t* out)  const override;
-    bool get_element(size_t i, float* out)    const override;
-    bool get_element(size_t i, double* out)   const override;
-    bool get_element(size_t i, CString* out)  const override;
-    bool get_element(size_t i, py::robj* out) const override;
-
-    void write_data_to_jay(Column&, jay::ColumnBuilder&,
-                           WritableBuffer*) const override;
-
-  private:
-    void calculate_nacount();
-    void calculate_boolean_stats();
-    void calculate_integer_stats();
-    void calculate_float_stats();
+  ColInfo() : na_count(0) {}
+  ColInfo(const ColInfo&) = default;
 };
 
 
 
-}  // namespace dt
+
+}}  // namespace dt::read
 #endif
