@@ -43,7 +43,7 @@ static void change_to_lowercase(std::string& str) {
 static const char* doc_to_csv =
 R"(to_csv(self, path=None, *, quoting="minimal", append=False,
        header=..., bom=False, hex=False, compression=None,
-       verbose=False, _strategy="auto")
+       verbose=False, method="auto")
 --
 
 Write the Frame into the provided file in CSV format.
@@ -115,7 +115,7 @@ verbose: bool
     If True, some extra information will be printed to the console,
     which may help to debug the inner workings of the algorithm.
 
-_strategy: "mmap" | "write" | "auto"
+method: "mmap" | "write" | "auto"
     Which method to use for writing to disk. On certain systems 'mmap'
     gives a better performance; on other OSes 'mmap' may not work at
     all.
@@ -132,7 +132,7 @@ _strategy: "mmap" | "write" | "auto"
 static PKArgs args_to_csv(
     0, 1, 8, false, false,
     {"path", "quoting", "append", "header", "bom", "hex", "compression",
-     "verbose", "_strategy"},
+     "verbose", "method"},
     "to_csv", doc_to_csv);
 
 
@@ -247,6 +247,7 @@ oobj Frame::to_csv(const PKArgs& args)
 //------------------------------------------------------------------------------
 
 void Frame::_init_tocsv(XTypeMaker& xt) {
+  args_to_csv.add_synonym_arg("_strategy", "method");
   xt.add(METHOD(&Frame::to_csv, args_to_csv));
 }
 

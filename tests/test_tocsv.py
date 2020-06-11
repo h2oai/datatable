@@ -431,9 +431,18 @@ def test_issue2382():
 # Test options
 #-------------------------------------------------------------------------------
 
-def test_strategy(capsys, tempfile):
-    """Check that the _strategy parameter is respected."""
+def test_method(capsys, tempfile):
+    """Check that the method parameter is respected."""
     DT = dt.Frame(A=[5, 6, 10, 12], B=["one", "two", "tree", "for"])
+    DT.to_csv(tempfile, method="mmap", verbose=True)
+    out, err = capsys.readouterr()
+    assert out
+    assert err == ""
+    DT.to_csv(tempfile, method="write", verbose=True)
+    out, err = capsys.readouterr()
+    assert out
+    assert err == ""
+    # Check that the old parameter's name still working
     DT.to_csv(tempfile, _strategy="mmap", verbose=True)
     out, err = capsys.readouterr()
     assert out
@@ -670,9 +679,9 @@ def test_append_with_headers(tempfile):
 def test_append_strategy(tempfile):
     DT = dt.Frame(D=[3])
     DT.to_csv(tempfile)
-    DT.to_csv(tempfile, append=True, _strategy="write")
+    DT.to_csv(tempfile, append=True, method="write")
     assert readfile(tempfile) == "D\n3\n3\n"
-    DT.to_csv(tempfile, append=True, _strategy="mmap")
+    DT.to_csv(tempfile, append=True, method="mmap")
     assert readfile(tempfile) == "D\n3\n3\n3\n"
 
 
@@ -681,9 +690,9 @@ def test_append_large(tempfile):
     n = 10000
     DT = dt.Frame([word] * n, names=["..."])
     DT.to_csv(tempfile)
-    DT.to_csv(tempfile, append=True, _strategy="write")
+    DT.to_csv(tempfile, append=True, method="write")
     assert readfile(tempfile) == "...\n" + (word + "\n") * (2*n)
-    DT.to_csv(tempfile, append=True, _strategy="mmap")
+    DT.to_csv(tempfile, append=True, method="mmap")
     assert readfile(tempfile) == "...\n" + (word + "\n") * (3*n)
 
 
