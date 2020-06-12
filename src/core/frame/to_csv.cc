@@ -46,7 +46,15 @@ R"(to_csv(self, path=None, *, quoting="minimal", append=False,
        verbose=False, method="auto")
 --
 
-Write the Frame into the provided file in CSV format.
+Write the contents of the Frame into a CSV file.
+
+This method uses multiple threads to serialize the Frame's data. The
+number of threads is can be configured using the global option
+``dt.options.nthreads``.
+
+The method supports simple writing to file, appending to an existing
+file, or creating a python string if no filename was provided.
+Optionally, the output could be gzip-compressed.
 
 Parameters
 ----------
@@ -57,19 +65,19 @@ path: str
     will be returned.
 
 quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
-    `csv.QUOTE_MINIMAL`
+    `"minimal"` | `csv.QUOTE_MINIMAL`
         quote the string fields only as necessary, i.e. if the string
         starts or ends with the whitespace, or contains quote
         characters, separator, or any of the C0 control characters
         (including newlines, etc).
 
-    `csv.QUOTE_ALL`
+    `"all"` | `csv.QUOTE_ALL`
         all fields will be quoted, both string, numeric, and boolean.
 
-    `csv.QUOTE_NONNUMERIC`
+    `"nonnumeric"` | `csv.QUOTE_NONNUMERIC`
         all string fields will be quoted.
 
-    `csv.QUOTE_NONE`
+    `"none"` | `csv.QUOTE_NONE`
         none of the fields will be quoted. This option must be used
         at user's own risk: the file produced may not be valid CSV.
 
@@ -109,7 +117,7 @@ compression: None | "gzip" | "infer"
     Which compression method to use for the output stream. The default
     is "infer", which tries to guess the compression method from the
     output file name. The only compression format currently supported
-    is "gzip".
+    is "gzip". Compression may not be used when `append` is True.
 
 verbose: bool
     If True, some extra information will be printed to the console,
@@ -120,7 +128,7 @@ method: "mmap" | "write" | "auto"
     gives a better performance; on other OSes 'mmap' may not work at
     all.
 
-(return): str | None
+(return): None | str | bytes
     None if `path` is non-empty. This is the most common case: the
     output is written to the file provided.
 
@@ -209,11 +217,14 @@ oobj Frame::to_csv(const PKArgs& args)
   bool compress = false;  // eventually this will be an Enum
   if (compress_str == "infer") {
     size_t n = filename.size();
-    compress = (n > 3 && filename[n-3] == '.' &&
-                         filename[n-2] == 'g' &&
-                         filename[n-1] == 'z');
+    compress = !append && (n > 3 && filename[n-3] == '.' &&
+                                    filename[n-2] == 'g' &&
+                                    filename[n-1] == 'z');
   } else if (compress_str == "gzip") {
     compress = true;
+    if (append) {
+      throw ValueError() << "Compression cannot be used in the 'append' mode";
+    }
   } else {
     throw ValueError() << "Unsupported compression method '"
         << compress_str << "' in Frame.to_csv()";
