@@ -277,9 +277,9 @@ namespace py {
 
 
 static PKArgs args_to_jay(
-  1, 0, 1, false, false, {"path", "_strategy"}, "to_jay",
+  1, 0, 1, false, false, {"path", "method"}, "to_jay",
 
-R"(to_jay(self, path, _strategy='auto')
+R"(to_jay(self, path, method='auto')
 --
 
 Save this frame to a binary file on disk, in .jay format.
@@ -293,7 +293,7 @@ path: str
     If this argument is omitted, the file will be created in memory
     instead, and returned as a `bytes` object.
 
-_strategy: 'mmap' | 'write' | 'auto'
+method: 'mmap' | 'write' | 'auto'
     Which method to use for writing the file to disk. The "write"
     method is more portable across different operating systems, but
     may be slower. This parameter has no effect when `path` is
@@ -311,15 +311,15 @@ oobj Frame::to_jay(const PKArgs& args) {
   path = oobj::import("os", "path", "expanduser").call({path});
   std::string filename = path.to_string();
 
-  // _strategy
-  auto strategy = args[1].to<std::string>("auto");
-  auto sstrategy = (strategy == "mmap")  ? WritableBuffer::Strategy::Mmap :
-                   (strategy == "write") ? WritableBuffer::Strategy::Write :
-                   (strategy == "auto")  ? WritableBuffer::Strategy::Auto :
-                                           WritableBuffer::Strategy::Unknown;
-  if (sstrategy == WritableBuffer::Strategy::Unknown) {
-    throw TypeError() << "Parameter `_strategy` in Frame.to_jay() should be "
-        "one of 'mmap', 'write' or 'auto'; instead got '" << strategy << "'";
+  // method
+  auto str_method = args[1].to<std::string>("auto");
+  auto method = (str_method == "mmap") ? WritableBuffer::Strategy::Mmap :
+                (str_method == "write")? WritableBuffer::Strategy::Write :
+                (str_method == "auto") ? WritableBuffer::Strategy::Auto :
+                                         WritableBuffer::Strategy::Unknown;
+  if (method == WritableBuffer::Strategy::Unknown) {
+    throw TypeError() << "Parameter `method` in Frame.to_jay() should be "
+        "one of 'mmap', 'write' or 'auto'; instead got '" << str_method << "'";
   }
 
   if (filename.empty()) {
@@ -329,7 +329,7 @@ oobj Frame::to_jay(const PKArgs& args) {
     return oobj::from_new_reference(PyBytes_FromStringAndSize(data, size));
   }
   else {
-    dt->save_jay(filename, sstrategy);
+    dt->save_jay(filename, method);
     return None();
   }
 }
@@ -337,6 +337,7 @@ oobj Frame::to_jay(const PKArgs& args) {
 
 
 void Frame::_init_jay(XTypeMaker& xt) {
+  args_to_jay.add_synonym_arg("_strategy", "method");
   xt.add(METHOD(&Frame::to_jay, args_to_jay));
 
   stype_to_jaytype[int(dt::SType::BOOL)]    = jay::Type_Bool8;
