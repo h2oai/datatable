@@ -121,8 +121,8 @@ static const char* doc_colindex = R"(colindex(self, column)
 
 Return the position of the `column` in the Frame.
 
-Note that the index of the first column is `0`, just as with regular
-python lists.
+The index of the first column is `0`, just as with regular python
+lists.
 
 
 Parameters
@@ -135,7 +135,7 @@ column: str | int | Expr
     value is thus the same as the input argument `column`, provided
     that it is in the correct range. If the `column` argument is
     negative, then it is interpreted as counting from the end of the
-    frame. In this case the positive value `column + nrows` is
+    frame. In this case the positive value `column + ncols` is
     returned.
 
     Lastly, `column` argument may also be an
@@ -146,18 +146,18 @@ column: str | int | Expr
 
 (return): int
     The numeric index of the provided `column`. This will be an
-    integer between `0` and `self.nrows - 1`.
+    integer between `0` and `self.ncols - 1`.
 
 (except): KeyError | IndexError
     If the `column` argument is a string, and the column with such
-    name does not exist in the frame, then a `KeyError` is raised.
+    name does not exist in the frame, then a :exc:`KeyError` is raised.
     When this exception is thrown, the error message may contain
     suggestions for up to 3 similarly looking column names that
     actually exist in the Frame.
 
     If the `column` argument is an integer that is either greater
-    than or equal to :attr:`.nrows` or less than `-nrows`, then an
-    :exc:`IndexError` will be raised.
+    than or equal to :attr:`.ncols` or less than `-ncols`, then an
+    :exc:`IndexError` is raised.
 
 
 Examples
