@@ -113,10 +113,10 @@ hex: bool
     representation, so its use is recommended if you need maximum
     speed.
 
-compression: None | "gzip" | "infer"
+compression: None | "gzip" | "auto"
     Which compression method to use for the output stream. The default
-    is "infer", which tries to guess the compression method from the
-    output file name. The only compression format currently supported
+    is "auto", which tries to infer the compression method from the
+    output file's name. The only compression format currently supported
     is "gzip". Compression may not be used when `append` is True.
 
 verbose: bool
@@ -213,9 +213,9 @@ oobj Frame::to_csv(const PKArgs& args)
   bool hex = arg_hex.to<bool>(false);
 
   // compress
-  auto compress_str = arg_compress.to<std::string>("infer");
+  auto compress_str = arg_compress.to<std::string>("auto");
   bool compress = false;  // eventually this will be an Enum
-  if (compress_str == "infer") {
+  if (compress_str == "auto" || compress_str == "infer") {
     size_t n = filename.size();
     compress = !append && (n > 3 && filename[n-3] == '.' &&
                                     filename[n-2] == 'g' &&
