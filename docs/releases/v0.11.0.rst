@@ -58,6 +58,10 @@
   -[api] Expression `f[:]` now excludes groupby columns when used in a
     groupby context. [#2460]
 
+  -[api] Parameters ``_strategy=`` in :meth:`.to_csv()` and :meth:`.to_jay()`
+    were renamed into ``method=``. The old parameter name still works, so this
+    change is not breaking.
+
   -[bug] Deleting a key from the Frame (``del DT.key``) no longer causes a
     seg.fault. [#2357]
 
@@ -73,6 +77,9 @@
 
   -[bug] Fixed crash when writing to CSV a frame with many boolean columns
     when the option ``quoting="all"`` is used. [#2382]
+
+  -[bug] It is no longer allowed to combine ``compression="gzip"`` and
+    ``append=True`` in :meth:`.to_csv()`.
 
 
   Fread

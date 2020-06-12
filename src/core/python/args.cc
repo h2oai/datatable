@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -45,14 +45,12 @@ PKArgs::PKArgs(
     n_all_args(npo + npk + nko),
     has_varargs(vargs),
     has_varkwds(vkwds),
+    has_renamed_args(false),
     arg_names(_names),
     n_varkwds(0)
 {
   wassert(n_all_args == arg_names.size());
-
-  if (has_varargs) {
-    xassert(n_pos_kwd_args == 0);
-  }
+  wassert(has_varargs? n_pos_kwd_args == 0 : true);
 
   bound_args.resize(n_all_args);
   for (size_t i = 0; i < n_all_args; ++i) {
@@ -60,8 +58,27 @@ PKArgs::PKArgs(
   }
 }
 
+
 PKArgs::~PKArgs() {
   delete[] full_name;
+}
+
+
+void PKArgs::add_synonym_arg(const char* new_name, const char* old_name) {
+  constexpr size_t NPOS = size_t(-1);
+  has_renamed_args = true;
+  size_t iold = NPOS;
+  size_t inew = NPOS;
+  for (size_t i = 0; i < arg_names.size(); ++i) {
+    const char* name = arg_names[i];
+    if (std::strcmp(name, old_name) == 0) iold = i;
+    if (std::strcmp(name, new_name) == 0) inew = i;
+  }
+  xassert(iold != NPOS);  // make sure that `old_name` exists
+  xassert(inew == NPOS);
+  PyObject* py_new_name = PyUnicode_FromString(new_name);
+  xassert(py_new_name);
+  kwd_map[py_new_name] = iold;
 }
 
 
@@ -256,6 +273,15 @@ size_t PKArgs::_find_kwd(PyObject* kwd) {
       Py_INCREF(kwd);
       kwd_map[kwd] = i;
       return i;
+    }
+  }
+  if (has_renamed_args) {
+    for (const auto& pair : kwd_map) {
+      if (PyUnicode_Compare(kwd, pair.first) == 0) {
+        Py_INCREF(kwd);
+        kwd_map[kwd] = pair.second;
+        return pair.second;
+      }
     }
   }
   return size_t(-1);

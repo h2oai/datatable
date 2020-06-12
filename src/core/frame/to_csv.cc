@@ -42,11 +42,19 @@ static void change_to_lowercase(std::string& str) {
 
 static const char* doc_to_csv =
 R"(to_csv(self, path=None, *, quoting="minimal", append=False,
-       header=..., bom=False, hex=False, compression=None,
-       verbose=False, _strategy="auto")
+       header="auto", bom=False, hex=False, compression=None,
+       verbose=False, method="auto")
 --
 
-Write the Frame into the provided file in CSV format.
+Write the contents of the Frame into a CSV file.
+
+This method uses multiple threads to serialize the Frame's data. The
+number of threads is can be configured using the global option
+``dt.options.nthreads``.
+
+The method supports simple writing to file, appending to an existing
+file, or creating a python string if no filename was provided.
+Optionally, the output could be gzip-compressed.
 
 Parameters
 ----------
@@ -57,19 +65,19 @@ path: str
     will be returned.
 
 quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
-    `csv.QUOTE_MINIMAL`
+    `"minimal"` | `csv.QUOTE_MINIMAL`
         quote the string fields only as necessary, i.e. if the string
         starts or ends with the whitespace, or contains quote
         characters, separator, or any of the C0 control characters
         (including newlines, etc).
 
-    `csv.QUOTE_ALL`
+    `"all"` | `csv.QUOTE_ALL`
         all fields will be quoted, both string, numeric, and boolean.
 
-    `csv.QUOTE_NONNUMERIC`
+    `"nonnumeric"` | `csv.QUOTE_NONNUMERIC`
         all string fields will be quoted.
 
-    `csv.QUOTE_NONE`
+    `"none"` | `csv.QUOTE_NONE`
         none of the fields will be quoted. This option must be used
         at user's own risk: the file produced may not be valid CSV.
 
@@ -79,7 +87,7 @@ append: bool
     If False (default), the file given in the `path` will be
     overwritten if it already exists.
 
-header: bool | ...
+header: bool | "auto"
     This option controls whether or not to write headers into the
     output file. If this option is not given (or equal to ...), then
     the headers will be written unless the option `append` is True
@@ -105,22 +113,22 @@ hex: bool
     representation, so its use is recommended if you need maximum
     speed.
 
-compression: None | "gzip" | "infer"
+compression: None | "gzip" | "auto"
     Which compression method to use for the output stream. The default
-    is "infer", which tries to guess the compression method from the
-    output file name. The only compression format currently supported
-    is "gzip".
+    is "auto", which tries to infer the compression method from the
+    output file's name. The only compression format currently supported
+    is "gzip". Compression may not be used when `append` is True.
 
 verbose: bool
     If True, some extra information will be printed to the console,
     which may help to debug the inner workings of the algorithm.
 
-_strategy: "mmap" | "write" | "auto"
+method: "mmap" | "write" | "auto"
     Which method to use for writing to disk. On certain systems 'mmap'
     gives a better performance; on other OSes 'mmap' may not work at
     all.
 
-(return): str | None
+(return): None | str | bytes
     None if `path` is non-empty. This is the most common case: the
     output is written to the file provided.
 
@@ -132,7 +140,7 @@ _strategy: "mmap" | "write" | "auto"
 static PKArgs args_to_csv(
     0, 1, 8, false, false,
     {"path", "quoting", "append", "header", "bom", "hex", "compression",
-     "verbose", "_strategy"},
+     "verbose", "method"},
     "to_csv", doc_to_csv);
 
 
@@ -187,7 +195,9 @@ oobj Frame::to_csv(const PKArgs& args)
 
   // header
   bool header;
-  if (arg_header.is_none_or_undefined() || arg_header.is_ellipsis()) {
+  if (arg_header.is_none_or_undefined() || arg_header.is_auto() ||
+      arg_header.is_ellipsis())
+  {
     header = !(append && File::nonempty(filename));
   } else {
     header = arg_header.to<bool>(true);
@@ -203,15 +213,18 @@ oobj Frame::to_csv(const PKArgs& args)
   bool hex = arg_hex.to<bool>(false);
 
   // compress
-  auto compress_str = arg_compress.to<std::string>("infer");
+  auto compress_str = arg_compress.to<std::string>("auto");
   bool compress = false;  // eventually this will be an Enum
-  if (compress_str == "infer") {
+  if (compress_str == "auto" || compress_str == "infer") {
     size_t n = filename.size();
-    compress = (n > 3 && filename[n-3] == '.' &&
-                         filename[n-2] == 'g' &&
-                         filename[n-1] == 'z');
+    compress = !append && (n > 3 && filename[n-3] == '.' &&
+                                    filename[n-2] == 'g' &&
+                                    filename[n-1] == 'z');
   } else if (compress_str == "gzip") {
     compress = true;
+    if (append) {
+      throw ValueError() << "Compression cannot be used in the 'append' mode";
+    }
   } else {
     throw ValueError() << "Unsupported compression method '"
         << compress_str << "' in Frame.to_csv()";
@@ -247,6 +260,7 @@ oobj Frame::to_csv(const PKArgs& args)
 //------------------------------------------------------------------------------
 
 void Frame::_init_tocsv(XTypeMaker& xt) {
+  args_to_csv.add_synonym_arg("_strategy", "method");
   xt.add(METHOD(&Frame::to_csv, args_to_csv));
 }
 
