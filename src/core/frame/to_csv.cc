@@ -42,7 +42,7 @@ static void change_to_lowercase(std::string& str) {
 
 static const char* doc_to_csv =
 R"(to_csv(self, path=None, *, quoting="minimal", append=False,
-       header=..., bom=False, hex=False, compression=None,
+       header="auto", bom=False, hex=False, compression=None,
        verbose=False, method="auto")
 --
 
@@ -79,7 +79,7 @@ append: bool
     If False (default), the file given in the `path` will be
     overwritten if it already exists.
 
-header: bool | ...
+header: bool | "auto"
     This option controls whether or not to write headers into the
     output file. If this option is not given (or equal to ...), then
     the headers will be written unless the option `append` is True
@@ -187,7 +187,9 @@ oobj Frame::to_csv(const PKArgs& args)
 
   // header
   bool header;
-  if (arg_header.is_none_or_undefined() || arg_header.is_ellipsis()) {
+  if (arg_header.is_none_or_undefined() || arg_header.is_auto() ||
+      arg_header.is_ellipsis())
+  {
     header = !(append && File::nonempty(filename));
   } else {
     header = arg_header.to<bool>(true);

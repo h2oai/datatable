@@ -590,6 +590,7 @@ def test_header_valid():
     assert DT.to_csv(header=True) == 'Q\n'
     assert DT.to_csv(header=None) == 'Q\n'
     assert DT.to_csv(header=...) == 'Q\n'
+    assert DT.to_csv(header="auto") == 'Q\n'
 
 
 def test_header_invalid():
