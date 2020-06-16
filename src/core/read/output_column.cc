@@ -87,8 +87,10 @@ void OutputColumn::archive_data(size_t nrows_written,
     if (is_string) {
       strbuf_->finalize();
       Buffer tmpbuf = strbuf_->get_mbuf();
-      size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
-      stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
+      if (tmpbuf.size() > 0) {
+        size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
+        stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
+      }
       strbuf_ = nullptr;
     }
   }
