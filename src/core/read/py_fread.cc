@@ -46,7 +46,7 @@ R"(fread(anysource=None, *, file=None, text=None, cmd=None, url=None,
 This function is capable of reading data from a variety of input formats,
 producing a :class:`Frame` as the result. The recognized formats are:
 CSV, Jay, XLSX, and plain text. In addition, the data may be inside an
-archive such as .tar, .gz, .zip, .gz2.
+archive such as ``.tar``, ``.gz``, ``.zip``, ``.gz2``, and ``.tgz``.
 
 
 Parameters
