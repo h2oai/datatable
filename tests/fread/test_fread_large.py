@@ -126,6 +126,7 @@ def test_h2o3_smalldata(f):
         os.path.join("parser", "hexdev_497", "airlines_first_header.zip"),
         os.path.join("parser", "hexdev_497", "airlines_small_csv.zip"),
         os.path.join("prostate", "prostate.bin.csv.zip"),
+        os.path.join("smalldata", "images", "cat_dog_tiny_thumbnails.zip")
         # Others
         os.path.join("arff", "folder1", "iris0.csv"),
         os.path.join("jira", "pubdev_2897.csv"),
