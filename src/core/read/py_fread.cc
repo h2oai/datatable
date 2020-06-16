@@ -68,7 +68,7 @@ file: str | file | Pathlike
     python "file-like" object -- i.e. any object having method
     ``.read()``.
 
-    Generally specifying a file name should be preferred, since
+    Generally, specifying a file name should be preferred, since
     reading from a Python ``file`` can only be done in single-threaded
     mode.
 
@@ -115,8 +115,8 @@ max_nrows: int
     at all. Currently this parameter doesn't always work correctly.
 
 header: bool | None
-    If True then the first line of the CSV file contains the header.
-    If False then there is no header. By default the presence of the
+    If `True` then the first line of the CSV file contains the header.
+    If `False` then there is no header. By default the presence of the
     header is heuristically determined from the contents of the file.
 
 na_strings: List[str]
@@ -124,9 +124,9 @@ na_strings: List[str]
     NA values.
 
 fill: bool
-    If True then the lines of the CSV file are allowed to have uneven
-    number of fields. All missing fields will be filled with NAs in
-    the resulting frame.
+    If `True` then the lines of the CSV file are allowed to have
+    uneven number of fields. All missing fields will be filled with
+    NAs in the resulting frame.
 
 encoding: str | None
     If this parameter is provided, then the input will be recoded
@@ -153,7 +153,7 @@ skip_blank_lines: bool
     otherwise (c) an :exc:`IOError` is raised.
 
 strip_whitespace: bool
-    If True, then the leading/trailing whitespace will be stripped
+    If `True`, then the leading/trailing whitespace will be stripped
     from unquoted string fields. Whitespace is always skipped from
     numeric fields.
 
@@ -169,7 +169,7 @@ tempdir: str | None
 nthreads: int | None
     Number of threads to use when reading the file. This number cannot
     exceed the number of threads in the pool ``dt.options.nthreads``.
-    If 0 or negative number of threads is requested, then it will be
+    If `0` or negative number of threads is requested, then it will be
     treated as that many threads less than the maximum. By default
     all threads in the thread pool are used.
 
