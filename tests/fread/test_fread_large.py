@@ -149,9 +149,9 @@ def test_h2o3_smalldata(f):
             frame_integrity_check(DT)
 
 
-@pytest.mark.parametrize("filename", get_file_list("h2o-3", "bigdata", "laptop"),
+@pytest.mark.parametrize("f", get_file_list("h2o-3", "bigdata", "laptop"),
                          indirect=True)
-def test_h2o3_bigdata(filename):
+def test_h2o3_bigdata(f):
     ignored_files = {
         # Feather files
         os.path.join("ipums_feather.gz"),
@@ -196,19 +196,19 @@ def test_h2o3_bigdata(filename):
         os.path.join("Kaggle_Product_BO_Test_v2.csv.zip"),
         os.path.join("Kaggle_Product_BO_Training_v2.csv.zip"),
     }
-    if any(ff in filename for ff in ignored_files):
+    if any(ff in f for ff in ignored_files):
         pytest.skip("On the ignored files list")
         return
 
     params = {"memory_limit": MEMORY_LIMIT}
-    if any(ff in filename for ff in filledna_files):
+    if any(ff in f for ff in filledna_files):
         params["fill"] = True
-    if "imagenet/cat_dog_mouse.tgz" in filename:
-        filename = os.path.join(filename, "cat_dog_mouse.csv")
+    if "imagenet/cat_dog_mouse.tgz" in f:
+        f = os.path.join(f, "cat_dog_mouse.csv")
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        DT = dt.fread(filename, **params)
+        DT = dt.fread(f, **params)
         frame_integrity_check(DT)
 
 

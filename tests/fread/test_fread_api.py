@@ -208,8 +208,6 @@ def test_fread_from_stringbuf():
 
 
 def test_fread_from_fileobj(tempfile):
-    import platform
-
     with open(tempfile, "w") as f:
         f.write("A,B,C\nfoo,bar,baz\n")
 
