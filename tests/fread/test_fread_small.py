@@ -548,7 +548,7 @@ def test_comments_only_file():
             "#~~~~~~~~~~\n")
     DT = dt.fread(text)
     # Not clear why it has 1 column instead of 0
-    assert_equals(DT, dt.Frame([]))
+    assert_equals(DT, dt.Frame([[]]))
 
 
 def test_runaway_quote():
