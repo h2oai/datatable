@@ -159,6 +159,8 @@ def _resolve_source_file(file, tempfiles):
         # more direct access to the underlying file.
         # noinspection PyBroadException
         try:
+            if sys.platform == "win32":
+                raise Exception("Do not use file descriptors on Windows")
             # .fileno can be either a method, or a property
             # The implementation of .fileno may raise an exception too
             # (indicating that no file descriptor is available)
