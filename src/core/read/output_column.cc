@@ -66,8 +66,12 @@ MemoryWritableBuffer* OutputColumn::strdata_w() {
 void OutputColumn::archive_data(size_t nrows_written,
                                 std::shared_ptr<TemporaryFile>& tempfile)
 {
-  if (nrows_written == nrows_in_chunks_) return;
-  if (type_bumped_ || !present_in_buffer_) return;
+  if (nrows_written == nrows_in_chunks_ ||
+      type_bumped_ || !present_in_buffer_) {
+    databuf_ = Buffer();
+    strbuf_ = nullptr;
+    return;
+  }
   xassert(nrows_written > nrows_in_chunks_);
 
   size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);
