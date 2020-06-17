@@ -242,11 +242,6 @@ struct XInfo {
     shape[0] = shape[1] = 0;
     strides[0] = strides[1] = 0;
     stype = dt::SType::VOID;
-    TRACK(this, sizeof(*this), "py-buffer");
-  }
-
-  ~XInfo() {
-    UNTRACK(this);
   }
 };
 

@@ -15,7 +15,6 @@
 //------------------------------------------------------------------------------
 #include <cstring>        // std::memcpy
 #include "column.h"
-#include "datatablemodule.h"
 #include "stype.h"
 #include "wstringcol.h"
 namespace dt {
@@ -66,13 +65,8 @@ pbuf writable_string_col::make_buffer() {
 // writable_string_col::buffer
 //------------------------------------------------------------------------------
 
-writable_string_col::buffer::buffer() {
-  TRACK(this, sizeof(*this), "writable_string_col::buffer");
-}
-
-writable_string_col::buffer::~buffer() {
-  UNTRACK(this);
-}
+writable_string_col::buffer::buffer() {}
+writable_string_col::buffer::~buffer() {}
 
 
 void writable_string_col::buffer::write(const CString& str) {
