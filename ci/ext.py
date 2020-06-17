@@ -512,20 +512,24 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     assert isinstance(wheel_directory, str)
     assert isinstance(config_settings, dict)
     assert metadata_directory is None
+    reuse_extension = config_settings.pop("reuse_extension", False)
 
     if is_source_distribution() and "reuse_version" not in config_settings:
         config_settings["reuse_version"] = True
 
     if not config_settings.pop("reuse_version", False):
-        generate_build_info("build", strict=True)
+        mode = "custom" if reuse_extension else \
+               "build"
+        generate_build_info(mode, strict=True)
     assert os.path.isfile("src/datatable/_build_info.py")
 
-    if config_settings.pop("reuse_extension", False):
+    if reuse_extension:
+        pyver = "%d%d" % sys.version_info[:2]
         soext = "dll" if sys.platform == "win32" else "so"
-        sofiles = glob.glob("src/datatable/lib/_datatable*." + soext)
+        pattern = "src/datatable/lib/_datatable.cpython-%s*.%s" % (pyver, soext)
+        sofiles = glob.glob(pattern)
         if not sofiles:
-            raise SystemExit("Extension file src/datatable/lib/_datatable*.%s "
-                             "not found" % soext)
+            raise SystemExit("Extension file %s not found" % pattern)
         if len(sofiles) > 1:
             raise SystemExit("Multiple extension files found: %r" % (sofiles,))
         so_file = sofiles[0]
@@ -601,7 +605,11 @@ def cmd_sdist(args):
 
 
 def cmd_wheel(args):
-    wheel_file = build_wheel(args.destination, {"audit": args.audit})
+    params = {
+        "audit": args.audit,
+        "reuse_extension": args.nobuild,
+    }
+    wheel_file = build_wheel(args.destination, params)
     assert os.path.isfile(os.path.join(args.destination, wheel_file))
 
 
@@ -647,6 +655,11 @@ def main():
              "git_revision and git_branch fields, or otherwise an error\n"
              "will be thrown. This flag is turned on automatically for\n"
              "`sdist` and `wheel` commands.")
+    parser.add_argument("--nobuild", action="store_true",
+        help="This flag is used for `wheel` command: it indicates that\n"
+             "the _datatable dynamic library should not be rebuilt.\n"
+             "Instead, the library will be taken as-is from the lib/\n"
+             "folder. The user is expected to have it pre-built manually.")
 
     args = parser.parse_args()
     if args.audit and "linux" not in sys.platform:
