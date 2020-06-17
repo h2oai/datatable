@@ -18,7 +18,7 @@ from tests import find_file
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
-MEMORY_LIMIT = None
+MEMORY_LIMIT = 2 * (1 << 30)   # 2Gb
 
 
 #-------------------------------------------------------------------------------
