@@ -303,75 +303,6 @@ static void initialize_options(const py::PKArgs& args) {
 
 
 
-
-//------------------------------------------------------------------------------
-// Support memory leak detection
-//------------------------------------------------------------------------------
-#if DT_DEBUG
-
-struct PtrInfo {
-  size_t alloc_size;
-  const char* name;
-
-  std::string to_string() {
-    std::ostringstream io;
-    io << name << "[" << alloc_size << "]";
-    return io.str();
-  }
-};
-
-static std::unordered_map<void*, PtrInfo> tracked_objects;
-static std::mutex track_mutex;
-
-
-void TRACK(void* ptr, size_t size, const char* name) {
-  std::lock_guard<std::mutex> lock(track_mutex);
-
-  if (tracked_objects.count(ptr)) {
-    std::cerr << "ERROR: Pointer " << ptr << " is already tracked. Old "
-        "pointer contains " << tracked_objects[ptr].to_string() << ", new: "
-        << (PtrInfo {size, name}).to_string();
-  }
-  tracked_objects.insert({ptr, PtrInfo {size, name}});
-}
-
-
-void UNTRACK(void* ptr) {
-  std::lock_guard<std::mutex> lock(track_mutex);
-
-  if (tracked_objects.count(ptr) == 0) {
-    // UNTRACK() is usually called from a destructor, so cannot throw any
-    // exceptions there. However, calling PyErr_*() will cause the python
-    // to raise SystemError once the control reaches python.
-    PyErr_SetString(PyExc_RuntimeError,
-                    "ERROR: Trying to remove pointer which is not tracked");
-  }
-  tracked_objects.erase(ptr);
-}
-
-
-bool IS_TRACKED(void* ptr) {
-  std::lock_guard<std::mutex> lock(track_mutex);
-  return (tracked_objects.count(ptr) > 0);
-}
-
-
-
-static py::PKArgs args_get_tracked_objects(
-    0, 0, 0, false, false, {}, "get_tracked_objects", nullptr);
-
-static py::oobj get_tracked_objects(const py::PKArgs&) {
-  py::odict res;
-  for (auto kv : tracked_objects) {
-    res.set(py::oint(reinterpret_cast<size_t>(kv.first)),
-            py::ostring(kv.second.to_string()));
-  }
-  return std::move(res);
-}
-
-#endif
-
-
 //------------------------------------------------------------------------------
 // Module definition
 //------------------------------------------------------------------------------
@@ -411,9 +342,6 @@ void py::DatatableModule::init_methods() {
 
   #ifdef DTTEST
     init_tests();
-  #endif
-  #if DT_DEBUG
-    ADD_FN(&get_tracked_objects, args_get_tracked_objects);
   #endif
 }
 

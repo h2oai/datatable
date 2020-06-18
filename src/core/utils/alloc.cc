@@ -60,7 +60,6 @@ void* _realloc(void* ptr, size_t n) {
 void free(void* ptr) {
   if (!ptr) return;
   std::free(ptr);
-  // UNTRACK(ptr);
 }
 
 

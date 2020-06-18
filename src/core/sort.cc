@@ -1237,7 +1237,6 @@ class SortContext {
       // } else {
       own_tmp = true;
       tmp = new int32_t[size0 * nth];
-      TRACK(tmp, sizeof(tmp), "sort.tmp");
       // }
     }
 
@@ -1288,7 +1287,6 @@ class SortContext {
 
     if (own_tmp) {
       delete[] tmp;
-      UNTRACK(tmp);
     }
   }
 

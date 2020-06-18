@@ -59,16 +59,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
 }  // namespace py
 
 
-#if DT_DEBUG
-  void TRACK(void* ptr, size_t size, const char* name);
-  void UNTRACK(void* ptr);
-  bool IS_TRACKED(void* ptr);
-#else
-  #define TRACK(ptr, size, name)
-  #define UNTRACK(ptr)
-  #define IS_TRACKED(ptr) 1
-#endif
-
 
 namespace pybuffers {
   extern size_t single_col;  // Declared in py_buffers
