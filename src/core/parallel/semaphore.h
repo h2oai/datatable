@@ -90,7 +90,7 @@ class Semaphore {
 // Can't use POSIX semaphores due to
 // http://lists.apple.com/archives/darwin-kernel/2009/Apr/msg00010.html
 //------------------------------------------------------------------------------
-#elif DT_OS_DARWIN
+#elif DT_OS_MACOS
 #include <mach/mach.h>
 
 class Semaphore {
