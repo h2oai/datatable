@@ -172,7 +172,7 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 
 
 //------------------------------------------------------------------------------
-// Disable macros
+// Disable warnings
 //------------------------------------------------------------------------------
 #define ___STRINGIFY(TEXT) #TEXT
 
@@ -181,12 +181,40 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
     _Pragma("clang diagnostic push") \
     _Pragma(___STRINGIFY(clang diagnostic ignored N))
 
-  #define RESTORE_CLANG_WARNING() \
+  #define RESTORE_CLANG_WARNING(N) \
     _Pragma("clang diagnostic pop")
 #else
   #define DISABLE_CLANG_WARNING(N)
-  #define RESTORE_CLANG_WARNING()
+  #define RESTORE_CLANG_WARNING(N)
 #endif
+
+
+#if DT_COMPILER_GCC
+  #define DISABLE_GCC_WARNING(N) \
+    _Pragma("GCC diagnostic push") \
+    _Pragma(___STRINGIFY(GCC diagnostic ignored N))
+
+  #define RESTORE_GCC_WARNING(N) \
+    _Pragma("GCC diagnostic pop")
+#else
+  #define DISABLE_GCC_WARNING(N)
+  #define RESTORE_GCC_WARNING(N)
+#endif
+
+
+#if DT_COMPILER_MSVC
+  #define DISABLE_MSVC_WARNING(N) \
+    _Pragma("warning(push)") \
+    _Pragma(___STRINGIFY(warning(disable : N)))
+
+  #define RESTORE_MSVC_WARNING(N) \
+    _Pragma("warning(pop)")
+
+#else
+  #define DISABLE_MSVC_WARNING(N)
+  #define RESTORE_MSVC_WARNING(N)
+#endif
+
 
 
 

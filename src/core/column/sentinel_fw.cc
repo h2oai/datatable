@@ -139,11 +139,8 @@ size_t SentinelFw_ColumnImpl<T>::memory_footprint() const noexcept {
 // Data access
 //------------------------------------------------------------------------------
 
-#if DT_COMPILER_MSVC
-  #pragma warning(push)
-  // unreachable code
-  #pragma warning(disable : 4702)
-#endif
+DISABLE_MSVC_WARNING(4702)
+
 
 template <typename T>
 bool SentinelFw_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
@@ -201,9 +198,8 @@ bool SentinelObj_ColumnImpl::get_element(size_t i, py::robj* out) const {
   return !x.is_none();
 }
 
-#if DT_COMPILER_MSVC
-  #pragma warning(pop)
-#endif
+
+RESTORE_MSVC_WARNING(4702)
 
 
 

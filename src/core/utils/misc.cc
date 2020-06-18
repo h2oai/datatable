@@ -23,16 +23,16 @@
 #include "utils/misc.h"
 #include <stdint.h>
 #include <cstring>    // std::memcpy
-
-
 namespace dt {
+
 
 // The warning is spurious, because shifts triggering the warning are
 // within if() conditions that get statically ignored.
-#if DT_COMPILER_GCC
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wshift-count-overflow"
-#endif
+DISABLE_GCC_WARNING("-Wshift-count-overflow")
+// 4293: shift count negative or too big, undefined behavior
+DISABLE_MSVC_WARNING(4293)
+// 4333: right shift by too large amount, data loss
+DISABLE_MSVC_WARNING(4333)
 
 
 /**
@@ -46,14 +46,6 @@ int nlz(T x) {
   T y;
   int n = sizeof(T) * 8;
 
-  #if DT_COMPILER_MSVC
-    #pragma warning(push)
-    // shift count negative or too big, undefined behavior
-    #pragma warning(disable : 4293)
-    // right shift by too large amount, data loss
-    #pragma warning(disable : 4333) 
-  #endif 
-
   if (sizeof(T) >= 8) {
     y = x >> 32; if (y != 0) { n = n -32;  x = y; }
   }
@@ -63,11 +55,6 @@ int nlz(T x) {
   if (sizeof(T) >= 2) {
     y = x >> 8;  if (y != 0) { n = n - 8;  x = y; }
   }
-  
-  #if DT_COMPILER_MSVC
-    #pragma warning(pop)
-  #endif
-
   if (sizeof(T) >= 1) {
     y = x >> 4;  if (y != 0) { n = n - 4;  x = y; }
     y = x >> 2;  if (y != 0) { n = n - 2;  x = y; }
@@ -83,14 +70,6 @@ int nsb(T x) {
   T y;
   int m = 0;
 
-  #if DT_COMPILER_MSVC
-    #pragma warning(push)
-    // shift count negative or too big, undefined behavior
-    #pragma warning(disable : 4293)
-    // right shift by too large amount, data loss
-    #pragma warning(disable : 4333) 
-  #endif
-
   if (sizeof(T) >= 8) {
     y = x >> 32; if (y) { m += 32;  x = y; }
   }
@@ -100,11 +79,6 @@ int nsb(T x) {
   if (sizeof(T) >= 2) {
     y = x >> 8;  if (y) { m += 8;  x = y; }
   }
-
-  #if DT_COMPILER_MSVC
-    #pragma warning(pop)
-  #endif
-  
   if (sizeof(T) >= 1) {
     y = x >> 4;  if (y) { m += 4;  x = y; }
     y = x >> 2;  if (y) { m += 2;  x = y; }
@@ -113,9 +87,7 @@ int nsb(T x) {
   return m + static_cast<int>(x);
 }
 
-#if DT_COMPILER_GCC
-  #pragma GCC diagnostic pop
-#endif
+
 
 template int nlz(uint64_t);
 template int nlz(uint32_t);
@@ -126,7 +98,7 @@ template int nsb(uint32_t);
 template int nsb(uint16_t);
 template int nsb(uint8_t);
 
-};  // namespace dt
+}  // namespace dt
 
 
 /**

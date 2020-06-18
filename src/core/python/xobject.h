@@ -417,10 +417,7 @@ int _call_setter(void(T::*fn)(const Arg&), Arg& ARG,
 // Helper macros
 //------------------------------------------------------------------------------
 
-#if DT_COMPILER_CLANG
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wunused-template"
-#endif
+DISABLE_CLANG_WARNING("-Wunused-template")
 
 template <typename T, typename R, typename... Args>
 static T _class_of_impl(R(T::*)(Args...));
@@ -430,9 +427,7 @@ static T _class_of_impl(R(T::*)(Args...) const);
 
 #define CLASS_OF(METH) decltype(_class_of_impl(METH))
 
-#if DT_COMPILER_CLANG
-  #pragma clang diagnostic pop
-#endif
+RESTORE_CLANG_WARNING("-Wunused-template")
 
 
 #define CONSTRUCTOR(METH, ARGS)                                                \
