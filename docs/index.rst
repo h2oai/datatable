@@ -99,9 +99,8 @@ messages, and powerful API similar to R ``data.table``'s.
     :caption: API reference
     :hidden:
 
-    api/frame
-    api/ftrl
-    api/math
+    api/api-index
+
 
 .. toctree::
     :maxdepth: 2

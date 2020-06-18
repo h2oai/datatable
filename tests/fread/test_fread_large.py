@@ -18,7 +18,7 @@ from tests import find_file
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
-
+MEMORY_LIMIT = 2 * (1 << 30)   # 2Gb
 
 
 #-------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ def f(request):
                          indirect=True)
 def test_h2oai_benchmarks(f):
     try:
-        d = dt.fread(f)
+        d = dt.fread(f, memory_limit=MEMORY_LIMIT)
         frame_integrity_check(d)
     except zipfile.BadZipFile:
         pytest.skip("Bad zip file error")
@@ -126,6 +126,7 @@ def test_h2o3_smalldata(f):
         os.path.join("parser", "hexdev_497", "airlines_first_header.zip"),
         os.path.join("parser", "hexdev_497", "airlines_small_csv.zip"),
         os.path.join("prostate", "prostate.bin.csv.zip"),
+        os.path.join("smalldata", "images", "cat_dog_tiny_thumbnails.zip"),
         # Others
         os.path.join("arff", "folder1", "iris0.csv"),
         os.path.join("jira", "pubdev_2897.csv"),
@@ -198,14 +199,18 @@ def test_h2o3_bigdata(f):
     }
     if any(ff in f for ff in ignored_files):
         pytest.skip("On the ignored files list")
-    else:
-        params = {}
-        if any(ff in f for ff in filledna_files):
-            params["fill"] = True
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            DT = dt.fread(f, **params)
-            frame_integrity_check(DT)
+        return
+
+    params = {"memory_limit": MEMORY_LIMIT}
+    if any(ff in f for ff in filledna_files):
+        params["fill"] = True
+    if "imagenet/cat_dog_mouse.tgz" in f:
+        f = os.path.join(f, "cat_dog_mouse.csv")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        DT = dt.fread(f, **params)
+        frame_integrity_check(DT)
 
 
 

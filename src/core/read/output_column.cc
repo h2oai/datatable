@@ -66,8 +66,12 @@ MemoryWritableBuffer* OutputColumn::strdata_w() {
 void OutputColumn::archive_data(size_t nrows_written,
                                 std::shared_ptr<TemporaryFile>& tempfile)
 {
-  if (nrows_written == nrows_in_chunks_) return;
-  if (type_bumped_ || !present_in_buffer_) return;
+  if (nrows_written == nrows_in_chunks_ ||
+      type_bumped_ || !present_in_buffer_) {
+    databuf_ = Buffer();
+    strbuf_ = nullptr;
+    return;
+  }
   xassert(nrows_written > nrows_in_chunks_);
 
   size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);
@@ -87,8 +91,10 @@ void OutputColumn::archive_data(size_t nrows_written,
     if (is_string) {
       strbuf_->finalize();
       Buffer tmpbuf = strbuf_->get_mbuf();
-      size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
-      stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
+      if (tmpbuf.size() > 0) {
+        size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
+        stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
+      }
       strbuf_ = nullptr;
     }
   }

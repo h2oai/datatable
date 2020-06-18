@@ -208,23 +208,15 @@ def test_fread_from_stringbuf():
 
 
 def test_fread_from_fileobj(tempfile):
-    import platform
-
     with open(tempfile, "w") as f:
         f.write("A,B,C\nfoo,bar,baz\n")
 
     with open(tempfile, "r") as f:
-        if platform.system() == "Windows":
-            msg = "Reading from file-like objects, that involves " \
-                  "file descriptors, is not supported on Windows"
-            with pytest.raises(NotImplementedError, match=msg):
-                d0 = dt.fread(f)
-        else:
-            d0 = dt.fread(f)
-            frame_integrity_check(d0)
-            assert d0.source == tempfile
-            assert d0.names == ("A", "B", "C")
-            assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
+        d0 = dt.fread(f)
+        frame_integrity_check(d0)
+        assert d0.source == tempfile
+        assert d0.names == ("A", "B", "C")
+        assert d0.to_list() == [["foo"], ["bar"], ["baz"]]
 
 
 def test_fread_file_not_exists():

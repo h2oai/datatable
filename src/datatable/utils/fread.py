@@ -159,6 +159,8 @@ def _resolve_source_file(file, tempfiles):
         # more direct access to the underlying file.
         # noinspection PyBroadException
         try:
+            if sys.platform == "win32":
+                raise Exception("Do not use file descriptors on Windows")
             # .fileno can be either a method, or a property
             # The implementation of .fileno may raise an exception too
             # (indicating that no file descriptor is available)
@@ -236,6 +238,7 @@ def _resolve_archive(filename, subpath, tempfiles):
     out_file = None
     out_text = None
     out_result = None
+    # TODO: file extarction should be lazy
     if ext == ".zip":
         import zipfile
         with zipfile.ZipFile(filename) as zf:
@@ -267,7 +270,7 @@ def _resolve_archive(filename, subpath, tempfiles):
             else:
                 return (None, None, None, None), extracted_files
 
-    elif filename.endswith(".tar.gz"):
+    elif filename.endswith(".tar.gz") or filename.endswith(".tgz"):
         import tarfile
         zf = tarfile.open(filename, mode="r:gz")
         zff = [entry.name for entry in zf.getmembers() if entry.isfile()]

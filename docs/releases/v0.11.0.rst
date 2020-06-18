@@ -108,6 +108,11 @@
     single-threaded. The parameter accepts any value available via the standard
     python library ``codecs``. [#2395]
 
+  -[new] Added parameter ``memory_limit`` which instructs fread to try to limit
+    the amount of memory used when reading the input. This parameter is
+    especially useful when reading files that are larger than the amount of
+    available memory. [#1750]
+
   -[enh] Added parameter ``multiple_sources`` which controls fread's
     behavior when multiple input sources are detected (for example, if you
     pass a name of an archive, and the archive contains multiple files).

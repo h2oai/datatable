@@ -61,7 +61,7 @@ rx_cc_id = re.compile(r"(?:\w+::)*\w+")
 rx_py_id = re.compile(r"(?:\w+\.)*\w+")
 rx_param = re.compile(r"(?:"
                       r"(\w+)(?:\s*=\s*("
-                      r"\"[^\"]*\"|\([^\(\)]*\)|\[[^\[\]]*\]|[^,\[\(\"]*"
+                      r"\"[^\"]*\"|'[^']*'|\([^\(\)]*\)|\[[^\[\]]*\]|[^,\[\(\"]*"
                       r"))?"
                       r"|([\*/]|\*\*?\w+)"
                       r")\s*(?:,\s*|$)")
@@ -449,6 +449,8 @@ class XobjectDirective(SphinxDirective):
             return
 
         tmp = self.doc_text.split("--\n", 1)
+        if len(tmp) == 1 and self.doc_text.endswith("--"):
+            tmp = [self.doc_text[:-2], ""]
         if len(tmp) == 1:
             raise self.error("Docstring for `%s` does not contain '--\\n'"
                              % self.obj_name)
@@ -548,7 +550,7 @@ class XobjectDirective(SphinxDirective):
         fnparams = [(p if isinstance(p, str) else p[0]).lstrip('*')
                     for p in self.parsed_params]
         rx_codeblock = re.compile(
-            r"``([^`]+)``|"
+            r"``(.*?)``|"
             r":`([^`]+)`|"
             r"`([^`]+)`"
         )
@@ -893,13 +895,11 @@ class XparamDirective(SphinxDirective):
         bracket_level = 0
         i = 0
         while i < len(args):  # iterate by characters
-            if args[i] in "[({":
+            if args[i] in "[({'\"":
                 bracket_level += 1
-            elif args[i] in "})]":
+            elif args[i] in "\"'})]":
                 bracket_level -= 1
-            elif bracket_level > 0:
-                pass
-            else:
+            elif bracket_level == 0:
                 mm = re.match(rx_separator, args[i:])
                 if mm:
                     self.types.append(args[i0:i])

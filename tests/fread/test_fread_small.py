@@ -542,6 +542,15 @@ def test_fread3(newline):
     assert_equals(DT, dt.Frame(COL=["abc", "def", "", "ijk"]))
 
 
+def test_comments_only_file():
+    text = ("# one\n"
+            "# two\n"
+            "#~~~~~~~~~~\n")
+    DT = dt.fread(text)
+    # Not clear why it has 1 column instead of 0
+    assert_equals(DT, dt.Frame([[]]))
+
+
 def test_runaway_quote():
     d0 = dt.fread('"A,B,C\n1,2,3\n4,5,6')
     assert d0.shape == (2, 3)

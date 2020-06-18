@@ -838,7 +838,13 @@ void FreadReader::skip_preamble() {
     fctx.skip_whitespace_at_line_start();
     if (fctx.skip_eol()) continue;
     if (comment_char == '\xFF') {
-      if (*ch == '#' || *ch == '%') comment_char = *ch;
+      if (*ch == '#' || *ch == '%' || *ch == ';') {
+        char c = ch+1 < eof? ch[1] : ' ';
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
+            c == '-' || c == '=' || c == '~' || c == '*') {
+          comment_char = *ch;
+        }
+      }
     }
     if (*ch == comment_char) {
       comment_lines++;
