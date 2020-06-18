@@ -72,7 +72,7 @@ std::unique_ptr<WritableBuffer> WritableBuffer::create_target(
     res = new MemoryWritableBuffer(size);
   } else {
     if (strategy == Strategy::Auto) {
-      #if DT_OS_DARWIN
+      #if DT_OS_MACOS
         strategy = Strategy::Write;
       #else
         strategy = Strategy::Mmap;

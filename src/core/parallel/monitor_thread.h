@@ -36,10 +36,10 @@ void enable_monitor(bool) noexcept;
   */
 class monitor_thread {
   private:
-    std::thread thread;
-    idle_job* controller;
-    std::condition_variable sleep_state_cv;
-    bool running;
+    std::thread             thread_;
+    idle_job*               controller_;
+    std::condition_variable sleep_state_cv_;
+    bool                    running_;
     size_t : 56;
 
   public:
@@ -63,13 +63,11 @@ class monitor_thread {
 
 class MonitorGuard {
   public:
-    MonitorGuard() {
-      enable_monitor(true);
-    }
-    ~MonitorGuard() {
-      enable_monitor(false);  // noexcept
-    }
+    MonitorGuard();
+    ~MonitorGuard();
 };
+
+
 
 
 } // namespace dt

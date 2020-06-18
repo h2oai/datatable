@@ -13,14 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "utils/macros.h"
-#if !DT_OS_WINDOWS
-  /* enable nice() function in unistd.h */
-  #ifndef _XOPEN_SOURCE
-    #define _XOPEN_SOURCE
-  #endif
-  #include <unistd.h>                   // nice
-#endif
 #include <iostream>
 #include <csignal>                      // std::signal, sig_atomic_t
 #include "parallel/api.h"
@@ -28,7 +20,19 @@
 #include "progress/_options.h"
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
 #include "parallel/thread_worker.h"     // idle_job
+#include "parallel/thread_pool.h"
 #include "utils/exceptions.h"
+#include "utils/macros.h"
+#if !DT_OS_WINDOWS
+  /* enable nice() function in unistd.h */
+  DISABLE_CLANG_WARNING("-Wunused-macros")
+  #ifndef _XOPEN_SOURCE
+    #define _XOPEN_SOURCE
+  #endif
+  #include <unistd.h>                   // nice
+  RESTORE_CLANG_WARNING()
+#endif
+
 
 // volatile std::sig_atomic_t gSignalStatus;
 using sig_handler_t = void(*)(int);
@@ -52,18 +56,22 @@ extern "C" {
 namespace dt {
 
 
+//------------------------------------------------------------------------------
+// monitor_thread
+//------------------------------------------------------------------------------
+
 monitor_thread::monitor_thread(idle_job* wc)
-  : controller(wc),
-    running(true)
 {
+  controller_ = wc;
+  running_ = true;
   monitor_thread_active = 0;
-  thread = std::thread(&monitor_thread::run, this);
+  thread_ = std::thread(&monitor_thread::run, this);
 }
 
 
 monitor_thread::~monitor_thread() {
   stop_running();
-  if (thread.joinable()) thread.join();
+  if (thread_.joinable()) thread_.join();
 }
 
 
@@ -72,7 +80,7 @@ void monitor_thread::run() noexcept {
 
   // Reduce this thread's priority to a minimum.
   #if DT_OS_WINDOWS
-    HANDLE th = thread.native_handle();
+    HANDLE th = thread_.native_handle();
     int ret = SetThreadPriority(th, THREAD_PRIORITY_LOWEST);
     if (!ret) {
       std::cout << "[errno " << GetLastError() << "] "
@@ -90,10 +98,10 @@ void monitor_thread::run() noexcept {
   _set_thread_num(size_t(-1));
 
   std::unique_lock<std::mutex> lock(dt::python_mutex());
-  while (running) {
+  while (running_) {
     // Sleep state
-    while (!monitor_thread_active && running) {
-      sleep_state_cv.wait(lock);
+    while (!monitor_thread_active && running_) {
+      sleep_state_cv_.wait(lock);
     }
 
     // Set the dt interrupt handler if allowed and if it was not already set.
@@ -109,7 +117,7 @@ void monitor_thread::run() noexcept {
     }
 
     // Wake state
-    while (monitor_thread_active && running) {
+    while (monitor_thread_active && running_) {
       try {
         // update_view() should run under the protection of a mutex. This way
         // when the master thread calls `set_active(false)`, it would have to
@@ -120,9 +128,9 @@ void monitor_thread::run() noexcept {
         // the same time.
         progress::manager->update_view();
       } catch(...) {
-        controller->catch_exception();
+        controller_->catch_exception();
       }
-      sleep_state_cv.wait_for(lock, SLEEP_TIME);
+      sleep_state_cv_.wait_for(lock, SLEEP_TIME);
     }
   }
 }
@@ -130,17 +138,32 @@ void monitor_thread::run() noexcept {
 
 void monitor_thread::set_active(bool a) noexcept {
   monitor_thread_active = a;
-  sleep_state_cv.notify_one();  // noexcept
+  sleep_state_cv_.notify_one();  // noexcept
 }
 
 
 
 void monitor_thread::stop_running() {
   std::lock_guard<std::mutex> lock(dt::python_mutex());
-  running = false;
+  running_ = false;
   monitor_thread_active = 0;
-  sleep_state_cv.notify_one();
+  sleep_state_cv_.notify_one();
 }
+
+
+
+//------------------------------------------------------------------------------
+// MonitorGuard
+//------------------------------------------------------------------------------
+
+MonitorGuard::MonitorGuard() {
+  thpool->enable_monitor(true);
+}
+
+MonitorGuard::~MonitorGuard() {
+  thpool->enable_monitor(false);  // noexcept
+}
+
 
 
 
