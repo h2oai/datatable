@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -29,14 +29,14 @@
 // Operating system
 //------------------------------------------------------------------------------
 
-#define DT_OS_DARWIN  0
+#define DT_OS_MACOS  0
 #define DT_OS_LINUX   0
 #define DT_OS_WINDOWS 0
 
 
 #if defined(__APPLE__) && defined(__MACH__)
-  #undef  DT_OS_DARWIN
-  #define DT_OS_DARWIN 1
+  #undef  DT_OS_MACOS
+  #define DT_OS_MACOS 1
 #endif
 
 #if defined(__linux) || defined(__linux__)
@@ -49,13 +49,13 @@
   #define DT_OS_WINDOWS 1
 #endif
 
-#if (DT_OS_LINUX || DT_OS_DARWIN)
+#if (DT_OS_LINUX || DT_OS_MACOS)
   #define DT_UNIX 1
 #else
   #define DT_UNIX 0
 #endif
 
-#if DT_OS_WINDOWS + DT_OS_DARWIN + DT_OS_LINUX != 1
+#if DT_OS_WINDOWS + DT_OS_MACOS + DT_OS_LINUX != 1
   #error Unknown operating system
 #endif
 
@@ -167,6 +167,27 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
   cache_aligned(const T& v_) : v(v_) {}
   cache_aligned(T&& v_) : v(std::move(v_)) {}
 };
+
+
+
+
+//------------------------------------------------------------------------------
+// Disable macros
+//------------------------------------------------------------------------------
+#define ___STRINGIFY(TEXT) #TEXT
+
+#if DT_COMPILER_CLANG
+  #define DISABLE_CLANG_WARNING(N) \
+    _Pragma("clang diagnostic push") \
+    _Pragma(___STRINGIFY(clang diagnostic ignored N))
+
+  #define RESTORE_CLANG_WARNING() \
+    _Pragma("clang diagnostic pop")
+#else
+  #define DISABLE_CLANG_WARNING(N)
+  #define RESTORE_CLANG_WARNING()
+#endif
+
 
 
 //------------------------------------------------------------------------------
