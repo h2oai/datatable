@@ -153,6 +153,16 @@ class Head_Func_IsClose : public Head_Func {
 
 
 
+class Head_Func_IfElse : public Head_Func {
+  public:
+    Head_Func_IfElse() = default;
+    static ptrHead make(Op, const py::otuple& params);
+
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+};
+
+
+
 
 }}  // namespace dt::expr
 #endif

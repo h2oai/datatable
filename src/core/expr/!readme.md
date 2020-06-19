@@ -47,7 +47,7 @@ In order to implement a new function or operator that would work with
 column expressions, the following steps must be taken:
 
 1. Create a new opcode for your function. This opcode must be declared
-   in two places: C++ "expr/op.h", and python "expr/expr.py". Obviously
+   in two places: C++ "expr/op.h", and python "expr/expr.py". Obviously,
    the numeric values must match.
 
 2. Declare the function / method. This can be done either in python,
