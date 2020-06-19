@@ -49,6 +49,7 @@ Workframe Head_Func_IfElse::evaluate_n(
   }
   wf_cond.sync_grouping_mode(wf_true);
   wf_cond.sync_grouping_mode(wf_false);
+  wf_true.sync_grouping_mode(wf_false);
   auto gmode = wf_cond.get_grouping_mode();
 
   Column col_cond = wf_cond.retrieve_column(0);
