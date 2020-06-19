@@ -139,6 +139,7 @@ size_t SentinelFw_ColumnImpl<T>::memory_footprint() const noexcept {
 // Data access
 //------------------------------------------------------------------------------
 
+// 4702 : unreachable code
 DISABLE_MSVC_WARNING(4702)
 
 

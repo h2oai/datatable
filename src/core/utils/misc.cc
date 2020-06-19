@@ -264,3 +264,9 @@ repr_utf8(const unsigned char* ptr0, const unsigned char* ptr1) {
     buf[i] = '\0';
     return buf;
 }
+
+
+
+RESTORE_MSVC_WARNING(4333)
+RESTORE_MSVC_WARNING(4293)
+RESTORE_GCC_WARNING("-Wshift-count-overflow")

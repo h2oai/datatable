@@ -30,7 +30,7 @@
     #define _XOPEN_SOURCE
   #endif
   #include <unistd.h>                   // nice
-  RESTORE_CLANG_WARNING()
+  RESTORE_CLANG_WARNING("-Wunused-macros")
 #endif
 
 
