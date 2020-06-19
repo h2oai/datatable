@@ -58,7 +58,7 @@ void set_value(void* ptr, const void* value, size_t sz, size_t count);
 
 
 
-#if DT_OS_DARWIN
+#if DT_OS_MACOS
   #include <malloc/malloc.h>  // size_t malloc_size(const void *)
 #elif DT_OS_WINDOWS
   #include <malloc.h>  // size_t _msize(void *)

@@ -25,7 +25,7 @@
 #include "macros.h"
 #include "utils/exceptions.h"
 
-#if DT_OS_DARWIN
+#if DT_OS_MACOS
   #include <unistd.h>
 #endif
 
