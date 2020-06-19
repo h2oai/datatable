@@ -98,11 +98,29 @@ R"(ifelse(condition, expr_if_true, expr_if_false)
 Produce a column that chooses one of the two values based on the
 condition.
 
+This function will only compute those values that are needed for
+the result. Thus, for each row we will evaluate either `expr_if_true`
+or `expr_if_false` (based on the `condition` value) but not both.
+This may be relevant for those cases
+
 Parameters
 ----------
 condition: Expr
-    Boolean
+    An expression yielding a single boolean column.
 
+expr_if_true: Expr
+    Values that will be used when the condition evaluates to True.
+    This must be a single column (or equivalent).
+
+expr_if_false: Expr
+    Values that will be used when the condition evaluates to False.
+    This must be a single column (or equivalent).
+
+(return): Expr
+    The produced expression, is a single column whose stype is the
+    stype which is common for `expr_if_true` and `expr_if_false`,
+    i.e. it is the smallest stype into which both exprs can be
+    upcasted.
 )";
 
 static PKArgs args_ifelse(
@@ -110,7 +128,7 @@ static PKArgs args_ifelse(
     {"condition", "expr_if_true", "expr_if_false"},
     "ifelse", doc_ifelse);
 
-static oobj pyfn_ifelse(const PKArgs& args)
+static oobj ifelse(const PKArgs& args)
 {
   robj arg_cond = args[0].to_robj();
   robj arg_true = args[1].to_robj();
@@ -118,11 +136,6 @@ static oobj pyfn_ifelse(const PKArgs& args)
   if (!arg_cond || !arg_true || !arg_false) {
     throw TypeError() << "Function `ifelse()` requires 3 arguments";
   }
-  if (!(arg_cond.is_dtexpr() || arg_cond.is_bool())) {
-    throw TypeError()
-      << "The first argument to `ifelse()` must be a column expression";
-  }
-
   return robj(Expr_Type).call({
       oint(static_cast<size_t>(dt::expr::Op::IFELSE)),
       otuple({arg_cond, arg_true, arg_false})
@@ -132,7 +145,7 @@ static oobj pyfn_ifelse(const PKArgs& args)
 
 
 void DatatableModule::init_methods_ifelse() {
-  ADD_FN(&pyfn_ifelse, args_ifelse);
+  ADD_FN(&ifelse, args_ifelse);
 }
 
 

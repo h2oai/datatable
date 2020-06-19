@@ -155,6 +155,11 @@
     ``debug.max_arg_size`` allow more granular control over the logging
     process. [#2452]
 
+  -[new] Function ``ifelse(cond, expr_if_true, expr_if_false)`` can return
+    one of the two values based on the condition. [#2411] ::
+
+        DT["max(x,y)"] = ifelse(f.x >= f.y, f.x, f.y)
+
   -[enh] datatable no longer has modules ``blessed`` and ``typesentry`` as
     dependencies. [#1677] [#1535]
 
