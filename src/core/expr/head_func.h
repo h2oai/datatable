@@ -133,7 +133,7 @@ class Head_Func_Shift : public Head_Func {
   public:
     static ptrHead make(Op, const py::otuple& params);
 
-    Head_Func_Shift(int shift);
+    explicit Head_Func_Shift(int shift);
     Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
 };
 
