@@ -75,7 +75,7 @@ void PKArgs::add_synonym_arg(const char* new_name, const char* old_name) {
     if (std::strcmp(name, new_name) == 0) inew = i;
   }
   xassert(iold != NPOS);  // make sure that `old_name` exists
-  xassert(inew == NPOS);
+  xassert(inew == NPOS);  (void)inew;
   PyObject* py_new_name = PyUnicode_FromString(new_name);
   xassert(py_new_name);
   kwd_map[py_new_name] = iold;

@@ -55,7 +55,7 @@
     if (!(EXPRESSION)) { \
       (AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
           << __FILE__ << ", line " << __LINE__).to_stderr(); \
-    }
+    } ((void)(0))
 
   #define xassert(EXPRESSION) \
     if (!(EXPRESSION)) { \
@@ -74,7 +74,7 @@
   if (!(EXPRESSION)) { \
     throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
         << __FILE__ << ", line " << __LINE__; \
-  }
+  } ((void)(0))
 
 
 
