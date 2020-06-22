@@ -178,10 +178,36 @@ void Frame::cbind(const PKArgs& args)
 // dt.cbind
 //------------------------------------------------------------------------------
 
-static PKArgs args_dt_cbind(
-  0, 0, 1, true, false, {"force"}, "cbind", nullptr);
+static const char* doc_py_cbind =
+R"(cbind(*frames, force=False)
+--
 
-static oobj dt_cbind(const PKArgs& args) {
+Create a new Frame by appending columns from several `frames`.
+
+This function is exactly equivalent to::
+
+  dt.Frame().cbind(*frames, force=force)
+
+Parameters
+----------
+frames: Frame | List[Frame] | None
+
+force: bool
+
+(return): Frame
+
+
+See also
+--------
+- :func:`rbind()` -- function for row-binding several frames.
+- :meth:`Frame.cbind()` -- Frame method for cbinding some frames to
+  another.
+)";
+
+static PKArgs args_py_cbind(
+  0, 0, 1, true, false, {"force"}, "cbind", doc_py_cbind);
+
+static oobj py_cbind(const PKArgs& args) {
   oobj r = oobj::import("datatable", "Frame").call();
   xassert(r.is_frame());
   PyObject* rv = r.to_borrowed_ref();
@@ -196,7 +222,7 @@ void Frame::_init_cbind(XTypeMaker& xt) {
 }
 
 void DatatableModule::init_methods_cbind() {
-  ADD_FN(&dt_cbind, args_dt_cbind);
+  ADD_FN(&py_cbind, args_py_cbind);
 }
 
 

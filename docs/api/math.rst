@@ -3,7 +3,7 @@
 math module
 ===========
 
-``datatable`` provides the similar set of mathematical functions, as Python's
+:mod:`datatable` provides the similar set of mathematical functions, as Python's
 standard `math module`_, or `numpy math functions`_. Below is the comparison
 table showing which functions are available:
 

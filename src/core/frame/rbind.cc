@@ -53,7 +53,7 @@ static constexpr size_t INVALID_INDEX = size_t(-1);
 //------------------------------------------------------------------------------
 namespace py {
 
-static const char* docs_rbind =
+static const char* doc_rbind =
 R"(rbind(self, *frames, force=False, bynames=True)
 --
 
@@ -101,7 +101,7 @@ bynames: bool
 )";
 
 static PKArgs args_rbind(
-  0, 0, 2, true, false, {"force", "bynames"}, "rbind", docs_rbind);
+  0, 0, 2, true, false, {"force", "bynames"}, "rbind", doc_rbind);
 
 
 
@@ -236,10 +236,39 @@ void Frame::rbind(const PKArgs& args) {
 // dt.rbind
 //------------------------------------------------------------------------------
 
-static PKArgs args_dt_rbind(
-  0, 0, 2, true, false, {"force", "bynames"}, "rbind", nullptr);
+static const char* doc_py_rbind =
+R"(rbind(*frames, force=False, by_names=True)
+--
 
-static oobj dt_rbind(const PKArgs& args) {
+Produce a new frame by appending rows of `frames`.
+
+This function is equivalent to::
+
+  dt.Frame().rbind(*frames, force=force, by_names=by_names)
+
+
+Parameters
+----------
+frames: Frame | List[Frame] | None
+
+force: bool
+
+by_names: bool
+
+(return): Frame
+
+
+See also
+--------
+- :func:`cbind()` -- function for col-binding several frames.
+- :meth:`Frame.rbind()` -- Frame method for rbinding some frames to
+  another.
+)";
+
+static PKArgs args_py_rbind(
+  0, 0, 2, true, false, {"force", "bynames"}, "rbind", doc_py_rbind);
+
+static oobj py_rbind(const PKArgs& args) {
   oobj r = oobj::import("datatable", "Frame").call();
   PyObject* rv = r.to_borrowed_ref();
   reinterpret_cast<Frame*>(rv)->rbind(args);
@@ -254,7 +283,7 @@ void Frame::_init_rbind(XTypeMaker& xt) {
 
 
 void DatatableModule::init_methods_rbind() {
-  ADD_FN(&dt_rbind, args_dt_rbind);
+  ADD_FN(&py_rbind, args_py_rbind);
 }
 
 }  // namespace py
