@@ -27,6 +27,7 @@ from .lib._datatable import (
     by,
     cbind,
     fread,
+    ifelse,
     init_styles,
     intersect,
     iread,
@@ -65,28 +66,51 @@ except ImportError:
 
 
 __all__ = (
-    "Frame",
+    "bool8",
+    "by",
+    "cbind",
     "corr",
     "count",
     "cov",
     "dt",
+    "exp",
+    "f",
     "first",
+    "float32",
+    "float64",
+    "Frame",
     "fread",
+    "g",
+    "ifelse",
     "init_styles",
+    "int16",
+    "int32",
+    "int64",
+    "int8",
+    "intersect",
     "iread",
     "isna",
+    "join",
     "last",
+    "log",
+    "log10",
+    "ltype",
     "mean",
     "median",
-    "sd",
-    "stype", "ltype", "f", "g",
-    "join", "by", "exp", "log", "log10",
+    "obj64",
     "options",
-    "bool8", "int8", "int16", "int32", "int64",
-    "float32", "float64", "str32", "str64", "obj64",
-    "cbind", "rbind", "repeat", "sort",
-    "unique", "union", "intersect", "setdiff", "symdiff",
+    "rbind",
+    "repeat",
+    "sd",
+    "setdiff",
+    "sort",
     "split_into_nhot",
+    "str32",
+    "str64",
+    "stype",
+    "symdiff",
+    "union",
+    "unique",
 )
 
 bool8 = stype.bool8
@@ -112,7 +136,7 @@ def open(path):
     """
     import warnings
     warnings.warn("Function dt.open() is deprecated since 0.10.0, and "
-                  "will be removed in version 0.12.\n"
+                  "will be removed in version 1.0.\n"
                   "Please use dt.fread(file), or dt.Frame(file) instead",
                   category=FutureWarning)
     return fread(path)

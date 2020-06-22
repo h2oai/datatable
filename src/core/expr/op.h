@@ -52,7 +52,8 @@ enum class Op : size_t {
   CAST = 2,
   SETPLUS = 3,
   SETMINUS = 4,
-  SHIFTFN,                  // head_func_shift.cc
+  SHIFTFN = 5,              // head_func_shift.cc
+  IFELSE = 6,
 
   // Unary
   UPLUS = UNOP_FIRST,       // funary/basic.cc
