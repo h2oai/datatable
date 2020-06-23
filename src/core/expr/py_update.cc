@@ -28,7 +28,19 @@ namespace py {
 // oupdate_pyobject
 //------------------------------------------------------------------------------
 
-static PKArgs args___init__(0, 0, 0, false, true, {}, "__init__", nullptr);
+static const char* doc_update =
+R"(update(**kwargs)
+--
+
+Create new or update existing columns within a frame.
+
+This expression is intended to be used at "j" place in ``DT[i, j]``
+call. It takes an arbitrary number of key/value pairs each describing
+a column name and the expression for how that column has to be
+created/updated.
+)";
+
+static PKArgs args___init__(0, 0, 0, false, true, {}, "__init__", doc_update);
 
 
 void oupdate::oupdate_pyobject::impl_init_type(XTypeMaker& xt) {

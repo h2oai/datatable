@@ -31,6 +31,7 @@ namespace py {
 
 static const char* by_help =
 R"(by(*cols, add_columns=True)
+--
 
 Group-by clause for use in Frame's square-bracket selector.
 
