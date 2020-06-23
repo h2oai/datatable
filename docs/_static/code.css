@@ -50,10 +50,10 @@ div.small-links div {
 .rst-content code.literal {
   background: rgba(0, 0, 0, 0.07);
   border-style: none;
-  border-radius: .3em;
+  border-radius: 0.3em;
   color: #000;
   font-size: 90%;
-  padding: .2em .4em;
+  padding: 0.2em 0.4em;
 }
 
 .rst-content code.xref.literal {
@@ -63,6 +63,7 @@ div.small-links div {
 .rst-content a.reference code.xref.literal {
   color: #6395d4;
 }
+
 .rst-content a.reference:hover code.xref.literal {
   background-color: #dfecff;
 }
@@ -75,7 +76,7 @@ div.small-links div {
 .rst-content.style-external-links a.reference.external:after {
   left: 1pt;
   position: relative;
-  top: -.5em;
+  top: -0.5em;
   vertical-align: inherit;
 }
 
@@ -140,7 +141,7 @@ div.document div.notranslate.highlight-default div.highlight {
 
 div.document div.notranslate.highlight-python div.highlight pre,
 div.document div.notranslate.highlight-default div.highlight pre {
-  padding: .5em 1em;
+  padding: 0.5em 1em;
 }
 
 
@@ -164,7 +165,7 @@ div.document div.notranslate.highlight-pycon:before {
   flex: 0 0 48px;
   font-family: "Source Code Pro", monospace;
   font-size: 80%;
-  padding: .385em;
+  padding: 0.385em;
   text-align: right;
 }
 
