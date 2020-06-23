@@ -281,7 +281,7 @@ def test_rowsd_floats():
     assert_equals(RES, dt.Frame([std1, None, std3, None]))
 
 
-def test_rowmean_wrong_types():
+def test_rowsd_wrong_types():
     DT = dt.Frame(A=[3, 5, 6], B=["a", "d", "e"])
     with pytest.raises(TypeError, match="Function rowsd expects a sequence "
                                         "of numeric columns"):

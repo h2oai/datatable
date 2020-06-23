@@ -21,8 +21,6 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import builtins
-import os
-import re
 import sys
 import traceback
 import warnings

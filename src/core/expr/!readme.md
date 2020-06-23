@@ -6,10 +6,10 @@ via the following mechanism:
 
 1. First, every expression generates an object of class `Expr`. The class
    itself is defined in `expr/expr.py`, and it contains just 3 fields:
-     - `_op`: the numeric code of the operation;
-     - `_args`: the tuple of arguments (these are usually `Expr`s too, but
-       may also be numbers, strings, or anything else);
-     - `_params`: the dictionary of additional parameters.
+   - `_op`: the numeric code of the operation;
+   - `_args`: the tuple of arguments (these are usually `Expr`s too, but
+     may also be numbers, strings, or anything else);
+   - `_params`: the dictionary of additional parameters.
 
    Thus, this class stores an arbitrary function call `fn(*args, **kwds)`,
    where the function name is mapped into a numeric code.

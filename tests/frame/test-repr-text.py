@@ -22,7 +22,6 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
-import os
 import pytest
 import re
 import subprocess

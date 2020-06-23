@@ -25,7 +25,6 @@ import sys
 import itertools
 import os
 import random
-import re
 import time
 from datatable.lib import core
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))

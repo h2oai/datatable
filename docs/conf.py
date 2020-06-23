@@ -30,8 +30,6 @@ try:
     version = datatable.__version__
 
 except ImportError:
-    import os
-    import re
     verfile = os.path.abspath(os.path.join(os.path.dirname(__file__),
                               "../VERSION.txt"))
     if os.path.isfile(verfile):

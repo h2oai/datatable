@@ -88,7 +88,7 @@ def test_f_expressions():
     assert str(f.C1 < f.C2) == "Expr:lt(Expr:col('C1'; 0), Expr:col('C2'; 0); )"
 
 
-def test_f_columnset():
+def test_f_columnset_str():
     assert str(f[:]) == "Expr:col(slice(None, None, None); 0)"
     assert str(f[:7]) == "Expr:col(slice(None, 7, None); 0)"
     assert str(f[::-1]) == "Expr:col(slice(None, None, -1); 0)"
