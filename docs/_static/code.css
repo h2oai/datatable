@@ -28,7 +28,7 @@ div.large-links a {
 }
 
 div.large-links a:hover {
-  background-color: #E9EEF5;
+  background-color: #e9eef5;
 }
 
 div.large-links a i.fa {
@@ -68,12 +68,11 @@ div.small-links div {
   background-color: #dfecff;
 }
 
-
 .rst-content.style-external-links a.reference.external.image-reference::after {
   content: '';
 }
 
-.rst-content.style-external-links a.reference.external:after {
+.rst-content.style-external-links a.reference.external::after {
   left: 1pt;
   position: relative;
   top: -0.5em;
@@ -97,7 +96,7 @@ div.document div.notranslate.highlight-bash {
 
 div.document div.notranslate.highlight-bash .highlight {
   background-color: #444;
-  color: #CCC;
+  color: #ccc;
 }
 
 
@@ -119,9 +118,9 @@ div.document div.notranslate.highlight-default + div.highlight-pycon {
   margin-top: -20px;
 }
 
-div.document div.notranslate.highlight-python:before,
-div.document div.notranslate.highlight-default:before {
-  color: #CCC;
+div.document div.notranslate.highlight-python::before,
+div.document div.notranslate.highlight-default::before {
+  color: #ccc;
   content: "[" counter(cc) "]:";
   flex: 0 0 48px;
   font-family: "Source Code Pro", monospace;
@@ -133,8 +132,8 @@ div.document div.notranslate.highlight-default:before {
 
 div.document div.notranslate.highlight-python div.highlight,
 div.document div.notranslate.highlight-default div.highlight {
-  background: #F5F5F5;
-  border: 1px solid #E0E0E0;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
   flex: 1 1 auto;
   margin-bottom: 0;
 }
@@ -160,7 +159,7 @@ div.document div.notranslate.highlight-pycon + div.highlight-python {
 }
 
 div.document div.notranslate.highlight-pycon:before {
-  color: #CCC;
+  color: #ccc;
   content: "[" counter(cc) "]:";
   flex: 0 0 48px;
   font-family: "Source Code Pro", monospace;
@@ -169,12 +168,12 @@ div.document div.notranslate.highlight-pycon:before {
   text-align: right;
 }
 
-div.document div.notranslate.highlight-pycon .highlight {
+div.document div.notranslate.highlight-pycon div.highlight {
   background: none;
   border: none;
 }
 
-div.document div.notranslate.highlight-pycon .highlight pre {
+div.document div.notranslate.highlight-pycon div.highlight pre {
   padding: 4pt 10pt;
 }
 
@@ -195,10 +194,10 @@ div.document div.notranslate.highlight-pycon .highlight pre {
 
 .admonition.seealso p.first.admonition-title {
   background: inherit;
-  color: #AAA;
+  color: #aaa;
   display: block;
   font-weight: normal;
-  margin: 0pt 3pt 0 0;
+  margin: 0 3pt 0 0;
   padding: 0;
 }
 
@@ -206,11 +205,11 @@ div.document div.notranslate.highlight-pycon .highlight pre {
   font-size: inherit;
 }
 
-.admonition.seealso p.first.admonition-title:before {
+.admonition.seealso p.first.admonition-title::before {
   content: "";
 }
 
-.admonition.seealso p.first.admonition-title:after {
+.admonition.seealso p.first.admonition-title::after {
   content: ":";
 }
 
@@ -246,7 +245,8 @@ p {
   line-height: 22px;
 }
 
-p + ul.simple, p + ol.simple {
+p + ul.simple,
+p + ol.simple {
   margin-top: -12pt;
   margin-left: 12pt;
 }
@@ -255,10 +255,11 @@ p + ul.simple, p + ol.simple {
 .rst-content .section ol p + ul.simple,
 .rst-content .section ul p + ul.simple,
 .rst-content .section ol p + ol.simple,
-.rst-content .section ul p + ul.simple {
+.rst-content .section ul p + ol.simple {
   margin-top: -6pt;
 }
 
-ul.simple li, ol.simple li {
+ul.simple li,
+ol.simple li {
   margin-bottom: 6pt;
 }
