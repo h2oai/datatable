@@ -7,14 +7,14 @@ datatable API
 =========================  =====================================================
 **Classes**
 --------------------------------------------------------------------------------
-:class:`Frame`             Main data table class
+:class:`Frame`             Main "table of data" class
 :class:`ltype`
 :class:`stype`
 
 **Functions**
 --------------------------------------------------------------------------------
 :func:`fread()`            Read CSV/text/XLSX/Jay/other files
-:func:`iread()`            Same, but read multiple files at once
+:func:`iread()`            Same as `fread()`, but read multiple files at once
 
 :func:`by()`
 :func:`join()`

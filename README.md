@@ -34,9 +34,8 @@ put specific emphasis on speed and big data support. As the name suggests, the
 package is closely related to R's [data.table][] and attempts to mimic its core
 algorithms and API.
 
-Currently `datatable` is in the Alpha stage and is undergoing active
-development. The API may be unstable; some of the core features are incomplete
-and/or missing. Python 3.5+ is required.
+Currently `datatable` is in the Beta stage and undergoing active development.
+Some of the features may still be missing. Python 3.5+ is required.
 
 
 ## Project goals
