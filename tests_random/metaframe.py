@@ -294,7 +294,7 @@ class MetaFrame:
     def delete_columns(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
         if isinstance(s, slice):
-            s = list(range(ncols))[s]
+            s = list(range(self.ncols))[s]
         set_keys = set(range(self.nkeys))
         set_delcols = set(s)
         nkeys_remove = len(set_keys.intersection(set_delcols))

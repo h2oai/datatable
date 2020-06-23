@@ -23,7 +23,6 @@
 import re
 import types
 from docutils import nodes
-from docutils.parsers.rst import directives
 from sphinx.util.docutils import SphinxDirective
 from . import xnodes
 

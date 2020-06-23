@@ -28,7 +28,6 @@
 import pytest
 import datatable as dt
 import os
-import sys
 from datatable import ltype, stype
 from datatable.exceptions import FreadWarning, DatatableWarning, IOWarning
 from datatable.internal import frame_integrity_check
@@ -66,7 +65,7 @@ def test_fread_from_text1():
 def test_fread_from_cmd1():
     d0 = dt.fread(cmd="ls -l")
     frame_integrity_check(d0)
-    d0.source == "ls -l"
+    assert d0.source == "ls -l"
     # It is difficult to assert anything about the contents or structure
     # of the resulting dataset...
 

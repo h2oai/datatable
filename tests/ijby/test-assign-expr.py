@@ -25,7 +25,6 @@
 # Test assigning expressions
 #
 #-------------------------------------------------------------------------------
-import math
 import pytest
 from datatable import f, g, dt, by, join
 from datatable.internal import frame_integrity_check

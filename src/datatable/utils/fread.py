@@ -31,8 +31,7 @@ import warnings
 
 from datatable.lib import core
 from datatable.exceptions import TypeError, ValueError, IOError, FreadWarning
-from datatable.utils.misc import (normalize_slice, normalize_range,
-                                  humanize_bytes)
+from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import backticks_escape as escape
 from datatable.types import stype, ltype

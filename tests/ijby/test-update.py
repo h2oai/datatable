@@ -23,7 +23,6 @@
 #-------------------------------------------------------------------------------
 import pytest
 from datatable import f, g, dt, by, join, update
-from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
 
