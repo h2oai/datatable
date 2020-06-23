@@ -32,16 +32,18 @@ namespace py {
 // datatable.repeat()
 //------------------------------------------------------------------------------
 
-static PKArgs args_repeat(
-    2, 0, 0, false, false, {"frame", "n"},
-    "repeat",
+static const char* doc_repeat =
 R"(repeat(frame, n)
 --
 
 Concatenate `n` copies of the `frame` by rows and return the result.
 
-This is equivalent to ``dt.rbind([self] * n)``.
-)");
+This is equivalent to ``dt.rbind([frame] * n)``.
+)";
+
+static PKArgs args_repeat(
+    2, 0, 0, false, false, {"frame", "n"},
+    "repeat", doc_repeat);
 
 
 static oobj repeat(const PKArgs& args) {

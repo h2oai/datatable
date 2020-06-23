@@ -86,8 +86,10 @@
     font-style: normal;
 }
 .x-function .sig-parameters .param .default.literal {
+    background: none;
     color: #8da4d2;
     font-size: inherit;
+    padding: 0;
 }
 
 .x-function .del-keyword {
@@ -129,8 +131,7 @@
 }
 
 .x-function a.xparam-ref code {
-    color: #89abcd;
-    font-weight: bold;
+    color: #5490cd;
     padding: 1px 4px;
 }
 
@@ -194,6 +195,12 @@
     color: #ddd;  /* affects only the separators */
     line-height: 14px;
     padding: 3px 10px;
+}
+
+.xparam-head .types code.literal {
+    background: none;
+    color: rgba(0, 0, 0, 0.35);
+    padding: 0;
 }
 
 .xparam-body {

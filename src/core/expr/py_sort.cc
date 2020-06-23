@@ -33,6 +33,7 @@ namespace py {
 
 static const char* sort_help =
 R"(sort(*cols, reverse=False)
+--
 
 Sort clause for use in Frame's square-bracket selector.
 
