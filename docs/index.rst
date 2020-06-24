@@ -74,37 +74,12 @@ addition, ``datatable`` strives to achieve good user experience, helpful error
 messages, and powerful API similar to R ``data.table``'s.
 
 
-
 .. toctree::
-    :caption: Getting started
-    :maxdepth: 2
     :hidden:
 
-    quick-start
-    using-datatable
-
-.. toctree::
-    :caption: User manual
-    :maxdepth: 2
-    :hidden:
-
-    f-expressions
-    manual/name_mangling
-    install
-    contrib
-    release-history
-
-.. toctree::
-    :maxdepth: 2
-    :caption: API reference
-    :hidden:
-
-    api/api-index
-
-
-.. toctree::
-    :maxdepth: 2
-    :caption: Models
-    :hidden:
-
-    ftrl
+    Getting Started  <start/index-start>
+    User Guide       <manual/index-manual>
+    Models           <models/index-models>
+    API Reference    <api/index-api>
+    Development      <develop/index-develop>
+    Release History  <releases/index-releases>

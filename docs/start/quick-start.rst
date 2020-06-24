@@ -12,7 +12,7 @@ Let's begin by installing the latest stable version of ``datatable`` from PyPI:
     $ pip install datatable
 
 If this didn't work for you, or if you want to install the bleeding edge
-version of the library, please check the :doc:`Installation </install>` page.
+version of the library, please check the :doc:`Installation <install>` page.
 
 Assuming the installation was successful, you can now import the library in
 a JupyterLab notebook or in a Python console:
