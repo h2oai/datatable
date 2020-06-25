@@ -240,16 +240,16 @@ using read_t = typename _rdt<s>::t;
   * the "most typical" SType that represents type T.
   */
 template <typename T> static constexpr SType _sfr = SType::VOID;
-template <> constexpr SType _sfr<bool>      = SType::BOOL;
-template <> constexpr SType _sfr<int8_t>    = SType::INT8;
-template <> constexpr SType _sfr<int16_t>   = SType::INT16;
-template <> constexpr SType _sfr<int32_t>   = SType::INT32;
-template <> constexpr SType _sfr<int64_t>   = SType::INT64;
-template <> constexpr SType _sfr<float>     = SType::FLOAT32;
-template <> constexpr SType _sfr<double>    = SType::FLOAT64;
-template <> constexpr SType _sfr<CString>   = SType::STR32;
-template <> constexpr SType _sfr<PyObject*> = SType::OBJ;
-template <> constexpr SType _sfr<py::robj>  = SType::OBJ;
+template <> static constexpr SType _sfr<bool>      = SType::BOOL;
+template <> static constexpr SType _sfr<int8_t>    = SType::INT8;
+template <> static constexpr SType _sfr<int16_t>   = SType::INT16;
+template <> static constexpr SType _sfr<int32_t>   = SType::INT32;
+template <> static constexpr SType _sfr<int64_t>   = SType::INT64;
+template <> static constexpr SType _sfr<float>     = SType::FLOAT32;
+template <> static constexpr SType _sfr<double>    = SType::FLOAT64;
+template <> static constexpr SType _sfr<CString>   = SType::STR32;
+template <> static constexpr SType _sfr<PyObject*> = SType::OBJ;
+template <> static constexpr SType _sfr<py::robj>  = SType::OBJ;
 
 template <typename T>
 static constexpr SType stype_from = _sfr<T>;
