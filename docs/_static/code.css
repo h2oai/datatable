@@ -3,6 +3,10 @@ body {
   counter-reset: cc;
 }
 
+div.rst-content li {
+  margin-bottom: 12pt;
+}
+
 #first-section { display: flex; }
 
 #first-section .part1 { padding-right: 32pt; }
@@ -82,8 +86,12 @@ div.small-links div {
 
 /* ------- All code highlighting -------------------------------------------- */
 
+div.document div.notranslate {
+  margin-bottom: 0;
+}
+
 div.document p + div.notranslate {
-  margin-top: -12px;
+  margin-top: -10px;
 }
 
 
@@ -97,6 +105,10 @@ div.document div.notranslate.highlight-bash {
 div.document div.notranslate.highlight-bash .highlight {
   background-color: #444;
   color: #ccc;
+}
+
+div.document div.notranslate.highlight-bash .highlight .nb {
+  color: #5de885;
 }
 
 
