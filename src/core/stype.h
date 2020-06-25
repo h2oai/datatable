@@ -239,20 +239,21 @@ using read_t = typename _rdt<s>::t;
   * Approximate inverse of `read_t<SType>`: given a type T, returns
   * the "most typical" SType that represents type T.
   */
-template <typename T> static constexpr SType _sfr = SType::VOID;
-template <> static constexpr SType _sfr<bool>      = SType::BOOL;
-template <> static constexpr SType _sfr<int8_t>    = SType::INT8;
-template <> static constexpr SType _sfr<int16_t>   = SType::INT16;
-template <> static constexpr SType _sfr<int32_t>   = SType::INT32;
-template <> static constexpr SType _sfr<int64_t>   = SType::INT64;
-template <> static constexpr SType _sfr<float>     = SType::FLOAT32;
-template <> static constexpr SType _sfr<double>    = SType::FLOAT64;
-template <> static constexpr SType _sfr<CString>   = SType::STR32;
-template <> static constexpr SType _sfr<PyObject*> = SType::OBJ;
-template <> static constexpr SType _sfr<py::robj>  = SType::OBJ;
+template <typename T>
+            inline constexpr SType _sfr()            { return SType::VOID; }
+template <> inline constexpr SType _sfr<bool>()      { return SType::BOOL; }
+template <> inline constexpr SType _sfr<int8_t>()    { return SType::INT8; }
+template <> inline constexpr SType _sfr<int16_t>()   { return SType::INT16; }
+template <> inline constexpr SType _sfr<int32_t>()   { return SType::INT32; }
+template <> inline constexpr SType _sfr<int64_t>()   { return SType::INT64; }
+template <> inline constexpr SType _sfr<float>()     { return SType::FLOAT32; }
+template <> inline constexpr SType _sfr<double>()    { return SType::FLOAT64; }
+template <> inline constexpr SType _sfr<CString>()   { return SType::STR32; }
+template <> inline constexpr SType _sfr<PyObject*>() { return SType::OBJ; }
+template <> inline constexpr SType _sfr<py::robj>()  { return SType::OBJ; }
 
 template <typename T>
-static constexpr SType stype_from = _sfr<T>;
+static constexpr SType stype_from = _sfr<T>();
 
 
 /**
