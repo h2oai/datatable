@@ -50,8 +50,8 @@ these steps in order to set up your local development environment:
       git config branch.master.merge refs/heads/master
 
 This completes the setup of your local datatable fork. Make sure to note
-the location of the ``datatable/`` directory that you created in step 3,
-you will need to return there when issuing any subsequent ``git`` commands
+the location of the ``datatable/`` directory that you created in step 3.
+You will need to return there when issuing any subsequent ``git`` commands
 detailed futher.
 
 
@@ -83,7 +83,7 @@ separate guides on how to work with documentation and how to work with core
 code changes. It is also a good idea to commit the code frequently, using
 ``git add`` and ``git commit`` changes.
 
-Note: while many projects ask for detailed and informative commit messages,
+Note: While many projects ask for detailed and informative commit messages,
 we don't. Our policy is to squash all commits when merging a pull request, and
 therefore the only detailed message that is needed is the PR description.
 
@@ -102,7 +102,7 @@ that notifies about the changes pushed to ``your_branch_name``. There will also
 be a green button "Compare & pull request". Pressing that button you will see
 an "Open a pull request" form.
 
-When opening a pull request, make sure to provide an informative title, and a
+When opening a pull request, make sure to provide an informative title and a
 detailed description of the proposed changes. If the pull request directly
 addresses one of the issues, make sure to note that in the text of the PR
 description.
