@@ -21,6 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+# This script requires module `PyGithub`
+#-------------------------------------------------------------------------------
 import argparse
 import getpass
 import github

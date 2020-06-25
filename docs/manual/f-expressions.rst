@@ -1,8 +1,8 @@
 
 .. _f-expressions:
 
-`f`-expressions
-===============
+``f``-expressions
+=================
 
 The ``datatable`` module exports a special symbol ``f``, which can be used
 to refer to the columns of a frame currently being operated on. If this sounds
@@ -19,7 +19,7 @@ For example, consider the expression::
 
 By itself, it just means *a column named "price", in an unspecified frame*.
 This expression becomes concrete, however, when used with a particular frame.
-For example,::
+For example::
 
     train_dt[f.price > 0, :]
 

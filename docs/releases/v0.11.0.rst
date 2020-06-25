@@ -206,10 +206,20 @@
 
   .. contributors::
 
-    39  @st-pasha
-    20  @oleksiyskononenko
+    109 @st-pasha
+    47  @oleksiyskononenko
+    1   @jfaccioni           <Juliano Faccioni>
     1   @mmalohlava
     1   @bboe                <Bryce Boe>
     --
-    11  @st-pasha
-    4   @oleksiyskononenko
+    34  @st-pasha
+    8   @oleksiyskononenko
+    6   @arnocandel
+    2   @jangorecki
+    1   @ben519              <Ben Gorman>
+    1   @surenH2oai          <Suren Mohanathas>
+    1   @myamullaciencia     <Mallesham Yamulla>
+    1   @ashrith             <Ashrith Barthur>
+    1   @mmalohlava
+    1   @Viktor-Demin
+    1   @chrinide            <Chrinide>
