@@ -1,11 +1,5 @@
 dist: bionic
-sudo: true
-
 language: python
-
-env:
-  global:
-    - TRAVIS=1
 
 jobs:
   include:
@@ -56,7 +50,4 @@ script:
   - pip install -r requirements_tests.txt
   - pip install -r requirements_extra.txt
   - python -m pytest -ra --showlocals -Werror tests
-
-git:
-  depth: 2
 
