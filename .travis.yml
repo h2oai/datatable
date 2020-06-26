@@ -30,12 +30,12 @@ jobs:
         - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
         - CXX=$LLVM10/bin/clang
 
-    - name: "Python 3.6 on macOS with gcc"
+    - name: "Python 3.x on macOS with gcc"
       os: osx
       osx_image: xcode11.6
       compiler:
         - gcc
-      python: 3.6
+      language: shell
 
 cache:
   pip: true
