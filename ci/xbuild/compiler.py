@@ -138,6 +138,7 @@ class Compiler:
                                      "variable `%s` failed to compile an "
                                      "empty file" % (compiler, envvar))
                 self.executable = compiler
+                self.linker = compiler
                 self.log.report_compiler_executable(compiler, env=envvar)
                 return
 
