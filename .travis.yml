@@ -35,7 +35,6 @@ jobs:
       osx_image: xcode11.6
       compiler:
         - gcc
-      language: shell
 
 cache:
   pip: true
@@ -49,11 +48,11 @@ git:
 
 install:
   - pip install --upgrade pip
-  - pip install -r requirements_tests.txt
-  - pip install -r requirements_extra.txt
 
 script:
   - python ci/ext.py wheel
   - pip install --upgrade dist/*.whl
+  - pip install -r requirements_tests.txt
+  - pip install -r requirements_extra.txt
   - python -m pytest -ra --showlocals -Werror tests
 
