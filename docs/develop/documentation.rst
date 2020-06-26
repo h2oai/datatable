@@ -2,6 +2,26 @@
 Contributing documentation
 ==========================
 
+The documentation for ``datatable`` project is written entirely in the
+ReStructured Text (RST) format and rendered using the Sphinx engine. These
+technologies are standard for Python.
+
+The basic workflow for developing documentation, after
+:ref:`setting up a local datatable repository <local-setup>`, is to go into
+the ``docs/`` directory and run
+
+.. code-block:: bash
+
+    make html
+
+After that, if there were no errors, the documentation can be viewed locally
+by opening the file ``docs/_build/html/index.html`` in a browser.
+
+The ``make html`` command needs to be re-run after every change you make.
+Occasionally you may also need to ``make clean`` if something doesn't seem to
+work properly.
+
+
 Basic formatting
 ----------------
 
@@ -309,3 +329,46 @@ into the RST document. This processing includes the following steps:
   Frame, it will also be converted into a jupyter-style table.
 
 - All other sections are displayed as-is.
+
+
+Here's an example of a docstring:
+
+.. code-block:: C++
+
+    static const char* doc_rbind =
+    R"(rbind(self, *frames, force=False, bynames=True)
+    --
+
+    Append rows of `frames` to the current frame.
+
+    This method modifies the current frame in-place. If you do not want
+    the current frame modified, then use the :func:`dt.rbind()` function.
+
+    Parameters
+    ----------
+    frames: Frame | List[Frame]
+        One or more frames to append.
+
+    force: bool
+        If True, then the frames are allowed to have mismatching set of
+        columns. Any gaps in the data will be filled with NAs.
+
+    bynames: bool
+        If True (default), the columns in frames are matched by their
+        names, otherwise by their order.
+
+    Examples
+    --------
+    >>> DT = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
+    >>> frame1 = dt.Frame(A=[-1], B=[None])
+    >>> DT.rbind(frame1)
+    >>> DT
+       |  A   B
+    -- + --  --
+     0 |  1   4
+     1 |  2   7
+     2 |  3   0
+     3 | -1  NA
+    --
+    [4 rows x 2 columns]
+    )";
