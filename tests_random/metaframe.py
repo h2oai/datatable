@@ -378,7 +378,7 @@ class MetaFrame:
         if icol < self.nkeys:
             msg = 'Cannot change values in a key column %s' % self.names[icol]
             msg = re.escape(msg)
-            with pytest.raises(ValueError, match = msg):
+            with pytest.raises(ValueError, match=msg):
                 self.df[f[icol] == None, f[icol]] = replacement_value
 
         else:
