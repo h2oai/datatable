@@ -113,7 +113,7 @@ void py::DatatableModule::init_funary()
 {
   #define FUNARY(ARGS, OP) \
     ADD_FN(&dt::expr::funary_pyfn, dt::expr::ARGS); \
-    register_args(dt::expr::ARGS, dt::expr::OP);
+    register_args(dt::expr::ARGS, dt::expr::OP)
 
   // Basic
   FUNARY(args_len,     Op::LEN);

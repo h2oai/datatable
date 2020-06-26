@@ -84,7 +84,7 @@ class ExtModule {
   add(                                                                         \
     [](PyObject*, PyObject* args, PyObject* kwds) -> PyObject* {               \
       return ARGS.exec_function(args, kwds, FUNCTION);                         \
-    }, ARGS);                                                                  \
+    }, ARGS)
 
 
 } // namespace py

@@ -45,7 +45,7 @@ uint64_t hash_murmur2(const void* key, uint64_t len)
     case 2: h ^= uint64_t(data2[1]) << 8;  FALLTHROUGH;
     case 1: h ^= uint64_t(data2[0]);
             h *= m;
-  };
+  }
 
   h ^= h >> r;
   h *= m;
@@ -113,7 +113,7 @@ void hash_murmur3(const void* key, const uint64_t len, void* out) {
     case  2: k1 ^= (static_cast<uint64_t>(tail[ 1])) << 8; FALLTHROUGH;
     case  1: k1 ^= (static_cast<uint64_t>(tail[ 0])) << 0;
              k1 *= c1; k1 = ROTL64(k1, 31); k1 *= c2; h1 ^= k1;
-  };
+  }
 
   //----------
   // finalization
