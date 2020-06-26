@@ -35,7 +35,7 @@ separated with empty lines::
     aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
     voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 
-The line breaks within each paragraph are ignored: on the rendered page the
+The line breaks within each paragraph are ignored; on the rendered page the
 lines will be as wide as is necessary to fill the page. With that in mind, we
 ask to avoid lines that are longer than 80 characters in width, if possible.
 This makes it much easier to work with code on small screen devices.
@@ -52,13 +52,13 @@ Page headings are a simple line of underlined text::
     Heading Level 3
     ~~~~~~~~~~~~~~~
 
-Each document must have exactly one level-1 heading, otherwise the page would
+Each document must have exactly one level-1 heading; otherwise the page would
 not render properly.
 
 
-Basic **bold text**, *italic text* and ``literal text`` is written as follows
-(note that literals use double backticks, which is a frequent cause of
-formatting errors)::
+Basic **bold text**, *italic text* and ``literal text`` is written as follows.
+(Note that literals use double backticks, which is a frequent cause of
+formatting errors.)::
 
     **bold text**
     *italic text*
@@ -96,15 +96,15 @@ paragraph (code) indented with 4 spaces::
         print("Hello, world!", flush=True)
 
 
-Slightly more advanced method is to use an explicit ``code-block`` directive::
+A slightly more advanced method is to use an explicit ``code-block`` directive::
 
     .. code-block:: bash
 
         $ pip install datatable
 
-This directive allows you to explicitly select the language of your code snippet
+This directive allows you to explicitly select the language of your code snippet,
 which will affect how it is highlighted. The code inside ``code-block`` must be
-indented, and there have to be an empty line between the ``.. code-block::``
+indented, and there has to be an empty line between the ``.. code-block::``
 declaration and the actual code.
 
 
@@ -112,11 +112,11 @@ Hyperlinks
 ----------
 
 If you want to create a link to an external website, then you would do it in
-two parts: first, the text of the link should be surrounded by backticks and
-followed by an underscore. Second, the URL of the link shall be declared at
+two parts. First, the text of the link should be surrounded by backticks and
+followed by an underscore. Second, the URL of the link is declared at
 the bottom of the page (or section) via a special directive::
 
-    Say, you want to create a link to an `example website`_. The text "example
+    Say you want to create a link to an `example website`_. The text "example
     website" in the previous sentence will be turned into a link, whose URL is
     declared somewhere later on the page.
 
@@ -221,7 +221,7 @@ Changelog support
 RST is language that supports extensions. One of the custom extensions that we
 use supports maintaining a changelog. First, the ``.. changelog::`` directive
 which is used in ``releases/vN.N.N.rst`` files declares that each of those
-files describes a particular release of datatable. The format is following::
+files describes a particular release of datatable. The format is as follows::
 
     .. changelog::
         :version: <version number>
@@ -283,7 +283,7 @@ documentation is declared within the C++ code, so that it can be available
 from within a regular python session.
 
 Inside the documentation tree, each function / method / etc that has to be
-documented is declared as following::
+documented is declared as follows::
 
     .. xfunction:: datatable.rbind
         :src: src/core/frame/rbind.cc py_rbind
@@ -312,7 +312,7 @@ In order to document a getter/setter property of a class, use the following::
         :deletable:
 
 The ``:src:`` parameter can now accept two function names: the getter and the
-setter. In addition, ``:settable:`` parameter will have the name of the setter
+setter. In addition, the ``:settable:`` parameter will have the name of the setter
 value as it will be displayed in the docs. Lastly, ``:deletable:`` marks this
 class property as deletable.
 
@@ -326,7 +326,7 @@ into the RST document. This processing includes the following steps:
 - The contents of the "Examples" section are parsed as if it was a literal
   block, converting from python-console format into the format jupyter-style
   code blocks. In addition, if the output of any command contains a datatable
-  Frame, it will also be converted into a jupyter-style table.
+  Frame, it will also be converted into a Jupyter-style table.
 
 - All other sections are displayed as-is.
 
