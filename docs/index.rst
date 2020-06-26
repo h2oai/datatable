@@ -9,9 +9,6 @@
 .. image:: https://img.shields.io/pypi/v/datatable.svg
    :target: https://pypi.org/project/datatable/
 
-.. image:: https://img.shields.io/pypi/l/datatable.svg
-   :target: https://github.com/h2oai/datatable/blob/master/LICENSE
-
 .. image:: https://travis-ci.org/h2oai/datatable.svg?branch=master
    :target: https://travis-ci.org/h2oai/datatable
 
@@ -23,22 +20,22 @@
       </div>
       <div class="main-toc">
         <div class="large-links">
-          <a class="reference internal" href="quick-start.html">
+          <a class="reference internal" href="start/quick-start.html">
             <i class="fa fa-chevron-circle-right"></i> Getting Started
           </a>
-          <a class="reference internal" href="using-datatable.html">
+          <a class="reference internal" href="manual/index-manual.html">
             <i class="fa fa-chevron-circle-right"></i> User Guide
           </a>
-          <a class="reference internal" href="api/frame.html">
+          <a class="reference internal" href="api/index-api.html">
             <i class="fa fa-chevron-circle-right"></i> API Reference
           </a>
         </div>
 
         <div class="small-links">
-          <div><a class="reference internal" href="install.html">
+          <div><a class="reference internal" href="start/install.html">
            &#x25AA; Installation
           </a></div>
-          <div><a class="reference internal" href="contrib.html">
+          <div><a class="reference internal" href="develop/index-develop.html">
            &#x25AA; Development
           </a></div>
           <div><a class="reference internal" href="genindex.html">
