@@ -291,5 +291,21 @@ In order to document a getter/setter property of a class, use the following::
         :settable: newkey
         :deletable:
 
-The ``:src:`` parameter can now accept two function names: a getter and a
-setter .
+The ``:src:`` parameter can now accept two function names: the getter and the
+setter. In addition, ``:settable:`` parameter will have the name of the setter
+value as it will be displayed in the docs. Lastly, ``:deletable:`` marks this
+class property as deletable.
+
+
+The docstring of the function/method/etc is preprocessed before it is rendered
+into the RST document. This processing includes the following steps:
+
+- The "Parameters" section is parsed and the definitions of all function
+  parameters are extracted.
+
+- The contents of the "Examples" section are parsed as if it was a literal
+  block, converting from python-console format into the format jupyter-style
+  code blocks. In addition, if the output of any command contains a datatable
+  Frame, it will also be converted into a jupyter-style table.
+
+- All other sections are displayed as-is.
