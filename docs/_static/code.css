@@ -7,6 +7,10 @@ div.rst-content li {
   margin-bottom: 12pt;
 }
 
+div.rst-content li li {
+  margin-bottom: 0;
+}
+
 #first-section { display: flex; }
 
 #first-section .part1 { padding-right: 32pt; }
