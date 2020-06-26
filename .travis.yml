@@ -3,29 +3,48 @@ sudo: true
 
 language: python
 
-compiler:
-  - gcc
-
-before_install:
-  - ( test -d "$LLVM7" && test "$(ls -A $LLVM7)") || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
-
 env:
   global:
     - TRAVIS=1
-    - LLVM7=$HOME/LLVM7
-    - LLVM_CONFIG=$LLVM7/bin/llvm-config
-    - CLANG=$LLVM7/bin/clang
-    - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
+
+jobs:
+  include:
+    - name: "Python 3.5 on Linux with LLVM7"
+      python: 3.5
+      before_install:
+        - ( test -d "$LLVM7" && test "$(ls -A $LLVM7)") || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
+      env:
+        - LLVM7=$HOME/LLVM7
+        - LLVM_CONFIG=$LLVM7/bin/llvm-config
+        - CLANG=$LLVM7/bin/clang
+        - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
+
+    - name: "Python 3.6 on Linux with LLVM7"
+      python: 3.6
+      before_install:
+        - ( test -d "$LLVM7" && test "$(ls -A $LLVM7)") || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
+      env:
+        - LLVM7=$HOME/LLVM7
+        - LLVM_CONFIG=$LLVM7/bin/llvm-config
+        - CLANG=$LLVM7/bin/clang
+        - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
+
+    - name: "Python 3.6 on Linux with LLVM10"
+      python: 3.6
+      before_install:
+        - ( test -d "$LLVM10" && test "$(ls -A $LLVM10)") || ( wget -O llvm10.tar.xz "https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz" && mkdir -p "$LLVM10" && tar xf llvm10.tar.xz -C "$LLVM10" --strip-components 1 )
+      env:
+        - LLVM10=$HOME/LLVM10
+        - LLVM_CONFIG=$LLVM10/bin/llvm-config
+        - CLANG=$LLVM10/bin/clang
+        - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
 
 cache:
   pip: true
   ccache: true
   directories:
     - $LLVM7
-
-python:
-  - "3.5"
-  - "3.6"
+    - $LLVM10
 
 script:
   - pip install --upgrade pip
