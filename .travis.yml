@@ -30,6 +30,13 @@ jobs:
         - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
         - CXX=$LLVM10/bin/clang
 
+    - name: "Python 3.6 on macOS with gcc"
+      os: osx
+      osx_image: xcode11.6
+      compiler:
+        - gcc
+      python: 3.6
+
 cache:
   pip: true
   ccache: true
@@ -40,11 +47,13 @@ cache:
 git:
   depth: false
 
-script:
+install:
   - pip install --upgrade pip
-  - python ci/ext.py wheel
-  - pip install --upgrade dist/*.whl
   - pip install -r requirements_tests.txt
   - pip install -r requirements_extra.txt
+
+script:
+  - python ci/ext.py wheel
+  - pip install --upgrade dist/*.whl
   - python -m pytest -ra --showlocals -Werror tests
 
