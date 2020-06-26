@@ -20,6 +20,8 @@ using the ``[py-datatable]`` tag.
 .. _`Stack Overflow`: https://stackoverflow.com/questions/tagged/py-datatable
 
 
+.. _`local-setup`:
+
 Preparing local copy of datatable repository
 --------------------------------------------
 

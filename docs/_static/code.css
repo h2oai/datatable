@@ -61,7 +61,7 @@ div.small-links div {
   border-radius: 0.3em;
   color: #000;
   font-size: 90%;
-  padding: 0.2em 0.4em;
+  padding: 0.15em 0.4em;
 }
 
 .rst-content code.xref.literal {
@@ -91,7 +91,11 @@ div.small-links div {
 /* ------- All code highlighting -------------------------------------------- */
 
 div.document div.notranslate {
-  margin-bottom: 0;
+  margin-left: 48px;
+}
+
+div.document div.notranslate .highlight {
+  background: whitesmoke;
 }
 
 div.document p + div.notranslate {
@@ -104,6 +108,7 @@ div.document p + div.notranslate {
 
 div.document div.notranslate.highlight-bash {
   border-style: none;
+  margin-left: 0;
 }
 
 div.document div.notranslate.highlight-bash .highlight {
@@ -254,6 +259,10 @@ h1 {
 h2 {
   font-family: inherit;
   margin-top: 24pt;
+}
+
+h3 {
+  font-family: inherit;
 }
 
 p {
