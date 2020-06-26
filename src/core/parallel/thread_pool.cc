@@ -43,6 +43,19 @@ thread_pool* thpool = new thread_pool;
 // no fork on Windows
 #if !DT_OS_WINDOWS
 
+  static void _prepare_fork() {
+    size_t n = thpool->size();
+    // Put the threadpool into an uninitialized state, shutting down all
+    // workers and the monitor thread.
+    thpool->resize(0);
+    // The monitor thread must be shut down last, because the resize() operation
+    // will attempt to initialize it if absent.
+    thpool->monitor = nullptr;
+    // Resizing the thread pool back to `n` does not create any threads: we
+    // postpone thread initialization until they are actually needed.
+    thpool->resize(n);
+  }
+
   static void _child_cleanup_after_fork() {
     // Replace the current thread pool instance with a new one, ensuring that all
     // schedulers and workers have new mutexes/condition variables.
@@ -54,7 +67,7 @@ thread_pool* thpool = new thread_pool;
     thpool->resize(n);
   }
 
-  static bool after_fork_handler_registered = false;
+  static bool fork_handlers_registered = false;
 
 #endif
 
@@ -62,13 +75,13 @@ thread_pool::thread_pool()
   : num_threads_requested(0),
     current_team(nullptr)
 {
-#if !DT_OS_WINDOWS
-  // no fork on Windows
-  if (!after_fork_handler_registered) {
-    pthread_atfork(nullptr, nullptr, _child_cleanup_after_fork);
-    after_fork_handler_registered = true;
-  }
-#endif
+  #if !DT_OS_WINDOWS
+    // no fork on Windows
+    if (!fork_handlers_registered) {
+      pthread_atfork(_prepare_fork, nullptr, _child_cleanup_after_fork);
+      fork_handlers_registered = true;
+    }
+  #endif
 }
 
 // In the current implementation the thread_pool instance never gets deleted

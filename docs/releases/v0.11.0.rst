@@ -168,6 +168,10 @@
     datatable was built, and ``.git_diff`` which will be non-empty for builds
     from code that was modified compared to the git revision they are based on.
 
+  -[enh] During a fork the thread pool will now shut down completely, together
+    with the monitor thread. The threads will then restart in both the parent
+    and the child, when needed. [#2438]
+
   -[fix] Internal function :func:`frame_column_data_r` now works properly with
     virtual columns. [#2269]
 

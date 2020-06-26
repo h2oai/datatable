@@ -203,8 +203,8 @@ void idle_job::set_master_worker(thread_worker* worker) noexcept {
 
 
 void idle_job::on_before_thread_removed() {
+  xassert(n_threads_running > 0);
   n_threads_running--;
-
 }
 
 void idle_job::on_before_thread_added() {
@@ -255,7 +255,7 @@ thread_shutdown_scheduler::thread_shutdown_scheduler(
 
 
 thread_task* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
-  if (thread_index < n_threads_to_keep) {
+  if (thread_index < n_threads_to_keep || thread_index == 0) {
     return nullptr;  // thread goes back to sleep
   }
   controller->on_before_thread_removed();
