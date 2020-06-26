@@ -52,9 +52,7 @@ def test_multiprocessing_threadpool():
         assert len(child_threads) == n
         for chthreads in child_threads:
             assert len(parent_threads) == len(chthreads)
-            # After a fork the child may or may not get the same thread IDs
-            # as the parent (this is implementation-dependent)
-            # assert chthreads != parent_threads
+            assert chthreads != parent_threads
 
 
 @cpp_test
