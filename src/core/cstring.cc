@@ -19,57 +19,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/python.h"
-#include "python/string.h"
-#include "utils/exceptions.h"
-namespace py {
+#include "cstring.h"
+namespace dt {
+
 
 
 //------------------------------------------------------------------------------
-// Constructors
+// CString constructors
 //------------------------------------------------------------------------------
 
-ostring::ostring() : oobj() {}
+// CString::CString() : data_(nullptr), size_(0) {}
 
-ostring::ostring(PyObject* src) : oobj(src) {}
-
-ostring ostring::from_new_reference(PyObject* ref) {
-  ostring res;
-  res.v = ref;
-  return res;
-}
-
-
-ostring::ostring(const char* str, size_t len) {
-  Py_ssize_t slen = static_cast<Py_ssize_t>(len);
-  v = PyUnicode_FromStringAndSize(str, slen);
-  if (!v) throw PyError();
-}
-
-ostring::ostring(const std::string& s)
-  : ostring(s.data(), s.size()) {}
-
-ostring::ostring(const CString& s)
-  : ostring(s.ch, static_cast<size_t>(s.size)) {}
-
-ostring::ostring(const char* str)
-  : ostring(str, std::strlen(str)) {}
-
-
-ostring::ostring(const ostring& other) : oobj(other) {}
-
-ostring::ostring(ostring&& other) : oobj(std::move(other)) {}
-
-ostring& ostring::operator=(const ostring& other) {
-  oobj::operator=(other);
-  return *this;
-}
-
-ostring& ostring::operator=(ostring&& other) {
-  oobj::operator=(std::move(other));
-  return *this;
-}
+// CString(const char* ptr, int64_t sz) : data_(ptr), size_(sz) {}
+//   CString(const std::string& str)
+//     : data_(str.data()), size_(static_cast<int64_t>(str.size())) {}
+//   CString(const CString&) = default;
+//   CString& operator=(const CString&) = default;
+//   CString& operator=(const std::string& str) {
+//     data_ = str.data();
+//     size_ = static_cast<int64_t>(str.size());
+//     return *this;
+//   }
 
 
 
-}  // namespace py
+}  // namespace dt

@@ -19,17 +19,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "cstring.h"
-/*
-#ifndef dt_TYPES_h
-#define dt_TYPES_h
-#include <algorithm> // std::min
-#include <cstring>   // std::strncmp
-#include <cmath>     // isnan
-#include <limits>    // std::numeric_limits
-#include <string>    // std::string
-#include "python/python.h"
+#ifndef dt_CSTRING_h
+#define dt_CSTRING_h
 #include "_dt.h"
+// namespace dt {
+
+
+// class CString {
+//   private:
+//     const char* data_;
+//     size_t      size_;
+
+//   public:
+//     CString();
+// };
+
 
 
 struct CString {
@@ -91,6 +95,5 @@ struct CString {
 
 
 
-
+// }  // namespace dt
 #endif
-*/

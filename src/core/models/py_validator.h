@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_PY_VALIDATOR_h
 #define dt_MODELS_PY_VALIDATOR_h
+#include <cmath>            // std::isinf
 #include "python/obj.h"
 #include "python/arg.h"
 #include "column.h"

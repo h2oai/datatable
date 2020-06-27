@@ -25,6 +25,7 @@
 #include <memory>             // std::unique_ptr
 #include <string>             // std::string
 #include <type_traits>        // std::is_same
+#include "python/python.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "_dt.h"

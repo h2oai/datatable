@@ -23,7 +23,7 @@
 #define dt_STYPE_h
 #include <cmath>     // std::isnan
 #include "_dt.h"     // size_t, uint8_t, PyObject
-#include "types.h"
+#include "python/python.h"
 namespace dt {
 
 

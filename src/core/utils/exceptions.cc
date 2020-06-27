@@ -27,6 +27,7 @@
 #include "parallel/api.h"
 #include "progress/progress_manager.h"
 #include "python/obj.h"
+#include "python/python.h"
 #include "python/string.h"
 #include "python/tuple.h"
 #include "stype.h"

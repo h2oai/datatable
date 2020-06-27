@@ -23,7 +23,6 @@
 // for the details of Python API
 //------------------------------------------------------------------------------
 #include "python/dict.h"
-
 namespace py {
 
 
