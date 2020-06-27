@@ -28,18 +28,31 @@ namespace dt {
 // CString constructors
 //------------------------------------------------------------------------------
 
-// CString::CString() : data_(nullptr), size_(0) {}
+CString::CString()
+  : ch(nullptr), size(0) {}
 
-// CString(const char* ptr, int64_t sz) : data_(ptr), size_(sz) {}
-//   CString(const std::string& str)
-//     : data_(str.data()), size_(static_cast<int64_t>(str.size())) {}
-//   CString(const CString&) = default;
-//   CString& operator=(const CString&) = default;
-//   CString& operator=(const std::string& str) {
-//     data_ = str.data();
-//     size_ = static_cast<int64_t>(str.size());
-//     return *this;
-//   }
+CString::CString(const CString& other)
+  : ch(other.ch), size(other.size) {}
+
+CString::CString(const char* ptr, int64_t sz)
+  : ch(ptr), size(sz) {}
+
+CString::CString(const std::string& str)
+  : ch(str.data()), size(static_cast<int64_t>(str.size())) {}
+
+
+CString& CString::operator=(const CString& other) {
+  ch = other.ch;
+  size = other.size;
+  return *this;
+}
+
+CString& CString::operator=(const std::string& str) {
+  ch = str.data();
+  size = static_cast<int64_t>(str.size());
+  return *this;
+}
+
 
 
 

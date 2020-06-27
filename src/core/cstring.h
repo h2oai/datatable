@@ -39,20 +39,18 @@ namespace dt {
 class CString {
   public:
     const char* ch;
+
+  public:
     int64_t size;
 
   public:
-    CString() : ch(nullptr), size(0) {}
-    CString(const char* ptr, int64_t sz) : ch(ptr), size(sz) {}
-    CString(const std::string& str)
-      : ch(str.data()), size(static_cast<int64_t>(str.size())) {}
-    CString(const CString&) = default;
-    CString& operator=(const CString&) = default;
-    CString& operator=(const std::string& str) {
-      ch = str.data();
-      size = static_cast<int64_t>(str.size());
-      return *this;
-    }
+    CString();
+    CString(const std::string& str);
+    CString(const char* ptr, int64_t sz);
+    CString(const CString&);
+    CString& operator=(const CString&);
+    CString& operator=(const std::string& str);
+
   operator bool() const { return ch != nullptr; }
   bool isna() const { return ch == nullptr; }
 
