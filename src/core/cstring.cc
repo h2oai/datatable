@@ -55,5 +55,15 @@ CString& CString::operator=(const std::string& str) {
 
 
 
+//------------------------------------------------------------------------------
+// CString operators
+//------------------------------------------------------------------------------
+
+bool CString::isna() const {
+  return ch == nullptr;
+}
+
+
+
 
 }  // namespace dt

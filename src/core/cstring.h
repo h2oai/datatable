@@ -44,15 +44,14 @@ class CString {
     int64_t size;
 
   public:
-    CString();
+    CString();   // default constructor creates an NA string
     CString(const std::string& str);
     CString(const char* ptr, int64_t sz);
     CString(const CString&);
     CString& operator=(const CString&);
     CString& operator=(const std::string& str);
 
-  operator bool() const { return ch != nullptr; }
-  bool isna() const { return ch == nullptr; }
+    bool isna() const;
 
   bool operator==(const CString& other) const {
     return (size == other.size) &&

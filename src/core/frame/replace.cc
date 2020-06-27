@@ -418,7 +418,7 @@ void ReplaceAgent::split_x_y_str() {
       y_str.push_back(yelem.to_cstring());
     }
   }
-  if (na_repl) {
+  if (!na_repl.isna()) {
     x_str.push_back(dt::CString());
     y_str.push_back(na_repl);
   }
