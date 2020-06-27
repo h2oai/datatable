@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "cstring.h"
+#include "utils/assert.h"    // xassert
 namespace dt {
 
 
@@ -59,8 +60,50 @@ CString& CString::operator=(const std::string& str) {
 // CString operators
 //------------------------------------------------------------------------------
 
-bool CString::isna() const {
-  return ch == nullptr;
+bool CString::isna() const noexcept {
+  return (ch == nullptr);
+}
+
+
+bool CString::operator==(const CString& other) const noexcept {
+  if (ch == other.ch) {
+    return (size == other.size) || (ch == nullptr);
+  } else {
+    return (size == other.size) && ch && other.ch &&
+           (std::strncmp(ch, other.ch, static_cast<size_t>(size)) == 0);
+  }
+}
+
+
+bool CString::operator<(const CString& other) const noexcept {
+  if (ch == other.ch && size == other.size) {  // strings are equal
+    return false;
+  }
+  size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
+  int comparison = std::strncmp(ch, other.ch, cmpsize);
+  return comparison? (comparison < 0)
+                   : (size < other.size);
+}
+
+
+bool CString::operator>(const CString& other) const noexcept {
+  if (ch == other.ch && size == other.size) {  // strings are equal
+    return false;
+  }
+  size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
+  int comparison = std::strncmp(ch, other.ch, cmpsize);
+  return comparison? (comparison > 0)
+                   : (size > other.size);
+}
+
+
+bool CString::operator<=(const CString& other) const noexcept {
+  return !(*this > other);
+}
+
+
+bool CString::operator>=(const CString& other) const noexcept {
+  return !(*this < other);
 }
 
 

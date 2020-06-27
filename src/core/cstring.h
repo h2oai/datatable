@@ -25,16 +25,6 @@
 namespace dt {
 
 
-// class CString {
-//   private:
-//     const char* data_;
-//     size_t      size_;
-
-//   public:
-//     CString();
-// };
-
-
 
 class CString {
   public:
@@ -51,41 +41,12 @@ class CString {
     CString& operator=(const CString&);
     CString& operator=(const std::string& str);
 
-    bool isna() const;
-
-  bool operator==(const CString& other) const {
-    return (size == other.size) &&
-           ((ch == other.ch) ||  // This ensures NAs are properly handled too
-            (std::strncmp(ch, other.ch, static_cast<size_t>(size)) == 0));
-  }
-
-  bool operator<(const CString& other) const {
-    if (ch == other.ch && size == other.size) // Short circuit test
-      return false;
-    size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
-    int comparison = std::strncmp(ch, other.ch, cmpsize);
-    if (comparison != 0)
-      return comparison < 0;
-    return size < other.size;
-  }
-
-  bool operator>(const CString& other) const {
-    if (ch == other.ch && size == other.size) // Short circuit test
-      return false;
-    size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
-    int comparison = std::strncmp(ch, other.ch, cmpsize);
-    if (comparison != 0)
-      return comparison > 0;
-    return size > other.size;
-  }
-
-  bool operator<=(const CString& other) const {
-    return !(*this > other);
-  }
-
-  bool operator>=(const CString& other) const {
-    return !(*this < other);
-  }
+    bool isna() const noexcept;
+    bool operator==(const CString&) const noexcept;
+    bool operator<(const CString&)  const noexcept;
+    bool operator>(const CString&)  const noexcept;
+    bool operator<=(const CString&) const noexcept;
+    bool operator>=(const CString&) const noexcept;
 
   std::string to_string() const {
     return std::string(ch, static_cast<size_t>(size));
