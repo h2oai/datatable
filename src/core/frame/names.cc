@@ -16,6 +16,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
+#include "cstring.h"
 #include "frame/py_frame.h"
 #include "python/dict.h"
 #include "python/int.h"
@@ -51,7 +52,7 @@ class NameProvider {
   public:
     virtual ~NameProvider() {}  // LCOV_EXCL_LINE
     virtual size_t size() const = 0;
-    virtual CString item_as_cstring(size_t i) = 0;
+    virtual dt::CString item_as_cstring(size_t i) = 0;
     virtual py::oobj item_as_pyoobj(size_t i) = 0;
 };
 
@@ -69,7 +70,7 @@ class pylistNP : public NameProvider {
       return names.size();
     }
 
-    virtual CString item_as_cstring(size_t i) override {
+    virtual dt::CString item_as_cstring(size_t i) override {
       py::robj name = names[i];
       if (!name.is_string() && !name.is_none()) {
         throw TypeError() << "Invalid `names` list: element " << i
@@ -97,9 +98,9 @@ class strvecNP : public NameProvider {
       return names.size();
     }
 
-    virtual CString item_as_cstring(size_t i) override {
+    virtual dt::CString item_as_cstring(size_t i) override {
       const std::string& name = names[i];
-      return CString { name.data(), static_cast<int64_t>(name.size()) };
+      return dt::CString { name.data(), static_cast<int64_t>(name.size()) };
     }
 
     virtual py::oobj item_as_pyoobj(size_t i) override {
@@ -505,7 +506,7 @@ void DataTable::_init_pynames() const {
 // are considered characters with ASCII codes \x00 - \x1F. If any of them
 // are found, we perform substitution s/[\x00-\x1F]+/./g.
 //
-static std::string _mangle_name(CString name, bool* was_mangled) {
+static std::string _mangle_name(const dt::CString& name, bool* was_mangled) {
   auto chars = reinterpret_cast<const uint8_t*>(name.ch);
   auto len = static_cast<size_t>(name.size);
 
@@ -621,7 +622,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
   for (size_t i = 0; i < ncols_; ++i) {
     // Convert to a C-style name object. Note that if `name` is python None,
     // then the resulting `cname` will be `{nullptr, 0}`.
-    CString cname = nameslist->item_as_cstring(i);
+    dt::CString cname = nameslist->item_as_cstring(i);
     if (cname.size == 0) {
       fill_default_names = true;
       names_.push_back(std::string());

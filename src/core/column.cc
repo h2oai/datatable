@@ -229,7 +229,7 @@ bool Column::get_element(size_t i, double* out) const {
   return impl_->get_element(i, out);
 }
 
-bool Column::get_element(size_t i, CString* out) const {
+bool Column::get_element(size_t i, dt::CString* out) const {
   xassert(i < nrows());
   return impl_->get_element(i, out);
 }
@@ -262,7 +262,7 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
     case dt::SType::FLOAT32: return getelem<float>(*this, i);
     case dt::SType::FLOAT64: return getelem<double>(*this, i);
     case dt::SType::STR32:
-    case dt::SType::STR64:   return getelem<CString>(*this, i);
+    case dt::SType::STR64:   return getelem<dt::CString>(*this, i);
     case dt::SType::OBJ:     return getelem<py::robj>(*this, i);
     case dt::SType::VOID:    return py::None();
     default:

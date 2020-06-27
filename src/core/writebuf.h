@@ -118,7 +118,7 @@ class WritableBuffer
       write_at(writepos, n, src);
       return writepos;
     }
-    size_t write(const CString& src) {
+    size_t write(const dt::CString& src) {
       size_t writepos = prepare_write(static_cast<size_t>(src.size), src.ch);
       write_at(writepos, static_cast<size_t>(src.size), src.ch);
       return writepos;

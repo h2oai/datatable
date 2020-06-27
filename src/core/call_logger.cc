@@ -22,6 +22,7 @@
 #include <chrono>
 #include <iostream>
 #include "call_logger.h"
+#include "cstring.h"
 #include "options.h"
 #include "python/args.h"
 #include "python/bool.h"

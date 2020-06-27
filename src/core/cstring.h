@@ -22,7 +22,7 @@
 #ifndef dt_CSTRING_h
 #define dt_CSTRING_h
 #include "_dt.h"
-// namespace dt {
+namespace dt {
 
 
 // class CString {
@@ -95,5 +95,5 @@ struct CString {
 
 
 
-// }  // namespace dt
+}  // namespace dt
 #endif

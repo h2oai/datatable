@@ -650,7 +650,7 @@ bool Aggregator<T>::group_1d_categorical() {
   // Check if we have an "NA" group
   bool na_group = false;
   {
-    CString val;
+    dt::CString val;
     size_t row;
     bool row_valid = ri.get_element(0, &row);
     (void) row_valid;
@@ -699,7 +699,7 @@ bool Aggregator<T>::group_2d_categorical() {
   std::atomic<size_t> na_bin3 { 0 };
   dt::parallel_for_dynamic(gb.size(),
     [&](size_t i) {
-      CString val;
+      dt::CString val;
       auto offset_start = static_cast<size_t>(offsets[i]);
       auto offset_end = static_cast<size_t>(offsets[i+1]);
 
@@ -756,7 +756,7 @@ bool Aggregator<T>::group_2d_mixed()
   // Check if we have an "NA" group in the categorical column.
   bool na_cat_group = false;
   {
-    CString val;
+    dt::CString val;
     size_t row;
     bool row_valid = ri.get_element(0, &row);
     (void) row_valid;

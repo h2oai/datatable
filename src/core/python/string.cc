@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "cstring.h"
 #include "python/python.h"
 #include "python/string.h"
 #include "utils/exceptions.h"
@@ -49,7 +50,7 @@ ostring::ostring(const char* str, size_t len) {
 ostring::ostring(const std::string& s)
   : ostring(s.data(), s.size()) {}
 
-ostring::ostring(const CString& s)
+ostring::ostring(const dt::CString& s)
   : ostring(s.ch, static_cast<size_t>(s.size)) {}
 
 ostring::ostring(const char* str)

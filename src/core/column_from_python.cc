@@ -283,7 +283,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
     }
     if (item.is_string()) {
       parse_string:
-      CString cstr = item.to_cstring();
+      dt::CString cstr = item.to_cstring();
       if (cstr.size) {
         T tlen = static_cast<T>(cstr.size);
         T next_offset = curr_offset + tlen;
@@ -369,7 +369,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
       item = tmpitem;
     }
     if (item.is_string()) {
-      CString cstr = item.to_cstring();
+      dt::CString cstr = item.to_cstring();
       if (cstr.size) {
         T tlen = static_cast<T>(cstr.size);
         T next_offset = curr_offset + tlen;

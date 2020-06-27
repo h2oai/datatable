@@ -244,7 +244,7 @@ class StringCmp : public Cmp {
   private:
     const Column& colX;
     const Column& colJ;
-    CString x_value;
+    dt::CString x_value;
 
   public:
     StringCmp(const Column&, const Column&);
@@ -264,7 +264,7 @@ cmpptr StringCmp::make(const Column& col1, const Column& col2) {
 
 
 int StringCmp::cmp_jrow(size_t row) const {
-  CString j_value;
+  dt::CString j_value;
   bool j_valid = colJ.get_element(row, &j_value);
   bool x_valid = !x_value.isna();
   if (!(j_valid && x_valid)) return j_valid - x_valid;

@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_SORT_h
 #define dt_SORT_h
@@ -142,8 +156,8 @@ template <typename V>
 void insert_sort_values_str(const Column&, size_t, V*, int, GroupGatherer&, bool);
 
 template <int R>
-int compare_strings(const CString& a, bool a_isna,
-                    const CString& b, bool b_isna, size_t strstart);
+int compare_strings(const dt::CString& a, bool a_isna,
+                    const dt::CString& b, bool b_isna, size_t strstart);
 
 
 extern template void insert_sort_keys(const uint8_t*,  int32_t*, int32_t*, int, GroupGatherer&);
@@ -159,8 +173,8 @@ extern template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGat
 extern template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
 extern template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool);
 
-extern template int compare_strings<1>(const CString&, bool, const CString&, bool, size_t);
-extern template int compare_strings<-1>(const CString&, bool, const CString&, bool, size_t);
+extern template int compare_strings<1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+extern template int compare_strings<-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
 
 extern template void GroupGatherer::from_data(const uint8_t*,  const int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint16_t*, const int32_t*, size_t);

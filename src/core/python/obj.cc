@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <iostream>
 #include <cstdint>            // INT32_MAX
+#include "cstring.h"          // dt::CString
 #include "expr/py_by.h"       // py::oby
 #include "expr/py_join.h"     // py::ojoin
 #include "expr/py_sort.h"     // py::osort
@@ -178,7 +179,7 @@ oobj oobj::wrap(int64_t val) { return py::oint(val); }
 oobj oobj::wrap(size_t val)  { return py::oint(val); }
 oobj oobj::wrap(float val)   { return py::ofloat(val); }
 oobj oobj::wrap(double val)  { return py::ofloat(val); }
-oobj oobj::wrap(const CString& val) { return py::ostring(val); }
+oobj oobj::wrap(const dt::CString& val) { return py::ostring(val); }
 oobj oobj::wrap(const robj& val) { return py::oobj(val); }
 
 
@@ -645,7 +646,7 @@ py::ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
 // String conversions
 //------------------------------------------------------------------------------
 
-CString _obj::to_cstring(const error_manager& em) const {
+dt::CString _obj::to_cstring(const error_manager& em) const {
   Py_ssize_t str_size;
   const char* str;
 
@@ -664,12 +665,12 @@ CString _obj::to_cstring(const error_manager& em) const {
   else {
     throw em.error_not_string(v);
   }
-  return CString { str, static_cast<int64_t>(str_size) };
+  return dt::CString { str, static_cast<int64_t>(str_size) };
 }
 
 
 std::string _obj::to_string(const error_manager& em) const {
-  CString cs = to_cstring(em);
+  dt::CString cs = to_cstring(em);
   return cs.ch? std::string(cs.ch, static_cast<size_t>(cs.size)) :
                 std::string();
 }

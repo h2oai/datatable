@@ -825,7 +825,7 @@ class SortContext {
         dt::nested_for_static(n, dt::ChunkSize(1024),
           [&](size_t j) {
             size_t k = use_order? static_cast<size_t>(o[j]) : j;
-            CString value;
+            dt::CString value;
             bool isvalid = column.get_element(k, &value);
             if (isvalid) {
               if (value.size) {
@@ -1044,7 +1044,7 @@ class SortContext {
               size_t k = tcounts[xi[j]]++;
               xassert(k < n);
               size_t w = use_order? static_cast<size_t>(o[j]) : j;
-              CString value;
+              dt::CString value;
               bool isvalid = column.get_element(w, &value);
               if (isvalid) {
                 if (value.size > sstart) {

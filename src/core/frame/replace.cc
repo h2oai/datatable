@@ -45,7 +45,7 @@ class ReplaceAgent {
     std::vector<int8_t> x_bool, y_bool;
     std::vector<int64_t> x_int, y_int;
     std::vector<double> x_real, y_real;
-    std::vector<CString> x_str, y_str;
+    std::vector<dt::CString> x_str, y_str;
     int64_t xmin_int, xmax_int;
     double xmin_real, xmax_real;
 
@@ -66,10 +66,10 @@ class ReplaceAgent {
     template <typename T> void replace_fw2(T* x, T* y, size_t nrows, T* data);
     template <typename T> void replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n);
     void process_str_column(size_t i);
-    Column replace_str(size_t n, CString* x, CString* y, const Column&);
-    Column replace_str1(CString* x, CString* y, const Column&);
-    Column replace_str2(CString* x, CString* y, const Column&);
-    Column replace_strN(CString* x, CString* y, const Column&, size_t n);
+    Column replace_str(size_t n, dt::CString* x, dt::CString* y, const Column&);
+    Column replace_str1(dt::CString* x, dt::CString* y, const Column&);
+    Column replace_str2(dt::CString* x, dt::CString* y, const Column&);
+    Column replace_strN(dt::CString* x, dt::CString* y, const Column&, size_t n);
     bool types_changed() const { return columns_cast; }
 
   private:
@@ -401,7 +401,7 @@ void ReplaceAgent::split_x_y_real() {
 
 void ReplaceAgent::split_x_y_str() {
   size_t n = vx.size();
-  CString na_repl;
+  dt::CString na_repl;
   for (size_t i = 0; i < n; ++i) {
     py::robj xelem = vx[i];
     py::robj yelem = vy[i];
@@ -419,7 +419,7 @@ void ReplaceAgent::split_x_y_str() {
     }
   }
   if (na_repl) {
-    x_str.push_back(CString());
+    x_str.push_back(dt::CString());
     y_str.push_back(na_repl);
   }
 }
@@ -680,7 +680,7 @@ void ReplaceAgent::replace_fwN(T* x, T* y, size_t nrows, T* data, size_t n) {
 }
 
 
-Column ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
+Column ReplaceAgent::replace_str(size_t n, dt::CString* x, dt::CString* y,
                                   const Column& col)
 {
   if (n == 1) {
@@ -691,20 +691,20 @@ Column ReplaceAgent::replace_str(size_t n, CString* x, CString* y,
 }
 
 Column ReplaceAgent::replace_str1(
-    CString* x, CString* y, const Column& col)
+    dt::CString* x, dt::CString* y, const Column& col)
 {
   return dt::map_str2str(col,
-    [=](size_t, CString& value, dt::string_buf* sb) {
+    [=](size_t, dt::CString& value, dt::string_buf* sb) {
       sb->write(value == *x? *y : value);
     });
 }
 
 
-Column ReplaceAgent::replace_strN(CString* x, CString* y,
+Column ReplaceAgent::replace_strN(dt::CString* x, dt::CString* y,
                                    const Column& col, size_t n)
 {
   return dt::map_str2str(col,
-    [=](size_t, CString& value, dt::string_buf* sb) {
+    [=](size_t, dt::CString& value, dt::string_buf* sb) {
       for (size_t j = 0; j < n; ++j) {
         if (value == x[j]) {
           sb->write(y[j]);

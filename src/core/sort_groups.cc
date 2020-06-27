@@ -63,7 +63,7 @@ void GroupGatherer::from_data(const T* data, const V* o, size_t n) {
 template <typename V>
 void GroupGatherer::from_data(const Column& column, const V* o, size_t n) {
   if (n == 0) return;
-  CString last_value, curr_value;
+  dt::CString last_value, curr_value;
   bool last_valid, curr_valid;
   last_valid = column.get_element(static_cast<size_t>(o[0]), &last_value);
   size_t last_i = 0;

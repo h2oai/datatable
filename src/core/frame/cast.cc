@@ -71,7 +71,7 @@ static inline PyObject* real_obj(T x) {
   return py::ofloat(x).release();
 }
 
-static inline PyObject* str_obj(CString x) {
+static inline PyObject* str_obj(dt::CString x) {
   return py::ostring(x).release();
 }
 
@@ -87,13 +87,13 @@ static inline void num_str(T x, dt::string_buf* buf) {
 }
 
 static inline void bool_str(int8_t x, dt::string_buf* buf) {
-  static CString str_true  {"True", 4};
-  static CString str_false {"False", 5};
+  static dt::CString str_true  {"True", 4};
+  static dt::CString str_false {"False", 5};
   buf->write(x? str_true : str_false);
 }
 
 static inline void obj_str(py::robj x, dt::string_buf* buf) {
-  CString xstr = x.to_pystring_force().to_cstring();
+  dt::CString xstr = x.to_pystring_force().to_cstring();
   buf->write(xstr);
 }
 
@@ -191,7 +191,7 @@ static Column cast_str_to_str(const Column& col, Buffer&& out_offsets,
   }
   return dt::generate_string_column(
       [&](size_t i, dt::string_buf* buf) {
-        CString value;
+        dt::CString value;
         bool isvalid = col.get_element(i, &value);
         if (isvalid) {
           buf->write(value);
@@ -217,7 +217,7 @@ static Column cast_str_to_bool(const Column& col, Buffer&& outbuf,
   dt::parallel_region(
     [&] {
       dt::read::field64 f64_value;
-      CString           str_value;
+      dt::CString       str_value;
       dt::read::ParseContext ctx;
       ctx.target = &f64_value;
 
@@ -256,7 +256,7 @@ static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
   dt::parallel_region(
     [&] {
       dt::read::field64 int_value;
-      CString           str_value;
+      dt::CString       str_value;
       dt::read::ParseContext ctx;
       ctx.target = &int_value;
 
@@ -295,7 +295,7 @@ static Column cast_str_to_float(const Column& col, Buffer&& outbuf,
   dt::parallel_region(
     [&] {
       dt::read::field64 f64_value;
-      CString           str_value;
+      dt::CString       str_value;
       dt::read::ParseContext ctx;
       ctx.target = &f64_value;
 
@@ -582,8 +582,8 @@ void py::DatatableModule::init_casts()
   casts.add(int64, obj64,  cast_to_pyobj<int64_t,  int_obj<int64_t>>);
   casts.add(real32, obj64, cast_to_pyobj<float,    real_obj<float>>);
   casts.add(real64, obj64, cast_to_pyobj<double,   real_obj<double>>);
-  casts.add(str32, obj64,  cast_to_pyobj<CString,  str_obj>);
-  casts.add(str64, obj64,  cast_to_pyobj<CString,  str_obj>);
+  casts.add(str32, obj64,  cast_to_pyobj<dt::CString, str_obj>);
+  casts.add(str64, obj64,  cast_to_pyobj<dt::CString, str_obj>);
   casts.add(obj64, obj64,  cast_to_pyobj<py::robj, obj_obj>);
 }
 

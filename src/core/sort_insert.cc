@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -50,8 +50,8 @@
  * empty string compares greater than NA, but less than any non-empty string.
  */
 template <int R>
-int compare_strings(const CString& a, bool a_valid,
-                    const CString& b, bool b_valid, size_t strstart)
+int compare_strings(const dt::CString& a, bool a_valid,
+                    const dt::CString& b, bool b_valid, size_t strstart)
 {
   if (!(a_valid && b_valid)) return b_valid - a_valid;
   const size_t a_len = static_cast<size_t>(a.size);
@@ -157,7 +157,7 @@ void insert_sort_keys_str(
     const Column& column, size_t strstart, V* o, V* tmp, int n,
     GroupGatherer& gg, bool descending)
 {
-  CString i_value, k_value;
+  dt::CString i_value, k_value;
   bool i_valid, k_valid;
   auto compfn = descending? compare_strings<-1> : compare_strings<1>;
   int j;
@@ -188,7 +188,7 @@ void insert_sort_values_str(
     const Column& column, size_t strstart, V* o, int n,
     GroupGatherer& gg, bool descending)
 {
-  CString i_value, k_value;
+  dt::CString i_value, k_value;
   bool i_valid, k_valid;
   auto compfn = descending? compare_strings<-1> : compare_strings<1>;
   int j;
@@ -228,5 +228,5 @@ template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&)
 template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
 template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool);
 
-template int compare_strings<1>(const CString&, bool, const CString&, bool, size_t);
-template int compare_strings<-1>(const CString&, bool, const CString&, bool, size_t);
+template int compare_strings<1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+template int compare_strings<-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);

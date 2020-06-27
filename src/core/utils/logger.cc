@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <iostream>
 #include "call_logger.h"
+#include "cstring.h"
 #include "parallel/api.h"
 #include "python/string.h"
 #include "python/xobject.h"
@@ -187,7 +188,7 @@ Message& Message::operator<<(const char& c) {
 
 
 template <>
-Message& Message::operator<<(const CString& str) {
+Message& Message::operator<<(const dt::CString& str) {
   out_.write(str.ch, str.size);
   return *this;
 }
