@@ -201,7 +201,7 @@ used to refer to the columns of the joined frame.
 
 
 
-Groupbys / joins
+Groupbys/joins
 ----------------
 
 In the `Data Manipulation`_ section we mentioned that the ``DT[i, j, ...]`` selector

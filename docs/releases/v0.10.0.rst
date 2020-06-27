@@ -28,7 +28,7 @@
         float if select_floats else
         None]
 
-  In addition, columnsets can be added / subtracted, allowing to express a richer
+  In addition, columnsets can be added/subtracted, allowing to express a richer
   selection of columns::
 
       f[int].extend(f[float])   # all integers and floating point columns

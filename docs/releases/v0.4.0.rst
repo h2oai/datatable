@@ -15,7 +15,7 @@
   -[enh] Added option ``fread.anonymize`` which forces fread to anonymize all
     user input in the verbose logs / error messages.
 
-  -[enh] Allow type-casts from booleans / integers / floats into strings.
+  -[enh] Allow type-casts from booleans/integers/floats into strings.
 
 
   .. contributors::
