@@ -21,7 +21,7 @@
   -[enh] Fread now prints file sizes in "human-readable" form, i.e. KB/MB/GB
     instead of bytes.
 
-  -[enh] Fread can now understand a variety of "NaN" / "Inf" literals produced
+  -[enh] Fread can now understand a variety of "NaN"/"Inf" literals produced
     by different systems.
 
   -[enh] Add option ``hex`` to csv writer, which controls whether floats will

@@ -276,13 +276,13 @@ The effect of this declaration is the following:
 Documenting API
 ---------------
 
-When it comes to documenting specific functions / classes / methods of the
+When it comes to documenting specific functions/classes/methods of the
 ``datatable`` module, we use another extension: ``.. xfunction::`` (or
 ``.. xclass::``, ``.. xmethod::``, etc). This is because this part of the
 documentation is declared within the C++ code, so that it can be available
 from within a regular python session.
 
-Inside the documentation tree, each function / method / etc that has to be
+Inside the documentation tree, each function/method/etc that has to be
 documented is declared as follows::
 
     .. xfunction:: datatable.rbind

@@ -18,7 +18,7 @@
     ``countna`` for numeric and boolean columns.
 
   -[new] Getter ``df.internal.rowindex`` allows access to the RowIndex on the
-    DataTable (for inspection / reuse).
+    DataTable (for inspection/reuse).
 
   -[enh] In addition to LLVM4 environmental variable, datatable will now also
     look for the ``llvm4`` folder within the package's directory.

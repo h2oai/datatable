@@ -52,7 +52,7 @@
   -[api] function-valued ``columns`` parameter in :func:`fread` has been
     changed: if previously the function was invoked for every column, now it
     receives the list of all columns at once, and is expected to return a
-    modified list (or dict / set / etc). Each column description in the list
+    modified list (or dict/set/etc). Each column description in the list
     that the function receives carries the columns name and stype, in the
     future ``format`` field will also be added.
 

@@ -201,7 +201,7 @@ Perform groupby calculations using::
 Append Rows/Columns
 -------------------
 
-Append rows / columns to a Frame using :meth:`Frame.cbind() <datatable.Frame.cbind>`::
+Append rows/columns to a Frame using :meth:`Frame.cbind() <datatable.Frame.cbind>`::
 
     DT1.cbind(DT2, DT3)
     DT1.rbind(DT4, force=True)
