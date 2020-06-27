@@ -38,7 +38,7 @@
   -[fix] If the input contains excessively long lines, :func:`fread()` will no
     longer waste time printing a sample of first 5 lines in verbose mode.
 
-  -[fix] Fixed wrong calculation of mean/standard deviation of line length in
+  -[fix] Fixed wrong calculation of mean / standard deviation of line length in
     :func:`fread` if the sample contained broken lines.
 
   -[fix] Frame view will no longer get stuck in a Jupyter notebook.
