@@ -41,7 +41,7 @@ class TemporaryFile;
 class WritableBuffer;
 
 namespace dt {
-  struct CString;
+  class CString;
   enum class LType : uint8_t;
   enum class SType : uint8_t;
 }
