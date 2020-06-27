@@ -28,7 +28,7 @@ import sys
 from datatable import f
 from datatable.internal import frame_integrity_check
 from math import inf, nan
-from tests import list_equals
+from tests import list_equals, assert_equals
 
 
 #-------------------------------------------------------------------------------
@@ -236,6 +236,12 @@ def test_replace_str_none():
     df = dt.Frame(["A", "BC", None, "DEF", None, "G"])
     df.replace(["A", None], [None, "??"])
     assert df.to_list() == [[None, "BC", "??", "DEF", "??", "G"]]
+
+
+def test_replace_NA_strings2():
+    DT = dt.Frame(A=["foo", "", None, "bar"])
+    DT.replace(None, "buzz")
+    assert_equals(DT, dt.Frame(A=["foo", "", "buzz", "bar"]))
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
