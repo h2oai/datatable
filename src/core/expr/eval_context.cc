@@ -379,8 +379,8 @@ py::oobj EvalContext::evaluate_update() {
 
   for (size_t i : indices) {
     if (i < nkeys) {
-      throw ValueError() << "Cannot change values in a key column "
-                         << "`" << dt0->get_names()[i] << "`";
+      throw ValueError() << "Cannot change values in a key column `"
+                         << escape_backticks(dt0->get_names()[i]) << "`";
     }
   }
 
