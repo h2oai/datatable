@@ -81,6 +81,9 @@
   -[bug] It is no longer allowed to combine ``compression="gzip"`` and
     ``append=True`` in :meth:`.to_csv()`.
 
+  -[bug] Empty strings no longer get confused with NA strings in
+    :meth:`.replace()`. [#2502]
+
 
   Fread
   -----
