@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -145,9 +145,9 @@ DataTable* split_into_nhot(const Column& col, char sep,
         [&](size_t irow) {
           CString str;
           bool isvalid = col.get_element(irow, &str);
-          if (!isvalid || str.size == 0) return;
+          if (!isvalid || str.size() == 0) return;
           const char* strstart = str.ch;
-          const char* strend = strstart + str.size;
+          const char* strend = strstart + str.size();
 
           char chfirst = *strstart;
           char chlast = strend[-1];

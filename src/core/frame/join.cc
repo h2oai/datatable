@@ -269,11 +269,11 @@ int StringCmp::cmp_jrow(size_t row) const {
   bool x_valid = !x_value.isna();
   if (!(j_valid && x_valid)) return j_valid - x_valid;
 
-  int64_t xlen = x_value.size;
-  int64_t jlen = j_value.size;
+  size_t xlen = x_value.size();
+  size_t jlen = j_value.size();
   const char* xstr = x_value.ch;
   const char* jstr = j_value.ch;
-  for (int64_t i = 0; i < jlen; ++i) {
+  for (size_t i = 0; i < jlen; ++i) {
     if (i == xlen) return 1;  // jstr is longer than xstr
     char jch = jstr[i];
     char xch = xstr[i];

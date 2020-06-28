@@ -226,7 +226,7 @@ static Column cast_str_to_bool(const Column& col, Buffer&& outbuf,
           bool isvalid = col.get_element(i, &str_value);
           if (isvalid) {
             ctx.ch = str_value.ch;
-            ctx.eof = str_value.ch + str_value.size;
+            ctx.eof = str_value.ch + str_value.size();
             parse_bool8_titlecase(ctx);
             if (ctx.ch == ctx.eof) {
               out_data[i] = f64_value.int8;
@@ -265,7 +265,7 @@ static Column cast_str_to_int(const Column& col, Buffer&& outbuf,
           bool isvalid = col.get_element(i, &str_value);
           if (isvalid) {
             ctx.ch = str_value.ch;
-            ctx.eof = str_value.ch + str_value.size;
+            ctx.eof = str_value.ch + str_value.size();
             parse_int_simple<U, true>(ctx);
             if (ctx.ch == ctx.eof) {
               out_data[i] = std::is_same<T, int64_t>()
@@ -304,7 +304,7 @@ static Column cast_str_to_float(const Column& col, Buffer&& outbuf,
           bool isvalid = col.get_element(i, &str_value);
           if (isvalid) {
             ctx.ch = str_value.ch;
-            ctx.eof = str_value.ch + str_value.size;
+            ctx.eof = str_value.ch + str_value.size();
             parse_float64_simple(ctx);
             if (ctx.ch == ctx.eof) {
               out_data[i] = static_cast<T>(f64_value.float64);

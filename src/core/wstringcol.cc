@@ -70,7 +70,7 @@ writable_string_col::buffer::~buffer() {}
 
 
 void writable_string_col::buffer::write(const CString& str) {
-  write(str.ch, static_cast<size_t>(str.size));
+  write(str.ch, str.size());
 }
 
 

@@ -55,8 +55,7 @@ void writing_context::ensure_buffer_capacity(size_t sz) {
 
 
 void writing_context::finalize_buffer() {
-  output.ch = buffer;
-  output.size = ch - buffer;
+  output = CString(buffer, ch - buffer);
   if (zwriter) {
     zwriter->compress(output);  // updates `output` variable
   }

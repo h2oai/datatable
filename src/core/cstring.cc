@@ -30,27 +30,27 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 CString::CString()
-  : ch(nullptr), size(0) {}
+  : ch(nullptr), size_(0) {}
 
 CString::CString(const CString& other)
-  : ch(other.ch), size(other.size) {}
+  : ch(other.ch), size_(other.size_) {}
 
 CString::CString(const char* ptr, int64_t sz)
-  : ch(ptr), size(sz) {}
+  : ch(ptr), size_(static_cast<size_t>(sz)) {}
 
 CString::CString(const std::string& str)
-  : ch(str.data()), size(static_cast<int64_t>(str.size())) {}
+  : ch(str.data()), size_(str.size()) {}
 
 
 CString& CString::operator=(const CString& other) {
   ch = other.ch;
-  size = other.size;
+  size_ = other.size_;
   return *this;
 }
 
 CString& CString::operator=(const std::string& str) {
   ch = str.data();
-  size = static_cast<int64_t>(str.size());
+  size_ = str.size();
   return *this;
 }
 
@@ -62,33 +62,33 @@ CString& CString::operator=(const std::string& str) {
 
 bool CString::operator==(const CString& other) const noexcept {
   if (ch == other.ch) {
-    return (size == other.size) || (ch == nullptr);
+    return (size_ == other.size_) || (ch == nullptr);
   } else {
-    return (size == other.size) && ch && other.ch &&
-           (std::strncmp(ch, other.ch, static_cast<size_t>(size)) == 0);
+    return (size_ == other.size_) && ch && other.ch &&
+           (std::strncmp(ch, other.ch, size_) == 0);
   }
 }
 
 
 bool CString::operator<(const CString& other) const noexcept {
-  if (ch == other.ch && size == other.size) {  // strings are equal
+  if (ch == other.ch && size_ == other.size_) {  // strings are equal
     return false;
   }
-  size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
+  size_t cmpsize = std::min(size_, other.size_);
   int comparison = std::strncmp(ch, other.ch, cmpsize);
   return comparison? (comparison < 0)
-                   : (size < other.size);
+                   : (size_ < other.size_);
 }
 
 
 bool CString::operator>(const CString& other) const noexcept {
-  if (ch == other.ch && size == other.size) {  // strings are equal
+  if (ch == other.ch && size_ == other.size_) {  // strings are equal
     return false;
   }
-  size_t cmpsize = static_cast<size_t>(std::min(size, other.size));
+  size_t cmpsize = std::min(size_, other.size_);
   int comparison = std::strncmp(ch, other.ch, cmpsize);
   return comparison? (comparison > 0)
-                   : (size > other.size);
+                   : (size_ > other.size_);
 }
 
 
@@ -112,9 +112,12 @@ bool CString::isna() const noexcept {
   return (ch == nullptr);
 }
 
+size_t CString::size() const noexcept {
+  return size_;
+}
 
 std::string CString::to_string() const {
-  return std::string(ch, static_cast<size_t>(size));
+  return ch? std::string(ch, size_) : std::string();
 }
 
 

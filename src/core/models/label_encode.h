@@ -187,12 +187,12 @@ void label_encode_str(const Column& ocol,
     [&](size_t irow) {
       CString str;
       bool isvalid = ocol.get_element(irow, &str);
-      if (!isvalid || str.size == 0) {
+      if (!isvalid || str.size() == 0) {
         outdata[irow] = GETNA<int32_t>();
         return;
       }
 
-      std::string v(str.ch, static_cast<size_t>(str.size));
+      std::string v(str.ch, str.size());
 
       dt::shared_lock<dt::shared_mutex> lock(shmutex);
       if (labels_map.count(v)) {

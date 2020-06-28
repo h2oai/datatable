@@ -73,7 +73,7 @@ uint64_t HasherString::hash(size_t row) const {
   uint64_t h = dt::NA_S8;
   dt::CString value;
   bool isvalid = column.get_element(row, &value);
-  if (isvalid) h = hash_murmur2(value.ch, static_cast<size_t>(value.size));
+  if (isvalid) h = hash_murmur2(value.ch, value.size());
   return h;
 }
 

@@ -145,7 +145,7 @@ void write_manager::write_rows()
 
         [&](size_t) {  // ordered
           CString buf = ctx.get_buffer();
-          th_write_size = static_cast<size_t>(buf.size);
+          th_write_size = buf.size();
           th_write_at = wb->prepare_write(th_write_size, buf.ch);
         },
 

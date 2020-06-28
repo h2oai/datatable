@@ -93,12 +93,12 @@ class zlib_writer {
      *
      */
     void compress(CString& inout) {
-      size_t input_size = static_cast<size_t>(inout.size);
+      size_t input_size = inout.size();
       if (input_size != static_cast<zlib::uLong>(input_size)) {
         throw RuntimeError() << "Cannot compress chunk of size " << input_size;
       }
       size_t out_size = zlib::deflateBound(
-                          &stream, 
+                          &stream,
                           static_cast<zlib::uLong>(input_size)
                         );  // estimated
       ensure_buffer_capacity(out_size);
@@ -124,8 +124,7 @@ class zlib_writer {
       }
       xassert(stream.avail_in == 0);
       xassert(stream.total_in == input_size);
-      inout.ch = buffer;
-      inout.size = static_cast<int64_t>(stream.total_out);
+      inout = CString(buffer, static_cast<int64_t>(stream.total_out));
     }
 
 

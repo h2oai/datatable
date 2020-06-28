@@ -177,13 +177,13 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
     std::string value;
 
   public:
-    ConstString_ColumnImpl(size_t nrows, CString x)
+    ConstString_ColumnImpl(size_t nrows, const CString& x)
       : Const_ColumnImpl(nrows, SType::STR32),
-        value(x.ch, static_cast<size_t>(x.size)) {}
+        value(x.to_string()) {}
 
-    ConstString_ColumnImpl(size_t nrows, CString x, SType stype)
+    ConstString_ColumnImpl(size_t nrows, const CString& x, SType stype)
       : Const_ColumnImpl(nrows, stype),
-        value(x.ch, static_cast<size_t>(x.size))
+        value(x.to_string())
     {
       xassert(stype == SType::STR32 || stype == SType::STR64);
     }
@@ -197,8 +197,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
     }
 
     bool get_element(size_t, CString* out) const override {
-      out->ch = value.c_str();
-      out->size = static_cast<int64_t>(value.size());
+      *out = CString(value);
       return true;
     }
 };

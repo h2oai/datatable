@@ -284,12 +284,12 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
     if (item.is_string()) {
       parse_string:
       dt::CString cstr = item.to_cstring();
-      if (cstr.size) {
-        T tlen = static_cast<T>(cstr.size);
+      if (cstr.size()) {
+        T tlen = static_cast<T>(cstr.size());
         T next_offset = curr_offset + tlen;
         // Check that length or offset of the string doesn't overflow int32_t
         if (std::is_same<T, uint32_t>::value &&
-              (static_cast<int64_t>(tlen) != cstr.size ||
+              (static_cast<size_t>(tlen) != cstr.size() ||
                next_offset < curr_offset)) {
           break;
         }
@@ -300,8 +300,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
           strbuf.resize(static_cast<size_t>(newsize));
           strptr = static_cast<char*>(strbuf.xptr());
         }
-        std::memcpy(strptr + curr_offset, cstr.ch,
-                    static_cast<size_t>(cstr.size));
+        std::memcpy(strptr + curr_offset, cstr.ch, cstr.size());
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
@@ -370,11 +369,11 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
     }
     if (item.is_string()) {
       dt::CString cstr = item.to_cstring();
-      if (cstr.size) {
-        T tlen = static_cast<T>(cstr.size);
+      if (cstr.size()) {
+        T tlen = static_cast<T>(cstr.size());
         T next_offset = curr_offset + tlen;
         if (std::is_same<T, int32_t>::value &&
-              (static_cast<int64_t>(tlen) != cstr.size ||
+              (static_cast<size_t>(tlen) != cstr.size() ||
                next_offset < curr_offset)) {
           offsets[i] = curr_offset ^ dt::GETNA<T>();
           continue;
@@ -385,8 +384,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
           strbuf.resize(static_cast<size_t>(newsize));
           strptr = static_cast<char*>(strbuf.xptr());
         }
-        std::memcpy(strptr + curr_offset, cstr.ch,
-                    static_cast<size_t>(cstr.size));
+        std::memcpy(strptr + curr_offset, cstr.ch, cstr.size());
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;

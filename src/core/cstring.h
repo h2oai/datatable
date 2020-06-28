@@ -30,8 +30,8 @@ class CString {
   public:
     const char* ch;
 
-  public:
-    int64_t size;
+  private:
+    size_t size_;
 
   public:
     CString();   // default constructor creates an NA string
@@ -48,6 +48,10 @@ class CString {
     bool operator>=(const CString&) const noexcept;
 
     bool isna() const noexcept;
+    size_t size() const noexcept;
+
+    // Convert to a "regular" C++ string. If this CString is NA,
+    // then an empty string will be returned.
     std::string to_string() const;
 };
 

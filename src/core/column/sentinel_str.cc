@@ -136,8 +136,8 @@ bool SentinelStr_ColumnImpl<T>::get_element(size_t i, CString* out) const {
   T off_end = start_offsets[i + 1];
   if (ISNA<T>(off_end)) return false;
   T off_beg = start_offsets[i] & ~GETNA<T>();
-  out->ch = static_cast<const char*>(strbuf_.rptr()) + off_beg,
-  out->size = static_cast<int64_t>(off_end - off_beg);
+  *out = CString(static_cast<const char*>(strbuf_.rptr()) + off_beg,
+                 static_cast<int64_t>(off_end - off_beg));
   return true;
 }
 

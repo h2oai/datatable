@@ -671,8 +671,7 @@ dt::CString _obj::to_cstring(const error_manager& em) const {
 
 std::string _obj::to_string(const error_manager& em) const {
   dt::CString cs = to_cstring(em);
-  return cs.ch? std::string(cs.ch, static_cast<size_t>(cs.size)) :
-                std::string();
+  return cs.to_string();
 }
 
 

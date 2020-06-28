@@ -154,7 +154,7 @@ static bool op_str_len_unicode(const CString& str, bool isvalid, int64_t* out) {
   if (isvalid) {
     int64_t len = 0;
     const uint8_t* ch = reinterpret_cast<const uint8_t*>(str.ch);
-    const uint8_t* end = ch + str.size;
+    const uint8_t* end = ch + str.size();
     while (ch < end) {
       uint8_t c = *ch;
       ch += (c < 0x80)? 1 :

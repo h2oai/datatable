@@ -614,15 +614,13 @@ void NumericStats<T>::compute_nunique() {
 
 struct StrHasher {
   size_t operator()(const dt::CString& s) const {
-    return hash_murmur2(s.ch, static_cast<size_t>(s.size));
+    return hash_murmur2(s.ch, s.size());
   }
 };
 
 struct StrEqual {
   bool operator()(const dt::CString& lhs, const dt::CString& rhs) const {
-    return (lhs.size == rhs.size) &&
-           ((lhs.ch == rhs.ch) ||  // This ensures NAs are properly handled too
-            (std::strncmp(lhs.ch, rhs.ch, static_cast<size_t>(lhs.size)) == 0));
+    return (lhs == rhs);
   }
 };
 
@@ -1315,15 +1313,15 @@ static Column _make_column_str(const dt::CString& value) {
   using T = uint32_t;
   Buffer mbuf = Buffer::mem(sizeof(T) * 2);
   Buffer strbuf;
-  if (value.size >= 0) {
-    size_t len = static_cast<size_t>(value.size);
+  if (value.isna()) {
+    mbuf.set_element<T>(0, 0);
+    mbuf.set_element<T>(1, dt::GETNA<T>());
+  } else {
+    size_t len = value.size();
     mbuf.set_element<T>(0, 0);
     mbuf.set_element<T>(1, static_cast<T>(len));
     strbuf.resize(len);
     std::memcpy(strbuf.wptr(), value.ch, len);
-  } else {
-    mbuf.set_element<T>(0, 0);
-    mbuf.set_element<T>(1, dt::GETNA<T>());
   }
   return Column::new_string_column(1, std::move(mbuf), std::move(strbuf));
 }
@@ -1372,7 +1370,7 @@ Column Stats::get_stat_as_column(Stat stat) {
         case dt::SType::FLOAT64: return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
         case dt::SType::STR32:
         case dt::SType::STR64:   return strcolwrap_stat(stat);
-        default:             return _make_nacol(column->stype());
+        default:                 return _make_nacol(column->stype());
       }
     }
     default:

@@ -51,7 +51,7 @@ ostring::ostring(const std::string& s)
   : ostring(s.data(), s.size()) {}
 
 ostring::ostring(const dt::CString& s)
-  : ostring(s.ch, static_cast<size_t>(s.size)) {}
+  : ostring(s.ch, s.size()) {}
 
 ostring::ostring(const char* str)
   : ostring(str, std::strlen(str)) {}

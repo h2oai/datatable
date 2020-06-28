@@ -970,8 +970,8 @@ dtptr Ftrl<T>::create_p(size_t nrows) {
   for (size_t i = 0; i < nlabels; ++i) {
     CString val;
     bool isvalid = col0_str64.get_element(i, &val);
-    labels_vec[i] = isvalid? std::string(val.ch, static_cast<size_t>(val.size))
-                           : std::string();
+    labels_vec[i] = val.to_string();
+    xassert(isvalid == !val.isna());  (void)isvalid;
   }
 
   colvec cols;

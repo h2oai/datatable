@@ -165,8 +165,8 @@ tstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
 
 
 bool Data_TextColumn::_needs_escaping(const CString& str) const {
-  if (str.size > max_width_) return true;
-  size_t n = static_cast<size_t>(str.size);
+  size_t n = str.size();
+  if (static_cast<int>(n) > max_width_) return true;
   for (size_t i = 0; i < n; ++i) {
     auto c = static_cast<unsigned char>(str.ch[i]);
     if (c < 0x20 || c >= 0x7E) return true;
@@ -224,7 +224,7 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
   int remaining_width = max_width_ - 1;
   bool allow_unicode = term_->unicode_allowed();
 
-  size_t n = static_cast<size_t>(str.size);
+  size_t n = str.size();
   auto ch = reinterpret_cast<const unsigned char*>(str.ch);
   auto end = ch + n;
   while (ch < end) {

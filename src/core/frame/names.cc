@@ -508,7 +508,7 @@ void DataTable::_init_pynames() const {
 //
 static std::string _mangle_name(const dt::CString& name, bool* was_mangled) {
   auto chars = reinterpret_cast<const uint8_t*>(name.ch);
-  auto len = static_cast<size_t>(name.size);
+  auto len = name.size();
 
   size_t j = 0;
   for (; j < len && chars[j] >= 0x20; ++j);
@@ -623,7 +623,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
     // Convert to a C-style name object. Note that if `name` is python None,
     // then the resulting `cname` will be `{nullptr, 0}`.
     dt::CString cname = nameslist->item_as_cstring(i);
-    if (cname.size == 0) {
+    if (cname.size() == 0) {
       fill_default_names = true;
       names_.push_back(std::string());
       continue;

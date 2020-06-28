@@ -86,8 +86,7 @@ py::oobj Source_Python::read(GenericReader& reader) {
       }
     #endif
   } else if (!(text = text_arg.to_cstring()).isna()) {
-    size_t size = static_cast<size_t>(text.size);
-    input_mbuf = Buffer::external(text.ch, size);
+    input_mbuf = Buffer::external(text.ch, text.size());
 
   } else if ((filename = file_arg.to_cstring().ch) != nullptr) {
     input_mbuf = Buffer::mmap(filename);
@@ -136,7 +135,7 @@ Source_Text::Source_Text(py::robj textsrc)
 py::oobj Source_Text::read(GenericReader& reader) {
   reader.source_name = &name_;
   auto text = src_.to_cstring();
-  auto buf = Buffer::external(text.ch, static_cast<size_t>(text.size) + 1);
+  auto buf = Buffer::external(text.ch, text.size() + 1);
   auto res = reader.read_buffer(buf, 1);
   reader.source_name = nullptr;
   return res;

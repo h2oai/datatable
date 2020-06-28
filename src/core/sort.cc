@@ -828,10 +828,10 @@ class SortContext {
             dt::CString value;
             bool isvalid = column.get_element(k, &value);
             if (isvalid) {
-              if (value.size) {
+              if (value.size()) {
                 xo[j] = ASC? static_cast<uint8_t>(*value.ch) + 2
                            : 0xFE - static_cast<uint8_t>(*value.ch);
-                len_gt_1 |= (value.size > 1);
+                len_gt_1 |= (value.size() > 1);
               } else {
                 xo[j] = ASC? 1 : 0xFF;  // empty string
               }
@@ -1029,7 +1029,7 @@ class SortContext {
   void _reorder_str() {
     uint8_t* xi = x.data<uint8_t>();
     uint8_t* xo = xx.data<uint8_t>();
-    const int64_t sstart = static_cast<int64_t>(strstart) + 1;
+    const size_t sstart = static_cast<size_t>(strstart) + 1;
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 
     dt::parallel_region(dt::NThreads(nth),
@@ -1047,7 +1047,7 @@ class SortContext {
               dt::CString value;
               bool isvalid = column.get_element(w, &value);
               if (isvalid) {
-                if (value.size > sstart) {
+                if (value.size() > sstart) {
                   xo[k] = ASC? static_cast<uint8_t>(value.ch[sstart] + 2)
                              : static_cast<uint8_t>(0xFE - value.ch[sstart]);
                   tlong = true;

@@ -54,8 +54,8 @@ int compare_strings(const dt::CString& a, bool a_valid,
                     const dt::CString& b, bool b_valid, size_t strstart)
 {
   if (!(a_valid && b_valid)) return b_valid - a_valid;
-  const size_t a_len = static_cast<size_t>(a.size);
-  const size_t b_len = static_cast<size_t>(b.size);
+  const size_t a_len = a.size();
+  const size_t b_len = b.size();
   const bool a_isempty = (a_len <= strstart);
   const bool b_isempty = (b_len <= strstart);
   if (a_isempty || b_isempty) return (a_isempty - b_isempty) * R;
