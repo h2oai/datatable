@@ -40,7 +40,7 @@ Workframe Head_Literal_String::evaluate_n(
     const vecExpr&, EvalContext& ctx, bool) const
 {
   return _wrap_column(ctx,
-            Const_ColumnImpl::make_string_column(1, pystr.to_string()));
+            Const_ColumnImpl::make_string_column(1, pystr.to_cstring()));
 }
 
 
@@ -85,7 +85,7 @@ Workframe Head_Literal_String::evaluate_r(
       stype = SType::STR32;
     }
     outputs.add_column(
-        Const_ColumnImpl::make_string_column(1, pystr.to_string(), stype),
+        Const_ColumnImpl::make_string_column(1, pystr.to_cstring(), stype),
         std::string(),
         Grouping::SCALAR);
   }

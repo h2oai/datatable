@@ -87,7 +87,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   xassert(max_width >= 4);
   // -2 takes into account column's margins
   max_width_ = std::min(max_width - 2, display_max_column_width);
-  name_ = _escape_string(name);
+  name_ = _escape_string(CString(name));
   width_ = std::max(width_, name_.size());
   LType ltype = col.ltype();
   align_right_ = (ltype == LType::BOOL) ||

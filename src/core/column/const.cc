@@ -193,7 +193,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
         value(std::move(x)) {}
 
     ColumnImpl* clone() const override {
-      return new ConstString_ColumnImpl(nrows_, value, stype_);
+      return new ConstString_ColumnImpl(nrows_, CString(value), stype_);
     }
 
     bool get_element(size_t, CString* out) const override {
@@ -225,7 +225,7 @@ Column Const_ColumnImpl::make_float_column(size_t nrows, double x, SType st) {
   return Column(new ConstFloat_ColumnImpl(nrows, x, st));
 }
 
-Column Const_ColumnImpl::make_string_column(size_t nrows, CString x, SType st) {
+Column Const_ColumnImpl::make_string_column(size_t nrows, const CString& x, SType st) {
   return Column(new ConstString_ColumnImpl(nrows, x, st));
 }
 
