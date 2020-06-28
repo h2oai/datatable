@@ -21,11 +21,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_WRITEBUF_h
 #define dt_WRITEBUF_h
-#include <memory>      // std::unique_ptr
-#include <string>      // std::string
+#include <memory>                     // std::unique_ptr
+#include <string>                     // std::string
+#include "cstring.h"                  // dt::CString
 #include "parallel/shared_mutex.h"
 #include "utils/file.h"
-#include "types.h"
 
 class Buffer;
 

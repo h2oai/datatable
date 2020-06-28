@@ -21,10 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_WRITE_ZLIB_WRITER_h
 #define dt_WRITE_ZLIB_WRITER_h
+#include "cstring.h"
+#include "lib/zlib/zlib.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "types.h"
-#include "lib/zlib/zlib.h"
 namespace dt {
 namespace write {
 

@@ -31,7 +31,6 @@
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-#include "types.h"
 #include "stype.h"
 
 
