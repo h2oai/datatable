@@ -34,7 +34,7 @@ class CString
 
   public:
     explicit CString();   // default constructor creates an NA string
-    explicit CString(const char* ptr, int64_t size);
+    explicit CString(const char* ptr, size_t size);
     explicit CString(const std::string&);
     CString(const CString&);
     CString& operator=(const CString&);

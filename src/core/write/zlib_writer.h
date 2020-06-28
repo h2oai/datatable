@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -124,7 +124,7 @@ class zlib_writer {
       }
       xassert(stream.avail_in == 0);
       xassert(stream.total_in == input_size);
-      inout = CString(buffer, static_cast<int64_t>(stream.total_out));
+      inout = CString(buffer, stream.total_out);
     }
 
 

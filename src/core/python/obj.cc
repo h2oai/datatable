@@ -665,7 +665,7 @@ dt::CString _obj::to_cstring(const error_manager& em) const {
   else {
     throw em.error_not_string(v);
   }
-  return dt::CString { str, static_cast<int64_t>(str_size) };
+  return dt::CString(str, static_cast<size_t>(str_size));
 }
 
 

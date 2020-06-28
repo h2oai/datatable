@@ -35,8 +35,8 @@ CString::CString()
 CString::CString(const CString& other)
   : ptr_(other.ptr_), size_(other.size_) {}
 
-CString::CString(const char* ptr, int64_t sz)
-  : ptr_(ptr), size_(static_cast<size_t>(sz)) {}
+CString::CString(const char* ptr, size_t sz)
+  : ptr_(ptr), size_(sz) {}
 
 CString::CString(const std::string& str)
   : ptr_(str.data()), size_(str.size()) {}
