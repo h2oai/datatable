@@ -41,16 +41,14 @@ class CString {
     CString& operator=(const CString&);
     CString& operator=(const std::string& str);
 
-    bool isna() const noexcept;
     bool operator==(const CString&) const noexcept;
     bool operator<(const CString&)  const noexcept;
     bool operator>(const CString&)  const noexcept;
     bool operator<=(const CString&) const noexcept;
     bool operator>=(const CString&) const noexcept;
 
-  std::string to_string() const {
-    return std::string(ch, static_cast<size_t>(size));
-  }
+    bool isna() const noexcept;
+    std::string to_string() const;
 };
 
 

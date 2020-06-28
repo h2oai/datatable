@@ -60,11 +60,6 @@ CString& CString::operator=(const std::string& str) {
 // CString operators
 //------------------------------------------------------------------------------
 
-bool CString::isna() const noexcept {
-  return (ch == nullptr);
-}
-
-
 bool CString::operator==(const CString& other) const noexcept {
   if (ch == other.ch) {
     return (size == other.size) || (ch == nullptr);
@@ -104,6 +99,22 @@ bool CString::operator<=(const CString& other) const noexcept {
 
 bool CString::operator>=(const CString& other) const noexcept {
   return !(*this < other);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Miscellaneous
+//------------------------------------------------------------------------------
+
+bool CString::isna() const noexcept {
+  return (ch == nullptr);
+}
+
+
+std::string CString::to_string() const {
+  return std::string(ch, static_cast<size_t>(size));
 }
 
 
