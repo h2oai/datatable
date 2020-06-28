@@ -190,7 +190,7 @@ Message& Message::operator<<(const char& c) {
 template <>
 Message& Message::operator<<(const dt::CString& str) {
   auto len = static_cast<long>(str.size());
-  out_.write(str.ch, len);
+  out_.write(str.data(), len);
   return *this;
 }
 

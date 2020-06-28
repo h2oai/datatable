@@ -829,8 +829,8 @@ class SortContext {
             bool isvalid = column.get_element(k, &value);
             if (isvalid) {
               if (value.size()) {
-                xo[j] = ASC? static_cast<uint8_t>(*value.ch) + 2
-                           : 0xFE - static_cast<uint8_t>(*value.ch);
+                xo[j] = ASC? static_cast<uint8_t>(*value.data()) + 2
+                           : 0xFE - static_cast<uint8_t>(*value.data());
                 len_gt_1 |= (value.size() > 1);
               } else {
                 xo[j] = ASC? 1 : 0xFF;  // empty string
@@ -1048,8 +1048,8 @@ class SortContext {
               bool isvalid = column.get_element(w, &value);
               if (isvalid) {
                 if (value.size() > sstart) {
-                  xo[k] = ASC? static_cast<uint8_t>(value.ch[sstart] + 2)
-                             : static_cast<uint8_t>(0xFE - value.ch[sstart]);
+                  xo[k] = ASC? static_cast<uint8_t>(value[sstart] + 2)
+                             : static_cast<uint8_t>(0xFE - value[sstart]);
                   tlong = true;
                 } else {
                   xo[k] = ASC? 1 : 0xFF;  // string is shorter than sstart

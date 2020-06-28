@@ -104,7 +104,7 @@ class zlib_writer {
       ensure_buffer_capacity(out_size);
 
       reset_buffer();
-      stream.next_in = reinterpret_cast<zlib::Bytef*>(const_cast<char*>(inout.ch));
+      stream.next_in = reinterpret_cast<zlib::Bytef*>(const_cast<char*>(inout.data()));
       stream.avail_in = static_cast<zlib::uInt>(input_size);
       stream.next_out = reinterpret_cast<zlib::Bytef*>(buffer);
       stream.avail_out = static_cast<zlib::uInt>(buffer_capacity);

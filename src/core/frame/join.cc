@@ -271,8 +271,8 @@ int StringCmp::cmp_jrow(size_t row) const {
 
   size_t xlen = x_value.size();
   size_t jlen = j_value.size();
-  const char* xstr = x_value.ch;
-  const char* jstr = j_value.ch;
+  const char* xstr = x_value.data();
+  const char* jstr = j_value.data();
   for (size_t i = 0; i < jlen; ++i) {
     if (i == xlen) return 1;  // jstr is longer than xstr
     char jch = jstr[i];
@@ -287,7 +287,7 @@ int StringCmp::cmp_jrow(size_t row) const {
 
 int StringCmp::set_xrow(size_t row) {
   bool isvalid = colX.get_element(row, &x_value);
-  if (!isvalid) x_value.ch = nullptr;
+  if (!isvalid) x_value = dt::CString();
   return 0;
 }
 

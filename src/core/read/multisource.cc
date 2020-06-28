@@ -190,7 +190,7 @@ static SourceVec _from_url(py::robj src, const GenericReader&) {
 // Return true if `text` has any characters from C0 range.
 static bool _has_control_characters(const CString& text, char* evidence) {
   size_t n = text.size();
-  const char* ch = text.ch;
+  const char* ch = text.data();
   for (size_t i = 0; i < n; ++i) {
     if (static_cast<unsigned char>(ch[i]) < 0x20) {
       *evidence = ch[i];
@@ -203,7 +203,7 @@ static bool _has_control_characters(const CString& text, char* evidence) {
 
 static bool _looks_like_url(const CString& text) {
   size_t n = text.size();
-  const char* ch = text.ch;
+  const char* ch = text.data();
   if (n >= 8) {
     if (std::memcmp(ch, "https://", 8) == 0) return true;
     if (std::memcmp(ch, "http://", 7) == 0) return true;

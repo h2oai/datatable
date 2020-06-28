@@ -245,7 +245,7 @@ class HtmlWidget : public dt::Widget {
       CString val;
       bool isvalid = col.get_element(row, &val);
       if (isvalid) {
-        _render_escaped_string(val.ch, val.size());
+        _render_escaped_string(val.data(), val.size());
       } else {
         _render_na();
       }
@@ -258,7 +258,7 @@ class HtmlWidget : public dt::Widget {
         // Should we use repr() here instead?
         py::ostring strval = val.to_pystring_force();
         CString cstr = strval.to_cstring();
-        _render_escaped_string(cstr.ch, cstr.size());
+        _render_escaped_string(cstr.data(), cstr.size());
       } else {
         _render_na();
       }

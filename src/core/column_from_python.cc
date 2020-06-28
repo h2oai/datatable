@@ -300,7 +300,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
           strbuf.resize(static_cast<size_t>(newsize));
           strptr = static_cast<char*>(strbuf.xptr());
         }
-        std::memcpy(strptr + curr_offset, cstr.ch, cstr.size());
+        std::memcpy(strptr + curr_offset, cstr.data(), cstr.size());
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
@@ -384,7 +384,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
           strbuf.resize(static_cast<size_t>(newsize));
           strptr = static_cast<char*>(strbuf.xptr());
         }
-        std::memcpy(strptr + curr_offset, cstr.ch, cstr.size());
+        std::memcpy(strptr + curr_offset, cstr.data(), cstr.size());
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;

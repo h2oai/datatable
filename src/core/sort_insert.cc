@@ -62,8 +62,8 @@ int compare_strings(const dt::CString& a, bool a_valid,
 
   for (size_t i = strstart; i < a_len; ++i) {
     if (i == b_len) return -R;
-    char a_ch = a.ch[i];
-    char b_ch = b.ch[i];
+    char a_ch = a[i];
+    char b_ch = b[i];
     if (a_ch == b_ch) continue;
     return (static_cast<uint8_t>(a_ch) < static_cast<uint8_t>(b_ch))? R : -R;
   }

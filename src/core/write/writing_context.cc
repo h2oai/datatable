@@ -64,12 +64,12 @@ void writing_context::finalize_buffer() {
 
 void writing_context::reset_buffer() {
   ch = buffer;
-  output.ch = nullptr;
+  output = CString();
 }
 
 
 CString writing_context::get_buffer() const {
-  xassert(output.ch);
+  xassert(!output.isna());
   return output;
 }
 

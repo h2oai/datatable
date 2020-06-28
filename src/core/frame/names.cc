@@ -507,14 +507,14 @@ void DataTable::_init_pynames() const {
 // are found, we perform substitution s/[\x00-\x1F]+/./g.
 //
 static std::string _mangle_name(const dt::CString& name, bool* was_mangled) {
-  auto chars = reinterpret_cast<const uint8_t*>(name.ch);
+  auto chars = reinterpret_cast<const uint8_t*>(name.data());
   auto len = name.size();
 
   size_t j = 0;
   for (; j < len && chars[j] >= 0x20; ++j);
   if (j == len) {
     *was_mangled = false;
-    return std::string(name.ch, len);
+    return name.to_string();
   }
 
   std::ostringstream out;

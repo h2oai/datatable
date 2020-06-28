@@ -26,16 +26,15 @@ namespace dt {
 
 
 
-class CString {
-  public:
-    const char* ch;
-
+class CString
+{
   private:
+    const char* ptr_;
     size_t size_;
 
   public:
     explicit CString();   // default constructor creates an NA string
-    explicit CString(const char* ptr, int64_t sz);
+    explicit CString(const char* ptr, int64_t size);
     explicit CString(const std::string&);
     CString(const CString&);
     CString& operator=(const CString&);
@@ -46,9 +45,12 @@ class CString {
     bool operator>(const CString&)  const noexcept;
     bool operator<=(const CString&) const noexcept;
     bool operator>=(const CString&) const noexcept;
+    char operator[](size_t i) const;
 
     bool isna() const noexcept;
     size_t size() const noexcept;
+    const char* data() const noexcept;
+    const char* end() const noexcept;
 
     // Convert to a "regular" C++ string. If this CString is NA,
     // then an empty string will be returned.

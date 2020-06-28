@@ -182,7 +182,7 @@ Error& Error::operator<<(double v)             { error << v; return *this; }
 #endif
 
 Error& Error::operator<<(const dt::CString& str) {
-  return *this << std::string(str.ch, str.size());
+  return *this << str.to_string();
 }
 
 Error& Error::operator<<(const py::_obj& o) {
