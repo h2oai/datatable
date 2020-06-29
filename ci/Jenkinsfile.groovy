@@ -108,7 +108,7 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
 
-                        sh "git clone ${env.GIT_URL} ."
+                        sh "git clone ${GIT_URL_1} ."
 
                         if (env.CHANGE_BRANCH) {
                             sh "git checkout ${env.CHANGE_BRANCH}"
