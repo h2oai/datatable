@@ -108,7 +108,7 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
 
-                        sh "git clone https://github.com/h2oai/datatable.git ."
+                        sh "git clone ${GIT_URL} ."
 
                         if (env.CHANGE_BRANCH) {
                             sh "git checkout ${env.CHANGE_BRANCH}"
