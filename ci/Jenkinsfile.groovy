@@ -80,7 +80,13 @@ doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
 DT_RELEASE = ""
 DT_BUILD_SUFFIX = ""
 DT_BUILD_NUMBER = ""
-GIT_URL=${GIT_URL}
+
+sh """
+    echo 'GIT_URL   = ${GIT_URL}'
+    echo 'GIT_URL_1 = ${GIT_URL_1}'
+    echo 'GIT_URL_2 = ${GIT_URL_2}'
+"""
+
 
 //////////////
 // PIPELINE //
