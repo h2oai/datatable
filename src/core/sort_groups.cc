@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <string>   // std::memmove
-#include <utility>  // std::move
+#include <cstring>         // std::memmove
+#include <utility>         // std::move
 #include "utils/assert.h"
 #include "column.h"
 #include "sort.h"
