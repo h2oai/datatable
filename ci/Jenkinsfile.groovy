@@ -112,7 +112,7 @@ ansiColor('xterm') {
                         sh "git clone https://github.com/h2oai/datatable.git ."
 
                         if (env.CHANGE_BRANCH) {
-                            sh "git fetch origin +refs/pull/{$env.CHANGE_ID}/merge"
+                            sh "git fetch origin +refs/pull/${env.CHANGE_ID}/merge"
                             sh "git checkout -qf FETCH_HEAD"
                         }
 
