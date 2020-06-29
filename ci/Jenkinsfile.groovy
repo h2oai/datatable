@@ -80,6 +80,7 @@ doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
 DT_RELEASE = ""
 DT_BUILD_SUFFIX = ""
 DT_BUILD_NUMBER = ""
+GIT_URL=${GIT_URL}
 
 //////////////
 // PIPELINE //
@@ -108,7 +109,7 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
 
-                        sh "git clone ${GIT_URL_1} ."
+                        sh "git clone ${GIT_URL} ."
 
                         if (env.CHANGE_BRANCH) {
                             sh "git checkout ${env.CHANGE_BRANCH}"
