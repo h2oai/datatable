@@ -81,6 +81,10 @@ DT_RELEASE = ""
 DT_BUILD_SUFFIX = ""
 DT_BUILD_NUMBER = ""
 
+echo GIT_URL
+echo GIT_URL_1
+echo GIT_URL_2
+
 
 //////////////
 // PIPELINE //
