@@ -111,8 +111,7 @@ const char* PKArgs::get_long_name() const {
     char* ptr = new char[len1 + 15];
     full_name = ptr;
     std::strncpy(ptr, cls_name, len1);
-    std::strncpy(ptr + len1, "() constructor", 14);
-    ptr[len1 + 14] = '\0';
+    std::strncpy(ptr + len1, "() constructor", 15);
   }
   else {
     char* ptr = new char[len_total];
