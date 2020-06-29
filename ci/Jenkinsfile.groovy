@@ -81,10 +81,6 @@ DT_RELEASE = ""
 DT_BUILD_SUFFIX = ""
 DT_BUILD_NUMBER = ""
 
-echo GIT_URL
-echo GIT_URL_1
-echo GIT_URL_2
-
 
 //////////////
 // PIPELINE //
@@ -112,6 +108,10 @@ ansiColor('xterm') {
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
+
+                        sh "echo ${GIT_URL}"
+                        sh "echo ${GIT_URL_1}"
+                        sh "echo ${GIT_URL_2}"
 
                         sh "git clone https://github.com/h2oai/datatable.git ."
 
