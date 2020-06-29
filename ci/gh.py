@@ -33,8 +33,8 @@ from github.GithubException import (
     UnknownObjectException
 )
 
-rx_attribution = re.compile(r"^(?:Attribute[\s\-][tT]o|"
-                            r"_?Originally posted by)"
+rx_attribution = re.compile(r"^_?"
+                            r"(?:Attribute[\s\-][tT]o|Originally posted by)"
                             r":?\s+@([\w\-]+)",
                             re.MULTILINE)
 
