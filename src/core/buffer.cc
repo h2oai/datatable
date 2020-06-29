@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <algorithm>           // std::min
 #include <cerrno>              // errno
+#include <cstring>             // std::strerror, std::memcpy
 #include <mutex>               // std::mutex, std::lock_guard
 #include "python/pybuffer.h"   // py::buffer
 #include "utils/alloc.h"       // dt::malloc, dt::realloc

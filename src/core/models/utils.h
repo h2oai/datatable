@@ -21,10 +21,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_UTILS_h
 #define dt_MODELS_UTILS_h
+#include <algorithm>    // std::sort
 #include <cmath>        // std::exp
 #include <limits>
 #include <memory>
-#include <numeric>
+#include <numeric>      // std::iota
 #include "datatable.h"
 
 template <typename T>

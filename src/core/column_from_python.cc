@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstdlib>         // std::abs
+#include <cstring>         // std::memcpy
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
 #include "column/pysources.h"  // PyList_ColumnImpl, ...
