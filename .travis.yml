@@ -6,8 +6,7 @@ jobs:
     - name: "Python 3.5 on Linux with LLVM7"
       python: 3.5
       before_install:
-        - (test "$(ls -A $CXX)") || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
-        - ls -al $CXX
+        - ( test -f $CXX ) || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
       env:
         - LLVM7=$HOME/LLVM7
         - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
@@ -16,8 +15,7 @@ jobs:
     - name: "Python 3.6 on Linux with LLVM7"
       python: 3.6
       before_install:
-        - (test "$(ls -A $CXX)") || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
-        - ls -al $CXX
+        - ( test -f $CXX ) || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
       env:
         - LLVM7=$HOME/LLVM7
         - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
@@ -26,8 +24,7 @@ jobs:
     - name: "Python 3.7 on Linux with LLVM10"
       python: 3.7
       before_install:
-        - ( test "$(ls -A $CXX)") || ( wget -O llvm10.tar.xz "https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz" && mkdir -p "$LLVM10" && tar xf llvm10.tar.xz -C "$LLVM10" --strip-components 1 )
-        - ls -al $CXX
+        - ( test -f $CXX ) || ( wget -O llvm10.tar.xz "https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz" && mkdir -p "$LLVM10" && tar xf llvm10.tar.xz -C "$LLVM10" --strip-components 1 )
       env:
         - LLVM10=$HOME/LLVM10
         - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
@@ -36,8 +33,7 @@ jobs:
     - name: "Python 3.8 on Linux with LLVM10"
       python: 3.8
       before_install:
-        - ( test "$(ls -A $CXX)") || ( wget -O llvm10.tar.xz "https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz" && mkdir -p "$LLVM10" && tar xf llvm10.tar.xz -C "$LLVM10" --strip-components 1 )
-        - ls -al $CXX
+        - ( test -f $CXX ) || ( wget -O llvm10.tar.xz "https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz" && mkdir -p "$LLVM10" && tar xf llvm10.tar.xz -C "$LLVM10" --strip-components 1 )
       env:
         - LLVM10=$HOME/LLVM10
         - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
