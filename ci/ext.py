@@ -86,34 +86,52 @@ def is_source_distribution():
 # - In all other cases (local build), the final version consists of
 #   of `VERSION.txt` "0+" [buildmode "."] timestamp ["." username].
 #
-def get_datatable_version(mode=None):
+def get_datatable_version(flavor=None):
+    build_mode = "release" if os.environ.get("DT_RELEASE") else \
+                 "PR" if os.environ.get("DT_BUILD_SUFFIX") else \
+                 "dev" if os.environ.get("DT_BUILD_NUMBER") else \
+                 "sdist" if is_source_distribution() else \
+                 "local"
+
+    if build_mode != "sdist":
+        if not os.path.exists("VERSION.txt"):
+            raise SystemExit("File VERSION.txt is missing when building "
+                             "datatable in %s mode" % build_mode)
+        with open("VERSION.txt", "r") as inp:
+            version = inp.read().strip()
+
     # In release mode, the version is just the content of VERSION.txt
-    if os.environ.get("DT_RELEASE"):
-        version = _get_version_txt("release")
+    if build_mode == "release":
         if not re.fullmatch(r"\d+(\.\d+)+", version):
             raise SystemExit("Invalid version `%s` in VERSION.txt when building"
                              " datatable in release mode (DT_RELEASE is on)"
                              % version)
+        if flavor == "debug":
+            version += "+debug"
+        elif flavor not in [None, "build"]:
+            raise SystemExit("Invalid build flavor %s when building datatable "
+                             "in release mode" % flavor)
         return version
 
     # In PR mode, the version is appended with DT_BUILD_SUFFIX
-    if os.environ.get("DT_BUILD_SUFFIX"):
-        version = _get_version_txt("PR")
+    if build_mode == "PR":
         suffix = os.environ.get("DT_BUILD_SUFFIX")
+        if not re.fullmatch(r"\w([\w\.]*\w)?", suffix):
+            raise SystemExit("Invalid build suffix `%s` from environment "
+                             "variable DT_BUILD_SUFFIX" % suffix)
         mm = re.fullmatch(r"\d+(\.\d+)+(a|b|rc)?", version)
         if not mm:
             raise SystemExit("Invalid version `%s` in VERSION.txt when building"
                              " datatable in PR mode" % version)
-        if not re.fullmatch(r"\w([\w\.]*\w)?", suffix):
-            raise SystemExit("Invalid build suffix `%s` from environment "
-                             "variable DT_BUILD_SUFFIX" % suffix)
         if not mm.group(2):
-            version += ".a"
-        return version + "0+" + suffix.lower()
+            version += "a"
+        version += "0+" + suffix.lower()
+        if flavor == "debug":
+            version += ".debug"
+        return version
 
     # In "master-dev" mode, the DT_BUILD_NUMBER is used
-    if os.environ.get("DT_BUILD_NUMBER"):
-        version = _get_version_txt("dev")
+    if build_mode == "dev":
         build = os.environ.get("DT_BUILD_NUMBER")
         if not re.fullmatch(r"\d+", build):
             raise SystemExit("Invalid build number `%s` from environment "
@@ -124,33 +142,28 @@ def get_datatable_version(mode=None):
                              " datatable in development mode" % version)
         if not mm.group(2):
             version += ".post"
-        return version + build
+        version += build
+        if flavor == "debug":
+            version += "+debug"
+        return version
 
     # Building from sdist (file VERSION.txt not included)
-    if is_source_distribution():
+    if build_mode == "sdist":
         return _get_version_from_build_info()
 
     # Otherwise we're building from a local distribution
-    else:
-        version = _get_version_txt("local")
+    if build_mode == "local":
         if not version[-1].isdigit():
             version += "0"
         version += "+"
-        if mode:
-            version += mode + "."
+        if flavor:
+            version += flavor + "."
         version += str(int(time.time()))
         user = _get_user()
         if user:
             version += "." + user
         return version
 
-
-def _get_version_txt(mode):
-    if not os.path.exists("VERSION.txt"):
-        raise SystemExit("File VERSION.txt is missing when building datatable "
-                         "in %s mode" % mode)
-    with open("VERSION.txt", "r") as f:
-        return f.read().strip()
 
 
 def _get_version_from_build_info():
@@ -513,14 +526,17 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     assert isinstance(config_settings, dict)
     assert metadata_directory is None
     reuse_extension = config_settings.pop("reuse_extension", False)
+    reuse_version = config_settings.pop("reuse_version", None)
+    debug_wheel = config_settings.pop("debug", False)
 
-    if is_source_distribution() and "reuse_version" not in config_settings:
+    if is_source_distribution() and reuse_version is None:
         config_settings["reuse_version"] = True
 
-    if not config_settings.pop("reuse_version", False):
-        mode = "custom" if reuse_extension else \
-               "build"
-        generate_build_info(mode, strict=True)
+    if not reuse_version:
+        flavor = "custom" if reuse_extension else \
+                 "debug" if debug_wheel else \
+                 "build"
+        generate_build_info(flavor, strict=True)
     assert os.path.isfile("src/datatable/_build_info.py")
 
     if reuse_extension:
@@ -534,7 +550,8 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
             raise SystemExit("Multiple extension files found: %r" % (sofiles,))
         so_file = sofiles[0]
     else:
-        so_file = build_extension(cmd="build", verbosity=3)
+        so_file = build_extension(cmd=("debug" if debug_wheel else "build"),
+                                  verbosity=3)
 
     files = glob.glob("src/datatable/**/*.py", recursive=True)
     files += [so_file]
@@ -607,6 +624,7 @@ def cmd_sdist(args):
 def cmd_wheel(args):
     params = {
         "audit": args.audit,
+        "debug": (args.cmd == "debugwheel"),
         "reuse_extension": args.nobuild,
     }
     wheel_file = build_wheel(args.destination, params)
@@ -622,7 +640,7 @@ def main():
     )
     parser.add_argument("cmd", metavar="CMD",
         choices=["asan", "build", "coverage", "debug", "geninfo", "sdist",
-                 "wheel"],
+                 "wheel", "debugwheel"],
         help=textwrap.dedent("""
             Specify what this script should do:
 
@@ -635,6 +653,7 @@ def main():
             geninfo  : generate _build_info.py file
             sdist    : create source distribution of datatable
             wheel    : create wheel distribution of datatable
+            debugwheel : create wheel distribution of debug version of datatable
             """).strip())
     parser.add_argument("-v", dest="verbosity", action="count", default=1,
         help="Verbosity level of the output, specify the parameter up to 3\n"
@@ -666,7 +685,7 @@ def main():
         raise ValueError("Argument --audit can be used on a Linux platform "
                          "only, current platform is `%s`" % sys.platform)
 
-    if args.cmd == "wheel":     cmd_wheel(args)
+    if "wheel" in args.cmd:     cmd_wheel(args)
     elif args.cmd == "sdist":   cmd_sdist(args)
     elif args.cmd == "geninfo": cmd_geninfo(args)
     else:                       cmd_ext(args)
