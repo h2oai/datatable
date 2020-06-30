@@ -228,7 +228,7 @@ ansiColor('xterm') {
                                             ls -la dist"
                                 """
                                 stash name: 'x86_64-manylinux-debugwheels', includes: "dist/*debug*.whl"
-                                stash name: 'x86_64-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*.whl"
+                                stash name: 'x86_64-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
                                 arch "dist/*.whl"
                             }
                         }
