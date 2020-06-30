@@ -30,6 +30,7 @@ build_script:
     else if "%APPVEYOR_REPO_BRANCH:~0,4%"=="rel-" (SET DT_RELEASE=True)
     else (SET DT_BUILD_SUFFIX=%APPVEYOR_REPO_BRANCH%.%BRANCH_BUILD_ID%)
 
+    SET DT_HARNESS = AppVeyor
 
     echo MASTER_BUILD_ID = %MASTER_BUILD_ID%
 

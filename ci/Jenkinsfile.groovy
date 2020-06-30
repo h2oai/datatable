@@ -649,6 +649,7 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
             }
             docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
         }
+        docker_args += "-e DT_HARNESS=Jenkins "
         def pip_args = ""
         if (docker_image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
             // On a PPC machine use our own repository which contains pre-built
@@ -709,6 +710,7 @@ def test_macos(String pyver) {
             pip install -r requirements_extra.txt
             pip freeze
             python -c 'import datatable; print(datatable.__file__)'
+            DT_HARNESS=Jenkins \
             python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals \
                 --junit-prefix=x86_64-macos-py${pyver} \
                 --junitxml=build/test-reports/TEST-datatable.xml \

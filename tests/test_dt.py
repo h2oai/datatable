@@ -34,15 +34,9 @@ from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_columns_virtual, frame_integrity_check
 from datatable.lib import core
-from tests import same_iterables, list_equals, noop, isview, assert_equals
+from tests import (same_iterables, list_equals, noop, isview, assert_equals,
+                   skip_on_jenkins, cpp_test)
 
-
-#-------------------------------------------------------------------------------
-# Check if we need to run C++ tests
-#-------------------------------------------------------------------------------
-
-cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
-                              reason="C++ tests were not compiled")
 
 #-------------------------------------------------------------------------------
 # Prepare fixtures & helper functions
@@ -92,8 +86,7 @@ def test_platform():
 
 
 
-@pytest.mark.skipif(sys.platform != "darwin",
-                    reason="This test behaves unpredictably on Linux")
+@skip_on_jenkins
 def test_dt_loadtime(nocov):
     # Check that datatable's loading time is not too big. At the time of writing
     # this test, on a MacBook Pro laptop, the timings were the following:
