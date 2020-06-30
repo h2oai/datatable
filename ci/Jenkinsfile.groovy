@@ -224,13 +224,15 @@ ansiColor('xterm') {
                                         -c "cd /dot && \
                                             ls -la && \
                                             ls -la src/datatable && \
+                                            /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
                                             /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
                                             /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             ls -la dist"
                                 """
-                                stash name: 'x86_64-manylinux-wheels', includes: "dist/*.whl"
+                                stash name: 'x86_64-manylinux-debugwheels', includes: "dist/*debug*.whl"
+                                stash name: 'x86_64-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
                                 arch "dist/*.whl"
                             }
                         }
@@ -361,6 +363,20 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py38", "38",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test x86_64-manylinux-py36-debug', { stageName, stageDir ->
+                        node(NODE_LINUX) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-manylinux-debugwheels'
+                                    test_in_docker("x86_64-manylinux-py36-debug", "36",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
@@ -637,6 +653,7 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
             }
             docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
         }
+        docker_args += "-e DT_HARNESS=Jenkins "
         def pip_args = ""
         if (docker_image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
             // On a PPC machine use our own repository which contains pre-built
@@ -697,6 +714,7 @@ def test_macos(String pyver) {
             pip install -r requirements_extra.txt
             pip freeze
             python -c 'import datatable; print(datatable.__file__)'
+            DT_HARNESS=Jenkins \
             python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals \
                 --junit-prefix=x86_64-macos-py${pyver} \
                 --junitxml=build/test-reports/TEST-datatable.xml \

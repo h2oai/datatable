@@ -10,7 +10,17 @@ import pytest
 import random
 import sys
 from math import isnan
+from datatable.lib import core
 from datatable.internal import frame_columns_virtual, frame_integrity_check
+
+
+
+cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
+                              reason="C++ tests were not compiled")
+
+skip_on_jenkins = pytest.mark.skipif(os.environ.get("DT_HARNESS") == "Jenkins",
+                                     reason="Skipped on Jenkins")
+
 
 
 # Try importing _datatable (core lib), so that if that doesn't work we don't
