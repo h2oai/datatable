@@ -220,13 +220,15 @@ ansiColor('xterm') {
                                         -c "cd /dot && \
                                             ls -la && \
                                             ls -la src/datatable && \
+                                            /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
                                             /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
                                             /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             ls -la dist"
                                 """
-                                stash name: 'x86_64-manylinux-wheels', includes: "dist/*.whl"
+                                stash name: 'x86_64-manylinux-debugwheels', includes: "dist/*debug*.whl"
+                                stash name: 'x86_64-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*.whl"
                                 arch "dist/*.whl"
                             }
                         }
@@ -357,6 +359,20 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py38", "38",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test x86_64-manylinux-py36-debug', { stageName, stageDir ->
+                        node(NODE_LINUX) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-manylinux-debugwheels'
+                                    test_in_docker("x86_64-manylinux-py36-debug", "36",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
