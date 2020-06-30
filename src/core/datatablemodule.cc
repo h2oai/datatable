@@ -59,6 +59,38 @@
 
 
 
+static_assert(INTPTR_MAX == INT64_MAX,
+              "Only 64 bit platforms are supported.");
+
+static_assert(sizeof(void*) == 8, "Expected size(void*) to be 8 bytes");
+static_assert(sizeof(void*) == sizeof(size_t),
+              "size(size_t) != size(void*)");
+static_assert(sizeof(void*) == sizeof(int64_t),
+              "size(int64_t) != size(void*)");
+
+static_assert(sizeof(int8_t) == 1, "int8_t should be 1-byte");
+static_assert(sizeof(int16_t) == 2, "int16_t should be 2-byte");
+static_assert(sizeof(int32_t) == 4, "int32_t should be 4-byte");
+static_assert(sizeof(int64_t) == 8, "int64_t should be 8-byte");
+static_assert(sizeof(float) == 4, "float should be 4-byte");
+static_assert(sizeof(double) == 8, "double should be 8-byte");
+static_assert(sizeof(char) == sizeof(unsigned char), "char != uchar");
+static_assert(sizeof(char) == 1, "sizeof(char) != 1");
+
+static_assert(sizeof(dt::LType) == 1, "LType does not fit in a byte");
+static_assert(sizeof(dt::SType) == 1, "SType does not fit in a byte");
+
+static_assert(static_cast<unsigned>(-1) - static_cast<unsigned>(-3) == 2,
+              "Unsigned arithmetics check");
+static_assert(3u - (0-1u) == 4u, "Unsigned arithmetics check");
+static_assert(0-1u == 0xFFFFFFFFu, "Unsigned arithmetics check");
+
+static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
+              "int64_t and Py_ssize_t should refer to the same type");
+
+
+
+
 //------------------------------------------------------------------------------
 // These functions are exported as `datatable.internal.*`
 //------------------------------------------------------------------------------

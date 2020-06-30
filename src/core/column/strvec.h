@@ -47,8 +47,7 @@ class Strvec_ColumnImpl : public Virtual_ColumnImpl {
         vec(v) {}
 
     bool get_element(size_t i, CString* out) const override {
-      out->ch = vec[i].c_str();
-      out->size = static_cast<int64_t>(vec[i].size());
+      *out = vec[i];
       return true;
     }
 

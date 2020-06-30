@@ -19,35 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_PYTHON_STRING_h
-#define dt_PYTHON_STRING_h
-#include <string>
-#include "python/obj.h"
-namespace py {
+#ifndef dt_CSTRING_h
+#define dt_CSTRING_h
+#include "_dt.h"
+namespace dt {
 
 
-/**
- * Wrapper around a Python string.
- */
-class ostring : public oobj {
-  public:
-    ostring();
-    ostring(const std::string&);
-    ostring(const dt::CString&);
-    ostring(const char* str);
-    ostring(const char* str, size_t len);
-    ostring(const ostring&);
-    ostring(ostring&&);
-    ostring& operator=(const ostring&);
-    ostring& operator=(ostring&&);
 
+class CString
+{
   private:
-    ostring(PyObject*);
-    static ostring from_new_reference(PyObject*);
-    friend class _obj;
+    const char* ptr_;
+    size_t size_;
+
+  public:
+    explicit CString();   // default constructor creates an NA string
+    explicit CString(const char* ptr, size_t size);
+    explicit CString(const std::string&);
+    CString(const CString&);
+    CString& operator=(const CString&);
+    CString& operator=(const std::string& str);
+
+    bool operator==(const CString&) const noexcept;
+    bool operator<(const CString&)  const noexcept;
+    bool operator>(const CString&)  const noexcept;
+    bool operator<=(const CString&) const noexcept;
+    bool operator>=(const CString&) const noexcept;
+    char operator[](size_t i) const;
+
+    bool isna() const noexcept;
+    size_t size() const noexcept;
+    const char* data() const noexcept;
+    const char* end() const noexcept;
+
+    // Convert to a "regular" C++ string. If this CString is NA,
+    // then an empty string will be returned.
+    std::string to_string() const;
 };
 
 
-}  // namespace py
 
+}  // namespace dt
 #endif

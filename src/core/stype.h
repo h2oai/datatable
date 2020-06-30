@@ -22,8 +22,10 @@
 #ifndef dt_STYPE_h
 #define dt_STYPE_h
 #include <cmath>     // std::isnan
+#include <limits>    // std::numeric_limits
 #include "_dt.h"     // size_t, uint8_t, PyObject
-#include "types.h"
+#include "cstring.h"
+#include "python/python.h"
 namespace dt {
 
 

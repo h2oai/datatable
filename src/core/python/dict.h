@@ -22,7 +22,7 @@
 #ifndef dt_PYTHON_DICT_h
 #define dt_PYTHON_DICT_h
 #include "python/obj.h"
-
+#include "python/python.h"
 namespace py {
 class dict_iterator;
 

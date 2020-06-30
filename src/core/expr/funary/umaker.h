@@ -24,7 +24,6 @@
 #include <memory>
 #include "expr/declarations.h"
 #include "expr/op.h"
-#include "types.h"
 namespace dt {
 namespace expr {
 

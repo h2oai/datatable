@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/bool.h"
-
+#include "python/python.h"
 namespace py {
 
 
@@ -28,6 +28,7 @@ obool::obool(bool x) {
   v = x? Py_True : Py_False;
   Py_INCREF(v);
 }
+
 
 
 }  // namespace py

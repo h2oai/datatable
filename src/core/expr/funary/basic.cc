@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -153,8 +153,8 @@ inline static bool op_str_len_ascii(CString str, bool isvalid, int64_t* out) {
 static bool op_str_len_unicode(const CString& str, bool isvalid, int64_t* out) {
   if (isvalid) {
     int64_t len = 0;
-    const uint8_t* ch = reinterpret_cast<const uint8_t*>(str.ch);
-    const uint8_t* end = ch + str.size;
+    const uint8_t* ch = reinterpret_cast<const uint8_t*>(str.data());
+    const uint8_t* end = ch + str.size();
     while (ch < end) {
       uint8_t c = *ch;
       ch += (c < 0x80)? 1 :

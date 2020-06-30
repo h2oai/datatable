@@ -87,7 +87,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   xassert(max_width >= 4);
   // -2 takes into account column's margins
   max_width_ = std::min(max_width - 2, display_max_column_width);
-  name_ = _escape_string(name);
+  name_ = _escape_string(CString(name));
   width_ = std::max(width_, name_.size());
   LType ltype = col.ltype();
   align_right_ = (ltype == LType::BOOL) ||
@@ -165,10 +165,10 @@ tstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
 
 
 bool Data_TextColumn::_needs_escaping(const CString& str) const {
-  if (str.size > max_width_) return true;
-  size_t n = static_cast<size_t>(str.size);
+  size_t n = str.size();
+  if (static_cast<int>(n) > max_width_) return true;
   for (size_t i = 0; i < n; ++i) {
-    auto c = static_cast<unsigned char>(str.ch[i]);
+    auto c = static_cast<unsigned char>(str[i]);
     if (c < 0x20 || c >= 0x7E) return true;
   }
   return false;
@@ -224,8 +224,8 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
   int remaining_width = max_width_ - 1;
   bool allow_unicode = term_->unicode_allowed();
 
-  size_t n = static_cast<size_t>(str.size);
-  auto ch = reinterpret_cast<const unsigned char*>(str.ch);
+  size_t n = str.size();
+  auto ch = reinterpret_cast<const unsigned char*>(str.data());
   auto end = ch + n;
   while (ch < end) {
     auto c = *ch;

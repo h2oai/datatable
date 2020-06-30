@@ -71,13 +71,13 @@ py::oobj Source_Python::read(GenericReader& reader) {
   double t0 = wallclock();
   Buffer input_mbuf;
   CString text;
-  const char* filename = nullptr;
+  CString filename;
   if (fileno > 0) {
     #if DT_OS_WINDOWS
       throw NotImplError() << "Reading from file-like objects, that involves "
         << "file descriptors, is not supported on Windows";
     #else
-      const char* src = src_arg.to_cstring().ch;
+      const char* src = src_arg.to_cstring().data();
       input_mbuf = Buffer::mmap(src, 0, fileno, false);
       size_t sz = input_mbuf.size();
       if (reader.verbose) {
@@ -85,12 +85,11 @@ py::oobj Source_Python::read(GenericReader& reader) {
                    <<"; size = " << sz;
       }
     #endif
-  } else if ((text = text_arg.to_cstring())) {
-    size_t size = static_cast<size_t>(text.size);
-    input_mbuf = Buffer::external(text.ch, size);
+  } else if (!(text = text_arg.to_cstring()).isna()) {
+    input_mbuf = Buffer::external(text.data(), text.size());
 
-  } else if ((filename = file_arg.to_cstring().ch) != nullptr) {
-    input_mbuf = Buffer::mmap(filename);
+  } else if (!(filename = file_arg.to_cstring()).isna()) {
+    input_mbuf = Buffer::mmap(filename.to_string());
     size_t sz = input_mbuf.size();
     if (reader.verbose) {
       reader.d() << "File \"" << filename << "\" opened, size: " << sz;
@@ -136,7 +135,7 @@ Source_Text::Source_Text(py::robj textsrc)
 py::oobj Source_Text::read(GenericReader& reader) {
   reader.source_name = &name_;
   auto text = src_.to_cstring();
-  auto buf = Buffer::external(text.ch, static_cast<size_t>(text.size) + 1);
+  auto buf = Buffer::external(text.data(), text.size() + 1);
   auto res = reader.read_buffer(buf, 1);
   reader.source_name = nullptr;
   return res;

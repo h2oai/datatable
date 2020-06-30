@@ -25,7 +25,6 @@
 #include "write/output_options.h"
 #include "write/writing_context.h"
 #include "column.h"
-#include "types.h"
 namespace dt {
 namespace write {
 

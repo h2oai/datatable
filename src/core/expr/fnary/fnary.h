@@ -25,7 +25,6 @@
 #include "expr/declarations.h"
 #include "expr/op.h"
 #include "python/args.h"
-#include "types.h"
 namespace dt {
 namespace expr {
 

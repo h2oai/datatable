@@ -13,7 +13,6 @@
 #include "python/_all.h"
 #include "groupby.h"
 #include "rowindex.h"
-#include "types.h"
 #include "column.h"
 #include "ztest.h"
 

@@ -28,7 +28,6 @@
 #include "frame/repr/html_widget.h"
 #include "python/string.h"
 #include "options.h"
-#include "types.h"
 
 
 //------------------------------------------------------------------------------

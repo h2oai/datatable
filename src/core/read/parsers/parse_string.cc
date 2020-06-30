@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>                       // std::memcpy
 #include <iostream>
 #include "csv/reader_parsers.h"
 #include "read/field64.h"                // field64

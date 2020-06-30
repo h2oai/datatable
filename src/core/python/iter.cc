@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/iter.h"
+#include "python/python.h"
 namespace py {
 
 

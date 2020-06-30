@@ -146,7 +146,6 @@
 #include "rowindex.h"
 #include "sort.h"
 #include "stype.h"
-#include "types.h"
 
 //------------------------------------------------------------------------------
 // Helper classes for managing memory
@@ -825,13 +824,13 @@ class SortContext {
         dt::nested_for_static(n, dt::ChunkSize(1024),
           [&](size_t j) {
             size_t k = use_order? static_cast<size_t>(o[j]) : j;
-            CString value;
+            dt::CString value;
             bool isvalid = column.get_element(k, &value);
             if (isvalid) {
-              if (value.size) {
-                xo[j] = ASC? static_cast<uint8_t>(*value.ch) + 2
-                           : 0xFE - static_cast<uint8_t>(*value.ch);
-                len_gt_1 |= (value.size > 1);
+              if (value.size()) {
+                xo[j] = ASC? static_cast<uint8_t>(*value.data()) + 2
+                           : 0xFE - static_cast<uint8_t>(*value.data());
+                len_gt_1 |= (value.size() > 1);
               } else {
                 xo[j] = ASC? 1 : 0xFF;  // empty string
               }
@@ -1029,7 +1028,7 @@ class SortContext {
   void _reorder_str() {
     uint8_t* xi = x.data<uint8_t>();
     uint8_t* xo = xx.data<uint8_t>();
-    const int64_t sstart = static_cast<int64_t>(strstart) + 1;
+    const size_t sstart = static_cast<size_t>(strstart) + 1;
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 
     dt::parallel_region(dt::NThreads(nth),
@@ -1044,12 +1043,12 @@ class SortContext {
               size_t k = tcounts[xi[j]]++;
               xassert(k < n);
               size_t w = use_order? static_cast<size_t>(o[j]) : j;
-              CString value;
+              dt::CString value;
               bool isvalid = column.get_element(w, &value);
               if (isvalid) {
-                if (value.size > sstart) {
-                  xo[k] = ASC? static_cast<uint8_t>(value.ch[sstart] + 2)
-                             : static_cast<uint8_t>(0xFE - value.ch[sstart]);
+                if (value.size() > sstart) {
+                  xo[k] = ASC? static_cast<uint8_t>(value[sstart] + 2)
+                             : static_cast<uint8_t>(0xFE - value[sstart]);
                   tlong = true;
                 } else {
                   xo[k] = ASC? 1 : 0xFF;  // string is shorter than sstart

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,6 +31,7 @@
   #include <windows.h>
 #else
   #include <sys/ioctl.h>
+  #include <unistd.h>        // STDOUT_FILENO
 
   static void sigwinch_handler(int) {
     dt::Terminal::standard_terminal().forget_window_size();

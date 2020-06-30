@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -55,8 +55,7 @@ void writing_context::ensure_buffer_capacity(size_t sz) {
 
 
 void writing_context::finalize_buffer() {
-  output.ch = buffer;
-  output.size = ch - buffer;
+  output = CString(buffer, static_cast<size_t>(ch - buffer));
   if (zwriter) {
     zwriter->compress(output);  // updates `output` variable
   }
@@ -65,12 +64,12 @@ void writing_context::finalize_buffer() {
 
 void writing_context::reset_buffer() {
   ch = buffer;
-  output.ch = nullptr;
+  output = CString();
 }
 
 
 CString writing_context::get_buffer() const {
-  xassert(output.ch);
+  xassert(!output.isna());
   return output;
 }
 

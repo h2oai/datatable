@@ -1,21 +1,34 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018-2019
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_STATS_h
 #define dt_STATS_h
 #include <bitset>
-#include <memory>
-#include <vector>
-#include "types.h"
+#include "_dt.h"
+#include "cstring.h"
+
 
 namespace dt {
   class ColumnImpl;
 }
-class Column;
 
 
 enum class Stat : uint8_t {
@@ -156,12 +169,12 @@ class Stats
     bool get_stat(Stat, int64_t*);
     bool get_stat(Stat, size_t*);
     bool get_stat(Stat, double*);
-    bool get_stat(Stat, CString*);
+    bool get_stat(Stat, dt::CString*);
 
     int64_t get_stat_int   (Stat, bool* isvalid = nullptr);
     size_t  get_stat_uint  (Stat, bool* isvalid = nullptr);
     double  get_stat_double(Stat, bool* isvalid = nullptr);
-    CString get_stat_string(Stat, bool* isvalid = nullptr);
+    dt::CString get_stat_string(Stat, bool* isvalid = nullptr);
 
     virtual size_t  nacount    (bool* isvalid = nullptr);
     virtual size_t  nunique    (bool* isvalid = nullptr);
@@ -177,7 +190,7 @@ class Stats
     virtual double  max_double (bool* isvalid = nullptr);
     virtual int64_t mode_int   (bool* isvalid = nullptr);
     virtual double  mode_double(bool* isvalid = nullptr);
-    virtual CString mode_string(bool* isvalid = nullptr);
+    virtual dt::CString mode_string(bool* isvalid = nullptr);
 
     py::oobj get_stat_as_pyobject(Stat);
     Column get_stat_as_column(Stat);
@@ -188,7 +201,7 @@ class Stats
     void set_stat(Stat, int64_t value, bool isvalid = true);
     void set_stat(Stat, size_t value, bool isvalid = true);
     void set_stat(Stat, double value, bool isvalid = true);
-    void set_stat(Stat, const CString& value, bool isvalid = true);
+    void set_stat(Stat, const dt::CString& value, bool isvalid = true);
 
     virtual void set_nacount(size_t value, bool isvalid = true);
     virtual void set_nunique(size_t value, bool isvalid = true);
@@ -204,7 +217,7 @@ class Stats
     virtual void set_max    (double  value, bool isvalid = true);
     virtual void set_mode   (int64_t value, bool isvalid = true);
     virtual void set_mode   (double  value, bool isvalid = true);
-    virtual void set_mode   (CString value, bool isvalid = true);
+    virtual void set_mode   (const dt::CString& value, bool isvalid = true);
 
 
   //---- Computing stats ---------------
@@ -382,15 +395,15 @@ extern template class NumericStats<int64_t>;
  */
 class StringStats : public Stats {
   private:
-    CString _mode;
+    dt::CString _mode;
 
   public:
     using Stats::Stats;
     size_t memory_footprint() const noexcept override;
     std::unique_ptr<Stats> clone() const override;
 
-    CString mode_string(bool* isvalid) override;
-    void set_mode(CString value, bool isvalid) override;
+    dt::CString mode_string(bool* isvalid) override;
+    void set_mode(const dt::CString& value, bool isvalid) override;
 
   protected:
     void compute_nacount() override;

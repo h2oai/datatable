@@ -23,10 +23,10 @@
 // for the details of Python API
 //------------------------------------------------------------------------------
 #include "python/int.h"
+#include "python/python.h"
 #include "python/slice.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-
 namespace py {
 
 
@@ -35,11 +35,11 @@ namespace py {
 //------------------------------------------------------------------------------
 
 oslice::oslice(int64_t start, int64_t stop, int64_t step) {
-  PyObject* ostart = (start == oslice::NA)? 
+  PyObject* ostart = (start == oslice::NA)?
                      nullptr : PyLong_FromLong(static_cast<long>(start));
-  PyObject* ostop  = (stop == oslice::NA)? 
+  PyObject* ostop  = (stop == oslice::NA)?
                      nullptr : PyLong_FromLong(static_cast<long>(stop));
-  PyObject* ostep  = (step == oslice::NA)? 
+  PyObject* ostep  = (step == oslice::NA)?
                      nullptr : PyLong_FromLong(static_cast<long>(step));
   v = PySlice_New(ostart, ostop, ostep);
   Py_XDECREF(ostart);

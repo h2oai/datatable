@@ -73,7 +73,7 @@ class Arg : public _obj::error_manager {
 
     //---- Type conversions ------------
     bool        to_bool_strict        () const;
-    CString     to_cstring            () const;
+    dt::CString to_cstring            () const;
     int32_t     to_int32_strict       () const;
     int64_t     to_int64_strict       () const;
     size_t      to_size_t             () const;
