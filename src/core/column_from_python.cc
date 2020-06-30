@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <algorithm>       // std::min
 #include <cstdlib>         // std::abs
 #include <cstring>         // std::memcpy
 #include <limits>          // std::numeric_limits

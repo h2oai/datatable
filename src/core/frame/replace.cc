@@ -718,5 +718,5 @@ Column ReplaceAgent::replace_strN(dt::CString* x, dt::CString* y,
 
 
 
-RESTORE_CLANG_WARNING()
+RESTORE_CLANG_WARNING("-Wpadded")
 }  // namespace py
