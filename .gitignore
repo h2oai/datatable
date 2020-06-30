@@ -52,3 +52,6 @@ microbench/groupby/groupby
 
 # Auto-generated files
 src/datatable/_build_info.py
+
+# vscode settings
+.vscode/settings.json

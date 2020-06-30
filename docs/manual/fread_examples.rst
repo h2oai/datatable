@@ -80,26 +80,6 @@ For excel files, you can specify the sheet to be read::
 
 The command line can be very handy with large data; you can do some of the preprocessing before reading in the data to ``datatable``.
 
-Dealing with Unicode Data
--------------------------
-
-You can specify the encoding via the ``encoding`` parameter; ``fread`` will recode into ``UTF-8`` before reading::
-
-    data = ("num,name\n"
-            "1,alïce\n"
-            "2,bøb\n"
-            "3,cárol\n"
-            )
-
-    fread(data, encoding = "latin-1")
-
-              num       name
-        0	1	alïce
-        1	2	bøb
-        2	3	cárol
-
-Check `here <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ for Python's list of standard encodings.
-
 Detect Thousand Separator
 -------------------------
 
